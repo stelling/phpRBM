@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>[%SUBJECT%]</title>
+		<style type="text/css">
+		<!--
+
+		body {
+			font-family: Tahoma, Arial, Verdana, Helvetica, sans-serif;
+			font-size: 9pt;
+			color: #000080;
+		}
+		
+		#container {
+			width: 750px;
+			margin: auto;
+			padding: 5px;
+		}
+		
+		#header {
+			width: 100%;
+			height: 125px;
+		}
+		
+		#logo {
+			width: 350px;
+			float: left;
+		}	
+		
+		#bestuurindeling {
+			width: 350px;
+			margin-top: 20px;
+			float: right;
+			text-align: right;
+		}
+		
+		#bestuurindeling p, #onderwerp p {
+			margin-top: 4px;
+			margin-bottom: 4px;
+			margin-right: 5px;
+		}
+		
+		#onderwerp {
+			width: 100%;
+			margin-top: 4px;
+			margin-bottom: 4px;
+			border-color: black;
+			border-width: 1px;
+			border-top-style: solid;
+			border-bottom-style: solid;
+		}
+		
+		#bericht {
+			width: 100%;
+		}
+		
+		img {
+			border-style: none;
+			height: 125px;
+			margin-left: 5px;
+		}
+
+		#bestuurindeling a, #bestuurindeling a:visited {
+			color: #000080;
+			text-decoration: none;
+		}
+
+		a:hover {
+			border-top-style: solid;
+			border-bottom-style: solid;
+			border-width: 1px;
+		}
+		
+		label {
+			font-weight: bold;
+			padding-right: 5px;
+		}
+		-->
+		</style>
+	</head>
+	<body>
+		
+	<div id="container">
+		<div id="header">
+			<div id="logo">
+				
+			</div> <!--Einde logo -->
+			
+			<div id="bestuurindeling">
+				<p><label>Voorzitter:</label>Jan Hamer</p>
+				<p><label>Secretaris:</label>Truus de Schrijver</p>
+				<p><label>Penningmeester:</label>Harry Teller</p>
+				<p><label>Bankrelatie:</label>Grijpgraag 123456789</p>
+				<p><label>Website:</label><a href='http://phprbm.telling.nl/'>phpRBM</a></p>
+			</div>  <!--Einde bestuurindeling -->
+		</div> <!--Einde header -->
+		
+		<div id="onderwerp">
+			<p><label>Van:</label>[%FROM%]</p>
+			<p><label>Aan:</label>[%TO%]</p>
+			<p><label>Onderwerp:</label>[%SUBJECT%]</p>
+		</div> <!--Einde onderwerp-->
+			
+		<div id="bericht">
+[%MESSAGE%]
+		</div> <!--Einde bericht -->
+	</div> <!--Einde container -->
+	
+	</body>
+</html>

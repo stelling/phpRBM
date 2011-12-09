@@ -1,0 +1,462 @@
+body {
+	font-family: Tahoma, Arial, Verdana, Helvetica, sans-serif;
+	font-size: 9pt;
+	color: #000080;
+}
+
+h1 {
+	font-weight: bold;
+	font-size: 18pt;
+	margin-top: 2px;
+	margin-bottom: 2px;
+}
+
+h2, h3 {
+	margin-bottom: 1px;
+}
+
+img {
+	border-style: none;
+}
+
+tr {
+	vertical-align: middle;
+}
+
+td, th {
+	padding: 3px;
+	border-style: solid;
+	border-width: 1px;
+	background-color: #FFFF99;
+	border-color: #000080;
+	vertical-align: middle;
+}
+
+th {
+	background-color: #00FFFF;
+}
+
+ul {
+	margin-top: 1px;
+	margin-bottom: 1px;
+}
+
+li {
+	margin-left: 0;
+	padding-left: 3px;
+}
+
+p {
+	margin-top: 1px;
+	margin-bottom: 6px;
+}
+
+footer, #footer {
+	clear: both;
+	background-color: #CFCFCF;
+	width: 100%;
+	height: 22px;
+	text-align: center;
+	margin-top: 15px;
+	margin-bottom: 10px;
+	padding-top: 8px;
+	padding-left: 6px;
+	padding-right: 6px;
+	font-style: italic;
+	font-size: 9pt;
+   border-top-right-radius: 12px;
+   border-top-left-radius: 12px;
+   border-bottom-right-radius: 12px;
+   border-bottom-left-radius: 12px;
+}
+
+footer a, #footer a, footer a:visited, #footer a:visited {
+	text-decoration: none;
+	color: #000080;
+}
+
+#container {
+	width: 960px;
+	margin-left: auto;
+	margin-right: auto;
+	padding-left: 0;
+	padding-right: 0;
+}
+
+#header {
+	width: 100%;
+	height: 58px;
+	margin-bottom: 0;
+	padding-top: 5px;
+	padding-left: 4px;
+	padding-right: 4px;
+	background-color: #00FFFF;
+	color: #000080;
+   border-top-right-radius: 12px;
+   border-top-left-radius: 12px;
+}
+
+#header h1 {
+	float: left;
+}
+
+#header a, #header a:visited, #header a:hover {
+	text-decoration: none;
+	color: #000080;
+}
+
+#welkomstekst {
+	padding-top: 8px;
+	padding-left: 8px;
+}
+#kolomlinks, #kolomrechts {
+	width: 470px;
+	margin-left: 0;
+	margin-right: 0;
+	padding-left: 0;
+	padding-right: 0;
+}
+
+#kolomlinks {
+	float: left;
+	background-color: transparent;
+}
+
+#kolomrechts {
+	float: right;
+	clear: right;
+}
+
+
+#filter {
+	width: 100%;
+	margin-top: 4px;
+	margin-bottom: 4px;
+	padding: 4px;
+	border-style: solid;
+	border-color: #000080;
+	border-width: 1px;
+}
+
+#filter table {
+	width: 100%;
+}
+
+#formulier {
+	position: relative;
+}
+
+#formulier table {
+	min-width: 300px;
+}
+
+#pasfoto {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	padding: 12px;
+	border-style: dashed;
+	border-width: 1px;
+	border-color: inherit;
+	max-width: 325px;
+	text-align: center;
+   border-top-right-radius: 12px;
+   border-top-left-radius: 12px;
+   border-bottom-right-radius: 12px;
+   border-bottom-left-radius: 12px;
+}
+
+#pasfoto img {
+	max-width: 300px;
+}
+
+#invulformulier table {
+	margin-left: auto;
+	margin-right: auto;
+	margin-top: 10px;
+}
+
+#wijzigengegevens table {
+	margin-top: 8px;
+}
+
+#wijzigengegevens img {
+	max-width: 250px;
+}
+
+#lijst {
+	margin-top: 6px;
+}
+
+#lijst table {
+	min-width: 450px;
+}
+
+#lijst td, #lijst th {
+	padding-left: 6px;
+	padding-right: 6px;
+}
+
+#login {
+	float: right;
+	margin-top: 0;
+	margin-right: 0;
+	padding-left: 3px;
+	padding-bottom: 3px;
+	text-align: left;
+	border-left: 1px;
+	border-right: 0;
+	border-top: 0;
+	border-bottom: 1px;
+	border-style: solid;
+   border-bottom-left-radius: 9px;
+}
+
+#login img {
+	height: 18px;
+	border: 0;
+	margin-left: 6px;
+}
+
+#openid {
+	margin-top: 20px;
+	margin-left: auto;
+	margin-right: auto;
+	padding: 5px;
+	border-style: solid;
+	border-width: 1px;
+   border-top-right-radius: 12px;
+   border-top-left-radius: 12px;
+   border-bottom-right-radius: 12px;
+   border-bottom-left-radius: 12px;
+}
+
+#openid h3 {
+	margin-top: 1px;
+}
+
+#openid img {
+	height: 12px;
+}
+
+.wieiswie-onderdeelnaam , .wieiswie-onderdeelemail, #bewakingsrooster h2, #bewakingsrooster h3 {
+	margin-top: 15px;
+	padding-top: 3px;
+	padding-bottom: 1px;
+	font-weight: bolder;
+	font-size: 16pt;
+}
+
+.wieiswie-onderdeelnaam {
+	float: left;
+}
+
+.wieiswie-onderdeelemail {
+	float: right;
+}
+
+#bewakingsrooster h3 {
+	background-color: #00FFFF;
+}
+
+#wieiswie a, #wieiswie a:visited, #bewakingsrooster a, #bewakingsrooster a:visited {
+	color: #000080;
+	text-decoration: none;
+}
+
+#mailing table {
+	width: 100%;
+}
+
+#footerleft {
+	float: left;
+	margin-top: 0;
+}
+
+#footerright {
+	float: right;
+	margin-top: 0;
+}
+
+#handleiding {
+	font-size: 10pt;
+	padding-top: 8px;
+	padding-left: 8px;
+}
+
+#handleiding img {
+	margin-top: 10px;
+}
+
+#handleiding ul {
+	padding-left: 14px;
+}
+
+#handleiding li {
+	margin-top: 4px;
+	margin-bottom: 4px;
+}
+
+#opdrachtknoppen {
+	margin-top: 8px;
+	margin-bottom: 2px;
+	text-align: center;
+	border-style: solid;
+	border-width: 1px;
+   border-top-right-radius: 12px;
+   border-top-left-radius: 12px;
+   border-bottom-right-radius: 12px;
+   border-bottom-left-radius: 12px;
+	
+}
+
+.clear {
+	clear: both;
+	height: 3px;
+}
+
+.label {
+	text-align: right;
+	background-color: #00FFFF;
+}
+
+.number {
+	text-align: right;
+}
+
+.tablist1, .tablist2 {
+    list-style: none; 
+    height: 18px;
+    padding: 0; 
+    margin: 0; 
+    border: none;
+}
+
+.tablist1 li, .tablist2 li {
+   float: left;
+	font-style: normal;
+	font-size: 11pt;
+	margin-top: 5px;
+	margin-left: 2px;
+   margin-right: 2px;
+   display: block;
+   padding-left: 5px;
+	padding-right: 5px;
+   border-width: 1px;
+	border-style: solid;
+	border-color: #000;
+   border-bottom: 0;
+   background-color: #00FFFF;
+   border-top-right-radius: 9px;
+   border-top-left-radius: 9px;
+}
+
+.tablist1 li.current, .tablist2 li.current {
+   background-color: #cfcfcf;
+}
+
+.tablist1 li a, .tablist1 li a:visited, .tablist2 li a, .tablist2 li a:visited  {
+   text-decoration: none;
+	color: #000080;
+}
+
+.done {
+	text-decoration: line-through;
+	color: green;
+}
+
+.mededeling, .mededeling a {
+	font-size: 13pt;
+	color: red;
+	text-align: center;
+}
+
+.debug {
+	font-size: 11pt;
+	color: orange;
+}
+
+.listmergefields, .listrecipients {
+   list-style: none;
+	padding-left: 3px;
+	padding-right: 3px;
+	text-align: left;
+	margin-top: 0;
+}
+
+.listmergefields li, .listrecipients li {
+	float: left;
+	width: 200px;
+	margin-left: 1px;
+	padding-left: 3px;
+}
+
+.jarige {
+	margin-top: 10px;
+	height: 80px;
+	line-height: 80px;
+}
+
+.jarige img, .kaartje img, .bewaker img {
+	float: left;
+	height: 82px;
+	margin-right: 4px;
+}
+
+.kaartje, .bewaker {
+	float: left;
+	height: 82px;
+	width: 310px;
+	border-style: solid;
+	border-width: 1px;
+	border-left-style: none;
+	margin-top: 10px;
+	margin-left: 3px;
+	margin-right: 3px;
+	padding-right: 1px;
+	background-color: #FFFF99;
+   border-top-right-radius: 9px;
+   border-bottom-right-radius: 9px;
+}
+
+.bewaker {
+	width: 304px;
+	margin-left: 6px;
+	margin-right: 6px;
+	padding-right: 3px;
+}
+
+.kaderlid p, .bewaker p {
+	margin-top: 6px;
+	margin-bottom: 6px;
+}
+
+.naamkaderlid, .bewnaam {
+	font-size: 10pt;
+	font-weight: bolder;
+	text-align: center;
+}
+
+.naamkaderlid {
+	font-size: 11pt;
+}
+
+.functiekaderlid, .mailkaderlid {
+	margin-left: 4px;
+}
+
+.bewfunctie {
+	text-align: center;
+}
+
+.bewleeftijd {
+	float: left;
+	margin-top: 3px;
+	margin-left: 4px;
+}
+
+.bewervaring {
+	float: right;
+	margin-top: 3px;
+	text-align: right;
+}
