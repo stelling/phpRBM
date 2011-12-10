@@ -4,7 +4,7 @@ session_start();
 date_default_timezone_set('Europe/Amsterdam');
 setlocale(LC_ALL,'nl_NL@euro');
 
-if ((isset($_SESSON['webmaster']) and $_SESSON['webmaster'] == 1) or 1 == 2) {
+if ((isset($_SESSON['webmaster']) and $_SESSON['webmaster'] == 1) or $_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 	error_reporting(E_ALL);
 } else {
 	error_reporting(0);
@@ -29,7 +29,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		$tabpages[] = "Downloaden wijzigingen";
 	}
 	$tabpages[] = "DB backup";
-	$tabpages[] = "Overzicht actviteiten";
+	$tabpages[] = "Logboek";
 	$tabpages[] = "Beginpagina";
 } else {
 	$tabpages[] = "Verenigingsinfo";
@@ -115,7 +115,6 @@ if (isset($_GET['tp']) and strlen($_GET['tp']) > 1) {
 	$curtab[0] = $tabpages[0];
 	$_GET['tp'] = $tabpages[0];
 }
-// print_r($curtab);
 
 $query = "SET lc_time_names = 'nl_NL';";
 fnQuery($query);
@@ -123,7 +122,7 @@ fnQuery($query);
 $pasfotoextenties = array('gif', 'jpg', 'jpeg', 'bmp', 'png', 'GIF', 'JPG', 'JPEG', 'BMP', 'PNG');
 
 function HTMLheader() {
-	global $naamwebsite, $urlwebsite, $naamvereniging, $tabpages, $gebruikopenid;
+	global $naamwebsite, $urlwebsite, $naamvereniging, $tabpages;
 	global $currenttab, $currenttab2;
 	
 	if (isset($_GET['tp']) and strlen($_GET['tp']) > 1) {
@@ -182,7 +181,7 @@ function HTMLheader() {
 				echo("<a href='admin.php'><img src='images/admin.png' title='Beheerdersmenu'></a>\n");
 			}
 		} else {
-			if ($gebruikopenid == 1) {
+			if (isset($gebruikopenid) and $gebruikopenid == 1) {
 				echo("Login: <input type='text' name='username' size=25 maxlength=50>\n");
 			} else {
 				echo("Login: <input type='text' name='username' size=15 maxlength=15>\n");
@@ -472,6 +471,9 @@ function fnDiplayTable($rows, $link="", $th="", $disptot=0, $link_lk="") {
 }
 
 function debug($tekst="debug", $alleenwm=1, $alert=0) {
+	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
+		$alleenwm = 0;
+	}
 	if ($alleenwm != 1 or (isset($_SESSION['webmaster']) and $_SESSION['webmaster'] == 1)) {
 		if ($alert == 1) {
 			printf("<script>alert('Debug: %s');</script>\n", $tekst);
