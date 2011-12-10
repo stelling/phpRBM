@@ -112,7 +112,7 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 	echo("<script>\n");
 	printf("setTimeout(\"location.href='%s';\", 10000);\n", $_SERVER['PHP_SELF']);
 	echo("</script>\n");
-} elseif ($currenttab == "Overzicht actviteiten" and toegang($_GET['tp'])) {
+} elseif ($currenttab == "Logboek" and toegang($_GET['tp'])) {
 	echo(fnDiplayTable(db_lijstactiviteiten()));
 } elseif ($currenttab == "Beginpagina") {
 	echo("<script>location.href='/';</script>\n");
