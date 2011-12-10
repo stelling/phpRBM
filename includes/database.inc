@@ -1164,7 +1164,7 @@ CREATE TABLE IF NOT EXISTS `Admin_activiteit` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `LidID` int(11) NOT NULL,
   `DatumTijd` datetime NOT NULL,
-  `Omschrijving` varchar(100) CHARACTER SET latin1 NOT NULL,
+  `Omschrijving` varchar(150) CHARACTER SET latin1 NOT NULL,
   `TypeActiviteit` tinyint(4) DEFAULT '0',
   `IP_adres` char(15) NOT NULL,
   `USER_AGENT` varchar(110) DEFAULT NULL,
@@ -1583,6 +1583,12 @@ function db_backup() {
 	$buname = $db_name . "_backup_" . Date("Y-m-d-H");
 	if (!isset($db_folderbackup) or strlen($db_folderbackup) < 5) {
 		$db_folderbackup = str_replace($_SERVER['PHP_SELF'], "", $_SERVER["SCRIPT_FILENAME"]) . "/backups/";
+		if (!file_exists($db_folderbackup)) {
+			if (mkdir($db_folderbackup, 0755, true) == true) {
+				$ret = sprintf("Directory '%s' is aangemaakt.", $db_folderbackup);
+				db_add_activiteit($ret, 3);
+			}
+		}
 	} elseif (substr($db_folderbackup, -1) != "/") {
 		$db_folderbackup .= "/";
 	}
@@ -1616,7 +1622,7 @@ function db_backup() {
 				if ($file != "." and $file != "..") {
 					if (filectime($db_folderbackup . "/" . $file) < mktime(0, 0, 0, date("m"), date("d")-$db_backupsopschonen, date("Y")) or filesize($db_folderbackup . "/" . $file) < 500 ) {
 						unlink($db_folderbackup . "/" . $file);
-						$mess = sprintf("Bestand %s is verwijderd. ", $db_folderbackup . "/" . $file);
+						$mess = sprintf("Bestand %s is verwijderd. ", $db_folderbackup . $file);
 						db_add_activiteit($mess, 3);
 						$ret .= "<br>\n" . $mess;
 					}
