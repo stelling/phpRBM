@@ -1,6 +1,6 @@
 <?php
 
-require_once("includes/class.openid.v3.php");
+// require_once("includes/class.openid.v3.php");
 
 if (!isset($_SESSION['username']) or !isset($_SESSION['password'])) {
 	if (isset($_COOKIE['username']) and strlen($_COOKIE['username']) >= 5) {
