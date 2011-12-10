@@ -3,7 +3,7 @@
 class mailing {
 	public $mid;
 	
-	public $allowed_ext = "gif, jpeg, jpg, pdf, png, pps, rar, zip";
+	public $allowed_ext = "gif, jpeg, jpg, pdf, png, pps, rar, txt, zip";
 	public $dir_attachm = "/attachments";
 	public $max_size_attachm = 2097152; // 2MB
 	public $template_bestand = "";
@@ -317,7 +317,7 @@ class mailing {
 						echo("<tr>\n<td>" . $entry . "</td>\n");
 						$stat = stat($ad . "/" . $entry);
 						echo("<td>" . number_format(($stat['size'] / 1024), 0, ',', '.') . " KB</td>\n");
-						$lnk = sprintf("%s?tp=%s&op=del_attach&mid=%d&attach=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, $entry);
+						$lnk = sprintf("%s?tp=%s&op=del_attach&mid=%d&attach=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, str_replace(".", "!", $entry));
 						printf("<td><a href='%s'><img src='/images/delete.gif' alt='kruis' title='Verwijder'></a></td>\n", $lnk);
 						echo("</tr>\n");
 					}
@@ -480,36 +480,38 @@ class mailing {
 	public function upload() {
 	
 		if (isset($_FILES['UploadFile']['name']) and strlen($_FILES['UploadFile']['name']) > 3 and $this->mid > 0) {
-			$ad = $this->dir_attachm . "/" . $this->mid;
-			$d = dir($this->dir_attachm);
-			$exist = 0;
-			while (false !== ($entry = $d->read())) {
-				if ($entry == $this->mid) {
-					$exist = 1;
+			$ad = $this->dir_attachm . "/" . $this->mid . "/";
+			if (!file_exists($ad)) {
+				if (mkdir($ad, 0755, true) == true) {
+					$ret = sprintf("Directory '%s' is aangemaakt.", $ad);
+					db_add_activiteit($ret, 3);
+				} else {
+					$ret = sprintf("Directory '%s' bestaat niet en kan niet aangemaakt worden. Waarschijnlijk een rechtenprobleem.", $ad);
+					db_add_activiteit($ret, 3);
+					$ad = "";
 				}
+			} else {
+				chmod($ad, 0755);
 			}
-			$d->close();
-			if ($exist == 0) {
-				mkdir($ad);
-			}
-			chmod($ad, 0755);
 
-			$target = $this->dir_attachm . "/" . $this->mid . "/" . $_FILES['UploadFile']['name'];
+			$target = $ad . $_FILES['UploadFile']['name'];
 			$ext = explode(".", $_FILES['UploadFile']['name']);  
-			$ext = strtolower($ext[count($ext) - 1]); 
-			if (strpos($this->allowed_ext, $ext) === false) {
+			$ext = strtolower($ext[count($ext) - 1]);
+			if (strlen($ad) == 0) {
+				printf("<script>\nalert(\"%s\")\n</script>\n", $ret);
+			} elseif (strpos($this->allowed_ext, $ext) === false) {
 				printf("<script>\nalert(\"Het bestand met extensie %s kan niet worden bijgesloten, omdat de extensie niet toegestaan is. Alleen de volgende extensies zijn toegestaan: %s\")\n</script>\n", $ext, $this->allowed_ext);
 			} elseif ($_FILES['UploadFile']['size'] > $this->max_size_attachm) {
 				echo("<script>\nalert(\"Het bestand kan niet worden bijgesloten, omdat het te groot is.\")\n</script>\n");
 			} else {
 				move_uploaded_file($_FILES['UploadFile']["tmp_name"], $target);
-			}  
+			} 
 		}
 	}
 	
 	public function attach_delete($attach) {
 		$ad = $this->dir_attachm . "/" . $this->mid . "/";
-		unlink($ad . $attach);
+		unlink($ad . str_replace("!", ".", $attach));
 	}
 	
 	public function add_lid($lidid, $addr="") {
