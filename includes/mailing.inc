@@ -8,6 +8,7 @@ class mailing {
 	public $max_size_attachm = 2097152; // 2MB
 	public $template_bestand = "";
 	public $bestand_briefpapier = "templates/briefpapier.html";
+	public $vertraging_tussen_verzenden = 120; // in seconden
 	
 	private $MergeField;
 	private $contains_mergefield = false;
@@ -336,6 +337,10 @@ class mailing {
 				$meldingen .= "Het onderwerp is leeg en dat moet ingevuld zijn.<br>\n";
 				$verzendenmag = false;
 			}
+			if (strtotime($ml->sent_on) > (time() - $this->vertraging_tussen_verzenden)) {
+				$meldingen .= sprintf("Deze mailing is korter dan %d minuten geleden verzonden.<br>\n", $this->vertraging_tussen_verzenden/60);
+				$verzendenmag = false;
+			}
 			
 			if (!file_exists($this->bestand_briefpapier)) {
 				$meldingen .= sprintf("Het bestand %s bestaat niet. Neem hierover contact op met de beheerder.<br>\n", $this->bestand_briefpapier);
@@ -441,7 +446,9 @@ class mailing {
 			$setclause .= sprintf(", from_addr='%s'", strtolower($_POST['from_addr']));
 		}
 		if (isset($_POST['cc_addr']) and strlen($_POST['cc_addr']) > 5) {
-			$setclause .= sprintf(", cc_addr='%s'", strtolower($_POST['cc_addr']));
+			$cc = str_replace(" ", "", strtolower($_POST['cc_addr']));
+			$cc = str_replace(";", ",", $cc);
+			$setclause .= sprintf(", cc_addr='%s'", $cc);
 		} else {
 			$setclause .= ", cc_addr=''";
 		}
@@ -545,7 +552,7 @@ class mailing {
 		}
 	}
 	
-	public function Add_groep($groepid) {
+	public function add_groep($groepid) {
 		$query = sprintf("SELECT Lid FROM Lidond AS LO"
 				 . " WHERE OnderdeelID=%d AND LO.Lid NOT IN (SELECT R.LidID FROM Mailing_rcpt AS R WHERE R.LidID=LO.Lid AND R.MailingID=%d)"
 				 . " AND LO.Vanaf <= SYSDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd > SYSDATE());", $groepid, $this->mid);
@@ -576,7 +583,13 @@ class mailing {
 	}	
 	
 	public function send() {
-		$this->send_mailing(0);
+	
+		$ml = db_mailing("", $this->mid);
+		if (strtotime($ml->sent_on) > (time() - $this->vertraging_tussen_verzenden)) {
+			printf("<p class='Mededeling'>Deze mailing is korter dan %d minuten geleden verzonden en wordt daarom niet nogmaals verzonden.</p>\n", $this->vertraging_tussen_verzenden/60);
+		} else {
+			$this->send_mailing(0);
+		}
 	}
 	
 	private function send_mailing($preview=0) {
@@ -590,8 +603,10 @@ class mailing {
 		$mail->From = $row->from_addr;
 		$mail->FromName = $row->from_name;
 		$mail->Subject = $row->subject;
-		if (isValidMailAddress($row->cc_addr, 0)) {
-			$mail->AddCC($row->cc_addr);
+		foreach (explode(",", $row->cc_addr) as $v) {
+			if (isValidMailAddress($v, 0)) {
+				$mail->AddCC($v);
+			}
 		}
 		
 		$ad = $this->dir_attachm . "/" . $this->mid;
@@ -675,9 +690,10 @@ class mailing {
 			$this->mailbericht = str_ireplace("[%TO%]", "", $this->mailbericht);
 			$mail->MsgHTML($this->mailbericht . $summary);
 			$mail->Subject = "Resultaat mailing: " . $mail->Subject;
-			$mail->AddAddress($this->detailssender("emlE-mail"));
-			if (strtolower($mail->From) != $this->detailssender("emlE-mail")) {
+			if (isValidMailAddress($mail->From, 0)) {
 				$mail->AddAddress($mail->From, $mail->FromName);
+			} else {
+				$mail->AddAddress($this->detailssender("emlE-mail"));
 			}
 			if (isset($emailsecretariaat) and isValidMailAddress($emailsecretariaat, 0)) {
 				$mail->AddCC($emailsecretariaat);

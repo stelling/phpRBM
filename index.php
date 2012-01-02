@@ -1161,6 +1161,7 @@ function fnKostenoverzicht() {
 
 function fnMailing() {
 	global $ldl, $currenttab2;
+	
 		
 	if (isset($_POST['Upload']) and $_POST['Upload'] == "Upload") {
 		$op = "upload";
@@ -1275,6 +1276,8 @@ function fotolid($lidid) {
 			$fn = sprintf("pasfoto/Pasfoto%d.%s", $lidid, $ext);
 		} elseif (file_exists(sprintf("pasfoto/pasfoto%d.%s", $lidid, $ext))) {
 			$fn = sprintf("pasfoto/pasfoto%d.%s", $lidid, $ext);
+		} elseif (file_exists(sprintf("Pasfoto/Pasfoto%d.%s", $lidid, $ext))) {
+			$fn = sprintf("Pasfoto/Pasfoto%d.%s", $lidid, $ext);
 		}
 		
 	}
