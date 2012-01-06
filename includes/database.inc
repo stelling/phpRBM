@@ -11,7 +11,7 @@ $arrTables[] = "Diploma";
 $arrTables[] = "Functie";
 $arrTables[] = "GBR";
 $arrTables[] = "Lid";
-$arrTables[] = "Lidbew";
+$arrTables[] = "Memo";
 $arrTables[] = "Liddipl";
 $arrTables[] = "Lidmaatschap";
 $arrTables[] = "Lidond";
@@ -20,8 +20,11 @@ $arrTables[] = "Mailing";
 $arrTables[] = "Mailing_hist";
 $arrTables[] = "Mailing_rcpt";
 $arrTables[] = "Mutatie";
+$arrTables[] = "Kostenplaats";
 $arrTables[] = "Onderdl";
 $arrTables[] = "Rekening";
+$arrTables[] = "DMS_Document";
+$arrTables[] = "DMS_Folder";
 
 $TypeActiviteit[] = "N.T.B.";
 $TypeActiviteit[] = "Inloggen/Uitloggen";
@@ -30,6 +33,7 @@ $TypeActiviteit[] = "DB backup";
 $TypeActiviteit[] = "Mailing";
 $TypeActiviteit[] = "Autorisaties";
 $TypeActiviteit[] = "Self-service";
+$TypeActiviteit[99] = "Debugging";
 
 $fdlang = "'%e %M %Y'";
 $fdkort = "'%e-%c-%Y'";
@@ -103,13 +107,13 @@ if (!isset($_SESSION['aantalmutaties'])) {
 }
 
 if (!isset($_SESSION['aantalkostenplaatsen'])) {
-	$query = "SELECT COUNT(DISTINCT KSTNPLTS) FROM Mutatie WHERE LENGTH(KSTNPLTS) > 0;";
+	$query = "SELECT COUNT(DISTINCT KostenplaatsID) FROM Mutatie WHERE KostenplaatsID > 0;";
 	$result = fnQuery($query);
 	$_SESSION['aantalkostenplaatsen'] = $result->fetchColumn();
 }
 
 function fnQueryPDO($query) {
-	debug("fnQueryPDO", 1, 1);
+	debug("fnQueryPDO: " . $query, 1, 1, 1);
 	return fnQuery($query);
 }
 
@@ -214,7 +218,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					LO.Vanaf AS dteVanaf,
 					F.Omschrijv AS Functie,
 					LO.Opmerk AS Opmerking,
-					LO.Opgezegd AS dteOpgezegd,
+					LO.Opgezegd AS dteTotenmet,
 					CONCAT(ROUND(DATEDIFF(IF(LO.Opgezegd IS NULL, CURDATE(), LO.Opgezegd), LO.Vanaf)/365.25, 0), ' jaar') AS numDuur
 					FROM %s
 					WHERE O.Kader=1 AND LO.Lid=%d
@@ -236,13 +240,11 @@ function db_gegevenslid($LidID, $soort="Alg") {
 				 . " WHERE %s AND O.`Type`='G' AND O.GekoppeldAanQuery=0 AND LO.Lid=%d"
 				 . " ORDER BY LO.Vanaf, O.Kode;", $fromlidond, $wherelidond, $LidID);
 	} elseif ($soort == "Lidbew") {
-		$tw = "CONVERT((SELECT SUM(DATEDIFF(EINDE_PER, BEGIN_PER)+1) FROM Bewaking AS BW WHERE BW.Lid = LB.Lid AND BEGIN_PER < SYSDATE())/7, SIGNED)";
-		$ts = "(SELECT COUNT(DISTINCT SeizoenID) FROM Bewaking AS BW WHERE BW.Lid = LB.Lid AND BEGIN_PER < CURDATE())";
-		$query = sprintf("SELECT Opmerking,"
-				 . " Dieet,"
-				 . " CONCAT(%s, ' weken in ', %s, ' seizoen(en)')  AS `Totale bewaking`"
-				 . " FROM Lidbew AS LB"
-				 . " WHERE Lid=%d;", $tw, $ts, $LidID);
+		$tw = sprintf("CONVERT((SELECT SUM(DATEDIFF(EINDE_PER, BEGIN_PER)+1) FROM %sBewaking AS BW WHERE BW.Lid = %d AND BEGIN_PER < SYSDATE())/7, SIGNED)", $table_prefix, $LidID);
+		$ts = sprintf("(SELECT COUNT(DISTINCT SeizoenID) FROM %sBewaking AS BW WHERE BW.Lid = %d AND BEGIN_PER < CURDATE())", $table_prefix, $LidID);
+		$query = sprintf("SELECT CONCAT(%1\$s, ' weken in ', %2\$s, ' seizoen(en)') AS `Totale bewaking`,
+								(SELECT Memo FROM %3\$sMemo WHERE Soort='B' AND Lid=%4\$d) AS Opmerking,
+								(SELECT Memo FROM %3\$sMemo WHERE Soort='D' AND Lid=%4\$d) AS Dieet;", $tw, $ts, $table_prefix, $LidID);
 	} elseif ($soort == "Bew") {
 		$query = sprintf("SELECT BS.Kode AS Seizoen,"
 				 . " Weeknr AS intWeek,"
@@ -251,7 +253,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 				 . " DATEDIFF(EINDE_PER, BEGIN_PER) + 1 AS intDagen,"
 				 . " Post,"
 				 . " F.Omschrijv AS Functie"
-				 . ' FROM Bewseiz AS BS INNER JOIN (%1$sBewaking AS BW INNER JOIN Functie AS F ON BW.Functie = F.Nummer) ON BS.RecordID = BW.SeizoenID'
+				 . ' FROM %1$sBewseiz AS BS INNER JOIN (%1$sBewaking AS BW INNER JOIN %1$sFunctie AS F ON BW.Functie = F.Nummer) ON BS.RecordID = BW.SeizoenID'
 				 . ' WHERE Lid=%2$d'
 				 . " ORDER BY BS.Begindatum DESC, BS.Lokatie, BW.BEGIN_PER DESC;", $table_prefix, $LidID);
 	} elseif ($soort == "Rekening") {
@@ -862,8 +864,8 @@ function db_mutatie($jaar, $gbr="*", $kpl="*") {
 	if ($gbr != "*" and strlen($gbr) > 0) {
 		$where .= sprintf(" AND M.GBR='%s'", $gbr);
 	}
-	if ($kpl != "*" and strlen($kpl) > 0 and $kpl != "*") {
-		$where .= sprintf(" AND M.KSTNPLTS='%s'", $kpl);
+	if ($kpl != "*" and strlen($kpl) > 0 and is_numeric($kpl)) {
+		$where .= sprintf(" AND M.KostenplaatsID=%d", $kpl);
 	}
 	
 	if ($_SESSION['aantalkostenplaatsen'] > 0 and (strlen($kpl) == 0 or $kpl == "*")) {
@@ -872,9 +874,9 @@ function db_mutatie($jaar, $gbr="*", $kpl="*") {
 		$sel_kpl = "";
 	}
 
-	$query = sprintf('SELECT J.Kode AS Jaar, CONCAT(GBR, ' - ', GBR.OMSCHRIJV) AS Grootboekrekening%1$s, Datum AS dteDatum, M.OMSCHRIJV AS Omschrijving, Debet-Credit AS curBedrag'
-			 . ' FROM (%2$sMutatie AS M INNER JOIN %2$sGBR ON M.GBR = GBR.Kode) INNER JOIN %2$sBoekjaar AS J ON M.BoekjaarID = J.RecordID WHERE %3$s'
-			 . " ORDER BY Jaar, GBR, M.KSTNPLTS, Datum;", $sel_kpl, $table_prefix, $where);
+	$query = sprintf("SELECT J.Kode AS Jaar, CONCAT(GBR.Kode, ' - ', GBR.OMSCHRIJV) AS Grootboekrekening%1\$s, Datum AS dteDatum, M.OMSCHRIJV AS Omschrijving, Debet-Credit AS curBedrag
+							FROM ((%2\$sMutatie AS M LEFT OUTER JOIN %2\$sKostenplaats AS KPL ON M.KostenplaatsID = KPL.RecordID) INNER JOIN %2\$sGBR AS GBR ON M.GBR = GBR.Kode) INNER JOIN %2\$sBoekjaar AS J ON M.BoekjaarID = J.RecordID WHERE %3\$s
+							ORDER BY J.Kode, GBR.Kode, KPL.Kode, Datum;", $sel_kpl, $table_prefix, $where);
 	$result = fnQuery($query);
 	return $result->fetchAll();
 }
@@ -897,6 +899,7 @@ function db_lijstactiviteiten() {
 	
 	$query = sprintf("SELECT A.DatumTijd as `dttDatum en tijd`, Omschrijving, IP_adres, %1\$s AS `Ingelogd Lid`
 							FROM %2\$sAdmin_activiteit AS A LEFT OUTER JOIN %2\$sLid AS L ON A.LidID = L.Nummer
+							WHERE TypeActiviteit <> 99
 							ORDER BY A.DatumTijd DESC LIMIT 35;", $selectnaam, $table_prefix);
 	$result = fnQuery($query);
 	return $result->fetchAll();
@@ -1197,11 +1200,11 @@ CREATE TABLE IF NOT EXISTS `Admin_login` (
 
 CREATE TABLE IF NOT EXISTS `Bewaking` (
   `RecordID` int(11) DEFAULT NULL,
-  `Lid` int(11) DEFAULT NULL,
+  `Lid` int(11) NOT NULL DEFAULT '0',
   `Seizoen` varchar(5) DEFAULT NULL,
-  `SeizoenID` int(11) DEFAULT NULL,
+  `SeizoenID` int(11) NOT NULL DEFAULT '0',
   `Weeknr` tinyint(4) DEFAULT NULL,
-  `BEGIN_PER` date DEFAULT NULL,
+  `BEGIN_PER` date NOT NULL DEFAULT '0000-00-00',
   `EINDE_PER` date DEFAULT NULL,
   `Post` varchar(7) DEFAULT NULL,
   `Status` varchar(1) DEFAULT NULL,
@@ -1209,11 +1212,12 @@ CREATE TABLE IF NOT EXISTS `Bewaking` (
   `Opmerking` varchar(50) DEFAULT NULL,
   `Beoordeling` longtext,
   `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
+  `Gewijzigd` datetime DEFAULT NULL,
+  PRIMARY KEY (`SeizoenID`,`Lid`,`BEGIN_PER`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `Bewseiz` (
-  `RecordID` int(11) DEFAULT NULL,
+  `RecordID` int(11) NOT NULL DEFAULT '0',
   `Kode` varchar(5) DEFAULT NULL,
   `Begindatum` date DEFAULT NULL,
   `Einde` date DEFAULT NULL,
@@ -1227,7 +1231,9 @@ CREATE TABLE IF NOT EXISTS `Bewseiz` (
   `TOONERV` varchar(1) DEFAULT NULL,
   `Posten` varchar(30) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
+  `Gewijzigd` datetime DEFAULT NULL,
+  PRIMARY KEY (`RecordID`),
+  UNIQUE KEY `Kode` (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `Boekjaar` (
@@ -1243,7 +1249,7 @@ CREATE TABLE IF NOT EXISTS `Boekjaar` (
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `Diploma` (
-  `RecordID` int(11) DEFAULT NULL,
+  `RecordID` int(11) NOT NULL DEFAULT '0',
   `Kode` varchar(6) DEFAULT NULL,
   `Naam` varchar(75) DEFAULT NULL,
   `Type` varchar(1) DEFAULT NULL,
@@ -1261,36 +1267,13 @@ CREATE TABLE IF NOT EXISTS `Diploma` (
   `Tonen in bewakingsadministratie` tinyint(4) DEFAULT NULL,
   `RolID` int(11) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
+  `Gewijzigd` datetime DEFAULT NULL,
+  PRIMARY KEY (`RecordID`),
+  UNIQUE KEY `Kode` (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `DMS_Document` (
-  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
-  `Bestandsnaam` varchar(30) COLLATE utf8_unicode_ci NOT NULL,
-  `FolderID` int(11) NOT NULL,
-  `Beschrijving` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
-  `Volgnummer` tinyint(4) unsigned NOT NULL DEFAULT '0',
-  `EigenaarID` int(11) NOT NULL,
-  `LockedBy` int(11) NOT NULL,
-  `Locked` datetime NOT NULL,
-  `Ingevoerd` date NOT NULL,
-  `Gewijzigd` datetime NOT NULL,
-  PRIMARY KEY (`RecordID`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `DMS_Folder` (
-  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
-  `Foldernaam` varchar(30) COLLATE utf8_unicode_ci NOT NULL,
-  `Beschrijving` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
-  `Volgnummer` tinyint(3) unsigned NOT NULL DEFAULT '0',
-  `BovenliggendeFolderID` int(11) NOT NULL DEFAULT '0',
-  `Ingevoerd` date NOT NULL,
-  `Gewijzigd` datetime NOT NULL,
-  PRIMARY KEY (`RecordID`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
 CREATE TABLE IF NOT EXISTS `Functie` (
-  `Nummer` tinyint(4) DEFAULT NULL,
+  `Nummer` tinyint(4) NOT NULL DEFAULT '0',
   `Omschrijv` varchar(35) DEFAULT NULL,
   `Oms_Vrouw` varchar(35) DEFAULT NULL,
   `Afkorting` varchar(10) DEFAULT NULL,
@@ -1301,12 +1284,13 @@ CREATE TABLE IF NOT EXISTS `Functie` (
   `Kader` tinyint(4) DEFAULT NULL,
   `Vervallen per` datetime DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
+  `Gewijzigd` datetime DEFAULT NULL,
+  PRIMARY KEY (`Nummer`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `GBR` (
   `RecordID` int(11) DEFAULT NULL,
-  `Kode` varchar(4) DEFAULT NULL,
+  `Kode` varchar(4) NOT NULL DEFAULT '',
   `OMSCHRIJV` varchar(40) DEFAULT NULL,
   `Balans` tinyint(4) DEFAULT NULL,
   `KSTNPLTS` tinyint(4) DEFAULT NULL,
@@ -1314,11 +1298,22 @@ CREATE TABLE IF NOT EXISTS `GBR` (
   `VerdichtingID` int(11) DEFAULT NULL,
   `Debiteur` tinyint(4) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
+  `Gewijzigd` datetime DEFAULT NULL,
+  PRIMARY KEY (`Kode`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `Kostenplaats` (
+  `RecordID` int(11) NOT NULL DEFAULT '0',
+  `Kode` varchar(5) DEFAULT NULL,
+  `Naam` varchar(35) DEFAULT NULL,
+  `Ingevoerd` date DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL,
+  PRIMARY KEY (`RecordID`),
+  UNIQUE KEY `Kode` (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `Lid` (
-  `Nummer` int(11) DEFAULT NULL,
+  `Nummer` int(11) NOT NULL DEFAULT '0',
   `Roepnaam` varchar(17) DEFAULT NULL,
   `Tussenv` varchar(7) DEFAULT NULL,
   `Achternaam` varchar(30) DEFAULT NULL,
@@ -1353,15 +1348,8 @@ CREATE TABLE IF NOT EXISTS `Lid` (
   `Beroep` varchar(40) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
-  `Verwijderd` datetime DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE IF NOT EXISTS `Lidbew` (
-  `Lid` int(11) DEFAULT NULL,
-  `Opmerking` longtext,
-  `Dieet` varchar(50) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
+  `Verwijderd` datetime DEFAULT NULL,
+  PRIMARY KEY (`Nummer`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `Liddipl` (
@@ -1382,31 +1370,34 @@ CREATE TABLE IF NOT EXISTS `Liddipl` (
 
 CREATE TABLE IF NOT EXISTS `Lidmaatschap` (
   `RecordID` int(11) DEFAULT NULL,
-  `Lid` int(11) DEFAULT NULL,
-  `LIDDATUM` date DEFAULT NULL,
+  `Lid` int(11) NOT NULL DEFAULT '0',
+  `LIDDATUM` date NOT NULL DEFAULT '0000-00-00',
   `Opgezegd` date DEFAULT NULL,
   `OpgezegdDoorVereniging` tinyint(4) DEFAULT NULL,
   `Lidnr` int(11) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
+  `Gewijzigd` datetime DEFAULT NULL,
+  PRIMARY KEY (`Lid`,`LIDDATUM`),
+  UNIQUE KEY `Lidnr` (`Lidnr`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `Lidond` (
   `RecordID` int(11) DEFAULT NULL,
-  `Lid` int(11) DEFAULT NULL,
-  `OnderdeelID` int(11) DEFAULT NULL,
-  `Vanaf` date DEFAULT NULL,
+  `Lid` int(11) NOT NULL DEFAULT '0',
+  `OnderdeelID` int(11) NOT NULL DEFAULT '0',
+  `Vanaf` date NOT NULL DEFAULT '0000-00-00',
   `Opgezegd` date DEFAULT NULL,
-  `Functie` tinyint(4) DEFAULT NULL,
+  `Functie` tinyint(4) NOT NULL DEFAULT '0',
   `EmailFunctie` varchar(45) DEFAULT NULL,
   `Groep` varchar(5) DEFAULT NULL,
   `Opmerk` varchar(30) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
+  `Gewijzigd` datetime DEFAULT NULL,
+  PRIMARY KEY (`Lid`,`OnderdeelID`,`Vanaf`,`Functie`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `LidRedNed` (
-  `Lidnr` int(11) DEFAULT NULL,
+  `Lidnr` int(11) NOT NULL DEFAULT '0',
   `RelnrRedNed` varchar(8) DEFAULT NULL,
   `Roepnaam` varchar(35) DEFAULT NULL,
   `Tussenvoegsels` varchar(7) DEFAULT NULL,
@@ -1417,7 +1408,8 @@ CREATE TABLE IF NOT EXISTS `LidRedNed` (
   `Postcode` varchar(7) DEFAULT NULL,
   `Huisnr` smallint(6) DEFAULT NULL,
   `Foutboodschap` varchar(75) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL
+  `Ingevoerd` date DEFAULT NULL,
+  PRIMARY KEY (`Lidnr`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `Mailing` (
@@ -1473,34 +1465,35 @@ CREATE TABLE IF NOT EXISTS `Memo` (
   `Soort` varchar(1) NOT NULL DEFAULT '',
   `Vertrouwelijk` tinyint(4) DEFAULT NULL,
   `Memo` longtext,
-  `Ingevoerd` datetime DEFAULT NULL,
+  `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`Lid`,`Soort`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `Mutatie` (
   `RecordID` int(11) DEFAULT NULL,
-  `BoekjaarID` int(11) DEFAULT NULL,
+  `BoekjaarID` int(11) NOT NULL DEFAULT '0',
   `Jaar` varchar(5) DEFAULT NULL,
-  `Periode` tinyint(4) DEFAULT NULL,
-  `Dagboek` varchar(4) DEFAULT NULL,
+  `Periode` tinyint(4) NOT NULL DEFAULT '0',
+  `Dagboek` varchar(4) NOT NULL DEFAULT '',
   `DagboekID` int(11) DEFAULT NULL,
   `GBR` varchar(4) DEFAULT NULL,
   `KSTNPLTS` varchar(5) DEFAULT NULL,
   `KostenplaatsID` int(11) DEFAULT NULL,
-  `Stuknr` tinyint(4) DEFAULT NULL,
-  `Regelnr` smallint(6) DEFAULT NULL,
+  `Stuknr` tinyint(4) NOT NULL DEFAULT '0',
+  `Regelnr` smallint(6) NOT NULL DEFAULT '0',
   `Datum` date DEFAULT NULL,
   `Debet` decimal(8,2) DEFAULT NULL,
   `Credit` decimal(8,2) DEFAULT NULL,
   `OMSCHRIJV` varchar(45) DEFAULT NULL,
   `Rekening` int(11) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
+  `Gewijzigd` datetime DEFAULT NULL,
+  PRIMARY KEY (`BoekjaarID`,`Periode`,`Dagboek`,`Stuknr`,`Regelnr`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `Onderdl` (
-  `RecordID` int(11) DEFAULT NULL,
+  `RecordID` int(11) NOT NULL DEFAULT '0',
   `Kode` varchar(6) DEFAULT NULL,
   `Naam` varchar(50) DEFAULT NULL,
   `LIDCB` decimal(8,2) DEFAULT NULL,
@@ -1516,7 +1509,9 @@ CREATE TABLE IF NOT EXISTS `Onderdl` (
   `HistorieOpschonen` smallint(6) DEFAULT NULL,
   `GekoppeldAanQuery` int(11) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
+  `Gewijzigd` datetime DEFAULT NULL,
+  PRIMARY KEY (`RecordID`),
+  UNIQUE KEY `Kode` (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `Organisatie` (
@@ -1529,7 +1524,7 @@ CREATE TABLE IF NOT EXISTS `Organisatie` (
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `Rekening` (
-  `Nummer` int(11) DEFAULT NULL,
+  `Nummer` int(11) NOT NULL DEFAULT '0',
   `Seizoen` smallint(6) DEFAULT NULL,
   `Datum` datetime DEFAULT NULL,
   `OMSCHRIJV` varchar(30) DEFAULT NULL,
@@ -1541,7 +1536,8 @@ CREATE TABLE IF NOT EXISTS `Rekening` (
   `Bedrag` decimal(8,2) DEFAULT NULL,
   `Betaald` decimal(8,2) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
+  `Gewijzigd` datetime DEFAULT NULL,
+  PRIMARY KEY (`Nummer`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `Seizoen` (
@@ -1566,8 +1562,7 @@ CREATE TABLE IF NOT EXISTS `Seizoen` (
   `Ingevoerd` datetime DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`Nummer`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-";
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;";
 
 	if (strlen($table_prefix) > 1) {
 		if (substr($table_prefix, -1) != "_") {

@@ -38,8 +38,8 @@ if ($currenttab == "Eigen gegevens" and toegang($_GET['tp'])) {
 	}
 } elseif ($currenttab == "Login aanvragen" and $_SESSION['lidid'] == 0) {
 	fnLoginAanvragen();
-} elseif ($currenttab == "Wie is wie" and toegang($_GET['tp'])) {
-	fnWieiswie("kader", $kaderoverzichtmetfoto);
+} elseif ($currenttab == "Wie is wie" and toegang($_GET['tp'])) { 
+	fnWieiswie();
 } elseif ($currenttab == "Ledenlijst" and toegang($_GET['tp'])) {
 	fnLedenlijst();
 } elseif ($currenttab == "Bewaking" and toegang($_GET['tp'])) {
@@ -79,14 +79,14 @@ function fnVoorblad() {
 			$content = $content_uitgelogd;
 		}
 	
-		/* Algemene statistieken */
+		// Algemene statistieken 
 		$stats = db_stats();
 		foreach (array('aantalleden', 'aantalvrouwen', 'aantalmannen', 'gemiddeldeleeftijd', 'aantalkaderleden', 'nieuwstelogin', 'aantallogins', 'nuingelogd') as $v) {
 			$content = str_replace("[%" . strtoupper($v) . "%]", $stats[$v], $content);
 		}
 		$content = str_replace("[%LAATSTGEWIJZIGD%]", strftime("%e %B %Y (%H:%m)", strtotime($stats['laatstgewijzigd'])), $content);
 		
-		/* Gebruiker-specifieke statistieken */
+		// Gebruiker-specifieke statistieken
 		if (isset($_SESSION['lidid']) and $_SESSION['lidid'] > 0) {
 			$stats = db_stats($_SESSION['lidid']);
 			$content = str_replace("[%NAAMLID%]", $_SESSION['naamingelogde'], $content);
@@ -133,21 +133,23 @@ function fnVoorblad() {
 		$content = str_replace("[%VERJAARDAGEN%]", $verj, $content);
 
 		printf("<div id='welkomstekst'>\n%s</div>  <!-- Einde welkomstekst -->\n", $content);
+	} else {
+		debug("Geen content voor het voorblad", 0, 0, 1);
 	}
 }
 
 function fnWieiswie() {
 	global $ldl, $currenttab2, $kaderoverzichtmetfoto;
-	
-	fnDispMenu(2);
 
+	fnDispMenu(2);
+	
 	echo("<div id='wieiswie'>\n");
 	$vo = "";
 	$metfoto = 1;
 	if ($currenttab2 == "Onderscheidingen") {
 		$lijst = db_adressenlijst("O.TYPE='O'");
 	} elseif ($currenttab2 == "Overige") {
-		$lijst = db_adressenlijst("(O.TYPE='C' AND O.Kader=False)");
+	$lijst = db_adressenlijst("(O.TYPE='C' AND O.Kader=False)");
 		$metfoto = $kaderoverzichtmetfoto;
 	} else {
 		$lijst = db_adressenlijst("O.Kader=True");
@@ -195,7 +197,6 @@ function fnWieiswie() {
 		}
 	} else {	
 		echo("<table>\n");
-
 		foreach ($lijst as $row) {
 			if ($vo != $row->OndNaam) {
 				printf("<th colspan=4>%s</th>\n", $row->OndNaam);
@@ -231,6 +232,7 @@ function fnWieiswie() {
 		echo("</table>\n");
 	}
 	echo("</div>  <!-- Einde kaderoverzicht -->\n");
+	
 }
 
 function fnLedenlijst() {
@@ -1091,6 +1093,7 @@ function fnLoginAanvragen() {
 }
 
 function fnKostenoverzicht() {
+	global $table_prefix;
 
 	$val_jaarfilter = "";
 	$val_gbrfilter = "";
@@ -1126,7 +1129,9 @@ function fnKostenoverzicht() {
 	printf("<td class='label'>Boekjaar</td><td><select name='lbJaarFilter' onchange='form.submit();'>%s</select></td>\n", $ret);
 	
 	$ret = "<option value='*'>Alle</option>\n";
-	$query = "SELECT DISTINCT GBR.Kode, CONCAT(GBR, ' - ', GBR.OMSCHRIJV) AS Oms FROM Mutatie INNER JOIN GBR ON Mutatie.GBR = GBR.Kode ORDER BY Kode;";
+	$query = sprintf("SELECT DISTINCT GBR.Kode, CONCAT(GBR.Kode, ' - ', GBR.OMSCHRIJV) AS Oms
+				 FROM %1\$sMutatie AS M INNER JOIN %1\$sGBR AS GBR ON M.GBR = GBR.Kode
+				 ORDER BY GBR.Kode;", $table_prefix);
 	$result = fnQuery($query);
 	foreach ($result->fetchAll() as $row) {
 		if ($val_gbrfilter == $row->Kode) {
@@ -1139,7 +1144,7 @@ function fnKostenoverzicht() {
 	printf("<td class='label'>Grootboekrekening</td><td><select name='lbGBRFilter' onchange='form.submit();'>%s</select></td>\n", $ret);
 	
 	$ret = "<option value='*'>Alle</option>\n";
-	$query = "SELECT DISTINCT KSTNPLTS AS Kode FROM Mutatie WHERE LENGTH(KSTNPLTS) > 0 ORDER BY KSTNPLTS;";
+	$query = "SELECT DISTINCT KSTNPLTS AS Kode FROM Mutatie WHERE KostenplaatsID > 0 ORDER BY KSTNPLTS;";
 	$result = fnQuery($query);
 	foreach ($result->fetchAll() as $row) {
 		if ($val_kplfilter == $row->Kode) {
@@ -1161,7 +1166,6 @@ function fnKostenoverzicht() {
 
 function fnMailing() {
 	global $ldl, $currenttab2;
-	
 		
 	if (isset($_POST['Upload']) and $_POST['Upload'] == "Upload") {
 		$op = "upload";

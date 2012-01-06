@@ -470,7 +470,7 @@ function fnDiplayTable($rows, $link="", $th="", $disptot=0, $link_lk="") {
 	return $ret;
 }
 
-function debug($tekst="debug", $alleenwm=1, $alert=0) {
+function debug($tekst="debug", $alleenwm=1, $alert=0, $logact=0) {
 	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 		$alleenwm = 0;
 	}
@@ -479,6 +479,9 @@ function debug($tekst="debug", $alleenwm=1, $alert=0) {
 			printf("<script>alert('Debug: %s');</script>\n", $tekst);
 		} else {
 			printf("<p class='debug'>Debug: %s</p>\n", $tekst);
+		}
+		if ($logact == 1) {
+			db_add_activiteit("Debug: " . $tekst, $type=99);
 		}
 	}
 }
