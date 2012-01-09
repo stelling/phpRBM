@@ -1,8 +1,8 @@
 <? 
-// Gegevens om toegang te krijgen tot de MySQL-database. Het is belangrijk dat deze gebruiker voldoende rechten heeft om tabellen te mogen aanmaken en te verwijderen. 
+// Gegevens om toegang te krijgen tot de MySQL-database. 
 $db_host='';
 $db_name='';
-$db_user='';
+$db_user='';  // Deze gebruiker moet onder andere rechten hebben om tabellen te mogen aanmaken en te verwijderen. 
 $db_pass='';
 $db_folderbackup = "";  // Deze variabele is optioneel. Mocht deze niet ingevuld worden, dan wordt de standaard folder gebruikt.
 $db_backupsopschonen = 11;  // Na hoeveel dagen moeten oude back-ups automatisch verwijderd worden? 0 = nooit.
@@ -25,6 +25,7 @@ $emailledenadministratie = "ledenadm@trb.nu";
 $daysshowbirthdays = 3;  // Het aantal dagen dat de verjaardagen vooruit getoond moeten worden.
 $bewaartijdlogins = 6;  // Het aantal maanden dat niet gebruikte logins bewaard worden. 0 = altijd bewaren.
 $kaderoverzichtmetfoto = 1;  // Moeten op het kaderoverzicht foto's getoond worden? (1 = ja, 0 = nee)
+$rsswieiswie = 0;  // Moet er een rss van wie-is-wie gemaakt worden? Deze kan gebruikt worden om deze op een andere website te tonen, echter heeft deze geen beveiliging.
 
 //Mailingsmodule
 $emailsecretariaat = "";  // Dit veld is niet verplicht, dit wordt gebruikt om het secretariaat op de hoogte te houden van verstuurde mailingen en opzeggingen.
@@ -39,5 +40,6 @@ $max_grootte_bijlage = 0 * 1024 * 1024;  // Optioneel veld. Als je niets specifi
 $selfservicediplomas = "('ZB-A', 'ZB-B', 'ZS-A', 'ZS-B', 'ZIAb', 'ZIBb', 'ZIAs', 'ZIBs', 'EM', 'EHBO', 'BIG', 'RIJB', 'VA1', 'VA2', 'VB-O', 'VB-S', 'VS-O', 'VS-S')";  // Vul in deze lijst de codes in vam diploma's die leden zelf mogen wijzigen.
 $emailnieuwepasfoto = "";
 $opzegtermijn = 1;  // De opzegtermijn van de vereniging in maanden.
+$muteerbarememos = "DG";   // Welke soorten memo's moeten leden zelf kunnen muteren?
 
 ?>
