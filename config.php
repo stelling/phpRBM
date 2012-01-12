@@ -41,5 +41,7 @@ $selfservicediplomas = "('ZB-A', 'ZB-B', 'ZS-A', 'ZS-B', 'ZIAb', 'ZIBb', 'ZIAs',
 $emailnieuwepasfoto = "";
 $opzegtermijn = 1;  // De opzegtermijn van de vereniging in maanden.
 $muteerbarememos = "DG";   // Welke soorten memo's moeten leden zelf kunnen muteren?
+$emailbevestiginginschrijving = "";   // Vanaf welk e-mailadres moet de bevestiging van de inschrijving voor de bewaking verzonden worden.
+$voorwaardeninschrijving = "Met deze inschrijving verklaar je akkoord te zijn met de <a href='http://www.trb.nu/download/inschrijfformulier_2011_bijlage.pdf'>voorwaarden</a> en verklaar je jezelf competent voor de bewaking.";  // Deze regel wordt bij de inschrijving vemeld als voorwaarde voor de inschrijving voor de bewaking.
 
 ?>
