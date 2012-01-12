@@ -5,6 +5,8 @@ $arrTables[] = "Admin_activiteit";
 $arrTables[] = "Admin_interface";
 $arrTables[] = "Admin_login";
 $arrTables[] = "Bewaking";
+$arrTables[] = "Bewaking_Blok";
+$arrTables[] = "Bewaking_Inschrijving";
 $arrTables[] = "Bewseiz";
 $arrTables[] = "Boekjaar";
 $arrTables[] = "Diploma";
@@ -23,8 +25,8 @@ $arrTables[] = "Mutatie";
 $arrTables[] = "Kostenplaats";
 $arrTables[] = "Onderdl";
 $arrTables[] = "Rekening";
-$arrTables[] = "DMS_Document";
-$arrTables[] = "DMS_Folder";
+// $arrTables[] = "DMS_Document";
+// $arrTables[] = "DMS_Folder";
 
 $TypeActiviteit[] = "N.T.B.";
 $TypeActiviteit[] = "Inloggen/Uitloggen";
@@ -345,6 +347,36 @@ function db_ledenwijzigingen($lidid) {
 	return $result->fetch();
 }
 
+function db_memo($lidid, $srt, $actie="curval", $nv="") {
+	global $table_prefix, $muteerbarememos;
+	
+	$nv = str_replace("\"", "'", $nv);
+	
+	if ($actie == "curval" and $lidid > 0) {
+		$query = sprintf("SELECT Memo FROM %sMemo WHERE Lid=%d AND Soort='%s';", $table_prefix, $lidid, $srt);
+		$result = fnQuery($query);
+		return $result->fetchColumn();
+	} elseif ($actie == "insert" and strlen($nv) > 0) {
+		$query = sprintf("INSERT INTO %sMemo (Lid, Soort, Memo, Ingevoerd, Gewijzigd) VALUES (%d, '%s', \"%s\", CURDATE(), SYSDATE());", $table_prefix, $lidid, $srt, $nv);
+		$result = fnQuery($query);
+		if (strpos($muteerbarememos, $srt) !== FALSE) {
+			db_interface("add", $query);
+		}
+	} elseif ($actie == "update" and strlen($nv) > 0) {
+		$query = sprintf("UPDATE %sMemo SET Memo=\"%s\", Gewijzigd=SYSDATE() WHERE Lid=%d AND Soort='%s' AND Memo<>\"%s\";", $table_prefix, $nv, $lidid, $srt, $nv);
+		$result = fnQuery($query);
+		if (strpos($muteerbarememos, $srt) !== FALSE) {
+			db_interface("add", $query);
+		}
+	} elseif ($actie == "delete") {
+		$query = sprintf("DELETE FROM %sMemo WHERE Lid=%d AND Soort='%s';", $table_prefix, $lidid, $srt);
+		$result = fnQuery($query);
+		if (strpos($muteerbarememos, $srt) !== FALSE and $result > 0) {
+			db_interface("add", $query);
+		}
+	}
+}
+
 function db_add_login($login, $lidid) {
 	global $selectnaam, $lididwebmasters, $beperktotgroep, $table_prefix, $naamvereniging;
 	
@@ -580,6 +612,46 @@ function db_bewaking_aantallen($seizoen, $lidid=-1) {
 
 		$result = fnQuery($query);			
 		return $result->fetchAll();
+	}
+}
+
+function db_insbew($actie="openblokken", $lidid=0, $blok=0, $keuze=0, $opmerk="") {
+	global $table_prefix, $selectnaam;
+	
+	$opmerk = str_replace("\"", "'", $opmerk);
+	
+	if ($actie == "openblokken") {
+		$query = sprintf("SELECT BB.*, BS.Kode AS KodeSeizoen, BS.Lokatie AS Locatie, BS.KeuzesBijInschrijving
+								FROM %1\$sBewaking_Blok AS BB INNER JOIN %1\$sBewseiz AS BS ON BB.SeizoenID = BS.RecordID
+								WHERE BB.InschrijvingOpen=1 AND BB.Einddatum >= CURDATE()
+								ORDER BY BS.Begindatum, BS.Kode, BB.Begindatum;", $table_prefix);
+		$result = fnQuery($query);
+		return $result->fetchAll();
+	} elseif ($actie == "overzicht") {
+		$query = sprintf("SELECT BS.Kode AS Seizoen, BB.Kode AS Week, BB.Begindatum AS dteBegin, BB.Einddatum AS dteEinde, %2\$s AS Bewaker, BI.Lid AS LidID,
+								IF(BI.Keuze = 2, '', 'Ja') AS `Keuze 1`, IF(BI.Keuze = 1, '', 'Ja') AS `Keuze 2`, BI.Opmerking
+								FROM (%1\$sBewaking_Blok AS BB INNER JOIN (%1\$sBewaking_Inschrijving AS BI INNER JOIN %1\$sLid AS L ON BI.Lid = L.Nummer) ON BB.RecordID = BI.BlokID) INNER JOIN %1\$sBewseiz AS BS ON BB.SeizoenID = BS.RecordID
+								WHERE BB.InschrijvingOpen=1
+								ORDER BY BS.Begindatum, BS.Kode, L.Achternaam, BI.Lid, BB.Begindatum;", $table_prefix, $selectnaam);
+		$result = fnQuery($query);
+		return $result->fetchAll();
+	} elseif ($actie == "inschrijving" and $lidid > 0 and $blok > 0) {
+		$query = sprintf("SELECT BI.* FROM %sBewaking_Inschrijving AS BI
+								WHERE BI.Lid=%d AND BlokID=%d;", $table_prefix, $lidid, $blok);
+		$result = fnQuery($query);
+		return $result->fetch();
+	} elseif ($actie == "add" and $lidid > 0 and $blok > 0) {
+		$query = sprintf("INSERT INTO %sBewaking_Inschrijving (BlokID, Lid, Keuze, Opmerking, Ingevoerd)
+								VALUES (%d, %d, %d, \"%s\", CURDATE());", $table_prefix, $blok, $lidid, $keuze, $opmerk);
+		fnQuery($query);
+	} elseif ($actie == "update" and $lidid > 0 and $blok > 0) {
+		$query = sprintf("UPDATE %sBewaking_Inschrijving SET Keuze=%d, Opmerking=\"%s\"
+								WHERE BlokID=%d AND Lid=%d;", $table_prefix, $keuze, $opmerk, $blok, $lidid);
+		fnQuery($query);
+	} elseif ($actie == "delete" and $lidid > 0 and $blok > 0) {
+		$query = sprintf("DELETE FROM %sBewaking_Inschrijving
+								WHERE BlokID=%d AND Lid=%d;", $table_prefix, $blok, $lidid);
+		fnQuery($query);
 	}
 }
 
@@ -953,7 +1025,7 @@ function db_diploma($actie) {
 	}
 }
 
-function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $dipnr="") {
+function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $dipnr="", $xtrafilter="") {
 	global $table_prefix, $fdaccess, $fdsql;
 	
 	$exdat = change_month_to_uk($exdat);
@@ -1011,14 +1083,17 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 			db_add_activiteit(sprintf("Diploma %d is verwijderd bij lid %d", $did, $lidid), 6);
 		}
 	} elseif ($actie == "lidgegevens" and $lidid > 0) {
+		if (strlen($xtrafilter) > 1) {
+			$xtrafilter = "AND " . $xtrafilter;
+		}
 		$query = sprintf("SELECT D.Kode AS Code,"
 				 . " D.Naam AS Diploma,"
 				 . " LD.EXDATUM AS dteDatum,"
 				 . " LD.Diplomanummer AS Gegevens,"
 				 . " IFNULL(LD.LicentieVervallenPer, IF(D.GELDIGH>0, DATE_ADD(LD.EXDATUM, INTERVAL D.GELDIGH MONTH), NULL)) AS `dteVervalt per`"
 				 . " FROM Liddipl AS LD INNER JOIN Diploma AS D ON LD.DiplomaID = D.RecordID"
-				 . " WHERE LD.LaatsteBeoordeling=1 AND ((D.Vervallen IS NULL) OR D.Vervallen > CURDATE()) AND LD.Lid=%d"
-				 . " ORDER BY D.Volgnr, D.Kode, LD.EXDATUM DESC;", $lidid);
+				 . " WHERE LD.LaatsteBeoordeling=1 AND ((D.Vervallen IS NULL) OR D.Vervallen > CURDATE()) AND LD.Lid=%d %s"
+				 . " ORDER BY D.Volgnr, D.Kode, LD.EXDATUM DESC;", $lidid, $xtrafilter);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	}
@@ -1031,7 +1106,7 @@ function db_delete_local_tables() {
 	global $arrTables, $table_prefix;
 	
 	foreach ($arrTables as $tn) {
-		if (startwith($tn, "Admin_") == false and startwith($tn, "Mailing") == false) {
+		if (startwith($tn, "Admin_") == false and startwith($tn, "Bewaking_") == false and startwith($tn, "DMS_") == false and startwith($tn, "Mailing") == false) {
 			fnQuery(sprintf("DELETE FROM %s%s;", $table_prefix, $tn));
 		}
 	}
@@ -1230,11 +1305,35 @@ CREATE TABLE IF NOT EXISTS `Bewseiz` (
   `Afgesloten` tinyint(4) DEFAULT NULL,
   `TOONERV` varchar(1) DEFAULT NULL,
   `Posten` varchar(30) DEFAULT NULL,
+  `KeuzesBijInschrijving` tinyint(4) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`RecordID`),
   UNIQUE KEY `Kode` (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `Bewaking_Blok` (
+  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
+  `SeizoenID` int(11) NOT NULL,
+  `Kode` char(2) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `Begindatum` date NOT NULL,
+  `Einddatum` date NOT NULL,
+  `InschrijvingOpen` tinyint(4) NOT NULL DEFAULT '1',
+  `Ingevoerd` date NOT NULL,
+  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`RecordID`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `Bewaking_Inschrijving` (
+  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
+  `Lid` int(11) NOT NULL,
+  `BlokID` int(11) NOT NULL,
+  `Keuze` tinyint(4) NOT NULL DEFAULT '1',
+  `Opmerking` varchar(50) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `Ingevoerd` date NOT NULL,
+  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`RecordID`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `Boekjaar` (
   `RecordID` int(11) DEFAULT NULL,
@@ -1514,15 +1613,6 @@ CREATE TABLE IF NOT EXISTS `Onderdl` (
   UNIQUE KEY `Kode` (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `Organisatie` (
-  `Nummer` tinyint(4) NOT NULL DEFAULT '0',
-  `Naam` varchar(8) DEFAULT NULL,
-  `Volledige naam` varchar(50) DEFAULT NULL,
-  `Ingevoerd` datetime DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL,
-  PRIMARY KEY (`Nummer`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
 CREATE TABLE IF NOT EXISTS `Rekening` (
   `Nummer` int(11) NOT NULL DEFAULT '0',
   `Seizoen` smallint(6) DEFAULT NULL,
@@ -1536,30 +1626,6 @@ CREATE TABLE IF NOT EXISTS `Rekening` (
   `Bedrag` decimal(8,2) DEFAULT NULL,
   `Betaald` decimal(8,2) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL,
-  PRIMARY KEY (`Nummer`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE IF NOT EXISTS `Seizoen` (
-  `Nummer` smallint(6) NOT NULL DEFAULT '0',
-  `Begindatum` datetime DEFAULT NULL,
-  `Einddatum` datetime DEFAULT NULL,
-  `Leeftijdsgrens jeugdleden` tinyint(4) DEFAULT NULL,
-  `Contributie leden` decimal(8,2) DEFAULT NULL,
-  `Contributie jeugdleden` decimal(8,2) DEFAULT NULL,
-  `Contributie kader` decimal(8,2) DEFAULT NULL,
-  `Contributie Onderscheidingen` decimal(8,2) DEFAULT NULL,
-  `RekeningenVerzamelen` tinyint(4) DEFAULT NULL,
-  `Rekeningomschrijving` varchar(30) DEFAULT NULL,
-  `BetaaldagenTermijn` smallint(6) DEFAULT NULL,
-  `StandaardAantalTermijnen` smallint(6) DEFAULT NULL,
-  `Verenigingscontributie omschrijving` varchar(50) DEFAULT NULL,
-  `Verenigingscontributie kostenplaats` varchar(5) DEFAULT NULL,
-  `Gezinskorting bedrag` decimal(8,2) DEFAULT NULL,
-  `Maximale verenigingscontributie` decimal(8,2) DEFAULT NULL,
-  `Gezinskorting omschrijving` varchar(50) DEFAULT NULL,
-  `Gezinskorting kostenplaats` varchar(4) DEFAULT NULL,
-  `Ingevoerd` datetime DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`Nummer`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;";
