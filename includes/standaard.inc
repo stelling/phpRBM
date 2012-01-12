@@ -11,6 +11,15 @@ if ((isset($_SESSON['webmaster']) and $_SESSON['webmaster'] == 1) or $_SERVER["H
 }
 
 require_once('config.php');
+if (!isset($rsswieiswie)) {
+	$rsswieiswie = 0;
+}
+if (!isset($muteerbarememos)) {
+	$muteerbarememos = "DG";
+}
+if (!isset($emailbevestiginginschrijving)) {
+	$emailbevestiginginschrijving = $emailledenadministratie;
+}
 require_once('includes/database.inc');
 require_once('includes/authentication.inc');
 require_once('includes/mailing.inc');
@@ -58,7 +67,17 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			$tabpages[] = "Wijzigen/Diploma's";
 		}
 		$tabpages[] = "Wijzigen/Pasfoto";
-		$tabpages[] = "Wijzigen/Opzegging";
+		if (strlen($muteerbarememos) > 0) { 
+			$tabpages[] = "Wijzigen/Bijzonderheden";
+		}
+		if (count(db_insbew("openblokken")) > 0) {
+			$tabpages[] = "Wijzigen/Inschrijving bewaking";
+		}
+		$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap WHERE Lid=%d AND (Opgezegd IS NULL);", $table_prefix, $_SESSION['lidid']);
+		$result = fnQuery($query);
+		if ($result->fetchColumn() > 0) {
+			$tabpages[] = "Wijzigen/Opzegging";
+		}
 	}
 	$tabpages[] = "Wie is wie";
 	$tabpages[] = "Wie is wie/Kader";
@@ -86,6 +105,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		$tabpages[] = "Bewaking/Postindeling";
 		$tabpages[] = "Bewaking/Aantallen";
 	}
+	if (count(db_insbew("overzicht")) > 0) {
+		$tabpages[] = "Bewaking/Overzicht inschrijvingen";
+	}
 	if ($_SESSION['aantalmutaties'] > 0) {
 		$tabpages[] = "Kostenoverzicht";
 	}
@@ -95,7 +117,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	$tabpages[] = "Mailing/Nieuw";
 	$tabpages[] = "Mailing/Verzonden";
 	$tabpages[] = "Mailing/Prullenbak";
-	if ($_SESSION['lidid'] == 31) {
+	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 		$tabpages[] = "DMS";
 	}
 }
