@@ -180,8 +180,13 @@ footer a, #footer a, footer a:visited, #footer a:visited {
 	margin-top: 8px;
 }
 
-#wijzigengegevens img {
+#wijzigengegevens img, #nieuwepasfoto img {
 	max-width: 250px;
+}
+
+#inschrijvingbewaking table {
+	margin-left: auto;
+	margin-right: auto;
 }
 
 #lijst {
@@ -459,4 +464,8 @@ footer a, #footer a, footer a:visited, #footer a:visited {
 	float: right;
 	margin-top: 3px;
 	text-align: right;
+}
+
+.chk {
+	text-align: center;
 }
