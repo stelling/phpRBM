@@ -430,6 +430,7 @@ function fnOverviewLid($lidid=0) {
 function fnWijzigen($lidid=0) {
 	global $currenttab, $currenttab2, $pasfotoextenties, $emailledenadministratie, $emailnieuwepasfoto, $selfservicediplomas, $opzegtermijn;
 	global $naamvereniging, $naamwebsite, $urlwebsite, $table_prefix, $emailsecretariaat, $gebruikopenid;
+	global $muteerbarememos, $emailbevestiginginschrijving, $voorwaardeninschrijving;
 	
 	$fdlang = "%e %B %Y";
 	
@@ -438,6 +439,18 @@ function fnWijzigen($lidid=0) {
 	$arrLegitimatie["O"] = "Onbekend";
 	$arrLegitimatie["P"] = "Paspoort";
 	$arrLegitimatie["R"] = "Rijbewijs";
+	
+	$arrSoortMemo["A"] = "Algemeen";
+	$arrSoortMemo["B"] = "Bewaking";
+	$arrSoortMemo["D"] = "Dieet";
+	$arrSoortMemo["E"] = "Examen";
+	$arrSoortMemo["F"] = "Financiën";
+	$arrSoortMemo["G"] = "Gezondheid/medisch";
+	$arrSoortMemo["I"] = "Inschrijving bewaking";
+	
+	if ($lidid == 0) {
+		$lidid = $_SESSION['lidid'];
+	}
 	
 	$rows = db_gegevenslid($lidid, "Alg");
 	$naamlid = $rows[0]->Naam;
@@ -589,7 +602,7 @@ function fnWijzigen($lidid=0) {
 					}
 					$inp = sprintf("<select name='%s'>%s</select></td><td>", $wijzvelden[$i]['naam'], $opt);
 				} else {
-					$inp = sprintf("<input type='%s' name='%s' placeholder='%s' size=40 maxlength=%d></td><td><input type='checkbox' name='chkLeeg_%s' value=1>", 
+					$inp = sprintf("<input type='%s' name='%s' placeholder='%s' size=40 maxlength=%d></td><td class='chk'><input type='checkbox' name='chkLeeg_%s' value=1>", 
 							$t, $wijzvelden[$i]['naam'], $ph, $wijzvelden[$i]['lengte'], $wijzvelden[$i]['naam']);
 				}
 				printf('<tr><td class="label">%1$s</td><td>%2$s</td><td>%3$s</td></tr>', $wijzvelden[$i]['label'], $dv, $inp);
@@ -621,11 +634,13 @@ function fnWijzigen($lidid=0) {
 			}
 			
 			$oldvals = "";
+			
+			echo("<div id='wijzigendiplomas'>\n");
 			printf("<form method='post' action='/index.php?%s' name='frm_diplwijz'>\n", $_SERVER['QUERY_STRING']);
 			echo("<table>\n");
 			printf("<tr><th colspan=6>Diploma's %s</th></tr>\n", $naamlid);
 			printf("<tr><th>Code</th><th>Naam</th><th>Behaald op</th><th>Geldig tot</th><th>Diplomanummer</th><th>Verw?</th></tr>\n");
-			foreach (db_diploma("selfservice_lijst") as $row) { 
+			foreach (db_diploma("selfservice_lijst") as $row) {
 				$cv_rid = 0;
 				$cv_behaald = "";
 				$cv_vervaltop = "";
@@ -642,7 +657,7 @@ function fnWijzigen($lidid=0) {
 				if ($cv_rid == 0) {
 					printf('<tr><td>%1$s</td><td>%2$s</td><td><input type=\'text\' name=\'Behaald_%6$d\' value="%3$s"></td><td><input type=\'text\' name=\'VervaltPer_%6$d\' value="%4$s"></td><td><input type=\'text\' name=\'Diplnr_%6$d\' value="%5$s" maxlength=14></td><td></td></tr>', $row->Kode, $row->Naam, $cv_behaald, $cv_vervaltop, $cv_diplomanr, $row->RecordID);
 				} else {
-					printf('<tr><td>%1$s</td><td>%2$s</td><td>%3$s</td><td><input type=\'text\' name=\'VervaltPer_%6$d\' value="%4$s"></td><td><input type=\'text\' name=\'Diplnr_%6$d\' value="%5$s" maxlength=14></td><td><input type=\'checkbox\' name=\'chkVerw_%6$d\' value=1></td></tr>', $row->Kode, $row->Naam, strftime("%e %B %Y", strtotime($cv_behaald)), $cv_vervaltop, $cv_diplomanr, $row->RecordID);
+					printf('<tr><td>%1$s</td><td>%2$s</td><td>%3$s</td><td><input type=\'text\' name=\'VervaltPer_%6$d\' value="%4$s"></td><td><input type=\'text\' name=\'Diplnr_%6$d\' value="%5$s" maxlength=14></td><td class=\'chk\'><input type=\'checkbox\' name=\'chkVerw_%6$d\' value=1></td></tr>', $row->Kode, $row->Naam, strftime("%e %B %Y", strtotime($cv_behaald)), $cv_vervaltop, $cv_diplomanr, $row->RecordID);
 					$oldvals .= sprintf("<input type='hidden' name='Behaald_%d' value='%s'>", $row->RecordID, $cv_behaald);
 				}
 				$oldvals .= sprintf("\n<input type='hidden' name='RID_%d' value=%d>", $row->RecordID, $cv_rid);
@@ -652,9 +667,10 @@ function fnWijzigen($lidid=0) {
 			echo("</table>\n");
 			echo($oldvals);
 			echo("</form>\n");
+			echo("</div>  <!-- Einde wijzigendiplomas -->\n");
 		} elseif ($currenttab2 == "Pasfoto" and toegang($_GET['tp'])) {
 			$row = db_ledenwijzigingen($lidid);
-			echo("<div id='wijzigengegevens'>\n");
+			echo("<div id='nieuwepasfoto'>\n");
 			
 			$fn = fotolid($lidid);
 			if (strlen($fn) > 4 and file_exists($fn)) {
@@ -670,9 +686,200 @@ function fnWijzigen($lidid=0) {
 			echo("<input type='submit' name='Upload' value='Insturen'></td></tr>\n");
 			echo("</table>\n");
 			echo("</form>\n");
-			echo("</div>  <!-- Einde invulformulier -->\n");
+			echo("</div>  <!-- Einde nieuwepasfoto -->\n");
 			
 			echo("<p>Het ideale formaat van de pasfoto is 390 pixels breed bij 500 pixels hoog.</p>\n");
+		} elseif ($currenttab2 == "Bijzonderheden" and strlen($muteerbarememos) > 0 and toegang($_GET['tp'])) {
+			if ($_SERVER['REQUEST_METHOD'] == "POST") {
+				for ($iCounter=0; $iCounter < strlen($muteerbarememos); $iCounter++) {
+					$kodesoort = substr($muteerbarememos, $iCounter, 1);
+					$namevar = "Memo_" . $kodesoort;
+					$curval = db_memo($lidid, $kodesoort, "curval");
+					if (strlen($_POST[$namevar]) == 0) {
+						db_memo($lidid, $kodesoort, "delete");
+					} elseif (strlen($curval) == 0) {
+						db_memo($lidid, $kodesoort, "insert", $_POST[$namevar]);
+					} elseif ($curval != $_POST[$namevar]) {
+						db_memo($lidid, $kodesoort, "update", $_POST[$namevar]);
+					}
+				}
+			}
+		
+			echo("<div id='bijzonderhedenwijzigen'>\n");
+			printf("<form method='post' action='/index.php?%s' name='bijz_wijz'>\n", $_SERVER['QUERY_STRING']);
+			echo("<table>\n");
+			for ($iCounter=0; $iCounter < strlen($muteerbarememos); $iCounter++) {
+				$kodesoort = substr($muteerbarememos, $iCounter, 1);
+				$namevar = "Memo_" . $kodesoort;
+				if (array_key_exists($kodesoort, $arrSoortMemo)) {
+					$naamsoort = $arrSoortMemo[$kodesoort];
+				} else {
+					$naamsoort = "Overig " . $kodesoort;
+				}
+				$curval = db_memo($lidid, $kodesoort, "curval");
+				printf("<tr><td class='label'>%s</td><td><textarea cols=75 rows=10 name='%s'>%s</textarea></td></tr>\n", $naamsoort, $namevar, $curval);
+			}
+			echo("<tr><th colspan=2><input type='submit' value='Verstuur' name='wijziging'></th><tr>\n");
+			echo("</table>\n");
+			echo("</form>\n");
+			echo("</div>  <!-- Einde bijzonderhedenwijzigen -->\n");
+		} elseif ($currenttab2 == "Inschrijving bewaking" and toegang($_GET['tp'])) {
+			if ($_SERVER['REQUEST_METHOD'] == "POST") {
+				$geldig = false;
+				$bevins = "";
+				foreach (db_insbew("openblokken") as $row) {
+					$k1 = sprintf("k1_%d", $row->RecordID);
+					$k2 = sprintf("k2_%d", $row->RecordID);
+					$opm = sprintf("Opm_%d", $row->RecordID);
+					$kz = 0;
+					if (isset($_POST[$k1]) and isset($_POST[$k2])) {
+						$kz = 3;
+						$geldig = true;
+					} elseif (isset($_POST[$k1])) {
+						$kz = 1;
+						$geldig = true;
+					} elseif (isset($_POST[$k2])) {
+						$kz = 2;
+					}
+					$ins = db_insbew("inschrijving", $lidid, $row->RecordID);
+					if (isset($ins->RecordID)) {
+						if ($kz == 0 and strlen($_POST[$opm]) == 0) {
+							db_insbew("delete", $lidid, $row->RecordID);
+						} elseif ($ins->Keuze != $kz or $ins->Opmerking != $_POST[$opm]) {
+							db_insbew("update", $lidid, $row->RecordID, $kz, $_POST[$opm]);
+						}
+					} elseif ($kz > 0 or strlen($_POST[$opm]) > 0) {
+						db_insbew("add", $lidid, $row->RecordID, $kz, $_POST[$opm]);
+					}
+					if ($kz > 0) {
+						$bevins .= sprintf("<li>%s - %s t/m %s", $row->Kode, strftime("%e %B %Y", strtotime($row->Begindatum)), strftime("%e %B %Y", strtotime($row->Einddatum)));
+						if ($kz == 2) {
+							$bevins .= " (2de keuze)";
+						}
+						if (strlen($_POST[$opm]) > 1) {
+							$bevins .= sprintf(" (%s)", $_POST[$opm]);
+						}
+						$bevins .= "</li>\n";
+					}
+				}
+				$opmcv = db_memo($lidid, "I", "curval");
+				if (strlen($_POST['opmalg']) > 0 and strlen($opmcv) == 0) {
+					db_memo($lidid, "I", "insert", $_POST['opmalg']);
+				} elseif (strlen($_POST['opmalg']) == 0 and strlen($opmcv) > 0) {
+					db_memo($lidid, "I", "delete");
+				} elseif ($_POST['opmalg'] != $opmcv) {
+					db_memo($lidid, "I", "update", $_POST['opmalg']);
+				}
+				if ($geldig) {
+					$bevest_template = 'templates/bevestiging_inschrijving.html';
+					if (isset($_POST['Definitief']) and file_exists($bevest_template)) {
+						$content = file_get_contents($bevest_template);
+						$brief_template = 'templates/briefpapier.html';
+						if (file_exists($brief_template)) {
+							$briefpapier = file_get_contents($brief_template);
+							if ($content == false) {
+								$briefpapier = "[%MESSAGE%]";
+							}
+						} else {
+							$briefpapier = "[%MESSAGE%]";
+						}
+						$subj = "Bevestiging inschrijving bewaking";
+						$content = str_ireplace("[%MESSAGE%]", $content, $briefpapier);	
+						$content = str_ireplace("[%FROM%]", $naamvereniging, $content);
+						$content = str_ireplace("[%TO%]", $_SESSION['naamingelogde'], $content);
+						$content = str_ireplace("[%SUBJECT%]", $subj, $content);
+						$content = str_replace("[%NAAMVERENIGING%]", $naamvereniging, $content);
+						$content = str_replace("[%NAAMWEBSITE%]", $naamwebsite, $content);
+						$content = str_replace("[%URLWEBSITE%]", $urlwebsite, $content);
+						$content = str_ireplace("[%ROEPNAAM%]", $_SESSION['roepnaamingelogde'], $content);
+						$content = str_ireplace("[%BEWINSCHRIJVING%]", $bevins, $content);
+						$content = str_ireplace("[%BEWOPMERKING%]", db_memo($lidid, "I", "curval"), $content);
+						$content = str_ireplace("[%DIEET%]", db_memo($lidid, "D", "curval"), $content);
+						$content = str_ireplace("[%GEZONDHEID%]", db_memo($lidid, "G", "curval"), $content);
+						
+						$f = sprintf("D.Kode IN %s", $selfservicediplomas);
+						$d = "";
+						foreach (db_liddipl("lidgegevens", $lidid, 0, 0, "", "", "", $f) as $ld) {
+							$d .= sprintf("<li>%s</li>\n", $ld->Diploma);
+						}
+						$content = str_ireplace("[%BEWDIPLOMAS%]", $d, $content);
+						
+						$mail = new RBMmailer();
+
+						try {
+							$mail->From = $emailbevestiginginschrijving;
+							$mail->AddAddress($_SESSION['emailingelogde']);
+							$mail->Subject = $subj;
+							$mail->MsgHTML($content);
+							if ($mail->Send()) {
+								$oms = sprintf("Bevestiging inschrijving bewaking verzonden");
+								db_add_activiteit($oms, 6);
+								printf("<script>alert('Een bevestiging van deze inschrijving is naar %s verzonden.');</script>\n", $_SESSION['emailingelogde']);			
+								echo("<script>location.href='/index.php';</script>\n");	
+							} else {
+								printf("<p>Error while sending message: %s</p>\n", $mail->ErrorInfo);
+							}
+						} catch (phpmailerException $e) {
+							echo $e->errorMessage(); // Error messages from PHPMailer
+						} catch (Exception $e) {
+							echo $e->getMessage();
+						}					
+					}
+				} else {
+					echo("<p class='mededeling'>Deze inschrijving is niet geldig, omdat er geen enkele eerste keuze is aangegeven.</p>\n");
+				}
+			}
+
+			echo("<div id='inschrijvingbewaking'>\n");
+			printf("<form method='post' action='/index.php?%s' name='ins_bewaking'>\n", $_SERVER['QUERY_STRING']);
+			$vs = -1;
+			echo("<table>\n");
+				
+			$geldig = false;
+			foreach (db_insbew("openblokken") as $row) {
+				$ins = db_insbew("inschrijving", $lidid, $row->RecordID);
+				if ($vs != $row->SeizoenID) {
+					printf("<tr><th colspan=6>%s %s</th></tr>\n", $row->KodeSeizoen, $row->Locatie);
+					if ($row->KeuzesBijInschrijving == 1) {
+						$kk = "1ste keuze</th><th>2de keuze";
+					} else {
+						$kk = "Inschrijven";
+					}
+					printf("<tr><th>Week</th><th>Begindatum</th><th>Einddatum</th><th>%s</th><th>Opmerking</th></tr>\n", $kk);
+					$vs = $row->SeizoenID;
+				}
+				printf("<tr><td>%s</td><td>%s</td><td>%s</td>\n", $row->Kode, strftime("%e %B %Y", strtotime($row->Begindatum)), strftime("%e %B %Y", strtotime($row->Einddatum)));
+				$c = "";
+				if (isset($ins->Keuze) and $ins->Keuze != 2) {
+					$c = "checked";
+					$geldig = true;
+				}
+				printf("<td class='chk'><input type='checkbox' name='k1_%s' value=1 %s></input></td>\n", $row->RecordID, $c);
+				if ($row->KeuzesBijInschrijving == 1) {	
+					$c = "";
+					if (isset($ins->Keuze) and $ins->Keuze > 1) {
+						$c = "checked";
+					}
+					printf("<td class='chk'><input type='checkbox' name='k2_%s' value=1 %s></input></td>\n", $row->RecordID, $c);
+				}
+				$v = "";
+				if (isset($ins->Opmerking)) {
+					$v = $ins->Opmerking;
+				}
+				printf("<td><input type='text' name='Opm_%d' size=60 maxlength=50 value=\"%s\"></td>\n", $row->RecordID, $v);
+				echo("</tr>\n");
+			}
+			printf("<tr><td colspan=7>Opmerkingen:<br><textarea cols=90 rows=8 name='opmalg'>%s</textarea></td></tr>", db_memo($lidid, "I", "curval"));
+			echo("<tr><th colspan=7>");
+			printf("<p>%s</p>", $voorwaardeninschrijving);
+			echo("<input type='submit' value='Wijzigen' name='Wijzigen'>");
+			if ($geldig) {
+				echo("&nbsp;<input type='submit' value='Definitief maken' name='Definitief'>");
+			}
+			echo("</th><tr>\n");
+			echo("</table>\n");
+			echo("</form>\n");
+			echo("</div>  <!-- Einde inschrijvingbewaking -->\n");
 		} elseif ($currenttab2 == "Opzegging" and toegang($_GET['tp'])) {
 		
 			if (!isset($opzegtermijn) or $opzegtermijn < 0) {
@@ -841,42 +1048,45 @@ function fnBewaking($seizoen=0) {
 	}
 	
 	echo("<div id='bewakingsrooster'>\n");
-	echo("<div id='filter'>\n");
-	printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
-	print("Bewakingseizoen: ");
-	print("<select name='seizoen' onchange='form.submit();'>\n");
-	$bs_res = db_bewaking_seizoenen();
-	foreach($bs_res->fetchAll() as $row) {
-		if ($seizoen == $row->RecordID or $seizoen == 0) {
-			$seizoen = $row->RecordID;
-			$sel = " selected";
-			$st_len_bp = $row->ST_LEN_BP;
-		} else {
-			$sel = "";
-		}
-		printf("<option value=%d%s>%s</option>\n", $row->RecordID, $sel, $row->Kode);
-	}
-	echo("</select>\n");
-	echo("&nbsp;&nbsp;");
 	
-	if ($st_len_bp == 7 and $currenttab2 != "Aantallen") {
-		echo("Bewakingsweek: ");
-		echo("<select name='week' onchange='form.submit();'>\n");
-		print("<option value='*'>Alle</option>\n");
-		$rows = db_bewaking_aantallen($seizoen);
-		foreach($rows as $row) {
-			if ($week == $row->Weeknr or strlen($week) == 0) {
-				$week = $row->Weeknr;
+	if ($currenttab2 != "Overzicht inschrijvingen") {
+		echo("<div id='filter'>\n");
+		printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+		print("Bewakingseizoen: ");
+		print("<select name='seizoen' onchange='form.submit();'>\n");
+		$bs_res = db_bewaking_seizoenen();
+		foreach($bs_res->fetchAll() as $row) {
+			if ($seizoen == $row->RecordID or $seizoen == 0) {
+				$seizoen = $row->RecordID;
 				$sel = " selected";
+				$st_len_bp = $row->ST_LEN_BP;
 			} else {
 				$sel = "";
 			}
-			printf("<option value='%d'%s>%d</option>\n", $row->Weeknr, $sel, $row->Weeknr);
+			printf("<option value=%d%s>%s</option>\n", $row->RecordID, $sel, $row->Kode);
 		}
 		echo("</select>\n");
+		echo("&nbsp;&nbsp;");
+		
+		if ($st_len_bp == 7 and $currenttab2 != "Aantallen") {
+			echo("Bewakingsweek: ");
+			echo("<select name='week' onchange='form.submit();'>\n");
+			print("<option value='*'>Alle</option>\n");
+			$rows = db_bewaking_aantallen($seizoen);
+			foreach($rows as $row) {
+				if ($week == $row->Weeknr or strlen($week) == 0) {
+					$week = $row->Weeknr;
+					$sel = " selected";
+				} else {
+					$sel = "";
+				}
+				printf("<option value='%d'%s>%d</option>\n", $row->Weeknr, $sel, $row->Weeknr);
+			}
+			echo("</select>\n");
+		}
+		echo("</form>\n");
+		echo("</div>  <!-- Einde filter -->\n");
 	}
-	echo("</form>\n");
-	echo("</div>  <!-- Einde filter -->\n");
 
 	if ($currenttab2 == "Bewakingsrooster" and toegang($_GET['tp'])) {
 		$rooster = db_bewakingsrooster($seizoen, $week);
@@ -937,7 +1147,6 @@ function fnBewaking($seizoen=0) {
 			printf($bastotreg, round($aantalbewdag, 0), $erv);
 		}
 		echo("</table>\n");
-		$_SESSION['sel_leden'] = $sel_leden;
 	} elseif ($currenttab2 == "Postindeling" and toegang($_GET['tp'])) {
 		$lijst = db_bewakingsrooster($seizoen, $week);
 		
@@ -984,6 +1193,10 @@ function fnBewaking($seizoen=0) {
 		
 	} elseif ($currenttab2 == "Aantallen" and toegang($_GET['tp'])) {
 		$lijst = db_bewaking_aantallen($seizoen);
+		echo(fnDiplayTable($lijst));
+
+	} elseif ($currenttab2 == "Overzicht inschrijvingen" and toegang($_GET['tp'])) {
+		$lijst = db_insbew("overzicht");
 		echo(fnDiplayTable($lijst));
 	}
 	echo("</div>  <!-- Einde bewakingsrooster -->\n");
