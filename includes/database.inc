@@ -359,19 +359,19 @@ function db_memo($lidid, $srt, $actie="curval", $nv="") {
 	} elseif ($actie == "insert" and strlen($nv) > 0) {
 		$query = sprintf("INSERT INTO %sMemo (Lid, Soort, Memo, Ingevoerd, Gewijzigd) VALUES (%d, '%s', \"%s\", CURDATE(), SYSDATE());", $table_prefix, $lidid, $srt, $nv);
 		$result = fnQuery($query);
-		if (strpos($muteerbarememos, $srt) !== FALSE) {
+		if ($result > 0) {
 			db_interface("add", $query);
 		}
 	} elseif ($actie == "update" and strlen($nv) > 0) {
 		$query = sprintf("UPDATE %sMemo SET Memo=\"%s\", Gewijzigd=SYSDATE() WHERE Lid=%d AND Soort='%s' AND Memo<>\"%s\";", $table_prefix, $nv, $lidid, $srt, $nv);
 		$result = fnQuery($query);
-		if (strpos($muteerbarememos, $srt) !== FALSE) {
+		if ($result > 0) {
 			db_interface("add", $query);
 		}
 	} elseif ($actie == "delete") {
 		$query = sprintf("DELETE FROM %sMemo WHERE Lid=%d AND Soort='%s';", $table_prefix, $lidid, $srt);
 		$result = fnQuery($query);
-		if (strpos($muteerbarememos, $srt) !== FALSE and $result > 0) {
+		if ($result > 0) {
 			db_interface("add", $query);
 		}
 	}
