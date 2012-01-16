@@ -1226,9 +1226,9 @@ function db_onderhoud() {
 function db_createtables() {
 	global $arrTables, $table_prefix;
 
-	$queries = "SET SQL_MODE='NO_AUTO_VALUE_ON_ZERO';
+	$queries = sprintf("SET SQL_MODE='NO_AUTO_VALUE_ON_ZERO';
 
-CREATE TABLE IF NOT EXISTS `Admin_access` (
+CREATE TABLE IF NOT EXISTS `%1\$sAdmin_access` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `Tabpage` varchar(50) CHARACTER SET latin1 NOT NULL,
   `Toegang` int(11) NOT NULL DEFAULT '-1',
@@ -1238,7 +1238,7 @@ CREATE TABLE IF NOT EXISTS `Admin_access` (
   UNIQUE KEY `Tabpage` (`Tabpage`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `Admin_activiteit` (
+CREATE TABLE IF NOT EXISTS `%1\$sAdmin_activiteit` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `LidID` int(11) NOT NULL,
   `DatumTijd` datetime NOT NULL,
@@ -1249,7 +1249,7 @@ CREATE TABLE IF NOT EXISTS `Admin_activiteit` (
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `Admin_interface` (
+CREATE TABLE IF NOT EXISTS `%1\$sAdmin_interface` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `LidID` int(11) NOT NULL,
   `IP-adres` char(15) COLLATE utf8_unicode_ci NOT NULL,
@@ -1259,7 +1259,7 @@ CREATE TABLE IF NOT EXISTS `Admin_interface` (
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `Admin_login` (
+CREATE TABLE IF NOT EXISTS `%1\$sAdmin_login` (
   `LidID` int(11) NOT NULL,
   `Login` varchar(15) NOT NULL,
   `openid_identity` varchar(50) DEFAULT NULL,
@@ -1273,7 +1273,7 @@ CREATE TABLE IF NOT EXISTS `Admin_login` (
   UNIQUE KEY `Login` (`Login`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `Bewaking` (
+CREATE TABLE IF NOT EXISTS `%1\$sBewaking` (
   `RecordID` int(11) DEFAULT NULL,
   `Lid` int(11) NOT NULL DEFAULT '0',
   `Seizoen` varchar(5) DEFAULT NULL,
@@ -1291,7 +1291,31 @@ CREATE TABLE IF NOT EXISTS `Bewaking` (
   PRIMARY KEY (`SeizoenID`,`Lid`,`BEGIN_PER`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `Bewseiz` (
+CREATE TABLE IF NOT EXISTS `%1\$sBewaking_Blok` (
+  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
+  `SeizoenID` int(11) NOT NULL,
+  `Kode` char(2) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `Begindatum` date NOT NULL,
+  `Einddatum` date NOT NULL,
+  `InschrijvingOpen` tinyint(4) NOT NULL DEFAULT '1',
+  `Ingevoerd` date DEFAULT NULL,
+  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`RecordID`),
+  UNIQUE KEY `SeizoenBegindatum` (`SeizoenID`,`Begindatum`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `%1\$sBewaking_Inschrijving` (
+  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
+  `Lid` int(11) NOT NULL,
+  `BlokID` int(11) NOT NULL,
+  `Keuze` tinyint(4) NOT NULL DEFAULT '1',
+  `Opmerking` varchar(50) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
+  `Ingevoerd` date DEFAULT NULL,
+  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`RecordID`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `%1\$sBewseiz` (
   `RecordID` int(11) NOT NULL DEFAULT '0',
   `Kode` varchar(5) DEFAULT NULL,
   `Begindatum` date DEFAULT NULL,
@@ -1312,42 +1336,20 @@ CREATE TABLE IF NOT EXISTS `Bewseiz` (
   UNIQUE KEY `Kode` (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `Bewaking_Blok` (
-  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
-  `SeizoenID` int(11) NOT NULL,
-  `Kode` char(2) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `Begindatum` date NOT NULL,
-  `Einddatum` date NOT NULL,
-  `InschrijvingOpen` tinyint(4) NOT NULL DEFAULT '1',
-  `Ingevoerd` date NOT NULL,
-  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`RecordID`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
-
-CREATE TABLE IF NOT EXISTS `Bewaking_Inschrijving` (
-  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
-  `Lid` int(11) NOT NULL,
-  `BlokID` int(11) NOT NULL,
-  `Keuze` tinyint(4) NOT NULL DEFAULT '1',
-  `Opmerking` varchar(50) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `Ingevoerd` date NOT NULL,
-  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`RecordID`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
-
-CREATE TABLE IF NOT EXISTS `Boekjaar` (
-  `RecordID` int(11) DEFAULT NULL,
-  `Kode` varchar(5) NOT NULL DEFAULT '',
+CREATE TABLE IF NOT EXISTS `%1\$sBoekjaar` (
+  `RecordID` int(11) NOT NULL DEFAULT '0',
+  `Kode` varchar(5) DEFAULT NULL,
   `Omschrijving` varchar(50) DEFAULT NULL,
   `Begindatum` datetime DEFAULT NULL,
   `Einde` datetime DEFAULT NULL,
   `Afgesloten` tinyint(4) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
-  PRIMARY KEY (`Kode`)
+  PRIMARY KEY (`RecordID`),
+  UNIQUE KEY `Kode` (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `Diploma` (
+CREATE TABLE IF NOT EXISTS `%1\$sDiploma` (
   `RecordID` int(11) NOT NULL DEFAULT '0',
   `Kode` varchar(6) DEFAULT NULL,
   `Naam` varchar(75) DEFAULT NULL,
@@ -1371,7 +1373,32 @@ CREATE TABLE IF NOT EXISTS `Diploma` (
   UNIQUE KEY `Kode` (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `Functie` (
+CREATE TABLE IF NOT EXISTS `%1\$sDMS_Document` (
+  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
+  `Bestandsnaam` varchar(30) COLLATE utf8_unicode_ci NOT NULL,
+  `FolderID` int(11) NOT NULL,
+  `Beschrijving` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+  `Volgnummer` tinyint(4) unsigned NOT NULL DEFAULT '0',
+  `EigenaarID` int(11) NOT NULL,
+  `LockedBy` int(11) NOT NULL,
+  `Locked` datetime NOT NULL,
+  `Ingevoerd` date DEFAULT NULL,
+  `Gewijzigd` datetime NOT NULL,
+  PRIMARY KEY (`RecordID`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `%1\$sDMS_Folder` (
+  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
+  `Foldernaam` varchar(30) COLLATE utf8_unicode_ci NOT NULL,
+  `Beschrijving` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+  `Volgnummer` tinyint(3) unsigned NOT NULL DEFAULT '0',
+  `BovenliggendeFolderID` int(11) NOT NULL DEFAULT '0',
+  `Ingevoerd` date DEFAULT NULL,
+  `Gewijzigd` datetime NOT NULL,
+  PRIMARY KEY (`RecordID`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `%1\$sFunctie` (
   `Nummer` tinyint(4) NOT NULL DEFAULT '0',
   `Omschrijv` varchar(35) DEFAULT NULL,
   `Oms_Vrouw` varchar(35) DEFAULT NULL,
@@ -1387,7 +1414,7 @@ CREATE TABLE IF NOT EXISTS `Functie` (
   PRIMARY KEY (`Nummer`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `GBR` (
+CREATE TABLE IF NOT EXISTS `%1\$sGBR` (
   `RecordID` int(11) DEFAULT NULL,
   `Kode` varchar(4) NOT NULL DEFAULT '',
   `OMSCHRIJV` varchar(40) DEFAULT NULL,
@@ -1401,7 +1428,7 @@ CREATE TABLE IF NOT EXISTS `GBR` (
   PRIMARY KEY (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `Kostenplaats` (
+CREATE TABLE IF NOT EXISTS `%1\$sKostenplaats` (
   `RecordID` int(11) NOT NULL DEFAULT '0',
   `Kode` varchar(5) DEFAULT NULL,
   `Naam` varchar(35) DEFAULT NULL,
@@ -1411,7 +1438,7 @@ CREATE TABLE IF NOT EXISTS `Kostenplaats` (
   UNIQUE KEY `Kode` (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `Lid` (
+CREATE TABLE IF NOT EXISTS `%1\$sLid` (
   `Nummer` int(11) NOT NULL DEFAULT '0',
   `Roepnaam` varchar(17) DEFAULT NULL,
   `Tussenv` varchar(7) DEFAULT NULL,
@@ -1451,7 +1478,16 @@ CREATE TABLE IF NOT EXISTS `Lid` (
   PRIMARY KEY (`Nummer`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `Liddipl` (
+CREATE TABLE IF NOT EXISTS `%1\$sLidbew` (
+  `Lid` int(11) NOT NULL DEFAULT '0',
+  `Opmerking` longtext,
+  `Dieet` varchar(50) DEFAULT NULL,
+  `Ingevoerd` datetime DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL,
+  PRIMARY KEY (`Lid`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `%1\$sLiddipl` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `Lid` int(11) DEFAULT NULL,
   `DiplomaID` int(11) DEFAULT NULL,
@@ -1467,7 +1503,7 @@ CREATE TABLE IF NOT EXISTS `Liddipl` (
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `Lidmaatschap` (
+CREATE TABLE IF NOT EXISTS `%1\$sLidmaatschap` (
   `RecordID` int(11) DEFAULT NULL,
   `Lid` int(11) NOT NULL DEFAULT '0',
   `LIDDATUM` date NOT NULL DEFAULT '0000-00-00',
@@ -1480,7 +1516,7 @@ CREATE TABLE IF NOT EXISTS `Lidmaatschap` (
   UNIQUE KEY `Lidnr` (`Lidnr`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `Lidond` (
+CREATE TABLE IF NOT EXISTS `%1\$sLidond` (
   `RecordID` int(11) DEFAULT NULL,
   `Lid` int(11) NOT NULL DEFAULT '0',
   `OnderdeelID` int(11) NOT NULL DEFAULT '0',
@@ -1495,7 +1531,7 @@ CREATE TABLE IF NOT EXISTS `Lidond` (
   PRIMARY KEY (`Lid`,`OnderdeelID`,`Vanaf`,`Functie`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `LidRedNed` (
+CREATE TABLE IF NOT EXISTS `%1\$sLidRedNed` (
   `Lidnr` int(11) NOT NULL DEFAULT '0',
   `RelnrRedNed` varchar(8) DEFAULT NULL,
   `Roepnaam` varchar(35) DEFAULT NULL,
@@ -1511,7 +1547,7 @@ CREATE TABLE IF NOT EXISTS `LidRedNed` (
   PRIMARY KEY (`Lidnr`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `Mailing` (
+CREATE TABLE IF NOT EXISTS `%1\$sMailing` (
   `MailingID` int(11) NOT NULL AUTO_INCREMENT,
   `from_name` varchar(50) CHARACTER SET latin1 DEFAULT NULL,
   `from_addr` varchar(50) CHARACTER SET latin1 DEFAULT NULL,
@@ -1533,7 +1569,7 @@ CREATE TABLE IF NOT EXISTS `Mailing` (
   PRIMARY KEY (`MailingID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `Mailing_hist` (
+CREATE TABLE IF NOT EXISTS `%1\$sMailing_hist` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `LidID` int(11) NOT NULL DEFAULT '0',
   `MailingID` int(11) NOT NULL,
@@ -1549,7 +1585,7 @@ CREATE TABLE IF NOT EXISTS `Mailing_hist` (
   KEY `LidID` (`LidID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `Mailing_rcpt` (
+CREATE TABLE IF NOT EXISTS `%1\$sMailing_rcpt` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `MailingID` int(11) NOT NULL DEFAULT '0',
   `LidID` int(11) NOT NULL DEFAULT '0',
@@ -1558,7 +1594,7 @@ CREATE TABLE IF NOT EXISTS `Mailing_rcpt` (
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `Memo` (
+CREATE TABLE IF NOT EXISTS `%1\$sMemo` (
   `RecordID` int(11) DEFAULT NULL,
   `Lid` int(11) NOT NULL DEFAULT '0',
   `Soort` varchar(1) NOT NULL DEFAULT '',
@@ -1569,7 +1605,7 @@ CREATE TABLE IF NOT EXISTS `Memo` (
   PRIMARY KEY (`Lid`,`Soort`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `Mutatie` (
+CREATE TABLE IF NOT EXISTS `%1\$sMutatie` (
   `RecordID` int(11) DEFAULT NULL,
   `BoekjaarID` int(11) NOT NULL DEFAULT '0',
   `Jaar` varchar(5) DEFAULT NULL,
@@ -1591,7 +1627,7 @@ CREATE TABLE IF NOT EXISTS `Mutatie` (
   PRIMARY KEY (`BoekjaarID`,`Periode`,`Dagboek`,`Stuknr`,`Regelnr`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `Onderdl` (
+CREATE TABLE IF NOT EXISTS `%1\$sOnderdl` (
   `RecordID` int(11) NOT NULL DEFAULT '0',
   `Kode` varchar(6) DEFAULT NULL,
   `Naam` varchar(50) DEFAULT NULL,
@@ -1613,7 +1649,7 @@ CREATE TABLE IF NOT EXISTS `Onderdl` (
   UNIQUE KEY `Kode` (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `Rekening` (
+CREATE TABLE IF NOT EXISTS `%1\$sRekening` (
   `Nummer` int(11) NOT NULL DEFAULT '0',
   `Seizoen` smallint(6) DEFAULT NULL,
   `Datum` datetime DEFAULT NULL,
@@ -1628,17 +1664,7 @@ CREATE TABLE IF NOT EXISTS `Rekening` (
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`Nummer`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;";
-
-	if (strlen($table_prefix) > 1) {
-		if (substr($table_prefix, -1) != "_") {
-			$table_prefix .= "_";
-		}
-		$cm = "CREATE TABLE IF NOT EXISTS `";
-		foreach($arrTables as $tn) {
-			$queries = str_replace($cm . $tn, $cm . $table_prefix . $tn, $queries);
-		}
-	}
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;", $table_prefix);
 
 	fnQuery($queries);
 }
