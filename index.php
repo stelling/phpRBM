@@ -236,7 +236,7 @@ function fnWieiswie() {
 }
 
 function fnLedenlijst() {
-	global $arrTL, $ldl;
+	global $arrTL, $ldl, $table_prefix;
 
 	$val_naamfilter="";
 	$val_TL=$arrTL[1];
@@ -261,7 +261,9 @@ function fnLedenlijst() {
 	echo("<td>");
 	foreach($arrTL as $tl) {
 		if ($tl == $val_TL) {$c=" checked"; } else { $c=""; }
-		printf('<input type="radio"%2$s name="rbTL" value="%1$s" onclick="form.submit();">%1$s', $tl, $c);
+		if ($tl != "Klosleden" or $val_groep == 0) {
+			printf('<input type="radio"%2$s name="rbTL" value="%1$s" onclick="form.submit();">%1$s', $tl, $c);
+		}
 	}
 	echo("</td>\n");
 	printf("<td class='label'>Groep</td><td><select name='lbGroepFilter' onchange='form.submit();'>%s</select></td>\n", fnSelectListGroepen($val_groep));
@@ -275,19 +277,27 @@ function fnLedenlijst() {
 	} else {
 		$filter = "";
 	}
-	if ($val_TL == $arrTL[1]) {
-		if (strlen($filter) > 0) {$filter .= " AND "; }
-		$filter .= "LM.Lidnr > 0 AND ((LM.Opgezegd IS NULL) OR LM.Opgezegd > CURDATE())";
-	} elseif ($val_TL == $arrTL[2]) {
-		if (strlen($filter) > 0) {$filter .= " AND "; }
-		$filter .= "(LM.Lidnr IS NULL)";
-	} elseif ($val_TL == $arrTL[3]) {
-		if (strlen($filter) > 0) {$filter .= " AND "; }
-		$filter .= "(NOT LM.Opgezegd IS NULL) AND LM.Opgezegd < CURDATE()";
-	}
-	if ($val_groep > 0) {
-		if (strlen($filter) > 0) {$filter .= " AND "; }
-		$filter .= sprintf("L.Nummer IN (SELECT Lid FROM Lidond AS LO WHERE L.Nummer = LO.Lid AND LO.OnderdeelID=%d AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd > SYSDATE()))", $val_groep);
+	
+	if ($val_groep == 0) {
+		if ($val_TL == "Leden") {
+			if (strlen($filter) > 0) {$filter .= " AND "; }
+			$filter .= "LM.Lidnr > 0 AND ((LM.Opgezegd IS NULL) OR LM.Opgezegd > CURDATE())";
+		} elseif ($val_TL == "Klosleden") {
+			if (strlen($filter) > 0) {$filter .= " AND "; }
+			$filter .= "(LM.Lidnr IS NULL)";
+		} elseif ($val_TL == "Voormalig leden") {
+			if (strlen($filter) > 0) {$filter .= " AND "; }
+			$filter .= "(NOT LM.Opgezegd IS NULL) AND LM.Opgezegd < CURDATE()";
+		}
+	} else {
+		if (strlen($filter) > 0) {$filter .= " AND ";}
+		$filter .= sprintf("L.Nummer IN (SELECT Lid FROM %sLidond AS LO WHERE L.Nummer = LO.Lid AND LO.OnderdeelID=%d", $table_prefix, $val_groep);
+		if ($val_TL == "Leden") {
+			$filter .= " AND (LO.Vanaf <= CURDATE() AND (LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE())";
+		} elseif ($val_TL == "Voormalig leden") {
+			$filter .= " AND (LO.Vanaf <= CURDATE() AND (NOT LO.Opgezegd IS NULL) OR LO.Opgezegd < CURDATE())";
+		}
+		$filter .= ")";
 	}
 
 	$rows = db_ledenlijst($filter);
@@ -791,6 +801,7 @@ function fnWijzigen($lidid=0) {
 						$content = str_replace("[%NAAMVERENIGING%]", $naamvereniging, $content);
 						$content = str_replace("[%NAAMWEBSITE%]", $naamwebsite, $content);
 						$content = str_replace("[%URLWEBSITE%]", $urlwebsite, $content);
+						$content = str_ireplace("[%NAAMLID%]", $_SESSION['naamingelogde'], $content);
 						$content = str_ireplace("[%ROEPNAAM%]", $_SESSION['roepnaamingelogde'], $content);
 						$content = str_ireplace("[%BEWINSCHRIJVING%]", $bevins, $content);
 						$content = str_ireplace("[%BEWOPMERKING%]", db_memo($lidid, "I", "curval"), $content);
@@ -1475,7 +1486,7 @@ function fnMailing() {
 
 function fnSelectListGroepen($cv=0) {
 
-	$ret = "<option value=0>Alle leden</option>\n";
+	$ret = "<option value=0>** Iedereen **</option>\n";
 	$rows = db_Onderdelen();
 	foreach ($rows as $row) {
 		if ($cv == $row->RecordID) {$s = " selected";} else {$s = "";}
