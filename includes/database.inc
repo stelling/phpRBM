@@ -155,6 +155,11 @@ function fnQuery($query, $add_prefix=1) {
 	}
 }
 
+function db_scalar($query) {
+	$result = fnQuery($query);
+	return $result->fetchColumn();
+}
+
 function db_gegevenslid($LidID, $soort="Alg") {
 	global $selectnaam, $table_prefix, $fromlid, $fromlidond, $wherelidond;
 
@@ -530,29 +535,34 @@ function TableExists($table) {
 	}
 }
 
-function db_bewakingsrooster($seizoen, $week="*") {
+function db_bewakingsrooster($seizoen=-1, $week=-1) {
 	global $selectnaam, $table_prefix;
-	
-	if (strlen($week) > 0 and $week != "*") {
-		$sel_wk = sprintf("AND BW.Weeknr=%d", $week);
-	} else {
-		$sel_wk = "AND BW.Weeknr > 0";
-	}
-	
-	$query = sprintf("SELECT ST_LEN_BP FROM %sBewseiz WHERE RecordID=%d;", $table_prefix, $seizoen);
-	$result = fnQuery($query);
-	if ($result->fetchColumn() == 7) {
-		$orderby = "BW.Seizoen, BW.Weeknr, BW.Post, F.Sorteringsvolgorde, BW.BEGIN_PER, L.Achternaam, L.Tussenv, L.Roepnaam";
-	} else {
-		$orderby = "BW.Seizoen, BW.BEGIN_PER, BW.Post, F.Sorteringsvolgorde, L.Achternaam, L.Tussenv, L.Roepnaam";
-	}
 
+	if ($seizoen < 1) {
+		$sel_sz = "";
+		$sel_wk = "";
+		$orderby = "BS.Begindatum DESC, BW.BEGIN_PER, BW.Post, F.Sorteringsvolgorde, L.Achternaam, L.Tussenv, L.Roepnaam";
+	} else {	
+		$sel_sz = sprintf("WHERE BW.SeizoenID=%d", $seizoen);
+		if ($week > 0) {
+			$sel_wk = sprintf("AND BW.Weeknr=%d", $week);
+		} else {
+			$sel_wk = "AND BW.Weeknr > 0";
+		}
+		$query = sprintf("SELECT ST_LEN_BP FROM %sBewseiz WHERE RecordID=%d;", $table_prefix, $seizoen);
+		$result = fnQuery($query);
+		if ($result->fetchColumn() == 7) {
+			$orderby = "BW.Weeknr, BW.Post, F.Sorteringsvolgorde, BW.BEGIN_PER, L.Achternaam, L.Tussenv, L.Roepnaam";
+		} else {
+			$orderby = "BW.BEGIN_PER, BW.Post, F.Sorteringsvolgorde, L.Achternaam, L.Tussenv, L.Roepnaam";
+		}
+	}
 	$query = sprintf('SELECT BW.*, %1$s AS NaamBewaker, L.Nummer, F.Omschrijv AS OmsFunctie, F.Afkorting AS AfkFunctie, BS.Kode, BS.Lokatie, BS.ST_LEN_BP, BS.TOONERV,
 							DATEDIFF(BW.EINDE_PER, BW.BEGIN_PER)+1 AS Dagen, BW.BEGIN_PER, L.GEBDATUM, 
 							(SELECT SUM(DATEDIFF(BH.EINDE_PER, BH.BEGIN_PER)+1) FROM Bewaking BH WHERE BH.LID = BW.LID AND BH.EINDE_PER < BW.BEGIN_PER) AS ErvaringDagen
 							FROM ((%2$sBewaking AS BW INNER JOIN %2$sBewseiz AS BS ON BS.RecordID = BW.SeizoenID) INNER JOIN %2$sFunctie AS F ON BW.Functie = F.Nummer) INNER JOIN %2$sLid AS L ON L.Nummer = BW.Lid
-							WHERE BW.SeizoenID=%3$d %4$s
-							ORDER BY %5$s;', $selectnaam, $table_prefix, $seizoen, $sel_wk, $orderby);
+							%3$s %4$s
+							ORDER BY %5$s;', $selectnaam, $table_prefix, $sel_sz, $sel_wk, $orderby);
 	$result = fnQuery($query);
 	return $result;
 }
@@ -615,10 +625,23 @@ function db_bewaking_aantallen($seizoen, $lidid=-1) {
 	}
 }
 
-function db_insbew($actie="openblokken", $lidid=0, $blok=0, $keuze=0, $opmerk="") {
+function db_insbew($actie="openblokken", $lidid=0, $blok=0, $keuze=0, $opmerk="", $seizoen=-1, $week=-1) {
 	global $table_prefix, $selectnaam;
 	
 	$opmerk = str_replace("\"", "'", $opmerk);
+	if ($seizoen > 0) {
+		$w = sprintf("WHERE BB.SeizoenID=%d", $seizoen);
+	} else {
+		$w = "";
+	}
+	if ($week > 0) {
+		if (strlen($w) > 0) {
+			$w .= " AND ";
+		} else {
+			$w = "WHERE ";
+		}
+		$w .= sprintf("BB.Kode='%d'", $week);
+	}
 	
 	if ($actie == "openblokken") {
 		$query = sprintf("SELECT BB.*, BS.Kode AS KodeSeizoen, BS.Lokatie AS Locatie, BS.KeuzesBijInschrijving
@@ -626,13 +649,20 @@ function db_insbew($actie="openblokken", $lidid=0, $blok=0, $keuze=0, $opmerk=""
 								WHERE BB.InschrijvingOpen=1 AND BB.Einddatum >= CURDATE()
 								ORDER BY BS.Begindatum, BS.Kode, BB.Begindatum;", $table_prefix);
 		$result = fnQuery($query);
+		return $result->fetchAll();	
+	} elseif ($actie == "blokken") {
+		$query = sprintf("SELECT BB.*, BS.Kode AS KodeSeizoen, BS.Lokatie AS Locatie, BS.KeuzesBijInschrijving, BB.Kode AS Weeknr
+								FROM %1\$sBewaking_Blok AS BB INNER JOIN %1\$sBewseiz AS BS ON BB.SeizoenID = BS.RecordID
+								%2\$s
+								ORDER BY BS.Begindatum, BS.Kode, BB.Begindatum;", $table_prefix, $w);
+		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "overzicht") {
 		$query = sprintf("SELECT BS.Kode AS Seizoen, BB.Kode AS Week, BB.Begindatum AS dteBegin, BB.Einddatum AS dteEinde, %2\$s AS Bewaker, BI.Lid AS LidID,
 								IF(BI.Keuze = 2, '', 'Ja') AS `Keuze 1`, IF(BI.Keuze = 1, '', 'Ja') AS `Keuze 2`, BI.Opmerking
 								FROM (%1\$sBewaking_Blok AS BB INNER JOIN (%1\$sBewaking_Inschrijving AS BI INNER JOIN %1\$sLid AS L ON BI.Lid = L.Nummer) ON BB.RecordID = BI.BlokID) INNER JOIN %1\$sBewseiz AS BS ON BB.SeizoenID = BS.RecordID
-								WHERE BB.InschrijvingOpen=1
-								ORDER BY BS.Begindatum, BS.Kode, L.Achternaam, BI.Lid, BB.Begindatum;", $table_prefix, $selectnaam);
+								%3\$s
+								ORDER BY BS.Begindatum, BS.Kode, L.Achternaam, BI.Lid, BB.Begindatum;", $table_prefix, $selectnaam, $w);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "inschrijving" and $lidid > 0 and $blok > 0) {

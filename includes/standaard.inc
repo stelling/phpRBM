@@ -50,11 +50,15 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if ($_SESSION['aantalafdelingen'] > 0) {
 			$tabpages[] = "Eigen gegevens/Afdelingen";
 		}
-		$tabpages[] = "Eigen gegevens/Kader";
-		if ($_SESSION['aantalrollen'] > 0) {
+		if (count(db_gegevenslid($_SESSION['lidid'], "Kader")) > 0) {
+			$tabpages[] = "Eigen gegevens/Kader";
+		}
+		if (count(db_gegevenslid($_SESSION['lidid'], "Rollen")) > 0) {
 			$tabpages[] = "Eigen gegevens/Rollen";
 		}
-		$tabpages[] = "Eigen gegevens/Groepen";
+		if (count(db_gegevenslid($_SESSION['lidid'], "Groepen")) > 0) {
+			$tabpages[] = "Eigen gegevens/Groepen";
+		}
 		if ($_SESSION['aantalbewaking'] > 0 and ($_SESSION['webmaster'] == 1 or db_bewaking_aantallen(0, $_SESSION['lidid']))) {
 			$tabpages[] = "Eigen gegevens/Bewaking";
 		}

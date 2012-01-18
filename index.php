@@ -1039,7 +1039,7 @@ function fnWijzigen($lidid=0) {
 }
 
 function fnBewaking($seizoen=0) {
-	global $ldl, $currenttab2;
+	global $ldl, $currenttab2, $table_prefix;
 	
 	fnDispMenu(2);
 
@@ -1048,6 +1048,8 @@ function fnBewaking($seizoen=0) {
 		$_SESSION['actseizoen'] = $seizoen;
 	} elseif (isset($_SESSION['actseizoen']) and strlen($_SESSION['actseizoen']) > 0) {
 		$seizoen = $_SESSION['actseizoen'];
+	} else {
+		$seizoen = db_scalar(sprintf("SELECT MAX(SeizoenID) FROM %sBewaking;", $table_prefix));
 	}
 	if (isset($_POST['week']) and strlen($_POST['week']) > 0) {
 		$week = $_POST['week'];
@@ -1059,45 +1061,51 @@ function fnBewaking($seizoen=0) {
 	}
 	
 	echo("<div id='bewakingsrooster'>\n");
+	$st_len_bp = 1;
 	
-	if ($currenttab2 != "Overzicht inschrijvingen") {
-		echo("<div id='filter'>\n");
-		printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
-		print("Bewakingseizoen: ");
-		print("<select name='seizoen' onchange='form.submit();'>\n");
-		$bs_res = db_bewaking_seizoenen();
-		foreach($bs_res->fetchAll() as $row) {
-			if ($seizoen == $row->RecordID or $seizoen == 0) {
-				$seizoen = $row->RecordID;
+	echo("<div id='filter'>\n");
+	printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+	echo("Bewakingseizoen: ");
+	echo("<select name='seizoen' onchange='form.submit();'>\n");
+	if ($currenttab2 == "Overzicht inschrijvingen") {
+		echo("<option value=-1>Alle</option>\n");
+	}
+	$bs_res = db_bewaking_seizoenen();
+	foreach($bs_res->fetchAll() as $row) {
+		if ($seizoen == $row->RecordID or $seizoen == 0) {
+			$seizoen = $row->RecordID;
+			$sel = " selected";
+			$st_len_bp = $row->ST_LEN_BP;
+		} else {
+			$sel = "";
+		}
+		printf("<option value=%d%s>%s</option>\n", $row->RecordID, $sel, $row->Kode);
+	}
+	echo("</select>\n");
+	echo("&nbsp;&nbsp;");
+	
+	if ($currenttab2 != "Aantallen") {
+		echo("Bewakingsweek: ");
+		echo("<select name='week' onchange='form.submit();'>\n");
+		print("<option value='-1'>Alle</option>\n");
+		if ($currenttab2 == "Overzicht inschrijvingen") {
+			$rows = db_insbew("blokken", 0, 0, 0, "", $seizoen);
+		} else {
+			$rows = db_bewaking_aantallen($seizoen);
+		}
+		foreach($rows as $row) {
+			if ($week == $row->Weeknr or strlen($week) == 0) {
+				$week = $row->Weeknr;
 				$sel = " selected";
-				$st_len_bp = $row->ST_LEN_BP;
 			} else {
 				$sel = "";
 			}
-			printf("<option value=%d%s>%s</option>\n", $row->RecordID, $sel, $row->Kode);
+			printf("<option value='%d'%s>%d</option>\n", $row->Weeknr, $sel, $row->Weeknr);
 		}
 		echo("</select>\n");
-		echo("&nbsp;&nbsp;");
-		
-		if ($st_len_bp == 7 and $currenttab2 != "Aantallen") {
-			echo("Bewakingsweek: ");
-			echo("<select name='week' onchange='form.submit();'>\n");
-			print("<option value='*'>Alle</option>\n");
-			$rows = db_bewaking_aantallen($seizoen);
-			foreach($rows as $row) {
-				if ($week == $row->Weeknr or strlen($week) == 0) {
-					$week = $row->Weeknr;
-					$sel = " selected";
-				} else {
-					$sel = "";
-				}
-				printf("<option value='%d'%s>%d</option>\n", $row->Weeknr, $sel, $row->Weeknr);
-			}
-			echo("</select>\n");
-		}
-		echo("</form>\n");
-		echo("</div>  <!-- Einde filter -->\n");
 	}
+	echo("</form>\n");
+	echo("</div>  <!-- Einde filter -->\n");
 
 	if ($currenttab2 == "Bewakingsrooster" and toegang($_GET['tp'])) {
 		$rooster = db_bewakingsrooster($seizoen, $week);
@@ -1200,14 +1208,13 @@ function fnBewaking($seizoen=0) {
 					 $fn, $of, fnDispBW($row, "Naam"), $lft, fnDispBW($row, "Erv"));
 			$sel_leden[] = $row->Nummer;
 		}
-		$_SESSION['sel_leden'] = $sel_leden;
 		
 	} elseif ($currenttab2 == "Aantallen" and toegang($_GET['tp'])) {
 		$lijst = db_bewaking_aantallen($seizoen);
 		echo(fnDiplayTable($lijst));
 
 	} elseif ($currenttab2 == "Overzicht inschrijvingen" and toegang($_GET['tp'])) {
-		$lijst = db_insbew("overzicht");
+		$lijst = db_insbew("overzicht", 0, 0, 0, "", $seizoen, $week);
 		echo(fnDiplayTable($lijst));
 	}
 	echo("</div>  <!-- Einde bewakingsrooster -->\n");
