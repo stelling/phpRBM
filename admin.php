@@ -40,7 +40,7 @@ if (isset($_GET['op']) and $_GET['op'] == "deletelogin") {
 			echo("<p class='mededeling'>Bestand is succesvol ge-upload.</p>\n");
 			if (fnQuery($queries) !== true) {
 				echo("<p class='mededeling'>Bestand is in de database verwerkt.</p>\n");
-				db_add_activiteit("Upload nieuwe data uit Access-database is gebeurd.", 2);
+				db_add_activiteit("Upload data uit Access-database.", 2);
 				db_onderhoud();
 				printf("<script>setTimeout(\"location.href='%s';\", 15000);</script>\n", $_SERVER['PHP_SELF']);
 			}
