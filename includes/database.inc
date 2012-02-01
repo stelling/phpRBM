@@ -625,7 +625,7 @@ function db_bewaking_aantallen($seizoen, $lidid=-1) {
 	}
 }
 
-function db_insbew($actie="openblokken", $lidid=0, $blok=0, $keuze=0, $opmerk="", $seizoen=-1, $week=-1) {
+function db_insbew($actie="openblokken", $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $seizoen=-1, $week=-1) {
 	global $table_prefix, $selectnaam;
 	
 	$opmerk = str_replace("\"", "'", $opmerk);
@@ -665,18 +665,18 @@ function db_insbew($actie="openblokken", $lidid=0, $blok=0, $keuze=0, $opmerk=""
 								ORDER BY BS.Begindatum, BS.Kode, L.Achternaam, BI.Lid, BB.Begindatum;", $table_prefix, $selectnaam, $w);
 		$result = fnQuery($query);
 		return $result->fetchAll();
-	} elseif ($actie == "inschrijving" and $lidid > 0 and $blok > 0) {
+	} elseif ($actie == "inschrijving") {
 		$query = sprintf("SELECT BI.* FROM %sBewaking_Inschrijving AS BI
-								WHERE BI.Lid=%d AND BlokID=%d;", $table_prefix, $lidid, $blok);
+								WHERE BI.Lid=%d AND BI.BlokID=%d;", $table_prefix, $lidid, $blok);
 		$result = fnQuery($query);
 		return $result->fetch();
-	} elseif ($actie == "add" and $lidid > 0 and $blok > 0) {
-		$query = sprintf("INSERT INTO %sBewaking_Inschrijving (BlokID, Lid, Keuze, Opmerking, Ingevoerd)
-								VALUES (%d, %d, %d, \"%s\", CURDATE());", $table_prefix, $blok, $lidid, $keuze, $opmerk);
+	} elseif ($actie == "add" and $lidid > 0 and $blok > 0 and $insnr > 0) {
+		$query = sprintf("INSERT INTO %sBewaking_Inschrijving (BlokID, Lid, Nummer, Keuze, Opmerking, Ingevoerd)
+								VALUES (%d, %d, %d, %d, \"%s\", CURDATE());", $table_prefix, $blok, $lidid, $insnr, $keuze, $opmerk);
 		fnQuery($query);
 	} elseif ($actie == "update" and $lidid > 0 and $blok > 0) {
-		$query = sprintf("UPDATE %sBewaking_Inschrijving SET Keuze=%d, Opmerking=\"%s\"
-								WHERE BlokID=%d AND Lid=%d;", $table_prefix, $keuze, $opmerk, $blok, $lidid);
+		$query = sprintf("UPDATE %sBewaking_Inschrijving SET Nummer=%d, Keuze=%d, Opmerking=\"%s\"
+								WHERE BlokID=%d AND Lid=%d;", $table_prefix, $insnr, $keuze, $opmerk, $blok, $lidid);
 		fnQuery($query);
 	} elseif ($actie == "delete" and $lidid > 0 and $blok > 0) {
 		$query = sprintf("DELETE FROM %sBewaking_Inschrijving
@@ -1337,6 +1337,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sBewaking_Blok` (
 CREATE TABLE IF NOT EXISTS `%1\$sBewaking_Inschrijving` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `Lid` int(11) NOT NULL,
+  `Nummer` int(11) NOT NULL DEFAULT '0',
   `BlokID` int(11) NOT NULL,
   `Keuze` tinyint(4) NOT NULL DEFAULT '1',
   `Opmerking` varchar(50) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
