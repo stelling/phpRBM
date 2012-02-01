@@ -737,6 +737,11 @@ function fnWijzigen($lidid=0) {
 			if ($_SERVER['REQUEST_METHOD'] == "POST") {
 				$geldig = false;
 				$bevins = "";
+				if (isset($_POST['insnr']) and $_POST['insnr'] > 0) {
+					$insnr = $_POST['insnr'];
+				} else {
+					$insnr = db_scalar(sprintf("SELECT MAX(Nummer) FROM %sBewaking_Inschrijving;", $table_prefix)) + 3;
+				}
 				foreach (db_insbew("openblokken") as $row) {
 					$k1 = sprintf("k1_%d", $row->RecordID);
 					$k2 = sprintf("k2_%d", $row->RecordID);
@@ -751,15 +756,15 @@ function fnWijzigen($lidid=0) {
 					} elseif (isset($_POST[$k2])) {
 						$kz = 2;
 					}
-					$ins = db_insbew("inschrijving", $lidid, $row->RecordID);
+					$ins = db_insbew("inschrijving", $lidid, 0, $row->RecordID);
 					if (isset($ins->RecordID)) {
 						if ($kz == 0 and strlen($_POST[$opm]) == 0) {
-							db_insbew("delete", $lidid, $row->RecordID);
-						} elseif ($ins->Keuze != $kz or $ins->Opmerking != $_POST[$opm]) {
-							db_insbew("update", $lidid, $row->RecordID, $kz, $_POST[$opm]);
+							db_insbew("delete", $lidid, $insnr, $row->RecordID);
+						} elseif ($ins->Keuze != $kz or $ins->Opmerking != $_POST[$opm] or $ins->Nummer != $insnr) {
+							db_insbew("update", $lidid, $insnr, $row->RecordID, $kz, $_POST[$opm]);
 						}
 					} elseif ($kz > 0 or strlen($_POST[$opm]) > 0) {
-						db_insbew("add", $lidid, $row->RecordID, $kz, $_POST[$opm]);
+						db_insbew("add", $lidid, $insnr, $row->RecordID, $kz, $_POST[$opm]);
 					}
 					if ($kz > 0) {
 						$bevins .= sprintf("<li>%s - %s t/m %s", $row->Kode, strftime("%e %B %Y", strtotime($row->Begindatum)), strftime("%e %B %Y", strtotime($row->Einddatum)));
@@ -844,11 +849,12 @@ function fnWijzigen($lidid=0) {
 			echo("<div id='inschrijvingbewaking'>\n");
 			printf("<form method='post' action='/index.php?%s' name='ins_bewaking'>\n", $_SERVER['QUERY_STRING']);
 			$vs = -1;
+			$insnr = 0;
 			echo("<table>\n");
 				
 			$geldig = false;
 			foreach (db_insbew("openblokken") as $row) {
-				$ins = db_insbew("inschrijving", $lidid, $row->RecordID);
+				$ins = db_insbew("inschrijving", $lidid, 0, $row->RecordID);
 				if ($vs != $row->SeizoenID) {
 					printf("<tr><th colspan=6>%s %s</th></tr>\n", $row->KodeSeizoen, $row->Locatie);
 					if ($row->KeuzesBijInschrijving == 1) {
@@ -865,8 +871,11 @@ function fnWijzigen($lidid=0) {
 					$c = "checked";
 					$geldig = true;
 				}
+				if (isset($ins->Nummer) and $insnr == 0) {
+					$insnr = $ins->Nummer;
+				}
 				printf("<td class='chk'><input type='checkbox' name='k1_%s' value=1 %s></input></td>\n", $row->RecordID, $c);
-				if ($row->KeuzesBijInschrijving == 1) {	
+				if ($row->KeuzesBijInschrijving == 1) {
 					$c = "";
 					if (isset($ins->Keuze) and $ins->Keuze > 1) {
 						$c = "checked";
@@ -889,6 +898,7 @@ function fnWijzigen($lidid=0) {
 			}
 			echo("</th><tr>\n");
 			echo("</table>\n");
+			printf("<input type='hidden' name='insnr' value=%d>\n", $insnr);
 			echo("</form>\n");
 			echo("</div>  <!-- Einde inschrijvingbewaking -->\n");
 		} elseif ($currenttab2 == "Opzegging" and toegang($_GET['tp'])) {
@@ -1065,8 +1075,9 @@ function fnBewaking($seizoen=0) {
 	
 	echo("<div id='filter'>\n");
 	printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
-	echo("Bewakingseizoen: ");
-	echo("<select name='seizoen' onchange='form.submit();'>\n");
+	echo("<table>\n<tr>\n");
+	echo("<td class='label'>Bewakingseizoen:</td>");
+	echo("<td><select name='seizoen' onchange='form.submit();'>\n");
 	if ($currenttab2 == "Overzicht inschrijvingen") {
 		echo("<option value=-1>Alle</option>\n");
 	}
@@ -1081,15 +1092,14 @@ function fnBewaking($seizoen=0) {
 		}
 		printf("<option value=%d%s>%s</option>\n", $row->RecordID, $sel, $row->Kode);
 	}
-	echo("</select>\n");
-	echo("&nbsp;&nbsp;");
+	echo("</select>\n</td>\n");
 	
 	if ($currenttab2 != "Aantallen") {
-		echo("Bewakingsweek: ");
-		echo("<select name='week' onchange='form.submit();'>\n");
+		echo("<td class='label'>Bewakingsweek:</td>");
+		echo("<td><select name='week' onchange='form.submit();'>\n");
 		print("<option value='-1'>Alle</option>\n");
 		if ($currenttab2 == "Overzicht inschrijvingen") {
-			$rows = db_insbew("blokken", 0, 0, 0, "", $seizoen);
+			$rows = db_insbew("blokken", 0, 0, 0, 0, "", $seizoen);
 		} else {
 			$rows = db_bewaking_aantallen($seizoen);
 		}
@@ -1102,8 +1112,9 @@ function fnBewaking($seizoen=0) {
 			}
 			printf("<option value='%d'%s>%d</option>\n", $row->Weeknr, $sel, $row->Weeknr);
 		}
-		echo("</select>\n");
+		echo("</select>\n</td>\n");
 	}
+	echo("</tr>\n</table>\n");
 	echo("</form>\n");
 	echo("</div>  <!-- Einde filter -->\n");
 
@@ -1214,7 +1225,7 @@ function fnBewaking($seizoen=0) {
 		echo(fnDiplayTable($lijst));
 
 	} elseif ($currenttab2 == "Overzicht inschrijvingen" and toegang($_GET['tp'])) {
-		$lijst = db_insbew("overzicht", 0, 0, 0, "", $seizoen, $week);
+		$lijst = db_insbew("overzicht", 0, 0, 0, 0, "", $seizoen, $week);
 		echo(fnDiplayTable($lijst));
 	}
 	echo("</div>  <!-- Einde bewakingsrooster -->\n");
