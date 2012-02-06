@@ -462,6 +462,17 @@ function db_login_bevestiging($lidid=0, $email="") {
 	return $result->fetch();
 }
 
+function db_lidnr_bevestiging($email="") {
+	global $selectnaam, $table_prefix;
+
+	$query = sprintf("SELECT %1\$s AS Naam, L.EMAIL, L.EmailVereniging, LM.Lidnr, L.Roepnaam
+			FROM %2\$sLid AS L INNER JOIN %2\$sLidmaatschap AS LM ON L.Nummer = LM.Lid
+			WHERE LM.Lidnr > 0 AND (LOWER(L.EMAIL)='%3\$s' OR LOWER(L.EmailVereniging)='%3\$s')
+			ORDER BY LM.LIDDATUM DESC LIMIT 1;", $selectnaam, $table_prefix, strtolower($email));
+	$result = fnQuery($query);
+	return $result->fetch();
+}
+
 function db_delete_login($lidid) {
 	global $table_prefix;
 	
@@ -629,10 +640,9 @@ function db_insbew($actie="openblokken", $lidid=0, $insnr=0, $blok=0, $keuze=0, 
 	global $table_prefix, $selectnaam;
 	
 	$opmerk = str_replace("\"", "'", $opmerk);
+	$w = "";
 	if ($seizoen > 0) {
 		$w = sprintf("WHERE BB.SeizoenID=%d", $seizoen);
-	} else {
-		$w = "";
 	}
 	if ($week > 0) {
 		if (strlen($w) > 0) {
@@ -641,6 +651,14 @@ function db_insbew($actie="openblokken", $lidid=0, $insnr=0, $blok=0, $keuze=0, 
 			$w = "WHERE ";
 		}
 		$w .= sprintf("BB.Kode='%d'", $week);
+	}
+	if ($actie == "overzicht" or $actie == "matrixaantallen") {
+		if (strlen($w) > 0) {
+			$w .= " AND ";
+		} else {
+			$w = "WHERE ";
+		}
+		$w .= "BI.Definitief > BI.Ingevoerd";
 	}
 	
 	if ($actie == "openblokken") {
@@ -665,6 +683,15 @@ function db_insbew($actie="openblokken", $lidid=0, $insnr=0, $blok=0, $keuze=0, 
 								ORDER BY BS.Begindatum, BS.Kode, L.Achternaam, BI.Lid, BB.Begindatum;", $table_prefix, $selectnaam, $w);
 		$result = fnQuery($query);
 		return $result->fetchAll();
+	} elseif ($actie == "matrixaantallen") {
+		$query = sprintf("SELECT BS.Kode AS Seizoen, BB.Kode AS Week, BB.Begindatum AS dteBegin, BB.Einddatum AS dteEinde,
+								SUM(IF(BI.Keuze = 1, 1, 0)) AS `Keuze 1`, SUM(IF(BI.Keuze = 2, 1, 0)) AS `Keuze 2`
+								FROM (%1\$sBewaking_Blok AS BB INNER JOIN (%1\$sBewaking_Inschrijving AS BI INNER JOIN %1\$sLid AS L ON BI.Lid = L.Nummer) ON BB.RecordID = BI.BlokID) INNER JOIN %1\$sBewseiz AS BS ON BB.SeizoenID = BS.RecordID
+								%2\$s
+								GROUP BY BS.Kode, BB.Kode, BB.Begindatum, BB.Einddatum
+								ORDER BY BS.Kode, BB.Kode, BB.Begindatum;", $table_prefix, $w);
+		$result = fnQuery($query);
+		return $result->fetchAll();
 	} elseif ($actie == "inschrijving") {
 		$query = sprintf("SELECT BI.* FROM %sBewaking_Inschrijving AS BI
 								WHERE BI.Lid=%d AND BI.BlokID=%d;", $table_prefix, $lidid, $blok);
@@ -681,6 +708,10 @@ function db_insbew($actie="openblokken", $lidid=0, $insnr=0, $blok=0, $keuze=0, 
 	} elseif ($actie == "delete" and $lidid > 0 and $blok > 0) {
 		$query = sprintf("DELETE FROM %sBewaking_Inschrijving
 								WHERE BlokID=%d AND Lid=%d;", $table_prefix, $blok, $lidid);
+		fnQuery($query);
+	} elseif ($actie == "defmaken" and $lidid > 0 and $insnr > 0) {
+		$query = sprintf("UPDATE %sBewaking_Inschrijving SET Definitief=SYSDATE()
+								WHERE Nummer=%d AND Lid=%d;", $table_prefix, $insnr, $lidid);
 		fnQuery($query);
 	}
 }
@@ -1331,7 +1362,8 @@ CREATE TABLE IF NOT EXISTS `%1\$sBewaking_Blok` (
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`RecordID`),
-  UNIQUE KEY `SeizoenBegindatum` (`SeizoenID`,`Begindatum`)
+  UNIQUE KEY `SeizoenBegindatum` (`SeizoenID`,`Begindatum`),
+  UNIQUE KEY `SeizoenKode` (`SeizoenID`,`Kode`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `%1\$sBewaking_Inschrijving` (
@@ -1341,6 +1373,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sBewaking_Inschrijving` (
   `BlokID` int(11) NOT NULL,
   `Keuze` tinyint(4) NOT NULL DEFAULT '1',
   `Opmerking` varchar(50) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
+  `Definitief` datetime NOT NULL,
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`RecordID`)

@@ -788,6 +788,7 @@ function fnWijzigen($lidid=0) {
 				if ($geldig) {
 					$bevest_template = 'templates/bevestiging_inschrijving.html';
 					if (isset($_POST['Definitief']) and file_exists($bevest_template)) {
+						db_insbew("defmaken", $lidid, $insnr);
 						$content = file_get_contents($bevest_template);
 						$brief_template = 'templates/briefpapier.html';
 						if (file_exists($brief_template)) {
@@ -853,6 +854,7 @@ function fnWijzigen($lidid=0) {
 			echo("<table>\n");
 				
 			$geldig = false;
+			$kandef = false;
 			foreach (db_insbew("openblokken") as $row) {
 				$ins = db_insbew("inschrijving", $lidid, 0, $row->RecordID);
 				if ($vs != $row->SeizoenID) {
@@ -888,12 +890,15 @@ function fnWijzigen($lidid=0) {
 				}
 				printf("<td><input type='text' name='Opm_%d' size=60 maxlength=50 value=\"%s\"></td>\n", $row->RecordID, $v);
 				echo("</tr>\n");
+				if (isset($ins->Definitief) and $ins->Definitief < "2010-01-01") {
+					$kandef = true;
+				}
 			}
 			printf("<tr><td colspan=7>Opmerkingen:<br><textarea cols=90 rows=8 name='opmalg'>%s</textarea></td></tr>", db_memo($lidid, "I", "curval"));
 			echo("<tr><th colspan=7>");
 			printf("<p>%s</p>", $voorwaardeninschrijving);
 			echo("<input type='submit' value='Wijzigen' name='Wijzigen'>");
-			if ($geldig) {
+			if ($geldig and $kandef) {
 				echo("&nbsp;<input type='submit' value='Definitief maken' name='Definitief'>");
 			}
 			echo("</th><tr>\n");
@@ -1225,8 +1230,10 @@ function fnBewaking($seizoen=0) {
 		echo(fnDiplayTable($lijst));
 
 	} elseif ($currenttab2 == "Overzicht inschrijvingen" and toegang($_GET['tp'])) {
+		$lijst = db_insbew("matrixaantallen", 0, 0, 0, 0, "", $seizoen);
+		echo(fnDiplayTable($lijst, "", "Totalen"));
 		$lijst = db_insbew("overzicht", 0, 0, 0, 0, "", $seizoen, $week);
-		echo(fnDiplayTable($lijst));
+		echo(fnDiplayTable($lijst, "", "Details"));
 	}
 	echo("</div>  <!-- Einde bewakingsrooster -->\n");
 }
@@ -1262,15 +1269,15 @@ function fnLoginAanvragen() {
 		}
 
 		$mess = "";
-		if (strlen($_POST['email']) < 5 or !isValidMailAddress($_POST['email'])) {
-			$mess = sprintf("Je hebt geen geldig e-mailadres (%s) opgegeven.", $_POST['email']);
-		} elseif ((strlen($_POST['Lidnummer']) == 0 or $_POST['Lidnummer'] == 0) and $lidnrversturenmogelijk == 1) {
-			$row = db_login_bevestiging(0, $_POST['email']);
-			if ($row == false) {
-				$mess = sprintf("Het emailadres '%s' is onbekend in de database.", $_POST['email']);
+		if ((strlen($_POST['Lidnummer']) == 0 or $_POST['Lidnummer'] == 0) and $lidnrversturenmogelijk == 1) {
+			$row = db_lidnr_bevestiging($_POST['email']);
+			if ($row === false) {
+				$mess = sprintf("Het emailadres '%s' is onbekend in de database. ss", $_POST['email']);
 			} else {
 				fnConfirmLidnr($row);
 			}
+		} elseif (strlen($_POST['email']) < 5 or !isValidMailAddress($_POST['email'])) {
+			$mess = sprintf("Je hebt geen geldig e-mailadres (%s) opgegeven.", $_POST['email']);
 		} elseif (strlen($_POST['Lidnummer']) == 0 or !is_numeric($_POST['Lidnummer'])) {
 			$mess = "Je hebt geen (geldig) lidnummer opgegeven.";
 		} elseif (strlen($_POST['login']) < 6 or strlen($_POST['login']) > 15) {
@@ -1313,7 +1320,7 @@ function fnLoginAanvragen() {
 		if (isset($beperktotgroep) and $beperktotgroep > 0) {
 			printf("Alleen leden van de groep '%s' van %s kunnen een login aanvragen. ", db_naam_onderdeel($beperktotgroep), $naamvereniging);
 		} else {
-			printf("Alleen leden van de %s kunnen een login aanvragen.");
+			printf("Alleen leden van de %s kunnen een login aanvragen.", $naamvereniging);
 		}
 		echo("Je kan dit formulier ook gebruiken als je je login of wachtwoord vergeten bent.");
 		if ($lidnrversturenmogelijk == 1) {
