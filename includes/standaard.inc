@@ -22,6 +22,7 @@ if (!isset($emailbevestiginginschrijving)) {
 }
 require_once('includes/database.inc');
 require_once('includes/authentication.inc');
+require_once("includes/bewaking.inc");
 require_once('includes/mailing.inc');
 require_once("includes/class.phpmailer.php");
 
