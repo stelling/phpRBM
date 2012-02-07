@@ -918,7 +918,8 @@ function fnLoginAanvragen() {
 		if ((strlen($_POST['Lidnummer']) == 0 or $_POST['Lidnummer'] == 0) and $lidnrversturenmogelijk == 1) {
 			$row = db_lidnr_bevestiging($_POST['email']);
 			if ($row === false) {
-				$mess = sprintf("Het emailadres '%s' is onbekend in de database. ss", $_POST['email']);
+				$mess = sprintf("Het emailadres '%s' is onbekend in de database.", $_POST['email']);
+				db_add_activiteit($mess, 1);
 			} else {
 				fnConfirmLidnr($row);
 			}
