@@ -196,7 +196,7 @@ function HTMLheader() {
 		echo("<body>\n");
 		echo("<div id='container'>\n");
 		echo("<div id='header'>\n");
-		printf("<h1><a href='http://%s'>%s</a></h1>\n", $urlwebsite, $naamwebsite);
+		printf("<h1>%s</h1>\n", $urlwebsite, $naamwebsite);
 	
 		echo("<div id='login'>\n");
 		echo("<form name='Login' action='/auth.php' method='post'>");
