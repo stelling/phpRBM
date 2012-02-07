@@ -198,7 +198,7 @@ function bew_postindeling($seizoen, $week=-1) {
 }
 
 function inschrijvenbewaking($lidid) {
-	global $naamvereniging, $naamwebsite, $urlwebsite, $voorwaardeninschrijving;
+	global $naamvereniging, $naamwebsite, $urlwebsite, $voorwaardeninschrijving, $selfservicediplomas, $emailbevestiginginschrijving;
 
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$geldig = false;
