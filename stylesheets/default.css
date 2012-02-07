@@ -256,11 +256,11 @@ footer a, #footer a, footer a:visited, #footer a:visited {
 	float: right;
 }
 
-#bewakingsrooster h3 {
+#bewakingsrooster h3, #postindeling h3 {
 	background-color: #00FFFF;
 }
 
-#wieiswie a, #wieiswie a:visited, #bewakingsrooster a, #bewakingsrooster a:visited {
+#wieiswie a, #wieiswie a:visited, #bewakingsrooster a, #bewakingsrooster a:visited, #postindeling a, #postindeling a:visited {
 	color: #000080;
 	text-decoration: none;
 }
