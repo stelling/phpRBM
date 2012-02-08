@@ -113,6 +113,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if (count(db_insbew("overzicht")) > 0) {
 		$tabpages[] = "Bewaking/Overzicht inschrijvingen";
 	}
+	if (db_scalar(sprintf("SELECT COUNT(*) FROM %sAdmin_activiteit WHERE TypeActiviteit=6;", $table_prefix)) > 0) {
+		$tabpages[] = "Bewaking/Logboek inschrijving";
+	}
 	if ($_SESSION['aantalmutaties'] > 0) {
 		$tabpages[] = "Kostenoverzicht";
 	}
@@ -196,7 +199,7 @@ function HTMLheader() {
 		echo("<body>\n");
 		echo("<div id='container'>\n");
 		echo("<div id='header'>\n");
-		printf("<h1>%s</h1>\n", $urlwebsite, $naamwebsite);
+		printf("<h1>%s</h1>\n", $naamwebsite);
 	
 		echo("<div id='login'>\n");
 		echo("<form name='Login' action='/auth.php' method='post'>");
