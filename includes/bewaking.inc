@@ -23,50 +23,52 @@ function fnBewaking($seizoen=0) {
 	
 	$st_len_bp = 1;
 	
-	echo("<div id='filter'>\n");
-	printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
-	echo("<table>\n<tr>\n");
-	echo("<td class='label'>Bewakingseizoen:</td>");
-	echo("<td><select name='seizoen' onchange='form.submit();'>\n");
-	if ($currenttab2 == "Overzicht inschrijvingen") {
-		echo("<option value=-1>Alle</option>\n");
-	}
-	$bs_res = db_bewaking_seizoenen();
-	foreach($bs_res->fetchAll() as $row) {
-		if ($seizoen == $row->RecordID or $seizoen == 0) {
-			$seizoen = $row->RecordID;
-			$sel = " selected";
-			$st_len_bp = $row->ST_LEN_BP;
-		} else {
-			$sel = "";
-		}
-		printf("<option value=%d%s>%s</option>\n", $row->RecordID, $sel, $row->Kode);
-	}
-	echo("</select>\n</td>\n");
-	
-	if ($currenttab2 != "Aantallen") {
-		echo("<td class='label'>Bewakingsweek:</td>");
-		echo("<td><select name='week' onchange='form.submit();'>\n");
-		print("<option value='-1'>Alle</option>\n");
+	if ($currenttab2 != "Logboek inschrijving") {
+		echo("<div id='filter'>\n");
+		printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+		echo("<table>\n<tr>\n");
+		echo("<td class='label'>Bewakingseizoen:</td>");
+		echo("<td><select name='seizoen' onchange='form.submit();'>\n");
 		if ($currenttab2 == "Overzicht inschrijvingen") {
-			$rows = db_insbew("blokken", 0, 0, 0, 0, "", $seizoen);
-		} else {
-			$rows = db_bewaking_aantallen($seizoen);
+			echo("<option value=-1>Alle</option>\n");
 		}
-		foreach($rows as $row) {
-			if ($week == $row->Weeknr or strlen($week) == 0) {
-				$week = $row->Weeknr;
+		$bs_res = db_bewaking_seizoenen();
+		foreach($bs_res->fetchAll() as $row) {
+			if ($seizoen == $row->RecordID or $seizoen == 0) {
+				$seizoen = $row->RecordID;
 				$sel = " selected";
+				$st_len_bp = $row->ST_LEN_BP;
 			} else {
 				$sel = "";
 			}
-			printf("<option value='%d'%s>%d</option>\n", $row->Weeknr, $sel, $row->Weeknr);
+			printf("<option value=%d%s>%s</option>\n", $row->RecordID, $sel, $row->Kode);
 		}
 		echo("</select>\n</td>\n");
+		
+		if ($currenttab2 != "Aantallen") {
+			echo("<td class='label'>Bewakingsweek:</td>");
+			echo("<td><select name='week' onchange='form.submit();'>\n");
+			print("<option value='-1'>Alle</option>\n");
+			if ($currenttab2 == "Overzicht inschrijvingen") {
+				$rows = db_insbew("blokken", 0, 0, 0, 0, "", $seizoen);
+			} else {
+				$rows = db_bewaking_aantallen($seizoen);
+			}
+			foreach($rows as $row) {
+				if ($week == $row->Weeknr or strlen($week) == 0) {
+					$week = $row->Weeknr;
+					$sel = " selected";
+				} else {
+					$sel = "";
+				}
+				printf("<option value='%d'%s>%d</option>\n", $row->Weeknr, $sel, $row->Weeknr);
+			}
+			echo("</select>\n</td>\n");
+		}
+		echo("</tr>\n</table>\n");
+		echo("</form>\n");
+		echo("</div>  <!-- Einde filter -->\n");
 	}
-	echo("</tr>\n</table>\n");
-	echo("</form>\n");
-	echo("</div>  <!-- Einde filter -->\n");
 	
 	if ($currenttab2 == "Bewakingsrooster") {
 		bew_rooster($seizoen, $week);
@@ -81,6 +83,9 @@ function fnBewaking($seizoen=0) {
 		echo(fnDiplayTable($lijst, "", "Totalen"));
 		$lijst = db_insbew("overzicht", 0, 0, 0, 0, "", $seizoen, $week);
 		echo(fnDiplayTable($lijst, "", "Details"));
+	} elseif ($currenttab2 == "Logboek inschrijving" and toegang($_GET['tp'])) {
+		$lijst = db_lijstactiviteiten(6);
+		echo(fnDiplayTable($lijst));
 	}
 }
 
@@ -224,7 +229,7 @@ function inschrijvenbewaking($lidid) {
 			}
 			$ins = db_insbew("inschrijving", $lidid, 0, $row->RecordID);
 			if (isset($ins->RecordID)) {
-				if ($kz == 0 and strlen($_POST[$opm]) == 0) {
+				if ($kz == 0) {
 					db_insbew("delete", $lidid, $insnr, $row->RecordID);
 				} elseif ($ins->Keuze != $kz or $ins->Opmerking != $_POST[$opm] or $ins->Nummer != $insnr) {
 					db_insbew("update", $lidid, $insnr, $row->RecordID, $kz, $_POST[$opm]);
@@ -280,7 +285,11 @@ function inschrijvenbewaking($lidid) {
 				$content = str_ireplace("[%DIEET%]", db_memo($lidid, "D", "curval"), $content);
 				$content = str_ireplace("[%GEZONDHEID%]", db_memo($lidid, "G", "curval"), $content);
 				
-				$f = sprintf("D.Kode IN %s", $selfservicediplomas);
+				if (isset($selfservicediplomas) and strlen($selfservicediplomas) > 4) {
+					$f = sprintf("D.Kode IN %s", $selfservicediplomas);
+				} else {
+					$f = "";
+				}
 				$d = "";
 				foreach (db_liddipl("lidgegevens", $lidid, 0, 0, "", "", "", $f) as $ld) {
 					$d .= sprintf("<li>%s</li>\n", $ld->Diploma);
