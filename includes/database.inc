@@ -702,13 +702,17 @@ function db_insbew($actie="openblokken", $lidid=0, $insnr=0, $blok=0, $keuze=0, 
 								VALUES (%d, %d, %d, %d, \"%s\", CURDATE());", $table_prefix, $blok, $lidid, $insnr, $keuze, $opmerk);
 		fnQuery($query);
 	} elseif ($actie == "update" and $lidid > 0 and $blok > 0) {
-		$query = sprintf("UPDATE %sBewaking_Inschrijving SET Nummer=%d, Keuze=%d, Opmerking=\"%s\"
+		$query = sprintf("UPDATE %sBewaking_Inschrijving SET Nummer=%d, Keuze=%d, Opmerking=\"%s\", Definitief=NULL
 								WHERE BlokID=%d AND Lid=%d;", $table_prefix, $insnr, $keuze, $opmerk, $blok, $lidid);
 		fnQuery($query);
+		$mess = sprintf("Inschrijving bewaking voor blok %d is bij ingelogd lid bijgewerkt. Opmerking is '%s' geworden.", $blok, $opmerk);
+		db_add_activiteit($mess, 6);
 	} elseif ($actie == "delete" and $lidid > 0 and $blok > 0) {
 		$query = sprintf("DELETE FROM %sBewaking_Inschrijving
 								WHERE BlokID=%d AND Lid=%d;", $table_prefix, $blok, $lidid);
 		fnQuery($query);
+		$mess = sprintf("Inschrijving bewaking voor blok %d is bij ingelogd lid verwijderd.", $blok);
+		db_add_activiteit($mess, 6);
 	} elseif ($actie == "defmaken" and $lidid > 0 and $insnr > 0) {
 		$query = sprintf("UPDATE %sBewaking_Inschrijving SET Definitief=SYSDATE()
 								WHERE Nummer=%d AND Lid=%d;", $table_prefix, $insnr, $lidid);
@@ -1027,13 +1031,19 @@ function db_add_activiteit($oms, $type=0) {
 	fnQuery($query);
 }
 
-function db_lijstactiviteiten() {
+function db_lijstactiviteiten($type=0) {
 	global $selectnaam, $table_prefix;
+	
+	if ($type > 0) {
+		$w = sprintf("TypeActiviteit=%d", $type);
+	} else {
+		$w = "TypeActiviteit <> 99";
+	}
 	
 	$query = sprintf("SELECT A.DatumTijd as `dttDatum en tijd`, Omschrijving, IP_adres, %1\$s AS `Ingelogd Lid`
 							FROM %2\$sAdmin_activiteit AS A LEFT OUTER JOIN %2\$sLid AS L ON A.LidID = L.Nummer
-							WHERE TypeActiviteit <> 99
-							ORDER BY A.DatumTijd DESC LIMIT 35;", $selectnaam, $table_prefix);
+							WHERE %3\$s
+							ORDER BY A.DatumTijd DESC LIMIT 35;", $selectnaam, $table_prefix, $w);
 	$result = fnQuery($query);
 	return $result->fetchAll();
 }
