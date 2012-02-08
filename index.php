@@ -836,15 +836,16 @@ function fnWijzigen($lidid=0) {
 			} else {
 				echo("<div id='wijzigengegevens'>\n");
 				printf("<form name='ProfielWijzigen' action=\"%s?%s\" method='post'>", $_SERVER["PHP_SELF"], $_SERVER['QUERY_STRING']);
-				echo("<table>
+				printf("<table>
 						<tr><th colspan=2>Wachtwoord wijzigen</th></tr>
+						<tr><td class=label>Login:</td><td>%s</td></tr>
 						<tr><td class=label>Oude wachtwoord:</td><td><input type='password' name='pw_oud' size=10 maxlength=12></td></tr>
 						<tr><td class=label>Nieuw wachtwoord:</td><td><input type='password' name='pw_nieuw' size=10 maxlength=12></td></tr>
 						<tr><td class=label>Herhaal wachtwoord:</td><td><input type='password' name='pw_herhaal' size=10 maxlength=12></td></tr>
 						<tr><th colspan=2><input type='submit' value='Wijzigen'>&nbsp;<input type=button onClick='history.go(-1);' value='Annuleren'></th></tr>
 					</table>
 				  </form>
-				</div>  <!-- Einde invulformulier -->");
+				</div>  <!-- Einde invulformulier -->", $_SESSION['username']);
 				
 				if ($gebruikopenid == 1) {
 					$row = db_logins("controle");
