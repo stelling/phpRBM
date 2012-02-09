@@ -315,8 +315,6 @@ function inschrijvenbewaking($lidid) {
 					echo $e->getMessage();
 				}					
 			}
-		} else {
-			echo("<p class='mededeling'>Deze inschrijving is niet geldig, omdat er geen enkele eerste keuze is aangegeven.</p>\n");
 		}
 	}
 
