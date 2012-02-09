@@ -38,7 +38,7 @@ function toegang($soort, $melding=1) {
 					printf("<p class='mededeling'>OpenID fout: %s</p>\n", $error['description']);
 				}
 				exit;
-			} elseif (count($row) > 0) {
+			} elseif (isset($row->LidID) and $row->LidID > 0) {
 				$_SESSION['lastauthenication'] = time();
 				$_SESSION['lidid'] = $row->LidID;
 				$_SESSION['lidnr'] = $row->Lidnr;
@@ -53,7 +53,8 @@ function toegang($soort, $melding=1) {
 				$query = sprintf("UPDATE %sAdmin_login SET LastLogin=SYSDATE(), Ingelogd=1 WHERE Login='%s';", $table_prefix, $_SESSION['username']);
 				$result = fnQuery($query);
 				if ($result > 0) {
-					db_add_activiteit("Ingelogd", 1);
+					$mess = sprintf("%s is ingelogd met login %s. Zijn/haar LidID is %d.", $_SESSION['naamingelogde'], $_SESSION['username'], $_SESSION['lidid']);
+					db_add_activiteit($mess, 1);
 				}
 			} else {
 				$_SESSION['username'] = "";
