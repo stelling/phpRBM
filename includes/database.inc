@@ -305,7 +305,7 @@ function db_adressenlijst($filter = "O.Kader=True") {
 	$query = sprintf("SELECT L.*, %s AS LidNaam, O.Kode, O.Naam AS OndNaam, O.CentraalEmail, O.TYPE, F.Omschrijv AS OmsFunctie, LO.*
 							FROM %s
 							WHERE %s 
-							ORDER BY O.Kader DESC, O.TYPE, O.Naam, F.Sorteringsvolgorde, LO.VANAF, L.ACHTERNAAM, L.TUSSENV;"
+							ORDER BY O.Kader DESC, O.TYPE, O.Naam, F.Sorteringsvolgorde, LO.Vanaf, L.Achternaam, L.TUSSENV;"
 							, $selectnaam, $fromlidond, $filter);
 	$result = fnQuery($query);
 	return($result->fetchAll());
@@ -514,7 +514,8 @@ function db_uitloggen() {
 	$query = sprintf("UPDATE %sAdmin_login SET Ingelogd=0 WHERE Ingelogd=1 AND LidID=%d;", $table_prefix, $_SESSION['lidid']);
 	$result = fnQuery($query);
 	if ($result > 0) {
-		db_add_activiteit("Uitgelogd", 1);
+		$mess = sprintf("%s is uitgelogd.", $_SESSION['naamingelogde']);
+		db_add_activiteit($mess, 1);
 	}
 }
 
@@ -1043,7 +1044,7 @@ function db_lijstactiviteiten($type=0) {
 	$query = sprintf("SELECT A.DatumTijd as `dttDatum en tijd`, Omschrijving, IP_adres, %1\$s AS `Ingelogd Lid`
 							FROM %2\$sAdmin_activiteit AS A LEFT OUTER JOIN %2\$sLid AS L ON A.LidID = L.Nummer
 							WHERE %3\$s
-							ORDER BY A.DatumTijd DESC LIMIT 35;", $selectnaam, $table_prefix, $w);
+							ORDER BY A.DatumTijd DESC LIMIT 50;", $selectnaam, $table_prefix, $w);
 	$result = fnQuery($query);
 	return $result->fetchAll();
 }
