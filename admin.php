@@ -53,7 +53,7 @@ if (isset($_GET['op']) and $_GET['op'] == "deletelogin") {
 if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 	db_createtables();
 	db_onderhoud();
-	echo(fnDiplayTable(db_logins(), "<a href='" . $_SERVER['PHP_SELF'] . "?op=deletelogin&amp;lidid=%d'><img src='./images/trash.png' alt='Trash bin' title='Verwijder login'></a>"));
+	echo(fnDiplayTable(db_logins(), "<a href='" . $_SERVER['PHP_SELF'] . "?op=deletelogin&amp;lidid=%d'><img src='images/del.png' alt='Trash bin' title='Verwijder login'></a>"));
 } elseif ($currenttab == "Autorisatie" and toegang($_GET['tp'])) {
 	echo("<div id='lijst'>\n");
 	printf("<form name='formauth' method='post' action='%s?tp=%s&amp;op=changeaccess'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
@@ -62,7 +62,7 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 	$query = "SELECT RecordID, Tabpage, Toegang FROM Admin_access ORDER BY Tabpage;";
 	$result = fnQuery($query);
 	foreach($result->fetchAll() as $row) {
-		$del = sprintf("<a href='%s?tp=%s&amp;op=deleteautorisatie&amp;recid=%d'><img src='./images/trash.png' alt='Trash bin' title='Verwijder record'></a>", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
+		$del = sprintf("<a href='%s?tp=%s&amp;op=deleteautorisatie&amp;recid=%d'><img src='images/del.png' alt='Trash bin' title='Verwijder record'></a>", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
 		$selectopt = "<option value=-1>Alleen webmasters</option>\n";
 		if ($row->Toegang == 0) {
 			$selectopt .= "<option value=0 selected>Iedereen</option>\n";
@@ -113,8 +113,8 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 	echo("</script>\n");
 } elseif ($currenttab == "Logboek" and toegang($_GET['tp'])) {
 	echo(fnDiplayTable(db_lijstactiviteiten()));
-} elseif ($currenttab == "Beginpagina") {
-	echo("<script>location.href='/';</script>\n");
+} elseif (toegang("Info")) {
+	phpinfo();
 }
 
 HTMLfooter();
