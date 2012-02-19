@@ -9,6 +9,8 @@ function fnBewaking($seizoen=0) {
 		$_SESSION['actseizoen'] = $seizoen;
 	} elseif (isset($_SESSION['actseizoen']) and strlen($_SESSION['actseizoen']) > 0) {
 		$seizoen = $_SESSION['actseizoen'];
+	} elseif ($currenttab2 == "Overzicht inschrijvingen") {
+		$seizoen = db_scalar(sprintf("SELECT MAX(SeizoenID) FROM %sBewaking_Blok WHERE InschrijvingOpen=1;", $table_prefix));
 	} else {
 		$seizoen = db_scalar(sprintf("SELECT MAX(SeizoenID) FROM %sBewaking;", $table_prefix));
 	}
@@ -32,7 +34,11 @@ function fnBewaking($seizoen=0) {
 		if ($currenttab2 == "Overzicht inschrijvingen") {
 			echo("<option value=-1>Alle</option>\n");
 		}
-		$bs_res = db_bewaking_seizoenen();
+		if ($currenttab2 == "Overzicht inschrijvingen") {
+			$bs_res = db_bewaking_seizoenen(1);
+		} else {
+			$bs_res = db_bewaking_seizoenen();
+		}
 		foreach($bs_res->fetchAll() as $row) {
 			if ($seizoen == $row->RecordID or $seizoen == 0) {
 				$seizoen = $row->RecordID;
@@ -229,23 +235,13 @@ function inschrijvenbewaking($lidid) {
 			}
 			$ins = db_insbew("inschrijving", $lidid, 0, $row->RecordID);
 			if (isset($ins->RecordID)) {
-				if ($kz == 0) {
+				if ($kz == 0 and strlen($_POST[$opm]) == 0) {
 					db_insbew("delete", $lidid, $insnr, $row->RecordID);
 				} elseif ($ins->Keuze != $kz or $ins->Opmerking != $_POST[$opm] or $ins->Nummer != $insnr) {
 					db_insbew("update", $lidid, $insnr, $row->RecordID, $kz, $_POST[$opm]);
 				}
 			} elseif ($kz > 0 or strlen($_POST[$opm]) > 0) {
 				db_insbew("add", $lidid, $insnr, $row->RecordID, $kz, $_POST[$opm]);
-			}
-			if ($kz > 0) {
-				$bevins .= sprintf("<li>%s - %s t/m %s", $row->Kode, strftime("%e %B %Y", strtotime($row->Begindatum)), strftime("%e %B %Y", strtotime($row->Einddatum)));
-				if ($kz == 2) {
-					$bevins .= " (2de keuze)";
-				}
-				if (strlen($_POST[$opm]) > 1) {
-					$bevins .= sprintf(" (%s)", $_POST[$opm]);
-				}
-				$bevins .= "</li>\n";
 			}
 		}
 		$opmcv = db_memo($lidid, "I", "curval");
@@ -257,66 +253,14 @@ function inschrijvenbewaking($lidid) {
 			db_memo($lidid, "I", "update", $_POST['opmalg']);
 		}
 		if ($geldig) {
-			$bevest_template = 'templates/bevestiging_inschrijving.html';
-			if (isset($_POST['Definitief']) and file_exists($bevest_template)) {
+			if (isset($_POST['Definitief'])) {
 				db_insbew("defmaken", $lidid, $insnr);
-				$content = file_get_contents($bevest_template);
-				$brief_template = 'templates/briefpapier.html';
-				if (file_exists($brief_template)) {
-					$briefpapier = file_get_contents($brief_template);
-					if ($content == false) {
-						$briefpapier = "[%MESSAGE%]";
-					}
-				} else {
-					$briefpapier = "[%MESSAGE%]";
-				}
-				$subj = "Bevestiging inschrijving bewaking";
-				$content = str_ireplace("[%MESSAGE%]", $content, $briefpapier);	
-				$content = str_ireplace("[%FROM%]", $naamvereniging, $content);
-				$content = str_ireplace("[%TO%]", $_SESSION['naamingelogde'], $content);
-				$content = str_ireplace("[%SUBJECT%]", $subj, $content);
-				$content = str_replace("[%NAAMVERENIGING%]", $naamvereniging, $content);
-				$content = str_replace("[%NAAMWEBSITE%]", $naamwebsite, $content);
-				$content = str_replace("[%URLWEBSITE%]", $urlwebsite, $content);
-				$content = str_ireplace("[%NAAMLID%]", $_SESSION['naamingelogde'], $content);
-				$content = str_ireplace("[%ROEPNAAM%]", $_SESSION['roepnaamingelogde'], $content);
-				$content = str_ireplace("[%BEWINSCHRIJVING%]", $bevins, $content);
-				$content = str_ireplace("[%BEWOPMERKING%]", db_memo($lidid, "I", "curval"), $content);
-				$content = str_ireplace("[%DIEET%]", db_memo($lidid, "D", "curval"), $content);
-				$content = str_ireplace("[%GEZONDHEID%]", db_memo($lidid, "G", "curval"), $content);
-				
-				if (isset($selfservicediplomas) and strlen($selfservicediplomas) > 4) {
-					$f = sprintf("D.Kode IN %s", $selfservicediplomas);
-				} else {
-					$f = "";
-				}
-				$d = "";
-				foreach (db_liddipl("lidgegevens", $lidid, 0, 0, "", "", "", $f) as $ld) {
-					$d .= sprintf("<li>%s</li>\n", $ld->Diploma);
-				}
-				$content = str_ireplace("[%BEWDIPLOMAS%]", $d, $content);
-				
-				$mail = new RBMmailer();
-				try {
-					$mail->From = $emailbevestiginginschrijving;
-					$mail->AddAddress($_SESSION['emailingelogde']);
-					$mail->Subject = $subj;
-					$mail->MsgHTML($content);
-					if ($mail->Send()) {
-						$oms = sprintf("Bevestiging inschrijving bewaking verzonden");
-						db_add_activiteit($oms, 6);
-						printf("<script>alert('Een bevestiging van deze inschrijving is naar %s verzonden.');</script>\n", $_SESSION['emailingelogde']);	echo("<script>location.href='/index.php';</script>\n");	
-					} else {
-						printf("<p>Error while sending message: %s</p>\n", $mail->ErrorInfo);
-					}
-				} catch (phpmailerException $e) {
-					echo $e->errorMessage(); // Error messages from PHPMailer
-				} catch (Exception $e) {
-					echo $e->getMessage();
-				}					
+				BevestInschrBewaking($lidid, $insnr);
 			}
 		}
 	}
+	
+	fnDispMenu(2);
 
 	echo("<div id='inschrijvingbewaking'>\n");
 	printf("<form method='post' action='/index.php?%s' name='ins_bewaking'>\n", $_SERVER['QUERY_STRING']);
@@ -340,35 +284,34 @@ function inschrijvenbewaking($lidid) {
 		}
 		printf("<tr><td>%s</td><td>%s</td><td>%s</td>\n", $row->Kode, strftime("%e %B %Y", strtotime($row->Begindatum)), strftime("%e %B %Y", strtotime($row->Einddatum)));
 		$c = "";
-		if (isset($ins->Keuze) and $ins->Keuze != 2) {
+		if (isset($ins->Keuze) and ($ins->Keuze == 1 or $ins->Keuze == 3)) {
 			$c = "checked";
 			$geldig = true;
 		}
 		if (isset($ins->Nummer) and $insnr == 0) {
 			$insnr = $ins->Nummer;
 		}
-		printf("<td class='chk'><input type='checkbox' name='k1_%s' value=1 %s></input></td>\n", $row->RecordID, $c);
+		printf("<td class='chk'><input type='checkbox' onClick='this.form.submit();' name='k1_%s' value=1 %s></input></td>\n", $row->RecordID, $c);
 		if ($row->KeuzesBijInschrijving == 1) {
 			$c = "";
-			if (isset($ins->Keuze) and $ins->Keuze > 1) {
+			if (isset($ins->Keuze) and $ins->Keuze >= 2) {
 				$c = "checked";
 			}
-			printf("<td class='chk'><input type='checkbox' name='k2_%s' value=1 %s></input></td>\n", $row->RecordID, $c);
+			printf("<td class='chk'><input type='checkbox' onClick='this.form.submit();' name='k2_%s' value=1 %s></input></td>\n", $row->RecordID, $c);
 		}
 		$v = "";
 		if (isset($ins->Opmerking)) {
 			$v = $ins->Opmerking;
 		}
-		printf("<td><input type='text' name='Opm_%d' size=60 maxlength=50 value=\"%s\"></td>\n", $row->RecordID, $v);
+		printf("<td><input type='text' onBlur='this.form.submit();' name='Opm_%d' size=60 maxlength=50 value=\"%s\"></td>\n", $row->RecordID, $v);
 		echo("</tr>\n");
 		if (isset($ins->Definitief) and $ins->Definitief < "2010-01-01") {
 			$kandef = true;
 		}
 	}
-	printf("<tr><td colspan=7>Opmerkingen:<br><textarea cols=90 rows=8 name='opmalg'>%s</textarea></td></tr>", db_memo($lidid, "I", "curval"));
+	printf("<tr><td colspan=7>Opmerkingen:<br><textarea onBlur='this.form.submit();' cols=90 rows=8 name='opmalg'>%s</textarea></td></tr>", db_memo($lidid, "I", "curval"));
 	echo("<tr><th colspan=7>");
 	printf("<p>%s</p>", $voorwaardeninschrijving);
-	echo("<input type='submit' value='Wijzigen' name='Wijzigen'>");
 	if ($geldig and $kandef) {
 		echo("&nbsp;<input type='submit' value='Definitief maken' name='Definitief'>");
 	}
@@ -422,6 +365,86 @@ function fnDispBW($row, $output) {
 	}
 	
 	return $rv;
+}
+
+function BevestInschrBewaking($lidid, $insnr) {
+	global $naamvereniging, $naamwebsite, $urlwebsite, $selfservicediplomas, $emailbevestiginginschrijving, $voorwaardeninschrijving;
+
+	$bevest_template = 'templates/bevestiging_inschrijving.html';
+	if (file_exists($bevest_template)) {
+		$content = file_get_contents($bevest_template);
+	} else {
+		$content = "Hierbij bevestigen wij de volgende inschrijving voor de bewaking: [%BEWINSCHRIJVING%]";
+	}
+	$brief_template = 'templates/briefpapier.html';
+	if (file_exists($brief_template)) {
+		$briefpapier = file_get_contents($brief_template);
+		if ($content === false) {
+			$briefpapier = $content;
+		} else {
+			$content = str_ireplace("[%MESSAGE%]", $content, $briefpapier);
+		}
+	} else {
+		$briefpapier = $content;
+	}
+	$subj = "Bevestiging inschrijving bewaking";
+	$rows = db_insbew("overzichtlid", 0, $insnr);
+	$bevins = "";
+	foreach ($rows as $row) {
+		$content = str_ireplace("[%NAAMLID%]", $row->ndNaamBewaker, $content);
+		$content = str_ireplace("[%TO%]", $row->ndNaamBewaker, $content);
+		$content = str_ireplace("[%ROEPNAAM%]", $row->ndRoepnaamBewaker, $content);
+		
+		$bevins .= sprintf("<li>%s - %s t/m %s", $row->Seizoen, strftime("%e %B %Y", strtotime($row->dteBegin)), strftime("%e %B %Y", strtotime($row->dteEinde)));
+		if ($row->Keuze == 2) {
+			$bevins .= " (2de keuze)";
+		}
+		if (strlen($row->Opmerking) > 1) {
+			$bevins .= sprintf(" (%s)", $row->Opmerking);
+		}
+		$bevins .= "</li>\n";
+		$email = $row->ndEmailBewaker;
+	}
+	$content = str_ireplace("[%FROM%]", $naamvereniging, $content);
+	$content = str_ireplace("[%SUBJECT%]", $subj, $content);
+	$content = str_replace("[%NAAMVERENIGING%]", $naamvereniging, $content);
+	$content = str_replace("[%NAAMWEBSITE%]", $naamwebsite, $content);
+	$content = str_replace("[%URLWEBSITE%]", $urlwebsite, $content);
+	$content = str_replace("[%VOORWAARDEN%]", $voorwaardeninschrijving, $content);
+	$content = str_ireplace("[%BEWINSCHRIJVING%]", $bevins, $content);
+	$content = str_ireplace("[%BEWOPMERKING%]", db_memo($lidid, "I", "curval"), $content);
+	$content = str_ireplace("[%DIEET%]", db_memo($lidid, "D", "curval"), $content);
+	$content = str_ireplace("[%GEZONDHEID%]", db_memo($lidid, "G", "curval"), $content);
+				
+	if (isset($selfservicediplomas) and strlen($selfservicediplomas) > 4) {
+		$f = sprintf("D.Kode IN %s", $selfservicediplomas);
+	} else {
+		$f = "";
+	}
+	$d = "";
+	foreach (db_liddipl("lidgegevens", $lidid, 0, 0, "", "", "", $f) as $ld) {
+		$d .= sprintf("<li>%s</li>\n", $ld->Diploma);
+	}
+	$content = str_ireplace("[%BEWDIPLOMAS%]", $d, $content);
+				
+	$mail = new RBMmailer();
+	try {
+		$mail->From = $emailbevestiginginschrijving;
+		$mail->AddAddress($email);
+		$mail->Subject = $subj;
+		$mail->MsgHTML($content);
+		if ($mail->Send()) {
+			$oms = sprintf("Bevestiging inschrijving bewaking verzonden");
+			db_add_activiteit($oms, 6);
+			printf("<script>alert('Een bevestiging van deze inschrijving is naar %s verzonden.');</script>\n", $email);	echo("<script>location.href='/index.php';</script>\n");	
+		} else {
+			printf("<p>Error while sending message: %s</p>\n", $mail->ErrorInfo);
+		}
+	} catch (phpmailerException $e) {
+		echo $e->errorMessage(); // Error messages from PHPMailer
+	} catch (Exception $e) {
+		echo $e->getMessage();
+	}
 }
 
 ?>
