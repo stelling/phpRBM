@@ -142,8 +142,8 @@ class mailing {
 	public function lijst($filter="") {
 		global $bewaartijdmailings;
 	
-		$lnk = sprintf("<a href='%s?tp=%s&amp;op=edit&amp;mid=%s' title='Bewerk mailing'><img src='./images/edit.png'></a>", $_SERVER['PHP_SELF'], $_GET['tp'], "%d");
-		$lnk_lk = sprintf("<a href='%s?tp=Mailing/Historie&amp;op=historie&amp;mid=%s' title='Bekijk historie'><img src='./images/details.png'></a>", $_SERVER['PHP_SELF'], "%d");
+		$lnk = sprintf("<a href='%s?tp=%s&amp;op=edit&amp;mid=%s' title='Bewerk mailing'><img src='images/zoom.png'></a>", $_SERVER['PHP_SELF'], $_GET['tp'], "%d");
+		$lnk_lk = sprintf("<a href='%s?tp=Mailing/Historie&amp;op=historie&amp;mid=%s' title='Bekijk historie'><img src='images/object_10.png'></a>", $_SERVER['PHP_SELF'], "%d");
 		echo(fnDiplayTable(db_mailing("lijst", 0, 0, $filter), $lnk, "", 0, $lnk_lk));
 		if ($filter == "Prullenbak") {
 			printf("<p>Mailings die langer dan %d maanden geleden verwijderd zijn, worden automatisch definitief opgeschoond.</p>\n", $bewaartijdmailings);
