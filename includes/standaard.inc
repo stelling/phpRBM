@@ -20,10 +20,10 @@ if (!isset($muteerbarememos)) {
 if (!isset($emailbevestiginginschrijving)) {
 	$emailbevestiginginschrijving = $emailledenadministratie;
 }
-require_once('includes/database.inc');
-require_once('includes/authentication.inc');
+require_once("includes/database.inc");
+require_once("includes/authentication.inc");
 require_once("includes/bewaking.inc");
-require_once('includes/mailing.inc');
+require_once("includes/mailing.inc");
 require_once("includes/class.phpmailer.php");
 
 $arrTL[] = "Alle";
@@ -40,7 +40,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	}
 	$tabpages[] = "DB backup";
 	$tabpages[] = "Logboek";
-	$tabpages[] = "Beginpagina";
+	$tabpages[] = "Info";
 } else {
 	$tabpages[] = "Verenigingsinfo";
 	if (!isset($_SESSION['username']) or strlen($_SESSION['username']) <= 5) {
@@ -126,7 +126,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	$tabpages[] = "Mailing/Verzonden";
 	$tabpages[] = "Mailing/Prullenbak";
 	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
-		$tabpages[] = "DMS";
+//		$tabpages[] = "DMS";   Voorlopig geen tijd voor, dus uitgezet.
 	}
 }
 
@@ -191,9 +191,11 @@ function HTMLheader() {
 			echo("<script src='/includes/ckeditor/ckeditor.js'></script>\n");
 		}
 		printf("<title>%s</title>\n", $title);
-		echo("<link rel='stylesheet' href='stylesheets/default.css?v2'>\n");
+		if (file_exists("stylesheets/default.css")) {
+			printf("<link rel='stylesheet' href='stylesheets/default.css?v%s'>\n", strftime("%Y%m%d%H%M", filectime("stylesheets/default.css")));
+		}
 		if (file_exists("stylesheets/kleur.css")) {
-			echo("<link rel='stylesheet' href='stylesheets/kleur.css'>\n");
+			printf("<link rel='stylesheet' href='stylesheets/kleur.css?v%s'>\n", strftime("%Y%m%d%H%M", filectime("stylesheets/kleur.css")));
 		}
 		echo("</head>\n");
 		echo("<body>\n");
@@ -203,12 +205,14 @@ function HTMLheader() {
 	
 		echo("<div id='login'>\n");
 		echo("<form name='Login' action='/auth.php' method='post'>");
-		if (isset($_SESSION['username']) and strlen($_SESSION['username']) > 4) {
-			printf("Welkom %s", $_SESSION['roepnaamingelogde']);
-			echo("<a href='/?tp=Wijzigen/Profiel'><img src='./images/profile.png' title='Profiel wijzigen' alt='Profiel wijzigen'></a>");
-			printf("<a href='auth.php?actie=uitloggen'><img src='./images/logout.png' title='Uitloggen' alt='Uitloggen'></a>\n");
+		if (isset($_SESSION['username']) and strlen($_SESSION['username']) > 4 and $_SESSION['lidid'] > 0) {
+			printf("Welkom %s\n", $_SESSION['roepnaamingelogde']);
+			echo("<a href='/?tp=Wijzigen/Profiel'><img src='images/user.png' title='Profiel wijzigen' alt='Profiel wijzigen'></a>\n");
+			printf("<a href='auth.php?actie=uitloggen'><img src='images/power.png' title='Uitloggen' alt='Uitloggen'></a>\n");
 			if ($_SESSION['webmaster'] == 1 and $_SERVER['PHP_SELF'] != "/admin.php") {
-				echo("<a href='admin.php'><img src='images/admin.png' title='Beheerdersmenu'></a>\n");
+				echo("<a href='admin.php'><img src='images/tool.png' title='Beheerdersmenu'></a>\n");
+			} else {
+				echo("<a href='index.php'><img src='images/home.png' title='Beginpagina'></a>\n");
 			}
 		} else {
 			if (isset($gebruikopenid) and $gebruikopenid == 1) {
@@ -220,7 +224,7 @@ function HTMLheader() {
 			echo("&nbsp;<input type='submit' value='Inloggen' name='Inloggen'>\n");
 			echo("<input type='checkbox' name='cookie' value=1 title='Automatisch inloggen'>\n");
 		}
-		echo("<a href='http://phprbm.telling.nl/uitleg.php'><img src='images/help.png' title='Uitleg gebruik en installatie'></a>\n");
+		echo("<a href='http://phprbm.telling.nl/uitleg.php'><img src='images/question.png' title='Uitleg gebruik en installatie'></a>\n");
 		echo("</form>\n");
 		echo("</div>  <!-- Einde login -->\n");
 		echo("<div class='clear'></div>\n");
@@ -252,12 +256,6 @@ function HTMLfooter() {
 				 <a href='http://%s'>%s</a>\n
 				 <div id='footerright'>%s</div>\n
 				 </div>  <!-- Einde footer  -->\n", $cr, $urlwebsite, $naamwebsite, strftime("%e %B %Y", filectime($_SERVER['SCRIPT_FILENAME'])));
-		if ($_SESSION['webmaster'] == 1) {
-			$aantal = db_interface("aantalopenstaand");
-			if ($aantal > 0) {
-				printf("Webmaster: er staan %d online-wijzigingen te wachten om verwerkt te worden.", $aantal);
-			}
-		}
 		echo("</div>  <!-- Einde container -->\n");
 		echo("</body>\n");
 		echo("</html>\n");
@@ -466,10 +464,10 @@ function fnDiplayTable($rows, $link="", $th="", $disptot=0, $link_lk="") {
 					$ret .= sprintf("<td>Nee</td>");
 				} elseif (substr($key, 0, 3) == "lnk" and strlen($link) > 1) {
 					$href = str_replace("%d", $value, $link);
-					$href = str_replace("%s", "<img src='./images/details.png' alt='Details'>", $href);
+					$href = str_replace("%s", "<img src='images/zoom.png' alt='Details'>", $href);
 					$ret .= "<td>" . $href . "</td>";
 				} elseif (substr($key, 0, 3) == "llk" and strlen($link_lk) > 1) {
-					$ret .= sprintf("<td>" . $link_lk . "</td>", $value, "<img src='./images/details.png' alt='Details'>");
+					$ret .= sprintf("<td>" . $link_lk . "</td>", $value, "<img src='images/zoom.png' alt='Details'>");
 				} elseif (substr($key, 0, 3) == "eml") {
 					$ret .= sprintf("<td>%s</td>", fnDispEmail($value, "", 1));
 				} elseif (substr($key, 0, 3) == "num") {
