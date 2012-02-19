@@ -366,6 +366,10 @@ function fnOverviewLid($lidid=0) {
 			if (count($rows) > 0) {
 				echo(fnDiplayForm($rows[0]));
 			}
+			$rows = db_insbew("overzichtlid", $lidid);
+			if (count($rows) > 0) {
+				echo(fnDiplayTable($rows, "", "Ingeschreven voor bewakingen"));
+			}
 		} elseif ($currenttab2 == "Diplomas" and toegang($_GET['tp'])) {
 			$rows = db_liddipl("lidgegevens", $lidid);
 			if (count($rows) > 0) {
@@ -779,9 +783,9 @@ function fnWijzigen($lidid=0) {
 				$mail->From = $_SESSION['emailingelogde'];
 				$mail->FromName = $_SESSION['naamingelogde'];
 				$mail->AddAddress($emailledenadministratie);
-				$mail->AddCC = $_SESSION['emailingelogde'];
+				$mail->AddCC($_SESSION['emailingelogde']);
 				if (strlen($emailsecretariaat) > 5) {
-					$mail->AddCC = $emailsecretariaat;
+					$mail->AddCC($emailsecretariaat);
 				}
 				$mail->Subject = sprintf("Opzegging lidmaatschap %s per %s", $_SESSION['naamingelogde'], $opgezegdper);
 				$mail->Body = $body;
