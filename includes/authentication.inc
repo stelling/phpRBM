@@ -25,7 +25,7 @@ function toegang($soort, $melding=1) {
 		$_SESSION['roepnaamingelogde'] = "gast";
 		if (isset($_SESSION['username']) and strlen($_SESSION['username']) >= 6) {
 			$row = db_logins("controle");
-			if (strlen($_SESSION['password']) == 0 and count($row) > 0 and (!isset($_SESSION['openid_ok']) or $_SESSION['openid_ok'] != true) and $gebruikopenid == 1) {
+			if (strlen($_SESSION['password']) == 0 and isset($row->LidID) and $row->LidID > 0 and (!isset($_SESSION['openid_ok']) or $_SESSION['openid_ok'] != true) and $gebruikopenid == 1) {
 				$openid = new SimpleOpenID;
 				$openid->SetIdentity($row->openid_identity);
 				$openid->SetTrustRoot('http://' . $urlwebsite);
@@ -57,6 +57,10 @@ function toegang($soort, $melding=1) {
 					db_add_activiteit($mess, 1);
 				}
 			} else {
+				if (isset($_SESSION['password']) and strlen($_SESSION['password']) > 1) {
+					$mess = sprintf("Er is geprobleerd in te loggen met %s.", $_SESSION['username']);
+					db_add_activiteit($mess, 1);
+				}
 				$_SESSION['username'] = "";
 				$_SESSION['password'] = "";
 				setcookie("username", "", time()-3600);
