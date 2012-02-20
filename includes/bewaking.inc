@@ -1,4 +1,5 @@
 <?php
+
 function fnBewaking($seizoen=0) {
 	global $ldl, $currenttab2, $table_prefix;
 	
@@ -25,7 +26,7 @@ function fnBewaking($seizoen=0) {
 	
 	$st_len_bp = 1;
 	
-	if ($currenttab2 != "Logboek inschrijving") {
+	if ($currenttab2 != "Logboek inschrijving" and $currenttab2 != "Details Inschrijving") {
 		echo("<div id='filter'>\n");
 		printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 		echo("<table>\n<tr>\n");
@@ -88,10 +89,12 @@ function fnBewaking($seizoen=0) {
 		$lijst = db_insbew("matrixaantallen", 0, 0, 0, 0, "", $seizoen);
 		echo(fnDiplayTable($lijst, "", "Totalen"));
 		$lijst = db_insbew("overzicht", 0, 0, 0, 0, "", $seizoen, $week);
-		echo(fnDiplayTable($lijst, "", "Details"));
+		echo(DetailsInschrijvingBewaking($lijst));
 	} elseif ($currenttab2 == "Logboek inschrijving" and toegang($_GET['tp'])) {
 		$lijst = db_lijstactiviteiten(6);
 		echo(fnDiplayTable($lijst));
+	} elseif ($currenttab2 != "Details inschrijving") {
+		inschrijvenbewaking(31, 1);
 	}
 }
 
@@ -284,8 +287,10 @@ function inschrijvenbewaking($lidid) {
 		}
 		printf("<tr><td>%s</td><td>%s</td><td>%s</td>\n", $row->Kode, strftime("%e %B %Y", strtotime($row->Begindatum)), strftime("%e %B %Y", strtotime($row->Einddatum)));
 		$c = "";
+		$v = "&nbsp;";
 		if (isset($ins->Keuze) and ($ins->Keuze == 1 or $ins->Keuze == 3)) {
 			$c = "checked";
+			$v = "Ja";
 			$geldig = true;
 		}
 		if (isset($ins->Nummer) and $insnr == 0) {
@@ -294,8 +299,10 @@ function inschrijvenbewaking($lidid) {
 		printf("<td class='chk'><input type='checkbox' onClick='this.form.submit();' name='k1_%s' value=1 %s></input></td>\n", $row->RecordID, $c);
 		if ($row->KeuzesBijInschrijving == 1) {
 			$c = "";
+			$v = "&nbsp;";
 			if (isset($ins->Keuze) and $ins->Keuze >= 2) {
 				$c = "checked";
+				$v = "Ja";
 			}
 			printf("<td class='chk'><input type='checkbox' onClick='this.form.submit();' name='k2_%s' value=1 %s></input></td>\n", $row->RecordID, $c);
 		}
@@ -445,6 +452,55 @@ function BevestInschrBewaking($lidid, $insnr) {
 	} catch (Exception $e) {
 		echo $e->getMessage();
 	}
+}
+
+function DetailsInschrijvingBewaking($rows) {
+	$ret = "<div id='lijst'>\n";
+	
+	if (isset($rows) and count($rows) > 0) {
+		$ret .= "<table>\n";
+		$ret .= "<tr><th colspan=9 class='tabelkop'>Details inschrijving bewaking</th></tr>\n";
+		$ret .= "<tr><th>Week</th><th>Periode</th><th>Bewaker</th><th>Keuze 1</th><th>Keuze 2</th><th>Opmerking (week)</th><th>Opmerking (Inschrijving)</th></tr>\n";
+		$voriglid = -1;
+		$hv = "";
+		foreach($rows as $row) {
+			if ($voriglid != $row->ndLidID) {
+				if (strlen($hv) > 0) {
+					$ret .= sprintf("<tr>%s</tr>\n", str_replace("[ROWSPAN]", $aantalreg, $hv));
+				}
+				$voriglid = $row->ndLidID;
+				$aantalreg = 0;
+				$hv = "";
+				$opmins = db_memo($row->ndLidID, "I", "curval");
+			} elseif (strlen($hv) > 0) {
+				$hv .= "</tr>\n<tr>";
+			}
+			$hv .= sprintf("<td>%s</td>", $row->Week);
+			if (substr($row->dteBegin, 0, 7) == substr($row->dteEinde, 0, 7)) {
+				$hv .= sprintf("<td>%s t/m %s</td>", strftime('%e', strtotime($row->dteBegin)), strftime('%e %b %Y', strtotime($row->dteEinde)));
+			} else {
+				$hv .= sprintf("<td>%s t/m %s</td>", strftime('%e %b', strtotime($row->dteBegin)), strftime('%e %b %Y', strtotime($row->dteEinde)));
+			}
+			$hv .= sprintf("<td>%s</td>", $row->Bewaker);
+			$k = "Keuze 1";
+			$hv .= sprintf("<td>%s</td>", $row->$k);
+			$k = "Keuze 2";
+			$hv .= sprintf("<td>%s</td>", $row->$k);
+			$hv .= sprintf("<td class='opmerkingweek'>%s</td>", $row->Opmerking);
+			$aantalreg++;
+			if ($aantalreg == 1) {
+				$hv .= sprintf("<td rowspan=[ROWSPAN] class='opmerkinginschrijving'>%s</td>\n", $opmins);
+			}
+		}
+		if (strlen($hv) > 0) {
+			$ret .= sprintf("<tr>%s</tr>\n", str_replace("[ROWSPAN]", $aantalreg, $hv));
+		}
+		$ret .= "</table>\n";
+	} else {
+		$ret .= "<p class='mededeling'>Er zijn geen records beschikbaar.</p>\n";
+	}
+	$ret .= "</div>  <!-- Einde lijst -->\n";
+	return $ret;
 }
 
 ?>

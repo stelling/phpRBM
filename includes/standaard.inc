@@ -40,7 +40,6 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	}
 	$tabpages[] = "DB backup";
 	$tabpages[] = "Logboek";
-	$tabpages[] = "Info";
 } else {
 	$tabpages[] = "Verenigingsinfo";
 	if (!isset($_SESSION['username']) or strlen($_SESSION['username']) <= 5) {
@@ -426,7 +425,7 @@ function fnDiplayTable($rows, $link="", $th="", $disptot=0, $link_lk="") {
 					$aant++;
 				}
 				if (strlen($th) > 1) {
-					$ret .= sprintf("<tr><th colspan=%d>%s</th></tr>\n", $aant, $th);
+					$ret .= sprintf("<tr><th colspan=%d class='tabelkop'>%s</th></tr>\n", $aant, $th);
 				}
 				$ret .= $hv . "</tr>\n";
 				$dispkop = 0;

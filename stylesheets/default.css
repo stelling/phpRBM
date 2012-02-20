@@ -1,5 +1,5 @@
 body {
-	font-family: Tahoma, Arial, Verdana, Helvetica, sans-serif;
+	font-family: Tahoma, Arial, Verdana, Helvetica;
 	font-size: 9pt;
 	color: #000080;
 }
@@ -64,10 +64,6 @@ footer, #footer {
 	padding-right: 6px;
 	font-style: italic;
 	font-size: 9pt;
-   border-top-right-radius: 12px;
-   border-top-left-radius: 12px;
-   border-bottom-right-radius: 12px;
-   border-bottom-left-radius: 12px;
 }
 
 footer a, #footer a, footer a:visited, #footer a:visited {
@@ -85,9 +81,9 @@ footer a, #footer a, footer a:visited, #footer a:visited {
 
 #header {
 	width: 100%;
-	height: 58px;
+	height: 90px;
 	margin-bottom: 0;
-	padding-top: 5px;
+	padding-top: 6px;
 	padding-left: 4px;
 	padding-right: 4px;
 	background-color: #00FFFF;
@@ -98,6 +94,12 @@ footer a, #footer a, footer a:visited, #footer a:visited {
 
 #header h1 {
 	float: left;
+	color: white;
+	margin-top: 3px;
+}
+
+.tabelkop {
+	font-size: 11pt;
 }
 
 #header a, #header a:visited, #header a:hover {
@@ -126,7 +128,6 @@ footer a, #footer a, footer a:visited, #footer a:visited {
 	float: right;
 	clear: right;
 }
-
 
 #filter {
 	width: 100%;
@@ -214,7 +215,7 @@ footer a, #footer a, footer a:visited, #footer a:visited {
 }
 
 #login img {
-	height: 18px;
+	height: 22px;
 	border: 0;
 	margin-left: 6px;
 }
@@ -256,8 +257,13 @@ footer a, #footer a, footer a:visited, #footer a:visited {
 	float: right;
 }
 
+#bewakingsrooster h2, #postindeling h2 {
+	padding-left: 4pt;
+}
+
 #bewakingsrooster h3, #postindeling h3 {
 	background-color: #00FFFF;
+	padding-left: 4pt;
 }
 
 #wieiswie a, #wieiswie a:visited, #bewakingsrooster a, #bewakingsrooster a:visited, #postindeling a, #postindeling a:visited {
@@ -277,6 +283,10 @@ footer a, #footer a, footer a:visited, #footer a:visited {
 #footerright {
 	float: right;
 	margin-top: 0;
+}
+
+#footerleft a, #footerleft a:visited {
+	color: white;
 }
 
 #handleiding {
@@ -326,34 +336,50 @@ footer a, #footer a, footer a:visited, #footer a:visited {
 }
 
 .tablist1, .tablist2 {
-    list-style: none; 
-    height: 18px;
-    padding: 0; 
-    margin: 0; 
-    border: none;
+   list-style: none;
+   height: 24px;
+   padding: 0; 
+   margin: 0; 
+   border: none;
 }
 
 .tablist1 li, .tablist2 li {
    float: left;
 	font-style: normal;
-	font-size: 11pt;
-	margin-top: 5px;
+	font-size: 10pt;
 	margin-left: 2px;
    margin-right: 2px;
    display: block;
    padding-left: 5px;
 	padding-right: 5px;
-   border-width: 1px;
+	padding-bottom: 1px;
+	border-color: #cdcdcd;
 	border-style: solid;
-	border-color: #000;
-   border-bottom: 0;
-   background-color: #00FFFF;
+	border-width: 1px;
+   background-color: #cdcdcd;
+}
+
+.tablist1 li {
+	min-width: 100px;
+	height: 24px;
+	font-style: normal;
+	margin-top: 15px;
+	padding-top: 11px;
+	border-style-bottom: none;
+   background-color: #cdcdcd;
    border-top-right-radius: 9px;
    border-top-left-radius: 9px;
 }
 
+.tablist2 li {
+	min-width: 75px;
+	height: 18px;
+	margin-top: 2px;
+	padding-top: 2px;
+}
+
 .tablist1 li.current, .tablist2 li.current {
-   background-color: #cfcfcf;
+   background-color: white;
 }
 
 .tablist1 li a, .tablist1 li a:visited, .tablist2 li a, .tablist2 li a:visited  {
@@ -464,4 +490,8 @@ footer a, #footer a, footer a:visited, #footer a:visited {
 
 .chk {
 	text-align: center;
+}
+
+.opmerkinginschrijving, .opmerkingweek {
+	max-width: 200px;
 }
