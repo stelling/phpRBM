@@ -316,7 +316,7 @@ function inschrijvenbewaking($lidid) {
 			$kandef = true;
 		}
 	}
-	printf("<tr><td colspan=7>Opmerkingen:<br><textarea onBlur='this.form.submit();' cols=90 rows=8 name='opmalg'>%s</textarea></td></tr>", db_memo($lidid, "I", "curval"));
+	printf("<tr><td colspan=7>Opmerking(en) bij de inschrijving:<br><textarea onBlur='this.form.submit();' cols=90 rows=8 name='opmalg'>%s</textarea></td></tr>", db_memo($lidid, "I", "curval"));
 	echo("<tr><th colspan=7>");
 	printf("<p>%s</p>", $voorwaardeninschrijving);
 	if ($geldig and $kandef) {
@@ -441,7 +441,7 @@ function BevestInschrBewaking($lidid, $insnr) {
 		$mail->Subject = $subj;
 		$mail->MsgHTML($content);
 		if ($mail->Send()) {
-			$oms = sprintf("Bevestiging inschrijving bewaking verzonden");
+			$oms = sprintf("Bevestiging inschrijving bewaking is naar %s verzonden", $email);
 			db_add_activiteit($oms, 6);
 			printf("<script>alert('Een bevestiging van deze inschrijving is naar %s verzonden.');</script>\n", $email);	echo("<script>location.href='/index.php';</script>\n");	
 		} else {
