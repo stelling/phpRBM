@@ -151,7 +151,7 @@ class mailing {
 	}
 	
 	public function edit() {
-		global $currenttab, $currenttab2, $beperkfrom;
+		global $currenttab, $currenttab2, $beperkfrom, $naamvereniging;
 
 		$ad = $this->dir_attachm . "/" . $this->mid;
 
@@ -165,7 +165,7 @@ class mailing {
 			$message = $ml->message;
 		} else {
 			$lid = db_gegevenslid($_SESSION['lidid']);
-			$from_name = $this->detailssender("Naam");
+			$from_name = $naamvereniging;
 			$from_addr = $this->detailssender("emlE-mail");
 			$to_name = "";
 			$cc_addr = "";
