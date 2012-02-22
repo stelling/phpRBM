@@ -42,46 +42,42 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	$tabpages[] = "Logboek";
 } else {
 	$tabpages[] = "Verenigingsinfo";
-	if (!isset($_SESSION['username']) or strlen($_SESSION['username']) <= 5) {
-		$tabpages[] = "Login aanvragen";
-	} else {
-		$tabpages[] = "Eigen gegevens";
-		$tabpages[] = "Eigen gegevens/Algemeen";
-		if ($_SESSION['aantalafdelingen'] > 0) {
-			$tabpages[] = "Eigen gegevens/Afdelingen";
-		}
-		if (count(db_gegevenslid($_SESSION['lidid'], "Kader")) > 0) {
-			$tabpages[] = "Eigen gegevens/Kader";
-		}
-		if (count(db_gegevenslid($_SESSION['lidid'], "Rollen")) > 0) {
-			$tabpages[] = "Eigen gegevens/Rollen";
-		}
-		if (count(db_gegevenslid($_SESSION['lidid'], "Groepen")) > 0) {
-			$tabpages[] = "Eigen gegevens/Groepen";
-		}
-		if ($_SESSION['aantalbewaking'] > 0 and ($_SESSION['webmaster'] == 1 or db_bewaking_aantallen(0, $_SESSION['lidid']))) {
-			$tabpages[] = "Eigen gegevens/Bewaking";
-		}
-		$tabpages[] = "Eigen gegevens/Diploma's";
-		$tabpages[] = "Eigen gegevens/Financieel";
-		$tabpages[] = "Eigen gegevens/Mailing";
-		$tabpages[] = "Wijzigen";
-		$tabpages[] = "Wijzigen/Algemene gegevens";
-		if (strlen($selfservicediplomas) > 3) {
-			$tabpages[] = "Wijzigen/Diploma's";
-		}
-		$tabpages[] = "Wijzigen/Pasfoto";
-		if (strlen($muteerbarememos) > 0) { 
-			$tabpages[] = "Wijzigen/Bijzonderheden";
-		}
-		if (count(db_insbew("openblokken")) > 0) {
-			$tabpages[] = "Wijzigen/Inschrijving bewaking";
-		}
-		$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap WHERE Lid=%d AND (Opgezegd IS NULL);", $table_prefix, $_SESSION['lidid']);
-		$result = fnQuery($query);
-		if ($result->fetchColumn() > 0) {
-			$tabpages[] = "Wijzigen/Opzegging";
-		}
+	$tabpages[] = "Eigen gegevens";
+	$tabpages[] = "Eigen gegevens/Algemeen";
+	if ($_SESSION['aantalafdelingen'] > 0) {
+		$tabpages[] = "Eigen gegevens/Afdelingen";
+	}
+	if (count(db_gegevenslid($_SESSION['lidid'], "Kader")) > 0) {
+		$tabpages[] = "Eigen gegevens/Kader";
+	}
+	if (count(db_gegevenslid($_SESSION['lidid'], "Rollen")) > 0) {
+		$tabpages[] = "Eigen gegevens/Rollen";
+	}
+	if (count(db_gegevenslid($_SESSION['lidid'], "Groepen")) > 0) {
+		$tabpages[] = "Eigen gegevens/Groepen";
+	}
+	if ($_SESSION['aantalbewaking'] > 0 and ($_SESSION['webmaster'] == 1 or db_bewaking_aantallen(0, $_SESSION['lidid']))) {
+		$tabpages[] = "Eigen gegevens/Bewaking";
+	}
+	$tabpages[] = "Eigen gegevens/Diploma's";
+	$tabpages[] = "Eigen gegevens/Financieel";
+	$tabpages[] = "Eigen gegevens/Mailing";
+	$tabpages[] = "Wijzigen";
+	$tabpages[] = "Wijzigen/Algemene gegevens";
+	if (strlen($selfservicediplomas) > 3) {
+		$tabpages[] = "Wijzigen/Diploma's";
+	}
+	$tabpages[] = "Wijzigen/Pasfoto";
+	if (strlen($muteerbarememos) > 0) { 
+		$tabpages[] = "Wijzigen/Bijzonderheden";
+	}
+	if (count(db_insbew("openblokken")) > 0) {
+		$tabpages[] = "Wijzigen/Inschrijving bewaking";
+	}
+	$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap WHERE Lid=%d AND (Opgezegd IS NULL);", $table_prefix, $_SESSION['lidid']);
+	$result = fnQuery($query);
+	if ($result->fetchColumn() > 0) {
+		$tabpages[] = "Wijzigen/Opzegging";
 	}
 	$tabpages[] = "Wie is wie";
 	$tabpages[] = "Wie is wie/Kader";
