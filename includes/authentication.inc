@@ -234,16 +234,17 @@ function fnConfirmLidnr($row) {
 	try {
 		$mail->FromName = $from;
 		if (strlen($row->EmailVereniging) > 5 and isValidMailAddress($row->EmailVereniging)) {
-			$mail->AddAddress($row->EmailVereniging);
+			$email = $row->EmailVereniging;
 		} else {
-			$mail->AddAddress($row->EMAIL);
+			$email = $row->EMAIL;
 		}
+		$mail->AddAddress($email);
 		$mail->Subject = $subj;
 		$mail->MsgHTML($content);
 		if ($mail->Send()) {
-			$oms = sprintf("Lidnr %d verzonden aan %s", $row->Lidnr, $row->Naam);
+			$oms = sprintf("Lidnr %d verzonden aan %s (%s).", $row->Lidnr, $row->Naam, $email);
 			db_add_activiteit($oms);
-			echo("<p>Lidnummer is verzonden</p>\n");
+			printf("<p class='mededeling'>Lidnummer is naar %s verzonden.</p>\n", $email);
 			return true;
 		} else {
 			printf("<p>Error while sending message: %s</p>\n", $mail->ErrorInfo);

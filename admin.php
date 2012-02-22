@@ -79,6 +79,10 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 	echo("</form>\n");
 	echo("</div>  <!-- Einde lijst -->\n");
 } elseif ($currenttab == "Uploaden data" and ($_SESSION['aantallid'] == 0 or toegang($_GET['tp']))) {
+	$aantal = db_interface("aantalopenstaand");
+	if ($aantal > 0) {
+		printf("<p class='mededeling'>Er staan %d online-wijzigingen te wachten om verwerkt te worden. Het is daarom op dit moment niet verstandig om een upload te doen.</p>", $aantal);
+	}
 	echo("<div id='invulformulier'>\n");
 	printf("<form name='formupload' method='post' action='%s?%s&amp;op=uploaddata' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 	echo("<table>\n");
@@ -87,7 +91,6 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 	echo("</form>\n");
 	echo("</div>  <!-- Einde invulformulier -->\n");	
 } elseif ($currenttab == "Downloaden wijzigingen" and toegang($_GET['tp'])) {
-//	printf("<form name='formdownload' method='post' action='%s?%s&amp;op=downloadwijz'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 	printf("<form name='formdownload' method='post' action='%s?op=downloadwijz'>\n", $_SERVER['PHP_SELF']);
 	echo("<table>\n");
 	echo("<tr><th>Naam lid</th><th>Datum wijziging</th><th>SQL</th></tr>\n");
