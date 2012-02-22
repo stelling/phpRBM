@@ -220,6 +220,70 @@ footer a, #footer a, footer a:visited, #footer a:visited {
 	margin-left: 6px;
 }
 
+#loginaanvraag {
+	width: 340px;
+	background-color: #00FFFF;
+	margin-left: auto;
+	margin-right: auto;
+	padding-left: 5px;
+	padding-right: 5px;
+	padding-bottom: 5px;
+}
+
+#loginaanvraag label {
+	width: 113px;
+	height: 20px;
+	float: left;
+	display: block;
+	margin-top: 3px;
+	margin-bottom: 3px;
+	padding-top: 4px;
+	text-align: right;
+}
+
+#loginaanvraag fieldset {
+	margin-top: 3px;
+	margin-right: auto;
+	margin-left: auto;
+	padding-top: 5px;
+	border-color: #00FFFF;
+	border-width: 0;
+}
+
+#loginaanvraag fieldset h3 {
+	margin-bottom: 12px;
+}
+
+#loginaanvraag input{
+	width: 190px;
+	height: 20px;
+	float: right;
+	clear: right;
+	margin-left: 5px;
+	margin-right: 0;
+	margin-top: 3px;
+	margin-bottom: 3px;
+	border-width: 1px;
+	border-style: solid;
+	border-color: white;
+	background-color: white;
+}
+
+#loginaanvraag input.knop {
+	color: #000080;
+	font-weight: bold;
+	width: auto;
+	height: auto;
+	margin-top: 16px;
+	margin-bottom: 4px;
+	padding-top: 4px;
+	padding-bottom: 4px;
+	cursor: pointer;
+	float: right;
+	clear: right;
+	font-size: 11pt;
+}
+
 #openid {
 	margin-top: 20px;
 	margin-left: auto;
