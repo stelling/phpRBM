@@ -159,7 +159,9 @@ function db_gegevenslid($LidID, $soort="Alg") {
 	global $selectnaam, $table_prefix, $fromlid, $fromlidond, $wherelidond;
 
 	if ($soort == "Alg") {
-		$sqond = "SELECT MIN(O.Naam) FROM Onderdl AS O INNER JOIN Lidond AS LO ON O.RecordID = LO.OnderdeelID WHERE O.`Type` = 'O' AND LO.Lid = L.Nummer AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE())";
+		$sqond = sprintf("SELECT MIN(O.Naam) FROM %1\$sOnderdl AS O INNER JOIN %1\$sLidond AS LO ON O.RecordID = LO.OnderdeelID
+								WHERE O.`Type` = 'O' AND LO.Lid = L.Nummer AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE())", $table_prefix);
+		$sqlogin = sprintf("SELECT MAX(Login) FROM %sAdmin_login AS AL WHERE AL.LidID = L.Nummer", $table_prefix);
 		$query = sprintf("SELECT `Waarschuwen bij nood` FROM %sLid WHERE Nummer=%d;", $table_prefix, $LidID);
 		$result = fnQuery($query);
 		if (strlen($result->fetchColumn()) > 1) {
@@ -189,6 +191,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 				 . " LM.Opgezegd AS `dteLid totenmet`,"
 				 . " 'Overig' AS Kop5,"
 				 . " L.RelnrRedNed AS `Relatienummer RedNed`,"
+				 . " (%s) AS Login,"
 				 . " L.Beroep AS `Beroep`,"
 				 . " %s"
 				 . " 'Recordinformatie' as Kop7,"
@@ -197,7 +200,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 				 . " L.Gewijzigd AS `dteLaatst gewijzigd op`"
 				 . " FROM %s"
 				 . " WHERE L.Nummer=%d"
-				 . " ORDER BY LM.LIDDATUM DESC;", $selectnaam, "%e %M %Y", $sqond, $wbn, $fromlid, $LidID);
+				 . " ORDER BY LM.LIDDATUM DESC;", $selectnaam, "%e %M %Y", $sqond, $sqlogin, $wbn, $fromlid, $LidID);
 	} elseif ($soort == "Financieel") {			 
 		$query = sprintf("SELECT L.BANKGIRO AS Bankrekeningnummer,"
 				 . " L.`Machtiging afgegeven` AS `booMachtiging afgegeven?`"
@@ -677,6 +680,12 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 								ORDER BY BS.Begindatum, BS.Kode, BB.Begindatum;", $table_prefix, $w);
 		$result = fnQuery($query);
 		return $result->fetchAll();
+	} elseif ($actie == "omsblok" and $blok > 0) {
+		$query = sprintf("SELECT CONCAT(BS.Kode, '-', BB.Kode) AS OmsBlok
+								FROM %1\$sBewaking_Blok AS BB INNER JOIN %1\$sBewseiz AS BS ON BB.SeizoenID = BS.RecordID
+								WHERE BB.RecordID=%2\$d;", $table_prefix, $blok);
+		$result = fnQuery($query);
+		return $result->fetchColumn();
 	} elseif ($actie == "overzicht") {
 		$query = sprintf("SELECT BI.Lid AS ndLidID, BB.Kode AS Week, BB.Begindatum AS dteBegin, BB.Einddatum AS dteEinde, %2\$s AS Bewaker,
 								IF(BI.Keuze IN (1, 3), 'Ja', '') AS `Keuze 1`, IF(BI.Keuze IN (2, 3), 'Ja', '') AS `Keuze 2`, BI.Opmerking
@@ -716,21 +725,26 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 		$query = sprintf("INSERT INTO %sBewaking_Inschrijving (BlokID, Lid, Nummer, Keuze, Opmerking, Ingevoerd)
 								VALUES (%d, %d, %d, %d, \"%s\", CURDATE());", $table_prefix, $blok, $lidid, $insnr, $keuze, $opmerk);
 		fnQuery($query);
-		$mess = sprintf("Inschrijving bewaking voor blok %d is bij ingelogd lid toegevoegd.", $blok);
-		if (strlen($opmerk) > 1) {
-			$mess .= sprintf(" Bijbehorende opmerking is %s.", $opmerk); 
+		if ($keuze > 0) {
+			$mess = sprintf("Inschrijving bewaking voor blok %s met keuze %d is bij ingelogd lid toegevoegd.", db_insbew("omsblok", 0, 0, $blok), $keuze);
+			if (strlen($opmerk) > 1) {
+				$mess .= sprintf(" Opmerking is '%s'.", $opmerk); 
+			}
+			db_add_activiteit($mess, 6);
 		}
-		db_add_activiteit($mess, 6);
 	} elseif ($actie == "update" and $lidid > 0 and $blok > 0) {
 		$query = sprintf("UPDATE %sBewaking_Inschrijving SET Nummer=%d, Keuze=%d, Opmerking=\"%s\", Definitief=NULL
 								WHERE BlokID=%d AND Lid=%d;", $table_prefix, $insnr, $keuze, $opmerk, $blok, $lidid);
 		fnQuery($query);
-		$mess = sprintf("Inschrijving bewaking voor blok %d is bij ingelogd lid bijgewerkt. Opmerking is '%s' geworden.", $blok, $opmerk);
+		$mess = sprintf("Inschrijving bewaking voor blok %s is bij ingelogd lid bijgewerkt. Keuze is %d.", db_insbew("omsblok", 0, 0, $blok), $keuze);
+		if (strlen($opmerk) > 0) {
+			$mess .= sprintf(" Opmerking is '%s'.", $opmerk);
+		}
 		db_add_activiteit($mess, 6);
 	} elseif ($actie == "delete" and $lidid > 0 and $blok > 0) {
 		$query = sprintf("DELETE FROM %sBewaking_Inschrijving WHERE BlokID=%d AND Lid=%d;", $table_prefix, $blok, $lidid);
 		fnQuery($query);
-		$mess = sprintf("Inschrijving bewaking voor blok %d is bij ingelogd lid verwijderd.", $blok);
+		$mess = sprintf("Inschrijving bewaking voor blok %s is bij ingelogd lid verwijderd.", db_insbew("omsblok", 0, 0, $blok));
 		db_add_activiteit($mess, 6);
 	} elseif ($actie == "defmaken" and $lidid > 0 and $insnr > 0) {
 		$query = sprintf("UPDATE %sBewaking_Inschrijving SET Definitief=SYSDATE() WHERE Nummer=%d AND Lid=%d;", $table_prefix, $insnr, $lidid);
