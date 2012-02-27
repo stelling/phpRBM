@@ -119,7 +119,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	$tabpages[] = "Mailing/Concepten";
 	$tabpages[] = "Mailing/Nieuw";
 	$tabpages[] = "Mailing/Verzonden";
-	$tabpages[] = "Mailing/Prullenbak";
+	if (db_mailing("aantalprullenbak") > 0) {
+		$tabpages[] = "Mailing/Prullenbak";
+	}
 	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 //		$tabpages[] = "DMS";   Voorlopig geen tijd voor, dus uitgezet.
 	}
@@ -210,11 +212,7 @@ function HTMLheader() {
 				echo("<a href='index.php'><img src='images/home.png' title='Beginpagina'></a>\n");
 			}
 		} else {
-			if (isset($gebruikopenid) and $gebruikopenid == 1) {
-				echo("Login: <input type='text' name='username' size=25 maxlength=50>\n");
-			} else {
-				echo("Login: <input type='text' name='username' size=15 maxlength=15>\n");
-			}
+			echo("Login: <input type='text' name='username' size=20 maxlength=50>\n");
 			echo("&nbsp;Password: <input type='password' name='password' size=10 maxlength=12>\n");
 			echo("&nbsp;<input type='submit' value='Inloggen' name='Inloggen'>\n");
 			echo("<input type='checkbox' name='cookie' value=1 title='Automatisch inloggen'>\n");
