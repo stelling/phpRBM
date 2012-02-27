@@ -381,48 +381,23 @@ function db_memo($lidid, $srt, $actie="curval", $nv="") {
 function db_add_login($login, $lidid) {
 	global $selectnaam, $lididwebmasters, $beperktotgroep, $table_prefix, $naamvereniging;
 	
+	$login = str_replace(" ", "_", trim($login));
+	$query = sprintf("SELECT Login FROM %sAdmin_login WHERE LidID=%d;", $table_prefix, $lidid);
+	$result = fnQuery($query);
+	$l = $result->fetchColumn();
 	$ok = 0;
-	$rm = "";
-	if (in_array($lidid, $lididwebmasters)) {
-		$ok = 1;
-	} elseif ($beperktotgroep > 0) {
-		$query = sprintf("SELECT COUNT(*) FROM %sLidond AS LO WHERE Lid=%d AND LO.OnderdeelID=%d AND LO.Vanaf <= CURDATE()"
-				 . " AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE());", $table_prefix, $lidid, $beperktotgroep);
+	if (strlen($l) == 0) {		
+		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_login WHERE Login='%s' AND LidID<>%d;", $table_prefix, $login, $lidid);
 		$result = fnQuery($query);
 		if ($result->fetchColumn() > 0) {
+			$mess = sprintf("Login '%s' is al in gebruik bij een ander lid.", $login);
+			db_add_activiteit($mess, 1);
+		} elseif (strlen($login) > 5 and $lidid > 0) {
+			$query = sprintf("INSERT INTO %sAdmin_login SET LidID=%d, Login='%s', Ingevoerd=SYSDATE(), Gewijzigd=SYSDATE();", $table_prefix, $lidid, $login);
+			fnQuery($query);
 			$ok = 1;
-		} else {
-			$rm = sprintf("Je behoort niet tot groep %s van de %s. Login wordt niet aangemaakt.", db_naam_onderdeel($beperktotgroep), $naamvereniging);
-		}
-	} else {
-		$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap AS LM WHERE LM.Lid=%d AND LM.LIDDATUM <= CURDATE()"
-				 . " AND ((LM.Opgezegd IS NULL) OR LM.Opgezegd > CURDATE());", $table_prefix, $lidid);
-		$result = fnQuery($query);
-		if ($result->fetchColumn() > 0) {
-			$ok = 1;
-		} else {
-			$rm = sprintf("Je bent geen lid van %s. Login wordt niet aangemaakt.", $naamvereniging);
-		}
-	}
-
-	if ($ok == 1) {
-		$login = str_replace(" ", "_", trim($login));
-		$query = sprintf("SELECT Login FROM %sAdmin_login WHERE LidID=%d;", $table_prefix, $lidid);
-		$result = fnQuery($query);
-		$l = $result->fetchColumn();
-		if (strlen($l) == 0) {
-			
-			$query = sprintf("SELECT COUNT(*) FROM %sAdmin_login WHERE Login='%s' AND LidID<>%d;", $table_prefix, $login, $lidid);
-			$result = fnQuery($query);
-			if ($result->fetchColumn() > 0) {
-				$rm = sprintf("Login '%s' is al in gebruik bij een ander lid. ", $login);
-				$ok = 0;
-			} else {
-				$query = sprintf("INSERT INTO %sAdmin_login SET LidID=%d, Login='%s', Ingevoerd=SYSDATE(), Gewijzigd=SYSDATE();", $table_prefix, $lidid, $login);
-				fnQuery($query);
-				$rm = sprintf("Login '%s' is aangemaakt. ", $login);
-				db_add_activiteit($rm, 1);
-			}
+			$mess = sprintf("Login '%s' is aangemaakt.", $login);
+			db_add_activiteit($mess, 1);
 		}
 	}
 	
@@ -430,34 +405,12 @@ function db_add_login($login, $lidid) {
 	$query = sprintf("SELECT * FROM %sAdmin_login WHERE ((Wachtwoord IS NULL) OR LENGTH(Wachtwoord) < 6) AND (openid_identity IS NULL);", $table_prefix);
 	$result = fnQuery($query);
    foreach ($result->fetchAll() as $row) {
-		$WW = strtolower(trim(substr($row->Login, 0, 3))) . rand(10001, 999997);
+		$WW = strtolower(trim(substr($row->Login, 0, 4))) . rand(101, 997);
 		$query = sprintf("UPDATE %sAdmin_login SET Wachtwoord='%s', Gewijzigd=SYSDATE() WHERE Login='%s';", $table_prefix, encript_decript($WW), $row->Login);
 		fnQuery($query);
 	}
 	
-	if ($ok == 1) {
-		$row = db_login_bevestiging($lidid);
-		if (fnConfirmLogin($row) === TRUE) {
-			$rm .= "Een bevestiging is verstuurd.";
-		}
-	}
-	return $rm;
-}
-
-function db_login_bevestiging($lidid=0, $email="") {
-	global $selectnaam, $table_prefix;
-	
-	if ($lidid > 0) {
-		$w = sprintf("L.Nummer=%d", $lidid);
-	} else {
-		$w = sprintf("LM.Lidnr > 0 AND (LOWER(L.EMAIL)='%1\$s' OR LOWER(L.EmailVereniging)='%1\$s')", strtolower($email));
-	}
-
-	$query = sprintf('SELECT %1$s AS Naam, L.EMAIL, L.EmailVereniging, AL.Login, AL.Wachtwoord, LM.Lidnr, L.Roepnaam
-			FROM (%2$sLid AS L LEFT OUTER JOIN %2$sLidmaatschap AS LM ON L.Nummer = LM.Lid) INNER JOIN %2$sAdmin_login AS AL ON L.Nummer = AL.LidID
-			WHERE %3$s ORDER BY LM.LIDDATUM DESC LIMIT 1;', $selectnaam, $table_prefix, $w);
-	$result = fnQuery($query);
-	return $result->fetch();
+	return $ok;
 }
 
 function db_lidnr_bevestiging($email="") {
@@ -850,41 +803,69 @@ function db_stats($lidid=0) {
 	return $stats;
 }
 
-function db_logins($actie="lijst") {
-	global $selectnaam, $beperktotgroep, $table_prefix, $lididwebmasters, $wherelidond, $wherelid, $gebruikopenid;
+function db_logins($actie="lijst", $email="", $gewenstelogin="", $lidid=0) {
+	global $selectnaam, $beperktotgroep, $table_prefix, $lididwebmasters, $wherelidond, $wherelid, $gebruikopenid, $lidnrnodigbijloginaanvraag;
 	
-	$xtraselect = "";
-	if ($actie == "controle") {
-		$xtrawhere = sprintf("AND Login.Login='%s' AND Login.Wachtwoord='%s' AND LENGTH(Login.Wachtwoord) > 5", mysql_escape_string($_SESSION['username']), encript_decript($_SESSION['password']));
-		if ($gebruikopenid == 1 and strlen($_SESSION['username']) > 0) {
-			$openid = new SimpleOpenID;
-			$query = sprintf("SELECT COUNT(*) FROM %sAdmin_login WHERE openid_identity='%s';", $table_prefix, $openid->OpenID_Standarize($_SESSION['username']));
-			$result = fnQuery($query);
-			if ($result->fetchColumn() > 0) {
-				$xtrawhere = sprintf("AND openid_identity='%s'", $openid->OpenID_Standarize($_SESSION['username']));
-				$_SESSION['password'] = "";
+	if ($actie == "nieuwlogin" and isValidMailAddress($email) and strlen($gewenstelogin) > 5) {
+		$query = sprintf("SELECT L.Nummer, Login.Login FROM %1\$sLid AS L LEFT OUTER JOIN %1\$sAdmin_login AS Login ON L.Nummer = Login.LidID
+								WHERE (LOWER(L.EMAIL)='%2\$s' OR LOWER(L.EmailVereniging)='%2\$s')", $table_prefix, strtolower($email));
+		$result = fnQuery($query);
+		$row = $result->fetch();
+		if ($row->Nummer > 0) {
+			if (strlen($row->Login) > 5 and $row->Login != $gewenstelogin) {
+				$mess = sprintf("Er is al een ander login aan dit emailadres gekoppeld.");
+			} elseif (strlen($gewenstelogin) > 5 and strlen($gewenstelogin <= 15)) {
+				$mess = db_add_login($gewenstelogin, $row->Nummer);
 			}
-			$openid = null;
-			$xtraselect = "Login.openid_identity,";
+		} else {
+			$mess = sprintf("E-mailadres '%s' is onbekend in onze database. Er wordt geen login aangemaakt.");
 		}
+		db_add_activiteit($mess, 1);
+		return $mess;
+	} elseif ($actie == "rowlogin" and (isValidMailAddress($email, 0) or $lidid > 0)) {
+		$query = sprintf("SELECT L.Nummer, Login.Login, %1\$s AS Naam, L.Roepnaam, L.EMAIL, L.EmailVereniging, Login.Wachtwoord,
+								(SELECT MAX(Lidnr) FROM %2\$sLidmaatschap AS LM WHERE LM.Lid = L.Nummer AND ((LM.Opgezegd IS NULL) OR LM.Opgezegd > CURDATE())) AS Lidnr,", $selectnaam, $table_prefix);
 		if ($beperktotgroep > 0) {
-			$xtrawhere .= sprintf(" AND (Login.LidID IN (SELECT Lid FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID=%d) OR Login.LidID IN (%s))"
-			, $table_prefix, $wherelidond, $beperktotgroep, implode(", ", $lididwebmasters));
+			$query .= sprintf("(SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.Lid=L.Nummer AND LO.OnderdeelID=%d AND LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE())) AS AanvragenMag", $table_prefix, $beperktotgroep);
+		} else {
+			$query .= "1 AS AanvragenMag";
 		}
-	} else {
-		$xtrawhere = "";
-	}
-
-	$query = sprintf('SELECT Login.LidID AS lnkNummer, Login.LidID, LM.Lidnr, Login.Login, %1$s %2$s AS Naam_lid, L.Roepnaam AS ndRoepnaam,
-				L.EMAIL AS `E-mail`, L.EmailVereniging AS `E-mail vereniging`, Login.Ingevoerd AS dteIngevoerd, Login.LastLogin AS `dttLaatste login`
-				FROM %3$sAdmin_login AS Login INNER JOIN (%3$sLid AS L INNER JOIN %3$sLidmaatschap AS LM ON L.Nummer = LM.Lid) ON Login.LidID = L.Nummer
-				WHERE %4$s %5$s
-				ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;', $xtraselect, $selectnaam, $table_prefix, $wherelid, $xtrawhere);
-	$result = fnQuery($query);
-	if ($actie == "controle") {
+		$query .= sprintf(" FROM %1\$sLid AS L LEFT OUTER JOIN %1\$sAdmin_login AS Login ON L.Nummer = Login.LidID WHERE ", $table_prefix);
+		if (isValidMailAddress($email, 0)) {
+			$query .= sprintf("(LOWER(L.EMAIL)='%1\$s' OR LOWER(L.EmailVereniging)='%1\$s');", strtolower($email));
+		} else {
+			$query .= sprintf("L.Nummer=%d;", $lidid);
+		}
+		$result = fnQuery($query);
 		return $result->fetch();
-	} else {
-		return $result->fetchAll();
+	} elseif ($actie == "controlebestaat" and $lidid > 0 and strlen($gewenstelogin) > 5) {
+		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_login WHERE Login='%s' AND LidID<>%d;", $table_prefix, $gewenstelogin, $lidid);
+		$result = fnQuery($query);
+		return $result->fetchColumn();
+	} elseif ($actie == "lijst" or $actie == "controle") {
+		$xtraselect = "";
+		if ($actie == "controle") {
+			if (isValidMailAddress($_SESSION['username'])) {
+				$xtrawhere = sprintf("AND (LOWER(L.EMAIL)='%1\$s' OR LOWER(L.EmailVereniging)='%1\$s')", strtolower($_SESSION['username']));
+			} else {
+				$xtrawhere = sprintf("AND Login.Login='%s'", mysql_escape_string($_SESSION['username']));
+			}
+			$xtrawhere .= sprintf(" AND Login.Wachtwoord='%s' AND LENGTH(Login.Wachtwoord) > 5", encript_decript($_SESSION['password']));
+			if ($beperktotgroep > 0) {
+				$xtrawhere .= sprintf(" AND (Login.LidID IN (SELECT Lid FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID=%d) OR Login.LidID IN (%s))", $table_prefix, $wherelidond, $beperktotgroep, implode(", ", $lididwebmasters));
+			}
+		}
+		$query = sprintf('SELECT Login.LidID AS lnkNummer, Login.LidID, LM.Lidnr, Login.Login, %1$s %2$s AS Naam_lid, L.Roepnaam AS ndRoepnaam,
+					L.EMAIL AS `E-mail`, L.EmailVereniging AS `E-mail vereniging`, Login.Ingevoerd AS dteIngevoerd, Login.LastLogin AS `dttLaatste login`
+					FROM %3$sAdmin_login AS Login INNER JOIN (%3$sLid AS L LEFT OUTER JOIN %3$sLidmaatschap AS LM ON L.Nummer = LM.Lid) ON Login.LidID = L.Nummer
+					WHERE Login.LidID > 0 %4$s
+					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;', $xtraselect, $selectnaam, $table_prefix, $xtrawhere);
+		$result = fnQuery($query);
+		if ($actie == "controle") {
+			return $result->fetch();
+		} else {
+			return $result->fetchAll();
+		}
 	}
 }
 
@@ -1006,6 +987,9 @@ function db_mailing($actie="", $mid=0, $rid=0, $filter="") {
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
+	} elseif ($actie == "aantalprullenbak") {
+		$query = sprintf("SELECT COUNT(*) FROM %sMailing WHERE (NOT deleted_on IS NULL);", $table_prefix);
+		return db_scalar($query);
 	} elseif ($mid > 0) {
 		$query = sprintf("SELECT * FROM %sMailing WHERE MailingID=%d LIMIT 1;", $table_prefix, $mid);
 		$result = fnQuery($query);
@@ -1075,7 +1059,7 @@ function db_lijstactiviteiten($type=0) {
 	$query = sprintf("SELECT A.DatumTijd as `dttDatum en tijd`, Omschrijving, IP_adres, A.LidID, %1\$s AS `Ingelogd Lid`
 							FROM %2\$sAdmin_activiteit AS A LEFT OUTER JOIN %2\$sLid AS L ON A.LidID = L.Nummer
 							WHERE %3\$s
-							ORDER BY A.DatumTijd DESC LIMIT 50;", $selectnaam, $table_prefix, $w);
+							ORDER BY A.DatumTijd DESC LIMIT 75;", $selectnaam, $table_prefix, $w);
 	$result = fnQuery($query);
 	return $result->fetchAll();
 }
@@ -1116,7 +1100,7 @@ function db_interface($actie="lijst", $query="") {
 	}
 }
 
-function db_diploma($actie, $did) {
+function db_diploma($actie, $did=0) {
 	global $table_prefix, $selfservicediplomas;
 	
 	if ($actie == "selfservice_lijst") {
