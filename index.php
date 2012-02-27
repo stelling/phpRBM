@@ -798,18 +798,18 @@ function fnWijzigen($lidid=0) {
 				}
 				$mail = null;
 			} else {
-				$form_opzegging = "<form name='Opzegging' action='./?tp=Wijzigen/Opzegging' method='post'>
-<table>
-<tr><th colspan=2>Opzegging lidmaatschap</th></tr>
-<tr><td class='label'>Naam lid:</td><td>[%NAAMLID%]</td></tr>
-<input type='hidden' name='NaamLid' value='[%NAAMLID%]'><tr>
-<td class='label'>Lidnummer:</td><td>[%LIDNR%]</td></tr>
-<input type='hidden' name='NaamLid' value='[%LIDNR%]'>
-<td class='label'>Opzegging lidmaatschap per:</td><td><input type='text' name='OpzeggingPer' value='[%OPZEGGENVANAF%]' maxlength=18 size=20></td></tr>
-<td class='label'>Reden en/of opmerkingen:</td><td><textarea name='RedenOpmerking' rows=8 cols=60></textarea></td></tr>
-<tr><th colspan=2><input type='submit' name='VerstuurOpzegging' value='Verstuur opzegging'></th></tr>
-</table>
-</form>";
+				$form_opzegging = "<div id='opzegformulier'>
+<form name='Opzegging' action='./?tp=Wijzigen/Opzegging' method='post'>
+<fieldset>
+<h3>Opzegging lidmaatschap</h3>
+<label for='NaamLid'>Naam lid:</label><input type='text' name='NaamLid' value='[%NAAMLID%]' readonly='readonly'>
+<label for='Lidnr'>Lidnummer:</label><input type='text' name='Lidnr' value='[%LIDNR%]' readonly='readonly'>
+<label for='OpzeggingPer'>Opzegging lidmaatschap per:</label><input type='text' name='OpzeggingPer' value='[%OPZEGGENVANAF%]' maxlength=18 size=20>
+<textarea name='RedenOpmerking' rows=8 cols=50 title='Reden en/of opmerkingen'></textarea>
+<input type='submit' name='VerstuurOpzegging' value='Verstuur opzegging'>
+</fieldset>
+</form>
+</div>  <!-- Einde opzegformulier -->";
 				$myFile = 'templates/opzegging.html';
 				if (file_exists($myFile)) {
 					$content = file_get_contents($myFile);
@@ -841,18 +841,18 @@ function fnWijzigen($lidid=0) {
 				printf("<p class='mededeling'>%s</p>", $mess);
 				echo("<p><a href='/'>Klik hier om verder te gaan.</a></p>\n");
 			} else {
-				echo("<div id='wijzigengegevens'>\n");
-				printf("<form name='ProfielWijzigen' action=\"%s?%s\" method='post'>", $_SERVER["PHP_SELF"], $_SERVER['QUERY_STRING']);
-				printf("<table>
-						<tr><th colspan=2>Wachtwoord wijzigen</th></tr>
-						<tr><td class=label>Login:</td><td>%s</td></tr>
-						<tr><td class=label>Oude wachtwoord:</td><td><input type='password' name='pw_oud' size=10 maxlength=12></td></tr>
-						<tr><td class=label>Nieuw wachtwoord:</td><td><input type='password' name='pw_nieuw' size=10 maxlength=12></td></tr>
-						<tr><td class=label>Herhaal wachtwoord:</td><td><input type='password' name='pw_herhaal' size=10 maxlength=12></td></tr>
-						<tr><th colspan=2><input type='submit' value='Wijzigen'>&nbsp;<input type=button onClick='history.go(-1);' value='Annuleren'></th></tr>
-					</table>
-				  </form>
-				</div>  <!-- Einde invulformulier -->", $_SESSION['username']);
+				echo("<div id='profielwijzigen'>\n");
+				printf("<form name='ProfielWijzigen' action=\"%s?%s\" method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER['QUERY_STRING']);
+				printf("<fieldset>
+				<h3>Wachtwoord wijzigen</h3>
+				<label for='ingelogdlogin'>Login:</label><input type='text' name='ingelogdlogin' id='ingelogdlogin' value='%s' readonly='readonly'>
+				<label for='pw_oud'>Oude wachtwoord:</label><input type='password' name='pw_oud' id='pw_oud' size=10 maxlength=12>
+				<label for='pw_nieuw'>Nieuw wachtwoord:</label><input type='password' name='pw_nieuw' id='pw_nieuw' size=10 maxlength=12>
+				<label for='pw_herhaal'>Herhaal wachtwoord:</label><input type='password' name='pw_herhaal' id='pw_herhaal' size=10 maxlength=12>
+				<input type='submit' class='knop' value='Wijzigen'>&nbsp;<input type=button class='knop' onClick='history.go(-1);' value='Annuleren'>\n", $_SESSION['username']);
+				echo("</fieldset>
+				</form>
+				</div>  <!-- Einde invulformulier -->");
 				
 				if ($gebruikopenid == 1) {
 					$row = db_logins("controle");
@@ -889,93 +889,6 @@ function fnWijzigen($lidid=0) {
 		}
 	} else {
 		echo("<p class='mededeling'>Er is geen lid geselecteerd.</p>\n4");
-	}
-}
-
-function fnLoginAanvragen() {
-	global $naamvereniging, $urlwebsite, $beperktotgroep, $table_prefix, $lidnrversturenmogelijk;
-	
-	if (!isset($lidnrversturenmogelijk) or $lidnrversturenmogelijk != 1) {
-		$lidnrversturenmogelijk = 0;
-	}
-	
-	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		
-		if (is_numeric($_POST['lidnummer']) and $_POST['lidnummer'] > 0) {
-			$query = sprintf("SELECT L.Login FROM %1\$sLidmaatschap AS LM INNER JOIN %1\$sAdmin_login AS L ON LM.Lid = L.LidID WHERE LM.Lidnr=%2\$d;"
-					, $table_prefix, $_POST['lidnummer']);
-			$result = fnQuery($query);
-			$login = $result->fetchColumn();
-			if (strlen($login) > 0 and $_POST['gewenstelogin'] != $login) {
-				if (strlen($_POST['gewenstelogin']) > 0) {
-					printf("<p class='mededeling'>Lidnummer %d was al gekoppeld aan een login. Er wordt geen nieuwe login aangemaakt.</p>\n", $_POST['lidnummer']);
-				}
-				$_POST['gewenstelogin'] = $login;
-			}
-		} elseif (strlen($_POST['gewenstelogin']) > 0) {
-			$query = sprintf("SELECT LM.Lidnr FROM %1\$sLidmaatschap AS LM INNER JOIN %1\$sAdmin_login AS L ON LM.Lid = L.LidID" 
-					 . " WHERE L.Login='%2\$s' ORDER BY LM.LIDDATUM DESC;", $table_prefix, $_POST['login']);
-			$result = fnQuery($query);
-			$lidnr = $result->fetchColumn();
-			if ($lidnr > 0 and $_POST['lidnummer'] != $lidnr) {
-				$_POST['lidnummer'] = $lidnr;
-			}
-		}
-
-		$mess = "";
-		if ((strlen($_POST['lidnummer']) == 0 or $_POST['lidnummer'] == 0) and $lidnrversturenmogelijk == 1) {
-			$row = db_lidnr_bevestiging($_POST['email']);
-			if ($row === false) {
-				$mess = sprintf("Het emailadres '%s' is onbekend in de database.", $_POST['email']);
-				db_add_activiteit($mess, 1);
-			} else {
-				fnConfirmLidnr($row);
-			}
-		} elseif (strlen($_POST['email']) < 5 or !isValidMailAddress($_POST['email'])) {
-			$mess = sprintf("Je hebt geen geldig e-mailadres (%s) opgegeven.", $_POST['email']);
-		} elseif (strlen($_POST['lidnummer']) == 0 or !is_numeric($_POST['lidnummer'])) {
-			$mess = "Je hebt geen (geldig) lidnummer opgegeven.";
-		} elseif (strlen($_POST['gewenstelogin']) < 6 or strlen($_POST['gewenstelogin']) > 15) {
-			$mess = "Je hebt geen geldige login opgegeven. Een login moet uit minimaal 6 en mag maximaal uit 15 karakters bestaan.";
-		} else {
-			$query = sprintf("SELECT L.Nummer FROM %1\$sLid AS L INNER JOIN %1\$sLidmaatschap AS LM ON L.Nummer = LM.Lid"
-					 . " WHERE LM.Lidnr=%2\$d AND (LOWER(L.EMAIL)='%3\$s' OR LOWER(L.EmailVereniging)='%3\$s');", $table_prefix, $_POST['lidnummer'], strtolower($_POST['email']));
-			$result = fnQuery($query);
-			$nummer = $result->fetchColumn();
-			if ($nummer > 0) {
-				$mess = db_add_login($_POST['gewenstelogin'], $nummer);
-			} else {
-				$mess = sprintf("De combinatie lidnummer (%d) en e-mailadres (%s) is niet bekend in onze database.", $_POST['lidnummer'], $_POST['email']);
-			}
-		}
-		printf("<p class='mededeling'>%s</p>\n", $mess);
-		printf("<p><a href='http://%s' target='_top'>Klik hier om verder te gaan.</a></p>\n", $urlwebsite);
-
-	} else {
-
-		echo("<div id='loginaanvraag'>\n");
-		printf("<form name=Loginaanvraag action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
-		echo("<fieldset>\n");
-		echo("<h3>Aanvragen login</h3>\n");
-		
-		echo("<p><label for='gewenstelogin'>Gewenste login:</label>\n
-				<input type='text' name='gewenstelogin' id='gewenstelogin'>\n");
-				
-		echo("<label for='lidnummer'>Lidnummer:</label>\n
-				<input type='number' name='lidnummer' id='lidnummer'>\n");
-				
-		echo("<label for='email'>E-mailadres:</label>\n
-				<input type='email' name='email' id='email'>\n");
-				
-		echo("<input class='knop' type='submit' name='loginaanvragen' value='Aanvragen'></p>\n");
-		echo("</fieldset>\n");
-		
-		if ($lidnrversturenmogelijk == 1) {
-			echo("<p>Door alleen je e-mailadres in te vullen kan je je lidnummer opvragen.</p>");
-		}
-			
-		echo("</form>
-		</div>  <!-- Einde loginaanvraag -->\n");
 	}
 }
 

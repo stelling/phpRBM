@@ -12,7 +12,8 @@ $table_prefix = "rbm_"; // Zorg dat je bij het uploaden van de gegevens uit MS-A
 // Authorisation data
 $lididwebmasters = array(1);  // Dit is het interne nummer (RecordID) van het lid. Bij meerdere webmaster: scheiden met een komma.
 $encript_key = "deze_wijzigen"; // Deze wordt gebruikt om de encryptie van de wachtwoorden te doen. Wijzig deze na de eerste installatie niet meer. Als je dit toch doet zijn alle wachtwoorden gewijzigd en moet iedereen een nieuwe login aanvragen.
-$beperktotgroep = 0;  // Als je hier de RecordID van een groep (zie tabel ONDERDL) in vult, krijgt alleen deze groep toegang tot deze website. Vul 0 in als alle leden toegang moeten hebben.
+$beperktotgroep = 0;  // Als je hier de RecordID van een groep (zie tabel ONDERDL) in vult, krijgt alleen deze groep toegang tot deze website. Vul 0 in als alle personen uit de database toegang moeten krijgen.
+$lidnrnodigbijloginaanvraag = 0;  // Moet een lid zijn of haar lidnummer opgeven als er een login aangevraagd wordt?
 $lidnrversturenmogelijk = 0;  // Hierbij geef je aan of het mogelijk moet zijn om vanaf deze website op basis van alleen een e-mailadres iemand zijn lidnummer per e-mail opgestuurd kan worden.
 
 // General data
