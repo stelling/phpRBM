@@ -383,24 +383,13 @@ function BevestInschrBewaking($lidid, $insnr) {
 	} else {
 		$content = "Hierbij bevestigen wij de volgende inschrijving voor de bewaking: [%BEWINSCHRIJVING%]";
 	}
-	$brief_template = 'templates/briefpapier.html';
-	if (file_exists($brief_template)) {
-		$briefpapier = file_get_contents($brief_template);
-		if ($content === false) {
-			$briefpapier = $content;
-		} else {
-			$content = str_ireplace("[%MESSAGE%]", $content, $briefpapier);
-		}
-	} else {
-		$briefpapier = $content;
-	}
-	$subj = "Bevestiging inschrijving bewaking";
+	$subj = sprintf("Bevestiging inschrijving bewaking %d", $insnr);
 	$rows = db_insbew("overzichtlid", 0, $insnr);
 	$bevins = "";
 	foreach ($rows as $row) {
-		$content = str_ireplace("[%NAAMLID%]", $row->ndNaamBewaker, $content);
-		$content = str_ireplace("[%TO%]", $row->ndNaamBewaker, $content);
-		$content = str_ireplace("[%ROEPNAAM%]", $row->ndRoepnaamBewaker, $content);
+		$naambewaker = $row->ndNaamBewaker;
+		$roepnaambewaker = $row->ndRoepnaamBewaker;
+		$email = $row->ndEmailBewaker;
 		
 		$bevins .= sprintf("<li>%s - %s t/m %s", $row->Seizoen, strftime("%e %B %Y", strtotime($row->dteBegin)), strftime("%e %B %Y", strtotime($row->dteEinde)));
 		if ($row->Keuze == 2) {
@@ -410,10 +399,9 @@ function BevestInschrBewaking($lidid, $insnr) {
 			$bevins .= sprintf(" (%s)", $row->Opmerking);
 		}
 		$bevins .= "</li>\n";
-		$email = $row->ndEmailBewaker;
 	}
-	$content = str_ireplace("[%FROM%]", $naamvereniging, $content);
-	$content = str_ireplace("[%SUBJECT%]", $subj, $content);
+	$content = str_ireplace("[%NAAMLID%]", $naambewaker, $content);
+	$content = str_ireplace("[%ROEPNAAM%]", $roepnaambewaker, $content);
 	$content = str_replace("[%NAAMVERENIGING%]", $naamvereniging, $content);
 	$content = str_replace("[%NAAMWEBSITE%]", $naamwebsite, $content);
 	$content = str_replace("[%URLWEBSITE%]", $urlwebsite, $content);
@@ -433,17 +421,34 @@ function BevestInschrBewaking($lidid, $insnr) {
 		$d .= sprintf("<li>%s</li>\n", $ld->Diploma);
 	}
 	$content = str_ireplace("[%BEWDIPLOMAS%]", $d, $content);
+
+	$brief_template = 'templates/briefpapier.html';
+	if (file_exists($brief_template)) {
+		$briefpapier = file_get_contents($brief_template);
+		if ($content === false) {
+			$htmlmessage = $content;
+		} else {
+			$htmlmessage = str_ireplace("[%MESSAGE%]", $content, $briefpapier);
+			$htmlmessage = str_ireplace("[%FROM%]", $naamvereniging, $htmlmessage);
+			$htmlmessage = str_ireplace("[%TO%]", $naambewaker, $htmlmessage);
+			$htmlmessage = str_ireplace("[%SUBJECT%]", $subj, $htmlmessage);
+		}
+	} else {
+		$htmlmessage = $content;
+	}
 				
 	$mail = new RBMmailer();
 	try {
 		$mail->From = $emailbevestiginginschrijving;
-		$mail->AddAddress($email);
+		$mail->AddAddress($email, $naambewaker);
 		$mail->Subject = $subj;
 		$mail->MsgHTML($content);
 		if ($mail->Send()) {
-			$oms = sprintf("Bevestiging inschrijving bewaking is naar %s verzonden", $email);
-			db_add_activiteit($oms, 6);
-			printf("<script>alert('Een bevestiging van deze inschrijving is naar %s verzonden.');</script>\n", $email);	echo("<script>location.href='/index.php';</script>\n");	
+			db_add_mailing_hist($lidid, 0, $row->ndNaamBewaker, $email, $content, $emailbevestiginginschrijving, $subj);
+			$mess = sprintf("Bevestiging van deze inschrijving is naar %s verzonden.", $email);
+			db_add_activiteit($mess, 6);
+			printf("<script>alert('%s');</script>\n", $mess);
+			echo("<script>location.href='/index.php';</script>\n");	
 		} else {
 			printf("<p>Error while sending message: %s</p>\n", $mail->ErrorInfo);
 		}
