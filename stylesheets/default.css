@@ -298,6 +298,44 @@ fieldset h3 {
 	font-size: 11pt;
 }
 
+#verstuurdemail {
+	margin-left: 1px;
+	width: 100%;
+	height: auto;
+	clear: right;
+	float: left;
+}
+
+#verstuurdemail label, #verstuurdemail field{
+	margin-top: 3px;
+	margin-bottom: 3px;
+	padding-top: 3px;
+	padding-left: 4px;
+	padding-right: 4px;
+	border-width: 1px;
+}
+
+#verstuurdemail label {
+	min-height: 23px;
+	width: 90px;
+	float: left;
+	text-align: right;
+}
+
+#verstuurdemail field {
+	min-height: 21px;
+	width: 850px;
+	float: right;
+	margin-right: 0;
+	border-style: solid;
+}
+
+#verstuurdemail li {
+	margin-left: 15px;
+	margin-top: 3px;
+	margin-bottom: 3px;
+}
+
 #openid {
 	margin-top: 20px;
 	margin-left: auto;
@@ -497,8 +535,8 @@ fieldset h3 {
 
 .jarige {
 	margin-top: 10px;
-	height: 80px;
-	line-height: 80px;
+	height: 83px;
+	line-height: 83px;
 }
 
 .jarige img, .kaartje img, .bewaker img {
