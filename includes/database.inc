@@ -48,7 +48,7 @@ if (strlen($table_prefix) > 0 and substr($table_prefix, -1) != "_") {
 
 $selectnaam = "CONCAT(IF(LENGTH(L.Roepnaam)>1, L.Roepnaam, L.Voorletter), ' ', IF(L.Tussenv>'', CONCAT(L.Tussenv, ' '), ''), L.Achternaam, IF(L.Meisjesnm>'', CONCAT('-', L.Meisjesnm), ''))";
 $selectzoeknaam = "CONCAT(L.Achternaam, ', ', IF(L.Tussenv>'', CONCAT(L.Tussenv, ' '), ''), IF(LENGTH(L.Roepnaam)>1, L.Roepnaam, L.Voorletter), ' ')";
-$fromlid = sprintf('%1$sLid AS L INNER JOIN %1$sLidmaatschap AS LM ON L.Nummer = LM.Lid', $table_prefix);
+$fromlid = sprintf('%1$sLid AS L LEFT OUTER JOIN %1$sLidmaatschap AS LM ON L.Nummer = LM.Lid', $table_prefix);
 $wherelid = "LM.LIDDATUM <= CURDATE() AND ((LM.Opgezegd IS NULL) OR LM.Opgezegd >= CURDATE())";
 $fromlidond = sprintf('%1$sLid AS L INNER JOIN ((%1$sLidond AS LO INNER JOIN %1$sFunctie AS F ON LO.Functie = F.Nummer) INNER JOIN %1$sOnderdl AS O ON LO.OnderdeelID = O.RecordID) ON L.NUMMER = LO.LID', $table_prefix);
 $wherelidond = "LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE())";
@@ -273,7 +273,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 				 . " ORDER BY Nummer DESC;", $LidID);
 	} elseif ($soort == "Mailing") {
 		$query = sprintf("SELECT send_on AS dteVerzonden,"
-				 . " from_name AS Van,"
+				 . " IF(LENGTH(from_name)<3, from_addr, from_name) AS Van,"
 				 . " to_name AS Aan,"
 				 . " subject AS Onderwerp,"
 				 . " RecordID AS lnkRecordID"
@@ -924,19 +924,27 @@ function db_naam_onderdeel($rid) {
 	return $result->fetchColumn();
 }
 
-function db_add_mailing_hist($LidID, $MailingID, $to_name, $to_addr, $message="") {
+function db_add_mailing_hist($LidID, $MailingID, $to_name, $to_addr, $message="", $from_addr="", $subject="") {
 	global $table_prefix;
 
-	$query = sprintf("SELECT * FROM %sMailing WHERE MailingID=%d;", $table_prefix, $MailingID);
-	$result = fnQuery($query);
-	$row = $result->fetch();
-	if (strlen($message) == 0) {
-		$message = $row->message;
+	$from_name = "";
+	if ($MailingID > 0) {
+		$query = sprintf("SELECT * FROM %sMailing WHERE MailingID=%d;", $table_prefix, $MailingID);
+		$result = fnQuery($query);
+		$row = $result->fetch();
+		if (strlen($message) == 0) {
+			$message = $row->message;
+		}
+		$from_name = $row->from_name;
+		$from_addr = $row->from_addr;
+		$subject = $row->subject;
 	}
+	$subject = str_replace("\"", "'", $subject);
+	$message = str_replace("\"", "'", $message);
 	if (isset($_SESSION['lidid']) and $_SESSION['lidid'] > 0) {
 		$query = sprintf("INSERT INTO %sMailing_hist SET"
-				 . " LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", to_name=\"%s\", subject=\"%s\", to_addr=\"%s\", message=\"%s\", send_by=%d, send_on='%s';"
-				 , $table_prefix, $LidID, $MailingID, $row->from_name, $row->from_addr, $to_name, $row->subject, $to_addr, $message, $_SESSION['lidid'], $row->sent_on);
+				 . " LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", to_name=\"%s\", subject=\"%s\", to_addr=\"%s\", message=\"%s\", send_by=%d, send_on=SYSDATE();"
+				 , $table_prefix, $LidID, $MailingID, $from_name, $from_addr, $to_name, $subject, $to_addr, $message, $_SESSION['lidid']);
 		fnQuery($query);
 	}
 }
@@ -945,7 +953,7 @@ function db_mailing($actie="", $mid=0, $rid=0, $filter="") {
 	global $selectnaam, $table_prefix;
 	
 	if ($actie == "histdetails" and $rid > 0) {
-		$query = sprintf("SELECT send_on AS dttVerzonden, from_name AS Van, to_name AS Aan, to_addr AS `E-mail`, subject AS Onderwerp, message AS Bericht
+		$query = sprintf("SELECT send_on, IF(LENGTH(from_name)<3, from_addr, from_name) AS Van, to_name, to_addr, subject, message
 					FROM %sMailing_hist WHERE RecordID=%d LIMIT 1;", $table_prefix, $rid);
 		$result = fnQuery($query);
 		return $result->fetch();
@@ -1059,7 +1067,7 @@ function db_lijstactiviteiten($type=0) {
 	$query = sprintf("SELECT A.DatumTijd as `dttDatum en tijd`, Omschrijving, IP_adres, A.LidID, %1\$s AS `Ingelogd Lid`
 							FROM %2\$sAdmin_activiteit AS A LEFT OUTER JOIN %2\$sLid AS L ON A.LidID = L.Nummer
 							WHERE %3\$s
-							ORDER BY A.DatumTijd DESC LIMIT 75;", $selectnaam, $table_prefix, $w);
+							ORDER BY A.DatumTijd DESC, A.RecordID DESC LIMIT 75;", $selectnaam, $table_prefix, $w);
 	$result = fnQuery($query);
 	return $result->fetchAll();
 }
