@@ -386,7 +386,7 @@ function fnOverviewLid($lidid=0) {
 				if (count($rows) > 0) {
 					echo(fnDiplayTable($rows, "", "Rekeningen " . $naamlid));
 				} else {
-					printf("<p class='mededeling'>%s heeft geen rekeningen ontvangen.</p>", $naanmlid);
+					printf("<p class='mededeling'>%s heeft geen rekeningen ontvangen.</p>", $naamlid);
 				}
 			}
 			$rows = db_gegevenslid($lidid, "Financieel");
@@ -396,14 +396,18 @@ function fnOverviewLid($lidid=0) {
 		} elseif ($currenttab2 == "Mailing" and toegang($_GET['tp'])) {
 			if (isset($_GET['MailingID']) and $_GET['MailingID'] > 0) {
 				$xtra = "<p class='mededeling'><input type='button' value='Terug' onclick='history.go(-1);'></p>\n";
-				echo(fnDiplayForm(db_mailing("histdetails", 0, $_GET['MailingID'])));
+//				echo(fnDiplayForm(db_mailing("histdetails", 0, $_GET['MailingID'])));
+				
+				$mailing = new mailing;
+				$mailing->toonverstuurdemail($_GET['MailingID']);
+				$mailing = null;
 			} else {
 				$ld = sprintf("<a href='index.php?tp=%s&amp;lidid=%d&amp;MailingID=%%d'>%%s</a>", urlencode($_GET['tp']), $lidid);
 				$rows = db_gegevenslid($lidid, "Mailing");
 				if (count($rows) > 0) {
-					echo(fnDiplayTable($rows, $ld, "Mailings " . $naamlid));
+					echo(fnDiplayTable($rows, $ld, "Ontvangen mails " . $naamlid));
 				} else {
-					printf("<p class='mededeling'>%s heeft geen mailings ontvangen.</p>\n", $naamlid);
+					printf("<p class='mededeling'>%s heeft geen mails vanaf deze website ontvangen.</p>\n", $naamlid);
 				}
 			}
 		} elseif (toegang($_GET['tp'])) {
@@ -503,18 +507,29 @@ function fnWijzigen($lidid=0) {
 			
 			if (isValidMailAddress($emailledenadministratie, 0) or isValidMailAddress($emailnieuwepasfoto, 0)) {
 				$mail = new RBMmailer();
-				$mail->From = $_SESSION['emailingelogde'];
-				$mail->FromName = $_SESSION['naamingelogde'];
-				$mail->Subject = "Nieuwe pasfoto " . $_SESSION['naamingelogde'];
-				if (isValidMailAddress($emailnieuwepasfoto, 0) and $emailnieuwepasfoto != $emailledenadministratie) {
-					$mail->AddAddress($emailnieuwepasfoto);
+				try {
+					$mail->From = $_SESSION['emailingelogde'];
+					$mail->FromName = $_SESSION['naamingelogde'];
+					$mail->Subject = "Nieuwe pasfoto " . $_SESSION['naamingelogde'];
+					if (isValidMailAddress($emailnieuwepasfoto, 0) and $emailnieuwepasfoto != $emailledenadministratie) {
+						$mail->AddAddress($emailnieuwepasfoto);
+					}
+					if (isValidMailAddress($emailledenadministratie, 0)) {
+						$mail->AddAddress($emailledenadministratie);
+					}
+					$mail->AddAttachment($target);
+					if ($mail->Send()) {
+						$mess = sprintf("%s heeft een nieuwe pasfoto ingestuurd.", $_SESSION['naamingelogde']);
+						db_add_activiteit($mess, 6);
+					}
+					$mail = null;
+				} catch (phpmailerException $e) {
+					$mess = sprintf("Fout bij versturen pasfoto %s.", $e->errorMessage()); // Error messages from PHPMailer
+					db_add_activiteit($mess, 6);
+				} catch (Exception $e) {
+					$mess = sprintf("Fout bij versturen pasfoto %s.", $e->getMessage());
+					db_add_activiteit($mess, 6);
 				}
-				$mail->AddAddress($emailledenadministratie);
-				$mail->AddAttachment($target);
-				if ($mail->Send()) {
-					db_add_activiteit(sprintf("%s heeft een nieuwe pasfoto ingestuurd.", $_SESSION['naamingelogde']), 6);
-				}
-				$mail = null;
 			}
 		}  
 	}
@@ -775,7 +790,7 @@ function fnWijzigen($lidid=0) {
 				}
 				
 				$body = sprintf("<p>Beste ledenadministratie,</p>\n
-				<p>Hierbij zeg ik mijn lidmaatschap van de %s op per %s. Mijn lidnummer is %d.</p>\n
+				<p>Hierbij zeg ik mijn lidmaatschap van de %s per %s op. Mijn lidnummer is %d.</p>\n
 				%s
 				<p>Met vriendelijke groeten,<br>
 				<strong>%s</strong></p>\n", $naamvereniging, $opgezegdper, $_SESSION['lidnr'], $opm, $_SESSION['naamingelogde']);
@@ -1014,10 +1029,7 @@ function fnMailing() {
 				<img src='images/back.png' alt='Terug' title='Terug' onclick='history.go(-1);'>\n
 				</div>  <!-- Einde opdrachtknoppen -->\n");
 	} elseif ($op == "histdetails" and $_GET['rid'] > 0) {
-		echo(fnDiplayForm(db_mailing("histdetails", 0, $_GET['rid'])));
-		echo("<div id='opdrachtknoppen'>\n
-				<img src='images/back.png' alt='Terug' title='Terug' onclick='history.go(-1);'>\n
-				</div>  <!-- Einde opdrachtknoppen -->\n");
+		$mailing->toonverstuurdemail($_GET['rid']);
 	} elseif ($op == "upload") {
 		$mailing->upload();
 		$mailing->edit();
