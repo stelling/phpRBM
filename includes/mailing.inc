@@ -150,6 +150,18 @@ class mailing {
 		}
 	}
 	
+	public function toonverstuurdemail ($rid) {
+		echo("<div id='verstuurdemail'>\n");
+		$row = db_mailing("histdetails", 0, $rid);
+		printf("<label>Verzonden:</label><field>%s</field>\n", strftime('%e %B %Y (%H:%M)', strtotime($row->send_on)));
+		printf("<label>Van:</label><field>%s</field>\n", $row->Van);
+		printf("<label>Aan:</label><field>%s</field>\n", $row->to_name);
+		printf("<label>E-mail:</label><field>%s</field>\n", $row->to_addr);
+		printf("<label>Onderwerp:</label><field>%s</field>\n", $row->subject);
+		printf("<label>Bericht:</label><field>%s</field>\n", $row->message);
+		echo("</div>  <!-- Einde verstuurdemail -->\n");
+	}
+	
 	public function edit() {
 		global $currenttab, $currenttab2, $beperkfrom, $naamvereniging;
 
