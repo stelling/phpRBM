@@ -81,7 +81,11 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 } elseif ($currenttab == "Uploaden data" and ($_SESSION['aantallid'] == 0 or toegang($_GET['tp']))) {
 	$aantal = db_interface("aantalopenstaand");
 	if ($aantal > 0) {
-		printf("<p class='mededeling'>Er staan %d online-wijzigingen te wachten om verwerkt te worden. Het is daarom op dit moment niet verstandig om een upload te doen.</p>", $aantal);
+		printf("<p class='mededeling'>Er staan %d online-wijzigingen te wachten om verwerkt te worden. Het is daarom niet verstandig om een upload te doen.</p>", $aantal);
+	}
+	$aantal = db_logins("aantalingelogd");
+	if ($aantal > 1) {
+		printf("<p class='mededeling'>Er staan zijn momenteel %d gebruikers ingelogd. Het is daarom niet verstandig om een upload te doen.</p>", $aantal);
 	}
 	echo("<div id='invulformulier'>\n");
 	printf("<form name='formupload' method='post' action='%s?%s&amp;op=uploaddata' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
