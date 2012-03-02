@@ -181,7 +181,7 @@ function fnConfirmLogin($row) {
 
 	try {
 		$mail->FromName = $from;
-		if (strlen($row->EmailVereniging) > 5 and isValidMailAddress($row->EmailVereniging)) {
+		if (isValidMailAddress($row->EmailVereniging, 0)) {
 			$email = $row->EmailVereniging;
 		} else {
 			$email = $row->EMAIL;
