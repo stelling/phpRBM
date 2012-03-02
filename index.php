@@ -1095,7 +1095,6 @@ function fotolid($lidid) {
 		} elseif (file_exists(sprintf("Pasfoto/Pasfoto%d.%s", $lidid, $ext))) {
 			$fn = sprintf("Pasfoto/Pasfoto%d.%s", $lidid, $ext);
 		}
-		
 	}
 	return $fn;
 }
