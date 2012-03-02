@@ -825,7 +825,9 @@ function db_logins($actie="lijst", $email="", $gewenstelogin="", $lidid=0) {
 	} elseif ($actie == "rowlogin" and (isValidMailAddress($email, 0) or $lidid > 0)) {
 		$query = sprintf("SELECT L.Nummer, Login.Login, %1\$s AS Naam, L.Roepnaam, L.EMAIL, L.EmailVereniging, Login.Wachtwoord,
 								(SELECT MAX(Lidnr) FROM %2\$sLidmaatschap AS LM WHERE LM.Lid = L.Nummer AND ((LM.Opgezegd IS NULL) OR LM.Opgezegd > CURDATE())) AS Lidnr,", $selectnaam, $table_prefix);
-		if ($beperktotgroep > 0) {
+		if (is_array($beperktotgroep) and count($beperktotgroep) > 0) {
+			$query .= sprintf("(SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.Lid=L.Nummer AND LO.OnderdeelID IN (%s) AND LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE())) AS AanvragenMag", $table_prefix, implode(", ", $beperktotgroep));
+		} elseif ($beperktotgroep > 0) {
 			$query .= sprintf("(SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.Lid=L.Nummer AND LO.OnderdeelID=%d AND LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE())) AS AanvragenMag", $table_prefix, $beperktotgroep);
 		} else {
 			$query .= "1 AS AanvragenMag";
@@ -840,18 +842,23 @@ function db_logins($actie="lijst", $email="", $gewenstelogin="", $lidid=0) {
 		return $result->fetch();
 	} elseif ($actie == "controlebestaat" and $lidid > 0 and strlen($gewenstelogin) > 5) {
 		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_login WHERE Login='%s' AND LidID<>%d;", $table_prefix, $gewenstelogin, $lidid);
-		$result = fnQuery($query);
-		return $result->fetchColumn();
+		return db_scalar($query);
+	} elseif ($actie == "aantalingelogd") {
+		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_login WHERE Ingelogd=1;", $table_prefix);
+		return db_scalar($query);
 	} elseif ($actie == "lijst" or $actie == "controle") {
 		$xtraselect = "";
+		$xtrawhere = "";
 		if ($actie == "controle") {
-			if (isValidMailAddress($_SESSION['username'])) {
+			if (isValidMailAddress($_SESSION['username'], 0)) {
 				$xtrawhere = sprintf("AND (LOWER(L.EMAIL)='%1\$s' OR LOWER(L.EmailVereniging)='%1\$s')", strtolower($_SESSION['username']));
 			} else {
 				$xtrawhere = sprintf("AND Login.Login='%s'", mysql_escape_string($_SESSION['username']));
 			}
 			$xtrawhere .= sprintf(" AND Login.Wachtwoord='%s' AND LENGTH(Login.Wachtwoord) > 5", encript_decript($_SESSION['password']));
-			if ($beperktotgroep > 0) {
+			if (is_array($beperktotgroep) and count($beperktotgroep) > 0) {
+				$xtrawhere .= sprintf(" AND (Login.LidID IN (SELECT Lid FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID IN (%s)) OR Login.LidID IN (%s))", $table_prefix, $wherelidond, implode(", ", $beperktotgroep), implode(", ", $lididwebmasters));
+			} elseif ($beperktotgroep > 0) {
 				$xtrawhere .= sprintf(" AND (Login.LidID IN (SELECT Lid FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID=%d) OR Login.LidID IN (%s))", $table_prefix, $wherelidond, $beperktotgroep, implode(", ", $lididwebmasters));
 			}
 		}
