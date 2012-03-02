@@ -607,6 +607,10 @@ fieldset h3 {
 	text-align: center;
 }
 
+.fotoinschrijving img {
+	width: 35px;
+}
+
 .opmerkinginschrijving, .opmerkingweek {
 	max-width: 200px;
 }
