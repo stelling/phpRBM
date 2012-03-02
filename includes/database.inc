@@ -1246,6 +1246,11 @@ function db_onderhoud() {
 		}
 	}
 		
+	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%Bewaking_Inschrijving' AND COLUMN_NAME='Afgemeld';", $db_name, $table_prefix);
+	if (db_scalar($query) == 0) {
+		fnQuery(sprintf("ALTER TABLE `%sBewaking_Inschrijving` ADD `Afgemeld` DATETIME;", $table_prefix));
+	}
+	
 	$query = sprintf("SELECT EXTRA FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sLiddipl' AND COLUMN_NAME='RecordID';", $db_name, $table_prefix);
 	$result = fnQuery($query);
 	if ($result->fetchColumn() != "auto_increment") {
@@ -1359,7 +1364,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_interface` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `LidID` int(11) NOT NULL,
   `IP-adres` char(15) COLLATE utf8_unicode_ci NOT NULL,
-  `SQL-statement` varchar(350) COLLATE utf8_unicode_ci NOT NULL,
+  `SQL-statement` text COLLATE utf8_unicode_ci NOT NULL,
   `Ingevoerd` datetime DEFAULT NULL,
   `Afgemeld` datetime DEFAULT NULL,
   PRIMARY KEY (`RecordID`)
@@ -1421,6 +1426,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sBewaking_Inschrijving` (
   `Definitief` datetime NOT NULL,
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `Afgemeld` datetime DEFAULT NULL,
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
