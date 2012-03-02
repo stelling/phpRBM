@@ -465,7 +465,7 @@ function DetailsInschrijvingBewaking($rows) {
 	if (isset($rows) and count($rows) > 0) {
 		$ret .= "<table>\n";
 		$ret .= "<tr><th colspan=9 class='tabelkop'>Details inschrijving bewaking</th></tr>\n";
-		$ret .= "<tr><th>Week</th><th>Periode</th><th>Bewaker</th><th>Keuze 1</th><th>Keuze 2</th><th>Opmerking (week)</th><th>Opmerking (Inschrijving)</th></tr>\n";
+		$ret .= "<tr><th></th><th>Week</th><th>Periode</th><th>Bewaker</th><th>Keuze 1</th><th>Keuze 2</th><th>Opmerking (week)</th><th>Opmerking (Inschrijving)</th></tr>\n";
 		$voriglid = -1;
 		$hv = "";
 		foreach($rows as $row) {
@@ -473,12 +473,21 @@ function DetailsInschrijvingBewaking($rows) {
 				if (strlen($hv) > 0) {
 					$ret .= sprintf("<tr>%s</tr>\n", str_replace("[ROWSPAN]", $aantalreg, $hv));
 				}
+				$fn = fotolid($row->ndLidID);
 				$voriglid = $row->ndLidID;
 				$aantalreg = 0;
 				$hv = "";
 				$opmins = db_memo($row->ndLidID, "I", "curval");
 			} elseif (strlen($hv) > 0) {
 				$hv .= "</tr>\n<tr>";
+			}
+			$aantalreg++;
+			if ($aantalreg == 1) {
+				if (strlen($fn) > 0) {
+					$hv .= sprintf("<td rowspan=[ROWSPAN] class='fotoinschrijving'><img src='%s'></td>\n", $fn);
+				} else {
+					$hv .= "<td rowspan=[ROWSPAN]>&nbsp;</td>\n";
+				}
 			}
 			$hv .= sprintf("<td>%s</td>", $row->Week);
 			if (substr($row->dteBegin, 0, 7) == substr($row->dteEinde, 0, 7)) {
@@ -492,7 +501,6 @@ function DetailsInschrijvingBewaking($rows) {
 			$k = "Keuze 2";
 			$hv .= sprintf("<td>%s</td>", $row->$k);
 			$hv .= sprintf("<td class='opmerkingweek'>%s</td>", $row->Opmerking);
-			$aantalreg++;
 			if ($aantalreg == 1) {
 				$hv .= sprintf("<td rowspan=[ROWSPAN] class='opmerkinginschrijving'>%s</td>\n", $opmins);
 			}
