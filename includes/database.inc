@@ -610,7 +610,7 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 		}
 		$w .= sprintf("BB.Kode='%d'", $week);
 	}
-	if ($actie == "overzicht" or $actie == "matrixaantallen") {
+	if ($actie == "overzicht") {
 		if (strlen($w) > 0) {
 			$w .= " AND ";
 		} else {
@@ -649,7 +649,9 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 		return $result->fetchAll();
 	} elseif ($actie == "matrixaantallen") {
 		$query = sprintf("SELECT BS.Kode AS Seizoen, BB.Kode AS Week, BB.Begindatum AS dteBegin, BB.Einddatum AS dteEinde,
-								SUM(IF(BI.Keuze IN (1, 3), 1, 0)) AS `Keuze 1`, SUM(IF(BI.Keuze = 2, 1, 0)) AS `Keuze 2`
+								SUM(CASE WHEN BI.Definitief > BI.Ingevoerd AND BI.Keuze IN (1, 3) THEN 1 ELSE 0 END) AS `Keuze 1`,
+								SUM(CASE WHEN BI.Definitief > BI.Ingevoerd AND BI.Keuze=2 THEN 1 ELSE 0 END) AS `Keuze 2`,
+								SUM(CASE WHEN BI.Definitief <= BI.Ingevoerd THEN 1 ELSE 0 END) AS `Niet definitief`
 								FROM (%1\$sBewaking_Blok AS BB INNER JOIN (%1\$sBewaking_Inschrijving AS BI INNER JOIN %1\$sLid AS L ON BI.Lid = L.Nummer) ON BB.RecordID = BI.BlokID) INNER JOIN %1\$sBewseiz AS BS ON BB.SeizoenID = BS.RecordID
 								%2\$s
 								GROUP BY BS.Kode, BB.Kode, BB.Begindatum, BB.Einddatum
@@ -1246,7 +1248,7 @@ function db_onderhoud() {
 		}
 	}
 		
-	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%Bewaking_Inschrijving' AND COLUMN_NAME='Afgemeld';", $db_name, $table_prefix);
+	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sBewaking_Inschrijving' AND COLUMN_NAME='Afgemeld';", $db_name, $table_prefix);
 	if (db_scalar($query) == 0) {
 		fnQuery(sprintf("ALTER TABLE `%sBewaking_Inschrijving` ADD `Afgemeld` DATETIME;", $table_prefix));
 	}
