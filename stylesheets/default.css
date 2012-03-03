@@ -177,8 +177,29 @@ footer a, #footer a, footer a:visited, #footer a:visited {
 	margin-top: 8px;
 }
 
-#wijzigengegevens img, #nieuwepasfoto img {
+#wijzigengegevens img {
 	max-width: 250px;
+}
+
+#nieuwepasfoto {
+	border-style: none;
+	padding-left: 4px;
+	width: auto;
+}
+
+#nieuwepasfoto img {
+	width: 390px;
+	height: 500px;
+	margin-bottom: 5px;
+}
+
+#nieuwepasfoto label {
+	width: auto;
+	height: 20px;
+}
+
+#nieuwepasfoto input {
+	height: 25px;
 }
 
 #inschrijvingbewaking table {
@@ -608,7 +629,7 @@ fieldset h3 {
 }
 
 .fotoinschrijving img {
-	width: 35px;
+	width: 40px;
 }
 
 .opmerkinginschrijving, .opmerkingweek {

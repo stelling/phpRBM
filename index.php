@@ -705,26 +705,24 @@ function fnWijzigen($lidid=0) {
 			echo("</form>\n");
 			echo("</div>  <!-- Einde wijzigendiplomas -->\n");
 		} elseif ($currenttab2 == "Pasfoto" and toegang($_GET['tp'])) {
-			$row = db_ledenwijzigingen($lidid);
 			echo("<div id='nieuwepasfoto'>\n");
 			
 			$fn = fotolid($lidid);
 			if (strlen($fn) > 4 and file_exists($fn)) {
-				printf("<img src='%s'>\n", $fn);
+				printf("<img src='%s' alt='Huidige pasfoto %s'>\n", $fn, $naamlid);
 			} else {
 				echo("<p>Geen huidige pasfoto beschikbaar.</p>\n");
 			}
 			
-			printf("<form method='post' action='/index.php?%s' name='frm_wijzigingen' enctype='multipart/form-data'>\n", urlencode($_SERVER['QUERY_STRING']));
-			echo("<table>\n");
-			printf("<tr><th colspan=2>Nieuwe pasfoto %s</th></tr>\n", $naamlid);
-			echo("<tr><td class='label'>Bestand</td><td><input type='file' name='UploadFoto' id='UploadFoto'>&nbsp;");
-			echo("<input type='submit' name='Upload' value='Insturen'></td></tr>\n");
-			echo("</table>\n");
+			printf("<form method='post' action='/index.php?%s' name='frm_pasfoto' enctype='multipart/form-data'>\n", urlencode($_SERVER['QUERY_STRING']));
+			printf("<p><label for='UploadFoto'>Nieuwe pasfoto %s:&nbsp;</label>\n", $naamlid);
+			echo("<input type='file' name='UploadFoto' id='UploadFoto'>&nbsp;");
+			echo("<input type='submit' name='Upload' value='Insturen'></p>\n");
+			echo("<p>Het ideale formaat van de pasfoto is 390 pixels breed bij 500 pixels hoog.</p>\n");
 			echo("</form>\n");
+			
 			echo("</div>  <!-- Einde nieuwepasfoto -->\n");
 			
-			echo("<p>Het ideale formaat van de pasfoto is 390 pixels breed bij 500 pixels hoog.</p>\n");
 		} elseif ($currenttab2 == "Bijzonderheden" and strlen($muteerbarememos) > 0 and toegang($_GET['tp'])) {
 			if ($_SERVER['REQUEST_METHOD'] == "POST") {
 				for ($iCounter=0; $iCounter < strlen($muteerbarememos); $iCounter++) {
