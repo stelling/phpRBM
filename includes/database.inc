@@ -946,6 +946,9 @@ function db_add_mailing_hist($LidID, $MailingID, $to_name, $to_addr, $message=""
 		}
 		$from_name = $row->from_name;
 		$from_addr = $row->from_addr;
+		if (strlen($to_name) == 0) {
+			$to_name = $row->to_name;
+		}
 		$subject = $row->subject;
 		$cc_addr = $row->cc_addr;
 	}
@@ -963,7 +966,7 @@ function db_mailing($actie="", $mid=0, $rid=0, $filter="") {
 	global $selectnaam, $table_prefix;
 	
 	if ($actie == "histdetails" and $rid > 0) {
-		$query = sprintf("SELECT send_on, IF(LENGTH(from_name)<3, from_addr, from_name) AS Van, to_name, to_addr, subject, message
+		$query = sprintf("SELECT send_on, from_addr, from_name, to_name, to_addr, cc_addr, subject, message
 					FROM %sMailing_hist WHERE RecordID=%d LIMIT 1;", $table_prefix, $rid);
 		$result = fnQuery($query);
 		return $result->fetch();
