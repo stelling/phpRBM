@@ -1266,7 +1266,7 @@ function db_onderhoud() {
 	// Toevoegen veld 'cc_addr' aan de tabel Mailing_hist. Deze code kan na 5/3/2013 worden verwijderd.
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sMailing_hist' AND COLUMN_NAME='cc_addr';", $db_name, $table_prefix);
 	if (db_scalar($query) == 0) {
-		fnQuery(sprintf("ALTER TABLE `%Mailing_hist` ADD `cc_addr` VARCHAR(50);", $table_prefix));
+		fnQuery(sprintf("ALTER TABLE `%sMailing_hist` ADD `cc_addr` VARCHAR(50);", $table_prefix));
 	}
 	// Einde code
 	
