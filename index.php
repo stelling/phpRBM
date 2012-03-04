@@ -115,20 +115,20 @@ function fnVoorblad($metlogin=0) {
 // >= 5.3					$interval = date_diff(date_create($row->ndGEBDATUM), date_create("now"));
 // >= 5.3					$t = sprintf("%s is vandaag %d jaar geworden", $row->Naam_lid, $interval->format('%y'));	
 					$lft = date("Y", strtotime("today")) - date("Y", strtotime($row->ndGEBDATUM));
-					$t = sprintf("%s is vandaag %d jaar geworden", $row->Naam_lid, $lft);
+					$t = sprintf("%s is vandaag %d jaar geworden", htmlentities($row->Naam_lid), $lft);
 				} elseif ($i == 1) {
 // >= 5.3					$interval = date_diff(date_create($row->ndGEBDATUM), date_create("tomorrow"));
 // >= 5.3					$t = sprintf("%s wordt morgen %d jaar", $row->Naam_lid, $interval->format('%y'));
 					$lft = date("Y", strtotime("tomorrow")) - date("Y", strtotime($row->ndGEBDATUM));
-					$t = sprintf("%s wordt morgen %d jaar", $row->Naam_lid, $lft);
+					$t = sprintf("%s wordt morgen %d jaar", htmlentities($row->Naam_lid), $lft);
 				} else {
-					$t = sprintf("Op %s is %s jarig", strftime("%e %B", strtotime($row->ndGEBDATUM)), $row->Naam_lid);
+					$t = sprintf("Op %s is %s jarig", strftime("%e %B", strtotime($row->ndGEBDATUM)), htmlentities($row->Naam_lid));
 				}
 				$fn = fotolid($row->lnkNummer);
 				if (strlen($t) > 3) {
 					$verj .= sprintf("%s. ", $t);
 					if (strlen($fn) > 3) {
-						$verjfoto .= sprintf("<div class='jarige'><img src='%s' alt='Pasfoto %s'><div class='tekstbijfoto'>%s.</div></div>\n", $fn, $row->Naam_lid, $t);
+						$verjfoto .= sprintf("<div class='jarige'><img src='%s' alt='Pasfoto %s'><div class='tekstbijfoto'>%s.</div></div>\n", $fn, htmlentities($row->Naam_lid), $t);
 					} elseif (strlen($t) > 3) {
 						$verjfoto .= sprintf("<p>%s.</p>\n", $t);
 					}
