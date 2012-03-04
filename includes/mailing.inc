@@ -57,8 +57,9 @@ class mailing {
 		$sql = sprintf("SELECT LM.Lidnr FROM %sLidmaatschap AS LM %s AND %s;", $table_prefix, $WhereLidmaatschap, "LM.Lid=%d");
 		$this->MergeField[]=array('Naam' => "Lidnummer", 'SQL' => $sql);
 		
-		$sql = sprintf("SELECT FLOOR(DATEDIFF(IF(ISNULL(LM.Opgezegd), CURDATE(), LM.Opgezegd), LM.LIDDATUM)/365.25)"
-			  . " FROM %sLidmaatschap AS LM %s AND %s;", $table_prefix, $WhereLidmaatschap, "LM.Lid=%d");
+		$sql = sprintf("SELECT FLOOR(DATEDIFF(IF(ISNULL(LM.Opgezegd), CURDATE(), LM.Opgezegd), LM.LIDDATUM)/365.25)
+							FROM %sLidmaatschap AS LM WHERE LM.LIDDATUM < CURDATE() AND %s
+							ORDER BY LM.LIDDATUM DESC LIMIT 1;", $table_prefix, "LM.Lid=%d");
 		$this->MergeField[]=array('Naam' => "LengteLidmaatschap", 'SQL' => $sql);
 
 		$sql = sprintf("SELECT L.Telefoon FROM %sLid AS L WHERE %s;", $table_prefix, "L.Nummer=%d");
@@ -119,8 +120,9 @@ class mailing {
 		$sql = sprintf("SELECT DATE_FORMAT(LIDDATUM, %s) FROM %sLidmaatschap AS LM %s AND %s;", $fdlang, $table_prefix, $WhereLidmaatschap, "LM.Lid=%d");
 		$this->MergeField[]=array('Naam' => "LidVanaf", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT DATE_FORMAT(MAX(LM.Opgezegd), %s) FROM %sLidmaatschap AS LM
-							 WHERE LM.LIDDATUM < CURDATE() AND LM.Opgezegd >= LM.LIDDATUM AND %s;", $fdlang, $table_prefix, $WhereLidmaatschap, "LM.Lid=%d");
+		$sql = sprintf("SELECT IF(LM.OPGEZEGD IS NULL, 'Niet', DATE_FORMAT(LM.Opgezegd, %s)) FROM %sLidmaatschap AS LM
+							 WHERE LM.LIDDATUM < CURDATE() AND %s
+							 ORDER BY LM.LIDDATUM DESC LIMIT 1;", $fdlang, $table_prefix, "LM.Lid=%d");
 		$this->MergeField[]=array('Naam' => "OpgezegdPer", 'SQL' => $sql);
 
 		$sql = sprintf("SELECT L.EMAIL FROM %sLid AS L WHERE %s;", $table_prefix, "Nummer=%d");
@@ -158,6 +160,7 @@ class mailing {
 		printf("<label>Van:</label><field>%s</field>\n", $row->Van);
 		printf("<label>Aan:</label><field>%s</field>\n", $row->to_name);
 		printf("<label>E-mail:</label><field>%s</field>\n", $row->to_addr);
+		printf("<label>CC:</label><field>%s</field>\n", $row->cc_addr);
 		printf("<label>Onderwerp:</label><field>%s</field>\n", $row->subject);
 		printf("<label>Bericht:</label><field>%s</field>\n", $row->message);
 		echo("</div>  <!-- Einde verstuurdemail -->\n");
