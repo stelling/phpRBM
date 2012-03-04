@@ -157,10 +157,18 @@ class mailing {
 		echo("<div id='verstuurdemail'>\n");
 		$row = db_mailing("histdetails", 0, $rid);
 		printf("<label>Verzonden:</label><field>%s</field>\n", strftime('%e %B %Y (%H:%M)', strtotime($row->send_on)));
-		printf("<label>Van:</label><field>%s</field>\n", $row->Van);
-		printf("<label>Aan:</label><field>%s</field>\n", $row->to_name);
+		if (strlen($row->from_name) > 0) {
+			printf("<label>Van:</label><field>%s (%s)</field>\n", htmlentities($row->from_name), $row->from_addr);
+		} else {
+			printf("<label>Van:</label><field>%s</field>\n", $row->from_addr);
+		}
+		if (strlen($row->to_name) > 0) {
+			printf("<label>Aan:</label><field>%s</field>\n", $row->to_name);
+		}
 		printf("<label>E-mail:</label><field>%s</field>\n", $row->to_addr);
-		printf("<label>CC:</label><field>%s</field>\n", $row->cc_addr);
+		if (strlen($row->cc_addr) > 5) {
+			printf("<label>CC:</label><field>%s</field>\n", $row->cc_addr);
+		}
 		printf("<label>Onderwerp:</label><field>%s</field>\n", $row->subject);
 		printf("<label>Bericht:</label><field>%s</field>\n", $row->message);
 		echo("</div>  <!-- Einde verstuurdemail -->\n");
@@ -671,13 +679,15 @@ class mailing {
 					if (isset($rcpt->Naam_lid)) {
 						$mail->AddAddress($e, $rcpt->Naam_lid);
 						$this->mailbericht = str_ireplace("[%TO%]", $rcpt->Naam_lid, $this->mailbericht);
+						$to_name = $row->Naam_lid;
 					} else {
 						$mail->AddAddress($e);
 						$this->mailbericht = str_ireplace("[%TO%]", $e, $this->mailbericht);
+						$to_name = $row->to_name;
 					}
 					$mail->MsgHTML($this->mailbericht);
 					if ($mail->Send()) {
-						db_add_mailing_hist($rcpt->Nummer, $this->mid, $row->to_name, $e, $this->merged_message);
+						db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message);
 					}
 					$mail->ClearAddresses();
 				}
