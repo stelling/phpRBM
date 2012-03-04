@@ -933,7 +933,7 @@ function db_naam_onderdeel($rid) {
 	return $result->fetchColumn();
 }
 
-function db_add_mailing_hist($LidID, $MailingID, $to_name, $to_addr, $message="", $from_addr="", $subject="") {
+function db_add_mailing_hist($LidID, $MailingID, $to_name, $to_addr, $message="", $from_addr="", $subject="", $cc_addr="") {
 	global $table_prefix;
 
 	$from_name = "";
@@ -947,13 +947,14 @@ function db_add_mailing_hist($LidID, $MailingID, $to_name, $to_addr, $message=""
 		$from_name = $row->from_name;
 		$from_addr = $row->from_addr;
 		$subject = $row->subject;
+		$cc_addr = $row->cc_addr;
 	}
 	$subject = str_replace("\"", "'", $subject);
 	$message = str_replace("\"", "'", $message);
 	if (isset($_SESSION['lidid']) and $_SESSION['lidid'] > 0) {
 		$query = sprintf("INSERT INTO %sMailing_hist SET"
-				 . " LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", to_name=\"%s\", subject=\"%s\", to_addr=\"%s\", message=\"%s\", send_by=%d, send_on=SYSDATE();"
-				 , $table_prefix, $LidID, $MailingID, $from_name, $from_addr, $to_name, $subject, $to_addr, $message, $_SESSION['lidid']);
+				 . " LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", to_name=\"%s\", subject=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", send_by=%d, send_on=SYSDATE();"
+				 , $table_prefix, $LidID, $MailingID, $from_name, $from_addr, $to_name, $subject, $to_addr, $cc_addr, $message, $_SESSION['lidid']);
 		fnQuery($query);
 	}
 }
@@ -1259,6 +1260,13 @@ function db_onderhoud() {
 		fnQuery(sprintf("ALTER TABLE %sLiddipl CHANGE RecordID RecordID INT( 11 ) NOT NULL AUTO_INCREMENT;", $table_prefix));
 	}
 	
+	// Toevoegen veld 'cc_addr' aan de tabel Mailing_hist. Deze code kan na 5/3/2013 worden verwijderd.
+	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sMailing_hist' AND COLUMN_NAME='cc_addr';", $db_name, $table_prefix);
+	if (db_scalar($query) == 0) {
+		fnQuery(sprintf("ALTER TABLE `%Mailing_hist` ADD `cc_addr` VARCHAR(50);", $table_prefix));
+	}
+	// Einde code
+	
 	// Toevoegen veld 'Afgemeld' aan de tabel Bewaking_Inschrijving. Deze code kan na 1/3/2013 worden verwijderd.
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sBewaking_Inschrijving' AND COLUMN_NAME='Afgemeld';", $db_name, $table_prefix);
 	if (db_scalar($query) == 0) {
@@ -1347,7 +1355,7 @@ function db_createtables() {
 
 CREATE TABLE IF NOT EXISTS `%1\$sAdmin_access` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
-  `Tabpage` varchar(50) CHARACTER SET latin1 NOT NULL,
+  `Tabpage` varchar(50) NOT NULL,
   `Toegang` int(11) NOT NULL DEFAULT '-1',
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE CURRENT_TIMESTAMP,
@@ -1359,7 +1367,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_activiteit` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `LidID` int(11) NOT NULL,
   `DatumTijd` datetime NOT NULL,
-  `Omschrijving` varchar(150) CHARACTER SET latin1 NOT NULL,
+  `Omschrijving` varchar(150) NOT NULL,
   `TypeActiviteit` tinyint(4) DEFAULT '0',
   `IP_adres` char(15) NOT NULL,
   `USER_AGENT` varchar(110) DEFAULT NULL,
@@ -1670,12 +1678,12 @@ CREATE TABLE IF NOT EXISTS `%1\$sLidRedNed` (
 
 CREATE TABLE IF NOT EXISTS `%1\$sMailing` (
   `MailingID` int(11) NOT NULL AUTO_INCREMENT,
-  `from_name` varchar(50) CHARACTER SET latin1 DEFAULT NULL,
-  `from_addr` varchar(50) CHARACTER SET latin1 DEFAULT NULL,
-  `to_name` varchar(50) CHARACTER SET latin1 DEFAULT NULL,
-  `cc_addr` varchar(50) CHARACTER SET latin1 DEFAULT NULL,
-  `subject` varchar(75) CHARACTER SET latin1 DEFAULT NULL,
-  `message` text CHARACTER SET latin1,
+  `from_name` varchar(50) DEFAULT NULL,
+  `from_addr` varchar(50) DEFAULT NULL,
+  `to_name` varchar(50) DEFAULT NULL,
+  `cc_addr` varchar(50) DEFAULT NULL,
+  `subject` varchar(75) DEFAULT NULL,
+  `message` text,
   `template` tinyint(4) NOT NULL DEFAULT '0',
   `confidential` tinyint(4) NOT NULL DEFAULT '1',
   `new_on` datetime DEFAULT NULL,
@@ -1694,12 +1702,13 @@ CREATE TABLE IF NOT EXISTS `%1\$sMailing_hist` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `LidID` int(11) NOT NULL DEFAULT '0',
   `MailingID` int(11) NOT NULL,
-  `from_name` varchar(50) CHARACTER SET latin1 NOT NULL,
-  `from_addr` varchar(50) CHARACTER SET latin1 NOT NULL,
-  `to_name` varchar(50) CHARACTER SET latin1 NOT NULL,
-  `subject` varchar(75) CHARACTER SET latin1 NOT NULL,
-  `to_addr` varchar(50) CHARACTER SET latin1 NOT NULL,
-  `message` text CHARACTER SET latin1 NOT NULL,
+  `from_name` varchar(50) NOT NULL,
+  `from_addr` varchar(50) NOT NULL,
+  `to_name` varchar(50) NOT NULL,
+  `subject` varchar(75) NOT NULL,
+  `to_addr` varchar(50) NOT NULL,
+  `cc_addr` varchar(50) NOT NULL,
+  `message` text NOT NULL,
   `send_by` int(11) NOT NULL,
   `send_on` datetime NOT NULL,
   PRIMARY KEY (`RecordID`),
