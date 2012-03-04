@@ -119,7 +119,8 @@ class mailing {
 		$sql = sprintf("SELECT DATE_FORMAT(LIDDATUM, %s) FROM %sLidmaatschap AS LM %s AND %s;", $fdlang, $table_prefix, $WhereLidmaatschap, "LM.Lid=%d");
 		$this->MergeField[]=array('Naam' => "LidVanaf", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT IF(OPGEZEGD IS NULL, 'Niet', DATE_FORMAT(OPGEZEGD, %s)) FROM %sLidmaatschap AS LM %s AND %s;", $fdlang, $table_prefix, $WhereLidmaatschap, "LM.Lid=%d");
+		$sql = sprintf("SELECT DATE_FORMAT(MAX(LM.Opgezegd), %s) FROM %sLidmaatschap AS LM
+							 WHERE LM.LIDDATUM < CURDATE() AND LM.Opgezegd >= LM.LIDDATUM AND %s;", $fdlang, $table_prefix, $WhereLidmaatschap, "LM.Lid=%d");
 		$this->MergeField[]=array('Naam' => "OpgezegdPer", 'SQL' => $sql);
 
 		$sql = sprintf("SELECT L.EMAIL FROM %sLid AS L WHERE %s;", $table_prefix, "Nummer=%d");
