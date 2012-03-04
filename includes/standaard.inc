@@ -380,11 +380,11 @@ function fnDiplayForm($row, $xtra_eind="") {
 			} elseif (substr($key, 0, 3) == "boo" and $value != 1) {
 				$ret .= sprintf("<tr><td class='label'>%s</td><td>Nee</td></tr>\n", substr($key, 3));
 			} elseif (substr($key, 0, 3) == "mem" and strlen($value) > 1) {
-				$ret .= sprintf("<tr><td colspan=2>%s</td></tr\n>", $value);
+				$ret .= sprintf("<tr><td colspan=2>%s</td></tr\n>", htmlentities($value));
 			} elseif (substr($key, 0, 3) == "eml" and strlen($value) > 1) {
 				$ret .= sprintf("<tr><td class='label'>%s</td><td>%s</td></tr>\n", substr($key, 3), fnDispEmail($value, "", 1));
 			} elseif (substr($key, 0, 2) != "nd" and strlen($value) > 0) {
-				$ret .= sprintf("<tr><td class='label'>%s</td><td>%s</td></tr>\n", $key, $value);
+				$ret .= sprintf("<tr><td class='label'>%s</td><td>%s</td></tr>\n", $key, htmlentities($value));
 			}
 		}
 		$ret .= "</table>\n";
