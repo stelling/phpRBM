@@ -14,11 +14,10 @@ if (!isset($_SESSION['username']) or !isset($_SESSION['password'])) {
 function toegang($soort, $melding=1) {
 	global $lididwebmasters, $table_prefix, $urlwebsite, $gebruikopenid, $naamwebsite;
 
-	if (isset($_SESSION['lidid']) and $_SESSION['lidid'] > 0 and isset($_SESSION['lastauthenication']) and $_SESSION['lastauthenication'] >= time()-(10*60)) {
+	if (isset($_SESSION['lidid']) and $_SESSION['lidid'] > 0 and isset($_SESSION['lastauthenication']) and $_SESSION['lastauthenication'] >= time()-(5*60)) {
 		// Er hoeft niets te gebeuren.
 	} else {
-		$query = sprintf("UPDATE %sAdmin_login SET Ingelogd=0 WHERE Ingelogd=1 AND LastLogin < ADDDATE(SYSDATE(), INTERVAL -25 MINUTE);", $table_prefix);
-		fnQuery($query);
+		db_logins("ingelogdenbijwerken");
 		$_SESSION['lidid'] = 0;
 		$_SESSION['lidnr'] = 0;
 		$_SESSION['naamingelogde'] = "gast";
@@ -54,12 +53,12 @@ function toegang($soort, $melding=1) {
 				$result = fnQuery($query);
 				if ($result > 0) {
 					$mess = sprintf("%s is met '%s' ingelogd.", $_SESSION['naamingelogde'], $_SESSION['username']);
-					db_add_activiteit($mess, 1);
+					db_logboek("add", $mess, 1);
 				}
 			} else {
 				if (isset($_SESSION['password']) and strlen($_SESSION['password']) > 1) {
 					$mess = sprintf("Er is geprobleerd in te loggen met '%s'.", $_SESSION['username']);
-					db_add_activiteit($mess, 1);
+					db_logboek("add", $mess, 1);
 				}
 				$_SESSION['username'] = "";
 				$_SESSION['password'] = "";
@@ -116,7 +115,7 @@ function toegang($soort, $melding=1) {
 					} else {
 						$mess = sprintf("Je bent niet ingelogd en hierdoor hebt geen toegang tot '%s' op %s.", $soort, $naamwebsite);
 					}
-					db_add_activiteit($mess, 5);
+					db_logboek("add", $mess, 5);
 					printf("<script>alert('%s');</script>\n", $mess);
 				}
 				return false;
@@ -306,7 +305,7 @@ function fnLoginAanvragen() {
 			}
 		}
 		if (strlen($mess) > 0) {
-			db_add_activiteit($mess, 1);
+			db_logboek("add", $mess, 1);
 			printf("<p class='mededeling'>%s</p>\n", $mess);
 		}
 		printf("<p><a href='http://%s' target='_top'>Klik hier om verder te gaan.</a></p>\n", $urlwebsite);

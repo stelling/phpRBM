@@ -203,7 +203,7 @@ function HTMLheader() {
 		echo("<div id='login'>\n");
 		echo("<form name='Login' action='/auth.php' method='post'>");
 		if (isset($_SESSION['username']) and strlen($_SESSION['username']) > 4 and $_SESSION['lidid'] > 0) {
-			printf("Welkom %s\n", $_SESSION['roepnaamingelogde']);
+			printf("Welkom %s\n", htmlentities($_SESSION['roepnaamingelogde']));
 			echo("<a href='/?tp=Wijzigen/Profiel'><img src='images/user.png' title='Profiel wijzigen' alt='Profiel wijzigen'></a>\n");
 			printf("<a href='auth.php?actie=uitloggen'><img src='images/power.png' title='Uitloggen' alt='Uitloggen'></a>\n");
 			if ($_SESSION['webmaster'] == 1 and $_SERVER['PHP_SELF'] != "/admin.php") {
@@ -502,7 +502,7 @@ function debug($tekst="debug", $alleenwm=1, $alert=0, $logact=0) {
 			printf("<p class='debug'>Debug: %s</p>\n", $tekst);
 		}
 		if ($logact == 1) {
-			db_add_activiteit("Debug: " . $tekst, $type=99);
+			db_logboek("add", "Debug: " . $tekst, $type=99);
 		}
 	}
 }

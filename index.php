@@ -520,15 +520,15 @@ function fnWijzigen($lidid=0) {
 					$mail->AddAttachment($target);
 					if ($mail->Send()) {
 						$mess = sprintf("%s heeft een nieuwe pasfoto ingestuurd.", $_SESSION['naamingelogde']);
-						db_add_activiteit($mess, 6);
+						db_logboek("add", $mess, 6);
 					}
 					$mail = null;
 				} catch (phpmailerException $e) {
 					$mess = sprintf("Fout bij versturen pasfoto %s.", $e->errorMessage()); // Error messages from PHPMailer
-					db_add_activiteit($mess, 6);
+					db_logboek("add", $mess, 6);
 				} catch (Exception $e) {
 					$mess = sprintf("Fout bij versturen pasfoto %s.", $e->getMessage());
-					db_add_activiteit($mess, 6);
+					db_logboek("add", $mess, 6);
 				}
 			}
 		}  
@@ -596,7 +596,7 @@ function fnWijzigen($lidid=0) {
 						if ($result > 0) {
 							db_interface("add", $query);
 							$mess = sprintf("De wijziging in %s is correct verwerkt.", strtolower($wijzvelden[$i]['label']));
-							db_add_activiteit($mess, 6);
+							db_logboek("add", $mess, 6);
 						} else {
 							$mess .= sprintf("De wijziging in %s is niet verwerkt.<br>\n", strtolower($wijzvelden[$i]['label']));
 						}
@@ -806,7 +806,7 @@ function fnWijzigen($lidid=0) {
 				$mail->Subject = sprintf("Opzegging lidmaatschap %s per %s", $_SESSION['naamingelogde'], $opgezegdper);
 				$mail->Body = $body;
 				if ($mail->Send()) {
-					db_add_activiteit(sprintf("%s heeft zijn lidmaatschap per %s opgezegd.", $_SESSION['naamingelogde'], $opgezegdper), 6);
+					db_logboek("add", sprintf("%s heeft zijn lidmaatschap per %s opgezegd.", $_SESSION['naamingelogde'], $opgezegdper), 6);
 					echo("<p class='mededeling'>De opzegging is verzonden.</p>");
 				}
 				$mail = null;

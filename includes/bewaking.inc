@@ -26,15 +26,32 @@ function fnBewaking($seizoen=0) {
 	
 	$st_len_bp = 1;
 	
-	if ($currenttab2 != "Logboek inschrijving" and $currenttab2 != "Details Inschrijving") {
-		echo("<div id='filter'>\n");
-		printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
-		echo("<table>\n<tr>\n");
+	echo("<div id='filter'>\n");
+	echo("<table>\n<tr>\n");
+	printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+	
+	if ($currenttab2 == "Logboek inschrijving") {
+		if (!isset($_POST['lidfilter']) or strlen($_POST['lidfilter']) == 0) {
+			$_POST['lidfilter'] = 0;
+		}
+		echo("<td class='label'>Filter op lid:</td><td><select name='lidfilter' id='lidfilter' onchange='form.submit();'>\n");
+		echo("<option value=-1>Alle</option>\n");
+		foreach (db_logboek("lidlijst", "", 6) as $row) {
+			if ($row->LidID == $_POST['lidfilter']) {
+				$s = "selected";
+			} else {
+				$s = "";
+			}
+			printf("<option %s value=%d>%s</option>\n", $s, $row->LidID, htmlentities($row->Naam));
+		}
+		echo("</select>\n</td>\n");
+	} else {
 		echo("<td class='label'>Bewakingseizoen:</td>");
-		echo("<td><select name='seizoen' onchange='form.submit();'>\n");
+		echo("<td><select name='seizoen' id='seizoen' onchange='form.submit();'>\n");
 		if ($currenttab2 == "Overzicht inschrijvingen") {
 			echo("<option value=-1>Alle</option>\n");
 		}
+		
 		if ($currenttab2 == "Overzicht inschrijvingen") {
 			$bs_res = db_bewaking_seizoenen(1);
 		} else {
@@ -53,8 +70,8 @@ function fnBewaking($seizoen=0) {
 		echo("</select>\n</td>\n");
 		
 		if ($currenttab2 != "Aantallen") {
-			echo("<td class='label'>Bewakingsweek:</td>");
-			echo("<td><select name='week' onchange='form.submit();'>\n");
+			echo("<td class='label'>Bewakingsweek:</td>\n");
+			echo("<td><select name='week' id='week' onchange='form.submit();'>\n");
 			print("<option value='-1'>Alle</option>\n");
 			if ($currenttab2 == "Overzicht inschrijvingen") {
 				$rows = db_insbew("blokken", 0, 0, 0, 0, "", $seizoen);
@@ -72,10 +89,11 @@ function fnBewaking($seizoen=0) {
 			}
 			echo("</select>\n</td>\n");
 		}
-		echo("</tr>\n</table>\n");
-		echo("</form>\n");
-		echo("</div>  <!-- Einde filter -->\n");
 	}
+	echo("</form>\n");
+	echo("</tr>\n</table>\n");
+	echo("</div>  <!-- Einde filter -->\n");
+	
 	
 	if ($currenttab2 == "Bewakingsrooster") {
 		bew_rooster($seizoen, $week);
@@ -91,9 +109,9 @@ function fnBewaking($seizoen=0) {
 		$lijst = db_insbew("overzicht", 0, 0, 0, 0, "", $seizoen, $week);
 		echo(DetailsInschrijvingBewaking($lijst));
 	} elseif ($currenttab2 == "Logboek inschrijving" and toegang($_GET['tp'])) {
-		$lijst = db_lijstactiviteiten(6);
+		$lijst = db_logboek("lijst", "", 6, $_POST['lidfilter']);
 		echo(fnDiplayTable($lijst));
-	} elseif ($currenttab2 != "Details inschrijving") {
+	} else {
 		inschrijvenbewaking(31, 1);
 	}
 }
@@ -446,7 +464,7 @@ function BevestInschrBewaking($lidid, $insnr) {
 		if ($mail->Send()) {
 			db_add_mailing_hist($lidid, 0, $row->ndNaamBewaker, $email, $content, $emailbevestiginginschrijving, $subj);
 			$mess = sprintf("Bevestiging van deze inschrijving is naar %s verzonden.", $email);
-			db_add_activiteit($mess, 6);
+			db_logboek("add", $mess, 6);
 			printf("<script>alert('%s');</script>\n", $mess);
 			echo("<script>location.href='/index.php';</script>\n");	
 		} else {
@@ -495,7 +513,7 @@ function DetailsInschrijvingBewaking($rows) {
 			} else {
 				$hv .= sprintf("<td>%s t/m %s</td>", strftime('%e %b', strtotime($row->dteBegin)), strftime('%e %b %Y', strtotime($row->dteEinde)));
 			}
-			$hv .= sprintf("<td>%s</td>", $row->Bewaker);
+			$hv .= sprintf("<td>%s</td>", htmlentities($row->Bewaker));
 			$k = "Keuze 1";
 			$hv .= sprintf("<td>%s</td>", $row->$k);
 			$k = "Keuze 2";

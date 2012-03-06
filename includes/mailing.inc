@@ -495,12 +495,12 @@ class mailing {
 			$query  = sprintf("UPDATE Mailing SET %s WHERE MailingID=%d;", $setclause, $this->mid);
 			fnQuery($query);
 			$oms = sprintf("Mailing %d is door %s aangepast.", $this->mid, $_SESSION['naamingelogde']);
-			db_add_activiteit($oms, 4);
+			db_logboek("add", $oms, 4);
 		} else {
 			$query = sprintf("INSERT INTO Mailing SET %s, new_on=SYSDATE(), AddedBy=%d;", $setclause, $_SESSION['lidid']);
 			$this->mid = fnQuery($query);
 			$oms = sprintf("Mailing %d is door %s toegevoegd.", $this->mid, $_SESSION['naamingelogde']);
-			db_add_activiteit($oms, 4);
+			db_logboek("add", $oms, 4);
 		}
 		
 		if (isset($_POST['add_address']) and strlen($_POST['add_address']) > 5) {
@@ -515,10 +515,10 @@ class mailing {
 			if (!file_exists($ad)) {
 				if (mkdir($ad, 0755, true) == true) {
 					$ret = sprintf("Directory '%s' is aangemaakt.", $ad);
-					db_add_activiteit($ret, 3);
+					db_logboek("add", $ret, 3);
 				} else {
 					$ret = sprintf("Directory '%s' bestaat niet en kan niet aangemaakt worden. Waarschijnlijk een rechtenprobleem.", $ad);
-					db_add_activiteit($ret, 3);
+					db_logboek("add", $ret, 3);
 					$ad = "";
 				}
 			} else {
@@ -727,7 +727,7 @@ class mailing {
 			$mail->Send();
 			
 			$oms = sprintf("Mailing %d is door %s verzonden.", $this->mid, $_SESSION['naamingelogde']);
-			db_add_activiteit($oms, 4);
+			db_logboek("add", $oms, 4);
 		}
 	}
 	
