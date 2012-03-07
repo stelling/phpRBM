@@ -162,6 +162,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 		$sqond = sprintf("SELECT MIN(O.Naam) FROM %1\$sOnderdl AS O INNER JOIN %1\$sLidond AS LO ON O.RecordID = LO.OnderdeelID
 								WHERE O.`Type` = 'O' AND LO.Lid = L.Nummer AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE())", $table_prefix);
 		$sqlogin = sprintf("SELECT MAX(Login) FROM %sAdmin_login AS AL WHERE AL.LidID = L.Nummer", $table_prefix);
+		$sqlbd = sprintf("SELECT MAX(EINDE_PER) FROM %sBewaking WHERE Lid=L.Nummer AND BEGIN_PER < CURDATE()", $table_prefix);
 		$query = sprintf("SELECT `Waarschuwen bij nood` FROM %sLid WHERE Nummer=%d;", $table_prefix, $LidID);
 		$result = fnQuery($query);
 		if (strlen($result->fetchColumn()) > 1) {
@@ -193,6 +194,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 				 . " L.RelnrRedNed AS `Relatienummer RedNed`,"
 				 . " (%s) AS Login,"
 				 . " L.Beroep AS `Beroep`,"
+				 . " (%s) AS `dteLaatste bewakingsdag`,"
 				 . " %s"
 				 . " 'Recordinformatie' as Kop7,"
 				 . " L.Nummer AS `RecordID`,"
@@ -200,7 +202,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 				 . " L.Gewijzigd AS `dteLaatst gewijzigd op`"
 				 . " FROM %s"
 				 . " WHERE L.Nummer=%d"
-				 . " ORDER BY LM.LIDDATUM DESC;", $selectnaam, "%e %M %Y", $sqond, $sqlogin, $wbn, $fromlid, $LidID);
+				 . " ORDER BY LM.LIDDATUM DESC;", $selectnaam, "%e %M %Y", $sqond, $sqlogin, $sqlbd, $wbn, $fromlid, $LidID);
 	} elseif ($soort == "Financieel") {			 
 		$query = sprintf("SELECT L.BANKGIRO AS Bankrekeningnummer,"
 				 . " L.`Machtiging afgegeven` AS `booMachtiging afgegeven?`"
@@ -831,7 +833,7 @@ function db_logins($actie="lijst", $email="", $gewenstelogin="", $lidid=0) {
 		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_login WHERE Login='%s' AND LidID<>%d;", $table_prefix, $gewenstelogin, $lidid);
 		return db_scalar($query);
 	} elseif ($actie == "ingelogdenbijwerken") {
-		$query = sprintf("UPDATE %sAdmin_login SET Ingelogd=0 WHERE Ingelogd=1 AND LastLogin < ADDDATE(SYSDATE(), INTERVAL -20 MINUTE);", $table_prefix);
+		$query = sprintf("UPDATE %sAdmin_login SET Ingelogd=0 WHERE Ingelogd=1 AND LastActivity < ADDDATE(SYSDATE(), INTERVAL -21 MINUTE);", $table_prefix);
 		fnQuery($query);
 	} elseif ($actie == "aantalingelogd") {
 		db_logins("ingelogdenbijwerken");
@@ -1139,7 +1141,10 @@ function db_diploma($actie, $did=0) {
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "Kode") {
-		$query = sprintf("SELECT Kode FROM %sDiploma WHERE RecordID=%d;", $did);
+		$query = sprintf("SELECT Kode FROM %sDiploma WHERE RecordID=%d;", $table_prefix, $did);
+		return db_scalar($query);
+	} elseif ($actie == "Naam") {
+		$query = sprintf("SELECT Naam FROM %sDiploma WHERE RecordID=%d;", $table_prefix, $did);
 		return db_scalar($query);
 	} else {
 		return null;
@@ -1288,6 +1293,14 @@ function db_onderhoud() {
 		fnQuery(sprintf("ALTER TABLE `%sBewaking_Inschrijving` ADD `Afgemeld` DATETIME;", $table_prefix));
 	}
 	// Einde code
+	
+	
+	// Toevoegen veld 'LastActivity' aan de tabel Admin_login. Deze code kan na 7/3/2013 worden verwijderd.
+	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sAdmin_login' AND COLUMN_NAME='LastActivity';", $db_name, $table_prefix);
+	if (db_scalar($query) == 0) {
+		fnQuery(sprintf("ALTER TABLE `%sAdmin_login` ADD `LastActivity` DATETIME;", $table_prefix));
+	}
+	// Einde code
 
 	if ($bewaartijdlogins > 0) {
 		$query = sprintf('DELETE FROM %1$sAdmin_login
@@ -1408,6 +1421,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_login` (
   `Gewijzigd` datetime NOT NULL,
   `GewijzigdDoor` int(11) NOT NULL,
   `LastLogin` datetime NOT NULL,
+  `LastActivity` datetime NOT NULL,
   `Ingelogd` tinyint(4) NOT NULL DEFAULT '0',
   PRIMARY KEY (`LidID`),
   UNIQUE KEY `Login` (`Login`)
