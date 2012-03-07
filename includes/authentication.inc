@@ -14,7 +14,7 @@ if (!isset($_SESSION['username']) or !isset($_SESSION['password'])) {
 function toegang($soort, $melding=1) {
 	global $lididwebmasters, $table_prefix, $urlwebsite, $gebruikopenid, $naamwebsite;
 
-	if (isset($_SESSION['lidid']) and $_SESSION['lidid'] > 0 and isset($_SESSION['lastauthenication']) and $_SESSION['lastauthenication'] >= time()-(5*60)) {
+	if (isset($_SESSION['lidid']) and $_SESSION['lidid'] > 0 and isset($_SESSION['lastauthenication']) and $_SESSION['lastauthenication'] >= time()-(20*60)) {
 		// Er hoeft niets te gebeuren.
 	} else {
 		db_logins("ingelogdenbijwerken");
@@ -49,7 +49,7 @@ function toegang($soort, $melding=1) {
 				}
 				$e = "E-mail";
 				$_SESSION['emailingelogde'] = $row->$e;
-				$query = sprintf("UPDATE %sAdmin_login SET LastLogin=SYSDATE(), Ingelogd=1 WHERE LidID=%d;", $table_prefix, $_SESSION['lidid']);
+				$query = sprintf("UPDATE %sAdmin_login SET LastLogin=SYSDATE(), Ingelogd=1 WHERE Ingelogd=0 AND LidID=%d;", $table_prefix, $_SESSION['lidid']);
 				$result = fnQuery($query);
 				if ($result > 0) {
 					$mess = sprintf("%s is met '%s' ingelogd.", $_SESSION['naamingelogde'], $_SESSION['username']);
@@ -89,6 +89,11 @@ function toegang($soort, $melding=1) {
 		}
 	} elseif (!isset($_SESSION['lidgroepen'])) {
 		$_SESSION['lidgroepen'] = "(0)";
+	}
+	
+	if ($_SESSION['lidid'] > 0) {
+		$query = sprintf("UPDATE %sAdmin_login SET LastActivity=SYSDATE() WHERE LidID=%d;", $table_prefix, $_SESSION['lidid']);
+		fnQuery($query);
 	}
 	
 	if (in_array($soort, array('Verenigingsinfo', 'Beginpagina')) === TRUE) {
