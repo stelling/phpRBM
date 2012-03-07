@@ -163,7 +163,7 @@ class mailing {
 			printf("<label>Van:</label><field>%s</field>\n", $row->from_addr);
 		}
 		if (strlen($row->to_name) > 0) {
-			printf("<label>Aan:</label><field>%s</field>\n", $row->to_name);
+			printf("<label>Aan:</label><field>%s</field>\n", htmlentities($row->to_name));
 		}
 		printf("<label>E-mail:</label><field>%s</field>\n", $row->to_addr);
 		if (strlen($row->cc_addr) > 5) {
@@ -679,7 +679,7 @@ class mailing {
 					if (isset($rcpt->Naam_lid)) {
 						$mail->AddAddress($e, $rcpt->Naam_lid);
 						$this->mailbericht = str_ireplace("[%TO%]", $rcpt->Naam_lid, $this->mailbericht);
-						$to_name = $row->Naam_lid;
+						$to_name = $rcpt->Naam_lid;
 					} else {
 						$mail->AddAddress($e);
 						$this->mailbericht = str_ireplace("[%TO%]", $e, $this->mailbericht);
