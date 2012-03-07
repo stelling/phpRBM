@@ -13,7 +13,7 @@ if (isset($_GET['op']) and $_GET['op'] == "downloadwijz") {
 HTMLheader();
 	
 if (isset($_GET['op']) and $_GET['op'] == "deletelogin") {
-	db_delete_login($_GET['lidid']);
+	db_logins("delete", "", "", $_GET['lidid']);
 	printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $currenttab);
 } elseif (isset($_GET['op']) and $_GET['op'] == "deleteautorisatie") {
 	db_delete_authorisation($_GET['recid']);
@@ -27,7 +27,7 @@ if (isset($_GET['op']) and $_GET['op'] == "deletelogin") {
 			$query = sprintf('UPDATE %1$sAdmin_access SET Toegang=%2$d, Gewijzigd=SYSDATE() WHERE RecordID=%3$d AND Toegang<>%2$d;', $table_prefix, $_POST[$vn], $row->RecordID);
 			$result = fnQuery($query);
 			if ($result > 0) {
-				db_add_activiteit(sprintf("Toegang '%s' is naar groep '%s' aangepast.", $row->Tabpage, db_naam_onderdeel($_POST[$vn])), 5);
+				db_logboek("add", sprintf("Toegang '%s' is naar groep '%s' aangepast.", $row->Tabpage, db_naam_onderdeel($_POST[$vn])), 5);
 			}
 		}
 	}
@@ -40,7 +40,7 @@ if (isset($_GET['op']) and $_GET['op'] == "deletelogin") {
 			echo("<p class='mededeling'>Bestand is succesvol ge-upload.</p>\n");
 			if (fnQuery($queries) !== true) {
 				echo("<p class='mededeling'>Bestand is in de database verwerkt.</p>\n");
-				db_add_activiteit("Upload data uit Access-database.", 2);
+				db_logboek("add", "Upload data uit Access-database.", 2);
 				db_onderhoud();
 				printf("<script>setTimeout(\"location.href='%s';\", 15000);</script>\n", $_SERVER['PHP_SELF']);
 			}
@@ -71,7 +71,7 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 		}
 		foreach(db_Onderdelen() as $ond) {
 			if ($row->Toegang == $ond->RecordID) { $s = " selected"; } else { $s = ""; }
-			$selectopt .= sprintf("<option value=%d%s>%s</option>", $ond->RecordID, $s, $ond->Naam);
+			$selectopt .= sprintf("<option value=%d%s>%s</option>\n", $ond->RecordID, $s, htmlentities($ond->Naam));
 		}
 		printf("<tr><td>%s</td><td>%s</td><td><select name='toegang%d' onchange='form.submit()'>%s</select></td></tr>\n", $del, $row->Tabpage, $row->RecordID, $selectopt);
 	}
@@ -90,7 +90,7 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 	echo("<div id='invulformulier'>\n");
 	printf("<form name='formupload' method='post' action='%s?%s&amp;op=uploaddata' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 	echo("<table>\n");
-	echo("<tr><td class='label'>Bestand</td><td><input type='file' name='SQLupload' size=55><input type='submit' value='Verwerk'></td></tr>\n");
+	echo("<tr><td class='label'>Bestand</td><td><input type='file' name='SQLupload'><input type='submit' value='Verwerk'></td></tr>\n");
 	echo("</table>\n");
 	echo("</form>\n");
 	echo("</div>  <!-- Einde invulformulier -->\n");	
@@ -119,7 +119,28 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 	printf("setTimeout(\"location.href='%s';\", 10000);\n", $_SERVER['PHP_SELF']);
 	echo("</script>\n");
 } elseif ($currenttab == "Logboek" and toegang($_GET['tp'])) {
-	echo(fnDiplayTable(db_lijstactiviteiten()));
+	if (!isset($_POST['lidfilter']) or strlen($_POST['lidfilter']) == 0) {
+		$_POST['lidfilter'] = 0;
+	}
+	echo("<div id='filter'>\n");
+	printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+	echo("<table>\n<tr>\n");
+	echo("<td class='label'>Filter op lid:</td><td><select name='lidfilter' id='lidfilter' onchange='form.submit();'>\n");
+	echo("<option value=0>Alle</option>\n");
+	foreach (db_logboek("lidlijst") as $row) {
+		if ($row->LidID == $_POST['lidfilter']) {
+			$s = "selected";
+		} else {
+			$s = "";
+		}
+		printf("<option value=%d %s>%s</option>\n", $row->LidID, $s, htmlentities($row->Naam));
+	}
+	echo("</select>\n</td>\n");
+	echo("</tr>\n</table>\n");
+	echo("</form>\n");
+	echo("</div>  <!-- Einde filter -->\n");
+	
+	echo(fnDiplayTable(db_logboek("lijst", "", 0, $_POST['lidfilter'])));
 } elseif (toegang("Info")) {
 	phpinfo();
 }
