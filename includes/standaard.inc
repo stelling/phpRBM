@@ -146,7 +146,7 @@ if (isset($_GET['tp']) and strlen($_GET['tp']) > 1) {
 $query = "SET lc_time_names = 'nl_NL';";
 fnQuery($query);
 
-$pasfotoextenties = array('gif', 'jpg', 'jpeg', 'bmp', 'png', 'GIF', 'JPG', 'JPEG', 'BMP', 'PNG');
+$pasfotoextenties = array('gif', 'jpg', 'jpeg', 'png');
 
 function HTMLheader() {
 	global $naamwebsite, $urlwebsite, $naamvereniging, $tabpages;
@@ -592,6 +592,7 @@ class RBMmailer extends PHPMailer {
 		$this->From = $emailwebmaster;
 		$this->FromName = $nameorganisation;
 		$this->WordWrap = 110;
+		$this->AltBody    = "Om deze mail te bekijken gebruik een e-mailclient die met HTML overweg kan.";
 	}
 }
 
