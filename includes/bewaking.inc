@@ -208,7 +208,7 @@ function bew_postindeling($seizoen, $week=-1) {
 			$vp = $row->Post;
 		}
 		
-		$fn = fotolid($row->Nummer);
+		$fn = fotolid($row->Nummer, 1);
 		if (strlen($fn) > 0) {
 			$fn = sprintf("<img src='%s' alt='%s'>\n", $fn, $row->NaamBewaker);
 		}
