@@ -81,7 +81,7 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 } elseif ($currenttab == "Uploaden data" and ($_SESSION['aantallid'] == 0 or toegang($_GET['tp']))) {
 	$aantal = db_interface("aantalopenstaand");
 	if ($aantal > 0) {
-		printf("<p class='mededeling'>Er staan %d online-wijzigingen te wachten om verwerkt te worden. Het is daarom niet verstandig om een upload te doen.</p>", $aantal);
+		printf("<p class='mededeling'>Er staan %d wijzigingen te wachten om verwerkt te worden. Het is daarom niet verstandig om een upload te doen.</p>", $aantal);
 	}
 	$aantal = db_logins("aantalingelogd");
 	if ($aantal > 1) {
@@ -100,7 +100,7 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 	echo("<tr><th>Naam lid</th><th>Datum wijziging</th><th>SQL</th></tr>\n");
 	$counter = 0;
 	foreach(db_interface() as $row) {
-		printf("<tr><td>%s</td><td>%s</td><td>%s</td></tr>\n", $row->NaamLid, strftime("%e %h %Y (%H:%S)", strtotime($row->Ingevoerd)), $row->SQL);
+		printf("<tr><td>%s</td><td>%s</td><td>%s</td></tr>\n", htmlentities($row->NaamLid), strftime("%e %h %Y (%H:%S)", strtotime($row->Ingevoerd)), $row->SQL);
 		$counter++;
 	}
 	echo("</table>\n");
@@ -122,6 +122,9 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 	if (!isset($_POST['lidfilter']) or strlen($_POST['lidfilter']) == 0) {
 		$_POST['lidfilter'] = 0;
 	}
+	if (!isset($_POST['typefilter']) or strlen($_POST['typefilter']) == 0) {
+		$_POST['typefilter'] = -1;
+	}
 	echo("<div id='filter'>\n");
 	printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 	echo("<table>\n<tr>\n");
@@ -136,11 +139,24 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 		printf("<option value=%d %s>%s</option>\n", $row->LidID, $s, htmlentities($row->Naam));
 	}
 	echo("</select>\n</td>\n");
+	
+	echo("<td class='label'>Filter op type:</td><td><select name='typefilter' id='typefilter' onchange='form.submit();'>\n");
+	echo("<option value=-1>Alle</option>\n");
+	foreach ($TypeActiviteit as $key => $val) {
+		if ($key == $_POST['typefilter']) {
+			$s = "selected";
+		} else {
+			$s = "";
+		}
+		printf("<option value=%d %s>%s</option>\n", $key, $s, htmlentities($val));
+	}
+	echo("</select>\n</td>\n");
+	
 	echo("</tr>\n</table>\n");
 	echo("</form>\n");
 	echo("</div>  <!-- Einde filter -->\n");
 	
-	echo(fnDiplayTable(db_logboek("lijst", "", 0, $_POST['lidfilter'])));
+	echo(fnDiplayTable(db_logboek("lijst", "", $_POST['typefilter'], $_POST['lidfilter'])));
 } elseif (toegang("Info")) {
 	phpinfo();
 }
