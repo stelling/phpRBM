@@ -183,25 +183,19 @@ function fnConfirmLogin($row) {
 
 	$mail = new RBMmailer();
 
-	try {
-		$mail->FromName = $from;
-		if (isValidMailAddress($row->EmailVereniging, 0)) {
-			$email = $row->EmailVereniging;
-		} else {
-			$email = $row->EMAIL;
-		}
-		$mail->AddAddress($email);
-		$mail->Subject = $subj;
-		$mail->MsgHTML($content);
-		if ($mail->Send()) {
-			return sprintf("Login '%s' aan %s (%s) verzonden.", $row->Login, $row->Naam, $email);
-		} else {
-			return sprintf("Fout tijdens het versturen van de mail. %s. Probeer later nogmaals of neem contact op met de webmaster.", $mail->ErrorInfo);
-		}
-	} catch (phpmailerException $e) {
-		return $e->errorMessage();
-	} catch (Exception $e) {
-		return $e->getMessage();
+	$mail->FromName = $from;
+	if (isValidMailAddress($row->EmailVereniging, 0)) {
+		$email = $row->EmailVereniging;
+	} else {
+		$email = $row->EMAIL;
+	}
+	$mail->AddAddress($email);
+	$mail->Subject = $subj;
+	$mail->MsgHTML($content);
+	if ($mail->Send()) {
+		return sprintf("Login '%s' aan %s (%s) verzonden.", $row->Login, $row->Naam, $email);
+	} else {
+		return sprintf("Fout tijdens het versturen van de mail: %s. Probeer later nogmaals of neem contact op met de webmaster.", $mail->ErrorInfo);
 	}
 }
 
