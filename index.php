@@ -124,7 +124,7 @@ function fnVoorblad($metlogin=0) {
 				} else {
 					$t = sprintf("Op %s is %s jarig", strftime("%e %B", strtotime($row->ndGEBDATUM)), htmlentities($row->Naam_lid));
 				}
-				$fn = fotolid($row->lnkNummer);
+				$fn = fotolid($row->lnkNummer, 1);
 				if (strlen($t) > 3) {
 					$verj .= sprintf("%s. ", $t);
 					if (strlen($fn) > 3) {
@@ -190,7 +190,7 @@ function fnWieiswie() {
 			} else {
 				$func = $row->Opmerk;
 			}
-			$fn = fotolid($row->Nummer);
+			$fn = fotolid($row->Nummer, 1);
 			if ($currenttab2 == "Onderscheidingen" and strlen($fn) > 3) {
 				printf("<div class='kaartje'><img src='%s'><p class='naamkaderlid'>%s</p>\n<p>vanaf %s</p>\n</div>\n", $fn, $ln, strftime("%B %Y", strtotime($row->Vanaf)));
 			} elseif ($currenttab2 == "Onderscheidingen") {
@@ -396,8 +396,6 @@ function fnOverviewLid($lidid=0) {
 		} elseif ($currenttab2 == "Mailing" and toegang($_GET['tp'])) {
 			if (isset($_GET['MailingID']) and $_GET['MailingID'] > 0) {
 				$xtra = "<p class='mededeling'><input type='button' value='Terug' onclick='history.go(-1);'></p>\n";
-//				echo(fnDiplayForm(db_mailing("histdetails", 0, $_GET['MailingID'])));
-				
 				$mailing = new mailing;
 				$mailing->toonverstuurdemail($_GET['MailingID']);
 				$mailing = null;
@@ -410,6 +408,8 @@ function fnOverviewLid($lidid=0) {
 					printf("<p class='mededeling'>%s heeft geen mails vanaf deze website ontvangen.</p>\n", $naamlid);
 				}
 			}
+		} elseif ($currenttab2 == "Logboek" and toegang($_GET['tp'])) {
+			echo(fnDiplayTable(db_logboek("lijst", "", -1, $lidid)));
 		} elseif (toegang($_GET['tp'])) {
 			$rows = db_gegevenslid($lidid);
 			if (count($rows) > 0) {
