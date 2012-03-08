@@ -62,6 +62,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	$tabpages[] = "Eigen gegevens/Diploma's";
 	$tabpages[] = "Eigen gegevens/Financieel";
 	$tabpages[] = "Eigen gegevens/Mailing";
+	$tabpages[] = "Eigen gegevens/Logboek";
 	$tabpages[] = "Wijzigen";
 	$tabpages[] = "Wijzigen/Algemene gegevens";
 	if (strlen($selfservicediplomas) > 3) {
