@@ -79,39 +79,33 @@ if (!isset($_SESSION['aantallogin']) or $_SESSION['aantallogin'] == 0) {
 }
 
 if (!isset($_SESSION['aantalafdelingen'])) {
-	$query = "SELECT COUNT(*) FROM Onderdl WHERE `Type`='A';";
-	$result = fnQuery($query);
-	$_SESSION['aantalafdelingen'] = $result->fetchColumn();
+	$query = sprintf("SELECT COUNT(*) FROM %sOnderdl WHERE `Type`='A';", $table_prefix);
+	$_SESSION['aantalafdelingen'] = db_scalar($query);
 }
 
 if (!isset($_SESSION['aantalrollen'])) {
-	$query = "SELECT COUNT(*) FROM Onderdl WHERE `Type`='R';";
-	$result = fnQuery($query);
-	$_SESSION['aantalrollen'] = $result->fetchColumn();
+	$query = sprintf("SELECT COUNT(*) FROM %sOnderdl WHERE `Type`='R';", $table_prefix);
+	$_SESSION['aantalrollen'] = db_scalar($query);
 }
 
 if (!isset($_SESSION['aantalbewaking'])) {
-	$query = "SELECT COUNT(*) FROM Bewaking;";
-	$result = fnQuery($query);
-	$_SESSION['aantalbewaking'] = $result->fetchColumn();
+	$query = sprintf("SELECT COUNT(*) FROM %sBewaking;", $table_prefix);
+	$_SESSION['aantalbewaking'] = db_scalar($query);
 }
 
 if (!isset($_SESSION['aantalrekeningen'])) {
-	$query = "SELECT COUNT(*) FROM Rekening;";
-	$result = fnQuery($query);
-	$_SESSION['aantalrekeningen'] = $result->fetchColumn();
+	$query = sprintf("SELECT COUNT(*) FROM %sRekening;", $table_prefix);
+	$_SESSION['aantalrekeningen'] = db_scalar($query);
 }
 
 if (!isset($_SESSION['aantalmutaties'])) {
-	$query = "SELECT COUNT(*) FROM Mutatie;";
-	$result = fnQuery($query);
-	$_SESSION['aantalmutaties'] = $result->fetchColumn();
+	$query = sprintf("SELECT COUNT(*) FROM %sMutatie;", $table_prefix);
+	$_SESSION['aantalmutaties'] = db_scalar($query);
 }
 
 if (!isset($_SESSION['aantalkostenplaatsen'])) {
-	$query = "SELECT COUNT(DISTINCT KostenplaatsID) FROM Mutatie WHERE KostenplaatsID > 0;";
-	$result = fnQuery($query);
-	$_SESSION['aantalkostenplaatsen'] = $result->fetchColumn();
+	$query = sprintf("SELECT COUNT(DISTINCT KostenplaatsID) FROM %sMutatie WHERE KostenplaatsID > 0;", $table_prefix);
+	$_SESSION['aantalkostenplaatsen'] = db_scalar($query);
 }
 
 function fnQuery($query, $add_prefix=1) {
@@ -271,18 +265,18 @@ function db_gegevenslid($LidID, $soort="Alg") {
 				 . " Bedrag AS curBedrag,"
 				 . " Betaald as curBetaald,"
 				 . " (Bedrag-Betaald) AS curOpenstaand"
-				 . " FROM Rekening"
+				 . " FROM %sRekening"
 				 . " WHERE Lid=%d"
-				 . " ORDER BY Nummer DESC;", $LidID);
+				 . " ORDER BY Nummer DESC;", $table_prefix, $LidID);
 	} elseif ($soort == "Mailing") {
 		$query = sprintf("SELECT send_on AS dteVerzonden,"
 				 . " IF(LENGTH(from_name)<3, from_addr, from_name) AS Van,"
 				 . " to_name AS Aan,"
 				 . " subject AS Onderwerp,"
 				 . " RecordID AS lnkRecordID"
-				 . " FROM Mailing_hist"
+				 . " FROM %sMailing_hist"
 				 . " WHERE LidID=%d"
-				 . " ORDER BY send_on DESC LIMIT 25;", $LidID);
+				 . " ORDER BY send_on DESC LIMIT 25;", $table_prefix, $LidID);
 	} else {
 		$query = "";
 	}
@@ -328,7 +322,7 @@ function db_ledenlijst($filter="") {
 }
 
 function db_ledenwijzigingen($lidid) {
-	global $selectnaam, $table_prexix;
+	global $selectnaam, $table_prefix;
 	
 	$query = sprintf("SELECT L.Roepnaam, 
 				L.VOORLETTER,
@@ -347,7 +341,7 @@ function db_ledenwijzigingen($lidid) {
 				L.Beroep,
 				L.Legitimatietype,
 				L.Legitimatienummer
-				FROM %sLid AS L WHERE Nummer=%d;", $table_prexix, $lidid);
+				FROM %sLid AS L WHERE Nummer=%d;", $table_prefix, $lidid);
 	$result = fnQuery($query);
 	
 	return $result->fetch();
@@ -510,12 +504,12 @@ function db_bewakingsrooster($seizoen=-1, $week=-1) {
 	}
 	$query = sprintf('SELECT BW.*, %1$s AS NaamBewaker, L.Nummer, F.Omschrijv AS OmsFunctie, F.Afkorting AS AfkFunctie, BS.Kode, BS.Lokatie, BS.ST_LEN_BP, BS.TOONERV,
 							DATEDIFF(BW.EINDE_PER, BW.BEGIN_PER)+1 AS Dagen, BW.BEGIN_PER, L.GEBDATUM, 
-							(SELECT SUM(DATEDIFF(BH.EINDE_PER, BH.BEGIN_PER)+1) FROM Bewaking BH WHERE BH.LID = BW.LID AND BH.EINDE_PER < BW.BEGIN_PER) AS ErvaringDagen
+							(SELECT SUM(DATEDIFF(BH.EINDE_PER, BH.BEGIN_PER)+1) FROM %2$sBewaking BH WHERE BH.LID = BW.LID AND BH.EINDE_PER < BW.BEGIN_PER) AS ErvaringDagen
 							FROM ((%2$sBewaking AS BW INNER JOIN %2$sBewseiz AS BS ON BS.RecordID = BW.SeizoenID) INNER JOIN %2$sFunctie AS F ON BW.Functie = F.Nummer) INNER JOIN %2$sLid AS L ON L.Nummer = BW.Lid
 							%3$s %4$s
 							ORDER BY %5$s;', $selectnaam, $table_prefix, $sel_sz, $sel_wk, $orderby);
 	$result = fnQuery($query);
-	return $result;
+	return $result->fetchAll();
 }
 
 function db_bewaking_seizoenen($ins=0) {
@@ -542,6 +536,16 @@ function db_bewaking_onderdelen_lid($lidid, $per) {
 				 ORDER BY O.Kode;", $fromlidond, $lidid, $per);
 	$result = fnQuery($query);
 	return $result->fetchAll();
+}
+
+function db_lidond($actie) {
+	global $table_prefix, $fromlidond;
+
+	if ($actie == "laatstgewijzigd") {
+		$query = sprintf("SELECT Max(Gewijzigd) FROM %sLidond;", $table_prefix);
+		return db_scalar($query);
+	} elseif ($actie == "") {
+	}
 }
 
 function db_bewaking_aantallen($seizoen, $lidid=-1) {
@@ -871,9 +875,10 @@ function db_logins($actie="lijst", $email="", $gewenstelogin="", $lidid=0) {
 			}
 		}
 		$query = sprintf('SELECT Login.LidID AS lnkNummer, Login.LidID, LM.Lidnr, Login.Login, %1$s %2$s AS Naam_lid, L.Roepnaam AS ndRoepnaam,
-					L.EMAIL AS `E-mail`, L.EmailVereniging AS `E-mail vereniging`, Login.Ingevoerd AS dteIngevoerd, Login.LastLogin AS `dttLaatste login`
+					L.EMAIL AS `E-mail`, L.EmailVereniging AS `E-mail vereniging`, Login.Ingevoerd AS dteIngevoerd, Login.LastLogin AS `dttLaatste login`,
+					Login.Wachtwoord AS ndWachtwoord
 					FROM %3$sAdmin_login AS Login INNER JOIN (%3$sLid AS L LEFT OUTER JOIN %3$sLidmaatschap AS LM ON L.Nummer = LM.Lid) ON Login.LidID = L.Nummer
-					WHERE Login.LidID > 0 %4$s
+					WHERE LENGTH(Login.Wachtwoord) > 5 %4$s
 					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;', $xtraselect, $selectnaam, $table_prefix, $xtrawhere);
 		$result = fnQuery($query);
 		if ($actie == "controle") {
@@ -1214,8 +1219,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 			}
 			$query = sprintf("UPDATE %sLiddipl SET LicentieVervallenPer=%s, Diplomanummer='%s' WHERE RecordID=%d;", $table_prefix, $dwverv, $dipnr, $rid);
 			$result = fnQuery($query);
-			$query = sprintf("UPDATE Liddipl SET LicentieVervallenPer=%s, Diplomanummer='%s' WHERE Lid=%d AND DiplomaID=%d AND EXDATUM=%s;"
-			, $dwaverv, $dipnr, $rowld->Lid, $rowld->DiplomaID, $dwaexd);
+			$query = sprintf("UPDATE Liddipl SET LicentieVervallenPer=%s, Diplomanummer='%s' WHERE Lid=%d AND DiplomaID=%d AND EXDATUM=%s;", $dwaverv, $dipnr, $rowld->Lid, $rowld->DiplomaID, $dwaexd);
 			db_interface("add", $query);
 			$mess = sprintf("Diploma %s is gewijzigd bij lid %d", db_diploma("Kode", $rowld->DiplomaID), $rowld->Lid);
 			db_logboek("add", $mess, 6);
@@ -1237,11 +1241,15 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 				 . " LD.EXDATUM AS dteDatum,"
 				 . " LD.Diplomanummer AS Gegevens,"
 				 . " IFNULL(LD.LicentieVervallenPer, IF(D.GELDIGH>0, DATE_ADD(LD.EXDATUM, INTERVAL D.GELDIGH MONTH), NULL)) AS `dteVervalt per`"
-				 . " FROM Liddipl AS LD INNER JOIN Diploma AS D ON LD.DiplomaID = D.RecordID"
-				 . " WHERE LD.LaatsteBeoordeling=1 AND ((D.Vervallen IS NULL) OR D.Vervallen > CURDATE()) AND LD.Lid=%d %s"
-				 . " ORDER BY D.Volgnr, D.Kode, LD.EXDATUM DESC;", $lidid, $xtrafilter);
+				 . " FROM %1\$sLiddipl AS LD INNER JOIN %1\$sDiploma AS D ON LD.DiplomaID = D.RecordID"
+				 . " WHERE LD.LaatsteBeoordeling=1 AND ((D.Vervallen IS NULL) OR D.Vervallen > CURDATE()) AND LD.Lid=%2\$d %3\$s"
+				 . " ORDER BY D.Volgnr, D.Kode, LD.EXDATUM DESC;", $table_prefix, $lidid, $xtrafilter);
 		$result = fnQuery($query);
 		return $result->fetchAll();
+	} elseif ($actie == "diplomabehaald" and $lidid > 0 and $did > 0) {
+		$query = sprintf("SELECT * FROM %sLiddipl WHERE Lid=%d AND DiplomaID=%d ORDER BY EXDATUM DESC;", $table_prefix, $lidid, $did);
+		$result = fnQuery($query);
+		return $result->fetch();		
 	}
 }
 

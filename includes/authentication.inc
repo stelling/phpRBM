@@ -267,7 +267,9 @@ function fnLoginAanvragen() {
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 
 		$mess = "";
-		if (strlen($_POST['email']) < 5 or !isValidMailAddress($_POST['email'])) {
+		if (strlen($_POST['email']) == 0) {
+			$mess = "Je hebt geen e-mailadres opgegeven.";
+		} elseif (!isValidMailAddress($_POST['email'], 0)) {
 			$mess = sprintf("Je hebt geen geldig e-mailadres (%s) opgegeven.", $_POST['email']);
 		} else {
 		

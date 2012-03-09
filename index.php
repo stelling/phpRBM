@@ -684,14 +684,12 @@ function fnWijzigen($lidid=0) {
 				$cv_behaald = "";
 				$cv_vervaltop = "";
 				$cv_diplomanr = "";
-				$query = sprintf("SELECT * FROM Liddipl WHERE Lid=%d AND DiplomaID='%s' ORDER BY EXDATUM DESC LIMIT 1;", $lidid, $row->RecordID);
-				$resld = fnQuery($query);
-				$rowsld = $resld->fetchAll();
-				if (count($rowsld) > 0) {
-					$cv_rid = $rowsld[0]->RecordID;
-					$cv_behaald = $rowsld[0]->EXDATUM;
-					$cv_vervaltop = $rowsld[0]->LicentieVervallenPer;
-					$cv_diplomanr = str_replace("\"", "'", $rowsld[0]->Diplomanummer);
+				$rowld = db_liddipl("diplomabehaald", $lidid, 0, $row->RecordID);
+				if (isset($rowld->RecordID)) {
+					$cv_rid = $rowld->RecordID;
+					$cv_behaald = $rowld->EXDATUM;
+					$cv_vervaltop = $rowld->LicentieVervallenPer;
+					$cv_diplomanr = str_replace("\"", "'", $rowld->Diplomanummer);
 				}
 				if ($cv_rid == 0) {
 					printf('<tr><td>%1$s</td><td>%2$s</td><td><input type=\'text\' name=\'Behaald_%6$d\' value="%3$s"></td><td><input type=\'text\' name=\'VervaltPer_%6$d\' value="%4$s"></td><td><input type=\'text\' name=\'Diplnr_%6$d\' value="%5$s" maxlength=14></td><td></td></tr>', $row->Kode, $row->Naam, $cv_behaald, $cv_vervaltop, $cv_diplomanr, $row->RecordID);

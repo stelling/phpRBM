@@ -121,7 +121,7 @@ function bew_rooster($seizoen, $week=-1) {
 	$rooster = db_bewakingsrooster($seizoen, $week);
 	$wk = "";
 	$aantalbewdag = 0;
-	$aantalond = db_Onderdelen("bw", 1);
+	$aantalond = db_onderdelen("bw", 1);
 	if ($aantalond > 1) {
 		$bastotreg = "<tr>\n<td colspan='3'><b>Totaal: %d bewakers</b></td>\n<td class='number'><b>%s</b></td>\n<td>&nbsp;</td>\n</tr>\n";
 	} else {
@@ -129,7 +129,7 @@ function bew_rooster($seizoen, $week=-1) {
 	}
 	echo("<div id='bewakingsrooster'>\n");
 	echo("<table>\n");
-	foreach($rooster->fetchAll() as $row) {
+	foreach($rooster as $row) {
 		if (($wk != $row->Kode . "-" . $row->Weeknr and $row->ST_LEN_BP > 1) or ($wk != strftime("%A %e %B %Y", strtotime($row->BEGIN_PER)) and $row->ST_LEN_BP == 1)) {
 			if ($aantalbewdag > 2) {
 				if ($row->TOONERV == "W") {
