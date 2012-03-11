@@ -27,6 +27,7 @@ $daysshowbirthdays = 3;  // Het aantal dagen dat de verjaardagen vooruit getoond
 $bewaartijdlogins = 6;  // Het aantal maanden dat niet gebruikte logins bewaard worden. 0 = altijd bewaren.
 $kaderoverzichtmetfoto = 1;  // Moeten op het kaderoverzicht foto's getoond worden? (1 = ja, 0 = nee)
 $rsswieiswie = 0;  // Moet er een rss van wie-is-wie gemaakt worden? Deze kan gebruikt worden om deze op een andere website te tonen, echter heeft deze geen beveiliging.
+$scriptbijuitloggen = "";  // Dit script wordt automatisch gedraaid nadat iemand is uitgelogd.
 
 //Mailingsmodule
 $emailsecretariaat = "";  // Dit veld is niet verplicht, dit wordt gebruikt om het secretariaat op de hoogte te houden van verstuurde mailingen en opzeggingen.
@@ -36,6 +37,7 @@ $smtppw = "";
 $bewaartijdmailings = 3;  // Het aantal maanden dat verwijderde mailing bewaard worden. 0 = altijd bewaren.
 $beperkfrom = "";  // Indien deze is ingevuld moet het from adres altijd vanaf dit domein zijn.
 $max_grootte_bijlage = 0 * 1024 * 1024;  // Optioneel veld. Als je niets specificeerd dan is 2MB het maximum.  De waarde is in bytes.
+$resultaatmailingversturen = 1; // Als hier een 1 staat wordt naar de ontvanger en het secretariaat een mail met het resultaat van deze mail verzonden.
 
 // Self-service voor leden
 $selfservicediplomas = "('ZB-A', 'ZB-B', 'ZS-A', 'ZS-B', 'ZIAb', 'ZIBb', 'ZIAs', 'ZIBs', 'EM', 'EHBO', 'BIG', 'RIJB', 'VA1', 'VA2', 'VB-O', 'VB-S', 'VS-O', 'VS-S')";  // Vul in deze lijst de codes in vam diploma's die leden zelf mogen wijzigen.
@@ -43,6 +45,6 @@ $emailnieuwepasfoto = "";
 $opzegtermijn = 1;  // De opzegtermijn van de vereniging in maanden.
 $muteerbarememos = "DG";   // Welke soorten memo's moeten leden zelf kunnen muteren?
 $emailbevestiginginschrijving = "";   // Vanaf welk e-mailadres moet de bevestiging van de inschrijving voor de bewaking verzonden worden.
-$voorwaardeninschrijving = "Met deze inschrijving verklaar je akkoord te zijn met de <a href='http://www.trb.nu/download/inschrijfformulier_2011_bijlage.pdf'>voorwaarden</a> en verklaar je jezelf competent voor de bewaking.";  // Deze regel wordt bij de inschrijving vemeld als voorwaarde voor de inschrijving voor de bewaking.
+$voorwaardeninschrijving = "Met deze inschrijving verklaar je akkoord te zijn met de voorwaarden en verklaar je jezelf competent voor de bewaking.";  // Deze regel wordt bij de inschrijving vemeld als voorwaarde voor de inschrijving voor de bewaking.
 
 ?>
