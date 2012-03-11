@@ -35,6 +35,7 @@ $TypeActiviteit[] = "DB backup";
 $TypeActiviteit[] = "Mailing";
 $TypeActiviteit[] = "Autorisaties";
 $TypeActiviteit[] = "Self-service";
+$TypeActiviteit[] = "Evenementen";
 $TypeActiviteit[99] = "Debugging";
 
 $fdlang = "'%e %M %Y'";
@@ -441,17 +442,6 @@ function db_change_password($pw_new, $pw_old) {
 	return $mess;
 }
 
-function db_uitloggen() {
-	global $table_prefix;
-
-	$query = sprintf("UPDATE %sAdmin_login SET Ingelogd=0 WHERE Ingelogd=1 AND LidID=%d;", $table_prefix, $_SESSION['lidid']);
-	$result = fnQuery($query);
-	if ($result > 0) {
-		$mess = sprintf("%s is uitgelogd.", $_SESSION['naamingelogde']);
-		db_logboek("add", $mess, 1);
-	}
-}
-
 function db_delete_authorisation($recid) {
 	global $table_prefix;
 	
@@ -799,8 +789,9 @@ function db_stats($lidid=0) {
 	return $stats;
 }
 
-function db_logins($actie="lijst", $email="", $gewenstelogin="", $lidid=0) {
+function db_logins($actie="lijst", $email="", $gewenstelogin="", $lidid=0, $xtrafilter="") {
 	global $selectnaam, $beperktotgroep, $table_prefix, $lididwebmasters, $wherelidond, $wherelid, $gebruikopenid, $lidnrnodigbijloginaanvraag;
+	global $scriptbijuitloggen;
 	
 	if ($actie == "nieuwlogin" and isValidMailAddress($email) and strlen($gewenstelogin) > 5) {
 		$query = sprintf("SELECT L.Nummer, Login.Login FROM %1\$sLid AS L LEFT OUTER JOIN %1\$sAdmin_login AS Login ON L.Nummer = Login.LidID
@@ -836,14 +827,23 @@ function db_logins($actie="lijst", $email="", $gewenstelogin="", $lidid=0) {
 		}
 		$result = fnQuery($query);
 		return $result->fetch();
-	} elseif ($actie == "controlebestaat" and $lidid > 0 and strlen($gewenstelogin) > 5) {
+	} elseif ($actie == "controlebestaat" and strlen($gewenstelogin) > 5) {
 		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_login WHERE Login='%s' AND LidID<>%d;", $table_prefix, $gewenstelogin, $lidid);
 		return db_scalar($query);
-	} elseif ($actie == "ingelogdenbijwerken") {
-		$query = sprintf("UPDATE %sAdmin_login SET Ingelogd=0 WHERE Ingelogd=1 AND LastActivity < ADDDATE(SYSDATE(), INTERVAL -21 MINUTE);", $table_prefix);
-		fnQuery($query);
+	} elseif ($actie == "uitloggen") {
+		$query = sprintf("UPDATE %sAdmin_login SET Ingelogd=0 WHERE Ingelogd=1 AND (LastActivity < ADDDATE(SYSDATE(), INTERVAL -21 MINUTE) OR LidID=%d);", $table_prefix, $lidid);
+		$result = fnQuery($query);
+		if ($result > 0) {
+			if (isset($scriptbijuitloggen) and strlen($scriptbijuitloggen) > 0) {
+				@exec($scriptbijuitloggen);
+			}
+			if (isset($_SESSION['lidid']) and $_SESSION['lidid'] == $lidid and $lidid > 0) {
+				$mess = sprintf("%s is uitgelogd.", $_SESSION['naamingelogde']);
+				db_logboek("add", $mess, 1);
+			}
+		}
 	} elseif ($actie == "aantalingelogd") {
-		db_logins("ingelogdenbijwerken");
+		db_logins("uitloggen");
 		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_login WHERE Ingelogd=1;", $table_prefix);
 		return db_scalar($query);
 	} elseif ($actie == "delete" and $lidid > 0) {
@@ -873,6 +873,8 @@ function db_logins($actie="lijst", $email="", $gewenstelogin="", $lidid=0) {
 			} elseif ($beperktotgroep > 0) {
 				$xtrawhere .= sprintf(" AND (Login.LidID IN (SELECT Lid FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID=%d) OR Login.LidID IN (%s))", $table_prefix, $wherelidond, $beperktotgroep, implode(", ", $lididwebmasters));
 			}
+		} elseif (strlen($xtrafilter) > 0) {
+			$xtrawhere = " AND " . $xtrafilter;
 		}
 		$query = sprintf('SELECT Login.LidID AS lnkNummer, Login.LidID, LM.Lidnr, Login.Login, %1$s %2$s AS Naam_lid, L.Roepnaam AS ndRoepnaam,
 					L.EMAIL AS `E-mail`, L.EmailVereniging AS `E-mail vereniging`, Login.Ingevoerd AS dteIngevoerd, Login.LastLogin AS `dttLaatste login`,
@@ -1253,6 +1255,56 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 	}
 }
 
+function db_evenement($actie, $lidid=0, $eventid=0, $opm="") {
+	global $table_prefix;
+
+	if ($actie == "komende") {
+		$query = sprintf("SELECT E.*, ET.Omschrijving AS TypeEvenement
+								FROM %1\$sEvenement AS E INNER JOIN %1\$sEvenement_Type AS ET ON E.TypeEvenement = ET.RecordID
+								WHERE E.Datum >= CURDATE()
+								ORDER BY E.Datum LIMIT 5;", $table_prefix);
+		$result = fnQuery($query);
+		return $result->fetchAll();
+	} elseif ($actie == "open") {
+		$query = sprintf("SELECT E.*, ET.Omschrijving AS TypeEvenement
+								FROM %1\$sEvenement AS E INNER JOIN %1\$sEvenement_Type AS ET ON E.TypeEvenement = ET.RecordID
+								WHERE E.Datum >= CURDATE() AND InschrijvingOpen=1
+								ORDER BY E.Datum;", $table_prefix);
+		$result = fnQuery($query);
+		return $result->fetchAll();
+	} elseif ($actie == "overzichtbeheer") {
+		$query = sprintf("SELECT E.Datum, E.Omschrijving, E.Starttijd, E.Eindtijd, E.Verzameltijd, ET.Omschrijving AS `Type evenement`
+								FROM %1\$sEvenement AS E INNER JOIN %1\$sEvenement_Type AS ET ON E.TypeEvenement = ET.RecordID
+								ORDER BY E.Datum;", $table_prefix);
+		$result = fnQuery($query);
+		return $result->fetchAll();
+	} elseif ($actie == "aantalopen") {
+		$query = sprintf("SELECT COUNT(*) FROM %sEvenement AS E 
+								WHERE E.Datum >= CURDATE() AND E.InschrijvingOpen=1;", $table_prefix);
+		$result = fnQuery($query);
+		return $result->fetchColumn();
+	} elseif ($actie == "inschrijving" and $lidid > 0 and $eventid > 0) {
+		$query = sprintf("SELECT ED.RecordID, ED.Opmerking, ED.Status
+								FROM %1\$sEvenement AS E INNER JOIN %1\$sEvenement_Deelnemer AS ED ON E.RecordID = ED.EvenementID
+								WHERE ED.LidID=%2\$d AND ED.EvenementID=%3\$d;", $table_prefix, $lidid, $eventid);
+		$result = fnQuery($query);
+		return $result->fetch();
+	} elseif ($actie == "adddeelnemer" and $lidid > 0 and $eventid > 0) {
+		$query = sprintf("INSERT INTO %sEvenement_Deelnemer SET LidID=%d, EvenementID=%d, Opmerking='%s', Ingevoerd=CURDATE(), GewijzigdDoor=%d;", $table_prefix, $lidid, $eventid, $opm, $_SESSION['lidid']);
+		fnQuery($query);
+	} elseif ($actie == "updatedeelnemer" and $lidid > 0 and $eventid > 0) {
+		$query = sprintf("UPDATE %sEvenement_Deelnemer SET Opmerking='%s', GewijzigdDoor=%d WHERE LidID=%d AND EvenementID=%d;", $table_prefix, $opm, $_SESSION['lidid'], $lidid, $eventid);
+		fnQuery($query);
+	} elseif ($actie == "deletedeelnemer" and $lidid > 0 and $eventid > 0) {
+		$query = sprintf("DELETE FROM %sEvenement_Deelnemer WHERE LidID=%d AND EvenementID=%d;", $table_prefix, $lidid, $eventid);
+		$result = fnQuery($query);
+		if ($result > 0) {
+			$mess = sprintf("Inschrijving bij evenement %d is bij lid %d verwijderd.", $eventid, $lidid);
+			db_logboek("add", $mess, 7);
+		}
+	}
+}
+
 function db_dms() {
 }
 
@@ -1260,14 +1312,14 @@ function db_delete_local_tables() {
 	global $arrTables, $table_prefix;
 	
 	foreach ($arrTables as $tn) {
-		if (startwith($tn, "Admin_") == false and startwith($tn, "Bewaking_") == false and startwith($tn, "DMS_") == false and startwith($tn, "Mailing") == false) {
+		if (startwith($tn, "Admin_") == false and startwith($tn, "Bewaking_") == false and startwith($tn, "DMS_") == false and startwith($tn, "Mailing") == false and startwith($tn, "Evenement") == false) {
 			fnQuery(sprintf("DELETE FROM %s%s;", $table_prefix, $tn));
 		}
 	}
 }
 
 function db_onderhoud() {
-	global $bewaartijdmailings, $bewaartijdlogins, $table_prefix, $arrTables, $db_name, $wherelid;
+	global $bewaartijdmailings, $bewaartijdlogins, $table_prefix, $arrTables, $db_name, $wherelid, $beperktotgroep, $wherelidond, $lididwebmasters;
 
 	// Vaste aanpassingen aan de database na een upload, omdat MS-Access geen datum velden kent, alleen datum_tijd.
 	$query = sprintf("SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sBewaking' AND COLUMN_NAME='BEGIN_PER';", $db_name, $table_prefix);
@@ -1316,32 +1368,43 @@ function db_onderhoud() {
 	if (db_scalar($query) == 0) {
 		fnQuery(sprintf("ALTER TABLE `%sMailing_hist` ADD `cc_addr` VARCHAR(50);", $table_prefix));
 	}
-	// Einde code
 	
 	// Toevoegen veld 'Afgemeld' aan de tabel Bewaking_Inschrijving. Deze code kan na 1/3/2013 worden verwijderd.
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sBewaking_Inschrijving' AND COLUMN_NAME='Afgemeld';", $db_name, $table_prefix);
 	if (db_scalar($query) == 0) {
 		fnQuery(sprintf("ALTER TABLE `%sBewaking_Inschrijving` ADD `Afgemeld` DATETIME;", $table_prefix));
-	}
-	// Einde code
-	
+	}	
 	
 	// Toevoegen veld 'LastActivity' aan de tabel Admin_login. Deze code kan na 7/3/2013 worden verwijderd.
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sAdmin_login' AND COLUMN_NAME='LastActivity';", $db_name, $table_prefix);
 	if (db_scalar($query) == 0) {
 		fnQuery(sprintf("ALTER TABLE `%sAdmin_login` ADD `LastActivity` DATETIME;", $table_prefix));
 	}
-	// Einde code
 
 	if ($bewaartijdlogins > 0) {
 		$query = sprintf('DELETE FROM %1$sAdmin_login
 					WHERE LastLogin < ADDDATE(CURDATE(), INTERVAL -%2$d MONTH)
-					AND Ingevoerd < ADDDATE(CURDATE(), INTERVAL -%2$d MONTH)
-					AND (openid_identity IS NULL);', $table_prefix, $bewaartijdlogins);
+					AND Ingevoerd < ADDDATE(CURDATE(), INTERVAL -%2$d MONTH);', $table_prefix, $bewaartijdlogins);
 		$result = fnQuery($query);
 		if ($result > 0) {
-			db_logboek("add", sprintf("%d niet-gebruikte logins verwijderd.", $result), 2);
+			$mess = sprintf("Er zijn %d logins verwijderd, omdat ze %d maanden niet meer gebruikt zijn.", $result, $bewaartijdlogins);
+			db_logboek("add", $mess, 2);
 			fnQuery(sprintf("OPTIMIZE TABLE %sAdmin_login;", $table_prefix));
+		}
+	}
+	$where = "";
+	if (is_array($beperktotgroep) and count($beperktotgroep) > 0) {
+		$where .= sprintf("LidID NOT IN (SELECT Lid FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID IN (%s))", $table_prefix, $wherelidond, implode(", ", $beperktotgroep));
+	} elseif ($beperktotgroep > 0) {
+		$where .= sprintf("LidID NOT IN (SELECT Lid FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID=%d)", $table_prefix, $wherelidond, $beperktotgroep);
+	}
+	if (strlen($where) > 0) {
+		$where .= sprintf(" AND (LidID NOT IN (%s))", implode(", ", $lididwebmasters));
+		$query = sprintf("DELETE FROM %sAdmin_login WHERE LastLogin <= DATE_ADD(CURDATE(), INTERVAL -1 WEEK) AND %s;", $table_prefix, $where);
+		$result = fnQuery($query);
+		if ($result > 0) {
+			$mess = sprintf("Er zijn %d logins verwijderd, omdat ze geen toegang meer hebben.", $result, $bewaartijdlogins);
+			db_logboek("add", $mess, 2);
 		}
 	}
 
