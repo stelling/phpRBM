@@ -25,7 +25,7 @@
 			$_SESSION['openid_ok'] = false;
 		}
 	} elseif (isset($_GET['actie']) and $_GET['actie'] == "uitloggen" and isset($_SESSION['username'])) {
-		db_uitloggen();
+		db_logins("uitloggen", "", "", $_SESSION['lidid']);
 		session_unset();
 		setcookie("username", "", time()-3600);
 		setcookie("password", "", time()-3600);
