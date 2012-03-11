@@ -17,7 +17,7 @@ function toegang($soort, $melding=1) {
 	if (isset($_SESSION['lidid']) and $_SESSION['lidid'] > 0 and isset($_SESSION['lastauthenication']) and $_SESSION['lastauthenication'] >= time()-(20*60)) {
 		// Er hoeft niets te gebeuren.
 	} else {
-		db_logins("ingelogdenbijwerken");
+		db_logins("uitloggen");
 		$_SESSION['lidid'] = 0;
 		$_SESSION['lidnr'] = 0;
 		$_SESSION['naamingelogde'] = "gast";
