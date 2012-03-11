@@ -28,6 +28,8 @@ if ($currenttab == "Eigen gegevens" and toegang($_GET['tp'])) {
 	if ($_SESSION['lidid'] > 0) {
 		if ($currenttab2 == "Inschrijving bewaking") {
 			inschrijvenbewaking($_SESSION['lidid']);
+		} elseif ($currenttab2 == "Inschrijving evenementen") {
+			inschrijvenevenementen($_SESSION['lidid']);
 		} else {
 			fnWijzigen($_SESSION['lidid']);
 		}
@@ -40,7 +42,7 @@ if ($currenttab == "Eigen gegevens" and toegang($_GET['tp'])) {
 	} else {
 		fnOverviewLid();
 	}
-} elseif ($currenttab == "Wie is wie" and toegang($_GET['tp'])) { 
+} elseif ($currenttab == "Verenigingsinfo" and $currenttab2 != "Introductie" and toegang($_GET['tp'])) { 
 	fnWieiswie();
 } elseif ($currenttab == "Ledenlijst" and toegang($_GET['tp'])) {
 	fnLedenlijst();
@@ -50,6 +52,8 @@ if ($currenttab == "Eigen gegevens" and toegang($_GET['tp'])) {
 	fnKostenoverzicht();
 } elseif ($currenttab == "Mailing" and toegang($_GET['tp'])) {
 	fnMailing();
+} elseif ($currenttab == "Evenementen" and toegang($_GET['tp'])) {
+	fnEvenementen();
 } else {
 	$currenttab = "Verenigingsinfo";
 	fnVoorblad();
@@ -64,6 +68,8 @@ HTMLfooter();
 
 function fnVoorblad($metlogin=0) {
 	global $daysshowbirthdays;
+	
+	fnDispMenu(2);
 
 	$myFile = 'templates/verenigingsinfo.html';
 	$content = file_get_contents($myFile);
@@ -102,6 +108,7 @@ function fnVoorblad($metlogin=0) {
 		} else {
 			$content = str_replace("[%INGELOGDEGEWIJZIGD%]", "", $content);
 		}
+		$content = str_replace("[%KOMENDEEVENEMENTEN%]", ToekomstigeEvenementen(), $content);
 		$content = str_replace("[%ROEPNAAM%]", $_SESSION['roepnaamingelogde'], $content);
 	
 		$verj = "";
@@ -155,7 +162,7 @@ function fnWieiswie() {
 	$metfoto = 1;
 	if ($currenttab2 == "Onderscheidingen") {
 		$lijst = db_adressenlijst("O.TYPE='O'");
-	} elseif ($currenttab2 == "Overige") {
+	} elseif ($currenttab2 == "Overige commissies") {
 	$lijst = db_adressenlijst("(O.TYPE='C' AND O.Kader=False)");
 		$metfoto = $kaderoverzichtmetfoto;
 	} else {
@@ -309,7 +316,7 @@ function fnLedenlijst() {
 
 	$rows = db_ledenlijst($filter);
 	if (count($rows) > 0) {
-		echo(fnDiplayTable($rows, $ldl));
+		echo(fnDisplayTable($rows, $ldl));
 		foreach ($rows as $row) {
 			$sel_leden[] = $row->lnkNummer;
 		}
@@ -333,50 +340,50 @@ function fnOverviewLid($lidid=0) {
 		if ($currenttab2 == "Afdelingen" and toegang($_GET['tp'])) {
 			$rows = db_gegevenslid($lidid, $currenttab2);
 			if (count($rows) > 0) {
-				echo(fnDiplayTable($rows, "", $currenttab2 . " " . $naamlid));
+				echo(fnDisplayTable($rows, "", $currenttab2 . " " . $naamlid));
 			} else {
 				printf("<p class='mededeling'>%s heeft geen %s.</p>\n", $naamlid, $currenttab2);
 			}
 		} elseif ($currenttab2 == "Kader" and toegang($_GET['tp'])) {
 			$rows = db_gegevenslid($lidid, $currenttab2);
 			if (count($rows) > 0) {
-				echo(fnDiplayTable($rows, "", $currenttab2 . " " . $naamlid));
+				echo(fnDisplayTable($rows, "", $currenttab2 . " " . $naamlid));
 			} else {
 				printf("<p class='mededeling'>%s is niet ingedeeld (geweest) bij het kader.</p>\n", $naamlid);
 			}
 		} elseif ($currenttab2 == "Rollen" and toegang($_GET['tp'])) {
 			$rows = db_gegevenslid($lidid, $currenttab2);
 			if (count($rows) > 0) {
-				echo(fnDiplayTable($rows, "", $currenttab2 . " " . $naamlid));
+				echo(fnDisplayTable($rows, "", $currenttab2 . " " . $naamlid));
 			} else {
 				printf("<p class='mededeling'>%s heeft geen %s.</p>\n", $naamlid, $currenttab2);
 			}
 		} elseif ($currenttab2 == "Groepen" and toegang($_GET['tp'])) {
 			$rows = db_gegevenslid($lidid, $currenttab2);
 			if (count($rows) > 0) {
-				echo(fnDiplayTable($rows, "", $currenttab2 . " " . $naamlid));
+				echo(fnDisplayTable($rows, "", $currenttab2 . " " . $naamlid));
 			} else {
 				printf("<p class='mededeling'>%s is bij geen enkele groep ingedeeld.</p>\n", $naamlid);
 			}
 		} elseif ($currenttab2 == "Bewaking" and toegang($_GET['tp'])) {
 			$rows = db_gegevenslid($lidid, "Bew");
 			if (count($rows) > 0) {
-				echo(fnDiplayTable($rows, "", "Bewaking " . $naamlid));
+				echo(fnDisplayTable($rows, "", "Bewaking " . $naamlid));
 			} else {
 				printf("<p class='mededeling'>%s heeft geen bewakingshistorie.</p>", $naamlid);
 			}
 			$rows = db_gegevenslid($lidid, "Lidbew");
 			if (count($rows) > 0) {
-				echo(fnDiplayForm($rows[0]));
+				echo(fnDisplayForm($rows[0]));
 			}
 			$rows = db_insbew("overzichtlid", $lidid);
 			if (count($rows) > 0) {
-				echo(fnDiplayTable($rows, "", "Ingeschreven voor bewakingen"));
+				echo(fnDisplayTable($rows, "", "Ingeschreven voor bewakingen"));
 			}
 		} elseif ($currenttab2 == "Diplomas" and toegang($_GET['tp'])) {
 			$rows = db_liddipl("lidgegevens", $lidid);
 			if (count($rows) > 0) {
-				echo(fnDiplayTable($rows, "", "Diploma's " . $naamlid));
+				echo(fnDisplayTable($rows, "", "Diploma's " . $naamlid));
 			} else {
 				printf("<p class='mededeling'>Bij %s zijn geen diploma's bekend.</p>", $naamlid);
 			}
@@ -384,14 +391,14 @@ function fnOverviewLid($lidid=0) {
 			if ($_SESSION['aantalrekeningen'] > 0) {
 				$rows = db_gegevenslid($lidid, "Rekening");
 				if (count($rows) > 0) {
-					echo(fnDiplayTable($rows, "", "Rekeningen " . $naamlid));
+					echo(fnDisplayTable($rows, "", "Rekeningen " . $naamlid));
 				} else {
 					printf("<p class='mededeling'>%s heeft geen rekeningen ontvangen.</p>", $naamlid);
 				}
 			}
 			$rows = db_gegevenslid($lidid, "Financieel");
 			if (count($rows) > 0) {
-				echo(fnDiplayForm($rows[0]));
+				echo(fnDisplayForm($rows[0]));
 			}
 		} elseif ($currenttab2 == "Mailing" and toegang($_GET['tp'])) {
 			if (isset($_GET['MailingID']) and $_GET['MailingID'] > 0) {
@@ -403,13 +410,13 @@ function fnOverviewLid($lidid=0) {
 				$ld = sprintf("<a href='index.php?tp=%s&amp;lidid=%d&amp;MailingID=%%d'>%%s</a>", urlencode($_GET['tp']), $lidid);
 				$rows = db_gegevenslid($lidid, "Mailing");
 				if (count($rows) > 0) {
-					echo(fnDiplayTable($rows, $ld, "Ontvangen mails " . $naamlid));
+					echo(fnDisplayTable($rows, $ld, "Ontvangen mails " . $naamlid));
 				} else {
 					printf("<p class='mededeling'>%s heeft geen mails vanaf deze website ontvangen.</p>\n", $naamlid);
 				}
 			}
 		} elseif ($currenttab2 == "Logboek" and toegang($_GET['tp'])) {
-			echo(fnDiplayTable(db_logboek("lijst", "", -1, $lidid)));
+			echo(fnDisplayTable(db_logboek("lijst", "", -1, $lidid)));
 		} elseif (toegang($_GET['tp'])) {
 			$rows = db_gegevenslid($lidid);
 			if (count($rows) > 0) {
@@ -421,7 +428,7 @@ function fnOverviewLid($lidid=0) {
 				} else {
 					$xtra = "";
 				}
-				echo(fnDiplayForm($rows[0], $xtra));
+				echo(fnDisplayForm($rows[0], $xtra));
 			}
 		} else {
 			echo("<p class='mededeling'>Je hebt geen toegang.</p>\n");
@@ -896,7 +903,7 @@ function fnWijzigen($lidid=0) {
 					$xtra .= sprintf("<img src='%s' alt='Foto %s'>\n", $fn, $rows[0]->ndRoepnaam);
 				}
 				$xtra .= "</div>  <!-- Einde pasfoto -->\n";
-				echo(fnDiplayForm($rows[0], $xtra));
+				echo(fnDisplayForm($rows[0], $xtra));
 			}
 		} else {
 			echo("<p class='mededeling'>Je hebt geen toegang.</p>\n");
@@ -975,7 +982,7 @@ function fnKostenoverzicht() {
 	echo("</form>\n");
 	echo("</div>  <!-- Einde filter -->\n");
 
-	echo(fnDiplayTable(db_mutatie($val_jaarfilter, $val_gbrfilter, $val_kplfilter), "", "", 1));
+	echo(fnDisplayTable(db_mutatie($val_jaarfilter, $val_gbrfilter, $val_kplfilter), "", "", 1));
 }
 
 function fnMailing() {
@@ -1020,7 +1027,7 @@ function fnMailing() {
 		$rows = db_mailing("hist", $mailing->mid);
 		if (count($rows) > 0) {
 			$ld = sprintf("<a href='index.php?tp=%s&amp;op=histdetails&amp;rid=%%d'>%%s</a>", $_GET['tp']);
-			echo(fnDiplayTable($rows, $ld, $rows[0]->ndOnderwerp, 0, 1));
+			echo(fnDisplayTable($rows, $ld, $rows[0]->ndOnderwerp, 0, 1));
 		} else {
 			echo("<p class='mededeling'>Deze mailing heeft geen historie.</p>\n");
 		}
