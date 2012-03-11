@@ -53,13 +53,13 @@ if (isset($_GET['op']) and $_GET['op'] == "deletelogin") {
 if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 	db_createtables();
 	db_onderhoud();
-	echo(fnDiplayTable(db_logins(), "<a href='" . $_SERVER['PHP_SELF'] . "?op=deletelogin&amp;lidid=%d'><img src='images/del.png' alt='Trash bin' title='Verwijder login'></a>"));
+	echo(fnDisplayTable(db_logins(), "<a href='" . $_SERVER['PHP_SELF'] . "?op=deletelogin&amp;lidid=%d'><img src='images/del.png' alt='Trash bin' title='Verwijder login'></a>"));
 } elseif ($currenttab == "Autorisatie" and toegang($_GET['tp'])) {
 	echo("<div id='lijst'>\n");
 	printf("<form name='formauth' method='post' action='%s?tp=%s&amp;op=changeaccess'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	echo("<table>\n");
 	echo("<tr><th></th><th>Onderdeel</th><th>Toegankelijk voor</th></tr>\n");
-	$query = "SELECT RecordID, Tabpage, Toegang FROM Admin_access ORDER BY Tabpage;";
+	$query = sprintf("SELECT RecordID, Tabpage, Toegang FROM %sAdmin_access ORDER BY Tabpage;", $table_prefix);
 	$result = fnQuery($query);
 	foreach($result->fetchAll() as $row) {
 		$del = sprintf("<a href='%s?tp=%s&amp;op=deleteautorisatie&amp;recid=%d'><img src='images/del.png' alt='Trash bin' title='Verwijder record'></a>", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
@@ -156,7 +156,7 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 	echo("</form>\n");
 	echo("</div>  <!-- Einde filter -->\n");
 	
-	echo(fnDiplayTable(db_logboek("lijst", "", $_POST['typefilter'], $_POST['lidfilter'])));
+	echo(fnDisplayTable(db_logboek("lijst", "", $_POST['typefilter'], $_POST['lidfilter'])));
 } elseif (toegang("Info")) {
 	phpinfo();
 }
