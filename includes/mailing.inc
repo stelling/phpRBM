@@ -18,9 +18,10 @@ class mailing {
 	
 	private $ok_send = "";
 	private $nok_send = "";
+	private $resultaatversturen = 1;
 
 	function __construct() {
-		global $selectnaam, $table_prefix, $fdlang, $fdkort, $max_grootte_bijlage;
+		global $selectnaam, $table_prefix, $fdlang, $fdkort, $max_grootte_bijlage, $resultaatmailingversturen;
 	
 		$WhereLidond = "WHERE LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE())";
 		$WhereLidmaatschap = "WHERE LM.LIDDATUM <= CURDATE() AND ((LM.Opgezegd IS NULL) OR LM.Opgezegd >= CURDATE())";
@@ -30,6 +31,11 @@ class mailing {
 		
 		if (isset($max_grootte_bijlage) and $max_grootte_bijlage > 0) {
 			$max_size_attachm = $max_grootte_bijlage;
+		}
+		if (isset($resultaatmailingversturen) and $resultaatmailingversturen == 1) {
+			$this->resultaatversturen = 1;
+		} else {
+			$this->resultaatversturen = 0;
 		}
 
 		$sql = sprintf("SELECT Roepnaam FROM %sLid AS L WHERE %s;", $table_prefix, "L.Nummer=%d");
@@ -147,7 +153,7 @@ class mailing {
 	
 		$lnk = sprintf("<a href='%s?tp=%s&amp;op=edit&amp;mid=%s' title='Bewerk mailing'><img src='images/zoom.png'></a>", $_SERVER['PHP_SELF'], $_GET['tp'], "%d");
 		$lnk_lk = sprintf("<a href='%s?tp=Mailing/Historie&amp;op=historie&amp;mid=%s' title='Bekijk historie'><img src='images/object_10.png'></a>", $_SERVER['PHP_SELF'], "%d");
-		echo(fnDiplayTable(db_mailing("lijst", 0, 0, $filter), $lnk, "", 0, $lnk_lk));
+		echo(fnDisplayTable(db_mailing("lijst", 0, 0, $filter), $lnk, "", 0, $lnk_lk));
 		if ($filter == "Prullenbak") {
 			printf("<p>Mailings die langer dan %d maanden geleden verwijderd zijn, worden automatisch definitief opgeschoond.</p>\n", $bewaartijdmailings);
 		}
@@ -221,7 +227,7 @@ class mailing {
 				foreach($rcpt_rows as $rcpt) {
 					if ($rcpt->Nummer > 0) {
 						$lnk = sprintf("%s?tp=%s&op=del_lid&mid=%d&lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, $rcpt->Nummer);
-						$reg = sprintf("<li>%s&nbsp;<a href='%s'><img src='/images/delete.gif' alt='Verwijderen' title='Verwijderen'></a></li>\n", $rcpt->Naam_lid, $lnk);
+						$reg = sprintf("<li>%s&nbsp;<a href='%s'><img src='/images/delete.gif' alt='Verwijderen' title='Verwijderen'></a></li>\n", htmlentities($rcpt->Naam_lid), $lnk);
 					} else {
 						$lnk = sprintf("%s?tp=%s&op=del_lid&mid=%d&addr=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, $rcpt->to_address);
 						$reg = sprintf("<li>%s&nbsp;<a href='%s'><img src='/images/delete.gif' alt='Verwijderen' title='Verwijderen'></a></li>\n", $rcpt->to_address, $lnk);
@@ -696,37 +702,39 @@ class mailing {
 		}
 		$mail->ClearCCs();
 		$summary = "";
-		if (strlen($this->ok_send) > 1 and $preview == 1) {
-			$summary = sprintf("<p>De volgende ontvangers hebben een correct e-mailadres:<ul>\n%s</ul>\n</p>\n", $this->ok_send);
-		} elseif (strlen($this->ok_send) > 1) {
-			$summary = sprintf("<p>Deze mailing is verzonden op %s om %s naar:<ul>\n%s</ul>\n</p>\n", strftime("%e %B %Y"), strftime("%H:%M"), $this->ok_send);
-		}
-		if (strlen($this->nok_send) > 1 and $preview == 1) {
-			$summary .= sprintf("De volgende ontvangers hebben geen (correct) e-mailadres in de database: <ul>\n%s</ul>\n", $this->nok_send);
-		} elseif (strlen($this->nok_send) > 1) {
-			$summary .= sprintf("Deze mailing kon niet verzonden worden naar: <ul>\n%s</ul>\n", $this->nok_send);
-		}
-		if ($preview == 1) {
-			printf("<div id='container'>%s</div>\n", $summary);
-		} else {
-			$this->create_mess(0);
-			$rows = db_gegevenslid($_SESSION['lidid']);
-			$ev = "E-mail";
-			$this->mailbericht = str_ireplace("[%TO%]", "", $this->mailbericht);
-			$mail->MsgHTML($this->mailbericht . $summary);
-			$mail->Subject = "Resultaat mailing: " . $mail->Subject;
-			if (isValidMailAddress($mail->From, 0)) {
-				$mail->AddAddress($mail->From, $mail->FromName);
+		
+		$oms = sprintf("Mailing %d (%s) is door %s verzonden.", $this->mid, $row->subject, $_SESSION['naamingelogde']);
+		db_logboek("add", $oms, 4);
+		if ($this->resultaatversturen == 1) {
+			if (strlen($this->ok_send) > 1 and $preview == 1) {
+				$summary = sprintf("<p>De volgende ontvangers hebben een correct e-mailadres:<ul>\n%s</ul>\n</p>\n", $this->ok_send);
+			} elseif (strlen($this->ok_send) > 1) {
+				$summary = sprintf("<p>Deze mailing is verzonden op %s om %s naar:<ul>\n%s</ul>\n</p>\n", strftime("%e %B %Y"), strftime("%H:%M"), $this->ok_send);
+			}
+			if (strlen($this->nok_send) > 1 and $preview == 1) {
+				$summary .= sprintf("De volgende ontvangers hebben geen (correct) e-mailadres in de database: <ul>\n%s</ul>\n", $this->nok_send);
+			} elseif (strlen($this->nok_send) > 1) {
+				$summary .= sprintf("Deze mailing kon niet verzonden worden naar: <ul>\n%s</ul>\n", $this->nok_send);
+			}
+			if ($preview == 1) {
+				printf("<div id='container'>%s</div>\n", $summary);
 			} else {
-				$mail->AddAddress($this->detailssender("emlE-mail"));
+				$this->create_mess(0);
+				$rows = db_gegevenslid($_SESSION['lidid']);
+				$ev = "E-mail";
+				$this->mailbericht = str_ireplace("[%TO%]", "", $this->mailbericht);
+				$mail->MsgHTML($this->mailbericht . $summary);
+				$mail->Subject = "Resultaat mailing: " . $mail->Subject;
+				if (isValidMailAddress($mail->From, 0)) {
+					$mail->AddAddress($mail->From, $mail->FromName);
+				} else {
+					$mail->AddAddress($this->detailssender("emlE-mail"));
+				}
+				if (isset($emailsecretariaat) and isValidMailAddress($emailsecretariaat, 0)) {
+					$mail->AddCC($emailsecretariaat);
+				}
+				$mail->Send();
 			}
-			if (isset($emailsecretariaat) and isValidMailAddress($emailsecretariaat, 0)) {
-				$mail->AddCC($emailsecretariaat);
-			}
-			$mail->Send();
-			
-			$oms = sprintf("Mailing %d is door %s verzonden.", $this->mid, $_SESSION['naamingelogde']);
-			db_logboek("add", $oms, 4);
 		}
 	}
 	
@@ -749,7 +757,7 @@ class mailing {
 						if (strlen($nv) > 0) { $nv .= ", "; }
 						$nv .= $val[0];
 					}
-					$this->merged_message = str_ireplace($nm, $nv, $this->merged_message);
+					$this->merged_message = str_ireplace($nm, htmlentities($nv), $this->merged_message);
 					$this->contains_mergefield = true;
 				}
 			}
