@@ -42,7 +42,7 @@ if ($currenttab == "Eigen gegevens" and toegang($_GET['tp'])) {
 	} else {
 		fnOverviewLid();
 	}
-} elseif ($currenttab == "Verenigingsinfo" and $currenttab2 != "Introductie" and toegang($_GET['tp'])) { 
+} elseif ($currenttab == "Verenigingsinfo" and $currenttab2 != "Introductie" and toegang($_GET['tp'])) {
 	fnWieiswie();
 } elseif ($currenttab == "Ledenlijst" and toegang($_GET['tp'])) {
 	fnLedenlijst();
@@ -56,6 +56,7 @@ if ($currenttab == "Eigen gegevens" and toegang($_GET['tp'])) {
 	fnEvenementen();
 } else {
 	$currenttab = "Verenigingsinfo";
+	$currenttab2 = "Introductie";
 	fnVoorblad();
 	if (!isset($_SESSION['username']) or strlen($_SESSION['username']) <= 5) {
 		echo("<div id='kolomrechts'>\n");
@@ -108,7 +109,9 @@ function fnVoorblad($metlogin=0) {
 		} else {
 			$content = str_replace("[%INGELOGDEGEWIJZIGD%]", "", $content);
 		}
-		$content = str_replace("[%KOMENDEEVENEMENTEN%]", ToekomstigeEvenementen(), $content);
+		if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
+			$content = str_replace("[%KOMENDEEVENEMENTEN%]", ToekomstigeEvenementen(), $content);
+		}
 		$content = str_replace("[%ROEPNAAM%]", $_SESSION['roepnaamingelogde'], $content);
 	
 		$verj = "";

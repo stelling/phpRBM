@@ -26,9 +26,7 @@ if (!isset($emailbevestiginginschrijving)) {
 require_once("includes/database.inc");
 require_once("includes/authentication.inc");
 require_once("includes/bewaking.inc");
-if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
-	require_once("includes/evenement.inc");
-}
+require_once("includes/evenement.inc");
 require_once("includes/mailing.inc");
 require_once("includes/class.phpmailer.php");
 
@@ -85,7 +83,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if (count(db_insbew("openblokken")) > 0) {
 		$tabpages[] = "Wijzigen/Inschrijving bewaking";
 	}
-	if (db_evenement("aantalopen") > 0) {
+	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl" and db_evenement("aantalopen") > 0) {
 		$tabpages[] = "Wijzigen/Inschrijving evenementen";
 	}
 	$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap WHERE Lid=%d AND (Opgezegd IS NULL);", $table_prefix, $_SESSION['lidid']);
@@ -379,7 +377,7 @@ function fnDispMenu($nivo=1, $xtra="") {
 	}
 }
 
-function fnDiplayForm($row, $xtra_eind="") {
+function fnDisplayForm($row, $xtra_eind="") {
 
 	$ret = "<div id='formulier'>\n";
 	if (isset($row)) {
