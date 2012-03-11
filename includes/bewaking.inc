@@ -101,16 +101,16 @@ function fnBewaking($seizoen=0) {
 		bew_postindeling($seizoen, $week=-1);
 	} elseif ($currenttab2 == "Aantallen" and toegang($_GET['tp'])) {
 		$lijst = db_bewaking_aantallen($seizoen);
-		echo(fnDiplayTable($lijst));
+		echo(fnDisplayTable($lijst));
 
 	} elseif ($currenttab2 == "Overzicht inschrijvingen" and toegang($_GET['tp'])) {
 		$lijst = db_insbew("matrixaantallen", 0, 0, 0, 0, "", $seizoen);
-		echo(fnDiplayTable($lijst, "", "Totalen"));
+		echo(fnDisplayTable($lijst, "", "Totalen"));
 		$lijst = db_insbew("overzicht", 0, 0, 0, 0, "", $seizoen, $week);
 		echo(DetailsInschrijvingBewaking($lijst));
 	} elseif ($currenttab2 == "Logboek inschrijving" and toegang($_GET['tp'])) {
 		$lijst = db_logboek("lijst", "", 6, $_POST['lidfilter']);
-		echo(fnDiplayTable($lijst));
+		echo(fnDisplayTable($lijst));
 	} else {
 		inschrijvenbewaking(31, 1);
 	}
