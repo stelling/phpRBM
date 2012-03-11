@@ -8,6 +8,9 @@ if ((isset($_SESSON['webmaster']) and $_SESSON['webmaster'] == 1) or $_SERVER["H
 	error_reporting(E_ALL);
 } else {
 	error_reporting(0);
+	if (!isset($_SESSION['lidid'])) {
+		$_SESSION['lidid'] = 0;
+	}
 }
 
 require_once('config.php');
@@ -23,6 +26,9 @@ if (!isset($emailbevestiginginschrijving)) {
 require_once("includes/database.inc");
 require_once("includes/authentication.inc");
 require_once("includes/bewaking.inc");
+if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
+	require_once("includes/evenement.inc");
+}
 require_once("includes/mailing.inc");
 require_once("includes/class.phpmailer.php");
 
@@ -42,6 +48,10 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	$tabpages[] = "Logboek";
 } else {
 	$tabpages[] = "Verenigingsinfo";
+	$tabpages[] = "Verenigingsinfo/Introductie";
+	$tabpages[] = "Verenigingsinfo/Kader";
+	$tabpages[] = "Verenigingsinfo/Onderscheidingen";
+	$tabpages[] = "Verenigingsinfo/Overige commissies";
 	$tabpages[] = "Eigen gegevens";
 	$tabpages[] = "Eigen gegevens/Algemeen";
 	if ($_SESSION['aantalafdelingen'] > 0) {
@@ -75,15 +85,14 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if (count(db_insbew("openblokken")) > 0) {
 		$tabpages[] = "Wijzigen/Inschrijving bewaking";
 	}
+	if (db_evenement("aantalopen") > 0) {
+		$tabpages[] = "Wijzigen/Inschrijving evenementen";
+	}
 	$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap WHERE Lid=%d AND (Opgezegd IS NULL);", $table_prefix, $_SESSION['lidid']);
 	$result = fnQuery($query);
 	if ($result->fetchColumn() > 0) {
 		$tabpages[] = "Wijzigen/Opzegging";
 	}
-	$tabpages[] = "Wie is wie";
-	$tabpages[] = "Wie is wie/Kader";
-	$tabpages[] = "Wie is wie/Onderscheidingen";
-	$tabpages[] = "Wie is wie/Overige";
 	$tabpages[] = "Ledenlijst";
 	$tabpages[] = "Overzicht lid/Algemeen";
 	if ($_SESSION['aantalafdelingen'] > 0) {
@@ -123,6 +132,12 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if (db_mailing("aantalprullenbak") > 0) {
 		$tabpages[] = "Mailing/Prullenbak";
 	}
+	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
+		$tabpages[] = "Evenementen";
+		$tabpages[] = "Evenementen/Overzicht";
+		$tabpages[] = "Evenementen/Beheer";
+	}
+	
 	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 //		$tabpages[] = "DMS";   Voorlopig geen tijd voor, dus uitgezet.
 	}
@@ -399,7 +414,7 @@ function fnDiplayForm($row, $xtra_eind="") {
 	return $ret;
 }
 
-function fnDiplayTable($rows, $link="", $th="", $disptot=0, $link_lk="") {
+function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="") {
 	$ret = "<div id='lijst'>\n";
 	if (isset($rows) and count($rows) > 0) {
 		$ret .= "<table>\n";
@@ -679,6 +694,16 @@ class SimpleImage {
       imagecopyresampled($new_image, $this->image, 0, 0, 0, 0, $width, $height, $this->getWidth(), $this->getHeight());
       $this->image = $new_image;   
    }      
+}
+
+function fnDiplayTable($rows, $link="", $th="", $disptot=0, $link_lk="") {
+	debug("Oude functie fnDiplayTable");
+	fnDisplayTable($rows, $link, $th, $disptot, $link_lk);
+}
+
+function fnDiplayForm($row, $xtra_eind="") {
+	debug("Oude functie fnDiplayForm");
+	fnDisplayForm($row, $xtra_eind);
 }
 
 ?>
