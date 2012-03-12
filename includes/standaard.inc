@@ -13,8 +13,10 @@ if ((isset($_SESSON['webmaster']) and $_SESSON['webmaster'] == 1) or $_SERVER["H
 	}
 }
 
-require_once('config.php');
-if (!isset($rsswieiswie)) {
+$dir = substr(__FILE__, 0, strrpos(__FILE__, "/"));  // Dit is nodig voor PHP 5.2, vanaf 5.3 kan dit gewoon direct __DIR__ worden.
+
+require_once($dir . '/../config.php');
+if (!isset($rsswieiswie) and $rsswieiswie != 1) {
 	$rsswieiswie = 0;
 }
 if (!isset($muteerbarememos)) {
@@ -23,12 +25,13 @@ if (!isset($muteerbarememos)) {
 if (!isset($emailbevestiginginschrijving)) {
 	$emailbevestiginginschrijving = $emailledenadministratie;
 }
-require_once("includes/database.inc");
-require_once("includes/authentication.inc");
-require_once("includes/bewaking.inc");
-require_once("includes/evenement.inc");
-require_once("includes/mailing.inc");
-require_once("includes/class.phpmailer.php");
+	
+require_once($dir . "/database.inc");
+require_once($dir . "/authentication.inc");
+require_once($dir . "/bewaking.inc");
+require_once($dir . "/evenement.inc");
+require_once($dir . "/mailing.inc");
+require_once($dir . "/class.phpmailer.php");
 
 $arrTL[] = "Alle";
 $arrTL[] = "Leden";
