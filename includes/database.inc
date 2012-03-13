@@ -34,8 +34,9 @@ $TypeActiviteit[] = "DB onderhoud";
 $TypeActiviteit[] = "DB backup";
 $TypeActiviteit[] = "Mailing";
 $TypeActiviteit[] = "Autorisaties";
-$TypeActiviteit[] = "Self-service";
+$TypeActiviteit[] = "Self-service";  // 6
 $TypeActiviteit[] = "Evenementen";
+$TypeActiviteit[] = "Interface";
 $TypeActiviteit[99] = "Debugging";
 
 $fdlang = "'%e %M %Y'";
@@ -288,6 +289,17 @@ function db_gegevenslid($LidID, $soort="Alg") {
 	} else {
 		return false;
 	}
+}
+
+function db_naamlid($lidid, $uitv="Naam") {
+	global $selectnaam, $selectzoeknaam, $table_prefix;
+	
+	if ($uitv == "Naam") {
+		$query = sprintf("SELECT %s FROM %sLid AS L WHERE L.Nummer=%d;", $selectzoeknaam, $table_prefix, $lidid);
+	} else {
+		$query = sprintf("SELECT %s FROM %sLid AS L WHERE L.Nummer=%d;", $selectnaam, $table_prefix, $lidid);
+	}
+	return db_scalar($query);
 }
 
 function db_adressenlijst($filter = "O.Kader=True") {
@@ -681,7 +693,7 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 	} elseif ($actie == "delete" and $lidid > 0 and $blok > 0) {
 		$query = sprintf("DELETE FROM %sBewaking_Inschrijving WHERE BlokID=%d AND Lid=%d;", $table_prefix, $blok, $lidid);
 		fnQuery($query);
-		$mess = sprintf("Inschrijving bewaking voor blok %s is bij ingelogd lid verwijderd.", db_insbew("omsblok", 0, 0, $blok));
+		$mess = sprintf("Inschrijving bewaking voor blok %s is bij %s verwijderd.", db_insbew("omsblok", 0, 0, $blok), db_naamlid($lidid));
 		db_logboek("add", $mess, 6);
 	} elseif ($actie == "defmaken" and $lidid > 0 and $insnr > 0) {
 		$query = sprintf("UPDATE %sBewaking_Inschrijving SET Definitief=SYSDATE() WHERE Nummer=%d AND Lid=%d;", $table_prefix, $insnr, $lidid);
@@ -851,7 +863,7 @@ function db_logins($actie="lijst", $email="", $gewenstelogin="", $lidid=0, $xtra
 			$query = sprintf("DELETE FROM %sAdmin_login WHERE LidID=%d;", $table_prefix, $lidid);
 			$result = fnQuery($query);
 			if ($result > 0) {
-				$mess = sprintf("De login van lid %d is verwijderd.", $lidid);
+				$mess = sprintf("De login van %s is verwijderd.", db_naamlid($lidid));
 				db_logboek("add", $mess, 1);
 				fnQuery(sprintf("OPTIMIZE TABLE %sAdmin_login;", $table_prefix));
 			}
@@ -1099,11 +1111,15 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0) {
 			fnQuery($query);
 		}
 	} elseif ($actie == "lijst") {
-		if ($lidid > 0) {
+		if ($type == -1) {
+			$s = ", TypeActiviteit AS `Type`";
+		} else {
 			$s = "";
+		}
+		if ($lidid > 0) {
 			$w .= sprintf(" AND LidID=%d", $lidid);
 		} else {
-			$s = sprintf(", A.LidID, %s AS `Ingelogd Lid`", $selectnaam);
+			$s .= sprintf(", A.LidID, %s AS `Ingelogd Lid`", $selectnaam);
 		}
 	
 		$query = sprintf("SELECT A.DatumTijd as `dttDatum en tijd`, Omschrijving, IP_adres%1\$s
@@ -1208,7 +1224,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 			$query = sprintf("INSERT INTO Liddipl (Lid, DiplomaID, EXDATUM, LicentieVervallenPer, Diplomanummer, Ingevoerd, Gewijzigd) 
 						VALUES (%d, %d, %s, %s, '%s', CURDATE(), SYSDATE());", $lidid, $did, $dwaexd, $dwaverv, $dipnr);
 			db_interface("add", $query);
-			$mess = sprintf("Diploma %s is toegevoegd bij lid %d", db_diploma("Kode", $did), $lidid);
+			$mess = sprintf("Diploma %s is toegevoegd bij %s", db_diploma("Kode", $did), db_naamlid($lidid));
 			db_logboek("add", $mess, 6);
 		}
 	} elseif ($actie == "update" and $rid > 0) {
@@ -1223,7 +1239,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 			$result = fnQuery($query);
 			$query = sprintf("UPDATE Liddipl SET LicentieVervallenPer=%s, Diplomanummer='%s' WHERE Lid=%d AND DiplomaID=%d AND EXDATUM=%s;", $dwaverv, $dipnr, $rowld->Lid, $rowld->DiplomaID, $dwaexd);
 			db_interface("add", $query);
-			$mess = sprintf("Diploma %s is gewijzigd bij lid %d", db_diploma("Kode", $rowld->DiplomaID), $rowld->Lid);
+			$mess = sprintf("Diploma %s is gewijzigd bij %s", db_diploma("Kode", $rowld->DiplomaID), db_naamlid($rowld->Lid));
 			db_logboek("add", $mess, 6);
 		}
 	} elseif ($actie == "delete" and $lidid > 0 and $did > 0 and strlen($dwexd) == 10) {
@@ -1232,7 +1248,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 		if ($result > 0) {
 			$query = sprintf("DELETE FROM Liddipl WHERE Lid=%d AND DiplomaID=%d AND EXDATUM=%s;", $lidid, $did, $dwaexd);
 			db_interface("add", $query);
-			db_logboek("add", sprintf("Diploma %s is verwijderd bij lid %d", db_diploma("Kode", $did), $lidid), 6);
+			db_logboek("add", sprintf("Diploma %s is verwijderd bij %s.", db_diploma("Kode", $did), db_naamlid($lidid)), 6);
 		}
 	} elseif ($actie == "lidgegevens" and $lidid > 0) {
 		if (strlen($xtrafilter) > 1) {
@@ -1255,8 +1271,8 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 	}
 }
 
-function db_evenement($actie, $lidid=0, $eventid=0, $opm="") {
-	global $table_prefix;
+function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="I", $functie="", $groepid=0) {
+	global $table_prefix, $selectnaam, $selectzoeknaam;
 
 	if ($actie == "komende") {
 		$query = sprintf("SELECT E.*, ET.Omschrijving AS TypeEvenement
@@ -1273,7 +1289,7 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="") {
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "overzichtbeheer") {
-		$query = sprintf("SELECT E.Datum, E.Omschrijving, E.Starttijd, E.Eindtijd, E.Verzameltijd, ET.Omschrijving AS `Type evenement`
+		$query = sprintf("SELECT E.RecordID AS lnkNummer, E.Datum, E.Omschrijving, E.Starttijd, E.Eindtijd, E.Verzameltijd, ET.Omschrijving AS `Type evenement`
 								FROM %1\$sEvenement AS E INNER JOIN %1\$sEvenement_Type AS ET ON E.TypeEvenement = ET.RecordID
 								ORDER BY E.Datum;", $table_prefix);
 		$result = fnQuery($query);
@@ -1289,17 +1305,47 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="") {
 								WHERE ED.LidID=%2\$d AND ED.EvenementID=%3\$d;", $table_prefix, $lidid, $eventid);
 		$result = fnQuery($query);
 		return $result->fetch();
+	} elseif ($actie == "record" and $eventid > 0) {
+		$query = sprintf("SELECT E.*, %1\$s AS GewijzigdDoorNaam FROM %2\$sEvenement AS E LEFT OUTER JOIN %2\$sLid AS L ON E.GewijzigdDoor = L.Nummer
+								WHERE E.RecordID=%3\$d;", $selectnaam, $table_prefix, $eventid);
+		$result = fnQuery($query);
+		return $result->fetch();
+	} elseif ($actie == "types") {
+		$query = sprintf("SELECT * FROM %sEvenement_Type ORDER BY Omschrijving;", $table_prefix);
+		$result = fnQuery($query);
+		return $result->fetchAll();
+	} elseif ($actie == "deelnemers") {
+		$query = sprintf("SELECT ED.RecordID, %1\$s AS NaamDeelnemer, ED.Status, ED.Opmerking, ED.Functie, ED.LidID
+								FROM %2\$sEvenement_Deelnemer AS ED INNER JOIN %2\$sLid AS L ON ED.LidID = L.Nummer
+								WHERE ED.EvenementID=%3\$d
+								ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectnaam, $table_prefix, $eventid);
+		$result = fnQuery($query);
+		return $result->fetchAll();
+		
+	} elseif ($actie == "potdeelnemers") {
+		$where = "";
+		if ($groepid > 0) {
+			$where = sprintf("AND LO.OnderdeelID=%d", $groepid);
+		}
+		$query = sprintf("SELECT DISTINCT L.Nummer, %1\$s AS Naam
+								FROM %2\$sLid AS L LEFT OUTER JOIN %2\$sLidond AS LO ON L.Nummer = LO.Lid
+								WHERE (L.Nummer NOT IN (SELECT LidID FROM %2\$sEvenement_Deelnemer WHERE EvenementID=%3\$d)) %4\$s
+								ORDER BY %1\$s;", $selectzoeknaam, $table_prefix, $eventid, $where);
+		$result = fnQuery($query);
+		return $result->fetchAll();
 	} elseif ($actie == "adddeelnemer" and $lidid > 0 and $eventid > 0) {
-		$query = sprintf("INSERT INTO %sEvenement_Deelnemer SET LidID=%d, EvenementID=%d, Opmerking='%s', Ingevoerd=CURDATE(), GewijzigdDoor=%d;", $table_prefix, $lidid, $eventid, $opm, $_SESSION['lidid']);
+		$query = sprintf("INSERT INTO %sEvenement_Deelnemer SET LidID=%d, EvenementID=%d, Opmerking='%s', Status='%s', Ingevoerd=CURDATE(), GewijzigdDoor=%d;", $table_prefix, $lidid, $eventid, $opm, $stat, $_SESSION['lidid']);
 		fnQuery($query);
+		$mess = sprintf("%s is met status '%s' aan evenement %d toegevoegd.", db_naamlid($lidid), $stat, $eventid);
+		db_logboek("add", $mess, 7);
 	} elseif ($actie == "updatedeelnemer" and $lidid > 0 and $eventid > 0) {
-		$query = sprintf("UPDATE %sEvenement_Deelnemer SET Opmerking='%s', GewijzigdDoor=%d WHERE LidID=%d AND EvenementID=%d;", $table_prefix, $opm, $_SESSION['lidid'], $lidid, $eventid);
+		$query = sprintf("UPDATE %sEvenement_Deelnemer SET Opmerking='%s', Status='%s', Functie='%s', GewijzigdDoor=%d WHERE LidID=%d AND EvenementID=%d;", $table_prefix, $opm, $stat, $functie, $_SESSION['lidid'], $lidid, $eventid);
 		fnQuery($query);
 	} elseif ($actie == "deletedeelnemer" and $lidid > 0 and $eventid > 0) {
 		$query = sprintf("DELETE FROM %sEvenement_Deelnemer WHERE LidID=%d AND EvenementID=%d;", $table_prefix, $lidid, $eventid);
 		$result = fnQuery($query);
 		if ($result > 0) {
-			$mess = sprintf("Inschrijving bij evenement %d is bij lid %d verwijderd.", $eventid, $lidid);
+			$mess = sprintf("Inschrijving bij evenement %d is bij %s verwijderd.", $eventid, db_naamlid($lidid));
 			db_logboek("add", $mess, 7);
 		}
 	}
@@ -1982,6 +2028,7 @@ function db_backup() {
 	} else {
 	   $ret = sprintf("Het script (%s) heeft gedraaid, maar de backup is niet gelukt.", $strCmd);
 	   $ret .= sprintf("<br>\nMelding mysqldump: %s", array_keys($arrOutput));
+		db_logboek("add", $ret, 3);
 	}
 	return $ret;
 }
