@@ -279,8 +279,7 @@ class mailing {
 			printf("<option value=0>&nbsp;</option>\n");
 			printf("<option value=-1>Iedereen</option>\n");
 			printf("<option value=0>&nbsp;</option>\n");
-			$rows = db_Onderdelen();
-			foreach($rows as $grp) {
+			foreach(db_onderdelen() as $grp) {
 				printf("<option value=%d>%s</option>\n", $grp->RecordID, $grp->Oms);
 			}
 			printf("</select>\n");
