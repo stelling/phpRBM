@@ -527,6 +527,7 @@ function fnWijzigen($lidid=0) {
 				if (isValidMailAddress($emailledenadministratie, 0)) {
 					$mail->AddAddress($emailledenadministratie);
 				}
+				$mail->AddCC($_SESSION['emailingelogde']);
 				$body = sprintf("<p>Beste ledenadministratie,</p>
 										<p>Bijgevoegd is mijn nieuwe pasfoto.</p>
 										<p>Met vriendelijke groeten,<br>
@@ -681,7 +682,6 @@ function fnWijzigen($lidid=0) {
 					}
 				}
 			}
-			
 			$oldvals = "";
 			
 			echo("<div id='wijzigendiplomas'>\n");
