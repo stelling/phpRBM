@@ -483,7 +483,7 @@ function DetailsInschrijvingBewaking($rows) {
 	if (isset($rows) and count($rows) > 0) {
 		$ret .= "<table>\n";
 		$ret .= "<tr><th colspan=9 class='tabelkop'>Details inschrijving bewaking</th></tr>\n";
-		$ret .= "<tr><th></th><th>Week</th><th>Periode</th><th>Bewaker</th><th>Keuze 1</th><th>Keuze 2</th><th>Opmerking (week)</th><th>Opmerking (Inschrijving)</th></tr>\n";
+		$ret .= "<tr><th colspan=2>Bewaker</th><th>Week</th><th>Periode</th><th>Keuze 1</th><th>Keuze 2</th><th>Opmerking (week)</th><th>Opmerking (Inschrijving)</th></tr>\n";
 		$voriglid = -1;
 		$hv = "";
 		foreach($rows as $row) {
@@ -506,6 +506,7 @@ function DetailsInschrijvingBewaking($rows) {
 				} else {
 					$hv .= "<td rowspan=[ROWSPAN]>&nbsp;</td>\n";
 				}
+				$hv .= sprintf("<td rowspan=[ROWSPAN]>%s</td>", htmlentities($row->Bewaker));
 			}
 			$hv .= sprintf("<td>%s</td>", $row->Week);
 			if (substr($row->dteBegin, 0, 7) == substr($row->dteEinde, 0, 7)) {
@@ -513,7 +514,6 @@ function DetailsInschrijvingBewaking($rows) {
 			} else {
 				$hv .= sprintf("<td>%s t/m %s</td>", strftime('%e %b', strtotime($row->dteBegin)), strftime('%e %b %Y', strtotime($row->dteEinde)));
 			}
-			$hv .= sprintf("<td>%s</td>", htmlentities($row->Bewaker));
 			$k = "Keuze 1";
 			$hv .= sprintf("<td>%s</td>", $row->$k);
 			$k = "Keuze 2";
