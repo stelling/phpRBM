@@ -670,6 +670,13 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 								WHERE BI.Lid=%d AND BI.BlokID=%d;", $table_prefix, $lidid, $blok);
 		$result = fnQuery($query);
 		return $result->fetch();
+	} elseif ($actie == "export") {
+		$query = sprintf("SELECT %1\$s AS NaamLid, BI.Lid, BB.SeizoenID, BB.Begindatum, BB.Einddatum
+								FROM (%2\$sBewaking_Inschrijving AS BI INNER JOIN %2\$sLid AS L ON BI.Lid = L.Nummer) INNER JOIN %2\$sBewaking_Blok AS BB ON BI.BlokID = BB.RecordID
+								WHERE BI.Afgemeld < BI.Ingevoerd AND BI.Definitief > BI.Ingevoerd AND BI.Keuze IN (1, 3)
+								ORDER BY L.Achternaam, L.Tussenv, L.Roepnaam, BB.Begindatum;", $selectnaam, $table_prefix);
+		$result = fnQuery($query);
+		return $result->fetchAll();
 	} elseif ($actie == "add" and $lidid > 0 and $blok > 0 and $insnr > 0) {
 		$query = sprintf("INSERT INTO %sBewaking_Inschrijving (BlokID, Lid, Nummer, Keuze, Opmerking, Ingevoerd)
 								VALUES (%d, %d, %d, %d, \"%s\", CURDATE());", $table_prefix, $blok, $lidid, $insnr, $keuze, $opmerk);
@@ -698,6 +705,13 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 	} elseif ($actie == "defmaken" and $lidid > 0 and $insnr > 0) {
 		$query = sprintf("UPDATE %sBewaking_Inschrijving SET Definitief=SYSDATE() WHERE Nummer=%d AND Lid=%d;", $table_prefix, $insnr, $lidid);
 		fnQuery($query);
+	} elseif ($actie == "afmelden") {
+		$query = sprintf("UPDATE %sBewaking_Inschrijving AS BI SET Afgemeld=SYSDATE()
+								WHERE BI.Afgemeld < BI.Ingevoerd AND BI.Definitief > BI.Ingevoerd AND BI.Keuze IN (1, 3);", $table_prefix);
+		$result = fnQuery($query);
+		$mess = sprintf("Er zijn %d inschrijvingen voor bewaking afgemeld.", $result);
+		db_logboek("add", $mess, 6);
+		return $mess;
 	}
 }
 
@@ -1990,27 +2004,24 @@ function db_backup() {
 	}
 
 	$FileName = $db_folderbackup . $buname;
-
-	$strCmd = "mysqldump -h" . $db_host . " -u" . $db_user . " -p" . $db_pass . " -f " . $db_name . "> " . $FileName . ".sql";
-
-	@exec($strCmd, $arrOutput);
-
+	$strCmd = sprintf("mysqldump -h%s -u%s -p%s -f %s> %s.sql", $db_host, $db_user, $db_pass, $db_name, $FileName);
+	exec($strCmd, $output, $output);
 	if (filesize($FileName . ".sql") > 1500) {
 		$ret = sprintf("De backup is in '%s.sql' gemaakt. ", str_replace($db_folderbackup, "", $FileName));
 		db_logboek("add", $ret, 3);
 
 		if (isset($db_backuptarren) and $db_backuptarren == 1) {
 			// De dump tarren
-			@exec("/bin/tar -czf " . $FileName . ".tar.gz" . " " . $FileName . ".sql");
+			exec("/bin/tar -czf " . $FileName . ".tar.gz" . " " . $FileName . ".sql");
 
 			// De niet ingepakte dump weggooien
-			@exec("/bin/rm " . $FileName . ".sql");
+			exec("/bin/rm " . $FileName . ".sql");
 
 			// De backup 700 chmodden, zodat niemand er bij kan!
-			@exec("/bin/chmod 700 " . $FileName . ".tar.gz");
+			exec("/bin/chmod 700 " . $FileName . ".tar.gz");
 		} else {
 			// De backup 700 chmodden, zodat niemand er bij kan!
-			@exec("/bin/chmod 700 " . $FileName . ".sql");
+			exec("/bin/chmod 700 " . $FileName . ".sql");
 		}
 
 		if ($db_backupsopschonen > 0 and $handle = opendir($db_folderbackup)) {
@@ -2026,8 +2037,8 @@ function db_backup() {
 			}
 		}
 	} else {
-	   $ret = sprintf("Het script (%s) heeft gedraaid, maar de backup is niet gelukt.", $strCmd);
-	   $ret .= sprintf("<br>\nMelding mysqldump: %s", array_keys($arrOutput));
+	   $ret = "Het backup-script heeft gedraaid, maar de backup is niet gelukt.\n";
+	   $ret .= sprintf("Melding mysqldump: %s", $output);
 		db_logboek("add", $ret, 3);
 	}
 	return $ret;

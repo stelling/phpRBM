@@ -83,9 +83,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if (strlen($muteerbarememos) > 0) { 
 		$tabpages[] = "Wijzigen/Bijzonderheden";
 	}
-	if (count(db_insbew("openblokken")) > 0) {
-		$tabpages[] = "Wijzigen/Inschrijving bewaking";
-	}
+	$tabpages[] = "Wijzigen/Inschrijving bewaking";
 	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl" and db_evenement("aantalopen") > 0) {
 		$tabpages[] = "Wijzigen/Inschrijving evenementen";
 	}
@@ -118,6 +116,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	}
 	if (count(db_insbew("overzicht")) > 0) {
 		$tabpages[] = "Bewaking/Overzicht inschrijvingen";
+		$tabpages[] = "Bewaking/Downloaden inschrijvingen";
 	}
 	if (db_scalar(sprintf("SELECT COUNT(*) FROM %sAdmin_activiteit WHERE TypeActiviteit=6;", $table_prefix)) > 0) {
 		$tabpages[] = "Bewaking/Logboek inschrijving";
@@ -200,7 +199,7 @@ function HTMLheader() {
 		echo("<!DOCTYPE HTML>\n");
 		echo("<html lang='nl'>\n");
 		echo("<head>\n");
-		echo("<meta charset='UTF-8'>\n");
+//		echo("<meta charset='UTF-8'>\n");
 		if (isset($_GET['tp']) and substr($_GET['tp'], 0, 7) == "Mailing") {
 			echo("<script src='/includes/ckeditor/ckeditor.js'></script>\n");
 		}

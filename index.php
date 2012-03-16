@@ -15,6 +15,15 @@ if ($_SESSION['aantallid'] == 0) {
 } else {
 	$lidid = 0;
 }
+
+if (isset($_GET['op']) and $_GET['op'] == "exportins") {
+	header("Content-type: text/plain");
+	header("Content-Disposition: attachment; filename=inschrijvingen.sql");
+	foreach(db_insbew("export") as $row) {
+		echo(SQLexport($row) . "\n");
+	}
+	exit();
+}
 	
 HTMLheader();
 
