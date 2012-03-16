@@ -894,6 +894,9 @@ function db_logins($actie="lijst", $email="", $gewenstelogin="", $lidid=0, $xtra
 				$xtrawhere = sprintf("AND Login.Login='%s'", mysql_escape_string($_SESSION['username']));
 			}
 			$xtrawhere .= sprintf(" AND Login.Wachtwoord='%s' AND LENGTH(Login.Wachtwoord) > 5", encript_decript($_SESSION['password']));
+			if (isset($maxinlogpogingen) and $maxinlogpogingen > 0) {
+				$xtrawhere .= sprintf(" AND Login.FouteLogin <= %d", $maxinlogpogingen);
+			}
 			if (is_array($beperktotgroep) and count($beperktotgroep) > 0) {
 				$xtrawhere .= sprintf(" AND (Login.LidID IN (SELECT Lid FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID IN (%s)) OR Login.LidID IN (%s))", $table_prefix, $wherelidond, implode(", ", $beperktotgroep), implode(", ", $lididwebmasters));
 			} elseif ($beperktotgroep > 0) {
@@ -910,7 +913,14 @@ function db_logins($actie="lijst", $email="", $gewenstelogin="", $lidid=0, $xtra
 					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;', $xtraselect, $selectnaam, $table_prefix, $xtrawhere);
 		$result = fnQuery($query);
 		if ($actie == "controle") {
-			return $result->fetch();
+			$row = $result->fetch();
+			if (isset($row->LidID) and $row->LidID > 0) {
+				return $row;
+			} else {
+				$query = sprintf("UPDATE %sAdmin_login SET FouteLogin = FouteLogin + 1 WHERE Login='%s';", $table_prefix, mysql_escape_string($_SESSION['username']));
+				fnQuery($query);
+				return false;
+			}
 		} else {
 			return $result->fetchAll();
 		}
@@ -1440,6 +1450,13 @@ function db_onderhoud() {
 	if (db_scalar($query) == 0) {
 		fnQuery(sprintf("ALTER TABLE `%sAdmin_login` ADD `LastActivity` DATETIME;", $table_prefix));
 	}
+	
+		
+	// Toevoegen veld 'FouteLogin' aan de tabel Admin_login. Deze code kan na 16/3/2013 worden verwijderd.
+	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sAdmin_login' AND COLUMN_NAME='FouteLogin';", $db_name, $table_prefix);
+	if (db_scalar($query) == 0) {
+		fnQuery(sprintf("ALTER TABLE `%sAdmin_login` ADD `FouteLogin` SMALLINT NOT NULL DEFAULT '0';", $table_prefix));
+	}
 
 	if ($bewaartijdlogins > 0) {
 		$query = sprintf('DELETE FROM %1$sAdmin_login
@@ -1554,7 +1571,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_activiteit` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `LidID` int(11) NOT NULL,
   `DatumTijd` datetime NOT NULL,
-  `Omschrijving` varchar(150) NOT NULL,
+  `Omschrijving` text NOT NULL,
   `TypeActiviteit` tinyint(4) DEFAULT '0',
   `IP_adres` char(15) NOT NULL,
   `USER_AGENT` varchar(110) DEFAULT NULL,
@@ -1564,12 +1581,12 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_activiteit` (
 CREATE TABLE IF NOT EXISTS `%1\$sAdmin_interface` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `LidID` int(11) NOT NULL,
-  `IP-adres` char(15) COLLATE utf8_unicode_ci NOT NULL,
-  `SQL-statement` text COLLATE utf8_unicode_ci NOT NULL,
+  `IP-adres` char(15) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `SQL-statement` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `Ingevoerd` datetime DEFAULT NULL,
   `Afgemeld` datetime DEFAULT NULL,
   PRIMARY KEY (`RecordID`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sAdmin_login` (
   `LidID` int(11) NOT NULL,
@@ -1582,6 +1599,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_login` (
   `LastLogin` datetime NOT NULL,
   `LastActivity` datetime NOT NULL,
   `Ingelogd` tinyint(4) NOT NULL DEFAULT '0',
+  `FouteLogin` smallint(6) NOT NULL DEFAULT '0',
   PRIMARY KEY (`LidID`),
   UNIQUE KEY `Login` (`Login`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
@@ -1607,7 +1625,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sBewaking` (
 CREATE TABLE IF NOT EXISTS `%1\$sBewaking_Blok` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `SeizoenID` int(11) NOT NULL,
-  `Kode` char(2) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `Kode` char(2) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
   `Begindatum` date NOT NULL,
   `Einddatum` date NOT NULL,
   `InschrijvingOpen` tinyint(4) NOT NULL DEFAULT '1',
@@ -1616,7 +1634,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sBewaking_Blok` (
   PRIMARY KEY (`RecordID`),
   UNIQUE KEY `SeizoenBegindatum` (`SeizoenID`,`Begindatum`),
   UNIQUE KEY `SeizoenKode` (`SeizoenID`,`Kode`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sBewaking_Inschrijving` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
@@ -1628,7 +1646,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sBewaking_Inschrijving` (
   `Definitief` datetime NOT NULL,
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `Afgemeld` datetime DEFAULT NULL,
+  `Afgemeld` datetime NOT NULL,
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
@@ -1692,9 +1710,9 @@ CREATE TABLE IF NOT EXISTS `%1\$sDiploma` (
 
 CREATE TABLE IF NOT EXISTS `%1\$sDMS_Document` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
-  `Bestandsnaam` varchar(30) COLLATE utf8_unicode_ci NOT NULL,
+  `Bestandsnaam` varchar(30) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `FolderID` int(11) NOT NULL,
-  `Beschrijving` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+  `Beschrijving` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `Volgnummer` tinyint(4) unsigned NOT NULL DEFAULT '0',
   `EigenaarID` int(11) NOT NULL,
   `LockedBy` int(11) NOT NULL,
@@ -1702,18 +1720,57 @@ CREATE TABLE IF NOT EXISTS `%1\$sDMS_Document` (
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime NOT NULL,
   PRIMARY KEY (`RecordID`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sDMS_Folder` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
-  `Foldernaam` varchar(30) COLLATE utf8_unicode_ci NOT NULL,
-  `Beschrijving` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+  `Foldernaam` varchar(30) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `Beschrijving` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `Volgnummer` tinyint(3) unsigned NOT NULL DEFAULT '0',
   `BovenliggendeFolderID` int(11) NOT NULL DEFAULT '0',
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime NOT NULL,
   PRIMARY KEY (`RecordID`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `%1\$sEvenement` (
+  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
+  `Datum` date NOT NULL,
+  `Starttijd` varchar(5) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
+  `Eindtijd` varchar(5) NOT NULL,
+  `Verzameltijd` varchar(5) NOT NULL,
+  `Omschrijving` varchar(75) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `TypeEvenement` int(11) NOT NULL,
+  `InschrijvingOpen` tinyint(4) NOT NULL DEFAULT '1',
+  `BeperkTotGroep` int(11) NOT NULL DEFAULT '0',
+  `Ingevoerd` date NOT NULL,
+  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `GewijzigdDoor` int(11) NOT NULL,
+  PRIMARY KEY (`RecordID`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `%1\$sEvenement_Deelnemer` (
+  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
+  `LidID` int(11) NOT NULL,
+  `EvenementID` int(11) NOT NULL,
+  `Functie` varchar(20) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
+  `Opmerking` varchar(75) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
+  `Status` char(1) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT 'I',
+  `Ingevoerd` date NOT NULL,
+  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `GewijzigdDoor` int(11) NOT NULL,
+  PRIMARY KEY (`RecordID`),
+  UNIQUE KEY `LidEvenement` (`LidID`,`EvenementID`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `%1\$sEvenement_Type` (
+  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
+  `Omschrijving` varchar(30) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
+  `Soort` char(1) NOT NULL DEFAULT 'W',
+  `Ingevoerd` date NOT NULL,
+  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`RecordID`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sFunctie` (
   `Nummer` tinyint(4) NOT NULL DEFAULT '0',
