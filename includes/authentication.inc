@@ -12,7 +12,7 @@ if (!isset($_SESSION['username']) or !isset($_SESSION['password'])) {
 
 
 function toegang($soort, $melding=1) {
-	global $lididwebmasters, $table_prefix, $urlwebsite, $gebruikopenid, $naamwebsite;
+	global $lididwebmasters, $table_prefix, $urlwebsite, $gebruikopenid, $naamwebsite, $maxinlogpogingen;
 
 	if (isset($_SESSION['lidid']) and $_SESSION['lidid'] > 0 and isset($_SESSION['lastauthenication']) and $_SESSION['lastauthenication'] >= time()-(20*60)) {
 		// Er hoeft niets te gebeuren.
@@ -49,7 +49,7 @@ function toegang($soort, $melding=1) {
 				}
 				$e = "E-mail";
 				$_SESSION['emailingelogde'] = $row->$e;
-				$query = sprintf("UPDATE %sAdmin_login SET LastLogin=SYSDATE(), Ingelogd=1 WHERE Ingelogd=0 AND LidID=%d;", $table_prefix, $_SESSION['lidid']);
+				$query = sprintf("UPDATE %sAdmin_login SET LastLogin=SYSDATE(), Ingelogd=1, FouteLogin=0 WHERE Ingelogd=0 AND LidID=%d;", $table_prefix, $_SESSION['lidid']);
 				$result = fnQuery($query);
 				if ($result > 0) {
 					$mess = sprintf("%s is met '%s' ingelogd.", $_SESSION['naamingelogde'], $_SESSION['username']);
@@ -132,7 +132,7 @@ function toegang($soort, $melding=1) {
 }
 
 function fnConfirmLogin($row) {
-	global $urlwebsite, $naamwebsite, $naamvereniging;
+	global $urlwebsite, $naamwebsite, $naamvereniging, $maxinlogpogingen;
 	
 	$def_bevestiging = "<p>Beste [%ROEPNAAM%],</p>\n
 <p>Je hebt een login voor de website <a href='http://[%URLWEBSITE%]'>[%NAAMWEBSITE%]</a> aangevraagd. Hierbij je gegevens.</p>\n
@@ -140,6 +140,7 @@ function fnConfirmLogin($row) {
 <li>Login: [%LOGIN%]</li>\n
 <li>Wachtwoord: [%PASSWORD%]</li>\n
 </ul>\n
+<p>[%GEBLOKKEERD%]</p>
 \n
 <p>Met vriendelijke groeten,<br>\n
 <strong>Webmaster [%NAAMWEBSITE%]</strong></p>\n";
@@ -162,12 +163,18 @@ function fnConfirmLogin($row) {
 	} else {
 		$briefpapier = "[%MESSAGE%]";
 	}
+	if (isset($maxinlogpogingen) and $maxinlogpogingen > 0 and $row->FouteLogin > $maxinlogpogingen) {
+		$geblokt = sprintf("Er is %d keer geprobeerd met deze login in te loggen. Hierdoor is dit account geblokkeerd. Vraag aan de webmaster om deze weer vrij te geven.", $row->FouteLogin);
+	} else {
+		$geblokt = "";
+	}
 	
 	$content = str_replace("[%NAAMLID%]", $row->Naam, $content);
 	$content = str_replace("[%LOGIN%]", $row->Login, $content);
 	$content = str_replace("[%LIDNR%]", $row->Lidnr, $content);
 	$content = str_replace("[%ROEPNAAM%]", $row->Roepnaam, $content);
 	$content = str_replace("[%PASSWORD%]", encript_decript($row->Wachtwoord, 0), $content);
+	$content = str_replace("[%GEBLOKKEERD%]", $row->Roepnaam, $content);
 	$content = str_replace("[%NAAMVERENIGING%]", $naamvereniging, $content);
 	$content = str_replace("[%NAAMWEBSITE%]", $naamwebsite, $content);
 	$content = str_replace("[%URLWEBSITE%]", $urlwebsite, $content);
