@@ -250,16 +250,16 @@ function db_gegevenslid($LidID, $soort="Alg") {
 								(SELECT Memo FROM %3\$sMemo WHERE Soort='B' AND Lid=%4\$d) AS Opmerking,
 								(SELECT Memo FROM %3\$sMemo WHERE Soort='D' AND Lid=%4\$d) AS Dieet;", $tw, $ts, $table_prefix, $LidID);
 	} elseif ($soort == "Bew") {
-		$query = sprintf("SELECT BS.Kode AS Seizoen,"
-				 . " Weeknr AS intWeek,"
-				 . " BEGIN_PER AS dteBegin,"
-				 . " EINDE_PER AS dteEinde,"
-				 . " DATEDIFF(EINDE_PER, BEGIN_PER) + 1 AS intDagen,"
-				 . " Post,"
-				 . " F.Omschrijv AS Functie"
-				 . ' FROM %1$sBewseiz AS BS INNER JOIN (%1$sBewaking AS BW INNER JOIN %1$sFunctie AS F ON BW.Functie = F.Nummer) ON BS.RecordID = BW.SeizoenID'
-				 . ' WHERE Lid=%2$d'
-				 . " ORDER BY BS.Begindatum DESC, BS.Lokatie, BW.BEGIN_PER DESC;", $table_prefix, $LidID);
+		$query = sprintf("SELECT BS.Kode AS Seizoen,
+								Weeknr AS intWeek,
+								BEGIN_PER AS dteBegin,
+								EINDE_PER AS dteEinde,
+								DATEDIFF(EINDE_PER, BEGIN_PER) + 1 AS intDagen,
+								Post,
+								F.Omschrijv AS Functie
+								FROM %1\$sBewseiz AS BS INNER JOIN (%1\$sBewaking AS BW INNER JOIN %1\$sFunctie AS F ON BW.Functie = F.Nummer) ON BS.RecordID = BW.SeizoenID
+								WHERE Lid=%2\$d AND BS.Begindatum <= CURDATE()
+								ORDER BY BS.Begindatum DESC, BS.Lokatie, BW.BEGIN_PER DESC;", $table_prefix, $LidID);
 	} elseif ($soort == "Rekening") {
 		$query = sprintf("SELECT Nummer,"
 				 . " Datum AS dteDatum,"
@@ -295,9 +295,9 @@ function db_naamlid($lidid, $uitv="Naam") {
 	global $selectnaam, $selectzoeknaam, $table_prefix;
 	
 	if ($uitv == "Naam") {
-		$query = sprintf("SELECT %s FROM %sLid AS L WHERE L.Nummer=%d;", $selectzoeknaam, $table_prefix, $lidid);
-	} else {
 		$query = sprintf("SELECT %s FROM %sLid AS L WHERE L.Nummer=%d;", $selectnaam, $table_prefix, $lidid);
+	} else {
+		$query = sprintf("SELECT %s FROM %sLid AS L WHERE L.Nummer=%d;", $selectzoeknaam, $table_prefix, $lidid);
 	}
 	return db_scalar($query);
 }
@@ -881,9 +881,16 @@ function db_logins($actie="lijst", $email="", $gewenstelogin="", $lidid=0, $xtra
 				db_logboek("add", $mess, 1);
 				fnQuery(sprintf("OPTIMIZE TABLE %sAdmin_login;", $table_prefix));
 			}
-	} else {
-		echo("<p class='mededeling'>Je hebt geen rechten om logins te verwijderen.</p>\n");
-	}
+		} else {
+			echo("<p class='mededeling'>Je hebt geen rechten om logins te verwijderen.</p>\n");
+		}
+	} elseif ($actie == "unlock" and $lidid > 0) {
+		$query = sprintf("UPDATE %sAdmin_login SET FouteLogin=0 WHERE LidID=%d AND FouteLogin > 0;", $table_prefix, $lidid);
+		$result = fnQuery($query);
+		if ($result == 1) {
+			$mess = sprintf("Het aantal foutieve inlogpogingen van de login van %s is gereset.", db_naamlid($lidid));
+			db_logboek("add", $mess, 1);
+		}
 	} elseif ($actie == "lijst" or $actie == "controle") {
 		$xtraselect = "";
 		$xtrawhere = "";
@@ -906,8 +913,8 @@ function db_logins($actie="lijst", $email="", $gewenstelogin="", $lidid=0, $xtra
 			$xtrawhere = " AND " . $xtrafilter;
 		}
 		$query = sprintf('SELECT Login.LidID AS lnkNummer, Login.LidID, LM.Lidnr, Login.Login, %1$s %2$s AS Naam_lid, L.Roepnaam AS ndRoepnaam,
-					L.EMAIL AS `E-mail`, L.EmailVereniging AS `E-mail vereniging`, Login.Ingevoerd AS dteIngevoerd, Login.LastLogin AS `dttLaatste login`,
-					Login.Wachtwoord AS ndWachtwoord
+					L.EMAIL AS `E-mail`, L.EmailVereniging AS `E-mail vereniging`, Login.FouteLogin AS `numFoutieve logins`, Login.Ingevoerd AS dteIngevoerd, Login.LastLogin AS `dttLaatste login`,
+					Login.Wachtwoord AS ndWachtwoord, IF(Login.FouteLogin > 0, Login.LidID, 0) AS llkNummer
 					FROM %3$sAdmin_login AS Login INNER JOIN (%3$sLid AS L LEFT OUTER JOIN %3$sLidmaatschap AS LM ON L.Nummer = LM.Lid) ON Login.LidID = L.Nummer
 					WHERE LENGTH(Login.Wachtwoord) > 5 %4$s
 					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;', $xtraselect, $selectnaam, $table_prefix, $xtrawhere);
@@ -1296,8 +1303,9 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 }
 
 function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="I", $functie="", $groepid=0) {
-	global $table_prefix, $selectnaam, $selectzoeknaam;
+	global $table_prefix, $selectnaam, $selectzoeknaam, $wherelidond;
 
+	$xtra_where = "";
 	if ($actie == "komende") {
 		$query = sprintf("SELECT E.*, ET.Omschrijving AS TypeEvenement
 								FROM %1\$sEvenement AS E INNER JOIN %1\$sEvenement_Type AS ET ON E.TypeEvenement = ET.RecordID
@@ -1306,14 +1314,18 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="I", $functie
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "open") {
+		if ($lidid > 0) {
+			$xtra_where = sprintf("AND (E.BeperkTotGroep=0 OR E.BeperkTotGroep IN (SELECT OnderdeelID FROM %sLidond AS LO WHERE Lid=%d AND %s))", $table_prefix, $lidid, $wherelidond);
+		}
 		$query = sprintf("SELECT E.*, ET.Omschrijving AS TypeEvenement
 								FROM %1\$sEvenement AS E INNER JOIN %1\$sEvenement_Type AS ET ON E.TypeEvenement = ET.RecordID
-								WHERE E.Datum >= CURDATE() AND InschrijvingOpen=1
-								ORDER BY E.Datum;", $table_prefix);
+								WHERE E.Datum >= CURDATE() AND InschrijvingOpen=1 %2\$s
+								ORDER BY E.Datum;", $table_prefix, $xtra_where);
 		$result = fnQuery($query);
 		return $result->fetchAll();
-	} elseif ($actie == "overzichtbeheer") {
-		$query = sprintf("SELECT E.RecordID AS lnkNummer, E.Datum, E.Omschrijving, E.Starttijd, E.Eindtijd, E.Verzameltijd, ET.Omschrijving AS `Type evenement`
+	} elseif ($actie == "overzicht") {
+		$query = sprintf("SELECT E.RecordID AS lnkNummer, E.Datum, E.Omschrijving, E.Starttijd, E.Eindtijd, E.Verzameltijd,
+								ET.Omschrijving AS `Type evenement`
 								FROM %1\$sEvenement AS E INNER JOIN %1\$sEvenement_Type AS ET ON E.TypeEvenement = ET.RecordID
 								ORDER BY E.Datum;", $table_prefix);
 		$result = fnQuery($query);
@@ -1339,7 +1351,7 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="I", $functie
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "deelnemers") {
-		$query = sprintf("SELECT ED.RecordID, %1\$s AS NaamDeelnemer, ED.Status, ED.Opmerking, ED.Functie, ED.LidID
+		$query = sprintf("SELECT ED.RecordID, %1\$s AS NaamDeelnemer, ED.Status, ED.Opmerking, ED.Functie, ED.LidID, L.Geslacht
 								FROM %2\$sEvenement_Deelnemer AS ED INNER JOIN %2\$sLid AS L ON ED.LidID = L.Nummer
 								WHERE ED.EvenementID=%3\$d
 								ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectnaam, $table_prefix, $eventid);
