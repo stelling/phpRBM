@@ -208,11 +208,11 @@ class mailing {
 		}
 		printf("<div id='mailing'>\n");
 		printf("<form method='post' action='%s?tp=%s/%s&amp;op=post&amp;mid=%d' name='frm_mailedit' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2, $this->mid);
-		printf("<input type='hidden' name='submit' value='1'>\n");
+//		printf("<input type='hidden' name='submit' value='1'>\n");
 		printf("<table>\n");
-		printf("<tr><td class='label'>Van:</td><td><input type='text' name='from_name' value='%s' size=50 maxlength=50></td></tr>\n", $from_name);
-		printf("<tr><td class='label'>Vanaf e-mail:</td><td><input type='email' name='from_addr' value='%s' size=50 maxlength=50></td></tr>\n", $from_addr);
-		printf("<tr><td class='label'>Aan:</td><td><input type='text' name='to_name' value='%s' size=50 maxlength=50></td></tr>\n", $to_name);
+		printf("<tr><td class='label'>Van:</td><td><input type='text' name='from_name' onBlur='this.form.submit();' value='%s' size=50 maxlength=50></td></tr>\n", $from_name);
+		printf("<tr><td class='label'>Vanaf e-mail:</td><td><input type='email' name='from_addr' onBlur='this.form.submit();' value='%s' size=50 maxlength=50></td></tr>\n", $from_addr);
+		printf("<tr><td class='label'>Aan:</td><td><input type='text' name='to_name' onBlur='this.form.submit();' value='%s' size=50 maxlength=50></td></tr>\n", $to_name);
 		
 		$meldingen = "Er zijn nog geen ontvangers aan deze mailing toegevoegd.<br>\n";
 		$verzendenmag = false;
@@ -290,8 +290,8 @@ class mailing {
 			printf("(groepen zijn t/m %s bijgewerkt)", strftime("%e %B %Y", strtotime(db_lidond("laatstgewijzigd"))));
 			printf("</td></tr>\n");
 		}
-		printf("<tr><td class='label'>Cc:</td><td><input type='text' name='cc_addr' value='%s' size=100></td></tr>\n", $cc_addr);
-		printf("<tr><td class='label'>Onderwerp:</td><td><input type='text' name='subject' value='%s' size=100></td></tr>\n", $subject);
+		printf("<tr><td class='label'>Cc:</td><td><input type='text' name='cc_addr' value='%s' size=100 onBlur='this.form.submit();'></td></tr>\n", $cc_addr);
+		printf("<tr><td class='label'>Onderwerp:</td><td><input type='text' name='subject' onBlur='this.form.submit();' value='%s' size=100></td></tr>\n", $subject);
 		if (isset($ml->template) and $ml->template == 1) {
 			$templ_chk = " checked";
 		} else {
@@ -303,10 +303,11 @@ class mailing {
 			$conf_chk = "";
 		}
 		
-		printf("<tr><td class='label'>Opties:</td><td><input type='checkbox' name='templ' value=1%s>Template&nbsp;<input type='checkbox' name='confidential' value=1%s>Vertrouwelijk</td></tr>\n", $templ_chk, $conf_chk);
+		printf("<tr><td class='label'>Opties:</td><td><input type='checkbox' name='templ' onClick='this.form.submit();' value=1%s>Template&nbsp;", $templ_chk);
+		printf("<input type='checkbox' name='confidential' onClick='this.form.submit();' value=1%s>Vertrouwelijk</td></tr>\n", $conf_chk);
 		echo("</table>\n");
 		
-		printf("<textarea name='message'>%s</textarea>\n", $message);
+		printf("<textarea name='message' onBlur='this.form.submit();'>%s</textarea>\n", $message);
 		
 		echo("<script>CKEDITOR.replace('message',{
         height : 450,
