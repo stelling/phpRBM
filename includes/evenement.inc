@@ -45,7 +45,7 @@ function inschrijvenevenementen($lidid) {
 	$geldig = false;
 	echo("<table>\n");
 	echo("<tr><th>Datum</th><th>Omschrijving</th><th>Aanmelden</th><th>Opmerking</th></tr>\n");
-	foreach (db_evenement("open") as $row) {
+	foreach (db_evenement("open", $lidid) as $row) {
 		printf("<tr><td>%s</td><td>%s</td>\n", strftime("%e %B %Y", strtotime($row->Datum)), $row->Omschrijving);
 		$ins = db_evenement("inschrijving", $lidid, $row->RecordID);
 		$c = "";
@@ -88,9 +88,13 @@ function fnEvenementen() {
 		db_evenement("deletedeelnemer", $_GET['lidid'], $_GET['eid']);
 		muteerevenement($eid);
 	} elseif ($currenttab2 == "Beheer") {
-		$lijst = db_evenement("overzichtbeheer");
+		$lijst = db_evenement("overzicht");
 		$lnk = sprintf("<a href='%s?tp=%s&amp;op=edit&amp;eid=%s' title='Bewerk evenement'>%s</a>", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), "%d", "%s");
-		echo(fnDisplayTable($lijst, $lnk));
+		$er = sprintf("<td><a href='%s?%s&amp;op=edit&amp;eid=0' title='Nieuw evenement'><img src='images/star.png' alt='Nieuw'></td><td colspan=6>Nieuw evenement</td>", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+		echo(fnDisplayTable($lijst, $lnk, "", 0, "", $er));
+	} else {
+		$currenttab2 = "Overzicht";
+		overzichtevenementen();
 	}
 	
 }
@@ -130,6 +134,9 @@ function muteerevenement($eventid) {
 		}
 		if ($eventid == 0 or $row->TypeEvenement != $_POST['typeevenement']) {
 			$set_clause .= sprintf("TypeEvenement='%s', ", $_POST['typeevenement']);
+		}
+		if ($eventid == 0 or $row->InschrijvingOpen != $_POST['insopen']) {
+			$set_clause .= sprintf("InschrijvingOpen=%d, ", $_POST['insopen']);
 		}
 		if ($eventid == 0 or $row->BeperkTotGroep != $_POST['beperktotgroep']) {
 			$set_clause .= sprintf("BeperkTotGroep=%d, ", $_POST['beperktotgroep']);
@@ -175,7 +182,7 @@ function muteerevenement($eventid) {
 		$beperktotgroep = $row->BeperkTotGroep;
 	} else {
 		$recordid = 0;
-		$datum = "";
+		$datum = date("Y-m-d");
 		$oms = "";
 		$starttijd = "";
 		$eindtijd = "";
@@ -255,4 +262,40 @@ function muteerevenement($eventid) {
 	echo("</div> <!-- Einde evenementenbeheer -->\n");
 }
 
+function overzichtevenementen() {
+
+	$lijst = db_evenement("overzicht");
+	echo("<div id='overzichtevenementen'>\n");
+	echo("<table>\n");
+	echo("<tr><th>Datum en tijden</th><th>Omschrijving</th><th>Dames</th><th>Heren</th><th>Type evenement</th></tr>\n");
+	
+	foreach ($lijst as $row) {
+		if (strlen($row->Starttijd) > 3) {
+			$td = "<br>Start: " . $row->Starttijd;
+		} else {
+			$td = "";
+		}
+		if (strlen($row->Eindtijd) > 3) {
+			$td .= "<br>Einde: " . $row->Eindtijd;
+		}
+		if (strlen($row->Verzameltijd) > 3) {
+			$td .= "<br>Verzamelen: " . $row->Verzameltijd;
+		}
+		$dames = "";
+		$heren = "";
+		foreach (db_evenement("deelnemers", 0, $row->lnkNummer) as $deeln) {
+			if ($deeln->Geslacht == "V") {
+				$dames .= $deeln->NaamDeelnemer . "<br>\n";
+			} else {
+				$heren .= $deeln->NaamDeelnemer . "<br>\n";
+			}
+		}
+		$te = "Type evenement";
+		printf("<tr><td>%s %s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n", strftime("%e %B %Y", strtotime($row->Datum)), $td, $row->Omschrijving, $dames, $heren, $row->$te);
+	}
+	
+	echo("</table>\n");
+	echo("</div>  <!-- Einde overzichtevenementen -->\n");
+
+}
 ?>

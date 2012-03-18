@@ -84,7 +84,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		$tabpages[] = "Wijzigen/Bijzonderheden";
 	}
 	$tabpages[] = "Wijzigen/Inschrijving bewaking";
-	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl" and db_evenement("aantalopen") > 0) {
+	if (db_evenement("aantalopen", $_SESSION['lidid']) > 0) {
 		$tabpages[] = "Wijzigen/Inschrijving evenementen";
 	}
 	$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap WHERE Lid=%d AND (Opgezegd IS NULL);", $table_prefix, $_SESSION['lidid']);
@@ -132,11 +132,11 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if (db_mailing("aantalprullenbak") > 0) {
 		$tabpages[] = "Mailing/Prullenbak";
 	}
-	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
-		$tabpages[] = "Evenementen";
+	$tabpages[] = "Evenementen";
+	if (count(db_evenement("overzicht")) > 0) {
 		$tabpages[] = "Evenementen/Overzicht";
-		$tabpages[] = "Evenementen/Beheer";
 	}
+	$tabpages[] = "Evenementen/Beheer";
 	
 	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 //		$tabpages[] = "DMS";   Voorlopig geen tijd voor, dus uitgezet.
@@ -414,9 +414,9 @@ function fnDisplayForm($row, $xtra_eind="") {
 	return $ret;
 }
 
-function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="") {
+function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_regel="") {
 	$ret = "<div id='lijst'>\n";
-	if (isset($rows) and count($rows) > 0) {
+	if (isset($rows) and (count($rows) > 0 or strlen($xtra_regel) > 0)) {
 		$ret .= "<table>\n";
 		$dispkop = 1;
 		foreach($rows as $row) {
@@ -476,7 +476,11 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="") {
 					$href = str_replace("%s", "<img src='images/zoom.png' alt='Details'>", $href);
 					$ret .= "<td>" . $href . "</td>";
 				} elseif (substr($key, 0, 3) == "llk" and strlen($link_lk) > 1) {
-					$ret .= sprintf("<td>" . $link_lk . "</td>", $value, "<img src='images/zoom.png' alt='Details'>");
+					if ($value > 0) {
+						$ret .= sprintf("<td>" . $link_lk . "</td>", $value, "<img src='images/zoom.png' alt='Details'>");
+					} else {
+						$ret .= "<td></td>\n";
+					}
 				} elseif (substr($key, 0, 3) == "eml") {
 					$ret .= sprintf("<td>%s</td>", fnDispEmail($value, "", 1));
 				} elseif (substr($key, 0, 3) == "num") {
@@ -487,6 +491,9 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="") {
 				$kn++;
 			}
 			$ret .= "</tr>\n";
+		}
+		if (strlen($xtra_regel) > 0) {
+			$ret .= sprintf("<tr>%s</tr>\n", $xtra_regel);
 		}
 		if ($disptot == 1) {
 			$ret .= "<tr><th>Totaal</th>";

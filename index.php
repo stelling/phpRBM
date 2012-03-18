@@ -118,9 +118,7 @@ function fnVoorblad($metlogin=0) {
 		} else {
 			$content = str_replace("[%INGELOGDEGEWIJZIGD%]", "", $content);
 		}
-		if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
-			$content = str_replace("[%KOMENDEEVENEMENTEN%]", ToekomstigeEvenementen(), $content);
-		}
+		$content = str_replace("[%KOMENDEEVENEMENTEN%]", ToekomstigeEvenementen(), $content);
 		$content = str_replace("[%ROEPNAAM%]", $_SESSION['roepnaamingelogde'], $content);
 	
 		$verj = "";
