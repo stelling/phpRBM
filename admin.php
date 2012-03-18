@@ -15,6 +15,9 @@ HTMLheader();
 if (isset($_GET['op']) and $_GET['op'] == "deletelogin") {
 	db_logins("delete", "", "", $_GET['lidid']);
 	printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $currenttab);
+} elseif (isset($_GET['op']) and $_GET['op'] == "unlocklogin") {
+	db_logins("unlock", "", "", $_GET['lidid']);
+	printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $currenttab);
 } elseif (isset($_GET['op']) and $_GET['op'] == "deleteautorisatie") {
 	db_delete_authorisation($_GET['recid']);
 	printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $currenttab);
@@ -53,7 +56,9 @@ if (isset($_GET['op']) and $_GET['op'] == "deletelogin") {
 if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 	db_createtables();
 	db_onderhoud();
-	echo(fnDisplayTable(db_logins(), "<a href='" . $_SERVER['PHP_SELF'] . "?op=deletelogin&amp;lidid=%d'><img src='images/del.png' alt='Trash bin' title='Verwijder login'></a>"));
+	$lnk = sprintf("<a href='%s?op=deletelogin&amp;lidid=%s'><img src='images/del.png' title='Verwijder login'></a>", $_SERVER['PHP_SELF'], "%d");
+	$lnk_lk = sprintf("<a href='%s?op=unlocklogin&amp;lidid=%s' title='Reset foutieve logins'><img src='images/unlocked_01.png'></a>", $_SERVER['PHP_SELF'], "%d");
+	echo(fnDisplayTable(db_logins(), $lnk, "", 0, $lnk_lk));
 } elseif ($currenttab == "Autorisatie" and toegang($_GET['tp'])) {
 	echo("<div id='lijst'>\n");
 	printf("<form name='formauth' method='post' action='%s?tp=%s&amp;op=changeaccess'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
