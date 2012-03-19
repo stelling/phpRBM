@@ -14,7 +14,7 @@ if (!isset($_SESSION['username']) or !isset($_SESSION['password'])) {
 function toegang($soort, $melding=1) {
 	global $lididwebmasters, $table_prefix, $urlwebsite, $gebruikopenid, $naamwebsite, $maxinlogpogingen;
 
-	if (isset($_SESSION['lidid']) and $_SESSION['lidid'] > 0 and isset($_SESSION['lastauthenication']) and $_SESSION['lastauthenication'] >= time()-(20*60)) {
+	if (isset($_SESSION['lidid']) and $_SESSION['lidid'] > 0 and isset($_SESSION['lastauthenication']) and $_SESSION['lastauthenication'] >= time()-60) {
 		// Er hoeft niets te gebeuren.
 	} else {
 		db_logins("uitloggen");
@@ -378,4 +378,12 @@ function encript_decript($text, $encr = 1) {
 	return $retval;
 }
 
+function cleanlogin($login) {
+
+	$login = str_replace(" ", "_", trim($login));
+	$login = str_replace("'", "", trim($login));
+	$login = str_replace("\"", "", trim($login));
+	
+	return $login;
+}
 ?>
