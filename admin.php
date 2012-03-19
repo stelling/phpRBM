@@ -57,7 +57,11 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 	db_createtables();
 	db_onderhoud();
 	$lnk = sprintf("<a href='%s?op=deletelogin&amp;lidid=%s'><img src='images/del.png' title='Verwijder login'></a>", $_SERVER['PHP_SELF'], "%d");
-	$lnk_lk = sprintf("<a href='%s?op=unlocklogin&amp;lidid=%s' title='Reset foutieve logins'><img src='images/unlocked_01.png'></a>", $_SERVER['PHP_SELF'], "%d");
+	if ($maxinlogpogingen > 0) {
+		$lnk_lk = sprintf("<a href='%s?op=unlocklogin&amp;lidid=%s' title='Reset foutieve logins'><img src='images/unlocked_01.png'></a>", $_SERVER['PHP_SELF'], "%d");
+	} else {
+		$lnk_lk = "";
+	}
 	echo(fnDisplayTable(db_logins(), $lnk, "", 0, $lnk_lk));
 } elseif ($currenttab == "Autorisatie" and toegang($_GET['tp'])) {
 	echo("<div id='lijst'>\n");
@@ -78,7 +82,7 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 			if ($row->Toegang == $ond->RecordID) { $s = " selected"; } else { $s = ""; }
 			$selectopt .= sprintf("<option value=%d%s>%s</option>\n", $ond->RecordID, $s, htmlentities($ond->Naam));
 		}
-		printf("<tr><td>%s</td><td>%s</td><td><select name='toegang%d' onchange='form.submit()'>%s</select></td></tr>\n", $del, $row->Tabpage, $row->RecordID, $selectopt);
+		printf("<tr><td>%s</td><td>%s</td><td><select name='toegang%d' onchange='this.form.submit();'>%s</select></td></tr>\n", $del, $row->Tabpage, $row->RecordID, $selectopt);
 	}
 	echo("</table>\n");
 	echo("</form>\n");
