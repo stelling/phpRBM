@@ -33,7 +33,7 @@
    } elseif (isset($_SESSION['username']) and strlen($_SESSION['username']) > 5 and strlen($_SESSION['password']) > 5) {
 		header ("Location: " . $_GET['url']);
    } elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
-		$_SESSION['username'] = $_POST['username'];
+		$_SESSION['username'] = cleanlogin($_POST['username']);
 		$_SESSION['password'] = $_POST['password'];
       if (isset($_POST['cookie']) and $_POST['cookie'] == 1) {                                    
 			setcookie("username", $_SESSION['username'], time()+(3600*24*30*$bewaartijdlogins));
