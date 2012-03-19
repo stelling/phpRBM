@@ -33,7 +33,7 @@ function inschrijvenevenementen($lidid) {
 					db_evenement("updatedeelnemer", $lidid, $row->RecordID, $_POST[$opm], $insrow->Status, $insrow->Functie);
 				}
 			} elseif (isset($_POST[$ins]) and $_POST[$ins] == "1") {
-				db_evenement("adddeelnemer", $lidid, $row->RecordID, $_POST[$opm]);
+				db_evenement("adddeelnemer", $lidid, $row->RecordID, $_POST[$opm], "I");
 			}
 		}
 	}
@@ -283,7 +283,7 @@ function overzichtevenementen() {
 		}
 		$dames = "";
 		$heren = "";
-		foreach (db_evenement("deelnemers", 0, $row->lnkNummer) as $deeln) {
+		foreach (db_evenement("deelnemers", 0, $row->lnkNummer, "", "B") as $deeln) {
 			if ($deeln->Geslacht == "V") {
 				$dames .= $deeln->NaamDeelnemer . "<br>\n";
 			} else {
