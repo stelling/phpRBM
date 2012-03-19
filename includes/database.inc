@@ -391,7 +391,7 @@ function db_memo($lidid, $srt, $actie="curval", $nv="") {
 function db_add_login($login, $lidid) {
 	global $selectnaam, $lididwebmasters, $beperktotgroep, $table_prefix, $naamvereniging;
 	
-	$login = str_replace(" ", "_", trim($login));
+	$login = cleanlogin($login);
 	$query = sprintf("SELECT Login FROM %sAdmin_login WHERE LidID=%d;", $table_prefix, $lidid);
 	$result = fnQuery($query);
 	$l = $result->fetchColumn();
@@ -403,7 +403,7 @@ function db_add_login($login, $lidid) {
 			$mess = sprintf("Login '%s' is al in gebruik bij een ander lid.", $login);
 			db_logboek("add", $mess, 1);
 		} elseif (strlen($login) > 5 and $lidid > 0) {
-			$query = sprintf("INSERT INTO %sAdmin_login SET LidID=%d, Login='%s', Ingevoerd=SYSDATE(), Gewijzigd=SYSDATE();", $table_prefix, $lidid, $login);
+			$query = sprintf("INSERT INTO %sAdmin_login SET LidID=%d, Login='%s', Ingevoerd=CURDATE(), Gewijzigd=SYSDATE();", $table_prefix, $lidid, $login);
 			fnQuery($query);
 			$ok = 1;
 			$mess = sprintf("Login '%s' is aangemaakt.", $login);
@@ -884,7 +884,7 @@ function db_logins($actie="lijst", $email="", $gewenstelogin="", $lidid=0, $xtra
 		} else {
 			echo("<p class='mededeling'>Je hebt geen rechten om logins te verwijderen.</p>\n");
 		}
-	} elseif ($actie == "unlock" and $lidid > 0) {
+	} elseif ($actie == "unlock" and $lidid > 0 and $_SESSION['webmaster'] == 1) {
 		$query = sprintf("UPDATE %sAdmin_login SET FouteLogin=0 WHERE LidID=%d AND FouteLogin > 0;", $table_prefix, $lidid);
 		$result = fnQuery($query);
 		if ($result == 1) {
@@ -898,7 +898,7 @@ function db_logins($actie="lijst", $email="", $gewenstelogin="", $lidid=0, $xtra
 			if (isValidMailAddress($_SESSION['username'], 0)) {
 				$xtrawhere = sprintf("AND (LOWER(L.EMAIL)='%1\$s' OR LOWER(L.EmailVereniging)='%1\$s')", strtolower($_SESSION['username']));
 			} else {
-				$xtrawhere = sprintf("AND Login.Login='%s'", mysql_escape_string($_SESSION['username']));
+				$xtrawhere = sprintf("AND Login.Login='%s'", cleanlogin($_SESSION['username']));
 			}
 			$xtrawhere .= sprintf(" AND Login.Wachtwoord='%s' AND LENGTH(Login.Wachtwoord) > 5", encript_decript($_SESSION['password']));
 			if (isset($maxinlogpogingen) and $maxinlogpogingen > 0) {
@@ -1302,7 +1302,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 	}
 }
 
-function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="I", $functie="", $groepid=0) {
+function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie="", $groepid=0) {
 	global $table_prefix, $selectnaam, $selectzoeknaam, $wherelidond;
 
 	$xtra_where = "";
@@ -1351,13 +1351,15 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="I", $functie
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "deelnemers") {
+		if (strlen($stat) > 0) {
+			$xtra_where = sprintf("AND ED.Status='%s'", $stat);
+		}
 		$query = sprintf("SELECT ED.RecordID, %1\$s AS NaamDeelnemer, ED.Status, ED.Opmerking, ED.Functie, ED.LidID, L.Geslacht
 								FROM %2\$sEvenement_Deelnemer AS ED INNER JOIN %2\$sLid AS L ON ED.LidID = L.Nummer
-								WHERE ED.EvenementID=%3\$d
-								ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectnaam, $table_prefix, $eventid);
+								WHERE ED.EvenementID=%3\$d %4\$s
+								ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectnaam, $table_prefix, $eventid, $xtra_where);
 		$result = fnQuery($query);
 		return $result->fetchAll();
-		
 	} elseif ($actie == "potdeelnemers") {
 		$where = "";
 		if ($groepid > 0) {
