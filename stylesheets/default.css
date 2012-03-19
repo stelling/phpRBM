@@ -287,6 +287,19 @@ footer a, #footer a, footer a:visited, #footer a:visited {
 	float: left;
 }
 
+#overzichtevenementen table {
+	width: 100%;
+	border-style: none;
+}
+
+#overzichtevenementen tr, #overzichtevenementen td, #overzichtevenementen th {
+	background-color: transparent;
+	border-style: none;
+	text-align: left;
+	border-width: 1px;
+	border-right-style: solid;
+}
+
 #evenementenbeheer table {
 	width: 100%;
 }
