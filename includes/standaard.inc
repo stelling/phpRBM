@@ -116,6 +116,8 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	}
 	if (count(db_insbew("overzicht")) > 0) {
 		$tabpages[] = "Bewaking/Overzicht inschrijvingen";
+	}
+	if (count(db_insbew("export")) > 0) {
 		$tabpages[] = "Bewaking/Downloaden inschrijvingen";
 	}
 	if (db_scalar(sprintf("SELECT COUNT(*) FROM %sAdmin_activiteit WHERE TypeActiviteit=6;", $table_prefix)) > 0) {
