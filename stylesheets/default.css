@@ -197,7 +197,10 @@ footer a, #footer a, footer a:visited, #footer a:visited {
 #nieuwepasfoto {
 	border-style: none;
 	padding-left: 4px;
+	padding-top: 8px;
+	padding-bottom: 8px;
 	width: auto;
+	background-color: #FFFF99;
 }
 
 #nieuwepasfoto img {
