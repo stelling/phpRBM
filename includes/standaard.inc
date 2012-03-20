@@ -113,6 +113,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		$tabpages[] = "Bewaking/Bewakingsrooster";
 		$tabpages[] = "Bewaking/Postindeling";
 		$tabpages[] = "Bewaking/Aantallen";
+		$tabpages[] = "Bewaking/Nieuwe pasfoto";
 	}
 	if (count(db_insbew("overzicht")) > 0) {
 		$tabpages[] = "Bewaking/Overzicht inschrijvingen";
@@ -703,16 +704,6 @@ class SimpleImage {
       imagecopyresampled($new_image, $this->image, 0, 0, 0, 0, $width, $height, $this->getWidth(), $this->getHeight());
       $this->image = $new_image;   
    }      
-}
-
-function fnDiplayTable($rows, $link="", $th="", $disptot=0, $link_lk="") {
-	debug("Oude functie fnDiplayTable");
-	fnDisplayTable($rows, $link, $th, $disptot, $link_lk);
-}
-
-function fnDiplayForm($row, $xtra_eind="") {
-	debug("Oude functie fnDiplayForm");
-	fnDisplayForm($row, $xtra_eind);
 }
 
 ?>
