@@ -100,7 +100,7 @@ function fnBewaking($seizoen=0) {
 	if ($currenttab2 == "Bewakingsrooster") {
 		bew_rooster($seizoen, $week);
 	} elseif ($currenttab2 == "Postindeling") {
-		bew_postindeling($seizoen, $week=-1);
+		bew_postindeling($seizoen, $week);
 	} elseif ($currenttab2 == "Aantallen" and toegang($_GET['tp'])) {
 		$lijst = db_bewaking_aantallen($seizoen);
 		echo(fnDisplayTable($lijst));
@@ -185,6 +185,7 @@ function bew_rooster($seizoen, $week=-1) {
 }
 
 function bew_postindeling($seizoen, $week=-1) {
+
 	$lijst = db_bewakingsrooster($seizoen, $week);
 		
 	$vw = -1;
