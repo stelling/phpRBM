@@ -55,7 +55,7 @@ $wherelid = "LM.LIDDATUM <= CURDATE() AND ((LM.Opgezegd IS NULL) OR LM.Opgezegd 
 $fromlidond = sprintf('%1$sLid AS L INNER JOIN ((%1$sLidond AS LO INNER JOIN %1$sFunctie AS F ON LO.Functie = F.Nummer) INNER JOIN %1$sOnderdl AS O ON LO.OnderdeelID = O.RecordID) ON L.NUMMER = LO.LID', $table_prefix);
 $wherelidond = "LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE())";
 
-$db_conn_pdo = "mysql:host=" . $db_host . ";dbname=" . $db_name;
+$db_conn_pdo = sprintf("mysql:host=%s;dbname=%s", $db_host, $db_name);
 try {
 	$dbc = new PDO($db_conn_pdo, $db_user, $db_pass);
 	$dbc->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_OBJ);
@@ -320,16 +320,31 @@ function db_adressenlijst($filter = "O.Kader=True") {
 }
 
 function db_ledenlijst($filter="") {
-	global $selectnaam, $table_prefix;
+	global $selectnaam, $selectzoeknaam, $table_prefix;
 	
 	if (strlen($filter) > 0) {
 		$filter = " WHERE " . $filter;
 	}
 	$query = sprintf("SELECT L.Nummer AS lnkNummer, LM.Lidnr, %1\$s AS `Naam_lid`, UPPER(L.Woonplaats) AS Woonplaats,
-							L.Telefoon, L.Mobiel, L.EMAIL AS `emlE-mail`, L.GEBDATUM AS ndGEBDATUM
-							FROM %2\$sLid AS L LEFT OUTER JOIN %2\$sLidmaatschap AS LM ON L.Nummer = LM.Lid
-							%3\$s
-							ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, LM.LIDDATUM DESC;", $selectnaam, $table_prefix, $filter);
+							L.Telefoon, L.Mobiel, L.EMAIL AS `emlE-mail`, L.GEBDATUM AS ndGEBDATUM, %2\$s AS ndZoeknaam
+							FROM %3\$sLid AS L LEFT OUTER JOIN %3\$sLidmaatschap AS LM ON L.Nummer = LM.Lid
+							%4\$s
+							ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, LM.LIDDATUM DESC;", $selectnaam, $selectzoeknaam, $table_prefix, $filter);
+	$result = fnQuery($query);
+	return($result->fetchAll());
+}
+
+function db_lid($filter="") {
+	global $selectnaam, $selectzoeknaam, $table_prefix;
+	
+	if (strlen($filter) > 0) {
+		$filter = " WHERE " . $filter;
+	}
+	$query = sprintf("SELECT L.Nummer, %1\$s AS `Naam_lid`, UPPER(L.Woonplaats) AS Woonplaats,
+							L.Telefoon, L.Mobiel, L.EMAIL AS `emlE-mail`, L.GEBDATUM AS GEBDATUM, %2\$s AS Zoeknaam
+							FROM %3\$sLid AS L
+							%4\$s
+							ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, L.Nummer DESC;", $selectnaam, $selectzoeknaam, $table_prefix, $filter);
 	$result = fnQuery($query);
 	return($result->fetchAll());
 }
@@ -389,7 +404,7 @@ function db_memo($lidid, $srt, $actie="curval", $nv="") {
 }
 
 function db_add_login($login, $lidid) {
-	global $selectnaam, $lididwebmasters, $beperktotgroep, $table_prefix, $naamvereniging;
+	global $selectnaam, $lididwebmasters, $beperktotgroep, $table_prefix, $naamvereniging, $dbc;
 	
 	$login = cleanlogin($login);
 	$query = sprintf("SELECT Login FROM %sAdmin_login WHERE LidID=%d;", $table_prefix, $lidid);
@@ -404,6 +419,7 @@ function db_add_login($login, $lidid) {
 			db_logboek("add", $mess, 1);
 		} elseif (strlen($login) > 5 and $lidid > 0) {
 			$query = sprintf("INSERT INTO %sAdmin_login SET LidID=%d, Login='%s', Ingevoerd=CURDATE(), Gewijzigd=SYSDATE();", $table_prefix, $lidid, $login);
+			
 			fnQuery($query);
 			$ok = 1;
 			$mess = sprintf("Login '%s' is aangemaakt.", $login);
