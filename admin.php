@@ -30,7 +30,7 @@ if (isset($_GET['op']) and $_GET['op'] == "deletelogin") {
 			$query = sprintf('UPDATE %1$sAdmin_access SET Toegang=%2$d, Gewijzigd=SYSDATE() WHERE RecordID=%3$d AND Toegang<>%2$d;', $table_prefix, $_POST[$vn], $row->RecordID);
 			$result = fnQuery($query);
 			if ($result > 0) {
-				db_logboek("add", sprintf("Toegang '%s' is naar groep '%s' aangepast.", $row->Tabpage, db_naam_onderdeel($_POST[$vn])), 5);
+				db_logboek("add", sprintf("Toegang '%s' is naar groep '%s' aangepast.", $row->Tabpage, db_naam_onderdeel($_POST[$vn], "Iedereen")), 5);
 			}
 		}
 	}

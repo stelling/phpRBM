@@ -36,7 +36,7 @@ function fnBewaking($seizoen=0) {
 		if (!isset($_POST['lidfilter']) or strlen($_POST['lidfilter']) == 0) {
 			$_POST['lidfilter'] = 0;
 		}
-		echo("<td class='label'>Filter op lid:</td><td><select name='lidfilter' id='lidfilter' onchange='form.submit();'>\n");
+		echo("<td class='label'>Filter op lid:</td><td><select name='lidfilter' id='lidfilter' onchange='this.form.submit();'>\n");
 		echo("<option value=-1>Alle</option>\n");
 		foreach (db_logboek("lidlijst", "", 6) as $row) {
 			if ($row->LidID == $_POST['lidfilter']) {
@@ -347,6 +347,7 @@ function inschrijvenbewaking($lidid) {
 		printf("<p>%s</p>", $voorwaardeninschrijving);
 		if ($geldig and $kandef) {
 			echo("&nbsp;<input type='submit' value='Definitief maken' name='Definitief'>");
+			echo("<p>Zolang een inschrijving niet definitief gemaakt is, geldt deze niet als inschrijving.</p>\n");
 		}
 		echo("</th><tr>\n");
 		echo("</table>\n");
@@ -523,10 +524,28 @@ function DetailsInschrijvingBewaking($rows) {
 			} else {
 				$hv .= sprintf("<td>%s t/m %s</td>", strftime('%e %b', strtotime($row->dteBegin)), strftime('%e %b %Y', strtotime($row->dteEinde)));
 			}
-			$k = "Keuze 1";
-			$hv .= sprintf("<td>%s</td>", $row->$k);
-			$k = "Keuze 2";
-			$hv .= sprintf("<td>%s</td>", $row->$k);
+			$k = "";
+			$cnd = "";
+			if ($row->Keuze == 1 or $row->Keuze == 3) {
+				if ($row->Definitief < $row->Ingevoerd) {
+					$k = "ND";
+					$cnd = " class='nietdefinitief'";
+				} else {
+					$k = "Ja";
+				}
+			}
+			$hv .= sprintf("<td %s>%s</td>", $cnd, $k);
+			
+			if ($row->Keuze == 2 or $row->Keuze == 3) {
+				if ($row->Definitief < $row->Ingevoerd) {
+					$k = "ND";
+					$cnd = " class='nietdefinitief'";
+				} else {
+					$k = "Ja";
+				}
+			}
+			$hv .= sprintf("<td %s>%s</td>", $cnd, $k);
+
 			$hv .= sprintf("<td class='opmerkingweek'>%s</td>", $row->Opmerking);
 			if ($aantalreg == 1) {
 				$hv .= sprintf("<td rowspan=[ROWSPAN] class='opmerkinginschrijving'>%s</td>\n", $opmins);

@@ -7,6 +7,7 @@ $db_pass='';
 $db_folderbackup = "";  // Deze variabele is optioneel. Mocht deze niet ingevuld worden, dan wordt de standaard folder gebruikt.
 $db_backupsopschonen = 11;  // Na hoeveel dagen moeten oude back-ups automatisch verwijderd worden? 0 = nooit.
 $db_backuptarren = 0;  // Moet de backup gecomprimeerd worden? Let op, de webhost moet dit wel ondersteunen.
+$db_backupinmenu = 1;  // Hiermee kan je bepalen of backup in het menu staat. Als je de backup gescheduled hebt of op een andere manier geregeld hebt, is dat vaak niet nodig.
 $table_prefix = "rbm_"; // Zorg dat je bij het uploaden van de gegevens uit MS-Access dezelfde prefix gebruikt.
 
 // Authorisation data

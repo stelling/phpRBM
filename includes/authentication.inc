@@ -383,6 +383,7 @@ function cleanlogin($login) {
 	$login = str_replace(" ", "_", trim($login));
 	$login = str_replace("'", "", trim($login));
 	$login = str_replace("\"", "", trim($login));
+	$login = str_replace(";", "", trim($login));
 	
 	return $login;
 }

@@ -223,6 +223,11 @@ footer a, #footer a, footer a:visited, #footer a:visited {
 	margin-right: auto;
 }
 
+.nietdefinitief {
+	background-color: red;
+	color: white;
+}
+
 #lijst {
 	margin-top: 6px;
 }
@@ -301,6 +306,7 @@ footer a, #footer a, footer a:visited, #footer a:visited {
 	text-align: left;
 	border-width: 1px;
 	border-right-style: solid;
+	border-bottom-style: solid;
 }
 
 #evenementenbeheer table {
