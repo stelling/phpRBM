@@ -45,7 +45,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if (db_interface("aantalopenstaand") > 0) {
 		$tabpages[] = "Downloaden wijzigingen";
 	}
-	$tabpages[] = "DB backup";
+	if (isset($db_backupinmenu) and $db_backupinmenu == 1) {
+		$tabpages[] = "DB backup";
+	}
 	$tabpages[] = "Logboek";
 } else {
 	$tabpages[] = "Verenigingsinfo";
@@ -58,13 +60,13 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if ($_SESSION['aantalafdelingen'] > 0) {
 		$tabpages[] = "Eigen gegevens/Afdelingen";
 	}
-	if (count(db_gegevenslid($_SESSION['lidid'], "Kader")) > 0) {
+	if (isset($_SESSION['lidid']) and count(db_gegevenslid($_SESSION['lidid'], "Kader")) > 0) {
 		$tabpages[] = "Eigen gegevens/Kader";
 	}
-	if (count(db_gegevenslid($_SESSION['lidid'], "Rollen")) > 0) {
+	if (isset($_SESSION['lidid']) and count(db_gegevenslid($_SESSION['lidid'], "Rollen")) > 0) {
 		$tabpages[] = "Eigen gegevens/Rollen";
 	}
-	if (count(db_gegevenslid($_SESSION['lidid'], "Groepen")) > 0) {
+	if (isset($_SESSION['lidid']) and count(db_gegevenslid($_SESSION['lidid'], "Groepen")) > 0) {
 		$tabpages[] = "Eigen gegevens/Groepen";
 	}
 	if ($_SESSION['aantalbewaking'] > 0 and ($_SESSION['webmaster'] == 1 or db_bewaking_aantallen(0, $_SESSION['lidid']))) {
@@ -135,11 +137,14 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if (db_mailing("aantalprullenbak") > 0) {
 		$tabpages[] = "Mailing/Prullenbak";
 	}
-	$tabpages[] = "Evenementen";
-	if (count(db_evenement("overzicht")) > 0) {
-		$tabpages[] = "Evenementen/Overzicht";
+	
+	if (count(db_evenement("overzicht")) > 0 or toegang("Evenementen/Beheer")) {
+		$tabpages[] = "Evenementen";
+		if (count(db_evenement("overzicht")) > 0) {
+			$tabpages[] = "Evenementen/Overzicht";
+		}
+		$tabpages[] = "Evenementen/Beheer";
 	}
-	$tabpages[] = "Evenementen/Beheer";
 	
 	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 //		$tabpages[] = "DMS";   Voorlopig geen tijd voor, dus uitgezet.
@@ -579,12 +584,12 @@ function strongPassword($psPassword, array $paCommonWords = null) {
 
     /*
      * Strong password with the following requirements.
-     * - At least 6 characters long.
+     * - At least 7 characters long.
      * - At least 1 uppercase, AND at least 1 lowercase
      * - At least 1 digit OR at least 1 alphanumeric.
      * - No spaces
      */
-    if (!preg_match('~^(?=[^a-z]*[a-z])(?=[^A-Z]*[A-Z])(?=\D*\d)(?=[A-Za-z0-9]*[^A-Za-z0-9])\S{6,}$~', $psPassword)) {
+    if (!preg_match('~^(?=[^a-z]*[a-z])(?=[^A-Z]*[A-Z])(?=\D*\d)(?=[A-Za-z0-9]*[^A-Za-z0-9])\S{7,}$~', $psPassword)) {
         return false;
     }
     // Look for common words, like for example is same as the username

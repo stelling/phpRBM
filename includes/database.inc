@@ -431,7 +431,7 @@ function db_add_login($login, $lidid) {
 	$query = sprintf("SELECT * FROM %sAdmin_login WHERE ((Wachtwoord IS NULL) OR LENGTH(Wachtwoord) < 6) AND (openid_identity IS NULL);", $table_prefix);
 	$result = fnQuery($query);
    foreach ($result->fetchAll() as $row) {
-		$WW = strtolower(trim(substr($row->Login, 0, 4))) . rand(101, 997);
+		$WW = strtoupper(substr($row->Login, 0, 1)) . strtolower(substr($row->Login, 1, 4)) . rand(101, 997);
 		$query = sprintf("UPDATE %sAdmin_login SET Wachtwoord='%s', Gewijzigd=SYSDATE() WHERE Login='%s';", $table_prefix, encript_decript($WW), $row->Login);
 		fnQuery($query);
 	}
@@ -620,14 +620,6 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 		}
 		$w .= sprintf("BB.Kode='%d'", $week);
 	}
-	if ($actie == "overzicht") {
-		if (strlen($w) > 0) {
-			$w .= " AND ";
-		} else {
-			$w = "WHERE ";
-		}
-		$w .= "BI.Definitief > BI.Ingevoerd";
-	}
 	
 	if ($actie == "openblokken") {
 		$query = sprintf("SELECT BB.*, BS.Kode AS KodeSeizoen, BS.Lokatie AS Locatie, BS.KeuzesBijInschrijving
@@ -650,8 +642,8 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 		$result = fnQuery($query);
 		return $result->fetchColumn();
 	} elseif ($actie == "overzicht") {
-		$query = sprintf("SELECT BI.Lid AS ndLidID, BB.Kode AS Week, BB.Begindatum AS dteBegin, BB.Einddatum AS dteEinde, %2\$s AS Bewaker,
-								IF(BI.Keuze IN (1, 3), 'Ja', '') AS `Keuze 1`, IF(BI.Keuze IN (2, 3), 'Ja', '') AS `Keuze 2`, BI.Opmerking
+		$query = sprintf("SELECT BI.Lid AS ndLidID, BB.Kode AS Week, BB.Begindatum AS dteBegin, BB.Einddatum AS dteEinde, %2\$s AS Bewaker, BI.Keuze,
+								IF(BI.Keuze IN (1, 3), 'Ja', '') AS `Keuze 1`, IF(BI.Keuze IN (2, 3), 'Ja', '') AS `Keuze 2`, BI.Opmerking, BI.Definitief, BI.Ingevoerd
 								FROM (%1\$sBewaking_Blok AS BB INNER JOIN (%1\$sBewaking_Inschrijving AS BI INNER JOIN %1\$sLid AS L ON BI.Lid = L.Nummer) ON BB.RecordID = BI.BlokID) INNER JOIN %1\$sBewseiz AS BS ON BB.SeizoenID = BS.RecordID
 								%3\$s
 								ORDER BY BS.Begindatum, BS.Kode, L.Achternaam, BI.Lid, BB.Begindatum;", $table_prefix, $selectnaam, $w);
@@ -999,10 +991,14 @@ function db_onderdelen($type="", $aantal=0) {
 	}
 }
 
-function db_naam_onderdeel($rid) {
+function db_naam_onderdeel($rid, $rin="Onbekend") {
 	$query = sprintf("SELECT Naam FROM Onderdl WHERE RecordID=%d;", $rid);
 	$result = fnQuery($query);
-	return $result->fetchColumn();
+	$rv = $result->fetchColumn();
+	if (strlen($rv) == 0) {
+		$rv = $rin;
+	}
+	return $rv;
 }
 
 function db_add_mailing_hist($LidID, $MailingID, $to_name, $to_addr, $message="", $from_addr="", $subject="", $cc_addr="") {
@@ -1034,8 +1030,8 @@ function db_add_mailing_hist($LidID, $MailingID, $to_name, $to_addr, $message=""
 	}
 }
 
-function db_mailing($actie="", $mid=0, $rid=0, $filter="") {
-	global $selectnaam, $table_prefix;
+function db_mailing($actie="", $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $email="") {
+	global $selectnaam, $table_prefix, $naamvereniging;
 	
 	if ($actie == "histdetails" and $rid > 0) {
 		$query = sprintf("SELECT send_on, from_addr, from_name, to_name, to_addr, cc_addr, subject, message
@@ -1083,6 +1079,21 @@ function db_mailing($actie="", $mid=0, $rid=0, $filter="") {
 	} elseif ($actie == "aantalprullenbak") {
 		$query = sprintf("SELECT COUNT(*) FROM %sMailing WHERE (NOT deleted_on IS NULL);", $table_prefix);
 		return db_scalar($query);
+	} elseif ($actie == "add" and strlen($subj) > 0) {
+		$query = sprintf("INSERT INTO %sMailing (from_name, from_addr, subject, template, confidential, new_on, AddedBy)
+								VALUES ('%s', '%s', '%s', 0, 0, SYSDATE(), %d);", $table_prefix, $naamvereniging, $email, $subj, $_SESSION['lidid']);
+		$id = fnQuery($query);
+		$mess = sprintf("Mailing %s (%d) is door %s toegevoegd.", $subj, $id, $_SESSION['naamingelogde']);
+		db_logboek("add", $mess, 4);
+		return $id;
+	} elseif ($actie == "add_rcpt" and $lidid > 0 and $mid > 0) {
+		$query = sprintf("SELECT COUNT(*) FROM Mailing_rcpt WHERE MailingID=%d AND LidID=%d;", $mid, $lidid);
+		$result = fnQuery($query);
+		if ($result->fetchColumn() == 0) {
+			$query = sprintf("INSERT INTO Mailing_rcpt SET MailingID=%d, LidID=%d, Ingevoerd=SYSDATE();", $mid, $lidid);
+			fnQuery($query);
+		}
+		
 	} elseif ($mid > 0) {
 		$query = sprintf("SELECT * FROM %sMailing WHERE MailingID=%d LIMIT 1;", $table_prefix, $mid);
 		$result = fnQuery($query);
@@ -1318,7 +1329,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 	}
 }
 
-function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie="", $groepid=0) {
+function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie="") {
 	global $table_prefix, $selectnaam, $selectzoeknaam, $wherelidond;
 
 	$xtra_where = "";
@@ -1340,9 +1351,10 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "overzicht") {
-		$query = sprintf("SELECT E.RecordID AS lnkNummer, E.Datum, E.Omschrijving, E.Starttijd, E.Eindtijd, E.Verzameltijd,
+		$query = sprintf("SELECT E.RecordID AS lnkNummer, E.Datum, E.Omschrijving, E.Email, E.Starttijd, E.Eindtijd, E.Verzameltijd,
 								ET.Omschrijving AS `Type evenement`
 								FROM %1\$sEvenement AS E INNER JOIN %1\$sEvenement_Type AS ET ON E.TypeEvenement = ET.RecordID
+								WHERE E.Datum >= DATE_ADD(CURDATE(), INTERVAL -1 WEEK)
 								ORDER BY E.Datum;", $table_prefix);
 		$result = fnQuery($query);
 		return $result->fetchAll();
@@ -1378,6 +1390,8 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 		return $result->fetchAll();
 	} elseif ($actie == "potdeelnemers") {
 		$where = "";
+		$query = sprintf("SELECT BeperkTotGroep FROM %sEvenement WHERE RecordID=%d;", $table_prefix, $eventid);
+		$groepid = db_scalar($query);
 		if ($groepid > 0) {
 			$where = sprintf("AND LO.OnderdeelID=%d", $groepid);
 		}
@@ -1770,6 +1784,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sEvenement` (
   `Eindtijd` varchar(5) NOT NULL,
   `Verzameltijd` varchar(5) NOT NULL,
   `Omschrijving` varchar(75) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `Email` varchar(45) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `TypeEvenement` int(11) NOT NULL,
   `InschrijvingOpen` tinyint(4) NOT NULL DEFAULT '1',
   `BeperkTotGroep` int(11) NOT NULL DEFAULT '0',
@@ -2131,18 +2146,6 @@ function db_backup() {
 	return $ret;
 }
 
-// Vervallen functies
-
-function db_add_activiteit($oms, $type=0) {
-	global $table_prefix;
-	debug("Oude functie db_add_activiteit", 0);
-	db_logboek("add", $oms, $type);
-}
-
-function db_lijstactiviteiten($type=0) {
-	debug("Oude functie db_lijstactiviteiten", 0);
-	db_logboek("lijst", $type);
-}
 
 
 

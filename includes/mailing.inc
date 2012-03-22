@@ -464,10 +464,10 @@ class mailing {
 	}
 	
 	public function post_form() {
-		global $nameorganisation, $beperkfrom;
+		global $naamvereniging, $beperkfrom;
 	
 		if (!isset($_POST['from_name']) or strlen($_POST['from_name']) == 0) {
-			$_POST['from_name'] = $nameorganisation;
+			$_POST['from_name'] = $naamvereniging;
 		}
 		$setclause = sprintf("from_name=\"%s\"", str_replace("\"", "'", $_POST['from_name']));
 	
@@ -495,6 +495,7 @@ class mailing {
 		$to_name = str_replace("\"", "'", $_POST['to_name']);
 		$subject = str_replace("\"", "'", $_POST['subject']);
 		$message = str_replace("\"", "'", $_POST['message']);
+		
 		$setclause .= sprintf(", to_name=\"%s\", subject=\"%s\", message=\"%s\", changed_on=SYSDATE(), ChangedBy=%d", $to_name, $subject, $message, $_SESSION['lidid']);
 		if ($this->mid > 0) {
 			$query  = sprintf("UPDATE Mailing SET %s WHERE MailingID=%d;", $setclause, $this->mid);
@@ -552,12 +553,7 @@ class mailing {
 	
 	public function add_lid($lidid, $addr="") {
 		if ($lidid > 0) {
-			$query = sprintf("SELECT COUNT(*) FROM Mailing_rcpt WHERE MailingID=%d AND LidID=%d;", $this->mid, $lidid);
-			$result = fnQuery($query);
-			if ($result->fetchColumn() == 0) {
-				$query = sprintf("INSERT INTO Mailing_rcpt SET MailingID=%d, LidID=%d, Ingevoerd=SYSDATE();", $this->mid, $lidid);
-				fnQuery($query);
-			}
+			db_mailing("add_rcpt", $this->mid, 0, "", "", $lidid);
 		}
 		if (strlen($addr) > 5 and isValidMailAddress($addr, 0)) {
 		
@@ -587,7 +583,7 @@ class mailing {
 				 . " AND LO.Vanaf <= SYSDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd > SYSDATE());", $groepid, $this->mid);
 		$result = fnQuery($query);
 		foreach($result->fetchAll() as $row) {
-			$this->Add_lid($row->Lid);
+			$this->add_lid($row->Lid);
 		}
 	}
 		
