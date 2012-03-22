@@ -45,9 +45,9 @@ if ($currenttab == "Eigen gegevens" and toegang($_GET['tp'])) {
 	}
 } elseif ($currenttab == "Overzicht lid" and toegang($_GET['tp'])) {
 	if (isset($_GET['lidid']) and is_numeric($_GET['lidid']) and $_GET['lidid'] > 0) {
-		fnOverviewLid($_GET['lidid']);
+		fnOverviewLid($_GET['lidid'], $currenttab2);
 	} else {
-		fnOverviewLid();
+		fnOverviewLid(0, $currenttab2);
 	}
 } elseif ($currenttab == "Verenigingsinfo" and $currenttab2 != "Introductie" and toegang($_GET['tp'])) {
 	fnWieiswie($currenttab2);
@@ -531,7 +531,7 @@ function fnWijzigen($lidid=0, $actie="") {
 					$v = "__skip__";
 					if (isset($_POST["chkLeeg_" . $fn]) and $_POST["chkLeeg_" . $fn] == "1") {
 						if ($fn == "Achternaam") {
-							$mess .= "Achternaam mag niet leeg zijn, deze wijziging wordt niet verwerkt.<br>\n";
+							$mess .= "Achternaam mag niet leeg zijn, deze wijziging wordt niet verwerkt. ";
 						} else {
 							$v = "";
 						}
@@ -541,7 +541,7 @@ function fnWijzigen($lidid=0, $actie="") {
 						$_POST[$fn] = change_month_to_uk($_POST[$fn]);
 						if (isset($_POST[$fn]) and strlen($_POST[$fn]) > 0) {
 							if (strtotime($_POST[$fn]) === FALSE) {
-								$mess .= "Geboortedatum is niet correct, deze wordt niet verwerkt.<br>\n";
+								$mess .= "Geboortedatum is niet correct, deze wordt niet verwerkt. ";
 							} else {
 								$v = strftime("%Y-%m-%d", strtotime($_POST[$fn]));
 							}
@@ -551,7 +551,7 @@ function fnWijzigen($lidid=0, $actie="") {
 							if (isValidMailAddress($_POST[$fn], 0)) {
 								$v = $_POST[$fn];
 							} else {
-								$mess .= "E-mailadres is niet correct, deze wijziging wordt niet verwerkt.<br>\n";
+								$mess .= "E-mailadres is niet correct, deze wijziging wordt niet verwerkt. ";
 							}
 						}
 					} elseif (isset($_POST[$fn]) and strlen($_POST[$fn]) > 0) {
@@ -562,9 +562,9 @@ function fnWijzigen($lidid=0, $actie="") {
 						$result = fnQuery($query);
 						if ($result > 0) {
 							db_interface("add", $query);
-							$mess = sprintf("%s is in '%s' gewijzigd.", $wijzvelden[$i]['label'], $v);
+							$mess .= sprintf("%s is in '%s' gewijzigd. ", $wijzvelden[$i]['label'], $v);
 						} else {
-							$mess .= sprintf("De wijziging in %s is niet verwerkt.", strtolower($wijzvelden[$i]['label']));
+							$mess .= sprintf("De wijziging in %s is niet verwerkt. ", strtolower($wijzvelden[$i]['label']));
 						}
 					}
 				}
@@ -790,8 +790,10 @@ function fnWijzigen($lidid=0, $actie="") {
 		} elseif ($actie == "Profiel") {
 		
 			if ($_SERVER['REQUEST_METHOD'] == "POST") {
-				if (strlen($_POST['pw_nieuw']) < 6) {
-					$mess = "Het nieuwe wachtwoord is te kort, het moet minimaal 6 karakters lang zijn.";
+				if (strlen($_POST['pw_nieuw']) < 7) {
+					$mess = "Het nieuwe wachtwoord is te kort, het moet minimaal 7 karakters lang zijn.";
+				} elseif ($_POST['pw_nieuw'] != cleanlogin($_POST['pw_nieuw'])) {
+					$mess = "Het nieuwe wachtwoord bevat ongeldige tekens.";
 				} elseif ($_POST['pw_nieuw'] !== $_POST['pw_herhaal']) {
 					$mess = "Nieuwe wachtwoorden zijn niet gelijk.";
 				} else {
@@ -1093,7 +1095,7 @@ function nieuwepasfoto($lidid=0, $filterlid="") {
 				$image = null;
 			}
 			
-			if ($lidid == $_SESSION['lidid'] and (isValidMailAddress($emailledenadministratie, 0) or isValidMailAddress($emailnieuwepasfoto, 0))) {
+			if ($lidid == $_SESSION['lidid'] and isValidMailAddress($emailnieuwepasfoto, 0)) {
 				$mail = new RBMmailer();
 				$mail->From = $_SESSION['emailingelogde'];
 				$mail->FromName = $naamlid;
