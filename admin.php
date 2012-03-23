@@ -62,7 +62,7 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 	} else {
 		$lnk_lk = "";
 	}
-	echo(fnDisplayTable(db_logins(), $lnk, "", 0, $lnk_lk));
+	echo(fnDisplayTable(db_logins("lijst"), $lnk, "", 0, $lnk_lk));
 } elseif ($currenttab == "Autorisatie" and toegang($_GET['tp'])) {
 	echo("<div id='lijst'>\n");
 	printf("<form name='formauth' method='post' action='%s?tp=%s&amp;op=changeaccess'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);

@@ -483,8 +483,8 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 					$href = str_replace("%d", $value, $link);
 					$href = str_replace("%s", "<img src='images/zoom.png' alt='Details'>", $href);
 					$ret .= "<td>" . $href . "</td>";
-				} elseif (substr($key, 0, 3) == "llk" and strlen($link_lk) > 1) {
-					if ($value > 0) {
+				} elseif (substr($key, 0, 3) == "llk") {
+					if ($value > 0 and strlen($link_lk) > 1) {
 						$ret .= sprintf("<td>" . $link_lk . "</td>", $value, "<img src='images/zoom.png' alt='Details'>");
 					} else {
 						$ret .= "<td></td>\n";

@@ -825,7 +825,7 @@ function db_stats($lidid=0) {
 
 function db_logins($actie="lijst", $email="", $gewenstelogin="", $lidid=0, $xtrafilter="") {
 	global $selectnaam, $beperktotgroep, $table_prefix, $lididwebmasters, $wherelidond, $wherelid, $gebruikopenid, $lidnrnodigbijloginaanvraag;
-	global $scriptbijuitloggen;
+	global $scriptbijuitloggen, $maxinlogpogingen;
 	
 	if ($actie == "nieuwlogin" and isValidMailAddress($email) and strlen($gewenstelogin) > 5) {
 		$query = sprintf("SELECT L.Nummer, Login.Login FROM %1\$sLid AS L LEFT OUTER JOIN %1\$sAdmin_login AS Login ON L.Nummer = Login.LidID
@@ -922,10 +922,10 @@ function db_logins($actie="lijst", $email="", $gewenstelogin="", $lidid=0, $xtra
 		}
 		$query = sprintf('SELECT Login.LidID AS lnkNummer, Login.LidID, LM.Lidnr, Login.Login, %1$s %2$s AS Naam_lid, L.Roepnaam AS ndRoepnaam,
 					L.EMAIL AS `E-mail`, L.EmailVereniging AS `E-mail vereniging`, Login.FouteLogin AS `numFoutieve logins`, Login.Ingevoerd AS dteIngevoerd, Login.LastLogin AS `dttLaatste login`,
-					Login.Wachtwoord AS ndWachtwoord, IF(Login.FouteLogin > 0, Login.LidID, 0) AS llkNummer
-					FROM %3$sAdmin_login AS Login INNER JOIN (%3$sLid AS L LEFT OUTER JOIN %3$sLidmaatschap AS LM ON L.Nummer = LM.Lid) ON Login.LidID = L.Nummer
-					WHERE LENGTH(Login.Wachtwoord) > 5 %4$s
-					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;', $xtraselect, $selectnaam, $table_prefix, $xtrawhere);
+					Login.Wachtwoord AS ndWachtwoord, IF(Login.FouteLogin > %3$d, Login.LidID, 0) AS llkNummer
+					FROM %4$sAdmin_login AS Login INNER JOIN (%4$sLid AS L LEFT OUTER JOIN %4$sLidmaatschap AS LM ON L.Nummer = LM.Lid) ON Login.LidID = L.Nummer
+					WHERE LENGTH(Login.Wachtwoord) > 5 %5$s
+					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;', $xtraselect, $selectnaam, $maxinlogpogingen, $table_prefix, $xtrawhere);
 		$result = fnQuery($query);
 		if ($actie == "controle") {
 			$row = $result->fetch();
