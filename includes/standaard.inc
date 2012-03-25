@@ -89,9 +89,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if (db_evenement("aantalopen", $_SESSION['lidid']) > 0) {
 		$tabpages[] = "Wijzigen/Inschrijving evenementen";
 	}
+	$tabpages[] = "Wijzigen/Profiel";
 	$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap WHERE Lid=%d AND (Opgezegd IS NULL);", $table_prefix, $_SESSION['lidid']);
-	$result = fnQuery($query);
-	if ($result->fetchColumn() > 0) {
+	if (db_scalar($query) > 0) {
 		$tabpages[] = "Wijzigen/Opzegging";
 	}
 	$tabpages[] = "Ledenlijst";

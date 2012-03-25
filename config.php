@@ -29,6 +29,8 @@ $daysshowbirthdays = 3;  // Het aantal dagen dat de verjaardagen vooruit getoond
 $bewaartijdlogins = 6;  // Het aantal maanden dat niet gebruikte logins bewaard worden. 0 = altijd bewaren.
 $kaderoverzichtmetfoto = 1;  // Moeten op het kaderoverzicht foto's getoond worden? (1 = ja, 0 = nee)
 $rsswieiswie = 0;  // Moet er een rss van wie-is-wie gemaakt worden? Deze kan gebruikt worden om deze op een andere website te tonen, echter heeft deze geen beveiliging.
+$tonentoekomstigebewakingen = 1; // Moeten bij de gegevens van een lid ook toekomstige bewakingen getoond worden (1 = ja, 0 = alleen historie)
+$toneninschrijvingenbewakingen = 1; // Moeten bij de gegevens van een lid ook inschrijvingen voor bewakingen getoond worden (1 = ja, 0 = nee)
 $scriptbijuitloggen = "";  // Dit script wordt automatisch gedraaid nadat iemand is uitgelogd.
 
 //Mailingsmodule

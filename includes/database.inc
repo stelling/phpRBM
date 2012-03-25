@@ -153,7 +153,7 @@ function db_scalar($query) {
 }
 
 function db_gegevenslid($LidID, $soort="Alg") {
-	global $selectnaam, $table_prefix, $fromlid, $fromlidond, $wherelidond;
+	global $selectnaam, $table_prefix, $fromlid, $fromlidond, $wherelidond, $tonentoekomstigebewakingen;
 
 	if ($soort == "Alg") {
 		$sqond = sprintf("SELECT MIN(O.Naam) FROM %1\$sOnderdl AS O INNER JOIN %1\$sLidond AS LO ON O.RecordID = LO.OnderdeelID
@@ -250,6 +250,10 @@ function db_gegevenslid($LidID, $soort="Alg") {
 								(SELECT Memo FROM %3\$sMemo WHERE Soort='B' AND Lid=%4\$d) AS Opmerking,
 								(SELECT Memo FROM %3\$sMemo WHERE Soort='D' AND Lid=%4\$d) AS Dieet;", $tw, $ts, $table_prefix, $LidID);
 	} elseif ($soort == "Bew") {
+		$xtra_where = "";
+		if (isset($tonentoekomstigebewakingen) and $tonentoekomstigebewakingen == 0) {
+			$xtra_where = "AND BS.Einde <= CURDATE()";
+		}
 		$query = sprintf("SELECT BS.Kode AS Seizoen,
 								Weeknr AS intWeek,
 								BEGIN_PER AS dteBegin,
@@ -258,8 +262,8 @@ function db_gegevenslid($LidID, $soort="Alg") {
 								Post,
 								F.Omschrijv AS Functie
 								FROM %1\$sBewseiz AS BS INNER JOIN (%1\$sBewaking AS BW INNER JOIN %1\$sFunctie AS F ON BW.Functie = F.Nummer) ON BS.RecordID = BW.SeizoenID
-								WHERE Lid=%2\$d AND BS.Begindatum <= CURDATE()
-								ORDER BY BS.Begindatum DESC, BS.Lokatie, BW.BEGIN_PER DESC;", $table_prefix, $LidID);
+								WHERE Lid=%2\$d %3\$s
+								ORDER BY BS.Begindatum DESC, BS.Lokatie, BW.BEGIN_PER DESC;", $table_prefix, $LidID, $xtra_where);
 	} elseif ($soort == "Rekening") {
 		$query = sprintf("SELECT Nummer,"
 				 . " Datum AS dteDatum,"
@@ -450,19 +454,19 @@ function db_lidnr_bevestiging($email="") {
 	return $result->fetch();
 }
 
-function db_change_password($pw_new, $pw_old) {
+function db_change_password($pw_new, $pw_old, $lidid) {
 	global $table_prefix;
 	
 	$query = sprintf("UPDATE %sAdmin_login SET"
-			 . " Gewijzigd = SYSDATE(),"
+			 . " Gewijzigd=SYSDATE(),"
 			 . " GewijzigdDoor=%d,"
 			 . " Wachtwoord='%s'"
-			 . " WHERE Wachtwoord='%s' AND Login='%s' AND LidID=%d;"
-			 , $table_prefix, $_SESSION['lidid'], encript_decript($pw_new), encript_decript($pw_old), $_SESSION['username'], $_SESSION['lidid']);
+			 . " WHERE Wachtwoord='%s' AND LidID=%d;"
+			 , $table_prefix, $_SESSION['lidid'], encript_decript($pw_new), encript_decript($pw_old), $lidid);
 	$result = fnQuery($query);
 	if ($result > 0) {
 		$_SESSION['password'] = $pw_new;
-		$mess = sprintf("Het wachtwoord van login '%s' is gewijzigd.", $_SESSION['username']);
+		$mess = sprintf("Het wachtwoord van de login van %s is door %s gewijzigd.", db_naamlid($lidid), $_SESSION['naamingelogde']);
 		db_logboek("add", $mess, 1);
 	} else {
 		$mess = "Oude wachtwoord is niet correct, wachtwoord is niet gewijzigd.";

@@ -338,7 +338,7 @@ function fnLedenlijst() {
 }
 
 function fnOverviewLid($lidid=0, $actie="") {
-	global $currenttab;
+	global $currenttab, $toneninschrijvingenbewakingen;
 	
 	if ($lidid > 0) {
 		fnDispMenu(2, "lidid=" . $lidid);
@@ -390,7 +390,7 @@ function fnOverviewLid($lidid=0, $actie="") {
 				echo(fnDisplayForm($rows[0]));
 			}
 			$rows = db_insbew("overzichtlid", $lidid);
-			if (count($rows) > 0) {
+			if (isset($toneninschrijvingenbewakingen) and $toneninschrijvingenbewakingen == 1 and count($rows) > 0) {
 				echo(fnDisplayTable($rows, "", "Ingeschreven voor bewakingen"));
 			}
 		} elseif ($actie == "Diplomas") {
@@ -612,7 +612,7 @@ function fnWijzigen($lidid=0, $actie="") {
 				$oldvals .= sprintf("<input type='hidden' value='%s' name='old_%s'>\n", $row->$wijzvelden[$i]['naam'], $wijzvelden[$i]['naam']);
 				echo("\n");
 			}
-			echo("<tr><th colspan=4><input type='submit' value='Verstuur' name='adreswijziging'></th><tr>\n");
+			echo("<tr><th colspan=4><input type='submit' value='Bewaren' name='adreswijziging'></th><tr>\n");
 			echo("</table>\n");
 			echo($oldvals);
 				
@@ -663,7 +663,7 @@ function fnWijzigen($lidid=0, $actie="") {
 				$oldvals .= sprintf("\n<input type='hidden' name='RID_%d' value=%d>", $row->RecordID, $cv_rid);
 				echo("\n\n");
 			}
-			echo("<tr><th colspan=6><input type='submit' value='Verstuur' name='diplwijz'></th></tr>\n");
+			echo("<tr><th colspan=6><input type='submit' value='Bewaren' name='diplwijz'></th></tr>\n");
 			echo("</table>\n");
 			echo($oldvals);
 			echo("</form>\n");
@@ -699,7 +699,7 @@ function fnWijzigen($lidid=0, $actie="") {
 				$curval = db_memo($lidid, $kodesoort, "curval");
 				printf("<tr><td class='label'>%s</td><td><textarea cols=75 rows=10 name='%s'>%s</textarea></td></tr>\n", $naamsoort, $namevar, $curval);
 			}
-			echo("<tr><th colspan=2><input type='submit' value='Verstuur' name='wijziging'></th><tr>\n");
+			echo("<tr><th colspan=2><input type='submit' value='Bewaren' name='wijziging'></th><tr>\n");
 			echo("</table>\n");
 			echo("</form>\n");
 			echo("</div>  <!-- Einde bijzonderhedenwijzigen -->\n");
@@ -790,30 +790,32 @@ function fnWijzigen($lidid=0, $actie="") {
 		} elseif ($actie == "Profiel") {
 		
 			if ($_SERVER['REQUEST_METHOD'] == "POST") {
-				if (strlen($_POST['pw_nieuw']) < 7) {
-					$mess = "Het nieuwe wachtwoord is te kort, het moet minimaal 7 karakters lang zijn.";
-				} elseif ($_POST['pw_nieuw'] != cleanlogin($_POST['pw_nieuw'])) {
-					$mess = "Het nieuwe wachtwoord bevat ongeldige tekens.";
-				} elseif ($_POST['pw_nieuw'] !== $_POST['pw_herhaal']) {
-					$mess = "Nieuwe wachtwoorden zijn niet gelijk.";
-				} else {
-					$mess = db_change_password($_POST['pw_nieuw'], $_POST['pw_oud']);
+				if (isset($_POST['pw_nieuw']) and strlen($_POST['pw_nieuw']) > 0) {
+					if (strlen($_POST['pw_nieuw']) < 7) {
+						$mess = "Het nieuwe wachtwoord is te kort, het moet minimaal 7 karakters lang zijn.";
+					} elseif ($_POST['pw_nieuw'] != cleanlogin($_POST['pw_nieuw'])) {
+						$mess = "Het nieuwe wachtwoord bevat ongeldige tekens.";
+					} elseif ($_POST['pw_nieuw'] !== $_POST['pw_herhaal']) {
+						$mess = "Nieuwe wachtwoorden zijn niet gelijk.";
+					} else {
+						$mess = db_change_password($_POST['pw_nieuw'], $_POST['pw_oud'], $lidid);
+					}
+					printf("<p class='mededeling'>%s</p>", $mess);
 				}
-				printf("<p class='mededeling'>%s</p>", $mess);
 				echo("<p><a href='/'>Klik hier om verder te gaan.</a></p>\n");
 			} else {
 				echo("<div id='profielwijzigen'>\n");
 				printf("<form name='ProfielWijzigen' action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER['QUERY_STRING']);
 				printf("<fieldset>
-				<h3>Wachtwoord wijzigen</h3>
-				<label for='ingelogdlogin'>Login:</label><input type='text' name='ingelogdlogin' id='ingelogdlogin' value='%s' readonly='readonly'>
+				<h3>Profiel wijzigen</h3>
+				<label for='login'>Login:</label><input type='text' name='login' id='ingelogdlogin' value='%s' readonly='readonly'>
 				<label for='pw_oud'>Oude wachtwoord:</label><input type='password' name='pw_oud' id='pw_oud' size=10 maxlength=12>
 				<label for='pw_nieuw'>Nieuw wachtwoord:</label><input type='password' name='pw_nieuw' id='pw_nieuw' size=10 maxlength=12>
 				<label for='pw_herhaal'>Herhaal wachtwoord:</label><input type='password' name='pw_herhaal' id='pw_herhaal' size=10 maxlength=12>
-				<input type='submit' class='knop' value='Wijzigen'>&nbsp;<input type=button class='knop' onClick='history.go(-1);' value='Annuleren'>\n", $_SESSION['username']);
+				<input type='submit' class='knop' value='Wijzigen'>\n", $_SESSION['username']);
 				echo("</fieldset>
 				</form>
-				</div>  <!-- Einde invulformulier -->");
+				</div>  <!-- Einde profielwijzigen -->");
 				
 				if ($gebruikopenid == 1) {
 					$row = db_logins("controle");
@@ -1095,7 +1097,7 @@ function nieuwepasfoto($lidid=0, $filterlid="") {
 				$image = null;
 			}
 			
-			if ($lidid == $_SESSION['lidid'] and isValidMailAddress($emailnieuwepasfoto, 0)) {
+			if ($lidid == $_SESSION['lidid'] and isValidMailAddress($emailnieuwepasfoto, 0) and (file_exists($target))) {
 				$mail = new RBMmailer();
 				$mail->From = $_SESSION['emailingelogde'];
 				$mail->FromName = $naamlid;
@@ -1119,8 +1121,10 @@ function nieuwepasfoto($lidid=0, $filterlid="") {
 					$mess = sprintf("Fout bij het e-mailen van de pasfoto: %s.", $mail->ErrorInfo);
 				}
 				$mail = null;
-			} else {
+			} elseif (file_exists($target)) {
 				$mess = sprintf("Er is van %s een nieuwe pasfoto ge-upload.", $naamlid);
+			} else {
+				$mess = "Het is fout gegaan bij het uploaden van het bestand. Probeer het nog een keer of neem contact op met de webmaster.";
 			}
 		} 
 		if (strlen($mess) > 0) {
