@@ -1379,7 +1379,7 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 		$result = fnQuery($query);
 		return $result->fetch();
 	} elseif ($actie == "types") {
-		$query = sprintf("SELECT * FROM %sEvenement_Type ORDER BY Omschrijving;", $table_prefix);
+		$query = sprintf("SELECT RecordID, Omschrijving, Soort FROM %sEvenement_Type ORDER BY Omschrijving;", $table_prefix);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "deelnemers") {
@@ -1818,6 +1818,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sEvenement_Type` (
   `Soort` char(1) NOT NULL DEFAULT 'W',
   `Ingevoerd` date NOT NULL,
   `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `GewijzigdDoor` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 

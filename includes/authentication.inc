@@ -297,6 +297,8 @@ function fnLoginAanvragen() {
 						$mess = sprintf("Je behoort niet tot groep '%s' van de %s. Een login mag niet aangevraagd worden.", db_naam_onderdeel($beperktotgroep), $naamvereniging);						
 					} elseif (strlen($_POST['gewenstelogin']) < 6 or strlen($_POST['gewenstelogin']) > 15) {
 						$mess = "Je hebt geen geldige login opgegeven. Een login moet uit minimaal 6 en maximaal 15 karakters bestaan.";
+					} elseif (strpos($_POST['gewenstelogin'], " ") > 0) {
+						$mess = "Je hebt geen geldige login opgegeven. Er mag geen spatie in een login zitten.";
 					} elseif (db_logins("controlebestaat", "", $_POST['gewenstelogin'], $row->Nummer) > 0) {
 						$mess = sprintf("Login '%s' is al in gebruik.", $_POST['gewenstelogin']);
 					} elseif ($lidnrnodigbijloginaanvraag == 0 or $row->Lidnr == $_POST['lidnummer']) {
@@ -380,6 +382,7 @@ function encript_decript($text, $encr = 1) {
 
 function cleanlogin($login) {
 
+	$login = trim($login);
 	$login = str_replace(" ", "_", trim($login));
 	$login = str_replace("'", "", trim($login));
 	$login = str_replace("\"", "", trim($login));
