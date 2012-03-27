@@ -144,6 +144,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			$tabpages[] = "Evenementen/Overzicht";
 		}
 		$tabpages[] = "Evenementen/Beheer";
+		$tabpages[] = "Evenementen/Types muteren";
 	}
 	
 	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {

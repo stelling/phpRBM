@@ -1218,9 +1218,11 @@ function db_interface($actie="lijst", $query="") {
 		if ($result > 0) {
 			fnQuery(sprintf("OPTIMIZE TABLE %sAdmin_interface;", $table_prefix));
 			$mess = sprintf("Er zijn %d online-wijzigingen afgemeld.", $result);
-			db_logboek("add", $mess, 2);
+		} else {
+			$mess = "Er zijn geen online-wijzigingen afgemeld.";
 		}
-		return $result;
+		db_logboek("add", $mess, 2);
+		return $mess;
 		
 	} elseif ($actie == "aantalopenstaand") {
 		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_interface WHERE (Afgemeld < '2010-01-01' OR (Afgemeld IS NULL));", $table_prefix);

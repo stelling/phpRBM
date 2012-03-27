@@ -50,7 +50,8 @@ if (isset($_GET['op']) and $_GET['op'] == "deletelogin") {
 		}
 	}
 } elseif (isset($_GET['op']) and $_GET['op'] == "afmeldenwijz") {
-	db_interface("afmelden");
+	$mess = db_interface("afmelden");
+	printf("<p class='mededeling'>%s</p>\n", $mess);
 }
 
 if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
