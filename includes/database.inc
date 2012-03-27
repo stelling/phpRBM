@@ -37,6 +37,7 @@ $TypeActiviteit[] = "Autorisaties";
 $TypeActiviteit[] = "Self-service";  // 6
 $TypeActiviteit[] = "Evenementen";
 $TypeActiviteit[] = "Interface";
+$TypeActiviteit[] = "Upload data";  // 9
 $TypeActiviteit[99] = "Debugging";
 
 $fdlang = "'%e %M %Y'";
