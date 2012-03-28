@@ -264,7 +264,7 @@ footer a, #footer a, footer a:visited, #footer a:visited {
 }
 
 #loginaanvraag, #profielwijzigen, #opzegformulier {
-	width: 360px;
+	width: 364px;
 	background-color: #00FFFF;
 	margin-left: auto;
 	margin-right: auto;
@@ -328,8 +328,9 @@ fieldset h3 {
 
 #loginaanvraag input, #profielwijzigen input, #opzegformulier input{
 	width: 190px;
-	height: 20px;
+	height: 22px;
 	float: right;
+	clear: right;
 	margin-left: 5px;
 	margin-right: 0;
 	margin-top: 3px;
@@ -338,6 +339,10 @@ fieldset h3 {
 	border-style: solid;
 	border-color: white;
 	background-color: white;
+}
+
+#loginaanvraag label {
+	height: 22px;
 }
 
 #loginaanvraag input.knop, #profielwijzigen input.knop, #opzegformulier input.knop {

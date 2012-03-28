@@ -101,10 +101,9 @@ function toegang($soort, $melding=1) {
 	} elseif (strlen($soort) > 0) {
 		$soort = str_replace("'", "", $soort);
 		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_access WHERE Tabpage=\"%s\";", $table_prefix, $soort);
-		$result = fnQuery($query);
-		if ($result->fetchColumn() == 0) {
-			$query = sprintf("INSERT INTO %sAdmin_access SET Tabpage=\"%s\", Ingevoerd=CURDATE();", $table_prefix, $soort);
-			fnQuery($query);
+		$result = db_scalar($query);
+		if ($result == 0) {
+			db_authorisation("add", 0, $soort);
 		}
 		if ($_SESSION['webmaster'] == 1) {
 			return true;

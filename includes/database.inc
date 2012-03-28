@@ -475,14 +475,30 @@ function db_change_password($pw_new, $pw_old, $lidid) {
 	return $mess;
 }
 
-function db_delete_authorisation($recid) {
+function db_authorisation($actie, $recid=0, $tabpage="") {
 	global $table_prefix;
 	
-	if ($_SESSION['webmaster'] == 1) {
-		$query = sprintf("DELETE FROM %sAdmin_access WHERE RecordID=%d;", $table_prefix, $recid);
+	if ($actie == "delete") {
+		if ($_SESSION['webmaster'] == 1) {
+			$query = sprintf("DELETE FROM %sAdmin_access WHERE RecordID=%d;", $table_prefix, $recid);
+			fnQuery($query);
+		} else {
+			echo("<p class='mededeling'>Je hebt geen rechten om authorisaties te verwijderen.</p>\n");
+		}
+	} elseif ($actie == "lijst") {
+		$query = sprintf("SELECT RecordID, Toegang, Tabpage FROM %sAdmin_access ORDER BY Tabpage;", $table_prefix);
+		$result = fnQuery($query);
+		return $result->fetchAll();
+	} elseif ($actie == "tabpages") {
+		$query = sprintf("SELECT DISTINCT Tabpage FROM %sAdmin_access WHERE Toegang > 0 ORDER BY Tabpage;", $table_prefix);
+		$result = fnQuery($query);
+		return $result->fetchAll();
+	} elseif ($actie == "add") {
+		$tabpage = str_replace("'", "", $tabpage);
+		$query = sprintf("INSERT INTO %sAdmin_access SET Tabpage=\"%s\", Ingevoerd=CURDATE();", $table_prefix, $tabpage);
 		fnQuery($query);
-	} else {
-		echo("<p class='mededeling'>Je hebt geen rechten om authorisaties te verwijderen.</p>\n");
+		$mess = sprintf("Tabpage '%s' is aan de tabel 'Admin_access' toegevoegd.", $tabpage);
+		db_logboek("add", $mess, 5);
 	}
 }
 
@@ -1163,8 +1179,8 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0) {
 		fnQuery($query);
 	} elseif ($actie == "opschonen") {
 		$query = sprintf("DELETE FROM %sAdmin_activiteit WHERE
-								(TypeActiviteit=1 AND LidID > 0 AND DatumTijd <= DATE_ADD(CURDATE(), INTERVAL -1 MONTH))
-								OR (TypeActiviteit=99 AND DatumTijd <= DATE_ADD(CURDATE(), INTERVAL -1 MONTH))
+								(TypeActiviteit=1 AND LidID > 0 AND DatumTijd <= DATE_ADD(CURDATE(), INTERVAL -2 MONTH))
+								OR (TypeActiviteit=99 AND DatumTijd <= DATE_ADD(CURDATE(), INTERVAL -1 WEEK))
 								OR (DatumTijd <= DATE_ADD(CURDATE(), INTERVAL -18 MONTH));", $table_prefix);
 		$result = fnQuery($query);
 		if ($result > 1) {
@@ -1477,7 +1493,7 @@ function db_onderhoud() {
 		$query = sprintf("DELETE FROM %sLiddipl WHERE RecordID = 0;", $table_prefix);
 		$result = fnQuery($query);
 		if ($result > 0) {
-			$mess = sprintf("Er zijn %d records uit Liddipl verwijderd, omdat het RecordID nul was.", $result);
+			$mess = sprintf("Er zijn %d records uit Liddipl verwijderd, omdat het RecordID leeg was.", $result);
 			db_logboek("add", $mess, 2);
 		}
 		fnQuery(sprintf("ALTER TABLE %sLiddipl ADD PRIMARY KEY (`RecordID`);", $table_prefix));
@@ -1614,8 +1630,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_access` (
   `Toegang` int(11) NOT NULL DEFAULT '-1',
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`RecordID`),
-  UNIQUE KEY `Tabpage` (`Tabpage`)
+  PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sAdmin_activiteit` (

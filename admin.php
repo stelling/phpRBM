@@ -18,19 +18,20 @@ if (isset($_GET['op']) and $_GET['op'] == "deletelogin") {
 } elseif (isset($_GET['op']) and $_GET['op'] == "unlocklogin") {
 	db_logins("unlock", "", "", $_GET['lidid']);
 	printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $currenttab);
+} elseif (isset($_POST['tabpage_nw']) and strlen($_POST['tabpage_nw']) > 0) {
+	db_authorisation("add", 0, $_POST['tabpage_nw']);
 } elseif (isset($_GET['op']) and $_GET['op'] == "deleteautorisatie") {
-	db_delete_authorisation($_GET['recid']);
+	db_authorisation("delete", $_GET['recid']);
 	printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $currenttab);
 } elseif (isset($_GET['op']) and $_GET['op'] == "changeaccess") {
-	$query = sprintf("SELECT RecordID, Toegang, Tabpage FROM %sAdmin_access;", $table_prefix);
-	$result = fnQuery($query);
-	foreach($result->fetchAll() as $row) {
+	foreach(db_authorisation("lijst") as $row) {
 		$vn = sprintf("toegang%d", $row->RecordID);
 		if (isset($_POST[$vn]) and $_POST[$vn] != $row->Toegang) {
-			$query = sprintf('UPDATE %1$sAdmin_access SET Toegang=%2$d, Gewijzigd=SYSDATE() WHERE RecordID=%3$d AND Toegang<>%2$d;', $table_prefix, $_POST[$vn], $row->RecordID);
+			$query = sprintf("UPDATE %1\$sAdmin_access SET Toegang=%2\$d, Gewijzigd=SYSDATE() WHERE RecordID=%3\$d AND Toegang<>%2\$d;", $table_prefix, $_POST[$vn], $row->RecordID);
 			$result = fnQuery($query);
 			if ($result > 0) {
-				db_logboek("add", sprintf("Toegang '%s' is naar groep '%s' aangepast.", $row->Tabpage, db_naam_onderdeel($_POST[$vn], "Iedereen")), 5);
+				$mess = sprintf("Toegang '%s' is naar groep '%s' aangepast.", $row->Tabpage, db_naam_onderdeel($_POST[$vn], "Iedereen"));
+				db_logboek("add", $mess, 5);
 			}
 		}
 	}
@@ -69,10 +70,8 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 	printf("<form name='formauth' method='post' action='%s?tp=%s&amp;op=changeaccess'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	echo("<table>\n");
 	echo("<tr><th></th><th>Onderdeel</th><th>Toegankelijk voor</th></tr>\n");
-	$query = sprintf("SELECT RecordID, Tabpage, Toegang FROM %sAdmin_access ORDER BY Tabpage;", $table_prefix);
-	$result = fnQuery($query);
-	foreach($result->fetchAll() as $row) {
-		$del = sprintf("<a href='%s?tp=%s&amp;op=deleteautorisatie&amp;recid=%d'><img src='images/del.png' alt='Trash bin' title='Verwijder record'></a>", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
+	foreach(db_authorisation("lijst") as $row) {
+		$del = sprintf("<a href='%s?tp=%s&amp;op=deleteautorisatie&amp;recid=%d'><img src='images/del.png' title='Verwijder record'></a>", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
 		$selectopt = "<option value=-1>Alleen webmasters</option>\n";
 		if ($row->Toegang == 0) {
 			$selectopt .= "<option value=0 selected>Iedereen</option>\n";
@@ -85,6 +84,11 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 		}
 		printf("<tr><td>%s</td><td>%s</td><td><select name='toegang%d' onchange='this.form.submit();'>%s</select></td></tr>\n", $del, $row->Tabpage, $row->RecordID, $selectopt);
 	}
+	$optionstab = "<option value=''>Selecteer ...</options>";
+	foreach (db_authorisation("tabpages") as $row) {
+		$optionstab .= sprintf("<option value='%1\$s'>%1\$s</option>\n", $row->Tabpage);
+	}
+	printf("<tr><td><img src='images/star.png' alt='Ster' title='Nieuw record'></td><td><select name='tabpage_nw' onChange='this.form.submit();'>%s</select></td><td></td></tr>\n", $optionstab);
 	echo("</table>\n");
 	echo("</form>\n");
 	echo("</div>  <!-- Einde lijst -->\n");
