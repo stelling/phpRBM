@@ -28,6 +28,7 @@ if (!isset($emailbevestiginginschrijving)) {
 	
 require_once($dir . "/database.inc");
 require_once($dir . "/authentication.inc");
+require_once($dir . "/leden.inc");
 require_once($dir . "/bewaking.inc");
 require_once($dir . "/evenement.inc");
 require_once($dir . "/mailing.inc");
@@ -76,23 +77,23 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	$tabpages[] = "Eigen gegevens/Financieel";
 	$tabpages[] = "Eigen gegevens/Mailing";
 	$tabpages[] = "Eigen gegevens/Logboek";
-	$tabpages[] = "Wijzigen";
-	$tabpages[] = "Wijzigen/Algemene gegevens";
+	$tabpages[] = "Zelfservice";
+	$tabpages[] = "Zelfservice/Algemene gegevens";
 	if (strlen($selfservicediplomas) > 3) {
-		$tabpages[] = "Wijzigen/Diploma's";
+		$tabpages[] = "Zelfservice/Diploma's";
 	}
-	$tabpages[] = "Wijzigen/Pasfoto";
+	$tabpages[] = "Zelfservice/Pasfoto";
 	if (strlen($muteerbarememos) > 0) { 
-		$tabpages[] = "Wijzigen/Bijzonderheden";
+		$tabpages[] = "Zelfservice/Bijzonderheden";
 	}
-	$tabpages[] = "Wijzigen/Inschrijving bewaking";
+	$tabpages[] = "Zelfservice/Inschrijving bewaking";
 	if (db_evenement("aantalopen", $_SESSION['lidid']) > 0) {
-		$tabpages[] = "Wijzigen/Inschrijving evenementen";
+		$tabpages[] = "Zelfservice/Inschrijving evenementen";
 	}
-	$tabpages[] = "Wijzigen/Profiel";
+	$tabpages[] = "Zelfservice/Profiel";
 	$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap WHERE Lid=%d AND (Opgezegd IS NULL);", $table_prefix, $_SESSION['lidid']);
 	if (db_scalar($query) > 0) {
-		$tabpages[] = "Wijzigen/Opzegging";
+		$tabpages[] = "Zelfservice/Opzegging";
 	}
 	$tabpages[] = "Ledenlijst";
 	$tabpages[] = "Overzicht lid/Algemeen";
@@ -229,7 +230,7 @@ function HTMLheader() {
 		echo("<form name='Login' action='/auth.php' method='post'>");
 		if (isset($_SESSION['username']) and strlen($_SESSION['username']) > 4 and $_SESSION['lidid'] > 0) {
 			printf("Welkom %s\n", htmlentities($_SESSION['roepnaamingelogde']));
-			echo("<a href='/?tp=Wijzigen/Profiel'><img src='images/user.png' title='Profiel wijzigen' alt='Profiel wijzigen'></a>\n");
+			echo("<a href='/?tp=Zelfservice/Profiel'><img src='images/user.png' title='Profiel wijzigen' alt='Profiel wijzigen'></a>\n");
 			printf("<a href='auth.php?actie=uitloggen'><img src='images/power.png' title='Uitloggen' alt='Uitloggen'></a>\n");
 			if ($_SESSION['webmaster'] == 1 and $_SERVER['PHP_SELF'] != "/admin.php") {
 				echo("<a href='admin.php'><img src='images/tool.png' title='Beheerdersmenu'></a>\n");
