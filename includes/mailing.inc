@@ -1,5 +1,98 @@
 <?php
 
+function fnMailing() {
+	global $ldl, $currenttab2;
+		
+	if (isset($_POST['Upload']) and $_POST['Upload'] == "Upload") {
+		$op = "upload";
+	} elseif (isset($_POST['action']) and $_POST['action'] == "Bewaren & sluiten") {
+		$op = "save_close";
+	} elseif (isset($_POST['action']) and $_POST['action'] == "Voorbeeld") {
+		$op = "preview";
+	} elseif (isset($_GET['op'])) {
+		$op = $_GET['op'];
+	} else {
+		$op = "";
+	}
+	if ($op != "preview") {
+		fnDispMenu(2);
+	}
+
+	$mailing = new mailing;
+	if (isset($_GET['mid']) and $_GET['mid'] >= 0) {
+		$mailing->mid = $_GET['mid'];
+	} else {
+		$mailing->mid = 0;
+	}
+
+	if ($op == "edit" and isset($_GET['mid'])) {
+		$mailing->edit();
+	} elseif ($op == "post" or $op == "save_close") {
+		$mailing->post_form();
+		$mailing->upload();
+		if ($op == "save_close") {
+			printf("<script>location.href='%s?tp=Mailing/%s';</script>\n", $_SERVER['PHP_SELF'], db_mailing("folder", $mailing->mid));
+		} else {
+			$mailing->edit();
+		}
+	} elseif ($currenttab2 == "Nieuw" and toegang($_GET['tp'])) {
+		$mailing->mid = 0;
+		$mailing->edit();
+	} elseif ($op == "historie" and $mailing->mid > 0) {
+		$rows = db_mailing("hist", $mailing->mid);
+		if (count($rows) > 0) {
+			$ld = sprintf("<a href='index.php?tp=%s&amp;op=histdetails&amp;rid=%%d'>%%s</a>", $_GET['tp']);
+			echo(fnDisplayTable($rows, $ld, $rows[0]->ndOnderwerp, 0, 1));
+		} else {
+			echo("<p class='mededeling'>Deze mailing heeft geen historie.</p>\n");
+		}
+		echo("<div id='opdrachtknoppen'>\n
+				<img src='images/back.png' alt='Terug' title='Terug' onclick='history.go(-1);'>\n
+				</div>  <!-- Einde opdrachtknoppen -->\n");
+	} elseif ($op == "histdetails" and $_GET['rid'] > 0) {
+		$mailing->toonverstuurdemail($_GET['rid']);
+	} elseif ($op == "upload") {
+		$mailing->upload();
+		$mailing->edit();
+	} elseif ($op == "del_attach" and isset($_GET['attach'])) {
+		$mailing->attach_delete($_GET['attach']);
+		$mailing->edit();
+	} elseif ($op == "add_lid" and isset($_GET['lidid']) and $_GET['lidid'] > 0) {
+		$mailing->Add_lid($_GET['lidid']);
+		$mailing->edit();
+	} elseif ($op == "add_lid" and isset($_GET['to_address']) and strlen($_GET['to_address']) > 0) {
+		$mailing->Add_lid(0, $_GET['to_address']);
+		$mailing->edit();
+	} elseif ($op == "del_lid" and isset($_GET['lidid']) and $_GET['lidid'] > 0) {
+		$mailing->delete_lid($_GET['lidid']);
+		$mailing->edit();
+	} elseif ($op == "del_lid" and isset($_GET['addr']) and strlen($_GET['addr']) > 0) {
+		$mailing->delete_lid(0, $_GET['addr']);
+		$mailing->edit();
+	} elseif ($op == "add_groep" and isset($_GET['groepid']) and $_GET['groepid'] > 0) {
+		$mailing->add_groep($_GET['groepid']);
+		$mailing->edit();
+	} elseif ($op == "del_groep" and isset($_GET['groepid']) and $_GET['groepid'] != 0) {
+		$mailing->delete_groep($_GET['groepid']);
+		$mailing->edit();
+	} elseif ($op == "preview") {
+		$mailing->upload();
+		$mailing->preview();
+	} elseif ($op == "send") {
+		$mailing->upload();
+		$mailing->send();
+		$mailing->lijst($currenttab2);
+	} elseif ($op == "delete") {
+		$mailing->delete();
+		$mailing->lijst($currenttab2);
+	} elseif ($op == "undelete") {
+		$mailing->undelete();
+		$mailing->lijst($currenttab2);
+	} else {
+		$mailing->lijst($currenttab2);
+	}
+}
+
 class mailing {
 	public $mid;
 	

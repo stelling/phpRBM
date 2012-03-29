@@ -12,7 +12,7 @@ if (!isset($_SESSION['username']) or !isset($_SESSION['password'])) {
 
 
 function toegang($soort, $melding=1) {
-	global $lididwebmasters, $table_prefix, $urlwebsite, $gebruikopenid, $naamwebsite, $maxinlogpogingen;
+	global $lididwebmasters, $table_prefix, $urlwebsite, $gebruikopenid, $naamwebsite, $maxinlogpogingen, $tabpages;
 
 	if (isset($_SESSION['lidid']) and $_SESSION['lidid'] > 0 and isset($_SESSION['lastauthenication']) and $_SESSION['lastauthenication'] >= time()-60) {
 		// Er hoeft niets te gebeuren.
@@ -99,11 +99,13 @@ function toegang($soort, $melding=1) {
 	if (in_array($soort, array('Verenigingsinfo', 'Beginpagina')) === TRUE) {
 		return true;
 	} elseif (strlen($soort) > 0) {
-		$soort = str_replace("'", "", $soort);
-		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_access WHERE Tabpage=\"%s\";", $table_prefix, $soort);
-		$result = db_scalar($query);
-		if ($result == 0) {
-			db_authorisation("add", 0, $soort);
+		if (isset($tabpages) and in_array($soort, $tabpages) === TRUE) {
+			$soort = str_replace("'", "", $soort);
+			$query = sprintf("SELECT COUNT(*) FROM %sAdmin_access WHERE Tabpage=\"%s\";", $table_prefix, $soort);
+			$result = db_scalar($query);
+			if ($result == 0) {
+				db_authorisation("add", 0, $soort);
+			}
 		}
 		if ($_SESSION['webmaster'] == 1) {
 			return true;
