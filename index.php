@@ -34,6 +34,8 @@ if ($currenttab == "Eigen gegevens" and toegang($_GET['tp'])) {
 		inschrijvenbewaking($_SESSION['lidid']);
 	} elseif ($currenttab2 == "Inschrijving evenementen") {
 		inschrijvenevenementen($_SESSION['lidid']);
+	} elseif ($currenttab2 == "Opzegging") {
+		opzegginglidmaatschap($_SESSION['lidid']);
 	} else {
 		fnWijzigen($_SESSION['lidid'], $currenttab2);
 	}
@@ -104,7 +106,8 @@ function fnVoorblad($metlogin=0) {
 		foreach (array('aantalleden', 'aantalvrouwen', 'aantalmannen', 'gemiddeldeleeftijd', 'aantalkaderleden', 'nieuwstelogin', 'aantallogins', 'nuingelogd') as $v) {
 			$content = str_replace("[%" . strtoupper($v) . "%]", htmlentities($stats[$v]), $content);
 		}
-		$content = str_replace("[%LAATSTGEWIJZIGD%]", strftime("%e %B %Y (%H:%m)", strtotime($stats['laatstgewijzigd'])), $content);
+		$content = str_replace("[%LAATSTGEWIJZIGD%]", strftime("%e %B %Y (%H:%M)", strtotime($stats['laatstgewijzigd'])), $content);
+		$content = str_replace("[%LAATSTEUPLOAD%]", strftime("%e %B %Y (%H:%M)", strtotime($stats['laatsteupload'])), $content);
 		
 		// Gebruiker-specifieke statistieken
 		if (isset($_SESSION['lidid']) and $_SESSION['lidid'] > 0) {

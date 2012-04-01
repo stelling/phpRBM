@@ -50,15 +50,14 @@ function fnWieiswie($actie, $metfoto=1) {
 			}
 			$fn = fotolid($row->Nummer, 1);
 			if ($actie == "Onderscheidingen" and strlen($fn) > 3) {
-				printf("<div class='kaartje'><img src='%s'><p class='naamkaderlid'>%s</p>\n<p>vanaf %s</p>\n</div>\n", $fn, $ln, strftime("%B %Y", strtotime($row->Vanaf)));
+				printf("<div class='kaartje'><img src='%1\$s' alt='Pasfoto %2\$s'><p class='naamkaderlid'>%2\$s</p>\n<p>vanaf %3\$s</p>\n</div>\n", $fn, $ln, strftime("%B %Y", strtotime($row->Vanaf)));
 			} elseif ($actie == "Onderscheidingen") {
 				printf("<div class='kaartje'><p class='naamkaderlid'>%s</p>\n<p>vanaf %s</p>\n</div>\n", $ln, strftime("%B %Y", strtotime($row->Vanaf)));
 			} elseif (strlen($fn) > 3) {
-				printf("<div class='kaartje'><img src='%s'><p class='naamkaderlid'>%s</p>\n<p class='functiekaderlid'>%s</p>\n<p class='mailkaderlid'>%s</p>\n</div>\n", $fn, $ln, $func, $email);
+				printf("<div class='kaartje'><img src='%1\$s' alt='Pasfoto %2\$s'><p class='naamkaderlid'>%2\$s</p>\n<p class='functiekaderlid'>%3\$s</p>\n<p class='mailkaderlid'>%4\$s</p>\n</div>\n", $fn, $ln, $func, $email);
 			} else {
 				printf("<div class='kaartje'><p class='naamkaderlid'>%s</p>\n<p class='functiekaderlid'>%s</p>\n<p class='mailkaderlid'>%s</p>\n</div>\n", $ln, $func, $email);	
 			}
-			
 		}
 	} else {	
 		echo("<table>\n");
@@ -314,22 +313,7 @@ function fnWijzigen($lidid=0, $actie="") {
 	global $currenttab, $currenttab2, $pasfotoextenties, $emailledenadministratie, $emailnieuwepasfoto, $selfservicediplomas, $opzegtermijn;
 	global $naamvereniging, $naamwebsite, $urlwebsite, $table_prefix, $emailsecretariaat, $gebruikopenid;
 	global $muteerbarememos, $emailbevestiginginschrijving, $voorwaardeninschrijving;
-	
-	$fdlang = "%e %B %Y";
-	
-	$arrLegitimatie["G"] = "Geen";
-	$arrLegitimatie["I"] = "Identiteitskaart";
-	$arrLegitimatie["O"] = "Onbekend";
-	$arrLegitimatie["P"] = "Paspoort";
-	$arrLegitimatie["R"] = "Rijbewijs";
-	
-	$arrSoortMemo["A"] = "Algemeen";
-	$arrSoortMemo["B"] = "Bewaking";
-	$arrSoortMemo["D"] = "Dieet";
-	$arrSoortMemo["E"] = "Examen";
-	$arrSoortMemo["F"] = "Financiën";
-	$arrSoortMemo["G"] = "Gezondheid/medisch";
-	$arrSoortMemo["I"] = "Inschrijving bewaking";
+	global $arrLegitimatie, $arrSoortMemo;
 	
 	if ($lidid == 0) {
 		$lidid = $_SESSION['lidid'];
@@ -400,9 +384,9 @@ function fnWijzigen($lidid=0, $actie="") {
 						$result = fnQuery($query);
 						if ($result > 0) {
 							db_interface("add", $query);
-							$mess .= sprintf("%s is in '%s' gewijzigd. ", $wijzvelden[$i]['label'], $v);
+							$mess .= sprintf("%s van %s is in '%s' gewijzigd. ", $wijzvelden[$i]['label'], db_naamlid($lidid), $v);
 						} else {
-							$mess .= sprintf("De wijziging in %s is niet verwerkt. ", strtolower($wijzvelden[$i]['label']));
+							$mess .= sprintf("De wijziging in %s bij %s is niet verwerkt. ", strtolower($wijzvelden[$i]['label']), db_naamlid($lidid));
 						}
 					}
 				}
@@ -541,89 +525,6 @@ function fnWijzigen($lidid=0, $actie="") {
 			echo("</table>\n");
 			echo("</form>\n");
 			echo("</div>  <!-- Einde bijzonderhedenwijzigen -->\n");
-		} elseif ($actie == "Opzegging") {
-		
-			if (!isset($opzegtermijn) or $opzegtermijn < 0) {
-				$opzegtermijn = 1;
-			}
-			if ($_SERVER['REQUEST_METHOD'] == "POST") {
-				if (isset($_POST["OpzeggingPer"]) and strlen($_POST["OpzeggingPer"]) > 3) {
-					$_POST["OpzeggingPer"] = change_month_to_uk($_POST["OpzeggingPer"]);
-				} else {
-					$_POST["OpzeggingPer"] = "";
-				}
-				if (strlen($_POST["OpzeggingPer"]) > 3 and strtotime($_POST["OpzeggingPer"]) !== FALSE) {
-					$opgezegdper = change_month_to_uk($_POST["OpzeggingPer"]);
-					if (strtotime($opgezegdper) < mktime(0, 0, 0, date("m")+$opzegtermijn, date("d"), date("Y"))) {
-						$opgezegdper = strftime($fdlang, mktime(0, 0, 0, date("m")+$opzegtermijn, date("d"), date("Y")));
-						printf("<p class='mededeling'>Er geldt een opzegtermijn van %d maand(en), hierdoor wordt de datum van opzegging %s.</p>", $opzegtermijn, $opgezegdper);
-					} else {
-						$opgezegdper = strftime($fdlang, strtotime($opgezegdper));
-					}
-				} else {
-					$opgezegdper = strftime($fdlang, mktime(0, 0, 0, date("m")+$opzegtermijn, date("d"), date("Y")));
-					printf("<p class='mededeling'>Er geldt een opzegtermijn van %d maand(en), hierdoor wordt de datum van opzeggen %s.</p>", $opzegtermijn, $opgezegdper);
-				}
-
-				if (isset($_POST['RedenOpmerking']) and strlen($_POST['RedenOpmerking']) > 1) {
-					$opm = "\n<p>" . $_POST['RedenOpmerking'] . "</p>\n";
-				} else {
-					$opm = "";
-				}
-				
-				$body = sprintf("<p>Beste ledenadministratie,</p>\n
-				<p>Hierbij zeg ik mijn lidmaatschap van de %s per %s op. Mijn lidnummer is %d.</p>\n
-				%s
-				<p>Met vriendelijke groeten,<br>
-				<strong>%s</strong></p>\n", $naamvereniging, $opgezegdper, $_SESSION['lidnr'], $opm, $_SESSION['naamingelogde']);
-				
-				$body .= sprintf("\n<p>Dit formulier is verzonden met formulier %s?%s vanaf IP %s.</p>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING'], $_SERVER['REMOTE_ADDR']);
-			
-				$mail = new RBMmailer();
-				$mail->From = $_SESSION['emailingelogde'];
-				$mail->FromName = $_SESSION['naamingelogde'];
-				$mail->AddAddress($emailledenadministratie);
-				$mail->AddCC($_SESSION['emailingelogde']);
-				if (strlen($emailsecretariaat) > 5) {
-					$mail->AddCC($emailsecretariaat);
-				}
-				$mail->Subject = sprintf("Opzegging lidmaatschap %s per %s", $_SESSION['naamingelogde'], $opgezegdper);
-				$mail->Body = $body;
-				if ($mail->Send()) {
-					db_logboek("add", sprintf("%s heeft zijn lidmaatschap per %s opgezegd.", $_SESSION['naamingelogde'], $opgezegdper), 6);
-					echo("<p class='mededeling'>De opzegging is verzonden.</p>");
-				}
-				$mail = null;
-			} else {
-				$form_opzegging = sprintf("<div id='opzegformulier'>
-<form name='Opzegging' action='%s?%s' method='post'>
-<fieldset>
-<h3>Opzegging lidmaatschap</h3>
-<label for='NaamLid'>Naam lid:</label><input type='text' name='NaamLid' value='[%NAAMLID%]' readonly='readonly'>
-<label for='Lidnr'>Lidnummer:</label><input type='text' name='Lidnr' value='[%LIDNR%]' readonly='readonly'>
-<label for='OpzeggingPer'>Opzegging lidmaatschap per:</label><input type='text' name='OpzeggingPer' value='[%OPZEGGENVANAF%]' maxlength=18 size=20>
-<textarea name='RedenOpmerking' rows=8 cols=50 title='Reden en/of opmerkingen'></textarea>
-<input type='submit' name='VerstuurOpzegging' value='Verstuur opzegging'>
-</fieldset>
-</form>
-</div>  <!-- Einde opzegformulier -->", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
-				$myFile = 'templates/opzegging.html';
-				if (file_exists($myFile)) {
-					$content = file_get_contents($myFile);
-					$content = str_replace("[%FORMOPZEGGING%]", $form_opzegging, $content);
-				} else {
-					$content = $form_opzegging;
-				}
-			
-				$content = str_replace("[%OPZEGGENVANAF%]", strftime($fdlang, mktime(0, 0, 0, date("m")+$opzegtermijn, date("d")+1, date("Y"))), $content);
-				$content = str_replace("[%NAAMLID%]", $_SESSION['naamingelogde'], $content);
-				$content = str_replace("[%LIDNR%]", $_SESSION['lidnr'], $content);
-				$content = str_replace("[%NAAMVERENIGING%]", $naamvereniging, $content);
-				$content = str_replace("[%NAAMWEBSITE%]", $naamwebsite, $content);
-				$content = str_replace("[%URLWEBSITE%]", $urlwebsite, $content);
-			
-				echo($content);
-			}
 			
 		} elseif ($actie == "Profiel") {
 		
@@ -849,7 +750,7 @@ function nieuwepasfoto($lidid=0, $filterlid="") {
 	
 	$optionslid = "<option value=-1>Selecteer lid ...</option>\n";
 	foreach (db_lid($filterlid) as $row) {
-		$optionslid .= sprintf("<option value=%1\$d>%2\$s (%1\$d)</options>\n", $row->Nummer, $row->Zoeknaam);
+		$optionslid .= sprintf("<option value=%1\$d>%2\$s (%1\$d)</option>\n", $row->Nummer, htmlentities($row->Zoeknaam));
 	}
 
 	echo("<div id='nieuwepasfoto'>\n");
@@ -869,12 +770,97 @@ function nieuwepasfoto($lidid=0, $filterlid="") {
 		printf("<p><select name='lidpasfoto'>%s</select></p>\n", $optionslid);
 	}
 	echo("<input type='file' name='UploadFoto' id='UploadFoto'>&nbsp;");
-	echo("<input type='submit' name='Upload' value='Insturen'></p>\n");
+	echo("<input type='submit' name='Upload' value='Insturen'>\n");
 	printf("<p>Het ideale formaat van de pasfoto is 390 pixels breed bij 500 pixels hoog. De foto mag niet groter dan %d KB zijn.</p>", $max_size_attachm / 1024);
 	echo("</form>\n");
 
-	echo("</div>  <!-- Einde nieuwepasfoto -->\n");
+	echo("</div>  <!-- Einde nieuwepasfoto -->\n");	
+}
+
+function opzegginglidmaatschap($lidid) {
+	global $opzegtermijn, $naamvereniging, $naamwebsite, $urlwebsite, $emailledenadministratie, $emailsecretariaat;
 	
+	$fdlang = "%e %B %Y";
+	
+	if (!isset($opzegtermijn) or $opzegtermijn < 0) {
+		$opzegtermijn = 1;
+	}
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		if (isset($_POST["OpzeggingPer"]) and strlen($_POST["OpzeggingPer"]) > 3) {
+			$_POST["OpzeggingPer"] = change_month_to_uk($_POST["OpzeggingPer"]);
+		} else {
+			$_POST["OpzeggingPer"] = "";
+		}
+		if (strlen($_POST["OpzeggingPer"]) > 3 and strtotime($_POST["OpzeggingPer"]) !== FALSE) {
+			$opgezegdper = change_month_to_uk($_POST["OpzeggingPer"]);
+			if (strtotime($opgezegdper) < mktime(0, 0, 0, date("m")+$opzegtermijn, date("d"), date("Y"))) {
+				$opgezegdper = strftime($fdlang, mktime(0, 0, 0, date("m")+$opzegtermijn, date("d"), date("Y")));
+				printf("<p class='mededeling'>Er geldt een opzegtermijn van %d maand(en), hierdoor wordt de datum van opzegging %s.</p>", $opzegtermijn, $opgezegdper);
+			} else {
+				$opgezegdper = strftime($fdlang, strtotime($opgezegdper));
+			}
+		} else {
+			$opgezegdper = strftime($fdlang, mktime(0, 0, 0, date("m")+$opzegtermijn, date("d"), date("Y")));
+			printf("<p class='mededeling'>Er geldt een opzegtermijn van %d maand(en), hierdoor wordt de datum van opzeggen %s.</p>", $opzegtermijn, $opgezegdper);
+		}
+		if (isset($_POST['RedenOpmerking']) and strlen($_POST['RedenOpmerking']) > 1) {
+			$opm = "\n<p>" . $_POST['RedenOpmerking'] . "</p>\n";
+		} else {
+			$opm = "";
+		}
+			
+		$body = sprintf("<p>Beste ledenadministratie,</p>\n
+		<p>Hierbij zeg ik mijn lidmaatschap van de %s per %s op. Mijn lidnummer is %d.</p>\n
+		%s
+		<p>Met vriendelijke groeten,<br>
+		<strong>%s</strong></p>\n", $naamvereniging, $opgezegdper, $_SESSION['lidnr'], $opm, $_SESSION['naamingelogde']);
+				
+		$body .= sprintf("\n<p>Dit formulier is verzonden met formulier %s?%s vanaf IP %s.</p>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING'], $_SERVER['REMOTE_ADDR']);
+	
+		$mail = new RBMmailer();
+		$mail->From = $_SESSION['emailingelogde'];
+		$mail->FromName = $_SESSION['naamingelogde'];
+		$mail->AddAddress($emailledenadministratie);
+		$mail->AddCC($_SESSION['emailingelogde']);
+		if (strlen($emailsecretariaat) > 5) {
+			$mail->AddCC($emailsecretariaat);
+		}
+		$mail->Subject = sprintf("Opzegging lidmaatschap %s per %s", $_SESSION['naamingelogde'], $opgezegdper);
+		$mail->Body = $body;
+		if ($mail->Send()) {
+			db_logboek("add", sprintf("%s heeft zijn lidmaatschap per %s opgezegd.", $_SESSION['naamingelogde'], $opgezegdper), 6);
+			echo("<p class='mededeling'>De opzegging is verzonden.</p>\n");
+		}
+		$mail = null;
+	} else {
+		$form_opzegging = sprintf("<div id='opzegformulier'>\n<form name='Opzegging' action='%s?%s' method='post'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+		$form_opzegging .= "<fieldset>
+<h3>Opzegging lidmaatschap</h3>
+<label for='NaamLid'>Naam lid:</label><input type='text' name='NaamLid' value='[%NAAMLID%]' readonly='readonly'>
+<label for='Lidnr'>Lidnummer:</label><input type='text' name='Lidnr' value='[%LIDNR%]' readonly='readonly'>
+<label for='OpzeggingPer'>Opzegging lidmaatschap per:</label><input type='text' name='OpzeggingPer' value='[%OPZEGGENVANAF%]' maxlength=18 size=20>
+<textarea name='RedenOpmerking' rows=8 cols=50 title='Reden en/of opmerkingen'></textarea>
+<input type='submit' name='VerstuurOpzegging' value='Verstuur opzegging'>
+</fieldset>
+</form>
+</div>  <!-- Einde opzegformulier -->";
+		$myFile = 'templates/opzegging.html';
+		if (file_exists($myFile)) {
+			$content = file_get_contents($myFile);
+			$content = str_replace("[%FORMOPZEGGING%]", $form_opzegging, $content);
+		} else {
+			$content = $form_opzegging;
+		}
+	
+		$content = str_replace("[%OPZEGGENVANAF%]", strftime($fdlang, mktime(0, 0, 0, date("m")+$opzegtermijn, date("d")+1, date("Y"))), $content);
+		$content = str_replace("[%NAAMLID%]", $_SESSION['naamingelogde'], $content);
+		$content = str_replace("[%LIDNR%]", $_SESSION['lidnr'], $content);
+		$content = str_replace("[%NAAMVERENIGING%]", $naamvereniging, $content);
+		$content = str_replace("[%NAAMWEBSITE%]", $naamwebsite, $content);
+		$content = str_replace("[%URLWEBSITE%]", $urlwebsite, $content);
+		
+		echo($content);
+	}
 }
 
 ?>

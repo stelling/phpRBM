@@ -255,21 +255,21 @@ class mailing {
 	public function toonverstuurdemail ($rid) {
 		echo("<div id='verstuurdemail'>\n");
 		$row = db_mailing("histdetails", 0, $rid);
-		printf("<label>Verzonden:</label><field>%s</field>\n", strftime('%e %B %Y (%H:%M)', strtotime($row->send_on)));
+		printf("<div class='label'>Verzonden:</div><div class='veld'>%s</div>\n", strftime('%e %B %Y (%H:%M)', strtotime($row->send_on)));
 		if (strlen($row->from_name) > 0) {
-			printf("<label>Van:</label><field>%s (%s)</field>\n", htmlentities($row->from_name), $row->from_addr);
+			printf("<div class='label'>Van:</div><div class='veld'>%s (%s)</div>\n", htmlentities($row->from_name), $row->from_addr);
 		} else {
-			printf("<label>Van:</label><field>%s</field>\n", $row->from_addr);
+			printf("<div class='label'>Van:</div><div class='veld'>%s</div>\n", $row->from_addr);
 		}
 		if (strlen($row->to_name) > 0) {
-			printf("<label>Aan:</label><field>%s</field>\n", htmlentities($row->to_name));
+			printf("<div class='label'>Aan:</div><div class='veld'>%s</div>\n", htmlentities($row->to_name));
 		}
-		printf("<label>E-mail:</label><field>%s</field>\n", $row->to_addr);
+		printf("<div class='label'>E-mail:</div><div class='veld'>%s</div>\n", $row->to_addr);
 		if (strlen($row->cc_addr) > 5) {
-			printf("<label>CC:</label><field>%s</field>\n", $row->cc_addr);
+			printf("<div class='label'>CC:</div><div class='veld'>%s</div>\n", $row->cc_addr);
 		}
-		printf("<label>Onderwerp:</label><field>%s</field>\n", $row->subject);
-		printf("<label>Bericht:</label><field>%s</field>\n", $row->message);
+		printf("<div class='label'>Onderwerp:</div><div class='veld'>%s</div>\n", $row->subject);
+		printf("<div class='label'>Bericht:</div><div class='veld'>%s</div>\n", $row->message);
 		echo("</div>  <!-- Einde verstuurdemail -->\n");
 	}
 	

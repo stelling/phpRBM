@@ -39,6 +39,20 @@ $arrTL[] = "Leden";
 $arrTL[] = "Klosleden";
 $arrTL[] = "Voormalig leden";
 
+$arrLegitimatie["G"] = "Geen";
+$arrLegitimatie["I"] = "Identiteitskaart";
+$arrLegitimatie["O"] = "Onbekend";
+$arrLegitimatie["P"] = "Paspoort";
+$arrLegitimatie["R"] = "Rijbewijs";
+	
+$arrSoortMemo["A"] = "Algemeen";
+$arrSoortMemo["B"] = "Bewaking";
+$arrSoortMemo["D"] = "Dieet";
+$arrSoortMemo["E"] = "Examen";
+$arrSoortMemo["F"] = "Financiën";
+$arrSoortMemo["G"] = "Gezondheid/medisch";
+$arrSoortMemo["I"] = "Inschrijving bewaking";
+
 if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	$tabpages[] = "Beheer logins";
 	$tabpages[] = "Autorisatie";
@@ -425,7 +439,7 @@ function fnDisplayForm($row, $xtra_eind="") {
 }
 
 function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_regel="") {
-	$ret = "<div id='lijst'>\n";
+	$ret = "<div class='lijst'>\n";
 	if (isset($rows) and (count($rows) > 0 or strlen($xtra_regel) > 0)) {
 		$ret .= "<table>\n";
 		$dispkop = 1;

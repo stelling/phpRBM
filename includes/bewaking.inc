@@ -27,8 +27,8 @@ function fnBewaking($seizoen=0) {
 	$st_len_bp = 1;
 	
 	echo("<div id='filter'>\n");
-	echo("<table>\n<tr>\n");
 	printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+	echo("<table>\n<tr>\n");
 	
 	if ($currenttab2 == "Downloaden inschrijvingen") {
 		// Geen filter tonen
@@ -92,8 +92,8 @@ function fnBewaking($seizoen=0) {
 			echo("</select>\n</td>\n");
 		}
 	}
-	echo("</form>\n");
 	echo("</tr>\n</table>\n");
+	echo("</form>\n");
 	echo("</div>  <!-- Einde filter -->\n");
 	
 	
@@ -192,7 +192,6 @@ function bew_postindeling($seizoen, $week=-1) {
 	$vp = "";
 	
 	echo("<div id='postindeling'>\n");
-	echo("<table>\n");
 		
 	foreach ($lijst as $row) {
 		if (($row->ST_LEN_BP == 7 and $vw != $row->Weeknr) or $row->ST_LEN_BP == 1 and $vw != strftime("%A %e %B %Y", strtotime($row->BEGIN_PER))) {
@@ -215,7 +214,7 @@ function bew_postindeling($seizoen, $week=-1) {
 		
 		$fn = fotolid($row->Nummer, 1);
 		if (strlen($fn) > 0) {
-			$fn = sprintf("<img src='%s' alt='%s'>\n", $fn, $row->NaamBewaker);
+			$fn = sprintf("<img src='%s' alt='%s'>\n", $fn, htmlentities($row->NaamBewaker));
 		}
 		if (strlen($row->OmsFunctie) > 0) {
 			$of = $row->OmsFunctie;
@@ -230,7 +229,6 @@ function bew_postindeling($seizoen, $week=-1) {
 				 $fn, $of, fnDispBW($row, "Naam"), $lft, fnDispBW($row, "Erv"));
 		$sel_leden[] = $row->Nummer;
 	}
-	echo("</table>\n");
 	echo("</div> <!-- Einde postindeling -->\n");
 }
 
@@ -492,7 +490,7 @@ function DetailsInschrijvingBewaking($rows) {
 	
 	if (isset($rows) and count($rows) > 0) {
 		$ret .= "<table>\n";
-		$ret .= "<tr><th colspan=9 class='tabelkop'>Details inschrijving bewaking</th></tr>\n";
+		$ret .= "<tr><th colspan=8 class='tabelkop'>Details inschrijving bewaking</th></tr>\n";
 		$ret .= "<tr><th colspan=2>Bewaker</th><th>Week</th><th>Periode</th><th>Keuze 1</th><th>Keuze 2</th><th>Opmerking (week)</th><th>Opmerking (Inschrijving)</th></tr>\n";
 		$voriglid = -1;
 		$hv = "";
@@ -512,7 +510,7 @@ function DetailsInschrijvingBewaking($rows) {
 			$aantalreg++;
 			if ($aantalreg == 1) {
 				if (strlen($fn) > 0) {
-					$hv .= sprintf("<td rowspan=[ROWSPAN] class='fotoinschrijving'><img src='%s'></td>\n", $fn);
+					$hv .= sprintf("<td rowspan=[ROWSPAN] class='fotoinschrijving'><img src='%s' alt='Pasfoto %s'></td>\n", $fn, htmlentities($row->Bewaker));
 				} else {
 					$hv .= "<td rowspan=[ROWSPAN]>&nbsp;</td>\n";
 				}
