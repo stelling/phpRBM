@@ -78,7 +78,7 @@ footer, #footer {
 	font-size: 9pt;
 }
 
-footer a, #footer a, footer a:visited, #footer a:visited {
+footer a + a:visited, #footer a + a:visited {
 	text-decoration: none;
 	color: #000080;
 }
@@ -115,7 +115,7 @@ footer a, #footer a, footer a:visited, #footer a:visited {
 	font-size: 11pt;
 }
 
-#header a, #header a:visited, #header a:hover {
+#header a + a:visited + a:hover {
 	text-decoration: none;
 	color: #000080;
 }
@@ -236,7 +236,7 @@ footer a, #footer a, footer a:visited, #footer a:visited {
 	min-width: 450px;
 }
 
-.lijst td, .lijst th {
+.lijst td + th {
 	padding-left: 6px;
 	padding-right: 6px;
 }
@@ -367,7 +367,7 @@ fieldset h3 {
 	float: left;
 }
 
-#verstuurdemail label, #verstuurdemail field{
+#verstuurdemail .label, #verstuurdemail .veld{
 	margin-top: 3px;
 	margin-bottom: 3px;
 	padding-top: 3px;
@@ -376,14 +376,14 @@ fieldset h3 {
 	border-width: 1px;
 }
 
-#verstuurdemail label {
+#verstuurdemail .label {
+	background-color: transparent;
 	min-height: 23px;
 	width: 90px;
 	float: left;
-	text-align: right;
 }
 
-#verstuurdemail field {
+#verstuurdemail .veld {
 	min-height: 21px;
 	width: 850px;
 	float: right;
@@ -677,3 +677,97 @@ fieldset h3 {
 .opmerkinginschrijving, .opmerkingweek {
 	max-width: 200px;
 }
+
+/* Elementen voor treeview */
+
+.css-treeview ul, .css-treeview li {
+	padding: 0;
+	margin: 0;
+	list-style: none;
+}
+
+.css-treeview input 	{
+	position: absolute;
+	opacity: 0;
+}
+
+.css-treeview {
+	-moz-user-select: none;
+	-webkit-user-select: none;
+	user-select: none;
+}
+
+.css-treeview a {
+	color: #00f;
+	text-decoration: none;
+}
+
+.css-treeview a:hover {
+	text-decoration: underline;
+}
+
+.css-treeview input + label + ul {
+	margin: 0 0 0 22px;
+}
+
+.css-treeview input + label + ul {
+	display: none;
+}
+
+.css-treeview label, .css-treeview label::before {
+	cursor: pointer;
+}
+
+.css-treeview input:disabled + label {
+	cursor: default;
+	opacity: .6;
+}
+
+.css-treeview input:checked:not(:disabled) + label + ul {
+	display: block;
+}
+
+.css-treeview label, .css-treeview label::before {
+	background: url("icons.png") no-repeat;
+}
+
+.css-treeview label, .css-treeview a, .css-treeview label::before {
+	display: inline-block;
+	height: 16px;
+	line-height: 16px;,
+	vertical-align: middle;
+}
+
+.css-treeview label {
+	background-position: 18px 0;
+}
+
+.css-treeview label::before {
+	content: "";
+	width: 16px;
+	margin: 0 22px 0 0;
+	vertical-align: middle;
+	background-position: 0 -32px;
+}
+
+.css-treeview input:checked + label::before {
+	background-position: 0 -16px;
+}
+
+/* webkit adjacent element selector bugfix */
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+	.css-treeview {
+		-webkit-animation: webkit-adjacent-element-selector-bugfix infinite 1s;
+	}
+			
+	@-webkit-keyframes webkit-adjacent-element-selector-bugfix {
+		from { 
+			padding: 0;
+		} 
+		to  { 
+			padding: 0;
+		}
+	}
+}
+
+/* Einde elementen voor treeview */
