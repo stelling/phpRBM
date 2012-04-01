@@ -50,7 +50,7 @@ if (strlen($table_prefix) > 0 and substr($table_prefix, -1) != "_") {
 }
 
 $selectnaam = "CONCAT(IF(LENGTH(L.Roepnaam)>1, L.Roepnaam, L.Voorletter), ' ', IF(L.Tussenv>'', CONCAT(L.Tussenv, ' '), ''), L.Achternaam, IF(L.Meisjesnm>'', CONCAT('-', L.Meisjesnm), ''))";
-$selectzoeknaam = "CONCAT(L.Achternaam, ', ', IF(L.Tussenv>'', CONCAT(L.Tussenv, ' '), ''), IF(LENGTH(L.Roepnaam)>1, L.Roepnaam, L.Voorletter), ' ')";
+$selectzoeknaam = "TRIM(CONCAT(L.Achternaam, ', ', IF(L.Tussenv>'', CONCAT(L.Tussenv, ' '), ''), IF(LENGTH(L.Roepnaam)>1, L.Roepnaam, L.Voorletter), ' '))";
 $fromlid = sprintf('%1$sLid AS L LEFT OUTER JOIN %1$sLidmaatschap AS LM ON L.Nummer = LM.Lid', $table_prefix);
 $wherelid = "LM.LIDDATUM <= CURDATE() AND ((LM.Opgezegd IS NULL) OR LM.Opgezegd >= CURDATE())";
 $fromlidond = sprintf('%1$sLid AS L INNER JOIN ((%1$sLidond AS LO INNER JOIN %1$sFunctie AS F ON LO.Functie = F.Nummer) INNER JOIN %1$sOnderdl AS O ON LO.OnderdeelID = O.RecordID) ON L.NUMMER = LO.LID', $table_prefix);
@@ -759,22 +759,21 @@ function db_stats($lidid=0) {
 	$stats['aantalmannen'] = $result->fetchColumn();
 	
 	$query = sprintf("SELECT ROUND(AVG(DATEDIFF(CURDATE(), L.GEBDATUM))/365.25, 1) FROM %s WHERE %s AND (NOT L.GEBDATUM IS NULL);", $fromlid, $wherelid);
-	$result = fnQuery($query);
-	$stats['gemiddeldeleeftijd'] = $result->fetchColumn();
+	$stats['gemiddeldeleeftijd'] = db_scalar($query);
 	
    $query = sprintf("SELECT COUNT(DISTINCT LO.Lid) FROM %s WHERE (O.Kader=1 OR F.Kader=1) AND %s;", $fromlidond, $wherelidond);
-	$result = fnQuery($query);
-	$stats['aantalkaderleden'] = $result->fetchColumn();
+	$stats['aantalkaderleden'] = db_scalar($query);
 	
 	$query = sprintf("SELECT %1\$s AS LidNaam FROM %2\$sLid AS L INNER JOIN %2\$sAdmin_login AS Login ON L.Nummer = Login.LidID"
 			 . " ORDER BY Login.Ingevoerd DESC LIMIT 1;", $selectnaam, $table_prefix);
-	$result = fnQuery($query);
-	$stats['nieuwstelogin'] = $result->fetchColumn();
+	$stats['nieuwstelogin'] = db_scalar($query);
 	
 	$query = sprintf("SELECT COUNT(*) FROM %sAdmin_login AS Login;", $table_prefix);
-	$result = fnQuery($query);
-	$stats['aantallogins'] = $result->fetchColumn();
-		
+	$stats['aantallogins'] = db_scalar($query);
+	
+	$query = sprintf("SELECT MAX(DatumTijd) FROM %sAdmin_activiteit WHERE TypeActiviteit=9;", $table_prefix);
+	$stats['laatsteupload'] = db_scalar($query);
+	
 	$query = sprintf("SELECT %1\$s AS LidNaam FROM %2\$sLid AS L INNER JOIN %2\$sAdmin_login AS Login ON L.Nummer = Login.LidID"
 			 . " WHERE Login.Ingelogd=1 ORDER BY Login.Ingevoerd DESC;", $selectnaam, $table_prefix);
 	$result = fnQuery($query);
@@ -810,32 +809,28 @@ function db_stats($lidid=0) {
 	}
 	
 	$query = sprintf("SELECT MAX(LO.Gewijzigd) FROM %sLidond AS LO%s;", $table_prefix, $filter);
-	$result = fnQuery($query);
-	$lgw = $result->fetchColumn();
+	$lgw = db_scalar($query);
 	if ($lgw > $stats['laatstgewijzigd']) {
 		$stats['laatstgewijzigd'] = $lgw;
 	}
 	
 	if ($lidid > 0) {
 		$query = sprintf("SELECT MAX(LD.Gewijzigd) FROM %sLiddipl AS LD%s;", $table_prefix, $filter);
-		$result = fnQuery($query);
-		$lgw = $result->fetchColumn();
+		$lgw = db_scalar($query);
 		if ($lgw > $stats['laatstgewijzigd']) {
 			$stats['laatstgewijzigd'] = $lgw;
 		}
 	}
 	
 	$query = sprintf("SELECT MAX(RK.Gewijzigd) FROM %sRekening AS RK%s;", $table_prefix, $filter);
-	$result = fnQuery($query);
-	$lgw = $result->fetchColumn();
+	$lgw = db_scalar($query);
 	if ($lgw > $stats['laatstgewijzigd']) {
 		$stats['laatstgewijzigd'] = $lgw;
 	}	
 	
 	if ($lidid == 0) {
 		$query = sprintf("SELECT MAX(M.Gewijzigd) FROM %sMutatie AS M;", $table_prefix);
-		$result = fnQuery($query);
-		$lgw = $result->fetchColumn();
+		$lgw = db_scalar($query);
 		if ($lgw > $stats['laatstgewijzigd']) {
 			$stats['laatstgewijzigd'] = $lgw;
 		}
@@ -844,7 +839,7 @@ function db_stats($lidid=0) {
 	return $stats;
 }
 
-function db_logins($actie="lijst", $email="", $gewenstelogin="", $lidid=0, $xtrafilter="") {
+function db_logins($actie, $email="", $gewenstelogin="", $lidid=0, $xtrafilter="") {
 	global $selectnaam, $beperktotgroep, $table_prefix, $lididwebmasters, $wherelidond, $wherelid, $gebruikopenid, $lidnrnodigbijloginaanvraag;
 	global $scriptbijuitloggen, $maxinlogpogingen;
 	
@@ -942,7 +937,7 @@ function db_logins($actie="lijst", $email="", $gewenstelogin="", $lidid=0, $xtra
 			$xtrawhere = " AND " . $xtrafilter;
 		}
 		$query = sprintf('SELECT Login.LidID AS lnkNummer, Login.LidID, LM.Lidnr, Login.Login, %1$s %2$s AS Naam_lid, L.Roepnaam AS ndRoepnaam,
-					L.EMAIL AS `E-mail`, L.EmailVereniging AS `E-mail vereniging`, Login.FouteLogin AS `numFoutieve logins`, Login.Ingevoerd AS dteIngevoerd, Login.LastLogin AS `dttLaatste login`,
+					L.EMAIL AS `E-mail`, L.EmailVereniging AS `E-mail vereniging`, Login.Ingevoerd AS dteIngevoerd, Login.LastLogin AS `dttLaatste login`,
 					Login.Wachtwoord AS ndWachtwoord, IF(Login.FouteLogin > %3$d, Login.LidID, 0) AS llkNummer
 					FROM %4$sAdmin_login AS Login INNER JOIN (%4$sLid AS L LEFT OUTER JOIN %4$sLidmaatschap AS LM ON L.Nummer = LM.Lid) ON Login.LidID = L.Nummer
 					WHERE LENGTH(Login.Wachtwoord) > 5 %5$s
@@ -1305,7 +1300,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 			$query = sprintf("INSERT INTO Liddipl (Lid, DiplomaID, EXDATUM, LicentieVervallenPer, Diplomanummer, Ingevoerd, Gewijzigd) 
 						VALUES (%d, %d, %s, %s, '%s', CURDATE(), SYSDATE());", $lidid, $did, $dwaexd, $dwaverv, $dipnr);
 			db_interface("add", $query);
-			$mess = sprintf("Diploma %s is toegevoegd bij %s", db_diploma("Kode", $did), db_naamlid($lidid));
+			$mess = sprintf("Diploma %s is bij %s toegevoegd.", db_diploma("Kode", $did), db_naamlid($lidid));
 			db_logboek("add", $mess, 6);
 		}
 	} elseif ($actie == "update" and $rid > 0) {
@@ -1517,12 +1512,17 @@ function db_onderhoud() {
 	if (db_scalar($query) == 0) {
 		fnQuery(sprintf("ALTER TABLE `%sAdmin_login` ADD `LastActivity` DATETIME;", $table_prefix));
 	}
-	
 		
 	// Toevoegen veld 'FouteLogin' aan de tabel Admin_login. Deze code kan na 16/3/2013 worden verwijderd.
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sAdmin_login' AND COLUMN_NAME='FouteLogin';", $db_name, $table_prefix);
 	if (db_scalar($query) == 0) {
 		fnQuery(sprintf("ALTER TABLE `%sAdmin_login` ADD `FouteLogin` SMALLINT NOT NULL DEFAULT '0';", $table_prefix));
+	}
+	
+	// Toevoegen veld 'Script' aan de tabel Admin_activiteit. Deze code kan na 1/4/2013 worden verwijderd.
+	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sAdmin_activiteit' AND COLUMN_NAME='Script';", $db_name, $table_prefix);
+	if (db_scalar($query) == 0) {
+		fnQuery(sprintf("ALTER TABLE `%sAdmin_activiteit` ADD `Script` VARCHAR( 75 ) NOT NULL AFTER `Omschrijving`;", $table_prefix));
 	}
 
 	if ($bewaartijdlogins > 0) {
@@ -1638,6 +1638,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_activiteit` (
   `LidID` int(11) NOT NULL,
   `DatumTijd` datetime NOT NULL,
   `Omschrijving` text NOT NULL,
+  `Script` varchar(75) NOT NULL,
   `TypeActiviteit` tinyint(4) DEFAULT '0',
   `IP_adres` char(15) NOT NULL,
   `USER_AGENT` varchar(110) DEFAULT NULL,
@@ -1772,31 +1773,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sDiploma` (
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`RecordID`),
   UNIQUE KEY `Kode` (`Kode`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE IF NOT EXISTS `%1\$sDMS_Document` (
-  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
-  `Bestandsnaam` varchar(30) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `FolderID` int(11) NOT NULL,
-  `Beschrijving` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `Volgnummer` tinyint(4) unsigned NOT NULL DEFAULT '0',
-  `EigenaarID` int(11) NOT NULL,
-  `LockedBy` int(11) NOT NULL,
-  `Locked` datetime NOT NULL,
-  `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime NOT NULL,
-  PRIMARY KEY (`RecordID`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE IF NOT EXISTS `%1\$sDMS_Folder` (
-  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
-  `Foldernaam` varchar(30) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `Beschrijving` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `Volgnummer` tinyint(3) unsigned NOT NULL DEFAULT '0',
-  `BovenliggendeFolderID` int(11) NOT NULL DEFAULT '0',
-  `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime NOT NULL,
-  PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sEvenement` (
