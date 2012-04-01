@@ -93,7 +93,7 @@ function fnEvenementen() {
 	} elseif ($currenttab2 == "Beheer") {
 		$lijst = db_evenement("overzicht");
 		$lnk = sprintf("<a href='%s?tp=%s&amp;op=edit&amp;eid=%s' title='Bewerk evenement'>%s</a>", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), "%d", "%s");
-		$er = sprintf("<td><a href='%s?%s&amp;op=edit&amp;eid=0' title='Nieuw evenement'><img src='images/star.png' alt='Nieuw'></td><td colspan=7>Nieuw evenement</td>", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+		$er = sprintf("<td><a href='%s?%s&amp;op=edit&amp;eid=0' title='Nieuw evenement'><img src='images/star.png' alt='Nieuw'></a></td><td colspan=7>Nieuw evenement</td>", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 		echo(fnDisplayTable($lijst, $lnk, "", 0, "", $er));
 	} elseif ($currenttab2 == "Types muteren") {
 		muteertypeevenement();
@@ -320,22 +320,23 @@ function muteertypeevenement() {
 				$mess = sprintf("Type evenement %d is toegevoegd.", $result);
 			}
 		} else {
-			$set_clause = "";
 			foreach (db_evenement("types") as $row) {
+				$set_clause = "";
 				$oms = sprintf("oms_%d", $row->RecordID);
 				$soort = sprintf("soort_%d", $row->RecordID);
 				if (isset($_POST[$oms]) and $_POST[$oms] != $row->Omschrijving) {
 					$set_clause = sprintf("Omschrijving='%s', ", $_POST[$oms]);
+					$mess = sprintf("Omschrijving evenement %d is in '%s' gewijzigd. ", $row->RecordID, $_POST[$oms]);
 				}
 				if (isset($_POST[$soort]) and $_POST[$soort] != $row->Soort) {
 					$set_clause .= sprintf("Soort='%s', ", $_POST[$soort]);
+					$mess = sprintf("Soort evenement %d is in '%s' gewijzigd.", $row->RecordID, $_POST[$soort]);
 				}
-			}
-			if (strlen($set_clause) > 2) {
-				$set_clause .= sprintf("GewijzigdDoor=%d", $_SESSION['lidid']);
-				$query = sprintf("UPDATE %sEvenement_Type SET %s WHERE RecordID=%d;", $table_prefix, $set_clause, $row->RecordID);
-				$result = fnQuery($query);
-				
+				if (strlen($set_clause) > 2) {
+					$set_clause .= sprintf("GewijzigdDoor=%d", $_SESSION['lidid']);
+					$query = sprintf("UPDATE %sEvenement_Type SET %s WHERE RecordID=%d;", $table_prefix, $set_clause, $row->RecordID);
+					$result = fnQuery($query);
+				}
 			}
 		}
 	}
@@ -347,26 +348,27 @@ function muteertypeevenement() {
 		
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	echo("<table>\n");
-	echo("<tr><th></th><th>Omschrijving</th><th>Soort</th></tr>\n");
+	echo("<tr><th></th><th>Nummer</th><th>Omschrijving</th><th>Soort</th></tr>\n");
 	foreach (db_evenement("types") as $row) {
 		echo("<tr>");
-		printf("<td><a href='%s?tp=%s&amp;op=delete&amp;tid=%d' title='Verwijder type evenement'><img src='./images/del.png' title='Verwijder type'></a></td>", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $row->RecordID);
-		printf("<td><input type='text' name='oms_%d' value='%s' onBlur='this.form.submit();'></td>", $row->RecordID, $row->Omschrijving);
-		$options = "";
+		printf("<td><a href='%s?tp=%s&amp;op=delete&amp;tid=%d' title='Verwijder type evenement'><img src='./images/del.png' title='Verwijder type'></a></td>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $row->RecordID);
+		printf("<td class='number'>%d</td>\n", $row->RecordID);
+		printf("<td><input type='text' name='oms_%d' value='%s' onBlur='this.form.submit();'></td>\n", $row->RecordID, $row->Omschrijving);
+		$options = "\n";
 		foreach ($soortevenement as $key => $val) {
 			if ($key == $row->Soort) {
 				$s = "selected";
 			} else {
 				$s = "";
 			}
-			$options .= sprintf("<option value=%d %s>%s</option>\n", $key, $s, $val);
+			$options .= sprintf("<option value='%s' %s>%s</option>\n", $key, $s, $val);
 		}
 		printf("<td><select name='soort_%d' onChange='this.form.submit();'>%s</select></td>", $row->RecordID, $options);
 		echo("</tr>\n");
 	}
 	echo("<tr>");
 	echo("<td><img src='./images/star.png' title='Nieuw type'></td>");
-	echo("<td><input type='text' name='oms_nw' onBlur='this.form.submit();'></td>");
+	echo("<td class='number'>Nw</td><td><input type='text' name='oms_nw' onBlur='this.form.submit();'></td>");
 	echo("</tr>\n");
 	echo("</table>\n");
 	echo("</form>\n");
