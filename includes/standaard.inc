@@ -8,9 +8,9 @@ if ((isset($_SESSON['webmaster']) and $_SESSON['webmaster'] == 1) or $_SERVER["H
 	error_reporting(E_ALL);
 } else {
 	error_reporting(0);
-	if (!isset($_SESSION['lidid'])) {
-		$_SESSION['lidid'] = 0;
-	}
+}
+if (!isset($_SESSION['lidid'])) {
+	$_SESSION['lidid'] = 0;
 }
 
 $dir = substr(__FILE__, 0, strrpos(__FILE__, "/"));  // Dit is nodig voor PHP 5.2, vanaf 5.3 kan dit gewoon direct __DIR__ worden.
@@ -70,51 +70,55 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	$tabpages[] = "Verenigingsinfo/Kader";
 	$tabpages[] = "Verenigingsinfo/Onderscheidingen";
 	$tabpages[] = "Verenigingsinfo/Overige commissies";
-	$tabpages[] = "Eigen gegevens";
-	$tabpages[] = "Eigen gegevens/Algemeen";
-	if ($_SESSION['aantalafdelingen'] > 0) {
-		$tabpages[] = "Eigen gegevens/Afdelingen";
-	}
-	if (isset($_SESSION['lidid']) and count(db_gegevenslid($_SESSION['lidid'], "Kader")) > 0) {
-		$tabpages[] = "Eigen gegevens/Kader";
-	}
-	if (isset($_SESSION['lidid']) and count(db_gegevenslid($_SESSION['lidid'], "Rollen")) > 0) {
-		$tabpages[] = "Eigen gegevens/Rollen";
-	}
-	if (isset($_SESSION['lidid']) and count(db_gegevenslid($_SESSION['lidid'], "Groepen")) > 0) {
-		$tabpages[] = "Eigen gegevens/Groepen";
-	}
-	if ($_SESSION['aantalbewaking'] > 0 and ($_SESSION['webmaster'] == 1 or db_bewaking_aantallen(0, $_SESSION['lidid']))) {
-		$tabpages[] = "Eigen gegevens/Bewaking";
-	}
-	$tabpages[] = "Eigen gegevens/Diploma's";
-	$tabpages[] = "Eigen gegevens/Financieel";
-	$tabpages[] = "Eigen gegevens/Mailing";
-	$tabpages[] = "Eigen gegevens/Logboek";
-	$tabpages[] = "Zelfservice";
-	$tabpages[] = "Zelfservice/Algemene gegevens";
-	if (strlen($selfservicediplomas) > 3) {
-		$tabpages[] = "Zelfservice/Diploma's";
-	}
-	$tabpages[] = "Zelfservice/Pasfoto";
-	if (strlen($muteerbarememos) > 0) { 
-		$tabpages[] = "Zelfservice/Bijzonderheden";
-	}
-	$tabpages[] = "Zelfservice/Inschrijving bewaking";
-	if (db_evenement("aantalopen", $_SESSION['lidid']) > 0) {
-		$tabpages[] = "Zelfservice/Inschrijving evenementen";
+	if (isset($_SESSION['lidid']) and $_SESSION['lidid'] > 0) {
+		$tabpages[] = "Eigen gegevens";
+		$tabpages[] = "Eigen gegevens/Algemeen";
+		if (count(db_gegevenslid($_SESSION['lidid'], "Afdelingen")) > 0) {
+			$tabpages[] = "Eigen gegevens/Afdelingen";
+		}
+		if (count(db_gegevenslid($_SESSION['lidid'], "Kader")) > 0) {
+			$tabpages[] = "Eigen gegevens/Kader";
+		}
+		if (count(db_gegevenslid($_SESSION['lidid'], "Rollen")) > 0) {
+			$tabpages[] = "Eigen gegevens/Rollen";
+		}
+		if (count(db_gegevenslid($_SESSION['lidid'], "Groepen")) > 0) {
+			$tabpages[] = "Eigen gegevens/Groepen";
+		}
+		if (count(db_gegevenslid($_SESSION['lidid'], "Bew")) > 0 or count(db_insbew("overzichtlid", $_SESSION['lidid'])) > 0) {
+			$tabpages[] = "Eigen gegevens/Bewaking";
+		}
+		$tabpages[] = "Eigen gegevens/Diploma's";
+		$tabpages[] = "Eigen gegevens/Financieel";
+		if (count(db_gegevenslid($_SESSION['lidid'], "Mailing")) > 0) {
+			$tabpages[] = "Eigen gegevens/Mailing";
+		}
+		$tabpages[] = "Eigen gegevens/Logboek";
+		$tabpages[] = "Zelfservice";
+		$tabpages[] = "Zelfservice/Algemene gegevens";
+		if (strlen($selfservicediplomas) > 3) {
+			$tabpages[] = "Zelfservice/Diploma's";
+		}
+		$tabpages[] = "Zelfservice/Pasfoto";
+		if (strlen($muteerbarememos) > 0) { 
+			$tabpages[] = "Zelfservice/Bijzonderheden";
+		}
+		$tabpages[] = "Zelfservice/Inschrijving bewaking";
+		if (db_evenement("aantalopen", $_SESSION['lidid']) > 0) {
+			$tabpages[] = "Zelfservice/Inschrijving evenementen";
+		}
+		$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap WHERE Lid=%d AND (Opgezegd IS NULL);", $table_prefix, $_SESSION['lidid']);
+		if (db_scalar($query) > 0) {
+			$tabpages[] = "Zelfservice/Opzegging";
+		}
 	}
 	$tabpages[] = "Zelfservice/Profiel";
-	$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap WHERE Lid=%d AND (Opgezegd IS NULL);", $table_prefix, $_SESSION['lidid']);
-	if (db_scalar($query) > 0) {
-		$tabpages[] = "Zelfservice/Opzegging";
-	}
 	$tabpages[] = "Ledenlijst";
 	$tabpages[] = "Overzicht lid/Algemeen";
 	if ($_SESSION['aantalafdelingen'] > 0) {
 		$tabpages[] = "Overzicht lid/Afdelingen";
 	}
-		$tabpages[] = "Overzicht lid/Kader";
+	$tabpages[] = "Overzicht lid/Kader";
 	if ($_SESSION['aantalrollen'] > 0) {
 		$tabpages[] = "Overzicht lid/Rollen";
 	}
