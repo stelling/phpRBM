@@ -99,7 +99,7 @@ function toegang($soort, $melding=1) {
 	if (in_array($soort, array('Verenigingsinfo', 'Beginpagina')) === TRUE) {
 		return true;
 	} elseif (strlen($soort) > 0) {
-		if (isset($tabpages) and in_array($soort, $tabpages)) {
+		if ($_SESSION['lidid'] > 0) {
 			$soort = str_replace("'", "", $soort);
 			$query = sprintf("SELECT COUNT(*) FROM %sAdmin_access WHERE Tabpage=\"%s\";", $table_prefix, $soort);
 			$result = db_scalar($query);

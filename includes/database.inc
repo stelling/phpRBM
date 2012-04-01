@@ -499,6 +499,14 @@ function db_authorisation($actie, $recid=0, $tabpage="") {
 		fnQuery($query);
 		$mess = sprintf("Tabpage '%s' is aan de tabel 'Admin_access' toegevoegd.", $tabpage);
 		db_logboek("add", $mess, 5);
+	} elseif ($actie == "opschonen") {
+		$query = sprintf("DELETE FROM %sAdmin_access WHERE Ingevoerd < DATE_ADD(CURDATE(), INTERVAL -3 MONTH) AND Toegang < 0;", $table_prefix);
+		$result = fnQuery($query);
+		if ($result > 0) {
+			$mess = sprintf("Er zijn %d records verwijderd uit %sAdmin_access.", $result, $table_prefix);
+			db_logboek("add", $mess, 2);
+			$query = sprintf("OPTIMIZE TABLE %sAdmin_access;", $table_prefix);
+		}
 	}
 }
 
@@ -1179,7 +1187,7 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0) {
 								OR (DatumTijd <= DATE_ADD(CURDATE(), INTERVAL -18 MONTH));", $table_prefix);
 		$result = fnQuery($query);
 		if ($result > 1) {
-			$mess = sprintf("Er zijn %d records uit het logboek verwijderd.", $result);
+			$mess = sprintf("Er zijn %d records uit %sAdmin_activiteit verwijderd.", $result, $table_prefix);
 			db_logboek("add", $mess, 2);
 			$query = sprintf("OPTIMIZE TABLE %sAdmin_activiteit;", $table_prefix);
 			fnQuery($query);
@@ -1595,6 +1603,14 @@ function db_onderhoud() {
 			}
 		}
 	}
+
+	if ($_SERVER["HTTP_HOST"] != "phprbm.telling.nl") {
+		//  Deze tabellen moeten op dit moment alleen in de ontwikkelomgeving aanwezig zijn. 
+		$query = sprintf("DROP TABLE IF EXISTS %sDMS_Folder;", $table_prefix);
+		fnQuery($query);
+		$query = sprintf("DROP TABLE IF EXISTS %sDMS_Document;", $table_prefix);
+		fnQuery($query);
+	}
 	
 	$query = sprintf("DELETE FROM %sDiploma WHERE (NOT Vervallen IS NULL) AND Vervallen < CURDATE();", $table_prefix);
 	fnQuery($query);
@@ -1617,6 +1633,7 @@ function db_onderhoud() {
 	}
 	
 	db_logboek("opschonen");
+	db_authorisation("opschonen");
 }
 
 function db_createtables() {
