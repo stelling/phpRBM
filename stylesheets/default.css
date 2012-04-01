@@ -228,15 +228,15 @@ footer a, #footer a, footer a:visited, #footer a:visited {
 	color: white;
 }
 
-#lijst {
+.lijst {
 	margin-top: 6px;
 }
 
-#lijst table {
+.lijst table {
 	min-width: 450px;
 }
 
-#lijst td, #lijst th {
+.lijst td, .lijst th {
 	padding-left: 6px;
 	padding-right: 6px;
 }
