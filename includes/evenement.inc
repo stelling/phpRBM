@@ -263,7 +263,7 @@ function muteerevenement($eventid) {
 	printf("<td class='label'>Verzamelen:</td><td><input type='text' name='verzameltijd' value='%s' size=5 maxlength=5'></td></tr>\n", $verzameltijd);
 	printf("<tr><td class='label'>Type evenement:</td><td colspan=5><select name='typeevenement' onChange='this.form.submit();'>%s</select></td></tr>\n", $optiontypes);
 	if ($eventid > 0) {
-		printf("<tr><td class='label'>Inschrijving is open:</td><td colspan=3><input type='radio' name='insopen' value=1 %s>Ja<input type='radio' name='insopen' value=0 %s>Nee</td>\n", $insopen1, $insopen2);
+		printf("<tr><td class='label'>Online inschrijving is open:</td><td colspan=3><input type='radio' name='insopen' value=1 %s>Ja<input type='radio' name='insopen' value=0 %s>Nee</td>\n", $insopen1, $insopen2);
 		printf("<td class='label'>Verwijderd:</td><td colspan=3><input type='radio' name='verw' value=1 %s>Ja<input type='radio' name='verw' value=0 %s>Nee</td></tr>\n", $verw1, $verw2);
 		printf("<tr><td class='label'>Beperkt tot groep:</td><td colspan=5><select name='beperktotgroep' onChange='this.form.submit();'>%s</select></td></tr>\n", $optiongroepen);
 		printf("<tr><td class='label'>Gewijzigd op / door:</td><td colspan=5>%s / %s</td></tr>\n", strftime("%e %B %Y (%H:%M)", strtotime($row->Gewijzigd)), $row->GewijzigdDoorNaam);	
@@ -396,7 +396,7 @@ function overzichtevenementen() {
 	$lijst = db_evenement("overzicht");
 	echo("<div id='overzichtevenementen'>\n");
 	echo("<table>\n");
-	echo("<tr><th>Datum en tijden</th><th>Omschrijving</th><th>Dames</th><th>Heren</th><th>Type evenement</th></tr>\n");
+	echo("<tr><th>Datum en tijden</th><th>Omschrijving</th><th>Dames</th><th>Heren</th></tr>\n");
 	
 	foreach ($lijst as $row) {
 		$oms = $row->Omschrijving;
@@ -418,13 +418,17 @@ function overzichtevenementen() {
 		$heren = "";
 		foreach (db_evenement("deelnemers", 0, $row->lnkNummer, "", "B") as $deeln) {
 			if ($deeln->Geslacht == "V") {
-				$dames .= $deeln->NaamDeelnemer . "<br>\n";
+				$vn = "dames";
 			} else {
-				$heren .= $deeln->NaamDeelnemer . "<br>\n";
+				$vn = "heren";
 			}
+			$$vn .= $deeln->NaamDeelnemer;
+			if (strlen($deeln->Functie) > 0) {
+				$$vn .= sprintf(" (%s)", $deeln->Functie);
+			}
+			$$vn .= "<br>\n";
 		}
-		$te = "Type evenement";
-		printf("<tr><td>%s %s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n", strftime("%e %B %Y", strtotime($row->Datum)), $td, $oms, $dames, $heren, $row->$te);
+		printf("<tr><td>%s %s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n", strftime("%e %B %Y", strtotime($row->Datum)), $td, $oms, $dames, $heren);
 	}
 	
 	echo("</table>\n");
