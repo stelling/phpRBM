@@ -662,10 +662,13 @@ class mailing {
 		
 	public function delete_lid($lidid, $addr="") {
 		if ($lidid > 0) {
-			$query = sprintf("DELETE FROM Mailing_rcpt WHERE MailingID=%d AND LidID=%d;", $this->mid, $lidid);
-			fnQuery($query);
+			$query = sprintf("DELETE FROM %sMailing_rcpt WHERE MailingID=%d AND LidID=%d;", $table_prefix, $this->mid, $lidid);
 		} elseif (strlen($addr) > 0) {
-			$query = sprintf("DELETE FROM Mailing_rcpt WHERE MailingID=%d AND to_address='%s';", $this->mid, $addr);
+			$query = sprintf("DELETE FROM %sMailing_rcpt WHERE MailingID=%d AND to_address='%s';", $table_prefix, $this->mid, $addr);
+		}
+		$result = fnQuery($query);
+		if ($result > 0) {
+			$query = sprintf("OPTIMIZE TABLE %sMailing_rcpt;", $table_prefix);
 			fnQuery($query);
 		}
 	}
