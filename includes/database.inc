@@ -506,6 +506,7 @@ function db_authorisation($actie, $recid=0, $tabpage="") {
 			$mess = sprintf("Er zijn %d records verwijderd uit %sAdmin_access.", $result, $table_prefix);
 			db_logboek("add", $mess, 2);
 			$query = sprintf("OPTIMIZE TABLE %sAdmin_access;", $table_prefix);
+			fnQuery($query);
 		}
 	}
 }
@@ -972,7 +973,8 @@ function db_logins($actie, $email="", $gewenstelogin="", $lidid=0, $xtrafilter="
 			if ($result > 0) {
 				$mess = sprintf("Er zijn %d logins verwijderd, omdat ze %d maanden niet meer gebruikt zijn.", $result, $bewaartijdlogins);
 				db_logboek("add", $mess, 2);
-				fnQuery(sprintf("OPTIMIZE TABLE %sAdmin_login;", $table_prefix));
+				$query = sprintf("OPTIMIZE TABLE %sAdmin_login;", $table_prefix);
+				fnQuery($query);
 			}
 		}
 		$where = "";
@@ -1121,7 +1123,8 @@ function db_mailing($actie="", $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $
 		} else {
 			$w = "(M.deleted_on IS NULL)";
 		}
-		$query = sprintf("SELECT M.MailingID AS lnkMailingID, M.subject AS Onderwerp, M.from_name AS Van, M.to_name AS Aan, %1\$s AS Door %2\$s, M.MailingID AS llkHist
+		$query = sprintf("SELECT M.MailingID AS lnkMailingID, M.subject AS Onderwerp, M.from_name AS Van, M.to_name AS Aan,
+					%1\$s AS Door %2\$s, IF(M.sent_on > M.new_on, M.MailingID, 0) AS llkHist
 					FROM %3\$sMailing AS M LEFT JOIN %3\$sLid AS L ON M.ChangedBy = L.Nummer
 					WHERE %4\$s ORDER BY %5\$s;", $selectnaam, $xtra_sel, $table_prefix, $w, $orderby);
 		$result = fnQuery($query);
@@ -1157,7 +1160,8 @@ function db_mailing($actie="", $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $
 							WHERE MailingID NOT IN (SELECT M.MailingID FROM %1$sMailing AS M);', $table_prefix);
 				$result = fnQuery($query);
 				if ($result > 0) {
-					fnQuery(sprintf("OPTIMIZE TABLE %sMailing_rcpt;", $table_prefix));
+					$query = sprintf("OPTIMIZE TABLE %sMailing_rcpt;", $table_prefix);
+					fnQuery($query);
 				}
 			}
 		}
@@ -1227,7 +1231,7 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0) {
 		$query = sprintf("DELETE FROM %sAdmin_activiteit WHERE
 								(TypeActiviteit=1 AND LidID > 0 AND DatumTijd <= DATE_ADD(CURDATE(), INTERVAL -2 MONTH))
 								OR (TypeActiviteit=99 AND DatumTijd <= DATE_ADD(CURDATE(), INTERVAL -1 WEEK))
-								OR (DatumTijd <= DATE_ADD(CURDATE(), INTERVAL -18 MONTH));", $table_prefix);
+								OR (DatumTijd <= DATE_ADD(CURDATE(), INTERVAL -12 MONTH));", $table_prefix);
 		$result = fnQuery($query);
 		if ($result > 1) {
 			$mess = sprintf("Er zijn %d records uit %sAdmin_activiteit verwijderd.", $result, $table_prefix);
