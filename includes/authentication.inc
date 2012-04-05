@@ -280,10 +280,9 @@ function fnLoginAanvragen() {
 		} elseif (!isValidMailAddress($_POST['email'], 0)) {
 			$mess = sprintf("Je hebt geen geldig e-mailadres (%s) opgegeven.", $_POST['email']);
 		} else {
-		
 			$row = db_logins("rowlogin", $_POST['email']);
-			$login = $row->Login;
-			if ($row->Nummer > 0) {
+			if (isset($row->Login) and $row->Nummer > 0) {
+				$login = $row->Login;
 				if (strlen($login) > 5) {
 					$mess = fnConfirmLogin($row);
 				} else {
