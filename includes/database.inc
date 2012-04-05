@@ -857,7 +857,7 @@ function db_logins($actie, $email="", $gewenstelogin="", $lidid=0, $xtrafilter="
 								WHERE (LOWER(L.EMAIL)='%2\$s' OR LOWER(L.EmailVereniging)='%2\$s')", $table_prefix, strtolower($email));
 		$result = fnQuery($query);
 		$row = $result->fetch();
-		if ($row->Nummer > 0) {
+		if (isset($row->Nummer) and $row->Nummer > 0) {
 			if (strlen($row->Login) > 5 and $row->Login != $gewenstelogin) {
 				$mess = sprintf("Er is al een ander login aan dit emailadres gekoppeld.");
 			} elseif (strlen($gewenstelogin) > 5 and strlen($gewenstelogin <= 15)) {
@@ -946,7 +946,7 @@ function db_logins($actie, $email="", $gewenstelogin="", $lidid=0, $xtrafilter="
 			$xtrawhere = " AND " . $xtrafilter;
 		}
 		$query = sprintf('SELECT Login.LidID AS lnkNummer, Login.LidID, LM.Lidnr, Login.Login, %1$s %2$s AS Naam_lid, L.Roepnaam AS ndRoepnaam,
-					L.EMAIL AS `E-mail`, L.EmailVereniging AS `E-mail vereniging`, Login.Ingevoerd AS dteIngevoerd, Login.LastLogin AS `dttLaatste login`,
+					L.EMAIL AS `E-mail`, Login.Ingevoerd AS dteIngevoerd, Login.LastLogin AS `dttLaatste login`,
 					Login.Wachtwoord AS ndWachtwoord, IF(Login.FouteLogin > %3$d, Login.LidID, 0) AS llkNummer
 					FROM %4$sAdmin_login AS Login INNER JOIN (%4$sLid AS L LEFT OUTER JOIN %4$sLidmaatschap AS LM ON L.Nummer = LM.Lid) ON Login.LidID = L.Nummer
 					WHERE LENGTH(Login.Wachtwoord) > 5 %5$s
