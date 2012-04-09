@@ -153,20 +153,20 @@ function fnLedenlijst() {
 			if (strlen($filter) > 0) {$filter .= " AND "; }
 			$filter .= "(NOT LM.Opgezegd IS NULL) AND LM.Opgezegd < CURDATE()";
 		}
+		$rows = db_ledenlijst($filter);
 	} else {
 		if (strlen($filter) > 0) {$filter .= " AND ";}
-		$filter .= sprintf("L.Nummer IN (SELECT Lid FROM %sLidond AS LO WHERE L.Nummer = LO.Lid AND LO.OnderdeelID=%d", $table_prefix, $val_groep);
+		$filter .= sprintf("LO.OnderdeelID=%d", $val_groep);
 		if ($val_TL == "Leden") {
-			$filter .= " AND (LO.Vanaf <= CURDATE() AND (LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE())";
+			$filter .= " AND (LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE()))";
 		} elseif ($val_TL == "Voormalig leden") {
-			$filter .= " AND (LO.Vanaf <= CURDATE() AND (NOT LO.Opgezegd IS NULL) OR LO.Opgezegd < CURDATE())";
+			$filter .= " AND (LO.Vanaf <= CURDATE() AND ((NOT LO.Opgezegd IS NULL) OR LO.Opgezegd < CURDATE()))";
 		}
-		$filter .= ")";
+		$rows = db_onderdeellijst($filter);
 	}
 
-	$rows = db_ledenlijst($filter);
 	if (count($rows) > 0) {
-		echo(fnDisplayTable($rows, $ldl));
+		echo(fnDisplayTable($rows, $ldl, "", 3));
 		foreach ($rows as $row) {
 			$sel_leden[] = $row->lnkNummer;
 		}
@@ -264,6 +264,13 @@ function fnOverviewLid($lidid=0, $actie="") {
 				} else {
 					printf("<p class='mededeling'>%s heeft geen mails vanaf deze website ontvangen.</p>\n", $naamlid);
 				}
+			}
+		} elseif ($actie == "Evenementen") {
+			$rows = db_gegevenslid($lidid, $actie);
+			if (count($rows) > 0) {
+				echo(fnDisplayTable($rows, "", "Deelname evenementen " . $naamlid));
+			} else {
+				printf("<p class='mededeling'>Bij %s zijn geen deelnames aan evenementen bekend.</p>", $naamlid);
 			}
 		} elseif ($actie == "Logboek") {
 			echo(fnDisplayTable(db_logboek("lijst", "", -1, $lidid)));
@@ -451,14 +458,15 @@ function fnWijzigen($lidid=0, $actie="") {
 					if (isset($_POST[$fnVerw]) and $_POST[$fnVerw] == 1) {
 						db_liddipl("delete", $lidid, 0, $row->RecordID, $_POST[$fnBehaald]);
 					} elseif ($_POST[$fnRID] == 0) {
-						db_liddipl("add", $lidid, 0, $row->RecordID, $_POST[$fnBehaald], $_POST[$fnVervaltPer], $_POST[$fnDiplnr]);
+						$mess = db_liddipl("add", $lidid, 0, $row->RecordID, $_POST[$fnBehaald], $_POST[$fnVervaltPer], $_POST[$fnDiplnr]);
+						printf("<p class='mededeling'>%s</p>", $mess);
 					} else {
 						db_liddipl("update", 0, $_POST[$fnRID], 0, $_POST[$fnBehaald], $_POST[$fnVervaltPer], $_POST[$fnDiplnr]);
 					}
 				}
 			}
-			$oldvals = "";
 			
+			$oldvals = "";
 			echo("<div id='wijzigendiplomas'>\n");
 			printf("<form method='post' action='%s?%s' name='frm_diplwijz'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 			echo("<table>\n");
@@ -491,27 +499,27 @@ function fnWijzigen($lidid=0, $actie="") {
 			echo("</form>\n");
 			echo("</div>  <!-- Einde wijzigendiplomas -->\n");
 			
-		} elseif ($actie == "Bijzonderheden" and strlen($muteerbarememos) > 0) {
+		} elseif ($currenttab2 == "Pasfoto") {
+			nieuwepasfoto($_SESSION['lidid']);
+			
+		} elseif ($actie == "Bijzonderheden" and count($muteerbarememos) > 0) {
 			if ($_SERVER['REQUEST_METHOD'] == "POST") {
-				for ($iCounter=0; $iCounter < strlen($muteerbarememos); $iCounter++) {
-					$kodesoort = substr($muteerbarememos, $iCounter, 1);
+				foreach ($muteerbarememos as $kodesoort) {
 					$namevar = "Memo_" . $kodesoort;
 					$curval = db_memo($lidid, $kodesoort, "curval");
-					if (strlen($_POST[$namevar]) == 0) {
+					if (strlen($_POST[$namevar]) == 0 and $kodesoort != "WN") {
 						db_memo($lidid, $kodesoort, "delete");
-					} elseif (strlen($curval) == 0) {
+					} elseif (strlen($curval) == 0 and $kodesoort != "WN") {
 						db_memo($lidid, $kodesoort, "insert", $_POST[$namevar]);
 					} elseif ($curval != $_POST[$namevar]) {
 						db_memo($lidid, $kodesoort, "update", $_POST[$namevar]);
 					}
 				}
 			}
-		
 			echo("<div id='bijzonderhedenwijzigen'>\n");
 			printf("<form method='post' action='%s?%s' name='bijz_wijz'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 			echo("<table>\n");
-			for ($iCounter=0; $iCounter < strlen($muteerbarememos); $iCounter++) {
-				$kodesoort = substr($muteerbarememos, $iCounter, 1);
+			foreach ($muteerbarememos as $kodesoort) {
 				$namevar = "Memo_" . $kodesoort;
 				if (array_key_exists($kodesoort, $arrSoortMemo)) {
 					$naamsoort = $arrSoortMemo[$kodesoort];
@@ -525,6 +533,9 @@ function fnWijzigen($lidid=0, $actie="") {
 			echo("</table>\n");
 			echo("</form>\n");
 			echo("</div>  <!-- Einde bijzonderhedenwijzigen -->\n");
+
+		} elseif ($actie == "Opzegging") {
+				opzegginglidmaatschap($_SESSION['lidid']);
 			
 		} elseif ($actie == "Profiel") {
 		
@@ -669,8 +680,6 @@ function fotolid($lidid, $metversie=0) {
 
 function nieuwepasfoto($lidid=0, $filterlid="") {
 	global $pasfotoextenties, $emailledenadministratie, $emailnieuwepasfoto;
-	
-	fnDispMenu(2);
 
 	$max_size_attachm = 2 * 1024 * 1024;  // 2MB
 	

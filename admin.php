@@ -64,7 +64,7 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 	} else {
 		$lnk_lk = "";
 	}
-	echo(fnDisplayTable(db_logins("lijst"), $lnk, "", 0, $lnk_lk));
+	echo(fnDisplayTable(db_logins("lijst"), $lnk, "", 5, $lnk_lk));
 } elseif ($currenttab == "Autorisatie" and toegang($_GET['tp'])) {
 	echo("<div id='lijst'>\n");
 	printf("<form name='formauth' method='post' action='%s?tp=%s&amp;op=changeaccess'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
@@ -129,9 +129,6 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 	$mess = db_backup();
 	printf("<p class='mededeling'>%s</p>\n", $mess);
 
-	echo("<script>\n");
-	printf("setTimeout(\"location.href='%s';\", 10000);\n", $_SERVER['PHP_SELF']);
-	echo("</script>\n");
 } elseif ($currenttab == "Logboek" and toegang($_GET['tp'])) {
 	if (!isset($_POST['lidfilter']) or strlen($_POST['lidfilter']) == 0) {
 		$_POST['lidfilter'] = 0;

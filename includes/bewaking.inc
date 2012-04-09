@@ -1,6 +1,6 @@
 <?php
 
-function fnBewaking($seizoen=0) {
+function fnBewaking() {
 	global $ldl, $currenttab2, $table_prefix;
 	
 	fnDispMenu(2);
@@ -55,9 +55,9 @@ function fnBewaking($seizoen=0) {
 		}
 		
 		if ($currenttab2 == "Overzicht inschrijvingen") {
-			$bs_res = db_bewaking_seizoenen(1);
+			$bs_res=db_bewaking_seizoenen(1);
 		} else {
-			$bs_res = db_bewaking_seizoenen();
+			$bs_res=db_bewaking_seizoenen();
 		}
 		foreach($bs_res->fetchAll() as $row) {
 			if ($seizoen == $row->RecordID or $seizoen == 0) {
@@ -96,15 +96,16 @@ function fnBewaking($seizoen=0) {
 	echo("</form>\n");
 	echo("</div>  <!-- Einde filter -->\n");
 	
-	
-	if ($currenttab2 == "Bewakingsrooster") {
+	if ($currenttab2 === "Bewakingsrooster" and toegang($_GET['tp'])) {
 		bew_rooster($seizoen, $week);
 	} elseif ($currenttab2 == "Postindeling") {
 		bew_postindeling($seizoen, $week);
 	} elseif ($currenttab2 == "Aantallen" and toegang($_GET['tp'])) {
 		$lijst = db_bewaking_aantallen($seizoen);
 		echo(fnDisplayTable($lijst));
-
+	} elseif ($currenttab2 == "Nieuwe pasfoto") {
+		$filterlid = sprintf("L.Nummer IN (SELECT Lid FROM %1\$sBewaking AS BW INNER JOIN %1\$sBewseiz AS BS ON BW.SeizoenID=BS.RecordID WHERE BS.Afgesloten=0)", $table_prefix);
+		nieuwepasfoto(0, $filterlid);
 	} elseif ($currenttab2 == "Overzicht inschrijvingen" and toegang($_GET['tp'])) {
 		$lijst = db_insbew("matrixaantallen", 0, 0, 0, 0, "", $seizoen);
 		echo(fnDisplayTable($lijst, "", "Totalen"));
@@ -115,8 +116,6 @@ function fnBewaking($seizoen=0) {
 	} elseif ($currenttab2 == "Logboek inschrijving" and toegang($_GET['tp'])) {
 		$lijst = db_logboek("lijst", "", 6, $_POST['lidfilter']);
 		echo(fnDisplayTable($lijst));
-	} else {
-		inschrijvenbewaking(31, 1);
 	}
 }
 

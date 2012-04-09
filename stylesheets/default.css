@@ -510,6 +510,10 @@ fieldset h3 {
 	background-color: #00FFFF;
 }
 
+.details {
+	text-align: center;
+}
+
 .number {
 	text-align: right;
 }

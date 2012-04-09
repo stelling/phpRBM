@@ -18,7 +18,7 @@ if (isset($_GET['op']) and $_GET['op'] == "exportins") {
 	}
 	exit();
 }
-	
+
 HTMLheader();
 
 if ($currenttab == "Eigen gegevens" and toegang($_GET['tp'])) {
@@ -28,14 +28,10 @@ if ($currenttab == "Eigen gegevens" and toegang($_GET['tp'])) {
 		echo("<p class='mededeling'>Er is geen lid ingelogd.</p>\n");
 	}
 } elseif ($currenttab == "Zelfservice" and toegang($_GET['tp'])) {
-	if ($currenttab2 == "Pasfoto") {
-		nieuwepasfoto($_SESSION['lidid']);
-	} elseif ($currenttab2 == "Inschrijving bewaking") {
+	if ($currenttab2 == "Inschrijving bewaking") {
 		inschrijvenbewaking($_SESSION['lidid']);
 	} elseif ($currenttab2 == "Inschrijving evenementen") {
 		inschrijvenevenementen($_SESSION['lidid']);
-	} elseif ($currenttab2 == "Opzegging") {
-		opzegginglidmaatschap($_SESSION['lidid']);
 	} else {
 		fnWijzigen($_SESSION['lidid'], $currenttab2);
 	}
@@ -50,12 +46,7 @@ if ($currenttab == "Eigen gegevens" and toegang($_GET['tp'])) {
 } elseif ($currenttab == "Ledenlijst" and toegang($_GET['tp'])) {
 	fnLedenlijst();
 } elseif ($currenttab == "Bewaking" and toegang($_GET['tp'])) {
-	if ($currenttab2 == "Nieuwe pasfoto") {
-		$filterlid = sprintf("L.Nummer IN (SELECT Lid FROM %1\$sBewaking AS BW INNER JOIN %1\$sBewseiz AS BS ON BW.SeizoenID=BS.RecordID WHERE BS.Afgesloten=0)", $table_prefix);
-		nieuwepasfoto(0, $filterlid);
-	} else {
-		fnBewaking();
-	}
+	fnBewaking();
 } elseif ($currenttab == "Kostenoverzicht" and toegang($_GET['tp'])) {
 	fnKostenoverzicht();
 } elseif ($currenttab == "Mailing" and toegang($_GET['tp'])) {

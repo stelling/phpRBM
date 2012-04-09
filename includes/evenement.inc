@@ -36,7 +36,7 @@ function inschrijvenevenementen($lidid) {
 					db_evenement("updatedeelnemer", $lidid, $row->RecordID, $_POST[$opm], $insrow->Status, $insrow->Functie);
 				}
 			} elseif (isset($_POST[$ins]) and $_POST[$ins] == "1") {
-				db_evenement("adddeelnemer", $lidid, $row->RecordID, $_POST[$opm], "I");
+				db_evenement("adddeelnemer", $lidid, $row->RecordID, $_POST[$opm], $row->StandaardStatus);
 			}
 		}
 	}
@@ -93,7 +93,7 @@ function fnEvenementen() {
 	} elseif ($currenttab2 == "Beheer") {
 		$lijst = db_evenement("overzicht");
 		$lnk = sprintf("<a href='%s?tp=%s&amp;op=edit&amp;eid=%s' title='Bewerk evenement'>%s</a>", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), "%d", "%s");
-		$er = sprintf("<td><a href='%s?%s&amp;op=edit&amp;eid=0' title='Nieuw evenement'><img src='images/star.png' alt='Nieuw'></a></td><td colspan=7>Nieuw evenement</td>", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+		$er = sprintf("<td><a href='%s?%s&amp;op=edit&amp;eid=0' title='Nieuw evenement'><img src='images/star.png' alt='Nieuw'></a></td><td colspan=8>Nieuw evenement</td>", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 		echo(fnDisplayTable($lijst, $lnk, "", 0, "", $er));
 	} elseif ($currenttab2 == "Types muteren") {
 		muteertypeevenement();
@@ -146,6 +146,9 @@ function muteerevenement($eventid) {
 		if ($eventid > 0 and $row->InschrijvingOpen != $_POST['insopen']) {
 			$set_clause .= sprintf("InschrijvingOpen=%d, ", $_POST['insopen']);
 		}
+		if ($eventid > 0 and $row->StandaardStatus != $_POST['standstatus']) {
+			$set_clause .= sprintf("StandaardStatus='%s', ", $_POST['standstatus']);
+		}
 		if ($eventid > 0 and isset($_POST['verw'])) {
 			if ($row->VerwijderdOp <= '2012-01-01' and $_POST['verw'] == 1) {
 				$set_clause .= "VerwijderdOp=CURDATE(), ";
@@ -174,7 +177,7 @@ function muteerevenement($eventid) {
 			}
 		}
 		if (isset($_POST['nwdln']) and $_POST['nwdln'] > 0 and is_numeric($_POST['nwdln'])) {
-			db_evenement("adddeelnemer", $_POST['nwdln'], $eventid, "", "B");
+			db_evenement("adddeelnemer", $_POST['nwdln'], $eventid, "", $_POST['standstatus']);
 		}
 		
 		if (isset($_POST['maildeeln']) or isset($_POST['mailpotdeeln']) or isset($_POST['mailbeidedeeln'])) {
@@ -210,6 +213,7 @@ function muteerevenement($eventid) {
 			$insopen1 = "";
 			$insopen2 = "checked='checked'";
 		}
+		$standaardstatus = $row->StandaardStatus;
 		if ($row->VerwijderdOp >= '2012-01-01') {
 			$verw1 = "checked='checked'";
 			$verw2 = "";
@@ -229,6 +233,7 @@ function muteerevenement($eventid) {
 		$typeevenement = 1;
 		$insopen1 = "checked='checked'";
 		$insopen2 = "";
+		$standaardstatus = "I";
 		$beperktotgroep = 0;
 	}
 	
@@ -240,6 +245,16 @@ function muteerevenement($eventid) {
 			$s = "";
 		}
 		$optiontypes .= sprintf("<option value=%d %s>%s</option>\n", $t->RecordID, $s, $t->Omschrijving);
+	}
+	
+	$optionstandstatus = "";
+	foreach ($dlnstatus as $ds => $o) {
+		if ($ds == $standaardstatus) {
+			$s = "selected";
+		} else {
+			$s = "";
+		}
+		$optionstandstatus .= sprintf("<option value='%s' %s>%s</option>\n", $ds, $s, $o);
 	}
 	
 	$optiongroepen = "<option value=0>Geen</option>\n";
@@ -263,7 +278,8 @@ function muteerevenement($eventid) {
 	printf("<td class='label'>Verzamelen:</td><td><input type='text' name='verzameltijd' value='%s' size=5 maxlength=5'></td></tr>\n", $verzameltijd);
 	printf("<tr><td class='label'>Type evenement:</td><td colspan=5><select name='typeevenement' onChange='this.form.submit();'>%s</select></td></tr>\n", $optiontypes);
 	if ($eventid > 0) {
-		printf("<tr><td class='label'>Online inschrijving is open:</td><td colspan=3><input type='radio' name='insopen' value=1 %s>Ja<input type='radio' name='insopen' value=0 %s>Nee</td>\n", $insopen1, $insopen2);
+		printf("<tr><td class='label'>Online inschrijving is open:</td><td><input type='radio' name='insopen' value=1 %s>Ja<input type='radio' name='insopen' value=0 %s>Nee</td>\n", $insopen1, $insopen2);
+		printf("<td class='label'>Standaard status:</td><td><select name='standstatus'>%s</td>\n", $optionstandstatus);
 		printf("<td class='label'>Verwijderd:</td><td colspan=3><input type='radio' name='verw' value=1 %s>Ja<input type='radio' name='verw' value=0 %s>Nee</td></tr>\n", $verw1, $verw2);
 		printf("<tr><td class='label'>Beperkt tot groep:</td><td colspan=5><select name='beperktotgroep' onChange='this.form.submit();'>%s</select></td></tr>\n", $optiongroepen);
 		printf("<tr><td class='label'>Gewijzigd op / door:</td><td colspan=5>%s / %s</td></tr>\n", strftime("%e %B %Y (%H:%M)", strtotime($row->Gewijzigd)), $row->GewijzigdDoorNaam);	

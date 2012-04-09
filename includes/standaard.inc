@@ -19,8 +19,8 @@ require_once($dir . '/../config.php');
 if (!isset($rsswieiswie) and $rsswieiswie != 1) {
 	$rsswieiswie = 0;
 }
-if (!isset($muteerbarememos)) {
-	$muteerbarememos = "DG";
+if (!isset($muteerbarememos) or !is_array($muteerbarememos)) {
+	$muteerbarememos = array('D', 'G', 'WN');
 }
 if (!isset($emailbevestiginginschrijving)) {
 	$emailbevestiginginschrijving = $emailledenadministratie;
@@ -52,6 +52,7 @@ $arrSoortMemo["E"] = "Examen";
 $arrSoortMemo["F"] = "Financiën";
 $arrSoortMemo["G"] = "Gezondheid/medisch";
 $arrSoortMemo["I"] = "Inschrijving bewaking";
+$arrSoortMemo["WN"] = "Waarschuwen in geval van nood";
 
 if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	$tabpages[] = "Beheer logins";
@@ -93,6 +94,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (count(db_gegevenslid($_SESSION['lidid'], "Mailing")) > 0) {
 			$tabpages[] = "Eigen gegevens/Mailing";
 		}
+		if (count(db_gegevenslid($_SESSION['lidid'], "Evenementen")) > 0) {
+			$tabpages[] = "Eigen gegevens/Evenementen";
+		}
 		$tabpages[] = "Eigen gegevens/Logboek";
 		$tabpages[] = "Zelfservice";
 		$tabpages[] = "Zelfservice/Algemene gegevens";
@@ -100,7 +104,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			$tabpages[] = "Zelfservice/Diploma's";
 		}
 		$tabpages[] = "Zelfservice/Pasfoto";
-		if (strlen($muteerbarememos) > 0) { 
+		if (count($muteerbarememos) > 0) { 
 			$tabpages[] = "Zelfservice/Bijzonderheden";
 		}
 		$tabpages[] = "Zelfservice/Inschrijving bewaking";
@@ -129,6 +133,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	$tabpages[] = "Overzicht lid/Diploma's";
 	$tabpages[] = "Overzicht lid/Financieel";
 	$tabpages[] = "Overzicht lid/Mailing";
+	$tabpages[] = "Overzicht lid/Evenementen";
 	if ($_SESSION['aantalbewaking'] > 0) {
 		$tabpages[] = "Bewaking";
 		$tabpages[] = "Bewaking/Bewakingsrooster";
@@ -205,7 +210,7 @@ function HTMLheader() {
 			$currenttab = $_GET['tp'];
 			$currenttab2 = "";
 			foreach ($tabpages as $tp) {
-				if (startwith($tp, $currenttab) == true and strlen($tp) > strlen($currenttab) and strpos($tp, "/") > 0 and strlen($currenttab2) == 0) {
+				if (startwith($tp, $currenttab) == true and strlen($tp) > strlen($currenttab) and strpos($tp, "/") > 0 and strlen($currenttab2) == 0 and toegang($tp, 0)) {
 					$currenttab2 = substr($tp, strpos($tp, "/")+1);
 				}
 			}
@@ -394,7 +399,10 @@ function fnDispMenu($nivo=1, $xtra="") {
 					printf("<li class='current'>%s</li>\n", $tpd);
 				} elseif ($nivo == 2 and ($currenttab2 == str_replace("'", "", $tpd) or strlen($currenttab2) == 0)) {
 					printf("<li class='current'>%s</li>\n", $tpd);
-					$currenttab2 = str_replace("'", "", $tpd);
+					$tpd = str_replace("'", "", $tpd);
+					if (toegang($currenttab . "/" . $tpd, 0)) {
+						$currenttab2 = $tpd;
+					}
 				} else {
 					printf("<li><a href=\"%s?tp=%s%s\">%s</a></li>\n", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra, $tpd);
 				}
@@ -442,28 +450,29 @@ function fnDisplayForm($row, $xtra_eind="") {
 	return $ret;
 }
 
-function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_regel="") {
-	$ret = "<div class='lijst'>\n";
+function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_regel="", $class="lijst") {
+	$ret = sprintf("<div class='%s'>\n", $class);
 	if (isset($rows) and (count($rows) > 0 or strlen($xtra_regel) > 0)) {
 		$ret .= "<table>\n";
 		$dispkop = 1;
+		$totaantal = 0;
 		foreach($rows as $row) {
 			if ($dispkop == 1) {
 				$hv = "<tr>";
-				$aant = 0;
 				foreach($row as $key => $value) {
 					if (strstr("dte, dtt, dtl, boo, int, cur, eml, num", substr($key, 0, 3)) !== false) {
 						$hv .= sprintf("<th>%s</th>", str_replace("_", " ", substr($key, 3)));
+						$ktot[] = 0;
 					} elseif (strstr("lnk", substr($key, 0, 3)) !== false or strstr("llk", substr($key, 0, 3)) !== false) {
 						$hv .= "<th>&nbsp;</th>";
+						$ktot[] = 0;
 					} elseif (substr($key, 0, 2) != "nd") {
 						$hv .= sprintf("<th>%s</th>", str_replace("_", " ", $key));
+						$ktot[] = 0;
 					}
-					$ktot[] = 0;
-					$aant++;
 				}
 				if (strlen($th) > 1) {
-					$ret .= sprintf("<tr><th colspan=%d class='tabelkop'>%s</th></tr>\n", $aant, $th);
+					$ret .= sprintf("<tr><th colspan=%d class='tabelkop'>%s</th></tr>\n", count($ktot), $th);
 				}
 				$ret .= $hv . "</tr>\n";
 				$dispkop = 0;
@@ -502,12 +511,12 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 				} elseif (substr($key, 0, 3) == "lnk" and strlen($link) > 1) {
 					$href = str_replace("%d", $value, $link);
 					$href = str_replace("%s", "<img src='images/zoom.png' alt='Details'>", $href);
-					$ret .= "<td>" . $href . "</td>";
+					$ret .= "<td class='details'>" . $href . "</td>";
 				} elseif (substr($key, 0, 3) == "llk") {
 					if ($value > 0 and strlen($link_lk) > 1) {
-						$ret .= sprintf("<td>" . $link_lk . "</td>", $value, "<img src='images/zoom.png' alt='Details'>");
+						$ret .= sprintf("<td class='details'>" . $link_lk . "</td>", $value, "<img src='images/zoom.png' alt='Details'>");
 					} else {
-						$ret .= "<td></td>\n";
+						$ret .= "<td class='details'></td>\n";
 					}
 				} elseif (substr($key, 0, 3) == "eml") {
 					$ret .= sprintf("<td>%s</td>", fnDispEmail($value, "", 1));
@@ -519,14 +528,16 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 				$kn++;
 			}
 			$ret .= "</tr>\n";
+			$totaantal++;
 		}
 		if (strlen($xtra_regel) > 0) {
 			$ret .= sprintf("<tr>%s</tr>\n", $xtra_regel);
 		}
-		if ($disptot == 1) {
-			$ret .= "<tr><th>Totaal</th>";
-			for ($kn=1; $kn < count($ktot); $kn++) {
-				if ($ktot[$kn] == 0) {
+		if ($disptot > 0 and $totaantal > 1) {
+			for ($kn=0; $kn < count($ktot); $kn++) {
+				if ($kn+1 == $disptot) {
+					$ret .= sprintf("<th>%s records</th>", number_format($totaantal, 0, ",", "."));
+				} elseif ($ktot[$kn] == 0) {
 					$ret .= "<th></th>";
 				} else {
 					$ret .= sprintf("<th class='number'>%s</th>", number_format($ktot[$kn], 2, ",", "."));
@@ -538,7 +549,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 	} else {
 		$ret .= "<p class='mededeling'>Er zijn geen records beschikbaar.</p>\n";
 	}
-	$ret .= "</div>  <!-- Einde lijst -->\n";
+	$ret .= sprintf("</div>  <!-- Einde %s -->\n", $class);
 	return $ret;
 }
 
