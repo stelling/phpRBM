@@ -75,10 +75,10 @@ footer, #footer {
 	padding-left: 0;
 	padding-right: 0;
 	font-style: italic;
-	font-size: 9pt;
+	font-size: 8pt;
 }
 
-footer a + a:visited, #footer a + a:visited {
+footer a, footer a:visited, #footer a, #footer a:visited {
 	text-decoration: none;
 	color: #000080;
 }
@@ -518,7 +518,7 @@ fieldset h3 {
 	text-align: right;
 }
 
-.tablist1, .tablist2 {
+.tablist1, .tablist2, .tablist3 {
    list-style: none;
    height: 24px;
    padding: 0; 
@@ -526,47 +526,71 @@ fieldset h3 {
    border: none;
 }
 
-.tablist1 li, .tablist2 li {
+.tablist2 ul, .tablist3 ul {
+	width: 100%;
+}
+
+.tablist1 li, .tablist2 li, .tablist3 li {
    float: left;
 	font-style: normal;
 	font-size: 10pt;
-	margin-left: 2px;
-   margin-right: 2px;
    display: block;
-   padding-left: 5px;
-	padding-right: 5px;
 	padding-bottom: 1px;
-	border-color: #cdcdcd;
 	border-style: solid;
 	border-width: 1px;
-   background-color: #cdcdcd;
 }
 
 .tablist1 li {
 	min-width: 100px;
+	margin-left: 2px;
+   margin-right: 2px;
+   padding-left: 5px;
+	padding-right: 5px;
 	height: 24px;
 	font-style: normal;
 	margin-top: 15px;
 	padding-top: 11px;
+	border-color: #cdcdcd;
    background-color: #cdcdcd;
    border-top-right-radius: 9px;
    border-top-left-radius: 9px;
 }
 
-.tablist2 li {
-	min-width: 75px;
+.tablist2 li, .tablist3 li {
+	font-size: 8pt;
+	text-align: center;
+	background-color: transparent;
+	border-right-style: none;
+	min-width: 85px;
 	height: 18px;
+	
 	margin-top: 2px;
-	padding-top: 2px;
+	margin-left: 0;
+   margin-right: 0;
+	
+	padding-top: 4px;
+   padding-left: 4px;
+	padding-right: 4px;
 }
 
-.tablist1 li.current, .tablist2 li.current {
+.tablist2 li:first-child, .tablist3 li:first-child {
+	border-left-style: none;
+}
+
+.tablist1 li.current {
    background-color: white;
 }
+.tablist2 li.current, .tablist3 li.current {
+	font-weight: bolder;
+}
 
-.tablist1 li a, .tablist1 li a:visited, .tablist2 li a, .tablist2 li a:visited  {
+.tablist1 li a, .tablist1 li a:visited, .tablist2 li a, .tablist2 li a:visited , .tablist3 li a, .tablist3 li a:visited  {
    text-decoration: none;
 	color: #000080;
+}
+
+.tablist2 li:hover, .tablist3 li:hover  {
+   background-color: #cdcdcd;
 }
 
 .done {
