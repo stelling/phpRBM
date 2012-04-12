@@ -1,14 +1,19 @@
 <?php
-session_start();
-
 date_default_timezone_set('Europe/Amsterdam');
 setlocale(LC_ALL,'nl_NL@euro');
+
+if (session_start() === FALSE) {
+	$mess = "De sessie kon niet gestart worden, hierdoor kan er op dit moment niet gelogd worden.";
+	printf("<p class='mededeling'>%s</p>\n", $mess);
+	db_logboek("add", $mess, 1);
+}
 
 if ((isset($_SESSON['webmaster']) and $_SESSON['webmaster'] == 1) or $_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 	error_reporting(E_ALL);
 } else {
 	error_reporting(0);
 }
+
 if (!isset($_SESSION['lidid'])) {
 	$_SESSION['lidid'] = 0;
 }
@@ -33,6 +38,11 @@ require_once($dir . "/bewaking.inc");
 require_once($dir . "/evenement.inc");
 require_once($dir . "/mailing.inc");
 require_once($dir . "/class.phpmailer.php");
+
+$arrGeslacht["V"] = "Vrouw";
+$arrGeslacht["M"] = "Man";
+$arrGeslacht["B"] = "Bedrijf";
+$arrGeslacht["O"] = "Onbekend";
 
 $arrTL[] = "Alle";
 $arrTL[] = "Leden";
@@ -280,7 +290,7 @@ function HTMLheader() {
 }
 
 function HTMLfooter() {
-	global $urlwebsite, $naamwebsite, $naamvereniging, $urlvereniging, $table_prefix;
+	global $urlwebsite, $naamwebsite, $naamvereniging, $urlvereniging, $table_prefix, $navpad;
 
 	if (!isset($_GET['header']) or $_GET['header'] != "no") {
 		if (isset($naamvereniging) and strlen($naamvereniging) > 2) {
@@ -293,11 +303,20 @@ function HTMLfooter() {
 			$cr = "<a href='http://www.telling.nl'>&copy;&nbsp;S.Telling</a>";
 		}
 		echo("<div class='clear'></div>\n");
+		
+		$np = "";
+		for ($i=1; $i <= count($navpad); $i++) {
+			if ($i == count($navpad)) {
+				$np .= " | " . $navpad[$i]['naam'] . "\n";
+			} else {
+				$np .= " | " . sprintf("<a href='%s'>%s</a>\n", $navpad[$i]['url'], $navpad[$i]['naam']);
+			}
+		}
 		printf("<div id='footer'>\n
 				 <div id='footerleft'>%s</div>\n
-				 <a href='http://%s'>%s</a>\n
+				 <a href='http://%s'>%s</a> %s\n
 				 <div id='footerright'>%s</div>\n
-				 </div>  <!-- Einde footer  -->\n", $cr, $urlwebsite, $naamwebsite, strftime("%e %B %Y", filectime($_SERVER['SCRIPT_FILENAME'])));
+				 </div>  <!-- Einde footer  -->\n", $cr, $urlwebsite, $naamwebsite, $np, strftime("%e %B %Y", filectime($_SERVER['SCRIPT_FILENAME'])));
 		echo("</div>  <!-- Einde container -->\n");
 		echo("</body>\n");
 		echo("</html>\n");
@@ -378,7 +397,7 @@ function getvar($nm, $riz="") {
 }
 
 function fnDispMenu($nivo=1, $xtra="") {
-	global $tabpages, $curtab, $currenttab, $currenttab2;
+	global $tabpages, $curtab, $currenttab, $currenttab2, $navpad;
 
 	if (strlen($xtra) > 0 and substr($xtra, 0, 5) != "&amp;") {
 		$xtra = "&amp;" . $xtra;
@@ -391,21 +410,25 @@ function fnDispMenu($nivo=1, $xtra="") {
 				$tpd = $tp;
 			} elseif ($nivo == 2 and strpos($tp, "/") > 1 and $currenttab == substr($tp, 0, strlen($currenttab))) {
 				$tpd = substr($tp, strpos($tp, "/")+1);
+				
 			} else {
 				$tpd = "";
 			}
 			if (strlen($tpd) > 1) {
-				if ($currenttab == str_replace("'", "", $tp) and $nivo == 1) {
-					printf("<li class='current'>%s</li>\n", $tpd);
+				$cl = "";
+				if ($nivo == 1 and $currenttab == str_replace("'", "", $tp)) {
+					$cl = " class='current'";
+					$navpad[$nivo]['naam'] = $tpd;
+					$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
 				} elseif ($nivo == 2 and ($currenttab2 == str_replace("'", "", $tpd) or strlen($currenttab2) == 0)) {
-					printf("<li class='current'>%s</li>\n", $tpd);
-					$tpd = str_replace("'", "", $tpd);
-					if (toegang($currenttab . "/" . $tpd, 0)) {
+					$cl = " class='current'";
+					if (toegang($currenttab . "/" . str_replace("'", "", $tpd), 0)) {
 						$currenttab2 = $tpd;
 					}
-				} else {
-					printf("<li><a href=\"%s?tp=%s%s\">%s</a></li>\n", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra, $tpd);
+					$navpad[$nivo]['naam'] = $tpd;
+					$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
 				}
+				printf("<li%s><a href=\"%s?tp=%s%s\">%s</a></li>\n", $cl, $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra, $tpd);
 			}
 		}
 	}
