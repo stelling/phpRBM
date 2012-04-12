@@ -267,7 +267,7 @@ function HTMLheader() {
 			printf("<a href='auth.php?actie=uitloggen'><img src='images/power.png' title='Uitloggen' alt='Uitloggen'></a>\n");
 			if ($_SESSION['webmaster'] == 1 and $_SERVER['PHP_SELF'] != "/admin.php") {
 				echo("<a href='admin.php'><img src='images/tool.png' title='Beheerdersmenu'></a>\n");
-			} else {
+			} elseif ($_SERVER['PHP_SELF'] == "/admin.php") {
 				echo("<a href='index.php'><img src='images/home.png' title='Beginpagina'></a>\n");
 			}
 		} else {

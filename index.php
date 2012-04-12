@@ -35,7 +35,7 @@ if ($currenttab == "Eigen gegevens" and toegang($_GET['tp'])) {
 	} else {
 		fnWijzigen($_SESSION['lidid'], $currenttab2);
 	}
-} elseif ($currenttab == "Overzicht lid" and toegang($_GET['tp'])) {
+} elseif ($currenttab == "Overzicht lid" and toegang("Overzicht lid")) {
 	if (isset($_GET['lidid']) and is_numeric($_GET['lidid']) and $_GET['lidid'] > 0) {
 		fnOverviewLid($_GET['lidid'], $currenttab2);
 	} else {
