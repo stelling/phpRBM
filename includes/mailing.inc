@@ -11,11 +11,10 @@ function fnMailing() {
 		$op = "preview";
 	} elseif (isset($_GET['op'])) {
 		$op = $_GET['op'];
+	} elseif ($_GET['tp'] == "Mailing/Historie") {
+		$op = "historie";
 	} else {
 		$op = "";
-	}
-	if ($op != "preview") {
-		fnDispMenu(2);
 	}
 
 	$mailing = new mailing;
@@ -23,6 +22,12 @@ function fnMailing() {
 		$mailing->mid = $_GET['mid'];
 	} else {
 		$mailing->mid = 0;
+	}
+	
+	if (($op == "historie" or $op == "histdetails") and $mailing->mid > 0) {
+		fnDispMenu(2, sprintf("mid=%d", $mailing->mid));
+	} elseif ($op != "preview") {
+		fnDispMenu(2);
 	}
 
 	if ($op == "edit" and isset($_GET['mid'])) {
@@ -41,14 +46,11 @@ function fnMailing() {
 	} elseif ($op == "historie" and $mailing->mid > 0) {
 		$rows = db_mailing("hist", $mailing->mid);
 		if (count($rows) > 0) {
-			$ld = sprintf("<a href='index.php?tp=%s&amp;op=histdetails&amp;rid=%%d'>%%s</a>", $_GET['tp']);
+			$ld = sprintf("<a href='index.php?tp=%s&amp;op=histdetails&amp;rid=%%d&amp;mid=%d'>%%s</a>", $_GET['tp'], $mailing->mid);
 			echo(fnDisplayTable($rows, $ld, $rows[0]->ndOnderwerp, 0, 1));
 		} else {
 			echo("<p class='mededeling'>Deze mailing heeft geen historie.</p>\n");
 		}
-		echo("<div id='opdrachtknoppen'>\n
-				<img src='images/back.png' alt='Terug' title='Terug' onclick='history.go(-1);'>\n
-				</div>  <!-- Einde opdrachtknoppen -->\n");
 	} elseif ($op == "histdetails" and $_GET['rid'] > 0) {
 		$mailing->toonverstuurdemail($_GET['rid']);
 	} elseif ($op == "upload") {
@@ -114,7 +116,7 @@ class mailing {
 	private $resultaatversturen = 1;
 
 	function __construct() {
-		global $selectnaam, $table_prefix, $fdlang, $fdkort, $max_grootte_bijlage, $resultaatmailingversturen;
+		global $selectnaam, $table_prefix, $fdlang, $fdkort, $max_grootte_bijlage, $resultaatmailingversturen, $arrGeslacht;
 	
 		$WhereLidond = "WHERE LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE())";
 		$WhereLidmaatschap = "WHERE LM.LIDDATUM <= CURDATE() AND ((LM.Opgezegd IS NULL) OR LM.Opgezegd >= CURDATE())";
@@ -140,6 +142,13 @@ class mailing {
 		$sql = sprintf("SELECT (CASE ISNULL(L.Tussenv) WHEN 0 THEN CONCAT(L.Tussenv, ' ', L.Achternaam)"
 			  . " ELSE L.Achternaam END) AS Achternaam FROM %sLid AS L WHERE %s;", $table_prefix, "L.Nummer=%d");
 		$this->MergeField[]=array('Naam' => "Achternaam", 'SQL' => $sql);
+		
+		$sql = "SELECT CASE L.Geslacht";
+		foreach ($arrGeslacht as $key => $value) {
+			$sql .= sprintf(" WHEN '%s' THEN '%s'", $key, $value);
+		}
+		$sql .= sprintf(" END FROM %sLid AS L WHERE %s", $table_prefix, "L.Nummer=%d");
+		$this->MergeField[]=array('Naam' => "Geslacht", 'SQL' => $sql);
 
 		$sql = sprintf("SELECT L.Adres FROM %sLid AS L WHERE %s;", $table_prefix, "L.Nummer=%d");
 		$this->MergeField[]=array('Naam' => "Adres", 'SQL' => $sql);
@@ -252,7 +261,11 @@ class mailing {
 		}
 	}
 	
-	public function toonverstuurdemail ($rid) {
+	public function toonverstuurdemail($rid) {
+		global $navpad;
+		
+		$navpad[]['naam'] = sprintf("Verzonden mail %d", $rid);
+	
 		echo("<div id='verstuurdemail'>\n");
 		$row = db_mailing("histdetails", 0, $rid);
 		printf("<div class='label'>Verzonden:</div><div class='veld'>%s</div>\n", strftime('%e %B %Y (%H:%M)', strtotime($row->send_on)));
@@ -274,7 +287,7 @@ class mailing {
 	}
 	
 	public function edit() {
-		global $currenttab, $currenttab2, $beperkfrom, $naamvereniging;
+		global $currenttab, $currenttab2, $beperkfrom, $naamvereniging, $navpad;
 
 		$ad = $this->dir_attachm . "/" . $this->mid;
 
@@ -298,10 +311,11 @@ class mailing {
 
 		if ($this->mid == 0) {
 			$currenttab2 = "Concepten";
+		} else {
+			$navpad[]['naam'] = sprintf("Details mailing %d", $this->mid);
 		}
 		printf("<div id='mailing'>\n");
 		printf("<form method='post' action='%s?tp=%s/%s&amp;op=post&amp;mid=%d' name='frm_mailedit' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2, $this->mid);
-//		printf("<input type='hidden' name='submit' value='1'>\n");
 		printf("<table>\n");
 		printf("<tr><td class='label'>Van:</td><td><input type='text' name='from_name' onBlur='this.form.submit();' value='%s' size=50 maxlength=50></td></tr>\n", $from_name);
 		printf("<tr><td class='label'>Vanaf e-mail:</td><td><input type='email' name='from_addr' onBlur='this.form.submit();' value='%s' size=50 maxlength=50></td></tr>\n", $from_addr);
