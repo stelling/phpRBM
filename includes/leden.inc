@@ -100,7 +100,13 @@ function fnWieiswie($actie, $metfoto=1) {
 }
 
 function fnLedenlijst() {
-	global $arrTL, $ldl, $table_prefix;
+	global $arrTL, $table_prefix;
+	
+	if (toegang("Overzicht lid", 0)) {
+		$ldl = "<a href='index.php?tp=Overzicht+lid&amp;lidid=%d'>%s</a>";
+	} else {
+		$ldl="";
+	}
 
 	$val_naamfilter="";
 	$val_TL=$arrTL[1];
@@ -177,16 +183,15 @@ function fnLedenlijst() {
 function fnOverviewLid($lidid=0, $actie="") {
 	global $currenttab, $toneninschrijvingenbewakingen;
 	
-	if ($lidid > 0) {
+	if ($lidid <= 0) {
+		printf("<p class='mededeling'>Er is geen lid geselecteerd. Selecteer een lid via de <a href='%s?tp=Ledenlijst'>ledenlijst</a>.</p>\n", $_SERVER['PHP_SELF']);
+	} elseif (toegang("Overzicht Lid/" . $actie) == false) {
+		printf("<p class='mededeling'>Je hebt tot tabblad '%s' geen toegang.</p>\n", $actie);
+	} else {
+	
 		fnDispMenu(2, "lidid=" . $lidid);
-
-		$rows = db_gegevenslid($lidid, "Alg");
-		if (count($rows) > 0) {
-			$naamlid = $rows[0]->Naam;
-		} else {
-			$naamlid = "onbekend";
-		}
-			
+		$naamlid = db_naamlid($lidid);
+		
 		if ($actie == "Afdelingen") {
 			$rows = db_gegevenslid($lidid, $actie);
 			if (count($rows) > 0) {
@@ -274,21 +279,15 @@ function fnOverviewLid($lidid=0, $actie="") {
 			}
 		} elseif ($actie == "Logboek") {
 			echo(fnDisplayTable(db_logboek("lijst", "", -1, $lidid)));
-		} elseif (toegang($_GET['tp'])) {
-			$rows = db_gegevenslid($lidid);
-			if (count($rows) > 0) {
-				$fn = fotolid($rows[0]->RecordID, 1);
-				if (strlen($fn) > 3) {
-					$xtra = "<div id='pasfoto'>"
-							. sprintf("<img src='%s' alt='Foto %s'>\n", $fn, $rows[0]->ndRoepnaam)
-							. "</div>  <!-- Einde pasfoto -->\n";
-				} else {
-					$xtra = "";
-				}
-				echo(fnDisplayForm($rows[0], $xtra));
-			}
 		} else {
-			echo("<p class='mededeling'>Je hebt geen toegang.</p>\n");
+			$fn = fotolid($lidid, 1);
+			if (strlen($fn) > 3) {
+				$xtra = sprintf("<div id='pasfoto'><img src='%s' alt='Pasfoto %s'></div>\n", $fn, db_naamlid($lidid, "Roepnaam"));
+			} else {
+				$xtra = "";
+			}
+			$rows = db_gegevenslid($lidid);
+			echo(fnDisplayForm($rows[0], $xtra));
 		}
 		if (isset($_SESSION['sel_leden']) and count($_SESSION['sel_leden']) > 1 and $currenttab != "Eigen gegevens" and !isset($_GET['MailingID'])) {
 			$current_key = -1;
@@ -311,16 +310,13 @@ function fnOverviewLid($lidid=0, $actie="") {
 			printf("Lid %d van de %d", $current_key+1, count($_SESSION['sel_leden']));
 			echo("</div>  <!-- Einde opdrachtknoppen -->\n");
 		}
-	} else {
-		printf("<p class='mededeling'>Er is geen lid geselecteerd. Selecteer een lid via de <a href='%s?tp=Ledenlijst'>ledenlijst</a>.</p>\n", $_SERVER['PHP_SELF']);
 	}
 }
 
 function fnWijzigen($lidid=0, $actie="") {
 	global $currenttab, $currenttab2, $pasfotoextenties, $emailledenadministratie, $emailnieuwepasfoto, $selfservicediplomas, $opzegtermijn;
 	global $naamvereniging, $naamwebsite, $urlwebsite, $table_prefix, $emailsecretariaat, $gebruikopenid;
-	global $muteerbarememos, $emailbevestiginginschrijving, $voorwaardeninschrijving;
-	global $arrLegitimatie, $arrSoortMemo;
+	global $muteerbarememos, $arrLegitimatie, $arrSoortMemo, $arrGeslacht;
 	
 	if ($lidid == 0) {
 		$lidid = $_SESSION['lidid'];
@@ -340,6 +336,7 @@ function fnWijzigen($lidid=0, $actie="") {
 			$wijzvelden[] = array('label' => "Tussenvoegsels", 'naam' => "Tussenv", 'lengte' => 7);
 			$wijzvelden[] = array('label' => "Achternaam", 'naam' => "Achternaam", 'lengte' => 30);
 			$wijzvelden[] = array('label' => "Meisjesnaam", 'naam' => "Meisjesnm", 'lengte' => 25);
+			$wijzvelden[] = array('label' => "Geslacht", 'naam' => "Geslacht");
 			$wijzvelden[] = array('label' => "Adres", 'naam' => "Adres", 'lengte' => 30);
 			$wijzvelden[] = array('label' => "Postcode", 'naam' => "Postcode", 'lengte' => 7);
 			$wijzvelden[] = array('label' => "Woonplaats", 'naam' => "Woonplaats", 'lengte' => 22);
@@ -364,8 +361,6 @@ function fnWijzigen($lidid=0, $actie="") {
 						} else {
 							$v = "";
 						}
-					} elseif ($wijzvelden[$i]['label'] == "Legitimatietype") {
-						$v = substr($_POST[$fn], 0 , 1);
 					} elseif (stripos($wijzvelden[$i]['label'], "datum") !== FALSE) {
 						$_POST[$fn] = change_month_to_uk($_POST[$fn]);
 						if (isset($_POST[$fn]) and strlen($_POST[$fn]) > 0) {
@@ -412,28 +407,31 @@ function fnWijzigen($lidid=0, $actie="") {
 			for ($i=0; $i < count($wijzvelden); $i++) {
 				$dv = $row->$wijzvelden[$i]['naam'];
 				$ph = $wijzvelden[$i]['label'];
-				if ($wijzvelden[$i]['label'] == "Legitimatietype") {
-					$t = "Legitimatie";
-					$dv = $arrLegitimatie[$dv];
-				} elseif (strpos($wijzvelden[$i]['label'], "datum") !== FALSE) {
-					$t = "text";
-					$dv = strftime("%e %B %Y", strtotime($dv));
-				} elseif (stripos($wijzvelden[$i]['label'], "e-mail") !== FALSE) {
-					$t = "email";
-				} else {
-					$t = "text";
-				}
-				if ($t == "Legitimatie") {
+				if ($wijzvelden[$i]['label'] == "Geslacht" or ($wijzvelden[$i]['label'] == "Legitimatietype")) {
+					if ($wijzvelden[$i]['label'] == "Geslacht") {
+						$an = "arrGeslacht";
+					} else {
+						$an = "arrLegitimatie";
+					}
 					$opt = "\n";
-					foreach ($arrLegitimatie as $key => $val) {
+					foreach ($$an as $key => $val) {
 						$sel = "";
 						if ($key == $row->$wijzvelden[$i]['naam']) {
 							$sel = " selected";
+							$dv = $val;
 						}
 						$opt .= sprintf("<option value='%s'%s>%s</option>\n", $key, $sel, $val);
 					}
 					$inp = sprintf("<select name='%s'>%s</select></td><td>", $wijzvelden[$i]['naam'], $opt);
 				} else {
+					if (strpos($wijzvelden[$i]['label'], "datum") !== FALSE) {
+						$t = "text";
+						$dv = strftime("%e %B %Y", strtotime($dv));
+					} elseif (stripos($wijzvelden[$i]['label'], "e-mail") !== FALSE) {
+						$t = "email";
+					} else {
+						$t = "text";
+					}
 					$inp = sprintf("<input type='%s' name='%s' placeholder='%s' size=40 maxlength=%d></td><td class='chk'><input type='checkbox' name='chkLeeg_%s' value=1>", 
 							$t, $wijzvelden[$i]['naam'], $ph, $wijzvelden[$i]['lengte'], $wijzvelden[$i]['naam']);
 				}
@@ -455,7 +453,9 @@ function fnWijzigen($lidid=0, $actie="") {
 					$fnVervaltPer = sprintf("VervaltPer_%d", $row->RecordID);
 					$fnDiplnr = sprintf("Diplnr_%d", $row->RecordID);
 					$fnVerw = sprintf("chkVerw_%d", $row->RecordID);
-					if (isset($_POST[$fnVerw]) and $_POST[$fnVerw] == 1) {
+					if (strlen($_POST[$fnBehaald]) == 0 and strlen($_POST[$fnDiplnr]) > 0) {
+						echo("<p class='mededeling'>Er moet altijd een datum van behalen ingevuld worden. Diplomanummer wordt niet toegevoegd.</p>");
+					} elseif (isset($_POST[$fnVerw]) and $_POST[$fnVerw] == 1) {
 						db_liddipl("delete", $lidid, 0, $row->RecordID, $_POST[$fnBehaald]);
 					} elseif ($_POST[$fnRID] == 0) {
 						$mess = db_liddipl("add", $lidid, 0, $row->RecordID, $_POST[$fnBehaald], $_POST[$fnVervaltPer], $_POST[$fnDiplnr]);
