@@ -1765,6 +1765,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_interface` (
   `IP-adres` char(15) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `SQL-statement` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `Ingevoerd` datetime DEFAULT NULL,
+  `Gedownload` datetime DEFAULT NULL,
   `Afgemeld` datetime DEFAULT NULL,
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
