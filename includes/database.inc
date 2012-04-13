@@ -1327,7 +1327,7 @@ function db_interface($actie="lijst", $query="") {
 		fnQuery($insquery, 0);
 		
 	} elseif ($actie == "afmelden") {
-		$query = sprintf("UPDATE %sAdmin_interface SET Afgemeld = SYSDATE() WHERE (Afgemeld < '2011-01-01' OR (Afgemeld IS NULL));", $table_prefix);
+		$query = sprintf("UPDATE %sAdmin_interface SET Afgemeld=SYSDATE() WHERE (Afgemeld < '2011-01-01' OR (Afgemeld IS NULL));", $table_prefix);
 		$result = fnQuery($query);
 		if ($result > 0) {
 			fnQuery(sprintf("OPTIMIZE TABLE %sAdmin_interface;", $table_prefix));
@@ -1344,9 +1344,9 @@ function db_interface($actie="lijst", $query="") {
 		return $result->fetchColumn();
 		
 	} elseif ($actie == "lijst") {
-		$query = sprintf("SELECT %1\$s AS NaamLid, I.Ingevoerd, `SQL-statement` AS `SQL`"
+		$query = sprintf("SELECT %1\$s AS `Naam lid`, I.Ingevoerd, `SQL-statement` AS `SQL`"
 				 . " FROM %2\$sAdmin_interface AS I LEFT OUTER JOIN %2\$sLid AS L ON I.LidID = L.Nummer"
-				 . " WHERE (I.Afgemeld < '2010-01-01' OR (Afgemeld IS NULL))"
+				 . " WHERE (I.Afgemeld IS NULL)"
 				 . " ORDER BY I.Ingevoerd, I.RecordID;", $selectnaam, $table_prefix);
 		$result = fnQuery($query);
 		return $result->fetchAll();
@@ -1656,6 +1656,13 @@ function db_onderhoud() {
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sAdmin_activiteit' AND COLUMN_NAME='Script';", $db_name, $table_prefix);
 	if (db_scalar($query) == 0) {
 		fnQuery(sprintf("ALTER TABLE `%sAdmin_activiteit` ADD `Script` VARCHAR( 75 ) NOT NULL AFTER `Omschrijving`;", $table_prefix));
+	}
+	
+		
+	// Toevoegen veld 'Gedownload' aan de tabel Admin_interface. Deze code kan na 1/5/2013 worden verwijderd.
+	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sAdmin_interface' AND COLUMN_NAME='Gedownload';", $db_name, $table_prefix);
+	if (db_scalar($query) == 0) {
+		fnQuery(sprintf("ALTER TABLE `%sAdmin_interface` ADD `Gedownload` DATETIME NULL DEFAULT NULL AFTER `Ingevoerd`;", $table_prefix));
 	}
 	
 	// Toevoegen veld 'VerwijderdOp' aan de tabel Evenement. Deze code kan na 15/4/2013 worden verwijderd.

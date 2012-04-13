@@ -110,15 +110,9 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 	echo("</div>  <!-- Einde invulformulier -->\n");	
 } elseif ($currenttab == "Downloaden wijzigingen" and toegang($_GET['tp'])) {
 	printf("<form name='formdownload' method='post' action='%s?op=downloadwijz'>\n", $_SERVER['PHP_SELF']);
-	echo("<table>\n");
-	echo("<tr><th>Naam lid</th><th>Datum wijziging</th><th>SQL</th></tr>\n");
-	$counter = 0;
-	foreach(db_interface() as $row) {
-		printf("<tr><td>%s</td><td>%s</td><td>%s</td></tr>\n", htmlentities($row->NaamLid), strftime("%e %h %Y (%H:%S)", strtotime($row->Ingevoerd)), $row->SQL);
-		$counter++;
-	}
-	echo("</table>\n");
-	if ($counter > 0) {
+	$rows = db_interface("lijst");
+	if (count($rows) > 0) {
+		echo(fnDisplayTable($rows, "", "", 1));
 		echo("<p class='mededeling'><input type='submit' value='Download wijzigingen'>\n");
 		printf("&nbsp;<input type='button' value='Wijzigingen afmelden' OnClick=\"location.href='%s?tp=%s&amp;op=afmeldenwijz'\"></p>\n", $_SERVER['PHP_SELF'], $currenttab);
 	} else {
