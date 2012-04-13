@@ -6,6 +6,298 @@ if (toegang("Overzicht lid", 0)) {
 	$ldl="";
 }
 
+function fnWijzigen($lidid=0, $actie="") {
+	global $currenttab, $currenttab2, $emailledenadministratie, $selfservicediplomas, $opzegtermijn;
+	global $naamvereniging, $naamwebsite, $urlwebsite, $table_prefix, $emailsecretariaat, $gebruikopenid;
+	global $muteerbarememos, $arrLegitimatie, $arrSoortMemo, $arrGeslacht;
+	
+	if ($lidid == 0) {
+		$lidid = $_SESSION['lidid'];
+	}
+	if (strlen($actie) == 0) {
+		$actie = $currenttab2;
+	}
+	
+	$naamlid = db_naamlid($lidid);
+	if ($lidid > 0) {
+//		$lidid = 32;
+		fnDispMenu(2, "lidid=" . $lidid);
+
+		if ($actie == "Algemene gegevens") {
+			$wijzvelden[] = array('label' => "Roepnaam", 'naam' => "Roepnaam", 'lengte' => 17);
+			$wijzvelden[] = array('label' => "Voorletters", 'naam' => "VOORLETTER", 'lengte' => 10);
+			$wijzvelden[] = array('label' => "Tussenvoegsels", 'naam' => "Tussenv", 'lengte' => 7);
+			$wijzvelden[] = array('label' => "Achternaam", 'naam' => "Achternaam", 'lengte' => 30);
+			$wijzvelden[] = array('label' => "Meisjesnaam", 'naam' => "Meisjesnm", 'lengte' => 25);
+			$wijzvelden[] = array('label' => "Geslacht", 'naam' => "Geslacht");
+			$wijzvelden[] = array('label' => "Adres", 'naam' => "Adres", 'lengte' => 30);
+			$wijzvelden[] = array('label' => "Postcode", 'naam' => "Postcode", 'lengte' => 7);
+			$wijzvelden[] = array('label' => "Woonplaats", 'naam' => "Woonplaats", 'lengte' => 22);
+			$wijzvelden[] = array('label' => "Telefoon", 'naam' => "Telefoon", 'lengte' => 16);
+			$wijzvelden[] = array('label' => "Mobiel", 'naam' => "Mobiel", 'lengte' => 16);
+			$wijzvelden[] = array('label' => "E-mail", 'naam' => "EMAIL", 'lengte' => 45);
+			$wijzvelden[] = array('label' => "Geboortedatum", 'naam' => "GEBDATUM", 'lengte' => 18);
+			$wijzvelden[] = array('label' => "Geboorteplaats", 'naam' => "GEBPLAATS", 'lengte' => 22);
+			$wijzvelden[] = array('label' => "Bankrekening", 'naam' => "BANKGIRO", 'lengte' => 10);
+			$wijzvelden[] = array('label' => "Legitimatietype", 'naam' => "Legitimatietype");
+			$wijzvelden[] = array('label' => "Legitimatienummer", 'naam' => "Legitimatienummer", 'lengte' => 15);
+			$wijzvelden[] = array('label' => "Beroep", 'naam' => "Beroep", 'lengte' => 40);
+			
+			if ($_SERVER['REQUEST_METHOD'] == "POST") {
+				$mess = "";
+				for ($i=0; $i < count($wijzvelden); $i++) {
+					$fn = $wijzvelden[$i]['naam'];
+					$v = "__skip__";
+					if (isset($_POST["chkLeeg_" . $fn]) and $_POST["chkLeeg_" . $fn] == "1") {
+						if ($fn == "Achternaam") {
+							$mess .= "Achternaam mag niet leeg zijn, deze wijziging wordt niet verwerkt. ";
+						} else {
+							$v = "";
+						}
+					} elseif (stripos($wijzvelden[$i]['label'], "datum") !== FALSE) {
+						$_POST[$fn] = change_month_to_uk($_POST[$fn]);
+						if (isset($_POST[$fn]) and strlen($_POST[$fn]) > 0) {
+							if (strtotime($_POST[$fn]) === FALSE) {
+								$mess .= "Geboortedatum is niet correct, deze wordt niet verwerkt. ";
+							} else {
+								$v = strftime("%Y-%m-%d", strtotime($_POST[$fn]));
+							}
+						}
+					} elseif (stripos($wijzvelden[$i]['label'], "e-mail") !== FALSE) {
+						if (isset($_POST[$fn]) and strlen($_POST[$fn]) > 0) {
+							if (isValidMailAddress($_POST[$fn], 0)) {
+								$v = $_POST[$fn];
+							} else {
+								$mess .= "E-mailadres is niet correct, deze wijziging wordt niet verwerkt. ";
+							}
+						}
+					} elseif (isset($_POST[$fn]) and strlen($_POST[$fn]) > 0) {
+						$v = $_POST[$fn];
+					}
+					if ($v != "__skip__" and $v != $_POST["old_" . $fn]) {
+						$query = sprintf("UPDATE %sLid SET %s='%s', Gewijzigd=SYSDATE() WHERE Nummer=%d;", $table_prefix, $fn, $v, $lidid);
+						$result = fnQuery($query);
+						if ($result > 0) {
+							db_interface("add", $query);
+							$mess .= sprintf("%s van %s is in '%s' gewijzigd. ", $wijzvelden[$i]['label'], db_naamlid($lidid), $v);
+						} else {
+							$mess .= sprintf("De wijziging in %s bij %s is niet verwerkt. ", strtolower($wijzvelden[$i]['label']), db_naamlid($lidid));
+						}
+					}
+				}
+				if (strlen($mess) > 1) {
+					printf("<p class='mededeling'>%s</p>\n", $mess);
+					db_logboek("add", $mess, 6);
+				}
+			}
+			
+			$row = db_ledenwijzigingen($lidid);
+			echo("<div id='wijzigengegevens'>\n");
+			printf("<form method='post' action='%s?%s' name='frm_wijzigingen'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+			echo("<table>\n");
+			echo("<tr><th>Veld</th><th>Huidige waarde</th><th>Nieuwe waarde</th><th>Leeg?</th></tr>\n");
+			$oldvals = "";
+			for ($i=0; $i < count($wijzvelden); $i++) {
+				$dv = $row->$wijzvelden[$i]['naam'];
+				$ph = $wijzvelden[$i]['label'];
+				if ($wijzvelden[$i]['label'] == "Geslacht" or ($wijzvelden[$i]['label'] == "Legitimatietype")) {
+					if ($wijzvelden[$i]['label'] == "Geslacht") {
+						$an = "arrGeslacht";
+					} else {
+						$an = "arrLegitimatie";
+					}
+					$opt = "\n";
+					foreach ($$an as $key => $val) {
+						$sel = "";
+						if ($key == $row->$wijzvelden[$i]['naam']) {
+							$sel = " selected";
+							$dv = $val;
+						}
+						$opt .= sprintf("<option value='%s'%s>%s</option>\n", $key, $sel, $val);
+					}
+					$inp = sprintf("<select name='%s'>%s</select></td><td>", $wijzvelden[$i]['naam'], $opt);
+				} else {
+					if (strpos($wijzvelden[$i]['label'], "datum") !== FALSE) {
+						$t = "text";
+						$dv = strftime("%e %B %Y", strtotime($dv));
+					} elseif (stripos($wijzvelden[$i]['label'], "e-mail") !== FALSE) {
+						$t = "email";
+					} else {
+						$t = "text";
+					}
+					$inp = sprintf("<input type='%s' name='%s' placeholder='%s' size=40 maxlength=%d></td><td class='chk'><input type='checkbox' name='chkLeeg_%s' value=1>", 
+							$t, $wijzvelden[$i]['naam'], $ph, $wijzvelden[$i]['lengte'], $wijzvelden[$i]['naam']);
+				}
+				printf('<tr><td class="label">%1$s</td><td>%2$s</td><td>%3$s</td></tr>', $wijzvelden[$i]['label'], $dv, $inp);
+				$oldvals .= sprintf("<input type='hidden' value='%s' name='old_%s'>\n", $row->$wijzvelden[$i]['naam'], $wijzvelden[$i]['naam']);
+				echo("\n");
+			}
+			echo("<tr><th colspan=4><input type='submit' value='Bewaren' name='adreswijziging'></th><tr>\n");
+			echo("</table>\n");
+			echo($oldvals);
+				
+			echo("</form>\n");
+			echo("</div>  <!-- Einde invulformulier -->\n");
+		} elseif ($actie == "Diplomas") {
+			if ($_SERVER['REQUEST_METHOD'] == "POST") {
+				foreach (db_diploma("selfservice_lijst") as $row) {
+					$fnRID = sprintf("RID_%d", $row->RecordID);
+					$fnBehaald = sprintf("Behaald_%d", $row->RecordID);
+					$fnVervaltPer = sprintf("VervaltPer_%d", $row->RecordID);
+					$fnDiplnr = sprintf("Diplnr_%d", $row->RecordID);
+					$fnVerw = sprintf("chkVerw_%d", $row->RecordID);
+					if (strlen($_POST[$fnBehaald]) == 0 and strlen($_POST[$fnDiplnr]) > 0) {
+						echo("<p class='mededeling'>Er moet altijd een datum van behalen ingevuld worden. Diplomanummer wordt niet toegevoegd.</p>");
+					} elseif (isset($_POST[$fnVerw]) and $_POST[$fnVerw] == 1) {
+						db_liddipl("delete", $lidid, 0, $row->RecordID, $_POST[$fnBehaald]);
+					} elseif ($_POST[$fnRID] == 0) {
+						$mess = db_liddipl("add", $lidid, 0, $row->RecordID, $_POST[$fnBehaald], $_POST[$fnVervaltPer], $_POST[$fnDiplnr]);
+						printf("<p class='mededeling'>%s</p>", $mess);
+					} else {
+						db_liddipl("update", 0, $_POST[$fnRID], 0, $_POST[$fnBehaald], $_POST[$fnVervaltPer], $_POST[$fnDiplnr]);
+					}
+				}
+			}
+			
+			$oldvals = "";
+			echo("<div id='wijzigendiplomas'>\n");
+			printf("<form method='post' action='%s?%s' name='frm_diplwijz'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+			echo("<table>\n");
+			printf("<tr><th colspan=6>Diploma's %s</th></tr>\n", $naamlid);
+			printf("<tr><th>Code</th><th>Naam</th><th>Behaald op</th><th>Geldig tot</th><th>Diplomanummer</th><th>Verw?</th></tr>\n");
+			foreach (db_diploma("selfservice_lijst") as $row) {
+				$cv_rid = 0;
+				$cv_behaald = "";
+				$cv_vervaltop = "";
+				$cv_diplomanr = "";
+				$rowld = db_liddipl("diplomabehaald", $lidid, 0, $row->RecordID);
+				if (isset($rowld->RecordID)) {
+					$cv_rid = $rowld->RecordID;
+					$cv_behaald = $rowld->EXDATUM;
+					$cv_vervaltop = $rowld->LicentieVervallenPer;
+					$cv_diplomanr = str_replace("\"", "'", $rowld->Diplomanummer);
+				}
+				if ($cv_rid == 0) {
+					printf('<tr><td>%1$s</td><td>%2$s</td><td><input type=\'text\' name=\'Behaald_%6$d\' value="%3$s"></td><td><input type=\'text\' name=\'VervaltPer_%6$d\' value="%4$s"></td><td><input type=\'text\' name=\'Diplnr_%6$d\' value="%5$s" maxlength=14></td><td></td></tr>', $row->Kode, $row->Naam, $cv_behaald, $cv_vervaltop, $cv_diplomanr, $row->RecordID);
+				} else {
+					printf('<tr><td>%1$s</td><td>%2$s</td><td>%3$s</td><td><input type=\'text\' name=\'VervaltPer_%6$d\' value="%4$s"></td><td><input type=\'text\' name=\'Diplnr_%6$d\' value="%5$s" maxlength=14></td><td class=\'chk\'><input type=\'checkbox\' name=\'chkVerw_%6$d\' value=1></td></tr>', $row->Kode, $row->Naam, strftime("%e %B %Y", strtotime($cv_behaald)), $cv_vervaltop, $cv_diplomanr, $row->RecordID);
+					$oldvals .= sprintf("<input type='hidden' name='Behaald_%d' value='%s'>", $row->RecordID, $cv_behaald);
+				}
+				$oldvals .= sprintf("\n<input type='hidden' name='RID_%d' value=%d>", $row->RecordID, $cv_rid);
+				echo("\n\n");
+			}
+			echo("<tr><th colspan=6><input type='submit' value='Bewaren' name='diplwijz'></th></tr>\n");
+			echo("</table>\n");
+			echo($oldvals);
+			echo("</form>\n");
+			echo("</div>  <!-- Einde wijzigendiplomas -->\n");
+			
+		} elseif ($currenttab2 == "Pasfoto") {
+			nieuwepasfoto($_SESSION['lidid']);
+			
+		} elseif ($actie == "Bijzonderheden" and count($muteerbarememos) > 0) {
+			if ($_SERVER['REQUEST_METHOD'] == "POST") {
+				foreach ($muteerbarememos as $kodesoort) {
+					$namevar = "Memo_" . $kodesoort;
+					$curval = db_memo($lidid, $kodesoort, "curval");
+					if (strlen($_POST[$namevar]) == 0 and $kodesoort != "WN") {
+						db_memo($lidid, $kodesoort, "delete");
+					} elseif (strlen($curval) == 0 and $kodesoort != "WN") {
+						db_memo($lidid, $kodesoort, "insert", $_POST[$namevar]);
+					} elseif ($curval != $_POST[$namevar]) {
+						db_memo($lidid, $kodesoort, "update", $_POST[$namevar]);
+					}
+				}
+			}
+			echo("<div id='bijzonderhedenwijzigen'>\n");
+			printf("<form method='post' action='%s?%s' name='bijz_wijz'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+			echo("<table>\n");
+			foreach ($muteerbarememos as $kodesoort) {
+				$namevar = "Memo_" . $kodesoort;
+				if (array_key_exists($kodesoort, $arrSoortMemo)) {
+					$naamsoort = $arrSoortMemo[$kodesoort];
+				} else {
+					$naamsoort = "Overig " . $kodesoort;
+				}
+				$curval = db_memo($lidid, $kodesoort, "curval");
+				printf("<tr><td class='label'>%s</td><td><textarea cols=75 rows=10 name='%s'>%s</textarea></td></tr>\n", $naamsoort, $namevar, $curval);
+			}
+			echo("<tr><th colspan=2><input type='submit' value='Bewaren' name='wijziging'></th><tr>\n");
+			echo("</table>\n");
+			echo("</form>\n");
+			echo("</div>  <!-- Einde bijzonderhedenwijzigen -->\n");
+
+		} elseif ($actie == "Opzegging") {
+				opzegginglidmaatschap($_SESSION['lidid']);
+			
+		} elseif ($actie == "Profiel") {
+		
+			if ($_SERVER['REQUEST_METHOD'] == "POST") {
+				if (isset($_POST['pw_nieuw']) and strlen($_POST['pw_nieuw']) > 0) {
+					if (strlen($_POST['pw_nieuw']) < 7) {
+						$mess = "Het nieuwe wachtwoord is te kort, het moet minimaal 7 karakters lang zijn.";
+					} elseif ($_POST['pw_nieuw'] != cleanlogin($_POST['pw_nieuw'])) {
+						$mess = "Het nieuwe wachtwoord bevat ongeldige tekens.";
+					} elseif ($_POST['pw_nieuw'] !== $_POST['pw_herhaal']) {
+						$mess = "Nieuwe wachtwoorden zijn niet gelijk.";
+					} else {
+						$mess = db_change_password($_POST['pw_nieuw'], $_POST['pw_oud'], $lidid);
+					}
+					printf("<p class='mededeling'>%s</p>", $mess);
+				}
+				echo("<p><a href='/'>Klik hier om verder te gaan.</a></p>\n");
+			} else {
+				echo("<div id='profielwijzigen'>\n");
+				printf("<form name='ProfielWijzigen' action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER['QUERY_STRING']);
+				printf("<fieldset>
+				<h3>Profiel wijzigen</h3>
+				<label for='login'>Login:</label><input type='text' name='login' id='ingelogdlogin' value='%s' readonly='readonly'>
+				<label for='pw_oud'>Oude wachtwoord:</label><input type='password' name='pw_oud' id='pw_oud' size=10 maxlength=12>
+				<label for='pw_nieuw'>Nieuw wachtwoord:</label><input type='password' name='pw_nieuw' id='pw_nieuw' size=10 maxlength=12>
+				<label for='pw_herhaal'>Herhaal wachtwoord:</label><input type='password' name='pw_herhaal' id='pw_herhaal' size=10 maxlength=12>
+				<input type='submit' class='knop' value='Wijzigen'>\n", $_SESSION['username']);
+				echo("</fieldset>
+				</form>
+				</div>  <!-- Einde profielwijzigen -->");
+				
+				if ($gebruikopenid == 1) {
+					$row = db_logins("controle");
+					echo("<div id='openid'>\n
+					<h3>Ondersteuning OpenID</h3>
+					<p>Deze website ondersteunt <a href='http://nl.wikipedia.org/wiki/OpenID'>OpenID</a>. Het voordeel van OpenID is dat je niet voor elke website een aparte login hoeft aan te maken en te onthouden. Veel bezoekers hebben al een OpenID, veelal zonder zich dit te realiseren. Kijk maar eens <a href='http://openid.net/get-an-openid/'>hier</a>. Dit zijn vooral Amerikaanse websites. Wil je liever een Nederlandse OpenID, dan kan je <a href='http://mijnopenid.nl/'>hier</a> terecht.</p>\n");
+					if (strlen($row->openid_identity) > 0 and strlen($row->Login) >= 6) {
+						printf("<p>Jij hebt zowel een gewone login als een login via OpenID. Je gewone login kan je het beste verwijderen. Mocht je deze weer nodig hebben, kan je hem altijd weer aanvragen.</p>
+						<ul>
+						<li>%s&nbsp;<img src='images/delete.png' alt='Delete login'></li>
+						<li>%s&nbsp;<img src='images/delete.png' alt='Delete login'></li>
+						</ul>", $row->Login, $row->openid_identity);
+						
+	//				} elseif () {
+						
+					}
+					echo("</div>  <!-- Einde openid -->\n");
+				}
+			}
+
+		} elseif (toegang($_GET['tp'])) {
+			$rows = db_gegevenslid($lidid);
+			if (count($rows) > 0) {
+				$fn = fotolid($rows[0]->RecordID);
+				$xtra = "<div id='pasfoto'>";
+				if (strlen($fn) > 3) {
+					$xtra .= sprintf("<img src='%s' alt='Foto %s'>\n", $fn, $rows[0]->ndRoepnaam);
+				}
+				$xtra .= "</div>  <!-- Einde pasfoto -->\n";
+				echo(fnDisplayForm($rows[0], $xtra));
+			}
+		} else {
+			echo("<p class='mededeling'>Je hebt geen toegang.</p>\n");
+		}
+	} else {
+		echo("<p class='mededeling'>Er is geen lid geselecteerd.</p>\n4");
+	}
+}
+
 function fnWieiswie($actie, $metfoto=1) {
 	global $ldl;
 
@@ -313,298 +605,6 @@ function fnOverviewLid($lidid=0, $actie="") {
 	}
 }
 
-function fnWijzigen($lidid=0, $actie="") {
-	global $currenttab, $currenttab2, $pasfotoextenties, $emailledenadministratie, $emailnieuwepasfoto, $selfservicediplomas, $opzegtermijn;
-	global $naamvereniging, $naamwebsite, $urlwebsite, $table_prefix, $emailsecretariaat, $gebruikopenid;
-	global $muteerbarememos, $arrLegitimatie, $arrSoortMemo, $arrGeslacht;
-	
-	if ($lidid == 0) {
-		$lidid = $_SESSION['lidid'];
-	}
-	if (strlen($actie) == 0) {
-		$actie = $currenttab2;
-	}
-	
-	$naamlid = db_naamlid($lidid);
-	if ($lidid > 0) {
-//		$lidid = 32;
-		fnDispMenu(2, "lidid=" . $lidid);
-
-		if ($actie == "Algemene gegevens") {
-			$wijzvelden[] = array('label' => "Roepnaam", 'naam' => "Roepnaam", 'lengte' => 17);
-			$wijzvelden[] = array('label' => "Voorletters", 'naam' => "VOORLETTER", 'lengte' => 10);
-			$wijzvelden[] = array('label' => "Tussenvoegsels", 'naam' => "Tussenv", 'lengte' => 7);
-			$wijzvelden[] = array('label' => "Achternaam", 'naam' => "Achternaam", 'lengte' => 30);
-			$wijzvelden[] = array('label' => "Meisjesnaam", 'naam' => "Meisjesnm", 'lengte' => 25);
-			$wijzvelden[] = array('label' => "Geslacht", 'naam' => "Geslacht");
-			$wijzvelden[] = array('label' => "Adres", 'naam' => "Adres", 'lengte' => 30);
-			$wijzvelden[] = array('label' => "Postcode", 'naam' => "Postcode", 'lengte' => 7);
-			$wijzvelden[] = array('label' => "Woonplaats", 'naam' => "Woonplaats", 'lengte' => 22);
-			$wijzvelden[] = array('label' => "Telefoon", 'naam' => "Telefoon", 'lengte' => 16);
-			$wijzvelden[] = array('label' => "Mobiel", 'naam' => "Mobiel", 'lengte' => 16);
-			$wijzvelden[] = array('label' => "E-mail", 'naam' => "EMAIL", 'lengte' => 45);
-			$wijzvelden[] = array('label' => "Geboortedatum", 'naam' => "GEBDATUM", 'lengte' => 18);
-			$wijzvelden[] = array('label' => "Geboorteplaats", 'naam' => "GEBPLAATS", 'lengte' => 22);
-			$wijzvelden[] = array('label' => "Bankrekening", 'naam' => "BANKGIRO", 'lengte' => 10);
-			$wijzvelden[] = array('label' => "Legitimatietype", 'naam' => "Legitimatietype");
-			$wijzvelden[] = array('label' => "Legitimatienummer", 'naam' => "Legitimatienummer", 'lengte' => 15);
-			$wijzvelden[] = array('label' => "Beroep", 'naam' => "Beroep", 'lengte' => 40);
-			
-			if ($_SERVER['REQUEST_METHOD'] == "POST") {
-				$mess = "";
-				for ($i=0; $i < count($wijzvelden); $i++) {
-					$fn = $wijzvelden[$i]['naam'];
-					$v = "__skip__";
-					if (isset($_POST["chkLeeg_" . $fn]) and $_POST["chkLeeg_" . $fn] == "1") {
-						if ($fn == "Achternaam") {
-							$mess .= "Achternaam mag niet leeg zijn, deze wijziging wordt niet verwerkt. ";
-						} else {
-							$v = "";
-						}
-					} elseif (stripos($wijzvelden[$i]['label'], "datum") !== FALSE) {
-						$_POST[$fn] = change_month_to_uk($_POST[$fn]);
-						if (isset($_POST[$fn]) and strlen($_POST[$fn]) > 0) {
-							if (strtotime($_POST[$fn]) === FALSE) {
-								$mess .= "Geboortedatum is niet correct, deze wordt niet verwerkt. ";
-							} else {
-								$v = strftime("%Y-%m-%d", strtotime($_POST[$fn]));
-							}
-						}
-					} elseif (stripos($wijzvelden[$i]['label'], "e-mail") !== FALSE) {
-						if (isset($_POST[$fn]) and strlen($_POST[$fn]) > 0) {
-							if (isValidMailAddress($_POST[$fn], 0)) {
-								$v = $_POST[$fn];
-							} else {
-								$mess .= "E-mailadres is niet correct, deze wijziging wordt niet verwerkt. ";
-							}
-						}
-					} elseif (isset($_POST[$fn]) and strlen($_POST[$fn]) > 0) {
-						$v = $_POST[$fn];
-					}
-					if ($v != "__skip__" and $v != $_POST["old_" . $fn]) {
-						$query = sprintf("UPDATE %sLid SET %s='%s', Gewijzigd=SYSDATE() WHERE Nummer=%d;", $table_prefix, $fn, $v, $lidid);
-						$result = fnQuery($query);
-						if ($result > 0) {
-							db_interface("add", $query);
-							$mess .= sprintf("%s van %s is in '%s' gewijzigd. ", $wijzvelden[$i]['label'], db_naamlid($lidid), $v);
-						} else {
-							$mess .= sprintf("De wijziging in %s bij %s is niet verwerkt. ", strtolower($wijzvelden[$i]['label']), db_naamlid($lidid));
-						}
-					}
-				}
-				if (strlen($mess) > 1) {
-					printf("<p class='mededeling'>%s</p>\n", $mess);
-					db_logboek("add", $mess, 6);
-				}
-			}
-			
-			$row = db_ledenwijzigingen($lidid);
-			echo("<div id='wijzigengegevens'>\n");
-			printf("<form method='post' action='%s?%s' name='frm_wijzigingen'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
-			echo("<table>\n");
-			echo("<tr><th>Veld</th><th>Huidige waarde</th><th>Nieuwe waarde</th><th>Leeg?</th></tr>\n");
-			$oldvals = "";
-			for ($i=0; $i < count($wijzvelden); $i++) {
-				$dv = $row->$wijzvelden[$i]['naam'];
-				$ph = $wijzvelden[$i]['label'];
-				if ($wijzvelden[$i]['label'] == "Geslacht" or ($wijzvelden[$i]['label'] == "Legitimatietype")) {
-					if ($wijzvelden[$i]['label'] == "Geslacht") {
-						$an = "arrGeslacht";
-					} else {
-						$an = "arrLegitimatie";
-					}
-					$opt = "\n";
-					foreach ($$an as $key => $val) {
-						$sel = "";
-						if ($key == $row->$wijzvelden[$i]['naam']) {
-							$sel = " selected";
-							$dv = $val;
-						}
-						$opt .= sprintf("<option value='%s'%s>%s</option>\n", $key, $sel, $val);
-					}
-					$inp = sprintf("<select name='%s'>%s</select></td><td>", $wijzvelden[$i]['naam'], $opt);
-				} else {
-					if (strpos($wijzvelden[$i]['label'], "datum") !== FALSE) {
-						$t = "text";
-						$dv = strftime("%e %B %Y", strtotime($dv));
-					} elseif (stripos($wijzvelden[$i]['label'], "e-mail") !== FALSE) {
-						$t = "email";
-					} else {
-						$t = "text";
-					}
-					$inp = sprintf("<input type='%s' name='%s' placeholder='%s' size=40 maxlength=%d></td><td class='chk'><input type='checkbox' name='chkLeeg_%s' value=1>", 
-							$t, $wijzvelden[$i]['naam'], $ph, $wijzvelden[$i]['lengte'], $wijzvelden[$i]['naam']);
-				}
-				printf('<tr><td class="label">%1$s</td><td>%2$s</td><td>%3$s</td></tr>', $wijzvelden[$i]['label'], $dv, $inp);
-				$oldvals .= sprintf("<input type='hidden' value='%s' name='old_%s'>\n", $row->$wijzvelden[$i]['naam'], $wijzvelden[$i]['naam']);
-				echo("\n");
-			}
-			echo("<tr><th colspan=4><input type='submit' value='Bewaren' name='adreswijziging'></th><tr>\n");
-			echo("</table>\n");
-			echo($oldvals);
-				
-			echo("</form>\n");
-			echo("</div>  <!-- Einde invulformulier -->\n");
-		} elseif ($actie == "Diplomas") {
-			if ($_SERVER['REQUEST_METHOD'] == "POST") {
-				foreach (db_diploma("selfservice_lijst") as $row) {
-					$fnRID = sprintf("RID_%d", $row->RecordID);
-					$fnBehaald = sprintf("Behaald_%d", $row->RecordID);
-					$fnVervaltPer = sprintf("VervaltPer_%d", $row->RecordID);
-					$fnDiplnr = sprintf("Diplnr_%d", $row->RecordID);
-					$fnVerw = sprintf("chkVerw_%d", $row->RecordID);
-					if (strlen($_POST[$fnBehaald]) == 0 and strlen($_POST[$fnDiplnr]) > 0) {
-						echo("<p class='mededeling'>Er moet altijd een datum van behalen ingevuld worden. Diplomanummer wordt niet toegevoegd.</p>");
-					} elseif (isset($_POST[$fnVerw]) and $_POST[$fnVerw] == 1) {
-						db_liddipl("delete", $lidid, 0, $row->RecordID, $_POST[$fnBehaald]);
-					} elseif ($_POST[$fnRID] == 0) {
-						$mess = db_liddipl("add", $lidid, 0, $row->RecordID, $_POST[$fnBehaald], $_POST[$fnVervaltPer], $_POST[$fnDiplnr]);
-						printf("<p class='mededeling'>%s</p>", $mess);
-					} else {
-						db_liddipl("update", 0, $_POST[$fnRID], 0, $_POST[$fnBehaald], $_POST[$fnVervaltPer], $_POST[$fnDiplnr]);
-					}
-				}
-			}
-			
-			$oldvals = "";
-			echo("<div id='wijzigendiplomas'>\n");
-			printf("<form method='post' action='%s?%s' name='frm_diplwijz'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
-			echo("<table>\n");
-			printf("<tr><th colspan=6>Diploma's %s</th></tr>\n", $naamlid);
-			printf("<tr><th>Code</th><th>Naam</th><th>Behaald op</th><th>Geldig tot</th><th>Diplomanummer</th><th>Verw?</th></tr>\n");
-			foreach (db_diploma("selfservice_lijst") as $row) {
-				$cv_rid = 0;
-				$cv_behaald = "";
-				$cv_vervaltop = "";
-				$cv_diplomanr = "";
-				$rowld = db_liddipl("diplomabehaald", $lidid, 0, $row->RecordID);
-				if (isset($rowld->RecordID)) {
-					$cv_rid = $rowld->RecordID;
-					$cv_behaald = $rowld->EXDATUM;
-					$cv_vervaltop = $rowld->LicentieVervallenPer;
-					$cv_diplomanr = str_replace("\"", "'", $rowld->Diplomanummer);
-				}
-				if ($cv_rid == 0) {
-					printf('<tr><td>%1$s</td><td>%2$s</td><td><input type=\'text\' name=\'Behaald_%6$d\' value="%3$s"></td><td><input type=\'text\' name=\'VervaltPer_%6$d\' value="%4$s"></td><td><input type=\'text\' name=\'Diplnr_%6$d\' value="%5$s" maxlength=14></td><td></td></tr>', $row->Kode, $row->Naam, $cv_behaald, $cv_vervaltop, $cv_diplomanr, $row->RecordID);
-				} else {
-					printf('<tr><td>%1$s</td><td>%2$s</td><td>%3$s</td><td><input type=\'text\' name=\'VervaltPer_%6$d\' value="%4$s"></td><td><input type=\'text\' name=\'Diplnr_%6$d\' value="%5$s" maxlength=14></td><td class=\'chk\'><input type=\'checkbox\' name=\'chkVerw_%6$d\' value=1></td></tr>', $row->Kode, $row->Naam, strftime("%e %B %Y", strtotime($cv_behaald)), $cv_vervaltop, $cv_diplomanr, $row->RecordID);
-					$oldvals .= sprintf("<input type='hidden' name='Behaald_%d' value='%s'>", $row->RecordID, $cv_behaald);
-				}
-				$oldvals .= sprintf("\n<input type='hidden' name='RID_%d' value=%d>", $row->RecordID, $cv_rid);
-				echo("\n\n");
-			}
-			echo("<tr><th colspan=6><input type='submit' value='Bewaren' name='diplwijz'></th></tr>\n");
-			echo("</table>\n");
-			echo($oldvals);
-			echo("</form>\n");
-			echo("</div>  <!-- Einde wijzigendiplomas -->\n");
-			
-		} elseif ($currenttab2 == "Pasfoto") {
-			nieuwepasfoto($_SESSION['lidid']);
-			
-		} elseif ($actie == "Bijzonderheden" and count($muteerbarememos) > 0) {
-			if ($_SERVER['REQUEST_METHOD'] == "POST") {
-				foreach ($muteerbarememos as $kodesoort) {
-					$namevar = "Memo_" . $kodesoort;
-					$curval = db_memo($lidid, $kodesoort, "curval");
-					if (strlen($_POST[$namevar]) == 0 and $kodesoort != "WN") {
-						db_memo($lidid, $kodesoort, "delete");
-					} elseif (strlen($curval) == 0 and $kodesoort != "WN") {
-						db_memo($lidid, $kodesoort, "insert", $_POST[$namevar]);
-					} elseif ($curval != $_POST[$namevar]) {
-						db_memo($lidid, $kodesoort, "update", $_POST[$namevar]);
-					}
-				}
-			}
-			echo("<div id='bijzonderhedenwijzigen'>\n");
-			printf("<form method='post' action='%s?%s' name='bijz_wijz'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
-			echo("<table>\n");
-			foreach ($muteerbarememos as $kodesoort) {
-				$namevar = "Memo_" . $kodesoort;
-				if (array_key_exists($kodesoort, $arrSoortMemo)) {
-					$naamsoort = $arrSoortMemo[$kodesoort];
-				} else {
-					$naamsoort = "Overig " . $kodesoort;
-				}
-				$curval = db_memo($lidid, $kodesoort, "curval");
-				printf("<tr><td class='label'>%s</td><td><textarea cols=75 rows=10 name='%s'>%s</textarea></td></tr>\n", $naamsoort, $namevar, $curval);
-			}
-			echo("<tr><th colspan=2><input type='submit' value='Bewaren' name='wijziging'></th><tr>\n");
-			echo("</table>\n");
-			echo("</form>\n");
-			echo("</div>  <!-- Einde bijzonderhedenwijzigen -->\n");
-
-		} elseif ($actie == "Opzegging") {
-				opzegginglidmaatschap($_SESSION['lidid']);
-			
-		} elseif ($actie == "Profiel") {
-		
-			if ($_SERVER['REQUEST_METHOD'] == "POST") {
-				if (isset($_POST['pw_nieuw']) and strlen($_POST['pw_nieuw']) > 0) {
-					if (strlen($_POST['pw_nieuw']) < 7) {
-						$mess = "Het nieuwe wachtwoord is te kort, het moet minimaal 7 karakters lang zijn.";
-					} elseif ($_POST['pw_nieuw'] != cleanlogin($_POST['pw_nieuw'])) {
-						$mess = "Het nieuwe wachtwoord bevat ongeldige tekens.";
-					} elseif ($_POST['pw_nieuw'] !== $_POST['pw_herhaal']) {
-						$mess = "Nieuwe wachtwoorden zijn niet gelijk.";
-					} else {
-						$mess = db_change_password($_POST['pw_nieuw'], $_POST['pw_oud'], $lidid);
-					}
-					printf("<p class='mededeling'>%s</p>", $mess);
-				}
-				echo("<p><a href='/'>Klik hier om verder te gaan.</a></p>\n");
-			} else {
-				echo("<div id='profielwijzigen'>\n");
-				printf("<form name='ProfielWijzigen' action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER['QUERY_STRING']);
-				printf("<fieldset>
-				<h3>Profiel wijzigen</h3>
-				<label for='login'>Login:</label><input type='text' name='login' id='ingelogdlogin' value='%s' readonly='readonly'>
-				<label for='pw_oud'>Oude wachtwoord:</label><input type='password' name='pw_oud' id='pw_oud' size=10 maxlength=12>
-				<label for='pw_nieuw'>Nieuw wachtwoord:</label><input type='password' name='pw_nieuw' id='pw_nieuw' size=10 maxlength=12>
-				<label for='pw_herhaal'>Herhaal wachtwoord:</label><input type='password' name='pw_herhaal' id='pw_herhaal' size=10 maxlength=12>
-				<input type='submit' class='knop' value='Wijzigen'>\n", $_SESSION['username']);
-				echo("</fieldset>
-				</form>
-				</div>  <!-- Einde profielwijzigen -->");
-				
-				if ($gebruikopenid == 1) {
-					$row = db_logins("controle");
-					echo("<div id='openid'>\n
-					<h3>Ondersteuning OpenID</h3>
-					<p>Deze website ondersteunt <a href='http://nl.wikipedia.org/wiki/OpenID'>OpenID</a>. Het voordeel van OpenID is dat je niet voor elke website een aparte login hoeft aan te maken en te onthouden. Veel bezoekers hebben al een OpenID, veelal zonder zich dit te realiseren. Kijk maar eens <a href='http://openid.net/get-an-openid/'>hier</a>. Dit zijn vooral Amerikaanse websites. Wil je liever een Nederlandse OpenID, dan kan je <a href='http://mijnopenid.nl/'>hier</a> terecht.</p>\n");
-					if (strlen($row->openid_identity) > 0 and strlen($row->Login) >= 6) {
-						printf("<p>Jij hebt zowel een gewone login als een login via OpenID. Je gewone login kan je het beste verwijderen. Mocht je deze weer nodig hebben, kan je hem altijd weer aanvragen.</p>
-						<ul>
-						<li>%s&nbsp;<img src='images/delete.png' alt='Delete login'></li>
-						<li>%s&nbsp;<img src='images/delete.png' alt='Delete login'></li>
-						</ul>", $row->Login, $row->openid_identity);
-						
-	//				} elseif () {
-						
-					}
-					echo("</div>  <!-- Einde openid -->\n");
-				}
-			}
-
-		} elseif (toegang($_GET['tp'])) {
-			$rows = db_gegevenslid($lidid);
-			if (count($rows) > 0) {
-				$fn = fotolid($rows[0]->RecordID);
-				$xtra = "<div id='pasfoto'>";
-				if (strlen($fn) > 3) {
-					$xtra .= sprintf("<img src='%s' alt='Foto %s'>\n", $fn, $rows[0]->ndRoepnaam);
-				}
-				$xtra .= "</div>  <!-- Einde pasfoto -->\n";
-				echo(fnDisplayForm($rows[0], $xtra));
-			}
-		} else {
-			echo("<p class='mededeling'>Je hebt geen toegang.</p>\n");
-		}
-	} else {
-		echo("<p class='mededeling'>Er is geen lid geselecteerd.</p>\n4");
-	}
-}
-
 function fnSelectListGroepen($cv=0) {
 
 	$ret = "<option value=0>** Iedereen **</option>\n";
@@ -689,10 +689,25 @@ function nieuwepasfoto($lidid=0, $filterlid="") {
 	$naamlid = db_naamlid($lidid);
 	
 	if (isset($_FILES['UploadFoto']['name']) and strlen($_FILES['UploadFoto']['name']) > 3 and $lidid > 0) {
-
+	
 		$ad = $_SERVER["SCRIPT_FILENAME"];
 		$ad = substr($ad, 0, strrpos($ad, "/")) . "/pasfoto/";
-		chmod($ad, 0755);
+		if (file_exists($ad)) {
+			chmod($ad, 0755);
+		} else {
+			if (mkdir($ad, 0755, true) == true) {
+				$ret = sprintf("Directory '%s' is aangemaakt.", $ad);
+				db_logboek("add", $ret, 3);
+			}
+		}
+		if (file_exists($ad . "vervangen/")) {
+			chmod($ad . "vervangen/", 0755);
+		} else {
+			if (mkdir($ad . "vervangen/", 0755, true) == true) {
+				$ret = sprintf("Directory '%s' is aangemaakt.", $ad . "vervangen/");
+				db_logboek("add", $ret, 3);
+			}
+		}
 
 		$ext = explode(".", $_FILES['UploadFoto']['name']);
 		$ext = strtolower($ext[count($ext) - 1]);
@@ -704,7 +719,7 @@ function nieuwepasfoto($lidid=0, $filterlid="") {
 			$mess = sprintf("De foto kan niet worden ge-upload, omdat het groter is dan %d KB.", $max_size_attachm / 1024);
 		} else {
 			if (file_exists($target)) {
-				$bu_name = substr($target, 0, strrpos($target, ".")) . "_" . strftime("%Y%m%d", filectime($target)) . "." . $ext;
+				$bu_name = $ad  . "vervangen/"  . sprintf("Pasfoto%d_%d.%s", $lidid, strftime("%Y%m%d", filectime($target)), $ext);
 				rename($target, $bu_name);
 			}
 			if (move_uploaded_file($_FILES['UploadFoto']["tmp_name"], $target)) {
