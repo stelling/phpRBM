@@ -395,7 +395,7 @@ function fnLedenlijst() {
 	global $arrTL, $table_prefix;
 	
 	if (toegang("Overzicht lid", 0)) {
-		$ldl = "<a href='index.php?tp=Overzicht+lid&amp;lidid=%d'>%s</a>";
+		$ldl = "<a href='index.php?tp=Overzicht+lid/Algemeen&amp;lidid=%d'>%s</a>";
 	} else {
 		$ldl="";
 	}
@@ -432,7 +432,7 @@ function fnLedenlijst() {
 	echo("</tr>\n");
 	echo("</table>\n");
 	echo("</form>");
-	echo("</div>  <!-- Einde filer -->\n");
+	echo("</div>  <!-- Einde filter -->\n");
 	
 	if (strlen($val_naamfilter) > 1) {
 		$filter = sprintf('(L.Achternaam LIKE "%1$s" OR L.Roepnaam LIKE "%1$s")', "%" . strtoupper($val_naamfilter) . "%");
@@ -464,7 +464,7 @@ function fnLedenlijst() {
 	}
 
 	if (count($rows) > 0) {
-		echo(fnDisplayTable($rows, $ldl, "", 3));
+		echo(fnDisplayTable($rows, $ldl, "", 3, "", "", "ledenlijst"));
 		foreach ($rows as $row) {
 			$sel_leden[] = $row->lnkNummer;
 		}
@@ -487,14 +487,14 @@ function fnOverviewLid($lidid=0, $actie="") {
 		if ($actie == "Afdelingen") {
 			$rows = db_gegevenslid($lidid, $actie);
 			if (count($rows) > 0) {
-				echo(fnDisplayTable($rows, "", $actie . " " . $naamlid));
+				echo(fnDisplayTable($rows, "", $actie . " " . $naamlid, 0, "", "", "onderdelenperlid"));
 			} else {
 				printf("<p class='mededeling'>%s heeft geen %s.</p>\n", $naamlid, $actie);
 			}
 		} elseif ($actie == "Kader") {
 			$rows = db_gegevenslid($lidid, $actie);
 			if (count($rows) > 0) {
-				echo(fnDisplayTable($rows, "", $actie . " " . $naamlid));
+				echo(fnDisplayTable($rows, "", $actie . " " . $naamlid, 0, "", "", "onderdelenperlid"));
 			} else {
 				printf("<p class='mededeling'>%s is niet ingedeeld (geweest) bij het kader.</p>\n", $naamlid);
 			}
