@@ -178,6 +178,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			$tabpages[] = "Evenementen/Overzicht";
 		}
 		$tabpages[] = "Evenementen/Beheer";
+		$tabpages[] = "Evenementen/Logboek";
 		$tabpages[] = "Evenementen/Types muteren";
 	}
 	
@@ -188,14 +189,21 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 
 if (isset($_GET['tp']) and strlen($_GET['tp']) > 1) {
 	$curtab = explode("/", $_GET['tp']);
-	$ia = false;
-	foreach ($tabpages as $val) {
-		if (str_replace("'", "", $val) == $_GET['tp']) {
-			$ia = true;
+	for ($i=0; $i < 2; $i++) {
+		if ($i == 0) {
+			$ct = $curtab[$i];
+		} else {
+			$ct = $_GET['tp'];
 		}
-	}
-	if ($ia == false) {
-		$tabpages[] = $_GET['tp'];
+		$ia = false;
+		foreach ($tabpages as $val) {
+			if (str_replace("'", "", $val) === $ct) {
+				$ia = true;
+			}
+		}
+		if ($ia == false) {
+			$tabpages[] = $ct;
+		}
 	}
 } else {
 	$curtab[0] = $tabpages[0];
@@ -402,7 +410,6 @@ function fnDispMenu($nivo=1, $xtra="") {
 	if (strlen($xtra) > 0 and substr($xtra, 0, 5) != "&amp;") {
 		$xtra = "&amp;" . $xtra;
 	}
-
 	printf("<ul class='tablist%d'>\n", $nivo);
 	foreach($tabpages as $tp) {
 		if (toegang($tp, 0)) {
@@ -438,9 +445,9 @@ function fnDispMenu($nivo=1, $xtra="") {
 	}
 }
 
-function fnDisplayForm($row, $xtra_eind="") {
+function fnDisplayForm($row, $xtra_eind="", $class="formulier") {
 
-	$ret = "<div id='formulier'>\n";
+	$ret = sprintf("<div id='%s'>\n", $class);
 	if (isset($row)) {
 		$ret .= "<table>\n";
 		foreach($row as $key => $value) {
