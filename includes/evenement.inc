@@ -95,6 +95,9 @@ function fnEvenementen() {
 		$lnk = sprintf("<a href='%s?tp=%s&amp;op=edit&amp;eid=%s' title='Bewerk evenement'>%s</a>", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), "%d", "%s");
 		$er = sprintf("<td><a href='%s?%s&amp;op=edit&amp;eid=0' title='Nieuw evenement'><img src='images/star.png' alt='Nieuw'></a></td><td colspan=8>Nieuw evenement</td>", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 		echo(fnDisplayTable($lijst, $lnk, "", 0, "", $er));
+	} elseif ($currenttab2 == "Logboek") {
+		$lijst = db_logboek("lijst", "", 7);
+		echo(fnDisplayTable($lijst));
 	} elseif ($currenttab2 == "Types muteren") {
 		muteertypeevenement();
 	} else {

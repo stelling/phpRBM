@@ -1292,16 +1292,19 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0) {
 		} else {
 			$s = "";
 		}
+		if ($_SESSION['webmaster'] == 1) {
+			$s .= ", IP_adres";
+		}
 		if ($lidid > 0) {
 			$w .= sprintf(" AND LidID=%d", $lidid);
 		} else {
 			$s .= sprintf(", A.LidID, %s AS `Ingelogd Lid`", $selectnaam);
 		}
 	
-		$query = sprintf("SELECT A.DatumTijd as `dttDatum en tijd`, Omschrijving, IP_adres%1\$s
+		$query = sprintf("SELECT A.DatumTijd as `dttDatum en tijd`, Omschrijving%1\$s
 								FROM %2\$sAdmin_activiteit AS A LEFT OUTER JOIN %2\$sLid AS L ON A.LidID = L.Nummer
 								WHERE %3\$s
-								ORDER BY A.DatumTijd DESC, A.RecordID DESC LIMIT 100;", $s, $table_prefix, $w);
+								ORDER BY A.DatumTijd DESC, A.RecordID DESC LIMIT 250;", $s, $table_prefix, $w);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "lidlijst") {
