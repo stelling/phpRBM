@@ -80,6 +80,7 @@ function fnMailing() {
 		$mailing->upload();
 		$mailing->preview();
 	} elseif ($op == "send") {
+		$mailing->post_form();
 		$mailing->upload();
 		$mailing->send();
 		$mailing->lijst($currenttab2);
@@ -133,7 +134,7 @@ class mailing {
 	private $resultaatversturen = 1;
 
 	function __construct($mid=0) {
-		global $selectnaam, $table_prefix, $fdlang, $fdkort, $max_grootte_bijlage, $resultaatmailingversturen, $arrGeslacht, $naamvereniging;
+		global $selectnaam, $table_prefix, $fdlang, $fdkort, $max_grootte_bijlage, $resultaatmailingversturen, $arrGeslacht;
 
 		$this->mid = $mid;
 	
@@ -323,9 +324,9 @@ class mailing {
 		printf("<div id='mailing'>\n");
 		printf("<form method='post' action='%s?tp=%s/%s&amp;op=post&amp;mid=%d' name='frm_mailedit' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2, $this->mid);
 		printf("<table>\n");
-		printf("<tr><td class='label'>Van:</td><td><input type='text' name='from_name' onBlur='this.form.submit();' value='%s' size=50 maxlength=50></td></tr>\n", $this->from_name);
+		printf("<tr><td class='label'>Van:</td><td><input type='text' name='from_name' value='%s' size=50 maxlength=50></td></tr>\n", $this->from_name);
 		printf("<tr><td class='label'>Vanaf e-mail:</td><td><input type='email' name='from_addr' onBlur='this.form.submit();' value='%s' size=50 maxlength=50></td></tr>\n", $this->from_addr);
-		printf("<tr><td class='label'>Aan:</td><td><input type='text' name='to_name' onBlur='this.form.submit();' value='%s' size=50 maxlength=50></td></tr>\n", $this->to_name);
+		printf("<tr><td class='label'>Aan:</td><td><input type='text' name='to_name' value='%s' size=50 maxlength=50></td></tr>\n", $this->to_name);
 		
 		$meldingen = "Er zijn nog geen ontvangers aan deze mailing toegevoegd.<br>\n";
 		$verzendenmag = false;
@@ -403,8 +404,8 @@ class mailing {
 			printf("(groepen zijn t/m %s bijgewerkt)", strftime("%e %B %Y", strtotime(db_lidond("laatstgewijzigd"))));
 			printf("</td></tr>\n");
 		}
-		printf("<tr><td class='label'>Cc:</td><td><input type='text' name='cc_addr' value='%s' size=100 onBlur='this.form.submit();'></td></tr>\n", $this->cc_addr);
-		printf("<tr><td class='label'>Onderwerp:</td><td><input type='text' name='subject' onBlur='this.form.submit();' value='%s' size=100></td></tr>\n", $this->subject);
+		printf("<tr><td class='label'>Cc:</td><td><input type='text' name='cc_addr' value='%s' size=100></td></tr>\n", $this->cc_addr);
+		printf("<tr><td class='label'>Onderwerp:</td><td><input type='text' name='subject' value='%s' size=100></td></tr>\n", $this->subject);
 		if ($this->template == 1) {
 			$templ_chk = " checked";
 		} else {
@@ -415,10 +416,16 @@ class mailing {
 		} else {
 			$conf_chk = "";
 		}
+		if ($this->verzamelen == 1) {
+			$verz_chk = " checked";
+		} else {
+			$verz_chk = "";
+		}
 		
-		printf("<tr><td class='label'>Opties:</td><td><input type='checkbox' name='templ' onClick='this.form.submit();' value=1%s>Template&nbsp;", $templ_chk);
-		printf("<input type='checkbox' name='confidential' onClick='this.form.submit();' value=1%s>Vertrouwelijk</td></tr>\n", $conf_chk);
-		echo("</table>\n");
+		printf("<tr><td class='label'>Opties:</td><td><input type='checkbox' name='template' value=1%s>Template&nbsp;", $templ_chk);
+		printf("<input type='checkbox' name='confidential' value=1%s>Vertrouwelijk&nbsp;", $conf_chk);
+		printf("<input type='checkbox' name='verzamelen' value=1%s>E&eacute;n mail gezamenlijke versturen</td>", $verz_chk);
+		echo("</tr>\n</table>\n");
 		
 		printf("<textarea name='message' onBlur='this.form.submit();'>%s</textarea>\n", $this->message);
 		
@@ -497,6 +504,10 @@ class mailing {
 			if ($this->contains_mergefield == true and $this->contains_losse_email == true) {
 				$meldingen .= "Er staan losse e-mailadressen en er wordt met mailmerge gewerkt. Bij de losse e-mailadressen werkt de mailmerge niet.<br>\n";
 			}
+			if ($this->contains_mergefield and $this->verzamelen) {
+				$meldingen .= "Een mailing met mergevelden kan niet verzameld verzonden worden.<br>\n";
+				$verzendenmag = false;
+			}
 			if ($this->new_on > '1901-01-01') {
 				printf("<tr><td class='label'>Toegevoegd door/op:</td><td>%s / %s</td></tr>\n", db_naamlid($this->AddedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->new_on)));
 			}
@@ -566,47 +577,66 @@ class mailing {
 	
 	public function post_form() {
 		global $naamvereniging, $beperkfrom;
+		
+		if ($this->mid == 0) {
+			$query = sprintf("INSERT INTO Mailing SET new_on=SYSDATE(), AddedBy=%d;", $_SESSION['lidid']);
+			$this->mid = fnQuery($query);
+			$oms = sprintf("Mailing %d is door %s toegevoegd.", $this->mid, $_SESSION['naamingelogde']);
+			db_logboek("add", $oms, 4);
+		}
 	
 		if (!isset($_POST['from_name']) or strlen($_POST['from_name']) == 0) {
 			$_POST['from_name'] = $naamvereniging;
 		}
-		$setclause = sprintf("from_name=\"%s\"", str_replace("\"", "'", $_POST['from_name']));
 	
 		if (isset($_POST['from_addr']) and isValidMailAddress($_POST['from_addr'], 1)) {
-			$setclause .= sprintf(", from_addr='%s'", strtolower($_POST['from_addr']));
+			$_POST['from_addr'] = strtolower($_POST['from_addr']);
+		} else {
+			$_POST['from_addr'] = "";
 		}
+		
 		if (isset($_POST['cc_addr']) and strlen($_POST['cc_addr']) > 5) {
-			$cc = str_replace(" ", "", strtolower($_POST['cc_addr']));
-			$cc = str_replace(";", ",", $cc);
-			$setclause .= sprintf(", cc_addr='%s'", $cc);
+			$_POST['cc_addr'] = str_replace(" ", "", strtolower($_POST['cc_addr']));
+			$_POST['cc_addr'] = str_replace(";", ",", $_POST['cc_addr']);
 		} else {
-			$setclause .= ", cc_addr=''";
+			$_POST['cc_addr'] = "";
 		}
-		if (isset($_POST['templ']) and $_POST['templ'] == '1') {
-			$setclause .= ", template=1";
+		if (isset($_POST['template']) and $_POST['template'] == '1') {
+			$_POST['template'] = 1;
 		} else {
-			$setclause .= ", template=0";
+			$_POST['template'] = 0;
 		}
 		if (isset($_POST['confidential']) and $_POST['confidential'] == '1') {
-			$setclause .= ", confidential=1";
+			$_POST['confidential'] = 1;
 		} else {
-			$setclause .= ", confidential=0";
+			$_POST['confidential'] = 0;
+		}
+		if (isset($_POST['verzamelen']) and $_POST['verzamelen'] == '1') {
+			$_POST['verzamelen'] = 1;
+		} else {
+			$_POST['verzamelen'] = 0;
 		}
 		
-		$to_name = str_replace("\"", "'", $_POST['to_name']);
-		$subject = str_replace("\"", "'", $_POST['subject']);
-		$message = str_replace("\"", "'", $_POST['message']);
-		
-		$setclause .= sprintf(", to_name=\"%s\", subject=\"%s\", message=\"%s\", changed_on=SYSDATE(), ChangedBy=%d", $to_name, $subject, $message, $_SESSION['lidid']);
-		if ($this->mid > 0) {
+		$old = db_mailing("record", $this->mid);
+		$setclause = "";
+		$oms = "";
+		foreach($_POST as $key => $val) {
+			if (array_key_exists($key, $old) and $old->$key != $_POST[$key]) {
+				if (is_numeric($_POST[$key])) {
+					$setclause .= sprintf("%s=%d, ", $key, $_POST[$key]);
+					$oms .= sprintf("Veld '%s' is %d geworden. ", $key, $_POST[$key]);
+				} else {
+					$_POST[$key] = str_replace("\"", "'", $_POST[$key]);
+					$setclause .= sprintf("%s=\"%s\", ", $key, $_POST[$key]);
+					$oms .= sprintf("Veld '%s' is '%s' geworden. ", $key, $_POST[$key]);
+				}
+			}
+		}
+		if (strlen($setclause) > 0) {
+			$setclause .= sprintf("changed_on=SYSDATE(), ChangedBy=%d", $_SESSION['lidid']);
 			$query  = sprintf("UPDATE Mailing SET %s WHERE MailingID=%d;", $setclause, $this->mid);
 			fnQuery($query);
-			$oms = sprintf("Mailing %d is door %s aangepast.", $this->mid, $_SESSION['naamingelogde']);
-			db_logboek("add", $oms, 4);
-		} else {
-			$query = sprintf("INSERT INTO Mailing SET %s, new_on=SYSDATE(), AddedBy=%d;", $setclause, $_SESSION['lidid']);
-			$this->mid = fnQuery($query);
-			$oms = sprintf("Mailing %d is door %s toegevoegd.", $this->mid, $_SESSION['naamingelogde']);
+			$oms = sprintf("In mailing %d zijn de volgende velden aangepast. %s", $this->mid, $oms);
 			db_logboek("add", $oms, 4);
 		}
 		
@@ -751,13 +781,6 @@ class mailing {
 			fnQuery($query);
 		}
 		
-		foreach($this->MergeField as $fld) {
-			$nm = "[%" . $fld['Naam'] . "%]";
-			if (strpos($this->mailbericht, $nm) !== false) {
-				$this->contains_mergefield = true;
-			}
-		}
-		
 		foreach(db_rcpt_mailing($this->mid) as $rcpt) {
 			$this->create_mess($rcpt->Nummer);
 			if ($preview == 1) {
@@ -788,14 +811,22 @@ class mailing {
 						$to_name = $row->to_name;
 					}
 					$mail->MsgHTML($this->mailbericht);
-					if ($mail->Send()) {
+					if ($this->verzamelen) {
 						db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message);
+					} else {
+						if ($mail->Send()) {
+							db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message);
+						}
+						$mail->ClearAddresses();
 					}
-					$mail->ClearAddresses();
 				}
 			} else {
 				$this->nok_send .= sprintf("<li>%s {%s, %s&nbsp&nbsp;%s}</li>\n", $rcpt->Naam_lid, $rcpt->Adres, $rcpt->Postcode, $rcpt->Woonplaats);
 			}
+		}
+		if ($this->verzamelen) {
+			$mail->Send();
+			$mail->ClearAddresses();
 		}
 		$mail->ClearCCs();
 		$summary = "";
@@ -910,6 +941,7 @@ class mailing {
 			$this->message = $ml->message;
 			$this->template = $ml->template;
 			$this->confidential = $ml->confidential;
+			$this->verzamelen = $ml->verzamelen;
 			$this->new_on = $ml->new_on;
 			$this->AddedBy = $ml->AddedBy;
 			$this->changed_on = $ml->changed_on;
@@ -923,8 +955,14 @@ class mailing {
 			$this->from_addr = $this->detailssender("emlE-mail");
 			$this->new_on = date("Y-m-d");
 		}
-	}	
-
+				
+		foreach ($this->MergeField as $fld) {
+			$nm = "[%" . $fld['Naam'] . "%]";
+			if (strpos($this->mailbericht, $nm) !== false) {
+				$this->contains_mergefield = true;
+			}
+		}
+	}
 }
 
 ?>

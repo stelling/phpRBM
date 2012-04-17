@@ -1660,7 +1660,6 @@ function db_onderhoud() {
 	if (db_scalar($query) == 0) {
 		fnQuery(sprintf("ALTER TABLE `%sAdmin_activiteit` ADD `Script` VARCHAR( 75 ) NOT NULL AFTER `Omschrijving`;", $table_prefix));
 	}
-	
 		
 	// Toevoegen veld 'Gedownload' aan de tabel Admin_interface. Deze code kan na 1/5/2013 worden verwijderd.
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sAdmin_interface' AND COLUMN_NAME='Gedownload';", $db_name, $table_prefix);
@@ -1678,6 +1677,12 @@ function db_onderhoud() {
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sEvenement' AND COLUMN_NAME='StandaardStatus';", $db_name, $table_prefix);
 	if (db_scalar($query) == 0) {
 		fnQuery(sprintf("ALTER TABLE `%sEvenement` ADD `StandaardStatus` CHAR( 1 ) NOT NULL DEFAULT 'I' AFTER `InschrijvingOpen`;", $table_prefix));
+	}
+			
+	// Toevoegen veld 'verzamelen' aan de tabel Mailing. Deze code kan na 1/5/2013 worden verwijderd.
+	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sMailing' AND COLUMN_NAME='verzamelen';", $db_name, $table_prefix);
+	if (db_scalar($query) == 0) {
+		fnQuery(sprintf("ALTER TABLE `%sMailing` ADD `verzamelen` TINYINT NOT NULL DEFAULT '0' AFTER `confidential`;", $table_prefix));
 	}
 
 	$query = sprintf("DELETE FROM %sLid WHERE (NOT Verwijderd IS NULL);", $table_prefix);
@@ -2094,6 +2099,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sMailing` (
   `message` text,
   `template` tinyint(4) NOT NULL DEFAULT '0',
   `confidential` tinyint(4) NOT NULL DEFAULT '1',
+  `verzamelen` tinyint(4) NOT NULL DEFAULT '0',
   `new_on` datetime DEFAULT NULL,
   `AddedBy` int(11) NOT NULL,
   `changed_on` datetime DEFAULT NULL,
