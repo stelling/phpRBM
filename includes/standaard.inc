@@ -171,6 +171,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if (db_mailing("aantalprullenbak") > 0) {
 		$tabpages[] = "Mailing/Prullenbak";
 	}
+	$tabpages[] = "Mailing/Logboek";
 	
 	if (count(db_evenement("overzicht")) > 0 or toegang("Evenementen/Beheer", 0)) {
 		$tabpages[] = "Evenementen";

@@ -42,6 +42,9 @@ function fnMailing() {
 	} elseif ($currenttab2 == "Nieuw" and toegang($_GET['tp'])) {
 		$mailing->mid = 0;
 		$mailing->edit();
+	} elseif ($currenttab2 == "Logboek" and toegang($_GET['tp'])) {
+		$lijst = db_logboek("lijst", "", 4);
+		echo(fnDisplayTable($lijst));
 	} elseif ($op == "historie" and $mailing->mid > 0) {
 		$rows = db_mailing("hist", $mailing->mid);
 		if (count($rows) > 0) {
