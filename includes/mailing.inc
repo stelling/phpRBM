@@ -80,7 +80,6 @@ function fnMailing() {
 		$mailing->upload();
 		$mailing->preview();
 	} elseif ($op == "send") {
-		$mailing->post_form();
 		$mailing->upload();
 		$mailing->send();
 		$mailing->lijst($currenttab2);
@@ -272,7 +271,6 @@ class mailing {
 		$this->vulvars();
 	}
 	
-
 	public function lijst($filter="") {
 		global $bewaartijdmailings;
 	
@@ -325,7 +323,7 @@ class mailing {
 		printf("<form method='post' action='%s?tp=%s/%s&amp;op=post&amp;mid=%d' name='frm_mailedit' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2, $this->mid);
 		printf("<table>\n");
 		printf("<tr><td class='label'>Van:</td><td><input type='text' name='from_name' value='%s' size=50 maxlength=50></td></tr>\n", $this->from_name);
-		printf("<tr><td class='label'>Vanaf e-mail:</td><td><input type='email' name='from_addr' onBlur='this.form.submit();' value='%s' size=50 maxlength=50></td></tr>\n", $this->from_addr);
+		printf("<tr><td class='label'>Vanaf e-mail:</td><td><input type='email' name='from_addr' value='%s' size=50 maxlength=50></td></tr>\n", $this->from_addr);
 		printf("<tr><td class='label'>Aan:</td><td><input type='text' name='to_name' value='%s' size=50 maxlength=50></td></tr>\n", $this->to_name);
 		
 		$meldingen = "Er zijn nog geen ontvangers aan deze mailing toegevoegd.<br>\n";
@@ -424,7 +422,7 @@ class mailing {
 		
 		printf("<tr><td class='label'>Opties:</td><td><input type='checkbox' name='template' value=1%s>Template&nbsp;", $templ_chk);
 		printf("<input type='checkbox' name='confidential' value=1%s>Vertrouwelijk&nbsp;", $conf_chk);
-		printf("<input type='checkbox' name='verzamelen' value=1%s>E&eacute;n mail gezamenlijke versturen</td>", $verz_chk);
+		printf("<input type='checkbox' name='verzamelen' value=1%s>E&eacute;n gezamenlijke e-mail</td>", $verz_chk);
 		echo("</tr>\n</table>\n");
 		
 		printf("<textarea name='message' onBlur='this.form.submit();'>%s</textarea>\n", $this->message);
@@ -505,7 +503,7 @@ class mailing {
 				$meldingen .= "Er staan losse e-mailadressen en er wordt met mailmerge gewerkt. Bij de losse e-mailadressen werkt de mailmerge niet.<br>\n";
 			}
 			if ($this->contains_mergefield and $this->verzamelen) {
-				$meldingen .= "Een mailing met mergevelden kan niet verzameld verzonden worden.<br>\n";
+				$meldingen .= "Een mailing met variabelen kan niet als &eacute;&eacute;n gezamenlijke e-mail verzonden worden.<br>\n";
 				$verzendenmag = false;
 			}
 			if ($this->new_on > '1901-01-01') {
@@ -521,12 +519,7 @@ class mailing {
 				printf("<tr><td class='label'>Verwijderd door/op:</td><td>%s / %s</td></tr>\n", db_naamlid($this->DeletedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->deleted_on)));
 				$verzendenmag = false;
 			}
-		} else {
-			$verzendenmag = false;
-		}
-		
-		if ($this->mid > 0) {
-			if (!isValidMailAddress($this->from_addr)) {
+			if (isValidMailAddress($this->from_addr, 0) == false) {
 				$verzendenmag = false;
 				$meldingen .= "Er moet een geldig e-mailadres bij 'Vanaf e-mail' ingevuld worden.<br>\n";
 			} elseif (strlen($beperkfrom) > 2) {
@@ -544,9 +537,10 @@ class mailing {
 			if (strlen($meldingen) > 0) {
 				printf("<tr><td class='label'>Meldingen:</td><td>%s</td></tr>\n", $meldingen);
 			}
+		} else {
+			$verzendenmag = false;
 		}
-		
-		printf("</table>\n");
+		echo("</table>\n");
 		
 		echo("<div id='opdrachtknoppen'>\n");
 		if ($this->mid > 0) {
@@ -558,7 +552,7 @@ class mailing {
 			
 		if ($this->mid > 0 and $verzendenmag and $this->deleted_on < "1901-01-01") {
 			$lnk = sprintf("%s?tp=%s&op=send&mid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid);
-			printf("<img src='images/sendmail.png' title='Verstuur mailing' onclick=\"location.href='%s'\">", $lnk);
+			printf("<img src='images/sendmail.png' title='Verstuur mailing' onclick=\"location.href='%s'\">\n", $lnk);
 			$lnk = sprintf("%s?tp=%s&op=preview&header=no&mid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid);
 			printf("<img src='images/preview.png' title='Voorbeeld' onclick=\"location.href='%s'\">\n", $lnk);	
 		}
@@ -587,12 +581,6 @@ class mailing {
 	
 		if (!isset($_POST['from_name']) or strlen($_POST['from_name']) == 0) {
 			$_POST['from_name'] = $naamvereniging;
-		}
-	
-		if (isset($_POST['from_addr']) and isValidMailAddress($_POST['from_addr'], 1)) {
-			$_POST['from_addr'] = strtolower($_POST['from_addr']);
-		} else {
-			$_POST['from_addr'] = "";
 		}
 		
 		if (isset($_POST['cc_addr']) and strlen($_POST['cc_addr']) > 5) {
@@ -685,27 +673,34 @@ class mailing {
 	public function add_lid($lidid, $addr="") {
 		if ($lidid > 0) {
 			db_mailing("add_rcpt", $this->mid, 0, "", "", $lidid);
+			$mess = sprintf("%s is aan mailing %d toegevoegd.", db_naamlid($lidid), $this->mid);
+			db_logboek("add", $mess, 4);
 		}
 		if (strlen($addr) > 5 and isValidMailAddress($addr, 0)) {
-		
 			$query = sprintf("SELECT COUNT(*) FROM Mailing_rcpt WHERE MailingID=%d AND to_address='%s';", $this->mid, strtolower($addr));
 			$result = fnQuery($query);
 			if ($result->fetchColumn() == 0) {
 				$query = sprintf("INSERT INTO Mailing_rcpt SET MailingID=%d, to_address='%s', Ingevoerd=SYSDATE();", $this->mid, strtolower($addr));
 				fnQuery($query);
+				$mess = sprintf("E-mailadres '%s' is aan mailing %d toegevoegd.", strtolower($addr), $this->mid);
+				db_logboek("add", $mess, 4);
 			}
-			
 		}
 	}
 		
 	public function delete_lid($lidid, $addr="") {
+		global $table_prefix;
+	
 		if ($lidid > 0) {
 			$query = sprintf("DELETE FROM %sMailing_rcpt WHERE MailingID=%d AND LidID=%d;", $table_prefix, $this->mid, $lidid);
+			$mess = sprintf("%s is bij mailing %d verwijderd.", db_naamlid($lidid), $this->mid);
 		} elseif (strlen($addr) > 0) {
 			$query = sprintf("DELETE FROM %sMailing_rcpt WHERE MailingID=%d AND to_address='%s';", $table_prefix, $this->mid, $addr);
+			$mess = sprintf("E-mailadres '%s' is bij mailing %d verwijderd.", $addr, $this->mid);
 		}
 		$result = fnQuery($query);
 		if ($result > 0) {
+			db_logboek("add", $mess, 4);	
 			$query = sprintf("OPTIMIZE TABLE %sMailing_rcpt;", $table_prefix);
 			fnQuery($query);
 		}
@@ -719,6 +714,8 @@ class mailing {
 		foreach($result->fetchAll() as $row) {
 			$this->add_lid($row->Lid);
 		}
+		$mess = sprintf("Groep '%s' is aan mailing %d toevoegd.", db_naam_onderdeel($groepid), $this->mid);
+		db_logboek("add", $mess, 4);
 	}
 		
 	public function delete_groep($groepid) {
@@ -726,6 +723,8 @@ class mailing {
 		if ($groepid == -1) {
 			$query = sprintf("DELETE FROM Mailing_rcpt WHERE MailingID=%d;", $this->mid);
 			fnQuery($query);
+			$mess = sprintf("Alle ontvangers zijn bij mailing %d verwijderd.", $this->mid);
+			db_logboek("add", $mess, 4);
 		} else {
 			$query = sprintf("SELECT Lid FROM Lidond AS LO"
 					 . " WHERE OnderdeelID=%d AND LO.Lid IN (SELECT R.LidID FROM Mailing_rcpt AS R WHERE R.LidID=LO.Lid AND R.MailingID=%d)"
@@ -734,6 +733,8 @@ class mailing {
 			foreach($result->fetchAll() as $row) {
 				$this->Delete_lid($this->mid, $row->Lid);
 			}
+			$mess = sprintf("De leden van groep '%s' zijn bij mailing %d verwijderd.", db_naam_onderdeel($groepid), $this->mid);
+			db_logboek("add", $mess, 4);
 		}
 	}
 	
@@ -745,6 +746,8 @@ class mailing {
 	
 		if (strtotime($this->sent_on) > (time() - $this->vertraging_tussen_verzenden)) {
 			printf("<p class='Mededeling'>Deze mailing is korter dan %d minuten geleden verzonden en wordt daarom niet nogmaals verzonden.</p>\n", $this->vertraging_tussen_verzenden/60);
+		} elseif (isValidMailAddress($this->from_addr, 0) == false) {
+			printf("<p class='mededeling'>Er is geen geldig 'Vanaf e-mail' ingevuld en daarom wordt deze e-mail niet verzonden.</p>\n");
 		} else {
 			$this->send_mailing(0);
 		}
@@ -752,8 +755,6 @@ class mailing {
 	
 	private function send_mailing($preview=0) {
 		global $emailsecretariaat;
-		
-		$this->vulvars();
 		
 		$mail = new RBMmailer();
 		$mail->From = $this->from_addr;
@@ -933,11 +934,11 @@ class mailing {
 	
 		if ($this->mid > 0) {
 			$ml = db_mailing("", $this->mid);
-			$this->from_name = $ml->from_name;
-			$this->from_addr = $ml->from_addr;
-			$this->to_name = $ml->to_name;
-			$this->cc_addr = $ml->cc_addr;
-			$this->subject = $ml->subject;
+			$this->from_name = trim($ml->from_name);
+			$this->from_addr = trim($ml->from_addr);
+			$this->to_name = trim($ml->to_name);
+			$this->cc_addr = trim($ml->cc_addr);
+			$this->subject = trim($ml->subject);
 			$this->message = $ml->message;
 			$this->template = $ml->template;
 			$this->confidential = $ml->confidential;
