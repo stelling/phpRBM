@@ -717,7 +717,7 @@ fieldset h3 {
 	position: relative;
 	list-style: none;
 	
-	min-width: 100px;
+	min-width: 107px;
 	height: 30px;
 	
 	margin-top: 15px;
@@ -747,25 +747,23 @@ fieldset h3 {
 }
 
 /* main level link hover */
-#nav .current a, #nav li:hover > a {
+#nav .current a {
 	font-weight: bolder;
+}
+
+#nav li:hover > a {
+	background-color: white;
 }
 
 /* sub levels link hover */
 #nav ul li:hover a, #nav li:hover li a {
 	background: none;
 	border: none;
-	color: #666;
-	-webkit-box-shadow: none;
-	-moz-box-shadow: none;
+	font-weight: normal;
 }
 #nav ul a:hover {
 	background: #0399d4 !important; /* for non-css3 browsers */
-
 	color: #fff !important;
-	-webkit-border-radius: 0;
-	-moz-border-radius: 0;
-	text-shadow: 0 1px 1px rgba(0, 0, 0, .1);
 }
 /* level 2 list */
 #nav ul {
@@ -779,12 +777,12 @@ fieldset h3 {
 	top: 35px;
 	left: 0;
 	border: solid 1px #b4b4b4;
-	-webkit-border-radius: 10px;
+/*	-webkit-border-radius: 10px;
 	-moz-border-radius: 10px;
 	border-radius: 10px;
 	-webkit-box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
 	-moz-box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
-	box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, .3); */
 }
 
 /* dropdown */
@@ -799,7 +797,6 @@ fieldset h3 {
 }
 #nav ul a {
 	font-weight: normal;
-	text-shadow: 0 1px 1px rgba(255, 255, 255, .9);
 }
 
 
@@ -859,7 +856,7 @@ fieldset h3 {
 .css-treeview label, .css-treeview a, .css-treeview label::before {
 	display: inline-block;
 	height: 16px;
-	line-height: 16px;,
+	line-height: 16px;
 	vertical-align: middle;
 }
 
