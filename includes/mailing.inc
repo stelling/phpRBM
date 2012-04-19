@@ -909,8 +909,14 @@ class mailing {
 	}
 	
 	public function delete() {
-		$query = sprintf("UPDATE Mailing SET deleted_on=NOW(), DeletedBy=%d WHERE MailingID=%d;", $_SESSION['lidid'], $this->mid);
-		fnQuery($query);
+		global $table_prefix;
+	
+		$query = sprintf("UPDATE %sMailing SET deleted_on=NOW(), DeletedBy=%d WHERE MailingID=%d;", $table_prefix, $_SESSION['lidid'], $this->mid);
+		$result = fnQuery($query);
+		if ($result > 0) {
+			$mess = sprintf("Mailing %d is door %s naar de prullenbak verplaatst.", $this->mid, db_naamlid($_SESSION['lidid']));
+			db_logboek("add", $mess, 4);
+		}
 	}
 	
 	public function undelete() {
