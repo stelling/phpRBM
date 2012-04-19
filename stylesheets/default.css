@@ -79,7 +79,7 @@ footer, #footer {
 }
 
 footer a, footer a:visited, #footer a, #footer a:visited {
-	text-decoration: none;
+	text-decoration: underline;
 	color: #000080;
 }
 
@@ -705,6 +705,103 @@ fieldset h3 {
 .opmerkinginschrijving, .opmerkingweek {
 	max-width: 200px;
 }
+
+/* Elementen voor nieuw menu */
+
+#nav {
+	margin: 0;
+	padding: 0;
+}
+#nav li {
+	float: left;
+	position: relative;
+	list-style: none;
+	
+	min-width: 100px;
+	height: 30px;
+	
+	margin-top: 15px;
+	margin-left: 2px;
+   margin-right: 2px;
+	
+	padding-top: 8px;
+   padding-left: 4px;
+	padding-right: 4px;
+	
+	border-color: transparent;
+   background-color: #cdcdcd;
+   border-top-right-radius: 9px;
+   border-top-left-radius: 9px;
+}
+
+/* main level link */
+#nav a {
+	color: #000080;
+	text-decoration: none;
+	display: block;
+	padding-top: 4px;
+	padding-bottom: 4px;
+	padding-left: 4px;
+	padding-right: 4px;
+	margin: 0;
+}
+
+/* main level link hover */
+#nav .current a, #nav li:hover > a {
+	font-weight: bolder;
+}
+
+/* sub levels link hover */
+#nav ul li:hover a, #nav li:hover li a {
+	background: none;
+	border: none;
+	color: #666;
+	-webkit-box-shadow: none;
+	-moz-box-shadow: none;
+}
+#nav ul a:hover {
+	background: #0399d4 !important; /* for non-css3 browsers */
+
+	color: #fff !important;
+	-webkit-border-radius: 0;
+	-moz-border-radius: 0;
+	text-shadow: 0 1px 1px rgba(0, 0, 0, .1);
+}
+/* level 2 list */
+#nav ul {
+	background: #ddd; /* for non-css3 browsers */
+
+	display: none;
+	margin: 0;
+	padding: 0;
+	width: 185px;
+	position: absolute;
+	top: 35px;
+	left: 0;
+	border: solid 1px #b4b4b4;
+	-webkit-border-radius: 10px;
+	-moz-border-radius: 10px;
+	border-radius: 10px;
+	-webkit-box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+	-moz-box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+}
+
+/* dropdown */
+#nav li:hover > ul {
+	display: block;
+	z-index: 2;
+}
+#nav ul li {
+	float: none;
+	margin: 0;
+	padding: 0;
+}
+#nav ul a {
+	font-weight: normal;
+	text-shadow: 0 1px 1px rgba(255, 255, 255, .9);
+}
+
 
 /* Elementen voor treeview */
 

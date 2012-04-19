@@ -217,8 +217,8 @@ fnQuery($query);
 $pasfotoextenties = array('gif', 'jpg', 'jpeg', 'png');
 
 function HTMLheader() {
-	global $naamwebsite, $urlwebsite, $naamvereniging, $tabpages;
-	global $currenttab, $currenttab2;
+	global $naamwebsite, $urlwebsite, $naamvereniging;
+	global $tabpages, $currenttab, $currenttab2, $navpad, $curtab;
 	
 	if (isset($_GET['tp']) and strlen($_GET['tp']) > 1) {
 		$sp = strpos($_GET['tp'], "/");
@@ -289,10 +289,9 @@ function HTMLheader() {
 		echo("</form>\n");
 		echo("</div>  <!-- Einde login -->\n");
 		echo("<div class='clear'></div>\n");
-	}
-	
-	if (!isset($_GET['header']) or $_GET['header'] != "no") {
+
 		fnDispMenu(1);
+		
 		echo("</div> <!-- Einde header -->\n");
 		echo("<div class='clear'></div>\n");
 	}
@@ -405,44 +404,90 @@ function getvar($nm, $riz="") {
 	}
 }
 
-function fnDispMenu($nivo=1, $xtra="") {
-	global $tabpages, $curtab, $currenttab, $currenttab2, $navpad;
+function fnDispMenu($toonnivo=1, $xtra="") {
+	global $tabpages, $curtab, $currenttab, $currenttab2, $navpad, $typemenu;
 
 	if (strlen($xtra) > 0 and substr($xtra, 0, 5) != "&amp;") {
 		$xtra = "&amp;" . $xtra;
 	}
-	printf("<ul class='tablist%d'>\n", $nivo);
-	foreach($tabpages as $tp) {
-		if (toegang($tp, 0)) {
-			if ($nivo == 1 and strstr($tp, "/") === false) {
-				$tpd = $tp;
-			} elseif ($nivo == 2 and strpos($tp, "/") > 1 and $currenttab == substr($tp, 0, strlen($currenttab))) {
-				$tpd = substr($tp, strpos($tp, "/")+1);
-				
-			} else {
-				$tpd = "";
-			}
-			if (strlen($tpd) > 1) {
+
+	if (($typemenu == 2 or $typemenu == 3) and $toonnivo == 1) {  // Dit is het menu met hovering
+		echo("<ul id='nav'>\n");
+		$nivo = 0;
+		foreach($tabpages as $tp) {
+			if (toegang($tp, 0)) {
 				$cl = "";
-				if ($nivo == 1 and $currenttab == str_replace("'", "", $tp)) {
-					$cl = " class='current'";
-					$navpad[$nivo]['naam'] = $tpd;
-					$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
-				} elseif ($nivo == 2 and ($currenttab2 == str_replace("'", "", $tpd) or strlen($currenttab2) == 0)) {
-					$cl = " class='current'";
-					if (toegang($currenttab . "/" . str_replace("'", "", $tpd), 0)) {
-						$currenttab2 = $tpd;
+				if (strstr($tp, "/") === false) {
+					if ($nivo > 0) {
+						if ($ulopen) {
+							echo("		</ul>\n	");
+						}
+						echo("</li>\n");
 					}
+					$nivo = 1;
+					$tpd = $tp;
+					$ulopen = false;
+					if ($currenttab == str_replace("'", "", $tpd)) {
+						$cl = " class='current'";
+					}
+					printf("	<li%s><a href=\"%s?tp=%s%s\">%s</a>", $cl, $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra, $tpd);
 					$navpad[$nivo]['naam'] = $tpd;
 					$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
+				} elseif (strpos($tp, "/") > 1 and startwith($tp, $navpad[1]['naam']) == true) {
+					if ($nivo == 1) {
+						echo("\n		<ul>\n");
+						$ulopen = true;
+					}
+					$nivo = 2;
+					$tpd = substr($tp, strpos($tp, "/")+1);
+				
+					if ($currenttab2 == str_replace("'", "", $tpd)) {
+						$cl = " class='current'";
+						$navpad[$nivo]['naam'] = $tpd;
+						$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
+					}
+					printf("			<li%s><a href=\"%s?tp=%s%s\">%s</a></li>\n", $cl, $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra, $tpd);
 				}
-				printf("<li%s><a href=\"%s?tp=%s%s\">%s</a></li>\n", $cl, $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra, $tpd);
 			}
 		}
+		echo("		</ul>\n</li>\n");
+		echo("</ul>\n");
 	}
-	echo("</ul>\n");
-	if ($nivo > 1) {
-		echo("<div class='clear'></div>\n");
+	
+	if ($typemenu == 1 or ($typemenu == 3 and $toonnivo == 2)) {
+		$nivo = $toonnivo;
+		printf("<ul class='tablist%d'>\n", $nivo);
+		foreach($tabpages as $tp) {
+			if (toegang($tp, 0)) {
+				if ($nivo == 1 and strstr($tp, "/") === false) {
+					$tpd = $tp;
+				} elseif ($nivo == 2 and strpos($tp, "/") > 1 and $currenttab == substr($tp, 0, strlen($currenttab))) {
+					$tpd = substr($tp, strpos($tp, "/")+1);
+				} else {
+					$tpd = "";
+				}
+				if (strlen($tpd) > 1) {
+					$cl = "";
+					if ($nivo == 1 and $currenttab == str_replace("'", "", $tp)) {
+						$cl = " class='current'";
+						$navpad[$nivo]['naam'] = $tpd;
+						$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
+					} elseif ($nivo == 2 and ($currenttab2 == str_replace("'", "", $tpd) or strlen($currenttab2) == 0)) {
+						$cl = " class='current'";
+						if (toegang($currenttab . "/" . str_replace("'", "", $tpd), 0)) {
+							$currenttab2 = $tpd;
+						}
+						$navpad[$nivo]['naam'] = $tpd;
+						$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
+					}
+					printf("<li%s><a href=\"%s?tp=%s%s\">%s</a></li>\n", $cl, $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra, $tpd);
+				}
+			}
+		}
+		echo("</ul>\n");
+		if ($nivo > 1) {
+			echo("<div class='clear'></div>\n");
+		}
 	}
 }
 
