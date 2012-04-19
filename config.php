@@ -32,6 +32,7 @@ $rsswieiswie = 0;  // Moet er een rss van wie-is-wie gemaakt worden? Deze kan ge
 $tonentoekomstigebewakingen = 1; // Moeten bij de gegevens van een lid ook toekomstige bewakingen getoond worden (1 = ja, 0 = alleen historie)
 $toneninschrijvingenbewakingen = 1; // Moeten bij de gegevens van een lid ook inschrijvingen voor bewakingen getoond worden (1 = ja, 0 = nee)
 $scriptbijuitloggen = "";  // Dit script wordt automatisch gedraaid nadat iemand is uitgelogd.
+$typemenu = 3; // 1 = per niveau een aparte regel, 2 = één menu met dropdown, 3 = één menu met dropdown en extra menu voor niveau 2.
 
 //Mailingsmodule
 $emailsecretariaat = "";  // Dit veld is niet verplicht, dit wordt gebruikt om het secretariaat op de hoogte te houden van verstuurde mailingen en opzeggingen.
