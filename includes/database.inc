@@ -1631,6 +1631,8 @@ function db_onderhoud() {
 		fnQuery(sprintf("ALTER TABLE %sLiddipl CHANGE RecordID RecordID INT( 11 ) NOT NULL AUTO_INCREMENT;", $table_prefix));
 	}
 	
+	/***** Velden die later zijn toegevoegd. De code om ze toe te voegen blijft een jaar staan,.  *****/
+	
 	// Toevoegen veld 'cc_addr' aan de tabel Mailing_hist. Deze code kan na 5/3/2013 worden verwijderd.
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sMailing_hist' AND COLUMN_NAME='cc_addr';", $db_name, $table_prefix);
 	if (db_scalar($query) == 0) {
@@ -1683,6 +1685,12 @@ function db_onderhoud() {
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sMailing' AND COLUMN_NAME='verzamelen';", $db_name, $table_prefix);
 	if (db_scalar($query) == 0) {
 		fnQuery(sprintf("ALTER TABLE `%sMailing` ADD `verzamelen` TINYINT NOT NULL DEFAULT '0' AFTER `confidential`;", $table_prefix));
+	}
+				
+	// Toevoegen veld 'ZichtbaarVoor' aan de tabel Evenement. Deze code kan na 1/5/2013 worden verwijderd.
+	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sEvenement' AND COLUMN_NAME='ZichtbaarVoor';", $db_name, $table_prefix);
+	if (db_scalar($query) == 0) {
+		fnQuery(sprintf("ALTER TABLE `%sEvenement` ADD `ZichtbaarVoor` INT NOT NULL DEFAULT '0' AFTER `BeperkTotGroep` ;", $table_prefix));
 	}
 
 	$query = sprintf("DELETE FROM %sLid WHERE (NOT Verwijderd IS NULL);", $table_prefix);
@@ -1910,6 +1918,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sEvenement` (
   `InschrijvingOpen` tinyint(4) NOT NULL DEFAULT '1',
   `StandaardStatus` char(1) NOT NULL DEFAULT 'I',
   `BeperkTotGroep` int(11) NOT NULL DEFAULT '0',
+  `ZichtbaarVoor` int(11) NOT NULL DEFAULT '0',
   `Ingevoerd` date NOT NULL,
   `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `GewijzigdDoor` int(11) NOT NULL,
