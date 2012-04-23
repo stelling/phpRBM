@@ -30,6 +30,15 @@ if (!isset($muteerbarememos) or !is_array($muteerbarememos)) {
 if (!isset($emailbevestiginginschrijving)) {
 	$emailbevestiginginschrijving = $emailledenadministratie;
 }
+if (!isset($maxlengtelogin) or $maxlengtelogin < 8) {
+	$maxlengtelogin = 12;
+}
+if (!isset($lidnrversturenmogelijk) or $lidnrversturenmogelijk != 1) {
+	$lidnrversturenmogelijk = 0;
+}
+if (!isset($lidnrnodigbijloginaanvraag) or $lidnrnodigbijloginaanvraag != 1) {
+	$lidnrnodigbijloginaanvraag = 0;
+}
 	
 require_once($dir . "/database.inc");
 require_once($dir . "/authentication.inc");
@@ -132,7 +141,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			$tabpages[] = "Zelfservice/Bijzonderheden";
 		}
 		$tabpages[] = "Zelfservice/Inschrijving bewaking";
-		if (db_evenement("aantalopen", $_SESSION['lidid']) > 0) {
+		if (count(db_evenement("open")) > 0) {
 			$tabpages[] = "Zelfservice/Inschrijving evenementen";
 		}
 		$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap WHERE Lid=%d AND (Opgezegd IS NULL);", $table_prefix, $_SESSION['lidid']);
