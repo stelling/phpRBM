@@ -34,7 +34,7 @@
 		header ("Location: " . $_GET['url']);
    } elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$_SESSION['username'] = cleanlogin($_POST['username']);
-		$_SESSION['password'] = $_POST['password'];
+		$_SESSION['password'] = substr($_POST['password'], 0, 12);
       if (isset($_POST['cookie']) and $_POST['cookie'] == 1) {                                    
 			setcookie("username", $_SESSION['username'], time()+(3600*24*30*$bewaartijdlogins));
 			setcookie("password", $_SESSION['password'], time()+(3600*24*30*$bewaartijdlogins));
@@ -50,8 +50,8 @@
 		printf("<script>\nlocation.href='%s';\n</script>\n", $href);
    } else {
 		if (!isset($_SESSION['username']) and isset($_COOKIE['username'])) {
-			$_SESSION['username'] = $_COOKIE['username'];
-			$_SESSION['password'] = $_COOKIE['password'];
+			$_SESSION['username'] = cleanlogin($_COOKIE['username']);
+			$_SESSION['password'] = substr($_COOKIE['password'], 0, 12);
 		}
 		echo("<script>\nhistory.go(-1);\n</script>\n");
 	}
