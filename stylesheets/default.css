@@ -752,18 +752,19 @@ fieldset h3 {
 }
 
 #nav li:hover > a {
-	background-color: white;
+	background-color: #0399d4;
+	color: white;
 }
 
 /* sub levels link hover */
 #nav ul li:hover a, #nav li:hover li a {
-	background: none;
+	background-color: none;
 	border: none;
 	font-weight: normal;
 }
 #nav ul a:hover {
-	background: #0399d4 !important; /* for non-css3 browsers */
-	color: #fff !important;
+	background-color: #0399d4 !important; /* for non-css3 browsers */
+	color: white !important;
 }
 /* level 2 list */
 #nav ul {
@@ -776,13 +777,9 @@ fieldset h3 {
 	position: absolute;
 	top: 35px;
 	left: 0;
-	border: solid 1px #b4b4b4;
-/*	-webkit-border-radius: 10px;
-	-moz-border-radius: 10px;
-	border-radius: 10px;
-	-webkit-box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
-	-moz-box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
-	box-shadow: 0 1px 3px rgba(0, 0, 0, .3); */
+	border-style: solid;
+	border-width: 1px;
+	border-color: #b4b4b4;
 }
 
 /* dropdown */
