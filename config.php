@@ -17,6 +17,7 @@ $beperktotgroep = array();  // Vul hier de RecordID's van de groepen (zie tabel 
 $lidnrnodigbijloginaanvraag = 0;  // Moet een lid zijn of haar lidnummer opgeven als er een login aangevraagd wordt?
 $lidnrversturenmogelijk = 0;  // Hierbij geef je aan of het mogelijk moet zijn om vanaf deze website op basis van alleen een e-mailadres iemand zijn lidnummer per e-mail opgestuurd kan worden.
 $maxinlogpogingen = 4; // Na hoeveel foutieve inlogpogingen moet het account geblokkeerd worden? (0 = nooit)
+$maxlengtelogin = 12;  // De maximale lengte die een login mag zijn.
 
 // General data
 $naamwebsite = "phpRBM";  // Dit is de naam zoals deze in de titel en op elke pagina getoond wordt.
