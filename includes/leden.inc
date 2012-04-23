@@ -236,8 +236,12 @@ function fnWijzigen($lidid=0, $actie="") {
 				if (isset($_POST['pw_nieuw']) and strlen($_POST['pw_nieuw']) > 0) {
 					if (strlen($_POST['pw_nieuw']) < 7) {
 						$mess = "Het nieuwe wachtwoord is te kort, het moet minimaal 7 karakters lang zijn.";
+					} elseif (strlen($_POST['pw_nieuw']) > 12) {
+						$mess = "Het nieuwe wachtwoord is te lang, het mag maximaal 12 karakters lang zijn.";
 					} elseif ($_POST['pw_nieuw'] != cleanlogin($_POST['pw_nieuw'])) {
 						$mess = "Het nieuwe wachtwoord bevat ongeldige tekens.";
+					} elseif (strongPassword($_POST['pw_nieuw'], array($_SESSION['username'], $_SESSION['naamingelogde'], $_SESSION['roepnaamingelogde'], $_SESSION['emailingelogde'])) == false) {
+						$mess = "Het nieuwe wachtwoord voldoet niet aan de eisen van een sterk wachtwoord.";
 					} elseif ($_POST['pw_nieuw'] !== $_POST['pw_herhaal']) {
 						$mess = "Nieuwe wachtwoorden zijn niet gelijk.";
 					} else {
@@ -460,7 +464,7 @@ function fnLedenlijst() {
 		} elseif ($val_TL == "Voormalig leden") {
 			$filter .= " AND (LO.Vanaf <= CURDATE() AND ((NOT LO.Opgezegd IS NULL) OR LO.Opgezegd < CURDATE()))";
 		}
-		$rows = db_onderdeellijst($filter);
+		$rows = db_lidond("onderdeellijst", 0, "", $filter);
 	}
 
 	if (count($rows) > 0) {
