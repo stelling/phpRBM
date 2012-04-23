@@ -812,7 +812,7 @@ class mailing {
 					} else {
 						$mail->AddAddress($e);
 						$this->mailbericht = str_ireplace("[%TO%]", $e, $this->mailbericht);
-						$to_name = $row->to_name;
+						$to_name = $this->to_name;
 					}
 					$mail->MsgHTML($this->mailbericht);
 					if ($this->verzamelen) {
