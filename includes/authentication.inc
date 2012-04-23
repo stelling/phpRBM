@@ -21,6 +21,7 @@ function toegang($soort, $melding=1) {
 		$_SESSION['lidnr'] = 0;
 		$_SESSION['naamingelogde'] = "gast";
 		$_SESSION['roepnaamingelogde'] = "gast";
+		$_SESSION['emailingelogde'] = "";
 		if (isset($_SESSION['username']) and strlen($_SESSION['username']) > 5) {
 			$row = db_logins("controle");
 			if (strlen($_SESSION['password']) == 0 and isset($row->LidID) and $row->LidID > 0 and (!isset($_SESSION['openid_ok']) or $_SESSION['openid_ok'] != true) and $gebruikopenid == 1) {
@@ -132,6 +133,8 @@ function toegang($soort, $melding=1) {
 
 function fnConfirmLogin($row, $xtratekst="") {
 	global $urlwebsite, $naamwebsite, $naamvereniging, $maxinlogpogingen;
+	
+	db_logins("wachtwoordenvullen");
 	
 	$def_bevestiging = "<p>Beste [%ROEPNAAM%],</p>\n
 <p>Je hebt een login voor de website <a href='http://[%URLWEBSITE%]'>[%NAAMWEBSITE%]</a> aangevraagd. Hierbij je gegevens.</p>\n
@@ -259,21 +262,15 @@ function fnConfirmLidnr($row) {
 }
 
 function fnLoginAanvragen() {
-	global $naamvereniging, $urlwebsite, $beperktotgroep, $table_prefix, $lidnrversturenmogelijk, $lidnrnodigbijloginaanvraag, $lididwebmasters;
-	
-	if (!isset($lidnrversturenmogelijk) or $lidnrversturenmogelijk != 1) {
-		$lidnrversturenmogelijk = 0;
-	}
-	if (!isset($lidnrnodigbijloginaanvraag) or $lidnrnodigbijloginaanvraag != 1) {
-		$lidnrnodigbijloginaanvraag = 0;
-	}
+	global $naamvereniging, $urlwebsite, $beperktotgroep, $table_prefix, $lidnrversturenmogelijk, $lidnrnodigbijloginaanvraag, $lididwebmasters, $maxlengtelogin;
+
 	if (!isset($_POST['lidnummer']) or strlen($_POST['lidnummer']) == 0) {
 		$_POST['lidnummer'] = 0;
 	}
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 
-		$mess = "";
+		$mess = "Onbekende fout";
 		if (strlen($_POST['email']) == 0) {
 			$mess = "Je hebt geen e-mailadres opgegeven.";
 		} elseif (!isValidMailAddress($_POST['email'], 0)) {
@@ -292,14 +289,14 @@ function fnLoginAanvragen() {
 						$mess = "Je moet je lidnummer invullen om een login te kunnen aanvragen.";
 					} elseif ($lidnrnodigbijloginaanvraag == 1 and $_POST['lidnummer'] > 0 and $row->Lidnr != $_POST['lidnummer']) {
 						$mess = sprintf("De combinatie van e-mailadres '%s' en lidnummer %d is niet correct.", $_POST['email'], $_POST['lidnummer']);
-					} elseif ($row->AanvragenMag == 0 and in_array($row->Nummer, $lididwebmasters) == FALSE) {
+					} elseif ($row->AanvragenMag == 0 and in_array($row->Nummer, $lididwebmasters) == false) {
 						if (is_array($beperktotgroep) and count($beperktotgroep) > 1) {
 							$gt = "";
 							foreach ($beperktotgroep as $gr) {
 								if (strlen($gt) > 0) {$gt .= ", ";}
 								$gt .= "'" . db_naam_onderdeel($gr) . "'";
 							}
-							$mess = sprintf("Je behoort niet tot één van de groepen %s van %s. Een login mag niet aangevraagd worden.", $gt, $naamvereniging);						
+							$mess = sprintf("Je behoort niet tot één van de groepen %s van %s. Een login mag niet aangevraagd worden.", $gt, $naamvereniging);
 						} else {
 							if (is_array($beperktotgroep) and count($beperktotgroep) == 1) {
 								$gr = $beperktotgroep[0];
@@ -308,14 +305,14 @@ function fnLoginAanvragen() {
 							}
 							$mess = sprintf("Je behoort niet tot groep '%s' van %s. Een login mag niet aangevraagd worden.", db_naam_onderdeel($gr), $naamvereniging);
 						}
-					} elseif (strlen($_POST['gewenstelogin']) < 6 or strlen($_POST['gewenstelogin']) > 15) {
-						$mess = "Je hebt geen geldige login opgegeven. Een login moet uit minimaal 6 en maximaal 15 karakters bestaan.";
+					} elseif (strlen($_POST['gewenstelogin']) < 6 or strlen($_POST['gewenstelogin']) > $maxlengtelogin) {
+						$mess = sprintf("Je hebt geen geldige login opgegeven. Een login moet uit minimaal 6 en maximaal %d karakters bestaan.", $maxlengtelogin);
 					} elseif (strpos($_POST['gewenstelogin'], " ") > 0) {
 						$mess = "Je hebt geen geldige login opgegeven. Er mag geen spatie in een login zitten.";
 					} elseif (db_logins("controlebestaat", "", $_POST['gewenstelogin'], $row->Nummer) > 0) {
 						$mess = sprintf("Login '%s' is al in gebruik.", $_POST['gewenstelogin']);
 					} elseif ($lidnrnodigbijloginaanvraag == 0 or $row->Lidnr == $_POST['lidnummer']) {
-						if (db_add_login($_POST['gewenstelogin'], $row->Nummer) == 1) {
+						if (db_logins("add", "", $_POST['gewenstelogin'], $row->Nummer)) {
 							$rl = db_logins("rowlogin", "", "", $row->Nummer);
 							$mess = fnConfirmLogin($rl);
 						}
@@ -324,7 +321,6 @@ function fnLoginAanvragen() {
 					}
 				}
 			} else {
-			print_r($row);
 				$mess = sprintf("E-mailadres '%s' is onbekend in de database.", $_POST['email']);	
 			}
 		}
@@ -395,8 +391,12 @@ function encript_decript($text, $encr = 1) {
 }
 
 function cleanlogin($login) {
+	global $maxlengtelogin;
 
 	$login = trim($login);
+	if (strlen($login) > $maxlengtelogin) {
+		$login = substr($login, 0, $maxlengtelogin);
+	}
 	$login = str_replace(" ", "_", trim($login));
 	$login = str_replace("'", "", trim($login));
 	$login = str_replace("\"", "", trim($login));
