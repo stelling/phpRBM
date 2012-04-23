@@ -370,7 +370,7 @@ function fnDispBW($row, $output) {
 			$rv = $row->ErvaringDagen . " dagen";
 		}
 	} elseif ($output == "Rollen") {
-		$lo = db_bewaking_onderdelen_lid($row->Lid, $row->BEGIN_PER);
+		$lo = db_lidond("bewaking", $row->Lid, $row->BEGIN_PER);
 		$rv = "&nbsp;";
 		foreach ($lo as $row_lo) {
 			if ($rv == "&nbsp;") {
