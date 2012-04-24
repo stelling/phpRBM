@@ -127,7 +127,7 @@ function muteerevenement($eventid) {
 			$_POST['Datum'] = date('Y-m-d', strtotime($_POST['Datum']));
 		}
 		if (isset($_POST['Starttijd']) and strlen($_POST['Starttijd']) == 5) {
-			$_POST['Datum'] .= " " . $_POST['Starttijd'];
+			$_POST['Datum'] .= " " . $_POST['Starttijd'] . ":00";
 		}
 		
 		if ($eventid == 0) {
