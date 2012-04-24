@@ -1268,10 +1268,8 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0) {
 				TypeActiviteit=%d;", $table_prefix, $_SESSION['lidid'], $_SERVER['REMOTE_ADDR'], $_SERVER['HTTP_USER_AGENT'], $oms, $type);
 		fnQuery($query);
 	} elseif ($actie == "opschonen") {
-		$query = sprintf("DELETE FROM %sAdmin_activiteit WHERE
-								(TypeActiviteit=1 AND LidID > 0 AND DatumTijd <= DATE_ADD(CURDATE(), INTERVAL -2 MONTH))
-								OR (TypeActiviteit=99 AND DatumTijd <= DATE_ADD(CURDATE(), INTERVAL -1 WEEK))
-								OR (DatumTijd <= DATE_ADD(CURDATE(), INTERVAL -12 MONTH));", $table_prefix);
+		$query = sprintf("DELETE FROM %sAdmin_activiteit WHERE (TypeActiviteit=99 AND DatumTijd <= DATE_ADD(CURDATE(), INTERVAL -1 WEEK))
+								OR DatumTijd <= DATE_ADD(CURDATE(), INTERVAL -13 MONTH);", $table_prefix);
 		$result = fnQuery($query);
 		if ($result > 1) {
 			$mess = sprintf("Er zijn %d records uit %sAdmin_activiteit verwijderd.", $result, $table_prefix);
