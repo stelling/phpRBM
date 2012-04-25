@@ -4,6 +4,7 @@ $dlnstatus['A'] = "Afgewezen";
 $dlnstatus['B'] = "Bevestigd";
 $dlnstatus['I'] = "Ingeschreven";
 $dlnstatus['N'] = "Niet geweest";
+$dlnstatus['R'] = "Reserve";
 $dlnstatus['X'] = "Afgezegd";
 
 $soortevenement['B'] = "Brigade-activiteit";
@@ -304,8 +305,8 @@ function muteerevenement($eventid) {
 	$aantdln = 0;
 	echo("<table>");
 	if ($eventid > 0) {
-		echo("<tr><th colspan=5 class='tabelkop'>Deelnemers</th></tr>\n");
-		echo("<tr><th>Naam deelnemer</th><th>Status</th><th>Opmerking</th><th>Functie</th><th>Del</th></tr>\n");
+		echo("<tr><th colspan=6 class='tabelkop'>Deelnemers</th></tr>\n");
+		echo("<tr><th>Naam deelnemer</th><th>Status</th><th>Opmerking</th><th>Functie</th><th>Toegevoegd</th><th>Del</th></tr>\n");
 		foreach (db_evenement("deelnemers", 0, $recordid) as $rd) {
 			$optstat = "";
 			foreach ($dlnstatus as $key => $val) {
@@ -320,6 +321,7 @@ function muteerevenement($eventid) {
 			printf("<td><select name='stat_%d' onChange='this.form.submit();'>%s</select></td>\n", $rd->RecordID, $optstat);
 			printf("<td>%s</td>\n", $rd->Opmerking);
 			printf("<td><input type='text' name='func_%d' value='%s' size=30 maxlength=20 onBlur='this.form.submit();'></td>\n", $rd->RecordID, $rd->Functie);
+			printf("<td>%s</td>\n", strftime("%e %b %Y", strtotime($rd->Ingevoerd)));
 			printf("<td><a href='%s?tp=%s&amp;op=delete&amp;eid=%d&amp;lidid=%d'><image src='images/del.png' alt='Delete'></a></td>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $eventid, $rd->LidID);
 			echo("</tr>\n");
 			$aantdln++;
@@ -328,9 +330,9 @@ function muteerevenement($eventid) {
 		foreach (db_evenement("potdeelnemers", 0, $recordid) as $row) {
 			$optionsnieuw .= sprintf("<option value=%d>%s</option>\n", $row->Nummer, $row->Naam);
 		}
-		printf("<tr>\n<td colspan=5><select name='nwdln' onChange='this.form.submit();'>%s</select></td>\n</tr>\n", $optionsnieuw);
+		printf("<tr>\n<td colspan=6><select name='nwdln' onChange='this.form.submit();'>%s</select></td>\n</tr>\n", $optionsnieuw);
 	}
-	echo("<tr><th colspan=5>");
+	echo("<tr><th colspan=6>");
 	echo("<input type=submit name='Opslaan' value='Opslaan'>\n");
 	if ($aantdln > 1) {
 		echo("<input type=submit name='maildeeln' value='Mailing deelnemers'>\n");
