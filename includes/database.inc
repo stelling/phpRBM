@@ -302,7 +302,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 		}
 		$query .= " END AS Status ";
 		$query .= sprintf("FROM %1\$sEvenement AS E INNER JOIN %1\$sEvenement_Deelnemer AS ED ON E.RecordID = ED.EvenementID
-								WHERE ED.Status <> 'A' AND ED.LidID=%2\$d
+								WHERE ED.Status IN ('B', 'I', 'R') AND ED.LidID=%2\$d
 								ORDER BY E.Datum DESC;", $table_prefix, $LidID);
 	}
 	
@@ -406,7 +406,7 @@ function db_ledenwijzigingen($lidid) {
 }
 
 function db_memo($lidid, $srt, $actie="curval", $nv="") {
-	global $table_prefix;
+	global $table_prefix, $arrSoortMemo;
 	
 	$nv = str_replace("\"", "", str_replace("'", "", $nv));	
 	
@@ -420,8 +420,10 @@ function db_memo($lidid, $srt, $actie="curval", $nv="") {
 		return $result->fetchColumn();
 	} elseif ($actie == "insert" and strlen($nv) > 0) {
 		$query = sprintf("INSERT INTO %sMemo (Lid, Soort, Memo, Ingevoerd, Gewijzigd) VALUES (%d, '%s', \"%s\", CURDATE(), SYSDATE());", $table_prefix, $lidid, $srt, $nv);
-		$result = fnQuery($query);
+		fnQuery($query);
 		db_interface("add", $query);
+		$mess = sprintf("Memo '%s' is bij %s met waarde '%s' toegevoegd.", $arrSoortMemo[$srt], db_naamlid($lidid), $nv);
+		db_logboek("add", $mess, 6);
 	} elseif ($actie == "update") {
 		if ($srt == "WN") {
 			$query = sprintf("UPDATE %sLid SET `Waarschuwen bij nood`=\"%s\", Gewijzigd=SYSDATE() WHERE Nummer=%d;", $table_prefix, $nv, $lidid);
@@ -431,12 +433,16 @@ function db_memo($lidid, $srt, $actie="curval", $nv="") {
 		$result = fnQuery($query);
 		if ($result > 0) {
 			db_interface("add", $query);
+			$mess = sprintf("Memo '%s' is bij %s in '%s' gewijzigd.", $arrSoortMemo[$srt], db_naamlid($lidid), $nv);
+			db_logboek("add", $mess, 6);
 		}
 	} elseif ($actie == "delete") {
 		$query = sprintf("DELETE FROM %sMemo WHERE Lid=%d AND Soort='%s';", $table_prefix, $lidid, $srt);
 		$result = fnQuery($query);
 		if ($result > 0) {
 			db_interface("add", $query);
+			$mess = sprintf("Memo '%s' is bij %s verwijderd.", $arrSoortMemo[$srt], db_naamlid($lidid));
+			db_logboek("add", $mess, 6);
 		}
 	}
 }
@@ -1123,7 +1129,7 @@ function db_add_mailing_hist($LidID, $MailingID, $to_name, $to_addr, $message=""
 	}
 }
 
-function db_mailing($actie="", $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $email="") {
+function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $email="") {
 	global $selectnaam, $table_prefix, $naamvereniging, $bewaartijdmailings;
 	
 	if ($actie == "histdetails" and $rid > 0) {
@@ -1228,18 +1234,15 @@ function db_mailing($actie="", $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $
 function db_mutatie($jaar, $gbr="*", $kpl="*") {
 	global $table_prefix;
 	
+	$sel_kpl = "";
 	$where = sprintf("M.BoekjaarID=%d", $jaar);
 	if ($gbr != "*" and strlen($gbr) > 0) {
 		$where .= sprintf(" AND M.GBR='%s'", $gbr);
 	}
 	if ($kpl != "*" and strlen($kpl) > 0 and is_numeric($kpl)) {
 		$where .= sprintf(" AND M.KostenplaatsID=%d", $kpl);
-	}
-	
-	if ($_SESSION['aantalkostenplaatsen'] > 0 and (strlen($kpl) == 0 or $kpl == "*")) {
+	} elseif ($_SESSION['aantalkostenplaatsen'] > 0) {
 		$sel_kpl = ", M.KSTNPLTS AS Kostenplaats";
-	} else {
-		$sel_kpl = "";
 	}
 
 	$query = sprintf("SELECT J.Kode AS Jaar, CONCAT(GBR.Kode, ' - ', GBR.OMSCHRIJV) AS Grootboekrekening%1\$s, Datum AS dteDatum, M.OMSCHRIJV AS Omschrijving, Debet-Credit AS curBedrag
@@ -1511,7 +1514,7 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 		if (strlen($stat) > 0) {
 			$xtra_where = sprintf("AND ED.Status='%s'", $stat);
 		}
-		$query = sprintf("SELECT ED.RecordID, %1\$s AS NaamDeelnemer, ED.Status, ED.Opmerking, ED.Functie, ED.LidID, L.Geslacht
+		$query = sprintf("SELECT ED.RecordID, %1\$s AS NaamDeelnemer, ED.Status, ED.Opmerking, ED.Functie, ED.LidID, L.Geslacht, ED.Ingevoerd
 								FROM %2\$sEvenement_Deelnemer AS ED INNER JOIN %2\$sLid AS L ON ED.LidID = L.Nummer
 								WHERE ED.EvenementID=%3\$d %4\$s
 								ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectnaam, $table_prefix, $eventid, $xtra_where);
