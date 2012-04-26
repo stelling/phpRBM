@@ -287,7 +287,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 				 . " WHERE Lid=%d"
 				 . " ORDER BY Nummer DESC;", $table_prefix, $LidID);
 	} elseif ($soort == "Mailing") {
-		$query = sprintf("SELECT send_on AS dteVerzonden,"
+		$query = sprintf("SELECT send_on AS dttVerzonden,"
 				 . " IF(LENGTH(from_name)<3, from_addr, from_name) AS Van,"
 				 . " to_name AS Aan,"
 				 . " subject AS Onderwerp,"
@@ -296,7 +296,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 				 . " WHERE LidID=%d"
 				 . " ORDER BY send_on DESC LIMIT 25;", $table_prefix, $LidID);
 	} elseif ($soort == "Evenementen") {
-		$query = "SELECT E.Datum, E.Omschrijving, E.Verzameltijd, DATE_FORMAT(E.Datum, '%H:%i') AS Starttijd, E.Eindtijd, E.Email AS emlContact, CASE ED.Status";
+		$query = "SELECT E.Datum AS dteDatum, E.Omschrijving, E.Verzameltijd, DATE_FORMAT(E.Datum, '%H:%i') AS Starttijd, E.Eindtijd, E.Email AS emlContact, CASE ED.Status";
 		foreach ($dlnstatus as $s => $o) {
 			$query .= sprintf(" WHEN '%s' THEN '%s'", $s, $o);
 		}
@@ -567,7 +567,7 @@ function db_bewaking_seizoenen($ins=0) {
 }
 
 function db_lidond($actie, $lidid=0, $per="", $filter="") {
-	global $selectnaam, $selectzoeknaam, $table_prefix, $fromlidond, $selectlidnr;
+	global $selectnaam, $selectzoeknaam, $table_prefix, $fromlidond, $wherelidond, $selectlidnr;
 
 	if ($actie == "laatstgewijzigd") {
 		$query = sprintf("SELECT Max(Gewijzigd) FROM %sLidond;", $table_prefix);
@@ -589,6 +589,18 @@ function db_lidond($actie, $lidid=0, $per="", $filter="") {
 								FROM %3\$s
 								%4\$s
 								ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectnaam, $selectzoeknaam, $fromlidond, $filter, $selectlidnr);
+		$result = fnQuery($query);
+		return $result->fetchAll();
+	} elseif ($actie == "actueleleden") {
+		if (strlen($filter) > 0) {
+			$filter = $wherelidond . " AND " . $filter;
+		} else {
+			$filter = $wherelidond;
+		}
+		$query = sprintf("SELECT LO.Lid, %1\$s AS `NaamLid`, UPPER(L.Woonplaats) AS Woonplaats, L.Mobiel, L.EMAIL, F.Omschrijv AS Functie, LO.Vanaf, LO.Opgezegd, L.GEBDATUM, %2\$s AS ZoeknaamLid
+								FROM %3\$s
+								WHERE %4\$s
+								ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectnaam, $selectzoeknaam, $fromlidond, $filter);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	}
@@ -1190,7 +1202,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		$query = sprintf("SELECT COUNT(*) FROM Mailing_rcpt WHERE MailingID=%d AND LidID=%d;", $mid, $lidid);
 		$result = fnQuery($query);
 		if ($result->fetchColumn() == 0) {
-			$query = sprintf("INSERT INTO Mailing_rcpt SET MailingID=%d, LidID=%d, Ingevoerd=SYSDATE();", $mid, $lidid);
+			$query = sprintf("INSERT INTO Mailing_rcpt SET MailingID=%d, LidID=%d, Ingevoerd=CURDATE();", $mid, $lidid);
 			fnQuery($query);
 		}
 	} elseif ($actie == "opschonen") {
