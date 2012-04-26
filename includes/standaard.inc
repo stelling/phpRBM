@@ -577,19 +577,19 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 			foreach($row as $key => $value) {
 				if (substr($key, 0, 3) == "dte") {
 					if ((!is_null($value)) and $value > '1900-01-01') {
-						$ret .= sprintf("<td>%s</td>", strftime('%e %b %Y', strtotime($value)));
+						$ret .= sprintf("<td class='datum'>%s</td>", strftime('%e %b %Y', strtotime($value)));
 					} else {
 						$ret .= "<td>&nbsp;</td>";
 					}
 				} elseif (substr($key, 0, 3) == "dtl") {
 					if ((!is_null($value)) and $value > '1900-01-01') {
-						$ret .= sprintf("<td>%s</td>", strftime('%A %e %B %Y', strtotime($value)));
+						$ret .= sprintf("<td class='datumlang'>%s</td>", strftime('%A %e %B %Y', strtotime($value)));
 					} else {
 						$ret .= "<td>&nbsp;</td>";
 					}
 				} elseif (substr($key, 0, 3) == "dtt") {
 					if ((!is_null($value)) and $value > '1900-01-01') {
-						$ret .= sprintf("<td>%s</td>", strftime('%e %B %Y (%H:%M)', strtotime($value)));
+						$ret .= sprintf("<td class='datumtijd'>%s</td>", strftime('%e %B %Y (%H:%M)', strtotime($value)));
 					} else {
 						$ret .= "<td>&nbsp;</td>";
 					}
