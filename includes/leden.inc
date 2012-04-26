@@ -396,7 +396,7 @@ function fnWieiswie($actie, $metfoto=1) {
 }
 
 function fnLedenlijst() {
-	global $arrTL, $table_prefix;
+	global $arrTL, $table_prefix, $wherelidond;
 	
 	if (toegang("Overzicht lid", 0)) {
 		$ldl = "<a href='index.php?tp=Overzicht+lid/Algemeen&amp;lidid=%d'>%s</a>";
@@ -460,7 +460,7 @@ function fnLedenlijst() {
 		if (strlen($filter) > 0) {$filter .= " AND ";}
 		$filter .= sprintf("LO.OnderdeelID=%d", $val_groep);
 		if ($val_TL == "Leden") {
-			$filter .= " AND (LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE()))";
+			$filter .= " AND " . $wherelidond;
 		} elseif ($val_TL == "Voormalig leden") {
 			$filter .= " AND (LO.Vanaf <= CURDATE() AND ((NOT LO.Opgezegd IS NULL) OR LO.Opgezegd < CURDATE()))";
 		}
