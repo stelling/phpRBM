@@ -715,29 +715,29 @@ class mailing {
 				 . " AND LO.Vanaf <= SYSDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd > SYSDATE());", $groepid, $this->mid);
 		$result = fnQuery($query);
 		foreach($result->fetchAll() as $row) {
-			$this->add_lid($row->Lid);
+			db_mailing("add_rcpt", $this->mid, 0, "", "", $row->Lid);
 		}
 		$mess = sprintf("Groep '%s' is aan mailing %d toevoegd.", db_naam_onderdeel($groepid), $this->mid);
 		db_logboek("add", $mess, 4);
 	}
 		
 	public function delete_groep($groepid) {
+		global $table_prefix;
 	
 		if ($groepid == -1) {
-			$query = sprintf("DELETE FROM Mailing_rcpt WHERE MailingID=%d;", $this->mid);
-			fnQuery($query);
-			$mess = sprintf("Alle ontvangers zijn bij mailing %d verwijderd.", $this->mid);
-			db_logboek("add", $mess, 4);
-		} else {
-			$query = sprintf("SELECT Lid FROM Lidond AS LO"
-					 . " WHERE OnderdeelID=%d AND LO.Lid IN (SELECT R.LidID FROM Mailing_rcpt AS R WHERE R.LidID=LO.Lid AND R.MailingID=%d)"
-					 . " AND LO.Vanaf <= SYSDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd > SYSDATE());", $groepid, $this->mid);
+			$query = sprintf("DELETE FROM %sMailing_rcpt WHERE MailingID=%d;", $table_prefix, $this->mid);
 			$result = fnQuery($query);
-			foreach($result->fetchAll() as $row) {
-				$this->Delete_lid($this->mid, $row->Lid);
+			if ($result > 0) {
+				$mess = sprintf("Alle %d ontvangers zijn uit mailing %d verwijderd.", $result, $this->mid);
+				db_logboek("add", $mess, 4);
+			}
+		} else {
+			$rows = db_lidond("actueleleden", 0, "", sprintf("LO.OnderdeelId=%d", $groepid));
+			foreach($rows as $row) {
+				$this->delete_lid($row->Lid);
 			}
 			$mess = sprintf("De leden van groep '%s' zijn bij mailing %d verwijderd.", db_naam_onderdeel($groepid), $this->mid);
-			db_logboek("add", $mess, 4);
+//			db_logboek("add", $mess, 4);
 		}
 	}
 	
