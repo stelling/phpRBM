@@ -61,17 +61,17 @@ function fnMailing() {
 	} elseif ($op == "del_attach" and isset($_GET['attach'])) {
 		$mailing->attach_delete($_GET['attach']);
 		$mailing->edit();
-	} elseif ($op == "add_lid" and isset($_GET['lidid']) and $_GET['lidid'] > 0) {
-		$mailing->Add_lid($_GET['lidid']);
+	} elseif ($op == "add_rcpt" and isset($_GET['lidid']) and $_GET['lidid'] > 0) {
+		$mailing->Add_rcpt($_GET['lidid']);
 		$mailing->edit();
-	} elseif ($op == "add_lid" and isset($_GET['to_address']) and strlen($_GET['to_address']) > 0) {
-		$mailing->Add_lid(0, $_GET['to_address']);
+	} elseif ($op == "add_rcpt" and isset($_GET['to_address']) and isValidMailAddress($_GET['to_address'], 0)) {
+		$mailing->Add_rcpt(0, $_GET['to_address']);
 		$mailing->edit();
-	} elseif ($op == "del_lid" and isset($_GET['lidid']) and $_GET['lidid'] > 0) {
-		$mailing->delete_lid($_GET['lidid']);
+	} elseif ($op == "del_rcpt" and isset($_GET['lidid']) and $_GET['lidid'] > 0) {
+		$mailing->delete_rcpt($_GET['lidid']);
 		$mailing->edit();
-	} elseif ($op == "del_lid" and isset($_GET['addr']) and strlen($_GET['addr']) > 0) {
-		$mailing->delete_lid(0, $_GET['addr']);
+	} elseif ($op == "del_rcpt" and isset($_GET['addr']) and strlen($_GET['addr']) > 0) {
+		$mailing->delete_rcpt(0, $_GET['addr']);
 		$mailing->edit();
 	} elseif ($op == "add_groep" and isset($_GET['groepid']) and $_GET['groepid'] > 0) {
 		$mailing->add_groep($_GET['groepid']);
@@ -335,16 +335,16 @@ class mailing {
 			echo("<tr><td class='label'>Ontvangers met e-mail:");
 			echo("<td><ul class='listrecipients'>\n");
 			
-			$rcpt_rows = db_rcpt_mailing($this->mid);
+			$rcpt_rows = db_mailing("rcpt", $this->mid);
 			$aant_ze = 0;
 			$text_ze = "";
 			if (count($rcpt_rows) > 0) {
 				foreach($rcpt_rows as $rcpt) {
 					if ($rcpt->Nummer > 0) {
-						$lnk = sprintf("%s?tp=%s&op=del_lid&mid=%d&lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, $rcpt->Nummer);
+						$lnk = sprintf("%s?tp=%s&op=del_rcpt&mid=%d&lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, $rcpt->Nummer);
 						$reg = sprintf("<li>%s&nbsp;<a href='%s'><img src='/images/delete.gif' alt='Verwijderen' title='Verwijderen'></a></li>\n", htmlentities($rcpt->Naam_lid), $lnk);
 					} else {
-						$lnk = sprintf("%s?tp=%s&op=del_lid&mid=%d&addr=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, $rcpt->to_address);
+						$lnk = sprintf("%s?tp=%s&op=del_rcpt&mid=%d&addr=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, $rcpt->to_address);
 						$reg = sprintf("<li>%s&nbsp;<a href='%s'><img src='/images/delete.gif' alt='Verwijderen' title='Verwijderen'></a></li>\n", $rcpt->to_address, $lnk);
 						$this->contains_losse_email = true;
 					}
@@ -378,12 +378,12 @@ class mailing {
 			echo("<tr><td class='label'>Ontvanger toevoegen:</td>\n");
 			printf("<td>Lid: <select name='add_lid' id='add_lid'>\n");
 			printf("<option value=0>&nbsp;</option>\n");
-			$rcpt_rows = db_pot_rcpt_mailing($this->mid);
+			$rcpt_rows = db_mailing("potrcpt", $this->mid);
 			foreach($rcpt_rows as $rcpt) {
 				printf("<option value='%d'>%s</option>\n", $rcpt->Nummer, $rcpt->Zoeknaam_lid);
 			}
 			printf("</select>");
-			$lnk = sprintf("%s?tp=%s&op=add_lid&mid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid);
+			$lnk = sprintf("%s?tp=%s&op=add_rcpt&mid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid);
 			printf("&nbsp;<img src='/images/move.gif' alt='move' title='Lid toevoegen' onclick=\"elem=document.getElementById('add_lid'); val=elem.options[elem.selectedIndex].value; if (val!=0) { location.href='%s&lidid=' + val }\">&nbsp;\n", $lnk);
 			echo("E-mail: <input type='email' name='add_address' id='add_address' size=50 maxlength=50>");
 			printf("&nbsp;<img src='/images/move.gif' alt='move' title='E-mail toevoegen' onclick=\"elem=document.getElementById('add_address'); val=elem.value; location.href='%s&to_address=' + val\">&nbsp;\n", $lnk);
@@ -632,7 +632,7 @@ class mailing {
 		}
 		
 		if (isset($_POST['add_address']) and strlen($_POST['add_address']) > 5) {
-			$this->add_lid(0, $_POST['add_address']);
+			$this->add_rcpt(0, $_POST['add_address']);
 		}
 	}
 	
@@ -683,39 +683,22 @@ class mailing {
 		unlink($ad . str_replace("!", ".", $attach));
 	}
 	
-	public function add_lid($lidid, $addr="") {
-		if ($lidid > 0) {
-			db_mailing("add_rcpt", $this->mid, 0, "", "", $lidid);
-			$mess = sprintf("%s is aan mailing %d toegevoegd.", db_naamlid($lidid), $this->mid);
+	public function add_rcpt($lidid, $addr="") {
+		if (db_mailing("addrcpt", $this->mid, 0, "", "", $lidid, $addr)) {
+			if ($lidid > 0) {
+				$r = db_naamlid($lidid);
+			} else {
+				$r = $addr;
+			}
+			$mess = sprintf("%s is aan mailing %d toegevoegd.", $r, $this->mid);
 			db_logboek("add", $mess, 4);
 		}
-		if (strlen($addr) > 5 and isValidMailAddress($addr, 0)) {
-			$query = sprintf("SELECT COUNT(*) FROM Mailing_rcpt WHERE MailingID=%d AND to_address='%s';", $this->mid, strtolower($addr));
-			$result = fnQuery($query);
-			if ($result->fetchColumn() == 0) {
-				$query = sprintf("INSERT INTO Mailing_rcpt SET MailingID=%d, to_address='%s', Ingevoerd=SYSDATE();", $this->mid, strtolower($addr));
-				fnQuery($query);
-				$mess = sprintf("E-mailadres '%s' is aan mailing %d toegevoegd.", strtolower($addr), $this->mid);
-				db_logboek("add", $mess, 4);
-			}
-		}
 	}
-		
-	public function delete_lid($lidid, $addr="") {
-		global $table_prefix;
-	
-		if ($lidid > 0) {
-			$query = sprintf("DELETE FROM %sMailing_rcpt WHERE MailingID=%d AND LidID=%d;", $table_prefix, $this->mid, $lidid);
-			$mess = sprintf("%s is bij mailing %d verwijderd.", db_naamlid($lidid), $this->mid);
-		} elseif (strlen($addr) > 0) {
-			$query = sprintf("DELETE FROM %sMailing_rcpt WHERE MailingID=%d AND to_address='%s';", $table_prefix, $this->mid, $addr);
-			$mess = sprintf("E-mailadres '%s' is bij mailing %d verwijderd.", $addr, $this->mid);
-		}
-		$result = fnQuery($query);
-		if ($result > 0) {
-			db_logboek("add", $mess, 4);	
-			$query = sprintf("OPTIMIZE TABLE %sMailing_rcpt;", $table_prefix);
-			fnQuery($query);
+
+	public function delete_rcpt($lidid, $addr="") {
+		$mess = db_mailing("delrcpt", $this->mid, 0, "", "", $lidid, $addr);
+		if (strlen($mess) > 0) {
+			db_logboek("add", $mess, 4);
 		}
 	}
 	
@@ -725,7 +708,7 @@ class mailing {
 				 . " AND LO.Vanaf <= SYSDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd > SYSDATE());", $groepid, $this->mid);
 		$result = fnQuery($query);
 		foreach($result->fetchAll() as $row) {
-			db_mailing("add_rcpt", $this->mid, 0, "", "", $row->Lid);
+			db_mailing("addrcpt", $this->mid, 0, "", "", $row->Lid);
 		}
 		$mess = sprintf("Groep '%s' is aan mailing %d toevoegd.", db_naam_onderdeel($groepid), $this->mid);
 		db_logboek("add", $mess, 4);
@@ -740,14 +723,16 @@ class mailing {
 			if ($result > 0) {
 				$mess = sprintf("Alle %d ontvangers zijn uit mailing %d verwijderd.", $result, $this->mid);
 				db_logboek("add", $mess, 4);
+				$query = sprintf("OPTIMIZE TABLE %sMailing_rcpt;", $table_prefix);
+				fnQuery($query);
 			}
 		} else {
 			$rows = db_lidond("actueleleden", 0, "", sprintf("LO.OnderdeelId=%d", $groepid));
 			foreach($rows as $row) {
-				$this->delete_lid($row->Lid);
+				db_mailing("delrcpt", $this->mid, 0, "", "", $row->Lid);
 			}
 			$mess = sprintf("De leden van groep '%s' zijn bij mailing %d verwijderd.", db_naam_onderdeel($groepid), $this->mid);
-//			db_logboek("add", $mess, 4);
+			db_logboek("add", $mess, 4);
 		}
 	}
 	
@@ -795,7 +780,7 @@ class mailing {
 			fnQuery($query);
 		}
 		
-		foreach(db_rcpt_mailing($this->mid) as $rcpt) {
+		foreach(db_mailing("rcpt", $this->mid) as $rcpt) {
 			$this->create_mess($rcpt->Nummer);
 			if ($preview == 1) {
 				echo("<br>\n" . $this->mailbericht);
