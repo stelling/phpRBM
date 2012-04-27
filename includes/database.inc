@@ -1113,31 +1113,23 @@ function db_naam_onderdeel($rid, $rin="Onbekend") {
 	return $rv;
 }
 
-function db_add_mailing_hist($LidID, $MailingID, $to_name, $to_addr, $message="", $from_addr="", $subject="", $cc_addr="") {
+function db_add_mailing_hist($LidID, $MailingID, $to_name, $to_addr, $message="") {
 	global $table_prefix;
 
-	$from_name = "";
-	if ($MailingID > 0) {
-		$query = sprintf("SELECT * FROM %sMailing WHERE MailingID=%d;", $table_prefix, $MailingID);
-		$result = fnQuery($query);
-		$row = $result->fetch();
-		if (strlen($message) == 0) {
-			$message = $row->message;
-		}
-		$from_name = $row->from_name;
-		$from_addr = $row->from_addr;
-		if (strlen($to_name) == 0) {
-			$to_name = $row->to_name;
-		}
-		$subject = $row->subject;
-		$cc_addr = $row->cc_addr;
+	$query = sprintf("SELECT * FROM %sMailing WHERE MailingID=%d;", $table_prefix, $MailingID);
+	$result = fnQuery($query);
+	$row = $result->fetch();
+	if (strlen($message) == 0) {
+		$message = $row->message;
 	}
-	$subject = str_replace("\"", "'", $subject);
-	$message = str_replace("\"", "'", $message);
+	if (strlen($row->to_name) > 0) {
+		$to_name = $row->to_name;
+	}
+	
 	if (isset($_SESSION['lidid']) and $_SESSION['lidid'] > 0) {
-		$query = sprintf("INSERT INTO %sMailing_hist SET"
-				 . " LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", to_name=\"%s\", subject=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", send_by=%d, send_on=SYSDATE();"
-				 , $table_prefix, $LidID, $MailingID, $from_name, $from_addr, $to_name, $subject, $to_addr, $cc_addr, $message, $_SESSION['lidid']);
+		$query = sprintf("INSERT INTO %sMailing_hist SET
+					LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", to_name=\"%s\", subject=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", send_by=%d, send_on=SYSDATE();", $table_prefix,
+					$LidID, $MailingID, $row->from_name, $row->from_addr, $to_name, $row->subject, $to_addr, $row->cc_addr, $message, $_SESSION['lidid']);
 		fnQuery($query);
 	}
 }
