@@ -642,11 +642,11 @@ class mailing {
 			$ad = $this->dir_attachm . "/" . $this->mid . "/";
 			if (!file_exists($ad)) {
 				if (mkdir($ad, 0755, true) == true) {
-					$ret = sprintf("Directory '%s' is aangemaakt.", $ad);
-					db_logboek("add", $ret, 3);
+					$mess = sprintf("Directory '%s' is aangemaakt.", $ad);
+					db_logboek("add", $mess, 4);
 				} else {
-					$ret = sprintf("Directory '%s' bestaat niet en kan niet aangemaakt worden. Waarschijnlijk een rechtenprobleem.", $ad);
-					db_logboek("add", $ret, 3);
+					$mess = sprintf("Directory '%s' bestaat niet en kan niet aangemaakt worden. Probeer het later opnieuw of neem contact op met de webmaster.", $ad);
+					db_logboek("add", $mes, 4);
 					$ad = "";
 				}
 			} else {
@@ -657,13 +657,23 @@ class mailing {
 			$ext = explode(".", $_FILES['UploadFile']['name']);  
 			$ext = strtolower($ext[count($ext) - 1]);
 			if (strlen($ad) == 0) {
-				printf("<script>\nalert(\"%s\")\n</script>\n", $ret);
+				printf("<script>\nalert(\"%s\")\n</script>\n", $mess);
 			} elseif (strpos($this->allowed_ext, $ext) === false) {
-				printf("<script>\nalert(\"Het bestand met extensie %s kan niet worden bijgesloten, omdat de extensie niet toegestaan is. Alleen de volgende extensies zijn toegestaan: %s\")\n</script>\n", $ext, $this->allowed_ext);
+				$mess = sprintf("Het bestand '%s' kan niet worden bijgesloten, omdat de extensie niet toegestaan is. Alleen de volgende extensies zijn toegestaan: %s", $_FILES['UploadFile']['name'], $this->allowed_ext);
+				printf("<script>\nalert(\"%s\")\n</script>\n", $mess);
+				db_logboek("add", $mes, 4);
 			} elseif ($_FILES['UploadFile']['size'] > $this->max_size_attachm) {
-				echo("<script>\nalert(\"Het bestand kan niet worden bijgesloten, omdat het te groot is.\")\n</script>\n");
+				$mess = sprintf("Het bestand '%s' kan niet worden bijgesloten, omdat het te groot is.", $_FILES['UploadFile']['name']);
+				printf("<script>\nalert(\"%s\")\n</script>\n", $mess);
+				db_logboek("add", $mes, 4);
 			} else {
-				move_uploaded_file($_FILES['UploadFile']["tmp_name"], $target);
+				if (move_uploaded_file($_FILES['UploadFile']['tmp_name'], $target) == false) {
+					$mess = sprintf("Fout %d is opgetreden bij het uploaden van bestand '%s'. Probeer het later opnieuw of neem contact op met de webmaster.", $_FILES['UploadFile']['error'], $_FILES['UploadFile']['name']);
+				} else {
+					$mess = sprintf("Het bestand '%s' is bijgesloten.", $_FILES['UploadFile']['name']);
+				}
+				printf("<script>\nalert(\"%s\")\n</script>\n", $mess);
+				db_logboek("add", $mes, 4);
 			} 
 		}
 	}
