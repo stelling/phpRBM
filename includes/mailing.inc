@@ -100,7 +100,7 @@ function fnMailing() {
 class mailing {
 	public $mid;
 	
-	public $allowed_ext = "gif, jpeg, jpg, pdf, png, pps, rar, txt, zip";
+	public $allowed_ext = "bmp, gif, jpeg, jpg, pdf, png, pps, rar, txt, zip";
 	public $dir_attachm = "/attachments";
 	public $max_size_attachm = 2097152; // 2MB
 	public $template_bestand = "";
@@ -612,12 +612,12 @@ class mailing {
 		$setclause = "";
 		$oms = "";
 		foreach($_POST as $key => $val) {
+			$_POST[$key] = str_replace("\"", "'", $_POST[$key]);
 			if (array_key_exists($key, $old) and $old->$key != $_POST[$key]) {
 				if (is_numeric($_POST[$key])) {
 					$setclause .= sprintf("%s=%d, ", $key, $_POST[$key]);
 					$oms .= sprintf("Veld '%s' is %d geworden. ", $key, $_POST[$key]);
 				} else {
-					$_POST[$key] = str_replace("\"", "'", $_POST[$key]);
 					$setclause .= sprintf("%s=\"%s\", ", $key, $_POST[$key]);
 					$oms .= sprintf("Veld '%s' is '%s' geworden. ", $key, $_POST[$key]);
 				}
@@ -661,11 +661,11 @@ class mailing {
 			} elseif (strpos($this->allowed_ext, $ext) === false) {
 				$mess = sprintf("Het bestand '%s' kan niet worden bijgesloten, omdat de extensie niet toegestaan is. Alleen de volgende extensies zijn toegestaan: %s", $_FILES['UploadFile']['name'], $this->allowed_ext);
 				printf("<script>\nalert(\"%s\")\n</script>\n", $mess);
-				db_logboek("add", $mes, 4);
+				db_logboek("add", $mess, 4);
 			} elseif ($_FILES['UploadFile']['size'] > $this->max_size_attachm) {
 				$mess = sprintf("Het bestand '%s' kan niet worden bijgesloten, omdat het te groot is.", $_FILES['UploadFile']['name']);
 				printf("<script>\nalert(\"%s\")\n</script>\n", $mess);
-				db_logboek("add", $mes, 4);
+				db_logboek("add", $mess, 4);
 			} else {
 				if (move_uploaded_file($_FILES['UploadFile']['tmp_name'], $target) == false) {
 					$mess = sprintf("Fout %d is opgetreden bij het uploaden van bestand '%s'. Probeer het later opnieuw of neem contact op met de webmaster.", $_FILES['UploadFile']['error'], $_FILES['UploadFile']['name']);
@@ -673,8 +673,8 @@ class mailing {
 					$mess = sprintf("Het bestand '%s' is bijgesloten.", $_FILES['UploadFile']['name']);
 				}
 				printf("<script>\nalert(\"%s\")\n</script>\n", $mess);
-				db_logboek("add", $mes, 4);
-			} 
+				db_logboek("add", $mess, 4);
+			}
 		}
 	}
 	
