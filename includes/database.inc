@@ -213,10 +213,11 @@ function db_gegevenslid($LidID, $soort="Alg") {
 				 . " WHERE L.Nummer=%d"
 				 . " ORDER BY LM.LIDDATUM DESC;", $selectnaam, "%e %M %Y", $sqond, $sqlogin, $sqlbd, $wbn, $sqdieet, $fromlid, $LidID);
 	} elseif ($soort == "Financieel") {
-		$query = sprintf("SELECT L.BANKGIRO AS Bankrekeningnummer,"
-				 . " L.`Machtiging afgegeven` AS `booMachtiging afgegeven?`"
-				 . " FROM %sLid AS L"
-				 . " WHERE L.Nummer=%d;", $table_prefix, $LidID);
+		$query = sprintf("SELECT L.BANKGIRO AS Bankrekeningnummer, 
+								L.`Machtiging afgegeven` AS `booMachtiging automatische incasso`, 
+								IF(ISNULL(L.BezwaarMachtiging), 'Nee', L.BezwaarMachtiging) AS `dteBezwaar machtiging`
+								FROM %sLid AS L
+								WHERE L.Nummer=%d;", $table_prefix, $LidID);
 	} elseif ($soort == "Afdelingen") {
 		$query = sprintf("SELECT O.Kode AS Code,
 					O.Naam,
