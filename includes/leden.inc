@@ -561,9 +561,9 @@ function fnOverviewLid($lidid=0, $actie="") {
 				$ld = sprintf("<a href='index.php?tp=%s&amp;lidid=%d&amp;MailingID=%%d'>%%s</a>", urlencode($_GET['tp']), $lidid);
 				$rows = db_gegevenslid($lidid, "Mailing");
 				if (count($rows) > 0) {
-					echo(fnDisplayTable($rows, $ld, "Ontvangen mails " . $naamlid));
+					echo(fnDisplayTable($rows, $ld, sprintf("Aan %s verstuurde mailings", $naamlid)));
 				} else {
-					printf("<p class='mededeling'>%s heeft geen mails vanaf deze website ontvangen.</p>\n", $naamlid);
+					printf("<p class='mededeling'>Er zijn geen mailings naar %s vanaf deze website verstuurd.</p>\n", $naamlid);
 				}
 			}
 		} elseif ($actie == "Evenementen") {
