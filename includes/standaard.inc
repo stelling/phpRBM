@@ -519,9 +519,14 @@ function fnDisplayForm($row, $xtra_eind="", $class="formulier") {
 			if (substr($key, 0, 3) == "Kop") {
 				$ret .= sprintf("<tr><th colspan=2>%s</th></tr>\n", $value);
 			} elseif (substr($key, 0, 3) == "dte" and (!is_null($value))) {
-				$ret .= sprintf("<tr><td class='label'>%s</td><td>%s</td></tr>\n", substr($key, 3), strftime('%e %B %Y', strtotime($value)));
+				if (strtotime($value) == false) {
+					$dv = $value;
+				} else {
+					$dv = strftime('%e %B %Y', strtotime($value));
+				}
+				$ret .= sprintf("<tr><td class='label'>%s</td><td class='datum'>%s</td></tr>\n", substr($key, 3), $dv);
 			} elseif (substr($key, 0, 3) == "dtt" and (!is_null($value))) {
-				$ret .= sprintf("<tr><td class='label'>%s</td><td>%s</td></tr>\n", substr($key, 3), strftime('%e %B %Y (%H:%M)', strtotime($value)));
+				$ret .= sprintf("<tr><td class='label'>%s</td><td class='datumtijd'>%s</td></tr>\n", substr($key, 3), strftime('%e %B %Y (%H:%M)', strtotime($value)));
 			} elseif (substr($key, 0, 3) == "boo" and $value == 1) {
 				$ret .= sprintf("<tr><td class='label'>%s</td><td>Ja</td></tr>\n", substr($key, 3));
 			} elseif (substr($key, 0, 3) == "boo" and $value != 1) {
