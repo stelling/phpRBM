@@ -1181,7 +1181,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		} else {
 			$w = "(M.deleted_on IS NULL)";
 		}
-		$query = sprintf("SELECT M.MailingID AS lnkMailingID, M.subject AS Onderwerp, M.from_name AS Van, M.to_name AS Aan,
+		$query = sprintf("SELECT M.MailingID AS lnkMailingID, M.MailingID AS intNr, M.subject AS Onderwerp, M.from_name AS Van, M.to_name AS Aan,
 					%1\$s AS `Laatst gewijzigd door` %2\$s, IF(M.sent_on > M.new_on, M.MailingID, 0) AS llkHist
 					FROM %3\$sMailing AS M LEFT JOIN %3\$sLid AS L ON M.ChangedBy = L.Nummer
 					WHERE %4\$s ORDER BY %5\$s;", $selectnaam, $xtra_sel, $table_prefix, $w, $orderby);
