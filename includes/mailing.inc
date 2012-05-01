@@ -44,7 +44,7 @@ function fnMailing() {
 		$mailing->edit();
 	} elseif ($currenttab2 == "Logboek" and toegang($_GET['tp'])) {
 		$lijst = db_logboek("lijst", "", 4);
-		echo(fnDisplayTable($lijst));
+		echo(fnDisplayTable($lijst, "", "", 0, "", "", "logboek"));
 	} elseif ($op == "historie" and $mailing->mid > 0) {
 		$rows = db_mailing("hist", $mailing->mid);
 		if (count($rows) > 0) {
@@ -443,7 +443,7 @@ class mailing {
 			['JustifyLeft','JustifyCenter','JustifyRight','JustifyBlock'],
 			['Link','Unlink'],
 			['Image','Table','HorizontalRule','Smiley','SpecialChar'],
-			['Styles','Format','Font','FontSize'],
+			['Styles','Format','FontSize'],
 			['TextColor'],
 			['Maximize', 'ShowBlocks','-','About']
         ]
@@ -556,6 +556,8 @@ class mailing {
 		if ($this->mid > 0 and $verzendenmag and $this->deleted_on < "1901-01-01") {
 			$lnk = sprintf("%s?tp=%s&op=send&mid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid);
 			printf("<img src='images/sendmail.png' title='Verstuur mailing' onclick=\"location.href='%s'\">\n", $lnk);
+		}
+		if ($this->mid > 0) {
 			$lnk = sprintf("%s?tp=%s&op=preview&header=no&mid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid);
 			printf("<img src='images/preview.png' title='Voorbeeld' onclick=\"location.href='%s'\">\n", $lnk);	
 		}
@@ -619,7 +621,11 @@ class mailing {
 					$oms .= sprintf("Veld '%s' is %d geworden. ", $key, $_POST[$key]);
 				} else {
 					$setclause .= sprintf("%s=\"%s\", ", $key, $_POST[$key]);
-					$oms .= sprintf("Veld '%s' is '%s' geworden. ", $key, $_POST[$key]);
+					if (strlen($_POST[$key]) > 79) {
+						$oms .= sprintf("Veld '%s' is '%s ...' geworden. ", $key, substr($_POST[$key], 0, 75));
+					} else {
+						$oms .= sprintf("Veld '%s' is '%s' geworden. ", $key, $_POST[$key]);
+					}
 				}
 			}
 		}
@@ -690,7 +696,7 @@ class mailing {
 			} else {
 				$r = $addr;
 			}
-			$mess = sprintf("%s is aan mailing %d toegevoegd.", $r, $this->mid);
+			$mess = sprintf("%s is aan mailing %d (%s) toegevoegd.", $r, $this->mid, $this->subject);
 			db_logboek("add", $mess, 4);
 		}
 	}
@@ -754,33 +760,36 @@ class mailing {
 	private function send_mailing($preview=0) {
 		global $emailsecretariaat;
 		
-		$mail = new RBMmailer();
-		$mail->From = $this->from_addr;
-		$mail->FromName = $this->from_name;
-		$mail->Subject = $this->subject;
-		foreach (explode(",", $this->cc_addr) as $v) {
-			if (isValidMailAddress($v, 0)) {
-				$mail->AddCC($v);
-			}
-		}
-		
-		$ad = $this->dir_attachm . "/" . $this->mid;
-		if (is_dir($ad)) {
-			$d = dir($ad);
-			while (false !== ($entry = $d->read())) {
-				if ($entry != "." and $entry != "..") {
-					$mail->AddAttachment($ad . "/" . $entry);
+		if ($preview == 0) {
+			$mail = new RBMmailer();
+			$mail->From = $this->from_addr;
+			$mail->FromName = $this->from_name;
+			$mail->Subject = $this->subject;
+			foreach (explode(",", $this->cc_addr) as $v) {
+				if (isValidMailAddress($v, 0)) {
+					$mail->AddCC($v);
 				}
 			}
-			$d->close();
+		
+			$ad = $this->dir_attachm . "/" . $this->mid;
+			if (is_dir($ad)) {
+				$d = dir($ad);
+				while (false !== ($entry = $d->read())) {
+					if ($entry != "." and $entry != "..") {
+						$mail->AddAttachment($ad . "/" . $entry);
+					}
+				}
+				$d->close();
+			}
 		}
 		
-		if ($preview == 0) {
-			$query = sprintf("UPDATE Mailing SET sent_on=SYSDATE(), SentBy=%d WHERE MailingID=%d;", $_SESSION['lidid'], $this->mid);
-			fnQuery($query);
+		$rcpts = db_mailing("rcpt", $this->mid);
+		if ($preview == 1 and count($rcpts) == 0) {
+			$this->create_mess($_SESSION['lidid']);
+			echo("<br>\n" . $this->mailbericht);
 		}
 		
-		foreach(db_mailing("rcpt", $this->mid) as $rcpt) {
+		foreach($rcpts as $rcpt) {
 			$this->create_mess($rcpt->Nummer);
 			if ($preview == 1) {
 				echo("<br>\n" . $this->mailbericht);
@@ -823,15 +832,18 @@ class mailing {
 				$this->nok_send .= sprintf("<li>%s {%s, %s&nbsp&nbsp;%s}</li>\n", $rcpt->Naam_lid, $rcpt->Adres, $rcpt->Postcode, $rcpt->Woonplaats);
 			}
 		}
-		if ($this->verzamelen) {
+		if ($this->verzamelen and $preview == 0) {
 			$mail->Send();
 			$mail->ClearAddresses();
 		}
-		$mail->ClearCCs();
 		$summary = "";
 		
-		$oms = sprintf("Mailing %d (%s) is door %s verzonden.", $this->mid, $this->subject, $_SESSION['naamingelogde']);
-		db_logboek("add", $oms, 4);
+		if ($preview == 0 and strlen($this->ok_send) > 1) {
+			$query = sprintf("UPDATE Mailing SET sent_on=SYSDATE(), SentBy=%d WHERE MailingID=%d;", $_SESSION['lidid'], $this->mid);
+			fnQuery($query);
+			$oms = sprintf("Mailing %d (%s) is door %s verzonden.", $this->mid, $this->subject, $_SESSION['naamingelogde']);
+			db_logboek("add", $oms, 4);
+		}
 		if ($this->resultaatversturen == 1) {
 			if (strlen($this->ok_send) > 1 and $preview == 1) {
 				$summary = sprintf("<p>De volgende ontvangers hebben een correct e-mailadres:<ul>\n%s</ul>\n</p>\n", $this->ok_send);
@@ -846,8 +858,7 @@ class mailing {
 			if ($preview == 1) {
 				printf("<div id='container'>%s</div>\n", $summary);
 			} else {
-				$this->create_mess(0);
-				$rows = db_gegevenslid($_SESSION['lidid']);
+				$this->create_mess();
 				$ev = "E-mail";
 				$this->mailbericht = str_ireplace("[%TO%]", "", $this->mailbericht);
 				$mail->MsgHTML($this->mailbericht . $summary);
@@ -855,8 +866,9 @@ class mailing {
 				if (isValidMailAddress($mail->From, 0)) {
 					$mail->AddAddress($mail->From, $mail->FromName);
 				} else {
-					$mail->AddAddress($this->detailssender("emlE-mail"));
+					$mail->AddAddress($_SESSION['emailingelogde']);
 				}
+				$mail->ClearCCs();
 				if (isset($emailsecretariaat) and isValidMailAddress($emailsecretariaat, 0)) {
 					$mail->AddCC($emailsecretariaat);
 				}
@@ -918,21 +930,7 @@ class mailing {
 		$query = sprintf("UPDATE Mailing SET deleted_on=NULL WHERE MailingID=%d;", $this->mid);
 		fnQuery($query);
 	}
-	
-	private function detailssender($rv="Naam") {
-		$lid = db_gegevenslid($_SESSION['lidid']);
-		if ($rv == "emlE-mail") {
-			$ev = "emlE-mail vereniging";
-			if (strlen($lid[0]->$ev) > 5) {
-				return $lid[0]->$ev;
-			} else {
-				return $lid[0]->$rv;
-			}
-		} else {
-			return $lid[0]->$rv;
-		}
-	}
-	
+		
 	private function vulvars() {
 		global $naamvereniging;
 	
@@ -955,17 +953,18 @@ class mailing {
 			$this->SentBy = $ml->SentBy;
 			$this->deleted_on = $ml->deleted_on;
 			$this->DeletedBy = $ml->DeletedBy;
+				
+			foreach ($this->MergeField as $fld) {
+				$nm = "[%" . $fld['Naam'] . "%]";
+				if (strpos($this->mailbericht, $nm) !== false) {
+					$this->contains_mergefield = true;
+				}
+			}
+			
 		} else {
 			$this->from_name = $naamvereniging;
-			$this->from_addr = $this->detailssender("emlE-mail");
+			$this->from_addr = $_SESSION['emailingelogde'];
 			$this->new_on = date("Y-m-d");
-		}
-				
-		foreach ($this->MergeField as $fld) {
-			$nm = "[%" . $fld['Naam'] . "%]";
-			if (strpos($this->mailbericht, $nm) !== false) {
-				$this->contains_mergefield = true;
-			}
 		}
 	}
 }
