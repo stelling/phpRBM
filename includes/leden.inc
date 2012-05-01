@@ -240,14 +240,24 @@ function fnWijzigen($lidid=0, $actie="") {
 						$mess = "Het nieuwe wachtwoord is te lang, het mag maximaal 12 karakters lang zijn.";
 					} elseif ($_POST['pw_nieuw'] != cleanlogin($_POST['pw_nieuw'])) {
 						$mess = "Het nieuwe wachtwoord bevat ongeldige tekens.";
-					} elseif (strongPassword($_POST['pw_nieuw'], array($_SESSION['username'], $_SESSION['naamingelogde'], $_SESSION['roepnaamingelogde'], $_SESSION['emailingelogde'])) == false) {
-						$mess = "Het nieuwe wachtwoord voldoet niet aan de eisen van een sterk wachtwoord.";
+					} elseif(!preg_match("#[0-9]+#", $_POST['pw_nieuw']) ) {
+						$mess = "Het nieuwe wachtwoord moet minimaal één getal bevatten.";
+					} elseif(!preg_match("#[a-z]+#", $_POST['pw_nieuw']) ) {
+						$mess = "Het nieuwe wachtwoord moet minimaal één letter bevatten.";
+					} elseif(!preg_match("#[A-Z]+#", $_POST['pw_nieuw']) ) {
+						$mess = "Het nieuwe wachtwoord moet minimaal één hoofdletter bevatten.";
+					} elseif($_SESSION['username'] == $_POST['pw_nieuw']) {
+						$mess = "Het nieuwe wachtwoord mag niet gelijk aan de login zijn.";
+					} elseif($_SESSION['emailingelogde'] == $_POST['pw_nieuw']) {
+						$mess = "Het nieuwe wachtwoord mag niet gelijk aan de e-mail zijn.";
+					} elseif($_SESSION['roepnaamingelogde'] == $_POST['pw_nieuw']) {
+						$mess = "Het nieuwe wachtwoord mag niet gelijk aan de roepnaam zijn.";
 					} elseif ($_POST['pw_nieuw'] !== $_POST['pw_herhaal']) {
 						$mess = "Nieuwe wachtwoorden zijn niet gelijk.";
 					} else {
 						$mess = db_change_password($_POST['pw_nieuw'], $_POST['pw_oud'], $lidid);
 					}
-					printf("<p class='mededeling'>%s</p>", $mess);
+					printf("<p class='mededeling'>%s</p>", htmlentities($mess));
 				}
 				echo("<p><a href='/'>Klik hier om verder te gaan.</a></p>\n");
 			} else {
