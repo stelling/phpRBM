@@ -5,11 +5,50 @@ $dlnstatus['B'] = "Bevestigd";
 $dlnstatus['I'] = "Ingeschreven";
 $dlnstatus['N'] = "Niet geweest";
 $dlnstatus['R'] = "Reserve";
+$dlnstatus['T'] = "Onder voorbehoud";
 $dlnstatus['X'] = "Afgezegd";
 
 $soortevenement['B'] = "Brigade-activiteit";
 $soortevenement['G'] = "Gezellig/sociaal";
 $soortevenement['W'] = "Wedstrijd";
+
+function fnEvenementen() {
+	global $currenttab2;
+	
+	if (isset($_GET['op']) and strlen($_GET['op']) > 0) {
+		$op = $_GET['op'];
+	} else {
+		$op = "overzicht";
+	}
+	if (isset($_GET['eid']) and strlen($_GET['eid']) > 0) {
+		$eid = $_GET['eid'];
+	} else {
+		$eid = 0;
+	}
+	
+	fnDispMenu(2);
+	
+	if ($currenttab2 == "Beheer" and $op == "edit") {
+		muteerevenement($eid);
+	} elseif ($currenttab2 == "Beheer" and $op == "delete") {
+		db_evenement("deletedeelnemer", $_GET['lidid'], $_GET['eid']);
+		muteerevenement($eid);
+	} elseif ($currenttab2 == "Beheer") {
+		$lijst = db_evenement("overzichtbeheer");
+		$lnk = sprintf("<a href='%s?tp=%s&amp;op=edit&amp;eid=%s' title='Bewerk evenement'>%s</a>", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), "%d", "%s");
+		$er = sprintf("<td><a href='%s?%s&amp;op=edit&amp;eid=0' title='Nieuw evenement'><img src='images/star.png' alt='Nieuw'></a></td><td colspan=9>Nieuw evenement</td>", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+		echo(fnDisplayTable($lijst, $lnk, "", 0, "", $er));
+	} elseif ($currenttab2 == "Logboek") {
+		$lijst = db_logboek("lijst", "", 7);
+		echo(fnDisplayTable($lijst, "", "", 0, "", "", "logboek"));
+	} elseif ($currenttab2 == "Types muteren") {
+		muteertypeevenement();
+	} else {
+		$currenttab2 = "Overzicht";
+		overzichtevenementen();
+	}
+	
+}
 
 function ToekomstigeEvenementen() {
 	global $fdlang;
@@ -77,44 +116,6 @@ function inschrijvenevenementen($lidid) {
 	echo("</table>\n");
 	echo("</form>\n");
 	echo("</div>  <!-- Einde inschrijvingevenementen -->\n");
-}
-
-function fnEvenementen() {
-	global $currenttab2;
-	
-	if (isset($_GET['op']) and strlen($_GET['op']) > 0) {
-		$op = $_GET['op'];
-	} else {
-		$op = "overzicht";
-	}
-	if (isset($_GET['eid']) and strlen($_GET['eid']) > 0) {
-		$eid = $_GET['eid'];
-	} else {
-		$eid = 0;
-	}
-	
-	fnDispMenu(2);
-	
-	if ($currenttab2 == "Beheer" and $op == "edit") {
-		muteerevenement($eid);
-	} elseif ($currenttab2 == "Beheer" and $op == "delete") {
-		db_evenement("deletedeelnemer", $_GET['lidid'], $_GET['eid']);
-		muteerevenement($eid);
-	} elseif ($currenttab2 == "Beheer") {
-		$lijst = db_evenement("overzichtbeheer");
-		$lnk = sprintf("<a href='%s?tp=%s&amp;op=edit&amp;eid=%s' title='Bewerk evenement'>%s</a>", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), "%d", "%s");
-		$er = sprintf("<td><a href='%s?%s&amp;op=edit&amp;eid=0' title='Nieuw evenement'><img src='images/star.png' alt='Nieuw'></a></td><td colspan=8>Nieuw evenement</td>", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
-		echo(fnDisplayTable($lijst, $lnk, "", 0, "", $er));
-	} elseif ($currenttab2 == "Logboek") {
-		$lijst = db_logboek("lijst", "", 7);
-		echo(fnDisplayTable($lijst));
-	} elseif ($currenttab2 == "Types muteren") {
-		muteertypeevenement();
-	} else {
-		$currenttab2 = "Overzicht";
-		overzichtevenementen();
-	}
-	
 }
 
 function muteerevenement($eventid) {
@@ -268,7 +269,7 @@ function muteerevenement($eventid) {
 	printf("<form method='post' action='%s?tp=%s&amp;op=edit&amp;eid=%d'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $eventid);
 	echo("<table>\n");
 	printf("<tr><td class='label'>Datum:</td><td colspan=5><input type='text' name='Datum' value='%s' size=25'></td></tr>\n", strftime("%e %B %Y", strtotime($datum)));
-	printf("<tr><td class='label'>Omschrijving:</td><td colspan=5><input type='text' name='Omschrijving' value='%s' maxlength=75 size=100'></td></tr>\n", $oms);
+	printf("<tr><td class='label'>Omschrijving:</td><td colspan=5><input type='text' name='Omschrijving' value='%s' maxlength=50 size=75'></td></tr>\n", $oms);
 	printf("<tr><td class='label'>E-mail:</td><td colspan=5><input type='text' name='Email' value='%s' maxlength=45 size=50'></td></tr>\n", $email);
 	printf("<tr><td class='label'>Starttijd:</td><td><input type='text' name='Starttijd' value='%s' size=5 maxlength=5'></td>\n", $starttijd);
 	printf("<td class='label'>Eindtijd:</td><td><input type='text' name='Eindtijd' value='%s' size=5 maxlength=5'></td>\n", $eindtijd);
@@ -375,16 +376,18 @@ function muteertypeevenement() {
 				$soort = sprintf("soort_%d", $row->RecordID);
 				if (isset($_POST[$oms]) and $_POST[$oms] != $row->Omschrijving) {
 					$set_clause = sprintf("Omschrijving='%s', ", $_POST[$oms]);
-					$mess = sprintf("Omschrijving evenement %d is in '%s' gewijzigd. ", $row->RecordID, $_POST[$oms]);
+					$mess = sprintf("Omschrijving evenement type %d is in '%s' gewijzigd. ", $row->RecordID, $_POST[$oms]);
 				}
 				if (isset($_POST[$soort]) and $_POST[$soort] != $row->Soort) {
 					$set_clause .= sprintf("Soort='%s', ", $_POST[$soort]);
-					$mess = sprintf("Soort evenement %d is in '%s' gewijzigd.", $row->RecordID, $_POST[$soort]);
+					$mess = sprintf("De soort evenement type %d is in '%s' gewijzigd.", $row->RecordID, $_POST[$soort]);
 				}
 				if (strlen($set_clause) > 2) {
 					$set_clause .= sprintf("GewijzigdDoor=%d", $_SESSION['lidid']);
 					$query = sprintf("UPDATE %sEvenement_Type SET %s WHERE RecordID=%d;", $table_prefix, $set_clause, $row->RecordID);
-					$result = fnQuery($query);
+					if (fnQuery($query) == 0) {
+						$mess = sprintf("De wijzigingen in evenement type %d konden niet verwerkt worden.", $row->RecordID);
+					}
 				}
 			}
 		}
@@ -433,8 +436,8 @@ function overzichtevenementen() {
 	
 	foreach ($lijst as $row) {
 		$oms = $row->Omschrijving;
-		if (IsValidMailAddress($row->Email, 0)) {
-			$oms .= "<br>\nE-mail: " . fnDispEmail($row->Email, "", 1);
+		if (IsValidMailAddress($row->emlEmail, 0)) {
+			$oms .= "<br>\nE-mail: " . fnDispEmail($row->emlEmail, "", 1);
 		}
 		if (strlen($row->Starttijd) > 3) {
 			$td = "<br>\nStart: " . $row->Starttijd;
