@@ -328,7 +328,7 @@ function db_naamlid($lidid, $uitv="Naam", $riz="Onbekend") {
 	if (strlen($rv) == 0) {
 		$rv = $riz;
 	}
-	return htmlentities($rv);
+	return $rv;
 }
 
 function db_adressenlijst($filter = "O.Kader=True") {
@@ -473,7 +473,10 @@ function db_authorisation($actie, $recid=0, $tabpage="") {
 	if ($actie == "delete") {
 		if ($_SESSION['webmaster'] == 1) {
 			$query = sprintf("DELETE FROM %sAdmin_access WHERE RecordID=%d;", $table_prefix, $recid);
-			fnQuery($query);
+			if (fnQuery($query) > 0) {
+				$mess = sprintf("In de tabel 'Admin_access' is record %d verwijderd.", $recid);
+				db_logboek("add", $mess, 5);
+			}
 		} else {
 			echo("<p class='mededeling'>Je hebt geen rechten om authorisaties te verwijderen.</p>\n");
 		}
@@ -585,7 +588,7 @@ function db_lidond($actie, $lidid=0, $per="", $filter="") {
 			$filter = " WHERE " . $filter;
 		}
 		$query = sprintf("SELECT L.Nummer AS lnkNummer, IFNULL((%5\$s), 0) AS numLidnr, %1\$s AS `Naam_lid`, UPPER(L.Woonplaats) AS Woonplaats,
-								L.Mobiel, L.EMAIL AS `emlE-mail`, F.Omschrijv AS Functie, LO.Vanaf AS dteVanaf, LO.Opgezegd AS dteTotenmet, L.GEBDATUM AS ndGEBDATUM, %2\$s AS ndZoeknaam
+								L.Mobiel, L.EMAIL AS `emlE-mail`, F.Omschrijv AS Functie, LO.OPMERK AS Opmerking, LO.Vanaf AS dteVanaf, LO.Opgezegd AS dteTotenmet, L.GEBDATUM AS ndGEBDATUM, %2\$s AS ndZoeknaam
 								FROM %3\$s
 								%4\$s
 								ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectnaam, $selectzoeknaam, $fromlidond, $filter, $selectlidnr);
@@ -980,7 +983,7 @@ function db_logins($actie, $email="", $gewenstelogin="", $lidid=0, $xtrafilter="
 		} else {
 			$xtrawhere .= sprintf(" AND Login.LidID IN (%s)", implode(", ", $lididwebmasters));
 		}
-		$query = sprintf("SELECT Login.LidID, %3\$s AS NaamLid, L.Roepnaam, L.EMAIL, IFNULL((%4\$s), 0) AS Lidnr
+		$query = sprintf("SELECT Login.LidID, %3\$s AS NaamLid, L.Roepnaam, L.EMAIL, L.EmailVereniging, IFNULL((%4\$s), 0) AS Lidnr
 					FROM %1\$sAdmin_login AS Login INNER JOIN %1\$sLid AS L ON Login.LidID = L.Nummer
 					WHERE LENGTH(Login.Wachtwoord) > 5 %2\$s
 					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $table_prefix, $xtrawhere, $selectnaam, $selectlidnr);
@@ -1122,7 +1125,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 					MH.RecordID AS lnkRecordID
 					FROM (%2$sMailing_hist AS MH LEFT OUTER JOIN %2$sLid AS L ON MH.LidID = L.Nummer) INNER JOIN %2$sMailing AS M ON MH.MailingID = M.MailingID
 					WHERE MH.MailingID=%3$d
-					ORDER BY M.subject, MH.send_on DESC, L.Achternaam, L.Tussenv, MH.to_addr;', $selectnaam, $table_prefix, $mid);
+					ORDER BY MH.RecordID DESC;', $selectnaam, $table_prefix, $mid);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "lijst") {
@@ -1489,7 +1492,10 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 	global $table_prefix, $selectnaam, $selectzoeknaam, $wherelidond;
 
 	$xtra_where = "";
-	if ($actie == "komende") {
+	if ($actie == "oms") {
+		$query = sprintf("SELECT Omschrijving FROM %sEvenement WHERE RecordID=%d;", $table_prefix, $eventid);
+		return db_scalar($query);
+	} elseif ($actie == "komende") {
 		$query = sprintf("SELECT E.Datum, E.Omschrijving
 								FROM %sEvenement AS E
 								WHERE E.Datum >= CURDATE() AND E.Datum < DATE_ADD(CURDATE(), INTERVAL 2 MONTH) AND E.VerwijderdOp < '2012-01-01' AND E.ZichtbaarVoor IN %s
@@ -1511,8 +1517,10 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 			$where = sprintf("E.Datum >= DATE_ADD(CURDATE(), INTERVAL -3 DAY) AND E.VerwijderdOp < '2012-01-01' AND E.ZichtbaarVoor IN %s", $_SESSION['lidgroepen']);
 		}
 		$query = sprintf("SELECT E.RecordID AS lnkNummer, E.Datum AS dteDatum, DATE_FORMAT(E.Datum, '%3\$s') AS Starttijd, E.Omschrijving,
-								E.Email, E.Verzameltijd, E.Eindtijd,
-								CASE E.InschrijvingOpen WHEN 0 THEN 'Nee' ELSE 'Ja' END AS `Inschrijving open?`, ET.Omschrijving AS `Type evenement`
+								E.Email AS `emlEmail`, E.Verzameltijd, E.Eindtijd,
+								CASE E.InschrijvingOpen WHEN 0 THEN 'Nee' ELSE 'Ja' END AS `Ins. open?`,
+								(SELECT COUNT(*) FROM %1\$sEvenement_Deelnemer AS ED WHERE ED.EvenementID = E.RecordID AND Status='B') AS `Aantal dln`,
+								ET.Omschrijving AS `Type`
 								FROM %1\$sEvenement AS E INNER JOIN %1\$sEvenement_Type AS ET ON E.TypeEvenement = ET.RecordID
 								WHERE %2\$s
 								ORDER BY E.Datum;", $table_prefix, $where, "%H:%i");
@@ -1559,7 +1567,7 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 	} elseif ($actie == "adddeelnemer" and $lidid > 0 and $eventid > 0) {
 		$query = sprintf("INSERT INTO %sEvenement_Deelnemer SET LidID=%d, EvenementID=%d, Opmerking='%s', Status='%s', Ingevoerd=CURDATE(), GewijzigdDoor=%d;", $table_prefix, $lidid, $eventid, $opm, $stat, $_SESSION['lidid']);
 		fnQuery($query);
-		$mess = sprintf("%s is met status '%s' aan evenement %d toegevoegd.", db_naamlid($lidid), $stat, $eventid);
+		$mess = sprintf("%s is met status '%s' aan evenement %d (%s) toegevoegd.", db_naamlid($lidid), $stat, $eventid, db_evenement("oms", 0, $eventid));
 		db_logboek("add", $mess, 7);
 	} elseif ($actie == "updatedeelnemer" and $lidid > 0 and $eventid > 0) {
 		$query = sprintf("UPDATE %sEvenement_Deelnemer SET Opmerking='%s', Status='%s', Functie='%s', GewijzigdDoor=%d WHERE LidID=%d AND EvenementID=%d;", $table_prefix, $opm, $stat, $functie, $_SESSION['lidid'], $lidid, $eventid);
@@ -1568,7 +1576,7 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 		$query = sprintf("DELETE FROM %sEvenement_Deelnemer WHERE LidID=%d AND EvenementID=%d;", $table_prefix, $lidid, $eventid);
 		$result = fnQuery($query);
 		if ($result > 0) {
-			$mess = sprintf("Inschrijving bij evenement %d is bij %s verwijderd.", $eventid, db_naamlid($lidid));
+			$mess = sprintf("%s is bij evenement %d (%s) verwijderd.", db_naamlid($lidid), $eventid, db_evenement("oms", 0, $eventid));
 			db_logboek("add", $mess, 7);
 		}
 	} elseif ($actie == "opschonen") {
@@ -1935,7 +1943,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sEvenement` (
   `Datum` date NOT NULL,
   `Eindtijd` varchar(5) NOT NULL,
   `Verzameltijd` varchar(5) NOT NULL,
-  `Omschrijving` varchar(75) NOT NULL,
+  `Omschrijving` varchar(50) NOT NULL,
   `Email` varchar(45) NOT NULL,
   `TypeEvenement` int(11) NOT NULL,
   `InschrijvingOpen` tinyint(4) NOT NULL DEFAULT '1',
