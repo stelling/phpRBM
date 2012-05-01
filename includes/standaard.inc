@@ -183,8 +183,8 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if (count(db_insbew("export")) > 0) {
 		$tabpages[] = "Bewaking/Downloaden inschrijvingen";
 	}
-	if (db_scalar(sprintf("SELECT COUNT(*) FROM %sAdmin_activiteit WHERE TypeActiviteit=6;", $table_prefix)) > 0) {
-		$tabpages[] = "Bewaking/Logboek inschrijving";
+	if ($_SESSION['aantalbewaking'] > 0) {
+		$tabpages[] = "Bewaking/Logboek";
 	}
 	if ($_SESSION['aantalmutaties'] > 0) {
 		$tabpages[] = "Kostenoverzicht";
@@ -706,29 +706,6 @@ function change_month_to_uk($strdate) {
 	}
 	
 	return $strdate;
-}
-
-function strongPassword($psPassword, array $paCommonWords = null) {
-    if ($paCommonWords !== null) {
-        $psCommonWords = implode('|', array_map('preg_quote', $paCommonWords));
-    }
-
-    /*
-     * Strong password with the following requirements.
-     * - At least 7 characters long.
-     * - At least 1 uppercase, AND at least 1 lowercase
-     * - At least 1 digit OR at least 1 alphanumeric.
-     * - No spaces
-     */
-    if (!preg_match('~^(?=[^a-z]*[a-z])(?=[^A-Z]*[A-Z])(?=\D*\d)(?=[A-Za-z0-9]*[^A-Za-z0-9])\S{7,}$~', $psPassword)) {
-        return false;
-    }
-    // Look for common words, like for example is same as the username
-    elseif ($paCommonWords !== null && preg_match('{' . $psCommonWords . '}i', $psPassword)) {
-        return false;
-    }
-
-    return true;
 }
 
 class RBMmailer extends PHPMailer {
