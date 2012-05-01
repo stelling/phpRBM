@@ -47,7 +47,14 @@ function toegang($soort, $melding=1) {
 				} else {
 					$_SESSION['roepnaamingelogde'] = trim($row->Roepnaam);
 				}
-				$_SESSION['emailingelogde'] = $row->EMAIL;
+				if (isValidMailAddress($row->EmailVereniging, 0)) {
+					$_SESSION['emailingelogde'] = $row->EmailVereniging;
+				} elseif (isValidMailAddress($row->EMAIL, 0)) {
+					$_SESSION['emailingelogde'] = $row->EMAIL;
+				} else {
+					$_SESSION['emailingelogde'] = "";
+				}
+
 				$query = sprintf("UPDATE %sAdmin_login SET LastLogin=SYSDATE(), Ingelogd=1, FouteLogin=0 WHERE Ingelogd=0 AND LidID=%d;", $table_prefix, $_SESSION['lidid']);
 				$result = fnQuery($query);
 				if ($result > 0) {
