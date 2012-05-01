@@ -113,7 +113,7 @@ function fnBewaking() {
 		echo(DetailsInschrijvingBewaking($lijst));
 	} elseif ($currenttab2 == "Downloaden inschrijvingen" and toegang($_GET['tp'])) {
 		exportinschrijvingen();
-	} elseif ($currenttab2 == "Logboek inschrijving" and toegang($_GET['tp'])) {
+	} elseif ($currenttab2 == "Logboek" and toegang($_GET['tp'])) {
 		$lijst = db_logboek("lijst", "", 6, $_POST['lidfilter']);
 		echo(fnDisplayTable($lijst));
 	}
