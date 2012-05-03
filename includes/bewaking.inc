@@ -32,7 +32,7 @@ function fnBewaking() {
 	
 	if ($currenttab2 == "Downloaden inschrijvingen") {
 		// Geen filter tonen
-	} elseif ($currenttab2 == "Logboek inschrijving") {
+	} elseif ($currenttab2 == "Logboek") {
 		if (!isset($_POST['lidfilter']) or strlen($_POST['lidfilter']) == 0) {
 			$_POST['lidfilter'] = 0;
 		}
@@ -55,9 +55,9 @@ function fnBewaking() {
 		}
 		
 		if ($currenttab2 == "Overzicht inschrijvingen") {
-			$bs_res=db_bewaking_seizoenen(1);
+			$bs_res=db_bewaking("insseizoenen");
 		} else {
-			$bs_res=db_bewaking_seizoenen();
+			$bs_res=db_bewaking("seizoenen");
 		}
 		foreach($bs_res->fetchAll() as $row) {
 			if ($seizoen == $row->RecordID or $seizoen == 0) {
@@ -74,11 +74,11 @@ function fnBewaking() {
 		if ($currenttab2 != "Aantallen") {
 			echo("<td class='label'>Bewakingsweek:</td>\n");
 			echo("<td><select name='week' id='week' onchange='form.submit();'>\n");
-			print("<option value='-1'>Alle</option>\n");
+			print("<option value=-1>Alle</option>\n");
 			if ($currenttab2 == "Overzicht inschrijvingen") {
 				$rows = db_insbew("blokken", 0, 0, 0, 0, "", $seizoen);
 			} else {
-				$rows = db_bewaking_aantallen($seizoen);
+				$rows = db_bewaking("aantallen", $seizoen);
 			}
 			foreach($rows as $row) {
 				if ($week == $row->Weeknr or strlen($week) == 0) {
@@ -87,7 +87,7 @@ function fnBewaking() {
 				} else {
 					$sel = "";
 				}
-				printf("<option value='%d'%s>%d</option>\n", $row->Weeknr, $sel, $row->Weeknr);
+				printf("<option value=%d%s>%d</option>\n", $row->Weeknr, $sel, $row->Weeknr);
 			}
 			echo("</select>\n</td>\n");
 		}
@@ -101,8 +101,8 @@ function fnBewaking() {
 	} elseif ($currenttab2 == "Postindeling") {
 		bew_postindeling($seizoen, $week);
 	} elseif ($currenttab2 == "Aantallen" and toegang($_GET['tp'])) {
-		$lijst = db_bewaking_aantallen($seizoen);
-		echo(fnDisplayTable($lijst));
+		$lijst = db_bewaking("aantallen", $seizoen);
+		echo(fnDisplayTable($lijst, "", "", 0, "", "", "bewakingsaantallen"));
 	} elseif ($currenttab2 == "Nieuwe pasfoto") {
 		$filterlid = sprintf("L.Nummer IN (SELECT Lid FROM %1\$sBewaking AS BW INNER JOIN %1\$sBewseiz AS BS ON BW.SeizoenID=BS.RecordID WHERE BS.Afgesloten=0)", $table_prefix);
 		nieuwepasfoto(0, $filterlid);
@@ -121,7 +121,7 @@ function fnBewaking() {
 
 function bew_rooster($seizoen, $week=-1) {
 
-	$rooster = db_bewakingsrooster($seizoen, $week);
+	$rooster = db_bewaking("rooster", $seizoen, 0, $week);
 	$wk = "";
 	$aantalbewdag = 0;
 	$aantalond = db_onderdelen("bw", 1);
@@ -185,7 +185,7 @@ function bew_rooster($seizoen, $week=-1) {
 
 function bew_postindeling($seizoen, $week=-1) {
 
-	$lijst = db_bewakingsrooster($seizoen, $week);
+	$lijst = db_bewaking("rooster", $seizoen, 0, $week);
 		
 	$vw = -1;
 	$vp = "";
