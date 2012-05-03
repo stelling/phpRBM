@@ -133,10 +133,7 @@ function muteerevenement($eventid) {
 		}
 		
 		if ($eventid == 0) {
-			$query = sprintf("INSERT INTO %sEvenement SET Ingevoerd = CURDATE();", $table_prefix);
-			$eventid = fnQuery($query);
-			$mess = sprintf("Evenement %d is toegevoegd.", $eventid);
-			db_logboek("add", $mess, 7);
+			$eventid = db_evenement("add");
 		}
 		
 		$old = db_evenement("record", 0, $eventid);
@@ -365,10 +362,8 @@ function muteertypeevenement() {
 	} elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
 		if (isset($_POST['oms_nw']) and strlen($_POST['oms_nw']) > 0) {
 			$query = sprintf("INSERT INTO %sEvenement_Type SET Omschrijving='%s', Ingevoerd=CURDATE();", $table_prefix, $_POST['oms_nw']);
-			$result = fnQuery($query);
-			if ($result > 0) {
-				$mess = sprintf("Type evenement %d is toegevoegd.", $result);
-			}
+			$id = fnQuery($query);
+			$mess = sprintf("Type evenement %d is toegevoegd.", $id);
 		} else {
 			foreach (db_evenement("types") as $row) {
 				$set_clause = "";

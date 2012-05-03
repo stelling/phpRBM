@@ -54,16 +54,12 @@ function toegang($soort, $melding=1) {
 				} else {
 					$_SESSION['emailingelogde'] = "";
 				}
+				
+				db_logins("setingelogd", "", "", $_SESSION['lidid']);
 
-				$query = sprintf("UPDATE %sAdmin_login SET LastLogin=SYSDATE(), Ingelogd=1, FouteLogin=0 WHERE Ingelogd=0 AND LidID=%d;", $table_prefix, $_SESSION['lidid']);
-				$result = fnQuery($query);
-				if ($result > 0) {
-					$mess = sprintf("%s is met '%s' ingelogd.", $_SESSION['naamingelogde'], $_SESSION['username']);
-					db_logboek("add", $mess, 1);
-				}
 			} else {
 				if (isset($_SESSION['password']) and strlen($_SESSION['password']) > 1) {
-					$mess = sprintf("Er is geprobleerd in te loggen met '%s'.", $_SESSION['username']);
+					$mess = sprintf("Er is geprobeerd met login '%s' in te loggen.", $_SESSION['username']);
 					db_logboek("add", $mess, 1);
 				}
 				$_SESSION['username'] = "";
@@ -98,8 +94,7 @@ function toegang($soort, $melding=1) {
 	}
 	
 	if ($_SESSION['lidid'] > 0) {
-		$query = sprintf("UPDATE %sAdmin_login SET LastActivity=SYSDATE() WHERE LidID=%d;", $table_prefix, $_SESSION['lidid']);
-		fnQuery($query);
+		db_logins("updateactiviteit", "", "", $_SESSION['lidid']);
 	}
 	
 	if (in_array($soort, array('Verenigingsinfo', 'Beginpagina')) === TRUE) {
@@ -374,7 +369,7 @@ function fnLoginAanvragen() {
 	}
 }
 
-function encript_decript($text, $encr = 1) {
+function encript_decript($text, $encr=1) {
 	global $encript_key;
 	$retval = "";
 
