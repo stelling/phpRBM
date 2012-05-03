@@ -921,7 +921,7 @@ class mailing {
 		$query = sprintf("UPDATE %sMailing SET deleted_on=NOW(), DeletedBy=%d WHERE MailingID=%d;", $table_prefix, $_SESSION['lidid'], $this->mid);
 		$result = fnQuery($query);
 		if ($result > 0) {
-			$mess = sprintf("Mailing %d is door %s naar de prullenbak verplaatst.", $this->mid, db_naamlid($_SESSION['lidid']));
+			$mess = sprintf("Mailing %d (%s) is door %s naar de prullenbak verplaatst.", $this->mid, $this->subject, $_SESSION['naamingelogde']);
 			db_logboek("add", $mess, 4);
 		}
 	}
