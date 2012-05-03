@@ -161,7 +161,8 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 	echo("</form>\n");
 	echo("</div>  <!-- Einde filter -->\n");
 	
-	echo(fnDisplayTable(db_logboek("lijst", "", $_POST['typefilter'], $_POST['lidfilter'])));
+	$rows = db_logboek("lijst", "", $_POST['typefilter'], $_POST['lidfilter']);
+	echo(fnDisplayTable($rows, "", "", 0, "", "", "logboek"));
 } elseif (toegang("Info")) {
 	phpinfo();
 }
