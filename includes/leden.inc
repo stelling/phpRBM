@@ -465,7 +465,7 @@ function fnLedenlijst() {
 			if (strlen($filter) > 0) {$filter .= " AND "; }
 			$filter .= "(NOT LM.Opgezegd IS NULL) AND LM.Opgezegd < CURDATE()";
 		}
-		$rows = db_ledenlijst($filter);
+		$rows = db_lid("ledenlijst", $filter);
 	} else {
 		if (strlen($filter) > 0) {$filter .= " AND ";}
 		$filter .= sprintf("LO.OnderdeelID=%d", $val_groep);
@@ -639,7 +639,7 @@ function overzichtverjaardagen($metfoto=1) {
 		$dteHV = mktime(0, 0, 0, date("m"), date("d")+$i, date("Y"));
 		$w = sprintf("DAY(L.GEBDATUM)=%d AND MONTH(L.GEBDATUM)=%d", date("d", $dteHV), date("m", $dteHV))
 			. " AND LM.LIDDATUM <= CURDATE() AND ((LM.Opgezegd IS NULL) OR LM.Opgezegd > CURDATE())";
-		foreach(db_ledenlijst($w) as $row) {
+		foreach(db_lid("ledenlijst", $w) as $row) {
 			if ($i == 0) {
 // >= 5.3					$interval = date_diff(date_create($row->ndGEBDATUM), date_create("now"));
 // >= 5.3					$t = sprintf("%s is vandaag %d jaar geworden", $row->Naam_lid, $interval->format('%y'));	
@@ -787,7 +787,7 @@ function nieuwepasfoto($lidid=0, $filterlid="") {
 	}
 	
 	$optionslid = "<option value=-1>Selecteer lid ...</option>\n";
-	foreach (db_lid($filterlid) as $row) {
+	foreach (db_lid("lijst", $filterlid) as $row) {
 		$optionslid .= sprintf("<option value=%1\$d>%2\$s (%1\$d)</option>\n", $row->Nummer, htmlentities($row->Zoeknaam));
 	}
 
