@@ -575,13 +575,10 @@ class mailing {
 	}
 	
 	public function post_form() {
-		global $naamvereniging, $beperkfrom;
+		global $naamvereniging, $beperkfrom, $table_prefix;
 		
 		if ($this->mid == 0) {
-			$query = sprintf("INSERT INTO Mailing SET new_on=SYSDATE(), AddedBy=%d;", $_SESSION['lidid']);
-			$this->mid = fnQuery($query);
-			$oms = sprintf("Mailing %d is door %s toegevoegd.", $this->mid, $_SESSION['naamingelogde']);
-			db_logboek("add", $oms, 4);
+			$this->mid = db_mailing("add", 0, 0, "", $_POST['subject']);
 		}
 	
 		if (!isset($_POST['from_name']) or strlen($_POST['from_name']) == 0) {
@@ -631,7 +628,7 @@ class mailing {
 		}
 		if (strlen($setclause) > 0) {
 			$setclause .= sprintf("changed_on=SYSDATE(), ChangedBy=%d", $_SESSION['lidid']);
-			$query  = sprintf("UPDATE Mailing SET %s WHERE MailingID=%d;", $setclause, $this->mid);
+			$query  = sprintf("UPDATE %sMailing SET %s WHERE MailingID=%d;", $table_prefix, $setclause, $this->mid);
 			fnQuery($query);
 			$oms = sprintf("In mailing %d zijn de volgende velden aangepast. %s", $this->mid, $oms);
 			db_logboek("add", $oms, 4);
