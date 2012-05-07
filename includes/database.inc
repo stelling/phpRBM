@@ -41,6 +41,7 @@ $TypeActiviteit[] = "Upload data";  // 9
 $TypeActiviteit[99] = "Debugging";
 
 $fdlang = "'%e %M %Y'";
+$fdtlang = "'%e %M %Y (%H:%i)'";
 $fdkort = "'%e-%c-%Y'";
 $fdaccess = "%m/%d/%Y";
 $fdsql = "%Y-%m-%d";
@@ -1137,7 +1138,7 @@ function db_add_mailing_hist($LidID, $MailingID, $to_name, $to_addr, $message=""
 }
 
 function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $email="") {
-	global $selectnaam, $selectzoeknaam, $table_prefix, $naamvereniging, $bewaartijdmailings;
+	global $selectnaam, $selectzoeknaam, $table_prefix, $naamvereniging, $bewaartijdmailings, $fdtlang;
 	
 	if ($actie == "histdetails" and $rid > 0) {
 		$query = sprintf("SELECT send_on, from_addr, from_name, to_name, to_addr, cc_addr, subject, message
@@ -1158,7 +1159,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		if ($filter == "Concepten" or $filter == "Verzonden") {
 			if ($filter == "Verzonden") {
 				$w = "(NOT M.sent_on IS NULL)";
-				$xtra_sel = ", M.sent_on `dteVerzonden op`";
+				$xtra_sel = sprintf(", CONCAT((SELECT %s FROM %sLid WHERE Nummer=M.SentBy), ' & ', DATE_FORMAT(M.sent_on, %s)) AS `mrgLaatst verzonden`", $selectnaam, $table_prefix, $fdtlang);
 			} else {
 				$w = "(M.sent_on IS NULL)";
 			}
@@ -1177,9 +1178,11 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 			$w = "(M.deleted_on IS NULL)";
 		}
 		$query = sprintf("SELECT M.MailingID AS lnkMailingID, M.MailingID AS intNr, M.subject AS Onderwerp, M.from_name AS Van, M.to_name AS Aan,
-					%1\$s AS `Laatst gewijzigd door` %2\$s, IF(M.sent_on > M.new_on, M.MailingID, 0) AS llkHist
+					CONCAT(%1\$s, ' & ', DATE_FORMAT(M.changed_on, %6\$s)) AS `mrgLaatst gewijzigd`
+					%2\$s,
+					IF(M.sent_on > M.new_on, M.MailingID, 0) AS llkHist
 					FROM %3\$sMailing AS M LEFT JOIN %3\$sLid AS L ON M.ChangedBy = L.Nummer
-					WHERE %4\$s ORDER BY %5\$s;", $selectnaam, $xtra_sel, $table_prefix, $w, $orderby);
+					WHERE %4\$s ORDER BY %5\$s;", $selectnaam, $xtra_sel, $table_prefix, $w, $orderby, $fdtlang);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
@@ -1203,11 +1206,11 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 	} elseif ($actie == "aantalprullenbak") {
 		$query = sprintf("SELECT COUNT(*) FROM %sMailing WHERE (NOT deleted_on IS NULL);", $table_prefix);
 		return db_scalar($query);
-	} elseif ($actie == "add" and strlen($subj) > 0) {
-		$query = sprintf("INSERT INTO %sMailing (from_name, from_addr, subject, template, confidential, new_on, AddedBy)
-								VALUES ('%s', '%s', '%s', 0, 0, SYSDATE(), %d);", $table_prefix, $naamvereniging, $email, $subj, $_SESSION['lidid']);
+	} elseif ($actie == "add") {
+		$query = sprintf("INSERT INTO %sMailing (from_name, subject, template, confidential, new_on, AddedBy)
+								VALUES ('%s', '%s', 0, 0, SYSDATE(), %d);", $table_prefix, $naamvereniging, $subj, $_SESSION['lidid']);
 		$id = fnQuery($query);
-		$mess = sprintf("Mailing %s (%d) is door %s toegevoegd.", $subj, $id, $_SESSION['naamingelogde']);
+		$mess = sprintf("Mailing %d (%s) is door %s toegevoegd.", $id, $subj, $_SESSION['naamingelogde']);
 		db_logboek("add", $mess, 4);
 		return $id;
 		
@@ -1544,14 +1547,14 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 		} else {
 			$where = sprintf("E.Datum >= DATE_ADD(CURDATE(), INTERVAL -3 DAY) AND E.VerwijderdOp < '2012-01-01' AND E.ZichtbaarVoor IN %s", $_SESSION['lidgroepen']);
 		}
-		$query = sprintf("SELECT E.RecordID AS lnkNummer, E.Datum AS dteDatum, DATE_FORMAT(E.Datum, '%3\$s') AS Starttijd, E.Omschrijving,
+		$query = sprintf("SELECT E.RecordID AS lnkNummer, E.Datum AS dteDatum, DATE_FORMAT(E.Datum, '%%H:%%i') AS Starttijd, E.Omschrijving,
 								E.Email AS `emlEmail`, E.Verzameltijd, E.Eindtijd,
 								CASE E.InschrijvingOpen WHEN 0 THEN 'Nee' ELSE 'Ja' END AS `Ins. open?`,
 								(SELECT COUNT(*) FROM %1\$sEvenement_Deelnemer AS ED WHERE ED.EvenementID = E.RecordID AND Status='B') AS `Aantal dln`,
 								ET.Omschrijving AS `Type`
 								FROM %1\$sEvenement AS E INNER JOIN %1\$sEvenement_Type AS ET ON E.TypeEvenement = ET.RecordID
 								WHERE %2\$s
-								ORDER BY E.Datum;", $table_prefix, $where, "%H:%i");
+								ORDER BY E.Datum;", $table_prefix, $where);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
