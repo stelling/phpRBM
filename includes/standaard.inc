@@ -560,7 +560,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 			if ($dispkop == 1) {
 				$hv = "<tr>";
 				foreach($row as $key => $value) {
-					if (strstr("dte, dtt, dtl, boo, int, cur, eml, num", substr($key, 0, 3)) !== false) {
+					if (strstr("dte, dtt, dtl, boo, int, cur, eml, num, mrg", substr($key, 0, 3)) !== false) {
 						$hv .= sprintf("<th>%s</th>", str_replace("_", " ", substr($key, 3)));
 						$ktot[] = 0;
 					} elseif (strstr("lnk", substr($key, 0, 3)) !== false or strstr("llk", substr($key, 0, 3)) !== false) {
@@ -622,6 +622,8 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 					$ret .= sprintf("<td>%s</td>", fnDispEmail($value, "", 1));
 				} elseif (substr($key, 0, 3) == "num") {
 					$ret .= sprintf("<td class='number'>%s</td>", $value);
+				} elseif (substr($key, 0, 3) == "mrg") {
+					$ret .= sprintf("<td>%s</td>", str_replace(" &amp; ", "<br>", htmlentities($value)));
 				} elseif (substr($key, 0, 2) != "nd") {
 					$ret .= sprintf("<td>%s</td>", htmlentities($value));
 				}
