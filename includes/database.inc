@@ -858,21 +858,21 @@ function db_stats($lidid=0) {
 	return $stats;
 }
 
-function db_logins($actie, $email="", $gewenstelogin="", $lidid=0, $xtrafilter="") {
+function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 	global $dbc, $selectnaam, $selectlidnr, $beperktotgroep, $table_prefix, $lididwebmasters, $wherelidond, $wherelid, $gebruikopenid, $lidnrnodigbijloginaanvraag;
 	global $scriptbijuitloggen, $maxinlogpogingen, $bewaartijdlogins, $maxlengtelogin, $beperktotgroep, $naamvereniging;
 	
 	$mess = "";
-	if ($actie == "nieuwlogin" and isValidMailAddress($email) and strlen($gewenstelogin) > 5) {
+	if ($actie == "nieuwlogin" and isValidMailAddress($email) and strlen($login) > 5) {
 		$query = sprintf("SELECT L.Nummer, Login.Login FROM %1\$sLid AS L LEFT OUTER JOIN %1\$sAdmin_login AS Login ON L.Nummer = Login.LidID
 								WHERE (LOWER(L.EMAIL)='%2\$s' OR LOWER(L.EmailVereniging)='%2\$s')", $table_prefix, strtolower($email));
 		$result = fnQuery($query);
 		$row = $result->fetch();
 		if (isset($row->Nummer) and $row->Nummer > 0) {
-			if (strlen($row->Login) > 5 and $row->Login != $gewenstelogin) {
+			if (strlen($row->Login) > 5 and $row->Login != $login) {
 				$mess = sprintf("Er is al een ander login aan dit emailadres gekoppeld.");
-			} elseif (strlen($gewenstelogin) > 5 and strlen($gewenstelogin <= 15)) {
-				$mess = db_logins("add", "", $gewenstelogin, $row->Nummer);
+			} elseif (strlen($login) > 5 and strlen($login <= 15)) {
+				$mess = db_logins("add", "", $login, $row->Nummer);
 			}
 		} else {
 			$mess = sprintf("E-mailadres '%s' is onbekend in onze database. Er wordt geen login aangemaakt.");
@@ -880,14 +880,12 @@ function db_logins($actie, $email="", $gewenstelogin="", $lidid=0, $xtrafilter="
 		db_logboek("add", $mess, 1);
 		return $mess;
 	} elseif ($actie == "add") {
-		$login = cleanlogin($gewenstelogin);
+		$login = cleanlogin($login);
 		$query = sprintf("SELECT Login FROM %sAdmin_login WHERE LidID=%d;", $table_prefix, $lidid);
 		$l = db_scalar($query);
 		$ok = false;
 		if (strlen($l) == 0) {
-			$query = sprintf("SELECT COUNT(*) FROM %sAdmin_login WHERE Login='%s' AND LidID<>%d;", $table_prefix, $login, $lidid);
-			$result = fnQuery($query);
-			if ($result->fetchColumn() > 0) {
+			if (db_logins("controlebestaat", "", $login, $lidid)) {
 				$mess = sprintf("Login '%s' is al in gebruik bij een ander lid.", $login);
 				db_logboek("add", $mess, 1);
 			} elseif (strlen($login) > 5 and $lidid > 0) {
@@ -899,11 +897,11 @@ function db_logins($actie, $email="", $gewenstelogin="", $lidid=0, $xtrafilter="
 		} else {
 			$mess = sprintf("%s heeft al een login, er wordt geen nieuwe aangemaakt.", db_naamlid($lidid));
 		}
-		db_logboek("add", $mess, 1);
-		db_logins("wachtwoordenvullen");
 		if (strlen($mess) > 0) {
 			printf("<p class='mededeling'>%s</p>\n", $mess);
+			db_logboek("add", $mess, 1);
 		}
+		db_logins("wachtwoordenvullen");
 		return $ok;
 		
 	} elseif ($actie == "rowlogin" and (isValidMailAddress($email, 0) or $lidid > 0)) {
@@ -925,9 +923,13 @@ function db_logins($actie, $email="", $gewenstelogin="", $lidid=0, $xtrafilter="
 		$result = fnQuery($query);
 		return $result->fetch();
 		
-	} elseif ($actie == "controlebestaat" and strlen($gewenstelogin) > 5) {
-		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_login WHERE Login='%s' AND LidID<>%d;", $table_prefix, $gewenstelogin, $lidid);
-		return db_scalar($query);
+	} elseif ($actie == "controlebestaat" and strlen($login) > 5) {
+		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_login WHERE Login='%s' AND LidID<>%d;", $table_prefix, $login, $lidid);
+		if (db_scalar($query) > 0) {
+			return true;
+		} else {
+			return false;
+		}
 		
 	} elseif ($actie == "uitloggen") {
 		$query = sprintf("UPDATE %sAdmin_login SET Ingelogd=0 WHERE Ingelogd=1 AND (LastActivity < ADDDATE(SYSDATE(), INTERVAL -21 MINUTE) OR LidID=%d);", $table_prefix, $lidid);
@@ -1072,6 +1074,9 @@ function db_logins($actie, $email="", $gewenstelogin="", $lidid=0, $xtrafilter="
 			$mess = sprintf("Er zijn %d logins verwijderd, omdat ze niet binnen 2 weken nadat ze aangevraagd zijn gebruikt zijn.", $result, $bewaartijdlogins);
 			db_logboek("add", $mess, 2);
 		}
+	} else {
+		$mess = sprintf("onbekende actie '%s' in db_logins", $actie);
+		debug($mess, 1, 0, 1);
 	}
 }
 
