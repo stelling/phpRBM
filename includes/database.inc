@@ -917,12 +917,16 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 		}
 		$query .= sprintf(" FROM %1\$sLid AS L LEFT OUTER JOIN %1\$sAdmin_login AS Login ON L.Nummer = Login.LidID WHERE ", $table_prefix);
 		if (isValidMailAddress($email, 0)) {
-			$query .= sprintf("(LOWER(L.EMAIL)='%1\$s' OR LOWER(L.EmailVereniging)='%1\$s');", strtolower($email));
+			$query .= sprintf("(LOWER(L.EMAIL)='%1\$s' OR LOWER(L.EmailVereniging)='%1\$s')", strtolower($email));
 		} else {
-			$query .= sprintf("L.Nummer=%d;", $lidid);
+			$query .= sprintf("L.Nummer=%d", $lidid);
 		}
+		if (strlen($xtrafilter) > 0) {
+			$query .= " AND " . $xtrafilter;
+		}
+		$query .= ";";
 		$result = fnQuery($query);
-		return $result->fetch();
+		return $result->fetchAll();
 		
 	} elseif ($actie == "controlebestaat" and strlen($login) > 5) {
 		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_login WHERE Login='%s' AND LidID<>%d;", $table_prefix, $login, $lidid);
@@ -1137,7 +1141,7 @@ function db_add_mailing_hist($LidID, $MailingID, $to_name, $to_addr, $message=""
 	}
 }
 
-function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $email="") {
+function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $email="", $aan="") {
 	global $selectnaam, $selectzoeknaam, $table_prefix, $naamvereniging, $bewaartijdmailings, $fdtlang;
 	
 	if ($actie == "histdetails" and $rid > 0) {
@@ -1173,7 +1177,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		} elseif ($filter == "Prullenbak") {
 			$w = "(NOT M.deleted_on IS NULL)";
 			$orderby = "M.deleted_on DESC";
-			$xtra_sel = ", M.deleted_on `dteVerwijderd op`";
+			$xtra_sel = sprintf(", CONCAT((SELECT %s FROM %sLid AS L WHERE Nummer=M.DeletedBy), ' & ', DATE_FORMAT(M.deleted_on, %s)) AS `mrgVerwijderd`", $selectnaam, $table_prefix, $fdtlang);
 		} else {
 			$w = "(M.deleted_on IS NULL)";
 		}
@@ -1206,9 +1210,10 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 	} elseif ($actie == "aantalprullenbak") {
 		$query = sprintf("SELECT COUNT(*) FROM %sMailing WHERE (NOT deleted_on IS NULL);", $table_prefix);
 		return db_scalar($query);
+		
 	} elseif ($actie == "add") {
-		$query = sprintf("INSERT INTO %sMailing (from_name, subject, template, confidential, new_on, AddedBy)
-								VALUES ('%s', '%s', 0, 0, SYSDATE(), %d);", $table_prefix, $naamvereniging, $subj, $_SESSION['lidid']);
+		$query = sprintf("INSERT INTO %sMailing (from_name, from_addr, to_name, subject, new_on, AddedBy)
+								VALUES ('%s', '%s', '%s', '%s', SYSDATE(), %d);", $table_prefix, $naamvereniging, $email, $aan, $subj, $_SESSION['lidid']);
 		$id = fnQuery($query);
 		$mess = sprintf("Mailing %d (%s) is door %s toegevoegd.", $id, $subj, $_SESSION['naamingelogde']);
 		db_logboek("add", $mess, 4);
@@ -1584,8 +1589,10 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 		return $result->fetchAll();
 		
 	} elseif ($actie == "deelnemers") {
-		if (strlen($stat) > 0) {
+		if (strlen($stat) == 1) {
 			$xtra_where = sprintf("AND ED.Status='%s'", $stat);
+		} elseif (strlen($stat) > 1) {
+			$xtra_where = sprintf("AND ED.Status IN (%s)", $stat);
 		}
 		$query = sprintf("SELECT ED.RecordID, %1\$s AS NaamDeelnemer, ED.Status, ED.Opmerking, ED.Functie, ED.LidID, L.Geslacht, ED.Ingevoerd
 								FROM %2\$sEvenement_Deelnemer AS ED INNER JOIN %2\$sLid AS L ON ED.LidID = L.Nummer
@@ -2185,7 +2192,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sMailing` (
   `subject` varchar(75) DEFAULT NULL,
   `message` text,
   `template` tinyint(4) NOT NULL DEFAULT '0',
-  `confidential` tinyint(4) NOT NULL DEFAULT '1',
+  `confidential` tinyint(4) NOT NULL DEFAULT '0',
   `verzamelen` tinyint(4) NOT NULL DEFAULT '0',
   `new_on` datetime DEFAULT NULL,
   `AddedBy` int(11) NOT NULL,
