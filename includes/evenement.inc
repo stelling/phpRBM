@@ -184,15 +184,15 @@ function muteerevenement($eventid) {
 		}
 		
 		if (isset($_POST['maildeeln']) or isset($_POST['mailpotdeeln']) or isset($_POST['mailbeidedeeln'])) {
-			$mid = db_mailing("add", 0, 0, "", $_POST['omschrijving'], 0, $_POST['email']);			
+			$mid = db_mailing("add", 0, 0, "", $_POST['Omschrijving'], 0, $_POST['Email'], "Deelnemers " . $_POST['Omschrijving']);
 			if (isset($_POST['maildeeln']) or isset($_POST['mailbeidedeeln'])) {
-				foreach (db_evenement("deelnemers", 0, $eventid) as $row) {
-					db_mailing("add_rcpt", $mid, 0, "", "", $row->LidID);
+				foreach (db_evenement("deelnemers", 0, $eventid, "", "'B', 'I', 'R', 'T'") as $row) {
+					db_mailing("addrcpt", $mid, 0, "", "", $row->LidID);
 				}
 			} 
 			if (isset($_POST['mailpotdeeln']) or isset($_POST['mailbeidedeeln'])) {
 				foreach (db_evenement("potdeelnemers", 0, $eventid) as $row) {
-					db_mailing("add_rcpt", $mid, 0, "", "", $row->Nummer);
+					db_mailing("addrcpt", $mid, 0, "", "", $row->Nummer);
 				}
 			}
 			printf("<script>location.href='%s?tp=Mailing/Concepten&op=edit&mid=%d'</script>\n", $_SERVER['PHP_SELF'], $mid);
@@ -267,7 +267,7 @@ function muteerevenement($eventid) {
 	echo("<table>\n");
 	printf("<tr><td class='label'>Datum:</td><td colspan=5><input type='text' name='Datum' value='%s' size=25'></td></tr>\n", strftime("%e %B %Y", strtotime($datum)));
 	printf("<tr><td class='label'>Omschrijving:</td><td colspan=5><input type='text' name='Omschrijving' value='%s' maxlength=50 size=75'></td></tr>\n", $oms);
-	printf("<tr><td class='label'>E-mail:</td><td colspan=5><input type='text' name='Email' value='%s' maxlength=45 size=50'></td></tr>\n", $email);
+	printf("<tr><td class='label'>E-mail:</td><td colspan=5><input type='email' name='Email' value='%s' maxlength=45 size=50'></td></tr>\n", $email);
 	printf("<tr><td class='label'>Starttijd:</td><td><input type='text' name='Starttijd' value='%s' size=5 maxlength=5'></td>\n", $starttijd);
 	printf("<td class='label'>Eindtijd:</td><td><input type='text' name='Eindtijd' value='%s' size=5 maxlength=5'></td>\n", $eindtijd);
 	printf("<td class='label'>Verzamelen:</td><td><input type='text' name='Verzameltijd' value='%s' size=5 maxlength=5'></td></tr>\n", $verzameltijd);
