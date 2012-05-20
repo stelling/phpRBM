@@ -1173,6 +1173,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 			}
 		} elseif ($filter == "Templates") {
 			$w = "M.template=1 AND (deleted_on IS NULL)";
+			$xtra_sel = sprintf(", CONCAT((SELECT %s FROM %sLid WHERE Nummer=M.SentBy), ' & ', DATE_FORMAT(M.sent_on, %s)) AS `mrgLaatst verzonden`", $selectnaam, $table_prefix, $fdtlang);
 			$orderby = "M.subject, sent_on";
 		} elseif ($filter == "Prullenbak") {
 			$w = "(NOT M.deleted_on IS NULL)";
