@@ -34,10 +34,16 @@
 		header ("Location: " . $_GET['url']);
    } elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$_SESSION['username'] = cleanlogin($_POST['username']);
-		$_SESSION['password'] = substr($_POST['password'], 0, 12);
+		if (strlen($_POST['password']) > 12) {
+			$_SESSION['password'] = substr($_POST['password'], 0, 12);
+		} else {
+			$_SESSION['password'] = $_POST['password'];
+		}
       if (isset($_POST['cookie']) and $_POST['cookie'] == 1) {                                    
 			setcookie("username", $_SESSION['username'], time()+(3600*24*30*$bewaartijdlogins));
-			setcookie("password", $_SESSION['password'], time()+(3600*24*30*$bewaartijdlogins));
+			if (strlen($_SESSION['password']) > 5) {
+				setcookie("password", $_SESSION['password'], time()+(3600*24*30*$bewaartijdlogins));
+			}
       } else {
 			setcookie("username", "", time()-3600);
 			setcookie("password", "", time()-3600);
@@ -51,7 +57,11 @@
    } else {
 		if (!isset($_SESSION['username']) and isset($_COOKIE['username'])) {
 			$_SESSION['username'] = cleanlogin($_COOKIE['username']);
-			$_SESSION['password'] = substr($_COOKIE['password'], 0, 12);
+			if (strlen($_COOKIE['password']) > 12) {
+				$_SESSION['password'] = substr($_COOKIE['password'], 0, 12);
+			} elseif (strlen($_COOKIE['password']) > 5) {
+				$_SESSION['password'] = $_COOKIE['password'];
+			}
 		}
 		echo("<script>\nhistory.go(-1);\n</script>\n");
 	}

@@ -295,7 +295,7 @@ function HTMLheader() {
 			}
 		} else {
 			echo("Login: <input type='text' name='username' size=20 maxlength=50>\n");
-			echo("&nbsp;Password: <input type='password' name='password' size=10 maxlength=12>\n");
+			echo("&nbsp;Wachtwoord: <input type='password' name='password' size=10 maxlength=12>\n");
 			echo("&nbsp;<input type='submit' value='Inloggen' name='Inloggen'>\n");
 			echo("<input type='checkbox' name='cookie' value=1 title='Automatisch inloggen'>\n");
 		}

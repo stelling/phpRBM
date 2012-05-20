@@ -22,7 +22,7 @@ function toegang($soort, $melding=1) {
 		$_SESSION['naamingelogde'] = "gast";
 		$_SESSION['roepnaamingelogde'] = "gast";
 		$_SESSION['emailingelogde'] = "";
-		if (isset($_SESSION['username']) and strlen($_SESSION['username']) > 5) {
+		if (isset($_SESSION['username']) and strlen($_SESSION['username']) > 5 and strlen($_SESSION['password']) > 5) {
 			$row = db_logins("controle");
 			if (strlen($_SESSION['password']) == 0 and isset($row->LidID) and $row->LidID > 0 and (!isset($_SESSION['openid_ok']) or $_SESSION['openid_ok'] != true) and $gebruikopenid == 1) {
 				$openid = new SimpleOpenID;
@@ -387,7 +387,7 @@ function encript_decript($text, $encr=1) {
 	if (strlen($encript_key) < 3) {
 		exit("Invalid encript_key");
 	} elseif (strlen($text) == 0) {
-		exit("No text supplied");
+		exit("Geen wachtwoord opgegeven");
 	} else {
 		while (strlen($encript_key) < strlen($text)) {
 			$encript_key .= $encript_key;
