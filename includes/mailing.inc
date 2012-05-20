@@ -80,9 +80,11 @@ function fnMailing() {
 		$mailing->delete_groep($_GET['groepid']);
 		$mailing->edit();
 	} elseif ($op == "preview") {
+		$mailing->post_form();
 		$mailing->upload();
 		$mailing->preview();
 	} elseif ($op == "send") {
+		$mailing->post_form();
 		$mailing->upload();
 		$mailing->send();
 		$mailing->lijst($currenttab2);
@@ -406,7 +408,7 @@ class mailing {
 			printf("</td></tr>\n");
 		}
 		printf("<tr><td class='label'>Cc:</td><td><input type='text' name='cc_addr' value='%s' size=100></td></tr>\n", $this->cc_addr);
-		printf("<tr><td class='label'>Onderwerp:</td><td><input type='text' name='subject' value='%s' size=100></td></tr>\n", $this->subject);
+		printf("<tr><td class='label'>Onderwerp:</td><td><input type='text' name='subject' value='%s' size=100 onBlur='this.form.submit();'></td></tr>\n", $this->subject);
 		if ($this->template == 1) {
 			$templ_chk = " checked";
 		} else {
@@ -485,6 +487,10 @@ class mailing {
 		if ($this->mid > 0) {
 			if (strlen($this->subject) == 0) {
 				$meldingen .= "Het onderwerp is leeg en dat moet ingevuld zijn.<br>\n";
+				$verzendenmag = false;
+			} 
+			if (strlen($this->message) == 0) {
+				$meldingen .= "Het bericht is leeg en dat moet ingevuld zijn.<br>\n";
 				$verzendenmag = false;
 			}
 			if (strtotime($this->sent_on) > (time() - $this->vertraging_tussen_verzenden)) {
@@ -755,7 +761,7 @@ class mailing {
 	}
 	
 	private function send_mailing($preview=0) {
-		global $emailsecretariaat;
+		global $emailsecretariaat, $table_prefix;
 		
 		if ($preview == 0) {
 			$mail = new RBMmailer();
@@ -836,7 +842,7 @@ class mailing {
 		$summary = "";
 		
 		if ($preview == 0 and strlen($this->ok_send) > 1) {
-			$query = sprintf("UPDATE Mailing SET sent_on=SYSDATE(), SentBy=%d WHERE MailingID=%d;", $_SESSION['lidid'], $this->mid);
+			$query = sprintf("UPDATE %sMailing SET sent_on=SYSDATE(), SentBy=%d WHERE MailingID=%d;", $table_prefix, $_SESSION['lidid'], $this->mid);
 			fnQuery($query);
 			$oms = sprintf("Mailing %d (%s) is door %s verzonden.", $this->mid, $this->subject, $_SESSION['naamingelogde']);
 			db_logboek("add", $oms, 4);
