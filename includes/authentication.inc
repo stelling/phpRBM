@@ -387,7 +387,7 @@ function encript_decript($text, $encr=1) {
 	if (strlen($encript_key) < 3) {
 		exit("Invalid encript_key");
 	} elseif (strlen($text) == 0) {
-		exit("Geen wachtwoord opgegeven");
+		$retval = "";
 	} else {
 		while (strlen($encript_key) < strlen($text)) {
 			$encript_key .= $encript_key;
