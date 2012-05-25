@@ -449,7 +449,7 @@ function fnLedenlijst() {
 	echo("</div>  <!-- Einde filter -->\n");
 	
 	if (strlen($val_naamfilter) > 1) {
-		$filter = sprintf('(L.Achternaam LIKE "%1$s" OR L.Roepnaam LIKE "%1$s")', "%" . strtoupper($val_naamfilter) . "%");
+		$filter = sprintf('(L.Achternaam LIKE "%1$s" OR L.Roepnaam LIKE "%1$s" OR L.MEISJESNM LIKE "%1$s")', "%" . strtoupper($val_naamfilter) . "%");
 	} else {
 		$filter = "";
 	}
