@@ -94,9 +94,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if (db_interface("aantalopenstaand") > 0) {
 		$tabpages[] = "Downloaden wijzigingen";
 	}
-	if (isset($db_backupinmenu) and $db_backupinmenu == 1) {
-		$tabpages[] = "DB backup";
-	}
+	$tabpages[] = "DB onderhoud";
 	$tabpages[] = "Logboek";
 } else {
 	$tabpages[] = "Verenigingsinfo";
