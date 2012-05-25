@@ -1320,6 +1320,7 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0) {
 	} else {
 		$w = "TypeActiviteit <> 99";
 	}
+	$mess = "";
 	
 	if ($actie == "add" and strlen($oms) > 0) {
 		$query = sprintf("INSERT INTO %sAdmin_activiteit SET
@@ -1332,7 +1333,7 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0) {
 		fnQuery($query);
 	} elseif ($actie == "opschonen") {
 		$query = sprintf("DELETE FROM %sAdmin_activiteit WHERE (TypeActiviteit=99 AND DatumTijd <= DATE_ADD(CURDATE(), INTERVAL -1 WEEK))
-								OR DatumTijd <= DATE_ADD(CURDATE(), INTERVAL -13 MONTH);", $table_prefix);
+								OR DatumTijd < DATE_ADD(CURDATE(), INTERVAL -13 MONTH);", $table_prefix);
 		$result = fnQuery($query);
 		if ($result > 1) {
 			$mess = sprintf("Er zijn %d records uit %sAdmin_activiteit verwijderd.", $result, $table_prefix);
@@ -1340,6 +1341,7 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0) {
 			$query = sprintf("OPTIMIZE TABLE %sAdmin_activiteit;", $table_prefix);
 			fnQuery($query);
 		}
+		return $mess;
 	} elseif ($actie == "lijst") {
 		if ($type == -1) {
 			$s = ", TypeActiviteit AS `Type`";
@@ -1526,6 +1528,7 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 	global $table_prefix, $selectnaam, $selectzoeknaam, $wherelidond;
 
 	$xtra_where = "";
+	$mess = "";
 	if ($actie == "oms") {
 		$query = sprintf("SELECT Omschrijving FROM %sEvenement WHERE RecordID=%d;", $table_prefix, $eventid);
 		return db_scalar($query);
@@ -1638,17 +1641,19 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 		$query = sprintf("DELETE FROM %sEvenement WHERE VerwijderdOp >= '2012-01-01' AND VerwijderdOp <= DATE_ADD(CURDATE(), INTERVAL -6 MONTH);", $table_prefix);
 		$result = fnQuery($query);
 		if ($result > 0) {
-			$mess = sprintf("Er zijn %d evenementen definitief verwijderd.", $result);
-			db_logboek("add", $mess, 2);
+			$mess = sprintf("Er zijn %d evenementen definitief verwijderd. ", $result);
 			fnQuery(sprintf("OPTIMIZE TABLE %sEvenement;", $table_prefix));
 		}
 		$query = sprintf("DELETE FROM %1\$sEvenement_Deelnemer WHERE EvenementID NOT IN (SELECT RecordID FROM %1\$sEvenement);", $table_prefix);
 		$result = fnQuery($query);
 		if ($result > 0) {
-			$mess = sprintf("Er zijn %d deelnemers aan evenementen definitief verwijderd, omdat de evenementen niet meer bestaan.", $result);
-			db_logboek("add", $mess, 2);
+			$mess .= sprintf("Er zijn %d deelnemers aan evenementen definitief verwijderd, omdat de evenementen niet meer bestaan.", $result);
 			fnQuery(sprintf("OPTIMIZE TABLE %sEvenement_Deelnemer;", $table_prefix));
 		}
+		if (strlen($mess) > 0) {
+			db_logboek("add", $mess, 2);
+		}
+		return $mess;
 	} else {
 		debug(sprintf("Onbekende actie '%s' in db_evenement.", $actie), 1, 0, 1);
 	}
@@ -2358,11 +2363,9 @@ function db_backup() {
 		}
 		
 		//  Opschonen tabellen die niet uit de Access-database komen.
-		db_logboek("opschonen");
 		db_authorisation("opschonen");
 		db_logins("opschonen");
 		db_mailing("opschonen");
-		db_evenement("opschonen");
 		
 	} else {
 	   $ret = "Het backup-script heeft gedraaid, maar de backup is niet gelukt.\n";
