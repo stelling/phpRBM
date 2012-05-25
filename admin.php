@@ -1,7 +1,11 @@
 <?php
 include('includes/standaard.inc');
 
-if (isset($_GET['op']) and $_GET['op'] == "downloadwijz") {
+if (!isset($_GET['op']) or toegang($_GET['tp']) == false) {
+	$_GET['op'] = "";
+}
+
+if (isset($_GET['op']) and $_GET['op'] == "downloadwijz" and $_GET['tp'] == "Downloaden wijzigingen") {
 	header("Content-type: text/plain");
 	header("Content-Disposition: attachment; filename=import.sql");
 	foreach(db_interface() as $row) {
@@ -12,18 +16,18 @@ if (isset($_GET['op']) and $_GET['op'] == "downloadwijz") {
 	
 HTMLheader();
 	
-if (isset($_GET['op']) and $_GET['op'] == "deletelogin") {
+if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 	db_logins("delete", "", "", $_GET['lidid']);
 	printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $currenttab);
-} elseif (isset($_GET['op']) and $_GET['op'] == "unlocklogin") {
+} elseif ($_GET['op'] == "unlocklogin" and $_GET['tp'] == "Beheer logins") {
 	db_logins("unlock", "", "", $_GET['lidid']);
 	printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $currenttab);
-} elseif (isset($_POST['tabpage_nw']) and strlen($_POST['tabpage_nw']) > 0) {
+} elseif (isset($_POST['tabpage_nw']) and strlen($_POST['tabpage_nw']) > 0 and $_GET['tp'] == "Autorisatie") {
 	db_authorisation("add", 0, $_POST['tabpage_nw']);
-} elseif (isset($_GET['op']) and $_GET['op'] == "deleteautorisatie") {
+} elseif ($_GET['op'] == "deleteautorisatie" and $_GET['tp'] == "Autorisatie") {
 	db_authorisation("delete", $_GET['recid']);
 	printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $currenttab);
-} elseif (isset($_GET['op']) and $_GET['op'] == "changeaccess") {
+} elseif ($_GET['op'] == "changeaccess" and $_GET['tp'] == "Autorisatie") {
 	foreach(db_authorisation("lijst") as $row) {
 		$vn = sprintf("toegang%d", $row->RecordID);
 		if (isset($_POST[$vn]) and $_POST[$vn] != $row->Toegang) {
@@ -35,7 +39,7 @@ if (isset($_GET['op']) and $_GET['op'] == "deletelogin") {
 			}
 		}
 	}
-} elseif (isset($_GET['op']) and $_GET['op'] == "uploaddata") {
+} elseif ($_GET['op'] == "uploaddata") {
 	if (isset($_FILES['SQLupload']['name']) and strlen($_FILES['SQLupload']['name']) > 3) {
 		db_delete_local_tables();
 		fnQuery("SET CHARACTER SET utf8;");
@@ -50,8 +54,17 @@ if (isset($_GET['op']) and $_GET['op'] == "deletelogin") {
 			}
 		}
 	}
-} elseif (isset($_GET['op']) and $_GET['op'] == "afmeldenwijz") {
+} elseif ($_GET['op'] == "afmeldenwijz" and $_GET['tp'] == "Downloaden wijzigingen") {
 	$mess = db_interface("afmelden");
+	printf("<p class='mededeling'>%s</p>\n", $mess);
+} elseif ($_GET['op'] == "backup" and $_GET['tp'] == "DB onderhoud") {
+	$mess = db_backup();
+	printf("<p class='mededeling'>%s</p>\n", $mess);
+} elseif ($_GET['op'] == "logboekopschonen" and $_GET['tp'] == "DB onderhoud") {
+	$mess = db_logboek("opschonen");
+	printf("<p class='mededeling'>%s</p>\n", $mess);
+} elseif ($_GET['op'] == "evenementenopschonen" and $_GET['tp'] == "DB onderhoud") {
+	$mess = db_evenement("opschonen");
 	printf("<p class='mededeling'>%s</p>\n", $mess);
 }
 
@@ -119,10 +132,18 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 		echo("<p class='mededeling'>Er zijn geen wijzigingen die nog verwerkt moeten worden.</p>\n");
 	}
 	echo("</form>\n");
-} elseif ($currenttab == "DB backup" and toegang($_GET['tp'])) {
-	$mess = db_backup();
-	printf("<p class='mededeling'>%s</p>\n", $mess);
+} elseif ($currenttab == "DB onderhoud" and toegang($_GET['tp'])) {
 
+//  Mee bezig
+	echo("<div id='dbonderhoud'>\n");
+	
+	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=backup\"' value='Backup'>&nbsp;Maak een backup van de database.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=logboekopschonen\"' value='Logboek opschonen'>&nbsp;Verwijder alle loggings ouder dan 13 maanden uit de database.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=evenementenopschonen\"' value='Evenementen opschonen'>&nbsp;Opschonen evenementen ouder dan 6 maanden, inclusief de bijbehorende deelnemers.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+
+	echo("</div>  <!-- Einde dbonderhoud -->\n");
+	
+	
 } elseif ($currenttab == "Logboek" and toegang($_GET['tp'])) {
 	if (!isset($_POST['lidfilter']) or strlen($_POST['lidfilter']) == 0) {
 		$_POST['lidfilter'] = 0;
