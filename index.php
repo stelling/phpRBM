@@ -18,8 +18,9 @@ if (isset($_GET['op']) and $_GET['op'] == "exportins") {
 	}
 	exit();
 }
-
-HTMLheader();
+if ($currenttab != "Mailing") {
+	HTMLheader();
+}
 
 if ($currenttab == "Eigen gegevens" and toegang($_GET['tp'])) {
 	if ($_SESSION['lidid'] > 0) {
@@ -63,8 +64,10 @@ if ($currenttab == "Eigen gegevens" and toegang($_GET['tp'])) {
 		echo("</div>  <!-- Einde kolomrechts -->");
 	}
 }
-	
-HTMLfooter();
+
+if ($currenttab != "Mailing") {	
+	HTMLfooter();
+}
 
 function fnVoorblad($metlogin=0) {
 	global $daysshowbirthdays;
