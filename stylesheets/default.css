@@ -720,6 +720,15 @@ fieldset h3 {
 	max-width: 200px;
 }
 
+#dbonderhoud p {
+	margin-top: 12px;
+	margin-bottom: 12px;
+	margin-left: 6px;
+	border-style: solid;
+	border-width: 1px;
+	font-size: 11pt;
+}
+
 /* Elementen voor nieuw menu */
 
 #nav {
