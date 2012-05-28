@@ -437,6 +437,7 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 					if ($nivo > 0) {
 						if ($ulopen) {
 							echo("		</ul>\n	");
+							$ulopen = false;
 						}
 						echo("</li>\n");
 					}
@@ -467,7 +468,9 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 				}
 			}
 		}
-		echo("		</ul>\n</li>\n");
+		if ($ulopen) {
+			echo("		</ul>\n</li>\n");
+		}
 		echo("</ul>\n");
 	}
 	
