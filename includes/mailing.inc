@@ -2,17 +2,21 @@
 
 function fnMailing() {
 	global $ldl, $currenttab2;
+	
+//	debug($_POST['action']);
 		
 	if (isset($_POST['Upload']) and $_POST['Upload'] == "Upload") {
 		$op = "upload";
-	} elseif (isset($_POST['action']) and $_POST['action'] == "Bewaren & sluiten") {
-		$op = "save_close";
-	} elseif (isset($_POST['action']) and $_POST['action'] == "Voorbeeld") {
-		$op = "preview";
-	} elseif (isset($_GET['op'])) {
-		$op = $_GET['op'];
 	} elseif ($_GET['tp'] == "Mailing/Historie") {
 		$op = "historie";
+	} elseif (isset($_POST['action']) and $_POST['action'] == "Bewaren & sluiten") {
+		$op = "save_close";
+	} elseif (isset($_POST['action'])) {
+		$op = $_POST['action'];
+	} elseif (isset($_GET['op'])) {
+		$op = $_GET['op'];
+	} elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
+		$op = "save";
 	} else {
 		$op = "";
 	}
@@ -23,6 +27,10 @@ function fnMailing() {
 		$mailing = new mailing();
 	}
 	
+	if ($op != "preview") {
+		HTMLheader();
+	}
+	
 	if (($op == "historie" or $op == "histdetails") and $mailing->mid > 0) {
 		fnDispMenu(2, sprintf("mid=%d", $mailing->mid));
 	} elseif ($op != "preview") {
@@ -31,7 +39,7 @@ function fnMailing() {
 
 	if ($op == "edit" and isset($_GET['mid'])) {
 		$mailing->edit();
-	} elseif ($op == "post" or $op == "save_close") {
+	} elseif ($op == "save" or $op == "save_close") {
 		$mailing->post_form();
 		$mailing->upload();
 		if ($op == "save_close") {
@@ -97,6 +105,10 @@ function fnMailing() {
 	} else {
 		$mailing->lijst($currenttab2);
 	}
+		
+	if ($op != "preview") {
+		HTMLfooter();
+	}
 }
 
 class mailing {
@@ -138,13 +150,9 @@ class mailing {
 	private $resultaatversturen = 1;
 
 	function __construct($mid=0) {
-		global $selectnaam, $table_prefix, $fdlang, $fdkort, $max_grootte_bijlage, $resultaatmailingversturen, $arrGeslacht;
+		global $selectnaam, $table_prefix, $fdlang, $fdkort, $max_grootte_bijlage, $resultaatmailingversturen, $arrGeslacht, $wherelidond, $wherelid, $whereliddipl;
 
 		$this->mid = $mid;
-	
-		$WhereLidond = "WHERE LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE())";
-		$WhereLidmaatschap = "WHERE LM.LIDDATUM <= CURDATE() AND ((LM.Opgezegd IS NULL) OR LM.Opgezegd >= CURDATE())";
-		$WhereLiddipl = "WHERE ((LD.LicentieVervallenPer IS NULL) OR LD.LicentieVervallenPer >= CURDATE())";
 		
 		$this->dir_attachm = substr($_SERVER["SCRIPT_FILENAME"], 0, strrpos($_SERVER["SCRIPT_FILENAME"], "/")) . "/attachments";
 		
@@ -186,7 +194,7 @@ class mailing {
 		$sql = sprintf("SELECT %s AS Lidnaam FROM %sLid AS L WHERE %s;", $selectnaam, $table_prefix, "L.Nummer=%d");
 		$this->MergeField[]=array('Naam' => "Lidnaam", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT LM.Lidnr FROM %sLidmaatschap AS LM %s AND %s;", $table_prefix, $WhereLidmaatschap, "LM.Lid=%d");
+		$sql = sprintf("SELECT LM.Lidnr FROM %sLidmaatschap AS LM WHERE %s AND %s;", $table_prefix, $wherelid, "LM.Lid=%d");
 		$this->MergeField[]=array('Naam' => "Lidnummer", 'SQL' => $sql);
 		
 		$sql = sprintf("SELECT FLOOR(DATEDIFF(IF(ISNULL(LM.Opgezegd), CURDATE(), LM.Opgezegd), LM.LIDDATUM)/365.25)
@@ -206,8 +214,8 @@ class mailing {
 		$sql = sprintf("SELECT L.GEBPLAATS FROM %sLid AS L WHERE %s;", $table_prefix, "L.Nummer=%d");
 		$this->MergeField[]=array('Naam' => "Geboorteplaats", 'SQL' => $sql);
 
-		$sql = sprintf('SELECT O.Naam FROM %1$sLidond AS LO INNER JOIN %1$sOnderdl AS O ON O.RecordID = LO.OnderdeelID'
-			  . ' %2$s AND O.GekoppeldAanQuery=0 AND %3$s ORDER BY O.Naam;', $table_prefix, $WhereLidond, "LO.Lid=%d");
+		$sql = sprintf('SELECT O.Naam FROM %1$sLidond AS LO INNER JOIN %1$sOnderdl AS O ON O.RecordID = LO.OnderdeelID
+				 WHERE %2$s AND O.GekoppeldAanQuery=0 AND %3$s ORDER BY O.Naam;', $table_prefix, $wherelidond, "LO.Lid=%d");
 		$this->MergeField[]=array('Naam' => "Onderdelen", 'SQL' => $sql);
 	
 		if ($_SESSION['aantalbewaking'] > 0) {
@@ -235,21 +243,21 @@ class mailing {
 		}
 
 		$sql = sprintf("SELECT (CASE L.`Machtiging afgegeven` WHEN 1 THEN 'Ja' ELSE 'Nee' END) AS MachtigingAfgegeven"
-											  . " FROM %sLid AS L WHERE %s;", $table_prefix, "L.Nummer=%d");
+											  . " FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
 		$this->MergeField[]=array('Naam' => "MachtigingAfgegeven", 'SQL' => $sql);
 		
-		$sql = sprintf('SELECT DISTINCT DP.Kode FROM %1$sLiddipl AS LD INNER JOIN %1$sDiploma AS DP ON LD.DiplomaID = DP.RecordID'
-			  . ' %2$s AND %3$s ORDER BY DP.Volgnr, LD.EXDATUM, DP.KODE;', $table_prefix, $WhereLiddipl, "LD.Lid=%d");
+		$sql = sprintf('SELECT DISTINCT DP.Kode FROM %1$sLiddipl AS LD INNER JOIN %1$sDiploma AS DP ON LD.DiplomaID = DP.RecordID
+				 WHERE %2$s AND LD.Lid=%%d ORDER BY DP.Volgnr, LD.EXDATUM, DP.KODE;', $table_prefix, $whereliddipl);
 		$this->MergeField[]=array('Naam' => "DiplomaKort", 'SQL' => $sql);
 
-		$sql = sprintf('SELECT DISTINCT DP.Naam FROM %1$sLiddipl AS LD INNER JOIN %1$sDiploma AS DP ON LD.DiplomaID = DP.RecordID'
-			  . ' %2$s AND %3$s ORDER BY DP.Volgnr, LD.EXDATUM, DP.Naam;', $table_prefix, $WhereLiddipl, "LD.Lid=%d");
+		$sql = sprintf('SELECT DISTINCT DP.Naam FROM %1$sLiddipl AS LD INNER JOIN %1$sDiploma AS DP ON LD.DiplomaID = DP.RecordID
+				 WHERE %2$s AND LD.Lid=%%d ORDER BY DP.Volgnr, LD.EXDATUM, DP.Naam;', $table_prefix, $whereliddipl);
 		$this->MergeField[]=array('Naam' => "DiplomaLang", 'SQL' => $sql);
 	
 		$sql = sprintf("SELECT L.RelnrRedNed FROM %sLid AS L WHERE %s;", $table_prefix, "L.Nummer=%d");
 		$this->MergeField[]=array('Naam' => "RelnrRedNed", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT DATE_FORMAT(LIDDATUM, %s) FROM %sLidmaatschap AS LM %s AND %s;", $fdlang, $table_prefix, $WhereLidmaatschap, "LM.Lid=%d");
+		$sql = sprintf("SELECT DATE_FORMAT(LIDDATUM, %s) FROM %sLidmaatschap AS LM WHERE %s AND LM.Lid=%%d;", $fdlang, $table_prefix, $wherelid);
 		$this->MergeField[]=array('Naam' => "LidVanaf", 'SQL' => $sql);
 
 		$sql = sprintf("SELECT IF(LM.OPGEZEGD IS NULL, 'Niet', DATE_FORMAT(LM.Opgezegd, %s)) FROM %sLidmaatschap AS LM
@@ -266,8 +274,8 @@ class mailing {
 		}
 		
 		if ($_SESSION['aantalrollen'] > 0) {
-			$sql = sprintf("SELECT O.Naam FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID = LO.OnderdeelID "
-				  . "%2\$s AND `Type`='R' AND %3\$s ORDER BY O.Naam;", $table_prefix, $WhereLidond, "LO.Lid=%d");
+			$sql = sprintf("SELECT O.Naam FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID = LO.OnderdeelID 
+					 WHERE %2\$s AND `Type`='R' AND %3\$s ORDER BY O.Naam;", $table_prefix, $wherelidond, "LO.Lid=%d");
 			$this->MergeField[]=array('Naam' => "Rollen", 'SQL' => $sql);
 		}
 			 
@@ -325,7 +333,7 @@ class mailing {
 			$navpad[]['naam'] = sprintf("Details mailing %d", $this->mid);
 		}
 		printf("<div id='mailing'>\n");
-		printf("<form method='post' action='%s?tp=%s/%s&amp;op=post&amp;mid=%d' name='frm_mailedit' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2, $this->mid);
+		printf("<form method='post' action='%s?tp=%s/%s&amp;mid=%d' name='frm_mailedit' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2, $this->mid);
 		printf("<table>\n");
 		printf("<tr><td class='label'>Van:</td><td><input type='text' name='from_name' value='%s' size=50 maxlength=50></td></tr>\n", $this->from_name);
 		printf("<tr><td class='label'>Vanaf e-mail:</td><td><input type='email' name='from_addr' value='%s' size=50 maxlength=50></td></tr>\n", $this->from_addr);
@@ -553,26 +561,23 @@ class mailing {
 		
 		echo("<div id='opdrachtknoppen'>\n");
 		if ($this->mid > 0) {
-			printf("<input type='image' src='images/save.png' name='action' title='Wijzigingen bewaren' value='Wijzigingen bewaren'>\n");
+//			printf("<input type='image' src='images/save.png' name='action' title='Wijzigingen bewaren' value='Wijzigingen bewaren'>\n");
+			printf("<button type='submit' name='action' value='save' title='Bewaren'><img src='images/save.png' alt='Save'></button>\n");
 			printf("<input type='submit' name='action' value='Bewaren & sluiten'>\n");
 		} else {
 			printf("<input type='submit' name='action' value='Toevoegen'>");
 		}
 			
 		if ($this->mid > 0 and $verzendenmag and $this->deleted_on < "1901-01-01") {
-			$lnk = sprintf("%s?tp=%s&op=send&mid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid);
-			printf("<img src='images/sendmail.png' title='Verstuur mailing' onclick=\"location.href='%s'\">\n", $lnk);
+			printf("<button type='submit' name='action' value='send' title='Verstuur mailing'><img src='images/sendmail.png' alt='Send'></button>\n");
 		}
 		if ($this->mid > 0) {
-			$lnk = sprintf("%s?tp=%s&op=preview&header=no&mid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid);
-			printf("<img src='images/preview.png' title='Voorbeeld' onclick=\"location.href='%s'\">\n", $lnk);	
+			printf("<button type='submit' name='action' value='preview' title='Voorbeeld'><img src='images/preview.png' alt='Preview'></button>\n");
 		}
 		if ($this->mid > 0 and $this->deleted_on > "1901-01-01" and $_SESSION['webmaster'] == 1) {
-			$lnk = sprintf("%s?tp=%s&op=undelete&mid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid);
-			printf("<img src='images/undelete.png' title='Verwijderen ongedaan maken' onclick=\"location.href='%s'\">\n", $lnk);		
+			printf("<button type='submit' name='action' value='undelete' title='Verwijderen ongedaan maken'><img src='images/undelete.png' alt='Undelete'></button>\n");
 		} elseif ($this->mid > 0 and $this->deleted_on < "1901-01-01" and ($_SESSION['webmaster'] == 1 or $_SESSION['lidid'] == $this->AddedBy)) {
-			$lnk = sprintf("%s?tp=%s&op=delete&mid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid);
-			printf("<img src='images/delete.png' title='Verwijderen' onclick=\"location.href='%s'\">\n", $lnk);				
+			printf("<button type='submit' name='action' value='delete' title='Verwijderen'><img src='images/delete.png' alt='Delete'></button>\n");
 		}
 		echo("</div>  <!-- Einde opdrachtknoppen -->\n");
 
@@ -597,20 +602,14 @@ class mailing {
 		} else {
 			$_POST['cc_addr'] = "";
 		}
-		if (isset($_POST['template']) and $_POST['template'] == '1') {
+		if (isset($_POST['template'])) {
 			$_POST['template'] = 1;
-		} else {
-			$_POST['template'] = 0;
 		}
-		if (isset($_POST['confidential']) and $_POST['confidential'] == '1') {
+		if (isset($_POST['confidential'])) {
 			$_POST['confidential'] = 1;
-		} else {
-			$_POST['confidential'] = 0;
 		}
-		if (isset($_POST['verzamelen']) and $_POST['verzamelen'] == '1') {
+		if (isset($_POST['verzamelen'])) {
 			$_POST['verzamelen'] = 1;
-		} else {
-			$_POST['verzamelen'] = 0;
 		}
 		
 		$old = db_mailing("record", $this->mid);
@@ -712,9 +711,11 @@ class mailing {
 	}
 	
 	public function add_groep($groepid) {
-		$query = sprintf("SELECT Lid FROM Lidond AS LO"
-				 . " WHERE OnderdeelID=%d AND LO.Lid NOT IN (SELECT R.LidID FROM Mailing_rcpt AS R WHERE R.LidID=LO.Lid AND R.MailingID=%d)"
-				 . " AND LO.Vanaf <= SYSDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd > SYSDATE());", $groepid, $this->mid);
+		global $table_prefix, $wherelidond;
+		
+		$query = sprintf("SELECT Lid FROM %1\$sLidond AS LO
+					WHERE %4\$s AND OnderdeelID=%2\$d AND LO.Lid NOT IN (SELECT R.LidID FROM %1\$sMailing_rcpt AS R WHERE R.LidID=LO.Lid AND R.MailingID=%3\$d);",
+				 $table_prefix, $groepid, $this->mid, $wherelidond);
 		$result = fnQuery($query);
 		foreach($result->fetchAll() as $row) {
 			db_mailing("addrcpt", $this->mid, 0, "", "", $row->Lid);
@@ -930,7 +931,9 @@ class mailing {
 	}
 	
 	public function undelete() {
-		$query = sprintf("UPDATE Mailing SET deleted_on=NULL WHERE MailingID=%d;", $this->mid);
+		global $table_prefix;
+		
+		$query = sprintf("UPDATE %sMailing SET deleted_on=NULL WHERE MailingID=%d;", $table_prefix, $this->mid);
 		fnQuery($query);
 	}
 		
