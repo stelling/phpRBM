@@ -38,6 +38,7 @@ $TypeActiviteit[] = "Zelfservice";  // 6
 $TypeActiviteit[] = "Evenementen";
 $TypeActiviteit[] = "Interface";
 $TypeActiviteit[] = "Upload data";  // 9
+$TypeActiviteit[] = "Webshop";
 $TypeActiviteit[99] = "Debugging";
 
 $fdlang = "'%e %M %Y'";
@@ -61,6 +62,7 @@ $fromlid = sprintf('%1$sLid AS L LEFT OUTER JOIN %1$sLidmaatschap AS LM ON L.Num
 $wherelid = "LM.LIDDATUM <= CURDATE() AND ((LM.Opgezegd IS NULL) OR LM.Opgezegd >= CURDATE())";
 $fromlidond = sprintf('%1$sLid AS L INNER JOIN ((%1$sLidond AS LO INNER JOIN %1$sFunctie AS F ON LO.Functie = F.Nummer) INNER JOIN %1$sOnderdl AS O ON LO.OnderdeelID = O.RecordID) ON L.NUMMER = LO.LID', $table_prefix);
 $wherelidond = "LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE())";
+$whereliddipl = "((LD.LicentieVervallenPer IS NULL) OR LD.LicentieVervallenPer >= CURDATE())";
 
 $db_conn_pdo = sprintf("mysql:host=%s;dbname=%s", $db_host, $db_name);
 try {
@@ -670,7 +672,7 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 		$result = fnQuery($query);
 		return $result->fetchAll();	
 	} elseif ($actie == "blokken") {
-		$query = sprintf("SELECT BB.*, BS.Kode AS KodeSeizoen, BS.Lokatie AS Locatie, BS.KeuzesBijInschrijving, BB.Kode AS Weeknr
+		$query = sprintf("SELECT BB.*, BS.Kode AS KodeSeizoen, BS.Lokatie AS Locatie, BS.KeuzesBijInschrijving, BB.Kode AS Weeknr, BB.Kode AS intWeeknr
 								FROM %1\$sBewaking_Blok AS BB INNER JOIN %1\$sBewseiz AS BS ON BB.SeizoenID = BS.RecordID
 								%2\$s
 								ORDER BY BS.Begindatum, BS.Kode, BB.Begindatum;", $table_prefix, $w);
@@ -1051,8 +1053,9 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 						WHERE LastLogin < DATE_ADD(CURDATE(), INTERVAL -%2\$d MONTH) AND Ingevoerd < DATE_ADD(CURDATE(), INTERVAL -%2\$d MONTH);", $table_prefix, $bewaartijdlogins);
 			$result = fnQuery($query);
 			if ($result > 0) {
-				$mess = sprintf("Er zijn %d logins verwijderd, omdat ze %d maanden niet meer gebruikt zijn.", $result, $bewaartijdlogins);
-				db_logboek("add", $mess, 2);
+				$mess = sprintf("Er zijn %d logins verwijderd, omdat ze %d maanden niet meer gebruikt zijn. ", $result, $bewaartijdlogins);
+			} else {
+				$mess = sprintf("Er zijn geen logins verwijderd, omdat ze %d maanden niet meer gebruikt zijn. ", $bewaartijdlogins);
 			}
 		}
 		$where = "";
@@ -1066,8 +1069,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 			$query = sprintf("DELETE FROM %sAdmin_login WHERE LastLogin <= DATE_ADD(CURDATE(), INTERVAL -1 WEEK) AND %s;", $table_prefix, $where);
 			$result = fnQuery($query);
 			if ($result > 0) {
-				$mess = sprintf("Er zijn %d logins verwijderd, omdat ze geen toegang meer hebben.", $result, $bewaartijdlogins);
-				db_logboek("add", $mess, 2);
+				$mess .= sprintf("Er zijn %d logins verwijderd, omdat ze geen toegang meer hebben. ", $result, $bewaartijdlogins);
 				$query = "OPTIMIZE TABLE %sAdmin_login;";
 				fnQuery($query);
 			}
@@ -1076,7 +1078,9 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 					WHERE ((LastLogin IS NULL) OR LastLogin < '2012-01-01') AND Ingevoerd < DATE_ADD(CURDATE(), INTERVAL -2 WEEK);", $table_prefix);
 		$result = fnQuery($query);
 		if ($result > 0) {
-			$mess = sprintf("Er zijn %d logins verwijderd, omdat ze niet binnen 2 weken nadat ze aangevraagd zijn gebruikt zijn.", $result, $bewaartijdlogins);
+			$mess .= sprintf("Er zijn %d logins verwijderd, omdat ze niet binnen 2 weken nadat ze aangevraagd zijn gebruikt zijn. ", $result, $bewaartijdlogins);
+		}
+		if (strlen($mess) > 0) {
 			db_logboek("add", $mess, 2);
 		}
 	} else {
@@ -1111,7 +1115,9 @@ function db_onderdelen($type="", $aantal=0) {
 }
 
 function db_naam_onderdeel($rid, $rin="Onbekend") {
-	$query = sprintf("SELECT Naam FROM Onderdl WHERE RecordID=%d;", $rid);
+	global $table_prefix;
+
+	$query = sprintf("SELECT Naam FROM %sOnderdl WHERE RecordID=%d;", $table_prefix, $rid);
 	$result = fnQuery($query);
 	$rv = $result->fetchColumn();
 	if (strlen($rv) == 0) {
@@ -1144,6 +1150,7 @@ function db_add_mailing_hist($LidID, $MailingID, $to_name, $to_addr, $message=""
 function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $email="", $aan="") {
 	global $selectnaam, $selectzoeknaam, $table_prefix, $naamvereniging, $bewaartijdmailings, $fdtlang;
 	
+	$mess = "";
 	if ($actie == "histdetails" and $rid > 0) {
 		$query = sprintf("SELECT send_on, from_addr, from_name, to_name, to_addr, cc_addr, subject, message
 					FROM %sMailing_hist WHERE RecordID=%d LIMIT 1;", $table_prefix, $rid);
@@ -1242,7 +1249,6 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 			return false;
 		}
 	} elseif ($actie == "delrcpt" and $mid > 0) {
-		$mess = "";
 		if ($lidid > 0) {
 			$query = sprintf("DELETE FROM %sMailing_rcpt WHERE MailingID=%d AND LidID=%d;", $table_prefix, $mid, $lidid);
 			$mess = sprintf("%s is bij mailing %d verwijderd.", db_naamlid($lidid), $mid);
@@ -1260,17 +1266,24 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 						AND deleted_on < ADDDATE(CURDATE(), INTERVAL -%d MONTH);", $table_prefix, $bewaartijdmailings);
 			$result = fnQuery($query);
 			if ($result > 0) {
-				db_logboek("add", sprintf("Er zijn %d mailings uit de prullenbak verwijderd.", $result), 2);
+				$mess = sprintf("Er zijn %d mailings uit de prullenbak verwijderd. ", $result);
 				fnQuery(sprintf("OPTIMIZE TABLE %sMailing;", $table_prefix));
-				$query = sprintf('DELETE FROM %1$sMailing_rcpt
-							WHERE MailingID NOT IN (SELECT M.MailingID FROM %1$sMailing AS M);', $table_prefix);
-				$result = fnQuery($query);
-				if ($result > 0) {
-					$query = sprintf("OPTIMIZE TABLE %sMailing_rcpt;", $table_prefix);
-					fnQuery($query);
-				}
+			} else {
+				$mess = "Er zijn geen mailing bij het opschonen definitief verwijderd. ";
+			}
+			$query = sprintf('DELETE FROM %1$sMailing_rcpt
+						WHERE MailingID NOT IN (SELECT M.MailingID FROM %1$sMailing AS M);', $table_prefix);
+			$result = fnQuery($query);
+			if ($result > 0) {
+				$mess .= sprintf("Er zijn %d ontvangers van mailings erwijderd, omdat de mailings niet meer bestaan.", $result);
+				$query = sprintf("OPTIMIZE TABLE %sMailing_rcpt;", $table_prefix);
+				fnQuery($query);
 			}
 		}
+		if (strlen($mess) > 0) {
+			db_logboek("add", $mess, 2);
+		}
+		return $mess;
 	} elseif ($mid > 0) {
 		$query = sprintf("SELECT * FROM %sMailing WHERE MailingID=%d LIMIT 1;", $table_prefix, $mid);
 		$result = fnQuery($query);
@@ -1335,11 +1348,13 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0) {
 		$query = sprintf("DELETE FROM %sAdmin_activiteit WHERE (TypeActiviteit=99 AND DatumTijd <= DATE_ADD(CURDATE(), INTERVAL -1 WEEK))
 								OR DatumTijd < DATE_ADD(CURDATE(), INTERVAL -13 MONTH);", $table_prefix);
 		$result = fnQuery($query);
-		if ($result > 1) {
+		if ($result > 0) {
 			$mess = sprintf("Er zijn %d records uit %sAdmin_activiteit verwijderd.", $result, $table_prefix);
 			db_logboek("add", $mess, 2);
 			$query = sprintf("OPTIMIZE TABLE %sAdmin_activiteit;", $table_prefix);
 			fnQuery($query);
+		} else {
+			$mess = "Er zijn geen logs bij het opgeschonen verwijderd.";
 		}
 		return $mess;
 	} elseif ($actie == "lijst") {
@@ -1643,6 +1658,8 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 		if ($result > 0) {
 			$mess = sprintf("Er zijn %d evenementen definitief verwijderd. ", $result);
 			fnQuery(sprintf("OPTIMIZE TABLE %sEvenement;", $table_prefix));
+		} else {
+			$mess = "Er zijn geen evenementen bij het opschonen verwijderd. ";
 		}
 		$query = sprintf("DELETE FROM %1\$sEvenement_Deelnemer WHERE EvenementID NOT IN (SELECT RecordID FROM %1\$sEvenement);", $table_prefix);
 		$result = fnQuery($query);
@@ -1666,7 +1683,7 @@ function db_delete_local_tables() {
 	global $arrTables, $table_prefix;
 	
 	foreach ($arrTables as $tn) {
-		if (startwith($tn, "Admin_") == false and startwith($tn, "Bewaking_") == false and startwith($tn, "DMS_") == false and startwith($tn, "Mailing") == false and startwith($tn, "Evenement") == false) {
+		if (startwith($tn, "Admin_") == false and startwith($tn, "Bewaking_") == false and startwith($tn, "DMS_") == false and startwith($tn, "Mailing") == false and startwith($tn, "Evenement") == false and startwith($tn, "WS_") == false) {
 			fnQuery(sprintf("DELETE FROM %s%s;", $table_prefix, $tn));
 		}
 	}
@@ -2361,11 +2378,8 @@ function db_backup() {
 				}
 			}
 		}
-		
-		//  Opschonen tabellen die niet uit de Access-database komen.
+
 		db_authorisation("opschonen");
-		db_logins("opschonen");
-		db_mailing("opschonen");
 		
 	} else {
 	   $ret = "Het backup-script heeft gedraaid, maar de backup is niet gelukt.\n";
