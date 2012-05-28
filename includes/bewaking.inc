@@ -81,13 +81,13 @@ function fnBewaking() {
 				$rows = db_bewaking("aantallen", $seizoen);
 			}
 			foreach($rows as $row) {
-				if ($week == $row->Weeknr or strlen($week) == 0) {
-					$week = $row->Weeknr;
+				if ($week == $row->intWeeknr or strlen($week) == 0) {
+					$week = $row->intWeeknr;
 					$sel = " selected";
 				} else {
 					$sel = "";
 				}
-				printf("<option value=%d%s>%d</option>\n", $row->Weeknr, $sel, $row->Weeknr);
+				printf("<option value=%1\$d%2\$s>%1\$d</option>\n", $row->intWeeknr, $sel);
 			}
 			echo("</select>\n</td>\n");
 		}
