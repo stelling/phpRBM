@@ -46,6 +46,7 @@ require_once($dir . "/leden.inc");
 require_once($dir . "/bewaking.inc");
 require_once($dir . "/evenement.inc");
 require_once($dir . "/mailing.inc");
+require_once($dir . "/webshop.inc");
 require_once($dir . "/class.phpmailer.php");
 
 if (isset($_GET['tp']) and strlen($_GET['tp']) > 1) {
@@ -205,6 +206,10 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		$tabpages[] = "Evenementen/Beheer";
 		$tabpages[] = "Evenementen/Logboek";
 		$tabpages[] = "Evenementen/Types muteren";
+	}
+	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
+		$tabpages[] = "Bestellingen";
+		$tabpages[] = "Bestellingen/Artikelbeheer";
 	}
 	
 	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
