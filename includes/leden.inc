@@ -149,7 +149,8 @@ function fnWijzigen($lidid=0, $actie="") {
 					if (strlen($_POST[$fnBehaald]) == 0 and strlen($_POST[$fnDiplnr]) > 0) {
 						echo("<p class='mededeling'>Er moet altijd een datum van behalen ingevuld worden. Diplomanummer wordt niet toegevoegd.</p>");
 					} elseif (isset($_POST[$fnVerw]) and $_POST[$fnVerw] == 1) {
-						db_liddipl("delete", $lidid, 0, $row->RecordID, $_POST[$fnBehaald]);
+						$mess = db_liddipl("delete", $lidid, 0, $row->RecordID, $_POST[$fnBehaald]);
+						printf("<p class='mededeling'>%s</p>", $mess);
 					} elseif ($_POST[$fnRID] == 0) {
 						$mess = db_liddipl("add", $lidid, 0, $row->RecordID, $_POST[$fnBehaald], $_POST[$fnVervaltPer], $_POST[$fnDiplnr]);
 						printf("<p class='mededeling'>%s</p>", $mess);
