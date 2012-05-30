@@ -54,6 +54,8 @@ if ($currenttab == "Eigen gegevens" and toegang($_GET['tp'])) {
 	fnMailing();
 } elseif ($currenttab == "Evenementen" and toegang($_GET['tp'])) {
 	fnEvenementen();
+} elseif ($currenttab == "Bestellingen" and toegang($_GET['tp'])) {
+	fnWebshop();
 } else {
 	$currenttab = "Verenigingsinfo";
 	$currenttab2 = "Introductie";
