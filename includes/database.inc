@@ -351,7 +351,7 @@ function db_naamlid($lidid, $uitv="Naam", $riz="Onbekend") {
 	return $rv;
 }
 
-function db_adressenlijst($filter = "O.Kader=True") {
+function db_adressenlijst($filter="O.Kader=True") {
 	global $selectnaam, $fromlidond, $wherelidond;
 	
 	if (strlen($filter) > 3) {
@@ -361,9 +361,8 @@ function db_adressenlijst($filter = "O.Kader=True") {
 	}
 	$query = sprintf("SELECT L.*, %s AS LidNaam, O.Kode, O.Naam AS OndNaam, O.CentraalEmail, O.TYPE, F.Omschrijv AS OmsFunctie, LO.*
 							FROM %s
-							WHERE %s 
-							ORDER BY O.Kader DESC, O.TYPE, O.Naam, F.Sorteringsvolgorde, LO.Vanaf, L.Achternaam, L.TUSSENV;"
-							, $selectnaam, $fromlidond, $filter);
+							WHERE %s AND ((O.VervallenPer IS NULL) OR O.VervallenPer >= CURDATE())
+							ORDER BY O.Kader DESC, O.TYPE, O.Naam, F.Sorteringsvolgorde, LO.Vanaf, L.Achternaam, L.TUSSENV;", $selectnaam, $fromlidond, $filter);
 	$result = fnQuery($query);
 	return($result->fetchAll());
 }
@@ -1275,7 +1274,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 						WHERE MailingID NOT IN (SELECT M.MailingID FROM %1$sMailing AS M);', $table_prefix);
 			$result = fnQuery($query);
 			if ($result > 0) {
-				$mess .= sprintf("Er zijn %d ontvangers van mailings erwijderd, omdat de mailings niet meer bestaan.", $result);
+				$mess .= sprintf("Er zijn %d ontvangers van mailings verwijderd, omdat de mailings niet meer bestaan.", $result);
 				$query = sprintf("OPTIMIZE TABLE %sMailing_rcpt;", $table_prefix);
 				fnQuery($query);
 			}
@@ -1510,7 +1509,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 		if ($result > 0) {
 			$query = sprintf("DELETE FROM Liddipl WHERE Lid=%d AND DiplomaID=%d AND EXDATUM=%s;", $lidid, $did, $dwaexd);
 			db_interface("add", $query);
-			$mess = sprintf("Diploma %s is verwijderd bij %s.", db_diploma("Kode", $did), db_naamlid($lidid));
+			$mess = sprintf("Diploma %s is bij %s verwijderd.", db_diploma("Kode", $did), db_naamlid($lidid));
 		} else {
 			$mess = sprintf("Diploma %s is bij %s niet gevonden en dus niet verwijderd.", db_diploma("Kode", $did), db_naamlid($lidid));
 		}
@@ -1673,6 +1672,23 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 		return $mess;
 	} else {
 		debug(sprintf("Onbekende actie '%s' in db_evenement.", $actie), 1, 0, 1);
+	}
+}
+
+function db_artikel($actie) {
+	global $table_prefix;
+
+	if ($actie == "overzichtbeheer") {
+		$query = sprintf("SELECT * FROM %sWS_Artikel ORDER BY Code, RecordID;", $table_prefix);
+		$result = fnQuery($query);
+		return $result->fetchAll();
+	} elseif ($actie == "add") {
+		$query = sprintf("INSERT INTO %sWS_Artikel SET Ingevoerd=CURDATE(), IngevoerdDoor=%d;", $table_prefix, $_SESSION['lidid']);
+		$result = fnQuery($query);
+		if ($result > 0) {
+			$mess = sprintf("Artikel %d is door %s toegevoegd.", $result, $_SESSION['naamingelogde']);
+			db_logboek("add", $mess, 10);
+		}
 	}
 }
 
@@ -2388,8 +2404,5 @@ function db_backup() {
 	}
 	return $ret;
 }
-
-
-
 
 ?>
