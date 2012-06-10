@@ -335,11 +335,11 @@ function inschrijvenbewaking($lidid) {
 			}
 			printf("<td><input type='text' onBlur='this.form.submit();' name='Opm_%d' size=60 maxlength=50 value=\"%s\"></td>\n", $row->RecordID, $v);
 			echo("</tr>\n");
-			if (isset($ins->Definitief) and $ins->Definitief < "2010-01-01") {
+			if (isset($ins->RecordID) and is_null($ins->Definitief)) {
 				$kandef = true;
 			}
 		}
-		printf("<tr><td colspan=7>Opmerking(en) bij de inschrijving:<br><textarea onBlur='this.form.submit();' cols=90 rows=8 name='opmalg'>%s</textarea></td></tr>", db_memo($lidid, "I", "curval"));
+		printf("<tr><td colspan=7>Opmerking(en) bij de inschrijving:<br><textarea onBlur='this.form.submit();' cols=90 rows=8 name='opmalg'>%s</textarea></td></tr>\n", db_memo($lidid, "I", "curval"));
 		echo("<tr><th colspan=7>");
 		printf("<p>%s</p>", $voorwaardeninschrijving);
 		if ($geldig and $kandef) {
@@ -447,7 +447,7 @@ function BevestInschrBewaking($lidid, $insnr) {
 	}
 	$content = str_ireplace("[%BEWDIPLOMAS%]", $d, $content);
 
-	$brief_template = 'templates/briefpapier.html';
+	$brief_template = "templates/briefpapier.html";
 	if (file_exists($brief_template)) {
 		$briefpapier = file_get_contents($brief_template);
 		if ($content === false) {
@@ -465,18 +465,19 @@ function BevestInschrBewaking($lidid, $insnr) {
 	$mail = new RBMmailer();
 	try {
 		$mail->From = $emailbevestiginginschrijving;
+		$mail->FromName = $naamvereniging;
 		$mail->AddAddress($email, $naambewaker);
 		$mail->Subject = $subj;
-		$mail->MsgHTML($content);
+		$mail->MsgHTML($htmlmessage);
 		if ($mail->Send()) {
-			db_add_mailing_hist($lidid, 0, $row->ndNaamBewaker, $email, $content, $emailbevestiginginschrijving, $subj);
+			db_add_mailing_hist($lidid, 0, $naambewaker, $email, $content, $naamvereniging, $emailbevestiginginschrijving, $subj);
 			$mess = sprintf("Bevestiging van deze inschrijving is naar %s verzonden.", $email);
-			db_logboek("add", $mess, 6);
-			printf("<script>alert('%s');</script>\n", $mess);
-			echo("<script>location.href='/index.php';</script>\n");	
 		} else {
-			printf("<p>Error while sending message: %s</p>\n", $mail->ErrorInfo);
+			$mess = sprintf("Het versturen van de bevestiging van de inschrijving voor de bewaking aan %s is mislukt. Error: %s.", db_naamlid($lidid), $mail->ErrorInfo);
 		}
+		db_logboek("add", $mess, 6);
+		printf("<script>alert('%s');</script>\n", $mess);
+		echo("<script>location.href='/index.php';</script>\n");
 	} catch (phpmailerException $e) {
 		echo $e->errorMessage(); // Error messages from PHPMailer
 	} catch (Exception $e) {
