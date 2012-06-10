@@ -143,6 +143,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (count(db_evenement("open")) > 0) {
 			$tabpages[] = "Zelfservice/Inschrijving evenementen";
 		}
+		if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
+			$tabpages[] = "Zelfservice/Bestellingen";
+		}
 		$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap WHERE Lid=%d AND (Opgezegd IS NULL);", $table_prefix, $_SESSION['lidid']);
 		if (db_scalar($query) > 0) {
 			$tabpages[] = "Zelfservice/Opzegging";
@@ -204,12 +207,14 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			$tabpages[] = "Evenementen/Overzicht";
 		}
 		$tabpages[] = "Evenementen/Beheer";
-		$tabpages[] = "Evenementen/Logboek";
 		$tabpages[] = "Evenementen/Types muteren";
+		$tabpages[] = "Evenementen/Logboek";
 	}
 	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 		$tabpages[] = "Bestellingen";
+		$tabpages[] = "Bestellingen/Bestellingen muteren";
 		$tabpages[] = "Bestellingen/Artikelbeheer";
+		$tabpages[] = "Bestellingen/Logboek";
 	}
 	
 	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
@@ -719,7 +724,7 @@ function change_month_to_uk($strdate) {
 class RBMmailer extends PHPMailer {
 
 	function __construct() {
-		global $smtphost, $smtpuser, $smtppw, $nameorganisation, $emailwebmaster;
+		global $smtphost, $smtpuser, $smtppw, $naamvereniging, $emailwebmaster;
 	
 		if (strlen($smtphost) > 0) {
 			$this->Host = $smtphost;
@@ -737,7 +742,7 @@ class RBMmailer extends PHPMailer {
 			$mail->Mailer = "mail";
 		}
 		$this->From = $emailwebmaster;
-		$this->FromName = $nameorganisation;
+		$this->FromName = $naamvereniging;
 		$this->WordWrap = 110;
 		$this->AltBody    = "Om deze mail te bekijken gebruik een e-mailclient die met HTML overweg kan.";
 	}

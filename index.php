@@ -33,6 +33,8 @@ if ($currenttab == "Eigen gegevens" and toegang($_GET['tp'])) {
 		inschrijvenbewaking($_SESSION['lidid']);
 	} elseif ($currenttab2 == "Inschrijving evenementen") {
 		inschrijvenevenementen($_SESSION['lidid']);
+	} elseif ($currenttab2 == "Bestellingen") {
+		onlinebestellingen($_SESSION['lidid']);
 	} else {
 		fnWijzigen($_SESSION['lidid'], $currenttab2);
 	}
