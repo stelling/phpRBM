@@ -265,7 +265,7 @@ class mailing {
 							 ORDER BY LM.LIDDATUM DESC LIMIT 1;", $fdlang, $table_prefix, "LM.Lid=%d");
 		$this->MergeField[]=array('Naam' => "OpgezegdPer", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT L.EMAIL FROM %sLid AS L WHERE %s;", $table_prefix, "Nummer=%d");
+		$sql = sprintf("SELECT L.Email FROM %sLid AS L WHERE %s;", $table_prefix, "Nummer=%d");
 		$this->MergeField[]=array('Naam' => "Email", 'SQL' => $sql);
 
 		if (TableExists("LidRedNed")) {
@@ -358,7 +358,7 @@ class mailing {
 						$reg = sprintf("<li>%s&nbsp;<a href='%s'><img src='/images/delete.gif' alt='Verwijderen' title='Verwijderen'></a></li>\n", $rcpt->to_address, $lnk);
 						$this->contains_losse_email = true;
 					}
-					if (isValidMailAddress($rcpt->EMAIL) or isValidMailAddress($rcpt->EmailVereniging) or isValidMailAddress($rcpt->to_address)) {
+					if (isValidMailAddress($rcpt->Email) or isValidMailAddress($rcpt->EmailVereniging) or isValidMailAddress($rcpt->to_address)) {
 						echo($reg);
 					} else {
 						$aant_ze++;
@@ -602,14 +602,20 @@ class mailing {
 		} else {
 			$_POST['cc_addr'] = "";
 		}
-		if (isset($_POST['template'])) {
+		if (isset($_POST['template']) and $_POST['template'] == "1") {
 			$_POST['template'] = 1;
+		} else {
+			$_POST['template'] = 0;
 		}
-		if (isset($_POST['confidential'])) {
+		if (isset($_POST['confidential']) and $_POST['confidential'] == "1") {
 			$_POST['confidential'] = 1;
+		} else {
+			$_POST['confidential'] = 0;
 		}
 		if (isset($_POST['verzamelen'])) {
 			$_POST['verzamelen'] = 1;
+		} else {
+			$_POST['verzamelen'] = 0;
 		}
 		
 		$old = db_mailing("record", $this->mid);
@@ -798,9 +804,9 @@ class mailing {
 			if ($preview == 1) {
 				echo("<br>\n" . $this->mailbericht);
 			}
-			if (isValidMailAddress($rcpt->EMAIL, 0) or isValidMailAddress($rcpt->EmailVereniging, 0) or isValidMailAddress($rcpt->to_address, 0)) {
-				if (isValidMailAddress($rcpt->EMAIL, 0)) {
-					$e = strtolower($rcpt->EMAIL);
+			if (isValidMailAddress($rcpt->Email, 0) or isValidMailAddress($rcpt->EmailVereniging, 0) or isValidMailAddress($rcpt->to_address, 0)) {
+				if (isValidMailAddress($rcpt->Email, 0)) {
+					$e = strtolower($rcpt->Email);
 				} elseif (isValidMailAddress($rcpt->EmailVereniging, 0)) {
 					$e = strtolower($rcpt->EmailVereniging);
 				} else {
@@ -828,6 +834,9 @@ class mailing {
 					} else {
 						if ($mail->Send()) {
 							db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message);
+						} else {
+							$mess = sprintf("Het versturen van mailing %d (%s) aan %s is niet gelukt. Error: %s", $this->mid, $this->subject, $to_name, $mail->ErrorInfo);
+							db_logboek("add", $mess, 4);
 						}
 						$mail->ClearAddresses();
 					}
@@ -837,7 +846,10 @@ class mailing {
 			}
 		}
 		if ($this->verzamelen and $preview == 0) {
-			$mail->Send();
+			if (!$mail->Send()) {
+				$mess = sprintf("Het versturen van mailing %d (%s) is niet gelukt. Error: %s", $this->mid, $this->subject, $mail->ErrorInfo);
+				db_logboek("add", $mess, 4);
+			}
 			$mail->ClearAddresses();
 		}
 		$summary = "";
