@@ -140,12 +140,11 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 	echo("</form>\n");
 } elseif ($currenttab == "DB onderhoud" and toegang($_GET['tp'])) {
 
-//  Mee bezig
 	echo("<div id='dbonderhoud'>\n");
 	
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=backup\"' value='Backup'>&nbsp;Maak een backup van de database.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=logboekopschonen\"' value='Logboek opschonen'>&nbsp;Verwijder alle loggings ouder dan 13 maanden uit de database.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=evenementenopschonen\"' value='Evenementen opschonen'>&nbsp;Opschonen evenementen ouder dan 6 maanden, inclusief de bijbehorende deelnemers.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=logboekopschonen\"' value='Logboek opschonen'>&nbsp;Verwijder alle records uit het logboek, die ouder dan 13 maanden zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=evenementenopschonen\"' value='Evenementen opschonen'>&nbsp;Opschonen evenementen, inclusief bijbehorende deelnemers, die langer dan 6 maanden geleden zijn verwijderd.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	if (isset($bewaartijdmailings) and $bewaartijdmailings > 0) {
 		printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=mailingsopschonen\"' value='Mailings opschonen'>&nbsp;Opschonen van de prullenbak van de mailings. Mailings die er langer dan %d maanden in zitten worden definitief verwijderd.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $bewaartijdmailings);
 	}
