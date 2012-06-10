@@ -49,8 +49,8 @@ function toegang($soort, $melding=1) {
 				}
 				if (isValidMailAddress($row->EmailVereniging, 0)) {
 					$_SESSION['emailingelogde'] = $row->EmailVereniging;
-				} elseif (isValidMailAddress($row->EMAIL, 0)) {
-					$_SESSION['emailingelogde'] = $row->EMAIL;
+				} elseif (isValidMailAddress($row->Email, 0)) {
+					$_SESSION['emailingelogde'] = $row->Email;
 				} else {
 					$_SESSION['emailingelogde'] = "";
 				}
@@ -199,7 +199,7 @@ function fnConfirmLogin($row, $xtratekst="") {
 	if (isValidMailAddress($row->EmailVereniging, 0)) {
 		$email = $row->EmailVereniging;
 	} else {
-		$email = $row->EMAIL;
+		$email = $row->Email;
 	}
 	$mail->AddAddress($email);
 	$mail->Subject = $subj;
@@ -247,7 +247,7 @@ function fnConfirmLidnr($row) {
 		if (strlen($row->EmailVereniging) > 5 and isValidMailAddress($row->EmailVereniging)) {
 			$email = $row->EmailVereniging;
 		} else {
-			$email = $row->EMAIL;
+			$email = $row->Email;
 		}
 		$mail->AddAddress($email);
 		$mail->Subject = $subj;
