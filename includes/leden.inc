@@ -35,7 +35,7 @@ function fnWijzigen($lidid=0, $actie="") {
 			$wijzvelden[] = array('label' => "Woonplaats", 'naam' => "Woonplaats", 'lengte' => 22);
 			$wijzvelden[] = array('label' => "Telefoon", 'naam' => "Telefoon", 'lengte' => 16);
 			$wijzvelden[] = array('label' => "Mobiel", 'naam' => "Mobiel", 'lengte' => 16);
-			$wijzvelden[] = array('label' => "E-mail", 'naam' => "EMAIL", 'lengte' => 45);
+			$wijzvelden[] = array('label' => "E-mail", 'naam' => "Email", 'lengte' => 45);
 			$wijzvelden[] = array('label' => "Geboortedatum", 'naam' => "GEBDATUM", 'lengte' => 18);
 			$wijzvelden[] = array('label' => "Geboorteplaats", 'naam' => "GEBPLAATS", 'lengte' => 22);
 			$wijzvelden[] = array('label' => "Bankrekening", 'naam' => "BANKGIRO", 'lengte' => 10);
