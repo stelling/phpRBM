@@ -2,8 +2,6 @@
 
 function fnMailing() {
 	global $ldl, $currenttab2;
-	
-//	debug($_POST['action']);
 		
 	if (isset($_POST['Upload']) and $_POST['Upload'] == "Upload") {
 		$op = "upload";
@@ -120,6 +118,7 @@ class mailing {
 	public $template_bestand = "";
 	public $bestand_briefpapier = "templates/briefpapier.html";
 	public $vertraging_tussen_verzenden = 120; // in seconden
+	public $mailsperminuut = 120;
 	
 	private $MergeField;
 	private $contains_mergefield = false;
@@ -799,6 +798,8 @@ class mailing {
 			echo("<br>\n" . $this->mailbericht);
 		}
 		
+		$prevmin = date("i");
+		$aantminuut = 0;
 		foreach($rcpts as $rcpt) {
 			$this->create_mess($rcpt->Nummer);
 			if ($preview == 1) {
@@ -832,6 +833,14 @@ class mailing {
 					if ($this->verzamelen) {
 						db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message);
 					} else {
+						$aantminuut++;
+						if ($this->mailsperminuut > 0 and $aantminuut > $this->mailsperminuut) {
+							while ($prevmin == date("i")) {
+								sleep(5);
+							}
+							$prevmin = date("i");
+							$aantminuut = 0;
+						}
 						if ($mail->Send()) {
 							db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message);
 						} else {
@@ -950,7 +959,7 @@ class mailing {
 	}
 		
 	private function vulvars() {
-		global $naamvereniging;
+		global $naamvereniging, $maxmailsperminuut;
 	
 		if ($this->mid > 0) {
 			$ml = db_mailing("", $this->mid);
@@ -984,6 +993,7 @@ class mailing {
 			$this->from_addr = $_SESSION['emailingelogde'];
 			$this->new_on = date("Y-m-d");
 		}
+		$this->mailsperminuut = $maxmailsperminuut;
 	}
 }
 

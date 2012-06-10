@@ -43,6 +43,7 @@ $bewaartijdmailings = 3;  // Het aantal maanden dat verwijderde mailing bewaard 
 $beperkfrom = "";  // Indien deze is ingevuld moet het from adres altijd vanaf dit domein zijn.
 $max_grootte_bijlage = 0 * 1024 * 1024;  // Optioneel veld. Als je niets specificeerd dan is 2MB het maximum.  De waarde is in bytes.
 $resultaatmailingversturen = 1; // Als hier een 1 staat wordt naar de ontvanger en het secretariaat een mail met het resultaat van deze mail verzonden.
+$maxmailsperminuut = 250;  // Het maximaal aantal e-mails dat via een mailing per minuut verzonden mag worden.  0 = onbeperkt.
 
 // Self-service voor leden
 $selfservicediplomas = "('ZB-A', 'ZB-B', 'ZS-A', 'ZS-B')";  // Vul in deze lijst de codes in vam diploma's die leden zelf mogen wijzigen.
