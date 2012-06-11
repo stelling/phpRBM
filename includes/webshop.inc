@@ -35,9 +35,7 @@ function onlinebestellingen($lidid) {
 					$_POST[$pnab] = $art->MaxAantalPerLid;
 				}
 			}
-			if (isset($ord->RecordID) and $_POST[$pnab] == 0) {
-				$mess = db_orderregel("delete", $lidid, $art->RecordID);
-			} elseif (!isset($ord->RecordID) and $_POST[$pnab] > 0) {
+			if (!isset($ord->RecordID) and $_POST[$pnab] > 0) {
 				$mess = db_orderregel("add", $lidid, $art->RecordID, $_POST[$pnab]);
 			} elseif (isset($ord->RecordID)) {
 				if (isset($_POST[$pnab]) and $ord->AantalBesteld != $_POST[$pnab]) {
@@ -106,10 +104,10 @@ function onlinebestellingen($lidid) {
 		}
 		printf("<td class='number'>&euro;&nbsp;%s</td>\n", number_format($pps*$ab, 2));
 		printf("<td class='number'>%d</td>\n", $ag);
-		if ($ab > 0) {
+		if ($ab > 0 or strlen($opm) > 0) {
 			printf("<td><input type='text' name='Opmerking_%d' value='%s' size=30 maxlength=30></td>\n", $art->RecordID, $opm);
 		} else {
-			echo("<td>&nbsp;</td>\n");
+			printf("<td>%s</td>\n", $opm);
 		}
 		echo("</tr>\n");
 		$totbedrag += ($pps * $ab);
@@ -170,7 +168,7 @@ function artikelbeheer() {
 	$lijst = db_artikel("overzichtbeheer");
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	echo("<table>\n");
-	echo("<tr><th>RecordID</th><th>Code</th><th>Omschrijving</th><th>Maat</th><th>Verkoopprijs</th><th>Beschikbaar tot</th></tr>\n");
+	echo("<tr><th>RecordID</th><th>Code</th><th>Omschrijving</th><th>Maat</th><th>Verkoopprijs</th><th>Beschikbaar tot</th><th>Max aantal per lid</th><th>Beschikbaar voor groep</th></tr>\n");
 	foreach ($lijst as $row) {
 		echo("<tr>\n");
 		printf("<td class='number'>%d</td>\n", $row->RecordID);
@@ -179,7 +177,20 @@ function artikelbeheer() {
 		printf("<td><input type='text' name='Maat_%d' value='%s' size=6 maxlength=4></td>\n", $row->RecordID, $row->Maat);
 		printf("<td><input type='text' name='Verkoopprijs_%d' value='%s' size=10 maxlength=8></td>\n", $row->RecordID, $row->Verkoopprijs);
 		printf("<td><input type='date' name='BeschikbaarTot_%d' value='%s' size=20 maxlength=18></td>\n", $row->RecordID, $row->BeschikbaarTot);
-			
+		printf("<td><input type='number' name='MaxAantalPerLid_%d' value=%d size=4 maxlength=3></td>\n", $row->RecordID, $row->MaxAantalPerLid);
+		
+		printf("<td><select name='BeperkTotGroep_%d'>\n", $row->RecordID);
+		echo("<option value=0>Geen beperking</option>\n");
+		foreach(db_onderdelen() as $ond) {
+			if ($ond->RecordID == $row->BeperkTotGroep) {
+				$s = "selected";
+			} else {
+				$s = "";
+			}
+			printf("<option value=%d %s>%s</option>\n", $ond->RecordID, $s, $ond->Naam);
+		}
+		echo("</select></td>\n");
+		
 		echo("</tr>\n");
 	}
 	echo("</table>\n");
@@ -189,7 +200,7 @@ function artikelbeheer() {
 }
 
 function bestellingbeheer() {
-	global $table_prefix;
+	global $table_prefix, $fdlang;
 
 	$naamfilter="";
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
@@ -269,7 +280,7 @@ function bestellingbeheer() {
 	echo("</div>  <!-- Einde filter -->\n");
 	echo("<div id='bestellingbeheer'>\n");
 	echo("<table>\n");
-	echo("<tr><th>Lid</th><th>Artikel</th><th>Maat</th><th>Prijs per stuk</th><th>Besteld</th><th>Bedrag</th><th>Geleverd</th><th>Opmerking bij bestellen</th><th></th></tr>\n");
+	echo("<tr><th>Lid</th><th>Artikel</th><th>Maat</th><th>Prijs per stuk</th><th>Datum besteld</th><th>Besteld</th><th>Bedrag</th><th>Geleverd</th><th>Opmerking bij bestellen</th><th></th></tr>\n");
 	$nrmag = true;
 	if (strlen($naamfilter) > 0) {
 		$filter = sprintf("(L.Achternaam LIKE '%1\$s%%' OR L.Roepnaam LIKE '%1\$s%%' OR L.Meisjesnm LIKE '%1\$s%%')", $naamfilter);
@@ -300,6 +311,13 @@ function bestellingbeheer() {
 			}
 			echo("</select></td>\n");
 		}
+		if (is_null($row->BestellingDefinitief) and $row->AantalBesteld > 0) {
+			echo("<td class='nietdefinitief'>ND</td>\n");
+		} elseif (!is_null($row->BestellingDefinitief) and $row->AantalBesteld > 0) {
+			printf("<td>%s</td>\n", strftime("%e %B %Y", strtotime($row->BestellingDefinitief)));
+		} else {
+			echo("<td></td>\n");
+		}
 		printf("<td class='number'><input type='number' name='AantalBesteld_%d' value=%d size=6></td>\n", $row->RecordID, $row->AantalBesteld);
 		printf("<td class='number'>&euro;&nbsp;%s</td>", number_format($row->Bedrag, 2));
 		printf("<td class='number'><input type='number' name='AantalGeleverd_%d' value=%d size=6></td>\n", $row->RecordID, $row->AantalGeleverd);
@@ -319,6 +337,9 @@ function bestellingbeheer() {
 		echo("<button name='NieuweRegel'>Nieuwe regel</button>\n");
 	}
 	echo("</div>  <!-- Einde bestellingbeheer -->\n");
+	
+	echo(fnDisplayTable(db_orderregel("totalen"), "", "Totalen", 0, "", "", "totalenbestellingen"));
+	
 }
 
 function bevestigingbestelling($lidid) {

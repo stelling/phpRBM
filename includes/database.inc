@@ -1279,7 +1279,10 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 			$query = sprintf("DELETE FROM %sMailing_rcpt WHERE MailingID=%d AND to_address='%s';", $table_prefix, $mid, $email);
 			$mess = sprintf("E-mailadres '%s' is bij mailing %d verwijderd.", $email, $mid);
 		}
-		fnQuery($query);
+		$result = fnQuery($query);
+		if ($result == 0) {
+			$mess = "";
+		}
 		return $mess;
 		
 	} elseif ($actie == "opschonen") {
@@ -1708,8 +1711,8 @@ function db_artikel($actie, $artikelid=0) {
 		return $result->fetchAll();
 	} elseif ($actie == "artikelbeschikbaar") {
 		$query = sprintf("SELECT * FROM %sWS_Artikel
-					WHERE BeschikbaarTot >= CURDATE()
-					ORDER BY Code, Omschrijving, RecordID;", $table_prefix);
+					WHERE BeschikbaarTot >= CURDATE() AND (BeperkTotGroep=0 OR BeperkTotGroep IN %s)
+					ORDER BY Code, Omschrijving, RecordID;", $table_prefix, $_SESSION['lidgroepen']);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "add") {
@@ -1747,12 +1750,20 @@ function db_orderregel($actie, $lidid=0, $artikelid=0, $aantalbesteld=0, $filter
 			$filter = "WHERE " . $filter;
 		}
 		$query = sprintf("SELECT ORD.RecordID, ORD.Lid, ORD.Artikel, ORD.AantalBesteld, ORD.AantalGeleverd, ORD.PrijsPerStuk, ORD.Opmerking,
-					ORD.PrijsPerStuk * ORD.AantalBesteld AS Bedrag,
+					ORD.PrijsPerStuk * ORD.AantalBesteld AS Bedrag, ORD.Ingevoerd, ORD.BestellingDefinitief,
 					%1\$s AS NaamLid, L.Roepnaam, L.Email,
 					A.Code, A.Omschrijving, A.Maat
 					FROM (%2\$sWS_Orderregel AS ORD LEFT OUTER JOIN %2\$sWS_Artikel AS A ON A.RecordID=ORD.Artikel) LEFT OUTER JOIN %2\$sLid AS L ON ORD.Lid=L.Nummer
 					%3\$s
 					ORDER BY L.Achternaam, L.Roepnaam, A.Code;", $selectnaam, $table_prefix, $filter);
+		$result = fnQuery($query);
+		return $result->fetchAll();
+	} elseif ($actie == "totalen") {
+		$query = sprintf("SELECT A.Code, A.Omschrijving, A.Maat,
+					SUM(ORD.AantalBesteld) AS Besteld, SUM(ORD.AantalGeleverd) AS Geleverd, SUM(ORD.AantalBesteld-ORD.AantalGeleverd) AS `Nog te leveren`
+					FROM %1\$sWS_Orderregel AS ORD INNER JOIN %1\$sWS_Artikel AS A ON ORD.Artikel = A.RecordID
+					GROUP BY A.Code, A.Omschrijving, A.Maat
+					ORDER BY A.Omschrijving, A.Maat;", $table_prefix);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "add") {
@@ -1787,6 +1798,14 @@ function db_orderregel($actie, $lidid=0, $artikelid=0, $aantalbesteld=0, $filter
 	} elseif ($actie == "defmaken" and $lidid > 0) {
 		$query = sprintf("UPDATE %sWS_Orderregel SET BestellingDefinitief=SYSDATE() WHERE Lid=%d AND (BestellingDefinitief IS NULL) AND (NOT PrijsPerStuk IS NULL);", $table_prefix, $lidid);
 		$result = fnQuery($query);
+	} elseif ($actie == "opschonen") {
+		$query = sprintf("DELETE FROM %sWS_Orderregel WHERE AantalGeleverd=0 AND AantalGeleverd=0 AND Ingevoerd < DATE_ADD(CURDATE(), INTERVAL -1 WEEK);", $table_prefix);
+		$result = fnQuery($query);
+		if ($result > 0) {
+			$mess = sprintf("Er zijn %d orderregels verwijderd.", $result);
+			db_logboek("add", $mess, 10);
+		}
+		return $mess;
 	} elseif ($actie == "vulprijsperstuk") {
 		$query = sprintf("UPDATE %1\$sWS_Orderregel AS ORD SET PrijsPerStuk=(SELECT MAX(Verkoopprijs) FROM %1\$sWS_Artikel AS A WHERE A.RecordID=ORD.Artikel)
 					WHERE (ORD.PrijsPerStuk IS NULL) AND ORD.Artikel > 0;", $table_prefix);

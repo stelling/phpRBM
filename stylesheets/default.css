@@ -511,7 +511,19 @@ fieldset h3 {
    border-top-left-radius: 12px;
    border-bottom-right-radius: 12px;
    border-bottom-left-radius: 12px;
-	
+}
+
+#bestellingbeheer table {
+	width: 100%;
+}
+
+.totalenbestellingen {
+	margin-top: 15px;
+}
+
+.totalenbestellingen table {
+	margin-left: auto;
+	margin-right: auto;
 }
 
 .clear {
