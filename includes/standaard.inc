@@ -143,7 +143,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (count(db_evenement("open")) > 0) {
 			$tabpages[] = "Zelfservice/Inschrijving evenementen";
 		}
-		if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
+		if (count(db_artikel("artikelbeschikbaar")) > 0) {
 			$tabpages[] = "Zelfservice/Bestellingen";
 		}
 		$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap WHERE Lid=%d AND (Opgezegd IS NULL);", $table_prefix, $_SESSION['lidid']);
@@ -210,12 +210,10 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		$tabpages[] = "Evenementen/Types muteren";
 		$tabpages[] = "Evenementen/Logboek";
 	}
-	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
-		$tabpages[] = "Bestellingen";
-		$tabpages[] = "Bestellingen/Bestellingen muteren";
-		$tabpages[] = "Bestellingen/Artikelbeheer";
-		$tabpages[] = "Bestellingen/Logboek";
-	}
+	$tabpages[] = "Bestellingen";
+	$tabpages[] = "Bestellingen/Bestellingen muteren";
+	$tabpages[] = "Bestellingen/Artikelbeheer";
+	$tabpages[] = "Bestellingen/Logboek";
 	
 	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 //		$tabpages[] = "DMS";   Voorlopig geen tijd voor, dus uitgezet.
@@ -724,10 +722,13 @@ function change_month_to_uk($strdate) {
 class RBMmailer extends PHPMailer {
 
 	function __construct() {
-		global $smtphost, $smtpuser, $smtppw, $naamvereniging, $emailwebmaster;
+		global $smtphost, $smtpport, $smtpuser, $smtppw, $naamvereniging, $emailwebmaster;
 	
-		if (strlen($smtphost) > 0) {
+		if (isset($smtphost) and strlen($smtphost) > 0) {
 			$this->Host = $smtphost;
+			if (isset($smtpport) and $smtpport > 0) {
+				$this->Port = $smtpport;
+			}
 			$this->IsSMTP(true);
 			$this->IsHTML(true);
 			if (strlen($smtpuser) > 0 and strlen($smtppw) > 0) {
@@ -739,7 +740,6 @@ class RBMmailer extends PHPMailer {
 			}
 		} else {
 			$this->IsMail(true);
-			$mail->Mailer = "mail";
 		}
 		$this->From = $emailwebmaster;
 		$this->FromName = $naamvereniging;

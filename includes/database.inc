@@ -1704,6 +1704,7 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 function db_artikel($actie, $artikelid=0) {
 	global $table_prefix;
 
+	$mess = "";
 	if ($actie == "overzichtbeheer") {
 		$query = sprintf("SELECT *, CONCAT(Omschrijving, IF(LENGTH(Maat)>0, CONCAT(' (', Maat, ')'), '')) AS OmsMaat
 					FROM %sWS_Artikel ORDER BY Code, Omschrijving, RecordID;", $table_prefix);
@@ -1726,6 +1727,16 @@ function db_artikel($actie, $artikelid=0) {
 		$query = sprintf("SELECT Verkoopprijs FROM %sWS_Artikel WHERE RecordID=%d;", $table_prefix, $artikelid);
 		$result = fnQuery($query);
 		return $result->fetchColumn();
+	} elseif ($actie == "opschonen") {
+		$query = sprintf("DELETE FROM %1\$sWS_Artikel WHERE BeschikbaarTot < CURDATE() AND RecordID NOT IN (SELECT Artikel FROM %1\$sWS_Orderregel);", $table_prefix);
+		$result = fnQuery($query);
+		if ($result > 0) {
+			$mess = sprintf("Er zijn bij het opschonen %d artikelen verwijderd.", $result);
+		} else {
+			$mess = "Er zijn bij het opschonen geen artikelen verwijderd.";
+		}
+		db_logboek("add", $mess, 10);
+		return $mess;
 	}
 }
 
@@ -1738,20 +1749,24 @@ function db_orderregel($actie, $lidid=0, $artikelid=0, $aantalbesteld=0, $filter
 		$result = fnQuery($query);
 		return $result->fetch();
 	} elseif ($actie == "bevestiging" and $lidid > 0) {
-		$query = sprintf("SELECT ORD.AantalBesteld, ORD.Opmerking, %1\$s AS NaamLid, L.Roepnaam, L.Email, A.Code, A.Omschrijving, A.Maat,
-					ORD.PrijsPerStuk * ORD.AantalBesteld AS Bedrag
+		if (strlen($filter) > 0) {
+			$filter = " AND " . $filter;
+		}
+		$query = sprintf("SELECT ORD.Ordernr, ORD.AantalBesteld, ORD.Opmerking, ORD.PrijsPerStuk * ORD.AantalBesteld AS Bedrag,
+					%1\$s AS NaamLid, L.Roepnaam, L.Adres, L.Postcode, L.Woonplaats, L.Email, L.Email,
+					A.Code, A.Omschrijving, A.Maat
 					FROM (%2\$sWS_Orderregel AS ORD INNER JOIN %2\$sWS_Artikel AS A ON A.RecordID=ORD.Artikel) INNER JOIN %2\$sLid AS L ON ORD.Lid=L.Nummer
-					WHERE ORD.Lid=%3\$d AND ((ORD.AantalGeleverd IS NULL) OR ORD.AantalGeleverd < ORD.AantalBesteld) AND (NOT ORD.BestellingDefinitief IS NULL)
-					ORDER BY A.Code;", $selectnaam, $table_prefix, $lidid);
+					WHERE ORD.Lid=%3\$d AND ((ORD.AantalGeleverd IS NULL) OR ORD.AantalGeleverd < ORD.AantalBesteld) AND (NOT ORD.BestellingDefinitief IS NULL) %4\$s
+					ORDER BY A.Code;", $selectnaam, $table_prefix, $lidid, $filter);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "overzichtbeheer") {
 		if (strlen($filter) > 0) {
 			$filter = "WHERE " . $filter;
 		}
-		$query = sprintf("SELECT ORD.RecordID, ORD.Lid, ORD.Artikel, ORD.AantalBesteld, ORD.AantalGeleverd, ORD.PrijsPerStuk, ORD.Opmerking,
+		$query = sprintf("SELECT ORD.RecordID, ORD.Ordernr, ORD.Lid, ORD.Artikel, ORD.AantalBesteld, ORD.AantalGeleverd, ORD.PrijsPerStuk, ORD.Opmerking,
 					ORD.PrijsPerStuk * ORD.AantalBesteld AS Bedrag, ORD.Ingevoerd, ORD.BestellingDefinitief,
-					%1\$s AS NaamLid, L.Roepnaam, L.Email,
+					%1\$s AS NaamLid, L.Roepnaam, L.Adres, L.Postcode, L.Woonplaats, L.Email, L.Email,
 					A.Code, A.Omschrijving, A.Maat
 					FROM (%2\$sWS_Orderregel AS ORD LEFT OUTER JOIN %2\$sWS_Artikel AS A ON A.RecordID=ORD.Artikel) LEFT OUTER JOIN %2\$sLid AS L ON ORD.Lid=L.Nummer
 					%3\$s
@@ -1766,6 +1781,10 @@ function db_orderregel($actie, $lidid=0, $artikelid=0, $aantalbesteld=0, $filter
 					ORDER BY A.Omschrijving, A.Maat;", $table_prefix);
 		$result = fnQuery($query);
 		return $result->fetchAll();
+	} elseif ($actie == "maxordernr") {
+		$query = sprintf("SELECT MAX(IFNULL(Ordernr, 0)) FROM %sWS_Orderregel;", $table_prefix);
+		$result = fnQuery($query);
+		return $result->fetchColumn();
 	} elseif ($actie == "add") {
 		$query = sprintf("INSERT INTO %sWS_Orderregel SET Lid=%d, Artikel=%d, AantalBesteld=%d, Ingevoerd=CURDATE(), IngevoerdDoor=%d;", $table_prefix, $lidid, $artikelid, $aantalbesteld, $_SESSION['lidid']);
 		$result = fnQuery($query);
@@ -1802,9 +1821,11 @@ function db_orderregel($actie, $lidid=0, $artikelid=0, $aantalbesteld=0, $filter
 		$query = sprintf("DELETE FROM %sWS_Orderregel WHERE AantalGeleverd=0 AND AantalGeleverd=0 AND Ingevoerd < DATE_ADD(CURDATE(), INTERVAL -1 WEEK);", $table_prefix);
 		$result = fnQuery($query);
 		if ($result > 0) {
-			$mess = sprintf("Er zijn %d orderregels verwijderd.", $result);
-			db_logboek("add", $mess, 10);
+			$mess = sprintf("Er zijn bij het opschonen %d orderregels verwijderd.", $result);
+		} else {
+			$mess = "Er zijn bij het opschonen geen orderregels verwijderd.";
 		}
+		db_logboek("add", $mess, 10);
 		return $mess;
 	} elseif ($actie == "vulprijsperstuk") {
 		$query = sprintf("UPDATE %1\$sWS_Orderregel AS ORD SET PrijsPerStuk=(SELECT MAX(Verkoopprijs) FROM %1\$sWS_Artikel AS A WHERE A.RecordID=ORD.Artikel)
@@ -2092,10 +2113,10 @@ CREATE TABLE IF NOT EXISTS `%1\$sBewaking_Inschrijving` (
   `BlokID` int(11) NOT NULL,
   `Keuze` tinyint(4) NOT NULL DEFAULT '1',
   `Opmerking` varchar(50) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
-  `Definitief` datetime NOT NULL,
+  `Definitief` datetime DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `Afgemeld` datetime NOT NULL,
+  `Afgemeld` datetime DEFAULT NULL,
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
@@ -2157,9 +2178,34 @@ CREATE TABLE IF NOT EXISTS `%1\$sDiploma` (
   UNIQUE KEY `Kode` (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
+CREATE TABLE IF NOT EXISTS `%1\$sDMS_Document` (
+  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
+  `Bestandsnaam` varchar(30) NOT NULL,
+  `FolderID` int(11) NOT NULL,
+  `Beschrijving` varchar(255) NOT NULL,
+  `Volgnummer` float(5,2) unsigned NOT NULL DEFAULT '1.00',
+  `EigenaarID` int(11) NOT NULL,
+  `LockedBy` int(11) NOT NULL,
+  `Locked` datetime NOT NULL,
+  `Ingevoerd` date DEFAULT NULL,
+  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`RecordID`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `%1\$sDMS_Folder` (
+  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
+  `Foldernaam` varchar(30) NOT NULL,
+  `Beschrijving` text NOT NULL,
+  `Volgnummer` float(5,2) NOT NULL DEFAULT '1.00',
+  `Parent` int(11) NOT NULL DEFAULT '0',
+  `Ingevoerd` date NOT NULL,
+  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`RecordID`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
 CREATE TABLE IF NOT EXISTS `%1\$sEvenement` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
-  `Datum` date NOT NULL,
+  `Datum` datetime NOT NULL,
   `Eindtijd` varchar(5) NOT NULL,
   `Verzameltijd` varchar(5) NOT NULL,
   `Omschrijving` varchar(50) NOT NULL,
@@ -2167,8 +2213,8 @@ CREATE TABLE IF NOT EXISTS `%1\$sEvenement` (
   `TypeEvenement` int(11) NOT NULL,
   `InschrijvingOpen` tinyint(4) NOT NULL DEFAULT '1',
   `StandaardStatus` char(1) NOT NULL DEFAULT 'I',
-  `BeperkTotGroep` int(11) NOT NULL DEFAULT '0',
-  `ZichtbaarVoor` int(11) NOT NULL DEFAULT '0',
+  `BeperkTotGroep` int(11) NOT NULL DEFAULT '0' COMMENT 'Welke groep mag zich voor dit evenement inschrijven? 0 = iedereen.',
+  `ZichtbaarVoor` int(11) NOT NULL DEFAULT '0' COMMENT 'Voor welke groep is dit evenement zichtbaar? 0 = iedereen.',
   `Ingevoerd` date NOT NULL,
   `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `GewijzigdDoor` int(11) NOT NULL,
@@ -2466,7 +2512,41 @@ CREATE TABLE IF NOT EXISTS `%1\$sRekening` (
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`Nummer`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;", $table_prefix);
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `%1\$sWS_Artikel` (
+  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
+  `Code` char(6) COLLATE utf8_unicode_ci NOT NULL,
+  `Omschrijving` varchar(30) COLLATE utf8_unicode_ci NOT NULL,
+  `Maat` char(4) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `Verkoopprijs` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `BeschikbaarTot` date DEFAULT NULL,
+  `MaxAantalPerLid` smallint(6) NOT NULL DEFAULT '999',
+  `BeperkTotGroep` int(11) NOT NULL DEFAULT '0' COMMENT 'Welke groep mag dit artikel bestellen? 0 is iedereen.',
+  `Ingevoerd` date NOT NULL,
+  `IngevoerdDoor` int(11) NOT NULL,
+  `Gewijzigd` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE CURRENT_TIMESTAMP,
+  `GewijzigdDoor` int(11) NOT NULL,
+  PRIMARY KEY (`RecordID`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `%1\$sWS_Orderregel` (
+  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
+  `Ordernr` int(11) NOT NULL DEFAULT '0',
+  `Artikel` int(11) NOT NULL DEFAULT '0',
+  `Lid` int(11) NOT NULL DEFAULT '0',
+  `AantalBesteld` smallint(6) NOT NULL DEFAULT '0',
+  `PrijsPerStuk` decimal(10,2) DEFAULT NULL,
+  `Opmerking` varchar(30) COLLATE utf8_unicode_ci NOT NULL,
+  `BestellingDefinitief` datetime DEFAULT NULL COMMENT 'Heeft het lid de bestelling bevestigd?',
+  `AantalGeleverd` smallint(6) DEFAULT NULL,
+  `Ingevoerd` date NOT NULL,
+  `IngevoerdDoor` int(11) NOT NULL,
+  `Gewijzigd` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE CURRENT_TIMESTAMP,
+  `GewijzigdDoor` int(11) NOT NULL,
+  PRIMARY KEY (`RecordID`),
+  UNIQUE KEY `ArtikelLid` (`Artikel`,`Lid`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;", $table_prefix);
 
 	fnQuery($queries);
 }
