@@ -712,7 +712,7 @@ function nieuwepasfoto($lidid=0, $filterlid="") {
 		} else {
 			if (mkdir($ad, 0755, true) == true) {
 				$ret = sprintf("Directory '%s' is aangemaakt.", $ad);
-				db_logboek("add", $ret, 3);
+				db_logboek("add", $ret, 6);
 			}
 		}
 		if (file_exists($ad . "vervangen/")) {
@@ -720,7 +720,7 @@ function nieuwepasfoto($lidid=0, $filterlid="") {
 		} else {
 			if (mkdir($ad . "vervangen/", 0755, true) == true) {
 				$ret = sprintf("Directory '%s' is aangemaakt.", $ad . "vervangen/");
-				db_logboek("add", $ret, 3);
+				db_logboek("add", $ret, 6);
 			}
 		}
 
@@ -733,9 +733,15 @@ function nieuwepasfoto($lidid=0, $filterlid="") {
 		} elseif ($_FILES['UploadFoto']['size'] >= $max_size_attachm) {
 			$mess = sprintf("De foto kan niet worden ge-upload, omdat het groter is dan %d KB.", $max_size_attachm / 1024);
 		} else {
-			if (file_exists($target)) {
-				$bu_name = $ad  . "vervangen/"  . sprintf("Pasfoto%d_%d.%s", $lidid, strftime("%Y%m%d", filectime($target)), $ext);
-				rename($target, $bu_name);
+			$of = fotolid($lidid, 0);
+			while (strlen($of) > 3 and file_exists($of)) {
+				$of_ext = substr(strrchr($of, "."), 1);
+				$bu_name = "vervangen/" . sprintf("Pasfoto%d_%d.%s", $lidid, strftime("%Y%m%d", filectime($of)), $of_ext);
+				if (rename($of, $ad . $bu_name)) {
+					$mess = sprintf("Pasfoto './%s' is verplaatst en hernoemd naar './%s'.", $of, $bu_name);
+					db_logboek("add", $mess, 6);
+				}
+				$of = fotolid($lidid, 0);
 			}
 			if (move_uploaded_file($_FILES['UploadFoto']["tmp_name"], $target)) {
 				$image = new SimpleImage();
