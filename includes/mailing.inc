@@ -146,6 +146,8 @@ class mailing {
 	
 	private $ok_send = "";
 	private $nok_send = "";
+	private $aant_ok = 0;
+	private $aant_nok = 0;
 	private $resultaatversturen = 1;
 
 	function __construct($mid=0) {
@@ -334,9 +336,13 @@ class mailing {
 		printf("<div id='mailing'>\n");
 		printf("<form method='post' action='%s?tp=%s/%s&amp;mid=%d' name='frm_mailedit' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2, $this->mid);
 		printf("<table>\n");
-		printf("<tr><td class='label'>Van:</td><td><input type='text' name='from_name' value='%s' size=50 maxlength=50></td></tr>\n", $this->from_name);
-		printf("<tr><td class='label'>Vanaf e-mail:</td><td><input type='email' name='from_addr' value='%s' size=50 maxlength=50></td></tr>\n", $this->from_addr);
-		printf("<tr><td class='label'>Aan:</td><td><input type='text' name='to_name' value='%s' size=50 maxlength=50></td></tr>\n", $this->to_name);
+		printf("<tr><td class='label'>Van:</td><td><input type='text' name='from_name' value='%s' size=50 maxlength=50> (Namens wie wordt deze mailing verstuurd)</td></tr>\n", $this->from_name);
+		$et = "";
+		if (strlen($beperkfrom) > 2) {
+			$et = sprintf(" (Het domein van dit adres moet '%s' zijn)", $beperkfrom);
+		}
+		printf("<tr><td class='label'>Vanaf e-mail:</td><td><input type='email' name='from_addr' value='%s' size=50 maxlength=50>%s</td></tr>\n", $this->from_addr, $et);
+		printf("<tr><td class='label'>Aan:</td><td><input type='text' name='to_name' value='%s' size=50 maxlength=50> (Omschrijving van de groep personen aan wie deze mailing gericht is)</td></tr>\n", $this->to_name);
 		
 		$meldingen = "Er zijn nog geen ontvangers aan deze mailing toegevoegd.<br>\n";
 		$verzendenmag = false;
@@ -798,8 +804,8 @@ class mailing {
 			echo("<br>\n" . $this->mailbericht);
 		}
 		
-		$prevmin = date("i");
-		$aantminuut = 0;
+		$starttijd = time();
+		$aantverstuurd = 0;
 		foreach($rcpts as $rcpt) {
 			$this->create_mess($rcpt->Nummer);
 			if ($preview == 1) {
@@ -813,11 +819,6 @@ class mailing {
 				} else {
 					$e = strtolower($rcpt->to_address);
 					$this->contains_losse_email = true;
-				}
-				if (isset($rcpt->Naam_lid)) {
-					$this->ok_send .= sprintf("<li>%s {%s}</li>\n", $rcpt->Naam_lid, $e);
-				} else {
-					$this->ok_send .= sprintf("<li>%s</li>\n", $e);
 				}
 				if ($preview == 0) {
 					if (isset($rcpt->Naam_lid)) {
@@ -833,25 +834,33 @@ class mailing {
 					if ($this->verzamelen) {
 						db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message);
 					} else {
-						$aantminuut++;
-						if ($this->mailsperminuut > 0 and $aantminuut > $this->mailsperminuut) {
-							while ($prevmin == date("i")) {
-								sleep(5);
+						$aantverstuurd++;
+						while ($this->mailsperminuut > 0 and $aantverstuurd > ($this->mailsperminuut * ((time()-$starttijd) / 60))) {
+							sleep(3);
+							if (time()-$starttijd > 25) {
+								set_time_limit(30);
 							}
-							$prevmin = date("i");
-							$aantminuut = 0;
 						}
 						if ($mail->Send()) {
 							db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message);
+							if (isset($rcpt->Naam_lid)) {
+								$this->ok_send .= sprintf("<li>%s {%s}</li>\n", $rcpt->Naam_lid, $e);
+							} else {
+								$this->ok_send .= sprintf("<li>%s</li>\n", $e);
+							}
+							$this->aant_ok++;
 						} else {
+							$this->nok_send .= sprintf("<li>%s {%s}</li>\n", $rcpt->Naam_lid, $e);
 							$mess = sprintf("Het versturen van mailing %d (%s) aan %s is niet gelukt. Error: %s", $this->mid, $this->subject, $to_name, $mail->ErrorInfo);
 							db_logboek("add", $mess, 4);
+							$this->aant_nok++;
 						}
 						$mail->ClearAddresses();
 					}
 				}
 			} else {
 				$this->nok_send .= sprintf("<li>%s {%s, %s&nbsp&nbsp;%s}</li>\n", $rcpt->Naam_lid, $rcpt->Adres, $rcpt->Postcode, $rcpt->Woonplaats);
+				$this->aant_nok++;
 			}
 		}
 		if ($this->verzamelen and $preview == 0) {
@@ -866,39 +875,33 @@ class mailing {
 		if ($preview == 0 and strlen($this->ok_send) > 1) {
 			$query = sprintf("UPDATE %sMailing SET sent_on=SYSDATE(), SentBy=%d WHERE MailingID=%d;", $table_prefix, $_SESSION['lidid'], $this->mid);
 			fnQuery($query);
-			$oms = sprintf("Mailing %d (%s) is door %s verzonden.", $this->mid, $this->subject, $_SESSION['naamingelogde']);
+			$oms = sprintf("Mailing %d (%s) is aan %d ontvangers door %s verzonden.", $this->mid, $this->subject, $this->aant_ok, $_SESSION['naamingelogde']);
 			db_logboek("add", $oms, 4);
 		}
-		if ($this->resultaatversturen == 1) {
-			if (strlen($this->ok_send) > 1 and $preview == 1) {
-				$summary = sprintf("<p>De volgende ontvangers hebben een correct e-mailadres:<ul>\n%s</ul>\n</p>\n", $this->ok_send);
-			} elseif (strlen($this->ok_send) > 1) {
-				$summary = sprintf("<p>Deze mailing is verzonden op %s om %s naar:<ul>\n%s</ul>\n</p>\n", strftime("%e %B %Y"), strftime("%H:%M"), $this->ok_send);
+		
+		if ($this->resultaatversturen == 1 and $preview == 0) {
+			if (strlen($this->ok_send) > 1) {
+				$summary = sprintf("<p>Deze mailing is verzonden op %s om %s naar %d ontvangers:<ul>\n%s</ul>\n</p>\n", strftime("%e %B %Y"), strftime("%H:%M"), $this->aant_ok, $this->ok_send);
 			}
-			if (strlen($this->nok_send) > 1 and $preview == 1) {
-				$summary .= sprintf("De volgende ontvangers hebben geen (correct) e-mailadres in de database: <ul>\n%s</ul>\n", $this->nok_send);
-			} elseif (strlen($this->nok_send) > 1) {
-				$summary .= sprintf("Deze mailing kon niet verzonden worden naar: <ul>\n%s</ul>\n", $this->nok_send);
+			if (strlen($this->nok_send) > 1) {
+				$summary .= sprintf("Deze mailing kon niet naar %d ontvangers verzonden worden: <ul>\n%s</ul>\n", $this->nok_send, $this->aant_nok);
 			}
-			if ($preview == 1) {
-				printf("<div id='container'>%s</div>\n", $summary);
+			$this->create_mess();
+			$ev = "E-mail";
+			$this->mailbericht = str_ireplace("[%TO%]", "", $this->mailbericht);
+			$mail->MsgHTML($this->mailbericht . $summary);
+			$mail->Subject = "Resultaat mailing: " . $mail->Subject;
+			if (isValidMailAddress($mail->From, 0)) {
+				$mail->AddAddress($mail->From, $mail->FromName);
 			} else {
-				$this->create_mess();
-				$ev = "E-mail";
-				$this->mailbericht = str_ireplace("[%TO%]", "", $this->mailbericht);
-				$mail->MsgHTML($this->mailbericht . $summary);
-				$mail->Subject = "Resultaat mailing: " . $mail->Subject;
-				if (isValidMailAddress($mail->From, 0)) {
-					$mail->AddAddress($mail->From, $mail->FromName);
-				} else {
-					$mail->AddAddress($_SESSION['emailingelogde']);
-				}
-				$mail->ClearCCs();
-				if (isset($emailsecretariaat) and isValidMailAddress($emailsecretariaat, 0)) {
-					$mail->AddCC($emailsecretariaat);
-				}
-				$mail->Send();
+				$mail->AddAddress($_SESSION['emailingelogde']);
 			}
+			$mail->ClearCCs();
+			if (isset($emailsecretariaat) and isValidMailAddress($emailsecretariaat, 0)) {
+				$mail->AddCC($emailsecretariaat);
+			}
+			sleep(5);
+			$mail->Send();
 		}
 	}
 	
