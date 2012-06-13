@@ -55,7 +55,7 @@ function ToekomstigeEvenementen() {
 	
 	$rv = "";
 	foreach (db_evenement("komende") as $row) {
-		$dat = "Op " . strftime("%e %B", strtotime($row->Datum));
+		$dat = "Op " . strftime("%A %e %B", strtotime($row->Datum));
 		if ($row->Datum == date("Y-m-d")) {
 			$dat = "Vandaag";
 		} elseif ($row->Datum == date("Y-m-d", mktime(0, 0, 0, date("m")  , date("d")+1, date("Y")))) {
