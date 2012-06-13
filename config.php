@@ -37,6 +37,7 @@ $typemenu = 3; // 1 = per niveau een aparte regel, 2 = één menu met dropdown, 3 
 //Mailingsmodule
 $emailsecretariaat = "";  // Dit veld is niet verplicht, dit wordt gebruikt om het secretariaat op de hoogte te houden van verstuurde mailingen en opzeggingen.
 $smtphost = "";
+$smtpport = 0;  // De poort die voor de SMTP-host gebruikt moet worden.
 $smtpuser = "";
 $smtppw = "";
 $bewaartijdmailings = 3;  // Het aantal maanden dat verwijderde mailing bewaard worden. 0 = altijd bewaren.
