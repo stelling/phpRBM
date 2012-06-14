@@ -122,19 +122,6 @@ if (!isset($_SESSION['aantalkostenplaatsen'])) {
 function fnQuery($query, $add_prefix=1) {
    global $dbc, $table_prefix, $arrTables;
 	
-/*	$comm[] = "FROM ";
-	$comm[] = "JOIN ";
-	$comm[] = "INSERT INTO ";
-	$comm[] = "UPDATE ";
-	
-	if (strlen($table_prefix) > 1 and strlen($query) > 1 and $add_prefix == 1) {
-		foreach($arrTables as $tn) {
-			foreach($comm as $cm) {
-				$query = str_replace($cm . $tn, $cm . $table_prefix . $tn, $query);
-			}
-		}
-	}
-*/
 	try {
 		if (strtoupper(substr($query, 0, 6)) == "SELECT") {
 			$rs = $dbc->query($query);
@@ -368,9 +355,9 @@ function db_adressenlijst($filter="O.Kader=True") {
 }
 
 function db_lid($actie, $filter="") {
-	global $selectnaam, $selectzoeknaam, $selectlidnr, $table_prefix;
+	global $selectnaam, $selectzoeknaam, $selectlidnr, $table_prefix, $fromlid, $wherelid;
 	
-	if (strlen($filter) > 0) {
+	if (strlen($filter) > 0 and $actie != "verjaardagen") {
 		$filter = " WHERE " . $filter;
 	}
 	if ($actie == "lijst") {
@@ -383,10 +370,16 @@ function db_lid($actie, $filter="") {
 	} elseif ($actie == "ledenlijst") {
 		$query = sprintf("SELECT L.Nummer AS lnkNummer, LM.Lidnr AS numLidnr, %1\$s AS `Naam_lid`, UPPER(L.Woonplaats) AS Woonplaats,
 					L.Telefoon, L.Mobiel, L.Email AS `emlE-mail`, L.GEBDATUM AS ndGEBDATUM, %2\$s AS ndZoeknaam
-					FROM %3\$sLid AS L LEFT OUTER JOIN %3\$sLidmaatschap AS LM ON L.Nummer = LM.Lid
+					FROM %3\$s
 					%4\$s
-					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, LM.LIDDATUM DESC;", $selectnaam, $selectzoeknaam, $table_prefix, $filter);
-		
+					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, LM.LIDDATUM DESC;", $selectnaam, $selectzoeknaam, $fromlid, $filter);
+					
+	} elseif ($actie == "verjaardagen") {
+		$df = sprintf("MONTH(L.GEBDATUM)=%s AND DAY(L.GEBDATUM)=%s", substr($filter, 5, 2), substr($filter, -2));
+		$query = sprintf("SELECT L.Nummer, %1\$s AS `Naam_lid`, L.GEBDATUM, (YEAR('%5\$s')-YEAR(L.GEBDATUM))-IF(RIGHT('%5\$s', 5)<RIGHT(L.GEBDATUM, 5), 1, 0) AS Leeftijd
+					FROM %2\$s
+					WHERE %3\$s AND %4\$s AND L.GEBDATUM > '1901-01-01'
+					ORDER BY L.GEBDATUM, L.Nummer;", $selectnaam, $fromlid, $wherelid, $df, $filter);
 	} else {
 		debug("onbekende actie in db_lid", 1, 0, 1);
 		$query = "";
@@ -1593,17 +1586,19 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 	} elseif ($actie == "overzicht" or $actie == "overzichtbeheer") {
 		if ($actie == "overzichtbeheer") {
 			$where = "E.Datum >= DATE_ADD(CURDATE(), INTERVAL -3 MONTH) AND E.VerwijderdOp < '2012-01-01'";
+			$order = "ET.Soort, E.Datum";
 		} else {
 			$where = sprintf("E.Datum >= DATE_ADD(CURDATE(), INTERVAL -3 DAY) AND E.VerwijderdOp < '2012-01-01' AND E.ZichtbaarVoor IN %s", $_SESSION['lidgroepen']);
+			$order = "E.Datum";
 		}
 		$query = sprintf("SELECT E.RecordID AS lnkNummer, E.Datum AS dteDatum, DATE_FORMAT(E.Datum, '%%H:%%i') AS Starttijd, E.Omschrijving,
 								E.Email AS `emlEmail`, E.Verzameltijd, E.Eindtijd,
 								CASE E.InschrijvingOpen WHEN 0 THEN 'Nee' ELSE 'Ja' END AS `Ins. open?`,
 								(SELECT COUNT(*) FROM %1\$sEvenement_Deelnemer AS ED WHERE ED.EvenementID = E.RecordID AND Status='B') AS `Aantal dln`,
-								ET.Omschrijving AS `Type`
+								ET.Omschrijving AS `Type`, ET.Soort
 								FROM %1\$sEvenement AS E INNER JOIN %1\$sEvenement_Type AS ET ON E.TypeEvenement = ET.RecordID
 								WHERE %2\$s
-								ORDER BY E.Datum;", $table_prefix, $where);
+								ORDER BY %3\$s;", $table_prefix, $where, $order);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		

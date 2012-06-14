@@ -638,23 +638,15 @@ function overzichtverjaardagen($metfoto=1) {
 	$verjfoto = "";
 	for ($i = 0; $i <= $daysshowbirthdays; $i++) {
 		$dteHV = mktime(0, 0, 0, date("m"), date("d")+$i, date("Y"));
-		$w = sprintf("DAY(L.GEBDATUM)=%d AND MONTH(L.GEBDATUM)=%d", date("d", $dteHV), date("m", $dteHV))
-			. " AND LM.LIDDATUM <= CURDATE() AND ((LM.Opgezegd IS NULL) OR LM.Opgezegd > CURDATE())";
-		foreach(db_lid("ledenlijst", $w) as $row) {
+		foreach(db_lid("verjaardagen", date("Y-m-d", $dteHV)) as $row) {
 			if ($i == 0) {
-// >= 5.3					$interval = date_diff(date_create($row->ndGEBDATUM), date_create("now"));
-// >= 5.3					$t = sprintf("%s is vandaag %d jaar geworden", $row->Naam_lid, $interval->format('%y'));	
-				$lft = date("Y", strtotime("today")) - date("Y", strtotime($row->ndGEBDATUM));
-				$t = sprintf("%s is vandaag %d jaar geworden", htmlentities($row->Naam_lid), $lft);
+				$t = sprintf("%s is vandaag %d jaar geworden", htmlentities($row->Naam_lid), $row->Leeftijd);
 			} elseif ($i == 1) {
-// >= 5.3					$interval = date_diff(date_create($row->ndGEBDATUM), date_create("tomorrow"));
-// >= 5.3					$t = sprintf("%s wordt morgen %d jaar", $row->Naam_lid, $interval->format('%y'));
-				$lft = date("Y", strtotime("tomorrow")) - date("Y", strtotime($row->ndGEBDATUM));
-				$t = sprintf("%s wordt morgen %d jaar", htmlentities($row->Naam_lid), $lft);
+				$t = sprintf("%s wordt morgen %d jaar", htmlentities($row->Naam_lid), $row->Leeftijd);
 			} else {
-				$t = sprintf("Op %s is %s jarig", strftime("%e %B", strtotime($row->ndGEBDATUM)), htmlentities($row->Naam_lid));
+				$t = sprintf("Op %s is %s jarig", strftime("%A %e %B", $dteHV), htmlentities($row->Naam_lid));
 			}
-			$fn = fotolid($row->lnkNummer, 1);
+			$fn = fotolid($row->Nummer, 1);
 			if (strlen($t) > 3) {
 				$verj .= sprintf("%s. ", $t);
 				if (strlen($fn) > 3) {
