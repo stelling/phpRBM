@@ -267,11 +267,11 @@ function HTMLheader() {
 		$title = $naamwebsite;
 	}
 
+	header('Content-type: text/html; charset=utf-8');
    if (!isset($_GET['header']) or $_GET['header'] != "no") {
 		echo("<!DOCTYPE HTML>\n");
 		echo("<html lang='nl'>\n");
 		echo("<head>\n");
-//		echo("<meta charset='UTF-8'>\n");
 		if (isset($_GET['tp']) and substr($_GET['tp'], 0, 7) == "Mailing") {
 			echo("<script src='/includes/ckeditor/ckeditor.js'></script>\n");
 		}
