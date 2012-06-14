@@ -75,6 +75,9 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 } elseif ($_GET['op'] == "orderregelsopschonen" and $_GET['tp'] == "DB onderhoud") {
 	$mess = db_orderregel("opschonen");
 	printf("<p class='mededeling'>%s</p>\n", $mess);
+} elseif ($_GET['op'] == "artikelenopschonen" and $_GET['tp'] == "DB onderhoud") {
+	$mess = db_artikel("opschonen");
+	printf("<p class='mededeling'>%s</p>\n", $mess);
 }
 
 if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
@@ -153,6 +156,7 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 	}
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=loginsopschonen\"' value='Logins opschonen'>&nbsp;Opschonen van logins die om diverse redenen niet meer nodig zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=orderregelsopschonen\"' value='Orderregels opschonen'>&nbsp;Opschonen van de orderregels van de bestellingen.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=artikelenopschonen\"' value='Artikelen opschonen'>&nbsp;Opschonen van artikelen zonder bestellingen uit de webshop.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	echo("</div>  <!-- Einde dbonderhoud -->\n");
 	
 } elseif ($currenttab == "Logboek" and toegang($_GET['tp'])) {
