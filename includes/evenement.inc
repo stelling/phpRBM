@@ -36,7 +36,7 @@ function fnEvenementen() {
 	} elseif ($currenttab2 == "Beheer") {
 		$lijst = db_evenement("overzichtbeheer");
 		$lnk = sprintf("<a href='%s?tp=%s&amp;op=edit&amp;eid=%s' title='Bewerk evenement'>%s</a>", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), "%d", "%s");
-		$er = sprintf("<td><a href='%s?%s&amp;op=edit&amp;eid=0' title='Nieuw evenement'><img src='images/star.png' alt='Nieuw'></a></td><td colspan=9>Nieuw evenement</td>", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+		$er = sprintf("<td><a href='%s?%s&amp;op=edit&amp;eid=0' title='Nieuw evenement'><img src='images/star.png' alt='Nieuw'></a></td><td colspan=10>Nieuw evenement</td>", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 		echo(fnDisplayTable($lijst, $lnk, "", 0, "", $er));
 	} elseif ($currenttab2 == "Logboek") {
 		$lijst = db_logboek("lijst", "", 7);
@@ -293,10 +293,10 @@ function muteerevenement($eventid) {
 			} else {
 				$s = "";
 			}
-			$optiongroepen .= sprintf("<option value=%d %s>%s</option>\n", $t->RecordID, $s, $t->Oms);
+			$optiongroepen .= sprintf("<option value=%d %s>%s</option>\n", $t->RecordID, $s, htmlentities($t->Oms));
 		}
 		printf("<td class='label'>Zichtbaar voor:</td><td colspan=2><select name='ZichtbaarVoor'>%s</select></td></tr>\n", $optiongroepen);
-		printf("<tr><td class='label'>Gewijzigd op / door:</td><td colspan=5>%s / %s</td></tr>\n", strftime("%e %B %Y (%H:%M)", strtotime($row->Gewijzigd)), $row->GewijzigdDoorNaam);	
+		printf("<tr><td class='label'>Gewijzigd op / door:</td><td colspan=5>%s / %s</td></tr>\n", strftime("%e %B %Y (%H:%M)", strtotime($row->Gewijzigd)), htmlentities($row->GewijzigdDoorNaam));	
 	}
 	echo("</table>\n");
 	
@@ -315,7 +315,7 @@ function muteerevenement($eventid) {
 				$optstat .= sprintf("<option value='%s' %s>%s</option>\n", $key, $s, $val);
 			}
 			echo("<tr>\n");
-			printf("<td>%s</td>\n", $rd->NaamDeelnemer);
+			printf("<td>%s</td>\n", htmlentities($rd->NaamDeelnemer));
 			printf("<td><select name='stat_%d' onChange='this.form.submit();'>%s</select></td>\n", $rd->RecordID, $optstat);
 			printf("<td>%s</td>\n", $rd->Opmerking);
 			printf("<td><input type='text' name='func_%d' value='%s' size=30 maxlength=20 onBlur='this.form.submit();'></td>\n", $rd->RecordID, $rd->Functie);
@@ -326,7 +326,7 @@ function muteerevenement($eventid) {
 		}
 		$optionsnieuw = "<option value=0>Nieuwe deelnemer ...</option>\n";
 		foreach (db_evenement("potdeelnemers", 0, $recordid) as $row) {
-			$optionsnieuw .= sprintf("<option value=%d>%s</option>\n", $row->Nummer, $row->Naam);
+			$optionsnieuw .= sprintf("<option value=%d>%s</option>\n", $row->Nummer, htmlentities($row->Naam));
 		}
 		printf("<tr>\n<td colspan=6><select name='nwdln' onChange='this.form.submit();'>%s</select></td>\n</tr>\n", $optionsnieuw);
 	}
@@ -424,42 +424,68 @@ function muteertypeevenement() {
 
 function overzichtevenementen() {
 
-	$lijst = db_evenement("overzicht");
 	echo("<div id='overzichtevenementen'>\n");
 	echo("<table>\n");
-	echo("<tr><th>Datum en tijden</th><th>Omschrijving</th><th>Dames</th><th>Heren</th></tr>\n");
+	$vsrt = "Q";
 	
+	$lijst = db_evenement("overzicht");
 	foreach ($lijst as $row) {
+		if ($row->Soort != $vsrt) {
+			if ($row->Soort == "W") {
+				echo("<tr><th>Datum en tijden</th><th>Omschrijving</th><th>Dames</th><th>Heren</th></tr>\n");
+			} else {
+				echo("<tr><th>Datum en tijden</th><th>Omschrijving</th><th colspan=2>Deelnemers</th></tr>\n");
+			}
+			$vsrt = $row->Soort;
+		}
 		$oms = $row->Omschrijving;
 		if (IsValidMailAddress($row->emlEmail, 0)) {
-			$oms .= "<br>\nE-mail: " . fnDispEmail($row->emlEmail, "", 1);
+			$oms .= sprintf("<br>\n%s", fnDispEmail($row->emlEmail, "", 1));
+		}
+		$ad = "Aantal dln";
+		if ($row->$ad > 1) {
+			$oms .= sprintf("<br>\n%d&nbsp;deelnemers", $row->$ad);
 		}
 		if (strlen($row->Starttijd) > 3) {
-			$td = "<br>\nStart: " . $row->Starttijd;
+			$td = "<br>\nStart:&nbsp;" . $row->Starttijd;
 		} else {
 			$td = "";
 		}
 		if (strlen($row->Eindtijd) > 3) {
-			$td .= "<br>\nEinde: " . $row->Eindtijd;
+			$td .= "<br>\nEinde:&nbsp;" . $row->Eindtijd;
 		}
 		if (strlen($row->Verzameltijd) > 3) {
-			$td .= "<br>\nVerzamelen: " . $row->Verzameltijd;
+			$td .= "<br>\nVerzamelen:&nbsp;" . $row->Verzameltijd;
 		}
 		$dames = "";
 		$heren = "";
+		$deelnemers = "";
 		foreach (db_evenement("deelnemers", 0, $row->lnkNummer, "", "B") as $deeln) {
-			if ($deeln->Geslacht == "V") {
+			if ($row->Soort != "W") {
+				$vn = "deelnemers";
+			} elseif ($deeln->Geslacht == "V") {
 				$vn = "dames";
 			} else {
 				$vn = "heren";
 			}
-			$$vn .= $deeln->NaamDeelnemer;
-			if (strlen($deeln->Functie) > 0) {
-				$$vn .= sprintf(" (%s)", $deeln->Functie);
+			if (strlen($$vn) > 0 and $row->Soort == "W") {
+				$$vn .= "<br>\n";
 			}
-			$$vn .= "<br>\n";
+			$nd = htmlentities($deeln->NaamDeelnemer);
+			if (strlen($deeln->Functie) > 0) {
+				$nd .= sprintf(" (%s)", htmlentities($deeln->Functie));
+			}
+			if ($row->Soort == "W") {
+				$$vn .= $nd;
+			} else {
+				$$vn .= sprintf("<li>%s</li>\n", $nd);
+			}
 		}
-		printf("<tr><td>%s %s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n", strftime("%e %B %Y", strtotime($row->dteDatum)), $td, $oms, $dames, $heren);
+		if ($row->Soort == "W") {
+			printf("<tr><td>%s %s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n", strftime("%A %e %B %Y", strtotime($row->dteDatum)), $td, $oms, $dames, $heren);
+		} else {
+			printf("<tr><td class='datumtijdevenement'>%s %s</td><td class='omschrijvingevenement'>%s</td><td colspan=2><ul class='listdeelnemers'>%s</ul></td></tr>\n", strftime("%A %e %B %Y", strtotime($row->dteDatum)), $td, $oms, $deelnemers);
+		}
 	}
 	
 	echo("</table>\n");

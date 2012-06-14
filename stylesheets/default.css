@@ -282,6 +282,7 @@ footer a, footer a:visited, #footer a, #footer a:visited {
 
 #login img {
 	height: 22px;
+	width: 22px;
 	border: 0;
 	margin-left: 6px;
 }
@@ -657,6 +658,26 @@ fieldset h3 {
 	width: 200px;
 	margin-left: 1px;
 	padding-left: 3px;
+}
+
+.listdeelnemers {
+	list-style: none;
+	padding-left: 0;
+	padding-right: 0;
+	text-align: left;
+	margin-top: 0;
+}
+
+.listdeelnemers li {
+	float: left;
+	width: 215px;
+	list-style-type: none;
+	margin-left: 3px;
+	margin-right: 3px;
+}
+
+.datumtijdevenement, .omschrijvingevenement {
+	min-width: 125px;
 }
 
 .jarige {
