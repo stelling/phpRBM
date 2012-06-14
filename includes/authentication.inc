@@ -183,6 +183,7 @@ function fnConfirmLogin($row, $xtratekst="") {
 	$content = str_replace("[%NAAMVERENIGING%]", $naamvereniging, $content);
 	$content = str_replace("[%NAAMWEBSITE%]", $naamwebsite, $content);
 	$content = str_replace("[%URLWEBSITE%]", $urlwebsite, $content);
+	$content = str_replace("[%IPADDRESS%]", $_SERVER['REMOTE_ADDR'], $content);
 		
 	$content = str_ireplace("[%MESSAGE%]", $content, $briefpapier);
 
@@ -218,8 +219,9 @@ function fnConfirmLidnr($row) {
 <p>Je lidnummer is: %d.</p>
 <p>Met dit lidnummer kan je <a href='http://%s/index.php?tp=Login+aanvragen'>hier</a> een login aanvragen.</p>\n
 \n
+Dit verzoek is vanaf IP-adres %s gedaan.
 <p>Met vriendelijke groeten,<br>\n
-<strong>Webmaster %s</strong></p>\n", $row->Roepnaam, $row->Lidnr, $urlwebsite, $naamwebsite);
+<strong>Webmaster %s</strong></p>\n", $row->Roepnaam, $row->Lidnr, $urlwebsite, $_SERVER['REMOTE_ADDR'], $naamwebsite);
 
 	$myFile = 'templates/briefpapier.html';
 	if (file_exists($myFile)) {
