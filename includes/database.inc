@@ -1586,10 +1586,10 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 	} elseif ($actie == "overzicht" or $actie == "overzichtbeheer") {
 		if ($actie == "overzichtbeheer") {
 			$where = "E.Datum >= DATE_ADD(CURDATE(), INTERVAL -3 MONTH) AND E.VerwijderdOp < '2012-01-01'";
-			$order = "ET.Soort, E.Datum";
+			$order = "E.Datum";
 		} else {
 			$where = sprintf("E.Datum >= DATE_ADD(CURDATE(), INTERVAL -3 DAY) AND E.VerwijderdOp < '2012-01-01' AND E.ZichtbaarVoor IN %s", $_SESSION['lidgroepen']);
-			$order = "E.Datum";
+			$order = "ET.Soort, E.Datum";
 		}
 		$query = sprintf("SELECT E.RecordID AS lnkNummer, E.Datum AS dteDatum, DATE_FORMAT(E.Datum, '%%H:%%i') AS Starttijd, E.Omschrijving,
 								E.Email AS `emlEmail`, E.Verzameltijd, E.Eindtijd,
