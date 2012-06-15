@@ -835,7 +835,7 @@ class mailing {
 						db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message);
 					} else {
 						$aantverstuurd++;
-						while ($this->mailsperminuut > 0 and $aantverstuurd > ($this->mailsperminuut * ((time()-$starttijd) / 60))) {
+						while ($this->mailsperminuut > 0 and $aantverstuurd >= ($this->mailsperminuut * ((time()-$starttijd) / 60))) {
 							sleep(3);
 							if (time()-$starttijd > 25) {
 								set_time_limit(30);
@@ -884,7 +884,7 @@ class mailing {
 				$summary = sprintf("<p>Deze mailing is verzonden op %s om %s naar %d ontvangers:<ul>\n%s</ul>\n</p>\n", strftime("%e %B %Y"), strftime("%H:%M"), $this->aant_ok, $this->ok_send);
 			}
 			if (strlen($this->nok_send) > 1) {
-				$summary .= sprintf("Deze mailing kon niet naar %d ontvangers verzonden worden: <ul>\n%s</ul>\n", $this->nok_send, $this->aant_nok);
+				$summary .= sprintf("Deze mailing kon niet naar %d ontvangers verzonden worden: <ul>\n%s</ul>\n", $this->aant_nok, $this->nok_send);
 			}
 			$this->create_mess();
 			$ev = "E-mail";
@@ -893,6 +893,9 @@ class mailing {
 			$mail->Subject = "Resultaat mailing: " . $mail->Subject;
 			if (isValidMailAddress($mail->From, 0)) {
 				$mail->AddAddress($mail->From, $mail->FromName);
+				if (strtolower($_SESSION['emailingelogde']) != strtolower($mail->From)) {
+					$mail->AddAddress($_SESSION['emailingelogde']);
+				}
 			} else {
 				$mail->AddAddress($_SESSION['emailingelogde']);
 			}
@@ -900,7 +903,9 @@ class mailing {
 			if (isset($emailsecretariaat) and isValidMailAddress($emailsecretariaat, 0)) {
 				$mail->AddCC($emailsecretariaat);
 			}
-			sleep(5);
+			if ($this->mailsperminuut > 0) {
+				usleep((60 / $this->mailsperminuut > 0) * 1000000);
+			}
 			$mail->Send();
 		}
 	}
