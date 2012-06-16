@@ -1173,8 +1173,8 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		$result = fnQuery($query);
 		return $result->fetch();
 	} elseif ($actie == "hist" and $mid > 0) {
-		$query = sprintf('SELECT M.subject AS ndOnderwerp, MH.send_on AS dttVerzonden, IF(MH.LidID=0, MH.to_name, %1$s) AS Aan, to_addr AS `E-mail`, L.Woonplaats,
-					MH.RecordID AS lnkRecordID
+		$query = sprintf('SELECT M.subject AS ndOnderwerp, MH.send_on AS dtsVerzonden, IF(MH.LidID=0, MH.to_name, %1$s) AS Aan,
+					to_addr AS `E-mail`, L.Woonplaats, MH.RecordID AS lnkRecordID
 					FROM (%2$sMailing_hist AS MH LEFT OUTER JOIN %2$sLid AS L ON MH.LidID = L.Nummer) INNER JOIN %2$sMailing AS M ON MH.MailingID = M.MailingID
 					WHERE MH.MailingID=%3$d
 					ORDER BY MH.RecordID DESC;', $selectnaam, $table_prefix, $mid);
@@ -1390,7 +1390,7 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0) {
 			$s .= sprintf(", %s AS `Ingelogd Lid`", $selectnaam);
 		}
 	
-		$query = sprintf("SELECT A.DatumTijd as `dttDatum en tijd`, Omschrijving%1\$s
+		$query = sprintf("SELECT A.DatumTijd as `dtsDatum en tijd`, Omschrijving%1\$s
 								FROM %2\$sAdmin_activiteit AS A LEFT OUTER JOIN %2\$sLid AS L ON A.LidID = L.Nummer
 								WHERE %3\$s
 								ORDER BY A.RecordID DESC LIMIT 250;", $s, $table_prefix, $w);
@@ -1559,6 +1559,8 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 
 function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie="") {
 	global $table_prefix, $selectnaam, $selectzoeknaam, $wherelidond;
+	
+	$sqlaantdln = sprintf("SELECT COUNT(*) FROM %sEvenement_Deelnemer AS ED WHERE ED.EvenementID = E.RecordID AND Status='B'", $table_prefix);
 
 	$xtra_where = "";
 	$mess = "";
@@ -1594,11 +1596,11 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 		$query = sprintf("SELECT E.RecordID AS lnkNummer, E.Datum AS dteDatum, DATE_FORMAT(E.Datum, '%%H:%%i') AS Starttijd, E.Omschrijving,
 								E.Email AS `emlEmail`, E.Verzameltijd, E.Eindtijd,
 								CASE E.InschrijvingOpen WHEN 0 THEN 'Nee' ELSE 'Ja' END AS `Ins. open?`,
-								(SELECT COUNT(*) FROM %1\$sEvenement_Deelnemer AS ED WHERE ED.EvenementID = E.RecordID AND Status='B') AS `Aantal dln`,
+								(%1\$s) AS `Aantal dln`,
 								ET.Omschrijving AS `Type`, ET.Soort
-								FROM %1\$sEvenement AS E INNER JOIN %1\$sEvenement_Type AS ET ON E.TypeEvenement = ET.RecordID
-								WHERE %2\$s
-								ORDER BY %3\$s;", $table_prefix, $where, $order);
+								FROM %2\$sEvenement AS E INNER JOIN %2\$sEvenement_Type AS ET ON E.TypeEvenement = ET.RecordID
+								WHERE %3\$s
+								ORDER BY %4\$s;", $sqlaantdln, $table_prefix, $where, $order);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
@@ -1617,8 +1619,9 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 		return $result->fetch();
 		
 	} elseif ($actie == "record" and $eventid > 0) {
-		$query = sprintf("SELECT E.*, %1\$s AS GewijzigdDoorNaam FROM %2\$sEvenement AS E LEFT OUTER JOIN %2\$sLid AS L ON E.GewijzigdDoor = L.Nummer
-								WHERE E.RecordID=%3\$d;", $selectnaam, $table_prefix, $eventid);
+		$query = sprintf("SELECT E.*, %1\$s AS GewijzigdDoorNaam, (%2\$s) AS AantDln
+								FROM %3\$sEvenement AS E LEFT OUTER JOIN %3\$sLid AS L ON E.GewijzigdDoor = L.Nummer
+								WHERE E.RecordID=%4\$d;", $selectnaam, $sqlaantdln, $table_prefix, $eventid);
 		$result = fnQuery($query);
 		return $result->fetch();
 		
@@ -2171,31 +2174,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sDiploma` (
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`RecordID`),
   UNIQUE KEY `Kode` (`Kode`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE IF NOT EXISTS `%1\$sDMS_Document` (
-  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
-  `Bestandsnaam` varchar(30) NOT NULL,
-  `FolderID` int(11) NOT NULL,
-  `Beschrijving` varchar(255) NOT NULL,
-  `Volgnummer` float(5,2) unsigned NOT NULL DEFAULT '1.00',
-  `EigenaarID` int(11) NOT NULL,
-  `LockedBy` int(11) NOT NULL,
-  `Locked` datetime NOT NULL,
-  `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`RecordID`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE IF NOT EXISTS `%1\$sDMS_Folder` (
-  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
-  `Foldernaam` varchar(30) NOT NULL,
-  `Beschrijving` text NOT NULL,
-  `Volgnummer` float(5,2) NOT NULL DEFAULT '1.00',
-  `Parent` int(11) NOT NULL DEFAULT '0',
-  `Ingevoerd` date NOT NULL,
-  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sEvenement` (
