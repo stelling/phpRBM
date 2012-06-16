@@ -805,7 +805,7 @@ class mailing {
 		}
 		
 		$starttijd = time();
-		$aantverstuurd = 0;
+		$smptteller = 0;
 		foreach($rcpts as $rcpt) {
 			$this->create_mess($rcpt->Nummer);
 			if ($preview == 1) {
@@ -834,13 +834,13 @@ class mailing {
 					if ($this->verzamelen) {
 						db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message);
 					} else {
-						$aantverstuurd++;
-						while ($this->mailsperminuut > 0 and $aantverstuurd >= ($this->mailsperminuut * ((time()-$starttijd) / 60))) {
-							sleep(3);
+						while ($this->mailsperminuut > 0 and $smptteller > ($this->mailsperminuut * ((time()-$starttijd) / 60))) {
+							usleep((60 / $this->mailsperminuut) * 1000000);
 							if (time()-$starttijd > 25) {
 								set_time_limit(30);
 							}
 						}
+						$smptteller++;
 						if ($mail->Send()) {
 							db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message);
 							if (isset($rcpt->Naam_lid)) {
@@ -903,8 +903,8 @@ class mailing {
 			if (isset($emailsecretariaat) and isValidMailAddress($emailsecretariaat, 0)) {
 				$mail->AddCC($emailsecretariaat);
 			}
-			if ($this->mailsperminuut > 0) {
-				usleep((60 / $this->mailsperminuut > 0) * 1000000);
+			if ($this->mailsperminuut > 0 and $this->mailsperminuut < 10000) {
+				usleep((60 / $this->mailsperminuut) * 1000000);
 			}
 			$mail->Send();
 		}
