@@ -497,7 +497,7 @@ function fnOverviewLid($lidid=0, $actie="") {
 	} else {
 	
 		fnDispMenu(2, "lidid=" . $lidid);
-		$naamlid = db_naamlid($lidid);
+		$naamlid = htmlentities(db_naamlid($lidid));
 		
 		if ($actie == "Afdelingen") {
 			$rows = db_gegevenslid($lidid, $actie);
