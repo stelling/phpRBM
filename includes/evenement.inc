@@ -174,9 +174,10 @@ function muteerevenement($eventid) {
 		}
 		foreach (db_evenement("deelnemers", 0, $eventid) as $rd) {
 			$stat = sprintf("stat_%d", $rd->RecordID);
+			$opm = sprintf("Opmerking_%d", $rd->RecordID);
 			$func = sprintf("func_%d", $rd->RecordID);
-			if ((isset($_POST[$stat]) and $_POST[$stat] != $rd->Status) or (isset($_POST[$func]) and $_POST[$func] != $rd->Functie)) {
-				db_evenement("updatedeelnemer", $rd->LidID, $eventid, $rd->Opmerking, $_POST[$stat], $_POST[$func]);
+			if ($_POST[$stat] != $rd->Status or $_POST[$func] != $rd->Functie or $_POST[$opm] != $rd->Opmerking) {
+				db_evenement("updatedeelnemer", $rd->LidID, $eventid, $_POST[$opm], $_POST[$stat], $_POST[$func]);
 			}
 		}
 		if (isset($_POST['nwdln']) and $_POST['nwdln'] > 0 and is_numeric($_POST['nwdln'])) {
@@ -226,6 +227,7 @@ function muteerevenement($eventid) {
 		}
 		$beperktotgroep = $row->BeperkTotGroep;
 		$zichtbaarvoor = $row->ZichtbaarVoor;
+		$aantdln = $row->AantDln;
 	} else {
 		$recordid = 0;
 		$datum = date("Y-m-d");
@@ -240,6 +242,7 @@ function muteerevenement($eventid) {
 		$standaardstatus = "I";
 		$beperktotgroep = 0;
 		$zichtbaarvoor = 0;
+		$aantdln = 0;
 	}
 	
 	$optiontypes = "";
@@ -265,17 +268,18 @@ function muteerevenement($eventid) {
 	echo("<div id='evenementenbeheer'>\n");
 	printf("<form method='post' action='%s?tp=%s&amp;op=edit&amp;eid=%d'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $eventid);
 	echo("<table>\n");
-	printf("<tr><td class='label'>Datum:</td><td colspan=5><input type='text' name='Datum' value='%s' size=25'></td></tr>\n", strftime("%e %B %Y", strtotime($datum)));
-	printf("<tr><td class='label'>Omschrijving:</td><td colspan=5><input type='text' name='Omschrijving' value='%s' maxlength=50 size=75'></td></tr>\n", $oms);
-	printf("<tr><td class='label'>E-mail:</td><td colspan=5><input type='email' name='Email' value='%s' maxlength=45 size=50'></td></tr>\n", $email);
-	printf("<tr><td class='label'>Starttijd:</td><td><input type='text' name='Starttijd' value='%s' size=5 maxlength=5'></td>\n", $starttijd);
-	printf("<td class='label'>Eindtijd:</td><td><input type='text' name='Eindtijd' value='%s' size=5 maxlength=5'></td>\n", $eindtijd);
-	printf("<td class='label'>Verzamelen:</td><td><input type='text' name='Verzameltijd' value='%s' size=5 maxlength=5'></td></tr>\n", $verzameltijd);
-	printf("<tr><td class='label'>Type evenement:</td><td colspan=5><select name='TypeEvenement' onChange='this.form.submit();'>%s</select></td></tr>\n", $optiontypes);
+	printf("<tr><td class='label'>Datum:</td><td colspan=5><input type='text' name='Datum' value='%s' size=25></td></tr>\n", strftime("%e %B %Y", strtotime($datum)));
+	printf("<tr><td class='label'>Omschrijving:</td><td colspan=5><input type='text' name='Omschrijving' value='%s' maxlength=50 size=50></td></tr>\n", $oms);
+	printf("<tr><td class='label'>E-mail:</td><td colspan=5><input type='email' name='Email' value='%s' maxlength=45 size=50></td></tr>\n", $email);
+	printf("<tr><td class='label'>Starttijd:</td><td><input type='text' name='Starttijd' value='%s' size=5 maxlength=5></td>\n", $starttijd);
+	printf("<td class='label'>Eindtijd:</td><td><input type='text' name='Eindtijd' value='%s' size=5 maxlength=5></td>\n", $eindtijd);
+	printf("<td class='label'>Verzamelen:</td><td><input type='text' name='Verzameltijd' value='%s' size=5 maxlength=5></td></tr>\n", $verzameltijd);
+	printf("<tr><td class='label'>Type evenement:</td><td colspan=3><select name='TypeEvenement' onChange='this.form.submit();'>%s</select></td>\n", $optiontypes);
+	printf("<td class='label'>Aantal deelnemers:</td><td>%d</td></tr>\n", $aantdln);
 	if ($eventid > 0) {
-		printf("<tr><td class='label'>Online inschrijving is open:</td><td><input type='radio' name='InschrijvingOpen' value=1 %s>Ja<input type='radio' name='InschrijvingOpen' value=0 %s>Nee</td>\n", $insopen1, $insopen2);
-		printf("<td class='label'>Standaard status:</td><td><select name='StandaardStatus'>%s</td>\n", $optionstandstatus);
-		printf("<td class='label'>Verwijderd:</td><td colspan=3><input type='radio' name='verw' value=1 %s>Ja<input type='radio' name='verw' value=0 %s>Nee</td></tr>\n", $verw1, $verw2);
+		printf("<tr><td class='label'>Online inschrijving open:</td><td><input type='radio' name='InschrijvingOpen' value=1 %s>Ja<input type='radio' name='InschrijvingOpen' value=0 %s>Nee</td>\n", $insopen1, $insopen2);
+		printf("<td class='label'>Standaard status:</td><td><select name='StandaardStatus'>%s</select></td>\n", $optionstandstatus);
+		printf("<td class='label'>Verwijderd:</td><td><input type='radio' name='verw' value=1 %s>Ja<input type='radio' name='verw' value=0 %s>Nee</td></tr>\n", $verw1, $verw2);
 		$optiongroepen = "<option value=0>Geen</option>\n";
 		foreach (db_onderdelen() as $t) {
 			if ($t->RecordID == $beperktotgroep) {
@@ -283,7 +287,7 @@ function muteerevenement($eventid) {
 			} else {
 				$s = "";
 			}
-			$optiongroepen .= sprintf("<option value=%d %s>%s</option>\n", $t->RecordID, $s, $t->Oms);
+			$optiongroepen .= sprintf("<option value=%d %s>%s</option>\n", $t->RecordID, $s, htmlentities($t->Oms));
 		}
 		printf("<tr><td class='label'>Deelname beperken tot:</td><td colspan=2><select name='BeperkTotGroep' onChange='this.form.submit();'>%s</select></td>\n", $optiongroepen);
 		$optiongroepen = "<option value=0>Iedereen</option>\n";
@@ -304,7 +308,7 @@ function muteerevenement($eventid) {
 	echo("<table>");
 	if ($eventid > 0) {
 		echo("<tr><th colspan=6 class='tabelkop'>Deelnemers</th></tr>\n");
-		echo("<tr><th>Naam deelnemer</th><th>Status</th><th>Opmerking</th><th>Functie</th><th>Toegevoegd</th><th>Del</th></tr>\n");
+		echo("<tr><th>Naam deelnemer</th><th>Status</th><th>Opmerking bij inschrijving</th><th>Functie</th><th>Toegevoegd</th><th>Del</th></tr>\n");
 		foreach (db_evenement("deelnemers", 0, $recordid) as $rd) {
 			$optstat = "";
 			foreach ($dlnstatus as $key => $val) {
@@ -317,10 +321,10 @@ function muteerevenement($eventid) {
 			echo("<tr>\n");
 			printf("<td>%s</td>\n", htmlentities($rd->NaamDeelnemer));
 			printf("<td><select name='stat_%d' onChange='this.form.submit();'>%s</select></td>\n", $rd->RecordID, $optstat);
-			printf("<td>%s</td>\n", $rd->Opmerking);
-			printf("<td><input type='text' name='func_%d' value='%s' size=30 maxlength=20 onBlur='this.form.submit();'></td>\n", $rd->RecordID, $rd->Functie);
+			printf("<td><input type='text' name='Opmerking_%d' value='%s' size=30 maxlength=75></td>\n", $rd->RecordID, $rd->Opmerking);
+			printf("<td><input type='text' name='func_%d' value='%s' size=30 maxlength=20></td>\n", $rd->RecordID, $rd->Functie);
 			printf("<td>%s</td>\n", strftime("%e %b %Y", strtotime($rd->Ingevoerd)));
-			printf("<td><a href='%s?tp=%s&amp;op=delete&amp;eid=%d&amp;lidid=%d'><image src='images/del.png' alt='Delete'></a></td>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $eventid, $rd->LidID);
+			printf("<td><a href='%s?tp=%s&amp;op=delete&amp;eid=%d&amp;lidid=%d'><img src='images/del.png' alt='Delete'></a></td>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $eventid, $rd->LidID);
 			echo("</tr>\n");
 			$aantdln++;
 		}
