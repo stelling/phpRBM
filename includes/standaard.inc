@@ -569,7 +569,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 			if ($dispkop == 1) {
 				$hv = "<tr>";
 				foreach($row as $key => $value) {
-					if (strstr("dte, dtt, dtl, boo, int, cur, eml, num, mrg", substr($key, 0, 3)) !== false) {
+					if (strstr("dte, dtt, dtl, dts, boo, int, cur, eml, num, mrg", substr($key, 0, 3)) !== false) {
 						$hv .= sprintf("<th>%s</th>", str_replace("_", " ", substr($key, 3)));
 						$ktot[] = 0;
 					} elseif (strstr("lnk", substr($key, 0, 3)) !== false or strstr("llk", substr($key, 0, 3)) !== false) {
@@ -604,6 +604,12 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 				} elseif (substr($key, 0, 3) == "dtt") {
 					if ((!is_null($value)) and $value > '1900-01-01') {
 						$ret .= sprintf("<td class='datumtijd'>%s</td>", strftime('%e %B %Y (%H:%M)', strtotime($value)));
+					} else {
+						$ret .= "<td>&nbsp;</td>";
+					}
+				} elseif (substr($key, 0, 3) == "dts") {
+					if ((!is_null($value)) and $value > '1900-01-01') {
+						$ret .= sprintf("<td class='datumtijd'>%s</td>", strftime('%e %B %Y (%H:%M:%S)', strtotime($value)));
 					} else {
 						$ret .= "<td>&nbsp;</td>";
 					}
