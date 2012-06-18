@@ -9,7 +9,7 @@ if (toegang("Overzicht lid", 0)) {
 function fnWijzigen($lidid=0, $actie="") {
 	global $currenttab, $currenttab2, $emailledenadministratie, $selfservicediplomas, $opzegtermijn;
 	global $naamvereniging, $naamwebsite, $urlwebsite, $table_prefix, $emailsecretariaat, $gebruikopenid;
-	global $muteerbarememos, $arrLegitimatie, $arrSoortMemo, $arrGeslacht;
+	global $muteerbarememos, $arrLegitimatie, $arrSoortMemo, $arrGeslacht, $actionurl;
 	
 	if ($lidid == 0) {
 		$lidid = $_SESSION['lidid'];
@@ -19,6 +19,7 @@ function fnWijzigen($lidid=0, $actie="") {
 	}
 	
 	$naamlid = db_naamlid($lidid);
+	$actionurl = sprintf("%s?tp=%s&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
 	if ($lidid > 0) {
 //		$lidid = 32;
 		fnDispMenu(2, "lidid=" . $lidid);
@@ -45,6 +46,7 @@ function fnWijzigen($lidid=0, $actie="") {
 			
 			if ($_SERVER['REQUEST_METHOD'] == "POST") {
 				$mess = "";
+				$old = db_ledenwijzigingen($lidid);
 				for ($i=0; $i < count($wijzvelden); $i++) {
 					$fn = $wijzvelden[$i]['naam'];
 					$v = "__skip__";
@@ -74,7 +76,7 @@ function fnWijzigen($lidid=0, $actie="") {
 					} elseif (isset($_POST[$fn]) and strlen($_POST[$fn]) > 0) {
 						$v = $_POST[$fn];
 					}
-					if ($v != "__skip__" and $v != $_POST["old_" . $fn]) {
+					if ($v != "__skip__" and $v != $old->$fn) {
 						$query = sprintf("UPDATE %sLid SET %s='%s', Gewijzigd=SYSDATE() WHERE Nummer=%d;", $table_prefix, $fn, $v, $lidid);
 						$result = fnQuery($query);
 						if ($result > 0) {
@@ -93,10 +95,9 @@ function fnWijzigen($lidid=0, $actie="") {
 			
 			$row = db_ledenwijzigingen($lidid);
 			echo("<div id='wijzigengegevens'>\n");
-			printf("<form method='post' action='%s?%s' name='frm_wijzigingen'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+			printf("<form method='post' action='%s' name='frm_wijzigingen'>\n", $actionurl);
 			echo("<table>\n");
 			echo("<tr><th>Veld</th><th>Huidige waarde</th><th>Nieuwe waarde</th><th>Leeg?</th></tr>\n");
-			$oldvals = "";
 			for ($i=0; $i < count($wijzvelden); $i++) {
 				$dv = $row->$wijzvelden[$i]['naam'];
 				$ph = $wijzvelden[$i]['label'];
@@ -129,13 +130,11 @@ function fnWijzigen($lidid=0, $actie="") {
 							$t, $wijzvelden[$i]['naam'], $ph, $wijzvelden[$i]['lengte'], $wijzvelden[$i]['naam']);
 				}
 				printf('<tr><td class="label">%1$s</td><td>%2$s</td><td>%3$s</td></tr>', $wijzvelden[$i]['label'], $dv, $inp);
-				$oldvals .= sprintf("<input type='hidden' value='%s' name='old_%s'>\n", $row->$wijzvelden[$i]['naam'], $wijzvelden[$i]['naam']);
 				echo("\n");
 			}
-			echo("<tr><th colspan=4><input type='submit' value='Bewaren' name='adreswijziging'></th><tr>\n");
+			echo("<tr><th colspan=4><input type='submit' value='Bewaren' name='adreswijziging'></th></tr>\n");
 			echo("</table>\n");
-			echo($oldvals);
-				
+
 			echo("</form>\n");
 			echo("</div>  <!-- Einde invulformulier -->\n");
 		} elseif ($actie == "Diplomas") {
@@ -162,7 +161,7 @@ function fnWijzigen($lidid=0, $actie="") {
 			
 			$oldvals = "";
 			echo("<div id='wijzigendiplomas'>\n");
-			printf("<form method='post' action='%s?%s' name='frm_diplwijz'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+			printf("<form method='post' action='%s' name='frm_diplwijz'>\n", $actionurl);
 			echo("<table>\n");
 			printf("<tr><th colspan=6>Diploma's %s</th></tr>\n", $naamlid);
 			printf("<tr><th>Code</th><th>Naam</th><th>Behaald op</th><th>Geldig tot</th><th>Diplomanummer</th><th>Verw?</th></tr>\n");
@@ -211,7 +210,7 @@ function fnWijzigen($lidid=0, $actie="") {
 				}
 			}
 			echo("<div id='bijzonderhedenwijzigen'>\n");
-			printf("<form method='post' action='%s?%s' name='bijz_wijz'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+			printf("<form method='post' action='%s' name='bijz_wijz'>\n", $actionurl);
 			echo("<table>\n");
 			foreach ($muteerbarememos as $kodesoort) {
 				$namevar = "Memo_" . $kodesoort;
@@ -223,7 +222,7 @@ function fnWijzigen($lidid=0, $actie="") {
 				$curval = db_memo($lidid, $kodesoort, "curval");
 				printf("<tr><td class='label'>%s</td><td><textarea cols=75 rows=10 name='%s'>%s</textarea></td></tr>\n", $naamsoort, $namevar, $curval);
 			}
-			echo("<tr><th colspan=2><input type='submit' value='Bewaren' name='wijziging'></th><tr>\n");
+			echo("<tr><th colspan=2><input type='submit' value='Bewaren' name='wijziging'></th></tr>\n");
 			echo("</table>\n");
 			echo("</form>\n");
 			echo("</div>  <!-- Einde bijzonderhedenwijzigen -->\n");
@@ -263,10 +262,10 @@ function fnWijzigen($lidid=0, $actie="") {
 				echo("<p><a href='/'>Klik hier om verder te gaan.</a></p>\n");
 			} else {
 				echo("<div id='profielwijzigen'>\n");
-				printf("<form name='ProfielWijzigen' action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER['QUERY_STRING']);
+				printf("<form name='ProfielWijzigen' action='%s' method='post'>\n", $actionurl);
 				printf("<fieldset>
 				<h3>Profiel wijzigen</h3>
-				<label for='login'>Login:</label><input type='text' name='login' id='ingelogdlogin' value='%s' readonly='readonly'>
+				<label for='ingelogdlogin'>Login:</label><input type='text' name='ingelogdlogin' id='ingelogdlogin' value='%s' readonly='readonly'>
 				<label for='pw_oud'>Oude wachtwoord:</label><input type='password' name='pw_oud' id='pw_oud' size=10 maxlength=12>
 				<label for='pw_nieuw'>Nieuw wachtwoord:</label><input type='password' name='pw_nieuw' id='pw_nieuw' size=10 maxlength=12>
 				<label for='pw_herhaal'>Herhaal wachtwoord:</label><input type='password' name='pw_herhaal' id='pw_herhaal' size=10 maxlength=12>
@@ -497,7 +496,7 @@ function fnOverviewLid($lidid=0, $actie="") {
 	} else {
 	
 		fnDispMenu(2, "lidid=" . $lidid);
-		$naamlid = htmlentities(db_naamlid($lidid));
+		$naamlid = db_naamlid($lidid);
 		
 		if ($actie == "Afdelingen") {
 			$rows = db_gegevenslid($lidid, $actie);
@@ -686,7 +685,7 @@ function fotolid($lidid, $metversie=0) {
 }
 
 function nieuwepasfoto($lidid=0, $filterlid="") {
-	global $pasfotoextenties, $emailledenadministratie, $emailnieuwepasfoto;
+	global $pasfotoextenties, $emailledenadministratie, $emailnieuwepasfoto, $actionurl;
 
 	$max_size_attachm = 2 * 1024 * 1024;  // 2MB
 	
@@ -798,7 +797,8 @@ function nieuwepasfoto($lidid=0, $filterlid="") {
 		printf("<p class='mededeling'>Geen huidige pasfoto van %s beschikbaar.</p>\n", $naamlid);
 	}
 			
-	printf("<form method='post' action='%s?%s' name='frm_pasfoto' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+	$actionurl = sprintf("%s?tp=%s&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
+	printf("<form method='post' action='%s' name='frm_pasfoto' enctype='multipart/form-data'>\n", $actionurl);
 	printf("<input type='hidden' name='MAX_FILE_SIZE' value=%d>\n", $max_size_attachm);
 	if ($lidid > 0) {
 		printf("<p><label for='UploadFoto'>Nieuwe pasfoto %s:&nbsp;</label>\n", $naamlid);
@@ -815,7 +815,7 @@ function nieuwepasfoto($lidid=0, $filterlid="") {
 }
 
 function opzegginglidmaatschap($lidid) {
-	global $opzegtermijn, $naamvereniging, $naamwebsite, $urlwebsite, $emailledenadministratie, $emailsecretariaat;
+	global $opzegtermijn, $naamvereniging, $naamwebsite, $urlwebsite, $emailledenadministratie, $emailsecretariaat, $actionurl;
 	
 	$fdlang = "%e %B %Y";
 	
@@ -846,36 +846,39 @@ function opzegginglidmaatschap($lidid) {
 			$opm = "";
 		}
 			
+		$mess = sprintf("%s heeft haar/zijn lidmaatschap per %s opgezegd.", $_SESSION['naamingelogde'], $opgezegdper);
+		db_logboek("add", $mess, 6);
+			
 		$body = sprintf("<p>Beste ledenadministratie,</p>\n
 		<p>Hierbij zeg ik mijn lidmaatschap van de %s per %s op. Mijn lidnummer is %d.</p>\n
 		%s
 		<p>Met vriendelijke groeten,<br>
 		<strong>%s</strong></p>\n", $naamvereniging, $opgezegdper, $_SESSION['lidnr'], $opm, $_SESSION['naamingelogde']);
 				
-		$body .= sprintf("\n<p>Dit formulier is verzonden met formulier %s?%s vanaf IP %s.</p>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING'], $_SERVER['REMOTE_ADDR']);
+		$body .= sprintf("\n<p>Dit formulier is verzonden met formulier %s vanaf IP %s.</p>\n", $actionurl, $_SERVER['REMOTE_ADDR']);
 	
 		$mail = new RBMmailer();
 		$mail->From = $_SESSION['emailingelogde'];
 		$mail->FromName = $_SESSION['naamingelogde'];
 		$mail->AddAddress($emailledenadministratie);
 		$mail->AddCC($_SESSION['emailingelogde']);
-		if (strlen($emailsecretariaat) > 5) {
+		if (isValidMailAddress($emailsecretariaat, 0)) {
 			$mail->AddCC($emailsecretariaat);
 		}
 		$mail->Subject = sprintf("Opzegging lidmaatschap %s per %s", $_SESSION['naamingelogde'], $opgezegdper);
 		$mail->Body = $body;
 		if ($mail->Send()) {
-			db_logboek("add", sprintf("%s heeft zijn lidmaatschap per %s opgezegd.", $_SESSION['naamingelogde'], $opgezegdper), 6);
 			echo("<p class='mededeling'>De opzegging is verzonden.</p>\n");
+			db_add_mailing_hist(0, 0, $to_name, $emailledenadministratie, $body, $_SESSION['naamingelogde'], $_SESSION['emailingelogde'], $mail->Subject);
 		}
 		$mail = null;
 	} else {
-		$form_opzegging = sprintf("<div id='opzegformulier'>\n<form name='Opzegging' action='%s?%s' method='post'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+		$form_opzegging = sprintf("<div id='opzegformulier'>\n<form name='Opzegging' action='%s' method='post'>\n", $actionurl);
 		$form_opzegging .= "<fieldset>
 <h3>Opzegging lidmaatschap</h3>
-<label for='NaamLid'>Naam lid:</label><input type='text' name='NaamLid' value='[%NAAMLID%]' readonly='readonly'>
-<label for='Lidnr'>Lidnummer:</label><input type='text' name='Lidnr' value='[%LIDNR%]' readonly='readonly'>
-<label for='OpzeggingPer'>Opzegging lidmaatschap per:</label><input type='text' name='OpzeggingPer' value='[%OPZEGGENVANAF%]' maxlength=18 size=20>
+<label for='NaamLid'>Naam lid:</label><input type='text' name='NaamLid' id='NaamLid' value='[%NAAMLID%]' readonly='readonly'>
+<label for='Lidnr'>Lidnummer:</label><input type='text' name='Lidnr' id='Lidnr' value='[%LIDNR%]' readonly='readonly'>
+<label for='OpzeggingPer'>Opzegging lidmaatschap per:</label><input type='text' name='OpzeggingPer' id='OpzeggingPer' value='[%OPZEGGENVANAF%]' maxlength=18 size=20>
 <textarea name='RedenOpmerking' rows=8 cols=50 title='Reden en/of opmerkingen'></textarea>
 <input type='submit' name='VerstuurOpzegging' value='Verstuur opzegging'>
 </fieldset>

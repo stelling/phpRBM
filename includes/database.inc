@@ -334,6 +334,8 @@ function db_naamlid($lidid, $uitv="Naam", $riz="Onbekend") {
 	$rv = db_scalar($query);
 	if (strlen($rv) == 0) {
 		$rv = $riz;
+	} else {
+		$rv = htmlentities($rv);
 	}
 	return $rv;
 }
@@ -411,7 +413,6 @@ function db_ledenwijzigingen($lidid) {
 				L.Legitimatienummer
 				FROM %sLid AS L WHERE Nummer=%d;", $table_prefix, $lidid);
 	$result = fnQuery($query);
-	
 	return $result->fetch();
 }
 

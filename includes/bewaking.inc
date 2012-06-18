@@ -289,7 +289,7 @@ function inschrijvenbewaking($lidid) {
 		}
 
 		echo("<div id='inschrijvingbewaking'>\n");
-		printf("<form method='post' action='/index.php?%s' name='ins_bewaking'>\n", $_SERVER['QUERY_STRING']);
+		printf("<form method='post' action='%s?tp=%s&amp;lidid=%d' name='ins_bewaking'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $lidid);
 		$vs = -1;
 		$insnr = 0;
 		echo("<table>\n");
@@ -319,7 +319,7 @@ function inschrijvenbewaking($lidid) {
 			if (isset($ins->Nummer) and $insnr == 0) {
 				$insnr = $ins->Nummer;
 			}
-			printf("<td class='chk'><input type='checkbox' onClick='this.form.submit();' name='k1_%s' value=1 %s></input></td>\n", $row->RecordID, $c);
+			printf("<td class='chk'><input type='checkbox' onClick='this.form.submit();' name='k1_%s' value=1 %s></td>\n", $row->RecordID, $c);
 			if ($row->KeuzesBijInschrijving == 1) {
 				$c = "";
 				$v = "&nbsp;";
@@ -327,7 +327,7 @@ function inschrijvenbewaking($lidid) {
 					$c = "checked";
 					$v = "Ja";
 				}
-				printf("<td class='chk'><input type='checkbox' onClick='this.form.submit();' name='k2_%s' value=1 %s></input></td>\n", $row->RecordID, $c);
+				printf("<td class='chk'><input type='checkbox' onClick='this.form.submit();' name='k2_%s' value=1 %s></td>\n", $row->RecordID, $c);
 			}
 			$v = "";
 			if (isset($ins->Opmerking)) {
@@ -339,14 +339,14 @@ function inschrijvenbewaking($lidid) {
 				$kandef = true;
 			}
 		}
-		printf("<tr><td colspan=7>Opmerking(en) bij de inschrijving:<br><textarea onBlur='this.form.submit();' cols=90 rows=8 name='opmalg'>%s</textarea></td></tr>\n", db_memo($lidid, "I", "curval"));
-		echo("<tr><th colspan=7>");
+		printf("<tr><td colspan=6>Opmerking(en) bij de inschrijving:<br><textarea onBlur='this.form.submit();' cols=90 rows=8 name='opmalg'>%s</textarea></td></tr>\n", db_memo($lidid, "I", "curval"));
+		echo("<tr><th colspan=6>");
 		printf("<p>%s</p>", $voorwaardeninschrijving);
 		if ($geldig and $kandef) {
 			echo("&nbsp;<input type='submit' value='Definitief maken' name='Definitief'>");
 			echo("<p>Zolang een inschrijving niet definitief gemaakt is, geldt deze niet als inschrijving.</p>\n");
 		}
-		echo("</th><tr>\n");
+		echo("</th></tr>\n");
 		echo("</table>\n");
 		printf("<input type='hidden' name='insnr' value=%d>\n", $insnr);
 		echo("</form>\n");

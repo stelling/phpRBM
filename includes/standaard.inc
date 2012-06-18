@@ -267,7 +267,7 @@ function HTMLheader() {
 		$title = $naamwebsite;
 	}
 
-	header('Content-type: text/html; charset=utf-8');
+//	header('Content-type: text/html; charset=utf-8');
    if (!isset($_GET['header']) or $_GET['header'] != "no") {
 		echo("<!DOCTYPE HTML>\n");
 		echo("<html lang='nl'>\n");
