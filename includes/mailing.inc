@@ -288,8 +288,8 @@ class mailing {
 	public function lijst($filter="") {
 		global $bewaartijdmailings;
 	
-		$lnk = sprintf("<a href='%s?tp=%s&amp;op=edit&amp;mid=%s' title='Bewerk mailing'><img src='images/zoom.png'></a>", $_SERVER['PHP_SELF'], $_GET['tp'], "%d");
-		$lnk_lk = sprintf("<a href='%s?tp=Mailing/Historie&amp;op=historie&amp;mid=%s' title='Bekijk historie'><img src='images/object_10.png'></a>", $_SERVER['PHP_SELF'], "%d");
+		$lnk = sprintf("<a href='%s?tp=%s&amp;op=edit&amp;mid=%s' title='Bewerk mailing'><img src='images/zoom.png' alt='Vergrootglas'></a>", $_SERVER['PHP_SELF'], $_GET['tp'], "%d");
+		$lnk_lk = sprintf("<a href='%s?tp=Mailing/Historie&amp;op=historie&amp;mid=%s' title='Bekijk historie'><img src='images/object_10.png' alt='Historie'></a>", $_SERVER['PHP_SELF'], "%d");
 		echo(fnDisplayTable(db_mailing("lijst", 0, 0, $filter), $lnk, "", 0, $lnk_lk));
 		if ($filter == "Prullenbak") {
 			printf("<p>Mailings die langer dan %d maanden geleden verwijderd zijn, worden automatisch definitief opgeschoond.</p>\n", $bewaartijdmailings);
@@ -347,19 +347,19 @@ class mailing {
 		$meldingen = "Er zijn nog geen ontvangers aan deze mailing toegevoegd.<br>\n";
 		$verzendenmag = false;
 		if ($this->mid > 0) {
-			echo("<tr><td class='label'>Ontvangers met e-mail:");
-			echo("<td><ul class='listrecipients'>\n");
+			echo("<tr><td class='label'>Ontvangers met e-mail:</td>\n<td>");
 			
 			$rcpt_rows = db_mailing("rcpt", $this->mid);
 			$aant_ze = 0;
 			$text_ze = "";
 			if (count($rcpt_rows) > 0) {
+				echo("<ul class='listrecipients'>\n");
 				foreach($rcpt_rows as $rcpt) {
 					if ($rcpt->Nummer > 0) {
-						$lnk = sprintf("%s?tp=%s&op=del_rcpt&mid=%d&lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, $rcpt->Nummer);
+						$lnk = sprintf("%s?tp=%s&amp;op=del_rcpt&amp;mid=%d&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, $rcpt->Nummer);
 						$reg = sprintf("<li>%s&nbsp;<a href='%s'><img src='/images/delete.gif' alt='Verwijderen' title='Verwijderen'></a></li>\n", htmlentities($rcpt->Naam_lid), $lnk);
 					} else {
-						$lnk = sprintf("%s?tp=%s&op=del_rcpt&mid=%d&addr=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, $rcpt->to_address);
+						$lnk = sprintf("%s?tp=%s&amp;op=del_rcpt&amp;mid=%d&amp;addr=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, $rcpt->to_address);
 						$reg = sprintf("<li>%s&nbsp;<a href='%s'><img src='/images/delete.gif' alt='Verwijderen' title='Verwijderen'></a></li>\n", $rcpt->to_address, $lnk);
 						$this->contains_losse_email = true;
 					}
@@ -398,7 +398,7 @@ class mailing {
 				printf("<option value='%d'>%s</option>\n", $rcpt->Nummer, $rcpt->Zoeknaam_lid);
 			}
 			printf("</select>");
-			$lnk = sprintf("%s?tp=%s&op=add_rcpt&mid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid);
+			$lnk = sprintf("%s?tp=%s&amp;op=add_rcpt&amp;mid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid);
 			printf("&nbsp;<img src='/images/move.gif' alt='move' title='Lid toevoegen' onclick=\"elem=document.getElementById('add_lid'); val=elem.options[elem.selectedIndex].value; if (val!=0) { location.href='%s&lidid=' + val }\">&nbsp;\n", $lnk);
 			echo("E-mail: <input type='email' name='add_address' id='add_address' size=50 maxlength=50>");
 			printf("&nbsp;<img src='/images/move.gif' alt='move' title='E-mail toevoegen' onclick=\"elem=document.getElementById('add_address'); val=elem.value; location.href='%s&to_address=' + val\">&nbsp;\n", $lnk);
@@ -413,10 +413,10 @@ class mailing {
 				printf("<option value=%d>%s</option>\n", $grp->RecordID, $grp->Oms);
 			}
 			printf("</select>\n");
-			$lnk = sprintf("%s?tp=%s&op=add_groep&mid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid);
+			$lnk = sprintf("%s?tp=%s&amp;op=add_groep&amp;mid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid);
 			printf("<img src='/images/move.gif' alt='move' title='groep toevoegen' onclick=\"elem=document.getElementById('sel_group'); val=elem.options[elem.selectedIndex].value; if (val>0) { location.href='%s&groepid=' + val }\">&nbsp;\n", $lnk);
 			$lnk = sprintf("%s?tp=%s&op=del_groep&mid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid);
-			printf("<img src='/images/delete.gif' alt='kruis' title='groep verwijderen' onclick=\"elem=document.getElementById('sel_group'); val=elem.options[elem.selectedIndex].value; if (val!=0) { location.href='%s&groepid=' + val }\">&nbsp;\n", $lnk);
+			printf("<img src='/images/delete.gif' alt='Verwijderen' title='groep verwijderen' onclick=\"elem=document.getElementById('sel_group'); val=elem.options[elem.selectedIndex].value; if (val!=0) { location.href='%s&groepid=' + val }\">&nbsp;\n", $lnk);
 			printf("(groepen zijn t/m %s bijgewerkt)", strftime("%e %B %Y", strtotime(db_lidond("laatstgewijzigd"))));
 			printf("</td></tr>\n");
 		}
@@ -484,7 +484,7 @@ class mailing {
 						$stat = stat($ad . "/" . $entry);
 						echo("<td>" . number_format(($stat['size'] / 1024), 0, ',', '.') . " KB</td>\n");
 						$lnk = sprintf("%s?tp=%s&op=del_attach&mid=%d&attach=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, str_replace(".", "!", $entry));
-						printf("<td><a href='%s'><img src='/images/delete.gif' alt='kruis' title='Verwijder'></a></td>\n", $lnk);
+						printf("<td><a href='%s'><img src='/images/delete.gif' alt='Verwijderen' title='Verwijder'></a></td>\n", $lnk);
 						echo("</tr>\n");
 					}
 				}
@@ -566,7 +566,6 @@ class mailing {
 		
 		echo("<div id='opdrachtknoppen'>\n");
 		if ($this->mid > 0) {
-//			printf("<input type='image' src='images/save.png' name='action' title='Wijzigingen bewaren' value='Wijzigingen bewaren'>\n");
 			printf("<button type='submit' name='action' value='save' title='Bewaren'><img src='images/save.png' alt='Save'></button>\n");
 			printf("<input type='submit' name='action' value='Bewaren & sluiten'>\n");
 		} else {
@@ -834,7 +833,7 @@ class mailing {
 					if ($this->verzamelen) {
 						db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message);
 					} else {
-						while ($this->mailsperminuut > 0 and $smptteller > ($this->mailsperminuut * ((time()-$starttijd) / 60))) {
+						while ($this->mailsperminuut > 0 and $smptteller > ($this->mailsperminuut * ((time()-$starttijd) / 60)) and $smptteller > 0) {
 							usleep((60 / $this->mailsperminuut) * 1000000);
 							if (time()-$starttijd > 25) {
 								set_time_limit(30);
@@ -872,7 +871,7 @@ class mailing {
 		}
 		$summary = "";
 		
-		if ($preview == 0 and strlen($this->ok_send) > 1) {
+		if ($preview == 0 and strlen($this->ok_send) > 0) {
 			$query = sprintf("UPDATE %sMailing SET sent_on=SYSDATE(), SentBy=%d WHERE MailingID=%d;", $table_prefix, $_SESSION['lidid'], $this->mid);
 			fnQuery($query);
 			$oms = sprintf("Mailing %d (%s) is aan %d ontvangers door %s verzonden.", $this->mid, $this->subject, $this->aant_ok, $_SESSION['naamingelogde']);
