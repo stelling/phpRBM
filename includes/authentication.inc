@@ -340,8 +340,7 @@ function fnLoginAanvragen() {
 			}
 		}
 		if (strlen($mess) > 0) {
-			db_logboek("add", $mess, 1);
-			printf("<p class='mededeling'>%s</p>\n", $mess);
+			db_logboek("add", $mess, 1, 0, 1);
 		}
 		printf("<p><a href='http://%s' target='_top'>Klik hier om verder te gaan.</a></p>\n", $urlwebsite);
 		

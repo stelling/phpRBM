@@ -393,8 +393,7 @@ function muteertypeevenement() {
 	}
 	
 	if (strlen($mess) > 0) {
-		db_logboek("add", $mess, 7);
-		printf("<p class='mededeling'>%s</p>\n", $mess);
+		db_logboek("add", $mess, 7, 0, 1);
 	}	
 		
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));

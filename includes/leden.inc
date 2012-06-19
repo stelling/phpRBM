@@ -47,6 +47,7 @@ function fnWijzigen($lidid=0, $actie="") {
 			if ($_SERVER['REQUEST_METHOD'] == "POST") {
 				$mess = "";
 				$old = db_ledenwijzigingen($lidid);
+				$naamlid = db_naamlid($lidid);
 				for ($i=0; $i < count($wijzvelden); $i++) {
 					$fn = $wijzvelden[$i]['naam'];
 					$v = "__skip__";
@@ -81,15 +82,14 @@ function fnWijzigen($lidid=0, $actie="") {
 						$result = fnQuery($query);
 						if ($result > 0) {
 							db_interface("add", $query);
-							$mess .= sprintf("%s van %s is in '%s' gewijzigd. ", $wijzvelden[$i]['label'], db_naamlid($lidid), $v);
+							$mess .= sprintf("%s van %s is in '%s' gewijzigd. ", $wijzvelden[$i]['label'], $naamlid, $v);
 						} else {
-							$mess .= sprintf("De wijziging in %s bij %s is niet verwerkt. ", strtolower($wijzvelden[$i]['label']), db_naamlid($lidid));
+							$mess .= sprintf("De wijziging in %s bij %s is niet verwerkt. ", strtolower($wijzvelden[$i]['label']), $naamlid);
 						}
 					}
 				}
 				if (strlen($mess) > 1) {
-					printf("<p class='mededeling'>%s</p>\n", $mess);
-					db_logboek("add", $mess, 6);
+					db_logboek("add", $mess, 6, 0, 1);
 				}
 			}
 			
@@ -496,7 +496,7 @@ function fnOverviewLid($lidid=0, $actie="") {
 	} else {
 	
 		fnDispMenu(2, "lidid=" . $lidid);
-		$naamlid = db_naamlid($lidid);
+		$naamlid = htmlentities(db_naamlid($lidid));
 		
 		if ($actie == "Afdelingen") {
 			$rows = db_gegevenslid($lidid, $actie);
@@ -631,11 +631,16 @@ function fnSelectListGroepen($cv=0) {
 }
 
 function overzichtverjaardagen($metfoto=1) {
-	global $daysshowbirthdays;
+	global $daysshowbirthdays, $numbershowbirthdays;
+	
+	if (!isset($numbershowbirthdays) or $numbershowbirthdays <= 0) {
+		$numbershowbirthdays = 999;
+	}
 
 	$verj = "";
 	$verjfoto = "";
-	for ($i = 0; $i <= $daysshowbirthdays; $i++) {
+	$aantgetoond = 0;
+	for ($i = 0; $i <= $daysshowbirthdays and $aantgetoond < $numbershowbirthdays; $i++) {
 		$dteHV = mktime(0, 0, 0, date("m"), date("d")+$i, date("Y"));
 		foreach(db_lid("verjaardagen", date("Y-m-d", $dteHV)) as $row) {
 			if ($i == 0) {
@@ -654,6 +659,7 @@ function overzichtverjaardagen($metfoto=1) {
 					$verjfoto .= sprintf("<p>%s.</p>\n", $t);
 				}
 			}
+			$aantgetoond++;
 		}
 	}
 	if ($metfoto == 1) {
@@ -779,8 +785,7 @@ function nieuwepasfoto($lidid=0, $filterlid="") {
 			}
 		} 
 		if (strlen($mess) > 0) {
-			printf("<p class='mededeling'>%s</p>\n", $mess);
-			db_logboek("add", $mess, 6);
+			db_logboek("add", $mess, 6, 0, 1);
 		}
 	}
 	

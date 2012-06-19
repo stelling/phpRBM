@@ -940,10 +940,12 @@ class mailing {
 				$this->mailbericht = str_ireplace("[%SUBJECT%]", $this->subject, $this->mailbericht);
 				$this->mailbericht = str_ireplace("[%MESSAGE%]", $this->merged_message, $this->mailbericht);
 			} else {
-				printf("<p class='mededeling'>Er gaat iets mis met het laden van bestand '%s'. Controleer of dit bestand niet beschadigd en benaderbaar is.</p>\n", $this->bestand_briefpapier);
+				$mess = sprintf("Er gaat iets mis met het laden van bestand '%s'. Controleer of dit bestand niet beschadigd en benaderbaar is.", $this->bestand_briefpapier);
+				db_logboek("add", $mess, 4, 0, 1);
 			}
 		} else {
-			printf("<p class='mededeling'>Bestand '%s' bestaat niet.</p>\n", $this->bestand_briefpapier);
+			$mess = sprintf("Bestand '%s' bestaat niet.", $this->bestand_briefpapier);
+			db_logboek("add", $mess, 4, 0, 1);
 		}
 	}
 	
@@ -954,7 +956,7 @@ class mailing {
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$mess = sprintf("Mailing %d (%s) is door %s naar de prullenbak verplaatst.", $this->mid, $this->subject, $_SESSION['naamingelogde']);
-			db_logboek("add", $mess, 4);
+			db_logboek("add", $mess, 4, 0, 1);
 		}
 	}
 	
@@ -962,7 +964,11 @@ class mailing {
 		global $table_prefix;
 		
 		$query = sprintf("UPDATE %sMailing SET deleted_on=NULL WHERE MailingID=%d;", $table_prefix, $this->mid);
-		fnQuery($query);
+		$result = fnQuery($query);
+		if ($result > 0) {
+			$mess = sprintf("Mailing %d (%s) is door %s uit de prullenbak gehaald.", $this->mid, $this->subject, $_SESSION['naamingelogde']);
+			db_logboek("add", $mess, 4, 0, 1);
+		}
 	}
 		
 	private function vulvars() {
