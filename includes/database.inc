@@ -137,8 +137,7 @@ function fnQuery($query, $add_prefix=1) {
 		}
 	} catch (Exception $e) {
 		$mess = sprintf("Error in SQL '%s': %s", $query, $e->getMessage());
-		printf("<p class=''mededeling'>%s</p>\n", $mess);
-		db_logboek("add", $mess, 99);
+		db_logboek("add", $mess, 99, 0, 1);
 		return false;
 	}
 }
@@ -303,7 +302,8 @@ function db_gegevenslid($LidID, $soort="Alg") {
 				 . " WHERE LidID=%d"
 				 . " ORDER BY send_on DESC LIMIT 25;", $table_prefix, $LidID);
 	} elseif ($soort == "Evenementen") {
-		$query = "SELECT E.Datum AS dteDatum, E.Omschrijving, E.Verzameltijd, DATE_FORMAT(E.Datum, '%H:%i') AS Starttijd, E.Eindtijd, E.Email AS emlContact, CASE ED.Status";
+		$query = "SELECT E.Datum AS dteDatum, E.Omschrijving, E.Verzameltijd, DATE_FORMAT(E.Datum, '%H:%i') AS Starttijd,
+					E.Eindtijd, E.Email AS emlContact, ED.Functie, CASE ED.Status";
 		foreach ($dlnstatus as $s => $o) {
 			$query .= sprintf(" WHEN '%s' THEN '%s'", $s, $o);
 		}
@@ -321,8 +321,12 @@ function db_gegevenslid($LidID, $soort="Alg") {
 	}
 }
 
-function db_naamlid($lidid, $uitv="Naam", $riz="Onbekend") {
+function db_naamlid($lidid, $uitv="", $riz="Onbekend") {
 	global $selectnaam, $selectzoeknaam, $table_prefix;
+	
+	if (strlen($uitv) == 0) {
+		$uitv = "Naam";
+	}
 	
 	if ($uitv == "Naam") {
 		$query = sprintf("SELECT %s FROM %sLid AS L WHERE L.Nummer=%d;", $selectnaam, $table_prefix, $lidid);
@@ -334,8 +338,6 @@ function db_naamlid($lidid, $uitv="Naam", $riz="Onbekend") {
 	$rv = db_scalar($query);
 	if (strlen($rv) == 0) {
 		$rv = $riz;
-	} else {
-		$rv = htmlentities($rv);
 	}
 	return $rv;
 }
@@ -896,8 +898,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 			$mess = sprintf("%s heeft al een login, er wordt geen nieuwe aangemaakt.", db_naamlid($lidid));
 		}
 		if (strlen($mess) > 0) {
-			printf("<p class='mededeling'>%s</p>\n", $mess);
-			db_logboek("add", $mess, 1);
+			db_logboek("add", $mess, 1, 0, 1);
 		}
 		db_logins("wachtwoordenvullen");
 		return $ok;
@@ -1345,7 +1346,7 @@ function db_mutatie($jaar, $gbr="*", $kpl="*") {
 	return $result->fetchAll();
 }
 
-function db_logboek($actie, $oms="", $type=-1, $lidid=0) {
+function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0) {
 	global $table_prefix, $selectnaam, $selectzoeknaam;
 	
 	if ($type >= 0) {
@@ -1364,6 +1365,9 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0) {
 				Omschrijving=\"%s\",
 				TypeActiviteit=%d;", $table_prefix, $_SESSION['lidid'], $_SERVER['REMOTE_ADDR'], $_SERVER['HTTP_USER_AGENT'], $oms, $type);
 		fnQuery($query);
+		if ($tm == 1) {
+			printf("<p class='mededeling'>%s</p>\n", htmlentities($mess));
+		}
 	} elseif ($actie == "opschonen") {
 		$query = sprintf("DELETE FROM %sAdmin_activiteit WHERE DatumTijd < DATE_ADD(CURDATE(), INTERVAL -13 MONTH);", $table_prefix);
 		$result = fnQuery($query);
@@ -1985,8 +1989,7 @@ function db_onderhoud() {
 	$result = fnQuery($query);
 	if ($result > 0) {
 		$mess = sprintf("Er zijn %d onderdelen bij leden verwijderd, omdat deze onderdelen vervallen zijn.", $result);
-		db_logboek("add", $mess , 2);
-		printf("<p class='mededeling'>%s</p>\n", $mess);
+		db_logboek("add", $mess, 2, 0, 1);
 		fnQuery(sprintf("OPTIMIZE TABLE %sOnderdl;", $table_prefix));
 		fnQuery(sprintf("OPTIMIZE TABLE %sLidond;", $table_prefix));
 	}
