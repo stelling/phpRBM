@@ -26,6 +26,7 @@ $urlvereniging = "";   // Zonder http://
 $emailwebmaster = "";
 $emailledenadministratie = "ledenadm@";
 $daysshowbirthdays = 3;  // Het aantal dagen dat de verjaardagen vooruit getoond moeten worden.
+$numbershowbirthdays = 5;  // Het maximaal aantal verjaardagen getoond moeten worden. Als er meerdere leden op dezelfde dag jarig zijn, wordt deze dag wel compleet getoond. 
 $bewaartijdlogins = 6;  // Het aantal maanden dat niet gebruikte logins bewaard worden. 0 = altijd bewaren.
 $kaderoverzichtmetfoto = 1;  // Moeten op het kaderoverzicht foto's getoond worden? (1 = ja, 0 = nee)
 $rsswieiswie = 0;  // Moet er een rss van wie-is-wie gemaakt worden? Deze kan gebruikt worden om deze op een andere website te tonen, echter heeft deze geen beveiliging.
