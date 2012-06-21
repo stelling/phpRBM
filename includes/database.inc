@@ -418,7 +418,7 @@ function db_ledenwijzigingen($lidid) {
 	return $result->fetch();
 }
 
-function db_memo($lidid, $srt, $actie="curval", $nv="") {
+function db_memo($actie, $lidid, $srt, $nv="") {
 	global $table_prefix, $arrSoortMemo;
 	
 	$nv = str_replace("\"", "", str_replace("'", "", $nv));	
@@ -431,12 +431,16 @@ function db_memo($lidid, $srt, $actie="curval", $nv="") {
 		}
 		$result = fnQuery($query);
 		return $result->fetchColumn();
-	} elseif ($actie == "insert" and strlen($nv) > 0) {
+	} elseif ($actie == "add" and strlen($nv) > 0) {
 		$query = sprintf("INSERT INTO %sMemo (Lid, Soort, Memo, Ingevoerd, Gewijzigd) VALUES (%d, '%s', \"%s\", CURDATE(), SYSDATE());", $table_prefix, $lidid, $srt, $nv);
-		fnQuery($query);
-		db_interface("add", $query);
-		$mess = sprintf("Memo '%s' is bij %s met waarde '%s' toegevoegd.", $arrSoortMemo[$srt], db_naamlid($lidid), $nv);
-		db_logboek("add", $mess, 6);
+		$result = fnQuery($query);
+		if ($result > 0) {
+			db_interface("add", $query);
+			$mess = sprintf("Memo '%s' is bij %s met waarde '%s' toegevoegd.", $arrSoortMemo[$srt], db_naamlid($lidid), $nv);
+		} else {
+			$mess = sprintf("Het toevoegen van memo '%s' is bij %s is mislukt.", $arrSoortMemo[$srt], db_naamlid($lidid));
+		}
+		db_logboek("add", $mess, 6, 0, 1);
 	} elseif ($actie == "update") {
 		if ($srt == "WN") {
 			$query = sprintf("UPDATE %sLid SET `Waarschuwen bij nood`=\"%s\", Gewijzigd=SYSDATE() WHERE Nummer=%d;", $table_prefix, $nv, $lidid);
@@ -455,29 +459,9 @@ function db_memo($lidid, $srt, $actie="curval", $nv="") {
 		if ($result > 0) {
 			db_interface("add", $query);
 			$mess = sprintf("Memo '%s' is bij %s verwijderd.", $arrSoortMemo[$srt], db_naamlid($lidid));
-			db_logboek("add", $mess, 6);
+			db_logboek("add", $mess, 6, 0, 1);
 		}
 	}
-}
-
-function db_change_password($pw_new, $pw_old, $lidid) {
-	global $table_prefix;
-	
-	$query = sprintf("UPDATE %sAdmin_login SET"
-			 . " Gewijzigd=SYSDATE(),"
-			 . " GewijzigdDoor=%d,"
-			 . " Wachtwoord='%s'"
-			 . " WHERE Wachtwoord='%s' AND LidID=%d;"
-			 , $table_prefix, $_SESSION['lidid'], encript_decript($pw_new), encript_decript($pw_old), $lidid);
-	$result = fnQuery($query);
-	if ($result > 0) {
-		$_SESSION['password'] = $pw_new;
-		$mess = sprintf("Het wachtwoord van de login van %s is door %s gewijzigd.", db_naamlid($lidid), $_SESSION['naamingelogde']);
-		db_logboek("add", $mess, 1);
-	} else {
-		$mess = "Oude wachtwoord is niet correct, wachtwoord is niet gewijzigd.";
-	}	
-	return $mess;
 }
 
 function db_authorisation($actie, $recid=0, $tabpage="") {
@@ -1097,6 +1081,26 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 	}
 }
 
+function db_change_password($pw_new, $pw_old, $lidid) {
+	global $table_prefix;
+	
+	$query = sprintf("UPDATE %sAdmin_login SET"
+			 . " Gewijzigd=SYSDATE(),"
+			 . " GewijzigdDoor=%d,"
+			 . " Wachtwoord='%s'"
+			 . " WHERE Wachtwoord='%s' AND LidID=%d;"
+			 , $table_prefix, $_SESSION['lidid'], encript_decript($pw_new), encript_decript($pw_old), $lidid);
+	$result = fnQuery($query);
+	if ($result > 0) {
+		$_SESSION['password'] = $pw_new;
+		$mess = sprintf("Het wachtwoord van de login van %s gewijzigd.", db_naamlid($lidid));
+	} else {
+		$mess = "Oude wachtwoord is niet correct, wachtwoord is niet gewijzigd.";
+	}	
+	db_logboek("add", $mess, 1);
+	return $mess;
+}
+
 function db_onderdelen($type="", $aantal=0) {
 	global $fromlidond, $wherelidond;
 
@@ -1160,7 +1164,7 @@ function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr, $message="", $fro
 	if (isset($_SESSION['lidid']) and $_SESSION['lidid'] > 0) {
 		$query = sprintf("INSERT INTO %sMailing_hist SET
 					LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", to_name=\"%s\", subject=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", send_by=%d, send_on=SYSDATE();", $table_prefix,
-					$lidid, $mid, $from_name, $from_addr, $to_name, $subject, $to_addr, $cc_addr, $message, $_SESSION['lidid']);
+					$lidid, $mid, html_entity_decode($from_name), $from_addr, $to_name, html_entity_decode($subject), $to_addr, $cc_addr, html_entity_decode($message), $_SESSION['lidid']);
 		fnQuery($query);
 	}
 }
