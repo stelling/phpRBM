@@ -272,13 +272,13 @@ function inschrijvenbewaking($lidid) {
 					db_insbew("add", $lidid, $insnr, $row->RecordID, $kz, $_POST[$opm]);
 				}
 			}
-			$opmcv = db_memo($lidid, "I", "curval");
+			$opmcv = db_memo("curval", $lidid, "I");
 			if (strlen($_POST['opmalg']) > 0 and strlen($opmcv) == 0) {
-				db_memo($lidid, "I", "insert", $_POST['opmalg']);
+				db_memo("add", $lidid, "I", $_POST['opmalg']);
 			} elseif (strlen($_POST['opmalg']) == 0 and strlen($opmcv) > 0) {
-				db_memo($lidid, "I", "delete");
+				db_memo("delete", $lidid, "I");
 			} elseif ($_POST['opmalg'] != $opmcv) {
-				db_memo($lidid, "I", "update", $_POST['opmalg']);
+				db_memo("update", $lidid, "I", $_POST['opmalg']);
 			}
 			if ($geldig) {
 				if (isset($_POST['Definitief'])) {
@@ -339,7 +339,7 @@ function inschrijvenbewaking($lidid) {
 				$kandef = true;
 			}
 		}
-		printf("<tr><td colspan=6>Opmerking(en) bij de inschrijving:<br><textarea onBlur='this.form.submit();' cols=90 rows=8 name='opmalg'>%s</textarea></td></tr>\n", db_memo($lidid, "I", "curval"));
+		printf("<tr><td colspan=6>Opmerking(en) bij de inschrijving:<br><textarea onBlur='this.form.submit();' cols=90 rows=8 name='opmalg'>%s</textarea></td></tr>\n", db_memo("curval", $lidid, "I"));
 		echo("<tr><th colspan=6>");
 		printf("<p>%s</p>", $voorwaardeninschrijving);
 		if ($geldig and $kandef) {
@@ -432,9 +432,9 @@ function BevestInschrBewaking($lidid, $insnr) {
 	$content = str_replace("[%URLWEBSITE%]", $urlwebsite, $content);
 	$content = str_replace("[%VOORWAARDEN%]", $voorwaardeninschrijving, $content);
 	$content = str_ireplace("[%BEWINSCHRIJVING%]", $bevins, $content);
-	$content = str_ireplace("[%BEWOPMERKING%]", db_memo($lidid, "I", "curval"), $content);
-	$content = str_ireplace("[%DIEET%]", db_memo($lidid, "D", "curval"), $content);
-	$content = str_ireplace("[%GEZONDHEID%]", db_memo($lidid, "G", "curval"), $content);
+	$content = str_ireplace("[%BEWOPMERKING%]", db_memo("curval", $lidid, "I"), $content);
+	$content = str_ireplace("[%DIEET%]", db_memo("curval", $lidid, "D"), $content);
+	$content = str_ireplace("[%GEZONDHEID%]", db_memo("curval", $lidid, "G"), $content);
 				
 	if (isset($selfservicediplomas) and strlen($selfservicediplomas) > 4) {
 		$f = sprintf("D.Kode IN %s", $selfservicediplomas);
@@ -503,7 +503,7 @@ function DetailsInschrijvingBewaking($rows) {
 				$voriglid = $row->ndLidID;
 				$aantalreg = 0;
 				$hv = "";
-				$opmins = db_memo($row->ndLidID, "I", "curval");
+				$opmins = db_memo("curval", $row->ndLidID, "I");
 			} elseif (strlen($hv) > 0) {
 				$hv .= "</tr>\n<tr>";
 			}
@@ -577,7 +577,7 @@ function exportinschrijvingen() {
 		echo("</table>\n");
 		echo("<p class='mededeling'><input type='submit' value='Download SQL'>\n");
 		printf("&nbsp;<input type='button' value='Afmelden' OnClick=\"location.href='%s?%s&amp;op=afmelden'\"></p>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
-		echo("</form>\n");		
+		echo("</form>\n");
 	} else {
 		echo("<p class='mededeling'>Er zijn geen wijzigingen die nog verwerkt moeten worden.</p>\n");
 	}

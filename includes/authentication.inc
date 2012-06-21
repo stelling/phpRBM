@@ -206,10 +206,11 @@ function fnConfirmLogin($row, $xtratekst="") {
 	$mail->Subject = $subj;
 	$mail->MsgHTML($content);
 	if ($mail->Send()) {
-		return sprintf("Login '%s' aan %s (%s) verzonden.", $row->Login, $row->Naam, $email);
+		$mess = sprintf("Login '%s' aan %s (%s) verzonden.", $row->Login, $row->Naam, $email);
 	} else {
-		return sprintf("Fout tijdens het versturen van de mail: %s. Probeer later nogmaals of neem contact op met de webmaster.", $mail->ErrorInfo);
+		$mess = sprintf("Fout tijdens het versturen van de mail: %s. Probeer later nogmaals of neem contact op met de webmaster.", $mail->ErrorInfo);
 	}
+	return $mess;
 }
 
 function fnConfirmLidnr($row) {
