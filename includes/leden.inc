@@ -199,13 +199,13 @@ function fnWijzigen($lidid=0, $actie="") {
 			if ($_SERVER['REQUEST_METHOD'] == "POST") {
 				foreach ($muteerbarememos as $kodesoort) {
 					$namevar = "Memo_" . $kodesoort;
-					$curval = db_memo($lidid, $kodesoort, "curval");
+					$curval = db_memo("curval", $lidid, $kodesoort);
 					if (strlen($_POST[$namevar]) == 0 and $kodesoort != "WN") {
-						db_memo($lidid, $kodesoort, "delete");
+						db_memo("delete", $lidid, $kodesoort);
 					} elseif (strlen($curval) == 0 and $kodesoort != "WN") {
-						db_memo($lidid, $kodesoort, "insert", $_POST[$namevar]);
+						db_memo("add", $lidid, $kodesoort, $_POST[$namevar]);
 					} elseif ($curval != $_POST[$namevar]) {
-						db_memo($lidid, $kodesoort, "update", $_POST[$namevar]);
+						db_memo("update", $lidid, $kodesoort, $_POST[$namevar]);
 					}
 				}
 			}
@@ -219,7 +219,7 @@ function fnWijzigen($lidid=0, $actie="") {
 				} else {
 					$naamsoort = "Overig " . $kodesoort;
 				}
-				$curval = db_memo($lidid, $kodesoort, "curval");
+				$curval = db_memo("curval", $lidid, $kodesoort);
 				printf("<tr><td class='label'>%s</td><td><textarea cols=75 rows=10 name='%s'>%s</textarea></td></tr>\n", $naamsoort, $namevar, $curval);
 			}
 			echo("<tr><th colspan=2><input type='submit' value='Bewaren' name='wijziging'></th></tr>\n");
@@ -694,6 +694,7 @@ function nieuwepasfoto($lidid=0, $filterlid="") {
 	global $pasfotoextenties, $emailledenadministratie, $emailnieuwepasfoto, $actionurl;
 
 	$max_size_attachm = 2 * 1024 * 1024;  // 2MB
+	$min_size_attachm = 4 * 1024;  // 4KB
 	
 	if (isset($_POST['lidpasfoto']) and $_POST['lidpasfoto'] > 0) {
 		$lidid = $_POST['lidpasfoto'];
@@ -727,8 +728,10 @@ function nieuwepasfoto($lidid=0, $filterlid="") {
 		$mess = "";
 		if (in_array($ext, $pasfotoextenties) === false) {
 			$mess = sprintf("Het bestand met extensie %s is niet toegestaan. De volgende extensies zijn toegestaan: %s.", $ext, implode(", ", $pasfotoextenties));
-		} elseif ($_FILES['UploadFoto']['size'] >= $max_size_attachm) {
-			$mess = sprintf("De foto kan niet worden ge-upload, omdat het groter is dan %d KB.", $max_size_attachm / 1024);
+		} elseif ($_FILES['UploadFoto']['size'] > $max_size_attachm) {
+			$mess = sprintf("De foto kan niet ge-upload worden, omdat het bestand groter dan %dKB is.", $max_size_attachm / 1024);
+		} elseif ($_FILES['UploadFoto']['size'] < $min_size_attachm) {
+			$mess = sprintf("De foto kan niet worden ge-upload, omdat het bestand kleiner dan %d bytes is.", $min_size_attachm);
 		} else {
 			$of = fotolid($lidid, 0);
 			while (strlen($of) > 3 and file_exists($of)) {
@@ -813,7 +816,7 @@ function nieuwepasfoto($lidid=0, $filterlid="") {
 	}
 	echo("<input type='file' name='UploadFoto' id='UploadFoto'>&nbsp;");
 	echo("<input type='submit' name='Upload' value='Insturen'>\n");
-	printf("<p>Het ideale formaat van de pasfoto is 390 pixels breed bij 500 pixels hoog. De foto mag niet groter dan %d KB zijn.</p>", $max_size_attachm / 1024);
+	printf("<p>Het ideale formaat van de pasfoto is 390 pixels breed bij 500 pixels hoog. Het bestand moet minimaal %d bytes groot zijn en mag niet groter dan %d KB zijn.</p>\n", $min_size_attachm, $max_size_attachm / 1024);
 	echo("</form>\n");
 
 	echo("</div>  <!-- Einde nieuwepasfoto -->\n");	
