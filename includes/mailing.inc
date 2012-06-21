@@ -446,22 +446,23 @@ class mailing {
 		printf("<textarea name='message' onBlur='this.form.submit();'>%s</textarea>\n", $this->message);
 		
 		echo("<script>CKEDITOR.replace('message',{
-        height : 450,
-        uiColor : '#9AB8F3',
-		  toolbar :
-        [
-			['Bold','Italic','Underline','Strike','-','Subscript','Superscript'],
-			['Cut','Copy','Paste','PasteText','PasteFromWord','-','Print', 'SpellChecker', 'Scayt'],
-			['Undo','Redo','-','Find','Replace','-','SelectAll','RemoveFormat'],
-			['NumberedList','BulletedList','-','Outdent','Indent','Blockquote'],
-			'/',
-			['JustifyLeft','JustifyCenter','JustifyRight','JustifyBlock'],
-			['Link','Unlink'],
-			['Image','Table','HorizontalRule','Smiley','SpecialChar'],
-			['Styles','Format','FontSize'],
-			['TextColor'],
-			['Maximize', 'ShowBlocks','-','About']
-        ]
+			height : 450,
+			entities : false,
+			uiColor : '#9AB8F3',
+			toolbar :
+			[
+				['Bold','Italic','Underline','Strike','-','Subscript','Superscript'],
+				['Cut','Copy','Paste','PasteText','PasteFromWord','-','Print', 'SpellChecker', 'Scayt'],
+				['Undo','Redo','-','Find','Replace','-','SelectAll','RemoveFormat'],
+				['NumberedList','BulletedList','-','Outdent','Indent','Blockquote'],
+				'/',
+				['JustifyLeft','JustifyCenter','JustifyRight','JustifyBlock'],
+				['Link','Unlink'],
+				['Image','Table','HorizontalRule','Smiley','SpecialChar'],
+				['Styles','Format','FontSize'],
+				['TextColor'],
+				['Maximize', 'ShowBlocks','-','About']
+			]
 		});</script>\n");
 	
 		$strHV = "";
@@ -470,7 +471,7 @@ class mailing {
 		}
 		$strHV .= "";
 		echo("<table>\n");
-		printf("<tr><td class='label'>Beschikbare variabelen:</td>\n<td><ul class='listmergefields'>\n%s</ul></td>\n", $strHV);
+		printf("<tr>\n<td class='label'>Beschikbare variabelen:</td>\n<td><ul class='listmergefields'>\n%s</ul></td>\n", $strHV);
 		
 		if ($this->mid > 0) {
 			echo("<tr>\n<td class='label'>Bijlagen:</td>\n<td>\n");
@@ -606,12 +607,15 @@ class mailing {
 		} else {
 			$_POST['cc_addr'] = "";
 		}
-		if (isset($_POST['template']) and $_POST['template'] == "1") {
+		if (isset($_POST['message']) and strlen($_POST['message']) > 1) {
+			$_POST['message'] = html_entity_decode($_POST['message']);
+		}
+		if (isset($_POST['template'])) {
 			$_POST['template'] = 1;
 		} else {
 			$_POST['template'] = 0;
 		}
-		if (isset($_POST['confidential']) and $_POST['confidential'] == "1") {
+		if (isset($_POST['confidential'])) {
 			$_POST['confidential'] = 1;
 		} else {
 			$_POST['confidential'] = 0;
@@ -621,6 +625,8 @@ class mailing {
 		} else {
 			$_POST['verzamelen'] = 0;
 		}
+		
+//		debug($_POST['message'], 1, 1);
 		
 		$old = db_mailing("record", $this->mid);
 		$setclause = "";
@@ -644,9 +650,11 @@ class mailing {
 		if (strlen($setclause) > 0) {
 			$setclause .= sprintf("changed_on=SYSDATE(), ChangedBy=%d", $_SESSION['lidid']);
 			$query  = sprintf("UPDATE %sMailing SET %s WHERE MailingID=%d;", $table_prefix, $setclause, $this->mid);
-			fnQuery($query);
-			$oms = sprintf("In mailing %d zijn de volgende velden aangepast. %s", $this->mid, $oms);
-			db_logboek("add", $oms, 4);
+			$result = fnQuery($query);
+			if ($result > 0) {
+				$mess = sprintf("In mailing %d zijn de volgende velden aangepast. %s", $this->mid, $oms);
+				db_logboek("add", $mess, 4);
+			}
 		}
 		
 		if (isset($_POST['add_address']) and strlen($_POST['add_address']) > 5) {
