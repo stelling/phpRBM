@@ -1351,7 +1351,7 @@ function db_mutatie($jaar, $gbr="*", $kpl="*") {
 }
 
 function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0) {
-	global $table_prefix, $selectnaam, $selectzoeknaam;
+	global $table_prefix, $selectnaam, $selectzoeknaam, $bewaartijdlogging, $bewaartijdinloggen;
 	
 	if ($type >= 0) {
 		$w = sprintf("TypeActiviteit=%d", $type);
@@ -1373,10 +1373,24 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0) {
 			printf("<p class='mededeling'>%s</p>\n", htmlentities($mess));
 		}
 	} elseif ($actie == "opschonen") {
-		$query = sprintf("DELETE FROM %sAdmin_activiteit WHERE DatumTijd < DATE_ADD(CURDATE(), INTERVAL -13 MONTH);", $table_prefix);
-		$result = fnQuery($query);
-		if ($result > 0) {
-			$mess = sprintf("Bij het opschonen zijn %d records uit het logboek verwijderd.", $result);
+		if (!isset($bewaartijdlogging)) {
+			$bewaartijdlogging = 13;
+		}
+		if ($bewaartijdlogging > 0) {
+			$query = sprintf("DELETE FROM %sAdmin_activiteit WHERE TypeActiviteit<>1 AND DatumTijd < DATE_ADD(CURDATE(), INTERVAL -%d MONTH);", $table_prefix, $bewaartijdlogging);
+			$aant = fnQuery($query);
+		} else {
+			$aant = 0;
+		}
+		if (!isset($bewaartijdinloggen) or $bewaartijdinloggen <= 0) {
+			$bewaartijdinloggen = $bewaartijdlogging;
+		}
+		if ($bewaartijdinloggen > 0) {
+			$query = sprintf("DELETE FROM %sAdmin_activiteit WHERE TypeActiviteit=1 AND DatumTijd < DATE_ADD(CURDATE(), INTERVAL -%d MONTH);", $table_prefix, $bewaartijdinloggen);
+			$aant += fnQuery($query);
+		}
+		if ($aant > 0) {
+			$mess = sprintf("Bij het opschonen zijn %d records uit het logboek verwijderd.", $aant);
 			$query = sprintf("OPTIMIZE TABLE %sAdmin_activiteit;", $table_prefix);
 			fnQuery($query);
 		} else {
