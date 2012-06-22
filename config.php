@@ -34,6 +34,8 @@ $tonentoekomstigebewakingen = 1; // Moeten bij de gegevens van een lid ook toeko
 $toneninschrijvingenbewakingen = 1; // Moeten bij de gegevens van een lid ook inschrijvingen voor bewakingen getoond worden (1 = ja, 0 = nee)
 $scriptbijuitloggen = "";  // Dit script wordt automatisch gedraaid nadat iemand is uitgelogd.
 $typemenu = 3; // 1 = per niveau een aparte regel, 2 = één menu met dropdown, 3 = één menu met dropdown en extra menu voor niveau 2.
+$bewaartijdlogging = 13; // Hoelang in maanden moet logging bewaard blijven. 0 = altijd.
+$bewaartijdinloggen = 6; // Hoelang in maanden moet logging van het in- en uitloggen bewaard blijven. 0 = gelijk aan bewaartijdlogging.
 
 //Mailingsmodule
 $emailsecretariaat = "";  // Dit veld is niet verplicht, dit wordt gebruikt om het secretariaat op de hoogte te houden van verstuurde mailingen en opzeggingen.
