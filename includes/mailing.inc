@@ -626,8 +626,6 @@ class mailing {
 			$_POST['verzamelen'] = 0;
 		}
 		
-//		debug($_POST['message'], 1, 1);
-		
 		$old = db_mailing("record", $this->mid);
 		$setclause = "";
 		$oms = "";
@@ -755,7 +753,9 @@ class mailing {
 				fnQuery($query);
 			}
 		} else {
-			$rows = db_lidond("actueleleden", 0, "", sprintf("LO.OnderdeelId=%d", $groepid));
+			$w = sprintf("LO.OnderdeelId=%d", $groepid);
+			$w .= sprintf(" AND LO.Lid IN (SELECT Lid FROM %sMailing_rcpt WHERE MailingID=%d)", $table_prefix, $this->mid);
+			$rows = db_lidond("actueleleden", 0, "", $w);
 			foreach($rows as $row) {
 				db_mailing("delrcpt", $this->mid, 0, "", "", $row->Lid);
 			}
