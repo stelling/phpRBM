@@ -176,8 +176,19 @@ function muteerevenement($eventid) {
 			$stat = sprintf("stat_%d", $rd->RecordID);
 			$opm = sprintf("Opmerking_%d", $rd->RecordID);
 			$func = sprintf("func_%d", $rd->RecordID);
-			if ($_POST[$stat] != $rd->Status or $_POST[$func] != $rd->Functie or $_POST[$opm] != $rd->Opmerking) {
-				db_evenement("updatedeelnemer", $rd->LidID, $eventid, $_POST[$opm], $_POST[$stat], $_POST[$func]);
+			$result = db_evenement("updatedeelnemer", $rd->LidID, $eventid, $_POST[$opm], $_POST[$stat], $_POST[$func]);
+			if ($result > 0) {
+				$mess = sprintf("Deelnemer %s is bij evenement %d (%s) bijgewerkt. ", db_naamlid($rd->LidID), $eventid, db_evenement("oms", 0, $eventid));
+				if ($_POST[$stat] != $rd->Status) {
+					$mess .= sprintf("Status is '%s' geworden. ", $dlnstatus[$_POST[$stat]]);
+				}
+				if ($_POST[$func] != $rd->Functie) {
+					$mess .= sprintf("Functie is '%s' geworden. ", $_POST[$func]);
+				}
+				if ($_POST[$opm] != $rd->Opmerking) {
+					$mess .= sprintf("Opmerking is '%s' geworden.", $_POST[$opm]);
+				}
+				db_logboek("add", $mess, 7);
 			}
 		}
 		if (isset($_POST['nwdln']) and $_POST['nwdln'] > 0 and is_numeric($_POST['nwdln'])) {
