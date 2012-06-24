@@ -5,26 +5,7 @@
 		$_GET['url'] = "/";
 	}
    
-	if(isset($_GET['openid_mode']) and $_GET['openid_mode'] == 'id_res' and $gebruikopenid == 1){     // Perform HTTP Request to OpenID server to validate key
-		$openid = new SimpleOpenID;
-		$openid->SetIdentity($_GET['openid_identity']);
-		$openid_validation_result = $openid->ValidateWithServer();
-		if ($openid_validation_result == true){         // OK HERE KEY IS VALID
-			$_SESSION['username'] = $_GET['openid_identity'];
-			$_SESSION['openid_ok'] = true;
-			toegang($_GET['soort'], 0);
-			printf("<script>\nlocation.href='%s?tp=%s';\n</script>\n", $_SERVER['PHP_SELF'], $_GET['soort']);
-		} elseif ($openid->IsError() == true){            // ON THE WAY, WE GOT SOME ERROR
-			$error = $openid->GetError();
-			printf("<p class='mededeling'>OpenID: ERROR DESCRIPTION: %s</p>\n", $error['description']);
-			$_SESSION['username'] = "";
-			$_SESSION['openid_ok'] = false;
-		} else {                                            // Signature Verification Failed
-			echo("<p class='mededeling'>OpenID: INVALID AUTHORIZATION</p>\n");
-			$_SESSION['username'] = "";
-			$_SESSION['openid_ok'] = false;
-		}
-	} elseif (isset($_GET['actie']) and $_GET['actie'] == "uitloggen" and isset($_SESSION['username'])) {
+	if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen" and isset($_SESSION['username'])) {
 		db_logins("uitloggen", "", "", $_SESSION['lidid']);
 		session_unset();
 		setcookie("username", "", time()-3600);
