@@ -2,11 +2,11 @@
 date_default_timezone_set('Europe/Amsterdam');
 setlocale(LC_ALL,'nl_NL@euro');
 
-if (session_start() === FALSE) {
-	$mess = "De sessie kon niet gestart worden, hierdoor kan er op dit moment niet gelogd worden.";
-	printf("<p class='mededeling'>%s</p>\n", $mess);
-	db_logboek("add", $mess, 1);
-}
+// session_start();
+if (session_start() === FALSE or strlen(session_id()) == 0) {
+	$mess = "De sessie kan niet gestart worden, hierdoor kan er op dit moment niet gelogd worden.";
+	db_logboek("add", $mess, 1, 0, 1);
+} 
 
 if ((isset($_SESSON['webmaster']) and $_SESSON['webmaster'] == 1) or $_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 	error_reporting(E_ALL);
@@ -16,14 +16,12 @@ if ((isset($_SESSON['webmaster']) and $_SESSON['webmaster'] == 1) or $_SERVER["H
 
 if (!isset($_SESSION['lidid'])) {
 	$_SESSION['lidid'] = 0;
+//	debug("Nieuwe sessie", 0);
 }
 
-$dir = substr(__FILE__, 0, strrpos(__FILE__, "/"));  // Dit is nodig voor PHP 5.2, vanaf 5.3 kan dit gewoon direct __DIR__ worden.
-
-require_once($dir . '/../config.php');
-if (!isset($rsswieiswie) and $rsswieiswie != 1) {
-	$rsswieiswie = 0;
-}
+$dir = substr(__FILE__, 0, strrpos(__FILE__, "/"));
+$dir = substr($dir, 0, strrpos($dir, "/"));
+require_once($dir . '/config.php');
 if (!isset($muteerbarememos) or !is_array($muteerbarememos)) {
 	$muteerbarememos = array('D', 'G', 'WN');
 }
@@ -33,21 +31,15 @@ if (!isset($emailbevestiginginschrijving)) {
 if (!isset($maxlengtelogin) or $maxlengtelogin < 8) {
 	$maxlengtelogin = 12;
 }
-if (!isset($lidnrversturenmogelijk) or $lidnrversturenmogelijk != 1) {
-	$lidnrversturenmogelijk = 0;
-}
-if (!isset($lidnrnodigbijloginaanvraag) or $lidnrnodigbijloginaanvraag != 1) {
-	$lidnrnodigbijloginaanvraag = 0;
-}
-	
-require_once($dir . "/database.inc");
-require_once($dir . "/authentication.inc");
-require_once($dir . "/leden.inc");
-require_once($dir . "/bewaking.inc");
-require_once($dir . "/evenement.inc");
-require_once($dir . "/mailing.inc");
-require_once($dir . "/webshop.inc");
-require_once($dir . "/class.phpmailer.php");
+
+require_once($dir . "/includes/database.inc");
+require_once($dir . "/includes/authentication.inc");
+require_once($dir . "/includes/leden.inc");
+require_once($dir . "/includes/bewaking.inc");
+require_once($dir . "/includes/evenement.inc");
+require_once($dir . "/includes/mailing.inc");
+require_once($dir . "/includes/webshop.inc");
+require_once($dir . "/includes/class.phpmailer.php");
 
 if (isset($_GET['tp']) and strlen($_GET['tp']) > 1) {
 	$sp = strpos($_GET['tp'], "/");
@@ -293,11 +285,15 @@ function HTMLheader() {
 		if (isset($_SESSION['username']) and strlen($_SESSION['username']) > 4 and $_SESSION['lidid'] > 0) {
 			printf("Welkom %s\n", htmlentities($_SESSION['roepnaamingelogde']));
 			echo("<a href='/?tp=Zelfservice/Profiel'><img src='images/user.png' title='Profiel wijzigen' alt='Profiel wijzigen'></a>\n");
-			printf("<a href='auth.php?actie=uitloggen'><img src='images/power.png' title='Uitloggen' alt='Uitloggen'></a>\n");
-			if ($_SESSION['webmaster'] == 1 and $_SERVER['PHP_SELF'] != "/admin.php") {
-				echo("<a href='admin.php'><img src='images/tool.png' title='Beheerdersmenu'></a>\n");
-			} elseif ($_SERVER['PHP_SELF'] == "/admin.php") {
-				echo("<a href='index.php'><img src='images/home.png' title='Beginpagina'></a>\n");
+			if ($_SERVER['PHP_SELF'] == "/index.php") {
+				printf("<a href='auth.php?actie=uitloggen'><img src='images/power.png' title='Uitloggen' alt='Uitloggen'></a>\n");
+			}
+			if ($_SESSION['webmaster'] == 1) {
+				if ($_SERVER['PHP_SELF'] != "/admin.php") {
+					echo("<a href='admin.php'><img src='images/tool.png' title='Beheerdersmenu'></a>\n");
+				} elseif ($_SERVER['PHP_SELF'] == "/admin.php") {
+					echo("<a href='index.php'><img src='images/home.png' title='Beginpagina'></a>\n");
+				}
 			}
 		} else {
 			echo("Login: <input type='text' name='username' size=20 maxlength=50>\n");
