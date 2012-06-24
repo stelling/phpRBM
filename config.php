@@ -1,4 +1,6 @@
 <? 
+// *** Standaard config.php voor GitHub ***
+
 // Gegevens om toegang te krijgen tot de MySQL-database. 
 $db_host='';
 $db_name='';
@@ -58,5 +60,6 @@ $emailbevestiginginschrijving = "";   // Vanaf welk e-mailadres moet de bevestig
 $voorwaardeninschrijving = "Met deze inschrijving verklaar je akkoord te zijn met de voorwaarden en verklaar je jezelf competent voor de bewaking.";  // Deze regel wordt bij de inschrijving vemeld als voorwaarde voor de inschrijving voor de bewaking.
 $emailbevestigingbestelling = "";   // Vanaf welk e-mailadres moet de bevestiging van een bestelling verzonden worden.
 $voorwaardenbestelling = "De kosten van een bestelling worden middels een automatische incasso afgeschreven.";  // Deze regel wordt bij de bestellingen in de zelfservice vermeld.
+$termijnvervallendiplomasmailen = 0;  // Hoeveel maanden vooruit moeten leden een herinnering krijgen als een diploma gaat vervallen. 0 = geen herinnering sturen.
 
 ?>
