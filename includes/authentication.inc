@@ -1,6 +1,5 @@
 <?php
 
-
 if ((!isset($_SESSION['username']) or strlen($_SESSION['username']) == 0) and isset($_COOKIE['username'])) {
 	$_SESSION['username'] = $_COOKIE['username'];
 } elseif (!isset($_SESSION['username'])) {
@@ -63,119 +62,6 @@ function toegang($soort, $melding=1) {
 		}
 	}
 	
-	if (in_array($_SESSION['lidid'], $lididwebmasters)) {
-		$_SESSION['webmaster'] = 1;
-	} else {
-		$_SESSION['webmaster'] = 0;
-	}
-	if ($_SESSION['lidid'] > 0 and (!isset($_SESSION['lidgroepen']) or $_SESSION['lidgroepen'] = "(0)")) {
-		$query = sprintf("SELECT OnderdeelID FROM %sLidond AS LO WHERE LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE()) AND LO.Lid=%d;", $table_prefix, $_SESSION['lidid']);
-		$result = fnQuery($query);
-		$rows = $result->fetchAll(PDO::FETCH_COLUMN);
-		if (count($rows) > 0) {
-			$_SESSION['lidgroepen'] = "(0, " . implode(", ", $rows) . ")";
-		} else {
-			$_SESSION['lidgroepen'] = "(0)";
-		}
-	} elseif (!isset($_SESSION['lidgroepen'])) {
-		$_SESSION['lidgroepen'] = "(0)";
-	}
-	
-	if ($_SESSION['lidid'] > 0) {
-		db_logins("updateactiviteit", "", "", $_SESSION['lidid']);
-	}
-	
-	if (in_array($soort, array('Verenigingsinfo', 'Beginpagina')) === TRUE) {
-		return true;
-	} elseif (strlen($soort) > 0) {
-		if ($_SESSION['lidid'] > 0) {
-			$soort = str_replace("'", "", $soort);
-			$query = sprintf("SELECT COUNT(*) FROM %sAdmin_access WHERE Tabpage=\"%s\";", $table_prefix, $soort);
-			$result = db_scalar($query);
-			if ($result == 0) {
-				db_authorisation("add", 0, $soort);
-			}
-		}
-		if ($_SESSION['webmaster'] == 1) {
-			return true;
-		} else {
-			$query = sprintf("SELECT COUNT(*) FROM %sAdmin_access WHERE Tabpage=\"%s\" AND Toegang IN %s;", $table_prefix, $soort, $_SESSION['lidgroepen']);
-			$result = fnQuery($query);
-			if ($result->fetchColumn() > 0) {
-				return true;
-			} else {
-				if ($melding == 1) {
-					if ($_SESSION['lidid'] > 0) {
-						$mess = sprintf("%s heeft geen toegang tot het onderdeel '%s' op %s.", $_SESSION['naamingelogde'], $soort, $naamwebsite);
-					} else {
-						$mess = sprintf("Je bent niet ingelogd en hierdoor hebt geen toegang tot '%s' op %s.", $soort, $naamwebsite);
-					}
-					db_logboek("add", $mess, 5);
-					printf("<script>alert('%s');</script>\n", $mess);
-				}
-				return false;
-			}
-		}
-	} else {
-		return true;
-	}	
-}
-
-function to22egang($soort, $melding=1) {
-	global $lididwebmasters, $table_prefix, $urlwebsite, $gebruikopenid, $naamwebsite, $maxinlogpogingen, $tabpages;
-	
-error_reporting(E_ALL);
-
-	echo("toegang()");
-
-	if (1 == 2 and isset($_SESSION['lidid']) and $_SESSION['lidid'] > 0 and isset($_SESSION['lastauthenication']) and $_SESSION['lastauthenication'] >= time()-60) {
-		// Er hoeft niets te gebeuren.
-	} else {
-//		db_logins("uitloggen");
-		if (isset($_SESSION['username']) and strlen($_SESSION['username']) > 5 and strlen($_SESSION['password']) > 0) {
-			$row = db_logins("controle");
-			if (isset($row->LidID) and $row->LidID > 0) {
-				$_SESSION['lastauthenication'] = time();
-				$_SESSION['lidid'] = $row->LidID;
-				$_SESSION['lidnr'] = $row->Lidnr;
-				$_SESSION['naamingelogde'] = $row->NaamLid;
-				if (strlen($row->Roepnaam) == 0) {
-					$_SESSION['roepnaamingelogde'] = $_SESSION['naamingelogde'];
-				} else {
-					$_SESSION['roepnaamingelogde'] = trim($row->Roepnaam);
-				}
-				if (isValidMailAddress($row->EmailVereniging, 0)) {
-					$_SESSION['emailingelogde'] = $row->EmailVereniging;
-				} elseif (isValidMailAddress($row->Email, 0)) {
-					$_SESSION['emailingelogde'] = $row->Email;
-				} else {
-					$_SESSION['emailingelogde'] = "";
-				}
-				
-				db_logins("setingelogd", "", "", $_SESSION['lidid']);
-
-			} else {
-				$mess = sprintf("De combinatie van login '%s' en het ingevoerde wachtwoord is niet correct of login is niet geldig! Je bent niet ingelogd.", $_SESSION['username']);
-				db_logboek("add", $mess, 1);
-				if (count(db_logins("lijst")) > 0) {
-					printf("<script>alert('%s');</script>\n", $mess);
-				}
-				$_SESSION['username'] = "";
-			}
-		} else {
-			$_SESSION['username'] = "";
-		}
-	}
-	if ($_SESSION['lidid'] == 0 or strlen($_SESSION['username']) == 0) {
-		$_SESSION['lidid'] = 0;
-		$_SESSION['lidnr'] = 0;
-		$_SESSION['naamingelogde'] = "gast";
-		$_SESSION['roepnaamingelogde'] = "gast";
-		$_SESSION['emailingelogde'] = "";	
-		$_SESSION['password'] = "";
-		setcookie("username", "", time()-3600);
-		setcookie("password", "", time()-3600);
-	}
 	if (in_array($_SESSION['lidid'], $lididwebmasters)) {
 		$_SESSION['webmaster'] = 1;
 	} else {
