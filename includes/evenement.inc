@@ -63,9 +63,8 @@ function ToekomstigeEvenementen() {
 		}
 		$rv .= sprintf("<p>%s %s</p>\n", $dat, $row->Omschrijving);
 	}
-	$rv .= "\n";
-	if (strlen($rv) < 20) {
-		$rv = "geen";
+	if (strlen($rv) > 0) {
+		$rv .= "\n";
 	}
 	return $rv;
 }
