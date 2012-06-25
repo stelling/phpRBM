@@ -311,7 +311,8 @@ function bestellingbeheer() {
 		} else {
 			printf("<td><select name='Lid_%d' onChange='this.form.submit();'>\n", $row->RecordID);
 			echo("<option value=0>&nbsp;</option>\n");
-			foreach(db_lid("lijst") as $lid) {
+			$w = sprintf("L.Nummer NOT IN (SELECT Lid FROM %sWS_Orderregel WHERE Artikel=%d)", $table_prefix, $row->Artikel);
+			foreach(db_lid("lijst", $w) as $lid) {
 				printf("<option value=%d>%s</option>\n", $lid->Nummer, $lid->Zoeknaam);
 			}
 			echo("</select></td>\n");
@@ -322,7 +323,7 @@ function bestellingbeheer() {
 		} else {
 			printf("<td colspan=2><select name='Artikel_%d' onChange='this.form.submit();'>\n", $row->RecordID);
 			echo("<option value=0>&nbsp;</option>\n");
-			foreach(db_artikel("overzichtbeheer") as $art) {
+			foreach(db_artikel("select", 0, $row->Lid) as $art) {
 				printf("<option value=%d>%s</option>\n", $art->RecordID, $art->OmsMaat);
 			}
 			echo("</select></td><td></td><td></td>\n");
