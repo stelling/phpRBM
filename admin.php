@@ -117,6 +117,9 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 	echo("</table>\n");
 	echo("</form>\n");
 	echo("</div>  <!-- Einde lijst -->\n");
+	
+} elseif ($currenttab == "Instellingen" and toegang($_GET['tp'])) {
+	fnInstellingen();
 } elseif ($currenttab == "Uploaden data" and ($_SESSION['aantallid'] == 0 or toegang($_GET['tp']))) {
 	$aantal = db_interface("aantalopenstaand");
 	if ($aantal > 0) {
@@ -153,8 +156,8 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 		printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=logboekopschonen\"' value='Logboek opschonen'>&nbsp;Verwijder alle records uit het logboek, die ouder dan %d maanden zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $bewaartijdlogging);
 	}
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=evenementenopschonen\"' value='Evenementen opschonen'>&nbsp;Opschonen evenementen, inclusief bijbehorende deelnemers, die langer dan 6 maanden geleden zijn verwijderd.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	if (isset($bewaartijdmailings) and $bewaartijdmailings > 0) {
-		printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=mailingsopschonen\"' value='Mailings opschonen'>&nbsp;Opschonen van de prullenbak van de mailings. Mailings die er langer dan %d maanden in zitten worden definitief verwijderd.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $bewaartijdmailings);
+	if (db_param("bewaartijdmailings") > 0) {
+		printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=mailingsopschonen\"' value='Mailings opschonen'>&nbsp;Opschonen van de prullenbak van de mailings. Mailings die er langer dan %d maanden in zitten worden definitief verwijderd.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), db_param("bewaartijdmailings"));
 	}
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=loginsopschonen\"' value='Logins opschonen'>&nbsp;Opschonen van logins die om diverse redenen niet meer nodig zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=orderregelsopschonen\"' value='Orderregels opschonen'>&nbsp;Opschonen van de orderregels van de bestellingen.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
@@ -206,5 +209,113 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 }
 
 HTMLfooter();
+
+function fnInstellingen() {
+	global $table_prefix;
+
+	$arrParam['bewaartijdinloggen'] = "Hoelang in maanden moet logging van het in- en uitloggen bewaard blijven. 0 = gelijk aan bewaartijdlogging.";
+	$arrParam['bewaartijdlogging'] = "Hoelang in maanden moet logging bewaard blijven. 0 = altijd.";
+	$arrParam['bewaartijdlogins'] = "Het aantal maanden dat niet gebruikte logins bewaard worden. 0 = altijd bewaren.";
+	$arrParam['bewaartijdmailings'] = "Het aantal maanden dat verwijderde mailing bewaard worden. 0 = altijd bewaren.";
+	$arrParam['beperkfrom'] = "Indien deze is ingevuld moet het from adres altijd vanaf dit domein zijn.";
+	$arrParam['beperktotgroep'] = "Vul hier de RecordID's, gescheiden door een komma, van de groepen (zie tabel ONDERDL) in die toegang hebben. Als je geen groepen invult hebben alleen webmasters toegang.";
+	$arrParam['db_backuptarren'] = "Moet de backup gecomprimeerd worden? Let op, de webhost moet dit wel ondersteunen.";
+	$arrParam['db_backupsopschonen'] = "Na hoeveel dagen moeten oude back-ups automatisch verwijderd worden? 0 = nooit.";
+	$arrParam['db_folderbackup'] = "Deze variabele is optioneel. Mocht deze niet ingevuld worden, dan wordt de standaard folder gebruikt.";
+	$arrParam['emailbevestigingbestelling'] = "Vanaf welk e-mailadres moet de bevestiging van een bestelling verzonden worden.";
+	$arrParam['emailbevestiginginschrijving'] = "Vanaf welk e-mailadres moet de bevestiging van de inschrijving voor de bewaking verzonden worden.";
+	$arrParam['emailledenadministratie'] = "Het e-mailadres van de ledenadministratie.";
+	$arrParam['emailnieuwepasfoto'] = "Waar moet een nieuwe pasfoto naar toe gemaild worden?";
+	$arrParam['emailsecretariaat'] = "Wordt gebruikt om het secretariaat op de hoogte te houden van verstuurde mailingen en opzeggingen. Dit veld is niet verplicht.";
+	$arrParam['emailwebmaster'] = "Het e-mailadres van de webmaster.";
+	$arrParam['kaderoverzichtmetfoto'] = "Moeten op het kaderoverzicht pasfoto's getoond worden?";
+	$arrParam['laatstebackup'] = "Wanneer is de laatste backup gemaakt? Deze variabele wordt automatisch bijgewerkt.";
+	$arrParam['lidnrnodigbijloginaanvraag'] = "Moet een lid zijn of haar lidnummer opgeven als er een login aangevraagd wordt?";
+	$arrParam['lidnrversturenmogelijk'] = "Hierbij geef je aan of het mogelijk moet zijn om vanaf deze website op basis van alleen een e-mailadres iemand zijn lidnummer per e-mail opgestuurd kan worden.";
+	$arrParam['max_grootte_bijlage'] = "Optioneel veld. Als je niets specificeerd dan is 2MB het maximum. De waarde is in bytes.";
+	$arrParam['maxinlogpogingen'] = "Na hoeveel foutieve inlogpogingen moet het account geblokkeerd worden? 0 = nooit.";
+	$arrParam['maxlengtelogin'] = "De maximale lengte die een login mag zijn. Minimaal 7 en maximaal 12 invullen.";
+	$arrParam['maxmailsperminuut'] = "Het maximaal aantal e-mails dat via een mailing per minuut verzonden mag worden. 0 = onbeperkt.";
+	$arrParam['muteerbarememos'] = "Welke soorten memo's mogen leden zelf muteren, scheiden door een komma.";
+	$arrParam['naamvereniging'] = "Wat is de naam van de vereniging?";
+	$arrParam['naamwebsite'] = "Dit is de naam zoals deze in de titel en op elke pagina getoond wordt.";
+	$arrParam['opzegtermijn'] = "De opzegtermijn van de vereniging in maanden.";
+	$arrParam['resultaatmailingversturen'] = "Indien aangevinkt wordt naar de zender en het secretariaat een mail met het resultaat van deze mailing verzonden.";
+	$arrParam['smtphost'] = "De naam van de SMTP-server voor het versturen van e-mails. Indien deze niet wordt ingevuld, wordt van de mail-functie uit PHP gebruik gemaakt.";
+	$arrParam['smtpport'] = "De poort die voor de SMTP-host gebruikt moet worden. 0 = gebruik default poort.";
+	$arrParam['smtpuser'] = "De gebruiker om te kunnen inloggen op de SMTP-server.";
+	$arrParam['smtppw'] = "Het wachtwoord dat bij de SMTP-user hoort, om te kunnen inloggen op de SMTP-server.";
+	$arrParam['termijnvervallendiplomasmailen'] = "Hoeveel maanden vooruit moeten leden een herinnering krijgen als een diploma gaat vervallen. 0 = geen herinnering sturen.";
+	$arrParam['toneninschrijvingenbewakingen'] = "Moeten bij de gegevens van een lid ook inschrijvingen voor bewakingen getoond worden?";
+	$arrParam['tonentoekomstigebewakingen'] = "Moeten bij de gegevens van een lid ook toekomstige bewakingen getoond worden?";
+	$arrParam['typemenu'] = "1 = per niveau een aparte regel, 2 = één menu met dropdown, 3 = één menu met dropdown en extra menu voor niveau 2.";
+	$arrParam['urlwebsite'] = "Zonder http://";
+	$arrParam['urlvereniging'] = "Zonder http://";
+	$arrParam['verjaardagenaantal'] = "Hoewel verjaardagen moeten er maximaal in de verenigingsinfo worden getoond. Als er meerdere leden op dezelfde dag jarig zijn, wordt dit aantal overschreden.";
+	$arrParam['verjaardagenvooruit'] = "Hoeveel dagen vooruit moeten de verjaardagen in de verenigingsinfo getoond worden?";
+	$arrParam['voorwaardenbestelling'] = "Deze regel wordt bij de online-bestellingen in de zelfservice vermeld.";
+	$arrParam['voorwaardeninschrijving'] = "Deze regel wordt bij de inschrijving vemeld als voorwaarde voor de inschrijving voor de bewaking.";
+	
+	foreach ($arrParam as $naam => $val) {		
+		db_param($naam, "controle");
+	}
+
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		foreach (db_param("", "lijst") as $row) {
+			$pvn = sprintf("value_%d", $row->RecordID);
+			if ($row->Naam == "beperktotgroep") {
+				$_POST[$pvn] = str_replace(" ", "", $_POST[$pvn]);
+			}
+			if ($row->Naam == "maxlengtelogin") {
+				if (strlen($_POST[$pvn]) == 0 or is_numeric($_POST[$pvn]) == false or $_POST[$pvn] > 12) {
+					$_POST[$pvn] = 12;
+				} elseif ($_POST[$pvn] < 7) {
+					$_POST[$pvn] = 7;
+				}
+			}
+			if ($row->Naam == "muteerbarememos") {
+				$_POST[$pvn] = str_replace(" ", "", strtoupper($_POST[$pvn]));
+			}
+			if ($row->ParamType == "B") {
+				if (isset($_POST[$pvn]) and $_POST[$pvn] == "1") {
+					$_POST[$pvn] = 1;
+				} else {
+					$_POST[$pvn] = 0;
+				}
+			} elseif ($row->ParamType == "I") {
+				if (strlen($_POST[$pvn]) == 0 or is_numeric($_POST[$pvn]) == false) {
+					$_POST[$pvn] = 0;
+				}
+			}
+			db_param($row->Naam, "updval", $_POST[$pvn]);
+		}
+	}
+
+	echo("<div id='instellingenmuteren'>\n");
+	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+	echo("<table>\n");
+	foreach (db_param("", "lijst") as $row) {
+		$uitleg = "";
+		if (array_key_exists($row->Naam, $arrParam)) {
+			$uitleg = $arrParam[$row->Naam];
+		}
+		if ($row->ParamType == "B") {
+			if ($row->ValueNum == 1) {
+				$c = "checked";
+			} else {
+				$c = "";
+			}
+			printf("<tr><td class='label'>%s: </td><td><input type='checkbox' name='value_%d' value='1' %s></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $c, $uitleg);
+		} elseif ($row->ParamType == "I") {
+			printf("<tr><td class='label'>%s: </td><td><input type='number' name='value_%d' value=%d size=8></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $row->ValueNum, $uitleg);
+		} else {
+			printf("<tr><td class='label'>%s: </td><td><input type='text' name='value_%d' value='%s' size=60></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $row->ValueChar, $uitleg);
+		}
+	}
+	echo("</table>\n");
+	echo("<input type='submit' value='Bewaren'>\n");
+	echo("</form>\n");
+	echo("</div>  <!-- Einde instellingenmuteren -->\n");
+}
 
 ?>

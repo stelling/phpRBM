@@ -16,7 +16,6 @@ if ((isset($_SESSON['webmaster']) and $_SESSON['webmaster'] == 1) or $_SERVER["H
 
 if (!isset($_SESSION['lidid'])) {
 	$_SESSION['lidid'] = 0;
-//	debug("Nieuwe sessie", 0);
 }
 
 $dir = substr(__FILE__, 0, strrpos(__FILE__, "/"));
@@ -24,9 +23,6 @@ $dir = substr($dir, 0, strrpos($dir, "/"));
 require_once($dir . '/config.php');
 if (!isset($muteerbarememos) or !is_array($muteerbarememos)) {
 	$muteerbarememos = array('D', 'G', 'WN');
-}
-if (!isset($emailbevestiginginschrijving)) {
-	$emailbevestiginginschrijving = $emailledenadministratie;
 }
 if (!isset($maxlengtelogin) or $maxlengtelogin < 8) {
 	$maxlengtelogin = 12;
@@ -40,6 +36,24 @@ require_once($dir . "/includes/evenement.inc");
 require_once($dir . "/includes/mailing.inc");
 require_once($dir . "/includes/webshop.inc");
 require_once($dir . "/includes/class.phpmailer.php");
+
+// Vullen config variabelen
+$naamvereniging = db_param("naamvereniging");
+$urlvereniging = db_param("urlvereniging");
+$naamwebsite = db_param("naamwebsite");
+$urlwebsite = db_param("urlwebsite");
+$emailwebmaster = db_param("emailwebmaster");
+$emailsecretariaat = db_param("emailsecretariaat");
+if (strlen(db_param("beperktotgroep")) > 0) {
+	$beperktotgroep = explode(",", db_param("beperktotgroep"));
+} else {
+	$beperktotgroep = array(0);
+}
+if (strlen(db_param("muteerbarememos")) > 0) {
+	$muteerbarememos = explode(",", db_param("muteerbarememos"));
+} else {
+	$muteerbarememos = array();
+}
 
 if (isset($_GET['tp']) and strlen($_GET['tp']) > 1) {
 	$sp = strpos($_GET['tp'], "/");
@@ -83,6 +97,7 @@ $arrSoortMemo["WN"] = "Waarschuwen in geval van nood";
 if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	$tabpages[] = "Beheer logins";
 	$tabpages[] = "Autorisatie";
+	$tabpages[] = "Instellingen";
 	$tabpages[] = "Uploaden data";
 	if (db_interface("aantalopenstaand") > 0) {
 		$tabpages[] = "Downloaden wijzigingen";
@@ -236,13 +251,13 @@ if (isset($_GET['tp']) and strlen($_GET['tp']) > 1) {
 	$currenttab = $tabpages[0];
 }
 
-$query = "SET lc_time_names = 'nl_NL';";
+$query = "SET lc_time_names='nl_NL';";
 fnQuery($query);
 
 $pasfotoextenties = array('gif', 'jpg', 'jpeg', 'png');
 
 function HTMLheader() {
-	global $naamwebsite, $urlwebsite, $naamvereniging;
+	global $naamwebsite, $urlwebsite;
 	global $tabpages, $currenttab, $currenttab2, $navpad, $curtab;
 	
 	foreach ($tabpages as $tp) {
@@ -318,7 +333,7 @@ function HTMLheader() {
 }
 
 function HTMLfooter() {
-	global $urlwebsite, $naamwebsite, $naamvereniging, $urlvereniging, $table_prefix, $navpad;
+	global $table_prefix, $navpad, $naamvereniging, $urlvereniging, $naamwebsite, $urlwebsite;
 
 	if (!isset($_GET['header']) or $_GET['header'] != "no") {
 		if (isset($naamvereniging) and strlen($naamvereniging) > 2) {
@@ -426,6 +441,8 @@ function getvar($nm, $riz="") {
 
 function fnDispMenu($toonnivo=1, $xtra="") {
 	global $tabpages, $curtab, $currenttab, $currenttab2, $navpad, $typemenu;
+	
+	$typemenu = db_param("typemenu");
 
 	if (strlen($xtra) > 0 and startwith($xtra, "&amp;") == false) {
 		$xtra = "&amp;" . $xtra;
@@ -724,27 +741,26 @@ function change_month_to_uk($strdate) {
 class RBMmailer extends PHPMailer {
 
 	function __construct() {
-		global $smtphost, $smtpport, $smtpuser, $smtppw, $naamvereniging, $emailwebmaster;
 	
-		if (isset($smtphost) and strlen($smtphost) > 0) {
-			$this->Host = $smtphost;
-			if (isset($smtpport) and $smtpport > 0) {
-				$this->Port = $smtpport;
+		if (strlen(db_param("smtphost")) > 0) {
+			$this->Host = db_param("smtphost");
+			if (db_param("smtpport") > 0) {
+				$this->Port = db_param("smtpport");
 			}
 			$this->IsSMTP(true);
 			$this->IsHTML(true);
-			if (strlen($smtpuser) > 0 and strlen($smtppw) > 0) {
+			if (strlen(db_param("smtpuser")) > 0) {
 				$this->SMTPAuth = true;
-				$this->Username = $smtpuser;
-				$this->Password = $smtppw;	
+				$this->Username = db_param("smtpuser");
+				$this->Password = db_param("smtppw");	
 			} else {
 				$this->SMTPAuth = false;
 			}
 		} else {
 			$this->IsMail(true);
 		}
-		$this->From = $emailwebmaster;
-		$this->FromName = $naamvereniging;
+		$this->From = db_param("emailwebmaster");
+		$this->FromName = db_param("naamvereniging");
 		$this->WordWrap = 110;
 		$this->AltBody    = "Om deze mail te bekijken gebruik een e-mailclient die met HTML overweg kan.";
 	}

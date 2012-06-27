@@ -12,7 +12,9 @@ if ((!isset($_SESSION['password']) or strlen($_SESSION['password']) == 0) and is
 }
 
 function toegang($soort, $melding=1) {
-	global $lididwebmasters, $table_prefix, $urlwebsite, $gebruikopenid, $naamwebsite, $maxinlogpogingen, $tabpages;
+	global $lididwebmasters, $table_prefix, $urlwebsite, $naamwebsite, $tabpages;
+	
+	$maxinlogpogingen = db_param("maxinlogpogingen");
 
 	if (isset($_SESSION['lidid']) and $_SESSION['lidid'] > 0 and isset($_SESSION['lastauthenication']) and $_SESSION['lastauthenication'] >= time()-60) {
 		// Er hoeft niets te gebeuren.
@@ -20,7 +22,7 @@ function toegang($soort, $melding=1) {
 		db_logins("uitloggen");
 		if (isset($_SESSION['username']) and strlen($_SESSION['username']) > 5 and strlen($_SESSION['password']) > 0) {
 			$row = db_logins("controle");
-			if (isset($maxinlogpogingen) and $maxinlogpogingen > 0 and isset($row->FouteLogin) and $row->FouteLogin > $maxinlogpogingen) {
+			if ($maxinlogpogingen > 0 and isset($row->FouteLogin) and $row->FouteLogin > $maxinlogpogingen) {
 				$mess = sprintf("Login '%s' is geblokkeerd, omdat er teveel foute inlog-pogingingen mee zijn gedaan! Je bent niet ingelogd.", $_SESSION['username']);
 				db_logboek("add", $mess, 1, 0, 2);
 				$_SESSION['username'] = "";
@@ -121,7 +123,7 @@ function toegang($soort, $melding=1) {
 }
 
 function fnConfirmLogin($row, $xtratekst="") {
-	global $urlwebsite, $naamwebsite, $naamvereniging, $maxinlogpogingen;
+	global $urlwebsite, $naamwebsite;
 	
 	db_logins("wachtwoordenvullen");
 	
@@ -154,7 +156,7 @@ function fnConfirmLogin($row, $xtratekst="") {
 	} else {
 		$briefpapier = "[%MESSAGE%]";
 	}
-	if (isset($maxinlogpogingen) and $maxinlogpogingen > 0 and $row->FouteLogin > $maxinlogpogingen) {
+	if (db_param("maxinlogpogingen") > 0 and $row->FouteLogin > db_param("maxinlogpogingen")) {
 		$geblokt = sprintf("Er is %d keer geprobeerd met deze login in te loggen. Hierdoor is dit account geblokkeerd. Vraag aan de webmaster om deze weer vrij te geven.", $row->FouteLogin);
 	} else {
 		$geblokt = "";
@@ -167,7 +169,7 @@ function fnConfirmLogin($row, $xtratekst="") {
 	$content = str_replace("[%PASSWORD%]", encript_decript($row->Wachtwoord, 0), $content);
 	$content = str_replace("[%GEBLOKKEERD%]", $geblokt, $content);
 	$content = str_replace("[%EXTRATEKST%]", $xtratekst, $content);
-	$content = str_replace("[%NAAMVERENIGING%]", $naamvereniging, $content);
+	$content = str_replace("[%NAAMVERENIGING%]", db_param("naamvereniging"), $content);
 	$content = str_replace("[%NAAMWEBSITE%]", $naamwebsite, $content);
 	$content = str_replace("[%URLWEBSITE%]", $urlwebsite, $content);
 	$content = str_replace("[%IPADDRESS%]", $_SERVER['REMOTE_ADDR'], $content);
@@ -255,8 +257,12 @@ Dit verzoek is vanaf IP-adres %s gedaan.
 }
 
 function fnLoginAanvragen() {
-	global $naamvereniging, $urlwebsite, $beperktotgroep, $table_prefix, $lidnrversturenmogelijk, $lidnrnodigbijloginaanvraag;
-	global $lididwebmasters, $maxlengtelogin, $selectlidnr;
+	global $table_prefix, $lididwebmasters, $selectlidnr, $naamvereniging, $urlwebsite;
+	
+	$beperktotgroep = db_param("beperktotgroep");
+	$lidnrversturenmogelijk = db_param("lidnrversturenmogelijk");
+	$lidnrnodigbijloginaanvraag = db_param("lidnrnodigbijloginaanvraag");
+	$maxlengtelogin = db_param("maxlengtelogin");
 
 	if (!isset($_POST['lidnummer']) or strlen($_POST['lidnummer']) == 0) {
 		$_POST['lidnummer'] = 0;
@@ -301,7 +307,7 @@ function fnLoginAanvragen() {
 								} else {
 									$gr = $beperktotgroep;
 								}
-								$mess = sprintf("Je behoort niet tot groep '%s' van %s. Een login mag niet aangevraagd worden.", db_naam_onderdeel($gr), $naamvereniging);
+								$mess = sprintf("Je behoort niet tot groep '%s' van %s. Een login mag niet aangevraagd worden.", db_naam_onderdeel($gr), db_param("naamvereniging"));
 							}
 						} elseif (strlen($_POST['gewenstelogin']) < 6 or strlen($_POST['gewenstelogin']) > $maxlengtelogin) {
 							$mess = sprintf("Je hebt geen geldige login opgegeven. Een login moet uit minimaal 6 en maximaal %d karakters bestaan.", $maxlengtelogin);
@@ -393,7 +399,8 @@ function encript_decript($text, $encr=1) {
 }
 
 function cleanlogin($login) {
-	global $maxlengtelogin;
+
+	$maxlengtelogin = db_param("maxlengtelogin");
 
 	$login = trim($login);
 	if (strlen($login) > $maxlengtelogin) {

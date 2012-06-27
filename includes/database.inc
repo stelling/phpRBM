@@ -150,7 +150,7 @@ function db_scalar($query) {
 function TableExists($table) {
 	global $db_name, $table_prefix;
 	
-	if (startwith($table, $table_prefix) == FALSE) {
+	if (strlen($table_prefix) > 1 and startwith($table, $table_prefix) == FALSE) {
 		$table = $table_prefix . $table;
 	}
 	
@@ -165,7 +165,7 @@ function TableExists($table) {
 }
 
 function db_gegevenslid($LidID, $soort="Alg") {
-	global $selectnaam, $table_prefix, $fromlid, $fromlidond, $wherelidond, $tonentoekomstigebewakingen, $dlnstatus, $fdlang;
+	global $selectnaam, $table_prefix, $fromlid, $fromlidond, $wherelidond, $dlnstatus, $fdlang;
 
 	if ($soort == "Alg") {
 		$sqond = sprintf("SELECT MIN(O.Naam) FROM %1\$sOnderdl AS O INNER JOIN %1\$sLidond AS LO ON O.RecordID = LO.OnderdeelID
@@ -269,7 +269,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 								(SELECT Memo FROM %3\$sMemo WHERE Soort='D' AND Lid=%4\$d) AS Dieet;", $tw, $ts, $table_prefix, $LidID);
 	} elseif ($soort == "Bew") {
 		$xtra_where = "";
-		if (isset($tonentoekomstigebewakingen) and $tonentoekomstigebewakingen == 0) {
+		if (db_param("tonentoekomstigebewakingen") == 0) {
 			$xtra_where = "AND BS.Einde <= CURDATE()";
 		}
 		$query = sprintf("SELECT BS.Kode AS Seizoen,
@@ -843,8 +843,8 @@ function db_stats($lidid=0) {
 }
 
 function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
-	global $dbc, $selectnaam, $selectlidnr, $beperktotgroep, $table_prefix, $lididwebmasters, $wherelidond, $wherelid, $gebruikopenid, $lidnrnodigbijloginaanvraag;
-	global $scriptbijuitloggen, $maxinlogpogingen, $bewaartijdlogins, $maxlengtelogin, $beperktotgroep, $naamvereniging, $dir;
+	global $dbc, $selectnaam, $selectlidnr, $table_prefix, $lididwebmasters, $wherelidond, $wherelid, $gebruikopenid, $lidnrnodigbijloginaanvraag;
+	global $scriptbijuitloggen, $maxinlogpogingen, $maxlengtelogin, $beperktotgroep, $dir;
 	
 	$mess = "";
 	if ($actie == "nieuwlogin" and isValidMailAddress($email) and strlen($login) > 5) {
@@ -930,7 +930,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 				db_logboek("add", $mess, 1);
 				$_SESSION['lidid'] = 0;
 			}
-			if (date('H') == 8 or ($_SESSION['webmaster'] ==  1 and date('H') > 7)) {
+			if (date('H') == 8 or (isset($_SESSION['webmaster']) and $_SESSION['webmaster'] ==  1 and date('H') > 7)) {
 				$script = sprintf("php %s/autojobs.php", $dir);
 				exec($script);
 			}
@@ -1033,16 +1033,16 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 		}
 		
 	} elseif ($actie == "opschonen") {
-		if ($bewaartijdlogins > 0) {
+		if (db_param("bewaartijdlogins") > 0) {
 			$query = sprintf("DELETE FROM %1\$sAdmin_login
-						WHERE LastLogin < DATE_ADD(CURDATE(), INTERVAL -%2\$d MONTH) AND Ingevoerd < DATE_ADD(CURDATE(), INTERVAL -%2\$d MONTH);", $table_prefix, $bewaartijdlogins);
+						WHERE LastLogin < DATE_ADD(CURDATE(), INTERVAL -%2\$d MONTH) AND Ingevoerd < DATE_ADD(CURDATE(), INTERVAL -%2\$d MONTH);", $table_prefix, db_param("bewaartijdlogins"));
 			$result = fnQuery($query);
 			if ($result > 0) {
 				$mess = sprintf("Er zijn %d logins verwijderd", $result);
 			} else {
 				$mess = "Er zijn geen logins verwijderd";
 			}
-			$mess .= sprintf(", omdat ze %d maanden niet meer zijn gebruikt.<br>\n", $bewaartijdlogins);
+			$mess .= sprintf(", omdat ze %d maanden niet meer zijn gebruikt.<br>\n", db_param("bewaartijdlogins"));
 		}
 		$where = "";
 		if (is_array($beperktotgroep) and count($beperktotgroep) > 0) {
@@ -1067,7 +1067,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 					WHERE ((LastLogin IS NULL) OR LastLogin < '2012-01-01') AND Ingevoerd < DATE_ADD(CURDATE(), INTERVAL -2 WEEK);", $table_prefix);
 		$result = fnQuery($query);
 		if ($result > 0) {
-			$mess .= sprintf("Er zijn %d logins verwijderd", $result, $bewaartijdlogins);
+			$mess .= sprintf("Er zijn %d logins verwijderd", $result);
 		} else {
 			$mess .= "Er zijn geen logins verwijderd";
 		}
@@ -1146,7 +1146,7 @@ function db_naam_onderdeel($rid, $rin="Onbekend") {
 }
 
 function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr, $message="", $from_name="", $from_addr="", $subject="", $cc_addr="") {
-	global $table_prefix, $naamvereniging;
+	global $table_prefix;
 
 	if ($mid > 0) {
 		$query = sprintf("SELECT * FROM %sMailing WHERE MailingID=%d;", $table_prefix, $mid);
@@ -1164,7 +1164,7 @@ function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr, $message="", $fro
 		}
 	} else {
 		if (strlen($from_name) == 0) {
-			$from_name = $naamvereniging;
+			$from_name = db_param("naamvereniging");
 		}
 	}
 	
@@ -1177,7 +1177,7 @@ function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr, $message="", $fro
 }
 
 function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $email="", $aan="") {
-	global $selectnaam, $selectzoeknaam, $table_prefix, $naamvereniging, $bewaartijdmailings, $fdtlang;
+	global $selectnaam, $selectzoeknaam, $table_prefix, $fdtlang;
 	
 	$mess = "";
 	if ($actie == "histdetails" and $rid > 0) {
@@ -1250,7 +1250,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		
 	} elseif ($actie == "add") {
 		$query = sprintf("INSERT INTO %sMailing (from_name, from_addr, to_name, subject, new_on, AddedBy)
-								VALUES ('%s', '%s', '%s', '%s', SYSDATE(), %d);", $table_prefix, $naamvereniging, $email, $aan, $subj, $_SESSION['lidid']);
+								VALUES ('%s', '%s', '%s', '%s', SYSDATE(), %d);", $table_prefix, db_param("naamvereniging"), $email, $aan, $subj, $_SESSION['lidid']);
 		$id = fnQuery($query);
 		$mess = sprintf("Mailing %d (%s) is door %s toegevoegd.", $id, $subj, $_SESSION['naamingelogde']);
 		db_logboek("add", $mess, 4);
@@ -1292,10 +1292,10 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		return $mess;
 		
 	} elseif ($actie == "opschonen") {
-		if ($bewaartijdmailings > 0) {
+		if (db_param("bewaartijdmailings") > 0) {
 			$query = sprintf("DELETE FROM %sMailing
 						WHERE (NOT deleted_on IS NULL)
-						AND deleted_on < ADDDATE(CURDATE(), INTERVAL -%d MONTH);", $table_prefix, $bewaartijdmailings);
+						AND deleted_on < ADDDATE(CURDATE(), INTERVAL -%d MONTH);", $table_prefix, db_param("bewaartijdmailings"));
 			$result = fnQuery($query);
 			if ($result > 0) {
 				$mess = sprintf("Er zijn %d mailings uit de prullenbak verwijderd. ", $result);
@@ -1358,7 +1358,7 @@ function db_mutatie($jaar, $gbr="*", $kpl="*") {
 }
 
 function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0) {
-	global $table_prefix, $selectnaam, $selectzoeknaam, $bewaartijdlogging, $bewaartijdinloggen;
+	global $table_prefix, $selectnaam, $selectzoeknaam;
 	
 	if ($type >= 0) {
 		$w = sprintf("TypeActiviteit=%d", $type);
@@ -1382,20 +1382,19 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0) {
 			printf("<script>alert(\"%s\");location.reload(true);</script>\n", str_replace("\"", "'", $oms));
 		}
 	} elseif ($actie == "opschonen") {
-		if (!isset($bewaartijdlogging)) {
-			$bewaartijdlogging = 13;
-		}
-		if ($bewaartijdlogging > 0) {
-			$query = sprintf("DELETE FROM %sAdmin_activiteit WHERE TypeActiviteit<>1 AND DatumTijd < DATE_ADD(CURDATE(), INTERVAL -%d MONTH);", $table_prefix, $bewaartijdlogging);
+		if (db_param("bewaartijdlogging") > 0) {
+			$query = sprintf("DELETE FROM %sAdmin_activiteit WHERE TypeActiviteit<>1 AND DatumTijd < DATE_ADD(CURDATE(), INTERVAL -%d MONTH);", $table_prefix, db_param("bewaartijdlogging"));
 			$aant = fnQuery($query);
 		} else {
 			$aant = 0;
 		}
-		if (!isset($bewaartijdinloggen) or $bewaartijdinloggen <= 0) {
-			$bewaartijdinloggen = $bewaartijdlogging;
+		if (db_param("bewaartijdinloggen") > 0) {
+			$bewaartijdinloggen = db_param("bewaartijdinloggen");
+		} else {
+			$bewaartijdinloggen = db_param("bewaartijdlogging");
 		}
-		if ($bewaartijdinloggen > 0) {
-			$query = sprintf("DELETE FROM %sAdmin_activiteit WHERE TypeActiviteit=1 AND DatumTijd < DATE_ADD(CURDATE(), INTERVAL -%d MONTH);", $table_prefix, $bewaartijdinloggen);
+		if (db_param("bewaartijdinloggen") > 0) {
+			$query = sprintf("DELETE FROM %sAdmin_activiteit WHERE TypeActiviteit=1 AND DatumTijd < DATE_ADD(CURDATE(), INTERVAL -%d MONTH);", $table_prefix, db_param("bewaartijdinloggen"));
 			$aant += fnQuery($query);
 		}
 		if ($aant > 0) {
@@ -1881,6 +1880,108 @@ function db_orderregel($actie, $lidid=0, $artikelid=0, $aantalbesteld=0, $filter
 function db_dms() {
 }
 
+function db_param($naam, $actie="curval", $newval="") {
+	global $table_prefix;
+	
+	$arrIntegers['bewaartijdinloggen'] = 2;
+	$arrIntegers['bewaartijdlogging'] = 6;
+	$arrIntegers['bewaartijdlogins'] = 6;
+	$arrIntegers['bewaartijdmailings'] = 3;
+	$arrIntegers['db_backupsopschonen'] = 11;
+	$arrIntegers['max_grootte_bijlage'] = 0;
+	$arrIntegers['maxlengtelogin'] = 12;
+	$arrIntegers['maxmailsperminuut'] = 60;
+	$arrIntegers['maxinlogpogingen'] = 4;
+	$arrIntegers['opzegtermijn'] = 1;
+	$arrIntegers['smtpport'] = 0;
+	$arrIntegers['termijnvervallendiplomasmailen'] = 3;
+	$arrIntegers['typemenu'] = 1;
+	$arrIntegers['verjaardagenaantal'] = 7;
+	$arrIntegers['verjaardagenvooruit'] = 5;
+	
+	$arrBooleans['db_backuptarren'] = 0;
+	$arrBooleans['kaderoverzichtmetfoto'] = 1;
+	$arrBooleans['lidnrnodigbijloginaanvraag'] = 1;
+	$arrBooleans['lidnrversturenmogelijk'] = 1;
+	$arrBooleans['resultaatmailingversturen'] = 0;
+	$arrBooleans['toneninschrijvingenbewakingen'] = 1;
+	$arrBooleans['tonentoekomstigebewakingen'] = 0;
+	
+	$arrStrings['laatstebackup'] = "2012-01-01 00:00";
+	$arrStrings['muteerbarememos'] = "D,G,WN";
+	$arrStrings['naamvereniging'] = "Naam vereniging";
+	$arrStrings['naamwebsite'] = "Naam website";
+	$arrStrings['urlwebsite'] = $_SERVER["HTTP_HOST"];
+	
+	if ($actie == "lijst") {
+		$query = sprintf("SELECT *, IFNULL(ValueNum, ValueChar) AS CurVal FROM %sAdmin_param
+					ORDER BY Naam;", $table_prefix);
+		$result = fnQuery($query);
+		return $result->fetchAll();
+		
+	} elseif ($actie == "curval") {
+		if (array_key_exists($naam, $arrBooleans)) {
+			$retval = $arrBooleans[$naam];
+		} elseif (array_key_exists($naam, $arrIntegers)) {
+			$retval = $arrIntegers[$naam];
+		} elseif (array_key_exists($naam, $arrStrings)) {
+			$retval = $arrStrings[$naam];
+		} else {
+			$retval = "";
+		}
+		
+		if (TableExists("Admin_param")) {		
+			$query = sprintf("SELECT COUNT(*) AS Aanwezig, CASE ParamType WHEN 'I' THEN ValueNum WHEN 'B' THEN ValueNum ELSE ValueChar END AS CurVal FROM %sAdmin_param WHERE Naam='%s';", $table_prefix, $naam);
+			$result = fnQuery($query);
+			$row = $result->fetch();
+			if ($row->Aanwezig == 1) {
+				$retval = $row->CurVal;
+			}
+		}
+		return $retval;
+		
+	} elseif ($actie == "updval" and TableExists("Admin_param")) {
+		$query = sprintf("SELECT * FROM %sAdmin_param WHERE Naam='%s';", $table_prefix, $naam);
+		$result = fnQuery($query);
+		$cur = $result->fetch();
+		if (($cur->ParamType == "B" or $cur->ParamType == "I") and $cur->ValueNum != $newval) {
+			$set = sprintf("ValueNum=%d", $newval);
+		} elseif ($cur->ParamType == "T" and $cur->ValueChar != $newval) {
+			$set = sprintf("ValueChar='%s'", $newval);
+		} else {
+			$set = "";
+		}
+		if (strlen($set) > 0) {
+			$query = sprintf("UPDATE %sAdmin_param SET %s, GewijzigdDoor=%d WHERE Naam='%s';", $table_prefix, $set, $_SESSION['lidid'], $naam);
+			$result = fnQuery($query);
+			if ($result > 0) {
+				$mess = sprintf("Parameter '%s' is in '%s' gewijzigd.", $naam, $newval);
+				db_logboek("add", $mess, 2);
+			}
+		}
+		
+	} elseif ($actie == "controle" and TableExists("Admin_param")) {
+		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_param WHERE Naam='%s';", $table_prefix, $naam);
+		if (db_scalar($query) == 0) {
+			if (array_key_exists($naam, $arrBooleans)) {
+				$dv = sprintf("ParamType='B', ValueNum=%d", $arrBooleans[$naam]);
+			} elseif (array_key_exists($naam, $arrIntegers)) {
+				$dv = sprintf("ParamType='I', ValueNum=%d", $arrIntegers[$naam]);
+			} elseif (array_key_exists($naam, $arrStrings)) {
+				$dv = sprintf("ParamType='T', ValueChar='%s'", $arrStrings[$naam]);
+			} else {
+				$dv = "ParamType='T'";
+			}
+			$query = sprintf("INSERT INTO %sAdmin_param SET Naam='%s', %s, Ingevoerd=CURDATE(), IngevoerdDoor=%d;", $table_prefix, $naam, $dv, $_SESSION['lidid']);
+			$result = fnQuery($query);
+			if ($result > 0) {
+				$mess = sprintf("Parameter '%s' is toegevoegd.", $naam);
+				db_logboek("add", $mess, 2);
+			}
+		}
+	}
+}
+
 function db_delete_local_tables() {
 	global $arrTables, $table_prefix;
 	
@@ -1892,7 +1993,7 @@ function db_delete_local_tables() {
 }
 
 function db_onderhoud() {
-	global $bewaartijdmailings, $bewaartijdlogins, $table_prefix, $arrTables, $db_name, $wherelid, $beperktotgroep, $wherelidond, $lididwebmasters;
+	global $table_prefix, $arrTables, $db_name, $wherelid, $beperktotgroep, $wherelidond, $lididwebmasters;
 	global $maxlengtelogin;
 
 	// Vaste aanpassingen aan de database na een upload, omdat MS-Access geen datum velden kent, alleen datum_tijd.
@@ -2078,7 +2179,7 @@ function db_createtables() {
 
 	$queries = sprintf("SET SQL_MODE='NO_AUTO_VALUE_ON_ZERO';
 
-CREATE TABLE IF NOT EXISTS `%1\$sAdmin_access` (
+CREATE TABLE IF NOT EXISTS `rbm_Admin_access` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `Tabpage` varchar(50) NOT NULL,
   `Toegang` int(11) NOT NULL DEFAULT '-1',
@@ -2086,6 +2187,12 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_access` (
   `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sAdmin_activiteit`
+--
 
 CREATE TABLE IF NOT EXISTS `%1\$sAdmin_activiteit` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
@@ -2099,6 +2206,12 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_activiteit` (
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sAdmin_interface`
+--
+
 CREATE TABLE IF NOT EXISTS `%1\$sAdmin_interface` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `LidID` int(11) NOT NULL,
@@ -2110,11 +2223,18 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_interface` (
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sAdmin_login`
+--
+
 CREATE TABLE IF NOT EXISTS `%1\$sAdmin_login` (
   `LidID` int(11) NOT NULL,
   `Login` varchar(12) NOT NULL,
   `openid_identity` varchar(50) DEFAULT NULL,
   `Wachtwoord` varchar(12) NOT NULL,
+  `HerinneringVervallenDiplomas` tinyint(4) NOT NULL DEFAULT '0',
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime NOT NULL,
   `GewijzigdDoor` int(11) NOT NULL DEFAULT '0',
@@ -2125,6 +2245,32 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_login` (
   PRIMARY KEY (`LidID`),
   UNIQUE KEY `Login` (`Login`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sAdmin_param`
+--
+
+CREATE TABLE IF NOT EXISTS `%1\$sAdmin_param` (
+  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
+  `Naam` varchar(30) NOT NULL,
+  `ParamType` char(1) DEFAULT NULL,
+  `ValueChar` text,
+  `ValueNum` decimal(10,2) DEFAULT NULL,
+  `Ingevoerd` date NOT NULL DEFAULT '0000-00-00',
+  `IngevoerdDoor` int(11) NOT NULL,
+  `Gewijzigd` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE CURRENT_TIMESTAMP,
+  `GewijzigdDoor` int(11) NOT NULL,
+  PRIMARY KEY (`RecordID`),
+  UNIQUE KEY `Naam` (`Naam`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COMMENT='Parameters en instellingen';
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sBewaking`
+--
 
 CREATE TABLE IF NOT EXISTS `%1\$sBewaking` (
   `RecordID` int(11) DEFAULT NULL,
@@ -2144,10 +2290,16 @@ CREATE TABLE IF NOT EXISTS `%1\$sBewaking` (
   PRIMARY KEY (`SeizoenID`,`Lid`,`BEGIN_PER`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sBewaking_Blok`
+--
+
 CREATE TABLE IF NOT EXISTS `%1\$sBewaking_Blok` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `SeizoenID` int(11) NOT NULL,
-  `Kode` char(2) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
+  `Kode` char(2) DEFAULT NULL,
   `Begindatum` date NOT NULL,
   `Einddatum` date NOT NULL,
   `InschrijvingOpen` tinyint(4) NOT NULL DEFAULT '1',
@@ -2158,19 +2310,31 @@ CREATE TABLE IF NOT EXISTS `%1\$sBewaking_Blok` (
   UNIQUE KEY `SeizoenKode` (`SeizoenID`,`Kode`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sBewaking_Inschrijving`
+--
+
 CREATE TABLE IF NOT EXISTS `%1\$sBewaking_Inschrijving` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `Lid` int(11) NOT NULL,
   `Nummer` int(11) NOT NULL DEFAULT '0',
   `BlokID` int(11) NOT NULL,
   `Keuze` tinyint(4) NOT NULL DEFAULT '1',
-  `Opmerking` varchar(50) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
+  `Opmerking` varchar(50) DEFAULT NULL,
   `Definitief` datetime DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `Afgemeld` datetime DEFAULT NULL,
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sBewseiz`
+--
 
 CREATE TABLE IF NOT EXISTS `%1\$sBewseiz` (
   `RecordID` int(11) NOT NULL DEFAULT '0',
@@ -2193,6 +2357,12 @@ CREATE TABLE IF NOT EXISTS `%1\$sBewseiz` (
   UNIQUE KEY `Kode` (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sBoekjaar`
+--
+
 CREATE TABLE IF NOT EXISTS `%1\$sBoekjaar` (
   `RecordID` int(11) NOT NULL DEFAULT '0',
   `Kode` varchar(5) DEFAULT NULL,
@@ -2205,6 +2375,12 @@ CREATE TABLE IF NOT EXISTS `%1\$sBoekjaar` (
   PRIMARY KEY (`RecordID`),
   UNIQUE KEY `Kode` (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sDiploma`
+--
 
 CREATE TABLE IF NOT EXISTS `%1\$sDiploma` (
   `RecordID` int(11) NOT NULL DEFAULT '0',
@@ -2230,6 +2406,12 @@ CREATE TABLE IF NOT EXISTS `%1\$sDiploma` (
   UNIQUE KEY `Kode` (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sEvenement`
+--
+
 CREATE TABLE IF NOT EXISTS `%1\$sEvenement` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `Datum` datetime NOT NULL,
@@ -2249,6 +2431,12 @@ CREATE TABLE IF NOT EXISTS `%1\$sEvenement` (
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sEvenement_Deelnemer`
+--
+
 CREATE TABLE IF NOT EXISTS `%1\$sEvenement_Deelnemer` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `LidID` int(11) NOT NULL,
@@ -2263,6 +2451,12 @@ CREATE TABLE IF NOT EXISTS `%1\$sEvenement_Deelnemer` (
   UNIQUE KEY `LidEvenement` (`LidID`,`EvenementID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sEvenement_Type`
+--
+
 CREATE TABLE IF NOT EXISTS `%1\$sEvenement_Type` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `Omschrijving` varchar(30) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
@@ -2272,6 +2466,12 @@ CREATE TABLE IF NOT EXISTS `%1\$sEvenement_Type` (
   `GewijzigdDoor` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sFunctie`
+--
 
 CREATE TABLE IF NOT EXISTS `%1\$sFunctie` (
   `Nummer` tinyint(4) NOT NULL DEFAULT '0',
@@ -2289,6 +2489,12 @@ CREATE TABLE IF NOT EXISTS `%1\$sFunctie` (
   PRIMARY KEY (`Nummer`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sGBR`
+--
+
 CREATE TABLE IF NOT EXISTS `%1\$sGBR` (
   `RecordID` int(11) DEFAULT NULL,
   `Kode` varchar(4) NOT NULL DEFAULT '',
@@ -2303,6 +2509,12 @@ CREATE TABLE IF NOT EXISTS `%1\$sGBR` (
   PRIMARY KEY (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sKostenplaats`
+--
+
 CREATE TABLE IF NOT EXISTS `%1\$sKostenplaats` (
   `RecordID` int(11) NOT NULL DEFAULT '0',
   `Kode` varchar(5) DEFAULT NULL,
@@ -2312,6 +2524,12 @@ CREATE TABLE IF NOT EXISTS `%1\$sKostenplaats` (
   PRIMARY KEY (`RecordID`),
   UNIQUE KEY `Kode` (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sLid`
+--
 
 CREATE TABLE IF NOT EXISTS `%1\$sLid` (
   `Nummer` int(11) NOT NULL DEFAULT '0',
@@ -2353,6 +2571,12 @@ CREATE TABLE IF NOT EXISTS `%1\$sLid` (
   PRIMARY KEY (`Nummer`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sLidbew`
+--
+
 CREATE TABLE IF NOT EXISTS `%1\$sLidbew` (
   `Lid` int(11) NOT NULL DEFAULT '0',
   `Opmerking` longtext,
@@ -2361,6 +2585,12 @@ CREATE TABLE IF NOT EXISTS `%1\$sLidbew` (
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`Lid`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sLiddipl`
+--
 
 CREATE TABLE IF NOT EXISTS `%1\$sLiddipl` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
@@ -2378,6 +2608,12 @@ CREATE TABLE IF NOT EXISTS `%1\$sLiddipl` (
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sLidmaatschap`
+--
+
 CREATE TABLE IF NOT EXISTS `%1\$sLidmaatschap` (
   `RecordID` int(11) DEFAULT NULL,
   `Lid` int(11) NOT NULL DEFAULT '0',
@@ -2390,6 +2626,12 @@ CREATE TABLE IF NOT EXISTS `%1\$sLidmaatschap` (
   PRIMARY KEY (`Lid`,`LIDDATUM`),
   UNIQUE KEY `Lidnr` (`Lidnr`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sLidond`
+--
 
 CREATE TABLE IF NOT EXISTS `%1\$sLidond` (
   `RecordID` int(11) DEFAULT NULL,
@@ -2406,6 +2648,12 @@ CREATE TABLE IF NOT EXISTS `%1\$sLidond` (
   PRIMARY KEY (`Lid`,`OnderdeelID`,`Vanaf`,`Functie`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sLidRedNed`
+--
+
 CREATE TABLE IF NOT EXISTS `%1\$sLidRedNed` (
   `Lidnr` int(11) DEFAULT NULL,
   `RelnrRedNed` varchar(8) DEFAULT NULL,
@@ -2421,9 +2669,15 @@ CREATE TABLE IF NOT EXISTS `%1\$sLidRedNed` (
   `Ingevoerd` date DEFAULT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sMailing`
+--
+
 CREATE TABLE IF NOT EXISTS `%1\$sMailing` (
   `MailingID` int(11) NOT NULL AUTO_INCREMENT,
-  `from_name` varchar(50) DEFAULT NULL,
+  `from_name` varchar(50) DEFAULT NULL COMMENT 'Omschrijving van de groep personen aan wie deze mailing gericht is',
   `from_addr` varchar(50) DEFAULT NULL,
   `to_name` varchar(50) DEFAULT NULL,
   `cc_addr` varchar(50) DEFAULT NULL,
@@ -2443,10 +2697,18 @@ CREATE TABLE IF NOT EXISTS `%1\$sMailing` (
   PRIMARY KEY (`MailingID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sMailing_hist`
+--
+
 CREATE TABLE IF NOT EXISTS `%1\$sMailing_hist` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `LidID` int(11) NOT NULL DEFAULT '0',
   `MailingID` int(11) NOT NULL,
+  `Xtra_Char` char(4) DEFAULT NULL,
+  `Xtra_Num` int(11) DEFAULT NULL,
   `from_name` varchar(50) NOT NULL,
   `from_addr` varchar(50) NOT NULL,
   `to_name` varchar(50) NOT NULL,
@@ -2460,6 +2722,12 @@ CREATE TABLE IF NOT EXISTS `%1\$sMailing_hist` (
   KEY `LidID` (`LidID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sMailing_rcpt`
+--
+
 CREATE TABLE IF NOT EXISTS `%1\$sMailing_rcpt` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `MailingID` int(11) NOT NULL DEFAULT '0',
@@ -2468,6 +2736,12 @@ CREATE TABLE IF NOT EXISTS `%1\$sMailing_rcpt` (
   `Ingevoerd` date DEFAULT NULL,
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sMemo`
+--
 
 CREATE TABLE IF NOT EXISTS `%1\$sMemo` (
   `RecordID` int(11) DEFAULT NULL,
@@ -2479,6 +2753,12 @@ CREATE TABLE IF NOT EXISTS `%1\$sMemo` (
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`Lid`,`Soort`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sMutatie`
+--
 
 CREATE TABLE IF NOT EXISTS `%1\$sMutatie` (
   `RecordID` int(11) DEFAULT NULL,
@@ -2502,6 +2782,12 @@ CREATE TABLE IF NOT EXISTS `%1\$sMutatie` (
   PRIMARY KEY (`BoekjaarID`,`Periode`,`Dagboek`,`Stuknr`,`Regelnr`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sOnderdl`
+--
+
 CREATE TABLE IF NOT EXISTS `%1\$sOnderdl` (
   `RecordID` int(11) NOT NULL DEFAULT '0',
   `Kode` varchar(6) DEFAULT NULL,
@@ -2524,6 +2810,12 @@ CREATE TABLE IF NOT EXISTS `%1\$sOnderdl` (
   UNIQUE KEY `Kode` (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sRekening`
+--
+
 CREATE TABLE IF NOT EXISTS `%1\$sRekening` (
   `Nummer` int(11) NOT NULL DEFAULT '0',
   `Seizoen` smallint(6) DEFAULT NULL,
@@ -2541,6 +2833,12 @@ CREATE TABLE IF NOT EXISTS `%1\$sRekening` (
   PRIMARY KEY (`Nummer`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sWS_Artikel`
+--
+
 CREATE TABLE IF NOT EXISTS `%1\$sWS_Artikel` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `Code` char(6) COLLATE utf8_unicode_ci NOT NULL,
@@ -2549,13 +2847,19 @@ CREATE TABLE IF NOT EXISTS `%1\$sWS_Artikel` (
   `Verkoopprijs` decimal(10,2) NOT NULL DEFAULT '0.00',
   `BeschikbaarTot` date DEFAULT NULL,
   `MaxAantalPerLid` smallint(6) NOT NULL DEFAULT '999',
-  `BeperkTotGroep` int(11) NOT NULL DEFAULT '0' COMMENT 'Welke groep mag dit artikel bestellen? 0 is iedereen.',
+  `BeperkTotGroep` int(11) NOT NULL DEFAULT '0' COMMENT 'Welke groep mag dit artikel in de zelfservice bestellen? 0 is iedereen.',
   `Ingevoerd` date NOT NULL,
   `IngevoerdDoor` int(11) NOT NULL,
   `Gewijzigd` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE CURRENT_TIMESTAMP,
   `GewijzigdDoor` int(11) NOT NULL,
   PRIMARY KEY (`RecordID`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `%1\$sWS_Orderregel`
+--
 
 CREATE TABLE IF NOT EXISTS `%1\$sWS_Orderregel` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
@@ -2573,16 +2877,18 @@ CREATE TABLE IF NOT EXISTS `%1\$sWS_Orderregel` (
   `GewijzigdDoor` int(11) NOT NULL,
   PRIMARY KEY (`RecordID`),
   UNIQUE KEY `ArtikelLid` (`Artikel`,`Lid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8;", $table_prefix);
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;", $table_prefix);
 
 	fnQuery($queries);
 }
 
 function db_backup() {
-	global $db_host, $db_user, $db_pass, $db_name, $db_backupsopschonen, $db_backuptarren, $db_folderbackup;
+	global $db_host, $db_user, $db_pass, $db_name;
+	
+	$db_folderbackup = db_param("db_folderbackup");
 	
 	$buname = $db_name . "_backup_" . Date("Y-m-d-H");
-	if (!isset($db_folderbackup) or strlen($db_folderbackup) < 5) {
+	if (strlen($db_folderbackup) < 5) {
 		$db_folderbackup = str_replace($_SERVER['PHP_SELF'], "", $_SERVER["SCRIPT_FILENAME"]) . "/backups/";
 		if (!file_exists($db_folderbackup)) {
 			if (mkdir($db_folderbackup, 0755, true) == true) {
@@ -2594,45 +2900,51 @@ function db_backup() {
 		$db_folderbackup .= "/";
 	}
 
-	$FileName = $db_folderbackup . $buname;
-	$strCmd = sprintf("mysqldump -h%s -u%s -p%s -f %s> %s.sql", $db_host, $db_user, $db_pass, $db_name, $FileName);
-	exec($strCmd, $output, $output);
-	if (filesize($FileName . ".sql") > 1500) {
-		$ret = sprintf("De backup is in '%s.sql' gemaakt. ", str_replace($db_folderbackup, "", $FileName));
-		db_logboek("add", $ret, 3);
+	if (strtotime(db_param("laatstebackup")) < mktime(date("H")-3, date("m"), 0, date("m"), date("d"), date("Y"))) {
+		$FileName = $db_folderbackup . $buname;
+		$strCmd = sprintf("mysqldump -h%s -u%s -p%s -f %s> %s.sql", $db_host, $db_user, $db_pass, $db_name, $FileName);
+		exec($strCmd, $output, $output);
+		if (filesize($FileName . ".sql") > 1500) {
+			$ret = sprintf("De backup is in '%s.sql' gemaakt. ", str_replace($db_folderbackup, "", $FileName));
+			db_logboek("add", $ret, 3);
+			db_param("laatstebackup", "updval", date("Y-m-d H:i"));
 
-		if (isset($db_backuptarren) and $db_backuptarren == 1) {
-			// De dump tarren
-			exec("/bin/tar -czf " . $FileName . ".tar.gz" . " " . $FileName . ".sql");
+			if (db_param("db_backuptarren") == 1) {
+				// De dump tarren
+				exec("/bin/tar -czf " . $FileName . ".tar.gz" . " " . $FileName . ".sql");
 
-			// De niet ingepakte dump weggooien
-			exec("/bin/rm " . $FileName . ".sql");
+				// De niet ingepakte dump weggooien
+				exec("/bin/rm " . $FileName . ".sql");
 
-			// De backup 700 chmodden, zodat niemand er bij kan!
-			exec("/bin/chmod 700 " . $FileName . ".tar.gz");
-		} else {
-			// De backup 700 chmodden, zodat niemand er bij kan!
-			exec("/bin/chmod 700 " . $FileName . ".sql");
-		}
+				// De backup 700 chmodden, zodat niemand er bij kan!
+				exec("/bin/chmod 700 " . $FileName . ".tar.gz");
+			} else {
+				// De backup 700 chmodden, zodat niemand er bij kan!
+				exec("/bin/chmod 700 " . $FileName . ".sql");
+			}
 
-		if ($db_backupsopschonen > 0 and $handle = opendir($db_folderbackup)) {
-			while (false !== ($file = readdir($handle))) {
-				if ($file != "." and $file != "..") {
-					if (filectime($db_folderbackup . "/" . $file) < mktime(0, 0, 0, date("m"), date("d")-$db_backupsopschonen, date("Y")) or filesize($db_folderbackup . "/" . $file) < 500 ) {
-						unlink($db_folderbackup . "/" . $file);
-						$mess = sprintf("Bestand %s is verwijderd. ", $db_folderbackup . $file);
-						db_logboek("add", $mess, 3);
-						$ret .= "<br>\n" . $mess;
+			if (db_param("db_backupsopschonen") > 0 and $handle = opendir($db_folderbackup)) {
+				while (false !== ($file = readdir($handle))) {
+					if ($file != "." and $file != "..") {
+						if (filectime($db_folderbackup . "/" . $file) < mktime(0, 0, 0, date("m"), date("d")-db_param("db_backupsopschonen"), date("Y")) or filesize(db_param("db_folderbackup") . "/" . $file) < 500 ) {
+							unlink($db_folderbackup . "/" . $file);
+							$mess = sprintf("Bestand %s is verwijderd. ", $db_folderbackup . $file);
+							db_logboek("add", $mess, 3);
+							$ret .= "<br>\n" . $mess;
+						}
 					}
 				}
 			}
-		}
 
-		db_authorisation("opschonen");
-		
+			db_authorisation("opschonen");
+			
+		} else {
+			$ret = "Het backup-script heeft gedraaid, maar de backup is niet gelukt.\n";
+			$ret .= sprintf("Melding mysqldump: %s", $output);
+			db_logboek("add", $ret, 3);
+		}
 	} else {
-	   $ret = "Het backup-script heeft gedraaid, maar de backup is niet gelukt.\n";
-	   $ret .= sprintf("Melding mysqldump: %s", $output);
+		$ret = "Het backupscript heeft korter dan 3 uur geleden gedraaid. Het wordt niet nogmaals uitgevoerd.";
 		db_logboek("add", $ret, 3);
 	}
 	return $ret;

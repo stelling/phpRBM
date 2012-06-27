@@ -232,8 +232,8 @@ function bew_postindeling($seizoen, $week=-1) {
 }
 
 function inschrijvenbewaking($lidid) {
-	global $naamvereniging, $naamwebsite, $urlwebsite, $voorwaardeninschrijving, $selfservicediplomas, $emailbevestiginginschrijving;
-		
+	global $naamvereniging, $naamwebsite, $urlwebsite;
+	
 	fnDispMenu(2);
 	
 	if (count(db_insbew("openblokken")) == 0) {
@@ -341,7 +341,7 @@ function inschrijvenbewaking($lidid) {
 		}
 		printf("<tr><td colspan=6>Opmerking(en) bij de inschrijving:<br><textarea onBlur='this.form.submit();' cols=90 rows=8 name='opmalg'>%s</textarea></td></tr>\n", db_memo("curval", $lidid, "I"));
 		echo("<tr><th colspan=6>");
-		printf("<p>%s</p>", $voorwaardeninschrijving);
+		printf("<p>%s</p>", db_param("voorwaardeninschrijving"));
 		if ($geldig and $kandef) {
 			echo("&nbsp;<input type='submit' value='Definitief maken' name='Definitief'>");
 			echo("<p>Zolang een inschrijving niet definitief gemaakt is, geldt deze niet als inschrijving.</p>\n");
@@ -400,7 +400,13 @@ function fnDispBW($row, $output) {
 }
 
 function BevestInschrBewaking($lidid, $insnr) {
-	global $naamvereniging, $naamwebsite, $urlwebsite, $selfservicediplomas, $emailbevestiginginschrijving, $voorwaardeninschrijving;
+	global $naamvereniging, $naamwebsite, $urlwebsite, $selfservicediplomas;
+	
+	$emailbevestiginginschrijving = db_param("emailbevestiginginschrijving");
+	if (isValidMailAddress($emailbevestiginginschrijving, 0) == false) {
+		$emailbevestiginginschrijving = db_param("emailledenadministratie");
+	}
+	$voorwaardeninschrijving = db_param("voorwaardeninschrijving");
 
 	$bevest_template = 'templates/bevestiging_inschrijving.html';
 	if (file_exists($bevest_template)) {
@@ -470,7 +476,7 @@ function BevestInschrBewaking($lidid, $insnr) {
 		$mail->Subject = $subj;
 		$mail->MsgHTML($htmlmessage);
 		if ($mail->Send()) {
-			db_add_mailing_hist($lidid, 0, $naambewaker, $email, $content, $naamvereniging, $emailbevestiginginschrijving, $subj);
+			db_add_mailing_hist($lidid, 0, $naambewaker, $email, $content, $mail->FromName, $mail->From, $mail->Subject);
 			$mess = sprintf("Bevestiging van deze inschrijving is naar %s verzonden.", $email);
 		} else {
 			$mess = sprintf("Het versturen van de bevestiging van de inschrijving voor de bewaking aan %s is mislukt. Error: %s.", db_naamlid($lidid), $mail->ErrorInfo);

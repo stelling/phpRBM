@@ -16,7 +16,7 @@ function fnWebshop() {
 }
 
 function onlinebestellingen($lidid) {
-	global $table_prefix, $voorwaardenbestelling;
+	global $table_prefix;
 
 	fnDispMenu(2);
 	
@@ -127,7 +127,7 @@ function onlinebestellingen($lidid) {
 	}
 	printf("<tr><td colspan=5>Totaalbedrag order %d</td><td class='number'>&euro;&nbsp;%s</td><td colspan=2></td></tr>\n", $ordnr, number_format($totbedrag, 2));
 	echo("<tr><th colspan=8>");
-	printf("<p>%s</p>\n", $voorwaardenbestelling);
+	printf("<p>%s</p>\n", db_param("voorwaardenbestelling"));
 	echo("<input type='submit' value='Bestelling bijwerken'>\n");
 	if ($defmaken) {
 		echo("<button name='defmaken'>Bestelling definitief maken</button>\n");	
@@ -360,7 +360,9 @@ function bestellingbeheer() {
 }
 
 function bevestigingbestelling($lidid, $ordernr=0) {
-	global $naamvereniging, $naamwebsite, $urlwebsite, $emailbevestigingbestelling, $voorwaardenbestelling;
+	global $naamvereniging, $naamwebsite, $urlwebsite;
+	
+	$emailbevestigingbestelling = db_param("emailbevestigingbestelling");
 
 	$bevest_template = 'templates/bevestiging_bestelling.html';
 	if (file_exists($bevest_template)) {
@@ -397,7 +399,7 @@ function bevestigingbestelling($lidid, $ordernr=0) {
 	$content = str_replace("[%NAAMVERENIGING%]", $naamvereniging, $content);
 	$content = str_replace("[%NAAMWEBSITE%]", $naamwebsite, $content);
 	$content = str_replace("[%URLWEBSITE%]", $urlwebsite, $content);
-	$content = str_replace("[%VOORWAARDEN%]", $voorwaardenbestelling, $content);
+	$content = str_replace("[%VOORWAARDEN%]", db_param("voorwaardenbestelling"), $content);
 	$content = str_ireplace("[%BESTELLING%]", $bestelling, $content);
 	$content = str_ireplace("[%TOTAALBEDRAG%]", "&euro;&nbsp;" . number_format($totbedrag, 2), $content);
 

@@ -1,5 +1,5 @@
 <?php
-include('includes/standaard.inc');
+include('./includes/standaard.inc');
 
 if ($_SESSION['aantallid'] == 0) {
 	echo("<script>alert('Voordat deze website gebruikt kan worden moeten er eerst gegevens uit de Access-database ge-upload worden.');
@@ -74,8 +74,7 @@ if ($currenttab != "Mailing") {
 }
 
 function fnVoorblad($metlogin=0) {
-	global $daysshowbirthdays;
-	
+
 	fnDispMenu(2);
 
 	$myFile = 'templates/verenigingsinfo.html';

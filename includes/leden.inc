@@ -7,9 +7,11 @@ if (toegang("Overzicht lid", 0)) {
 }
 
 function fnWijzigen($lidid=0, $actie="") {
-	global $currenttab, $currenttab2, $emailledenadministratie, $selfservicediplomas, $opzegtermijn;
-	global $naamvereniging, $naamwebsite, $urlwebsite, $table_prefix, $emailsecretariaat, $gebruikopenid;
+	global $currenttab, $currenttab2, $selfservicediplomas, $naamvereniging, $naamwebsite, $urlwebsite, $table_prefix, $emailsecretariaat;
 	global $muteerbarememos, $arrLegitimatie, $arrSoortMemo, $arrGeslacht, $actionurl;
+	
+	$emailledenadministratie = db_param("emailledenadministratie");
+	$opzegtermijn = db_param("opzegtermijn");
 	
 	if ($lidid == 0) {
 		$lidid = $_SESSION['lidid'];
@@ -487,7 +489,9 @@ function fnLedenlijst() {
 }
 
 function fnOverviewLid($lidid=0, $actie="") {
-	global $currenttab, $toneninschrijvingenbewakingen;
+	global $currenttab;
+	
+	$toneninschrijvingenbewakingen = db_param("toneninschrijvingenbewakingen");
 	
 	if ($lidid <= 0) {
 		printf("<p class='mededeling'>Er is geen lid geselecteerd. Selecteer een lid via de <a href='%s?tp=Ledenlijst'>ledenlijst</a>.</p>\n", $_SERVER['PHP_SELF']);
@@ -631,16 +635,11 @@ function fnSelectListGroepen($cv=0) {
 }
 
 function overzichtverjaardagen($metfoto=1) {
-	global $daysshowbirthdays, $numbershowbirthdays;
-	
-	if (!isset($numbershowbirthdays) or $numbershowbirthdays <= 0) {
-		$numbershowbirthdays = 999;
-	}
 
 	$verj = "";
 	$verjfoto = "";
 	$aantgetoond = 0;
-	for ($i = 0; $i <= $daysshowbirthdays and $aantgetoond < $numbershowbirthdays; $i++) {
+	for ($i = 0; $i <= db_param("verjaardagenvooruit") and $aantgetoond < db_param("verjaardagenaantal"); $i++) {
 		$dteHV = mktime(0, 0, 0, date("m"), date("d")+$i, date("Y"));
 		foreach(db_lid("verjaardagen", date("Y-m-d", $dteHV)) as $row) {
 			if ($i == 0) {
@@ -691,7 +690,10 @@ function fotolid($lidid, $metversie=0) {
 }
 
 function nieuwepasfoto($lidid=0, $filterlid="") {
-	global $pasfotoextenties, $emailledenadministratie, $emailnieuwepasfoto, $actionurl;
+	global $pasfotoextenties, $actionurl;
+	
+	$emailledenadministratie = db_param("emailledenadministratie");
+	$emailnieuwepasfoto = db_param("emailnieuwepasfoto");
 
 	$max_size_attachm = 2 * 1024 * 1024;  // 2MB
 	$min_size_attachm = 4 * 1024;  // 4KB
@@ -823,7 +825,10 @@ function nieuwepasfoto($lidid=0, $filterlid="") {
 }
 
 function opzegginglidmaatschap($lidid) {
-	global $opzegtermijn, $naamvereniging, $naamwebsite, $urlwebsite, $emailledenadministratie, $emailsecretariaat, $actionurl;
+	global $naamvereniging, $naamwebsite, $urlwebsite, $emailsecretariaat, $actionurl;
+	
+	$opzegtermijn = db_param("opzegtermijn");
+	$emailledenadministratie = db_param("emailledenadministratie");
 	
 	$fdlang = "%e %B %Y";
 	

@@ -151,16 +151,16 @@ class mailing {
 	private $resultaatversturen = 1;
 
 	function __construct($mid=0) {
-		global $selectnaam, $table_prefix, $fdlang, $fdkort, $max_grootte_bijlage, $resultaatmailingversturen, $arrGeslacht, $wherelidond, $wherelid, $whereliddipl;
+		global $selectnaam, $table_prefix, $fdlang, $fdkort, $arrGeslacht, $wherelidond, $wherelid, $whereliddipl;
 
 		$this->mid = $mid;
 		
 		$this->dir_attachm = substr($_SERVER["SCRIPT_FILENAME"], 0, strrpos($_SERVER["SCRIPT_FILENAME"], "/")) . "/attachments";
 		
-		if (isset($max_grootte_bijlage) and $max_grootte_bijlage > 0) {
-			$max_size_attachm = $max_grootte_bijlage;
+		if (db_param("max_grootte_bijlage") > 0) {
+			$max_size_attachm = db_param("max_grootte_bijlage");
 		}
-		if (isset($resultaatmailingversturen) and $resultaatmailingversturen == 1) {
+		if (db_param("resultaatmailingversturen") == 1) {
 			$this->resultaatversturen = 1;
 		} else {
 			$this->resultaatversturen = 0;
@@ -286,13 +286,12 @@ class mailing {
 	}
 	
 	public function lijst($filter="") {
-		global $bewaartijdmailings;
 	
 		$lnk = sprintf("<a href='%s?tp=%s&amp;op=edit&amp;mid=%s' title='Bewerk mailing'><img src='images/zoom.png' alt='Vergrootglas'></a>", $_SERVER['PHP_SELF'], $_GET['tp'], "%d");
 		$lnk_lk = sprintf("<a href='%s?tp=Mailing/Historie&amp;op=historie&amp;mid=%s' title='Bekijk historie'><img src='images/object_10.png' alt='Historie'></a>", $_SERVER['PHP_SELF'], "%d");
 		echo(fnDisplayTable(db_mailing("lijst", 0, 0, $filter), $lnk, "", 0, $lnk_lk));
 		if ($filter == "Prullenbak") {
-			printf("<p>Mailings die langer dan %d maanden geleden verwijderd zijn, worden automatisch definitief opgeschoond.</p>\n", $bewaartijdmailings);
+			printf("<p>Mailings die langer dan %d maanden geleden verwijderd zijn, worden automatisch definitief opgeschoond.</p>\n", db_param("bewaartijdmailings"));
 		}
 	}
 	
@@ -322,7 +321,7 @@ class mailing {
 	}
 	
 	public function edit() {
-		global $currenttab, $currenttab2, $beperkfrom, $naamvereniging, $navpad;
+		global $currenttab, $currenttab2, $navpad;
 		
 		$this->vulvars();
 
@@ -338,8 +337,8 @@ class mailing {
 		printf("<table>\n");
 		printf("<tr><td class='label'>Van:</td><td><input type='text' name='from_name' value='%s' size=50 maxlength=50> (Namens wie wordt deze mailing verstuurd)</td></tr>\n", $this->from_name);
 		$et = "";
-		if (strlen($beperkfrom) > 2) {
-			$et = sprintf(" (Het domein van dit adres moet '%s' zijn)", $beperkfrom);
+		if (strlen(db_param("beperkfrom")) > 2) {
+			$et = sprintf(" (Het domein van dit adres moet '%s' zijn)", db_param("beperkfrom"));
 		}
 		printf("<tr><td class='label'>Vanaf e-mail:</td><td><input type='email' name='from_addr' value='%s' size=50 maxlength=50>%s</td></tr>\n", $this->from_addr, $et);
 		printf("<tr><td class='label'>Aan:</td><td><input type='text' name='to_name' value='%s' size=50 maxlength=50> (Omschrijving van de groep personen aan wie deze mailing gericht is)</td></tr>\n", $this->to_name);
@@ -542,6 +541,7 @@ class mailing {
 				printf("<tr><td class='label'>Verwijderd door/op:</td><td>%s / %s</td></tr>\n", db_naamlid($this->DeletedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->deleted_on)));
 				$verzendenmag = false;
 			}
+			$beperkfrom = db_param("beperkfrom");
 			if (isValidMailAddress($this->from_addr, 0) == false) {
 				$verzendenmag = false;
 				$meldingen .= "Er moet een geldig e-mailadres bij 'Vanaf e-mail' ingevuld worden.<br>\n";
@@ -591,14 +591,14 @@ class mailing {
 	}
 	
 	public function post_form() {
-		global $naamvereniging, $beperkfrom, $table_prefix;
+		global $table_prefix;
 		
 		if ($this->mid == 0) {
 			$this->mid = db_mailing("add", 0, 0, "", $_POST['subject']);
 		}
 	
 		if (!isset($_POST['from_name']) or strlen($_POST['from_name']) == 0) {
-			$_POST['from_name'] = $naamvereniging;
+			$_POST['from_name'] = db_param("naamvereniging");
 		}
 		
 		if (isset($_POST['cc_addr']) and strlen($_POST['cc_addr']) > 5) {
@@ -780,7 +780,7 @@ class mailing {
 	}
 	
 	private function send_mailing($preview=0) {
-		global $emailsecretariaat, $table_prefix;
+		global $table_prefix;
 		
 		if ($preview == 0) {
 			$mail = new RBMmailer();
@@ -907,8 +907,8 @@ class mailing {
 				$mail->AddAddress($_SESSION['emailingelogde']);
 			}
 			$mail->ClearCCs();
-			if (isset($emailsecretariaat) and isValidMailAddress($emailsecretariaat, 0)) {
-				$mail->AddCC($emailsecretariaat);
+			if (isValidMailAddress($this->emailsecretariaat, 0)) {
+				$mail->AddCC($this->emailsecretariaat);
 			}
 			if ($this->mailsperminuut > 0 and $this->mailsperminuut < 10000) {
 				usleep((60 / $this->mailsperminuut) * 1000000);
@@ -980,7 +980,6 @@ class mailing {
 	}
 		
 	private function vulvars() {
-		global $naamvereniging, $maxmailsperminuut;
 	
 		if ($this->mid > 0) {
 			$ml = db_mailing("", $this->mid);
@@ -1010,11 +1009,12 @@ class mailing {
 			}
 			
 		} else {
-			$this->from_name = $naamvereniging;
+			$this->from_name = db_param("naamvereniging");
 			$this->from_addr = $_SESSION['emailingelogde'];
 			$this->new_on = date("Y-m-d");
 		}
-		$this->mailsperminuut = $maxmailsperminuut;
+		$this->mailsperminuut = db_param("maxmailsperminuut");
+		$this->emailsecretariaat = db_param("emailsecretariaat");
 	}
 }
 
