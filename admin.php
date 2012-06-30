@@ -263,6 +263,9 @@ function fnInstellingen() {
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		foreach (db_param("", "lijst") as $row) {
 			$pvn = sprintf("value_%d", $row->RecordID);
+			if (isset($_POST[$pvn])) {
+				$_POST[$pvn] = str_replace("\"", "'", $_POST[$pvn]);
+			}
 			if ($row->Naam == "beperktotgroep") {
 				$_POST[$pvn] = str_replace(" ", "", $_POST[$pvn]);
 			}
@@ -309,11 +312,11 @@ function fnInstellingen() {
 		} elseif ($row->ParamType == "I") {
 			printf("<tr><td class='label'>%s: </td><td><input type='number' name='value_%d' value=%d size=8></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $row->ValueNum, $uitleg);
 		} else {
-			printf("<tr><td class='label'>%s: </td><td><input type='text' name='value_%d' value='%s' size=60></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $row->ValueChar, $uitleg);
+			printf("<tr><td class='label'>%s: </td><td><input type='text' name='value_%d' value=\"%s\" size=60></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $row->ValueChar, $uitleg);
 		}
 	}
+	echo("<tr><th colspan=3><input type='submit' value='Bewaren'></th></tr>\n");
 	echo("</table>\n");
-	echo("<input type='submit' value='Bewaren'>\n");
 	echo("</form>\n");
 	echo("</div>  <!-- Einde instellingenmuteren -->\n");
 }
