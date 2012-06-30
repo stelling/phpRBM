@@ -45,7 +45,7 @@ function toegang($soort, $melding=1) {
 				}	
 				db_logins("setingelogd", "", "", $_SESSION['lidid']);
 			} else {
-				$mess = sprintf("De combinatie van login '%s' en het ingevoerde wachtwoord is niet correct of de login is niet geldig! Je bent niet ingelogd.", $_SESSION['username']);
+				$mess = sprintf("De combinatie van login '%s' en het ingevoerde wachtwoord is niet correct! Je bent niet ingelogd.", $_SESSION['username']);
 				db_logboek("add", $mess, 1, 0, 2);
 				$_SESSION['username'] = "";
 				setcookie("username", "", time()-3600);
@@ -333,9 +333,7 @@ function fnLoginAanvragen() {
 				}
 			}
 		}
-		if (strlen($mess) > 0) {
-			db_logboek("add", $mess, 1, 0, 1);
-		}
+		db_logboek("add", $mess, 1, 0, 1);
 		printf("<p><a href='http://%s' target='_top'>Klik hier om verder te gaan.</a></p>\n", $urlwebsite);
 		
 	} else {
