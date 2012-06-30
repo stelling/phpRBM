@@ -670,7 +670,6 @@ class mailing {
 					db_logboek("add", $mess, 4);
 				} else {
 					$mess = sprintf("Directory '%s' bestaat niet en kan niet aangemaakt worden. Probeer het later opnieuw of neem contact op met de webmaster.", $ad);
-					db_logboek("add", $mes, 4);
 					$ad = "";
 				}
 			} else {
@@ -680,25 +679,18 @@ class mailing {
 			$target = $ad . $_FILES['UploadFile']['name'];
 			$ext = explode(".", $_FILES['UploadFile']['name']);  
 			$ext = strtolower($ext[count($ext) - 1]);
-			if (strlen($ad) == 0) {
-				printf("<script>\nalert(\"%s\")\n</script>\n", $mess);
-			} elseif (strpos($this->allowed_ext, $ext) === false) {
-				$mess = sprintf("Het bestand '%s' kan niet worden bijgesloten, omdat de extensie niet toegestaan is. Alleen de volgende extensies zijn toegestaan: %s", $_FILES['UploadFile']['name'], $this->allowed_ext);
-				printf("<script>\nalert(\"%s\")\n</script>\n", $mess);
-				db_logboek("add", $mess, 4);
+			if (strpos($this->allowed_ext, $ext) === false) {
+				$mess = sprintf("In mailing %d kan het bestand '%s' niet worden bijgesloten, omdat de extensie niet toegestaan is. Alleen de volgende extensies zijn toegestaan: %s", $this->mid, $_FILES['UploadFile']['name'], $this->allowed_ext);
 			} elseif ($_FILES['UploadFile']['size'] > $this->max_size_attachm) {
-				$mess = sprintf("Het bestand '%s' kan niet worden bijgesloten, omdat het te groot is.", $_FILES['UploadFile']['name']);
-				printf("<script>\nalert(\"%s\")\n</script>\n", $mess);
-				db_logboek("add", $mess, 4);
-			} else {
+				$mess = sprintf("In mailing %d kan het bestand '%s' niet worden bijgesloten, omdat het te groot is.", $this->mid, $_FILES['UploadFile']['name']);
+			} elseif (strlen($ad) > 0) {
 				if (move_uploaded_file($_FILES['UploadFile']['tmp_name'], $target) == false) {
 					$mess = sprintf("Fout %d is opgetreden bij het uploaden van bestand '%s'. Probeer het later opnieuw of neem contact op met de webmaster.", $_FILES['UploadFile']['error'], $_FILES['UploadFile']['name']);
 				} else {
-					$mess = sprintf("Het bestand '%s' is bijgesloten.", $_FILES['UploadFile']['name']);
+					$mess = sprintf("In mailing %d (%s) is bestand '%s' bijgesloten.", $this->mid, $this->subject, $_FILES['UploadFile']['name']);
 				}
-				printf("<script>\nalert(\"%s\")\n</script>\n", $mess);
-				db_logboek("add", $mess, 4);
 			}
+			db_logboek("add", $mess, 4, 0, 2);
 		}
 	}
 	
@@ -721,9 +713,7 @@ class mailing {
 
 	public function delete_rcpt($lidid, $addr="") {
 		$mess = db_mailing("delrcpt", $this->mid, 0, "", "", $lidid, $addr);
-		if (strlen($mess) > 0) {
-			db_logboek("add", $mess, 4);
-		}
+		db_logboek("add", $mess, 4);
 	}
 	
 	public function add_groep($groepid) {
@@ -733,10 +723,17 @@ class mailing {
 					WHERE %4\$s AND OnderdeelID=%2\$d AND LO.Lid NOT IN (SELECT R.LidID FROM %1\$sMailing_rcpt AS R WHERE R.LidID=LO.Lid AND R.MailingID=%3\$d);",
 				 $table_prefix, $groepid, $this->mid, $wherelidond);
 		$result = fnQuery($query);
+		$aant = 0;
 		foreach($result->fetchAll() as $row) {
-			db_mailing("addrcpt", $this->mid, 0, "", "", $row->Lid);
+			if (db_mailing("addrcpt", $this->mid, 0, "", "", $row->Lid)) {
+				$aant++;
+			}
 		}
-		$mess = sprintf("Groep '%s' is aan mailing %d toevoegd.", db_naam_onderdeel($groepid), $this->mid);
+		if ($aant > 0) {
+			$mess = sprintf("Er zijn %d leden van groep '%s' zijn aan mailing %d (%s) toegevoegd.", $aant, db_naam_onderdeel($groepid), $this->mid, $this->subject);
+		} else {
+			$mess = sprintf("Er zijn geen leden uit groep '%s' zijn aan mailing %d (%s) toegevoegd.", db_naam_onderdeel($groepid), $this->mid, $this->subject);
+		}
 		db_logboek("add", $mess, 4);
 	}
 		
