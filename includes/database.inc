@@ -881,9 +881,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 		} else {
 			$mess = sprintf("%s heeft al een login, er wordt geen nieuwe aangemaakt.", db_naamlid($lidid));
 		}
-		if (strlen($mess) > 0) {
-			db_logboek("add", $mess, 1, 0, 1);
-		}
+		db_logboek("add", $mess, 1, 0, 1);
 		db_logins("wachtwoordenvullen");
 		return $ok;
 		
@@ -922,7 +920,8 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 		$query = sprintf("UPDATE %sAdmin_login SET Ingelogd=0 WHERE Ingelogd=1 AND (LastActivity < ADDDATE(SYSDATE(), INTERVAL -21 MINUTE) OR LidID=%d);", $table_prefix, $lidid);
 		$result = fnQuery($query);
 		if ($result > 0) {
-			if (isset($scriptbijuitloggen) and strlen($scriptbijuitloggen) > 0) {
+			$scriptbijuitloggen = db_param("scriptbijuitloggen");
+			if (strlen($scriptbijuitloggen) > 0) {
 				exec($scriptbijuitloggen);
 			}
 			if ($_SESSION['lidid'] == $lidid and $lidid > 0) {
@@ -980,7 +979,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 		} else {
 			$xtrawhere = sprintf("AND Login.Login='%s'", cleanlogin($_SESSION['username']));
 		}
-		$xtrawhere .= sprintf(" AND Login.Wachtwoord='%s' AND LENGTH(Login.Wachtwoord) > 5", encript_decript($_SESSION['password']));
+		$xtrawhere .= sprintf(" AND Login.Wachtwoord='%s'", encript_decript($_SESSION['password']));
 		if (is_array($beperktotgroep) and count($beperktotgroep) > 0) {
 			$xtrawhere .= sprintf(" AND (Login.LidID IN (SELECT Lid FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID IN (%s)) OR Login.LidID IN (%s))", $table_prefix, $wherelidond, implode(", ", $beperktotgroep), implode(", ", $lididwebmasters));
 		} elseif (is_numeric($beperktotgroep) and $beperktotgroep > 0) {
@@ -988,7 +987,8 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 		} else {
 			$xtrawhere .= sprintf(" AND Login.LidID IN (%s)", implode(", ", $lididwebmasters));
 		}
-		$query = sprintf("SELECT Login.LidID, %3\$s AS NaamLid, L.Roepnaam, L.Email, L.EmailVereniging, IFNULL((%4\$s), 0) AS Lidnr, Login.FouteLogin
+		$query = sprintf("SELECT Login.LidID, %3\$s AS NaamLid, L.Roepnaam, L.Email, L.EmailVereniging,
+					IFNULL((%4\$s), 0) AS Lidnr, Login.FouteLogin
 					FROM %1\$sAdmin_login AS Login INNER JOIN %1\$sLid AS L ON Login.LidID = L.Nummer
 					WHERE LENGTH(Login.Wachtwoord) > 5 %2\$s
 					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $table_prefix, $xtrawhere, $selectnaam, $selectlidnr);
@@ -1078,9 +1078,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 		if ($result > 0) {
 			$mess .= sprintf("Bij %d logins is de herinnering voor vervallen diploma uitgezet, omdat ze geen lid meer zijn.", $result);
 		}
-		if (strlen($mess) > 0) {
-			db_logboek("add", $mess, 2);
-		}
+		db_logboek("add", $mess, 2);
 		return $mess;
 	} else {
 		$mess = sprintf("onbekende actie '%s' in db_logins", $actie);
@@ -1259,11 +1257,12 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 	} elseif ($actie == "addrcpt" and $mid > 0) {
 		if ($lidid > 0) {
 			$query = sprintf("SELECT COUNT(*) FROM %sMailing_rcpt WHERE MailingID=%d AND LidID=%d;", $table_prefix, $mid, $lidid);
-		} else {
+		} elseif (isValidMailAddress($email)) {
 			$query = sprintf("SELECT COUNT(*) FROM %sMailing_rcpt WHERE MailingID=%d AND to_address='%s';", $table_prefix, $mid, strtolower($email));
+		} else {
+			$query = "";
 		}
-		$result = fnQuery($query);
-		if ($result->fetchColumn() == 0) {
+		if (strlen($query) > 0 and db_scalar($query) == 0) {
 			if ($lidid > 0) {
 				$query = sprintf("INSERT INTO %sMailing_rcpt SET MailingID=%d, LidID=%d, Ingevoerd=CURDATE();", $table_prefix, $mid, $lidid);
 			} else {
@@ -1312,9 +1311,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 				fnQuery($query);
 			}
 		}
-		if (strlen($mess) > 0) {
-			db_logboek("add", $mess, 2);
-		}
+		db_logboek("add", $mess, 2);
 		return $mess;
 	} elseif ($mid > 0) {
 		$query = sprintf("SELECT * FROM %sMailing WHERE MailingID=%d LIMIT 1;", $table_prefix, $mid);
@@ -1353,6 +1350,24 @@ function db_mutatie($jaar, $gbr="*", $kpl="*") {
 	$query = sprintf("SELECT J.Kode AS Jaar, CONCAT(GBR.Kode, ' - ', GBR.OMSCHRIJV) AS Grootboekrekening%1\$s, Datum AS dteDatum, M.OMSCHRIJV AS Omschrijving, Debet-Credit AS curBedrag
 							FROM ((%2\$sMutatie AS M LEFT OUTER JOIN %2\$sKostenplaats AS KPL ON M.KostenplaatsID = KPL.RecordID) INNER JOIN %2\$sGBR AS GBR ON M.GBR = GBR.Kode) INNER JOIN %2\$sBoekjaar AS J ON M.BoekjaarID = J.RecordID WHERE %3\$s
 							ORDER BY J.Kode, GBR.Kode, KPL.Kode, Datum;", $sel_kpl, $table_prefix, $where);
+	$result = fnQuery($query);
+	return $result->fetchAll();
+}
+
+function db_boekjaar() {
+	global $table_prefix;
+	
+	$query = sprintf("SELECT RecordID, Kode AS Jaar FROM %sBoekjaar ORDER BY Begindatum DESC;", $table_prefix);
+	$result = fnQuery($query);
+	return $result->fetchAll();
+}
+
+function db_kostenplaats($actie) {
+	global $table_prefix;
+
+	if ($actie == "distinct") {
+		$query = sprintf("SELECT DISTINCT KSTNPLTS AS Kode FROM %sMutatie WHERE KostenplaatsID > 0 ORDER BY KSTNPLTS;", $table_prefix);
+	}
 	$result = fnQuery($query);
 	return $result->fetchAll();
 }
@@ -1476,10 +1491,21 @@ function db_interface($actie="lijst", $query="") {
 	}
 }
 
-function db_diploma($actie, $did=0) {
+function db_diploma($actie, $did=0, $td="*") {
 	global $table_prefix, $selfservicediplomas;
 	
-	if ($actie == "selfservice_lijst") {
+	if ($actie == "muteerlijst") {
+		if ($td != "*" and strlen($td) > 0) {
+			$filter = sprintf(" AND `DP.Type`='%s'", $td);
+		} else {
+			$filter = "";
+		}
+		$query = sprintf("SELECT * FROM %sDiploma AS DP
+					WHERE DP.AantalBeoordelingen < 2 AND ((DP.Vervallen IS NULL) OR DP.Vervallen > CURDATE()) %s
+					ORDER BY DP.Volgnr, DP.Kode;", $table_prefix, $filter);
+		$result = fnQuery($query);
+		return $result->fetchAll();
+	} elseif ($actie == "zelfservice_lijst") {
 		$query = sprintf("SELECT * FROM %sDiploma AS DP WHERE DP.Kode IN %s AND DP.AantalBeoordelingen < 2 ORDER BY DP.Volgnr, DP.Kode;", $table_prefix, $selfservicediplomas);
 		$result = fnQuery($query);
 		return $result->fetchAll();
@@ -1534,9 +1560,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 				$mess = sprintf("Diploma %s is bij %s niet toegevoegd.", db_diploma("Kode", $did), db_naamlid($lidid));
 			}
 		}
-		if (strlen($mess) > 0) {
-			db_logboek("add", $mess, 6);
-		}
+		db_logboek("add", $mess, 6);
 		return $mess;
 	} elseif ($actie == "update" and $rid > 0) {
 		$query = sprintf("SELECT * FROM %sLiddipl AS LD WHERE RecordID=%d;", $table_prefix, $rid);
@@ -1563,9 +1587,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 		} else {
 			$mess = sprintf("Diploma %s is bij %s niet gevonden en dus niet verwijderd.", db_diploma("Kode", $did), db_naamlid($lidid));
 		}
-		if (strlen($mess) > 0) {
-			db_logboek("add", $mess, 6);
-		}
+		db_logboek("add", $mess, 6);
 		return $mess;
 	} elseif ($actie == "lidgegevens" and $lidid > 0) {
 		if (strlen($xtrafilter) > 1) {
@@ -1723,9 +1745,7 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 			$mess .= sprintf("Er zijn %d deelnemers aan evenementen definitief verwijderd, omdat de evenementen niet meer bestaan.", $result);
 			fnQuery(sprintf("OPTIMIZE TABLE %sEvenement_Deelnemer;", $table_prefix));
 		}
-		if (strlen($mess) > 0) {
-			db_logboek("add", $mess, 2);
-		}
+		db_logboek("add", $mess, 2);
 		return $mess;
 	} else {
 		debug(sprintf("Onbekende actie '%s' in db_evenement.", $actie), 1, 0, 1);

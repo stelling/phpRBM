@@ -45,7 +45,7 @@ if ($currenttab == "Eigen gegevens" and toegang($_GET['tp'])) {
 		fnOverviewLid(0, $currenttab2);
 	}
 } elseif ($currenttab == "Verenigingsinfo" and $currenttab2 != "Introductie" and toegang($_GET['tp'])) {
-	fnWieiswie($currenttab2, $kaderoverzichtmetfoto);
+	fnWieiswie($currenttab2, db_param("kaderoverzichtmetfoto"));
 } elseif ($currenttab == "Ledenlijst" and toegang($_GET['tp'])) {
 	fnLedenlijst();
 } elseif ($currenttab == "Bewaking" and toegang($_GET['tp'])) {
@@ -150,9 +150,7 @@ function fnKostenoverzicht() {
 	echo("<table>\n");
 	echo("<tr>\n");
 	$ret = "";
-	$query = "SELECT RecordID, Kode AS Jaar FROM Boekjaar ORDER BY Begindatum DESC;";
-	$result = fnQuery($query);
-	foreach ($result->fetchAll() as $row) {
+	foreach (db_boekjaar() as $row) {
 		if ($val_jaarfilter == $row->RecordID or strlen($val_jaarfilter) == 0) {
 			$s = " selected";
 			$val_jaarfilter = $row->RecordID;
@@ -179,9 +177,7 @@ function fnKostenoverzicht() {
 	printf("<td class='label'>Grootboekrekening</td><td><select name='lbGBRFilter' onchange='form.submit();'>%s</select></td>\n", $ret);
 	
 	$ret = "<option value='*'>Alle</option>\n";
-	$query = "SELECT DISTINCT KSTNPLTS AS Kode FROM Mutatie WHERE KostenplaatsID > 0 ORDER BY KSTNPLTS;";
-	$result = fnQuery($query);
-	foreach ($result->fetchAll() as $row) {
+	foreach (db_kostenplaats("distinct") as $row) {
 		if ($val_kplfilter == $row->Kode) {
 			$s = " selected";
 		} else {
