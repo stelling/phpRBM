@@ -90,9 +90,7 @@ function fnWijzigen($lidid=0, $actie="") {
 						}
 					}
 				}
-				if (strlen($mess) > 1) {
-					db_logboek("add", $mess, 6, 0, 1);
-				}
+				db_logboek("add", $mess, 6, 0, 1);
 			}
 			
 			$row = db_ledenwijzigingen($lidid);
@@ -140,59 +138,7 @@ function fnWijzigen($lidid=0, $actie="") {
 			echo("</form>\n");
 			echo("</div>  <!-- Einde invulformulier -->\n");
 		} elseif ($actie == "Diplomas") {
-			if ($_SERVER['REQUEST_METHOD'] == "POST") {
-				foreach (db_diploma("selfservice_lijst") as $row) {
-					$fnRID = sprintf("RID_%d", $row->RecordID);
-					$fnBehaald = sprintf("Behaald_%d", $row->RecordID);
-					$fnVervaltPer = sprintf("VervaltPer_%d", $row->RecordID);
-					$fnDiplnr = sprintf("Diplnr_%d", $row->RecordID);
-					$fnVerw = sprintf("chkVerw_%d", $row->RecordID);
-					if (strlen($_POST[$fnBehaald]) == 0 and strlen($_POST[$fnDiplnr]) > 0) {
-						echo("<p class='mededeling'>Er moet altijd een datum van behalen ingevuld worden. Diplomanummer wordt niet toegevoegd.</p>");
-					} elseif (isset($_POST[$fnVerw]) and $_POST[$fnVerw] == 1) {
-						$mess = db_liddipl("delete", $lidid, 0, $row->RecordID, $_POST[$fnBehaald]);
-						printf("<p class='mededeling'>%s</p>", $mess);
-					} elseif ($_POST[$fnRID] == 0) {
-						$mess = db_liddipl("add", $lidid, 0, $row->RecordID, $_POST[$fnBehaald], $_POST[$fnVervaltPer], $_POST[$fnDiplnr]);
-						printf("<p class='mededeling'>%s</p>", $mess);
-					} else {
-						db_liddipl("update", 0, $_POST[$fnRID], 0, $_POST[$fnBehaald], $_POST[$fnVervaltPer], $_POST[$fnDiplnr]);
-					}
-				}
-			}
-			
-			$oldvals = "";
-			echo("<div id='wijzigendiplomas'>\n");
-			printf("<form method='post' action='%s' name='frm_diplwijz'>\n", $actionurl);
-			echo("<table>\n");
-			printf("<tr><th colspan=6>Diploma's %s</th></tr>\n", $naamlid);
-			printf("<tr><th>Code</th><th>Naam</th><th>Behaald op</th><th>Geldig tot</th><th>Diplomanummer</th><th>Verw?</th></tr>\n");
-			foreach (db_diploma("selfservice_lijst") as $row) {
-				$cv_rid = 0;
-				$cv_behaald = "";
-				$cv_vervaltop = "";
-				$cv_diplomanr = "";
-				$rowld = db_liddipl("diplomabehaald", $lidid, 0, $row->RecordID);
-				if (isset($rowld->RecordID)) {
-					$cv_rid = $rowld->RecordID;
-					$cv_behaald = $rowld->EXDATUM;
-					$cv_vervaltop = $rowld->LicentieVervallenPer;
-					$cv_diplomanr = str_replace("\"", "'", $rowld->Diplomanummer);
-				}
-				if ($cv_rid == 0) {
-					printf('<tr><td>%1$s</td><td>%2$s</td><td><input type=\'text\' name=\'Behaald_%6$d\' value="%3$s"></td><td><input type=\'text\' name=\'VervaltPer_%6$d\' value="%4$s"></td><td><input type=\'text\' name=\'Diplnr_%6$d\' value="%5$s" maxlength=14></td><td></td></tr>', $row->Kode, $row->Naam, $cv_behaald, $cv_vervaltop, $cv_diplomanr, $row->RecordID);
-				} else {
-					printf('<tr><td>%1$s</td><td>%2$s</td><td>%3$s</td><td><input type=\'text\' name=\'VervaltPer_%6$d\' value="%4$s"></td><td><input type=\'text\' name=\'Diplnr_%6$d\' value="%5$s" maxlength=14></td><td class=\'chk\'><input type=\'checkbox\' name=\'chkVerw_%6$d\' value=1></td></tr>', $row->Kode, $row->Naam, strftime("%e %B %Y", strtotime($cv_behaald)), $cv_vervaltop, $cv_diplomanr, $row->RecordID);
-					$oldvals .= sprintf("<input type='hidden' name='Behaald_%d' value='%s'>", $row->RecordID, $cv_behaald);
-				}
-				$oldvals .= sprintf("\n<input type='hidden' name='RID_%d' value=%d>", $row->RecordID, $cv_rid);
-				echo("\n\n");
-			}
-			echo("<tr><th colspan=6><input type='submit' value='Bewaren' name='diplwijz'></th></tr>\n");
-			echo("</table>\n");
-			echo($oldvals);
-			echo("</form>\n");
-			echo("</div>  <!-- Einde wijzigendiplomas -->\n");
+			diplomaslidmuteren($lidid, "ZS");
 			
 		} elseif ($currenttab2 == "Pasfoto") {
 			nieuwepasfoto($_SESSION['lidid']);
@@ -275,24 +221,6 @@ function fnWijzigen($lidid=0, $actie="") {
 				echo("</fieldset>
 				</form>
 				</div>  <!-- Einde profielwijzigen -->");
-				
-				if ($gebruikopenid == 1) {
-					$row = db_logins("controle");
-					echo("<div id='openid'>\n
-					<h3>Ondersteuning OpenID</h3>
-					<p>Deze website ondersteunt <a href='http://nl.wikipedia.org/wiki/OpenID'>OpenID</a>. Het voordeel van OpenID is dat je niet voor elke website een aparte login hoeft aan te maken en te onthouden. Veel bezoekers hebben al een OpenID, veelal zonder zich dit te realiseren. Kijk maar eens <a href='http://openid.net/get-an-openid/'>hier</a>. Dit zijn vooral Amerikaanse websites. Wil je liever een Nederlandse OpenID, dan kan je <a href='http://mijnopenid.nl/'>hier</a> terecht.</p>\n");
-					if (strlen($row->openid_identity) > 0 and strlen($row->Login) >= 6) {
-						printf("<p>Jij hebt zowel een gewone login als een login via OpenID. Je gewone login kan je het beste verwijderen. Mocht je deze weer nodig hebben, kan je hem altijd weer aanvragen.</p>
-						<ul>
-						<li>%s&nbsp;<img src='images/delete.png' alt='Delete login'></li>
-						<li>%s&nbsp;<img src='images/delete.png' alt='Delete login'></li>
-						</ul>", $row->Login, $row->openid_identity);
-						
-	//				} elseif () {
-						
-					}
-					echo("</div>  <!-- Einde openid -->\n");
-				}
 			}
 
 		} elseif (toegang($_GET['tp'])) {
@@ -698,8 +626,8 @@ function nieuwepasfoto($lidid=0, $filterlid="") {
 	$max_size_attachm = 2 * 1024 * 1024;  // 2MB
 	$min_size_attachm = 4 * 1024;  // 4KB
 	
-	if (isset($_POST['lidpasfoto']) and $_POST['lidpasfoto'] > 0) {
-		$lidid = $_POST['lidpasfoto'];
+	if (isset($_POST['lidid']) and $_POST['lidid'] > 0) {
+		$lidid = $_POST['lidid'];
 	}
 	$naamlid = db_naamlid($lidid);
 	
@@ -788,15 +716,8 @@ function nieuwepasfoto($lidid=0, $filterlid="") {
 			} else {
 				$mess = "Het is fout gegaan bij het uploaden van het bestand. Probeer het nog een keer of neem contact op met de webmaster.";
 			}
-		} 
-		if (strlen($mess) > 0) {
-			db_logboek("add", $mess, 6, 0, 1);
 		}
-	}
-	
-	$optionslid = "<option value=-1>Selecteer lid ...</option>\n";
-	foreach (db_lid("lijst", $filterlid) as $row) {
-		$optionslid .= sprintf("<option value=%1\$d>%2\$s (%1\$d)</option>\n", $row->Nummer, htmlentities($row->Zoeknaam));
+		db_logboek("add", $mess, 6, 0, 1);
 	}
 
 	echo("<div id='nieuwepasfoto'>\n");
@@ -812,9 +733,13 @@ function nieuwepasfoto($lidid=0, $filterlid="") {
 	printf("<input type='hidden' name='MAX_FILE_SIZE' value=%d>\n", $max_size_attachm);
 	if ($lidid > 0) {
 		printf("<p><label for='UploadFoto'>Nieuwe pasfoto %s:&nbsp;</label>\n", $naamlid);
-		printf("<input type='hidden' name='lidpasfoto' value=%d>\n", $lidid);
+		printf("<input type='hidden' name='lidid' value=%d>\n", $lidid);
 	} else {
-		printf("<p><select name='lidpasfoto'>%s</select></p>\n", $optionslid);
+		$optionslid = "<option value=-1>Selecteer lid ...</option>\n";
+		foreach (db_lid("lijst", $filterlid) as $row) {
+			$optionslid .= sprintf("<option value=%1\$d>%2\$s (%1\$d)</option>\n", $row->Nummer, htmlentities($row->Zoeknaam));
+		}
+		printf("<p><select name='lidid'>%s</select></p>\n", $optionslid);
 	}
 	echo("<input type='file' name='UploadFoto' id='UploadFoto'>&nbsp;");
 	echo("<input type='submit' name='Upload' value='Insturen'>\n");
@@ -914,6 +839,84 @@ function opzegginglidmaatschap($lidid) {
 		
 		echo($content);
 	}
+}
+
+function diplomaslidmuteren($lidid, $td, $filterlid="") {
+	global $actionurl, $naamlid;
+
+	if ($td == "ZS") {
+		$actie = "zelfservice_lijst";
+	} else {
+		$actie = "muteerlijst";
+	}
+
+	if ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['diplwijz'])) {
+		foreach (db_diploma($actie, 0, $td) as $row) {
+			$fnRID = sprintf("RID_%d", $row->RecordID);
+			$fnBehaald = sprintf("Behaald_%d", $row->RecordID);
+			$fnVervaltPer = sprintf("VervaltPer_%d", $row->RecordID);
+			$fnDiplnr = sprintf("Diplnr_%d", $row->RecordID);
+			$fnVerw = sprintf("chkVerw_%d", $row->RecordID);
+			if (strlen($_POST[$fnBehaald]) == 0 and strlen($_POST[$fnDiplnr]) > 0) {
+				echo("<p class='mededeling'>Er moet altijd een datum van behalen ingevuld worden. Diplomanummer wordt niet toegevoegd.</p>");
+			} elseif (isset($_POST[$fnVerw]) and $_POST[$fnVerw] == 1) {
+				db_liddipl("delete", $lidid, 0, $row->RecordID, $_POST[$fnBehaald]);
+			} elseif ($_POST[$fnRID] == 0) {
+				db_liddipl("add", $lidid, 0, $row->RecordID, $_POST[$fnBehaald], $_POST[$fnVervaltPer], $_POST[$fnDiplnr]);
+			} else {
+				db_liddipl("update", 0, $_POST[$fnRID], 0, $_POST[$fnBehaald], $_POST[$fnVervaltPer], $_POST[$fnDiplnr]);
+			}
+		}
+	}
+			
+	$oldvals = "";
+	echo("<div id='wijzigendiplomas'>\n");
+	
+	$actionurl = sprintf("%s?tp=%s&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
+	printf("<form method='post' action='%s' name='frm_pasfoto' enctype='multipart/form-data'>\n", $actionurl);
+	if ($lidid > 0) {
+		printf("<input type='hidden' name='lidid' value=%d>\n", $lidid);
+	}
+	
+	
+	echo("<table>\n");
+	printf("<tr><th>Code</th><th>Naam</th><th>Behaald op</th><th>Geldig tot</th><th>Diplomanummer</th><th>Verw?</th></tr>\n");
+	foreach (db_diploma($actie) as $row) {
+		$cv_rid = 0;
+		$cv_behaald = "";
+		$cv_vervaltop = "";
+		$cv_diplomanr = "";
+		$rowld = db_liddipl("diplomabehaald", $lidid, 0, $row->RecordID);
+		if (isset($rowld->RecordID)) {
+			$cv_rid = $rowld->RecordID;
+			$cv_behaald = $rowld->EXDATUM;
+			$cv_vervaltop = $rowld->LicentieVervallenPer;
+			$cv_diplomanr = str_replace("\"", "'", $rowld->Diplomanummer);
+		}
+		echo("<tr>\n");
+		if ($cv_rid == 0) {
+			printf("<td>%s</td>\n", $row->Kode);
+			printf("<td>%s</td>\n", $row->Naam);
+			printf("<td><input type='text' name='Behaald_%d' value='%s' onBlur='this.form.submit();'></td>\n", $row->RecordID, $cv_behaald);
+			printf("<td><input type='text' name='VervaltPer_%d' value='%s'></td>\n", $row->RecordID, $cv_vervaltop);
+			printf("<td><input type='text' name='Diplnr_%d' value='%s' maxlength=14></td>", $row->RecordID, $cv_diplomanr);
+			echo("<td></td>\n");
+		} else {
+			printf("<td>%s</td>\n<td>%s</td>\n<td>%s</td>\n", $row->Kode, $row->Naam, strftime("%e %B %Y", strtotime($cv_behaald)));
+			printf("<td><input type='text' name='VervaltPer_%3\$d' value='%1\$s'></td>\n
+					  <td><input type='text' name='Diplnr_%3\$d' value='%2\$s' maxlength=14></td>\n
+					  <td class='chk'><input type='checkbox' name='chkVerw_%3\$d' value=1></td>", $cv_vervaltop, $cv_diplomanr, $row->RecordID);
+			$oldvals .= sprintf("<input type='hidden' name='Behaald_%d' value='%s'>", $row->RecordID, $cv_behaald);
+		}
+		echo("</tr>\n");
+		$oldvals .= sprintf("\n<input type='hidden' name='RID_%d' value=%d>", $row->RecordID, $cv_rid);
+		echo("\n\n");
+	}
+	echo("<tr><th colspan=6><input type='submit' value='Bewaren' name='diplwijz'></th></tr>\n");
+	echo("</table>\n");
+	echo($oldvals);
+	echo("</form>\n");
+	echo("</div>  <!-- Einde wijzigendiplomas -->\n");
 }
 
 ?>
