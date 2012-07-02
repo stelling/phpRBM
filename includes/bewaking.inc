@@ -4,6 +4,18 @@ function fnBewaking() {
 	global $ldl, $currenttab2, $table_prefix;
 	
 	fnDispMenu(2);
+		
+	if (isset($_POST['lidid']) and $_POST['lidid'] > 0) {
+		$lidid = $_POST['lidid'];
+	} else {
+		$lidid = 0;
+	}
+	
+	if (isset($_POST['dptype']) and strlen($_POST['dptype']) > 0) {
+		$dptype = $_POST['dptype'];
+	} else {
+		$dptype = "";
+	}
 
 	if (isset($_POST['seizoen']) and strlen($_POST['seizoen']) > 0) {
 		$seizoen = $_POST['seizoen'];
@@ -30,8 +42,43 @@ function fnBewaking() {
 	printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 	echo("<table>\n<tr>\n");
 	
+	
 	if ($currenttab2 == "Downloaden inschrijvingen") {
 		// Geen filter tonen
+	} elseif ($currenttab2 == "Diploma's muteren" or $currenttab2 == "Nieuwe pasfoto") {
+		$filterlid = sprintf("L.Nummer IN (SELECT Lid FROM %1\$sBewaking AS BW INNER JOIN %1\$sBewseiz AS BS ON BW.SeizoenID=BS.RecordID WHERE BS.Afgesloten=0)", $table_prefix);
+		$optionslid = "<option value=-1>...</option>\n";
+		foreach (db_lid("lijst", $filterlid) as $row) {
+			if ($row->Nummer == $lidid) {
+				$s = "selected";
+			} else {
+				$s = "";
+			}
+			$optionslid .= sprintf("<option value=%1\$d %3\$s>%2\$s</option>\n", $row->Nummer, htmlentities($row->Zoeknaam), $s);
+		}
+		echo("<td class='label'>Selecteer lid:</td>\n");
+		printf("<td><select name='lidid' onChange='this.form.submit();'>%s</select></td>\n", $optionslid);
+		if ($currenttab2 == "Diploma's muteren") {
+			$dptypes['*'] = "Alle types";
+			$dptypes['B'] = "Brevetten";
+			$dptypes['D'] = "Diploma's";
+			$dptypes['I'] = "Insignes";
+			$dptypes['L'] = "Licenties";
+			$dptypes['P'] = "Proeven van bekwaamheden";
+			$dptypes['ZS'] = "Zelfservice";
+			$options = "";
+			foreach($dptypes as $key => $val) {
+				if ($key == $dptype) {
+					$s = "selected";
+				} else {
+					$s = "";
+				}
+				$options .= sprintf("<option value='%s' %s>%s</option>\n", $key, $s, $val);
+			}
+			echo("<td class='label'>Type diploma:</td>\n");
+			printf("<td><select name='dptype' onChange='this.form.submit();'>%s</select></td>\n", $options);
+		}
+	
 	} elseif ($currenttab2 == "Logboek") {
 		if (!isset($_POST['lidfilter']) or strlen($_POST['lidfilter']) == 0) {
 			$_POST['lidfilter'] = 0;
@@ -73,7 +120,7 @@ function fnBewaking() {
 		
 		if ($currenttab2 != "Aantallen") {
 			echo("<td class='label'>Bewakingsweek:</td>\n");
-			echo("<td><select name='week' id='week' onchange='form.submit();'>\n");
+			echo("<td><select name='week' id='week' onchange='this.form.submit();'>\n");
 			print("<option value=-1>Alle</option>\n");
 			if ($currenttab2 == "Overzicht inschrijvingen") {
 				$rows = db_insbew("blokken", 0, 0, 0, 0, "", $seizoen);
@@ -103,9 +150,11 @@ function fnBewaking() {
 	} elseif ($currenttab2 == "Aantallen" and toegang($_GET['tp'])) {
 		$lijst = db_bewaking("aantallen", $seizoen);
 		echo(fnDisplayTable($lijst, "", "", 0, "", "", "bewakingsaantallen"));
-	} elseif ($currenttab2 == "Nieuwe pasfoto") {
+	} elseif ($currenttab2 == "Nieuwe pasfoto" and $lidid > 0) {
 		$filterlid = sprintf("L.Nummer IN (SELECT Lid FROM %1\$sBewaking AS BW INNER JOIN %1\$sBewseiz AS BS ON BW.SeizoenID=BS.RecordID WHERE BS.Afgesloten=0)", $table_prefix);
-		nieuwepasfoto(0, $filterlid);
+		nieuwepasfoto($lidid, $filterlid);
+	} elseif ($currenttab2 == "Diploma's muteren" and toegang($_GET['tp']) and $lidid > 0) {
+		diplomaslidmuteren($lidid, $dptype, 0);
 	} elseif ($currenttab2 == "Overzicht inschrijvingen" and toegang($_GET['tp'])) {
 		$lijst = db_insbew("matrixaantallen", 0, 0, 0, 0, "", $seizoen);
 		echo(fnDisplayTable($lijst, "", "Totalen"));

@@ -139,7 +139,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		$tabpages[] = "Eigen gegevens/Logboek";
 		$tabpages[] = "Zelfservice";
 		$tabpages[] = "Zelfservice/Algemene gegevens";
-		if (strlen($selfservicediplomas) > 3) {
+		if (count(db_diploma("zelfservice_lijst")) > 0) {
 			$tabpages[] = "Zelfservice/Diploma's";
 		}
 		$tabpages[] = "Zelfservice/Pasfoto";
@@ -185,6 +185,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		$tabpages[] = "Bewaking/Postindeling";
 		$tabpages[] = "Bewaking/Aantallen";
 		$tabpages[] = "Bewaking/Nieuwe pasfoto";
+		$tabpages[] = "Bewaking/Diploma's muteren";
 	}
 	if (count(db_insbew("overzicht")) > 0) {
 		$tabpages[] = "Bewaking/Overzicht inschrijvingen";
@@ -683,7 +684,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 	return $ret;
 }
 
-function debug($tekst="debug", $alleenwm=1, $alert=0, $logact=0) {
+function debug($tekst, $alleenwm=1, $alert=0, $logact=0) {
 	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 		$alleenwm = 0;
 	}
@@ -731,8 +732,8 @@ function change_month_to_uk($strdate) {
 	$arrMonth[]=array("From" => "december", "To" => "December");
 	
 	foreach ($arrMonth as $key => $value) {
-		$strdate = str_ireplace(" " . $value["From"] . " ", " " . $value["To"] . " ", $strdate);
-		$strdate = str_ireplace(" " . substr($value["From"], 0, 3) . " ", " " . $value["To"] . " ", $strdate);
+		$strdate = str_ireplace(" " . $value["From"], " " . $value["To"], $strdate);
+		$strdate = str_ireplace(" " . substr($value["From"], 0, 3), " " . $value["To"], $strdate);
 	}
 	
 	return $strdate;

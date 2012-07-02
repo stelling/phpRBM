@@ -1492,21 +1492,21 @@ function db_interface($actie="lijst", $query="") {
 }
 
 function db_diploma($actie, $did=0, $td="*") {
-	global $table_prefix, $selfservicediplomas;
+	global $table_prefix;
 	
 	if ($actie == "muteerlijst") {
 		if ($td != "*" and strlen($td) > 0) {
-			$filter = sprintf(" AND `DP.Type`='%s'", $td);
+			$filter = sprintf(" AND DP.`Type`='%s'", $td);
 		} else {
 			$filter = "";
 		}
 		$query = sprintf("SELECT * FROM %sDiploma AS DP
-					WHERE DP.AantalBeoordelingen < 2 AND ((DP.Vervallen IS NULL) OR DP.Vervallen > CURDATE()) %s
+					WHERE ((DP.Vervallen IS NULL) OR DP.Vervallen > CURDATE()) %s
 					ORDER BY DP.Volgnr, DP.Kode;", $table_prefix, $filter);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "zelfservice_lijst") {
-		$query = sprintf("SELECT * FROM %sDiploma AS DP WHERE DP.Kode IN %s AND DP.AantalBeoordelingen < 2 ORDER BY DP.Volgnr, DP.Kode;", $table_prefix, $selfservicediplomas);
+		$query = sprintf("SELECT * FROM %sDiploma AS DP WHERE DP.Zelfservice=1 AND DP.AantalBeoordelingen < 2 ORDER BY DP.Volgnr, DP.Kode;", $table_prefix);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "Kode") {
@@ -1524,23 +1524,28 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 	global $table_prefix, $fdaccess, $fdsql;
 	
 	$mess = "";
+	if (!is_numeric(substr($exdat, -4))) {
+		$exdat = trim($exdat) . " " . date("Y");
+	}
 	$exdat = change_month_to_uk($exdat);
 	$vervdat = change_month_to_uk($vervdat);
 	
-	if (strlen($exdat) >= 6 and strtotime($exdat) !== FALSE) {
+	if (strlen($exdat) > 4 and strtotime($exdat) !== FALSE) {
 		$dwexd = strftime($fdsql, strtotime($exdat));
 		$dwaexd = sprintf("#%s#", strftime($fdaccess, strtotime($exdat)));
 	} else {
 		$dwexd = "";
 	}
 	
-	if (strlen($vervdat) >= 6 and strtotime($vervdat) !== FALSE and strtotime($vervdat) > strtotime($dwexd)) {
+	if (strlen($vervdat) > 4 and strtotime($vervdat) !== FALSE and strtotime($vervdat) > strtotime($dwexd)) {
 		$dwverv = strftime($fdsql, strtotime($vervdat));
 		$dwaverv = sprintf("#%s#", strftime($fdaccess, strtotime($vervdat)));
 	} else {
 		$dwverv = "NULL";
 		$dwaverv = "NULL";
 	}
+	
+//	debug(strftime($fdsql, strtotime("1 June")));
 
 	if ($actie == "add" and $lidid > 0 and $did > 0 and strlen($dwexd) == 10) {
 		if ($dwverv != "NULL") {
@@ -1555,13 +1560,14 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 			if ($result > 0) {
 				$query = sprintf("INSERT INTO Liddipl (Lid, DiplomaID, EXDATUM, LicentieVervallenPer, Diplomanummer, Ingevoerd, Gewijzigd) VALUES (%d, %d, %s, %s, '%s', CURDATE(), SYSDATE());", $lidid, $did, $dwaexd, $dwaverv, $dipnr);
 				db_interface("add", $query);
-				$mess = sprintf("Diploma %s is bij %s toegevoegd.", db_diploma("Kode", $did), db_naamlid($lidid));
+				$mess = sprintf("Diploma %s is met examendatum '%s' bij %s toegevoegd.", db_diploma("Kode", $did), $dwexd, db_naamlid($lidid));
 			} else {
 				$mess = sprintf("Diploma %s is bij %s niet toegevoegd.", db_diploma("Kode", $did), db_naamlid($lidid));
 			}
 		}
 		db_logboek("add", $mess, 6);
 		return $mess;
+		
 	} elseif ($actie == "update" and $rid > 0) {
 		$query = sprintf("SELECT * FROM %sLiddipl AS LD WHERE RecordID=%d;", $table_prefix, $rid);
 		$result = fnQuery($query);
@@ -1577,6 +1583,8 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 			$mess = sprintf("Diploma %s is gewijzigd bij %s", db_diploma("Kode", $rowld->DiplomaID), db_naamlid($rowld->Lid));
 			db_logboek("add", $mess, 6);
 		}
+		return $mess;
+		
 	} elseif ($actie == "delete" and $lidid > 0 and $did > 0 and strlen($dwexd) == 10) {
 		$query = sprintf("DELETE FROM %sLiddipl WHERE Lid=%d AND DiplomaID=%d AND EXDATUM='%s';", $table_prefix, $lidid, $did, $dwexd);
 		$result = fnQuery($query);
@@ -1589,6 +1597,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 		}
 		db_logboek("add", $mess, 6);
 		return $mess;
+		
 	} elseif ($actie == "lidgegevens" and $lidid > 0) {
 		if (strlen($xtrafilter) > 1) {
 			$xtrafilter = "AND " . $xtrafilter;
@@ -1603,10 +1612,17 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 				 . " ORDER BY D.Volgnr, D.Kode, LD.EXDATUM DESC;", $table_prefix, $lidid, $xtrafilter);
 		$result = fnQuery($query);
 		return $result->fetchAll();
+		
 	} elseif ($actie == "diplomabehaald" and $lidid > 0 and $did > 0) {
 		$query = sprintf("SELECT * FROM %sLiddipl WHERE Lid=%d AND DiplomaID=%d ORDER BY EXDATUM DESC;", $table_prefix, $lidid, $did);
 		$result = fnQuery($query);
-		return $result->fetch();		
+		return $result->fetch();
+		
+	} elseif ($actie == "diplomalid" and $lidid > 0 and $did > 0) {
+		$query = sprintf("SELECT * FROM %sLiddipl WHERE Lid=%d AND DiplomaID=%d ORDER BY EXDATUM;", $table_prefix, $lidid, $did);
+		$result = fnQuery($query);
+		return $result->fetchAll();
+		
 	}
 }
 

@@ -187,8 +187,8 @@ footer a, footer a:visited, #footer a, #footer a:visited {
 	margin-top: 10px;
 }
 
-#wijzigengegevens table {
-	margin-top: 8px;
+#wijzigengegevens, #wijzigendiplomas, #nieuwepasfoto, #bijzonderhedenwijzigen, #inschrijvingbewaking, #inschrijvingevenementen, #onlinebestellingen, #opzegformulier, #profielwijzigen {
+	padding-top: 8px;
 }
 
 #wijzigengegevens img {
