@@ -241,6 +241,7 @@ function fnInstellingen() {
 	$arrParam['naamwebsite'] = "Dit is de naam zoals deze in de titel en op elke pagina getoond wordt.";
 	$arrParam['opzegtermijn'] = "De opzegtermijn van de vereniging in maanden.";
 	$arrParam['resultaatmailingversturen'] = "Indien aangevinkt wordt naar de zender en het secretariaat een mail met het resultaat van deze mailing verzonden.";
+	$arrParam['scriptbijuitloggen'] = "Dit script wordt automatisch gedraaid nadat iemand is uitgelogd. Optioneel veld.";
 	$arrParam['smtphost'] = "De naam van de SMTP-server voor het versturen van e-mails. Indien deze niet wordt ingevuld, wordt van de mail-functie uit PHP gebruik gemaakt.";
 	$arrParam['smtpport'] = "De poort die voor de SMTP-host gebruikt moet worden. 0 = gebruik default poort.";
 	$arrParam['smtpuser'] = "De gebruiker om te kunnen inloggen op de SMTP-server.";
