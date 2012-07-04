@@ -843,8 +843,17 @@ function db_stats($lidid=0) {
 }
 
 function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
-	global $dbc, $selectnaam, $selectlidnr, $table_prefix, $lididwebmasters, $wherelidond, $wherelid, $gebruikopenid, $lidnrnodigbijloginaanvraag;
-	global $scriptbijuitloggen, $maxinlogpogingen, $maxlengtelogin, $beperktotgroep, $dir;
+	global $dbc, $selectnaam, $selectlidnr, $table_prefix, $lididwebmasters, $wherelidond, $wherelid, $dir;
+	
+	if (strlen(db_param("beperktotgroep")) > 0) {
+		$beperktotgroep = explode(",", db_param("beperktotgroep"));
+	} else {
+		$beperktotgroep = array(0);
+	}
+	$maxlengtelogin = db_param("maxlengtelogin");
+	$maxinlogpogingen = db_param("maxinlogpogingen");
+	$lidnrnodigbijloginaanvraag = db_param("lidnrnodigbijloginaanvraag");
+	$scriptbijuitloggen = db_param("scriptbijuitloggen");
 	
 	$mess = "";
 	if ($actie == "nieuwlogin" and isValidMailAddress($email) and strlen($login) > 5) {
@@ -890,8 +899,6 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 								IFNULL((%s), L.Nummer) AS Lidnr,", $selectnaam, $selectlidnr);
 		if (is_array($beperktotgroep) and count($beperktotgroep) > 0) {
 			$query .= sprintf("(SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.Lid=L.Nummer AND LO.OnderdeelID IN (%s) AND LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE())) AS AanvragenMag", $table_prefix, implode(", ", $beperktotgroep));
-		} elseif (!is_array($beperktotgroep) and $beperktotgroep > 0) {
-			$query .= sprintf("(SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.Lid=L.Nummer AND LO.OnderdeelID=%d AND LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE())) AS AanvragenMag", $table_prefix, $beperktotgroep);
 		} else {
 			$query .= "1 AS AanvragenMag";
 		}
@@ -965,7 +972,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 		fnQuery($query);
 		
 	} elseif ($actie == "unlock" and $lidid > 0 and $_SESSION['webmaster'] == 1) {
-		$query = sprintf("UPDATE %sAdmin_login SET FouteLogin=0 WHERE LidID=%d AND FouteLogin > 0;", $table_prefix, $lidid);
+		$query = sprintf("UPDATE %sAdmin_login SET FouteLogin=0, Gewijzigd=SYSDATE() WHERE LidID=%d AND FouteLogin > 0;", $table_prefix, $lidid);
 		$result = fnQuery($query);
 		if ($result == 1) {
 			$mess = sprintf("Het aantal foutieve inlogpogingen van de login van %s is gereset.", db_naamlid($lidid));
@@ -973,6 +980,18 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 		}
 		
 	} elseif ($actie == "controle") {
+		$loginautounlock = db_param("loginautounlock");
+		$maxinlogpogingen = db_param("maxinlogpogingen");
+		if ($loginautounlock > 0) {
+			$query = sprintf("UPDATE %sAdmin_login SET FouteLogin=0, Gewijzigd=SYSDATE()
+						WHERE FouteLogin > %d AND Gewijzigd < DATE_ADD(SYSDATE(), INTERVAL -%d MINUTE);", $table_prefix, $maxinlogpogingen, $loginautounlock);
+			$result = fnQuery($query);
+			if ($result > 0) {
+				$mess = sprintf("%d logins zijn automatisch ge-unlocked.", $result);
+				db_logboek("add", $mess, 1);
+			}
+		}
+	
 		$xtrawhere = "";
 		if (isValidMailAddress($_SESSION['username'], 0)) {
 			$xtrawhere = sprintf("AND (LOWER(L.Email)='%1\$s' OR LOWER(L.EmailVereniging)='%1\$s')", strtolower($_SESSION['username']));
@@ -982,8 +1001,6 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 		$xtrawhere .= sprintf(" AND Login.Wachtwoord='%s'", encript_decript($_SESSION['password']));
 		if (is_array($beperktotgroep) and count($beperktotgroep) > 0) {
 			$xtrawhere .= sprintf(" AND (Login.LidID IN (SELECT Lid FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID IN (%s)) OR Login.LidID IN (%s))", $table_prefix, $wherelidond, implode(", ", $beperktotgroep), implode(", ", $lididwebmasters));
-		} elseif (is_numeric($beperktotgroep) and $beperktotgroep > 0) {
-			$xtrawhere .= sprintf(" AND (Login.LidID IN (SELECT Lid FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID=%d) OR Login.LidID IN (%s))", $table_prefix, $wherelidond, $beperktotgroep, implode(", ", $lididwebmasters));
 		} else {
 			$xtrawhere .= sprintf(" AND Login.LidID IN (%s)", implode(", ", $lididwebmasters));
 		}
@@ -997,7 +1014,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 		if (isset($row->LidID) and $row->LidID > 0) {
 			return $row;
 		} else {
-			$query = sprintf("UPDATE %sAdmin_login SET FouteLogin = FouteLogin + 1 WHERE Login='%s';", $table_prefix, mysql_escape_string($_SESSION['username']));
+			$query = sprintf("UPDATE %sAdmin_login SET FouteLogin=FouteLogin+1, Gewijzigd=SYSDATE() WHERE Login='%s';", $table_prefix, mysql_escape_string($_SESSION['username']));
 			fnQuery($query);
 			return false;
 		}
@@ -1025,7 +1042,6 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 		foreach ($result->fetchAll() as $row) {
 			$ww = strtoupper(substr($row->Login, 0, 1)) . strtolower(substr($row->Login, 1, 4)) . rand(101, 5997);
 			while ($ww != encript_decript(encript_decript($ww, 1), 0)) {
-				debug("Onmogelijk wachtwoord: " . $ww, 1, 0, 1);
 				$ww = strtoupper(substr($row->Login, 0, 1)) . strtolower(substr($row->Login, 1, 4)) . rand(101, 5997);
 			}
 			$query = sprintf("UPDATE %sAdmin_login SET Wachtwoord='%s', Gewijzigd=SYSDATE() WHERE Login='%s';", $table_prefix, encript_decript($ww, 1), $row->Login);
@@ -1047,8 +1063,6 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 		$where = "";
 		if (is_array($beperktotgroep) and count($beperktotgroep) > 0) {
 			$where .= sprintf("LidID NOT IN (SELECT Lid FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID IN (%s))", $table_prefix, $wherelidond, implode(", ", $beperktotgroep));
-		} elseif ($beperktotgroep > 0) {
-			$where .= sprintf("LidID NOT IN (SELECT Lid FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID=%d)", $table_prefix, $wherelidond, $beperktotgroep);
 		}
 		if (strlen($where) > 0) {
 			$where .= sprintf(" AND (LidID NOT IN (%s))", implode(", ", $lididwebmasters));
@@ -1544,8 +1558,6 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 		$dwverv = "NULL";
 		$dwaverv = "NULL";
 	}
-	
-//	debug(strftime($fdsql, strtotime("1 June")));
 
 	if ($actie == "add" and $lidid > 0 and $did > 0 and strlen($dwexd) == 10) {
 		if ($dwverv != "NULL") {
@@ -1924,6 +1936,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrIntegers['bewaartijdlogins'] = 6;
 	$arrIntegers['bewaartijdmailings'] = 3;
 	$arrIntegers['db_backupsopschonen'] = 11;
+	$arrIntegers['loginautounlock'] = 120;
 	$arrIntegers['max_grootte_bijlage'] = 0;
 	$arrIntegers['maxlengtelogin'] = 12;
 	$arrIntegers['maxmailsperminuut'] = 60;
@@ -2029,8 +2042,9 @@ function db_delete_local_tables() {
 }
 
 function db_onderhoud() {
-	global $table_prefix, $arrTables, $db_name, $wherelid, $beperktotgroep, $wherelidond, $lididwebmasters;
-	global $maxlengtelogin;
+	global $table_prefix, $arrTables, $db_name, $wherelid, $wherelidond, $lididwebmasters;
+	
+	$maxlengtelogin = db_param("maxlengtelogin");
 
 	// Vaste aanpassingen aan de database na een upload, omdat MS-Access geen datum velden kent, alleen datum_tijd.
 	$query = sprintf("SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sBewaking' AND COLUMN_NAME='BEGIN_PER';", $db_name, $table_prefix);

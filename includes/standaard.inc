@@ -21,12 +21,6 @@ if (!isset($_SESSION['lidid'])) {
 $dir = substr(__FILE__, 0, strrpos(__FILE__, "/"));
 $dir = substr($dir, 0, strrpos($dir, "/"));
 require_once($dir . '/config.php');
-if (!isset($muteerbarememos) or !is_array($muteerbarememos)) {
-	$muteerbarememos = array('D', 'G', 'WN');
-}
-if (!isset($maxlengtelogin) or $maxlengtelogin < 8) {
-	$maxlengtelogin = 12;
-}
 
 require_once($dir . "/includes/database.inc");
 require_once($dir . "/includes/authentication.inc");
@@ -44,11 +38,6 @@ $naamwebsite = db_param("naamwebsite");
 $urlwebsite = db_param("urlwebsite");
 $emailwebmaster = db_param("emailwebmaster");
 $emailsecretariaat = db_param("emailsecretariaat");
-if (strlen(db_param("beperktotgroep")) > 0) {
-	$beperktotgroep = explode(",", db_param("beperktotgroep"));
-} else {
-	$beperktotgroep = array(0);
-}
 if (strlen(db_param("muteerbarememos")) > 0) {
 	$muteerbarememos = explode(",", db_param("muteerbarememos"));
 } else {

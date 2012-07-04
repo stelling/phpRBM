@@ -84,7 +84,8 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 	db_createtables();
 	db_onderhoud();
 	$lnk = sprintf("<a href='%s?op=deletelogin&amp;lidid=%s'><img src='images/del.png' title='Verwijder login'></a>", $_SERVER['PHP_SELF'], "%d");
-	if ($maxinlogpogingen > 0) {
+	
+	if (db_param("maxinlogpogingen") > 0) {
 		$lnk_lk = sprintf("<a href='%s?op=unlocklogin&amp;lidid=%s' title='Reset foutieve logins'><img src='images/unlocked_01.png'></a>", $_SERVER['PHP_SELF'], "%d");
 	} else {
 		$lnk_lk = "";
@@ -150,9 +151,10 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 } elseif ($currenttab == "DB onderhoud" and toegang($_GET['tp'])) {
 
 	echo("<div id='dbonderhoud'>\n");
+	$bewaartijdlogging = db_param("bewaartijdlogging");
 	
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=backup\"' value='Backup'>&nbsp;Maak een backup van de database.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	if (isset($bewaartijdlogging) and $bewaartijdlogging > 0) {
+	if ($bewaartijdlogging > 0) {
 		printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=logboekopschonen\"' value='Logboek opschonen'>&nbsp;Verwijder alle records uit het logboek, die ouder dan %d maanden zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $bewaartijdlogging);
 	}
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=evenementenopschonen\"' value='Evenementen opschonen'>&nbsp;Opschonen evenementen, inclusief bijbehorende deelnemers, die langer dan 6 maanden geleden zijn verwijderd.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
@@ -204,7 +206,7 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 	
 	$rows = db_logboek("lijst", "", $_POST['typefilter'], $_POST['lidfilter']);
 	echo(fnDisplayTable($rows, "", "", 0, "", "", "logboek"));
-} elseif (toegang("Info")) {
+} elseif ($currenttab == "Info" and toegang($_GET['tp'])) {
 	phpinfo();
 }
 
@@ -213,12 +215,12 @@ HTMLfooter();
 function fnInstellingen() {
 	global $table_prefix;
 
-	$arrParam['bewaartijdinloggen'] = "Hoelang in maanden moet logging van het in- en uitloggen bewaard blijven. 0 = gelijk aan bewaartijdlogging.";
-	$arrParam['bewaartijdlogging'] = "Hoelang in maanden moet logging bewaard blijven. 0 = altijd.";
+	$arrParam['bewaartijdinloggen'] = "Hoeveel maanden moet logging van het in- en uitloggen bewaard blijven. 0 = gelijk aan bewaartijdlogging.";
+	$arrParam['bewaartijdlogging'] = "Hoeveel maanden moet logging bewaard blijven. 0 = altijd.";
 	$arrParam['bewaartijdlogins'] = "Het aantal maanden dat niet gebruikte logins bewaard worden. 0 = altijd bewaren.";
 	$arrParam['bewaartijdmailings'] = "Het aantal maanden dat verwijderde mailing bewaard worden. 0 = altijd bewaren.";
 	$arrParam['beperkfrom'] = "Indien deze is ingevuld moet het from adres altijd vanaf dit domein zijn.";
-	$arrParam['beperktotgroep'] = "Vul hier de RecordID's, gescheiden door een komma, van de groepen (zie tabel ONDERDL) in die toegang hebben. Als je geen groepen invult hebben alleen webmasters toegang.";
+	$arrParam['beperktotgroep'] = "Vul hier de RecordID's, gescheiden door een komma, van de groepen (zie tabel ONDERDL) in die toegang hebben. Als je geen groep invult hebben alleen webmasters toegang.";
 	$arrParam['db_backuptarren'] = "Moet de backup gecomprimeerd worden? Let op, de webhost moet dit wel ondersteunen.";
 	$arrParam['db_backupsopschonen'] = "Na hoeveel dagen moeten oude back-ups automatisch verwijderd worden? 0 = nooit.";
 	$arrParam['db_folderbackup'] = "Deze variabele is optioneel. Mocht deze niet ingevuld worden, dan wordt de standaard folder gebruikt.";
@@ -232,7 +234,8 @@ function fnInstellingen() {
 	$arrParam['laatstebackup'] = "Wanneer is de laatste backup gemaakt? Deze variabele wordt automatisch bijgewerkt.";
 	$arrParam['lidnrnodigbijloginaanvraag'] = "Moet een lid zijn of haar lidnummer opgeven als er een login aangevraagd wordt?";
 	$arrParam['lidnrversturenmogelijk'] = "Hierbij geef je aan of het mogelijk moet zijn om vanaf deze website op basis van alleen een e-mailadres iemand zijn lidnummer per e-mail opgestuurd kan worden.";
-	$arrParam['max_grootte_bijlage'] = "Optioneel veld. Als je niets specificeerd dan is 2MB het maximum. De waarde is in bytes.";
+	$arrParam['loginautounlock'] = "Na hoeveel minuten moet een gelockede login automatisch geunlocked worden? 0 = alleen handmatig unlocken.";
+	$arrParam['max_grootte_bijlage'] = "De maximalale grootte in bytes van één bijlage in een mailing. Optioneel veld. Als je niets specificeerd dan is 2MB het maximum.";
 	$arrParam['maxinlogpogingen'] = "Na hoeveel foutieve inlogpogingen moet het account geblokkeerd worden? 0 = nooit.";
 	$arrParam['maxlengtelogin'] = "De maximale lengte die een login mag zijn. Minimaal 7 en maximaal 12 invullen.";
 	$arrParam['maxmailsperminuut'] = "Het maximaal aantal e-mails dat via een mailing per minuut verzonden mag worden. 0 = onbeperkt.";
@@ -267,18 +270,15 @@ function fnInstellingen() {
 			if (isset($_POST[$pvn])) {
 				$_POST[$pvn] = str_replace("\"", "'", $_POST[$pvn]);
 			}
-			if ($row->Naam == "beperktotgroep") {
+			if ($row->Naam == "beperktotgroep" or $row->Naam == "muteerbarememos") {
 				$_POST[$pvn] = str_replace(" ", "", $_POST[$pvn]);
 			}
 			if ($row->Naam == "maxlengtelogin") {
-				if (strlen($_POST[$pvn]) == 0 or is_numeric($_POST[$pvn]) == false or $_POST[$pvn] > 12) {
-					$_POST[$pvn] = 12;
+				if (strlen($_POST[$pvn]) == 0 or is_numeric($_POST[$pvn]) == false or $_POST[$pvn] > 15) {
+					$_POST[$pvn] = 15;
 				} elseif ($_POST[$pvn] < 7) {
 					$_POST[$pvn] = 7;
 				}
-			}
-			if ($row->Naam == "muteerbarememos") {
-				$_POST[$pvn] = str_replace(" ", "", strtoupper($_POST[$pvn]));
 			}
 			if ($row->ParamType == "B") {
 				if (isset($_POST[$pvn]) and $_POST[$pvn] == "1") {
