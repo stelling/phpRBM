@@ -208,9 +208,11 @@ function artikelbeheer() {
 		
 		echo("</tr>\n");
 	}
-	echo("</table>\n");
+	echo("<tr>\n<th colspan=8>");
 	echo("<input type='submit' value='Artikelen bijwerken'>\n");
 	echo("<button name='NieuwArtikel'>Nieuw artikel</button>\n");
+	echo("</th>\n</tr>\n");
+	echo("</table>\n");
 	echo("</form>\n");
 	echo("</div>  <!-- Einde artikelbeheer -->\n");
 }
@@ -348,11 +350,13 @@ function bestellingbeheer() {
 			$nrmag = false;
 		}
 	}
-	echo("</table>\n");
+	echo("<tr>\n<th colspan=11>");
 	echo("<input type='submit' value='Bijwerken'>\n");
 	if ($nrmag) {
 		echo("<button name='NieuweRegel'>Nieuwe regel</button>\n");
 	}
+	echo("</th>\n</tr>\n");
+	echo("</table>\n");
 	echo("</div>  <!-- Einde bestellingbeheer -->\n");
 	
 	echo(fnDisplayTable(db_orderregel("totalen"), "", "Totalen", 0, "", "", "totalenbestellingen"));
