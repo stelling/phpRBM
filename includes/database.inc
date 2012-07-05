@@ -435,7 +435,7 @@ function db_memo($actie, $lidid, $srt, $nv="") {
 		$query = sprintf("INSERT INTO %sMemo (Lid, Soort, Memo, Ingevoerd, Gewijzigd) VALUES (%d, '%s', \"%s\", CURDATE(), SYSDATE());", $table_prefix, $lidid, $srt, $nv);
 		$result = fnQuery($query);
 		if ($result > 0) {
-			db_interface("add", $query);
+			db_interface("add", $query, $lidid);
 			$mess = sprintf("Memo '%s' is bij %s met waarde '%s' toegevoegd.", $arrSoortMemo[$srt], db_naamlid($lidid), $nv);
 		} else {
 			$mess = sprintf("Het toevoegen van memo '%s' is bij %s is mislukt.", $arrSoortMemo[$srt], db_naamlid($lidid));
@@ -449,7 +449,7 @@ function db_memo($actie, $lidid, $srt, $nv="") {
 		}
 		$result = fnQuery($query);
 		if ($result > 0) {
-			db_interface("add", $query);
+			db_interface("add", $query, $lidid);
 			$mess = sprintf("Memo '%s' is bij %s in '%s' gewijzigd.", $arrSoortMemo[$srt], db_naamlid($lidid), $nv);
 			db_logboek("add", $mess, 6);
 		}
@@ -457,7 +457,7 @@ function db_memo($actie, $lidid, $srt, $nv="") {
 		$query = sprintf("DELETE FROM %sMemo WHERE Lid=%d AND Soort='%s';", $table_prefix, $lidid, $srt);
 		$result = fnQuery($query);
 		if ($result > 0) {
-			db_interface("add", $query);
+			db_interface("add", $query, $lidid);
 			$mess = sprintf("Memo '%s' is bij %s verwijderd.", $arrSoortMemo[$srt], db_naamlid($lidid));
 			db_logboek("add", $mess, 6, 0, 1);
 		}
@@ -1466,8 +1466,12 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0) {
 	}
 }
 
-function db_interface($actie="lijst", $query="") {
+function db_interface($actie="lijst", $query="", $lidid=0) {
 	global $selectnaam, $table_prefix;
+	
+	if ($lidid == 0) {
+		$lidid = $_SESSION['lidid'];
+	}
 	
 	if ($actie == "add" and strlen($query) > 1) {
 		if (strlen($table_prefix) > 1) {
@@ -1475,8 +1479,8 @@ function db_interface($actie="lijst", $query="") {
 		}
 		$msa_sql = str_replace("SYSDATE()", "#" . strftime("%m/%d/%Y %H:%M") . "#", str_replace("\"", "'", $query));
 		$msa_sql = str_replace("CURDATE()", "#" . strftime("%m/%d/%Y") . "#", $msa_sql);
-		$insquery = sprintf("INSERT INTO %sAdmin_interface SET `IP-adres`='%s', LidID=%d, `SQL-statement`=\"%s\", Ingevoerd=SYSDATE();", $table_prefix, $_SERVER['REMOTE_ADDR'], $_SESSION['lidid'], $msa_sql);
-		fnQuery($insquery, 0);
+		$query = sprintf("INSERT INTO %sAdmin_interface SET `IP-adres`='%s', LidID=%d, `SQL-statement`=\"%s\", Ingevoerd=SYSDATE();", $table_prefix, $_SERVER['REMOTE_ADDR'], $lidid, $msa_sql);
+		fnQuery($query, 0);
 		
 	} elseif ($actie == "afmelden") {
 		$query = sprintf("UPDATE %sAdmin_interface SET Afgemeld=SYSDATE() WHERE (Afgemeld < '2011-01-01' OR (Afgemeld IS NULL));", $table_prefix);
@@ -1499,7 +1503,7 @@ function db_interface($actie="lijst", $query="") {
 		$query = sprintf("SELECT %1\$s AS `Naam lid`, I.Ingevoerd, `SQL-statement` AS `SQL`"
 				 . " FROM %2\$sAdmin_interface AS I LEFT OUTER JOIN %2\$sLid AS L ON I.LidID = L.Nummer"
 				 . " WHERE (I.Afgemeld IS NULL)"
-				 . " ORDER BY L.Achternaam, I.Ingevoerd, I.RecordID;", $selectnaam, $table_prefix);
+				 . " ORDER BY I.Ingevoerd, I.RecordID;", $selectnaam, $table_prefix);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	}
@@ -1508,6 +1512,7 @@ function db_interface($actie="lijst", $query="") {
 function db_diploma($actie, $did=0, $td="*") {
 	global $table_prefix;
 	
+	$mess = "";
 	if ($actie == "muteerlijst") {
 		if ($td != "*" and strlen($td) > 0) {
 			$filter = sprintf(" AND DP.`Type`='%s'", $td);
@@ -1529,6 +1534,14 @@ function db_diploma($actie, $did=0, $td="*") {
 	} elseif ($actie == "Naam") {
 		$query = sprintf("SELECT Naam FROM %sDiploma WHERE RecordID=%d;", $table_prefix, $did);
 		return db_scalar($query);
+	} elseif ($actie == "opschonen") {
+		$query = sprintf("DELETE FROM %sDiploma WHERE (NOT Vervallen IS NULL) AND Vervallen < CURDATE();", $table_prefix);
+		$result = fnQuery($query);
+		if ($result > 0) {
+			$mess = sprintf("Er zijn %d diploma's verwijderd, omdat ze vervallen zijn. ", $result);
+			db_logboek("add", $mess, 2);
+		}
+		return $mess;
 	} else {
 		return null;
 	}
@@ -1571,7 +1584,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 			$result = fnQuery($query);
 			if ($result > 0) {
 				$query = sprintf("INSERT INTO Liddipl (Lid, DiplomaID, EXDATUM, LicentieVervallenPer, Diplomanummer, Ingevoerd, Gewijzigd) VALUES (%d, %d, %s, %s, '%s', CURDATE(), SYSDATE());", $lidid, $did, $dwaexd, $dwaverv, $dipnr);
-				db_interface("add", $query);
+				db_interface("add", $query, $lidid);
 				$mess = sprintf("Diploma %s is met examendatum '%s' bij %s toegevoegd.", db_diploma("Kode", $did), $dwexd, db_naamlid($lidid));
 			} else {
 				$mess = sprintf("Diploma %s is bij %s niet toegevoegd.", db_diploma("Kode", $did), db_naamlid($lidid));
@@ -1591,7 +1604,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 			$query = sprintf("UPDATE %sLiddipl SET LicentieVervallenPer=%s, Diplomanummer='%s' WHERE RecordID=%d;", $table_prefix, $dwverv, $dipnr, $rid);
 			$result = fnQuery($query);
 			$query = sprintf("UPDATE Liddipl SET LicentieVervallenPer=%s, Diplomanummer='%s' WHERE Lid=%d AND DiplomaID=%d AND EXDATUM=%s;", $dwaverv, $dipnr, $rowld->Lid, $rowld->DiplomaID, $dwaexd);
-			db_interface("add", $query);
+			db_interface("add", $query, $rowld->Lid);
 			$mess = sprintf("Diploma %s is gewijzigd bij %s", db_diploma("Kode", $rowld->DiplomaID), db_naamlid($rowld->Lid));
 			db_logboek("add", $mess, 6);
 		}
@@ -1602,7 +1615,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$query = sprintf("DELETE FROM Liddipl WHERE Lid=%d AND DiplomaID=%d AND EXDATUM=%s;", $lidid, $did, $dwaexd);
-			db_interface("add", $query);
+			db_interface("add", $query, $lidid);
 			$mess = sprintf("Diploma %s is bij %s verwijderd.", db_diploma("Kode", $did), db_naamlid($lidid));
 		} else {
 			$mess = sprintf("Diploma %s is bij %s niet gevonden en dus niet verwijderd.", db_diploma("Kode", $did), db_naamlid($lidid));
@@ -1634,6 +1647,21 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 		$query = sprintf("SELECT * FROM %sLiddipl WHERE Lid=%d AND DiplomaID=%d ORDER BY EXDATUM;", $table_prefix, $lidid, $did);
 		$result = fnQuery($query);
 		return $result->fetchAll();
+		
+	} elseif ($actie == "opschonen") {
+		$query = sprintf("DELETE FROM %1\$sLiddipl WHERE DiplomaID NOT IN (SELECT RecordID FROM %1\$sDiploma);", $table_prefix);
+		$result = fnQuery($query);
+		if ($result > 0) {
+			$mess = sprintf("Er zijn %d diploma's bij leden verwijderd, omdat deze diploma's vervallen zijn. ", $result);
+			fnQuery(sprintf("OPTIMIZE TABLE %sDiploma;", $table_prefix));
+			fnQuery(sprintf("OPTIMIZE TABLE %sLiddipl;", $table_prefix));
+		}
+		$query = sprintf("DELETE FROM %sLiddipl WHERE EXDATUM > CURDATE();", $table_prefix);
+		$result = fnQuery($query);
+		if ($result > 0) {
+			$mess .= sprintf("Er zijn %d diploma's bij leden verwijderd, omdat de examendatum in de toekomst ligt. ", $result);
+		}
+		return $mess;
 		
 	}
 }
@@ -1995,7 +2023,7 @@ function db_param($naam, $actie="curval", $newval="") {
 		$cur = $result->fetch();
 		if (($cur->ParamType == "B" or $cur->ParamType == "I") and $cur->ValueNum != $newval) {
 			$set = sprintf("ValueNum=%d", $newval);
-		} elseif ($cur->ParamType == "T" and $cur->ValueChar != $newval) {
+		} elseif (($cur->ParamType == "S" or $cur->ParamType == "T") and $cur->ValueChar != $newval) {
 			$set = sprintf("ValueChar='%s'", $newval);
 		} else {
 			$set = "";
@@ -2203,15 +2231,8 @@ function db_onderhoud() {
 		fnQuery($query);
 	}
 	
-	$query = sprintf("DELETE FROM %sDiploma WHERE (NOT Vervallen IS NULL) AND Vervallen < CURDATE();", $table_prefix);
-	fnQuery($query);
-	$query = sprintf('DELETE FROM %1$sLiddipl WHERE DiplomaID NOT IN (SELECT RecordID FROM %1$sDiploma);', $table_prefix);
-	$result = fnQuery($query);
-	if ($result > 0) {
-		db_logboek("add", sprintf("Er zijn %d diploma's bij leden verwijderd, omdat deze diploma's vervallen zijn.", $result), 2);
-		fnQuery(sprintf("OPTIMIZE TABLE %sDiploma;", $table_prefix));
-		fnQuery(sprintf("OPTIMIZE TABLE %sLiddipl;", $table_prefix));
-	}
+	$mess = db_diploma("opschonen") . db_liddipl("opschonen");
+	db_logboek("add", $mess, 2, 0, 1);
 	
 	$query = sprintf("DELETE FROM %sGBR WHERE Balans=1;", $table_prefix);
 	fnQuery($query);
@@ -2220,7 +2241,8 @@ function db_onderhoud() {
 	if ($result > 0) {
 		fnQuery(sprintf("OPTIMIZE TABLE %sGBR;", $table_prefix));
 		fnQuery(sprintf("OPTIMIZE TABLE %sMutatie;", $table_prefix));
-		db_logboek("add", sprintf("Er zijn %d mutaties verwijderd, omdat er geen resultaatrekening aan gekoppeld was.", $result), 2);
+		$mess = sprintf("Er zijn %d mutaties verwijderd, omdat er geen resultaatrekening aan gekoppeld was.", $result);
+		db_logboek("add", $mess, 2, 0, 1);
 	}
 }
 
