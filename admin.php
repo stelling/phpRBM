@@ -312,6 +312,8 @@ function fnInstellingen() {
 			printf("<tr><td class='label'>%s: </td><td><input type='checkbox' name='value_%d' value='1' %s></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $c, $uitleg);
 		} elseif ($row->ParamType == "I") {
 			printf("<tr><td class='label'>%s: </td><td><input type='number' name='value_%d' value=%d size=8></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $row->ValueNum, $uitleg);
+		} elseif (strlen($row->ValueChar) > 60) {
+			printf("<tr><td class='label'>%s: </td><td><textarea cols=50 rows=7 name='value_%d'>%s</textarea></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $row->ValueChar, $uitleg);
 		} else {
 			printf("<tr><td class='label'>%s: </td><td><input type='text' name='value_%d' value=\"%s\" size=60></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $row->ValueChar, $uitleg);
 		}
