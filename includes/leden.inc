@@ -863,7 +863,7 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 				if (strlen($_POST[$fnBehaald]) == 0 and strlen($_POST[$fnDiplnr]) > 0) {
 					echo("<p class='mededeling'>Er moet altijd een datum van behalen ingevuld worden. Diplomanummer wordt niet toegevoegd.</p>");
 				} elseif (isset($_POST[$fnVerw])) {
-					db_liddipl("delete", $lidid, 0, $dp->RecordID, $ld->EXDATUM);
+					db_liddipl("delete", $ld->Lid, 0, $dp->RecordID, $ld->EXDATUM);
 				} elseif ($_POST[$fnVervaltPer] != $ld->LicentieVervallenPer or $_POST[$fnDiplnr] != $ld->Diplomanummer) {
 					db_liddipl("update", 0, $ld->RecordID, 0, $ld->EXDATUM, $_POST[$fnVervaltPer], $_POST[$fnDiplnr]);
 				}
@@ -871,7 +871,7 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 			$fnBehaald = sprintf("Behaald_%d_%d", $dp->RecordID, 0);
 			$fnVervaltPer = sprintf("VervaltPer_%d_%d", $dp->RecordID, 0);
 			$fnDiplnr = sprintf("Diplnr_%d_%d", $dp->RecordID, 0);
-			if (isset($_POST[$fnBehaald]) and strlen($_POST[$fnBehaald]) > 4) {
+			if (isset($_POST[$fnBehaald]) and strlen($_POST[$fnBehaald]) > 4 and $lidid > 0) {
 				db_liddipl("add", $lidid, 0, $dp->RecordID, $_POST[$fnBehaald], $_POST[$fnVervaltPer], $_POST[$fnDiplnr]);				
 			}
 		}
