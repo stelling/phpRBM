@@ -256,7 +256,7 @@ footer a, footer a:visited, #footer a, #footer a:visited {
 }
 
 .inputnumber {
-	width: 60px;
+	width: 50px;
 	text-align: right;
 }
 
@@ -769,6 +769,15 @@ fieldset h3 {
 	border-style: solid;
 	border-width: 1px;
 	font-size: 11pt;
+}
+
+#instellingenmuteren td {
+	padding-left: 5px;
+	padding-right: 5px;
+}
+
+#instellingenmuteren .inputtext {
+	width: 382px;
 }
 
 /* Elementen voor nieuw menu */
