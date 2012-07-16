@@ -300,7 +300,7 @@ function HTMLheader() {
 					echo("<a href='index.php'><img src='images/home.png' title='Beginpagina'></a>\n");
 				}
 			}
-		} else {
+		} elseif ($_SESSION['aantallogin'] > 0) {
 			echo("Login: <input type='text' name='username' size=20 maxlength=50>\n");
 			echo("&nbsp;Wachtwoord: <input type='password' name='password' size=10 maxlength=12>\n");
 			echo("&nbsp;<input type='submit' value='Inloggen' name='Inloggen'>\n");
@@ -752,7 +752,13 @@ class RBMmailer extends PHPMailer {
 		$this->From = db_param("emailwebmaster");
 		$this->FromName = db_param("naamvereniging");
 		$this->WordWrap = 110;
-		$this->AltBody    = "Om deze mail te bekijken gebruik een e-mailclient die met HTML overweg kan.";
+		$this->AltBody  = "Om deze mail te bekijken gebruik een e-mailclient die met HTML overweg kan.";
+		
+		$maxmailsperminuut = db_param("maxmailsperminuut");
+		if ($maxmailsperminuut > 0) {
+			usleep((60/$maxmailsperminuut) * 1000000);
+		}
+
 	}
 }
 
