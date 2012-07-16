@@ -125,6 +125,7 @@ footer a, footer a:visited, #footer a, #footer a:visited {
 	padding-top: 8px;
 	padding-left: 8px;
 }
+
 #kolomlinks, #kolomrechts {
 	width: 470px;
 	margin-left: 0;
@@ -295,6 +296,11 @@ footer a, footer a:visited, #footer a, #footer a:visited {
 	padding-left: 5px;
 	padding-right: 5px;
 	padding-bottom: 5px;
+}
+
+#loginaanvraag h3 {
+	color: white;
+	font-size: 14pt;
 }
 
 #loginaanvraag label {
@@ -488,10 +494,6 @@ fieldset h3 {
 	padding-right: 4px;
 }
 
-#footerleft a, #footerleft a:visited {
-	color: white;
-}
-
 #handleiding {
 	font-size: 10pt;
 	padding-top: 8px;
@@ -615,7 +617,9 @@ fieldset h3 {
 
 .tablist1 li.current {
    background-color: white;
+	border-color: white;
 }
+
 .tablist2 li.current, .tablist3 li.current {
 	font-weight: bolder;
 }
