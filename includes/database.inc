@@ -2010,11 +2010,10 @@ function db_param($naam, $actie="curval", $newval="") {
 		}
 		
 		if (TableExists("Admin_param")) {		
-			$query = sprintf("SELECT COUNT(*) AS Aanwezig, CASE ParamType WHEN 'I' THEN ValueNum WHEN 'B' THEN ValueNum ELSE ValueChar END AS CurVal FROM %sAdmin_param WHERE Naam='%s';", $table_prefix, $naam);
-			$result = fnQuery($query);
-			$row = $result->fetch();
-			if ($row->Aanwezig == 1) {
-				$retval = $row->CurVal;
+			$query = sprintf("SELECT COUNT(*) AS Aanwezig FROM %sAdmin_param WHERE Naam='%s';", $table_prefix, $naam);
+			if (db_scalar($query) > 0) {
+				$query = sprintf("SELECT CASE ParamType WHEN 'I' THEN ValueNum WHEN 'B' THEN ValueNum ELSE ValueChar END AS CurVal FROM %sAdmin_param WHERE Naam='%s';", $table_prefix, $naam);
+				$retval = db_scalar($query);
 			}
 		}
 		return $retval;
