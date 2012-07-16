@@ -3,7 +3,7 @@ include('./includes/standaard.inc');
 
 if ($_SESSION['aantallid'] == 0) {
 	echo("<script>alert('Voordat deze website gebruikt kan worden moeten er eerst gegevens uit de Access-database ge-upload worden.');
-		location.href='/admin.php?tp=Uploaden+data';</script>\n");
+		location.href='./admin.php?tp=Uploaden+data';</script>\n");
 } elseif ((!isset($lidid) or $lidid == 0) and isset($_SESSION['lidid'])) {
 	$lidid = $_SESSION['lidid'];
 } else {
@@ -65,7 +65,7 @@ if ($currenttab == "Eigen gegevens" and toegang($_GET['tp'])) {
 	if (!isset($_SESSION['username']) or strlen($_SESSION['username']) <= 5) {
 		echo("<div id='kolomrechts'>\n");
 		fnLoginAanvragen();
-		echo("</div>  <!-- Einde kolomrechts -->");
+		echo("</div>  <!-- Einde kolomrechts -->\n");
 	}
 }
 
