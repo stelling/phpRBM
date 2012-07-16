@@ -341,7 +341,7 @@ class mailing {
 			$et = sprintf(" (Het domein van dit adres moet '%s' zijn)", db_param("beperkfrom"));
 		}
 		printf("<tr><td class='label'>Vanaf e-mail:</td><td><input type='email' name='from_addr' value='%s' size=50 maxlength=50>%s</td></tr>\n", $this->from_addr, $et);
-		printf("<tr><td class='label'>Aan:</td><td><input type='text' name='to_name' value='%s' size=50 maxlength=50> (Omschrijving van de groep personen aan wie deze mailing gericht is)</td></tr>\n", $this->to_name);
+		printf("<tr><td class='label'>Aan:</td><td><input type='text' name='to_name' value='%s' size=50 maxlength=50 onBlur='this.form.submit();'> (Omschrijving van de groep personen aan wie deze mailing gericht is)</td></tr>\n", $this->to_name);
 		
 		$meldingen = "Er zijn nog geen ontvangers aan deze mailing toegevoegd.<br>\n";
 		$verzendenmag = false;
@@ -838,7 +838,7 @@ class mailing {
 					if ($this->verzamelen) {
 						db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message);
 					} else {
-						while ($this->mailsperminuut > 0 and $smptteller > ($this->mailsperminuut * ((time()-$starttijd) / 60)) and $smptteller > 0) {
+						while ($this->mailsperminuut > 0 and $smptteller >= ($this->mailsperminuut * ((time()-$starttijd) / 60)) and $smptteller > 0) {
 							usleep((60 / $this->mailsperminuut) * 1000000);
 							if (time()-$starttijd > 25) {
 								set_time_limit(30);
@@ -957,10 +957,10 @@ class mailing {
 	public function delete() {
 		global $table_prefix;
 	
-		$query = sprintf("UPDATE %sMailing SET deleted_on=NOW(), DeletedBy=%d WHERE MailingID=%d;", $table_prefix, $_SESSION['lidid'], $this->mid);
+		$query = sprintf("UPDATE %sMailing SET deleted_on=NOW(), DeletedBy=%d WHERE MailingID=%d AND (deleted_on IS NULL);", $table_prefix, $_SESSION['lidid'], $this->mid);
 		$result = fnQuery($query);
 		if ($result > 0) {
-			$mess = sprintf("Mailing %d (%s) is door %s naar de prullenbak verplaatst.", $this->mid, $this->subject, $_SESSION['naamingelogde']);
+			$mess = sprintf("Mailing %d (%s) is naar de prullenbak verplaatst.", $this->mid, $this->subject, $_SESSION['naamingelogde']);
 			db_logboek("add", $mess, 4, 0, 1);
 		}
 	}
