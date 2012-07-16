@@ -77,16 +77,13 @@ if (TableExists(sprintf("%sLid", $table_prefix)) == false) {
 	db_createtables();
 	db_onderhoud();
 	$_SESSION['aantallid'] = 0;
-} else if (!isset($_SESSION['aantallid']) or $_SESSION['aantallid'] == 0) {
+} else if (!isset($_SESSION['aantallid']) or $_SESSION['aantallid'] < 25) {
 	$query = sprintf("SELECT COUNT(*) FROM %sLid;", $table_prefix);
-	$result = fnQuery($query);
-	$_SESSION['aantallid'] = $result->fetchColumn();
+	$_SESSION['aantallid'] = db_scalar($query);
 }
 
-if (!isset($_SESSION['aantallogin']) or $_SESSION['aantallogin'] == 0) {
-	$query = sprintf("SELECT COUNT(*) FROM %sAdmin_login;", $table_prefix);
-	$result = fnQuery($query);
-	$_SESSION['aantallogin'] = $result->fetchColumn();
+if (!isset($_SESSION['aantallogin']) or $_SESSION['aantallogin'] < 5) {
+	$_SESSION['aantallogin'] = db_logins("aantal");
 }
 
 if (!isset($_SESSION['aantalafdelingen'])) {
@@ -946,6 +943,11 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 		db_logins("uitloggen");
 		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_login WHERE Ingelogd=1;", $table_prefix);
 		return db_scalar($query);
+		
+	} elseif ($actie == "aantal") {
+		$query = sprintf("SELECT COUNT(*) FROM %1\$sAdmin_login AS Login INNER JOIN %1\$sLid AS L ON Login.LidID = L.Nummer;", $table_prefix);
+		return db_scalar($query);
+		
 	} elseif ($actie == "delete" and $lidid > 0) {
 		if ($_SESSION['webmaster'] == 1) {
 			$query = sprintf("DELETE FROM %sAdmin_login WHERE LidID=%d;", $table_prefix, $lidid);
