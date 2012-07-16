@@ -86,9 +86,7 @@ function toegang($soort, $melding=1) {
 		db_logins("updateactiviteit", "", "", $_SESSION['lidid']);
 	}
 	
-	if (in_array($soort, array('Verenigingsinfo', 'Beginpagina')) === TRUE) {
-		return true;
-	} elseif (strlen($soort) > 0) {
+	if (strlen($soort) > 0) {
 		if ($_SESSION['lidid'] > 0) {
 			$soort = str_replace("'", "", $soort);
 			$query = sprintf("SELECT COUNT(*) FROM %sAdmin_access WHERE Tabpage=\"%s\";", $table_prefix, $soort);
@@ -186,10 +184,10 @@ function fnConfirmLogin($row, $xtratekst="") {
 	$mail = new RBMmailer();
 
 	$mail->FromName = $from;
-	if (isValidMailAddress($row->EmailVereniging, 0)) {
-		$email = $row->EmailVereniging;
-	} else {
+	if (isValidMailAddress($row->Email, 0)) {
 		$email = $row->Email;
+	} else {
+		$email = $row->EmailVereniging;
 	}
 	$mail->AddAddress($email);
 	$mail->Subject = $subj;
@@ -236,10 +234,10 @@ Dit verzoek is vanaf IP-adres %s gedaan.
 
 	try {
 		$mail->FromName = $from;
-		if (strlen($row->EmailVereniging) > 5 and isValidMailAddress($row->EmailVereniging)) {
-			$email = $row->EmailVereniging;
-		} else {
+		if (isValidMailAddress($row->Email, 0)) {
 			$email = $row->Email;
+		} else {
+			$email = $row->EmailVereniging;
 		}
 		$mail->AddAddress($email);
 		$mail->Subject = $subj;
@@ -344,19 +342,19 @@ function fnLoginAanvragen() {
 		echo("<h3>Aanvragen login</h3>\n");
 		
 		echo("<p><label for='gewenstelogin'>Gewenste login:</label>\n
-				<input type='text' name='gewenstelogin' id='gewenstelogin'>\n");
+				<input type='text' name='gewenstelogin'>\n");
 				
 		if ($lidnrnodigbijloginaanvraag == 1) {
 			echo("<label for='lidnummer'>Lidnummer:</label>\n
-					<input type='number' name='lidnummer' id='lidnummer'>\n");
+					<input class='inputnumber' type='number' name='lidnummer'>\n");
 		}
 				
 		echo("<label for='email'>E-mailadres:</label>\n
-				<input type='email' name='email' id='email'>\n");
-				
+				<input type='email' name='email'>\n");
+
 		echo("<input class='knop' type='submit' name='loginaanvragen' value='Aanvragen'></p>\n");
 		echo("</fieldset>\n");
-		
+
 		if ($lidnrversturenmogelijk == 1) {
 			echo("<p>Door alleen je e-mailadres in te vullen wordt je lidnummer per e-mail verzonden.\n");
 		} else {
