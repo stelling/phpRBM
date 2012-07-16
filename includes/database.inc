@@ -39,6 +39,7 @@ $TypeActiviteit[] = "Evenementen";
 $TypeActiviteit[] = "Interface";
 $TypeActiviteit[] = "Upload data";  // 9
 $TypeActiviteit[] = "Webshop";
+$TypeActiviteit[98] = "Performance";
 $TypeActiviteit[99] = "Debugging";
 
 $fdlang = "'%e %M %Y'";
@@ -117,11 +118,19 @@ if (!isset($_SESSION['aantalkostenplaatsen'])) {
 }
 
 function fnQuery($query, $add_prefix=1) {
-   global $dbc, $table_prefix, $arrTables;
+   global $dbc, $table_prefix, $arrTables, $performance_trage_select;
+	
+	$starttijd = time();
 	
 	try {
 		if (strtoupper(substr($query, 0, 6)) == "SELECT") {
 			$rs = $dbc->query($query);
+			$exec_tijd = time() - $starttijd;
+			if ($performance_trage_select > 0 and $exec_tijd > $performance_trage_select) {
+				sprintf("%d seconden query: %s", $exec_tijd, str_replace("SELECT", "", $query));
+				db_logboek("add", $mess, 98);
+debug($mess);
+			}
 			return $rs;
 		} else {			
 			$result = $dbc->prepare($query);
@@ -1972,6 +1981,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrIntegers['maxmailsperminuut'] = 60;
 	$arrIntegers['maxinlogpogingen'] = 4;
 	$arrIntegers['opzegtermijn'] = 1;
+	$arrIntegers['performance_trage_select'] = 1;
 	$arrIntegers['smtpport'] = 0;
 	$arrIntegers['termijnvervallendiplomasmailen'] = 3;
 	$arrIntegers['typemenu'] = 1;

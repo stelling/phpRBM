@@ -243,6 +243,7 @@ function fnInstellingen() {
 	$arrParam['naamvereniging'] = "Wat is de naam van de vereniging?";
 	$arrParam['naamwebsite'] = "Dit is de naam zoals deze in de titel en op elke pagina getoond wordt.";
 	$arrParam['opzegtermijn'] = "De opzegtermijn van de vereniging in maanden.";
+	$arrParam['performance_trage_select'] = "Vanaf hoeveel seconden moet een select-statement in het logboek worden gezet. 0 = nooit.";
 	$arrParam['resultaatmailingversturen'] = "Indien aangevinkt wordt naar de zender en het secretariaat een mail met het resultaat van deze mailing verzonden.";
 	$arrParam['scriptbijuitloggen'] = "Dit script wordt automatisch gedraaid nadat iemand is uitgelogd. Optioneel veld.";
 	$arrParam['smtphost'] = "De naam van de SMTP-server voor het versturen van e-mails. Indien deze niet wordt ingevuld, wordt van de mail-functie uit PHP gebruik gemaakt.";
