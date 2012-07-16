@@ -1,10 +1,9 @@
 <? 
 // *** Standaard config.php voor GitHub ***
 
-// Gegevens om toegang te krijgen tot de MySQL-database. 
-$db_host='';  // Server (host) naam van de MySQL-server
+$db_host='';  // Server (host) naam van de MySQL-server.
 $db_name='';  // Gebruikersnaam voor de MYSQL-server
-$db_user='';  // Deze gebruiker moet onder andere rechten hebben om tabellen te mogen aanmaken en te verwijderen. 
+$db_user='';  // Deze gebruiker moet onder andere rechten hebben om tabellen te mogen aanmaken en te verwijderen.
 $db_pass='';  // Wachtwoord wat bij de gebruikersnaam van MySQL hoort.
 $table_prefix = "rbm_"; // Zorg dat je bij het uploaden van de gegevens uit MS-Access dezelfde prefix gebruikt.
 $lididwebmasters = array(1);  // Dit is het interne nummer (RecordID) van het lid. Bij meerdere webmaster: scheiden met een komma.
