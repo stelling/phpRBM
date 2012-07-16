@@ -1,7 +1,7 @@
 <?php
 include('includes/standaard.inc');
 
-if (!isset($_GET['op']) or toegang($_GET['tp']) == false) {
+if (!isset($_GET['op']) or (toegang($_GET['tp']) == false and $_SESSION['aantallid'] > 1)) {
 	$_GET['op'] = "";
 }
 
@@ -131,7 +131,7 @@ if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
 		printf("<p class='mededeling'>Er staan zijn momenteel %d gebruikers ingelogd. Het is daarom niet verstandig om een upload te doen.</p>", $aantal);
 	}
 	echo("<div id='invulformulier'>\n");
-	printf("<form name='formupload' method='post' action='%s?%s&amp;op=uploaddata' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+	printf("<form name='formupload' method='post' action='%s?tp=%s&amp;op=uploaddata' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	echo("<table>\n");
 	echo("<tr><td class='label'>Bestand</td><td><input type='file' name='SQLupload'><input type='submit' value='Verwerk'></td></tr>\n");
 	echo("</table>\n");
