@@ -726,7 +726,11 @@ function nieuwepasfoto($lidid, $filterlid="") {
 	echo("<div id='nieuwepasfoto'>\n");
 	$fn = fotolid($lidid, 1);
 	if (strlen($fn) > 4) {
+		echo("<p>\n");
 		printf("<img src='%s' alt='Huidige pasfoto %s'>\n", $fn, $naamlid);
+		$fn = fotolid($lidid, 0);
+		printf("Deze foto is voor het laatst op %s gewijzigd en is %dKB groot.", strftime("%e %B %Y", filectime($fn)), filesize($fn) / 1024);
+		echo("</p>\n");
 	} elseif ($lidid > 0) {
 		printf("<p class='mededeling'>Geen huidige pasfoto van %s beschikbaar.</p>\n", $naamlid);
 	}
