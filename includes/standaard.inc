@@ -43,6 +43,7 @@ if (strlen(db_param("muteerbarememos")) > 0) {
 } else {
 	$muteerbarememos = array();
 }
+$performance_trage_select = db_param("performance_trage_select");
 
 if (isset($_GET['tp']) and strlen($_GET['tp']) > 1) {
 	$sp = strpos($_GET['tp'], "/");
@@ -433,6 +434,7 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 	global $tabpages, $curtab, $currenttab, $currenttab2, $navpad, $typemenu;
 	
 	$typemenu = db_param("typemenu");
+	$ulopen = false;
 
 	if (strlen($xtra) > 0 and startwith($xtra, "&amp;") == false) {
 		$xtra = "&amp;" . $xtra;
@@ -562,7 +564,7 @@ function fnDisplayForm($row, $xtra_eind="", $class="formulier") {
 	return $ret;
 }
 
-function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_regel="", $class="lijst") {
+function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_regel="", $class="lijst", $xtra_kolom="") {
 	$ret = sprintf("<div class='%s'>\n", $class);
 	if (isset($rows) and (count($rows) > 0 or strlen($xtra_regel) > 0)) {
 		$ret .= "<table>\n";

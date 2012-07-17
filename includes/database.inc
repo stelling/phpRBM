@@ -120,21 +120,21 @@ if (!isset($_SESSION['aantalkostenplaatsen'])) {
 function fnQuery($query, $add_prefix=1) {
    global $dbc, $table_prefix, $arrTables, $performance_trage_select;
 	
-	$starttijd = time();
+	$starttijd = microtime(true);
 	
 	try {
 		if (strtoupper(substr($query, 0, 6)) == "SELECT") {
 			$rs = $dbc->query($query);
-			$exec_tijd = time() - $starttijd;
-			if ($performance_trage_select > 0 and $exec_tijd > $performance_trage_select) {
-				sprintf("%d seconden query: %s", $exec_tijd, str_replace("SELECT", "", $query));
+			$exec_tijd = microtime(true) - $starttijd;
+			if ($performance_trage_select > 0 and $exec_tijd >= $performance_trage_select) {
+				$mess = sprintf("%f seconden query: %s", $exec_tijd, $query);
 				db_logboek("add", $mess, 98);
-debug($mess);
 			}
 			return $rs;
-		} else {			
+		} else {
 			$result = $dbc->prepare($query);
 			$result->execute();
+			$exec_tijd = microtime(true) - $starttijd;
 			if (strtoupper(substr($query, 0, 6)) == "INSERT") {
 				return $dbc->lastInsertId();
 			} else {
@@ -864,7 +864,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 	$mess = "";
 	if ($actie == "nieuwlogin" and isValidMailAddress($email) and strlen($login) > 5) {
 		$query = sprintf("SELECT L.Nummer, Login.Login FROM %1\$sLid AS L LEFT OUTER JOIN %1\$sAdmin_login AS Login ON L.Nummer = Login.LidID
-								WHERE (LOWER(L.Email)='%2\$s' OR LOWER(L.EmailVereniging)='%2\$s')", $table_prefix, strtolower($email));
+								WHERE (LOWER(L.Email) LIKE '%2\$s' OR LOWER(L.EmailVereniging) LIKE '%2\$s')", $table_prefix, strtolower($email));
 		$result = fnQuery($query);
 		$row = $result->fetch();
 		if (isset($row->Nummer) and $row->Nummer > 0) {
@@ -910,7 +910,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 		}
 		$query .= sprintf(" FROM %1\$sLid AS L LEFT OUTER JOIN %1\$sAdmin_login AS Login ON L.Nummer = Login.LidID WHERE ", $table_prefix);
 		if (isValidMailAddress($email, 0)) {
-			$query .= sprintf("(LOWER(L.Email)='%1\$s' OR LOWER(L.EmailVereniging)='%1\$s')", strtolower($email));
+			$query .= sprintf("(LOWER(L.Email) LIKE '%1\$s' OR LOWER(L.EmailVereniging) LIKE '%1\$s')", strtolower($email));
 		} else {
 			$query .= sprintf("L.Nummer=%d", $lidid);
 		}
@@ -922,7 +922,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 		return $result->fetchAll();
 		
 	} elseif ($actie == "controlebestaat" and strlen($login) > 5) {
-		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_login WHERE Login='%s' AND LidID<>%d;", $table_prefix, $login, $lidid);
+		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_login WHERE Login LIKE '%s' AND LidID<>%d;", $table_prefix, $login, $lidid);
 		if (db_scalar($query) > 0) {
 			return true;
 		} else {
@@ -1005,11 +1005,11 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 	
 		$xtrawhere = "";
 		if (isValidMailAddress($_SESSION['username'], 0)) {
-			$xtrawhere = sprintf("AND (LOWER(L.Email)='%1\$s' OR LOWER(L.EmailVereniging)='%1\$s')", strtolower($_SESSION['username']));
+			$xtrawhere = sprintf("AND (LOWER(L.Email) LIKE '%1\$s' OR LOWER(L.EmailVereniging) LIKE '%1\$s')", strtolower($_SESSION['username']));
 		} else {
-			$xtrawhere = sprintf("AND Login.Login='%s'", cleanlogin($_SESSION['username']));
+			$xtrawhere = sprintf("AND Login.Login LIKE '%s'", cleanlogin($_SESSION['username']));
 		}
-		$xtrawhere .= sprintf(" AND Login.Wachtwoord='%s'", encript_decript($_SESSION['password']));
+		$xtrawhere .= sprintf(" AND Login.Wachtwoord LIKE '%s'", encript_decript($_SESSION['password']));
 		if (is_array($beperktotgroep) and count($beperktotgroep) > 0) {
 			$xtrawhere .= sprintf(" AND (Login.LidID IN (SELECT Lid FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID IN (%s)) OR Login.LidID IN (%s))", $table_prefix, $wherelidond, implode(", ", $beperktotgroep), implode(", ", $lididwebmasters));
 		} else {
@@ -1283,7 +1283,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		if ($lidid > 0) {
 			$query = sprintf("SELECT COUNT(*) FROM %sMailing_rcpt WHERE MailingID=%d AND LidID=%d;", $table_prefix, $mid, $lidid);
 		} elseif (isValidMailAddress($email)) {
-			$query = sprintf("SELECT COUNT(*) FROM %sMailing_rcpt WHERE MailingID=%d AND to_address='%s';", $table_prefix, $mid, strtolower($email));
+			$query = sprintf("SELECT COUNT(*) FROM %sMailing_rcpt WHERE MailingID=%d AND to_address LIKE '%s';", $table_prefix, $mid, strtolower($email));
 		} else {
 			$query = "";
 		}
@@ -1456,7 +1456,7 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0) {
 			$s .= ", IP_adres";
 		}
 		if ($lidid > 0) {
-			$w .= sprintf(" AND LidID=%d", $lidid);
+			$w .= sprintf(" AND LidID=%d AND TypeActiviteit < 98", $lidid);
 		} else {
 			$s .= sprintf(", %s AS `Ingelogd Lid`", $selectnaam);
 		}
@@ -1976,12 +1976,11 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrIntegers['bewaartijdmailings'] = 3;
 	$arrIntegers['db_backupsopschonen'] = 11;
 	$arrIntegers['loginautounlock'] = 120;
-	$arrIntegers['max_grootte_bijlage'] = 0;
+	$arrIntegers['max_grootte_bijlage'] = 2048;
 	$arrIntegers['maxlengtelogin'] = 12;
 	$arrIntegers['maxmailsperminuut'] = 60;
 	$arrIntegers['maxinlogpogingen'] = 4;
 	$arrIntegers['opzegtermijn'] = 1;
-	$arrIntegers['performance_trage_select'] = 1;
 	$arrIntegers['smtpport'] = 0;
 	$arrIntegers['termijnvervallendiplomasmailen'] = 3;
 	$arrIntegers['typemenu'] = 1;
@@ -2002,6 +2001,8 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrStrings['naamwebsite'] = "Naam website";
 	$arrStrings['urlwebsite'] = $_SERVER["HTTP_HOST"];
 	
+	$arrFloats['performance_trage_select'] = 0.5;
+	
 	if ($actie == "lijst") {
 		$query = sprintf("SELECT *, IFNULL(ValueNum, ValueChar) AS CurVal FROM %sAdmin_param
 					ORDER BY Naam;", $table_prefix);
@@ -2013,17 +2014,22 @@ function db_param($naam, $actie="curval", $newval="") {
 			$retval = $arrBooleans[$naam];
 		} elseif (array_key_exists($naam, $arrIntegers)) {
 			$retval = $arrIntegers[$naam];
+		} elseif (array_key_exists($naam, $arrFloats)) {
+			$retval = $arrFloats[$naam];
 		} elseif (array_key_exists($naam, $arrStrings)) {
 			$retval = $arrStrings[$naam];
 		} else {
-			$retval = "";
+			$retval = $naam;
 		}
 		
-		if (TableExists("Admin_param")) {		
-			$query = sprintf("SELECT COUNT(*) AS Aanwezig FROM %sAdmin_param WHERE Naam='%s';", $table_prefix, $naam);
-			if (db_scalar($query) > 0) {
-				$query = sprintf("SELECT CASE ParamType WHEN 'I' THEN ValueNum WHEN 'B' THEN ValueNum ELSE ValueChar END AS CurVal FROM %sAdmin_param WHERE Naam='%s';", $table_prefix, $naam);
-				$retval = db_scalar($query);
+		$query = sprintf("SELECT IFNULL(RecordID, 0) AS RecordID, ParamType, ValueNum, ValueChar FROM %sAdmin_param WHERE Naam LIKE '%s';", $table_prefix, $naam);
+		$result = fnQuery($query);
+		$row = $result->fetch();
+		if ($row->RecordID > 0) {
+			if ($row->ParamType == "B" or $row->ParamType == "F" or $row->ParamType == "I") {
+				$retval = $row->ValueNum;
+			} else {
+				$retval = $row->ValueChar;
 			}
 		}
 		return $retval;
@@ -2034,13 +2040,18 @@ function db_param($naam, $actie="curval", $newval="") {
 		$cur = $result->fetch();
 		if (($cur->ParamType == "B" or $cur->ParamType == "I") and $cur->ValueNum != $newval) {
 			$set = sprintf("ValueNum=%d", $newval);
+			if (array_key_exists($naam, $arrFloats)) {
+				$set .= ", ParamType='F'";
+			}
+		} elseif ($cur->ParamType == "F" and $cur->ValueNum != $newval) {
+			$set = sprintf("ValueNum=%F", $newval);
 		} elseif (($cur->ParamType == "S" or $cur->ParamType == "T") and $cur->ValueChar != $newval) {
 			$set = sprintf("ValueChar='%s'", $newval);
 		} else {
 			$set = "";
 		}
 		if (strlen($set) > 0) {
-			$query = sprintf("UPDATE %sAdmin_param SET %s, GewijzigdDoor=%d WHERE Naam='%s';", $table_prefix, $set, $_SESSION['lidid'], $naam);
+			$query = sprintf("UPDATE %sAdmin_param SET %s, GewijzigdDoor=%d WHERE RecordID=%d;", $table_prefix, $set, $_SESSION['lidid'], $cur->RecordID);
 			$result = fnQuery($query);
 			if ($result > 0) {
 				$mess = sprintf("Parameter '%s' is in '%s' gewijzigd.", $naam, $newval);
@@ -2049,12 +2060,14 @@ function db_param($naam, $actie="curval", $newval="") {
 		}
 		
 	} elseif ($actie == "controle" and TableExists("Admin_param")) {
-		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_param WHERE Naam='%s';", $table_prefix, $naam);
+		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_param WHERE Naam LIKE '%s';", $table_prefix, $naam);
 		if (db_scalar($query) == 0) {
 			if (array_key_exists($naam, $arrBooleans)) {
 				$dv = sprintf("ParamType='B', ValueNum=%d", $arrBooleans[$naam]);
 			} elseif (array_key_exists($naam, $arrIntegers)) {
 				$dv = sprintf("ParamType='I', ValueNum=%d", $arrIntegers[$naam]);
+			} elseif (array_key_exists($naam, $arrFloats)) {
+				$dv = sprintf("ParamType='F', ValueNum=%F", $arrFloats[$naam]);
 			} elseif (array_key_exists($naam, $arrStrings)) {
 				$dv = sprintf("ParamType='T', ValueChar='%s'", $arrStrings[$naam]);
 			} else {
@@ -2087,8 +2100,7 @@ function db_onderhoud() {
 
 	// Vaste aanpassingen aan de database na een upload, omdat MS-Access geen datum velden kent, alleen datum_tijd.
 	$query = sprintf("SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sBewaking' AND COLUMN_NAME='BEGIN_PER';", $db_name, $table_prefix);
-	$result = fnQuery($query);
-	if ($result->fetchColumn() != "date") {
+	if (db_scalar($query) != "date") {
 		fnQuery(sprintf("ALTER TABLE %sBewaking CHANGE `BEGIN_PER` `BEGIN_PER` DATE;", $table_prefix));
 		fnQuery(sprintf("ALTER TABLE %sBewaking CHANGE `EINDE_PER` `EINDE_PER` DATE;", $table_prefix));
 		fnQuery(sprintf("ALTER TABLE %sBewseiz CHANGE Begindatum Begindatum DATE;", $table_prefix));
@@ -2116,7 +2128,7 @@ function db_onderhoud() {
 	$query = sprintf("SELECT EXTRA FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sLiddipl' AND COLUMN_NAME='RecordID';", $db_name, $table_prefix);
 	$result = fnQuery($query);
 	if ($result->fetchColumn() != "auto_increment") {
-		$query = sprintf("DELETE FROM %sLiddipl WHERE RecordID = 0;", $table_prefix);
+		$query = sprintf("DELETE FROM %sLiddipl WHERE RecordID=0;", $table_prefix);
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$mess = sprintf("Er zijn %d records uit Liddipl verwijderd, omdat het RecordID leeg was.", $result);
@@ -2127,15 +2139,15 @@ function db_onderhoud() {
 	}
 	
 	// Aanpassen lengte login in de database als deze kleiner is dan maxlengtelogin
-	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sAdmin_login' AND COLUMN_NAME='Login';", $db_name, $table_prefix);
+	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%sAdmin_login' AND COLUMN_NAME LIKE 'Login';", $db_name, $table_prefix);
 	if (db_scalar($query) < $maxlengtelogin) {
 		fnQuery(sprintf("ALTER TABLE `%sAdmin_login` CHANGE `Login` `Login` VARCHAR( %s ) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table_prefix, $maxlengtelogin));
 	}	
 	
-	/***** Velden die later zijn toegevoegd. De code om ze toe te voegen blijft een jaar staan,.  *****/
+	/***** Velden die later zijn toegevoegd. De code om ze toe te voegen blijft een jaar staan.  *****/
 	
 	// Toevoegen veld 'cc_addr' aan de tabel Mailing_hist. Deze code kan na 5/3/2013 worden verwijderd.
-	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sMailing_hist' AND COLUMN_NAME='cc_addr';", $db_name, $table_prefix);
+	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%sMailing_hist' AND COLUMN_NAME LIKE 'cc_addr';", $db_name, $table_prefix);
 	if (db_scalar($query) == 0) {
 		fnQuery(sprintf("ALTER TABLE `%sMailing_hist` ADD `cc_addr` VARCHAR(50);", $table_prefix));
 	}
