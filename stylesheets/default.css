@@ -702,7 +702,6 @@ fieldset h3 {
 	width: 310px;
 	border-style: solid;
 	border-width: 1px;
-	border-left-style: none;
 	margin-top: 10px;
 	margin-left: 3px;
 	margin-right: 3px;
@@ -710,6 +709,11 @@ fieldset h3 {
 	background-color: #FFFF99;
    border-top-right-radius: 9px;
    border-bottom-right-radius: 9px;
+}
+
+.kaartje p {
+	margin-left: 3px;
+	margin-right: 3px;
 }
 
 .bewaker {
