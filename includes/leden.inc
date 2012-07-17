@@ -299,9 +299,9 @@ function fnWieiswie($actie, $metfoto=1) {
 		echo("<table>\n");
 		foreach ($lijst as $row) {
 			if ($vo != $row->OndNaam) {
-				printf("<th colspan=4>%s</th>\n", $row->OndNaam);
+				printf("<th colspan=5>%s</th>\n", $row->OndNaam);
 				if (isValidMailAddress($row->CentraalEmail, 0)) {
-					printf("<tr>\n<td>&nbsp;</td><td colspan='2'><strong>Centraal e-mailadres</strong></td>\n<td>%s</td>\n</tr>\n", fnDispEmail($row->CentraalEmail, $row->OndNaam, 0, 1));
+					printf("<tr>\n<td>&nbsp;</td><td colspan=2><strong>Centraal e-mailadres</strong></td>\n<td>%s</td>\n</tr>\n", fnDispEmail($row->CentraalEmail, $row->OndNaam, 0, 1));
 					if (strlen($vo) == 0) {
 						echo("<tr><td colspan=4>&nbsp;</td>\n<td><strong>Vanaf</strong></td>\n</tr>\n");
 					} else {

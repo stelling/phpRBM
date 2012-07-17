@@ -2019,13 +2019,13 @@ function db_param($naam, $actie="curval", $newval="") {
 		} elseif (array_key_exists($naam, $arrStrings)) {
 			$retval = $arrStrings[$naam];
 		} else {
-			$retval = $naam;
+			$retval = "";
 		}
 		
 		$query = sprintf("SELECT IFNULL(RecordID, 0) AS RecordID, ParamType, ValueNum, ValueChar FROM %sAdmin_param WHERE Naam LIKE '%s';", $table_prefix, $naam);
 		$result = fnQuery($query);
 		$row = $result->fetch();
-		if ($row->RecordID > 0) {
+		if (isset($row->RecordID) and $row->RecordID > 0) {
 			if ($row->ParamType == "B" or $row->ParamType == "F" or $row->ParamType == "I") {
 				$retval = $row->ValueNum;
 			} else {

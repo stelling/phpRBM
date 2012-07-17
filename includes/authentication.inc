@@ -302,8 +302,10 @@ function fnLoginAanvragen() {
 							} else {
 								if (is_array($beperktotgroep) and count($beperktotgroep) == 1) {
 									$gr = $beperktotgroep[0];
-								} else {
+								} elseif (is_numeric($beperktotgroep)) {
 									$gr = $beperktotgroep;
+								} else {
+									$gr = 0;
 								}
 								$mess = sprintf("Je behoort niet tot groep '%s' van %s. Een login mag niet aangevraagd worden.", db_naam_onderdeel($gr), db_param("naamvereniging"));
 							}
