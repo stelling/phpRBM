@@ -2,7 +2,6 @@
 date_default_timezone_set('Europe/Amsterdam');
 setlocale(LC_ALL,'nl_NL@euro');
 
-// session_start();
 if (session_start() === FALSE or strlen(session_id()) == 0) {
 	$mess = "De sessie kan niet gestart worden, hierdoor kan er op dit moment niet gelogd worden.";
 	db_logboek("add", $mess, 1, 0, 1);
