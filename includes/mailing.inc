@@ -808,7 +808,7 @@ class mailing {
 			echo("<br>\n" . $this->mailbericht);
 		}
 		
-		$starttijd = time();
+		$starttijd = microtime(true);
 		$smptteller = 0;
 		foreach($rcpts as $rcpt) {
 			$this->create_mess($rcpt->Nummer);
@@ -838,11 +838,9 @@ class mailing {
 					if ($this->verzamelen) {
 						db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message);
 					} else {
-						while ($this->mailsperminuut > 0 and $smptteller >= ($this->mailsperminuut * ((time()-$starttijd) / 60)) and $smptteller > 0) {
+						while ($this->mailsperminuut > 0 and $smptteller >= ($this->mailsperminuut * ((microtime(true)-$starttijd) / 60)) and $smptteller > 0) {
 							usleep((60 / $this->mailsperminuut) * 1000000);
-							if (time()-$starttijd > 25) {
-								set_time_limit(30);
-							}
+							set_time_limit(60);
 						}
 						$smptteller++;
 						if ($mail->Send()) {
