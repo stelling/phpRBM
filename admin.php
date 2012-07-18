@@ -273,8 +273,9 @@ function fnInstellingen() {
 			}
 			if ($row->Naam == "beperktotgroep" or $row->Naam == "muteerbarememos") {
 				$_POST[$pvn] = str_replace(" ", "", $_POST[$pvn]);
-			}
-			if ($row->Naam == "maxlengtelogin") {
+			} elseif ($row->Naam == "typemenu" and (strlen($_POST[$pvn]) == 0 or $_POST[$pvn] < 1 or $_POST[$pvn] > 3)) {
+				$_POST[$pvn] = 1;
+			} elseif ($row->Naam == "maxlengtelogin") {
 				if (strlen($_POST[$pvn]) == 0 or is_numeric($_POST[$pvn]) == false or $_POST[$pvn] > 15) {
 					$_POST[$pvn] = 15;
 				} elseif ($_POST[$pvn] < 7) {
@@ -287,7 +288,10 @@ function fnInstellingen() {
 				} else {
 					$_POST[$pvn] = 0;
 				}
-			} elseif ($row->ParamType == "I") {
+			} elseif ($row->ParamType == "I" or $row->ParamType == "F") {
+				if ($row->ParamType == "F") {
+					$_POST[$pvn] = str_replace(",", ".", $_POST[$pvn]);
+				}
 				if (strlen($_POST[$pvn]) == 0 or is_numeric($_POST[$pvn]) == false) {
 					$_POST[$pvn] = 0;
 				}
@@ -313,6 +317,8 @@ function fnInstellingen() {
 			printf("<tr><td class='label'>%s: </td><td><input type='checkbox' name='value_%d' value='1' %s></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $c, $uitleg);
 		} elseif ($row->ParamType == "I") {
 			printf("<tr><td class='label'>%s: </td><td><input type='number' class='inputnumber' name='value_%d' value=%d size=8></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $row->ValueNum, $uitleg);
+		} elseif ($row->ParamType == "F") {
+			printf("<tr><td class='label'>%s: </td><td><input name='value_%d' value=%F size=8></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $row->ValueNum, $uitleg);
 		} elseif (strlen($row->ValueChar) > 60) {
 			printf("<tr><td class='label'>%s: </td><td><textarea cols=45 rows=7 name='value_%d'>%s</textarea></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $row->ValueChar, $uitleg);
 		} else {
