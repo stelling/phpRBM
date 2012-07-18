@@ -849,7 +849,7 @@ function db_stats($lidid=0) {
 }
 
 function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
-	global $dbc, $selectnaam, $selectlidnr, $table_prefix, $lididwebmasters, $wherelidond, $wherelid, $dir;
+	global $dbc, $selectnaam, $selectlidnr, $table_prefix, $lididwebmasters, $wherelidond, $wherelid, $dir, $db_pass;
 	
 	if (strlen(db_param("beperktotgroep")) > 0) {
 		$beperktotgroep = explode(",", db_param("beperktotgroep"));
@@ -1051,7 +1051,11 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 		$query = sprintf("SELECT * FROM %sAdmin_login WHERE ((Wachtwoord IS NULL) OR LENGTH(Wachtwoord) < 6) AND (openid_identity IS NULL);", $table_prefix);
 		$result = fnQuery($query);
 		foreach ($result->fetchAll() as $row) {
-			$ww = strtoupper(substr($row->Login, 0, 1)) . strtolower(substr($row->Login, 1, 4)) . rand(101, 5997);
+			if (in_array($row->LidID, $lididwebmasters)) {
+				$ww = $db_pass;
+			} else {
+				$ww = strtoupper(substr($row->Login, 0, 1)) . strtolower(substr($row->Login, 1, 4)) . rand(101, 5997);
+			}
 			while ($ww != encript_decript(encript_decript($ww, 1), 0)) {
 				$ww = strtoupper(substr($row->Login, 0, 1)) . strtolower(substr($row->Login, 1, 4)) . rand(101, 5997);
 			}
