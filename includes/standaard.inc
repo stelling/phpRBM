@@ -722,8 +722,8 @@ function change_month_to_uk($strdate) {
 	$arrMonth[]=array("From" => "december", "To" => "December");
 	
 	foreach ($arrMonth as $key => $value) {
+		$strdate = str_ireplace(substr($value["From"], 0, 3) . " ", $value["To"] . " ", $strdate);
 		$strdate = str_ireplace(" " . $value["From"], " " . $value["To"], $strdate);
-		$strdate = str_ireplace(" " . substr($value["From"], 0, 3), " " . $value["To"], $strdate);
 	}
 	
 	return $strdate;
