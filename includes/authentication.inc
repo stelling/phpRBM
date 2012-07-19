@@ -105,9 +105,9 @@ function toegang($soort, $melding=1) {
 			} else {
 				if ($melding == 1) {
 					if ($_SESSION['lidid'] > 0) {
-						$mess = sprintf("%s heeft geen toegang tot het onderdeel '%s' op %s.", $_SESSION['naamingelogde'], $soort, $naamwebsite);
+						$mess = sprintf("%s heeft geen toegang tot het onderdeel '%s' op %s.", $_SESSION['naamingelogde'], $soort, $_SESSION['naamwebsite']);
 					} else {
-						$mess = sprintf("Je bent niet ingelogd en hierdoor hebt geen toegang tot '%s' op %s.", $soort, $naamwebsite);
+						$mess = sprintf("Je bent niet ingelogd en hierdoor hebt geen toegang tot '%s' op %s.", $soort, $_SESSION['naamwebsite']);
 					}
 					db_logboek("add", $mess, 5);
 					printf("<script>alert('%s');</script>\n", $mess);

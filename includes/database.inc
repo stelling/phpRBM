@@ -1592,7 +1592,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 			$dwverv = sprintf("'%s'", $dwverv);
 		}
 		if ($dwexd > date("Y-m-d")) {
-			$mess = sprintf("De examendatum mag niet in de toekomst liggen. Diploma %s is bij %s niet toegevoegd.", db_diploma("naam", $did), db_naamlid($lidid));
+			$mess = sprintf("De examendatum mag niet in de toekomst liggen. Diploma '%s' is bij %s niet toegevoegd.", db_diploma("naam", $did), db_naamlid($lidid));
 		} else {
 			$query = sprintf("INSERT INTO %sLiddipl (Lid, DiplomaID, EXDATUM, LaatsteBeoordeling, LicentieVervallenPer, Diplomanummer, Ingevoerd, Gewijzigd)
 									VALUES (%d, %d, '%s', 1, %s, '%s', CURDATE(), SYSDATE());", $table_prefix, $lidid, $did, $dwexd, $dwverv, $dipnr);
@@ -1600,9 +1600,9 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 			if ($result > 0) {
 				$query = sprintf("INSERT INTO Liddipl (Lid, DiplomaID, EXDATUM, LicentieVervallenPer, Diplomanummer, Ingevoerd, Gewijzigd) VALUES (%d, %d, %s, %s, '%s', CURDATE(), SYSDATE());", $lidid, $did, $dwaexd, $dwaverv, $dipnr);
 				db_interface("add", $query, $lidid);
-				$mess = sprintf("Diploma %s is met examendatum '%s' bij %s toegevoegd.", db_diploma("naam", $did), $dwexd, db_naamlid($lidid));
+				$mess = sprintf("Diploma '%s' is met examendatum '%s' bij %s toegevoegd.", db_diploma("naam", $did), $dwexd, db_naamlid($lidid));
 			} else {
-				$mess = sprintf("Diploma %s is bij %s niet toegevoegd.", db_diploma("naam", $did), db_naamlid($lidid));
+				$mess = sprintf("Diploma '%s' is bij %s niet toegevoegd.", db_diploma("naam", $did), db_naamlid($lidid));
 			}
 		}
 		db_logboek("add", $mess, 6);
@@ -1620,7 +1620,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 			$result = fnQuery($query);
 			$query = sprintf("UPDATE Liddipl SET LicentieVervallenPer=%s, Diplomanummer='%s' WHERE Lid=%d AND DiplomaID=%d AND EXDATUM=%s;", $dwaverv, $dipnr, $rowld->Lid, $rowld->DiplomaID, $dwaexd);
 			db_interface("add", $query, $rowld->Lid);
-			$mess = sprintf("Diploma %s is gewijzigd bij %s", db_diploma("naam", $rowld->DiplomaID), db_naamlid($rowld->Lid));
+			$mess = sprintf("Diploma '%s' is gewijzigd bij %s", db_diploma("naam", $rowld->DiplomaID), db_naamlid($rowld->Lid));
 			db_logboek("add", $mess, 6);
 		}
 		return $mess;
