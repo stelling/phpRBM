@@ -55,7 +55,8 @@ function fnMailing() {
 		$rows = db_mailing("hist", $mailing->mid);
 		if (count($rows) > 0) {
 			$ld = sprintf("<a href='index.php?tp=%s&amp;op=histdetails&amp;rid=%%d&amp;mid=%d'>%%s</a>", $_GET['tp'], $mailing->mid);
-			echo(fnDisplayTable($rows, $ld, $rows[0]->ndOnderwerp, 0, 1));
+			$th = sprintf("%d. %s", $mailing->mid, $rows[0]->ndOnderwerp);
+			echo(fnDisplayTable($rows, $ld, $th, 0, 1));
 		} else {
 			echo("<p class='mededeling'>Deze mailing heeft geen historie.</p>\n");
 		}
