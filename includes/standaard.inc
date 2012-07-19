@@ -30,19 +30,21 @@ require_once($dir . "/includes/mailing.inc");
 require_once($dir . "/includes/webshop.inc");
 require_once($dir . "/includes/class.phpmailer.php");
 
-// Vullen config variabelen
-$naamvereniging = db_param("naamvereniging");
-$urlvereniging = db_param("urlvereniging");
-$naamwebsite = db_param("naamwebsite");
-$urlwebsite = db_param("urlwebsite");
-$emailwebmaster = db_param("emailwebmaster");
-$emailsecretariaat = db_param("emailsecretariaat");
+// Vullen sessie met config variabelen
+if (!isset($_SESSION['naamvereniging']) or strlen($_SESSION['naamvereniging']) < 3 or !isset($_SESSION['performance_trage_select'])) {
+	$_SESSION['naamvereniging'] = db_param("naamvereniging");
+	$_SESSION['urlvereniging'] = db_param("urlvereniging");
+	$_SESSION['naamwebsite'] = db_param("naamwebsite");
+	$_SESSION['urlwebsite'] = db_param("urlwebsite");
+	$_SESSION['emailwebmaster'] = db_param("emailwebmaster");
+	$_SESSION['emailsecretariaat'] = db_param("emailsecretariaat");
+	$_SESSION['performance_trage_select'] = db_param("performance_trage_select");
+}
 if (strlen(db_param("muteerbarememos")) > 0) {
 	$muteerbarememos = explode(",", db_param("muteerbarememos"));
 } else {
 	$muteerbarememos = array();
 }
-$performance_trage_select = db_param("performance_trage_select");
 
 if (isset($_GET['tp']) and strlen($_GET['tp']) > 1) {
 	$sp = strpos($_GET['tp'], "/");
@@ -247,7 +249,6 @@ fnQuery($query);
 $pasfotoextenties = array('gif', 'jpg', 'jpeg', 'png');
 
 function HTMLheader() {
-	global $naamwebsite, $urlwebsite;
 	global $tabpages, $currenttab, $currenttab2, $navpad, $curtab;
 	
 	foreach ($tabpages as $tp) {
@@ -257,11 +258,11 @@ function HTMLheader() {
 	}
 	
 	if (strlen($currenttab) > 0 and strlen($currenttab2) > 0) {
-		$title = $naamwebsite . " | " . $currenttab . " | " . $currenttab2;
+		$title = $_SESSION['naamwebsite'] . " | " . $currenttab . " | " . $currenttab2;
 	} elseif (strlen($currenttab) > 0) {
-		$title = $naamwebsite . " | " . $currenttab;
+		$title = $_SESSION['naamwebsite'] . " | " . $currenttab;
 	} else {
-		$title = $naamwebsite;
+		$title = $_SESSION['naamwebsite'];
 	}
 
 //	header('Content-type: text/html; charset=utf-8');
@@ -283,7 +284,7 @@ function HTMLheader() {
 		echo("<body>\n");
 		echo("<div id='container'>\n");
 		echo("<div id='header'>\n");
-		printf("<h1>%s</h1>\n", $naamwebsite);
+		printf("<h1>%s</h1>\n", $_SESSION['naamwebsite']);
 	
 		echo("<div id='login'>\n");
 		echo("<form name='Login' action='/auth.php' method='post'>");
@@ -323,14 +324,14 @@ function HTMLheader() {
 }
 
 function HTMLfooter() {
-	global $table_prefix, $navpad, $naamvereniging, $urlvereniging, $naamwebsite, $urlwebsite;
+	global $table_prefix, $navpad;
 
 	if (!isset($_GET['header']) or $_GET['header'] != "no") {
-		if (isset($naamvereniging) and strlen($naamvereniging) > 2) {
-			if (isset($urlvereniging) and strlen($urlvereniging) > 3) {
-				$cr = sprintf("<a href='http://%s'>%s</a>", $urlvereniging, $naamvereniging);
+		if (strlen($_SESSION['naamvereniging']) > 2) {
+			if (strlen($_SESSION['urlvereniging']) > 3) {
+				$cr = sprintf("<a href='http://%s'>%s</a>", $_SESSION['urlvereniging'], $_SESSION['naamvereniging']);
 			} else {
-				$cr = $naamvereniging;
+				$cr = $_SESSION['naamvereniging'];
 			}
 		} else {
 			$cr = "<a href='http://www.telling.nl'>&copy;&nbsp;S.Telling</a>";
@@ -349,7 +350,7 @@ function HTMLfooter() {
 				 <div id='footerleft'>%s</div>\n
 				 <a href='http://%s'>%s</a> %s\n
 				 <div id='footerright'>%s</div>\n
-				 </div>  <!-- Einde footer  -->\n", $cr, $urlwebsite, $naamwebsite, $np, strftime("%e %B %Y", filectime($_SERVER['SCRIPT_FILENAME'])));
+				 </div>  <!-- Einde footer  -->\n", $cr, $_SESSION['urlwebsite'], $_SESSION['naamwebsite'], $np, strftime("%e %B %Y", filectime($_SERVER['SCRIPT_FILENAME'])));
 		echo("</div>  <!-- Einde container -->\n");
 		echo("</body>\n");
 		echo("</html>\n");
@@ -722,7 +723,7 @@ function change_month_to_uk($strdate) {
 	$arrMonth[]=array("From" => "december", "To" => "December");
 	
 	foreach ($arrMonth as $key => $value) {
-		$strdate = str_ireplace(substr($value["From"], 0, 3) . " ", $value["To"] . " ", $strdate);
+		$strdate = str_ireplace(" " . substr($value["From"], 0, 3) . " ", " " . $value["To"] . " ", $strdate);
 		$strdate = str_ireplace(" " . $value["From"], " " . $value["To"], $strdate);
 	}
 	
@@ -750,8 +751,8 @@ class RBMmailer extends PHPMailer {
 		} else {
 			$this->IsMail(true);
 		}
-		$this->From = db_param("emailwebmaster");
-		$this->FromName = db_param("naamvereniging");
+		$this->From = $_SESSION['emailwebmaster'];
+		$this->FromName = $_SESSION['naamvereniging'];
 		$this->WordWrap = 110;
 		$this->AltBody  = "Om deze mail te bekijken gebruik een e-mailclient die met HTML overweg kan.";
 		

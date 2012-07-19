@@ -7,7 +7,7 @@ if (toegang("Overzicht lid", 0)) {
 }
 
 function fnWijzigen($lidid=0, $actie="") {
-	global $currenttab, $currenttab2, $selfservicediplomas, $naamvereniging, $naamwebsite, $urlwebsite, $table_prefix, $emailsecretariaat;
+	global $currenttab, $currenttab2, $selfservicediplomas, $table_prefix;
 	global $muteerbarememos, $arrLegitimatie, $arrSoortMemo, $arrGeslacht, $actionurl;
 	
 	$emailledenadministratie = db_param("emailledenadministratie");
@@ -757,7 +757,7 @@ function nieuwepasfoto($lidid, $filterlid="") {
 }
 
 function opzegginglidmaatschap($lidid) {
-	global $naamvereniging, $naamwebsite, $urlwebsite, $emailsecretariaat, $actionurl;
+	global $actionurl;
 	
 	$opzegtermijn = db_param("opzegtermijn");
 	$emailledenadministratie = db_param("emailledenadministratie");
@@ -798,7 +798,7 @@ function opzegginglidmaatschap($lidid) {
 		<p>Hierbij zeg ik mijn lidmaatschap van de %s per %s op. Mijn lidnummer is %d.</p>\n
 		%s
 		<p>Met vriendelijke groeten,<br>
-		<strong>%s</strong></p>\n", $naamvereniging, $opgezegdper, $_SESSION['lidnr'], $opm, $_SESSION['naamingelogde']);
+		<strong>%s</strong></p>\n", $_SESSION['naamvereniging'], $opgezegdper, $_SESSION['lidnr'], $opm, $_SESSION['naamingelogde']);
 				
 		$body .= sprintf("\n<p>Dit formulier is verzonden met formulier %s vanaf IP %s.</p>\n", $actionurl, $_SERVER['REMOTE_ADDR']);
 	
@@ -807,8 +807,8 @@ function opzegginglidmaatschap($lidid) {
 		$mail->FromName = $_SESSION['naamingelogde'];
 		$mail->AddAddress($emailledenadministratie);
 		$mail->AddCC($_SESSION['emailingelogde']);
-		if (isValidMailAddress($emailsecretariaat, 0)) {
-			$mail->AddCC($emailsecretariaat);
+		if (isValidMailAddress($_SESSION['emailsecretariaat'], 0)) {
+			$mail->AddCC($_SESSION['emailsecretariaat']);
 		}
 		$mail->Subject = sprintf("Opzegging lidmaatschap %s per %s", $_SESSION['naamingelogde'], $opgezegdper);
 		$mail->Body = $body;
@@ -840,9 +840,9 @@ function opzegginglidmaatschap($lidid) {
 		$content = str_replace("[%OPZEGGENVANAF%]", strftime($fdlang, mktime(0, 0, 0, date("m")+$opzegtermijn, date("d")+1, date("Y"))), $content);
 		$content = str_replace("[%NAAMLID%]", $_SESSION['naamingelogde'], $content);
 		$content = str_replace("[%LIDNR%]", $_SESSION['lidnr'], $content);
-		$content = str_replace("[%NAAMVERENIGING%]", $naamvereniging, $content);
-		$content = str_replace("[%NAAMWEBSITE%]", $naamwebsite, $content);
-		$content = str_replace("[%URLWEBSITE%]", $urlwebsite, $content);
+		$content = str_replace("[%NAAMVERENIGING%]", $_SESSION['naamvereniging'], $content);
+		$content = str_replace("[%NAAMWEBSITE%]", $_SESSION['naamwebsite'], $content);
+		$content = str_replace("[%URLWEBSITE%]", $_SESSION['urlwebsite'], $content);
 		
 		echo($content);
 	}

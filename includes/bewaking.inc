@@ -281,7 +281,6 @@ function bew_postindeling($seizoen, $week=-1) {
 }
 
 function inschrijvenbewaking($lidid) {
-	global $naamvereniging, $naamwebsite, $urlwebsite;
 	
 	fnDispMenu(2);
 	
@@ -449,7 +448,7 @@ function fnDispBW($row, $output) {
 }
 
 function BevestInschrBewaking($lidid, $insnr) {
-	global $naamvereniging, $naamwebsite, $urlwebsite, $selfservicediplomas;
+	global $selfservicediplomas;
 	
 	$emailbevestiginginschrijving = db_param("emailbevestiginginschrijving");
 	if (isValidMailAddress($emailbevestiginginschrijving, 0) == false) {
@@ -482,9 +481,9 @@ function BevestInschrBewaking($lidid, $insnr) {
 	}
 	$content = str_ireplace("[%NAAMLID%]", $naambewaker, $content);
 	$content = str_ireplace("[%ROEPNAAM%]", $roepnaambewaker, $content);
-	$content = str_replace("[%NAAMVERENIGING%]", $naamvereniging, $content);
-	$content = str_replace("[%NAAMWEBSITE%]", $naamwebsite, $content);
-	$content = str_replace("[%URLWEBSITE%]", $urlwebsite, $content);
+	$content = str_replace("[%NAAMVERENIGING%]", $_SESSION['naamvereniging'], $content);
+	$content = str_replace("[%NAAMWEBSITE%]", $_SESSION['naamwebsite'], $content);
+	$content = str_replace("[%URLWEBSITE%]", $_SESSION['urlwebsite'], $content);
 	$content = str_replace("[%VOORWAARDEN%]", $voorwaardeninschrijving, $content);
 	$content = str_ireplace("[%BEWINSCHRIJVING%]", $bevins, $content);
 	$content = str_ireplace("[%BEWOPMERKING%]", db_memo("curval", $lidid, "I"), $content);
@@ -509,7 +508,7 @@ function BevestInschrBewaking($lidid, $insnr) {
 			$htmlmessage = $content;
 		} else {
 			$htmlmessage = str_ireplace("[%MESSAGE%]", $content, $briefpapier);
-			$htmlmessage = str_ireplace("[%FROM%]", $naamvereniging, $htmlmessage);
+			$htmlmessage = str_ireplace("[%FROM%]", $_SESSION['naamvereniging'], $htmlmessage);
 			$htmlmessage = str_ireplace("[%TO%]", $naambewaker, $htmlmessage);
 			$htmlmessage = str_ireplace("[%SUBJECT%]", $subj, $htmlmessage);
 		}
@@ -520,7 +519,6 @@ function BevestInschrBewaking($lidid, $insnr) {
 	$mail = new RBMmailer();
 	try {
 		$mail->From = $emailbevestiginginschrijving;
-		$mail->FromName = $naamvereniging;
 		$mail->AddAddress($email, $naambewaker);
 		$mail->Subject = $subj;
 		$mail->MsgHTML($htmlmessage);

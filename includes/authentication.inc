@@ -12,7 +12,7 @@ if ((!isset($_SESSION['password']) or strlen($_SESSION['password']) == 0) and is
 }
 
 function toegang($soort, $melding=1) {
-	global $lididwebmasters, $table_prefix, $urlwebsite, $naamwebsite, $tabpages;
+	global $lididwebmasters, $table_prefix, $tabpages;
 	
 	$maxinlogpogingen = db_param("maxinlogpogingen");
 
@@ -121,7 +121,6 @@ function toegang($soort, $melding=1) {
 }
 
 function fnConfirmLogin($row, $xtratekst="") {
-	global $urlwebsite, $naamwebsite;
 	
 	db_logins("wachtwoordenvullen");
 	
@@ -167,9 +166,9 @@ function fnConfirmLogin($row, $xtratekst="") {
 	$content = str_replace("[%PASSWORD%]", encript_decript($row->Wachtwoord, 0), $content);
 	$content = str_replace("[%GEBLOKKEERD%]", $geblokt, $content);
 	$content = str_replace("[%EXTRATEKST%]", $xtratekst, $content);
-	$content = str_replace("[%NAAMVERENIGING%]", db_param("naamvereniging"), $content);
-	$content = str_replace("[%NAAMWEBSITE%]", $naamwebsite, $content);
-	$content = str_replace("[%URLWEBSITE%]", $urlwebsite, $content);
+	$content = str_replace("[%NAAMVERENIGING%]", $_SESSION['naamvereniging'], $content);
+	$content = str_replace("[%NAAMWEBSITE%]", $_SESSION['naamwebsite'], $content);
+	$content = str_replace("[%URLWEBSITE%]", $_SESSION['urlwebsite'], $content);
 	$content = str_replace("[%IPADDRESS%]", $_SERVER['REMOTE_ADDR'], $content);
 		
 	$content = str_ireplace("[%MESSAGE%]", $content, $briefpapier);
@@ -201,7 +200,6 @@ function fnConfirmLogin($row, $xtratekst="") {
 }
 
 function fnConfirmLidnr($row) {
-	global $urlwebsite, $naamwebsite, $naamvereniging;
 	
 	$content = sprintf("<p>Beste %s,</p>\n
 <p>Je lidnummer is: %d.</p>
@@ -209,7 +207,7 @@ function fnConfirmLidnr($row) {
 \n
 Dit verzoek is vanaf IP-adres %s gedaan.
 <p>Met vriendelijke groeten,<br>\n
-<strong>Webmaster %s</strong></p>\n", $row->Roepnaam, $row->Lidnr, $urlwebsite, $_SERVER['REMOTE_ADDR'], $naamwebsite);
+<strong>Webmaster %s</strong></p>\n", $row->Roepnaam, $row->Lidnr, $_SESSION['urlwebsite'], $_SERVER['REMOTE_ADDR'], $_SESSION['naamwebsite']);
 
 	$myFile = 'templates/briefpapier.html';
 	if (file_exists($myFile)) {
@@ -223,8 +221,8 @@ Dit verzoek is vanaf IP-adres %s gedaan.
 		
 	$content = str_ireplace("[%MESSAGE%]", $content, $briefpapier);
 
-	$subj = sprintf("Lidnummer %s", $naamvereniging);
-	$from = "Webmaster " . $naamwebsite;
+	$subj = sprintf("Lidnummer %s", $_SESSION['naamvereniging']);
+	$from = "Webmaster " . $_SESSION['naamwebsite'];
 	
 	$content = str_ireplace("[%FROM%]", $from, $content);
 	$content = str_ireplace("[%TO%]", $row->Naam, $content);
@@ -255,7 +253,7 @@ Dit verzoek is vanaf IP-adres %s gedaan.
 }
 
 function fnLoginAanvragen() {
-	global $table_prefix, $lididwebmasters, $selectlidnr, $naamvereniging, $urlwebsite;
+	global $table_prefix, $lididwebmasters, $selectlidnr;
 	
 	$beperktotgroep = db_param("beperktotgroep");
 	$lidnrversturenmogelijk = db_param("lidnrversturenmogelijk");
@@ -298,7 +296,7 @@ function fnLoginAanvragen() {
 									if (strlen($gt) > 0) {$gt .= ", ";}
 									$gt .= "'" . db_naam_onderdeel($gr) . "'";
 								}
-								$mess = sprintf("Je behoort niet tot één van de groepen %s van %s. Een login mag niet aangevraagd worden.", $gt, $naamvereniging);
+								$mess = sprintf("Je behoort niet tot één van de groepen %s van %s. Een login mag niet aangevraagd worden.", $gt, $_SESSION['naamvereniging']);
 							} else {
 								if (is_array($beperktotgroep) and count($beperktotgroep) == 1) {
 									$gr = $beperktotgroep[0];
@@ -307,7 +305,7 @@ function fnLoginAanvragen() {
 								} else {
 									$gr = 0;
 								}
-								$mess = sprintf("Je behoort niet tot groep '%s' van %s. Een login mag niet aangevraagd worden.", db_naam_onderdeel($gr), db_param("naamvereniging"));
+								$mess = sprintf("Je behoort niet tot groep '%s' van %s. Een login mag niet aangevraagd worden.", db_naam_onderdeel($gr), $_SESSION['naamvereniging']);
 							}
 						} elseif (strlen($_POST['gewenstelogin']) < 6 or strlen($_POST['gewenstelogin']) > $maxlengtelogin) {
 							$mess = sprintf("Je hebt geen geldige login opgegeven. Een login moet uit minimaal 6 en maximaal %d karakters bestaan.", $maxlengtelogin);
@@ -334,7 +332,7 @@ function fnLoginAanvragen() {
 			}
 		}
 		db_logboek("add", $mess, 1, 0, 1);
-		printf("<p><a href='http://%s' target='_top'>Klik hier om verder te gaan.</a></p>\n", $urlwebsite);
+		printf("<p><a href='http://%s' target='_top'>Klik hier om verder te gaan.</a></p>\n", $_SESSION['urlwebsite']);
 		
 	} else {
 

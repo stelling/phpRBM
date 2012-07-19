@@ -118,7 +118,7 @@ if (!isset($_SESSION['aantalkostenplaatsen'])) {
 }
 
 function fnQuery($query, $add_prefix=1) {
-   global $dbc, $table_prefix, $arrTables, $performance_trage_select;
+   global $dbc, $table_prefix, $arrTables;
 	
 	$starttijd = microtime(true);
 	
@@ -126,7 +126,7 @@ function fnQuery($query, $add_prefix=1) {
 		if (strtoupper(substr($query, 0, 6)) == "SELECT") {
 			$rs = $dbc->query($query);
 			$exec_tijd = microtime(true) - $starttijd;
-			if ($performance_trage_select > 0 and $exec_tijd >= $performance_trage_select) {
+			if (isset($_SESSION['performance_trage_select']) and $_SESSION['performance_trage_select'] > 0 and $exec_tijd >= $_SESSION['performance_trage_select']) {
 				$mess = sprintf("%f seconden query: %s", $exec_tijd, $query);
 				db_logboek("add", $mess, 98);
 			}
@@ -1191,7 +1191,7 @@ function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr, $message="", $fro
 		}
 	} else {
 		if (strlen($from_name) == 0) {
-			$from_name = db_param("naamvereniging");
+			$from_name = $_SESSION['naamvereniging'];
 		}
 	}
 	
@@ -1277,7 +1277,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		
 	} elseif ($actie == "add") {
 		$query = sprintf("INSERT INTO %sMailing (from_name, from_addr, to_name, subject, new_on, AddedBy)
-								VALUES ('%s', '%s', '%s', '%s', SYSDATE(), %d);", $table_prefix, db_param("naamvereniging"), $email, $aan, $subj, $_SESSION['lidid']);
+								VALUES ('%s', '%s', '%s', '%s', SYSDATE(), %d);", $table_prefix, $_SESSION['naamvereniging'], $email, $aan, $subj, $_SESSION['lidid']);
 		$id = fnQuery($query);
 		$mess = sprintf("Mailing %d (%s) is door %s toegevoegd.", $id, $subj, $_SESSION['naamingelogde']);
 		db_logboek("add", $mess, 4);

@@ -598,7 +598,7 @@ class mailing {
 		}
 	
 		if (!isset($_POST['from_name']) or strlen($_POST['from_name']) == 0) {
-			$_POST['from_name'] = db_param("naamvereniging");
+			$_POST['from_name'] = $_SESSION['naamvereniging'];
 		}
 		
 		if (isset($_POST['cc_addr']) and strlen($_POST['cc_addr']) > 5) {
@@ -1004,12 +1004,12 @@ class mailing {
 			}
 			
 		} else {
-			$this->from_name = db_param("naamvereniging");
+			$this->from_name = $_SESSION['naamvereniging'];
 			$this->from_addr = $_SESSION['emailingelogde'];
 			$this->new_on = date("Y-m-d");
 		}
 		$this->mailsperminuut = db_param("maxmailsperminuut");
-		$this->emailsecretariaat = db_param("emailsecretariaat");
+		$this->emailsecretariaat = $_SESSION['emailsecretariaat'];
 	}
 }
 

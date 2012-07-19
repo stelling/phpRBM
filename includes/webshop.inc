@@ -364,7 +364,6 @@ function bestellingbeheer() {
 }
 
 function bevestigingbestelling($lidid, $ordernr=0) {
-	global $naamvereniging, $naamwebsite, $urlwebsite;
 	
 	$emailbevestigingbestelling = db_param("emailbevestigingbestelling");
 
@@ -400,9 +399,9 @@ function bevestigingbestelling($lidid, $ordernr=0) {
 	$content = str_ireplace("[%ADRES%]", $adres, $content);
 	$content = str_ireplace("[%POSTCODE%]", $postcode, $content);
 	$content = str_ireplace("[%WOONPLAATS%]", $woonplaats, $content);
-	$content = str_replace("[%NAAMVERENIGING%]", $naamvereniging, $content);
-	$content = str_replace("[%NAAMWEBSITE%]", $naamwebsite, $content);
-	$content = str_replace("[%URLWEBSITE%]", $urlwebsite, $content);
+	$content = str_replace("[%NAAMVERENIGING%]", $_SESSION['naamvereniging'], $content);
+	$content = str_replace("[%NAAMWEBSITE%]", $_SESSION['naamwebsite'], $content);
+	$content = str_replace("[%URLWEBSITE%]", $_SESSION['urlwebsite'], $content);
 	$content = str_replace("[%VOORWAARDEN%]", db_param("voorwaardenbestelling"), $content);
 	$content = str_ireplace("[%BESTELLING%]", $bestelling, $content);
 	$content = str_ireplace("[%TOTAALBEDRAG%]", "&euro;&nbsp;" . number_format($totbedrag, 2), $content);
@@ -415,7 +414,7 @@ function bevestigingbestelling($lidid, $ordernr=0) {
 			$htmlmessage = $content;
 		} else {
 			$htmlmessage = str_ireplace("[%MESSAGE%]", $content, $briefpapier);
-			$htmlmessage = str_ireplace("[%FROM%]", $naamvereniging, $htmlmessage);
+			$htmlmessage = str_ireplace("[%FROM%]", $_SESSION['naamvereniging'], $htmlmessage);
 			$htmlmessage = str_ireplace("[%TO%]", $naamlid, $htmlmessage);
 			$htmlmessage = str_ireplace("[%SUBJECT%]", $subj, $htmlmessage);
 		}

@@ -70,7 +70,6 @@ function ToekomstigeEvenementen() {
 }
 
 function inschrijvenevenementen($lidid) {
-	global $naamvereniging, $naamwebsite, $urlwebsite;
 
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		foreach (db_evenement("open") as $row) {

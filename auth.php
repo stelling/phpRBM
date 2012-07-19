@@ -7,7 +7,8 @@
    
 	if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen" and isset($_SESSION['username'])) {
 		db_logins("uitloggen", "", "", $_SESSION['lidid']);
-		session_unset();
+		$_SESSION['username'] = "";
+		$_SESSION['password'] = "";
 		setcookie("username", "", time()-3600);
 		setcookie("password", "", time()-3600);
 		echo("<script>\nlocation.href='/';\n</script>\n");
