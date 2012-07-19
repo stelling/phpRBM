@@ -838,9 +838,11 @@ class mailing {
 					if ($this->verzamelen) {
 						db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message);
 					} else {
-						while ($this->mailsperminuut > 0 and $smptteller >= ($this->mailsperminuut * ((microtime(true)-$starttijd) / 60)) and $smptteller > 0) {
-							usleep((60 / $this->mailsperminuut) * 1000000);
-							set_time_limit(60);
+						if ($this->mailsperminuut > 0) {
+							while (microtime(true)-$starttijd < $smptteller * (60 / $this->mailsperminuut)) {
+								usleep((60 / $this->mailsperminuut) * 700000);
+								set_time_limit(60);
+							}
 						}
 						$smptteller++;
 						if ($mail->Send()) {
