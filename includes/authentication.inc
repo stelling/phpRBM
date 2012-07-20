@@ -173,8 +173,8 @@ function fnConfirmLogin($row, $xtratekst="") {
 		
 	$content = str_ireplace("[%MESSAGE%]", $content, $briefpapier);
 
-	$subj = sprintf("Bevestiging login %s voor %s", $naamwebsite, $row->Naam);
-	$from = "Webmaster " . $naamwebsite;
+	$subj = sprintf("Bevestiging login %s voor %s", $_SESSION['naamwebsite'], $row->Naam);
+	$from = "Webmaster " . $_SESSION['naamwebsite'];
 	
 	$content = str_ireplace("[%FROM%]", $from, $content);
 	$content = str_ireplace("[%TO%]", $row->Naam, $content);
