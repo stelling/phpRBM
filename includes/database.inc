@@ -2278,7 +2278,7 @@ function db_createtables() {
 
 	$queries = sprintf("SET SQL_MODE='NO_AUTO_VALUE_ON_ZERO';
 
-CREATE TABLE IF NOT EXISTS `rbm_Admin_access` (
+CREATE TABLE IF NOT EXISTS `%1\$sAdmin_access` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `Tabpage` varchar(50) NOT NULL,
   `Toegang` int(11) NOT NULL DEFAULT '-1',
@@ -2286,12 +2286,6 @@ CREATE TABLE IF NOT EXISTS `rbm_Admin_access` (
   `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sAdmin_activiteit`
---
 
 CREATE TABLE IF NOT EXISTS `%1\$sAdmin_activiteit` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
@@ -2305,12 +2299,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_activiteit` (
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sAdmin_interface`
---
-
 CREATE TABLE IF NOT EXISTS `%1\$sAdmin_interface` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `LidID` int(11) NOT NULL,
@@ -2322,15 +2310,9 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_interface` (
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sAdmin_login`
---
-
 CREATE TABLE IF NOT EXISTS `%1\$sAdmin_login` (
   `LidID` int(11) NOT NULL,
-  `Login` varchar(12) NOT NULL,
+  `Login` varchar(15) NOT NULL,
   `openid_identity` varchar(50) DEFAULT NULL,
   `Wachtwoord` varchar(12) NOT NULL,
   `HerinneringVervallenDiplomas` tinyint(4) NOT NULL DEFAULT '0',
@@ -2345,36 +2327,23 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_login` (
   UNIQUE KEY `Login` (`Login`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sAdmin_param`
---
-
 CREATE TABLE IF NOT EXISTS `%1\$sAdmin_param` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
-  `Naam` varchar(30) NOT NULL,
-  `ParamType` char(1) DEFAULT NULL,
-  `ValueChar` text,
-  `ValueNum` decimal(10,2) DEFAULT NULL,
+  `Naam` varchar(30) COLLATE utf8_unicode_ci NOT NULL,
+  `ParamType` char(2) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `ValueChar` text COLLATE utf8_unicode_ci,
+  `ValueNum` decimal(13,6) DEFAULT NULL,
   `Ingevoerd` date NOT NULL DEFAULT '0000-00-00',
   `IngevoerdDoor` int(11) NOT NULL,
   `Gewijzigd` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE CURRENT_TIMESTAMP,
   `GewijzigdDoor` int(11) NOT NULL,
   PRIMARY KEY (`RecordID`),
   UNIQUE KEY `Naam` (`Naam`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COMMENT='Parameters en instellingen';
-
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sBewaking`
---
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Parameters en instellingen';
 
 CREATE TABLE IF NOT EXISTS `%1\$sBewaking` (
   `RecordID` int(11) DEFAULT NULL,
   `Lid` int(11) NOT NULL DEFAULT '0',
-  `Seizoen` varchar(5) DEFAULT NULL,
   `SeizoenID` int(11) NOT NULL DEFAULT '0',
   `Weeknr` tinyint(4) DEFAULT NULL,
   `BEGIN_PER` date NOT NULL DEFAULT '0000-00-00',
@@ -2389,12 +2358,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sBewaking` (
   PRIMARY KEY (`SeizoenID`,`Lid`,`BEGIN_PER`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sBewaking_Blok`
---
-
 CREATE TABLE IF NOT EXISTS `%1\$sBewaking_Blok` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `SeizoenID` int(11) NOT NULL,
@@ -2407,13 +2370,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sBewaking_Blok` (
   PRIMARY KEY (`RecordID`),
   UNIQUE KEY `SeizoenBegindatum` (`SeizoenID`,`Begindatum`),
   UNIQUE KEY `SeizoenKode` (`SeizoenID`,`Kode`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sBewaking_Inschrijving`
---
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sBewaking_Inschrijving` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
@@ -2427,13 +2384,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sBewaking_Inschrijving` (
   `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `Afgemeld` datetime DEFAULT NULL,
   PRIMARY KEY (`RecordID`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sBewseiz`
---
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sBewseiz` (
   `RecordID` int(11) NOT NULL DEFAULT '0',
@@ -2456,12 +2407,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sBewseiz` (
   UNIQUE KEY `Kode` (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sBoekjaar`
---
-
 CREATE TABLE IF NOT EXISTS `%1\$sBoekjaar` (
   `RecordID` int(11) NOT NULL DEFAULT '0',
   `Kode` varchar(5) DEFAULT NULL,
@@ -2474,12 +2419,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sBoekjaar` (
   PRIMARY KEY (`RecordID`),
   UNIQUE KEY `Kode` (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sDiploma`
---
 
 CREATE TABLE IF NOT EXISTS `%1\$sDiploma` (
   `RecordID` int(11) NOT NULL DEFAULT '0',
@@ -2495,21 +2434,15 @@ CREATE TABLE IF NOT EXISTS `%1\$sDiploma` (
   `Vervallen` date DEFAULT NULL,
   `HistorieOpschonen` smallint(6) DEFAULT NULL,
   `VoorgangerID` int(11) DEFAULT NULL,
-  `Voorganger` varchar(5) DEFAULT NULL,
   `Alternatief` varchar(20) DEFAULT NULL,
   `Tonen in bewakingsadministratie` tinyint(4) DEFAULT NULL,
+  `Zelfservice` tinyint(4) DEFAULT NULL,
   `RolID` int(11) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`RecordID`),
   UNIQUE KEY `Kode` (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sEvenement`
---
 
 CREATE TABLE IF NOT EXISTS `%1\$sEvenement` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
@@ -2528,13 +2461,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sEvenement` (
   `GewijzigdDoor` int(11) NOT NULL,
   `VerwijderdOp` date NOT NULL,
   PRIMARY KEY (`RecordID`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sEvenement_Deelnemer`
---
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sEvenement_Deelnemer` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
@@ -2548,13 +2475,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sEvenement_Deelnemer` (
   `GewijzigdDoor` int(11) NOT NULL,
   PRIMARY KEY (`RecordID`),
   UNIQUE KEY `LidEvenement` (`LidID`,`EvenementID`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sEvenement_Type`
---
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sEvenement_Type` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
@@ -2564,13 +2485,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sEvenement_Type` (
   `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `GewijzigdDoor` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`RecordID`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sFunctie`
---
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sFunctie` (
   `Nummer` tinyint(4) NOT NULL DEFAULT '0',
@@ -2588,12 +2503,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sFunctie` (
   PRIMARY KEY (`Nummer`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sGBR`
---
-
 CREATE TABLE IF NOT EXISTS `%1\$sGBR` (
   `RecordID` int(11) DEFAULT NULL,
   `Kode` varchar(4) NOT NULL DEFAULT '',
@@ -2608,12 +2517,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sGBR` (
   PRIMARY KEY (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sKostenplaats`
---
-
 CREATE TABLE IF NOT EXISTS `%1\$sKostenplaats` (
   `RecordID` int(11) NOT NULL DEFAULT '0',
   `Kode` varchar(5) DEFAULT NULL,
@@ -2623,12 +2526,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sKostenplaats` (
   PRIMARY KEY (`RecordID`),
   UNIQUE KEY `Kode` (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sLid`
---
 
 CREATE TABLE IF NOT EXISTS `%1\$sLid` (
   `Nummer` int(11) NOT NULL DEFAULT '0',
@@ -2670,26 +2567,13 @@ CREATE TABLE IF NOT EXISTS `%1\$sLid` (
   PRIMARY KEY (`Nummer`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sLidbew`
---
-
 CREATE TABLE IF NOT EXISTS `%1\$sLidbew` (
-  `Lid` int(11) NOT NULL DEFAULT '0',
+  `Lid` int(11) DEFAULT NULL,
   `Opmerking` longtext,
   `Dieet` varchar(50) DEFAULT NULL,
   `Ingevoerd` datetime DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL,
-  PRIMARY KEY (`Lid`)
+  `Gewijzigd` datetime DEFAULT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sLiddipl`
---
 
 CREATE TABLE IF NOT EXISTS `%1\$sLiddipl` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
@@ -2707,12 +2591,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sLiddipl` (
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sLidmaatschap`
---
-
 CREATE TABLE IF NOT EXISTS `%1\$sLidmaatschap` (
   `RecordID` int(11) DEFAULT NULL,
   `Lid` int(11) NOT NULL DEFAULT '0',
@@ -2725,12 +2603,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sLidmaatschap` (
   PRIMARY KEY (`Lid`,`LIDDATUM`),
   UNIQUE KEY `Lidnr` (`Lidnr`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sLidond`
---
 
 CREATE TABLE IF NOT EXISTS `%1\$sLidond` (
   `RecordID` int(11) DEFAULT NULL,
@@ -2747,12 +2619,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sLidond` (
   PRIMARY KEY (`Lid`,`OnderdeelID`,`Vanaf`,`Functie`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sLidRedNed`
---
-
 CREATE TABLE IF NOT EXISTS `%1\$sLidRedNed` (
   `Lidnr` int(11) DEFAULT NULL,
   `RelnrRedNed` varchar(8) DEFAULT NULL,
@@ -2767,12 +2633,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sLidRedNed` (
   `Foutboodschap` varchar(75) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sMailing`
---
 
 CREATE TABLE IF NOT EXISTS `%1\$sMailing` (
   `MailingID` int(11) NOT NULL AUTO_INCREMENT,
@@ -2796,12 +2656,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sMailing` (
   PRIMARY KEY (`MailingID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sMailing_hist`
---
-
 CREATE TABLE IF NOT EXISTS `%1\$sMailing_hist` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `LidID` int(11) NOT NULL DEFAULT '0',
@@ -2821,12 +2675,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sMailing_hist` (
   KEY `LidID` (`LidID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sMailing_rcpt`
---
-
 CREATE TABLE IF NOT EXISTS `%1\$sMailing_rcpt` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `MailingID` int(11) NOT NULL DEFAULT '0',
@@ -2835,12 +2683,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sMailing_rcpt` (
   `Ingevoerd` date DEFAULT NULL,
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sMemo`
---
 
 CREATE TABLE IF NOT EXISTS `%1\$sMemo` (
   `RecordID` int(11) DEFAULT NULL,
@@ -2852,12 +2694,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sMemo` (
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`Lid`,`Soort`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sMutatie`
---
 
 CREATE TABLE IF NOT EXISTS `%1\$sMutatie` (
   `RecordID` int(11) DEFAULT NULL,
@@ -2881,12 +2717,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sMutatie` (
   PRIMARY KEY (`BoekjaarID`,`Periode`,`Dagboek`,`Stuknr`,`Regelnr`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sOnderdl`
---
-
 CREATE TABLE IF NOT EXISTS `%1\$sOnderdl` (
   `RecordID` int(11) NOT NULL DEFAULT '0',
   `Kode` varchar(6) DEFAULT NULL,
@@ -2909,12 +2739,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sOnderdl` (
   UNIQUE KEY `Kode` (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sRekening`
---
-
 CREATE TABLE IF NOT EXISTS `%1\$sRekening` (
   `Nummer` int(11) NOT NULL DEFAULT '0',
   `Seizoen` smallint(6) DEFAULT NULL,
@@ -2932,12 +2756,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sRekening` (
   PRIMARY KEY (`Nummer`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sWS_Artikel`
---
-
 CREATE TABLE IF NOT EXISTS `%1\$sWS_Artikel` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `Code` char(6) COLLATE utf8_unicode_ci NOT NULL,
@@ -2952,13 +2770,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sWS_Artikel` (
   `Gewijzigd` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE CURRENT_TIMESTAMP,
   `GewijzigdDoor` int(11) NOT NULL,
   PRIMARY KEY (`RecordID`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `%1\$sWS_Orderregel`
---
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sWS_Orderregel` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
@@ -2976,7 +2788,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sWS_Orderregel` (
   `GewijzigdDoor` int(11) NOT NULL,
   PRIMARY KEY (`RecordID`),
   UNIQUE KEY `ArtikelLid` (`Artikel`,`Lid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;", $table_prefix);
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;", $table_prefix);
 
 	fnQuery($queries);
 }
