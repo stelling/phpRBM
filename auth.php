@@ -9,6 +9,7 @@
 		db_logins("uitloggen", "", "", $_SESSION['lidid']);
 		$_SESSION['username'] = "";
 		$_SESSION['password'] = "";
+		$_SESSION['lidgroepen'] = "(0)";
 		setcookie("username", "", time()-3600);
 		setcookie("password", "", time()-3600);
 		echo("<script>\nlocation.href='/';\n</script>\n");
