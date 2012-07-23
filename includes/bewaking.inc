@@ -469,6 +469,8 @@ function BevestInschrBewaking($lidid, $insnr) {
 		$naambewaker = $row->ndNaamBewaker;
 		$roepnaambewaker = $row->ndRoepnaamBewaker;
 		$email = $row->ndEmailBewaker;
+		$emailouders = $row->ndEmailOuders;
+		$geboren = $row->ndGeboren;
 		
 		$bevins .= sprintf("<li>%s - %s t/m %s", $row->Seizoen, strftime("%e %B %Y", strtotime($row->dteBegin)), strftime("%e %B %Y", strtotime($row->dteEinde)));
 		if ($row->Keuze == 2) {
@@ -520,10 +522,14 @@ function BevestInschrBewaking($lidid, $insnr) {
 	try {
 		$mail->From = $emailbevestiginginschrijving;
 		$mail->AddAddress($email, $naambewaker);
+		$io = fnInformerenOuders($geboren, $emailouders, $email);
+		if (strlen($io) > 5) {
+			$mail->AddCC($io);
+		}
 		$mail->Subject = $subj;
 		$mail->MsgHTML($htmlmessage);
 		if ($mail->Send()) {
-			db_add_mailing_hist($lidid, 0, $naambewaker, $email, $content, $mail->FromName, $mail->From, $mail->Subject);
+			db_add_mailing_hist($lidid, 0, $naambewaker, $email, $content, $mail->FromName, $mail->From, $mail->Subject, $io);
 			$mess = sprintf("Bevestiging van deze inschrijving is naar %s verzonden.", $email);
 		} else {
 			$mess = sprintf("Het versturen van de bevestiging van de inschrijving voor de bewaking aan %s is mislukt. Error: %s.", db_naamlid($lidid), $mail->ErrorInfo);

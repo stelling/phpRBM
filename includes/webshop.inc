@@ -390,6 +390,8 @@ function bevestigingbestelling($lidid, $ordernr=0) {
 		$postcode = $row->Postcode;
 		$woonplaats = $row->Woonplaats;
 		$email = $row->Email;
+		$emailouders = $row->EmailOuders;
+		$geboren = $row->GEBDATUM;
 		$bestelling .= sprintf("<tr><td>%s</td><td>%s</td><td>%s</td><td class='number'>%d</td><td class='number'>&euro;&nbsp;%s</td><td>%s</td></tr>\n", $row->Code, $row->Omschrijving, $row->Maat, $row->AantalBesteld, number_format($row->Bedrag, 2), $row->Opmerking);
 		$totbedrag += $row->Bedrag;
 	}
@@ -427,14 +429,18 @@ function bevestigingbestelling($lidid, $ordernr=0) {
 		$mail->From = $emailbevestigingbestelling;
 	}
 	$mail->AddAddress($email, $naamlid);
-	if ($_SERVER["HTTP_HOST"] != "phprbm.telling.nl" and isValidMailAddress($emailbevestigingbestelling, 0)) {
+	if (isValidMailAddress($emailbevestigingbestelling, 0)) {
 		$mail->AddCC($emailbevestigingbestelling);
+	}
+	$io = fnInformerenOuders($geboren, $emailouders, $email);
+	if (strlen($io) > 5) {
+		$mail->AddCC($io);
 	}
 	$mail->Subject = $subj;
 	$mail->MsgHTML($htmlmessage);
 	if ($mail->Send()) {
-		db_add_mailing_hist($lidid, 0, $naamlid, $email, $content, $mail->FromName, $mail->From, $mail->Subject);
-		$mess = sprintf("Bevestiging van deze bestelling is naar %s verzonden.", $email);
+		db_add_mailing_hist($lidid, 0, $naamlid, $email, $content, $mail->FromName, $mail->From, $mail->Subject, $io);
+		$mess = sprintf("Een bevestiging van deze bestelling is naar %s verzonden.", $email);
 	} else {
 		$mess = sprintf("Het versturen van de bevestiging van de bestelling aan %s is mislukt. Error: %s", db_naamlid($lidid), $mail->ErrorInfo);
 	}

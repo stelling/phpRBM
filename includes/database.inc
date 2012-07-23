@@ -203,8 +203,9 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					'Bereiken' AS Kop3, 
 					L.Telefoon, 
 					L.Mobiel, 
-					L.Email AS `emlE-mail`, 
+					L.Email AS `emlE-mail`,
 					L.EmailVereniging AS `emlE-mail vereniging`,
+					L.EmailOuders AS `emlE-mail ouders`,
 					'Lidmaatschap' AS Kop4,
 					LM.Lidnr AS Lidnummer, 
 					(%s) AS Onderscheiding, 
@@ -413,6 +414,7 @@ function db_ledenwijzigingen($lidid) {
 				L.Telefoon,
 				L.Mobiel,
 				L.Email,
+				L.EmailOuders,
 				L.GEBDATUM,
 				L.GEBPLAATS,
 				L.BANKGIRO,
@@ -697,7 +699,8 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 			$w = sprintf("BI.Lid=%d", $lidid);
 		}
 		$query = sprintf("SELECT BS.Kode AS Seizoen, BB.Kode AS Week, BB.Begindatum AS dteBegin, BB.Einddatum AS dteEinde,
-								IF(BI.Keuze=3, 1, BI.Keuze) AS Keuze, BI.Opmerking, %2\$s AS ndNaamBewaker, L.Roepnaam AS ndRoepnaamBewaker, L.Email AS ndEmailBewaker
+								IF(BI.Keuze=3, 1, BI.Keuze) AS Keuze, BI.Opmerking, %2\$s AS ndNaamBewaker, L.Roepnaam AS ndRoepnaamBewaker,
+								L.Email AS ndEmailBewaker, L.EmailOuders AS ndEmailOuders, L.GEBDATUM AS ndGeboren
 								FROM (%1\$sBewaking_Blok AS BB INNER JOIN (%1\$sBewaking_Inschrijving AS BI INNER JOIN %1\$sLid AS L ON BI.Lid = L.Nummer) ON BB.RecordID = BI.BlokID) INNER JOIN %1\$sBewseiz AS BS ON BB.SeizoenID = BS.RecordID
 								WHERE BB.Einddatum > CURDATE() AND %3\$s AND BI.Definitief > BI.Ingevoerd
 								ORDER BY BS.Kode, BB.Kode, BB.Begindatum;", $table_prefix, $selectnaam, $w);
@@ -901,7 +904,8 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 		return $ok;
 		
 	} elseif ($actie == "rowlogin" and (isValidMailAddress($email, 0) or $lidid > 0)) {
-		$query = sprintf("SELECT L.Nummer, Login.Login, %s AS Naam, L.Roepnaam, L.Email, L.EmailVereniging, Login.Wachtwoord, Login.FouteLogin, 
+		$query = sprintf("SELECT L.Nummer, Login.Login, %s AS Naam, L.Roepnaam, L.Email, L.EmailVereniging, L.EmailOuders, L.GEBOREN,
+								Login.Wachtwoord, Login.FouteLogin, 
 								IFNULL((%s), L.Nummer) AS Lidnr,", $selectnaam, $selectlidnr);
 		if (is_array($beperktotgroep) and count($beperktotgroep) > 0) {
 			$query .= sprintf("(SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.Lid=L.Nummer AND LO.OnderdeelID IN (%s) AND LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE())) AS AanvragenMag", $table_prefix, implode(", ", $beperktotgroep));
@@ -910,7 +914,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 		}
 		$query .= sprintf(" FROM %1\$sLid AS L LEFT OUTER JOIN %1\$sAdmin_login AS Login ON L.Nummer = Login.LidID WHERE ", $table_prefix);
 		if (isValidMailAddress($email, 0)) {
-			$query .= sprintf("(LOWER(L.Email) LIKE '%1\$s' OR LOWER(L.EmailVereniging) LIKE '%1\$s')", strtolower($email));
+			$query .= sprintf("(LOWER(L.Email) LIKE '%1\$s' OR LOWER(L.EmailVereniging) LIKE '%1\$s' OR LOWER(L.EmailOuders) LIKE '%1\$s')", strtolower($email));
 		} else {
 			$query .= sprintf("L.Nummer=%d", $lidid);
 		}
@@ -1185,7 +1189,12 @@ function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr, $message="", $fro
 		$from_name = $row->from_name;
 		$from_addr = $row->from_addr;
 		$subject = $row->subject;
-		$cc_addr = $row->cc_addr;
+		if (strlen($cc_addr) > 5) {
+			$cc_addr .= ", ";
+		} else {
+			$cc_addr = "";
+		}
+		$cc_addr .= $row->cc_addr;
 		if (strlen($row->to_name) > 0) {
 			$to_name = $row->to_name;
 		}
@@ -1256,7 +1265,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		
 	} elseif ($actie == "rcpt") {
 		$query = sprintf("SELECT IFNULL(L.Nummer, 0) AS Nummer, %1\$s AS Naam_lid, %2\$s AS Zoeknaam_lid, L.Adres, L.Postcode, 
-					L.Woonplaats, L.Email, L.EmailVereniging, R.to_address
+					L.Woonplaats, L.Email, L.EmailVereniging, L.EmailOuders, L.GEBOREN, R.to_address
 					FROM %3\$sMailing_rcpt AS R LEFT OUTER JOIN %3\$sLid AS L ON R.LidID = L.Nummer
 					WHERE MailingID=%4\$d
 					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectnaam, $selectzoeknaam, $table_prefix, $mid);
@@ -1882,7 +1891,7 @@ function db_orderregel($actie, $lidid=0, $artikelid=0, $aantalbesteld=0, $filter
 			$filter = " AND " . $filter;
 		}
 		$query = sprintf("SELECT ORD.Ordernr, ORD.AantalBesteld, ORD.Opmerking, ORD.PrijsPerStuk * ORD.AantalBesteld AS Bedrag,
-					%1\$s AS NaamLid, L.Roepnaam, L.Adres, L.Postcode, L.Woonplaats, L.Email, L.Email,
+					%1\$s AS NaamLid, L.Roepnaam, L.Adres, L.Postcode, L.Woonplaats, L.Email, L.Email, L.EmailOuders, L.GEBDATUM,
 					A.Code, A.Omschrijving, A.Maat
 					FROM (%2\$sWS_Orderregel AS ORD INNER JOIN %2\$sWS_Artikel AS A ON A.RecordID=ORD.Artikel) INNER JOIN %2\$sLid AS L ON ORD.Lid=L.Nummer
 					WHERE ORD.Lid=%3\$d AND ((ORD.AantalGeleverd IS NULL) OR ORD.AantalGeleverd < ORD.AantalBesteld) AND (NOT ORD.BestellingDefinitief IS NULL) %4\$s
@@ -1982,7 +1991,6 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrIntegers['loginautounlock'] = 120;
 	$arrIntegers['max_grootte_bijlage'] = 2048;
 	$arrIntegers['maxlengtelogin'] = 12;
-	$arrIntegers['maxmailsperminuut'] = 60;
 	$arrIntegers['maxinlogpogingen'] = 4;
 	$arrIntegers['opzegtermijn'] = 1;
 	$arrIntegers['smtpport'] = 0;
@@ -2005,6 +2013,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrStrings['naamwebsite'] = "Naam website";
 	$arrStrings['urlwebsite'] = $_SERVER["HTTP_HOST"];
 	
+	$arrFloats['maxmailsperminuut'] = 300;
 	$arrFloats['performance_trage_select'] = 0.5;
 	
 	if ($actie == "lijst") {
@@ -2142,11 +2151,12 @@ function db_onderhoud() {
 		fnQuery(sprintf("ALTER TABLE %sLiddipl CHANGE RecordID RecordID INT( 11 ) NOT NULL AUTO_INCREMENT;", $table_prefix));
 	}
 	
-	// Aanpassen lengte login in de database als deze kleiner is dan maxlengtelogin
+	/***** Aanpassen lengte login in de database als deze kleiner is dan maxlengtelogin  *****/
 	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%sAdmin_login' AND COLUMN_NAME LIKE 'Login';", $db_name, $table_prefix);
 	if (db_scalar($query) < $maxlengtelogin) {
-		fnQuery(sprintf("ALTER TABLE `%sAdmin_login` CHANGE `Login` `Login` VARCHAR( %s ) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table_prefix, $maxlengtelogin));
-	}	
+		$query = sprintf("ALTER TABLE `%sAdmin_login` CHANGE `Login` `Login` VARCHAR( %s ) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table_prefix, $maxlengtelogin);
+		fnQuery($query);
+	}
 	
 	/***** Velden die later zijn toegevoegd. De code om ze toe te voegen blijft een jaar staan.  *****/
 	
@@ -2223,6 +2233,14 @@ function db_onderhoud() {
 		$query = sprintf("ALTER TABLE `%sAdmin_login` ADD `HerinneringVervallenDiplomas` TINYINT NOT NULL DEFAULT '0' AFTER `Wachtwoord`;", $table_prefix);
 		fnQuery($query);
 	}
+		
+	/***** Velden die aangepast zijn. De code om ze te wijzigen blijft 3 maanden staan.  *****/
+	
+	// Admin_param/ValueNum, deze code kan na 1/11/2012 worden verwijderd.
+	$query = sprintf("ALTER TABLE `%sAdmin_param` CHANGE `ValueNum` `ValueNum` DECIMAL(13,6) NULL DEFAULT NULL;", $table_prefix);
+	fnQuery($query);
+	
+	/***** Opschonen database na een upload uit de Access-database.  *****/
 
 	$query = sprintf("DELETE FROM %sLid WHERE (NOT Verwijderd IS NULL);", $table_prefix);
 	$result = fnQuery($query);
@@ -2250,14 +2268,6 @@ function db_onderhoud() {
 		fnQuery(sprintf("OPTIMIZE TABLE %sLidond;", $table_prefix));
 	}
 
-	if ($_SERVER["HTTP_HOST"] != "phprbm.telling.nl") {
-		//  Deze tabellen moeten op dit moment alleen in de ontwikkelomgeving aanwezig zijn. 
-		$query = sprintf("DROP TABLE IF EXISTS %sDMS_Folder;", $table_prefix);
-		fnQuery($query);
-		$query = sprintf("DROP TABLE IF EXISTS %sDMS_Document;", $table_prefix);
-		fnQuery($query);
-	}
-	
 	$mess = db_diploma("opschonen") . db_liddipl("opschonen");
 	db_logboek("add", $mess, 2, 0, 1);
 	
@@ -2270,6 +2280,14 @@ function db_onderhoud() {
 		fnQuery(sprintf("OPTIMIZE TABLE %sMutatie;", $table_prefix));
 		$mess = sprintf("Er zijn %d mutaties verwijderd, omdat er geen resultaatrekening aan gekoppeld was.", $result);
 		db_logboek("add", $mess, 2, 0, 1);
+	}	
+		
+	if ($_SERVER["HTTP_HOST"] != "phprbm.telling.nl") {
+		//  Deze tabellen moeten op dit moment alleen in de ontwikkelomgeving aanwezig zijn. 
+		$query = sprintf("DROP TABLE IF EXISTS %sDMS_Folder;", $table_prefix);
+		fnQuery($query);
+		$query = sprintf("DROP TABLE IF EXISTS %sDMS_Document;", $table_prefix);
+		fnQuery($query);
 	}
 }
 
@@ -2550,6 +2568,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sLid` (
   `Mobiel is geheim` tinyint(4) DEFAULT NULL,
   `Email` varchar(45) DEFAULT NULL,
   `EmailVereniging` varchar(45) DEFAULT NULL,
+  `EmailOuders` varchar(45) DEFAULT NULL,
   `Waarschuwen bij nood` varchar(255) DEFAULT NULL,
   `BANKGIRO` varchar(10) DEFAULT NULL,
   `Bankrekening` varchar(18) DEFAULT NULL,
@@ -2557,22 +2576,14 @@ CREATE TABLE IF NOT EXISTS `%1\$sLid` (
   `BezwaarMachtiging` datetime DEFAULT NULL,
   `Legitimatietype` varchar(1) DEFAULT NULL,
   `Legitimatienummer` varchar(15) DEFAULT NULL,
-  `Wijknummer` smallint(6) DEFAULT NULL,
   `Memo` longtext,
+  `Wijknummer` smallint(6) DEFAULT NULL,
   `RelnrRedNed` varchar(8) DEFAULT NULL,
   `Beroep` varchar(40) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   `Verwijderd` datetime DEFAULT NULL,
   PRIMARY KEY (`Nummer`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE IF NOT EXISTS `%1\$sLidbew` (
-  `Lid` int(11) DEFAULT NULL,
-  `Opmerking` longtext,
-  `Dieet` varchar(50) DEFAULT NULL,
-  `Ingevoerd` datetime DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sLiddipl` (

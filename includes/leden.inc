@@ -39,6 +39,7 @@ function fnWijzigen($lidid=0, $actie="") {
 			$wijzvelden[] = array('label' => "Telefoon", 'naam' => "Telefoon", 'lengte' => 16);
 			$wijzvelden[] = array('label' => "Mobiel", 'naam' => "Mobiel", 'lengte' => 16);
 			$wijzvelden[] = array('label' => "E-mail", 'naam' => "Email", 'lengte' => 45);
+			$wijzvelden[] = array('label' => "E-mail ouders", 'naam' => "EmailOuders", 'lengte' => 45);
 			$wijzvelden[] = array('label' => "Geboortedatum", 'naam' => "GEBDATUM", 'lengte' => 18);
 			$wijzvelden[] = array('label' => "Geboorteplaats", 'naam' => "GEBPLAATS", 'lengte' => 22);
 			$wijzvelden[] = array('label' => "Bankrekening", 'naam' => "BANKGIRO", 'lengte' => 10);
@@ -935,5 +936,12 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 	echo("</div>  <!-- Einde wijzigendiplomas -->\n");
 }
 
+function fnInformerenOuders($geboren, $emailouders, $email="") {
+	$rv = "";
+	if ($geboren > date("Y-m-d", mktime(0, 0, 0, date("m"), date("d"), date("Y")-18)) and isValidMailAddress($emailouders, 0) and strtolower($emailouders) !=  strtolower($email)) {
+		$rv = strtolower($emailouders);
+	}
+	return $rv;
+}
 
 ?>

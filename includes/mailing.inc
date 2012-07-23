@@ -785,11 +785,6 @@ class mailing {
 			$mail->From = $this->from_addr;
 			$mail->FromName = $this->from_name;
 			$mail->Subject = $this->subject;
-			foreach (explode(",", $this->cc_addr) as $v) {
-				if (isValidMailAddress($v, 0)) {
-					$mail->AddCC($v);
-				}
-			}
 		
 			$ad = $this->dir_attachm . "/" . $this->mid;
 			if (is_dir($ad)) {
@@ -816,15 +811,17 @@ class mailing {
 			if ($preview == 1) {
 				echo("<br>\n" . $this->mailbericht);
 			}
-			if (isValidMailAddress($rcpt->Email, 0) or isValidMailAddress($rcpt->EmailVereniging, 0) or isValidMailAddress($rcpt->to_address, 0)) {
-				if (isValidMailAddress($rcpt->Email, 0)) {
-					$e = strtolower($rcpt->Email);
-				} elseif (isValidMailAddress($rcpt->EmailVereniging, 0)) {
-					$e = strtolower($rcpt->EmailVereniging);
-				} else {
-					$e = strtolower($rcpt->to_address);
-					$this->contains_losse_email = true;
-				}
+			if (isValidMailAddress($rcpt->Email, 0)) {
+				$e = strtolower($rcpt->Email);
+			} elseif (isValidMailAddress($rcpt->EmailVereniging, 0)) {
+				$e = strtolower($rcpt->EmailVereniging);
+			} elseif (isValidMailAddress($rcpt->EmailOuders, 0)) {
+				$e = strtolower($rcpt->EmailOuders);
+			} else {
+				$e = strtolower($rcpt->to_address);
+				$this->contains_losse_email = true;
+			}
+			if (isValidMailAddress($e, 0)) {
 				if ($preview == 0) {
 					if (isset($rcpt->Naam_lid)) {
 						$mail->AddAddress($e, $rcpt->Naam_lid);
@@ -836,9 +833,20 @@ class mailing {
 						$to_name = $this->to_name;
 					}
 					$mail->MsgHTML($this->mailbericht);
+					foreach (explode(",", $this->cc_addr) as $v) {
+					if (isValidMailAddress($v, 0)) {
+						$mail->AddCC($v);
+						}
+					}
 					if ($this->verzamelen) {
 						db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message);
 					} else {
+					
+						$io = fnInformerenOuders($rcpt->GEBOREN, $rcpt->EmailOuders, $rcpt->Email);
+						if (strlen($io) > 5 and $io != $e) {
+							$mail->AddCC($io);
+						}
+					
 						if ($this->mailsperminuut > 0) {
 							while (microtime(true)-$starttijd < $smptteller * (60 / $this->mailsperminuut)) {
 								usleep((60 / $this->mailsperminuut) * 700000);
@@ -847,7 +855,7 @@ class mailing {
 						}
 						$smptteller++;
 						if ($mail->Send()) {
-							db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message);
+							db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message, "", "", "", $io);
 							if (isset($rcpt->Naam_lid)) {
 								$this->ok_send .= sprintf("<li>%s {%s}</li>\n", $rcpt->Naam_lid, $e);
 							} else {

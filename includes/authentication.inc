@@ -184,11 +184,19 @@ function fnConfirmLogin($row, $xtratekst="") {
 
 	$mail->FromName = $from;
 	if (isValidMailAddress($row->Email, 0)) {
-		$email = $row->Email;
+		$email = strtolower($row->Email);
+	} elseif (isValidMailAddress($row->EmailVereniging, 0)) {
+		$email = strtolower($row->EmailVereniging);
+	} elseif (isValidMailAddress($row->EmailOuders, 0)) {
+		$email = strtolower($row->EmailOuders);
 	} else {
-		$email = $row->EmailVereniging;
+		$email = "";
 	}
 	$mail->AddAddress($email);
+	$io = fnInformerenOuders($row->GEBOREN, $row->EmailOuders, $row->Email);
+	if (strlen($io) > 5 and $io != $email) {
+		$mail->AddCC($io);
+	}
 	$mail->Subject = $subj;
 	$mail->MsgHTML($content);
 	if ($mail->Send()) {
@@ -233,15 +241,23 @@ Dit verzoek is vanaf IP-adres %s gedaan.
 	try {
 		$mail->FromName = $from;
 		if (isValidMailAddress($row->Email, 0)) {
-			$email = $row->Email;
+			$email = strtolower($row->Email);
+		} elseif (isValidMailAddress($row->EmailVereniging, 0)) {
+			$email = strtolower($row->EmailVereniging);
+		} elseif (isValidMailAddress($row->EmailOuders, 0)) {
+			$email = strtolower($row->EmailOuders);
 		} else {
-			$email = $row->EmailVereniging;
+			$email = "";
 		}
 		$mail->AddAddress($email);
+		$io = fnInformerenOuders($row->GEBOREN, $row->EmailOuders, $row->Email);
+		if (strlen($io) > 5 and $io != $email) {
+			$mail->AddCC($io);
+		}
 		$mail->Subject = $subj;
 		$mail->MsgHTML($content);
 		if ($mail->Send()) {
-			return sprintf("Lidnummer %d is aan %s (%s) verzonden.", $row->Lidnr, $row->Naam, $email);
+			return sprintf("Lidnummer is aan %s (%s) verzonden.", $row->Naam, $email);
 		} else {
 			return sprintf("Fout bij het versturen van de e-mail: %s. Probeer het later nogmaals of neem contact op met de webmaster.", $mail->ErrorInfo);
 		}
