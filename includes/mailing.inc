@@ -842,7 +842,7 @@ class mailing {
 						db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message);
 					} else {
 					
-						$io = fnInformerenOuders($rcpt->GEBOREN, $rcpt->EmailOuders, $rcpt->Email);
+						$io = fnInformerenOuders($rcpt->GEBDATUM, $rcpt->EmailOuders, $rcpt->Email);
 						if (strlen($io) > 5 and $io != $e) {
 							$mail->AddCC($io);
 						}

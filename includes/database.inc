@@ -1019,7 +1019,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 		} else {
 			$xtrawhere .= sprintf(" AND Login.LidID IN (%s)", implode(", ", $lididwebmasters));
 		}
-		$query = sprintf("SELECT Login.LidID, %3\$s AS NaamLid, L.Roepnaam, L.Email, L.EmailVereniging,
+		$query = sprintf("SELECT Login.LidID, %3\$s AS NaamLid, L.Roepnaam, L.Email, L.EmailVereniging, L.EmailOuders,
 					IFNULL((%4\$s), 0) AS Lidnr, Login.FouteLogin
 					FROM %1\$sAdmin_login AS Login INNER JOIN %1\$sLid AS L ON Login.LidID = L.Nummer
 					WHERE LENGTH(Login.Wachtwoord) > 5 %2\$s
@@ -1265,7 +1265,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		
 	} elseif ($actie == "rcpt") {
 		$query = sprintf("SELECT IFNULL(L.Nummer, 0) AS Nummer, %1\$s AS Naam_lid, %2\$s AS Zoeknaam_lid, L.Adres, L.Postcode, 
-					L.Woonplaats, L.Email, L.EmailVereniging, L.EmailOuders, L.GEBOREN, R.to_address
+					L.Woonplaats, L.Email, L.EmailVereniging, L.EmailOuders, L.GEBDATUM, R.to_address
 					FROM %3\$sMailing_rcpt AS R LEFT OUTER JOIN %3\$sLid AS L ON R.LidID = L.Nummer
 					WHERE MailingID=%4\$d
 					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectnaam, $selectzoeknaam, $table_prefix, $mid);

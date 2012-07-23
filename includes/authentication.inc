@@ -37,9 +37,11 @@ function toegang($soort, $melding=1) {
 					$_SESSION['roepnaamingelogde'] = trim($row->Roepnaam);
 				}
 				if (isValidMailAddress($row->EmailVereniging, 0)) {
-					$_SESSION['emailingelogde'] = $row->EmailVereniging;
+					$_SESSION['emailingelogde'] = strtolower($row->EmailVereniging);
 				} elseif (isValidMailAddress($row->Email, 0)) {
-					$_SESSION['emailingelogde'] = $row->Email;
+					$_SESSION['emailingelogde'] = strtolower($row->Email);
+				} elseif (isValidMailAddress($row->EmailOuders, 0)) {
+					$_SESSION['emailingelogde'] = strtolower($row->EmailOuders);
 				} else {
 					$_SESSION['emailingelogde'] = "";
 				}	
