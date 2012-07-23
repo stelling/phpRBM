@@ -1189,10 +1189,8 @@ function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr, $message="", $fro
 		$from_name = $row->from_name;
 		$from_addr = $row->from_addr;
 		$subject = $row->subject;
-		if (strlen($cc_addr) > 5) {
+		if (strlen($cc_addr) > 5 and strlen($row->cc_addr) > 5) {
 			$cc_addr .= ", ";
-		} else {
-			$cc_addr = "";
 		}
 		$cc_addr .= $row->cc_addr;
 		if (strlen($row->to_name) > 0) {
@@ -2238,6 +2236,10 @@ function db_onderhoud() {
 	
 	// Admin_param/ValueNum, deze code kan na 1/11/2012 worden verwijderd.
 	$query = sprintf("ALTER TABLE `%sAdmin_param` CHANGE `ValueNum` `ValueNum` DECIMAL(13,6) NULL DEFAULT NULL;", $table_prefix);
+	fnQuery($query);
+	
+	// Admin_mailing_hist/ValueNum, deze code kan na 1/11/2012 worden verwijderd.
+	$query = sprintf("ALTER TABLE `%sMailing_hist` CHANGE `cc_addr` `cc_addr` VARCHAR(80) NOT NULL;", $table_prefix);
 	fnQuery($query);
 	
 	/***** Opschonen database na een upload uit de Access-database.  *****/
