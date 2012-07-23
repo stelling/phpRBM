@@ -822,11 +822,11 @@ function opzegginglidmaatschap($lidid) {
 		$form_opzegging = sprintf("<div id='opzegformulier'>\n<form name='Opzegging' action='%s' method='post'>\n", $actionurl);
 		$form_opzegging .= "<fieldset>
 <h3>Opzegging lidmaatschap</h3>
-<label for='NaamLid'>Naam lid:</label><input type='text' name='NaamLid' id='NaamLid' value='[%NAAMLID%]' readonly='readonly'>
-<label for='Lidnr'>Lidnummer:</label><input type='text' name='Lidnr' id='Lidnr' value='[%LIDNR%]' readonly='readonly'>
-<label for='OpzeggingPer'>Opzegging lidmaatschap per:</label><input type='text' name='OpzeggingPer' id='OpzeggingPer' value='[%OPZEGGENVANAF%]' maxlength=18 size=20>
-<textarea name='RedenOpmerking' rows=8 cols=50 title='Reden en/of opmerkingen'></textarea>
-<input type='submit' name='VerstuurOpzegging' value='Verstuur opzegging'>
+<p><label for='NaamLid'>Naam lid:</label><input type='text' name='NaamLid' value='[%NAAMLID%]' readonly='readonly'>
+<label for='Lidnr'>Lidnummer:</label><input type='text' class='inputnumber' name='Lidnr' value='[%LIDNR%]' readonly='readonly'>
+<label for='OpzeggingPer'>Opzegging lidmaatschap per:</label><input type='text' name='OpzeggingPer' id='OpzeggingPer' value='[%OPZEGGENVANAF%]' maxlength=18 size=20></p>
+<textarea name='RedenOpmerking' rows=8 cols=48 title='Reden en/of opmerkingen'></textarea>
+<input type='submit' class='knop' name='VerstuurOpzegging' value='Verstuur opzegging'>
 </fieldset>
 </form>
 </div>  <!-- Einde opzegformulier -->";

@@ -359,16 +359,11 @@ function fnLoginAanvragen() {
 		echo("<fieldset>\n");
 		echo("<h3>Aanvragen login</h3>\n");
 		
-		echo("<p><label for='gewenstelogin'>Gewenste login:</label>\n
-				<input type='text' name='gewenstelogin'>\n");
-				
+		echo("<p><label for='gewenstelogin'>Gewenste login:</label><input type='text' name='gewenstelogin'>\n");		
 		if ($lidnrnodigbijloginaanvraag == 1) {
-			echo("<label for='lidnummer'>Lidnummer:</label>\n
-					<input class='inputnumber' type='number' name='lidnummer'>\n");
+			echo("<label for='lidnummer'>Lidnummer:</label><input class='inputnumber' type='number' name='lidnummer'>\n");
 		}
-				
-		echo("<label for='email'>E-mailadres:</label>\n
-				<input type='email' name='email'>\n");
+		echo("<label for='email'>E-mailadres:</label><input type='email' name='email'>\n");
 
 		echo("<input class='knop' type='submit' name='loginaanvragen' value='Aanvragen'></p>\n");
 		echo("</fieldset>\n");
