@@ -2,10 +2,15 @@
 
 function fnMailing() {
 	global $ldl, $currenttab2;
-		
+
+	if (isset($_GET['op'])) {
+		$op = $_GET['op'];
+	} else {
+		$op = "";
+	}
 	if (isset($_POST['Upload']) and $_POST['Upload'] == "Upload") {
 		$op = "upload";
-	} elseif ($_GET['tp'] == "Mailing/Historie") {
+	} elseif ($_GET['tp'] == "Mailing/Historie" and $op != "histdetails") {
 		$op = "historie";
 	} elseif (isset($_POST['action']) and $_POST['action'] == "Bewaren & sluiten") {
 		$op = "save_close";
@@ -15,8 +20,6 @@ function fnMailing() {
 		$op = $_GET['op'];
 	} elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$op = "save";
-	} else {
-		$op = "";
 	}
 
 	if (isset($_GET['mid']) and $_GET['mid'] > 0) {
@@ -34,6 +37,7 @@ function fnMailing() {
 	} elseif ($op != "preview") {
 		fnDispMenu(2);
 	}
+	
 
 	if ($op == "edit" and isset($_GET['mid'])) {
 		$mailing->edit();
@@ -51,10 +55,10 @@ function fnMailing() {
 	} elseif ($currenttab2 == "Logboek" and toegang($_GET['tp'])) {
 		$lijst = db_logboek("lijst", "", 4);
 		echo(fnDisplayTable($lijst, "", "", 0, "", "", "logboek"));
-	} elseif ($op == "historie" and $mailing->mid > 0) {
-		$rows = db_mailing("hist", $mailing->mid);
+	} elseif ($op == "historie" and $_GET['mid'] > 0) {
+		$rows = db_mailing("hist", $_GET['mid']);
 		if (count($rows) > 0) {
-			$ld = sprintf("<a href='index.php?tp=%s&amp;op=histdetails&amp;rid=%%d&amp;mid=%d'>%%s</a>", $_GET['tp'], $mailing->mid);
+			$ld = sprintf("<a href='index.php?tp=%s&amp;op=histdetails&amp;rid=%%d&amp;mid=%d'>%%s</a>", $_GET['tp'], $_GET['mid']);
 			$th = sprintf("%d. %s", $mailing->mid, $rows[0]->ndOnderwerp);
 			echo(fnDisplayTable($rows, $ld, $th, 0, 1));
 		} else {
