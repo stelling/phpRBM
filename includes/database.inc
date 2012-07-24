@@ -306,8 +306,8 @@ function db_gegevenslid($LidID, $soort="Alg") {
 				 . " subject AS Onderwerp,"
 				 . " RecordID AS lnkRecordID"
 				 . " FROM %sMailing_hist"
-				 . " WHERE LidID=%d"
-				 . " ORDER BY send_on DESC LIMIT 25;", $table_prefix, $LidID);
+				 . " WHERE LidID=%d AND Successful=1"
+				 . " ORDER BY send_on DESC LIMIT 50;", $table_prefix, $LidID);
 	} elseif ($soort == "Evenementen") {
 		$query = "SELECT E.Datum AS dteDatum, E.Omschrijving, E.Verzameltijd, DATE_FORMAT(E.Datum, '%H:%i') AS Starttijd,
 					E.Eindtijd, E.Email AS emlContact, ED.Functie, CASE ED.Status";
@@ -904,7 +904,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 		return $ok;
 		
 	} elseif ($actie == "rowlogin" and (isValidMailAddress($email, 0) or $lidid > 0)) {
-		$query = sprintf("SELECT L.Nummer, Login.Login, %s AS Naam, L.Roepnaam, L.Email, L.EmailVereniging, L.EmailOuders, L.GEBOREN,
+		$query = sprintf("SELECT L.Nummer, Login.Login, %s AS Naam, L.Roepnaam, L.Email, L.EmailVereniging, L.EmailOuders, L.GEBDATUM,
 								Login.Wachtwoord, Login.FouteLogin, 
 								IFNULL((%s), L.Nummer) AS Lidnr,", $selectnaam, $selectlidnr);
 		if (is_array($beperktotgroep) and count($beperktotgroep) > 0) {
@@ -1176,7 +1176,7 @@ function db_naam_onderdeel($rid, $rin="Onbekend") {
 	return $rv;
 }
 
-function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr, $message="", $from_name="", $from_addr="", $subject="", $cc_addr="") {
+function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr, $message="", $from_name="", $from_addr="", $subject="", $cc_addr="", $success=1) {
 	global $table_prefix;
 
 	if ($mid > 0) {
@@ -1186,9 +1186,15 @@ function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr, $message="", $fro
 		if (strlen($message) == 0) {
 			$message = $row->message;
 		}
-		$from_name = $row->from_name;
-		$from_addr = $row->from_addr;
-		$subject = $row->subject;
+		if (strlen($from_name) == 0) {
+			$from_name = $row->from_name;
+		}
+		if (strlen($from_addr) == 0) {
+			$from_addr = $row->from_addr;
+		}
+		if (strlen($subject) == 0) {
+			$subject = $row->subject;
+		}
 		if (strlen($cc_addr) > 5 and strlen($row->cc_addr) > 5) {
 			$cc_addr .= ", ";
 		}
@@ -1204,8 +1210,8 @@ function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr, $message="", $fro
 	
 	if (isset($_SESSION['lidid']) and $_SESSION['lidid'] > 0) {
 		$query = sprintf("INSERT INTO %sMailing_hist SET
-					LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", to_name=\"%s\", subject=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", send_by=%d, send_on=SYSDATE();", $table_prefix,
-					$lidid, $mid, html_entity_decode($from_name), $from_addr, $to_name, html_entity_decode($subject), $to_addr, $cc_addr, html_entity_decode($message), $_SESSION['lidid']);
+					LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", to_name=\"%s\", subject=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", send_by=%d, send_on=SYSDATE(), Successful=%d;", $table_prefix,
+					$lidid, $mid, html_entity_decode($from_name), $from_addr, $to_name, html_entity_decode($subject), $to_addr, $cc_addr, html_entity_decode($message), $_SESSION['lidid'], $success);
 		fnQuery($query);
 	}
 }
@@ -1215,16 +1221,16 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 	
 	$mess = "";
 	if ($actie == "histdetails" and $rid > 0) {
-		$query = sprintf("SELECT send_on, from_addr, from_name, to_name, to_addr, cc_addr, subject, message
+		$query = sprintf("SELECT send_on, from_addr, from_name, to_name, to_addr, cc_addr, subject, message, Successful
 					FROM %sMailing_hist WHERE RecordID=%d LIMIT 1;", $table_prefix, $rid);
 		$result = fnQuery($query);
 		return $result->fetch();
 	} elseif ($actie == "hist" and $mid > 0) {
-		$query = sprintf('SELECT M.subject AS ndOnderwerp, MH.send_on AS dtsVerzonden, IF(MH.LidID=0, MH.to_name, %1$s) AS Aan,
+		$query = sprintf("SELECT M.subject AS ndOnderwerp, IF(MH.Successful=1, MH.send_on, 'Error') AS dtsVerzonden, IF(MH.LidID=0, MH.to_name, %1\$s) AS Aan,
 					to_addr AS `E-mail`, L.Woonplaats, MH.RecordID AS lnkRecordID
-					FROM (%2$sMailing_hist AS MH LEFT OUTER JOIN %2$sLid AS L ON MH.LidID = L.Nummer) INNER JOIN %2$sMailing AS M ON MH.MailingID = M.MailingID
-					WHERE MH.MailingID=%3$d
-					ORDER BY MH.RecordID DESC;', $selectnaam, $table_prefix, $mid);
+					FROM (%2\$sMailing_hist AS MH LEFT OUTER JOIN %2\$sLid AS L ON MH.LidID = L.Nummer) INNER JOIN %2\$sMailing AS M ON MH.MailingID = M.MailingID
+					WHERE MH.MailingID=%3\$d
+					ORDER BY MH.RecordID DESC;", $selectnaam, $table_prefix, $mid);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "lijst") {
@@ -2229,6 +2235,13 @@ function db_onderhoud() {
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sAdmin_login' AND COLUMN_NAME='HerinneringVervallenDiplomas';", $db_name, $table_prefix);
 	if (db_scalar($query) == 0) {
 		$query = sprintf("ALTER TABLE `%sAdmin_login` ADD `HerinneringVervallenDiplomas` TINYINT NOT NULL DEFAULT '0' AFTER `Wachtwoord`;", $table_prefix);
+		fnQuery($query);
+	}
+		
+	// Toevoegen veld 'Successful' aan de tabel Mailing_hist. Deze code kan na 1/8/2013 worden verwijderd.
+	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sMailing_hist' AND COLUMN_NAME='Successful';", $db_name, $table_prefix);
+	if (db_scalar($query) == 0) {
+		$query = sprintf("ALTER TABLE `%sMailing_hist` ADD `Successful` TINYINT NOT NULL DEFAULT '1';", $table_prefix);
 		fnQuery($query);
 	}
 		

@@ -39,6 +39,7 @@ if (!isset($_SESSION['naamvereniging']) or strlen($_SESSION['naamvereniging']) <
 	$_SESSION['emailwebmaster'] = db_param("emailwebmaster");
 	$_SESSION['emailsecretariaat'] = db_param("emailsecretariaat");
 	$_SESSION['performance_trage_select'] = db_param("performance_trage_select");
+	db_onderhoud();
 }
 if (strlen(db_param("muteerbarememos")) > 0) {
 	$muteerbarememos = explode(",", db_param("muteerbarememos"));
@@ -615,6 +616,8 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 				} elseif (substr($key, 0, 3) == "dts") {
 					if ((!is_null($value)) and $value > '1900-01-01') {
 						$ret .= sprintf("<td class='datumtijd'>%s</td>", strftime('%e %B %Y (%H:%M:%S)', strtotime($value)));
+					} elseif (strlen($value) > 0) {
+						$ret .= sprintf("<td>%s</td>", $value);
 					} else {
 						$ret .= "<td>&nbsp;</td>";
 					}
@@ -734,16 +737,17 @@ class RBMmailer extends PHPMailer {
 
 	function __construct() {
 	
-		if (strlen(db_param("smtphost")) > 0) {
-			$this->Host = db_param("smtphost");
+		$smtphost = db_param("smtphost");
+		if (strlen($smtphost) > 0) {
+			$this->Host = $smtphost;
 			if (db_param("smtpport") > 0) {
 				$this->Port = db_param("smtpport");
 			}
 			$this->IsSMTP(true);
-			$this->IsHTML(true);
-			if (strlen(db_param("smtpuser")) > 0) {
+			$smtpuser = db_param("smtpuser");
+			if (strlen($smtpuser) > 0) {
 				$this->SMTPAuth = true;
-				$this->Username = db_param("smtpuser");
+				$this->Username = $smtpuser;
 				$this->Password = db_param("smtppw");	
 			} else {
 				$this->SMTPAuth = false;
@@ -751,16 +755,10 @@ class RBMmailer extends PHPMailer {
 		} else {
 			$this->IsMail(true);
 		}
+		$this->IsHTML(true);
 		$this->From = $_SESSION['emailwebmaster'];
 		$this->FromName = $_SESSION['naamvereniging'];
 		$this->WordWrap = 110;
-		$this->AltBody  = "Om deze mail te bekijken gebruik een e-mailclient die met HTML overweg kan.";
-		
-		$maxmailsperminuut = db_param("maxmailsperminuut");
-		if ($maxmailsperminuut > 0) {
-			usleep((60/$maxmailsperminuut) * 1000000);
-		}
-
 	}
 }
 

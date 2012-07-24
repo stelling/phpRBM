@@ -307,7 +307,11 @@ class mailing {
 	
 		echo("<div id='verstuurdemail'>\n");
 		$row = db_mailing("histdetails", 0, $rid);
-		printf("<div class='label'>Verzonden:</div><div class='veld'>%s</div>\n", strftime('%e %B %Y (%H:%M)', strtotime($row->send_on)));
+		if ($row->Successful == 1) {
+			printf("<div class='label'>Verzonden:</div><div class='veld'>%s</div>\n", strftime('%e %B %Y (%H:%M:%S)', strtotime($row->send_on)));
+		} else {
+			printf("<div class='label'>Verzonden:</div><div class='veld'>Geprobeerd op %s (zie logboek)</div>\n", strftime('%e %B %Y (%H:%M:%S)', strtotime($row->send_on)));
+		}
 		if (strlen($row->from_name) > 0) {
 			printf("<div class='label'>Van:</div><div class='veld'>%s (%s)</div>\n", htmlentities($row->from_name), $row->from_addr);
 		} else {
@@ -853,13 +857,13 @@ class mailing {
 					
 						if ($this->mailsperminuut > 0) {
 							while (microtime(true)-$starttijd < $smptteller * (60 / $this->mailsperminuut)) {
-								usleep((60 / $this->mailsperminuut) * 700000);
+								usleep((60 / $this->mailsperminuut) * 1001000);
 								set_time_limit(60);
 							}
 						}
 						$smptteller++;
 						if ($mail->Send()) {
-							db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message, "", "", "", $io);
+							db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message, $mail->FromName, $mail->From, $mail->Subject, $io, 1);
 							if (isset($rcpt->Naam_lid)) {
 								$this->ok_send .= sprintf("<li>%s {%s}</li>\n", $rcpt->Naam_lid, $e);
 							} else {
@@ -867,6 +871,7 @@ class mailing {
 							}
 							$this->aant_ok++;
 						} else {
+							db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message, $mail->FromName, $mail->From, $mail->Subject, $io, 0);
 							$this->nok_send .= sprintf("<li>%s {%s}</li>\n", $rcpt->Naam_lid, $e);
 							$mess = sprintf("Het versturen van mailing %d (%s) aan %s is niet gelukt. Error: %s", $this->mid, $this->subject, $to_name, $mail->ErrorInfo);
 							db_logboek("add", $mess, 4);
@@ -920,8 +925,8 @@ class mailing {
 			if (isValidMailAddress($this->emailsecretariaat, 0)) {
 				$mail->AddCC($this->emailsecretariaat);
 			}
-			if ($this->mailsperminuut > 0 and $this->mailsperminuut < 10000) {
-				usleep((60 / $this->mailsperminuut) * 1000000);
+			if ($this->mailsperminuut > 0 and $this->mailsperminuut < 100000) {
+				usleep((60 / $this->mailsperminuut) * 1001000);
 			}
 			$mail->Send();
 		}
