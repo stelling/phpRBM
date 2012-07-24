@@ -256,7 +256,7 @@ function fnInstellingen() {
 	$arrParam['typemenu'] = "1 = per niveau een aparte regel, 2 = één menu met dropdown, 3 = één menu met dropdown en extra menu voor niveau 2.";
 	$arrParam['urlwebsite'] = "Zonder http://";
 	$arrParam['urlvereniging'] = "Zonder http://";
-	$arrParam['verjaardagenaantal'] = "Hoewel verjaardagen moeten er maximaal in de verenigingsinfo worden getoond. Als er meerdere leden op dezelfde dag jarig zijn, wordt dit aantal overschreden.";
+	$arrParam['verjaardagenaantal'] = "Hoeveel verjaardagen moeten er maximaal in de verenigingsinfo worden getoond. Als er meerdere leden op dezelfde dag jarig zijn, wordt dit aantal overschreden.";
 	$arrParam['verjaardagenvooruit'] = "Hoeveel dagen vooruit moeten de verjaardagen in de verenigingsinfo getoond worden?";
 	$arrParam['voorwaardenbestelling'] = "Deze regel wordt bij de online-bestellingen in de zelfservice vermeld.";
 	$arrParam['voorwaardeninschrijving'] = "Deze regel wordt bij de inschrijving vemeld als voorwaarde voor de inschrijving voor de bewaking.";
