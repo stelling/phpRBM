@@ -357,7 +357,7 @@ function fnLoginAanvragen() {
 		echo("<div id='loginaanvraag'>\n");
 		printf("<form name=Loginaanvraag action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
 		echo("<fieldset>\n");
-		echo("<h3>Aanvragen login</h3>\n");
+		echo("<h3>Aanvragen login / Wachtwoord opvragen</h3>\n");
 		
 		echo("<p><label for='gewenstelogin'>Gewenste login:</label><input type='text' name='gewenstelogin'>\n");		
 		if ($lidnrnodigbijloginaanvraag == 1) {
@@ -369,15 +369,15 @@ function fnLoginAanvragen() {
 		echo("</fieldset>\n");
 
 		if ($lidnrversturenmogelijk == 1) {
-			echo("<p>Door alleen je e-mailadres in te vullen wordt je lidnummer per e-mail verzonden.\n");
-		} else {
-			echo("<p>");
+			echo("<p>Door alleen je e-mailadres in te vullen wordt je lidnummer per e-mail verzonden.</p>\n");
 		}
+		echo("<p>");
 		if ($lidnrnodigbijloginaanvraag == 1) {
-			echo("Met de juiste combinatie van lidnummer en e-mailadres kan je een login aanvragen.</p>\n");
+			echo("Met de juiste combinatie van lidnummer en e-mailadres kan je een login aanvragen of je bestaande login en wachtwoord opvragen.");
 		} else {
-			echo("Je kan een login aanvragen op je in de ledenadministratie bekende e-mailadres.</p>\n");
+			echo("Je kan een login aanvragen of je bestaande login met wachtwoord opvragen door je in de ledenadministratie bekende e-mailadres in te vullen.");
 		}
+		echo(" Je login en wachtwoord worden per e-mail naar je verzonden.</p>\n");
 			
 		echo("</form>
 		</div>  <!-- Einde loginaanvraag -->\n");
