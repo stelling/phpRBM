@@ -51,7 +51,6 @@ function toegang($soort, $melding=1) {
 				db_logboek("add", $mess, 1, 0, 2);
 				$_SESSION['username'] = "";
 				setcookie("username", "", time()-3600);
-				setcookie("password", "", time()-3600);
 			}
 		} else {
 			$_SESSION['username'] = "";
@@ -63,6 +62,7 @@ function toegang($soort, $melding=1) {
 			$_SESSION['roepnaamingelogde'] = "gast";
 			$_SESSION['emailingelogde'] = "";	
 			$_SESSION['password'] = "";
+			setcookie("password", "", time()-3600);
 		}
 	}
 	
