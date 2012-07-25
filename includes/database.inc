@@ -1226,7 +1226,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		$result = fnQuery($query);
 		return $result->fetch();
 	} elseif ($actie == "hist" and $mid > 0) {
-		$query = sprintf("SELECT M.subject AS ndOnderwerp, IF(MH.Successful=1, MH.send_on, 'Error') AS dtsVerzonden, IF(MH.LidID=0, MH.to_name, %1\$s) AS Aan,
+		$query = sprintf("SELECT M.subject AS ndOnderwerp, IF(MH.Successful=1, MH.send_on, 'Niet verzonden') AS dtsVerzonden, IF(MH.LidID=0, MH.to_name, %1\$s) AS Aan,
 					to_addr AS `E-mail`, L.Woonplaats, MH.RecordID AS lnkRecordID
 					FROM (%2\$sMailing_hist AS MH LEFT OUTER JOIN %2\$sLid AS L ON MH.LidID = L.Nummer) INNER JOIN %2\$sMailing AS M ON MH.MailingID = M.MailingID
 					WHERE MH.MailingID=%3\$d

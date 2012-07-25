@@ -614,10 +614,10 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 						$ret .= "<td>&nbsp;</td>";
 					}
 				} elseif (substr($key, 0, 3) == "dts") {
-					if ((!is_null($value)) and $value > '1900-01-01') {
+					if ((!is_null($value)) and $value > '1900-01-01' and strtotime($value) !== false) {
 						$ret .= sprintf("<td class='datumtijd'>%s</td>", strftime('%e %B %Y (%H:%M:%S)', strtotime($value)));
 					} elseif (strlen($value) > 0) {
-						$ret .= sprintf("<td>%s</td>", $value);
+						$ret .= sprintf("<td class='mededeling'>%s</td>", $value);
 					} else {
 						$ret .= "<td>&nbsp;</td>";
 					}
