@@ -848,6 +848,7 @@ class mailing {
 					}
 					if ($this->verzamelen) {
 						db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message);
+						$this->aant_ok++;
 					} else {
 					
 						$io = fnInformerenOuders($rcpt->GEBDATUM, $rcpt->EmailOuders, $rcpt->Email);
@@ -894,10 +895,8 @@ class mailing {
 		}
 		$summary = "";
 		
-		if ($preview == 0 and strlen($this->ok_send) > 0) {
-			$query = sprintf("UPDATE %sMailing SET sent_on=SYSDATE(), SentBy=%d WHERE MailingID=%d;", $table_prefix, $_SESSION['lidid'], $this->mid);
-			fnQuery($query);
-			$oms = sprintf("Mailing %d (%s) is aan %d ontvangers door %s verzonden.", $this->mid, $this->subject, $this->aant_ok, $_SESSION['naamingelogde']);
+		if ($preview == 0 and $this->aant_ok > 0) {
+			$oms = sprintf("Mailing %d (%s) is aan %d ontvangers verzonden.", $this->mid, $this->subject, $this->aant_ok);
 			db_logboek("add", $oms, 4);
 		}
 		

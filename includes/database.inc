@@ -1213,6 +1213,11 @@ function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr, $message="", $fro
 					LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", to_name=\"%s\", subject=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", send_by=%d, send_on=SYSDATE(), Successful=%d;", $table_prefix,
 					$lidid, $mid, html_entity_decode($from_name), $from_addr, $to_name, html_entity_decode($subject), $to_addr, $cc_addr, html_entity_decode($message), $_SESSION['lidid'], $success);
 		fnQuery($query);
+		
+		if ($success == 1 and $mid > 0) {
+			$query = sprintf("UPDATE %sMailing SET sent_on=SYSDATE(), SentBy=%d WHERE MailingID=%d;", $table_prefix, $_SESSION['lidid'], $this->mid);
+			fnQuery($query);
+		}
 	}
 }
 
@@ -1238,10 +1243,10 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		$orderby = "sent_on DESC";
 		if ($filter == "Concepten" or $filter == "Verzonden") {
 			if ($filter == "Verzonden") {
-				$w = "(NOT M.sent_on IS NULL)";
+				$w = sprintf("(SELECT COUNT(*) FROM %sMailing_hist AS MH WHERE MH.MailingID=M.MailingID) > 0", $table_prefix);
 				$xtra_sel = sprintf(", CONCAT((SELECT %s FROM %sLid WHERE Nummer=M.SentBy), ' & ', DATE_FORMAT(M.sent_on, %s)) AS `mrgLaatst verzonden`", $selectnaam, $table_prefix, $fdtlang);
 			} else {
-				$w = "(M.sent_on IS NULL)";
+				$w = sprintf("(SELECT COUNT(*) FROM %sMailing_hist AS MH WHERE MH.MailingID=M.MailingID) = 0", $table_prefix);
 			}
 			$w .= " AND template=0 AND (deleted_on IS NULL)";
 			if ($_SESSION['webmaster'] == 0) {
@@ -1261,7 +1266,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		$query = sprintf("SELECT M.MailingID AS lnkMailingID, M.MailingID AS intNr, M.subject AS Onderwerp, M.from_name AS Van, M.to_name AS Aan,
 					CONCAT(%1\$s, ' & ', DATE_FORMAT(M.changed_on, %6\$s)) AS `mrgLaatst gewijzigd`
 					%2\$s,
-					IF(M.sent_on > M.new_on, M.MailingID, 0) AS llkHist
+					IF((SELECT COUNT(*) FROM %3\$sMailing_hist AS MH WHERE MH.MailingID=M.MailingID) > 0, M.MailingID, 0) AS llkHist
 					FROM %3\$sMailing AS M LEFT JOIN %3\$sLid AS L ON M.ChangedBy = L.Nummer
 					WHERE %4\$s ORDER BY %5\$s;", $selectnaam, $xtra_sel, $table_prefix, $w, $orderby, $fdtlang);
 		$result = fnQuery($query);
