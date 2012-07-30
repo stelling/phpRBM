@@ -1563,7 +1563,9 @@ function db_diploma($actie, $did=0, $td="*") {
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "zelfservice_lijst") {
-		$query = sprintf("SELECT * FROM %sDiploma AS DP WHERE DP.Zelfservice=1 AND DP.AantalBeoordelingen < 2 ORDER BY DP.Volgnr, DP.Kode;", $table_prefix);
+		$query = sprintf("SELECT * FROM %sDiploma AS DP
+					WHERE DP.Zelfservice=1 AND DP.AantalBeoordelingen < 2 AND ((DP.Vervallen IS NULL) OR DP.Vervallen > CURDATE())
+					ORDER BY DP.Volgnr, DP.Kode;", $table_prefix);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "kode") {
@@ -2006,12 +2008,12 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrIntegers['max_grootte_bijlage'] = 2048;
 	$arrIntegers['maxlengtelogin'] = 12;
 	$arrIntegers['maxinlogpogingen'] = 4;
-	$arrIntegers['opzegtermijn'] = 1;
 	$arrIntegers['smtpport'] = 0;
 	$arrIntegers['termijnvervallendiplomasmailen'] = 3;
 	$arrIntegers['typemenu'] = 1;
 	$arrIntegers['verjaardagenaantal'] = 7;
 	$arrIntegers['verjaardagenvooruit'] = 5;
+	$arrIntegers['zs_opzegtermijn'] = 1;
 	
 	$arrBooleans['db_backuptarren'] = 0;
 	$arrBooleans['kaderoverzichtmetfoto'] = 1;
@@ -2073,7 +2075,11 @@ function db_param($naam, $actie="curval", $newval="") {
 		} elseif ($cur->ParamType == "F" and $cur->ValueNum != $newval) {
 			$set = sprintf("ValueNum=%F", $newval);
 		} elseif (($cur->ParamType == "S" or $cur->ParamType == "T") and $cur->ValueChar != $newval) {
-			$set = sprintf("ValueChar='%s'", $newval);
+			if (strlen($newval) == 0) {
+				$set = "ValueChar=NULL";
+			} else {
+				$set = sprintf("ValueChar='%s'", $newval);
+			}
 		} else {
 			$set = "";
 		}
@@ -2107,6 +2113,9 @@ function db_param($naam, $actie="curval", $newval="") {
 				db_logboek("add", $mess, 2);
 			}
 		}
+	} elseif ($actie == "delete" and strlen($naam) > 0) {
+		$query = sprintf("DELETE FROM %sAdmin_param WHERE Naam='%s';", $table_prefix, $naam);
+		fnQuery($query);
 	}
 }
 
@@ -2261,8 +2270,12 @@ function db_onderhoud() {
 	$query = sprintf("ALTER TABLE `%sAdmin_param` CHANGE `ValueNum` `ValueNum` DECIMAL(13,6) NULL DEFAULT NULL;", $table_prefix);
 	fnQuery($query);
 	
-	// Admin_mailing_hist/ValueNum, deze code kan na 1/11/2012 worden verwijderd.
+	// mailing_hist/ValueNum, deze code kan na 1/11/2012 worden verwijderd.
 	$query = sprintf("ALTER TABLE `%sMailing_hist` CHANGE `cc_addr` `cc_addr` VARCHAR(80) NOT NULL;", $table_prefix);
+	fnQuery($query);
+	
+	// Admin_param/Naam, deze code kan na 1/11/2012 worden verwijderd.
+	$query = sprintf("ALTER TABLE `%sAdmin_param` CHANGE `Naam` `Naam` VARCHAR(35) NOT NULL;", $table_prefix);
 	fnQuery($query);
 	
 	/***** Opschonen database na een upload uit de Access-database.  *****/
@@ -2734,7 +2747,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sMemo` (
 CREATE TABLE IF NOT EXISTS `%1\$sMutatie` (
   `RecordID` int(11) DEFAULT NULL,
   `BoekjaarID` int(11) NOT NULL DEFAULT '0',
-  `Jaar` varchar(5) DEFAULT NULL,
   `Periode` tinyint(4) NOT NULL DEFAULT '0',
   `Dagboek` varchar(4) NOT NULL DEFAULT '',
   `DagboekID` int(11) DEFAULT NULL,

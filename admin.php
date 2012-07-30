@@ -217,17 +217,14 @@ function fnInstellingen() {
 
 	$arrParam['bewaartijdinloggen'] = "Hoeveel maanden moet logging van het in- en uitloggen bewaard blijven. 0 = gelijk aan bewaartijdlogging.";
 	$arrParam['bewaartijdlogging'] = "Hoeveel maanden moet logging bewaard blijven. 0 = altijd.";
-	$arrParam['bewaartijdlogins'] = "Het aantal maanden dat niet gebruikte logins bewaard worden. 0 = altijd bewaren.";
+	$arrParam['bewaartijdlogins'] = "Het aantal maanden dat niet gebruikte logins bewaard worden. Als een login wordt verwijderd, wordt geen historie weggegooid. Historie wordt namelijk direct aan het lid gekopppeld en niet aan de login. 0 = altijd bewaren.";
 	$arrParam['bewaartijdmailings'] = "Het aantal maanden dat verwijderde mailing bewaard worden. 0 = altijd bewaren.";
 	$arrParam['beperkfrom'] = "Indien deze is ingevuld moet het from adres altijd vanaf dit domein zijn.";
 	$arrParam['beperktotgroep'] = "Vul hier de RecordID's, gescheiden door een komma, van de groepen (zie tabel ONDERDL) in die toegang hebben. Als je geen groep invult hebben alleen webmasters toegang.";
 	$arrParam['db_backuptarren'] = "Moet de backup gecomprimeerd worden? Let op, de webhost moet dit wel ondersteunen.";
 	$arrParam['db_backupsopschonen'] = "Na hoeveel dagen moeten oude back-ups automatisch verwijderd worden? 0 = nooit.";
 	$arrParam['db_folderbackup'] = "Deze variabele is optioneel. Mocht deze niet ingevuld worden, dan wordt de standaard folder gebruikt.";
-	$arrParam['emailbevestigingbestelling'] = "Vanaf welk e-mailadres moet de bevestiging van een bestelling verzonden worden.";
-	$arrParam['emailbevestiginginschrijving'] = "Vanaf welk e-mailadres moet de bevestiging van de inschrijving voor de bewaking verzonden worden.";
 	$arrParam['emailledenadministratie'] = "Het e-mailadres van de ledenadministratie.";
-	$arrParam['emailnieuwepasfoto'] = "Waar moet een nieuwe pasfoto naar toe gemaild worden?";
 	$arrParam['emailsecretariaat'] = "Wordt gebruikt om het secretariaat op de hoogte te houden van verstuurde mailingen en opzeggingen. Dit veld is niet verplicht.";
 	$arrParam['emailwebmaster'] = "Het e-mailadres van de webmaster.";
 	$arrParam['kaderoverzichtmetfoto'] = "Moeten op het kaderoverzicht pasfoto's getoond worden?";
@@ -239,10 +236,8 @@ function fnInstellingen() {
 	$arrParam['maxinlogpogingen'] = "Na hoeveel foutieve inlogpogingen moet het account geblokkeerd worden? 0 = nooit.";
 	$arrParam['maxlengtelogin'] = "De maximale lengte die een login mag zijn. Minimaal 7 en maximaal 12 invullen.";
 	$arrParam['maxmailsperminuut'] = "Het maximaal aantal e-mails dat via een mailing per minuut verzonden mag worden. 0 = onbeperkt.";
-	$arrParam['muteerbarememos'] = "Welke soorten memo's mogen leden zelf muteren, scheiden door een komma.";
 	$arrParam['naamvereniging'] = "Wat is de naam van de vereniging?";
 	$arrParam['naamwebsite'] = "Dit is de naam zoals deze in de titel en op elke pagina getoond wordt.";
-	$arrParam['opzegtermijn'] = "De opzegtermijn van de vereniging in maanden.";
 	$arrParam['performance_trage_select'] = "Vanaf hoeveel seconden moet een select-statement in het logboek worden gezet. 0 = nooit.";
 	$arrParam['resultaatmailingversturen'] = "Indien aangevinkt wordt naar de zender en het secretariaat een mail met het resultaat van deze mailing verzonden.";
 	$arrParam['scriptbijuitloggen'] = "Dit script wordt automatisch gedraaid nadat iemand is uitgelogd. Optioneel veld.";
@@ -258,8 +253,14 @@ function fnInstellingen() {
 	$arrParam['urlvereniging'] = "Zonder http://";
 	$arrParam['verjaardagenaantal'] = "Hoeveel verjaardagen moeten er maximaal in de verenigingsinfo worden getoond. Als er meerdere leden op dezelfde dag jarig zijn, wordt dit aantal overschreden.";
 	$arrParam['verjaardagenvooruit'] = "Hoeveel dagen vooruit moeten de verjaardagen in de verenigingsinfo getoond worden?";
-	$arrParam['voorwaardenbestelling'] = "Deze regel wordt bij de online-bestellingen in de zelfservice vermeld.";
-	$arrParam['voorwaardeninschrijving'] = "Deze regel wordt bij de inschrijving vemeld als voorwaarde voor de inschrijving voor de bewaking.";
+	
+	$arrParam['zs_emailbevestigingbestelling'] = "Vanaf welk e-mailadres moet de bevestiging van een bestelling verzonden worden.";
+	$arrParam['zs_emailbevestiginginschrijving'] = "Vanaf welk e-mailadres moet de bevestiging van de inschrijving voor de bewaking verzonden worden.";
+	$arrParam['zs_emailnieuwepasfoto'] = "Waar moet een nieuwe pasfoto naar toe gemaild worden?";
+	$arrParam['zs_muteerbarememos'] = "Welke soorten memo's mogen leden zelf muteren, scheiden door een komma.";
+	$arrParam['zs_opzegtermijn'] = "De opzegtermijn van de vereniging in maanden.";
+	$arrParam['zs_voorwaardenbestelling'] = "Deze regel wordt bij de online-bestellingen in de zelfservice vermeld.";
+	$arrParam['zs_voorwaardeninschrijving'] = "Deze regel wordt bij de inschrijving vemeld als voorwaarde voor de inschrijving voor de bewaking.";
 	
 	foreach ($arrParam as $naam => $val) {		
 		db_param($naam, "controle");
@@ -305,25 +306,26 @@ function fnInstellingen() {
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	echo("<table>\n");
 	foreach (db_param("", "lijst") as $row) {
-		$uitleg = "";
 		if (array_key_exists($row->Naam, $arrParam)) {
 			$uitleg = $arrParam[$row->Naam];
-		}
-		if ($row->ParamType == "B") {
-			if ($row->ValueNum == 1) {
-				$c = "checked";
+			if ($row->ParamType == "B") {
+				if ($row->ValueNum == 1) {
+					$c = "checked";
+				} else {
+					$c = "";
+				}
+				printf("<tr><td class='label'>%s: </td><td><input type='checkbox' name='value_%d' value='1' %s></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $c, $uitleg);
+			} elseif ($row->ParamType == "I") {
+				printf("<tr><td class='label'>%s: </td><td><input type='number' class='inputnumber' name='value_%d' value=%d size=8></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $row->ValueNum, $uitleg);
+			} elseif ($row->ParamType == "F") {
+				printf("<tr><td class='label'>%s: </td><td><input name='value_%d' value=%F size=8></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $row->ValueNum, $uitleg);
+			} elseif (strlen($row->ValueChar) > 60) {
+				printf("<tr><td class='label'>%s: </td><td><textarea cols=45 rows=7 name='value_%d'>%s</textarea></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $row->ValueChar, $uitleg);
 			} else {
-				$c = "";
+				printf("<tr><td class='label'>%s: </td><td><input type='text' class='inputtext' name='value_%d' value=\"%s\"></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $row->ValueChar, $uitleg);
 			}
-			printf("<tr><td class='label'>%s: </td><td><input type='checkbox' name='value_%d' value='1' %s></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $c, $uitleg);
-		} elseif ($row->ParamType == "I") {
-			printf("<tr><td class='label'>%s: </td><td><input type='number' class='inputnumber' name='value_%d' value=%d size=8></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $row->ValueNum, $uitleg);
-		} elseif ($row->ParamType == "F") {
-			printf("<tr><td class='label'>%s: </td><td><input name='value_%d' value=%F size=8></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $row->ValueNum, $uitleg);
-		} elseif (strlen($row->ValueChar) > 60) {
-			printf("<tr><td class='label'>%s: </td><td><textarea cols=45 rows=7 name='value_%d'>%s</textarea></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $row->ValueChar, $uitleg);
 		} else {
-			printf("<tr><td class='label'>%s: </td><td><input type='text' class='inputtext' name='value_%d' value=\"%s\"></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $row->ValueChar, $uitleg);
+			db_param($row->Naam, "delete");
 		}
 	}
 	echo("<tr><th colspan=3><input type='submit' value='Bewaren'></th></tr>\n");
