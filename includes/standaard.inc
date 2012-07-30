@@ -244,6 +244,16 @@ if (isset($_GET['tp']) and strlen($_GET['tp']) > 1) {
 	$currenttab = $tabpages[0];
 }
 
+if (!isset($currenttab2) or strlen($currenttab2) == 0) {
+	$currenttab2 = "";
+	foreach ($tabpages as $tp) {
+		if (startwith($tp, $currenttab) == true and strlen($tp) > strlen($currenttab) and strpos($tp, "/") > 0 and toegang($tp, 0)) {
+			$currenttab2 = substr($tp, strpos($tp, "/")+1);
+			break;
+		}
+	}
+}
+
 $query = "SET lc_time_names='nl_NL';";
 fnQuery($query);
 
@@ -251,12 +261,6 @@ $pasfotoextenties = array('gif', 'jpg', 'jpeg', 'png');
 
 function HTMLheader() {
 	global $tabpages, $currenttab, $currenttab2, $navpad, $curtab;
-	
-	foreach ($tabpages as $tp) {
-		if (startwith($tp, $currenttab) == true and strlen($tp) > strlen($currenttab) and strpos($tp, "/") > 0 and strlen($currenttab2) == 0 and toegang($tp, 0)) {
-			$currenttab2 = substr($tp, strpos($tp, "/")+1);
-		}
-	}
 	
 	if (strlen($currenttab) > 0 and strlen($currenttab2) > 0) {
 		$title = $_SESSION['naamwebsite'] . " | " . $currenttab . " | " . $currenttab2;
@@ -308,6 +312,7 @@ function HTMLheader() {
 			echo("&nbsp;<input type='submit' value='Inloggen' name='Inloggen'>\n");
 			echo("<input type='checkbox' name='cookie' value=1 title='Automatisch inloggen'>\n");
 		}
+	
 		echo("<a href='http://phprbm.telling.nl/uitleg.php'><img src='images/question.png' title='Uitleg gebruik en installatie'></a>\n");
 		echo("</form>\n");
 		echo("</div>  <!-- Einde login -->\n");
@@ -340,11 +345,15 @@ function HTMLfooter() {
 		echo("<div class='clear'></div>\n");
 		
 		$np = "";
-		for ($i=1; $i <= count($navpad); $i++) {
-			if ($i == count($navpad)) {
-				$np .= " | " . $navpad[$i]['naam'] . "\n";
-			} else {
-				$np .= " | " . sprintf("<a href='%s'>%s</a>\n", $navpad[$i]['url'], $navpad[$i]['naam']);
+		if (isset($navpad) and is_array($navpad)) {
+			$i = 1;
+			foreach ($navpad as $npl) {
+				if (strlen($npl['url']) > 0 and $i < count($navpad)) {
+					$np .= " | " . sprintf("<a href='%s'>%s</a>\n", $npl['url'], $npl['naam']);
+				} else {
+					$np .= " | " . $npl['naam'] . "\n";
+				}
+				$i++;
 			}
 		}
 		printf("<div id='footer'>\n

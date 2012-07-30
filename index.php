@@ -1,4 +1,5 @@
 <?php
+error_reporting(E_ALL);
 include('./includes/standaard.inc');
 
 if ($_SESSION['aantallid'] == 0) {
@@ -10,6 +11,7 @@ if ($_SESSION['aantallid'] == 0) {
 	$lidid = 0;
 }
 
+
 if (isset($_GET['op']) and $_GET['op'] == "exportins") {
 	header("Content-type: text/plain");
 	header("Content-Disposition: attachment; filename=inschrijvingen.sql");
@@ -18,7 +20,8 @@ if (isset($_GET['op']) and $_GET['op'] == "exportins") {
 	}
 	exit();
 }
-if ($currenttab != "Mailing") {
+
+if ($currenttab !== "Mailing") {
 	HTMLheader();
 }
 
@@ -58,9 +61,10 @@ if ($currenttab == "Eigen gegevens" and toegang($_GET['tp'])) {
 	fnEvenementen();
 } elseif ($currenttab == "Bestellingen" and toegang($_GET['tp'])) {
 	fnWebshop();
-} else {
+} else {	
 	$currenttab = "Verenigingsinfo";
 	$currenttab2 = "Introductie";
+	fnDispMenu(2);
 	fnVoorblad();
 	if (!isset($_SESSION['username']) or strlen($_SESSION['username']) <= 5) {
 		echo("<div id='kolomrechts'>\n");
@@ -74,8 +78,6 @@ if ($currenttab != "Mailing") {
 }
 
 function fnVoorblad($metlogin=0) {
-
-	fnDispMenu(2);
 
 	$myFile = 'templates/verenigingsinfo.html';
 	$content = file_get_contents($myFile);
