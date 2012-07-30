@@ -41,8 +41,8 @@ if (!isset($_SESSION['naamvereniging']) or strlen($_SESSION['naamvereniging']) <
 	$_SESSION['performance_trage_select'] = db_param("performance_trage_select");
 	db_onderhoud();
 }
-if (strlen(db_param("muteerbarememos")) > 0) {
-	$muteerbarememos = explode(",", db_param("muteerbarememos"));
+if (strlen(db_param("zs_muteerbarememos")) > 0) {
+	$muteerbarememos = explode(",", db_param("zs_muteerbarememos"));
 } else {
 	$muteerbarememos = array();
 }

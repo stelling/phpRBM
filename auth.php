@@ -1,9 +1,11 @@
 <?php
-	include('./includes/standaard.inc');       
+	include('./includes/standaard.inc');
 	
 	if (!isset($_GET['url']) or strlen($_GET['url']) == 0) {
 		$_GET['url'] = "/";
 	}
+	
+	$bewaartijdlogins = db_param("bewaartijdlogins");
    
 	if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen" and isset($_SESSION['username'])) {
 		db_logins("uitloggen", "", "", $_SESSION['lidid']);

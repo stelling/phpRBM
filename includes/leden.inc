@@ -11,7 +11,7 @@ function fnWijzigen($lidid=0, $actie="") {
 	global $muteerbarememos, $arrLegitimatie, $arrSoortMemo, $arrGeslacht, $actionurl;
 	
 	$emailledenadministratie = db_param("emailledenadministratie");
-	$opzegtermijn = db_param("opzegtermijn");
+	$opzegtermijn = db_param("ZS_opzegtermijn");
 	
 	if ($lidid == 0) {
 		$lidid = $_SESSION['lidid'];
@@ -622,7 +622,7 @@ function nieuwepasfoto($lidid, $filterlid="") {
 	global $pasfotoextenties, $actionurl;
 	
 	$emailledenadministratie = db_param("emailledenadministratie");
-	$emailnieuwepasfoto = db_param("emailnieuwepasfoto");
+	$emailnieuwepasfoto = db_param("zs_emailnieuwepasfoto");
 
 	$max_size_attachm = 2 * 1024 * 1024;  // 2MB
 	$min_size_attachm = 4 * 1024;  // 4KB
@@ -760,7 +760,7 @@ function nieuwepasfoto($lidid, $filterlid="") {
 function opzegginglidmaatschap($lidid) {
 	global $actionurl;
 	
-	$opzegtermijn = db_param("opzegtermijn");
+	$opzegtermijn = db_param("zs_opzegtermijn");
 	$emailledenadministratie = db_param("emailledenadministratie");
 	
 	$fdlang = "%e %B %Y";

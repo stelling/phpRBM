@@ -389,7 +389,7 @@ function inschrijvenbewaking($lidid) {
 		}
 		printf("<tr><td colspan=6>Opmerking(en) bij de inschrijving:<br><textarea onBlur='this.form.submit();' cols=90 rows=8 name='opmalg'>%s</textarea></td></tr>\n", db_memo("curval", $lidid, "I"));
 		echo("<tr><th colspan=6>");
-		printf("<p>%s</p>", db_param("voorwaardeninschrijving"));
+		printf("<p>%s</p>", db_param("zs_voorwaardeninschrijving"));
 		if ($geldig and $kandef) {
 			echo("&nbsp;<input type='submit' value='Definitief maken' name='Definitief'>");
 			echo("<p>Zolang een inschrijving niet definitief gemaakt is, geldt deze niet als inschrijving.</p>\n");
@@ -450,11 +450,11 @@ function fnDispBW($row, $output) {
 function BevestInschrBewaking($lidid, $insnr) {
 	global $selfservicediplomas;
 	
-	$emailbevestiginginschrijving = db_param("emailbevestiginginschrijving");
+	$emailbevestiginginschrijving = db_param("zs_emailbevestiginginschrijving");
 	if (isValidMailAddress($emailbevestiginginschrijving, 0) == false) {
 		$emailbevestiginginschrijving = db_param("emailledenadministratie");
 	}
-	$voorwaardeninschrijving = db_param("voorwaardeninschrijving");
+	$voorwaardeninschrijving = db_param("zs_voorwaardeninschrijving");
 
 	$bevest_template = 'templates/bevestiging_inschrijving.html';
 	if (file_exists($bevest_template)) {
