@@ -20,7 +20,7 @@ function toegang($soort, $melding=1) {
 		// Er hoeft niets te gebeuren.
 	} else {
 		db_logins("uitloggen");
-		if (isset($_SESSION['username']) and strlen($_SESSION['username']) > 5 and strlen($_SESSION['password']) > 0) {
+		if (isset($_SESSION['username']) and strlen($_SESSION['username']) > 0 and strlen($_SESSION['password']) > 0) {
 			$row = db_logins("controle");
 			if ($maxinlogpogingen > 0 and isset($row->FouteLogin) and $row->FouteLogin > $maxinlogpogingen) {
 				$mess = sprintf("Login '%s' is geblokkeerd, omdat er teveel foute inlog-pogingingen mee zijn gedaan! Je bent niet ingelogd.", $_SESSION['username']);
@@ -50,7 +50,6 @@ function toegang($soort, $melding=1) {
 				$mess = sprintf("De combinatie van login '%s' en het ingevoerde wachtwoord is niet correct! Je bent niet ingelogd.", $_SESSION['username']);
 				db_logboek("add", $mess, 1, 0, 2);
 				$_SESSION['username'] = "";
-				setcookie("username", "", time()-3600);
 			}
 		} else {
 			$_SESSION['username'] = "";
@@ -62,10 +61,15 @@ function toegang($soort, $melding=1) {
 			$_SESSION['roepnaamingelogde'] = "gast";
 			$_SESSION['emailingelogde'] = "";	
 			$_SESSION['password'] = "";
-			setcookie("password", "", time()-3600);
+			if (isset($_COOKIE['username']) and strlen($_COOKIE['username']) > 0) {
+				setcookie("username", "", time()-3600);
+			}
+			if (isset($_COOKIE['password']) and strlen($_COOKIE['password']) > 0) {
+				setcookie("password", "", time()-3600);
+			}
 		}
-	}
-	
+
+	}	
 	if (in_array($_SESSION['lidid'], $lididwebmasters)) {
 		$_SESSION['webmaster'] = 1;
 	} else {
@@ -119,7 +123,7 @@ function toegang($soort, $melding=1) {
 		}
 	} else {
 		return true;
-	}	
+	}
 }
 
 function fnConfirmLogin($row, $xtratekst="") {
