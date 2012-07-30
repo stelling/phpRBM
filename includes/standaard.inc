@@ -348,7 +348,7 @@ function HTMLfooter() {
 		if (isset($navpad) and is_array($navpad)) {
 			$i = 1;
 			foreach ($navpad as $npl) {
-				if (strlen($npl['url']) > 0 and $i < count($navpad)) {
+				if (isset($npl['url']) and strlen($npl['url']) > 0 and $i < count($navpad)) {
 					$np .= " | " . sprintf("<a href='%s'>%s</a>\n", $npl['url'], $npl['naam']);
 				} else {
 					$np .= " | " . $npl['naam'] . "\n";
