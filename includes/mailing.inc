@@ -146,6 +146,7 @@ class mailing {
 	private $ChangedBy = 0;
 	private $sent_on = "0000-00-00";
 	private $SentBy = 0;
+	private $SendNumber = 0;
 	private $deleted_on = "0000-00-00";
 	private $DeletedBy = 0;
 	
@@ -544,7 +545,7 @@ class mailing {
 				printf("<tr><td class='label'>Gewijzigd door/op:</td><td>%s / %s</td></tr>\n", db_naamlid($this->ChangedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->changed_on)));
 			}
 			if ($this->sent_on > '1901-01-01' and $this->SentBy > 0) {
-				printf("<tr><td class='label'>Verzonden door/op:</td><td>%s / %s</td></tr>\n", db_naamlid($this->SentBy), strftime("%e %B %Y (%H:%M)", strtotime($this->sent_on)));
+				printf("<tr><td class='label'>Verzonden door/op/aantal:</td><td>%s / %s / %d keer</td></tr>\n", db_naamlid($this->SentBy), strftime("%e %B %Y (%H:%M)", strtotime($this->sent_on)), $this->SendNumber);
 			}
 			if ($this->deleted_on > '1901-01-01') {
 				printf("<tr><td class='label'>Verwijderd door/op:</td><td>%s / %s</td></tr>\n", db_naamlid($this->DeletedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->deleted_on)));
@@ -1010,8 +1011,18 @@ class mailing {
 			$this->AddedBy = $ml->AddedBy;
 			$this->changed_on = $ml->changed_on;
 			$this->ChangedBy = $ml->ChangedBy;
-			$this->sent_on = $ml->sent_on;
-			$this->SentBy = $ml->SentBy;
+			
+			$mh = db_mailing("laatstehist", $this->mid);
+			if (isset($mh->send_on)) {
+				$this->sent_on = $mh->send_on;
+				$this->SentBy = $mh->send_by;
+				$this->SendNumber = $mh->aantal;
+			} else {
+				$this->sent_on = "";
+				$this->SentBy = 0;
+				$this->SendNumber = 0;
+			}
+			
 			$this->deleted_on = $ml->deleted_on;
 			$this->DeletedBy = $ml->DeletedBy;
 				

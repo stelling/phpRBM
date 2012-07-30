@@ -1215,7 +1215,7 @@ function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr, $message="", $fro
 		fnQuery($query);
 		
 		if ($success == 1 and $mid > 0) {
-			$query = sprintf("UPDATE %sMailing SET sent_on=SYSDATE(), SentBy=%d WHERE MailingID=%d;", $table_prefix, $_SESSION['lidid'], $this->mid);
+			$query = sprintf("UPDATE %sMailing SET sent_on=SYSDATE(), SentBy=%d WHERE MailingID=%d;", $table_prefix, $_SESSION['lidid'], $mid);
 			fnQuery($query);
 		}
 	}
@@ -1292,6 +1292,11 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 	} elseif ($actie == "aantalprullenbak") {
 		$query = sprintf("SELECT COUNT(*) FROM %sMailing WHERE (NOT deleted_on IS NULL);", $table_prefix);
 		return db_scalar($query);
+		
+	} elseif ($actie == "laatstehist" and $mid > 0) {
+		$query = sprintf("SELECT send_on, send_by, COUNT(*) AS aantal FROM %sMailing_hist WHERE Successful=1 AND MailingID=%d ORDER BY send_on DESC, RecordID DESC LIMIT 1;", $table_prefix, $mid);
+		$result = fnQuery($query);
+		return $result->fetch();
 		
 	} elseif ($actie == "add") {
 		$query = sprintf("INSERT INTO %sMailing (from_name, from_addr, to_name, subject, new_on, AddedBy)
@@ -2549,7 +2554,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sGBR` (
   `KSTNPLTS` tinyint(4) DEFAULT NULL,
   `Verdichting` varchar(4) DEFAULT NULL,
   `VerdichtingID` int(11) DEFAULT NULL,
-  `Debiteur` tinyint(4) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`Kode`)
