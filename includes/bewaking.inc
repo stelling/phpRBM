@@ -27,11 +27,15 @@ function fnBewaking() {
 	} else {
 		$seizoen = db_scalar(sprintf("SELECT MAX(SeizoenID) FROM %sBewaking;", $table_prefix));
 	}
+	
+	$hw = db_bewaking("huidigeweek", $seizoen);
 	if (isset($_POST['week']) and strlen($_POST['week']) > 0) {
 		$week = $_POST['week'];
 		$_SESSION['actweek'] = $week;
 	} elseif (isset($_SESSION['actweek']) and strlen($_SESSION['actweek']) > 0) {
 		$week = $_SESSION['actweek'];
+	} elseif ($hw > 0) {
+		$week = $hw;
 	} else {
 		$week = "*";
 	}

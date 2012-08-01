@@ -533,7 +533,9 @@ function db_bewaking($actie, $seizoen=-1, $lidid=-1, $week=-1) {
 		$query = sprintf("SELECT COUNT(*) FROM %sBewaking AS BW WHERE BW.Lid=%d %s;", $table_prefix, $lidid, $xtrawhere);
 		$result = fnQuery($query);
 		return $result->fetchColumn();
-		
+	} elseif ($actie == "huidigeweek") {
+		$query = sprintf("SELECT IFNULL(MIN(WeekNr), 0) FROM %sBewaking WHERE SeizoenID=%d AND BEGIN_PER <= CURDATE() AND EINDE_PER >= CURDATE();", $table_prefix, $seizoen);
+		return db_scalar($query);
 	} else {
 		if ($actie == "aantallen") {
 			$query = sprintf("SELECT ST_LEN_BP FROM %sBewseiz WHERE RecordID=%d;", $table_prefix, $seizoen);
@@ -2210,7 +2212,7 @@ function db_onderhoud() {
 	// Toevoegen veld 'Script' aan de tabel Admin_activiteit. Deze code kan na 1/4/2013 worden verwijderd.
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sAdmin_activiteit' AND COLUMN_NAME='Script';", $db_name, $table_prefix);
 	if (db_scalar($query) == 0) {
-		fnQuery(sprintf("ALTER TABLE `%sAdmin_activiteit` ADD `Script` VARCHAR( 75 ) NOT NULL AFTER `Omschrijving`;", $table_prefix));
+		fnQuery(sprintf("ALTER TABLE `%sAdmin_activiteit` ADD `Script` VARCHAR(75) NOT NULL AFTER `Omschrijving`;", $table_prefix));
 	}
 		
 	// Toevoegen veld 'Gedownload' aan de tabel Admin_interface. Deze code kan na 1/5/2013 worden verwijderd.
