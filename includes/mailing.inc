@@ -186,43 +186,43 @@ class mailing {
 		foreach ($arrGeslacht as $key => $value) {
 			$sql .= sprintf(" WHEN '%s' THEN '%s'", $key, $value);
 		}
-		$sql .= sprintf(" END FROM %sLid AS L WHERE %s", $table_prefix, "L.Nummer=%d");
+		$sql .= sprintf(" END FROM %sLid AS L WHERE L.Nummer=%%d", $table_prefix);
 		$this->MergeField[]=array('Naam' => "Geslacht", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT L.Adres FROM %sLid AS L WHERE %s;", $table_prefix, "L.Nummer=%d");
+		$sql = sprintf("SELECT L.Adres FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
 		$this->MergeField[]=array('Naam' => "Adres", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT L.Postcode FROM %sLid AS L WHERE %s;", $table_prefix, "L.Nummer=%d");
+		$sql = sprintf("SELECT L.Postcode FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
 		$this->MergeField[]=array('Naam' => "Postcode", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT L.Woonplaats FROM %sLid AS L WHERE %s;", $table_prefix, "L.Nummer=%d");;
+		$sql = sprintf("SELECT L.Woonplaats FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);;
 		$this->MergeField[]=array('Naam' => "Woonplaats", 'SQL' => $sql);
 							 
-		$sql = sprintf("SELECT %s AS Lidnaam FROM %sLid AS L WHERE %s;", $selectnaam, $table_prefix, "L.Nummer=%d");
+		$sql = sprintf("SELECT %s AS Lidnaam FROM %sLid AS L WHERE L.Nummer=%%d;", $selectnaam, $table_prefix);
 		$this->MergeField[]=array('Naam' => "Lidnaam", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT LM.Lidnr FROM %sLidmaatschap AS LM WHERE %s AND %s;", $table_prefix, $wherelid, "LM.Lid=%d");
+		$sql = sprintf("SELECT LM.Lidnr FROM %sLidmaatschap AS LM WHERE %s AND LM.Lid=%%d;", $table_prefix, $wherelid);
 		$this->MergeField[]=array('Naam' => "Lidnummer", 'SQL' => $sql);
 		
-		$sql = sprintf("SELECT FLOOR(DATEDIFF(IF(ISNULL(LM.Opgezegd), CURDATE(), LM.Opgezegd), LM.LIDDATUM)/365.25)
+		$sql = sprintf("SELECT ROUND(DATEDIFF(IF(ISNULL(LM.Opgezegd), CURDATE(), LM.Opgezegd), LM.LIDDATUM)/365.25, 1)
 							FROM %sLidmaatschap AS LM WHERE LM.LIDDATUM < CURDATE() AND %s
 							ORDER BY LM.LIDDATUM DESC LIMIT 1;", $table_prefix, "LM.Lid=%d");
 		$this->MergeField[]=array('Naam' => "LengteLidmaatschap", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT L.Telefoon FROM %sLid AS L WHERE %s;", $table_prefix, "L.Nummer=%d");
+		$sql = sprintf("SELECT L.Telefoon FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
 		$this->MergeField[]=array('Naam' => "Telefoon", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT L.Mobiel FROM %sLid AS L WHERE %s;", $table_prefix, "L.Nummer=%d");
+		$sql = sprintf("SELECT L.Mobiel FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
 		$this->MergeField[]=array('Naam' => "Mobiel", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT DATE_FORMAT(L.GEBDATUM, %s) AS Geboortedatum FROM %sLid AS L WHERE %s;", $fdlang, $table_prefix, "L.Nummer=%d");
+		$sql = sprintf("SELECT DATE_FORMAT(L.GEBDATUM, %s) AS Geboortedatum FROM %sLid AS L WHERE L.Nummer=%%d;", $fdlang, $table_prefix);
 		$this->MergeField[]=array('Naam' => "Geboortedatum", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT L.GEBPLAATS FROM %sLid AS L WHERE %s;", $table_prefix, "L.Nummer=%d");
+		$sql = sprintf("SELECT L.GEBPLAATS FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
 		$this->MergeField[]=array('Naam' => "Geboorteplaats", 'SQL' => $sql);
 
 		$sql = sprintf('SELECT O.Naam FROM %1$sLidond AS LO INNER JOIN %1$sOnderdl AS O ON O.RecordID = LO.OnderdeelID
-				 WHERE %2$s AND O.GekoppeldAanQuery=0 AND %3$s ORDER BY O.Naam;', $table_prefix, $wherelidond, "LO.Lid=%d");
+				 WHERE %2$s AND O.GekoppeldAanQuery=0 AND LO.Lid=%%d ORDER BY O.Naam;', $table_prefix, $wherelidond);
 		$this->MergeField[]=array('Naam' => "Onderdelen", 'SQL' => $sql);
 	
 		if ($_SESSION['aantalbewaking'] > 0) {
@@ -245,7 +245,7 @@ class mailing {
 			$sql = sprintf("SELECT RK.Nummer FROM %sRekening AS RK WHERE RK.Bedrag > 0 AND RK.Bedrag > RK.Betaald AND %s;", $table_prefix, "RK.Lid=%d");
 			$this->MergeField[]=array('Naam' => "OpenstaandeRekeningen", 'SQL' => $sql);
 
-			$sql = sprintf("SELECT ROUND(SUM(RK.Bedrag-RK.Betaald), 2) AS OpenstaandBedrag FROM %sRekening AS RK WHERE %s;", $table_prefix, "RK.Lid=%d");
+			$sql = sprintf("SELECT ROUND(SUM(RK.Bedrag-RK.Betaald), 2) AS OpenstaandBedrag FROM %sRekening AS RK WHERE RK.Lid=%%d;", $table_prefix);
 			$this->MergeField[]=array('Naam' => "OpenstaandBedrag", 'SQL' => $sql);
 		}
 
@@ -276,7 +276,7 @@ class mailing {
 		$this->MergeField[]=array('Naam' => "Email", 'SQL' => $sql);
 
 		if (TableExists("LidRedNed")) {
-			$sql = sprintf("SELECT RN.Foutboodschap FROM %1\$sLidRedNed AS RN JOIN %1\$sLidmaatschap AS LM ON LM.LIDNR = RN.Lidnr WHERE %2\$s;", $table_prefix, "LM.LID=%d");
+			$sql = sprintf("SELECT RN.Foutboodschap FROM %1\$sLidRedNed AS RN JOIN %1\$sLidmaatschap AS LM ON LM.LIDNR = RN.Lidnr WHERE LM.LID=%%d;", $table_prefix);
 			$this->MergeField[]=array('Naam' => "VerschilSportlink", 'SQL' => $sql);
 		}
 		
