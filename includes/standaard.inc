@@ -39,7 +39,9 @@ if (!isset($_SESSION['naamvereniging']) or strlen($_SESSION['naamvereniging']) <
 	$_SESSION['emailwebmaster'] = db_param("emailwebmaster");
 	$_SESSION['emailsecretariaat'] = db_param("emailsecretariaat");
 	$_SESSION['performance_trage_select'] = db_param("performance_trage_select");
-	db_onderhoud();
+	if ($_SESSION['lidid'] == 0) {
+		db_onderhoud();
+	}
 }
 if (strlen(db_param("zs_muteerbarememos")) > 0) {
 	$muteerbarememos = explode(",", db_param("zs_muteerbarememos"));
