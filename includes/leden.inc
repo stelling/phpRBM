@@ -526,7 +526,7 @@ function fnOverviewLid($lidid=0, $actie="") {
 				$xtra = "";
 			}
 			$rows = db_gegevenslid($lidid);
-			echo(fnDisplayForm($rows[0], $xtra));
+			echo(fnDisplayForm($rows[0], $xtra, "overzichtlid"));
 		}
 		if (isset($_SESSION['sel_leden']) and count($_SESSION['sel_leden']) > 1 and $currenttab != "Eigen gegevens" and !isset($_GET['MailingID'])) {
 			$current_key = -1;

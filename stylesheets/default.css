@@ -155,7 +155,7 @@ footer a, footer a:visited, #footer a, #footer a:visited {
 	border-width: 1px;
 }
 
-#formulier {
+#formulier, #overzichtlid {
 	position: relative;
 }
 
@@ -187,6 +187,11 @@ footer a, footer a:visited, #footer a, #footer a:visited {
 	margin-left: auto;
 	margin-right: auto;
 	margin-top: 10px;
+}
+
+#overzichtlid table {
+	min-width: 300px;
+	max-width: 600px;
 }
 
 #wijzigengegevens, #wijzigendiplomas, #nieuwepasfoto, #bijzonderhedenwijzigen, #inschrijvingbewaking, #inschrijvingevenementen, #onlinebestellingen, #opzegformulier, #profielwijzigen {
