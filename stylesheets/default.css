@@ -540,6 +540,10 @@ fieldset h3 {
 	text-align: center;
 }
 
+.details img {
+	max-height: 24px;
+}
+
 .number {
 	text-align: right;
 }

@@ -11,7 +11,6 @@ if ($_SESSION['aantallid'] == 0) {
 	$lidid = 0;
 }
 
-
 if (isset($_GET['op']) and $_GET['op'] == "exportins") {
 	header("Content-type: text/plain");
 	header("Content-Disposition: attachment; filename=inschrijvingen.sql");
@@ -46,6 +45,10 @@ if ($currenttab == "Eigen gegevens" and toegang($_GET['tp'])) {
 		fnOverviewLid($_GET['lidid'], $currenttab2);
 	} else {
 		fnOverviewLid(0, $currenttab2);
+	}
+} elseif ($currenttab == "Wijzigen lid" and toegang($_GET['tp'])) {
+	if (isset($_GET['lidid']) and is_numeric($_GET['lidid']) and $_GET['lidid'] > 0) {
+		fnWijzigen($_GET['lidid'], $currenttab2);
 	}
 } elseif ($currenttab == "Verenigingsinfo" and $currenttab2 != "Introductie" and toegang($_GET['tp'])) {
 	fnWieiswie($currenttab2, db_param("kaderoverzichtmetfoto"));

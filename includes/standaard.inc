@@ -589,9 +589,11 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 					if (strstr("dte, dtt, dtl, dts, boo, int, cur, eml, num, mrg", substr($key, 0, 3)) !== false) {
 						$hv .= sprintf("<th>%s</th>", str_replace("_", " ", substr($key, 3)));
 						$ktot[] = 0;
-					} elseif (strstr("lnk", substr($key, 0, 3)) !== false or strstr("llk", substr($key, 0, 3)) !== false) {
+					} elseif (strstr("lnk", substr($key, 0, 3)) !== false) {
 						$hv .= "<th>&nbsp;</th>";
 						$ktot[] = 0;
+					} elseif (strstr("llk", substr($key, 0, 3)) !== false and strlen($link_lk) > 1) {
+						$hv .= sprintf("<th colspan=%d>&nbsp;</th>", substr_count($link_lk, "<td")+1);
 					} elseif (substr($key, 0, 2) != "nd") {
 						$hv .= sprintf("<th>%s</th>", str_replace("_", " ", $key));
 						$ktot[] = 0;
