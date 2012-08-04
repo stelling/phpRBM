@@ -224,6 +224,8 @@ footer a, footer a:visited, #footer a, #footer a:visited {
 
 #nieuwepasfoto input {
 	height: 25px;
+	padding-left: 3px;
+	padding-right: 3px;
 }
 
 #inschrijvingbewaking table {
@@ -346,13 +348,15 @@ fieldset h3 {
 }
 
 #loginaanvraag input, #profielwijzigen input, #opzegformulier input{
-	width: 200px;
+	width: 190px;
 	height: 22px;
 	clear: right;
 	margin-left: 8px;
 	margin-right: 0;
 	margin-top: 3px;
 	margin-bottom: 3px;
+	padding-left: 3px;
+	padding-right: 3px;
 	border-width: 1px;
 	border-style: none;
 	background-color: white;
@@ -361,6 +365,8 @@ fieldset h3 {
 #loginaanvraag input.inputnumber, #opzegformulier input.inputnumber {
 	width: 50px;
 	text-align: right;
+	padding-left: 3px;
+	padding-right: 3px;
 }
 
 #loginaanvraag input.knop, #profielwijzigen input.knop, #opzegformulier input.knop {
