@@ -592,8 +592,10 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 					} elseif (strstr("lnk", substr($key, 0, 3)) !== false) {
 						$hv .= "<th>&nbsp;</th>";
 						$ktot[] = 0;
-					} elseif (strstr("llk", substr($key, 0, 3)) !== false and strlen($link_lk) > 1) {
-						$hv .= sprintf("<th colspan=%d>&nbsp;</th>", substr_count($link_lk, "<td")+1);
+					} elseif (strstr("llk", substr($key, 0, 3)) !== false) {
+						if (strlen($link_lk) > 1) {
+							$hv .= sprintf("<th colspan=%d>&nbsp;</th>", substr_count($link_lk, "<td")+1);
+						}
 					} elseif (substr($key, 0, 2) != "nd") {
 						$hv .= sprintf("<th>%s</th>", str_replace("_", " ", $key));
 						$ktot[] = 0;
@@ -651,7 +653,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 				} elseif (substr($key, 0, 3) == "llk") {
 					if ($value > 0 and strlen($link_lk) > 1) {
 						$ret .= sprintf("<td class='details'>" . $link_lk . "</td>", $value, "<img src='images/zoom.png' alt='Details'>");
-					} else {
+					} elseif (strlen($link_lk) > 1) {
 						$ret .= "<td class='details'></td>\n";
 					}
 				} elseif (substr($key, 0, 3) == "eml") {

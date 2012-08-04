@@ -1297,7 +1297,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		return db_scalar($query);
 		
 	} elseif ($actie == "laatstehist" and $mid > 0) {
-		$query = sprintf("SELECT send_on, send_by, COUNT(*) AS aantal FROM %sMailing_hist WHERE Successful=1 AND MailingID=%d ORDER BY send_on DESC, RecordID DESC LIMIT 1;", $table_prefix, $mid);
+		$query = sprintf("SELECT send_on, send_by FROM %sMailing_hist WHERE Successful=1 AND MailingID=%d ORDER BY send_on DESC, RecordID DESC LIMIT 1;", $table_prefix, $mid);
 		$result = fnQuery($query);
 		return $result->fetch();
 		
