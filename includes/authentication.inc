@@ -199,7 +199,7 @@ function fnConfirmLogin($row, $xtratekst="") {
 		$email = "";
 	}
 	$mail->AddAddress($email);
-	$io = fnInformerenOuders($row->GEBOREN, $row->EmailOuders, $row->Email);
+	$io = fnInformerenOuders($row->GEBDATUM, $row->EmailOuders, $row->Email);
 	if (strlen($io) > 5 and $io != $email) {
 		$mail->AddCC($io);
 	}
@@ -213,15 +213,19 @@ function fnConfirmLogin($row, $xtratekst="") {
 	return $mess;
 }
 
-function fnConfirmLidnr($row) {
-	
-	$content = sprintf("<p>Beste %s,</p>\n
-<p>Je lidnummer is: %d.</p>
-<p>Met dit lidnummer kan je <a href='http://%s/index.php?tp=Login+aanvragen'>hier</a> een login aanvragen.</p>\n
-\n
-Dit verzoek is vanaf IP-adres %s gedaan.
-<p>Met vriendelijke groeten,<br>\n
-<strong>Webmaster %s</strong></p>\n", $row->Roepnaam, $row->Lidnr, $_SESSION['urlwebsite'], $_SERVER['REMOTE_ADDR'], $_SESSION['naamwebsite']);
+function fnConfirmLidnr($row, $xtratekst="") {
+
+	$myFile = 'templates/bevestiging_lidnummer.html';
+	if (file_exists($myFile)) {
+		$content = file_get_contents($myFile);
+	} else {
+		$content = sprintf("<p>Beste [%ROEPNAAM%],</p>\n
+		<p>Je lidnummer van de [%NAAMVERENIGING%] is [%LIDNR%].</p>
+		<p>Met dit lidnummer kan je <a href='http://[%URLWEBSITE%]/index.php?tp=Login+aanvragen'>hier</a> een login aanvragen.</p>
+		Dit verzoek is vanaf IP-adres [%IPADDRESS%] gedaan.
+		<p>Met vriendelijke groeten,<br>\n
+		<strong>Webmaster [%NAAMWEBSITE%]</strong></p>\n");
+	}
 
 	$myFile = 'templates/briefpapier.html';
 	if (file_exists($myFile)) {
@@ -232,6 +236,23 @@ Dit verzoek is vanaf IP-adres %s gedaan.
 	} else {
 		$briefpapier = "[%MESSAGE%]";
 	}
+	
+	if (db_param("maxinlogpogingen") > 0 and $row->FouteLogin > db_param("maxinlogpogingen")) {
+		$geblokt = sprintf("Er is %d keer geprobeerd met deze login in te loggen. Hierdoor is dit account geblokkeerd. Vraag aan de webmaster om deze weer vrij te geven.", $row->FouteLogin);
+	} else {
+		$geblokt = "";
+	}
+	$content = str_replace("[%NAAMLID%]", $row->Naam, $content);
+	$content = str_replace("[%LOGIN%]", $row->Login, $content);
+	$content = str_replace("[%LIDNR%]", $row->Lidnr, $content);
+	$content = str_replace("[%ROEPNAAM%]", $row->Roepnaam, $content);
+	$content = str_replace("[%PASSWORD%]", encript_decript($row->Wachtwoord, 0), $content);
+	$content = str_replace("[%GEBLOKKEERD%]", $geblokt, $content);
+	$content = str_replace("[%EXTRATEKST%]", $xtratekst, $content);
+	$content = str_replace("[%NAAMVERENIGING%]", $_SESSION['naamvereniging'], $content);
+	$content = str_replace("[%NAAMWEBSITE%]", $_SESSION['naamwebsite'], $content);
+	$content = str_replace("[%URLWEBSITE%]", $_SESSION['urlwebsite'], $content);
+	$content = str_replace("[%IPADDRESS%]", $_SERVER['REMOTE_ADDR'], $content);
 		
 	$content = str_ireplace("[%MESSAGE%]", $content, $briefpapier);
 
