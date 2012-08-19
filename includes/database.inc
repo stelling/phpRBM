@@ -391,12 +391,45 @@ function db_lid($actie, $filter="") {
 					FROM %2\$s
 					WHERE %3\$s AND %4\$s AND L.GEBDATUM > '1901-01-01'
 					ORDER BY L.GEBDATUM, L.Nummer;", $selectnaam, $fromlid, $wherelid, $df, $filter);
+					
+	} elseif ($actie == "opzegging") {
+		$query = sprintf("UPDATE %sLidmaatschap SET Opgezegd='%s', Gewijzigd=SYSDATE() WHERE Nummer=%d AND (Opgezegd IS NULL);", $table_prefix, $v, $lidid);
+		$result = fnQuery($query);
+		if ($result > 0) {
+			db_interface("add", $query, $lidid);
+			$mess .= sprintf("%s van %s is in '%s' gewijzigd. ", $wijzvelden[$i]['label'], $naamlid, $v);
+		} else {
+			$mess .= sprintf("De opzegging van %s is niet verwerkt. ", strtolower($wijzvelden[$i]['label']), $naamlid);
+		}
+		
 	} else {
 		debug("onbekende actie in db_lid", 1, 0, 1);
 		$query = "";
 	}
 	$result = fnQuery($query);
 	return($result->fetchAll());
+}
+
+function db_lidmaatschap($actie, $lidid, $opgezegd) {
+	global $table_prefix, $fdaccess, $fdsql;
+
+	$naamlid = db_naamlid($lidid);
+	$opgezegd = strftime($fdsql, strtotime($opgezegd));
+	$opgaccess = strftime($fdaccess, strtotime($opgezegd));
+
+	if ($actie == "opzegging") {
+		$query = sprintf("UPDATE %sLidmaatschap SET Opgezegd='%s', Gewijzigd=SYSDATE() WHERE Lid=%d AND (Opgezegd IS NULL);", $table_prefix, $opgezegd, $lidid);
+		$result = fnQuery($query);
+		if ($result > 0) {
+			$query = sprintf("UPDATE Lidmaatschap SET Opgezegd=#%s#, Gewijzigd=SYSDATE() WHERE Lid=%d AND (Opgezegd IS NULL);", $opgaccess, $lidid);
+			db_interface("add", $query, $lidid);
+			$mess = sprintf("De opzegging per %s van %s is verwerkt. ", $opgezegd, $naamlid);
+		} else {
+			$mess = sprintf("De opzegging per %s van %s is niet verwerkt. ", $opgezegd, $naamlid);
+		}
+		return $mess;
+	}
+
 }
 
 function db_ledenwijzigingen($lidid) {
@@ -446,9 +479,9 @@ function db_memo($actie, $lidid, $srt, $nv="") {
 			db_interface("add", $query, $lidid);
 			$mess = sprintf("Memo '%s' is bij %s met waarde '%s' toegevoegd.", $arrSoortMemo[$srt], db_naamlid($lidid), $nv);
 		} else {
-			$mess = sprintf("Het toevoegen van memo '%s' is bij %s is mislukt.", $arrSoortMemo[$srt], db_naamlid($lidid));
+			$mess = sprintf("Het toevoegen van memo '%s' is bij %s met waarde '%s' is mislukt.", $arrSoortMemo[$srt], db_naamlid($lidid), $nv);
 		}
-		db_logboek("add", $mess, 6, 0, 1);
+		db_logboek("add", $mess, 6, 0);
 	} elseif ($actie == "update") {
 		if ($srt == "WN") {
 			$query = sprintf("UPDATE %sLid SET `Waarschuwen bij nood`=\"%s\", Gewijzigd=SYSDATE() WHERE Nummer=%d;", $table_prefix, $nv, $lidid);
@@ -514,10 +547,13 @@ function db_authorisation($actie, $recid=0, $tabpage="") {
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$mess = sprintf("Er zijn %d records verwijderd uit %sAdmin_access.", $result, $table_prefix);
-			db_logboek("add", $mess, 2);
 			$query = sprintf("OPTIMIZE TABLE %sAdmin_access;", $table_prefix);
 			fnQuery($query);
+		} else {
+			$mess = sprintf("Bij het opschonen zijn geen records uit %sAdmin_access verwijderd.", $table_prefix);
 		}
+		db_logboek("add", $mess, 2);
+		return $mess;
 	}
 }
 
@@ -857,6 +893,7 @@ function db_stats($lidid=0) {
 function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 	global $dbc, $selectnaam, $selectlidnr, $table_prefix, $lididwebmasters, $wherelidond, $wherelid, $dir, $db_pass;
 	
+	$bewaartijdloginsnietgebruikt = db_param("bewaartijdloginsnietgebruikt");
 	if (strlen(db_param("beperktotgroep")) > 0) {
 		$beperktotgroep = explode(",", db_param("beperktotgroep"));
 	} else {
@@ -1100,14 +1137,14 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 			$mess .= ", omdat ze geen toegang meer hebben.<br>\n";
 		}
 		$query = sprintf("DELETE FROM %sAdmin_login
-					WHERE ((LastLogin IS NULL) OR LastLogin < '2012-01-01') AND Ingevoerd < DATE_ADD(CURDATE(), INTERVAL -2 WEEK);", $table_prefix);
+					WHERE ((LastLogin IS NULL) OR LastLogin < '2012-01-01') AND Ingevoerd < DATE_ADD(CURDATE(), INTERVAL -%d DAY);", $table_prefix, $bewaartijdloginsnietgebruikt);
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$mess .= sprintf("Er zijn %d logins verwijderd", $result);
 		} else {
 			$mess .= "Er zijn geen logins verwijderd";
 		}
-		$mess .= ", omdat ze niet binnen 2 weken na aanvragen zijn gebruikt.<br>\n";
+		$mess .= sprintf(", omdat ze niet binnen %d dagen na aanvragen gebruikt zijn.<br>\n", $bewaartijdloginsnietgebruikt);
 		$query = sprintf("UPDATE %1\$sAdmin_login SET HerinneringVervallenDiplomas=0 WHERE HerinneringVervallenDiplomas=1 AND 
 					LidID NOT IN (SELECT Lid FROM %1\$sLidmaatschap WHERE ((Opgezegd IS NULL) OR Opgezegd >= CURDATE()));", $table_prefix);
 		$result = fnQuery($query);
@@ -1438,7 +1475,7 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0) {
 	$mess = "";
 	
 	if ($actie == "add" and strlen($oms) > 0) {
-		$query = sprintf("INSERT INTO %sAdmin_activiteit SET
+		$query = sprintf("INSERT DELAYED INTO %sAdmin_activiteit SET
 				DatumTijd=SYSDATE(),
 				LidID=%d,
 				IP_adres='%s',
@@ -1520,7 +1557,7 @@ function db_interface($actie="lijst", $query="", $lidid=0) {
 		}
 		$msa_sql = str_replace("SYSDATE()", "#" . strftime("%m/%d/%Y %H:%M") . "#", str_replace("\"", "'", $query));
 		$msa_sql = str_replace("CURDATE()", "#" . strftime("%m/%d/%Y") . "#", $msa_sql);
-		$query = sprintf("INSERT INTO %sAdmin_interface SET `IP-adres`='%s', LidID=%d, `SQL-statement`=\"%s\", Ingevoerd=SYSDATE();", $table_prefix, $_SERVER['REMOTE_ADDR'], $lidid, $msa_sql);
+		$query = sprintf("INSERT DELAYED INTO %sAdmin_interface SET `IP-adres`='%s', LidID=%d, `SQL-statement`=\"%s\", Ingevoerd=SYSDATE();", $table_prefix, $_SERVER['REMOTE_ADDR'], $lidid, $msa_sql);
 		fnQuery($query, 0);
 		
 	} elseif ($actie == "afmelden") {
@@ -2005,6 +2042,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrIntegers['bewaartijdinloggen'] = 2;
 	$arrIntegers['bewaartijdlogging'] = 6;
 	$arrIntegers['bewaartijdlogins'] = 6;
+	$arrIntegers['bewaartijdloginsnietgebruikt'] = 21;
 	$arrIntegers['bewaartijdmailings'] = 3;
 	$arrIntegers['db_backupsopschonen'] = 11;
 	$arrIntegers['loginautounlock'] = 120;
@@ -2034,6 +2072,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	
 	$arrFloats['maxmailsperminuut'] = 300;
 	$arrFloats['performance_trage_select'] = 0.5;
+	$arrFloats['versie'] = 0;
 	
 	if ($actie == "lijst") {
 		$query = sprintf("SELECT *, IFNULL(ValueNum, ValueChar) AS CurVal FROM %sAdmin_param
@@ -2164,18 +2203,8 @@ function db_onderhoud() {
 		}
 	}
 	
-	$query = sprintf("SELECT EXTRA FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sLiddipl' AND COLUMN_NAME='RecordID';", $db_name, $table_prefix);
-	$result = fnQuery($query);
-	if ($result->fetchColumn() != "auto_increment") {
-		$query = sprintf("DELETE FROM %sLiddipl WHERE RecordID=0;", $table_prefix);
-		$result = fnQuery($query);
-		if ($result > 0) {
-			$mess = sprintf("Er zijn %d records uit Liddipl verwijderd, omdat het RecordID leeg was.", $result);
-			db_logboek("add", $mess, 2);
-		}
-		fnQuery(sprintf("ALTER TABLE %sLiddipl ADD PRIMARY KEY (`RecordID`);", $table_prefix));
-		fnQuery(sprintf("ALTER TABLE %sLiddipl CHANGE RecordID RecordID INT( 11 ) NOT NULL AUTO_INCREMENT;", $table_prefix));
-	}
+	db_addautoincrement("Liddipl");
+	db_addautoincrement("Memo");
 	
 	/***** Aanpassen lengte login in de database als deze kleiner is dan maxlengtelogin  *****/
 	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%sAdmin_login' AND COLUMN_NAME LIKE 'Login';", $db_name, $table_prefix);
@@ -2270,7 +2299,7 @@ function db_onderhoud() {
 	/***** Velden die aangepast zijn. De code om ze te wijzigen blijft 3 maanden staan.  *****/
 	
 	// Admin_param/ValueNum, deze code kan na 1/11/2012 worden verwijderd.
-	$query = sprintf("ALTER TABLE `%sAdmin_param` CHANGE `ValueNum` `ValueNum` DECIMAL(13,6) NULL DEFAULT NULL;", $table_prefix);
+	$query = sprintf("ALTER TABLE `%sAdmin_param` CHANGE `ValueNum` `ValueNum` DECIMAL(14,6) NULL DEFAULT NULL;", $table_prefix);
 	fnQuery($query);
 	
 	// mailing_hist/ValueNum, deze code kan na 1/11/2012 worden verwijderd.
@@ -2329,6 +2358,24 @@ function db_onderhoud() {
 		fnQuery($query);
 		$query = sprintf("DROP TABLE IF EXISTS %sDMS_Document;", $table_prefix);
 		fnQuery($query);
+	}
+}
+
+function db_addautoincrement($table) {
+	global $table_prefix, $db_name;
+	
+	$table = $table_prefix . $table;
+	$query = sprintf("SELECT EXTRA FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%s' AND COLUMN_NAME='RecordID';", $db_name, $table);
+	$result = fnQuery($query);
+	if ($result->fetchColumn() != "auto_increment") {
+		$query = sprintf("DELETE FROM %s WHERE RecordID=0;", $table);
+		$result = fnQuery($query);
+		if ($result > 0) {
+			$mess = sprintf("Er zijn %d records uit %s verwijderd, omdat RecordID leeg was.", $result, $table);
+			db_logboek("add", $mess, 2);
+		}
+		fnQuery(sprintf("ALTER TABLE %s ADD UNIQUE (`RecordID`);", $table));
+		fnQuery(sprintf("ALTER TABLE %s CHANGE RecordID RecordID INT( 11 ) NOT NULL AUTO_INCREMENT;", $table));
 	}
 }
 
@@ -2887,18 +2934,17 @@ function db_backup() {
 
 			if (db_param("db_backupsopschonen") > 0 and $handle = opendir($db_folderbackup)) {
 				while (false !== ($file = readdir($handle))) {
+					sleep(3);
 					if ($file != "." and $file != "..") {
 						if (filectime($db_folderbackup . "/" . $file) < mktime(0, 0, 0, date("m"), date("d")-db_param("db_backupsopschonen"), date("Y")) or filesize(db_param("db_folderbackup") . "/" . $file) < 500 ) {
 							unlink($db_folderbackup . "/" . $file);
-							$mess = sprintf("Bestand %s is verwijderd. ", $db_folderbackup . $file);
+							$mess = sprintf("Bestand %s is verwijderd. ", $file);
 							db_logboek("add", $mess, 3);
 							$ret .= "<br>\n" . $mess;
 						}
 					}
 				}
 			}
-
-			db_authorisation("opschonen");
 			
 		} else {
 			$ret = "Het backup-script heeft gedraaid, maar de backup is niet gelukt.\n";
