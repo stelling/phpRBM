@@ -21,14 +21,20 @@ $dir = substr(__FILE__, 0, strrpos(__FILE__, "/"));
 $dir = substr($dir, 0, strrpos($dir, "/"));
 require_once($dir . '/config.php');
 
-require_once($dir . "/includes/database.inc");
-require_once($dir . "/includes/authentication.inc");
-require_once($dir . "/includes/leden.inc");
-require_once($dir . "/includes/bewaking.inc");
-require_once($dir . "/includes/evenement.inc");
-require_once($dir . "/includes/mailing.inc");
-require_once($dir . "/includes/webshop.inc");
-require_once($dir . "/includes/class.phpmailer.php");
+$bestandsversie = filectime($_SERVER['SCRIPT_FILENAME']);
+$includes = array("database.inc", "authentication.inc", "leden.inc", "bewaking.inc", "evenement.inc", "mailing.inc", "webshop.inc", "class.phpmailer.php");
+foreach ($includes as $incl) {
+	$incl = $dir . "/includes/" . $incl;
+	if ($bestandsversie < filectime($incl)) {
+		$bestandsversie = filectime($incl);
+	}
+	require_once($incl);
+}
+if ($bestandsversie/100000 != db_param("versie")) {
+	db_createtables();
+	db_onderhoud();
+	db_param("versie", "updval", $bestandsversie/100000);
+}
 
 // Vullen sessie met config variabelen
 if (!isset($_SESSION['naamvereniging']) or strlen($_SESSION['naamvereniging']) < 3 or !isset($_SESSION['performance_trage_select'])) {
@@ -39,10 +45,8 @@ if (!isset($_SESSION['naamvereniging']) or strlen($_SESSION['naamvereniging']) <
 	$_SESSION['emailwebmaster'] = db_param("emailwebmaster");
 	$_SESSION['emailsecretariaat'] = db_param("emailsecretariaat");
 	$_SESSION['performance_trage_select'] = db_param("performance_trage_select");
-	if ($_SESSION['lidid'] == 0) {
-		db_onderhoud();
-	}
 }
+
 if (strlen(db_param("zs_muteerbarememos")) > 0) {
 	$muteerbarememos = explode(",", db_param("zs_muteerbarememos"));
 } else {
@@ -75,7 +79,6 @@ $arrTL[] = "Voormalig leden";
 
 $arrLegitimatie["G"] = "Geen";
 $arrLegitimatie["I"] = "Identiteitskaart";
-$arrLegitimatie["O"] = "Onbekend";
 $arrLegitimatie["P"] = "Paspoort";
 $arrLegitimatie["R"] = "Rijbewijs";
 	
@@ -172,6 +175,13 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		$tabpages[] = "Overzicht lid/Financieel";
 		$tabpages[] = "Overzicht lid/Mailing";
 		$tabpages[] = "Overzicht lid/Evenementen";
+	}
+	if ($currenttab == "Wijzigen lid") {
+		$tabpages[] = "Wijzigen lid";
+		$tabpages[] = "Wijzigen lid/Algemene gegevens";
+		$tabpages[] = "Wijzigen lid/Diploma's";
+		$tabpages[] = "Wijzigen lid/Pasfoto";
+		$tabpages[] = "Wijzigen lid/Bijzonderheden";
 	}
 	if ($_SESSION['aantalbewaking'] > 0) {
 		$tabpages[] = "Bewaking";
@@ -332,7 +342,7 @@ function HTMLheader() {
 }
 
 function HTMLfooter() {
-	global $table_prefix, $navpad;
+	global $table_prefix, $navpad, $bestandsversie;
 
 	if (!isset($_GET['header']) or $_GET['header'] != "no") {
 		if (strlen($_SESSION['naamvereniging']) > 2) {
@@ -362,7 +372,7 @@ function HTMLfooter() {
 				 <div id='footerleft'>%s</div>\n
 				 <a href='http://%s'>%s</a> %s\n
 				 <div id='footerright'>%s</div>\n
-				 </div>  <!-- Einde footer  -->\n", $cr, $_SESSION['urlwebsite'], $_SESSION['naamwebsite'], $np, strftime("%e %B %Y", filectime($_SERVER['SCRIPT_FILENAME'])));
+				 </div>  <!-- Einde footer  -->\n", $cr, $_SESSION['urlwebsite'], $_SESSION['naamwebsite'], $np, strftime("%e %B %Y", $bestandsversie));
 		echo("</div>  <!-- Einde container -->\n");
 		echo("</body>\n");
 		echo("</html>\n");
@@ -612,7 +622,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 			foreach($row as $key => $value) {
 				if (substr($key, 0, 3) == "dte") {
 					if ((!is_null($value)) and $value > '1900-01-01') {
-						$ret .= sprintf("<td class='datum'>%s</td>", strftime('%e %b %Y', strtotime($value)));
+						$ret .= sprintf("<td class='datum'>%s</td>", strftime('%e %B %Y', strtotime($value)));
 					} else {
 						$ret .= "<td>&nbsp;</td>";
 					}
