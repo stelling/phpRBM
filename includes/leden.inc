@@ -36,13 +36,17 @@ function fnWijzigen($lidid=0, $actie="") {
 	
 	$naamlid = db_naamlid($lidid);
 	if ($lidid > 0) {
-//		$lidid = 32;
 		fnDispMenu(2, $xtra_param);
 
 		if ($actie == "Algemene gegevens") {
 			algemeenlidmuteren($lidid);
+			
 		} elseif ($actie == "Diplomas") {
-			diplomaslidmuteren($lidid, "ZS");
+			if ($currenttab == "Zelfservice") {
+				diplomaslidmuteren($lidid, "ZS");
+			} else {
+				diplomaslidmuteren($lidid, "*");
+			}
 			
 		} elseif ($currenttab2 == "Pasfoto") {
 			nieuwepasfoto($lidid);
@@ -244,7 +248,9 @@ function fnLedenlijst() {
 
 	if (toegang("Wijzigen lid", 0)) {
 		$llw = "<a href='index.php?tp=Wijzigen+lid/Algemene+gegevens&amp;lidid=%1\$d'><img src='./images/edit.png' alt='Wijzigen' title='Wijzigen lidgegevens'></a>";
-		$llw .= "</td><td class='details'><a href='index.php?tp=Wijzigen+lid/Pasfoto&amp;lidid=%1\$d'><img src='./images/profile.png' alt='Pasfoto' title='Wijzigen pasfoto'></a>";
+		if (toegang("Wijzigen lid/Pasfoto", 0)) {
+			$llw .= "</td><td class='details'><a href='index.php?tp=Wijzigen+lid/Pasfoto&amp;lidid=%1\$d'><img src='./images/profile.png' alt='Pasfoto' title='Wijzigen pasfoto'></a>";
+		}
 	} else {
 		$llw = "";
 	}
@@ -529,7 +535,7 @@ function fotolid($lidid, $metversie=0) {
 }
 
 function algemeenlidmuteren($lidid) {
-	global $arrGeslacht, $arrLegitimatie, $actionurl, $table_prefix;
+	global $arrGeslacht, $arrLegitimatie, $actionurl, $table_prefix, $fdsql, $fdaccess;
 		
 	$wijzvelden[] = array('label' => "Roepnaam", 'naam' => "Roepnaam", 'lengte' => 17);
 	$wijzvelden[] = array('label' => "Voorletters", 'naam' => "VOORLETTER", 'lengte' => 10);
@@ -571,7 +577,7 @@ function algemeenlidmuteren($lidid) {
 					if (strtotime($_POST[$fn]) === FALSE) {
 						$mess .= "Geboortedatum is niet correct, deze wordt niet verwerkt. ";
 					} else {
-						$v = strftime("%Y-%m-%d", strtotime($_POST[$fn]));
+						$v = strftime($fdsql, strtotime($_POST[$fn]));
 					}
 				}
 			} elseif (stripos($wijzvelden[$i]['label'], "e-mail") !== FALSE) {
@@ -589,6 +595,9 @@ function algemeenlidmuteren($lidid) {
 				$query = sprintf("UPDATE %sLid SET %s='%s', Gewijzigd=SYSDATE() WHERE Nummer=%d;", $table_prefix, $fn, $v, $lidid);
 				$result = fnQuery($query);
 				if ($result > 0) {
+					if ($fn == "GEBDATUM") {
+						$query = sprintf("UPDATE Lid SET %s=#%s#, Gewijzigd=SYSDATE() WHERE Nummer=%d;", $fn, strftime($fdaccess, strtotime($v)), $lidid);
+					}
 					db_interface("add", $query, $lidid);
 					$mess .= sprintf("%s van %s is in '%s' gewijzigd. ", $wijzvelden[$i]['label'], $naamlid, $v);
 				} else {
@@ -790,12 +799,9 @@ function opzegginglidmaatschap($lidid) {
 	
 	$opzegtermijn = db_param("zs_opzegtermijn");
 	$emailledenadministratie = db_param("emailledenadministratie");
-	
 	$fdlang = "%e %B %Y";
+	$naamlid = db_naamlid($lidid);
 	
-	if (!isset($opzegtermijn) or $opzegtermijn < 0) {
-		$opzegtermijn = 1;
-	}
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		if (isset($_POST["OpzeggingPer"]) and strlen($_POST["OpzeggingPer"]) > 3) {
 			$_POST["OpzeggingPer"] = change_month_to_uk($_POST["OpzeggingPer"]);
@@ -820,32 +826,34 @@ function opzegginglidmaatschap($lidid) {
 			$opm = "";
 		}
 			
-		$mess = sprintf("%s heeft haar/zijn lidmaatschap per %s opgezegd.", $_SESSION['naamingelogde'], $opgezegdper);
+		$mess = sprintf("%s heeft haar/zijn lidmaatschap per %s opgezegd.", $naamlid, $opgezegdper);
 		db_logboek("add", $mess, 6);
 			
 		$body = sprintf("<p>Beste ledenadministratie,</p>\n
 		<p>Hierbij zeg ik mijn lidmaatschap van de %s per %s op. Mijn lidnummer is %d.</p>\n
 		%s
 		<p>Met vriendelijke groeten,<br>
-		<strong>%s</strong></p>\n", $_SESSION['naamvereniging'], $opgezegdper, $_SESSION['lidnr'], $opm, $_SESSION['naamingelogde']);
+		<strong>%s</strong></p>\n", $_SESSION['naamvereniging'], $opgezegdper, $_SESSION['lidnr'], $opm, $naamlid);
 				
 		$body .= sprintf("\n<p>Dit formulier is verzonden met formulier %s vanaf IP %s.</p>\n", $actionurl, $_SERVER['REMOTE_ADDR']);
 	
 		$mail = new RBMmailer();
 		$mail->From = $_SESSION['emailingelogde'];
-		$mail->FromName = $_SESSION['naamingelogde'];
+		$mail->FromName = $naamlid;
 		$mail->AddAddress($emailledenadministratie);
 		$mail->AddCC($_SESSION['emailingelogde']);
 		if (isValidMailAddress($_SESSION['emailsecretariaat'], 0)) {
 			$mail->AddCC($_SESSION['emailsecretariaat']);
 		}
-		$mail->Subject = sprintf("Opzegging lidmaatschap %s per %s", $_SESSION['naamingelogde'], $opgezegdper);
+		$mail->Subject = sprintf("Opzegging lidmaatschap %s per %s", $naamlid, $opgezegdper);
 		$mail->Body = $body;
 		if ($mail->Send()) {
 			echo("<p class='mededeling'>De opzegging is verzonden.</p>\n");
-			db_add_mailing_hist(0, 0, $to_name, $emailledenadministratie, $body, $_SESSION['naamingelogde'], $_SESSION['emailingelogde'], $mail->Subject);
+			db_add_mailing_hist(0, 0, "Ledenadministratie", $emailledenadministratie, $body, $mail->FromName, $mail->From, $mail->Subject, $_SESSION['emailingelogde']);
 		}
 		$mail = null;
+		db_lidmaatschap("opzegging", $lidid, $opgezegdper);
+		
 	} else {
 		$form_opzegging = sprintf("<div id='opzegformulier'>\n<form name='Opzegging' action='%s' method='post'>\n", $actionurl);
 		$form_opzegging .= "<fieldset>
@@ -878,7 +886,7 @@ function opzegginglidmaatschap($lidid) {
 }
 
 function diplomaslidmuteren($lidid, $td, $eenv=1) {
-	global $actionurl, $naamlid;
+	global $actionurl;
 
 	if ($td == "ZS") {
 		$actie = "zelfservice_lijst";
@@ -921,6 +929,9 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 	printf("<input type='hidden' name='dptype' value='%s'>\n", $td);
 	
 	echo("<table>\n");
+	if ($_SESSION['lidid'] != $lidid) {
+		printf("<tr><th class='tabelkop' colspan=7>Diploma's %s muteren</th></tr>\n", db_naamlid($lidid));
+	}
 	printf("<tr><th>Code</th><th>Naam</th><th>Geldigheid</th><th>Behaald op</th><th>Geldig tot</th><th>Diplomanummer</th><th>Verw?</th></tr>\n");
 	foreach (db_diploma($actie, 0, $td) as $dp) {
 		$aant = 0;
