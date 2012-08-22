@@ -102,11 +102,11 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	$tabpages[] = "DB onderhoud";
 	$tabpages[] = "Logboek";
 } else {
-	$tabpages[] = "Verenigingsinfo";
-	$tabpages[] = "Verenigingsinfo/Introductie";
-	$tabpages[] = "Verenigingsinfo/Kader";
-	$tabpages[] = "Verenigingsinfo/Onderscheidingen";
-	$tabpages[] = "Verenigingsinfo/Overige commissies";
+	$tabpages[] = "Vereniging";
+	$tabpages[] = "Vereniging/Introductie";
+	$tabpages[] = "Vereniging/Kader";
+	$tabpages[] = "Vereniging/Onderscheidingen";
+	$tabpages[] = "Vereniging/Overige commissies";
 	if (isset($_SESSION['lidid']) and $_SESSION['lidid'] > 0) {
 		$tabpages[] = "Eigen gegevens";
 		$tabpages[] = "Eigen gegevens/Algemeen";
@@ -271,7 +271,7 @@ fnQuery($query);
 
 $pasfotoextenties = array('gif', 'jpg', 'jpeg', 'png');
 
-function HTMLheader() {
+function HTMLheader($refresh=0) {
 	global $tabpages, $currenttab, $currenttab2, $navpad, $curtab;
 	
 	if (strlen($currenttab) > 0 and strlen($currenttab2) > 0) {
@@ -289,6 +289,9 @@ function HTMLheader() {
 		echo("<head>\n");
 		if (isset($_GET['tp']) and substr($_GET['tp'], 0, 7) == "Mailing") {
 			echo("<script src='/includes/ckeditor/ckeditor.js'></script>\n");
+		}
+		if ($refresh == 1) {
+			echo("<meta http-equiv='refresh' content='600'>\n");
 		}
 		printf("<title>%s</title>\n", $title);
 		if (file_exists("stylesheets/default.css")) {
