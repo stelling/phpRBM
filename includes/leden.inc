@@ -158,11 +158,11 @@ function fnWieiswie($actie, $metfoto=1) {
 	echo("<div id='wieiswie'>\n");
 	$vo = "";
 	if ($actie == "Onderscheidingen") {
-		$lijst = db_adressenlijst("O.TYPE='O'");
+		$lijst = db_lidond("actueleleden", 0, "", "O.TYPE='O'");
 	} elseif ($actie == "Overige commissies") {
-		$lijst = db_adressenlijst("(O.TYPE='C' AND O.Kader=False)");
+		$lijst = db_Lidond("actueleleden", 0, "", "(O.TYPE='C' AND O.Kader=False)");
 	} else {
-		$lijst = db_adressenlijst("O.Kader=True");
+		$lijst = db_lidond("actueleleden", 0, "", "O.Kader=True");
 	}
 
 	if ($metfoto == 1) {
@@ -179,16 +179,16 @@ function fnWieiswie($actie, $metfoto=1) {
 				echo("<div class='clear'></div>\n");
 				$vo = $row->OndNaam; 
 			} 
-			$ln = htmlentities($row->LidNaam);
+			$ln = htmlentities($row->NaamLid);
 			if (isset($row->EmailFunctie) and isValidMailAddress($row->EmailFunctie, 0)) {
-				$email = fnDispEmail($row->EmailFunctie, $row->LidNaam, 1);
+				$email = fnDispEmail($row->EmailFunctie, $row->NaamLid, 1);
 			} elseif (isValidMailAddress($row->EmailVereniging, 0)) {
-				$email = fnDispEmail($row->EmailVereniging, $row->LidNaam, 1);
+				$email = fnDispEmail($row->EmailVereniging, $row->NaamLid, 1);
 			} else {
 				$email = "";
 			}
-			if (strlen($row->OmsFunctie) > 1) {
-				$func = $row->OmsFunctie;
+			if (strlen($row->Functie) > 1) {
+				$func = $row->Functie;
 			} else {
 				$func = $row->Opmerk;
 			}
