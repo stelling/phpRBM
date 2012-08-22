@@ -349,22 +349,6 @@ function db_naamlid($lidid, $uitv="", $riz="Onbekend") {
 	return $rv;
 }
 
-function db_adressenlijst($filter="O.Kader=True") {
-	global $selectnaam, $fromlidond, $wherelidond;
-	
-	if (strlen($filter) > 3) {
-		$filter = $wherelidond . " AND " . $filter;
-	} else {
-		$filter = $wherelidond;
-	}
-	$query = sprintf("SELECT L.*, %s AS LidNaam, O.Kode, O.Naam AS OndNaam, O.CentraalEmail, O.TYPE, F.Omschrijv AS OmsFunctie, LO.*
-							FROM %s
-							WHERE %s AND ((O.VervallenPer IS NULL) OR O.VervallenPer >= CURDATE())
-							ORDER BY O.Kader DESC, O.TYPE, O.Naam, F.Sorteringsvolgorde, LO.Vanaf, L.Achternaam, L.TUSSENV;", $selectnaam, $fromlidond, $filter);
-	$result = fnQuery($query);
-	return($result->fetchAll());
-}
-
 function db_lid($actie, $filter="") {
 	global $selectnaam, $selectzoeknaam, $selectlidnr, $table_prefix, $fromlid, $wherelid;
 	
@@ -407,7 +391,7 @@ function db_lid($actie, $filter="") {
 		$query = "";
 	}
 	$result = fnQuery($query);
-	return($result->fetchAll());
+	return $result->fetchAll();
 }
 
 function db_lidmaatschap($actie, $lidid, $opgezegd) {
@@ -648,6 +632,7 @@ function db_lidond($actie, $lidid=0, $per="", $filter="") {
 				 ORDER BY O.Kode;", $fromlidond, $lidid, $per);
 		$result = fnQuery($query);
 		return $result->fetchAll();
+		
 	} elseif ($actie == "onderdeellijst") {
 		if (strlen($filter) > 0) {
 			$filter = " WHERE " . $filter;
@@ -660,16 +645,20 @@ function db_lidond($actie, $lidid=0, $per="", $filter="") {
 								ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectnaam, $selectzoeknaam, $fromlidond, $filter, $selectlidnr);
 		$result = fnQuery($query);
 		return $result->fetchAll();
+		
 	} elseif ($actie == "actueleleden") {
 		if (strlen($filter) > 0) {
 			$filter = $wherelidond . " AND " . $filter;
 		} else {
 			$filter = $wherelidond;
 		}
-		$query = sprintf("SELECT LO.Lid, %1\$s AS `NaamLid`, UPPER(L.Woonplaats) AS Woonplaats, L.Mobiel, L.Email, F.Omschrijv AS Functie, LO.Vanaf, LO.Opgezegd, L.GEBDATUM, %2\$s AS ZoeknaamLid
-								FROM %3\$s
-								WHERE %4\$s
-								ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectnaam, $selectzoeknaam, $fromlidond, $filter);
+		$query = sprintf("SELECT LO.Lid, LO.EmailFunctie, LO.Opmerk, LO.Vanaf, LO.Opgezegd,
+								L.Nummer, %s AS NaamLid, UPPER(L.Woonplaats) AS Woonplaats, L.Mobiel, L.Email, L.EmailVereniging, L.GEBDATUM, %s AS ZoeknaamLid,
+								F.Omschrijv AS Functie,
+								O.Kode, O.Naam AS OndNaam, O.CentraalEmail, O.TYPE
+								FROM %s
+								WHERE %s
+								ORDER BY O.Kader DESC, O.TYPE, O.Naam, F.Sorteringsvolgorde, F.Omschrijv, LO.Vanaf, L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectnaam, $selectzoeknaam, $fromlidond, $filter);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	}
@@ -1020,6 +1009,10 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 		if ($result > 0) {
 			$mess = sprintf("%s is met '%s' ingelogd.", db_naamlid($lidid), $_SESSION['username']);
 			db_logboek("add", $mess, 1);
+			$scriptnainloggen = db_param("scriptnainloggen");
+			if (strlen($scriptnainloggen) > 0) {
+				exec($scriptnainloggen);
+			}
 		}
 		
 	} elseif ($actie == "updateactiviteit" and $lidid > 0) {
