@@ -726,14 +726,12 @@ class mailing {
 	}
 	
 	public function add_groep($groepid) {
-		global $table_prefix, $wherelidond;
+		global $table_prefix;
 		
-		$query = sprintf("SELECT Lid FROM %1\$sLidond AS LO
-					WHERE %4\$s AND OnderdeelID=%2\$d AND LO.Lid NOT IN (SELECT R.LidID FROM %1\$sMailing_rcpt AS R WHERE R.LidID=LO.Lid AND R.MailingID=%3\$d);",
-				 $table_prefix, $groepid, $this->mid, $wherelidond);
-		$result = fnQuery($query);
+		$w = sprintf("LO.OnderdeelID=%d AND LO.Lid NOT IN (SELECT LidID FROM %sMailing_rcpt WHERE MailingID=%d);", $groepid, $table_prefix, $this->mid);
+		$rows = db_lidond("actueleleden", 0, "", $w);
 		$aant = 0;
-		foreach($result->fetchAll() as $row) {
+		foreach($rows as $row) {
 			if (db_mailing("addrcpt", $this->mid, 0, "", "", $row->Lid)) {
 				$aant++;
 			}
@@ -759,8 +757,7 @@ class mailing {
 				fnQuery($query);
 			}
 		} else {
-			$w = sprintf("LO.OnderdeelId=%d", $groepid);
-			$w .= sprintf(" AND LO.Lid IN (SELECT Lid FROM %sMailing_rcpt WHERE MailingID=%d)", $table_prefix, $this->mid);
+			$w = sprintf("LO.OnderdeelId=%d AND LO.Lid IN (SELECT Lid FROM %sMailing_rcpt WHERE MailingID=%d)", $groepid, $table_prefix, $this->mid);
 			$rows = db_lidond("actueleleden", 0, "", $w);
 			foreach($rows as $row) {
 				db_mailing("delrcpt", $this->mid, 0, "", "", $row->Lid);
