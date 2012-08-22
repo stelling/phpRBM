@@ -21,7 +21,11 @@ if (isset($_GET['op']) and $_GET['op'] == "exportins") {
 }
 
 if ($currenttab !== "Mailing") {
-	HTMLheader();
+	if ($currenttab == "Vereniging" or $currenttab == "Eigen gegevens" or $currenttab2 == "Logboek") {
+		HTMLheader(1);
+	} else {
+		HTMLheader(0);
+	}
 }
 
 if ($currenttab == "Eigen gegevens" and toegang($_GET['tp'])) {
@@ -50,7 +54,7 @@ if ($currenttab == "Eigen gegevens" and toegang($_GET['tp'])) {
 	if (isset($_GET['lidid']) and is_numeric($_GET['lidid']) and $_GET['lidid'] > 0) {
 		fnWijzigen($_GET['lidid'], $currenttab2);
 	}
-} elseif ($currenttab == "Verenigingsinfo" and $currenttab2 != "Introductie" and toegang($_GET['tp'])) {
+} elseif ($currenttab == "Vereniging" and $currenttab2 != "Introductie" and toegang($_GET['tp'])) {
 	fnWieiswie($currenttab2, db_param("kaderoverzichtmetfoto"));
 } elseif ($currenttab == "Ledenlijst" and toegang($_GET['tp'])) {
 	fnLedenlijst();
@@ -65,7 +69,7 @@ if ($currenttab == "Eigen gegevens" and toegang($_GET['tp'])) {
 } elseif ($currenttab == "Bestellingen" and toegang($_GET['tp'])) {
 	fnWebshop();
 } else {	
-	$currenttab = "Verenigingsinfo";
+	$currenttab = "Vereniging";
 	$currenttab2 = "Introductie";
 	fnDispMenu(2);
 	fnVoorblad();
