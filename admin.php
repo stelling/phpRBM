@@ -13,8 +13,12 @@ if (isset($_GET['op']) and $_GET['op'] == "downloadwijz" and $_GET['tp'] == "Dow
 	}
 	exit();
 }
-	
-HTMLheader();
+
+if ($currenttab == "Beheer logins" or $currenttab == "Autorisatie" or $currenttab == "Logboek") {
+	HTMLheader(1);
+} else {
+	HTMLheader(0);
+}
 	
 if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 	db_logins("delete", "", "", $_GET['lidid']);
@@ -243,7 +247,8 @@ function fnInstellingen() {
 	$arrParam['naamwebsite'] = "Dit is de naam zoals deze in de titel en op elke pagina getoond wordt.";
 	$arrParam['performance_trage_select'] = "Vanaf hoeveel seconden moet een select-statement in het logboek worden gezet. 0 = nooit.";
 	$arrParam['resultaatmailingversturen'] = "Indien aangevinkt wordt naar de zender en het secretariaat een mail met het resultaat van deze mailing verzonden.";
-	$arrParam['scriptbijuitloggen'] = "Dit script wordt automatisch gedraaid nadat iemand is uitgelogd. Optioneel veld.";
+	$arrParam['scriptbijuitloggen'] = "Dit script wordt gedraaid nadat iemand is uitgelogd. Optioneel veld.";
+	$arrParam['scriptnainloggen'] = "Dit script wordt gedraaid nadat iemand is ingelogd. Optioneel veld.";
 	$arrParam['smtphost'] = "De naam van de SMTP-server voor het versturen van e-mails. Indien deze niet wordt ingevuld, wordt van de mail-functie uit PHP gebruik gemaakt.";
 	$arrParam['smtpport'] = "De poort die voor de SMTP-host gebruikt moet worden. 0 = gebruik default poort.";
 	$arrParam['smtpuser'] = "De gebruiker om te kunnen inloggen op de SMTP-server.";
