@@ -50,34 +50,36 @@ if ($currenttab == "Eigen gegevens" and toegang($_GET['tp'])) {
 	} else {
 		fnOverviewLid(0, $currenttab2);
 	}
-} elseif ($currenttab == "Wijzigen lid" and toegang($_GET['tp'])) {
+} elseif ($currenttab == "Wijzigen lid" and toegang()) {
 	if (isset($_GET['lidid']) and is_numeric($_GET['lidid']) and $_GET['lidid'] > 0) {
 		fnWijzigen($_GET['lidid'], $currenttab2);
 	}
-} elseif ($currenttab == "Vereniging" and $currenttab2 != "Introductie" and toegang($_GET['tp'])) {
-	fnWieiswie($currenttab2, db_param("kaderoverzichtmetfoto"));
-} elseif ($currenttab == "Ledenlijst" and toegang($_GET['tp'])) {
-	fnLedenlijst();
-} elseif ($currenttab == "Bewaking" and toegang($_GET['tp'])) {
-	fnBewaking();
-} elseif ($currenttab == "Kostenoverzicht" and toegang($_GET['tp'])) {
-	fnKostenoverzicht();
-} elseif ($currenttab == "Mailing" and toegang($_GET['tp'])) {
-	fnMailing();
-} elseif ($currenttab == "Evenementen" and toegang($_GET['tp'])) {
-	fnEvenementen();
-} elseif ($currenttab == "Bestellingen" and toegang($_GET['tp'])) {
-	fnWebshop();
-} else {	
-	$currenttab = "Vereniging";
-	$currenttab2 = "Introductie";
+} elseif ($currenttab == "Vereniging" and toegang()) {
 	fnDispMenu(2);
-	fnVoorblad();
-	if (!isset($_SESSION['username']) or strlen($_SESSION['username']) <= 5) {
-		echo("<div id='kolomrechts'>\n");
-		fnLoginAanvragen();
-		echo("</div>  <!-- Einde kolomrechts -->\n");
+	if ($currenttab2 == "Introductie") {
+		fnVoorblad();
+		if (!isset($_SESSION['username']) or strlen($_SESSION['username']) <= 5) {
+			echo("<div id='kolomrechts'>\n");
+			fnLoginAanvragen();
+			echo("</div>  <!-- Einde kolomrechts -->\n");
+		}
+	} else {
+		fnWieiswie($currenttab2, db_param("kaderoverzichtmetfoto"));
 	}
+} elseif ($currenttab == "Ledenlijst" and toegang()) {
+	fnLedenlijst();
+} elseif ($currenttab == "Bewaking" and toegang()) {
+	fnBewaking();
+} elseif ($currenttab == "Kostenoverzicht" and toegang()) {
+	fnKostenoverzicht();
+} elseif ($currenttab == "Mailing" and toegang()) {
+	fnMailing();
+} elseif ($currenttab == "Evenementen" and toegang()) {
+	fnEvenementen();
+} elseif ($currenttab == "Bestellingen" and toegang()) {
+	fnWebshop();
+} elseif (!isset($_SESSION['username']) or strlen($_SESSION['username']) <= 5) {
+	fnLoginAanvragen();
 }
 
 if ($currenttab != "Mailing") {	

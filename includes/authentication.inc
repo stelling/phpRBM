@@ -11,8 +11,15 @@ if ((!isset($_SESSION['password']) or strlen($_SESSION['password']) == 0) and is
 	$_SESSION['password'] = "";
 }
 
-function toegang($soort, $melding=1) {
-	global $lididwebmasters, $table_prefix, $tabpages;
+function toegang($soort="", $melding=1) {
+	global $lididwebmasters, $table_prefix, $tabpages, $currenttab, $currenttab2;
+	
+	if (strlen($soort) == 0) {
+		$soort = $currenttab;
+		if (strlen($currenttab2) > 0) {
+			$soort .= "/" . $currenttab2;
+		}
+	}
 	
 	$maxinlogpogingen = db_param("maxinlogpogingen");
 

@@ -5,11 +5,11 @@ function fnWebshop() {
 	
 	fnDispMenu(2);
 
-	if ($currenttab2 == "Artikelbeheer") {
+	if ($currenttab2 == "Artikelbeheer" and toegang()) {
 		artikelbeheer();
-	} elseif ($currenttab2 == "Bestellingen muteren") {
+	} elseif ($currenttab2 == "Bestellingen muteren" and toegang()) {
 		bestellingbeheer();
-	} elseif ($currenttab2 == "Logboek" and toegang($_GET['tp'])) {
+	} elseif ($currenttab2 == "Logboek" and toegang()) {
 		$lijst = db_logboek("lijst", "", 10);
 		echo(fnDisplayTable($lijst, "", "", 0, "", "", "logboek"));
 	}

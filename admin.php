@@ -87,7 +87,7 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 	printf("<p class='mededeling'>%s</p>\n", $mess);
 }
 
-if ($currenttab == "Beheer logins" and toegang($_GET['tp'])) {
+if ($currenttab == "Beheer logins" and toegang()) {
 	$lnk = sprintf("<a href='%s?op=deletelogin&amp;lidid=%s'><img src='images/del.png' title='Verwijder login'></a>", $_SERVER['PHP_SELF'], "%d");
 	
 	if (db_param("maxinlogpogingen") > 0) {
