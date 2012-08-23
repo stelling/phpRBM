@@ -21,7 +21,7 @@ $dir = substr(__FILE__, 0, strrpos(__FILE__, "/"));
 $dir = substr($dir, 0, strrpos($dir, "/"));
 require_once($dir . '/config.php');
 
-$bestandsversie = filectime($_SERVER['SCRIPT_FILENAME']);
+$bestandsversie = filectime($dir . "/index.php");
 $includes = array("database.inc", "authentication.inc", "leden.inc", "bewaking.inc", "evenement.inc", "mailing.inc", "webshop.inc", "class.phpmailer.php");
 foreach ($includes as $incl) {
 	$incl = $dir . "/includes/" . $incl;
@@ -72,10 +72,7 @@ $arrGeslacht["M"] = "Man";
 $arrGeslacht["B"] = "Bedrijf";
 $arrGeslacht["O"] = "Onbekend";
 
-$arrTL[] = "Alle";
-$arrTL[] = "Leden";
-$arrTL[] = "Klosleden";
-$arrTL[] = "Voormalig leden";
+$arrTL = array("Alle", "Leden", "Klosleden", "Voormalig leden");
 
 $arrLegitimatie["G"] = "Geen";
 $arrLegitimatie["I"] = "Identiteitskaart";
@@ -90,6 +87,8 @@ $arrSoortMemo["F"] = "Financiën";
 $arrSoortMemo["G"] = "Gezondheid/medisch";
 $arrSoortMemo["I"] = "Inschrijving bewaking";
 $arrSoortMemo["WN"] = "Waarschuwen in geval van nood";
+
+$pasfotoextenties = array("gif", "jpg", "jpeg", "png");
 
 if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	$tabpages[] = "Beheer logins";
@@ -269,10 +268,9 @@ if (!isset($currenttab2) or strlen($currenttab2) == 0) {
 $query = "SET lc_time_names='nl_NL';";
 fnQuery($query);
 
-$pasfotoextenties = array('gif', 'jpg', 'jpeg', 'png');
 
 function HTMLheader($refresh=0) {
-	global $tabpages, $currenttab, $currenttab2, $navpad, $curtab;
+	global $currenttab, $currenttab2;
 	
 	if (strlen($currenttab) > 0 and strlen($currenttab2) > 0) {
 		$title = $_SESSION['naamwebsite'] . " | " . $currenttab . " | " . $currenttab2;
@@ -456,7 +454,7 @@ function getvar($nm, $riz="") {
 }
 
 function fnDispMenu($toonnivo=1, $xtra="") {
-	global $tabpages, $curtab, $currenttab, $currenttab2, $navpad, $typemenu;
+	global $tabpages, $currenttab, $currenttab2, $navpad, $typemenu;
 	
 	$typemenu = db_param("typemenu");
 	$ulopen = false;

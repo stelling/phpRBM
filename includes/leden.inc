@@ -152,8 +152,6 @@ function fnWijzigen($lidid=0, $actie="") {
 
 function fnWieiswie($actie, $metfoto=1) {
 	global $ldl;
-
-	fnDispMenu(2);
 	
 	echo("<div id='wieiswie'>\n");
 	$vo = "";
