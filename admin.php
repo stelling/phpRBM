@@ -198,12 +198,14 @@ if ($currenttab == "Beheer logins" and toegang()) {
 	echo("<td class='label'>Filter op type:</td><td><select name='typefilter' id='typefilter' onchange='form.submit();'>\n");
 	echo("<option value=-1>Alle</option>\n");
 	foreach ($TypeActiviteit as $key => $val) {
-		if ($key == $_POST['typefilter']) {
-			$s = "selected";
-		} else {
-			$s = "";
+		if (db_logboek("aantal", "", $key) > 0) {
+			if ($key == $_POST['typefilter']) {
+				$s = "selected";
+			} else {
+				$s = "";
+			}
+			printf("<option value=%d %s>%s</option>\n", $key, $s, htmlentities($val));
 		}
-		printf("<option value=%d %s>%s</option>\n", $key, $s, htmlentities($val));
 	}
 	echo("</select>\n</td>\n");
 	
