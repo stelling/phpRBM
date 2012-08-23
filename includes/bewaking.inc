@@ -167,7 +167,7 @@ function fnBewaking() {
 	} elseif ($currenttab2 == "Downloaden inschrijvingen" and toegang($_GET['tp'])) {
 		exportinschrijvingen();
 	} elseif ($currenttab2 == "Logboek" and toegang($_GET['tp'])) {
-		$lijst = db_logboek("lijst", "", 6, $_POST['lidfilter']);
+		$lijst = db_logboek("lijst", "", 11, $_POST['lidfilter']);
 		echo(fnDisplayTable($lijst));
 	}
 }
@@ -538,7 +538,7 @@ function BevestInschrBewaking($lidid, $insnr) {
 		} else {
 			$mess = sprintf("Het versturen van de bevestiging van de inschrijving voor de bewaking aan %s is mislukt. Error: %s.", db_naamlid($lidid), $mail->ErrorInfo);
 		}
-		db_logboek("add", $mess, 6);
+		db_logboek("add", $mess, 11);
 		printf("<script>alert('%s');</script>\n", $mess);
 		echo("<script>location.href='/index.php';</script>\n");
 	} catch (phpmailerException $e) {

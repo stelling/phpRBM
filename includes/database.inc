@@ -28,19 +28,22 @@ $arrTables[] = "Rekening";
 // $arrTables[] = "DMS_Document";
 // $arrTables[] = "DMS_Folder";
 
-$TypeActiviteit[] = "N.T.B.";
-$TypeActiviteit[] = "Inloggen/Uitloggen";
-$TypeActiviteit[] = "DB onderhoud";
-$TypeActiviteit[] = "DB backup";
-$TypeActiviteit[] = "Mailing";
-$TypeActiviteit[] = "Autorisaties";
-$TypeActiviteit[] = "Zelfservice";  // 6
-$TypeActiviteit[] = "Evenementen";
-$TypeActiviteit[] = "Interface";
-$TypeActiviteit[] = "Upload data";  // 9
-$TypeActiviteit[] = "Webshop";
+$TypeActiviteit[0] = "N.T.B.";
+$TypeActiviteit[1] = "Inloggen/Uitloggen";
+$TypeActiviteit[2] = "DB onderhoud";
+$TypeActiviteit[3] = "DB backup";
+$TypeActiviteit[4] = "Mailing";
+$TypeActiviteit[5] = "Autorisaties";
+$TypeActiviteit[6] = "Mutaties lidgegevens";
+$TypeActiviteit[7] = "Evenementen";
+$TypeActiviteit[8] = "Interface";
+$TypeActiviteit[9] = "Upload data";
+$TypeActiviteit[10] = "Webshop";
+$TypeActiviteit[11] = "Bewaking";
+$TypeActiviteit[12] = "Mutaties diploma's";
 $TypeActiviteit[98] = "Performance";
 $TypeActiviteit[99] = "Debugging";
+asort($TypeActiviteit);
 
 $fdlang = "'%e %M %Y'";
 $fdtlang = "'%e %M %Y (%H:%i)'";
@@ -755,7 +758,7 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 			if (strlen($opmerk) > 1) {
 				$mess .= sprintf(" Opmerking is '%s'.", $opmerk); 
 			}
-			db_logboek("add", $mess, 6);
+			db_logboek("add", $mess, 11);
 		}
 	} elseif ($actie == "update" and $lidid > 0 and $blok > 0) {
 		$query = sprintf("UPDATE %sBewaking_Inschrijving SET Nummer=%d, Keuze=%d, Opmerking=\"%s\", Definitief=NULL
@@ -765,12 +768,12 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 		if (strlen($opmerk) > 0) {
 			$mess .= sprintf(" Opmerking is '%s'.", $opmerk);
 		}
-		db_logboek("add", $mess, 6);
+		db_logboek("add", $mess, 11);
 	} elseif ($actie == "delete" and $lidid > 0 and $blok > 0) {
 		$query = sprintf("DELETE FROM %sBewaking_Inschrijving WHERE BlokID=%d AND Lid=%d;", $table_prefix, $blok, $lidid);
 		fnQuery($query);
 		$mess = sprintf("Inschrijving bewaking voor blok %s is bij %s verwijderd.", db_insbew("omsblok", 0, 0, $blok), db_naamlid($lidid));
-		db_logboek("add", $mess, 6);
+		db_logboek("add", $mess, 11);
 	} elseif ($actie == "defmaken" and $lidid > 0 and $insnr > 0) {
 		$query = sprintf("UPDATE %sBewaking_Inschrijving SET Definitief=SYSDATE() WHERE Nummer=%d AND Lid=%d;", $table_prefix, $insnr, $lidid);
 		fnQuery($query);
@@ -779,7 +782,7 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 								WHERE BI.Afgemeld < BI.Ingevoerd AND BI.Definitief > BI.Ingevoerd AND BI.Keuze IN (1, 3);", $table_prefix);
 		$result = fnQuery($query);
 		$mess = sprintf("Er zijn %d inschrijvingen voor bewaking afgemeld.", $result);
-		db_logboek("add", $mess, 6);
+		db_logboek("add", $mess, 11);
 		return $mess;
 	}
 }
@@ -1663,7 +1666,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 				$mess = sprintf("Diploma '%s' is bij %s niet toegevoegd.", db_diploma("naam", $did), db_naamlid($lidid));
 			}
 		}
-		db_logboek("add", $mess, 6);
+		db_logboek("add", $mess, 12);
 		return $mess;
 		
 	} elseif ($actie == "update" and $rid > 0) {
@@ -1679,7 +1682,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 			$query = sprintf("UPDATE Liddipl SET LicentieVervallenPer=%s, Diplomanummer='%s' WHERE Lid=%d AND DiplomaID=%d AND EXDATUM=%s;", $dwaverv, $dipnr, $rowld->Lid, $rowld->DiplomaID, $dwaexd);
 			db_interface("add", $query, $rowld->Lid);
 			$mess = sprintf("Diploma '%s' is gewijzigd bij %s", db_diploma("naam", $rowld->DiplomaID), db_naamlid($rowld->Lid));
-			db_logboek("add", $mess, 6);
+			db_logboek("add", $mess, 12);
 		}
 		return $mess;
 		
@@ -1693,7 +1696,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 		} else {
 			$mess = sprintf("Diploma %s is bij %s niet gevonden en dus niet verwijderd.", db_diploma("naam", $did), db_naamlid($lidid));
 		}
-		db_logboek("add", $mess, 6);
+		db_logboek("add", $mess, 12);
 		return $mess;
 		
 	} elseif ($actie == "lidgegevens" and $lidid > 0) {
