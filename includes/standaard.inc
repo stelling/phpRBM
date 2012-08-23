@@ -196,7 +196,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if (count(db_insbew("export")) > 0) {
 		$tabpages[] = "Bewaking/Downloaden inschrijvingen";
 	}
-	if ($_SESSION['aantalbewaking'] > 0) {
+	if (db_logboek("aantal", "", 11) > 0) {
 		$tabpages[] = "Bewaking/Logboek";
 	}
 	if ($_SESSION['aantalmutaties'] > 0) {
@@ -210,7 +210,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if (db_mailing("aantalprullenbak") > 0) {
 		$tabpages[] = "Mailing/Prullenbak";
 	}
-	$tabpages[] = "Mailing/Logboek";
+	if (db_logboek("aantal", "", 4) > 0) {
+		$tabpages[] = "Mailing/Logboek";
+	}
 	
 	if (count(db_evenement("overzicht")) > 0 or toegang("Evenementen/Beheer", 0)) {
 		$tabpages[] = "Evenementen";
@@ -219,12 +221,16 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		}
 		$tabpages[] = "Evenementen/Beheer";
 		$tabpages[] = "Evenementen/Types muteren";
+	}
+	if (db_logboek("aantal", "", 7) > 0) {
 		$tabpages[] = "Evenementen/Logboek";
 	}
 	$tabpages[] = "Bestellingen";
 	$tabpages[] = "Bestellingen/Bestellingen muteren";
 	$tabpages[] = "Bestellingen/Artikelbeheer";
-	$tabpages[] = "Bestellingen/Logboek";
+	if (db_logboek("aantal", "", 10) > 0) {
+		$tabpages[] = "Bestellingen/Logboek";
+	}
 	
 	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 //		$tabpages[] = "DMS";   Voorlopig geen tijd voor, dus uitgezet.
