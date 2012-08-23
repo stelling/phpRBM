@@ -1509,6 +1509,7 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0) {
 		}
 		db_logboek("add", $mess, 2);
 		return $mess;
+		
 	} elseif ($actie == "lijst") {
 		if ($type == -1) {
 			$s = ", TypeActiviteit AS `Type`";
@@ -1530,6 +1531,7 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0) {
 								ORDER BY A.RecordID DESC LIMIT 250;", $s, $table_prefix, $w);
 		$result = fnQuery($query);
 		return $result->fetchAll();
+		
 	} elseif ($actie == "lidlijst") {
 		$query = sprintf("SELECT DISTINCT LidID, %1\$s AS Naam
 								FROM %2\$sAdmin_activiteit AS A INNER JOIN %2\$sLid AS L ON A.LidID = L.Nummer
@@ -1537,6 +1539,11 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0) {
 								ORDER BY %1\$s;", $selectzoeknaam, $table_prefix, $w);
 		$result = fnQuery($query);
 		return $result->fetchAll();
+	
+	} elseif ($actie == "aantal") {
+		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_activiteit WHERE %s;", $table_prefix, $w);
+		return db_scalar($query);
+		
 	}
 }
 
@@ -2398,7 +2405,8 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_activiteit` (
   `TypeActiviteit` tinyint(4) DEFAULT '0',
   `IP_adres` char(15) NOT NULL,
   `USER_AGENT` varchar(110) DEFAULT NULL,
-  PRIMARY KEY (`RecordID`)
+  PRIMARY KEY (`RecordID`),
+  KEY `TypeActiviteit` (`TypeActiviteit`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sAdmin_interface` (
