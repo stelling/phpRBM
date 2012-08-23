@@ -215,9 +215,9 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					LM.LIDDATUM AS `dteLid vanaf`, 
 					LM.Opgezegd AS `dteLid totenmet`, 
 					'Overig' AS Kop5, 
-					L.RelnrRedNed AS `Relatienummer RedNed`,
-					(%s) AS Login, 
-					L.Beroep AS `Beroep`, 
+					L.RelnrRedNed AS `Sportlink ID`,
+					(%s) AS Login,
+					L.Beroep AS `Beroep`,
 					(%s) AS `dteLaatste bewakingsdag`, 
 					%s 
 					%s
@@ -438,6 +438,7 @@ function db_ledenwijzigingen($lidid) {
 				L.GEBDATUM,
 				L.GEBPLAATS,
 				L.BANKGIRO,
+				L.RelnrRedNed,
 				L.Beroep,
 				L.Legitimatietype,
 				L.Legitimatienummer

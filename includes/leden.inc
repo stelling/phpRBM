@@ -538,9 +538,9 @@ function algemeenlidmuteren($lidid) {
 	$wijzvelden[] = array('label' => "Roepnaam", 'naam' => "Roepnaam", 'lengte' => 17);
 	$wijzvelden[] = array('label' => "Voorletters", 'naam' => "VOORLETTER", 'lengte' => 10);
 	$wijzvelden[] = array('label' => "Tussenvoegsels", 'naam' => "Tussenv", 'lengte' => 7);
-	$wijzvelden[] = array('label' => "Achternaam", 'naam' => "Achternaam", 'lengte' => 30);
+	$wijzvelden[] = array('label' => "Achternaam", 'naam' => "Achternaam", 'lengte' => 30, 'nietverw' => true);
 	$wijzvelden[] = array('label' => "Meisjesnaam", 'naam' => "Meisjesnm", 'lengte' => 25);
-	$wijzvelden[] = array('label' => "Geslacht", 'naam' => "Geslacht");
+	$wijzvelden[] = array('label' => "Geslacht", 'naam' => "Geslacht", 'nietverw' => true);
 	$wijzvelden[] = array('label' => "Adres", 'naam' => "Adres", 'lengte' => 30);
 	$wijzvelden[] = array('label' => "Postcode", 'naam' => "Postcode", 'lengte' => 7);
 	$wijzvelden[] = array('label' => "Woonplaats", 'naam' => "Woonplaats", 'lengte' => 22);
@@ -551,7 +551,8 @@ function algemeenlidmuteren($lidid) {
 	$wijzvelden[] = array('label' => "Geboortedatum", 'naam' => "GEBDATUM", 'lengte' => 18);
 	$wijzvelden[] = array('label' => "Geboorteplaats", 'naam' => "GEBPLAATS", 'lengte' => 22);
 	$wijzvelden[] = array('label' => "Bankrekening", 'naam' => "BANKGIRO", 'lengte' => 10);
-	$wijzvelden[] = array('label' => "Legitimatietype", 'naam' => "Legitimatietype");
+	$wijzvelden[] = array('label' => "Sportlink ID", 'naam' => "RelnrRedNed", 'lengte' => 7, 'nietverw' => true);
+	$wijzvelden[] = array('label' => "Legitimatietype", 'naam' => "Legitimatietype", 'nietverw' => true);
 	$wijzvelden[] = array('label' => "Legitimatienummer", 'naam' => "Legitimatienummer", 'lengte' => 15);
 	$wijzvelden[] = array('label' => "Beroep", 'naam' => "Beroep", 'lengte' => 40);
 			
@@ -639,8 +640,11 @@ function algemeenlidmuteren($lidid) {
 			} else {
 				$t = "text";
 			}
-			$inp = sprintf("<input type='%s' name='%s' placeholder='%s' size=40 maxlength=%d></td><td class='chk'><input type='checkbox' name='chkLeeg_%s' value=1>", 
-					$t, $wijzvelden[$i]['naam'], $ph, $wijzvelden[$i]['lengte'], $wijzvelden[$i]['naam']);
+			$inp = sprintf("<input type='%s' name='%s' placeholder='%s' size=40 maxlength=%d></td><td class='chk'>", 
+					$t, $wijzvelden[$i]['naam'], $ph, $wijzvelden[$i]['lengte']);
+			if (!isset($wijzvelden[$i]['nietverw']) or $wijzvelden[$i]['nietverw'] == false) {
+				$inp .= sprintf("<input type='checkbox' name='chkLeeg_%s' value=1>", $wijzvelden[$i]['naam']);
+			}
 		}
 		printf('<tr><td class="label">%1$s</td><td>%2$s</td><td>%3$s</td></tr>', $wijzvelden[$i]['label'], $dv, $inp);
 		echo("\n");
