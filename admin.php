@@ -267,6 +267,9 @@ function fnInstellingen() {
 	$arrParam['zs_emailbevestigingbestelling'] = "Vanaf welk e-mailadres moet de bevestiging van een bestelling verzonden worden.";
 	$arrParam['zs_emailbevestiginginschrijving'] = "Vanaf welk e-mailadres moet de bevestiging van de inschrijving voor de bewaking verzonden worden.";
 	$arrParam['zs_emailnieuwepasfoto'] = "Waar moet een nieuwe pasfoto naar toe gemaild worden?";
+	$arrParam['zs_incl_beroep'] = "Is het veld 'Beroep' in de zelfservice beschikbaar?";
+	$arrParam['zs_incl_emailouders'] = "Is het veld 'E-mail ouders' in de zelfservice beschikbaar?";
+	$arrParam['zs_incl_slid'] = "Is het veld 'Sportlink ID' in de zelfservice beschikbaar?";
 	$arrParam['zs_muteerbarememos'] = "Welke soorten memo's mogen leden zelf muteren, scheiden door een komma.";
 	$arrParam['zs_opzegtermijn'] = "De opzegtermijn van de vereniging in maanden.";
 	$arrParam['zs_voorwaardenbestelling'] = "Deze regel wordt bij de online-bestellingen in de zelfservice vermeld.";

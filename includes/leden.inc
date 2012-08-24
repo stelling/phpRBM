@@ -547,15 +547,21 @@ function algemeenlidmuteren($lidid) {
 	$wijzvelden[] = array('label' => "Telefoon", 'naam' => "Telefoon", 'lengte' => 16);
 	$wijzvelden[] = array('label' => "Mobiel", 'naam' => "Mobiel", 'lengte' => 16);
 	$wijzvelden[] = array('label' => "E-mail", 'naam' => "Email", 'lengte' => 45);
-	$wijzvelden[] = array('label' => "E-mail ouders", 'naam' => "EmailOuders", 'lengte' => 45);
+	if (db_param("zs_incl_emailouders") == 1 or toegang("Wijzigen lid/Algemene gegevens")) {
+		$wijzvelden[] = array('label' => "E-mail ouders", 'naam' => "EmailOuders", 'lengte' => 45);
+	}
 	$wijzvelden[] = array('label' => "Geboortedatum", 'naam' => "GEBDATUM", 'lengte' => 18);
 	$wijzvelden[] = array('label' => "Geboorteplaats", 'naam' => "GEBPLAATS", 'lengte' => 22);
 	$wijzvelden[] = array('label' => "Bankrekening", 'naam' => "BANKGIRO", 'lengte' => 10);
-	$wijzvelden[] = array('label' => "Sportlink ID", 'naam' => "RelnrRedNed", 'lengte' => 7, 'nietverw' => true);
+	if (db_param("zs_incl_slid") == 1 or toegang("Wijzigen lid/Algemene gegevens")) {
+		$wijzvelden[] = array('label' => "Sportlink ID", 'naam' => "RelnrRedNed", 'lengte' => 7, 'nietverw' => true);
+	}
 	$wijzvelden[] = array('label' => "Legitimatietype", 'naam' => "Legitimatietype", 'nietverw' => true);
 	$wijzvelden[] = array('label' => "Legitimatienummer", 'naam' => "Legitimatienummer", 'lengte' => 15);
-	$wijzvelden[] = array('label' => "Beroep", 'naam' => "Beroep", 'lengte' => 40);
-			
+	if (db_param("zs_incl_beroep") == 1 or toegang("Wijzigen lid/Algemene gegevens")) {
+		$wijzvelden[] = array('label' => "Beroep", 'naam' => "Beroep", 'lengte' => 40);
+	}
+
 	$naamlid = db_naamlid($lidid);
 		
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
@@ -565,11 +571,7 @@ function algemeenlidmuteren($lidid) {
 			$fn = $wijzvelden[$i]['naam'];
 			$v = "__skip__";
 			if (isset($_POST["chkLeeg_" . $fn]) and $_POST["chkLeeg_" . $fn] == "1") {
-				if ($fn == "Achternaam") {
-					$mess .= "Achternaam mag niet leeg zijn, deze wijziging wordt niet verwerkt. ";
-				} else {
-					$v = "";
-				}
+				$v = "";
 			} elseif (stripos($wijzvelden[$i]['label'], "datum") !== FALSE) {
 				$_POST[$fn] = change_month_to_uk($_POST[$fn]);
 				if (isset($_POST[$fn]) and strlen($_POST[$fn]) > 0) {
@@ -587,6 +589,9 @@ function algemeenlidmuteren($lidid) {
 						$mess .= "E-mailadres is niet correct, deze wijziging wordt niet verwerkt. ";
 					}
 				}
+			} elseif ($fn == "RelnrRedNed" and strlen($_POST[$fn]) != 7 and strlen($_POST[$fn]) > 0) {
+				$mess .= "Het Sportlink ID moet 7 karakters lang zijn, deze wijziging wordt niet verwerkt. ";
+				$v = "";
 			} elseif (isset($_POST[$fn]) and strlen($_POST[$fn]) > 0) {
 				$v = $_POST[$fn];
 			}

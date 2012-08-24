@@ -2067,6 +2067,9 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrBooleans['resultaatmailingversturen'] = 0;
 	$arrBooleans['toneninschrijvingenbewakingen'] = 1;
 	$arrBooleans['tonentoekomstigebewakingen'] = 0;
+	$arrBooleans['zs_incl_beroep'] = 0;
+	$arrBooleans['zs_incl_emailouders'] = 0;
+	$arrBooleans['zs_incl_slid'] = 0;
 	
 	$arrStrings['laatstebackup'] = "2012-01-01 00:00";
 	$arrStrings['muteerbarememos'] = "D,G,WN";
