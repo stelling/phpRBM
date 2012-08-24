@@ -41,6 +41,7 @@ $TypeActiviteit[9] = "Upload data";
 $TypeActiviteit[10] = "Webshop";
 $TypeActiviteit[11] = "Bewaking";
 $TypeActiviteit[12] = "Mutaties diploma's";
+$TypeActiviteit[13] = "Parameters";
 $TypeActiviteit[98] = "Performance";
 $TypeActiviteit[99] = "Debugging";
 asort($TypeActiviteit);
@@ -2067,8 +2068,9 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrBooleans['resultaatmailingversturen'] = 0;
 	$arrBooleans['toneninschrijvingenbewakingen'] = 1;
 	$arrBooleans['tonentoekomstigebewakingen'] = 0;
-	$arrBooleans['zs_incl_beroep'] = 0;
+	$arrBooleans['zs_incl_beroep'] = 1;
 	$arrBooleans['zs_incl_emailouders'] = 0;
+	$arrBooleans['zs_incl_legitimatie'] = 1;
 	$arrBooleans['zs_incl_slid'] = 0;
 	
 	$arrStrings['laatstebackup'] = "2012-01-01 00:00";
@@ -2137,7 +2139,7 @@ function db_param($naam, $actie="curval", $newval="") {
 			$result = fnQuery($query);
 			if ($result > 0) {
 				$mess = sprintf("Parameter '%s' is in '%s' gewijzigd.", $naam, $newval);
-				db_logboek("add", $mess, 2);
+				db_logboek("add", $mess, 13);
 			}
 		}
 		
@@ -2159,7 +2161,7 @@ function db_param($naam, $actie="curval", $newval="") {
 			$result = fnQuery($query);
 			if ($result > 0) {
 				$mess = sprintf("Parameter '%s' is toegevoegd.", $naam);
-				db_logboek("add", $mess, 2);
+				db_logboek("add", $mess, 13);
 			}
 		}
 	} elseif ($actie == "delete" and strlen($naam) > 0) {
