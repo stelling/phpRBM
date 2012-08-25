@@ -547,18 +547,20 @@ function algemeenlidmuteren($lidid) {
 	$wijzvelden[] = array('label' => "Telefoon", 'naam' => "Telefoon", 'lengte' => 16);
 	$wijzvelden[] = array('label' => "Mobiel", 'naam' => "Mobiel", 'lengte' => 16);
 	$wijzvelden[] = array('label' => "E-mail", 'naam' => "Email", 'lengte' => 45);
-	if (db_param("zs_incl_emailouders") == 1 or toegang("Wijzigen lid/Algemene gegevens")) {
+	if (db_param("zs_incl_emailouders") == 1 or toegang("Wijzigen lid/Algemene gegevens", 0)) {
 		$wijzvelden[] = array('label' => "E-mail ouders", 'naam' => "EmailOuders", 'lengte' => 45);
 	}
 	$wijzvelden[] = array('label' => "Geboortedatum", 'naam' => "GEBDATUM", 'lengte' => 18);
 	$wijzvelden[] = array('label' => "Geboorteplaats", 'naam' => "GEBPLAATS", 'lengte' => 22);
 	$wijzvelden[] = array('label' => "Bankrekening", 'naam' => "BANKGIRO", 'lengte' => 10);
-	if (db_param("zs_incl_slid") == 1 or toegang("Wijzigen lid/Algemene gegevens")) {
+	if (db_param("zs_incl_slid") == 1 or toegang("Wijzigen lid/Algemene gegevens", 0)) {
 		$wijzvelden[] = array('label' => "Sportlink ID", 'naam' => "RelnrRedNed", 'lengte' => 7, 'nietverw' => true);
 	}
-	$wijzvelden[] = array('label' => "Legitimatietype", 'naam' => "Legitimatietype", 'nietverw' => true);
-	$wijzvelden[] = array('label' => "Legitimatienummer", 'naam' => "Legitimatienummer", 'lengte' => 15);
-	if (db_param("zs_incl_beroep") == 1 or toegang("Wijzigen lid/Algemene gegevens")) {
+	if (db_param("zs_incl_legitimatie") == 1 or toegang("Wijzigen lid/Algemene gegevens", 0)) {
+		$wijzvelden[] = array('label' => "Legitimatietype", 'naam' => "Legitimatietype", 'nietverw' => true);
+		$wijzvelden[] = array('label' => "Legitimatienummer", 'naam' => "Legitimatienummer", 'lengte' => 15);
+	}
+	if (db_param("zs_incl_beroep") == 1 or toegang("Wijzigen lid/Algemene gegevens", 0)) {
 		$wijzvelden[] = array('label' => "Beroep", 'naam' => "Beroep", 'lengte' => 40);
 	}
 
