@@ -434,6 +434,7 @@ function db_ledenwijzigingen($lidid) {
 				L.Telefoon,
 				L.Mobiel,
 				L.Email,
+				L.EmailVereniging,
 				L.EmailOuders,
 				L.GEBDATUM,
 				L.GEBPLAATS,
@@ -2071,6 +2072,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrBooleans['zs_incl_beroep'] = 1;
 	$arrBooleans['zs_incl_bezwmachtiging'] = 0;
 	$arrBooleans['zs_incl_emailouders'] = 0;
+	$arrBooleans['zs_incl_emailvereniging'] = 0;
 	$arrBooleans['zs_incl_legitimatie'] = 1;
 	$arrBooleans['zs_incl_slid'] = 0;
 	

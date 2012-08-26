@@ -547,6 +547,9 @@ function algemeenlidmuteren($lidid) {
 	$wijzvelden[] = array('label' => "Telefoon", 'naam' => "Telefoon", 'lengte' => 16);
 	$wijzvelden[] = array('label' => "Mobiel", 'naam' => "Mobiel", 'lengte' => 16);
 	$wijzvelden[] = array('label' => "E-mail", 'naam' => "Email", 'lengte' => 45);
+	if (db_param("zs_incl_emailvereniging") == 1 or $currenttab == "Wijzigen lid") {
+		$wijzvelden[] = array('label' => "E-mail vereniging", 'naam' => "EmailVereniging", 'lengte' => 45);
+	}
 	if (db_param("zs_incl_emailouders") == 1 or $currenttab == "Wijzigen lid") {
 		$wijzvelden[] = array('label' => "E-mail ouders", 'naam' => "EmailOuders", 'lengte' => 45);
 	}
