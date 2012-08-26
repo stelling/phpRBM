@@ -579,10 +579,14 @@ function algemeenlidmuteren($lidid) {
 				if (isset ($_POST[$fn]) and $_POST[$fn] == "1" and $old->$fn < "2000-01-01") {
 					$v = date("Y-m-d");
 				} elseif (!isset ($_POST[$fn]) and $old->$fn >= "2000-01-01") {
-					$v = "";
+					$v = "NULL";
 				}
 			} elseif (isset($_POST["chkLeeg_" . $fn]) and $_POST["chkLeeg_" . $fn] == "1") {
-				$v = "";
+				if (stripos($wijzvelden[$i]['label'], "datum") === FALSE) {
+					$v = "";
+				} else {
+					$v = "NULL";
+				}
 			} elseif (stripos($wijzvelden[$i]['label'], "datum") !== FALSE) {
 				$_POST[$fn] = change_month_to_uk($_POST[$fn]);
 				if (isset($_POST[$fn]) and strlen($_POST[$fn]) > 0) {
@@ -607,10 +611,14 @@ function algemeenlidmuteren($lidid) {
 				$v = $_POST[$fn];
 			}
 			if ($v != "__skip__" and $v != $old->$fn) {
-				$query = sprintf("UPDATE %sLid SET %s='%s', Gewijzigd=SYSDATE() WHERE Nummer=%d;", $table_prefix, $fn, $v, $lidid);
+				if ($v == "NULL") {
+					$query = sprintf("UPDATE %sLid SET %s=NULL, Gewijzigd=SYSDATE() WHERE Nummer=%d;", $table_prefix, $fn, $lidid);
+				} else {
+					$query = sprintf("UPDATE %sLid SET %s='%s', Gewijzigd=SYSDATE() WHERE Nummer=%d;", $table_prefix, $fn, $v, $lidid);
+				}
 				$result = fnQuery($query);
 				if ($result > 0) {
-					if ($fn == "GEBDATUM" or $fn == "BezwaarMachtiging") {
+					if (($fn == "GEBDATUM" or $fn == "BezwaarMachtiging") and $v != "NULL") {
 						$query = sprintf("UPDATE Lid SET %s=#%s#, Gewijzigd=SYSDATE() WHERE Nummer=%d;", $fn, strftime($fdaccess, strtotime($v)), $lidid);
 					}
 					db_interface("add", $query, $lidid);
@@ -627,7 +635,7 @@ function algemeenlidmuteren($lidid) {
 	echo("<div id='wijzigengegevens'>\n");
 	printf("<form method='post' action='%s' name='frm_wijzigingen'>\n", $actionurl);
 	echo("<table>\n");
-	echo("<tr><th>Veld</th><th>Huidige waarde</th><th>Nieuwe waarde</th><th>Leeg?</th></tr>\n");
+	echo("<tr><th>Veld</th><th>Huidige waarde</th><th>Nieuwe waarde</th><th>Leeg</th></tr>\n");
 	for ($i=0; $i < count($wijzvelden); $i++) {
 		$dv = $row->$wijzvelden[$i]['naam'];
 		$ph = $wijzvelden[$i]['label'];
@@ -649,19 +657,22 @@ function algemeenlidmuteren($lidid) {
 			$inp = sprintf("<select name='%s'>%s</select></td><td>", $wijzvelden[$i]['naam'], $opt);
 			
 		} elseif ($wijzvelden[$i]['label'] == "Bezwaar machtiging") {
-			if ($row->$wijzvelden[$i]['naam'] == 1) {
+			if ($row->$wijzvelden[$i]['naam'] > "2000-01-01") {
+				$dv = strftime("%e %B %Y", strtotime($dv));
 				$c = "checked";
 			} else {
+				$dv = "Nee";
 				$c = "";
 			}
 			$inp = sprintf("<input type='checkbox' name='%s' value=1 %s>", $wijzvelden[$i]['naam'], $c);
 			$t = "text";
-			$dv = strftime("%e %B %Y", strtotime($dv));
 		
 		} else {
 			if (strpos($wijzvelden[$i]['label'], "datum") !== FALSE) {
 				$t = "text";
-				$dv = strftime("%e %B %Y", strtotime($dv));
+				if ($dv > "1900-01-01") {
+					$dv = strftime("%e %B %Y", strtotime($dv));
+				}
 			} elseif (stripos($wijzvelden[$i]['label'], "e-mail") !== FALSE) {
 				$t = "email";
 			} else {
@@ -669,7 +680,7 @@ function algemeenlidmuteren($lidid) {
 			}
 			$inp = sprintf("<input type='%s' name='%s' placeholder='%s' size=40 maxlength=%d></td><td class='chk'>", 
 					$t, $wijzvelden[$i]['naam'], $ph, $wijzvelden[$i]['lengte']);
-			if (!isset($wijzvelden[$i]['nietverw']) or $wijzvelden[$i]['nietverw'] == false) {
+			if (strlen($dv) > 0 and (!isset($wijzvelden[$i]['nietverw']) or $wijzvelden[$i]['nietverw'] == false)) {
 				$inp .= sprintf("<input type='checkbox' name='chkLeeg_%s' value=1>", $wijzvelden[$i]['naam']);
 			}
 		}
