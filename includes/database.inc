@@ -417,7 +417,6 @@ function db_lidmaatschap($actie, $lidid, $opgezegd) {
 		}
 		return $mess;
 	}
-
 }
 
 function db_ledenwijzigingen($lidid) {
@@ -439,6 +438,7 @@ function db_ledenwijzigingen($lidid) {
 				L.GEBDATUM,
 				L.GEBPLAATS,
 				L.BANKGIRO,
+				L.BezwaarMachtiging,
 				L.RelnrRedNed,
 				L.Beroep,
 				L.Legitimatietype,
@@ -2069,6 +2069,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrBooleans['toneninschrijvingenbewakingen'] = 1;
 	$arrBooleans['tonentoekomstigebewakingen'] = 0;
 	$arrBooleans['zs_incl_beroep'] = 1;
+	$arrBooleans['zs_incl_bezwmachtiging'] = 0;
 	$arrBooleans['zs_incl_emailouders'] = 0;
 	$arrBooleans['zs_incl_legitimatie'] = 1;
 	$arrBooleans['zs_incl_slid'] = 0;

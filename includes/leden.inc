@@ -533,7 +533,7 @@ function fotolid($lidid, $metversie=0) {
 }
 
 function algemeenlidmuteren($lidid) {
-	global $arrGeslacht, $arrLegitimatie, $actionurl, $table_prefix, $fdsql, $fdaccess;
+	global $arrGeslacht, $arrLegitimatie, $actionurl, $table_prefix, $fdsql, $fdaccess, $currenttab;
 		
 	$wijzvelden[] = array('label' => "Roepnaam", 'naam' => "Roepnaam", 'lengte' => 17);
 	$wijzvelden[] = array('label' => "Voorletters", 'naam' => "VOORLETTER", 'lengte' => 10);
@@ -547,20 +547,23 @@ function algemeenlidmuteren($lidid) {
 	$wijzvelden[] = array('label' => "Telefoon", 'naam' => "Telefoon", 'lengte' => 16);
 	$wijzvelden[] = array('label' => "Mobiel", 'naam' => "Mobiel", 'lengte' => 16);
 	$wijzvelden[] = array('label' => "E-mail", 'naam' => "Email", 'lengte' => 45);
-	if (db_param("zs_incl_emailouders") == 1 or toegang("Wijzigen lid/Algemene gegevens", 0)) {
+	if (db_param("zs_incl_emailouders") == 1 or $currenttab == "Wijzigen lid") {
 		$wijzvelden[] = array('label' => "E-mail ouders", 'naam' => "EmailOuders", 'lengte' => 45);
 	}
 	$wijzvelden[] = array('label' => "Geboortedatum", 'naam' => "GEBDATUM", 'lengte' => 18);
 	$wijzvelden[] = array('label' => "Geboorteplaats", 'naam' => "GEBPLAATS", 'lengte' => 22);
 	$wijzvelden[] = array('label' => "Bankrekening", 'naam' => "BANKGIRO", 'lengte' => 10);
-	if (db_param("zs_incl_slid") == 1 or toegang("Wijzigen lid/Algemene gegevens", 0)) {
+	if (db_param("zs_incl_bezwmachtiging") == 1 or $currenttab == "Wijzigen lid") {
+		$wijzvelden[] = array('label' => "Bezwaar machtiging", 'naam' => "BezwaarMachtiging", 'lengte' => 1);
+	}
+	if (db_param("zs_incl_slid") == 1 or $currenttab == "Wijzigen lid") {
 		$wijzvelden[] = array('label' => "Sportlink ID", 'naam' => "RelnrRedNed", 'lengte' => 7, 'nietverw' => true);
 	}
-	if (db_param("zs_incl_legitimatie") == 1 or toegang("Wijzigen lid/Algemene gegevens", 0)) {
+	if (db_param("zs_incl_legitimatie") == 1 or $currenttab == "Wijzigen lid") {
 		$wijzvelden[] = array('label' => "Legitimatietype", 'naam' => "Legitimatietype", 'nietverw' => true);
 		$wijzvelden[] = array('label' => "Legitimatienummer", 'naam' => "Legitimatienummer", 'lengte' => 15);
 	}
-	if (db_param("zs_incl_beroep") == 1 or toegang("Wijzigen lid/Algemene gegevens", 0)) {
+	if (db_param("zs_incl_beroep") == 1 or $currenttab == "Wijzigen lid") {
 		$wijzvelden[] = array('label' => "Beroep", 'naam' => "Beroep", 'lengte' => 40);
 	}
 
@@ -572,7 +575,13 @@ function algemeenlidmuteren($lidid) {
 		for ($i=0; $i < count($wijzvelden); $i++) {
 			$fn = $wijzvelden[$i]['naam'];
 			$v = "__skip__";
-			if (isset($_POST["chkLeeg_" . $fn]) and $_POST["chkLeeg_" . $fn] == "1") {
+			if ($fn == "BezwaarMachtiging") {
+				if (isset ($_POST[$fn]) and $_POST[$fn] == "1" and $old->$fn < "2000-01-01") {
+					$v = date("Y-m-d");
+				} elseif (!isset ($_POST[$fn]) and $old->$fn >= "2000-01-01") {
+					$v = "";
+				}
+			} elseif (isset($_POST["chkLeeg_" . $fn]) and $_POST["chkLeeg_" . $fn] == "1") {
 				$v = "";
 			} elseif (stripos($wijzvelden[$i]['label'], "datum") !== FALSE) {
 				$_POST[$fn] = change_month_to_uk($_POST[$fn]);
@@ -601,7 +610,7 @@ function algemeenlidmuteren($lidid) {
 				$query = sprintf("UPDATE %sLid SET %s='%s', Gewijzigd=SYSDATE() WHERE Nummer=%d;", $table_prefix, $fn, $v, $lidid);
 				$result = fnQuery($query);
 				if ($result > 0) {
-					if ($fn == "GEBDATUM") {
+					if ($fn == "GEBDATUM" or $fn == "BezwaarMachtiging") {
 						$query = sprintf("UPDATE Lid SET %s=#%s#, Gewijzigd=SYSDATE() WHERE Nummer=%d;", $fn, strftime($fdaccess, strtotime($v)), $lidid);
 					}
 					db_interface("add", $query, $lidid);
@@ -613,7 +622,7 @@ function algemeenlidmuteren($lidid) {
 		}
 		db_logboek("add", $mess, 6, 0, 0);
 	}
-			
+
 	$row = db_ledenwijzigingen($lidid);
 	echo("<div id='wijzigengegevens'>\n");
 	printf("<form method='post' action='%s' name='frm_wijzigingen'>\n", $actionurl);
@@ -638,6 +647,17 @@ function algemeenlidmuteren($lidid) {
 				$opt .= sprintf("<option value='%s'%s>%s</option>\n", $key, $sel, $val);
 			}
 			$inp = sprintf("<select name='%s'>%s</select></td><td>", $wijzvelden[$i]['naam'], $opt);
+			
+		} elseif ($wijzvelden[$i]['label'] == "Bezwaar machtiging") {
+			if ($row->$wijzvelden[$i]['naam'] == 1) {
+				$c = "checked";
+			} else {
+				$c = "";
+			}
+			$inp = sprintf("<input type='checkbox' name='%s' value=1 %s>", $wijzvelden[$i]['naam'], $c);
+			$t = "text";
+			$dv = strftime("%e %B %Y", strtotime($dv));
+		
 		} else {
 			if (strpos($wijzvelden[$i]['label'], "datum") !== FALSE) {
 				$t = "text";
