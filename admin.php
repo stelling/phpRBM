@@ -268,6 +268,7 @@ function fnInstellingen() {
 	$arrParam['zs_emailbevestiginginschrijving'] = "Vanaf welk e-mailadres moet de bevestiging van de inschrijving voor de bewaking verzonden worden.";
 	$arrParam['zs_emailnieuwepasfoto'] = "Waar moet een nieuwe pasfoto naar toe gemaild worden?";
 	$arrParam['zs_incl_beroep'] = "Is het veld 'Beroep' in de zelfservice beschikbaar?";
+	$arrParam['zs_incl_bezwmachtiging'] = "Is het veld 'Bezwaar machtiging' in de zelfservice beschikbaar?";
 	$arrParam['zs_incl_emailouders'] = "Is het veld 'E-mail ouders' in de zelfservice beschikbaar?";
 	$arrParam['zs_incl_legitimatie'] = "Is de legitimatie in de zelfservice beschikbaar?";
 	$arrParam['zs_incl_slid'] = "Is het veld 'Sportlink ID' in de zelfservice beschikbaar?";
@@ -286,8 +287,10 @@ function fnInstellingen() {
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		foreach (db_param("", "lijst") as $row) {
 			$pvn = sprintf("value_%d", $row->RecordID);
-			if (isset($_POST[$pvn])) {
-				$_POST[$pvn] = str_replace("\"", "'", $_POST[$pvn]);
+			if (isset($_POST[$pvn]) or $row->ParamType == "B") {
+				if (isset($_POST[$pvn])) {
+					$_POST[$pvn] = str_replace("\"", "'", $_POST[$pvn]);
+				}
 				if ($row->Naam == "beperktotgroep" or $row->Naam == "muteerbarememos") {
 					$_POST[$pvn] = str_replace(" ", "", $_POST[$pvn]);
 				} elseif ($row->Naam == "typemenu" and (strlen($_POST[$pvn]) == 0 or $_POST[$pvn] < 1 or $_POST[$pvn] > 3)) {
