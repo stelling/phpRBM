@@ -13,11 +13,11 @@ if (toegang("Wijzigen lid", 0)) {
 }
 
 function fnWijzigen($lidid=0, $actie="") {
-	global $currenttab, $currenttab2, $selfservicediplomas, $table_prefix;
+	global $currenttab, $currenttab2, $table_prefix;
 	global $muteerbarememos, $arrLegitimatie, $arrSoortMemo, $arrGeslacht, $actionurl;
 	
 	$emailledenadministratie = db_param("emailledenadministratie");
-	$opzegtermijn = db_param("ZS_opzegtermijn");
+	$opzegtermijn = db_param("zs_opzegtermijn");
 	
 	if ($lidid == 0) {
 		$lidid = $_SESSION['lidid'];
@@ -130,18 +130,7 @@ function fnWijzigen($lidid=0, $actie="") {
 				</form>
 				</div>  <!-- Einde profielwijzigen -->");
 			}
-
-		} elseif (toegang($_GET['tp'])) {
-			$rows = db_gegevenslid($lidid);
-			if (count($rows) > 0) {
-				$fn = fotolid($rows[0]->RecordID);
-				$xtra = "<div id='pasfoto'>";
-				if (strlen($fn) > 3) {
-					$xtra .= sprintf("<img src='%s' alt='Foto %s'>\n", $fn, $rows[0]->ndRoepnaam);
-				}
-				$xtra .= "</div>  <!-- Einde pasfoto -->\n";
-				echo(fnDisplayForm($rows[0], $xtra));
-			}
+			
 		} else {
 			echo("<p class='mededeling'>Je hebt geen toegang.</p>\n");
 		}
@@ -435,7 +424,7 @@ function fnOverviewLid($lidid=0, $actie="") {
 		} else {
 			$fn = fotolid($lidid, 1);
 			if (strlen($fn) > 3) {
-				$xtra = sprintf("<div id='pasfoto'><img src='%s' alt='Pasfoto %s'></div>\n", $fn, db_naamlid($lidid, "Roepnaam"));
+				$xtra = sprintf("<div id='pasfoto'><img src='%s' alt='Pasfoto %s' title='Laatst gewijzigd op %s'></div>\n", $fn, db_naamlid($lidid, "Roepnaam"), strftime("%e %B %Y", filectime(fotolid($lidid, 0))));
 			} else {
 				$xtra = "";
 			}
@@ -694,7 +683,7 @@ function algemeenlidmuteren($lidid) {
 	echo("</table>\n");
 
 	echo("</form>\n");
-	echo("</div>  <!-- Einde invulformulier -->\n");
+	echo("</div>  <!-- Einde wijzigengegevens -->\n");
 	
 }
 
