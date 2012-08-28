@@ -35,8 +35,12 @@ function fnEvenementen() {
 		muteerevenement($eid);
 	} elseif ($currenttab2 == "Beheer") {
 		$lijst = db_evenement("overzichtbeheer");
-		$lnk = sprintf("<a href='%s?tp=%s&amp;op=edit&amp;eid=%s' title='Bewerk evenement'>%s</a>", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), "%d", "%s");
-		$er = sprintf("<td><a href='%s?%s&amp;op=edit&amp;eid=0' title='Nieuw evenement'><img src='images/star.png' alt='Nieuw'></a></td><td colspan=10>Nieuw evenement</td>", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+		$lnk = sprintf("<a href='%s?tp=%s&amp;op=edit&amp;eid=%%d' title='Muteer evenement'><img src='images/edit.png' alt='Muteren'></a>", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+		if (count(db_evenement("types")) > 0) {
+			$er = sprintf("<td><a href='%s?%s&amp;op=edit&amp;eid=0' title='Nieuw evenement'><img src='images/star.png' alt='Nieuw'></a></td><td colspan=10>Nieuw evenement</td>", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+		} else {
+			$er = "";
+		}
 		echo(fnDisplayTable($lijst, $lnk, "", 0, "", $er));
 	} elseif ($currenttab2 == "Logboek") {
 		$lijst = db_logboek("lijst", "", 7);
