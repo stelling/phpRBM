@@ -78,7 +78,7 @@ try {
 	echo("<p>Connection failed: " . $e->getMessage() . "</p>\n");
 }
 
-if (TableExists(sprintf("%sLid", $table_prefix)) == false) {
+if (!isset($_SESSION['aantallid']) and TableExists("Lid") == false) {
 	db_createtables();
 	db_onderhoud();
 	$_SESSION['aantallid'] = 0;
@@ -1539,7 +1539,7 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0) {
 		$query = sprintf("SELECT DISTINCT LidID, %1\$s AS Naam
 								FROM %2\$sAdmin_activiteit AS A INNER JOIN %2\$sLid AS L ON A.LidID = L.Nummer
 								WHERE %3\$s
-								ORDER BY %1\$s;", $selectzoeknaam, $table_prefix, $w);
+								ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectzoeknaam, $table_prefix, $w);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	
@@ -1793,7 +1793,7 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 								CASE E.InschrijvingOpen WHEN 0 THEN 'Nee' ELSE 'Ja' END AS `Ins. open?`,
 								(%1\$s) AS `Aantal dln`,
 								ET.Omschrijving AS `Type`, ET.Soort
-								FROM %2\$sEvenement AS E INNER JOIN %2\$sEvenement_Type AS ET ON E.TypeEvenement = ET.RecordID
+								FROM %2\$sEvenement AS E LEFT OUTER JOIN %2\$sEvenement_Type AS ET ON E.TypeEvenement = ET.RecordID
 								WHERE %3\$s
 								ORDER BY %4\$s;", $sqlaantdln, $table_prefix, $where, $order);
 		$result = fnQuery($query);
@@ -2117,7 +2117,7 @@ function db_param($naam, $actie="curval", $newval="") {
 		}
 		return $retval;
 		
-	} elseif ($actie == "updval" and TableExists("Admin_param")) {
+	} elseif ($actie == "updval") {
 		$query = sprintf("SELECT * FROM %sAdmin_param WHERE Naam='%s';", $table_prefix, $naam);
 		$result = fnQuery($query);
 		$cur = $result->fetch();
@@ -2146,7 +2146,7 @@ function db_param($naam, $actie="curval", $newval="") {
 			}
 		}
 		
-	} elseif ($actie == "controle" and TableExists("Admin_param")) {
+	} elseif ($actie == "controle") {
 		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_param WHERE Naam LIKE '%s';", $table_prefix, $naam);
 		if (db_scalar($query) == 0) {
 			if (array_key_exists($naam, $arrBooleans)) {
@@ -2768,7 +2768,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sMailing` (
   PRIMARY KEY (`MailingID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `%1\sMailing_hist` (
+CREATE TABLE IF NOT EXISTS `%1\$sMailing_hist` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `LidID` int(11) NOT NULL DEFAULT '0',
   `MailingID` int(11) NOT NULL,
