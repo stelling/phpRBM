@@ -126,11 +126,32 @@ function fnVoorblad($metlogin=0) {
 		} else {
 			$content = str_replace("[%INGELOGDEGEWIJZIGD%]", "", $content);
 		}
-		$content = str_replace("[%KOMENDEEVENEMENTEN%]", ToekomstigeEvenementen(), $content);
+		if (strpos($content, "[%KOMENDEEVENEMENTEN%]") !== false) {
+			$content = str_replace("[%KOMENDEEVENEMENTEN%]", ToekomstigeEvenementen(), $content);
+		}
 		$content = str_replace("[%ROEPNAAM%]", $_SESSION['roepnaamingelogde'], $content);
+		if (strpos($content, "[%VERVALLENDIPLOMAS%]") !== false and $_SESSION['lidid'] > 0) {
+			$strHV = "";
+			foreach (db_liddipl("vervallenbinnenkort", $_SESSION['lidid']) as $row) {
+				if ($row->VervaltPer <= date("Y-m-d")) {
+					$strHV .= sprintf("<li>%s, gehaald op %s, is per %s vervallen.</li>\n", $row->Diploma, strftime("%e %h %Y", strtotime($row->DatumBehaald)), strftime("%e %h %Y", strtotime($row->VervaltPer)));
+				} else {
+					$strHV .= sprintf("<li>%s, gehaald op %s, vervalt op %s.</li>\n", $row->Diploma, strftime("%e %h %Y", strtotime($row->DatumBehaald)), strftime("%e %h %Y", strtotime($row->VervaltPer)));
+				}
+			}
+			if (strlen($strHV) == 0) {
+				$strHV = "<li>Geen</li>\n";
+			}
+			$content = str_replace("[%VERVALLENDIPLOMAS%]", $strHV, $content);
+		}
+	
 		
-		$content = str_replace("[%VERJAARFOTO%]", overzichtverjaardagen(1), $content);
-		$content = str_replace("[%VERJAARDAGEN%]", overzichtverjaardagen(0), $content);
+		if (strpos($content, "[%VERJAARFOTO%]") !== false) {
+			$content = str_replace("[%VERJAARFOTO%]", overzichtverjaardagen(1), $content);
+		}
+		if (strpos($content, "[%VERJAARDAGEN%]") !== false) {
+			$content = str_replace("[%VERJAARDAGEN%]", overzichtverjaardagen(0), $content);
+		}
 
 		printf("<div id='welkomstekst'>\n%s</div>  <!-- Einde welkomstekst -->\n", $content);
 	} else {

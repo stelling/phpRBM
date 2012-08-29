@@ -256,6 +256,7 @@ function fnInstellingen() {
 	$arrParam['smtpuser'] = "De gebruiker om te kunnen inloggen op de SMTP-server.";
 	$arrParam['smtppw'] = "Het wachtwoord dat bij de SMTP-user hoort, om te kunnen inloggen op de SMTP-server.";
 	$arrParam['termijnvervallendiplomasmailen'] = "Hoeveel maanden vooruit moeten leden een herinnering krijgen als een diploma gaat vervallen. 0 = geen herinnering sturen.";
+	$arrParam['termijnvervallendiplomasmelden'] = "Hoeveel maanden vooruit en achteraf moeten vervallen diploma op het voorblad getoond worden.";
 	$arrParam['toneninschrijvingenbewakingen'] = "Moeten bij de gegevens van een lid ook inschrijvingen voor bewakingen getoond worden?";
 	$arrParam['tonentoekomstigebewakingen'] = "Moeten bij de gegevens van een lid ook toekomstige bewakingen getoond worden?";
 	$arrParam['typemenu'] = "1 = per niveau een aparte regel, 2 = één menu met dropdown, 3 = één menu met dropdown en extra menu voor niveau 2.";

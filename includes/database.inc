@@ -1724,6 +1724,21 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
+	} elseif ($actie == "vervallenbinnenkort" and $lidid > 0) {
+		$termijn = db_param("termijnvervallendiplomasmelden");
+	
+		$query = sprintf("SELECT D.Kode AS Code,"
+				 . " D.Naam AS Diploma,"
+				 . " LD.EXDATUM AS DatumBehaald,"
+				 . " LD.Diplomanummer,"
+				 . " IFNULL(LD.LicentieVervallenPer, IF(D.GELDIGH>0, DATE_ADD(LD.EXDATUM, INTERVAL D.GELDIGH MONTH), NULL)) AS VervaltPer"
+				 . " FROM %1\$sLiddipl AS LD INNER JOIN %1\$sDiploma AS D ON LD.DiplomaID=D.RecordID"
+				 . " WHERE D.Zelfservice=1 AND ((D.Vervallen IS NULL) OR D.Vervallen > CURDATE()) AND ((NOT LD.LicentieVervallenPer IS NULL) OR D.GELDIGH > 0) AND LD.Lid=%2\$d"
+				 . " AND IFNULL(LD.LicentieVervallenPer, DATE_ADD(LD.EXDATUM, INTERVAL D.GELDIGH MONTH)) < DATE_ADD(CURDATE(), INTERVAL %3\$d MONTH) AND LD.LicentieVervallenPer > DATE_ADD(CURDATE(), INTERVAL -%3\$d MONTH)"
+				 . " ORDER BY D.Volgnr, D.Kode, LD.EXDATUM DESC;", $table_prefix, $lidid, $termijn);
+		$result = fnQuery($query);
+		return $result->fetchAll();
+		
 	} elseif ($actie == "diplomabehaald" and $lidid > 0 and $did > 0) {
 		$query = sprintf("SELECT * FROM %sLiddipl WHERE Lid=%d AND DiplomaID=%d ORDER BY EXDATUM DESC;", $table_prefix, $lidid, $did);
 		$result = fnQuery($query);
@@ -2057,6 +2072,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrIntegers['maxinlogpogingen'] = 4;
 	$arrIntegers['smtpport'] = 0;
 	$arrIntegers['termijnvervallendiplomasmailen'] = 3;
+	$arrIntegers['termijnvervallendiplomasmelden'] = 6;
 	$arrIntegers['typemenu'] = 1;
 	$arrIntegers['verjaardagenaantal'] = 7;
 	$arrIntegers['verjaardagenvooruit'] = 5;
