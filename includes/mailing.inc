@@ -399,20 +399,18 @@ class mailing {
 			echo("</td></tr>\n");
 			
 			echo("<tr><td class='label'>Ontvanger toevoegen:</td>\n");
-			printf("<td>Lid: <select name='add_lid' id='add_lid'>\n");
+			printf("<td>Lid: <select name='add_lid' onChange='this.form.submit();'>\n");
 			printf("<option value=0>&nbsp;</option>\n");
 			$rcpt_rows = db_mailing("potrcpt", $this->mid);
 			foreach($rcpt_rows as $rcpt) {
 				printf("<option value='%d'>%s</option>\n", $rcpt->Nummer, $rcpt->Zoeknaam_lid);
 			}
-			printf("</select>");
-			$lnk = sprintf("%s?tp=%s&amp;op=add_rcpt&amp;mid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid);
-			printf("&nbsp;<img src='/images/move.gif' alt='move' title='Lid toevoegen' onclick=\"elem=document.getElementById('add_lid'); val=elem.options[elem.selectedIndex].value; if (val!=0) { location.href='%s&lidid=' + val }\">&nbsp;\n", $lnk);
-			echo("E-mail: <input type='email' name='add_address' id='add_address' size=50 maxlength=50>");
-			printf("&nbsp;<img src='/images/move.gif' alt='move' title='E-mail toevoegen' onclick=\"elem=document.getElementById('add_address'); val=elem.value; location.href='%s&to_address=' + val\">&nbsp;\n", $lnk);
-			echo("</td></tr>\n<tr>");
+			printf("</select>&nbsp;\n");
 			
-			echo("<td class='label'>Groep toevoegen of verwijderen:</td>");
+			echo("E-mail: <input type='email' name='add_address' size=50 maxlength=50 onBlur='this.form.submit();'>");
+			echo("</td></tr>\n");
+			
+			echo("<tr>\n<td class='label'>Groep toevoegen of verwijderen:</td>");
 			printf("<td><select name='sel_group_add' id='sel_group'>\n");
 			printf("<option value=0>&nbsp;</option>\n");
 			printf("<option value=-1>Iedereen</option>\n");
@@ -662,6 +660,10 @@ class mailing {
 				$mess = sprintf("In mailing %d zijn de volgende velden aangepast. %s", $this->mid, $oms);
 				db_logboek("add", $mess, 4);
 			}
+		}
+		
+		if (isset($_POST['add_lid']) and $_POST['add_lid'] > 0) {
+			$this->add_rcpt($_POST['add_lid']);
 		}
 		
 		if (isset($_POST['add_address']) and strlen($_POST['add_address']) > 5) {
