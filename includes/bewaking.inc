@@ -452,7 +452,6 @@ function fnDispBW($row, $output) {
 }
 
 function BevestInschrBewaking($lidid, $insnr) {
-	global $selfservicediplomas;
 	
 	$emailbevestiginginschrijving = db_param("zs_emailbevestiginginschrijving");
 	if (isValidMailAddress($emailbevestiginginschrijving, 0) == false) {
@@ -496,13 +495,8 @@ function BevestInschrBewaking($lidid, $insnr) {
 	$content = str_ireplace("[%DIEET%]", db_memo("curval", $lidid, "D"), $content);
 	$content = str_ireplace("[%GEZONDHEID%]", db_memo("curval", $lidid, "G"), $content);
 				
-	if (isset($selfservicediplomas) and strlen($selfservicediplomas) > 4) {
-		$f = sprintf("D.Kode IN %s", $selfservicediplomas);
-	} else {
-		$f = "";
-	}
 	$d = "";
-	foreach (db_liddipl("lidgegevens", $lidid, 0, 0, "", "", "", $f) as $ld) {
+	foreach (db_liddipl("lidgegevens", $lidid, 0, 0, "", "", "", "D.Zelfservice=1") as $ld) {
 		$d .= sprintf("<li>%s</li>\n", $ld->Diploma);
 	}
 	$content = str_ireplace("[%BEWDIPLOMAS%]", $d, $content);
