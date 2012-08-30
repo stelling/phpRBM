@@ -37,7 +37,6 @@ function fnMailing() {
 	} elseif ($op != "preview") {
 		fnDispMenu(2);
 	}
-	
 
 	if ($op == "edit" and isset($_GET['mid'])) {
 		$mailing->edit();
@@ -117,13 +116,13 @@ function fnMailing() {
 class mailing {
 	public $mid;
 	
-	public $allowed_ext = "bmp, gif, jpeg, jpg, pdf, png, pps, rar, txt, zip";
-	public $dir_attachm = "/attachments";
-	public $max_size_attachm = 2097152; // 2MB
-	public $template_bestand = "";
-	public $bestand_briefpapier = "templates/briefpapier.html";
-	public $vertraging_tussen_verzenden = 120; // in seconden
-	public $mailsperminuut = 120;
+	private $allowed_ext = "bmp, gif, jpeg, jpg, pdf, png, pps, rar, txt, zip";
+	private $dir_attachm = "/attachments";
+	private $max_size_attachm = 2097152; // 2MB
+	private $template_bestand = "";
+	private $bestand_briefpapier = "templates/briefpapier.html";
+	private $vertraging_tussen_verzenden = 120; // in seconden
+	private $mailsperminuut = 120;
 	
 	private $MergeField;
 	private $contains_mergefield = false;
@@ -154,6 +153,7 @@ class mailing {
 	private $aant_ok = 0;
 	private $aant_nok = 0;
 	private $resultaatversturen = 1;
+	private $emailsecretariaat = "";
 
 	function __construct($mid=0) {
 		global $selectnaam, $table_prefix, $fdlang, $fdkort, $arrGeslacht, $wherelidond, $wherelid, $whereliddipl;
@@ -162,14 +162,19 @@ class mailing {
 		
 		$this->dir_attachm = substr($_SERVER["SCRIPT_FILENAME"], 0, strrpos($_SERVER["SCRIPT_FILENAME"], "/")) . "/attachments";
 		
+		if (strlen(db_param("mailing_extensies_toegestaan")) > 0) {
+			$this->allowed_ext = db_param("mailing_extensies_toegestaan");
+		}
 		if (db_param("max_grootte_bijlage") > 0) {
-			$max_size_attachm = db_param("max_grootte_bijlage");
+			$this->max_size_attachm = db_param("max_grootte_bijlage");
 		}
 		if (db_param("resultaatmailingversturen") == 1) {
 			$this->resultaatversturen = 1;
 		} else {
 			$this->resultaatversturen = 0;
 		}
+		$this->mailsperminuut = db_param("maxmailsperminuut");
+		$this->emailsecretariaat = $_SESSION['emailsecretariaat'];
 
 		$sql = sprintf("SELECT Roepnaam FROM %sLid AS L WHERE %s;", $table_prefix, "L.Nummer=%d");
 		$this->MergeField[]=array('Naam' => "Roepnaam", 'SQL' => $sql);
@@ -1034,8 +1039,6 @@ class mailing {
 			$this->from_addr = $_SESSION['emailingelogde'];
 			$this->new_on = date("Y-m-d");
 		}
-		$this->mailsperminuut = db_param("maxmailsperminuut");
-		$this->emailsecretariaat = $_SESSION['emailsecretariaat'];
 	}
 }
 

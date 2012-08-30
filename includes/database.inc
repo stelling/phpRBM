@@ -2096,6 +2096,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrStrings['muteerbarememos'] = "D,G,WN";
 	$arrStrings['naamvereniging'] = "Naam vereniging";
 	$arrStrings['naamwebsite'] = "Naam website";
+	$arrStrings['mailing_extensies_toegestaan'] = "bmp, gif, jpeg, jpg, pdf, png, pps, rar, txt, zip";
 	$arrStrings['urlwebsite'] = $_SERVER["HTTP_HOST"];
 	
 	$arrFloats['maxmailsperminuut'] = 300;
@@ -2103,8 +2104,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrFloats['versie'] = 0;
 	
 	if ($actie == "lijst") {
-		$query = sprintf("SELECT *, IFNULL(ValueNum, ValueChar) AS CurVal FROM %sAdmin_param
-					ORDER BY Naam;", $table_prefix);
+		$query = sprintf("SELECT *, IFNULL(ValueNum, ValueChar) AS CurVal FROM %sAdmin_param ORDER BY Naam;", $table_prefix);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		

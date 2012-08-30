@@ -241,6 +241,7 @@ function fnInstellingen() {
 	$arrParam['lidnrnodigbijloginaanvraag'] = "Moet een lid zijn of haar lidnummer opgeven als er een login aangevraagd wordt?";
 	$arrParam['lidnrversturenmogelijk'] = "Hierbij geef je aan of het mogelijk moet zijn om vanaf deze website op basis van alleen een e-mailadres iemand zijn lidnummer per e-mail opgestuurd kan worden.";
 	$arrParam['loginautounlock'] = "Na hoeveel minuten moet een gelockede login automatisch geunlocked worden? 0 = alleen handmatig unlocken.";
+	$arrParam['mailing_extensies_toegestaan'] = "De extenties die zijn toegestaan bij bijlagen in een mailing. Als je niets specificeerd wordt een standaard lijstje gebruikt.";
 	$arrParam['max_grootte_bijlage'] = "De maximalale grootte in bytes van één bijlage in een mailing. Optioneel veld. Als je niets specificeerd dan is 2MB het maximum.";
 	$arrParam['maxinlogpogingen'] = "Na hoeveel foutieve inlogpogingen moet het account geblokkeerd worden? 0 = nooit.";
 	$arrParam['maxlengtelogin'] = "De maximale lengte die een login mag zijn. Minimaal 7 en maximaal 12 invullen.";
