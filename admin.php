@@ -224,12 +224,12 @@ HTMLfooter();
 function fnInstellingen() {
 	global $table_prefix;
 
+	$arrParam['beperkfrom'] = "Indien deze is ingevuld moet het from adres in een mailing altijd vanaf dit domein zijn.";
 	$arrParam['bewaartijdinloggen'] = "Hoeveel maanden moet logging van het in- en uitloggen bewaard blijven. 0 = gelijk aan bewaartijdlogging.";
 	$arrParam['bewaartijdlogging'] = "Hoeveel maanden moet logging bewaard blijven. 0 = altijd.";
 	$arrParam['bewaartijdlogins'] = "Het aantal maanden dat logins na het laatste gebruik bewaard worden. Als een login wordt verwijderd, wordt geen historie weggegooid. Historie wordt namelijk direct aan het lid gekopppeld en niet aan de login. 0 = altijd bewaren.";
 	$arrParam['bewaartijdloginsnietgebruikt'] = "Het aantal dagen dat logins wordt bewaard, nadat het is aangevraagd en nog niet gebruikt is.";
 	$arrParam['bewaartijdmailings'] = "Het aantal maanden dat verwijderde mailing bewaard worden. 0 = altijd bewaren.";
-	$arrParam['beperkfrom'] = "Indien deze is ingevuld moet het from adres altijd vanaf dit domein zijn.";
 	$arrParam['beperktotgroep'] = "Vul hier de RecordID's, gescheiden door een komma, van de groepen (zie tabel ONDERDL) in die toegang hebben. Als je geen groep invult hebben alleen webmasters toegang.";
 	$arrParam['db_backuptarren'] = "Moet de backup gecomprimeerd worden? Let op, de webhost moet dit wel ondersteunen.";
 	$arrParam['db_backupsopschonen'] = "Na hoeveel dagen moeten oude back-ups automatisch verwijderd worden? 0 = nooit.";
@@ -241,7 +241,7 @@ function fnInstellingen() {
 	$arrParam['lidnrnodigbijloginaanvraag'] = "Moet een lid zijn of haar lidnummer opgeven als er een login aangevraagd wordt?";
 	$arrParam['lidnrversturenmogelijk'] = "Hierbij geef je aan of het mogelijk moet zijn om vanaf deze website op basis van alleen een e-mailadres iemand zijn lidnummer per e-mail opgestuurd kan worden.";
 	$arrParam['loginautounlock'] = "Na hoeveel minuten moet een gelockede login automatisch geunlocked worden? 0 = alleen handmatig unlocken.";
-	$arrParam['mailing_extensies_toegestaan'] = "De extenties die zijn toegestaan bij bijlagen in een mailing. Als je niets specificeerd wordt een standaard lijstje gebruikt.";
+	$arrParam['mailing_extensies_toegestaan'] = "De extenties die zijn toegestaan bij bijlagen in een mailing. Als je niets specificeerd wordt een standaard lijst gebruikt.";
 	$arrParam['max_grootte_bijlage'] = "De maximalale grootte in bytes van één bijlage in een mailing. Optioneel veld. Als je niets specificeerd dan is 2MB het maximum.";
 	$arrParam['maxinlogpogingen'] = "Na hoeveel foutieve inlogpogingen moet het account geblokkeerd worden? 0 = nooit.";
 	$arrParam['maxlengtelogin'] = "De maximale lengte die een login mag zijn. Minimaal 7 en maximaal 12 invullen.";
@@ -261,8 +261,8 @@ function fnInstellingen() {
 	$arrParam['toneninschrijvingenbewakingen'] = "Moeten bij de gegevens van een lid ook inschrijvingen voor bewakingen getoond worden?";
 	$arrParam['tonentoekomstigebewakingen'] = "Moeten bij de gegevens van een lid ook toekomstige bewakingen getoond worden?";
 	$arrParam['typemenu'] = "1 = per niveau een aparte regel, 2 = één menu met dropdown, 3 = één menu met dropdown en extra menu voor niveau 2.";
-	$arrParam['urlwebsite'] = "Zonder http://";
-	$arrParam['urlvereniging'] = "Zonder http://";
+	$arrParam['urlwebsite'] = "De URL van deze website. Zonder http://";
+	$arrParam['urlvereniging'] = "De URL van de website van de vereniging. Zonder http://";
 	$arrParam['verjaardagenaantal'] = "Hoeveel verjaardagen moeten er maximaal in de verenigingsinfo worden getoond. Als er meerdere leden op dezelfde dag jarig zijn, wordt dit aantal overschreden.";
 	$arrParam['verjaardagenvooruit'] = "Hoeveel dagen vooruit moeten de verjaardagen in de verenigingsinfo getoond worden?";
 	
@@ -278,7 +278,7 @@ function fnInstellingen() {
 	$arrParam['zs_muteerbarememos'] = "Welke soorten memo's mogen leden zelf muteren, scheiden door een komma.";
 	$arrParam['zs_opzegtermijn'] = "De opzegtermijn van de vereniging in maanden.";
 	$arrParam['zs_voorwaardenbestelling'] = "Deze regel wordt bij de online-bestellingen in de zelfservice vermeld.";
-	$arrParam['zs_voorwaardeninschrijving'] = "Deze regel wordt bij de inschrijving vemeld als voorwaarde voor de inschrijving voor de bewaking.";
+	$arrParam['zs_voorwaardeninschrijving'] = "Deze regel wordt bij de inschrijving als voorwaarde voor de inschrijving voor de bewaking vemeld.";
 	
 	$arrParam["laatstebackup"] = "";
 	$arrParam["versie"] = "";
@@ -304,6 +304,8 @@ function fnInstellingen() {
 					} elseif ($_POST[$pvn] < 7) {
 						$_POST[$pvn] = 7;
 					}
+				} elseif (substr($row->Naam, 0, 3) == "url" and isset($_POST[$pvn])) {
+					$_POST[$pvn] = str_replace("http://", "", $_POST[$pvn]);
 				}
 				if ($row->ParamType == "B") {
 					if (isset($_POST[$pvn]) and $_POST[$pvn] == "1") {
