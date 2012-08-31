@@ -3,8 +3,12 @@ error_reporting(E_ALL);
 include('./includes/standaard.inc');
 
 if ($_SESSION['aantallid'] == 0) {
-	echo("<script>alert('Voordat deze website gebruikt kan worden moeten er eerst gegevens uit de Access-database ge-upload worden.');
-		location.href='./admin.php?tp=Uploaden+data';</script>\n");
+	$query = sprintf("SELECT COUNT(*) FROM %sLid;", $table_prefix);
+	$_SESSION['aantallid'] = db_scalar($query);
+	if ($_SESSION['aantallid'] == 0) {
+		echo("<script>alert('Voordat deze website gebruikt kan worden moeten er eerst gegevens uit de Access-database ge-upload worden.');
+			location.href='./admin.php?tp=Uploaden+data';</script>\n");
+	}
 } elseif ((!isset($lidid) or $lidid == 0) and isset($_SESSION['lidid'])) {
 	$lidid = $_SESSION['lidid'];
 } else {
@@ -21,7 +25,7 @@ if (isset($_GET['op']) and $_GET['op'] == "exportins") {
 }
 
 if ($currenttab !== "Mailing") {
-	if ($currenttab == "Vereniging" or $currenttab == "Eigen gegevens" or $currenttab2 == "Logboek") {
+	if ($currenttab == "Vereniging" or $currenttab == "Eigen gegevens"  or $currenttab == "Ledenlijst"  or $currenttab2 == "Logboek") {
 		HTMLheader(1);
 	} else {
 		HTMLheader(0);
