@@ -242,64 +242,59 @@ function fnLedenlijst() {
 		$llw = "";
 	}
 
-	$val_naamfilter="";
-	$val_TL=$arrTL[1];
-	$val_groep=0;
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		if (isset($_POST['tbNaamFilter']) and strlen($_POST['tbNaamFilter']) > 0) {
-			$val_naamfilter = $_POST['tbNaamFilter'];
-		}
-		if (isset($_POST['rbTL']) and strlen($_POST['rbTL']) > 0) {
-			$val_TL = $_POST['rbTL'];
-		}
-		if (isset($_POST['lbGroepFilter'])) {
-			$val_groep = $_POST['lbGroepFilter'];
-		}
+		$_SESSION['val_naamfilter'] = $_POST['tbNaamFilter'];
+		$_SESSION['val_TL'] = $_POST['rbTL'];
+		$_SESSION['val_groep'] = $_POST['lbGroepFilter'];
+	} elseif (!isset($_SESSION['val_naamfilter'])) {
+		$_SESSION['val_naamfilter'] = "";
+		$_SESSION['val_TL'] = $arrTL[1];
+		$_SESSION['val_groep'] = 0;
 	}
 	
 	echo("<div id='filter'>\n");
 	printf("<form name='Filter' action='%s?%s' method='post'>", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
 	echo("<table>\n");
 	echo("<tr>\n");
-	printf("<td class='label'>Naam bevat</td><td><input type='text' name='tbNaamFilter' size=20 value='%s' placeholder='Achter- of roepnaam' onblur='form.submit();'></td>\n", $val_naamfilter);
+	printf("<td class='label'>Naam bevat</td><td><input type='text' name='tbNaamFilter' size=20 value='%s' placeholder='Achter- of roepnaam' onblur='form.submit();'></td>\n", $_SESSION['val_naamfilter']);
 	echo("<td>");
 	foreach($arrTL as $tl) {
-		if ($tl == $val_TL) {$c=" checked"; } else { $c=""; }
-		if ($tl != "Klosleden" or $val_groep == 0) {
-			printf('<input type="radio"%2$s name="rbTL" value="%1$s" onclick="form.submit();">%1$s', $tl, $c);
+		if ($tl == $_SESSION['val_TL']) {$c=" checked"; } else { $c=""; }
+		if ($tl != "Klosleden" or $_SESSION['val_groep'] == 0) {
+			printf("<input type='radio'%2\$s name='rbTL' value='%1\$s' onclick='this.form.submit();'>%1\$s\n", $tl, $c);
 		}
 	}
 	echo("</td>\n");
-	printf("<td class='label'>Groep</td><td><select name='lbGroepFilter' onchange='form.submit();'>%s</select></td>\n", fnSelectListGroepen($val_groep));
+	printf("<td class='label'>Groep</td><td><select name='lbGroepFilter' onchange='this.form.submit();'>%s</select></td>\n", fnSelectListGroepen($_SESSION['val_groep']));
 	echo("</tr>\n");
 	echo("</table>\n");
 	echo("</form>");
 	echo("</div>  <!-- Einde filter -->\n");
 	
-	if (strlen($val_naamfilter) > 1) {
-		$filter = sprintf('(L.Achternaam LIKE "%1$s" OR L.Roepnaam LIKE "%1$s" OR L.MEISJESNM LIKE "%1$s")', "%" . strtoupper($val_naamfilter) . "%");
+	if (strlen($_SESSION['val_naamfilter']) > 1) {
+		$filter = sprintf("(L.Achternaam LIKE '%%%1\$s%%' OR L.Roepnaam LIKE '%%%1\$s%%' OR L.MEISJESNM LIKE '%%%1\$s%%')", strtoupper($_SESSION['val_naamfilter']));
 	} else {
 		$filter = "";
 	}
 	
-	if ($val_groep == 0) {
-		if ($val_TL == "Leden") {
+	if ($_SESSION['val_groep'] == 0) {
+		if ($_SESSION['val_TL'] == "Leden") {
 			if (strlen($filter) > 0) {$filter .= " AND "; }
 			$filter .= "LM.Lidnr > 0 AND ((LM.Opgezegd IS NULL) OR LM.Opgezegd > CURDATE())";
-		} elseif ($val_TL == "Klosleden") {
+		} elseif ($_SESSION['val_TL'] == "Klosleden") {
 			if (strlen($filter) > 0) {$filter .= " AND "; }
 			$filter .= "(LM.Lidnr IS NULL)";
-		} elseif ($val_TL == "Voormalig leden") {
+		} elseif ($_SESSION['val_TL'] == "Voormalig leden") {
 			if (strlen($filter) > 0) {$filter .= " AND "; }
 			$filter .= "(NOT LM.Opgezegd IS NULL) AND LM.Opgezegd < CURDATE()";
 		}
 		$rows = db_lid("ledenlijst", $filter);
 	} else {
 		if (strlen($filter) > 0) {$filter .= " AND ";}
-		$filter .= sprintf("LO.OnderdeelID=%d", $val_groep);
-		if ($val_TL == "Leden") {
+		$filter .= sprintf("LO.OnderdeelID=%d", $_SESSION['val_groep']);
+		if ($_SESSION['val_TL'] == "Leden") {
 			$filter .= " AND " . $wherelidond;
-		} elseif ($val_TL == "Voormalig leden") {
+		} elseif ($_SESSION['val_TL'] == "Voormalig leden") {
 			$filter .= " AND (LO.Vanaf <= CURDATE() AND ((NOT LO.Opgezegd IS NULL) OR LO.Opgezegd < CURDATE()))";
 		}
 		$rows = db_lidond("onderdeellijst", 0, "", $filter);
@@ -409,7 +404,7 @@ function fnOverviewLid($lidid=0, $actie="") {
 				if (count($rows) > 0) {
 					echo(fnDisplayTable($rows, $ld, sprintf("Aan %s verstuurde mailings", $naamlid)));
 				} else {
-					printf("<p class='mededeling'>Er zijn geen mailings naar %s vanaf deze website verstuurd.</p>\n", $naamlid);
+					printf("<p class='mededeling'>Er zijn vanaf deze website geen mailings naar %s verstuurd.</p>\n", $naamlid);
 				}
 			}
 		} elseif ($actie == "Evenementen") {
