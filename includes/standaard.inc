@@ -126,9 +126,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		}
 		$tabpages[] = "Eigen gegevens/Diploma's";
 		$tabpages[] = "Eigen gegevens/Financieel";
-		if (count(db_gegevenslid($_SESSION['lidid'], "Mailing")) > 0) {
-			$tabpages[] = "Eigen gegevens/Mailing";
-		}
+		$tabpages[] = "Eigen gegevens/Mailing";
 		if (count(db_gegevenslid($_SESSION['lidid'], "Evenementen")) > 0) {
 			$tabpages[] = "Eigen gegevens/Evenementen";
 		}
@@ -273,7 +271,6 @@ if (!isset($currenttab2) or strlen($currenttab2) == 0) {
 
 $query = "SET lc_time_names='nl_NL';";
 fnQuery($query);
-
 
 function HTMLheader($refresh=0) {
 	global $currenttab, $currenttab2;
@@ -589,7 +586,7 @@ function fnDisplayForm($row, $xtra_eind="", $class="formulier") {
 	if (strlen($xtra_eind) > 0) {
 		$ret .= $xtra_eind;
 	}
-	$ret .= "</div>  <!-- Einde formulier -->\n";
+	$ret .= sprintf("</div>  <!-- Einde %s -->\n", $class);
 	return $ret;
 }
 
@@ -599,6 +596,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 		$ret .= "<table>\n";
 		$dispkop = 1;
 		$totaantal = 0;
+		$hlk = "";
 		foreach($rows as $row) {
 			if ($dispkop == 1) {
 				$hv = "<tr>";
@@ -611,7 +609,8 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 						$ktot[] = 0;
 					} elseif (strstr("llk", substr($key, 0, 3)) !== false) {
 						if (strlen($link_lk) > 1) {
-							$hv .= sprintf("<th colspan=%d>&nbsp;</th>", substr_count($link_lk, "<td")+1);
+							$hlk .= sprintf("<th colspan=%d>&nbsp;</th>", substr_count($link_lk, "<td")+1);
+							$hv .= $hlk;
 						}
 					} elseif (substr($key, 0, 2) != "nd") {
 						$hv .= sprintf("<th>%s</th>", str_replace("_", " ", $key));
@@ -671,7 +670,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 					if ($value > 0 and strlen($link_lk) > 1) {
 						$ret .= sprintf("<td class='details'>" . $link_lk . "</td>", $value, "<img src='images/zoom.png' alt='Details'>");
 					} elseif (strlen($link_lk) > 1) {
-						$ret .= "<td class='details'></td>\n";
+						$ret .= "<td></td>\n";
 					}
 				} elseif (substr($key, 0, 3) == "eml") {
 					$ret .= sprintf("<td>%s</td>", fnDispEmail($value, "", 1));
@@ -700,7 +699,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 					$ret .= sprintf("<th class='number'>%s</th>", number_format($ktot[$kn], 2, ",", "."));
 				}
 			}
-			$ret .= "</tr>\n";
+			$ret .= $hlk . "</tr>\n";
 		}
 		$ret .= "</table>\n";
 	} else {
