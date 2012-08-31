@@ -1485,7 +1485,7 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0) {
 		if ($tm == 1) {
 			printf("<p class='mededeling'>%s</p>\n", htmlentities($oms));
 		} elseif ($tm == 2) {
-			printf("<script>alert(\"%s\");location.reload(true);</script>\n", str_replace("\"", "'", $oms));
+			printf("<script>alert(\"%s\");</script>\n", str_replace("\"", "'", $oms));
 		}
 	} elseif ($actie == "opschonen") {
 		if (db_param("bewaartijdlogging") > 0) {
