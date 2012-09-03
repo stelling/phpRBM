@@ -735,7 +735,7 @@ class mailing {
 	public function add_groep($groepid) {
 		global $table_prefix;
 		
-		$w = sprintf("LO.OnderdeelID=%d AND LO.Lid NOT IN (SELECT LidID FROM %sMailing_rcpt WHERE MailingID=%d);", $groepid, $table_prefix, $this->mid);
+		$w = sprintf("LO.OnderdeelID=%d AND LO.Lid NOT IN (SELECT LidID FROM %sMailing_rcpt WHERE MailingID=%d)", $groepid, $table_prefix, $this->mid);
 		$rows = db_lidond("actueleleden", 0, "", $w);
 		$aant = 0;
 		foreach($rows as $row) {
