@@ -140,7 +140,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (count($muteerbarememos) > 0) { 
 			$tabpages[] = "Zelfservice/Bijzonderheden";
 		}
-		$tabpages[] = "Zelfservice/Inschrijving bewaking";
+		if (count(db_insbew("openblokken")) > 0) {
+			$tabpages[] = "Zelfservice/Inschrijving bewaking";
+		}
 		if (count(db_evenement("open")) > 0) {
 			$tabpages[] = "Zelfservice/Inschrijving evenementen";
 		}
@@ -187,9 +189,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		$tabpages[] = "Bewaking/Aantallen";
 		$tabpages[] = "Bewaking/Nieuwe pasfoto";
 		$tabpages[] = "Bewaking/Diploma's muteren";
-	}
-	if (count(db_insbew("overzicht")) > 0) {
-		$tabpages[] = "Bewaking/Overzicht inschrijvingen";
+		if (count(db_insbew("blokken")) > 0) {
+			$tabpages[] = "Bewaking/Overzicht inschrijvingen";
+		}
 	}
 	if (count(db_insbew("export")) > 0) {
 		$tabpages[] = "Bewaking/Downloaden inschrijvingen";
@@ -791,6 +793,25 @@ class RBMmailer extends PHPMailer {
 		$this->FromName = $_SESSION['naamvereniging'];
 		$this->WordWrap = 110;
 	}
+	
+	public function InformerenOuders($geboren, $emailouders) {
+		$rv = "";
+		if ($geboren > date("Y-m-d", mktime(0, 0, 0, date("m"), date("d"), date("Y")-18)) and strlen($emailouders) > 5) {
+			$emailouders = str_replace(" ", "", $emailouders);
+			$emailouders = str_replace(";", ",", $emailouders);
+			foreach(explode(",", $emailouders) as $e) {
+				if (self::ValidateAddress($e) and in_array($e, $this->to) == false and in_array($e, $this->cc) == false) {
+					$this->AddCC(strtolower($e));
+					if (strlen($rv) > 0) {
+						$rv .= ", ";
+					}
+					$rv .= $e;
+				}
+			}
+		}
+		return $rv;
+	}
+	
 }
 
 /*

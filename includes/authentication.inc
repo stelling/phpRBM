@@ -206,10 +206,7 @@ function fnConfirmLogin($row, $xtratekst="") {
 		$email = "";
 	}
 	$mail->AddAddress($email);
-	$io = fnInformerenOuders($row->GEBDATUM, $row->EmailOuders, $row->Email);
-	if (strlen($io) > 5 and $io != $email) {
-		$mail->AddCC($io);
-	}
+	$mail->InformerenOuders($row->GEBDATUM, $row->EmailOuders);
 	$mail->Subject = $subj;
 	$mail->MsgHTML($content);
 	if ($mail->Send()) {
@@ -284,10 +281,7 @@ function fnConfirmLidnr($row, $xtratekst="") {
 			$email = "";
 		}
 		$mail->AddAddress($email);
-		$io = fnInformerenOuders($row->GEBOREN, $row->EmailOuders, $row->Email);
-		if (strlen($io) > 5 and $io != $email) {
-			$mail->AddCC($io);
-		}
+		$mail->InformerenOuders($row->GEBOREN, $row->EmailOuders);
 		$mail->Subject = $subj;
 		$mail->MsgHTML($content);
 		if ($mail->Send()) {

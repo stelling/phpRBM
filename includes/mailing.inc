@@ -845,21 +845,27 @@ class mailing {
 						$to_name = $this->to_name;
 					}
 					$mail->MsgHTML($this->mailbericht);
+					$cc = "";
 					foreach (explode(",", $this->cc_addr) as $v) {
-					if (isValidMailAddress($v, 0)) {
-						$mail->AddCC($v);
+						if (isValidMailAddress($v, 0)) {
+							$mail->AddCC($v);
+							if (strlen($cc) > 0) {
+								$cc .= ", ";
+							}
+							$cc .= $v;
 						}
 					}
 					if ($this->verzamelen) {
 						db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message);
 						$this->aant_ok++;
 					} else {
-					
-						$io = fnInformerenOuders($rcpt->GEBDATUM, $rcpt->EmailOuders, $rcpt->Email);
-						if (strlen($io) > 5 and $io != $e) {
-							$mail->AddCC($io);
+						$io = $mail->InformerenOuders($rcpt->GEBDATUM, $rcpt->EmailOuders);
+						if (strlen($io) > 0 and strlen($cc) > 0) {
+							$cc = $io . ", " . $cc;
+						} elseif (strlen($io) > 0) {
+							$cc = $io;
 						}
-					
+
 						if ($this->mailsperminuut > 0) {
 							while (microtime(true)-$starttijd < $smptteller * (60 / $this->mailsperminuut)) {
 								usleep((60 / $this->mailsperminuut) * 1001000);
@@ -868,7 +874,7 @@ class mailing {
 						}
 						$smptteller++;
 						if ($mail->Send()) {
-							db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message, $mail->FromName, $mail->From, $mail->Subject, $io, 1);
+							db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message, $mail->FromName, $mail->From, $mail->Subject, $cc, 1);
 							if (isset($rcpt->Naam_lid)) {
 								$this->ok_send .= sprintf("<li>%s {%s}</li>\n", $rcpt->Naam_lid, $e);
 							} else {
@@ -876,7 +882,7 @@ class mailing {
 							}
 							$this->aant_ok++;
 						} else {
-							db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message, $mail->FromName, $mail->From, $mail->Subject, $io, 0);
+							db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message, $mail->FromName, $mail->From, $mail->Subject, $cc, 0);
 							$this->nok_send .= sprintf("<li>%s {%s}</li>\n", $rcpt->Naam_lid, $e);
 							$mess = sprintf("Het versturen van mailing %d (%s) aan %s is niet gelukt. Error: %s", $this->mid, $this->subject, $to_name, $mail->ErrorInfo);
 							db_logboek("add", $mess, 4);
