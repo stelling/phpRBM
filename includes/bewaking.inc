@@ -516,18 +516,13 @@ function BevestInschrBewaking($lidid, $insnr) {
 		$htmlmessage = $content;
 	}
 				
-	$mail = new RBMmailer();
+	$mail = new RBMmailer($lidid);
 	try {
 		$mail->From = $emailbevestiginginschrijving;
-		$mail->AddAddress($email, $naambewaker);
-		$io = fnInformerenOuders($geboren, $emailouders, $email);
-		if (strlen($io) > 5) {
-			$mail->AddCC($io);
-		}
 		$mail->Subject = $subj;
 		$mail->MsgHTML($htmlmessage);
 		if ($mail->Send()) {
-			db_add_mailing_hist($lidid, 0, $naambewaker, $email, $content, $mail->FromName, $mail->From, $mail->Subject, $io);
+			db_add_mailing_hist($lidid, 0, $naambewaker, $email, $content, $mail, 1);
 			$mess = sprintf("Bevestiging van deze inschrijving is naar %s verzonden.", $email);
 		} else {
 			$mess = sprintf("Het versturen van de bevestiging van de inschrijving voor de bewaking aan %s is mislukt. Error: %s.", db_naamlid($lidid), $mail->ErrorInfo);

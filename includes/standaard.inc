@@ -768,7 +768,8 @@ function change_month_to_uk($strdate) {
 
 class RBMmailer extends PHPMailer {
 
-	function __construct() {
+	function __construct($lidid=-1) {
+		global $table_prefix, $selectnaam;
 	
 		$smtphost = db_param("smtphost");
 		if (strlen($smtphost) > 0) {
@@ -792,16 +793,49 @@ class RBMmailer extends PHPMailer {
 		$this->From = $_SESSION['emailwebmaster'];
 		$this->FromName = $_SESSION['naamvereniging'];
 		$this->WordWrap = 110;
+		
+		if ($lidid > 0) {
+			$this->ToevoegenLid($lidid);
+		}
 	}
 	
-	public function InformerenOuders($geboren, $emailouders) {
+	public function ToevoegenLid($lidid) {
+	
 		$rv = "";
-		if ($geboren > date("Y-m-d", mktime(0, 0, 0, date("m"), date("d"), date("Y")-18)) and strlen($emailouders) > 5) {
+		$row = db_lid("record", "", $lidid);
+		if (isValidMailAddress($row->Email, 0)) {
+			if (in_array($row->Email, $this->to) == false) {
+				$this->AddAddress($row->Email, $row->NaamLid);
+			}
+			$rv = $row->Email;
+		} elseif (isValidMailAddress($row->EmailVereniging, 0)) {
+			if (in_array($row->EmailVereniging, $this->to) == false) {
+				$this->AddAddress($row->EmailVereniging, $row->NaamLid);
+			}
+			$rv = $row->EmailVereniging;
+		}
+		if (strlen($rv) > 0) {
+			$this->InformerenOuders($row->GEBDATUM, $row->EmailOuders, "cc");
+		} else {
+			$rv = $this->InformerenOuders($row->GEBDATUM, $row->EmailOuders, "to");
+		}
+		
+		return $rv;
+	}
+	
+	public function InformerenOuders($geboren, $emailouders, $kind="cc") {
+		if ($kind != "to" and count($this->to) == 0) {
+			$kind = "to";
+		}
+		$rv = "";
+		
+		if ($geboren > date("Y-m-d", mktime(0, 0, 0, date("m"), date("d"), date("Y")-88)) and strlen($emailouders) > 5) {
 			$emailouders = str_replace(" ", "", $emailouders);
 			$emailouders = str_replace(";", ",", $emailouders);
 			foreach(explode(",", $emailouders) as $e) {
+				$e = strtolower($e);
 				if (self::ValidateAddress($e) and in_array($e, $this->to) == false and in_array($e, $this->cc) == false) {
-					$this->AddCC(strtolower($e));
+					$this->AddAnAddress($kind, $e);
 					if (strlen($rv) > 0) {
 						$rv .= ", ";
 					}
@@ -812,6 +846,17 @@ class RBMmailer extends PHPMailer {
 		return $rv;
 	}
 	
+	public function ListAddresses($kind="to") {
+		$rv = "";
+		foreach($this->$kind as $e) {
+			if (strlen($rv) > 0) {
+				$rv .= ", ";
+			}
+			$rv .= $e[0];
+		}
+		return strtolower($rv);
+	}
+
 }
 
 /*

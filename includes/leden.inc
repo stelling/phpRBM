@@ -827,7 +827,9 @@ function opzegginglidmaatschap($lidid) {
 	$opzegtermijn = db_param("zs_opzegtermijn");
 	$emailledenadministratie = db_param("emailledenadministratie");
 	$fdlang = "%e %B %Y";
-	$naamlid = db_naamlid($lidid);
+	
+	$lid = db_lid("record", "", $lidid);
+	$naamlid = $lid->NaamLid;
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		if (isset($_POST["OpzeggingPer"]) and strlen($_POST["OpzeggingPer"]) > 3) {
@@ -862,12 +864,13 @@ function opzegginglidmaatschap($lidid) {
 		<p>Met vriendelijke groeten,<br>
 		<strong>%s</strong></p>\n", $_SESSION['naamvereniging'], $opgezegdper, $_SESSION['lidnr'], $opm, $naamlid);
 				
-		$body .= sprintf("\n<p>Dit formulier is verzonden met formulier %s vanaf IP %s.</p>\n", $actionurl, $_SERVER['REMOTE_ADDR']);
+		$body .= sprintf("\n<p>Dit formulier is verzonden vanaf IP-adres %s.</p>\n", $_SERVER['REMOTE_ADDR']);
 	
 		$mail = new RBMmailer();
 		$mail->From = $_SESSION['emailingelogde'];
 		$mail->FromName = $naamlid;
 		$mail->AddAddress($emailledenadministratie);
+		$mail->InformerenOuders($lid->GEBDATUM, $lid->EmailOuders);
 		$mail->AddCC($_SESSION['emailingelogde']);
 		if (isValidMailAddress($_SESSION['emailsecretariaat'], 0)) {
 			$mail->AddCC($_SESSION['emailsecretariaat']);
@@ -875,11 +878,17 @@ function opzegginglidmaatschap($lidid) {
 		$mail->Subject = sprintf("Opzegging lidmaatschap %s per %s", $naamlid, $opgezegdper);
 		$mail->Body = $body;
 		if ($mail->Send()) {
-			echo("<p class='mededeling'>De opzegging is verzonden.</p>\n");
-			db_add_mailing_hist(0, 0, "Ledenadministratie", $emailledenadministratie, $body, $mail->FromName, $mail->From, $mail->Subject, $_SESSION['emailingelogde']);
+			$mess = sprintf("De opzegging per '%s' is verzonden.", $opgezegdper);
+			$success = 1;
+		} else {
+			$mess = "Het versturen van de opzegging is mislukt. Probeer het later nogmaals.";
+			$success = 0;
 		}
+		db_add_mailing_hist(0, 0, "Ledenadministratie", $emailledenadministratie, $body, $mail, $success);
+		db_logboek("add", $mess, 6, 0, 1);
 		$mail = null;
-		db_lidmaatschap("opzegging", $lidid, $opgezegdper);
+		$mess = db_lidmaatschap("opzegging", $lidid, $opgezegdper);
+		db_logboek("add", $mess, 6);
 		
 	} else {
 		$form_opzegging = sprintf("<div id='opzegformulier'>\n<form name='Opzegging' action='%s' method='post'>\n", $actionurl);
@@ -1000,14 +1009,6 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 	echo($oldvals);
 	echo("</form>\n");
 	echo("</div>  <!-- Einde wijzigendiplomas -->\n");
-}
-
-function fnInformerenOuders($geboren, $emailouders, $email="") {
-	$rv = "";
-	if ($geboren > date("Y-m-d", mktime(0, 0, 0, date("m"), date("d"), date("Y")-18)) and isValidMailAddress($emailouders, 0) and strtolower($emailouders) !=  strtolower($email)) {
-		$rv = strtolower($emailouders);
-	}
-	return $rv;
 }
 
 ?>

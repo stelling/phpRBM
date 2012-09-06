@@ -519,7 +519,11 @@ class mailing {
 				$verzendenmag = false;
 			}
 			if (strtotime($this->sent_on) > (time() - $this->vertraging_tussen_verzenden)) {
-				$meldingen .= sprintf("Deze mailing is korter dan %d minuten geleden verzonden.<br>\n", $this->vertraging_tussen_verzenden/60);
+				if ($this->vertraging_tussen_verzenden < 120) {
+					$meldingen .= sprintf("Deze mailing is korter dan %d seconden geleden verzonden.<br>\n", $this->vertraging_tussen_verzenden);
+				} else {
+					$meldingen .= sprintf("Deze mailing is korter dan %d minuten geleden verzonden.<br>\n", $this->vertraging_tussen_verzenden/60);
+				}
 				$verzendenmag = false;
 			}
 			
@@ -823,49 +827,31 @@ class mailing {
 			if ($preview == 1) {
 				echo("<br>\n" . $this->mailbericht);
 			}
-			if (isValidMailAddress($rcpt->Email, 0)) {
-				$e = strtolower($rcpt->Email);
-			} elseif (isValidMailAddress($rcpt->EmailVereniging, 0)) {
-				$e = strtolower($rcpt->EmailVereniging);
-			} elseif (isValidMailAddress($rcpt->EmailOuders, 0)) {
-				$e = strtolower($rcpt->EmailOuders);
-			} else {
-				$e = strtolower($rcpt->to_address);
+			if ($rcpt->Nummer > 0) {
+				$e = $mail->ToevoegenLid($rcpt->Nummer);
+			} elseif (isValidMailAddress($rcpt->to_address, 0)) {
+				$mail->AddAddress($rcpt->to_address);
+				$e = $rcpt->to_address;
 				$this->contains_losse_email = true;
 			}
-			if (isValidMailAddress($e, 0)) {
+			if (strlen($e) > 5) {
 				if ($preview == 0) {
 					if (isset($rcpt->Naam_lid)) {
-						$mail->AddAddress($e, $rcpt->Naam_lid);
-						$this->mailbericht = str_ireplace("[%TO%]", $rcpt->Naam_lid, $this->mailbericht);
 						$to_name = $rcpt->Naam_lid;
 					} else {
-						$mail->AddAddress($e);
-						$this->mailbericht = str_ireplace("[%TO%]", $e, $this->mailbericht);
 						$to_name = $this->to_name;
 					}
+					$this->mailbericht = str_ireplace("[%TO%]", $to_name, $this->mailbericht);
 					$mail->MsgHTML($this->mailbericht);
-					$cc = "";
 					foreach (explode(",", $this->cc_addr) as $v) {
 						if (isValidMailAddress($v, 0)) {
 							$mail->AddCC($v);
-							if (strlen($cc) > 0) {
-								$cc .= ", ";
-							}
-							$cc .= $v;
 						}
 					}
 					if ($this->verzamelen) {
 						db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message);
 						$this->aant_ok++;
 					} else {
-						$io = $mail->InformerenOuders($rcpt->GEBDATUM, $rcpt->EmailOuders);
-						if (strlen($io) > 0 and strlen($cc) > 0) {
-							$cc = $io . ", " . $cc;
-						} elseif (strlen($io) > 0) {
-							$cc = $io;
-						}
-
 						if ($this->mailsperminuut > 0) {
 							while (microtime(true)-$starttijd < $smptteller * (60 / $this->mailsperminuut)) {
 								usleep((60 / $this->mailsperminuut) * 1001000);
@@ -874,7 +860,7 @@ class mailing {
 						}
 						$smptteller++;
 						if ($mail->Send()) {
-							db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message, $mail->FromName, $mail->From, $mail->Subject, $cc, 1);
+							db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message, $mail, 1);
 							if (isset($rcpt->Naam_lid)) {
 								$this->ok_send .= sprintf("<li>%s {%s}</li>\n", $rcpt->Naam_lid, $e);
 							} else {
@@ -882,7 +868,7 @@ class mailing {
 							}
 							$this->aant_ok++;
 						} else {
-							db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message, $mail->FromName, $mail->From, $mail->Subject, $cc, 0);
+							db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message, $mail, 0);
 							$this->nok_send .= sprintf("<li>%s {%s}</li>\n", $rcpt->Naam_lid, $e);
 							$mess = sprintf("Het versturen van mailing %d (%s) aan %s is niet gelukt. Error: %s", $this->mid, $this->subject, $to_name, $mail->ErrorInfo);
 							db_logboek("add", $mess, 4);

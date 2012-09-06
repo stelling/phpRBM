@@ -102,7 +102,7 @@ if (!isset($_SESSION['aantalrollen'])) {
 }
 
 if (!isset($_SESSION['aantalbewaking'])) {
-	$query = sprintf("SELECT COUNT(*) FROM %sBewaking;", $table_prefix);
+	$query = sprintf("SELECT COUNT(*) FROM %sBewseiz;", $table_prefix);
 	$_SESSION['aantalbewaking'] = db_scalar($query);
 }
 
@@ -353,13 +353,19 @@ function db_naamlid($lidid, $uitv="", $riz="Onbekend") {
 	return $rv;
 }
 
-function db_lid($actie, $filter="") {
+function db_lid($actie, $filter="", $lidid=0, $nv="") {
 	global $selectnaam, $selectzoeknaam, $selectlidnr, $table_prefix, $fromlid, $wherelid;
 	
 	if (strlen($filter) > 0 and $actie != "verjaardagen") {
 		$filter = " WHERE " . $filter;
 	}
-	if ($actie == "lijst") {
+	
+	if ($actie == "record" and $lidid > 0) {
+		$query = sprintf("SELECT *, %s as NaamLid FROM %sLid AS L WHERE Nummer=%d;", $selectnaam, $table_prefix, $lidid);
+		$result = fnQuery($query);
+		return $result->fetch();
+		
+	} elseif ($actie == "lijst") {
 		$query = sprintf("SELECT L.Nummer, %1\$s AS `Naam_lid`, UPPER(L.Woonplaats) AS Woonplaats,
 					L.Telefoon, L.Mobiel, L.Email AS `emlE-mail`, L.GEBDATUM AS GEBDATUM, %2\$s AS Zoeknaam
 					FROM %3\$sLid AS L
@@ -379,21 +385,13 @@ function db_lid($actie, $filter="") {
 					FROM %2\$s
 					WHERE %3\$s AND %4\$s AND L.GEBDATUM > '1901-01-01'
 					ORDER BY L.GEBDATUM, L.Nummer;", $selectnaam, $fromlid, $wherelid, $df, $filter);
-					
-	} elseif ($actie == "opzegging") {
-		$query = sprintf("UPDATE %sLidmaatschap SET Opgezegd='%s', Gewijzigd=SYSDATE() WHERE Nummer=%d AND (Opgezegd IS NULL);", $table_prefix, $v, $lidid);
-		$result = fnQuery($query);
-		if ($result > 0) {
-			db_interface("add", $query, $lidid);
-			$mess .= sprintf("%s van %s is in '%s' gewijzigd. ", $wijzvelden[$i]['label'], $naamlid, $v);
-		} else {
-			$mess .= sprintf("De opzegging van %s is niet verwerkt. ", strtolower($wijzvelden[$i]['label']), $naamlid);
-		}
 		
 	} else {
-		debug("onbekende actie in db_lid", 1, 0, 1);
+		$mess = sprintf("onbekende actie '%s' in db_lid", $actie);
+		debug($mess, 1, 0, 1);
 		$query = "";
 	}
+	
 	$result = fnQuery($query);
 	return $result->fetchAll();
 }
@@ -402,6 +400,7 @@ function db_lidmaatschap($actie, $lidid, $opgezegd) {
 	global $table_prefix, $fdaccess, $fdsql;
 
 	$naamlid = db_naamlid($lidid);
+	$opgezegd = change_month_to_uk($opgezegd);
 	$opgezegd = strftime($fdsql, strtotime($opgezegd));
 	$opgaccess = strftime($fdaccess, strtotime($opgezegd));
 
@@ -1215,7 +1214,71 @@ function db_naam_onderdeel($rid, $rin="Onbekend") {
 	return $rv;
 }
 
-function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr, $message="", $from_name="", $from_addr="", $subject="", $cc_addr="", $success=1) {
+function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr, $message="", $mail=null, $success=1) {
+	global $table_prefix;
+	
+	if (is_null($mail)) {
+		$from_name = "";
+		$from_addr = "";
+		$subject = "";
+		$cc_addr = "";
+	} else {
+		$from_name = $mail->FromName;
+		$from_addr = $mail->From;
+		$subject = $mail->Subject;
+		$cc_addr = $mail->ListAddresses("cc");
+		$to_addr = $mail->ListAddresses("to");
+	}
+		
+	if (strlen($to_addr) > 50) {
+		$to_addr = substr($to_addr, 0, 46) . " ...";
+	}
+	if (strlen($cc_addr) > 80) {
+		$cc_addr = substr($cc_addr, 0, 76) . " ...";
+	}
+
+	if ($mid > 0) {
+		$query = sprintf("SELECT * FROM %sMailing WHERE MailingID=%d;", $table_prefix, $mid);
+		$result = fnQuery($query);
+		$row = $result->fetch();
+		if (strlen($from_name) == 0) {
+			$from_name = $row->from_name;
+		}
+		if (strlen($from_addr) == 0) {
+			$from_addr = $row->from_addr;
+		}
+		if (strlen($subject) == 0) {
+			$subject = $row->subject;
+		}
+		if (strlen($message) == 0) {
+			$message = $row->message;
+		}
+		if (strlen($row->to_name) > 0) {
+			$to_name = $row->to_name;
+		}
+		if (strlen($cc_addr) == 0) {
+			$cc_addr = $row->cc_addr;
+		}
+	} else {
+		if (strlen($from_name) == 0) {
+			$from_name = $_SESSION['naamvereniging'];
+		}
+	}
+	
+	if (isset($_SESSION['lidid']) and $_SESSION['lidid'] > 0) {
+		$query = sprintf("INSERT INTO %sMailing_hist SET
+					LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", to_name=\"%s\", subject=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", send_by=%d, send_on=SYSDATE(), Successful=%d;", $table_prefix,
+					$lidid, $mid, html_entity_decode($from_name), $from_addr, $to_name, html_entity_decode($subject), $to_addr, $cc_addr, html_entity_decode($message), $_SESSION['lidid'], $success);
+		fnQuery($query);
+		
+		if ($success == 1 and $mid > 0) {
+			$query = sprintf("UPDATE %sMailing SET sent_on=SYSDATE(), SentBy=%d WHERE MailingID=%d;", $table_prefix, $_SESSION['lidid'], $mid);
+			fnQuery($query);
+		}
+	}
+}
+
+function db_add_mailing_hist_bu($lidid, $mid, $to_name, $to_addr, $message="", $from_name="", $from_addr="", $subject="", $cc_addr="", $success=1) {
 	global $table_prefix;
 
 	if ($mid > 0) {

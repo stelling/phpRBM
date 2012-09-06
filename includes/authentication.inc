@@ -1,4 +1,4 @@
-<?php
+ <?php
 
 if ((!isset($_SESSION['username']) or strlen($_SESSION['username']) == 0) and isset($_COOKIE['username'])) {
 	$_SESSION['username'] = $_COOKIE['username'];
@@ -49,6 +49,8 @@ function toegang($soort="", $melding=1) {
 					$_SESSION['emailingelogde'] = strtolower($row->Email);
 				} elseif (isValidMailAddress($row->EmailOuders, 0)) {
 					$_SESSION['emailingelogde'] = strtolower($row->EmailOuders);
+				} elseif (strlen($row->EmailOuders) > 5 and strpos($row->EmailOuders, ",") > 0) {
+					$_SESSION['emailingelogde'] = strstr(strtolower($row->EmailOuders), ",", true);
 				} else {
 					$_SESSION['emailingelogde'] = "";
 				}	
@@ -193,24 +195,12 @@ function fnConfirmLogin($row, $xtratekst="") {
 	$content = str_ireplace("[%TO%]", $row->Naam, $content);
 	$content = str_ireplace("[%SUBJECT%]", $subj, $content);
 
-	$mail = new RBMmailer();
-
+	$mail = new RBMmailer($row->Nummer);
 	$mail->FromName = $from;
-	if (isValidMailAddress($row->Email, 0)) {
-		$email = strtolower($row->Email);
-	} elseif (isValidMailAddress($row->EmailVereniging, 0)) {
-		$email = strtolower($row->EmailVereniging);
-	} elseif (isValidMailAddress($row->EmailOuders, 0)) {
-		$email = strtolower($row->EmailOuders);
-	} else {
-		$email = "";
-	}
-	$mail->AddAddress($email);
-	$mail->InformerenOuders($row->GEBDATUM, $row->EmailOuders);
 	$mail->Subject = $subj;
 	$mail->MsgHTML($content);
 	if ($mail->Send()) {
-		$mess = sprintf("Login '%s' aan %s (%s) verzonden.", $row->Login, $row->Naam, $email);
+		$mess = sprintf("Login '%s' aan %s (%s) verzonden.", $row->Login, $row->Naam, $mail->ListAddresses("to"));
 	} else {
 		$mess = sprintf("Fout tijdens het versturen van de mail: %s. Probeer later nogmaals of neem contact op met de webmaster.", $mail->ErrorInfo);
 	}
@@ -267,25 +257,14 @@ function fnConfirmLidnr($row, $xtratekst="") {
 	$content = str_ireplace("[%TO%]", $row->Naam, $content);
 	$content = str_ireplace("[%SUBJECT%]", $subj, $content);
 
-	$mail = new RBMmailer();
 
 	try {
+		$mail = new RBMmailer($row->Nummer);
 		$mail->FromName = $from;
-		if (isValidMailAddress($row->Email, 0)) {
-			$email = strtolower($row->Email);
-		} elseif (isValidMailAddress($row->EmailVereniging, 0)) {
-			$email = strtolower($row->EmailVereniging);
-		} elseif (isValidMailAddress($row->EmailOuders, 0)) {
-			$email = strtolower($row->EmailOuders);
-		} else {
-			$email = "";
-		}
-		$mail->AddAddress($email);
-		$mail->InformerenOuders($row->GEBOREN, $row->EmailOuders);
 		$mail->Subject = $subj;
 		$mail->MsgHTML($content);
 		if ($mail->Send()) {
-			return sprintf("Lidnummer is aan %s (%s) verzonden.", $row->Naam, $email);
+			return sprintf("Lidnummer is aan %s (%s) verzonden.", $row->Naam, $mail->ListAddresses("to"));
 		} else {
 			return sprintf("Fout bij het versturen van de e-mail: %s. Probeer het later nogmaals of neem contact op met de webmaster.", $mail->ErrorInfo);
 		}

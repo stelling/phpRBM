@@ -424,24 +424,20 @@ function bevestigingbestelling($lidid, $ordernr=0) {
 		$htmlmessage = $content;
 	}
 				
-	$mail = new RBMmailer();
+	$mail = new RBMmailer($lidid);
 	if (isValidMailAddress($emailbevestigingbestelling, 0)) {
 		$mail->From = $emailbevestigingbestelling;
 	}
-	$mail->AddAddress($email, $naamlid);
 	if (isValidMailAddress($emailbevestigingbestelling, 0)) {
 		$mail->AddCC($emailbevestigingbestelling);
-	}
-	$io = fnInformerenOuders($geboren, $emailouders, $email);
-	if (strlen($io) > 5) {
-		$mail->AddCC($io);
 	}
 	$mail->Subject = $subj;
 	$mail->MsgHTML($htmlmessage);
 	if ($mail->Send()) {
-		db_add_mailing_hist($lidid, 0, $naamlid, $email, $content, $mail->FromName, $mail->From, $mail->Subject, $io);
+		db_add_mailing_hist($lidid, 0, $naamlid, $email, $content, $mail, 1);
 		$mess = sprintf("Een bevestiging van deze bestelling is naar %s verzonden.", $email);
 	} else {
+		db_add_mailing_hist($lidid, 0, $naamlid, $email, $content, $mail, 0);
 		$mess = sprintf("Het versturen van de bevestiging van de bestelling aan %s is mislukt. Error: %s", db_naamlid($lidid), $mail->ErrorInfo);
 	}
 	db_logboek("add", $mess, 10);
