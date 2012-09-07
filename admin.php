@@ -219,6 +219,10 @@ if ($currenttab == "Beheer logins" and toegang()) {
 	phpinfo();
 }
 
+$query = "SELECT Version() AS Version;";
+$result = fnQuery($query);
+printf("<div id='versies'>\nMySQL: %s / PHP: %s</div>  <!-- Einde versies -->\n", substr($result->fetchColumn(), 0, 6), substr(phpversion(), 0, 5));
+
 HTMLfooter();
 
 function fnInstellingen() {
