@@ -173,6 +173,10 @@ if ($currenttab == "Beheer logins" and toegang()) {
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=artikelenopschonen\"' value='Artikelen opschonen'>&nbsp;Opschonen van artikelen zonder bestellingen uit de webshop.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	echo("</div>  <!-- Einde dbonderhoud -->\n");
 	
+	$query = "SELECT Version() AS Version;";
+	$result = fnQuery($query);
+	printf("<div id='versies'>\nMySQL: %s / PHP: %s</div>  <!-- Einde versies -->\n", substr($result->fetchColumn(), 0, 6), substr(phpversion(), 0, 5));
+	
 } elseif ($currenttab == "Logboek" and toegang($_GET['tp'])) {
 	if (!isset($_POST['lidfilter']) or strlen($_POST['lidfilter']) == 0) {
 		$_POST['lidfilter'] = 0;
@@ -218,10 +222,6 @@ if ($currenttab == "Beheer logins" and toegang()) {
 } elseif ($currenttab == "Info" and toegang($_GET['tp'])) {
 	phpinfo();
 }
-
-$query = "SELECT Version() AS Version;";
-$result = fnQuery($query);
-printf("<div id='versies'>\nMySQL: %s / PHP: %s</div>  <!-- Einde versies -->\n", substr($result->fetchColumn(), 0, 6), substr(phpversion(), 0, 5));
 
 HTMLfooter();
 
