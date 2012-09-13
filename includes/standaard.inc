@@ -803,12 +803,12 @@ class RBMmailer extends PHPMailer {
 	
 		$rv = "";
 		$row = db_lid("record", "", $lidid);
-		if (isValidMailAddress($row->Email, 0)) {
+		if (strlen($row->Email) > 5 and self::ValidateAddress($row->Email)) {
 			if (in_array($row->Email, $this->to) == false) {
 				$this->AddAddress($row->Email, $row->NaamLid);
 			}
 			$rv = $row->Email;
-		} elseif (isValidMailAddress($row->EmailVereniging, 0)) {
+		} elseif (strlen($row->EmailVereniging) > 5 and self::ValidateAddress($row->EmailVereniging)) {
 			if (in_array($row->EmailVereniging, $this->to) == false) {
 				$this->AddAddress($row->EmailVereniging, $row->NaamLid);
 			}
@@ -829,11 +829,10 @@ class RBMmailer extends PHPMailer {
 		}
 		$rv = "";
 		
-		if ($geboren > date("Y-m-d", mktime(0, 0, 0, date("m"), date("d"), date("Y")-88)) and strlen($emailouders) > 5) {
+		if ($geboren > date("Y-m-d", mktime(0, 0, 0, date("m"), date("d"), date("Y")-18)) and strlen($emailouders) > 5) {
 			$emailouders = str_replace(" ", "", $emailouders);
 			$emailouders = str_replace(";", ",", $emailouders);
 			foreach(explode(",", $emailouders) as $e) {
-				$e = strtolower($e);
 				if (self::ValidateAddress($e) and in_array($e, $this->to) == false and in_array($e, $this->cc) == false) {
 					$this->AddAnAddress($kind, $e);
 					if (strlen($rv) > 0) {
