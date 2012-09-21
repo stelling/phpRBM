@@ -61,28 +61,28 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 } elseif ($_GET['op'] == "afmeldenwijz" and $_GET['tp'] == "Downloaden wijzigingen") {
 	$mess = db_interface("afmelden");
 	printf("<p class='mededeling'>%s</p>\n", $mess);
-} elseif ($_GET['op'] == "backup" and $_GET['tp'] == "DB onderhoud") {
+} elseif ($_GET['op'] == "backup") {
 	$mess = db_backup();
 	printf("<p class='mededeling'>%s</p>\n", $mess);
-} elseif ($_GET['op'] == "logboekopschonen" and $_GET['tp'] == "DB onderhoud") {
+} elseif ($_GET['op'] == "logboekopschonen") {
 	$mess = db_logboek("opschonen");
 	printf("<p class='mededeling'>%s</p>\n", $mess);
-} elseif ($_GET['op'] == "evenementenopschonen" and $_GET['tp'] == "DB onderhoud") {
+} elseif ($_GET['op'] == "evenementenopschonen") {
 	$mess = db_evenement("opschonen");
 	printf("<p class='mededeling'>%s</p>\n", $mess);
-} elseif ($_GET['op'] == "mailingsopschonen" and $_GET['tp'] == "DB onderhoud") {
+} elseif ($_GET['op'] == "mailingsopschonen") {
 	$mess = db_mailing("opschonen");
 	printf("<p class='mededeling'>%s</p>\n", $mess);
-} elseif ($_GET['op'] == "loginsopschonen" and $_GET['tp'] == "DB onderhoud") {
+} elseif ($_GET['op'] == "loginsopschonen") {
 	$mess = db_logins("opschonen");
 	printf("<p class='mededeling'>%s</p>\n", $mess);
-} elseif ($_GET['op'] == "authorisatieopschonen" and $_GET['tp'] == "DB onderhoud") {
+} elseif ($_GET['op'] == "authorisatieopschonen") {
 	$mess = db_authorisation("opschonen");
 	printf("<p class='mededeling'>%s</p>\n", $mess);
-} elseif ($_GET['op'] == "orderregelsopschonen" and $_GET['tp'] == "DB onderhoud") {
+} elseif ($_GET['op'] == "orderregelsopschonen") {
 	$mess = db_orderregel("opschonen");
 	printf("<p class='mededeling'>%s</p>\n", $mess);
-} elseif ($_GET['op'] == "artikelenopschonen" and $_GET['tp'] == "DB onderhoud") {
+} elseif ($_GET['op'] == "artikelenopschonen") {
 	$mess = db_artikel("opschonen");
 	printf("<p class='mededeling'>%s</p>\n", $mess);
 }
@@ -153,7 +153,7 @@ if ($currenttab == "Beheer logins" and toegang()) {
 		echo("<p class='mededeling'>Er zijn geen wijzigingen die nog verwerkt moeten worden.</p>\n");
 	}
 	echo("</form>\n");
-} elseif ($currenttab == "DB onderhoud" and toegang($_GET['tp'])) {
+} elseif ($currenttab == "Onderhoud" and toegang($_GET['tp'])) {
 	db_onderhoud();
 
 	echo("<div id='dbonderhoud'>\n");

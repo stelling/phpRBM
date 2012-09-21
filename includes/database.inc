@@ -121,8 +121,8 @@ if (!isset($_SESSION['aantalkostenplaatsen'])) {
 	$_SESSION['aantalkostenplaatsen'] = db_scalar($query);
 }
 
-function fnQuery($query, $add_prefix=1) {
-   global $dbc, $table_prefix, $arrTables;
+function fnQuery($query) {
+   global $dbc;
 	
 	$starttijd = microtime(true);
 	

@@ -1,4 +1,4 @@
- <?php
+<?php
 
 if ((!isset($_SESSION['username']) or strlen($_SESSION['username']) == 0) and isset($_COOKIE['username'])) {
 	$_SESSION['username'] = $_COOKIE['username'];

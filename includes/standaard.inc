@@ -3,7 +3,7 @@ date_default_timezone_set('Europe/Amsterdam');
 setlocale(LC_ALL,'nl_NL@euro');
 
 if (session_start() === FALSE or strlen(session_id()) == 0) {
-	$mess = "De sessie kan niet gestart worden, hierdoor kan er op dit moment niet gelogd worden.";
+	$mess = "De sessie kan niet gestart worden, hierdoor kan er op dit moment niet ingelogd worden.";
 	db_logboek("add", $mess, 1, 0, 1);
 } 
 
@@ -22,18 +22,19 @@ $dir = substr($dir, 0, strrpos($dir, "/"));
 require_once($dir . '/config.php');
 
 $bestandsversie = filectime($dir . "/index.php");
-$includes = array("database.inc", "authentication.inc", "leden.inc", "bewaking.inc", "evenement.inc", "mailing.inc", "webshop.inc", "class.phpmailer.php");
+$includes = array("database", "authentication", "leden", "bewaking", "evenement", "mailing", "standaard", "webshop");
 foreach ($includes as $incl) {
-	$incl = $dir . "/includes/" . $incl;
+	$incl = $dir . "/includes/" . $incl . ".inc";
 	if ($bestandsversie < filectime($incl)) {
 		$bestandsversie = filectime($incl);
 	}
 	require_once($incl);
 }
-if ($bestandsversie/100000 != db_param("versie")) {
+require_once($dir . "/includes/class.phpmailer.php");
+if ($bestandsversie != db_param("versie")) {
 	db_createtables();
 	db_onderhoud();
-	db_param("versie", "updval", $bestandsversie/100000);
+	db_param("versie", "updval", $bestandsversie);
 }
 
 // Vullen sessie met config variabelen
@@ -98,7 +99,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if (db_interface("aantalopenstaand") > 0) {
 		$tabpages[] = "Downloaden wijzigingen";
 	}
-	$tabpages[] = "DB onderhoud";
+	$tabpages[] = "Onderhoud";
 	$tabpages[] = "Logboek";
 } else {
 	$tabpages[] = "Vereniging";
