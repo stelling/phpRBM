@@ -22,15 +22,18 @@ $dir = substr($dir, 0, strrpos($dir, "/"));
 require_once($dir . '/config.php');
 
 $bestandsversie = filectime($dir . "/index.php");
-$includes = array("database", "authentication", "leden", "bewaking", "evenement", "mailing", "standaard", "webshop");
+$includes = array("database", "authentication", "leden", "bewaking", "evenement", "mailing", "standaard", "webshop", "rbm_mailer.class", "simple_image.class");
 foreach ($includes as $incl) {
-	$incl = $dir . "/includes/" . $incl . ".inc";
+	if (substr($incl, -6) == ".class") {
+		$incl = $dir . "/includes/" . $incl . ".php";
+	} else {
+		$incl = $dir . "/includes/" . $incl . ".inc";
+	}
 	if ($bestandsversie < filectime($incl)) {
 		$bestandsversie = filectime($incl);
 	}
 	require_once($incl);
 }
-require_once($dir . "/includes/class.phpmailer.php");
 if ($bestandsversie != db_param("versie")) {
 	db_createtables();
 	db_onderhoud();
@@ -765,182 +768,6 @@ function change_month_to_uk($strdate) {
 	}
 	
 	return $strdate;
-}
-
-class RBMmailer extends PHPMailer {
-
-	function __construct($lidid=-1) {
-		global $table_prefix, $selectnaam;
-	
-		$smtphost = db_param("smtphost");
-		if (strlen($smtphost) > 0) {
-			$this->Host = $smtphost;
-			if (db_param("smtpport") > 0) {
-				$this->Port = db_param("smtpport");
-			}
-			$this->IsSMTP(true);
-			$smtpuser = db_param("smtpuser");
-			if (strlen($smtpuser) > 0) {
-				$this->SMTPAuth = true;
-				$this->Username = $smtpuser;
-				$this->Password = db_param("smtppw");	
-			} else {
-				$this->SMTPAuth = false;
-			}
-		} else {
-			$this->IsMail(true);
-		}
-		$this->IsHTML(true);
-		$this->From = $_SESSION['emailwebmaster'];
-		$this->FromName = $_SESSION['naamvereniging'];
-		$this->WordWrap = 110;
-		
-		if ($lidid > 0) {
-			$this->ToevoegenLid($lidid);
-		}
-	}
-	
-	public function ToevoegenLid($lidid) {
-	
-		$rv = "";
-		$row = db_lid("record", "", $lidid);
-		if (strlen($row->Email) > 5 and self::ValidateAddress($row->Email)) {
-			if (in_array($row->Email, $this->to) == false) {
-				$this->AddAddress($row->Email, $row->NaamLid);
-			}
-			$rv = $row->Email;
-		} elseif (strlen($row->EmailVereniging) > 5 and self::ValidateAddress($row->EmailVereniging)) {
-			if (in_array($row->EmailVereniging, $this->to) == false) {
-				$this->AddAddress($row->EmailVereniging, $row->NaamLid);
-			}
-			$rv = $row->EmailVereniging;
-		}
-		if (strlen($rv) > 0) {
-			$this->InformerenOuders($row->GEBDATUM, $row->EmailOuders, "cc");
-		} else {
-			$rv = $this->InformerenOuders($row->GEBDATUM, $row->EmailOuders, "to");
-		}
-		
-		return $rv;
-	}
-	
-	public function InformerenOuders($geboren, $emailouders, $kind="cc") {
-		if ($kind != "to" and count($this->to) == 0) {
-			$kind = "to";
-		}
-		$rv = "";
-		
-		if ($geboren > date("Y-m-d", mktime(0, 0, 0, date("m"), date("d"), date("Y")-18)) and strlen($emailouders) > 5) {
-			$emailouders = str_replace(" ", "", $emailouders);
-			$emailouders = str_replace(";", ",", $emailouders);
-			foreach(explode(",", $emailouders) as $e) {
-				if (self::ValidateAddress($e) and in_array($e, $this->to) == false and in_array($e, $this->cc) == false) {
-					$this->AddAnAddress($kind, $e);
-					if (strlen($rv) > 0) {
-						$rv .= ", ";
-					}
-					$rv .= $e;
-				}
-			}
-		}
-		return $rv;
-	}
-	
-	public function ListAddresses($kind="to") {
-		$rv = "";
-		foreach($this->$kind as $e) {
-			if (strlen($rv) > 0) {
-				$rv .= ", ";
-			}
-			$rv .= $e[0];
-		}
-		return strtolower($rv);
-	}
-
-}
-
-/*
-* Author: Simon Jarvis
-* Copyright: 2006 Simon Jarvis
-* Date: 08/11/2006
-* Link: http://www.white-hat-web-design.co.uk/articles/php-image-resizing.php
-* 
-* This program is free software; you can redistribute it and/or 
-* modify it under the terms of the GNU General Public License 
-* as published by the Free Software Foundation; either version 2 
-* of the License, or (at your option) any later version.
-* 
-* This program is distributed in the hope that it will be useful, 
-* but WITHOUT ANY WARRANTY; without even the implied warranty of 
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
-* GNU General Public License for more details: 
-* http://www.gnu.org/licenses/gpl.html
-*
-*/
- 
-class SimpleImage {
-   
-   var $image;
-   var $image_type;
- 
-   function load($filename) {
-      $image_info = getimagesize($filename);
-      $this->image_type = $image_info[2];
-      if( $this->image_type == IMAGETYPE_JPEG ) {
-         $this->image = imagecreatefromjpeg($filename);
-      } elseif( $this->image_type == IMAGETYPE_GIF ) {
-         $this->image = imagecreatefromgif($filename);
-      } elseif( $this->image_type == IMAGETYPE_PNG ) {
-         $this->image = imagecreatefrompng($filename);
-      }
-   }
-   function save($filename, $image_type=IMAGETYPE_JPEG, $compression=75, $permissions=null) {
-      if( $image_type == IMAGETYPE_JPEG ) {
-         imagejpeg($this->image,$filename,$compression);
-      } elseif( $image_type == IMAGETYPE_GIF ) {
-         imagegif($this->image,$filename);         
-      } elseif( $image_type == IMAGETYPE_PNG ) {
-         imagepng($this->image,$filename);
-      }   
-      if( $permissions != null) {
-         chmod($filename,$permissions);
-      }
-   }
-   function output($image_type=IMAGETYPE_JPEG) {
-      if( $image_type == IMAGETYPE_JPEG ) {
-         imagejpeg($this->image);
-      } elseif( $image_type == IMAGETYPE_GIF ) {
-         imagegif($this->image);         
-      } elseif( $image_type == IMAGETYPE_PNG ) {
-         imagepng($this->image);
-      }   
-   }
-   function getWidth() {
-      return imagesx($this->image);
-   }
-   function getHeight() {
-      return imagesy($this->image);
-   }
-   function resizeToHeight($height) {
-      $ratio = $height / $this->getHeight();
-      $width = $this->getWidth() * $ratio;
-      $this->resize($width,$height);
-   }
-   function resizeToWidth($width) {
-      $ratio = $width / $this->getWidth();
-      $height = $this->getheight() * $ratio;
-      $this->resize($width,$height);
-   }
-   function scale($scale) {
-      $width = $this->getWidth() * $scale/100;
-      $height = $this->getheight() * $scale/100; 
-      $this->resize($width,$height);
-   }
-   function resize($width,$height) {
-      $new_image = imagecreatetruecolor($width, $height);
-      imagecopyresampled($new_image, $this->image, 0, 0, 0, 0, $width, $height, $this->getWidth(), $this->getHeight());
-      $this->image = $new_image;   
-   }      
 }
 
 ?>
