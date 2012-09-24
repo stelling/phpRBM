@@ -460,6 +460,9 @@ class mailing {
 			height : 450,
 			entities : false,
 			uiColor : '#9AB8F3',
+			pasteFromWordRemoveFontStyles : true,
+			scayt_sLang : 'nl_NL',
+			scayt_autoStartup : true,
 			toolbar :
 			[
 				['Bold','Italic','Underline','Strike','-','Subscript','Superscript'],
@@ -604,7 +607,7 @@ class mailing {
 
 		printf("</form>\n");
 		echo("</div>  <!-- Einde mailing -->\n");
-	}
+	} # edit
 	
 	public function post_form() {
 		global $table_prefix;
