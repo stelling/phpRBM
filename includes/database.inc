@@ -439,8 +439,10 @@ function db_lidmaatschap($actie, $lidid, $opgezegd="", $rid=0, $liddatum="", $li
 		
 		if (strlen($lidnr) > 0 and is_numeric($lidnr) and $lidnr > 0 and $lidnr != $cur->Lidnr) {
 			$set_clause = sprintf("Lidnr=%d, ", $lidnr);
+			$wijz = sprintf("Veld Lidnr is %d geworden.", $lidnr);
 		} else {
 			$set_clause = "";
+			$wijz = "";
 		}
 		$set_access = $set_clause;
 		
@@ -448,6 +450,7 @@ function db_lidmaatschap($actie, $lidid, $opgezegd="", $rid=0, $liddatum="", $li
 			if ($liddatum != $cur->LIDDATUM) {
 				$set_clause .= sprintf("LIDDATUM='%s', ", $liddatum);
 				$set_access .= sprintf("LIDDATUM=%s, ", accessdate($liddatum));
+				$wijz .= sprintf(" Veld Liddatum is '%s' geworden.", $liddatum);
 			}
 		}
 		
@@ -455,10 +458,12 @@ function db_lidmaatschap($actie, $lidid, $opgezegd="", $rid=0, $liddatum="", $li
 			if ($opgezegd != $cur->Opgezegd) {
 				$set_clause .= sprintf("Opgezegd='%s',", $opgezegd);
 				$set_access .= sprintf("Opgezegd=%s,", accessdate($opgezegd));
+				$wijz .= sprintf(" Veld Opgezegd is '%s' geworden.", $opgezegd);
 			}
 		} elseif (strlen($opgezegd) == 0 or strtolower($opgezegd) == "niet") {
 			$set_clause .= "Opgezegd=NULL,";
 			$set_access .= "Opgezegd=NULL,";
+			$wijz .= " Veld Opgezegd is leeg gemaakt.";
 		}
 		if (strlen($set_clause) > 5) {
 			$query = sprintf("UPDATE %sLidmaatschap SET %s Gewijzigd=SYSDATE() WHERE Lid=%d AND LIDDATUM='%s';", $table_prefix, $set_clause, $cur->Lid, $cur->LIDDATUM);
@@ -466,16 +471,22 @@ function db_lidmaatschap($actie, $lidid, $opgezegd="", $rid=0, $liddatum="", $li
 			if ($result > 0) {
 				$query = sprintf("UPDATE Lidmaatschap SET %s Gewijzigd=SYSDATE() WHERE Lid=%d AND LIDDATUM=%s;", $set_access, $cur->Lid, accessdate($cur->LIDDATUM));
 				db_interface("add", $query, $lidid);
+				$mess = sprintf("Lidmaatschap van lid %s is gewijzigd. %s", db_naamlid($lidid), $wijz);
+				db_logboek("add", $mess, 6);
 			}
 		}
 	} elseif ($actie == "add" and $lidid > 0) {
 		$query = sprintf("SELECT IFNULL(MAX(Lidnr), 100) FROM %sLidmaatschap;", $table_prefix);
 		$lidnr = db_scalar($query) + 1;
 		$liddatum = date("Y-m-d");
-		$query = sprintf("INSERT INTO %sLidmaatschap (Lid, Lidnr, LIDDATUM, Ingevoerd, Gewijzigd) VALUES (%d, %d, '%s', CURDATE(), SYSDATE());", $table_prefix, $lidid, $lidnr, $liddatum);
-		fnQuery($query);
-		$query = sprintf("INSERT INTO Lidmaatschap (Lid, Lidnr, LIDDATUM, Ingevoerd, Gewijzigd) VALUES (%d, %d, %s, CURDATE(), SYSDATE());", $lidid, $lidnr, accessdate($liddatum));
-		db_interface("add", $query, $lidid);
+		$query = sprintf("INSERT INTO %sLidmaatschap (Lid, Lidnr, LIDDATUM, Opgezegd, Ingevoerd, Gewijzigd) VALUES (%d, %d, '%s', NULL, CURDATE(), SYSDATE());", $table_prefix, $lidid, $lidnr, $liddatum);
+		$result = fnQuery($query);
+		if ($result > 0) {
+			$query = sprintf("INSERT INTO Lidmaatschap (Lid, Lidnr, LIDDATUM, Ingevoerd, Gewijzigd) VALUES (%d, %d, %s, CURDATE(), SYSDATE());", $lidid, $lidnr, accessdate($liddatum));
+			db_interface("add", $query, $lidid);
+			$mess = sprintf("Bij lid %s is een lidmaatschap met nummer %d toegevoegd.", db_naamlid($lidid), $lidnr);
+			db_logboek("add", $mess, 6);
+		}
 	}
 	
 } # db_lidmaatschap
