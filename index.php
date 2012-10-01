@@ -32,13 +32,16 @@ if ($currenttab !== "Mailing") {
 	}
 }
 
-if ($currenttab == "Eigen gegevens" and toegang($_GET['tp'])) {
+if (toegang() == false) {
+	$mess = sprintf("<p class='mededeling'>Je hebt tot %s geen toegang.</p>\n", $_GET['tp']);
+	db_logboek("add", $mess, 5, 0, 1);
+} elseif ($currenttab == "Eigen gegevens") {
 	if ($_SESSION['lidid'] > 0) {
 		fnOverviewLid($_SESSION['lidid'], $currenttab2);
 	} else {
 		echo("<p class='mededeling'>Er is geen lid ingelogd.</p>\n");
 	}
-} elseif ($currenttab == "Zelfservice" and toegang($_GET['tp'])) {
+} elseif ($currenttab == "Zelfservice") {
 	if ($currenttab2 == "Inschrijving bewaking") {
 		inschrijvenbewaking($_SESSION['lidid']);
 	} elseif ($currenttab2 == "Inschrijving evenementen") {
@@ -54,11 +57,11 @@ if ($currenttab == "Eigen gegevens" and toegang($_GET['tp'])) {
 	} else {
 		fnOverviewLid(0, $currenttab2);
 	}
-} elseif ($currenttab == "Wijzigen lid" and toegang()) {
+} elseif ($currenttab == "Wijzigen lid") {
 	if (isset($_GET['lidid']) and is_numeric($_GET['lidid']) and $_GET['lidid'] > 0) {
 		fnWijzigen($_GET['lidid'], $currenttab2);
 	}
-} elseif ($currenttab == "Vereniging" and toegang()) {
+} elseif ($currenttab == "Vereniging") {
 	fnDispMenu(2);
 	if ($currenttab2 == "Introductie") {
 		fnVoorblad();
@@ -70,17 +73,17 @@ if ($currenttab == "Eigen gegevens" and toegang($_GET['tp'])) {
 	} else {
 		fnWieiswie($currenttab2, db_param("kaderoverzichtmetfoto"));
 	}
-} elseif ($currenttab == "Ledenlijst" and toegang()) {
+} elseif ($currenttab == "Ledenlijst") {
 	fnLedenlijst();
-} elseif ($currenttab == "Bewaking" and toegang()) {
+} elseif ($currenttab == "Bewaking") {
 	fnBewaking();
-} elseif ($currenttab == "Kostenoverzicht" and toegang()) {
+} elseif ($currenttab == "Kostenoverzicht") {
 	fnKostenoverzicht();
-} elseif ($currenttab == "Mailing" and toegang()) {
+} elseif ($currenttab == "Mailing") {
 	fnMailing();
-} elseif ($currenttab == "Evenementen" and toegang()) {
+} elseif ($currenttab == "Evenementen") {
 	fnEvenementen();
-} elseif ($currenttab == "Bestellingen" and toegang()) {
+} elseif ($currenttab == "Bestellingen") {
 	fnWebshop();
 } elseif (!isset($_SESSION['username']) or strlen($_SESSION['username']) <= 5) {
 	fnLoginAanvragen();

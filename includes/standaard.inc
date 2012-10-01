@@ -185,6 +185,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		$tabpages[] = "Wijzigen lid/Diploma's";
 		$tabpages[] = "Wijzigen lid/Pasfoto";
 		$tabpages[] = "Wijzigen lid/Bijzonderheden";
+		$tabpages[] = "Wijzigen lid/Lidmaatschap";
 	}
 	if ($_SESSION['aantalbewaking'] > 0) {
 		$tabpages[] = "Bewaking";
@@ -349,7 +350,7 @@ function HTMLheader($refresh=0) {
 		echo("</div> <!-- Einde header -->\n");
 		echo("<div class='clear'></div>\n");
 	}
-}
+} # HTMLheader
 
 function HTMLfooter() {
 	global $table_prefix, $navpad, $bestandsversie;
@@ -387,7 +388,7 @@ function HTMLfooter() {
 		echo("</body>\n");
 		echo("</html>\n");
 	}
-}
+} # HTMLfooter
 
 function isValidMailAddress($address, $LeegIsGoed=0){
 
@@ -400,7 +401,7 @@ function isValidMailAddress($address, $LeegIsGoed=0){
 	} else {
 		return true;
 	}
-}
+} # isValidMailAddress
 
 function fnDispEmail($strEmail, $strNaam="", $booInclLink=1) {
 	if (strpos($strEmail, "<") > 2 and strlen($strnaam) < 3) {
@@ -729,15 +730,17 @@ function debug($tekst, $alleenwm=1, $alert=0, $logact=0) {
 			db_logboek("add", "Debug: " . $tekst, $type=99);
 		}
 	}
-}
+} # debug
 
 function accessdate($sqldate) {
-	if (strlen($sqldate) < 10) {
-		return "##";
+	if (strlen($sqldate) == 0) {
+		return "NULL";
+	} elseif (strtotime($sqldate) != false) {
+		return "#" . date("m/d/Y", strtotime($sqldate)) . "#";
 	} else {
-		return "#" . date(m/d/Y, strtotime($sqldate)) . "#";
+		return false;
 	}
-}
+} # accessdate
 
 function startwith($value, $start) {
 	if (substr($value, 0, strlen($start)) == $start) {
@@ -745,11 +748,11 @@ function startwith($value, $start) {
 	} else {
 		return false;
 	}
-}
+} # startwith
 
 function change_month_to_uk($strdate) {
 
-	$arrMonth[]=array("From" => "january", "To" => "January");
+	$arrMonth[]=array("From" => "januari", "To" => "January");
 	$arrMonth[]=array("From" => "februari", "To" => "February");
 	$arrMonth[]=array("From" => "maart", "To" => "March");
 	$arrMonth[]=array("From" => "april", "To" => "April");
@@ -761,13 +764,17 @@ function change_month_to_uk($strdate) {
 	$arrMonth[]=array("From" => "oktober", "To" => "October");
 	$arrMonth[]=array("From" => "november", "To" => "November");
 	$arrMonth[]=array("From" => "december", "To" => "December");
+	$arrMonth[]=array("From" => "morgen", "To" => "tomorrow");
+	$arrMonth[]=array("From" => "vandaag", "To" => "today");
+	$arrMonth[]=array("From" => "gisteren", "To" => "yesterday");
 	
-	foreach ($arrMonth as $key => $value) {
-		$strdate = str_ireplace(" " . substr($value["From"], 0, 3) . " ", " " . $value["To"] . " ", $strdate);
-		$strdate = str_ireplace(" " . $value["From"], " " . $value["To"], $strdate);
+	if (strlen($strdate) > 4) {
+		foreach ($arrMonth as $key => $value) {
+			$strdate = str_ireplace(" " . substr($value["From"], 0, 3) . " ", " " . $value["To"] . " ", $strdate);
+			$strdate = str_ireplace(" " . $value["From"], " " . $value["To"], $strdate);
+		}
 	}
-	
 	return $strdate;
-}
+} # change_month_to_uk
 
 ?>

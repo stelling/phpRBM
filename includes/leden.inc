@@ -85,6 +85,9 @@ function fnWijzigen($lidid=0, $actie="") {
 
 		} elseif ($actie == "Opzegging") {
 				opzegginglidmaatschap($_SESSION['lidid']);
+				
+		} elseif ($actie == "Lidmaatschap") {
+				lidmaatschapmuteren($lidid);
 			
 		} elseif ($actie == "Profiel") {
 		
@@ -132,12 +135,12 @@ function fnWijzigen($lidid=0, $actie="") {
 			}
 			
 		} else {
-			echo("<p class='mededeling'>Je hebt geen toegang.</p>\n");
+			echo("<p class='mededeling'>Deze optie bestaat niet.</p>\n");
 		}
 	} else {
 		echo("<p class='mededeling'>Er is geen lid geselecteerd.</p>\n4");
 	}
-}
+} # fnWijzigen
 
 function fnWieiswie($actie, $metfoto=1) {
 	global $ldl;
@@ -1009,6 +1012,66 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 	echo($oldvals);
 	echo("</form>\n");
 	echo("</div>  <!-- Einde wijzigendiplomas -->\n");
+}
+
+function lidmaatschapmuteren($lidid) {
+	
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+	
+		foreach (db_lidmaatschap("overzichtlid", $lidid) as $row) {
+			$lidnr = sprintf("Lidnr_%d", $row->RecordID);
+			$vanaf = sprintf("Vanaf_%d", $row->RecordID);
+			$opgezegd = sprintf("Opgezegd_%d", $row->RecordID);
+			db_lidmaatschap("update", $row->Lid, $_POST[$opgezegd], $row->RecordID, $_POST[$vanaf], $_POST[$lidnr]);
+		}
+			
+		if (isset($_POST['NieuwLidmaatschap'])) {
+			db_lidmaatschap("add", $lidid);
+		}
+		
+	} # if post
+	
+	echo("<div id='lidmaatschapmuteren'>\n");
+	$actionurl = sprintf("%s?tp=%s&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
+	printf("<form method='post' action='%s' name='frm_lidmaatschapmuteren'>\n", $actionurl);
+	echo("<table>\n");
+	echo("<tr><th>RecordID</th><th>Lidnummer</th><th>Lid vanaf</th><th>Opgezegd per</th><tr>\n");
+	$toev = true;
+	$aant = 0;
+	foreach (db_lidmaatschap("overzichtlid", $lidid) as $row) {
+		echo("<tr>\n");
+		printf("<td>%d</td>\n", $row->RecordID);
+		printf("<td><input type='number' class='inputnumber' name='Lidnr_%d' value=%d></td>\n", $row->RecordID, $row->Lidnr);
+		printf("<td><input name='Vanaf_%d' value='%s'></td>\n", $row->RecordID, strftime('%e %B %Y', strtotime($row->LIDDATUM)));
+		if ($row->Opgezegd >= "1901-01-01") {
+			$v = strftime('%e %B %Y', strtotime($row->Opgezegd));
+			if ($row->Opgezegd >= date("Y-m-d")) {
+				$toev = false;
+			} elseif ($row->LIDDATUM >= date("Y-m-d")) {
+				$toev = false;
+			}
+		} else {
+			$v = "";
+			$toev = false;
+		}
+		printf("<td><input name='Opgezegd_%d' value='%s'></td>\n", $row->RecordID, $v);
+		echo("</tr>\n");
+		$aant++;
+	} # foreach
+	
+	echo("<tr>\n<th colspan=4>\n");
+	if ($aant > 0) {
+		echo("<input type='submit' value='Bijwerken'>\n");
+	}
+	if ($toev) {
+		echo("<button name='NieuwLidmaatschap' value=1>Nieuw lidmaatschap</button>");
+	}
+	echo("</th></tr>\n");
+	
+	echo("</table>\n");
+	echo("</form>\n");
+	echo("</div>  <!-- Einde lidmaatschapmuteren -->\n");
+	
 }
 
 ?>

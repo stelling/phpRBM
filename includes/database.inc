@@ -33,7 +33,7 @@ $TypeActiviteit[1] = "Inloggen/Uitloggen";
 $TypeActiviteit[2] = "DB onderhoud";
 $TypeActiviteit[3] = "DB backup";
 $TypeActiviteit[4] = "Mailing";
-$TypeActiviteit[5] = "Autorisaties";
+$TypeActiviteit[5] = "Autorisatie";
 $TypeActiviteit[6] = "Mutaties lidgegevens";
 $TypeActiviteit[7] = "Evenementen";
 $TypeActiviteit[8] = "Interface";
@@ -394,29 +394,91 @@ function db_lid($actie, $filter="", $lidid=0, $nv="") {
 	
 	$result = fnQuery($query);
 	return $result->fetchAll();
-}
+} # db_lid
 
-function db_lidmaatschap($actie, $lidid, $opgezegd) {
+function db_lidmaatschap($actie, $lidid, $opgezegd="", $rid=0, $liddatum="", $lidnr=0) {
 	global $table_prefix, $fdaccess, $fdsql;
 
 	$naamlid = db_naamlid($lidid);
+	
+	$liddatum = change_month_to_uk($liddatum);
+	if (strlen($liddatum) > 4 and strtotime($liddatum) != false) {
+		$liddatum = strftime($fdsql, strtotime($liddatum));
+	} else {
+		$liddatum = "";
+	}
+	
 	$opgezegd = change_month_to_uk($opgezegd);
-	$opgezegd = strftime($fdsql, strtotime($opgezegd));
-	$opgaccess = strftime($fdaccess, strtotime($opgezegd));
+	if (strlen($opgezegd) > 4 and strtotime($opgezegd) != false) {
+		$opgezegd = strftime($fdsql, strtotime($opgezegd));
+	} else {
+		$opgezegd = "";
+	}
 
-	if ($actie == "opzegging") {
+	if ($actie == "opzegging" and strlen($opgezegd) > 4) {
 		$query = sprintf("UPDATE %sLidmaatschap SET Opgezegd='%s', Gewijzigd=SYSDATE() WHERE Lid=%d AND (Opgezegd IS NULL);", $table_prefix, $opgezegd, $lidid);
 		$result = fnQuery($query);
 		if ($result > 0) {
-			$query = sprintf("UPDATE Lidmaatschap SET Opgezegd=#%s#, Gewijzigd=SYSDATE() WHERE Lid=%d AND (Opgezegd IS NULL);", $opgaccess, $lidid);
+			$query = sprintf("UPDATE Lidmaatschap SET Opgezegd=%s, Gewijzigd=SYSDATE() WHERE Lid=%d AND (Opgezegd IS NULL);", accessdate($opgezegd), $lidid);
 			db_interface("add", $query, $lidid);
 			$mess = sprintf("De opzegging per %s van %s is verwerkt. ", $opgezegd, $naamlid);
 		} else {
 			$mess = sprintf("De opzegging per %s van %s is niet verwerkt. ", $opgezegd, $naamlid);
 		}
 		return $mess;
+	} elseif ($actie == "overzichtlid" and $lidid > 0) {
+		$query = sprintf("SELECT * FROM %sLidmaatschap
+					WHERE Lid=%d AND ((Opgezegd IS NULL) OR Opgezegd >= LIDDATUM)
+					ORDER BY LIDDATUM;", $table_prefix, $lidid);
+		$result = fnQuery($query);
+		return $result->fetchAll();
+	} elseif ($actie == "update" and $rid > 0) {
+		$query = sprintf("SELECT * FROM %sLidmaatschap WHERE RecordID=%d AND Lid=%d;", $table_prefix, $rid, $lidid);
+		$result = fnQuery($query);
+		$cur = $result->fetch();
+		
+		if (strlen($lidnr) > 0 and is_numeric($lidnr) and $lidnr > 0 and $lidnr != $cur->Lidnr) {
+			$set_clause = sprintf("Lidnr=%d, ", $lidnr);
+		} else {
+			$set_clause = "";
+		}
+		$set_access = $set_clause;
+		
+		if (strlen($liddatum) > 4 and strtotime($liddatum) != false) {
+			if ($liddatum != $cur->LIDDATUM) {
+				$set_clause .= sprintf("LIDDATUM='%s', ", $liddatum);
+				$set_access .= sprintf("LIDDATUM=%s, ", accessdate($liddatum));
+			}
+		}
+		
+		if (strlen($opgezegd) > 4 and strtotime($opgezegd) != false) {
+			if ($opgezegd != $cur->Opgezegd) {
+				$set_clause .= sprintf("Opgezegd='%s',", $opgezegd);
+				$set_access .= sprintf("Opgezegd=%s,", accessdate($opgezegd));
+			}
+		} elseif (strlen($opgezegd) == 0 or strtolower($opgezegd) == "niet") {
+			$set_clause .= "Opgezegd=NULL,";
+			$set_access .= "Opgezegd=NULL,";
+		}
+		if (strlen($set_clause) > 5) {
+			$query = sprintf("UPDATE %sLidmaatschap SET %s Gewijzigd=SYSDATE() WHERE Lid=%d AND LIDDATUM='%s';", $table_prefix, $set_clause, $cur->Lid, $cur->LIDDATUM);
+			$result = fnQuery($query);
+			if ($result > 0) {
+				$query = sprintf("UPDATE Lidmaatschap SET %s Gewijzigd=SYSDATE() WHERE Lid=%d AND LIDDATUM=%s;", $set_access, $cur->Lid, accessdate($cur->LIDDATUM));
+				db_interface("add", $query, $lidid);
+			}
+		}
+	} elseif ($actie == "add" and $lidid > 0) {
+		$query = sprintf("SELECT IFNULL(MAX(Lidnr), 100) FROM %sLidmaatschap;", $table_prefix);
+		$lidnr = db_scalar($query) + 1;
+		$liddatum = date("Y-m-d");
+		$query = sprintf("INSERT INTO %sLidmaatschap (Lid, Lidnr, LIDDATUM, Ingevoerd, Gewijzigd) VALUES (%d, %d, '%s', CURDATE(), SYSDATE());", $table_prefix, $lidid, $lidnr, $liddatum);
+		fnQuery($query);
+		$query = sprintf("INSERT INTO Lidmaatschap (Lid, Lidnr, LIDDATUM, Ingevoerd, Gewijzigd) VALUES (%d, %d, %s, CURDATE(), SYSDATE());", $lidid, $lidnr, accessdate($liddatum));
+		db_interface("add", $query, $lidid);
 	}
-}
+	
+} # db_lidmaatschap
 
 function db_ledenwijzigingen($lidid) {
 	global $selectnaam, $table_prefix;
@@ -492,7 +554,7 @@ function db_memo($actie, $lidid, $srt, $nv="") {
 			db_logboek("add", $mess, 6, 0, 1);
 		}
 	}
-}
+} # db_ledenwijzigingen
 
 function db_authorisation($actie, $recid=0, $tabpage="") {
 	global $table_prefix;
@@ -1752,7 +1814,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 			}
 			$query = sprintf("UPDATE %sLiddipl SET LicentieVervallenPer=%s, Diplomanummer='%s' WHERE RecordID=%d;", $table_prefix, $dwverv, $dipnr, $rid);
 			$result = fnQuery($query);
-			$query = sprintf("UPDATE Liddipl SET LicentieVervallenPer=%s, Diplomanummer='%s' WHERE Lid=%d AND DiplomaID=%d AND EXDATUM=%s;", $dwaverv, $dipnr, $rowld->Lid, $rowld->DiplomaID, $dwaexd);
+			$query = sprintf("UPDATE Liddipl SET LicentieVervallenPer=%s, Diplomanummer='%s', Gewijzigd=SYSDATE() WHERE Lid=%d AND DiplomaID=%d AND EXDATUM=%s;", $dwaverv, $dipnr, $rowld->Lid, $rowld->DiplomaID, $dwaexd);
 			db_interface("add", $query, $rowld->Lid);
 			$mess = sprintf("Diploma '%s' is gewijzigd bij %s", db_diploma("naam", $rowld->DiplomaID), db_naamlid($rowld->Lid));
 			db_logboek("add", $mess, 12);
@@ -2296,6 +2358,7 @@ function db_onderhoud() {
 	}
 	
 	db_addautoincrement("Liddipl");
+	db_addautoincrement("Lidmaatschap");
 	db_addautoincrement("Memo");
 	
 	/***** Aanpassen lengte login in de database als deze kleiner is dan maxlengtelogin  *****/
