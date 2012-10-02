@@ -2212,6 +2212,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrIntegers['typemenu'] = 1;
 	$arrIntegers['verjaardagenaantal'] = 7;
 	$arrIntegers['verjaardagenvooruit'] = 5;
+	$arrIntegers['versie'] = 0;
 	$arrIntegers['zs_opzegtermijn'] = 1;
 	
 	$arrBooleans['db_backuptarren'] = 0;
@@ -2227,6 +2228,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrBooleans['zs_incl_emailvereniging'] = 0;
 	$arrBooleans['zs_incl_legitimatie'] = 1;
 	$arrBooleans['zs_incl_slid'] = 0;
+	$arrBooleans['zs_opzeggingautomatischverwerken'] = 0;
 	
 	$arrStrings['laatstebackup'] = "2012-01-01 00:00";
 	$arrStrings['muteerbarememos'] = "D,G,WN";
@@ -2237,7 +2239,6 @@ function db_param($naam, $actie="curval", $newval="") {
 	
 	$arrFloats['maxmailsperminuut'] = 300;
 	$arrFloats['performance_trage_select'] = 0.5;
-	$arrFloats['versie'] = 0;
 	
 	if ($actie == "lijst") {
 		$query = sprintf("SELECT *, IFNULL(ValueNum, ValueChar) AS CurVal FROM %sAdmin_param ORDER BY Naam;", $table_prefix);
@@ -2275,9 +2276,6 @@ function db_param($naam, $actie="curval", $newval="") {
 		$cur = $result->fetch();
 		if (($cur->ParamType == "B" or $cur->ParamType == "I") and $cur->ValueNum != $newval) {
 			$set = sprintf("ValueNum=%d", $newval);
-			if (array_key_exists($naam, $arrFloats)) {
-				$set .= ", ParamType='F'";
-			}
 		} elseif ($cur->ParamType == "F" and $cur->ValueNum != $newval) {
 			$set = sprintf("ValueNum=%F", $newval);
 		} elseif (($cur->ParamType == "S" or $cur->ParamType == "T") and $cur->ValueChar != $newval) {
@@ -2290,6 +2288,14 @@ function db_param($naam, $actie="curval", $newval="") {
 			$set = "";
 		}
 		if (strlen($set) > 0) {
+			if (array_key_exists($naam, $arrBooleans)) {
+				$set .= ", ParamType='B'";
+			} elseif (array_key_exists($naam, $arrFloats)) {
+				$set .= ", ParamType='F'";
+			} elseif (array_key_exists($naam, $arrIntegers)) {
+				$set .= ", ParamType='I'";
+			}
+		
 			$query = sprintf("UPDATE %sAdmin_param SET %s, GewijzigdDoor=%d WHERE RecordID=%d;", $table_prefix, $set, $_SESSION['lidid'], $cur->RecordID);
 			$result = fnQuery($query);
 			if ($result > 0) {
@@ -2464,8 +2470,8 @@ function db_onderhoud() {
 		
 	/***** Velden die aangepast zijn. De code om ze te wijzigen blijft 3 maanden staan.  *****/
 	
-	// Admin_param/ValueNum, deze code kan na 1/11/2012 worden verwijderd.
-	$query = sprintf("ALTER TABLE `%sAdmin_param` CHANGE `ValueNum` `ValueNum` DECIMAL(14,6) NULL DEFAULT NULL;", $table_prefix);
+	// Admin_param/ValueNum, deze code kan na 1/1/2013 worden verwijderd.
+	$query = sprintf("ALTER TABLE `%sAdmin_param` CHANGE `ValueNum` `ValueNum` DECIMAL(16,6) NULL DEFAULT NULL;", $table_prefix);
 	fnQuery($query);
 	
 	// mailing_hist/ValueNum, deze code kan na 1/11/2012 worden verwijderd.
@@ -2516,7 +2522,7 @@ function db_onderhoud() {
 		fnQuery(sprintf("OPTIMIZE TABLE %sMutatie;", $table_prefix));
 		$mess = sprintf("Er zijn %d mutaties verwijderd, omdat er geen resultaatrekening aan gekoppeld was.", $result);
 		db_logboek("add", $mess, 2, 0, 1);
-	}	
+	}
 		
 	if ($_SERVER["HTTP_HOST"] != "phprbm.telling.nl") {
 		//  Deze tabellen moeten op dit moment alleen in de ontwikkelomgeving aanwezig zijn. 

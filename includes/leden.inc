@@ -890,8 +890,10 @@ function opzegginglidmaatschap($lidid) {
 		db_add_mailing_hist(0, 0, "Ledenadministratie", $emailledenadministratie, $body, $mail, $success);
 		db_logboek("add", $mess, 6, 0, 1);
 		$mail = null;
-		$mess = db_lidmaatschap("opzegging", $lidid, $opgezegdper);
-		db_logboek("add", $mess, 6);
+		if (db_param("zs_opzeggingautomatischverwerken") == 1) {
+			$mess = db_lidmaatschap("opzegging", $lidid, $opgezegdper);
+			db_logboek("add", $mess, 6);
+		}
 		
 	} else {
 		$form_opzegging = sprintf("<div id='opzegformulier'>\n<form name='Opzegging' action='%s' method='post'>\n", $actionurl);
@@ -922,7 +924,7 @@ function opzegginglidmaatschap($lidid) {
 		
 		echo($content);
 	}
-}
+} # opzegginglidmaatschap
 
 function diplomaslidmuteren($lidid, $td, $eenv=1) {
 	global $actionurl;
