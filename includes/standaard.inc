@@ -5,7 +5,7 @@ setlocale(LC_ALL,'nl_NL@euro');
 if (session_start() === FALSE or strlen(session_id()) == 0) {
 	$mess = "De sessie kan niet gestart worden, hierdoor kan er op dit moment niet ingelogd worden.";
 	db_logboek("add", $mess, 1, 0, 1);
-} 
+}
 
 if ((isset($_SESSON['webmaster']) and $_SESSON['webmaster'] == 1) or $_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 	error_reporting(E_ALL);
@@ -110,7 +110,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	$tabpages[] = "Vereniging/Kader";
 	$tabpages[] = "Vereniging/Onderscheidingen";
 	$tabpages[] = "Vereniging/Overige commissies";
-	if (isset($_SESSION['lidid']) and $_SESSION['lidid'] > 0) {
+	if ($_SESSION['lidid'] > 0) {
 		$tabpages[] = "Eigen gegevens";
 		$tabpages[] = "Eigen gegevens/Algemeen";
 		if (count(db_gegevenslid($_SESSION['lidid'], "Afdelingen")) > 0) {
@@ -316,7 +316,8 @@ function HTMLheader($refresh=0) {
 	
 		echo("<div id='login'>\n");
 		echo("<form name='Login' action='/auth.php' method='post'>");
-		if (isset($_SESSION['username']) and strlen($_SESSION['username']) > 4 and $_SESSION['lidid'] > 0) {
+		
+		if ($_SESSION['lidid'] > 0) {
 			printf("Welkom %s\n", htmlentities($_SESSION['roepnaamingelogde']));
 			echo("<a href='/?tp=Zelfservice/Profiel'><img src='images/user.png' title='Profiel wijzigen' alt='Profiel wijzigen'></a>\n");
 			if ($_SERVER['PHP_SELF'] == "/index.php") {
@@ -410,7 +411,7 @@ function fnDispEmail($strEmail, $strNaam="", $booInclLink=1) {
    }
 	$strRet = "";
 	if (isValidMailAddress($strEmail, 0)) {
-		if (isset($_SESSION['lidid']) and $_SESSION['lidid'] > 0) {
+		if ($_SESSION['lidid'] > 0) {
 			$strNaam = str_replace(" ", "%20", htmlentities($strNaam));
 			if (strlen($strNaam) > 3 and $booInclLink == 1) {
 				$strRet = sprintf('<a href="mailto:%1$s%%20<%2$s>">%2$s</a>', $strNaam, $strEmail);

@@ -5,13 +5,8 @@ if ((!isset($_SESSION['username']) or strlen($_SESSION['username']) == 0) and is
 } elseif (!isset($_SESSION['username'])) {
 	$_SESSION['username'] = "";
 }
-if ((!isset($_SESSION['password']) or strlen($_SESSION['password']) == 0) and isset($_COOKIE['password'])) {
-	$_SESSION['password'] = $_COOKIE['password'];
-} elseif (!isset($_SESSION['password'])) {
-	$_SESSION['password'] = "";
-}
 
-function toegang($soort="", $melding=1) {
+function toegang($soort="", $melding=1, $password="") {
 	global $lididwebmasters, $table_prefix, $tabpages, $currenttab, $currenttab2;
 	
 	if (strlen($soort) == 0) {
@@ -23,16 +18,25 @@ function toegang($soort="", $melding=1) {
 	
 	$maxinlogpogingen = db_param("maxinlogpogingen");
 
-	if (isset($_SESSION['lidid']) and $_SESSION['lidid'] > 0 and isset($_SESSION['lastauthenication']) and $_SESSION['lastauthenication'] >= time()-60) {
+	if ($_SESSION['lidid'] > 0 and isset($_SESSION['lastauthenication']) and $_SESSION['lastauthenication'] >= time()-1200) {
 		// Er hoeft niets te gebeuren.
 	} else {
 		db_logins("uitloggen");
-		if (isset($_SESSION['username']) and strlen($_SESSION['username']) > 0 and strlen($_SESSION['password']) > 0) {
-			$row = db_logins("controle");
+		
+		if (strlen($password) == 0 and isset($_COOKIE['password'])) {
+			$password = $_COOKIE['password'];
+		}
+		if (strlen($password) > 12) {
+			$password = substr($password, 0, 12);
+		}
+		
+		if (isset($_SESSION['username']) and strlen($_SESSION['username']) > 0 and strlen($password) > 5) {
+			$row = db_logins("controle", "", $_SESSION['username'], 0, "", $password);
 			if ($maxinlogpogingen > 0 and isset($row->FouteLogin) and $row->FouteLogin > $maxinlogpogingen) {
 				$mess = sprintf("Login '%s' is geblokkeerd, omdat er teveel foute inlog-pogingingen mee zijn gedaan! Je bent niet ingelogd.", $_SESSION['username']);
 				db_logboek("add", $mess, 1, 0, 2);
 				$_SESSION['username'] = "";
+				$_SESSION['lidid'] = 0;
 			} elseif (isset($row->LidID) and $row->LidID > 0) {
 				$_SESSION['lastauthenication'] = time();
 				$_SESSION['lidid'] = $row->LidID;
@@ -68,8 +72,7 @@ function toegang($soort="", $melding=1) {
 			$_SESSION['lidnr'] = 0;
 			$_SESSION['naamingelogde'] = "gast";
 			$_SESSION['roepnaamingelogde'] = "gast";
-			$_SESSION['emailingelogde'] = "";	
-			$_SESSION['password'] = "";
+			$_SESSION['emailingelogde'] = "";
 			if (isset($_COOKIE['username']) and strlen($_COOKIE['username']) > 0) {
 				setcookie("username", "", time()-3600);
 			}
@@ -84,7 +87,7 @@ function toegang($soort="", $melding=1) {
 	} else {
 		$_SESSION['webmaster'] = 0;
 	}
-	if ($_SESSION['lidid'] > 0 and (!isset($_SESSION['lidgroepen']) or $_SESSION['lidgroepen'] = "(0)")) {
+	if ($_SESSION['lidid'] > 0 and (!isset($_SESSION['lidgroepen']) or $_SESSION['lidgroepen'] == "(0)")) {
 		$query = sprintf("SELECT OnderdeelID FROM %sLidond AS LO WHERE LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE()) AND LO.Lid=%d;", $table_prefix, $_SESSION['lidid']);
 		$result = fnQuery($query);
 		$rows = $result->fetchAll(PDO::FETCH_COLUMN);
@@ -93,7 +96,7 @@ function toegang($soort="", $melding=1) {
 		} else {
 			$_SESSION['lidgroepen'] = "(0)";
 		}
-	} elseif (!isset($_SESSION['lidgroepen'])) {
+	} else {
 		$_SESSION['lidgroepen'] = "(0)";
 	}
 	

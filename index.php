@@ -2,6 +2,8 @@
 error_reporting(E_ALL);
 include('./includes/standaard.inc');
 
+// print_r($_SESSION);
+
 if ($_SESSION['aantallid'] == 0) {
 	$query = sprintf("SELECT COUNT(*) FROM %sLid;", $table_prefix);
 	$_SESSION['aantallid'] = db_scalar($query);
@@ -9,11 +11,8 @@ if ($_SESSION['aantallid'] == 0) {
 		echo("<script>alert('Voordat deze website gebruikt kan worden moeten er eerst gegevens uit de Access-database ge-upload worden.');
 			location.href='./admin.php?tp=Uploaden+data';</script>\n");
 	}
-} elseif ((!isset($lidid) or $lidid == 0) and isset($_SESSION['lidid'])) {
-	$lidid = $_SESSION['lidid'];
-} else {
-	$lidid = 0;
 }
+
 
 if (isset($_GET['op']) and $_GET['op'] == "exportins") {
 	header("Content-type: text/plain");
@@ -33,7 +32,7 @@ if ($currenttab !== "Mailing") {
 }
 
 if (toegang() == false) {
-	$mess = sprintf("<p class='mededeling'>Je hebt tot %s geen toegang.</p>\n", $_GET['tp']);
+	$mess = sprintf("Je hebt tot %s geen toegang.", $_GET['tp']);
 	db_logboek("add", $mess, 5, 0, 1);
 } elseif ($currenttab == "Eigen gegevens") {
 	if ($_SESSION['lidid'] > 0) {
@@ -125,7 +124,7 @@ function fnVoorblad($metlogin=0) {
 		$content = str_replace("[%LAATSTEUPLOAD%]", strftime("%e %B %Y (%H:%M)", strtotime($stats['laatsteupload'])), $content);
 		
 		// Gebruiker-specifieke statistieken
-		if (isset($_SESSION['lidid']) and $_SESSION['lidid'] > 0) {
+		if ($_SESSION['lidid'] > 0) {
 			$stats = db_stats($_SESSION['lidid']);
 			$content = str_replace("[%NAAMLID%]", $_SESSION['naamingelogde'], $content);
 			$content = str_replace("[%LIDNR%]", $_SESSION['lidnr'], $content);

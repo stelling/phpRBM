@@ -581,7 +581,8 @@ function db_authorisation($actie, $recid=0, $tabpage="") {
 				fnQuery($query);
 			}
 		} else {
-			echo("<p class='mededeling'>Je hebt geen rechten om authorisaties te verwijderen.</p>\n");
+			$mess = "Je hebt geen rechten om authorisaties te verwijderen.";
+			db_logboek("add", $mess, 5, 0, 1);
 		}
 	} elseif ($actie == "lijst") {
 		$query = sprintf("SELECT RecordID, Toegang, Tabpage FROM %sAdmin_access ORDER BY Tabpage;", $table_prefix);
@@ -957,7 +958,7 @@ function db_stats($lidid=0) {
 	return $stats;
 }
 
-function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
+function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="") {
 	global $dbc, $selectnaam, $selectlidnr, $table_prefix, $lididwebmasters, $wherelidond, $wherelid, $dir, $db_pass;
 	
 	$bewaartijdloginsnietgebruikt = db_param("bewaartijdloginsnietgebruikt");
@@ -1078,7 +1079,8 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 				fnQuery(sprintf("OPTIMIZE TABLE %sAdmin_login;", $table_prefix));
 			}
 		} else {
-			echo("<p class='mededeling'>Je hebt geen rechten om logins te verwijderen.</p>\n");
+			$mess = "Je hebt geen rechten om logins te verwijderen.";
+			db_logboek("add", $mess, 5, 0, 1);
 		}
 		
 	} elseif ($actie == "setingelogd" and $lidid > 0) {
@@ -1119,12 +1121,12 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="") {
 		}
 	
 		$xtrawhere = "";
-		if (isValidMailAddress($_SESSION['username'], 0)) {
-			$xtrawhere = sprintf("AND (LOWER(L.Email) LIKE '%1\$s' OR LOWER(L.EmailVereniging) LIKE '%1\$s')", strtolower($_SESSION['username']));
+		if (isValidMailAddress($login, 0)) {
+			$xtrawhere = sprintf("AND (LOWER(L.Email) LIKE '%1\$s' OR LOWER(L.EmailVereniging) LIKE '%1\$s')", strtolower($login));
 		} else {
-			$xtrawhere = sprintf("AND Login.Login LIKE '%s'", cleanlogin($_SESSION['username']));
+			$xtrawhere = sprintf("AND Login.Login LIKE '%s'", cleanlogin($login));
 		}
-		$xtrawhere .= sprintf(" AND Login.Wachtwoord LIKE '%s'", encript_decript($_SESSION['password']));
+		$xtrawhere .= sprintf(" AND Login.Wachtwoord LIKE '%s'", encript_decript($pw));
 		if (is_array($beperktotgroep) and count($beperktotgroep) > 0) {
 			$xtrawhere .= sprintf(" AND (Login.LidID IN (SELECT Lid FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID IN (%s)) OR Login.LidID IN (%s))", $table_prefix, $wherelidond, implode(", ", $beperktotgroep), implode(", ", $lididwebmasters));
 		} else {
@@ -1241,7 +1243,6 @@ function db_change_password($pw_new, $pw_old, $lidid) {
 			 , $table_prefix, $_SESSION['lidid'], encript_decript($pw_new), encript_decript($pw_old), $lidid);
 	$result = fnQuery($query);
 	if ($result > 0) {
-		$_SESSION['password'] = $pw_new;
 		$mess = sprintf("Het wachtwoord van de login van %s gewijzigd.", db_naamlid($lidid));
 	} else {
 		$mess = "Oude wachtwoord is niet correct, wachtwoord is niet gewijzigd.";
@@ -1338,7 +1339,7 @@ function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr, $message="", $mai
 		}
 	}
 	
-	if (isset($_SESSION['lidid']) and $_SESSION['lidid'] > 0) {
+	if ($_SESSION['lidid'] > 0) {
 		$query = sprintf("INSERT INTO %sMailing_hist SET
 					LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", to_name=\"%s\", subject=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", send_by=%d, send_on=SYSDATE(), Successful=%d;", $table_prefix,
 					$lidid, $mid, html_entity_decode($from_name), $from_addr, $to_name, html_entity_decode($subject), $to_addr, $cc_addr, html_entity_decode($message), $_SESSION['lidid'], $success);
@@ -1383,7 +1384,7 @@ function db_add_mailing_hist_bu($lidid, $mid, $to_name, $to_addr, $message="", $
 		}
 	}
 	
-	if (isset($_SESSION['lidid']) and $_SESSION['lidid'] > 0) {
+	if ($_SESSION['lidid'] > 0) {
 		$query = sprintf("INSERT INTO %sMailing_hist SET
 					LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", to_name=\"%s\", subject=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", send_by=%d, send_on=SYSDATE(), Successful=%d;", $table_prefix,
 					$lidid, $mid, html_entity_decode($from_name), $from_addr, $to_name, html_entity_decode($subject), $to_addr, $cc_addr, html_entity_decode($message), $_SESSION['lidid'], $success);
