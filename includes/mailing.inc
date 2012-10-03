@@ -23,9 +23,9 @@ function fnMailing() {
 	}
 
 	if (isset($_GET['mid']) and $_GET['mid'] > 0) {
-		$mailing = new mailing($_GET['mid']);
+		$mailing = new Mailing($_GET['mid']);
 	} else {
-		$mailing = new mailing();
+		$mailing = new Mailing();
 	}
 	
 	if ($op != "preview") {
@@ -113,7 +113,7 @@ function fnMailing() {
 	}
 }
 
-class mailing {
+class Mailing {
 	public $mid;
 	
 	private $allowed_ext = "bmp, gif, jpeg, jpg, pdf, png, pps, rar, txt, zip";
@@ -293,7 +293,7 @@ class mailing {
 		sort($this->MergeField);
 		
 		$this->vulvars();
-	}
+	} # __construct
 	
 	public function lijst($filter="") {
 	
@@ -303,7 +303,7 @@ class mailing {
 		if ($filter == "Prullenbak") {
 			printf("<p>Mailings die langer dan %d maanden geleden verwijderd zijn, worden automatisch definitief opgeschoond.</p>\n", db_param("bewaartijdmailings"));
 		}
-	}
+	} # lijst
 	
 	public function toonverstuurdemail($rid) {
 		global $navpad;
@@ -332,7 +332,7 @@ class mailing {
 		printf("<div class='label'>Onderwerp:</div><div class='veld'>%s</div>\n", $row->subject);
 		printf("<div class='label'>Bericht:</div><div class='veld'>%s</div>\n", $row->message);
 		echo("</div>  <!-- Einde verstuurdemail -->\n");
-	}
+	} # toonverstuurdemail
 	
 	public function edit() {
 		global $currenttab, $currenttab2, $navpad;
@@ -473,7 +473,7 @@ class mailing {
 				['JustifyLeft','JustifyCenter','JustifyRight','JustifyBlock'],
 				['Link','Unlink'],
 				['Image','Table','HorizontalRule','Smiley','SpecialChar'],
-				['Styles','Format','FontSize'],
+				['Format','FontSize'],
 				['TextColor'],
 				['Maximize', 'ShowBlocks','-','About']
 			]
@@ -681,7 +681,7 @@ class mailing {
 		if (isset($_POST['add_address']) and strlen($_POST['add_address']) > 5) {
 			$this->add_rcpt(0, $_POST['add_address']);
 		}
-	}
+	} # post_form
 	
 	public function upload() {
 	
@@ -756,7 +756,7 @@ class mailing {
 			$mess = sprintf("Er zijn geen leden uit groep '%s' zijn aan mailing %d (%s) toegevoegd.", db_naam_onderdeel($groepid), $this->mid, $this->subject);
 		}
 		db_logboek("add", $mess, 4);
-	}
+	} # add_groep
 		
 	public function delete_groep($groepid) {
 		global $table_prefix;
@@ -779,7 +779,7 @@ class mailing {
 			$mess = sprintf("De leden van groep '%s' zijn bij mailing %d verwijderd.", db_naam_onderdeel($groepid), $this->mid);
 			db_logboek("add", $mess, 4);
 		}
-	}
+	} # delete_groep
 	
 	public function preview() {
 		$this->send_mailing(1);

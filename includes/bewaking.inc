@@ -59,7 +59,7 @@ function fnBewaking() {
 				$s = "";
 			}
 			$optionslid .= sprintf("<option value=%1\$d %3\$s>%2\$s</option>\n", $row->Nummer, htmlentities($row->Zoeknaam), $s);
-		}
+		} # foreach
 		echo("<td class='label'>Selecteer lid:</td>\n");
 		printf("<td><select name='lidid' onChange='this.form.submit();'>%s</select></td>\n", $optionslid);
 		if ($currenttab2 == "Diploma's muteren") {
@@ -170,7 +170,7 @@ function fnBewaking() {
 		$lijst = db_logboek("lijst", "", 11, $_POST['lidfilter']);
 		echo(fnDisplayTable($lijst));
 	}
-}
+} # fnBewaking
 
 function bew_rooster($seizoen, $week=-1) {
 
@@ -223,7 +223,7 @@ function bew_rooster($seizoen, $week=-1) {
 		$aantalbewdag += ($row->Dagen / $row->ST_LEN_BP);
 		$aantalervdag += $row->ErvaringDagen/7 * ($row->Dagen / $row->ST_LEN_BP);
 		$sel_leden[] = $row->Nummer;
-	}
+	} # foreach
 	if ($aantalbewdag > 2) {
 		if ($row->TOONERV == "W") {
 			$erv = round($aantalervdag/$aantalbewdag, 2) . " weken";
@@ -234,7 +234,7 @@ function bew_rooster($seizoen, $week=-1) {
 	}
 	echo("</table>\n");
 	echo("</div>  <!-- Einde bewakingsrooster -->\n");
-}
+} # bew_rooster
 
 function bew_postindeling($seizoen, $week=-1) {
 
@@ -282,7 +282,7 @@ function bew_postindeling($seizoen, $week=-1) {
 		$sel_leden[] = $row->Nummer;
 	}
 	echo("</div> <!-- Einde postindeling -->\n");
-}
+} # bew_postindeling
 
 function inschrijvenbewaking($lidid) {
 	
@@ -404,7 +404,7 @@ function inschrijvenbewaking($lidid) {
 		echo("</form>\n");
 		echo("</div>  <!-- Einde inschrijvingbewaking -->\n");
 	}
-}
+} # inschrijvenbewaking
 
 function fnDispBW($row, $output) {
 	global $ldl;
@@ -449,7 +449,7 @@ function fnDispBW($row, $output) {
 	}
 	
 	return $rv;
-}
+} # fnDispBW
 
 function BevestInschrBewaking($lidid, $insnr) {
 	
@@ -535,7 +535,7 @@ function BevestInschrBewaking($lidid, $insnr) {
 	} catch (Exception $e) {
 		echo $e->getMessage();
 	}
-}
+} # BevestInschrBewaking
 
 function DetailsInschrijvingBewaking($rows) {
 	$ret = "<div id='lijst'>\n";
@@ -610,7 +610,7 @@ function DetailsInschrijvingBewaking($rows) {
 	}
 	$ret .= "</div>  <!-- Einde lijst -->\n";
 	return $ret;
-}
+} # DetailsInschrijvingBewaking
 
 function exportinschrijvingen() {
 
@@ -633,7 +633,7 @@ function exportinschrijvingen() {
 	} else {
 		echo("<p class='mededeling'>Er zijn geen wijzigingen die nog verwerkt moeten worden.</p>\n");
 	}
-}
+} # exportinschrijvingen
 
 function SQLexport($row) {
 	return sprintf("INSERT INTO Bewaking (Lid, SeizoenID, BEGIN_PER, EINDE_PER) VALUES (%d, %d, #%s#, #%s#);",
