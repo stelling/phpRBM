@@ -19,22 +19,15 @@
 		header ("Location: " . $_GET['url']);
    } elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$_SESSION['username'] = cleanlogin($_POST['username']);
-		toegang("", 1, $_POST['password']);
       if (isset($_POST['cookie']) and $_POST['cookie'] == 1) {                                    
 			setcookie("username", $_SESSION['username'], time()+(3600*24*30*$bewaartijdlogins));
-			if (strlen($_POST['password']) > 5) {
-				setcookie("password", $_POST['password'], time()+(3600*24*30*$bewaartijdlogins));
-			}
+			setcookie("password", $_POST['password'], time()+(3600*24*30*$bewaartijdlogins));
       } else {
 			setcookie("username", "", time()-3600);
 			setcookie("password", "", time()-3600);
 		}
-		if (isset($_GET['url']) and strlen($_GET['url']) > 0) {
-			$href = $_GET['url'];
-		} else {
-			$href = $_SERVER['HTTP_REFERER'];
-		}
-		printf("<script>\nlocation.href='%s';\n</script>\n", $href);
+		toegang("", 1, $_POST['password']);
+		printf("<script>\nlocation.href='%s';\n</script>\n", $_SERVER['HTTP_REFERER']);
    } else {
 		if (!isset($_SESSION['username']) and isset($_COOKIE['username'])) {
 			$_SESSION['username'] = cleanlogin($_COOKIE['username']);

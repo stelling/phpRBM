@@ -325,8 +325,9 @@ function fnOverviewLid($lidid=0, $actie="") {
 	
 	if ($lidid <= 0) {
 		printf("<p class='mededeling'>Er is geen lid geselecteerd. Selecteer een lid via de <a href='%s?tp=Ledenlijst'>ledenlijst</a>.</p>\n", $_SERVER['PHP_SELF']);
-	} elseif (toegang($_GET['tp']) == false) {
-		printf("<p class='mededeling'>Je hebt tot tabblad '%s' geen toegang.</p>\n", $actie);
+	} elseif (toegang($_GET['tp'], 0) == false) {
+		$mess = sprintf("Je hebt tot tabblad '%s' geen toegang.", $actie);
+		db_logboek("add", $mess, 5, 0, 1);
 	} else {
 	
 		fnDispMenu(2, $xtra_param);

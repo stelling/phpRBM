@@ -1,8 +1,10 @@
 <?php
 error_reporting(E_ALL);
-include('./includes/standaard.inc');
 
-// print_r($_SESSION);
+# session_start();
+# print_r($_SESSION);
+
+include('./includes/standaard.inc');
 
 if ($_SESSION['aantallid'] == 0) {
 	$query = sprintf("SELECT COUNT(*) FROM %sLid;", $table_prefix);
@@ -12,7 +14,6 @@ if ($_SESSION['aantallid'] == 0) {
 			location.href='./admin.php?tp=Uploaden+data';</script>\n");
 	}
 }
-
 
 if (isset($_GET['op']) and $_GET['op'] == "exportins") {
 	header("Content-type: text/plain");
@@ -31,7 +32,7 @@ if ($currenttab !== "Mailing") {
 	}
 }
 
-if (toegang() == false) {
+if (toegang("", 0) == false) {
 	$mess = sprintf("Je hebt tot %s geen toegang.", $_GET['tp']);
 	db_logboek("add", $mess, 5, 0, 1);
 } elseif ($currenttab == "Eigen gegevens") {
@@ -50,7 +51,7 @@ if (toegang() == false) {
 	} else {
 		fnWijzigen($_SESSION['lidid'], $currenttab2);
 	}
-} elseif ($currenttab == "Overzicht lid" and toegang("Overzicht lid")) {
+} elseif ($currenttab == "Overzicht lid" and toegang("Overzicht lid", 0)) {
 	if (isset($_GET['lidid']) and is_numeric($_GET['lidid']) and $_GET['lidid'] > 0) {
 		fnOverviewLid($_GET['lidid'], $currenttab2);
 	} else {
@@ -86,6 +87,8 @@ if (toegang() == false) {
 	fnWebshop();
 } elseif (!isset($_SESSION['username']) or strlen($_SESSION['username']) <= 5) {
 	fnLoginAanvragen();
+} else {
+	debug("Geen voorblad");
 }
 
 if ($currenttab != "Mailing") {	

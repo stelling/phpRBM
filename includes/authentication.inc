@@ -18,7 +18,7 @@ function toegang($soort="", $melding=1, $password="") {
 	
 	$maxinlogpogingen = db_param("maxinlogpogingen");
 
-	if ($_SESSION['lidid'] > 0 and isset($_SESSION['lastauthenication']) and $_SESSION['lastauthenication'] >= time()-1200) {
+	if ($_SESSION['lidid'] > 0 and isset($_SESSION['lastauthenication']) and $_SESSION['lastauthenication'] >= time()-1800) {
 		// Er hoeft niets te gebeuren.
 	} else {
 		db_logins("uitloggen");
@@ -30,12 +30,11 @@ function toegang($soort="", $melding=1, $password="") {
 			$password = substr($password, 0, 12);
 		}
 		
-		if (isset($_SESSION['username']) and strlen($_SESSION['username']) > 0 and strlen($password) > 5) {
+		if (isset($_SESSION['username']) and strlen($_SESSION['username']) > 0 and strlen($password) > 0) {
 			$row = db_logins("controle", "", $_SESSION['username'], 0, "", $password);
 			if ($maxinlogpogingen > 0 and isset($row->FouteLogin) and $row->FouteLogin > $maxinlogpogingen) {
 				$mess = sprintf("Login '%s' is geblokkeerd, omdat er teveel foute inlog-pogingingen mee zijn gedaan! Je bent niet ingelogd.", $_SESSION['username']);
 				db_logboek("add", $mess, 1, 0, 2);
-				$_SESSION['username'] = "";
 				$_SESSION['lidid'] = 0;
 			} elseif (isset($row->LidID) and $row->LidID > 0) {
 				$_SESSION['lastauthenication'] = time();
@@ -60,12 +59,19 @@ function toegang($soort="", $melding=1, $password="") {
 				}	
 				db_logins("setingelogd", "", "", $_SESSION['lidid']);
 			} else {
-				$mess = sprintf("De combinatie van login '%s' en het ingevoerde wachtwoord is niet correct! Je bent niet ingelogd.", $_SESSION['username']);
-				db_logboek("add", $mess, 1, 0, 2);
-				$_SESSION['username'] = "";
+				if ($melding == 1) {
+					if (strlen($password) > 0) {
+						$mess = sprintf("De combinatie van login '%s' en het ingevoerde wachtwoord is niet correct! Je bent niet ingelogd.", $_SESSION['username']);
+					} else {
+						$mess = "Er is geen wachtwoord ingevoerd.";
+					}
+					db_logboek("add", $mess, 1, 0, 2);
+				}
+				$_SESSION['lidid'] = 0;
+				setcookie("password", "", time()-3600);
 			}
 		} else {
-			$_SESSION['username'] = "";
+			$_SESSION['lidid'] = 0;
 		}
 		if ($_SESSION['lidid'] == 0 or strlen($_SESSION['username']) == 0) {
 			$_SESSION['lidid'] = 0;
@@ -73,15 +79,8 @@ function toegang($soort="", $melding=1, $password="") {
 			$_SESSION['naamingelogde'] = "gast";
 			$_SESSION['roepnaamingelogde'] = "gast";
 			$_SESSION['emailingelogde'] = "";
-			if (isset($_COOKIE['username']) and strlen($_COOKIE['username']) > 0) {
-				setcookie("username", "", time()-3600);
-			}
-			if (isset($_COOKIE['password']) and strlen($_COOKIE['password']) > 0) {
-				setcookie("password", "", time()-3600);
-			}
 		}
-
-	}	
+	}
 	if (in_array($_SESSION['lidid'], $lididwebmasters)) {
 		$_SESSION['webmaster'] = 1;
 	} else {
@@ -105,15 +104,13 @@ function toegang($soort="", $melding=1, $password="") {
 	}
 	
 	if (strlen($soort) > 0) {
-		if ($_SESSION['lidid'] > 0) {
+		if ($_SESSION['webmaster'] == 1) {
 			$soort = str_replace("'", "", $soort);
 			$query = sprintf("SELECT COUNT(*) FROM %sAdmin_access WHERE Tabpage=\"%s\";", $table_prefix, $soort);
 			$result = db_scalar($query);
 			if ($result == 0) {
 				db_authorisation("add", 0, $soort);
 			}
-		}
-		if ($_SESSION['webmaster'] == 1) {
 			return true;
 		} else {
 			$query = sprintf("SELECT COUNT(*) FROM %sAdmin_access WHERE Tabpage=\"%s\" AND Toegang IN %s;", $table_prefix, $soort, $_SESSION['lidgroepen']);
@@ -127,8 +124,7 @@ function toegang($soort="", $melding=1, $password="") {
 					} else {
 						$mess = sprintf("Je bent niet ingelogd en hierdoor hebt geen toegang tot '%s' op %s.", $soort, $_SESSION['naamwebsite']);
 					}
-					db_logboek("add", $mess, 5);
-					printf("<script>alert('%s');</script>\n", $mess);
+					db_logboek("add", $mess, 5, 0, 2);
 				}
 				return false;
 			}
