@@ -1230,7 +1230,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		$mess = sprintf("onbekende actie '%s' in db_logins", $actie);
 		debug($mess, 1, 0, 1);
 	}
-}
+} # db_logins
 
 function db_change_password($pw_new, $pw_old, $lidid) {
 	global $table_prefix;
@@ -1609,6 +1609,10 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0) {
 		$w = "TypeActiviteit >= 0";
 	}
 	$mess = "";
+	$script = $_SERVER['PHP_SELF'];
+	if (strlen($_SERVER['QUERY_STRING']) > 0) {
+		$script .= "?" . $_SERVER['QUERY_STRING'];
+	}
 	
 	if ($actie == "add" and strlen($oms) > 0) {
 		$query = sprintf("INSERT DELAYED INTO %sAdmin_activiteit SET
@@ -1617,7 +1621,8 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0) {
 				IP_adres='%s',
 				USER_AGENT='%s',
 				Omschrijving=\"%s\",
-				TypeActiviteit=%d;", $table_prefix, $_SESSION['lidid'], $_SERVER['REMOTE_ADDR'], $_SERVER['HTTP_USER_AGENT'], $oms, $type);
+				TypeActiviteit=%d,
+				Script=\"%s\";", $table_prefix, $_SESSION['lidid'], $_SERVER['REMOTE_ADDR'], $_SERVER['HTTP_USER_AGENT'], $oms, $type, $script);
 		fnQuery($query);
 		if ($tm == 1) {
 			printf("<p class='mededeling'>%s</p>\n", htmlentities($oms));
@@ -1685,7 +1690,7 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0) {
 		return db_scalar($query);
 		
 	}
-}
+} # db_logboek
 
 function db_interface($actie="lijst", $query="", $lidid=0) {
 	global $selectnaam, $table_prefix;
