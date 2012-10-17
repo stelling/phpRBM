@@ -544,6 +544,9 @@ function algemeenlidmuteren($lidid) {
 	$wijzvelden[] = array('label' => "Geboortedatum", 'naam' => "GEBDATUM", 'lengte' => 18);
 	$wijzvelden[] = array('label' => "Geboorteplaats", 'naam' => "GEBPLAATS", 'lengte' => 22);
 	$wijzvelden[] = array('label' => "Bankrekening", 'naam' => "BANKGIRO", 'lengte' => 10);
+	if (db_param("zs_incl_iban") == 1) {
+		$wijzvelden[] = array('label' => "IBAN (International Bank Account Number)", 'naam' => "Bankrekening", 'lengte' => 18);
+	}
 	if (db_param("zs_incl_bezwmachtiging") == 1 or $currenttab == "Wijzigen lid") {
 		$wijzvelden[] = array('label' => "Bezwaar machtiging", 'naam' => "BezwaarMachtiging", 'lengte' => 1);
 	}
@@ -562,6 +565,7 @@ function algemeenlidmuteren($lidid) {
 		
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$mess = "";
+		$toonmess = 0;
 		$old = db_ledenwijzigingen($lidid);
 		for ($i=0; $i < count($wijzvelden); $i++) {
 			$fn = $wijzvelden[$i]['naam'];
@@ -572,6 +576,11 @@ function algemeenlidmuteren($lidid) {
 				} elseif (!isset ($_POST[$fn]) and $old->$fn >= "2000-01-01") {
 					$v = "NULL";
 				}
+				
+			} elseif ($fn == "Bankrekening" and isset($_POST[$fn]) and strlen($_POST[$fn]) > 0 and IsIBANgoed($_POST[$fn], 1) == false) {
+				$mess .= "IBAN is niet correct, deze wijziging wordt niet verwerkt. ";
+				$toonmess = 1;
+				
 			} elseif (isset($_POST["chkLeeg_" . $fn]) and $_POST["chkLeeg_" . $fn] == "1") {
 				if (stripos($wijzvelden[$i]['label'], "datum") === FALSE) {
 					$v = "";
@@ -582,7 +591,8 @@ function algemeenlidmuteren($lidid) {
 				$_POST[$fn] = change_month_to_uk($_POST[$fn]);
 				if (isset($_POST[$fn]) and strlen($_POST[$fn]) > 0) {
 					if (strtotime($_POST[$fn]) === FALSE) {
-						$mess .= "Geboortedatum is niet correct, deze wordt niet verwerkt. ";
+						$mess .= "Geboortedatum is niet correct, deze wijziging wordt niet verwerkt. ";
+						$toonmess = 1;
 					} else {
 						$v = strftime($fdsql, strtotime($_POST[$fn]));
 					}
@@ -593,10 +603,12 @@ function algemeenlidmuteren($lidid) {
 						$v = $_POST[$fn];
 					} else {
 						$mess .= "E-mailadres is niet correct, deze wijziging wordt niet verwerkt. ";
+						$toonmess = 1;
 					}
 				}
 			} elseif ($fn == "RelnrRedNed" and strlen($_POST[$fn]) != 7 and strlen($_POST[$fn]) > 0) {
 				$mess .= "Het Sportlink ID moet 7 karakters lang zijn, deze wijziging wordt niet verwerkt. ";
+				$toonmess = 1;
 				$v = "";
 			} elseif (isset($_POST[$fn]) and strlen($_POST[$fn]) > 0) {
 				$v = $_POST[$fn];
@@ -616,11 +628,12 @@ function algemeenlidmuteren($lidid) {
 					$mess .= sprintf("%s van %s is in '%s' gewijzigd. ", $wijzvelden[$i]['label'], $naamlid, $v);
 				} else {
 					$mess .= sprintf("De wijziging in %s bij %s is niet verwerkt. ", strtolower($wijzvelden[$i]['label']), $naamlid);
+					$toonmess = 1;
 				}
 			}
 		}
-		db_logboek("add", $mess, 6, 0, 0);
-	}
+		db_logboek("add", $mess, 6, 0, $toonmess);
+	} # if post
 
 	$row = db_ledenwijzigingen($lidid);
 	echo("<div id='wijzigengegevens'>\n");
@@ -1076,5 +1089,34 @@ function lidmaatschapmuteren($lidid) {
 	echo("</div>  <!-- Einde lidmaatschapmuteren -->\n");
 	
 }
+
+
+function IsIBANgoed($IBAN, $LeegIsGoed=1) {
+   $retval = false;
+   
+   if (strlen($IBAN) == 0 and $LeegIsGoed == 1) {
+		$retval = true;
+      
+   } elseif (strlen($IBAN) == 18) {
+      $IBAN = strtoupper($IBAN);
+      $controle = intval(substr($IBAN, 2, 2));
+      $IBAN = substr($IBAN, 4, 14) . substr($IBAN, 0, 2) . "00";
+      $totaal = "";
+      for ($teller=0; $teller < strlen($IBAN); $teller++) {
+         if (ord(substr($IBAN, $teller, 1)) < 65) {
+            $totaal = $totaal . substr($IBAN, $teller, 1);
+         } else {
+            $totaal = $totaal . strval(ord(substr($IBAN, $teller, 1)) - 55);
+         }
+      } # for
+      $totaal = 98 - (int)bcmod($totaal, 97);
+      if ($controle == $totaal) {
+         $retval = true;
+      }
+   }
+   
+   return $retval;
+
+} # IsIBANgoed
 
 ?>

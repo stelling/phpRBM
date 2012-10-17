@@ -230,7 +230,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					WHERE L.Nummer=%d 
 					ORDER BY LM.LIDDATUM DESC;", $selectnaam, $fdlang, $sqond, $sqlogin, $sqlbd, $wbn, $sqdieet, $fromlid, $LidID);
 	} elseif ($soort == "Financieel") {
-		$query = sprintf("SELECT L.BANKGIRO AS Bankrekeningnummer, 
+		$query = sprintf("SELECT IF(LENGTH(L.Bankrekening)=18, L.Bankrekening, L.BANKGIRO) AS Bankrekeningnummer, 
 								L.`Machtiging afgegeven` AS `booMachtiging automatische incasso`, 
 								IF(ISNULL(L.BezwaarMachtiging), 'Nee', DATE_FORMAT(L.BezwaarMachtiging, %s)) AS `Bezwaar machtiging`
 								FROM %sLid AS L
@@ -511,6 +511,7 @@ function db_ledenwijzigingen($lidid) {
 				L.GEBDATUM,
 				L.GEBPLAATS,
 				L.BANKGIRO,
+				L.Bankrekening,
 				L.BezwaarMachtiging,
 				L.RelnrRedNed,
 				L.Beroep,
@@ -2232,6 +2233,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrBooleans['zs_incl_bezwmachtiging'] = 0;
 	$arrBooleans['zs_incl_emailouders'] = 0;
 	$arrBooleans['zs_incl_emailvereniging'] = 0;
+	$arrBooleans['zs_incl_iban'] = 0;
 	$arrBooleans['zs_incl_legitimatie'] = 1;
 	$arrBooleans['zs_incl_slid'] = 0;
 	$arrBooleans['zs_opzeggingautomatischverwerken'] = 0;
