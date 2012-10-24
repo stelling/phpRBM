@@ -2616,10 +2616,10 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_login` (
 
 CREATE TABLE IF NOT EXISTS `%1\$sAdmin_param` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
-  `Naam` varchar(30) COLLATE utf8_unicode_ci NOT NULL,
+  `Naam` varchar(35) COLLATE utf8_unicode_ci NOT NULL,
   `ParamType` char(2) COLLATE utf8_unicode_ci DEFAULT NULL,
   `ValueChar` text COLLATE utf8_unicode_ci,
-  `ValueNum` decimal(13,6) DEFAULT NULL,
+  `ValueNum` decimal(16,6) DEFAULT NULL,
   `Ingevoerd` date NOT NULL DEFAULT '0000-00-00',
   `IngevoerdDoor` int(11) NOT NULL,
   `Gewijzigd` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE CURRENT_TIMESTAMP,
@@ -2748,7 +2748,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sEvenement` (
   `GewijzigdDoor` int(11) NOT NULL,
   `VerwijderdOp` date NOT NULL,
   PRIMARY KEY (`RecordID`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sEvenement_Deelnemer` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
@@ -2762,7 +2762,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sEvenement_Deelnemer` (
   `GewijzigdDoor` int(11) NOT NULL,
   PRIMARY KEY (`RecordID`),
   UNIQUE KEY `LidEvenement` (`LidID`,`EvenementID`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sEvenement_Type` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
@@ -2772,7 +2772,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sEvenement_Type` (
   `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `GewijzigdDoor` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`RecordID`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sFunctie` (
   `Nummer` tinyint(4) NOT NULL DEFAULT '0',
@@ -2798,6 +2798,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sGBR` (
   `KSTNPLTS` tinyint(4) DEFAULT NULL,
   `Verdichting` varchar(4) DEFAULT NULL,
   `VerdichtingID` int(11) DEFAULT NULL,
+  `Debiteur` tinyint(4) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`Kode`)
@@ -2836,12 +2837,12 @@ CREATE TABLE IF NOT EXISTS `%1\$sLid` (
   `Mobiel is geheim` tinyint(4) DEFAULT NULL,
   `Email` varchar(45) DEFAULT NULL,
   `EmailVereniging` varchar(45) DEFAULT NULL,
-  `EmailOuders` varchar(45) DEFAULT NULL,
+  `EmailOuders` varchar(60) DEFAULT NULL,
   `Waarschuwen bij nood` varchar(255) DEFAULT NULL,
   `BANKGIRO` varchar(10) DEFAULT NULL,
   `Bankrekening` varchar(18) DEFAULT NULL,
   `Machtiging afgegeven` tinyint(4) DEFAULT NULL,
-  `BezwaarMachtiging` datetime DEFAULT NULL,
+  `BezwaarMachtiging` date DEFAULT NULL,
   `Legitimatietype` varchar(1) DEFAULT NULL,
   `Legitimatienummer` varchar(15) DEFAULT NULL,
   `Memo` longtext,
@@ -2867,11 +2868,11 @@ CREATE TABLE IF NOT EXISTS `%1\$sLiddipl` (
   `LicentieVervallenPer` date DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
-  PRIMARY KEY (`RecordID`)
+  UNIQUE KEY `RecordID` (`RecordID`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sLidmaatschap` (
-  `RecordID` int(11) DEFAULT NULL,
+  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `Lid` int(11) NOT NULL DEFAULT '0',
   `LIDDATUM` date NOT NULL DEFAULT '0000-00-00',
   `Opgezegd` date DEFAULT NULL,
@@ -2880,8 +2881,9 @@ CREATE TABLE IF NOT EXISTS `%1\$sLidmaatschap` (
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`Lid`,`LIDDATUM`),
+  UNIQUE KEY `RecordID` (`RecordID`),
   UNIQUE KEY `Lidnr` (`Lidnr`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sLidond` (
   `RecordID` int(11) DEFAULT NULL,
@@ -2965,19 +2967,21 @@ CREATE TABLE IF NOT EXISTS `%1\$sMailing_rcpt` (
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sMemo` (
-  `RecordID` int(11) DEFAULT NULL,
+  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `Lid` int(11) NOT NULL DEFAULT '0',
   `Soort` varchar(1) NOT NULL DEFAULT '',
   `Vertrouwelijk` tinyint(4) DEFAULT NULL,
   `Memo` longtext,
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
-  PRIMARY KEY (`Lid`,`Soort`)
+  PRIMARY KEY (`Lid`,`Soort`),
+  UNIQUE KEY `RecordID` (`RecordID`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sMutatie` (
   `RecordID` int(11) DEFAULT NULL,
   `BoekjaarID` int(11) NOT NULL DEFAULT '0',
+  `Jaar` varchar(5) DEFAULT NULL,
   `Periode` tinyint(4) NOT NULL DEFAULT '0',
   `Dagboek` varchar(4) NOT NULL DEFAULT '',
   `DagboekID` int(11) DEFAULT NULL,
@@ -3035,6 +3039,19 @@ CREATE TABLE IF NOT EXISTS `%1\$sRekening` (
   PRIMARY KEY (`Nummer`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
+CREATE TABLE IF NOT EXISTS `%1\$sRekreg` (
+  `RecordID` int(11) DEFAULT NULL,
+  `Rekening` int(11) NOT NULL DEFAULT '0',
+  `Regelnr` smallint(6) NOT NULL DEFAULT '0',
+  `Lid` int(11) DEFAULT NULL,
+  `KSTNPLTS` varchar(5) DEFAULT NULL,
+  `OMSCHRIJV` varchar(60) DEFAULT NULL,
+  `Bedrag` decimal(8,2) DEFAULT NULL,
+  `Ingevoerd` datetime DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL,
+  PRIMARY KEY (`Rekening`,`Regelnr`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
 CREATE TABLE IF NOT EXISTS `%1\$sWS_Artikel` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `Code` char(6) COLLATE utf8_unicode_ci NOT NULL,
@@ -3049,7 +3066,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sWS_Artikel` (
   `Gewijzigd` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE CURRENT_TIMESTAMP,
   `GewijzigdDoor` int(11) NOT NULL,
   PRIMARY KEY (`RecordID`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `%1\$sWS_Orderregel` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
@@ -3067,7 +3084,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sWS_Orderregel` (
   `GewijzigdDoor` int(11) NOT NULL,
   PRIMARY KEY (`RecordID`),
   UNIQUE KEY `ArtikelLid` (`Artikel`,`Lid`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;", $table_prefix);
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;", $table_prefix);
 
 	fnQuery($queries);
 }

@@ -1,8 +1,9 @@
 <?php
 error_reporting(E_ALL);
 
-# session_start();
-# print_r($_SESSION);
+if (!isset($_GET['tp'])) {
+	$_GET['tp'] = "Vereniging/Introductie";
+}
 
 include('./includes/standaard.inc');
 

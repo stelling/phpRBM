@@ -718,6 +718,9 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 }
 
 function debug($tekst, $alleenwm=1, $alert=0, $logact=0) {
+	if (is_array($tekst)) {
+		$tekst = print_r($tekst, true);
+	}
 	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 		$alleenwm = 0;
 	}
