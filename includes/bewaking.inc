@@ -459,7 +459,7 @@ function BevestInschrBewaking($lidid, $insnr) {
 	}
 	$voorwaardeninschrijving = db_param("zs_voorwaardeninschrijving");
 
-	$bevest_template = 'templates/bevestiging_inschrijving.html';
+	$bevest_template = 'templates/inschrijving.html';
 	if (file_exists($bevest_template)) {
 		$content = file_get_contents($bevest_template);
 	} else {

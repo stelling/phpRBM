@@ -367,7 +367,7 @@ function bevestigingbestelling($lidid, $ordernr=0) {
 	
 	$emailbevestigingbestelling = db_param("zs_emailbevestigingbestelling");
 
-	$bevest_template = 'templates/bevestiging_bestelling.html';
+	$bevest_template = 'templates/bestelling.html';
 	if (file_exists($bevest_template)) {
 		$content = file_get_contents($bevest_template);
 	} else {
