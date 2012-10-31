@@ -25,6 +25,7 @@ $arrTables[] = "Mutatie";
 $arrTables[] = "Kostenplaats";
 $arrTables[] = "Onderdl";
 $arrTables[] = "Rekening";
+$arrTables[] = "Rekreg";
 // $arrTables[] = "DMS_Document";
 // $arrTables[] = "DMS_Folder";
 
@@ -379,6 +380,35 @@ function db_lid($actie, $filter="", $lidid=0, $nv="") {
 					%4\$s
 					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, LM.LIDDATUM DESC;", $selectnaam, $selectzoeknaam, $fromlid, $filter);
 					
+	} elseif ($actie == "wijzigingen") {
+		$query = sprintf("SELECT L.Roepnaam,
+					L.VOORLETTER,
+					L.Tussenv,
+					L.Achternaam,
+					L.Meisjesnm,
+					L.Geslacht,
+					L.Adres,
+					L.Postcode,
+					L.Woonplaats,
+					L.Telefoon,
+					L.Mobiel,
+					L.Email,
+					L.EmailVereniging,
+					L.EmailOuders,
+					L.GEBDATUM,
+					L.GEBPLAATS,
+					L.BANKGIRO,
+					L.Bankrekening,
+					L.BezwaarMachtiging,
+					L.Burgerservicenummer,
+					L.RelnrRedNed,
+					L.Beroep,
+					L.Legitimatietype,
+					L.Legitimatienummer
+					FROM %sLid AS L WHERE Nummer=%d;", $table_prefix, $lidid);
+		$result = fnQuery($query);
+		return $result->fetch();
+					
 	} elseif ($actie == "verjaardagen") {
 		$df = sprintf("MONTH(L.GEBDATUM)=%s AND DAY(L.GEBDATUM)=%s", substr($filter, 5, 2), substr($filter, -2));
 		$query = sprintf("SELECT L.Nummer, %1\$s AS `Naam_lid`, L.GEBDATUM, (YEAR('%5\$s')-YEAR(L.GEBDATUM))-IF(RIGHT('%5\$s', 5)<RIGHT(L.GEBDATUM, 5), 1, 0) AS Leeftijd
@@ -490,37 +520,6 @@ function db_lidmaatschap($actie, $lidid, $opgezegd="", $rid=0, $liddatum="", $li
 	}
 	
 } # db_lidmaatschap
-
-function db_ledenwijzigingen($lidid) {
-	global $selectnaam, $table_prefix;
-	
-	$query = sprintf("SELECT L.Roepnaam, 
-				L.VOORLETTER,
-				L.Tussenv,
-				L.Achternaam,
-				L.Meisjesnm,
-				L.Geslacht,
-				L.Adres,
-				L.Postcode,
-				L.Woonplaats,
-				L.Telefoon,
-				L.Mobiel,
-				L.Email,
-				L.EmailVereniging,
-				L.EmailOuders,
-				L.GEBDATUM,
-				L.GEBPLAATS,
-				L.BANKGIRO,
-				L.Bankrekening,
-				L.BezwaarMachtiging,
-				L.RelnrRedNed,
-				L.Beroep,
-				L.Legitimatietype,
-				L.Legitimatienummer
-				FROM %sLid AS L WHERE Nummer=%d;", $table_prefix, $lidid);
-	$result = fnQuery($query);
-	return $result->fetch();
-}
 
 function db_memo($actie, $lidid, $srt, $nv="") {
 	global $table_prefix, $arrSoortMemo;
@@ -2231,6 +2230,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrBooleans['tonentoekomstigebewakingen'] = 0;
 	$arrBooleans['zs_incl_beroep'] = 1;
 	$arrBooleans['zs_incl_bezwmachtiging'] = 0;
+	$arrBooleans['zs_incl_bsn'] = 0;
 	$arrBooleans['zs_incl_emailouders'] = 0;
 	$arrBooleans['zs_incl_emailvereniging'] = 0;
 	$arrBooleans['zs_incl_iban'] = 0;
@@ -2362,19 +2362,19 @@ function db_onderhoud() {
 		fnQuery(sprintf("ALTER TABLE %sBewseiz CHANGE Begindatum Begindatum DATE;", $table_prefix));
 		fnQuery(sprintf("ALTER TABLE %sBewseiz CHANGE `Einde` `Einde` DATE;", $table_prefix));
 		fnQuery(sprintf("ALTER TABLE %sBewseiz CHANGE Geboren Geboren DATE;", $table_prefix));
+		fnQuery(sprintf("ALTER TABLE %sDiploma CHANGE `Vervallen` `Vervallen` DATE;", $table_prefix));
 		fnQuery(sprintf("ALTER TABLE %sLid CHANGE `GEBDATUM` `GEBDATUM` DATE;", $table_prefix));
 		fnQuery(sprintf("ALTER TABLE %sLid CHANGE `Overleden` `Overleden` DATE;", $table_prefix));
 		fnQuery(sprintf("ALTER TABLE %sLid CHANGE `BezwaarMachtiging` `BezwaarMachtiging` DATE;", $table_prefix));
-		fnQuery(sprintf("ALTER TABLE %sLidmaatschap CHANGE `LIDDATUM` `LIDDATUM` DATE;", $table_prefix));
-		fnQuery(sprintf("ALTER TABLE %sLidmaatschap CHANGE `Opgezegd` `Opgezegd` DATE;", $table_prefix));
-		fnQuery(sprintf("ALTER TABLE %sOnderdl CHANGE `VervallenPer` `VervallenPer` DATE;", $table_prefix));
-		fnQuery(sprintf("ALTER TABLE %sLidond CHANGE `Vanaf` `Vanaf` DATE;", $table_prefix));
-		fnQuery(sprintf("ALTER TABLE %sLidond CHANGE `Opgezegd` `Opgezegd` DATE;", $table_prefix));
-		fnQuery(sprintf("ALTER TABLE %sDiploma CHANGE `Vervallen` `Vervallen` DATE;", $table_prefix));
 		fnQuery(sprintf("ALTER TABLE %sLiddipl CHANGE `EXDATUM` `EXDATUM` DATE;", $table_prefix));
 		fnQuery(sprintf("ALTER TABLE %sLiddipl CHANGE `LicentieVervallenPer` `LicentieVervallenPer` DATE DEFAULT NULL;", $table_prefix));
-		fnQuery(sprintf("ALTER TABLE %sMutatie CHANGE `Datum` `Datum` DATE;", $table_prefix));
+		fnQuery(sprintf("ALTER TABLE %sLidmaatschap CHANGE `LIDDATUM` `LIDDATUM` DATE;", $table_prefix));
+		fnQuery(sprintf("ALTER TABLE %sLidmaatschap CHANGE `Opgezegd` `Opgezegd` DATE;", $table_prefix));
+		fnQuery(sprintf("ALTER TABLE %sLidond CHANGE `Vanaf` `Vanaf` DATE;", $table_prefix));
+		fnQuery(sprintf("ALTER TABLE %sLidond CHANGE `Opgezegd` `Opgezegd` DATE;", $table_prefix));
 		fnQuery(sprintf("ALTER TABLE %sLidRedNed CHANGE Geboortedatum Geboortedatum DATE;", $table_prefix));
+		fnQuery(sprintf("ALTER TABLE %sMutatie CHANGE `Datum` `Datum` DATE;", $table_prefix));
+		fnQuery(sprintf("ALTER TABLE %sOnderdl CHANGE `VervallenPer` `VervallenPer` DATE;", $table_prefix));
 		foreach ($arrTables as $tn) {
 			if (startwith($tn, "Admin_") == false and startwith($tn, "Mailing") == false) {
 				fnQuery(sprintf("ALTER TABLE %s%s CHANGE Ingevoerd Ingevoerd DATE;", $table_prefix, $tn));
@@ -2393,90 +2393,62 @@ function db_onderhoud() {
 		fnQuery($query);
 	}
 	
-	/***** Velden die later zijn toegevoegd. De code om ze toe te voegen blijft een jaar staan.  *****/
+	/***** Velden die later zijn toegevoegd. *****/
 	
 	// Toevoegen veld 'cc_addr' aan de tabel Mailing_hist. Deze code kan na 5/3/2013 worden verwijderd.
-	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%sMailing_hist' AND COLUMN_NAME LIKE 'cc_addr';", $db_name, $table_prefix);
-	if (db_scalar($query) == 0) {
-		fnQuery(sprintf("ALTER TABLE `%sMailing_hist` ADD `cc_addr` VARCHAR(50);", $table_prefix));
-	}
-	
-	// Toevoegen veld 'Afgemeld' aan de tabel Bewaking_Inschrijving. Deze code kan na 1/3/2013 worden verwijderd.
-	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sBewaking_Inschrijving' AND COLUMN_NAME='Afgemeld';", $db_name, $table_prefix);
-	if (db_scalar($query) == 0) {
-		fnQuery(sprintf("ALTER TABLE `%sBewaking_Inschrijving` ADD `Afgemeld` DATETIME;", $table_prefix));
-	}	
-	
-	// Toevoegen veld 'LastActivity' aan de tabel Admin_login. Deze code kan na 7/3/2013 worden verwijderd.
-	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sAdmin_login' AND COLUMN_NAME='LastActivity';", $db_name, $table_prefix);
-	if (db_scalar($query) == 0) {
-		fnQuery(sprintf("ALTER TABLE `%sAdmin_login` ADD `LastActivity` DATETIME;", $table_prefix));
-	}
 		
-	// Toevoegen veld 'FouteLogin' aan de tabel Admin_login. Deze code kan na 16/3/2013 worden verwijderd.
-	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sAdmin_login' AND COLUMN_NAME='FouteLogin';", $db_name, $table_prefix);
-	if (db_scalar($query) == 0) {
-		fnQuery(sprintf("ALTER TABLE `%sAdmin_login` ADD `FouteLogin` SMALLINT NOT NULL DEFAULT '0';", $table_prefix));
-	}
-	
-	// Toevoegen veld 'Script' aan de tabel Admin_activiteit. Deze code kan na 1/4/2013 worden verwijderd.
-	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sAdmin_activiteit' AND COLUMN_NAME='Script';", $db_name, $table_prefix);
-	if (db_scalar($query) == 0) {
-		fnQuery(sprintf("ALTER TABLE `%sAdmin_activiteit` ADD `Script` VARCHAR(75) NOT NULL AFTER `Omschrijving`;", $table_prefix));
-	}
-		
-	// Toevoegen veld 'Gedownload' aan de tabel Admin_interface. Deze code kan na 1/5/2013 worden verwijderd.
+	// Toevoegen veld 'Gedownload' aan de tabel Admin_interface. Deze code kan na 1/11/2012 worden verwijderd.
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sAdmin_interface' AND COLUMN_NAME='Gedownload';", $db_name, $table_prefix);
 	if (db_scalar($query) == 0) {
 		fnQuery(sprintf("ALTER TABLE `%sAdmin_interface` ADD `Gedownload` DATETIME NULL DEFAULT NULL AFTER `Ingevoerd`;", $table_prefix));
 	}
 	
-	// Toevoegen veld 'VerwijderdOp' aan de tabel Evenement. Deze code kan na 15/4/2013 worden verwijderd.
+	// Toevoegen veld 'VerwijderdOp' aan de tabel Evenement. Deze code kan na 15/11/2012 worden verwijderd.
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sEvenement' AND COLUMN_NAME='VerwijderdOp';", $db_name, $table_prefix);
 	if (db_scalar($query) == 0) {
 		fnQuery(sprintf("ALTER TABLE `%sEvenement` ADD `VerwijderdOp` DATE NOT NULL;", $table_prefix));
 	}
 		
-	// Toevoegen veld 'StandaardStatus' aan de tabel Evenement. Deze code kan na 15/4/2013 worden verwijderd.
+	// Toevoegen veld 'StandaardStatus' aan de tabel Evenement. Deze code kan na 15/11/2012 worden verwijderd.
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sEvenement' AND COLUMN_NAME='StandaardStatus';", $db_name, $table_prefix);
 	if (db_scalar($query) == 0) {
 		fnQuery(sprintf("ALTER TABLE `%sEvenement` ADD `StandaardStatus` CHAR( 1 ) NOT NULL DEFAULT 'I' AFTER `InschrijvingOpen`;", $table_prefix));
 	}
-			
-	// Toevoegen veld 'verzamelen' aan de tabel Mailing. Deze code kan na 1/5/2013 worden verwijderd.
+
+	// Toevoegen veld 'verzamelen' aan de tabel Mailing. Deze code kan na 1/11/2012 worden verwijderd.
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sMailing' AND COLUMN_NAME='verzamelen';", $db_name, $table_prefix);
 	if (db_scalar($query) == 0) {
 		fnQuery(sprintf("ALTER TABLE `%sMailing` ADD `verzamelen` TINYINT NOT NULL DEFAULT '0' AFTER `confidential`;", $table_prefix));
 	}
 				
-	// Toevoegen veld 'ZichtbaarVoor' aan de tabel Evenement. Deze code kan na 1/5/2013 worden verwijderd.
+	// Toevoegen veld 'ZichtbaarVoor' aan de tabel Evenement. Deze code kan na 1/11/2012 worden verwijderd.
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sEvenement' AND COLUMN_NAME='ZichtbaarVoor';", $db_name, $table_prefix);
 	if (db_scalar($query) == 0) {
 		fnQuery(sprintf("ALTER TABLE `%sEvenement` ADD `ZichtbaarVoor` INT NOT NULL DEFAULT '0' AFTER `BeperkTotGroep` ;", $table_prefix));
 	}
 	
-	// Toevoegen velden 'Xtra_Num' en 'Xtra_Char' aan de tabel Mailing_hist. Deze code kan na 1/7/2013 worden verwijderd.
+	// Toevoegen velden 'Xtra_Num' en 'Xtra_Char' aan de tabel Mailing_hist. Deze code kan na 1/1/2013 worden verwijderd.
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sMailing_hist' AND COLUMN_NAME='Xtra_Num';", $db_name, $table_prefix);
 	if (db_scalar($query) == 0) {
 		$query = sprintf("ALTER TABLE `%sMailing_hist` ADD `Xtra_Char` CHAR( 4 ) NULL AFTER `MailingID`, ADD `Xtra_Num` INT NULL AFTER `Xtra_Char`;", $table_prefix);
 		fnQuery($query);
 	}
 	
-	// Toevoegen veld 'HerinneringVervallenDiplomas' aan de tabel Admin_login. Deze code kan na 1/7/2013 worden verwijderd.
+	// Toevoegen veld 'HerinneringVervallenDiplomas' aan de tabel Admin_login. Deze code kan na 1/1/2013 worden verwijderd.
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sAdmin_login' AND COLUMN_NAME='HerinneringVervallenDiplomas';", $db_name, $table_prefix);
 	if (db_scalar($query) == 0) {
 		$query = sprintf("ALTER TABLE `%sAdmin_login` ADD `HerinneringVervallenDiplomas` TINYINT NOT NULL DEFAULT '0' AFTER `Wachtwoord`;", $table_prefix);
 		fnQuery($query);
 	}
 		
-	// Toevoegen veld 'Successful' aan de tabel Mailing_hist. Deze code kan na 1/8/2013 worden verwijderd.
+	// Toevoegen veld 'Successful' aan de tabel Mailing_hist. Deze code kan na 1/2/2013 worden verwijderd.
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sMailing_hist' AND COLUMN_NAME='Successful';", $db_name, $table_prefix);
 	if (db_scalar($query) == 0) {
 		$query = sprintf("ALTER TABLE `%sMailing_hist` ADD `Successful` TINYINT NOT NULL DEFAULT '1';", $table_prefix);
 		fnQuery($query);
 	}
 		
-	/***** Velden die aangepast zijn. De code om ze te wijzigen blijft 3 maanden staan.  *****/
+	/***** Velden die aangepast zijn. *****/
 	
 	// Admin_param/ValueNum, deze code kan na 1/1/2013 worden verwijderd.
 	$query = sprintf("ALTER TABLE `%sAdmin_param` CHANGE `ValueNum` `ValueNum` DECIMAL(16,6) NULL DEFAULT NULL;", $table_prefix);
@@ -2841,6 +2813,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sLid` (
   `Waarschuwen bij nood` varchar(255) DEFAULT NULL,
   `BANKGIRO` varchar(10) DEFAULT NULL,
   `Bankrekening` varchar(18) DEFAULT NULL,
+  `Burgerservicenummer` int(11) DEFAULT NULL,
   `Machtiging afgegeven` tinyint(4) DEFAULT NULL,
   `BezwaarMachtiging` date DEFAULT NULL,
   `Legitimatietype` varchar(1) DEFAULT NULL,

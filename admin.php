@@ -44,7 +44,7 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 		}
 	}
 } elseif ($_GET['op'] == "uploaddata") {
-	if (isset($_FILES['SQLupload']['name']) and strlen($_FILES['SQLupload']['name']) > 3) {
+	if (isset($_FILES['SQLupload']['tmp_name']) and strlen($_FILES['SQLupload']['tmp_name']) > 3) {
 		db_delete_local_tables();
 		fnQuery("SET CHARACTER SET utf8;");
 		$queries = file_get_contents($_FILES['SQLupload']["tmp_name"]);
@@ -57,6 +57,9 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 				printf("<script>setTimeout(\"location.href='%s';\", 15000);</script>\n", $_SERVER['PHP_SELF']);
 			}
 		}
+	} else {
+		$mess = sprintf("Er is iets mis gegaan tijdens het uploaden. Error: %s. Klik <a href='http://nl3.php.net/manual/en/features.file-upload.errors.php'>hier</a> voor uitleg van de code.", $_FILES['SQLupload']['error']);
+		db_logboek("add", $mess, 2, 0, 1);
 	}
 } elseif ($_GET['op'] == "afmeldenwijz" and $_GET['tp'] == "Downloaden wijzigingen") {
 	$mess = db_interface("afmelden");
@@ -274,6 +277,7 @@ function fnInstellingen() {
 	$arrParam['zs_emailbevestiginginschrijving'] = "Vanaf welk e-mailadres moet de bevestiging van de inschrijving voor de bewaking verzonden worden.";
 	$arrParam['zs_emailnieuwepasfoto'] = "Waar moet een nieuwe pasfoto naar toe gemaild worden?";
 	$arrParam['zs_incl_beroep'] = "Is het veld 'Beroep' in de zelfservice beschikbaar?";
+	$arrParam['zs_incl_bsn'] = "Is het veld 'Burgerservicenummer' in de zelfservice beschikbaar?";
 	$arrParam['zs_incl_bezwmachtiging'] = "Is het veld 'Bezwaar machtiging' in de zelfservice beschikbaar?";
 	$arrParam['zs_incl_emailouders'] = "Is het veld 'E-mail ouders' in de zelfservice beschikbaar?";
 	$arrParam['zs_incl_emailvereniging'] = "Is het veld 'E-mail vereniging' in de zelfservice beschikbaar?";

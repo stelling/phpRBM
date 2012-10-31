@@ -548,7 +548,10 @@ function algemeenlidmuteren($lidid) {
 		$wijzvelden[] = array('label' => "IBAN (International Bank Account Number)", 'naam' => "Bankrekening", 'lengte' => 18);
 	}
 	if (db_param("zs_incl_bezwmachtiging") == 1 or $currenttab == "Wijzigen lid") {
-		$wijzvelden[] = array('label' => "Bezwaar machtiging", 'naam' => "BezwaarMachtiging", 'lengte' => 1);
+		$wijzvelden[] = array('label' => "Bezwaar machtiging incasso", 'naam' => "BezwaarMachtiging", 'lengte' => 1);
+	}
+	if (db_param("zs_incl_bsn") == 1) {
+		$wijzvelden[] = array('label' => "Burgerservicenummer", 'naam' => "Burgerservicenummer", 'lengte' => 9);
 	}
 	if (db_param("zs_incl_slid") == 1 or $currenttab == "Wijzigen lid") {
 		$wijzvelden[] = array('label' => "Sportlink ID", 'naam' => "RelnrRedNed", 'lengte' => 7, 'nietverw' => true);
@@ -566,7 +569,7 @@ function algemeenlidmuteren($lidid) {
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$mess = "";
 		$toonmess = 0;
-		$old = db_ledenwijzigingen($lidid);
+		$old = db_lid("wijzigingen", "", $lidid);
 		for ($i=0; $i < count($wijzvelden); $i++) {
 			$fn = $wijzvelden[$i]['naam'];
 			$v = "__skip__";
@@ -580,6 +583,12 @@ function algemeenlidmuteren($lidid) {
 			} elseif ($fn == "Bankrekening" and isset($_POST[$fn]) and strlen($_POST[$fn]) > 0 and IsIBANgoed($_POST[$fn], 1) == false) {
 				$mess .= "IBAN is niet correct, deze wijziging wordt niet verwerkt. ";
 				$toonmess = 1;
+				$v = "";
+				
+			} elseif ($fn == "Burgerservicenummer" and isset($_POST[$fn]) and strlen($_POST[$fn]) > 0 and (!is_numeric($_POST[$fn]) or $_POST[$fn] < 100000000 or $_POST[$fn] > 999999999)) {
+				$mess .= "Burgerservicenummer is niet correct, deze wijziging wordt niet verwerkt. ";
+				$toonmess = 1;
+				$v = "";
 				
 			} elseif (isset($_POST["chkLeeg_" . $fn]) and $_POST["chkLeeg_" . $fn] == "1") {
 				if (stripos($wijzvelden[$i]['label'], "datum") === FALSE) {
@@ -610,6 +619,7 @@ function algemeenlidmuteren($lidid) {
 				$mess .= "Het Sportlink ID moet 7 karakters lang zijn, deze wijziging wordt niet verwerkt. ";
 				$toonmess = 1;
 				$v = "";
+				
 			} elseif (isset($_POST[$fn]) and strlen($_POST[$fn]) > 0) {
 				$v = $_POST[$fn];
 			}
@@ -635,7 +645,7 @@ function algemeenlidmuteren($lidid) {
 		db_logboek("add", $mess, 6, 0, $toonmess);
 	} # if post
 
-	$row = db_ledenwijzigingen($lidid);
+	$row = db_lid("wijzigingen", "", $lidid);
 	echo("<div id='wijzigengegevens'>\n");
 	printf("<form method='post' action='%s' name='frm_wijzigingen'>\n", $actionurl);
 	echo("<table>\n");
@@ -660,7 +670,7 @@ function algemeenlidmuteren($lidid) {
 			}
 			$inp = sprintf("<select name='%s'>%s</select></td><td>", $wijzvelden[$i]['naam'], $opt);
 			
-		} elseif ($wijzvelden[$i]['label'] == "Bezwaar machtiging") {
+		} elseif ($wijzvelden[$i]['naam'] == "BezwaarMachtiging") {
 			if ($row->$wijzvelden[$i]['naam'] > "2000-01-01") {
 				$dv = strftime("%e %B %Y", strtotime($dv));
 				$c = "checked";
