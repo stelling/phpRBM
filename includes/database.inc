@@ -233,7 +233,8 @@ function db_gegevenslid($LidID, $soort="Alg") {
 	} elseif ($soort == "Financieel") {
 		$query = sprintf("SELECT IF(LENGTH(L.Bankrekening)=18, L.Bankrekening, L.BANKGIRO) AS Bankrekeningnummer, 
 								L.`Machtiging afgegeven` AS `booMachtiging automatische incasso`, 
-								IF(ISNULL(L.BezwaarMachtiging), 'Nee', DATE_FORMAT(L.BezwaarMachtiging, %s)) AS `Bezwaar machtiging`
+								IF(ISNULL(L.BezwaarMachtiging), 'Nee', DATE_FORMAT(L.BezwaarMachtiging, %s)) AS `Bezwaar machtiging incasso`,
+								L.Burgerservicenummer
 								FROM %sLid AS L
 								WHERE L.Nummer=%d;", $fdlang, $table_prefix, $LidID);
 	} elseif ($soort == "Afdelingen") {
