@@ -22,9 +22,11 @@ $dir = substr($dir, 0, strrpos($dir, "/"));
 require_once($dir . '/config.php');
 
 $bestandsversie = filectime($dir . "/index.php");
-$includes = array("database", "authentication", "leden", "bewaking", "evenement", "mailing", "standaard", "webshop", "rbm_mailer.class", "simple_image.class");
+$includes = array("database", "authentication", "leden", "bewaking", "evenement", "mailing", "standaard", "webshop", "class.phpmailer.php", "rbm_mailer.class", "simple_image.class");
 foreach ($includes as $incl) {
-	if (substr($incl, -6) == ".class") {
+	if (substr($incl, -4) == ".php") {
+		$incl = $dir . "/includes/" . $incl;
+	} elseif (substr($incl, -6) == ".class") {
 		$incl = $dir . "/includes/" . $incl . ".php";
 	} else {
 		$incl = $dir . "/includes/" . $incl . ".inc";

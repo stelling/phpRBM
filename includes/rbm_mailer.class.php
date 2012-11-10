@@ -1,7 +1,5 @@
 <?php
 
-require_once("includes/class.phpmailer.php");
-
 class RBMmailer extends PHPMailer {
 
 	function __construct($lidid=-1) {
