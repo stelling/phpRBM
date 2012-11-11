@@ -66,7 +66,7 @@ if (toegang("", 0) == false) {
 	fnDispMenu(2);
 	if ($currenttab2 == "Introductie") {
 		fnVoorblad();
-		if (!isset($_SESSION['username']) or strlen($_SESSION['username']) <= 5) {
+		if (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
 			echo("<div id='kolomrechts'>\n");
 			fnLoginAanvragen();
 			echo("</div>  <!-- Einde kolomrechts -->\n");
@@ -86,7 +86,7 @@ if (toegang("", 0) == false) {
 	fnEvenementen();
 } elseif ($currenttab == "Bestellingen") {
 	fnWebshop();
-} elseif (!isset($_SESSION['username']) or strlen($_SESSION['username']) <= 5) {
+} elseif (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
 	fnLoginAanvragen();
 } else {
 	debug("Geen voorblad");

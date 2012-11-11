@@ -61,10 +61,11 @@ function toegang($soort="", $melding=1, $password="") {
 			} else {
 				if ($melding == 1) {
 					if (strlen($password) > 0) {
-						$mess = sprintf("De combinatie van login '%s' en het ingevoerde wachtwoord is niet correct! Je bent niet ingelogd.", $_SESSION['username']);
+						$mess = sprintf("De combinatie van login '%s' en het ingevoerde wachtwoord (%s) is niet correct! Je bent niet ingelogd.", $_SESSION['username'], $password);
 					} else {
 						$mess = "Er is geen wachtwoord ingevoerd.";
 					}
+					
 					db_logboek("add", $mess, 1, 0, 2);
 				}
 				$_SESSION['lidid'] = 0;
@@ -95,7 +96,7 @@ function toegang($soort="", $melding=1, $password="") {
 		} else {
 			$_SESSION['lidgroepen'] = "(0)";
 		}
-	} else {
+	} elseif (!isset($_SESSION['lidgroepen']) or $_SESSION['lidid'] == 0) {
 		$_SESSION['lidgroepen'] = "(0)";
 	}
 	
