@@ -19,7 +19,7 @@ if ($currenttab == "Beheer logins" or $currenttab == "Autorisatie" or $currentta
 } else {
 	HTMLheader(0);
 }
-	
+
 if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 	db_logins("delete", "", "", $_GET['lidid']);
 	printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $currenttab);

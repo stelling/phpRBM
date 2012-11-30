@@ -18,7 +18,7 @@ function toegang($soort="", $melding=1, $password="") {
 	
 	$maxinlogpogingen = db_param("maxinlogpogingen");
 
-	if ($_SESSION['lidid'] > 0 and isset($_SESSION['lastauthenication']) and $_SESSION['lastauthenication'] >= time()-1800) {
+	if (isset($_SESSION['lastauthenication']) and $_SESSION['lastauthenication'] >= time()-3600 and $_SESSION['lidid'] > 0) {
 		// Er hoeft niets te gebeuren.
 	} else {
 		db_logins("uitloggen");
@@ -61,7 +61,7 @@ function toegang($soort="", $melding=1, $password="") {
 			} else {
 				if ($melding == 1) {
 					if (strlen($password) > 0) {
-						$mess = sprintf("De combinatie van login '%s' en het ingevoerde wachtwoord (%s) is niet correct! Je bent niet ingelogd.", $_SESSION['username'], $password);
+						$mess = sprintf("De combinatie van login '%s' en het ingevoerde wachtwoord is niet correct! Je bent niet ingelogd.", $_SESSION['username']);
 					} else {
 						$mess = "Er is geen wachtwoord ingevoerd.";
 					}
@@ -87,7 +87,10 @@ function toegang($soort="", $melding=1, $password="") {
 	} else {
 		$_SESSION['webmaster'] = 0;
 	}
-	if ($_SESSION['lidid'] > 0 and (!isset($_SESSION['lidgroepen']) or $_SESSION['lidgroepen'] == "(0)")) {
+	
+	if ($_SESSION['lidid'] == 0) {
+		$_SESSION['lidgroepen'] = "(0)";
+	} elseif (!isset($_SESSION['lidgroepen']) or $_SESSION['lidgroepen'] == "(0)") {
 		$query = sprintf("SELECT OnderdeelID FROM %sLidond AS LO WHERE LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE()) AND LO.Lid=%d;", $table_prefix, $_SESSION['lidid']);
 		$result = fnQuery($query);
 		$rows = $result->fetchAll(PDO::FETCH_COLUMN);
@@ -96,8 +99,6 @@ function toegang($soort="", $melding=1, $password="") {
 		} else {
 			$_SESSION['lidgroepen'] = "(0)";
 		}
-	} elseif (!isset($_SESSION['lidgroepen']) or $_SESSION['lidid'] == 0) {
-		$_SESSION['lidgroepen'] = "(0)";
 	}
 	
 	if ($_SESSION['lidid'] > 0) {
