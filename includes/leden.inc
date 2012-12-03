@@ -321,6 +321,12 @@ function fnOverviewLid($lidid=0, $actie="") {
 		$xtra_param = sprintf("lidid=%d", $lidid);
 	}
 	
+	if (isset($_GET['op'])) {
+		$op = $_GET['op'];
+	} else {
+		$op = "";
+	}
+	
 	$toneninschrijvingenbewakingen = db_param("toneninschrijvingenbewakingen");
 	
 	if ($lidid <= 0) {
@@ -384,17 +390,22 @@ function fnOverviewLid($lidid=0, $actie="") {
 				printf("<p class='mededeling'>Bij %s zijn geen diploma's bekend.</p>", $naamlid);
 			}
 		} elseif ($actie == "Financieel") {
-			if ($_SESSION['aantalrekeningen'] > 0) {
-				$rows = db_gegevenslid($lidid, "Rekening");
-				if (count($rows) > 0) {
-					echo(fnDisplayTable($rows, "", "Rekeningen " . $naamlid));
-				} else {
-					printf("<p class='mededeling'>%s heeft geen rekeningen ontvangen.</p>", $naamlid);
+			if ($op == "details" and isset($_GET['rid']) and $_GET['rid'] > 0) {
+				echo(RekeningDetail($_GET['rid']));
+			} else {
+				if ($_SESSION['aantalrekeningen'] > 0) {
+					$rows = db_gegevenslid($lidid, "Rekening");
+					if (count($rows) > 0) {
+						$lnk = sprintf("<a href='%s?tp=%s&amp;op=details&amp;lidid=%d&amp;rid=%%d' title='Details rekening'><img src='images/zoom.png' alt='Zoom'></a>", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
+						echo(fnDisplayTable($rows, $lnk, "Rekeningen " . $naamlid));
+					} else {
+						printf("<p class='mededeling'>%s heeft geen rekeningen ontvangen.</p>", $naamlid);
+					}
 				}
-			}
-			$rows = db_gegevenslid($lidid, "Financieel");
-			if (count($rows) > 0) {
-				echo(fnDisplayForm($rows[0]));
+				$rows = db_gegevenslid($lidid, "Financieel");
+				if (count($rows) > 0) {
+					echo(fnDisplayForm($rows[0]));
+				}
 			}
 		} elseif ($actie == "Mailing") {
 			if (isset($_GET['MailingID']) and $_GET['MailingID'] > 0) {
@@ -1128,5 +1139,61 @@ function IsIBANgoed($IBAN, $LeegIsGoed=1) {
    return $retval;
 
 } # IsIBANgoed
+
+function RekeningDetail($nr) {
+	
+	$rk = db_rekening("hoofd", $nr);
+	
+	$rekening_template = 'templates/rekening2.html';
+	if (file_exists($rekening_template)) {
+		$content = file_get_contents($rekening_template);
+	} else {
+		$content = "<p>[%NAAMDEBITEUR%]<br>
+[%ADRES%]<br>
+[%POSTCODE%]  [%WOONPLAATS%]</p>
+<br>
+<p>Mijdrecht, [%REKENINGDATUM%]</p>
+<br>
+<p><u>Betreft: [%REKENINGOMSCHRIJVING%] [%REKENINGNUMMER%]</u></p>
+<br>
+<div id='rekeningregels'>
+<table>
+<tr><th>Regel</th><th>Omschrijving</th><th>Lid</th><th class='number'>Bedrag in &euro;</th></tr>
+[%REKENINGREGELS%]
+<tr><th colspan=3>Totaal</th><th class='number'>[%REKENINGBEDRAG%]</th><tr>
+</table>
+</div> <!-- Einde rekeningregels -->
+<p>Deze rekening wordt rond [%UITERSTEBETAALDATUM%] middels automatische incasso van bankrekening [%BANKREKENING%] afgeschreven, tenzij je hiervoor een bezwaar hebt ingediend.</p>
+
+<p>Indien u een andere betalingsregeling wenst of een vraag over deze rekening heeft kunt u contact met de penningmeester opnemen.</p>
+
+<p><strong>Het bestuur van [%NAAMVERENIGING%]</strong></p>\n";
+	}
+	
+	$content = str_ireplace("[%NAAMDEBITEUR%]", $rk->DEBNAAM, $content);
+	$content = str_ireplace("[%ADRES%]", $rk->Adres, $content);
+	$content = str_ireplace("[%POSTCODE%]", $rk->Postcode, $content);
+	$content = str_ireplace("[%WOONPLAATS%]", $rk->Woonplaats, $content);
+	$content = str_ireplace("[%REKENINGDATUM%]", strftime("%e %B %Y", strtotime($rk->Datum)), $content);
+	$content = str_ireplace("[%REKENINGOMSCHRIJVING%]", $rk->OMSCHRIJV, $content);
+	$content = str_ireplace("[%REKENINGNUMMER%]", $rk->Nummer, $content);
+	$content = str_ireplace("[%REKENINGBEDRAG%]", $rk->Bedrag, $content);
+	$content = str_ireplace("[%BANKREKENING%]", $rk->Bankrekeningnummer, $content);
+	$content = str_ireplace("[%UITERSTEBETAALDATUM%]", strftime("%e %B %Y", strtotime($rk->UitersteBetaaldatum)), $content);
+	$content = str_ireplace("[%NAAMVERENIGING%]", $_SESSION['naamvereniging'], $content);
+	$content = str_ireplace("[%NAAMWEBSITE%]", $_SESSION['naamwebsite'], $content);
+	$content = str_ireplace("[%URLWEBSITE%]", $_SESSION['urlwebsite'], $content);
+	
+	$rr = db_rekening("regels", $nr);
+	$rrtxt = "";
+	foreach($rr as $regel) {
+		$nl = db_naamlid($regel->Lid, "Naam", "");
+		$rrtxt .= sprintf("<tr><td>%d</td><td>%s</td><td>%s</td><td class='number'>%03.2f</td></tr>\n", $regel->Regelnr, $regel->OMSCHRIJV, $nl, $regel->Bedrag);
+	}
+	$content = str_ireplace("[%REKENINGREGELS%]", $rrtxt, $content);
+	
+	return $content;
+
+} # RekeningDetail
 
 ?>

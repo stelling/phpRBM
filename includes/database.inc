@@ -296,15 +296,16 @@ function db_gegevenslid($LidID, $soort="Alg") {
 								WHERE Lid=%2\$d %3\$s
 								ORDER BY BS.Begindatum DESC, BS.Lokatie, BW.BEGIN_PER DESC;", $table_prefix, $LidID, $xtra_where);
 	} elseif ($soort == "Rekening") {
-		$query = sprintf("SELECT Nummer,"
-				 . " Datum AS dteDatum,"
-				 . " OMSCHRIJV AS Omschrijving,"
-				 . " Bedrag AS curBedrag,"
-				 . " Betaald as curBetaald,"
-				 . " (Bedrag-Betaald) AS curOpenstaand"
-				 . " FROM %sRekening"
-				 . " WHERE Lid=%d"
-				 . " ORDER BY Nummer DESC;", $table_prefix, $LidID);
+		$query = sprintf("SELECT Nummer,
+					Datum AS dteDatum,
+					OMSCHRIJV AS Omschrijving,
+					Bedrag AS curBedrag,
+					Betaald AS curBetaald,
+					(Bedrag-Betaald) AS curOpenstaand,
+					Nummer AS lnkNummer
+					FROM %sRekening
+					WHERE Lid=%d
+					ORDER BY Nummer DESC;", $table_prefix, $LidID);
 	} elseif ($soort == "Mailing") {
 		$query = sprintf("SELECT send_on AS dttVerzonden,"
 				 . " IF(LENGTH(from_name)<3, from_addr, from_name) AS Van,"
@@ -1626,7 +1627,7 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0) {
 				Script=\"%s\";", $table_prefix, $_SESSION['lidid'], $_SERVER['REMOTE_ADDR'], $_SERVER['HTTP_USER_AGENT'], $oms, $type, $script);
 		fnQuery($query);
 		if ($tm == 1) {
-			printf("<p class='mededeling'>%s</p>\n", htmlentities($oms));
+			printf("<p class='mededeling'>%s</p>\n", $oms);
 		} elseif ($tm == 2) {
 			printf("<script>alert(\"%s\");</script>\n", str_replace("\"", "'", $oms));
 		}
@@ -2197,6 +2198,36 @@ function db_orderregel($actie, $lidid=0, $artikelid=0, $aantalbesteld=0, $filter
 	}
 }
 
+function db_rekening($actie, $nr=0) {
+	global $table_prefix;
+	
+	if ($actie == "minnummer") {
+		$query = sprintf("SELECT MIN(Nummer) FROM %sRekening;", $table_prefix);
+		return db_scalar($query);
+	} elseif ($actie == "maxnummer") {
+		$query = sprintf("SELECT MAX(Nummer) FROM %sRekening;", $table_prefix);
+		return db_scalar($query);
+	} elseif ($actie == "mindatum") {
+		$query = sprintf("SELECT MIN(Datum) FROM %sRekening;", $table_prefix);
+		return db_scalar($query);
+	} elseif ($actie == "maxdatum") {
+		$query = sprintf("SELECT MAX(Datum) FROM %sRekening;", $table_prefix);
+		return db_scalar($query);
+	} elseif ($actie == "hoofd" and $nr > 0) {
+		$query = sprintf("SELECT RK.*, L.Adres, L.Postcode, L.Woonplaats,
+					IF(LENGTH(L.Bankrekening)=18, L.Bankrekening, L.BANKGIRO) AS Bankrekeningnummer,
+					DATE_ADD(RK.Datum, INTERVAL RK.BET_TERM*RK.BETAALDAG DAY) AS UitersteBetaaldatum
+					FROM %1\$sRekening AS RK INNER JOIN %1\$sLid AS L ON RK.Lid = L.Nummer
+					WHERE RK.Nummer=%2\$d;", $table_prefix, $nr);
+		$result = fnQuery($query);
+		return $result->fetch();
+	} elseif ($actie == "regels" and $nr > 0) {
+		$query = sprintf("SELECT * FROM %sRekreg WHERE Rekening=%d;", $table_prefix, $nr);
+		$result = fnQuery($query);
+		return $result->fetchAll();
+	}
+}
+
 function db_dms() {
 }
 
@@ -2376,6 +2407,7 @@ function db_onderhoud() {
 		fnQuery(sprintf("ALTER TABLE %sLidRedNed CHANGE Geboortedatum Geboortedatum DATE;", $table_prefix));
 		fnQuery(sprintf("ALTER TABLE %sMutatie CHANGE `Datum` `Datum` DATE;", $table_prefix));
 		fnQuery(sprintf("ALTER TABLE %sOnderdl CHANGE `VervallenPer` `VervallenPer` DATE;", $table_prefix));
+		fnQuery(sprintf("ALTER TABLE %sRekening CHANGE `Datum` `Datum` DATE;", $table_prefix));
 		foreach ($arrTables as $tn) {
 			if (startwith($tn, "Admin_") == false and startwith($tn, "Mailing") == false) {
 				fnQuery(sprintf("ALTER TABLE %s%s CHANGE Ingevoerd Ingevoerd DATE;", $table_prefix, $tn));
