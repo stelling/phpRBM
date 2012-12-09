@@ -140,7 +140,11 @@ function fnConfirmLogin($row, $xtratekst="") {
 	
 	db_logins("wachtwoordenvullen");
 	
-	$def_bevestiging = "<p>Beste [%ROEPNAAM%],</p>\n
+	$myFile = 'templates/bevestiging_login.html';
+	if (file_exists($myFile)) {
+		$content = file_get_contents($myFile);
+	} else {
+		$content = "<p>Beste [%ROEPNAAM%],</p>\n
 <p>Je hebt een login voor de website <a href='http://[%URLWEBSITE%]'>[%NAAMWEBSITE%]</a> aangevraagd. Hierbij je gegevens.</p>\n
 <ul>\n
 <li>Login: [%LOGIN%]</li>\n
@@ -150,25 +154,8 @@ function fnConfirmLogin($row, $xtratekst="") {
 \n
 <p>Met vriendelijke groeten,<br>\n
 <strong>Webmaster [%NAAMWEBSITE%]</strong></p>\n";
+	}
 
-	$myFile = 'templates/bevestiging_login.html';
-	if (file_exists($myFile)) {
-		$content = file_get_contents($myFile);
-		if ($content == false) {
-			$content = $def_bevestiging;
-		}
-	} else {
-		$content = $def_bevestiging;
-	}
-	$myFile = 'templates/briefpapier.html';
-	if (file_exists($myFile)) {
-		$briefpapier = file_get_contents($myFile);
-		if ($content == false) {
-			$briefpapier = "[%MESSAGE%]";
-		}
-	} else {
-		$briefpapier = "[%MESSAGE%]";
-	}
 	if (db_param("maxinlogpogingen") > 0 and $row->FouteLogin > db_param("maxinlogpogingen")) {
 		$geblokt = sprintf("Er is %d keer geprobeerd met deze login in te loggen. Hierdoor is dit account geblokkeerd. Vraag aan de webmaster om deze weer vrij te geven.", $row->FouteLogin);
 	} else {
@@ -186,20 +173,12 @@ function fnConfirmLogin($row, $xtratekst="") {
 	$content = str_replace("[%NAAMWEBSITE%]", $_SESSION['naamwebsite'], $content);
 	$content = str_replace("[%URLWEBSITE%]", $_SESSION['urlwebsite'], $content);
 	$content = str_replace("[%IPADDRESS%]", $_SERVER['REMOTE_ADDR'], $content);
-		
-	$content = str_ireplace("[%MESSAGE%]", $content, $briefpapier);
-
-	$subj = sprintf("Bevestiging login %s voor %s", $_SESSION['naamwebsite'], $row->Naam);
-	$from = "Webmaster " . $_SESSION['naamwebsite'];
-	
-	$content = str_ireplace("[%FROM%]", $from, $content);
-	$content = str_ireplace("[%TO%]", $row->Naam, $content);
-	$content = str_ireplace("[%SUBJECT%]", $subj, $content);
 
 	$mail = new RBMmailer($row->Nummer);
-	$mail->FromName = $from;
-	$mail->Subject = $subj;
-	$mail->MsgHTML($content);
+	$mail->FromName = "Webmaster " . $_SESSION['naamwebsite'];
+	$mail->Subject = sprintf("Bevestiging login %s voor %s", $_SESSION['naamwebsite'], $row->Naam);
+	$mail->Body = $content;
+	$mail->addstationary();
 	if ($mail->Send()) {
 		$mess = sprintf("Login '%s' aan %s (%s) verzonden.", $row->Login, $row->Naam, $mail->ListAddresses("to"));
 	} else {
@@ -216,20 +195,10 @@ function fnConfirmLidnr($row, $xtratekst="") {
 	} else {
 		$content = sprintf("<p>Beste [%ROEPNAAM%],</p>\n
 		<p>Je lidnummer van de [%NAAMVERENIGING%] is [%LIDNR%].</p>
-		<p>Met dit lidnummer kan je <a href='http://[%URLWEBSITE%]/index.php?tp=Login+aanvragen'>hier</a> een login aanvragen.</p>
+		<p>Met dit lidnummer kan je <a href='http://[%URLWEBSITE%]/index.php'>hier</a> een login aanvragen.</p>
 		Dit verzoek is vanaf IP-adres [%IPADDRESS%] gedaan.
 		<p>Met vriendelijke groeten,<br>\n
 		<strong>Webmaster [%NAAMWEBSITE%]</strong></p>\n");
-	}
-
-	$myFile = 'templates/briefpapier.html';
-	if (file_exists($myFile)) {
-		$briefpapier = file_get_contents($myFile);
-		if ($content == false) {
-			$briefpapier = "[%MESSAGE%]";
-		}
-	} else {
-		$briefpapier = "[%MESSAGE%]";
 	}
 	
 	if (db_param("maxinlogpogingen") > 0 and $row->FouteLogin > db_param("maxinlogpogingen")) {
@@ -248,22 +217,13 @@ function fnConfirmLidnr($row, $xtratekst="") {
 	$content = str_replace("[%NAAMWEBSITE%]", $_SESSION['naamwebsite'], $content);
 	$content = str_replace("[%URLWEBSITE%]", $_SESSION['urlwebsite'], $content);
 	$content = str_replace("[%IPADDRESS%]", $_SERVER['REMOTE_ADDR'], $content);
-		
-	$content = str_ireplace("[%MESSAGE%]", $content, $briefpapier);
-
-	$subj = sprintf("Lidnummer %s", $_SESSION['naamvereniging']);
-	$from = "Webmaster " . $_SESSION['naamwebsite'];
-	
-	$content = str_ireplace("[%FROM%]", $from, $content);
-	$content = str_ireplace("[%TO%]", $row->Naam, $content);
-	$content = str_ireplace("[%SUBJECT%]", $subj, $content);
-
 
 	try {
 		$mail = new RBMmailer($row->Nummer);
-		$mail->FromName = $from;
-		$mail->Subject = $subj;
-		$mail->MsgHTML($content);
+		$mail->FromName = "Webmaster " . $_SESSION['naamwebsite'];
+		$mail->Subject = sprintf("Lidnummer %s", $_SESSION['naamvereniging']);
+		$mail->Body = $content;
+		$mail->addstationary();
 		if ($mail->Send()) {
 			return sprintf("Lidnummer is aan %s (%s) verzonden.", $row->Naam, $mail->ListAddresses("to"));
 		} else {

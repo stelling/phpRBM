@@ -213,6 +213,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	$tabpages[] = "Mailing/Templates";
 	$tabpages[] = "Mailing/Concepten";
 	$tabpages[] = "Mailing/Nieuw";
+	if ($_SESSION['aantalrekeningen'] > 0) {
+		$tabpages[] = "Mailing/Rekeningen";
+	}
 	$tabpages[] = "Mailing/Verzonden";
 	if (db_mailing("aantalprullenbak") > 0) {
 		$tabpages[] = "Mailing/Prullenbak";

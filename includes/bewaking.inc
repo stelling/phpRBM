@@ -471,6 +471,9 @@ function BevestInschrBewaking($lidid, $insnr) {
 	foreach ($rows as $row) {
 		$naambewaker = $row->ndNaamBewaker;
 		$roepnaambewaker = $row->ndRoepnaamBewaker;
+		$adres = $row->ndAdres;
+		$postcode = $row->ndPostcode;
+		$woonplaats = $row->ndWoonplaats;
 		$email = $row->ndEmailBewaker;
 		$emailouders = $row->ndEmailOuders;
 		$geboren = $row->ndGeboren;
@@ -486,6 +489,9 @@ function BevestInschrBewaking($lidid, $insnr) {
 	}
 	$content = str_ireplace("[%NAAMLID%]", $naambewaker, $content);
 	$content = str_ireplace("[%ROEPNAAM%]", $roepnaambewaker, $content);
+	$content = str_ireplace("[%ADRES%]", $adres, $content);
+	$content = str_ireplace("[%POSTCODE%]", $postcode, $content);
+	$content = str_ireplace("[%WOONPLAATS%]", $woonplaats, $content);
 	$content = str_replace("[%NAAMVERENIGING%]", $_SESSION['naamvereniging'], $content);
 	$content = str_replace("[%NAAMWEBSITE%]", $_SESSION['naamwebsite'], $content);
 	$content = str_replace("[%URLWEBSITE%]", $_SESSION['urlwebsite'], $content);
@@ -501,26 +507,12 @@ function BevestInschrBewaking($lidid, $insnr) {
 	}
 	$content = str_ireplace("[%BEWDIPLOMAS%]", $d, $content);
 
-	$brief_template = "templates/briefpapier.html";
-	if (file_exists($brief_template)) {
-		$briefpapier = file_get_contents($brief_template);
-		if ($content === false) {
-			$htmlmessage = $content;
-		} else {
-			$htmlmessage = str_ireplace("[%MESSAGE%]", $content, $briefpapier);
-			$htmlmessage = str_ireplace("[%FROM%]", $_SESSION['naamvereniging'], $htmlmessage);
-			$htmlmessage = str_ireplace("[%TO%]", $naambewaker, $htmlmessage);
-			$htmlmessage = str_ireplace("[%SUBJECT%]", $subj, $htmlmessage);
-		}
-	} else {
-		$htmlmessage = $content;
-	}
-				
 	$mail = new RBMmailer($lidid);
 	try {
 		$mail->From = $emailbevestiginginschrijving;
 		$mail->Subject = $subj;
-		$mail->MsgHTML($htmlmessage);
+		$mail->Body = $content;
+		$mail->addstationary();
 		if ($mail->Send()) {
 			db_add_mailing_hist($lidid, 0, $naambewaker, $email, $content, $mail, 1);
 			$mess = sprintf("Bevestiging van deze inschrijving is naar %s verzonden.", $email);

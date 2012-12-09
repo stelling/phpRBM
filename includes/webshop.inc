@@ -401,29 +401,13 @@ function bevestigingbestelling($lidid, $ordernr=0) {
 	$content = str_ireplace("[%ADRES%]", $adres, $content);
 	$content = str_ireplace("[%POSTCODE%]", $postcode, $content);
 	$content = str_ireplace("[%WOONPLAATS%]", $woonplaats, $content);
-	$content = str_replace("[%NAAMVERENIGING%]", $_SESSION['naamvereniging'], $content);
-	$content = str_replace("[%NAAMWEBSITE%]", $_SESSION['naamwebsite'], $content);
-	$content = str_replace("[%URLWEBSITE%]", $_SESSION['urlwebsite'], $content);
-	$content = str_replace("[%VOORWAARDEN%]", db_param("zs_voorwaardenbestelling"), $content);
+	$content = str_ireplace("[%NAAMVERENIGING%]", $_SESSION['naamvereniging'], $content);
+	$content = str_ireplace("[%NAAMWEBSITE%]", $_SESSION['naamwebsite'], $content);
+	$content = str_ireplace("[%URLWEBSITE%]", $_SESSION['urlwebsite'], $content);
+	$content = str_ireplace("[%VOORWAARDEN%]", db_param("zs_voorwaardenbestelling"), $content);
 	$content = str_ireplace("[%BESTELLING%]", $bestelling, $content);
 	$content = str_ireplace("[%TOTAALBEDRAG%]", "&euro;&nbsp;" . number_format($totbedrag, 2), $content);
 
-	$subj = sprintf("Bevestiging bestelling %d", $ordernr);
-	$brief_template = "templates/briefpapier.html";
-	if (file_exists($brief_template)) {
-		$briefpapier = file_get_contents($brief_template);
-		if ($content === false) {
-			$htmlmessage = $content;
-		} else {
-			$htmlmessage = str_ireplace("[%MESSAGE%]", $content, $briefpapier);
-			$htmlmessage = str_ireplace("[%FROM%]", $_SESSION['naamvereniging'], $htmlmessage);
-			$htmlmessage = str_ireplace("[%TO%]", $naamlid, $htmlmessage);
-			$htmlmessage = str_ireplace("[%SUBJECT%]", $subj, $htmlmessage);
-		}
-	} else {
-		$htmlmessage = $content;
-	}
-				
 	$mail = new RBMmailer($lidid);
 	if (isValidMailAddress($emailbevestigingbestelling, 0)) {
 		$mail->From = $emailbevestigingbestelling;
@@ -431,8 +415,9 @@ function bevestigingbestelling($lidid, $ordernr=0) {
 	if (isValidMailAddress($emailbevestigingbestelling, 0)) {
 		$mail->AddCC($emailbevestigingbestelling);
 	}
-	$mail->Subject = $subj;
-	$mail->MsgHTML($htmlmessage);
+	$mail->Subject = sprintf("Bevestiging bestelling %d", $ordernr);
+	$mail->Body = $content;
+	$mail->addstationary();
 	if ($mail->Send()) {
 		db_add_mailing_hist($lidid, 0, $naamlid, $email, $content, $mail, 1);
 		$mess = sprintf("Een bevestiging van deze bestelling is naar %s verzonden.", $email);

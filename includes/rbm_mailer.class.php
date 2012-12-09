@@ -2,6 +2,8 @@
 
 class RBMmailer extends PHPMailer {
 
+	private $bestand_briefpapier = "templates/briefpapier.html";
+
 	function __construct($lidid=-1) {
 		global $table_prefix, $selectnaam;
 	
@@ -89,7 +91,38 @@ class RBMmailer extends PHPMailer {
 		}
 		return strtolower($rv);
 	}
-
+	
+	public function hasstationary() {
+		if (file_exists($this->bestand_briefpapier)) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+	
+	public function addstationary($to="", $from="") {
+		if (strlen($to) == 0) {
+			foreach($this->to as $e) {
+				if (strlen($to) > 0) {
+					$to .= ", ";
+				}
+				$to .= $e[1];
+			}
+		}
+		if (strlen($from) == 0) {
+			$from = $this->FromName;
+		}
+		if (file_exists($this->bestand_briefpapier)) {
+			$htmlmessage = str_ireplace("[%MESSAGE%]", $this->Body, file_get_contents($this->bestand_briefpapier));
+			$htmlmessage = str_ireplace("[%FROM%]", $from, $htmlmessage);
+			$htmlmessage = str_ireplace("[%TO%]", $to, $htmlmessage);
+			$htmlmessage = str_ireplace("[%SUBJECT%]", $this->Subject, $htmlmessage);
+			$this->Body = $htmlmessage;
+		} else {
+			$mess = sprintf("Het bestand '%s' bestaat niet.", $this->bestand_briefpapier);
+			db_logboek("add", $mess, 4);
+		}
+	}
 }
 
 ?>

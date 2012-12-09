@@ -141,12 +141,14 @@ function fnQuery($query) {
 			$result->execute();
 			$exec_tijd = microtime(true) - $starttijd;
 			if (strtoupper(substr($query, 0, 6)) == "INSERT") {
-				return $dbc->lastInsertId();
+				$rv = $dbc->lastInsertId();
 			} else {
-				return $result->RowCount();
+				$rv = $result->RowCount();
 			}
+			$result = null;
+			return $rv;
 		}
-	} catch (Exception $e) {
+	} catch (Exception $e) {					
 		$mess = sprintf("Error in SQL '%s': %s", $query, $e->getMessage());
 		db_logboek("add", $mess, 99, 0, 1);
 		return false;
@@ -809,7 +811,8 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 		}
 		$query = sprintf("SELECT BS.Kode AS Seizoen, BB.Kode AS Week, BB.Begindatum AS dteBegin, BB.Einddatum AS dteEinde,
 								IF(BI.Keuze=3, 1, BI.Keuze) AS Keuze, BI.Opmerking, %2\$s AS ndNaamBewaker, L.Roepnaam AS ndRoepnaamBewaker,
-								L.Email AS ndEmailBewaker, L.EmailOuders AS ndEmailOuders, L.GEBDATUM AS ndGeboren
+								L.Email AS ndEmailBewaker, L.EmailOuders AS ndEmailOuders, L.GEBDATUM AS ndGeboren,
+								L.Adres AS ndAdres, L.Postcode AS ndPostcode, L.Woonplaats AS ndWoonplaats
 								FROM (%1\$sBewaking_Blok AS BB INNER JOIN (%1\$sBewaking_Inschrijving AS BI INNER JOIN %1\$sLid AS L ON BI.Lid = L.Nummer) ON BB.RecordID = BI.BlokID) INNER JOIN %1\$sBewseiz AS BS ON BB.SeizoenID = BS.RecordID
 								WHERE BB.Einddatum > CURDATE() AND %3\$s AND BI.Definitief > BI.Ingevoerd
 								ORDER BY BS.Kode, BB.Kode, BB.Begindatum;", $table_prefix, $selectnaam, $w);
@@ -2198,8 +2201,8 @@ function db_orderregel($actie, $lidid=0, $artikelid=0, $aantalbesteld=0, $filter
 	}
 }
 
-function db_rekening($actie, $nr=0) {
-	global $table_prefix;
+function db_rekening($actie, $nr=0, $filter="") {
+	global $table_prefix, $selectlidnr;
 	
 	if ($actie == "minnummer") {
 		$query = sprintf("SELECT MIN(Nummer) FROM %sRekening;", $table_prefix);
@@ -2216,13 +2219,27 @@ function db_rekening($actie, $nr=0) {
 	} elseif ($actie == "hoofd" and $nr > 0) {
 		$query = sprintf("SELECT RK.*, L.Adres, L.Postcode, L.Woonplaats,
 					IF(LENGTH(L.Bankrekening)=18, L.Bankrekening, L.BANKGIRO) AS Bankrekeningnummer,
-					DATE_ADD(RK.Datum, INTERVAL RK.BET_TERM*RK.BETAALDAG DAY) AS UitersteBetaaldatum
-					FROM %1\$sRekening AS RK INNER JOIN %1\$sLid AS L ON RK.Lid = L.Nummer
-					WHERE RK.Nummer=%2\$d;", $table_prefix, $nr);
+					DATE_ADD(RK.Datum, INTERVAL RK.BET_TERM*RK.BETAALDAG DAY) AS UitersteBetaaldatum,
+					(%1\$1s) AS Lidnr
+					FROM %2\$sRekening AS RK INNER JOIN %2\$sLid AS L ON RK.Lid = L.Nummer
+					WHERE RK.Nummer=%3\$d;", $selectlidnr, $table_prefix, $nr);
 		$result = fnQuery($query);
 		return $result->fetch();
 	} elseif ($actie == "regels" and $nr > 0) {
 		$query = sprintf("SELECT * FROM %sRekreg WHERE Rekening=%d;", $table_prefix, $nr);
+		$result = fnQuery($query);
+		return $result->fetchAll();
+	} elseif ($actie == "selectie") {
+		if (strlen($filter) > 0 and substr($filter, 0, 5) != "WHERE") {
+			$filter = "WHERE AND " . $filter;
+		}
+		$query = sprintf("SELECT RK.*, L.Adres, L.Postcode, L.Woonplaats,
+					IF(LENGTH(L.Bankrekening)=18, L.Bankrekening, L.BANKGIRO) AS Bankrekeningnummer,
+					DATE_ADD(RK.Datum, INTERVAL RK.BET_TERM*RK.BETAALDAG DAY) AS UitersteBetaaldatum,
+					(%1\$1s) AS Lidnr
+					FROM %2\$sRekening AS RK INNER JOIN %2\$sLid AS L ON RK.Lid = L.Nummer
+					%3\$s
+					ORDER BY L.Achternaam, L.Tussenv, RK.Nummer;", $selectlidnr, $table_prefix, $filter);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	}
@@ -2275,6 +2292,8 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrStrings['naamvereniging'] = "Naam vereniging";
 	$arrStrings['naamwebsite'] = "Naam website";
 	$arrStrings['mailing_extensies_toegestaan'] = "bmp, gif, jpeg, jpg, pdf, png, pps, rar, txt, zip";
+	$arrStrings['mailing_rekening_from'] = "";
+	$arrStrings['mailing_rekening_from_naam'] = "";
 	$arrStrings['urlwebsite'] = $_SERVER["HTTP_HOST"];
 	
 	$arrFloats['maxmailsperminuut'] = 300;

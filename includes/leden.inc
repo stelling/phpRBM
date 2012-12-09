@@ -716,8 +716,7 @@ function algemeenlidmuteren($lidid) {
 	echo("</table>\n");
 
 	echo("</form>\n");
-	echo("</div>  <!-- Einde wijzigengegevens -->\n");
-	
+	echo("</div>  <!-- Einde wijzigengegevens -->\n");	
 }
 
 function nieuwepasfoto($lidid, $filterlid="") {
@@ -1107,10 +1106,8 @@ function lidmaatschapmuteren($lidid) {
 	
 	echo("</table>\n");
 	echo("</form>\n");
-	echo("</div>  <!-- Einde lidmaatschapmuteren -->\n");
-	
+	echo("</div>  <!-- Einde lidmaatschapmuteren -->\n");	
 }
-
 
 function IsIBANgoed($IBAN, $LeegIsGoed=1) {
    $retval = false;
@@ -1174,7 +1171,9 @@ function RekeningDetail($nr) {
 	$content = str_ireplace("[%ADRES%]", $rk->Adres, $content);
 	$content = str_ireplace("[%POSTCODE%]", $rk->Postcode, $content);
 	$content = str_ireplace("[%WOONPLAATS%]", $rk->Woonplaats, $content);
+	$content = str_ireplace("[%LIDNR%]", $rk->Lidnr, $content);
 	$content = str_ireplace("[%REKENINGDATUM%]", strftime("%e %B %Y", strtotime($rk->Datum)), $content);
+	$content = str_ireplace("[%SEIZOEN%]", $rk->Seizoen, $content);
 	$content = str_ireplace("[%REKENINGOMSCHRIJVING%]", $rk->OMSCHRIJV, $content);
 	$content = str_ireplace("[%REKENINGNUMMER%]", $rk->Nummer, $content);
 	$content = str_ireplace("[%REKENINGBEDRAG%]", $rk->Bedrag, $content);

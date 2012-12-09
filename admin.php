@@ -231,7 +231,6 @@ HTMLfooter();
 function fnInstellingen() {
 	global $table_prefix;
 
-	$arrParam['beperkfrom'] = "Indien deze is ingevuld moet het from adres in een mailing altijd vanaf dit domein zijn.";
 	$arrParam['bewaartijdinloggen'] = "Hoeveel maanden moet logging van het in- en uitloggen bewaard blijven. 0 = gelijk aan bewaartijdlogging.";
 	$arrParam['bewaartijdlogging'] = "Hoeveel maanden moet logging bewaard blijven. 0 = altijd.";
 	$arrParam['bewaartijdlogins'] = "Het aantal maanden dat logins na het laatste gebruik bewaard worden. Als een login wordt verwijderd, wordt geen historie weggegooid. Historie wordt namelijk direct aan het lid gekopppeld en niet aan de login. 0 = altijd bewaren.";
@@ -248,7 +247,10 @@ function fnInstellingen() {
 	$arrParam['lidnrnodigbijloginaanvraag'] = "Moet een lid zijn of haar lidnummer opgeven als er een login aangevraagd wordt?";
 	$arrParam['lidnrversturenmogelijk'] = "Hierbij geef je aan of het mogelijk moet zijn om vanaf deze website op basis van alleen een e-mailadres iemand zijn lidnummer per e-mail opgestuurd kan worden.";
 	$arrParam['loginautounlock'] = "Na hoeveel minuten moet een gelockede login automatisch geunlocked worden? 0 = alleen handmatig unlocken.";
+	$arrParam['mailing_beperkfrom'] = "Indien deze is ingevuld moet het from adres in een mailing altijd vanaf dit domein zijn.";
 	$arrParam['mailing_extensies_toegestaan'] = "De extenties die zijn toegestaan bij bijlagen in een mailing. Als je niets specificeerd wordt een standaard lijst gebruikt.";
+	$arrParam['mailing_rekening_from_adres'] = "Vanaf welk e-mailadres moeten de rekeningen gemailed worden?";
+	$arrParam['mailing_rekening_from_naam'] = "Welke naam moeten de rekeningen verzonden worden? Standaard is vanaf de verenigingsnaam.";
 	$arrParam['max_grootte_bijlage'] = "De maximalale grootte in bytes van één bijlage in een mailing. Optioneel veld. Als je niets specificeerd dan is 2MB het maximum.";
 	$arrParam['maxinlogpogingen'] = "Na hoeveel foutieve inlogpogingen moet het account geblokkeerd worden? 0 = nooit.";
 	$arrParam['maxlengtelogin'] = "De maximale lengte die een login mag zijn. Minimaal 7 en maximaal 12 invullen.";

@@ -1,13 +1,14 @@
 <?php
 
 function fnMailing() {
-	global $ldl, $currenttab2;
+	global $ldl, $currenttab, $currenttab2;
 
 	if (isset($_GET['op'])) {
 		$op = $_GET['op'];
 	} else {
 		$op = "";
 	}
+	
 	if (isset($_POST['Upload']) and $_POST['Upload'] == "Upload") {
 		$op = "upload";
 	} elseif ($_GET['tp'] == "Mailing/Historie" and $op != "histdetails") {
@@ -51,6 +52,121 @@ function fnMailing() {
 	} elseif ($currenttab2 == "Nieuw" and toegang($_GET['tp'])) {
 		$mailing->mid = 0;
 		$mailing->edit();
+	} elseif ($currenttab2 == "Rekeningen" and toegang($_GET['tp'])) {
+		$mailsperminuut = db_param("maxmailsperminuut");
+		
+		echo("<div id='rekeningenmailen'>\n");
+		if ($_SERVER['REQUEST_METHOD'] == "POST") {
+			if ($op == "selectierekeningen") {
+				$mindat = change_month_to_uk($_POST['mindatum']);
+				$maxdat = change_month_to_uk($_POST['maxdatum']);
+				if (strtotime($mindat) !== FALSE) {
+					$mindat = date("Y-m-d", strtotime($mindat));
+				} else {
+					$mindat = db_rekening("mindatum");
+				}
+				if (strtotime($maxdat) !== FALSE) {
+					$maxdat = date("Y-m-d", strtotime($maxdat));
+				} else {
+					$maxdat = db_rekening("maxdatum");
+				}
+				$filter = sprintf("RK.Nummer >= %d AND RK.Nummer <= %d AND RK.Datum >= '%s' AND RK.Datum <= '%s' AND (", $_POST['minreknr'], $_POST['maxreknr'], $mindat, $maxdat);
+				if (isset($_POST['nietbetaald'])) {
+					$filter .= "(RK.Betaald=0 AND RK.Bedrag <> 0)";
+				}
+				if (isset($_POST['deelbetaald'])) {
+					if (isset($_POST['nietbetaald'])) {
+						$filter .= " OR ";
+					}
+					$filter .= "(RK.Betaald > 0 AND RK.Bedrag > RK.Betaald)";
+				}
+				if (isset($_POST['volbetaald'])) {
+					if (isset($_POST['nietbetaald']) or isset($_POST['deelbetaald'])) {
+						$filter .= " OR ";
+					}
+					$filter .= "RK.Bedrag <= RK.Betaald";
+				}
+				$filter .= ")";
+
+				$selrek = "";
+				foreach(db_rekening("selectie", 0, $filter) as $rk) {
+					$selrek .= sprintf("<li>%d - %s - &euro;&nbsp;%03.2f</li>\n", $rk->Nummer, $rk->DEBNAAM, $rk->Bedrag);
+				}
+				if (strlen($selrek) > 0) {
+					printf("<form method='post' action='%s?tp=%s/%s&amp;op=selectieversturen' name='mailrek'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
+					echo("De volgende rekeningen zijn geselecteerd.\n");
+					printf("<ul>\n%s</ul>\n", $selrek);
+					printf("<input type='hidden' name='rekfilter' value=\"%s\">\n", $filter);
+					echo("<input type='submit' value='Rekeningen versturen'>\n");
+					echo("</form>\n");
+				} else {
+					echo("Er zijn geen rekeningen geselecteerd.");
+				}
+			} elseif ($op == "selectieversturen") {
+				$aant_ok = 0;
+				$aant_nok = 0;
+				$mail = new RBMmailer();
+				if (strlen(db_param("mailing_rekening_from_adres")) > 0) {
+					$mail->From = db_param("mailing_rekening_from_adres");
+				}
+				if (strlen(db_param("mailing_rekening_from_naam")) > 0) {
+					$mail->FromName = db_param("mailing_rekening_from_naam");
+				}
+				
+				$smtpteller = 0;
+				$starttijd = time();
+				foreach(db_rekening("selectie", 0, $_POST['rekfilter']) as $rk) {
+				
+					if ($mailsperminuut > 0) {
+						while (microtime(true)-$starttijd < $smtpteller * (60 / $mailsperminuut)) {
+							usleep((60 / $mailsperminuut) * 1001000);
+							set_time_limit(60);
+						}
+					}
+					
+					$e = $mail->ToevoegenLid($rk->Lid);
+					$mail->isHTML(true);
+					$mail->Subject = $rk->OMSCHRIJV . " " . $rk->Nummer;
+					$rt = RekeningDetail($rk->Nummer);
+					$mail->Body = $rt;
+					$mail->addstationary($rk->DEBNAAM);
+					if ($mail->Send()) {
+						db_add_mailing_hist($rk->Lid, 0, $rk->DEBNAAM, $e, $rt, $mail, 1);
+						$aant_ok++;
+					} else {
+						db_add_mailing_hist($rk->Lid, 0, $rk->DEBNAAM, $e, $rt, $mail, 0);
+						$aant_nok++;
+					}
+					$mail->ClearAddresses();
+					$smtpteller++;
+				}
+				if ($aant_ok > 0) {
+					$mess = sprintf("Er zijn %d rekeningen per e-mail verzonden.", $aant_ok);
+					db_logboek("add", $mess, 4, 0, 1);
+				}
+			}
+			
+		}
+		
+		if ($_SERVER['REQUEST_METHOD'] != "POST" or $op == "selectieversturen") {
+		
+			printf("<form method='post' action='%s?tp=%s/%s&amp;op=selectierekeningen' name='mailrek'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
+			echo("<table>\n");
+			echo("<tr><th></th><th>Vanaf</th><th>Totenmet</th></tr>");
+			printf("<tr><td class='label'>Rekeningnummer</th><td><input type='number' value=%d name='minreknr'></td><td><input type='number' value=%d name='maxreknr'></td><tr>\n", db_rekening("minnummer"), db_rekening("maxnummer"));
+			printf("<tr><td class='label'>Rekeningdatum</th><td><input type='date' value='%s' name='mindatum'></td><td><input type='date' value='%s' name='maxdatum'></td><tr>\n", db_rekening("mindatum"), db_rekening("maxdatum"));
+			echo("<tr><td class='label'>Status</th><td colspan=2>");
+			echo("<input type='checkbox' name='volbetaald' value=1 checked>Volledig betaald");
+			echo("<input type='checkbox' name='deelbetaald' value=1 checked>Gedeeltelijk betaald");
+			echo("<input type='checkbox' name='nietbetaald' value=1 checked>Niet betaald");
+			echo("</td></tr>\n");
+			echo("<tr><th colspan=3><input type='submit' value='Verder'></th></tr>\n");
+			echo("</table>\n");
+			echo("</form>\n");
+
+		}
+		echo("</div> <!== Einde rekeningenmailen -->\n");
+		
 	} elseif ($currenttab2 == "Logboek" and toegang($_GET['tp'])) {
 		$lijst = db_logboek("lijst", "", 4);
 		echo(fnDisplayTable($lijst, "", "", 0, "", "", "logboek"));
@@ -119,8 +235,6 @@ class Mailing {
 	private $allowed_ext = "bmp, gif, jpeg, jpg, pdf, png, pps, rar, txt, zip";
 	private $dir_attachm = "/attachments";
 	private $max_size_attachm = 2097152; // 2MB
-	private $template_bestand = "";
-	private $bestand_briefpapier = "templates/briefpapier.html";
 	private $vertraging_tussen_verzenden = 120; // in seconden
 	private $mailsperminuut = 120;
 	
@@ -242,8 +356,14 @@ class Mailing {
 			$this->MergeField[]=array('Naam' => "BewakingHistorie", 'SQL' => $sql);
 		}
 							  
-		$sql = sprintf("SELECT L.BANKGIRO FROM %sLid AS L WHERE %s;", $table_prefix, "L.Nummer=%d");
+		$sql = sprintf("SELECT L.BANKGIRO FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
 		$this->MergeField[]=array('Naam' => "Bankrekening", 'SQL' => $sql);
+
+		$sql = sprintf("SELECT L.Bankrekening FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
+		$this->MergeField[]=array('Naam' => "IBAN", 'SQL' => $sql);
+		
+		$sql = sprintf("SELECT L.Burgerservicenummer FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
+		$this->MergeField[]=array('Naam' => "BSN", 'SQL' => $sql);
 
 		if ($_SESSION['aantalrekeningen'] > 0) {
 			$sql = sprintf("SELECT RK.Nummer FROM %sRekening AS RK WHERE RK.Bedrag > 0 AND RK.Bedrag > RK.Betaald AND %s;", $table_prefix, "RK.Lid=%d");
@@ -297,8 +417,8 @@ class Mailing {
 	
 	public function lijst($filter="") {
 	
-		$lnk = sprintf("<a href='%s?tp=%s&amp;op=edit&amp;mid=%s' title='Bewerk mailing'><img src='images/edit.png' alt='Edit boek'></a>", $_SERVER['PHP_SELF'], $_GET['tp'], "%d");
-		$lnk_lk = sprintf("<a href='%s?tp=Mailing/Historie&amp;op=historie&amp;mid=%s' title='Bekijk historie'><img src='images/object_10.png' alt='Historie'></a>", $_SERVER['PHP_SELF'], "%d");
+		$lnk = sprintf("<a href='%s?tp=%s&amp;op=edit&amp;mid=%%d' title='Bewerk mailing'><img src='images/edit.png' alt='Edit boek'></a>", $_SERVER['PHP_SELF'], $_GET['tp']);
+		$lnk_lk = sprintf("<a href='%s?tp=Mailing/Historie&amp;op=historie&amp;mid=%%d' title='Bekijk historie'><img src='images/object_10.png' alt='Historie'></a>", $_SERVER['PHP_SELF']);
 		echo(fnDisplayTable(db_mailing("lijst", 0, 0, $filter), $lnk, "", 0, $lnk_lk));
 		if ($filter == "Prullenbak") {
 			printf("<p>Mailings die langer dan %d maanden geleden verwijderd zijn, worden automatisch definitief opgeschoond.</p>\n", db_param("bewaartijdmailings"));
@@ -351,8 +471,8 @@ class Mailing {
 		printf("<table>\n");
 		printf("<tr><td class='label'>Van:</td><td><input type='text' name='from_name' value='%s' size=50 maxlength=50> (Namens wie wordt deze mailing verstuurd)</td></tr>\n", $this->from_name);
 		$et = "";
-		if (strlen(db_param("beperkfrom")) > 2) {
-			$et = sprintf(" (Het domein van dit adres moet '%s' zijn)", db_param("beperkfrom"));
+		if (strlen(db_param("mailing_beperkfrom")) > 2) {
+			$et = sprintf(" (Het domein van dit adres moet '%s' zijn)", db_param("mailing_beperkfrom"));
 		}
 		printf("<tr><td class='label'>Vanaf e-mail:</td><td><input type='email' name='from_addr' value='%s' size=50 maxlength=50>%s</td></tr>\n", $this->from_addr, $et);
 		printf("<tr><td class='label'>Aan:</td><td><input type='text' name='to_name' value='%s' size=50 maxlength=50 onBlur='this.form.submit();'> (Omschrijving van de groep personen aan wie deze mailing gericht is)</td></tr>\n", $this->to_name);
@@ -530,10 +650,6 @@ class Mailing {
 				$verzendenmag = false;
 			}
 			
-			if (!file_exists($this->bestand_briefpapier)) {
-				$meldingen .= sprintf("Het bestand %s bestaat niet. Neem hierover contact op met de beheerder.<br>\n", $this->bestand_briefpapier);
-				$verzendenmag = false;
-			}
 			foreach($this->MergeField as $fld) {
 				$nm = "[%" . $fld['Naam'] . "%]";
 				if (strpos($this->message, $nm) !== false) {
@@ -560,7 +676,7 @@ class Mailing {
 				printf("<tr><td class='label'>Verwijderd door/op:</td><td>%s / %s</td></tr>\n", db_naamlid($this->DeletedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->deleted_on)));
 				$verzendenmag = false;
 			}
-			$beperkfrom = db_param("beperkfrom");
+			$beperkfrom = db_param("mailing_beperkfrom");
 			if (isValidMailAddress($this->from_addr, 0) == false) {
 				$verzendenmag = false;
 				$meldingen .= "Er moet een geldig e-mailadres bij 'Vanaf e-mail' ingevuld worden.<br>\n";
@@ -799,12 +915,12 @@ class Mailing {
 	private function send_mailing($preview=0) {
 		global $table_prefix;
 		
-		if ($preview == 0) {
-			$mail = new RBMmailer();
-			$mail->From = $this->from_addr;
-			$mail->FromName = $this->from_name;
-			$mail->Subject = $this->subject;
+		$mail = new RBMmailer();
+		$mail->From = $this->from_addr;
+		$mail->FromName = $this->from_name;
+		$mail->Subject = $this->subject;
 		
+		if ($preview == 0) {
 			$ad = $this->dir_attachm . "/" . $this->mid;
 			if (is_dir($ad)) {
 				$d = dir($ad);
@@ -820,16 +936,16 @@ class Mailing {
 		$rcpts = db_mailing("rcpt", $this->mid);
 		if ($preview == 1 and count($rcpts) == 0) {
 			$this->create_mess($_SESSION['lidid']);
-			echo("<br>\n" . $this->mailbericht);
+			$mail->Body = $this->merged_message;
+			$mail->addstationary();
+			echo("<br>\n" . $mail->Body);
 		}
 		
 		$starttijd = microtime(true);
-		$smptteller = 0;
+		$smtpteller = 0;
 		foreach($rcpts as $rcpt) {
 			$this->create_mess($rcpt->Nummer);
-			if ($preview == 1) {
-				echo("<br>\n" . $this->mailbericht);
-			}
+			$mail->Body = $this->merged_message;
 			if ($rcpt->Nummer > 0) {
 				$e = $mail->ToevoegenLid($rcpt->Nummer);
 			} elseif (isValidMailAddress($rcpt->to_address, 0)) {
@@ -837,15 +953,17 @@ class Mailing {
 				$e = $rcpt->to_address;
 				$this->contains_losse_email = true;
 			}
+			if (isset($rcpt->Naam_lid)) {
+				$to_name = $rcpt->Naam_lid;
+			} else {
+				$to_name = $this->to_name;
+			}
+			$mail->addstationary($to_name);
+			if ($preview == 1) {
+				echo("<br>\n" . $mail->Body);
+			}
 			if (strlen($e) > 5) {
 				if ($preview == 0) {
-					if (isset($rcpt->Naam_lid)) {
-						$to_name = $rcpt->Naam_lid;
-					} else {
-						$to_name = $this->to_name;
-					}
-					$this->mailbericht = str_ireplace("[%TO%]", $to_name, $this->mailbericht);
-					$mail->MsgHTML($this->mailbericht);
 					foreach (explode(",", $this->cc_addr) as $v) {
 						if (isValidMailAddress($v, 0)) {
 							$mail->AddCC($v);
@@ -856,12 +974,12 @@ class Mailing {
 						$this->aant_ok++;
 					} else {
 						if ($this->mailsperminuut > 0) {
-							while (microtime(true)-$starttijd < $smptteller * (60 / $this->mailsperminuut)) {
+							while (microtime(true)-$starttijd < $smtpteller * (60 / $this->mailsperminuut)) {
 								usleep((60 / $this->mailsperminuut) * 1001000);
 								set_time_limit(60);
 							}
 						}
-						$smptteller++;
+						$smtpteller++;
 						if ($mail->Send()) {
 							db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message, $mail, 1);
 							if (isset($rcpt->Naam_lid)) {
@@ -950,24 +1068,7 @@ class Mailing {
 				}
 			}
 		}
-		
-		if (file_exists($this->bestand_briefpapier)) {
-			$this->mailbericht = file_get_contents($this->bestand_briefpapier);
-			if ($this->mailbericht !== false) {
-				$this->mailbericht = str_ireplace("[%FROM%]", $this->from_name, $this->mailbericht);
-				if (strlen($this->to_name) > 0) {
-					$this->mailbericht = str_ireplace("[%TO%]", $this->to_name, $this->mailbericht);
-				}
-				$this->mailbericht = str_ireplace("[%SUBJECT%]", $this->subject, $this->mailbericht);
-				$this->mailbericht = str_ireplace("[%MESSAGE%]", $this->merged_message, $this->mailbericht);
-			} else {
-				$mess = sprintf("Er gaat iets mis met het laden van bestand '%s'. Controleer of dit bestand niet beschadigd en benaderbaar is.", $this->bestand_briefpapier);
-				db_logboek("add", $mess, 4, 0, 1);
-			}
-		} else {
-			$mess = sprintf("Bestand '%s' bestaat niet.", $this->bestand_briefpapier);
-			db_logboek("add", $mess, 4, 0, 1);
-		}
+//		$this->mailbericht = briefpapier($this->merged_message, $this->to_name, $this->subject, $this->from_name);
 	}
 	
 	public function delete() {
@@ -1035,6 +1136,27 @@ class Mailing {
 			$this->new_on = date("Y-m-d");
 		}
 	}
+}
+
+function briefpapier($content, $to, $subj, $from="") {
+	if (strlen($from) == 0) {
+		$from = $_SESSION['naamvereniging'];
+	}
+	$brief_template = "templates/briefpapier.html";
+	if (file_exists($brief_template)) {
+		$briefpapier = file_get_contents($brief_template);
+		if ($content === false) {
+			$htmlmessage = $content;
+		} else {
+			$htmlmessage = str_ireplace("[%MESSAGE%]", $content, $briefpapier);
+			$htmlmessage = str_ireplace("[%FROM%]", $from, $htmlmessage);
+			$htmlmessage = str_ireplace("[%TO%]", $to, $htmlmessage);
+			$htmlmessage = str_ireplace("[%SUBJECT%]", $subj, $htmlmessage);
+		}
+	} else {
+		$htmlmessage = $content;
+	}
+	return $htmlmessage;
 }
 
 ?>
