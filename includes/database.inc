@@ -2231,7 +2231,7 @@ function db_rekening($actie, $nr=0, $filter="") {
 		return $result->fetchAll();
 	} elseif ($actie == "selectie") {
 		if (strlen($filter) > 0 and substr($filter, 0, 5) != "WHERE") {
-			$filter = "WHERE AND " . $filter;
+			$filter = "WHERE " . $filter;
 		}
 		$query = sprintf("SELECT RK.*, L.Adres, L.Postcode, L.Woonplaats,
 					IF(LENGTH(L.Bankrekening)=18, L.Bankrekening, L.BANKGIRO) AS Bankrekeningnummer,
