@@ -782,6 +782,18 @@ fieldset h3 {
 	max-width: 200px;
 }
 
+#rekeningenmailen ul {
+	margin-left: 0;
+	padding-left: 0;
+}
+
+#rekeningenmailen li {
+	display: block;
+	width: 33%;
+   float: left;
+	padding-left: 2px;
+}
+
 #dbonderhoud p {
 	margin-top: 12px;
 	margin-bottom: 12px;
