@@ -110,6 +110,12 @@ if (!isset($_SESSION['aantalbewaking'])) {
 if (!isset($_SESSION['aantalrekeningen'])) {
 	$query = sprintf("SELECT COUNT(*) FROM %sRekening;", $table_prefix);
 	$_SESSION['aantalrekeningen'] = db_scalar($query);
+	if ($_SESSION['aantalrekeningen'] > 0) {
+		$query = sprintf("SELECT COUNT(*) FROM %sRekreg;", $table_prefix);
+		$_SESSION['aantalrekreg'] = db_scalar($query);
+	} else {
+		$_SESSION['aantalrekreg'] = 0;
+	}
 }
 
 if (!isset($_SESSION['aantalmutaties'])) {
@@ -2227,6 +2233,10 @@ function db_rekening($actie, $nr=0, $filter="") {
 		return $result->fetch();
 	} elseif ($actie == "regels" and $nr > 0) {
 		$query = sprintf("SELECT * FROM %sRekreg WHERE Rekening=%d;", $table_prefix, $nr);
+		$result = fnQuery($query);
+		return $result->fetchAll();
+	} elseif ($actie == "seizoenen") {
+		$query = sprintf("SELECT DISTINCT Seizoen FROM %sRekening ORDER BY Seizoen DESC;", $table_prefix);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "selectie") {

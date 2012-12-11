@@ -53,7 +53,6 @@ function fnMailing() {
 		$mailing->mid = 0;
 		$mailing->edit();
 	} elseif ($currenttab2 == "Rekeningen" and toegang($_GET['tp'])) {
-		$mailsperminuut = db_param("maxmailsperminuut");
 		
 		echo("<div id='rekeningenmailen'>\n");
 		if ($_SERVER['REQUEST_METHOD'] == "POST") {
@@ -70,7 +69,7 @@ function fnMailing() {
 				} else {
 					$maxdat = db_rekening("maxdatum");
 				}
-				$filter = sprintf("RK.Nummer >= %d AND RK.Nummer <= %d AND RK.Datum >= '%s' AND RK.Datum <= '%s' AND (", $_POST['minreknr'], $_POST['maxreknr'], $mindat, $maxdat);
+				$filter = sprintf("RK.seizoen = %d AND RK.Nummer >= %d AND RK.Nummer <= %d AND RK.Datum >= '%s' AND RK.Datum <= '%s' AND (", $_POST['rekseizoen'], $_POST['minreknr'], $_POST['maxreknr'], $mindat, $maxdat);
 				if (isset($_POST['nietbetaald'])) {
 					$filter .= "(RK.Betaald=0 AND RK.Bedrag <> 0)";
 				}
@@ -95,9 +94,10 @@ function fnMailing() {
 				if (strlen($selrek) > 0) {
 					printf("<form method='post' action='%s?tp=%s/%s&amp;op=selectieversturen' name='mailrek'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
 					echo("De volgende rekeningen zijn geselecteerd.\n");
-					printf("<ul>\n%s</ul>\n", $selrek);
+					printf("<ul>\n%s</ul>\n<div class='clear'></div>\n", $selrek);
 					printf("<input type='hidden' name='rekfilter' value=\"%s\">\n", $filter);
 					echo("<input type='submit' value='Rekeningen versturen'>\n");
+					echo("<input type='button' value='Terug' onClick='history.go(-1);'>\n");
 					echo("</form>\n");
 				} else {
 					echo("Er zijn geen rekeningen geselecteerd.");
@@ -112,6 +112,7 @@ function fnMailing() {
 				if (strlen(db_param("mailing_rekening_from_naam")) > 0) {
 					$mail->FromName = db_param("mailing_rekening_from_naam");
 				}
+				$mailsperminuut = db_param("maxmailsperminuut");
 				
 				$smtpteller = 0;
 				$starttijd = time();
@@ -153,6 +154,11 @@ function fnMailing() {
 			printf("<form method='post' action='%s?tp=%s/%s&amp;op=selectierekeningen' name='mailrek'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
 			echo("<table>\n");
 			echo("<tr><th></th><th>Vanaf</th><th>Totenmet</th></tr>");
+			echo("<tr><td class='label'>Seizoen</th><td colspan=2><select name='rekseizoen'>\n");
+			foreach(db_rekening("seizoenen") as $row) {
+				printf("<option value='%1\$d'>%1\$d</option>\n", $row->Seizoen);
+			}
+			echo("</select></td></tr>\n");
 			printf("<tr><td class='label'>Rekeningnummer</th><td><input type='number' value=%d name='minreknr'></td><td><input type='number' value=%d name='maxreknr'></td><tr>\n", db_rekening("minnummer"), db_rekening("maxnummer"));
 			printf("<tr><td class='label'>Rekeningdatum</th><td><input type='date' value='%s' name='mindatum'></td><td><input type='date' value='%s' name='maxdatum'></td><tr>\n", db_rekening("mindatum"), db_rekening("maxdatum"));
 			echo("<tr><td class='label'>Status</th><td colspan=2>");
