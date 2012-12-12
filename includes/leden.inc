@@ -1181,6 +1181,8 @@ function RekeningDetail($nr) {
 	$content = str_ireplace("[%REKENINGOMSCHRIJVING%]", $rk->OMSCHRIJV, $content);
 	$content = str_ireplace("[%REKENINGNUMMER%]", $rk->Nummer, $content);
 	$content = str_ireplace("[%REKENINGBEDRAG%]", $rk->Bedrag, $content);
+	$content = str_ireplace("[%BETAALD%]", $rk->Betaald, $content);
+	$content = str_ireplace("[%OPENSTAAND%]", number_format ($rk->Bedrag - $rk->Betaald, 2), $content);
 	$content = str_ireplace("[%BANKREKENING%]", $rk->Bankrekeningnummer, $content);
 	$content = str_ireplace("[%UITERSTEBETAALDATUM%]", strftime("%e %B %Y", strtotime($rk->UitersteBetaaldatum)), $content);
 	$content = str_ireplace("[%NAAMVERENIGING%]", $_SESSION['naamvereniging'], $content);

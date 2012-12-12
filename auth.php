@@ -9,9 +9,7 @@
    
 	if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen" and $_SESSION['lidid'] > 0) {
 		db_logins("uitloggen", "", "", $_SESSION['lidid']);
-		$_SESSION['username'] = "";
-		$_SESSION['lidid'] = 0;
-		$_SESSION['lidgroepen'] = "(0)";
+		session_destroy();
 		setcookie("username", "", time()-3600);
 		setcookie("password", "", time()-3600);
 		echo("<script>\nlocation.href='/';\n</script>\n");
