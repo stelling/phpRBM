@@ -96,13 +96,14 @@ function fnMailing() {
 					echo("De volgende rekeningen zijn geselecteerd.\n");
 					printf("<ul>\n%s</ul>\n<div class='clear'></div>\n", $selrek);
 					printf("<input type='hidden' name='rekfilter' value=\"%s\">\n", $filter);
+					echo("Rekeningen versturen?&nbsp<input type='checkbox' value='1' name='sure'>\n");
 					echo("<input type='submit' value='Rekeningen versturen'>\n");
 					echo("<input type='button' value='Terug' onClick='history.go(-1);'>\n");
 					echo("</form>\n");
 				} else {
 					echo("Er zijn geen rekeningen geselecteerd.");
 				}
-			} elseif ($op == "selectieversturen") {
+			} elseif ($op == "selectieversturen" and isset($_POST['sure'])) {
 				$aant_ok = 0;
 				$aant_nok = 0;
 				$mail = new RBMmailer();
@@ -145,8 +146,10 @@ function fnMailing() {
 					$mess = sprintf("Er zijn %d rekeningen per e-mail verzonden.", $aant_ok);
 					db_logboek("add", $mess, 4, 0, 1);
 				}
-			}
-			
+			} elseif ($op == "selectieversturen") {
+				$mess = "De rekeningen zijn niet verzonden, omdat het vinkje niet gezet was.";
+				db_logboek("add", $mess, 4, 0, 1);
+			}			
 		}
 		
 		if ($_SERVER['REQUEST_METHOD'] != "POST" or $op == "selectieversturen") {
