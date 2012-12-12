@@ -396,7 +396,11 @@ function fnOverviewLid($lidid=0, $actie="") {
 				if ($_SESSION['aantalrekeningen'] > 0) {
 					$rows = db_gegevenslid($lidid, "Rekening");
 					if (count($rows) > 0) {
-						$lnk = sprintf("<a href='%s?tp=%s&amp;op=details&amp;lidid=%d&amp;rid=%%d' title='Details rekening'><img src='images/zoom.png' alt='Zoom'></a>", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
+						if ($_SESSION['aantalrekreg'] > 0) {
+							$lnk = sprintf("<a href='%s?tp=%s&amp;op=details&amp;lidid=%d&amp;rid=%%d' title='Details rekening'><img src='images/zoom.png' alt='Zoom'></a>", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
+						} else {
+							$lnk = "";
+						}
 						echo(fnDisplayTable($rows, $lnk, "Rekeningen " . $naamlid));
 					} else {
 						printf("<p class='mededeling'>%s heeft geen rekeningen ontvangen.</p>", $naamlid);
@@ -1141,7 +1145,7 @@ function RekeningDetail($nr) {
 	
 	$rk = db_rekening("hoofd", $nr);
 	
-	$rekening_template = 'templates/rekening2.html';
+	$rekening_template = 'templates/rekening.html';
 	if (file_exists($rekening_template)) {
 		$content = file_get_contents($rekening_template);
 	} else {
