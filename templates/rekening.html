@@ -6,14 +6,16 @@
 <br>
 <p><u>Betreft: [%REKENINGOMSCHRIJVING%] [%REKENINGNUMMER%]</u></p>
 <br>
-<div id='rekeningregels'>\n
+<div id='rekeningregels'>
 <table>
 <tr><th>Regel</th><th>Omschrijving</th><th>Lid</th><th class='number'>Bedrag in &euro;</th></tr>
 [%REKENINGREGELS%]
-<tr><th colspan=3>Totaal</th><th class='number'>[%REKENINGBEDRAG%]</th><tr>
+<tr><td colspan=3>Rekening totaal</td><td class='number'>[%REKENINGBEDRAG%]</td><tr>
+<tr><td colspan=3>Reeds betaald</td><td class='number'>[%BETAALD%]</td><tr>
+<tr><td colspan=3>Openstaand bedrag</td><td class='number'>[%OPENSTAAND%]</td><tr>
 </table>
 </div> <!-- Einde rekeningregels -->
-<p>Deze rekening wordt rond [%UITERSTEBETAALDATUM%] middels automatische incasso van bankrekening [%BANKREKENING%] afgeschreven, tenzij je hiervoor een bezwaar hebt ingediend.</p>
+<p>Deze rekening wordt dient op [%UITERSTEBETAALDATUM%], onder vermelding van rekeningnummer [%REKENINGNUMMER%], volledig betaald te zijn.</p>
 
 <p>Indien u een andere betalingsregeling wenst of een vraag over deze rekening heeft kunt u contact met de penningmeester opnemen.</p>
 
