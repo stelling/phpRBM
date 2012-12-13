@@ -157,6 +157,7 @@ if ($currenttab == "Beheer logins" and toegang()) {
 	}
 	echo("</form>\n");
 } elseif ($currenttab == "Onderhoud" and toegang($_GET['tp'])) {
+	db_createtables();
 	db_onderhoud();
 
 	echo("<div id='dbonderhoud'>\n");
@@ -311,8 +312,8 @@ function fnInstellingen() {
 				} elseif ($row->Naam == "typemenu" and (strlen($_POST[$pvn]) == 0 or $_POST[$pvn] < 1 or $_POST[$pvn] > 3)) {
 					$_POST[$pvn] = 1;
 				} elseif ($row->Naam == "maxlengtelogin") {
-					if (strlen($_POST[$pvn]) == 0 or is_numeric($_POST[$pvn]) == false or $_POST[$pvn] > 15) {
-						$_POST[$pvn] = 15;
+					if (strlen($_POST[$pvn]) == 0 or is_numeric($_POST[$pvn]) == false or $_POST[$pvn] > 12) {
+						$_POST[$pvn] = 12;
 					} elseif ($_POST[$pvn] < 7) {
 						$_POST[$pvn] = 7;
 					}
