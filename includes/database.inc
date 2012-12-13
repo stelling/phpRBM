@@ -305,6 +305,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 								ORDER BY BS.Begindatum DESC, BS.Lokatie, BW.BEGIN_PER DESC;", $table_prefix, $LidID, $xtra_where);
 	} elseif ($soort == "Rekening") {
 		$query = sprintf("SELECT Nummer,
+					Seizoen,
 					Datum AS dteDatum,
 					OMSCHRIJV AS Omschrijving,
 					Bedrag AS curBedrag,
@@ -1299,7 +1300,7 @@ function db_naam_onderdeel($rid, $rin="Onbekend") {
 	return $rv;
 }
 
-function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr, $message="", $mail=null, $success=1) {
+function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr, $message="", $mail=null, $success=1, $xtrachar="", $xtranum=0) {
 	global $table_prefix;
 	
 	if (is_null($mail)) {
@@ -1352,8 +1353,8 @@ function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr, $message="", $mai
 	
 	if ($_SESSION['lidid'] > 0) {
 		$query = sprintf("INSERT INTO %sMailing_hist SET
-					LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", to_name=\"%s\", subject=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", send_by=%d, send_on=SYSDATE(), Successful=%d;", $table_prefix,
-					$lidid, $mid, html_entity_decode($from_name), $from_addr, $to_name, html_entity_decode($subject), $to_addr, $cc_addr, html_entity_decode($message), $_SESSION['lidid'], $success);
+					LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", to_name=\"%s\", subject=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", send_by=%d, send_on=SYSDATE(), Successful=%d;, Xtra_Char='%s', Xtra_Num=%d", $table_prefix,
+					$lidid, $mid, html_entity_decode($from_name), $from_addr, $to_name, html_entity_decode($subject), $to_addr, $cc_addr, html_entity_decode($message), $_SESSION['lidid'], $success, $xtrachar, $xtranum);
 		fnQuery($query);
 		
 		if ($success == 1 and $mid > 0) {
@@ -2241,7 +2242,7 @@ function db_rekening($actie, $nr=0, $filter="") {
 		return $result->fetchAll();
 	} elseif ($actie == "selectie") {
 		if (strlen($filter) > 0 and substr($filter, 0, 5) != "WHERE") {
-			$filter = "WHERE " . $filter;
+			$filter = "WHERE RK.Lid=216 AND " . $filter;
 		}
 		$query = sprintf("SELECT RK.*, L.Adres, L.Postcode, L.Woonplaats,
 					IF(LENGTH(L.Bankrekening)=18, L.Bankrekening, L.BANKGIRO) AS Bankrekeningnummer,
