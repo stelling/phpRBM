@@ -1145,11 +1145,15 @@ function RekeningDetail($nr) {
 	
 	$rk = db_rekening("hoofd", $nr);
 	
-	$rekening_template = 'templates/rekening.html';
+	$rekening_template = sprintf("templates/rekening %d.html", $rk->Seizoen);
 	if (file_exists($rekening_template)) {
 		$content = file_get_contents($rekening_template);
 	} else {
-		$content = "<p>[%NAAMDEBITEUR%]<br>
+		$rekening_template = "templates/rekening.html";
+		if (file_exists($rekening_template)) {
+			$content = file_get_contents($rekening_template);	
+		} else {
+			$content = "<p>[%NAAMDEBITEUR%]<br>
 [%ADRES%]<br>
 [%POSTCODE%]  [%WOONPLAATS%]</p>
 <br>
@@ -1164,11 +1168,12 @@ function RekeningDetail($nr) {
 <tr><th colspan=3>Totaal</th><th class='number'>[%REKENINGBEDRAG%]</th><tr>
 </table>
 </div> <!-- Einde rekeningregels -->
-<p>Deze rekening wordt rond [%UITERSTEBETAALDATUM%] middels automatische incasso van bankrekening [%BANKREKENING%] afgeschreven, tenzij je hiervoor een bezwaar hebt ingediend.</p>
+<p>Deze rekening dient op [%UITERSTEBETAALDATUM%], onder vermelding van rekeningnummer [%REKENINGNUMMER%], volledig betaald te zijn.</p>
 
-<p>Indien u een andere betalingsregeling wenst of een vraag over deze rekening heeft kunt u contact met de penningmeester opnemen.</p>
+<p>Indien u een andere betalingsregeling wenst of een vraag over deze rekening heeft kunt u contact met de <a href='mailto:[%VANAFADRES%]'>[%VANAFNAAM%]</a> opnemen.</p>
 
 <p><strong>Het bestuur van [%NAAMVERENIGING%]</strong></p>\n";
+		}
 	}
 	
 	$content = str_ireplace("[%NAAMDEBITEUR%]", $rk->DEBNAAM, $content);
@@ -1185,6 +1190,8 @@ function RekeningDetail($nr) {
 	$content = str_ireplace("[%OPENSTAAND%]", number_format ($rk->Bedrag - $rk->Betaald, 2), $content);
 	$content = str_ireplace("[%BANKREKENING%]", $rk->Bankrekeningnummer, $content);
 	$content = str_ireplace("[%UITERSTEBETAALDATUM%]", strftime("%e %B %Y", strtotime($rk->UitersteBetaaldatum)), $content);
+	$content = str_ireplace("[%VANAFADRES%]", db_param("mailing_rekening_from_adres"), $content);
+	$content = str_ireplace("[%VANAFNAAM%]", db_param("mailing_rekening_from_naam"), $content);
 	$content = str_ireplace("[%NAAMVERENIGING%]", $_SESSION['naamvereniging'], $content);
 	$content = str_ireplace("[%NAAMWEBSITE%]", $_SESSION['naamwebsite'], $content);
 	$content = str_ireplace("[%URLWEBSITE%]", $_SESSION['urlwebsite'], $content);
