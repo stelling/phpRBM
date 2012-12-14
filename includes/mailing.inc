@@ -133,7 +133,7 @@ function fnMailing() {
 					$mail->Body = $rt;
 					$mail->addstationary($rk->DEBNAAM);
 					if ($mail->Send()) {
-						db_add_mailing_hist($rk->Lid, 0, $rk->DEBNAAM, $e, $rt, $mail, 1);
+						db_add_mailing_hist($rk->Lid, 0, $rk->DEBNAAM, $e, $rt, $mail, 1, "REK", $rk->Nummer);
 						$aant_ok++;
 					} else {
 						db_add_mailing_hist($rk->Lid, 0, $rk->DEBNAAM, $e, $rt, $mail, 0);
@@ -1036,7 +1036,7 @@ class Mailing {
 			$this->create_mess();
 			$ev = "E-mail";
 			$this->mailbericht = str_ireplace("[%TO%]", "", $this->mailbericht);
-			$mail->MsgHTML($this->mailbericht . $summary);
+			$mail->Body = $mail->Body . $summary;
 			$mail->Subject = "Resultaat mailing: " . $mail->Subject;
 			if (isValidMailAddress($mail->From, 0)) {
 				$mail->AddAddress($mail->From, $mail->FromName);
