@@ -34,7 +34,7 @@ if ($currenttab !== "Mailing") {
 }
 
 if (toegang("", 0) == false) {
-	$mess = sprintf("Je hebt tot %s geen toegang.", $_GET['tp']);
+	$mess = sprintf("Je hebt tot '%s' geen toegang.", $_GET['tp']);
 	db_logboek("add", $mess, 5, 0, 1);
 } elseif ($currenttab == "Eigen gegevens") {
 	if ($_SESSION['lidid'] > 0) {
@@ -100,26 +100,12 @@ function fnVoorblad($metlogin=0) {
 
 	$myFile = 'templates/verenigingsinfo.html';
 	$content = file_get_contents($myFile);
-	$begin_blok = "<!-- Ingelogd -->";
-	$einde_blok = "<!-- /Ingelogd -->";
 	if ($content !== false) {
 		if ($_SESSION['lidid'] == 0) {
-			$content_uitgelogd = "";
-			$offset = 0;
-			while ($offset < strlen($content)) {
-				if (strpos($content, $begin_blok, $offset) === FALSE) {
-					$content_uitgelogd .= substr($content, $offset);
-					$offset = strlen($content);
-				} else {
-					$eb = strpos($content, $begin_blok, $offset);
-					$content_uitgelogd .= substr($content, $offset, $eb-$offset);
-					$offset = strpos($content, $einde_blok, $offset) + strlen($einde_blok);
-				}
-			}
-			$content = $content_uitgelogd;
+			$content = removetextblock($content, "<!-- Ingelogd -->", "<!-- /Ingelogd -->");
 		}
 	
-		// Algemene statistieken 
+		// Algemene statistieken
 		$stats = db_stats();
 		foreach (array('aantalleden', 'aantalvrouwen', 'aantalmannen', 'gemiddeldeleeftijd', 'aantalkaderleden', 'nieuwstelogin', 'aantallogins', 'nuingelogd') as $v) {
 			$content = str_replace("[%" . strtoupper($v) . "%]", htmlentities($stats[$v]), $content);
