@@ -123,6 +123,32 @@ class RBMmailer extends PHPMailer {
 			db_logboek("add", $mess, 4);
 		}
 	}
+	
+	public function Send() {
+		if (!isset($_SESSION['mailsperminuut'])) {
+			$_SESSION['mailsperminuut'] = db_param("maxmailsperminuut");
+		}
+		if ($_SESSION['mailsperminuut'] > 0 and isset($_SESSION['lastmailsend'])) {
+			while ((microtime(true)-$_SESSION['lastmailsend']) < (60 / $_SESSION['mailsperminuut'])) {
+				usleep((60 / $_SESSION['mailsperminuut']) * 1002000);
+				set_time_limit(60);
+			}
+		}
+		$_SESSION['lastmailsend'] = microtime(true);
+	
+		try {
+			if(!$this->PreSend()) return false;
+			return $this->PostSend();
+		} catch (phpmailerException $e) {
+			$this->SentMIMEMessage = '';
+			$this->SetError($e->getMessage());
+			if ($this->exceptions) {
+				throw $e;
+			}
+			return false;
+		}
+	}
+
 }
 
 ?>
