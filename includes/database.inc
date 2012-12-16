@@ -426,6 +426,12 @@ function db_lid($actie, $filter="", $lidid=0, $nv="") {
 					FROM %2\$s
 					WHERE %3\$s AND %4\$s AND L.GEBDATUM > '1901-01-01'
 					ORDER BY L.GEBDATUM, L.Nummer;", $selectnaam, $fromlid, $wherelid, $df, $filter);
+										
+	} elseif ($actie == "ledenmetrekening") {
+		$query = sprintf("SELECT L.Nummer, %1\$s AS `Naam_lid`
+					FROM %2\$sLid AS L
+					WHERE L.Nummer IN (SELECT MAX(RK.Lid) FROM %2\$sRekening AS RK WHERE RK.Lid = L.Nummer)
+					ORDER BY L.Achternaam, L.Tussenv;", $selectzoeknaam, $table_prefix);
 		
 	} else {
 		$mess = sprintf("onbekende actie '%s' in db_lid", $actie);
@@ -1353,54 +1359,9 @@ function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr, $message="", $mai
 	
 	if ($_SESSION['lidid'] > 0) {
 		$query = sprintf("INSERT INTO %sMailing_hist SET
-					LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", to_name=\"%s\", subject=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", send_by=%d, send_on=SYSDATE(), Successful=%d;, Xtra_Char='%s', Xtra_Num=%d", $table_prefix,
+					LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", to_name=\"%s\", subject=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", send_by=%d, send_on=SYSDATE(), Successful=%d, Xtra_Char='%s', Xtra_Num=%d;", $table_prefix,
 					$lidid, $mid, html_entity_decode($from_name), $from_addr, $to_name, html_entity_decode($subject), $to_addr, $cc_addr, html_entity_decode($message), $_SESSION['lidid'], $success, $xtrachar, $xtranum);
-		fnQuery($query);
-		
-		if ($success == 1 and $mid > 0) {
-			$query = sprintf("UPDATE %sMailing SET sent_on=SYSDATE(), SentBy=%d WHERE MailingID=%d;", $table_prefix, $_SESSION['lidid'], $mid);
-			fnQuery($query);
-		}
-	}
-}
-
-function db_add_mailing_hist_bu($lidid, $mid, $to_name, $to_addr, $message="", $from_name="", $from_addr="", $subject="", $cc_addr="", $success=1) {
-	global $table_prefix;
-
-	if ($mid > 0) {
-		$query = sprintf("SELECT * FROM %sMailing WHERE MailingID=%d;", $table_prefix, $mid);
-		$result = fnQuery($query);
-		$row = $result->fetch();
-		if (strlen($message) == 0) {
-			$message = $row->message;
-		}
-		if (strlen($from_name) == 0) {
-			$from_name = $row->from_name;
-		}
-		if (strlen($from_addr) == 0) {
-			$from_addr = $row->from_addr;
-		}
-		if (strlen($subject) == 0) {
-			$subject = $row->subject;
-		}
-		if (strlen($cc_addr) > 5 and strlen($row->cc_addr) > 5) {
-			$cc_addr .= ", ";
-		}
-		$cc_addr .= $row->cc_addr;
-		if (strlen($row->to_name) > 0) {
-			$to_name = $row->to_name;
-		}
-	} else {
-		if (strlen($from_name) == 0) {
-			$from_name = $_SESSION['naamvereniging'];
-		}
-	}
-	
-	if ($_SESSION['lidid'] > 0) {
-		$query = sprintf("INSERT INTO %sMailing_hist SET
-					LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", to_name=\"%s\", subject=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", send_by=%d, send_on=SYSDATE(), Successful=%d;", $table_prefix,
-					$lidid, $mid, html_entity_decode($from_name), $from_addr, $to_name, html_entity_decode($subject), $to_addr, $cc_addr, html_entity_decode($message), $_SESSION['lidid'], $success);
-		fnQuery($query);
+					fnQuery($query);
 		
 		if ($success == 1 and $mid > 0) {
 			$query = sprintf("UPDATE %sMailing SET sent_on=SYSDATE(), SentBy=%d WHERE MailingID=%d;", $table_prefix, $_SESSION['lidid'], $mid);
@@ -2224,7 +2185,7 @@ function db_rekening($actie, $nr=0, $filter="") {
 		$query = sprintf("SELECT MAX(Datum) FROM %sRekening;", $table_prefix);
 		return db_scalar($query);
 	} elseif ($actie == "hoofd" and $nr > 0) {
-		$query = sprintf("SELECT RK.*, L.Adres, L.Postcode, L.Woonplaats,
+		$query = sprintf("SELECT RK.*, L.Adres, L.Postcode, L.Woonplaats, L.`Machtiging afgegeven` AS Machtiging,
 					IF(LENGTH(L.Bankrekening)=18, L.Bankrekening, L.BANKGIRO) AS Bankrekeningnummer,
 					DATE_ADD(RK.Datum, INTERVAL RK.BET_TERM*RK.BETAALDAG DAY) AS UitersteBetaaldatum,
 					(%1\$1s) AS Lidnr
@@ -2242,9 +2203,13 @@ function db_rekening($actie, $nr=0, $filter="") {
 		return $result->fetchAll();
 	} elseif ($actie == "selectie") {
 		if (strlen($filter) > 0 and substr($filter, 0, 5) != "WHERE") {
-			$filter = "WHERE RK.Lid=216 AND " . $filter;
+			if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
+				$filter = "WHERE (RK.Lid=31 OR RK.Lid=216 OR RK.Lid=60010) AND " . $filter;
+			} else {
+				$filter = "WHERE " . $filter;
+			}
 		}
-		$query = sprintf("SELECT RK.*, L.Adres, L.Postcode, L.Woonplaats,
+		$query = sprintf("SELECT RK.*, L.Adres, L.Postcode, L.Woonplaats
 					IF(LENGTH(L.Bankrekening)=18, L.Bankrekening, L.BANKGIRO) AS Bankrekeningnummer,
 					DATE_ADD(RK.Datum, INTERVAL RK.BET_TERM*RK.BETAALDAG DAY) AS UitersteBetaaldatum,
 					(%1\$1s) AS Lidnr
@@ -2253,6 +2218,9 @@ function db_rekening($actie, $nr=0, $filter="") {
 					ORDER BY L.Achternaam, L.Tussenv, RK.Nummer;", $selectlidnr, $table_prefix, $filter);
 		$result = fnQuery($query);
 		return $result->fetchAll();
+	} elseif ($actie == "histmail" and $nr > 0) {
+		$query = sprintf("SELECT message FROM %sMailing_hist WHERE Xtra_Char='REK' AND Xtra_Num=%d ORDER BY send_on DESC LIMIT 1;", $table_prefix, $nr);
+		return db_scalar($query);
 	}
 }
 
@@ -2517,12 +2485,8 @@ function db_onderhoud() {
 	$query = sprintf("ALTER TABLE `%sAdmin_param` CHANGE `ValueNum` `ValueNum` DECIMAL(16,6) NULL DEFAULT NULL;", $table_prefix);
 	fnQuery($query);
 	
-	// mailing_hist/ValueNum, deze code kan na 1/11/2012 worden verwijderd.
-	$query = sprintf("ALTER TABLE `%sMailing_hist` CHANGE `cc_addr` `cc_addr` VARCHAR(80) NOT NULL;", $table_prefix);
-	fnQuery($query);
-	
-	// Admin_param/Naam, deze code kan na 1/11/2012 worden verwijderd.
-	$query = sprintf("ALTER TABLE `%sAdmin_param` CHANGE `Naam` `Naam` VARCHAR(35) NOT NULL;", $table_prefix);
+	// mailing_hist/Xtra_Char, deze code kan na 1/4/2013 worden verwijderd.
+	$query = sprintf("ALTER TABLE `%sMailing_hist` CHANGE `Xtra_Char` `Xtra_Char` VARCHAR(5) NULL;", $table_prefix);
 	fnQuery($query);
 	
 	/***** Opschonen database na een upload uit de Access-database.  *****/

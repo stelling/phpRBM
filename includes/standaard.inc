@@ -213,7 +213,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	$tabpages[] = "Mailing/Templates";
 	$tabpages[] = "Mailing/Concepten";
 	$tabpages[] = "Mailing/Nieuw";
-	if ($_SESSION['aantalrekeningen'] > 0) {
+	if ($_SESSION['aantalrekreg'] > 0) {
 		$tabpages[] = "Mailing/Rekeningen";
 	}
 	$tabpages[] = "Mailing/Verzonden";
@@ -785,5 +785,17 @@ function change_month_to_uk($strdate) {
 	}
 	return $strdate;
 } # change_month_to_uk
+
+
+function removetextblock($content, $start_block="<!-- Ingelogd -->", $end_block="<!-- /Ingelogd -->") {
+
+	while (strpos($content, $start_block) !== false and strpos($content, $end_block) !== false) {
+		$stb = strpos($content, $start_block);
+		$etb = strpos($content, $end_block) + strlen($end_block);
+		$content = substr($content, 0, $stb) . substr($content, $etb);
+	}
+	return $content;
+	
+} # removetextblock
 
 ?>

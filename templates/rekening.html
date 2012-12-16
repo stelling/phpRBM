@@ -10,12 +10,19 @@
 <table>
 <tr><th>Regel</th><th>Omschrijving</th><th>Lid</th><th class='number'>Bedrag in &euro;</th></tr>
 [%REKENINGREGELS%]
-<tr><td colspan=3>Rekening totaal</td><td class='number'>[%REKENINGBEDRAG%]</td><tr>
-<tr><td colspan=3>Reeds betaald</td><td class='number'>[%BETAALD%]</td><tr>
-<tr><td colspan=3>Openstaand bedrag</td><td class='number'>[%OPENSTAAND%]</td><tr>
+<tr><td colspan=3>Rekening totaal</td><td class='number'>[%REKENINGBEDRAG%]</td></tr>
+<tr><td colspan=3>Reeds betaald</td><td class='number'>[%BETAALD%]</td></tr>
+<tr><td colspan=3>Openstaand bedrag</td><td class='number'>[%OPENSTAAND%]</td></tr>
 </table>
 </div> <!-- Einde rekeningregels -->
-<p>Deze rekening dient op [%UITERSTEBETAALDATUM%], onder vermelding van rekeningnummer [%REKENINGNUMMER%], volledig betaald te zijn.</p>
+
+<!-- Geen machtiging -->
+<p>Deze rekening dient op [%UITERSTEBETAALDATUM%], onder vermelding van rekeningnummer [%REKENINGNUMMER%], op onze bankrekening 123456789 te zijn bijgeschreven.</p>
+<!-- /Geen machtiging -->
+
+<!-- Wel machtiging -->
+<p>Deze rekening wordt rond [%UITERSTEBETAALDATUM%] middels automatische incasso van uw bankrekening [%BANKREKENING%] afgeschreven.</p>
+<!-- /Wel machtiging -->
 
 <p>Indien u een andere betalingsregeling wenst of een vraag over deze rekening heeft kunt u contact met de <a href='mailto:[%VANAFADRES%]'>[%VANAFNAAM%]</a> opnemen.</p>
 

@@ -391,7 +391,11 @@ function fnOverviewLid($lidid=0, $actie="") {
 			}
 		} elseif ($actie == "Financieel") {
 			if ($op == "details" and isset($_GET['rid']) and $_GET['rid'] > 0) {
-				echo(RekeningDetail($_GET['rid']));
+				$rt = db_rekening("histmail", $_GET['rid']);
+				if (strlen($rt) == 0) {
+					$rt = RekeningDetail($_GET['rid']);
+				}
+				echo($rt);
 			} else {
 				if ($_SESSION['aantalrekeningen'] > 0) {
 					$rows = db_gegevenslid($lidid, "Rekening");
@@ -1174,6 +1178,12 @@ function RekeningDetail($nr) {
 
 <p><strong>Het bestuur van [%NAAMVERENIGING%]</strong></p>\n";
 		}
+	}
+	
+	if ($rk->Machtiging == 1) {
+		$content = removetextblock($content, "<!-- Geen machtiging -->", "<!-- /Geen machtiging -->");
+	} else {
+		$content = removetextblock($content, "<!-- Wel machtiging -->", "<!-- /Wel machtiging -->");
 	}
 	
 	$content = str_ireplace("[%NAAMDEBITEUR%]", $rk->DEBNAAM, $content);

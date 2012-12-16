@@ -53,128 +53,7 @@ function fnMailing() {
 		$mailing->mid = 0;
 		$mailing->edit();
 	} elseif ($currenttab2 == "Rekeningen" and toegang($_GET['tp'])) {
-		
-		echo("<div id='rekeningenmailen'>\n");
-		if ($_SERVER['REQUEST_METHOD'] == "POST") {
-			if ($op == "selectierekeningen") {
-				$mindat = change_month_to_uk($_POST['mindatum']);
-				$maxdat = change_month_to_uk($_POST['maxdatum']);
-				if (strtotime($mindat) !== FALSE) {
-					$mindat = date("Y-m-d", strtotime($mindat));
-				} else {
-					$mindat = db_rekening("mindatum");
-				}
-				if (strtotime($maxdat) !== FALSE) {
-					$maxdat = date("Y-m-d", strtotime($maxdat));
-				} else {
-					$maxdat = db_rekening("maxdatum");
-				}
-				$filter = sprintf("RK.seizoen = %d AND RK.Nummer >= %d AND RK.Nummer <= %d AND RK.Datum >= '%s' AND RK.Datum <= '%s' AND (", $_POST['rekseizoen'], $_POST['minreknr'], $_POST['maxreknr'], $mindat, $maxdat);
-				if (isset($_POST['nietbetaald'])) {
-					$filter .= "(RK.Betaald=0 AND RK.Bedrag <> 0)";
-				}
-				if (isset($_POST['deelbetaald'])) {
-					if (isset($_POST['nietbetaald'])) {
-						$filter .= " OR ";
-					}
-					$filter .= "(RK.Betaald > 0 AND RK.Bedrag > RK.Betaald)";
-				}
-				if (isset($_POST['volbetaald'])) {
-					if (isset($_POST['nietbetaald']) or isset($_POST['deelbetaald'])) {
-						$filter .= " OR ";
-					}
-					$filter .= "RK.Bedrag <= RK.Betaald";
-				}
-				$filter .= ")";
-
-				$selrek = "";
-				foreach(db_rekening("selectie", 0, $filter) as $rk) {
-					$selrek .= sprintf("<li>%d - %s - &euro;&nbsp;%03.2f</li>\n", $rk->Nummer, $rk->DEBNAAM, $rk->Bedrag);
-				}
-				if (strlen($selrek) > 0) {
-					printf("<form method='post' action='%s?tp=%s/%s&amp;op=selectieversturen' name='mailrek'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
-					echo("De volgende rekeningen zijn geselecteerd.\n");
-					printf("<ul>\n%s</ul>\n<div class='clear'></div>\n", $selrek);
-					printf("<input type='hidden' name='rekfilter' value=\"%s\">\n", $filter);
-					echo("Rekeningen versturen?&nbsp<input type='checkbox' value='1' name='sure'>\n");
-					echo("<input type='submit' value='Rekeningen versturen'>\n");
-					echo("<input type='button' value='Terug' onClick='history.go(-1);'>\n");
-					echo("</form>\n");
-				} else {
-					echo("Er zijn geen rekeningen geselecteerd.");
-				}
-			} elseif ($op == "selectieversturen" and isset($_POST['sure'])) {
-				$aant_ok = 0;
-				$aant_nok = 0;
-				$mail = new RBMmailer();
-				if (strlen(db_param("mailing_rekening_from_adres")) > 0) {
-					$mail->From = db_param("mailing_rekening_from_adres");
-				}
-				if (strlen(db_param("mailing_rekening_from_naam")) > 0) {
-					$mail->FromName = db_param("mailing_rekening_from_naam");
-				}
-				$mailsperminuut = db_param("maxmailsperminuut");
-				
-				$smtpteller = 0;
-				$starttijd = time();
-				foreach(db_rekening("selectie", 0, $_POST['rekfilter']) as $rk) {
-				
-					if ($mailsperminuut > 0) {
-						while (microtime(true)-$starttijd < $smtpteller * (60 / $mailsperminuut)) {
-							usleep((60 / $mailsperminuut) * 1001000);
-							set_time_limit(60);
-						}
-					}
-					
-					$e = $mail->ToevoegenLid($rk->Lid);
-					$mail->isHTML(true);
-					$mail->Subject = $rk->OMSCHRIJV . " " . $rk->Nummer;
-					$rt = RekeningDetail($rk->Nummer);
-					$mail->Body = $rt;
-					$mail->addstationary($rk->DEBNAAM);
-					if ($mail->Send()) {
-						db_add_mailing_hist($rk->Lid, 0, $rk->DEBNAAM, $e, $rt, $mail, 1, "REK", $rk->Nummer);
-						$aant_ok++;
-					} else {
-						db_add_mailing_hist($rk->Lid, 0, $rk->DEBNAAM, $e, $rt, $mail, 0);
-						$aant_nok++;
-					}
-					$mail->ClearAddresses();
-					$smtpteller++;
-				}
-				if ($aant_ok > 0) {
-					$mess = sprintf("Er zijn %d rekeningen per e-mail verzonden.", $aant_ok);
-					db_logboek("add", $mess, 4, 0, 1);
-				}
-			} elseif ($op == "selectieversturen") {
-				$mess = "De rekeningen zijn niet verzonden, omdat het vinkje niet gezet was.";
-				db_logboek("add", $mess, 4, 0, 1);
-			}			
-		}
-		
-		if ($_SERVER['REQUEST_METHOD'] != "POST" or $op == "selectieversturen") {
-		
-			printf("<form method='post' action='%s?tp=%s/%s&amp;op=selectierekeningen' name='mailrek'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
-			echo("<table>\n");
-			echo("<tr><th></th><th>Vanaf</th><th>Totenmet</th></tr>");
-			echo("<tr><td class='label'>Seizoen</th><td colspan=2><select name='rekseizoen'>\n");
-			foreach(db_rekening("seizoenen") as $row) {
-				printf("<option value='%1\$d'>%1\$d</option>\n", $row->Seizoen);
-			}
-			echo("</select></td></tr>\n");
-			printf("<tr><td class='label'>Rekeningnummer</th><td><input type='number' value=%d name='minreknr'></td><td><input type='number' value=%d name='maxreknr'></td><tr>\n", db_rekening("minnummer"), db_rekening("maxnummer"));
-			printf("<tr><td class='label'>Rekeningdatum</th><td><input type='date' value='%s' name='mindatum'></td><td><input type='date' value='%s' name='maxdatum'></td><tr>\n", db_rekening("mindatum"), db_rekening("maxdatum"));
-			echo("<tr><td class='label'>Status</th><td colspan=2>");
-			echo("<input type='checkbox' name='volbetaald' value=1 checked>Volledig betaald");
-			echo("<input type='checkbox' name='deelbetaald' value=1 checked>Gedeeltelijk betaald");
-			echo("<input type='checkbox' name='nietbetaald' value=1 checked>Niet betaald");
-			echo("</td></tr>\n");
-			echo("<tr><th colspan=3><input type='submit' value='Verder'></th></tr>\n");
-			echo("</table>\n");
-			echo("</form>\n");
-
-		}
-		echo("</div> <!== Einde rekeningenmailen -->\n");
+		fnRekeningenMailen($op);
 		
 	} elseif ($currenttab2 == "Logboek" and toegang($_GET['tp'])) {
 		$lijst = db_logboek("lijst", "", 4);
@@ -950,8 +829,6 @@ class Mailing {
 			echo("<br>\n" . $mail->Body);
 		}
 		
-		$starttijd = microtime(true);
-		$smtpteller = 0;
 		foreach($rcpts as $rcpt) {
 			$this->create_mess($rcpt->Nummer);
 			$mail->Body = $this->merged_message;
@@ -982,13 +859,6 @@ class Mailing {
 						db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message);
 						$this->aant_ok++;
 					} else {
-						if ($this->mailsperminuut > 0) {
-							while (microtime(true)-$starttijd < $smtpteller * (60 / $this->mailsperminuut)) {
-								usleep((60 / $this->mailsperminuut) * 1001000);
-								set_time_limit(60);
-							}
-						}
-						$smtpteller++;
 						if ($mail->Send()) {
 							db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message, $mail, 1);
 							if (isset($rcpt->Naam_lid)) {
@@ -1166,6 +1036,149 @@ function briefpapier($content, $to, $subj, $from="") {
 		$htmlmessage = $content;
 	}
 	return $htmlmessage;
+}
+
+function fnRekeningenMailen($op) {
+	global $currenttab, $currenttab2, $table_prefix;
+
+	echo("<div id='rekeningenmailen'>\n");
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		if ($op == "selectierekeningen") {
+			if (isset($_POST['reknr']) and is_numeric($_POST['reknr'])) {
+				$_POST['minreknr'] = $_POST['reknr'];
+				$_POST['maxreknr'] = $_POST['reknr'];
+			}
+			if (isset($_POST['rekdatum']) and strlen($_POST['rekdatum']) > 3) {
+				$_POST['mindatum'] = $_POST['rekdatum'];
+				$_POST['maxdatum'] = $_POST['rekdatum'];
+			}
+			$mindat = change_month_to_uk($_POST['mindatum']);
+			$maxdat = change_month_to_uk($_POST['maxdatum']);
+			if (strtotime($mindat) !== FALSE) {
+				$mindat = date("Y-m-d", strtotime($mindat));
+			} else {
+				$mindat = db_rekening("mindatum");
+			}
+			if (strtotime($maxdat) !== FALSE) {
+				$maxdat = date("Y-m-d", strtotime($maxdat));
+			} else {
+				$maxdat = db_rekening("maxdatum");
+			}
+			$filter = sprintf("RK.seizoen = %d AND RK.Nummer >= %d AND RK.Nummer <= %d AND RK.Datum >= '%s' AND RK.Datum <= '%s'", $_POST['rekseizoen'], $_POST['minreknr'], $_POST['maxreknr'], $mindat, $maxdat);
+			if (isset($_POST['reklid']) and is_numeric($_POST['reklid']) and $_POST['reklid'] > 0) {
+				$filter .= sprintf(" AND RK.Lid=%d", $_POST['reklid']);
+			}
+			if (!isset($_POST['nulrekeningen'])) {
+				$filter .= " AND RK.Bedrag <> 0";
+			}
+			if (!isset($_POST['eerderverzonden'])) {
+				$filter .= sprintf(" AND (RK.Nummer NOT IN (SELECT Xtra_Num FROM %sMailing_hist WHERE Xtra_Char='REK'))", $table_prefix);
+			}
+			if (!isset($_POST['geenemail'])) {
+				$filter .= " AND (LENGTH(L.EMAIL) > 5 OR LENGTH(L.EmailVereniging) > 5 OR LENGTH(L.EmailOuders) > 5)";
+			}
+			$filter .= " AND (";
+			if (isset($_POST['nietbetaald'])) {
+				$filter .= "(RK.Betaald=0 AND RK.Bedrag <> 0)";
+			}
+			if (isset($_POST['deelbetaald'])) {
+				if (isset($_POST['nietbetaald'])) {
+					$filter .= " OR ";
+				}
+				$filter .= "(RK.Betaald > 0 AND RK.Bedrag > RK.Betaald)";
+			}
+			if (isset($_POST['volbetaald'])) {
+				if (isset($_POST['nietbetaald']) or isset($_POST['deelbetaald'])) {
+					$filter .= " OR ";
+				}
+				$filter .= "RK.Bedrag <= RK.Betaald";
+			}
+			$filter .= ")";
+
+			$selrek = "";
+			foreach(db_rekening("selectie", 0, $filter) as $rk) {
+				$selrek .= sprintf("<li>%d - %s - &euro;&nbsp;%03.2f</li>\n", $rk->Nummer, $rk->DEBNAAM, $rk->Bedrag);
+			}
+			if (strlen($selrek) > 0) {
+				printf("<form method='post' action='%s?tp=%s/%s&amp;op=selectieversturen' name='mailrek'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
+				echo("De volgende rekeningen zijn geselecteerd.\n");
+				printf("<ul>\n%s</ul>\n<div class='clear'></div>\n", $selrek);
+				printf("<input type='hidden' name='rekfilter' value=\"%s\">\n", $filter);
+				echo("Rekeningen versturen?&nbsp<input type='checkbox' value='1' name='sure'>\n");
+				echo("<input type='submit' value='Rekeningen versturen'>\n");
+				echo("<input type='button' value='Terug' onClick='history.go(-1);'>\n");
+				echo("</form>\n");
+			} else {
+				echo("Er zijn geen rekeningen geselecteerd.");
+			}
+		} elseif ($op == "selectieversturen" and isset($_POST['sure'])) {
+			$aant_ok = 0;
+			$mail = new RBMmailer();
+			if (strlen(db_param("mailing_rekening_from_adres")) > 0) {
+				$mail->From = db_param("mailing_rekening_from_adres");
+			}
+			if (strlen(db_param("mailing_rekening_from_naam")) > 0) {
+				$mail->FromName = db_param("mailing_rekening_from_naam");
+			}
+				
+			foreach(db_rekening("selectie", 0, $_POST['rekfilter']) as $rk) {
+				$e = $mail->ToevoegenLid($rk->Lid);
+				$mail->Subject = $rk->OMSCHRIJV . " " . $rk->Nummer;
+				$rt = RekeningDetail($rk->Nummer);
+				$mail->Body = $rt;
+				$mail->addstationary($rk->DEBNAAM);
+				if (isValidMailAddress($e, 0) == false) {
+					$mess = sprintf("Rekening %d kon niet worden verzonden, omdat er van %s geen geldig e-mailadres in de database bekend is.", $rk->Nummer, $rk->DEBNAAM);
+					db_logboek("add", $mess, 4);
+				} elseif ($mail->Send()) {
+					db_add_mailing_hist($rk->Lid, 0, $rk->DEBNAAM, $e, $rt, $mail, 1, "REK", $rk->Nummer);
+					$aant_ok++;
+				} else {
+					db_add_mailing_hist($rk->Lid, 0, $rk->DEBNAAM, $e, $rt, $mail, 0);
+					$mess = sprintf("Het versturen van rekening %d is niet gelukt. Error: %s", $rk->Nummer, $mail->ErrorInfo);
+					db_logboek("add", $mess, 4);
+				}
+				$mail->ClearAddresses();
+			}
+			if ($aant_ok > 0) {
+				$mess = sprintf("Er zijn %d rekeningen per e-mail verzonden.", $aant_ok);
+				db_logboek("add", $mess, 4, 0, 1);
+			}
+		} elseif ($op == "selectieversturen") {
+			$mess = "De rekeningen zijn niet verzonden, omdat het vinkje niet gezet was.";
+			db_logboek("add", $mess, 4, 0, 1);
+		}			
+	}
+		
+	if ($_SERVER['REQUEST_METHOD'] != "POST" or $op == "selectieversturen") {		
+		printf("<form method='post' action='%s?tp=%s/%s&amp;op=selectierekeningen' name='mailrek'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
+		echo("<table>\n");
+		echo("<tr><th></th><th>Gelijk aan</th><th>Vanaf</th><th>Totenmet</th></tr>");
+		echo("<tr><td class='label'>Seizoen</th><td><select name='rekseizoen'>\n");
+		foreach(db_rekening("seizoenen") as $row) {
+			printf("<option value='%1\$d'>%1\$d</option>\n", $row->Seizoen);
+		}
+		echo("</select></td><td></td><td></td></tr>\n");
+		printf("<tr><td class='label'>Rekeningnummer</th><td><input type='number' name='reknr'></td><td><input type='number' value=%d name='minreknr'></td><td><input type='number' value=%d name='maxreknr'></td></tr>\n", db_rekening("minnummer"), db_rekening("maxnummer"));
+		printf("<tr><td class='label'>Rekeningdatum</th><td><input type='date' name='rekdatum'></td><td><input type='date' value='%s' name='mindatum'></td><td><input type='date' value='%s' name='maxdatum'></td></tr>\n", db_rekening("mindatum"), db_rekening("maxdatum"));			
+		echo("<tr><td class='label'>Lid</th><td><select name='reklid'>\n<option value='-1'>*** Iedereen ***</option>>\n");
+		foreach(db_lid("ledenmetrekening") as $row) {
+			printf("<option value=%d>%s</option>\n", $row->Nummer, $row->Naam_lid);
+		}
+		echo("</select></td><td></td><td></td></tr>\n");
+		echo("<tr><td class='label'>Statussen</th><td colspan=3>");
+		echo("<input type='checkbox' name='volbetaald' value=1 checked>Volledig betaald\n");
+		echo("<input type='checkbox' name='deelbetaald' value=1 checked>Gedeeltelijk betaald\n");
+		echo("<input type='checkbox' name='nietbetaald' value=1 checked>Niet betaald\n");
+		echo("<input type='checkbox' name='nulrekeningen' value=1 checked>Nul rekeningen\n");
+		echo("<input type='checkbox' name='eerderverzonden' value=1 checked>Eerder verzonden\n");
+		echo("<input type='checkbox' name='geenemail' value=1>Geen e-mailadres\n");
+		echo("</td></tr>\n");
+		echo("<tr><th colspan=4><input type='submit' value='Verder'></th></tr>\n");
+		echo("</table>\n");
+		echo("</form>\n");
+	}
+	echo("</div> <!== Einde rekeningenmailen -->\n");
 }
 
 ?>
