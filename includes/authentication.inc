@@ -225,6 +225,7 @@ function fnConfirmLidnr($row, $xtratekst="") {
 		$mail->Body = $content;
 		$mail->addstationary();
 		if ($mail->Send()) {
+			db_add_mailing_hist($row->Nummer, 0, $row->Naam, $mail->ListAddresses("to"), $content, $mail, 1, "LNR", $row->Lidnr);
 			return sprintf("Lidnummer is aan %s (%s) verzonden.", $row->Naam, $mail->ListAddresses("to"));
 		} else {
 			return sprintf("Fout bij het versturen van de e-mail: %s. Probeer het later nogmaals of neem contact op met de webmaster.", $mail->ErrorInfo);
