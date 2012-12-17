@@ -389,9 +389,6 @@ function bevestigingbestelling($lidid, $ordernr=0) {
 		$adres = $row->Adres;
 		$postcode = $row->Postcode;
 		$woonplaats = $row->Woonplaats;
-		$email = $row->Email;
-		$emailouders = $row->EmailOuders;
-		$geboren = $row->GEBDATUM;
 		$bestelling .= sprintf("<tr><td>%s</td><td>%s</td><td>%s</td><td class='number'>%d</td><td class='number'>&euro;&nbsp;%s</td><td>%s</td></tr>\n", $row->Code, $row->Omschrijving, $row->Maat, $row->AantalBesteld, number_format($row->Bedrag, 2), $row->Opmerking);
 		$totbedrag += $row->Bedrag;
 	}
