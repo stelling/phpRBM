@@ -514,9 +514,10 @@ function BevestInschrBewaking($lidid, $insnr) {
 		$mail->Body = $content;
 		$mail->addstationary();
 		if ($mail->Send()) {
-			db_add_mailing_hist($lidid, 0, $naambewaker, $email, $content, $mail, 1);
+			db_add_mailing_hist($lidid, 0, $naambewaker, $email, $content, $mail, 1, "BW_I", $insnr);
 			$mess = sprintf("Bevestiging van deze inschrijving is naar %s verzonden.", $email);
 		} else {
+			db_add_mailing_hist($lidid, 0, $naambewaker, $email, $content, $mail, 0);
 			$mess = sprintf("Het versturen van de bevestiging van de inschrijving voor de bewaking aan %s is mislukt. Error: %s.", db_naamlid($lidid), $mail->ErrorInfo);
 		}
 		db_logboek("add", $mess, 11);
