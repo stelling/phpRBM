@@ -566,6 +566,9 @@ function algemeenlidmuteren($lidid) {
 	if (db_param("zs_incl_iban") == 1) {
 		$wijzvelden[] = array('label' => "IBAN (International Bank Account Number)", 'naam' => "Bankrekening", 'lengte' => 18);
 	}
+	if (db_param("zs_incl_machtiging") == 1 or $currenttab == "Wijzigen lid") {
+		$wijzvelden[] = array('label' => "Machtiging incasso afgegeven", 'naam' => "Machtiging afgegeven", 'lengte' => 1);
+	}
 	if (db_param("zs_incl_bezwmachtiging") == 1 or $currenttab == "Wijzigen lid") {
 		$wijzvelden[] = array('label' => "Bezwaar machtiging incasso", 'naam' => "BezwaarMachtiging", 'lengte' => 1);
 	}
@@ -592,8 +595,15 @@ function algemeenlidmuteren($lidid) {
 		for ($i=0; $i < count($wijzvelden); $i++) {
 			$fn = $wijzvelden[$i]['naam'];
 			$v = "__skip__";
-			if ($fn == "BezwaarMachtiging") {
-				if (isset ($_POST[$fn]) and $_POST[$fn] == "1" and $old->$fn < "2000-01-01") {
+			if ($fn == "Machtiging afgegeven") {
+				if (isset($_POST["Machtiging_afgegeven"])) {
+					$v = 1;
+				} else {
+					$v = 0;
+				}
+				
+			} elseif ($fn == "BezwaarMachtiging") {
+				if (isset($_POST[$fn]) and $old->$fn < "2000-01-01") {
 					$v = date("Y-m-d");
 				} elseif (!isset ($_POST[$fn]) and $old->$fn >= "2000-01-01") {
 					$v = "NULL";
@@ -642,16 +652,16 @@ function algemeenlidmuteren($lidid) {
 			} elseif (isset($_POST[$fn]) and strlen($_POST[$fn]) > 0) {
 				$v = $_POST[$fn];
 			}
-			if ($v != "__skip__" and $v != $old->$fn) {
-				if ($v == "NULL") {
-					$query = sprintf("UPDATE %sLid SET %s=NULL, Gewijzigd=SYSDATE() WHERE Nummer=%d;", $table_prefix, $fn, $lidid);
+			if ($v !== "__skip__" and $v != $old->$fn) {
+				if ($v === "NULL") {
+					$query = sprintf("UPDATE %sLid SET `%s`=NULL, Gewijzigd=SYSDATE() WHERE Nummer=%d;", $table_prefix, $fn, $lidid);
 				} else {
-					$query = sprintf("UPDATE %sLid SET %s='%s', Gewijzigd=SYSDATE() WHERE Nummer=%d;", $table_prefix, $fn, $v, $lidid);
+					$query = sprintf("UPDATE %sLid SET `%s`='%s', Gewijzigd=SYSDATE() WHERE Nummer=%d;", $table_prefix, $fn, $v, $lidid);
 				}
 				$result = fnQuery($query);
 				if ($result > 0) {
-					if (($fn == "GEBDATUM" or $fn == "BezwaarMachtiging") and $v != "NULL") {
-						$query = sprintf("UPDATE Lid SET %s=#%s#, Gewijzigd=SYSDATE() WHERE Nummer=%d;", $fn, strftime($fdaccess, strtotime($v)), $lidid);
+					if (($fn == "GEBDATUM" or $fn == "BezwaarMachtiging") and $v !== "NULL") {
+						$query = sprintf("UPDATE Lid SET `%s`=#%s#, Gewijzigd=SYSDATE() WHERE Nummer=%d;", $fn, strftime($fdaccess, strtotime($v)), $lidid);
 					}
 					db_interface("add", $query, $lidid);
 					$mess .= sprintf("%s van %s is in '%s' gewijzigd. ", $wijzvelden[$i]['label'], $naamlid, $v);
@@ -688,6 +698,17 @@ function algemeenlidmuteren($lidid) {
 				$opt .= sprintf("<option value='%s'%s>%s</option>\n", $key, $sel, $val);
 			}
 			$inp = sprintf("<select name='%s'>%s</select></td><td>", $wijzvelden[$i]['naam'], $opt);
+			
+		} elseif ($wijzvelden[$i]['naam'] == "Machtiging afgegeven") {
+			if ($row->$wijzvelden[$i]['naam'] == 1) {
+				$dv = "Ja";
+				$c = "checked";
+			} else {
+				$dv = "Nee";
+				$c = "";
+			}
+			$inp = sprintf("<input type='checkbox' name='%s' value=1 %s>", $wijzvelden[$i]['naam'], $c);
+			$t = "text";
 			
 		} elseif ($wijzvelden[$i]['naam'] == "BezwaarMachtiging") {
 			if ($row->$wijzvelden[$i]['naam'] > "2000-01-01") {

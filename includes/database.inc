@@ -410,6 +410,7 @@ function db_lid($actie, $filter="", $lidid=0, $nv="") {
 					L.GEBPLAATS,
 					L.BANKGIRO,
 					L.Bankrekening,
+					L.`Machtiging afgegeven`,
 					L.BezwaarMachtiging,
 					L.Burgerservicenummer,
 					L.RelnrRedNed,
@@ -2263,6 +2264,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrBooleans['zs_incl_emailvereniging'] = 0;
 	$arrBooleans['zs_incl_iban'] = 0;
 	$arrBooleans['zs_incl_legitimatie'] = 1;
+	$arrBooleans['zs_incl_machtiging'] = 0;
 	$arrBooleans['zs_incl_slid'] = 0;
 	$arrBooleans['zs_opzeggingautomatischverwerken'] = 0;
 	
