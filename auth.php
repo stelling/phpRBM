@@ -18,8 +18,8 @@
    } elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$_SESSION['username'] = cleanlogin($_POST['username']);
       if (isset($_POST['cookie']) and $_POST['cookie'] == 1) {                                    
-			setcookie("username", $_SESSION['username'], time()+(3600*24*30*$bewaartijdlogins));
-			setcookie("password", $_POST['password'], time()+(3600*24*30*$bewaartijdlogins));
+			setcookie("username", $_SESSION['username'], time()+(3600*24*30));
+			setcookie("password", $_POST['password'], time()+(3600*24*30));
       } else {
 			setcookie("username", "", time()-3600);
 			setcookie("password", "", time()-3600);
