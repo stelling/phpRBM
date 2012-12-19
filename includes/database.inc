@@ -2210,7 +2210,7 @@ function db_rekening($actie, $nr=0, $filter="") {
 				$filter = "WHERE " . $filter;
 			}
 		}
-		$query = sprintf("SELECT RK.*, L.Adres, L.Postcode, L.Woonplaats
+		$query = sprintf("SELECT RK.*, L.Adres, L.Postcode, L.Woonplaats,
 					IF(LENGTH(L.Bankrekening)=18, L.Bankrekening, L.BANKGIRO) AS Bankrekeningnummer,
 					DATE_ADD(RK.Datum, INTERVAL RK.BET_TERM*RK.BETAALDAG DAY) AS UitersteBetaaldatum,
 					(%1\$1s) AS Lidnr
@@ -2271,6 +2271,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrStrings['laatstebackup'] = "2012-01-01 00:00";
 	$arrStrings['muteerbarememos'] = "D,G,WN";
 	$arrStrings['naamvereniging'] = "Naam vereniging";
+	$arrStrings['naamvereniging_afkorting'] = "";
 	$arrStrings['naamwebsite'] = "Naam website";
 	$arrStrings['mailing_extensies_toegestaan'] = "bmp, gif, jpeg, jpg, pdf, png, pps, rar, txt, zip";
 	$arrStrings['mailing_rekening_from'] = "";

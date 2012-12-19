@@ -45,6 +45,7 @@ if ($bestandsversie != db_param("versie")) {
 // Vullen sessie met config variabelen
 if (!isset($_SESSION['naamvereniging']) or strlen($_SESSION['naamvereniging']) < 3 or !isset($_SESSION['performance_trage_select'])) {
 	$_SESSION['naamvereniging'] = db_param("naamvereniging");
+	$_SESSION['naamvereniging_afkorting'] = db_param("naamvereniging_afkorting");
 	$_SESSION['urlvereniging'] = db_param("urlvereniging");
 	$_SESSION['naamwebsite'] = db_param("naamwebsite");
 	$_SESSION['urlwebsite'] = db_param("urlwebsite");
@@ -287,13 +288,19 @@ fnQuery($query);
 function HTMLheader($refresh=0) {
 	global $currenttab, $currenttab2;
 	
-	if (strlen($currenttab) > 0 and strlen($currenttab2) > 0) {
-		$title = $_SESSION['naamwebsite'] . " | " . $currenttab . " | " . $currenttab2;
-	} elseif (strlen($currenttab) > 0) {
-		$title = $_SESSION['naamwebsite'] . " | " . $currenttab;
+	if (strlen($_SESSION['naamvereniging_afkorting']) > 0) {
+		$title = $_SESSION['naamvereniging_afkorting'] . " | ";
 	} else {
-		$title = $_SESSION['naamwebsite'];
+		$title = "";
 	}
+	if (strlen($currenttab) > 0 and strlen($currenttab2) > 0) {
+		$title .= $_SESSION['naamwebsite'] . " | " . $currenttab . " | " . $currenttab2;
+	} elseif (strlen($currenttab) > 0) {
+		$title .= $_SESSION['naamwebsite'] . " | " . $currenttab;
+	} else {
+		$title .= $_SESSION['naamwebsite'];
+	}
+	
 
 //	header('Content-type: text/html; charset=utf-8');
    if (!isset($_GET['header']) or $_GET['header'] != "no") {
