@@ -129,8 +129,8 @@ class RBMmailer extends PHPMailer {
 			$_SESSION['mailsperminuut'] = db_param("maxmailsperminuut");
 		}
 		if ($_SESSION['mailsperminuut'] > 0 and isset($_SESSION['lastmailsend'])) {
-			while ((microtime(true)-$_SESSION['lastmailsend']) < (60 / $_SESSION['mailsperminuut'])) {
-				usleep((60 / $_SESSION['mailsperminuut']) * 1002000);
+			while ((microtime(true)-$_SESSION['lastmailsend']) < ((60 / $_SESSION['mailsperminuut']) * 1.0005)) {
+				usleep((60 / $_SESSION['mailsperminuut']) * 1001000);
 				set_time_limit(60);
 			}
 		}
