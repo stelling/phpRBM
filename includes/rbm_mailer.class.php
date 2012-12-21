@@ -26,8 +26,8 @@ class RBMmailer extends PHPMailer {
 			$this->IsMail(true);
 		}
 		$this->IsHTML(true);
-		$this->From = $_SESSION['emailwebmaster'];
-		$this->FromName = $_SESSION['naamvereniging'];
+		$this->From = db_param("emailwebmaster");
+		$this->FromName = db_param("naamvereniging");
 		$this->WordWrap = 110;
 		
 		if ($lidid > 0) {
@@ -125,12 +125,9 @@ class RBMmailer extends PHPMailer {
 	}
 	
 	public function Send() {
-		if (!isset($_SESSION['mailsperminuut'])) {
-			$_SESSION['mailsperminuut'] = db_param("maxmailsperminuut");
-		}
-		if ($_SESSION['mailsperminuut'] > 0 and isset($_SESSION['lastmailsend'])) {
-			while ((microtime(true)-$_SESSION['lastmailsend']) < ((60 / $_SESSION['mailsperminuut']) * 1.0005)) {
-				usleep((60 / $_SESSION['mailsperminuut']) * 1001000);
+		if (db_param("mailsperminuut") > 0 and isset($_SESSION['lastmailsend'])) {
+			while ((microtime(true)-$_SESSION['lastmailsend']) < ((60 / db_param("mailsperminuut")) * 1.0005)) {
+				usleep((60 / db_param("mailsperminuut")) * 1001000);
 				set_time_limit(60);
 			}
 		}
