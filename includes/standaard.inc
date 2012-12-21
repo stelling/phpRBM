@@ -42,18 +42,6 @@ if ($bestandsversie != db_param("versie")) {
 	db_param("versie", "updval", $bestandsversie);
 }
 
-// Vullen sessie met config variabelen
-if (!isset($_SESSION['naamvereniging']) or strlen($_SESSION['naamvereniging']) < 3 or !isset($_SESSION['performance_trage_select'])) {
-	$_SESSION['naamvereniging'] = db_param("naamvereniging");
-	$_SESSION['naamvereniging_afkorting'] = db_param("naamvereniging_afkorting");
-	$_SESSION['urlvereniging'] = db_param("urlvereniging");
-	$_SESSION['naamwebsite'] = db_param("naamwebsite");
-	$_SESSION['urlwebsite'] = db_param("urlwebsite");
-	$_SESSION['emailwebmaster'] = db_param("emailwebmaster");
-	$_SESSION['emailsecretariaat'] = db_param("emailsecretariaat");
-	$_SESSION['performance_trage_select'] = db_param("performance_trage_select");
-}
-
 if (strlen(db_param("zs_muteerbarememos")) > 0) {
 	$muteerbarememos = explode(",", db_param("zs_muteerbarememos"));
 } else {
@@ -288,17 +276,17 @@ fnQuery($query);
 function HTMLheader($refresh=0) {
 	global $currenttab, $currenttab2;
 	
-	if (strlen($_SESSION['naamvereniging_afkorting']) > 0) {
-		$title = $_SESSION['naamvereniging_afkorting'] . " | ";
+	if (strlen(db_param("naamvereniging_afkorting")) > 0) {
+		$title = db_param("naamvereniging_afkorting") . " | ";
 	} else {
 		$title = "";
 	}
 	if (strlen($currenttab) > 0 and strlen($currenttab2) > 0) {
-		$title .= $_SESSION['naamwebsite'] . " | " . $currenttab . " | " . $currenttab2;
+		$title .= db_param("naamwebsite") . " | " . $currenttab . " | " . $currenttab2;
 	} elseif (strlen($currenttab) > 0) {
-		$title .= $_SESSION['naamwebsite'] . " | " . $currenttab;
+		$title .= db_param("naamwebsite") . " | " . $currenttab;
 	} else {
-		$title .= $_SESSION['naamwebsite'];
+		$title .= db_param("naamwebsite");
 	}
 	
 
@@ -324,7 +312,7 @@ function HTMLheader($refresh=0) {
 		echo("<body>\n");
 		echo("<div id='container'>\n");
 		echo("<div id='header'>\n");
-		printf("<h1>%s</h1>\n", $_SESSION['naamwebsite']);
+		printf("<h1>%s</h1>\n", db_param("naamwebsite"));
 	
 		echo("<div id='login'>\n");
 		echo("<form name='Login' action='/auth.php' method='post'>");
@@ -369,11 +357,11 @@ function HTMLfooter() {
 	global $table_prefix, $navpad, $bestandsversie;
 
 	if (!isset($_GET['header']) or $_GET['header'] != "no") {
-		if (strlen($_SESSION['naamvereniging']) > 2) {
-			if (strlen($_SESSION['urlvereniging']) > 3) {
-				$cr = sprintf("<a href='http://%s'>%s</a>", $_SESSION['urlvereniging'], $_SESSION['naamvereniging']);
+		if (strlen(db_param("naamvereniging")) > 2) {
+			if (strlen(db_param("urlvereniging")) > 3) {
+				$cr = sprintf("<a href='http://%s'>%s</a>", db_param("urlvereniging"), db_param("naamvereniging"));
 			} else {
-				$cr = $_SESSION['naamvereniging'];
+				$cr = db_param("naamvereniging");
 			}
 		} else {
 			$cr = "<a href='http://www.telling.nl'>&copy;&nbsp;S.Telling</a>";
@@ -396,7 +384,7 @@ function HTMLfooter() {
 				 <div id='footerleft'>%s</div>\n
 				 <a href='http://%s'>%s</a> %s\n
 				 <div id='footerright'>%s</div>\n
-				 </div>  <!-- Einde footer  -->\n", $cr, $_SESSION['urlwebsite'], $_SESSION['naamwebsite'], $np, strftime("%e %B %Y", $bestandsversie));
+				 </div>  <!-- Einde footer  -->\n", $cr, db_param("urlwebsite"), db_param("naamwebsite"), $np, strftime("%e %B %Y", $bestandsversie));
 		echo("</div>  <!-- Einde container -->\n");
 		echo("</body>\n");
 		echo("</html>\n");
@@ -792,7 +780,6 @@ function change_month_to_uk($strdate) {
 	}
 	return $strdate;
 } # change_month_to_uk
-
 
 function removetextblock($content, $start_block="<!-- Ingelogd -->", $end_block="<!-- /Ingelogd -->") {
 
