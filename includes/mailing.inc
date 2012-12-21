@@ -176,7 +176,7 @@ class Mailing {
 			$this->resultaatversturen = 0;
 		}
 		$this->mailsperminuut = db_param("maxmailsperminuut");
-		$this->emailsecretariaat = $_SESSION['emailsecretariaat'];
+		$this->emailsecretariaat = db_param("emailsecretariaat");
 
 		$sql = sprintf("SELECT Roepnaam FROM %sLid AS L WHERE %s;", $table_prefix, "L.Nummer=%d");
 		$this->MergeField[]=array('Naam' => "Roepnaam", 'SQL' => $sql);
@@ -210,7 +210,7 @@ class Mailing {
 		$sql = sprintf("SELECT LM.Lidnr FROM %sLidmaatschap AS LM WHERE %s AND LM.Lid=%%d;", $table_prefix, $wherelid);
 		$this->MergeField[]=array('Naam' => "Lidnummer", 'SQL' => $sql);
 		
-		$sql = sprintf("SELECT ROUND(DATEDIFF(IF(ISNULL(LM.Opgezegd), CURDATE(), LM.Opgezegd), LM.LIDDATUM)/365.25, 1)
+		$sql = sprintf("SELECT ROUND(DATEDIFF(IF(ISNULL(LM.Opgezegd), CURDATE(), LM.Opgezegd), LM.LIDDATUM)/365.25, 0)
 							FROM %sLidmaatschap AS LM WHERE LM.LIDDATUM < CURDATE() AND %s
 							ORDER BY LM.LIDDATUM DESC LIMIT 1;", $table_prefix, "LM.Lid=%d");
 		$this->MergeField[]=array('Naam' => "LengteLidmaatschap", 'SQL' => $sql);
@@ -621,7 +621,7 @@ class Mailing {
 		}
 	
 		if (!isset($_POST['from_name']) or strlen($_POST['from_name']) == 0) {
-			$_POST['from_name'] = $_SESSION['naamvereniging'];
+			$_POST['from_name'] = db_param("naamvereniging");
 		}
 		
 		if (isset($_POST['cc_addr']) and strlen($_POST['cc_addr']) > 5) {
@@ -1010,7 +1010,7 @@ class Mailing {
 			}
 			
 		} else {
-			$this->from_name = $_SESSION['naamvereniging'];
+			$this->from_name = db_param("naamvereniging");
 			$this->from_addr = $_SESSION['emailingelogde'];
 			$this->new_on = date("Y-m-d");
 		}
@@ -1019,7 +1019,7 @@ class Mailing {
 
 function briefpapier($content, $to, $subj, $from="") {
 	if (strlen($from) == 0) {
-		$from = $_SESSION['naamvereniging'];
+		$from = db_param("naamvereniging");
 	}
 	$brief_template = "templates/briefpapier.html";
 	if (file_exists($brief_template)) {

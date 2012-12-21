@@ -339,7 +339,6 @@ function fnInstellingen() {
 				db_param($row->Naam, "updval", $_POST[$pvn]);
 			}
 		}
-		$_SESSION['naamvereniging'] = "";
 	}
 
 	echo("<div id='instellingenmuteren'>\n");

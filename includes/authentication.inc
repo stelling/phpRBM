@@ -169,9 +169,9 @@ function fnConfirmLogin($row, $xtratekst="") {
 	$content = str_replace("[%PASSWORD%]", encript_decript($row->Wachtwoord, 0), $content);
 	$content = str_replace("[%GEBLOKKEERD%]", $geblokt, $content);
 	$content = str_replace("[%EXTRATEKST%]", $xtratekst, $content);
-	$content = str_replace("[%NAAMVERENIGING%]", $_SESSION['naamvereniging'], $content);
-	$content = str_replace("[%NAAMWEBSITE%]", $_SESSION['naamwebsite'], $content);
-	$content = str_replace("[%URLWEBSITE%]", $_SESSION['urlwebsite'], $content);
+	$content = str_replace("[%NAAMVERENIGING%]", db_param("naamvereniging"), $content);
+	$content = str_replace("[%NAAMWEBSITE%]", db_param("naamwebsite"), $content);
+	$content = str_replace("[%URLWEBSITE%]", db_param("urlwebsite"), $content);
 	$content = str_replace("[%IPADDRESS%]", $_SERVER['REMOTE_ADDR'], $content);
 
 	$mail = new RBMmailer($row->Nummer);
@@ -213,15 +213,15 @@ function fnConfirmLidnr($row, $xtratekst="") {
 	$content = str_replace("[%PASSWORD%]", encript_decript($row->Wachtwoord, 0), $content);
 	$content = str_replace("[%GEBLOKKEERD%]", $geblokt, $content);
 	$content = str_replace("[%EXTRATEKST%]", $xtratekst, $content);
-	$content = str_replace("[%NAAMVERENIGING%]", $_SESSION['naamvereniging'], $content);
-	$content = str_replace("[%NAAMWEBSITE%]", $_SESSION['naamwebsite'], $content);
-	$content = str_replace("[%URLWEBSITE%]", $_SESSION['urlwebsite'], $content);
+	$content = str_replace("[%NAAMVERENIGING%]", db_param("naamvereniging"), $content);
+	$content = str_replace("[%NAAMWEBSITE%]", db_param("naamwebsite"), $content);
+	$content = str_replace("[%URLWEBSITE%]", db_param("urlwebsite"), $content);
 	$content = str_replace("[%IPADDRESS%]", $_SERVER['REMOTE_ADDR'], $content);
 
 	try {
 		$mail = new RBMmailer($row->Nummer);
-		$mail->FromName = "Webmaster " . $_SESSION['naamwebsite'];
-		$mail->Subject = sprintf("Lidnummer %s", $_SESSION['naamvereniging']);
+		$mail->FromName = "Webmaster " . db_param("naamwebsite");
+		$mail->Subject = sprintf("Lidnummer %s", db_param("naamvereniging"));
 		$mail->Body = $content;
 		$mail->addstationary();
 		if ($mail->Send()) {
@@ -281,7 +281,7 @@ function fnLoginAanvragen() {
 									if (strlen($gt) > 0) {$gt .= ", ";}
 									$gt .= "'" . db_naam_onderdeel($gr) . "'";
 								}
-								$mess = sprintf("Je behoort niet tot één van de groepen %s van %s. Een login mag niet aangevraagd worden.", $gt, $_SESSION['naamvereniging']);
+								$mess = sprintf("Je behoort niet tot één van de groepen %s van %s. Een login mag niet aangevraagd worden.", $gt, db_param("naamvereniging"));
 							} else {
 								if (is_array($beperktotgroep) and count($beperktotgroep) == 1) {
 									$gr = $beperktotgroep[0];
@@ -290,7 +290,7 @@ function fnLoginAanvragen() {
 								} else {
 									$gr = 0;
 								}
-								$mess = sprintf("Je behoort niet tot groep '%s' van %s. Een login mag niet aangevraagd worden.", db_naam_onderdeel($gr), $_SESSION['naamvereniging']);
+								$mess = sprintf("Je behoort niet tot groep '%s' van %s. Een login mag niet aangevraagd worden.", db_naam_onderdeel($gr), db_param("naamvereniging"));
 							}
 						} elseif (strlen($_POST['gewenstelogin']) < 6 or strlen($_POST['gewenstelogin']) > $maxlengtelogin) {
 							$mess = sprintf("Je hebt geen geldige login opgegeven. Een login moet uit minimaal 6 en maximaal %d karakters bestaan.", $maxlengtelogin);

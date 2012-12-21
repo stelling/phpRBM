@@ -46,6 +46,15 @@ $TypeActiviteit[13] = "Parameters";
 $TypeActiviteit[98] = "Performance";
 $TypeActiviteit[99] = "Debugging";
 asort($TypeActiviteit);
+	
+$db_conn_pdo = sprintf("mysql:host=%s;dbname=%s", $db_host, $db_name);
+try {
+	$dbc = new PDO($db_conn_pdo, $db_user, $db_pass);
+	$dbc->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_OBJ);
+	$dbc->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+	printf("<p class='debug'>Connection failed: %s</p>\n", $e->getMessage());
+}
 
 $fdlang = "'%e %M %Y'";
 $fdtlang = "'%e %M %Y (%H:%i)'";
@@ -129,29 +138,29 @@ if (!isset($_SESSION['aantalkostenplaatsen'])) {
 }
 
 function fnQuery($query) {
-   global $dbc;
+	global $dbc;
 	
 	$starttijd = microtime(true);
 	
 	try {
 		if (strtoupper(substr($query, 0, 6)) == "SELECT") {
+//		debug($query);
 			$rs = $dbc->query($query);
 			$exec_tijd = microtime(true) - $starttijd;
-			if (isset($_SESSION['performance_trage_select']) and $_SESSION['performance_trage_select'] > 0 and $exec_tijd >= $_SESSION['performance_trage_select']) {
+			$p = "performance_trage_select";
+			if (strpos($query, $p) === false and db_param($p) > 0 and $exec_tijd >= db_param($p)) {
 				$mess = sprintf("%f seconden query: %s", $exec_tijd, $query);
 				db_logboek("add", $mess, 98);
 			}
 			return $rs;
 		} else {
-			$result = $dbc->prepare($query);
-			$result->execute();
-			$exec_tijd = microtime(true) - $starttijd;
+			$rv = $dbc->exec($query);
 			if (strtoupper(substr($query, 0, 6)) == "INSERT") {
 				$rv = $dbc->lastInsertId();
 			} else {
-				$rv = $result->RowCount();
+//				$rv = $result->RowCount();
 			}
-			$result = null;
+//			$result = null;
 			return $rv;
 		}
 	} catch (Exception $e) {					
@@ -989,7 +998,6 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 	$maxlengtelogin = db_param("maxlengtelogin");
 	$maxinlogpogingen = db_param("maxinlogpogingen");
 	$lidnrnodigbijloginaanvraag = db_param("lidnrnodigbijloginaanvraag");
-	$scriptbijuitloggen = db_param("scriptbijuitloggen");
 	
 	$mess = "";
 	if ($actie == "nieuwlogin" and isValidMailAddress($email) and strlen($login) > 5) {
@@ -1064,9 +1072,8 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		$query = sprintf("UPDATE %sAdmin_login SET Ingelogd=0 WHERE Ingelogd=1 AND (LastActivity < ADDDATE(SYSDATE(), INTERVAL -21 MINUTE) OR LidID=%d);", $table_prefix, $lidid);
 		$result = fnQuery($query);
 		if ($result > 0) {
-			$scriptbijuitloggen = db_param("scriptbijuitloggen");
-			if (strlen($scriptbijuitloggen) > 0) {
-				exec($scriptbijuitloggen);
+			if (strlen(db_param("scriptbijuitloggen")) > 0) {
+				exec(db_param("scriptbijuitloggen"));
 			}
 			if ($_SESSION['lidid'] == $lidid and $lidid > 0) {
 				$mess = sprintf("%s (LidID: %d) is uitgelogd.", $_SESSION['naamingelogde'], $lidid);
@@ -1354,7 +1361,7 @@ function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr, $message="", $mai
 		}
 	} else {
 		if (strlen($from_name) == 0) {
-			$from_name = $_SESSION['naamvereniging'];
+			$from_name = db_param("naamvereniging");
 		}
 	}
 	
@@ -1450,7 +1457,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		
 	} elseif ($actie == "add") {
 		$query = sprintf("INSERT INTO %sMailing (from_name, from_addr, to_name, subject, new_on, AddedBy)
-								VALUES ('%s', '%s', '%s', '%s', SYSDATE(), %d);", $table_prefix, $_SESSION['naamvereniging'], $email, $aan, $subj, $_SESSION['lidid']);
+								VALUES ('%s', '%s', '%s', '%s', SYSDATE(), %d);", $table_prefix, db_param("naamvereniging"), $email, $aan, $subj, $_SESSION['lidid']);
 		$id = fnQuery($query);
 		$mess = sprintf("Mailing %d (%s) is door %s toegevoegd.", $id, $subj, $_SESSION['naamingelogde']);
 		db_logboek("add", $mess, 4);
@@ -2231,6 +2238,10 @@ function db_dms() {
 function db_param($naam, $actie="curval", $newval="") {
 	global $table_prefix;
 	
+	if (isset($_SESSION['settings'])) {
+		$settings = $_SESSION['settings'];
+	}
+	
 	$arrIntegers['bewaartijdinloggen'] = 2;
 	$arrIntegers['bewaartijdlogging'] = 6;
 	$arrIntegers['bewaartijdlogins'] = 6;
@@ -2278,7 +2289,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrStrings['mailing_rekening_from_naam'] = "";
 	$arrStrings['urlwebsite'] = $_SERVER["HTTP_HOST"];
 	
-	$arrFloats['maxmailsperminuut'] = 300;
+	$arrFloats['maxmailsperminuut'] = 360;
 	$arrFloats['performance_trage_select'] = 0.5;
 	
 	if ($actie == "lijst") {
@@ -2287,6 +2298,9 @@ function db_param($naam, $actie="curval", $newval="") {
 		return $result->fetchAll();
 		
 	} elseif ($actie == "curval") {
+		if (isset($settings[$naam])) {
+			$retval = $settings[$naam];
+		} else {
 		if (array_key_exists($naam, $arrBooleans)) {
 			$retval = $arrBooleans[$naam];
 		} elseif (array_key_exists($naam, $arrIntegers)) {
@@ -2303,12 +2317,21 @@ function db_param($naam, $actie="curval", $newval="") {
 		$result = fnQuery($query);
 		$row = $result->fetch();
 		if (isset($row->RecordID) and $row->RecordID > 0) {
-			if ($row->ParamType == "B" or $row->ParamType == "F" or $row->ParamType == "I") {
+			if (($row->ParamType == "F" or $row->ParamType == "I") and empty($row->ValueNum)) {
+				$retval = 0;
+			} elseif ($row->ParamType == "B" or $row->ParamType == "F" or $row->ParamType == "I") {
 				$retval = $row->ValueNum;
 			} else {
-				$retval = $row->ValueChar;
+				if (empty($row->ValueChar)) {
+					$retval = "";
+				} else {
+					$retval = $row->ValueChar;
+				}
 			}
 		}
+		}
+		$settings[$naam] = $retval;
+		$_SESSION['settings'] = $settings;
 		return $retval;
 		
 	} elseif ($actie == "updval") {
@@ -2340,6 +2363,8 @@ function db_param($naam, $actie="curval", $newval="") {
 			$query = sprintf("UPDATE %sAdmin_param SET %s, GewijzigdDoor=%d WHERE RecordID=%d;", $table_prefix, $set, $_SESSION['lidid'], $cur->RecordID);
 			$result = fnQuery($query);
 			if ($result > 0) {
+				$settings[$naam] = $newval;
+				$_SESSION['settings'] = $settings;
 				$mess = sprintf("Parameter '%s' is in '%s' gewijzigd.", $naam, $newval);
 				db_logboek("add", $mess, 13);
 			}

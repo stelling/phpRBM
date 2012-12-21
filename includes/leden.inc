@@ -928,7 +928,7 @@ function opzegginglidmaatschap($lidid) {
 		<p>Hierbij zeg ik mijn lidmaatschap van de %s per %s op. Mijn lidnummer is %d.</p>\n
 		%s
 		<p>Met vriendelijke groeten,<br>
-		<strong>%s</strong></p>\n", $_SESSION['naamvereniging'], $opgezegdper, $_SESSION['lidnr'], $opm, $naamlid);
+		<strong>%s</strong></p>\n", db_param("naamvereniging"), $opgezegdper, $_SESSION['lidnr'], $opm, $naamlid);
 				
 		$body .= sprintf("\n<p>Dit formulier is verzonden vanaf IP-adres %s.</p>\n", $_SERVER['REMOTE_ADDR']);
 	
@@ -981,9 +981,9 @@ function opzegginglidmaatschap($lidid) {
 		$content = str_replace("[%OPZEGGENVANAF%]", strftime($fdlang, mktime(0, 0, 0, date("m")+$opzegtermijn, date("d")+1, date("Y"))), $content);
 		$content = str_replace("[%NAAMLID%]", $_SESSION['naamingelogde'], $content);
 		$content = str_replace("[%LIDNR%]", $_SESSION['lidnr'], $content);
-		$content = str_replace("[%NAAMVERENIGING%]", $_SESSION['naamvereniging'], $content);
-		$content = str_replace("[%NAAMWEBSITE%]", $_SESSION['naamwebsite'], $content);
-		$content = str_replace("[%URLWEBSITE%]", $_SESSION['urlwebsite'], $content);
+		$content = str_replace("[%NAAMVERENIGING%]", db_param("naamvereniging"), $content);
+		$content = str_replace("[%NAAMWEBSITE%]", db_param("naamwebsite"), $content);
+		$content = str_replace("[%URLWEBSITE%]", db_param("urlwebsite"), $content);
 		
 		echo($content);
 	}
@@ -1223,9 +1223,9 @@ function RekeningDetail($nr) {
 	$content = str_ireplace("[%UITERSTEBETAALDATUM%]", strftime("%e %B %Y", strtotime($rk->UitersteBetaaldatum)), $content);
 	$content = str_ireplace("[%VANAFADRES%]", db_param("mailing_rekening_from_adres"), $content);
 	$content = str_ireplace("[%VANAFNAAM%]", db_param("mailing_rekening_from_naam"), $content);
-	$content = str_ireplace("[%NAAMVERENIGING%]", $_SESSION['naamvereniging'], $content);
-	$content = str_ireplace("[%NAAMWEBSITE%]", $_SESSION['naamwebsite'], $content);
-	$content = str_ireplace("[%URLWEBSITE%]", $_SESSION['urlwebsite'], $content);
+	$content = str_ireplace("[%NAAMVERENIGING%]", db_param("naamvereniging"), $content);
+	$content = str_ireplace("[%NAAMWEBSITE%]", db_param("naamwebsite"), $content);
+	$content = str_ireplace("[%URLWEBSITE%]", db_param("urlwebsite"), $content);
 	
 	$rr = db_rekening("regels", $nr);
 	$rrtxt = "";

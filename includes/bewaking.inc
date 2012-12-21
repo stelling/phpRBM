@@ -492,9 +492,9 @@ function BevestInschrBewaking($lidid, $insnr) {
 	$content = str_ireplace("[%ADRES%]", $adres, $content);
 	$content = str_ireplace("[%POSTCODE%]", $postcode, $content);
 	$content = str_ireplace("[%WOONPLAATS%]", $woonplaats, $content);
-	$content = str_replace("[%NAAMVERENIGING%]", $_SESSION['naamvereniging'], $content);
-	$content = str_replace("[%NAAMWEBSITE%]", $_SESSION['naamwebsite'], $content);
-	$content = str_replace("[%URLWEBSITE%]", $_SESSION['urlwebsite'], $content);
+	$content = str_replace("[%NAAMVERENIGING%]", db_param("naamvereniging"), $content);
+	$content = str_replace("[%NAAMWEBSITE%]", db_param("naamwebsite"), $content);
+	$content = str_replace("[%URLWEBSITE%]", db_param("urlwebsite"), $content);
 	$content = str_replace("[%VOORWAARDEN%]", $voorwaardeninschrijving, $content);
 	$content = str_ireplace("[%BEWINSCHRIJVING%]", $bevins, $content);
 	$content = str_ireplace("[%BEWOPMERKING%]", db_memo("curval", $lidid, "I"), $content);
