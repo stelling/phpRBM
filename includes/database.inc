@@ -145,6 +145,7 @@ function fnQuery($query) {
 	try {
 		if (strtoupper(substr($query, 0, 6)) == "SELECT") {
 //		debug($query);
+
 			$rs = $dbc->query($query);
 			$exec_tijd = microtime(true) - $starttijd;
 			$p = "performance_trage_select";
@@ -154,13 +155,15 @@ function fnQuery($query) {
 			}
 			return $rs;
 		} else {
-			$rv = $dbc->exec($query);
+			$result = $dbc->prepare($query);
+			$result->execute();
+			$exec_tijd = microtime(true) - $starttijd;
 			if (strtoupper(substr($query, 0, 6)) == "INSERT") {
 				$rv = $dbc->lastInsertId();
 			} else {
-//				$rv = $result->RowCount();
+				$rv = $result->RowCount();
 			}
-//			$result = null;
+			$result = null;
 			return $rv;
 		}
 	} catch (Exception $e) {					
