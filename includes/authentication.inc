@@ -15,8 +15,6 @@ function toegang($soort="", $melding=1, $password="") {
 			$soort .= "/" . $currenttab2;
 		}
 	}
-	
-	$maxinlogpogingen = db_param("maxinlogpogingen");
 
 	if (isset($_SESSION['lastauthenication']) and $_SESSION['lastauthenication'] >= time()-3600 and $_SESSION['lidid'] > 0) {
 		// Er hoeft niets te gebeuren.
@@ -32,7 +30,7 @@ function toegang($soort="", $melding=1, $password="") {
 		
 		if (isset($_SESSION['username']) and strlen($_SESSION['username']) > 0 and strlen($password) > 0) {
 			$row = db_logins("controle", "", $_SESSION['username'], 0, "", $password);
-			if ($maxinlogpogingen > 0 and isset($row->FouteLogin) and $row->FouteLogin > $maxinlogpogingen) {
+			if (db_param("maxinlogpogingen") > 0 and isset($row->FouteLogin) and $row->FouteLogin > db_param("maxinlogpogingen")) {
 				$mess = sprintf("Login '%s' is geblokkeerd, omdat er teveel foute inlog-pogingingen mee zijn gedaan! Je bent niet ingelogd.", $_SESSION['username']);
 				db_logboek("add", $mess, 1, 0, 2);
 				$_SESSION['lidid'] = 0;
@@ -106,20 +104,27 @@ function toegang($soort="", $melding=1, $password="") {
 	}
 	
 	if (strlen($soort) > 0) {
+		$soort = str_replace("'", "", $soort);
 		if ($_SESSION['webmaster'] == 1) {
-			$soort = str_replace("'", "", $soort);
-			$query = sprintf("SELECT COUNT(*) FROM %sAdmin_access WHERE Tabpage=\"%s\";", $table_prefix, $soort);
-			$result = db_scalar($query);
-			if ($result == 0) {
-				db_authorisation("add", 0, $soort);
+			if (!isset($_SESSION['toegang'][$soort])) {
+				$query = sprintf("SELECT COUNT(*) FROM %sAdmin_access WHERE Tabpage=\"%s\";", $table_prefix, $soort);
+				$result = db_scalar($query);
+				if ($result == 0) {
+					db_authorisation("add", 0, $soort);
+				}
 			}
-			return true;
+			$_SESSION['toegang'][$soort] = true;
 		} else {
-			$query = sprintf("SELECT COUNT(*) FROM %sAdmin_access WHERE Tabpage=\"%s\" AND Toegang IN %s;", $table_prefix, $soort, $_SESSION['lidgroepen']);
-			$result = fnQuery($query);
-			if ($result->fetchColumn() > 0) {
-				return true;
-			} else {
+			if (!isset($_SESSION['toegang'][$soort])) {
+				$query = sprintf("SELECT COUNT(*) FROM %sAdmin_access WHERE Tabpage=\"%s\" AND Toegang IN %s;", $table_prefix, $soort, $_SESSION['lidgroepen']);
+				$result = fnQuery($query);
+				if ($result->fetchColumn() > 0) {
+					$_SESSION['toegang'][$soort] = true;
+				} else {
+					$_SESSION['toegang'][$soort] = false;
+				}
+			}
+			if ($_SESSION['toegang'][$soort] == false) {
 				if ($melding == 1) {
 					if ($_SESSION['lidid'] > 0) {
 						$mess = sprintf("%s heeft geen toegang tot het onderdeel '%s' op %s.", $_SESSION['naamingelogde'], $soort, $_SESSION['naamwebsite']);
@@ -128,9 +133,10 @@ function toegang($soort="", $melding=1, $password="") {
 					}
 					db_logboek("add", $mess, 5, 0, 2);
 				}
-				return false;
+				$_SESSION['toegang'][$soort] = false;
 			}
 		}
+		return $_SESSION['toegang'][$soort];
 	} else {
 		return true;
 	}

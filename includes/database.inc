@@ -149,9 +149,14 @@ function fnQuery($query) {
 			$rs = $dbc->query($query);
 			$exec_tijd = microtime(true) - $starttijd;
 			$p = "performance_trage_select";
-			if (strpos($query, $p) === false and db_param($p) > 0 and $exec_tijd >= db_param($p)) {
-				$mess = sprintf("%f seconden query: %s", $exec_tijd, $query);
-				db_logboek("add", $mess, 98);
+			if (isset($_SESSION['settings'][$p])) {
+				if ($_SESSION['settings'][$p] > 0 and $exec_tijd >= $_SESSION['settings'][$p]) {
+					$mess = sprintf("%f seconden query: %s", $exec_tijd, $query);
+					db_logboek("add", $mess, 98);
+				}
+			} else {
+				$_SESSION['settings'][$p] = 0;
+				$_SESSION['settings'][$p] = db_param($p);
 			}
 			return $rs;
 		} else {
@@ -2304,34 +2309,32 @@ function db_param($naam, $actie="curval", $newval="") {
 		if (isset($settings[$naam])) {
 			$retval = $settings[$naam];
 		} else {
-		if (array_key_exists($naam, $arrBooleans)) {
-			$retval = $arrBooleans[$naam];
-		} elseif (array_key_exists($naam, $arrIntegers)) {
-			$retval = $arrIntegers[$naam];
-		} elseif (array_key_exists($naam, $arrFloats)) {
-			$retval = $arrFloats[$naam];
-		} elseif (array_key_exists($naam, $arrStrings)) {
-			$retval = $arrStrings[$naam];
-		} else {
-			$retval = "";
-		}
-		
-		$query = sprintf("SELECT IFNULL(RecordID, 0) AS RecordID, ParamType, ValueNum, ValueChar FROM %sAdmin_param WHERE Naam LIKE '%s';", $table_prefix, $naam);
-		$result = fnQuery($query);
-		$row = $result->fetch();
-		if (isset($row->RecordID) and $row->RecordID > 0) {
-			if (($row->ParamType == "F" or $row->ParamType == "I") and empty($row->ValueNum)) {
-				$retval = 0;
-			} elseif ($row->ParamType == "B" or $row->ParamType == "F" or $row->ParamType == "I") {
-				$retval = $row->ValueNum;
+			if (array_key_exists($naam, $arrBooleans)) {
+				$retval = $arrBooleans[$naam];
+			} elseif (array_key_exists($naam, $arrIntegers)) {
+				$retval = $arrIntegers[$naam];
+			} elseif (array_key_exists($naam, $arrFloats)) {
+				$retval = $arrFloats[$naam];
+			} elseif (array_key_exists($naam, $arrStrings)) {
+				$retval = $arrStrings[$naam];
 			} else {
-				if (empty($row->ValueChar)) {
+				$retval = "";
+			}
+		
+			$query = sprintf("SELECT IFNULL(RecordID, 0) AS RecordID, ParamType, ValueNum, ValueChar FROM %sAdmin_param WHERE Naam LIKE '%s';", $table_prefix, $naam);
+			$result = fnQuery($query);
+			$row = $result->fetch();
+			if (isset($row->RecordID) and $row->RecordID > 0) {
+				if (($row->ParamType == "F" or $row->ParamType == "I") and empty($row->ValueNum)) {
+					$retval = 0;
+				} elseif ($row->ParamType == "B" or $row->ParamType == "F" or $row->ParamType == "I") {
+					$retval = $row->ValueNum;
+				} elseif (empty($row->ValueChar)) {
 					$retval = "";
 				} else {
 					$retval = $row->ValueChar;
 				}
 			}
-		}
 		}
 		$settings[$naam] = $retval;
 		$_SESSION['settings'] = $settings;
@@ -2366,8 +2369,7 @@ function db_param($naam, $actie="curval", $newval="") {
 			$query = sprintf("UPDATE %sAdmin_param SET %s, GewijzigdDoor=%d WHERE RecordID=%d;", $table_prefix, $set, $_SESSION['lidid'], $cur->RecordID);
 			$result = fnQuery($query);
 			if ($result > 0) {
-				$settings[$naam] = $newval;
-				$_SESSION['settings'] = $settings;
+				$_SESSION['settings'][$naam] = $newval;
 				$mess = sprintf("Parameter '%s' is in '%s' gewijzigd.", $naam, $newval);
 				db_logboek("add", $mess, 13);
 			}
@@ -2396,7 +2398,11 @@ function db_param($naam, $actie="curval", $newval="") {
 		}
 	} elseif ($actie == "delete" and strlen($naam) > 0) {
 		$query = sprintf("DELETE FROM %sAdmin_param WHERE Naam='%s';", $table_prefix, $naam);
-		fnQuery($query);
+		$result = fnQuery($query);
+		if ($result > 0) {
+			$mess = sprintf("Parameter '%s' is verwijderd.", $naam);
+			db_logboek("add", $mess, 13);
+		}
 	}
 }
 
