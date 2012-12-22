@@ -263,10 +263,6 @@ function fnInstellingen() {
 	$arrParam['resultaatmailingversturen'] = "Indien aangevinkt wordt naar de zender en het secretariaat een mail met het resultaat van deze mailing verzonden.";
 	$arrParam['scriptbijuitloggen'] = "Dit script wordt gedraaid nadat iemand is uitgelogd. Optioneel veld.";
 	$arrParam['scriptnainloggen'] = "Dit script wordt gedraaid nadat iemand is ingelogd. Optioneel veld.";
-	$arrParam['smtphost'] = "De naam van de SMTP-server voor het versturen van e-mails. Indien deze niet wordt ingevuld, wordt van de mail-functie uit PHP gebruik gemaakt.";
-	$arrParam['smtpport'] = "De poort die voor de SMTP-host gebruikt moet worden. 0 = gebruik default poort.";
-	$arrParam['smtpuser'] = "De gebruiker om te kunnen inloggen op de SMTP-server.";
-	$arrParam['smtppw'] = "Het wachtwoord dat bij de SMTP-user hoort, om te kunnen inloggen op de SMTP-server.";
 	$arrParam['termijnvervallendiplomasmailen'] = "Hoeveel maanden vooruit moeten leden een herinnering krijgen als een diploma gaat vervallen. 0 = geen herinnering sturen.";
 	$arrParam['termijnvervallendiplomasmelden'] = "Hoeveel maanden vooruit en achteraf moeten vervallen diploma op het voorblad getoond worden.";
 	$arrParam['toneninschrijvingenbewakingen'] = "Moeten bij de gegevens van een lid ook inschrijvingen voor bewakingen getoond worden?";
