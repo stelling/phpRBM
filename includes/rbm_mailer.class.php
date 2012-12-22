@@ -6,19 +6,18 @@ class RBMmailer extends PHPMailer {
 
 	function __construct($lidid=-1) {
 		global $table_prefix, $selectnaam;
+		global $smtphost, $smtpport, $smtpuser, $smtppw;
 	
-		$smtphost = db_param("smtphost");
 		if (strlen($smtphost) > 0) {
 			$this->Host = $smtphost;
-			if (db_param("smtpport") > 0) {
-				$this->Port = db_param("smtpport");
+			if ($smtpport > 0) {
+				$this->Port = $smtpport;
 			}
 			$this->IsSMTP(true);
-			$smtpuser = db_param("smtpuser");
 			if (strlen($smtpuser) > 0) {
 				$this->SMTPAuth = true;
 				$this->Username = $smtpuser;
-				$this->Password = db_param("smtppw");	
+				$this->Password = $smtppw;
 			} else {
 				$this->SMTPAuth = false;
 			}
