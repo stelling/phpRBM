@@ -105,7 +105,6 @@ footer a, footer a:visited, #footer a, #footer a:visited {
 	padding-left: 0;
 	padding-right: 0;
 	background-color: #00FFFF;
-	color: #000080;
    border-top-right-radius: 12px;
    border-top-left-radius: 12px;
 }
@@ -405,7 +404,6 @@ fieldset h3 {
 }
 
 #verstuurdemail {
-	margin-left: 1px;
 	width: 100%;
 	height: auto;
 	clear: right;
@@ -413,26 +411,28 @@ fieldset h3 {
 }
 
 #verstuurdemail .label, #verstuurdemail .veld{
+	min-height: 23px;
 	margin-top: 3px;
 	margin-bottom: 3px;
 	padding-top: 3px;
 	padding-left: 4px;
 	padding-right: 4px;
 	border-width: 1px;
+	border-color: inherit;
 }
 
 #verstuurdemail .label {
 	background-color: transparent;
-	min-height: 23px;
 	width: 90px;
 	float: left;
+	border-top-style: solid;
+	border-bottom-style: solid;
 }
 
 #verstuurdemail .veld {
-	min-height: 21px;
-	width: 850px;
-	float: right;
-	margin-right: 0;
+	width: 846px;
+	float: left;
+	margin-right: 3px;
 	border-style: solid;
 }
 
