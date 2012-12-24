@@ -25,6 +25,7 @@
 			setcookie("password", "", time()-3600);
 		}
 		toegang("", 1, $_POST['password']);
+		unset($_SESSION['toegang']);
 		printf("<script>\nlocation.href='%s';\n</script>\n", $_SERVER['HTTP_REFERER']);
    } else {
 		if (!isset($_SESSION['username']) and isset($_COOKIE['username'])) {
