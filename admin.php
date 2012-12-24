@@ -91,14 +91,77 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 }
 
 if ($currenttab == "Beheer logins" and toegang()) {
-	$lnk = sprintf("<a href='%s?op=deletelogin&amp;lidid=%s'><img src='images/del.png' title='Verwijder login'></a>", $_SERVER['PHP_SELF'], "%d");
+
+	$arrSort[] = "Login";
+	$arrSort[] = "Achternaam";
+	$arrSort[] = "Naam";
+	$arrSort[] = "Woonplaats";
+	$arrSort[] = "Ingevoerd";
+	$arrSort[] = "Laatste login";
 	
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		$naamfilter = $_POST['NaamFilter'];
+		$sorteren = $_POST['Sorteren'];
+		if (isset($_POST['sortdesc'])) {
+			$sortdesc = true;
+		} else {
+			$sortdesc = false;
+		}
+	} elseif (!isset($_SESSION['val_naamfilter'])) {
+		$naamfilter = "";
+		$sorteren = $arrSort[1];
+		$sortdesc = false;
+	}
+	
+	echo("<div id='filter'>\n");
+	printf("<form name='filter' action='%s?%s' method='post'>", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
+	echo("<table>\n");
+	echo("<tr>\n");
+	printf("<td class='label'>Naam/login bevat</td><td><input type='text' name='NaamFilter' size=30 value='%s' onblur='form.submit();'></td>\n", $naamfilter);
+	echo("<td class='label'>Sorteren op</td><td>");
+	foreach($arrSort as $s) {
+		if ($s == $sorteren) {$c=" checked"; } else { $c=""; }
+		printf("<input type='radio'%2\$s name='Sorteren' value='%1\$s' onclick='this.form.submit();'>%1\$s\n", $s, $c);
+	}
+	if ($sortdesc) {$c = " checked";	} else {	$c = "";	}
+	printf("&nbsp;<input type='checkbox' value='1' name='sortdesc'%s onclick='this.form.submit();'> Desc</td>\n", $c);
+	echo("</tr>\n");
+	echo("</table>\n");
+	echo("</form>");
+	echo("</div>  <!-- Einde filter -->\n");
+	
+	if (strlen($naamfilter) > 0) {
+		$w = sprintf("(L.Achternaam LIKE '%%%1\$s%%' OR L.Roepnaam LIKE '%%%1\$s%%' OR Login.Login LIKE '%%%1\$s%%')", $naamfilter);
+	} else {
+		$w = "";
+	}
+	
+	if ($sorteren == $arrSort[0]) {
+		$ord = "Login.Login";
+	} elseif ($sorteren == $arrSort[2]) {
+		if ($sortdesc) {
+			$ord = "L.Roepnaam DESC, L.Tussenv DESC, L.Achternaam";
+		} else {
+			$ord = "L.Roepnaam, L.Tussenv";
+		}
+	} elseif ($sorteren == $arrSort[4]) {
+		$ord = "Login.Ingevoerd";
+	} elseif ($sorteren == $arrSort[5]) {
+		$ord = "Login.LastLogin";
+	} else {
+		$ord = "L." . $sorteren;
+	}
+	if ($sortdesc) {
+		$ord .= " DESC";
+	}
+	
+	$lnk = sprintf("<a href='%s?op=deletelogin&amp;lidid=%s'><img src='images/del.png' title='Verwijder login'></a>", $_SERVER['PHP_SELF'], "%d");
 	if (db_param("maxinlogpogingen") > 0) {
 		$lnk_lk = sprintf("<a href='%s?op=unlocklogin&amp;lidid=%s' title='Reset foutieve logins'><img src='images/unlocked_01.png'></a>", $_SERVER['PHP_SELF'], "%d");
 	} else {
 		$lnk_lk = "";
 	}
-	echo(fnDisplayTable(db_logins("lijst"), $lnk, "", 5, $lnk_lk));
+	echo(fnDisplayTable(db_logins("lijst", "", "", 0, $w, "", $ord), $lnk, "", 5, $lnk_lk));
 } elseif ($currenttab == "Autorisatie" and toegang($_GET['tp'])) {
 	echo("<div id='lijst'>\n");
 	printf("<form name='formauth' method='post' action='%s?tp=%s&amp;op=changeaccess'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);

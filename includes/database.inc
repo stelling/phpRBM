@@ -144,7 +144,6 @@ function fnQuery($query) {
 	
 	try {
 		if (strtoupper(substr($query, 0, 6)) == "SELECT") {
-//		debug($query);
 
 			$rs = $dbc->query($query);
 			$exec_tijd = microtime(true) - $starttijd;
@@ -153,6 +152,8 @@ function fnQuery($query) {
 				if ($_SESSION['settings'][$p] > 0 and $exec_tijd >= $_SESSION['settings'][$p]) {
 					$mess = sprintf("%f seconden query: %s", $exec_tijd, $query);
 					db_logboek("add", $mess, 98);
+				} else {
+//					debug($exec_tijd . ": ". $query, 1, 0, 1);
 				}
 			} else {
 				$_SESSION['settings'][$p] = 0;
@@ -994,7 +995,7 @@ function db_stats($lidid=0) {
 	return $stats;
 }
 
-function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="") {
+function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="", $xtraorder="") {
 	global $dbc, $selectnaam, $selectlidnr, $table_prefix, $lididwebmasters, $wherelidond, $wherelid, $dir, $db_pass;
 	
 	$bewaartijdloginsnietgebruikt = db_param("bewaartijdloginsnietgebruikt");
@@ -1186,6 +1187,9 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		if (strlen($xtrafilter) > 0) {
 			$xtrawhere = " AND " . $xtrafilter;
 		}
+		if (strlen($xtraorder) > 0) {
+			$xtraorder .= ", ";
+		}
 		
 		$query = sprintf('SELECT Login.LidID AS lnkNummer, Login.LidID, (%1$s) AS Lidnr, Login.Login, %2$s AS Naam_lid, L.Woonplaats, L.Roepnaam AS ndRoepnaam,
 					L.Achternaam AS ndAchternaam, L.Tussenv AS ndTussenvoegsels, L.Meisjesnm AS ndMeisjesnaam, L.GEBDATUM AS ndGeboren,
@@ -1194,7 +1198,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 					Login.Wachtwoord AS ndWachtwoord, IF(Login.FouteLogin > %3$d, Login.LidID, 0) AS llkNummer
 					FROM %4$sAdmin_login AS Login INNER JOIN %4$sLid AS L ON Login.LidID = L.Nummer
 					WHERE LENGTH(Login.Wachtwoord) > 5 %5$s
-					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;', $selectlidnr, $selectnaam, $maxinlogpogingen, $table_prefix, $xtrawhere);
+					ORDER BY %6$sL.Achternaam, L.TUSSENV, L.Roepnaam, Login.LidID;', $selectlidnr, $selectnaam, $maxinlogpogingen, $table_prefix, $xtrawhere, $xtraorder);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
@@ -1833,9 +1837,9 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 		if ($result > 0) {
 			$query = sprintf("DELETE FROM Liddipl WHERE Lid=%d AND DiplomaID=%d AND EXDATUM=%s;", $lidid, $did, $dwaexd);
 			db_interface("add", $query, $lidid);
-			$mess = sprintf("Diploma %s is bij %s verwijderd.", db_diploma("naam", $did), db_naamlid($lidid));
+			$mess = sprintf("%s is bij %s verwijderd.", db_diploma("naam", $did), db_naamlid($lidid));
 		} else {
-			$mess = sprintf("Diploma %s is bij %s niet gevonden en dus niet verwijderd.", db_diploma("naam", $did), db_naamlid($lidid));
+			$mess = sprintf("%s is bij %s niet gevonden en dus niet verwijderd.", db_diploma("naam", $did), db_naamlid($lidid));
 		}
 		db_logboek("add", $mess, 12);
 		return $mess;
@@ -2049,6 +2053,7 @@ function db_artikel($actie, $artikelid=0, $lidid=0) {
 					FROM %sWS_Artikel ORDER BY Code, Omschrijving, RecordID;", $table_prefix);
 		$result = fnQuery($query);
 		return $result->fetchAll();
+		
 	} elseif ($actie == "select") {
 		$query = sprintf("SELECT *, CONCAT(Omschrijving, IF(LENGTH(Maat)>0, CONCAT(' (', Maat, ')'), '')) AS OmsMaat
 					FROM %1\$sWS_Artikel AS A
@@ -2056,23 +2061,46 @@ function db_artikel($actie, $artikelid=0, $lidid=0) {
 					ORDER BY Code, Omschrijving, RecordID;", $table_prefix, $lidid);
 		$result = fnQuery($query);
 		return $result->fetchAll();
+		
 	} elseif ($actie == "artikelbeschikbaar") {
 		$query = sprintf("SELECT * FROM %sWS_Artikel
 					WHERE BeschikbaarTot >= CURDATE() AND (BeperkTotGroep=0 OR BeperkTotGroep IN %s)
 					ORDER BY Code, Omschrijving, RecordID;", $table_prefix, $_SESSION['lidgroepen']);
 		$result = fnQuery($query);
 		return $result->fetchAll();
+		
 	} elseif ($actie == "add") {
 		$query = sprintf("INSERT INTO %sWS_Artikel SET Ingevoerd=CURDATE(), IngevoerdDoor=%d;", $table_prefix, $_SESSION['lidid']);
 		$result = fnQuery($query);
 		if ($result > 0) {
-			$mess = sprintf("Artikel %d is door %s toegevoegd.", $result, $_SESSION['naamingelogde']);
+			$mess = sprintf("Artikel %d is toegevoegd.", $result);
 			db_logboek("add", $mess, 10);
 		}
+
+	} elseif ($actie == "delete" and $artikelid > 0) {
+		if (db_artikel("ingebruik", $artikelid) > 0) {
+			$mess = sprintf("Artikel %d is niet verwijderd, omdat het nog in gebruik is.", $artikelid);
+		} else {
+			$query = sprintf("DELETE FROM %sWS_Artikel WHERE RecordID=%d;", $table_prefix, $artikelid);
+			$result = fnQuery($query);
+			if ($result > 0) {
+				$mess = sprintf("Artikel %d is verwijderd.", $result);
+			} else {
+				$mess = sprintf("Artikel %d is niet verwijderd.", $artikelid);
+			}
+		}
+		db_logboek("add", $mess, 10);
+		
 	} elseif ($actie == "prijs" and $artikelid > 0) {
 		$query = sprintf("SELECT Verkoopprijs FROM %sWS_Artikel WHERE RecordID=%d;", $table_prefix, $artikelid);
 		$result = fnQuery($query);
 		return $result->fetchColumn();
+		
+	} elseif ($actie == "ingebruik") {
+		$query = sprintf("SELECT COUNT(*) FROM %sWS_Orderregel WHERE Artikel=%d;", $table_prefix, $artikelid);
+		$result = fnQuery($query);
+		return $result->fetchColumn();
+		
 	} elseif ($actie == "opschonen") {
 		$query = sprintf("DELETE FROM %1\$sWS_Artikel WHERE BeschikbaarTot < CURDATE() AND RecordID NOT IN (SELECT Artikel FROM %1\$sWS_Orderregel);", $table_prefix);
 		$result = fnQuery($query);
@@ -2099,7 +2127,7 @@ function db_orderregel($actie, $lidid=0, $artikelid=0, $aantalbesteld=0, $filter
 			$filter = " AND " . $filter;
 		}
 		$query = sprintf("SELECT ORD.Ordernr, ORD.AantalBesteld, ORD.Opmerking, ORD.PrijsPerStuk * ORD.AantalBesteld AS Bedrag,
-					%1\$s AS NaamLid, L.Roepnaam, L.Adres, L.Postcode, L.Woonplaats, L.Email, L.Email, L.EmailOuders, L.GEBDATUM,
+					%1\$s AS NaamLid, L.Roepnaam, L.Adres, L.Postcode, L.Woonplaats, L.Email, L.GEBDATUM,
 					A.Code, A.Omschrijving, A.Maat
 					FROM (%2\$sWS_Orderregel AS ORD INNER JOIN %2\$sWS_Artikel AS A ON A.RecordID=ORD.Artikel) INNER JOIN %2\$sLid AS L ON ORD.Lid=L.Nummer
 					WHERE ORD.Lid=%3\$d AND ((ORD.AantalGeleverd IS NULL) OR ORD.AantalGeleverd < ORD.AantalBesteld) AND (NOT ORD.BestellingDefinitief IS NULL) %4\$s
