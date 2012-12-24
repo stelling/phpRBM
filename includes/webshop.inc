@@ -1,7 +1,7 @@
 <?php
 
 function fnWebshop() {
-	global $currenttab2, $table_prefix;
+	global $currenttab, $currenttab2, $table_prefix;
 	
 	fnDispMenu(2);
 
@@ -142,10 +142,12 @@ function onlinebestellingen($lidid) {
 function artikelbeheer() {
 	global $table_prefix;
 
+	if (isset($_GET['op']) and $_GET['op'] == "nieuw") {
+		db_artikel("add");
+	} elseif (isset($_GET['op']) and $_GET['op'] == "delete" and $_GET['aid'] > 0) {
+		db_artikel("delete", $_GET['aid']);
+	}
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		if (isset($_POST['NieuwArtikel'])) {
-			db_artikel("add");
-		}
 		$lijst = db_artikel("overzichtbeheer");
 		$wijz = "";
 		foreach ($lijst as $row) {
@@ -182,7 +184,7 @@ function artikelbeheer() {
 	echo("<div id='artikelbeheer'>\n");
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	echo("<table>\n");
-	echo("<tr><th>RecordID</th><th>Code</th><th>Omschrijving</th><th>Maat</th><th>Verkoopprijs</th><th>Beschikbaar tot</th><th>Max aantal per lid</th><th>Beschikbaar voor groep</th></tr>\n");
+	echo("<tr><th>RecordID</th><th>Code</th><th>Omschrijving</th><th>Maat</th><th>Verkoopprijs</th><th>Beschikbaar tot</th><th>Max aantal per lid</th><th>Beschikbaar voor groep</th><th></th></tr>\n");
 	$lijst = db_artikel("overzichtbeheer");
 	foreach ($lijst as $row) {
 		echo("<tr>\n");
@@ -205,13 +207,21 @@ function artikelbeheer() {
 			printf("<option value=%d %s>%s</option>\n", $ond->RecordID, $s, $ond->Naam);
 		}
 		echo("</select></td>\n");
+		if (db_artikel("ingebruik", $row->RecordID) == 0) {
+			$lnk = sprintf("%s?tp=%s&amp;op=delete&amp;aid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
+			printf("<td><a href='%s'><img src='./images/trash.png'></a></td>", $lnk);
+		} else {
+			echo("<td></td>\n");
+		}
 		
 		echo("</tr>\n");
 	}
-	echo("<tr>\n<th colspan=8>");
-	echo("<input type='submit' value='Artikelen bijwerken'>\n");
-	echo("<button name='NieuwArtikel'>Nieuw artikel</button>\n");
-	echo("</th>\n</tr>\n");
+	printf("<tr><td class='number'><a href='%s?%s&amp;op=nieuw' title='Nieuw artikel'><img src='images/star.png' alt='Nieuw'></a></td><td colspan=8>Nieuw artikel</td></tr>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+	if (count($lijst) > 0) {
+		echo("<tr>\n<th colspan=9>");
+		echo("<input type='submit' value='Artikelen bijwerken'>\n");
+		echo("</th>\n</tr>\n");
+	}
 	echo("</table>\n");
 	echo("</form>\n");
 	echo("</div>  <!-- Einde artikelbeheer -->\n");
@@ -359,7 +369,10 @@ function bestellingbeheer() {
 	echo("</table>\n");
 	echo("</div>  <!-- Einde bestellingbeheer -->\n");
 	
-	echo(fnDisplayTable(db_orderregel("totalen"), "", "Totalen", 0, "", "", "totalenbestellingen"));
+	$tots = db_orderregel("totalen");
+	if (count($tots) > 1) {
+		echo(fnDisplayTable($tots, "", "Totalen", 0, "", "", "totalenbestellingen"));
+	}
 	
 }
 
@@ -398,9 +411,9 @@ function bevestigingbestelling($lidid, $ordernr=0) {
 	$content = str_ireplace("[%ADRES%]", $adres, $content);
 	$content = str_ireplace("[%POSTCODE%]", $postcode, $content);
 	$content = str_ireplace("[%WOONPLAATS%]", $woonplaats, $content);
-	$content = str_ireplace("[%NAAMVERENIGING%]", $_SESSION['naamvereniging'], $content);
-	$content = str_ireplace("[%NAAMWEBSITE%]", $_SESSION['naamwebsite'], $content);
-	$content = str_ireplace("[%URLWEBSITE%]", $_SESSION['urlwebsite'], $content);
+	$content = str_ireplace("[%NAAMVERENIGING%]", db_param("naamvereniging"), $content);
+	$content = str_ireplace("[%NAAMWEBSITE%]", db_param("naamwebsite"), $content);
+	$content = str_ireplace("[%URLWEBSITE%]", db_param("urlwebsite"), $content);
 	$content = str_ireplace("[%VOORWAARDEN%]", db_param("zs_voorwaardenbestelling"), $content);
 	$content = str_ireplace("[%BESTELLING%]", $bestelling, $content);
 	$content = str_ireplace("[%TOTAALBEDRAG%]", "&euro;&nbsp;" . number_format($totbedrag, 2), $content);
@@ -409,18 +422,16 @@ function bevestigingbestelling($lidid, $ordernr=0) {
 	if (isValidMailAddress($emailbevestigingbestelling, 0)) {
 		$mail->From = $emailbevestigingbestelling;
 	}
-	if (isValidMailAddress($emailbevestigingbestelling, 0)) {
-		$mail->AddCC($emailbevestigingbestelling);
-	}
+	$mail->AddCC($mail->From);
 	$mail->Subject = sprintf("Bevestiging bestelling %d", $ordernr);
 	$mail->Body = $content;
 	$mail->addstationary();
 	if ($mail->Send()) {
-		db_add_mailing_hist($lidid, 0, $naamlid, $email, $content, $mail, 1);
-		$mess = sprintf("Een bevestiging van deze bestelling is naar %s verzonden.", $email);
+		db_add_mailing_hist($lidid, 0, $naamlid, "", $content, $mail, 1);
+		$mess = sprintf("Een bevestiging van deze bestelling is naar %s verzonden.", $mail->ListAddresses("to"));
 	} else {
-		db_add_mailing_hist($lidid, 0, $naamlid, $email, $content, $mail, 0);
-		$mess = sprintf("Het versturen van de bevestiging van de bestelling aan %s is mislukt. Error: %s", db_naamlid($lidid), $mail->ErrorInfo);
+		db_add_mailing_hist($lidid, 0, $naamlid, "", $content, $mail, 0);
+		$mess = sprintf("Het versturen van de bevestiging van de bestelling aan %s is mislukt. Error: %s", $naamlid, $mail->ErrorInfo);
 	}
 	db_logboek("add", $mess, 10);
 	printf("<script>alert('%s');</script>\n", $mess);
