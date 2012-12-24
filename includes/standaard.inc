@@ -225,7 +225,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		$tabpages[] = "Evenementen/Logboek";
 	}
 	$tabpages[] = "Bestellingen";
-	$tabpages[] = "Bestellingen/Bestellingen muteren";
+	if (count(db_artikel("overzichtbeheer")) > 0) {
+		$tabpages[] = "Bestellingen/Bestellingen muteren";
+	}
 	$tabpages[] = "Bestellingen/Artikelbeheer";
 	if (db_logboek("aantal", "", 10) > 0) {
 		$tabpages[] = "Bestellingen/Logboek";
