@@ -154,7 +154,7 @@ footer a, footer a:visited, #footer a, #footer a:visited {
 
 #filter {
 	width: 100%;
-	margin-top: 4px;
+	margin-top: 8px;
 	margin-bottom: 4px;
 	padding: 0;
 	border-style: solid;
@@ -258,21 +258,26 @@ footer a, footer a:visited, #footer a, #footer a:visited {
 	color: white;
 }
 
-.lijst {
+.lijst, .onderdelenperlid, #overzichtlid {
 	margin-top: 6px;
 }
 
-.lijst table {
+.lijst table, .onderdelenperlid table {
 	min-width: 450px;
 }
 
-.lijst td + th {
+.lijst td + th, .onderdelenperlid td + th {
 	padding-left: 6px;
 	padding-right: 6px;
 }
 
 .datumtijd {
 	min-width: 125px;
+}
+
+.logboek {
+	clear: both;
+	margin-top: 6px;
 }
 
 .logboek table {
@@ -334,6 +339,11 @@ footer a, footer a:visited, #footer a, #footer a:visited {
 #loginaanvraag label, #profielwijzigen label, #opzegformulier label {
 	width: 200px;
 	float: left;
+}
+
+#overzichtevenementen {
+	clear: both;
+	margin-top: 8px;
 }
 
 #overzichtevenementen table {
@@ -566,7 +576,7 @@ fieldset h3 {
 .details {
 	text-align: center;
 }
-
+onde
 .details img {
 	max-height: 24px;
 }
@@ -575,7 +585,16 @@ fieldset h3 {
 	text-align: right;
 }
 
-.tablist1, .tablist2, .tablist3 {
+#menu_l1 {
+	
+}
+
+#menu_l2 {
+	clear: right;
+	margin-bottom: 6px;
+}
+
+#menu_l1, #menu_l2, .tablist1, .tablist2 {
    list-style: none;
    height: 24px;
    padding: 0; 
@@ -583,12 +602,14 @@ fieldset h3 {
    border: none;
 }
 
-.tablist2 ul, .tablist3 ul {
+.tablist2 ul {
 	width: 100%;
+	clear: right;
+	margin-bottom: 6px;
 	padding-left: 2px;
 }
 
-.tablist1 li, .tablist2 li, .tablist3 li {
+.tablist1 li, .tablist2 li {
    float: left;
 	font-style: normal;
    display: block;

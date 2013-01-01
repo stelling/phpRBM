@@ -36,6 +36,10 @@ foreach ($includes as $incl) {
 	}
 	require_once($incl);
 }
+
+if (!isset($_SESSION['settings']['naamvereniging'])) {
+	db_param("", "curval");
+}
 if ($bestandsversie != db_param("versie")) {
 	db_createtables();
 	db_onderhoud();
@@ -321,25 +325,25 @@ function HTMLheader($refresh=0) {
 		
 		if ($_SESSION['lidid'] > 0) {
 			printf("Welkom %s\n", htmlentities($_SESSION['roepnaamingelogde']));
-			echo("<a href='/?tp=Zelfservice/Profiel'><img src='images/user.png' title='Profiel wijzigen' alt='Profiel wijzigen'></a>\n");
+			echo("<a href='/?tp=Zelfservice/Profiel'><img src='images/user.png' title='Profiel wijzigen' alt='Profile'></a>\n");
 			if ($_SERVER['PHP_SELF'] == "/index.php") {
 				printf("<a href='auth.php?actie=uitloggen'><img src='images/power.png' title='Uitloggen' alt='Uitloggen'></a>\n");
 			}
 			if ($_SESSION['webmaster'] == 1) {
 				if ($_SERVER['PHP_SELF'] != "/admin.php") {
-					echo("<a href='admin.php'><img src='images/tool.png' title='Beheerdersmenu'></a>\n");
+					echo("<a href='admin.php'><img src='images/tool.png' title='Beheerdersmenu' alt='Tool'></a>\n");
 				} elseif ($_SERVER['PHP_SELF'] == "/admin.php") {
-					echo("<a href='index.php'><img src='images/home.png' title='Beginpagina'></a>\n");
+					echo("<a href='index.php'><img src='images/home.png' title='Beginpagina' alt='Home'></a>\n");
 				}
 			}
 		} elseif ($_SESSION['aantallogin'] > 0) {
-			echo("Login: <input type='text' name='username' size=20 maxlength=50>\n");
+			echo("Login: <input type='text' name='username' size=12 maxlength=25>\n");
 			echo("&nbsp;Wachtwoord: <input type='password' name='password' size=10 maxlength=12>\n");
 			echo("&nbsp;<input type='submit' value='Inloggen' name='Inloggen'>\n");
 			echo("<input type='checkbox' name='cookie' value=1 title='Automatisch inloggen'>\n");
 		}
 	
-		echo("<a href='http://phprbm.telling.nl/uitleg.php'><img src='images/question.png' title='Uitleg gebruik en installatie'></a>\n");
+		echo("<a href='http://phprbm.telling.nl/uitleg.php'><img src='images/question.png' title='Uitleg gebruik en installatie' alt='Question mark'></a>\n");
 		echo("</form>\n");
 		echo("</div>  <!-- Einde login -->\n");
 		echo("<div class='clear'></div>\n");
@@ -469,14 +473,17 @@ function getvar($nm, $riz="") {
 function fnDispMenu($toonnivo=1, $xtra="") {
 	global $tabpages, $currenttab, $currenttab2, $navpad, $typemenu;
 	
-	$typemenu = db_param("typemenu");
 	$ulopen = false;
 
 	if (strlen($xtra) > 0 and startwith($xtra, "&amp;") == false) {
 		$xtra = "&amp;" . $xtra;
 	}
+	
+	if (db_param("typemenu") == 1 or db_param("typemenu") == 3) {
+		printf("<div id='menu_l%s'>\n", $toonnivo);
+	}
 
-	if (($typemenu == 2 or $typemenu == 3) and $toonnivo == 1) {  // Dit is het menu met hovering
+	if ((db_param("typemenu") == 2 or db_param("typemenu") == 3) and $toonnivo == 1) {  // Dit is het menu met hovering
 		echo("<ul id='nav'>\n");
 		$nivo = 0;
 		foreach($tabpages as $tp) {
@@ -523,7 +530,7 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 		echo("</ul>\n");
 	}
 	
-	if ($typemenu == 1 or ($typemenu == 3 and $toonnivo == 2)) {
+	if (db_param("typemenu") == 1 or (db_param("typemenu") == 3 and $toonnivo == 2)) {
 		$nivo = $toonnivo;
 		printf("<ul class='tablist%d'>\n", $nivo);
 		foreach($tabpages as $tp) {
@@ -554,15 +561,21 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 			}
 		}
 		echo("</ul>\n");
-		if ($nivo > 1) {
-			echo("<div class='clear'></div>\n");
-		}
+	}
+	
+	if (db_param("typemenu") == 1 or db_param("typemenu") == 3) {
+		printf("</div> <!-- Einde menu_l%s -->\n", $toonnivo);
+	}
+	if ($nivo > 1) {
+		echo("<div class='clear'></div>\n");
 	}
 }
 
-function fnDisplayForm($row, $xtra_eind="", $class="formulier") {
+function fnDisplayForm($row, $xtra_eind="", $id="formulier") {
 
-	$ret = sprintf("<div id='%s'>\n", $class);
+	if (strlen($id) > 0) {
+		$ret = sprintf("<div id='%s'>\n", $id);
+	}
 	if (isset($row)) {
 		$ret .= "<table>\n";
 		foreach($row as $key => $value) {
@@ -596,7 +609,9 @@ function fnDisplayForm($row, $xtra_eind="", $class="formulier") {
 	if (strlen($xtra_eind) > 0) {
 		$ret .= $xtra_eind;
 	}
-	$ret .= sprintf("</div>  <!-- Einde %s -->\n", $class);
+	if (strlen($id) > 0) {
+		$ret .= sprintf("</div>  <!-- Einde %s -->\n", $id);
+	}
 	return $ret;
 }
 

@@ -356,14 +356,14 @@ function fnOverviewLid($lidid=0, $actie="") {
 		} elseif ($actie == "Rollen") {
 			$rows = db_gegevenslid($lidid, $actie);
 			if (count($rows) > 0) {
-				echo(fnDisplayTable($rows, "", $actie . " " . $naamlid));
+				echo(fnDisplayTable($rows, "", $actie . " " . $naamlid, 0, "", "", "onderdelenperlid"));
 			} else {
 				printf("<p class='mededeling'>%s heeft geen %s.</p>\n", $naamlid, $actie);
 			}
 		} elseif ($actie == "Groepen") {
 			$rows = db_gegevenslid($lidid, $actie);
 			if (count($rows) > 0) {
-				echo(fnDisplayTable($rows, "", $actie . " " . $naamlid));
+				echo(fnDisplayTable($rows, "", $actie . " " . $naamlid, 0, "", "", "onderdelenperlid"));
 			} else {
 				printf("<p class='mededeling'>%s is bij geen enkele groep ingedeeld.</p>\n", $naamlid);
 			}
