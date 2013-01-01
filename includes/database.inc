@@ -153,7 +153,7 @@ function fnQuery($query) {
 					$mess = sprintf("%f seconden query: %s", $exec_tijd, $query);
 					db_logboek("add", $mess, 98);
 				} else {
-//					debug($exec_tijd . ": ". $query, 1, 0, 1);
+//					debug($exec_tijd . ": ". $query, 1, 0, 0);
 				}
 			} else {
 				$_SESSION['settings'][$p] = 0;
@@ -1191,14 +1191,14 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			$xtraorder .= ", ";
 		}
 		
-		$query = sprintf('SELECT Login.LidID AS lnkNummer, Login.LidID, (%1$s) AS Lidnr, Login.Login, %2$s AS Naam_lid, L.Woonplaats, L.Roepnaam AS ndRoepnaam,
+		$query = sprintf('SELECT Login.LidID AS lnkNummer, Login.LidID, Login.Login, %1$s AS Naam_lid, L.Woonplaats, LM.Lidnr, L.Roepnaam AS ndRoepnaam,
 					L.Achternaam AS ndAchternaam, L.Tussenv AS ndTussenvoegsels, L.Meisjesnm AS ndMeisjesnaam, L.GEBDATUM AS ndGeboren,
 					L.Email AS `E-mail`, L.EmailVereniging AS ndEmailVereniging, L.Telefoon AS ndTelefoon, L.Mobiel AS ndMobiel,
 					Login.Ingevoerd AS dteIngevoerd, Login.LastLogin AS `dttLaatste login`,
-					Login.Wachtwoord AS ndWachtwoord, IF(Login.FouteLogin > %3$d, Login.LidID, 0) AS llkNummer
-					FROM %4$sAdmin_login AS Login INNER JOIN %4$sLid AS L ON Login.LidID = L.Nummer
-					WHERE LENGTH(Login.Wachtwoord) > 5 %5$s
-					ORDER BY %6$sL.Achternaam, L.TUSSENV, L.Roepnaam, Login.LidID;', $selectlidnr, $selectnaam, $maxinlogpogingen, $table_prefix, $xtrawhere, $xtraorder);
+					Login.Wachtwoord AS ndWachtwoord, IF(Login.FouteLogin > %2$d, Login.LidID, 0) AS llkNummer
+					FROM %3$sAdmin_login AS Login INNER JOIN (%3$sLid AS L LEFT OUTER JOIN %3$sLidmaatschap AS LM ON L.Nummer = LM.Lid) ON Login.LidID = L.Nummer
+					WHERE LENGTH(Login.Wachtwoord) > 5 %4$s
+					ORDER BY %5$sL.Achternaam, L.TUSSENV, L.Roepnaam, Login.LidID;', $selectnaam, $maxinlogpogingen, $table_prefix, $xtrawhere, $xtraorder);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
@@ -2328,14 +2328,24 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrFloats['maxmailsperminuut'] = 360;
 	$arrFloats['performance_trage_select'] = 0.5;
 	
+	if (array_key_exists($naam, $arrBooleans)) {
+		$pt = "B";
+	} elseif (array_key_exists($naam, $arrFloats)) {
+		$pt = "F";
+	} elseif (array_key_exists($naam, $arrIntegers)) {
+		$pt = "I";
+	} else {
+		$pt = "T";
+	}
+	
 	if ($actie == "lijst") {
 		$query = sprintf("SELECT *, IFNULL(ValueNum, ValueChar) AS CurVal FROM %sAdmin_param ORDER BY Naam;", $table_prefix);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
-	} elseif ($actie == "curval") {
-		if (isset($settings[$naam])) {
-			$retval = $settings[$naam];
+	} elseif ($actie == "curval" and strlen($naam) > 0) {
+		if (isset($_SESSION['settings'][$naam])) {
+			$retval = $_SESSION['settings'][$naam];
 		} else {
 			if (array_key_exists($naam, $arrBooleans)) {
 				$retval = $arrBooleans[$naam];
@@ -2349,7 +2359,7 @@ function db_param($naam, $actie="curval", $newval="") {
 				$retval = "";
 			}
 		
-			$query = sprintf("SELECT IFNULL(RecordID, 0) AS RecordID, ParamType, ValueNum, ValueChar FROM %sAdmin_param WHERE Naam LIKE '%s';", $table_prefix, $naam);
+			$query = sprintf("SELECT IFNULL(RecordID, 0) AS RecordID, ParamType, ValueNum, ValueChar FROM %sAdmin_param WHERE Naam='%s';", $table_prefix, $naam);
 			$result = fnQuery($query);
 			$row = $result->fetch();
 			if (isset($row->RecordID) and $row->RecordID > 0) {
@@ -2363,10 +2373,23 @@ function db_param($naam, $actie="curval", $newval="") {
 					$retval = $row->ValueChar;
 				}
 			}
+			$_SESSION['settings'][$naam] = $retval;
 		}
-		$settings[$naam] = $retval;
-		$_SESSION['settings'] = $settings;
 		return $retval;
+		
+	} elseif ($actie == "curval") {
+		foreach (db_param("", "lijst") as $row) {
+			if (($row->ParamType == "F" or $row->ParamType == "I") and empty($row->ValueNum)) {
+				$retval = 0;
+			} elseif ($row->ParamType == "B" or $row->ParamType == "F" or $row->ParamType == "I") {
+				$retval = $row->ValueNum;
+			} elseif (empty($row->ValueChar)) {
+				$retval = "";
+			} else {
+				$retval = $row->ValueChar;
+			}
+			$_SESSION['settings'][$row->Naam] = $retval;
+		}
 		
 	} elseif ($actie == "updval") {
 		$query = sprintf("SELECT * FROM %sAdmin_param WHERE Naam='%s';", $table_prefix, $naam);
@@ -2386,15 +2409,7 @@ function db_param($naam, $actie="curval", $newval="") {
 			$set = "";
 		}
 		if (strlen($set) > 0) {
-			if (array_key_exists($naam, $arrBooleans)) {
-				$set .= ", ParamType='B'";
-			} elseif (array_key_exists($naam, $arrFloats)) {
-				$set .= ", ParamType='F'";
-			} elseif (array_key_exists($naam, $arrIntegers)) {
-				$set .= ", ParamType='I'";
-			}
-		
-			$query = sprintf("UPDATE %sAdmin_param SET %s, GewijzigdDoor=%d WHERE RecordID=%d;", $table_prefix, $set, $_SESSION['lidid'], $cur->RecordID);
+			$query = sprintf("UPDATE %sAdmin_param SET %s, ParamType='%s', GewijzigdDoor=%d WHERE RecordID=%d;", $table_prefix, $set, $pt, $_SESSION['lidid'], $cur->RecordID);
 			$result = fnQuery($query);
 			if ($result > 0) {
 				$_SESSION['settings'][$naam] = $newval;
@@ -2403,27 +2418,17 @@ function db_param($naam, $actie="curval", $newval="") {
 			}
 		}
 		
-	} elseif ($actie == "controle") {
+	} elseif ($actie == "controle" and strlen($naam) > 0) {
 		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_param WHERE Naam LIKE '%s';", $table_prefix, $naam);
 		if (db_scalar($query) == 0) {
-			if (array_key_exists($naam, $arrBooleans)) {
-				$dv = sprintf("ParamType='B', ValueNum=%d", $arrBooleans[$naam]);
-			} elseif (array_key_exists($naam, $arrIntegers)) {
-				$dv = sprintf("ParamType='I', ValueNum=%d", $arrIntegers[$naam]);
-			} elseif (array_key_exists($naam, $arrFloats)) {
-				$dv = sprintf("ParamType='F', ValueNum=%F", $arrFloats[$naam]);
-			} elseif (array_key_exists($naam, $arrStrings)) {
-				$dv = sprintf("ParamType='T', ValueChar='%s'", $arrStrings[$naam]);
-			} else {
-				$dv = "ParamType='T'";
-			}
-			$query = sprintf("INSERT INTO %sAdmin_param SET Naam='%s', %s, Ingevoerd=CURDATE(), IngevoerdDoor=%d;", $table_prefix, $naam, $dv, $_SESSION['lidid']);
+			$query = sprintf("INSERT INTO %sAdmin_param SET Naam='%s', ParamType='%s', Ingevoerd=CURDATE(), IngevoerdDoor=%d;", $table_prefix, $naam, $pt, $_SESSION['lidid']);
 			$result = fnQuery($query);
 			if ($result > 0) {
 				$mess = sprintf("Parameter '%s' is toegevoegd.", $naam);
 				db_logboek("add", $mess, 13);
 			}
 		}
+		
 	} elseif ($actie == "delete" and strlen($naam) > 0) {
 		$query = sprintf("DELETE FROM %sAdmin_param WHERE Naam='%s';", $table_prefix, $naam);
 		$result = fnQuery($query);
@@ -3199,8 +3204,8 @@ function db_backup() {
 				while (false !== ($file = readdir($handle))) {
 					sleep(3);
 					if ($file != "." and $file != "..") {
-						if (filectime($db_folderbackup . "/" . $file) < mktime(0, 0, 0, date("m"), date("d")-db_param("db_backupsopschonen"), date("Y")) or filesize(db_param("db_folderbackup") . "/" . $file) < 500 ) {
-							unlink($db_folderbackup . "/" . $file);
+						if (filectime($db_folderbackup . $file) < mktime(0, 0, 0, date("m"), date("d")-db_param("db_backupsopschonen"), date("Y")) or filesize($db_folderbackup . $file) < 500 ) {
+							unlink($db_folderbackup . $file);
 							$mess = sprintf("Bestand %s is verwijderd. ", $file);
 							db_logboek("add", $mess, 3);
 							$ret .= "<br>\n" . $mess;

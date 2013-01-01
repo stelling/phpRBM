@@ -184,8 +184,8 @@ class Mailing {
 		$sql = sprintf("SELECT Voorletter FROM %sLid AS L WHERE %s;", $table_prefix, "L.Nummer=%d");
 		$this->MergeField[]=array('Naam' => "Voorletters", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT (CASE ISNULL(L.Tussenv) WHEN 0 THEN CONCAT(L.Tussenv, ' ', L.Achternaam)"
-			  . " ELSE L.Achternaam END) AS Achternaam FROM %sLid AS L WHERE %s;", $table_prefix, "L.Nummer=%d");
+		$sql = sprintf("SELECT (CASE ISNULL(L.Tussenv) WHEN 0 THEN CONCAT(L.Tussenv, ' ', L.Achternaam)
+				 ELSE L.Achternaam END) AS Achternaam FROM %sLid AS L WHERE %s;", $table_prefix, "L.Nummer=%d");
 		$this->MergeField[]=array('Naam' => "Achternaam", 'SQL' => $sql);
 		
 		$sql = "SELECT CASE L.Geslacht";
@@ -210,9 +210,9 @@ class Mailing {
 		$sql = sprintf("SELECT LM.Lidnr FROM %sLidmaatschap AS LM WHERE %s AND LM.Lid=%%d;", $table_prefix, $wherelid);
 		$this->MergeField[]=array('Naam' => "Lidnummer", 'SQL' => $sql);
 		
-		$sql = sprintf("SELECT ROUND(DATEDIFF(IF(ISNULL(LM.Opgezegd), CURDATE(), LM.Opgezegd), LM.LIDDATUM)/365.25, 0)
-							FROM %sLidmaatschap AS LM WHERE LM.LIDDATUM < CURDATE() AND %s
-							ORDER BY LM.LIDDATUM DESC LIMIT 1;", $table_prefix, "LM.Lid=%d");
+		$sql = sprintf("SELECT TIMESTAMPDIFF(YEAR, LM.LIDDATUM, IF(ISNULL(LM.Opgezegd), CURDATE(), LM.Opgezegd))
+							FROM %sLidmaatschap AS LM WHERE LM.LIDDATUM < CURDATE() AND LM.Lid=%%d
+							ORDER BY LM.LIDDATUM DESC LIMIT 1;", $table_prefix);
 		$this->MergeField[]=array('Naam' => "LengteLidmaatschap", 'SQL' => $sql);
 
 		$sql = sprintf("SELECT L.Telefoon FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
