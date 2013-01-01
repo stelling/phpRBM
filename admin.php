@@ -96,6 +96,7 @@ if ($currenttab == "Beheer logins" and toegang()) {
 	$arrSort[] = "Achternaam";
 	$arrSort[] = "Naam";
 	$arrSort[] = "Woonplaats";
+	$arrSort[] = "Lidnr";
 	$arrSort[] = "Ingevoerd";
 	$arrSort[] = "Laatste login";
 	
@@ -107,8 +108,12 @@ if ($currenttab == "Beheer logins" and toegang()) {
 		} else {
 			$sortdesc = false;
 		}
-	} elseif (!isset($_SESSION['val_naamfilter'])) {
-		$naamfilter = "";
+	} else {
+		if (isset($_SESSION['val_naamfilter'])) {
+			$naamfilter = $_SESSION['val_naamfilter'];
+		} else {
+			$naamfilter = "";
+		}
 		$sorteren = $arrSort[1];
 		$sortdesc = false;
 	}
@@ -117,7 +122,7 @@ if ($currenttab == "Beheer logins" and toegang()) {
 	printf("<form name='filter' action='%s?%s' method='post'>", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
 	echo("<table>\n");
 	echo("<tr>\n");
-	printf("<td class='label'>Naam/login bevat</td><td><input type='text' name='NaamFilter' size=30 value='%s' onblur='form.submit();'></td>\n", $naamfilter);
+	printf("<td class='label'>Naam/login bevat</td><td><input type='text' name='NaamFilter' size=20 value='%s' onblur='form.submit();'></td>\n", $naamfilter);
 	echo("<td class='label'>Sorteren op</td><td>");
 	foreach($arrSort as $s) {
 		if ($s == $sorteren) {$c=" checked"; } else { $c=""; }
@@ -145,10 +150,12 @@ if ($currenttab == "Beheer logins" and toegang()) {
 			$ord = "L.Roepnaam, L.Tussenv";
 		}
 	} elseif ($sorteren == $arrSort[4]) {
-		$ord = "Login.Ingevoerd";
+		$ord = "LM.Lidnr";
 	} elseif ($sorteren == $arrSort[5]) {
+		$ord = "Login.Ingevoerd";
+	} elseif ($sorteren == $arrSort[6]) {
 		$ord = "Login.LastLogin";
-	} else {
+	} elseif (strlen($sorteren) > 0) {
 		$ord = "L." . $sorteren;
 	}
 	if ($sortdesc) {
@@ -357,10 +364,9 @@ function fnInstellingen() {
 	$arrParam["laatstebackup"] = "";
 	$arrParam["versie"] = "";
 	
-	foreach ($arrParam as $naam => $val) {		
+	foreach ($arrParam as $naam => $val) {
 		db_param($naam, "controle");
 	}
-
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		foreach (db_param("", "lijst") as $row) {
 			$pvn = sprintf("value_%d", $row->RecordID);
