@@ -87,7 +87,7 @@ function fnMailing() {
 	} elseif ($op == "del_rcpt" and isset($_GET['addr']) and strlen($_GET['addr']) > 0) {
 		$mailing->delete_rcpt(0, $_GET['addr']);
 		$mailing->edit();
-	} elseif ($op == "add_groep" and isset($_GET['groepid']) and $_GET['groepid'] > 0) {
+	} elseif ($op == "add_groep" and isset($_GET['groepid']) and ($_GET['groepid'] > 0 or $_GET['groepid'] < -1)) {
 		$mailing->add_groep($_GET['groepid']);
 		$mailing->edit();
 	} elseif ($op == "del_groep" and isset($_GET['groepid']) and $_GET['groepid'] != 0) {
@@ -426,14 +426,15 @@ class Mailing {
 			echo("<tr>\n<td class='label'>Groep toevoegen of verwijderen:</td>");
 			printf("<td><select name='sel_group_add' id='sel_group'>\n");
 			printf("<option value=0>&nbsp;</option>\n");
-			printf("<option value=-1>Iedereen</option>\n");
+			printf("<option value=-2>Alle leden</option>\n");
+			printf("<option value=-1>Alle huidige ontvangers</option>\n");
 			printf("<option value=0>&nbsp;</option>\n");
 			foreach(db_onderdelen() as $grp) {
 				printf("<option value=%d>%s</option>\n", $grp->RecordID, $grp->Oms);
 			}
 			printf("</select>\n");
 			$lnk = sprintf("%s?tp=%s&amp;op=add_groep&amp;mid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid);
-			printf("<img src='/images/move.gif' alt='move' title='groep toevoegen' onclick=\"elem=document.getElementById('sel_group'); val=elem.options[elem.selectedIndex].value; if (val>0) { location.href='%s&groepid=' + val }\">&nbsp;\n", $lnk);
+			printf("<img src='/images/move.gif' alt='move' title='groep toevoegen' onclick=\"elem=document.getElementById('sel_group'); val=elem.options[elem.selectedIndex].value; if (val!=0) { location.href='%s&groepid=' + val }\">&nbsp;\n", $lnk);
 			$lnk = sprintf("%s?tp=%s&op=del_groep&mid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid);
 			printf("<img src='/images/delete.gif' alt='Verwijderen' title='groep verwijderen' onclick=\"elem=document.getElementById('sel_group'); val=elem.options[elem.selectedIndex].value; if (val!=0) { location.href='%s&groepid=' + val }\">&nbsp;\n", $lnk);
 			printf("(groepen zijn t/m %s bijgewerkt)", strftime("%e %B %Y", strtotime(db_lidond("laatstgewijzigd"))));
@@ -746,8 +747,15 @@ class Mailing {
 	public function add_groep($groepid) {
 		global $table_prefix;
 		
-		$w = sprintf("LO.OnderdeelID=%d AND LO.Lid NOT IN (SELECT LidID FROM %sMailing_rcpt WHERE MailingID=%d)", $groepid, $table_prefix, $this->mid);
-		$rows = db_lidond("actueleleden", 0, "", $w);
+		if ($groepid > 0) {
+			$w = sprintf("LO.OnderdeelID=%d AND LO.Lid NOT IN (SELECT LidID FROM %sMailing_rcpt WHERE MailingID=%d)", $groepid, $table_prefix, $this->mid);
+			$rows = db_lidond("actueleleden", 0, "", $w);
+			$groepnaam = db_naam_onderdeel($groepid);
+		} elseif ($groepid == -2) {
+			$rows = db_lidmaatschap("actueleleden");
+			$groepnaam = "Alle leden";
+		}
+		
 		$aant = 0;
 		foreach($rows as $row) {
 			if (db_mailing("addrcpt", $this->mid, 0, "", "", $row->Lid)) {
@@ -755,9 +763,9 @@ class Mailing {
 			}
 		}
 		if ($aant > 0) {
-			$mess = sprintf("Er zijn %d leden van groep '%s' zijn aan mailing %d (%s) toegevoegd.", $aant, db_naam_onderdeel($groepid), $this->mid, $this->subject);
+			$mess = sprintf("Er zijn %d leden van groep '%s' zijn aan mailing %d (%s) toegevoegd.", $aant, $groepnaam, $this->mid, $this->subject);
 		} else {
-			$mess = sprintf("Er zijn geen leden uit groep '%s' zijn aan mailing %d (%s) toegevoegd.", db_naam_onderdeel($groepid), $this->mid, $this->subject);
+			$mess = sprintf("Er zijn geen leden uit groep '%s' zijn aan mailing %d (%s) toegevoegd.", $groepnaam, $this->mid, $this->subject);
 		}
 		db_logboek("add", $mess, 4);
 	} # add_groep
@@ -775,12 +783,18 @@ class Mailing {
 				fnQuery($query);
 			}
 		} else {
-			$w = sprintf("LO.OnderdeelId=%d AND LO.Lid IN (SELECT Lid FROM %sMailing_rcpt WHERE MailingID=%d)", $groepid, $table_prefix, $this->mid);
-			$rows = db_lidond("actueleleden", 0, "", $w);
+			if ($groepid == -2) {
+				$rows = db_lidmaatschap("actueleleden");
+				$groepnaam = "Alle leden";
+			} else {
+				$w = sprintf("LO.OnderdeelId=%d AND LO.Lid IN (SELECT Lid FROM %sMailing_rcpt WHERE MailingID=%d)", $groepid, $table_prefix, $this->mid);
+				$rows = db_lidond("actueleleden", 0, "", $w);
+				$groepnaam = db_naam_onderdeel($groepid);
+			}
 			foreach($rows as $row) {
 				db_mailing("delrcpt", $this->mid, 0, "", "", $row->Lid);
 			}
-			$mess = sprintf("De leden van groep '%s' zijn bij mailing %d verwijderd.", db_naam_onderdeel($groepid), $this->mid);
+			$mess = sprintf("De leden van groep '%s' zijn bij mailing %d verwijderd.", $groepnaam, $this->mid);
 			db_logboek("add", $mess, 4);
 		}
 	} # delete_groep

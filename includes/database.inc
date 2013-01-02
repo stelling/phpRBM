@@ -462,8 +462,8 @@ function db_lid($actie, $filter="", $lidid=0, $nv="") {
 	return $result->fetchAll();
 } # db_lid
 
-function db_lidmaatschap($actie, $lidid, $opgezegd="", $rid=0, $liddatum="", $lidnr=0) {
-	global $table_prefix, $fdaccess, $fdsql;
+function db_lidmaatschap($actie, $lidid=0, $opgezegd="", $rid=0, $liddatum="", $lidnr=0) {
+	global $table_prefix, $fdaccess, $fdsql, $wherelid;
 
 	$naamlid = db_naamlid($lidid);
 	
@@ -481,7 +481,11 @@ function db_lidmaatschap($actie, $lidid, $opgezegd="", $rid=0, $liddatum="", $li
 		$opgezegd = "";
 	}
 
-	if ($actie == "opzegging" and strlen($opgezegd) > 4) {
+	if ($actie == "actueleleden") {
+		$query = sprintf("SELECT LM.* FROM %sLidmaatschap AS LM WHERE %s ORDER BY LM.Lidnr;", $table_prefix, $wherelid);
+		$result = fnQuery($query);
+		return $result->fetchAll();
+	} elseif ($actie == "opzegging" and strlen($opgezegd) > 4) {
 		$query = sprintf("UPDATE %sLidmaatschap SET Opgezegd='%s', Gewijzigd=SYSDATE() WHERE Lid=%d AND (Opgezegd IS NULL);", $table_prefix, $opgezegd, $lidid);
 		$result = fnQuery($query);
 		if ($result > 0) {
