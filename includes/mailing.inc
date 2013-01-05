@@ -931,7 +931,7 @@ class Mailing {
 			}
 			$mail->addstationary();
 			if ($mail->Send()) {
-				db_add_mailing_hist(0, $this->mid, "", "", $this->message, $mail, 1, "MLRES", $this->mid);
+				db_add_mailing_hist(0, 0, "", "", $this->message, $mail, 1, "MLRES", $this->mid);
 			}
 		}
 	}
