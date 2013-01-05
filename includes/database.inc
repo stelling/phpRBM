@@ -2308,7 +2308,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrBooleans['kaderoverzichtmetfoto'] = 1;
 	$arrBooleans['lidnrnodigbijloginaanvraag'] = 1;
 	$arrBooleans['lidnrversturenmogelijk'] = 1;
-	$arrBooleans['resultaatmailingversturen'] = 0;
+	$arrBooleans['mailing_resultaatversturen'] = 0;
 	$arrBooleans['toneninschrijvingenbewakingen'] = 1;
 	$arrBooleans['tonentoekomstigebewakingen'] = 0;
 	$arrBooleans['zs_incl_beroep'] = 1;
@@ -2363,6 +2363,8 @@ function db_param($naam, $actie="curval", $newval="") {
 			} elseif (array_key_exists($naam, $arrStrings)) {
 				$retval = $arrStrings[$naam];
 			} else {
+				$mess = sprintf("Parameter %s bestaat niet. Neem contact op met de ontwikkelaar.", $naam);
+				debug($mess, 1, 0, 1);
 				$retval = "";
 			}
 		
