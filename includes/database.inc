@@ -1513,6 +1513,8 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		$result = fnQuery($query);
 		if ($result == 0) {
 			$mess = "";
+		} else {
+			fnQuery(sprintf("OPTIMIZE TABLE %sMailing_rcpt;", $table_prefix));
 		}
 		return $mess;
 		
@@ -1901,9 +1903,9 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$mess .= sprintf("Er zijn %d diploma's bij leden verwijderd, omdat de examendatum in de toekomst ligt. ", $result);
+			fnQuery(sprintf("OPTIMIZE TABLE %sLiddipl;", $table_prefix));
 		}
 		return $mess;
-		
 	}
 }
 
@@ -2500,52 +2502,6 @@ function db_onderhoud() {
 	}
 	
 	/***** Velden die later zijn toegevoegd. *****/
-	
-	// Toevoegen veld 'cc_addr' aan de tabel Mailing_hist. Deze code kan na 5/3/2013 worden verwijderd.
-		
-	// Toevoegen veld 'Gedownload' aan de tabel Admin_interface. Deze code kan na 1/11/2012 worden verwijderd.
-	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sAdmin_interface' AND COLUMN_NAME='Gedownload';", $db_name, $table_prefix);
-	if (db_scalar($query) == 0) {
-		fnQuery(sprintf("ALTER TABLE `%sAdmin_interface` ADD `Gedownload` DATETIME NULL DEFAULT NULL AFTER `Ingevoerd`;", $table_prefix));
-	}
-	
-	// Toevoegen veld 'VerwijderdOp' aan de tabel Evenement. Deze code kan na 15/11/2012 worden verwijderd.
-	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sEvenement' AND COLUMN_NAME='VerwijderdOp';", $db_name, $table_prefix);
-	if (db_scalar($query) == 0) {
-		fnQuery(sprintf("ALTER TABLE `%sEvenement` ADD `VerwijderdOp` DATE NOT NULL;", $table_prefix));
-	}
-		
-	// Toevoegen veld 'StandaardStatus' aan de tabel Evenement. Deze code kan na 15/11/2012 worden verwijderd.
-	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sEvenement' AND COLUMN_NAME='StandaardStatus';", $db_name, $table_prefix);
-	if (db_scalar($query) == 0) {
-		fnQuery(sprintf("ALTER TABLE `%sEvenement` ADD `StandaardStatus` CHAR( 1 ) NOT NULL DEFAULT 'I' AFTER `InschrijvingOpen`;", $table_prefix));
-	}
-
-	// Toevoegen veld 'verzamelen' aan de tabel Mailing. Deze code kan na 1/11/2012 worden verwijderd.
-	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sMailing' AND COLUMN_NAME='verzamelen';", $db_name, $table_prefix);
-	if (db_scalar($query) == 0) {
-		fnQuery(sprintf("ALTER TABLE `%sMailing` ADD `verzamelen` TINYINT NOT NULL DEFAULT '0' AFTER `confidential`;", $table_prefix));
-	}
-				
-	// Toevoegen veld 'ZichtbaarVoor' aan de tabel Evenement. Deze code kan na 1/11/2012 worden verwijderd.
-	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sEvenement' AND COLUMN_NAME='ZichtbaarVoor';", $db_name, $table_prefix);
-	if (db_scalar($query) == 0) {
-		fnQuery(sprintf("ALTER TABLE `%sEvenement` ADD `ZichtbaarVoor` INT NOT NULL DEFAULT '0' AFTER `BeperkTotGroep` ;", $table_prefix));
-	}
-	
-	// Toevoegen velden 'Xtra_Num' en 'Xtra_Char' aan de tabel Mailing_hist. Deze code kan na 1/1/2013 worden verwijderd.
-	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sMailing_hist' AND COLUMN_NAME='Xtra_Num';", $db_name, $table_prefix);
-	if (db_scalar($query) == 0) {
-		$query = sprintf("ALTER TABLE `%sMailing_hist` ADD `Xtra_Char` CHAR( 4 ) NULL AFTER `MailingID`, ADD `Xtra_Num` INT NULL AFTER `Xtra_Char`;", $table_prefix);
-		fnQuery($query);
-	}
-	
-	// Toevoegen veld 'HerinneringVervallenDiplomas' aan de tabel Admin_login. Deze code kan na 1/1/2013 worden verwijderd.
-	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sAdmin_login' AND COLUMN_NAME='HerinneringVervallenDiplomas';", $db_name, $table_prefix);
-	if (db_scalar($query) == 0) {
-		$query = sprintf("ALTER TABLE `%sAdmin_login` ADD `HerinneringVervallenDiplomas` TINYINT NOT NULL DEFAULT '0' AFTER `Wachtwoord`;", $table_prefix);
-		fnQuery($query);
-	}
 		
 	// Toevoegen veld 'Successful' aan de tabel Mailing_hist. Deze code kan na 1/2/2013 worden verwijderd.
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sMailing_hist' AND COLUMN_NAME='Successful';", $db_name, $table_prefix);
@@ -2555,10 +2511,6 @@ function db_onderhoud() {
 	}
 		
 	/***** Velden die aangepast zijn. *****/
-	
-	// Admin_param/ValueNum, deze code kan na 1/1/2013 worden verwijderd.
-	$query = sprintf("ALTER TABLE `%sAdmin_param` CHANGE `ValueNum` `ValueNum` DECIMAL(16,6) NULL DEFAULT NULL;", $table_prefix);
-	fnQuery($query);
 	
 	// mailing_hist/Xtra_Char, deze code kan na 1/4/2013 worden verwijderd.
 	$query = sprintf("ALTER TABLE `%sMailing_hist` CHANGE `Xtra_Char` `Xtra_Char` VARCHAR(5) NULL;", $table_prefix);
@@ -3016,7 +2968,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sMailing_hist` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `LidID` int(11) NOT NULL DEFAULT '0',
   `MailingID` int(11) NOT NULL,
-  `Xtra_Char` char(4) DEFAULT NULL,
+  `Xtra_Char` varchar(5) DEFAULT NULL,
   `Xtra_Num` int(11) DEFAULT NULL,
   `from_name` varchar(50) NOT NULL,
   `from_addr` varchar(50) NOT NULL,
@@ -3056,10 +3008,9 @@ CREATE TABLE IF NOT EXISTS `%1\$sMemo` (
 CREATE TABLE IF NOT EXISTS `%1\$sMutatie` (
   `RecordID` int(11) DEFAULT NULL,
   `BoekjaarID` int(11) NOT NULL DEFAULT '0',
-  `Jaar` varchar(5) DEFAULT NULL,
   `Periode` tinyint(4) NOT NULL DEFAULT '0',
-  `Dagboek` varchar(4) NOT NULL DEFAULT '',
-  `DagboekID` int(11) DEFAULT NULL,
+  `Dagboek` varchar(4) DEFAULT NULL,
+  `DagboekID` int(11) NOT NULL DEFAULT '0',
   `GBR` varchar(4) DEFAULT NULL,
   `KSTNPLTS` varchar(5) DEFAULT NULL,
   `KostenplaatsID` int(11) DEFAULT NULL,
@@ -3072,7 +3023,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sMutatie` (
   `Rekening` int(11) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
-  PRIMARY KEY (`BoekjaarID`,`Periode`,`Dagboek`,`Stuknr`,`Regelnr`)
+  PRIMARY KEY (`BoekjaarID`,`Periode`,`DagboekID`,`Stuknr`,`Regelnr`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sOnderdl` (
@@ -3100,7 +3051,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sOnderdl` (
 CREATE TABLE IF NOT EXISTS `%1\$sRekening` (
   `Nummer` int(11) NOT NULL DEFAULT '0',
   `Seizoen` smallint(6) DEFAULT NULL,
-  `Datum` datetime DEFAULT NULL,
+  `Datum` date DEFAULT NULL,
   `OMSCHRIJV` varchar(30) DEFAULT NULL,
   `Lid` int(11) DEFAULT NULL,
   `DEBNAAM` varchar(60) DEFAULT NULL,
@@ -3122,7 +3073,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sRekreg` (
   `KSTNPLTS` varchar(5) DEFAULT NULL,
   `OMSCHRIJV` varchar(60) DEFAULT NULL,
   `Bedrag` decimal(8,2) DEFAULT NULL,
-  `Ingevoerd` datetime DEFAULT NULL,
+  `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`Rekening`,`Regelnr`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
@@ -3141,7 +3092,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sWS_Artikel` (
   `Gewijzigd` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE CURRENT_TIMESTAMP,
   `GewijzigdDoor` int(11) NOT NULL,
   PRIMARY KEY (`RecordID`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `%1\$sWS_Orderregel` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
@@ -3159,7 +3110,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sWS_Orderregel` (
   `GewijzigdDoor` int(11) NOT NULL,
   PRIMARY KEY (`RecordID`),
   UNIQUE KEY `ArtikelLid` (`Artikel`,`Lid`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;", $table_prefix);
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;", $table_prefix);
 
 	fnQuery($queries);
 }
