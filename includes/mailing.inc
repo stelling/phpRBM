@@ -124,12 +124,10 @@ class Mailing {
 	private $dir_attachm = "/attachments";
 	private $max_size_attachm = 2097152; // 2MB
 	private $vertraging_tussen_verzenden = 120; // in seconden
-	private $mailsperminuut = 120;
 	
 	private $MergeField;
 	private $contains_mergefield = false;
 	private $contains_losse_email = false;
-	private $mailbericht;
 	private $merged_message = "";
 	
 	private $from_name = "";
@@ -170,12 +168,11 @@ class Mailing {
 		if (db_param("max_grootte_bijlage") > 0) {
 			$this->max_size_attachm = db_param("max_grootte_bijlage");
 		}
-		if (db_param("resultaatmailingversturen") == 1) {
+		if (db_param("mailing_resultaatversturen") == 1) {
 			$this->resultaatversturen = 1;
 		} else {
 			$this->resultaatversturen = 0;
 		}
-		$this->mailsperminuut = db_param("maxmailsperminuut");
 		$this->emailsecretariaat = db_param("emailsecretariaat");
 
 		$sql = sprintf("SELECT Roepnaam FROM %sLid AS L WHERE %s;", $table_prefix, "L.Nummer=%d");
@@ -917,11 +914,9 @@ class Mailing {
 			if (strlen($this->nok_send) > 1) {
 				$summary .= sprintf("Deze mailing kon niet naar %d ontvangers verzonden worden: <ul>\n%s</ul>\n", $this->aant_nok, $this->nok_send);
 			}
-			$this->create_mess();
 			$ev = "E-mail";
-			$this->mailbericht = str_ireplace("[%TO%]", "", $this->mailbericht);
-			$mail->Body = $mail->Body . $summary;
-			$mail->Subject = "Resultaat mailing: " . $mail->Subject;
+			$mail->Body = $this->message . $summary;
+			$mail->Subject = sprintf("Resultaat mailing %d: %s", $this->mid, $mail->Subject);
 			if (isValidMailAddress($mail->From, 0)) {
 				$mail->AddAddress($mail->From, $mail->FromName);
 				if (strtolower($_SESSION['emailingelogde']) != strtolower($mail->From)) {
@@ -934,10 +929,10 @@ class Mailing {
 			if (isValidMailAddress($this->emailsecretariaat, 0)) {
 				$mail->AddCC($this->emailsecretariaat);
 			}
-			if ($this->mailsperminuut > 0 and $this->mailsperminuut < 100000) {
-				usleep((60 / $this->mailsperminuut) * 1001000);
+			$mail->addstationary();
+			if ($mail->Send()) {
+				db_add_mailing_hist(0, $this->mid, "", "", $this->message, $mail, 1, "MLRES", $this->mid);
 			}
-			$mail->Send();
 		}
 	}
 	
@@ -961,7 +956,6 @@ class Mailing {
 				}
 			}
 		}
-//		$this->mailbericht = briefpapier($this->merged_message, $this->to_name, $this->subject, $this->from_name);
 	}
 	
 	public function delete() {
@@ -1018,7 +1012,7 @@ class Mailing {
 				
 			foreach ($this->MergeField as $fld) {
 				$nm = "[%" . $fld['Naam'] . "%]";
-				if (strpos($this->mailbericht, $nm) !== false) {
+				if (strpos($this->message, $nm) !== false) {
 					$this->contains_mergefield = true;
 				}
 			}
