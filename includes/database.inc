@@ -1472,6 +1472,11 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		$result = fnQuery($query);
 		return $result->fetch();
 		
+	} elseif ($actie == "laatstehist") {
+		$query = sprintf("SELECT send_on FROM %sMailing_hist WHERE Successful=1 ORDER BY send_on DESC, RecordID DESC LIMIT 1;", $table_prefix, $mid);
+		$result = fnQuery($query);
+		return $result->fetchColumn();
+		
 	} elseif ($actie == "add") {
 		$query = sprintf("INSERT INTO %sMailing (from_name, from_addr, to_name, subject, new_on, AddedBy)
 								VALUES ('%s', '%s', '%s', '%s', SYSDATE(), %d);", $table_prefix, db_param("naamvereniging"), $email, $aan, $subj, $_SESSION['lidid']);
@@ -2322,6 +2327,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrBooleans['zs_incl_slid'] = 0;
 	$arrBooleans['zs_opzeggingautomatischverwerken'] = 0;
 	
+	$arrStrings['beperktotgroep'] = "";
 	$arrStrings['laatstebackup'] = "2012-01-01 00:00";
 	$arrStrings['muteerbarememos'] = "D,G,WN";
 	$arrStrings['naamvereniging'] = "Naam vereniging";
