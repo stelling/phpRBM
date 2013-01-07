@@ -192,9 +192,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (count(db_bewaking_blok("overzicht")) > 0) {
 			$tabpages[] = "Bewaking/Overzicht inschrijvingen";
 		}
-		if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
-			$tabpages[] = "Bewaking/Blokken muteren";
-		}
+		$tabpages[] = "Bewaking/Blokken muteren";
 	}
 	if (count(db_insbew("export")) > 0) {
 		$tabpages[] = "Bewaking/Downloaden inschrijvingen";
