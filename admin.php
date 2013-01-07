@@ -302,7 +302,7 @@ HTMLfooter();
 function fnInstellingen() {
 	global $table_prefix;
 
-	$arrParam['bewaartijdinloggen'] = "Hoeveel maanden moet logging van het in- en uitloggen bewaard blijven. 0 = gelijk aan bewaartijdlogging.";
+	$arrParam['bewaartijdinloggen'] = "Hoeveel maanden moet logging van het in- en uitloggen bewaard blijven. 0 = altijd.";
 	$arrParam['bewaartijdlogging'] = "Hoeveel maanden moet logging bewaard blijven. 0 = altijd.";
 	$arrParam['bewaartijdlogins'] = "Het aantal maanden dat logins na het laatste gebruik bewaard worden. Als een login wordt verwijderd, wordt geen historie weggegooid. Historie wordt namelijk direct aan het lid gekopppeld en niet aan de login. 0 = altijd bewaren.";
 	$arrParam['bewaartijdloginsnietgebruikt'] = "Het aantal dagen dat logins wordt bewaard, nadat het is aangevraagd en nog niet gebruikt is.";
