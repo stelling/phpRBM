@@ -139,7 +139,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (count($muteerbarememos) > 0) { 
 			$tabpages[] = "Zelfservice/Bijzonderheden";
 		}
-		if (count(db_insbew("openblokken")) > 0) {
+		if (count(db_bewaking_blok("openblokken")) > 0) {
 			$tabpages[] = "Zelfservice/Inschrijving bewaking";
 		}
 		if (count(db_evenement("open")) > 0) {
@@ -189,8 +189,11 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		$tabpages[] = "Bewaking/Aantallen";
 		$tabpages[] = "Bewaking/Nieuwe pasfoto";
 		$tabpages[] = "Bewaking/Diploma's muteren";
-		if (count(db_insbew("blokken")) > 0) {
+		if (count(db_bewaking_blok("overzicht")) > 0) {
 			$tabpages[] = "Bewaking/Overzicht inschrijvingen";
+		}
+		if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
+			$tabpages[] = "Bewaking/Blokken muteren";
 		}
 	}
 	if (count(db_insbew("export")) > 0) {
@@ -808,5 +811,15 @@ function removetextblock($content, $start_block="<!-- Ingelogd -->", $end_block=
 	return $content;
 	
 } # removetextblock
+
+function checked($val, $tp="box") {
+	if (($val == 1 or $val == true) and $tp="radio") {
+		return " checked='checked'";
+	} elseif ($val == 1 or $val == true) {
+		return " checked";
+	} else {
+		return "";
+	}
+} #checked
 
 ?>

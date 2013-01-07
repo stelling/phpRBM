@@ -42,12 +42,17 @@ function fnBewaking() {
 	
 	$st_len_bp = 1;
 	
-	echo("<div id='filter'>\n");
-	printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
-	echo("<table>\n<tr>\n");
-	
 	
 	if ($currenttab2 == "Downloaden inschrijvingen") {
+		$toonfilter = false;
+	} else {
+		echo("<div id='filter'>\n");
+		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+		echo("<table>\n<tr>\n");
+		$toonfilter = true;
+	}	
+	
+	if ($toonfilter == false) {
 		// Geen filter tonen
 	} elseif ($currenttab2 == "Diploma's muteren" or $currenttab2 == "Nieuwe pasfoto") {
 		$filterlid = sprintf("L.Nummer IN (SELECT Lid FROM %1\$sBewaking AS BW INNER JOIN %1\$sBewseiz AS BS ON BW.SeizoenID=BS.RecordID WHERE BS.Afgesloten=0)", $table_prefix);
@@ -122,12 +127,12 @@ function fnBewaking() {
 		}
 		echo("</select>\n</td>\n");
 		
-		if ($currenttab2 != "Aantallen") {
+		if ($currenttab2 != "Aantallen" and $currenttab2 != "Blokken muteren") {
 			echo("<td class='label'>Bewakingsweek:</td>\n");
 			echo("<td><select name='week' id='week' onchange='this.form.submit();'>\n");
 			print("<option value=-1>Alle</option>\n");
 			if ($currenttab2 == "Overzicht inschrijvingen") {
-				$rows = db_insbew("blokken", 0, 0, 0, 0, "", $seizoen);
+				$rows = db_bewaking_blok("overzicht", $seizoen);
 			} else {
 				$rows = db_bewaking("aantallen", $seizoen);
 			}
@@ -143,9 +148,11 @@ function fnBewaking() {
 			echo("</select>\n</td>\n");
 		}
 	}
-	echo("</tr>\n</table>\n");
-	echo("</form>\n");
-	echo("</div>  <!-- Einde filter -->\n");
+	if ($toonfilter) {
+		echo("</tr>\n</table>\n");
+		echo("</form>\n");
+		echo("</div>  <!-- Einde filter -->\n");
+	}
 	
 	if ($currenttab2 === "Bewakingsrooster" and toegang($_GET['tp'])) {
 		bew_rooster($seizoen, $week);
@@ -159,6 +166,8 @@ function fnBewaking() {
 		nieuwepasfoto($lidid, $filterlid);
 	} elseif ($currenttab2 == "Diploma's muteren" and toegang($_GET['tp']) and $lidid > 0) {
 		diplomaslidmuteren($lidid, $dptype, 0);
+	} elseif ($currenttab2 == "Blokken muteren" and toegang($_GET['tp'])) {
+		blokkenmuteren($seizoen);
 	} elseif ($currenttab2 == "Overzicht inschrijvingen" and toegang($_GET['tp'])) {
 		$lijst = db_insbew("matrixaantallen", 0, 0, 0, 0, "", $seizoen);
 		echo(fnDisplayTable($lijst, "", "Totalen"));
@@ -288,7 +297,7 @@ function inschrijvenbewaking($lidid) {
 	
 	fnDispMenu(2);
 	
-	if (count(db_insbew("openblokken")) == 0) {
+	if (count(db_bewaking_blok("openblokken")) == 0) {
 		echo("<p class='mededeling'>Er zijn op dit moment geen bewakingen waarvoor ingeschreven kan worden.</p>\n");
 	} else {
 		if ($_SERVER['REQUEST_METHOD'] == "POST") {
@@ -299,7 +308,7 @@ function inschrijvenbewaking($lidid) {
 			} else {
 				$insnr = db_scalar(sprintf("SELECT MAX(Nummer) FROM %sBewaking_Inschrijving;", $table_prefix)) + 3;
 			}
-			foreach (db_insbew("openblokken") as $row) {
+			foreach (db_bewaking_blok("openblokken") as $row) {
 				$k1 = sprintf("k1_%d", $row->RecordID);
 				$k2 = sprintf("k2_%d", $row->RecordID);
 				$opm = sprintf("Opm_%d", $row->RecordID);
@@ -348,7 +357,7 @@ function inschrijvenbewaking($lidid) {
 			
 		$geldig = false;
 		$kandef = false;
-		foreach (db_insbew("openblokken") as $row) {
+		foreach (db_bewaking_blok("openblokken") as $row) {
 			$ins = db_insbew("inschrijving", $lidid, 0, $row->RecordID);
 			if ($vs != $row->SeizoenID) {
 				printf("<tr><th colspan=6>%s %s</th></tr>\n", $row->KodeSeizoen, $row->Locatie);
@@ -627,6 +636,92 @@ function exportinschrijvingen() {
 		echo("<p class='mededeling'>Er zijn geen wijzigingen die nog verwerkt moeten worden.</p>\n");
 	}
 } # exportinschrijvingen
+
+function blokkenmuteren($seizoen) {
+	global $fdsql;
+
+	if (isset($_GET['op']) and $_GET['op'] == "new") {
+		db_bewaking_blok("add", $seizoen);
+	} elseif (isset($_GET['op']) and $_GET['op'] == "delete") {
+		db_bewaking_blok("delete", $seizoen, $_GET['rid']);
+	}
+	if (isset($_POST['Bijwerken'])) {
+		foreach (db_bewaking_blok("overzicht", $seizoen) as $row) {
+			$kd = sprintf("Kode_%d", $row->RecordID);
+			$f = "Kode";
+			if ($_POST[$kd] != $row->$f) {
+				db_bewaking_blok("edit", 0, $row->RecordID, $f, $_POST[$kd]);
+			}
+			
+			$bd = sprintf("Begin_%d", $row->RecordID);
+			$bd = change_month_to_uk($_POST[$bd]);
+			if (strlen($bd) > 4 and $bd != "0000-00-00" and strtotime($bd) !== false) {
+				$bd = strftime($fdsql, strtotime($bd));
+			} else {
+				$bd = "0000-00-00";
+			}
+			$f = "Begindatum";
+			if ($bd != $row->$f) {
+				db_bewaking_blok("edit", 0, $row->RecordID, $f, $bd);
+			}
+	
+			$ed = sprintf("Einde_%d", $row->RecordID);
+			$ed = change_month_to_uk($_POST[$ed]);
+			if (strlen($ed) > 4 and $ed != "0000-00-00" and strtotime($ed) !== false) {
+				$ed = strftime($fdsql, strtotime($ed));
+			} else {
+				$ed = "0000-00-00";
+			}
+			if ($ed < $bd) {
+				$ed = $bd;
+			}
+			$f = "Einddatum";
+			if ($ed != $row->$f) {
+				db_bewaking_blok("edit", 0, $row->RecordID, $f, $ed);
+			}
+	
+			$io = sprintf("Open_%d", $row->RecordID);
+			if (isset($_POST[$io]) and $_POST[$io] == "1") {
+				$io = 1;
+			} else {
+				$io = 0;
+			}	
+			$f = "InschrijvingOpen";
+			if ($io != $row->$f) {
+				db_bewaking_blok("edit", 0, $row->RecordID, $f, $io);
+			}
+		}
+	}
+
+	echo("<div id='muterenbewakingsblokken'>\n");
+	printf("<form name='muterenbewakingsblokken' method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+	$aant=0;
+	echo("<table>\n");
+	echo("<tr><th>ID</th><th>Kode</th><th>Begin</th><th>Einde</th><th>Inschrijving open?</th><th></th></tr>\n");
+	foreach (db_bewaking_blok("overzicht", $seizoen) as $row) {
+		echo("<tr>\n");
+		printf("<td>%d</td>\n", $row->RecordID);
+		printf("<td><input type='text' name='Kode_%d' value='%s'size=2 maxlength=2></td>", $row->RecordID, $row->Kode);
+		printf("<td><input type='text' name='Begin_%d' value='%s'>%s</td>\n", $row->RecordID, $row->Begindatum, strftime("%a", strtotime($row->Begindatum)));
+		printf("<td><input type='text' name='Einde_%d' value='%s'>%s</td>\n", $row->RecordID, $row->Einddatum, strftime("%a", strtotime($row->Einddatum)));
+		printf("<td><input type='checkbox' name='Open_%d'%s value='1'></td>\n", $row->RecordID, checked($row->InschrijvingOpen));
+		if (db_bewaking_blok("ingebruik", 0, $row->RecordID)) {
+			echo("<td></td>\n");
+		} else {
+			printf("<td><a href='%s?tp=%s&amp;op=delete&amp;rid=%d'><img src='images/trash.png'></a></td>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
+		}
+		echo("</tr>\n");
+		$aant++;
+	}
+	printf("<tr><td><a href='%s?%s&amp;op=new'><img src='images/star.png' alt='Nieuw'></a></td><td colspan=5>Nieuw blok</td></tr>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+	if ($aant > 0) {
+		echo("<tr><th colspan=6><input type='submit' name='Bijwerken' value='Bijwerken'></th></tr>\n");
+	}
+	echo("</table>\n");
+	echo("</form>\n");
+	echo("</div> <!-- Einde muterenbewakingsblokken -->\n");
+	
+} #blokkenmuteren
 
 function SQLexport($row) {
 	return sprintf("INSERT INTO Bewaking (Lid, SeizoenID, BEGIN_PER, EINDE_PER) VALUES (%d, %d, #%s#, #%s#);",
