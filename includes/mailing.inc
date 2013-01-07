@@ -1019,7 +1019,11 @@ class Mailing {
 			
 		} else {
 			$this->from_name = db_param("naamvereniging");
-			$this->from_addr = $_SESSION['emailingelogde'];
+			if (strlen(db_param("naamvereniging_afkorting")) > 1) {
+				$this->from_addr = sprintf("%s | %s", db_param("naamvereniging_afkorting"), $_SESSION['emailingelogde']);
+			} else {
+				$this->from_addr = $_SESSION['emailingelogde'];
+			}
 			$this->new_on = date("Y-m-d");
 		}
 	}
