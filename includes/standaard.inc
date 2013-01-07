@@ -182,6 +182,24 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		$tabpages[] = "Wijzigen lid/Bijzonderheden";
 		$tabpages[] = "Wijzigen lid/Lidmaatschap";
 	}
+	if ($_SESSION['aantalmutaties'] > 0) {
+		$tabpages[] = "Kostenoverzicht";
+	}
+	$tabpages[] = "Mailing";
+	$tabpages[] = "Mailing/Templates";
+	$tabpages[] = "Mailing/Concepten";
+	$tabpages[] = "Mailing/Nieuw";
+	if ($_SESSION['aantalrekreg'] > 0) {
+		$tabpages[] = "Mailing/Rekeningen";
+	}
+	$tabpages[] = "Mailing/Verzonden";
+	if (db_mailing("aantalprullenbak") > 0) {
+		$tabpages[] = "Mailing/Prullenbak";
+	}
+	if (db_logboek("aantal", "", 4) > 0) {
+		$tabpages[] = "Mailing/Logboek";
+	}
+	
 	if ($_SESSION['aantalbewaking'] > 0) {
 		$tabpages[] = "Bewaking";
 		$tabpages[] = "Bewaking/Bewakingsrooster";
@@ -199,23 +217,6 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	}
 	if (db_logboek("aantal", "", 11) > 0) {
 		$tabpages[] = "Bewaking/Logboek";
-	}
-	if ($_SESSION['aantalmutaties'] > 0) {
-		$tabpages[] = "Kostenoverzicht";
-	}
-	$tabpages[] = "Mailing";
-	$tabpages[] = "Mailing/Templates";
-	$tabpages[] = "Mailing/Concepten";
-	$tabpages[] = "Mailing/Nieuw";
-	if ($_SESSION['aantalrekreg'] > 0) {
-		$tabpages[] = "Mailing/Rekeningen";
-	}
-	$tabpages[] = "Mailing/Verzonden";
-	if (db_mailing("aantalprullenbak") > 0) {
-		$tabpages[] = "Mailing/Prullenbak";
-	}
-	if (db_logboek("aantal", "", 4) > 0) {
-		$tabpages[] = "Mailing/Logboek";
 	}
 	
 	if (count(db_evenement("overzicht")) > 0 or toegang("Evenementen/Beheer", 0)) {
