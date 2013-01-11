@@ -872,10 +872,11 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 		$query = sprintf("SELECT BS.Kode AS Seizoen, BB.Kode AS Week, BB.Begindatum AS dteBegin, BB.Einddatum AS dteEinde,
 								SUM(CASE WHEN BI.Definitief > BI.Ingevoerd AND BI.Keuze IN (1, 3) THEN 1 ELSE 0 END) AS `Keuze 1`,
 								SUM(CASE WHEN BI.Definitief > BI.Ingevoerd AND BI.Keuze=2 THEN 1 ELSE 0 END) AS `Keuze 2`,
-								SUM(CASE WHEN BI.Definitief <= BI.Ingevoerd THEN 1 ELSE 0 END) AS `Niet definitief`
+								SUM(IF(BI.Definitief <= BI.Ingevoerd, 1, 0)) AS `Niet definitief`,
+								IF(BB.InschrijvingOpen=1, 'Ja', 'Nee') AS `Open?`
 								FROM (%1\$sBewaking_Blok AS BB INNER JOIN (%1\$sBewaking_Inschrijving AS BI INNER JOIN %1\$sLid AS L ON BI.Lid = L.Nummer) ON BB.RecordID = BI.BlokID) INNER JOIN %1\$sBewseiz AS BS ON BB.SeizoenID = BS.RecordID
 								%2\$s
-								GROUP BY BS.Kode, BB.Kode, BB.Begindatum, BB.Einddatum
+								GROUP BY BS.Kode, BB.Kode, BB.Begindatum, BB.Einddatum, IF(BB.InschrijvingOpen=1, 'Ja', 'Nee')
 								ORDER BY BS.Kode, BB.Kode, BB.Begindatum;", $table_prefix, $w);
 		$result = fnQuery($query);
 		return $result->fetchAll();
@@ -952,12 +953,12 @@ function db_lidond($actie, $lidid=0, $per="", $filter="") {
 	if ($actie == "laatstgewijzigd") {
 		$query = sprintf("SELECT Max(Gewijzigd) FROM %sLidond;", $table_prefix);
 		return db_scalar($query);
+		
 	} elseif ($actie == "bewaking" and strlen($per) == 10) {
-		$query  = sprintf("SELECT DISTINCT O.Kode
-				 FROM %s
-				 WHERE O.`Tonen in bewakingsadministratie`=1 AND LO.Lid=%2\$d
-				 AND LO.Vanaf <= '%3\$s' AND ((LO.OPGEZEGD IS NULL) OR OPGEZEGD > '%3\$s')
-				 ORDER BY O.Kode;", $fromlidond, $lidid, $per);
+		$query  = sprintf("SELECT DISTINCT O.Kode FROM %s
+					 WHERE O.`Tonen in bewakingsadministratie`=1 AND LO.Lid=%2\$d
+					 AND LO.Vanaf <= '%3\$s' AND ((LO.OPGEZEGD IS NULL) OR OPGEZEGD > '%3\$s')
+					 ORDER BY O.Kode;", $fromlidond, $lidid, $per);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
@@ -989,6 +990,12 @@ function db_lidond($actie, $lidid=0, $per="", $filter="") {
 								ORDER BY O.Kader DESC, O.TYPE, O.Naam, F.Sorteringsvolgorde, F.Omschrijv, LO.Vanaf, L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectnaam, $selectzoeknaam, $fromlidond, $filter);
 		$result = fnQuery($query);
 		return $result->fetchAll();
+		
+	} elseif ($actie == "kaderonderdeel" and $lidid > 0) {
+		$query = sprintf("SELECT IF(O.`Type`='F', F.OMSCHRIJV, O.Naam) AS Ond FROM %s WHERE %s AND LO.Lid=%d AND O.Kader=1;", $fromlidond, $wherelidond, $lidid);
+		$result = fnQuery($query);
+		return $result->fetchColumn();
+		
 	}
 }
 
@@ -1471,8 +1478,8 @@ function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr, $message="", $mai
 	
 	if ($_SESSION['lidid'] > 0) {
 		$query = sprintf("INSERT INTO %sMailing_hist SET
-					LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", to_name=\"%s\", subject=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", send_by=%d, send_on=SYSDATE(), Successful=%d, Xtra_Char='%s', Xtra_Num=%d;", $table_prefix,
-					$lidid, $mid, html_entity_decode($from_name), $from_addr, $to_name, html_entity_decode($subject), $to_addr, $cc_addr, html_entity_decode($message), $_SESSION['lidid'], $success, $xtrachar, $xtranum);
+					LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", to_name=\"%s\", subject=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", send_by=%d, send_on=SYSDATE(), send_mt=%F, Successful=%d, Xtra_Char='%s', Xtra_Num=%d;", $table_prefix,
+					$lidid, $mid, html_entity_decode($from_name), $from_addr, $to_name, html_entity_decode($subject), $to_addr, $cc_addr, html_entity_decode($message), $_SESSION['lidid'], microtime(true), $success, $xtrachar, $xtranum);
 					fnQuery($query);
 		
 		if ($success == 1 and $mid > 0) {
@@ -1555,12 +1562,17 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		return db_scalar($query);
 		
 	} elseif ($actie == "laatstehist" and $mid > 0) {
-		$query = sprintf("SELECT send_on, send_by FROM %sMailing_hist WHERE Successful=1 AND MailingID=%d ORDER BY send_on DESC, RecordID DESC LIMIT 1;", $table_prefix, $mid);
+		$query = sprintf("SELECT send_on, send_by FROM %sMailing_hist WHERE Successful=1 AND MailingID=%d ORDER BY send_mt DESC, RecordID DESC LIMIT 1;", $table_prefix, $mid);
 		$result = fnQuery($query);
 		return $result->fetch();
 		
 	} elseif ($actie == "laatstehist") {
-		$query = sprintf("SELECT send_on FROM %sMailing_hist WHERE Successful=1 ORDER BY send_on DESC, RecordID DESC LIMIT 1;", $table_prefix, $mid);
+		$query = sprintf("SELECT send_on FROM %sMailing_hist WHERE Successful=1 ORDER BY send_mt DESC, RecordID DESC LIMIT 1;", $table_prefix, $mid);
+		$result = fnQuery($query);
+		return $result->fetchColumn();
+		
+	} elseif ($actie == "lastsendtime") {
+		$query = sprintf("SELECT send_mt FROM %sMailing_hist WHERE Successful=1 ORDER BY send_mt DESC, RecordID DESC LIMIT 1;", $table_prefix, $mid);
 		$result = fnQuery($query);
 		return $result->fetchColumn();
 		
@@ -2601,6 +2613,13 @@ function db_onderhoud() {
 		$query = sprintf("ALTER TABLE `%sMailing_hist` ADD `Successful` TINYINT NOT NULL DEFAULT '1';", $table_prefix);
 		fnQuery($query);
 	}
+	
+	// Toevoegen veld 'send_mt' aan de tabel Mailing_hist. Deze code kan na 1/2/2014 worden verwijderd.
+	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sMailing_hist' AND COLUMN_NAME='send_mt';", $db_name, $table_prefix);
+	if (db_scalar($query) == 0) {
+		$query = sprintf("ALTER TABLE `%sMailing_hist` ADD `send_mt` DECIMAL(16,6);", $table_prefix);
+		fnQuery($query);
+	}
 		
 	/***** Velden die aangepast zijn. *****/
 	
@@ -3071,6 +3090,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sMailing_hist` (
   `message` text NOT NULL,
   `send_by` int(11) NOT NULL,
   `send_on` datetime NOT NULL,
+  `send_mt` decimal(16,6) NOT NULL,
   `Successful` tinyint(4) NOT NULL DEFAULT '1',
   PRIMARY KEY (`RecordID`),
   KEY `LidID` (`LidID`)

@@ -1018,36 +1018,20 @@ class Mailing {
 			}
 			
 		} else {
-			$this->from_name = db_param("naamvereniging");
 			if (strlen(db_param("naamvereniging_afkorting")) > 1) {
-				$this->from_addr = sprintf("%s | %s", db_param("naamvereniging_afkorting"), $_SESSION['emailingelogde']);
+				$ko = db_lidond("kaderonderdeel", $_SESSION['lidid']);
+				if (strlen($ko) > 0) {
+					$this->from_name = sprintf("%s | %s", db_param("naamvereniging_afkorting"), $ko);
+				} else {
+					$this->from_name = sprintf("%s | %s", db_param("naamvereniging_afkorting"), $_SESSION['naamingelogde']);
+				}
 			} else {
-				$this->from_addr = $_SESSION['emailingelogde'];
+				$this->from_name = db_param("naamvereniging");
 			}
+			$this->from_addr = $_SESSION['emailingelogde'];
 			$this->new_on = date("Y-m-d");
 		}
 	}
-}
-
-function briefpapier($content, $to, $subj, $from="") {
-	if (strlen($from) == 0) {
-		$from = db_param("naamvereniging");
-	}
-	$brief_template = "templates/briefpapier.html";
-	if (file_exists($brief_template)) {
-		$briefpapier = file_get_contents($brief_template);
-		if ($content === false) {
-			$htmlmessage = $content;
-		} else {
-			$htmlmessage = str_ireplace("[%MESSAGE%]", $content, $briefpapier);
-			$htmlmessage = str_ireplace("[%FROM%]", $from, $htmlmessage);
-			$htmlmessage = str_ireplace("[%TO%]", $to, $htmlmessage);
-			$htmlmessage = str_ireplace("[%SUBJECT%]", $subj, $htmlmessage);
-		}
-	} else {
-		$htmlmessage = $content;
-	}
-	return $htmlmessage;
 }
 
 function fnRekeningenMailen($op) {
