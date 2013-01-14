@@ -205,8 +205,12 @@ footer a, footer a:visited, #footer a, #footer a:visited {
 	max-width: 590px;
 }
 
-#wijzigengegevens, #wijzigendiplomas, #nieuwepasfoto, #bijzonderhedenwijzigen, #inschrijvingbewaking, #inschrijvingevenementen, #onlinebestellingen, #opzegformulier, #profielwijzigen {
+#wijzigengegevens, #wijzigendiplomas, #nieuwepasfoto, #bijzonderhedenwijzigen, #lidmaatschapmuteren, #inschrijvingbewaking, #inschrijvingevenementen, #onlinebestellingen, #opzegformulier, #profielwijzigen {
 	padding-top: 8px;
+}
+
+#lidmaatschapmuteren img {
+	height: 8px;
 }
 
 #wijzigengegevens img {

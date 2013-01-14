@@ -391,6 +391,8 @@ function db_lid($actie, $filter="", $lidid=0, $nv="") {
 	
 	if (strlen($filter) > 0 and $actie != "verjaardagen") {
 		$filter = " WHERE " . $filter;
+	} elseif ($lidid > 0) {
+		$filter = sprintf(" WHERE L.Nummer=%d", $lidid);
 	}
 	
 	if ($actie == "record" and $lidid > 0) {
@@ -499,10 +501,10 @@ function db_lidmaatschap($actie, $lidid=0, $opgezegd="", $rid=0, $liddatum="", $
 			$mess = sprintf("De opzegging per %s van %s is niet verwerkt. ", $opgezegd, $naamlid);
 		}
 		return $mess;
-	} elseif ($actie == "overzichtlid" and $lidid > 0) {
+	} elseif ($actie == "overzichtlid") {
 		$query = sprintf("SELECT * FROM %sLidmaatschap
-					WHERE Lid=%d AND ((Opgezegd IS NULL) OR Opgezegd >= LIDDATUM)
-					ORDER BY LIDDATUM;", $table_prefix, $lidid);
+								WHERE Lid=%d
+								ORDER BY LIDDATUM;", $table_prefix, $lidid);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "update" and $rid > 0) {
@@ -1567,7 +1569,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		return $result->fetch();
 		
 	} elseif ($actie == "laatstehist") {
-		$query = sprintf("SELECT send_on FROM %sMailing_hist WHERE Successful=1 ORDER BY send_mt DESC, RecordID DESC LIMIT 1;", $table_prefix, $mid);
+		$query = sprintf("SELECT send_on FROM %sMailing_hist WHERE Successful=1 ORDER BY send_on DESC LIMIT 1;", $table_prefix, $mid);
 		$result = fnQuery($query);
 		return $result->fetchColumn();
 		
@@ -2391,6 +2393,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrIntegers['bewaartijdmailings'] = 3;
 	$arrIntegers['db_backupsopschonen'] = 11;
 	$arrIntegers['loginautounlock'] = 120;
+	$arrIntegers['mailing_bevestigingopzegging'] = 0;
 	$arrIntegers['max_grootte_bijlage'] = 2048;
 	$arrIntegers['maxlengtelogin'] = 12;
 	$arrIntegers['maxinlogpogingen'] = 4;

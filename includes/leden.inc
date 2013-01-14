@@ -26,13 +26,8 @@ function fnWijzigen($lidid=0, $actie="") {
 		$actie = $currenttab2;
 	}
 	
-	if ($lidid != $_SESSION['lidid']) {
-		$xtra_param = sprintf("lidid=%d", $lidid);
-		$actionurl = sprintf("%s?tp=%s&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
-	} else {
-		$xtra_param = "";
-		$actionurl = sprintf("%s?tp=%s", $_SERVER['PHP_SELF'], $_GET['tp']);
-	}
+	$xtra_param = sprintf("lidid=%d", $lidid);
+	$actionurl = sprintf("%s?tp=%s&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
 	
 	$naamlid = db_naamlid($lidid);
 	if ($lidid > 0) {
@@ -746,7 +741,7 @@ function algemeenlidmuteren($lidid) {
 
 	echo("</form>\n");
 	echo("</div>  <!-- Einde wijzigengegevens -->\n");	
-}
+} # algemeenlidmuteren
 
 function nieuwepasfoto($lidid, $filterlid="") {
 	global $pasfotoextenties, $actionurl;
@@ -885,7 +880,7 @@ function nieuwepasfoto($lidid, $filterlid="") {
 	echo("</form>\n");
 
 	echo("</div>  <!-- Einde nieuwepasfoto -->\n");	
-}
+} # nieuwepasfoto
 
 function opzegginglidmaatschap($lidid) {
 	global $actionurl;
@@ -1077,7 +1072,7 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 	echo($oldvals);
 	echo("</form>\n");
 	echo("</div>  <!-- Einde wijzigendiplomas -->\n");
-}
+} # diplomaslidmuteren
 
 function lidmaatschapmuteren($lidid) {
 	
@@ -1088,6 +1083,15 @@ function lidmaatschapmuteren($lidid) {
 			$vanaf = sprintf("Vanaf_%d", $row->RecordID);
 			$opgezegd = sprintf("Opgezegd_%d", $row->RecordID);
 			db_lidmaatschap("update", $row->Lid, $_POST[$opgezegd], $row->RecordID, $_POST[$vanaf], $_POST[$lidnr]);
+			
+			$nm = sprintf("BO_%d_x", $row->Lidnr);
+			if (isset($_POST[$nm]) and $_POST[$opgezegd] > "2010-01-01" and db_param("mailing_bevestigingopzegging") > 0) {
+				$mailing = new Mailing(db_param("mailing_bevestigingopzegging"));
+				$mailing->xtrachar = "BO_LM";
+				$mailing->xtranum = $row->Lidnr;
+				$mailing->send($row->Lid);
+				$mailing = null;
+			}
 		}
 			
 		if (isset($_POST['NieuwLidmaatschap'])) {
@@ -1100,7 +1104,7 @@ function lidmaatschapmuteren($lidid) {
 	$actionurl = sprintf("%s?tp=%s&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
 	printf("<form method='post' action='%s' name='frm_lidmaatschapmuteren'>\n", $actionurl);
 	echo("<table>\n");
-	echo("<tr><th>RecordID</th><th>Lidnummer</th><th>Lid vanaf</th><th>Opgezegd per</th><tr>\n");
+	echo("<tr><th>RecordID</th><th>Lidnummer</th><th>Lid vanaf</th><th>Opgezegd per</th><th></th><tr>\n");
 	$toev = true;
 	$aant = 0;
 	foreach (db_lidmaatschap("overzichtlid", $lidid) as $row) {
@@ -1120,11 +1124,16 @@ function lidmaatschapmuteren($lidid) {
 			$toev = false;
 		}
 		printf("<td><input name='Opgezegd_%d' value='%s'></td>\n", $row->RecordID, $v);
+		if ($row->Opgezegd >= "2010-01-01" and db_param("mailing_bevestigingopzegging") > 0) {
+			printf("<td><input type='image' name='BO_%d' src='images/email.png' alt='Verstuur bevestiging' title='Verstuur bevestiging'></td>\n", $row->Lidnr);
+		} else {
+			echo("<td></td>\n");
+		}
 		echo("</tr>\n");
 		$aant++;
 	} # foreach
 	
-	echo("<tr>\n<th colspan=4>\n");
+	echo("<tr>\n<th colspan=5>\n");
 	if ($aant > 0) {
 		echo("<input type='submit' value='Bijwerken'>\n");
 	}

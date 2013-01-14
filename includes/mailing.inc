@@ -123,7 +123,7 @@ class Mailing {
 	private $allowed_ext = "bmp, gif, jpeg, jpg, pdf, png, pps, rar, txt, zip";
 	private $dir_attachm = "/attachments";
 	private $max_size_attachm = 2097152; // 2MB
-	private $vertraging_tussen_verzenden = 120; // in seconden
+	private $vertraging_tussen_verzenden = 60; // in seconden
 	
 	private $MergeField;
 	private $contains_mergefield = false;
@@ -154,6 +154,9 @@ class Mailing {
 	private $aant_nok = 0;
 	private $resultaatversturen = 1;
 	private $emailsecretariaat = "";
+	
+	public $xtrachar = "";
+	public $xtranum = 0;
 
 	function __construct($mid=0) {
 		global $selectnaam, $table_prefix, $fdlang, $fdkort, $arrGeslacht, $wherelidond, $wherelid, $whereliddipl;
@@ -800,18 +803,20 @@ class Mailing {
 		$this->send_mailing(1);
 	}	
 	
-	public function send() {
+	public function send($lidid=0) {
 	
 		if (strtotime($this->sent_on) > (time() - $this->vertraging_tussen_verzenden)) {
 			printf("<p class='Mededeling'>Deze mailing is korter dan %d minuten geleden verzonden en wordt daarom niet nogmaals verzonden.</p>\n", $this->vertraging_tussen_verzenden/60);
 		} elseif (isValidMailAddress($this->from_addr, 0) == false) {
 			printf("<p class='mededeling'>Er is geen geldig 'Vanaf e-mail' ingevuld en daarom wordt deze e-mail niet verzonden.</p>\n");
+		} elseif ($lidid > 0) {
+			$this->send_mailing(0, $lidid);
 		} else {
 			$this->send_mailing(0);
 		}
 	}
 	
-	private function send_mailing($preview=0) {
+	private function send_mailing($preview=0, $lidid=0) {
 		global $table_prefix;
 		
 		$mail = new RBMmailer();
@@ -832,17 +837,25 @@ class Mailing {
 			}
 		}
 		
-		$rcpts = db_mailing("rcpt", $this->mid);
+		if ($lidid == 0) {
+			$rcpts = db_mailing("rcpt", $this->mid);
+		} else {
+			$rcpts = db_lid("lijst", "", $lidid);
+		}
 		if ($preview == 1 and count($rcpts) == 0) {
-			$this->create_mess($_SESSION['lidid']);
+			$this->merge($_SESSION['lidid']);
 			$mail->Body = $this->merged_message;
 			$mail->addstationary();
 			echo("<br>\n" . $mail->Body);
 		}
 		
 		foreach($rcpts as $rcpt) {
-			$this->create_mess($rcpt->Nummer);
-			$mail->Body = $this->merged_message;
+			if ($rcpt->Nummer > 0) {
+				$this->merge($rcpt->Nummer);
+				$mail->Body = $this->merged_message;
+			} else {
+				$mail->Body = $this->message;
+			}
 			if ($rcpt->Nummer > 0) {
 				$e = $mail->ToevoegenLid($rcpt->Nummer);
 			} elseif (isValidMailAddress($rcpt->to_address, 0)) {
@@ -871,7 +884,7 @@ class Mailing {
 						$this->aant_ok++;
 					} else {
 						if ($mail->Send()) {
-							db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message, $mail, 1);
+							db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message, $mail, 1, $this->xtrachar, $this->xtranum);
 							if (isset($rcpt->Naam_lid)) {
 								$this->ok_send .= sprintf("<li>%s {%s}</li>\n", $rcpt->Naam_lid, $e);
 							} else {
@@ -879,7 +892,7 @@ class Mailing {
 							}
 							$this->aant_ok++;
 						} else {
-							db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message, $mail, 0);
+							db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message, $mail, 0, $this->xtrachar, $this->xtranum);
 							$this->nok_send .= sprintf("<li>%s {%s}</li>\n", $rcpt->Naam_lid, $e);
 							$mess = sprintf("Het versturen van mailing %d (%s) aan %s is niet gelukt. Error: %s", $this->mid, $this->subject, $to_name, $mail->ErrorInfo);
 							db_logboek("add", $mess, 4);
@@ -936,7 +949,7 @@ class Mailing {
 		}
 	}
 	
-	private function create_mess($lidid=0) {
+	private function merge($lidid=0) {
 		global $table_prefix;
 		
 		$this->merged_message = $this->message;

@@ -319,6 +319,7 @@ function fnInstellingen() {
 	$arrParam['lidnrversturenmogelijk'] = "Hierbij geef je aan of het mogelijk moet zijn om vanaf deze website op basis van alleen een e-mailadres iemand zijn lidnummer per e-mail opgestuurd kan worden.";
 	$arrParam['loginautounlock'] = "Na hoeveel minuten moet een gelockede login automatisch geunlocked worden? 0 = alleen handmatig unlocken.";
 	$arrParam['mailing_beperkfrom'] = "Indien deze is ingevuld moet het from adres in een mailing altijd vanaf dit domein zijn.";
+	$arrParam['mailing_bevestigingopzegging'] = "Het nummer van de mailing die verstuurd moet worden als een lid zijn lidmaatschap opgezegd heeft. 0 = geen.";
 	$arrParam['mailing_extensies_toegestaan'] = "De extenties die zijn toegestaan bij bijlagen in een mailing. Als je niets specificeerd wordt een standaard lijst gebruikt.";
 	$arrParam['mailing_rekening_from_adres'] = "Vanaf welk e-mailadres moeten de rekeningen gemailed worden?";
 	$arrParam['mailing_rekening_from_naam'] = "Welke naam moeten de rekeningen verzonden worden? Standaard is vanaf de verenigingsnaam.";
