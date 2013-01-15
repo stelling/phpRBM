@@ -316,11 +316,12 @@ function fnInstellingen() {
 	$arrParam['emailwebmaster'] = "Het e-mailadres van de webmaster.";
 	$arrParam['kaderoverzichtmetfoto'] = "Moeten op het kaderoverzicht pasfoto's getoond worden?";
 	$arrParam['lidnrnodigbijloginaanvraag'] = "Moet een lid zijn of haar lidnummer opgeven als er een login aangevraagd wordt?";
-	$arrParam['lidnrversturenmogelijk'] = "Hierbij geef je aan of het mogelijk moet zijn om vanaf deze website op basis van alleen een e-mailadres iemand zijn lidnummer per e-mail opgestuurd kan worden.";
 	$arrParam['loginautounlock'] = "Na hoeveel minuten moet een gelockede login automatisch geunlocked worden? 0 = alleen handmatig unlocken.";
 	$arrParam['mailing_beperkfrom'] = "Indien deze is ingevuld moet het from adres in een mailing altijd vanaf dit domein zijn.";
 	$arrParam['mailing_bevestigingopzegging'] = "Het nummer van de mailing die verstuurd moet worden als een lid zijn lidmaatschap opgezegd heeft. 0 = geen.";
+	$arrParam['mailing_bewakinginschrijving'] = "Het nummer van de mailing die als bevestiging van een inschrijving voor de bewaking verstuurd moet worden. 0 = geen.";
 	$arrParam['mailing_extensies_toegestaan'] = "De extenties die zijn toegestaan bij bijlagen in een mailing. Als je niets specificeerd wordt een standaard lijst gebruikt.";
+	$arrParam['mailing_lidnr'] = "Het nummer van de mailing die verstuurd moet worden als een lid zijn lidnummer opvraagt. 0 = geen.";
 	$arrParam['mailing_rekening_from_adres'] = "Vanaf welk e-mailadres moeten de rekeningen gemailed worden?";
 	$arrParam['mailing_rekening_from_naam'] = "Welke naam moeten de rekeningen verzonden worden? Standaard is vanaf de verenigingsnaam.";
 	$arrParam['mailing_resultaatversturen'] = "Indien aangevinkt wordt naar de zender en het secretariaat een mail met het resultaat van deze mailing verzonden.";
@@ -368,6 +369,7 @@ function fnInstellingen() {
 	foreach ($arrParam as $naam => $val) {
 		db_param($naam, "controle");
 	}
+	$mess = "";
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		foreach (db_param("", "lijst") as $row) {
 			$pvn = sprintf("value_%d", $row->RecordID);
@@ -375,15 +377,21 @@ function fnInstellingen() {
 				if (isset($_POST[$pvn])) {
 					$_POST[$pvn] = str_replace("\"", "'", $_POST[$pvn]);
 				}
-				if ($row->Naam == "beperktotgroep" or $row->Naam == "muteerbarememos") {
+				if (in_array($row->Naam, array("beperktotgroep", "muteerbarememos"))) {
 					$_POST[$pvn] = str_replace(" ", "", $_POST[$pvn]);
+				} elseif (in_array($row->Naam, array("mailing_bevestigingopzegging", "mailing_bewakinginschrijving", "mailing_lidnr")) and $_POST[$pvn] > 0 and db_mailing("exist", $_POST[$pvn]) == false) {
+					$_POST[$pvn] = 0;
+					$mess .= sprintf("Parameter '%s' wordt 0 gemaakt, omdat de ingevoerde mailing niet (meer) bestaat. ", $row->Naam);
 				} elseif ($row->Naam == "typemenu" and (strlen($_POST[$pvn]) == 0 or $_POST[$pvn] < 1 or $_POST[$pvn] > 3)) {
 					$_POST[$pvn] = 1;
+					$mess .= sprintf("Parameter '%s' wordt 1 gemaakt, omdat deze alleen 1, 2 of 3 mag zijn. ", $row->Naam);
 				} elseif ($row->Naam == "maxlengtelogin") {
 					if (strlen($_POST[$pvn]) == 0 or is_numeric($_POST[$pvn]) == false or $_POST[$pvn] > 12) {
 						$_POST[$pvn] = 12;
+						$mess .= sprintf("Parameter '%s' wordt 12 gemaakt, omdat dit de maximale waarde is. ", $row->Naam);
 					} elseif ($_POST[$pvn] < 7) {
 						$_POST[$pvn] = 7;
+						$mess .= sprintf("Parameter '%s' wordt 7 gemaakt, omdat dit de minimale waarde is. ", $row->Naam);
 					}
 				} elseif (substr($row->Naam, 0, 3) == "url" and isset($_POST[$pvn])) {
 					$_POST[$pvn] = str_replace("http://", "", $_POST[$pvn]);
@@ -401,6 +409,9 @@ function fnInstellingen() {
 					if (strlen($_POST[$pvn]) == 0 or is_numeric($_POST[$pvn]) == false) {
 						$_POST[$pvn] = 0;
 					}
+				}
+				if (strlen($mess) > 0) {
+					db_logboek("add", $mess, 13, 0, 1);
 				}
 				db_param($row->Naam, "updval", $_POST[$pvn]);
 			}

@@ -1089,6 +1089,7 @@ function lidmaatschapmuteren($lidid) {
 				$mailing = new Mailing(db_param("mailing_bevestigingopzegging"));
 				$mailing->xtrachar = "BO_LM";
 				$mailing->xtranum = $row->Lidnr;
+				$mailing->resultaatversturen = 0;
 				$mailing->send($row->Lid);
 				$mailing = null;
 			}

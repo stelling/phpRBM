@@ -427,11 +427,11 @@ function bevestigingbestelling($lidid, $ordernr=0) {
 	$mail->Body = $content;
 	$mail->addstationary();
 	if ($mail->Send()) {
-		db_add_mailing_hist($lidid, 0, $naamlid, "", $content, $mail, 1);
-		$mess = sprintf("Een bevestiging van deze bestelling is naar %s verzonden.", $mail->ListAddresses("to"));
+		db_add_mailing_hist($lidid, 0, $naamlid, "", $content, $mail, 1, "BEST", $ordernr);
+		$mess = sprintf("Een bevestiging van bestelling %d is naar %s verzonden.", $ordernr, $mail->ListAddresses("to"));
 	} else {
-		db_add_mailing_hist($lidid, 0, $naamlid, "", $content, $mail, 0);
-		$mess = sprintf("Het versturen van de bevestiging van de bestelling aan %s is mislukt. Error: %s", $naamlid, $mail->ErrorInfo);
+		db_add_mailing_hist($lidid, 0, $naamlid, "", $content, $mail, 0, "BEST", $ordernr);
+		$mess = sprintf("Het versturen van de bevestiging van bestelling %d aan %s is mislukt. Error: %s", $ordernr, $naamlid, $mail->ErrorInfo);
 	}
 	db_logboek("add", $mess, 10);
 	printf("<script>alert('%s');</script>\n", $mess);

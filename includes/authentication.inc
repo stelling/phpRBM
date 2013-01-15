@@ -78,6 +78,7 @@ function toegang($soort="", $melding=1, $password="") {
 			$_SESSION['naamingelogde'] = "gast";
 			$_SESSION['roepnaamingelogde'] = "gast";
 			$_SESSION['emailingelogde'] = "";
+			unset($_SESSION['toegang']);
 		}
 	}
 	if (in_array($_SESSION['lidid'], $lididwebmasters)) {
@@ -127,9 +128,9 @@ function toegang($soort="", $melding=1, $password="") {
 			if ($_SESSION['toegang'][$soort] == false) {
 				if ($melding == 1) {
 					if ($_SESSION['lidid'] > 0) {
-						$mess = sprintf("%s heeft geen toegang tot het onderdeel '%s' op %s.", $_SESSION['naamingelogde'], $soort, $_SESSION['naamwebsite']);
+						$mess = sprintf("%s heeft geen toegang tot het onderdeel '%s' op %s.", $_SESSION['naamingelogde'], $soort, db_param("naamwebsite"));
 					} else {
-						$mess = sprintf("Je bent niet ingelogd en hierdoor hebt geen toegang tot '%s' op %s.", $soort, $_SESSION['naamwebsite']);
+						$mess = sprintf("Je bent niet ingelogd en hierdoor hebt geen toegang tot '%s' op %s.", $soort, db_param("naamwebsite"));
 					}
 					db_logboek("add", $mess, 5, 0, 2);
 				}
@@ -181,8 +182,8 @@ function fnConfirmLogin($row, $xtratekst="") {
 	$content = str_replace("[%IPADDRESS%]", $_SERVER['REMOTE_ADDR'], $content);
 
 	$mail = new RBMmailer($row->Nummer);
-	$mail->FromName = "Webmaster " . $_SESSION['naamwebsite'];
-	$mail->Subject = sprintf("Bevestiging login %s voor %s", $_SESSION['naamwebsite'], $row->Naam);
+	$mail->FromName = "Webmaster " . db_param("naamwebsite");
+	$mail->Subject = sprintf("Bevestiging login %s voor %s", db_param("naamwebsite"), $row->Naam);
 	$mail->Body = $content;
 	$mail->addstationary();
 	if ($mail->Send()) {
@@ -193,7 +194,22 @@ function fnConfirmLogin($row, $xtratekst="") {
 	return $mess;
 }
 
-function fnConfirmLidnr($row, $xtratekst="") {
+function fnConfirmLidnr($row) {
+
+	$mailing = new Mailing(db_param("mailing_lidnr"));
+	$mailing->xtrachar = "LNR";
+	$mailing->xtranum = $row->Lidnr;
+	$mailing->resultaatversturen = 0;
+	if ($mailing->send($row->Nummer) > 0) {
+		return sprintf("Het lidnummer is aan %s verzonden.", $row->Naam);
+	} else {
+		return sprintf("Fout bij het versturen van de e-mail. Probeer het later nogmaals of neem contact op met de webmaster.");
+	}
+	$mailing = null;
+
+}
+
+function fnConfirmLidnr_BU($row, $xtratekst="") {
 
 	$myFile = 'templates/bevestiging_lidnummer.html';
 	if (file_exists($myFile)) {
@@ -247,7 +263,6 @@ function fnLoginAanvragen() {
 	global $table_prefix, $lididwebmasters, $selectlidnr;
 	
 	$beperktotgroep = db_param("beperktotgroep");
-	$lidnrversturenmogelijk = db_param("lidnrversturenmogelijk");
 	$lidnrnodigbijloginaanvraag = db_param("lidnrnodigbijloginaanvraag");
 	$maxlengtelogin = db_param("maxlengtelogin");
 
@@ -259,11 +274,14 @@ function fnLoginAanvragen() {
 
 		$login = "";
 		$mess = "";
+		if (!isset($_POST['lidnummer']) or strlen($_POST['lidnummer']) == 0) {
+			$_POST['lidnummer'] = 0;
+		}
 		if (strlen($_POST['email']) == 0) {
 			$mess = "Je hebt geen e-mailadres opgegeven.";
 		} elseif (!isValidMailAddress($_POST['email'], 0)) {
 			$mess = sprintf("Je hebt geen geldig e-mailadres (%s) opgegeven.", $_POST['email']);
-		} elseif ($lidnrversturenmogelijk == 0 and $lidnrnodigbijloginaanvraag == 1 and $_POST['lidnummer'] == 0) {
+		} elseif (db_param("mailing_lidnr") == 0 and db_param("lidnrnodigbijloginaanvraag") == 1 and $_POST['lidnummer'] == 0) {
 			$mess = "Je moet je lidnummer invullen om een login te kunnen aanvragen.";
 		} else {
 			if ($_POST['lidnummer'] > 0) {
@@ -278,7 +296,7 @@ function fnLoginAanvragen() {
 						$mess .= fnConfirmLogin($row) . " ";
 					} else {
 						// E-mailadres is bekend, maar er is geen login aangemaakt
-						if ($lidnrversturenmogelijk == 1 and $_POST['lidnummer'] == 0) {
+						if (db_param("mailing_lidnr") > 0 and $_POST['lidnummer'] == 0) {
 							$mess .= fnConfirmLidnr($row) . " ";
 						} elseif ($row->AanvragenMag == 0 and in_array($row->Nummer, $lididwebmasters) == false) {
 							if (is_array($beperktotgroep) and count($beperktotgroep) > 1) {
@@ -323,7 +341,7 @@ function fnLoginAanvragen() {
 			}
 		}
 		db_logboek("add", $mess, 1, 0, 1);
-		printf("<p><a href='http://%s' target='_top'>Klik hier om verder te gaan.</a></p>\n", $_SESSION['urlwebsite']);
+		printf("<p><a href='http://%s' target='_top'>Klik hier om verder te gaan.</a></p>\n", db_param("urlwebsite"));
 		
 	} else {
 
@@ -341,7 +359,7 @@ function fnLoginAanvragen() {
 		echo("<input class='knop' type='submit' name='loginaanvragen' value='Aanvragen'></p>\n");
 		echo("</fieldset>\n");
 
-		if ($lidnrversturenmogelijk == 1) {
+		if (db_param("mailing_lidnr") > 0) {
 			echo("<p>Door alleen je e-mailadres in te vullen wordt je lidnummer per e-mail verzonden.</p>\n");
 		}
 		echo("<p>");

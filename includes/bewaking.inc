@@ -294,6 +294,7 @@ function bew_postindeling($seizoen, $week=-1) {
 } # bew_postindeling
 
 function inschrijvenbewaking($lidid) {
+	global $table_prefix;
 	
 	fnDispMenu(2);
 	
@@ -344,7 +345,9 @@ function inschrijvenbewaking($lidid) {
 			if ($geldig) {
 				if (isset($_POST['Definitief'])) {
 					db_insbew("defmaken", $lidid, $insnr);
-					BevestInschrBewaking($lidid, $insnr);
+					if (db_param("mailing_bewakinginschrijving") > 0) {
+						BevestInschrBewaking($lidid, $insnr);
+					}
 				}
 			}
 		}
@@ -461,6 +464,26 @@ function fnDispBW($row, $output) {
 } # fnDispBW
 
 function BevestInschrBewaking($lidid, $insnr) {
+
+	if (db_param("mailing_bewakinginschrijving") > 0) {
+		$mailing = new Mailing(db_param("mailing_bewakinginschrijving"));
+		$mailing->xtrachar = "BW_I";
+		$mailing->xtranum = $insnr;
+		$mailing->resultaatversturen = 0;
+		if ($mailing->send($lidid) > 0) {
+			$mess = sprintf("Inschrijving %d is aan %s verzonden.", $insnr, db_naamlid($lidid));
+		} else {
+			$mess = sprintf("Fout bij het versturen van de e-mail. Probeer het later nogmaals of neem contact op met de webmaster.");
+		}
+		$mailing = null;
+	} else {
+		$mess = "Er is geen mailing voor het bevestigingen van de inschrijving gedefinieerd.";
+	}
+	db_logboek("add", $mess, 11, 2);
+//	echo("<script>location.href='/index.php';</script>\n");
+}
+
+function BevestInschrBewaking_BU($lidid, $insnr) {
 	
 	$emailbevestiginginschrijving = db_param("zs_emailbevestiginginschrijving");
 	if (isValidMailAddress($emailbevestiginginschrijving, 0) == false) {
@@ -483,9 +506,6 @@ function BevestInschrBewaking($lidid, $insnr) {
 		$adres = $row->ndAdres;
 		$postcode = $row->ndPostcode;
 		$woonplaats = $row->ndWoonplaats;
-		$email = $row->ndEmailBewaker;
-		$emailouders = $row->ndEmailOuders;
-		$geboren = $row->ndGeboren;
 		
 		$bevins .= sprintf("<li>%s - %s t/m %s", $row->Seizoen, strftime("%e %B %Y", strtotime($row->dteBegin)), strftime("%e %B %Y", strtotime($row->dteEinde)));
 		if ($row->Keuze == 2) {
@@ -501,10 +521,10 @@ function BevestInschrBewaking($lidid, $insnr) {
 	$content = str_ireplace("[%ADRES%]", $adres, $content);
 	$content = str_ireplace("[%POSTCODE%]", $postcode, $content);
 	$content = str_ireplace("[%WOONPLAATS%]", $woonplaats, $content);
-	$content = str_replace("[%NAAMVERENIGING%]", db_param("naamvereniging"), $content);
-	$content = str_replace("[%NAAMWEBSITE%]", db_param("naamwebsite"), $content);
-	$content = str_replace("[%URLWEBSITE%]", db_param("urlwebsite"), $content);
-	$content = str_replace("[%VOORWAARDEN%]", $voorwaardeninschrijving, $content);
+	$content = str_ireplace("[%NAAMVERENIGING%]", db_param("naamvereniging"), $content);
+	$content = str_ireplace("[%NAAMWEBSITE%]", db_param("naamwebsite"), $content);
+	$content = str_ireplace("[%URLWEBSITE%]", db_param("urlwebsite"), $content);
+	$content = str_ireplace("[%VOORWAARDEN%]", $voorwaardeninschrijving, $content);
 	$content = str_ireplace("[%BEWINSCHRIJVING%]", $bevins, $content);
 	$content = str_ireplace("[%BEWOPMERKING%]", db_memo("curval", $lidid, "I"), $content);
 	$content = str_ireplace("[%DIEET%]", db_memo("curval", $lidid, "D"), $content);
@@ -526,7 +546,7 @@ function BevestInschrBewaking($lidid, $insnr) {
 			db_add_mailing_hist($lidid, 0, $naambewaker, $email, $content, $mail, 1, "BW_I", $insnr);
 			$mess = sprintf("Bevestiging van deze inschrijving is naar %s verzonden.", $email);
 		} else {
-			db_add_mailing_hist($lidid, 0, $naambewaker, $email, $content, $mail, 0);
+			db_add_mailing_hist($lidid, 0, $naambewaker, $email, $content, $mail, 0, "BW_I", $insnr);
 			$mess = sprintf("Het versturen van de bevestiging van de inschrijving voor de bewaking aan %s is mislukt. Error: %s.", db_naamlid($lidid), $mail->ErrorInfo);
 		}
 		db_logboek("add", $mess, 11);
