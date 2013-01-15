@@ -128,6 +128,7 @@ class Mailing {
 	private $MergeField;
 	private $contains_mergefield = false;
 	private $contains_losse_email = false;
+	private $merged_subject = "";
 	private $merged_message = "";
 	
 	private $from_name = "";
@@ -152,7 +153,7 @@ class Mailing {
 	private $nok_send = "";
 	private $aant_ok = 0;
 	private $aant_nok = 0;
-	private $resultaatversturen = 1;
+	public $resultaatversturen = 1;
 	private $emailsecretariaat = "";
 	
 	public $xtrachar = "";
@@ -171,21 +172,17 @@ class Mailing {
 		if (db_param("max_grootte_bijlage") > 0) {
 			$this->max_size_attachm = db_param("max_grootte_bijlage");
 		}
-		if (db_param("mailing_resultaatversturen") == 1) {
-			$this->resultaatversturen = 1;
-		} else {
-			$this->resultaatversturen = 0;
-		}
+		$this->resultaatversturen = db_param("mailing_resultaatversturen");
 		$this->emailsecretariaat = db_param("emailsecretariaat");
 
-		$sql = sprintf("SELECT Roepnaam FROM %sLid AS L WHERE %s;", $table_prefix, "L.Nummer=%d");
+		$sql = sprintf("SELECT Roepnaam FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
 		$this->MergeField[]=array('Naam' => "Roepnaam", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT Voorletter FROM %sLid AS L WHERE %s;", $table_prefix, "L.Nummer=%d");
+		$sql = sprintf("SELECT Voorletter FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
 		$this->MergeField[]=array('Naam' => "Voorletters", 'SQL' => $sql);
 
 		$sql = sprintf("SELECT (CASE ISNULL(L.Tussenv) WHEN 0 THEN CONCAT(L.Tussenv, ' ', L.Achternaam)
-				 ELSE L.Achternaam END) AS Achternaam FROM %sLid AS L WHERE %s;", $table_prefix, "L.Nummer=%d");
+				 ELSE L.Achternaam END) AS Achternaam FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
 		$this->MergeField[]=array('Naam' => "Achternaam", 'SQL' => $sql);
 		
 		$sql = "SELECT CASE L.Geslacht";
@@ -207,12 +204,14 @@ class Mailing {
 		$sql = sprintf("SELECT %s AS Lidnaam FROM %sLid AS L WHERE L.Nummer=%%d;", $selectnaam, $table_prefix);
 		$this->MergeField[]=array('Naam' => "Lidnaam", 'SQL' => $sql);
 
+		$sql = sprintf("SELECT Login FROM %sAdmin_login WHERE LidID=%%d;", $table_prefix);
+		$this->MergeField[]=array('Naam' => "Login", 'SQL' => $sql);
+
 		$sql = sprintf("SELECT LM.Lidnr FROM %sLidmaatschap AS LM WHERE %s AND LM.Lid=%%d;", $table_prefix, $wherelid);
 		$this->MergeField[]=array('Naam' => "Lidnummer", 'SQL' => $sql);
 		
-		$sql = sprintf("SELECT TIMESTAMPDIFF(YEAR, LM.LIDDATUM, IF(ISNULL(LM.Opgezegd), CURDATE(), LM.Opgezegd))
-							FROM %sLidmaatschap AS LM WHERE LM.LIDDATUM < CURDATE() AND LM.Lid=%%d
-							ORDER BY LM.LIDDATUM DESC LIMIT 1;", $table_prefix);
+		$sql = sprintf("SELECT FLOOR(SUM(TIMESTAMPDIFF(MONTH, LM.LIDDATUM, IF(ISNULL(LM.Opgezegd), CURDATE(), LM.Opgezegd)))/12)
+							FROM %sLidmaatschap AS LM WHERE LM.LIDDATUM < CURDATE() AND LM.Lid=%%d LIMIT 1;", $table_prefix);
 		$this->MergeField[]=array('Naam' => "LengteLidmaatschap", 'SQL' => $sql);
 
 		$sql = sprintf("SELECT L.Telefoon FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
@@ -261,8 +260,8 @@ class Mailing {
 			$this->MergeField[]=array('Naam' => "OpenstaandBedrag", 'SQL' => $sql);
 		}
 
-		$sql = sprintf("SELECT (CASE L.`Machtiging afgegeven` WHEN 1 THEN 'Ja' ELSE 'Nee' END) AS MachtigingAfgegeven"
-											  . " FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
+		$sql = sprintf("SELECT (CASE L.`Machtiging afgegeven` WHEN 1 THEN 'Ja' ELSE 'Nee' END) AS MachtigingAfgegeven
+							 FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
 		$this->MergeField[]=array('Naam' => "MachtigingAfgegeven", 'SQL' => $sql);
 		
 		$sql = sprintf('SELECT DISTINCT DP.Kode FROM %1$sLiddipl AS LD INNER JOIN %1$sDiploma AS DP ON LD.DiplomaID = DP.RecordID
@@ -272,6 +271,10 @@ class Mailing {
 		$sql = sprintf('SELECT DISTINCT DP.Naam FROM %1$sLiddipl AS LD INNER JOIN %1$sDiploma AS DP ON LD.DiplomaID = DP.RecordID
 				 WHERE %2$s AND LD.Lid=%%d ORDER BY DP.Volgnr, LD.EXDATUM, DP.Naam;', $table_prefix, $whereliddipl);
 		$this->MergeField[]=array('Naam' => "DiplomaLang", 'SQL' => $sql);
+		
+		$sql = sprintf('SELECT DISTINCT DP.Naam FROM %1$sLiddipl AS LD INNER JOIN %1$sDiploma AS DP ON LD.DiplomaID = DP.RecordID
+				 WHERE %2$s AND LD.Lid=%%d AND DP.Zelfservice=1 ORDER BY DP.Volgnr, LD.EXDATUM, DP.Naam;', $table_prefix, $whereliddipl);
+		$this->MergeField[]=array('Naam' => "DiplomaZelfservice", 'SQL' => $sql);
 	
 		$sql = sprintf("SELECT L.RelnrRedNed FROM %sLid AS L WHERE %s;", $table_prefix, "L.Nummer=%d");
 		$this->MergeField[]=array('Naam' => "RelnrRedNed", 'SQL' => $sql);
@@ -280,11 +283,11 @@ class Mailing {
 		$this->MergeField[]=array('Naam' => "LidVanaf", 'SQL' => $sql);
 
 		$sql = sprintf("SELECT IF(LM.OPGEZEGD IS NULL, 'Niet', DATE_FORMAT(LM.Opgezegd, %s)) FROM %sLidmaatschap AS LM
-							 WHERE LM.LIDDATUM < CURDATE() AND %s
-							 ORDER BY LM.LIDDATUM DESC LIMIT 1;", $fdlang, $table_prefix, "LM.Lid=%d");
+							 WHERE LM.LIDDATUM < CURDATE() AND LM.Lid=%%d
+							 ORDER BY LM.LIDDATUM DESC LIMIT 1;", $fdlang, $table_prefix);
 		$this->MergeField[]=array('Naam' => "OpgezegdPer", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT L.Email FROM %sLid AS L WHERE %s;", $table_prefix, "Nummer=%d");
+		$sql = sprintf("SELECT L.Email FROM %sLid AS L WHERE Nummer=%%d;", $table_prefix);
 		$this->MergeField[]=array('Naam' => "Email", 'SQL' => $sql);
 
 		if (TableExists("LidRedNed")) {
@@ -294,10 +297,25 @@ class Mailing {
 		
 		if ($_SESSION['aantalrollen'] > 0) {
 			$sql = sprintf("SELECT O.Naam FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID = LO.OnderdeelID 
-					 WHERE %2\$s AND `Type`='R' AND %3\$s ORDER BY O.Naam;", $table_prefix, $wherelidond, "LO.Lid=%d");
+					 WHERE %2\$s AND `Type`='R' AND LO.Lid=%%d ORDER BY O.Naam;", $table_prefix, $wherelidond);
 			$this->MergeField[]=array('Naam' => "Rollen", 'SQL' => $sql);
 		}
-			 
+		
+		$sql = sprintf("SELECT IF(Memo IS NULL, 'Geen', Memo) FROM %sMemo WHERE Lid=%%d AND Soort='D';", $table_prefix);
+		$this->MergeField[]=array('Naam' => "Dieet", 'SQL' => $sql);		
+		
+		$sql = sprintf("SELECT IF(Memo IS NULL, 'Geen', Memo) FROM %sMemo WHERE Lid=%%d AND Soort='I';", $table_prefix);
+		$this->MergeField[]=array('Naam' => "OpmerkingInschrijvingBewaking", 'SQL' => $sql);
+		
+		$sql = sprintf("SELECT ValueChar FROM %sAdmin_param WHERE Naam='naamvereniging';", $table_prefix);
+		$this->MergeField[]=array('Naam' => "Naamvereniging", 'SQL' => $sql);
+		
+		$sql = sprintf("SELECT ValueChar FROM %sAdmin_param WHERE Naam='naamwebsite';", $table_prefix);
+		$this->MergeField[]=array('Naam' => "Naamwebsite", 'SQL' => $sql);
+		
+		$sql = sprintf("SELECT ValueChar FROM %sAdmin_param WHERE Naam='urlwebsite';", $table_prefix);
+		$this->MergeField[]=array('Naam' => "URLwebsite", 'SQL' => $sql);
+
 		sort($this->MergeField);
 		
 		$this->vulvars();
@@ -809,10 +827,8 @@ class Mailing {
 			printf("<p class='Mededeling'>Deze mailing is korter dan %d minuten geleden verzonden en wordt daarom niet nogmaals verzonden.</p>\n", $this->vertraging_tussen_verzenden/60);
 		} elseif (isValidMailAddress($this->from_addr, 0) == false) {
 			printf("<p class='mededeling'>Er is geen geldig 'Vanaf e-mail' ingevuld en daarom wordt deze e-mail niet verzonden.</p>\n");
-		} elseif ($lidid > 0) {
-			$this->send_mailing(0, $lidid);
 		} else {
-			$this->send_mailing(0);
+			return $this->send_mailing(0, $lidid);
 		}
 	}
 	
@@ -822,7 +838,6 @@ class Mailing {
 		$mail = new RBMmailer();
 		$mail->From = $this->from_addr;
 		$mail->FromName = $this->from_name;
-		$mail->Subject = $this->subject;
 		
 		if ($preview == 0) {
 			$ad = $this->dir_attachm . "/" . $this->mid;
@@ -844,8 +859,9 @@ class Mailing {
 		}
 		if ($preview == 1 and count($rcpts) == 0) {
 			$this->merge($_SESSION['lidid']);
+			$mail->Subject = $this->merged_subject;
 			$mail->Body = $this->merged_message;
-			$mail->addstationary();
+			$mail->addstationary($_SESSION['naamingelogde']);
 			echo("<br>\n" . $mail->Body);
 		}
 		
@@ -853,12 +869,11 @@ class Mailing {
 			if ($rcpt->Nummer > 0) {
 				$this->merge($rcpt->Nummer);
 				$mail->Body = $this->merged_message;
+				$mail->Subject = $this->merged_subject;
+				$e = $mail->ToevoegenLid($rcpt->Nummer);
 			} else {
 				$mail->Body = $this->message;
-			}
-			if ($rcpt->Nummer > 0) {
-				$e = $mail->ToevoegenLid($rcpt->Nummer);
-			} elseif (isValidMailAddress($rcpt->to_address, 0)) {
+				$mail->Subject = $this->subject;
 				$mail->AddAddress($rcpt->to_address);
 				$e = $rcpt->to_address;
 				$this->contains_losse_email = true;
@@ -916,8 +931,12 @@ class Mailing {
 		$summary = "";
 		
 		if ($preview == 0 and $this->aant_ok > 0) {
-			$oms = sprintf("Mailing %d (%s) is aan %d ontvangers verzonden.", $this->mid, $this->subject, $this->aant_ok);
-			db_logboek("add", $oms, 4);
+			if ($this->aant_ok > 1) {
+				$mess = sprintf("Mailing %d (%s) is aan %d ontvangers verzonden.", $this->mid, $this->subject, $this->aant_ok);
+			} else {
+				$mess = sprintf("Mailing %d (%s) is aan %s verzonden.", $this->mid, $this->subject, $rcpt->Naam_lid);
+			}
+			db_logboek("add", $mess, 4);
 		}
 		
 		if ($this->resultaatversturen == 1 and $preview == 0) {
@@ -947,16 +966,59 @@ class Mailing {
 				db_add_mailing_hist(0, 0, "", "", $this->message, $mail, 1, "MLRES", $this->mid);
 			}
 		}
-	}
+		return $this->aant_ok;
+	} # send_mailing
 	
 	private function merge($lidid=0) {
 		global $table_prefix;
 		
+		$this->merged_subject = $this->subject;
 		$this->merged_message = $this->message;
+		
+		if ($this->mid == db_param("mailing_bevestigingopzegging")) {
+			$xtrachar = "BO_LM";
+			if ($this->xtranum > 0) {
+				$this->merged_message = str_ireplace("[%Lidnummer%]", $xtranum, $this->merged_message);
+				$row = db_lidmaatschap("record", 0, "", 0, "", $this->xtranum);
+				if (isset($row->OpgezegdPer)) {
+					$this->merged_message = str_ireplace("[%OpgezegdPer%]", $row->OpgezegdPer, $this->merged_message);
+				}
+			}
+			
+		} elseif ($this->mid == db_param("mailing_lidnr")) {
+			$this->xtrachar = "LNR";
+			if (db_param("maxinlogpogingen") > 0 and $row->FouteLogin > db_param("maxinlogpogingen")) {
+				$geblokt = sprintf("Er is %d keer geprobeerd met deze login in te loggen. Hierdoor is dit account geblokkeerd. Vraag aan de webmaster om deze weer vrij te geven.", $row->FouteLogin);
+			} else {
+				$geblokt = "";
+			}
+			$this->merged_message = str_ireplace("[%GEBLOKKEERD%]", $geblokt, $this->merged_message);
+			$this->merged_message = str_ireplace("[%IPADDRESS%]", $_SERVER['REMOTE_ADDR'], $this->merged_message);
+			
+		} elseif ($this->mid == db_param("mailing_bewakinginschrijving")) {
+			$this->xtrachar = "BW_I";
+			
+			$rows = db_insbew("overzichtlid", 0, $this->xtranum);
+			$bevins = "";
+			foreach ($rows as $row) {		
+				$bevins .= sprintf("<li>%s - %s t/m %s", $row->Seizoen, strftime("%e %B %Y", strtotime($row->dteBegin)), strftime("%e %B %Y", strtotime($row->dteEinde)));
+				if ($row->Keuze == 2) {
+					$bevins .= " (2de keuze)";
+				}
+				if (strlen($row->Opmerking) > 1) {
+					$bevins .= sprintf(" (%s)", $row->Opmerking);
+				}
+				$bevins .= "</li>\n";
+			}
+			$this->merged_message = str_ireplace("[%VOORWAARDEN%]", db_param("zs_voorwaardeninschrijving"), $this->merged_message);
+			$this->merged_message = str_ireplace("[%BEWINSCHRIJVING%]", $bevins, $this->merged_message);
+			$this->merged_message = str_ireplace("[%GEZONDHEID%]", db_memo("curval", $lidid, "G"), $this->merged_message);
+		}
+		
 		if ($lidid > 0) {
 			foreach($this->MergeField as $fld) {
 				$nm = "[%" . $fld['Naam'] . "%]";
-				if (strpos($this->merged_message, $nm) !== false) {
+				if (stripos($this->merged_message, $nm) !== false or stripos($this->merged_subject, $nm) !== false) {
 					$query  = str_replace("%d", $lidid, $fld['SQL']);
 					$result = fnQuery($query);
 					$nv = "";
@@ -964,8 +1026,12 @@ class Mailing {
 						if (strlen($nv) > 0) { $nv .= ", "; }
 						$nv .= $val[0];
 					}
+					$this->merged_subject = str_ireplace($nm, htmlentities($nv), $this->merged_subject);
 					$this->merged_message = str_ireplace($nm, htmlentities($nv), $this->merged_message);
 					$this->contains_mergefield = true;
+					if ($this->xtrachar == "LNR" and $nm == "[%Lidnummer%]" and $this->xtranum == 0) {
+						$this->xtranum = $nv;
+					}
 				}
 			}
 		}
