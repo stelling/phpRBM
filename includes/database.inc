@@ -906,12 +906,19 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 								WHERE BB.Einddatum > CURDATE() AND %3\$s AND BI.Definitief > BI.Ingevoerd
 								ORDER BY BS.Kode, BB.Kode, BB.Begindatum;", $table_prefix, $selectnaam, $w);
 		$result = fnQuery($query);
-		return $result->fetchAll();
+		return $result->fetchAll();	
+		
+	} elseif ($actie == "laatstelid") {
+		$query = sprintf("SELECT IFNULL(MAX(Nummer), 0) FROM %sBewaking_Inschrijving WHERE Lid=%d;", $table_prefix, $lidid);
+		$result = fnQuery($query);
+		return $result->fetchColumn();
+		
 	} elseif ($actie == "inschrijving") {
 		$query = sprintf("SELECT BI.* FROM %sBewaking_Inschrijving AS BI
 								WHERE BI.Lid=%d AND BI.BlokID=%d;", $table_prefix, $lidid, $blok);
 		$result = fnQuery($query);
 		return $result->fetch();
+		
 	} elseif ($actie == "export") {
 		$query = sprintf("SELECT %1\$s AS NaamLid, BI.Lid, BB.SeizoenID, BB.Begindatum, BB.Einddatum
 								FROM (%2\$sBewaking_Inschrijving AS BI INNER JOIN %2\$sLid AS L ON BI.Lid = L.Nummer) INNER JOIN %2\$sBewaking_Blok AS BB ON BI.BlokID = BB.RecordID
@@ -919,6 +926,7 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 								ORDER BY L.Achternaam, L.Tussenv, L.Roepnaam, BB.Begindatum;", $selectnaam, $table_prefix);
 		$result = fnQuery($query);
 		return $result->fetchAll();
+		
 	} elseif ($actie == "add" and $lidid > 0 and $blok > 0 and $insnr > 0) {
 		$query = sprintf("INSERT INTO %sBewaking_Inschrijving (BlokID, Lid, Nummer, Keuze, Opmerking, Ingevoerd)
 								VALUES (%d, %d, %d, %d, \"%s\", CURDATE());", $table_prefix, $blok, $lidid, $insnr, $keuze, $opmerk);
@@ -930,6 +938,7 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 			}
 			db_logboek("add", $mess, 11);
 		}
+		
 	} elseif ($actie == "update" and $lidid > 0 and $blok > 0) {
 		$query = sprintf("UPDATE %sBewaking_Inschrijving SET Nummer=%d, Keuze=%d, Opmerking=\"%s\", Definitief=NULL
 								WHERE BlokID=%d AND Lid=%d;", $table_prefix, $insnr, $keuze, $opmerk, $blok, $lidid);
@@ -944,9 +953,12 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 		fnQuery($query);
 		$mess = sprintf("Inschrijving bewaking voor blok '%s' is bij %s verwijderd.", db_bewaking_blok("omsblok", 0, $blok), db_naamlid($lidid));
 		db_logboek("add", $mess, 11);
+		
 	} elseif ($actie == "defmaken" and $lidid > 0 and $insnr > 0) {
 		$query = sprintf("UPDATE %sBewaking_Inschrijving SET Definitief=SYSDATE() WHERE Nummer=%d AND Lid=%d;", $table_prefix, $insnr, $lidid);
-		fnQuery($query);
+		$result = fnQuery($query);
+		return $result;
+		
 	} elseif ($actie == "afmelden") {
 		$query = sprintf("UPDATE %sBewaking_Inschrijving AS BI SET Afgemeld=SYSDATE()
 								WHERE BI.Afgemeld < BI.Ingevoerd AND BI.Definitief > BI.Ingevoerd AND BI.Keuze IN (1, 3);", $table_prefix);
@@ -954,6 +966,7 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 		$mess = sprintf("Er zijn %d inschrijvingen voor bewaking afgemeld.", $result);
 		db_logboek("add", $mess, 11);
 		return $mess;
+		
 	} else {
 		debug(sprintf("Onbekende actie '%s' in db_insbew", $actie));
 	}
@@ -1136,6 +1149,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		}
 		db_logboek("add", $mess, 1);
 		return $mess;
+		
 	} elseif ($actie == "add") {
 		$login = cleanlogin($login);
 		$query = sprintf("SELECT Login FROM %sAdmin_login WHERE LidID=%d;", $table_prefix, $lidid);
@@ -1187,6 +1201,10 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		} else {
 			return false;
 		}
+		
+	} elseif ($actie == "foutelogin" and $lidid > 0) {
+		$query = sprintf("SELECT FouteLogin FROM %sAdmin_login WHERE LidID=%d", $table_prefix, $lidid);
+		return db_scalar($query);
 		
 	} elseif ($actie == "uitloggen") {
 		$query = sprintf("UPDATE %sAdmin_login SET Ingelogd=0 WHERE Ingelogd=1 AND (LastActivity < ADDDATE(SYSDATE(), INTERVAL -21 MINUTE) OR LidID=%d);", $table_prefix, $lidid);
@@ -1375,6 +1393,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		}
 		db_logboek("add", $mess, 2);
 		return $mess;
+		
 	} else {
 		$mess = sprintf("onbekende actie '%s' in db_logins", $actie);
 		debug($mess, 1, 0, 1);
@@ -1793,7 +1812,7 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0) {
 		$query = sprintf("SELECT A.DatumTijd as `dtsDatum en tijd`, Omschrijving%1\$s
 								FROM %2\$sAdmin_activiteit AS A LEFT OUTER JOIN %2\$sLid AS L ON A.LidID = L.Nummer
 								WHERE %3\$s
-								ORDER BY A.RecordID DESC LIMIT 250;", $s, $table_prefix, $w);
+								ORDER BY A.RecordID DESC LIMIT 500;", $s, $table_prefix, $w);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
@@ -2457,6 +2476,9 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrStrings['scriptnainloggen'] = "";
 	$arrStrings['urlvereniging'] = "";
 	$arrStrings['urlwebsite'] = $_SERVER["HTTP_HOST"];
+	$arrStrings['zs_emailbevestigingbestelling'] = "";
+	$arrStrings['zs_emailnieuwepasfoto'] = "";
+	$arrStrings['zs_muteerbarememos'] = "";
 	$arrStrings['zs_voorwaardenbestelling'] = "";
 	$arrStrings['zs_voorwaardeninschrijving'] = "";
 	

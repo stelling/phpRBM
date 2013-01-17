@@ -302,19 +302,28 @@ class Mailing {
 		}
 		
 		$sql = sprintf("SELECT IF(Memo IS NULL, 'Geen', Memo) FROM %sMemo WHERE Lid=%%d AND Soort='D';", $table_prefix);
-		$this->MergeField[]=array('Naam' => "Dieet", 'SQL' => $sql);		
+		$this->MergeField[]=array('Naam' => "Dieet", 'SQL' => $sql);
+		
+		$sql = sprintf("SELECT IF(Memo IS NULL, 'Geen', Memo) FROM %sMemo WHERE Lid=%%d AND Soort='G';", $table_prefix);
+		$this->MergeField[]=array('Naam' => "MemoGezondheid", 'SQL' => $sql);
 		
 		$sql = sprintf("SELECT IF(Memo IS NULL, 'Geen', Memo) FROM %sMemo WHERE Lid=%%d AND Soort='I';", $table_prefix);
 		$this->MergeField[]=array('Naam' => "OpmerkingInschrijvingBewaking", 'SQL' => $sql);
 		
-		$sql = sprintf("SELECT ValueChar FROM %sAdmin_param WHERE Naam='naamvereniging';", $table_prefix);
-		$this->MergeField[]=array('Naam' => "Naamvereniging", 'SQL' => $sql);
+		$this->MergeField[]=array('Naam' => "Naamvereniging", 'SQL' => "");
+		$this->MergeField[]=array('Naam' => "Naamwebsite", 'SQL' => "");
+		$this->MergeField[]=array('Naam' => "URLwebsite", 'SQL' => "");
 		
-		$sql = sprintf("SELECT ValueChar FROM %sAdmin_param WHERE Naam='naamwebsite';", $table_prefix);
-		$this->MergeField[]=array('Naam' => "Naamwebsite", 'SQL' => $sql);
-		
-		$sql = sprintf("SELECT ValueChar FROM %sAdmin_param WHERE Naam='urlwebsite';", $table_prefix);
-		$this->MergeField[]=array('Naam' => "URLwebsite", 'SQL' => $sql);
+		// Velden die bij specifieke mailings horen.
+		if ($this->mid == db_param("mailing_lidnr")) {
+			$this->xtrachar = "LNR";
+			$this->MergeField[]=array('Naam' => "Geblokkeerd", 'SQL' => "");
+			$this->MergeField[]=array('Naam' => "IPaddress", 'SQL' => "");
+		} elseif ($this->mid == db_param("mailing_bewakinginschrijving")) {
+			$this->xtrachar = "BW_I";
+			$this->MergeField[]=array('Naam' => "VoorwaardenInschrijving", 'SQL' => "");
+			$this->MergeField[]=array('Naam' => "InschrijvingBewaking", 'SQL' => "");
+		}
 
 		sort($this->MergeField);
 		
@@ -381,7 +390,7 @@ class Mailing {
 			$et = sprintf(" (Het domein van dit adres moet '%s' zijn)", db_param("mailing_beperkfrom"));
 		}
 		printf("<tr><td class='label'>Vanaf e-mail:</td><td><input type='email' name='from_addr' value='%s' size=50 maxlength=50>%s</td></tr>\n", $this->from_addr, $et);
-		printf("<tr><td class='label'>Aan:</td><td><input type='text' name='to_name' value='%s' size=50 maxlength=50 onBlur='this.form.submit();'> (Omschrijving van de groep personen aan wie deze mailing gericht is)</td></tr>\n", $this->to_name);
+		printf("<tr><td class='label'>Aan:</td><td><input type='text' name='to_name' value='%s' size=50 maxlength=50> (Omschrijving van de groep personen aan wie deze mailing gericht is)</td></tr>\n", $this->to_name);
 		
 		$meldingen = "Er zijn nog geen ontvangers aan deze mailing toegevoegd.<br>\n";
 		$verzendenmag = false;
@@ -459,29 +468,19 @@ class Mailing {
 			printf("</td></tr>\n");
 		}
 		printf("<tr><td class='label'>Cc:</td><td><input type='text' name='cc_addr' value='%s' size=100></td></tr>\n", $this->cc_addr);
-		printf("<tr><td class='label'>Onderwerp:</td><td><input type='text' name='subject' value='%s' size=100 onBlur='this.form.submit();'></td></tr>\n", $this->subject);
-		if ($this->template == 1) {
-			$templ_chk = " checked";
+		if (strlen($this->subject) > 5) {
+			$ob = "";
 		} else {
-			$templ_chk = "";
+			$ob = "onBlur='this.form.submit();'";
 		}
-		if ($this->confidential == 1) {
-			$conf_chk = " checked";
-		} else {
-			$conf_chk = "";
-		}
-		if ($this->verzamelen == 1) {
-			$verz_chk = " checked";
-		} else {
-			$verz_chk = "";
-		}
+		printf("<tr><td class='label'>Onderwerp:</td><td><input type='text' name='subject' value='%s' size=100 %s></td></tr>\n", $this->subject, $ob);
 		
-		printf("<tr><td class='label'>Opties:</td><td><input type='checkbox' name='template' value=1%s>Template&nbsp;", $templ_chk);
-		printf("<input type='checkbox' name='confidential' value=1%s>Vertrouwelijk&nbsp;", $conf_chk);
-		printf("<input type='checkbox' name='verzamelen' value=1%s>E&eacute;n gezamenlijke e-mail</td>", $verz_chk);
+		printf("<tr><td class='label'>Opties:</td><td><input type='checkbox' name='template' value=1%s>Template&nbsp;", checked($this->template));
+		printf("<input type='checkbox' name='confidential' value=1%s>Vertrouwelijk&nbsp;", checked($this->confidential));
+		printf("<input type='checkbox' name='verzamelen' value=1%s>E&eacute;n gezamenlijke e-mail</td>", checked($this->verzamelen));
 		echo("</tr>\n</table>\n");
 		
-		printf("<textarea name='message' onBlur='this.form.submit();'>%s</textarea>\n", $this->message);
+		printf("<textarea name='message'>%s</textarea>\n", $this->message);
 		
 		echo("<script>CKEDITOR.replace('message',{
 			height : 450,
@@ -492,17 +491,16 @@ class Mailing {
 			scayt_autoStartup : true,
 			toolbar :
 			[
-				['Bold','Italic','Underline','Strike','-','Subscript','Superscript'],
-				['Cut','Copy','Paste','PasteText','PasteFromWord','-','Print', 'SpellChecker', 'Scayt'],
-				['Undo','Redo','-','Find','Replace','-','SelectAll','RemoveFormat'],
-				['NumberedList','BulletedList','-','Outdent','Indent','Blockquote'],
-				'/',
-				['JustifyLeft','JustifyCenter','JustifyRight','JustifyBlock'],
-				['Link','Unlink'],
-				['Image','Table','HorizontalRule','Smiley','SpecialChar'],
-				['Format','FontSize'],
-				['TextColor'],
-				['Maximize', 'ShowBlocks','-','About']
+				{ name: 'document', items : [ 'Source','-','Preview','Print','-','Templates' ] },
+				{ name: 'clipboard', items : [ 'Cut','Copy','Paste','PasteText','PasteFromWord','-','Undo','Redo' ] },
+				{ name: 'editing', items : [ 'Find','Replace','-','SelectAll','-','SpellChecker', 'Scayt' ] },
+				{ name: 'basicstyles', items : [ 'Bold','Italic','Underline','Strike','Subscript','Superscript','-','RemoveFormat' ] },
+				{ name: 'paragraph', items : [ 'NumberedList','BulletedList','-','Outdent','Indent','-','Blockquote','CreateDiv','-','JustifyLeft','JustifyCenter','JustifyRight','JustifyBlock','-','BidiLtr','BidiRtl' ] },
+				{ name: 'links', items : [ 'Link','Unlink' ] },
+				{ name: 'insert', items : [ 'Image','Flash','Table','HorizontalRule','Smiley','SpecialChar','PageBreak','Iframe' ] },
+				{ name: 'styles', items : [ 'Styles','Format','Font','FontSize' ] },
+				{ name: 'colors', items : [ 'TextColor','BGColor' ] },
+				{ name: 'tools', items : [ 'Maximize', 'ShowBlocks','-','About' ] }
 			]
 		});</script>\n");
 	
@@ -862,7 +860,7 @@ class Mailing {
 			$mail->Subject = $this->merged_subject;
 			$mail->Body = $this->merged_message;
 			$mail->addstationary($_SESSION['naamingelogde']);
-			echo("<br>\n" . $mail->Body);
+			echo($mail->Body);
 		}
 		
 		foreach($rcpts as $rcpt) {
@@ -973,7 +971,14 @@ class Mailing {
 		global $table_prefix;
 		
 		$this->merged_subject = $this->subject;
+		$this->merged_subject = str_ireplace("[%Naamvereniging%]", db_param("naamvereniging"), $this->merged_subject);
+		$this->merged_subject = str_ireplace("[%Naamwebsite%]", db_param("naamwebsite"), $this->merged_subject);
+		$this->merged_subject = str_ireplace("[%URLwebsite%]", db_param("urlwebsite"), $this->merged_subject);
+		
 		$this->merged_message = $this->message;
+		$this->merged_message = str_ireplace("[%Naamvereniging%]", db_param("naamvereniging"), $this->merged_message);
+		$this->merged_message = str_ireplace("[%Naamwebsite%]", db_param("naamwebsite"), $this->merged_message);
+		$this->merged_message = str_ireplace("[%URLwebsite%]", db_param("urlwebsite"), $this->merged_message);
 		
 		if ($this->mid == db_param("mailing_bevestigingopzegging")) {
 			$xtrachar = "BO_LM";
@@ -986,20 +991,20 @@ class Mailing {
 			}
 			
 		} elseif ($this->mid == db_param("mailing_lidnr")) {
-			$this->xtrachar = "LNR";
-			if (db_param("maxinlogpogingen") > 0 and $row->FouteLogin > db_param("maxinlogpogingen")) {
-				$geblokt = sprintf("Er is %d keer geprobeerd met deze login in te loggen. Hierdoor is dit account geblokkeerd. Vraag aan de webmaster om deze weer vrij te geven.", $row->FouteLogin);
+			if (db_param("maxinlogpogingen") > 0 and $db_logins("foutelogin", $lidid) > db_param("maxinlogpogingen")) {
+				$geblokt = sprintf("Er is %d keer geprobeerd met deze login in te loggen. Hierdoor is dit account geblokkeerd. Vraag aan de webmaster om deze weer vrij te geven.", $db_logins("foutelogin", $lidid));
 			} else {
 				$geblokt = "";
 			}
-			$this->merged_message = str_ireplace("[%GEBLOKKEERD%]", $geblokt, $this->merged_message);
-			$this->merged_message = str_ireplace("[%IPADDRESS%]", $_SERVER['REMOTE_ADDR'], $this->merged_message);
+			$this->merged_message = str_ireplace("[%Geblokkeerd%]", $geblokt, $this->merged_message);
+			$this->merged_message = str_ireplace("[%IPaddress%]", $_SERVER['REMOTE_ADDR'], $this->merged_message);
 			
 		} elseif ($this->mid == db_param("mailing_bewakinginschrijving")) {
-			$this->xtrachar = "BW_I";
-			
+			if ($this->xtranum == 0 and $lidid > 0) {
+				$this->xtranum = db_insbew("laatstelid", $lidid);
+			}
 			$rows = db_insbew("overzichtlid", 0, $this->xtranum);
-			$bevins = "";
+			$bevins = "<ul>\n";
 			foreach ($rows as $row) {		
 				$bevins .= sprintf("<li>%s - %s t/m %s", $row->Seizoen, strftime("%e %B %Y", strtotime($row->dteBegin)), strftime("%e %B %Y", strtotime($row->dteEinde)));
 				if ($row->Keuze == 2) {
@@ -1010,24 +1015,25 @@ class Mailing {
 				}
 				$bevins .= "</li>\n";
 			}
-			$this->merged_message = str_ireplace("[%VOORWAARDEN%]", db_param("zs_voorwaardeninschrijving"), $this->merged_message);
-			$this->merged_message = str_ireplace("[%BEWINSCHRIJVING%]", $bevins, $this->merged_message);
-			$this->merged_message = str_ireplace("[%GEZONDHEID%]", db_memo("curval", $lidid, "G"), $this->merged_message);
+			$bevins .= "</ul>\n";
+			$this->merged_message = str_ireplace("[%VoorwaardenInschrijving%]", db_param("zs_voorwaardeninschrijving"), $this->merged_message);
+			$this->merged_message = str_ireplace("[%InschrijvingBewaking%]", $bevins, $this->merged_message);
+			
 		}
 		
 		if ($lidid > 0) {
 			foreach($this->MergeField as $fld) {
 				$nm = "[%" . $fld['Naam'] . "%]";
-				if (stripos($this->merged_message, $nm) !== false or stripos($this->merged_subject, $nm) !== false) {
+				if (stripos($this->merged_message, $nm) !== false or stripos($this->merged_subject, $nm) !== false and isset($fld['SQL']) and strlen($fld['SQL']) > 0) {
 					$query  = str_replace("%d", $lidid, $fld['SQL']);
 					$result = fnQuery($query);
 					$nv = "";
 					foreach($result->fetchAll(PDO::FETCH_NUM) as $val) {
 						if (strlen($nv) > 0) { $nv .= ", "; }
-						$nv .= $val[0];
+						$nv .= htmlentities($val[0]);
 					}
-					$this->merged_subject = str_ireplace($nm, htmlentities($nv), $this->merged_subject);
-					$this->merged_message = str_ireplace($nm, htmlentities($nv), $this->merged_message);
+					$this->merged_subject = str_ireplace($nm, $nv, $this->merged_subject);
+					$this->merged_message = str_ireplace($nm, $nv, $this->merged_message);
 					$this->contains_mergefield = true;
 					if ($this->xtrachar == "LNR" and $nm == "[%Lidnummer%]" and $this->xtranum == 0) {
 						$this->xtranum = $nv;
