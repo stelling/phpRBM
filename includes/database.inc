@@ -557,7 +557,7 @@ function db_lidmaatschap($actie, $lidid=0, $opgezegd="", $rid=0, $liddatum="", $
 				$query = sprintf("UPDATE Lidmaatschap SET %s Gewijzigd=SYSDATE() WHERE Lid=%d AND LIDDATUM=%s;", $set_access, $cur->Lid, accessdate($cur->LIDDATUM));
 				db_interface("add", $query, $lidid);
 				$mess = sprintf("Lidmaatschap van lid %s is gewijzigd. %s", db_naamlid($lidid), $wijz);
-				db_logboek("add", $mess, 6);
+				db_logboek("add", $mess, 6, $lidid);
 			}
 		}
 	} elseif ($actie == "add" and $lidid > 0) {
@@ -570,7 +570,7 @@ function db_lidmaatschap($actie, $lidid=0, $opgezegd="", $rid=0, $liddatum="", $
 			$query = sprintf("INSERT INTO Lidmaatschap (Lid, Lidnr, LIDDATUM, Ingevoerd, Gewijzigd) VALUES (%d, %d, %s, CURDATE(), SYSDATE());", $lidid, $lidnr, accessdate($liddatum));
 			db_interface("add", $query, $lidid);
 			$mess = sprintf("Bij lid %s is een lidmaatschap met nummer %d toegevoegd.", db_naamlid($lidid), $lidnr);
-			db_logboek("add", $mess, 6);
+			db_logboek("add", $mess, 6, $lidid);
 		}
 	}
 	
@@ -598,7 +598,7 @@ function db_memo($actie, $lidid, $srt, $nv="") {
 		} else {
 			$mess = sprintf("Het toevoegen van memo '%s' is bij %s met waarde '%s' is mislukt.", $arrSoortMemo[$srt], db_naamlid($lidid), $nv);
 		}
-		db_logboek("add", $mess, 6, 0);
+		db_logboek("add", $mess, 6, $lidid);
 	} elseif ($actie == "update") {
 		if ($srt == "WN") {
 			$query = sprintf("UPDATE %sLid SET `Waarschuwen bij nood`=\"%s\", Gewijzigd=SYSDATE() WHERE Nummer=%d;", $table_prefix, $nv, $lidid);
@@ -609,7 +609,7 @@ function db_memo($actie, $lidid, $srt, $nv="") {
 		if ($result > 0) {
 			db_interface("add", $query, $lidid);
 			$mess = sprintf("Memo '%s' is bij %s in '%s' gewijzigd.", $arrSoortMemo[$srt], db_naamlid($lidid), $nv);
-			db_logboek("add", $mess, 6);
+			db_logboek("add", $mess, 6, $lidid);
 		}
 	} elseif ($actie == "delete") {
 		$query = sprintf("DELETE FROM %sMemo WHERE Lid=%d AND Soort='%s';", $table_prefix, $lidid, $srt);
@@ -617,7 +617,7 @@ function db_memo($actie, $lidid, $srt, $nv="") {
 		if ($result > 0) {
 			db_interface("add", $query, $lidid);
 			$mess = sprintf("Memo '%s' is bij %s verwijderd.", $arrSoortMemo[$srt], db_naamlid($lidid));
-			db_logboek("add", $mess, 6, 0, 1);
+			db_logboek("add", $mess, 6, $lidid, 1);
 		}
 	}
 } # db_ledenwijzigingen
@@ -631,7 +631,7 @@ function db_authorisation($actie, $recid=0, $tabpage="") {
 			$query = sprintf("DELETE FROM %sAdmin_access WHERE RecordID=%d;", $table_prefix, $recid);
 			if (fnQuery($query) > 0) {
 				$mess = sprintf("In de tabel '%sAdmin_access' is record %d verwijderd.", $table_prefix, $recid);
-				db_logboek("add", $mess, 5);
+				db_logboek("add", $mess, 5, 0, 0, $recid);
 				$query = sprintf("OPTIMIZE TABLE %sAdmin_access;", $table_prefix);
 				fnQuery($query);
 			}
@@ -640,7 +640,7 @@ function db_authorisation($actie, $recid=0, $tabpage="") {
 			db_logboek("add", $mess, 5, 0, 1);
 		}
 	} elseif ($actie == "lijst") {
-		$query = sprintf("SELECT RecordID, Toegang, Tabpage FROM %sAdmin_access ORDER BY Tabpage;", $table_prefix);
+		$query = sprintf("SELECT RecordID, Toegang, Tabpage, Ingevoerd FROM %sAdmin_access ORDER BY Tabpage;", $table_prefix);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "tabpages") {
@@ -649,9 +649,9 @@ function db_authorisation($actie, $recid=0, $tabpage="") {
 		return $result->fetchAll();
 	} elseif ($actie == "add") {
 		$query = sprintf("INSERT INTO %sAdmin_access SET Tabpage=\"%s\", Ingevoerd=CURDATE();", $table_prefix, $tabpage);
-		fnQuery($query);
+		$result = fnQuery($query);
 		$mess = sprintf("Tabpage '%s' is aan de tabel 'Admin_access' toegevoegd.", $tabpage);
-		db_logboek("add", $mess, 5);
+		db_logboek("add", $mess, 5, 0, 0, $result);
 	} elseif ($actie == "update") {  // Nog niet af en nog niet in gebruik
 		$query = sprintf("UPDATE %1\$sAdmin_access SET Toegang=%2\$d, Gewijzigd=SYSDATE() WHERE RecordID=%3\$d AND Toegang<>%2\$d;", $table_prefix, $_POST[$vn], $recid);
 		$result = fnQuery($query);
@@ -816,7 +816,7 @@ function db_bewaking_blok($actie, $seizoen=-1, $blokid=0, $field="", $val="") {
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$mess = sprintf("Bewakingsblok %d is toegevoegd.", $result);
-			db_logboek("add", $mess, 11, 0, 1);
+			db_logboek("add", $mess, 11, 0, 1, $result);
 		}
 		
 	} elseif ($actie == "edit" and $blokid > 0 and strlen($field) > 0) {
@@ -833,7 +833,7 @@ function db_bewaking_blok($actie, $seizoen=-1, $blokid=0, $field="", $val="") {
 		} else {
 			$mess = sprintf("Veld '%s' in Bewakingsblok %d is niet gewijzigd.", $field, $blokid);
 		}
-		db_logboek("add", $mess, 11);
+		db_logboek("add", $mess, 11, 0, 0, $blokid);
 		
 	} elseif ($actie == "delete" and $blokid > 0) {
 		$oms = db_bewaking_blok("omsblok", 0, $blokid);
@@ -848,7 +848,7 @@ function db_bewaking_blok($actie, $seizoen=-1, $blokid=0, $field="", $val="") {
 				$mess = sprintf("Bewakingsblok %d is niet verwijderd, omdat het niet bestaat.", $blokid);
 			}
 		}
-		db_logboek("add", $mess, 11, 0, 1);
+		db_logboek("add", $mess, 11, 0, 1, $blokid);
 		
 	} else {
 		debug(sprintf("Onbekende actie '%s' in db_bewaking_blok", $actie));
@@ -1239,7 +1239,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			$result = fnQuery($query);
 			if ($result > 0) {
 				$mess = sprintf("De login van %s is verwijderd.", db_naamlid($lidid));
-				db_logboek("add", $mess, 1);
+				db_logboek("add", $mess, 1, $lidid);
 				fnQuery(sprintf("OPTIMIZE TABLE %sAdmin_login;", $table_prefix));
 			}
 		} else {
@@ -1415,7 +1415,7 @@ function db_change_password($pw_new, $pw_old, $lidid) {
 	} else {
 		$mess = "Oude wachtwoord is niet correct, wachtwoord is niet gewijzigd.";
 	}	
-	db_logboek("add", $mess, 1);
+	db_logboek("add", $mess, 1, $lidid);
 	return $mess;
 }
 
@@ -1621,7 +1621,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 								VALUES ('%s', '%s', '%s', '%s', SYSDATE(), %d);", $table_prefix, db_param("naamvereniging"), $email, $aan, $subj, $_SESSION['lidid']);
 		$id = fnQuery($query);
 		$mess = sprintf("Mailing %d (%s) is door %s toegevoegd.", $id, $subj, $_SESSION['naamingelogde']);
-		db_logboek("add", $mess, 4);
+		db_logboek("add", $mess, 4, 0, 0, $id);
 		return $id;
 		
 	} elseif ($actie == "addrcpt" and $mid > 0) {
@@ -1744,7 +1744,7 @@ function db_kostenplaats($actie) {
 	return $result->fetchAll();
 }
 
-function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0) {
+function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0, $referid=0) {
 	global $table_prefix, $selectnaam, $selectzoeknaam;
 	
 	if ($type >= 0) {
@@ -1758,6 +1758,10 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0) {
 		$script .= "?" . $_SERVER['QUERY_STRING'];
 	}
 	
+	if ($lidid > 0 and $referid == 0) {
+		$referid = $lidid;
+	}
+	
 	if ($actie == "add" and strlen($oms) > 0) {
 		$query = sprintf("INSERT DELAYED INTO %sAdmin_activiteit SET
 				DatumTijd=SYSDATE(),
@@ -1765,8 +1769,9 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0) {
 				IP_adres='%s',
 				USER_AGENT='%s',
 				Omschrijving=\"%s\",
+				ReferID=%d,
 				TypeActiviteit=%d,
-				Script=\"%s\";", $table_prefix, $_SESSION['lidid'], $_SERVER['REMOTE_ADDR'], $_SERVER['HTTP_USER_AGENT'], $oms, $type, $script);
+				Script=\"%s\";", $table_prefix, $_SESSION['lidid'], $_SERVER['REMOTE_ADDR'], $_SERVER['HTTP_USER_AGENT'], $oms, $referid, $type, $script);
 		fnQuery($query);
 		if ($tm == 1) {
 			printf("<p class='mededeling'>%s</p>\n", $oms);
@@ -1804,10 +1809,9 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0) {
 			$s .= ", IP_adres";
 		}
 		if ($lidid > 0) {
-			$w .= sprintf(" AND LidID=%d AND TypeActiviteit < 98", $lidid);
-		} else {
-			$s .= sprintf(", %s AS `Ingelogd Lid`", $selectnaam);
+			$w .= sprintf(" AND (LidID=%1\$d OR (TypeActiviteit IN (1, 6, 12) AND ReferID=%1\$d)) AND TypeActiviteit < 98", $lidid);
 		}
+		$s .= sprintf(", %s AS `Ingelogd Lid`", $selectnaam);
 	
 		$query = sprintf("SELECT A.DatumTijd as `dtsDatum en tijd`, Omschrijving%1\$s
 								FROM %2\$sAdmin_activiteit AS A LEFT OUTER JOIN %2\$sLid AS L ON A.LidID = L.Nummer
@@ -1973,7 +1977,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 			$query = sprintf("UPDATE Liddipl SET LicentieVervallenPer=%s, Diplomanummer='%s', Gewijzigd=SYSDATE() WHERE Lid=%d AND DiplomaID=%d AND EXDATUM=%s;", $dwaverv, $dipnr, $rowld->Lid, $rowld->DiplomaID, $dwaexd);
 			db_interface("add", $query, $rowld->Lid);
 			$mess = sprintf("Diploma '%s' is gewijzigd bij %s", db_diploma("naam", $rowld->DiplomaID), db_naamlid($rowld->Lid));
-			db_logboek("add", $mess, 12);
+			db_logboek("add", $mess, 12, $rowld->Lid);
 		}
 		return $mess;
 		
@@ -1987,7 +1991,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 		} else {
 			$mess = sprintf("%s is bij %s niet gevonden en dus niet verwijderd.", db_diploma("naam", $did), db_naamlid($lidid));
 		}
-		db_logboek("add", $mess, 12);
+		db_logboek("add", $mess, 12, $lidid);
 		return $mess;
 		
 	} elseif ($actie == "lidgegevens" and $lidid > 0) {
@@ -2099,7 +2103,7 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 			$query = sprintf("INSERT INTO %sEvenement SET Ingevoerd=CURDATE();", $table_prefix);
 			$id = fnQuery($query);
 			$mess = sprintf("Evenement %d is toegevoegd.", $id);
-			db_logboek("add", $mess, 7);
+			db_logboek("add", $mess, 7, 0, 0, $id);
 			return $id;
 		
 	} elseif ($actie == "inschrijving" and $lidid > 0 and $eventid > 0) {
@@ -2152,7 +2156,7 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 		$query = sprintf("INSERT INTO %sEvenement_Deelnemer SET LidID=%d, EvenementID=%d, Opmerking='%s', Status='%s', Ingevoerd=CURDATE(), GewijzigdDoor=%d;", $table_prefix, $lidid, $eventid, $opm, $stat, $_SESSION['lidid']);
 		fnQuery($query);
 		$mess = sprintf("%s is met status '%s' aan evenement %d (%s) toegevoegd.", db_naamlid($lidid), $stat, $eventid, db_evenement("oms", 0, $eventid));
-		db_logboek("add", $mess, 7);
+		db_logboek("add", $mess, 7, 0, 0, $eventid);
 		
 	} elseif ($actie == "updatedeelnemer" and $lidid > 0 and $eventid > 0) {
 		$query = sprintf("UPDATE %1\$sEvenement_Deelnemer SET Opmerking='%2\$s', Status='%3\$s', Functie='%4\$s', GewijzigdDoor=%5\$d
@@ -2165,7 +2169,7 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$mess = sprintf("%s is bij evenement %d (%s) verwijderd.", db_naamlid($lidid), $eventid, db_evenement("oms", 0, $eventid));
-			db_logboek("add", $mess, 7);
+			db_logboek("add", $mess, 7, 0, 0, $eventid);
 		}
 		
 	} elseif ($actie == "opschonen") {
@@ -2220,7 +2224,7 @@ function db_artikel($actie, $artikelid=0, $lidid=0) {
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$mess = sprintf("Artikel %d is toegevoegd.", $result);
-			db_logboek("add", $mess, 10);
+			db_logboek("add", $mess, 10, 0, 0, $result);
 		}
 
 	} elseif ($actie == "delete" and $artikelid > 0) {
@@ -2235,7 +2239,7 @@ function db_artikel($actie, $artikelid=0, $lidid=0) {
 				$mess = sprintf("Artikel %d is niet verwijderd.", $artikelid);
 			}
 		}
-		db_logboek("add", $mess, 10);
+		db_logboek("add", $mess, 10, 0, 0, $artikelid);
 		
 	} elseif ($actie == "prijs" and $artikelid > 0) {
 		$query = sprintf("SELECT Verkoopprijs FROM %sWS_Artikel WHERE RecordID=%d;", $table_prefix, $artikelid);
@@ -2309,9 +2313,9 @@ function db_orderregel($actie, $lidid=0, $artikelid=0, $aantalbesteld=0, $filter
 		$query = sprintf("INSERT INTO %sWS_Orderregel SET Lid=%d, Artikel=%d, AantalBesteld=%d, Ingevoerd=CURDATE(), IngevoerdDoor=%d;", $table_prefix, $lidid, $artikelid, $aantalbesteld, $_SESSION['lidid']);
 		$result = fnQuery($query);
 		if ($result > 0) {
+			$mess = sprintf("De bestelling van artikel %d (%d stuks) bij %s is toegevoegd.", $artikelid, $aantalbesteld, db_naamlid($lidid));
+			db_logboek("add", $mess, 10, 0, 0, $result);
 			if ($artikelid > 0 and $aantalbesteld > 0) {
-				$mess = sprintf("De bestelling van artikel %d (%d stuks) bij %s is toegevoegd.", $artikelid, $aantalbesteld, db_naamlid($lidid));
-				db_logboek("add", $mess, 10);
 				db_orderregel("vulprijsperstuk");
 			}
 		}
@@ -2331,7 +2335,7 @@ function db_orderregel($actie, $lidid=0, $artikelid=0, $aantalbesteld=0, $filter
 			} else {
 				$mess = sprintf("Orderregel %d is verwijderd.", $recordid);
 			}
-			db_logboek("add", $mess, 10);
+			db_logboek("add", $mess, 10, 0, 0, $recordid);
 		}
 		return $mess;
 	} elseif ($actie == "defmaken" and $lidid > 0) {
@@ -2431,6 +2435,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrIntegers['bewaartijdmailings'] = 3;
 	$arrIntegers['db_backupsopschonen'] = 11;
 	$arrIntegers['loginautounlock'] = 120;
+	$arrIntegers['mailing_bevestigingbestelling'] = 0;
 	$arrIntegers['mailing_bevestigingopzegging'] = 0;
 	$arrIntegers['mailing_bewakinginschrijving'] = 0;
 	$arrIntegers['mailing_lidnr'] = 0;
@@ -2584,7 +2589,7 @@ function db_param($naam, $actie="curval", $newval="") {
 			$result = fnQuery($query);
 			if ($result > 0) {
 				$mess = sprintf("Parameter '%s' is toegevoegd.", $naam);
-				db_logboek("add", $mess, 13);
+				db_logboek("add", $mess, 13, 0, 0, $result);
 			}
 		}
 		
@@ -2665,10 +2670,17 @@ function db_onderhoud() {
 		fnQuery($query);
 	}
 	
-	// Toevoegen veld 'send_mt' aan de tabel Mailing_hist. Deze code kan na 1/2/2014 worden verwijderd.
+	// Toevoegen veld 'send_mt' aan de tabel 'Mailing_hist'. Deze code kan na 1/2/2014 worden verwijderd.
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sMailing_hist' AND COLUMN_NAME='send_mt';", $db_name, $table_prefix);
 	if (db_scalar($query) == 0) {
 		$query = sprintf("ALTER TABLE `%sMailing_hist` ADD `send_mt` DECIMAL(16,6);", $table_prefix);
+		fnQuery($query);
+	}	
+	
+	// Toevoegen veld 'ReferID' aan de tabel 'Admin_activiteit'. Deze code kan na 1/2/2014 worden verwijderd.
+	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sAdmin_activiteit' AND COLUMN_NAME='ReferID';", $db_name, $table_prefix);
+	if (db_scalar($query) == 0) {
+		$query = sprintf("ALTER TABLE `%sAdmin_activiteit` ADD `ReferID` INT NOT NULL COMMENT 'Op welk RecordID heeft deze activiteit betrekking?' AFTER `Omschrijving`;", $table_prefix);
 		fnQuery($query);
 	}
 		

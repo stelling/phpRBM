@@ -328,7 +328,7 @@ function fnOverviewLid($lidid=0, $actie="") {
 		printf("<p class='mededeling'>Er is geen lid geselecteerd. Selecteer een lid via de <a href='%s?tp=Ledenlijst'>ledenlijst</a>.</p>\n", $_SERVER['PHP_SELF']);
 	} elseif (toegang($_GET['tp'], 0) == false) {
 		$mess = sprintf("Je hebt tot tabblad '%s' geen toegang.", $actie);
-		db_logboek("add", $mess, 5, 0, 1);
+		db_logboek("add", $mess, 5, $lidid, 1);
 	} else {
 	
 		fnDispMenu(2, $xtra_param);
@@ -584,10 +584,10 @@ function algemeenlidmuteren($lidid) {
 	$naamlid = db_naamlid($lidid);
 		
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		$mess = "";
-		$toonmess = 0;
 		$old = db_lid("wijzigingen", "", $lidid);
 		for ($i=0; $i < count($wijzvelden); $i++) {
+			$mess = "";
+			$toonmess = 0;
 			$fn = $wijzvelden[$i]['naam'];
 			$v = "__skip__";
 			if ($fn == "Machtiging afgegeven") {
@@ -607,12 +607,10 @@ function algemeenlidmuteren($lidid) {
 			} elseif ($fn == "Bankrekening" and isset($_POST[$fn]) and strlen($_POST[$fn]) > 0 and IsIBANgoed($_POST[$fn], 1) == false) {
 				$mess .= "IBAN is niet correct, deze wijziging wordt niet verwerkt. ";
 				$toonmess = 1;
-				$v = "";
 				
 			} elseif ($fn == "Burgerservicenummer" and isset($_POST[$fn]) and strlen($_POST[$fn]) > 0 and (!is_numeric($_POST[$fn]) or $_POST[$fn] < 100000000 or $_POST[$fn] > 999999999)) {
 				$mess .= "Burgerservicenummer is niet correct, deze wijziging wordt niet verwerkt. ";
 				$toonmess = 1;
-				$v = "";
 				
 			} elseif (isset($_POST["chkLeeg_" . $fn]) and $_POST["chkLeeg_" . $fn] == "1") {
 				if (stripos($wijzvelden[$i]['label'], "datum") === FALSE) {
@@ -642,7 +640,6 @@ function algemeenlidmuteren($lidid) {
 			} elseif ($fn == "RelnrRedNed" and strlen($_POST[$fn]) != 7 and strlen($_POST[$fn]) > 0) {
 				$mess .= "Het Sportlink ID moet 7 karakters lang zijn, deze wijziging wordt niet verwerkt. ";
 				$toonmess = 1;
-				$v = "";
 				
 			} elseif (isset($_POST[$fn]) and strlen($_POST[$fn]) > 0) {
 				$v = $_POST[$fn];
@@ -661,12 +658,14 @@ function algemeenlidmuteren($lidid) {
 					db_interface("add", $query, $lidid);
 					$mess .= sprintf("%s van %s is in '%s' gewijzigd. ", $wijzvelden[$i]['label'], $naamlid, $v);
 				} else {
-					$mess .= sprintf("De wijziging in %s bij %s is niet verwerkt. ", strtolower($wijzvelden[$i]['label']), $naamlid);
+					$mess .= sprintf("De wijziging in '%s' bij %s is niet verwerkt. ", strtolower($wijzvelden[$i]['label']), $naamlid);
 					$toonmess = 1;
 				}
 			}
+			if (strlen($mess) > 0) {
+				db_logboek("add", $mess, 6, 0, $toonmess, $lidid);
+			}
 		}
-		db_logboek("add", $mess, 6, 0, $toonmess);
 	} # if post
 
 	$row = db_lid("wijzigingen", "", $lidid);
@@ -798,7 +797,7 @@ function nieuwepasfoto($lidid, $filterlid="") {
 				$bu_name = "vervangen/" . sprintf("Pasfoto%d_%d.%s", $lidid, strftime("%Y%m%d", filectime($of)), $of_ext);
 				if (rename($of, $ad . $bu_name)) {
 					$mess = sprintf("Pasfoto './%s' is verplaatst en hernoemd naar './%s'.", $of, $bu_name);
-					db_logboek("add", $mess, 6);
+					db_logboek("add", $mess, 6, $lidid);
 				}
 				$of = fotolid($lidid, 0);
 			}
@@ -846,7 +845,7 @@ function nieuwepasfoto($lidid, $filterlid="") {
 				$mess = "Het is fout gegaan bij het uploaden van het bestand. Probeer het nog een keer of neem contact op met de webmaster.";
 			}
 		}
-		db_logboek("add", $mess, 6, 0, 1);
+		db_logboek("add", $mess, 6, $lidid, 1);
 	}
 
 	echo("<div id='nieuwepasfoto'>\n");
@@ -917,7 +916,7 @@ function opzegginglidmaatschap($lidid) {
 		}
 			
 		$mess = sprintf("%s heeft haar/zijn lidmaatschap per %s opgezegd.", $naamlid, $opgezegdper);
-		db_logboek("add", $mess, 6);
+		db_logboek("add", $mess, 6, $lidid);
 			
 		$body = sprintf("<p>Beste ledenadministratie,</p>\n
 		<p>Hierbij zeg ik mijn lidmaatschap van de %s per %s op. Mijn lidnummer is %d.</p>\n
@@ -950,7 +949,7 @@ function opzegginglidmaatschap($lidid) {
 		$mail = null;
 		if (db_param("zs_opzeggingautomatischverwerken") == 1) {
 			$mess = db_lidmaatschap("opzegging", $lidid, $opgezegdper);
-			db_logboek("add", $mess, 6);
+			db_logboek("add", $mess, 6, $lidid);
 		}
 		
 	} else {

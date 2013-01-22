@@ -171,7 +171,7 @@ function muteerevenement($eventid) {
 			$result = fnQuery($query);
 			if ($result > 0) {
 				$oms = sprintf("In evenement %d zijn de volgende velden aangepast. %s", $eventid, $oms);
-				db_logboek("add", $oms, 7);
+				db_logboek("add", $oms, 7, 0, 0, $eventid);
 			}
 		}
 		foreach (db_evenement("deelnemers", 0, $eventid) as $rd) {
@@ -190,7 +190,7 @@ function muteerevenement($eventid) {
 				if ($_POST[$opm] != $rd->Opmerking) {
 					$mess .= sprintf("Opmerking is '%s' geworden.", $_POST[$opm]);
 				}
-				db_logboek("add", $mess, 7);
+				db_logboek("add", $mess, 7, 0, 0, $eventid);
 			}
 		}
 		if (isset($_POST['nwdln']) and $_POST['nwdln'] > 0 and is_numeric($_POST['nwdln'])) {
