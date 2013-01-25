@@ -67,14 +67,16 @@ function onlinebestellingen($lidid) {
 					$result = fnQuery($query);
 					if ($result > 0) {
 						$mess = sprintf("Orderregel van artikel %d voor %s is gewijzigd. %s", $ord->Artikel, db_naamlid($lidid), $wijz);
-						db_logboek("add", $mess, 10);
+						db_logboek("add", $mess, 10, 0, 0, $ord->RecordID);
 					}
 				}
 			}
 		}
 		if (isset($_POST['defmaken'])) {
 			db_orderregel("defmaken", $lidid);
-			bevestigingbestelling($lidid, $ordernr);
+			if (db_param("mailing_bevestigingbestelling") > 0) {
+				bevestigingbestelling($lidid, $ordernr);
+			}
 		}
 	}
 
@@ -177,7 +179,7 @@ function artikelbeheer() {
 				$query = sprintf("UPDATE %sWS_Artikel SET %s WHERE RecordID=%d;", $table_prefix, $set_clause, $row->RecordID);
 				fnQuery($query);
 				$mess = sprintf("Artikel %d is aangepast. %s", $row->RecordID, $wijz);
-				db_logboek("add", $mess, 10);
+				db_logboek("add", $mess, 10, 0, 0, $row->RecordID);
 			}
 		}
 	}
@@ -286,7 +288,7 @@ function bestellingbeheer() {
 				$result = fnQuery($query);
 				if ($result > 0) {
 					$mess = sprintf("Orderregel %d is gewijzigd. %s", $row->RecordID, $wijz);
-					db_logboek("add", $mess, 10);
+					db_logboek("add", $mess, 10, 0, 0, $row->RecordID);
 					db_orderregel("vulprijsperstuk");
 				}
 			}
@@ -377,6 +379,27 @@ function bestellingbeheer() {
 }
 
 function bevestigingbestelling($lidid, $ordernr=0) {
+
+	if (db_param("mailing_bevestigingbestelling") > 0) {
+		$mailing = new Mailing(db_param("mailing_bevestigingbestelling"));
+		$mailing->xtranum = $ordernr;
+		$mailing->resultaatversturen = 0;
+		if ($mailing->send($lidid) > 0) {
+			$mess = sprintf("Bevestiging bestelling %d is aan %s verzonden.", $ordernr, db_naamlid($lidid));
+		} else {
+			$mess = sprintf("Fout bij het versturen van de bevestiging. Probeer het later nogmaals of neem contact op met de webmaster.");
+		}
+		$mailing = null;
+	} else {
+		$mess = "Er is geen mailing voor het bevestigingen van de bestelling gedefinieerd.";
+	}
+	db_logboek("add", $mess, 10, $lidid, 2, $ordernr);
+	
+	printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+}
+
+
+function bevestigingbestelling_BU($lidid, $ordernr=0) {
 	
 	$emailbevestigingbestelling = db_param("zs_emailbevestigingbestelling");
 

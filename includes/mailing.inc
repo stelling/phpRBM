@@ -16,7 +16,7 @@ function fnMailing() {
 	} elseif (isset($_POST['action']) and $_POST['action'] == "Bewaren & sluiten") {
 		$op = "save_close";
 	} elseif (isset($_POST['action'])) {
-		$op = $_POST['action'];
+		$op = strtolower($_POST['action']);
 	} elseif (isset($_GET['op'])) {
 		$op = $_GET['op'];
 	} elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
@@ -41,7 +41,7 @@ function fnMailing() {
 
 	if ($op == "edit" and isset($_GET['mid'])) {
 		$mailing->edit();
-	} elseif ($op == "save" or $op == "save_close") {
+	} elseif ($op == "save" or $op == "save_close" or $op == "toevoegen") {
 		$mailing->post_form();
 		$mailing->upload();
 		if ($op == "save_close") {
@@ -130,6 +130,7 @@ class Mailing {
 	private $contains_losse_email = false;
 	private $merged_subject = "";
 	private $merged_message = "";
+	private $speciaal = "";
 	
 	private $from_name = "";
 	private $from_addr = "";
@@ -151,6 +152,7 @@ class Mailing {
 	
 	private $ok_send = "";
 	private $nok_send = "";
+	private $meldingen = "";
 	private $aant_ok = 0;
 	private $aant_nok = 0;
 	public $resultaatversturen = 1;
@@ -317,12 +319,30 @@ class Mailing {
 		// Velden die bij specifieke mailings horen.
 		if ($this->mid == db_param("mailing_lidnr")) {
 			$this->xtrachar = "LNR";
+			$this->speciaal = "Versturen lidnummer";
 			$this->MergeField[]=array('Naam' => "Geblokkeerd", 'SQL' => "");
 			$this->MergeField[]=array('Naam' => "IPaddress", 'SQL' => "");
+			
 		} elseif ($this->mid == db_param("mailing_bewakinginschrijving")) {
 			$this->xtrachar = "BW_I";
+			$this->speciaal = "Bevestiging inschrijving bewaking";
+			$this->vertraging_tussen_verzenden = 5;
 			$this->MergeField[]=array('Naam' => "VoorwaardenInschrijving", 'SQL' => "");
 			$this->MergeField[]=array('Naam' => "InschrijvingBewaking", 'SQL' => "");
+			
+		} elseif ($this->mid == db_param("mailing_bevestigingbestelling")) {
+			$this->xtrachar = "BEST";
+			$this->speciaal = "Bevestiging bestelling webshop";
+			$this->vertraging_tussen_verzenden = 5;
+			$this->MergeField[]=array('Naam' => "Ordernummer", 'SQL' => "");
+			$this->MergeField[]=array('Naam' => "Bestelling", 'SQL' => "");
+			$this->MergeField[]=array('Naam' => "Totaalbedrag", 'SQL' => "");
+			$this->MergeField[]=array('Naam' => "VoorwaardenBestelling", 'SQL' => "");
+			
+		} elseif ($this->mid == db_param("mailing_bevestigingopzegging")) {
+			$this->xtrachar = "BO_LM";
+			$this->speciaal = "Bevestiging opzegging lidmaatschap";
+			
 		}
 
 		sort($this->MergeField);
@@ -392,7 +412,7 @@ class Mailing {
 		printf("<tr><td class='label'>Vanaf e-mail:</td><td><input type='email' name='from_addr' value='%s' size=50 maxlength=50>%s</td></tr>\n", $this->from_addr, $et);
 		printf("<tr><td class='label'>Aan:</td><td><input type='text' name='to_name' value='%s' size=50 maxlength=50> (Omschrijving van de groep personen aan wie deze mailing gericht is)</td></tr>\n", $this->to_name);
 		
-		$meldingen = "Er zijn nog geen ontvangers aan deze mailing toegevoegd.<br>\n";
+		$this->meldingen = "Er zijn nog geen ontvangers aan deze mailing toegevoegd.<br>\n";
 		$verzendenmag = false;
 		if ($this->mid > 0) {
 			echo("<tr><td class='label'>Ontvangers met e-mail:</td>\n<td>");
@@ -432,7 +452,7 @@ class Mailing {
 					printf("Totaal %d ontvangers\n", $aant_ze);
 				}
 				$verzendenmag = true;
-				$meldingen = "";
+				$this->meldingen = "";
 			} else {
 				echo("<p>Nog niemand!</p>");
 			}
@@ -478,7 +498,11 @@ class Mailing {
 		printf("<tr><td class='label'>Opties:</td><td><input type='checkbox' name='template' value=1%s>Template&nbsp;", checked($this->template));
 		printf("<input type='checkbox' name='confidential' value=1%s>Vertrouwelijk&nbsp;", checked($this->confidential));
 		printf("<input type='checkbox' name='verzamelen' value=1%s>E&eacute;n gezamenlijke e-mail</td>", checked($this->verzamelen));
-		echo("</tr>\n</table>\n");
+		echo("</tr>\n");
+		if (strlen($this->speciaal) > 0) {
+			printf("<tr><td class='label'>Specifiek doel:</td><td>%s</td></tr>\n", $this->speciaal);
+		}
+		echo("</table>\n");
 		
 		printf("<textarea name='message'>%s</textarea>\n", $this->message);
 		
@@ -537,37 +561,10 @@ class Mailing {
 			printf("(Extensies '%s' zijn toegestaan)\n", $this->allowed_ext);
 		}
 			
+		if ($this->controle() == false) {
+			$verzendenmag = false;
+		}
 		if ($this->mid > 0) {
-			if (strlen($this->subject) == 0) {
-				$meldingen .= "Het onderwerp is leeg en dat moet ingevuld zijn.<br>\n";
-				$verzendenmag = false;
-			} 
-			if (strlen($this->message) == 0) {
-				$meldingen .= "Het bericht is leeg en dat moet ingevuld zijn.<br>\n";
-				$verzendenmag = false;
-			}
-			if (strtotime($this->sent_on) > (time() - $this->vertraging_tussen_verzenden)) {
-				if ($this->vertraging_tussen_verzenden < 120) {
-					$meldingen .= sprintf("Deze mailing is korter dan %d seconden geleden verzonden.<br>\n", $this->vertraging_tussen_verzenden);
-				} else {
-					$meldingen .= sprintf("Deze mailing is korter dan %d minuten geleden verzonden.<br>\n", $this->vertraging_tussen_verzenden/60);
-				}
-				$verzendenmag = false;
-			}
-			
-			foreach($this->MergeField as $fld) {
-				$nm = "[%" . $fld['Naam'] . "%]";
-				if (strpos($this->message, $nm) !== false) {
-					$this->contains_mergefield = true;
-				}
-			}
-			if ($this->contains_mergefield == true and $this->contains_losse_email == true) {
-				$meldingen .= "Er staan losse e-mailadressen en er wordt met mailmerge gewerkt. Bij de losse e-mailadressen werkt de mailmerge niet.<br>\n";
-			}
-			if ($this->contains_mergefield and $this->verzamelen) {
-				$meldingen .= "Een mailing met variabelen kan niet als &eacute;&eacute;n gezamenlijke e-mail verzonden worden.<br>\n";
-				$verzendenmag = false;
-			}
 			if ($this->new_on > '1901-01-01') {
 				printf("<tr><td class='label'>Toegevoegd door/op:</td><td>%s / %s</td></tr>\n", db_naamlid($this->AddedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->new_on)));
 			}
@@ -579,29 +576,14 @@ class Mailing {
 			}
 			if ($this->deleted_on > '1901-01-01') {
 				printf("<tr><td class='label'>Verwijderd door/op:</td><td>%s / %s</td></tr>\n", db_naamlid($this->DeletedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->deleted_on)));
-				$verzendenmag = false;
 			}
-			$beperkfrom = db_param("mailing_beperkfrom");
-			if (isValidMailAddress($this->from_addr, 0) == false) {
-				$verzendenmag = false;
-				$meldingen .= "Er moet een geldig e-mailadres bij 'Vanaf e-mail' ingevuld worden.<br>\n";
-			} elseif (strlen($beperkfrom) > 2) {
-				if (substr($beperkfrom, 0, 1) != "@") {
-					$beperkfrom = "@" . $beperkfrom;
-				}
-				if (strpos($this->from_addr, $beperkfrom) === false) {
-					$verzendenmag = false;
-					$meldingen .= sprintf("Er mag alleen vanaf een e-mailadres uit het domein %s een mailing verzonden worden.<br>\n", substr($beperkfrom, 1));
-				}
-			}
+
 			if ($verzendenmag == false) {
-				$meldingen .= "<br>\nDeze mailing mag (nog) niet verzonden worden.\n";
+				$this->meldingen .= "<br>\nDeze mailing mag (nog) niet verzonden worden.\n";
 			}
-			if (strlen($meldingen) > 0) {
-				printf("<tr><td class='label'>Meldingen:</td><td>%s</td></tr>\n", $meldingen);
+			if (strlen($this->meldingen) > 0) {
+				printf("<tr><td class='label'>Meldingen:</td><td>%s</td></tr>\n", $this->meldingen);
 			}
-		} else {
-			$verzendenmag = false;
 		}
 		echo("</table>\n");
 		
@@ -629,6 +611,62 @@ class Mailing {
 		printf("</form>\n");
 		echo("</div>  <!-- Einde mailing -->\n");
 	} # edit
+	
+	private function controle() {
+	
+		if ($this->mid > 0) {
+			$verzendenmag = true;
+	
+			if (strlen($this->subject) == 0) {
+				$this->meldingen .= "Het onderwerp is leeg en dat moet ingevuld zijn. \n";
+				$verzendenmag = false;
+			}
+			if (strlen($this->message) == 0) {
+				$this->meldingen .= "Het bericht is leeg en dat moet ingevuld zijn. \n";
+				$verzendenmag = false;
+			}
+			if (strtotime($this->sent_on) > (time() - $this->vertraging_tussen_verzenden)) {
+				if ($this->vertraging_tussen_verzenden < 120) {
+					$this->meldingen .= sprintf("Deze mailing is korter dan %d seconden geleden verzonden. \n", $this->vertraging_tussen_verzenden);
+				} else {
+					$this->meldingen .= sprintf("Deze mailing is korter dan %d minuten geleden verzonden. \n", $this->vertraging_tussen_verzenden/60);
+				}
+				$verzendenmag = false;
+			}
+			
+			foreach($this->MergeField as $fld) {
+				$nm = "[%" . $fld['Naam'] . "%]";
+				if (strpos($this->message, $nm) !== false) {
+					$this->contains_mergefield = true;
+				}
+			}
+			if ($this->contains_mergefield == true and $this->contains_losse_email == true) {
+				$this->meldingen .= "Er staan losse e-mailadressen en er wordt met mailmerge gewerkt. Bij de losse e-mailadressen werkt de mailmerge niet. \n";
+			}
+			if ($this->contains_mergefield and $this->verzamelen) {
+				$this->meldingen .= "Een mailing met variabelen kan niet als &eacute;&eacute;n gezamenlijke e-mail verzonden worden. \n";
+				$verzendenmag = false;
+			}
+			if ($this->deleted_on > '1901-01-01') {
+				$this->meldingen .= "Deze mailing is verwijderd. \n";
+				$verzendenmag = false;
+			}
+			$beperkfrom = "@" . db_param("mailing_beperkfrom");
+			if (isValidMailAddress($this->from_addr, 0) == false) {
+				$verzendenmag = false;
+				$this->meldingen .= "Er moet een geldig e-mailadres bij 'Vanaf e-mail' ingevuld worden. \n";
+			} elseif (strlen($beperkfrom) > 4) {
+				if (strpos($this->from_addr, $beperkfrom) === false) {
+					$verzendenmag = false;
+					$this->meldingen .= sprintf("Er mag alleen vanaf een e-mailadres uit het domein %s een mailing verzonden worden. \n", db_param("mailing_beperkfrom"));
+				}
+			}
+		} else {
+			$verzendenmag = false;
+			$this->meldingen = "Er is geen mailing geselecteerd.<br>\n";
+		}
+		return $verzendenmag;
+	}
 	
 	public function post_form() {
 		global $table_prefix;
@@ -821,10 +859,9 @@ class Mailing {
 	
 	public function send($lidid=0) {
 	
-		if (strtotime($this->sent_on) > (time() - $this->vertraging_tussen_verzenden)) {
-			printf("<p class='Mededeling'>Deze mailing is korter dan %d minuten geleden verzonden en wordt daarom niet nogmaals verzonden.</p>\n", $this->vertraging_tussen_verzenden/60);
-		} elseif (isValidMailAddress($this->from_addr, 0) == false) {
-			printf("<p class='mededeling'>Er is geen geldig 'Vanaf e-mail' ingevuld en daarom wordt deze e-mail niet verzonden.</p>\n");
+		if ($this->controle() == false) {
+			printf("<p class='Mededeling'>%s</p>\n", $this->meldingen);
+			db_logboek("add", $this->meldingen, 4, 0, 0, $this->mid);
 		} else {
 			return $this->send_mailing(0, $lidid);
 		}
@@ -981,7 +1018,6 @@ class Mailing {
 		$this->merged_message = str_ireplace("[%URLwebsite%]", db_param("urlwebsite"), $this->merged_message);
 		
 		if ($this->mid == db_param("mailing_bevestigingopzegging")) {
-			$xtrachar = "BO_LM";
 			if ($this->xtranum > 0) {
 				$this->merged_message = str_ireplace("[%Lidnummer%]", $xtranum, $this->merged_message);
 				$row = db_lidmaatschap("record", 0, "", 0, "", $this->xtranum);
@@ -1018,6 +1054,28 @@ class Mailing {
 			$bevins .= "</ul>\n";
 			$this->merged_message = str_ireplace("[%VoorwaardenInschrijving%]", db_param("zs_voorwaardeninschrijving"), $this->merged_message);
 			$this->merged_message = str_ireplace("[%InschrijvingBewaking%]", $bevins, $this->merged_message);
+			
+		} elseif ($this->mid == db_param("mailing_bevestigingbestelling")) {
+			if ($this->xtranum > 0) {
+				$filter = sprintf("ORD.Ordernr=%d", $this->xtranum);
+			} else {
+				$filter = "";
+			}
+			$bestelling = "<table>\n
+								<tr><th>Code</th><th>Omschrijving</th><th>Maat</th><th class='number'>Aantal</th><th class='number'>Bedrag</th><th>Opmerking</th><tr>\n";
+			
+			$totbedrag = 0;
+			foreach (db_orderregel("bevestiging", $lidid, 0, 0, $filter) as $row) {
+				$ordernr = $row->Ordernr;
+				$bestelling .= sprintf("<tr><td>%s</td><td>%s</td><td>%s</td><td class='number'>%d</td><td class='number'>&euro;&nbsp;%s</td><td>%s</td></tr>\n", $row->Code, $row->Omschrijving, $row->Maat, $row->AantalBesteld, number_format($row->Bedrag, 2), $row->Opmerking);
+				$totbedrag += $row->Bedrag;
+			}
+			$bestelling .= "</table>\n";
+			$this->merged_subject = str_ireplace("[%Ordernummer%]", $this->xtranum, $this->merged_subject);
+			$this->merged_message = str_ireplace("[%Ordernummer%]", $this->xtranum, $this->merged_message);
+			$this->merged_message = str_ireplace("[%Bestelling%]", $bestelling, $this->merged_message);
+			$this->merged_message = str_ireplace("[%Totaalbedrag%]", number_format($totbedrag, 2), $this->merged_message);
+			$this->merged_message = str_ireplace("[%VoorwaardenBestelling%]", db_param("zs_voorwaardenbestelling"), $this->merged_message);
 			
 		}
 		
@@ -1115,6 +1173,10 @@ class Mailing {
 			}
 			$this->from_addr = $_SESSION['emailingelogde'];
 			$this->new_on = date("Y-m-d");
+		}
+		
+		if (db_param("maxmailsperminuut") > 0 and (60/db_param("maxmailsperminuut")) < $this->vertraging_tussen_verzenden) {
+			$this->vertraging_tussen_verzenden = db_param("maxmailsperminuut");
 		}
 	}
 }
