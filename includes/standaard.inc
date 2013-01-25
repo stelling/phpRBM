@@ -173,6 +173,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		$tabpages[] = "Overzicht lid/Financieel";
 		$tabpages[] = "Overzicht lid/Mailing";
 		$tabpages[] = "Overzicht lid/Evenementen";
+		$tabpages[] = "Overzicht lid/Logboek";
 	}
 	if ($currenttab == "Wijzigen lid") {
 		$tabpages[] = "Wijzigen lid";
@@ -632,8 +633,10 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 						$hv .= sprintf("<th>%s</th>", str_replace("_", " ", substr($key, 3)));
 						$ktot[] = 0;
 					} elseif (strstr("lnk", substr($key, 0, 3)) !== false) {
-						$hv .= "<th>&nbsp;</th>";
-						$ktot[] = 0;
+						if (strlen($link) > 0) {
+							$hv .= "<th>&nbsp;</th>";
+							$ktot[] = 0;
+						}
 					} elseif (strstr("llk", substr($key, 0, 3)) !== false) {
 						if (strlen($link_lk) > 1) {
 							$hlk .= sprintf("<th colspan=%d>&nbsp;</th>", substr_count($link_lk, "<td")+1);
@@ -689,10 +692,12 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 					$ret .= sprintf("<td>Ja</td>");
 				} elseif (substr($key, 0, 3) == "boo" and $value != 1) {
 					$ret .= sprintf("<td>Nee</td>");
-				} elseif (substr($key, 0, 3) == "lnk" and strlen($link) > 1) {
-					$href = str_replace("%d", $value, $link);
-					$href = str_replace("%s", "<img src='images/zoom.png' alt='Details'>", $href);
-					$ret .= "<td class='details'>" . $href . "</td>";
+				} elseif (substr($key, 0, 3) == "lnk") {
+					if (strlen($link) > 1) {
+						$href = str_replace("%d", $value, $link);
+						$href = str_replace("%s", "<img src='images/zoom.png' alt='Details'>", $href);
+						$ret .= "<td class='details'>" . $href . "</td>";
+					}
 				} elseif (substr($key, 0, 3) == "llk") {
 					if ($value > 0 and strlen($link_lk) > 1) {
 						$ret .= sprintf("<td class='details'>" . $link_lk . "</td>", $value, "<img src='images/zoom.png' alt='Details'>");
