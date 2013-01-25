@@ -729,7 +729,7 @@ class Mailing {
 			$result = fnQuery($query);
 			if ($result > 0) {
 				$mess = sprintf("In mailing %d zijn de volgende velden aangepast. %s", $this->mid, $oms);
-				db_logboek("add", $mess, 4);
+				db_logboek("add", $mess, 4, 0, 0, $this->mid);
 			}
 		}
 		
@@ -749,11 +749,11 @@ class Mailing {
 			if (!file_exists($ad)) {
 				if (mkdir($ad, 0755, true) == true) {
 					$mess = sprintf("Directory '%s' is aangemaakt.", $ad);
-					db_logboek("add", $mess, 4);
 				} else {
 					$mess = sprintf("Directory '%s' bestaat niet en kan niet aangemaakt worden. Probeer het later opnieuw of neem contact op met de webmaster.", $ad);
 					$ad = "";
 				}
+				db_logboek("add", $mess, 4, 0, 1, $this->mid);
 			} else {
 				chmod($ad, 0755);
 			}
@@ -772,7 +772,7 @@ class Mailing {
 					$mess = sprintf("In mailing %d (%s) is bestand '%s' bijgesloten.", $this->mid, $this->subject, $_FILES['UploadFile']['name']);
 				}
 			}
-			db_logboek("add", $mess, 4, 0, 2);
+			db_logboek("add", $mess, 4, 0, 2, $this->mid);
 		}
 	}
 	
@@ -789,13 +789,13 @@ class Mailing {
 				$r = $addr;
 			}
 			$mess = sprintf("%s is aan mailing %d (%s) toegevoegd.", $r, $this->mid, $this->subject);
-			db_logboek("add", $mess, 4);
+			db_logboek("add", $mess, 4, 0, 0, $this->mid);
 		}
 	}
 
 	public function delete_rcpt($lidid, $addr="") {
 		$mess = db_mailing("delrcpt", $this->mid, 0, "", "", $lidid, $addr);
-		db_logboek("add", $mess, 4);
+		db_logboek("add", $mess, 4, 0, 0, $this->mid);
 	}
 	
 	public function add_groep($groepid) {
@@ -821,7 +821,7 @@ class Mailing {
 		} else {
 			$mess = sprintf("Er zijn geen leden uit groep '%s' zijn aan mailing %d (%s) toegevoegd.", $groepnaam, $this->mid, $this->subject);
 		}
-		db_logboek("add", $mess, 4);
+		db_logboek("add", $mess, 4, 0, 0, $this->mid);
 	} # add_groep
 		
 	public function delete_groep($groepid) {
@@ -832,7 +832,7 @@ class Mailing {
 			$result = fnQuery($query);
 			if ($result > 0) {
 				$mess = sprintf("Alle %d ontvangers zijn uit mailing %d verwijderd.", $result, $this->mid);
-				db_logboek("add", $mess, 4);
+				db_logboek("add", $mess, 4, 0, 0, $this->mid);
 				$query = sprintf("OPTIMIZE TABLE %sMailing_rcpt;", $table_prefix);
 				fnQuery($query);
 			}
@@ -849,7 +849,7 @@ class Mailing {
 				db_mailing("delrcpt", $this->mid, 0, "", "", $row->Lid);
 			}
 			$mess = sprintf("De leden van groep '%s' zijn bij mailing %d verwijderd.", $groepnaam, $this->mid);
-			db_logboek("add", $mess, 4);
+			db_logboek("add", $mess, 4, 0, 0, $this->mid);
 		}
 	} # delete_groep
 	
@@ -945,7 +945,7 @@ class Mailing {
 							db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message, $mail, 0, $this->xtrachar, $this->xtranum);
 							$this->nok_send .= sprintf("<li>%s {%s}</li>\n", $rcpt->Naam_lid, $e);
 							$mess = sprintf("Het versturen van mailing %d (%s) aan %s is niet gelukt. Error: %s", $this->mid, $this->subject, $to_name, $mail->ErrorInfo);
-							db_logboek("add", $mess, 4);
+							db_logboek("add", $mess, 4, 0, 0, $this->mid);
 							$this->aant_nok++;
 						}
 						$mail->ClearAddresses();
@@ -959,7 +959,7 @@ class Mailing {
 		if ($this->verzamelen and $preview == 0) {
 			if (!$mail->Send()) {
 				$mess = sprintf("Het versturen van mailing %d (%s) is niet gelukt. Error: %s", $this->mid, $this->subject, $mail->ErrorInfo);
-				db_logboek("add", $mess, 4);
+				db_logboek("add", $mess, 4, 0, 0, $this->mid);
 			}
 			$mail->ClearAddresses();
 		}
@@ -971,7 +971,7 @@ class Mailing {
 			} else {
 				$mess = sprintf("Mailing %d (%s) is aan %s verzonden.", $this->mid, $this->subject, $rcpt->Naam_lid);
 			}
-			db_logboek("add", $mess, 4);
+			db_logboek("add", $mess, 4, 0, 0, $this->mid);
 		}
 		
 		if ($this->resultaatversturen == 1 and $preview == 0) {
@@ -1108,7 +1108,7 @@ class Mailing {
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$mess = sprintf("Mailing %d (%s) is naar de prullenbak verplaatst.", $this->mid, $this->subject, $_SESSION['naamingelogde']);
-			db_logboek("add", $mess, 4, 0, 1);
+			db_logboek("add", $mess, 4, 0, 1, $this->mid);
 		}
 	}
 	
@@ -1119,7 +1119,7 @@ class Mailing {
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$mess = sprintf("Mailing %d (%s) is door %s uit de prullenbak gehaald.", $this->mid, $this->subject, $_SESSION['naamingelogde']);
-			db_logboek("add", $mess, 4, 0, 1);
+			db_logboek("add", $mess, 4, 0, 1, $this->mid);
 		}
 	}
 		
@@ -1272,24 +1272,20 @@ function fnRekeningenMailen($op) {
 				$mail->addstationary($rk->DEBNAAM);
 				if (isValidMailAddress($e, 0) == false) {
 					$mess = sprintf("Rekening %d kon niet worden verzonden, omdat er van %s geen geldig e-mailadres in de database bekend is.", $rk->Nummer, $rk->DEBNAAM);
-					db_logboek("add", $mess, 4);
 				} elseif ($mail->Send()) {
 					db_add_mailing_hist($rk->Lid, 0, $rk->DEBNAAM, $e, $rt, $mail, 1, "REK", $rk->Nummer);
+					$mess = sprintf("Rekening %d is naar %s (%s) verstuurd.", $rk->Nummer, $rk->DEBNAAM, $e);
 					$aant_ok++;
 				} else {
 					db_add_mailing_hist($rk->Lid, 0, $rk->DEBNAAM, $e, $rt, $mail, 0);
 					$mess = sprintf("Het versturen van rekening %d is niet gelukt. Error: %s", $rk->Nummer, $mail->ErrorInfo);
-					db_logboek("add", $mess, 4);
 				}
+				db_logboek("add", $mess, 14, 0, 0, $rk->Nummer);
 				$mail->ClearAddresses();
-			}
-			if ($aant_ok > 0) {
-				$mess = sprintf("Er zijn %d rekeningen per e-mail verzonden.", $aant_ok);
-				db_logboek("add", $mess, 4, 0, 1);
 			}
 		} elseif ($op == "selectieversturen") {
 			$mess = "De rekeningen zijn niet verzonden, omdat het vinkje niet gezet was.";
-			db_logboek("add", $mess, 4, 0, 1);
+			db_logboek("add", $mess, 14, 0, 1);
 		}			
 	}
 		

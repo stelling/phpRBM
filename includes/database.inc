@@ -43,6 +43,7 @@ $TypeActiviteit[10] = "Webshop";
 $TypeActiviteit[11] = "Bewaking";
 $TypeActiviteit[12] = "Mutaties diploma's";
 $TypeActiviteit[13] = "Parameters";
+$TypeActiviteit[14] = "Rekeningen";
 $TypeActiviteit[98] = "Performance";
 $TypeActiviteit[99] = "Debugging";
 asort($TypeActiviteit);
@@ -657,7 +658,7 @@ function db_authorisation($actie, $recid=0, $tabpage="") {
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$mess = sprintf("Toegang '%s' is naar groep '%s' aangepast.", $row->Tabpage, db_naam_onderdeel($_POST[$vn], "Iedereen"));
-			db_logboek("add", $mess, 5);
+			db_logboek("add", $mess, 5, 0, 0, $recid);
 		}
 		
 	} elseif ($actie == "opschonen") {
@@ -936,7 +937,7 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 			if (strlen($opmerk) > 1) {
 				$mess .= sprintf(" Opmerking is '%s'.", $opmerk); 
 			}
-			db_logboek("add", $mess, 11);
+			db_logboek("add", $mess, 11, 0, 0, $blok);
 		}
 		
 	} elseif ($actie == "update" and $lidid > 0 and $blok > 0) {
@@ -947,12 +948,12 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 		if (strlen($opmerk) > 0) {
 			$mess .= sprintf(" Opmerking is '%s'.", $opmerk);
 		}
-		db_logboek("add", $mess, 11);
+		db_logboek("add", $mess, 11, 0, 0, $blok);
 	} elseif ($actie == "delete" and $lidid > 0 and $blok > 0) {
 		$query = sprintf("DELETE FROM %sBewaking_Inschrijving WHERE BlokID=%d AND Lid=%d;", $table_prefix, $blok, $lidid);
 		fnQuery($query);
 		$mess = sprintf("Inschrijving bewaking voor blok '%s' is bij %s verwijderd.", db_bewaking_blok("omsblok", 0, $blok), db_naamlid($lidid));
-		db_logboek("add", $mess, 11);
+		db_logboek("add", $mess, 11, 0, 0, $blok);
 		
 	} elseif ($actie == "defmaken" and $lidid > 0 and $insnr > 0) {
 		$query = sprintf("UPDATE %sBewaking_Inschrijving SET Definitief=SYSDATE() WHERE Nummer=%d AND Lid=%d;", $table_prefix, $insnr, $lidid);
@@ -1158,7 +1159,6 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		if (strlen($l) == 0) {
 			if (db_logins("controlebestaat", "", $login, $lidid)) {
 				$mess = sprintf("Login '%s' is al in gebruik bij een ander lid.", $login);
-				db_logboek("add", $mess, 1);
 			} elseif (strlen($login) > 5 and $lidid > 0) {
 				$query = sprintf("INSERT INTO %sAdmin_login SET LidID=%d, Login='%s', Ingevoerd=CURDATE();", $table_prefix, $lidid, $login);
 				$result = fnQuery($query);
@@ -1168,7 +1168,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		} else {
 			$mess = sprintf("%s heeft al een login, er wordt geen nieuwe aangemaakt.", db_naamlid($lidid));
 		}
-		db_logboek("add", $mess, 1, 0, 1);
+		db_logboek("add", $mess, 1, $lidid, 1);
 		db_logins("wachtwoordenvullen");
 		return $ok;
 		
@@ -1215,7 +1215,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			}
 			if ($_SESSION['lidid'] == $lidid and $lidid > 0) {
 				$mess = sprintf("%s (LidID: %d) is uitgelogd.", $_SESSION['naamingelogde'], $lidid);
-				db_logboek("add", $mess, 1);
+				db_logboek("add", $mess, 1, $lidid);
 				$_SESSION['lidid'] = 0;
 			}
 			if (date('H') == 8 or (isset($_SESSION['webmaster']) and $_SESSION['webmaster'] ==  1 and date('H') > 7)) {
@@ -1252,7 +1252,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$mess = sprintf("%s is met '%s' ingelogd.", db_naamlid($lidid), $_SESSION['username']);
-			db_logboek("add", $mess, 1);
+			db_logboek("add", $mess, 1, $lidid);
 			$scriptnainloggen = db_param("scriptnainloggen");
 			if (strlen($scriptnainloggen) > 0) {
 				exec($scriptnainloggen);
@@ -1268,7 +1268,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		$result = fnQuery($query);
 		if ($result == 1) {
 			$mess = sprintf("Het aantal foutieve inlogpogingen van de login van %s is gereset.", db_naamlid($lidid));
-			db_logboek("add", $mess, 1);
+			db_logboek("add", $mess, 1, $lidid);
 		}
 		
 	} elseif ($actie == "controle") {
@@ -1330,6 +1330,10 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 					ORDER BY %5$sL.Achternaam, L.TUSSENV, L.Roepnaam, Login.LidID;', $selectnaam, $maxinlogpogingen, $table_prefix, $xtrawhere, $xtraorder);
 		$result = fnQuery($query);
 		return $result->fetchAll();
+		
+	} elseif ($actie == "lidid" and strlen($login) > 4) {
+		$query = sprintf("SELECT MAX(LidID) FROM %Admin_login WHERE Login='%s';", $table_prefix);
+		return db_scalar($query);
 		
 	} elseif ($actie == "wachtwoordenvullen") {
 		$query = sprintf("SELECT * FROM %sAdmin_login WHERE ((Wachtwoord IS NULL) OR LENGTH(Wachtwoord) < 6) AND (openid_identity IS NULL);", $table_prefix);
@@ -1620,7 +1624,11 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		$query = sprintf("INSERT INTO %sMailing (from_name, from_addr, to_name, subject, new_on, AddedBy)
 								VALUES ('%s', '%s', '%s', '%s', SYSDATE(), %d);", $table_prefix, db_param("naamvereniging"), $email, $aan, $subj, $_SESSION['lidid']);
 		$id = fnQuery($query);
-		$mess = sprintf("Mailing %d (%s) is door %s toegevoegd.", $id, $subj, $_SESSION['naamingelogde']);
+		if ($id > 0) {
+			$mess = sprintf("Mailing %d (%s) is door %s toegevoegd.", $id, $subj, $_SESSION['naamingelogde']);
+		} else {
+			$mess = "Het toevoegen van de mailing is mislukt.";
+		}
 		db_logboek("add", $mess, 4, 0, 0, $id);
 		return $id;
 		
@@ -1809,7 +1817,7 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0, $referid=0) {
 			$s .= ", IP_adres";
 		}
 		if ($lidid > 0) {
-			$w .= sprintf(" AND (LidID=%1\$d OR (TypeActiviteit IN (1, 6, 12) AND ReferID=%1\$d)) AND TypeActiviteit < 98", $lidid);
+			$w .= sprintf(" AND (LidID=%1\$d OR (TypeActiviteit IN (1, 6, 8, 12) AND ReferID=%1\$d)) AND TypeActiviteit < 98", $lidid);
 		}
 		$s .= sprintf(", %s AS `Ingelogd Lid`", $selectnaam);
 	
@@ -1961,7 +1969,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 				$mess = sprintf("Diploma '%s' is bij %s niet toegevoegd.", db_diploma("naam", $did), db_naamlid($lidid));
 			}
 		}
-		db_logboek("add", $mess, 12);
+		db_logboek("add", $mess, 12, $lidid);
 		return $mess;
 		
 	} elseif ($actie == "update" and $rid > 0) {
@@ -2578,7 +2586,7 @@ function db_param($naam, $actie="curval", $newval="") {
 			if ($result > 0) {
 				$_SESSION['settings'][$naam] = $newval;
 				$mess = sprintf("Parameter '%s' is in '%s' gewijzigd.", $naam, $newval);
-				db_logboek("add", $mess, 13);
+				db_logboek("add", $mess, 13, 0, 0, $cur->RecordID);
 			}
 		}
 		
