@@ -274,6 +274,7 @@ function fnLoginAanvragen() {
 
 		$login = "";
 		$mess = "";
+		$lidid = 0;
 		if (!isset($_POST['lidnummer']) or strlen($_POST['lidnummer']) == 0) {
 			$_POST['lidnummer'] = 0;
 		}
@@ -294,10 +295,12 @@ function fnLoginAanvragen() {
 				foreach ($rows as $row) {
 					if (isset($row->Login) and strlen($row->Login) > 5 and ($lidnrnodigbijloginaanvraag == 0 or $row->Lidnr == $_POST['lidnummer'])) {
 						$mess .= fnConfirmLogin($row) . " ";
+						$lidid = $row->Nummer;
 					} else {
 						// E-mailadres is bekend, maar er is geen login aangemaakt
 						if (db_param("mailing_lidnr") > 0 and $_POST['lidnummer'] == 0) {
 							$mess .= fnConfirmLidnr($row) . " ";
+							$lidid = $row->Nummer;
 						} elseif ($row->AanvragenMag == 0 and in_array($row->Nummer, $lididwebmasters) == false) {
 							if (is_array($beperktotgroep) and count($beperktotgroep) > 1) {
 								$gt = "";
@@ -325,7 +328,8 @@ function fnLoginAanvragen() {
 						} elseif ($lidnrnodigbijloginaanvraag == 0 or $row->Lidnr == $_POST['lidnummer']) {
 							if (db_logins("add", "", $_POST['gewenstelogin'], $row->Nummer)) {
 								$rl = db_logins("rowlogin", "", "", $row->Nummer);
-								$mess = fnConfirmLogin($rl[0]);
+								$lidid = $rl[0]->Nummer;
+								$mess = fnConfirmLogin($lidid);
 							}
 						} else {
 							$mess = "Je mag geen login aanvragen.";
@@ -340,7 +344,7 @@ function fnLoginAanvragen() {
 				}
 			}
 		}
-		db_logboek("add", $mess, 1, 0, 1);
+		db_logboek("add", $mess, 1, 0, 1, $lidid);
 		printf("<p><a href='http://%s' target='_top'>Klik hier om verder te gaan.</a></p>\n", db_param("urlwebsite"));
 		
 	} else {
