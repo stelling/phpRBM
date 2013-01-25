@@ -173,7 +173,7 @@ if ($currenttab == "Beheer logins" and toegang()) {
 	echo("<div id='lijst'>\n");
 	printf("<form name='formauth' method='post' action='%s?tp=%s&amp;op=changeaccess'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	echo("<table>\n");
-	echo("<tr><th></th><th>Onderdeel</th><th>Toegankelijk voor</th></tr>\n");
+	echo("<tr><th></th><th>Onderdeel</th><th>Toegankelijk voor</th><th>Ingevoerd</th></tr>\n");
 	foreach(db_authorisation("lijst") as $row) {
 		$del = sprintf("<a href='%s?tp=%s&amp;op=deleteautorisatie&amp;recid=%d'><img src='images/del.png' title='Verwijder record'></a>", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
 		$selectopt = "<option value=-1>Alleen webmasters</option>\n";
@@ -186,13 +186,13 @@ if ($currenttab == "Beheer logins" and toegang()) {
 			if ($row->Toegang == $ond->RecordID) { $s = " selected"; } else { $s = ""; }
 			$selectopt .= sprintf("<option value=%d%s>%s</option>\n", $ond->RecordID, $s, htmlentities($ond->Naam));
 		}
-		printf("<tr><td>%s</td><td>%s</td><td><select name='toegang%d' onchange='this.form.submit();'>%s</select></td></tr>\n", $del, $row->Tabpage, $row->RecordID, $selectopt);
+		printf("<tr><td>%s</td><td>%s</td><td><select name='toegang%d' onchange='this.form.submit();'>%s</select></td><td>%s</td></tr>\n", $del, $row->Tabpage, $row->RecordID, $selectopt, strftime("%e %B %Y", strtotime($row->Ingevoerd)));
 	}
 	$optionstab = "<option value=''>Selecteer ...</options>";
 	foreach (db_authorisation("tabpages") as $row) {
 		$optionstab .= sprintf("<option value='%1\$s'>%1\$s</option>\n", $row->Tabpage);
 	}
-	printf("<tr><td><img src='images/star.png' alt='Ster' title='Nieuw record'></td><td><select name='tabpage_nw' onChange='this.form.submit();'>%s</select></td><td></td></tr>\n", $optionstab);
+	printf("<tr><td><img src='images/star.png' alt='Ster' title='Nieuw record'></td><td><select name='tabpage_nw' onChange='this.form.submit();'>%s</select></td><td></td><td></td></tr>\n", $optionstab);
 	echo("</table>\n");
 	echo("</form>\n");
 	echo("</div>  <!-- Einde lijst -->\n");
@@ -318,6 +318,7 @@ function fnInstellingen() {
 	$arrParam['lidnrnodigbijloginaanvraag'] = "Moet een lid zijn of haar lidnummer opgeven als er een login aangevraagd wordt?";
 	$arrParam['loginautounlock'] = "Na hoeveel minuten moet een gelockede login automatisch geunlocked worden? 0 = alleen handmatig unlocken.";
 	$arrParam['mailing_beperkfrom'] = "Indien deze is ingevuld moet het from adres in een mailing altijd vanaf dit domein zijn.";
+	$arrParam['mailing_bevestigingbestelling'] = "Het nummer van de mailing die bij een bestelling verstuurd moet worden. 0 = geen.";
 	$arrParam['mailing_bevestigingopzegging'] = "Het nummer van de mailing die verstuurd moet worden als een lid zijn lidmaatschap opgezegd heeft. 0 = geen.";
 	$arrParam['mailing_bewakinginschrijving'] = "Het nummer van de mailing die als bevestiging van een inschrijving voor de bewaking verstuurd moet worden. 0 = geen.";
 	$arrParam['mailing_extensies_toegestaan'] = "De extenties die zijn toegestaan bij bijlagen in een mailing. Als je niets specificeerd wordt een standaard lijst gebruikt.";
@@ -346,7 +347,6 @@ function fnInstellingen() {
 	$arrParam['verjaardagenvooruit'] = "Hoeveel dagen vooruit moeten de verjaardagen in de verenigingsinfo getoond worden?";
 	
 	$arrParam['zs_emailbevestigingbestelling'] = "Vanaf welk e-mailadres moet de bevestiging van een bestelling verzonden worden.";
-	$arrParam['zs_emailbevestiginginschrijving'] = "Vanaf welk e-mailadres moet de bevestiging van de inschrijving voor de bewaking verzonden worden.";
 	$arrParam['zs_emailnieuwepasfoto'] = "Waar moet een nieuwe pasfoto naar toe gemaild worden?";
 	$arrParam['zs_incl_beroep'] = "Is het veld 'Beroep' in de zelfservice beschikbaar?";
 	$arrParam['zs_incl_bsn'] = "Is het veld 'Burgerservicenummer' in de zelfservice beschikbaar?";
@@ -370,6 +370,7 @@ function fnInstellingen() {
 		db_param($naam, "controle");
 	}
 	$mess = "";
+	$specmailing = array("mailing_bevestigingopzegging", "mailing_bewakinginschrijving", "mailing_lidnr", "mailing_bevestigingbestelling");
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		foreach (db_param("", "lijst") as $row) {
 			$pvn = sprintf("value_%d", $row->RecordID);
@@ -379,9 +380,13 @@ function fnInstellingen() {
 				}
 				if (in_array($row->Naam, array("beperktotgroep", "muteerbarememos"))) {
 					$_POST[$pvn] = str_replace(" ", "", $_POST[$pvn]);
-				} elseif (in_array($row->Naam, array("mailing_bevestigingopzegging", "mailing_bewakinginschrijving", "mailing_lidnr")) and $_POST[$pvn] > 0 and db_mailing("exist", $_POST[$pvn]) == false) {
+				} elseif (in_array($row->Naam, $specmailing) and $_POST[$pvn] > 0 and db_mailing("exist", $_POST[$pvn]) == false) {
 					$_POST[$pvn] = 0;
 					$mess .= sprintf("Parameter '%s' wordt 0 gemaakt, omdat de ingevoerde mailing niet (meer) bestaat. ", $row->Naam);
+				} elseif ($row->Naam == "mailing_beperkfrom" and substr($_POST[$pvn], 0, 1) == "@") {
+					$_POST[$pvn] = substr($_POST[$pvn], 1);
+				} elseif ($row->Naam == "mailing_beperkfrom" and substr($_POST[$pvn], 0, 4) == "www.") {
+					$_POST[$pvn] = substr($_POST[$pvn], 4);
 				} elseif ($row->Naam == "typemenu" and (strlen($_POST[$pvn]) == 0 or $_POST[$pvn] < 1 or $_POST[$pvn] > 3)) {
 					$_POST[$pvn] = 1;
 					$mess .= sprintf("Parameter '%s' wordt 1 gemaakt, omdat deze alleen 1, 2 of 3 mag zijn. ", $row->Naam);
