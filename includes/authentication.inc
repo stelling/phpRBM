@@ -209,56 +209,6 @@ function fnConfirmLidnr($row) {
 
 }
 
-function fnConfirmLidnr_BU($row, $xtratekst="") {
-
-	$myFile = 'templates/bevestiging_lidnummer.html';
-	if (file_exists($myFile)) {
-		$content = file_get_contents($myFile);
-	} else {
-		$content = sprintf("<p>Beste [%ROEPNAAM%],</p>\n
-		<p>Je lidnummer van de [%NAAMVERENIGING%] is [%LIDNR%].</p>
-		<p>Met dit lidnummer kan je <a href='http://[%URLWEBSITE%]/index.php'>hier</a> een login aanvragen.</p>
-		Dit verzoek is vanaf IP-adres [%IPADDRESS%] gedaan.
-		<p>Met vriendelijke groeten,<br>\n
-		<strong>Webmaster [%NAAMWEBSITE%]</strong></p>\n");
-	}
-	
-	if (db_param("maxinlogpogingen") > 0 and $row->FouteLogin > db_param("maxinlogpogingen")) {
-		$geblokt = sprintf("Er is %d keer geprobeerd met deze login in te loggen. Hierdoor is dit account geblokkeerd. Vraag aan de webmaster om deze weer vrij te geven.", $row->FouteLogin);
-	} else {
-		$geblokt = "";
-	}
-	$content = str_replace("[%NAAMLID%]", $row->Naam, $content);
-	$content = str_replace("[%LOGIN%]", $row->Login, $content);
-	$content = str_replace("[%LIDNR%]", $row->Lidnr, $content);
-	$content = str_replace("[%ROEPNAAM%]", $row->Roepnaam, $content);
-	$content = str_replace("[%PASSWORD%]", encript_decript($row->Wachtwoord, 0), $content);
-	$content = str_replace("[%GEBLOKKEERD%]", $geblokt, $content);
-	$content = str_replace("[%EXTRATEKST%]", $xtratekst, $content);
-	$content = str_replace("[%NAAMVERENIGING%]", db_param("naamvereniging"), $content);
-	$content = str_replace("[%NAAMWEBSITE%]", db_param("naamwebsite"), $content);
-	$content = str_replace("[%URLWEBSITE%]", db_param("urlwebsite"), $content);
-	$content = str_replace("[%IPADDRESS%]", $_SERVER['REMOTE_ADDR'], $content);
-
-	try {
-		$mail = new RBMmailer($row->Nummer);
-		$mail->FromName = "Webmaster " . db_param("naamwebsite");
-		$mail->Subject = sprintf("Lidnummer %s", db_param("naamvereniging"));
-		$mail->Body = $content;
-		$mail->addstationary();
-		if ($mail->Send()) {
-			db_add_mailing_hist($row->Nummer, 0, $row->Naam, $mail->ListAddresses("to"), $content, $mail, 1, "LNR", $row->Lidnr);
-			return sprintf("Lidnummer is aan %s (%s) verzonden.", $row->Naam, $mail->ListAddresses("to"));
-		} else {
-			return sprintf("Fout bij het versturen van de e-mail: %s. Probeer het later nogmaals of neem contact op met de webmaster.", $mail->ErrorInfo);
-		}
-	} catch (phpmailerException $e) {
-		return $e->errorMessage(); // Error messages from PHPMailer
-	} catch (Exception $e) {
-		return $e->getMessage();
-	}
-}
-
 function fnLoginAanvragen() {
 	global $table_prefix, $lididwebmasters, $selectlidnr;
 	
@@ -297,7 +247,7 @@ function fnLoginAanvragen() {
 						$mess .= fnConfirmLogin($row) . " ";
 						$lidid = $row->Nummer;
 					} else {
-						// E-mailadres is bekend, maar er is geen login aangemaakt
+						// E-mailadres is bekend, maar een aan dit e-mailadres gekoppelde login bestaat niet.
 						if (db_param("mailing_lidnr") > 0 and $_POST['lidnummer'] == 0) {
 							$mess .= fnConfirmLidnr($row) . " ";
 							$lidid = $row->Nummer;
@@ -329,7 +279,7 @@ function fnLoginAanvragen() {
 							if (db_logins("add", "", $_POST['gewenstelogin'], $row->Nummer)) {
 								$rl = db_logins("rowlogin", "", "", $row->Nummer);
 								$lidid = $rl[0]->Nummer;
-								$mess = fnConfirmLogin($lidid);
+								$mess = fnConfirmLogin($rl[0]);
 							}
 						} else {
 							$mess = "Je mag geen login aanvragen.";
