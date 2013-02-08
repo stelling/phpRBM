@@ -1320,14 +1320,14 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			$xtraorder .= ", ";
 		}
 		
-		$query = sprintf('SELECT Login.LidID AS lnkNummer, Login.LidID, Login.Login, %1$s AS Naam_lid, L.Woonplaats, LM.Lidnr, L.Roepnaam AS ndRoepnaam,
+		$query = sprintf("SELECT Login.LidID AS lnkNummer, Login.LidID, Login.Login, %1\$s AS Naam_lid, L.Woonplaats, (%6\$s) AS Lidnr, L.Roepnaam AS ndRoepnaam,
 					L.Achternaam AS ndAchternaam, L.Tussenv AS ndTussenvoegsels, L.Meisjesnm AS ndMeisjesnaam, L.GEBDATUM AS ndGeboren,
 					L.Email AS `E-mail`, L.EmailVereniging AS ndEmailVereniging, L.Telefoon AS ndTelefoon, L.Mobiel AS ndMobiel,
 					Login.Ingevoerd AS dteIngevoerd, Login.LastLogin AS `dttLaatste login`,
-					Login.Wachtwoord AS ndWachtwoord, IF(Login.FouteLogin > %2$d, Login.LidID, 0) AS llkNummer
-					FROM %3$sAdmin_login AS Login INNER JOIN (%3$sLid AS L LEFT OUTER JOIN %3$sLidmaatschap AS LM ON L.Nummer = LM.Lid) ON Login.LidID = L.Nummer
-					WHERE LENGTH(Login.Wachtwoord) > 5 %4$s
-					ORDER BY %5$sL.Achternaam, L.TUSSENV, L.Roepnaam, Login.LidID;', $selectnaam, $maxinlogpogingen, $table_prefix, $xtrawhere, $xtraorder);
+					Login.Wachtwoord AS ndWachtwoord, IF(Login.FouteLogin > %2\$d, Login.LidID, 0) AS llkNummer
+					FROM %3\$sAdmin_login AS Login INNER JOIN %3\$sLid AS L ON Login.LidID = L.Nummer
+					WHERE LENGTH(Login.Wachtwoord) > 5 %4\$s
+					ORDER BY %5\$sL.Achternaam, L.TUSSENV, L.Roepnaam, Login.LidID;", $selectnaam, $maxinlogpogingen, $table_prefix, $xtrawhere, $xtraorder, $selectlidnr);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
@@ -1672,8 +1672,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		
 	} elseif ($actie == "opschonen") {
 		if (db_param("bewaartijdmailings") > 0) {
-			$query = sprintf("DELETE FROM %sMailing
-						WHERE (NOT deleted_on IS NULL)
+			$query = sprintf("DELETE FROM %sMailing WHERE (NOT deleted_on IS NULL)
 						AND deleted_on < ADDDATE(CURDATE(), INTERVAL -%d MONTH);", $table_prefix, db_param("bewaartijdmailings"));
 			$result = fnQuery($query);
 			if ($result > 0) {
@@ -1682,16 +1681,17 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 			} else {
 				$mess = "Bij het opschonen zijn er geen mailings definitief verwijderd. ";
 			}
+			db_logboek("add", $mess, 4);
 			$query = sprintf('DELETE FROM %1$sMailing_rcpt
 						WHERE MailingID NOT IN (SELECT M.MailingID FROM %1$sMailing AS M);', $table_prefix);
 			$result = fnQuery($query);
 			if ($result > 0) {
-				$mess .= sprintf("Er zijn %d ontvangers van mailings verwijderd, omdat de mailings niet meer bestaan.", $result);
+				$mess = sprintf("Er zijn %d ontvangers van mailings verwijderd, omdat de mailings niet meer bestaan.", $result);
+				db_logboek("add", $mess, 4);
 				$query = sprintf("OPTIMIZE TABLE %sMailing_rcpt;", $table_prefix);
 				fnQuery($query);
 			}
 		}
-		db_logboek("add", $mess, 2);
 		return $mess;
 	} elseif ($mid > 0) {
 		$query = sprintf("SELECT * FROM %sMailing WHERE MailingID=%d LIMIT 1;", $table_prefix, $mid);

@@ -96,7 +96,6 @@ if ($currenttab == "Beheer logins" and toegang()) {
 	$arrSort[] = "Achternaam";
 	$arrSort[] = "Naam";
 	$arrSort[] = "Woonplaats";
-	$arrSort[] = "Lidnr";
 	$arrSort[] = "Ingevoerd";
 	$arrSort[] = "Laatste login";
 	
@@ -150,10 +149,8 @@ if ($currenttab == "Beheer logins" and toegang()) {
 			$ord = "L.Roepnaam, L.Tussenv";
 		}
 	} elseif ($sorteren == $arrSort[4]) {
-		$ord = "LM.Lidnr";
-	} elseif ($sorteren == $arrSort[5]) {
 		$ord = "Login.Ingevoerd";
-	} elseif ($sorteren == $arrSort[6]) {
+	} elseif ($sorteren == $arrSort[5]) {
 		$ord = "Login.LastLogin";
 	} elseif (strlen($sorteren) > 0) {
 		$ord = "L." . $sorteren;
@@ -306,7 +303,7 @@ function fnInstellingen() {
 	$arrParam['bewaartijdlogging'] = "Hoeveel maanden moet logging bewaard blijven. 0 = altijd.";
 	$arrParam['bewaartijdlogins'] = "Het aantal maanden dat logins na het laatste gebruik bewaard worden. Als een login wordt verwijderd, wordt geen historie weggegooid. Historie wordt namelijk direct aan het lid gekopppeld en niet aan de login. 0 = altijd bewaren.";
 	$arrParam['bewaartijdloginsnietgebruikt'] = "Het aantal dagen dat logins wordt bewaard, nadat het is aangevraagd en nog niet gebruikt is.";
-	$arrParam['bewaartijdmailings'] = "Het aantal maanden dat verwijderde mailing bewaard worden. 0 = altijd bewaren.";
+	$arrParam['bewaartijdmailings'] = "Het aantal maanden dat een verwijderde mailing bewaard moet worden. 0 = altijd bewaren.";
 	$arrParam['beperktotgroep'] = "Vul hier de RecordID's, gescheiden door een komma, van de groepen (zie tabel ONDERDL) in die toegang hebben. Als je geen groep invult hebben alleen webmasters toegang.";
 	$arrParam['db_backuptarren'] = "Moet de backup gecomprimeerd worden? Let op, de webhost moet dit wel ondersteunen.";
 	$arrParam['db_backupsopschonen'] = "Na hoeveel dagen moeten oude back-ups automatisch verwijderd worden? 0 = nooit.";
