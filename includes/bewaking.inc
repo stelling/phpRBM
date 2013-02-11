@@ -22,8 +22,8 @@ function fnBewaking() {
 		$_SESSION['actseizoen'] = $seizoen;
 	} elseif (isset($_SESSION['actseizoen']) and strlen($_SESSION['actseizoen']) > 0) {
 		$seizoen = $_SESSION['actseizoen'];
-	} elseif ($currenttab2 == "Overzicht inschrijvingen") {
-		$seizoen = db_scalar(sprintf("SELECT MAX(SeizoenID) FROM %sBewaking_Blok WHERE InschrijvingOpen=1;", $table_prefix));
+	} elseif ($currenttab2 == "Overzicht inschrijvingen" or $currenttab2 == "Blokken muteren") {
+		$seizoen = db_scalar(sprintf("SELECT MAX(SeizoenID) FROM %sBewaking_Blok;", $table_prefix));
 	} else {
 		$seizoen = db_scalar(sprintf("SELECT MAX(SeizoenID) FROM %sBewaking;", $table_prefix));
 	}
@@ -479,8 +479,8 @@ function BevestInschrBewaking($lidid, $insnr) {
 	} else {
 		$mess = "Er is geen mailing voor het bevestigingen van de inschrijving gedefinieerd.";
 	}
-	db_logboek("add", $mess, 11, 2);
-//	echo("<script>location.href='/index.php';</script>\n");
+	db_logboek("add", $mess, 11, $lidid, 2);
+	echo("<script>location.href='/index.php';</script>\n");
 }
 
 function BevestInschrBewaking_BU($lidid, $insnr) {
