@@ -16,6 +16,9 @@ if ((isset($_SESSON['webmaster']) and $_SESSON['webmaster'] == 1) or $_SERVER["H
 if (!isset($_SESSION['lidid'])) {
 	$_SESSION['lidid'] = 0;
 }
+if (!isset($_SESSION['webmaster'])) {
+	$_SESSION['webmaster'] = 0;
+}
 
 $dir = substr(__FILE__, 0, strrpos(__FILE__, "/"));
 $dir = substr($dir, 0, strrpos($dir, "/"));
@@ -343,7 +346,7 @@ function HTMLheader($refresh=0) {
 			echo("Login: <input type='text' name='username' size=12 maxlength=25>\n");
 			echo("&nbsp;Wachtwoord: <input type='password' name='password' size=10 maxlength=12>\n");
 			echo("&nbsp;<input type='submit' value='Inloggen' name='Inloggen'>\n");
-			echo("<input type='checkbox' name='cookie' value=1 title='Automatisch inloggen'>\n");
+			echo("<input type='checkbox' name='cookie' value=1 checked title='Automatisch inloggen (werkt met cookies)'>\n");
 		}
 	
 		echo("<a href='http://phprbm.telling.nl/uitleg.php'><img src='images/question.png' title='Uitleg gebruik en installatie' alt='Question mark'></a>\n");
