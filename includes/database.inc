@@ -1174,7 +1174,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		
 	} elseif ($actie == "rowlogin" and (isValidMailAddress($email, 0) or $lidid > 0)) {
 		$query = sprintf("SELECT L.Nummer, Login.Login, %s AS Naam, L.Roepnaam, L.Email, L.EmailVereniging, L.EmailOuders, L.GEBDATUM,
-								Login.Wachtwoord, Login.FouteLogin, 
+								Login.Wachtwoord, Login.FouteLogin, Login.Gewijzigd,
 								IFNULL((%s), L.Nummer) AS Lidnr,", $selectnaam, $selectlidnr);
 		if (is_array($beperktotgroep) and count($beperktotgroep) > 0) {
 			$query .= sprintf("(SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.Lid=L.Nummer AND LO.OnderdeelID IN (%s) AND LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE())) AS AanvragenMag", $table_prefix, implode(", ", $beperktotgroep));
@@ -1272,11 +1272,9 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		}
 		
 	} elseif ($actie == "controle") {
-		$loginautounlock = db_param("loginautounlock");
-		$maxinlogpogingen = db_param("maxinlogpogingen");
-		if ($loginautounlock > 0) {
+		if (db_param("loginautounlock") > 0) {
 			$query = sprintf("UPDATE %sAdmin_login SET FouteLogin=0, Gewijzigd=SYSDATE()
-						WHERE FouteLogin > %d AND Gewijzigd < DATE_ADD(SYSDATE(), INTERVAL -%d MINUTE);", $table_prefix, $maxinlogpogingen, $loginautounlock);
+						WHERE Gewijzigd < DATE_ADD(SYSDATE(), INTERVAL -%d MINUTE);", $table_prefix, db_param("loginautounlock"));
 			$result = fnQuery($query);
 			if ($result > 0) {
 				$mess = sprintf("%d logins zijn automatisch ge-unlocked.", $result);
@@ -1297,7 +1295,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			$xtrawhere .= sprintf(" AND Login.LidID IN (%s)", implode(", ", $lididwebmasters));
 		}
 		$query = sprintf("SELECT Login.LidID, %3\$s AS NaamLid, L.Roepnaam, L.Email, L.EmailVereniging, L.EmailOuders,
-					IFNULL((%4\$s), 0) AS Lidnr, Login.FouteLogin
+					IFNULL((%4\$s), 0) AS Lidnr, Login.FouteLogin, Login.Gewijzigd
 					FROM %1\$sAdmin_login AS Login INNER JOIN %1\$sLid AS L ON Login.LidID = L.Nummer
 					WHERE LENGTH(Login.Wachtwoord) > 5 %2\$s
 					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $table_prefix, $xtrawhere, $selectnaam, $selectlidnr);
@@ -1320,14 +1318,14 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			$xtraorder .= ", ";
 		}
 		
-		$query = sprintf("SELECT Login.LidID AS lnkNummer, Login.LidID, Login.Login, %1\$s AS Naam_lid, L.Woonplaats, (%6\$s) AS Lidnr, L.Roepnaam AS ndRoepnaam,
+		$query = sprintf("SELECT Login.LidID AS lnkNummer, Login.LidID, Login.Login, %1\$s AS Naam_lid, L.Woonplaats, (%5\$s) AS Lidnr, L.Roepnaam AS ndRoepnaam,
 					L.Achternaam AS ndAchternaam, L.Tussenv AS ndTussenvoegsels, L.Meisjesnm AS ndMeisjesnaam, L.GEBDATUM AS ndGeboren,
 					L.Email AS `E-mail`, L.EmailVereniging AS ndEmailVereniging, L.Telefoon AS ndTelefoon, L.Mobiel AS ndMobiel,
 					Login.Ingevoerd AS dteIngevoerd, Login.LastLogin AS `dttLaatste login`,
-					Login.Wachtwoord AS ndWachtwoord, IF(Login.FouteLogin > %2\$d, Login.LidID, 0) AS llkNummer
-					FROM %3\$sAdmin_login AS Login INNER JOIN %3\$sLid AS L ON Login.LidID = L.Nummer
-					WHERE LENGTH(Login.Wachtwoord) > 5 %4\$s
-					ORDER BY %5\$sL.Achternaam, L.TUSSENV, L.Roepnaam, Login.LidID;", $selectnaam, $maxinlogpogingen, $table_prefix, $xtrawhere, $xtraorder, $selectlidnr);
+					Login.Wachtwoord AS ndWachtwoord, IF(Login.FouteLogin > 0, Login.LidID, 0) AS llkNummer
+					FROM %2\$sAdmin_login AS Login INNER JOIN %2\$sLid AS L ON Login.LidID = L.Nummer
+					WHERE LENGTH(Login.Wachtwoord) > 5 %3\$s
+					ORDER BY %4\$sL.Achternaam, L.TUSSENV, L.Roepnaam, Login.LidID;", $selectnaam, $table_prefix, $xtrawhere, $xtraorder, $selectlidnr);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		

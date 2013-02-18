@@ -31,7 +31,13 @@ function toegang($soort="", $melding=1, $password="") {
 		if (isset($_SESSION['username']) and strlen($_SESSION['username']) > 0 and strlen($password) > 0) {
 			$row = db_logins("controle", "", $_SESSION['username'], 0, "", $password);
 			if (db_param("maxinlogpogingen") > 0 and isset($row->FouteLogin) and $row->FouteLogin > db_param("maxinlogpogingen")) {
-				$mess = sprintf("Login '%s' is geblokkeerd, omdat er teveel foute inlog-pogingingen mee zijn gedaan! Je bent niet ingelogd.", $_SESSION['username']);
+				if (db_param("loginautounlock") > 0 and db_param("loginautounlock") < 12*60) {
+				$mess = sprintf("Login '%s' is tot uiterlijk %s uur geblokkeerd", $_SESSION['username'], date("G:i", strtotime($row->Gewijzigd)+(60*db_param("loginautounlock"))));
+				} else {
+					$mess = sprintf("Login '%s' is geblokkeerd", $_SESSION['username']);
+				}
+				$mess .= ", omdat er teveel foute inlog-pogingingen mee gedaan zijn! Je bent niet ingelogd.";
+				
 				db_logboek("add", $mess, 1, 0, 2);
 				$_SESSION['lidid'] = 0;
 			} elseif (isset($row->LidID) and $row->LidID > 0) {
@@ -174,11 +180,8 @@ function fnConfirmLogin($row, $xtratekst="") {
 
 	if (db_param("maxinlogpogingen") > 0 and $row->FouteLogin > db_param("maxinlogpogingen")) {
 		$geblokt = "Er is teveel foutief met deze login proberen in te loggen. Hierdoor is dit account geblokkeerd. ";
-		if (db_param("loginautounlock") > 0 and db_param("loginautounlock") <= 12) {
-			$geblokt .= sprintf("Over %d uur is deze blokkade verwijderd.",db_param("loginautounlock"));
-			if (isValidMailAddress(db_param("emailwebmaster"), 0)) {
-				$mail->AddCC(db_param("emailwebmaster"));
-			}
+		if (db_param("loginautounlock") > 0 and db_param("loginautounlock") <= 24*60) {
+			$geblokt .= sprintf("Uiterlijk om %s uur is deze blokkade verwijderd.", date("G:i", strtotime($row->Gewijzigd)+(60*db_param("loginautounlock"))));
 		} else {
 			$geblokt .= sprintf("Vraag aan de <a href='mailto:%s'>webmaster</a> om deze vrij te geven.", db_param("emailwebmaster"));
 		}
