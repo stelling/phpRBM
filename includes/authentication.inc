@@ -58,27 +58,32 @@ function toegang($soort="", $melding=1, $password="") {
 				db_logins("setingelogd", "", "", $_SESSION['lidid']);
 			} else {
 				if ($melding == 1) {
-					if (strlen($password) > 0) {
-						$mess = sprintf("De combinatie van login '%s' en het ingevoerde wachtwoord is niet correct! Je bent niet ingelogd.", $_SESSION['username']);
-					} else {
-						$mess = "Er is geen wachtwoord ingevoerd.";
-					}
-					
+					$mess = sprintf("De combinatie van login '%s' en het ingevoerde wachtwoord is niet correct! Je bent niet ingelogd.", $_SESSION['username']);
 					db_logboek("add", $mess, 1, 0, 2);
 				}
 				$_SESSION['lidid'] = 0;
-				setcookie("password", "", time()-3600);
 			}
 		} else {
+			if (strlen($_SESSION['username']) > 0 and strlen($password) == 0) {
+				$mess = sprintf("Er is geprobeerd met '%s', zonder een wachtwoord, in te loggen.", $_SESSION['username']);
+				db_logboek("add", $mess, 1);
+			}
 			$_SESSION['lidid'] = 0;
 		}
 		if ($_SESSION['lidid'] == 0 or strlen($_SESSION['username']) == 0) {
 			$_SESSION['lidid'] = 0;
+			$_SESSION['username'] = "";
 			$_SESSION['lidnr'] = 0;
 			$_SESSION['naamingelogde'] = "gast";
 			$_SESSION['roepnaamingelogde'] = "gast";
 			$_SESSION['emailingelogde'] = "";
 			unset($_SESSION['toegang']);
+			if (isset($_COOKIE['username'])) {
+				setcookie("username", "", time()-3600);
+			}
+			if (isset($_COOKIE['password'])) {
+				setcookie("password", "", time()-3600);
+			}
 		}
 	}
 	if (in_array($_SESSION['lidid'], $lididwebmasters)) {
@@ -162,9 +167,21 @@ function fnConfirmLogin($row, $xtratekst="") {
 <p>Met vriendelijke groeten,<br>\n
 <strong>Webmaster [%NAAMWEBSITE%]</strong></p>\n";
 	}
+	
+	$mail = new RBMmailer($row->Nummer);
+	$mail->FromName = "Webmaster " . db_param("naamwebsite");
+	$mail->Subject = sprintf("Bevestiging login %s voor %s", db_param("naamwebsite"), $row->Naam);
 
 	if (db_param("maxinlogpogingen") > 0 and $row->FouteLogin > db_param("maxinlogpogingen")) {
-		$geblokt = sprintf("Er is %d keer geprobeerd met deze login in te loggen. Hierdoor is dit account geblokkeerd. Vraag aan de webmaster om deze weer vrij te geven.", $row->FouteLogin);
+		$geblokt = "Er is teveel foutief met deze login proberen in te loggen. Hierdoor is dit account geblokkeerd. ";
+		if (db_param("loginautounlock") > 0 and db_param("loginautounlock") <= 12) {
+			$geblokt .= sprintf("Over %d uur is deze blokkade verwijderd.",db_param("loginautounlock"));
+			if (isValidMailAddress(db_param("emailwebmaster"), 0)) {
+				$mail->AddCC(db_param("emailwebmaster"));
+			}
+		} else {
+			$geblokt .= sprintf("Vraag aan de <a href='mailto:%s'>webmaster</a> om deze vrij te geven.", db_param("emailwebmaster"));
+		}
 	} else {
 		$geblokt = "";
 	}
@@ -181,9 +198,7 @@ function fnConfirmLogin($row, $xtratekst="") {
 	$content = str_replace("[%URLWEBSITE%]", db_param("urlwebsite"), $content);
 	$content = str_replace("[%IPADDRESS%]", $_SERVER['REMOTE_ADDR'], $content);
 
-	$mail = new RBMmailer($row->Nummer);
-	$mail->FromName = "Webmaster " . db_param("naamwebsite");
-	$mail->Subject = sprintf("Bevestiging login %s voor %s", db_param("naamwebsite"), $row->Naam);
+
 	$mail->Body = $content;
 	$mail->addstationary();
 	if ($mail->Send()) {
@@ -360,10 +375,10 @@ function cleanlogin($login) {
 	if (strlen($login) > $maxlengtelogin) {
 		$login = substr($login, 0, $maxlengtelogin);
 	}
-	$login = str_replace(" ", "_", trim($login));
-	$login = str_replace("'", "", trim($login));
-	$login = str_replace("\"", "", trim($login));
-	$login = str_replace(";", "", trim($login));
+	$login = str_replace(" ", "_", $login);
+	$login = str_replace("'", "", $login);
+	$login = str_replace("\"", "", $login);
+	$login = str_replace(";", "", $login);
 	
 	return $login;
 }
