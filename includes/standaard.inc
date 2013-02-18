@@ -7,17 +7,18 @@ if (session_start() === FALSE or strlen(session_id()) == 0) {
 	db_logboek("add", $mess, 1, 0, 1);
 }
 
-if ((isset($_SESSON['webmaster']) and $_SESSON['webmaster'] == 1) or $_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
+if (!isset($_SESSION['webmaster'])) {
+	$_SESSION['webmaster'] = 0;
+}
+if ($_SESSION['webmaster'] == 1 or $_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 	error_reporting(E_ALL);
 } else {
 	error_reporting(0);
+//	error_reporting(E_ALL);
 }
 
 if (!isset($_SESSION['lidid'])) {
 	$_SESSION['lidid'] = 0;
-}
-if (!isset($_SESSION['webmaster'])) {
-	$_SESSION['webmaster'] = 0;
 }
 
 $dir = substr(__FILE__, 0, strrpos(__FILE__, "/"));
@@ -346,7 +347,7 @@ function HTMLheader($refresh=0) {
 			echo("Login: <input type='text' name='username' size=12 maxlength=25>\n");
 			echo("&nbsp;Wachtwoord: <input type='password' name='password' size=10 maxlength=12>\n");
 			echo("&nbsp;<input type='submit' value='Inloggen' name='Inloggen'>\n");
-			echo("<input type='checkbox' name='cookie' value=1 checked title='Automatisch inloggen (werkt met cookies)'>\n");
+			echo("<input type='checkbox' name='cookie' value=1 title='Automatisch inloggen (werkt met cookies)'>\n");
 		}
 	
 		echo("<a href='http://phprbm.telling.nl/uitleg.php'><img src='images/question.png' title='Uitleg gebruik en installatie' alt='Question mark'></a>\n");
@@ -773,8 +774,8 @@ function accessdate($sqldate) {
 	}
 } # accessdate
 
-function startwith($value, $start) {
-	if (substr($value, 0, strlen($start)) == $start) {
+function startwith($haystack, $start) {
+	if (substr($haystack, 0, strlen($start)) == $start) {
 		return true;
 	} else {
 		return false;
