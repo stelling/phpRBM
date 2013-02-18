@@ -439,7 +439,7 @@ function fnInstellingen() {
 			} elseif ($row->ParamType == "F") {
 				printf("<tr><td class='label'>%s: </td><td><input name='value_%d' value=%F size=8></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $row->ValueNum, $uitleg);
 			} elseif (strlen($row->ValueChar) > 60) {
-				printf("<tr><td class='label'>%s: </td><td><textarea cols=45 rows=7 name='value_%d'>%s</textarea></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $row->ValueChar, $uitleg);
+				printf("<tr><td class='label'>%s: </td><td><textarea cols=50 rows=10 name='value_%d'>%s</textarea></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $row->ValueChar, $uitleg);
 			} else {
 				printf("<tr><td class='label'>%s: </td><td><input type='text' class='inputtext' name='value_%d' value=\"%s\"></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $row->ValueChar, $uitleg);
 			}
