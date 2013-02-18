@@ -17,10 +17,6 @@
 		}
 		unset($_SESSION['toegang']);
 		toegang("", 1, $_POST['password']);
-		if ($_SESSION['lidid'] > 0) {
-			printf("<script>\nlocation.href='http://%s';\n</script>\n", $_SERVER["HTTP_HOST"]);
-		} else {
-			printf("<p><a href='%s'>Klik hier om verder te gaan.</a></p>\n", $_SERVER['HTTP_REFERER']);
-		}
+		printf("<script>\nlocation.href='http://%s';\n</script>\n", $_SERVER["HTTP_HOST"]);
 	}
 ?>
