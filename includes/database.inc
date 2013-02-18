@@ -944,7 +944,7 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 		$query = sprintf("UPDATE %sBewaking_Inschrijving SET Nummer=%d, Keuze=%d, Opmerking=\"%s\", Definitief=NULL
 								WHERE BlokID=%d AND Lid=%d;", $table_prefix, $insnr, $keuze, $opmerk, $blok, $lidid);
 		fnQuery($query);
-		$mess = sprintf("Inschrijving bewaking voor blok %s is bij ingelogd lid bijgewerkt. Keuze is %d.", db_bewaking_blok("omsblok", 0, 0, $blok), $keuze);
+		$mess = sprintf("Inschrijving bewaking voor blok '%s' is bij ingelogd lid bijgewerkt. Keuze is %d.", db_bewaking_blok("omsblok", 0, $blok), $keuze);
 		if (strlen($opmerk) > 0) {
 			$mess .= sprintf(" Opmerking is '%s'.", $opmerk);
 		}
@@ -1218,7 +1218,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 				db_logboek("add", $mess, 1, $lidid);
 				$_SESSION['lidid'] = 0;
 			}
-			if (date('H') == 8 or (isset($_SESSION['webmaster']) and $_SESSION['webmaster'] ==  1 and date('H') > 7)) {
+			if (date('H') == 8 or ($_SESSION['webmaster'] == 1 and date('H') > 7)) {
 				$script = sprintf("php %s/autojobs.php", $dir);
 				exec($script);
 			}
@@ -1393,8 +1393,17 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 					LidID NOT IN (SELECT Lid FROM %1\$sLidmaatschap WHERE ((Opgezegd IS NULL) OR Opgezegd >= CURDATE()));", $table_prefix);
 		$result = fnQuery($query);
 		if ($result > 0) {
-			$mess .= sprintf("Bij %d logins is de herinnering voor vervallen diploma uitgezet, omdat ze geen lid meer zijn.", $result);
+			$mess .= sprintf("Bij %d logins is de herinnering voor vervallen diploma uitgezet, omdat ze geen lid meer zijn. ", $result);
 		}
+		
+		if (db_param("maxlengtelogin") > 6) {
+			$query = sprintf("DELETE FROM %sAdmin_login WHERE LENGTH(Login) > %d;", $table_prefix, db_param("maxlengtelogin"));
+			$result = fnQuery($query);
+			if ($result > 0) {
+				$mess .= sprintf("Er zijn %d logins verwijderd, omdat ze langer dan %d karakers waren.", $result, db_param("maxlengtelogin"));
+			}
+		}
+		
 		db_logboek("add", $mess, 2);
 		return $mess;
 		
@@ -1416,6 +1425,7 @@ function db_change_password($pw_new, $pw_old, $lidid) {
 	$result = fnQuery($query);
 	if ($result > 0) {
 		$mess = sprintf("Het wachtwoord van de login van %s gewijzigd.", db_naamlid($lidid));
+		setcookie("password", "", time()-3600);
 	} else {
 		$mess = "Oude wachtwoord is niet correct, wachtwoord is niet gewijzigd.";
 	}	
@@ -3342,7 +3352,7 @@ function db_backup() {
 			if (db_param("db_backupsopschonen") > 0 and $handle = opendir($db_folderbackup)) {
 				while (false !== ($file = readdir($handle))) {
 					sleep(3);
-					if ($file != "." and $file != "..") {
+					if ($file != "." and $file != ".." and startwith($file, $buname) == false) {
 						if (filectime($db_folderbackup . $file) < mktime(0, 0, 0, date("m"), date("d")-db_param("db_backupsopschonen"), date("Y")) or filesize($db_folderbackup . $file) < 500 ) {
 							unlink($db_folderbackup . $file);
 							$mess = sprintf("Bestand %s is verwijderd. ", $file);
@@ -3355,7 +3365,7 @@ function db_backup() {
 			
 		} else {
 			$ret = "Het backup-script heeft gedraaid, maar de backup is niet gelukt.\n";
-			$ret .= sprintf("Melding mysqldump: %s", $output);
+			$ret .= sprintf("Melding mysqldump: %s", print_r($output, true));
 			db_logboek("add", $ret, 3);
 		}
 	} else {
