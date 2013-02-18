@@ -608,6 +608,7 @@ function DetailsInschrijvingBewaking($rows) {
 			}
 			$hv .= sprintf("<td %s>%s</td>", $cnd, $k);
 			
+			$k = "";
 			if ($row->Keuze == 2 or $row->Keuze == 3) {
 				if ($row->Definitief < $row->Ingevoerd) {
 					$k = "ND";
