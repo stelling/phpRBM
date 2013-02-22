@@ -830,7 +830,7 @@ function nieuwepasfoto($lidid, $filterlid="") {
 				$body = sprintf("<p>Beste ledenadministratie,</p>
 										<p>Bijgevoegd is mijn nieuwe pasfoto.</p>
 										<p>Met vriendelijke groeten,<br>
-										<strong>%s (LidID: %d)<strong></p>\n", $naamlid, $lidid);
+										<strong>%s<strong></p>\n", $naamlid);
 				$mail->MsgHTML($body);
 				$mail->AddAttachment($target);
 				if ($mail->Send()) {
