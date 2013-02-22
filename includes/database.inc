@@ -302,7 +302,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					LO.Opmerk AS Opmerking,
 					LO.Opgezegd AS dteTotenmet
 					FROM %s
-					WHERE O.`Type`='G' AND O.GekoppeldAanQuery=0 AND LO.Lid=%d
+					WHERE O.`Type`='G' AND O.Kader=0 AND O.GekoppeldAanQuery=0 AND LO.Lid=%d
 					ORDER BY IF(ISNULL(LO.Opgezegd), 0, 1), LO.Vanaf, O.Kode;", $fromlidond, $LidID);
 	} elseif ($soort == "Lidbew") {
 		$tw = sprintf("CONVERT((SELECT SUM(DATEDIFF(EINDE_PER, BEGIN_PER)+1) FROM %sBewaking AS BW WHERE BW.Lid = %d AND BEGIN_PER < SYSDATE())/7, SIGNED)", $table_prefix, $LidID);
@@ -657,7 +657,11 @@ function db_authorisation($actie, $recid=0, $tabpage="") {
 		$query = sprintf("UPDATE %1\$sAdmin_access SET Toegang=%2\$d, Gewijzigd=SYSDATE() WHERE RecordID=%3\$d AND Toegang<>%2\$d;", $table_prefix, $_POST[$vn], $recid);
 		$result = fnQuery($query);
 		if ($result > 0) {
-			$mess = sprintf("Toegang '%s' is naar groep '%s' aangepast.", $row->Tabpage, db_naam_onderdeel($_POST[$vn], "Iedereen"));
+			if ($_POST[$vn] == "-1") {
+				$mess = sprintf("Totgang tot '%s' is alleen voor webmasters beschibaar gemaakt.", $row->Tabpage);
+			} else {
+				$mess = sprintf("Toegang '%s' is naar groep '%s' aangepast.", $row->Tabpage, db_naam_onderdeel($_POST[$vn], "Iedereen"));
+			}
 			db_logboek("add", $mess, 5, 0, 0, $recid);
 		}
 		
@@ -1274,7 +1278,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 	} elseif ($actie == "controle") {
 		if (db_param("loginautounlock") > 0) {
 			$query = sprintf("UPDATE %sAdmin_login SET FouteLogin=0, Gewijzigd=SYSDATE()
-						WHERE Gewijzigd < DATE_ADD(SYSDATE(), INTERVAL -%d MINUTE);", $table_prefix, db_param("loginautounlock"));
+						WHERE Gewijzigd < DATE_ADD(SYSDATE(), INTERVAL -%d MINUTE) AND FouteLogin > 0;", $table_prefix, db_param("loginautounlock"));
 			$result = fnQuery($query);
 			if ($result > 0) {
 				$mess = sprintf("%d logins zijn automatisch ge-unlocked.", $result);
