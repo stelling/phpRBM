@@ -579,7 +579,7 @@ class Mailing {
 			}
 
 			if ($verzendenmag == false) {
-				$this->meldingen .= "<br>\nDeze mailing mag (nog) niet verzonden worden.\n";
+				$this->meldingen .= "<br>\nDeze mailing mag nog niet verzonden worden.\n";
 			}
 			if (strlen($this->meldingen) > 0) {
 				printf("<tr><td class='label'>Meldingen:</td><td>%s</td></tr>\n", $this->meldingen);
@@ -1027,8 +1027,8 @@ class Mailing {
 			}
 			
 		} elseif ($this->mid == db_param("mailing_lidnr")) {
-			if (db_param("maxinlogpogingen") > 0 and $db_logins("foutelogin", $lidid) > db_param("maxinlogpogingen")) {
-				$geblokt = sprintf("Er is %d keer geprobeerd met deze login in te loggen. Hierdoor is dit account geblokkeerd. Vraag aan de webmaster om deze weer vrij te geven.", $db_logins("foutelogin", $lidid));
+			if (db_param("maxinlogpogingen") > 0 and db_logins("foutelogin", "", "", $lidid) > db_param("maxinlogpogingen")) {
+				$geblokt = sprintf("Er is %d keer geprobeerd met deze login in te loggen. Hierdoor is dit account geblokkeerd. Vraag aan de webmaster om deze weer vrij te geven.", $db_logins("foutelogin", "", "", $lidid));
 			} else {
 				$geblokt = "";
 			}
