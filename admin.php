@@ -38,7 +38,11 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 			$query = sprintf("UPDATE %1\$sAdmin_access SET Toegang=%2\$d, Gewijzigd=SYSDATE() WHERE RecordID=%3\$d AND Toegang<>%2\$d;", $table_prefix, $_POST[$vn], $row->RecordID);
 			$result = fnQuery($query);
 			if ($result > 0) {
-				$mess = sprintf("Toegang '%s' is naar groep '%s' aangepast.", $row->Tabpage, db_naam_onderdeel($_POST[$vn], "Iedereen"));
+				if ($_POST[$vn] == -1) {
+					$mess = sprintf("Totgang tot '%s' is alleen voor webmasters beschibaar gemaakt.", $row->Tabpage);
+				} else {
+					$mess = sprintf("Toegang '%s' is naar groep '%s' aangepast.", $row->Tabpage, db_naam_onderdeel($_POST[$vn], "Iedereen"));
+				}
 				db_logboek("add", $mess, 5);
 			}
 		}
@@ -159,12 +163,13 @@ if ($currenttab == "Beheer logins" and toegang()) {
 		$ord .= " DESC";
 	}
 	
-	$lnk = sprintf("<a href='%s?op=deletelogin&amp;lidid=%s'><img src='images/del.png' title='Verwijder login'></a>", $_SERVER['PHP_SELF'], "%d");
+	$lnk = sprintf("<a href='%s?op=deletelogin&amp;lidid=%%d'><img src='images/del.png' title='Verwijder login'></a>", $_SERVER['PHP_SELF']);
 	if (db_param("maxinlogpogingen") > 0) {
-		$lnk_lk = sprintf("<a href='%s?op=unlocklogin&amp;lidid=%s' title='Reset foutieve logins'><img src='images/unlocked_01.png'></a>", $_SERVER['PHP_SELF'], "%d");
+		$lnk_lk = sprintf("<a href='%s?op=unlocklogin&amp;lidid=%%d' title='Reset foutieve logins'><img src='images/unlocked_01.png'></a>", $_SERVER['PHP_SELF']);
 	} else {
 		$lnk_lk = "";
 	}
+
 	echo(fnDisplayTable(db_logins("lijst", "", "", 0, $w, "", $ord), $lnk, "", 5, $lnk_lk));
 } elseif ($currenttab == "Autorisatie" and toegang($_GET['tp'])) {
 	echo("<div id='lijst'>\n");
@@ -236,7 +241,7 @@ if ($currenttab == "Beheer logins" and toegang()) {
 	}
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=evenementenopschonen\"' value='Evenementen opschonen'>&nbsp;Opschonen evenementen, inclusief bijbehorende deelnemers, die langer dan 6 maanden geleden zijn verwijderd.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	if (db_param("bewaartijdmailings") > 0) {
-		printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=mailingsopschonen\"' value='Mailings opschonen'>&nbsp;Opschonen van de prullenbak van de mailings. Mailings die er langer dan %d maanden in zitten worden definitief verwijderd.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), db_param("bewaartijdmailings"));
+		printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=mailingsopschonen\"' value='Mailings opschonen'>&nbsp;Mailings die langer dan %d maanden in de prullenbak zitten worden definitief verwijderd.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), db_param("bewaartijdmailings"));
 	}
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=loginsopschonen\"' value='Logins opschonen'>&nbsp;Opschonen van logins die om diverse redenen niet meer nodig zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=authorisatieopschonen\"' value='Authorisatie opschonen'>&nbsp;Verwijderen toegang waar alleen de webmaster toegang toe heeft en die ouder dan 3 maanden zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
