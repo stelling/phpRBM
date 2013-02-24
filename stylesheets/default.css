@@ -580,7 +580,7 @@ fieldset h3 {
 .details {
 	text-align: center;
 }
-onde
+
 .details img {
 	max-height: 24px;
 }
@@ -634,7 +634,7 @@ onde
 	margin-top: 15px;
 	padding-top: 11px;
 	border-color: #cdcdcd;
-   background-color: #cdcdcd;
+	background-color: #cdcdcd;
    border-top-right-radius: 9px;
    border-top-left-radius: 9px;
 }
@@ -843,6 +843,13 @@ onde
 
 #instellingenmuteren .inputtext {
 	width: 382px;
+}
+
+.CopyPaste {
+	margin-top: 8px;
+	border-style: solid;
+	border-width: 1px;
+	background-color: silver;
 }
 
 /* Elementen voor nieuw menu */

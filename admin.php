@@ -218,12 +218,20 @@ if ($currenttab == "Beheer logins" and toegang()) {
 	echo("</form>\n");
 	echo("</div>  <!-- Einde invulformulier -->\n");	
 } elseif ($currenttab == "Downloaden wijzigingen" and toegang($_GET['tp'])) {
+
 	printf("<form name='formdownload' method='post' action='%s?tp=%s&amp;op=downloadwijz'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	$rows = db_interface("lijst");
 	if (count($rows) > 0) {
 		echo(fnDisplayTable($rows, "", "", 1));
+		
+		$copytext = "";
+		foreach ($rows as $row) {
+			$copytext .= $row->SQL . "\n";
+		}
+		
 		echo("<p class='mededeling'><input type='submit' value='Download wijzigingen'>\n");
 		printf("&nbsp;<input type='button' value='Wijzigingen afmelden' OnClick=\"location.href='%s?tp=%s&amp;op=afmeldenwijz'\"></p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+		printf("<div class='CopyPaste'><p>Om te kopiëren:</p>%s</div>\n", $copytext);
 	} else {
 		echo("<p class='mededeling'>Er zijn geen wijzigingen die nog verwerkt moeten worden.</p>\n");
 	}
