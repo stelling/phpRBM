@@ -16,7 +16,7 @@ function toegang($soort="", $melding=1, $password="") {
 		}
 	}
 
-	if (isset($_SESSION['lastauthenication']) and $_SESSION['lastauthenication'] >= time()-3600 and $_SESSION['lidid'] > 0) {
+	if (isset($_SESSION['lastauthenication']) and $_SESSION['lastauthenication'] >= time()-7200 and $_SESSION['lidid'] > 0) {
 		// Er hoeft niets te gebeuren.
 	} else {
 		db_logins("uitloggen");
