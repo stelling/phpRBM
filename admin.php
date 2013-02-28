@@ -112,11 +112,7 @@ if ($currenttab == "Beheer logins" and toegang()) {
 			$sortdesc = false;
 		}
 	} else {
-		if (isset($_SESSION['val_naamfilter'])) {
-			$naamfilter = $_SESSION['val_naamfilter'];
-		} else {
-			$naamfilter = "";
-		}
+		$naamfilter = "";
 		$sorteren = $arrSort[1];
 		$sortdesc = false;
 	}
