@@ -70,10 +70,6 @@ function toegang($soort="", $melding=1, $password="") {
 				$_SESSION['lidid'] = 0;
 			}
 		} else {
-			if (strlen($_SESSION['username']) > 0 and strlen($password) == 0) {
-				$mess = sprintf("Er is geprobeerd met '%s', zonder een wachtwoord, in te loggen.", $_SESSION['username']);
-				db_logboek("add", $mess, 1);
-			}
 			$_SESSION['lidid'] = 0;
 		}
 		if ($_SESSION['lidid'] == 0 or strlen($_SESSION['username']) == 0) {
