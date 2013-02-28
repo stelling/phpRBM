@@ -1019,7 +1019,7 @@ class Mailing {
 		
 		if ($this->mid == db_param("mailing_bevestigingopzegging")) {
 			if ($this->xtranum > 0) {
-				$this->merged_message = str_ireplace("[%Lidnummer%]", $xtranum, $this->merged_message);
+				$this->merged_message = str_ireplace("[%Lidnummer%]", $this->xtranum, $this->merged_message);
 				$row = db_lidmaatschap("record", 0, "", 0, "", $this->xtranum);
 				if (isset($row->OpgezegdPer)) {
 					$this->merged_message = str_ireplace("[%OpgezegdPer%]", $row->OpgezegdPer, $this->merged_message);
