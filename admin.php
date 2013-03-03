@@ -375,10 +375,10 @@ function fnInstellingen() {
 	foreach ($arrParam as $naam => $val) {
 		db_param($naam, "controle");
 	}
-	$mess = "";
 	$specmailing = array("mailing_bevestigingopzegging", "mailing_bewakinginschrijving", "mailing_lidnr", "mailing_bevestigingbestelling");
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		foreach (db_param("", "lijst") as $row) {
+			$mess = "";
 			$pvn = sprintf("value_%d", $row->RecordID);
 			if (isset($_POST[$pvn]) or $row->ParamType == "B") {
 				if (isset($_POST[$pvn])) {
@@ -388,21 +388,21 @@ function fnInstellingen() {
 					$_POST[$pvn] = str_replace(" ", "", $_POST[$pvn]);
 				} elseif (in_array($row->Naam, $specmailing) and $_POST[$pvn] > 0 and db_mailing("exist", $_POST[$pvn]) == false) {
 					$_POST[$pvn] = 0;
-					$mess .= sprintf("Parameter '%s' wordt 0 gemaakt, omdat de ingevoerde mailing niet (meer) bestaat. ", $row->Naam);
+					$mess = sprintf("Parameter '%s' wordt 0 gemaakt, omdat de ingevoerde mailing niet (meer) bestaat. ", $row->Naam);
 				} elseif ($row->Naam == "mailing_beperkfrom" and substr($_POST[$pvn], 0, 1) == "@") {
 					$_POST[$pvn] = substr($_POST[$pvn], 1);
 				} elseif ($row->Naam == "mailing_beperkfrom" and substr($_POST[$pvn], 0, 4) == "www.") {
 					$_POST[$pvn] = substr($_POST[$pvn], 4);
 				} elseif ($row->Naam == "typemenu" and (strlen($_POST[$pvn]) == 0 or $_POST[$pvn] < 1 or $_POST[$pvn] > 3)) {
 					$_POST[$pvn] = 1;
-					$mess .= sprintf("Parameter '%s' wordt 1 gemaakt, omdat deze alleen 1, 2 of 3 mag zijn. ", $row->Naam);
+					$mess = sprintf("Parameter '%s' wordt 1 gemaakt, omdat deze alleen 1, 2 of 3 mag zijn. ", $row->Naam);
 				} elseif ($row->Naam == "maxlengtelogin") {
-					if (strlen($_POST[$pvn]) == 0 or is_numeric($_POST[$pvn]) == false or $_POST[$pvn] > 12) {
-						$_POST[$pvn] = 12;
-						$mess .= sprintf("Parameter '%s' wordt 12 gemaakt, omdat dit de maximale waarde is. ", $row->Naam);
+					if (strlen($_POST[$pvn]) == 0 or is_numeric($_POST[$pvn]) == false or $_POST[$pvn] > 15) {
+						$_POST[$pvn] = 15;
+						$mess = sprintf("Parameter '%s' wordt 15 gemaakt, omdat dit de maximale waarde is. ", $row->Naam);
 					} elseif ($_POST[$pvn] < 7) {
 						$_POST[$pvn] = 7;
-						$mess .= sprintf("Parameter '%s' wordt 7 gemaakt, omdat dit de minimale waarde is. ", $row->Naam);
+						$mess = sprintf("Parameter '%s' wordt 7 gemaakt, omdat dit de minimale waarde is. ", $row->Naam);
 					}
 				} elseif (substr($row->Naam, 0, 3) == "url" and isset($_POST[$pvn])) {
 					$_POST[$pvn] = str_replace("http://", "", $_POST[$pvn]);
