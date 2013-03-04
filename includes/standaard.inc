@@ -347,7 +347,7 @@ function HTMLheader($refresh=0) {
 			echo("Login: <input type='text' name='username' size=12 maxlength=25>\n");
 			echo("&nbsp;Wachtwoord: <input type='password' name='password' size=10 maxlength=12>\n");
 			echo("&nbsp;<input type='submit' value='Inloggen' name='Inloggen'>\n");
-			echo("<input type='checkbox' name='cookie' value=1 title='Automatisch inloggen (werkt met cookies)'>\n");
+			echo("<input type='checkbox' name='cookie' value=1 title='Ingelogd blijven (werkt met cookies)'>\n");
 		}
 	
 		echo("<a href='http://phprbm.telling.nl/uitleg.php'><img src='images/question.png' title='Uitleg gebruik en installatie' alt='Question mark'></a>\n");
