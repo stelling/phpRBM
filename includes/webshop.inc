@@ -192,7 +192,7 @@ function artikelbeheer() {
 		echo("<tr>\n");
 		printf("<td class='number'>%d</td>\n", $row->RecordID);
 		printf("<td><input type='text' name='Code_%d' value='%s' size=6 maxlength=6></td>\n", $row->RecordID, $row->Code);
-		printf("<td><input type='text' name='Omschrijving_%d' value='%s' size=30 maxlength=30></td>\n", $row->RecordID, $row->Omschrijving);
+		printf("<td><input type='text' name='Omschrijving_%d' value='%s' size=40 maxlength=50></td>\n", $row->RecordID, $row->Omschrijving);
 		printf("<td><input type='text' name='Maat_%d' value='%s' size=6 maxlength=4></td>\n", $row->RecordID, $row->Maat);
 		printf("<td><input type='text' name='Verkoopprijs_%d' value='%s' maxlength=8 class='inputnumber'></td>\n", $row->RecordID, $row->Verkoopprijs);
 		printf("<td><input type='date' name='BeschikbaarTot_%d' value='%s' size=15 maxlength=18></td>\n", $row->RecordID, $row->BeschikbaarTot);
@@ -396,69 +396,6 @@ function bevestigingbestelling($lidid, $ordernr=0) {
 	db_logboek("add", $mess, 10, $lidid, 2, $ordernr);
 	
 	printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-}
-
-
-function bevestigingbestelling_BU($lidid, $ordernr=0) {
-	
-	$emailbevestigingbestelling = db_param("zs_emailbevestigingbestelling");
-
-	$bevest_template = 'templates/bestelling.html';
-	if (file_exists($bevest_template)) {
-		$content = file_get_contents($bevest_template);
-	} else {
-		$content = "Hierbij bevestigen wij de volgende bestelling: [%BESTELLING%]";
-	}
-
-	if ($ordernr > 0) {
-		$filter = sprintf("ORD.Ordernr=%d", $ordernr);
-	} else {
-		$filter = "";
-	}
-	
-	$bestelling = "";
-	$totbedrag = 0;
-	foreach (db_orderregel("bevestiging", $lidid, 0, 0, $filter) as $row) {
-		$ordernr = $row->Ordernr;
-		$naamlid = $row->NaamLid;
-		$roepnaam = $row->Roepnaam;
-		$adres = $row->Adres;
-		$postcode = $row->Postcode;
-		$woonplaats = $row->Woonplaats;
-		$bestelling .= sprintf("<tr><td>%s</td><td>%s</td><td>%s</td><td class='number'>%d</td><td class='number'>&euro;&nbsp;%s</td><td>%s</td></tr>\n", $row->Code, $row->Omschrijving, $row->Maat, $row->AantalBesteld, number_format($row->Bedrag, 2), $row->Opmerking);
-		$totbedrag += $row->Bedrag;
-	}
-	
-	$content = str_ireplace("[%NAAMLID%]", $naamlid, $content);
-	$content = str_ireplace("[%ROEPNAAM%]", $roepnaam, $content);
-	$content = str_ireplace("[%ADRES%]", $adres, $content);
-	$content = str_ireplace("[%POSTCODE%]", $postcode, $content);
-	$content = str_ireplace("[%WOONPLAATS%]", $woonplaats, $content);
-	$content = str_ireplace("[%NAAMVERENIGING%]", db_param("naamvereniging"), $content);
-	$content = str_ireplace("[%NAAMWEBSITE%]", db_param("naamwebsite"), $content);
-	$content = str_ireplace("[%URLWEBSITE%]", db_param("urlwebsite"), $content);
-	$content = str_ireplace("[%VOORWAARDEN%]", db_param("zs_voorwaardenbestelling"), $content);
-	$content = str_ireplace("[%BESTELLING%]", $bestelling, $content);
-	$content = str_ireplace("[%TOTAALBEDRAG%]", "&euro;&nbsp;" . number_format($totbedrag, 2), $content);
-
-	$mail = new RBMmailer($lidid);
-	if (isValidMailAddress($emailbevestigingbestelling, 0)) {
-		$mail->From = $emailbevestigingbestelling;
-	}
-	$mail->AddCC($mail->From);
-	$mail->Subject = sprintf("Bevestiging bestelling %d", $ordernr);
-	$mail->Body = $content;
-	$mail->addstationary();
-	if ($mail->Send()) {
-		db_add_mailing_hist($lidid, 0, $naamlid, "", $content, $mail, 1, "BEST", $ordernr);
-		$mess = sprintf("Een bevestiging van bestelling %d is naar %s verzonden.", $ordernr, $mail->ListAddresses("to"));
-	} else {
-		db_add_mailing_hist($lidid, 0, $naamlid, "", $content, $mail, 0, "BEST", $ordernr);
-		$mess = sprintf("Het versturen van de bevestiging van bestelling %d aan %s is mislukt. Error: %s", $ordernr, $naamlid, $mail->ErrorInfo);
-	}
-	db_logboek("add", $mess, 10);
-	printf("<script>alert('%s');</script>\n", $mess);
-	echo("<script>location.href='/index.php';</script>\n");
 }
 
 ?>

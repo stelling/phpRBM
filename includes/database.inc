@@ -1338,7 +1338,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		return db_scalar($query);
 		
 	} elseif ($actie == "wachtwoordenvullen") {
-		$query = sprintf("SELECT * FROM %sAdmin_login WHERE ((Wachtwoord IS NULL) OR LENGTH(Wachtwoord) < 6) AND (openid_identity IS NULL);", $table_prefix);
+		$query = sprintf("SELECT * FROM %sAdmin_login WHERE ((Wachtwoord IS NULL) OR LENGTH(Wachtwoord) < 7) AND (openid_identity IS NULL);", $table_prefix);
 		$result = fnQuery($query);
 		foreach ($result->fetchAll() as $row) {
 			if (in_array($row->LidID, $lididwebmasters)) {
@@ -2682,13 +2682,6 @@ function db_onderhoud() {
 	}
 	
 	/***** Velden die later zijn toegevoegd. *****/
-		
-	// Toevoegen veld 'Successful' aan de tabel Mailing_hist. Deze code kan na 1/2/2013 worden verwijderd.
-	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sMailing_hist' AND COLUMN_NAME='Successful';", $db_name, $table_prefix);
-	if (db_scalar($query) == 0) {
-		$query = sprintf("ALTER TABLE `%sMailing_hist` ADD `Successful` TINYINT NOT NULL DEFAULT '1';", $table_prefix);
-		fnQuery($query);
-	}
 	
 	// Toevoegen veld 'send_mt' aan de tabel 'Mailing_hist'. Deze code kan na 1/2/2014 worden verwijderd.
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sMailing_hist' AND COLUMN_NAME='send_mt';", $db_name, $table_prefix);
@@ -2703,11 +2696,22 @@ function db_onderhoud() {
 		$query = sprintf("ALTER TABLE `%sAdmin_activiteit` ADD `ReferID` INT NOT NULL COMMENT 'Op welk RecordID heeft deze activiteit betrekking?' AFTER `Omschrijving`;", $table_prefix);
 		fnQuery($query);
 	}
+	
+	// Toevoegen veld 'Beschrijving' aan de tabel 'WS_Artikel'. Deze code kan na 15/3/2014 worden verwijderd.
+	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sWS_Artikel' AND COLUMN_NAME='Beschrijving';", $db_name, $table_prefix);
+	if (db_scalar($query) == 0) {
+		$query = sprintf("ALTER TABLE `%sWS_Artikel` ADD `Beschrijving` TEXT NOT NULL AFTER `Omschrijving` ;", $table_prefix);
+		fnQuery($query);
+	}
 		
 	/***** Velden die aangepast zijn. *****/
 	
 	// mailing_hist/Xtra_Char, deze code kan na 1/4/2013 worden verwijderd.
 	$query = sprintf("ALTER TABLE `%sMailing_hist` CHANGE `Xtra_Char` `Xtra_Char` VARCHAR(5) NULL;", $table_prefix);
+	fnQuery($query);
+	
+	// WS_Artikel/Omschrijving, deze code kan na 15/3/2014 worden verwijderd.
+	$query = sprintf("ALTER TABLE `%sWS_Artikel` CHANGE `Omschrijving` `Omschrijving` VARCHAR(50) NOT NULL;", $table_prefix);
 	fnQuery($query);
 	
 	/***** Opschonen database na een upload uit de Access-database.  *****/
