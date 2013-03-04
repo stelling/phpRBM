@@ -793,7 +793,7 @@ function nieuwepasfoto($lidid, $filterlid="") {
 		} else {
 			$of = fotolid($lidid, 0);
 			while (strlen($of) > 3 and file_exists($of)) {
-				$of_ext = strtolower(substr(strrchr($of, "."), 1));
+				$of_ext = substr(strrchr($of, "."), 1);
 				$bu_name = "vervangen/" . sprintf("Pasfoto%d_%d.%s", $lidid, strftime("%Y%m%d", filectime($of)), $of_ext);
 				if (rename($of, $ad . $bu_name)) {
 					$mess = sprintf("Pasfoto './%s' is verplaatst en hernoemd naar './%s'.", $of, $bu_name);
