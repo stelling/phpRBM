@@ -40,8 +40,8 @@ function onlinebestellingen($lidid) {
 			} else {
 				$ordernr = 0;
 			}
-			if (!isset($ord->RecordID) and $_POST[$pnab] > 0) {
-				$mess = db_orderregel("add", $lidid, $art->RecordID, $_POST[$pnab]);
+			if (!isset($ord->RecordID) and $_POST[$pnab] > 0 and $ordernr > 0) {
+				$mess = db_orderregel("add", $lidid, $art->RecordID, $_POST[$pnab], "", 0, $ordernr);
 			} elseif (isset($ord->RecordID)) {
 				if ($ordernr > 0 and $ord->Ordernr != $ordernr) {
 					$set_clause = sprintf("Ordernr=%d, ", $ordernr);
@@ -192,8 +192,8 @@ function artikelbeheer() {
 		echo("<tr>\n");
 		printf("<td class='number'>%d</td>\n", $row->RecordID);
 		printf("<td><input type='text' name='Code_%d' value='%s' size=6 maxlength=6></td>\n", $row->RecordID, $row->Code);
-		printf("<td><input type='text' name='Omschrijving_%d' value='%s' size=40 maxlength=50></td>\n", $row->RecordID, $row->Omschrijving);
-		printf("<td><input type='text' name='Maat_%d' value='%s' size=6 maxlength=4></td>\n", $row->RecordID, $row->Maat);
+		printf("<td><input type='text' name='Omschrijving_%d' value='%s' size=35 maxlength=50></td>\n", $row->RecordID, $row->Omschrijving);
+		printf("<td><input type='text' name='Maat_%d' value='%s' size=4 maxlength=4></td>\n", $row->RecordID, $row->Maat);
 		printf("<td><input type='text' name='Verkoopprijs_%d' value='%s' maxlength=8 class='inputnumber'></td>\n", $row->RecordID, $row->Verkoopprijs);
 		printf("<td><input type='date' name='BeschikbaarTot_%d' value='%s' size=15 maxlength=18></td>\n", $row->RecordID, $row->BeschikbaarTot);
 		printf("<td><input type='number' name='MaxAantalPerLid_%d' value=%d maxlength=3 class='inputnumber'></td>\n", $row->RecordID, $row->MaxAantalPerLid);
@@ -372,7 +372,7 @@ function bestellingbeheer() {
 	echo("</div>  <!-- Einde bestellingbeheer -->\n");
 	
 	$tots = db_orderregel("totalen");
-	if (count($tots) > 1) {
+	if (count($tots) > 0) {
 		echo(fnDisplayTable($tots, "", "Totalen", 0, "", "", "totalenbestellingen"));
 	}
 	

@@ -1177,8 +1177,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		return $ok;
 		
 	} elseif ($actie == "rowlogin" and (isValidMailAddress($email, 0) or $lidid > 0)) {
-		$query = sprintf("SELECT L.Nummer, Login.Login, %s AS Naam, L.Roepnaam, L.Email, L.EmailVereniging, L.EmailOuders, L.GEBDATUM,
-								Login.Wachtwoord, Login.FouteLogin, Login.Gewijzigd,
+		$query = sprintf("SELECT L.Nummer, Login.Login, %s AS Naam, L.Roepnaam, L.Email, Login.Wachtwoord, Login.FouteLogin, Login.Gewijzigd,
 								IFNULL((%s), L.Nummer) AS Lidnr,", $selectnaam, $selectlidnr);
 		if (is_array($beperktotgroep) and count($beperktotgroep) > 0) {
 			$query .= sprintf("(SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.Lid=L.Nummer AND LO.OnderdeelID IN (%s) AND LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE())) AS AanvragenMag", $table_prefix, implode(", ", $beperktotgroep));
@@ -1257,9 +1256,8 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		if ($result > 0) {
 			$mess = sprintf("%s is met '%s' ingelogd.", db_naamlid($lidid), $_SESSION['username']);
 			db_logboek("add", $mess, 1, $lidid);
-			$scriptnainloggen = db_param("scriptnainloggen");
-			if (strlen($scriptnainloggen) > 0) {
-				exec($scriptnainloggen);
+			if (strlen(db_param("scriptnainloggen")) > 0) {
+				exec(db_param("scriptnainloggen"));
 			}
 		}
 		
@@ -2232,6 +2230,10 @@ function db_artikel($actie, $artikelid=0, $lidid=0) {
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
+	} elseif ($actie == "code" and $artikelid > 0) {
+		$query = sprintf("SELECT Code FROM %sWS_Artikel WHERE RecordID=%d;", $table_prefix, $artikelid);
+		return db_scalar($query);
+		
 	} elseif ($actie == "artikelbeschikbaar") {
 		$query = sprintf("SELECT * FROM %sWS_Artikel
 					WHERE BeschikbaarTot >= CURDATE() AND (BeperkTotGroep=0 OR BeperkTotGroep IN %s)
@@ -2284,7 +2286,7 @@ function db_artikel($actie, $artikelid=0, $lidid=0) {
 	}
 }
 
-function db_orderregel($actie, $lidid=0, $artikelid=0, $aantalbesteld=0, $filter="", $recordid=0) {
+function db_orderregel($actie, $lidid=0, $artikelid=0, $aantalbesteld=0, $filter="", $recordid=0, $ordernr=0) {
 	global $table_prefix, $selectnaam;
 	
 	$mess = "";
@@ -2292,6 +2294,7 @@ function db_orderregel($actie, $lidid=0, $artikelid=0, $aantalbesteld=0, $filter
 		$query = sprintf("SELECT * FROM %sWS_Orderregel WHERE Lid=%d AND Artikel=%d;", $table_prefix, $lidid, $artikelid);
 		$result = fnQuery($query);
 		return $result->fetch();
+		
 	} elseif ($actie == "bevestiging" and $lidid > 0) {
 		if (strlen($filter) > 0) {
 			$filter = " AND " . $filter;
@@ -2304,6 +2307,7 @@ function db_orderregel($actie, $lidid=0, $artikelid=0, $aantalbesteld=0, $filter
 					ORDER BY A.Code;", $selectnaam, $table_prefix, $lidid, $filter);
 		$result = fnQuery($query);
 		return $result->fetchAll();
+		
 	} elseif ($actie == "overzichtbeheer") {
 		if (strlen($filter) > 0) {
 			$filter = "WHERE " . $filter;
@@ -2317,29 +2321,33 @@ function db_orderregel($actie, $lidid=0, $artikelid=0, $aantalbesteld=0, $filter
 					ORDER BY L.Achternaam, L.Roepnaam, A.Code;", $selectnaam, $table_prefix, $filter);
 		$result = fnQuery($query);
 		return $result->fetchAll();
+		
 	} elseif ($actie == "totalen") {
 		$query = sprintf("SELECT A.Code, A.Omschrijving, A.Maat,
-					SUM(ORD.AantalBesteld) AS Besteld, SUM(ORD.AantalGeleverd) AS Geleverd, SUM(ORD.AantalBesteld-ORD.AantalGeleverd) AS `Nog te leveren`
+					SUM(ORD.AantalBesteld) AS intBesteld, SUM(ORD.AantalGeleverd) AS intGeleverd, SUM(ORD.AantalBesteld-ORD.AantalGeleverd) AS `intNog te leveren`
 					FROM %1\$sWS_Orderregel AS ORD INNER JOIN %1\$sWS_Artikel AS A ON ORD.Artikel = A.RecordID
+					WHERE (ORD.Ordernr=0 OR (NOT ORD.BestellingDefinitief IS NULL))
 					GROUP BY A.Code, A.Omschrijving, A.Maat
-					ORDER BY A.Omschrijving, A.Maat;", $table_prefix);
+					ORDER BY A.Code, A.Omschrijving, A.Maat;", $table_prefix);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "maxordernr") {
 		$query = sprintf("SELECT MAX(IFNULL(Ordernr, 0)) FROM %sWS_Orderregel;", $table_prefix);
 		$result = fnQuery($query);
 		return $result->fetchColumn();
+		
 	} elseif ($actie == "add") {
-		$query = sprintf("INSERT INTO %sWS_Orderregel SET Lid=%d, Artikel=%d, AantalBesteld=%d, Ingevoerd=CURDATE(), IngevoerdDoor=%d;", $table_prefix, $lidid, $artikelid, $aantalbesteld, $_SESSION['lidid']);
+		$query = sprintf("INSERT INTO %sWS_Orderregel SET Lid=%d, Artikel=%d, AantalBesteld=%d, Ordernr=%d, Ingevoerd=CURDATE(), IngevoerdDoor=%d;", $table_prefix, $lidid, $artikelid, $aantalbesteld, $ordernr, $_SESSION['lidid']);
 		$result = fnQuery($query);
 		if ($result > 0) {
-			$mess = sprintf("De bestelling van artikel %d (%d stuks) bij %s is toegevoegd.", $artikelid, $aantalbesteld, db_naamlid($lidid));
+			$mess = sprintf("Orderregel %d van %d stuks van artikel '%s' zijn aan order %d van %s is toegevoegd.", $result, $aantalbesteld, db_artikel("code", $artikelid), $ordernr, db_naamlid($lidid));
 			db_logboek("add", $mess, 10, 0, 0, $result);
 			if ($artikelid > 0 and $aantalbesteld > 0) {
 				db_orderregel("vulprijsperstuk");
 			}
 		}
 		return $mess;
+		
 	} elseif ($actie == "delete" and (($lidid > 0 and $artikelid > 0) or $recordid > 0)) {
 		if ($recordid > 0) {
 			$query = sprintf("DELETE FROM %sWS_Orderregel WHERE RecordID=%d;", $table_prefix, $recordid);
@@ -2350,17 +2358,19 @@ function db_orderregel($actie, $lidid=0, $artikelid=0, $aantalbesteld=0, $filter
 		if ($result > 0) {
 			$query = sprintf("OPTIMIZE TABLE %sWS_Orderregel;", $table_prefix);
 			fnQuery($query);
-			if ($artikelid > 0 and $lidid > 0) {
-				$mess = sprintf("De bestelling van artikel %d bij %s is verwijderd.", $artikelid, db_naamlid($lidid));
-			} else {
+			if ($recordid > 0) {
 				$mess = sprintf("Orderregel %d is verwijderd.", $recordid);
+			} else {
+				$mess = sprintf("De bestelling van artikel %d bij %s is verwijderd.", $artikelid, db_naamlid($lidid));
 			}
 			db_logboek("add", $mess, 10, 0, 0, $recordid);
 		}
 		return $mess;
+		
 	} elseif ($actie == "defmaken" and $lidid > 0) {
-		$query = sprintf("UPDATE %sWS_Orderregel SET BestellingDefinitief=SYSDATE() WHERE Lid=%d AND (BestellingDefinitief IS NULL) AND (NOT PrijsPerStuk IS NULL);", $table_prefix, $lidid);
+		$query = sprintf("UPDATE %sWS_Orderregel SET BestellingDefinitief=SYSDATE(), GewijzigdDoor=%d WHERE Lid=%d AND (BestellingDefinitief IS NULL) AND (NOT PrijsPerStuk IS NULL);", $table_prefix, $_SESSION['lidid'], $lidid);
 		$result = fnQuery($query);
+		
 	} elseif ($actie == "opschonen") {
 		$query = sprintf("DELETE FROM %sWS_Orderregel WHERE AantalGeleverd=0 AND AantalGeleverd=0 AND Ingevoerd < DATE_ADD(CURDATE(), INTERVAL -1 WEEK);", $table_prefix);
 		$result = fnQuery($query);
@@ -2371,6 +2381,7 @@ function db_orderregel($actie, $lidid=0, $artikelid=0, $aantalbesteld=0, $filter
 		}
 		db_logboek("add", $mess, 10);
 		return $mess;
+		
 	} elseif ($actie == "vulprijsperstuk") {
 		$query = sprintf("UPDATE %1\$sWS_Orderregel AS ORD SET PrijsPerStuk=(SELECT MAX(Verkoopprijs) FROM %1\$sWS_Artikel AS A WHERE A.RecordID=ORD.Artikel)
 					WHERE (ORD.PrijsPerStuk IS NULL) AND ORD.Artikel > 0;", $table_prefix);
@@ -2713,6 +2724,11 @@ function db_onderhoud() {
 	// WS_Artikel/Omschrijving, deze code kan na 15/3/2014 worden verwijderd.
 	$query = sprintf("ALTER TABLE `%sWS_Artikel` CHANGE `Omschrijving` `Omschrijving` VARCHAR(50) NOT NULL;", $table_prefix);
 	fnQuery($query);
+	
+	// WS_Orderregel/AantalGeleverd, deze code kan na 15/3/2014 worden verwijderd.
+	$query = sprintf("ALTER TABLE `%sWS_Orderregel` CHANGE `AantalGeleverd` `AantalGeleverd` SMALLINT(6) NOT NULL DEFAULT '0';", $table_prefix);
+	fnQuery($query);
+	
 	
 	/***** Opschonen database na een upload uit de Access-database.  *****/
 
