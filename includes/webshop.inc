@@ -221,7 +221,7 @@ function artikelbeheer() {
 	printf("<tr><td class='number'><a href='%s?%s&amp;op=nieuw' title='Nieuw artikel'><img src='images/star.png' alt='Nieuw'></a></td><td colspan=8>Nieuw artikel</td></tr>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 	if (count($lijst) > 0) {
 		echo("<tr>\n<th colspan=9>");
-		echo("<input type='submit' value='Artikelen bijwerken'>\n");
+		echo("<button type='submit' name='action' value='save' title='Bewaren'><img src='images/save.png' alt='Save'></button>\n");
 		echo("</th>\n</tr>\n");
 	}
 	echo("</table>\n");
@@ -234,12 +234,11 @@ function bestellingbeheer() {
 
 	$naamfilter="";
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		if (isset($_POST['NieuweRegel'])) {
-			db_orderregel("add");
+		if (isset($_POST['Lid_0']) and is_numeric($_POST['Lid_0']) and $_POST['Lid_0'] > 0) {
+			db_orderregel("add", $_POST['Lid_0']);
 		}
 		$lijst = db_orderregel("overzichtbeheer");
 		foreach($lijst as $row) {
-			$pnlid = sprintf("Lid_%d", $row->RecordID);
 			$pnart = sprintf("Artikel_%d", $row->RecordID);
 			$pnab = sprintf("AantalBesteld_%d", $row->RecordID);
 			$pnpps = sprintf("PrijsPerStuk_%d", $row->RecordID);
@@ -259,16 +258,12 @@ function bestellingbeheer() {
 			} else {
 				$_POST[$pnag] = 0;
 			}
-			if (isset($_POST[$pnlid]) and $_POST[$pnlid] > 0) {
-				$set_clause = sprintf("Lid=%d, ", $_POST[$pnlid]);
-				$wijz = sprintf("Veld Lid is '%d' geworden. ", $_POST[$pnlid]);
+			if (isset($_POST[$pnart]) and $_POST[$pnart] != $row->Artikel) {
+				$set_clause = sprintf("Artikel=%d, ", $_POST[$pnart]);
+				$wijz = sprintf("Veld Artikel is '%d' geworden. ", $_POST[$pnart]);
 			} else {
 				$set_clause = "";
 				$wijz = "";
-			}
-			if (isset($_POST[$pnart]) and $_POST[$pnart] > 0) {
-				$set_clause = sprintf("Artikel=%d, ", $_POST[$pnart]);
-				$wijz .= sprintf("Veld Artikel is '%d' geworden. ", $_POST[$pnart]);
 			}
 			if ($_POST[$pnab] != $row->AantalBesteld) {
 				$set_clause .= sprintf("AantalBesteld=%d, ", $_POST[$pnab]);
@@ -288,7 +283,7 @@ function bestellingbeheer() {
 				$result = fnQuery($query);
 				if ($result > 0) {
 					$mess = sprintf("Orderregel %d is gewijzigd. %s", $row->RecordID, $wijz);
-					db_logboek("add", $mess, 10, 0, 0, $row->RecordID);
+					db_logboek("add", $mess, 10, $row->Lid);
 					db_orderregel("vulprijsperstuk");
 				}
 			}
@@ -320,17 +315,7 @@ function bestellingbeheer() {
 	$lijst = db_orderregel("overzichtbeheer", 0, 0, 0, $filter);
 	foreach($lijst as $row) {
 		echo("<tr>\n");
-		if ($row->Lid > 0) {
-			printf("<td>%s</td>", $row->NaamLid);
-		} else {
-			printf("<td><select name='Lid_%d' onChange='this.form.submit();'>\n", $row->RecordID);
-			echo("<option value=0>&nbsp;</option>\n");
-			$w = sprintf("L.Nummer NOT IN (SELECT Lid FROM %sWS_Orderregel WHERE Artikel=%d)", $table_prefix, $row->Artikel);
-			foreach(db_lid("lijst", $w) as $lid) {
-				printf("<option value=%d>%s</option>\n", $lid->Nummer, $lid->Zoeknaam);
-			}
-			echo("</select></td>\n");
-		}
+		printf("<td>%s</td>", $row->NaamLid);
 		if ($row->Artikel > 0) {
 			printf("<td>%s</td><td>%s</td><td class='number'>%d</td>", $row->Omschrijving, $row->Maat, $row->Ordernr);
 			printf("<td class='number'><input type='text' name='PrijsPerStuk_%d' value='%s' maxlength=8 class='inputnumber'></td>\n", $row->RecordID, number_format($row->PrijsPerStuk, 2));
@@ -362,18 +347,27 @@ function bestellingbeheer() {
 			$nrmag = false;
 		}
 	}
-	echo("<tr>\n<th colspan=11>");
-	echo("<input type='submit' value='Bijwerken'>\n");
 	if ($nrmag) {
-		echo("<button name='NieuweRegel'>Nieuwe regel</button>\n");
+		echo("<tr>\n");
+		$w = sprintf("L.Nummer IN (SELECT Lid FROM %sLidmaatschap AS LM WHERE ((LM.Opgezegd IS NULL) OR LM.Opgezegd >= CURDATE()))", $table_prefix);
+		echo("<td colspan=11><select name='Lid_0' onChange='this.form.submit();'>\n");
+		echo("<option value=0>Nieuwe regel ...</option>\n");
+		foreach(db_lid("lijst", $w) as $lid) {
+			printf("<option value=%d>%s</option>\n", $lid->Nummer, $lid->Zoeknaam);
+		}
+		echo("</select></td>\n");
+		echo("</tr>\n");
 	}
+	
+	echo("<tr>\n<th colspan=11>");
+	echo("<button type='submit' name='action' value='save' title='Bewaren'><img src='images/save.png' alt='Save'></button>\n");
 	echo("</th>\n</tr>\n");
 	echo("</table>\n");
 	echo("</div>  <!-- Einde bestellingbeheer -->\n");
 	
 	$tots = db_orderregel("totalen");
 	if (count($tots) > 0) {
-		echo(fnDisplayTable($tots, "", "Totalen", 0, "", "", "totalenbestellingen"));
+		echo(fnDisplayTable($tots, "", "Totalen", 99, "", "", "totalenbestellingen"));
 	}
 	
 }
