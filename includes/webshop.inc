@@ -265,7 +265,7 @@ function bestellingbeheer() {
 				$set_clause = "";
 				$wijz = "";
 			}
-			if ($_POST[$pnab] != $row->AantalBesteld) {
+			if (isset($_POST[$pnab]) and $_POST[$pnab] != $row->AantalBesteld) {
 				$set_clause .= sprintf("AantalBesteld=%d, ", $_POST[$pnab]);
 				$wijz .= sprintf("Veld AantalBesteld is '%d' geworden. ", $_POST[$pnab]);
 			}
@@ -334,7 +334,11 @@ function bestellingbeheer() {
 		} else {
 			echo("<td></td>\n");
 		}
-		printf("<td class='number'><input type='number' name='AantalBesteld_%d' value=%d  class='inputnumber'></td>\n", $row->RecordID, $row->AantalBesteld);
+		if ($row->Ordernr > 0) {
+			printf("<td class='number'>%d</td>\n", $row->AantalBesteld);
+		} else {
+			printf("<td class='number'><input type='number' name='AantalBesteld_%d' value=%d  class='inputnumber'></td>\n", $row->RecordID, $row->AantalBesteld);
+		}
 		printf("<td class='number'>&euro;&nbsp;%s</td>", number_format($row->Bedrag, 2));
 		printf("<td class='number'><input type='number' name='AantalGeleverd_%d' value=%d  class='inputnumber'></td>\n", $row->RecordID, $row->AantalGeleverd);
 		printf("<td>%s</td>", $row->Opmerking);
