@@ -2226,7 +2226,8 @@ function db_artikel($actie, $artikelid=0, $lidid=0) {
 	} elseif ($actie == "select") {
 		$query = sprintf("SELECT *, CONCAT(Omschrijving, IF(LENGTH(Maat)>0, CONCAT(' (', Maat, ')'), '')) AS OmsMaat
 					FROM %1\$sWS_Artikel AS A
-					WHERE A.RecordID NOT IN (SELECT Artikel FROM %1\$sWS_Orderregel WHERE Lid=%2\$d)
+					WHERE (A.RecordID NOT IN (SELECT Artikel FROM %1\$sWS_Orderregel WHERE Lid=%2\$d))
+					AND A.VervallenPer >= CURDATE()
 					ORDER BY Code, Omschrijving, RecordID;", $table_prefix, $lidid);
 		$result = fnQuery($query);
 		return $result->fetchAll();
@@ -2311,14 +2312,14 @@ function db_orderregel($actie, $lidid=0, $artikelid=0, $aantalbesteld=0, $filter
 		
 	} elseif ($actie == "overzichtbeheer") {
 		if (strlen($filter) > 0) {
-			$filter = "WHERE " . $filter;
+			$filter = "AND (" . $filter . ")";
 		}
 		$query = sprintf("SELECT ORD.RecordID, ORD.Ordernr, ORD.Lid, ORD.Artikel, ORD.AantalBesteld, ORD.AantalGeleverd, ORD.PrijsPerStuk, ORD.Opmerking,
 					ORD.PrijsPerStuk * ORD.AantalBesteld AS Bedrag, ORD.Ingevoerd, ORD.BestellingDefinitief,
 					%1\$s AS NaamLid, L.Roepnaam, L.Adres, L.Postcode, L.Woonplaats, L.Email, L.Email,
 					A.Code, A.Omschrijving, A.Maat
 					FROM (%2\$sWS_Orderregel AS ORD LEFT OUTER JOIN %2\$sWS_Artikel AS A ON A.RecordID=ORD.Artikel) INNER JOIN %2\$sLid AS L ON ORD.Lid=L.Nummer
-					%3\$s
+					WHERE A.VervallenPer >= CURDATE() %3\$s
 					ORDER BY L.Achternaam, L.Roepnaam, A.Code;", $selectnaam, $table_prefix, $filter);
 		$result = fnQuery($query);
 		return $result->fetchAll();
@@ -2328,7 +2329,7 @@ function db_orderregel($actie, $lidid=0, $artikelid=0, $aantalbesteld=0, $filter
 					SUM(ORD.AantalBesteld) AS intBesteld, SUM(ORD.AantalGeleverd) AS intGeleverd, SUM(ORD.AantalBesteld * ORD.PrijsPerStuk) AS `curBedrag besteld`,
 					SUM(ORD.AantalBesteld-ORD.AantalGeleverd) AS `intNog te leveren`, SUM(ORD.AantalGeleverd * ORD.PrijsPerStuk) AS `curBedrag geleverd`
 					FROM %1\$sWS_Orderregel AS ORD INNER JOIN %1\$sWS_Artikel AS A ON ORD.Artikel = A.RecordID
-					WHERE (ORD.Ordernr=0 OR (NOT ORD.BestellingDefinitief IS NULL))
+					WHERE (ORD.Ordernr=0 OR (NOT ORD.BestellingDefinitief IS NULL)) AND VervallenPer >= CURDATE()
 					GROUP BY A.Code, A.Omschrijving, A.Maat
 					ORDER BY A.Code, A.Omschrijving, A.Maat;", $table_prefix);
 		$result = fnQuery($query);

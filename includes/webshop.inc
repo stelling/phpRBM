@@ -161,12 +161,17 @@ function artikelbeheer() {
 					if (!is_numeric($_POST[$pvn])) {
 						$_POST[$pvn] = 0;
 					}
-				} elseif ($col == "BeschikbaarTot" and isset($_POST[$pvn])) {
+				} elseif (($col == "BeschikbaarTot" or $col == "VervallenPer") and isset($_POST[$pvn])) {
 					$_POST[$pvn] = change_month_to_uk($_POST[$pvn]);
-					if (strlen($_POST[$pvn]) > 0 and strtotime($_POST[$pvn]) !== false) {
+					if (strlen($_POST[$pvn]) > 3 and strtotime($_POST[$pvn]) !== false) {
 						$_POST[$pvn] = date("Y-m-d", strtotime($_POST[$pvn]));
 					} else {
 						$_POST[$pvn] = "9999-12-31";
+					}
+					if ($col == "BeschikbaarTot") {
+						if ($_POST[$pvn] > $_POST[sprintf("VervallenPer_%d", $row->RecordID)]) {
+							$_POST[$pvn] = $_POST[sprintf("VervallenPer_%d", $row->RecordID)];
+						}
 					}
 				}
 				if (isset($_POST[$pvn]) and $_POST[$pvn] != $val) {
@@ -186,7 +191,7 @@ function artikelbeheer() {
 	echo("<div id='artikelbeheer'>\n");
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	echo("<table>\n");
-	echo("<tr><th>RecordID</th><th>Code</th><th>Omschrijving</th><th>Maat</th><th>Verkoopprijs</th><th>Beschikbaar tot</th><th>Max aantal per lid</th><th>Beschikbaar voor groep</th><th></th></tr>\n");
+	echo("<tr><th>RecordID</th><th>Code</th><th>Omschrijving</th><th>Maat</th><th>Verkoopprijs</th><th>Beschikbaar tot</th><th>Vervallen per</th><th>Max aantal per lid</th><th>Beschikbaar voor groep</th><th></th></tr>\n");
 	$lijst = db_artikel("overzichtbeheer");
 	foreach ($lijst as $row) {
 		echo("<tr>\n");
@@ -195,7 +200,8 @@ function artikelbeheer() {
 		printf("<td><input type='text' name='Omschrijving_%d' value='%s' size=35 maxlength=50></td>\n", $row->RecordID, $row->Omschrijving);
 		printf("<td><input type='text' name='Maat_%d' value='%s' size=4 maxlength=4></td>\n", $row->RecordID, $row->Maat);
 		printf("<td><input type='text' name='Verkoopprijs_%d' value='%s' maxlength=8 class='inputnumber'></td>\n", $row->RecordID, $row->Verkoopprijs);
-		printf("<td><input type='date' name='BeschikbaarTot_%d' value='%s' size=15 maxlength=18></td>\n", $row->RecordID, $row->BeschikbaarTot);
+		printf("<td><input type='date' name='BeschikbaarTot_%d' value='%s' size=10 maxlength=18></td>\n", $row->RecordID, $row->BeschikbaarTot);
+		printf("<td><input type='date' name='VervallenPer_%d' value='%s' size=10 maxlength=18></td>\n", $row->RecordID, $row->VervallenPer);
 		printf("<td><input type='number' name='MaxAantalPerLid_%d' value=%d maxlength=3 class='inputnumber'></td>\n", $row->RecordID, $row->MaxAantalPerLid);
 		
 		printf("<td><select name='BeperkTotGroep_%d'>\n", $row->RecordID);
@@ -218,9 +224,9 @@ function artikelbeheer() {
 		
 		echo("</tr>\n");
 	}
-	printf("<tr><td class='number'><a href='%s?%s&amp;op=nieuw' title='Nieuw artikel'><img src='images/star.png' alt='Nieuw'></a></td><td colspan=8>Nieuw artikel</td></tr>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+	printf("<tr><td class='number'><a href='%s?%s&amp;op=nieuw' title='Nieuw artikel'><img src='images/star.png' alt='Nieuw'></a></td><td colspan=9>Nieuw artikel</td></tr>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 	if (count($lijst) > 0) {
-		echo("<tr>\n<th colspan=9>");
+		echo("<tr>\n<th colspan=10>");
 		echo("<button type='submit' name='action' value='save' title='Bewaren'><img src='images/save.png' alt='Save'></button>\n");
 		echo("</th>\n</tr>\n");
 	}
