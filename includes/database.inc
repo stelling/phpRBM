@@ -2379,7 +2379,7 @@ function db_orderregel($actie, $lidid=0, $artikelid=0, $aantalbesteld=0, $filter
 		$result = fnQuery($query);
 		
 	} elseif ($actie == "opschonen") {
-		$query = sprintf("DELETE FROM %sWS_Orderregel WHERE AantalGeleverd=0 AND AantalGeleverd=0 AND Ingevoerd < DATE_ADD(CURDATE(), INTERVAL -1 WEEK);", $table_prefix);
+		$query = sprintf("DELETE FROM %sWS_Orderregel WHERE AantalBesteld=0 AND AantalGeleverd=0 AND Ingevoerd <= DATE_ADD(CURDATE(), INTERVAL -1 WEEK);", $table_prefix);
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$mess = sprintf("Er zijn bij het opschonen %d orderregels verwijderd.", $result);
