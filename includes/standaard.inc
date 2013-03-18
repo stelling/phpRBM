@@ -344,8 +344,8 @@ function HTMLheader($refresh=0) {
 				}
 			}
 		} elseif ($_SESSION['aantallogin'] > 0) {
-			echo("Login: <input type='text' name='username' size=12 maxlength=25>\n");
-			echo("&nbsp;Wachtwoord: <input type='password' name='password' size=10 maxlength=12>\n");
+			printf("Login: <input type='text' name='username' size=11 maxlength=%d>\n", db_param("maxlengtelogin"));
+			echo("&nbsp;Wachtwoord: <input type='password' name='password' size=11 maxlength=12>\n");
 			echo("&nbsp;<input type='submit' value='Inloggen' name='Inloggen'>\n");
 			echo("<input type='checkbox' name='cookie' value=1 title='Ingelogd blijven (werkt met cookies)'>\n");
 		}
@@ -628,27 +628,32 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 		$ret .= "<table>\n";
 		$dispkop = 1;
 		$totaantal = 0;
-		$hlk = "";
 		foreach($rows as $row) {
 			if ($dispkop == 1) {
 				$hv = "<tr>";
 				foreach($row as $key => $value) {
 					if (strstr("dte, dtt, dtl, dts, boo, int, cur, eml, num, mrg", substr($key, 0, 3)) !== false) {
 						$hv .= sprintf("<th>%s</th>", str_replace("_", " ", substr($key, 3)));
-						$ktot[] = 0;
-					} elseif (strstr("lnk", substr($key, 0, 3)) !== false) {
-						if (strlen($link) > 0) {
+					} elseif (substr($key, 0, 3) == "lnk") {
+						if (strlen($link) > 1) {
 							$hv .= "<th>&nbsp;</th>";
-							$ktot[] = 0;
+							$ktot[] = "geen";
 						}
-					} elseif (strstr("llk", substr($key, 0, 3)) !== false) {
+					} elseif (substr($key, 0, 3) == "llk") {
 						if (strlen($link_lk) > 1) {
-							$hlk .= sprintf("<th colspan=%d>&nbsp;</th>", substr_count($link_lk, "<td")+1);
-							$hv .= $hlk;
+							$hv .= sprintf("<th colspan=%d>&nbsp;</th>", substr_count($link_lk, "<td")+1);
+							$ktot[] = "geen";
 						}
 					} elseif (substr($key, 0, 2) != "nd") {
 						$hv .= sprintf("<th>%s</th>", str_replace("_", " ", $key));
+					}
+					
+					if (substr($key, 0, 3) == "cur") {
+						$ktot[] = 0.00;
+					} elseif (substr($key, 0, 3) == "int") {
 						$ktot[] = 0;
+					} elseif (substr($key, 0, 2) != "nd" and substr($key, 0, 3) != "lnk" and substr($key, 0, 3) != "llk") {
+						$ktot[] = "geen";
 					}
 				}
 				if (strlen($th) > 1) {
@@ -725,17 +730,20 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 		if (strlen($xtra_regel) > 0) {
 			$ret .= sprintf("<tr>%s</tr>\n", $xtra_regel);
 		}
-		if ($disptot > 0 and $totaantal > 1) {
+		if ($disptot > 0 and $totaantal > 0) {
+			$ret .= "<tr>";
 			for ($kn=0; $kn < count($ktot); $kn++) {
 				if ($kn+1 == $disptot) {
 					$ret .= sprintf("<th>%s records</th>", number_format($totaantal, 0, ",", "."));
-				} elseif ($ktot[$kn] == 0) {
-					$ret .= "<th></th>";
-				} else {
+				} elseif (gettype($ktot[$kn]) == "double") {
 					$ret .= sprintf("<th class='number'>%s</th>", number_format($ktot[$kn], 2, ",", "."));
+				} elseif (gettype($ktot[$kn]) == "integer") {
+					$ret .= sprintf("<th class='number'>%s</th>", number_format($ktot[$kn], 0, ",", "."));
+				} else {
+					$ret .= "<th></th>";
 				}
 			}
-			$ret .= $hlk . "</tr>\n";
+			$ret .= "</tr>\n";
 		}
 		$ret .= "</table>\n";
 	} else {
@@ -746,7 +754,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 }
 
 function debug($tekst, $alleenwm=1, $alert=0, $logact=0) {
-	if (is_array($tekst)) {
+	if (is_array($tekst) or is_object($tekst)) {
 		$tekst = print_r($tekst, true);
 	}
 	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
