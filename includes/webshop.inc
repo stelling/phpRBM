@@ -271,7 +271,7 @@ function bestellingbeheer() {
 				$set_clause = "";
 				$wijz = "";
 			}
-			if (isset($_POST[$pnab]) and $_POST[$pnab] != $row->AantalBesteld) {
+			if (isset($_POST[$pnab]) and $_POST[$pnab] != $row->AantalBesteld and $row->Ordernr == 0) {
 				$set_clause .= sprintf("AantalBesteld=%d, ", $_POST[$pnab]);
 				$wijz .= sprintf("Veld AantalBesteld is '%d' geworden. ", $_POST[$pnab]);
 			}
@@ -335,7 +335,7 @@ function bestellingbeheer() {
 		}
 		if (is_null($row->BestellingDefinitief) and $row->AantalBesteld > 0 and $row->Ordernr > 0) {
 			echo("<td class='nietdefinitief'>ND</td>\n");
-		} elseif (!is_null($row->BestellingDefinitief) and $row->AantalBesteld > 0) {
+		} elseif (!is_null($row->BestellingDefinitief)) {
 			printf("<td>%s</td>\n", strftime("%e %B %Y", strtotime($row->BestellingDefinitief)));
 		} else {
 			echo("<td></td>\n");
