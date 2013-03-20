@@ -35,10 +35,14 @@ function onlinebestellingen($lidid) {
 					$_POST[$pnab] = $art->MaxAantalPerLid;
 				}
 			}
-			if (isset($_POST['Ordernr']) and is_numeric($_POST['Ordernr'])) {
+			if (isset($_POST['Ordernr']) and is_numeric($_POST['Ordernr']) and $_POST['Ordernr'] > 0) {
 				$ordernr = $_POST['Ordernr'];
 			} else {
-				$ordernr = 0;
+				$ordernr = db_orderregel("maxordernr") + 1;
+				$mon = (((int)date("y")) * 1000) + 1;
+				if ($ordernr < $mon) {
+					$ordernr = $mon;
+				}
 			}
 			if (!isset($ord->RecordID) and $_POST[$pnab] > 0 and $ordernr > 0) {
 				$mess = db_orderregel("add", $lidid, $art->RecordID, $_POST[$pnab], "", 0, $ordernr);
@@ -124,10 +128,12 @@ function onlinebestellingen($lidid) {
 		echo("</tr>\n");
 		$totbedrag += ($pps * $ab);
 	}
-	if ($ordnr == 0) {
-		$ordnr = db_orderregel("maxordernr") + 1;
+	if ($ordnr > 0) {
+		$on = $ordnr;
+	} else {
+		$on = "";
 	}
-	printf("<tr><td colspan=5>Totaalbedrag order %d</td><td class='number'>&euro;&nbsp;%s</td><td colspan=2></td></tr>\n", $ordnr, number_format($totbedrag, 2));
+	printf("<tr><td colspan=5>Totaalbedrag order %s</td><td class='number'>&euro;&nbsp;%s</td><td colspan=2></td></tr>\n", $on, number_format($totbedrag, 2));
 	echo("<tr><th colspan=8>");
 	printf("<p>%s</p>\n", db_param("zs_voorwaardenbestelling"));
 	echo("<input type='submit' value='Bestelling bijwerken'>\n");
@@ -311,7 +317,7 @@ function bestellingbeheer() {
 	echo("</div>  <!-- Einde filter -->\n");
 	echo("<div id='bestellingbeheer'>\n");
 	echo("<table>\n");
-	echo("<tr><th>Lid</th><th>Artikel</th><th>Maat</th><th>Ordernr</th><th>Prijs per stuk</th><th>Datum besteld</th><th>Besteld</th><th>Bedrag</th><th>Geleverd</th><th>Opmerking bij bestellen</th><th></th></tr>\n");
+	echo("<tr><th>Ordernr</th><th>Lid</th><th>Artikel</th><th>Maat</th><th>Prijs per stuk</th><th>Datum besteld</th><th>Besteld</th><th>Bedrag</th><th>Geleverd</th><th>Opmerking bij bestellen</th><th></th></tr>\n");
 	$nrmag = true;
 	if (strlen($naamfilter) > 0) {
 		$filter = sprintf("(L.Achternaam LIKE '%1\$s%%' OR L.Roepnaam LIKE '%1\$s%%' OR L.Meisjesnm LIKE '%1\$s%%')", $naamfilter);
@@ -321,9 +327,10 @@ function bestellingbeheer() {
 	$lijst = db_orderregel("overzichtbeheer", 0, 0, 0, $filter);
 	foreach($lijst as $row) {
 		echo("<tr>\n");
+		printf("<td class='number'>%d</td>", $row->Ordernr);
 		printf("<td>%s</td>", $row->NaamLid);
 		if ($row->Artikel > 0) {
-			printf("<td>%s</td><td>%s</td><td class='number'>%d</td>", $row->Omschrijving, $row->Maat, $row->Ordernr);
+			printf("<td>%s</td><td>%s</td>", $row->Omschrijving, $row->Maat);
 			printf("<td class='number'><input type='text' name='PrijsPerStuk_%d' value='%s' maxlength=8 class='inputnumber'></td>\n", $row->RecordID, number_format($row->PrijsPerStuk, 2));
 		} else {
 			printf("<td colspan=2><select name='Artikel_%d' onChange='this.form.submit();'>\n", $row->RecordID);
