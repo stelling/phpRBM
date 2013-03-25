@@ -317,7 +317,7 @@ function bestellingbeheer() {
 	echo("</div>  <!-- Einde filter -->\n");
 	echo("<div id='bestellingbeheer'>\n");
 	echo("<table>\n");
-	echo("<tr><th>Ordernr</th><th>Lid</th><th>Artikel</th><th>Maat</th><th>Prijs per stuk</th><th>Datum besteld</th><th>Besteld</th><th>Bedrag</th><th>Geleverd</th><th>Opmerking bij bestellen</th><th></th></tr>\n");
+	echo("<tr><th>Ordernr</th><th>Lid</th><th>Artikel</th><th>Maat</th><th>Besteld</th><th>Prijs per stuk</th><th>Datum besteld</th><th>Bedrag</th><th>Geleverd</th><th>Opmerking bij bestellen</th><th></th></tr>\n");
 	$nrmag = true;
 	if (strlen($naamfilter) > 0) {
 		$filter = sprintf("(L.Achternaam LIKE '%1\$s%%' OR L.Roepnaam LIKE '%1\$s%%' OR L.Meisjesnm LIKE '%1\$s%%')", $naamfilter);
@@ -331,15 +331,26 @@ function bestellingbeheer() {
 		printf("<td>%s</td>", $row->NaamLid);
 		if ($row->Artikel > 0) {
 			printf("<td>%s</td><td>%s</td>", $row->Omschrijving, $row->Maat);
-			printf("<td class='number'><input type='text' name='PrijsPerStuk_%d' value='%s' maxlength=8 class='inputnumber'></td>\n", $row->RecordID, number_format($row->PrijsPerStuk, 2));
 		} else {
 			printf("<td colspan=2><select name='Artikel_%d' onChange='this.form.submit();'>\n", $row->RecordID);
 			echo("<option value=0>&nbsp;</option>\n");
 			foreach(db_artikel("select", 0, $row->Lid) as $art) {
 				printf("<option value=%d>%s</option>\n", $art->RecordID, $art->OmsMaat);
 			}
-			echo("</select></td><td></td><td></td>\n");
+			echo("</select></td>\n");
 		}
+		if ($row->Ordernr > 0) {
+			printf("<td class='number'>%d</td>\n", $row->AantalBesteld);
+		} else {
+			printf("<td class='number'><input type='number' name='AantalBesteld_%d' value=%d  class='inputnumber' onBlur='form.submit();'></td>\n", $row->RecordID, $row->AantalBesteld);
+		}
+
+		if ($row->Artikel > 0) {
+			printf("<td class='number'><input type='text' name='PrijsPerStuk_%d' value='%s' maxlength=8 class='inputnumber'></td>\n", $row->RecordID, number_format($row->PrijsPerStuk, 2));
+		} else {
+			echo("<td></td>\n");
+		}
+		
 		if (is_null($row->BestellingDefinitief) and $row->AantalBesteld > 0 and $row->Ordernr > 0) {
 			echo("<td class='nietdefinitief'>ND</td>\n");
 		} elseif (!is_null($row->BestellingDefinitief)) {
@@ -347,13 +358,12 @@ function bestellingbeheer() {
 		} else {
 			echo("<td></td>\n");
 		}
-		if ($row->Ordernr > 0) {
-			printf("<td class='number'>%d</td>\n", $row->AantalBesteld);
-		} else {
-			printf("<td class='number'><input type='number' name='AantalBesteld_%d' value=%d  class='inputnumber'></td>\n", $row->RecordID, $row->AantalBesteld);
-		}
 		printf("<td class='number'>&euro;&nbsp;%s</td>", number_format($row->Bedrag, 2));
-		printf("<td class='number'><input type='number' name='AantalGeleverd_%d' value=%d  class='inputnumber'></td>\n", $row->RecordID, $row->AantalGeleverd);
+		if ($row->Artikel > 0 and $row->Lid > 0) {
+			printf("<td class='number'><input type='number' name='AantalGeleverd_%d' value=%d  class='inputnumber'></td>\n", $row->RecordID, $row->AantalGeleverd);
+		} else {
+			echo("<td></td>\n");
+		}
 		printf("<td>%s</td>", $row->Opmerking);
 		if ($row->AantalGeleverd == 0) {
 			$lnk = sprintf("%s?tp=%s&amp;op=delete&amp;rid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);

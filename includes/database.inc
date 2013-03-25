@@ -2320,7 +2320,7 @@ function db_orderregel($actie, $lidid=0, $artikelid=0, $aantalbesteld=0, $filter
 					A.Code, A.Omschrijving, A.Maat
 					FROM (%2\$sWS_Orderregel AS ORD LEFT OUTER JOIN %2\$sWS_Artikel AS A ON A.RecordID=ORD.Artikel) INNER JOIN %2\$sLid AS L ON ORD.Lid=L.Nummer
 					WHERE (A.VervallenPer >= CURDATE() OR (A.RecordID IS NULL)) %3\$s
-					ORDER BY L.Achternaam, L.Roepnaam, A.Code;", $selectnaam, $table_prefix, $filter);
+					ORDER BY IF(ORD.Artikel > 0 AND ORD.AantalBesteld > 0, 1, 0), L.Achternaam, L.Roepnaam, A.Code;", $selectnaam, $table_prefix, $filter);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
@@ -3372,7 +3372,7 @@ function db_backup() {
 		$db_folderbackup .= "/";
 	}
 
-	if (strtotime(db_param("laatstebackup")) < mktime(date("H")-3, date("m"), 0, date("m"), date("d"), date("Y"))) {
+	if (strtotime(db_param("laatstebackup")) < mktime(date("H")-1, date("m"), 0, date("m"), date("d"), date("Y"))) {
 		$FileName = $db_folderbackup . $buname;
 		$strCmd = sprintf("mysqldump -h%s -u%s -p%s -f %s> %s.sql", $db_host, $db_user, $db_pass, $db_name, $FileName);
 		exec($strCmd, $output, $output);
@@ -3415,7 +3415,7 @@ function db_backup() {
 			db_logboek("add", $ret, 3);
 		}
 	} else {
-		$ret = "Het backupscript heeft korter dan 3 uur geleden gedraaid. Het wordt niet nogmaals uitgevoerd.";
+		$ret = "Het backupscript heeft korter dan 1 uur geleden gedraaid. Het wordt niet nogmaals uitgevoerd.";
 		db_logboek("add", $ret, 3);
 	}
 	return $ret;
