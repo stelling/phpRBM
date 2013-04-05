@@ -3058,12 +3058,24 @@ CREATE TABLE IF NOT EXISTS `%1\$sGBR` (
   `OMSCHRIJV` varchar(40) DEFAULT NULL,
   `Balans` tinyint(4) DEFAULT NULL,
   `KSTNPLTS` tinyint(4) DEFAULT NULL,
-  `Verdichting` varchar(4) DEFAULT NULL,
   `VerdichtingID` int(11) DEFAULT NULL,
-  `Debiteur` tinyint(4) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`Kode`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `%1\$sGroep` (
+  `RecordID` int(11) NOT NULL DEFAULT '0',
+  `Kode` varchar(5) DEFAULT NULL,
+  `Omschrijving` varchar(41) DEFAULT NULL,
+  `OnderdeelID` int(11) DEFAULT NULL,
+  `DiplomaID` int(11) DEFAULT NULL,
+  `Starttijd` datetime DEFAULT NULL,
+  `Eindtijd` datetime DEFAULT NULL,
+  `Ingevoerd` datetime DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL,
+  PRIMARY KEY (`RecordID`),
+  UNIQUE KEY `OnderdeelKode` (`OnderdeelID`,`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sKostenplaats` (
@@ -3108,7 +3120,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sLid` (
   `BezwaarMachtiging` date DEFAULT NULL,
   `Legitimatietype` varchar(1) DEFAULT NULL,
   `Legitimatienummer` varchar(15) DEFAULT NULL,
-  `Memo` longtext,
   `Wijknummer` smallint(6) DEFAULT NULL,
   `RelnrRedNed` varchar(8) DEFAULT NULL,
   `Beroep` varchar(40) DEFAULT NULL,
@@ -3156,7 +3167,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sLidond` (
   `Opgezegd` date DEFAULT NULL,
   `Functie` tinyint(4) NOT NULL DEFAULT '0',
   `EmailFunctie` varchar(45) DEFAULT NULL,
-  `Groep` varchar(5) DEFAULT NULL,
+  `GroepID` int(11) DEFAULT NULL,
   `Opmerk` varchar(30) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
@@ -3240,16 +3251,14 @@ CREATE TABLE IF NOT EXISTS `%1\$sMemo` (
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`Lid`,`Soort`),
   UNIQUE KEY `RecordID` (`RecordID`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sMutatie` (
   `RecordID` int(11) DEFAULT NULL,
   `BoekjaarID` int(11) NOT NULL DEFAULT '0',
   `Periode` tinyint(4) NOT NULL DEFAULT '0',
-  `Dagboek` varchar(4) DEFAULT NULL,
   `DagboekID` int(11) NOT NULL DEFAULT '0',
   `GBR` varchar(4) DEFAULT NULL,
-  `KSTNPLTS` varchar(5) DEFAULT NULL,
   `KostenplaatsID` int(11) DEFAULT NULL,
   `Stuknr` tinyint(4) NOT NULL DEFAULT '0',
   `Regelnr` smallint(6) NOT NULL DEFAULT '0',
