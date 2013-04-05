@@ -1734,7 +1734,7 @@ function db_mutatie($jaar, $gbr="*", $kpl="*") {
 	if ($kpl != "*" and strlen($kpl) > 0 and is_numeric($kpl)) {
 		$where .= sprintf(" AND M.KostenplaatsID=%d", $kpl);
 	} elseif ($_SESSION['aantalkostenplaatsen'] > 0) {
-		$sel_kpl = ", M.KSTNPLTS AS Kostenplaats";
+		$sel_kpl = ", KPL.Kode AS Kostenplaats";
 	}
 
 	$query = sprintf("SELECT J.Kode AS Jaar, CONCAT(GBR.Kode, ' - ', GBR.OMSCHRIJV) AS Grootboekrekening%1\$s, Datum AS dteDatum, M.OMSCHRIJV AS Omschrijving, Debet-Credit AS curBedrag
@@ -1756,7 +1756,9 @@ function db_kostenplaats($actie) {
 	global $table_prefix;
 
 	if ($actie == "distinct") {
-		$query = sprintf("SELECT DISTINCT KSTNPLTS AS Kode FROM %sMutatie WHERE KostenplaatsID > 0 ORDER BY KSTNPLTS;", $table_prefix);
+		$query = sprintf("SELECT DISTINCT KPL.Kode AS Kode
+					FROM %1\$sMutatie AS M INNER JOIN %1\$sKostenplaats AS KPL ON M.KostenplaatsID = KPL.RecordID
+					WHERE M.KostenplaatsID > 0 ORDER BY KPL.Kode;", $table_prefix);
 	}
 	$result = fnQuery($query);
 	return $result->fetchAll();
