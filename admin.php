@@ -53,10 +53,20 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 		fnQuery("SET CHARACTER SET utf8;");
 		$queries = file_get_contents($_FILES['SQLupload']["tmp_name"]);
 		if ($queries !== false) {
-			echo("<p class='mededeling'>Bestand is succesvol ge-upload.</p>\n");
-			if (fnQuery($queries) !== true) {
-				echo("<p class='mededeling'>Bestand is in de database verwerkt.</p>\n");
-				db_logboek("add", "Upload data uit Access-database.", 9);
+			$mess = "Bestand is succesvol ge-upload.";
+			db_logboek("add", $mess, 9, 0, 1);
+			if (substr_count($queries, $table_prefix) == 0) {
+				$mess = sprintf("In het upload bestand komt de juiste table name prefix (%s) niet voor. Dit bestand wordt niet verwerkt.", $table_prefix);
+				db_logboek("add", $mess, 9, 0, 1);
+			} elseif (strpos($queries, $table_prefix . "Lid") === FALSE) {
+				$mess = sprintf("De verplichte tabel '%sLid' zit niet in deze upload. Dit bestand wordt niet verwerkt.", $table_prefix);
+				db_logboek("add", $mess, 9, 0, 1);
+			} elseif (strpos($queries, $table_prefix . "Lidond") === FALSE) {
+				$mess = sprintf("De verplichte tabel '%sLidond' zit niet in deze upload. Dit bestand wordt niet verwerkt.", $table_prefix);
+				db_logboek("add", $mess, 9, 0, 1);
+			} elseif (fnQuery($queries) !== true) {
+				$mess = "Bestand is in de database verwerkt.";
+				db_logboek("add", $mess, 9, 0, 1);
 				db_onderhoud();
 				printf("<script>setTimeout(\"location.href='%s';\", 15000);</script>\n", $_SERVER['PHP_SELF']);
 			}
