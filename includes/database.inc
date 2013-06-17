@@ -1027,6 +1027,11 @@ function db_lidond($actie, $lidid=0, $per="", $filter="") {
 		$result = fnQuery($query);
 		return $result->fetchColumn();
 		
+	} elseif ($actie == "onderscheiding" and $lidid > 0) {
+		$query = sprintf("SELECT O.Naam FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON LO.OnderdeelID=O.RecordID
+					WHERE LO.Lid=%2\$d AND O.`Type`='O' AND (LO.Opgezegd IS NULL) ORDER BY LO.Vanaf DESC;", $table_prefix, $lidid);
+		$result = fnQuery($query);
+		return $result->fetchColumn();
 	}
 }
 

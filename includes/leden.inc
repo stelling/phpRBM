@@ -16,7 +16,6 @@ function fnWijzigen($lidid=0, $actie="") {
 	global $currenttab, $currenttab2, $table_prefix;
 	global $muteerbarememos, $arrLegitimatie, $arrSoortMemo, $arrGeslacht, $actionurl;
 	
-	$emailledenadministratie = db_param("emailledenadministratie");
 	$opzegtermijn = db_param("zs_opzegtermijn");
 	
 	if ($lidid == 0) {
@@ -487,12 +486,19 @@ function overzichtverjaardagen($metfoto=1) {
 	for ($i = 0; $i <= db_param("verjaardagenvooruit") and $aantgetoond < db_param("verjaardagenaantal"); $i++) {
 		$dteHV = mktime(0, 0, 0, date("m"), date("d")+$i, date("Y"));
 		foreach(db_lid("verjaardagen", date("Y-m-d", $dteHV)) as $row) {
-			if ($i == 0) {
-				$t = sprintf("%s is vandaag %d jaar geworden", htmlentities($row->Naam_lid), $row->Leeftijd);
-			} elseif ($i == 1) {
-				$t = sprintf("%s wordt morgen %d jaar", htmlentities($row->Naam_lid), $row->Leeftijd);
+			$o = db_lidond("onderscheiding", $row->Nummer);
+			if (strlen($o) > 0) {
+				$nm = $o . " ";
 			} else {
-				$t = sprintf("Op %s is %s jarig", strftime("%A %e %B", $dteHV), htmlentities($row->Naam_lid));
+				$nm = "";
+			}
+			$nm .= htmlentities($row->Naam_lid);
+			if ($i == 0) {
+				$t = sprintf("%s is vandaag %d jaar geworden", $nm, $row->Leeftijd);
+			} elseif ($i == 1) {
+				$t = sprintf("%s wordt morgen %d jaar", $nm, $row->Leeftijd);
+			} else {
+				$t = sprintf("Op %s is %s jarig", strftime("%A %e %B", $dteHV), $nm);
 			}
 			$fn = fotolid($row->Nummer, 1);
 			if (strlen($t) > 3) {
@@ -745,9 +751,6 @@ function algemeenlidmuteren($lidid) {
 function nieuwepasfoto($lidid, $filterlid="") {
 	global $pasfotoextenties, $actionurl;
 	
-	$emailledenadministratie = db_param("emailledenadministratie");
-	$emailnieuwepasfoto = db_param("zs_emailnieuwepasfoto");
-
 	$max_size_attachm = 2 * 1024 * 1024;  // 2MB
 	$min_size_attachm = 4 * 1024;  // 4KB
 	
@@ -815,16 +818,16 @@ function nieuwepasfoto($lidid, $filterlid="") {
 				$image = null;
 			}
 			
-			if ($lidid == $_SESSION['lidid'] and isValidMailAddress($emailnieuwepasfoto, 0) and (file_exists($target))) {
+			if ($lidid == $_SESSION['lidid'] and isValidMailAddress(db_param("zs_emailnieuwepasfoto"), 0) and (file_exists($target))) {
 				$mail = new RBMmailer();
 				$mail->From = $_SESSION['emailingelogde'];
 				$mail->FromName = $naamlid;
 				$mail->Subject = "Nieuwe pasfoto " . $naamlid;
-				if (isValidMailAddress($emailnieuwepasfoto, 0) and $emailnieuwepasfoto != $emailledenadministratie) {
-					$mail->AddAddress($emailnieuwepasfoto);
+				if (isValidMailAddress(db_param("zs_emailnieuwepasfoto"), 0) and db_param("zs_emailnieuwepasfoto") != db_param("emailledenadministratie")) {
+					$mail->AddAddress(db_param("zs_emailnieuwepasfoto"));
 				}
-				if (isValidMailAddress($emailledenadministratie, 0)) {
-					$mail->AddAddress($emailledenadministratie);
+				if (isValidMailAddress(db_param("emailledenadministratie"), 0)) {
+					$mail->AddAddress(db_param("emailledenadministratie"));
 				}
 				$mail->AddCC($_SESSION['emailingelogde']);
 				$body = sprintf("<p>Beste ledenadministratie,</p>
@@ -929,7 +932,7 @@ function opzegginglidmaatschap($lidid) {
 		$mail = new RBMmailer();
 		$mail->From = $_SESSION['emailingelogde'];
 		$mail->FromName = $naamlid;
-		$mail->AddAddress($emailledenadministratie);
+		$mail->AddAddress(db_param("emailledenadministratie"));
 		$mail->InformerenOuders($lid->GEBDATUM, $lid->EmailOuders);
 		$mail->AddCC($_SESSION['emailingelogde']);
 		if (isValidMailAddress($_SESSION['emailsecretariaat'], 0)) {
@@ -944,7 +947,7 @@ function opzegginglidmaatschap($lidid) {
 			$mess = "Het versturen van de opzegging is mislukt. Probeer het later nogmaals.";
 			$success = 0;
 		}
-		db_add_mailing_hist(0, 0, "Ledenadministratie", $emailledenadministratie, $body, $mail, $success);
+		db_add_mailing_hist(0, 0, "Ledenadministratie", db_param("emailledenadministratie"), $body, $mail, $success);
 		db_logboek("add", $mess, 6, 0, 1);
 		$mail = null;
 		if (db_param("zs_opzeggingautomatischverwerken") == 1) {
