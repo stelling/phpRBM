@@ -97,10 +97,14 @@ if ($currenttab != "Mailing") {
 }
 
 function fnVoorblad($metlogin=0) {
+	global $fileverinfo;
 
-	$myFile = 'templates/verenigingsinfo.html';
-	$content = file_get_contents($myFile);
-	if ($content !== false) {
+	if (file_exists($fileverinfo)) {
+		$content = file_get_contents($fileverinfo);
+	} else {
+		$content = "";
+	}
+	if ($content !== false and strlen($content) > 0) {
 		if ($_SESSION['lidid'] == 0) {
 			$content = removetextblock($content, "<!-- Ingelogd -->", "<!-- /Ingelogd -->");
 		}
@@ -150,8 +154,6 @@ function fnVoorblad($metlogin=0) {
 		}
 
 		printf("<div id='welkomstekst'>\n%s</div>  <!-- Einde welkomstekst -->\n", $content);
-	} else {
-		debug("Geen content voor het voorblad", 0, 0, 1);
 	}
 }
 

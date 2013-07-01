@@ -70,6 +70,8 @@ if (isset($_GET['tp']) and strlen($_GET['tp']) > 1) {
 	$_GET['tp'] = $tabpages[0];
 }
 
+$fileverinfo = 'templates/verenigingsinfo.html';
+
 $arrGeslacht["V"] = "Vrouw";
 $arrGeslacht["M"] = "Man";
 $arrGeslacht["B"] = "Bedrijf";
@@ -105,7 +107,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	$tabpages[] = "Logboek";
 } else {
 	$tabpages[] = "Vereniging";
-	$tabpages[] = "Vereniging/Introductie";
+	if (file_exists($fileverinfo)) {
+		$tabpages[] = "Vereniging/Introductie";
+	}
 	$tabpages[] = "Vereniging/Kader";
 	$tabpages[] = "Vereniging/Onderscheidingen";
 	$tabpages[] = "Vereniging/Overige commissies";
