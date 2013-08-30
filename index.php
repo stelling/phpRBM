@@ -65,11 +65,15 @@ if (toegang("", 0) == false) {
 } elseif ($currenttab == "Vereniging") {
 	fnDispMenu(2);
 	if ($currenttab2 == "Introductie") {
-		fnVoorblad();
-		if (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
-			echo("<div id='kolomrechts'>\n");
+		if (file_exists($fileverinfo)) {
+			fnVoorblad();
+			if (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
+				echo("<div id='kolomrechts'>\n");
+				fnLoginAanvragen();
+				echo("</div>  <!-- Einde kolomrechts -->\n");
+			}
+		} else {
 			fnLoginAanvragen();
-			echo("</div>  <!-- Einde kolomrechts -->\n");
 		}
 	} else {
 		fnWieiswie($currenttab2, db_param("kaderoverzichtmetfoto"));
