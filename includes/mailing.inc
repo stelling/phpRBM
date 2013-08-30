@@ -267,15 +267,15 @@ class Mailing {
 		$this->MergeField[]=array('Naam' => "MachtigingAfgegeven", 'SQL' => $sql);
 		
 		$sql = sprintf('SELECT DISTINCT DP.Kode FROM %1$sLiddipl AS LD INNER JOIN %1$sDiploma AS DP ON LD.DiplomaID = DP.RecordID
-				 WHERE %2$s AND LD.Lid=%%d ORDER BY DP.Volgnr, LD.EXDATUM, DP.KODE;', $table_prefix, $whereliddipl);
+				 WHERE %2$s AND LD.Lid=%%d ORDER BY DP.Volgnr, LD.DatumBehaald, DP.KODE;', $table_prefix, $whereliddipl);
 		$this->MergeField[]=array('Naam' => "DiplomaKort", 'SQL' => $sql);
 
 		$sql = sprintf('SELECT DISTINCT DP.Naam FROM %1$sLiddipl AS LD INNER JOIN %1$sDiploma AS DP ON LD.DiplomaID = DP.RecordID
-				 WHERE %2$s AND LD.Lid=%%d ORDER BY DP.Volgnr, LD.EXDATUM, DP.Naam;', $table_prefix, $whereliddipl);
+				 WHERE %2$s AND LD.Lid=%%d ORDER BY DP.Volgnr, LD.DatumBehaald, DP.Naam;', $table_prefix, $whereliddipl);
 		$this->MergeField[]=array('Naam' => "DiplomaLang", 'SQL' => $sql);
 		
 		$sql = sprintf('SELECT DISTINCT DP.Naam FROM %1$sLiddipl AS LD INNER JOIN %1$sDiploma AS DP ON LD.DiplomaID = DP.RecordID
-				 WHERE %2$s AND LD.Lid=%%d AND DP.Zelfservice=1 ORDER BY DP.Volgnr, LD.EXDATUM, DP.Naam;', $table_prefix, $whereliddipl);
+				 WHERE %2$s AND LD.Lid=%%d AND DP.Zelfservice=1 ORDER BY DP.Volgnr, LD.DatumBehaald, DP.Naam;', $table_prefix, $whereliddipl);
 		$this->MergeField[]=array('Naam' => "DiplomaZelfservice", 'SQL' => $sql);
 	
 		$sql = sprintf("SELECT L.RelnrRedNed FROM %sLid AS L WHERE %s;", $table_prefix, "L.Nummer=%d");
@@ -589,10 +589,10 @@ class Mailing {
 		
 		echo("<div id='opdrachtknoppen'>\n");
 		if ($this->mid > 0) {
-			printf("<button type='submit' name='action' value='save' title='Bewaren'><img src='images/save.png' alt='Save'></button>\n");
-			printf("<input type='submit' name='action' value='Bewaren & sluiten'>\n");
+			echo("<button type='submit' name='action' value='save' title='Bewaren'><img src='images/save.png' alt='Save'></button>\n");
+			echo("<input type='submit' name='action' value='Bewaren & sluiten'>\n");
 		} else {
-			printf("<input type='submit' name='action' value='Toevoegen'>");
+			echo("<input type='submit' name='action' value='Toevoegen'>");
 		}
 			
 		if ($this->mid > 0 and $verzendenmag and $this->deleted_on < "1901-01-01") {

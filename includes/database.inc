@@ -1977,11 +1977,11 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 		if ($dwexd > date("Y-m-d")) {
 			$mess = sprintf("De examendatum mag niet in de toekomst liggen. Diploma '%s' is bij %s niet toegevoegd.", db_diploma("naam", $did), db_naamlid($lidid));
 		} else {
-			$query = sprintf("INSERT INTO %sLiddipl (Lid, DiplomaID, EXDATUM, LaatsteBeoordeling, LicentieVervallenPer, Diplomanummer, Ingevoerd, Gewijzigd)
+			$query = sprintf("INSERT INTO %sLiddipl (Lid, DiplomaID, DatumBehaald, LaatsteBeoordeling, LicentieVervallenPer, Diplomanummer, Ingevoerd, Gewijzigd)
 									VALUES (%d, %d, '%s', 1, %s, '%s', CURDATE(), SYSDATE());", $table_prefix, $lidid, $did, $dwexd, $dwverv, $dipnr);
 			$result = fnQuery($query);
 			if ($result > 0) {
-				$query = sprintf("INSERT INTO Liddipl (Lid, DiplomaID, EXDATUM, LicentieVervallenPer, Diplomanummer, Ingevoerd, Gewijzigd) VALUES (%d, %d, %s, %s, '%s', CURDATE(), SYSDATE());", $lidid, $did, $dwaexd, $dwaverv, $dipnr);
+				$query = sprintf("INSERT INTO Liddipl (Lid, DiplomaID, DatumBehaald, LicentieVervallenPer, Diplomanummer, Ingevoerd, Gewijzigd) VALUES (%d, %d, %s, %s, '%s', CURDATE(), SYSDATE());", $lidid, $did, $dwaexd, $dwaverv, $dipnr);
 				db_interface("add", $query, $lidid);
 				$mess = sprintf("Diploma '%s' is met examendatum '%s' bij %s toegevoegd.", db_diploma("naam", $did), $dwexd, db_naamlid($lidid));
 			} else {
@@ -2001,7 +2001,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 			}
 			$query = sprintf("UPDATE %sLiddipl SET LicentieVervallenPer=%s, Diplomanummer='%s' WHERE RecordID=%d;", $table_prefix, $dwverv, $dipnr, $rid);
 			$result = fnQuery($query);
-			$query = sprintf("UPDATE Liddipl SET LicentieVervallenPer=%s, Diplomanummer='%s', Gewijzigd=SYSDATE() WHERE Lid=%d AND DiplomaID=%d AND EXDATUM=%s;", $dwaverv, $dipnr, $rowld->Lid, $rowld->DiplomaID, $dwaexd);
+			$query = sprintf("UPDATE Liddipl SET LicentieVervallenPer=%s, Diplomanummer='%s', Gewijzigd=SYSDATE() WHERE Lid=%d AND DiplomaID=%d AND DatumBehaald=%s;", $dwaverv, $dipnr, $rowld->Lid, $rowld->DiplomaID, $dwaexd);
 			db_interface("add", $query, $rowld->Lid);
 			$mess = sprintf("Diploma '%s' is gewijzigd bij %s", db_diploma("naam", $rowld->DiplomaID), db_naamlid($rowld->Lid));
 			db_logboek("add", $mess, 12, $rowld->Lid);
@@ -2009,10 +2009,10 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 		return $mess;
 		
 	} elseif ($actie == "delete" and $lidid > 0 and $did > 0 and strlen($dwexd) == 10) {
-		$query = sprintf("DELETE FROM %sLiddipl WHERE Lid=%d AND DiplomaID=%d AND EXDATUM='%s';", $table_prefix, $lidid, $did, $dwexd);
+		$query = sprintf("DELETE FROM %sLiddipl WHERE Lid=%d AND DiplomaID=%d AND DatumBehaald='%s';", $table_prefix, $lidid, $did, $dwexd);
 		$result = fnQuery($query);
 		if ($result > 0) {
-			$query = sprintf("DELETE FROM Liddipl WHERE Lid=%d AND DiplomaID=%d AND EXDATUM=%s;", $lidid, $did, $dwaexd);
+			$query = sprintf("DELETE FROM Liddipl WHERE Lid=%d AND DiplomaID=%d AND DatumBehaald=%s;", $lidid, $did, $dwaexd);
 			db_interface("add", $query, $lidid);
 			$mess = sprintf("%s is bij %s verwijderd.", db_diploma("naam", $did), db_naamlid($lidid));
 		} else {
@@ -2027,12 +2027,12 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 		}
 		$query = sprintf("SELECT D.Kode AS Code,"
 				 . " D.Naam AS Diploma,"
-				 . " LD.EXDATUM AS dteDatum,"
+				 . " LD.DatumBehaald AS dteDatum,"
 				 . " LD.Diplomanummer AS Gegevens,"
-				 . " IFNULL(LD.LicentieVervallenPer, IF(D.GELDIGH>0, DATE_ADD(LD.EXDATUM, INTERVAL D.GELDIGH MONTH), NULL)) AS `dteVervalt per`"
+				 . " IFNULL(LD.LicentieVervallenPer, IF(D.GELDIGH>0, DATE_ADD(LD.DatumBehaald, INTERVAL D.GELDIGH MONTH), NULL)) AS `dteVervalt per`"
 				 . " FROM %1\$sLiddipl AS LD INNER JOIN %1\$sDiploma AS D ON LD.DiplomaID = D.RecordID"
-				 . " WHERE LD.EXDATUM <= CURDATE() AND LD.LaatsteBeoordeling=1 AND ((D.Vervallen IS NULL) OR D.Vervallen > CURDATE()) AND LD.Lid=%2\$d %3\$s"
-				 . " ORDER BY D.Volgnr, D.Kode, LD.EXDATUM DESC;", $table_prefix, $lidid, $xtrafilter);
+				 . " WHERE LD.DatumBehaald <= CURDATE() AND LD.LaatsteBeoordeling=1 AND ((D.Vervallen IS NULL) OR D.Vervallen > CURDATE()) AND LD.Lid=%2\$d %3\$s"
+				 . " ORDER BY D.Volgnr, D.Kode, LD.DatumBehaald DESC;", $table_prefix, $lidid, $xtrafilter);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
@@ -2041,23 +2041,23 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 	
 		$query = sprintf("SELECT D.Kode AS Code,"
 				 . " D.Naam AS Diploma,"
-				 . " LD.EXDATUM AS DatumBehaald,"
+				 . " LD.DatumBehaald AS DatumBehaald,"
 				 . " LD.Diplomanummer,"
-				 . " IFNULL(LD.LicentieVervallenPer, IF(D.GELDIGH>0, DATE_ADD(LD.EXDATUM, INTERVAL D.GELDIGH MONTH), NULL)) AS VervaltPer"
+				 . " IFNULL(LD.LicentieVervallenPer, IF(D.GELDIGH>0, DATE_ADD(LD.DatumBehaald, INTERVAL D.GELDIGH MONTH), NULL)) AS VervaltPer"
 				 . " FROM %1\$sLiddipl AS LD INNER JOIN %1\$sDiploma AS D ON LD.DiplomaID=D.RecordID"
 				 . " WHERE D.Zelfservice=1 AND ((D.Vervallen IS NULL) OR D.Vervallen > CURDATE()) AND ((NOT LD.LicentieVervallenPer IS NULL) OR D.GELDIGH > 0) AND LD.Lid=%2\$d"
-				 . " AND IFNULL(LD.LicentieVervallenPer, DATE_ADD(LD.EXDATUM, INTERVAL D.GELDIGH MONTH)) < DATE_ADD(CURDATE(), INTERVAL %3\$d MONTH) AND LD.LicentieVervallenPer > DATE_ADD(CURDATE(), INTERVAL -%3\$d MONTH)"
-				 . " ORDER BY D.Volgnr, D.Kode, LD.EXDATUM DESC;", $table_prefix, $lidid, $termijn);
+				 . " AND IFNULL(LD.LicentieVervallenPer, DATE_ADD(LD.DatumBehaald, INTERVAL D.GELDIGH MONTH)) < DATE_ADD(CURDATE(), INTERVAL %3\$d MONTH) AND LD.LicentieVervallenPer > DATE_ADD(CURDATE(), INTERVAL -%3\$d MONTH)"
+				 . " ORDER BY D.Volgnr, D.Kode, LD.DatumBehaald DESC;", $table_prefix, $lidid, $termijn);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
 	} elseif ($actie == "diplomabehaald" and $lidid > 0 and $did > 0) {
-		$query = sprintf("SELECT * FROM %sLiddipl WHERE Lid=%d AND DiplomaID=%d ORDER BY EXDATUM DESC;", $table_prefix, $lidid, $did);
+		$query = sprintf("SELECT * FROM %sLiddipl WHERE Lid=%d AND DiplomaID=%d ORDER BY DatumBehaald DESC;", $table_prefix, $lidid, $did);
 		$result = fnQuery($query);
 		return $result->fetch();
 		
 	} elseif ($actie == "diplomalid" and $lidid > 0 and $did > 0) {
-		$query = sprintf("SELECT * FROM %sLiddipl WHERE Lid=%d AND DiplomaID=%d ORDER BY EXDATUM;", $table_prefix, $lidid, $did);
+		$query = sprintf("SELECT * FROM %sLiddipl WHERE Lid=%d AND DiplomaID=%d ORDER BY DatumBehaald;", $table_prefix, $lidid, $did);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
@@ -2069,7 +2069,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 			fnQuery(sprintf("OPTIMIZE TABLE %sDiploma;", $table_prefix));
 			fnQuery(sprintf("OPTIMIZE TABLE %sLiddipl;", $table_prefix));
 		}
-		$query = sprintf("DELETE FROM %sLiddipl WHERE EXDATUM > CURDATE();", $table_prefix);
+		$query = sprintf("DELETE FROM %sLiddipl WHERE DatumBehaald > CURDATE();", $table_prefix);
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$mess .= sprintf("Er zijn %d diploma's bij leden verwijderd, omdat de examendatum in de toekomst ligt. ", $result);
@@ -2676,7 +2676,7 @@ function db_onderhoud() {
 		fnQuery(sprintf("ALTER TABLE %sLid CHANGE `GEBDATUM` `GEBDATUM` DATE;", $table_prefix));
 		fnQuery(sprintf("ALTER TABLE %sLid CHANGE `Overleden` `Overleden` DATE;", $table_prefix));
 		fnQuery(sprintf("ALTER TABLE %sLid CHANGE `BezwaarMachtiging` `BezwaarMachtiging` DATE;", $table_prefix));
-		fnQuery(sprintf("ALTER TABLE %sLiddipl CHANGE `EXDATUM` `EXDATUM` DATE;", $table_prefix));
+		fnQuery(sprintf("ALTER TABLE %sLiddipl CHANGE `DatumBehaald` `DatumBehaald` DATE;", $table_prefix));
 		fnQuery(sprintf("ALTER TABLE %sLiddipl CHANGE `LicentieVervallenPer` `LicentieVervallenPer` DATE DEFAULT NULL;", $table_prefix));
 		fnQuery(sprintf("ALTER TABLE %sLidmaatschap CHANGE `LIDDATUM` `LIDDATUM` DATE;", $table_prefix));
 		fnQuery(sprintf("ALTER TABLE %sLidmaatschap CHANGE `Opgezegd` `Opgezegd` DATE;", $table_prefix));
@@ -3141,7 +3141,8 @@ CREATE TABLE IF NOT EXISTS `%1\$sLiddipl` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `Lid` int(11) DEFAULT NULL,
   `DiplomaID` int(11) DEFAULT NULL,
-  `EXDATUM` date DEFAULT NULL,
+  `EXDATUM` datetime DEFAULT NULL,
+  `DatumBehaald` date DEFAULT NULL,
   `EXPLAATS` varchar(23) DEFAULT NULL,
   `Beoordelaar` int(11) DEFAULT NULL,
   `LaatsteBeoordeling` tinyint(4) DEFAULT NULL,
@@ -3268,13 +3269,15 @@ CREATE TABLE IF NOT EXISTS `%1\$sMutatie` (
   `DagboekID` int(11) NOT NULL DEFAULT '0',
   `GBR` varchar(4) DEFAULT NULL,
   `KostenplaatsID` int(11) DEFAULT NULL,
-  `Stuknr` tinyint(4) NOT NULL DEFAULT '0',
+  `Stuknr` smallint(6) NOT NULL DEFAULT '0',
   `Regelnr` smallint(6) NOT NULL DEFAULT '0',
   `Datum` date DEFAULT NULL,
   `Debet` decimal(8,2) DEFAULT NULL,
   `Credit` decimal(8,2) DEFAULT NULL,
   `OMSCHRIJV` varchar(45) DEFAULT NULL,
   `Rekening` int(11) DEFAULT NULL,
+  `BTWcode` tinyint(4) DEFAULT NULL,
+  `BTWbedrag` decimal(8,2) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`BoekjaarID`,`Periode`,`DagboekID`,`Stuknr`,`Regelnr`)
@@ -3330,6 +3333,51 @@ CREATE TABLE IF NOT EXISTS `%1\$sRekreg` (
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`Rekening`,`Regelnr`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `%1\$sSeizoen` (
+  `Nummer` smallint(6) NOT NULL DEFAULT '0',
+  `Begindatum` datetime DEFAULT NULL,
+  `Einddatum` datetime DEFAULT NULL,
+  `Leeftijdsgrens jeugdleden` tinyint(4) DEFAULT NULL,
+  `Contributie leden` decimal(8,2) DEFAULT NULL,
+  `Contributie jeugdleden` decimal(8,2) DEFAULT NULL,
+  `Contributie kader` decimal(8,2) DEFAULT NULL,
+  `Contributie Onderscheidingen` decimal(8,2) DEFAULT NULL,
+  `RekeningenVerzamelen` tinyint(4) DEFAULT NULL,
+  `Rekeningomschrijving` varchar(30) DEFAULT NULL,
+  `BetaaldagenTermijn` smallint(6) DEFAULT NULL,
+  `StandaardAantalTermijnen` smallint(6) DEFAULT NULL,
+  `Verenigingscontributie omschrijving` varchar(50) DEFAULT NULL,
+  `Verenigingscontributie kostenplaats` varchar(5) DEFAULT NULL,
+  `Gezinskorting bedrag` decimal(8,2) DEFAULT NULL,
+  `Maximale verenigingscontributie` decimal(8,2) DEFAULT NULL,
+  `Gezinskorting omschrijving` varchar(50) DEFAULT NULL,
+  `Gezinskorting kostenplaats` varchar(4) DEFAULT NULL,
+  `Ingevoerd` datetime DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL,
+  PRIMARY KEY (`Nummer`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `%1\$sVerdichting` (
+  `RecordID` int(11) NOT NULL DEFAULT '0',
+  `Kode` varchar(4) DEFAULT NULL,
+  `Omschrijving` varchar(40) DEFAULT NULL,
+  `DebetCredit` varchar(1) DEFAULT NULL,
+  `Ingevoerd` datetime DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL,
+  PRIMARY KEY (`RecordID`),
+  UNIQUE KEY `Kode` (`Kode`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `%1\$sVereniging` (
+  `Naam` varchar(50) DEFAULT NULL,
+  `Brigadenaam` varchar(50) DEFAULT NULL,
+  `AfkortingNaam` varchar(5) DEFAULT NULL,
+  `Bankrekening` varchar(18) DEFAULT NULL,
+  `BewaartijdHistorie` smallint(6) DEFAULT NULL,
+  `Ingevoerd` datetime DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sWS_Artikel` (
