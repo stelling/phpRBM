@@ -1005,9 +1005,9 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 				if (strlen($_POST[$fnBehaald]) == 0 and strlen($_POST[$fnDiplnr]) > 0) {
 					echo("<p class='mededeling'>Er moet altijd een datum van behalen ingevuld worden. Diplomanummer wordt niet toegevoegd.</p>");
 				} elseif (isset($_POST[$fnVerw])) {
-					db_liddipl("delete", $ld->Lid, 0, $dp->RecordID, $ld->EXDATUM);
+					db_liddipl("delete", $ld->Lid, 0, $dp->RecordID, $ld->DatumBehaald);
 				} elseif ($_POST[$fnVervaltPer] != $ld->LicentieVervallenPer or $_POST[$fnDiplnr] != $ld->Diplomanummer) {
-					db_liddipl("update", 0, $ld->RecordID, 0, $ld->EXDATUM, $_POST[$fnVervaltPer], $_POST[$fnDiplnr]);
+					db_liddipl("update", 0, $ld->RecordID, 0, $ld->DatumBehaald, $_POST[$fnVervaltPer], $_POST[$fnDiplnr]);
 				}
 			}
 			$fnBehaald = sprintf("Behaald_%d_%d", $dp->RecordID, 0);
@@ -1052,11 +1052,11 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 			if ($eenv == 0 or $aant == 0) {
 				echo("<tr>\n");
 				echo($vast);
-				printf("<td>%s</td>\n", strftime("%e %B %Y", strtotime($ld->EXDATUM)));
+				printf("<td>%s</td>\n", strftime("%e %B %Y", strtotime($ld->DatumBehaald)));
 				printf($var, $ld->LicentieVervallenPer, $ld->Diplomanummer, $dp->RecordID, $ld->RecordID);
 				printf("<td class='chk'><input type='checkbox' name='chkVerw_%d_%d' value=1></td>\n", $dp->RecordID, $ld->RecordID);
 				echo("</tr>\n");
-				$oldvals .= sprintf("<input type='hidden' name='Behaald_%d_%d' value='%s'>", $dp->RecordID, $ld->RecordID, $ld->EXDATUM);
+				$oldvals .= sprintf("<input type='hidden' name='Behaald_%d_%d' value='%s'>", $dp->RecordID, $ld->RecordID, $ld->DatumBehaald);
 				$oldvals .= sprintf("\n<input type='hidden' name='RID_%d' value=%d>\n", $dp->RecordID, $ld->RecordID);
 			}
 			$aant++;
