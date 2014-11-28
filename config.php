@@ -1,4 +1,4 @@
-<?
+<?php
 
 $db_host=''; // Server (host) naam van de MySQL-server.
 $db_name=''; // Gebruikersnaam voor de MYSQL-server
