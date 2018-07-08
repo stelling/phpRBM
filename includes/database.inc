@@ -47,15 +47,6 @@ $TypeActiviteit[14] = "Rekeningen";
 $TypeActiviteit[98] = "Performance";
 $TypeActiviteit[99] = "Debugging";
 asort($TypeActiviteit);
-	
-$db_conn_pdo = sprintf("mysql:host=%s;dbname=%s", $db_host, $db_name);
-try {
-	$dbc = new PDO($db_conn_pdo, $db_user, $db_pass);
-	$dbc->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_OBJ);
-	$dbc->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-	printf("<p class='debug'>Connection failed: %s</p>\n", $e->getMessage());
-}
 
 $fdlang = "'%e %M %Y'";
 $fdtlang = "'%e %M %Y (%H:%i)'";
@@ -86,7 +77,7 @@ try {
 	$dbc->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_OBJ);
 	$dbc->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-	echo("<p>Connection failed: " . $e->getMessage() . "</p>\n");
+	printf("<p>Verbinding naar database '%s' mislukt: %s</p>\n", $db_name, $e->getMessage());
 }
 
 if (!isset($_SESSION['aantallid']) and TableExists("Lid") == false) {
@@ -208,11 +199,14 @@ function db_gegevenslid($LidID, $soort="Alg") {
 	if ($soort == "Alg") {
 		$sqond = sprintf("SELECT MIN(O.Naam) FROM %1\$sOnderdl AS O INNER JOIN %1\$sLidond AS LO ON O.RecordID = LO.OnderdeelID
 								WHERE O.`Type` = 'O' AND LO.Lid = L.Nummer AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE())", $table_prefix);
+		$VOG = "`VOG afgegeven` AS 'dteVOG afgegeven op',";
 		$sqlogin = sprintf("SELECT MAX(Login) FROM %sAdmin_login AS AL WHERE AL.LidID = L.Nummer", $table_prefix);
 		$sqlbd = sprintf("SELECT MAX(EINDE_PER) FROM %sBewaking WHERE Lid=L.Nummer AND BEGIN_PER < CURDATE()", $table_prefix);
-		$query = sprintf("SELECT `Waarschuwen bij nood` FROM %sLid WHERE Nummer=%d;", $table_prefix, $LidID);
-		if (strlen(db_scalar($query)) > 1) {
-			$wbn = " 'Waarschuwen bij nood' as Kop6, `Waarschuwen bij nood` AS memNood,";
+		$query = sprintf("SELECT CONCAT(`Waarschuwen bij nood`, NamenOuders) FROM %sLid WHERE Nummer=%d;", $table_prefix, $LidID);
+		if (strlen(db_scalar($query)) > 3) {
+			$wbn = " 'Waarschuwen bij nood' as Kop6";
+			$wbn .= ", `NamenOuders` AS `Namen ouders`";
+			$wbn .= ", `Waarschuwen bij nood` AS `Contactgegevens`,";
 		} else {
 			$wbn = "";
 		}
@@ -247,6 +241,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					'Overig' AS Kop5, 
 					L.RelnrRedNed AS `Sportlink ID`,
 					(%s) AS Login,
+					%s
 					L.Beroep AS `Beroep`,
 					(%s) AS `dteLaatste bewakingsdag`, 
 					%s 
@@ -257,7 +252,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					L.Gewijzigd AS `dteLaatst gewijzigd op` 
 					FROM %s 
 					WHERE L.Nummer=%d 
-					ORDER BY LM.LIDDATUM DESC;", $selectnaam, $fdlang, $sqond, $sqlogin, $sqlbd, $wbn, $sqdieet, $fromlid, $LidID);
+					ORDER BY LM.LIDDATUM DESC;", $selectnaam, $fdlang, $sqond, $sqlogin, $VOG, $sqlbd, $wbn, $sqdieet, $fromlid, $LidID);
 	} elseif ($soort == "Financieel") {
 		$query = sprintf("SELECT IF(LENGTH(L.Bankrekening)=18, L.Bankrekening, L.BANKGIRO) AS Bankrekeningnummer, 
 								L.`Machtiging afgegeven` AS `booMachtiging automatische incasso`, 
@@ -1312,7 +1307,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		if (isset($row->LidID) and $row->LidID > 0) {
 			return $row;
 		} else {
-			$query = sprintf("UPDATE %sAdmin_login SET FouteLogin=FouteLogin+1, Gewijzigd=SYSDATE() WHERE Login='%s';", $table_prefix, mysql_escape_string($_SESSION['username']));
+			$query = sprintf("UPDATE %sAdmin_login SET FouteLogin=FouteLogin+1, Gewijzigd=SYSDATE() WHERE Login='%s';", $table_prefix, $_SESSION['username']);
 			fnQuery($query);
 			return false;
 		}
@@ -2505,6 +2500,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrBooleans['tonentoekomstigebewakingen'] = 0;
 	$arrBooleans['zs_incl_beroep'] = 1;
 	$arrBooleans['zs_incl_bezwmachtiging'] = 0;
+	$arrBooleans['zs_incl_vogafgegeven'] = 0;
 	$arrBooleans['zs_incl_bsn'] = 0;
 	$arrBooleans['zs_incl_emailouders'] = 0;
 	$arrBooleans['zs_incl_emailvereniging'] = 0;
@@ -2683,6 +2679,7 @@ function db_onderhoud() {
 		fnQuery(sprintf("ALTER TABLE %sLid CHANGE `GEBDATUM` `GEBDATUM` DATE;", $table_prefix));
 		fnQuery(sprintf("ALTER TABLE %sLid CHANGE `Overleden` `Overleden` DATE;", $table_prefix));
 		fnQuery(sprintf("ALTER TABLE %sLid CHANGE `BezwaarMachtiging` `BezwaarMachtiging` DATE;", $table_prefix));
+		fnQuery(sprintf("ALTER TABLE %sLid CHANGE `VOG afgegeven` `Datum` DATE;", $table_prefix));
 		fnQuery(sprintf("ALTER TABLE %sLiddipl CHANGE `DatumBehaald` `DatumBehaald` DATE;", $table_prefix));
 		fnQuery(sprintf("ALTER TABLE %sLiddipl CHANGE `LicentieVervallenPer` `LicentieVervallenPer` DATE DEFAULT NULL;", $table_prefix));
 		fnQuery(sprintf("ALTER TABLE %sLidmaatschap CHANGE `LIDDATUM` `LIDDATUM` DATE;", $table_prefix));
@@ -2716,51 +2713,35 @@ function db_onderhoud() {
 	
 	/***** Velden die later zijn toegevoegd. *****/
 	
-	// Toevoegen veld 'send_mt' aan de tabel 'Mailing_hist'. Deze code kan na 1/2/2014 worden verwijderd.
-	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sMailing_hist' AND COLUMN_NAME='send_mt';", $db_name, $table_prefix);
+	// Toevoegen veld 'VOG afgegeven' aan de tabel 'Lid'. Deze code kan na 1/9/2019 worden verwijderd.
+	$tab = $table_prefix . "Lid";
+	$col = "VOG afgegeven";
+	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%s' AND COLUMN_NAME='%s';", $db_name, $tab, $col);
 	if (db_scalar($query) == 0) {
-		$query = sprintf("ALTER TABLE `%sMailing_hist` ADD `send_mt` DECIMAL(16,6);", $table_prefix);
-		fnQuery($query);
-	}	
-	
-	// Toevoegen veld 'ReferID' aan de tabel 'Admin_activiteit'. Deze code kan na 1/2/2014 worden verwijderd.
-	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sAdmin_activiteit' AND COLUMN_NAME='ReferID';", $db_name, $table_prefix);
-	if (db_scalar($query) == 0) {
-		$query = sprintf("ALTER TABLE `%sAdmin_activiteit` ADD `ReferID` INT NOT NULL COMMENT 'Op welk RecordID heeft deze activiteit betrekking?' AFTER `Omschrijving`;", $table_prefix);
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` DATE;", $tab, $col);
 		fnQuery($query);
 	}
 	
-	// Toevoegen veld 'Beschrijving' aan de tabel 'WS_Artikel'. Deze code kan na 15/3/2014 worden verwijderd.
-	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sWS_Artikel' AND COLUMN_NAME='Beschrijving';", $db_name, $table_prefix);
+	// Toevoegen veld 'Standaard kostenplaats' aan de tabel 'GBR'. Deze code kan na 1/9/2019 worden verwijderd.
+	$tab = $table_prefix . "GBR";
+	$col = "Standaard kostenplaats";
+	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%s' AND COLUMN_NAME='%s';", $db_name, $tab, $col);
 	if (db_scalar($query) == 0) {
-		$query = sprintf("ALTER TABLE `%sWS_Artikel` ADD `Beschrijving` TEXT NOT NULL AFTER `Omschrijving`;", $table_prefix);
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT(11);", $tab, $col);
 		fnQuery($query);
 	}
 	
-	// Toevoegen veld 'VervallenPer' aan de tabel 'WS_Artikel'. Deze code kan na 15/3/2014 worden verwijderd.
-	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sWS_Artikel' AND COLUMN_NAME='VervallenPer';", $db_name, $table_prefix);
+	// Toevoegen veld 'NamenOuders' aan de tabel 'Lid'. Deze code kan na 1/12/2019 worden verwijderd.
+	$tab = $table_prefix . "Lid";
+	$col = "NamenOuders";
+	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%s' AND COLUMN_NAME='%s';", $db_name, $tab, $col);
 	if (db_scalar($query) == 0) {
-		$query = sprintf("ALTER TABLE `%sWS_Artikel` ADD `VervallenPer` DATE NOT NULL DEFAULT '9999-12-31' COMMENT 'Na deze datum is dit artikel voor niemand meer beschikbaar.' AFTER `BeschikbaarTot`;", $table_prefix);
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` varchar(90);", $tab, $col);
 		fnQuery($query);
 	}
-		
+	
+	
 	/***** Velden die aangepast zijn. *****/
-	
-	// mailing_hist/Xtra_Char, deze code kan na 1/4/2013 worden verwijderd.
-	$query = sprintf("ALTER TABLE `%sMailing_hist` CHANGE `Xtra_Char` `Xtra_Char` VARCHAR(5) NULL;", $table_prefix);
-	fnQuery($query);
-	
-	// WS_Artikel/Omschrijving, deze code kan na 15/3/2014 worden verwijderd.
-	$query = sprintf("ALTER TABLE `%sWS_Artikel` CHANGE `Omschrijving` `Omschrijving` VARCHAR(50) NOT NULL;", $table_prefix);
-	fnQuery($query);
-	
-	// WS_Orderregel/AantalGeleverd, deze code kan na 15/3/2014 worden verwijderd.
-	$query = sprintf("ALTER TABLE `%sWS_Orderregel` CHANGE `AantalGeleverd` `AantalGeleverd` SMALLINT(6) NOT NULL DEFAULT '0';", $table_prefix);
-	fnQuery($query);
-	
-	// Admin_login/Wachtwoord, deze code kan na 15/3/2014 worden verwijderd.
-	$query = sprintf("ALTER TABLE `%sAdmin_login` CHANGE `Wachtwoord` `Wachtwoord` VARCHAR(15) NOT NULL;", $table_prefix);
-	fnQuery($query);
 	
 	// WS_Orderregel/BeschikbaarTot, deze code kan na 15/3/2014 worden verwijderd.
 	$query = sprintf("ALTER TABLE `%sWS_Artikel` CHANGE `BeschikbaarTot` `BeschikbaarTot` DATE NOT NULL DEFAULT '9999-12-31' COMMENT 'Tot welke datum is dit artikel in de zelfservice beschikbaar?';", $table_prefix);
@@ -2836,7 +2817,7 @@ function db_addautoincrement($table) {
 }
 
 function db_createtables() {
-	global $arrTables, $table_prefix;
+	global $table_prefix;
 
 	$queries = sprintf("SET SQL_MODE='NO_AUTO_VALUE_ON_ZERO';
 
