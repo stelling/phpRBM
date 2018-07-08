@@ -563,15 +563,17 @@ function algemeenlidmuteren($lidid) {
 	}
 	$wijzvelden[] = array('label' => "Geboortedatum", 'naam' => "GEBDATUM", 'lengte' => 18);
 	$wijzvelden[] = array('label' => "Geboorteplaats", 'naam' => "GEBPLAATS", 'lengte' => 22);
-	$wijzvelden[] = array('label' => "Bankrekening", 'naam' => "BANKGIRO", 'lengte' => 10);
 	if (db_param("zs_incl_iban") == 1) {
-		$wijzvelden[] = array('label' => "IBAN (International Bank Account Number)", 'naam' => "Bankrekening", 'lengte' => 18);
+		$wijzvelden[] = array('label' => "IBAN", 'naam' => "Bankrekening", 'lengte' => 18);
 	}
 	if (db_param("zs_incl_machtiging") == 1 or $currenttab == "Wijzigen lid") {
 		$wijzvelden[] = array('label' => "Machtiging incasso afgegeven", 'naam' => "Machtiging afgegeven", 'lengte' => 1);
 	}
 	if (db_param("zs_incl_bezwmachtiging") == 1 or $currenttab == "Wijzigen lid") {
 		$wijzvelden[] = array('label' => "Bezwaar machtiging incasso", 'naam' => "BezwaarMachtiging", 'lengte' => 1);
+	}
+	if (db_param("zs_incl_vogafgegeven") == 1) {
+		$wijzvelden[] = array('label' => "VOG afgegeven op", 'naam' => "VOG afgegeven", 'lengte' => 9);
 	}
 	if (db_param("zs_incl_bsn") == 1) {
 		$wijzvelden[] = array('label' => "Burgerservicenummer", 'naam' => "Burgerservicenummer", 'lengte' => 9);
@@ -680,7 +682,7 @@ function algemeenlidmuteren($lidid) {
 	echo("<table>\n");
 	echo("<tr><th>Veld</th><th>Huidige waarde</th><th>Nieuwe waarde</th><th>Leeg</th></tr>\n");
 	for ($i=0; $i < count($wijzvelden); $i++) {
-		$dv = $row->$wijzvelden[$i]['naam'];
+		$dv = $row->{$wijzvelden[$i]['naam']};
 		$ph = $wijzvelden[$i]['label'];
 		if ($wijzvelden[$i]['label'] == "Geslacht" or ($wijzvelden[$i]['label'] == "Legitimatietype")) {
 			if ($wijzvelden[$i]['label'] == "Geslacht") {
@@ -691,7 +693,7 @@ function algemeenlidmuteren($lidid) {
 			$opt = "\n";
 			foreach ($$an as $key => $val) {
 				$sel = "";
-				if ($key == $row->$wijzvelden[$i]['naam']) {
+				if ($key == $row->{$wijzvelden[$i]['naam']}) {
 					$sel = " selected";
 					$dv = $val;
 				}
@@ -700,7 +702,7 @@ function algemeenlidmuteren($lidid) {
 			$inp = sprintf("<select name='%s'>%s</select></td><td>", $wijzvelden[$i]['naam'], $opt);
 			
 		} elseif ($wijzvelden[$i]['naam'] == "Machtiging afgegeven") {
-			if ($row->$wijzvelden[$i]['naam'] == 1) {
+			if ($row->{$wijzvelden[$i]['naam']} == 1) {
 				$dv = "Ja";
 				$c = "checked";
 			} else {
@@ -711,7 +713,7 @@ function algemeenlidmuteren($lidid) {
 			$t = "text";
 			
 		} elseif ($wijzvelden[$i]['naam'] == "BezwaarMachtiging") {
-			if ($row->$wijzvelden[$i]['naam'] > "2000-01-01") {
+			if ($row->{$wijzvelden[$i]['naam']} > "2000-01-01") {
 				$dv = strftime("%e %B %Y", strtotime($dv));
 				$c = "checked";
 			} else {
