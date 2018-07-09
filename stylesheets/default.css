@@ -97,7 +97,7 @@ footer a, footer a:visited, #footer a, #footer a:visited {
 	padding-right: 0;
 }
 
-#header {
+#header, header {
 	width: 100%;
 	height: 90px;
 	margin-bottom: 0;
@@ -109,7 +109,7 @@ footer a, footer a:visited, #footer a, #footer a:visited {
    border-top-left-radius: 12px;
 }
 
-#header h1 {
+#header h1, header h1 {
 	float: left;
 	color: white;
 	margin-top: 3px;
@@ -120,7 +120,7 @@ footer a, footer a:visited, #footer a, #footer a:visited {
 	font-size: 11pt;
 }
 
-#header a + a:visited + a:hover {
+#header a + a:visited + a:hover, header a + a:visited + a:hover {
 	text-decoration: none;
 	color: inherit;
 }
@@ -624,7 +624,7 @@ fieldset h3 {
 
 .tablist1 li {
 	font-size: 9pt;
-	min-width: 90px;
+	min-width: 85px;
 	margin-left: 2px;
    margin-right: 2px;
    padding-left: 5px;
