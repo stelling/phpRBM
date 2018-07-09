@@ -322,11 +322,11 @@ function fnLoginAanvragen() {
 		echo("<fieldset>\n");
 		echo("<h3>Aanvragen login / Wachtwoord opvragen</h3>\n");
 		
-		printf("<p><label for='gewenstelogin'>Gewenste login:</label><input type='text' name='gewenstelogin' maxlength=%d>\n", db_param("maxlengtelogin"));
+		printf("<p><label>Gewenste login:</label><input type='text' name='gewenstelogin' maxlength=%d>\n", db_param("maxlengtelogin"));
 		if (db_param("lidnrnodigbijloginaanvraag") == 1) {
-			echo("<label for='lidnummer'>Lidnummer:</label><input class='inputnumber' type='number' name='lidnummer'>\n");
+			echo("<label>Lidnummer:</label><input class='inputnumber' type='number' name='lidnummer'>\n");
 		}
-		echo("<label for='email'>E-mailadres:</label><input type='email' name='email'>\n");
+		echo("<label>E-mailadres:</label><input type='email' name='email'>\n");
 
 		echo("<input class='knop' type='submit' name='loginaanvragen' value='Aanvragen'></p>\n");
 		echo("</fieldset>\n");
