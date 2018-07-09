@@ -71,7 +71,7 @@ $fromlidond = sprintf('%1$sLid AS L INNER JOIN ((%1$sLidond AS LO INNER JOIN %1$
 $wherelidond = "LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE())";
 $whereliddipl = "((LD.LicentieVervallenPer IS NULL) OR LD.LicentieVervallenPer >= CURDATE())";
 
-$db_conn_pdo = sprintf("mysql:host=%s;dbname=%s", $db_host, $db_name);
+$db_conn_pdo = sprintf("mysql:host=%s;dbname=%s;charset=utf8", $db_host, $db_name);
 try {
 	$dbc = new PDO($db_conn_pdo, $db_user, $db_pass);
 	$dbc->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_OBJ);
