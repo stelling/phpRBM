@@ -1,6 +1,6 @@
 <?php
 
-class RBMmailer extends PHPMailer {
+class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 
 	private $bestand_briefpapier = "templates/briefpapier.html";
 
@@ -24,10 +24,11 @@ class RBMmailer extends PHPMailer {
 		} else {
 			$this->IsMail(true);
 		}
-		$this->IsHTML(true);
+		$this->IsHTML(false);
 		$this->From = db_param("emailwebmaster");
 		$this->FromName = db_param("naamvereniging");
 		$this->WordWrap = 110;
+		$this->SMTPdebug = 2;
 		
 		if ($lidid > 0) {
 			$this->ToevoegenLid($lidid);

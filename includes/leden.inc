@@ -83,12 +83,14 @@ function fnWijzigen($lidid=0, $actie="") {
 		} elseif ($actie == "Lidmaatschap") {
 				lidmaatschapmuteren($lidid);
 			
-		} elseif ($actie == "Profiel") {
+		} elseif ($actie == "Wijzigen wachtwoord") {
 		
 			if ($_SERVER['REQUEST_METHOD'] == "POST") {
 				if (isset($_POST['pw_nieuw']) and strlen($_POST['pw_nieuw']) > 0) {
 					if (strlen($_POST['pw_nieuw']) < 7) {
 						$mess = "Het nieuwe wachtwoord is te kort, het moet minimaal 7 karakters lang zijn.";
+					} elseif (strlen($_POST['pw_oud']) < 7) {
+						$mess = "Het huidige  wachtwoord moet zijn ingevuld en minimaal 7 karakters lang zijn.";
 					} elseif (strlen($_POST['pw_nieuw']) > 12) {
 						$mess = "Het nieuwe wachtwoord is te lang, het mag maximaal 12 karakters lang zijn.";
 					} elseif ($_POST['pw_nieuw'] != cleanlogin($_POST['pw_nieuw'])) {
@@ -115,19 +117,18 @@ function fnWijzigen($lidid=0, $actie="") {
 				echo("<p><a href='/'>Klik hier om verder te gaan.</a></p>\n");
 			} else {
 				echo("<div id='profielwijzigen'>\n");
-				printf("<form name='ProfielWijzigen' action='%s' method='post'>\n", $actionurl);
+				printf("<form name='WijzigenWachtwoord' action='%s' method='post'>\n", $actionurl);
 				printf("<fieldset>
-				<h3>Profiel wijzigen</h3>
-				<label for='ingelogdlogin'>Login:</label><input type='text' name='ingelogdlogin' id='ingelogdlogin' value='%s' readonly='readonly'>
-				<label for='pw_oud'>Oude wachtwoord:</label><input type='password' name='pw_oud' id='pw_oud' size=10 maxlength=12>
-				<label for='pw_nieuw'>Nieuw wachtwoord:</label><input type='password' name='pw_nieuw' id='pw_nieuw' size=10 maxlength=12>
-				<label for='pw_herhaal'>Herhaal wachtwoord:</label><input type='password' name='pw_herhaal' id='pw_herhaal' size=10 maxlength=12>
+				<h3>Wijzigen wachtwoord</h3>
+				<label>Login:</label><input type='text' name='ingelogdlogin' value='%s' readonly='readonly'>
+				<label>Oude wachtwoord:</label><input type='password' name='pw_oud' size=10 maxlength=12>
+				<label>Nieuw wachtwoord:</label><input type='password' name='pw_nieuw' size=10 maxlength=12>
+				<label>Herhaal wachtwoord:</label><input type='password' name='pw_herhaal' size=10 maxlength=12>
 				<input type='submit' class='knop' value='Wijzigen'>\n", $_SESSION['username']);
 				echo("</fieldset>
 				</form>
 				</div>  <!-- Einde profielwijzigen -->");
-			}
-			
+			}	
 		} else {
 			echo("<p class='mededeling'>Deze optie bestaat niet.</p>\n");
 		}

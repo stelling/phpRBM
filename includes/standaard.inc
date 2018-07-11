@@ -1,6 +1,7 @@
 <?php
+
 date_default_timezone_set('Europe/Amsterdam');
-setlocale(LC_ALL,'nl_NL@euro');
+setlocale(LC_ALL,'nl_NL.utf8');
 
 if (session_start() === FALSE or strlen(session_id()) == 0) {
 	$mess = "De sessie kan niet gestart worden, hierdoor kan er op dit moment niet ingelogd worden.";
@@ -22,10 +23,10 @@ if (!isset($_SESSION['lidid'])) {
 
 $dir = substr(__FILE__, 0, strrpos(__FILE__, "/"));
 $dir = substr($dir, 0, strrpos($dir, "/"));
-require_once($dir . '/config.php');
+include($dir . '/config.php');
 
 $bestandsversie = filectime($dir . "/index.php");
-$includes = array("database", "authentication", "leden", "bewaking", "evenement", "mailing", "standaard", "webshop", "class.phpmailer.php", "rbm_mailer.class", "simple_image.class");
+$includes = array("database", "authentication", "leden", "bewaking", "evenement", "mailing", "standaard", "webshop", "phpmailer/PHPMailer.php", "phpmailer/SMTP.php", "phpmailer/Exception.php", "rbm_mailer.class", "simple_image.class");
 foreach ($includes as $incl) {
 	if (substr($incl, -4) == ".php") {
 		$incl = $dir . "/includes/" . $incl;
@@ -71,8 +72,8 @@ if (isset($_GET['tp']) and strlen($_GET['tp']) > 1) {
 
 $fileverinfo = 'templates/verenigingsinfo.html';
 
-$arrGeslacht["V"] = "Vrouw";
-$arrGeslacht["M"] = "Man";
+$arrGeslacht["V"] = "Vrouwelijk";
+$arrGeslacht["M"] = "Mannelijk";
 $arrGeslacht["B"] = "Bedrijf";
 $arrGeslacht["O"] = "Onbekend";
 
@@ -108,6 +109,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	$tabpages[] = "Vereniging";
 	if (file_exists($fileverinfo)) {
 		$tabpages[] = "Vereniging/Introductie";
+	}
+	if ($_SESSION['lidid'] == 0) {
+		$tabpages[] = "Herstellen wachtwoord";
 	}
 	$tabpages[] = "Vereniging/Kader";
 	$tabpages[] = "Vereniging/Onderscheidingen";
@@ -160,7 +164,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			$tabpages[] = "Zelfservice/Opzegging";
 		}
 	}
-	$tabpages[] = "Zelfservice/Profiel";
+	$tabpages[] = "Zelfservice/Wijzigen wachtwoord";
 	$tabpages[] = "Ledenlijst";
 	if ($currenttab == "Overzicht lid") {
 		$tabpages[] = "Overzicht lid";
@@ -311,6 +315,7 @@ function HTMLheader($refresh=0) {
 		echo("<!DOCTYPE HTML>\n");
 		echo("<html lang='nl'>\n");
 		echo("<head>\n");
+		echo("<meta charset='UTF-8'>\n");
 		if (isset($_GET['tp']) and substr($_GET['tp'], 0, 7) == "Mailing") {
 			echo("<script src='/includes/ckeditor/ckeditor.js'></script>\n");
 		}
@@ -335,7 +340,7 @@ function HTMLheader($refresh=0) {
 		
 		if ($_SESSION['lidid'] > 0) {
 			printf("Welkom %s\n", htmlentities($_SESSION['roepnaamingelogde']));
-			echo("<a href='/?tp=Zelfservice/Profiel'><img src='images/user.png' title='Profiel wijzigen' alt='Profile'></a>\n");
+			echo("<a href='/?tp=Zelfservice/Wijzigen wachtwoord'><img src='images/user.png' title='Wijzigen wachtwoord' alt='Wijzigen wachtwoord'></a>\n");
 			if ($_SERVER['PHP_SELF'] == "/index.php") {
 				printf("<a href='auth.php?actie=uitloggen'><img src='images/power.png' title='Uitloggen' alt='Uitloggen'></a>\n");
 			}

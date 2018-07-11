@@ -200,7 +200,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 		$sqond = sprintf("SELECT MIN(O.Naam) FROM %1\$sOnderdl AS O INNER JOIN %1\$sLidond AS LO ON O.RecordID = LO.OnderdeelID
 								WHERE O.`Type` = 'O' AND LO.Lid = L.Nummer AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE())", $table_prefix);
 		$VOG = "`VOG afgegeven` AS 'dteVOG afgegeven op',";
-		$sqlogin = sprintf("SELECT MAX(Login) FROM %sAdmin_login AS AL WHERE AL.LidID = L.Nummer", $table_prefix);
+		$sqllogin = sprintf("SELECT MAX(Login) FROM %sAdmin_login AS AL WHERE AL.LidID = L.Nummer", $table_prefix);
 		$sqlbd = sprintf("SELECT MAX(EINDE_PER) FROM %sBewaking WHERE Lid=L.Nummer AND BEGIN_PER < CURDATE()", $table_prefix);
 		$query = sprintf("SELECT CONCAT(`Waarschuwen bij nood`, NamenOuders) FROM %sLid WHERE Nummer=%d;", $table_prefix, $LidID);
 		if (strlen(db_scalar($query)) > 3) {
@@ -227,7 +227,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					'Adresgegevens' AS Kop2,
 					L.Adres,
 					IF(LENGTH(L.Woonplaats) > 1, CONCAT(L.Postcode, '  ', L.Woonplaats), '') AS `Postcode en woonplaats`, 
-					'Bereiken' AS Kop3, 
+					'Contactgegevens' AS Kop3, 
 					L.Telefoon, 
 					L.Mobiel, 
 					L.Email AS `emlE-mail`,
@@ -238,6 +238,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					(%s) AS Onderscheiding, 
 					LM.LIDDATUM AS `dteLid vanaf`, 
 					LM.Opgezegd AS `dteLid totenmet`, 
+					IF(DATEDIFF(CURDATE(), LM.LIDDATUM) < 400, NULL, CONCAT(TIMESTAMPDIFF(YEAR, LM.LIDDATUM, IF(ISNULL(LM.Opgezegd), CURDATE(), LM.Opgezegd)), ' jaar')) AS `Lengte lidmaatschap`,
 					'Overig' AS Kop5, 
 					L.RelnrRedNed AS `Sportlink ID`,
 					(%s) AS Login,
@@ -252,7 +253,8 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					L.Gewijzigd AS `dteLaatst gewijzigd op` 
 					FROM %s 
 					WHERE L.Nummer=%d 
-					ORDER BY LM.LIDDATUM DESC;", $selectnaam, $fdlang, $sqond, $sqlogin, $VOG, $sqlbd, $wbn, $sqdieet, $fromlid, $LidID);
+					ORDER BY LM.LIDDATUM DESC;", $selectnaam, $fdlang, $sqond, $sqllogin, $VOG, $sqlbd, $wbn, $sqdieet, $fromlid, $LidID);
+					
 	} elseif ($soort == "Financieel") {
 		$query = sprintf("SELECT IF(LENGTH(L.Bankrekening)=18, L.Bankrekening, L.BANKGIRO) AS Bankrekeningnummer, 
 								L.`Machtiging afgegeven` AS `booMachtiging automatische incasso`, 
@@ -1167,6 +1169,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			} elseif (strlen($login) > 5 and $lidid > 0) {
 				$query = sprintf("INSERT INTO %sAdmin_login SET LidID=%d, Login='%s', Ingevoerd=CURDATE();", $table_prefix, $lidid, $login);
 				$result = fnQuery($query);
+				$pw = newpassword($lidid);
 				$ok = true;
 				$mess = sprintf("Login '%s' is voor %s aangemaakt.", $login, db_naamlid($lidid));
 			}
@@ -1174,7 +1177,6 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			$mess = sprintf("%s heeft al een login, er wordt geen nieuwe aangemaakt.", db_naamlid($lidid));
 		}
 		db_logboek("add", $mess, 1, $lidid, 1);
-		db_logins("wachtwoordenvullen");
 		return $ok;
 		
 	} elseif ($actie == "rowlogin" and (isValidMailAddress($email, 0) or $lidid > 0)) {
@@ -1287,17 +1289,20 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 	
 		$xtrawhere = "";
 		if (isValidMailAddress($login, 0)) {
-			$xtrawhere = sprintf("AND (LOWER(L.Email) LIKE '%1\$s' OR LOWER(L.EmailVereniging) LIKE '%1\$s')", strtolower($login));
-		} else {
-			$xtrawhere = sprintf("AND Login.Login LIKE '%s'", cleanlogin($login));
-		}
-		$xtrawhere .= sprintf(" AND Login.Wachtwoord LIKE '%s'", encript_decript($pw));
+			$query = sprintf("SELECT Login FROM %1\$sLid AS L INNER JOIN %1\$sAdmin_login AS Login ON Login.LidID = L.Nummer WHERE (LOWER(L.Email) LIKE '%2\$s' OR LOWER(L.EmailVereniging) LIKE '%2\$s')", $table_prefix, strtolower($login));
+			$result = fnQuery($query);
+			$rows = $result->fetchAll();	
+			if (count($rows) == 1) {
+				$login = $rows[0]->Login;
+			}
+		} 
+		$xtrawhere = sprintf("AND Login.Login LIKE '%s'", cleanlogin($login));
 		if (is_array($beperktotgroep) and count($beperktotgroep) > 0) {
 			$xtrawhere .= sprintf(" AND (Login.LidID IN (SELECT Lid FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID IN (%s)) OR Login.LidID IN (%s))", $table_prefix, $wherelidond, implode(", ", $beperktotgroep), implode(", ", $lididwebmasters));
 		} else {
 			$xtrawhere .= sprintf(" AND Login.LidID IN (%s)", implode(", ", $lididwebmasters));
 		}
-		$query = sprintf("SELECT Login.LidID, %3\$s AS NaamLid, L.Roepnaam, L.Email, L.EmailVereniging, L.EmailOuders,
+		$query = sprintf("SELECT Login.LidID, %3\$s AS NaamLid, L.Roepnaam, L.Email, L.EmailVereniging, L.EmailOuders, Login.Wachtwoord,
 					IFNULL((%4\$s), 0) AS Lidnr, Login.FouteLogin, Login.Gewijzigd
 					FROM %1\$sAdmin_login AS Login INNER JOIN %1\$sLid AS L ON Login.LidID = L.Nummer
 					WHERE LENGTH(Login.Wachtwoord) > 5 %2\$s
@@ -1305,10 +1310,14 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		$result = fnQuery($query);
 		$row = $result->fetch();
 		if (isset($row->LidID) and $row->LidID > 0) {
-			return $row;
+			if (password_verify($pw, $row->Wachtwoord)) {
+				return $row;
+			} else {
+				$query = sprintf("UPDATE %sAdmin_login SET FouteLogin=FouteLogin+1, Gewijzigd=SYSDATE() WHERE Login='%s';", $table_prefix, $login);
+				fnQuery($query);	
+				return false;
+			}
 		} else {
-			$query = sprintf("UPDATE %sAdmin_login SET FouteLogin=FouteLogin+1, Gewijzigd=SYSDATE() WHERE Login='%s';", $table_prefix, $_SESSION['username']);
-			fnQuery($query);
 			return false;
 		}
 		
@@ -1336,7 +1345,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		$query = sprintf("SELECT MAX(LidID) FROM %Admin_login WHERE Login='%s';", $table_prefix);
 		return db_scalar($query);
 		
-	} elseif ($actie == "wachtwoordenvullen") {
+	} elseif ($actie == "wacht22woordenvullen") {
 		$query = sprintf("SELECT * FROM %sAdmin_login WHERE ((Wachtwoord IS NULL) OR LENGTH(Wachtwoord) < 7) AND (openid_identity IS NULL);", $table_prefix);
 		$result = fnQuery($query);
 		foreach ($result->fetchAll() as $row) {
@@ -1417,20 +1426,30 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 function db_change_password($pw_new, $pw_old, $lidid) {
 	global $table_prefix;
 	
-	$query = sprintf("UPDATE %sAdmin_login SET"
-			 . " Gewijzigd=SYSDATE(),"
-			 . " GewijzigdDoor=%d,"
-			 . " Wachtwoord='%s'"
-			 . " WHERE Wachtwoord='%s' AND LidID=%d;"
-			 , $table_prefix, $_SESSION['lidid'], encript_decript($pw_new), encript_decript($pw_old), $lidid);
-	$result = fnQuery($query);
-	if ($result > 0) {
-		$mess = sprintf("Het wachtwoord van de login van %s gewijzigd.", db_naamlid($lidid));
-		setcookie("password", "", time()-3600);
-	} else {
-		$mess = "Oude wachtwoord is niet correct, wachtwoord is niet gewijzigd.";
-	}	
-	db_logboek("add", $mess, 1, $lidid);
+	$mess = "ok";
+	if (strlen($pw_old) > 0) {
+		$query = sprintf("SELECT Wachtwoord from %sAdmin_login WHERE LidID=%d;", $table_prefix, $lidid);
+		$pw_hash = db_scalar($query);
+		if (password_verify($pw_old, $pw_hash) == false) {
+			$mess = "Oude wachtwoord is niet correct, wachtwoord is niet gewijzigd.";	
+		}
+	}
+	if ($mess == "ok") {
+		$query = sprintf("UPDATE %sAdmin_login SET"
+				. " Gewijzigd=SYSDATE(),"
+				. " GewijzigdDoor=%d,"
+				. " Wachtwoord='%s'"
+				. " WHERE LidID=%d;"
+				, $table_prefix, $_SESSION['lidid'], password_hash($pw_new, PASSWORD_DEFAULT), $lidid);
+		$result = fnQuery($query);
+		if ($result > 0) {
+			$mess = sprintf("Het wachtwoord van de login van %s is gewijzigd.", db_naamlid($lidid));
+			setcookie("password", "", time()-7200);
+			$mess = "ok";
+		} else {
+			$mess = "Wachtwoord is niet gewijzigd.";
+		}
+	}
 	return $mess;
 }
 
@@ -2708,6 +2727,14 @@ function db_onderhoud() {
 	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%sAdmin_login' AND COLUMN_NAME LIKE 'Login';", $db_name, $table_prefix);
 	if (db_scalar($query) < $maxlengtelogin) {
 		$query = sprintf("ALTER TABLE `%sAdmin_login` CHANGE `Login` `Login` VARCHAR( %s ) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table_prefix, $maxlengtelogin);
+		fnQuery($query);
+	}
+	
+	/***** Aanpassen lengte wachtwoord in de database als deze kleiner is dan 255. Deze lengte is nodig voor de password_hash()  *****/
+	/***** Deze code mag weg na 1/1/2020  ****/
+	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%sAdmin_login' AND COLUMN_NAME LIKE 'Wachtwoord';", $db_name, $table_prefix);
+	if (db_scalar($query) < 255) {
+		$query = sprintf("ALTER TABLE `%sAdmin_login` CHANGE `Wachtwoord` `Wachtwoord` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table_prefix);
 		fnQuery($query);
 	}
 	

@@ -1,5 +1,4 @@
 <?php
-error_reporting(E_ALL);
 
 if (!isset($_GET['tp'])) {
 	$_GET['tp'] = "Vereniging/Introductie";
@@ -36,6 +35,8 @@ if ($currenttab !== "Mailing") {
 if (toegang("", 0) == false) {
 	$mess = sprintf("Je hebt tot '%s' geen toegang.", $_GET['tp']);
 	db_logboek("add", $mess, 5, 0, 1);
+} elseif ($currenttab == "Herstellen wachtwoord") {
+	fnHerstellenWachtwoord();
 } elseif ($currenttab == "Eigen gegevens") {
 	if ($_SESSION['lidid'] > 0) {
 		fnOverviewLid($_SESSION['lidid'], $currenttab2);
@@ -158,7 +159,10 @@ function fnVoorblad($metlogin=0) {
 		}
 
 		printf("<div id='welkomstekst'>\n%s</div>  <!-- Einde welkomstekst -->\n", $content);
+		
 	}
+	?>
+	<?php
 }
 
 function fnKostenoverzicht() {

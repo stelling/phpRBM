@@ -245,9 +245,6 @@ class Mailing {
 			$this->MergeField[]=array('Naam' => "BewakingHistorie", 'SQL' => $sql);
 		}
 							  
-		$sql = sprintf("SELECT L.BANKGIRO FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
-		$this->MergeField[]=array('Naam' => "Bankrekening", 'SQL' => $sql);
-
 		$sql = sprintf("SELECT L.Bankrekening FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
 		$this->MergeField[]=array('Naam' => "IBAN", 'SQL' => $sql);
 		
@@ -317,20 +314,20 @@ class Mailing {
 		$this->MergeField[]=array('Naam' => "URLwebsite", 'SQL' => "");
 		
 		// Velden die bij specifieke mailings horen.
-		if ($this->mid == db_param("mailing_lidnr")) {
+		if ($this->mid == db_param("mailing_lidnr") and $this->mid > 0) {
 			$this->xtrachar = "LNR";
 			$this->speciaal = "Versturen lidnummer";
 			$this->MergeField[]=array('Naam' => "Geblokkeerd", 'SQL' => "");
 			$this->MergeField[]=array('Naam' => "IPaddress", 'SQL' => "");
 			
-		} elseif ($this->mid == db_param("mailing_bewakinginschrijving")) {
+		} elseif ($this->mid == db_param("mailing_bewakinginschrijving") and $this->mid > 0) {
 			$this->xtrachar = "BW_I";
 			$this->speciaal = "Bevestiging inschrijving bewaking";
 			$this->vertraging_tussen_verzenden = 5;
 			$this->MergeField[]=array('Naam' => "VoorwaardenInschrijving", 'SQL' => "");
 			$this->MergeField[]=array('Naam' => "InschrijvingBewaking", 'SQL' => "");
 			
-		} elseif ($this->mid == db_param("mailing_bevestigingbestelling")) {
+		} elseif ($this->mid == db_param("mailing_bevestigingbestelling") and $this->mid > 0) {
 			$this->xtrachar = "BEST";
 			$this->speciaal = "Bevestiging bestelling webshop";
 			$this->vertraging_tussen_verzenden = 5;
@@ -339,7 +336,7 @@ class Mailing {
 			$this->MergeField[]=array('Naam' => "Totaalbedrag", 'SQL' => "");
 			$this->MergeField[]=array('Naam' => "VoorwaardenBestelling", 'SQL' => "");
 			
-		} elseif ($this->mid == db_param("mailing_bevestigingopzegging")) {
+		} elseif ($this->mid == db_param("mailing_bevestigingopzegging") and $this->mid > 0) {
 			$this->xtrachar = "BO_LM";
 			$this->speciaal = "Bevestiging opzegging lidmaatschap";
 			
@@ -873,6 +870,7 @@ class Mailing {
 		$mail = new RBMmailer();
 		$mail->From = $this->from_addr;
 		$mail->FromName = $this->from_name;
+		$mail->IsHTML(true);
 		
 		if ($preview == 0) {
 			$ad = $this->dir_attachm . "/" . $this->mid;
