@@ -983,7 +983,7 @@ function opzegginglidmaatschap($lidid) {
 		$content = str_replace("[%LIDNR%]", $_SESSION['lidnr'], $content);
 		$content = str_replace("[%NAAMVERENIGING%]", db_param("naamvereniging"), $content);
 		$content = str_replace("[%NAAMWEBSITE%]", db_param("naamwebsite"), $content);
-		$content = str_replace("[%URLWEBSITE%]", db_param("urlwebsite"), $content);
+		$content = str_replace("[%URLWEBSITE%]", $_SERVER["HTTP_HOST"], $content);
 		
 		echo($content);
 	}
@@ -1240,7 +1240,7 @@ function RekeningDetail($nr) {
 	$content = str_ireplace("[%VANAFNAAM%]", db_param("mailing_rekening_from_naam"), $content);
 	$content = str_ireplace("[%NAAMVERENIGING%]", db_param("naamvereniging"), $content);
 	$content = str_ireplace("[%NAAMWEBSITE%]", db_param("naamwebsite"), $content);
-	$content = str_ireplace("[%URLWEBSITE%]", db_param("urlwebsite"), $content);
+	$content = str_ireplace("[%URLWEBSITE%]", $_SERVER["HTTP_HOST"], $content);
 	
 	$rr = db_rekening("regels", $nr);
 	$rrtxt = "";
