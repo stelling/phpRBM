@@ -256,7 +256,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					ORDER BY LM.LIDDATUM DESC;", $selectnaam, $fdlang, $sqond, $sqllogin, $VOG, $sqlbd, $wbn, $sqdieet, $fromlid, $LidID);
 					
 	} elseif ($soort == "Financieel") {
-		$query = sprintf("SELECT IF(LENGTH(L.Bankrekening)=18, L.Bankrekening, L.BANKGIRO) AS Bankrekeningnummer, 
+		$query = sprintf("SELECT L.Bankrekening AS Bankrekeningnummer, 
 								L.`Machtiging afgegeven` AS `booMachtiging automatische incasso`, 
 								IF(ISNULL(L.BezwaarMachtiging), 'Nee', DATE_FORMAT(L.BezwaarMachtiging, %s)) AS `Bezwaar machtiging incasso`,
 								L.Burgerservicenummer
@@ -429,7 +429,6 @@ function db_lid($actie, $filter="", $lidid=0, $nv="") {
 					L.EmailOuders,
 					L.GEBDATUM,
 					L.GEBPLAATS,
-					L.BANKGIRO,
 					L.Bankrekening,
 					L.`Machtiging afgegeven`,
 					L.BezwaarMachtiging,
@@ -2440,7 +2439,7 @@ function db_rekening($actie, $nr=0, $filter="") {
 		return db_scalar($query);
 	} elseif ($actie == "hoofd" and $nr > 0) {
 		$query = sprintf("SELECT RK.*, L.Adres, L.Postcode, L.Woonplaats, L.`Machtiging afgegeven` AS Machtiging,
-					IF(LENGTH(L.Bankrekening)=18, L.Bankrekening, L.BANKGIRO) AS Bankrekeningnummer,
+					L.Bankrekening AS Bankrekeningnummer,
 					DATE_ADD(RK.Datum, INTERVAL RK.BET_TERM*RK.BETAALDAG DAY) AS UitersteBetaaldatum,
 					(%1\$1s) AS Lidnr
 					FROM %2\$sRekening AS RK INNER JOIN %2\$sLid AS L ON RK.Lid = L.Nummer
@@ -2464,7 +2463,7 @@ function db_rekening($actie, $nr=0, $filter="") {
 			}
 		}
 		$query = sprintf("SELECT RK.*, L.Adres, L.Postcode, L.Woonplaats,
-					IF(LENGTH(L.Bankrekening)=18, L.Bankrekening, L.BANKGIRO) AS Bankrekeningnummer,
+					L.Bankrekening AS Bankrekeningnummer,
 					DATE_ADD(RK.Datum, INTERVAL RK.BET_TERM*RK.BETAALDAG DAY) AS UitersteBetaaldatum,
 					(%1\$1s) AS Lidnr
 					FROM %2\$sRekening AS RK INNER JOIN %2\$sLid AS L ON RK.Lid = L.Nummer
@@ -2541,7 +2540,6 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrStrings['scriptbijuitloggen'] = "";
 	$arrStrings['scriptnainloggen'] = "";
 	$arrStrings['urlvereniging'] = "";
-	$arrStrings['urlwebsite'] = $_SERVER["HTTP_HOST"];
 	$arrStrings['zs_emailbevestigingbestelling'] = "";
 	$arrStrings['zs_emailnieuwepasfoto'] = "";
 	$arrStrings['zs_muteerbarememos'] = "";
