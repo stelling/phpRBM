@@ -265,7 +265,7 @@ if ($currenttab == "Beheer logins" and toegang()) {
 	
 	$query = "SELECT Version() AS Version;";
 	$result = fnQuery($query);
-	printf("<div id='versies'>\nMySQL: %s / PHP: %s</div>  <!-- Einde versies -->\n", substr($result->fetchColumn(), 0, 6), substr(phpversion(), 0, 5));
+	printf("<div id='versies'>PHP: %s / Database: %s</div>  <!-- Einde versies -->\n", substr(phpversion(), 0, 6), $result->fetchColumn());
 	
 } elseif ($currenttab == "Logboek" and toegang($_GET['tp'])) {
 	if (!isset($_POST['lidfilter']) or strlen($_POST['lidfilter']) == 0) {
@@ -346,8 +346,6 @@ function fnInstellingen() {
 	$arrParam['maxinlogpogingen'] = "Na hoeveel foutieve inlogpogingen moet het account geblokkeerd worden? 0 = nooit.";
 	$arrParam['maxlengtelogin'] = "De maximale lengte die een login mag zijn. Minimaal 7 en maximaal 15 invullen.";
 	$arrParam['maxmailsperminuut'] = "Het maximaal aantal e-mails dat via een mailing per minuut verzonden mag worden. 0 = onbeperkt.";
-	$arrParam['naamvereniging'] = "Wat is de naam van de vereniging?";
-	$arrParam['naamvereniging_afkorting'] = "Wat is de afkorting van de naam van de vereniging?";
 	$arrParam['naamwebsite'] = "Dit is de naam zoals deze in de titel en op elke pagina getoond wordt.";
 	$arrParam['performance_trage_select'] = "Vanaf hoeveel seconden moet een select-statement in het logboek worden gezet. 0 = nooit.";
 	$arrParam['scriptbijuitloggen'] = "Dit script wordt gedraaid nadat iemand is uitgelogd. Optioneel veld.";
@@ -357,8 +355,7 @@ function fnInstellingen() {
 	$arrParam['toneninschrijvingenbewakingen'] = "Moeten bij de gegevens van een lid ook inschrijvingen voor bewakingen getoond worden?";
 	$arrParam['tonentoekomstigebewakingen'] = "Moeten bij de gegevens van een lid ook toekomstige bewakingen getoond worden?";
 	$arrParam['typemenu'] = "1 = per niveau een aparte regel, 2 = één menu met dropdown, 3 = één menu met dropdown en extra menu voor niveau 2.";
-	$arrParam['urlwebsite'] = "De URL van deze website. Zonder http://";
-	$arrParam['urlvereniging'] = "De URL van de website van de vereniging. Zonder http://";
+	$arrParam['urlvereniging'] = "De URL van de website van de vereniging.";
 	$arrParam['verjaardagenaantal'] = "Hoeveel verjaardagen moeten er maximaal in de verenigingsinfo worden getoond. Als er meerdere leden op dezelfde dag jarig zijn, wordt dit aantal overschreden.";
 	$arrParam['verjaardagenvooruit'] = "Hoeveel dagen vooruit moeten de verjaardagen in de verenigingsinfo getoond worden?";
 	
