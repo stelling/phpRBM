@@ -17,26 +17,32 @@ if ($_SESSION['webmaster'] == 1 or $_SERVER["HTTP_HOST"] == "phprbm.telling.nl")
 	error_reporting(0);
 }
 
+if (isset($_SERVER['HTTPS'])){
+	$basisurl = "https://" . $_SERVER['HTTP_HOST'];
+} else {
+	$basisurl = "http://" . $_SERVER['HTTP_HOST'];
+}
+
 if (!isset($_SESSION['lidid'])) {
 	$_SESSION['lidid'] = 0;
 }
 
-$dir = substr(__FILE__, 0, strrpos(__FILE__, "/"));
-$dir = substr($dir, 0, strrpos($dir, "/"));
-include($dir . '/config.php');
-
+$dir = substr(__DIR__, 0, strrpos(__DIR__, "/"));
+require($dir . '/config.php');
 $bestandsversie = filectime($dir . "/index.php");
+
+// debug(__FILE__, 0, 1);
+
 $includes = array("database", "authentication", "leden", "bewaking", "evenement", "mailing", "standaard", "webshop", "phpmailer/PHPMailer.php", "phpmailer/SMTP.php", "phpmailer/Exception.php", "rbm_mailer.class", "simple_image.class");
 foreach ($includes as $incl) {
 	if (substr($incl, -4) == ".php") {
-		$incl = $dir . "/includes/" . $incl;
 	} elseif (substr($incl, -6) == ".class") {
-		$incl = $dir . "/includes/" . $incl . ".php";
+		$incl .= ".php";
 	} else {
-		$incl = $dir . "/includes/" . $incl . ".inc";
+		$incl .= ".inc";
 	}
-	if ($bestandsversie < filectime($incl)) {
-		$bestandsversie = filectime($incl);
+	if ($bestandsversie < filectime(__DIR__ . "/" . $incl)) {
+		$bestandsversie = filectime(__DIR__ . "/" . $incl);
 	}
 	require_once($incl);
 }
@@ -375,7 +381,7 @@ function HTMLheader($refresh=0) {
 } # HTMLheader
 
 function HTMLfooter() {
-	global $table_prefix, $navpad, $bestandsversie;
+	global $table_prefix, $navpad, $bestandsversie, $basisurl;
 
 	if (!isset($_GET['header']) or $_GET['header'] != "no") {
 		if (strlen(db_param("naamvereniging")) > 2) {
@@ -385,7 +391,7 @@ function HTMLfooter() {
 				$cr = db_param("naamvereniging");
 			}
 		} else {
-			$cr = "<a href='http://www.telling.nl'>&copy;&nbsp;S.Telling</a>";
+			$cr = "<a href='https://www.telling.nl'>&copy;&nbsp;S.Telling</a>";
 		}
 		echo("<div class='clear'></div>\n");
 		
@@ -403,9 +409,9 @@ function HTMLfooter() {
 		}
 		printf("<div id='footer'>\n
 				 <div id='footerleft'>%s</div>\n
-				 <a href='http://%s'>%s</a> %s\n
+				 <a href='%s'>%s</a> %s\n
 				 <div id='footerright'>%s</div>\n
-				 </div>  <!-- Einde footer  -->\n", $cr, db_param("urlwebsite"), db_param("naamwebsite"), $np, strftime("%e %B %Y", $bestandsversie));
+				 </div>  <!-- Einde footer  -->\n", $cr, $basisurl, db_param("naamwebsite"), $np, strftime("%e %B %Y", $bestandsversie));
 		echo("</div>  <!-- Einde container -->\n");
 		echo("</body>\n");
 		echo("</html>\n");
@@ -418,10 +424,8 @@ function isValidMailAddress($address, $LeegIsGoed=0){
 		return true;
 	} elseif (strlen(trim($address)) < 5) {
 		return false;
-   } elseif(filter_var($address, FILTER_VALIDATE_EMAIL) === FALSE) {
-		return false;
-	} else {
-		return true;
+   } else {
+		return filter_var($address, FILTER_VALIDATE_EMAIL);
 	}
 } # isValidMailAddress
 
