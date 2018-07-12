@@ -1008,12 +1008,12 @@ class Mailing {
 		$this->merged_subject = $this->subject;
 		$this->merged_subject = str_ireplace("[%Naamvereniging%]", db_param("naamvereniging"), $this->merged_subject);
 		$this->merged_subject = str_ireplace("[%Naamwebsite%]", db_param("naamwebsite"), $this->merged_subject);
-		$this->merged_subject = str_ireplace("[%URLwebsite%]", db_param("urlwebsite"), $this->merged_subject);
+		$this->merged_subject = str_ireplace("[%URLwebsite%]", $_SERVER["HTTP_HOST"], $this->merged_subject);
 		
 		$this->merged_message = $this->message;
 		$this->merged_message = str_ireplace("[%Naamvereniging%]", db_param("naamvereniging"), $this->merged_message);
 		$this->merged_message = str_ireplace("[%Naamwebsite%]", db_param("naamwebsite"), $this->merged_message);
-		$this->merged_message = str_ireplace("[%URLwebsite%]", db_param("urlwebsite"), $this->merged_message);
+		$this->merged_message = str_ireplace("[%URLwebsite%]", $_SERVER["HTTP_HOST"], $this->merged_message);
 		
 		if ($this->mid == db_param("mailing_bevestigingopzegging")) {
 			if ($this->xtranum > 0) {
