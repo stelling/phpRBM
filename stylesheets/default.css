@@ -139,7 +139,7 @@ footer a, footer a:visited, #footer a, #footer a:visited {
 }
 
 #kolomlinks, #kolomrechts {
-	width: 470px;
+	width: 48%;
 	margin-left: 0;
 	margin-right: 0;
 	padding-left: 0;
@@ -148,7 +148,6 @@ footer a, footer a:visited, #footer a, #footer a:visited {
 
 #kolomlinks {
 	float: left;
-	background-color: transparent;
 }
 
 #kolomrechts {
@@ -1040,3 +1039,9 @@ fieldset h3 {
 }
 
 /* Einde elementen voor treeview */
+
+@media screen and (max-width: 1300px) {
+	container {
+		width: 960px;
+	}
+}
