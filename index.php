@@ -4,7 +4,7 @@ if (!isset($_GET['tp'])) {
 	$_GET['tp'] = "Vereniging/Introductie";
 }
 
-include('./includes/standaard.inc');
+require('./includes/standaard.inc');
 
 if ($_SESSION['aantallid'] == 0) {
 	$query = sprintf("SELECT COUNT(*) FROM %sLid;", $table_prefix);
@@ -35,6 +35,9 @@ if ($currenttab !== "Mailing") {
 if (toegang("", 0) == false) {
 	$mess = sprintf("Je hebt tot '%s' geen toegang.", $_GET['tp']);
 	db_logboek("add", $mess, 5, 0, 1);
+	if ($_SESSION['lidid'] == 0) {
+		fnLoginAanvragen();
+	}
 } elseif ($currenttab == "Herstellen wachtwoord") {
 	fnHerstellenWachtwoord();
 } elseif ($currenttab == "Eigen gegevens") {
@@ -65,7 +68,7 @@ if (toegang("", 0) == false) {
 	}
 } elseif ($currenttab == "Vereniging") {
 	fnDispMenu(2);
-	if ($currenttab2 == "Introductie") {
+	if ($currenttab2 == "Introductie") { 
 		if (file_exists($fileverinfo)) {
 			fnVoorblad();
 			if (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
