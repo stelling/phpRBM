@@ -89,8 +89,8 @@ function fnWijzigen($lidid=0, $actie="") {
 				if (isset($_POST['pw_nieuw']) and strlen($_POST['pw_nieuw']) > 0) {
 					if (strlen($_POST['pw_nieuw']) < 7) {
 						$mess = "Het nieuwe wachtwoord is te kort, het moet minimaal 7 karakters lang zijn.";
-					} elseif (strlen($_POST['pw_oud']) < 7) {
-						$mess = "Het huidige  wachtwoord moet zijn ingevuld en minimaal 7 karakters lang zijn.";
+					} elseif (strlen($_POST['pw_oud']) < 5) {
+						$mess = "Het huidige  wachtwoord moet zijn ingevuld en minimaal 5 karakters lang zijn.";
 					} elseif (strlen($_POST['pw_nieuw']) > 12) {
 						$mess = "Het nieuwe wachtwoord is te lang, het mag maximaal 12 karakters lang zijn.";
 					} elseif ($_POST['pw_nieuw'] != cleanlogin($_POST['pw_nieuw'])) {
