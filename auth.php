@@ -8,8 +8,8 @@
 		setcookie("password", "", time()-3600);
 		echo("<script>\nlocation.href='/';\n</script>\n");
 	} elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
-		if (strlen($_POST['password']) < 7) {
-			$mess = "Om in te loggen is het invullen van een wachtwoord van minimaal 7 karakters vereist.";
+		if (strlen($_POST['password']) < 6) {
+			$mess = "Om in te loggen is het invullen van een wachtwoord van minimaal 6 karakters vereist.";
 			db_logboek("add", $mess, 1, 0, 2);
 		} else {
 			$_SESSION['username'] = cleanlogin($_POST['username']);
