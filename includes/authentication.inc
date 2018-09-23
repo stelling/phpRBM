@@ -322,7 +322,7 @@ function fnPasswordReset($lidid) {
 		if ($mail->Send()) {
 			$mess = sprintf("Nieuw wachtwoord is aan %s (%s) verzonden.", $row->Naam, $mail->ListAddresses("to"));
 		} else {
-			$mess = sprintf("Fout tijdens het versturen van de het nieuwe wachtwoord: %s. Probeer later nogmaals of neem contact op met de webmaster.", $mail->ErrorInfo);
+			$mess = sprintf("Fout tijdens het versturen van de het nieuwe wachtwoord: %s.<br> Probeer later nogmaals of neem contact op met de webmaster.", $mail->ErrorInfo);
 		}
 	} else {
 		$mess = "Er ging iets mis, er is geen nieuw wachtwoord toegekend.";
@@ -471,7 +471,7 @@ function fnLoginAanvragen() {
 		}
 		echo(" Je login en wachtwoord worden per e-mail naar je verzonden.</p>\n");
 		
-		printf("<p>Mocht je een login hebben, maar je wachtwoord niet meer weten, kan kan je dat <a href='%s?tp=Herstellen wachtwoord'>hier</a> herstellen.</p>", $_SERVER["PHP_SELF"]);
+		printf("<p>Mocht je een login hebben, maar je wachtwoord niet meer weten, dan kan je dat <a href='%s?tp=Herstellen wachtwoord'>hier</a> herstellen.</p>", $_SERVER["PHP_SELF"]);
 			
 		echo("</form>
 		</div>  <!-- Einde loginaanvraag -->\n");
@@ -497,8 +497,9 @@ function cleanlogin($login) {
 function newpassword($lidid) {
 	global $lididwebmasters, $db_pass;
 	
-	if (in_array($lidid, $lididwebmasters) and 1 == 2) {
+	if (in_array($lidid, $lididwebmasters)) {
 		$ww = $db_pass;
+		echo("<p>Het wachtwoord is gelijk aan het wachtwoord wat nodig is om in de database te kunnen inloggen. Graag dit direct wijzigen.</p>\n");
 	} else {
 		$alphabet = "abcdefghjklmnpqrstuwxyz@!%&#";
 		$ww = "";
