@@ -12,6 +12,9 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 			$this->Host = $smtphost;
 			if ($smtpport > 0) {
 				$this->Port = $smtpport;
+				if ($smtpport == 587) {
+					$this->SMTPSecure = "tls";
+				}
 			}
 			$this->IsSMTP(true);
 			if (strlen($smtpuser) > 0) {
