@@ -647,6 +647,10 @@ function db_authorisation($actie, $recid=0, $tabpage="") {
 	} elseif ($actie == "add") {
 		$query = sprintf("INSERT INTO %sAdmin_access SET Tabpage=\"%s\", Ingevoerd=CURDATE();", $table_prefix, $tabpage);
 		$result = fnQuery($query);
+		if ($tabpage == "Vereniging/Introductie") {
+			$query = sprintf("UPDATE %sAdmin_access SET Toegang=0 WHERE Tabpage='Vereniging/Introductie';", $table_prefix);
+			$result = fnQuery($query);
+		}
 		$mess = sprintf("Tabpage '%s' is aan de tabel 'Admin_access' toegevoegd.", $tabpage);
 		db_logboek("add", $mess, 5, 0, 0, $result);
 	} elseif ($actie == "update") {  // Nog niet af en nog niet in gebruik
@@ -1160,9 +1164,8 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 	} elseif ($actie == "add") {
 		$login = cleanlogin($login);
 		$query = sprintf("SELECT Login FROM %sAdmin_login WHERE LidID=%d;", $table_prefix, $lidid);
-		$l = db_scalar($query);
 		$ok = false;
-		if (strlen($l) == 0) {
+		if (strlen(db_scalar($query)) == 0) {
 			if (db_logins("controlebestaat", "", $login, $lidid)) {
 				$mess = sprintf("Login '%s' is al in gebruik bij een ander lid.", $login);
 			} elseif (strlen($login) > 5 and $lidid > 0) {
@@ -1343,22 +1346,6 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 	} elseif ($actie == "lidid" and strlen($login) > 4) {
 		$query = sprintf("SELECT MAX(LidID) FROM %Admin_login WHERE Login='%s';", $table_prefix);
 		return db_scalar($query);
-		
-	} elseif ($actie == "wacht22woordenvullen") {
-		$query = sprintf("SELECT * FROM %sAdmin_login WHERE ((Wachtwoord IS NULL) OR LENGTH(Wachtwoord) < 7) AND (openid_identity IS NULL);", $table_prefix);
-		$result = fnQuery($query);
-		foreach ($result->fetchAll() as $row) {
-			if (in_array($row->LidID, $lididwebmasters)) {
-				$ww = $db_pass;
-			} else {
-				$ww = strtoupper(substr($row->Login, 0, 1)) . strtolower(substr($row->Login, 1, 4)) . rand(101, 5997);
-			}
-			while ($ww != encript_decript(encript_decript($ww, 1), 0)) {
-				$ww = strtoupper(substr($row->Login, 0, 1)) . strtolower(substr($row->Login, 1, 4)) . rand(101, 5997);
-			}
-			$query = sprintf("UPDATE %sAdmin_login SET Wachtwoord='%s', Gewijzigd=SYSDATE() WHERE Login='%s';", $table_prefix, encript_decript($ww, 1), $row->Login);
-			fnQuery($query);
-		}
 		
 	} elseif ($actie == "opschonen") {
 		if (db_param("bewaartijdlogins") > 0) {
@@ -2729,7 +2716,6 @@ function db_onderhoud() {
 	}
 	
 	/***** Aanpassen lengte wachtwoord in de database als deze kleiner is dan 255. Deze lengte is nodig voor de password_hash()  *****/
-	/***** Deze code mag weg na 1/1/2020  ****/
 	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%sAdmin_login' AND COLUMN_NAME LIKE 'Wachtwoord';", $db_name, $table_prefix);
 	if (db_scalar($query) < 255) {
 		$query = sprintf("ALTER TABLE `%sAdmin_login` CHANGE `Wachtwoord` `Wachtwoord` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table_prefix);
@@ -2813,7 +2799,7 @@ function db_onderhoud() {
 		$mess = sprintf("Er zijn %d mutaties verwijderd, omdat er geen resultaatrekening aan gekoppeld was.", $result);
 		db_logboek("add", $mess, 2, 0, 1);
 	}
-		
+	
 	if ($_SERVER["HTTP_HOST"] != "phprbm.telling.nl") {
 		//  Deze tabellen moeten op dit moment alleen in de ontwikkelomgeving aanwezig zijn. 
 		$query = sprintf("DROP TABLE IF EXISTS %sDMS_Folder;", $table_prefix);
