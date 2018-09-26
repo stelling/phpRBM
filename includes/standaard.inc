@@ -363,8 +363,11 @@ function HTMLheader($refresh=0) {
 			echo("&nbsp;<input type='submit' value='Inloggen' name='Inloggen'>\n");
 			echo("<input type='checkbox' name='cookie' value=1 title='Ingelogd blijven (werkt met cookies)'>\n");
 		}
-	
-		echo("<a href='http://phprbm.telling.nl/uitleg.php'><img src='images/question.png' title='Uitleg gebruik en installatie' alt='Question mark'></a>\n");
+		if (strlen(db_param("url_eigen_help")) < 5) {
+			echo("<a href='http://phprbm.telling.nl/uitleg.php'><img src='images/question.png' title='Uitleg gebruik en installatie' alt='Question mark'></a>\n");
+		} else {
+			printf("<a href='http://%s'><img src='images/question.png' title='Helpfunctie' alt='Question mark'></a>\n", db_param("url_eigen_help"));
+		}
 		echo("</form>\n");
 		echo("</div>  <!-- Einde login -->\n");
 		echo("<div class='clear'></div>\n");
