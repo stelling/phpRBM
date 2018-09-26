@@ -58,7 +58,7 @@ if (strlen($table_prefix) > 0 and substr($table_prefix, -1) != "_") {
 	$table_prefix .= "_";
 }
 
-$selectnaam = "CONCAT(IF(LENGTH(L.Roepnaam)>1, L.Roepnaam, L.Voorletter), ' ', IF(L.Tussenv>'', CONCAT(L.Tussenv, ' '), ''), L.Achternaam, IF(L.Meisjesnm>'', CONCAT('-', L.Meisjesnm), ''))";
+$selectnaam = "CONCAT(IF(LENGTH(L.Roepnaam)>1, L.Roepnaam, L.Voorletter), ' ', IF(L.Tussenv>'', CONCAT(L.Tussenv, ' '), ''), L.Achternaam)";
 $selectzoeknaam = "TRIM(CONCAT(L.Achternaam, ', ', IF(L.Tussenv>'', CONCAT(L.Tussenv, ' '), ''), IF(LENGTH(L.Roepnaam)>1, L.Roepnaam, L.Voorletter), ' '))";
 $selectlidnr = sprintf("SELECT MAX(Lidnr) FROM %sLidmaatschap AS LM WHERE LM.Lid=L.Nummer AND LM.LIDDATUM <= CURDATE() AND ((LM.Opgezegd IS NULL) OR LM.Opgezegd >= CURDATE())", $table_prefix);
 $selectmailbox = "CASE WHEN (NOT M.deleted_on IS NULL) THEN 'Prullenbak'
@@ -78,6 +78,10 @@ try {
 	$dbc->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
 	printf("<p>Verbinding naar database '%s' mislukt: %s</p>\n", $db_name, $e->getMessage());
+}
+
+if (db_param("meisjesnaamtonen") == 1) {
+	$selectnaam = "CONCAT(IF(LENGTH(L.Roepnaam)>1, L.Roepnaam, L.Voorletter), ' ', IF(L.Tussenv>'', CONCAT(L.Tussenv, ' '), ''), L.Achternaam, IF(L.Meisjesnm>'', CONCAT('-', L.Meisjesnm), ''))";	
 }
 
 if (!isset($_SESSION['aantallid']) and TableExists("Lid") == false) {
@@ -136,7 +140,7 @@ function fnQuery($query) {
 	
 	try {
 		if (strtoupper(substr($query, 0, 6)) == "SELECT") {
-
+// debug($query);
 			$rs = $dbc->query($query);
 			$exec_tijd = microtime(true) - $starttijd;
 			$p = "performance_trage_select";
@@ -1228,7 +1232,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			}
 			if (date('H') == 8 or ($_SESSION['webmaster'] == 1 and date('H') > 7)) {
 				$script = sprintf("php %s/autojobs.php", $dir);
-				exec($script);
+//				exec($script);
 			}
 		}
 		
@@ -1430,14 +1434,13 @@ function db_change_password($pw_new, $pw_old, $lidid) {
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$mess = sprintf("Het wachtwoord van de login van %s is gewijzigd.", db_naamlid($lidid));
-			setcookie("password", "", time()-7200);
 			$mess = "ok";
 		} else {
 			$mess = "Wachtwoord is niet gewijzigd.";
 		}
 	}
 	return $mess;
-}
+} # db_change_password
 
 function db_onderdelen($type="", $aantal=0) {
 	global $fromlidond, $wherelidond;
@@ -2499,6 +2502,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	
 	$arrBooleans['db_backuptarren'] = 0;
 	$arrBooleans['kaderoverzichtmetfoto'] = 1;
+	$arrBooleans['meisjesnaamtonen'] = 1;
 	$arrBooleans['lidnrnodigbijloginaanvraag'] = 1;
 	$arrBooleans['mailing_resultaatversturen'] = 0;
 	$arrBooleans['toneninschrijvingenbewakingen'] = 1;
@@ -2527,6 +2531,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrStrings['scriptbijuitloggen'] = "";
 	$arrStrings['scriptnainloggen'] = "";
 	$arrStrings['urlvereniging'] = "";
+	$arrStrings['url_eigen_help'] = "";
 	$arrStrings['zs_emailbevestigingbestelling'] = "";
 	$arrStrings['zs_emailnieuwepasfoto'] = "";
 	$arrStrings['zs_muteerbarememos'] = "";
