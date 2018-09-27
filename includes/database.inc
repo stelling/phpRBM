@@ -2502,6 +2502,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	
 	$arrBooleans['db_backuptarren'] = 0;
 	$arrBooleans['kaderoverzichtmetfoto'] = 1;
+	$arrBooleans['toonpasfotoindiennietingelogd'] = 0;
 	$arrBooleans['meisjesnaamtonen'] = 1;
 	$arrBooleans['lidnrnodigbijloginaanvraag'] = 1;
 	$arrBooleans['mailing_resultaatversturen'] = 0;
@@ -2724,6 +2725,13 @@ function db_onderhoud() {
 	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%sAdmin_login' AND COLUMN_NAME LIKE 'Wachtwoord';", $db_name, $table_prefix);
 	if (db_scalar($query) < 255) {
 		$query = sprintf("ALTER TABLE `%sAdmin_login` CHANGE `Wachtwoord` `Wachtwoord` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table_prefix);
+		fnQuery($query);
+	}
+		
+	/***** Aanpassen lengte van het diplomanummer naar 25 *****/
+	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%sLiddipl' AND COLUMN_NAME LIKE 'Diplomanummer';", $db_name, $table_prefix);
+	if (db_scalar($query) < 25) {
+		$query = sprintf("ALTER TABLE `%sLiddipl` CHANGE `Diplomanummer` `Diplomanummer` VARCHAR(25) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table_prefix);
 		fnQuery($query);
 	}
 	
@@ -3150,7 +3158,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sLiddipl` (
   `EXPLAATS` varchar(23) DEFAULT NULL,
   `Beoordelaar` int(11) DEFAULT NULL,
   `LaatsteBeoordeling` tinyint(4) DEFAULT NULL,
-  `Diplomanummer` varchar(15) DEFAULT NULL,
+  `Diplomanummer` varchar(25) DEFAULT NULL,
   `Examen` int(11) DEFAULT NULL,
   `LicentieVervallenPer` date DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
