@@ -174,6 +174,9 @@ function fnWieiswie($actie, $metfoto=1) {
 			}
 			if (strlen($row->Functie) > 1) {
 				$func = $row->Functie;
+				if (strlen($row->Opmerk) > 0) {
+					$func .= " " .  $row->Opmerk;
+				}
 			} else {
 				$func = $row->Opmerk;
 			}
@@ -194,33 +197,32 @@ function fnWieiswie($actie, $metfoto=1) {
 			if ($vo != $row->OndNaam) {
 				printf("<th colspan=5>%s</th>\n", $row->OndNaam);
 				if (isValidMailAddress($row->CentraalEmail, 0)) {
-					printf("<tr>\n<td>&nbsp;</td><td colspan=2><strong>Centraal e-mailadres</strong></td>\n<td>%s</td>\n</tr>\n", fnDispEmail($row->CentraalEmail, $row->OndNaam, 0, 1));
-					if (strlen($vo) == 0) {
-						echo("<tr><td colspan=4>&nbsp;</td>\n<td><strong>Vanaf</strong></td>\n</tr>\n");
-					} else {
-						echo("<tr><td>&nbsp;</td>\n\n\n</tr>\n");
-					}
+					printf("<tr>\n<td colspan=2><strong>Centraal e-mailadres</strong></td>\n<td>%s</td>\n<td><strong>Vanaf</strong></td></tr>\n", fnDispEmail($row->CentraalEmail, $row->OndNaam, 0, 1));
+					echo("<tr><td colspan=5>&nbsp</td></tr>\n");
 				}
 				$vo = $row->OndNaam;
 			}
 			if (strlen($ldl) > 1) {
-				$ln = sprintf($ldl, $row->Nummer, htmlentities($row->LidNaam));
+				$ln = sprintf($ldl, $row->Nummer, htmlentities($row->NaamLid));
 			} else {
-				$ln = htmlentities($row->LidNaam);
+				$ln = htmlentities($row->NaamLid);
 			}
 			if (isset($row->EmailFunctie) and isValidMailAddress($row->EmailFunctie, 0)) {
-				$email = fnDispEmail($row->EmailFunctie, $row->LidNaam, 0);
+				$email = fnDispEmail($row->EmailFunctie, $row->NaamLid, 0);
 			} elseif (isValidMailAddress($row->EmailVereniging, 0)) {
-				$email = fnDispEmail($row->EmailVereniging, $row->LidNaam, 0);
+				$email = fnDispEmail($row->EmailVereniging, $row->NaamLid, 0);
 			} else {
 				$email = "";
 			}
-			if (strlen($row->OmsFunctie) > 1) {
-				$func = $row->OmsFunctie;
+			if (strlen($row->Functie) > 1) {
+				$func = $row->Functie;
+				if (strlen($row->Opmerk) > 0) {
+					$func .= " " .  $row->Opmerk;
+				}
 			} else {
 				$func = $row->Opmerk;
 			}
-			printf("<tr>\n<td>&nbsp;</td>\n<td>%s</td>\n<td>%s</td>\n<td>%s</td>\n<td>%s</td>\n</tr>\n", $ln, $func, $email, strftime("%B %Y", strtotime($row->Vanaf)));
+			printf("<tr>\n<td>%s</td>\n<td>%s</td>\n<td>%s</td>\n<td>%s</td>\n</tr>\n", $ln, $func, $email, strftime("%B %Y", strtotime($row->Vanaf)));
 		}
 		echo("</table>\n");
 	}
@@ -882,6 +884,7 @@ function nieuwepasfoto($lidid, $filterlid="") {
 	echo("<input type='file' name='UploadFoto' id='UploadFoto'>&nbsp;");
 	echo("<input type='submit' name='Upload' value='Insturen'>\n");
 	printf("<p>Het ideale formaat van de pasfoto is 390 pixels breed bij 500 pixels hoog. Het bestand moet minimaal %d bytes groot zijn en mag niet groter dan %d KB zijn.</p>\n", $min_size_attachm, $max_size_attachm / 1024);
+	echo("<p>Met het uploaden van deze pasfoto geef je toestemming om deze foto aan bezoekers van deze website te tonen.</p>");
 	echo("</form>\n");
 
 	echo("</div>  <!-- Einde nieuwepasfoto -->\n");	
