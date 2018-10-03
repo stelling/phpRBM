@@ -1173,7 +1173,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			if (db_logins("controlebestaat", "", $login, $lidid)) {
 				$mess = sprintf("Login '%s' is al in gebruik bij een ander lid.", $login);
 			} elseif (strlen($login) > 5 and $lidid > 0) {
-				$query = sprintf("INSERT INTO %sAdmin_login SET LidID=%d, Login='%s', Ingevoerd=CURDATE();", $table_prefix, $lidid, $login);
+				$query = sprintf("INSERT INTO %sAdmin_login SET LidID=%d, Login='%s', Ingevoerd=SYSDATE();", $table_prefix, $lidid, $login);
 				$result = fnQuery($query);
 				$pw = newpassword($lidid);
 				$ok = true;
@@ -2728,10 +2728,17 @@ function db_onderhoud() {
 		fnQuery($query);
 	}
 		
-	/***** Aanpassen lengte van het diplomanummer naar 25 *****/
+	/***** Aanpassen lengte van het diplomanummer naar 25. Deze code kan na 1/12/2020 worden verwijderd. *****/
 	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%sLiddipl' AND COLUMN_NAME LIKE 'Diplomanummer';", $db_name, $table_prefix);
 	if (db_scalar($query) < 25) {
 		$query = sprintf("ALTER TABLE `%sLiddipl` CHANGE `Diplomanummer` `Diplomanummer` VARCHAR(25) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table_prefix);
+		fnQuery($query);
+	}
+	
+	/***** Aanpassen lengte van het IP-adres in Admin_activiteit naar 25. Deze code kan na 1/12/2020 worden verwijderd. *****/
+	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%sAdmin_activiteit' AND COLUMN_NAME LIKE 'IP_adres';", $db_name, $table_prefix);
+	if (db_scalar($query) < 25) {
+		$query = sprintf("ALTER TABLE `%sAdmin_activiteit` CHANGE `IP_adres` `IP_adres` VARCHAR(25) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table_prefix);
 		fnQuery($query);
 	}
 	
@@ -2764,11 +2771,20 @@ function db_onderhoud() {
 		fnQuery($query);
 	}
 	
+	// Toevoegen veld 'ActivatieKey' aan de tabel 'Admin_login'. Deze code kan na 1/12/2020 worden verwijderd.
+	$tab = $table_prefix . "Admin_login";
+	$col = "ActivatieKey";
+	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%s' AND COLUMN_NAME='%s';", $db_name, $tab, $col);
+	if (db_scalar($query) == 0) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` VARCHAR(255);", $tab, $col);
+		fnQuery($query);
+	}
+	
 	
 	/***** Velden die aangepast zijn. *****/
 	
-	// WS_Orderregel/BeschikbaarTot, deze code kan na 15/3/2014 worden verwijderd.
-	$query = sprintf("ALTER TABLE `%sWS_Artikel` CHANGE `BeschikbaarTot` `BeschikbaarTot` DATE NOT NULL DEFAULT '9999-12-31' COMMENT 'Tot welke datum is dit artikel in de zelfservice beschikbaar?';", $table_prefix);
+	// Admin_Login, deze code kan na 31/12/2019 worden verwijderd.
+	fnQuery(sprintf("ALTER TABLE %sAdmin_login CHANGE `Ingevoerd` `Ingevoerd` DATETIME;", $table_prefix));
 	fnQuery($query);
 	
 	/***** Opschonen database na een upload uit de Access-database.  *****/
@@ -2862,7 +2878,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_activiteit` (
   `ReferID` int(11) NOT NULL COMMENT 'Op welk RecordID heeft deze activiteit betrekking?',
   `Script` varchar(75) NOT NULL,
   `TypeActiviteit` tinyint(4) DEFAULT '0',
-  `IP_adres` char(15) NOT NULL,
+  `IP_adres` char(25) NOT NULL,
   `USER_AGENT` varchar(110) DEFAULT NULL,
   PRIMARY KEY (`RecordID`),
   KEY `TypeActiviteit` (`TypeActiviteit`)
@@ -2885,7 +2901,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_login` (
   `openid_identity` varchar(50) DEFAULT NULL,
   `Wachtwoord` varchar(15) NOT NULL,
   `HerinneringVervallenDiplomas` tinyint(4) NOT NULL DEFAULT '0',
-  `Ingevoerd` date DEFAULT NULL,
+  `Ingevoerd` datetime DEFAULT NULL,
   `Gewijzigd` datetime NOT NULL,
   `GewijzigdDoor` int(11) NOT NULL DEFAULT '0',
   `LastLogin` datetime DEFAULT NULL,
