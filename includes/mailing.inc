@@ -946,7 +946,7 @@ class Mailing {
 							db_logboek("add", $mess, 4, 0, 0, $this->mid);
 							$this->aant_nok++;
 						}
-						$mail->ClearAddresses();
+						$mail->clearAllRecipients();
 					}
 				}
 			} else {
@@ -959,7 +959,7 @@ class Mailing {
 				$mess = sprintf("Het versturen van mailing %d (%s) is niet gelukt. Error: %s", $this->mid, $this->subject, $mail->ErrorInfo);
 				db_logboek("add", $mess, 4, 0, 0, $this->mid);
 			}
-			$mail->ClearAddresses();
+			$mail->clearAllRecipients();
 		}
 		$summary = "";
 		
@@ -1279,7 +1279,7 @@ function fnRekeningenMailen($op) {
 					$mess = sprintf("Het versturen van rekening %d is niet gelukt. Error: %s", $rk->Nummer, $mail->ErrorInfo);
 				}
 				db_logboek("add", $mess, 14, 0, 0, $rk->Nummer);
-				$mail->ClearAddresses();
+				$mail->clearAllRecipients();
 			}
 		} elseif ($op == "selectieversturen") {
 			$mess = "De rekeningen zijn niet verzonden, omdat het vinkje niet gezet was.";
