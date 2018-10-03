@@ -1022,7 +1022,7 @@ function db_lidond($actie, $lidid=0, $per="", $filter="") {
 								O.Kode, O.Naam AS OndNaam, O.CentraalEmail, O.TYPE
 								FROM %s
 								WHERE %s
-								ORDER BY O.Kader DESC, O.TYPE, O.Naam, F.Sorteringsvolgorde, F.Omschrijv, LO.Vanaf, L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectnaam, $selectzoeknaam, $fromlidond, $filter);
+								ORDER BY O.Kader DESC, O.TYPE, O.Naam, F.Sorteringsvolgorde, F.Omschrijv, LO.Opmerk, LO.Vanaf, L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectnaam, $selectzoeknaam, $fromlidond, $filter);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		

@@ -150,7 +150,7 @@ function fnWieiswie($actie, $metfoto=1) {
 		$lijst = db_lidond("actueleleden", 0, "", "O.Kader=True");
 	}
 
-	if ($metfoto == 1) {
+	if (($metfoto == 1) and (db_param("toonpasfotoindiennietingelogd") == 1 or strlen($_SESSION['username']) > 5)) {
 		foreach ($lijst as $row) {
 			if ($vo != $row->OndNaam) {
 				if (strlen($vo) > 0) {
