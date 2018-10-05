@@ -1208,12 +1208,12 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		return $result->fetchAll();
 		
 	} elseif ($actie == "valideerlogin" and $lidid > 0) {
-		$query = sprintf("UPDATE %sAdmin_login SET ActivatieKey='' WHERE LENGTH(ActivatieKey) > 5 AND LidID=%d", $table_prefix, $lidid);
+		$query = sprintf("UPDATE %sAdmin_login SET ActivatieKey='', Gewijzigd=SYSDATE() WHERE LENGTH(ActivatieKey) > 5 AND LidID=%d", $table_prefix, $lidid);
 		$result = fnQuery($query);
 		if ($result == 1) {
 			$mess = sprintf("Login voor %s is gevalideerd en kan worden gebruikt.", db_naamlid($lidid, "Naam"));
 		} else {
-			$mess = sprintf("Er ging iets mis bij het valideren van de login voor %s is gevalideerd. Probeer het later opnieuw.", db_naamlid($lidid, "Naam"));
+			$mess = sprintf("Er ging iets mis bij het valideren van de login voor %s is gevalideerd. Mogelijk is deze login al gevalideerd. Zo niet probeer het later opnieuw.", db_naamlid($lidid, "Naam"));
 		}
 		db_logboek("add", $mess, 1);
 		return $mess;
@@ -1310,7 +1310,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			db_logboek("add", $mess, 1, $lidid);
 		}
 		
-	} elseif ($actie == "controle") {
+	} elseif ($actie === "controle") {
 		if (db_param("loginautounlock") > 0) {
 			$query = sprintf("UPDATE %sAdmin_login SET FouteLogin=0, Gewijzigd=SYSDATE()
 						WHERE Gewijzigd < DATE_ADD(SYSDATE(), INTERVAL -%d MINUTE) AND FouteLogin > 0;", $table_prefix, db_param("loginautounlock"));
@@ -1325,7 +1325,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		if (isValidMailAddress($login, 0)) {
 			$query = sprintf("SELECT Login FROM %1\$sLid AS L INNER JOIN %1\$sAdmin_login AS Login ON Login.LidID = L.Nummer WHERE (LOWER(L.Email) LIKE '%2\$s' OR LOWER(L.EmailVereniging) LIKE '%2\$s')", $table_prefix, strtolower($login));
 			$result = fnQuery($query);
-			$rows = $result->fetchAll();	
+			$rows = $result->fetchAll();
 			if (count($rows) == 1) {
 				$login = $rows[0]->Login;
 			}
@@ -1336,10 +1336,10 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		} else {
 			$xtrawhere .= sprintf(" AND Login.LidID IN (%s)", implode(", ", $lididwebmasters));
 		}
-		$query = sprintf("SELECT Login.LidID, %3\$s AS NaamLid, L.Roepnaam, L.Email, L.EmailVereniging, L.EmailOuders, Login.Wachtwoord,
+		$query = sprintf("SELECT Login.LidID, Login.Login, %3\$s AS NaamLid, L.Roepnaam, L.Email, L.EmailVereniging, L.EmailOuders, Login.Wachtwoord, Login.ActivatieKey,
 					IFNULL((%4\$s), 0) AS Lidnr, Login.FouteLogin, Login.Gewijzigd
 					FROM %1\$sAdmin_login AS Login INNER JOIN %1\$sLid AS L ON Login.LidID = L.Nummer
-					WHERE LENGTH(Login.Wachtwoord) > 5 AND LENGTH(Login.ActivatieKey) < 5 %2\$s
+					WHERE LENGTH(Login.Wachtwoord) > 5 %2\$s
 					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $table_prefix, $xtrawhere, $selectnaam, $selectlidnr);
 		$result = fnQuery($query);
 		$row = $result->fetch();

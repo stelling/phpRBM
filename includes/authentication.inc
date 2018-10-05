@@ -28,6 +28,7 @@ function toegang($soort="", $melding=1, $password="") {
 			$password = substr($password, 0, 12);
 		}
 		
+		$mess = "";
 		if (isset($_SESSION['username']) and strlen($_SESSION['username']) > 0 and strlen($password) > 0) {
 			$row = db_logins("controle", "", $_SESSION['username'], 0, "", $password);
 			if (db_param("maxinlogpogingen") > 0 and isset($row->FouteLogin) and $row->FouteLogin > db_param("maxinlogpogingen")) {
@@ -38,8 +39,12 @@ function toegang($soort="", $melding=1, $password="") {
 				}
 				$mess .= ", omdat er teveel foute inlog-pogingingen mee gedaan zijn! Je bent niet ingelogd.";
 				
-				db_logboek("add", $mess, 1, 0, 2);
 				$_SESSION['lidid'] = 0;
+				
+			} elseif (strlen($row->ActivatieKey) > 5) {
+				$mess = sprintf("Login '%s' is nog niet gevalideerd en kan nog niet worden gebruikt.", $row->Login);
+				$_SESSION['lidid'] = 0;
+				
 			} elseif (isset($row->LidID) and $row->LidID > 0) {
 				$_SESSION['lastauthenication'] = time();
 				$_SESSION['lidid'] = $row->LidID;
@@ -63,14 +68,17 @@ function toegang($soort="", $melding=1, $password="") {
 				}	
 				db_logins("setingelogd", "", "", $_SESSION['lidid']);
 			} else {
-				if ($melding == 1) {
-					$mess = sprintf("De combinatie van login '%s' en het ingevoerde wachtwoord is niet correct! Je bent niet ingelogd.", $_SESSION['username']);
-					db_logboek("add", $mess, 1, 0, 2);
-				}
+				$mess = sprintf("De combinatie van login '%s' en het ingevoerde wachtwoord is niet correct! Je bent niet ingelogd.", $_SESSION['username']);
+
 				$_SESSION['lidid'] = 0;
 			}
 		} else {
 			$_SESSION['lidid'] = 0;
+		}
+		if ($melding == 1 and strlen($mess) > 0) {
+			db_logboek("add", $mess, 1, 0, 2);
+		} elseif (strlen($mess) > 0) {
+			db_logboek("add", $mess, 1);
 		}
 		if ($_SESSION['lidid'] == 0 or strlen($_SESSION['username']) == 0) {
 			$_SESSION['lidid'] = 0;
@@ -296,7 +304,7 @@ function fnValidatieLogin($lidid, $key, $stap) {
 			$mail->IsHTML(true);
 			$mail->addstationary();
 			if ($mail->Send()) {
-				$mess = sprintf("Link om de nieuwe login te bevestigen is aan %s (%s) verzonden.", $row->Naam, $mail->ListAddresses("to"));
+				$mess = sprintf(" Link om de nieuwe login te bevestigen is aan %s (%s) verzonden.", $row->Naam, $mail->ListAddresses("to"));
 			} else {
 				$mess = sprintf("Fout tijdens het versturen van de mail: %s.<br> Probeer later nogmaals of neem contact op met de webmaster.", $mail->ErrorInfo);
 			}

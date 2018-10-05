@@ -40,6 +40,13 @@ if (toegang("", 0) == false) {
 	}
 } elseif ($currenttab == "Herstellen wachtwoord") {
 	fnHerstellenWachtwoord();
+} elseif ($currenttab == "Validatie login") {
+	if (isset($_GET['key']) and isset($_GET['lidid'])) {
+		// Valideren van de nieuwe login op de website
+		fnValidatieLogin($_GET['lidid'], $_GET['key'], "validatie");
+	}
+	printf("<p>Klik <a href='%s'>hier</a> om verder te gaan.</p>\n", $basisurl);
+	
 } elseif ($currenttab == "Eigen gegevens") {
 	if ($_SESSION['lidid'] > 0) {
 		fnOverviewLid($_SESSION['lidid'], $currenttab2);
