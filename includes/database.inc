@@ -1156,8 +1156,8 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		if (isset($row->Nummer) and $row->Nummer > 0) {
 			if (strlen($row->Login) > 5 and $row->Login != $login) {
 				$mess = sprintf("Er is al een ander login aan dit emailadres gekoppeld.");
-			} elseif (strlen($login) > 5 and strlen($login <= 15)) {
-				$mess = db_logins("add", "", $login, $row->Nummer);
+			} elseif (strlen($login) > 5 and strlen($login) <= db_param("maxlengtelogin")) {
+				$mess = db_logins("add", "", $login, $row->Nummer, "", $pw);
 			}
 		} else {
 			$mess = sprintf("E-mailadres '%s' is onbekend in onze database. Er wordt geen login aangemaakt.", $email);
@@ -1165,19 +1165,20 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		db_logboek("add", $mess, 1);
 		return $mess;
 		
-	} elseif ($actie == "add") {
+	} elseif ($actie == "add" and strlen($login) > 0 and strlen($pw) > 0) {
 		$login = cleanlogin($login);
 		$query = sprintf("SELECT Login FROM %sAdmin_login WHERE LidID=%d;", $table_prefix, $lidid);
 		$ok = false;
 		if (strlen(db_scalar($query)) == 0) {
 			if (db_logins("controlebestaat", "", $login, $lidid)) {
 				$mess = sprintf("Login '%s' is al in gebruik bij een ander lid.", $login);
-			} elseif (strlen($login) > 5 and $lidid > 0) {
-				$query = sprintf("INSERT INTO %sAdmin_login SET LidID=%d, Login='%s', Ingevoerd=SYSDATE();", $table_prefix, $lidid, $login);
+			} elseif (strlen($login) > 5 and $lidid > 0 and strlen($pw) > 5) {
+				$nk = password_hash(newkey(), PASSWORD_DEFAULT);
+				$query = sprintf("INSERT INTO %sAdmin_login SET LidID=%d, Login='%s', Wachtwoord='%s', ActivatieKey='%s', Ingevoerd=SYSDATE();", $table_prefix, $lidid, $login, password_hash($pw, PASSWORD_DEFAULT), $nk);
 				$result = fnQuery($query);
-				$pw = newpassword($lidid);
-				$ok = true;
 				$mess = sprintf("Login '%s' is voor %s aangemaakt.", $login, db_naamlid($lidid));
+				$mess .= fnValidatieLogin($lidid, $nk, "mail");
+				$ok = true;
 			}
 		} else {
 			$mess = sprintf("%s heeft al een login, er wordt geen nieuwe aangemaakt.", db_naamlid($lidid));
@@ -1205,6 +1206,17 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		$query .= ";";
 		$result = fnQuery($query);
 		return $result->fetchAll();
+		
+	} elseif ($actie == "valideerlogin" and $lidid > 0) {
+		$query = sprintf("UPDATE %sAdmin_login SET ActivatieKey='' WHERE LENGTH(ActivatieKey) > 5 AND LidID=%d", $table_prefix, $lidid);
+		$result = fnQuery($query);
+		if ($result == 1) {
+			$mess = sprintf("Login voor %s is gevalideerd en kan worden gebruikt.", db_naamlid($lidid, "Naam"));
+		} else {
+			$mess = sprintf("Er ging iets mis bij het valideren van de login voor %s is gevalideerd. Probeer het later opnieuw.", db_naamlid($lidid, "Naam"));
+		}
+		db_logboek("add", $mess, 1);
+		return $mess;
 		
 	} elseif ($actie == "controlebestaat" and strlen($login) > 5) {
 		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_login WHERE Login LIKE '%s' AND LidID<>%d;", $table_prefix, $login, $lidid);
@@ -1272,7 +1284,23 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		
 	} elseif ($actie == "updateactiviteit" and $lidid > 0) {
 		$query = sprintf("UPDATE %sAdmin_login SET LastActivity=SYSDATE() WHERE LidID=%d;", $table_prefix, $lidid);
-		fnQuery($query);
+		fnQuery($query);	
+		
+	} elseif ($actie == "wachtwoordreset" and $lidid > 0) {
+		$nk = newkey();
+		if (strlen($nk) > 0) {
+			$query = sprintf("UPDATE %sAdmin_login SET ActivatieKey='%s', Wachtwoord='', Gewijzigd=SYSDATE() WHERE LidID=%d;", $table_prefix, password_hash($nk, PASSWORD_DEFAULT), $lidid);
+			$result = fnQuery($query);
+			if ($result == 1) {
+				$mess = sprintf("Het wachtwoord van %s is leeg gemaakt op verzoek van een gebruiker, zodat het hersteld kan worden.", db_naamlid($lidid));
+				db_logboek("add", $mess, 1);
+				return $nk;
+			} else {
+				return false;
+			}
+		} else {
+			return false;
+		}
 		
 	} elseif ($actie == "unlock" and $lidid > 0 and $_SESSION['webmaster'] == 1) {
 		$query = sprintf("UPDATE %sAdmin_login SET FouteLogin=0, Gewijzigd=SYSDATE() WHERE LidID=%d AND FouteLogin > 0;", $table_prefix, $lidid);
@@ -1311,7 +1339,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		$query = sprintf("SELECT Login.LidID, %3\$s AS NaamLid, L.Roepnaam, L.Email, L.EmailVereniging, L.EmailOuders, Login.Wachtwoord,
 					IFNULL((%4\$s), 0) AS Lidnr, Login.FouteLogin, Login.Gewijzigd
 					FROM %1\$sAdmin_login AS Login INNER JOIN %1\$sLid AS L ON Login.LidID = L.Nummer
-					WHERE LENGTH(Login.Wachtwoord) > 5 %2\$s
+					WHERE LENGTH(Login.Wachtwoord) > 5 AND LENGTH(Login.ActivatieKey) < 5 %2\$s
 					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $table_prefix, $xtrawhere, $selectnaam, $selectlidnr);
 		$result = fnQuery($query);
 		$row = $result->fetch();
@@ -1406,7 +1434,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		
 		db_logboek("add", $mess, 2);
 		return $mess;
-		
+	
 	} else {
 		$mess = sprintf("onbekende actie '%s' in db_logins", $actie);
 		debug($mess, 1, 0, 1);
@@ -1425,16 +1453,11 @@ function db_change_password($pw_new, $pw_old, $lidid) {
 		}
 	}
 	if ($mess == "ok") {
-		$query = sprintf("UPDATE %sAdmin_login SET"
-				. " Gewijzigd=SYSDATE(),"
-				. " GewijzigdDoor=%d,"
-				. " Wachtwoord='%s'"
-				. " WHERE LidID=%d;"
-				, $table_prefix, $_SESSION['lidid'], password_hash($pw_new, PASSWORD_DEFAULT), $lidid);
+		$query = sprintf("UPDATE %sAdmin_login SET Gewijzigd=SYSDATE(), GewijzigdDoor=%d, Wachtwoord='%s', ActivatieKey='' WHERE LidID=%d;",
+					 $table_prefix, $_SESSION['lidid'], password_hash($pw_new, PASSWORD_DEFAULT), $lidid);
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$mess = sprintf("Het wachtwoord van de login van %s is gewijzigd.", db_naamlid($lidid));
-			$mess = "ok";
 		} else {
 			$mess = "Wachtwoord is niet gewijzigd.";
 		}
@@ -1465,7 +1488,7 @@ function db_onderdelen($type="", $aantal=0) {
 	} else {
 		return $result->fetchColumn();
 	}
-}
+} # db_onderdelen
 
 function db_naam_onderdeel($rid, $rin="Onbekend") {
 	global $table_prefix;
@@ -2480,6 +2503,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrIntegers['bewaartijdinloggen'] = 2;
 	$arrIntegers['bewaartijdlogging'] = 6;
 	$arrIntegers['bewaartijdlogins'] = 6;
+	$arrIntegers['geldigheidactivatie'] = 36;
 	$arrIntegers['bewaartijdloginsnietgebruikt'] = 21;
 	$arrIntegers['bewaartijdmailings'] = 3;
 	$arrIntegers['db_backupsopschonen'] = 11;
@@ -2490,6 +2514,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrIntegers['mailing_lidnr'] = 0;
 	$arrIntegers['max_grootte_bijlage'] = 2048;
 	$arrIntegers['maxlengtelogin'] = 12;
+	$arrIntegers['minlengtewachtwoord'] = 7;
 	$arrIntegers['maxinlogpogingen'] = 4;
 	$arrIntegers['smtpport'] = 0;
 	$arrIntegers['termijnvervallendiplomasmailen'] = 3;

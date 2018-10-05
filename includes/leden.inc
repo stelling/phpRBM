@@ -111,6 +111,7 @@ function fnWijzigen($lidid=0, $actie="") {
 						$mess = "Nieuwe wachtwoorden zijn niet gelijk.";
 					} else {
 						$mess = db_change_password($_POST['pw_nieuw'], $_POST['pw_oud'], $lidid);
+						db_logboek("add", $mess, 1);
 					}
 					printf("<p class='mededeling'>%s</p>", htmlentities($mess));
 				}
