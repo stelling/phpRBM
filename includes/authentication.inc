@@ -306,7 +306,7 @@ function fnValidatieLogin($lidid, $key, $stap) {
 			if ($mail->Send()) {
 				$mess = sprintf(" Link om de nieuwe login te bevestigen is aan %s (%s) verzonden.", $row->Naam, $mail->ListAddresses("to"));
 			} else {
-				$mess = sprintf("Fout tijdens het versturen van de mail: %s.<br> Probeer later nogmaals of neem contact op met de webmaster.", $mail->ErrorInfo);
+				$mess = sprintf(" Fout tijdens het versturen van de mail: %s.<br> Probeer later nogmaals of neem contact op met de webmaster.", $mail->ErrorInfo);
 			}
 		} else {
 			$mess = "Er ging iets mis, er is geen activatielink verzonden.";

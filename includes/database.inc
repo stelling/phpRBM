@@ -1233,6 +1233,14 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 	} elseif ($actie == "uitloggen") {
 		$query = sprintf("UPDATE %sAdmin_login SET Ingelogd=0 WHERE Ingelogd=1 AND (LastActivity < ADDDATE(SYSDATE(), INTERVAL -21 MINUTE) OR LidID=%d);", $table_prefix, $lidid);
 		$result = fnQuery($query);
+		$query = sprintf("UPDATE %1\$sAdmin_login SET ActivatieKey='', Wachtwoord='', Gewijzigd=SYSDATE()
+					WHERE Ingelogd=0 AND LENGTH(ActivatieKey) > 5 AND (Ingevoerd < ADDDATE(SYSDATE(), INTERVAL -%2\$d HOUR) OR Gewijzigd < ADDDATE(SYSDATE(), INTERVAL -%2\$d HOUR));"
+					, $table_prefix, db_param("Geldigheidactivatie"));
+		$result = fnQuery($query);
+		if ($result > 0) {
+			$mess = sprintf("Er zijn van %d logins de validatie ongeldig gemaakt.", $result);
+			db_logboek("add", $mess, 1);
+		}
 		if ($result > 0) {
 			if (strlen(db_param("scriptbijuitloggen")) > 0) {
 				exec(db_param("scriptbijuitloggen"));
