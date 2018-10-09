@@ -1204,7 +1204,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		return $result->fetchAll();
 		
 	} elseif ($actie == "valideerlogin" and $lidid > 0) {
-		$query = sprintf("UPDATE %sAdmin_login SET ActivatieKey='', Gewijzigd=SYSDATE() WHERE LENGTH(ActivatieKey) > 5 AND LidID=%d", $table_prefix, $lidid);
+		$query = sprintf("UPDATE %sAdmin_login SET ActivatieKey='', Gewijzigd=SYSDATE() WHERE LENGTH(ActivatieKey) > 5 AND LidID=%d;", $table_prefix, $lidid);
 		$result = fnQuery($query);
 		if ($result == 1) {
 			$mess = sprintf("Login voor %s is gevalideerd en kan worden gebruikt.", db_naamlid($lidid, "Naam"));
@@ -1231,11 +1231,11 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		$result = fnQuery($query);
 		if (db_param("geldigheidactivatie") > 0) {
 			$query = sprintf("UPDATE %1\$sAdmin_login SET ActivatieKey='', Wachtwoord='', Gewijzigd=SYSDATE()
-						WHERE Ingelogd=0 AND LENGTH(ActivatieKey) > 5 AND (Ingevoerd < ADDDATE(SYSDATE(), INTERVAL -%2\$d HOUR) OR (Gewijzigd < ADDDATE(SYSDATE(), INTERVAL -%2\$d HOUR) AND (Gewijzigd IS NOT NULL)));"
+						WHERE Ingelogd=0 AND LENGTH(ActivatieKey) > 5 AND (Ingevoerd < ADDDATE(SYSDATE(), INTERVAL -%2\$d HOUR) OR (Gewijzigd < ADDDATE(SYSDATE(), INTERVAL -%2\$d HOUR) AND (Gewijzigd IS NOT NULL) AND Gewijzigd > '2000-01-01'));"
 						, $table_prefix, db_param("geldigheidactivatie"));
 			$result = fnQuery($query);
 			if ($result > 0) {
-				debug($query, 1, 0, 1);
+//				debug($query, 1, 0, 1);
 				$mess = sprintf("Er zijn van %d logins de validatie ongeldig gemaakt.", $result);
 				db_logboek("add", $mess, 1);
 			}

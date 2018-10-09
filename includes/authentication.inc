@@ -16,7 +16,7 @@ function toegang($soort="", $melding=1, $password="") {
 		}
 	}
 
-	if (isset($_SESSION['lastauthenication']) and $_SESSION['lastauthenication'] >= time()-(40 * 60) and $_SESSION['lidid'] > 0) {
+	if (isset($_SESSION['lastauthenication']) and $_SESSION['lastauthenication'] >= time()-7200 and $_SESSION['lidid'] > 0) {
 		// Er hoeft niets te gebeuren.
 	} else {
 		db_logins("uitloggen");
@@ -66,7 +66,6 @@ function toegang($soort="", $melding=1, $password="") {
 				db_logins("setingelogd", "", "", $_SESSION['lidid']);
 			} else {
 				$mess = sprintf("De combinatie van login '%s' en het ingevoerde wachtwoord is niet correct! Je bent niet ingelogd.", $_SESSION['username']);
-
 				$_SESSION['lidid'] = 0;
 			}
 		} else {
@@ -85,9 +84,6 @@ function toegang($soort="", $melding=1, $password="") {
 			$_SESSION['roepnaamingelogde'] = "gast";
 			$_SESSION['emailingelogde'] = "";
 			unset($_SESSION['toegang']);
-			if (isset($_COOKIE['password'])) {
-				setcookie("password", "");
-			}
 		}
 	}
 	if (in_array($_SESSION['lidid'], $lididwebmasters)) {
@@ -113,7 +109,7 @@ function toegang($soort="", $melding=1, $password="") {
 		db_logins("updateactiviteit", "", "", $_SESSION['lidid']);
 	}
 	
-	if (strlen($soort) > 0 and $soort != "Herstellen wachtwoord" and $soort != "Validatie login") {
+	if (strlen($soort) > 0 and $soort != "Herstellen wachtwoord" and $soort != "Validatie login" and $soort != "Bevestiging login") {
 		$soort = str_replace("'", "", $soort);
 		if ($_SESSION['webmaster'] == 1) {
 			if (!isset($_SESSION['toegang'][$soort])) {
@@ -258,7 +254,7 @@ function fnValidatieLogin($lidid, $key, $stap) {
 <p>Je hebt een nieuwe login voor <a href='https://[%URLWEBSITE%]'>[%NAAMWEBSITE%]</a> aangevraagd. Hierbij de link om je login te bevestigen. Pas na activatie zal deze login werken.</p>\n
 <ul>\n
 <li>Login: [%LOGIN%]</li>\n
-<li><a href='https://[%URLWEBSITE%][%URLACTIVATIE%]'>Klik op om nieuw wachtwoord in te geven</a></li>\n
+<li><a href='https://[%URLWEBSITE%][%URLACTIVATIE%]'>Klik hierop om de login te bevestigen.</a></li>\n
 <li>Deze link is [%GELDIGHEIDACTIVATIE%] uur geldig</li>
 </ul>\n
 <p>[%GEBLOKKEERD%]</p>
@@ -270,7 +266,7 @@ function fnValidatieLogin($lidid, $key, $stap) {
 	
 		$mail = new RBMmailer($row->Nummer);
 		$mail->FromName = "Webmaster " . db_param("naamwebsite");
-		$mail->Subject = "Link bevestiging login";
+		$mail->Subject = "Link bevestiging nieuwe login";
 
 		if (db_param("maxinlogpogingen") > 0 and $row->FouteLogin > db_param("maxinlogpogingen")) {
 			$geblokt = "Er is teveel foutief met deze login proberen in te loggen. Hierdoor is dit account geblokkeerd. ";
@@ -291,7 +287,7 @@ function fnValidatieLogin($lidid, $key, $stap) {
 			$content = str_replace("[%LOGIN%]", $row->Login, $content);
 			$content = str_replace("[%ROEPNAAM%]", $row->Roepnaam, $content);
 			$content = str_replace("[%GEBLOKKEERD%]", $geblokt, $content);
-			$content = str_replace("[%GELDIGHEIDACTIVATIE%]", db_param("geldigheidactivatie"), $content);
+			$content = str_replace("[%GELDIGHEIDACTIVATIE%]", intval(db_param("geldigheidactivatie")), $content);
 			$content = str_replace("[%NAAMVERENIGING%]", db_param("naamvereniging"), $content);
 			$content = str_replace("[%NAAMWEBSITE%]", db_param("naamwebsite"), $content);
 			$content = str_replace("[%URLWEBSITE%]", $_SERVER["HTTP_HOST"], $content);
@@ -400,8 +396,6 @@ function fnLoginAanvragen() {
 	global $table_prefix, $lididwebmasters, $selectlidnr, $basisurl;
 	
 	$beperktotgroep = db_param("beperktotgroep");
-	$lidnrnodigbijloginaanvraag = db_param("lidnrnodigbijloginaanvraag");
-	$maxlengtelogin = db_param("maxlengtelogin");
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 
@@ -425,7 +419,7 @@ function fnLoginAanvragen() {
 			$mess = "Je hebt geen e-mailadres opgegeven.";
 		} elseif (!isValidMailAddress($_POST['email'], 0)) {
 			$mess = sprintf("Je hebt geen geldig e-mailadres (%s) opgegeven.", $_POST['email']);
-		} elseif (strlen($_POST['gewenstelogin']) > 0 and $lidnrnodigbijloginaanvraag == 1 and $_POST['lidnummer'] == 0) {
+		} elseif (strlen($_POST['gewenstelogin']) > 0 and db_param("lidnrnodigbijloginaanvraag") == 1 and $_POST['lidnummer'] == 0) {
 			$mess = "Je moet je lidnummer invullen om een login te kunnen aanvragen.";
 		} else {
 			if ($_POST['lidnummer'] > 0) {
@@ -436,7 +430,7 @@ function fnLoginAanvragen() {
 			$rows = db_logins("rowlogin", $_POST['email'], "", 0, $xf);
 			if (count($rows) > 0) {
 				foreach ($rows as $row) {
-					if (isset($row->Login) and strlen($row->Login) > 5 and ($lidnrnodigbijloginaanvraag == 0 or $row->Lidnr == $_POST['lidnummer'])) {
+					if (isset($row->Login) and strlen($row->Login) > 5 and (db_param("lidnrnodigbijloginaanvraag") == 0 or $row->Lidnr == $_POST['lidnummer'])) {
 						$lidid = $row->Nummer;
 					} else {
 						// E-mailadres is bekend, maar een aan dit e-mailadres gekoppelde login bestaat niet.
@@ -465,21 +459,22 @@ function fnLoginAanvragen() {
 							$mess = "Je hebt geen gewenste login opgegeven.";
 						} elseif (strlen($_POST['gewenstelogin']) < 6) {
 							$mess = "Je hebt geen geldige gewenste login opgegeven. Een login moet uit minimaal 6 karakters bestaan.";
-						} elseif (strlen($_POST['gewenstelogin']) > $maxlengtelogin) {
-							$mess = sprintf("Je hebt geen geldige login opgegeven. Een login mag uit maximaal %d karakters bestaan.", $maxlengtelogin);
+						} elseif (strlen($_POST['gewenstelogin']) > db_param("maxlengtelogin")) {
+							$mess = sprintf("Je hebt geen geldige login opgegeven. Een login mag uit maximaal %d karakters bestaan.", db_param("maxlengtelogin"));
 						} elseif (strpos($_POST['gewenstelogin'], " ") > 0) {
 							$mess = "Je hebt geen geldige login opgegeven. Er mag geen spatie in een login zitten.";
 						} elseif ($wwok !== "ok") {
 							$mess = $wwok;
 						} elseif (db_logins("controlebestaat", "", $_POST['gewenstelogin'], $row->Nummer) > 0) {
 							$mess = sprintf("Login '%s' is al in gebruik.", $_POST['gewenstelogin']);
-						} elseif ($lidnrnodigbijloginaanvraag == 0 or $row->Lidnr == $_POST['lidnummer']) {
+						} elseif (db_param("lidnrnodigbijloginaanvraag") == 0 or $row->Lidnr == $_POST['lidnummer']) {
 							if (db_logins("add", "", $_POST['gewenstelogin'], $row->Nummer, "", $_POST['gewenstwachtwoord'])) {
 								$rl = db_logins("rowlogin", "", "", $row->Nummer);
 								$lidid = $rl[0]->Nummer;
 							}
 						} else {
 							$mess = "Je mag geen login aanvragen.";
+							debug($mess, 0);
 						}
 					}
 				}
@@ -497,7 +492,7 @@ function fnLoginAanvragen() {
 	} else {
 
 		echo("<div id='loginaanvraag'>\n");
-		printf("<form name=Loginaanvraag action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
+		printf("<form name=Loginaanvraag action='%s?tp=Bevestiging+login' method='post'>\n", $_SERVER["PHP_SELF"]);
 		echo("<fieldset>\n");
 		echo("<h3>Aanvragen login</h3>\n");
 		
@@ -511,11 +506,11 @@ function fnLoginAanvragen() {
 		echo("<input class='knop' type='submit' name='loginaanvragen' value='Aanvragen'></p>\n");
 		echo("</fieldset>\n");
 
-		if (db_param("mailing_lidnr") > 0 and $lidnrnodigbijloginaanvraag == 1) {
+		if (db_param("mailing_lidnr") > 0 and db_param("lidnrnodigbijloginaanvraag") == 1) {
 			echo("<p>Door alleen je e-mailadres in te vullen word je lidnummer per e-mail verzonden.</p>\n");
 		}
 		echo("<p>");
-		if ($lidnrnodigbijloginaanvraag == 1) {
+		if (db_param("lidnrnodigbijloginaanvraag") == 1) {
 			echo("Met de juiste combinatie van lidnummer en e-mailadres kan je een login aanvragen.");
 		} else {
 			echo("Met het, in de ledenadministratie bekende e-mailadres, kan je een login aanvragen.");
@@ -588,7 +583,7 @@ function checknewpassword($ww, $login="") {
 		$mess = sprintf("Het wachtwoord is te kort, het moet minimaal %d karakters lang zijn.", db_param('minlengtewachtwoord'));
 	} elseif (strpos($ww, " ") !== false) {
 		$mess = "Het wachtwoord mag geen spatie bevatten.";
-	} elseif (srlen($login) > 0 and strpos(strtolowr($ww), strtolower($login)) !== false) {
+	} elseif (strlen($login) > 0 and strpos(strtolower($ww), strtolower($login)) !== false) {
 		$mess = "Het wachtwoord mag niet uw login bevatten.";
 	} else {
 		$bevat = 0;
