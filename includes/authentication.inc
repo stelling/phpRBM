@@ -179,8 +179,8 @@ function fnHerstellenWachtwoord() {
 			printf("<fieldset>
 			<h3>Resetten wachtwoord</h3>
 			<label>Login:</label><input type=text value='%s' name='login' disabled>
-			<label>Nieuw wachtwoord:</label><input type='password' name='nieuwwachtwoord' size=25 maxlength=15>
-			<label>Herhaal wachtwoord:</label><input type='password' name='herhaalwachtwoord' size=25 maxlength=15>
+			<label>Nieuw wachtwoord:</label><input type='password' name='nieuwwachtwoord' size=25>
+			<label>Herhaal wachtwoord:</label><input type='password' name='herhaalwachtwoord' size=25>
 			<input type='submit' class='knop' value='Bevestig'>\n
 			</fieldset>
 			</form>", $login, $_GET["lidid"]);
@@ -357,7 +357,7 @@ function fnPasswordReset($lidid) {
 		$content = str_replace("[%LOGIN%]", $row->Login, $content);
 		$content = str_replace("[%ROEPNAAM%]", $row->Roepnaam, $content);
 		$content = str_replace("[%GEBLOKKEERD%]", $geblokt, $content);
-		$content = str_replace("[%GELDIGHEIDACTIVATIE%]", $geblokt, db_param("geldigheidactivatie"), $content);
+		$content = str_replace("[%GELDIGHEIDACTIVATIE%]", intval(db_param("geldigheidactivatie")), $content);
 		$content = str_replace("[%NAAMVERENIGING%]", db_param("naamvereniging"), $content);
 		$content = str_replace("[%NAAMWEBSITE%]", db_param("naamwebsite"), $content);
 		$content = str_replace("[%URLWEBSITE%]", $_SERVER["HTTP_HOST"], $content);
