@@ -16,16 +16,13 @@ function toegang($soort="", $melding=1, $password="") {
 		}
 	}
 
-	if (isset($_SESSION['lastauthenication']) and $_SESSION['lastauthenication'] >= time()-7200 and $_SESSION['lidid'] > 0) {
+	if (isset($_SESSION['lastauthenication']) and $_SESSION['lastauthenication'] >= time()-(40 * 60) and $_SESSION['lidid'] > 0) {
 		// Er hoeft niets te gebeuren.
 	} else {
 		db_logins("uitloggen");
 		
 		if (strlen($password) == 0 and isset($_COOKIE['password'])) {
 			$password = $_COOKIE['password'];
-		}
-		if (strlen($password) > 12) {
-			$password = substr($password, 0, 12);
 		}
 		
 		$mess = "";
@@ -41,7 +38,7 @@ function toegang($soort="", $melding=1, $password="") {
 				
 				$_SESSION['lidid'] = 0;
 				
-			} elseif (strlen($row->ActivatieKey) > 5) {
+			} elseif (isset($row->ActivatieKey) and strlen($row->ActivatieKey) > 5) {
 				$mess = sprintf("Login '%s' is nog niet gevalideerd en kan nog niet worden gebruikt.", $row->Login);
 				$_SESSION['lidid'] = 0;
 				
@@ -89,8 +86,7 @@ function toegang($soort="", $melding=1, $password="") {
 			$_SESSION['emailingelogde'] = "";
 			unset($_SESSION['toegang']);
 			if (isset($_COOKIE['password'])) {
-				unset($_COOKIE['password']);
-				setcookie("password", "", time()-3600);
+				setcookie("password", "");
 			}
 		}
 	}
@@ -160,9 +156,10 @@ function fnHerstellenWachtwoord() {
 	global $table_prefix;
 				
 	if ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['nieuwwachtwoord']) and strlen($_POST['nieuwwachtwoord']) > 0 and $_GET['lidid'] > 0) {
-	
-		if (strlen($_POST['nieuwwachtwoord']) < db_param("minlengtewachtwoord")) {
-			$mess = sprintf("Een wachtwoord moet minimaal %d karakters lang zijn. Het wachtwoord wordt niet gewijzigd.", db_param("minlengtewachtwoord"));
+		
+		$wwok = checknewpassword($_POST['nieuwwachtwoord'], $_POST['login']);
+		if ($wwok !== "ok") {
+			$mess = $wwok;
 		} elseif (strlen($_POST['nieuwwachtwoord']) != strlen($_POST['herhaalwachtwoord']) or $_POST['nieuwwachtwoord'] !== $_POST['herhaalwachtwoord']) {
 			$mess = sprintf("De twee ingevoerde wachtwoorden zijn niet exact gelijk aan elkaar. Het wachtwoord wordt niet gewijzigd.", db_param("minlengtewachtwoord"));
 		} else {
@@ -417,6 +414,7 @@ function fnLoginAanvragen() {
 		if (!isset($_POST['gewenstwachtwoord'])) {
 			$_POST['gewenstwachtwoord'] = "";
 		}
+		$wwok = checknewpassword($_POST['gewenstwachtwoord'], $_POST['gewenstelogin']);
 		if (!isset($_POST['lidnummer']) or strlen($_POST['lidnummer']) == 0) {
 			$_POST['lidnummer'] = 0;
 		}
@@ -471,12 +469,8 @@ function fnLoginAanvragen() {
 							$mess = sprintf("Je hebt geen geldige login opgegeven. Een login mag uit maximaal %d karakters bestaan.", $maxlengtelogin);
 						} elseif (strpos($_POST['gewenstelogin'], " ") > 0) {
 							$mess = "Je hebt geen geldige login opgegeven. Er mag geen spatie in een login zitten.";
-						} elseif (strlen($_POST['gewenstwachtwoord']) < 7) {
-							$mess = "Je hebt geen geldig wachtwoord opgegeven. Deze moet uit minimaal 7 karakters bestaan.";
-						} elseif (strlen($_POST['gewenstwachtwoord']) < db_param("minlengtewachtwoord")) {
-							$mess = sprintf("Je hebt geen geldig wachtwoord opgegeven. Deze moet uit minimaal %d karakters bestaan.", db_param("minlengtewachtwoord"));
-						} elseif (strpos($_POST['gewenstwachtwoord'], " ") > 0) {
-							$mess = "Je hebt geen geldig wachtwoord opgegeven. Er mag geen spatie in een wachtwoord zitten.";
+						} elseif ($wwok !== "ok") {
+							$mess = $wwok;
 						} elseif (db_logins("controlebestaat", "", $_POST['gewenstelogin'], $row->Nummer) > 0) {
 							$mess = sprintf("Login '%s' is al in gebruik.", $_POST['gewenstelogin']);
 						} elseif ($lidnrnodigbijloginaanvraag == 0 or $row->Lidnr == $_POST['lidnummer']) {
@@ -581,6 +575,52 @@ function newkey() {
 	$ww = strtoupper(substr($ww, 0, 2)) . substr($ww, 2, 8) . strtoupper(substr($ww, 10, 2));
 	
 	return $ww;
+}
+
+function checknewpassword($ww, $login="") {
+	
+	$alphabet = "abcdefghijklmnopqrstuvwxyz";
+	$mess = "ok";
+	
+	if (strlen($ww) > db_param('maxlengtewachtwoord') and db_param('maxlengtewachtwoord') >= 7) {
+		$mess = sprintf("Het wachtwoord is te lang, het mag maximaal %d karakters lang zijn.", db_param('maxlengtewachtwoord'));
+	} elseif (strlen($ww) < db_param('minlengtewachtwoord') and db_param('minlengtewachtwoord') >= 7) {
+		$mess = sprintf("Het wachtwoord is te kort, het moet minimaal %d karakters lang zijn.", db_param('minlengtewachtwoord'));
+	} elseif (strpos($ww, " ") !== false) {
+		$mess = "Het wachtwoord mag geen spatie bevatten.";
+	} elseif (srlen($login) > 0 and strpos(strtolowr($ww), strtolower($login)) !== false) {
+		$mess = "Het wachtwoord mag niet uw login bevatten.";
+	} else {
+		$bevat = 0;
+		for ($i = 0; $i < (strlen($ww)-1); $i++) {
+			if (strpos("0123456789", substr($ww, $i, 1)) !== false) {
+				$bevat = 1;
+			}
+		}
+		if ($bevat == 0) {
+			$mess = "Het wachtwoord moet minimaal 1 cijfer bevatten.";
+		}
+		$bevat = 0;
+		for ($i = 0; $i < (strlen($ww)-1); $i++) {
+			if (strpos($alphabet, substr($ww, $i, 1)) !== false) {
+				$bevat = 1;
+			}
+		}
+		if ($bevat == 0) {
+			$mess = "Het wachtwoord moet minimaal 1 kleine letter bevatten.";
+		}
+		$bevat = 0;
+		for ($i = 0; $i < (strlen($ww)-1); $i++) {
+			if (strpos(strtoupper($alphabet), substr($ww, $i, 1)) !== false) {
+				$bevat = 1;
+			}
+		}
+		if ($bevat == 0) {
+			$mess = "Het wachtwoord moet minimaal 1 hoofdletter bevatten.";
+		}
+	}
+	
+	return $mess;
 }
 
 ?>
