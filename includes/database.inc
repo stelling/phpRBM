@@ -1137,15 +1137,11 @@ function db_stats($lidid=0) {
 function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="", $xtraorder="") {
 	global $dbc, $selectnaam, $selectlidnr, $table_prefix, $lididwebmasters, $wherelidond, $wherelid, $dir, $db_pass;
 	
-	$bewaartijdloginsnietgebruikt = db_param("bewaartijdloginsnietgebruikt");
 	if (strlen(db_param("beperktotgroep")) > 0) {
 		$beperktotgroep = explode(",", db_param("beperktotgroep"));
 	} else {
 		$beperktotgroep = array(0);
 	}
-	$maxlengtelogin = db_param("maxlengtelogin");
-	$maxinlogpogingen = db_param("maxinlogpogingen");
-	$lidnrnodigbijloginaanvraag = db_param("lidnrnodigbijloginaanvraag");
 	
 	$mess = "";
 	if ($actie == "nieuwlogin" and isValidMailAddress($email) and strlen($login) > 5) {
@@ -1233,13 +1229,16 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 	} elseif ($actie == "uitloggen") {
 		$query = sprintf("UPDATE %sAdmin_login SET Ingelogd=0 WHERE Ingelogd=1 AND (LastActivity < ADDDATE(SYSDATE(), INTERVAL -21 MINUTE) OR LidID=%d);", $table_prefix, $lidid);
 		$result = fnQuery($query);
-		$query = sprintf("UPDATE %1\$sAdmin_login SET ActivatieKey='', Wachtwoord='', Gewijzigd=SYSDATE()
-					WHERE Ingelogd=0 AND LENGTH(ActivatieKey) > 5 AND (Ingevoerd < ADDDATE(SYSDATE(), INTERVAL -%2\$d HOUR) OR Gewijzigd < ADDDATE(SYSDATE(), INTERVAL -%2\$d HOUR));"
-					, $table_prefix, db_param("Geldigheidactivatie"));
-		$result = fnQuery($query);
-		if ($result > 0) {
-			$mess = sprintf("Er zijn van %d logins de validatie ongeldig gemaakt.", $result);
-			db_logboek("add", $mess, 1);
+		if (db_param("geldigheidactivatie") > 0) {
+			$query = sprintf("UPDATE %1\$sAdmin_login SET ActivatieKey='', Wachtwoord='', Gewijzigd=SYSDATE()
+						WHERE Ingelogd=0 AND LENGTH(ActivatieKey) > 5 AND (Ingevoerd < ADDDATE(SYSDATE(), INTERVAL -%2\$d HOUR) OR (Gewijzigd < ADDDATE(SYSDATE(), INTERVAL -%2\$d HOUR) AND (Gewijzigd IS NOT NULL)));"
+						, $table_prefix, db_param("geldigheidactivatie"));
+			$result = fnQuery($query);
+			if ($result > 0) {
+				debug($query, 1, 0, 1);
+				$mess = sprintf("Er zijn van %d logins de validatie ongeldig gemaakt.", $result);
+				db_logboek("add", $mess, 1);
+			}
 		}
 		if ($result > 0) {
 			if (strlen(db_param("scriptbijuitloggen")) > 0) {
@@ -1337,7 +1336,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			if (count($rows) == 1) {
 				$login = $rows[0]->Login;
 			}
-		} 
+		}
 		$xtrawhere = sprintf("AND Login.Login LIKE '%s'", cleanlogin($login));
 		if (is_array($beperktotgroep) and count($beperktotgroep) > 0) {
 			$xtrawhere .= sprintf(" AND (Login.LidID IN (SELECT Lid FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID IN (%s)) OR Login.LidID IN (%s))", $table_prefix, $wherelidond, implode(", ", $beperktotgroep), implode(", ", $lididwebmasters));
@@ -1376,9 +1375,10 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 					L.Achternaam AS ndAchternaam, L.Tussenv AS ndTussenvoegsels, L.Meisjesnm AS ndMeisjesnaam, L.GEBDATUM AS ndGeboren,
 					L.Email AS `E-mail`, L.EmailVereniging AS ndEmailVereniging, L.Telefoon AS ndTelefoon, L.Mobiel AS ndMobiel,
 					Login.Ingevoerd AS dteIngevoerd, Login.LastLogin AS `dttLaatste login`,
+					IF(LENGTH(Login.Wachtwoord) > 5 AND LENGTH(IFNULL(Login.ActivatieKey, '')) = 0, 'Ja', 'Nee') AS `Gevalideerd`,
 					Login.Wachtwoord AS ndWachtwoord, IF(Login.FouteLogin > 0, Login.LidID, 0) AS llkNummer
 					FROM %2\$sAdmin_login AS Login INNER JOIN %2\$sLid AS L ON Login.LidID = L.Nummer
-					WHERE LENGTH(Login.Wachtwoord) > 5 %3\$s
+					WHERE LENGTH(Login.Login) > 5 %3\$s
 					ORDER BY %4\$sL.Achternaam, L.TUSSENV, L.Roepnaam, Login.LidID;", $selectnaam, $table_prefix, $xtrawhere, $xtraorder, $selectlidnr);
 		$result = fnQuery($query);
 		return $result->fetchAll();
@@ -1417,14 +1417,14 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			$mess .= ", omdat ze geen toegang meer hebben.<br>\n";
 		}
 		$query = sprintf("DELETE FROM %sAdmin_login
-					WHERE ((LastLogin IS NULL) OR LastLogin < '2012-01-01') AND Ingevoerd < DATE_ADD(CURDATE(), INTERVAL -%d DAY);", $table_prefix, $bewaartijdloginsnietgebruikt);
+					WHERE ((LastLogin IS NULL) OR LastLogin < '2012-01-01') AND Ingevoerd < DATE_ADD(CURDATE(), INTERVAL -%d DAY);", $table_prefix, db_param("bewaartijdloginsnietgebruikt"));
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$mess .= sprintf("Er zijn %d logins verwijderd", $result);
 		} else {
 			$mess .= "Er zijn geen logins verwijderd";
 		}
-		$mess .= sprintf(", omdat ze niet binnen %d dagen na aanvragen gebruikt zijn.<br>\n", $bewaartijdloginsnietgebruikt);
+		$mess .= sprintf(", omdat ze niet binnen %d dagen na aanvragen gebruikt zijn.<br>\n", db_param("bewaartijdloginsnietgebruikt"));
 		$query = sprintf("UPDATE %1\$sAdmin_login SET HerinneringVervallenDiplomas=0 WHERE HerinneringVervallenDiplomas=1 AND 
 					LidID NOT IN (SELECT Lid FROM %1\$sLidmaatschap WHERE ((Opgezegd IS NULL) OR Opgezegd >= CURDATE()));", $table_prefix);
 		$result = fnQuery($query);
@@ -2523,6 +2523,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrIntegers['max_grootte_bijlage'] = 2048;
 	$arrIntegers['maxlengtelogin'] = 12;
 	$arrIntegers['minlengtewachtwoord'] = 7;
+	$arrIntegers['maxlengtewachtwoord'] = 12;
 	$arrIntegers['maxinlogpogingen'] = 4;
 	$arrIntegers['smtpport'] = 0;
 	$arrIntegers['termijnvervallendiplomasmailen'] = 3;
@@ -2708,7 +2709,8 @@ function db_delete_local_tables() {
 function db_onderhoud() {
 	global $table_prefix, $arrTables, $db_name, $wherelid, $wherelidond, $lididwebmasters;
 	
-	$maxlengtelogin = db_param("maxlengtelogin");
+	// ToDo
+	// sprintf(ALTER TABLE `%sAdmin_login` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NULL DEFAULT CURRENT_TIMESTAMP;", $table_prefix);
 
 	// Vaste aanpassingen aan de database na een upload, omdat MS-Access geen datum velden kent, alleen datum_tijd.
 	$query = sprintf("SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sBewaking' AND COLUMN_NAME='BEGIN_PER';", $db_name, $table_prefix);
@@ -2749,8 +2751,8 @@ function db_onderhoud() {
 	
 	/***** Aanpassen lengte login in de database als deze kleiner is dan maxlengtelogin  *****/
 	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%sAdmin_login' AND COLUMN_NAME LIKE 'Login';", $db_name, $table_prefix);
-	if (db_scalar($query) < $maxlengtelogin) {
-		$query = sprintf("ALTER TABLE `%sAdmin_login` CHANGE `Login` `Login` VARCHAR( %s ) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table_prefix, $maxlengtelogin);
+	if (db_scalar($query) < db_param("maxlengtelogin")) {
+		$query = sprintf("ALTER TABLE `%sAdmin_login` CHANGE `Login` `Login` VARCHAR( %s ) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table_prefix, db_param("maxlengtelogin"));
 		fnQuery($query);
 	}
 	
