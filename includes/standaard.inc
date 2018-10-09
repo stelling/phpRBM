@@ -314,7 +314,6 @@ function HTMLheader($refresh=0) {
 	} else {
 		$title .= db_param("naamwebsite");
 	}
-	
 
 //	header('Content-type: text/html; charset=utf-8');
    if (!isset($_GET['header']) or $_GET['header'] != "no") {
@@ -326,7 +325,7 @@ function HTMLheader($refresh=0) {
 			echo("<script src='/includes/ckeditor/ckeditor.js'></script>\n");
 		}
 		if ($refresh == 1) {
-			echo("<meta http-equiv='refresh' content='600'>\n");
+			echo("<meta http-equiv='refresh' content='1200'>\n");
 		}
 		printf("<title>%s</title>\n", $title);
 		if (file_exists("stylesheets/default.css")) {
@@ -808,7 +807,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 	}
 	$ret .= sprintf("</div>  <!-- Einde %s -->\n", $class);
 	return $ret;
-}
+} # fnDisplayTable
 
 function debug($tekst, $alleenwm=1, $alert=0, $logact=0) {
 	if (is_array($tekst) or is_object($tekst)) {
@@ -823,9 +822,9 @@ function debug($tekst, $alleenwm=1, $alert=0, $logact=0) {
 		} else {
 			printf("<p class='debug'>Debug: %s</p>\n", $tekst);
 		}
-		if ($logact == 1) {
-			db_logboek("add", "Debug: " . $tekst, $type=99);
-		}
+	}
+	if ($logact == 1) {
+		db_logboek("add", "Debug: " . $tekst, $type=99);
 	}
 } # debug
 
