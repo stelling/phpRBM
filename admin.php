@@ -321,7 +321,7 @@ function fnInstellingen() {
 	$arrParam['bewaartijdinloggen'] = "Hoeveel maanden moet logging van het in- en uitloggen bewaard blijven. 0 = altijd.";
 	$arrParam['bewaartijdlogging'] = "Hoeveel maanden moet logging bewaard blijven. 0 = altijd.";
 	$arrParam['bewaartijdlogins'] = "Het aantal maanden dat logins na het laatste gebruik bewaard worden. Als een login wordt verwijderd, wordt geen historie weggegooid. Historie wordt namelijk direct aan het lid gekopppeld en niet aan de login. 0 = altijd bewaren.";
-	$arrParam['geldigheidactivatie'] = "Hoelang in uren is een activatielink geldig?";
+	$arrParam['Geldigheidactivatie'] = "Hoelang in uren is een activatielink geldig?";
 	$arrParam['bewaartijdloginsnietgebruikt'] = "Het aantal dagen dat logins wordt bewaard, nadat het is aangevraagd en nog niet gebruikt is.";
 	$arrParam['bewaartijdmailings'] = "Het aantal maanden dat een verwijderde mailing bewaard moet worden. 0 = altijd bewaren.";
 	$arrParam['beperktotgroep'] = "Vul hier de RecordID's, gescheiden door een komma, van de groepen (zie tabel ONDERDL) in die toegang hebben. Als je geen groep invult hebben alleen webmasters toegang.";
@@ -349,7 +349,6 @@ function fnInstellingen() {
 	$arrParam['maxinlogpogingen'] = "Na hoeveel foutieve inlogpogingen moet het account geblokkeerd worden? 0 = nooit.";
 	$arrParam['maxlengtelogin'] = "De maximale lengte die een login mag zijn. Minimaal 7 en maximaal 15 invullen.";
 	$arrParam['minlengtewachtwoord'] = "De minimale lengte van een wachtwoord. Minimaal 7 en maximaal 15 invullen.";
-	$arrParam['maxlengtewachtwoord'] = "De maximale lengte van een wachtwoord. Minimaal 7 en maximaal 15 invullen.";
 	$arrParam['maxmailsperminuut'] = "Het maximaal aantal e-mails dat via een mailing per minuut verzonden mag worden. 0 = onbeperkt.";
 	$arrParam['naamwebsite'] = "Dit is de naam zoals deze in de titel en op elke pagina getoond wordt.";
 	$arrParam['performance_trage_select'] = "Vanaf hoeveel seconden moet een select-statement in het logboek worden gezet. 0 = nooit.";
@@ -409,15 +408,7 @@ function fnInstellingen() {
 				} elseif ($row->Naam == "typemenu" and (strlen($_POST[$pvn]) == 0 or $_POST[$pvn] < 1 or $_POST[$pvn] > 3)) {
 					$_POST[$pvn] = 1;
 					$mess = sprintf("Parameter '%s' wordt 1 gemaakt, omdat deze alleen 1, 2 of 3 mag zijn. ", $row->Naam);
-				} elseif ($row->Naam == "minlengtelogin" or $row->Naam == "maxlengtelogin") {
-					if (strlen($_POST[$pvn]) == 0 or is_numeric($_POST[$pvn]) == false or $_POST[$pvn] > 15) {
-						$_POST[$pvn] = 15;
-						$mess = sprintf("Parameter '%s' wordt 15 gemaakt, omdat dit de maximale waarde is. ", $row->Naam);
-					} elseif ($_POST[$pvn] < 7) {
-						$_POST[$pvn] = 7;
-						$mess = sprintf("Parameter '%s' wordt 7 gemaakt, omdat dit de minimale waarde is. ", $row->Naam);
-					}
-				} elseif ($row->Naam == "minlengtewachtwoord" or $row->Naam == "maxlengtewachtwoord") {
+				} elseif ($row->Naam == "maxlengtelogin") {
 					if (strlen($_POST[$pvn]) == 0 or is_numeric($_POST[$pvn]) == false or $_POST[$pvn] > 15) {
 						$_POST[$pvn] = 15;
 						$mess = sprintf("Parameter '%s' wordt 15 gemaakt, omdat dit de maximale waarde is. ", $row->Naam);
