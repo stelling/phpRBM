@@ -34,7 +34,7 @@ $TypeActiviteit[1] = "Inloggen/Uitloggen";
 $TypeActiviteit[2] = "DB onderhoud";
 $TypeActiviteit[3] = "DB backup";
 $TypeActiviteit[4] = "Mailing";
-$TypeActiviteit[5] = "Autorisatie";
+$TypeActiviteit[5] = "Autorisatie/authenticatie";
 $TypeActiviteit[6] = "Mutaties lidgegevens";
 $TypeActiviteit[7] = "Evenementen";
 $TypeActiviteit[8] = "Interface";
@@ -1158,7 +1158,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		} else {
 			$mess = sprintf("E-mailadres '%s' is onbekend in onze database. Er wordt geen login aangemaakt.", $email);
 		}
-		db_logboek("add", $mess, 1);
+		db_logboek("add", $mess, 5);
 		return $mess;
 		
 	} elseif ($actie == "add" and strlen($login) > 0 and strlen($pw) > 0) {
@@ -1179,7 +1179,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		} else {
 			$mess = sprintf("%s heeft al een login, er wordt geen nieuwe aangemaakt.", db_naamlid($lidid));
 		}
-		db_logboek("add", $mess, 1, $lidid, 1);
+		db_logboek("add", $mess, 1, $lidid, 5);
 		return $ok;
 		
 	} elseif ($actie == "rowlogin" and (isValidMailAddress($email, 0) or $lidid > 0)) {
@@ -1211,7 +1211,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		} else {
 			$mess = sprintf("Er ging iets mis bij het valideren van de login voor %s is gevalideerd. Mogelijk is deze login al gevalideerd. Zo niet probeer het later opnieuw.", db_naamlid($lidid, "Naam"));
 		}
-		db_logboek("add", $mess, 1);
+		db_logboek("add", $mess, 5);
 		return $mess;
 		
 	} elseif ($actie == "controlebestaat" and strlen($login) > 5) {
@@ -1237,7 +1237,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			if ($result > 0) {
 //				debug($query, 1, 0, 1);
 				$mess = sprintf("Er zijn van %d logins de validatie ongeldig gemaakt.", $result);
-				db_logboek("add", $mess, 1);
+				db_logboek("add", $mess, 5);
 			}
 		}
 		if ($result > 0) {
@@ -1270,7 +1270,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			$result = fnQuery($query);
 			if ($result > 0) {
 				$mess = sprintf("De login van %s is verwijderd.", db_naamlid($lidid));
-				db_logboek("add", $mess, 1, $lidid);
+				db_logboek("add", $mess, 5, $lidid);
 				fnQuery(sprintf("OPTIMIZE TABLE %sAdmin_login;", $table_prefix));
 			}
 		} else {
@@ -1300,7 +1300,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			$result = fnQuery($query);
 			if ($result == 1) {
 				$mess = sprintf("Het wachtwoord van %s is leeg gemaakt op verzoek van een gebruiker, zodat het hersteld kan worden.", db_naamlid($lidid));
-				db_logboek("add", $mess, 1);
+				db_logboek("add", $mess, 5);
 				return $nk;
 			} else {
 				return false;
@@ -1324,7 +1324,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			$result = fnQuery($query);
 			if ($result > 0) {
 				$mess = sprintf("%d logins zijn automatisch ge-unlocked.", $result);
-				db_logboek("add", $mess, 1);
+				db_logboek("add", $mess, 5);
 			}
 		}
 	

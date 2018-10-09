@@ -161,7 +161,7 @@ function fnHerstellenWachtwoord() {
 		} else {
 			$mess = db_change_password($_POST['nieuwwachtwoord'], "", $_GET['lidid']);
 		}
-		db_logboek("add", $mess, 1, $_GET['lidid'], 1);
+		db_logboek("add", $mess, 5, $_GET['lidid'], 1);
 	
 	} elseif (isset($_GET["lidid"]) and $_GET["lidid"] > 0 and strlen($_GET["key"]) > 5) {
 		
@@ -486,7 +486,7 @@ function fnLoginAanvragen() {
 				}
 			}
 		}
-		db_logboek("add", $mess, 1, 0, 1, $lidid);
+		db_logboek("add", $mess, 5, 0, 1, $lidid);
 		printf("<p><a href='%s' target='_top'>Klik hier om verder te gaan.</a></p>\n", $basisurl);
 		
 	} else {
