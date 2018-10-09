@@ -2,6 +2,8 @@
 	include('./includes/standaard.inc');
 	// db_logboek("add", "autojobs.php", 99);
 	
+	$termijnvervallendiplomasmailen = db_param("termijnvervallendiplomasmailen");
+	
 	if (isset($termijnvervallendiplomasmailen) and $termijnvervallendiplomasmailen > 0) {
 		$ed = date('Y-m-d', mktime(0, 0, 0, date("m")+$termijnvervallendiplomasmailen, date("d"), date("Y")));
 		foreach(db_logins("lijst", "", "", 0, "Login.HerinneringVervallenDiplomas=1") as $lid) {
