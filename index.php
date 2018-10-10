@@ -6,6 +6,17 @@ if (!isset($_GET['tp'])) {
 
 require('./includes/standaard.inc');
 
+if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen" and $_SESSION['lidid'] > 0) {
+	$mess = db_logins("uitloggen", "", "", $_SESSION['lidid']);
+	session_destroy();
+	setcookie("username", "", time()-3600);
+	setcookie("password", "", time()-3600);
+	printf("<p>%s</p>\n", $mess);
+	echo("<script>\n
+	windows.location.href='/';\n
+	</script>\n");
+}
+
 if ($_SESSION['aantallid'] == 0) {
 	$query = sprintf("SELECT COUNT(*) FROM %sLid;", $table_prefix);
 	$_SESSION['aantallid'] = db_scalar($query);
@@ -46,6 +57,8 @@ if (toegang("", 0) == false) {
 		fnValidatieLogin($_GET['lidid'], $_GET['key'], "validatie");
 	}
 	printf("<p>Klik <a href='%s'>hier</a> om verder te gaan.</p>\n", $basisurl);
+} elseif ($currenttab == "Bevestiging login") {
+		fnLoginAanvragen();
 	
 } elseif ($currenttab == "Eigen gegevens") {
 	if ($_SESSION['lidid'] > 0) {
@@ -171,8 +184,6 @@ function fnVoorblad($metlogin=0) {
 		printf("<div id='welkomstekst'>\n%s</div>  <!-- Einde welkomstekst -->\n", $content);
 		
 	}
-	?>
-	<?php
 }
 
 function fnKostenoverzicht() {
