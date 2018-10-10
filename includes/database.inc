@@ -1229,20 +1229,9 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 	} elseif ($actie == "uitloggen") {
 		$query = sprintf("UPDATE %sAdmin_login SET Ingelogd=0 WHERE Ingelogd=1 AND (LastActivity < ADDDATE(SYSDATE(), INTERVAL -21 MINUTE) OR LidID=%d);", $table_prefix, $lidid);
 		$result = fnQuery($query);
-		if (db_param("geldigheidactivatie") > 0) {
-			$query = sprintf("UPDATE %1\$sAdmin_login SET ActivatieKey='', Wachtwoord='', Gewijzigd=SYSDATE()
-						WHERE Ingelogd=0 AND LENGTH(ActivatieKey) > 5 AND (Ingevoerd < ADDDATE(SYSDATE(), INTERVAL -%2\$d HOUR) OR (Gewijzigd < ADDDATE(SYSDATE(), INTERVAL -%2\$d HOUR) AND (Gewijzigd IS NOT NULL) AND Gewijzigd > '2000-01-01'));"
-						, $table_prefix, db_param("geldigheidactivatie"));
-			$result = fnQuery($query);
-			if ($result > 0) {
-//				debug($query, 1, 0, 1);
-				$mess = sprintf("Er zijn van %d logins de validatie ongeldig gemaakt.", $result);
-				db_logboek("add", $mess, 5);
-			}
-		}
 		if ($result > 0) {
 			if (strlen(db_param("scriptbijuitloggen")) > 0) {
-				exec(db_param("scriptbijuitloggen"));
+//				exec(db_param("scriptbijuitloggen"));
 			}
 			if ($_SESSION['lidid'] == $lidid and $lidid > 0) {
 				$mess = sprintf("%s (LidID: %d) is uitgelogd.", $_SESSION['naamingelogde'], $lidid);
@@ -1252,6 +1241,16 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			if (date('H') == 8 or ($_SESSION['webmaster'] == 1 and date('H') > 7)) {
 				$script = sprintf("php %s/autojobs.php", $dir);
 //				exec($script);
+			}
+		}
+		if (db_param("geldigheidactivatie") > 0) {
+			$query = sprintf("UPDATE %1\$sAdmin_login SET ActivatieKey='', Wachtwoord='', Gewijzigd=SYSDATE()
+						WHERE Ingelogd=0 AND LENGTH(ActivatieKey) > 5 AND (Ingevoerd < ADDDATE(SYSDATE(), INTERVAL -%2\$d HOUR) OR (Gewijzigd < ADDDATE(SYSDATE(), INTERVAL -%2\$d HOUR) AND (Gewijzigd IS NOT NULL) AND Gewijzigd > '2000-01-01'));"
+						, $table_prefix, db_param("geldigheidactivatie"));
+			$result = fnQuery($query);
+			if ($result > 0) {
+//				debug($query, 1, 0, 1);
+				db_logboek("add", sprintf("Er zijn van %d logins de validatie ongeldig gemaakt.", $result), 5);
 			}
 		}
 		
