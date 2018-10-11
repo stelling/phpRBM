@@ -34,7 +34,7 @@ $TypeActiviteit[1] = "Inloggen/Uitloggen";
 $TypeActiviteit[2] = "DB onderhoud";
 $TypeActiviteit[3] = "DB backup";
 $TypeActiviteit[4] = "Mailing";
-$TypeActiviteit[5] = "Autorisatie/authenticatie";
+$TypeActiviteit[5] = "Authenticatie";
 $TypeActiviteit[6] = "Mutaties lidgegevens";
 $TypeActiviteit[7] = "Evenementen";
 $TypeActiviteit[8] = "Interface";
@@ -44,6 +44,7 @@ $TypeActiviteit[11] = "Bewaking";
 $TypeActiviteit[12] = "Mutaties diploma's";
 $TypeActiviteit[13] = "Parameters";
 $TypeActiviteit[14] = "Rekeningen";
+$TypeActiviteit[15] = "Authorisatie";
 $TypeActiviteit[98] = "Performance";
 $TypeActiviteit[99] = "Debugging";
 asort($TypeActiviteit);
@@ -632,13 +633,13 @@ function db_authorisation($actie, $recid=0, $tabpage="") {
 			$query = sprintf("DELETE FROM %sAdmin_access WHERE RecordID=%d;", $table_prefix, $recid);
 			if (fnQuery($query) > 0) {
 				$mess = sprintf("In de tabel '%sAdmin_access' is record %d verwijderd.", $table_prefix, $recid);
-				db_logboek("add", $mess, 5, 0, 0, $recid);
+				db_logboek("add", $mess, 15, 0, 0, $recid);
 				$query = sprintf("OPTIMIZE TABLE %sAdmin_access;", $table_prefix);
 				fnQuery($query);
 			}
 		} else {
 			$mess = "Je hebt geen rechten om authorisaties te verwijderen.";
-			db_logboek("add", $mess, 5, 0, 1);
+			db_logboek("add", $mess, 15, 0, 1);
 		}
 	} elseif ($actie == "lijst") {
 		$query = sprintf("SELECT RecordID, Toegang, Tabpage, Ingevoerd FROM %sAdmin_access ORDER BY Tabpage;", $table_prefix);
@@ -656,7 +657,7 @@ function db_authorisation($actie, $recid=0, $tabpage="") {
 			$result = fnQuery($query);
 		}
 		$mess = sprintf("Tabpage '%s' is aan de tabel 'Admin_access' toegevoegd.", $tabpage);
-		db_logboek("add", $mess, 5, 0, 0, $result);
+		db_logboek("add", $mess, 15, 0, 0, $result);
 	} elseif ($actie == "update") {  // Nog niet af en nog niet in gebruik
 		$query = sprintf("UPDATE %1\$sAdmin_access SET Toegang=%2\$d, Gewijzigd=SYSDATE() WHERE RecordID=%3\$d AND Toegang<>%2\$d;", $table_prefix, $_POST[$vn], $recid);
 		$result = fnQuery($query);
@@ -666,7 +667,7 @@ function db_authorisation($actie, $recid=0, $tabpage="") {
 			} else {
 				$mess = sprintf("Toegang '%s' is naar groep '%s' aangepast.", $row->Tabpage, db_naam_onderdeel($_POST[$vn], "Iedereen"));
 			}
-			db_logboek("add", $mess, 5, 0, 0, $recid);
+			db_logboek("add", $mess, 15, 0, 0, $recid);
 		}
 		
 	} elseif ($actie == "opschonen") {
@@ -679,7 +680,7 @@ function db_authorisation($actie, $recid=0, $tabpage="") {
 		} else {
 			$mess = sprintf("Bij het opschonen zijn geen records uit %sAdmin_access verwijderd.", $table_prefix);
 		}
-		db_logboek("add", $mess, 2);
+		db_logboek("add", $mess, 15);
 		return $mess;
 	}
 }
@@ -1230,17 +1231,11 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		$query = sprintf("UPDATE %sAdmin_login SET Ingelogd=0 WHERE Ingelogd=1 AND (LastActivity < ADDDATE(SYSDATE(), INTERVAL -21 MINUTE) OR LidID=%d);", $table_prefix, $lidid);
 		$result = fnQuery($query);
 		if ($result > 0) {
-			if (strlen(db_param("scriptbijuitloggen")) > 0) {
-//				exec(db_param("scriptbijuitloggen"));
-			}
+			fnMaatwerkNaUitloggen();
 			if ($_SESSION['lidid'] == $lidid and $lidid > 0) {
 				$mess = sprintf("%s (LidID: %d) is uitgelogd.", $_SESSION['naamingelogde'], $lidid);
 				db_logboek("add", $mess, 1, $lidid);
 				$_SESSION['lidid'] = 0;
-			}
-			if (date('H') == 8 or ($_SESSION['webmaster'] == 1 and date('H') > 7)) {
-				$script = sprintf("php %s/autojobs.php", $dir);
-//				exec($script);
 			}
 		}
 		if (db_param("geldigheidactivatie") > 0) {
@@ -1283,9 +1278,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		if ($result > 0) {
 			$mess = sprintf("%s is met '%s' ingelogd.", db_naamlid($lidid), $_SESSION['username']);
 			db_logboek("add", $mess, 1, $lidid);
-			if (strlen(db_param("scriptnainloggen")) > 0) {
-				exec(db_param("scriptnainloggen"));
-			}
+			fnMaatwerkNaInloggen();
 		}
 		
 	} elseif ($actie == "updateactiviteit" and $lidid > 0) {
@@ -2562,8 +2555,6 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrStrings['mailing_extensies_toegestaan'] = "bmp, gif, jpeg, jpg, pdf, png, pps, rar, txt, zip";
 	$arrStrings['mailing_rekening_from'] = "";
 	$arrStrings['mailing_rekening_from_naam'] = "";
-	$arrStrings['scriptbijuitloggen'] = "";
-	$arrStrings['scriptnainloggen'] = "";
 	$arrStrings['urlvereniging'] = "";
 	$arrStrings['url_eigen_help'] = "";
 	$arrStrings['zs_emailbevestigingbestelling'] = "";

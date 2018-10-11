@@ -137,7 +137,7 @@ function toegang($soort="", $melding=1, $password="") {
 					} else {
 						$mess = sprintf("Je bent niet ingelogd en hierdoor hebt geen toegang tot '%s' op %s.", $soort, db_param("naamwebsite"));
 					}
-					db_logboek("add", $mess, 5, 0, 2);
+					db_logboek("add", $mess, 15, 0, 2);
 				}
 				$_SESSION['toegang'][$soort] = false;
 			}
