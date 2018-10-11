@@ -36,7 +36,7 @@ require_once("phpmailer/PHPMailer.php");
 require_once("phpmailer/SMTP.php");
 require_once("phpmailer/Exception.php");
 require_once("simpleimage.php");
-/* End open source libs*/
+/* Einde includen open source libs*/
 
 $includes = array("database", "authentication", "leden", "bewaking", "evenement", "mailing", "standaard", "webshop", "rbm_mailer");
 foreach ($includes as $incl) {
@@ -46,6 +46,11 @@ foreach ($includes as $incl) {
 	}
 	require_once($incl);
 }
+
+/* Included maatwerk */
+$incl = $dir . "/maatwerk/maatwerk.inc";
+require_once($incl);
+/* Einde includen maatwerk*/
 
 if (!isset($_SESSION['settings']['naamvereniging'])) {
 	db_param("", "curval");
