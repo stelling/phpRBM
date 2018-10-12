@@ -1458,7 +1458,7 @@ function db_change_password($pw_new, $pw_old, $lidid) {
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$mess = sprintf("Het wachtwoord van de login van %s is gewijzigd.", db_naamlid($lidid));
-			fnMaatwerkNaWijzigenWachtwoord($_SESSION['username'], $_SESSION['lidid'], $pw_new);
+			fnMaatwerkNaWijzigenWachtwoord($lidid, $pw_new);
 		} else {
 			$mess = "Wachtwoord is niet gewijzigd.";
 		}
