@@ -2700,8 +2700,6 @@ function db_delete_local_tables() {
 function db_onderhoud() {
 	global $table_prefix, $arrTables, $db_name, $wherelid, $wherelidond, $lididwebmasters;
 	
-	// ToDo
-	// sprintf(ALTER TABLE `%sAdmin_login` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NULL DEFAULT CURRENT_TIMESTAMP;", $table_prefix);
 
 	// Vaste aanpassingen aan de database na een upload, omdat MS-Access geen datum velden kent, alleen datum_tijd.
 	$query = sprintf("SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sBewaking' AND COLUMN_NAME='BEGIN_PER';", $db_name, $table_prefix);
@@ -2767,6 +2765,10 @@ function db_onderhoud() {
 		$query = sprintf("ALTER TABLE `%sAdmin_activiteit` CHANGE `IP_adres` `IP_adres` VARCHAR(25) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table_prefix);
 		fnQuery($query);
 	}
+	
+	/***** Aanpassen lengte van het IP-adres in Admin_login naar 25. Deze code kan na 1/12/2020 worden verwijderd. *****/
+	$query = sprintf("ALTER TABLE `%sAdmin_login` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NULL DEFAULT CURRENT_TIMESTAMP;", $table_prefix);
+	fnQuery($query);
 	
 	/***** Velden die later zijn toegevoegd. *****/
 	
