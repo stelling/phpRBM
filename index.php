@@ -44,8 +44,8 @@ if ($currenttab !== "Mailing") {
 }
 
 if (toegang("", 0) == false) {
-	$mess = sprintf("Je hebt tot '%s' geen toegang.", $_GET['tp']);
-	db_logboek("add", $mess, 5, 0, 1);
+	$mess = sprintf("Je hebt geen toegang tot '%s'.", $_GET['tp']);
+	db_logboek("add", $mess, 15, 0, 1);
 	if ($_SESSION['lidid'] == 0) {
 		fnLoginAanvragen();
 	}
