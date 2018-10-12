@@ -11,10 +11,7 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen" and $_SESSION['lidid
 	session_destroy();
 	setcookie("username", "", time()-3600);
 	setcookie("password", "", time()-3600);
-	printf("<p>%s</p>\n", $mess);
-	echo("<script>\n
-	windows.location.href='/';\n
-	</script>\n");
+	echo("<script>location.href='/';</script>\n");
 }
 
 if ($_SESSION['aantallid'] == 0) {

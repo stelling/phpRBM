@@ -351,9 +351,7 @@ function HTMLheader($refresh=0) {
 		if ($_SESSION['lidid'] > 0) {
 			printf("Welkom %s\n", htmlentities($_SESSION['roepnaamingelogde']));
 			echo("<a href='/?tp=Zelfservice/Wijzigen wachtwoord'><img src='images/user.png' title='Wijzigen wachtwoord' alt='Wijzigen wachtwoord'></a>\n");
-			if ($_SERVER['PHP_SELF'] == "/index.php") {
-				printf("<a href='index.php?actie=uitloggen'><img src='images/power.png' title='Uitloggen' alt='Uitloggen'></a>\n");
-			}
+			echo("<a href='index.php?actie=uitloggen'><img src='images/power.png' title='Uitloggen' alt='Uitloggen'></a>\n");
 			if ($_SESSION['webmaster'] == 1) {
 				if ($_SERVER['PHP_SELF'] != "/admin.php") {
 					echo("<a href='admin.php'><img src='images/tool.png' title='Beheerdersmenu' alt='Tool'></a>\n");
