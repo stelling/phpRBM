@@ -44,7 +44,7 @@ $TypeActiviteit[11] = "Bewaking";
 $TypeActiviteit[12] = "Mutaties diploma's";
 $TypeActiviteit[13] = "Parameters";
 $TypeActiviteit[14] = "Rekeningen";
-$TypeActiviteit[15] = "Authorisatie";
+$TypeActiviteit[15] = "Autorisatie";
 $TypeActiviteit[98] = "Performance";
 $TypeActiviteit[99] = "Debugging";
 asort($TypeActiviteit);
@@ -638,7 +638,7 @@ function db_authorisation($actie, $recid=0, $tabpage="") {
 				fnQuery($query);
 			}
 		} else {
-			$mess = "Je hebt geen rechten om authorisaties te verwijderen.";
+			$mess = "Je hebt geen rechten om autorisaties te verwijderen.";
 			db_logboek("add", $mess, 15, 0, 1);
 		}
 	} elseif ($actie == "lijst") {
