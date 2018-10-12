@@ -1284,7 +1284,7 @@ function fnRekeningenMailen($op) {
 		} elseif ($op == "selectieversturen") {
 			$mess = "De rekeningen zijn niet verzonden, omdat het vinkje niet gezet was.";
 			db_logboek("add", $mess, 14, 0, 1);
-		}			
+		}
 	}
 		
 	if ($_SERVER['REQUEST_METHOD'] != "POST" or $op == "selectieversturen") {		

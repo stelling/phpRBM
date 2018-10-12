@@ -2766,7 +2766,7 @@ function db_onderhoud() {
 		fnQuery($query);
 	}
 	
-	/***** Aanpassen lengte van het IP-adres in Admin_login naar 25. Deze code kan na 1/12/2020 worden verwijderd. *****/
+	/***** Aanpassen type veld van Ingevoerd in Admin_login naar datumtijd. Deze code kan na 1/12/2020 worden verwijderd. *****/
 	$query = sprintf("ALTER TABLE `%sAdmin_login` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NULL DEFAULT CURRENT_TIMESTAMP;", $table_prefix);
 	fnQuery($query);
 	
@@ -2896,7 +2896,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_access` (
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`RecordID`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sAdmin_activiteit` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
@@ -2906,11 +2906,11 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_activiteit` (
   `ReferID` int(11) NOT NULL COMMENT 'Op welk RecordID heeft deze activiteit betrekking?',
   `Script` varchar(75) NOT NULL,
   `TypeActiviteit` tinyint(4) DEFAULT '0',
-  `IP_adres` char(25) NOT NULL,
+  `IP_adres` varchar(25) NOT NULL,
   `USER_AGENT` varchar(110) DEFAULT NULL,
   PRIMARY KEY (`RecordID`),
   KEY `TypeActiviteit` (`TypeActiviteit`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sAdmin_interface` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
@@ -2921,13 +2921,13 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_interface` (
   `Gedownload` datetime DEFAULT NULL,
   `Afgemeld` datetime DEFAULT NULL,
   PRIMARY KEY (`RecordID`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sAdmin_login` (
   `LidID` int(11) NOT NULL,
   `Login` varchar(15) NOT NULL,
   `openid_identity` varchar(50) DEFAULT NULL,
-  `Wachtwoord` varchar(15) NOT NULL,
+  `Wachtwoord` varchar(255) NOT NULL,
   `HerinneringVervallenDiplomas` tinyint(4) NOT NULL DEFAULT '0',
   `Ingevoerd` datetime DEFAULT NULL,
   `Gewijzigd` datetime NOT NULL,
@@ -2936,6 +2936,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_login` (
   `LastActivity` datetime NOT NULL,
   `Ingelogd` tinyint(4) NOT NULL DEFAULT '0',
   `FouteLogin` smallint(6) NOT NULL DEFAULT '0',
+  `ActivatieKey` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`LidID`),
   UNIQUE KEY `Login` (`Login`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
@@ -2952,7 +2953,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_param` (
   `GewijzigdDoor` int(11) NOT NULL,
   PRIMARY KEY (`RecordID`),
   UNIQUE KEY `Naam` (`Naam`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Parameters en instellingen';
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Parameters en instellingen';
 
 CREATE TABLE IF NOT EXISTS `%1\$sBewaking` (
   `RecordID` int(11) DEFAULT NULL,
@@ -2983,7 +2984,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sBewaking_Blok` (
   PRIMARY KEY (`RecordID`),
   UNIQUE KEY `SeizoenBegindatum` (`SeizoenID`,`Begindatum`),
   UNIQUE KEY `SeizoenKode` (`SeizoenID`,`Kode`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sBewaking_Inschrijving` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
@@ -2997,7 +2998,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sBewaking_Inschrijving` (
   `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `Afgemeld` datetime DEFAULT NULL,
   PRIMARY KEY (`RecordID`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sBewseiz` (
   `RecordID` int(11) NOT NULL DEFAULT '0',
@@ -3044,14 +3045,14 @@ CREATE TABLE IF NOT EXISTS `%1\$sDiploma` (
   `EXAM_OND` tinyint(4) DEFAULT NULL,
   `GELDIGH` smallint(6) DEFAULT NULL,
   `AantalBeoordelingen` tinyint(4) DEFAULT NULL,
-  `Vervallen` date DEFAULT NULL,
+  `Vervallen` datetime DEFAULT NULL,
   `HistorieOpschonen` smallint(6) DEFAULT NULL,
   `VoorgangerID` int(11) DEFAULT NULL,
   `Alternatief` varchar(20) DEFAULT NULL,
   `Tonen in bewakingsadministratie` tinyint(4) DEFAULT NULL,
   `Zelfservice` tinyint(4) DEFAULT NULL,
   `RolID` int(11) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
+  `Ingevoerd` datetime DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`RecordID`),
   UNIQUE KEY `Kode` (`Kode`)
@@ -3074,7 +3075,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sEvenement` (
   `GewijzigdDoor` int(11) NOT NULL,
   `VerwijderdOp` date NOT NULL,
   PRIMARY KEY (`RecordID`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sEvenement_Deelnemer` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
@@ -3088,7 +3089,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sEvenement_Deelnemer` (
   `GewijzigdDoor` int(11) NOT NULL,
   PRIMARY KEY (`RecordID`),
   UNIQUE KEY `LidEvenement` (`LidID`,`EvenementID`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sEvenement_Type` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
@@ -3098,7 +3099,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sEvenement_Type` (
   `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `GewijzigdDoor` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`RecordID`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sFunctie` (
   `Nummer` tinyint(4) NOT NULL DEFAULT '0',
@@ -3111,7 +3112,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sFunctie` (
   `Bewakingsfunctie` tinyint(4) DEFAULT NULL,
   `Kader` tinyint(4) DEFAULT NULL,
   `Vervallen per` datetime DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
+  `Ingevoerd` datetime DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`Nummer`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
@@ -3125,6 +3126,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sGBR` (
   `VerdichtingID` int(11) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
+  `Standaard kostenplaats` int(11) DEFAULT NULL,
   PRIMARY KEY (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
@@ -3146,7 +3148,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sKostenplaats` (
   `RecordID` int(11) NOT NULL DEFAULT '0',
   `Kode` varchar(5) DEFAULT NULL,
   `Naam` varchar(35) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
+  `Ingevoerd` datetime DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`RecordID`),
   UNIQUE KEY `Kode` (`Kode`)
@@ -3160,8 +3162,8 @@ CREATE TABLE IF NOT EXISTS `%1\$sLid` (
   `Meisjesnm` varchar(25) DEFAULT NULL,
   `Voorletter` varchar(10) DEFAULT NULL,
   `Geslacht` varchar(1) DEFAULT NULL,
-  `GEBDATUM` date DEFAULT NULL,
-  `Overleden` date DEFAULT NULL,
+  `GEBDATUM` datetime DEFAULT NULL,
+  `Overleden` datetime DEFAULT NULL,
   `GEBPLAATS` varchar(22) DEFAULT NULL,
   `Adres` varchar(30) DEFAULT NULL,
   `Huisnr` int(11) DEFAULT NULL,
@@ -3169,25 +3171,27 @@ CREATE TABLE IF NOT EXISTS `%1\$sLid` (
   `Postcode` varchar(7) DEFAULT NULL,
   `Woonplaats` varchar(22) DEFAULT NULL,
   `Buitenland` tinyint(4) DEFAULT NULL,
-  `Telefoon` varchar(16) DEFAULT NULL,
+  `Telefoon` varchar(21) DEFAULT NULL,
   `Telefoonnummer is geheim` tinyint(4) DEFAULT NULL,
-  `Mobiel` varchar(16) DEFAULT NULL,
+  `Mobiel` varchar(21) DEFAULT NULL,
   `Mobiel is geheim` tinyint(4) DEFAULT NULL,
   `Email` varchar(45) DEFAULT NULL,
   `EmailVereniging` varchar(45) DEFAULT NULL,
   `EmailOuders` varchar(60) DEFAULT NULL,
+  `NamenOuders` varchar(90) DEFAULT NULL,
   `Waarschuwen bij nood` varchar(255) DEFAULT NULL,
   `BANKGIRO` varchar(10) DEFAULT NULL,
   `Bankrekening` varchar(18) DEFAULT NULL,
   `Burgerservicenummer` int(11) DEFAULT NULL,
   `Machtiging afgegeven` tinyint(4) DEFAULT NULL,
-  `BezwaarMachtiging` date DEFAULT NULL,
+  `BezwaarMachtiging` datetime DEFAULT NULL,
   `Legitimatietype` varchar(1) DEFAULT NULL,
   `Legitimatienummer` varchar(15) DEFAULT NULL,
+  `VOG afgegeven` datetime DEFAULT NULL,
   `Wijknummer` smallint(6) DEFAULT NULL,
   `RelnrRedNed` varchar(8) DEFAULT NULL,
   `Beroep` varchar(40) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
+  `Ingevoerd` datetime DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   `Verwijderd` datetime DEFAULT NULL,
   PRIMARY KEY (`Nummer`)
@@ -3197,44 +3201,43 @@ CREATE TABLE IF NOT EXISTS `%1\$sLiddipl` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `Lid` int(11) DEFAULT NULL,
   `DiplomaID` int(11) DEFAULT NULL,
-  `EXDATUM` datetime DEFAULT NULL,
-  `DatumBehaald` date DEFAULT NULL,
+  `DatumBehaald` datetime DEFAULT NULL,
   `EXPLAATS` varchar(23) DEFAULT NULL,
   `Beoordelaar` int(11) DEFAULT NULL,
   `LaatsteBeoordeling` tinyint(4) DEFAULT NULL,
-  `Diplomanummer` varchar(25) DEFAULT NULL,
+  `Diplomanummer` varchar(25) NOT NULL,
   `Examen` int(11) DEFAULT NULL,
-  `LicentieVervallenPer` date DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
+  `LicentieVervallenPer` datetime DEFAULT NULL,
+  `Ingevoerd` datetime DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   UNIQUE KEY `RecordID` (`RecordID`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sLidmaatschap` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `Lid` int(11) NOT NULL DEFAULT '0',
-  `LIDDATUM` date NOT NULL DEFAULT '0000-00-00',
-  `Opgezegd` date DEFAULT NULL,
+  `LIDDATUM` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
+  `Opgezegd` datetime DEFAULT NULL,
   `OpgezegdDoorVereniging` tinyint(4) DEFAULT NULL,
   `Lidnr` int(11) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
+  `Ingevoerd` datetime DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`Lid`,`LIDDATUM`),
   UNIQUE KEY `RecordID` (`RecordID`),
   UNIQUE KEY `Lidnr` (`Lidnr`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sLidond` (
   `RecordID` int(11) DEFAULT NULL,
   `Lid` int(11) NOT NULL DEFAULT '0',
   `OnderdeelID` int(11) NOT NULL DEFAULT '0',
-  `Vanaf` date NOT NULL DEFAULT '0000-00-00',
-  `Opgezegd` date DEFAULT NULL,
+  `Vanaf` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
+  `Opgezegd` datetime DEFAULT NULL,
   `Functie` tinyint(4) NOT NULL DEFAULT '0',
   `EmailFunctie` varchar(45) DEFAULT NULL,
   `GroepID` int(11) DEFAULT NULL,
   `Opmerk` varchar(30) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
+  `Ingevoerd` datetime DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`Lid`,`OnderdeelID`,`Vanaf`,`Functie`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
@@ -3247,11 +3250,11 @@ CREATE TABLE IF NOT EXISTS `%1\$sLidRedNed` (
   `Achternaam` varchar(50) DEFAULT NULL,
   `Voorletters` varchar(10) DEFAULT NULL,
   `Geslacht` varchar(1) DEFAULT NULL,
-  `Geboortedatum` date DEFAULT NULL,
+  `Geboortedatum` datetime DEFAULT NULL,
   `Postcode` varchar(7) DEFAULT NULL,
   `Huisnr` smallint(6) DEFAULT NULL,
   `Foutboodschap` varchar(75) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL
+  `Ingevoerd` datetime DEFAULT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sMailing` (
@@ -3274,7 +3277,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sMailing` (
   `deleted_on` datetime DEFAULT NULL,
   `DeletedBy` int(11) NOT NULL,
   PRIMARY KEY (`MailingID`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sMailing_hist` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
@@ -3295,7 +3298,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sMailing_hist` (
   `Successful` tinyint(4) NOT NULL DEFAULT '1',
   PRIMARY KEY (`RecordID`),
   KEY `LidID` (`LidID`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sMailing_rcpt` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
@@ -3304,7 +3307,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sMailing_rcpt` (
   `to_address` varchar(50) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
   PRIMARY KEY (`RecordID`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sMemo` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
@@ -3352,10 +3355,10 @@ CREATE TABLE IF NOT EXISTS `%1\$sOnderdl` (
   `Alleen leden` tinyint(4) DEFAULT NULL,
   `Tonen in bewakingsadministratie` tinyint(4) DEFAULT NULL,
   `CentraalEmail` varchar(45) DEFAULT NULL,
-  `VervallenPer` date DEFAULT NULL,
+  `VervallenPer` datetime DEFAULT NULL,
   `HistorieOpschonen` smallint(6) DEFAULT NULL,
   `GekoppeldAanQuery` int(11) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
+  `Ingevoerd` datetime DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`RecordID`),
   UNIQUE KEY `Kode` (`Kode`)
@@ -3364,7 +3367,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sOnderdl` (
 CREATE TABLE IF NOT EXISTS `%1\$sRekening` (
   `Nummer` int(11) NOT NULL DEFAULT '0',
   `Seizoen` smallint(6) DEFAULT NULL,
-  `Datum` date DEFAULT NULL,
+  `Datum` datetime DEFAULT NULL,
   `OMSCHRIJV` varchar(30) DEFAULT NULL,
   `Lid` int(11) DEFAULT NULL,
   `DEBNAAM` varchar(60) DEFAULT NULL,
@@ -3373,7 +3376,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sRekening` (
   `BETAALDAG` smallint(6) DEFAULT NULL,
   `Bedrag` decimal(8,2) DEFAULT NULL,
   `Betaald` decimal(8,2) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
+  `Ingevoerd` datetime DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`Nummer`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
@@ -3386,7 +3389,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sRekreg` (
   `KSTNPLTS` varchar(5) DEFAULT NULL,
   `OMSCHRIJV` varchar(60) DEFAULT NULL,
   `Bedrag` decimal(8,2) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
+  `Ingevoerd` datetime DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`Rekening`,`Regelnr`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
@@ -3413,6 +3416,11 @@ CREATE TABLE IF NOT EXISTS `%1\$sSeizoen` (
   `Ingevoerd` datetime DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`Nummer`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `%1\$sTeller` (
+  `Teller` tinyint(4) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`Teller`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sVerdichting` (
@@ -3452,7 +3460,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sWS_Artikel` (
   `Gewijzigd` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE CURRENT_TIMESTAMP,
   `GewijzigdDoor` int(11) NOT NULL,
   PRIMARY KEY (`RecordID`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `%1\$sWS_Orderregel` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
@@ -3470,7 +3478,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sWS_Orderregel` (
   `GewijzigdDoor` int(11) NOT NULL,
   PRIMARY KEY (`RecordID`),
   UNIQUE KEY `ArtikelLid` (`Artikel`,`Lid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;", $table_prefix);
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;", $table_prefix);
 
 	fnQuery($queries);
 }
