@@ -1278,7 +1278,6 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		if ($result > 0) {
 			$mess = sprintf("%s is met '%s' ingelogd.", db_naamlid($lidid), $_SESSION['username']);
 			db_logboek("add", $mess, 1, $lidid);
-			fnMaatwerkNaInloggen();
 		}
 		
 	} elseif ($actie == "updateactiviteit" and $lidid > 0) {
@@ -1569,7 +1568,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 	global $selectnaam, $selectzoeknaam, $table_prefix, $fdtlang;
 	
 	$mess = "";
-	if ($actie == "histdetails" and $rid > 0) {
+	if ($actie === "histdetails" and $rid > 0) {
 		$query = sprintf("SELECT send_on, from_addr, from_name, to_name, to_addr, cc_addr, subject, message, Successful
 					FROM %sMailing_hist WHERE RecordID=%d LIMIT 1;", $table_prefix, $rid);
 		$result = fnQuery($query);
@@ -1577,7 +1576,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		
 	} elseif ($actie == "hist" and $mid > 0) {
 		$query = sprintf("SELECT M.subject AS ndOnderwerp, IF(MH.Successful=1, MH.send_on, 'Niet verzonden') AS dtsVerzonden, IF(MH.LidID=0, MH.to_name, %1\$s) AS Aan,
-					to_addr AS `E-mail`, L.Woonplaats, MH.RecordID AS lnkRecordID
+					to_addr AS `E-mail`, MH.cc_addr AS `CC`, L.Woonplaats, MH.RecordID AS lnkRecordID
 					FROM (%2\$sMailing_hist AS MH LEFT OUTER JOIN %2\$sLid AS L ON MH.LidID = L.Nummer) INNER JOIN %2\$sMailing AS M ON MH.MailingID = M.MailingID
 					WHERE MH.MailingID=%3\$d
 					ORDER BY MH.RecordID DESC;", $selectnaam, $table_prefix, $mid);
@@ -2808,6 +2807,14 @@ function db_onderhoud() {
 		fnQuery($query);
 	}
 	
+	// Toevoegen veld 'LoginWebsite' aan de tabel 'Lid'. Deze code kan na 1/12/2019 worden verwijderd.
+	$tab = $table_prefix . "Lid";
+	$col = "LoginWebsite";
+	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%s' AND COLUMN_NAME='%s';", $db_name, $tab, $col);
+	if (db_scalar($query) == 0) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` varchar(20);", $tab, $col);
+		fnQuery($query);
+	}
 	
 	/***** Velden die aangepast zijn. *****/
 	
