@@ -27,7 +27,7 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 		} else {
 			$this->IsMail(true);
 		}
-		$this->IsHTML(false);
+		$this->CharSet = "UTF-8";
 		$this->From = db_param("emailwebmaster");
 		$this->FromName = db_param("naamvereniging");
 		$this->WordWrap = 110;
@@ -53,7 +53,9 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 			}
 			$rv = $row->EmailVereniging;
 		}
+		
 		if (strlen($rv) > 0) {
+			$this->clearCCs();
 			$this->InformerenOuders($row->GEBDATUM, $row->EmailOuders, "cc");
 		} else {
 			$rv = $this->InformerenOuders($row->GEBDATUM, $row->EmailOuders, "to");
@@ -66,10 +68,10 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 		if ($kind != "to" and count($this->to) == 0) {
 			$kind = "to";
 		}
-		$rv = "";
 		
+		$rv = "";
 		if ($geboren > date("Y-m-d", mktime(0, 0, 0, date("m"), date("d"), date("Y")-18)) and strlen($emailouders) > 5) {
-			$emailouders = str_replace(" ", "", $emailouders);
+			$emailouders = str_replace(" ", "", strtolower($emailouders));
 			$emailouders = str_replace(";", ",", $emailouders);
 			foreach(explode(",", $emailouders) as $e) {
 				if (self::ValidateAddress($e) and in_array($e, $this->to) == false and in_array($e, $this->cc) == false) {
