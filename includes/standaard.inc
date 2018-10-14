@@ -111,9 +111,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	$tabpages[] = "Autorisatie";
 	$tabpages[] = "Instellingen";
 	$tabpages[] = "Uploaden data";
-	if (db_interface("aantalopenstaand") > 0) {
-		$tabpages[] = "Downloaden wijzigingen";
-	}
+	$tabpages[] = "Downloaden wijzigingen";
 	$tabpages[] = "Onderhoud";
 	$tabpages[] = "Logboek";
 } else {
@@ -327,7 +325,7 @@ function HTMLheader($refresh=0) {
 		echo("<head>\n");
 		echo("<meta charset='UTF-8'>\n");
 		if (isset($_GET['tp']) and substr($_GET['tp'], 0, 7) == "Mailing") {
-			echo("<script src='/includes/ckeditor/ckeditor.js'></script>\n");
+			echo("<script src='/includes/ckeditor5/ckeditor.js'></script>\n");
 		}
 		if ($refresh == 1) {
 			echo("<meta http-equiv='refresh' content='1200'>\n");

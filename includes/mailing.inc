@@ -378,9 +378,7 @@ class Mailing {
 			printf("<div class='label'>Aan:</div><div class='veld'>%s</div>\n", htmlentities($row->to_name));
 		}
 		printf("<div class='label'>E-mail:</div><div class='veld'>%s</div>\n", $row->to_addr);
-		if (strlen($row->cc_addr) > 5) {
-			printf("<div class='label'>CC:</div><div class='veld'>%s</div>\n", $row->cc_addr);
-		}
+		printf("<div class='label'>CC:</div><div class='veld'>%s</div>\n", $row->cc_addr);
 		printf("<div class='label'>Onderwerp:</div><div class='veld'>%s</div>\n", $row->subject);
 		printf("<div class='label'>Bericht:</div><div class='veld'>%s</div>\n", $row->message);
 		echo("</div>  <!-- Einde verstuurdemail -->\n");
@@ -501,8 +499,10 @@ class Mailing {
 		}
 		echo("</table>\n");
 		
-		printf("<textarea name='message'>%s</textarea>\n", $this->message);
+		printf("<textarea name='message' id='editor'>%s</textarea>\n", $this->message);
 		
+/* ckeditor 4 code
+
 		echo("<script>CKEDITOR.replace('message',{
 			height : 450,
 			entities : false,
@@ -524,6 +524,16 @@ class Mailing {
 				{ name: 'tools', items : [ 'Maximize', 'ShowBlocks','-','About' ] }
 			]
 		});</script>\n");
+
+***** */
+	
+		echo("<script>
+    ClassicEditor
+	.create( document.querySelector( '#editor' ) )
+	.catch( error => {
+		console.error( error );
+	} );
+</script>");
 	
 		$strHV = "";
 		foreach ($this->MergeField as $v) {
@@ -1174,7 +1184,7 @@ class Mailing {
 		}
 		
 		if (db_param("maxmailsperminuut") > 0 and (60/db_param("maxmailsperminuut")) < $this->vertraging_tussen_verzenden) {
-			$this->vertraging_tussen_verzenden = db_param("maxmailsperminuut");
+			$this->vertraging_tussen_verzenden = (60/db_param("maxmailsperminuut"));
 		}
 	}
 }
