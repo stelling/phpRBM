@@ -31,6 +31,11 @@ $dir = substr(__DIR__, 0, strrpos(__DIR__, "/"));
 require($dir . '/config.php');
 $bestandsversie = filectime($dir . "/index.php");
 
+/* Included maatwerk */
+$incl = $dir . "/maatwerk/maatwerk.inc";
+require_once($incl);
+/* Einde includen maatwerk*/
+
 /* Include Open source libaries */
 require_once("phpmailer/PHPMailer.php");
 require_once("phpmailer/SMTP.php");
@@ -46,11 +51,6 @@ foreach ($includes as $incl) {
 	}
 	require_once($incl);
 }
-
-/* Included maatwerk */
-$incl = $dir . "/maatwerk/maatwerk.inc";
-require_once($incl);
-/* Einde includen maatwerk*/
 
 if (!isset($_SESSION['settings']['naamvereniging'])) {
 	db_param("", "curval");

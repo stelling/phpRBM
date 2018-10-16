@@ -2824,12 +2824,13 @@ function db_onderhoud() {
 	
 	/***** Opschonen database na een upload uit de Access-database.  *****/
 
-	$query = sprintf("DELETE FROM %sLid WHERE (NOT Verwijderd IS NULL);", $table_prefix);
+	$query = sprintf("DELETE FROM %sLid WHERE ((NOT Verwijderd IS NULL) OR (NOT Overleden IS NULL));", $table_prefix);
 	$result = fnQuery($query);
 	if ($result > 0) {
-		db_logboek("add", sprintf("%d verwijderde leden definitief verwijderd.", $result), 2);
+		db_logboek("add", sprintf("Er zijn %d leden verwijderd, omdat ze een verwijderd markering hebben of omdat ze overleden zijn.", $result), 2);
 		fnQuery(sprintf("OPTIMIZE TABLE %sLid;", $table_prefix));
 	}
+	
 	$query = sprintf("UPDATE %sLid SET Telefoon=NULL WHERE `Telefoonnummer is geheim`=1;", $table_prefix);
 	$result = fnQuery($query);
 	sprintf("UPDATE %sLid SET Mobiel=NULL WHERE `Mobiel is geheim`=1;", $table_prefix);
@@ -3135,20 +3136,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sGBR` (
   `Gewijzigd` datetime DEFAULT NULL,
   `Standaard kostenplaats` int(11) DEFAULT NULL,
   PRIMARY KEY (`Kode`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE IF NOT EXISTS `%1\$sGroep` (
-  `RecordID` int(11) NOT NULL DEFAULT '0',
-  `Kode` varchar(5) DEFAULT NULL,
-  `Omschrijving` varchar(41) DEFAULT NULL,
-  `OnderdeelID` int(11) DEFAULT NULL,
-  `DiplomaID` int(11) DEFAULT NULL,
-  `Starttijd` datetime DEFAULT NULL,
-  `Eindtijd` datetime DEFAULT NULL,
-  `Ingevoerd` datetime DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL,
-  PRIMARY KEY (`RecordID`),
-  UNIQUE KEY `OnderdeelKode` (`OnderdeelID`,`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sKostenplaats` (
