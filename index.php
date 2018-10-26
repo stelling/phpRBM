@@ -47,7 +47,7 @@ if (toegang("", 0) == false) {
 		fnLoginAanvragen();
 	}
 } elseif ($currenttab == "Herstellen wachtwoord") {
-	fnHerstellenWachtwoord();
+	fnHerstellenWachtwoord($stap="mail");
 } elseif ($currenttab == "Validatie login") {
 	if (isset($_GET['key']) and isset($_GET['lidid'])) {
 		// Valideren van de nieuwe login op de website
