@@ -458,7 +458,12 @@ class Mailing {
 			printf("<option value=0>&nbsp;</option>\n");
 			$rcpt_rows = db_mailing("potrcpt", $this->mid);
 			foreach($rcpt_rows as $rcpt) {
-				printf("<option value='%d'>%s</option>\n", $rcpt->Nummer, $rcpt->Zoeknaam_lid);
+				$rnm = $rcpt->Zoeknaam_lid;
+				$sl = substr(db_lidmaatschap("soortlid", $rcpt->Nummer), 0, 1);
+				if (strlen($sl) > 0) {
+					$rnm .= sprintf(" (%s)", $sl);
+				}
+				printf("<option value='%d'>%s</option>\n", $rcpt->Nummer, $rnm);
 			}
 			printf("</select>&nbsp;\n");
 			

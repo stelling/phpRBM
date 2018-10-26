@@ -473,6 +473,7 @@ function db_lidmaatschap($actie, $lidid=0, $opgezegd="", $rid=0, $liddatum="", $
 	global $table_prefix, $fdaccess, $fdsql, $wherelid, $fdlang;
 
 	$naamlid = db_naamlid($lidid);
+	$rv = "";
 	
 	$liddatum = change_month_to_uk($liddatum);
 	if (strlen($liddatum) > 4 and strtotime($liddatum) != false) {
@@ -574,6 +575,21 @@ function db_lidmaatschap($actie, $lidid=0, $opgezegd="", $rid=0, $liddatum="", $
 			$mess = sprintf("Bij lid %s is een lidmaatschap met nummer %d toegevoegd.", db_naamlid($lidid), $lidnr);
 			db_logboek("add", $mess, 6, $lidid);
 		}
+		
+	} elseif ($actie == "soortlid" and $lidid > 0) {
+		$query = sprintf("SELECT * FROM %sLidmaatschap WHERE Lid=%d ORDER BY LIDDATUM DESC;", $table_prefix, $lidid);
+		$result = fnQuery($query);
+		$row = $result->fetch();
+		if ($row->Lid > 0) {
+			if ($row->Opgezegd > '1970-01-01' and strtotime($row->Opgezegd) < time()) {
+				$rv = "Voormalig lid";
+			} elseif (strtotime($row->LIDDATUM) > time()) {
+				$rv = "Toekomstig lid";
+			}
+		} else {
+			$rv = "Kloslid";
+		}
+		return $rv;
 	}
 	
 } # db_lidmaatschap
