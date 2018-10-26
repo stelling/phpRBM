@@ -1187,7 +1187,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 				$mess = sprintf("Login '%s' is al in gebruik bij een ander lid.", $login);
 			} elseif (strlen($login) > 5 and $lidid > 0 and strlen($pw) > 5) {
 				$nk = password_hash(newkey(), PASSWORD_DEFAULT);
-				$query = sprintf("INSERT INTO %sAdmin_login SET LidID=%d, Login='%s', Wachtwoord='%s', ActivatieKey='%s', Ingevoerd=SYSDATE();", $table_prefix, $lidid, $login, password_hash($pw, PASSWORD_DEFAULT), $nk);
+				$query = sprintf("INSERT INTO %sAdmin_login SET LidID=%d, Login='%s', Wachtwoord='%s', ActivatieKey='%s', Ingevoerd=SYSDATE(), Gewijzigd=SYSDATE();", $table_prefix, $lidid, $login, password_hash($pw, PASSWORD_DEFAULT), $nk);
 				$result = fnQuery($query);
 				$mess = sprintf("Login '%s' is voor %s aangemaakt.", $login, db_naamlid($lidid));
 				$mess .= fnValidatieLogin($lidid, $nk, "mail");
@@ -1256,11 +1256,11 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		}
 		if (db_param("geldigheidactivatie") > 0) {
 			$query = sprintf("UPDATE %1\$sAdmin_login SET ActivatieKey='', Wachtwoord='', Gewijzigd=SYSDATE()
-						WHERE Ingelogd=0 AND LENGTH(ActivatieKey) > 5 AND (Ingevoerd < ADDDATE(SYSDATE(), INTERVAL -%2\$d HOUR) OR (Gewijzigd < ADDDATE(SYSDATE(), INTERVAL -%2\$d HOUR) AND (Gewijzigd IS NOT NULL) AND Gewijzigd > '2000-01-01'));"
+						WHERE Ingelogd=0 AND LENGTH(ActivatieKey) > 5 AND Gewijzigd < ADDDATE(SYSDATE(), INTERVAL -%2\$d HOUR) AND (Gewijzigd IS NOT NULL) AND Gewijzigd > '2000-01-01';"
 						, $table_prefix, db_param("geldigheidactivatie"));
 			$result = fnQuery($query);
+//			debug($query, 1, 0, 1);
 			if ($result > 0) {
-//				debug($query, 1, 0, 1);
 				db_logboek("add", sprintf("Er zijn van %d logins de validatie ongeldig gemaakt.", $result), 5);
 			}
 		}
@@ -1653,7 +1653,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		
 	} elseif ($actie == "potrcpt") {
 		$query = sprintf("SELECT L.Nummer, %1\$s AS Zoeknaam_lid FROM %2\$sLid AS L
-					WHERE (Verwijderd IS NULL) AND (Overleden IS NULL)
+					WHERE (Verwijderd IS NULL) AND (Overleden IS NULL) AND (LENGTH(Email) > 5 OR LENGTH(EmailVereniging) > 5 OR LENGTH(EmailOuders) > 5)
 					AND (NOT EXISTS (SELECT LidID FROM %2\$sMailing_rcpt AS R WHERE R.LidID = L.Nummer AND R.MailingID=%3\$d))
 					ORDER BY L.Achternaam, L.Roepnaam;", $selectzoeknaam, $table_prefix, $mid);
 		$result = fnQuery($query);
