@@ -163,7 +163,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 			$content = file_get_contents($myFile);
 		} else {	
 			$content = "<p>Beste [%ROEPNAAM%],</p>\n
-<p>Je hebt een reset je wachtwoord voor <a href='https://[%URLWEBSITE%]'>[%NAAMWEBSITE%]</a> aangevraagd. Hierbij de link om je nieuwe wachtwoord op te geven.</p>\n
+<p>Je hebt een reset je wachtwoord voor [%NAAMWEBSITE%] aangevraagd. Hierbij de link om je nieuwe wachtwoord op te geven.</p>\n
 <ul>\n
 <li>Login: [%LOGIN%]</li>\n
 <li><a href='https://[%URLWEBSITE%][%URLRESETWW%]'>Klik op om nieuw wachtwoord in te geven</a></li>\n
@@ -322,7 +322,7 @@ function fnValidatieLogin($lidid, $key, $stap) {
 	
 	if ($stap == "mail") {
 		$content = "<p>Beste [%ROEPNAAM%],</p>\n
-<p>Je hebt een nieuwe login voor <a href='https://[%URLWEBSITE%]'>[%NAAMWEBSITE%]</a> aangevraagd. Hierbij de link om je login te bevestigen. Pas na activatie zal deze login werken.</p>\n
+<p>Je hebt een nieuwe login voor [%NAAMWEBSITE%] aangevraagd. Hierbij de link om je login te bevestigen. Pas na activatie zal deze login werken.</p>\n
 <ul>\n
 <li>Login: [%LOGIN%]</li>\n
 <li><a href='https://[%URLWEBSITE%][%URLACTIVATIE%]'>Klik hierop om de login te bevestigen.</a></li>\n
