@@ -148,16 +148,85 @@ function toegang($soort="", $melding=1, $password="") {
 	}
 }
 
-function fnHerstellenWachtwoord() {
+function fnHerstellenWachtwoord($stap="", $lidid=0) {
 	global $table_prefix;
-				
-	if ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['nieuwwachtwoord']) and strlen($_POST['nieuwwachtwoord']) > 0 and $_GET['lidid'] > 0) {
+	
+	$mess = "";
+	
+	if (strlen($stap) == 0 and isset($_POST['stap']) and strlen($_POST['stap']) > 0) {
+		$stap = $_POST['stap'];
+	}
+		
+	if ($stap == "mail" and $lidid > 0) {
+		$myFile = 'templates/Password_reset.html';
+		if (file_exists($myFile)) {
+			$content = file_get_contents($myFile);
+		} else {	
+			$content = "<p>Beste [%ROEPNAAM%],</p>\n
+<p>Je hebt een reset je wachtwoord voor <a href='https://[%URLWEBSITE%]'>[%NAAMWEBSITE%]</a> aangevraagd. Hierbij de link om je nieuwe wachtwoord op te geven.</p>\n
+<ul>\n
+<li>Login: [%LOGIN%]</li>\n
+<li><a href='https://[%URLWEBSITE%][%URLRESETWW%]'>Klik op om nieuw wachtwoord in te geven</a></li>\n
+<li>Deze link is [%GELDIGHEIDACTIVATIE%] uur geldig</li>
+</ul>\n
+<p>[%GEBLOKKEERD%]</p>
+\n
+<p>Met vriendelijke groeten,<br>\n
+<strong>Webmaster [%NAAMWEBSITE%]</strong></p>\n";
+		}
+	
+		$nk = db_logins("wachtwoordreset", "", "", $lidid);
+		$row = db_logins("rowlogin", "", "", $lidid)[0];
+	
+		$mail = new RBMmailer($row->Nummer);
+		$mail->FromName = "Webmaster " . db_param("naamwebsite");
+		$mail->Subject = "Herstellen wachtwoord";
+
+		if (db_param("maxinlogpogingen") > 0 and $row->FouteLogin > db_param("maxinlogpogingen")) {
+			$geblokt = "Er is teveel foutief met deze login proberen in te loggen. Hierdoor is dit account geblokkeerd. ";
+			if (db_param("loginautounlock") > 0 and db_param("loginautounlock") <= 24*60) {
+				$geblokt .= sprintf("Uiterlijk om %s uur is deze blokkade verwijderd.", date("G:i", strtotime($row->Gewijzigd)+(60*db_param("loginautounlock"))));
+			} else {
+				$geblokt .= sprintf("Vraag aan de <a href='mailto:%s'>webmaster</a> om deze vrij te geven.", db_param("emailwebmaster"));
+			}
+		} else {
+			$geblokt = "";
+		}
+	
+		$urlresetww = sprintf("/index.php?tp=Herstellen+wachtwoord&lidid=%d&key=%s", $lidid, $nk);
+	
+		if (strlen($urlresetww) > 5) {
+			$content = str_replace("[%NAAMLID%]", $row->Naam, $content);
+			$content = str_replace("[%URLRESETWW%]", $urlresetww, $content);
+			$content = str_replace("[%LOGIN%]", $row->Login, $content);
+			$content = str_replace("[%ROEPNAAM%]", $row->Roepnaam, $content);
+			$content = str_replace("[%GEBLOKKEERD%]", $geblokt, $content);
+			$content = str_replace("[%GELDIGHEIDACTIVATIE%]", intval(db_param("geldigheidactivatie")), $content);
+			$content = str_replace("[%NAAMVERENIGING%]", db_param("naamvereniging"), $content);
+			$content = str_replace("[%NAAMWEBSITE%]", db_param("naamwebsite"), $content);
+			$content = str_replace("[%URLWEBSITE%]", $_SERVER["HTTP_HOST"], $content);
+			$content = str_replace("[%IPADDRESS%]", $_SERVER['REMOTE_ADDR'], $content);
+
+			$mail->Body = $content;
+			$mail->IsHTML(true);
+			$mail->addstationary();
+			if ($mail->Send()) {
+				$mess = sprintf("Link om wachtwoord te herstellen is aan %s (%s) verzonden.", $row->Naam, $mail->ListAddresses("to"));
+			} else {
+				$mess = sprintf("Fout tijdens het versturen van de mail: %s.<br> Probeer later nogmaals of neem contact op met de webmaster.", $mail->ErrorInfo);
+			}
+		} else {
+			$mess = "Er ging iets mis, het wachtwoord is niet gereset.";
+		}
+		db_logboek("add", $mess, 5, $row->Nummer);
+		
+	} elseif ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['nieuwwachtwoord']) and strlen($_POST['nieuwwachtwoord']) > 0 and $_GET['lidid'] > 0) {
 		
 		$wwok = checknewpassword($_POST['nieuwwachtwoord'], $_POST['login']);
 		if ($wwok !== "ok") {
 			$mess = $wwok;
 		} elseif (strlen($_POST['nieuwwachtwoord']) != strlen($_POST['herhaalwachtwoord']) or $_POST['nieuwwachtwoord'] !== $_POST['herhaalwachtwoord']) {
-			$mess = sprintf("De twee ingevoerde wachtwoorden zijn niet exact gelijk aan elkaar. Het wachtwoord wordt niet gewijzigd.", db_param("minlengtewachtwoord"));
+			$mess = "De twee ingevoerde wachtwoorden zijn niet exact gelijk aan elkaar. Het wachtwoord wordt niet gewijzigd.";
 		} else {
 			$mess = db_change_password($_POST['nieuwwachtwoord'], "", $_GET['lidid']);
 		}
@@ -175,10 +244,10 @@ function fnHerstellenWachtwoord() {
 		echo("<div id='profielwijzigen'>\n");
 		if (strlen($login) > 5 and password_verify($_GET["key"], $dbkey)) {
 			
-			printf("<form name='ResettenWachtwoord' action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
+			printf("<form name='HerstellenWachtwoord' action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
 			printf("<fieldset>
 			<h3>Resetten wachtwoord</h3>
-			<label>Login:</label><input type=text value='%s' name='login' disabled>
+			<label>Login:</label><input type=text value='%s' name='login' readonly>
 			<label>Nieuw wachtwoord:</label><input type='password' name='nieuwwachtwoord' size=25>
 			<label>Herhaal wachtwoord:</label><input type='password' name='herhaalwachtwoord' size=25>
 			<input type='submit' class='knop' value='Bevestig'>\n
@@ -223,7 +292,7 @@ function fnHerstellenWachtwoord() {
 									WHERE %2\$s;", $table_prefix, $w);
 			$lidid = db_scalar($query);
 			if ($lidid > 0) {
-				$mess = fnPasswordReset($lidid);
+				$mess = fnHerstellenWachtwoord("mail", $lidid);
 			} else {
 				$mess = "De ingevulde combinatie is niet gevonden. Er wordt geen e-mail verstuurd om het wachtwoord te herstellen.";
 			}
@@ -238,13 +307,15 @@ function fnHerstellenWachtwoord() {
 		<label>E-mailadres:</label><input type='text' name='email' size=50 maxlength=45>
 		<label>Lidnummer:</label><input class='inputnumber' type='number' min=0 name='lidnummer' value=0>
 		<label>Login:</label><input type='text' name='login' size=50 maxlength=15>
+		<input type='hidden' value='mail' name='stap'>
 		<input type='submit' class='knop' value='Stuur mail met herstellink'>\n
 		</fieldset>
 		</form>
 		<p>Minimaal 2 van de 3 velden moeten correct zijn ingevuld. Na het versturen van deze link is je oude wachtwoord niet meer geldig.</p>
 		</div>  <!-- Einde profielwijzigen -->");
 	}
-} 
+	return $mess;
+} # fnHerstellenWachtwoord
 
 function fnValidatieLogin($lidid, $key, $stap) {
 	global $basisurl;
@@ -312,72 +383,6 @@ function fnValidatieLogin($lidid, $key, $stap) {
 	return $mess;
 }
 
-function fnPasswordReset($lidid) {
-	
-	$myFile = 'templates/Password_reset.html';
-	if (file_exists($myFile)) {
-		$content = file_get_contents($myFile);
-	} else {
-		$content = "<p>Beste [%ROEPNAAM%],</p>\n
-<p>Je hebt een reset je wachtwoord voor <a href='https://[%URLWEBSITE%]'>[%NAAMWEBSITE%]</a> aangevraagd. Hierbij de link om je nieuwe wachtwoord op te geven.</p>\n
-<ul>\n
-<li>Login: [%LOGIN%]</li>\n
-<li><a href='https://[%URLWEBSITE%][%URLRESETWW%]'>Klik op om nieuw wachtwoord in te geven</a></li>\n
-<li>Deze link is [%GELDIGHEIDACTIVATIE%] uur geldig</li>
-</ul>\n
-<p>[%GEBLOKKEERD%]</p>
-\n
-<p>Met vriendelijke groeten,<br>\n
-<strong>Webmaster [%NAAMWEBSITE%]</strong></p>\n";
-	}
-	
-	$nk = db_logins("wachtwoordreset", "", "", $lidid);
-	$row = db_logins("rowlogin", "", "", $lidid)[0];
-	
-	$mail = new RBMmailer($row->Nummer);
-	$mail->FromName = "Webmaster " . db_param("naamwebsite");
-	$mail->Subject = "Herstellen wachtwoord";
-
-	if (db_param("maxinlogpogingen") > 0 and $row->FouteLogin > db_param("maxinlogpogingen")) {
-		$geblokt = "Er is teveel foutief met deze login proberen in te loggen. Hierdoor is dit account geblokkeerd. ";
-		if (db_param("loginautounlock") > 0 and db_param("loginautounlock") <= 24*60) {
-			$geblokt .= sprintf("Uiterlijk om %s uur is deze blokkade verwijderd.", date("G:i", strtotime($row->Gewijzigd)+(60*db_param("loginautounlock"))));
-		} else {
-			$geblokt .= sprintf("Vraag aan de <a href='mailto:%s'>webmaster</a> om deze vrij te geven.", db_param("emailwebmaster"));
-		}
-	} else {
-		$geblokt = "";
-	}
-	
-	$urlresetww = sprintf("/index.php?tp=Herstellen+wachtwoord&lidid=%d&key=%s", $lidid, $nk);
-	
-	if (strlen($urlresetww) > 5) {
-		$content = str_replace("[%NAAMLID%]", $row->Naam, $content);
-		$content = str_replace("[%URLRESETWW%]", $urlresetww, $content);
-		$content = str_replace("[%LOGIN%]", $row->Login, $content);
-		$content = str_replace("[%ROEPNAAM%]", $row->Roepnaam, $content);
-		$content = str_replace("[%GEBLOKKEERD%]", $geblokt, $content);
-		$content = str_replace("[%GELDIGHEIDACTIVATIE%]", intval(db_param("geldigheidactivatie")), $content);
-		$content = str_replace("[%NAAMVERENIGING%]", db_param("naamvereniging"), $content);
-		$content = str_replace("[%NAAMWEBSITE%]", db_param("naamwebsite"), $content);
-		$content = str_replace("[%URLWEBSITE%]", $_SERVER["HTTP_HOST"], $content);
-		$content = str_replace("[%IPADDRESS%]", $_SERVER['REMOTE_ADDR'], $content);
-
-		$mail->Body = $content;
-		$mail->IsHTML(true);
-		$mail->addstationary();
-		if ($mail->Send()) {
-			$mess = sprintf("Link om wachtwoord te herstellen is aan %s (%s) verzonden.", $row->Naam, $mail->ListAddresses("to"));
-		} else {
-			$mess = sprintf("Fout tijdens het versturen van de mail: %s.<br> Probeer later nogmaals of neem contact op met de webmaster.", $mail->ErrorInfo);
-		}
-	} else {
-		$mess = "Er ging iets mis, het wachtwoord is niet gereset.";
-	}
-	db_logboek("add", $mess, 5, $row->Nummer);
-	return $mess;
-}
-
 function fnConfirmLidnr($row) {
 
 	$mailing = new Mailing(db_param("mailing_lidnr"));
@@ -392,10 +397,8 @@ function fnConfirmLidnr($row) {
 	$mailing = null;
 }
 
-function fnLoginAanvragen() {
+function fnLoginAanvragen($stap="") {
 	global $table_prefix, $lididwebmasters, $selectlidnr, $basisurl;
-	
-	$beperktotgroep = db_param("beperktotgroep");
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 
@@ -438,18 +441,18 @@ function fnLoginAanvragen() {
 							$mess .= fnConfirmLidnr($row) . " ";
 							$lidid = $row->Nummer;
 						} elseif ($row->AanvragenMag == 0 and in_array($row->Nummer, $lididwebmasters) == false) {
-							if (is_array($beperktotgroep) and count($beperktotgroep) > 1) {
+							if (is_array(db_param("beperktotgroep")) and count(db_param("beperktotgroep")) > 1) {
 								$gt = "";
-								foreach ($beperktotgroep as $gr) {
+								foreach (db_param("beperktotgroep") as $gr) {
 									if (strlen($gt) > 0) {$gt .= ", ";}
 									$gt .= "'" . db_naam_onderdeel($gr) . "'";
 								}
 								$mess = sprintf("Je behoort niet tot één van de groepen %s van %s. Een login mag niet aangevraagd worden.", $gt, db_param("naamvereniging"));
 							} else {
-								if (is_array($beperktotgroep) and count($beperktotgroep) == 1) {
-									$gr = $beperktotgroep[0];
-								} elseif (is_numeric($beperktotgroep)) {
-									$gr = $beperktotgroep;
+								if (is_array(db_param("beperktotgroep")) and count(db_param("beperktotgroep")) == 1) {
+									$gr = db_param("beperktotgroep")[0];
+								} elseif (is_numeric(db_param("beperktotgroep"))) {
+									$gr = db_param("beperktotgroep");
 								} else {
 									$gr = 0;
 								}
