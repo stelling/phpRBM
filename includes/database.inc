@@ -2568,6 +2568,9 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrStrings['naamvereniging'] = "Naam vereniging";
 	$arrStrings['naamvereniging_afkorting'] = "";
 	$arrStrings['naamwebsite'] = "Naam website";
+	$arrStrings['emailsecretariaat'] = "";
+	$arrStrings['emailledenadministratie'] = "";
+	
 	$arrStrings['mailing_extensies_toegestaan'] = "bmp, gif, jpeg, jpg, pdf, png, pps, rar, txt, zip";
 	$arrStrings['mailing_rekening_from'] = "";
 	$arrStrings['mailing_rekening_from_naam'] = "";
@@ -3497,7 +3500,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sWS_Orderregel` (
 }
 
 function db_backup() {
-	global $db_host, $db_user, $db_pass, $db_name;
+	global $db_name;
 	
 	$db_folderbackup = db_param("db_folderbackup");
 	
@@ -3513,12 +3516,18 @@ function db_backup() {
 	} elseif (substr($db_folderbackup, -1) != "/") {
 		$db_folderbackup .= "/";
 	}
+	db_param("db_folderbackup", "updval", $db_folderbackup);
 
 	if (strtotime(db_param("laatstebackup")) < mktime(date("H")-1, date("m"), 0, date("m"), date("d"), date("Y"))) {
 		$FileName = $db_folderbackup . $buname;
-		$strCmd = sprintf("mysqldump -h%s -u%s -p%s -f %s> %s.sql", $db_host, $db_user, $db_pass, $db_name, $FileName);
-		exec($strCmd, $output, $output);
-		if (filesize($FileName . ".sql") > 1500) {
+		$data = fnBackupTables();
+
+		if (strlen($data) > 1500) {
+		
+			$buf = fopen($FileName . ".sql", 'w');		
+			fwrite($buf, $data);
+			fclose($buf);	
+			
 			$ret = sprintf("De backup is in '%s.sql' gemaakt. ", str_replace($db_folderbackup, "", $FileName));
 			db_logboek("add", $ret, 3);
 			db_param("laatstebackup", "updval", date("Y-m-d H:i"));
@@ -3532,14 +3541,11 @@ function db_backup() {
 
 				// De backup 700 chmodden, zodat niemand er bij kan!
 				exec("/bin/chmod 700 " . $FileName . ".tar.gz");
-			} else {
-				// De backup 700 chmodden, zodat niemand er bij kan!
-				exec("/bin/chmod 700 " . $FileName . ".sql");
 			}
 
 			if (db_param("db_backupsopschonen") > 0 and $handle = opendir($db_folderbackup)) {
 				while (false !== ($file = readdir($handle))) {
-					sleep(3);
+					sleep(5);
 					if ($file != "." and $file != ".." and startwith($file, $buname) == false) {
 						if (filectime($db_folderbackup . $file) < mktime(0, 0, 0, date("m"), date("d")-db_param("db_backupsopschonen"), date("Y")) or filesize($db_folderbackup . $file) < 500 ) {
 							unlink($db_folderbackup . $file);
@@ -3553,14 +3559,71 @@ function db_backup() {
 			
 		} else {
 			$ret = "Het backup-script heeft gedraaid, maar de backup is niet gelukt.\n";
-			$ret .= sprintf("Melding mysqldump: %s", print_r($output, true));
 			db_logboek("add", $ret, 3);
 		}
 	} else {
-		$ret = "Het backupscript heeft korter dan 1 uur geleden gedraaid. Het wordt niet nogmaals uitgevoerd.";
+		$ret = "Het backupscript heeft korter dan 1 uur geleden met success gedraaid. Het wordt niet nogmaals uitgevoerd.";
 		db_logboek("add", $ret, 3);
 	}
 	return $ret;
+}
+
+function fnBackupTables($tables="*") {
+	global $dbc, $table_prefix;
+
+	$data = "";
+   if($tables == "*") {
+      $tables = array();
+      $result = $dbc->prepare('SHOW TABLES'); 
+      $result->execute();                         
+      while($row = $result->fetch(PDO::FETCH_NUM)) {
+			$tables[] = $row[0]; 
+      }
+   } else {
+      $tables = is_array($tables) ? $tables : explode(',',$tables);
+   }
+   
+	foreach($tables as $table) {
+		$query = sprintf("SELECT * FROM `%s`;", $table);
+		$resultcount = $dbc->prepare($query);
+      $resultcount->execute();
+		$num_fields = $resultcount->columnCount();
+
+		$query = sprintf("SELECT * FROM `%s`;", $table);
+		$result = $dbc->prepare($query);
+      $result->execute();
+      $data .= sprintf("DROP TABLE `%s`;", $table);
+
+      $result2 = $dbc->prepare('SHOW CREATE TABLE '.$table);  
+      $result2->execute();                            
+      $row2 = $result2->fetch(PDO::FETCH_NUM);
+      $data .= sprintf("\n\n%s;\n\n", $row2[1]);
+		
+		for ($i = 0; $i < $num_fields; $i++) {
+			while($row = $result->fetch(PDO::FETCH_NUM)) { 
+				$data .= sprintf("INSERT INTO `%s` VALUES(", $table);
+            for($j=0; $j<$num_fields; $j++) {
+					$row[$j] = addslashes($row[$j]); 
+               $row[$j] = str_replace("\n","\\n",$row[$j]);
+               if (isset($row[$j])) {
+						$data .= '"' . $row[$j] . '"' ;
+					} else {
+						$data .= '""';
+					}
+               if ($j < ($num_fields-1)) {
+						$data .= ",";
+					}
+            }
+            $data .= ");\n";
+         }
+      }
+      $data .= "\n\n\n";
+   }
+            //save filename
+//            $filename = 'db-backup-'.time().'-'.(implode(",",$tables)).'.sql';
+//            $this->writeUTF8filename($filename,$data);
+
+	return $data;
 }
 
 ?>
