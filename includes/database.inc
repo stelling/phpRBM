@@ -2615,11 +2615,14 @@ function db_param($naam, $actie="curval", $newval="") {
 				$retval = "";
 			}
 			
-			
 			if ($naam == "naamvereniging") {
 				$query = sprintf("SELECT 1 AS RecordID, 'T' AS ParamType, Naam AS ValueChar FROM %sVereniging;", $table_prefix);
 			} elseif ($naam == "naamvereniging_afkorting") {
 				$query = sprintf("SELECT 1 AS RecordID, 'T' AS ParamType, AfkortingNaam AS ValueChar FROM %sVereniging;", $table_prefix);
+			} elseif ($naam == "emailsecretariaat") {
+				$query = sprintf("SELECT 1 AS RecordID, 'T' AS ParamType, EmailSecretariaat AS ValueChar FROM %sVereniging;", $table_prefix);
+			} elseif ($naam == "emailledenadministratie") {
+				$query = sprintf("SELECT 1 AS RecordID, 'T' AS ParamType, EmailLedenadministratie AS ValueChar FROM %sVereniging;", $table_prefix);
 			} else {
 				$query = sprintf("SELECT IFNULL(RecordID, 0) AS RecordID, ParamType, ValueNum, ValueChar FROM %sAdmin_param WHERE Naam='%s';", $table_prefix, $naam);
 			}

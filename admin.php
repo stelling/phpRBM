@@ -353,8 +353,6 @@ function fnInstellingen() {
 	$arrParam['db_backuptarren'] = "Moet de backup gecomprimeerd worden? Let op, de webhost moet dit wel ondersteunen.";
 	$arrParam['db_backupsopschonen'] = "Na hoeveel dagen moeten oude back-ups automatisch verwijderd worden? 0 = nooit.";
 	$arrParam['db_folderbackup'] = "Deze variabele is optioneel. Mocht deze niet ingevuld worden, dan wordt de standaard folder gebruikt.";
-	$arrParam['emailledenadministratie'] = "Het e-mailadres van de ledenadministratie.";
-	$arrParam['emailsecretariaat'] = "Deze wordt gebruikt om het secretariaat op de hoogte te houden van verstuurde mailingen en opzeggingen. Dit veld is niet verplicht.";
 	$arrParam['emailwebmaster'] = "Het e-mailadres van de webmaster.";
 	$arrParam['kaderoverzichtmetfoto'] = "Moeten op het kaderoverzicht pasfoto's getoond worden?";
 	$arrParam['toonpasfotoindiennietingelogd'] = "Mag de bezoeker een pasfoto worden getoond als deze niet ingelogd?";
@@ -478,7 +476,7 @@ function fnInstellingen() {
 	echo("<table>\n");
 	foreach (db_param("", "lijst") as $row) {
 		if (array_key_exists($row->Naam, $arrParam)) {
-			$uitleg = $arrParam[$row->Naam];
+			$uitleg = htmlentities($arrParam[$row->Naam]);
 			if (strlen($uitleg) == 0) {
 			} elseif ($row->ParamType == "B") {
 				if ($row->ValueNum == 1) {
