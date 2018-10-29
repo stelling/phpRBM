@@ -350,7 +350,7 @@ function fnInstellingen() {
 	$arrParam['bewaartijdloginsnietgebruikt'] = "Het aantal dagen dat logins wordt bewaard, nadat het is aangevraagd en nog niet gebruikt is.";
 	$arrParam['bewaartijdmailings'] = "Het aantal maanden dat een verwijderde mailing bewaard moet worden. 0 = altijd bewaren.";
 	$arrParam['beperktotgroep'] = "Vul hier de RecordID's, gescheiden door een komma, van de groepen (zie tabel ONDERDL) in die toegang hebben. Als je geen groep invult hebben alleen webmasters toegang.";
-	$arrParam['db_backuptarren'] = "Moet de backup gecomprimeerd worden? Let op, de webhost moet dit wel ondersteunen.";
+	$arrParam['db_backuptarren'] = "Moet de backup gecomprimeerd worden? Let op, de webhost moet dit wel ondersteunen. En ook moet de PHP-functie 'exec' beschikbaar zijn.";
 	$arrParam['db_backupsopschonen'] = "Na hoeveel dagen moeten oude back-ups automatisch verwijderd worden? 0 = nooit.";
 	$arrParam['db_folderbackup'] = "Deze variabele is optioneel. Mocht deze niet ingevuld worden, dan wordt de standaard folder gebruikt.";
 	$arrParam['emailwebmaster'] = "Het e-mailadres van de webmaster.";
