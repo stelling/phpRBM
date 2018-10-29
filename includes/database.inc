@@ -3540,7 +3540,9 @@ function db_backup() {
 				exec("/bin/rm " . $FileName . ".sql");
 
 				// De backup 700 chmodden, zodat niemand er bij kan!
-				exec("/bin/chmod 700 " . $FileName . ".tar.gz");
+				chmod($FileName . ".tar.gz", 0700);
+			} else {
+				chmod($FileName . ".sql", 0700);
 			}
 
 			if (db_param("db_backupsopschonen") > 0 and $handle = opendir($db_folderbackup)) {
