@@ -225,47 +225,42 @@ if ($currenttab == "Beheer logins" and toegang()) {
 	echo("</div>  <!-- Einde invulformulier -->\n");	
 } elseif ($currenttab == "Downloaden wijzigingen" and toegang($_GET['tp'])) {
 
+	$copytext = "";
 	echo("<h2>Wijzigen op de website, te verwerken in de Access database.</h2>");
 	printf("<form name='formdownload' method='post' action='%s?tp=%s&amp;op=downloadwijz'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	$rows = db_interface("lijst");
 	if (count($rows) > 0) {
 		echo(fnDisplayTable($rows, "", "", 1));
 		
-		$copytext = "";
 		foreach ($rows as $row) {
 			$copytext .= $row->SQL . "\n";
 		}
 		
 		echo("<p class='mededeling'><input type='submit' value='Download wijzigingen'>\n");
 		printf("&nbsp;<input type='button' value='Wijzigingen afmelden' OnClick=\"location.href='%s?tp=%s&amp;op=afmeldenwijz'\"></p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-		echo("<p>SQL code voor in Access, om te kopi&euml;ren:</p>\n");
-		printf("<div class='CopyPaste'>%s</div>\n", $copytext);
+		$copytext .= "\n";
 	} else {
 		echo("<p class='mededeling'>Er zijn geen wijzigingen die nog verwerkt moeten worden.</p>\n");
 	}
 	echo("</form>\n");
-	
+
 	echo("<h2>Gewijzigde logins op de website, bijwerken in de Access database.</h2>");
-	printf("<form name='exportlogins' method='post' action='%s?tp=%s&amp;op=exportlogins'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	$xf = "IFNULL(L.LoginWebsite, '') <> Login.Login AND Login.LastLogin > '2018-01-01'";
 	$rows = db_logins("lijst", "", "", 0, $xf);
 	if (count($rows) > 0) {
 		echo(fnDisplayTable($rows, "", "", 1));
 		
-		$copytext = "";
 		foreach ($rows as $row) {
 			$copytext .= sprintf("UPDATE Lid SET `LoginWebsite`='%s', Gewijzigd=Date() WHERE Nummer=%d;\n", $row->Login, $row->LidID);
 		}
-		
-		echo("<p>SQL code voor in Access, om te kopi&euml;ren:</p>\n");
-		printf("<div class='CopyPaste'>%s</div>\n", $copytext);
 	} else {
 		echo("<p class='mededeling'>Er zijn geen logins die ge-exporteerd kunnen worden.</p>\n");
 	}
-	echo("</form>\n");
-	
-	
-	
+		
+	if (strlen($copytext) > 0) {
+		echo("<h2>SQL code voor in MS-Access, om te kopi&euml;ren:</h2>\n");
+		printf("<div class='CopyPaste'>%s</div>\n", $copytext);
+	}
 	
 } elseif ($currenttab == "Onderhoud" and toegang($_GET['tp'])) {
 	db_createtables();
@@ -274,7 +269,7 @@ if ($currenttab == "Beheer logins" and toegang()) {
 	echo("<div id='dbonderhoud'>\n");
 	$bewaartijdlogging = db_param("bewaartijdlogging");
 	
-	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=backup\"' value='Backup'>&nbsp;Maak een backup van de database.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=backup\"' value='Backup'>&nbsp;Maak een backup van de database. Laatste backup is op %s gemaakt.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), db_param("laatstebackup"));
 	if ($bewaartijdlogging > 0) {
 		printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=logboekopschonen\"' value='Logboek opschonen'>&nbsp;Verwijder alle records uit het logboek, die ouder dan %d maanden zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $bewaartijdlogging);
 	}
