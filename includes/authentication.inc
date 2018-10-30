@@ -72,9 +72,9 @@ function toegang($soort="", $melding=1, $password="") {
 			$_SESSION['lidid'] = 0;
 		}
 		if ($melding == 1 and strlen($mess) > 0) {
-			db_logboek("add", $mess, 1, 0, 2);
+			db_logboek("add", $mess, 97, 0, 2);
 		} elseif (strlen($mess) > 0) {
-			db_logboek("add", $mess, 1);
+			db_logboek("add", $mess, 97);
 		}
 		if ($_SESSION['lidid'] == 0 or strlen($_SESSION['username']) == 0) {
 			$_SESSION['lidid'] = 0;
