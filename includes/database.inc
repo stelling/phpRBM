@@ -31,7 +31,7 @@ $arrTables[] = "Rekreg";
 
 $TypeActiviteit[0] = "N.T.B.";
 $TypeActiviteit[1] = "Inloggen/Uitloggen";
-$TypeActiviteit[2] = "DB onderhoud";
+$TypeActiviteit[2] = "Onderhoud/beheer";
 $TypeActiviteit[3] = "DB backup";
 $TypeActiviteit[4] = "Mailing";
 $TypeActiviteit[5] = "Authenticatie";
@@ -45,6 +45,7 @@ $TypeActiviteit[12] = "Mutaties diploma's";
 $TypeActiviteit[13] = "Parameters";
 $TypeActiviteit[14] = "Rekeningen";
 $TypeActiviteit[15] = "Autorisatie";
+$TypeActiviteit[97] = "Foutieve login";
 $TypeActiviteit[98] = "Performance";
 $TypeActiviteit[99] = "Debugging";
 asort($TypeActiviteit);
@@ -274,7 +275,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					F.Omschrijv AS Functie,
 					LO.Opmerk AS Opmerking,
 					LO.Opgezegd AS dteOpgezegd,
-					CONCAT(ROUND(DATEDIFF(IF(LO.Opgezegd IS NULL, CURDATE(), LO.Opgezegd), LO.Vanaf)/365.25, 0), ' jaar') AS numDuur
+					CONCAT(FORMAT(DATEDIFF(IF(LO.Opgezegd IS NULL, CURDATE(), LO.Opgezegd), LO.Vanaf)/365.25, 1, 'nl_NL'), ' jaar') AS numDuur
 					FROM %s
 					WHERE O.`Type`='A' AND LO.Lid=%d
 					ORDER BY LO.Vanaf DESC, O.Naam;", $fromlidond, $LidID);
@@ -285,7 +286,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					F.Omschrijv AS Functie,
 					LO.Opmerk AS Opmerking,
 					LO.Opgezegd AS dteTotenmet,
-					CONCAT(ROUND(DATEDIFF(IF(LO.Opgezegd IS NULL, CURDATE(), LO.Opgezegd), LO.Vanaf)/365.25, 0), ' jaar') AS numDuur
+					CONCAT(FORMAT(DATEDIFF(IF(LO.Opgezegd IS NULL, CURDATE(), LO.Opgezegd), LO.Vanaf)/365.25, 1, 'nl_NL'), ' jaar') AS numDuur
 					FROM %s
 					WHERE O.Kader=1 AND LO.Lid=%d
 					ORDER BY IF(ISNULL(LO.Opgezegd), 0, 1), LO.Vanaf DESC, O.Naam;", $fromlidond, $LidID);
@@ -405,14 +406,14 @@ function db_lid($actie, $filter="", $lidid=0, $nv="") {
 		
 	} elseif ($actie == "lijst") {
 		$query = sprintf("SELECT L.Nummer, %1\$s AS `Naam_lid`, UPPER(L.Woonplaats) AS Woonplaats,
-					L.Telefoon, L.Mobiel, L.Email AS `emlE-mail`, L.GEBDATUM AS GEBDATUM, %2\$s AS Zoeknaam
+					L.Telefoon, L.Mobiel, IF((L.Email IS NULL), L.EmailOuders, L.Email) AS `emlE-mail`, L.GEBDATUM AS GEBDATUM, %2\$s AS Zoeknaam
 					FROM %3\$sLid AS L
 					%4\$s
 					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, L.Nummer DESC;", $selectnaam, $selectzoeknaam, $table_prefix, $filter);
 					
 	} elseif ($actie == "ledenlijst") {
 		$query = sprintf("SELECT L.Nummer AS lnkNummer, LM.Lidnr AS numLidnr, %1\$s AS `Naam_lid`, UPPER(L.Woonplaats) AS Woonplaats,
-					L.Telefoon, L.Mobiel, L.Email AS `emlE-mail`, L.Nummer AS llkNummer, L.GEBDATUM AS ndGEBDATUM, %2\$s AS ndZoeknaam
+					L.Telefoon, L.Mobiel, IF((L.Email IS NULL), L.EmailOuders, L.Email) AS `emlE-mail`, LM.LIDDATUM AS `dteLid vanaf`, LM.Opgezegd AS `dteOpgezegd per`, L.Nummer AS llkNummer, L.GEBDATUM AS ndGEBDATUM, %2\$s AS ndZoeknaam
 					FROM %3\$s
 					%4\$s
 					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, LM.LIDDATUM DESC;", $selectnaam, $selectzoeknaam, $fromlid, $filter);
@@ -2601,7 +2602,7 @@ function db_param($naam, $actie="curval", $newval="") {
 		return $result->fetchAll();
 		
 	} elseif ($actie == "curval" and strlen($naam) > 0) {
-		if (isset($_SESSION['settings'][$naam])) {
+		if (isset($_SESSION['settings'][$naam]) and $naam != "laatstebackup") {
 			$retval = $_SESSION['settings'][$naam];
 		} else {
 			if (array_key_exists($naam, $arrBooleans)) {
@@ -2626,6 +2627,8 @@ function db_param($naam, $actie="curval", $newval="") {
 				$query = sprintf("SELECT 1 AS RecordID, 'T' AS ParamType, EmailSecretariaat AS ValueChar FROM %sVereniging;", $table_prefix);
 			} elseif ($naam == "emailledenadministratie") {
 				$query = sprintf("SELECT 1 AS RecordID, 'T' AS ParamType, EmailLedenadministratie AS ValueChar FROM %sVereniging;", $table_prefix);
+			} elseif ($naam == "laatstebackup") {
+				$query = sprintf("SELECT 1 AS RecordID, 'T' AS ParamType, MAX(DatumTijd) AS ValueChar FROM %sAdmin_activiteit WHERE TypeActiviteit=3;", $table_prefix);
 			} else {
 				$query = sprintf("SELECT IFNULL(RecordID, 0) AS RecordID, ParamType, ValueNum, ValueChar FROM %sAdmin_param WHERE Naam='%s';", $table_prefix, $naam);
 			}
@@ -3504,13 +3507,13 @@ function db_backup() {
 	
 	$db_folderbackup = db_param("db_folderbackup");
 	
-	$buname = $db_name . "_backup_" . Date("Y-m-d-H");
+	$buname = $db_name . "_backup_" . Date("Y-m-d-H-i-s") . "-" . rand(10001, 99998);
 	if (strlen($db_folderbackup) < 5) {
 		$db_folderbackup = str_replace($_SERVER['PHP_SELF'], "", $_SERVER["SCRIPT_FILENAME"]) . "/backups/";
 		if (!file_exists($db_folderbackup)) {
 			if (mkdir($db_folderbackup, 0755, true) == true) {
 				$ret = sprintf("Directory '%s' is aangemaakt.", $db_folderbackup);
-				db_logboek("add", $ret, 3);
+				db_logboek("add", $ret, 2);
 			}
 		}
 	} elseif (substr($db_folderbackup, -1) != "/") {
@@ -3530,19 +3533,13 @@ function db_backup() {
 			
 			$ret = sprintf("De backup is in '%s.sql' gemaakt. ", str_replace($db_folderbackup, "", $FileName));
 			db_logboek("add", $ret, 3);
-			db_param("laatstebackup", "updval", date("Y-m-d H:i"));
 
 			if (db_param("db_backuptarren") == 1) {
-				// De dump tarren
 				exec("/bin/tar -czf " . $FileName . ".tar.gz" . " " . $FileName . ".sql");
-
-				// De niet ingepakte dump weggooien
 				exec("/bin/rm " . $FileName . ".sql");
-
-				// De backup 700 chmodden, zodat niemand er bij kan!
-				chmod($FileName . ".tar.gz", 0700);
+				chmod($FileName . ".tar.gz", 0600);
 			} else {
-				chmod($FileName . ".sql", 0700);
+				chmod($FileName . ".sql", 0600);
 			}
 
 			if (db_param("db_backupsopschonen") > 0 and $handle = opendir($db_folderbackup)) {
@@ -3565,7 +3562,7 @@ function db_backup() {
 		}
 	} else {
 		$ret = "Het backupscript heeft korter dan 1 uur geleden met success gedraaid. Het wordt niet nogmaals uitgevoerd.";
-		db_logboek("add", $ret, 3);
+		db_logboek("add", $ret, 2);
 	}
 	return $ret;
 }
