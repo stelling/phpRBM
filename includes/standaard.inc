@@ -15,6 +15,7 @@ if ($_SESSION['webmaster'] == 1 or $_SERVER["HTTP_HOST"] == "phprbm.telling.nl")
 	error_reporting(E_ALL);
 } else {
 	error_reporting(0);
+	//error_reporting(E_ALL);
 }
 
 if (isset($_SERVER['HTTPS'])){
@@ -772,8 +773,10 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 					}
 				} elseif (substr($key, 0, 3) == "eml") {
 					$ret .= sprintf("<td>%s</td>", fnDispEmail($value, "", 1));
-				} elseif (substr($key, 0, 3) == "num") {
+				} elseif (substr($key, 0, 3) === "num") {
 					$ret .= sprintf("<td class='number'>%s</td>", $value);
+				} elseif (substr($key, 0, 3) == "nm2") {
+					$ret .= sprintf("<td class='number'>%s</td>", number_format(floatval($value), 2, ",", "."));
 				} elseif (substr($key, 0, 3) == "mrg") {
 					$ret .= sprintf("<td>%s</td>", str_replace(" &amp; ", "<br>", htmlentities($value)));
 				} elseif (substr($key, 0, 2) != "nd") {
