@@ -280,7 +280,7 @@ function muteerevenement($eventid) {
 	echo("<div id='evenementenbeheer'>\n");
 	printf("<form method='post' action='%s?tp=%s&amp;op=edit&amp;eid=%d'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $eventid);
 	echo("<table>\n");
-	printf("<tr><td class='label'>Datum:</td><td colspan=5><input type='date' name='Datum' value='%s' size=25></td></tr>\n", strftime("%e %B %Y", strtotime($datum)));
+	printf("<tr><td class='label'>Datum:</td><td colspan=5><input type='date' name='Datum' value='%s' size=25></td></tr>\n", $datum);
 	printf("<tr><td class='label'>Omschrijving:</td><td colspan=5><input type='text' name='Omschrijving' value='%s' maxlength=50 size=50></td></tr>\n", $oms);
 	printf("<tr><td class='label'>E-mail:</td><td colspan=5><input type='email' name='Email' value='%s' maxlength=45 size=50></td></tr>\n", $email);
 	printf("<tr><td class='label'>Starttijd:</td><td><input type='time' name='Starttijd' value='%s' size=5 maxlength=5></td>\n", $starttijd);
