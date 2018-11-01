@@ -276,19 +276,22 @@ function fnLedenlijst() {
 	} else {
 		$filter = "";
 	}
+	$xtraselect = ", LM.LIDDATUM AS `dteLid vanaf`, LM.Opgezegd AS `dteOpgezegd per`";
 	
 	if ($_SESSION['val_groep'] == 0) {
 		if ($_SESSION['val_TL'] == "Leden") {
 			if (strlen($filter) > 0) {$filter .= " AND "; }
 			$filter .= "LM.Lidnr > 0 AND ((LM.Opgezegd IS NULL) OR LM.Opgezegd > CURDATE())";
+			$xtraselect = ", LM.LIDDATUM AS `dteLid vanaf`";
 		} elseif ($_SESSION['val_TL'] == "Klosleden") {
 			if (strlen($filter) > 0) {$filter .= " AND "; }
 			$filter .= "(LM.Lidnr IS NULL)";
+			$xtraselect = "";
 		} elseif ($_SESSION['val_TL'] == "Voormalig leden") {
 			if (strlen($filter) > 0) {$filter .= " AND "; }
 			$filter .= "(NOT LM.Opgezegd IS NULL) AND LM.Opgezegd < CURDATE()";
 		}
-		$rows = db_lid("ledenlijst", $filter);
+		$rows = db_lid("ledenlijst", $filter, 0, $xtraselect);
 	} else {
 		if (strlen($filter) > 0) {$filter .= " AND ";}
 		$filter .= sprintf("LO.OnderdeelID=%d", $_SESSION['val_groep']);

@@ -28,9 +28,9 @@ function toegang($soort="", $melding=1, $password="") {
 		$mess = "";
 		if (isset($_SESSION['username']) and strlen($_SESSION['username']) > 0 and strlen($password) > 0) {
 			$row = db_logins("controle", "", $_SESSION['username'], 0, "", $password);
-			if (db_param("maxinlogpogingen") > 0 and isset($row->FouteLogin) and $row->FouteLogin > db_param("maxinlogpogingen")) {
-				if (db_param("loginautounlock") > 0 and db_param("loginautounlock") < 12*60) {
-					$mess = sprintf("Login '%s' is tot uiterlijk %s uur geblokkeerd", $_SESSION['username'], date("G:i", strtotime($row->Gewijzigd)+(60*db_param("loginautounlock"))));
+			if (db_param("login_maxinlogpogingen") > 0 and isset($row->FouteLogin) and $row->FouteLogin > db_param("login_maxinlogpogingen")) {
+				if (db_param("login_autounlock") > 0 and db_param("login_autounlock") < 12*60) {
+					$mess = sprintf("Login '%s' is tot uiterlijk %s uur geblokkeerd", $_SESSION['username'], date("G:i", strtotime($row->Gewijzigd)+(60*db_param("login_autounlock"))));
 				} else {
 					$mess = sprintf("Login '%s' is geblokkeerd", $_SESSION['username']);
 				}
@@ -182,10 +182,10 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		$mail->FromName = "Webmaster " . db_param("naamwebsite");
 		$mail->Subject = "Herstellen wachtwoord";
 
-		if (db_param("maxinlogpogingen") > 0 and $row->FouteLogin > db_param("maxinlogpogingen")) {
+		if (db_param("login_maxinlogpogingen") > 0 and $row->FouteLogin > db_param("login_maxinlogpogingen")) {
 			$geblokt = "Er is teveel foutief met deze login proberen in te loggen. Hierdoor is dit account geblokkeerd. ";
-			if (db_param("loginautounlock") > 0 and db_param("loginautounlock") <= 24*60) {
-				$geblokt .= sprintf("Uiterlijk om %s uur is deze blokkade verwijderd.", date("G:i", strtotime($row->Gewijzigd)+(60*db_param("loginautounlock"))));
+			if (db_param("login_autounlock") > 0 and db_param("login_autounlock") <= 24*60) {
+				$geblokt .= sprintf("Uiterlijk om %s uur is deze blokkade verwijderd.", date("G:i", strtotime($row->Gewijzigd)+(60*db_param("login_autounlock"))));
 			} else {
 				$geblokt .= sprintf("Vraag aan de <a href='mailto:%s'>webmaster</a> om deze vrij te geven.", db_param("emailwebmaster"));
 			}
@@ -201,7 +201,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 			$content = str_replace("[%LOGIN%]", $row->Login, $content);
 			$content = str_replace("[%ROEPNAAM%]", $row->Roepnaam, $content);
 			$content = str_replace("[%GEBLOKKEERD%]", $geblokt, $content);
-			$content = str_replace("[%GELDIGHEIDACTIVATIE%]", intval(db_param("geldigheidactivatie")), $content);
+			$content = str_replace("[%GELDIGHEIDACTIVATIE%]", intval(db_param("login_geldigheidactivatie")), $content);
 			$content = str_replace("[%NAAMVERENIGING%]", db_param("naamvereniging"), $content);
 			$content = str_replace("[%NAAMWEBSITE%]", db_param("naamwebsite"), $content);
 			$content = str_replace("[%URLWEBSITE%]", $_SERVER["HTTP_HOST"], $content);
@@ -339,10 +339,10 @@ function fnValidatieLogin($lidid, $key, $stap) {
 		$mail->FromName = "Webmaster " . db_param("naamwebsite");
 		$mail->Subject = "Link bevestiging nieuwe login";
 
-		if (db_param("maxinlogpogingen") > 0 and $row->FouteLogin > db_param("maxinlogpogingen")) {
+		if (db_param("login_maxinlogpogingen") > 0 and $row->FouteLogin > db_param("login_maxinlogpogingen")) {
 			$geblokt = "Er is teveel foutief met deze login proberen in te loggen. Hierdoor is dit account geblokkeerd. ";
-			if (db_param("loginautounlock") > 0 and db_param("loginautounlock") <= 24*60) {
-				$geblokt .= sprintf("Uiterlijk om %s uur is deze blokkade verwijderd.", date("G:i", strtotime($row->Gewijzigd)+(60*db_param("loginautounlock"))));
+			if (db_param("login_autounlock") > 0 and db_param("login_autounlock") <= 24*60) {
+				$geblokt .= sprintf("Uiterlijk om %s uur is deze blokkade verwijderd.", date("G:i", strtotime($row->Gewijzigd)+(60*db_param("login_autounlock"))));
 			} else {
 				$geblokt .= sprintf("Vraag aan de <a href='mailto:%s'>webmaster</a> om deze vrij te geven.", db_param("emailwebmaster"));
 			}
@@ -358,7 +358,7 @@ function fnValidatieLogin($lidid, $key, $stap) {
 			$content = str_replace("[%LOGIN%]", $row->Login, $content);
 			$content = str_replace("[%ROEPNAAM%]", $row->Roepnaam, $content);
 			$content = str_replace("[%GEBLOKKEERD%]", $geblokt, $content);
-			$content = str_replace("[%GELDIGHEIDACTIVATIE%]", intval(db_param("geldigheidactivatie")), $content);
+			$content = str_replace("[%GELDIGHEIDACTIVATIE%]", intval(db_param("login_geldigheidactivatie")), $content);
 			$content = str_replace("[%NAAMVERENIGING%]", db_param("naamvereniging"), $content);
 			$content = str_replace("[%NAAMWEBSITE%]", db_param("naamwebsite"), $content);
 			$content = str_replace("[%URLWEBSITE%]", $_SERVER["HTTP_HOST"], $content);
@@ -422,7 +422,7 @@ function fnLoginAanvragen($stap="") {
 			$mess = "Je hebt geen e-mailadres opgegeven.";
 		} elseif (!isValidMailAddress($_POST['email'], 0)) {
 			$mess = sprintf("Je hebt geen geldig e-mailadres (%s) opgegeven.", $_POST['email']);
-		} elseif (strlen($_POST['gewenstelogin']) > 0 and db_param("lidnrnodigbijloginaanvraag") == 1 and $_POST['lidnummer'] == 0) {
+		} elseif (strlen($_POST['gewenstelogin']) > 0 and db_param("login_lidnrnodigbijaanvraag") == 1 and $_POST['lidnummer'] == 0) {
 			$mess = "Je moet je lidnummer invullen om een login te kunnen aanvragen.";
 		} else {
 			if ($_POST['lidnummer'] > 0) {
@@ -433,7 +433,7 @@ function fnLoginAanvragen($stap="") {
 			$rows = db_logins("rowlogin", $_POST['email'], "", 0, $xf);
 			if (count($rows) > 0) {
 				foreach ($rows as $row) {
-					if (isset($row->Login) and strlen($row->Login) > 5 and (db_param("lidnrnodigbijloginaanvraag") == 0 or $row->Lidnr == $_POST['lidnummer'])) {
+					if (isset($row->Login) and strlen($row->Login) > 5 and (db_param("login_lidnrnodigbijaanvraag") == 0 or $row->Lidnr == $_POST['lidnummer'])) {
 						$lidid = $row->Nummer;
 					} else {
 						// E-mailadres is bekend, maar een aan dit e-mailadres gekoppelde login bestaat niet.
@@ -462,15 +462,19 @@ function fnLoginAanvragen($stap="") {
 							$mess = "Je hebt geen gewenste login opgegeven.";
 						} elseif (strlen($_POST['gewenstelogin']) < 6) {
 							$mess = "Je hebt geen geldige gewenste login opgegeven. Een login moet uit minimaal 6 karakters bestaan.";
-						} elseif (strlen($_POST['gewenstelogin']) > db_param("maxlengtelogin")) {
-							$mess = sprintf("Je hebt geen geldige login opgegeven. Een login mag uit maximaal %d karakters bestaan.", db_param("maxlengtelogin"));
+						} elseif (strlen($_POST['gewenstelogin']) > db_param("login_maxlengte")) {
+							$mess = sprintf("Je hebt geen geldige login opgegeven. Een login mag uit maximaal %d karakters bestaan.", db_param("login_maxlengte"));
 						} elseif (strpos($_POST['gewenstelogin'], " ") > 0) {
 							$mess = "Je hebt geen geldige login opgegeven. Er mag geen spatie in een login zitten.";
+						} elseif (strpos($_POST['gewenstelogin'], ";") > 0) {
+							$mess = "Je hebt geen geldige login opgegeven. Er mag geen puntkomma (;) in een login zitten.";
+						} elseif (strpos($_POST['gewenstelogin'], "'") > 0 or strpos($_POST['gewenstelogin'], "\"") > 0) {
+							$mess = "Je hebt geen geldige login opgegeven. Er mogen geen aanhalingstekens in een login zitten.";
 						} elseif ($wwok !== "ok") {
 							$mess = $wwok;
 						} elseif (db_logins("controlebestaat", "", $_POST['gewenstelogin'], $row->Nummer) > 0) {
 							$mess = sprintf("Login '%s' is al in gebruik.", $_POST['gewenstelogin']);
-						} elseif (db_param("lidnrnodigbijloginaanvraag") == 0 or $row->Lidnr == $_POST['lidnummer']) {
+						} elseif (db_param("login_lidnrnodigbijaanvraag") == 0 or $row->Lidnr == $_POST['lidnummer']) {
 							if (db_logins("add", "", $_POST['gewenstelogin'], $row->Nummer, "", $_POST['gewenstwachtwoord'])) {
 								$rl = db_logins("rowlogin", "", "", $row->Nummer);
 								$lidid = $rl[0]->Nummer;
@@ -499,21 +503,21 @@ function fnLoginAanvragen($stap="") {
 		echo("<fieldset>\n");
 		echo("<h3>Aanvragen login</h3>\n");
 		
-		if (db_param("lidnrnodigbijloginaanvraag") == 1) {
+		if (db_param("login_lidnrnodigbijaanvraag") == 1) {
 			echo("<label>Lidnummer:</label><input class='inputnumber' type='number' name='lidnummer' min=0>\n");
 		}
 		echo("<label>E-mailadres:</label><input type='email' name='email'>\n");
-		printf("<p><label>Gewenste login:</label><input type='text' name='gewenstelogin' maxlength=%d>\n", db_param("maxlengtelogin"));
+		printf("<p><label>Gewenste login:</label><input type='text' name='gewenstelogin' maxlength=%d>\n", db_param("login_maxlengte"));
 		echo("<p><label>Gewenst wachtwoord:</label><input type='password' name='gewenstwachtwoord' maxlength=15>\n");
 
 		echo("<input class='knop' type='submit' name='loginaanvragen' value='Aanvragen'></p>\n");
 		echo("</fieldset>\n");
 
-		if (db_param("mailing_lidnr") > 0 and db_param("lidnrnodigbijloginaanvraag") == 1) {
+		if (db_param("mailing_lidnr") > 0 and db_param("login_lidnrnodigbijaanvraag") == 1) {
 			echo("<p>Door alleen je e-mailadres in te vullen word je lidnummer per e-mail verzonden.</p>\n");
 		}
 		echo("<p>");
-		if (db_param("lidnrnodigbijloginaanvraag") == 1) {
+		if (db_param("login_lidnrnodigbijaanvraag") == 1) {
 			echo("Met de juiste combinatie van lidnummer en e-mailadres kan je een login aanvragen.");
 		} else {
 			echo("Met het, in de ledenadministratie bekende e-mailadres, kan je een login aanvragen.");
@@ -529,11 +533,9 @@ function fnLoginAanvragen($stap="") {
 
 function cleanlogin($login) {
 
-	$maxlengtelogin = db_param("maxlengtelogin");
-
 	$login = trim($login);
-	if (strlen($login) > $maxlengtelogin) {
-		$login = substr($login, 0, $maxlengtelogin);
+	if (strlen($login) > 15) {
+		$login = substr($login, 0, 15);
 	}
 	$login = str_replace(" ", "_", $login);
 	$login = str_replace("'", "", $login);
@@ -580,40 +582,32 @@ function checknewpassword($ww, $login="") {
 	$alphabet = "abcdefghijklmnopqrstuvwxyz";
 	$mess = "ok";
 	
-	if (strlen($ww) > db_param('maxlengtewachtwoord') and db_param('maxlengtewachtwoord') >= 7) {
-		$mess = sprintf("Het wachtwoord is te lang, het mag maximaal %d karakters lang zijn.", db_param('maxlengtewachtwoord'));
-	} elseif (strlen($ww) < db_param('minlengtewachtwoord') and db_param('minlengtewachtwoord') >= 7) {
-		$mess = sprintf("Het wachtwoord is te kort, het moet minimaal %d karakters lang zijn.", db_param('minlengtewachtwoord'));
+	if (strlen($ww) > db_param('wachtwoord_maxlengte') and db_param('wachtwoord_maxlengte') >= 7) {
+		$mess = sprintf("Het wachtwoord is te lang, het mag maximaal %d karakters lang zijn.", db_param('wachtwoord_maxlengte'));
+	} elseif (strlen($ww) < db_param('wachtwoord_minlengte') and db_param('wachtwoord_minlengte') > 0) {
+		$mess = sprintf("Het wachtwoord is te kort, het moet minimaal %d karakters lang zijn.", db_param('wachtwoord_minlengte'));
 	} elseif (strpos($ww, " ") !== false) {
 		$mess = "Het wachtwoord mag geen spatie bevatten.";
 	} elseif (strlen($login) > 0 and strpos(strtolower($ww), strtolower($login)) !== false) {
-		$mess = "Het wachtwoord mag niet uw login bevatten.";
+		$mess = "Het wachtwoord mag uw login niet bevatten.";
 	} else {
-		$bevat = 0;
-		for ($i = 0; $i < (strlen($ww)-1); $i++) {
+		$bevatc=0;
+		$bevatk=0;
+		$bevath=0;
+		for ($i=0; $i < strlen($ww); $i++) {
 			if (strpos("0123456789", substr($ww, $i, 1)) !== false) {
-				$bevat = 1;
+				$bevat=1;
+			} elseif (strpos($alphabet, substr($ww, $i, 1)) !== false) {
+				$bevatk=1;
+			} elseif (strpos(strtoupper($alphabet), substr($ww, $i, 1)) !== false) {
+				$bevath=1;
 			}
 		}
-		if ($bevat == 0) {
+		if ($bevatc == 0) {
 			$mess = "Het wachtwoord moet minimaal 1 cijfer bevatten.";
-		}
-		$bevat = 0;
-		for ($i = 0; $i < (strlen($ww)-1); $i++) {
-			if (strpos($alphabet, substr($ww, $i, 1)) !== false) {
-				$bevat = 1;
-			}
-		}
-		if ($bevat == 0) {
+		} elseif ($bevatk == 0) {
 			$mess = "Het wachtwoord moet minimaal 1 kleine letter bevatten.";
-		}
-		$bevat = 0;
-		for ($i = 0; $i < (strlen($ww)-1); $i++) {
-			if (strpos(strtoupper($alphabet), substr($ww, $i, 1)) !== false) {
-				$bevat = 1;
-			}
-		}
-		if ($bevat == 0) {
+		} elseif ($bevath == 0) {
 			$mess = "Het wachtwoord moet minimaal 1 hoofdletter bevatten.";
 		}
 	}

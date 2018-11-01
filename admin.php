@@ -170,7 +170,7 @@ if ($currenttab == "Beheer logins" and toegang()) {
 	}
 	
 	$lnk = sprintf("<a href='%s?op=deletelogin&amp;lidid=%%d'><img src='images/del.png' title='Verwijder login'></a>", $_SERVER['PHP_SELF']);
-	if (db_param("maxinlogpogingen") > 0) {
+	if (db_param("login_maxinlogpogingen") > 0) {
 		$lnk_lk = sprintf("<a href='%s?op=unlocklogin&amp;lidid=%%d' title='Reset foutieve logins'><img src='images/unlocked_01.png'></a>", $_SERVER['PHP_SELF']);
 	} else {
 		$lnk_lk = "";
@@ -267,15 +267,14 @@ if ($currenttab == "Beheer logins" and toegang()) {
 	db_onderhoud();
 
 	echo("<div id='dbonderhoud'>\n");
-	$bewaartijdlogging = db_param("bewaartijdlogging");
 	
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=backup\"' value='Backup'>&nbsp;Maak een backup van de database. Laatste backup is op %s gemaakt.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), db_param("laatstebackup"));
-	if ($bewaartijdlogging > 0) {
+	if (db_param("logboek_bewaartijd") > 0) {
 		printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=logboekopschonen\"' value='Logboek opschonen'>&nbsp;Verwijder alle records uit het logboek, die ouder dan %d maanden zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $bewaartijdlogging);
 	}
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=evenementenopschonen\"' value='Evenementen opschonen'>&nbsp;Opschonen evenementen, inclusief bijbehorende deelnemers, die langer dan 6 maanden geleden zijn verwijderd.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	if (db_param("bewaartijdmailings") > 0) {
-		printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=mailingsopschonen\"' value='Mailings opschonen'>&nbsp;Mailings die langer dan %d maanden in de prullenbak zitten worden definitief verwijderd.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), db_param("bewaartijdmailings"));
+	if (db_param("mailing_bewaartijd") > 0) {
+		printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=mailingsopschonen\"' value='Mailings opschonen'>&nbsp;Mailings die langer dan %d maanden in de prullenbak zitten worden definitief verwijderd.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), db_param("mailing_bewaartijd"));
 	}
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=loginsopschonen\"' value='Logins opschonen'>&nbsp;Opschonen van logins die om diverse redenen niet meer nodig zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=autorisatieopschonen\"' value='Autorisatie opschonen'>&nbsp;Verwijderen toegang waar alleen de webmaster toegang toe heeft en die ouder dan 3 maanden zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
@@ -294,9 +293,13 @@ if ($currenttab == "Beheer logins" and toegang()) {
 	if (!isset($_POST['typefilter']) or strlen($_POST['typefilter']) == 0) {
 		$_POST['typefilter'] = -1;
 	}
+	if (!isset($_POST['ipfilter']) or strlen($_POST['ipfilter']) == 0) {
+		$_POST['ipfilter'] = "";
+	}
 	echo("<div id='filter'>\n");
 	printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 	echo("<table>\n<tr>\n");
+	
 	echo("<td class='label'>Filter op lid:</td><td><select name='lidfilter' id='lidfilter' onchange='form.submit();'>\n");
 	echo("<option value=0>Alle</option>\n");
 	foreach (db_logboek("lidlijst") as $row) {
@@ -323,11 +326,23 @@ if ($currenttab == "Beheer logins" and toegang()) {
 	}
 	echo("</select>\n</td>\n");
 	
+	echo("<td class='label'>Filter op IP-adres:</td><td><select name='ipfilter' id='ipfilter' onchange='form.submit();'>\n");
+	echo("<option value='*'>Alle</option>\n");
+	foreach (db_logboek("iplijst") as $row) {
+		if ($row->IP_adres == $_POST['ipfilter']) {
+			$s = "selected";
+		} else {
+			$s = "";
+		}
+		printf("<option value='%s'%s>%s</option>\n", $row->IP_adres, $s, $row->IP_adres);
+	}
+	echo("</select>\n</td>\n");
+	
 	echo("</tr>\n</table>\n");
 	echo("</form>\n");
 	echo("</div>  <!-- Einde filter -->\n");
 	
-	$rows = db_logboek("lijst", "", $_POST['typefilter'], $_POST['lidfilter']);
+	$rows = db_logboek("lijst", "", $_POST['typefilter'], $_POST['lidfilter'], 0, 0, $_POST['ipfilter']);
 	echo(fnDisplayTable($rows, "", "", 0, "", "", "logboek"));
 } elseif ($currenttab == "Info" and toegang($_GET['tp'])) {
 	phpinfo();
@@ -338,12 +353,6 @@ HTMLfooter();
 function fnInstellingen() {
 	global $table_prefix;
 
-	$arrParam['bewaartijdinloggen'] = "Hoeveel maanden moet logging van het in- en uitloggen bewaard blijven. 0 = altijd.";
-	$arrParam['bewaartijdlogging'] = "Hoeveel maanden moet logging bewaard blijven. 0 = altijd.";
-	$arrParam['bewaartijdlogins'] = "Het aantal maanden dat logins na het laatste gebruik bewaard worden. Als een login wordt verwijderd, wordt geen historie weggegooid. Historie wordt namelijk direct aan het lid gekopppeld en niet aan de login. 0 = altijd bewaren.";
-	$arrParam['geldigheidactivatie'] = "Hoelang in uren is een activatielink geldig?";
-	$arrParam['bewaartijdloginsnietgebruikt'] = "Het aantal dagen dat logins wordt bewaard, nadat het is aangevraagd en nog niet gebruikt is.";
-	$arrParam['bewaartijdmailings'] = "Het aantal maanden dat een verwijderde mailing bewaard moet worden. 0 = altijd bewaren.";
 	$arrParam['beperktotgroep'] = "Vul hier de RecordID's, gescheiden door een komma, van de groepen (zie tabel ONDERDL) in die toegang hebben. Als je geen groep invult hebben alleen webmasters toegang.";
 	$arrParam['db_backuptarren'] = "Moet de backup gecomprimeerd worden? Let op, de webhost moet dit wel ondersteunen. En ook moet de PHP-functie 'exec' beschikbaar zijn.";
 	$arrParam['db_backupsopschonen'] = "Na hoeveel dagen moeten oude back-ups automatisch verwijderd worden? 0 = nooit.";
@@ -352,11 +361,17 @@ function fnInstellingen() {
 	$arrParam['kaderoverzichtmetfoto'] = "Moeten op het kaderoverzicht pasfoto's getoond worden?";
 	$arrParam['toonpasfotoindiennietingelogd'] = "Mag de bezoeker een pasfoto worden getoond als deze niet ingelogd?";
 	$arrParam['meisjesnaamtonen'] = "Moeten de namen van leden ook de meisjesnaam bevatten?";
-	$arrParam['lidnrnodigbijloginaanvraag'] = "Moet een lid zijn of haar lidnummer opgeven als er een login aangevraagd wordt?";
-	$arrParam['loginautounlock'] = "Na hoeveel minuten moet een gelockede login automatisch geunlocked worden? 0 = alleen handmatig unlocken.";
+	$arrParam['login_lidnrnodigbijaanvraag'] = "Moet een lid zijn of haar lidnummer opgeven als er een login aangevraagd wordt?";
+	$arrParam['login_autounlock'] = "Na hoeveel minuten moet een gelockede login automatisch geunlocked worden? 0 = alleen handmatig unlocken.";
+	$arrParam['login_bewaartijd'] = "Het aantal maanden dat logins na het laatste gebruik bewaard worden. Als een login wordt verwijderd, wordt geen historie weggegooid. Historie wordt namelijk direct aan het lid gekopppeld en niet aan de login. 0 = altijd bewaren.";
+	$arrParam['login_geldigheidactivatie'] = "Hoelang in uren is een activatielink geldig? 0 = altijd.";
+	$arrParam['login_bewaartijdnietgebruikt'] = "Het aantal dagen dat logins wordt bewaard, nadat het is aangevraagd en nog niet gebruikt is.";
+	$arrParam['logboek_bewaartijd'] = "Hoeveel maanden moet de logging bewaard blijven. 0 = altijd bewaren.";
+	$arrParam['logboek_bewaartijdinloggen'] = "Hoeveel maanden moet de logging van het in- en uitloggen bewaard blijven. 0 = altijd bewaren.";
 	$arrParam['mailing_beperkfrom'] = "Indien deze is ingevuld moet het from adres in een mailing altijd vanaf dit domein zijn.";
 	$arrParam['mailing_bevestigingbestelling'] = "Het nummer van de mailing die bij een bestelling verstuurd moet worden. 0 = geen.";
 	$arrParam['mailing_bevestigingopzegging'] = "Het nummer van de mailing die verstuurd moet worden als een lid zijn lidmaatschap opgezegd heeft. 0 = geen.";
+	$arrParam['mailing_bewaartijd'] = "Het aantal maanden dat een verwijderde mailing bewaard moet worden. 0 = altijd bewaren.";
 	$arrParam['mailing_bewakinginschrijving'] = "Het nummer van de mailing die als bevestiging van een inschrijving voor de bewaking verstuurd moet worden. 0 = geen.";
 	$arrParam['mailing_extensies_toegestaan'] = "De extenties die zijn toegestaan bij bijlagen in een mailing. Als je niets specificeerd wordt een standaard lijst gebruikt.";
 	$arrParam['mailing_lidnr'] = "Het nummer van de mailing die verstuurd moet worden als een lid zijn lidnummer opvraagt. 0 = geen.";
@@ -364,10 +379,10 @@ function fnInstellingen() {
 	$arrParam['mailing_rekening_from_naam'] = "Welke naam moeten de rekeningen verzonden worden? Standaard is vanaf de verenigingsnaam.";
 	$arrParam['mailing_resultaatversturen'] = "Indien aangevinkt wordt naar de zender en het secretariaat een mail met het resultaat van deze mailing verzonden.";
 	$arrParam['max_grootte_bijlage'] = "De maximalale grootte in bytes van één bijlage in een mailing. Optioneel veld. Als je niets specificeerd dan is 2MB het maximum.";
-	$arrParam['maxinlogpogingen'] = "Na hoeveel foutieve inlogpogingen moet het account geblokkeerd worden? 0 = nooit.";
-	$arrParam['maxlengtelogin'] = "De maximale lengte die een login mag zijn. Minimaal 7 en maximaal 15 invullen.";
-	$arrParam['minlengtewachtwoord'] = "De minimale lengte van een wachtwoord. Minimaal 7 en maximaal 15 invullen.";
-	$arrParam['maxlengtewachtwoord'] = "De maximale lengte van een wachtwoord. Minimaal 7 en maximaal 15 invullen.";
+	$arrParam['login_maxinlogpogingen'] = "Na hoeveel foutieve inlogpogingen moet het account geblokkeerd worden? 0 = nooit.";
+	$arrParam['login_maxlengte'] = "De maximale lengte die een login mag zijn. Minimaal 7 en maximaal 15 invullen.";
+	$arrParam['wachtwoord_minlengte'] = "De minimale lengte van een wachtwoord. Minimaal 7 en maximaal 15 invullen.";
+	$arrParam['wachtwoord_maxlengte'] = "De maximale lengte van een wachtwoord. Minimaal 7 en maximaal 15 invullen.";
 	$arrParam['maxmailsperminuut'] = "Het maximaal aantal e-mails dat via een mailing per minuut verzonden mag worden. 0 = onbeperkt.";
 	$arrParam['naamwebsite'] = "Dit is de naam zoals deze in de titel en op elke pagina getoond wordt.";
 	$arrParam['performance_trage_select'] = "Vanaf hoeveel seconden moet een select-statement in het logboek worden gezet. 0 = nooit.";
@@ -398,7 +413,6 @@ function fnInstellingen() {
 	$arrParam['zs_voorwaardenbestelling'] = "Deze regel wordt bij de online-bestellingen in de zelfservice vermeld.";
 	$arrParam['zs_voorwaardeninschrijving'] = "Deze regel wordt bij de inschrijving als voorwaarde voor de inschrijving voor de bewaking vemeld.";
 	
-	$arrParam["laatstebackup"] = "";
 	$arrParam["versie"] = "";
 	
 	foreach ($arrParam as $naam => $val) {
@@ -425,22 +439,6 @@ function fnInstellingen() {
 				} elseif ($row->Naam == "typemenu" and (strlen($_POST[$pvn]) == 0 or $_POST[$pvn] < 1 or $_POST[$pvn] > 3)) {
 					$_POST[$pvn] = 1;
 					$mess = sprintf("Parameter '%s' wordt 1 gemaakt, omdat deze alleen 1, 2 of 3 mag zijn. ", $row->Naam);
-				} elseif ($row->Naam == "minlengtelogin" or $row->Naam == "maxlengtelogin") {
-					if (strlen($_POST[$pvn]) == 0 or is_numeric($_POST[$pvn]) == false or $_POST[$pvn] > 15) {
-						$_POST[$pvn] = 15;
-						$mess = sprintf("Parameter '%s' wordt 15 gemaakt, omdat dit de maximale waarde is. ", $row->Naam);
-					} elseif ($_POST[$pvn] < 7) {
-						$_POST[$pvn] = 7;
-						$mess = sprintf("Parameter '%s' wordt 7 gemaakt, omdat dit de minimale waarde is. ", $row->Naam);
-					}
-				} elseif ($row->Naam == "minlengtewachtwoord" or $row->Naam == "maxlengtewachtwoord") {
-					if (strlen($_POST[$pvn]) == 0 or is_numeric($_POST[$pvn]) == false or $_POST[$pvn] > 15) {
-						$_POST[$pvn] = 15;
-						$mess = sprintf("Parameter '%s' wordt 15 gemaakt, omdat dit de maximale waarde is. ", $row->Naam);
-					} elseif ($_POST[$pvn] < 7) {
-						$_POST[$pvn] = 7;
-						$mess = sprintf("Parameter '%s' wordt 7 gemaakt, omdat dit de minimale waarde is. ", $row->Naam);
-					}
 				} elseif (substr($row->Naam, 0, 3) == "url" and isset($_POST[$pvn])) {
 					$_POST[$pvn] = str_replace("http://", "", $_POST[$pvn]);
 				}
@@ -463,6 +461,23 @@ function fnInstellingen() {
 				}
 				db_param($row->Naam, "updval", $_POST[$pvn]);
 			}
+		}
+		if (db_param("wachtwoord_minlengte") < 7) {
+			db_param("wachtwoord_minlengte", "updval", 7);
+		} elseif (db_param("wachtwoord_minlengte") > 15) {
+			db_param("wachtwoord_minlengte", "updval", 15);
+		} elseif (db_param("wachtwoord_minlengte") > db_param("wachtwoord_maxlengte")) {
+			db_param("wachtwoord_maxlengte", "updval", db_param("wachtwoord_minlengte"));
+		}
+		if (db_param("wachtwoord_maxlengte") < 7) {
+			db_param("wachtwoord_maxlengte", "updval", 7);
+		} elseif (db_param("wachtwoord_maxlengte") > 15) {
+			db_param("wachtwoord_maxlengte", "updval", 15);
+		}
+		if (db_param("login_maxlengte") < 7) {
+			db_param("login_maxlengte", "updval", 7);
+		} elseif (db_param("login_maxlengte") > 15) {
+			db_param("login_maxlengte", "updval", 15);
 		}
 	}
 

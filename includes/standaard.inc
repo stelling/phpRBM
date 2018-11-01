@@ -359,8 +359,8 @@ function HTMLheader($refresh=0) {
 				}
 			}
 		} elseif ($_SESSION['aantallogin'] > 0) {
-			echo("Login: <input type='text' name='username' size=11>\n");
-			echo("&nbsp;Wachtwoord: <input type='password' name='password' size=11>\n");
+			echo("\nLogin: <input type='text' name='username' size=12>\n");
+			echo("&nbsp;Wachtwoord: <input type='password' name='password' size=12>\n");
 			echo("&nbsp;<input type='submit' value='Inloggen' name='Inloggen'>\n");
 			echo("<input type='checkbox' name='cookie' value=1 title='Ingelogd blijven (werkt met cookies)'>\n");
 		}
