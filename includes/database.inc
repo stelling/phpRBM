@@ -1154,12 +1154,12 @@ function db_stats($lidid=0) {
 }
 
 function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="", $xtraorder="") {
-	global $dbc, $selectnaam, $selectlidnr, $table_prefix, $lididwebmasters, $wherelidond, $wherelid, $dir, $db_pass;
+	global $dbc, $selectnaam, $selectlidnr, $table_prefix, $lididwebmasters, $wherelidond, $wherelid, $dir, $pwfromcookie;
 	
-	if (strlen(db_param("beperktotgroep")) > 0) {
-		$beperktotgroep = explode(",", db_param("beperktotgroep"));
+	if (strlen(db_param("login_beperkttotgroep")) > 0) {
+		$beperkttotgroep = explode(",", db_param("login_beperkttotgroep"));
 	} else {
-		$beperktotgroep = array(0);
+		$beperkttotgroep = array(0);
 	}
 	
 	$mess = "";
@@ -1204,8 +1204,8 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 	} elseif ($actie == "rowlogin" and (isValidMailAddress($email, 0) or $lidid > 0)) {
 		$query = sprintf("SELECT L.Nummer, Login.Login, %s AS Naam, L.Roepnaam, L.Email, Login.Wachtwoord, Login.FouteLogin, Login.Gewijzigd,
 								IFNULL((%s), L.Nummer) AS Lidnr,", $selectnaam, $selectlidnr);
-		if (is_array($beperktotgroep) and count($beperktotgroep) > 0) {
-			$query .= sprintf("(SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.Lid=L.Nummer AND LO.OnderdeelID IN (%s) AND LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE())) AS AanvragenMag", $table_prefix, implode(", ", $beperktotgroep));
+		if (is_array($beperkttotgroep) and count($beperktotgroep) > 0) {
+			$query .= sprintf("(SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.Lid=L.Nummer AND LO.OnderdeelID IN (%s) AND LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE())) AS AanvragenMag", $table_prefix, implode(", ", $beperkttotgroep));
 		} else {
 			$query .= "1 AS AanvragenMag";
 		}
@@ -1347,8 +1347,8 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			}
 		}
 		$xtrawhere = sprintf("AND Login.Login LIKE '%s'", cleanlogin($login));
-		if (is_array($beperktotgroep) and count($beperktotgroep) > 0) {
-			$xtrawhere .= sprintf(" AND (Login.LidID IN (SELECT Lid FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID IN (%s)) OR Login.LidID IN (%s))", $table_prefix, $wherelidond, implode(", ", $beperktotgroep), implode(", ", $lididwebmasters));
+		if (is_array($beperkttotgroep) and count($beperkttotgroep) > 0) {
+			$xtrawhere .= sprintf(" AND (Login.LidID IN (SELECT Lid FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID IN (%s)) OR Login.LidID IN (%s))", $table_prefix, $wherelidond, implode(", ", $beperkttotgroep), implode(", ", $lididwebmasters));
 		} else {
 			$xtrawhere .= sprintf(" AND Login.LidID IN (%s)", implode(", ", $lididwebmasters));
 		}
@@ -1363,8 +1363,10 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			if (password_verify($pw, $row->Wachtwoord)) {
 				return $row;
 			} else {
-				$query = sprintf("UPDATE %sAdmin_login SET FouteLogin=FouteLogin+1, Gewijzigd=SYSDATE() WHERE Login='%s';", $table_prefix, $login);
-				fnQuery($query);	
+				if ($pwfromcookie == 0) {
+					$query = sprintf("UPDATE %sAdmin_login SET FouteLogin=FouteLogin+1, Gewijzigd=SYSDATE() WHERE Login='%s';", $table_prefix, $login);
+					fnQuery($query);
+				}
 				return false;
 			}
 		} else {
@@ -1409,8 +1411,8 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			$mess .= sprintf(", omdat ze %d maanden niet meer zijn gebruikt.<br>\n", db_param("login_bewaartijd"));
 		}
 		$where = "";
-		if (is_array($beperktotgroep) and count($beperktotgroep) > 0) {
-			$where .= sprintf("LidID NOT IN (SELECT Lid FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID IN (%s))", $table_prefix, $wherelidond, implode(", ", $beperktotgroep));
+		if (is_array($beperkttotgroep) and count($beperkttotgroep) > 0) {
+			$where .= sprintf("LidID NOT IN (SELECT Lid FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID IN (%s))", $table_prefix, $wherelidond, implode(", ", $beperkttotgroep));
 		}
 		if (strlen($where) > 0) {
 			$where .= sprintf(" AND (LidID NOT IN (%s))", implode(", ", $lididwebmasters));
@@ -1451,7 +1453,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		
 		db_logboek("add", $mess, 2);
 		return $mess;
-	
+		
 	} else {
 		$mess = sprintf("onbekende actie '%s' in db_logins", $actie);
 		debug($mess, 1, 0, 1);
@@ -1911,7 +1913,15 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0, $referid=0, $ipf
 	} elseif ($actie == "aantal") {
 		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_activiteit WHERE %s;", $table_prefix, $w);
 		return db_scalar($query);
-		
+	
+	} elseif ($actie == "iplogincontrole") {
+		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_activiteit WHERE TypeActiviteit=97 AND IP_adres='%s' AND DatumTijd >= ", $table_prefix, $_SERVER['HTTP_USER_AGENT']);
+		if (db_param("login_autounlock") > 0) {
+			$query .= sprintf("DATE_ADD(SYSDATE(), INTERVAL -%d MINUTE);", db_param("login_autounlock"));
+		} else {
+			$query .= "DATE_ADD(SYSDATE(), INTERVAL -1 HOUR);";
+		}
+		return db_scalar($query);
 	}
 } # db_logboek
 
@@ -2573,15 +2583,11 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrBooleans['zs_incl_slid'] = 0;
 	$arrBooleans['zs_opzeggingautomatischverwerken'] = 0;
 	
-	$arrStrings['beperktotgroep'] = "";
-	$arrStrings['laatstebackup'] = "2012-01-01 00:00";
+	$arrStrings['login_beperkttotgroep'] = "";
 	$arrStrings['muteerbarememos'] = "D,G,WN";
 	$arrStrings['naamvereniging'] = "Naam vereniging";
 	$arrStrings['naamvereniging_afkorting'] = "";
 	$arrStrings['naamwebsite'] = "Naam website";
-	$arrStrings['emailsecretariaat'] = "";
-	$arrStrings['emailledenadministratie'] = "";
-	
 	$arrStrings['mailing_extensies_toegestaan'] = "bmp, gif, jpeg, jpg, pdf, png, pps, rar, txt, zip";
 	$arrStrings['mailing_rekening_from'] = "";
 	$arrStrings['mailing_rekening_from_naam'] = "";

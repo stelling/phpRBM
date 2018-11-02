@@ -16,13 +16,15 @@ function toegang($soort="", $melding=1, $password="") {
 		}
 	}
 
+	$pwfromcookie = 0;
 	if (isset($_SESSION['lastauthenication']) and $_SESSION['lastauthenication'] >= time()-7200 and $_SESSION['lidid'] > 0) {
 		// Er hoeft niets te gebeuren.
 	} else {
 		db_logins("uitloggen");
 		
-		if (strlen($password) == 0 and isset($_COOKIE['password'])) {
+		if (strlen($password) == 0 and isset($_COOKIE['password']) and strlen($_COOKIE['password']) >= db_param("wachtwoord_minlengte")) {
 			$password = $_COOKIE['password'];
+			$pwfromcookie = 1;
 		}
 		
 		$mess = "";
@@ -34,8 +36,12 @@ function toegang($soort="", $melding=1, $password="") {
 				} else {
 					$mess = sprintf("Login '%s' is geblokkeerd", $_SESSION['username']);
 				}
-				$mess .= ", omdat er teveel foute inlog-pogingingen mee gedaan zijn! Je bent niet ingelogd.";
+				$mess .= ", omdat er teveel mislukte inlog-pogingingen mee gedaan zijn! Je bent niet ingelogd.";
 				
+				$_SESSION['lidid'] = 0;
+				
+			} elseif (db_param("login_maxinlogpogingen") > 0 and db_logboek("iplogincontrole") > db_param("login_maxinlogpogingen")) {
+				$mess = sprintf("Login van IP-adres '%s' is geblokkeerd, omdat er teveel mislukte inlog-pogingingen mee gedaan zijn! Je bent niet ingelogd.", $_SERVER['HTTP_USER_AGENT']);
 				$_SESSION['lidid'] = 0;
 				
 			} elseif (isset($row->ActivatieKey) and strlen($row->ActivatieKey) > 5) {
@@ -65,7 +71,9 @@ function toegang($soort="", $melding=1, $password="") {
 				}	
 				db_logins("setingelogd", "", "", $_SESSION['lidid']);
 			} else {
-				$mess = sprintf("De combinatie van login '%s' en het ingevoerde wachtwoord is niet correct! Je bent niet ingelogd.", $_SESSION['username']);
+				if ($pwfromcookie == 0) {
+					$mess = sprintf("De combinatie van login '%s' en het ingevoerde wachtwoord is niet correct! Je bent niet ingelogd.", $_SESSION['username']);
+				}
 				$_SESSION['lidid'] = 0;
 			}
 		} else {
@@ -441,18 +449,18 @@ function fnLoginAanvragen($stap="") {
 							$mess .= fnConfirmLidnr($row) . " ";
 							$lidid = $row->Nummer;
 						} elseif ($row->AanvragenMag == 0 and in_array($row->Nummer, $lididwebmasters) == false) {
-							if (is_array(db_param("beperktotgroep")) and count(db_param("beperktotgroep")) > 1) {
+							if (is_array(db_param("login_beperkttotgroep")) and count(db_param("login_beperkttotgroep")) > 1) {
 								$gt = "";
-								foreach (db_param("beperktotgroep") as $gr) {
+								foreach (db_param("login_beperkttotgroep") as $gr) {
 									if (strlen($gt) > 0) {$gt .= ", ";}
 									$gt .= "'" . db_naam_onderdeel($gr) . "'";
 								}
 								$mess = sprintf("Je behoort niet tot één van de groepen %s van %s. Een login mag niet aangevraagd worden.", $gt, db_param("naamvereniging"));
 							} else {
-								if (is_array(db_param("beperktotgroep")) and count(db_param("beperktotgroep")) == 1) {
-									$gr = db_param("beperktotgroep")[0];
-								} elseif (is_numeric(db_param("beperktotgroep"))) {
-									$gr = db_param("beperktotgroep");
+								if (is_array(db_param("login_beperkttotgroep")) and count(db_param("login_beperkttotgroep")) == 1) {
+									$gr = db_param("login_beperkttotgroep")[0];
+								} elseif (is_numeric(db_param("login_beperkttotgroep"))) {
+									$gr = db_param("login_beperkttotgroep");
 								} else {
 									$gr = 0;
 								}
