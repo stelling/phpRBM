@@ -1,6 +1,6 @@
 body {
 	font-family: Tahoma, Arial, Verdana, Helvetica;
-	font-size: 9pt;
+	font-size: 10pt;
 	color: #000080;
 	border-width: 1px;
 }
@@ -99,6 +99,12 @@ footer a, footer a:visited, #footer a, #footer a:visited {
 	margin-right: auto;
 	padding-left: 0;
 	padding-right: 0;
+}
+
+@media screen and (max-width: 1200px) {
+	container {
+		width: 960px;
+	}
 }
 
 #header, header {
@@ -493,12 +499,12 @@ fieldset h3 {
 }
 
 #bewakingsrooster h2, #postindeling h2 {
-	padding-left: 4pt;
+	padding-left: 4px;
 }
 
 #bewakingsrooster h3, #postindeling h3 {
 	background-color: #00FFFF;
-	padding-left: 4pt;
+	padding-left: 4px;
 }
 
 #wieiswie a, #wieiswie a:visited, #bewakingsrooster a, #bewakingsrooster a:visited, #postindeling a, #postindeling a:visited {
@@ -625,7 +631,7 @@ fieldset h3 {
 }
 
 .tablist1 li {
-	font-size: 9pt;
+	font-size: 10pt;
 	min-width: 85px;
 	margin-left: 2px;
    margin-right: 2px;
@@ -642,7 +648,7 @@ fieldset h3 {
 }
 
 .tablist2 li, .tablist3 li {
-	font-size: 8pt;
+	font-size: 9pt;
 	text-align: center;
 	background-color: transparent;
 	border-right-style: none;
@@ -1039,9 +1045,3 @@ fieldset h3 {
 }
 
 /* Einde elementen voor treeview */
-
-@media screen and (max-width: 1300px) {
-	container {
-		width: 960px;
-	}
-}
