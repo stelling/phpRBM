@@ -4,9 +4,16 @@ $arrTables[] = "Admin_access";
 $arrTables[] = "Admin_activiteit";
 $arrTables[] = "Admin_interface";
 $arrTables[] = "Admin_login";
-$arrTables[] = "Bewaking";
 $arrTables[] = "Bewaking_Blok";
 $arrTables[] = "Bewaking_Inschrijving";
+$arrTables[] = "Mailing";
+$arrTables[] = "Mailing_hist";
+$arrTables[] = "Mailing_rcpt";
+// $arrTables[] = "DMS_Document";
+// $arrTables[] = "DMS_Folder";
+
+// Overgenomen uit de Access-database
+$arrTables[] = "Bewaking";
 $arrTables[] = "Bewseiz";
 $arrTables[] = "Boekjaar";
 $arrTables[] = "Diploma";
@@ -18,16 +25,11 @@ $arrTables[] = "Liddipl";
 $arrTables[] = "Lidmaatschap";
 $arrTables[] = "Lidond";
 $arrTables[] = "LidRedNed";
-$arrTables[] = "Mailing";
-$arrTables[] = "Mailing_hist";
-$arrTables[] = "Mailing_rcpt";
 $arrTables[] = "Mutatie";
 $arrTables[] = "Kostenplaats";
 $arrTables[] = "Onderdl";
 $arrTables[] = "Rekening";
 $arrTables[] = "Rekreg";
-// $arrTables[] = "DMS_Document";
-// $arrTables[] = "DMS_Folder";
 
 $TypeActiviteit[0] = "N.T.B.";
 $TypeActiviteit[1] = "Inloggen/Uitloggen";
@@ -2580,7 +2582,6 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrIntegers['typemenu'] = 1;
 	$arrIntegers['verjaardagenaantal'] = 7;
 	$arrIntegers['verjaardagenvooruit'] = 5;
-	$arrIntegers['versie'] = 0;
 	$arrIntegers['zs_opzegtermijn'] = 1;
 	
 	$arrBooleans['db_backuptarren'] = 0;
@@ -2605,9 +2606,6 @@ function db_param($naam, $actie="curval", $newval="") {
 	
 	$arrStrings['login_beperkttotgroep'] = "";
 	$arrStrings['muteerbarememos'] = "D,G,WN";
-	$arrStrings['naamvereniging'] = "Naam vereniging";
-	$arrStrings['naamvereniging_afkorting'] = "";
-	$arrStrings['laatstebackup'] = "";
 	$arrStrings['naamwebsite'] = "Naam website";
 	$arrStrings['mailing_extensies_toegestaan'] = "bmp, gif, jpeg, jpg, pdf, png, pps, rar, txt, zip";
 	$arrStrings['mailing_rekening_from'] = "";
@@ -2622,6 +2620,13 @@ function db_param($naam, $actie="curval", $newval="") {
 	
 	$arrFloats['maxmailsperminuut'] = 360;
 	$arrFloats['performance_trage_select'] = 0.5;
+	
+	// Onderstaande zijn niet in te stellen via het instellingen scherm.
+	$arrStrings['naamvereniging'] = "Naam vereniging"; // Komt uit de Access-database
+	$arrStrings['naamvereniging_afkorting'] = ""; // Komt uit de Access-database
+	$arrIntegers['versie'] = 0; // Wordt automatisch bijgewerkt op basis van de php-bestanden
+	$arrStrings["emailsecretariaat"] = ""; // Komt uit de Access-database
+	$arrStrings['laatstebackup'] = "";  // Komt uit de logging
 	
 	if (array_key_exists($naam, $arrBooleans)) {
 		$pt = "B";
