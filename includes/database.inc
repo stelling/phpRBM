@@ -393,7 +393,7 @@ function db_naamlid($lidid, $uitv="", $riz="Onbekend") {
 function db_lid($actie, $filter="", $lidid=0, $xtraselect="") {
 	global $selectnaam, $selectzoeknaam, $selectlidnr, $table_prefix, $fromlid, $wherelid;
 	
-	if (strlen($filter) > 0 and $actie != "verjaardagen") {
+	if (strlen($filter) > 0 and ($actie != "verjaardagen" and $actie != "lididbijemail")) {
 		$filter = " WHERE " . $filter;
 	} elseif ($lidid > 0) {
 		$filter = sprintf(" WHERE L.Nummer=%d", $lidid);
@@ -460,6 +460,9 @@ function db_lid($actie, $filter="", $lidid=0, $xtraselect="") {
 					FROM %2\$sLid AS L
 					WHERE L.Nummer IN (SELECT MAX(RK.Lid) FROM %2\$sRekening AS RK WHERE RK.Lid = L.Nummer)
 					ORDER BY L.Achternaam, L.Tussenv;", $selectzoeknaam, $table_prefix);
+					
+	} elseif ($actie == "lididbijemail") {
+		$query = sprintf("SELECT IFNULL(MAX(L.Nummer), 0) FROM %1\$sLid AS L WHERE (Email='%2\$s' OR EmailVereniging='%2\$s' OR EmailOuders='%2\$s');", $table_prefix, $filter);
 		
 	} else {
 		$mess = sprintf("onbekende actie '%s' in db_lid", $actie);
@@ -467,8 +470,12 @@ function db_lid($actie, $filter="", $lidid=0, $xtraselect="") {
 		$query = "";
 	}
 	
-	$result = fnQuery($query);
-	return $result->fetchAll();
+	if ($actie == "lididbijemail") {
+		return db_scalar($query);
+	} else {
+		$result = fnQuery($query);
+		return $result->fetchAll();
+	}
 } # db_lid
 
 function db_lidmaatschap($actie, $lidid=0, $opgezegd="", $rid=0, $liddatum="", $lidnr=0) {
@@ -1001,7 +1008,7 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 	}
 }
 
-function db_lidond($actie, $lidid=0, $per="", $filter="") {
+function db_lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0) {
 	global $selectnaam, $selectzoeknaam, $table_prefix, $fromlidond, $wherelidond, $selectlidnr;
 
 	if ($actie == "laatstgewijzigd") {
@@ -1055,6 +1062,15 @@ function db_lidond($actie, $lidid=0, $per="", $filter="") {
 					WHERE LO.Lid=%2\$d AND O.`Type`='O' AND (LO.Opgezegd IS NULL) ORDER BY LO.Vanaf DESC;", $table_prefix, $lidid);
 		$result = fnQuery($query);
 		return $result->fetchColumn();
+		
+	} elseif ($actie == "islid" and $lidid > 0 and $onderdlid > 0) {
+		
+		$query = sprintf("SELECT COUNT(*) FROM %sLidond AS LO WHERE %s AND Lid=%d AND OnderdeelID=%d;", $table_prefix, $wherelidond, $lidid, $onderdlid);
+		if (db_scalar($query) == 0) {
+			return false;
+		} else {
+			return true;
+		}
 	}
 }
 
@@ -1453,6 +1469,10 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		
 		db_logboek("add", $mess, 2);
 		return $mess;
+	
+	} elseif ($actie == "lididbijlogin" and strlen($login) > 0) {
+		$query = sprintf("SELECT IFNULL(MAX(LidID), 0) FROM %sAdmin_login WHERE Login='%s';", $table_prefix, $login);
+		return db_scalar($query);
 		
 	} else {
 		$mess = sprintf("onbekende actie '%s' in db_logins", $actie);
@@ -2587,6 +2607,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrStrings['muteerbarememos'] = "D,G,WN";
 	$arrStrings['naamvereniging'] = "Naam vereniging";
 	$arrStrings['naamvereniging_afkorting'] = "";
+	$arrStrings['laatstebackup'] = "";
 	$arrStrings['naamwebsite'] = "Naam website";
 	$arrStrings['mailing_extensies_toegestaan'] = "bmp, gif, jpeg, jpg, pdf, png, pps, rar, txt, zip";
 	$arrStrings['mailing_rekening_from'] = "";
