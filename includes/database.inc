@@ -1267,11 +1267,11 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		$query = sprintf("UPDATE %sAdmin_login SET Ingelogd=0 WHERE Ingelogd=1 AND (LastActivity < ADDDATE(SYSDATE(), INTERVAL -21 MINUTE) OR LidID=%d);", $table_prefix, $lidid);
 		$result = fnQuery($query);
 		if ($result > 0) {
-			fnMaatwerkNaUitloggen();
 			if ($_SESSION['lidid'] == $lidid and $lidid > 0) {
 				$mess = sprintf("%s (LidID: %d) is uitgelogd.", $_SESSION['naamingelogde'], $lidid);
 				db_logboek("add", $mess, 1, $lidid);
 				$_SESSION['lidid'] = 0;
+				fnMaatwerkNaUitloggen();
 			}
 		}
 		if (db_param("login_geldigheidactivatie") > 0) {
