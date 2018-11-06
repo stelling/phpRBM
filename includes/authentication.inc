@@ -604,7 +604,7 @@ function checknewpassword($ww, $login="") {
 		$bevath=0;
 		for ($i=0; $i < strlen($ww); $i++) {
 			if (strpos("0123456789", substr($ww, $i, 1)) !== false) {
-				$bevat=1;
+				$bevatc=1;
 			} elseif (strpos($alphabet, substr($ww, $i, 1)) !== false) {
 				$bevatk=1;
 			} elseif (strpos(strtoupper($alphabet), substr($ww, $i, 1)) !== false) {
