@@ -464,7 +464,8 @@ function db_lid($actie, $filter="", $lidid=0, $xtraselect="") {
 					ORDER BY L.Achternaam, L.Tussenv;", $selectzoeknaam, $table_prefix);
 					
 	} elseif ($actie == "lididbijemail") {
-		$query = sprintf("SELECT IFNULL(MAX(L.Nummer), 0) FROM %1\$sLid AS L WHERE (Email='%2\$s' OR EmailVereniging='%2\$s' OR EmailOuders='%2\$s');", $table_prefix, $filter);
+		$filter = strtolower($filter);
+		$query = sprintf("SELECT IFNULL(MAX(L.Nummer), 0) FROM %1\$sLid AS L WHERE (LOWER(Email)='%2\$s' OR LOWER(EmailVereniging)='%2\$s' OR LOWER(EmailOuders)='%2\$s');", $table_prefix, $filter);
 		
 	} else {
 		$mess = sprintf("onbekende actie '%s' in db_lid", $actie);
@@ -1402,7 +1403,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		
 		$query = sprintf("SELECT Login.LidID AS lnkNummer, Login.LidID, Login.Login, %1\$s AS Naam_lid, L.Woonplaats, (%5\$s) AS Lidnr, L.Roepnaam AS ndRoepnaam,
 					L.Achternaam AS ndAchternaam, L.Tussenv AS ndTussenvoegsels, L.Meisjesnm AS ndMeisjesnaam, L.GEBDATUM AS ndGeboren,
-					L.Email AS `E-mail`, L.EmailVereniging AS ndEmailVereniging, L.Telefoon AS ndTelefoon, L.Mobiel AS ndMobiel,
+					IF(LENGTH(L.Email)=0, L.EmailOuders, L.Email) AS `E-mail`, L.EmailVereniging AS ndEmailVereniging, L.Telefoon AS ndTelefoon, L.Mobiel AS ndMobiel,
 					Login.Ingevoerd AS dteIngevoerd, Login.LastLogin AS `dttLaatste login`,
 					IF(LENGTH(Login.Wachtwoord) > 5 AND LENGTH(IFNULL(Login.ActivatieKey, '')) = 0, 'Ja', 'Nee') AS `Gevalideerd`,
 					Login.Wachtwoord AS ndWachtwoord, IF(Login.FouteLogin > 0, Login.LidID, 0) AS llkNummer
@@ -2519,7 +2520,7 @@ function db_rekening($actie, $nr=0, $filter="") {
 		$result = fnQuery($query);
 		return $result->fetch();
 	} elseif ($actie == "regels" and $nr > 0) {
-		$query = sprintf("SELECT * FROM %sRekreg WHERE Rekening=%d;", $table_prefix, $nr);
+		$query = sprintf("SELECT RR.*, L.GEBDATUM, L.Email FROM %1\$sRekreg AS RR LEFT JOIN %1\$sLid AS L ON RR.Lid = L.Nummer WHERE RR.Rekening=%2\$d;", $table_prefix, $nr);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "seizoenen") {
@@ -2528,11 +2529,7 @@ function db_rekening($actie, $nr=0, $filter="") {
 		return $result->fetchAll();
 	} elseif ($actie == "selectie") {
 		if (strlen($filter) > 0 and substr($filter, 0, 5) != "WHERE") {
-			if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
-				$filter = "WHERE (RK.Lid=31 OR RK.Lid=216 OR RK.Lid=60010) AND " . $filter;
-			} else {
-				$filter = "WHERE " . $filter;
-			}
+			$filter = "WHERE " . $filter;
 		}
 		$query = sprintf("SELECT RK.*, L.Adres, L.Postcode, L.Woonplaats,
 					L.Bankrekening AS Bankrekeningnummer,

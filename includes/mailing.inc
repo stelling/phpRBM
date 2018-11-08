@@ -1279,6 +1279,16 @@ function fnRekeningenMailen($op) {
 				
 			foreach(db_rekening("selectie", 0, $_POST['rekfilter']) as $rk) {
 				$e = $mail->ToevoegenLid($rk->Lid);
+				
+				$rr = db_rekening("regels", $nr);
+				$rrtxt = "";
+				foreach($rr as $regel) {
+					$nl = db_naamlid($regel->Lid, "Naam", "");
+					if (strlen($regel->Email) > 5 and $regel->GEBDATUM <= date("Y-m-d", mktime(0, 0, 0, date("m"), date("d"))) and in_array($regel->Email, $mail->to) == false and in_array($regel->Email, $mail->cc) == false) {
+						$mail->AddAddress($regel->Email, $nl);
+					}
+				}
+				
 				$mail->Subject = $rk->OMSCHRIJV . " " . $rk->Nummer;
 				$rt = RekeningDetail($rk->Nummer);
 				$mail->Body = $rt;
