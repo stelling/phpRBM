@@ -9,6 +9,11 @@ if ((!isset($_SESSION['username']) or strlen($_SESSION['username']) == 0) and is
 function toegang($soort="", $melding=1, $password="") {
 	global $lididwebmasters, $table_prefix, $tabpages, $currenttab, $currenttab2;
 	
+	$arrAltijdToegang[] = "Herstellen wachtwoord";
+	$arrAltijdToegang[] = "Validatie login";
+	$arrAltijdToegang[] = "Bevestiging login";
+	$arrAltijdToegang[] = "Opvragen lidnr";
+	
 	if (strlen($soort) == 0) {
 		$soort = $currenttab;
 		if (strlen($currenttab2) > 0) {
@@ -117,7 +122,7 @@ function toegang($soort="", $melding=1, $password="") {
 		db_logins("updateactiviteit", "", "", $_SESSION['lidid']);
 	}
 	
-	if (strlen($soort) > 0 and $soort != "Herstellen wachtwoord" and $soort != "Validatie login" and $soort != "Bevestiging login") {
+	if (strlen($soort) > 0 and in_array($soort, $arrAltijdToegang) == false) {
 		$soort = str_replace("'", "", $soort);
 		if ($_SESSION['webmaster'] == 1) {
 			if (!isset($_SESSION['toegang'][$soort])) {
@@ -521,23 +526,68 @@ function fnLoginAanvragen($stap="") {
 		echo("<input class='knop' type='submit' name='loginaanvragen' value='Aanvragen'></p>\n");
 		echo("</fieldset>\n");
 
-		if (db_param("mailing_lidnr") > 0 and db_param("login_lidnrnodigbijaanvraag") == 1) {
-			echo("<p>Door alleen je e-mailadres in te vullen word je lidnummer per e-mail verzonden.</p>\n");
-		}
 		echo("<p>");
 		if (db_param("login_lidnrnodigbijaanvraag") == 1) {
 			echo("Met de juiste combinatie van lidnummer en e-mailadres kan je een login aanvragen.");
 		} else {
 			echo("Met het, in de ledenadministratie bekende e-mailadres, kan je een login aanvragen.");
 		}
-		echo(" Je ontvangt een e-mail met daarin een link om deze aanmelding te bevestigen. Pas daarna is de login bruikbaar om te in te loggen.</p>\n");
+		echo(" Je ontvangt een e-mail met daarin een link om deze aanmelding te bevestigen. Pas daarna is de login bruikbaar om in te loggen.</p>\n");
 		
 		printf("<p>Mocht je een login hebben, maar je wachtwoord niet meer weten, dan kan je dat <a href='%s?tp=Herstellen wachtwoord'>hier</a> herstellen.</p>", $_SERVER["PHP_SELF"]);
 			
 		echo("</form>
 		</div>  <!-- Einde loginaanvraag -->\n");
 	}
-}
+} # fnLoginAanvragen
+
+function fnOpvragenLidnr() {
+	global $table_prefix, $basisurl;
+	
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		if (!isValidMailAddress($_POST['emailvoorlidnr'], 0)) {
+			$mess = sprintf("Je hebt geen geldig e-mailadres (%s) opgegeven.", $_POST['emailvoorlidnr']);
+		} elseif (db_param("mailing_lidnr") > 0) {
+			$mess = "";
+			$rows = db_logins("rowlogin", $_POST['emailvoorlidnr']);
+			if (count($rows) > 0) {
+				foreach ($rows as $row) {
+					$mailing = new Mailing(db_param("mailing_lidnr"));
+					$mailing->xtrachar = "LNR";
+					$mailing->xtranum = $row->Lidnr;
+					$mailing->resultaatversturen = 0;
+					if ($mailing->send($row->Nummer) > 0) {
+						$mess .= sprintf("Het lidnummer is aan %s verzonden. ", $row->Naam);
+					} else {
+						$mess .= sprintf("Fout bij het versturen van het lidnummer aan %s. Probeer het later nogmaals of neem contact met de webmaster op. ", $row->Naam);
+					}
+					$mailing = null;
+				}
+			} else {
+				$mess = sprintf("Dit e-mailadres (%s) is onbekend in onze database.", $_POST['emailvoorlidnr']);
+			}		
+			
+		} else {
+			$mess = "Onbekende fout in fnOpvragenLidnr";
+		}
+		db_logboek("add", $mess, 5, 0, 1);
+		printf("<p><a href='%s' target='_top'>Klik hier om verder te gaan.</a></p>\n", $basisurl);
+		
+	} elseif (db_param("mailing_lidnr") > 0 and db_param("login_lidnrnodigbijaanvraag") == 1) {
+
+		echo("<div id='opvragenlidnr'>\n");
+		printf("<form name='OpvragenLidnr' action='%s?tp=Opvragen+lidnr' method='post'>\n", $_SERVER["PHP_SELF"]);
+		
+		echo("<fieldset>\n");
+		echo("<h3>Opvragen Lidnummer</h3>\n");
+		echo("<label>E-mailadres:</label><input type='email' name='emailvoorlidnr'>\n");
+		echo("<input class='knop' type='submit' name='opvragenlidnr' value='Opvragen'></p>\n");
+		echo("</fieldset>\n");
+			
+		echo("</form>
+		</div>  <!-- Einde opvragenlidnr -->\n");
+	}
+} # fnOpvragenLidnr
 
 function cleanlogin($login) {
 

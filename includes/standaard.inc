@@ -15,7 +15,7 @@ if ($_SESSION['webmaster'] == 1 or $_SERVER["HTTP_HOST"] == "phprbm.telling.nl")
 	error_reporting(E_ALL);
 } else {
 	error_reporting(0);
-	//error_reporting(E_ALL);
+//	error_reporting(E_ALL);
 }
 
 if (isset($_SERVER['HTTPS'])){

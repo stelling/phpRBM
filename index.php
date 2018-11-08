@@ -11,7 +11,6 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen" and $_SESSION['lidid
 	session_destroy();
 	setcookie("username", "", time()-3600);
 	setcookie("password", "", time()-3600);
-	echo("<script>location.href='/';</script>\n");
 }
 
 if ($_SESSION['aantallid'] == 0) {
@@ -46,6 +45,8 @@ if (toegang("", 0) == false) {
 	if ($_SESSION['lidid'] == 0) {
 		fnLoginAanvragen();
 	}
+} elseif ($currenttab == "Opvragen lidnr") {
+	fnOpvragenLidnr();
 } elseif ($currenttab == "Herstellen wachtwoord") {
 	fnHerstellenWachtwoord($stap="mail");
 } elseif ($currenttab == "Validatie login") {
@@ -90,10 +91,12 @@ if (toegang("", 0) == false) {
 			fnVoorblad();
 			if (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
 				echo("<div id='kolomrechts'>\n");
+				fnOpvragenLidnr();
 				fnLoginAanvragen();
 				echo("</div>  <!-- Einde kolomrechts -->\n");
 			}
 		} else {
+			fnOpvragenLidnr();
 			fnLoginAanvragen();
 		}
 	} else {
@@ -111,7 +114,8 @@ if (toegang("", 0) == false) {
 	fnEvenementen();
 } elseif ($currenttab == "Bestellingen") {
 	fnWebshop();
-} elseif (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
+} elseif (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {		
+	fnOpvragenLidnr();
 	fnLoginAanvragen();
 } else {
 	debug("Geen voorblad");
@@ -121,7 +125,7 @@ if ($currenttab != "Mailing") {
 	HTMLfooter();
 }
 
-function fnVoorblad($metlogin=0) {
+function fnVoorblad() {
 	global $fileverinfo;
 
 	if (file_exists($fileverinfo)) {
@@ -132,6 +136,9 @@ function fnVoorblad($metlogin=0) {
 	if ($content !== false and strlen($content) > 0) {
 		if ($_SESSION['lidid'] == 0) {
 			$content = removetextblock($content, "<!-- Ingelogd -->", "<!-- /Ingelogd -->");
+		}
+		if ($_SESSION['webmaster'] == 0) {
+			$content = removetextblock($content, "<!-- Webmaster -->", "<!-- /Webmaster -->");
 		}
 	
 		// Algemene statistieken

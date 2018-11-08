@@ -351,7 +351,7 @@ footer a, footer a:visited, #footer a, #footer a:visited {
 	margin-left: 6px;
 }
 
-#loginaanvraag, #profielwijzigen, #opzegformulier {
+#loginaanvraag, #opvragenlidnr, #profielwijzigen, #opzegformulier {
 	width: 432px;
 	background-color: #00FFFF;
 	margin-left: auto;
@@ -361,12 +361,12 @@ footer a, footer a:visited, #footer a, #footer a:visited {
 	padding-bottom: 5px;
 }
 
-#loginaanvraag h3 , #profielwijzigen h3, #opzegformulier h3{
+#loginaanvraag h3, #opvragenlidnr h3, #profielwijzigen h3, #opzegformulier h3{
 	color: white;
 	font-size: 14pt;
 }
 
-#loginaanvraag label, #profielwijzigen label, #opzegformulier label {
+#loginaanvraag label, #opvragenlidnr label, #profielwijzigen label, #opzegformulier label {
 	width: 200px;
 	float: left;
 }
@@ -407,7 +407,7 @@ fieldset h3 {
 	margin-bottom: 12px;
 }
 
-#loginaanvraag input, #profielwijzigen input, #opzegformulier input{
+#loginaanvraag input, #opvragenlidnr input, #profielwijzigen input, #opzegformulier input{
 	width: 190px;
 	height: 22px;
 	clear: right;
@@ -422,14 +422,14 @@ fieldset h3 {
 	background-color: white;
 }
 
-#loginaanvraag input.inputnumber, #opzegformulier input.inputnumber {
+#loginaanvraag input.inputnumber, #opvragenlidnr input.inputnumber, #opzegformulier input.inputnumber {
 	width: 50px;
 	text-align: right;
 	padding-left: 3px;
 	padding-right: 3px;
 }
 
-#loginaanvraag input.knop, #profielwijzigen input.knop, #opzegformulier input.knop {
+#loginaanvraag input.knop, #opvragenlidnr input.knop, #profielwijzigen input.knop, #opzegformulier input.knop {
 	color: #000080;
 	font-weight: bold;
 	width: auto;
