@@ -1,7 +1,7 @@
 <?php
 	include('./includes/standaard.inc');
 
-	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+	if ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['Inloggen']) and $_POST['Inloggen'] == "Inloggen") {
 		if (strlen($_POST['password']) < 6) {
 			$mess = "Om in te loggen is het invullen van een wachtwoord van minimaal 6 karakters vereist.";
 			db_logboek("add", $mess, 1, 0, 2);
@@ -14,8 +14,13 @@
 				}
 			}
 			unset($_SESSION['toegang']);
-			toegang("", 1, $_POST['password']);
+			fnAuthenticatie(1, $_POST['password']);
 		}
-		printf("<script>\nlocation.href='%s';\n</script>\n", $basisurl);
+		if ($_SESSION['lidid'] > 0) {
+			printf("<script>\nlocation.href='%s';\n</script>\n", $basisurl);
+		} else {
+			printf("<p class='mededeling'><a href='%s?tp=Herstellen+wachtwoord'>Druk hier om je wachtwoord te herstellen (resetten).</a></p>\n", $basisurl);
+			printf("<p class='mededeling'><a href='%s'>Druk hier om verder te gaan naar de beginpagina.</a></p>\n", $basisurl);
+		}
 	}
 ?>
