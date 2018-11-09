@@ -128,7 +128,7 @@ De volgende template-specifieke velden zijn beschikbaar.
 <p>Bij het versturen wordt de template 'briefpapier' gebruikt.</p>
 
 <h2>briefpapier</h2>
-<p>Dit is de template voor de mailings en deze wordt ook gebruikt voor het versturen van de aangevraagde logins.</p>
+<p>Dit is de template voor de mailings en deze wordt ook gebruikt voor het versturen van de aangevraagde logins. Het stuk tekst dat tussen &lt;!-- Aamhef --> en &lt;!-- /Aanhef --> staat wordt bij het mailen van de rekeningen verwijderd.</p>
 
 De volgende velden zijn beschikbaar.
 <ul>
@@ -190,7 +190,7 @@ De tekst tussen &lt;!-- Geen machtiging --> en &lt;!-- /Geen machtiging --> word
 	<li>Komende evenementen: [%KOMENDEEVENEMENTEN%]</li>
 	<li>Waarschuwing diploma's die recent vervallen zijn of binnenkort vervallen: [%VERVALLENDIPLOMAS%]</li>
 </ul>
-Bij verenigingsinfo is het mogelijk om bepaalde stukken tekst alleen te tonen als een gebruiker ingelogd is. Dit doe je door deze stukken tussen &lt;!--&nbsp;Ingelogd&nbsp;--&gt; en &lt;!--&nbsp;/Ingelogd&nbsp;--&gt; te plaatsen.
+Bij verenigingsinfo is het mogelijk om bepaalde stukken tekst alleen te tonen als een gebruiker ingelogd is. Dit doe je door deze stukken tussen &lt;!--&nbsp;Ingelogd&nbsp;--&gt; en &lt;!--&nbsp;/Ingelogd&nbsp;--&gt; te plaatsen. Dit zelfse kan je doen voor de webmaster door Ingelogd door Webmaster te vervangen.
 
 <h2>Overzicht meerdere keren gebruikte velden</h2>
 Hieronder volgt een overzicht van de velden die in meerdere templates gebruikt worden.
