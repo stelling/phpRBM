@@ -410,7 +410,7 @@ function fnConfirmLidnr($row) {
 function fnLoginAanvragen($stap="") {
 	global $table_prefix, $lididwebmasters, $selectlidnr, $basisurl;
 	
-	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+	if ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['loginaanvragen'])) {
 
 		$login = "";
 		$mess = "";
@@ -550,7 +550,7 @@ function fnLoginAanvragen($stap="") {
 function fnOpvragenLidnr() {
 	global $table_prefix, $basisurl;
 	
-	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+	if ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['opvragenlidnr'])) {
 		if (!isValidMailAddress($_POST['emailvoorlidnr'], 0)) {
 			$mess = sprintf("Je hebt geen geldig e-mailadres (%s) opgegeven.", $_POST['emailvoorlidnr']);
 		} elseif (db_param("mailing_lidnr") > 0) {

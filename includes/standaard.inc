@@ -362,7 +362,7 @@ function HTMLheader($refresh=0) {
 				}
 			}
 		} elseif ($_SESSION['aantallogin'] > 0) {
-			echo("<form name='Login' action='/auth.php' method='post'>\n");
+			echo("<form name='Login' action='/index.php' method='post'>\n");
 			echo("\nLogin: <input type='text' name='username' size=12>\n");
 			echo("&nbsp;Wachtwoord: <input type='password' name='password' size=12>\n");
 			echo("&nbsp;<input type='submit' value='Inloggen' name='Inloggen'>\n");
