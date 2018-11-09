@@ -15,7 +15,7 @@ if ($_SESSION['webmaster'] == 1 or $_SERVER["HTTP_HOST"] == "phprbm.telling.nl")
 	error_reporting(E_ALL);
 } else {
 	error_reporting(0);
-//	error_reporting(E_ALL);
+	//error_reporting(E_ALL);
 }
 
 if (isset($_SERVER['HTTPS'])){
@@ -24,8 +24,12 @@ if (isset($_SERVER['HTTPS'])){
 	$basisurl = "http://" . $_SERVER['HTTP_HOST'];
 }
 
-if (!isset($_SESSION['lidid'])) {
+if (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
 	$_SESSION['lidid'] = 0;
+	$_SESSION['lidnr'] = 0;
+	$_SESSION['emailingelogde'] = "";
+	$_SESSION['naamingelogde'] = "gast";
+	$_SESSION['roepnaamingelogde'] = "gast";
 }
 
 $dir = substr(__DIR__, 0, strrpos(__DIR__, "/"));
@@ -345,7 +349,6 @@ function HTMLheader($refresh=0) {
 		printf("<h1>%s</h1>\n", db_param("naamwebsite"));
 	
 		echo("<div id='login'>\n");
-		echo("<form name='Login' action='/auth.php' method='post'>");
 		
 		if ($_SESSION['lidid'] > 0) {
 			printf("Welkom %s\n", htmlentities($_SESSION['roepnaamingelogde']));
@@ -359,6 +362,7 @@ function HTMLheader($refresh=0) {
 				}
 			}
 		} elseif ($_SESSION['aantallogin'] > 0) {
+			echo("<form name='Login' action='/auth.php' method='post'>\n");
 			echo("\nLogin: <input type='text' name='username' size=12>\n");
 			echo("&nbsp;Wachtwoord: <input type='password' name='password' size=12>\n");
 			echo("&nbsp;<input type='submit' value='Inloggen' name='Inloggen'>\n");

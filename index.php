@@ -8,7 +8,6 @@ require('./includes/standaard.inc');
 
 if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen" and $_SESSION['lidid'] > 0) {
 	$mess = db_logins("uitloggen", "", "", $_SESSION['lidid']);
-	session_destroy();
 	setcookie("username", "", time()-3600);
 	setcookie("password", "", time()-3600);
 }

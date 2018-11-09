@@ -1,11 +1,86 @@
 <?php
 
-if ((!isset($_SESSION['username']) or strlen($_SESSION['username']) == 0) and isset($_COOKIE['username'])) {
-	$_SESSION['username'] = $_COOKIE['username'];
-} elseif (!isset($_SESSION['username'])) {
-	$_SESSION['username'] = "";
+if ((!isset($_SESSION['username']) or strlen($_SESSION['username']) == 0)) {
+	if (isset($_COOKIE['username'])) {
+		$_SESSION['username'] = $_COOKIE['username'];
+	} else {
+		$_SESSION['username'] = "";
+	}
 }
 
+function fnAuthenticatie($melding=1, $password="") {
+	
+	db_logins("uitloggen");
+	
+	$pwfromcookie = 0;	
+	if (strlen($password) == 0 and isset($_COOKIE['password']) and strlen($_COOKIE['password']) > 5) {
+		$password = $_COOKIE['password'];
+		$pwfromcookie = 1;
+	}
+		
+	$mess = "";
+	if (isset($_SESSION['username']) and strlen($_SESSION['username']) > 0 and strlen($password) > 0) {
+		$row = db_logins("controle", "", $_SESSION['username'], 0, "", $password);
+		if (db_param("login_maxinlogpogingen") > 0 and isset($row->FouteLogin) and $row->FouteLogin > db_param("login_maxinlogpogingen")) {
+			if (db_param("login_autounlock") > 0 and db_param("login_autounlock") < 12*60) {
+				$mess = sprintf("Login '%s' is tot uiterlijk %s uur geblokkeerd", $_SESSION['username'], date("G:i", strtotime($row->Gewijzigd)+(60*db_param("login_autounlock"))));
+			} else {
+				$mess = sprintf("Login '%s' is geblokkeerd", $_SESSION['username']);
+			}
+			$mess .= ", omdat er teveel mislukte inlog-pogingingen mee gedaan zijn! Je bent niet ingelogd.";
+			
+			$_SESSION['lidid'] = 0;
+			
+		} elseif (db_param("login_maxinlogpogingen") > 0 and db_logboek("iplogincontrole") > db_param("login_maxinlogpogingen")) {
+			$mess = sprintf("Login van IP-adres '%s' is geblokkeerd, omdat er teveel mislukte inlog-pogingingen mee gedaan zijn! Je bent niet ingelogd.", $_SERVER['HTTP_USER_AGENT']);
+			$_SESSION['lidid'] = 0;
+			
+		} elseif (isset($row->ActivatieKey) and strlen($row->ActivatieKey) > 5) {
+			$mess = sprintf("Login '%s' is nog niet gevalideerd en kan nog niet worden gebruikt.", $row->Login);
+			$_SESSION['lidid'] = 0;
+			
+		} elseif (isset($row->LidID) and $row->LidID > 0) {
+			$_SESSION['lidid'] = $row->LidID;
+			$_SESSION['lidnr'] = $row->Lidnr;
+			$_SESSION['naamingelogde'] = $row->NaamLid;
+			if (strlen($row->Roepnaam) == 0) {
+				$_SESSION['roepnaamingelogde'] = $_SESSION['naamingelogde'];
+			} else {
+				$_SESSION['roepnaamingelogde'] = trim($row->Roepnaam);
+			}
+			if (isValidMailAddress($row->EmailVereniging, 0)) {
+				$_SESSION['emailingelogde'] = strtolower($row->EmailVereniging);
+			} elseif (isValidMailAddress($row->Email, 0)) {
+				$_SESSION['emailingelogde'] = strtolower($row->Email);
+			} elseif (isValidMailAddress($row->EmailOuders, 0)) {
+				$_SESSION['emailingelogde'] = strtolower($row->EmailOuders);
+			} elseif (strlen($row->EmailOuders) > 5 and strpos($row->EmailOuders, ",") > 0) {
+				$_SESSION['emailingelogde'] = strstr(strtolower($row->EmailOuders), ",", true);
+			} else {
+				$_SESSION['emailingelogde'] = "";
+			}	
+			db_logins("setingelogd", "", "", $_SESSION['lidid']);
+		} else {
+			if ($pwfromcookie == 0) {
+				$mess = sprintf("De combinatie van login '%s' en het ingevoerde wachtwoord is niet correct! Je bent niet ingelogd.", $_SESSION['username']);
+			}
+			$_SESSION['lidid'] = 0;
+		}
+	} else {
+		$_SESSION['lidid'] = 0;
+	}
+	if ($melding == 1 and strlen($mess) > 0) {
+		db_logboek("add", $mess, 97, 0, 1);
+	} elseif (strlen($mess) > 0) {
+		db_logboek("add", $mess, 97);
+	}
+	if ($_SESSION['lidid'] == 0 or strlen($_SESSION['username']) == 0) {
+		$_SESSION['lidid'] = 0;
+		$_SESSION['username'] = "";
+		unset($_SESSION['toegang']);
+	}
+} # fnAuthenticatie
+	
 function toegang($soort="", $melding=1, $password="") {
 	global $lididwebmasters, $table_prefix, $tabpages, $currenttab, $currenttab2;
 	
@@ -20,86 +95,8 @@ function toegang($soort="", $melding=1, $password="") {
 			$soort .= "/" . $currenttab2;
 		}
 	}
-
-	$pwfromcookie = 0;
-	if (isset($_SESSION['lastauthenication']) and $_SESSION['lastauthenication'] >= time()-7200 and $_SESSION['lidid'] > 0) {
-		// Er hoeft niets te gebeuren.
-	} else {
-		db_logins("uitloggen");
-		
-		if (strlen($password) == 0 and isset($_COOKIE['password']) and strlen($_COOKIE['password']) >= db_param("wachtwoord_minlengte")) {
-			$password = $_COOKIE['password'];
-			$pwfromcookie = 1;
-		}
-		
-		$mess = "";
-		if (isset($_SESSION['username']) and strlen($_SESSION['username']) > 0 and strlen($password) > 0) {
-			$row = db_logins("controle", "", $_SESSION['username'], 0, "", $password);
-			if (db_param("login_maxinlogpogingen") > 0 and isset($row->FouteLogin) and $row->FouteLogin > db_param("login_maxinlogpogingen")) {
-				if (db_param("login_autounlock") > 0 and db_param("login_autounlock") < 12*60) {
-					$mess = sprintf("Login '%s' is tot uiterlijk %s uur geblokkeerd", $_SESSION['username'], date("G:i", strtotime($row->Gewijzigd)+(60*db_param("login_autounlock"))));
-				} else {
-					$mess = sprintf("Login '%s' is geblokkeerd", $_SESSION['username']);
-				}
-				$mess .= ", omdat er teveel mislukte inlog-pogingingen mee gedaan zijn! Je bent niet ingelogd.";
-				
-				$_SESSION['lidid'] = 0;
-				
-			} elseif (db_param("login_maxinlogpogingen") > 0 and db_logboek("iplogincontrole") > db_param("login_maxinlogpogingen")) {
-				$mess = sprintf("Login van IP-adres '%s' is geblokkeerd, omdat er teveel mislukte inlog-pogingingen mee gedaan zijn! Je bent niet ingelogd.", $_SERVER['HTTP_USER_AGENT']);
-				$_SESSION['lidid'] = 0;
-				
-			} elseif (isset($row->ActivatieKey) and strlen($row->ActivatieKey) > 5) {
-				$mess = sprintf("Login '%s' is nog niet gevalideerd en kan nog niet worden gebruikt.", $row->Login);
-				$_SESSION['lidid'] = 0;
-				
-			} elseif (isset($row->LidID) and $row->LidID > 0) {
-				$_SESSION['lastauthenication'] = time();
-				$_SESSION['lidid'] = $row->LidID;
-				$_SESSION['lidnr'] = $row->Lidnr;
-				$_SESSION['naamingelogde'] = $row->NaamLid;
-				if (strlen($row->Roepnaam) == 0) {
-					$_SESSION['roepnaamingelogde'] = $_SESSION['naamingelogde'];
-				} else {
-					$_SESSION['roepnaamingelogde'] = trim($row->Roepnaam);
-				}
-				if (isValidMailAddress($row->EmailVereniging, 0)) {
-					$_SESSION['emailingelogde'] = strtolower($row->EmailVereniging);
-				} elseif (isValidMailAddress($row->Email, 0)) {
-					$_SESSION['emailingelogde'] = strtolower($row->Email);
-				} elseif (isValidMailAddress($row->EmailOuders, 0)) {
-					$_SESSION['emailingelogde'] = strtolower($row->EmailOuders);
-				} elseif (strlen($row->EmailOuders) > 5 and strpos($row->EmailOuders, ",") > 0) {
-					$_SESSION['emailingelogde'] = strstr(strtolower($row->EmailOuders), ",", true);
-				} else {
-					$_SESSION['emailingelogde'] = "";
-				}	
-				db_logins("setingelogd", "", "", $_SESSION['lidid']);
-			} else {
-				if ($pwfromcookie == 0) {
-					$mess = sprintf("De combinatie van login '%s' en het ingevoerde wachtwoord is niet correct! Je bent niet ingelogd.", $_SESSION['username']);
-				}
-				$_SESSION['lidid'] = 0;
-			}
-		} else {
-			$_SESSION['lidid'] = 0;
-		}
-		if ($melding == 1 and strlen($mess) > 0) {
-			db_logboek("add", $mess, 97, 0, 2);
-		} elseif (strlen($mess) > 0) {
-			db_logboek("add", $mess, 97);
-		}
-		if ($_SESSION['lidid'] == 0 or strlen($_SESSION['username']) == 0) {
-			$_SESSION['lidid'] = 0;
-			$_SESSION['username'] = "";
-			$_SESSION['lidnr'] = 0;
-			$_SESSION['naamingelogde'] = "gast";
-			$_SESSION['roepnaamingelogde'] = "gast";
-			$_SESSION['emailingelogde'] = "";
-			unset($_SESSION['toegang']);
-		}
-	}
-	if (in_array($_SESSION['lidid'], $lididwebmasters)) {
+	
+	if (in_array($_SESSION['lidid'], $lididwebmasters) and $_SESSION['lidid'] > 0) {
 		$_SESSION['webmaster'] = 1;
 	} else {
 		$_SESSION['webmaster'] = 0;
@@ -534,7 +531,16 @@ function fnLoginAanvragen($stap="") {
 		}
 		echo(" Je ontvangt een e-mail met daarin een link om deze aanmelding te bevestigen. Pas daarna is de login bruikbaar om in te loggen.</p>\n");
 		
-		printf("<p>Mocht je een login hebben, maar je wachtwoord niet meer weten, dan kan je dat <a href='%s?tp=Herstellen wachtwoord'>hier</a> herstellen.</p>", $_SERVER["PHP_SELF"]);
+		printf("<p>Voorwaarden aan een login:<ul>\n<li>Minimaal 7 karakters en maximaal %d karakters lang</li>\n</ul>\n</p>\n", db_param("login_maxlengte"));
+		
+		printf("<p>Voorwaarden aan een wachtwoord:</p>\n
+					<ul>\n
+					<li>Minimaal %d karakters en maximaal %d karakters lang.</li>\n
+					<li>Mag je login niet bevatten</li>\n
+					<li>Moet minimaal 1 cijfer bevatten</li>\n
+					<li>Moet minimaal 1 kleine letter bevatten</li>\n
+					<li>Moet minimaal 1 hoofdletter bevatten</li>\n
+					</ul>\n", db_param("wachtwoord_minlengte"), db_param("wachtwoord_maxlengte"));
 			
 		echo("</form>
 		</div>  <!-- Einde loginaanvraag -->\n");
@@ -601,7 +607,7 @@ function cleanlogin($login) {
 	$login = str_replace(";", "", $login);
 	
 	return $login;
-}
+} # cleanlogin
 
 function newpassword($lidid) {
 	
@@ -620,7 +626,7 @@ function newpassword($lidid) {
 	} else {
 		return false;
 	}
-}
+} # newpassword
 
 function newkey() {
 	
@@ -633,7 +639,7 @@ function newkey() {
 	$ww = strtoupper(substr($ww, 0, 2)) . substr($ww, 2, 8) . strtoupper(substr($ww, 10, 2));
 	
 	return $ww;
-}
+} # newkey
 
 function checknewpassword($ww, $login="") {
 	
@@ -671,6 +677,6 @@ function checknewpassword($ww, $login="") {
 	}
 	
 	return $mess;
-}
+} # checknewpassword
 
 ?>
