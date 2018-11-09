@@ -245,7 +245,7 @@ if ($currenttab == "Beheer logins" and toegang()) {
 	echo("</form>\n");
 
 	echo("<h2>Gewijzigde logins op de website, bijwerken in de Access database.</h2>");
-	$xf = "IFNULL(L.LoginWebsite, '') <> Login.Login AND Login.LastLogin > '2018-01-01'";
+	$xf = "IFNULL(L.LoginWebsite, '') <> Login.Login";
 	$rows = db_logins("lijst", "", "", 0, $xf);
 	if (count($rows) > 0) {
 		echo(fnDisplayTable($rows, "", "", 1));
