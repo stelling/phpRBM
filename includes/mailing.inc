@@ -1270,6 +1270,7 @@ function fnRekeningenMailen($op) {
 		} elseif ($op == "selectieversturen" and isset($_POST['sure'])) {
 			$aant_ok = 0;
 			$mail = new RBMmailer();
+			$mail->IsHTML(true);
 			if (strlen(db_param("mailing_rekening_from_adres")) > 0) {
 				$mail->From = db_param("mailing_rekening_from_adres");
 			}
@@ -1280,20 +1281,24 @@ function fnRekeningenMailen($op) {
 			foreach(db_rekening("selectie", 0, $_POST['rekfilter']) as $rk) {
 				$e = $mail->ToevoegenLid($rk->Lid);
 				
-				$rr = db_rekening("regels", $nr);
+				$rr = db_rekening("regels", $rk->Nummer);
 				$rrtxt = "";
+				
+				$hd = new DateTime($rk->Datum);
+				$hd->sub(new DateInterval('P18Y'));
 				foreach($rr as $regel) {
 					$nl = db_naamlid($regel->Lid, "Naam", "");
-					if (strlen($regel->Email) > 5 and $regel->GEBDATUM <= date("Y-m-d", mktime(0, 0, 0, date("m"), date("d"))) and in_array($regel->Email, $mail->to) == false and in_array($regel->Email, $mail->cc) == false) {
+					if (strlen($regel->Email) > 5 and $regel->GEBDATUM > '1900-01-01' and $regel->GEBDATUM <= $hd->format('Y-m-d') and strpos($e, $regel->Email) === false) {
 						$mail->AddAddress($regel->Email, $nl);
+						$e .= ", " . $regel->Email;
 					}
 				}
 				
 				$mail->Subject = $rk->OMSCHRIJV . " " . $rk->Nummer;
 				$rt = RekeningDetail($rk->Nummer);
 				$mail->Body = $rt;
-				$mail->addstationary($rk->DEBNAAM);
-				if (isValidMailAddress($e, 0) == false) {
+				$mail->addstationary($rk->DEBNAAM, "", 1);
+				if (strlen($e) < 5) {
 					$mess = sprintf("Rekening %d kon niet worden verzonden, omdat er van %s geen geldig e-mailadres in de database bekend is.", $rk->Nummer, $rk->DEBNAAM);
 				} elseif ($mail->Send()) {
 					db_add_mailing_hist($rk->Lid, 0, $rk->DEBNAAM, $e, $rt, $mail, 1, "REK", $rk->Nummer);

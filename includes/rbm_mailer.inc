@@ -43,21 +43,22 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 		$rv = "";
 		$row = db_lid("record", "", $lidid);
 		if (strlen($row->Email) > 5 and self::ValidateAddress($row->Email)) {
-			if (in_array($row->Email, $this->to) == false) {
+			if (in_array($row->Email, $this->to) === false) {
 				$this->AddAddress($row->Email, $row->NaamLid);
 			}
 			$rv = $row->Email;
 		} elseif (strlen($row->EmailVereniging) > 5 and self::ValidateAddress($row->EmailVereniging)) {
-			if (in_array($row->EmailVereniging, $this->to) == false) {
+			if (in_array($row->EmailVereniging, $this->to) === false) {
 				$this->AddAddress($row->EmailVereniging, $row->NaamLid);
 			}
 			$rv = $row->EmailVereniging;
 		}
 		
-		if (strlen($rv) > 0) {
+		if (strlen($rv) > 0 and self::ValidateAddress($row->EmailOuders)) {
 			$this->clearCCs();
 			$this->InformerenOuders($row->GEBDATUM, $row->EmailOuders, "cc");
-		} else {
+			$rv .= ", " . $row->EmailOuders;
+		} elseif (self::ValidateAddress($row->EmailOuders)) {
 			$rv = $this->InformerenOuders($row->GEBDATUM, $row->EmailOuders, "to");
 		}
 		
@@ -105,7 +106,7 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 		}
 	}
 	
-	public function addstationary($to="", $from="") {
+	public function addstationary($to="", $from="", $verwijderaanhef=0) {
 		if (strlen($to) == 0) {
 			foreach($this->to as $e) {
 				if (strlen($to) > 0) {
@@ -118,7 +119,12 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 			$from = $this->FromName;
 		}
 		if (file_exists($this->bestand_briefpapier)) {
-			$htmlmessage = str_ireplace("[%MESSAGE%]", $this->Body, file_get_contents($this->bestand_briefpapier));
+			if ($verwijderaanhef == 1) {
+				$htmlmessage = removetextblock(file_get_contents($this->bestand_briefpapier), "<!-- Aanhef -->", "<!-- /Aanhef -->");
+			} else {
+				$htmlmessage = file_get_contents($this->bestand_briefpapier);
+			}
+			$htmlmessage = str_ireplace("[%MESSAGE%]", $this->Body, $htmlmessage);
 			$htmlmessage = str_ireplace("[%FROM%]", $from, $htmlmessage);
 			$htmlmessage = str_ireplace("[%TO%]", $to, $htmlmessage);
 			$htmlmessage = str_ireplace("[%SUBJECT%]", $this->Subject, $htmlmessage);
