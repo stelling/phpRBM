@@ -1284,13 +1284,15 @@ function fnRekeningenMailen($op) {
 				$rr = db_rekening("regels", $rk->Nummer);
 				$rrtxt = "";
 				
-				$hd = new DateTime($rk->Datum);
-				$hd->sub(new DateInterval('P18Y'));
-				foreach($rr as $regel) {
-					$nl = db_naamlid($regel->Lid, "Naam", "");
-					if (strlen($regel->Email) > 5 and $regel->GEBDATUM > '1900-01-01' and $regel->GEBDATUM <= $hd->format('Y-m-d') and strpos($e, $regel->Email) === false) {
-						$mail->AddAddress($regel->Email, $nl);
-						$e .= ", " . $regel->Email;
+				if (db_param("mailing_rekening_allevolwassenen") == 1) { 
+					$hd = new DateTime($rk->Datum);
+					$hd->sub(new DateInterval('P18Y'));
+					foreach($rr as $regel) {
+						$nl = db_naamlid($regel->Lid, "Naam", "");
+						if (strlen($regel->Email) > 5 and $regel->GEBDATUM > '1900-01-01' and $regel->GEBDATUM <= $hd->format('Y-m-d') and strpos($e, $regel->Email) === false) {
+							$mail->AddAddress($regel->Email, $nl);
+							$e .= ", " . $regel->Email;
+						}
 					}
 				}
 				
