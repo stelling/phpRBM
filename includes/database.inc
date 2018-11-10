@@ -13,7 +13,7 @@ $arrTables[] = "Mailing_rcpt";
 // $arrTables[] = "DMS_Folder";
 
 // Overgenomen uit de Access-database
-$arrTables[] = "Bewaking";
+$arrTables[20] = "Bewaking";
 $arrTables[] = "Bewseiz";
 $arrTables[] = "Boekjaar";
 $arrTables[] = "Diploma";
@@ -116,7 +116,7 @@ if (!isset($_SESSION['aantalbewaking'])) {
 	$_SESSION['aantalbewaking'] = db_scalar($query);
 }
 
-if (!isset($_SESSION['aantalrekeningen'])) {
+if (!isset($_SESSION['aantalrekeningen']) or $_SESSION['aantalrekeningen'] == 0) {
 	$query = sprintf("SELECT COUNT(*) FROM %sRekening;", $table_prefix);
 	$_SESSION['aantalrekeningen'] = db_scalar($query);
 	if ($_SESSION['aantalrekeningen'] > 0) {
@@ -2814,22 +2814,22 @@ function db_onderhoud() {
 		$query = sprintf("ALTER TABLE `%sAdmin_login` CHANGE `Wachtwoord` `Wachtwoord` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table_prefix);
 		fnQuery($query);
 	}
-		
-	/***** Aanpassen lengte van het diplomanummer naar 25. Deze code kan na 1/12/2020 worden verwijderd. *****/
-	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%sLiddipl' AND COLUMN_NAME LIKE 'Diplomanummer';", $db_name, $table_prefix);
-	if (db_scalar($query) < 25) {
-		$query = sprintf("ALTER TABLE `%sLiddipl` CHANGE `Diplomanummer` `Diplomanummer` VARCHAR(25) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table_prefix);
+
+	/***** Aanpassen lengte van de naam van paramters naar 50. Deze code kan na 1/1/2020 worden verwijderd. *****/
+	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%sAdmin_param' AND COLUMN_NAME LIKE 'Naam';", $db_name, $table_prefix);
+	if (db_scalar($query) < 50) {
+		$query = sprintf("ALTER TABLE `%sAdnin_param` CHANGE `Naam` `Naam` VARCHAR(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table_prefix);
 		fnQuery($query);
 	}
 	
-	/***** Aanpassen lengte van het IP-adres in Admin_activiteit naar 45 voor IP v6 adressen. Deze code kan na 1/12/2020 worden verwijderd. *****/
+	/***** Aanpassen lengte van het IP-adres in Admin_activiteit naar 45 voor IP v6 adressen. Deze code kan na 1/1/2020 worden verwijderd. *****/
 	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%sAdmin_activiteit' AND COLUMN_NAME LIKE 'IP_adres';", $db_name, $table_prefix);
 	if (db_scalar($query) < 45) {
 		$query = sprintf("ALTER TABLE `%sAdmin_activiteit` CHANGE `IP_adres` `IP_adres` VARCHAR(45) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table_prefix);
 		fnQuery($query);
 	}
 	
-	/***** Aanpassen type veld van Ingevoerd in Admin_login naar datumtijd. Deze code kan na 1/12/2020 worden verwijderd. *****/
+	/***** Aanpassen type veld van Ingevoerd in Admin_login naar datumtijd. Deze code kan na 1/1/2020 worden verwijderd. *****/
 	$query = sprintf("ALTER TABLE `%sAdmin_login` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NULL DEFAULT CURRENT_TIMESTAMP;", $table_prefix);
 	fnQuery($query);
 	
@@ -2893,15 +2893,6 @@ function db_onderhoud() {
 	if ($result > 0) {
 		db_logboek("add", sprintf("Er zijn %d leden verwijderd, omdat ze een verwijderd markering hebben of omdat ze overleden zijn.", $result), 2);
 		fnQuery(sprintf("OPTIMIZE TABLE %sLid;", $table_prefix));
-	}
-	
-	$query = sprintf("UPDATE %sLid SET Telefoon=NULL WHERE `Telefoonnummer is geheim`=1;", $table_prefix);
-	$result = fnQuery($query);
-	sprintf("UPDATE %sLid SET Mobiel=NULL WHERE `Mobiel is geheim`=1;", $table_prefix);
-	$result += fnQuery($query);
-	if ($result > 0) {
-		$mess = sprintf("Er zijn %d geheime telefoonnummers verwijderd.", $result);
-		db_logboek("add", $mess, 2);
 	}
 	
 	$query = sprintf("DELETE FROM %sOnderdl WHERE `Type`<>'A' AND Kader<>1 AND (NOT VervallenPer IS NULL) AND VervallenPer < CURDATE();", $table_prefix);
@@ -3015,7 +3006,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_login` (
 
 CREATE TABLE IF NOT EXISTS `%1\$sAdmin_param` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
-  `Naam` varchar(35) COLLATE utf8_unicode_ci NOT NULL,
+  `Naam` varchar(50) COLLATE utf8_unicode_ci NOT NULL,
   `ParamType` char(2) COLLATE utf8_unicode_ci DEFAULT NULL,
   `ValueChar` text COLLATE utf8_unicode_ci,
   `ValueNum` decimal(16,6) DEFAULT NULL,
