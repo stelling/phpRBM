@@ -353,6 +353,7 @@ HTMLfooter();
 function fnInstellingen() {
 	global $table_prefix;
 
+	$arrParam['db_backup_type'] = "1 = alleen interne phpRBM-tabellen, 2 = alleen tabellen uit Access, 3 = beide.";
 	$arrParam['db_backuptarren'] = "Moet de backup gecomprimeerd worden? Let op, de webhost moet dit wel ondersteunen. En ook moet de PHP-functie 'exec' beschikbaar zijn.";
 	$arrParam['db_backupsopschonen'] = "Na hoeveel dagen moeten oude back-ups automatisch verwijderd worden? 0 = nooit.";
 	$arrParam['db_folderbackup'] = "Deze variabele is optioneel. Mocht deze niet ingevuld worden, dan wordt de standaard folder gebruikt.";
@@ -375,6 +376,7 @@ function fnInstellingen() {
 	$arrParam['mailing_bewakinginschrijving'] = "Het nummer van de mailing die als bevestiging van een inschrijving voor de bewaking verstuurd moet worden. 0 = geen.";
 	$arrParam['mailing_extensies_toegestaan'] = "De extenties die zijn toegestaan bij bijlagen in een mailing. Als je niets specificeerd wordt een standaard lijst gebruikt.";
 	$arrParam['mailing_lidnr'] = "Het nummer van de mailing die verstuurd moet worden als een lid zijn lidnummer opvraagt. 0 = geen.";
+	$arrParam['mailing_rekening_allevolwassenen'] = "Moeten alle volwassenen op deze rekening de rekening krijgen gemaild?";
 	$arrParam['mailing_rekening_from_adres'] = "Vanaf welk e-mailadres moeten de rekeningen gemailed worden?";
 	$arrParam['mailing_rekening_from_naam'] = "Welke naam moeten de rekeningen verzonden worden? Standaard is vanaf de verenigingsnaam.";
 	$arrParam['mailing_resultaatversturen'] = "Indien aangevinkt wordt naar de zender en het secretariaat een mail met het resultaat van deze mailing verzonden.";

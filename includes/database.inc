@@ -2559,6 +2559,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrIntegers['logboek_bewaartijdinloggen'] = 2;
 	$arrIntegers['logboek_bewaartijd'] = 6;
 	$arrIntegers['login_geldigheidactivatie'] = 36;
+	$arrIntegers['db_backup_type'] = 3;
 	$arrIntegers['db_backupsopschonen'] = 11;
 	$arrIntegers['login_autounlock'] = 120;
 	$arrIntegers['mailing_bevestigingbestelling'] = 0;
@@ -2587,6 +2588,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrBooleans['meisjesnaamtonen'] = 1;
 	$arrBooleans['login_lidnrnodigbijaanvraag'] = 1;
 	$arrBooleans['mailing_resultaatversturen'] = 0;
+	$arrBooleans['mailing_rekening_allevolwassenen'] = 1;
 	$arrBooleans['toneninschrijvingenbewakingen'] = 1;
 	$arrBooleans['tonentoekomstigebewakingen'] = 0;
 	$arrBooleans['zs_incl_beroep'] = 1;
