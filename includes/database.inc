@@ -3535,7 +3535,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sWS_Orderregel` (
 }
 
 function db_backup() {
-	global $db_name;
+	global $db_name, $arrTables, $table_prefix;
 	
 	$db_folderbackup = db_param("db_folderbackup");
 	
@@ -3555,15 +3555,27 @@ function db_backup() {
 
 	if (strtotime(db_param("laatstebackup")) < mktime(date("H")-1, date("m"), 0, date("m"), date("d"), date("Y"))) {
 		$FileName = $db_folderbackup . $buname;
-		$data = fnBackupTables();
+		
+		if (db_param("db_backup_type") == 1 or db_param("db_backup_type") == 2) {
+			$tabs = "";
+			foreach ($arrTables as $tnr => $tnm) {
+				if ((db_param("db_backup_type") == 1 and $tnr < 20) or (db_param("db_backup_type") == 2 and $tnr >= 20)) {
+					$tabs .= $table_prefix . $tnm . ",";
+				}
+			}
+		} else {
+			$tabs = "*";
+		}
+		
+		$data = fnBackupTables($tabs);
 
-		if (strlen($data) > 1500) {
+		if (strlen($data) > 500) {
 		
 			$buf = fopen($FileName . ".sql", 'w');		
 			fwrite($buf, $data);
-			fclose($buf);	
+			fclose($buf);
 			
-			$ret = sprintf("De backup is in '%s.sql' gemaakt. ", str_replace($db_folderbackup, "", $FileName));
+			$ret = sprintf("Backup, type %d, is in '%s.sql' gemaakt. ", db_param("db_backup_type"), str_replace($db_folderbackup, "", $FileName));
 			db_logboek("add", $ret, 3);
 
 			if (db_param("db_backuptarren") == 1) {
@@ -3611,6 +3623,9 @@ function fnBackupTables($tables="*") {
 			$tables[] = $row[0]; 
       }
    } else {
+		if (endswith($tables, ",")) {
+			$tables = substr($tables, 0, strlen($tables)-1);
+		}
       $tables = is_array($tables) ? $tables : explode(',',$tables);
    }
    
@@ -3623,7 +3638,7 @@ function fnBackupTables($tables="*") {
 		$query = sprintf("SELECT * FROM `%s`;", $table);
 		$result = $dbc->prepare($query);
       $result->execute();
-      $data .= sprintf("DROP TABLE `%s`;", $table);
+      $data .= sprintf("DROP TABLE IF EXISTS `%s`;", $table);
 
       $result2 = $dbc->prepare('SHOW CREATE TABLE '.$table);  
       $result2->execute();                            
@@ -3650,9 +3665,6 @@ function fnBackupTables($tables="*") {
       }
       $data .= "\n\n\n";
    }
-            //save filename
-//            $filename = 'db-backup-'.time().'-'.(implode(",",$tables)).'.sql';
-//            $this->writeUTF8filename($filename,$data);
 
 	return $data;
 }

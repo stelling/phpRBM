@@ -854,6 +854,17 @@ function startwith($haystack, $start) {
 	}
 } # startwith
 
+function endswith($haystack, $end) {
+    $length = strlen($end);
+	 if (strlen($haystack) == 0) {
+		 return false;
+    } elseif ($length == 0) {
+		return true;
+    }
+
+    return (substr($haystack, -$length) === $end);
+} # endswith
+
 function change_month_to_uk($strdate) {
 
 	$arrMonth[]=array("From" => "januari", "To" => "January");
