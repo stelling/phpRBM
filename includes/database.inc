@@ -2818,7 +2818,7 @@ function db_onderhoud() {
 	/***** Aanpassen lengte van de naam van paramters naar 50. Deze code kan na 1/1/2020 worden verwijderd. *****/
 	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%sAdmin_param' AND COLUMN_NAME LIKE 'Naam';", $db_name, $table_prefix);
 	if (db_scalar($query) < 50) {
-		$query = sprintf("ALTER TABLE `%sAdnin_param` CHANGE `Naam` `Naam` VARCHAR(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table_prefix);
+		$query = sprintf("ALTER TABLE `%sAdmin_param` CHANGE `Naam` `Naam` VARCHAR(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table_prefix);
 		fnQuery($query);
 	}
 	
