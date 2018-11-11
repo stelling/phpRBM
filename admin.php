@@ -376,7 +376,8 @@ function fnInstellingen() {
 	$arrParam['mailing_bewakinginschrijving'] = "Het nummer van de mailing die als bevestiging van een inschrijving voor de bewaking verstuurd moet worden. 0 = geen.";
 	$arrParam['mailing_extensies_toegestaan'] = "De extenties die zijn toegestaan bij bijlagen in een mailing. Als je niets specificeerd wordt een standaard lijst gebruikt.";
 	$arrParam['mailing_lidnr'] = "Het nummer van de mailing die verstuurd moet worden als een lid zijn lidnummer opvraagt. 0 = geen.";
-	$arrParam['mailing_rekening_allevolwassenen'] = "Moeten alle volwassenen op deze rekening de rekening krijgen gemaild?";
+	$arrParam['mailing_rekening_alleleden'] = "Moeten alle leden op de rekening de rekening gemaild krijgen?";
+	$arrParam['mailing_rekening_allevolwassenen'] = "Moeten alle volwassenen op de rekening de rekening krijgen gemaild?";
 	$arrParam['mailing_rekening_from_adres'] = "Vanaf welk e-mailadres moeten de rekeningen gemailed worden?";
 	$arrParam['mailing_rekening_from_naam'] = "Welke naam moeten de rekeningen verzonden worden? Standaard is vanaf de verenigingsnaam.";
 	$arrParam['mailing_resultaatversturen'] = "Indien aangevinkt wordt naar de zender en het secretariaat een mail met het resultaat van deze mailing verzonden.";

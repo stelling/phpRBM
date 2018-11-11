@@ -2588,7 +2588,8 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrBooleans['meisjesnaamtonen'] = 1;
 	$arrBooleans['login_lidnrnodigbijaanvraag'] = 1;
 	$arrBooleans['mailing_resultaatversturen'] = 0;
-	$arrBooleans['mailing_rekening_allevolwassenen'] = 1;
+	$arrBooleans['mailing_rekening_alleleden'] = 0;
+	$arrBooleans['mailing_rekening_allevolwassenen'] = 0;
 	$arrBooleans['toneninschrijvingenbewakingen'] = 1;
 	$arrBooleans['tonentoekomstigebewakingen'] = 0;
 	$arrBooleans['zs_incl_beroep'] = 1;
