@@ -682,6 +682,11 @@ class Mailing {
 	
 	public function post_form() {
 		global $table_prefix;
+
+		if (isset($_POST['subject']) and strlen($_POST['subject']) > 1) {
+			$this->subject = html_entity_decode($_POST['subject']);
+			$_POST['subject'] = $this->subject;
+		}
 		
 		if ($this->mid == 0) {
 			$this->mid = db_mailing("add", 0, 0, "", $_POST['subject']);
@@ -697,9 +702,12 @@ class Mailing {
 		} else {
 			$_POST['cc_addr'] = "";
 		}
+		
 		if (isset($_POST['message']) and strlen($_POST['message']) > 1) {
-			$_POST['message'] = html_entity_decode($_POST['message']);
+			$this->message = html_entity_decode($_POST['message']);
+			$_POST['message'] = $this->message;
 		}
+		
 		if (isset($_POST['template'])) {
 			$_POST['template'] = 1;
 		} else {
@@ -1020,13 +1028,11 @@ class Mailing {
 	private function merge($lidid=0) {
 		global $table_prefix;
 		
-		$this->merged_subject = $this->subject;
-		$this->merged_subject = str_ireplace("[%Naamvereniging%]", db_param("naamvereniging"), $this->merged_subject);
+		$this->merged_subject = str_ireplace("[%Naamvereniging%]", db_param("naamvereniging"), $this->subject);
 		$this->merged_subject = str_ireplace("[%Naamwebsite%]", db_param("naamwebsite"), $this->merged_subject);
 		$this->merged_subject = str_ireplace("[%URLwebsite%]", $_SERVER["HTTP_HOST"], $this->merged_subject);
 		
-		$this->merged_message = $this->message;
-		$this->merged_message = str_ireplace("[%Naamvereniging%]", db_param("naamvereniging"), $this->merged_message);
+		$this->merged_message = str_ireplace("[%Naamvereniging%]", db_param("naamvereniging"), $this->message);
 		$this->merged_message = str_ireplace("[%Naamwebsite%]", db_param("naamwebsite"), $this->merged_message);
 		$this->merged_message = str_ireplace("[%URLwebsite%]", $_SERVER["HTTP_HOST"], $this->merged_message);
 		
@@ -1250,6 +1256,18 @@ function fnRekeningenMailen($op) {
 				$filter .= "RK.Bedrag <= RK.Betaald";
 			}
 			$filter .= ")";
+			
+			if (isset($_POST['rekverstuuraan'])) {
+				db_param("mailing_rekening_stuurnaar", "updval", $_POST['rekverstuuraan']);
+			}
+			
+			if (isset($_POST['vanafadres'])) {
+				db_param("mailing_rekening_from_adres", "updval", $_POST['vanafadres']);
+			}
+			
+			if (isset($_POST['vanafnaam'])) {
+				db_param("mailing_rekening_from_naam", "updval", $_POST['vanafnaam']);
+			}
 
 			$selrek = "";
 			foreach(db_rekening("selectie", 0, $filter) as $rk) {
@@ -1284,7 +1302,7 @@ function fnRekeningenMailen($op) {
 				$rr = db_rekening("regels", $rk->Nummer);
 				$rrtxt = "";
 				
-				if (db_param("mailing_rekening_allevolwassenen") == 1 or db_param("mailing_rekening_alleleden") == 1) {
+				if (db_param("mailing_rekening_stuurnaar") > 1) {
 					$hd = new DateTime($rk->Datum);
 					$hd->sub(new DateInterval('P18Y'));
 					foreach($rr as $regel) {
@@ -1292,7 +1310,7 @@ function fnRekeningenMailen($op) {
 						if (strlen($regel->Email) > 5 and $regel->GEBDATUM > '1900-01-01' and $regel->GEBDATUM <= $hd->format('Y-m-d') and strpos($e, $regel->Email) === false) {
 							$mail->AddAddress($regel->Email, $nl);
 							$e .= ", " . $regel->Email;
-						} elseif (db_param("mailing_rekening_alleleden") == 1 and strlen($regel->Email) > 5 and strpos($e, $regel->Email) === false) {
+						} elseif (db_param("mailing_rekening_stuurnaar") == 3 and strlen($regel->Email) > 5 and strpos($e, $regel->Email) === false) {
 							$mail->AddAddress($regel->Email, $nl);
 							$e .= ", " . $regel->Email;
 						}
@@ -1333,7 +1351,7 @@ function fnRekeningenMailen($op) {
 		echo("</select></td><td></td><td></td></tr>\n");
 		printf("<tr><td class='label'>Rekeningnummer</th><td><input type='number' name='reknr'></td><td><input type='number' value=%d name='minreknr'></td><td><input type='number' value=%d name='maxreknr'></td></tr>\n", db_rekening("minnummer"), db_rekening("maxnummer"));
 		printf("<tr><td class='label'>Rekeningdatum</th><td><input type='date' name='rekdatum'></td><td><input type='date' value='%s' name='mindatum'></td><td><input type='date' value='%s' name='maxdatum'></td></tr>\n", db_rekening("mindatum"), db_rekening("maxdatum"));			
-		echo("<tr><td class='label'>Lid</th><td><select name='reklid'>\n<option value='-1'>*** Iedereen ***</option>>\n");
+		echo("<tr><td class='label'>Betaald door (debiteur)</th><td><select name='reklid'>\n<option value='-1'>*** Iedereen ***</option>>\n");
 		foreach(db_lid("ledenmetrekening") as $row) {
 			printf("<option value=%d>%s</option>\n", $row->Nummer, $row->Naam_lid);
 		}
@@ -1345,6 +1363,24 @@ function fnRekeningenMailen($op) {
 		echo("<input type='checkbox' name='nulrekeningen' value=1 checked>Nul rekeningen\n");
 		echo("<input type='checkbox' name='eerderverzonden' value=1 checked>Eerder verzonden\n");
 		echo("<input type='checkbox' name='geenemail' value=1>Geen e-mailadres\n");
+		
+		echo("<tr><th colspan=4>Instellingen</th></tr>\n");
+		echo("<tr><td class='label'>Rekening versturen aan:</th><td colspan=3><select name='rekverstuuraan'>\n");
+		$sn[1] = "Alleen betaald door (debiteur)";
+		$sn[2] = "Betaald door en alle volwassenen op de rekening";
+		$sn[3] = "Betaald door en alle leden op de rekening";
+		foreach($sn as $key => $val) {
+			$s = "";
+			if (db_param("mailing_rekening_stuurnaar") == $key) {
+				$s = " selected";
+			}
+			printf("<option value=%d%s>%s</option>>\n", $key, $s, $val);
+		}
+		echo("</select></td></tr>\n");
+		
+		printf("<tr><td class='label'>Vanaf e-mailadres<td colspan=3><input name='vanafadres' type='email' value='%s' size=50></td></tr>\n", db_param("mailing_rekening_from_adres"));
+		printf("<tr><td class='label'>Vanaf naam<td colspan=3><input name='vanafnaam' type='text' value='%s' size=50></td></tr>\n", db_param("mailing_rekening_from_naam"));
+		
 		echo("</td></tr>\n");
 		echo("<tr><th colspan=4><input type='submit' value='Verder'></th></tr>\n");
 		echo("</table>\n");

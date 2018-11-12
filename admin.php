@@ -55,13 +55,14 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 		if ($queries !== false) {
 			$mess = "Bestand is succesvol ge-upload.";
 			db_logboek("add", $mess, 9, 0, 1);
+			$query = sprintf("SELECT COUNT(*) FROM %sLidond;", $table_prefix);
 			if (substr_count($queries, $table_prefix) == 0) {
 				$mess = sprintf("In het upload bestand komt de juiste table name prefix (%s) niet voor. Dit bestand wordt niet verwerkt.", $table_prefix);
 				db_logboek("add", $mess, 9, 0, 1);
-			} elseif (strpos($queries, $table_prefix . "Lid") === FALSE) {
+			} elseif (strpos($queries, $table_prefix . "Lid") === FALSE and $_SESSION['aantallid'] < 25) {
 				$mess = sprintf("De verplichte tabel '%sLid' zit niet in deze upload. Dit bestand wordt niet verwerkt.", $table_prefix);
 				db_logboek("add", $mess, 9, 0, 1);
-			} elseif (strpos($queries, $table_prefix . "Lidond") === FALSE) {
+			} elseif (strpos($queries, $table_prefix . "Lidond") === FALSE and db_scalar($query) < 25) {
 				$mess = sprintf("De verplichte tabel '%sLidond' zit niet in deze upload. Dit bestand wordt niet verwerkt.", $table_prefix);
 				db_logboek("add", $mess, 9, 0, 1);
 			} elseif (fnQuery($queries) !== true) {
@@ -376,8 +377,7 @@ function fnInstellingen() {
 	$arrParam['mailing_bewakinginschrijving'] = "Het nummer van de mailing die als bevestiging van een inschrijving voor de bewaking verstuurd moet worden. 0 = geen.";
 	$arrParam['mailing_extensies_toegestaan'] = "De extenties die zijn toegestaan bij bijlagen in een mailing. Als je niets specificeerd wordt een standaard lijst gebruikt.";
 	$arrParam['mailing_lidnr'] = "Het nummer van de mailing die verstuurd moet worden als een lid zijn lidnummer opvraagt. 0 = geen.";
-	$arrParam['mailing_rekening_alleleden'] = "Moeten alle leden op de rekening de rekening gemaild krijgen?";
-	$arrParam['mailing_rekening_allevolwassenen'] = "Moeten alle volwassenen op de rekening de rekening krijgen gemaild?";
+	$arrParam['mailing_rekening_stuurnaar'] = "Naar wie moet een rekening gemaild worden? 1 = alleen Betaald door (debiteur), 2 = Betaald door en alle volwassenen op de rekening en 3 = Betaald door en alle leden op de rekening.";
 	$arrParam['mailing_rekening_from_adres'] = "Vanaf welk e-mailadres moeten de rekeningen gemailed worden?";
 	$arrParam['mailing_rekening_from_naam'] = "Welke naam moeten de rekeningen verzonden worden? Standaard is vanaf de verenigingsnaam.";
 	$arrParam['mailing_resultaatversturen'] = "Indien aangevinkt wordt naar de zender en het secretariaat een mail met het resultaat van deze mailing verzonden.";

@@ -111,6 +111,11 @@ if (!isset($_SESSION['aantalrollen'])) {
 	$_SESSION['aantalrollen'] = db_scalar($query);
 }
 
+if (!isset($_SESSION['aantaltoestemmingen'])) {
+	$query = sprintf("SELECT COUNT(*) FROM %sOnderdl WHERE `Type`='T';", $table_prefix);
+	$_SESSION['aantaltoestemmingen'] = db_scalar($query);
+}
+
 if (!isset($_SESSION['aantalbewaking'])) {
 	$query = sprintf("SELECT COUNT(*) FROM %sBewseiz;", $table_prefix);
 	$_SESSION['aantalbewaking'] = db_scalar($query);
@@ -711,7 +716,7 @@ function db_authorisation($actie, $recid=0, $tabpage="") {
 		db_logboek("add", $mess, 15);
 		return $mess;
 	}
-}
+} # db_authorisation
 
 function db_bewaking($actie, $seizoen=-1, $lidid=-1, $week=-1) {
 	global $table_prefix, $selectnaam;
@@ -1796,7 +1801,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 			return $row;
 		}
 	}
-}
+} # db_mailing
 
 function db_mutatie($jaar, $gbr="*", $kpl="*") {
 	global $table_prefix;
@@ -2019,17 +2024,18 @@ function db_diploma($actie, $did=0, $td="*") {
 		$query = sprintf("SELECT Naam FROM %sDiploma WHERE RecordID=%d;", $table_prefix, $did);
 		return db_scalar($query);
 	} elseif ($actie == "opschonen") {
+		/* Tijdelijk opgeschort.
 		$query = sprintf("DELETE FROM %sDiploma WHERE (NOT Vervallen IS NULL) AND Vervallen < CURDATE();", $table_prefix);
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$mess = sprintf("Er zijn %d diploma's verwijderd, omdat ze vervallen zijn. ", $result);
-			db_logboek("add", $mess, 2);
 		}
 		return $mess;
+		*/
 	} else {
 		return null;
 	}
-}
+} # db_diploma
 
 function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $dipnr="", $xtrafilter="") {
 	global $table_prefix, $fdaccess, $fdsql;
@@ -2115,7 +2121,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 				 . " D.Naam AS Diploma,"
 				 . " LD.DatumBehaald AS dteDatum,"
 				 . " LD.Diplomanummer AS Gegevens,"
-				 . " IFNULL(LD.LicentieVervallenPer, IF(D.GELDIGH>0, DATE_ADD(LD.DatumBehaald, INTERVAL D.GELDIGH MONTH), NULL)) AS `dteVervalt per`"
+				 . " IFNULL(LD.LicentieVervallenPer, IF(D.GELDIGH>0, DATE_ADD(LD.DatumBehaald, INTERVAL D.GELDIGH MONTH), IF((NOT D.Vervallen IS NULL), D.Vervallen, null))) AS `dteVervalt per`"
 				 . " FROM %1\$sLiddipl AS LD INNER JOIN %1\$sDiploma AS D ON LD.DiplomaID = D.RecordID"
 				 . " WHERE LD.DatumBehaald <= CURDATE() AND LD.LaatsteBeoordeling=1 AND ((D.Vervallen IS NULL) OR D.Vervallen > CURDATE()) AND LD.Lid=%2\$d %3\$s"
 				 . " ORDER BY D.Volgnr, D.Kode, LD.DatumBehaald DESC;", $table_prefix, $lidid, $xtrafilter);
@@ -2163,7 +2169,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 		}
 		return $mess;
 	}
-}
+} # db_liddipl
 
 function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie="") {
 	global $table_prefix, $selectnaam, $selectzoeknaam, $wherelidond;
@@ -2567,6 +2573,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrIntegers['mailing_bewaartijd'] = 3;
 	$arrIntegers['mailing_bewakinginschrijving'] = 0;
 	$arrIntegers['mailing_lidnr'] = 0;
+	$arrIntegers['mailing_rekening_stuurnaar'] = 1;
 	$arrIntegers['max_grootte_bijlage'] = 2048;
 	$arrIntegers['login_bewaartijd'] = 6;
 	$arrIntegers['login_bewaartijdnietgebruikt'] = 21;
@@ -2588,8 +2595,6 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrBooleans['meisjesnaamtonen'] = 1;
 	$arrBooleans['login_lidnrnodigbijaanvraag'] = 1;
 	$arrBooleans['mailing_resultaatversturen'] = 0;
-	$arrBooleans['mailing_rekening_alleleden'] = 0;
-	$arrBooleans['mailing_rekening_allevolwassenen'] = 0;
 	$arrBooleans['toneninschrijvingenbewakingen'] = 1;
 	$arrBooleans['tonentoekomstigebewakingen'] = 0;
 	$arrBooleans['zs_incl_beroep'] = 1;
@@ -2766,7 +2771,6 @@ function db_delete_local_tables() {
 function db_onderhoud() {
 	global $table_prefix, $arrTables, $db_name, $wherelid, $wherelidond, $lididwebmasters;
 	
-
 	// Vaste aanpassingen aan de database na een upload, omdat MS-Access geen datum velden kent, alleen datum_tijd.
 	$query = sprintf("SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%sBewaking' AND COLUMN_NAME='BEGIN_PER';", $db_name, $table_prefix);
 	if (db_scalar($query) != "date") {
