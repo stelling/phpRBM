@@ -222,6 +222,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if (db_mailing("aantalprullenbak") > 0) {
 		$tabpages[] = "Mailing/Prullenbak";
 	}
+	$tabpages[] = "Mailing/Instellingen";
 	if (db_logboek("aantal", "", 4) > 0) {
 		$tabpages[] = "Mailing/Logboek";
 	}
@@ -904,10 +905,12 @@ function removetextblock($content, $start_block="<!-- Ingelogd -->", $end_block=
 } # removetextblock
 
 function checked($val, $tp="box") {
-	if (($val == 1 or $val == true) and $tp="radio") {
-		return " checked='checked'";
-	} elseif ($val == 1 or $val == true) {
-		return " checked";
+	if ($val == 1 or $val === true) {
+		if ($tp == "radio") {
+			return " checked='checked'";
+		} else {
+			return " checked";
+		}
 	} else {
 		return "";
 	}
