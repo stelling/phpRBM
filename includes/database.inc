@@ -237,6 +237,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					IF(NOT ISNULL(L.GEBDATUM), CONCAT(DATE_FORMAT(L.GEBDATUM, %s), IF(LENGTH(L.GEBPLAATS) > 1, CONCAT(' te ', L.GEBPLAATS), '')), '') AS Geboren, 
 					L.Overleden AS `dteOverleden op`,
 					IF(ISNULL(L.GEBDATUM), NULL, CONCAT(TIMESTAMPDIFF(YEAR, L.GEBDATUM, IF(ISNULL(L.Overleden), CURDATE(), L.Overleden)), ' jaar')) AS Leeftijd,
+					L.Burgerservicenummer,
 					'Adresgegevens' AS Kop2,
 					L.Adres,
 					IF(LENGTH(L.Woonplaats) > 1, CONCAT(L.Postcode, '  ', L.Woonplaats), '') AS `Postcode en woonplaats`, 
@@ -271,8 +272,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 	} elseif ($soort == "Financieel") {
 		$query = sprintf("SELECT L.Bankrekening AS Bankrekeningnummer, 
 								L.`Machtiging afgegeven` AS `booMachtiging automatische incasso`, 
-								IF(ISNULL(L.BezwaarMachtiging), 'Nee', DATE_FORMAT(L.BezwaarMachtiging, %s)) AS `Bezwaar machtiging incasso`,
-								L.Burgerservicenummer
+								IF(ISNULL(L.BezwaarMachtiging), 'Nee', DATE_FORMAT(L.BezwaarMachtiging, %s)) AS `Bezwaar machtiging incasso`
 								FROM %sLid AS L
 								WHERE L.Nummer=%d;", $fdlang, $table_prefix, $LidID);
 	} elseif ($soort == "Afdelingen") {
@@ -2594,6 +2594,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrBooleans['toonpasfotoindiennietingelogd'] = 0;
 	$arrBooleans['meisjesnaamtonen'] = 1;
 	$arrBooleans['login_lidnrnodigbijaanvraag'] = 1;
+	$arrBooleans['mailing_rekening_nulregelsweglaten'] = 0;
 	$arrBooleans['mailing_resultaatversturen'] = 0;
 	$arrBooleans['toneninschrijvingenbewakingen'] = 1;
 	$arrBooleans['tonentoekomstigebewakingen'] = 0;
