@@ -354,6 +354,7 @@ HTMLfooter();
 function fnInstellingen() {
 	global $table_prefix;
 
+	// Omschrijving NT = Niet tonen in dit scherm
 	$arrParam['db_backup_type'] = "1 = alleen interne phpRBM-tabellen, 2 = alleen tabellen uit Access, 3 = beide.";
 	$arrParam['db_backuptarren'] = "Moet de backup gecomprimeerd worden? Let op, de webhost moet dit wel ondersteunen. En ook moet de PHP-functie 'exec' beschikbaar zijn.";
 	$arrParam['db_backupsopschonen'] = "Na hoeveel dagen moeten oude back-ups automatisch verwijderd worden? 0 = nooit.";
@@ -370,23 +371,24 @@ function fnInstellingen() {
 	$arrParam['login_bewaartijdnietgebruikt'] = "Het aantal dagen dat logins wordt bewaard, nadat het is aangevraagd en nog niet gebruikt is.";
 	$arrParam['logboek_bewaartijd'] = "Hoeveel maanden moet de logging bewaard blijven. 0 = altijd bewaren.";
 	$arrParam['logboek_bewaartijdinloggen'] = "Hoeveel maanden moet de logging van het in- en uitloggen bewaard blijven. 0 = altijd bewaren.";
-	$arrParam['mailing_beperkfrom'] = "Indien deze is ingevuld moet het from adres in een mailing altijd vanaf dit domein zijn.";
+	$arrParam['mailing_beperkfrom'] = "NT";
 	$arrParam['mailing_bevestigingbestelling'] = "Het nummer van de mailing die bij een bestelling verstuurd moet worden. 0 = geen.";
 	$arrParam['mailing_bevestigingopzegging'] = "Het nummer van de mailing die verstuurd moet worden als een lid zijn lidmaatschap opgezegd heeft. 0 = geen.";
-	$arrParam['mailing_bewaartijd'] = "Het aantal maanden dat een verwijderde mailing bewaard moet worden. 0 = altijd bewaren.";
+	$arrParam['mailing_bewaartijd'] = "NT";
 	$arrParam['mailing_bewakinginschrijving'] = "Het nummer van de mailing die als bevestiging van een inschrijving voor de bewaking verstuurd moet worden. 0 = geen.";
-	$arrParam['mailing_extensies_toegestaan'] = "De extenties die zijn toegestaan bij bijlagen in een mailing. Als je niets specificeerd wordt een standaard lijst gebruikt.";
+	$arrParam['mailing_extensies_toegestaan'] = "NT";
 	$arrParam['mailing_lidnr'] = "Het nummer van de mailing die verstuurd moet worden als een lid zijn lidnummer opvraagt. 0 = geen.";
-	$arrParam['mailing_rekening_stuurnaar'] = "Naar wie moet een rekening gemaild worden? 1 = alleen Betaald door (debiteur), 2 = Betaald door en alle volwassenen op de rekening en 3 = Betaald door en alle leden op de rekening.";
-	$arrParam['mailing_rekening_from_adres'] = "Vanaf welk e-mailadres moeten de rekeningen gemailed worden?";
-	$arrParam['mailing_rekening_from_naam'] = "Welke naam moeten de rekeningen verzonden worden? Standaard is vanaf de verenigingsnaam.";
-	$arrParam['mailing_resultaatversturen'] = "Indien aangevinkt wordt naar de zender en het secretariaat een mail met het resultaat van deze mailing verzonden.";
+	$arrParam['mailing_rekening_stuurnaar'] = "NT";
+	$arrParam['mailing_rekening_from_adres'] = "NT";
+	$arrParam['mailing_rekening_from_naam'] = "NT";
+	$arrParam['mailing_rekening_nulregelsweglaten'] = "NT";
+	$arrParam['mailing_resultaatversturen'] = "NT";
 	$arrParam['max_grootte_bijlage'] = "De maximalale grootte in bytes van één bijlage in een mailing. Optioneel veld. Als je niets specificeerd dan is 2MB het maximum.";
 	$arrParam['login_maxinlogpogingen'] = "Na hoeveel foutieve inlogpogingen moet het account geblokkeerd worden? 0 = nooit.";
 	$arrParam['login_maxlengte'] = "De maximale lengte die een login mag zijn. Minimaal 7 en maximaal 15 invullen.";
 	$arrParam['wachtwoord_minlengte'] = "De minimale lengte van een wachtwoord. Minimaal 7 en maximaal 15 invullen.";
 	$arrParam['wachtwoord_maxlengte'] = "De maximale lengte van een wachtwoord. Minimaal 7 en maximaal 15 invullen.";
-	$arrParam['maxmailsperminuut'] = "Het maximaal aantal e-mails dat via een mailing per minuut verzonden mag worden. 0 = onbeperkt.";
+	$arrParam['maxmailsperminuut'] = "NT";
 	$arrParam['naamwebsite'] = "Dit is de naam zoals deze in de titel en op elke pagina getoond wordt.";
 	$arrParam['performance_trage_select'] = "Vanaf hoeveel seconden moet een select-statement in het logboek worden gezet. 0 = nooit.";
 	$arrParam['termijnvervallendiplomasmailen'] = "Hoeveel maanden vooruit moeten leden een herinnering krijgen als een diploma gaat vervallen. 0 = geen herinnering sturen.";
@@ -398,7 +400,7 @@ function fnInstellingen() {
 	$arrParam['url_eigen_help'] = "Als een gebruiker op de help klikt wordt hier naar verwezen in plaats van de standaard help.";
 	$arrParam['verjaardagenaantal'] = "Hoeveel verjaardagen moeten er maximaal in de verenigingsinfo worden getoond. Als er meerdere leden op dezelfde dag jarig zijn, wordt dit aantal overschreden.";
 	$arrParam['verjaardagenvooruit'] = "Hoeveel dagen vooruit moeten de verjaardagen in de verenigingsinfo getoond worden?";
-	$arrParam['versie'] = "";
+	$arrParam['versie'] = "NT";
 	
 	$arrParam['zs_emailbevestigingbestelling'] = "Vanaf welk e-mailadres moet de bevestiging van een bestelling verzonden worden.";
 	$arrParam['zs_emailnieuwepasfoto'] = "Waar moet een nieuwe pasfoto naar toe gemaild worden?";
@@ -443,6 +445,7 @@ function fnInstellingen() {
 					$mess = sprintf("Parameter '%s' wordt 1 gemaakt, omdat deze alleen 1, 2 of 3 mag zijn. ", $row->Naam);
 				} elseif (substr($row->Naam, 0, 3) == "url" and isset($_POST[$pvn])) {
 					$_POST[$pvn] = str_replace("http://", "", $_POST[$pvn]);
+					$_POST[$pvn] = str_replace("https://", "", $_POST[$pvn]);
 				}
 				if ($row->ParamType == "B") {
 					if (isset($_POST[$pvn]) and $_POST[$pvn] == "1") {
@@ -489,7 +492,7 @@ function fnInstellingen() {
 	foreach (db_param("", "lijst") as $row) {
 		if (array_key_exists($row->Naam, $arrParam)) {
 			$uitleg = htmlentities($arrParam[$row->Naam]);
-			if (strlen($uitleg) == 0) {
+			if (strlen($uitleg) < 5) {
 			} elseif ($row->ParamType == "B") {
 				if ($row->ValueNum == 1) {
 					$c = "checked";

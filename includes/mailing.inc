@@ -41,6 +41,10 @@ function fnMailing() {
 
 	if ($op == "edit" and isset($_GET['mid'])) {
 		$mailing->edit();
+				
+	} elseif ($currenttab2 == "Instellingen" and toegang($_GET['tp'])) {
+		fnMailingInstellingen();
+		
 	} elseif ($op == "save" or $op == "save_close" or $op == "toevoegen") {
 		$mailing->post_form();
 		$mailing->upload();
@@ -52,6 +56,7 @@ function fnMailing() {
 	} elseif ($currenttab2 == "Nieuw" and toegang($_GET['tp'])) {
 		$mailing->mid = 0;
 		$mailing->edit();
+		
 	} elseif ($currenttab2 == "Rekeningen" and toegang($_GET['tp'])) {
 		fnRekeningenMailen($op);
 		
@@ -1046,7 +1051,7 @@ class Mailing {
 			}
 			
 		} elseif ($this->mid == db_param("mailing_lidnr")) {
-			if (db_param("maxinlogpogingen") > 0 and db_logins("foutelogin", "", "", $lidid) > db_param("maxinlogpogingen")) {
+			if (db_param("login_maxinlogpogingen") > 0 and db_logins("foutelogin", "", "", $lidid) > db_param("login_maxinlogpogingen")) {
 				$geblokt = sprintf("Er is %d keer geprobeerd met deze login in te loggen. Hierdoor is dit account geblokkeerd. Vraag aan de webmaster om deze weer vrij te geven.", $db_logins("foutelogin", "", "", $lidid));
 			} else {
 				$geblokt = "";
@@ -1262,12 +1267,24 @@ function fnRekeningenMailen($op) {
 			}
 			
 			if (isset($_POST['vanafadres'])) {
-				db_param("mailing_rekening_from_adres", "updval", $_POST['vanafadres']);
+				if (strpos($_POST['vanafadres'], db_param("mailing_beperkfrom")) > 2) {
+					db_param("mailing_rekening_from_adres", "updval", $_POST['vanafadres']);
+				} else {
+					$mess = sprintf("Er mogen alleen e-mailadressen vanaf het domein '%s' worden opgegeven. Het e-mailadres wordt niet aangepast.", db_param("mailing_beperkfrom"));
+					db_logboek("add", $mess, 13, 0, 2);
+				}
 			}
 			
 			if (isset($_POST['vanafnaam'])) {
 				db_param("mailing_rekening_from_naam", "updval", $_POST['vanafnaam']);
 			}
+			
+			if (isset($_POST['mailing_rekening_nulregelsweglaten']) and $_POST['mailing_rekening_nulregelsweglaten'] == 1) {
+				$val = 1;
+			} else {
+				$val = 0;
+			}
+			db_param("mailing_rekening_nulregelsweglaten", "updval", $val);
 
 			$selrek = "";
 			foreach(db_rekening("selectie", 0, $filter) as $rk) {
@@ -1340,7 +1357,7 @@ function fnRekeningenMailen($op) {
 		}
 	}
 		
-	if ($_SERVER['REQUEST_METHOD'] != "POST" or $op == "selectieversturen") {		
+	if ($_SERVER['REQUEST_METHOD'] != "POST" or $op == "selectieversturen") {
 		printf("<form method='post' action='%s?tp=%s/%s&amp;op=selectierekeningen' name='mailrek'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
 		echo("<table>\n");
 		echo("<tr><th></th><th>Gelijk aan</th><th>Vanaf</th><th>Totenmet</th></tr>");
@@ -1380,6 +1397,7 @@ function fnRekeningenMailen($op) {
 		
 		printf("<tr><td class='label'>Vanaf e-mailadres<td colspan=3><input name='vanafadres' type='email' value='%s' size=50></td></tr>\n", db_param("mailing_rekening_from_adres"));
 		printf("<tr><td class='label'>Vanaf naam<td colspan=3><input name='vanafnaam' type='text' value='%s' size=50></td></tr>\n", db_param("mailing_rekening_from_naam"));
+		printf("<tr><td class='label'>Nulregels weglaten<td colspan=3><input name='mailing_rekening_nulregelsweglaten' type='checkbox'%s value=1></td></tr>\n", checked(db_param("mailing_rekening_nulregelsweglaten")));
 		
 		echo("</td></tr>\n");
 		echo("<tr><th colspan=4><input type='submit' value='Verder'></th></tr>\n");
@@ -1387,6 +1405,49 @@ function fnRekeningenMailen($op) {
 		echo("</form>\n");
 	}
 	echo("</div> <!== Einde rekeningenmailen -->\n");
-}
+} # fnRekeningenMailen
+
+function fnMailingInstellingen() {
+	global $currenttab, $currenttab2;
+	
+	echo("<div id='instellingenmuteren'>\n");
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		if (startwith($_POST['mailing_beperkfrom'], "@")) {
+			$_POST['mailing_beperkfrom'] = substr($_POST['mailing_beperkfrom'], 1);
+		}
+		db_param("mailing_beperkfrom", "updval", $_POST['mailing_beperkfrom']);
+		
+		if (isset($_POST['mailing_resultaatversturen']) and $_POST['mailing_resultaatversturen'] == 1) {
+			$val = 1;
+		} else {
+			$val = 0;
+		}
+		db_param("mailing_resultaatversturen", "updval", $val);
+		
+		if (strlen($_POST['mailing_bewaartijd']) == 0) {
+			$_POST['mailing_bewaartijd'] = 0;
+		}
+		db_param("mailing_bewaartijd", "updval", $_POST['mailing_bewaartijd']);
+		
+		if (strlen($_POST['maxmailperminuut']) == 0) {
+			$_POST['maxmailperminuut'] = 0;
+		}
+		db_param("maxmailperminuut", "updval", $_POST['maxmailperminuut']);
+		
+		db_param("mailing_extensies_toegestaan", "updval", $_POST['mailing_extensies_toegestaan']);
+		
+	}
+	printf("<form method='post' action='%s?tp=%s/%s' name='mailinstellingen'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
+		
+	printf("<p><label>Mailings alleen versturen vanaf domein:</label><input class='inputtext' type='text' name='mailing_beperkfrom' value='%s' size=30></p>\n", db_param("mailing_beperkfrom"));
+	printf("<p><label>Versturen resultaat van de mailing naar de afzender en secretariaat:</label><input type='checkbox' value=1 name='mailing_resultaatversturen'%s></p>\n", checked(db_param("mailing_resultaatversturen")));
+	printf("<p><label>Hoeveel maanden moeten verwijderde mailing bewaard blijven:</label><input class='inputnumber' type='number' name='mailing_bewaartijd' value=%d size=8> (0 = altijd bewaren)</p>\n", db_param("mailing_bewaartijd"));
+	printf("<p><label>Hoeveel mails mogen er per minuut verstuurd worden:</label><input type='number' name='maxmailperminuut' value=%F size=8> (0 = onbeperkt)</p>\n", db_param("maxmailsperminuut"));
+	printf("<p><label>Welke extensies zijn als attachment toegestaan:</label><input class='inputtext' type='text' name='mailing_extensies_toegestaan' value='%s' size=30> (leeg = standaard lijst)</p>\n", db_param("mailing_extensies_toegestaan"));
+	echo("<input type='submit' value='Bewaren'>\n");
+	echo("</form>");
+	echo("</div> <!-- Einde instellingenmuteren -->\n");
+	
+} # fnMailingInstellingen
 
 ?>

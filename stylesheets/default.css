@@ -853,6 +853,20 @@ fieldset h3 {
 	width: 382px;
 }
 
+#instellingenmuteren label {
+	width: 375px;
+	height: 30px;
+	margin-top: 3px;
+	margin-right: 5px;
+	padding-left: 3px;
+	padding-right: 3px;
+}
+
+#instellingenmuteren input {
+	margin-top: 6px;
+	height: 24px;
+}
+
 .CopyPaste {
 	margin-top: 8px;
 	border-style: solid;
