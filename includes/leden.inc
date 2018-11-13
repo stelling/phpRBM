@@ -327,8 +327,6 @@ function fnOverviewLid($lidid=0, $actie="") {
 		$op = "";
 	}
 	
-	$toneninschrijvingenbewakingen = db_param("toneninschrijvingenbewakingen");
-	
 	if ($lidid <= 0) {
 		printf("<p class='mededeling'>Er is geen lid geselecteerd. Selecteer een lid via de <a href='%s?tp=Ledenlijst'>ledenlijst</a>.</p>\n", $_SERVER['PHP_SELF']);
 	} elseif (toegang($_GET['tp'], 0) == false) {
@@ -379,7 +377,7 @@ function fnOverviewLid($lidid=0, $actie="") {
 				echo(fnDisplayForm($rows[0]));
 			}
 			$rows = db_insbew("overzichtlid", $lidid);
-			if (isset($toneninschrijvingenbewakingen) and $toneninschrijvingenbewakingen == 1 and count($rows) > 0) {
+			if (db_param("toneninschrijvingenbewakingen") == 1 and count($rows) > 0) {
 				echo(fnDisplayTable($rows, "", "Ingeschreven voor bewakingen"));
 			}
 		} elseif ($actie == "Diplomas") {
@@ -412,7 +410,8 @@ function fnOverviewLid($lidid=0, $actie="") {
 				}
 				$rows = db_gegevenslid($lidid, "Financieel");
 				if (count($rows) > 0) {
-					echo(fnDisplayForm($rows[0]));
+// Tijdelijk uitgezet, op zoek naar een betere oplossing.
+//					echo(fnDisplayForm($rows[0]));
 				}
 			}
 		} elseif ($actie == "Mailing") {
@@ -489,7 +488,7 @@ function overzichtverjaardagen($metfoto=1) {
 	$verj = "";
 	$verjfoto = "";
 	$aantgetoond = 0;
-	for ($i = 0; $i <= db_param("verjaardagenvooruit") and $aantgetoond < db_param("verjaardagenaantal"); $i++) {
+	for ($i = 0; $i < db_param("verjaardagenvooruit") and $aantgetoond < db_param("verjaardagenaantal"); $i++) {
 		$dteHV = mktime(0, 0, 0, date("m"), date("d")+$i, date("Y"));
 		foreach(db_lid("verjaardagen", date("Y-m-d", $dteHV)) as $row) {
 			$o = db_lidond("onderscheiding", $row->Nummer);
@@ -1252,7 +1251,9 @@ function RekeningDetail($nr) {
 	$rrtxt = "";
 	foreach($rr as $regel) {
 		$nl = db_naamlid($regel->Lid, "Naam", "");
-		$rrtxt .= sprintf("<tr><td>%d</td><td>%s</td><td>%s</td><td class='number'>%03.2f</td></tr>\n", $regel->Regelnr, $regel->OMSCHRIJV, $nl, $regel->Bedrag);
+		if (db_param("mailing_rekening_nulregelsweglaten") == 0 or $regel->Bedrag <> 0) {
+			$rrtxt .= sprintf("<tr><td>%d</td><td>%s</td><td>%s</td><td class='number'>%03.2f</td></tr>\n", $regel->Regelnr, $regel->OMSCHRIJV, $nl, $regel->Bedrag);
+		}
 	}
 	$content = str_ireplace("[%REKENINGREGELS%]", $rrtxt, $content);
 	
