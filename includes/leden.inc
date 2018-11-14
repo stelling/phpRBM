@@ -1213,9 +1213,23 @@ function RekeningDetail($nr) {
 <tr><th colspan=3>Totaal</th><th class='number'>[%REKENINGBEDRAG%]</th><tr>
 </table>
 </div> <!-- Einde rekeningregels -->
-<p>Deze rekening dient op [%UITERSTEBETAALDATUM%], onder vermelding van rekeningnummer [%REKENINGNUMMER%], volledig betaald te zijn.</p>
 
+<!-- NietOpCredit -->
+<!-- NietOpNulRekening -->
+<p>Deze rekening dient op [%UITERSTEBETAALDATUM%], onder vermelding van rekeningnummer [%REKENINGNUMMER%], volledig betaald te zijn.</p>
 <p>Indien u een andere betalingsregeling wenst of een vraag over deze rekening heeft kunt u contact met de <a href='mailto:[%VANAFADRES%]'>[%VANAFNAAM%]</a> opnemen.</p>
+<!-- /NietOpNulRekening -->
+<!-- /NietOpCredit -->
+
+<!-- NietOpDebet -->
+<!-- NietOpNulRekening -->
+<p>Bovenstaand bedrag wordt zo spoedig mogelijk aan u overgemaakt.</p>
+<!-- /NietOpNulRekening -->
+<!-- /NietOpDebet -->
+
+<!-- NietOpDebet -->
+<p>Indien u een vraag over deze rekening heeft kunt u contact met de <a href='mailto:[%VANAFADRES%]'>[%VANAFNAAM%]</a> opnemen.</p>
+<!-- /NietOpDebet -->
 
 <p><strong>Het bestuur van [%NAAMVERENIGING%]</strong></p>\n";
 		}
@@ -1225,6 +1239,18 @@ function RekeningDetail($nr) {
 		$content = removetextblock($content, "<!-- Geen machtiging -->", "<!-- /Geen machtiging -->");
 	} else {
 		$content = removetextblock($content, "<!-- Wel machtiging -->", "<!-- /Wel machtiging -->");
+	}
+	
+	if ($rk->Bedrag == 0) {
+		$content = removetextblock($content, "<!-- NietOpNulRekening -->", "<!-- /NietOpNulRekening -->");
+	} elseif ($rk->Bedrag < 0) {
+		$content = removetextblock($content, "<!-- NietOpCredit -->", "<!-- /NietOpCredit -->");
+	} else {
+		$content = removetextblock($content, "<!-- NietOpDebet -->", "<!-- /NietOpDebet -->");
+	}
+	
+	if (($rk->Bedrag - $rk->Betaald) < 0.50) {
+		$content = removetextblock($content, "<!-- NietOpVolledigBetaald -->", "<!-- /NietOpVolledigBetaald -->");
 	}
 	
 	$content = str_ireplace("[%NAAMDEBITEUR%]", $rk->DEBNAAM, $content);
