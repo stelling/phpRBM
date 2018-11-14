@@ -1348,12 +1348,12 @@ function fnRekeningenMailen($op) {
 					db_add_mailing_hist($rk->Lid, 0, $rk->DEBNAAM, $e, $rt, $mail, 0);
 					$mess = sprintf("Het versturen van rekening %d is niet gelukt. Error: %s", $rk->Nummer, $mail->ErrorInfo);
 				}
-				db_logboek("add", $mess, 14, 0, 0, $rk->Nummer);
+				db_logboek("add", $mess, 4, 0, 0, $rk->Nummer);
 				$mail->clearAllRecipients();
 			}
 		} elseif ($op == "selectieversturen") {
 			$mess = "De rekeningen zijn niet verzonden, omdat het vinkje niet gezet was.";
-			db_logboek("add", $mess, 14, 0, 1);
+			db_logboek("add", $mess, 4, 0, 1);
 		}
 	}
 		
