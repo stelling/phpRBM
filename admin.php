@@ -1,6 +1,10 @@
 <?php
 include('./includes/standaard.inc');
 
+if ((!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) and isset($_COOKIE['password']) and strlen($_COOKIE['password']) > 5) {
+	fnAuthenticatie(0);
+}
+
 if (!isset($_GET['op']) or (toegang($_GET['tp']) == false and $_SESSION['aantallid'] > 1)) {
 	$_GET['op'] = "";
 }
@@ -59,10 +63,10 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 			if (substr_count($queries, $table_prefix) == 0) {
 				$mess = sprintf("In het upload bestand komt de juiste table name prefix (%s) niet voor. Dit bestand wordt niet verwerkt.", $table_prefix);
 				db_logboek("add", $mess, 9, 0, 1);
-			} elseif (strpos($queries, $table_prefix . "Lid") === FALSE and $_SESSION['aantallid'] < 25) {
+			} elseif (strpos($queries, $table_prefix . "Lid") === FALSE and $_SESSION['aantallid'] < 5) {
 				$mess = sprintf("De verplichte tabel '%sLid' zit niet in deze upload. Dit bestand wordt niet verwerkt.", $table_prefix);
 				db_logboek("add", $mess, 9, 0, 1);
-			} elseif (strpos($queries, $table_prefix . "Lidond") === FALSE and db_scalar($query) < 25) {
+			} elseif (strpos($queries, $table_prefix . "Lidond") === FALSE and db_scalar($query) < 5) {
 				$mess = sprintf("De verplichte tabel '%sLidond' zit niet in deze upload. Dit bestand wordt niet verwerkt.", $table_prefix);
 				db_logboek("add", $mess, 9, 0, 1);
 			} elseif (fnQuery($queries) !== true) {
