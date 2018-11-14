@@ -15,19 +15,19 @@ $arrTables[] = "Mailing_rcpt";
 // Overgenomen uit de Access-database
 $arrTables[20] = "Bewaking";
 $arrTables[] = "Bewseiz";
-$arrTables[] = "Boekjaar";
-$arrTables[] = "Diploma";
 $arrTables[] = "Functie";
-$arrTables[] = "GBR";
 $arrTables[] = "Lid";
-$arrTables[] = "Memo";
-$arrTables[] = "Liddipl";
 $arrTables[] = "Lidmaatschap";
 $arrTables[] = "Lidond";
-$arrTables[] = "LidRedNed";
-$arrTables[] = "Mutatie";
-$arrTables[] = "Kostenplaats";
 $arrTables[] = "Onderdl";
+$arrTables[] = "Liddipl";
+$arrTables[] = "Diploma";
+$arrTables[] = "LidRedNed";
+$arrTables[] = "Memo";
+$arrTables[] = "Boekjaar";
+$arrTables[] = "Mutatie";
+$arrTables[] = "GBR";
+$arrTables[] = "Kostenplaats";
 $arrTables[] = "Rekening";
 $arrTables[] = "Rekreg";
 
@@ -217,7 +217,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 		$sqlbd = sprintf("SELECT MAX(EINDE_PER) FROM %sBewaking WHERE Lid=L.Nummer AND BEGIN_PER < CURDATE()", $table_prefix);
 		$query = sprintf("SELECT CONCAT(`Waarschuwen bij nood`, NamenOuders) FROM %sLid WHERE Nummer=%d;", $table_prefix, $LidID);
 		if (strlen(db_scalar($query)) > 3) {
-			$wbn = " 'Waarschuwen bij nood' as Kop6";
+			$wbn = " 'Waarschuwen bij nood' as Kop7";
 			$wbn .= ", `NamenOuders` AS `Namen ouders`";
 			$wbn .= ", `Waarschuwen bij nood` AS `Contactgegevens`,";
 		} else {
@@ -252,8 +252,11 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					(%s) AS Onderscheiding, 
 					LM.LIDDATUM AS `dteLid vanaf`, 
 					LM.Opgezegd AS `dteLid totenmet`, 
-					IF(DATEDIFF(CURDATE(), LM.LIDDATUM) < 400, NULL, CONCAT(TIMESTAMPDIFF(YEAR, LM.LIDDATUM, IF(ISNULL(LM.Opgezegd), CURDATE(), LM.Opgezegd)), ' jaar')) AS `Lengte lidmaatschap`,
-					'Overig' AS Kop5, 
+					IF(DATEDIFF(CURDATE(), LM.LIDDATUM) < 500, NULL, CONCAT(TIMESTAMPDIFF(YEAR, LM.LIDDATUM, IF(ISNULL(LM.Opgezegd), CURDATE(), LM.Opgezegd)), ' jaar')) AS `Lengte lidmaatschap`,
+					'Financieel' AS Kop5,
+					L.`Machtiging afgegeven` AS `booMachtiging incasso`,
+					L.Bankrekening,
+					'Overig' AS Kop6, 
 					L.RelnrRedNed AS `Sportlink ID`,
 					L.LoginWebsite AS `Login website`,
 					%s
@@ -2507,15 +2510,19 @@ function db_rekening($actie, $nr=0, $filter="") {
 	if ($actie == "minnummer") {
 		$query = sprintf("SELECT MIN(Nummer) FROM %sRekening;", $table_prefix);
 		return db_scalar($query);
+		
 	} elseif ($actie == "maxnummer") {
 		$query = sprintf("SELECT MAX(Nummer) FROM %sRekening;", $table_prefix);
 		return db_scalar($query);
+		
 	} elseif ($actie == "mindatum") {
 		$query = sprintf("SELECT MIN(Datum) FROM %sRekening;", $table_prefix);
 		return db_scalar($query);
+		
 	} elseif ($actie == "maxdatum") {
 		$query = sprintf("SELECT MAX(Datum) FROM %sRekening;", $table_prefix);
 		return db_scalar($query);
+
 	} elseif ($actie == "hoofd" and $nr > 0) {
 		$query = sprintf("SELECT RK.*, L.Adres, L.Postcode, L.Woonplaats, L.`Machtiging afgegeven` AS Machtiging,
 					L.Bankrekening AS Bankrekeningnummer,
@@ -2534,7 +2541,7 @@ function db_rekening($actie, $nr=0, $filter="") {
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "selectie") {
-		if (strlen($filter) > 0 and substr($filter, 0, 5) != "WHERE") {
+		if (strlen($filter) > 0 and startwith($filter, "WHERE") == false) {
 			$filter = "WHERE " . $filter;
 		}
 		$query = sprintf("SELECT RK.*, L.Adres, L.Postcode, L.Woonplaats,
@@ -2734,7 +2741,9 @@ function db_param($naam, $actie="curval", $newval="") {
 			if ($result > 0) {
 				$_SESSION['settings'][$naam] = $newval;
 				$mess = sprintf("Parameter '%s' is in '%s' gewijzigd.", $naam, $newval);
-				db_logboek("add", $mess, 13, 0, 0, $cur->RecordID);
+				if ($naam !== "versie") {
+					db_logboek("add", $mess, 13, 0, 0, $cur->RecordID);
+				}
 			}
 		}
 		
@@ -3473,22 +3482,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sSeizoen` (
   `Ingevoerd` datetime DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`Nummer`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE IF NOT EXISTS `%1\$sTeller` (
-  `Teller` tinyint(4) NOT NULL DEFAULT '0',
-  PRIMARY KEY (`Teller`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE IF NOT EXISTS `%1\$sVerdichting` (
-  `RecordID` int(11) NOT NULL DEFAULT '0',
-  `Kode` varchar(4) DEFAULT NULL,
-  `Omschrijving` varchar(40) DEFAULT NULL,
-  `DebetCredit` varchar(1) DEFAULT NULL,
-  `Ingevoerd` datetime DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL,
-  PRIMARY KEY (`RecordID`),
-  UNIQUE KEY `Kode` (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sVereniging` (
