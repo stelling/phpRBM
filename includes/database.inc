@@ -351,14 +351,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					WHERE Lid=%d
 					ORDER BY Nummer DESC;", $table_prefix, $LidID);
 	} elseif ($soort == "Mailing") {
-		$query = sprintf("SELECT send_on AS dttVerzonden,"
-				 . " IF(LENGTH(from_name)<3, from_addr, from_name) AS Van,"
-				 . " to_name AS Aan,"
-				 . " subject AS Onderwerp,"
-				 . " RecordID AS lnkRecordID"
-				 . " FROM %sMailing_hist"
-				 . " WHERE LidID=%d AND Successful=1"
-				 . " ORDER BY send_on DESC LIMIT 50;", $table_prefix, $LidID);
+		$query = db_mailing_hist("sqllijst", $LidID);
 	} elseif ($soort == "Evenementen") {
 		$query = "SELECT E.Datum AS dteDatum, E.Omschrijving, E.Verzameltijd, DATE_FORMAT(E.Datum, '%H:%i') AS Starttijd,
 					E.Eindtijd, E.Email AS emlContact, ED.Functie, CASE ED.Status";
@@ -1565,15 +1558,19 @@ function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr, $message="", $mai
 		$from_name = $mail->FromName;
 		$from_addr = $mail->From;
 		$subject = $mail->Subject;
-		$cc_addr = $mail->ListAddresses("cc");
-		$to_addr = $mail->ListAddresses("to");
+		$to_addr = implode(", ", $mail->to);
+		$cc_addr = implode(", ", $mail->cc);
+	}
+	
+	if (is_array($to_addr)) {
+		$to_addr = implode(", ", $to_addr);
 	}
 		
-	if (strlen($to_addr) > 50) {
-		$to_addr = substr($to_addr, 0, 46) . " ...";
+	if (strlen($to_addr) > 100) {
+		$to_addr = substr($to_addr, 0, 96) . " ...";
 	}
-	if (strlen($cc_addr) > 80) {
-		$cc_addr = substr($cc_addr, 0, 76) . " ...";
+	if (strlen($cc_addr) > 100) {
+		$cc_addr = substr($cc_addr, 0, 96) . " ...";
 	}
 
 	if ($mid > 0) {
@@ -1598,16 +1595,12 @@ function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr, $message="", $mai
 		if (strlen($cc_addr) == 0) {
 			$cc_addr = $row->cc_addr;
 		}
-	} else {
-		if (strlen($from_name) == 0) {
-			$from_name = db_param("naamvereniging");
-		}
 	}
 	
 	$query = sprintf("INSERT INTO %sMailing_hist SET
 				LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", to_name=\"%s\", subject=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", send_by=%d, send_on=SYSDATE(), send_mt=%F, Successful=%d, Xtra_Char='%s', Xtra_Num=%d;", $table_prefix,
 				$lidid, $mid, html_entity_decode($from_name), $from_addr, $to_name, html_entity_decode($subject), $to_addr, $cc_addr, html_entity_decode($message), $_SESSION['lidid'], microtime(true), $success, $xtrachar, $xtranum);
-				fnQuery($query);
+	fnQuery($query);
 		
 	if ($success == 1 and $mid > 0) {
 		$query = sprintf("UPDATE %sMailing SET sent_on=SYSDATE(), SentBy=%d WHERE MailingID=%d;", $table_prefix, $_SESSION['lidid'], $mid);
@@ -1646,7 +1639,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 	} elseif ($actie == "lijst") {
 		$xtra_sel = "";
 		$orderby = "sent_on DESC";
-		if ($filter == "Concepten" or $filter == "Verzonden") {
+		if ($filter == "Concepten" or $filter === "Verzonden") {
 			if ($filter == "Verzonden") {
 				$w = sprintf("(SELECT COUNT(*) FROM %sMailing_hist AS MH WHERE MH.MailingID=M.MailingID) > 0", $table_prefix);
 				$xtra_sel = sprintf(", CONCAT(IF(M.SentBy=0, '', (SELECT %s FROM %sLid WHERE Nummer=M.SentBy)), ' & ', DATE_FORMAT(M.sent_on, %s)) AS `mrgLaatst verzonden`", $selectnaam, $table_prefix, $fdtlang);
@@ -1661,6 +1654,8 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 			$w = "M.template=1 AND (deleted_on IS NULL)";
 			$xtra_sel = sprintf(", CONCAT(IF(M.SentBy=0, '', (SELECT %s FROM %sLid WHERE Nummer=M.SentBy)), ' & ', DATE_FORMAT(M.sent_on, %s)) AS `mrgLaatst verzonden`", $selectnaam, $table_prefix, $fdtlang);
 			$orderby = "M.subject, sent_on";
+		} elseif ($filter == "Verzonden mails") {
+			
 		} elseif ($filter == "Prullenbak") {
 			$w = "(NOT M.deleted_on IS NULL)";
 			$orderby = "M.deleted_on DESC";
@@ -1805,6 +1800,36 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		}
 	}
 } # db_mailing
+
+function db_mailing_hist($actie, $lidid=0, $mhid=0) {
+	global $table_prefix;
+	
+	if ($lidid > 0) {
+		$lw = sprintf("AND LidID=%d", $lidid);
+	} else {
+		$lw = "";
+	}
+	
+	if ($actie == "lijst" or $actie == "sqllijst") {
+		$query = sprintf("SELECT send_on AS dttVerzonden,"
+				 . " IF(LENGTH(from_name)<3, from_addr, from_name) AS Van,"
+				 . " to_name AS Aan,"
+				 . " subject AS Onderwerp,"
+				 . " RecordID AS lnkRecordID"
+				 . " FROM %sMailing_hist"
+				 . " WHERE Successful=1 %s"
+				 . " ORDER BY RecordID DESC;", $table_prefix, $lw);
+		if ($actie == "sqllijst") {
+			return $query;
+		} else {
+			return fnQuery($query);
+		}
+	} elseif ($actie == "lidbijmail" and $mhid > 0) {
+		$query = sprintf("SELECT IFNULL(MAX(LidID), 0) FROM %sMailing_hist WHERE RecordID=%d;", $table_prefix, $mhid);
+		return db_scalar($query);
+	}
+				 
+} # db_mailinghist
 
 function db_mutatie($jaar, $gbr="*", $kpl="*") {
 	global $table_prefix;
@@ -2533,7 +2558,7 @@ function db_rekening($actie, $nr=0, $filter="") {
 		$result = fnQuery($query);
 		return $result->fetch();
 	} elseif ($actie == "regels" and $nr > 0) {
-		$query = sprintf("SELECT RR.*, L.GEBDATUM, L.Email FROM %1\$sRekreg AS RR LEFT JOIN %1\$sLid AS L ON RR.Lid = L.Nummer WHERE RR.Rekening=%2\$d;", $table_prefix, $nr);
+		$query = sprintf("SELECT RR.*, L.GEBDATUM FROM %1\$sRekreg AS RR LEFT JOIN %1\$sLid AS L ON RR.Lid = L.Nummer WHERE RR.Rekening=%2\$d;", $table_prefix, $nr);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "seizoenen") {
@@ -2544,20 +2569,19 @@ function db_rekening($actie, $nr=0, $filter="") {
 		if (strlen($filter) > 0 and startwith($filter, "WHERE") == false) {
 			$filter = "WHERE " . $filter;
 		}
-		$query = sprintf("SELECT RK.*, L.Adres, L.Postcode, L.Woonplaats,
-					L.Bankrekening AS Bankrekeningnummer,
+		$query = sprintf("SELECT RK.*, L.Adres, L.Postcode, L.Woonplaats, L.Bankrekening AS Bankrekeningnummer,
 					DATE_ADD(RK.Datum, INTERVAL RK.BET_TERM*RK.BETAALDAG DAY) AS UitersteBetaaldatum,
 					(%1\$1s) AS Lidnr
 					FROM %2\$sRekening AS RK INNER JOIN %2\$sLid AS L ON RK.Lid = L.Nummer
 					%3\$s
-					ORDER BY L.Achternaam, L.Tussenv, RK.Nummer;", $selectlidnr, $table_prefix, $filter);
+					ORDER BY RK.Nummer;", $selectlidnr, $table_prefix, $filter);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "histmail" and $nr > 0) {
 		$query = sprintf("SELECT message FROM %sMailing_hist WHERE Xtra_Char='REK' AND Xtra_Num=%d ORDER BY send_on DESC LIMIT 1;", $table_prefix, $nr);
 		return db_scalar($query);
 	}
-}
+} # db_rekening
 
 function db_dms() {
 }
@@ -2843,6 +2867,20 @@ function db_onderhoud() {
 	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%sAdmin_activiteit' AND COLUMN_NAME LIKE 'IP_adres';", $db_name, $table_prefix);
 	if (db_scalar($query) < 45) {
 		$query = sprintf("ALTER TABLE `%sAdmin_activiteit` CHANGE `IP_adres` `IP_adres` VARCHAR(45) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table_prefix);
+		fnQuery($query);
+	}
+	
+	/***** Aanpassen lengte van to_addr in Mailing_hist naar 100. Deze code kan na 1/1/2020 worden verwijderd. *****/
+	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%sMailing_hist' AND COLUMN_NAME LIKE 'to_addr';", $db_name, $table_prefix);
+	if (db_scalar($query) < 100) {
+		$query = sprintf("ALTER TABLE `%sMailing_hist` CHANGE `to_addr` `to_addr` VARCHAR(100) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table_prefix);
+		fnQuery($query);
+	}
+	
+	/***** Aanpassen lengte van cc_addr in Mailing_hist naar 100. Deze code kan na 1/1/2020 worden verwijderd. *****/
+	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%sMailing_hist' AND COLUMN_NAME LIKE 'cc_addr';", $db_name, $table_prefix);
+	if (db_scalar($query) < 100) {
+		$query = sprintf("ALTER TABLE `%sMailing_hist` CHANGE `cc_addr` `cc_addr` VARCHAR(100) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table_prefix);
 		fnQuery($query);
 	}
 	
