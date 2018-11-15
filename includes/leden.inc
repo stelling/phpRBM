@@ -315,6 +315,10 @@ function fnLedenlijst() {
 function fnOverviewLid($lidid=0, $actie="") {
 	global $currenttab;
 	
+	if ($lidid == 0 and isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0) {
+		$lidid = db_mailing_hist("lidbijmail", 0, $_GET['MailingHistID']);
+	}
+	
 	if ($currenttab == "Eigen gegevens") {
 		$xtra_param = "";
 	} else {
@@ -408,20 +412,15 @@ function fnOverviewLid($lidid=0, $actie="") {
 						printf("<p class='mededeling'>%s heeft geen rekeningen ontvangen.</p>", $naamlid);
 					}
 				}
-				$rows = db_gegevenslid($lidid, "Financieel");
-				if (count($rows) > 0) {
-// Tijdelijk uitgezet, op zoek naar een betere oplossing.
-//					echo(fnDisplayForm($rows[0]));
-				}
 			}
 		} elseif ($actie == "Mailing") {
-			if (isset($_GET['MailingID']) and $_GET['MailingID'] > 0) {
+			if (isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0) {
 				$xtra = "<p class='mededeling'><input type='button' value='Terug' onclick='history.go(-1);'></p>\n";
 				$mailing = new mailing;
-				$mailing->toonverstuurdemail($_GET['MailingID']);
+				$mailing->toonverstuurdemail($_GET['MailingHistID']);
 				$mailing = null;
 			} else {
-				$ld = sprintf("<a href='index.php?tp=%s&amp;lidid=%d&amp;MailingID=%%d'>%%s</a>", urlencode($_GET['tp']), $lidid);
+				$ld = sprintf("<a href='index.php?tp=%s&amp;MailingHistID=%%d'>%%s</a>", urlencode($_GET['tp']));
 				$rows = db_gegevenslid($lidid, "Mailing");
 				if (count($rows) > 0) {
 					echo(fnDisplayTable($rows, $ld, sprintf("Aan %s verstuurde mailings", $naamlid)));
@@ -1275,10 +1274,12 @@ function RekeningDetail($nr) {
 	
 	$rr = db_rekening("regels", $nr);
 	$rrtxt = "";
+	$ireg = 1;
 	foreach($rr as $regel) {
 		$nl = db_naamlid($regel->Lid, "Naam", "");
 		if (db_param("mailing_rekening_nulregelsweglaten") == 0 or $regel->Bedrag <> 0) {
-			$rrtxt .= sprintf("<tr><td>%d</td><td>%s</td><td>%s</td><td class='number'>%03.2f</td></tr>\n", $regel->Regelnr, $regel->OMSCHRIJV, $nl, $regel->Bedrag);
+			$rrtxt .= sprintf("<tr><td>%d</td><td>%s</td><td>%s</td><td class='number'>%03.2f</td></tr>\n", $ireg, $regel->OMSCHRIJV, $nl, $regel->Bedrag);
+			$ireg += 1;
 		}
 	}
 	$content = str_ireplace("[%REKENINGREGELS%]", $rrtxt, $content);
