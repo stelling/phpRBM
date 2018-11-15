@@ -218,10 +218,12 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if ($_SESSION['aantalrekreg'] > 0) {
 		$tabpages[] = "Mailing/Rekeningen";
 	}
+//	$tabpages[] = "Mailing/Verzonden mailings";
 	$tabpages[] = "Mailing/Verzonden";
 	if (db_mailing("aantalprullenbak") > 0) {
 		$tabpages[] = "Mailing/Prullenbak";
 	}
+	$tabpages[] = "Mailing/Verzonden mails";
 	$tabpages[] = "Mailing/Instellingen";
 	if (db_logboek("aantal", "", 4) > 0) {
 		$tabpages[] = "Mailing/Logboek";

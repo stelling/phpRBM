@@ -344,7 +344,6 @@ class Mailing {
 		} elseif ($this->mid == db_param("mailing_bevestigingopzegging") and $this->mid > 0) {
 			$this->xtrachar = "BO_LM";
 			$this->speciaal = "Bevestiging opzegging lidmaatschap";
-			
 		}
 
 		sort($this->MergeField);
@@ -354,21 +353,31 @@ class Mailing {
 	
 	public function lijst($filter="") {
 	
-		$lnk = sprintf("<a href='%s?tp=%s&amp;op=edit&amp;mid=%%d' title='Bewerk mailing'><img src='images/edit.png' alt='Edit boek'></a>", $_SERVER['PHP_SELF'], $_GET['tp']);
-		$lnk_lk = sprintf("<a href='%s?tp=Mailing/Historie&amp;op=historie&amp;mid=%%d' title='Bekijk historie'><img src='images/object_10.png' alt='Historie'></a>", $_SERVER['PHP_SELF']);
-		echo(fnDisplayTable(db_mailing("lijst", 0, 0, $filter), $lnk, "", 0, $lnk_lk));
-		if ($filter == "Prullenbak" and db_param("mailing_bewaartijd") > 0) {
-			printf("<p>Mailings die langer dan %d maanden geleden verwijderd zijn, worden automatisch definitief opgeschoond.</p>\n", db_param("mailing_bewaartijd"));
+		if ($filter == "Verzonden mails" and isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0) {
+			$xtra = "<p class='mededeling'><input type='button' value='Terug' onclick='history.go(-1);'></p>\n";
+			$mailing = new mailing;
+			$mailing->toonverstuurdemail($_GET['MailingHistID']);
+			$mailing = null;
+		} elseif ($filter == "Verzonden mails") {
+			$ld = sprintf("<a href='index.php?tp=%s&amp;MailingHistID=%%d'>%%s</a>", urlencode($_GET['tp']));
+			echo(fnDisplayTable(db_mailing_hist("lijst"), $ld, "", 0));
+		} else {
+			$lnk = sprintf("<a href='%s?tp=%s&amp;op=edit&amp;mid=%%d' title='Bewerk mailing'><img src='images/edit.png' alt='Edit boek'></a>", $_SERVER['PHP_SELF'], $_GET['tp']);
+			$lnk_lk = sprintf("<a href='%s?tp=Mailing/Historie&amp;op=historie&amp;mid=%%d' title='Bekijk historie'><img src='images/object_10.png' alt='Historie'></a>", $_SERVER['PHP_SELF']);
+			echo(fnDisplayTable(db_mailing("lijst", 0, 0, $filter), $lnk, "", 0, $lnk_lk));
+			if ($filter == "Prullenbak" and db_param("mailing_bewaartijd") > 0) {
+				printf("<p>Mailings die langer dan %d maanden geleden verwijderd zijn, worden automatisch definitief opgeschoond.</p>\n", db_param("mailing_bewaartijd"));
+			}
 		}
 	} # lijst
 	
-	public function toonverstuurdemail($rid) {
+	public function toonverstuurdemail($mhid) {
 		global $navpad;
 		
-		$navpad[]['naam'] = sprintf("Verzonden mail %d", $rid);
+		$navpad[]['naam'] = sprintf("Verzonden mail %d", $mhid);
 	
 		echo("<div id='verstuurdemail'>\n");
-		$row = db_mailing("histdetails", 0, $rid);
+		$row = db_mailing("histdetails", 0, $mhid);
 		if ($row->Successful == 1) {
 			printf("<div class='label'>Verzonden:</div><div class='veld'>%s</div>\n", strftime('%e %B %Y (%H:%M:%S)', strtotime($row->send_on)));
 		} else {
@@ -643,7 +652,7 @@ class Mailing {
 				$verzendenmag = false;
 			}
 			if (strtotime($this->sent_on) > (time() - $this->vertraging_tussen_verzenden)) {
-				if ($this->vertraging_tussen_verzenden < 120) {
+				if ($this->vertraging_tussen_verzenden < 180) {
 					$this->meldingen .= sprintf("Deze mailing is korter dan %d seconden geleden verzonden. \n", $this->vertraging_tussen_verzenden);
 				} else {
 					$this->meldingen .= sprintf("Deze mailing is korter dan %d minuten geleden verzonden. \n", $this->vertraging_tussen_verzenden/60);
@@ -948,34 +957,32 @@ class Mailing {
 			if ($preview == 1) {
 				echo("<br>\n" . $mail->Body);
 			}
-			if (strlen($e) > 5) {
-				if ($preview == 0) {
-					foreach (explode(",", $this->cc_addr) as $v) {
-						if (isValidMailAddress($v, 0)) {
-							$mail->AddCC($v);
-						}
+			if (count($mail->to) > 0 and $preview == 0) {
+				foreach (explode(",", $this->cc_addr) as $v) {
+					if (isValidMailAddress($v, 0)) {
+						$mail->AddCC($v);
 					}
-					if ($this->verzamelen) {
-						db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message);
+				}
+				if ($this->verzamelen) {
+					db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message);
+					$this->aant_ok++;
+				} else {
+					if ($mail->Send()) {
+						db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message, $mail, 1, $this->xtrachar, $this->xtranum);
+						if (isset($rcpt->Naam_lid)) {
+							$this->ok_send .= sprintf("<li>%s {%s}</li>\n", $rcpt->Naam_lid, $e);
+						} else {
+							$this->ok_send .= sprintf("<li>%s</li>\n", $e);
+						}
 						$this->aant_ok++;
 					} else {
-						if ($mail->Send()) {
-							db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message, $mail, 1, $this->xtrachar, $this->xtranum);
-							if (isset($rcpt->Naam_lid)) {
-								$this->ok_send .= sprintf("<li>%s {%s}</li>\n", $rcpt->Naam_lid, $e);
-							} else {
-								$this->ok_send .= sprintf("<li>%s</li>\n", $e);
-							}
-							$this->aant_ok++;
-						} else {
-							db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message, $mail, 0, $this->xtrachar, $this->xtranum);
-							$this->nok_send .= sprintf("<li>%s {%s}</li>\n", $rcpt->Naam_lid, $e);
-							$mess = sprintf("Het versturen van mailing %d (%s) aan %s is niet gelukt. Error: %s", $this->mid, $this->subject, $to_name, $mail->ErrorInfo);
-							db_logboek("add", $mess, 4, 0, 0, $this->mid);
-							$this->aant_nok++;
-						}
-						$mail->clearAllRecipients();
+						db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message, $mail, 0, $this->xtrachar, $this->xtranum);
+						$this->nok_send .= sprintf("<li>%s {%s}</li>\n", $rcpt->Naam_lid, $e);
+						$mess = sprintf("Het versturen van mailing %d (%s) aan %s is niet gelukt. Error: %s", $this->mid, $this->subject, $to_name, $mail->ErrorInfo);
+						db_logboek("add", $mess, 4, 0, 0, $this->mid);
+						$this->aant_nok++;
 					}
+					$mail->clearAllRecipients();
 				}
 			} else {
 				$this->nok_send .= sprintf("<li>%s {%s, %s&nbsp&nbsp;%s}</li>\n", $rcpt->Naam_lid, $rcpt->Adres, $rcpt->Postcode, $rcpt->Woonplaats);
@@ -1314,7 +1321,7 @@ function fnRekeningenMailen($op) {
 			}
 				
 			foreach(db_rekening("selectie", 0, $_POST['rekfilter']) as $rk) {
-				$e = $mail->ToevoegenLid($rk->Lid);
+				$mail->ToevoegenLid($rk->Lid);
 				
 				$rr = db_rekening("regels", $rk->Nummer);
 				$rrtxt = "";
@@ -1324,29 +1331,28 @@ function fnRekeningenMailen($op) {
 					$hd->sub(new DateInterval('P18Y'));
 					foreach($rr as $regel) {
 						$nl = db_naamlid($regel->Lid, "Naam", "");
-						if (strlen($regel->Email) > 5 and $regel->GEBDATUM > '1900-01-01' and $regel->GEBDATUM <= $hd->format('Y-m-d') and strpos($e, $regel->Email) === false) {
-							$mail->AddAddress($regel->Email, $nl);
-							$e .= ", " . $regel->Email;
-						} elseif (db_param("mailing_rekening_stuurnaar") == 3 and strlen($regel->Email) > 5 and strpos($e, $regel->Email) === false) {
-							$mail->AddAddress($regel->Email, $nl);
-							$e .= ", " . $regel->Email;
+						if ($regel->GEBDATUM > '1900-01-01' and $regel->GEBDATUM <= $hd->format('Y-m-d')) {
+							$mail->ToevoegenLid($regel->Lid);
+						} elseif (db_param("mailing_rekening_stuurnaar") == 3) {
+							$mail->ToevoegenLid($regel->Lid);
 						}
 					}
 				}
 				
-				$mail->Subject = $rk->OMSCHRIJV . " " . $rk->Nummer;
+				$mail->Subject = sprintf("Rekening %d - %s", $rk->Nummer, $rk->OMSCHRIJV);
 				$rt = RekeningDetail($rk->Nummer);
 				$mail->Body = $rt;
 				$mail->addstationary($rk->DEBNAAM, "", 1);
-				if (strlen($e) < 5) {
+				if (count($mail->to)) == 0) {
 					$mess = sprintf("Rekening %d kon niet worden verzonden, omdat er van %s geen geldig e-mailadres in de database bekend is.", $rk->Nummer, $rk->DEBNAAM);
 				} elseif ($mail->Send()) {
-					db_add_mailing_hist($rk->Lid, 0, $rk->DEBNAAM, $e, $rt, $mail, 1, "REK", $rk->Nummer);
-					$mess = sprintf("Rekening %d is naar %s (%s) verstuurd.", $rk->Nummer, $rk->DEBNAAM, $e);
+					db_add_mailing_hist($rk->Lid, 0, $rk->DEBNAAM, "", $rt, $mail, 1, "REK", $rk->Nummer);
+					
+					$mess = sprintf("Rekening %d is naar %s (%s) verstuurd.", $rk->Nummer, $rk->DEBNAAM, implode(", ", mail->to));
 					$aant_ok++;
 				} else {
-					db_add_mailing_hist($rk->Lid, 0, $rk->DEBNAAM, $e, $rt, $mail, 0);
-					$mess = sprintf("Het versturen van rekening %d is niet gelukt. Error: %s", $rk->Nummer, $mail->ErrorInfo);
+					db_add_mailing_hist($rk->Lid, 0, $rk->DEBNAAM, "", $rt, $mail, 0);
+					$mess = sprintf("Het versturen van rekening %d naar %s is niet gelukt. Error: %s", $rk->Nummer, $rk->DEBNAAM, $mail->ErrorInfo);
 				}
 				db_logboek("add", $mess, 4, 0, 0, $rk->Nummer);
 				$mail->clearAllRecipients();
@@ -1411,7 +1417,7 @@ function fnMailingInstellingen() {
 	global $currenttab, $currenttab2;
 	
 	echo("<div id='instellingenmuteren'>\n");
-	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+	if ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['InstellingenBewaren'])) {
 		if (startwith($_POST['mailing_beperkfrom'], "@")) {
 			$_POST['mailing_beperkfrom'] = substr($_POST['mailing_beperkfrom'], 1);
 		}
@@ -1444,7 +1450,7 @@ function fnMailingInstellingen() {
 	printf("<p><label>Hoeveel maanden moeten verwijderde mailing bewaard blijven:</label><input class='inputnumber' type='number' name='mailing_bewaartijd' value=%d size=8> (0 = altijd bewaren)</p>\n", db_param("mailing_bewaartijd"));
 	printf("<p><label>Hoeveel mails mogen er per minuut verstuurd worden:</label><input type='number' name='maxmailperminuut' value=%F size=8> (0 = onbeperkt)</p>\n", db_param("maxmailsperminuut"));
 	printf("<p><label>Welke extensies zijn als attachment toegestaan:</label><input class='inputtext' type='text' name='mailing_extensies_toegestaan' value='%s' size=30> (leeg = standaard lijst)</p>\n", db_param("mailing_extensies_toegestaan"));
-	echo("<input type='submit' value='Bewaren'>\n");
+	echo("<input type='submit' value='Bewaren' name='InstellingenBewaren'>\n");
 	echo("</form>");
 	echo("</div> <!-- Einde instellingenmuteren -->\n");
 	
