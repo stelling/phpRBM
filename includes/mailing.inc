@@ -1343,12 +1343,12 @@ function fnRekeningenMailen($op) {
 				$rt = RekeningDetail($rk->Nummer);
 				$mail->Body = $rt;
 				$mail->addstationary($rk->DEBNAAM, "", 1);
-				if (count($mail->to)) == 0) {
+				if (count($mail->to) == 0) {
 					$mess = sprintf("Rekening %d kon niet worden verzonden, omdat er van %s geen geldig e-mailadres in de database bekend is.", $rk->Nummer, $rk->DEBNAAM);
 				} elseif ($mail->Send()) {
 					db_add_mailing_hist($rk->Lid, 0, $rk->DEBNAAM, "", $rt, $mail, 1, "REK", $rk->Nummer);
 					
-					$mess = sprintf("Rekening %d is naar %s (%s) verstuurd.", $rk->Nummer, $rk->DEBNAAM, implode(", ", mail->to));
+					$mess = sprintf("Rekening %d is naar %s (%s) verstuurd.", $rk->Nummer, $rk->DEBNAAM, implode(", ", $mail->to));
 					$aant_ok++;
 				} else {
 					db_add_mailing_hist($rk->Lid, 0, $rk->DEBNAAM, "", $rt, $mail, 0);
@@ -1435,10 +1435,10 @@ function fnMailingInstellingen() {
 		}
 		db_param("mailing_bewaartijd", "updval", $_POST['mailing_bewaartijd']);
 		
-		if (strlen($_POST['maxmailperminuut']) == 0) {
-			$_POST['maxmailperminuut'] = 0;
+		if (strlen($_POST['maxmailsperminuut']) == 0) {
+			$_POST['maxmailsperminuut'] = 0;
 		}
-		db_param("maxmailperminuut", "updval", $_POST['maxmailperminuut']);
+		db_param("maxmailsperminuut", "updval", $_POST['maxmailsperminuut']);
 		
 		db_param("mailing_extensies_toegestaan", "updval", $_POST['mailing_extensies_toegestaan']);
 		
@@ -1448,7 +1448,7 @@ function fnMailingInstellingen() {
 	printf("<p><label>Mailings alleen versturen vanaf domein:</label><input class='inputtext' type='text' name='mailing_beperkfrom' value='%s' size=30></p>\n", db_param("mailing_beperkfrom"));
 	printf("<p><label>Versturen resultaat van de mailing naar de afzender en secretariaat:</label><input type='checkbox' value=1 name='mailing_resultaatversturen'%s></p>\n", checked(db_param("mailing_resultaatversturen")));
 	printf("<p><label>Hoeveel maanden moeten verwijderde mailing bewaard blijven:</label><input class='inputnumber' type='number' name='mailing_bewaartijd' value=%d size=8> (0 = altijd bewaren)</p>\n", db_param("mailing_bewaartijd"));
-	printf("<p><label>Hoeveel mails mogen er per minuut verstuurd worden:</label><input type='number' name='maxmailperminuut' value=%F size=8> (0 = onbeperkt)</p>\n", db_param("maxmailsperminuut"));
+	printf("<p><label>Hoeveel mails mogen er per minuut verstuurd worden:</label><input type='number' name='maxmailsperminuut' value=%F size=8> (0 = onbeperkt)</p>\n", db_param("maxmailsperminuut"));
 	printf("<p><label>Welke extensies zijn als attachment toegestaan:</label><input class='inputtext' type='text' name='mailing_extensies_toegestaan' value='%s' size=30> (leeg = standaard lijst)</p>\n", db_param("mailing_extensies_toegestaan"));
 	echo("<input type='submit' value='Bewaren' name='InstellingenBewaren'>\n");
 	echo("</form>");
