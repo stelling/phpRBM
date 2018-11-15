@@ -45,21 +45,20 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 		if (strlen($row->Email) > 5 and self::ValidateAddress($row->Email)) {
 			if (in_array($row->Email, $this->to) === false) {
 				$this->AddAddress($row->Email, $row->NaamLid);
+				$rv = $row->Email;
 			}
-			$rv = $row->Email;
-		} elseif (strlen($row->EmailVereniging) > 5 and self::ValidateAddress($row->EmailVereniging)) {
-			if (in_array($row->EmailVereniging, $this->to) === false) {
-				$this->AddAddress($row->EmailVereniging, $row->NaamLid);
-			}
+		} elseif (strlen($row->EmailVereniging) > 5 and self::ValidateAddress($row->EmailVereniging) and in_array($row->EmailVereniging, $this->to) === false and in_array($row->EmailVereniging, $this->cc) === false) {
+			$this->AddAddress($row->EmailVereniging, $row->NaamLid);
 			$rv = $row->EmailVereniging;
 		}
 		
-		if (strlen($rv) > 0 and self::ValidateAddress($row->EmailOuders)) {
-			$this->clearCCs();
-			$this->InformerenOuders($row->GEBDATUM, $row->EmailOuders, "cc");
-			$rv .= ", " . $row->EmailOuders;
-		} elseif (self::ValidateAddress($row->EmailOuders)) {
-			$rv = $this->InformerenOuders($row->GEBDATUM, $row->EmailOuders, "to");
+		$e = $this->InformerenOuders($row->GEBDATUM, $row->EmailOuders, "cc");
+		if (strlen($e) > 5) {
+			if (strlen($e) > 5) {
+				$rv .= ", " . $e;
+			} else {
+				$rv = $e;
+			}
 		}
 		
 		return $rv;
@@ -72,10 +71,10 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 		
 		$rv = "";
 		if ($geboren > date("Y-m-d", mktime(0, 0, 0, date("m"), date("d"), date("Y")-18)) and strlen($emailouders) > 5) {
-			$emailouders = str_replace(" ", "", strtolower($emailouders));
+			$emailouders = str_replace(" ", "", $emailouders);
 			$emailouders = str_replace(";", ",", $emailouders);
 			foreach(explode(",", $emailouders) as $e) {
-				if (self::ValidateAddress($e) and in_array($e, $this->to) == false and in_array($e, $this->cc) == false) {
+				if (self::ValidateAddress($e) and in_array($e, $this->to) === false and in_array($e, $this->cc) === false) {
 					$this->AddAnAddress($kind, $e);
 					if (strlen($rv) > 0) {
 						$rv .= ", ";
@@ -88,14 +87,7 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 	}
 	
 	public function ListAddresses($kind="to") {
-		$rv = "";
-		foreach($this->$kind as $e) {
-			if (strlen($rv) > 0) {
-				$rv .= ", ";
-			}
-			$rv .= $e[0];
-		}
-		return strtolower($rv);
+		return implode(", ", $this->$kind);
 	}
 	
 	public function hasstationary() {
