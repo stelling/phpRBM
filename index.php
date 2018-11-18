@@ -6,13 +6,16 @@ if (!isset($_GET['tp'])) {
 
 require('./includes/standaard.inc');
 
-if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen" and $_SESSION['lidid'] > 0) {
+if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 	$mess = db_logins("uitloggen", "", "", $_SESSION['lidid']);
 	setcookie("username", "", time()-3600);
 	setcookie("password", "", time()-3600);
-} elseif ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['Inloggen']) and $_POST['Inloggen'] == "Inloggen") {
-	if (strlen($_POST['password']) < 6) {
-		$mess = "Om in te loggen is het invullen van een wachtwoord van minimaal 6 karakters vereist.";
+	$_SESSION['lidid'] = 0;
+	$_SESSION['webmaster'] = 0;
+	unset($_SESSION['toegang']);
+} else if ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['Inloggen']) and $_POST['Inloggen'] == "Inloggen") {
+	if (strlen($_POST['password']) < 5) {
+		$mess = "Om in te loggen is het invullen van een wachtwoord van minimaal 5 karakters vereist.";
 		db_logboek("add", $mess, 1, 0, 2);
 	} else {
 		$_SESSION['username'] = cleanlogin($_POST['username']);
@@ -22,7 +25,6 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen" and $_SESSION['lidid
 				setcookie("password", $_POST['password'], time()+(3600*24*30));
 			}
 		}
-		unset($_SESSION['toegang']);
 		fnAuthenticatie(1, $_POST['password']);
 	}
 	if ($_SESSION['lidid'] > 0) {
