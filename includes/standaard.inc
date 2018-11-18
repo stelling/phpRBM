@@ -15,7 +15,7 @@ if ($_SESSION['webmaster'] == 1 or $_SERVER["HTTP_HOST"] == "phprbm.telling.nl")
 	error_reporting(E_ALL);
 } else {
 	error_reporting(0);
-	//error_reporting(E_ALL);
+//	error_reporting(E_ALL);
 }
 
 if (isset($_SERVER['HTTPS'])){
@@ -30,6 +30,7 @@ if (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
 	$_SESSION['emailingelogde'] = "";
 	$_SESSION['naamingelogde'] = "gast";
 	$_SESSION['roepnaamingelogde'] = "gast";
+	unset($_SESSION['toegang']);
 }
 
 $dir = substr(__DIR__, 0, strrpos(__DIR__, "/"));
@@ -110,168 +111,6 @@ $arrSoortMemo["I"] = "Inschrijving bewaking";
 $arrSoortMemo["WN"] = "Waarschuwen in geval van nood";
 
 $pasfotoextenties = array("gif", "jpg", "jpeg", "png");
-
-if ($_SERVER['PHP_SELF'] == "/admin.php") {
-	$tabpages[] = "Beheer logins";
-	$tabpages[] = "Autorisatie";
-	$tabpages[] = "Instellingen";
-	$tabpages[] = "Uploaden data";
-	$tabpages[] = "Downloaden wijzigingen";
-	$tabpages[] = "Onderhoud";
-	$tabpages[] = "Logboek";
-} else {
-	$tabpages[] = "Vereniging";
-	if (file_exists($fileverinfo)) {
-		$tabpages[] = "Vereniging/Introductie";
-	}
-	if ($_SESSION['lidid'] == 0) {
-		$tabpages[] = "Herstellen wachtwoord";
-	}
-	$tabpages[] = "Vereniging/Kader";
-	$tabpages[] = "Vereniging/Onderscheidingen";
-	$tabpages[] = "Vereniging/Overige commissies";
-	if ($_SESSION['lidid'] > 0) {
-		$tabpages[] = "Eigen gegevens";
-		$tabpages[] = "Eigen gegevens/Algemeen";
-		if (count(db_gegevenslid($_SESSION['lidid'], "Afdelingen")) > 0) {
-			$tabpages[] = "Eigen gegevens/Afdelingen";
-		}
-		if (count(db_gegevenslid($_SESSION['lidid'], "Kader")) > 0) {
-			$tabpages[] = "Eigen gegevens/Kader";
-		}
-		if (count(db_gegevenslid($_SESSION['lidid'], "Rollen")) > 0) {
-			$tabpages[] = "Eigen gegevens/Rollen";
-		}
-		if (count(db_gegevenslid($_SESSION['lidid'], "Groepen")) > 0) {
-			$tabpages[] = "Eigen gegevens/Groepen";
-		}
-		if (count(db_gegevenslid($_SESSION['lidid'], "Bew")) > 0 or count(db_insbew("overzichtlid", $_SESSION['lidid'])) > 0) {
-			$tabpages[] = "Eigen gegevens/Bewaking";
-		}
-		$tabpages[] = "Eigen gegevens/Diploma's";
-		$tabpages[] = "Eigen gegevens/Financieel";
-		$tabpages[] = "Eigen gegevens/Mailing";
-		if (count(db_gegevenslid($_SESSION['lidid'], "Evenementen")) > 0) {
-			$tabpages[] = "Eigen gegevens/Evenementen";
-		}
-		$tabpages[] = "Eigen gegevens/Logboek";
-		$tabpages[] = "Zelfservice";
-		$tabpages[] = "Zelfservice/Algemene gegevens";
-		if (count(db_diploma("zelfservice_lijst")) > 0) {
-			$tabpages[] = "Zelfservice/Diploma's";
-		}
-		$tabpages[] = "Zelfservice/Pasfoto";
-		if (count($muteerbarememos) > 0) { 
-			$tabpages[] = "Zelfservice/Bijzonderheden";
-		}
-		if (count(db_bewaking_blok("openblokken")) > 0) {
-			$tabpages[] = "Zelfservice/Inschrijving bewaking";
-		}
-		if (count(db_evenement("open")) > 0) {
-			$tabpages[] = "Zelfservice/Inschrijving evenementen";
-		}
-		if (count(db_artikel("artikelbeschikbaar")) > 0) {
-			$tabpages[] = "Zelfservice/Bestellingen";
-		}
-		$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap WHERE Lid=%d AND (Opgezegd IS NULL);", $table_prefix, $_SESSION['lidid']);
-		if (db_scalar($query) > 0) {
-			$tabpages[] = "Zelfservice/Opzegging";
-		}
-	}
-	$tabpages[] = "Zelfservice/Wijzigen wachtwoord";
-	$tabpages[] = "Ledenlijst";
-	if ($currenttab == "Overzicht lid") {
-		$tabpages[] = "Overzicht lid";
-		$tabpages[] = "Overzicht lid/Algemeen";
-		if ($_SESSION['aantalafdelingen'] > 0) {
-			$tabpages[] = "Overzicht lid/Afdelingen";
-		}
-		$tabpages[] = "Overzicht lid/Kader";
-		if ($_SESSION['aantalrollen'] > 0) {
-			$tabpages[] = "Overzicht lid/Rollen";
-		}
-		$tabpages[] = "Overzicht lid/Groepen";
-		if ($_SESSION['aantalbewaking'] > 0) {
-			$tabpages[] = "Overzicht lid/Bewaking";
-		}
-		$tabpages[] = "Overzicht lid/Diploma's";
-		$tabpages[] = "Overzicht lid/Financieel";
-		$tabpages[] = "Overzicht lid/Mailing";
-		$tabpages[] = "Overzicht lid/Evenementen";
-		$tabpages[] = "Overzicht lid/Logboek";
-	}
-	if ($currenttab == "Wijzigen lid") {
-		$tabpages[] = "Wijzigen lid";
-		$tabpages[] = "Wijzigen lid/Algemene gegevens";
-		$tabpages[] = "Wijzigen lid/Diploma's";
-		$tabpages[] = "Wijzigen lid/Pasfoto";
-		$tabpages[] = "Wijzigen lid/Bijzonderheden";
-		$tabpages[] = "Wijzigen lid/Lidmaatschap";
-	}
-	if ($_SESSION['aantalmutaties'] > 0) {
-		$tabpages[] = "Kostenoverzicht";
-	}
-	$tabpages[] = "Mailing";
-	$tabpages[] = "Mailing/Templates";
-	$tabpages[] = "Mailing/Concepten";
-	$tabpages[] = "Mailing/Nieuw";
-	if ($_SESSION['aantalrekreg'] > 0) {
-		$tabpages[] = "Mailing/Rekeningen";
-	}
-//	$tabpages[] = "Mailing/Verzonden mailings";
-	$tabpages[] = "Mailing/Verzonden";
-	if (db_mailing("aantalprullenbak") > 0) {
-		$tabpages[] = "Mailing/Prullenbak";
-	}
-	$tabpages[] = "Mailing/Verzonden mails";
-	$tabpages[] = "Mailing/Instellingen";
-	if (db_logboek("aantal", "", 4) > 0) {
-		$tabpages[] = "Mailing/Logboek";
-	}
-	
-	if ($_SESSION['aantalbewaking'] > 0) {
-		$tabpages[] = "Bewaking";
-		$tabpages[] = "Bewaking/Bewakingsrooster";
-		$tabpages[] = "Bewaking/Postindeling";
-		$tabpages[] = "Bewaking/Aantallen";
-		$tabpages[] = "Bewaking/Nieuwe pasfoto";
-		$tabpages[] = "Bewaking/Diploma's muteren";
-		if (count(db_bewaking_blok("overzicht")) > 0) {
-			$tabpages[] = "Bewaking/Overzicht inschrijvingen";
-		}
-		$tabpages[] = "Bewaking/Blokken muteren";
-	}
-	if (count(db_insbew("export")) > 0) {
-		$tabpages[] = "Bewaking/Downloaden inschrijvingen";
-	}
-	if (db_logboek("aantal", "", 11) > 0) {
-		$tabpages[] = "Bewaking/Logboek";
-	}
-	
-	if (count(db_evenement("overzicht")) > 0 or toegang("Evenementen/Beheer", 0)) {
-		$tabpages[] = "Evenementen";
-		if (count(db_evenement("overzicht")) > 0) {
-			$tabpages[] = "Evenementen/Overzicht";
-		}
-		$tabpages[] = "Evenementen/Beheer";
-		$tabpages[] = "Evenementen/Types muteren";
-	}
-	if (db_logboek("aantal", "", 7) > 0) {
-		$tabpages[] = "Evenementen/Logboek";
-	}
-	$tabpages[] = "Bestellingen";
-	if (count(db_artikel("overzichtbeheer")) > 0) {
-		$tabpages[] = "Bestellingen/Bestellingen muteren";
-	}
-	$tabpages[] = "Bestellingen/Artikelbeheer";
-	if (db_logboek("aantal", "", 10) > 0) {
-		$tabpages[] = "Bestellingen/Logboek";
-	}
-	
-	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
-//		$tabpages[] = "DMS";   Voorlopig geen tijd voor, dus uitgezet.
-	}
-}
 
 if (isset($_GET['tp']) and strlen($_GET['tp']) > 1) {
 	$curtab = explode("/", $_GET['tp']);
@@ -906,10 +745,12 @@ function removetextblock($content, $start_block="<!-- Ingelogd -->", $end_block=
 	
 } # removetextblock
 
-function checked($val, $tp="box") {
-	if ($val == 1 or $val === true) {
-		if ($tp == "radio") {
+function checked($val, $tp="box", $sv=1) {
+	if ($val == $sv or $val === true) {
+		if ($tp === "radio") {
 			return " checked='checked'";
+		} elseif ($tp == "option") {
+			return " selected";
 		} else {
 			return " checked";
 		}
