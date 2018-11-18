@@ -87,7 +87,15 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 	}
 	
 	public function ListAddresses($kind="to") {
-		return implode(", ", $this->$kind);
+		if (count($this->$kind) > 0) {
+			$rv = "";
+			foreach ($this->$kind as $e) {
+				$rv .= $e[0] . ",";
+			}
+			return substr($rv, 0, -1);
+		} else {
+			return "";
+		}
 	}
 	
 	public function hasstationary() {
@@ -134,20 +142,26 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 			}
 			set_time_limit(60);
 		}
-	
-		try {
-			if(!$this->PreSend()) return false;
-			return $this->PostSend();
-		} catch (phpmailerException $e) {
-			$this->SentMIMEMessage = '';
-			$this->SetError($e->getMessage());
-			if ($this->exceptions) {
-				throw $e;
-			}
+		
+		if (db_param("maxmailsperdag") > 0 and db_mailing_hist("aantal24uur") > db_param("maxmailsperdag")) {
+			$mess = sprintf("Het maximaal aantal te versturen mail per dag (%d) is bereikt.", db_param("maxmailsperdag"));
+			db_logboek("add", $mess, 4);
 			return false;
+			
+		} else {
+			try {
+				if(!$this->PreSend()) return false;
+				return $this->PostSend();
+			} catch (phpmailerException $e) {
+				$this->SentMIMEMessage = '';
+				$this->SetError($e->getMessage());
+				if ($this->exceptions) {
+					throw $e;
+				}
+				return false;
+			}
 		}
 	}
-
 }
 
 ?>
