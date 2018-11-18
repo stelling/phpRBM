@@ -74,6 +74,7 @@ $wherelid = "LM.LIDDATUM <= CURDATE() AND ((LM.Opgezegd IS NULL) OR LM.Opgezegd 
 $fromlidond = sprintf('%1$sLid AS L INNER JOIN ((%1$sLidond AS LO INNER JOIN %1$sFunctie AS F ON LO.Functie = F.Nummer) INNER JOIN %1$sOnderdl AS O ON LO.OnderdeelID = O.RecordID) ON L.NUMMER = LO.LID', $table_prefix);
 $wherelidond = "LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE())";
 $whereliddipl = "((LD.LicentieVervallenPer IS NULL) OR LD.LicentieVervallenPer >= CURDATE())";
+$sqllidgroepen = sprintf("SELECT OnderdeelID FROM %sLidond AS LO WHERE %s AND Lid=%d", $table_prefix, $wherelidond, $_SESSION['lidid']);
 
 $db_conn_pdo = sprintf("mysql:host=%s;dbname=%s;charset=utf8", $db_host, $db_name);
 try {
@@ -166,6 +167,7 @@ function fnQuery($query) {
 			}
 			return $rs;
 		} else {
+// debug($query, 0);
 			$result = $dbc->prepare($query);
 			$result->execute();
 			$exec_tijd = microtime(true) - $starttijd;
@@ -354,14 +356,19 @@ function db_gegevenslid($LidID, $soort="Alg") {
 		$query = db_mailing_hist("sqllijst", $LidID);
 	} elseif ($soort == "Evenementen") {
 		$query = "SELECT E.Datum AS dteDatum, E.Omschrijving, E.Verzameltijd, DATE_FORMAT(E.Datum, '%H:%i') AS Starttijd,
-					E.Eindtijd, E.Email AS emlContact, ED.Functie, CASE ED.Status";
-		foreach ($dlnstatus as $s => $o) {
-			$query .= sprintf(" WHEN '%s' THEN '%s'", $s, $o);
+					E.Eindtijd, E.Email AS emlContact, ED.Functie ";
+		if (isset($dlnstatus)) {
+			$query .= ", CASE ED.Status";
+			foreach ($dlnstatus as $s => $o) {
+				$query .= sprintf(" WHEN '%s' THEN '%s'", $s, $o);
+			}
+			$query .= " END AS Status ";
 		}
-		$query .= " END AS Status ";
 		$query .= sprintf("FROM %1\$sEvenement AS E INNER JOIN %1\$sEvenement_Deelnemer AS ED ON E.RecordID = ED.EvenementID
 								WHERE ED.Status IN ('B', 'I', 'R') AND ED.LidID=%2\$d
 								ORDER BY E.Datum DESC;", $table_prefix, $LidID);
+	} else {
+		$query = "";
 	}
 	
 	if (strlen($query) > 1) {
@@ -654,7 +661,7 @@ function db_memo($actie, $lidid, $srt, $nv="") {
 } # db_ledenwijzigingen
 
 function db_authorisation($actie, $recid=0, $tabpage="") {
-	global $table_prefix;
+	global $table_prefix, $sqllidgroepen;
 	
 	$tabpage = str_replace("'", "", $tabpage);
 	if ($actie == "delete") {
@@ -687,6 +694,7 @@ function db_authorisation($actie, $recid=0, $tabpage="") {
 		}
 		$mess = sprintf("Tabpage '%s' is aan de tabel 'Admin_access' toegevoegd.", $tabpage);
 		db_logboek("add", $mess, 15, 0, 0, $result);
+		
 	} elseif ($actie == "update") {  // Nog niet af en nog niet in gebruik
 		$query = sprintf("UPDATE %1\$sAdmin_access SET Toegang=%2\$d, Gewijzigd=SYSDATE() WHERE RecordID=%3\$d AND Toegang<>%2\$d;", $table_prefix, $_POST[$vn], $recid);
 		$result = fnQuery($query);
@@ -697,6 +705,19 @@ function db_authorisation($actie, $recid=0, $tabpage="") {
 				$mess = sprintf("Toegang '%s' is naar groep '%s' aangepast.", $row->Tabpage, db_naam_onderdeel($_POST[$vn], "Iedereen"));
 			}
 			db_logboek("add", $mess, 15, 0, 0, $recid);
+		}
+		
+	} elseif ($actie == "heefttoegang") {
+		if (strlen($tabpage) > 0) {
+			$query = sprintf("SELECT COUNT(*) FROM %sAdmin_access WHERE Tabpage=\"%s\" AND (Toegang IN (%s) OR Toegang=0);", $table_prefix, $tabpage, $sqllidgroepen);
+			if (db_scalar($query) > 0) {
+				return true;
+			} else {
+//				debug($query, 0);
+				return false;
+			}
+		} else {
+			return false;
 		}
 		
 	} elseif ($actie == "opschonen") {
@@ -1074,6 +1095,16 @@ function db_lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0) {
 			return false;
 		} else {
 			return true;
+		}
+	} elseif ($actie == "lidgroepen") {
+		$rv = "";
+		$query = sprintf("SELECT OnderdeelID FROM %sLidond AS LO WHERE Lid=%d AND %s;", $table_prefix, $_SESSION['lidid'], $wherelidond);
+		$result = fnQuery($query);
+		$rows = $result->fetchAll(PDO::FETCH_COLUMN);
+		if (count($rows) > 0) {
+			return "(0, " . implode(", ", $rows) . ")";
+		} else {
+			return "(0)";
 		}
 	}
 }
@@ -1525,7 +1556,7 @@ function db_onderdelen($type="", $aantal=0) {
 		$where = $where . sprintf(" AND O.`Type`='%s'", $type);
 	}
 	$query = sprintf("SELECT %s FROM %s WHERE %s ORDER BY O.Naam;", $sel, $fromlidond, $where);
-	$result=fnQuery($query);
+	$result = fnQuery($query);
 	
 	if ($aantal == 0) {
 		return $result->fetchAll();
@@ -1558,8 +1589,8 @@ function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr, $message="", $mai
 		$from_name = $mail->FromName;
 		$from_addr = $mail->From;
 		$subject = $mail->Subject;
-		$to_addr = implode(", ", $mail->to);
-		$cc_addr = implode(", ", $mail->cc);
+		$to_addr = $mail->ListAddresses("to");
+		$cc_addr = $mail->ListAddresses("cc");
 	}
 	
 	if (is_array($to_addr)) {
@@ -1680,6 +1711,10 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, R.to_address, R.Ingevoerd;", $selectnaam, $selectzoeknaam, $table_prefix, $mid);
 		$result = fnQuery($query);
 		return $result->fetchAll();
+		
+	} elseif ($actie == "rcptaantal") {
+		$query = sprintf("SELECT COUNT(*) FROM %sMailing_rcpt WHERE MailingID=%d;", $table_prefix, $mid);
+		return db_scalar($query);
 		
 	} elseif ($actie == "potrcpt") {
 		$query = sprintf("SELECT L.Nummer, %1\$s AS Zoeknaam_lid FROM %2\$sLid AS L
@@ -1813,7 +1848,7 @@ function db_mailing_hist($actie, $lidid=0, $mhid=0) {
 	if ($actie == "lijst" or $actie == "sqllijst") {
 		$query = sprintf("SELECT send_on AS dttVerzonden,"
 				 . " IF(LENGTH(from_name)<3, from_addr, from_name) AS Van,"
-				 . " to_name AS Aan,"
+				 . " CONCAT(to_name, ' (', to_addr, ')') AS Aan,"
 				 . " subject AS Onderwerp,"
 				 . " RecordID AS lnkRecordID"
 				 . " FROM %sMailing_hist"
@@ -1824,9 +1859,15 @@ function db_mailing_hist($actie, $lidid=0, $mhid=0) {
 		} else {
 			return fnQuery($query);
 		}
+	
 	} elseif ($actie == "lidbijmail" and $mhid > 0) {
 		$query = sprintf("SELECT IFNULL(MAX(LidID), 0) FROM %sMailing_hist WHERE RecordID=%d;", $table_prefix, $mhid);
 		return db_scalar($query);
+		
+	} elseif ($actie == "aantal24uur") {
+		$query = sprintf("SELECT COUNT(*) FROM %sMailing_hist WHERE Successful=1 AND send_on > DATE_SUB(NOW(), INTERVAL 24 HOUR);", $table_prefix);
+		return db_scalar($query);
+		
 	}
 				 
 } # db_mailinghist
@@ -2200,12 +2241,13 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 } # db_liddipl
 
 function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie="") {
-	global $table_prefix, $selectnaam, $selectzoeknaam, $wherelidond;
+	global $table_prefix, $selectnaam, $selectzoeknaam;
 	
 	$sqlaantdln = sprintf("SELECT COUNT(*) FROM %sEvenement_Deelnemer AS ED WHERE ED.EvenementID = E.RecordID AND Status='B'", $table_prefix);
 
 	$xtra_where = "";
 	$mess = "";
+	$lg = db_lidond("lidgroepen");
 	if ($actie == "oms") {
 		$query = sprintf("SELECT Omschrijving FROM %sEvenement WHERE RecordID=%d;", $table_prefix, $eventid);
 		return db_scalar($query);
@@ -2214,7 +2256,7 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 		$query = sprintf("SELECT E.Datum, E.Omschrijving
 								FROM %sEvenement AS E
 								WHERE E.Datum >= CURDATE() AND E.Datum < DATE_ADD(CURDATE(), INTERVAL 2 MONTH) AND E.VerwijderdOp < '2012-01-01' AND E.ZichtbaarVoor IN %s
-								ORDER BY E.Datum LIMIT 5;", $table_prefix, $_SESSION['lidgroepen']);
+								ORDER BY E.Datum LIMIT 5;", $table_prefix, $lg);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
@@ -2223,7 +2265,7 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 								FROM %1\$sEvenement AS E INNER JOIN %1\$sEvenement_Type AS ET ON E.TypeEvenement = ET.RecordID
 								WHERE E.Datum >= CURDATE() AND E.VerwijderdOp < '2012-01-01' AND InschrijvingOpen=1
 								AND E.BeperkTotGroep IN %2\$s
-								ORDER BY E.Datum;", $table_prefix, $_SESSION['lidgroepen']);
+								ORDER BY E.Datum;", $table_prefix, $lg);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
@@ -2232,7 +2274,7 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 			$where = "E.Datum >= DATE_ADD(CURDATE(), INTERVAL -3 MONTH) AND E.VerwijderdOp < '2012-01-01'";
 			$order = "E.Datum";
 		} else {
-			$where = sprintf("E.Datum >= DATE_ADD(CURDATE(), INTERVAL -3 DAY) AND E.VerwijderdOp < '2012-01-01' AND E.ZichtbaarVoor IN %s", $_SESSION['lidgroepen']);
+			$where = sprintf("E.Datum >= DATE_ADD(CURDATE(), INTERVAL -3 DAY) AND E.VerwijderdOp < '2012-01-01' AND E.ZichtbaarVoor IN %s", $lg);
 			$order = "ET.Soort, E.Datum";
 		}
 		$query = sprintf("SELECT E.RecordID AS lnkNummer, E.Datum AS dteDatum, DATE_FORMAT(E.Datum, '%%H:%%i') AS Starttijd, E.Omschrijving,
@@ -2345,6 +2387,7 @@ function db_artikel($actie, $artikelid=0, $lidid=0) {
 	global $table_prefix;
 
 	$mess = "";
+	$lg = db_lidond("lidgroepen");
 	if ($actie == "overzichtbeheer") {
 		$query = sprintf("SELECT *, CONCAT(Omschrijving, IF(LENGTH(Maat)>0, CONCAT(' (', Maat, ')'), '')) AS OmsMaat
 					FROM %sWS_Artikel ORDER BY Code, Omschrijving, RecordID;", $table_prefix);
@@ -2367,7 +2410,7 @@ function db_artikel($actie, $artikelid=0, $lidid=0) {
 	} elseif ($actie == "artikelbeschikbaar") {
 		$query = sprintf("SELECT * FROM %sWS_Artikel
 					WHERE BeschikbaarTot >= CURDATE() AND (BeperkTotGroep=0 OR BeperkTotGroep IN %s)
-					ORDER BY Code, Omschrijving, RecordID;", $table_prefix, $_SESSION['lidgroepen']);
+					ORDER BY Code, Omschrijving, RecordID;", $table_prefix, $lg);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
@@ -2606,6 +2649,8 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrIntegers['mailing_lidnr'] = 0;
 	$arrIntegers['mailing_rekening_stuurnaar'] = 1;
 	$arrIntegers['max_grootte_bijlage'] = 2048;
+	$arrIntegers['maxmailsperdag'] = 495;	
+	$arrIntegers['maxmailsperminuut'] = 360;
 	$arrIntegers['login_bewaartijd'] = 6;
 	$arrIntegers['login_bewaartijdnietgebruikt'] = 21;
 	$arrIntegers['login_maxlengte'] = 12;
@@ -2654,8 +2699,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrStrings['zs_muteerbarememos'] = "";
 	$arrStrings['zs_voorwaardenbestelling'] = "";
 	$arrStrings['zs_voorwaardeninschrijving'] = "";
-	
-	$arrFloats['maxmailsperminuut'] = 360;
+
 	$arrFloats['performance_trage_select'] = 0.5;
 	
 	// Onderstaande zijn niet in te stellen via het instellingen scherm.
