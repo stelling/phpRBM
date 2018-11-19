@@ -410,65 +410,53 @@ class Mailing {
 		} else {
 			$navpad[]['naam'] = sprintf("Details mailing %d", $this->mid);
 		}
-		printf("<div id='mailing'>\n");
-		printf("<form method='post' action='%s?tp=%s/%s&amp;mid=%d' name='frm_mailedit' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2, $this->mid);
-		printf("<table>\n");
-		printf("<tr><td class='label'>Van:</td><td><input type='text' name='from_name' value='%s' size=50 maxlength=50> (Namens wie wordt deze mailing verstuurd)</td></tr>\n", $this->from_name);
-		$et = "";
+				$et = "";
 		if (strlen(db_param("mailing_beperkfrom")) > 2) {
 			$et = sprintf(" (Het domein van dit adres moet '%s' zijn)", db_param("mailing_beperkfrom"));
 		}
-		printf("<tr><td class='label'>Vanaf e-mail:</td><td><input type='email' name='from_addr' value='%s' size=50 maxlength=50>%s</td></tr>\n", $this->from_addr, $et);
-		printf("<tr><td class='label'>Aan:</td><td><input type='text' name='to_name' value='%s' size=50 maxlength=50> (Omschrijving van de groep personen aan wie deze mailing gericht is)</td></tr>\n", $this->to_name);
 		
+		printf("<div id='editmailingform'>\n");
+		printf("<form method='post' action='%s?tp=%s/%s&amp;mid=%d' name='frm_mailedit' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2, $this->mid);
+		printf("<p><label>Van:</label><input type='text' name='from_name' value='%s' size=50 maxlength=50> (Namens wie wordt deze mailing verstuurd)</p>\n", $this->from_name);
+		printf("<p><label>Vanaf e-mail:</label><input type='email' name='from_addr' value='%s' size=50 maxlength=50>%s</p>\n", $this->from_addr, $et);
+		printf("<p><label>Aan:</label><input type='text' name='to_name' value='%s' size=50 maxlength=50> (Omschrijving van de groep personen aan wie deze mailing gericht is)</p>\n", $this->to_name);
+				
 		$this->meldingen = "Er zijn nog geen ontvangers aan deze mailing toegevoegd.<br>\n";
 		$verzendenmag = false;
 		if ($this->mid > 0) {
-			echo("<tr><td class='label'>Ontvangers met e-mail:</td>\n<td>");
 			
 			$rcpt_rows = db_mailing("rcpt", $this->mid);
+			printf("<label>Ontvangers (%d):</label><div class='invoerblok'>\n", count($rcpt_rows));
 			$aant_ze = 0;
-			$text_ze = "";
 			if (count($rcpt_rows) > 0) {
 				echo("<ul class='listrecipients'>\n");
 				foreach($rcpt_rows as $rcpt) {
+					$ze = "";
+					if (!isValidMailAddress($rcpt->Email) and !isValidMailAddress($rcpt->EmailVereniging) and !isValidMailAddress($rcpt->to_address)) {
+						$ze = " *";
+						$aant_ze++;
+					}
 					if ($rcpt->LidID > 0) {
 						$lnk = sprintf("%s?tp=%s&amp;op=del_rcpt&amp;mid=%d&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, $rcpt->LidID);
-						$reg = sprintf("<li>%s&nbsp;<a href='%s'><img src='/images/delete.gif' alt='Verwijderen' title='Verwijderen'></a></li>\n", htmlentities($rcpt->Naam_lid), $lnk);
+						printf("<li>%s&nbsp;<a href='%s'><img src='/images/delete.gif' alt='Verwijderen' title='Verwijderen'></a></li>\n", htmlentities($rcpt->Naam_lid . $ze), $lnk);
 					} else {
 						$lnk = sprintf("%s?tp=%s&amp;op=del_rcpt&amp;mid=%d&amp;addr=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, $rcpt->to_address);
-						$reg = sprintf("<li>%s&nbsp;<a href='%s'><img src='/images/delete.gif' alt='Verwijderen' title='Verwijderen'></a></li>\n", $rcpt->to_address, $lnk);
+						printf("<li>%s&nbsp;<a href='%s'><img src='/images/delete.gif' alt='Verwijderen' title='Verwijderen'></a></li>\n", $rcpt->to_address, $lnk);
 						$this->contains_losse_email = true;
-					}
-					if (isValidMailAddress($rcpt->Email) or isValidMailAddress($rcpt->EmailVereniging) or isValidMailAddress($rcpt->to_address)) {
-						echo($reg);
-					} else {
-						$aant_ze++;
-						$text_ze .= $reg;
 					}
 				}
 				echo("</ul>\n");
-				if (count($rcpt_rows)-$aant_ze > 1) {
-					echo("<div class='clear'></div>\n");
-					printf("Totaal %d ontvangers\n", count($rcpt_rows)-$aant_ze);
-				}
 				if ($aant_ze > 0) {
-					echo("<tr><td class='label'>Ontvangers zonder e-mail:");
-					echo("<td><ul class='listrecipients'>\n");
-					echo($text_ze);
-					echo("</ul>\n");
-					echo("<div class='clear'></div>\n");
-					printf("Totaal %d ontvangers\n", $aant_ze);
+					printf("* = zonder e-mailadres, totaal %d stuks", $aant_ze);
 				}
 				$verzendenmag = true;
 				$this->meldingen = "";
-			} else {
-				echo("<p>Nog niemand!</p>");
 			}
-			echo("</td></tr>\n");
+			echo("</div> <!-- Einde invoerblok -->\n");
+//			echo("<div class='clear'></div>\n");
 			
-			echo("<tr><td class='label'>Ontvanger toevoegen:</td>\n");
-			printf("<td>Lid: <select name='add_lid' onChange='this.form.submit();'>\n");
+			echo("<label>Ontvanger toevoegen:</label>\n");
+			printf("<p>Lid: <select name='add_lid' onChange='this.form.submit();'></p>\n");
 			printf("<option value=0>&nbsp;</option>\n");
 			$rcpt_rows = db_mailing("potrcpt", $this->mid);
 			foreach($rcpt_rows as $rcpt) {
@@ -482,10 +470,10 @@ class Mailing {
 			printf("</select>&nbsp;\n");
 			
 			echo("E-mail: <input type='email' name='add_address' size=50 maxlength=50 onBlur='this.form.submit();'>");
-			echo("</td></tr>\n");
+			echo("</p>\n");
 			
-			echo("<tr>\n<td class='label'>Groep toevoegen of verwijderen:</td>");
-			printf("<td><select name='sel_group_add' id='sel_group'>\n");
+			echo("<p><label>Groep toevoegen of verwijderen:</label>");
+			printf("<select name='sel_group_add' id='sel_group'>\n");
 			printf("<option value=0>&nbsp;</option>\n");
 			printf("<option value=-2>Alle leden</option>\n");
 			printf("<option value=-1>Alle huidige ontvangers</option>\n");
@@ -499,25 +487,59 @@ class Mailing {
 			$lnk = sprintf("%s?tp=%s&op=del_groep&mid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid);
 			printf("<img src='/images/delete.gif' alt='Verwijderen' title='groep verwijderen' onclick=\"elem=document.getElementById('sel_group'); val=elem.options[elem.selectedIndex].value; if (val!=0) { location.href='%s&groepid=' + val }\">&nbsp;\n", $lnk);
 			printf("(groepen zijn t/m %s bijgewerkt)", strftime("%e %B %Y", strtotime(db_lidond("laatstgewijzigd"))));
-			printf("</td></tr>\n");
+			printf("</p>\n");
 		}
-		printf("<tr><td class='label'>Cc:</td><td><input type='text' name='cc_addr' value='%s' size=100></td></tr>\n", $this->cc_addr);
+		
+
 		if (strlen($this->subject) > 5) {
 			$ob = "";
 		} else {
 			$ob = "onBlur='this.form.submit();'";
 		}
-		printf("<tr><td class='label'>Onderwerp:</td><td><input type='text' name='subject' value='%s' size=100 %s></td></tr>\n", $this->subject, $ob);
-		
-		printf("<tr><td class='label'>Opties:</td><td><input type='checkbox' name='template' value=1%s>Template&nbsp;", checked($this->template));
-		printf("<input type='checkbox' name='confidential' value=1%s>Vertrouwelijk&nbsp;", checked($this->confidential));
-		printf("<input type='checkbox' name='verzamelen' value=1%s>E&eacute;n gezamenlijke e-mail</td>", checked($this->verzamelen));
-		echo("</tr>\n");
+
 		if (strlen($this->speciaal) > 0) {
 			printf("<tr><td class='label'>Specifiek doel:</td><td>%s</td></tr>\n", $this->speciaal);
 		}
+		
+		
+		if ($_SESSION['username'] == "stelling") { // Tijdelijke beperking tijdens het ontwikkelen.
+		echo("<label>Selectie leden:</label>\n<div class='invoerblok'>\n");
+		
+		echo("<table>\n");
+		echo("<tr><td></td><td>Vanaf</td><td>Tot en met</td></tr>\n");
+		
+		printf("<tr><td>Geboortedatum:</td><td><input type='date' value='%s' name='select_vangebdatum'></td><td><input type='date' value='%s' name='select_temgebdatum'></td></tr>\n", db_lid("mingebdatum"), db_lid("maxgebdatum"));
+		printf("<tr><td>Postcode:</td><td><input type='text' name='select_vanpostcode' value='%s' max-length=7></td><td><input type='text' name='select_tempostcode' value='%s' max-length=7></td></tr>\n", db_lid("minpostcode"), db_lid("maxpostcode"));
+		
+		$selgr = "<select name='sel_groep'>\n
+					<option value=0>&nbsp;</option>\n";
+		foreach(db_onderdelen() as $grp) {
+			$selgr .= sprintf("<option value=%d>%s</option>\n", $grp->RecordID, $grp->Oms);
+		}
+		$selgr .= "</select>\n";
+		
+		printf("<tr><td>Zit in groep:</td><td colspan=2>%s</td></tr>\n", $selgr);
 		echo("</table>\n");
 		
+		echo("<input type='submit' name='LedenToevoegen' value='Leden toevoegen'>\n");
+		echo("<input type='submit' name='LedenVerwijderen' value='Leden verwijderen'>\n");
+		if (count($rcpt_rows) > 1) {
+			echo("<input type='submit' name='OntvangersVerwijderen' value='Alle ontvangers verwijderen'>\n");
+		}
+		echo("</div>  <!-- Einde invoerblok -->\n");
+		echo("<div class='clear'></div>\n");
+		}
+		
+		printf("<p><label>Cc:</label><input type='text' name='cc_addr' value='%s' size=100></p>\n", $this->cc_addr);		
+		printf("<p><label>Onderwerp:</label><input type='text' name='subject' value='%s' size=100 %s></p>\n", $this->subject, $ob);
+		printf("<p><label>Opties:</label><input type='checkbox' name='template' value=1%s>Template&nbsp;", checked($this->template));
+		printf("<input type='checkbox' name='confidential' value=1%s>Vertrouwelijk&nbsp;", checked($this->confidential));
+		printf("<input type='checkbox' name='verzamelen' value=1%s>E&eacute;n gezamenlijke e-mail</p>", checked($this->verzamelen));
+		
+		echo("<div class='clear'></div>\n");
+		
+		
+		printf("</div> <!-- Einde editmailingform -->\n");
 		printf("<textarea name='message' id='editor'>%s</textarea>\n", $this->message);
 		
 /* ckeditor 4 code
@@ -545,25 +567,27 @@ class Mailing {
 		});</script>\n");
 
 ***** */
-	
 		echo("<script>
     ClassicEditor
-	.create( document.querySelector( '#editor' ) )
+	.create( document.querySelector( '#editor' )	)
 	.catch( error => {
 		console.error( error );
 	} );
-</script>");
+</script>\n");
+
+
 	
 		$strHV = "";
 		foreach ($this->MergeField as $v) {
 			$strHV .= "<li>[%" . $v['Naam'] . "%]</li>\n";
 		}
 		$strHV .= "";
-		echo("<table>\n");
-		printf("<tr>\n<td class='label'>Beschikbare variabelen:</td>\n<td><ul class='listmergefields'>\n%s</ul></td>\n", $strHV);
+		printf("<div id='editmailingform'>\n");
+		echo("<div class='clear'></div>\n");
+		printf("<label>Beschikbare variabelen:</label><div class='invoerblok'><ul class='listmergefields'>\n%s</ul></div>\n", $strHV);
 		
 		if ($this->mid > 0) {
-			echo("<tr>\n<td class='label'>Bijlagen:</td>\n<td>\n");
+			echo("<label>Bijlagen:</label><div class='invoerblok'>");
 			
 			echo("<table>\n");
 			if (is_dir($ad)) {
@@ -575,7 +599,6 @@ class Mailing {
 						echo("<td>" . number_format(($stat['size'] / 1024), 0, ',', '.') . " KB</td>\n");
 						$lnk = sprintf("%s?tp=%s&op=del_attach&mid=%d&attach=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, str_replace(".", "!", $entry));
 						printf("<td><a href='%s'><img src='/images/delete.gif' alt='Verwijderen' title='Verwijder'></a></td>\n", $lnk);
-						echo("</tr>\n");
 					}
 				}
 				$d->close();
@@ -585,33 +608,35 @@ class Mailing {
 			echo("<input type='file' name='UploadFile' id='UploadFile' size='40'>\n");
 			echo("<input type='submit' name='Upload' value='Upload'>&nbsp;");
 			printf("(Extensies '%s' zijn toegestaan)\n", $this->allowed_ext);
+			echo("</div>  <!-- Einde invoerblok -->\n");
+//			echo("<div class='clear'></div>\n");
 		}
-			
+		
 		if ($this->controle() == false) {
 			$verzendenmag = false;
 		}
 		if ($this->mid > 0) {
 			if ($this->new_on > '1901-01-01') {
-				printf("<tr><td class='label'>Toegevoegd door/op:</td><td>%s / %s</td></tr>\n", db_naamlid($this->AddedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->new_on)));
+				printf("<label>Toegevoegd door/op:</label><p>%s / %s</p>\n", db_naamlid($this->AddedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->new_on)));
 			}
 			if ($this->changed_on > '1901-01-01' and $this->ChangedBy > 0) {
-				printf("<tr><td class='label'>Gewijzigd door/op:</td><td>%s / %s</td></tr>\n", db_naamlid($this->ChangedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->changed_on)));
+				printf("<label>Gewijzigd door/op:</label><p>%s / %s</p>\n", db_naamlid($this->ChangedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->changed_on)));
 			}
 			if ($this->sent_on > '1901-01-01' and $this->SentBy > 0) {
-				printf("<tr><td class='label'>Verzonden door/op:</td><td>%s / %s</td></tr>\n", db_naamlid($this->SentBy), strftime("%e %B %Y (%H:%M)", strtotime($this->sent_on)));
+				printf("<label>Verzonden door/op:</label><p>%s / %s</p>\n", db_naamlid($this->SentBy), strftime("%e %B %Y (%H:%M)", strtotime($this->sent_on)));
 			}
 			if ($this->deleted_on > '1901-01-01') {
-				printf("<tr><td class='label'>Verwijderd door/op:</td><td>%s / %s</td></tr>\n", db_naamlid($this->DeletedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->deleted_on)));
+				printf("<label>Verwijderd door/op:</label><p>%s / %s</p>\n", db_naamlid($this->DeletedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->deleted_on)));
 			}
 
 			if ($verzendenmag == false) {
-				$this->meldingen .= "<br>\nDeze mailing mag nog niet verzonden worden.\n";
+				$this->meldingen .= " Deze mailing mag nog niet verzonden worden.";
 			}
 			if (strlen($this->meldingen) > 0) {
-				printf("<tr><td class='label'>Meldingen:</td><td>%s</td></tr>\n", $this->meldingen);
+				printf("<label>Meldingen:</label><p>%s</p>\n", $this->meldingen);
 			}
 		}
-		echo("</table>\n");
+		echo("<div class='clear'></div>\n");
 		
 		echo("<div id='opdrachtknoppen'>\n");
 		if ($this->mid > 0) {
@@ -701,7 +726,7 @@ class Mailing {
 		global $table_prefix;
 
 		if (isset($_POST['subject']) and strlen($_POST['subject']) > 1) {
-			$this->subject = html_entity_decode($_POST['subject']);
+			$this->subject = html_entity_decode(str_replace("\"", "'", $_POST['subject']));
 			$_POST['subject'] = $this->subject;
 		}
 		
@@ -721,7 +746,7 @@ class Mailing {
 		}
 		
 		if (isset($_POST['message']) and strlen($_POST['message']) > 1) {
-			$this->message = html_entity_decode($_POST['message']);
+			$this->message = html_entity_decode(str_replace("\"", "'", $_POST['message']));
 			$_POST['message'] = $this->message;
 		}
 		

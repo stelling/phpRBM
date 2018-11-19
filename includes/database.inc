@@ -166,11 +166,12 @@ function fnQuery($query) {
 				$_SESSION['settings'][$p] = db_param($p);
 			}
 			return $rs;
+		} elseif (strtoupper(substr($query, 0, 6)) == "INSERT") {
+			$rs = $dbc->query($query);
+			return $dbc->lastInsertID();
 		} else {
-// debug($query, 0);
 			$result = $dbc->prepare($query);
 			$result->execute();
-			$exec_tijd = microtime(true) - $starttijd;
 			if (strtoupper(substr($query, 0, 6)) == "INSERT") {
 				$rv = $dbc->lastInsertId();
 			} else {
@@ -409,6 +410,7 @@ function db_lid($actie, $filter="", $lidid=0, $xtraselect="") {
 		$filter = sprintf(" WHERE L.Nummer=%d", $lidid);
 	}
 	
+	$scalar = 0;
 	if ($actie == "record" and $lidid > 0) {
 		$query = sprintf("SELECT *, %s as NaamLid FROM %sLid AS L WHERE Nummer=%d;", $selectnaam, $table_prefix, $lidid);
 		$result = fnQuery($query);
@@ -474,6 +476,23 @@ function db_lid($actie, $filter="", $lidid=0, $xtraselect="") {
 	} elseif ($actie == "lididbijemail") {
 		$filter = strtolower($filter);
 		$query = sprintf("SELECT IFNULL(MAX(L.Nummer), 0) FROM %1\$sLid AS L WHERE (LOWER(Email)='%2\$s' OR LOWER(EmailVereniging)='%2\$s' OR LOWER(EmailOuders)='%2\$s');", $table_prefix, $filter);
+		$scalar = 1;
+		
+	} elseif ($actie == "mingebdatum") {
+		$query = sprintf("SELECT SUBSTRING(MIN(GEBDATUM), 1, 10) FROM %s WHERE %s;", $fromlid, $wherelid);
+		$scalar = 1;
+		
+	} elseif ($actie == "maxgebdatum") {
+		$query = sprintf("SELECT SUBSTRING(MAX(GEBDATUM), 1, 10) FROM %s WHERE %s;", $fromlid, $wherelid);
+		$scalar = 1;
+		
+	} elseif ($actie == "minpostcode") {
+		$query = sprintf("SELECT MIN(Postcode) FROM %s WHERE %s;", $fromlid, $wherelid);
+		$scalar = 1;
+		
+	} elseif ($actie == "maxpostcode") {
+		$query = sprintf("SELECT MAX(Postcode) FROM %s WHERE %s;", $fromlid, $wherelid);
+		$scalar = 1;
 		
 	} else {
 		$mess = sprintf("onbekende actie '%s' in db_lid", $actie);
@@ -481,7 +500,7 @@ function db_lid($actie, $filter="", $lidid=0, $xtraselect="") {
 		$query = "";
 	}
 	
-	if ($actie == "lididbijemail") {
+	if ($scalar == 1) {
 		return db_scalar($query);
 	} else {
 		$result = fnQuery($query);
@@ -600,7 +619,7 @@ function db_lidmaatschap($actie, $lidid=0, $opgezegd="", $rid=0, $liddatum="", $
 		$query = sprintf("SELECT * FROM %sLidmaatschap WHERE Lid=%d ORDER BY LIDDATUM DESC;", $table_prefix, $lidid);
 		$result = fnQuery($query);
 		$row = $result->fetch();
-		if ($row->Lid > 0) {
+		if (isset($row->Lid) and $row->Lid > 0) {
 			if ($row->Opgezegd > '1970-01-01' and strtotime($row->Opgezegd) < time()) {
 				$rv = "Voormalig lid";
 			} elseif (strtotime($row->LIDDATUM) > time()) {
@@ -1627,10 +1646,13 @@ function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr, $message="", $mai
 			$cc_addr = $row->cc_addr;
 		}
 	}
+	$subject = str_replace("\"", "'", $subject);
+	$message = str_replace("\"", "'", $message);
 	
 	$query = sprintf("INSERT INTO %sMailing_hist SET
 				LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", to_name=\"%s\", subject=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", send_by=%d, send_on=SYSDATE(), send_mt=%F, Successful=%d, Xtra_Char='%s', Xtra_Num=%d;", $table_prefix,
 				$lidid, $mid, html_entity_decode($from_name), $from_addr, $to_name, html_entity_decode($subject), $to_addr, $cc_addr, html_entity_decode($message), $_SESSION['lidid'], microtime(true), $success, $xtrachar, $xtranum);
+//	debug($query, 1, 0, 0);
 	fnQuery($query);
 		
 	if ($success == 1 and $mid > 0) {
@@ -1936,7 +1958,7 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0, $referid=0, $ipf
 	}
 	
 	if ($actie == "add" and strlen($oms) > 0) {
-		$query = sprintf("INSERT DELAYED INTO %sAdmin_activiteit SET
+		$query = sprintf("INSERT INTO %sAdmin_activiteit SET
 				DatumTijd=SYSDATE(),
 				LidID=%d,
 				IP_adres='%s',

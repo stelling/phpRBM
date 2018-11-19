@@ -464,6 +464,8 @@ fieldset h3 {
 #verstuurdemail .label {
 	background-color: transparent;
 	width: 90px;
+	margin-left: 5px;
+	margin-right: 5px;
 	float: left;
 	border-top-style: solid;
 	border-bottom-style: solid;
@@ -517,7 +519,7 @@ fieldset h3 {
 }
 
 .ck-editor__editable {
-    min-height: 400px;
+   min-height: 400px;
 }
 
 #footerleft {
@@ -552,6 +554,7 @@ fieldset h3 {
 }
 
 #opdrachtknoppen {
+	clear: left;
 	margin-top: 8px;
 	margin-bottom: 2px;
 	text-align: center;
@@ -578,7 +581,7 @@ fieldset h3 {
 
 .clear {
 	clear: both;
-	height: 3px;
+	height: 9px;
 }
 
 .label {
@@ -853,18 +856,53 @@ fieldset h3 {
 	width: 382px;
 }
 
-#instellingenmuteren label {
-	width: 375px;
-	height: 30px;
+#instellingenmuteren label, #editmailingform label {
+	height: 24px;
 	margin-top: 3px;
 	margin-right: 5px;
-	padding-left: 3px;
-	padding-right: 3px;
+	padding-left: 5px;
+	padding-right: 5px;
 }
 
-#instellingenmuteren input {
-	margin-top: 6px;
-	height: 24px;
+#instellingenmuteren label {
+	width: 375px;
+}
+
+#editmailingform label {
+	width: 200px;
+	clear: left;
+}
+
+#instellingenmuteren input, #editmailingform input {
+	margin-top: 9px;
+	margin-bottom: 8px;
+}
+
+#instellingenmuteren p, #editmailingform p {
+	float: left;
+	height: 30px;
+	margin-top: 3px;
+	margin-bottom: 2px;
+}
+
+.invoerblok {
+	float: left;
+	clear: right;
+	width: 750px;
+	margin-bottom: 6px;
+	margin-top: 3px;
+	border-style: solid;
+	border-width: 1px;
+}
+
+.invoerblok table {
+	width: 100%;
+	border-style: none;
+}
+
+.invoerblok td {
+	background-color: #D3D3D3;
+	border-style: none;
 }
 
 .CopyPaste {

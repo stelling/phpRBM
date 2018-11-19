@@ -745,11 +745,9 @@ function removetextblock($content, $start_block="<!-- Ingelogd -->", $end_block=
 	
 } # removetextblock
 
-function checked($val, $tp="box", $sv=1) {
+function checked($val, $tp="", $sv=1) {
 	if ($val == $sv or $val === true) {
-		if ($tp === "radio") {
-			return " checked='checked'";
-		} elseif ($tp == "option") {
+		if ($tp === "option") {
 			return " selected";
 		} else {
 			return " checked";
