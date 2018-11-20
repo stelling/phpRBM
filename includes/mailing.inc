@@ -325,6 +325,22 @@ class Mailing {
 			$this->MergeField[]=array('Naam' => "Geblokkeerd", 'SQL' => "");
 			$this->MergeField[]=array('Naam' => "IPaddress", 'SQL' => "");
 			
+		} elseif ($this->mid == db_param("mailing_validatielogin") and $this->mid > 0) {
+			$this->xtrachar = "VALLOGIN";
+			$this->speciaal = "Validatie login";
+			$this->MergeField[]=array('Naam' => "Geblokkeerd", 'SQL' => "");
+			$this->MergeField[]=array('Naam' => "IPaddress", 'SQL' => "");
+			$this->MergeField[]=array('Naam' => "GELDIGHEIDACTIVATIE", 'SQL' => "");
+			$this->MergeField[]=array('Naam' => "URLACTIVATIE", 'SQL' => "");
+			
+		} elseif ($this->mid == db_param("mailing_herstellenwachtwoord") and $this->mid > 0) {
+			$this->xtrachar = "HERWW";
+			$this->speciaal = "Herstellen wachtwoord";
+			$this->MergeField[]=array('Naam' => "Geblokkeerd", 'SQL' => "");
+			$this->MergeField[]=array('Naam' => "IPaddress", 'SQL' => "");
+			$this->MergeField[]=array('Naam' => "GELDIGHEIDACTIVATIE", 'SQL' => "");
+			$this->MergeField[]=array('Naam' => "URLRESETWW", 'SQL' => "");
+			
 		} elseif ($this->mid == db_param("mailing_bewakinginschrijving") and $this->mid > 0) {
 			$this->xtrachar = "BW_I";
 			$this->speciaal = "Bevestiging inschrijving bewaking";
@@ -410,9 +426,16 @@ class Mailing {
 		} else {
 			$navpad[]['naam'] = sprintf("Details mailing %d", $this->mid);
 		}
-				$et = "";
+		
+		$et = "";
 		if (strlen(db_param("mailing_beperkfrom")) > 2) {
 			$et = sprintf(" (Het domein van dit adres moet '%s' zijn)", db_param("mailing_beperkfrom"));
+		}
+		
+		if (strlen($this->subject) > 5) {
+			$ob = "";
+		} else {
+			$ob = "onBlur='this.form.submit();'";
 		}
 		
 		printf("<div id='editmailingform'>\n");
@@ -420,6 +443,7 @@ class Mailing {
 		printf("<p><label>Van:</label><input type='text' name='from_name' value='%s' size=50 maxlength=50> (Namens wie wordt deze mailing verstuurd)</p>\n", $this->from_name);
 		printf("<p><label>Vanaf e-mail:</label><input type='email' name='from_addr' value='%s' size=50 maxlength=50>%s</p>\n", $this->from_addr, $et);
 		printf("<p><label>Aan:</label><input type='text' name='to_name' value='%s' size=50 maxlength=50> (Omschrijving van de groep personen aan wie deze mailing gericht is)</p>\n", $this->to_name);
+		printf("<p><label>Onderwerp:</label><input type='text' name='subject' value='%s' size=100 %s></p>\n", $this->subject, $ob);
 				
 		$this->meldingen = "Er zijn nog geen ontvangers aan deze mailing toegevoegd.<br>\n";
 		$verzendenmag = false;
@@ -489,18 +513,10 @@ class Mailing {
 			printf("(groepen zijn t/m %s bijgewerkt)", strftime("%e %B %Y", strtotime(db_lidond("laatstgewijzigd"))));
 			printf("</p>\n");
 		}
-		
-
-		if (strlen($this->subject) > 5) {
-			$ob = "";
-		} else {
-			$ob = "onBlur='this.form.submit();'";
-		}
 
 		if (strlen($this->speciaal) > 0) {
-			printf("<tr><td class='label'>Specifiek doel:</td><td>%s</td></tr>\n", $this->speciaal);
+			printf("<label>Specifiek doel:</label><p>%s</p>\n", $this->speciaal);
 		}
-		
 		
 		if ($_SESSION['username'] == "stelling") { // Tijdelijke beperking tijdens het ontwikkelen.
 		echo("<label>Selectie leden:</label>\n<div class='invoerblok'>\n");
@@ -510,6 +526,8 @@ class Mailing {
 		
 		printf("<tr><td>Geboortedatum:</td><td><input type='date' value='%s' name='select_vangebdatum'></td><td><input type='date' value='%s' name='select_temgebdatum'></td></tr>\n", db_lid("mingebdatum"), db_lid("maxgebdatum"));
 		printf("<tr><td>Postcode:</td><td><input type='text' name='select_vanpostcode' value='%s' max-length=7></td><td><input type='text' name='select_tempostcode' value='%s' max-length=7></td></tr>\n", db_lid("minpostcode"), db_lid("maxpostcode"));
+		printf("<tr><td>Lid vanaf:</td><td><input type='date' name='select_vanliddatum' value='%s'></td><td><input type='date' name='select_temliddatum' value='%s'></td></tr>\n", db_lid("minliddatum"), db_lid("maxliddatum"));
+		printf("<tr><td>Opgezegd per:</td><td><input type='date' name='select_vanopgezegd' value='%s'></td><td><input type='date' name='select_temopgezegd' value='%s'></td></tr>\n", db_lid("minopgezegd"), db_lid("maxopgezegd"));
 		
 		$selgr = "<select name='sel_groep'>\n
 					<option value=0>&nbsp;</option>\n";
@@ -530,8 +548,7 @@ class Mailing {
 		echo("<div class='clear'></div>\n");
 		}
 		
-		printf("<p><label>Cc:</label><input type='text' name='cc_addr' value='%s' size=100></p>\n", $this->cc_addr);		
-		printf("<p><label>Onderwerp:</label><input type='text' name='subject' value='%s' size=100 %s></p>\n", $this->subject, $ob);
+		printf("<p><label>Cc:</label><input type='text' name='cc_addr' value='%s' size=100></p>\n", $this->cc_addr);
 		printf("<p><label>Opties:</label><input type='checkbox' name='template' value=1%s>Template&nbsp;", checked($this->template));
 		printf("<input type='checkbox' name='confidential' value=1%s>Vertrouwelijk&nbsp;", checked($this->confidential));
 		printf("<input type='checkbox' name='verzamelen' value=1%s>E&eacute;n gezamenlijke e-mail</p>", checked($this->verzamelen));
@@ -609,7 +626,6 @@ class Mailing {
 			echo("<input type='submit' name='Upload' value='Upload'>&nbsp;");
 			printf("(Extensies '%s' zijn toegestaan)\n", $this->allowed_ext);
 			echo("</div>  <!-- Einde invoerblok -->\n");
-//			echo("<div class='clear'></div>\n");
 		}
 		
 		if ($this->controle() == false) {
@@ -1083,7 +1099,21 @@ class Mailing {
 		$this->merged_message = str_ireplace("[%Naamwebsite%]", db_param("naamwebsite"), $this->merged_message);
 		$this->merged_message = str_ireplace("[%URLwebsite%]", $_SERVER["HTTP_HOST"], $this->merged_message);
 		
-		if ($this->mid == db_param("mailing_bevestigingopzegging")) {
+		if (db_param("login_maxinlogpogingen") > 0 and db_logins("foutelogin", "", "", $lidid) > db_param("login_maxinlogpogingen")) {
+			$geblokt = sprintf("Er is %d keer geprobeerd met deze login in te loggen. Hierdoor is dit account geblokkeerd. Vraag aan de webmaster om deze weer vrij te geven.", $db_logins("foutelogin", "", "", $lidid));
+		} else {
+			$geblokt = "";
+		}
+		$this->merged_message = str_ireplace("[%Geblokkeerd%]", $geblokt, $this->merged_message);
+		$this->merged_message = str_ireplace("[%IPaddress%]", $_SERVER['REMOTE_ADDR'], $this->merged_message);
+		$this->merged_message = str_ireplace("[%GELDIGHEIDACTIVATIE%]", intval(db_param("login_geldigheidactivatie")), $this->merged_message);
+		
+		if ($this->mid == db_param("mailing_herstellenwachtwoord") and $lidid > 0) {
+			$nk = db_logins("wachtwoordreset", "", "", $lidid);
+			$urlresetww = sprintf("%s/index.php?tp=Herstellen+wachtwoord&lidid=%d&key=%s", $_SERVER["HTTP_HOST"], $lidid, $nk);
+			$this->merged_message = str_replace("[%URLRESETWW%]", $urlresetww, $this->merged_message);
+			
+		} elseif ($this->mid == db_param("mailing_bevestigingopzegging")) {
 			if ($this->xtranum > 0) {
 				$this->merged_message = str_ireplace("[%Lidnummer%]", $this->xtranum, $this->merged_message);
 				$row = db_lidmaatschap("record", 0, "", 0, "", $this->xtranum);
@@ -1091,15 +1121,6 @@ class Mailing {
 					$this->merged_message = str_ireplace("[%OpgezegdPer%]", $row->OpgezegdPer, $this->merged_message);
 				}
 			}
-			
-		} elseif ($this->mid == db_param("mailing_lidnr")) {
-			if (db_param("login_maxinlogpogingen") > 0 and db_logins("foutelogin", "", "", $lidid) > db_param("login_maxinlogpogingen")) {
-				$geblokt = sprintf("Er is %d keer geprobeerd met deze login in te loggen. Hierdoor is dit account geblokkeerd. Vraag aan de webmaster om deze weer vrij te geven.", $db_logins("foutelogin", "", "", $lidid));
-			} else {
-				$geblokt = "";
-			}
-			$this->merged_message = str_ireplace("[%Geblokkeerd%]", $geblokt, $this->merged_message);
-			$this->merged_message = str_ireplace("[%IPaddress%]", $_SERVER['REMOTE_ADDR'], $this->merged_message);
 			
 		} elseif ($this->mid == db_param("mailing_bewakinginschrijving")) {
 			if ($this->xtranum == 0 and $lidid > 0) {
@@ -1494,8 +1515,10 @@ function fnMailingInstellingen() {
 			$_POST['maxmailsperdag'] = 0;
 		}
 		db_param("maxmailsperdag", "updval", $_POST['maxmailsperdag']);
-		
 		db_param("mailing_extensies_toegestaan", "updval", $_POST['mailing_extensies_toegestaan']);
+		db_param("mailing_lidnr", "updval", $_POST['mailing_lidnr']);
+		db_param("mailing_validatielogin", "updval", $_POST['mailing_validatielogin']);
+		db_param("mailing_herstellenwachtwoord", "updval", $_POST['mailing_herstellenwachtwoord']);
 		
 	}
 	printf("<form method='post' action='%s?tp=%s/%s' name='mailinstellingen'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
@@ -1503,9 +1526,36 @@ function fnMailingInstellingen() {
 	printf("<p><label>Mailings alleen versturen vanaf domein:</label><input class='inputtext' type='text' name='mailing_beperkfrom' value='%s' size=30></p>\n", db_param("mailing_beperkfrom"));
 	printf("<p><label>Versturen resultaat van de mailing naar de afzender en secretariaat:</label><input type='checkbox' value=1 name='mailing_resultaatversturen'%s></p>\n", checked(db_param("mailing_resultaatversturen")));
 	printf("<p><label>Hoeveel maanden moeten verwijderde mailing bewaard blijven:</label><input class='inputnumber' type='number' name='mailing_bewaartijd' value=%d size=8> (0 = altijd bewaren)</p>\n", db_param("mailing_bewaartijd"));
-	printf("<p><label>Hoeveel mails mogen er per minuut verstuurd worden:</label><input type='number' name='maxmailsperminuut' value=%d size=8> (0 = onbeperkt)</p>\n", db_param("maxmailsperminuut"));
-	printf("<p><label>Hoeveel mails mogen er per 24 uur verstuurd worden:</label><input type='number' name='maxmailsperdag' value=%d size=8> (0 = onbeperkt)</p>\n", db_param("maxmailsperdag"));
+	printf("<p><label>Hoeveel mails mogen er per minuut verstuurd worden:</label><input class='inputnumber' type='number' name='maxmailsperminuut' value=%d size=8> (0 = onbeperkt)</p>\n", db_param("maxmailsperminuut"));
+	printf("<p><label>Hoeveel mails mogen er per 24 uur verstuurd worden:</label><input class='inputnumber' type='number' name='maxmailsperdag' value=%d size=8> (0 = onbeperkt)</p>\n", db_param("maxmailsperdag"));
 	printf("<p><label>Welke extensies zijn als attachment toegestaan:</label><input class='inputtext' type='text' name='mailing_extensies_toegestaan' value='%s' size=30> (leeg = standaard lijst)</p>\n", db_param("mailing_extensies_toegestaan"));
+	echo("<h2>Mailings met een specifiek doel</h2>\n");
+	
+	$rows = db_mailing("lijst", 0, 0, "Templates");
+	$options = "<Option value=0>Geen</option>";
+	foreach($rows as $row) {
+		$options .= sprintf("<Option%s value=%d>%s</option>", checked($row->lnkMailingID, "option", db_param("mailing_lidnr")), $row->lnkMailingID, $row->Onderwerp);
+	}
+	$rows = null;
+	printf("<p><label>Versturen lidnummer:</label><select name='mailing_lidnr'>%s</select></p>\n", $options);
+	
+	$rows = db_mailing("lijst", 0, 0, "Templates");
+	$options = "<Option value=0>Geen</option>";
+	foreach($rows as $row) {
+		$options .= sprintf("<Option%s value=%d>%s</option>", checked($row->lnkMailingID, "option", db_param("mailing_validatielogin")), $row->lnkMailingID, $row->Onderwerp);
+	}
+	$rows = null;
+	printf("<p><label>Versturen validatie e-mail login:</label><select name='mailing_validatielogin'>%s</select></p>\n", $options);
+	
+	$rows = db_mailing("lijst", 0, 0, "Templates");
+	$options = "<Option value=0>Geen</option>";
+	foreach($rows as $row) {
+		$options .= sprintf("<Option%s value=%d>%s</option>", checked($row->lnkMailingID, "option", db_param("mailing_herstellenwachtwoord")), $row->lnkMailingID, $row->Onderwerp);
+	}
+	$rows = null;
+	printf("<p><label>Versturen link herstellen wachtwoord:</label><select name='mailing_herstellenwachtwoord'>%s</select></p>\n", $options);
+	
+	echo("<div class='clear'></div>\n");
 	echo("<input type='submit' value='Bewaren' name='InstellingenBewaren'>\n");
 	echo("</form>");
 	echo("</div> <!-- Einde instellingenmuteren -->\n");

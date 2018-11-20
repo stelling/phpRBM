@@ -493,6 +493,22 @@ function db_lid($actie, $filter="", $lidid=0, $xtraselect="") {
 	} elseif ($actie == "maxpostcode") {
 		$query = sprintf("SELECT MAX(Postcode) FROM %s WHERE %s;", $fromlid, $wherelid);
 		$scalar = 1;
+
+	} elseif ($actie == "minliddatum") {
+		$query = sprintf("SELECT SUBSTRING(MIN(LM.LIDDATUM), 1, 10) FROM %s WHERE %s;", $fromlid, $wherelid);
+		$scalar = 1;
+		
+	} elseif ($actie == "maxliddatum") {
+		$query = sprintf("SELECT SUBSTRING(MAX(LM.LIDDATUM), 1, 10) FROM %s WHERE %s;", $fromlid, $wherelid);
+		$scalar = 1;
+		
+	} elseif ($actie == "minopgezegd") {
+		$query = sprintf("SELECT SUBSTRING(MIN(LM.Opgezegd), 1, 10) FROM %s WHERE %s;", $fromlid, $wherelid);
+		$scalar = 1;
+		
+	} elseif ($actie == "maxopgezegd") {
+		$query = sprintf("SELECT SUBSTRING(MAX(LM.Opgezegd), 1, 10) FROM %s WHERE %s;", $fromlid, $wherelid);
+		$scalar = 1;
 		
 	} else {
 		$mess = sprintf("onbekende actie '%s' in db_lid", $actie);
@@ -1126,102 +1142,7 @@ function db_lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0) {
 			return "(0)";
 		}
 	}
-}
-
-function db_stats($lidid=0) {
-	global $fromlid, $wherelid, $fromlidond, $wherelidond, $selectnaam, $table_prefix;
-
-	$base = sprintf("SELECT COUNT(*) FROM %s WHERE %s", $fromlid, $wherelid);
-	
-	$result = fnQuery($base . ";");
-	$stats['aantalleden'] = $result->fetchColumn();
-	
-	$result = fnQuery($base . " AND L.Geslacht='V';");
-	$stats['aantalvrouwen'] = $result->fetchColumn();
-	
-	$result = fnQuery($base . " AND L.Geslacht='M';");
-	$stats['aantalmannen'] = $result->fetchColumn();
-	
-	$query = sprintf("SELECT ROUND(AVG(DATEDIFF(CURDATE(), L.GEBDATUM))/365.25, 1) FROM %s WHERE %s AND (NOT L.GEBDATUM IS NULL);", $fromlid, $wherelid);
-	$stats['gemiddeldeleeftijd'] = db_scalar($query);
-	
-   $query = sprintf("SELECT COUNT(DISTINCT LO.Lid) FROM %s WHERE (O.Kader=1 OR F.Kader=1) AND %s;", $fromlidond, $wherelidond);
-	$stats['aantalkaderleden'] = db_scalar($query);
-	
-	$query = sprintf("SELECT %1\$s AS LidNaam FROM %2\$sLid AS L INNER JOIN %2\$sAdmin_login AS Login ON L.Nummer = Login.LidID"
-			 . " ORDER BY Login.Ingevoerd DESC LIMIT 1;", $selectnaam, $table_prefix);
-	$stats['nieuwstelogin'] = db_scalar($query);
-	
-	$query = sprintf("SELECT COUNT(*) FROM %sAdmin_login AS Login;", $table_prefix);
-	$stats['aantallogins'] = db_scalar($query);
-	
-	$query = sprintf("SELECT MAX(DatumTijd) FROM %sAdmin_activiteit WHERE TypeActiviteit=9;", $table_prefix);
-	$stats['laatsteupload'] = db_scalar($query);
-	
-	$query = sprintf("SELECT %1\$s AS LidNaam FROM %2\$sLid AS L INNER JOIN %2\$sAdmin_login AS Login ON L.Nummer = Login.LidID"
-			 . " WHERE Login.Ingelogd=1 ORDER BY Login.Ingevoerd DESC;", $selectnaam, $table_prefix);
-	$result = fnQuery($query);
-	$stats['nuingelogd'] = "";
-	foreach($result->fetchAll() as $row) {
-		if (strlen($stats['nuingelogd']) > 1) { $stats['nuingelogd'] .= ", "; }
-		$stats['nuingelogd'] .= $row->LidNaam;
-	}
-	
-	if ($lidid > 0) {
-		$query = sprintf("SELECT L.Roepnaam FROM %sLid AS L WHERE L.Nummer=%d;", $table_prefix, $lidid);
-		$stats['roepnaamingelogde'] = db_scalar($query);
-		
-		$query = sprintf("SELECT L.GEBDATUM FROM %sLid AS L WHERE L.Nummer=%d;", $table_prefix, $lidid);
-		$stats['geboortedatumingelogde'] = db_scalar($query);
-		
-		$query = sprintf("SELECT L.Gewijzigd FROM %sLid AS L WHERE L.Nummer=%d;", $table_prefix, $lidid);
-		$filter = sprintf(" WHERE Lid=%d", $lidid);
-	} else {
-		$stats['roepnaamingelogde'] = "gast";
-		
-		$query = sprintf("SELECT MAX(L.Gewijzigd) FROM %sLid AS L;", $table_prefix);
-		$filter = "";
-	}
-	$result = fnQuery($query);
-	$stats['laatstgewijzigd'] = $result->fetchColumn();
-	
-	$query = sprintf("SELECT MAX(BW.Gewijzigd) FROM %sBewaking AS BW%s;", $table_prefix, $filter);
-	$result = fnQuery($query);
-	$lgw = $result->fetchColumn();
-	if ($lgw > $stats['laatstgewijzigd']) {
-		$stats['laatstgewijzigd'] = $lgw;
-	}
-	
-	$query = sprintf("SELECT MAX(LO.Gewijzigd) FROM %sLidond AS LO%s;", $table_prefix, $filter);
-	$lgw = db_scalar($query);
-	if ($lgw > $stats['laatstgewijzigd']) {
-		$stats['laatstgewijzigd'] = $lgw;
-	}
-	
-	if ($lidid > 0) {
-		$query = sprintf("SELECT MAX(LD.Gewijzigd) FROM %sLiddipl AS LD%s;", $table_prefix, $filter);
-		$lgw = db_scalar($query);
-		if ($lgw > $stats['laatstgewijzigd']) {
-			$stats['laatstgewijzigd'] = $lgw;
-		}
-	}
-	
-	$query = sprintf("SELECT MAX(RK.Gewijzigd) FROM %sRekening AS RK%s;", $table_prefix, $filter);
-	$lgw = db_scalar($query);
-	if ($lgw > $stats['laatstgewijzigd']) {
-		$stats['laatstgewijzigd'] = $lgw;
-	}	
-	
-	if ($lidid == 0) {
-		$query = sprintf("SELECT MAX(M.Gewijzigd) FROM %sMutatie AS M;", $table_prefix);
-		$lgw = db_scalar($query);
-		if ($lgw > $stats['laatstgewijzigd']) {
-			$stats['laatstgewijzigd'] = $lgw;
-		}
-	}	
-	
-	return $stats;
-}
+} # db_lidond
 
 function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="", $xtraorder="") {
 	global $dbc, $selectnaam, $selectlidnr, $table_prefix, $lididwebmasters, $wherelidond, $wherelid, $dir, $pwfromcookie;
@@ -1268,7 +1189,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		} else {
 			$mess = sprintf("%s heeft al een login, er wordt geen nieuwe aangemaakt.", db_naamlid($lidid));
 		}
-		db_logboek("add", $mess, 1, $lidid, 5);
+		db_logboek("add", $mess, 5, 0, 1, $lidid);
 		return $ok;
 		
 	} elseif ($actie == "rowlogin" and (isValidMailAddress($email, 0) or $lidid > 0)) {
@@ -1380,6 +1301,22 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			if ($result == 1) {
 				$mess = sprintf("Het wachtwoord van %s is leeg gemaakt op verzoek van een gebruiker, zodat het hersteld kan worden.", db_naamlid($lidid));
 				db_logboek("add", $mess, 5);
+				return $nk;
+			} else {
+				return false;
+			}
+		} else {
+			return false;
+		}
+		
+	} elseif ($actie == "nieuweactivitiekey") {
+		$nk = newkey();
+		if (strlen($nk) > 5 and $lidid > 0) {
+			$query = sprintf("UPDATE %sAdmin_login SET ActivatieKey='%s', Gewijzigd=SYSDATE() WHERE LidID=%d;", $table_prefix, password_hash($nk, PASSWORD_DEFAULT), $lidid);
+			$result = fnQuery($query);
+			if ($result == 1) {
+				$mess = sprintf("Er is een nieuwe activatiekey gemaakt voor de login van %s.", db_naamlid($lidid));
+				db_logboek("add", $mess, 5, 0, 0, $lidid);
 				return $nk;
 			} else {
 				return false;
@@ -1766,6 +1703,9 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		return $result->fetchColumn();
 		
 	} elseif ($actie == "add") {
+		if (strlen($email) < 5) {
+			$email = "Webmaster " . db_param("naamwebsite");
+		}
 		$query = sprintf("INSERT INTO %sMailing (from_name, from_addr, to_name, subject, new_on, AddedBy)
 								VALUES ('%s', '%s', '%s', '%s', SYSDATE(), %d);", $table_prefix, db_param("naamvereniging"), $email, $aan, $subj, $_SESSION['lidid']);
 		$id = fnQuery($query);
@@ -2057,7 +1997,7 @@ function db_interface($actie="lijst", $query="", $lidid=0) {
 		}
 		$msa_sql = str_replace("SYSDATE()", "#" . strftime("%m/%d/%Y %H:%M") . "#", str_replace("\"", "'", $query));
 		$msa_sql = str_replace("CURDATE()", "#" . strftime("%m/%d/%Y") . "#", $msa_sql);
-		$query = sprintf("INSERT DELAYED INTO %sAdmin_interface SET `IP-adres`='%s', LidID=%d, `SQL-statement`=\"%s\", Ingevoerd=SYSDATE();", $table_prefix, $_SERVER['REMOTE_ADDR'], $lidid, $msa_sql);
+		$query = sprintf("INSERT INTO %sAdmin_interface SET `IP-adres`='%s', LidID=%d, `SQL-statement`=\"%s\", Ingevoerd=SYSDATE();", $table_prefix, $_SERVER['REMOTE_ADDR'], $lidid, $msa_sql);
 		fnQuery($query, 0);
 		
 	} elseif ($actie == "afmelden") {
@@ -2085,7 +2025,7 @@ function db_interface($actie="lijst", $query="", $lidid=0) {
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	}
-}
+} # db_interface
 
 function db_diploma($actie, $did=0, $td="*") {
 	global $table_prefix;
@@ -2668,8 +2608,10 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrIntegers['mailing_bevestigingopzegging'] = 0;
 	$arrIntegers['mailing_bewaartijd'] = 3;
 	$arrIntegers['mailing_bewakinginschrijving'] = 0;
+	$arrIntegers['mailing_herstellenwachtwoord'] = 0;
 	$arrIntegers['mailing_lidnr'] = 0;
 	$arrIntegers['mailing_rekening_stuurnaar'] = 1;
+	$arrIntegers['mailing_validatielogin'] = 0;
 	$arrIntegers['max_grootte_bijlage'] = 2048;
 	$arrIntegers['maxmailsperdag'] = 495;	
 	$arrIntegers['maxmailsperminuut'] = 360;
@@ -2724,12 +2666,14 @@ function db_param($naam, $actie="curval", $newval="") {
 
 	$arrFloats['performance_trage_select'] = 0.5;
 	
-	// Onderstaande zijn niet in te stellen via het instellingen scherm.
+	// Onderstaande zijn niet in te stellen via een instellingen scherm.
+	$arrStrings["emailsecretariaat"] = ""; // Komt uit de Access-database
+	$arrStrings['laatstebackup'] = "";  // Komt uit de logging
 	$arrStrings['naamvereniging'] = "Naam vereniging"; // Komt uit de Access-database
 	$arrStrings['naamvereniging_afkorting'] = ""; // Komt uit de Access-database
 	$arrIntegers['versie'] = 0; // Wordt automatisch bijgewerkt op basis van de php-bestanden
-	$arrStrings["emailsecretariaat"] = ""; // Komt uit de Access-database
-	$arrStrings['laatstebackup'] = "";  // Komt uit de logging
+	$arrStrings['versiephp'] = ""; // Wordt automatisch bijgewerkt op basis van de laatst waargenomen PHP versie
+	// *******
 	
 	if (array_key_exists($naam, $arrBooleans)) {
 		$pt = "B";
@@ -3771,5 +3715,100 @@ function fnBackupTables($tables="*") {
 
 	return $data;
 }
+
+function db_stats($lidid=0) {
+	global $fromlid, $wherelid, $fromlidond, $wherelidond, $selectnaam, $table_prefix;
+
+	$base = sprintf("SELECT COUNT(*) FROM %s WHERE %s", $fromlid, $wherelid);
+	
+	$result = fnQuery($base . ";");
+	$stats['aantalleden'] = $result->fetchColumn();
+	
+	$result = fnQuery($base . " AND L.Geslacht='V';");
+	$stats['aantalvrouwen'] = $result->fetchColumn();
+	
+	$result = fnQuery($base . " AND L.Geslacht='M';");
+	$stats['aantalmannen'] = $result->fetchColumn();
+	
+	$query = sprintf("SELECT ROUND(AVG(DATEDIFF(CURDATE(), L.GEBDATUM))/365.25, 1) FROM %s WHERE %s AND (NOT L.GEBDATUM IS NULL);", $fromlid, $wherelid);
+	$stats['gemiddeldeleeftijd'] = db_scalar($query);
+	
+   $query = sprintf("SELECT COUNT(DISTINCT LO.Lid) FROM %s WHERE (O.Kader=1 OR F.Kader=1) AND %s;", $fromlidond, $wherelidond);
+	$stats['aantalkaderleden'] = db_scalar($query);
+	
+	$query = sprintf("SELECT %1\$s AS LidNaam FROM %2\$sLid AS L INNER JOIN %2\$sAdmin_login AS Login ON L.Nummer = Login.LidID"
+			 . " ORDER BY Login.Ingevoerd DESC LIMIT 1;", $selectnaam, $table_prefix);
+	$stats['nieuwstelogin'] = db_scalar($query);
+	
+	$query = sprintf("SELECT COUNT(*) FROM %sAdmin_login AS Login;", $table_prefix);
+	$stats['aantallogins'] = db_scalar($query);
+	
+	$query = sprintf("SELECT MAX(DatumTijd) FROM %sAdmin_activiteit WHERE TypeActiviteit=9;", $table_prefix);
+	$stats['laatsteupload'] = db_scalar($query);
+	
+	$query = sprintf("SELECT %1\$s AS LidNaam FROM %2\$sLid AS L INNER JOIN %2\$sAdmin_login AS Login ON L.Nummer = Login.LidID"
+			 . " WHERE Login.Ingelogd=1 ORDER BY Login.Ingevoerd DESC;", $selectnaam, $table_prefix);
+	$result = fnQuery($query);
+	$stats['nuingelogd'] = "";
+	foreach($result->fetchAll() as $row) {
+		if (strlen($stats['nuingelogd']) > 1) { $stats['nuingelogd'] .= ", "; }
+		$stats['nuingelogd'] .= $row->LidNaam;
+	}
+	
+	if ($lidid > 0) {
+		$query = sprintf("SELECT L.Roepnaam FROM %sLid AS L WHERE L.Nummer=%d;", $table_prefix, $lidid);
+		$stats['roepnaamingelogde'] = db_scalar($query);
+		
+		$query = sprintf("SELECT L.GEBDATUM FROM %sLid AS L WHERE L.Nummer=%d;", $table_prefix, $lidid);
+		$stats['geboortedatumingelogde'] = db_scalar($query);
+		
+		$query = sprintf("SELECT L.Gewijzigd FROM %sLid AS L WHERE L.Nummer=%d;", $table_prefix, $lidid);
+		$filter = sprintf(" WHERE Lid=%d", $lidid);
+	} else {
+		$stats['roepnaamingelogde'] = "gast";
+		
+		$query = sprintf("SELECT MAX(L.Gewijzigd) FROM %sLid AS L;", $table_prefix);
+		$filter = "";
+	}
+	$result = fnQuery($query);
+	$stats['laatstgewijzigd'] = $result->fetchColumn();
+	
+	$query = sprintf("SELECT MAX(BW.Gewijzigd) FROM %sBewaking AS BW%s;", $table_prefix, $filter);
+	$result = fnQuery($query);
+	$lgw = $result->fetchColumn();
+	if ($lgw > $stats['laatstgewijzigd']) {
+		$stats['laatstgewijzigd'] = $lgw;
+	}
+	
+	$query = sprintf("SELECT MAX(LO.Gewijzigd) FROM %sLidond AS LO%s;", $table_prefix, $filter);
+	$lgw = db_scalar($query);
+	if ($lgw > $stats['laatstgewijzigd']) {
+		$stats['laatstgewijzigd'] = $lgw;
+	}
+	
+	if ($lidid > 0) {
+		$query = sprintf("SELECT MAX(LD.Gewijzigd) FROM %sLiddipl AS LD%s;", $table_prefix, $filter);
+		$lgw = db_scalar($query);
+		if ($lgw > $stats['laatstgewijzigd']) {
+			$stats['laatstgewijzigd'] = $lgw;
+		}
+	}
+	
+	$query = sprintf("SELECT MAX(RK.Gewijzigd) FROM %sRekening AS RK%s;", $table_prefix, $filter);
+	$lgw = db_scalar($query);
+	if ($lgw > $stats['laatstgewijzigd']) {
+		$stats['laatstgewijzigd'] = $lgw;
+	}	
+	
+	if ($lidid == 0) {
+		$query = sprintf("SELECT MAX(M.Gewijzigd) FROM %sMutatie AS M;", $table_prefix);
+		$lgw = db_scalar($query);
+		if ($lgw > $stats['laatstgewijzigd']) {
+			$stats['laatstgewijzigd'] = $lgw;
+		}
+	}	
+	
+	return $stats;
+} # db_stats
 
 ?>

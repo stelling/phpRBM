@@ -838,6 +838,12 @@ fieldset h3 {
 	padding-left: 2px;
 }
 
+#rekeningregels table, #rekeningregels th, #rekeningregels td {
+	border-width: 1px;
+	border-style: solid;
+	border-collapse: collapse;
+}
+
 #dbonderhoud p {
 	margin-top: 12px;
 	margin-bottom: 12px;
@@ -857,6 +863,8 @@ fieldset h3 {
 }
 
 #instellingenmuteren label, #editmailingform label {
+	clear: left;
+	float: left;
 	height: 24px;
 	margin-top: 3px;
 	margin-right: 5px;
@@ -865,12 +873,21 @@ fieldset h3 {
 }
 
 #instellingenmuteren label {
-	width: 375px;
+	width: 400px;
+}
+
+#instellingenmuteren h2 {
+	float: left;
+	clear: left;
+	width: 100%;
+}
+
+#instellingenmuteren select {
+	margin-top: 8px;
 }
 
 #editmailingform label {
 	width: 200px;
-	clear: left;
 }
 
 #instellingenmuteren input, #editmailingform input {
@@ -889,6 +906,7 @@ fieldset h3 {
 	float: left;
 	clear: right;
 	width: 750px;
+	min-height: 28px;
 	margin-bottom: 6px;
 	margin-top: 3px;
 	border-style: solid;

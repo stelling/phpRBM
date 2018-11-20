@@ -285,6 +285,7 @@ if ($currenttab == "Beheer logins" and toegang()) {
 	$query = "SELECT Version() AS Version;";
 	$result = fnQuery($query);
 	printf("<div id='versies'>PHP: %s / Database: %s</div>  <!-- Einde versies -->\n", substr(phpversion(), 0, 6), $result->fetchColumn());
+	db_param("versiephp", "updval", substr(phpversion(), 0, 6));
 	
 } elseif ($currenttab == "Logboek" and toegang($_GET['tp'])) {
 	if (!isset($_POST['lidfilter']) or strlen($_POST['lidfilter']) == 0) {
@@ -376,12 +377,14 @@ function fnInstellingen() {
 	$arrParam['mailing_bewaartijd'] = "NT";
 	$arrParam['mailing_bewakinginschrijving'] = "Het nummer van de mailing die als bevestiging van een inschrijving voor de bewaking verstuurd moet worden. 0 = geen.";
 	$arrParam['mailing_extensies_toegestaan'] = "NT";
-	$arrParam['mailing_lidnr'] = "Het nummer van de mailing die verstuurd moet worden als een lid zijn lidnummer opvraagt. 0 = geen.";
+	$arrParam['mailing_herstellenwachtwoord'] = "NT";
+	$arrParam['mailing_lidnr'] = "NT";
 	$arrParam['mailing_rekening_stuurnaar'] = "NT";
 	$arrParam['mailing_rekening_from_adres'] = "NT";
 	$arrParam['mailing_rekening_from_naam'] = "NT";
 	$arrParam['mailing_rekening_nulregelsweglaten'] = "NT";
 	$arrParam['mailing_resultaatversturen'] = "NT";
+	$arrParam['mailing_validatielogin'] = "NT";
 	$arrParam['max_grootte_bijlage'] = "De maximalale grootte in bytes van één bijlage in een mailing. Optioneel veld. Als je niets specificeerd dan is 2MB het maximum.";
 	$arrParam['login_maxinlogpogingen'] = "Na hoeveel foutieve inlogpogingen moet het account geblokkeerd worden? 0 = nooit.";
 	$arrParam['login_maxlengte'] = "De maximale lengte die een login mag zijn. Minimaal 7 en maximaal 15 invullen.";
@@ -401,6 +404,7 @@ function fnInstellingen() {
 	$arrParam['verjaardagenaantal'] = "Hoeveel verjaardagen moeten er maximaal in de verenigingsinfo worden getoond. Als er meerdere leden op dezelfde dag jarig zijn, wordt dit aantal overschreden.";
 	$arrParam['verjaardagenvooruit'] = "Hoeveel dagen vooruit moeten de verjaardagen in de verenigingsinfo getoond worden?";
 	$arrParam['versie'] = "NT";
+	$arrParam['versiephp'] = "NT";
 	
 	$arrParam['zs_emailbevestigingbestelling'] = "Vanaf welk e-mailadres moet de bevestiging van een bestelling verzonden worden.";
 	$arrParam['zs_emailnieuwepasfoto'] = "Waar moet een nieuwe pasfoto naar toe gemaild worden?";
