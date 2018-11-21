@@ -15,6 +15,11 @@ function fnMailing() {
 		$op = "historie";
 	} elseif (isset($_POST['action']) and $_POST['action'] == "Bewaren & sluiten") {
 		$op = "save_close";
+	} elseif (isset($_POST['LedenToevoegen']) and $_POST['LedenToevoegen'] == "Leden toevoegen") {
+		$op = "add_selectie";
+	} elseif (isset($_POST['OntvangersVerwijderen']) and $_POST['OntvangersVerwijderen'] == "Alle ontvangers verwijderen") {
+		$op = "delete_all_rcpt";
+		
 	} elseif (isset($_POST['action'])) {
 		$op = strtolower($_POST['action']);
 	} elseif (isset($_GET['op'])) {
@@ -95,6 +100,12 @@ function fnMailing() {
 	} elseif ($op == "add_groep" and isset($_GET['groepid']) and ($_GET['groepid'] > 0 or $_GET['groepid'] < -1)) {
 		$mailing->add_groep($_GET['groepid']);
 		$mailing->edit();
+	} elseif ($op == "add_selectie") {
+		$mailing->add_del_selectie("add");
+		$mailing->edit();
+	} elseif ($op == "delete_all_rcpt") {
+		$mailing->delete_all_rcpt();
+		$mailing->edit();
 	} elseif ($op == "del_groep" and isset($_GET['groepid']) and $_GET['groepid'] != 0) {
 		$mailing->delete_groep($_GET['groepid']);
 		$mailing->edit();
@@ -160,7 +171,7 @@ class Mailing {
 	private $meldingen = "";
 	private $aant_ok = 0;
 	private $aant_nok = 0;
-	public $resultaatversturen = 1;
+	public $resultaatversturen = 0;
 	private $emailsecretariaat = "";
 	
 	public $xtrachar = "";
@@ -559,31 +570,6 @@ class Mailing {
 		printf("</div> <!-- Einde editmailingform -->\n");
 		printf("<textarea name='message' id='editor'>%s</textarea>\n", $this->message);
 		
-/* ckeditor 4 code
-
-		echo("<script>CKEDITOR.replace('message',{
-			height : 450,
-			entities : false,
-			uiColor : '#9AB8F3',
-			pasteFromWordRemoveFontStyles : true,
-			scayt_sLang : 'nl_NL',
-			scayt_autoStartup : true,
-			toolbar :
-			[
-				{ name: 'document', items : [ 'Source','-','Preview','Print','-','Templates' ] },
-				{ name: 'clipboard', items : [ 'Cut','Copy','Paste','PasteText','PasteFromWord','-','Undo','Redo' ] },
-				{ name: 'editing', items : [ 'Find','Replace','-','SelectAll','-','SpellChecker', 'Scayt' ] },
-				{ name: 'basicstyles', items : [ 'Bold','Italic','Underline','Strike','Subscript','Superscript','-','RemoveFormat' ] },
-				{ name: 'paragraph', items : [ 'NumberedList','BulletedList','-','Outdent','Indent','-','Blockquote','CreateDiv','-','JustifyLeft','JustifyCenter','JustifyRight','JustifyBlock','-','BidiLtr','BidiRtl' ] },
-				{ name: 'links', items : [ 'Link','Unlink' ] },
-				{ name: 'insert', items : [ 'Image','Flash','Table','HorizontalRule','Smiley','SpecialChar','PageBreak','Iframe' ] },
-				{ name: 'styles', items : [ 'Styles','Format','Font','FontSize' ] },
-				{ name: 'colors', items : [ 'TextColor','BGColor' ] },
-				{ name: 'tools', items : [ 'Maximize', 'ShowBlocks','-','About' ] }
-			]
-		});</script>\n");
-
-***** */
 		echo("<script>
     ClassicEditor
 	.create( document.querySelector( '#editor' )	)
@@ -591,8 +577,6 @@ class Mailing {
 		console.error( error );
 	} );
 </script>\n");
-
-
 	
 		$strHV = "";
 		foreach ($this->MergeField as $v) {
@@ -901,6 +885,77 @@ class Mailing {
 		}
 		db_logboek("add", $mess, 4, 0, 0, $this->mid);
 	} # add_groep
+	
+	public function add_del_selectie($actie) {
+		global $table_prefix, $fromlid, $wherelid, $fromlidond, $wherelidond;
+		
+		if (strlen($_POST['select_vangebdatum']) == 10 and $_POST['select_vangebdatum'] > "1900-01-01" and $_POST['select_vangebdatum'] <= date("Y-md")) {
+			$w = sprintf(" AND L.GEBDATUM >= '%s'", $_POST['select_vangebdatum']);
+		} else {
+			$w = "";
+		}
+		if ($_POST['select_temgebdatum'] > "1900-01-01" and $_POST['select_temgebdatum'] <= date("Y-md")) {
+			$w .= sprintf(" AND L.GEBDATUM <= '%s'", $_POST['select_temgebdatum']);
+		}
+		if (strlen($_POST['select_vanpostcode']) >= 4 and $_POST['select_vanpostcode'] <= "9999 ZZ") {
+			$w .= sprintf(" AND L.Postcode >= '%s'", $_POST['select_vanpostcode']);
+		}
+		if (strlen($_POST['select_tempostcode']) >= 4 and $_POST['select_tempostcode'] < db_lid("maxpostcode")) {
+			$w .= sprintf(" AND L.Postcode <= '%s'", $_POST['select_tempostcode']);
+		}
+		
+		if ($_POST['sel_groep'] == 0) {
+			if (strlen($_POST['select_vanliddatum']) == 10 and $_POST['select_vanliddatum'] >= db_lid("minliddatum")) {
+				$w .= sprintf(" AND LM.LIDDATUM >= '%s'", $_POST['select_temliddatum']);
+			}
+			if (strlen($_POST['select_temliddatum']) == 10 and $_POST['select_temliddatum'] >= db_lid("minliddatum")) {
+				$w .= sprintf(" AND LM.LIDDATUM <= '%s'", $_POST['select_temliddatum']);
+			}
+			if (strlen($_POST['select_vanopgezegd']) == 10 and $_POST['select_vanopgezegd'] >= db_lid("minliddatum")) {
+				$w .= sprintf(" AND LM.Opgezegd >= '%s'", $_POST['select_vanopgezegd']);
+			}
+			if (strlen($_POST['select_temopgezegd']) == 10 and $_POST['select_temopgezegd'] >= db_lid("minliddatum")) {
+				$w .= sprintf(" AND LM.Opgezegd <= '%s'", $_POST['select_temopgezegd']);
+			}
+			
+			$query = sprintf("SELECT DISTINCT L.Nummer FROM %s WHERE %s %s;", $fromlid, $wherelid, $w);
+			
+		} else {
+			if (strlen($_POST['select_vanliddatum']) == 10 and $_POST['select_vanliddatum'] > db_lid("maxliddatum") and $_POST['select_vanliddatum'] <= db_lid("maxliddatum")) {
+				$w .= sprintf(" AND LO.Vanaf >= '%s'", $_POST['select_vangebdatum']);
+			}
+			if (strlen($_POST['select_temliddatum']) == 10 and $_POST['select_temliddatum'] >= db_lid("minliddatum") and $_POST['select_temliddatum'] < db_lid("maxliddatum")) {
+				$w .= sprintf(" AND LO.Vanaf <= '%s'", $_POST['select_temgebdatum']);
+			}
+			if (strlen($_POST['select_vanopgezegd']) == 10 and $_POST['select_vanopgezegd'] >= db_lid("minliddatum")) {
+				$w .= sprintf(" AND LO.Opgezegd >= '%s'", $_POST['select_vanopgezegd']);
+			}
+			if (strlen($_POST['select_temopgezegd']) == 10 and $_POST['select_temopgezegd'] >= db_lid("minliddatum")) {
+				$w .= sprintf(" AND LO.Opgezegd <= '%s'", $_POST['select_temopgezegd']);
+			}
+			
+			$query = sprintf("SELECT DISTINCT L.Nummer FROM %s WHERE %s AND LO.OnderdeelID=%d %s;", $fromlidond, $wherelidond, $_POST['sel_groep'], $w);
+			
+//			debug($query);
+			
+		}
+		
+		$aant = 0;
+		if ($actie == "add") {
+			foreach(fnQuery($query) as $row) {
+				if (db_mailing("addrcpt", $this->mid, 0, "", "", $row->Nummer)) {
+					$aant++;
+				}
+			}
+			if ($aant > 0) {
+				$mess = sprintf("Er zijn %d leden aan mailing %d (%s) toegevoegd.", $aant, $this->mid, $this->subject);
+			} else {
+				$mess = sprintf("Er zijn geen leden aan mailing %d (%s) toegevoegd.", $this->mid, $this->subject);
+			}
+		}
+		db_logboek("add", $mess, 4, 0, 0, $this->mid);
+		
+	} # add_del_selectie
 		
 	public function delete_groep($groepid) {
 		global $table_prefix;
@@ -931,6 +986,19 @@ class Mailing {
 		}
 	} # delete_groep
 	
+	public function delete_all_rcpt() {
+		global $table_prefix;
+	
+		$query = sprintf("DELETE FROM %sMailing_rcpt WHERE MailingID=%d;", $table_prefix, $this->mid);
+		$result = fnQuery($query);
+		if ($result > 0) {
+			$mess = sprintf("Alle %d ontvangers zijn uit mailing %d verwijderd.", $result, $this->mid);
+			db_logboek("add", $mess, 4, 0, 0, $this->mid);
+			$query = sprintf("OPTIMIZE TABLE %sMailing_rcpt;", $table_prefix);
+			fnQuery($query);
+		}
+	} # delete_all_rcpt
+	
 	public function preview() {
 		$this->send_mailing(1);
 	}	
@@ -938,8 +1006,7 @@ class Mailing {
 	public function send($lidid=0) {
 	
 		if ($this->controle() == false) {
-			printf("<p class='Mededeling'>%s</p>\n", $this->meldingen);
-			db_logboek("add", $this->meldingen, 4, 0, 0, $this->mid);
+			db_logboek("add", $this->meldingen, 4, 0, 1, $this->mid);
 		} else {
 			return $this->send_mailing(0, $lidid);
 		}
@@ -1049,12 +1116,8 @@ class Mailing {
 		}
 		$summary = "";
 		
-		if ($preview == 0 and $this->aant_ok > 0) {
-			if ($this->aant_ok > 1) {
-				$mess = sprintf("Mailing %d (%s) is aan %d ontvangers verzonden.", $this->mid, $this->subject, $this->aant_ok);
-			} else {
-				$mess = sprintf("Mailing %d (%s) is aan %s verzonden.", $this->mid, $this->subject, $rcpt->Naam_lid);
-			}
+		if ($preview == 0 and $this->aant_ok > 1) {
+			$mess = sprintf("Mailing %d (%s) is aan %d ontvangers verzonden.", $this->mid, $this->subject, $this->aant_ok);
 			db_logboek("add", $mess, 4, 0, 0, $this->mid);
 		}
 		
@@ -1355,7 +1418,7 @@ function fnRekeningenMailen($op) {
 			db_param("mailing_rekening_nulregelsweglaten", "updval", $val);
 
 			$selrek = "";
-			$aantalrek = 0;
+			$aantrek = 0;
 			foreach(db_rekening("selectie", 0, $filter) as $rk) {
 				$selrek .= sprintf("<li>%d - %s - &euro;&nbsp;%03.2f</li>\n", $rk->Nummer, $rk->DEBNAAM, $rk->Bedrag);
 				$aantrek += 1;
@@ -1524,16 +1587,20 @@ function fnMailingInstellingen() {
 		db_param("mailing_lidnr", "updval", $_POST['mailing_lidnr']);
 		db_param("mailing_validatielogin", "updval", $_POST['mailing_validatielogin']);
 		db_param("mailing_herstellenwachtwoord", "updval", $_POST['mailing_herstellenwachtwoord']);
+		db_param("mailing_bevestigingopzegging", "updval", $_POST['mailing_bevestigingopzegging']);
 		
 	}
 	printf("<form method='post' action='%s?tp=%s/%s' name='mailinstellingen'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
-		
-	printf("<p><label>Mailings alleen versturen vanaf domein:</label><input class='inputtext' type='text' name='mailing_beperkfrom' value='%s' size=30></p>\n", db_param("mailing_beperkfrom"));
-	printf("<p><label>Versturen resultaat van de mailing naar de afzender en secretariaat:</label><input type='checkbox' value=1 name='mailing_resultaatversturen'%s></p>\n", checked(db_param("mailing_resultaatversturen")));
-	printf("<p><label>Hoeveel maanden moeten verwijderde mailing bewaard blijven:</label><input class='inputnumber' type='number' name='mailing_bewaartijd' value=%d size=8> (0 = altijd bewaren)</p>\n", db_param("mailing_bewaartijd"));
-	printf("<p><label>Hoeveel mails mogen er per minuut verstuurd worden:</label><input class='inputnumber' type='number' name='maxmailsperminuut' value=%d size=8> (0 = onbeperkt)</p>\n", db_param("maxmailsperminuut"));
-	printf("<p><label>Hoeveel mails mogen er per 24 uur verstuurd worden:</label><input class='inputnumber' type='number' name='maxmailsperdag' value=%d size=8> (0 = onbeperkt)</p>\n", db_param("maxmailsperdag"));
-	printf("<p><label>Welke extensies zijn als attachment toegestaan:</label><input class='inputtext' type='text' name='mailing_extensies_toegestaan' value='%s' size=30> (leeg = standaard lijst)</p>\n", db_param("mailing_extensies_toegestaan"));
+	
+	echo("<h2>Algemeen</h2>\n");
+			
+	printf("<label>Mailings alleen versturen vanaf domein:</label><p><input class='inputtext' type='text' name='mailing_beperkfrom' value='%s' size=30></p>\n", db_param("mailing_beperkfrom"));
+	printf("<label>Versturen resultaat van de mailing naar de afzender en secretariaat:</label><p><input type='checkbox' value=1 name='mailing_resultaatversturen'%s></p>\n", checked(db_param("mailing_resultaatversturen")));
+	printf("<label>Hoeveel maanden moeten verwijderde mailings bewaard blijven:</label><p><input class='inputnumber' type='number' name='mailing_bewaartijd' value=%d size=8> (0 = altijd bewaren)</p>\n", db_param("mailing_bewaartijd"));
+	printf("<label>Hoeveel mails mogen er per minuut verstuurd worden:</label><p><input class='inputnumber' type='number' name='maxmailsperminuut' value=%d size=8> (0 = onbeperkt)</p>\n", db_param("maxmailsperminuut"));
+	printf("<label>Hoeveel mails mogen er per 24 uur verstuurd worden:</label><p><input class='inputnumber' type='number' name='maxmailsperdag' value=%d size=8> (0 = onbeperkt)</p>\n", db_param("maxmailsperdag"));
+	printf("<label>Welke extensies zijn als attachment toegestaan:</label><p><input class='inputtext' type='text' name='mailing_extensies_toegestaan' value='%s' size=30> (leeg = standaard lijst)</p>\n", db_param("mailing_extensies_toegestaan"));
+	
 	echo("<h2>Mailings met een specifiek doel</h2>\n");
 	
 	$rows = db_mailing("lijst", 0, 0, "Templates");
@@ -1542,26 +1609,34 @@ function fnMailingInstellingen() {
 		$options .= sprintf("<Option%s value=%d>%s</option>", checked($row->lnkMailingID, "option", db_param("mailing_lidnr")), $row->lnkMailingID, $row->Onderwerp);
 	}
 	$rows = null;
-	printf("<p><label>Versturen lidnummer:</label><select name='mailing_lidnr'>%s</select></p>\n", $options);
+	printf("<label>Versturen lidnummer:</label><p><select name='mailing_lidnr'>%s</select></p>\n", $options);
 	
 	$rows = db_mailing("lijst", 0, 0, "Templates");
-	$options = "<Option value=0>Geen</option>";
+	$options = "";
 	foreach($rows as $row) {
 		$options .= sprintf("<Option%s value=%d>%s</option>", checked($row->lnkMailingID, "option", db_param("mailing_validatielogin")), $row->lnkMailingID, $row->Onderwerp);
 	}
 	$rows = null;
-	printf("<p><label>Versturen validatie e-mail login:</label><select name='mailing_validatielogin'>%s</select></p>\n", $options);
+	printf("<label>Versturen validatie e-mail login:</label><p><select name='mailing_validatielogin'>%s</select></p>\n", $options);
 	
 	$rows = db_mailing("lijst", 0, 0, "Templates");
-	$options = "<Option value=0>Geen</option>";
+	$options = "";
 	foreach($rows as $row) {
 		$options .= sprintf("<Option%s value=%d>%s</option>", checked($row->lnkMailingID, "option", db_param("mailing_herstellenwachtwoord")), $row->lnkMailingID, $row->Onderwerp);
 	}
 	$rows = null;
-	printf("<p><label>Versturen link herstellen wachtwoord:</label><select name='mailing_herstellenwachtwoord'>%s</select></p>\n", $options);
+	printf("<label>Versturen link herstellen wachtwoord:</label><p><select name='mailing_herstellenwachtwoord'>%s</select></p>\n", $options);
+	
+	$rows = db_mailing("lijst", 0, 0, "Templates");
+	$options = "<Option value=0>Geen</option>";
+	foreach($rows as $row) {
+		$options .= sprintf("<Option%s value=%d>%s</option>", checked($row->lnkMailingID, "option", db_param("mailing_bevestigingopzegging")), $row->lnkMailingID, $row->Onderwerp);
+	}
+	$rows = null;
+	printf("<label>Versturen bevestiging opzegging lidmaatschap:</label><p><select name='mailing_bevestigingopzegging'>%s</select></p>\n", $options);
 	
 	echo("<div class='clear'></div>\n");
-	echo("<input type='submit' value='Bewaren' name='InstellingenBewaren'>\n");
+	echo("<input class='knop' type='submit' value='Bewaren' name='InstellingenBewaren'>\n");
 	echo("</form>");
 	echo("</div> <!-- Einde instellingenmuteren -->\n");
 	
@@ -1712,7 +1787,7 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 		
 		if (db_param("maxmailsperdag") > 0 and db_mailing_hist("aantal24uur") > db_param("maxmailsperdag")) {
 			$mess = sprintf("Het maximaal aantal te versturen mail per dag (%d) is bereikt.", db_param("maxmailsperdag"));
-			db_logboek("add", $mess, 4);
+			db_logboek("add", $mess, 4, 0, 1);
 			return false;
 			
 		} else {
