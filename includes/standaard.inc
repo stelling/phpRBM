@@ -49,7 +49,7 @@ require_once("phpmailer/Exception.php");
 require_once("simpleimage.php");
 /* Einde includen open source libs*/
 
-$includes = array("database", "authentication", "leden", "bewaking", "evenement", "mailing", "standaard", "webshop", "rbm_mailer");
+$includes = array("database", "authentication", "leden", "bewaking", "evenement", "mailing", "standaard", "webshop");
 foreach ($includes as $incl) {
 	$incl .= ".inc";
 	if ($bestandsversie < filectime(__DIR__ . "/" . $incl)) {

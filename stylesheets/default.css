@@ -429,7 +429,8 @@ fieldset h3 {
 	padding-right: 3px;
 }
 
-#loginaanvraag input.knop, #opvragenlidnr input.knop, #profielwijzigen input.knop, #opzegformulier input.knop {
+/* #loginaanvraag input.knop, #opvragenlidnr input.knop, #profielwijzigen input.knop, #opzegformulier input.knop { */
+input.knop {
 	color: #000080;
 	font-weight: bold;
 	width: auto;
@@ -865,7 +866,6 @@ fieldset h3 {
 #instellingenmuteren label, #editmailingform label {
 	clear: left;
 	float: left;
-	height: 24px;
 	margin-top: 3px;
 	margin-right: 5px;
 	padding-left: 5px;
@@ -873,13 +873,15 @@ fieldset h3 {
 }
 
 #instellingenmuteren label {
-	width: 400px;
+	width: 450px;
+	height: 40px;
 }
 
 #instellingenmuteren h2 {
 	float: left;
 	clear: left;
 	width: 100%;
+	margin-top: 8px;
 }
 
 #instellingenmuteren select {
@@ -888,6 +890,7 @@ fieldset h3 {
 
 #editmailingform label {
 	width: 200px;
+	height: 24px;
 }
 
 #instellingenmuteren input, #editmailingform input {

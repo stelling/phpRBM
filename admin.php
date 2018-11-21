@@ -84,23 +84,19 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 	$mess = db_interface("afmelden");
 	printf("<p class='mededeling'>%s</p>\n", $mess);
 } elseif ($_GET['op'] == "backup") {
-	$mess = db_backup();
-	printf("<p class='mededeling'>%s</p>\n", $mess);
+	db_backup();
 } elseif ($_GET['op'] == "logboekopschonen") {
-	$mess = db_logboek("opschonen");
-	printf("<p class='mededeling'>%s</p>\n", $mess);
+	db_logboek("opschonen");
 } elseif ($_GET['op'] == "evenementenopschonen") {
 	$mess = db_evenement("opschonen");
 	printf("<p class='mededeling'>%s</p>\n", $mess);
 } elseif ($_GET['op'] == "mailingsopschonen") {
-	$mess = db_mailing("opschonen");
-	printf("<p class='mededeling'>%s</p>\n", $mess);
+	db_mailing("opschonen");
 } elseif ($_GET['op'] == "loginsopschonen") {
 	$mess = db_logins("opschonen");
 	printf("<p class='mededeling'>%s</p>\n", $mess);
 } elseif ($_GET['op'] == "autorisatieopschonen") {
-	$mess = db_authorisation("opschonen");
-	printf("<p class='mededeling'>%s</p>\n", $mess);
+	db_authorisation("opschonen");
 } elseif ($_GET['op'] == "orderregelsopschonen") {
 	$mess = db_orderregel("opschonen");
 	printf("<p class='mededeling'>%s</p>\n", $mess);
@@ -355,25 +351,25 @@ function fnInstellingen() {
 	global $table_prefix;
 
 	// Omschrijving NT = Niet tonen in dit scherm
-	$arrParam['db_backup_type'] = "1 = alleen interne phpRBM-tabellen, 2 = alleen tabellen uit Access, 3 = beide.";
+	$arrParam['db_backup_type'] = "Welke taballen moeten worden gebackuped? 1=interne phpRBM-tabellen, 2=tabellen uit Access, 3=beide.";
 	$arrParam['db_backuptarren'] = "Moet de backup gecomprimeerd worden? Let op, de webhost moet dit wel ondersteunen. En ook moet de PHP-functie 'exec' beschikbaar zijn.";
-	$arrParam['db_backupsopschonen'] = "Na hoeveel dagen moeten oude back-ups automatisch verwijderd worden? 0 = nooit.";
-	$arrParam['db_folderbackup'] = "Deze variabele is optioneel. Mocht deze niet ingevuld worden, dan wordt de standaard folder gebruikt.";
+	$arrParam['db_backupsopschonen'] = "Na hoeveel dagen moeten back-ups automatisch verwijderd worden? 0 = nooit.";
+	$arrParam['db_folderbackup'] = "In welke folder moet de backup worden geplaatst?";
 	$arrParam['emailwebmaster'] = "Het e-mailadres van de webmaster.";
 	$arrParam['kaderoverzichtmetfoto'] = "Moeten op het kaderoverzicht pasfoto's getoond worden?";
 	$arrParam['toonpasfotoindiennietingelogd'] = "Mag de bezoeker een pasfoto worden getoond als deze niet ingelogd?";
 	$arrParam['meisjesnaamtonen'] = "Moeten de namen van leden ook de meisjesnaam bevatten?";
 	$arrParam['login_lidnrnodigbijaanvraag'] = "Moet een lid zijn of haar lidnummer opgeven als er een login aangevraagd wordt?";
 	$arrParam['login_autounlock'] = "Na hoeveel minuten moet een gelockede login automatisch geunlocked worden? 0 = alleen handmatig unlocken.";
-	$arrParam['login_beperkttotgroep'] = "Vul hier de RecordID's, gescheiden door een komma, van de groepen (zie tabel ONDERDL) in die toegang hebben. Als je geen groep invult hebben alleen webmasters toegang.";
-	$arrParam['login_bewaartijd'] = "Het aantal maanden dat logins na het laatste gebruik bewaard worden. Als een login wordt verwijderd, wordt geen historie weggegooid. Historie wordt namelijk direct aan het lid gekopppeld en niet aan de login. 0 = altijd bewaren.";
+	$arrParam['login_beperkttotgroep'] = "Vul hier de RecordID's, gescheiden door een komma, van de groepen (zie tabel ONDERDL) in die toegang hebben. Leeg = alleen webmasters hebben toegang.";
+	$arrParam['login_bewaartijd'] = "Het aantal maanden dat logins na het laatste gebruik bewaard blijven. Historie is direct aan het lid gekopppeld en wordt dus niet verwijderd. 0 = altijd bewaren.";
 	$arrParam['login_geldigheidactivatie'] = "Hoelang in uren is een activatielink geldig? 0 = altijd.";
 	$arrParam['login_bewaartijdnietgebruikt'] = "Het aantal dagen dat logins wordt bewaard, nadat het is aangevraagd en nog niet gebruikt is.";
 	$arrParam['logboek_bewaartijd'] = "Hoeveel maanden moet de logging bewaard blijven. 0 = altijd bewaren.";
 	$arrParam['logboek_bewaartijdinloggen'] = "Hoeveel maanden moet de logging van het in- en uitloggen bewaard blijven. 0 = altijd bewaren.";
 	$arrParam['mailing_beperkfrom'] = "NT";
 	$arrParam['mailing_bevestigingbestelling'] = "Het nummer van de mailing die bij een bestelling verstuurd moet worden. 0 = geen.";
-	$arrParam['mailing_bevestigingopzegging'] = "Het nummer van de mailing die verstuurd moet worden als een lid zijn lidmaatschap opgezegd heeft. 0 = geen.";
+	$arrParam['mailing_bevestigingopzegging'] = "NT";
 	$arrParam['mailing_bewaartijd'] = "NT";
 	$arrParam['mailing_bewakinginschrijving'] = "Het nummer van de mailing die als bevestiging van een inschrijving voor de bewaking verstuurd moet worden. 0 = geen.";
 	$arrParam['mailing_extensies_toegestaan'] = "NT";
@@ -406,7 +402,6 @@ function fnInstellingen() {
 	$arrParam['versie'] = "NT";
 	$arrParam['versiephp'] = "NT";
 	
-	$arrParam['zs_emailbevestigingbestelling'] = "Vanaf welk e-mailadres moet de bevestiging van een bestelling verzonden worden.";
 	$arrParam['zs_emailnieuwepasfoto'] = "Waar moet een nieuwe pasfoto naar toe gemaild worden?";
 	$arrParam['zs_incl_beroep'] = "Is het veld 'Beroep' in de zelfservice beschikbaar?";
 	$arrParam['zs_incl_bsn'] = "Is het veld 'Burgerservicenummer' in de zelfservice beschikbaar?";
@@ -426,7 +421,7 @@ function fnInstellingen() {
 	foreach ($arrParam as $naam => $val) {
 		db_param($naam, "controle");
 	}
-	$specmailing = array("mailing_bevestigingopzegging", "mailing_bewakinginschrijving", "mailing_lidnr", "mailing_bevestigingbestelling");
+	$specmailing = array("mailing_bewakinginschrijving", "mailing_bevestigingbestelling");
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		foreach (db_param("", "lijst") as $row) {
 			$mess = "";
@@ -468,7 +463,9 @@ function fnInstellingen() {
 				if (strlen($mess) > 0) {
 					db_logboek("add", $mess, 13, 0, 1);
 				}
-				db_param($row->Naam, "updval", $_POST[$pvn]);
+				if (strlen($arrParam[$row->Naam]) > 2) {
+					db_param($row->Naam, "updval", $_POST[$pvn]);
+				}
 			}
 		}
 		if (db_param("wachtwoord_minlengte") < 7) {
@@ -492,33 +489,29 @@ function fnInstellingen() {
 
 	echo("<div id='instellingenmuteren'>\n");
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-	echo("<table>\n");
+	
 	foreach (db_param("", "lijst") as $row) {
 		if (array_key_exists($row->Naam, $arrParam)) {
 			$uitleg = htmlentities($arrParam[$row->Naam]);
 			if (strlen($uitleg) < 5) {
 			} elseif ($row->ParamType == "B") {
-				if ($row->ValueNum == 1) {
-					$c = "checked";
-				} else {
-					$c = "";
-				}
-				printf("<tr><td class='label'>%s: </td><td><input type='checkbox' name='value_%d' value='1' %s></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $c, $uitleg);
+				printf("<label>%s</label><p><input type='checkbox' name='value_%d' value='1' %s></p>\n", $uitleg, $row->RecordID, checked($row->ValueNum));
 			} elseif ($row->ParamType == "I") {
-				printf("<tr><td class='label'>%s: </td><td><input type='number' class='inputnumber' name='value_%d' value=%d size=8></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $row->ValueNum, $uitleg);
+				printf("<label>%s</label><p><input type='number' class='inputnumber' name='value_%d' value=%d></p>\n", $uitleg, $row->RecordID, $row->ValueNum);
 			} elseif ($row->ParamType == "F") {
-				printf("<tr><td class='label'>%s: </td><td><input name='value_%d' value=%F size=8></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $row->ValueNum, $uitleg);
+				printf("<label>%s</label><p><input name='value_%d' value=%F size=8></p>\n", $uitleg, $row->RecordID, $row->ValueNum);
 			} elseif (strlen($row->ValueChar) > 60) {
-				printf("<tr><td class='label'>%s: </td><td><textarea cols=50 rows=10 name='value_%d'>%s</textarea></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $row->ValueChar, $uitleg);
+				printf("<label>%s</label><p><textarea cols=50 rows=10 name='value_%d'>%s</textarea></p>\n", $uitleg, $row->RecordID, $row->ValueChar);
 			} else {
-				printf("<tr><td class='label'>%s: </td><td><input type='text' class='inputtext' name='value_%d' value=\"%s\"></td><td>%s</td></tr>\n", $row->Naam, $row->RecordID, $row->ValueChar, $uitleg);
+				printf("<label>%s</label><p><input type='text' class='inputtext' name='value_%d' value=\"%s\"></p>\n", $uitleg, $row->RecordID, $row->ValueChar);
 			}
 		} else {
 			db_param($row->Naam, "delete");
 		}
 	}
-	echo("<tr><th colspan=3><input type='submit' value='Bewaren'></th></tr>\n");
-	echo("</table>\n");
+//	echo("<div class='clear'></div>\n");
+	echo("<input class='knop' type='submit' value='Bewaren'>\n");
+	
 	echo("</form>\n");
 	echo("</div>  <!-- Einde instellingenmuteren -->\n");
 }
