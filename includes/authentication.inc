@@ -307,18 +307,9 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 	}
 		
 	if ($stap == "mail" and $lidid > 0) {
-		$content = "<p>Beste [%ROEPNAAM%],</p>\n
-<p>Hierbij de link om een nieuw wachtwoord op te geven.</p>\n
-<ul>\n
-<li>Login: [%LOGIN%]</li>\n
-<li><a href='https://[%URLRESETWW%]'>Klik op om nieuw wachtwoord in te geven</a></li>\n
-<li>Deze link is [%GELDIGHEIDACTIVATIE%] uur geldig</li>
-</ul>\n
-\n
-<p>Met vriendelijke groeten,<br>\n
-<strong>Webmaster [%NAAMWEBSITE%]</strong></p>\n";
 		
 		if (db_param("mailing_herstellenwachtwoord") == 0) {
+			$content = "<p>Herstellen wachtwoord [%NAAMWEBSITE%]: https://[%URLRESETWW%]</p>\n";
 			$mid = db_mailing("add", 0, 0, "", "Herstellen wachtwoord", 0, db_param("emailwebmaster"), "");
 			$query  = sprintf("UPDATE %sMailing SET message=\"%s\", template=1 WHERE MailingID=%d;", $table_prefix, $content, $mid);
 			fnQuery($query);
@@ -457,20 +448,11 @@ function fnValidatieLogin($lidid, $key, $stap) {
 	
 	$mess = "";
 	if ($stap == "mail") {
-		$content = "<p>Beste [%ROEPNAAM%],</p>\n
-<p>Hierbij de link om je login te bevestigen. Pas na activatie zal deze login werken.</p>\n
-<ul>\n
-<li>Login: [%LOGIN%]</li>\n
-<li><a href='https://[%URLACTIVATIE%]'>Klik hierop om de login te bevestigen.</a></li>\n
-<li>Deze link is [%GELDIGHEIDACTIVATIE%] uur geldig</li>
-</ul>\n
-\n
-<p>Met vriendelijke groeten,<br>\n
-<strong>Webmaster [%NAAMWEBSITE%]</strong></p>\n";
 	
 		$row = db_logins("rowlogin", "", "", $lidid)[0];
 		
 		if (db_param("mailing_validatielogin") == 0) {
+			$content = "<p>Activatie url [%NAAMWEBSITE%]: https://[%URLACTIVATIE%]</p>\n";
 			$mid = db_mailing("add", 0, 0, "", "Validatielink nieuwe login", 0, db_param("emailwebmaster"), "");
 			$query  = sprintf("UPDATE %sMailing SET message=\"%s\", template=1 WHERE MailingID=%d;", $table_prefix, $content, $mid);
 			fnQuery($query);
@@ -669,10 +651,10 @@ function fnLoginAanvragen($stap="") {
 	}
 } # fnLoginAanvragen
 
-function fnOpvragenLidnr() {
+function fnOpvragenLidnr($stap) {
 	global $table_prefix, $basisurl;
 	
-	if ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['opvragenlidnr'])) {
+	if ($stap == "mail") {
 		if (!isValidMailAddress($_POST['emailvoorlidnr'], 0)) {
 			$mess = sprintf("Je hebt geen geldig e-mailadres (%s) opgegeven.", $_POST['emailvoorlidnr']);
 		} elseif (db_param("mailing_lidnr") > 0) {
@@ -681,7 +663,6 @@ function fnOpvragenLidnr() {
 			if (count($rows) > 0) {
 				foreach ($rows as $row) {
 					$mailing = new Mailing(db_param("mailing_lidnr"));
-					$mailing->xtrachar = "LNR";
 					$mailing->xtranum = $row->Lidnr;
 					$mailing->resultaatversturen = 0;
 					if ($mailing->send($row->Nummer) > 0) {
@@ -701,7 +682,7 @@ function fnOpvragenLidnr() {
 		db_logboek("add", $mess, 5, 0, 1);
 		printf("<p><a href='%s' target='_top'>Klik hier om verder te gaan.</a></p>\n", $basisurl);
 		
-	} elseif (db_param("mailing_lidnr") > 0 and db_param("login_lidnrnodigbijaanvraag") == 1) {
+	} elseif (db_param("mailing_lidnr") > 0) {
 
 		echo("<div id='opvragenlidnr'>\n");
 		printf("<form name='OpvragenLidnr' action='%s?tp=Opvragen+lidnr' method='post'>\n", $_SERVER["PHP_SELF"]);
@@ -712,7 +693,7 @@ function fnOpvragenLidnr() {
 		echo("<input class='knop' type='submit' name='opvragenlidnr' value='Opvragen'></p>\n");
 		echo("</fieldset>\n");
 			
-		echo("</form>
+		echo("</form>\n
 		</div>  <!-- Einde opvragenlidnr -->\n");
 	}
 } # fnOpvragenLidnr
