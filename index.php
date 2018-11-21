@@ -68,10 +68,10 @@ if (toegang("", 0) == false) {
 	if ($_SESSION['lidid'] == 0) {
 		fnLoginAanvragen();
 	}
-} elseif ($currenttab == "Opvragen lidnr") {
-	fnOpvragenLidnr();
-} elseif ($currenttab == "Herstellen wachtwoord") {
-	fnHerstellenWachtwoord($stap="mail");
+} elseif ($currenttab == "Opvragen lidnr" and $_SERVER['REQUEST_METHOD'] == "POST") {
+	fnOpvragenLidnr("mail");
+} elseif ($currenttab == "Herstellen wachtwoord" and $_SERVER['REQUEST_METHOD'] == "POST") {
+	fnHerstellenWachtwoord("mail");
 } elseif ($currenttab == "Validatie login") {
 	if (isset($_GET['key']) and isset($_GET['lidid'])) {
 		// Valideren van de nieuwe login op de website
@@ -114,12 +114,16 @@ if (toegang("", 0) == false) {
 			fnVoorblad();
 			if (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
 				echo("<div id='kolomrechts'>\n");
-				fnOpvragenLidnr();
+				if (db_param("mailing_lidnr") > 0) {
+					fnOpvragenLidnr("form");
+				}
 				fnLoginAanvragen();
 				echo("</div>  <!-- Einde kolomrechts -->\n");
 			}
 		} else {
-			fnOpvragenLidnr();
+			if (db_param("mailing_lidnr") > 0) {
+				fnOpvragenLidnr("form");
+			}
 			fnLoginAanvragen();
 		}
 	} else {
@@ -137,8 +141,10 @@ if (toegang("", 0) == false) {
 	fnEvenementen();
 } elseif ($currenttab == "Bestellingen") {
 	fnWebshop();
-} elseif (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {		
-	fnOpvragenLidnr();
+} elseif (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
+	if (db_param("mailing_lidnr") > 0) {
+		fnOpvragenLidnr("form");
+	}
 	fnLoginAanvragen();
 } else {
 	debug("Geen voorblad");
