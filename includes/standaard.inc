@@ -165,7 +165,6 @@ function HTMLheader($refresh=0) {
 		$title .= db_param("naamwebsite");
 	}
 
-//	header('Content-type: text/html; charset=utf-8');
    if (!isset($_GET['header']) or $_GET['header'] != "no") {
 		echo("<!DOCTYPE HTML>\n");
 		echo("<html lang='nl'>\n");
@@ -187,7 +186,7 @@ function HTMLheader($refresh=0) {
 		echo("</head>\n");
 		echo("<body>\n");
 		echo("<div id='container'>\n");
-		echo("<div id='header'>\n");
+		echo("<header>\n");
 		printf("<h1>%s</h1>\n", db_param("naamwebsite"));
 	
 		echo("<div id='login'>\n");
@@ -209,13 +208,13 @@ function HTMLheader($refresh=0) {
 			echo("&nbsp;Wachtwoord: <input type='password' name='password' size=12>\n");
 			echo("&nbsp;<input type='submit' value='Inloggen' name='Inloggen'>\n");
 			echo("<input type='checkbox' name='cookie' value=1 title='Ingelogd blijven (werkt met cookies)'>\n");
+			echo("</form>\n");
 		}
 		if (strlen(db_param("url_eigen_help")) < 5) {
 			echo("<a href='http://phprbm.telling.nl/uitleg.php'><img src='images/question.png' title='Uitleg gebruik en installatie' alt='Question mark'></a>\n");
 		} else {
 			printf("<a href='http://%s'><img src='images/question.png' title='Helpfunctie' alt='Question mark'></a>\n", db_param("url_eigen_help"));
 		}
-		echo("</form>\n");
 		echo("</div>  <!-- Einde login -->\n");
 		echo("<div class='clear'></div>\n");
 		
@@ -225,7 +224,7 @@ function HTMLheader($refresh=0) {
 		}
 		fnDispMenu(1, $xtra);
 		
-		echo("</div> <!-- Einde header -->\n");
+		echo("</header>\n");
 		echo("<div class='clear'></div>\n");
 	}
 } # HTMLheader
