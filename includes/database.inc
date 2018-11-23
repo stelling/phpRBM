@@ -71,7 +71,7 @@ $selectmailbox = "CASE WHEN (NOT M.deleted_on IS NULL) THEN 'Prullenbak'
 							  ELSE 'Verzonden' END";  // Moet nog verder ingevoerd worden, indien wenselijk
 $fromlid = sprintf('%1$sLid AS L LEFT OUTER JOIN %1$sLidmaatschap AS LM ON L.Nummer = LM.Lid', $table_prefix);
 $wherelid = "LM.LIDDATUM <= CURDATE() AND ((LM.Opgezegd IS NULL) OR LM.Opgezegd >= CURDATE())";
-$fromlidond = sprintf('%1$sLid AS L INNER JOIN ((%1$sLidond AS LO INNER JOIN %1$sFunctie AS F ON LO.Functie = F.Nummer) INNER JOIN %1$sOnderdl AS O ON LO.OnderdeelID = O.RecordID) ON L.NUMMER = LO.LID', $table_prefix);
+$fromlidond = sprintf('%1$sLid AS L INNER JOIN ((%1$sLidond AS LO INNER JOIN %1$sFunctie AS F ON LO.Functie = F.Nummer) INNER JOIN %1$sOnderdl AS O ON LO.OnderdeelID = O.RecordID) ON L.Nummer = LO.Lid', $table_prefix);
 $wherelidond = "LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE())";
 $whereliddipl = "((LD.LicentieVervallenPer IS NULL) OR LD.LicentieVervallenPer >= CURDATE())";
 $sqllidgroepen = sprintf("SELECT OnderdeelID FROM %sLidond AS LO WHERE %s AND Lid=%d", $table_prefix, $wherelidond, $_SESSION['lidid']);
@@ -239,7 +239,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					CASE L.Geslacht WHEN 'V' THEN 'Vrouwelijk' WHEN 'M' THEN 'Mannelijk' WHEN 'B' THEN 'Bedrijf' ELSE 'Onbekend' END AS Geslacht, 
 					IF(NOT ISNULL(L.GEBDATUM), CONCAT(DATE_FORMAT(L.GEBDATUM, %s), IF(LENGTH(L.GEBPLAATS) > 1, CONCAT(' te ', L.GEBPLAATS), '')), '') AS Geboren, 
 					L.Overleden AS `dteOverleden op`,
-					IF(ISNULL(L.GEBDATUM), NULL, CONCAT(TIMESTAMPDIFF(YEAR, L.GEBDATUM, IF(ISNULL(L.Overleden), CURDATE(), L.Overleden)), ' jaar')) AS Leeftijd,
+					IF(ISNULL(L.GEBDATUM) OR (NOT ISNULL(L.Overleden)), NULL, CONCAT(TIMESTAMPDIFF(YEAR, L.GEBDATUM, CURDATE()), ' jaar')) AS Leeftijd,
 					L.Burgerservicenummer,
 					'Adresgegevens' AS Kop2,
 					L.Adres,
@@ -255,7 +255,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					(%s) AS Onderscheiding, 
 					LM.LIDDATUM AS `dteLid vanaf`, 
 					LM.Opgezegd AS `dteLid totenmet`, 
-					IF(DATEDIFF(CURDATE(), LM.LIDDATUM) < 500, NULL, CONCAT(TIMESTAMPDIFF(YEAR, LM.LIDDATUM, IF(ISNULL(LM.Opgezegd), CURDATE(), LM.Opgezegd)), ' jaar')) AS `Lengte lidmaatschap`,
+					IF(DATEDIFF(CURDATE(), LM.LIDDATUM) < 500, NULL, CONCAT(ROUND(TIMESTAMPDIFF(MONTH, LM.LIDDATUM, IF(ISNULL(LM.Opgezegd), CURDATE(), LM.Opgezegd))/12, 1), ' jaar')) AS `Lengte lidmaatschap`,
 					'Financieel' AS Kop5,
 					L.`Machtiging afgegeven` AS `booMachtiging incasso`,
 					L.Bankrekening,
@@ -662,6 +662,7 @@ function db_memo($actie, $lidid, $srt, $nv="") {
 		}
 		$result = fnQuery($query);
 		return $result->fetchColumn();
+		
 	} elseif ($actie == "add" and strlen($nv) > 0) {
 		$query = sprintf("INSERT INTO %sMemo (Lid, Soort, Memo, Ingevoerd, Gewijzigd) VALUES (%d, '%s', \"%s\", CURDATE(), SYSDATE());", $table_prefix, $lidid, $srt, $nv);
 		$result = fnQuery($query);
@@ -672,6 +673,7 @@ function db_memo($actie, $lidid, $srt, $nv="") {
 			$mess = sprintf("Het toevoegen van memo '%s' is bij %s met waarde '%s' is mislukt.", $arrSoortMemo[$srt], db_naamlid($lidid), $nv);
 		}
 		db_logboek("add", $mess, 6, $lidid);
+		
 	} elseif ($actie == "update") {
 		if ($srt == "WN") {
 			$query = sprintf("UPDATE %sLid SET `Waarschuwen bij nood`=\"%s\", Gewijzigd=SYSDATE() WHERE Nummer=%d;", $table_prefix, $nv, $lidid);
@@ -684,6 +686,7 @@ function db_memo($actie, $lidid, $srt, $nv="") {
 			$mess = sprintf("Memo '%s' is bij %s in '%s' gewijzigd.", $arrSoortMemo[$srt], db_naamlid($lidid), $nv);
 			db_logboek("add", $mess, 6, $lidid);
 		}
+		
 	} elseif ($actie == "delete") {
 		$query = sprintf("DELETE FROM %sMemo WHERE Lid=%d AND Soort='%s';", $table_prefix, $lidid, $srt);
 		$result = fnQuery($query);
@@ -692,6 +695,14 @@ function db_memo($actie, $lidid, $srt, $nv="") {
 			$mess = sprintf("Memo '%s' is bij %s verwijderd.", $arrSoortMemo[$srt], db_naamlid($lidid));
 			db_logboek("add", $mess, 6, $lidid, 1);
 		}
+	
+	} elseif ($actie == "aantal") {
+		if (strlen($srt) > 0) {
+			$query = sprintf("SELECT COUNT(*) FROM %sMemo WHERE Soort='%s';", $table_prefix, $srt);
+		} else {
+			$query = sprintf("SELECT COUNT(*) FROM %sMemo;", $table_prefix);
+		}
+		return db_scalar($query);
 	}
 } # db_ledenwijzigingen
 
@@ -974,6 +985,7 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 								ORDER BY BS.Begindatum, BS.Kode, L.Achternaam, BI.Lid, BB.Begindatum;", $table_prefix, $selectnaam, $w);
 		$result = fnQuery($query);
 		return $result->fetchAll();
+		
 	} elseif ($actie == "matrixaantallen") {
 		$query = sprintf("SELECT BS.Kode AS Seizoen, BB.Kode AS Week, BB.Begindatum AS dteBegin, BB.Einddatum AS dteEinde,
 								SUM(CASE WHEN BI.Definitief > BI.Ingevoerd AND BI.Keuze IN (1, 3) THEN 1 ELSE 0 END) AS `Keuze 1`,
@@ -986,6 +998,7 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 								ORDER BY BS.Kode, BB.Kode, BB.Begindatum;", $table_prefix, $w);
 		$result = fnQuery($query);
 		return $result->fetchAll();
+		
 	} elseif ($actie == "overzichtlid") {
 		if ($insnr > 0) {
 			$w = sprintf("BI.Nummer=%d", $insnr);
@@ -1670,7 +1683,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		
 	} elseif ($actie == "potrcpt") {
 		$query = sprintf("SELECT L.Nummer, %1\$s AS Zoeknaam_lid FROM %2\$sLid AS L
-					WHERE (Verwijderd IS NULL) AND (Overleden IS NULL) AND (LENGTH(Email) > 5 OR LENGTH(EmailVereniging) > 5 OR LENGTH(EmailOuders) > 5)
+					WHERE (L.Verwijderd IS NULL) AND (L.Overleden IS NULL) AND (LENGTH(L.Email) > 5 OR LENGTH(L.EmailVereniging) > 5 OR LENGTH(L.EmailOuders) > 5)
 					AND (NOT EXISTS (SELECT LidID FROM %2\$sMailing_rcpt AS R WHERE R.LidID = L.Nummer AND R.MailingID=%3\$d))
 					ORDER BY L.Achternaam, L.Roepnaam;", $selectzoeknaam, $table_prefix, $mid);
 		$result = fnQuery($query);
@@ -1711,40 +1724,47 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		return $id;
 		
 	} elseif ($actie == "addrcpt" and $mid > 0) {
+		$mess = "";
 		if ($lidid > 0) {
 			$query = sprintf("SELECT COUNT(*) FROM %sMailing_rcpt WHERE MailingID=%d AND LidID=%d;", $table_prefix, $mid, $lidid);
 		} elseif (isValidMailAddress($email)) {
-			$query = sprintf("SELECT COUNT(*) FROM %sMailing_rcpt WHERE MailingID=%d AND to_address LIKE '%s';", $table_prefix, $mid, strtolower($email));
+			$query = sprintf("SELECT COUNT(*) FROM %sMailing_rcpt WHERE MailingID=%d AND LOWER(to_address) LIKE '%s';", $table_prefix, $mid, strtolower($email));
 		} else {
 			$query = "";
 		}
 		if (strlen($query) > 0 and db_scalar($query) == 0) {
 			if ($lidid > 0) {
-				$query = sprintf("INSERT INTO %sMailing_rcpt SET MailingID=%d, LidID=%d, Ingevoerd=CURDATE();", $table_prefix, $mid, $lidid);
+				$rl = db_lid("record", "", $lidid);
+				if (isValidMailAddress($rl->Email) or isValidMailAddress($rl->EmailOuders) or isValidMailAddress($rl->EmailVereniging)) {
+					$query = sprintf("INSERT INTO %sMailing_rcpt SET MailingID=%d, LidID=%d, Ingevoerd=CURDATE();", $table_prefix, $mid, $lidid);
+				} else {
+					$mess = sprintf("%s is niet aan mailing %d toegevoegd, omdat er geen geldig emailadres bekend is.", $rl->NaamLid, $mid);
+					db_logboek("add", $mess, 4, 0, 0, $lidid);
+				}
+				$r = $rl->NaamLid;
+				$rl = null;
 			} else {
-				$query = sprintf("INSERT INTO %sMailing_rcpt SET MailingID=%d, to_address='%s', Ingevoerd=SYSDATE();", $table_prefix, $mid, strtolower($email));
+				$query = sprintf("INSERT INTO %sMailing_rcpt SET MailingID=%d, to_address='%s', Ingevoerd=SYSDATE();", $table_prefix, $mid, $email);
+				$r = $email;
 			}
-			if (fnQuery($query) > 0) {
-				return true;
+			if (strlen($mess) == 0 and fnQuery($query) > 0) {
+				$mess = sprintf("%s is aan mailing %d toegevoegd.", $r, $mid);
 			} else {
-				return false;
+				$mess = "";
 			}
-		} else {
-			return false;
 		}
+		return $mess;
 	} elseif ($actie == "delrcpt" and $mid > 0) {
+		$mess = "";
 		if ($lidid > 0) {
 			$query = sprintf("DELETE FROM %sMailing_rcpt WHERE MailingID=%d AND LidID=%d;", $table_prefix, $mid, $lidid);
-			$mess = sprintf("%s is bij mailing %d verwijderd.", db_naamlid($lidid), $mid);
+			$r = db_naamlid($lidid);
 		} elseif (strlen($email) > 0) {
 			$query = sprintf("DELETE FROM %sMailing_rcpt WHERE MailingID=%d AND to_address='%s';", $table_prefix, $mid, $email);
-			$mess = sprintf("E-mailadres '%s' is bij mailing %d verwijderd.", $email, $mid);
+			$r = $email;
 		}
-		$result = fnQuery($query);
-		if ($result == 0) {
-			$mess = "";
-		} else {
-			fnQuery(sprintf("OPTIMIZE TABLE %sMailing_rcpt;", $table_prefix));
+		if (fnQuery($query) > 0) {
+			$mess = sprintf("%s is bij mailing %d verwijderd.", $r, $mid);
 		}
 		return $mess;
 		
@@ -2982,10 +3002,10 @@ function db_onderhoud() {
 	
 	/***** Opschonen database na een upload uit de Access-database.  *****/
 
-	$query = sprintf("DELETE FROM %sLid WHERE ((NOT Verwijderd IS NULL) OR (NOT Overleden IS NULL));", $table_prefix);
+	$query = sprintf("DELETE FROM %sLid WHERE (NOT Verwijderd IS NULL);", $table_prefix);
 	$result = fnQuery($query);
 	if ($result > 0) {
-		db_logboek("add", sprintf("Er zijn %d leden verwijderd, omdat ze een verwijderd markering hebben of omdat ze overleden zijn.", $result), 2);
+		db_logboek("add", sprintf("Er zijn %d leden verwijderd, omdat ze een verwijderd markering hebben.", $result), 2);
 		fnQuery(sprintf("OPTIMIZE TABLE %sLid;", $table_prefix));
 	}
 	
