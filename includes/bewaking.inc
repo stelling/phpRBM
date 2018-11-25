@@ -186,7 +186,7 @@ function bew_rooster($seizoen, $week=-1) {
 	$rooster = db_bewaking("rooster", $seizoen, 0, $week);
 	$wk = "";
 	$aantalbewdag = 0;
-	$aantalond = db_onderdelen("bw", 1);
+	$aantalond = db_onderdelen("aantal", "bw");
 	if ($aantalond > 1) {
 		$bastotreg = "<tr>\n<td colspan='3'><b>Totaal: %d bewakers</b></td>\n<td class='number'><b>%s</b></td>\n<td>&nbsp;</td>\n</tr>\n";
 	} else {
