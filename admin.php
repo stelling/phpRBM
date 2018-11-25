@@ -220,6 +220,16 @@ if ($currenttab == "Beheer logins" and toegang()) {
 	echo("</form>\n");
 	echo("</div>  <!-- Einde invulformulier -->\n");	
 } elseif ($currenttab == "Downloaden wijzigingen" and toegang($_GET['tp'])) {
+	
+	$xf = "IFNULL(L.LoginWebsite, '') <> Login.Login";
+	$rows = db_logins("lijst", "", "", 0, $xf);
+	foreach ($rows as $row) {
+		$query = sprintf("UPDATE %sLid SET LoginWebsite='%s' WHERE Nummer=%d;", $table_prefix, $row->Login, $row->LidID);
+		if (fnQuery($query) > 0) {
+			$sql = sprintf("UPDATE Lid SET `LoginWebsite`='%s', Gewijzigd=Date() WHERE Nummer=%d;", $row->Login, $row->LidID);
+			db_interface("add", $sql, $row->LidID, 1);
+		}
+	}
 
 	$copytext = "";
 	echo("<h2>Wijzigen op de website, te verwerken in de Access database.</h2>");
@@ -239,19 +249,6 @@ if ($currenttab == "Beheer logins" and toegang()) {
 		echo("<p class='mededeling'>Er zijn geen wijzigingen die nog verwerkt moeten worden.</p>\n");
 	}
 	echo("</form>\n");
-
-	echo("<h2>Gewijzigde logins op de website, bijwerken in de Access database.</h2>");
-	$xf = "IFNULL(L.LoginWebsite, '') <> Login.Login";
-	$rows = db_logins("lijst", "", "", 0, $xf);
-	if (count($rows) > 0) {
-		echo(fnDisplayTable($rows, "", "", 1));
-		
-		foreach ($rows as $row) {
-			$copytext .= sprintf("UPDATE Lid SET `LoginWebsite`='%s', Gewijzigd=Date() WHERE Nummer=%d;\n", $row->Login, $row->LidID);
-		}
-	} else {
-		echo("<p class='mededeling'>Er zijn geen logins die ge-exporteerd kunnen worden.</p>\n");
-	}
 		
 	if (strlen($copytext) > 0) {
 		echo("<h2>SQL code voor in MS-Access, om te kopi&euml;ren:</h2>\n");
