@@ -83,7 +83,7 @@ if (toegang("", 0) == false) {
 	
 } elseif ($currenttab == "Eigen gegevens") {
 	if ($_SESSION['lidid'] > 0) {
-		fnOverviewLid($_SESSION['lidid'], $currenttab2);
+		fnEigenGegevens($_SESSION['lidid'], $currenttab2);
 	} else {
 		echo("<p class='mededeling'>Er is geen lid ingelogd.</p>\n");
 	}
@@ -99,9 +99,9 @@ if (toegang("", 0) == false) {
 	}
 } elseif ($currenttab == "Overzicht lid" and toegang("Overzicht lid", 0)) {
 	if (isset($_GET['lidid']) and is_numeric($_GET['lidid']) and $_GET['lidid'] > 0) {
-		fnOverviewLid($_GET['lidid'], $currenttab2);
+		fnEigenGegevens($_GET['lidid'], $currenttab2);
 	} else {
-		fnOverviewLid(0, $currenttab2);
+		fnEigenGegevens(0, $currenttab2);
 	}
 } elseif ($currenttab == "Wijzigen lid") {
 	if (isset($_GET['lidid']) and is_numeric($_GET['lidid']) and $_GET['lidid'] > 0) {
