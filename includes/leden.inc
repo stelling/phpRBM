@@ -312,7 +312,7 @@ function fnLedenlijst() {
 	}
 } # fnLedenlijst
 
-function fnOverviewLid($lidid=0, $actie="") {
+function fnEigenGegevens($lidid=0, $actie="") {
 	global $currenttab;
 	
 	if ($lidid == 0 and isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0) {
@@ -413,6 +413,16 @@ function fnOverviewLid($lidid=0, $actie="") {
 					}
 				}
 			}
+			
+			
+		} elseif ($actie == "Toestemmingen") {
+			$rows = db_gegevenslid($lidid, $actie);
+			if (count($rows) > 0) {
+				echo(fnDisplayTable($rows, "", $actie . " " . $naamlid, 0, "", "", "onderdelenperlid"));
+			} else {
+				echo("<p class='mededeling'>Er zijn geen toestemmingen bekend van dit lid.</p>\n");
+			}
+			
 		} elseif ($actie == "Mailing") {
 			if (isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0) {
 				$xtra = "<p class='mededeling'><input type='button' value='Terug' onclick='history.go(-1);'></p>\n";
@@ -469,12 +479,12 @@ function fnOverviewLid($lidid=0, $actie="") {
 			echo("</div>  <!-- Einde opdrachtknoppen -->\n");
 		}
 	}
-} # fnOverviewLid
+} # fnEigenGegevens
 
 function fnSelectListGroepen($cv=0) {
 
 	$ret = "<option value=0>** Iedereen **</option>\n";
-	$rows = db_Onderdelen();
+	$rows = db_Onderdelen("lijst");
 	foreach ($rows as $row) {
 		if ($cv == $row->RecordID) {$s = " selected";} else {$s = "";}
 		$ret .= sprintf("<option%s value=%d>%s</option>\n", $s, $row->RecordID, htmlentities($row->Oms));
