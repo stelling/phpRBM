@@ -85,7 +85,7 @@ function fnAuthenticatie($melding=1, $password="") {
 } # fnAuthenticatie
 	
 function toegang($soort="", $melding=1) {
-	global $lididwebmasters, $table_prefix, $tabpages, $currenttab, $currenttab2, $fileverinfo, $muteerbarememos;
+	global $lididwebmasters, $table_prefix, $tabpages, $currenttab, $currenttab2, $muteerbarememos;
 	
 	$arrAltijdToegang[] = "Validatie login";
 	$arrAltijdToegang[] = "Bevestiging login";
@@ -102,9 +102,7 @@ function toegang($soort="", $melding=1) {
 		$tabpages[] = "Logboek";
 	} else {
 		$tabpages[] = "Vereniging";
-		if (file_exists($fileverinfo)) {
-			$tabpages[] = "Vereniging/Introductie";
-		}
+		$tabpages[] = "Vereniging/Introductie";
 		if ($_SESSION['lidid'] == 0) {
 			$tabpages[] = "Herstellen wachtwoord";
 		}
@@ -132,6 +130,9 @@ function toegang($soort="", $melding=1) {
 			$tabpages[] = "Eigen gegevens/Diploma's";
 			$tabpages[] = "Eigen gegevens/Financieel";
 			$tabpages[] = "Eigen gegevens/Mailing";
+			if (db_onderdelen("aantal", "T") > 0) {
+				$tabpages[] = "Eigen gegevens/Toestemmingen";
+			}
 			if (count(db_gegevenslid($_SESSION['lidid'], "Evenementen")) > 0) {
 				$tabpages[] = "Eigen gegevens/Evenementen";
 			}
