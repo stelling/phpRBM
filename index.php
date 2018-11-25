@@ -216,6 +216,8 @@ function fnVoorblad() {
 
 		printf("<div id='welkomstekst'>\n%s</div>  <!-- Einde welkomstekst -->\n", $content);
 		
+	} else {
+		echo("<div id='welkomstekst'>Er is geen introductie beschikbaar.</div>  <!-- Einde welkomstekst -->\n");
 	}
 }
 
