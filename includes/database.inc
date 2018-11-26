@@ -1792,20 +1792,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 	} elseif ($mid > 0) {
 		$query = sprintf("SELECT * FROM %sMailing WHERE MailingID=%d LIMIT 1;", $table_prefix, $mid);
 		$result = fnQuery($query);
-		$row = $result->fetch();
-		if ($actie == "folder") {
-			if ($row->deleted_on > "2001-01-01") {
-				return "Prullenbak";
-			} elseif ($row->template == 1) {
-				return "Templates";
-			} elseif ($row->sent_on < "2001-01-01") {
-				return "Concepten";
-			} else {
-				return "Verzonden";
-			}
-		} else {
-			return $row;
-		}
+		return $result->fetch();
 	}
 	
 	return;

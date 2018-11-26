@@ -53,20 +53,20 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 	}
 } elseif ($_GET['op'] == "uploaddata") {
 	if (isset($_FILES['SQLupload']['tmp_name']) and strlen($_FILES['SQLupload']['tmp_name']) > 3) {
-		db_delete_local_tables();
 		fnQuery("SET CHARACTER SET utf8;");
 		$queries = file_get_contents($_FILES['SQLupload']["tmp_name"]);
 		if ($queries !== false) {
 			$mess = "Bestand is succesvol ge-upload.";
 			db_logboek("add", $mess, 9, 0, 1);
-			$query = sprintf("SELECT COUNT(*) FROM %sLidond;", $table_prefix);
+			$querylid = sprintf("SELECT COUNT(*) FROM %sLid;", $table_prefix);
+			$querylo = sprintf("SELECT COUNT(*) FROM %sLidond;", $table_prefix);
 			if (substr_count($queries, $table_prefix) == 0) {
 				$mess = sprintf("In het upload bestand komt de juiste table name prefix (%s) niet voor. Dit bestand wordt niet verwerkt.", $table_prefix);
 				db_logboek("add", $mess, 9, 0, 1);
-			} elseif (strpos($queries, $table_prefix . "Lid") === FALSE and $_SESSION['aantallid'] < 5) {
+			} elseif (strpos($queries, $table_prefix . "Lid") === FALSE and db_scalar($querylid) < 5) {
 				$mess = sprintf("De verplichte tabel '%sLid' zit niet in deze upload. Dit bestand wordt niet verwerkt.", $table_prefix);
 				db_logboek("add", $mess, 9, 0, 1);
-			} elseif (strpos($queries, $table_prefix . "Lidond") === FALSE and db_scalar($query) < 5) {
+			} elseif (strpos($queries, $table_prefix . "Lidond") === FALSE and db_scalar($querylo) < 5) {
 				$mess = sprintf("De verplichte tabel '%sLidond' zit niet in deze upload. Dit bestand wordt niet verwerkt.", $table_prefix);
 				db_logboek("add", $mess, 9, 0, 1);
 			} elseif (fnQuery($queries) !== true) {
@@ -506,7 +506,7 @@ function fnInstellingen() {
 			db_param($row->Naam, "delete");
 		}
 	}
-//	echo("<div class='clear'></div>\n");
+	echo("<div class='clear'></div>\n");
 	echo("<input class='knop' type='submit' value='Bewaren'>\n");
 	
 	echo("</form>\n");
