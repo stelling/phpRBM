@@ -188,6 +188,12 @@ function HTMLheader($refresh=0) {
 		echo("<div id='container'>\n");
 		echo("<header>\n");
 		printf("<h1>%s</h1>\n", db_param("naamwebsite"));
+		
+		if (strlen(db_param("url_eigen_help")) < 5) {
+			$htmlhelp = "<a href='http://phprbm.telling.nl/uitleg.php'><img src='images/question.png' title='Uitleg gebruik en installatie' alt='Question mark'></a>\n";
+		} else {
+			$htmlhelp = sprintf("<a href='http://%s'><img src='images/question.png' title='Helpfunctie' alt='Question mark'></a>\n", db_param("url_eigen_help"));
+		}
 	
 		echo("<div id='login'>\n");
 		
@@ -202,19 +208,17 @@ function HTMLheader($refresh=0) {
 					echo("<a href='index.php'><img src='images/home.png' title='Beginpagina' alt='Home'></a>\n");
 				}
 			}
+			echo($htmlhelp);
 		} elseif ($_SESSION['aantallogin'] > 0) {
 			echo("<form name='Login' action='/index.php' method='post'>\n");
 			echo("\nLogin: <input type='text' name='username' size=12>\n");
 			echo("&nbsp;Wachtwoord: <input type='password' name='password' size=12>\n");
 			echo("&nbsp;<input type='submit' value='Inloggen' name='Inloggen'>\n");
 			echo("<input type='checkbox' name='cookie' value=1 title='Ingelogd blijven (werkt met cookies)'>\n");
+			echo($htmlhelp);
 			echo("</form>\n");
 		}
-		if (strlen(db_param("url_eigen_help")) < 5) {
-			echo("<a href='http://phprbm.telling.nl/uitleg.php'><img src='images/question.png' title='Uitleg gebruik en installatie' alt='Question mark'></a>\n");
-		} else {
-			printf("<a href='http://%s'><img src='images/question.png' title='Helpfunctie' alt='Question mark'></a>\n", db_param("url_eigen_help"));
-		}
+
 		echo("</div>  <!-- Einde login -->\n");
 		echo("<div class='clear'></div>\n");
 		
@@ -256,11 +260,11 @@ function HTMLfooter() {
 				$i++;
 			}
 		}
-		printf("<div id='footer'>\n
+		printf("<footer>\n
 				 <div id='footerleft'>%s</div>\n
 				 <a href='%s'>%s</a> %s\n
 				 <div id='footerright'>%s</div>\n
-				 </div>  <!-- Einde footer  -->\n", $cr, $basisurl, db_param("naamwebsite"), $np, strftime("%e %B %Y", $bestandsversie));
+				 </footer>\n", $cr, $basisurl, db_param("naamwebsite"), $np, strftime("%e %B %Y", $bestandsversie));
 		echo("</div>  <!-- Einde container -->\n");
 		echo("</body>\n");
 		echo("</html>\n");
