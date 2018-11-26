@@ -56,7 +56,7 @@ function fnMailing() {
 		$mailing->post_form();
 		$mailing->upload();
 		if ($op == "save_close") {
-			printf("<script>location.href='%s?tp=Mailing/%s';</script>\n", $_SERVER['PHP_SELF'], db_mailing("folder", $mailing->mid));
+			printf("<script>location.href='%s?tp=Mailing/%s';</script>\n", $_SERVER['PHP_SELF'], $mailing->folder());
 		} else {
 			$mailing->edit();
 		}
@@ -1061,6 +1061,19 @@ class Mailing {
 			db_logboek("add", $this->meldingen, 4, 0, 1, $this->mid);
 		} else {
 			return $this->send_mailing(0, $lidid);
+		}
+	}
+	
+	public function folder() {
+
+		if ($this->deleted_on > '2001-01-01') {
+			return "Prullenbak";
+		} elseif ($this->template == 1) {
+			return "Templates";
+		} elseif ($this->sent_on == "") {
+			return "Concepten";
+		} else {
+			return "Verzonden";
 		}
 	}
 	
