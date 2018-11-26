@@ -2845,8 +2845,8 @@ function db_param($naam, $actie="curval", $newval="") {
 function db_delete_local_tables() {
 	global $arrTables, $table_prefix;
 	
-	foreach ($arrTables as $tn) {
-		if (startwith($tn, "Admin_") == false and startwith($tn, "Bewaking_") == false and startwith($tn, "DMS_") == false and startwith($tn, "Mailing") == false and startwith($tn, "Evenement") == false and startwith($tn, "WS_") == false) {
+	foreach ($arrTables as $key => $tn) {
+		if ($key >= 20) {
 			fnQuery(sprintf("DELETE FROM %s%s;", $table_prefix, $tn));
 		}
 	}
@@ -3000,6 +3000,15 @@ function db_onderhoud() {
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%s' AND COLUMN_NAME='%s';", $db_name, $tab, $col);
 	if (db_scalar($query) == 0) {
 		$query = sprintf("ALTER TABLE `%s` ADD `%s` varchar(40);", $tab, $col);
+		fnQuery($query);
+	}
+	
+	// Toevoegen veld '2FA' aan de tabel 'Admin_login'. Deze code kan na 1/1/2020 worden verwijderd.
+	$tab = $table_prefix . "Admin_login";
+	$col = "2FA";
+	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%s' AND COLUMN_NAME='%s';", $db_name, $tab, $col);
+	if (db_scalar($query) == 0) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` tinyint;", $tab, $col);
 		fnQuery($query);
 	}
 	
