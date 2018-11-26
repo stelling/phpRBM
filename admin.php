@@ -72,7 +72,7 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 			} elseif (fnQuery($queries) !== true) {
 				$mess = "Bestand is in de database verwerkt.";
 				db_logboek("add", $mess, 9, 0, 1);
-				db_onderhoud();
+				db_onderhoud(1);
 				printf("<script>setTimeout(\"location.href='%s';\", 15000);</script>\n", $_SERVER['PHP_SELF']);
 			}
 		}
@@ -363,7 +363,6 @@ function fnInstellingen() {
 	$arrParam['login_geldigheidactivatie'] = "Hoelang in uren is een activatielink geldig? 0 = altijd.";
 	$arrParam['login_bewaartijdnietgebruikt'] = "Het aantal dagen dat logins wordt bewaard, nadat het is aangevraagd en nog niet gebruikt is.";
 	$arrParam['logboek_bewaartijd'] = "Hoeveel maanden moet de logging bewaard blijven. 0 = altijd bewaren.";
-	$arrParam['logboek_bewaartijdinloggen'] = "Hoeveel maanden moet de logging van het in- en uitloggen bewaard blijven. 0 = altijd bewaren.";
 	$arrParam['mailing_beperkfrom'] = "NT";
 	$arrParam['mailing_bevestigingbestelling'] = "Het nummer van de mailing die bij een bestelling verstuurd moet worden. 0 = geen.";
 	$arrParam['mailing_bevestigingopzegging'] = "NT";
