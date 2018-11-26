@@ -1014,8 +1014,6 @@ class Mailing {
 			if ($result > 0) {
 				$mess = sprintf("Alle %d ontvangers zijn uit mailing %d verwijderd.", $result, $this->mid);
 				db_logboek("add", $mess, 4, 0, 0, $this->mid);
-				$query = sprintf("OPTIMIZE TABLE %sMailing_rcpt;", $table_prefix);
-				fnQuery($query);
 			}
 		} else {
 			if ($groepid == -2) {
@@ -1042,8 +1040,6 @@ class Mailing {
 		if ($result > 0) {
 			$mess = sprintf("Alle %d ontvangers zijn uit mailing %d verwijderd.", $result, $this->mid);
 			db_logboek("add", $mess, 4, 0, 0, $this->mid);
-			$query = sprintf("OPTIMIZE TABLE %sMailing_rcpt;", $table_prefix);
-			fnQuery($query);
 		}
 	} # delete_all_rcpt
 	
