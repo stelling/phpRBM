@@ -143,6 +143,9 @@ function toegang($soort="", $melding=1) {
 				$tabpages[] = "Zelfservice/Diploma's";
 			}
 			$tabpages[] = "Zelfservice/Pasfoto";
+			if (db_onderdelen("aantal", "T") > 0) {
+				$tabpages[] = "Zelfservice/Toestemmingen";
+			}
 			if (count($muteerbarememos) > 0) { 
 				$tabpages[] = "Zelfservice/Bijzonderheden";
 			}
@@ -308,7 +311,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 	}
 		
 	if ($stap == "mail" and $lidid > 0) {
-		
+
 		if (db_param("mailing_herstellenwachtwoord") == 0) {
 			$content = "<p>Herstellen wachtwoord [%NAAMWEBSITE%]: https://[%URLRESETWW%]</p>\n";
 			$mid = db_mailing("add", 0, 0, "", "Herstellen wachtwoord", 0, db_param("emailwebmaster"), "");

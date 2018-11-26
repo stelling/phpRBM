@@ -45,6 +45,9 @@ function fnWijzigen($lidid=0, $actie="") {
 		} elseif ($currenttab2 == "Pasfoto") {
 			nieuwepasfoto($lidid);
 			
+		} elseif ($currenttab2 == "Toestemmingen") {
+			toestemmingenmuteren($lidid);
+			
 		} elseif ($actie == "Bijzonderheden" and count($muteerbarememos) > 0) {
 			if ($_SERVER['REQUEST_METHOD'] == "POST") {
 				foreach ($muteerbarememos as $kodesoort) {
@@ -900,6 +903,39 @@ function nieuwepasfoto($lidid, $filterlid="") {
 
 	echo("</div>  <!-- Einde nieuwepasfoto -->\n");	
 } # nieuwepasfoto
+
+function toestemmingenmuteren($lidid) {
+	
+	$actionurl = sprintf("%s?tp=%s&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		foreach (db_onderdelen("lijst", "T") as $row) {
+			$mess = "";
+			if (isset($_POST['T_' . $row->Kode])) {
+				if (db_lidond("islid", $lidid, "", "", $row->RecordID) == false) {
+					db_lidond("add", $lidid, "", "", $row->RecordID);
+					$mess = sprintf("Toestelling '%s' is per vandaag verleend.", $row->Naam);
+				}
+			} else {
+				if (db_lidond("delete", $lidid, "", "", $row->RecordID) > 0) {
+					$mess = sprintf("Toestelling '%s' is per vandaag beëindigd.", $row->Naam);
+				}
+			}
+			if (strlen($mess) > 0) {
+				db_logboek("add", $mess, 16, $lidid, 1);
+			}
+		}
+	}
+	
+	echo("<div id='toestemmingenmuteren'>\n");
+	printf("<form method='post' name='frmToestemming' action='%s'>\n", $actionurl);
+	foreach (db_onderdelen("lijstopkode", "T") as $row) {
+		printf("<label>%s: </label><p><input type='checkbox' name='T_%s' value='1' %s></p>\n", $row->Naam, $row->Kode, checked(db_lidond("islid", $lidid, "", "", $row->RecordID)));
+	}
+	echo("<div class='clear'></div>\n");
+	echo("<input class='knop' type='submit' value='Bevestigen' name='Bevestigen'>\n");
+	echo("</form>\n");
+	echo("</div> <!-- einde toestemmingenmuteren -->\n");
+} # toestemmingenmuteren
 
 function opzegginglidmaatschap($lidid) {
 	global $actionurl;
