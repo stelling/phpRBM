@@ -255,7 +255,7 @@ class Mailing {
 				 WHERE %2$s AND O.GekoppeldAanQuery=0 AND LO.Lid=%%d ORDER BY O.Naam;', $table_prefix, $wherelidond);
 		$this->MergeField[]=array('Naam' => "Onderdelen", 'SQL' => $sql);
 	
-		if ($_SESSION['aantalbewaking'] > 0) {
+		if (db_bewseiz("aantal") > 0) {
 			$sql = sprintf('SELECT CONCAT(DATE_FORMAT(BEGIN_PER, %1$s), \' t/m \', DATE_FORMAT(EINDE_PER, %1$s)) AS Per'
 				  . ' FROM %2$sBewaking AS BW INNER JOIN %2$sBewseiz AS BS ON BS.RecordID = BW.SeizoenID'
 				  . ' WHERE EINDE_PER >= CURDATE() AND %3$s ORDER BY BEGIN_PER;', $fdlang, $table_prefix, "Lid=%d");
@@ -318,7 +318,7 @@ class Mailing {
 			$this->MergeField[]=array('Naam' => "VerschilSportlink", 'SQL' => $sql);
 		}
 		
-		if ($_SESSION['aantalrollen'] > 0) {
+		if (db_onderdelen("aantalingebruik", "R") > 0) {
 			$sql = sprintf("SELECT O.Naam FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID = LO.OnderdeelID 
 					 WHERE %2\$s AND `Type`='R' AND LO.Lid=%%d ORDER BY O.Naam;", $table_prefix, $wherelidond);
 			$this->MergeField[]=array('Naam' => "Rollen", 'SQL' => $sql);
@@ -550,7 +550,7 @@ class Mailing {
 			
 				$selgr = "<select name='sel_groep'>\n
 							<option value=0>&nbsp;</option>\n";
-				foreach(db_onderdelen("lijst") as $grp) {
+				foreach(db_onderdelen("lijstingebruik") as $grp) {
 					$selgr .= sprintf("<option value=%d>%s</option>\n", $grp->RecordID, $grp->Oms);
 				}
 				$selgr .= "</select>\n";
