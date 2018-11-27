@@ -1,9 +1,5 @@
 <!DOCTYPE HTML>
-
 <?php
-date_default_timezone_set('Europe/Amsterdam');
-setlocale(LC_ALL,'nl_NL@euro');
-
 	if (isset($_GET['tp'])) {
 		$currenttab = $_GET['tp'];
 	} else {
@@ -18,10 +14,10 @@ setlocale(LC_ALL,'nl_NL@euro');
 	
 	printf("<html lang='nl'>
 <head>
-<meta charset='ISO-8859-1'>
-<meta name='robots' content='index,follow'>
-<title>phpRBM | Handleiding | %s</title>
-<link rel='stylesheet' href='default.css'>
+	<meta name='robots' content='index,follow'>
+	<meta charset='ISO-8859-1'>
+	<title>phpRBM | Handleiding | %s</title>
+	<link rel='stylesheet' href='http:///phprbm.telling.nl/stylesheets/default.css'>
 </head>
 <body>
 <div id='container'>
@@ -109,26 +105,14 @@ Verder hoeven er bij deze mailings geen ontvangers toegevoegd te worden en zijn 
 
 De volgende templates zijn beschikbaar, deze staan in de folder 'templates'.
 <ul>
-<li>bevestiging_login.html</li>
 <li>briefpapier.html</li>
 <li>opzegging.html</li>
 <li>rekening.html</li>
 <li>verenigingsinfo.html</li>
 </ul>
 
-<h2>bevestiging_login</h2>
-<p>Dit is de mail die gestuurd wordt als iemand zijn login aanvraagt.</p>
-De volgende template-specifieke velden zijn beschikbaar.
-<ul>
-<li>[%LOGIN%]</li>
-<li>[%PASSWORD%]</li>
-<li>[%GEBLOKKEERD%]: hierin komt een tekst als de login geblokkeerd is</li>
-<li>[%IPADDRESS%]: het ip-adres waarvan dit verzoek is gedaan</li>
-</ul>
-<p>Bij het versturen wordt de template 'briefpapier' gebruikt.</p>
-
 <h2>briefpapier</h2>
-<p>Dit is de template voor de mailings en deze wordt ook gebruikt voor het versturen van de aangevraagde logins. Het stuk tekst dat tussen &lt;!-- Aamhef --> en &lt;!-- /Aanhef --> staat wordt bij het mailen van de rekeningen verwijderd.</p>
+<p>Dit is de template voor de mailings en deze wordt ook gebruikt voor het versturen van de aangevraagde logins.</p>
 
 De volgende velden zijn beschikbaar.
 <ul>
@@ -137,7 +121,7 @@ De volgende velden zijn beschikbaar.
 <li>[%SUBJECT%]</li>
 <li>[%MESSAGE%]</li>
 </ul>
-De namen spreken voor zich, bij from en to zijn het niet de e-mailadressen, maar de namen van de verzenders en ontvangers. Verder zijn er nog ruim 25 velden in de mailingsmodule zelf beschikbaar. Deze zijn op de ge-adresseerde ge&euml;nt.
+De namen spreken voor zich, bij from en to zijn het niet de e-mailadressen, maar de namen van de verzenders en ontvangers. Verder zijn er nog ruim 25 velden in de mailingsmodule zelf beschikbaar. Deze zijn op de ge-adresseerde ge&euml;nt. Wat tussen <!-- Aanhef -->' en '<!-- /Aanhef -->' wordt verwijderd bij het versturen van de rekening. Dit om een dubbele aanhef te voorkomen.
 
 <h2>opzegging</h2>
 <p>Deze template wordt gebruikt om het formulier voor het opzeggen van het lidmaatschap van de vereniging te regelen. Mocht u deze niet beschikbaar hebben dan wordt een standaardformulier gebruikt.<p>
@@ -149,7 +133,7 @@ De volgende template-specifieke velden zijn beschikbaar.
 </ul>
 
 <h2>rekening</h2>
-<p>Deze template wordt gebruikt om de rekening op te maken, zowel in het scherm als in een mailing. De template voor rekeningen kan seizoen-specifiek worden gemaakt. Dit kan gedaan worden door in de naam van de template het nummer van seizoen op te nemen. Bijvoorbeeld: rekening 2012.html.</p>
+<p>Deze template wordt gebruikt om de rekening op te maken, zowel in het scherm als in een mailing. Door in de naam het seizoen te vermelden kan de template seizoen specifiek worden gemaakt. Bijvoorbeeld: rekening 2018.html. Zo kan je voorkomen dat als iemand een oude rekening opvraagt hij of zij ineens de aangepaste betalingsregels op die oude rekening ziet. Er zijn voorbeelden op GitHub beschikbaar.</p>
 
 De volgende template-specifieke velden zijn beschikbaar.
 <ul>
@@ -167,7 +151,15 @@ De volgende template-specifieke velden zijn beschikbaar.
 <li>[%BETAALD%]: het bedrag dat al betaald is op deze rekening</li>
 <li>[%OPENSTAAND%]: het bedrag dat op deze rekening nog open staat</li>
 </ul>
-De tekst tussen &lt;!-- Geen machtiging --> en &lt;!-- /Geen machtiging --> wordt alleen getoond als het lid geen machtiging heeft afgegegeven. De tekst tussen &lt;!-- Wel machtiging --> en &lt;!-- /Wel machtiging --> wordt alleen getoond als het lid juist wel machtiging heeft afgegegeven. 
+<p>De volgende mogelijkheden om teksten variabel te maken zijn er.</p>
+<ul>
+<li>De tekst tussen &lt;!-- Geen machtiging --> en &lt;!-- /Geen machtiging --> wordt alleen getoond als het lid geen machtiging heeft afgegegeven.</li>
+<li>De tekst tussen &lt;!-- Wel machtiging --> en &lt;!-- /Wel machtiging --> wordt alleen getoond als het lid juist wel machtiging heeft afgegegeven.</li>
+<li>De tekst tussen &lt;!-- NietOpNulRekening --> en &lt;!-- /NietOpNulRekening --> wordt verwijderd als het totaal van de rekening nul is.</li>
+<li>De tekst tussen &lt;!-- NietOpDebet --> en &lt;!-- /NietOpDebet --> wordt verwijderd als het totaal van de rekening groter dan nul is.</li>
+<li>De tekst tussen &lt;!-- NietOpCredit --> en &lt;!-- /NietOpCredit --> wordt verwijderd als het totaal van de rekening kleiner dan nul is.</li>
+<li>De tekst tussen &lt;!-- NietOpVolledigBetaald --> en &lt;!-- /NietOpVolledigBetaald --> wordt verwijderd als de rekening volledig betaald is.</li>
+</ul>
 
 <h2>verenigingsinfo</h2>
 <p>Dit is de inhoud van de introductiepagina. Hier kan bijvoorbeeld een vereniging iets over zichzelf of de website vertellen en hoe de ondersteuning is geregeld.</p>
@@ -190,7 +182,7 @@ De tekst tussen &lt;!-- Geen machtiging --> en &lt;!-- /Geen machtiging --> word
 	<li>Komende evenementen: [%KOMENDEEVENEMENTEN%]</li>
 	<li>Waarschuwing diploma's die recent vervallen zijn of binnenkort vervallen: [%VERVALLENDIPLOMAS%]</li>
 </ul>
-Bij verenigingsinfo is het mogelijk om bepaalde stukken tekst alleen te tonen als een gebruiker ingelogd is. Dit doe je door deze stukken tussen &lt;!--&nbsp;Ingelogd&nbsp;--&gt; en &lt;!--&nbsp;/Ingelogd&nbsp;--&gt; te plaatsen. Dit zelfse kan je doen voor de webmaster door Ingelogd door Webmaster te vervangen.
+Bij verenigingsinfo is het mogelijk om bepaalde stukken tekst alleen te tonen als een gebruiker ingelogd is. Dit doe je door deze stukken tussen &lt;!--&nbsp;Ingelogd&nbsp;--&gt; en &lt;!--&nbsp;/Ingelogd&nbsp;--&gt; te plaatsen.
 
 <h2>Overzicht meerdere keren gebruikte velden</h2>
 Hieronder volgt een overzicht van de velden die in meerdere templates gebruikt worden.
@@ -246,18 +238,18 @@ Hieronder volgt een overzicht van de velden die in meerdere templates gebruikt w
 <h2>Minimale systeemeisen</h2>
 De server waar je website op draait moet minimaal de volgende zaken beschikbaar hebbben.
 <ul>
-<li><a href='http://www.php.net'>PHP</a> 7.1.x</li>
+<li><a href='http://www.php.net'>PHP</a> 7</li>
 <li><a href='http://www.mysql.com/'>MySQL</a>-server 5.5 of nieuwer of een gelijkwaardig alternatief, zoals MariaDB</li>
 <li>Mogelijkheid om e-mails te kunnen versturen.</li>
 </ul>
 
 <h2>Alternatief voor MySQL</h2>
-<p>MySQL kan ook vervangen worden door een compatibel product, deze alternatieven hebben vaak een betere performance. Het is voor mij niet doenlijk om deze allemaal te testen. Op MariaDB 5.5 is het pakket wel getest en daar werkt het prima op. Mocht je een foutmelding tegen komen op één van de alternatieven, dan kan je die uiteraard via GitHub melden. Graag met de SQL-code, die de fout veroorzaakt, deze code is vaak in de logging te vinden.</p>
+<p>MySQL kan ook vervangen worden door een compatibel product, deze alternatieven hebben vaak een betere performance. Het is voor mij niet doenlijk om deze allemaal te testen. Op MariaDB 10 is het pakket wel getest en daar werkt het prima op. Mocht je een foutmelding tegen komen op &eacute;&eacute;n van de alternatieven, dan kan je die uiteraard via GitHub melden. Graag met de SQL-code, die de fout veroorzaakt, deze code is vaak in de logging te vinden.</p>
 
 <h2>Hoe tabellen uploaden?</h2>
 Het uploaden de gegevens uit de Access-database naar de MySQL-database kan op verschillende manieren. Voor het pakket maakt het niet uit welke je kiest, zolang de beide structuren maar exact gelijk zijn.
 <ul>
-<li>Gebruik maken van <a href='http://software.telling.nl/#MSA2MySQL'>MSA2MySQL</a>. Dit tooltje kan onder andere vanuit een Access-database een export maken. In deze export staan SQL-statements die in een MySQL-database geïmporteerd kunnen worden. Voor dit importeren kan je gebruik maken van Uploaden data (Beheerdersmenu) of bijvoorbeeld <a href='http://www.phpmyadmin.net'>phpMyAdmin</a>.</li>
+<li>Gebruik maken van <a href='http://software.telling.nl/#MSA2MySQL'>MSA2MySQL</a>. Dit tooltje kan onder andere vanuit een Access-database een export maken. In deze export staan SQL-statements die in een MySQL-database ge-importeerd kunnen worden. Voor dit importeren kan je gebruik maken van Uploaden data (Beheerdersmenu) of bijvoorbeeld <a href='http://www.phpmyadmin.net'>phpMyAdmin</a>.</li>
 <li>Je kan gebruik maken van een sychronisatietool, zoals <a href='http://www.dbconvert.com/convert-access-to-mysql-pro.php'>DB Convert</a>.</li>
 <li>Je kan zelf een export/import bouwen. De benodigde tabellen om deze gegevens in te importeren worden automatisch door phpRBM aangemaakt.</li>
 </ul>
@@ -322,13 +314,12 @@ De tabellen met een sterretje moeten minimaal ge-upload worden. Deze zijn nameli
 <li>Optioneel: foto's van kaderleden updaten en aanvullen. Deze worden namelijk zichtbaar op de website.</li>
 <li>Bepaal wie het beheer gaat doen, dit kunnen ook meerdere mensen zijn.</li>
 <li>Optioneel: maak een eigen stylesheet om de website de look en feel van de vereniging te geven. Er zijn twee stylesheets, default.css en kleur.css. De gedachte is dat de default ongewijzigd gelaten wordt. Alle aanpassingen kunnen in kleur.css gedaan worden. Deze heet kleur, omdat dit voornamelijk aanpassingen in de kleuren zullen zijn. Het is technisch geen probleem om ook andere zaken, bijvoorbeeld de breedte van het scherm, hier aan te passen.</li>
-<li>Maak een templates voor briefpapier en bevestigingsmail van de login.</li>
+<li>Maak een template voor briefpapier.</li>
 </ul>
 
 <h2>Config.php</h2>
 <p>In config.php kunnen de nodige zaken ingesteld worden. Een aantal zaken die hierin geregeld worden zijn:</p>
 <ul>
-<li>De encrypt_key voor de opslag van wachtwoorden. Wijzig deze gelijk, want later kan dit niet meer.</li>
 <li>Host, login, wachtwoord van de MySQL-server en SMTP-server</li>
 <li>Prefix voor tabelnamen, deze prefix moet op een underscore eindigen</li>
 <li>De webmasters</li>
@@ -364,15 +355,15 @@ De beheerder kan dan beslissen of deze verbeteringen de moeite waard zijn om de 
 <li>Het bewakingsrooster kan op verschillende manieren bekeken worden, ook kunnen hierbij de pasfoto's getoond worden.</li>
 <li>Er kan een kostenoverzicht gemaakt worden, zodat commissies zelf kunnen kijken wat er op hun kostenplaats geboekt is en wat de laatste stand van zaken is.</li>
 <li>Mogelijkheid voor leden hun eigen gegevens online te wijzigen. Het gaat hierbij om algemene gegevens, behaalde diploma, het kunnen uploaden van een (nieuwe) pasfoto en opzeggen van het lidmaatschap.</li>
-<li>Muteren van een beperkt aantal gegevens, o.a. persoonlijke gegevens, diploma's en pasfoto.</li>
+<li>Muteren van een beperkt aantal gegevens, o.a. persoonlijke gegevens, diploma's en pasfoto van andere leden.</li>
 <li>Interface om de online wijzigingen in de Access-database te verwerken.</li>
-<li>Online leden in laten schrijven voor een bewaking.</li>
+<li>Leden online in laten schrijven voor een bewaking.</li>
 <li>Beheren van evenementen, inclusief online inschrijving.</li>
 <li>Beperkte webshop voor leden, zonder betalingsmogelijkheid.</li>
 </ul>
 
 <h2>Hoe werkt het voor een gebruiker?</h2>
-<p>Om te beginen heeft een gebruiker een moderne browser nodig, het pakket is getest op <a href='http://www.mozilla.com/nl/firefox/'>Firefox >= 61</a> en <a href='http://www.google.com/chrome/'>Chrome >= 67</a>. Andere en/of oudere versies waarschijnlijk werken ook wel, maar een aantal zaken zien er minder fraai uit en daar heb ik de website niet in getest. Verder moet elke gebruiker een login aanvragen, dit kan op basis van het in database bekende e-mailadres. Hierna wordt de login per e-mail opgestuurd.<p>
+<p>Om te beginen heeft een gebruiker een moderne browser nodig, het pakket is getest op <a href='http://www.mozilla.com/nl/firefox/'>Firefox >= 63</a> en <a href='http://www.google.com/chrome/'>Chrome >= 67</a>. Andere browsers en/of oudere versies waarschijnlijk werken ook wel, maar een aantal zaken zien er minder fraai uit en daar heb ik de website niet in getest. Verder moet elke gebruiker een login aanvragen, dit kan op basis van het in database bekende e-mailadres. Hierna wordt een mail gestuurd om deze aanmelding te bevestigingen. Pas nadat de login is bevestigd kan deze worden gebruikt.<p>
 
 <h2>Aanpassen aan de specifieke wensen van een reddingsbrigade</h2>
 Elke vereniging heeft haar eigen huisstijl. Dit is prima inpasbaar in dit pakket gemaakt. Er zijn de volgende opties.
@@ -396,7 +387,7 @@ Elke vereniging heeft haar eigen huisstijl. Dit is prima inpasbaar in dit pakket
 <div id='footer'>
 	<div id='footerleft'>&copy;&nbsp;<a href='http://www.telling.nl/' target='_top'>S. telling</a></div>
 	<a href='http://http://phprbm.telling.nl/uitleg.php'>phpRBM</a>
-	<div id='footerright'><? echo(strftime("%e %B %Y", filectime($_SERVER['SCRIPT_FILENAME']))); ?></div>
+	<div id='footerright'><?php echo(strftime("%e %B %Y", filectime($_SERVER['SCRIPT_FILENAME']))); ?></div>
 </div>  <!-- Einde footer  -->
 
 </div>  <!-- Einde container -->
