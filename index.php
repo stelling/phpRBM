@@ -12,7 +12,7 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 	setcookie("password", "", time()-3600);
 	$_SESSION['lidid'] = 0;
 	$_SESSION['webmaster'] = 0;
-	unset($_SESSION['toegang']);
+	echo("<script>location.href='/'; </script>\n");
 } else if ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['Inloggen']) and $_POST['Inloggen'] == "Inloggen") {
 	if (strlen($_POST['password']) < 5) {
 		$mess = "Om in te loggen is het invullen van een wachtwoord van minimaal 5 karakters vereist.";
@@ -286,7 +286,7 @@ function fnKostenoverzicht() {
 	echo("</form>\n");
 	echo("</div>  <!-- Einde filter -->\n");
 
-	echo(fnDisplayTable(db_mutatie($val_jaarfilter, $val_gbrfilter, $val_kplfilter), "", "", 1));
+	echo(fnDisplayTable(db_mutatie("lijst", $val_jaarfilter, $val_gbrfilter, $val_kplfilter), "", "", 1));
 }
 
 ?>
