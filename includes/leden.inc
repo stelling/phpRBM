@@ -81,10 +81,10 @@ function fnWijzigen($lidid=0, $actie="") {
 			echo("</div>  <!-- Einde bijzonderhedenwijzigen -->\n");
 
 		} elseif ($actie == "Opzegging") {
-				opzegginglidmaatschap($_SESSION['lidid']);
+			opzegginglidmaatschap($_SESSION['lidid']);
 				
 		} elseif ($actie == "Lidmaatschap") {
-				lidmaatschapmuteren($lidid);
+			lidmaatschapmuteren($lidid);
 			
 		} elseif ($actie == "Wijzigen wachtwoord") {
 		
@@ -134,10 +134,10 @@ function fnWijzigen($lidid=0, $actie="") {
 				</div>  <!-- Einde profielwijzigen -->");
 			}	
 		} else {
-			echo("<p class='mededeling'>Deze optie bestaat niet.</p>\n");
+			printf("<p class='mededeling'>Actie '%s' bestaat niet.</p>\n", $actie);
 		}
 	} else {
-		echo("<p class='mededeling'>Er is geen lid geselecteerd.</p>\n4");
+		echo("<p class='mededeling'>Er is geen lid geselecteerd.</p>\n");
 	}
 } # fnWijzigen
 
@@ -487,7 +487,7 @@ function fnEigenGegevens($lidid=0, $actie="") {
 function fnSelectListGroepen($cv=0) {
 
 	$ret = "<option value=0>** Iedereen **</option>\n";
-	$rows = db_Onderdelen("lijst");
+	$rows = db_Onderdelen("lijstingebruik");
 	foreach ($rows as $row) {
 		if ($cv == $row->RecordID) {$s = " selected";} else {$s = "";}
 		$ret .= sprintf("<option%s value=%d>%s</option>\n", $s, $row->RecordID, htmlentities($row->Oms));
