@@ -103,26 +103,6 @@ if (!isset($_SESSION['aantallogin']) or $_SESSION['aantallogin'] < 5) {
 	$_SESSION['aantallogin'] = db_logins("aantal");
 }
 
-if (!isset($_SESSION['aantalafdelingen'])) {
-	$query = sprintf("SELECT COUNT(*) FROM %sOnderdl WHERE `Type`='A';", $table_prefix);
-	$_SESSION['aantalafdelingen'] = db_scalar($query);
-}
-
-if (!isset($_SESSION['aantalrollen'])) {
-	$query = sprintf("SELECT COUNT(*) FROM %sOnderdl WHERE `Type`='R';", $table_prefix);
-	$_SESSION['aantalrollen'] = db_scalar($query);
-}
-
-if (!isset($_SESSION['aantaltoestemmingen'])) {
-	$query = sprintf("SELECT COUNT(*) FROM %sOnderdl WHERE `Type`='T';", $table_prefix);
-	$_SESSION['aantaltoestemmingen'] = db_scalar($query);
-}
-
-if (!isset($_SESSION['aantalbewaking'])) {
-	$query = sprintf("SELECT COUNT(*) FROM %sBewseiz;", $table_prefix);
-	$_SESSION['aantalbewaking'] = db_scalar($query);
-}
-
 if (!isset($_SESSION['aantalrekeningen']) or $_SESSION['aantalrekeningen'] == 0) {
 	$query = sprintf("SELECT COUNT(*) FROM %sRekening;", $table_prefix);
 	$_SESSION['aantalrekeningen'] = db_scalar($query);
@@ -134,17 +114,7 @@ if (!isset($_SESSION['aantalrekeningen']) or $_SESSION['aantalrekeningen'] == 0)
 	}
 }
 
-if (!isset($_SESSION['aantalmutaties'])) {
-	$query = sprintf("SELECT COUNT(*) FROM %sMutatie;", $table_prefix);
-	$_SESSION['aantalmutaties'] = db_scalar($query);
-}
-
-if (!isset($_SESSION['aantalkostenplaatsen'])) {
-	$query = sprintf("SELECT COUNT(DISTINCT KostenplaatsID) FROM %sMutatie WHERE KostenplaatsID > 0;", $table_prefix);
-	$_SESSION['aantalkostenplaatsen'] = db_scalar($query);
-}
 $pts = db_param("performance_trage_select");
-
 function fnQuery($query, $logtype=0) {
 	global $dbc, $pts;
 	
@@ -281,6 +251,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 								IF(ISNULL(L.BezwaarMachtiging), 'Nee', DATE_FORMAT(L.BezwaarMachtiging, %s)) AS `Bezwaar machtiging incasso`
 								FROM %sLid AS L
 								WHERE L.Nummer=%d;", $fdlang, $table_prefix, $LidID);
+								
 	} elseif ($soort == "Afdelingen") {
 		$query = sprintf("SELECT O.Kode AS Code,
 					O.Naam,
@@ -292,6 +263,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					FROM %s
 					WHERE O.`Type`='A' AND LO.Lid=%d
 					ORDER BY LO.Vanaf DESC, O.Naam;", $fromlidond, $LidID);
+					
 	} elseif ($soort == "Kader") {
 		$query = sprintf("SELECT O.Kode AS Code,
 					O.Naam,
@@ -303,6 +275,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					FROM %s
 					WHERE O.Kader=1 AND LO.Lid=%d
 					ORDER BY IF(ISNULL(LO.Opgezegd), 0, 1), LO.Vanaf DESC, O.Naam;", $fromlidond, $LidID);
+					
 	} elseif ($soort == "Rollen") {
 		$query = sprintf("SELECT O.Kode AS Code, 
 					O.Naam AS Omschrijving, 
@@ -329,6 +302,10 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					FROM %s
 					WHERE O.`Type`='T' AND LO.Lid=%d
 					ORDER BY IF(ISNULL(LO.Opgezegd), 0, 1), LO.Vanaf, O.Kode;", $fromlidond, $LidID);
+					
+		$sq = sprintf("(SELECT IFNULL(MAX(Vanaf), 'Nee') FROM %sLidond AS LO WHERE %s AND LO.Lid=%d AND LO.OnderdeelID=O.RecordID)", $table_prefix, $wherelidond, $LidID);
+		$query = sprintf("SELECT O.Naam AS Omschrijving, CONCAT(O.MaximaleLengtePeriode, ' maanden') AS Geldigheid, %s AS `Afgegeven op` FROM %sOnderdl AS O WHERE ((O.VervallenPer IS NULL) OR O.VervallenPer >= CURDATE()) AND Type='T'", $sq, $table_prefix);
+					
 	} elseif ($soort == "Lidbew") {
 		$tw = sprintf("CONVERT((SELECT SUM(DATEDIFF(EINDE_PER, BEGIN_PER)+1) FROM %sBewaking AS BW WHERE BW.Lid = %d AND BEGIN_PER < SYSDATE())/7, SIGNED)", $table_prefix, $LidID);
 		$ts = sprintf("(SELECT COUNT(DISTINCT SeizoenID) FROM %sBewaking AS BW WHERE BW.Lid = %d AND BEGIN_PER < CURDATE())", $table_prefix, $LidID);
@@ -779,6 +756,16 @@ function db_authorisation($actie, $recid=0, $tabpage="") {
 	}
 } # db_authorisation
 
+function db_bewseiz($actie) {
+	global $table_prefix;
+	
+	if ($actie == "aantal") {
+		$query = sprintf("SELECT COUNT(*) FROM %sBewseiz;", $table_prefix);
+		return db_scalar($query);
+	}
+	
+} # db_bewseiz
+
 function db_bewaking($actie, $seizoen=-1, $lidid=-1, $week=-1) {
 	global $table_prefix, $selectnaam;
 	
@@ -791,10 +778,12 @@ function db_bewaking($actie, $seizoen=-1, $lidid=-1, $week=-1) {
 		$query = sprintf("SELECT COUNT(*) FROM %sBewaking AS BW WHERE BW.Lid=%d %s;", $table_prefix, $lidid, $xtrawhere);
 		$result = fnQuery($query);
 		return $result->fetchColumn();
+		
 	} elseif ($actie == "huidigeweek") {
 		$query = sprintf("SELECT IFNULL(MIN(WeekNr), 0) FROM %sBewaking
 								WHERE SeizoenID=%d AND BEGIN_PER <= CURDATE() AND EINDE_PER >= CURDATE();", $table_prefix, $seizoen);
 		return db_scalar($query);
+		
 	} else {
 		if ($actie == "aantallen") {
 			$query = sprintf("SELECT ST_LEN_BP FROM %sBewseiz WHERE RecordID=%d;", $table_prefix, $seizoen);
@@ -1079,6 +1068,53 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 	}
 }
 
+function db_onderdelen($actie, $type="", $lidid=0) {
+	global $fromlidond, $wherelidond, $table_prefix;
+	
+	if ($actie == "aantal" or $actie == "aantalingebruik") {
+		$sel = "COUNT(DISTINCT O.RecordID)";
+	} else {
+		$sel = "DISTINCT O.RecordID, CONCAT(LEFT(O.Naam, 30), ' (', O.Kode, ')') AS Oms, O.Naam, O.Kode";
+	}
+	
+	$where = "";
+	if ($type == "bw") {
+		$where = "O.`Tonen in bewakingsadministratie`=1";
+	} elseif ($type == "kad") {
+		$where = "O.Kader=1";
+	} elseif (strlen($type) > 0) {
+		$where = sprintf("O.`Type`='%s'", $type);
+	}
+	if ($actie == "lijstingebruik" or $actie == "aantalingebruik" or $lidid > 0) {
+		if (strlen($where) > 0) {
+			$where .= " AND ";
+		}
+		if ($lidid > 0) {
+			$where = sprintf("O.RecordID IN (SELECT LO.OnderdeelID FROM %sLidond AS LO WHERE %s AND LO.Lid=%d)", $table_prefix, $wherelidond, $lidid);
+		} else {
+			$where = sprintf("O.RecordID IN (SELECT LO.OnderdeelID FROM %sLidond AS LO WHERE %s)", $table_prefix, $wherelidond);
+		}
+	}
+	
+	if (strlen($where) > 0) {
+		$where = "WHERE " . $where;
+	}
+	
+	$query = sprintf("SELECT %s FROM %sOnderdl AS O %s ORDER BY", $sel, $table_prefix, $where);
+	if ($actie == "lijstopkode") {
+		$query .= " O.Kode;";
+	} else {
+		$query .= " O.Naam, O.Kode;";
+	}
+	$result = fnQuery($query);
+	
+	if ($actie == "aantal") {
+		return $result->fetchColumn();
+	} else {	
+		return $result->fetchAll();
+	}
+} # db_onderdelen
+
 function db_lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0) {
 	global $selectnaam, $selectzoeknaam, $table_prefix, $fromlidond, $wherelidond, $selectlidnr, $fdaccess;
 	
@@ -1161,20 +1197,11 @@ function db_lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0) {
 			return false;
 		}
 		
-	} elseif ($actie == "update") {
-		if ($lidid > 0 and $onderdlid > 0) {
-			$query = sprintf("SELECT COUNT(*) FROM %sLidond AS LO WHERE %s AND Lid=%d AND OnderdeelID=%d AND Vanaf=CURDATE();", $table_prefix, $wherelidond, $lidid, $onderdlid);
-			if (db_scalar($query) == 0) {
-				db_lidond("delete", $lidid, "", "", $onderdlid);
-				db_lidond("add", $lidid, "", "", $onderdlid);
-			}
-		}
-		
 	} elseif ($actie == "delete") {
 		$query = sprintf("UPDATE %sLidond SET Opgezegd=DATE_SUB(CURDATE(), INTERVAL 1 DAY), Gewijzigd=SYSDATE() WHERE Lid=%d AND OnderdeelID=%d AND ((Opgezegd IS NULL) OR Opgezegd >= CURDATE());", $table_prefix, $lidid, $onderdlid);
 		$result = fnQuery($query);
 		if ($result > 0) {
-			$sql = sprintf("UPDATE Lidond SET Opgezegd=#%1\$s#, Gewijzigd=Now() WHERE Lid=%d AND OnderdeelID=%d AND ((Opgezegd IS NULL) OR Opgezegd > #%1\$s#);", strftime($fdaccess), $lidid, $onderdlid);
+			$sql = sprintf("UPDATE Lidond SET Opgezegd=#%1\$s#, Gewijzigd=Now() WHERE Lid=%2\$d AND OnderdeelID=%3\$d AND ((Opgezegd IS NULL) OR Opgezegd > #%1\$s#);", strftime($fdaccess), $lidid, $onderdlid);
 			db_interface("add", $sql, $lidid);
 		}
 		return $result;
@@ -1528,36 +1555,6 @@ function db_change_password($pw_new, $pw_old, $lidid) {
 	return $mess;
 } # db_change_password
 
-function db_onderdelen($actie="lijst", $type="") {
-	global $fromlidond, $wherelidond;
-	
-	if ($actie == "aantal") {
-		$sel = "COUNT(DISTINCT O.RecordID)";
-	} else {
-		$sel = "DISTINCT O.RecordID, CONCAT(LEFT(O.Naam, 30), ' (', O.Kode, ')') AS Oms, O.Naam, O.Kode";
-	}
-	
-	$where = $wherelidond;
-	if ($type == "bw") {
-		$where = $where . " AND O.`Tonen in bewakingsadministratie`=1";
-	} elseif (strlen($type) > 0) {
-		$where = $where . sprintf(" AND O.`Type`='%s'", $type);
-	}
-	$query = sprintf("SELECT %s FROM %s WHERE %s ORDER BY", $sel, $fromlidond, $where);
-	if ($actie == "lijstopkode") {
-		$query .= " O.Kode;";
-	} else {
-		$query .= " O.Naam, O.Kode;";
-	}
-	$result = fnQuery($query);
-	
-	if ($actie == "aantal") {
-		return $result->fetchColumn();
-	} else {	
-		return $result->fetchAll();
-	}
-} # db_onderdelen
-
 function db_naam_onderdeel($rid, $rin="Onbekend") {
 	global $table_prefix;
 
@@ -1865,25 +1862,33 @@ function db_mailing_hist($actie, $lidid=0, $mhid=0, $mid=0) {
 				 
 } # db_mailinghist
 
-function db_mutatie($jaar, $gbr="*", $kpl="*") {
+function db_mutatie($actie, $jaar=0, $gbr="*", $kpl="*") {
 	global $table_prefix;
 	
-	$sel_kpl = "";
-	$where = sprintf("M.BoekjaarID=%d", $jaar);
-	if ($gbr != "*" and strlen($gbr) > 0) {
-		$where .= sprintf(" AND M.GBR='%s'", $gbr);
-	}
-	if ($kpl != "*" and strlen($kpl) > 0 and is_numeric($kpl)) {
-		$where .= sprintf(" AND M.KostenplaatsID=%d", $kpl);
-	} elseif ($_SESSION['aantalkostenplaatsen'] > 0) {
-		$sel_kpl = ", KPL.Kode AS Kostenplaats";
-	}
+	if ($actie == "aantal") {
+		$query = sprintf("SELECT COUNT(*) FROM %sMutatie;", $table_prefix);
+		return db_scalar($query);
+		
+	} elseif ($actie == "lijst") {
+		$sel_kpl = "";
+		$where = sprintf("M.BoekjaarID=%d", $jaar);
+		if ($gbr != "*" and strlen($gbr) > 0) {
+			$where .= sprintf(" AND M.GBR='%s'", $gbr);
+		}
+		if ($kpl != "*" and strlen($kpl) > 0 and is_numeric($kpl)) {
+			$where .= sprintf(" AND M.KostenplaatsID=%d", $kpl);
+		} elseif ($_SESSION['aantalkostenplaatsen'] > 0) {
+			$sel_kpl = ", KPL.Kode AS Kostenplaats";
+		}
 
-	$query = sprintf("SELECT J.Kode AS Jaar, CONCAT(GBR.Kode, ' - ', GBR.OMSCHRIJV) AS Grootboekrekening%1\$s, Datum AS dteDatum, M.OMSCHRIJV AS Omschrijving, Debet-Credit AS curBedrag
+		$query = sprintf("SELECT J.Kode AS Jaar, CONCAT(GBR.Kode, ' - ', GBR.OMSCHRIJV) AS Grootboekrekening%1\$s, Datum AS dteDatum, M.OMSCHRIJV AS Omschrijving, Debet-Credit AS curBedrag
 							FROM ((%2\$sMutatie AS M LEFT OUTER JOIN %2\$sKostenplaats AS KPL ON M.KostenplaatsID = KPL.RecordID) INNER JOIN %2\$sGBR AS GBR ON M.GBR = GBR.Kode) INNER JOIN %2\$sBoekjaar AS J ON M.BoekjaarID = J.RecordID WHERE %3\$s
 							ORDER BY J.Kode, GBR.Kode, KPL.Kode, Datum;", $sel_kpl, $table_prefix, $where);
-	$result = fnQuery($query);
-	return $result->fetchAll();
+		$result = fnQuery($query);
+		return $result->fetchAll();
+	} else {
+		sprintf("<p class='mededeling'>Actie '%s' bestaat niet.</p>", $actie);
+	}
 }
 
 function db_boekjaar() {
@@ -1962,12 +1967,16 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0, $referid=0, $ipf
 		
 	} elseif ($actie == "opschonen") {
 		if (db_param("logboek_bewaartijd") > 0) {
-			$query = sprintf("DELETE FROM %sAdmin_activiteit WHERE TypeActiviteit<>1 AND DatumTijd < DATE_ADD(CURDATE(), INTERVAL -%d MONTH);", $table_prefix, db_param("logboek_bewaartijd"));
+			$query = sprintf("DELETE FROM %sAdmin_activiteit WHERE DatumTijd < DATE_ADD(CURDATE(), INTERVAL -%d MONTH);", $table_prefix, db_param("logboek_bewaartijd"));
 			fnQuery($query, 2);
 		}
+				
+	} elseif ($actie == "debugopschonen") {
+		$query = sprintf("DELETE FROM %sAdmin_activiteit WHERE TypeActiviteit=99 AND LidID=%d;", $table_prefix, $_SESSION['lidid']);
+		fnQuery($query, 2);
 		
 	} elseif ($actie == "lijst") {
-		if ($type == -1) {
+		if ($type < 0) {
 			$s = ", TypeActiviteit AS `Type`";
 		} else {
 			$s = "";
@@ -1979,10 +1988,10 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0, $referid=0, $ipf
 			$s .= ", Script, RefFunction AS Functie";
 		}
 		if ($lidid > 0) {
-			$w .= sprintf(" AND (LidID=%1\$d OR (TypeActiviteit IN (1, 6, 8, 10, 12) AND ReferID=%1\$d)) AND TypeActiviteit < 98", $lidid);
+			$w .= sprintf(" AND (LidID=%1\$d OR (TypeActiviteit IN (1, 6, 8, 10, 12, 16) AND ReferID=%1\$d)) AND TypeActiviteit < 98", $lidid);
 		}
 		$s .= sprintf(", %s AS `Ingelogd Lid`", $selectnaam);
-	
+
 		$query = sprintf("SELECT A.DatumTijd as `dtsDatum en tijd`, Omschrijving%1\$s
 								FROM %2\$sAdmin_activiteit AS A LEFT OUTER JOIN %2\$sLid AS L ON A.LidID = L.Nummer
 								WHERE %3\$s
@@ -2176,7 +2185,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 		db_logboek("add", $mess, 12, $lidid);
 		return $mess;
 		
-	} elseif ($actie == "lidgegevens" and $lidid > 0) {
+	} elseif ($actie == "lidgegevens") {
 		if (strlen($xtrafilter) > 1) {
 			$xtrafilter = "AND " . $xtrafilter;
 		}
@@ -2191,9 +2200,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
-	} elseif ($actie == "vervallenbinnenkort" and $lidid > 0) {
-		$termijn = db_param("termijnvervallendiplomasmelden");
-	
+	} elseif ($actie == "vervallenbinnenkort") {
 		$query = sprintf("SELECT D.Kode AS Code,"
 				 . " D.Naam AS Diploma,"
 				 . " LD.DatumBehaald AS DatumBehaald,"
@@ -2202,7 +2209,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 				 . " FROM %1\$sLiddipl AS LD INNER JOIN %1\$sDiploma AS D ON LD.DiplomaID=D.RecordID"
 				 . " WHERE D.Zelfservice=1 AND ((D.Vervallen IS NULL) OR D.Vervallen > CURDATE()) AND ((NOT LD.LicentieVervallenPer IS NULL) OR D.GELDIGH > 0) AND LD.Lid=%2\$d"
 				 . " AND IFNULL(LD.LicentieVervallenPer, DATE_ADD(LD.DatumBehaald, INTERVAL D.GELDIGH MONTH)) < DATE_ADD(CURDATE(), INTERVAL %3\$d MONTH) AND LD.LicentieVervallenPer > DATE_ADD(CURDATE(), INTERVAL -%3\$d MONTH)"
-				 . " ORDER BY D.Volgnr, D.Kode, LD.DatumBehaald DESC;", $table_prefix, $lidid, $termijn);
+				 . " ORDER BY D.Volgnr, D.Kode, LD.DatumBehaald DESC;", $table_prefix, $lidid, db_param("termijnvervallendiplomasmelden"));
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
@@ -2311,6 +2318,21 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 								ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectnaam, $table_prefix, $eventid, $xtra_where);
 		$result = fnQuery($query);
 		return $result->fetchAll();
+				
+	} elseif ($actie == "aantaldlnrs") {
+		if ($eventid > 0) {
+			$where = sprintf("WHERE ED.LidID=%d", $lidid);
+		} elseif ($eventid > 0) {
+			$where = sprintf("WHERE ED.EvenementID=%d", $eventid);
+		} elseif (strlen($stat) == 1) {
+			$where = sprintf("WHERE ED.Status='%s'", $stat);
+		} elseif (strlen($stat) > 1) {
+			$where = sprintf("WHERE ED.Status IN (%s)", $stat);
+		} else {
+			$where = "";
+		}
+		$query = sprintf("SELECT COUNT(*) FROM %sEvenement_Deelnemer AS ED %s;", $table_prefix, $where);
+		return db_scalar($query);
 		
 	} elseif ($actie == "potdeelnemers") {
 		$where = "";
@@ -2383,6 +2405,10 @@ function db_artikel($actie, $artikelid=0, $lidid=0) {
 		$query = sprintf("SELECT IF(LENGTH(Code)=0, RecordID, Code) FROM %sWS_Artikel WHERE RecordID=%d;", $table_prefix, $artikelid);
 		return db_scalar($query);
 		
+	} elseif($actie == "aantal") {
+		$query = sprintf("SELECT COUNT(*) FROM %sWS_Artikel;", $table_prefix);
+		return db_scalar($query);
+		
 	} elseif ($actie == "artikelbeschikbaar") {
 		$query = sprintf("SELECT * FROM %sWS_Artikel
 					WHERE BeschikbaarTot >= CURDATE() AND (BeperkTotGroep=0 OR BeperkTotGroep IN %s)
@@ -2427,7 +2453,7 @@ function db_artikel($actie, $artikelid=0, $lidid=0) {
 		$result = fnQuery($query, 10);
 
 	}
-}
+} # db_artikel
 
 function db_orderregel($actie, $lidid=0, $artikelid=0, $aantalbesteld=0, $filter="", $recordid=0, $ordernr=0) {
 	global $table_prefix, $selectnaam;
@@ -2475,10 +2501,15 @@ function db_orderregel($actie, $lidid=0, $artikelid=0, $aantalbesteld=0, $filter
 					ORDER BY A.Code, A.Omschrijving, A.Maat;", $table_prefix);
 		$result = fnQuery($query);
 		return $result->fetchAll();
+		
 	} elseif ($actie == "maxordernr") {
 		$query = sprintf("SELECT MAX(IFNULL(Ordernr, 0)) FROM %sWS_Orderregel;", $table_prefix);
 		$result = fnQuery($query);
 		return $result->fetchColumn();
+		
+	} elseif ($actie == "aantal") {
+		$query = sprintf("SELECT COUNT(*) FROM %sWS_Orderregel;", $table_prefix);
+		return db_scalar($query);
 		
 	} elseif ($actie == "add") {
 		$query = sprintf("INSERT INTO %sWS_Orderregel SET Lid=%d, Artikel=%d, AantalBesteld=%d, Ordernr=%d, Ingevoerd=CURDATE(), IngevoerdDoor=%d;", $table_prefix, $lidid, $artikelid, $aantalbesteld, $ordernr, $_SESSION['lidid']);
@@ -2531,9 +2562,9 @@ function db_orderregel($actie, $lidid=0, $artikelid=0, $aantalbesteld=0, $filter
 		}
 		return $mess;
 	}
-}
+} # db_orderregel
 
-function db_rekening($actie, $nr=0, $filter="") {
+function db_rekening($actie, $nr=0, $filter="", $lidid=0) {
 	global $table_prefix, $selectlidnr;
 	
 	if ($actie == "minnummer") {
@@ -2550,6 +2581,14 @@ function db_rekening($actie, $nr=0, $filter="") {
 		
 	} elseif ($actie == "maxdatum") {
 		$query = sprintf("SELECT MAX(Datum) FROM %sRekening;", $table_prefix);
+		return db_scalar($query);
+		
+	} elseif ($actie == "aantal") {
+		if ($lidid > 0) {
+			$query = sprintf("SELECT COUNT(*) FROM %sRekening WHERE Lid=%d;", $table_prefix, $lidid);
+		} else {
+			$query = sprintf("SELECT COUNT(*) FROM %sRekening;", $table_prefix);
+		}
 		return db_scalar($query);
 
 	} elseif ($actie == "hoofd" and $nr > 0) {
