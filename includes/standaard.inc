@@ -63,7 +63,7 @@ if (!isset($_SESSION['settings']['naamvereniging'])) {
 }
 if ($bestandsversie != db_param("versie")) {
 	db_createtables();
-	db_onderhoud();
+	db_onderhoud(2);
 	db_param("versie", "updval", $bestandsversie);
 }
 
@@ -541,12 +541,12 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 				foreach($row as $key => $value) {
 					if (strstr("dte, dtt, dtl, dts, boo, int, cur, eml, num, mrg", substr($key, 0, 3)) !== false) {
 						$hv .= sprintf("<th>%s</th>", str_replace("_", " ", substr($key, 3)));
-					} elseif (substr($key, 0, 3) == "lnk") {
+					} elseif (startwith($key, "lnk")) {
 						if (strlen($link) > 1) {
 							$hv .= "<th>&nbsp;</th>";
 							$ktot[] = "geen";
 						}
-					} elseif (substr($key, 0, 3) == "llk") {
+					} elseif (startwith($key, "llk")) {
 						if (strlen($link_lk) > 1) {
 							$hv .= sprintf("<th colspan=%d>&nbsp;</th>", substr_count($link_lk, "<td")+1);
 							$ktot[] = "geen";
@@ -555,7 +555,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 						$hv .= sprintf("<th>%s</th>", str_replace("_", " ", $key));
 					}
 					
-					if (substr($key, 0, 3) == "cur") {
+					if (startwith($key, "cur")) {
 						$ktot[] = 0.00;
 					} elseif (substr($key, 0, 3) == "int") {
 						$ktot[] = 0;
@@ -608,15 +608,17 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 					$ret .= sprintf("<td>Ja</td>");
 				} elseif (substr($key, 0, 3) == "boo" and $value != 1) {
 					$ret .= sprintf("<td>Nee</td>");
-				} elseif (substr($key, 0, 3) == "lnk") {
+				} elseif (startwith($key, "lnk")) {
 					if (strlen($link) > 1) {
 						$href = str_replace("%d", $value, $link);
 						$href = str_replace("%s", "<img src='images/zoom.png' alt='Details'>", $href);
 						$ret .= "<td class='details'>" . $href . "</td>";
 					}
-				} elseif (substr($key, 0, 3) == "llk") {
+				} elseif (startwith($key, "llk")) {
 					if ($value > 0 and strlen($link_lk) > 1) {
-						$ret .= sprintf("<td class='details'>" . $link_lk . "</td>", $value, "<img src='images/zoom.png' alt='Details'>");
+						$href = str_replace("%d", $value, $link_lk);
+						$href = str_replace("%s", "<img src='images/zoom.png' alt='Details'>", $href);
+						$ret .= "<td class='details'>" . $href . "</td>";
 					} elseif (strlen($link_lk) > 1) {
 						$ret .= "<td></td>\n";
 					}
