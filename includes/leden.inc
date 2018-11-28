@@ -913,11 +913,11 @@ function toestemmingenmuteren($lidid) {
 			if (isset($_POST['T_' . $row->Kode])) {
 				if (db_lidond("islid", $lidid, "", "", $row->RecordID) == false) {
 					db_lidond("add", $lidid, "", "", $row->RecordID);
-					$mess = sprintf("Toestelling '%s' is per vandaag verleend.", $row->Naam);
+					$mess = sprintf("Toestemming '%s' is per vandaag verleend.", $row->Naam);
 				}
 			} else {
 				if (db_lidond("delete", $lidid, "", "", $row->RecordID) > 0) {
-					$mess = sprintf("Toestelling '%s' is per vandaag beëindigd.", $row->Naam);
+					$mess = sprintf("Toestemming '%s' is per vandaag beëindigd.", $row->Naam);
 				}
 			}
 			if (strlen($mess) > 0) {
