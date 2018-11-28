@@ -53,12 +53,11 @@ Ook zijn er een aantal mailings met een specifiek doel, zoals het versturen van 
 <li>Bijlagen: dit zijn documenten die bij een e-mail gevoegd kunnen worden. Ook wel attachments genoemd. Niet alle soorten bestanden mogen bijgevoegd worden. Sommige extensies worden door bepaalde virusscanners of spamfilters als een gevaar aangemerkt en hierdoor komt de e-mail wellicht niet of vertraagd aan.</li>
 <li>Concept: een mailing die aangemaakt is, maar nog niet verzonden is.</li>
 <li>Template: een mailing die je vaker wilt gaan gebruiken, je kan deze dan ook meerdere malen versturen.</li>
-<li>Eén gezamenlijke e-mail: met deze optie worden geen afzonderlijke e-mails gestuurd, maar één e-mail naar alle ontvangers. Deze optie kan niet gebruikt worden in combinatie met mergevelden.</li>
 <li>Variabelen: dit zijn velden die gebruikt kunnen worden in mailmerge. Feitelijk wordt dit veld vervangen door de waarde die in de database staat. Bij het gebruik van variabelen moet er goed op gelet worden dat deze letterlijk van de lijst overgenomen moeten worden. Inclusief blokhaken en %-tekens.</li>
 <li>Vertrouwelijk: een mailing die, alleen door degene die hem gemaakt heeft en de webmasters, bekeken kan worden.</li>
 </ul>
 
-<h2>Versturen mailing of e-mails</h2>
+<h2>Versturen mailing of losse e-mails</h2>
 <p>Zowel een bestaande als een nieuwe mailing kan verzonden worden. Een aantal zaken om rekening mee te houden.</p>
 <ul>
 <li>In het veld 'Aan' kan vrije tekst getypt worden. Hierin kan de groep beschreven worden die deze mail krijgt.</li>
@@ -71,7 +70,7 @@ Ook zijn er een aantal mailings met een specifiek doel, zoals het versturen van 
 </li>
 <li>Cc: dit e-mailadres krijgt van elke mail een afschrift. Dus als je een mailing aan 250 leden stuurt en je vult hier een adres in, krijgt dit adres 250 mailtjes. Je kan hier meerdere adressen invullen, door ze middels een komma te scheiden.</li>
 <li>Indien bij een lid het veld 'E-mail ouders' is ingevuld en het lid is jonger dan 18 jaar dan wordt er aan dit e-mailadres een cc gestuurd.</li>
-<li>Voor het maken van het bericht maakt phpRBM gebruik van <a href='http://ckeditor.com/'>CKEditor</a>. CKEditor is een open source text editor met HTML-opmaak.</li>
+<li>Voor het maken van het bericht maakt phpRBM gebruik van <a href='http://ckeditor.com/'>CKEditor 5</a>. CKEditor is een open source text editor met HTML-opmaak.</li>
 <li>Wees spaarzaam met het aanpassen van kleuren in de editor. Veel kleuren worden namelijk door de template bepaald, echter zie je die niet in de editor. Hierdoor kan je bijvoorbeeld tekst rood maken, terwijl de achtergrond in de template ook rood is.</li>
 <li>Bij twijfel hoe de mail eruit komt te zien, kan je de mail eerst aan jezelf versturen. Mocht hij dan naar wens zijn is het een kwestie van de ontvangers aanpassen en hij kan gewoon verstuurd worden. Je kan ook gebruik maken van de preview optie alvorens een mailing te versturen.</li>
 <li>De layout van de uiteindelijke mail wordt bepaald door de template 'briefpapier'. Zie hiervoor de uitleg over templates.</li>
@@ -90,7 +89,7 @@ Verder hoeven er bij deze mailings geen ontvangers toegevoegd te worden en zijn 
 
 <h2>Hoe worden de e-mail verstuurd?</h2>
 <p>Voor het versturen zijn er twee technieken mogelijk, te weten de <a href='http://www.php.net/mail'>mail-functie van PHP</a> en <a href='http://nl.wikipedia.org/wiki/Smtp'>SMTP</a>. Mocht er een SMTP-server ingevuld zijn, dan wordt de mailing via SMTP verzonden, anders via de de mail-functie van PHP. Voor instellingen en eventuele aanvullende regels verwijs ik naar je webhoster.</p>
-<p>Standaard wordt de mailing opsplitst in individuele mails, dit heeft als voordeel dat niet alle e-mailadressen voor alle ontvangers zichtbaar worden. Ook is zo de kans kleiner dat de mail als spam aangemerkt wordt. Als je de mails niet wilt opsplitsen, bijvoorbeeld omdat je de ontvangers de mogelijkheid van Reply-to-all wilt geven, kan je in een mailing 'Eén gezamenlijke e-mail' aanvinken.</p>
+<p>Standaard wordt de mailing opsplitst in individuele mails, dit heeft als voordeel dat niet alle e-mailadressen voor alle ontvangers zichtbaar worden. Ook is zo de kans kleiner dat de mail als spam aangemerkt wordt.</p>
 <p>In de instellingen kan een maximaal aantal mails per minuut worden opgegeven. Sommige hostingproviders hebben hier namelijk een beperking op. Als dit getal laag staat kan het wel betekenen dat het versturen van een mailing lang duurt.</p>
 
 <?php
@@ -112,7 +111,7 @@ De volgende templates zijn beschikbaar, deze staan in de folder 'templates'.
 </ul>
 
 <h2>briefpapier</h2>
-<p>Dit is de template voor de mailings en deze wordt ook gebruikt voor het versturen van de aangevraagde logins.</p>
+<p>Dit is de template voor de mailings en deze wordt ook gebruikt voor de rekeningen.</p>
 
 De volgende velden zijn beschikbaar.
 <ul>
@@ -239,23 +238,23 @@ Hieronder volgt een overzicht van de velden die in meerdere templates gebruikt w
 De server waar je website op draait moet minimaal de volgende zaken beschikbaar hebbben.
 <ul>
 <li><a href='http://www.php.net'>PHP</a> 7</li>
-<li><a href='http://www.mysql.com/'>MySQL</a>-server 5.5 of nieuwer of een gelijkwaardig alternatief, zoals MariaDB</li>
+<li>MariaDB 5.x of 10.x of een gelijkwaardig alternatief.</li>
 <li>Mogelijkheid om e-mails te kunnen versturen.</li>
 </ul>
 
-<h2>Alternatief voor MySQL</h2>
-<p>MySQL kan ook vervangen worden door een compatibel product, deze alternatieven hebben vaak een betere performance. Het is voor mij niet doenlijk om deze allemaal te testen. Op MariaDB 10 is het pakket wel getest en daar werkt het prima op. Mocht je een foutmelding tegen komen op &eacute;&eacute;n van de alternatieven, dan kan je die uiteraard via GitHub melden. Graag met de SQL-code, die de fout veroorzaakt, deze code is vaak in de logging te vinden.</p>
+<h2>Alternatief voor MariaDB</h2>
+<p>MariaDB kan ook vervangen worden door een compatibel product. Op MariaDB 5 en 10 is het pakket getest en daar werkt het op, het is voor mij niet te doen om elk alternatief te testen. Mocht je een foutmelding tegen komen op &eacute;&eacute;n van de alternatieven, dan kan je die uiteraard via GitHub melden. Graag met de SQL-code, die de fout veroorzaakt, deze code is vaak in de logging te vinden.</p>
 
 <h2>Hoe tabellen uploaden?</h2>
-Het uploaden de gegevens uit de Access-database naar de MySQL-database kan op verschillende manieren. Voor het pakket maakt het niet uit welke je kiest, zolang de beide structuren maar exact gelijk zijn.
+Het uploaden de gegevens uit de Access-database naar de MariaDB kan op verschillende manieren. Voor het pakket maakt het niet uit welke je kiest, zolang de beide structuren maar exact gelijk zijn.
 <ul>
-<li>Gebruik maken van <a href='http://software.telling.nl/#MSA2MySQL'>MSA2MySQL</a>. Dit tooltje kan onder andere vanuit een Access-database een export maken. In deze export staan SQL-statements die in een MySQL-database ge-importeerd kunnen worden. Voor dit importeren kan je gebruik maken van Uploaden data (Beheerdersmenu) of bijvoorbeeld <a href='http://www.phpmyadmin.net'>phpMyAdmin</a>.</li>
+<li>Gebruik maken van <a href='http://software.telling.nl/#MSA2MySQL'>MSA2MySQL</a>. Dit tooltje kan onder andere vanuit een Access-database een export maken. In deze export staan SQL-statements die in een MariaDB ge-importeerd kunnen worden. Voor dit importeren kan je gebruik maken van Uploaden data (Beheerdersmenu) of bijvoorbeeld <a href='http://www.phpmyadmin.net'>phpMyAdmin</a>.</li>
 <li>Je kan gebruik maken van een sychronisatietool, zoals <a href='http://www.dbconvert.com/convert-access-to-mysql-pro.php'>DB Convert</a>.</li>
 <li>Je kan zelf een export/import bouwen. De benodigde tabellen om deze gegevens in te importeren worden automatisch door phpRBM aangemaakt.</li>
 </ul>
 
 <h2>Welke gegevens uploaden?</h2>
-De volgende tabellen kunnen vanuit de Access-database naar de MySQL-database ge-upload worden.
+De volgende tabellen kunnen vanuit de Access-database naar de online-database ge-upload worden.
 <ul>
 <li>Bewaking</li>
 <li>Bewseiz</li>
@@ -301,7 +300,7 @@ De tabellen met een sterretje moeten minimaal ge-upload worden. Deze zijn nameli
 <h2>Implementatie</h2>
 <p>Hieronder volgt een lijstje van zaken die gedaan moeten worden cq. geregeld moeten worden bij de implementatie.</p>
 <ul>
-<li>Een URL en MySQL-database beschikbaar hebben. Voor de eisen, zie de minimale systeemeisen.</li>
+<li>Een URL en MariaDB-database beschikbaar hebben. Voor de eisen, zie de minimale systeemeisen.</li>
 <li>Bepalen welke onderdelen gebruiken gaan worden en dus welke tabellen ge&uuml;pload moeten worden.</li>
 <li>Download het pakket, pak hem uit. Het pakket is te downloaden via <a href='https://github.com/stelling/phpRBM'>GitHub</a>. Upload alle bestanden naar een folder op je website.</li>
 <li>Pas het bestand config.php aan. Vooral de inlog-gegevens voor de database moeten vanaf het begin goed staan.</li>
@@ -320,7 +319,7 @@ De tabellen met een sterretje moeten minimaal ge-upload worden. Deze zijn nameli
 <h2>Config.php</h2>
 <p>In config.php kunnen de nodige zaken ingesteld worden. Een aantal zaken die hierin geregeld worden zijn:</p>
 <ul>
-<li>Host, login, wachtwoord van de MySQL-server en SMTP-server</li>
+<li>Host, login, wachtwoord van de MariaDB-server en SMTP-server</li>
 <li>Prefix voor tabelnamen, deze prefix moet op een underscore eindigen</li>
 <li>De webmasters</li>
 </ul>
@@ -341,7 +340,7 @@ De beheerder kan dan beslissen of deze verbeteringen de moeite waard zijn om de 
 <h1>Handleiding phpRBM</h1>
 
 <h2>Introductie</h2>
-<p>phpRBM is een website die gekoppeld is aan de <a href='http://software.telling.nl'>MS-Access database ST-RBM</a>. De gedachte achter het pakket is dat voor een aantal zaken het wel erg handig is, als deze online beschikbaar zijn. Bij phpRBM worden de meeste gegevens in de Access-database bijgehouden. Vervolgens worden deze gegevens naar de MySQL-database achter de website ge-upload.</p>
+<p>phpRBM is een website die gekoppeld is aan de <a href='http://software.telling.nl'>MS-Access database ST-RBM</a>. De gedachte achter het pakket is dat voor een aantal zaken het wel erg handig is, als deze online beschikbaar zijn. Bij phpRBM worden de meeste gegevens in de Access-database bijgehouden. Vervolgens worden deze gegevens naar de online-database achter de website ge-upload.</p>
 
 <h2>Welke mogelijkheden zijn er?</h2>
 <p>Het pakket heeft de volgende mogelijkheden. Per mogelijkheid kan besloten worden om deze helemaal niet te gebruiken, voor een beperkte groep beschikbaar te maken of voor alle leden beschikbaar te stellen.</p>
