@@ -11,8 +11,6 @@ if ((!isset($_SESSION['username']) or strlen($_SESSION['username']) == 0)) {
 function fnAuthenticatie($melding=1, $password="") {
 	global $lididwebmasters;
 	
-	db_logins("uitloggen");
-	
 	$pwfromcookie = 0;	
 	if (strlen($password) == 0 and isset($_COOKIE['password']) and strlen($_COOKIE['password']) > 5) {
 		$password = $_COOKIE['password'];
@@ -96,8 +94,11 @@ function toegang($soort="", $melding=1) {
 		$tabpages[] = "Beheer logins";
 		$tabpages[] = "Autorisatie";
 		$tabpages[] = "Instellingen";
+		$tabpages[] = "Stamgegevens";
 		$tabpages[] = "Uploaden data";
-		$tabpages[] = "Downloaden wijzigingen";
+		if (db_interface("aantalopenstaand") > 0) {
+			$tabpages[] = "Downloaden wijzigingen";
+		}
 		$tabpages[] = "Onderhoud";
 		$tabpages[] = "Logboek";
 	} else {
@@ -186,7 +187,7 @@ function toegang($soort="", $melding=1) {
 			if (db_onderdelen("aantal", "kad", $_GET['lidid']) > 0) {
 				$tabpages[] = "Overzicht lid/Kader";
 			}
-			if (db_onderdelen("aantal", "R", $_GET['lidid']) > 0) {
+			if (count(db_gegevenslid($_GET['lidid'], "Rollen")) > 0) {
 				$tabpages[] = "Overzicht lid/Rollen";
 			}
 			if (count(db_gegevenslid($_GET['lidid'], "Groepen")) > 0) {
