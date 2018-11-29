@@ -167,7 +167,6 @@ class Mailing {
 	private $message = "";
 	private $template = 0;
 	private $confidential = 0;
-	private $verzamelen = 0;
 	private $new_on = "0000-00-00";
 	private $AddedBy = 0;
 	private $changed_on = "0000-00-00";
@@ -556,7 +555,9 @@ class Mailing {
 				echo("<tr><td>Lidstatus:</td><td colspan=2><select name='sel_status'>\n");
 				echo("<option value='L' selected>Lid</option>");
 				echo("<option value='V'>Voormalig lid</option>");
-				echo("<option value='T'>Toekomstig lid</option>");
+				if (count(db_lidmaatschap("toekomstigeleden")) > 0) {
+					echo("<option value='T'>Toekomstig lid</option>");
+				}
 				echo("<option value='K'>Kloslid</option>");
 				echo("</select></td></tr>\n");
 			
@@ -601,7 +602,6 @@ class Mailing {
 		printf("<p><label>Cc:</label><input type='text' name='cc_addr' value='%s' size=100></p>\n", $this->cc_addr);
 		printf("<p><label>Opties:</label><input type='checkbox' name='template' value=1%s>Template&nbsp;", checked($this->template));
 		printf("<input type='checkbox' name='confidential' value=1%s>Vertrouwelijk&nbsp;", checked($this->confidential));
-		printf("<input type='checkbox' name='verzamelen' value=1%s>E&eacute;n gezamenlijke e-mail</p>", checked($this->verzamelen));
 		
 		echo("<div class='clear'></div>\n");
 		
@@ -736,10 +736,6 @@ class Mailing {
 			if ($this->contains_mergefield == true and $this->contains_losse_email == true) {
 				$this->meldingen .= "Er staan losse e-mailadressen en er wordt met mailmerge gewerkt. Bij de losse e-mailadressen werkt de mailmerge niet. \n";
 			}
-			if ($this->contains_mergefield and $this->verzamelen) {
-				$this->meldingen .= "Een mailing met variabelen kan niet als &eacute;&eacute;n gezamenlijke e-mail verzonden worden. \n";
-				$verzendenmag = false;
-			}
 			if ($this->deleted_on > '1901-01-01') {
 				$this->meldingen .= "Deze mailing is verwijderd. \n";
 				$verzendenmag = false;
@@ -798,11 +794,6 @@ class Mailing {
 			$_POST['confidential'] = 1;
 		} else {
 			$_POST['confidential'] = 0;
-		}
-		if (isset($_POST['verzamelen'])) {
-			$_POST['verzamelen'] = 1;
-		} else {
-			$_POST['verzamelen'] = 0;
 		}
 		
 		$old = db_mailing("record", $this->mid);
@@ -1147,45 +1138,33 @@ class Mailing {
 						$mail->AddCC($v);
 					}
 				}
-				if ($this->verzamelen) {
-					db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $e, $this->merged_message);
+				if (db_param("maxmailsperdag") > 0 and db_mailing_hist("aantal24uur") >= db_param("maxmailsperdag")) {
+					db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, "", $this->merged_message, $mail, 0, $this->xtrachar, $this->xtranum);
+					$this->nok_send .= sprintf("<li>%s {%s}</li>\n", $rcpt->Naam_lid, $e);
+					$mess = sprintf("Het versturen van mailing %d (%s) aan %s is niet gelukt. Error: het maximum aantal van %d verstuurde mails per dag is bereikt.", $this->mid, $this->subject, $to_name, db_param("maxmailsperdag"));
+					db_logboek("add", $mess, 4, 0, 0, $this->mid);
+					$this->aant_nok++;
+					
+				} elseif ($mail->Send()) {
+					db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, "", $this->merged_message, $mail, 1, $this->xtrachar, $this->xtranum);
+					if (isset($rcpt->Naam_lid)) {
+						$this->ok_send .= sprintf("<li>%s {%s}</li>\n", $rcpt->Naam_lid, $e);
+					} else {
+						$this->ok_send .= sprintf("<li>%s</li>\n", $e);
+					}
 					$this->aant_ok++;
 				} else {
-					if (db_param("maxmailsperdag") > 0 and db_mailing_hist("aantal24uur") >= db_param("maxmailsperdag")) {
-						db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, "", $this->merged_message, $mail, 0, $this->xtrachar, $this->xtranum);
-						$this->nok_send .= sprintf("<li>%s {%s}</li>\n", $rcpt->Naam_lid, $e);
-						$mess = sprintf("Het versturen van mailing %d (%s) aan %s is niet gelukt. Error: het maximum aantal van %d verstuurde mails per dag is bereikt.", $this->mid, $this->subject, $to_name, db_param("maxmailsperdag"));
-						db_logboek("add", $mess, 4, 0, 0, $this->mid);
-						$this->aant_nok++;
-					
-					} elseif ($mail->Send()) {
-						db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, "", $this->merged_message, $mail, 1, $this->xtrachar, $this->xtranum);
-						if (isset($rcpt->Naam_lid)) {
-							$this->ok_send .= sprintf("<li>%s {%s}</li>\n", $rcpt->Naam_lid, $e);
-						} else {
-							$this->ok_send .= sprintf("<li>%s</li>\n", $e);
-						}
-						$this->aant_ok++;
-					} else {
-						db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, "", $this->merged_message, $mail, 0, $this->xtrachar, $this->xtranum);
-						$this->nok_send .= sprintf("<li>%s {%s}</li>\n", $rcpt->Naam_lid, $e);
-						$mess = sprintf("Het versturen van mailing %d (%s) aan %s is niet gelukt. Error: %s", $this->mid, $this->subject, $to_name, $mail->ErrorInfo);
-						db_logboek("add", $mess, 4, 0, 0, $this->mid);
-						$this->aant_nok++;
-					}
-					$mail->clearAllRecipients();
+					db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, "", $this->merged_message, $mail, 0, $this->xtrachar, $this->xtranum);
+					$this->nok_send .= sprintf("<li>%s {%s}</li>\n", $rcpt->Naam_lid, $e);
+					$mess = sprintf("Het versturen van mailing %d (%s) aan %s is niet gelukt. Error: %s", $this->mid, $this->subject, $to_name, $mail->ErrorInfo);
+					db_logboek("add", $mess, 4, 0, 0, $this->mid);
+					$this->aant_nok++;
 				}
+				$mail->clearAllRecipients();
 			} else {
 				$this->nok_send .= sprintf("<li>%s {%s, %s&nbsp&nbsp;%s}</li>\n", $rcpt->Naam_lid, $rcpt->Adres, $rcpt->Postcode, $rcpt->Woonplaats);
 				$this->aant_nok++;
 			}
-		}
-		if ($this->verzamelen and $preview == 0) {
-			if (!$mail->Send()) {
-				$mess = sprintf("Het versturen van mailing %d (%s) is niet gelukt. Error: %s", $this->mid, $this->subject, $mail->ErrorInfo);
-				db_logboek("add", $mess, 4, 0, 0, $this->mid);
-			}
-			$mail->clearAllRecipients();
 		}
 		$summary = "";
 		
@@ -1369,7 +1348,6 @@ class Mailing {
 			$this->message = $ml->message;
 			$this->template = $ml->template;
 			$this->confidential = $ml->confidential;
-			$this->verzamelen = $ml->verzamelen;
 			$this->new_on = $ml->new_on;
 			$this->AddedBy = $ml->AddedBy;
 			$this->changed_on = $ml->changed_on;

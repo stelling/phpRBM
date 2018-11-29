@@ -18,10 +18,12 @@ if (isset($_GET['op']) and $_GET['op'] == "downloadwijz" and $_GET['tp'] == "Dow
 	exit();
 }
 
-if ($currenttab == "Beheer logins" or $currenttab == "Autorisatie" or $currenttab == "Logboek") {
-	HTMLheader(1);
+if ($currenttab == "Logboek" or $currenttab == "Stamgegevens") {
+	HTMLheader(1, 1);
+} elseif ($currenttab == "Beheer logins" or $currenttab == "Autorisatie") {
+	HTMLheader(1, 0);
 } else {
-	HTMLheader(0);
+	HTMLheader(0, 0);
 }
 
 if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
@@ -203,8 +205,14 @@ if ($currenttab == "Beheer logins" and toegang()) {
 	echo("</form>\n");
 	echo("</div>  <!-- Einde lijst -->\n");
 	
+	echo(fnDisplayTable(db_authorisation("autorisatiesperonderdeel"), "", "Overzicht autorisaties per onderdeel"));
+	
 } elseif ($currenttab == "Instellingen" and toegang($_GET['tp'])) {
 	fnInstellingen();
+	
+} elseif ($currenttab == "Stamgegevens" and toegang($_GET['tp'])) {
+	fnStamgegevens();
+	
 } elseif ($currenttab == "Uploaden data" and ($_SESSION['aantallid'] == 0 or toegang($_GET['tp']))) {
 	$aantal = db_interface("aantalopenstaand");
 	if ($aantal > 0) {
@@ -345,6 +353,9 @@ if ($currenttab == "Beheer logins" and toegang()) {
 	
 	$rows = db_logboek("lijst", "", $_POST['typefilter'], $_POST['lidfilter'], 0, 0, $_POST['ipfilter']);
 	echo(fnDisplayTable($rows, "", "", 0, "", "", "logboek"));
+// function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_regel="", $class="lijst", $xtra_kolom="") {
+	
+	
 } elseif ($currenttab == "Info" and toegang($_GET['tp'])) {
 	phpinfo();
 }
@@ -517,6 +528,18 @@ function fnInstellingen() {
 	
 	echo("</form>\n");
 	echo("</div>  <!-- Einde instellingenmuteren -->\n");
-}
+} # fnInstellingen
+
+function fnStamgegevens() {
+	
+	// fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_regel="", $class="lijst", $xtra_kolom="") {
+		
+	printf("<p>%s</p>", fnDisplayTable(db_diploma("basislijst"), "", "Basislijst Diploma's", 0, "", "", "lijst", ""));
+	
+	printf("<p>%s</p>", fnDisplayTable(db_functie("basislijst"), "", "Basislijst Functies", 0, "", "", "lijst", ""));
+	
+	printf("<p>%s</p>", fnDisplayTable(db_onderdelen("basislijst"), "", "Basislijst Onderdelen", 0, "", "", "lijst", ""));
+	
+} # fnStamgegevens
 
 ?>
