@@ -1,15 +1,15 @@
 <?php
 
 if (!isset($_GET['tp'])) {
-	$_GET['tp'] = "Vereniging/Introductie";
+	$_GET['tp'] = "";
 }
 
 require('./includes/standaard.inc');
 
 if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 	$mess = db_logins("uitloggen", "", "", $_SESSION['lidid']);
-	setcookie("username", "", time()-3600);
-	setcookie("password", "", time()-3600);
+	setcookie("username", "", time()-60);
+	setcookie("password", "", time()-60);
 	$_SESSION['lidid'] = 0;
 	$_SESSION['webmaster'] = 0;
 	echo("<script>location.href='/'; </script>\n");
@@ -28,17 +28,21 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 		fnAuthenticatie(1, $_POST['password']);
 	}
 	if ($_SESSION['lidid'] > 0) {
-		printf("<script>\nlocation.href='%s';\n</script>\n", $basisurl);
+		echo("<script>location.href='/'; </script>\n");
 	} else {
 		printf("<p class='mededeling'><a href='%s?tp=Herstellen+wachtwoord'>Druk hier om je wachtwoord te herstellen (resetten).</a></p>\n", $basisurl);
 	}
 } elseif ((!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) and isset($_COOKIE['password']) and strlen($_COOKIE['password']) > 5) {
 	fnAuthenticatie(0);
+	if (isset($_GET['tp']) and strlen($_GET['tp']) > 0) {
+		printf("<script>location.href='/?tp=%s'; </script>\n", $_GET['tp']);
+	} else {
+		echo("<script>location.href='/'; </script>\n");
+	}
 }
 
 if ($_SESSION['aantallid'] == 0) {
-	$query = sprintf("SELECT COUNT(*) FROM %sLid;", $table_prefix);
-	$_SESSION['aantallid'] = db_scalar($query);
+	$_SESSION['aantallid'] = db_lid("aantal");
 	if ($_SESSION['aantallid'] == 0) {
 		echo("<script>alert('Voordat deze website gebruikt kan worden moeten er eerst gegevens uit de Access-database ge-upload worden.');
 			location.href='./admin.php?tp=Uploaden+data';</script>\n");
@@ -54,24 +58,22 @@ if (isset($_GET['op']) and $_GET['op'] == "exportins") {
 	exit();
 }
 
-if ($currenttab !== "Mailing") {
-	if ($currenttab == "Vereniging" or $currenttab == "Eigen gegevens"  or $currenttab == "Ledenlijst"  or $currenttab2 == "Logboek") {
-		HTMLheader(1);
-	} else {
-		HTMLheader(0);
-	}
+if ($currenttab != "Mailing") {
+	HTMLheader();
 }
 
-if (toegang("", 0) == false) {
-	$mess = sprintf("Je hebt geen toegang tot '%s'.", $_GET['tp']);
-	db_logboek("add", $mess, 15, 0, 1);
+if (toegang($_GET['tp'], 1) == false) {
 	if ($_SESSION['lidid'] == 0) {
 		fnLoginAanvragen();
 	}
-} elseif ($currenttab == "Opvragen lidnr" and $_SERVER['REQUEST_METHOD'] == "POST") {
+	
+} else
+	if ($currenttab == "Opvragen lidnr" and $_SERVER['REQUEST_METHOD'] == "POST") {
 	fnOpvragenLidnr("mail");
+	
 } elseif ($currenttab == "Herstellen wachtwoord" and $_SERVER['REQUEST_METHOD'] == "POST") {
 	fnHerstellenWachtwoord("mail");
+	
 } elseif ($currenttab == "Validatie login") {
 	if (isset($_GET['key']) and isset($_GET['lidid'])) {
 		// Valideren van de nieuwe login op de website
@@ -97,7 +99,7 @@ if (toegang("", 0) == false) {
 	} else {
 		fnWijzigen($_SESSION['lidid'], $currenttab2);
 	}
-} elseif ($currenttab == "Overzicht lid" and toegang("Overzicht lid", 0)) {
+} elseif ($currenttab == "Overzicht lid" and toegang($currenttab, 0)) {
 	if (isset($_GET['lidid']) and is_numeric($_GET['lidid']) and $_GET['lidid'] > 0) {
 		fnEigenGegevens($_GET['lidid'], $currenttab2);
 	} else {

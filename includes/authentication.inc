@@ -1,15 +1,15 @@
 <?php
 
-if ((!isset($_SESSION['username']) or strlen($_SESSION['username']) == 0)) {
-	if (isset($_COOKIE['username'])) {
-		$_SESSION['username'] = $_COOKIE['username'];
-	} else {
-		$_SESSION['username'] = "";
-	}
-}
-
 function fnAuthenticatie($melding=1, $password="") {
 	global $lididwebmasters;
+	
+	if ((!isset($_SESSION['username']) or strlen($_SESSION['username']) == 0)) {
+		if (isset($_COOKIE['username'])) {
+			$_SESSION['username'] = $_COOKIE['username'];
+		} else {
+			$_SESSION['username'] = "";
+		}
+	}
 	
 	$pwfromcookie = 0;	
 	if (strlen($password) == 0 and isset($_COOKIE['password']) and strlen($_COOKIE['password']) > 5) {
@@ -18,7 +18,11 @@ function fnAuthenticatie($melding=1, $password="") {
 	}
 		
 	$mess = "";
-	if (isset($_SESSION['username']) and strlen($_SESSION['username']) > 0 and strlen($password) > 0) {
+	if (db_param("login_maxinlogpogingen") > 0 and db_logboek("iplogincontrole") > db_param("login_maxinlogpogingen")) {
+		$mess = sprintf("Inloggen vanaf IP-adres '%s' is geblokkeerd, omdat er teveel mislukte inlog-pogingingen mee gedaan zijn! Je bent niet ingelogd.", $_SERVER['HTTP_USER_AGENT']);
+		$_SESSION['lidid'] = 0;
+			
+	} elseif (isset($_SESSION['username']) and strlen($_SESSION['username']) > 0 and strlen($password) > 0) {
 		$row = db_logins("controle", "", $_SESSION['username'], 0, "", $password);
 		if (db_param("login_maxinlogpogingen") > 0 and isset($row->FouteLogin) and $row->FouteLogin > db_param("login_maxinlogpogingen")) {
 			if (db_param("login_autounlock") > 0 and db_param("login_autounlock") < 12*60) {
@@ -28,10 +32,6 @@ function fnAuthenticatie($melding=1, $password="") {
 			}
 			$mess .= ", omdat er teveel mislukte inlog-pogingingen mee gedaan zijn! Je bent niet ingelogd.";
 			
-			$_SESSION['lidid'] = 0;
-			
-		} elseif (db_param("login_maxinlogpogingen") > 0 and db_logboek("iplogincontrole") > db_param("login_maxinlogpogingen")) {
-			$mess = sprintf("Login van IP-adres '%s' is geblokkeerd, omdat er teveel mislukte inlog-pogingingen mee gedaan zijn! Je bent niet ingelogd.", $_SERVER['HTTP_USER_AGENT']);
 			$_SESSION['lidid'] = 0;
 			
 		} elseif (isset($row->ActivatieKey) and strlen($row->ActivatieKey) > 5) {
@@ -82,12 +82,15 @@ function fnAuthenticatie($melding=1, $password="") {
 	}
 } # fnAuthenticatie
 	
-function toegang($soort="", $melding=1) {
+function toegang($soort, $melding=1, $log=1) {
 	global $lididwebmasters, $table_prefix, $tabpages, $currenttab, $currenttab2, $muteerbarememos;
 	
 	$arrAltijdToegang[] = "Validatie login";
 	$arrAltijdToegang[] = "Bevestiging login";
 	$arrAltijdToegang[] = "Opvragen lidnr";
+	if ($_SESSION['lidid'] == 0) {
+		$arrAltijdToegang[] = "Herstellen wachtwoord";
+	}
 	
 	$tabpages = null;
 	if ($_SERVER['PHP_SELF'] == "/admin.php") {
@@ -96,17 +99,12 @@ function toegang($soort="", $melding=1) {
 		$tabpages[] = "Instellingen";
 		$tabpages[] = "Stamgegevens";
 		$tabpages[] = "Uploaden data";
-		if (db_interface("aantalopenstaand") > 0) {
-			$tabpages[] = "Downloaden wijzigingen";
-		}
+		$tabpages[] = "Downloaden wijzigingen";
 		$tabpages[] = "Onderhoud";
 		$tabpages[] = "Logboek";
 	} else {
 		$tabpages[] = "Vereniging";
 		$tabpages[] = "Vereniging/Introductie";
-		if ($_SESSION['lidid'] == 0) {
-			$tabpages[] = "Herstellen wachtwoord";
-		}
 		$tabpages[] = "Vereniging/Kader";
 		$tabpages[] = "Vereniging/Onderscheidingen";
 		$tabpages[] = "Vereniging/Overige commissies";
@@ -173,6 +171,8 @@ function toegang($soort="", $melding=1) {
 				}
 			}
 			$tabpages[] = "Zelfservice/Wijzigen wachtwoord";
+		} else {
+			$tabpages[] = "Herstellen wachtwoord";
 		}
 		$tabpages[] = "Ledenlijst";
 		if ($currenttab == "Overzicht lid") {
@@ -264,7 +264,7 @@ function toegang($soort="", $melding=1) {
 			}
 		}
 		
-		if (count(db_evenement("overzicht")) > 0 or toegang("Evenementen/Beheer", 0)) {
+		if (count(db_evenement("overzicht")) > 0 or toegang("Evenementen/Beheer", 0, 0)) {
 			$tabpages[] = "Evenementen";
 			if (count(db_evenement("overzicht")) > 0) {
 				$tabpages[] = "Evenementen/Overzicht";
@@ -317,13 +317,15 @@ function toegang($soort="", $melding=1) {
 				$_SESSION['toegang'][$soort] = 1;
 				return true;
 			} else {
-				if ($melding == 1) {
-					if ($_SESSION['lidid'] > 0) {
-						$mess = sprintf("%s heeft geen toegang tot het onderdeel '%s' op %s.", $_SESSION['naamingelogde'], $soort, db_param("naamwebsite"));
-					} else {
-						$mess = sprintf("Je bent niet ingelogd en hierdoor hebt geen toegang tot '%s' op %s.", $soort, db_param("naamwebsite"));
-					}
-					db_logboek("add", $mess, 15, 0, 2);
+				if ($_SESSION['lidid'] > 0) {
+					$mess = sprintf("%s heeft geen toegang tot het onderdeel '%s' op %s.", $_SESSION['naamingelogde'], $soort, db_param("naamwebsite"));
+				} else {
+					$mess = sprintf("Je bent niet ingelogd en hierdoor hebt geen toegang tot '%s' op %s.", $soort, db_param("naamwebsite"));
+				}
+				if ($log == 1) {
+					db_logboek("add", $mess, 15, 0, $melding);
+				} elseif ($melding > 0) {
+					printf("<p class='mededeling'>%s</p>\n", $mess);
 				}
 				return false;
 			}

@@ -5,7 +5,7 @@ if ((!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) and isset($_COOKIE['
 	fnAuthenticatie(0);
 }
 
-if (!isset($_GET['op']) or (toegang($_GET['tp']) == false and $_SESSION['aantallid'] > 1)) {
+if (!isset($_GET['op']) or (db_lid("aantal") == 0 and toegang($_GET['tp'], 0, 1) === false)) {
 	$_GET['op'] = "";
 }
 
@@ -19,11 +19,9 @@ if (isset($_GET['op']) and $_GET['op'] == "downloadwijz" and $_GET['tp'] == "Dow
 }
 
 if ($currenttab == "Logboek" or $currenttab == "Stamgegevens") {
-	HTMLheader(1, 1);
-} elseif ($currenttab == "Beheer logins" or $currenttab == "Autorisatie") {
-	HTMLheader(1, 0);
+	HTMLheader(1);
 } else {
-	HTMLheader(0, 0);
+	HTMLheader(0);
 }
 
 if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
@@ -109,7 +107,7 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 	printf("<p class='mededeling'>%s</p>\n", $mess);
 }
 
-if ($currenttab == "Beheer logins" and toegang()) {
+if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 
 	$arrSort[] = "Login";
 	$arrSort[] = "Achternaam";
@@ -182,7 +180,19 @@ if ($currenttab == "Beheer logins" and toegang()) {
 	}
 
 	echo(fnDisplayTable(db_logins("lijst", "", "", 0, $w, "", $ord), $lnk, "", 5, $lnk_lk));
-} elseif ($currenttab == "Autorisatie" and toegang($_GET['tp'])) {
+	
+	// Nieuwe en gewijzigde logins in de tabel interface zetten en de tabe; 'Lid' bijwerken.
+	$xf = "IFNULL(L.LoginWebsite, '') <> Login.Login";
+	$rows = db_logins("lijst", "", "", 0, $xf);
+	foreach ($rows as $row) {
+		$query = sprintf("UPDATE %sLid SET LoginWebsite='%s' WHERE Nummer=%d;", $table_prefix, $row->Login, $row->LidID);
+		if (fnQuery($query) > 0) {
+			$sql = sprintf("UPDATE Lid SET `LoginWebsite`='%s', Gewijzigd=Date() WHERE Nummer=%d;", $row->Login, $row->LidID);
+			db_interface("add", $sql, $row->LidID, 1);
+		}
+	}
+	
+} elseif ($currenttab == "Autorisatie" and toegang($currenttab, 1, 1)) {
 	echo("<div id='lijst'>\n");
 	printf("<form name='formauth' method='post' action='%s?tp=%s&amp;op=changeaccess'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	echo("<table>\n");
@@ -207,13 +217,13 @@ if ($currenttab == "Beheer logins" and toegang()) {
 	
 	echo(fnDisplayTable(db_authorisation("autorisatiesperonderdeel"), "", "Overzicht autorisaties per onderdeel"));
 	
-} elseif ($currenttab == "Instellingen" and toegang($_GET['tp'])) {
+} elseif ($currenttab == "Instellingen" and toegang($currenttab, 1, 1)) {
 	fnInstellingen();
 	
-} elseif ($currenttab == "Stamgegevens" and toegang($_GET['tp'])) {
+} elseif ($currenttab == "Stamgegevens" and toegang($currenttab, 1, 1)) {
 	fnStamgegevens();
 	
-} elseif ($currenttab == "Uploaden data" and ($_SESSION['aantallid'] == 0 or toegang($_GET['tp']))) {
+} elseif ($currenttab == "Uploaden data" and (db_lid("aantal") == 0 or toegang($currenttab, 1, 1))) {
 	$aantal = db_interface("aantalopenstaand");
 	if ($aantal > 0) {
 		printf("<p class='mededeling'>Er staan %d wijzigingen te wachten om verwerkt te worden. Het is daarom niet verstandig om een upload te doen.</p>", $aantal);
@@ -228,19 +238,9 @@ if ($currenttab == "Beheer logins" and toegang()) {
 	echo("<tr><td class='label'>Bestand</td><td><input type='file' name='SQLupload'><input type='submit' value='Verwerk'></td></tr>\n");
 	echo("</table>\n");
 	echo("</form>\n");
-	echo("</div>  <!-- Einde invulformulier -->\n");	
-} elseif ($currenttab == "Downloaden wijzigingen" and toegang($_GET['tp'])) {
+	echo("</div>  <!-- Einde invulformulier -->\n");
 	
-	$xf = "IFNULL(L.LoginWebsite, '') <> Login.Login";
-	$rows = db_logins("lijst", "", "", 0, $xf);
-	foreach ($rows as $row) {
-		$query = sprintf("UPDATE %sLid SET LoginWebsite='%s' WHERE Nummer=%d;", $table_prefix, $row->Login, $row->LidID);
-		if (fnQuery($query) > 0) {
-			$sql = sprintf("UPDATE Lid SET `LoginWebsite`='%s', Gewijzigd=Date() WHERE Nummer=%d;", $row->Login, $row->LidID);
-			db_interface("add", $sql, $row->LidID, 1);
-		}
-	}
-
+} elseif ($currenttab == "Downloaden wijzigingen" and toegang($currenttab, 1, 1)) {
 	$copytext = "";
 	echo("<h2>Wijzigen op de website, te verwerken in de Access database.</h2>");
 	printf("<form name='formdownload' method='post' action='%s?tp=%s&amp;op=downloadwijz'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
@@ -265,7 +265,7 @@ if ($currenttab == "Beheer logins" and toegang()) {
 		printf("<div class='CopyPaste'>%s</div>\n", $copytext);
 	}
 	
-} elseif ($currenttab == "Onderhoud" and toegang($_GET['tp'])) {
+} elseif ($currenttab == "Onderhoud" and toegang($currenttab, 1, 1)) {
 	db_createtables();
 	db_onderhoud();
 
@@ -295,7 +295,7 @@ if ($currenttab == "Beheer logins" and toegang()) {
 	printf("<div id='versies'>PHP: %s / Database: %s</div>  <!-- Einde versies -->\n", substr(phpversion(), 0, 6), $result->fetchColumn());
 	db_param("versiephp", "updval", substr(phpversion(), 0, 6));
 	
-} elseif ($currenttab == "Logboek" and toegang($_GET['tp'])) {
+} elseif ($currenttab == "Logboek" and toegang($currenttab, 1, 1)) {
 	if (!isset($_POST['lidfilter']) or strlen($_POST['lidfilter']) == 0) {
 		$_POST['lidfilter'] = 0;
 	}
@@ -356,7 +356,7 @@ if ($currenttab == "Beheer logins" and toegang()) {
 // function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_regel="", $class="lijst", $xtra_kolom="") {
 	
 	
-} elseif ($currenttab == "Info" and toegang($_GET['tp'])) {
+} elseif ($currenttab == "Info" and toegang($currenttab, 1, 1)) {
 	phpinfo();
 }
 
@@ -381,7 +381,6 @@ function fnInstellingen() {
 	$arrParam['login_geldigheidactivatie'] = "Hoelang in uren is een activatielink geldig? 0 = altijd.";
 	$arrParam['login_bewaartijdnietgebruikt'] = "Het aantal dagen dat logins wordt bewaard, nadat het is aangevraagd en nog niet gebruikt is.";
 	$arrParam['logboek_bewaartijd'] = "Hoeveel maanden moet de logging bewaard blijven. 0 = altijd bewaren.";
-	$arrParam['mailing_beperkfrom'] = "NT";
 	$arrParam['mailing_bevestigingbestelling'] = "Het nummer van de mailing die bij een bestelling verstuurd moet worden. 0 = geen.";
 	$arrParam['mailing_bevestigingopzegging'] = "NT";
 	$arrParam['mailing_bewaartijd'] = "NT";
@@ -449,10 +448,6 @@ function fnInstellingen() {
 				} elseif (in_array($row->Naam, $specmailing) and $_POST[$pvn] > 0 and db_mailing("exist", $_POST[$pvn]) == false) {
 					$_POST[$pvn] = 0;
 					$mess = sprintf("Parameter '%s' wordt 0 gemaakt, omdat de ingevoerde mailing niet (meer) bestaat. ", $row->Naam);
-				} elseif ($row->Naam == "mailing_beperkfrom" and substr($_POST[$pvn], 0, 1) == "@") {
-					$_POST[$pvn] = substr($_POST[$pvn], 1);
-				} elseif ($row->Naam == "mailing_beperkfrom" and substr($_POST[$pvn], 0, 4) == "www.") {
-					$_POST[$pvn] = substr($_POST[$pvn], 4);
 				} elseif ($row->Naam == "typemenu" and (strlen($_POST[$pvn]) == 0 or $_POST[$pvn] < 1 or $_POST[$pvn] > 3)) {
 					$_POST[$pvn] = 1;
 					$mess = sprintf("Parameter '%s' wordt 1 gemaakt, omdat deze alleen 1, 2 of 3 mag zijn. ", $row->Naam);

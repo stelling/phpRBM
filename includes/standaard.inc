@@ -3,15 +3,15 @@
 date_default_timezone_set('Europe/Amsterdam');
 setlocale(LC_ALL,'nl_NL.utf8');
 
-if (session_start() === FALSE or strlen(session_id()) == 0) {
+session_cache_expire(20);
+if (isset($_SESSION['lidid'])) {
+	// Sessie bestaat al
+} elseif (session_start() === FALSE or strlen(session_id()) == 0) {
 	$mess = "De sessie kan niet gestart worden, hierdoor kan er op dit moment niet ingelogd worden.";
 	db_logboek("add", $mess, 1, 0, 1);
 }
 
-if (!isset($_SESSION['webmaster'])) {
-	$_SESSION['webmaster'] = 0;
-}
-if ($_SESSION['webmaster'] == 1 or $_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
+if ((isset($_SESSION['webmaster']) and $_SESSION['webmaster'] == 1) or $_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 	error_reporting(E_ALL);
 } else {
 	error_reporting(0);
@@ -30,6 +30,7 @@ if (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
 	$_SESSION['emailingelogde'] = "";
 	$_SESSION['naamingelogde'] = "gast";
 	$_SESSION['roepnaamingelogde'] = "gast";
+	$_SESSION['webmaster'] = 0;
 	unset($_SESSION['toegang']);
 }
 
@@ -149,7 +150,7 @@ if (!isset($currenttab2) or strlen($currenttab2) == 0) {
 $query = "SET lc_time_names='nl_NL';";
 fnQuery($query);
 
-function HTMLheader($refresh=0) {
+function HTMLheader($breed=0) {
 	global $currenttab, $currenttab2;
 	
 	if (strlen(db_param("naamvereniging_afkorting")) > 0) {
@@ -173,9 +174,6 @@ function HTMLheader($refresh=0) {
 		if (isset($_GET['tp']) and substr($_GET['tp'], 0, 7) == "Mailing") {
 			echo("<script src='/includes/ckeditor5/ckeditor.js'></script>\n");
 		}
-		if ($refresh == 1) {
-			echo("<meta http-equiv='refresh' content='1200'>\n");
-		}
 		printf("<title>%s</title>\n", $title);
 		if (file_exists("stylesheets/default.css")) {
 			printf("<link rel='stylesheet' href='stylesheets/default.css?v%s'>\n", strftime("%Y%m%d%H%M", filectime("stylesheets/default.css")));
@@ -185,7 +183,11 @@ function HTMLheader($refresh=0) {
 		}
 		echo("</head>\n");
 		echo("<body>\n");
-		echo("<div id='container'>\n");
+		if ($breed == 0) {
+			echo("<div id='container'>\n");
+		} else {
+			echo("<div id='containerbreed'>\n");
+		}
 		echo("<header>\n");
 		printf("<h1>%s</h1>\n", db_param("naamwebsite"));
 		
@@ -265,7 +267,7 @@ function HTMLfooter() {
 				 <a href='%s'>%s</a> %s\n
 				 <div id='footerright'>%s</div>\n
 				 </footer>\n", $cr, $basisurl, db_param("naamwebsite"), $np, strftime("%e %B %Y", $bestandsversie));
-		echo("</div>  <!-- Einde container -->\n");
+		echo("</div>  <!-- Einde container of containerbreed -->\n");
 		echo("</body>\n");
 		echo("</html>\n");
 	}
@@ -359,7 +361,7 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 		echo("<ul id='nav'>\n");
 		$nivo = 0;
 		foreach($tabpages as $tp) {
-			if (toegang($tp, 0)) {
+			if (toegang($tp, 0, 0)) {
 				$cl = "";
 				if (strstr($tp, "/") === false) {
 					if ($nivo > 0) {
