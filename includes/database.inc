@@ -1355,11 +1355,11 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		return db_scalar($query);
 		
 	} elseif ($actie == "uitloggen") {
-		$query = sprintf("UPDATE %sAdmin_login SET Ingelogd=0 WHERE Ingelogd <> 0 AND (LastActivity < ADDDATE(SYSDATE(), INTERVAL -21 MINUTE) OR LidID=%d);", $table_prefix, $lidid);
+		$query = sprintf("UPDATE %sAdmin_login SET Ingelogd=0 WHERE ((Ingelogd <> 0 AND LastActivity < ADDDATE(SYSDATE(), INTERVAL -%d MINUTE)) OR LidID=%d);", $table_prefix, session_cache_expire(), $lidid);
 		$result = fnQuery($query);
 		if ($result > 0) {
-			if ($_SESSION['lidid'] == $lidid and $lidid > 0) {
-				$mess = sprintf("%s (LidID: %d) is uitgelogd.", $_SESSION['naamingelogde'], $lidid);
+			if ($lidid > 0) {
+				$mess = sprintf("%s (LidID: %d) is uitgelogd.", db_naamlid($lidid), $lidid);
 				db_logboek("add", $mess, 1, $lidid);
 				$_SESSION['lidid'] = 0;
 				fnMaatwerkNaUitloggen();
@@ -1921,12 +1921,13 @@ function db_mailing_vanaf($actie, $vanafemail="") {
 	global $table_prefix;
 	
 	if ($actie == "lijst") {
-		$query = sprintf("SELECT * FROM %sMailing_vanaf ORDER BY VanafEmail;", $table_prefix);
+		$s = "RecordID, Vanaf_email, Vanaf_naam, SMTP_server, SMTP_poort, SMTP_gebruiker, Ingevoerd, Gewijzigd";
+		$query = sprintf("SELECT %s FROM %sMailing_vanaf ORDER BY Vanaf_email;", $s, $table_prefix);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
 	} elseif ($actie == "record" and strlen($vanafemail) > 5) {
-		$query = sprintf("SELECT * FROM %sMailing_vanaf WHERE VanafEmail='%s';", $table_prefix, $vanafemail);
+		$query = sprintf("SELECT * FROM %sMailing_vanaf WHERE Vanaf_email='%s';", $table_prefix, $vanafemail);
 		$result = fnQuery($query);
 		return $result->fetch();
 		
@@ -3607,8 +3608,8 @@ CREATE TABLE IF NOT EXISTS `%1\$sMailing_rcpt` (
 
 CREATE TABLE IF NOT EXISTS `%1\$sMailing_vanaf` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
-  `VanafEmail` varchar(30) NOT NULL,
-  `VanafNaam` varchar(50) NOT NULL,
+  `Vanaf_email` varchar(30) NOT NULL,
+  `Vanaf_naam` varchar(50) NOT NULL,
   `Type` char(1) NOT NULL DEFAULT 'S' COMMENT 'S=SMTP',
   `SMTP_server` varchar(20) NOT NULL COMMENT 'Indien leeg, dan wordt de smtp server uit het config bestand gebruikt',
   `SMTP_poort` smallint(6) NOT NULL DEFAULT '587',
