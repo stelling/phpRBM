@@ -99,7 +99,9 @@ function toegang($soort, $melding=1, $log=1) {
 		$tabpages[] = "Instellingen";
 		$tabpages[] = "Stamgegevens";
 		$tabpages[] = "Uploaden data";
-		$tabpages[] = "Downloaden wijzigingen";
+		if (db_interface("aantalopenstaand") > 0) {
+			$tabpages[] = "Downloaden wijzigingen";
+		}
 		$tabpages[] = "Onderhoud";
 		$tabpages[] = "Logboek";
 	} else {
