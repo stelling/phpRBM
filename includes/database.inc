@@ -2765,7 +2765,6 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrIntegers['verjaardagenvooruit'] = 5;
 	$arrIntegers['zs_opzegtermijn'] = 1;
 	
-	$arrBooleans['db_backuptarren'] = 0;
 	$arrBooleans['kaderoverzichtmetfoto'] = 1;
 	$arrBooleans['toonpasfotoindiennietingelogd'] = 0;
 	$arrBooleans['meisjesnaamtonen'] = 1;
@@ -3839,13 +3838,7 @@ function db_backup() {
 			
 			$mess = sprintf("Backup, type %d, is in '%s.sql' gemaakt. ", db_param("db_backup_type"), str_replace($db_folderbackup, "", $FileName));
 
-			if (db_param("db_backuptarren") == 1) {
-				exec("/bin/tar -czf " . $FileName . ".tar.gz" . " " . $FileName . ".sql");
-				exec("/bin/rm " . $FileName . ".sql");
-				chmod($FileName . ".tar.gz", 0000);
-			} else {
-				chmod($FileName . ".sql", 0000);
-			}
+			chmod($FileName . ".sql", 0000);
 
 			if (db_param("db_backupsopschonen") > 0 and $handle = opendir($db_folderbackup)) {
 				$mess .= "Opschonen backupfolder: ";

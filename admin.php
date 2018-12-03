@@ -367,7 +367,6 @@ function fnInstellingen() {
 
 	// Omschrijving NT = Niet tonen in dit scherm
 	$arrParam['db_backup_type'] = "Welke taballen moeten worden gebackuped? 1=interne phpRBM-tabellen, 2=tabellen uit Access, 3=beide.";
-	$arrParam['db_backuptarren'] = "Moet de backup gecomprimeerd worden? Let op, de webhost moet dit wel ondersteunen. En ook moet de PHP-functie 'exec' beschikbaar zijn.";
 	$arrParam['db_backupsopschonen'] = "Na hoeveel dagen moeten back-ups automatisch verwijderd worden? 0 = nooit.";
 	$arrParam['db_folderbackup'] = "In welke folder moet de backup worden geplaatst?";
 	$arrParam['emailwebmaster'] = "Het e-mailadres van de webmaster.";
