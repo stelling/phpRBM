@@ -408,7 +408,7 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 		$nivo = $toonnivo;
 		printf("<ul class='tablist%d'>\n", $nivo);
 		foreach($tabpages as $tp) {
-			if (toegang($tp, 0)) {
+			if (toegang($tp, 0, 0)) {
 				if ($nivo == 1 and strstr($tp, "/") === false) {
 					$tpd = $tp;
 				} elseif ($nivo == 2 and strpos($tp, "/") > 1 and $currenttab == substr($tp, 0, strlen($currenttab))) {
@@ -531,8 +531,9 @@ function fnDisplayFormLabels($row, $xtra_eind="", $id="formulier") {
 	return $ret;
 }
 
-function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_regel="", $class="lijst", $xtra_kolom="") {
+function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_regel="", $class="lijst", $xtra_kolom="", $edittable=0) {
 	$ret = sprintf("<div class='%s'>\n", $class);
+	$kol_pk = "";
 	if (isset($rows) and (count($rows) > 0 or strlen($xtra_regel) > 0)) {
 		$ret .= "<table>\n";
 		$dispkop = 1;
@@ -541,8 +542,12 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 			if ($dispkop == 1) {
 				$hv = "<tr>";
 				foreach($row as $key => $value) {
-					if (strstr("dte, dtt, dtl, dts, boo, int, cur, eml, num, mrg", substr($key, 0, 3)) !== false) {
+					if (strstr("rodte, rodtt", substr($key, 0, 5)) !== false) {
+						$hv .= sprintf("<th>%s</th>", str_replace("_", " ", substr($key, 5)));
+					} elseif (strstr("dte, dtt, dtl, dts, boo, int, cur, eml, num, mrg, pwd", substr($key, 0, 3)) !== false) {
 						$hv .= sprintf("<th>%s</th>", str_replace("_", " ", substr($key, 3)));
+					} elseif (strstr("ro", substr($key, 0, 2)) !== false) {
+						$hv .= sprintf("<th>%s</th>", str_replace("_", " ", substr($key, 2)));
 					} elseif (startwith($key, "lnk")) {
 						if (strlen($link) > 1) {
 							$hv .= "<th>&nbsp;</th>";
@@ -564,6 +569,9 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 					} elseif (substr($key, 0, 2) != "nd" and substr($key, 0, 3) != "lnk" and substr($key, 0, 3) != "llk") {
 						$ktot[] = "geen";
 					}
+					if (startwith($key, "lnk") or startwith($key, "llk")) {
+						$kol_pk = $key;
+					}
 				}
 				if (strlen($th) > 1) {
 					$ret .= sprintf("<tr><th colspan=%d class='tabelkop'>%s</th></tr>\n", count($ktot), $th);
@@ -574,8 +582,10 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 			$ret .= "<tr>";
 			$kn = 0;
 			foreach($row as $key => $value) {
-				if (substr($key, 0, 3) == "dte") {
-					if ((!is_null($value)) and $value > '1900-01-01') {
+				if (startwith($key, "dte") or startwith($key, "rodte")) {
+					if (startwith($key, "dte") and $edittable == 1) {
+						$ret .= sprintf("<td><input type='date' name='%s_%d' value='%s'></td>", substr($key, 3), $row->$kol_pk, $value);
+					} elseif ((!is_null($value)) and $value > '1900-01-01') {
 						$ret .= sprintf("<td class='datum'>%s</td>", strftime('%e %B %Y', strtotime($value)));
 					} else {
 						$ret .= "<td>&nbsp;</td>";
@@ -586,8 +596,10 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 					} else {
 						$ret .= "<td>&nbsp;</td>";
 					}
-				} elseif (substr($key, 0, 3) == "dtt") {
-					if ((!is_null($value)) and $value > '1900-01-01') {
+				} elseif (startwith($key, "dtt") or startwith($key, "rodtt")) {
+					if (startwith($key, "dtt") and $edittable == 1) {
+						$ret .= sprintf("<td><input type='datetime' name='%s_%d' value='%s'></td>", substr($key, 3), $row->$kol_pk, $value);
+					} elseif ((!is_null($value)) and $value > '1900-01-01') {
 						$ret .= sprintf("<td class='datumtijd'>%s</td>", strftime('%e %B %Y (%H:%M)', strtotime($value)));
 					} else {
 						$ret .= "<td>&nbsp;</td>";
@@ -601,7 +613,11 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 						$ret .= "<td>&nbsp;</td>";
 					}
 				} elseif (substr($key, 0, 3) == "int") {
-					$ret .= sprintf("<td class='number'>%d</td>", $value);
+					if ($edittable == 0) {
+						$ret .= sprintf("<td class='number'>%d</td>", $value);
+					} else {
+						$ret .= sprintf("<td><input type='number' name='%s_%d' value='%s'></td>", substr($key, 3), $row->$kol_pk, $value);
+					}
 					$ktot[$kn] += $value;
 				} elseif (substr($key, 0, 3) == "cur") {
 					$ret .= sprintf("<td class='number'>%s</td>", number_format($value, 2, ",", "."));
@@ -624,8 +640,18 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 					} elseif (strlen($link_lk) > 1) {
 						$ret .= "<td></td>\n";
 					}
-				} elseif (substr($key, 0, 3) == "eml") {
-					$ret .= sprintf("<td>%s</td>", fnDispEmail($value, "", 1));
+				} elseif (startwith($key, "eml")) {
+					if ($edittable == 0) {
+						$ret .= sprintf("<td>%s</td>", fnDispEmail($value, "", 1));
+					} else {
+						$ret .= sprintf("<td><input type='email' name='%s_%d' value='%s'></td>", substr($key, 3), $row->$kol_pk, $value);
+					}
+				} elseif (startwith($key, "pwd")) {
+					if ($edittable == 0) {
+						$ret .= "<td></td>";
+					} else {
+						$ret .= sprintf("<td><input type='password' name='%s_%d'></td>", substr($key, 3), $row->$kol_pk);
+					}
 				} elseif (substr($key, 0, 3) === "num") {
 					$ret .= sprintf("<td class='number'>%s</td>", $value);
 				} elseif (substr($key, 0, 3) == "nm2") {
@@ -633,7 +659,11 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 				} elseif (substr($key, 0, 3) == "mrg") {
 					$ret .= sprintf("<td>%s</td>", str_replace(" &amp; ", "<br>", htmlentities($value)));
 				} elseif (substr($key, 0, 2) != "nd") {
-					$ret .= sprintf("<td>%s</td>", htmlentities($value));
+					if ($edittable == 0 or startwith($key, "ro")) {
+						$ret .= sprintf("<td>%s</td>", htmlentities($value));
+					} else {
+						$ret .= sprintf("<td><input name='%s_%d' value='%s'></td>", $key, $row->$kol_pk, $value);
+					}
 				}
 				$kn++;
 			}
@@ -681,7 +711,7 @@ function debug($tekst, $alleenwm=1, $alert=0, $logact=0) {
 		}
 	}
 	if ($logact == 1) {
-		db_logboek("add", "Debug: " . $tekst, $type=99);
+		db_logboek("add", "Debug: " . $tekst, 99);
 	}
 } # debug
 
