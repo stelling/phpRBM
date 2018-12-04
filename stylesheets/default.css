@@ -1,0 +1,1158 @@
+body {
+	font-family: Tahoma, Arial, Verdana, Helvetica;
+	font-size: 10pt;
+	color: #000080;
+	border-width: 1px;
+}
+
+a, a:visited {
+	color: inherit;
+}
+
+h1 {
+	font-weight: bold;
+	font-size: 18pt;
+	margin-top: 2px;
+	margin-bottom: 2px;
+}
+
+h2, h3 {
+	margin-top: 9px;
+	margin-bottom: 1px;
+}
+
+img {
+	border-style: none;
+}
+
+tr {
+	vertical-align: middle;
+}
+
+td, th {
+	padding: 3px;
+	border-style: solid;
+	border-width: 1px;
+	background-color: #FFFF99;
+	border-color: #000080;
+	vertical-align: middle;
+}
+
+th {
+	background-color: #00FFFF;
+}
+
+ul {
+	margin-top: 1px;
+	margin-bottom: 1px;
+}
+
+li {
+	margin-left: 0;
+	padding-left: 3px;
+}
+
+p {
+	margin-top: 1px;
+	margin-bottom: 6px;
+}
+
+label {
+	width: 133px;
+	height: 20px;
+	float: left;
+	clear: left;
+	display: block;
+	margin-top: 3px;
+	margin-bottom: 3px;
+	padding-top: 4px;
+	text-align: right;
+}
+
+footer, #footer {
+	clear: both;
+	background-color: #f0f0f0;
+	width: 100%;
+	height: 22px;
+	text-align: center;
+	margin-top: 15px;
+	margin-bottom: 10px;
+	padding-top: 8px;
+	padding-left: 2px;
+	padding-right: 2px;
+	font-style: italic;
+	font-size: 8pt;
+	border-top-right-radius: 9px;
+   border-top-left-radius: 9px;
+	border-bottom-right-radius: 9px;
+   border-bottom-left-radius: 9px;
+}
+
+footer a, footer a:visited, #footer a, #footer a:visited {
+	text-decoration: underline;
+	color: inherit;
+}
+
+#container, #containerbreed {
+	width: 1200px;
+	margin-left: auto;
+	margin-right: auto;
+	padding-left: 0;
+	padding-right: 0;
+/*	background-color: yellow; */
+}
+
+#containerbreed {
+	width: 1850px;
+}
+
+@media screen and (max-width: 1200px) {
+	#container, #containerbreed {
+		width: 960px;
+	}
+}
+
+header {
+	width: 100%;
+	height: 90px;
+	margin-bottom: 0;
+	padding-top: 6px;
+	padding-left: 0;
+	padding-right: 0;
+	background-color: #00FFFF;
+   border-top-right-radius: 12px;
+   border-top-left-radius: 12px;
+}
+
+header h1 {
+	float: left;
+	color: white;
+	margin-top: 3px;
+	padding-left: 4px;
+}
+
+.tabelkop {
+	font-size: 11pt;
+}
+
+header a + a:visited + a:hover {
+	text-decoration: none;
+	color: inherit;
+}
+
+#welkomstekst {
+	padding-top: 8px;
+	padding-left: 8px;
+}
+
+#welkomstekst a, #welkomstekst a:visited {
+	color: inherit;
+}
+
+#kolomlinks, #kolomrechts {
+	width: 48%;
+	margin-left: 0;
+	margin-right: 0;
+	padding-left: 0;
+	padding-right: 0;
+}
+
+#kolomlinks {
+	float: left;
+}
+
+#kolomrechts {
+	float: right;
+	clear: right;
+}
+
+#filter {
+	width: 100%;
+	margin-top: 8px;
+	margin-bottom: 4px;
+	padding: 0;
+	border-style: solid;
+	border-color: #000080;
+	border-width: 1px;
+}
+
+#formulier, #overzichtlid {
+	position: relative;
+}
+
+#formulier table {
+	min-width: 300px;
+}
+
+#pasfoto {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	padding: 12px;
+	border-style: dashed;
+	border-width: 1px;
+	border-color: inherit;
+	max-width: 325px;
+	text-align: center;
+   border-top-right-radius: 12px;
+   border-top-left-radius: 12px;
+   border-bottom-right-radius: 12px;
+   border-bottom-left-radius: 12px;
+}
+
+#pasfoto img {
+	max-width: 300px;
+}
+
+#invulformulier table {
+	margin-left: auto;
+	margin-right: auto;
+	margin-top: 10px;
+}
+
+#overzichtlid table {
+	min-width: 300px;
+	max-width: 600px;
+}
+
+#overzichtlid td {
+	max-width: 590px;
+}
+
+#overzichtlid label {
+	width: 250px;
+	margin-right: 5px;
+	float: left;
+	clear: left;
+	background-color: #00FFFF;
+	color: #000080;
+}
+
+#overzichtlid span {
+    display: block;
+}
+
+#overzichtlid h3 {
+	width: 800px;
+}
+
+#wijzigengegevens, #wijzigendiplomas, #nieuwepasfoto, #bijzonderhedenwijzigen, #lidmaatschapmuteren, #inschrijvingbewaking, #inschrijvingevenementen, #onlinebestellingen, #opzegformulier, #profielwijzigen {
+	padding-top: 8px;
+}
+
+#lidmaatschapmuteren img {
+	height: 8px;
+}
+
+#wijzigengegevens img {
+	max-width: 250px;
+}
+
+#nieuwepasfoto {
+	border-style: none;
+	padding-left: 4px;
+	padding-top: 8px;
+	padding-bottom: 8px;
+	width: auto;
+}
+
+#nieuwepasfoto img {
+	width: 390px;
+	height: 500px;
+	margin-bottom: 5px;
+}
+
+#nieuwepasfoto label {
+	width: auto;
+	height: 20px;
+}
+
+#nieuwepasfoto input {
+	height: 25px;
+	padding-left: 3px;
+	padding-right: 3px;
+}
+
+#toestemmingenmuteren label {
+	width: 300px;
+	padding-right: 4px;
+}
+
+#inschrijvingbewaking table {
+	margin-left: auto;
+	margin-right: auto;
+}
+
+#versies {
+	border-style: solid;
+	border-width: 1px;
+	margin-top: 8px;
+	padding-top: 4px;
+	padding-bottom: 4px;
+	width: 100%;
+	text-align: center;
+}
+
+.nietdefinitief {
+	background-color: red;
+	color: white;
+}
+
+.lijst, .onderdelenperlid, #overzichtlid {
+	margin-top: 6px;
+}
+
+.lijst table, .onderdelenperlid table {
+	min-width: 450px;
+}
+
+.lijst td + th, .onderdelenperlid td + th {
+	padding-left: 6px;
+	padding-right: 6px;
+}
+
+.datumtijd {
+	min-width: 125px;
+}
+
+.logboek {
+	clear: both;
+	margin-top: 6px;
+}
+
+.logboek table {
+	width: 100%;
+}
+
+.logboek td + th {
+	padding-left: 3px;
+	padding-right: 3px;
+}
+
+.inputnumber {
+	width: 50px;
+	text-align: right;
+}
+
+#artikelbeheer select {
+	max-width: 180px;
+}
+
+#login {
+	float: right;
+	margin-top: 0;
+	margin-right: 0;
+	padding-left: 4px;
+	padding-right: 4px;
+	padding-bottom: 3px;
+	text-align: left;
+	border-left: 1px;
+	border-right: 0;
+	border-top: 0;
+	border-bottom: 1px;
+	border-style: solid;
+   border-bottom-left-radius: 9px;
+}
+
+#login img {
+	height: 22px;
+	width: 22px;
+	border: 0;
+	margin-left: 6px;
+}
+
+#loginaanvraag, #opvragenlidnr, #profielwijzigen, #opzegformulier {
+	width: 432px;
+	background-color: #00FFFF; // licht blauw
+	margin-left: auto;
+	margin-right: auto;
+	padding-left: 5px;
+	padding-right: 5px;
+	padding-bottom: 5px;
+}
+
+#loginaanvraag h3, #opvragenlidnr h3, #profielwijzigen h3, #opzegformulier h3{
+	color: white;
+	font-size: 14pt;
+}
+
+#loginaanvraag label, #opvragenlidnr label, #profielwijzigen label, #opzegformulier label {
+	width: 200px;
+	float: left;
+}
+
+#overzichtevenementen {
+	clear: both;
+	margin-top: 8px;
+}
+
+#overzichtevenementen table {
+	width: 100%;
+	border-style: none;
+}
+
+#overzichtevenementen tr, #overzichtevenementen td, #overzichtevenementen th {
+	background-color: transparent;
+	border-style: none;
+	text-align: left;
+	border-width: 1px;
+	border-right-style: solid;
+	border-bottom-style: solid;
+}
+
+#evenementenbeheer table {
+	width: 100%;
+}
+
+fieldset {
+	margin-top: 3px;
+	margin-right: auto;
+	margin-left: auto;
+	padding-top: 5px;
+	border-color: #00FFFF;
+	border-width: 0;
+}
+
+fieldset h3 {
+	margin-bottom: 12px;
+}
+
+#loginaanvraag input, #opvragenlidnr input, #profielwijzigen input, #opzegformulier input {
+	width: 190px;
+	height: 22px;
+	clear: right;
+	margin-left: 8px;
+	margin-right: 0;
+	margin-top: 3px;
+	margin-bottom: 3px;
+	padding-left: 3px;
+	padding-right: 3px;
+	border-width: 1px;
+	border-style: none;
+	background-color: white;
+}
+
+#loginaanvraag input.inputnumber, #opvragenlidnr input.inputnumber, #opzegformulier input.inputnumber {
+	width: 50px;
+	text-align: right;
+	padding-left: 3px;
+	padding-right: 3px;
+}
+
+input.knop {
+	color: #000080;
+	font-weight: bold;
+	height: auto;
+	margin-top: 16px;
+	margin-bottom: 4px;
+	padding-top: 4px;
+	padding-bottom: 4px;
+	cursor: pointer;
+	font-size: 11pt;
+}
+
+#loginaanvraag input.knop, #opvragenlidnr input.knop, #profielwijzigen input.knop {
+	width: 100px;
+	float: right;
+}
+
+#opzegformulier input.knop {
+	width: 150px;
+	float: right;
+	margin-top: 8px;
+	padding-top: 5px;
+	padding-bottom: 5px;
+}
+
+#verstuurdemail {
+	width: 100%;
+	height: auto;
+	clear: right;
+	float: left;
+}
+
+#verstuurdemail .label, #verstuurdemail .veld{
+	min-height: 23px;
+	margin-top: 3px;
+	margin-bottom: 3px;
+	padding-top: 3px;
+	padding-left: 4px;
+	padding-right: 4px;
+	border-width: 1px;
+	border-color: inherit;
+}
+
+#verstuurdemail .label {
+	background-color: transparent;
+	width: 90px;
+	margin-left: 5px;
+	margin-right: 5px;
+	float: left;
+	border-top-style: solid;
+	border-bottom-style: solid;
+}
+
+#verstuurdemail .veld {
+	width: 846px;
+	float: left;
+	margin-right: 3px;
+	border-style: solid;
+}
+
+#verstuurdemail li {
+	margin-left: 15px;
+	margin-top: 3px;
+	margin-bottom: 3px;
+}
+
+.wieiswie-onderdeelnaam , .wieiswie-onderdeelemail, #bewakingsrooster h2, #bewakingsrooster h3 {
+	margin-top: 15px;
+	padding-top: 3px;
+	padding-bottom: 1px;
+	font-weight: bolder;
+	font-size: 16pt;
+}
+
+.wieiswie-onderdeelnaam {
+	float: left;
+}
+
+.wieiswie-onderdeelemail {
+	float: right;
+}
+
+#bewakingsrooster h2, #postindeling h2 {
+	padding-left: 4px;
+}
+
+#bewakingsrooster h3, #postindeling h3 {
+	background-color: #00FFFF;
+	padding-left: 4px;
+}
+
+#wieiswie a, #wieiswie a:visited, #bewakingsrooster a, #bewakingsrooster a:visited, #postindeling a, #postindeling a:visited {
+	color: inherit;
+	text-decoration: none;
+}
+
+#mailing table {
+	width: 100%;
+}
+
+.editmailingvanaf input {
+	width: 300px;
+}
+
+.ck-editor__editable {
+   min-height: 500px;
+}
+
+.ck-editor__editable p {
+	font-size: 11pt;
+}
+
+#footerleft {
+	float: left;
+	margin-top: 0;
+	padding-left: 4px;
+}
+
+#footerright {
+	float: right;
+	margin-top: 0;
+	padding-right: 4px;
+}
+
+#handleiding {
+	font-size: 10pt;
+	padding-top: 8px;
+	padding-left: 8px;
+}
+
+#handleiding img {
+	margin-top: 10px;
+}
+
+#handleiding ul {
+	padding-left: 14px;
+}
+
+#handleiding li {
+	margin-top: 4px;
+	margin-bottom: 4px;
+}
+
+#opdrachtknoppen {
+	clear: left;
+	margin-top: 8px;
+	margin-bottom: 2px;
+	text-align: center;
+	border-style: solid;
+	border-width: 1px;
+   border-top-right-radius: 12px;
+   border-top-left-radius: 12px;
+   border-bottom-right-radius: 12px;
+   border-bottom-left-radius: 12px;
+}
+
+#bestellingbeheer table {
+	width: 100%;
+}
+
+.totalenbestellingen {
+	margin-top: 15px;
+}
+
+.totalenbestellingen table {
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.clear {
+	clear: both;
+	height: 9px;
+}
+
+.label {
+	text-align: right;
+	background-color: #00FFFF;
+}
+
+.details {
+	text-align: center;
+}
+
+.details img {
+	max-height: 24px;
+}
+
+.number {
+	text-align: right;
+}
+
+#menu_l1 {
+	
+}
+
+#menu_l2 {
+	clear: right;
+	margin-bottom: 6px;
+}
+
+#menu_l1, #menu_l2, .tablist1, .tablist2 {
+   list-style: none;
+   height: 24px;
+   padding: 0; 
+   margin: 0; 
+   border: none;
+}
+
+.tablist2 ul {
+	width: 100%;
+	clear: right;
+	margin-bottom: 6px;
+	padding-left: 2px;
+}
+
+.tablist1 li, .tablist2 li {
+   float: left;
+	font-style: normal;
+   display: block;
+	padding-bottom: 1px;
+	border-style: solid;
+	border-width: 1px;
+}
+
+.tablist1 li {
+	font-size: 10pt;
+	min-width: 85px;
+	margin-left: 2px;
+   margin-right: 2px;
+   padding-left: 5px;
+	padding-right: 5px;
+	height: 24px;
+	font-style: normal;
+	margin-top: 15px;
+	padding-top: 11px;
+	border-color: #f0f0f0;
+	background-color: #f0f0f0;
+	border-top-right-radius: 9px;
+   border-top-left-radius: 9px;
+}
+
+.tablist2 li, .tablist3 li {
+	font-size: 9pt;
+	text-align: center;
+	background-color: transparent;
+	border-right-style: none;
+	min-width: 80px;
+	height: 18px;
+	
+	margin-top: 2px;
+	margin-left: 0;
+   margin-right: 0;
+	
+	padding-top: 4px;
+   padding-left: 4px;
+	padding-right: 4px;
+}
+
+.tablist2 li:first-child, .tablist3 li:first-child {
+	border-left-style: none;
+}
+
+.tablist1 li.current {
+   background-color: white;
+	border-color: white;
+}
+
+.tablist2 li.current, .tablist3 li.current {
+	font-weight: bolder;
+}
+
+.tablist1 li a, .tablist1 li a:visited, .tablist2 li a, .tablist2 li a:visited , .tablist3 li a, .tablist3 li a:visited  {
+   text-decoration: none;
+	color: inherit;
+}
+
+.tablist2 li:hover, .tablist3 li:hover  {
+   background-color: #cdcdcd;
+}
+
+.done {
+	text-decoration: line-through;
+	color: green;
+}
+
+.mededeling, .mededeling a {
+	font-size: 13pt;
+	color: red;
+	text-align: center;
+}
+
+.debug {
+	font-size: 11pt;
+	color: orange;
+}
+
+.listmergefields, .listrecipients {
+   list-style: none;
+	padding-left: 3px;
+	padding-right: 3px;
+	text-align: left;
+	margin-top: 0;
+}
+
+.listmergefields li, .listrecipients li {
+	float: left;
+	width: 200px;
+	margin-left: 1px;
+	padding-left: 3px;
+}
+
+.listdeelnemers {
+	list-style: none;
+	padding-left: 0;
+	padding-right: 0;
+	text-align: left;
+	margin-top: 0;
+}
+
+.listdeelnemers li {
+	float: left;
+	width: 215px;
+	list-style-type: none;
+	margin-left: 3px;
+	margin-right: 3px;
+}
+
+.datumtijdevenement, .omschrijvingevenement {
+	min-width: 125px;
+}
+
+.jarige {
+	margin-top: 10px;
+	height: 83px;
+	line-height: 83px;
+}
+
+.jarige img, .kaartje img, .bewaker img {
+	float: left;
+	height: 82px;
+	margin-right: 4px;
+}
+
+.kaartje, .bewaker {
+	float: left;
+	height: 82px;
+	width: 310px;
+	border-style: solid;
+	border-width: 1px;
+	margin-top: 10px;
+	margin-left: 3px;
+	margin-right: 3px;
+	padding-right: 1px;
+	background-color: #FFFF99;
+   border-top-right-radius: 9px;
+   border-bottom-right-radius: 9px;
+}
+
+.kaartje p {
+	margin-left: 3px;
+	margin-right: 3px;
+}
+
+.bewaker {
+	width: 303px;
+	margin-left: 6px;
+	margin-right: 6px;
+	padding-right: 3px;
+}
+
+.kaderlid p, .bewaker p {
+	margin-top: 6px;
+	margin-bottom: 6px;
+}
+
+.naamkaderlid, .bewnaam {
+	font-size: 10pt;
+	font-weight: bolder;
+	text-align: center;
+}
+
+.naamkaderlid {
+	font-size: 11pt;
+}
+
+.functiekaderlid, .mailkaderlid {
+	margin-left: 4px;
+}
+
+.bewfunctie {
+	text-align: center;
+}
+
+.bewleeftijd {
+	float: left;
+	margin-top: 3px;
+	margin-left: 4px;
+}
+
+.bewervaring {
+	float: right;
+	margin-top: 3px;
+	text-align: right;
+}
+
+.chk {
+	text-align: center;
+}
+
+.fotoinschrijving img {
+	width: 40px;
+}
+
+.opmerkinginschrijving, .opmerkingweek {
+	max-width: 200px;
+}
+
+#rekeningenmailen ul {
+	margin-left: 0;
+	padding-left: 0;
+}
+
+#rekeningenmailen li {
+	display: block;
+	width: 33%;
+   float: left;
+	padding-left: 2px;
+}
+
+#rekeningregels table, #rekeningregels th, #rekeningregels td {
+	border-width: 1px;
+	border-style: solid;
+	border-collapse: collapse;
+}
+
+#dbonderhoud p {
+	margin-top: 12px;
+	margin-bottom: 12px;
+	margin-left: 6px;
+	border-style: solid;
+	border-width: 1px;
+	font-size: 11pt;
+}
+
+#instellingenmuteren td {
+	padding-left: 5px;
+	padding-right: 5px;
+}
+
+#instellingenmuteren .inputtext {
+	width: 382px;
+}
+
+#instellingenmuteren label, #editmailingform label {
+	clear: left;
+	float: left;
+	margin-top: 3px;
+	margin-right: 5px;
+	padding-left: 5px;
+	padding-right: 5px;
+}
+
+#instellingenmuteren label {
+	width: 450px;
+	height: 40px;
+}
+
+#instellingenmuteren h2 {
+	float: left;
+	clear: left;
+	width: 100%;
+	margin-top: 8px;
+}
+
+#instellingenmuteren select {
+	margin-top: 8px;
+}
+
+#editmailingform label {
+	width: 180px;
+	height: 24px;
+}
+
+#editmailingform li {
+	width: 156px;
+	height: 28px;
+}
+
+#instellingenmuteren input, #editmailingform input, #editmailingform select, #toestemmingenmuteren input {
+	margin-top: 9px;
+	margin-bottom: 8px;
+}
+
+#editmailingform select {
+	width: 350px;
+}
+
+#instellingenmuteren p, #editmailingform p {
+	float: left;
+	height: 30px;
+	margin-top: 3px;
+	margin-bottom: 2px;
+}
+
+.invoerblok {
+	float: left;
+	clear: right;
+	width: 975px;
+	min-height: 28px;
+	margin-bottom: 6px;
+	margin-top: 3px;
+	border-style: solid;
+	border-width: 1px;
+}
+
+.invoerblok table {
+	width: 100%;
+	border-style: none;
+}
+
+.invoerblok td {
+	background-color: #D3D3D3;
+	border-style: none;
+}
+
+.CopyPaste {
+	margin-top: 8px;
+	border-style: solid;
+	border-width: 1px;
+	background-color: silver;
+}
+
+/* Elementen voor nieuw menu */
+
+#nav {
+	margin: 0;
+	padding: 0;
+}
+#nav li {
+	float: left;
+	position: relative;
+	list-style: none;
+	
+	min-width: 107px;
+	height: 30px;
+	
+	margin-top: 15px;
+	margin-left: 2px;
+   margin-right: 2px;
+	
+	padding-top: 8px;
+   padding-left: 0;
+	padding-right: 0;
+	
+	border-color: transparent;
+   background-color: #cdcdcd;
+   border-top-right-radius: 9px;
+   border-top-left-radius: 9px;
+}
+
+/* main level link */
+#nav a {
+	color: #000080;
+	text-decoration: none;
+	display: block;
+	padding-top: 4px;
+	padding-bottom: 4px;
+	padding-left: 4px;
+	padding-right: 4px;
+	margin: 0;
+}
+
+/* main level link hover */
+#nav .current a {
+	font-weight: bolder;
+}
+
+#nav li:hover > a {
+	background-color: #0399d4;
+	color: white;
+	font-weight: normal;
+}
+
+/* sub levels link hover */
+#nav ul li:hover a, #nav li:hover li a {
+	background-color: none;
+	border: none;
+	font-weight: normal;
+}
+#nav ul a:hover {
+	background-color: #0399d4 !important; /* for non-css3 browsers */
+	color: white !important;
+}
+/* level 2 list */
+#nav ul {
+	background: #ddd; /* for non-css3 browsers */
+
+	display: none;
+	margin: 0;
+	padding: 0;
+	width: 185px;
+	position: absolute;
+	top: 35px;
+	left: 0;
+	border-style: solid;
+	border-width: 1px;
+	border-color: #b4b4b4;
+}
+
+/* dropdown */
+#nav li:hover > ul {
+	display: block;
+	z-index: 2;
+}
+#nav ul li {
+	float: none;
+	margin: 0;
+	padding: 0;
+}
+#nav ul a {
+	font-weight: normal;
+}
+
+
+/* Elementen voor treeview */
+
+.css-treeview ul, .css-treeview li {
+	padding: 0;
+	margin: 0;
+	list-style: none;
+}
+
+.css-treeview input 	{
+	position: absolute;
+	opacity: 0;
+}
+
+.css-treeview {
+	-moz-user-select: none;
+	-webkit-user-select: none;
+	user-select: none;
+}
+
+.css-treeview a {
+	color: #00f;
+	text-decoration: none;
+}
+
+.css-treeview a:hover {
+	text-decoration: underline;
+}
+
+.css-treeview input + label + ul {
+	margin: 0 0 0 22px;
+}
+
+.css-treeview input + label + ul {
+	display: none;
+}
+
+.css-treeview label, .css-treeview label::before {
+	cursor: pointer;
+}
+
+.css-treeview input:disabled + label {
+	cursor: default;
+	opacity: .6;
+}
+
+.css-treeview input:checked:not(:disabled) + label + ul {
+	display: block;
+}
+
+.css-treeview label, .css-treeview label::before {
+	background: url("icons.png") no-repeat;
+}
+
+.css-treeview label, .css-treeview a, .css-treeview label::before {
+	display: inline-block;
+	height: 16px;
+	line-height: 16px;
+	vertical-align: middle;
+}
+
+.css-treeview label {
+	background-position: 18px 0;
+}
+
+.css-treeview label::before {
+	content: "";
+	width: 16px;
+	margin: 0 22px 0 0;
+	vertical-align: middle;
+	background-position: 0 -32px;
+}
+
+.css-treeview input:checked + label::before {
+	background-position: 0 -16px;
+}
+
+/* webkit adjacent element selector bugfix */
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+	.css-treeview {
+		-webkit-animation: webkit-adjacent-element-selector-bugfix infinite 1s;
+	}
+			
+	@-webkit-keyframes webkit-adjacent-element-selector-bugfix {
+		from { 
+			padding: 0;
+		} 
+		to  { 
+			padding: 0;
+		}
+	}
+}
+
+/* Einde elementen voor treeview */
