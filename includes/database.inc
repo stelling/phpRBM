@@ -1355,15 +1355,15 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		return db_scalar($query);
 		
 	} elseif ($actie == "uitloggen") {
-		$query = sprintf("UPDATE %sAdmin_login SET Ingelogd=0 WHERE ((Ingelogd <> 0 AND LastActivity < ADDDATE(SYSDATE(), INTERVAL -%d MINUTE)) OR LidID=%d);", $table_prefix, session_cache_expire(), $lidid);
+		$query = sprintf("UPDATE %sAdmin_login SET Ingelogd=0 WHERE ((Ingelogd > 0 AND LastActivity < ADDDATE(SYSDATE(), INTERVAL -%d MINUTE)) OR LidID=%d);", $table_prefix, session_cache_expire(), $lidid);
 		$result = fnQuery($query);
 		if ($result > 0) {
 			if ($lidid > 0) {
 				$mess = sprintf("%s (LidID: %d) is uitgelogd.", db_naamlid($lidid), $lidid);
 				db_logboek("add", $mess, 1, $lidid);
 				$_SESSION['lidid'] = 0;
-				fnMaatwerkNaUitloggen();
 			}
+			fnMaatwerkNaUitloggen();
 		}
 		
 	} elseif ($actie == "aantalingelogd") {
@@ -1686,10 +1686,10 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		$orderby = "sent_on DESC";
 		if ($filter == "Concepten" or $filter === "Verzonden") {
 			if ($filter == "Verzonden") {
-				$w = sprintf("(SELECT COUNT(*) FROM %sMailing_hist AS MH WHERE MH.MailingID=M.MailingID) > 0", $table_prefix);
-				$xtra_sel = sprintf(", CONCAT(IF(M.SentBy=0, '', (SELECT %s FROM %sLid WHERE Nummer=M.SentBy)), ' & ', DATE_FORMAT(M.sent_on, %s)) AS `mrgLaatst verzonden`", $selectnaam, $table_prefix, $fdtlang);
+				$w = sprintf("(NOT M.Sent_on IS NULL)", $table_prefix);
+				$xtra_sel = sprintf(", CONCAT(IF(M.SentBy=0, '', (SELECT %s FROM %sLid WHERE Nummer=M.SentBy)), ' & ', DATE_FORMAT(M.sent_on, %s)) AS `mrgLaatst verzonden door/op`", $selectnaam, $table_prefix, $fdtlang);
 			} else {
-				$w = sprintf("(SELECT COUNT(*) FROM %sMailing_hist AS MH WHERE MH.MailingID=M.MailingID) = 0", $table_prefix);
+				$w = sprintf("(M.Sent_on IS NULL)", $table_prefix);
 			}
 			$w .= " AND template=0 AND (deleted_on IS NULL)";
 			if ($_SESSION['webmaster'] == 0) {
@@ -1697,8 +1697,9 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 			}
 		} elseif ($filter == "Templates") {
 			$w = "M.template=1 AND (deleted_on IS NULL)";
-			$xtra_sel = sprintf(", CONCAT(IF(M.SentBy=0, '', (SELECT %s FROM %sLid WHERE Nummer=M.SentBy)), ' & ', DATE_FORMAT(M.sent_on, %s)) AS `mrgLaatst verzonden`", $selectnaam, $table_prefix, $fdtlang);
+			$xtra_sel = sprintf(", CONCAT(IF(M.SentBy=0, '', (SELECT %s FROM %sLid WHERE Nummer=M.SentBy)), ' & ', DATE_FORMAT(M.sent_on, %s)) AS `mrgLaatst verzonden door/op`", $selectnaam, $table_prefix, $fdtlang);
 			$orderby = "M.subject, sent_on";
+			
 		} elseif ($filter == "Verzonden mails") {
 			
 		} elseif ($filter == "Prullenbak") {
@@ -1837,8 +1838,8 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 			$result = fnQuery($query, 2);
 		}
 
-	} elseif ($mid > 0) {
-		$query = sprintf("SELECT * FROM %sMailing WHERE MailingID=%d LIMIT 1;", $table_prefix, $mid);
+	} elseif ($actie == "record") {
+		$query = sprintf("SELECT * FROM %sMailing WHERE MailingID=%d;", $table_prefix, $mid);
 		$result = fnQuery($query);
 		return $result->fetch();
 		
@@ -1917,19 +1918,53 @@ function db_mailing_hist($actie, $lidid=0, $mhid=0, $mid=0, $mail=null) {
 
 } # db_mailing_hist
 
-function db_mailing_vanaf($actie, $vanafemail="") {
+function db_mailing_vanaf($actie, $value="", $rid=0, $kolnaam="") {
 	global $table_prefix;
 	
-	if ($actie == "lijst") {
-		$s = "RecordID, Vanaf_email, Vanaf_naam, SMTP_server, SMTP_poort, SMTP_gebruiker, Ingevoerd, Gewijzigd";
+	if ($actie == "lijst" or $actie == "editlijst") {
+		if ($actie == "lijst") {
+			$s = "RecordID, Vanaf_email, Vanaf_naam, SMTP_server, SMTP_poort, SMTP_gebruiker, Ingevoerd, Gewijzigd";
+		} else {
+			$s = "RecordID AS roRecordID, Vanaf_email AS emlVanaf_email, Vanaf_naam, Ingevoerd AS rodteIngevoerd, Gewijzigd AS rodttGewijzigd";
+		}
+		if ($actie == "editlijst") {
+			$s .= ", RecordID AS llkRecordID";
+		}
 		$query = sprintf("SELECT %s FROM %sMailing_vanaf ORDER BY Vanaf_email;", $s, $table_prefix);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
-	} elseif ($actie == "record" and strlen($vanafemail) > 5) {
-		$query = sprintf("SELECT * FROM %sMailing_vanaf WHERE Vanaf_email='%s';", $table_prefix, $vanafemail);
+	} elseif ($actie == "record" and strlen($value) > 5) {
+		$query = sprintf("SELECT * FROM %sMailing_vanaf WHERE Vanaf_email='%s';", $table_prefix, $value);
 		$result = fnQuery($query);
 		return $result->fetch();
+		
+	} elseif ($actie == "add") {
+		$query = sprintf("INSERT INTO %sMailing_vanaf (Vanaf_email, Ingevoerd) VALUES ('** nieuw **', CURDATE());", $table_prefix);
+		$result = fnQuery($query);
+		$mess = sprintf("Record aan tabel %sMailing_vanaf met RecordID %d toegevoegd", $table_prefix, $result);
+		db_logboek("add", $mess, 4, 0, 1);
+		return $result;
+		
+	} elseif ($actie == "edit") {
+		if ($kolnaam == "SMTP_poort") {
+			$query = sprintf("UPDATE %1\$sMailing_vanaf SET %2\$s=%3\$d, Gewijzigd=SYSDATE() WHERE %2\$s <> %3\$d AND RecordID=%4\$d;", $table_prefix, $kolnaam, $value, $rid);
+		} else {
+			$query = sprintf("UPDATE %1\$sMailing_vanaf SET %2\$s='%3\$s', Gewijzigd=SYSDATE() WHERE %2\$s <> '%3\$s' AND RecordID=%4\$d;", $table_prefix, $kolnaam, $value, $rid);
+		}
+		$result = fnQuery($query);
+		if ($result > 0) {
+			$mess = sprintf("%sMailing_vanaf/Record %d: %s is gewijzigd in %s", $table_prefix, $rid, $kolnaam, $value);
+			db_logboek("add", $mess, 4);
+		}
+		
+	} elseif ($actie == "delete") {
+		$query = sprintf("DELETE FROM %sMailing_vanaf WHERE RecordID=%d", $table_prefix, $rid);
+		$result = fnQuery($query);
+		if ($result > 0) {
+			$mess = sprintf("Record met RecordID %d is uit tabel %sMailing_vanaf verwijderd.", $rid, $table_prefix);
+			db_logboek("add", $mess, 4, 0, 1);
+		}
 		
 	} else {
 		$mess = sprintf("Actie '%s' is onbekend.", $actie);
@@ -2070,7 +2105,7 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0, $referid=0, $ipf
 		$query = sprintf("SELECT A.DatumTijd as `dtsDatum en tijd`, Omschrijving%1\$s
 								FROM %2\$sAdmin_activiteit AS A LEFT OUTER JOIN %2\$sLid AS L ON A.LidID = L.Nummer
 								WHERE %3\$s
-								ORDER BY A.RecordID DESC LIMIT 750;", $s, $table_prefix, $w);
+								ORDER BY A.RecordID DESC LIMIT 1500;", $s, $table_prefix, $w);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
@@ -3610,15 +3645,11 @@ CREATE TABLE IF NOT EXISTS `%1\$sMailing_vanaf` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `Vanaf_email` varchar(30) NOT NULL,
   `Vanaf_naam` varchar(50) NOT NULL,
-  `Type` char(1) NOT NULL DEFAULT 'S' COMMENT 'S=SMTP',
   `SMTP_server` varchar(20) NOT NULL COMMENT 'Indien leeg, dan wordt de smtp server uit het config bestand gebruikt',
-  `SMTP_poort` smallint(6) NOT NULL DEFAULT '587',
-  `SMTP_gebruiker` varchar(25) NOT NULL,
-  `SMTP_wachtwoord` varchar(50) NOT NULL,
   `Ingevoerd` date NOT NULL,
   `Gewijzigd` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`RecordID`),
-  UNIQUE KEY `VanafEmail` (`VanafEmail`)
+  UNIQUE KEY `Vanaf_email` (`Vanaf_email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sMemo` (
