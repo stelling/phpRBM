@@ -1,12 +1,12 @@
 <?php
 		
-if (toegang("Overzicht lid", 0)) {
+if (toegang("Overzicht lid", 0, 0)) {
 	$ldl = "<a href='index.php?tp=Overzicht+lid&amp;lidid=%d'>%s</a>";
 } else {
 	$ldl = "";
 }
 
-if (toegang("Wijzigen lid", 0)) {
+if (toegang("Wijzigen lid", 0, 0)) {
 	$llw = "<a href='index.php?tp=Wijzigen+lid&amp;lidid=%d'>%s</a>";
 } else {
 	$llw = "";
@@ -236,10 +236,10 @@ function fnWieiswie($actie, $metfoto=1) {
 function fnLedenlijst() {
 	global $arrTL, $table_prefix, $wherelidond, $ldl;
 
-	if (toegang("Wijzigen lid", 0)) {
-		$llw = "<a href='index.php?tp=Wijzigen+lid/Algemene+gegevens&amp;lidid=%1\$d'><img src='./images/edit.png' alt='Wijzigen' title='Wijzigen lidgegevens'></a>";
+	if (toegang("Wijzigen lid", 0, 0)) {
+		$llw = "<a href='index.php?tp=Wijzigen+lid/Algemene+gegevens&amp;lidid=%d'><img src='./images/edit.png' alt='Wijzigen' title='Wijzigen lidgegevens'></a>";
 		if (toegang("Wijzigen lid/Pasfoto", 0)) {
-			$llw .= "</td><td class='details'><a href='index.php?tp=Wijzigen+lid/Pasfoto&amp;lidid=%1\$d'><img src='./images/profile.png' alt='Pasfoto' title='Wijzigen pasfoto'></a>";
+			$llw .= "</td><td class='details'><a href='index.php?tp=Wijzigen+lid/Pasfoto&amp;lidid=%d'><img src='./images/profile.png' alt='Pasfoto' title='Wijzigen pasfoto'></a>";
 		}
 	} else {
 		$llw = "";
@@ -429,9 +429,7 @@ function fnEigenGegevens($lidid=0, $actie="") {
 		} elseif ($actie == "Mailing") {
 			if (isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0) {
 				$xtra = "<p class='mededeling'><input type='button' value='Terug' onclick='history.go(-1);'></p>\n";
-				$mailing = new mailing;
-				$mailing->toonverstuurdemail($_GET['MailingHistID']);
-				$mailing = null;
+				toonverstuurdemail($_GET['MailingHistID']);
 			} else {
 				$ld = sprintf("<a href='index.php?tp=%s&amp;MailingHistID=%%d'>%%s</a>", urlencode($_GET['tp']));
 				$rows = db_gegevenslid($lidid, "Mailing");
