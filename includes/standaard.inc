@@ -38,6 +38,20 @@ $dir = substr(__DIR__, 0, strrpos(__DIR__, "/"));
 require($dir . '/config.php');
 $bestandsversie = filectime($dir . "/index.php");
 
+if (isset($_GET['tp']) and strlen($_GET['tp']) > 1) {
+	$sp = strpos($_GET['tp'], "/");
+	if ($sp > 0) {
+		$currenttab = substr($_GET['tp'], 0, $sp);
+		$currenttab2 = substr($_GET['tp'], $sp+1);
+	} else {
+		$currenttab = $_GET['tp'];
+		$currenttab2 = "";
+	}
+} else {
+	$currenttab = "Vereniging";
+	$_GET['tp'] = $currenttab;
+}
+
 /* Included maatwerk */
 $incl = $dir . "/maatwerk/maatwerk.inc";
 require_once($incl);
@@ -72,20 +86,6 @@ if (strlen(db_param("zs_muteerbarememos")) > 0) {
 	$muteerbarememos = explode(",", db_param("zs_muteerbarememos"));
 } else {
 	$muteerbarememos = array();
-}
-
-if (isset($_GET['tp']) and strlen($_GET['tp']) > 1) {
-	$sp = strpos($_GET['tp'], "/");
-	if ($sp > 0) {
-		$currenttab = substr($_GET['tp'], 0, $sp);
-		$currenttab2 = substr($_GET['tp'], $sp+1);
-	} else {
-		$currenttab = $_GET['tp'];
-		$currenttab2 = "";
-	}
-} else {
-	$currenttab = $tabpages[0];
-	$_GET['tp'] = $tabpages[0];
 }
 
 $fileverinfo = 'templates/verenigingsinfo.html';

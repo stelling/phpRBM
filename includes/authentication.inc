@@ -1,5 +1,214 @@
 <?php
 
+$tabpages = null;
+if ($_SERVER['PHP_SELF'] == "/admin.php") {
+	$tabpages[] = "Beheer logins";
+	$tabpages[] = "Autorisatie";
+	$tabpages[] = "Instellingen";
+	$tabpages[] = "Stamgegevens";
+	$tabpages[] = "Uploaden data";
+	if (db_interface("aantalopenstaand") > 0) {
+		$tabpages[] = "Downloaden wijzigingen";
+	}
+	$tabpages[] = "Onderhoud";
+	$tabpages[] = "Logboek";
+} else {
+	$tabpages[] = "Vereniging";
+	$tabpages[] = "Vereniging/Introductie";
+	$tabpages[] = "Vereniging/Kader";
+	$tabpages[] = "Vereniging/Onderscheidingen";
+	$tabpages[] = "Vereniging/Overige commissies";
+	if ($_SESSION['lidid'] > 0 and toegang("Eigen gegevens")) {
+		$tabpages[] = "Eigen gegevens";
+		if ($currenttab == "Eigen gegevens") {
+			$tabpages[] = "Eigen gegevens/Algemeen";
+			if (count(db_gegevenslid($_SESSION['lidid'], "Afdelingen")) > 0) {
+				$tabpages[] = "Eigen gegevens/Afdelingen";
+			}
+			if (count(db_gegevenslid($_SESSION['lidid'], "Kader")) > 0) {
+				$tabpages[] = "Eigen gegevens/Kader";
+			}
+			if (count(db_gegevenslid($_SESSION['lidid'], "Rollen")) > 0) {
+				$tabpages[] = "Eigen gegevens/Rollen";
+			}
+			if (count(db_gegevenslid($_SESSION['lidid'], "Groepen")) > 0) {
+				$tabpages[] = "Eigen gegevens/Groepen";
+			}
+			if (count(db_gegevenslid($_SESSION['lidid'], "Bew")) > 0 or count(db_insbew("overzichtlid", $_SESSION['lidid'])) > 0) {
+				$tabpages[] = "Eigen gegevens/Bewaking";
+			}
+			if (count(db_liddipl("lidgegevens", $_SESSION['lidid'])) > 0) {
+				$tabpages[] = "Eigen gegevens/Diploma's";
+			}
+			if (db_rekening("aantal", 0, "", $_SESSION['lidid']) > 0) {
+				$tabpages[] = "Eigen gegevens/Financieel";
+			}
+			$tabpages[] = "Eigen gegevens/Mailing";
+			if (db_onderdelen("aantal", "T") > 0) {
+				$tabpages[] = "Eigen gegevens/Toestemmingen";
+			}
+			if (count(db_gegevenslid($_SESSION['lidid'], "Evenementen")) > 0) {
+				$tabpages[] = "Eigen gegevens/Evenementen";
+			}
+			$tabpages[] = "Eigen gegevens/Logboek";
+		}
+	}
+	
+	if ($_SESSION['lidid'] > 0 and toegang("Zelfservice")) {
+		$tabpages[] = "Zelfservice";
+		if ($currenttab == "Zelfservice") {
+			$tabpages[] = "Zelfservice/Algemene gegevens";
+			if (count(db_diploma("zelfservice_lijst")) > 0) {
+				$tabpages[] = "Zelfservice/Diploma's";
+			}
+			$tabpages[] = "Zelfservice/Pasfoto";
+			if (db_onderdelen("aantal", "T") > 0) {
+				$tabpages[] = "Zelfservice/Toestemmingen";
+			}
+			if (count($muteerbarememos) > 0) { 
+				$tabpages[] = "Zelfservice/Bijzonderheden";
+			}
+			if (count(db_bewaking_blok("openblokken")) > 0) {
+				$tabpages[] = "Zelfservice/Inschrijving bewaking";
+			}
+			if (count(db_evenement("open")) > 0) {
+				$tabpages[] = "Zelfservice/Inschrijving evenementen";
+			}
+			if (count(db_artikel("artikelbeschikbaar")) > 0) {
+				$tabpages[] = "Zelfservice/Bestellingen";
+			}
+			$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap WHERE Lid=%d AND (Opgezegd IS NULL);", $table_prefix, $_SESSION['lidid']);
+			if (db_scalar($query) > 0) {
+				$tabpages[] = "Zelfservice/Opzegging";
+			}
+		}
+		$tabpages[] = "Zelfservice/Wijzigen wachtwoord";
+	}
+	if ($_SESSION['lidid'] == 0) {
+		$tabpages[] = "Herstellen wachtwoord";
+	}
+	$tabpages[] = "Ledenlijst";
+	if ($currenttab == "Overzicht lid") {
+		if (!isset($_GET['lidid']) or strlen($_GET['lidid']) == 0) {
+			$_GET['lidid'] = 0;
+		}
+		$tabpages[] = "Overzicht lid";
+		$tabpages[] = "Overzicht lid/Algemeen";
+		if (db_onderdelen("aantal", "A", $_GET['lidid']) > 0) {
+			$tabpages[] = "Overzicht lid/Afdelingen";
+		}
+		if (db_onderdelen("aantal", "kad", $_GET['lidid']) > 0) {
+			$tabpages[] = "Overzicht lid/Kader";
+		}
+		if (count(db_gegevenslid($_GET['lidid'], "Rollen")) > 0) {
+			$tabpages[] = "Overzicht lid/Rollen";
+		}
+		if (count(db_gegevenslid($_GET['lidid'], "Groepen")) > 0) {
+			$tabpages[] = "Overzicht lid/Groepen";
+		}
+		if (db_bewseiz("aantal") > 0) {
+			$tabpages[] = "Overzicht lid/Bewaking";
+		}
+		if (count(db_liddipl("lidgegevens", $_GET['lidid'])) > 0) {
+			$tabpages[] = "Overzicht lid/Diploma's";
+		}
+		if (db_rekening("aantal") > 0) {
+			$tabpages[] = "Overzicht lid/Financieel";
+		}
+		$tabpages[] = "Overzicht lid/Mailing";
+		if (db_onderdelen("aantal", "T") > 0) {
+			$tabpages[] = "Overzicht lid/Toestemmingen";
+		}
+		if (db_evenement("aantaldlnrs", $_GET['lidid']) > 0) {
+			$tabpages[] = "Overzicht lid/Evenementen";
+		}
+		if (count(db_logboek("lijst", "", -1, $_GET['lidid'])) > 0) {
+			$tabpages[] = "Overzicht lid/Logboek";
+		}
+	}
+	if ($currenttab == "Wijzigen lid") {
+		$tabpages[] = "Wijzigen lid";
+		$tabpages[] = "Wijzigen lid/Algemene gegevens";
+		$tabpages[] = "Wijzigen lid/Diploma's";
+		$tabpages[] = "Wijzigen lid/Pasfoto";
+		$tabpages[] = "Wijzigen lid/Bijzonderheden";
+		$tabpages[] = "Wijzigen lid/Lidmaatschap";
+	}
+	if (db_mutatie("aantal") > 0) {
+		$tabpages[] = "Kostenoverzicht";
+	}
+	if (toegang("Mailing")) {
+		$tabpages[] = "Mailing";
+		$tabpages[] = "Mailing/Templates";
+		$tabpages[] = "Mailing/Concepten";
+		$tabpages[] = "Mailing/Nieuw";
+		if ($currenttab == "Mailing") {
+			if (db_rekening("aantal") > 0) {
+				$tabpages[] = "Mailing/Rekeningen";
+			}
+			$tabpages[] = "Mailing/Verzonden";
+			if (db_mailing("aantalprullenbak") > 0) {
+				$tabpages[] = "Mailing/Prullenbak";
+			}
+			$tabpages[] = "Mailing/Verzonden mails";
+			$tabpages[] = "Mailing/Instellingen";
+			if (db_logboek("aantal", "", 4) > 0) {
+				$tabpages[] = "Mailing/Logboek";
+			}
+		}
+	}
+
+	if (db_bewseiz("aantal") > 0 and toegang("Bewaking")) {
+		$tabpages[] = "Bewaking";
+		$tabpages[] = "Bewaking/Bewakingsrooster";
+		$tabpages[] = "Bewaking/Postindeling";
+		$tabpages[] = "Bewaking/Aantallen";
+		$tabpages[] = "Bewaking/Nieuwe pasfoto";
+		$tabpages[] = "Bewaking/Diploma's muteren";
+		if ($currenttab == "Bewaking") {
+			if (count(db_bewaking_blok("overzicht")) > 0) {
+				$tabpages[] = "Bewaking/Overzicht inschrijvingen";
+			}
+			$tabpages[] = "Bewaking/Blokken muteren";
+			if (count(db_insbew("export")) > 0) {
+				$tabpages[] = "Bewaking/Downloaden inschrijvingen";
+			}
+			if (db_logboek("aantal", "", 11) > 0) {
+				$tabpages[] = "Bewaking/Logboek";
+			}
+		}
+	}
+	
+	if (toegang("Evenementen")) {
+		$tabpages[] = "Evenementen";
+		if ($currenttab == "Evenementen") {
+			if (count(db_evenement("overzicht")) > 0) {
+				$tabpages[] = "Evenementen/Overzicht";
+			}
+			$tabpages[] = "Evenementen/Beheer";
+			$tabpages[] = "Evenementen/Types muteren";
+			$tabpages[] = "Evenementen/Logboek";
+		}
+	}
+	
+	if (toegang("Bestellingen")) {
+		$tabpages[] = "Bestellingen";
+		if ($currenttab == "Bestellingen") {
+			if (count(db_artikel("overzichtbeheer")) > 0) {
+				$tabpages[] = "Bestellingen/Bestellingen muteren";
+			}
+			$tabpages[] = "Bestellingen/Artikelbeheer";
+			if (db_logboek("aantal", "", 10) > 0) {
+				$tabpages[] = "Bestellingen/Logboek";
+			}
+		}
+	}
+	
+	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
+//		$tabpages[] = "DMS";   Voorlopig geen tijd voor, dus uitgezet.
+	}
+}
+
 function fnAuthenticatie($melding=1, $password="") {
 	global $lididwebmasters;
 	
@@ -91,206 +300,6 @@ function toegang($soort, $melding=1, $log=1) {
 	if ($_SESSION['lidid'] == 0) {
 		$arrAltijdToegang[] = "Herstellen wachtwoord";
 	}
-	
-	$tabpages = null;
-	if ($_SERVER['PHP_SELF'] == "/admin.php") {
-		$tabpages[] = "Beheer logins";
-		$tabpages[] = "Autorisatie";
-		$tabpages[] = "Instellingen";
-		$tabpages[] = "Stamgegevens";
-		$tabpages[] = "Uploaden data";
-		if (db_interface("aantalopenstaand") > 0) {
-			$tabpages[] = "Downloaden wijzigingen";
-		}
-		$tabpages[] = "Onderhoud";
-		$tabpages[] = "Logboek";
-	} else {
-		$tabpages[] = "Vereniging";
-		$tabpages[] = "Vereniging/Introductie";
-		$tabpages[] = "Vereniging/Kader";
-		$tabpages[] = "Vereniging/Onderscheidingen";
-		$tabpages[] = "Vereniging/Overige commissies";
-		if ($_SESSION['lidid'] > 0) {
-			$tabpages[] = "Eigen gegevens";
-			$tabpages[] = "Eigen gegevens/Algemeen";
-			if ($currenttab == "Eigen gegevens") {
-				if (count(db_gegevenslid($_SESSION['lidid'], "Afdelingen")) > 0) {
-					$tabpages[] = "Eigen gegevens/Afdelingen";
-				}
-				if (count(db_gegevenslid($_SESSION['lidid'], "Kader")) > 0) {
-					$tabpages[] = "Eigen gegevens/Kader";
-				}
-				if (count(db_gegevenslid($_SESSION['lidid'], "Rollen")) > 0) {
-					$tabpages[] = "Eigen gegevens/Rollen";
-				}
-				if (count(db_gegevenslid($_SESSION['lidid'], "Groepen")) > 0) {
-					$tabpages[] = "Eigen gegevens/Groepen";
-				}
-				if (count(db_gegevenslid($_SESSION['lidid'], "Bew")) > 0 or count(db_insbew("overzichtlid", $_SESSION['lidid'])) > 0) {
-					$tabpages[] = "Eigen gegevens/Bewaking";
-				}
-				if (count(db_liddipl("lidgegevens", $_SESSION['lidid'])) > 0) {
-					$tabpages[] = "Eigen gegevens/Diploma's";
-				}
-				if (db_rekening("aantal", 0, "", $_SESSION['lidid']) > 0) {
-					$tabpages[] = "Eigen gegevens/Financieel";
-				}
-				$tabpages[] = "Eigen gegevens/Mailing";
-				if (db_onderdelen("aantal", "T") > 0) {
-					$tabpages[] = "Eigen gegevens/Toestemmingen";
-				}
-				if (count(db_gegevenslid($_SESSION['lidid'], "Evenementen")) > 0) {
-					$tabpages[] = "Eigen gegevens/Evenementen";
-				}
-				$tabpages[] = "Eigen gegevens/Logboek";
-			}
-			
-			$tabpages[] = "Zelfservice";
-			$tabpages[] = "Zelfservice/Algemene gegevens";
-			if ($currenttab == "Zelfservice") {
-				if (count(db_diploma("zelfservice_lijst")) > 0) {
-					$tabpages[] = "Zelfservice/Diploma's";
-				}
-				$tabpages[] = "Zelfservice/Pasfoto";
-				if (db_onderdelen("aantal", "T") > 0) {
-					$tabpages[] = "Zelfservice/Toestemmingen";
-				}
-				if (count($muteerbarememos) > 0) { 
-					$tabpages[] = "Zelfservice/Bijzonderheden";
-				}
-				if (count(db_bewaking_blok("openblokken")) > 0) {
-					$tabpages[] = "Zelfservice/Inschrijving bewaking";
-				}
-				if (count(db_evenement("open")) > 0) {
-					$tabpages[] = "Zelfservice/Inschrijving evenementen";
-				}
-				if (count(db_artikel("artikelbeschikbaar")) > 0) {
-					$tabpages[] = "Zelfservice/Bestellingen";
-				}
-				$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap WHERE Lid=%d AND (Opgezegd IS NULL);", $table_prefix, $_SESSION['lidid']);
-				if (db_scalar($query) > 0) {
-					$tabpages[] = "Zelfservice/Opzegging";
-				}
-			}
-			$tabpages[] = "Zelfservice/Wijzigen wachtwoord";
-		} else {
-			$tabpages[] = "Herstellen wachtwoord";
-		}
-		$tabpages[] = "Ledenlijst";
-		if ($currenttab == "Overzicht lid") {
-			if (!isset($_GET['lidid']) or strlen($_GET['lidid']) == 0) {
-				$_GET['lidid'] = 0;
-			}
-			$tabpages[] = "Overzicht lid";
-			$tabpages[] = "Overzicht lid/Algemeen";
-			if (db_onderdelen("aantal", "A", $_GET['lidid']) > 0) {
-				$tabpages[] = "Overzicht lid/Afdelingen";
-			}
-			if (db_onderdelen("aantal", "kad", $_GET['lidid']) > 0) {
-				$tabpages[] = "Overzicht lid/Kader";
-			}
-			if (count(db_gegevenslid($_GET['lidid'], "Rollen")) > 0) {
-				$tabpages[] = "Overzicht lid/Rollen";
-			}
-			if (count(db_gegevenslid($_GET['lidid'], "Groepen")) > 0) {
-				$tabpages[] = "Overzicht lid/Groepen";
-			}
-			if (db_bewseiz("aantal") > 0) {
-				$tabpages[] = "Overzicht lid/Bewaking";
-			}
-			if (count(db_liddipl("lidgegevens", $_GET['lidid'])) > 0) {
-				$tabpages[] = "Overzicht lid/Diploma's";
-			}
-			if (db_rekening("aantal") > 0) {
-				$tabpages[] = "Overzicht lid/Financieel";
-			}
-			$tabpages[] = "Overzicht lid/Mailing";
-			if (db_onderdelen("aantal", "T") > 0) {
-				$tabpages[] = "Overzicht lid/Toestemmingen";
-			}
-			if (db_evenement("aantaldlnrs", $_GET['lidid']) > 0) {
-				$tabpages[] = "Overzicht lid/Evenementen";
-			}
-			if (count(db_logboek("lijst", "", -1, $_GET['lidid'])) > 0) {
-				$tabpages[] = "Overzicht lid/Logboek";
-			}
-		}
-		if ($currenttab == "Wijzigen lid") {
-			$tabpages[] = "Wijzigen lid";
-			$tabpages[] = "Wijzigen lid/Algemene gegevens";
-			$tabpages[] = "Wijzigen lid/Diploma's";
-			$tabpages[] = "Wijzigen lid/Pasfoto";
-			$tabpages[] = "Wijzigen lid/Bijzonderheden";
-			$tabpages[] = "Wijzigen lid/Lidmaatschap";
-		}
-		if (db_mutatie("aantal") > 0) {
-			$tabpages[] = "Kostenoverzicht";
-		}
-		$tabpages[] = "Mailing";
-		$tabpages[] = "Mailing/Templates";
-		$tabpages[] = "Mailing/Concepten";
-		$tabpages[] = "Mailing/Nieuw";
-		if ($currenttab == "Mailing") {
-			if (db_rekening("aantal") > 0) {
-				$tabpages[] = "Mailing/Rekeningen";
-			}
-			$tabpages[] = "Mailing/Verzonden";
-			if (db_mailing("aantalprullenbak") > 0) {
-				$tabpages[] = "Mailing/Prullenbak";
-			}
-			$tabpages[] = "Mailing/Verzonden mails";
-			$tabpages[] = "Mailing/Instellingen";
-			if (db_logboek("aantal", "", 4) > 0) {
-				$tabpages[] = "Mailing/Logboek";
-			}
-		}
-		
-		if (db_bewseiz("aantal") > 0) {
-			$tabpages[] = "Bewaking";
-			$tabpages[] = "Bewaking/Bewakingsrooster";
-			$tabpages[] = "Bewaking/Postindeling";
-			$tabpages[] = "Bewaking/Aantallen";
-			$tabpages[] = "Bewaking/Nieuwe pasfoto";
-			$tabpages[] = "Bewaking/Diploma's muteren";
-			if ($currenttab == "Bewaking") {
-				if (count(db_bewaking_blok("overzicht")) > 0) {
-					$tabpages[] = "Bewaking/Overzicht inschrijvingen";
-				}
-				$tabpages[] = "Bewaking/Blokken muteren";
-				if (count(db_insbew("export")) > 0) {
-					$tabpages[] = "Bewaking/Downloaden inschrijvingen";
-				}
-				if (db_logboek("aantal", "", 11) > 0) {
-					$tabpages[] = "Bewaking/Logboek";
-				}
-			}
-		}
-		
-		if (count(db_evenement("overzicht")) > 0 or toegang("Evenementen/Beheer", 0, 0)) {
-			$tabpages[] = "Evenementen";
-			if (count(db_evenement("overzicht")) > 0) {
-				$tabpages[] = "Evenementen/Overzicht";
-			}
-			$tabpages[] = "Evenementen/Beheer";
-			$tabpages[] = "Evenementen/Types muteren";
-		}
-		if (db_logboek("aantal", "", 7) > 0) {
-			$tabpages[] = "Evenementen/Logboek";
-		}
-		$tabpages[] = "Bestellingen";
-		if (count(db_artikel("overzichtbeheer")) > 0) {
-			$tabpages[] = "Bestellingen/Bestellingen muteren";
-		}
-		$tabpages[] = "Bestellingen/Artikelbeheer";
-		if (db_logboek("aantal", "", 10) > 0) {
-			$tabpages[] = "Bestellingen/Logboek";
-		}
-		
-		if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
-//			$tabpages[] = "DMS";   Voorlopig geen tijd voor, dus uitgezet.
-		}
-	}
-	
 	if (strlen($soort) == 0) {
 		$soort = $currenttab;
 		if (strlen($currenttab2) > 0) {
