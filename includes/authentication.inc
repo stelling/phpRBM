@@ -299,10 +299,6 @@ function toegang($soort, $melding=1, $log=1) {
 	}
 	$soort = str_replace("'", "", $soort);
 	
-	if ($_SESSION['lidid'] > 0) {
-		db_logins("updateactiviteit", "", "", $_SESSION['lidid']);
-	}
-	
 	if (strlen($soort) > 0 and in_array($soort, $arrAltijdToegang) === false) {
 		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_access WHERE Tabpage=\"%s\";", $table_prefix, $soort);
 		if (db_scalar($query) == 0) {
