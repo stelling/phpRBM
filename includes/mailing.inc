@@ -432,6 +432,8 @@ class Mailing {
 			$ld = sprintf("<a href='index.php?tp=%s&amp;op=bekijkmail&amp;MailingHistID=%%d'>%%s</a>", urlencode($_GET['tp']));
 			if (db_mailing_hist("aantal24uur") >= db_param("maxmailsperdag")) {
 				$rs = "";
+			} elseif (db_param("mailing_mailopnieuw") == 0 or (db_param("mailing_mailopnieuw") == 1 and $_SESSION['webmaster'] == 0)) {
+				$rs = "";
 			} else {
 				$rs = sprintf("<a href='index.php?tp=%s&amp;op=opnieuw&amp;MailingHistID=%%d'><img src='images/sendmail.png' alt='send mail' title='Opnieuw versturen'></a>", urlencode($_GET['tp']));
 			}
@@ -451,7 +453,7 @@ class Mailing {
 	} # lijst
 	
 	public function edit() {
-		global $currenttab, $currenttab2, $navpad;
+		global $currenttab, $currenttab2, $navpad, $fdlang;
 
 		$ad = $this->dir_attachm . "/" . $this->mid;
 		
@@ -537,10 +539,14 @@ class Mailing {
 			
 				echo("E-mail: <input type='email' name='add_address' size=50 maxlength=50 onBlur='this.form.submit();'>");
 				echo("</p>\n");
+				
+				if (!isset($_POST['sel_status'])) {
+					$_POST['sel_status'] = "L";
+				}
 
+				echo("<label>Selectie leden:</label>\n");
+				echo("<div class='invoerblok'>\n");
 				echo("<div id='mailingselectieleden'>\n");
-				echo("<label>Selectie leden:</label>\n<div class='invoerblok'>\n");
-			
 				echo("<table>\n");
 				echo("<tr><td></td><td>Vanaf</td><td>Tot en met</td></tr>\n");
 			
@@ -549,24 +555,30 @@ class Mailing {
 				printf("<tr><td>Lid vanaf:</td><td><input type='date' name='select_vanliddatum' value='%s'></td><td><input type='date' name='select_temliddatum' value='%s'></td></tr>\n", db_lid("minliddatum"), db_lid("maxliddatum"));
 				printf("<tr><td>Opgezegd per:</td><td><input type='date' name='select_vanopgezegd'></td><td><input type='date' name='select_temopgezegd' value='%s'></td></tr>\n", db_lid("maxopgezegd"));
 			
-				echo("<tr><td>Lidstatus:</td><td colspan=2><select name='sel_status'>\n");
-				echo("<option value='L' selected>Lid</option>");
-				echo("<option value='V'>Voormalig lid</option>");
+				echo("<tr><td>Lidstatus:</td><td colspan=2><select name='sel_status' onChange='this.form.submit();'>\n");
+				printf("<option value='L'%s>Lid</option>", checked("L", "option", $_POST['sel_status']));
+				printf("<option value='V'%s>Voormalig lid</option>", checked("V", "option", $_POST['sel_status']));
 				if (count(db_lidmaatschap("toekomstigeleden")) > 0) {
-					echo("<option value='T'>Toekomstig lid</option>");
+					printf("<option value='T'%s>Toekomstig lid</option>", checked("T", "option", $_POST['sel_status']));
 				}
-				echo("<option value='K'>Kloslid</option>");
+				printf("<option value='K'>Kloslid</option>", checked("K", "option", $_POST['sel_status']));
 				echo("</select></td></tr>\n");
 			
 				$selgr = "<select name='sel_groep'>\n
 							<option value=0>&nbsp;</option>\n";
-				foreach(db_onderdelen("lijstingebruik") as $grp) {
-					$selgr .= sprintf("<option value=%d>%s</option>\n", $grp->RecordID, $grp->Oms);
+				if ($_POST['sel_status'] == "L") {
+					$rows = db_onderdelen("lijstingebruik");
+				} else {
+					$rows = db_onderdelen("lijst");
+				}
+				foreach($rows as $grp) {
+					$selgr .= sprintf("<option value=%d>%s</option>\n", $grp->RecordID, $grp->Naam);
 				}
 				$selgr .= "</select>\n";
-				printf("<tr><td>Zit in groep:</td><td colspan=2>%s</td></tr>\n", $selgr);
+				printf("<tr><td>Zit in groep:</td><td colspan=2>%s (bijgewerkt t/m %s)</td></tr>\n", $selgr, strtolower(date("d F Y", strtotime(db_lidond("maxgewijzigd", 0, "", "O.Type<>'T'")))));
 				
 				echo("</table>\n");
+				echo("</div> <!-- Einde mailingselectieleden -->\n");
 			
 				echo("<input type='submit' name='LedenToevoegen' value='Leden toevoegen'>\n");
 				if ($this->aant_rcpt > 0) {
@@ -574,7 +586,6 @@ class Mailing {
 					echo("<input type='submit' name='OntvangersVerwijderen' value='Alle ontvangers verwijderen'>\n");
 				}
 				echo("</div>  <!-- Einde invoerblok -->\n");
-				echo("</div> <!--  einde mailingselectieleden -->\n");
 				echo("<div class='clear'></div>\n");
 			}
 		}
@@ -1519,6 +1530,8 @@ function fnMailingInstellingen() {
 		}
 		db_param("mailing_resultaatversturen", "updval", $val);
 		
+		db_param("mailing_mailopnieuw", "updval", $_POST['mailing_mailopnieuw']);
+		
 		if (strlen($_POST['mailing_bewaartijd']) == 0) {
 			$_POST['mailing_bewaartijd'] = 0;
 		}
@@ -1558,7 +1571,12 @@ function fnMailingInstellingen() {
 	}
 	printf("<form method='post' action='%s?tp=%s/%s' name='mailinstellingen'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
 	
+	$options = sprintf("<option value=0%s>Nee</option>\n", checked(db_param("mailing_mailopnieuw"), "option", 0));
+	$options .= sprintf("<option value=1%s>Alleen door webmasters</option>\n", checked(db_param("mailing_mailopnieuw"), "option", 1));
+	$options .= sprintf("<option value=2%s>Ja</option>\n", checked(db_param("mailing_mailopnieuw"), "option", 2));
+	
 	echo("<h2>Algemeen</h2>\n");
+	printf("<label>Mag een verzonden e-mail opnieuw worden verstuurd?</label><p><select name='mailing_mailopnieuw'>%s</select></p>\n", $options);
 	printf("<label>Versturen resultaat van de mailing naar de afzender en secretariaat:</label><p><input type='checkbox' value=1 name='mailing_resultaatversturen'%s></p>\n", checked(db_param("mailing_resultaatversturen")));
 	printf("<label>Hoeveel maanden moeten mailings in de prullenbak bewaard blijven:</label><p><input class='inputnumber' type='number' name='mailing_bewaartijd' value=%d size=8> (0 = altijd bewaren)</p>\n", db_param("mailing_bewaartijd"));
 	printf("<label>Hoeveel mails mogen er per minuut verstuurd worden:</label><p><input class='inputnumber' type='number' name='maxmailsperminuut' value=%d size=8> (0 = onbeperkt)</p>\n", db_param("maxmailsperminuut"));

@@ -892,6 +892,19 @@ input.knop {
 	width: 382px;
 }
 
+#editmailingform select {
+	width: 350px;
+}
+
+#mailingselectieleden td {
+	padding-top: 2px;
+	padding-bottom: 2px;
+}
+
+#mailingselectieleden input, #mailingselectieleden select {
+	width: 135px;
+}
+
 #instellingenmuteren label, #editmailingform label {
 	clear: left;
 	float: left;
@@ -930,10 +943,6 @@ input.knop {
 #instellingenmuteren input, #editmailingform input, #editmailingform select, #toestemmingenmuteren input {
 	margin-top: 9px;
 	margin-bottom: 8px;
-}
-
-#editmailingform select {
-	width: 350px;
 }
 
 #instellingenmuteren p, #editmailingform p {

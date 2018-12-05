@@ -121,6 +121,10 @@ if (!isset($_SESSION['aantalrekeningen']) or $_SESSION['aantalrekeningen'] == 0)
 	}
 }
 
+if ($_SESSION['lidid'] > 0) {
+	db_logins("updateactiviteit");
+}
+
 $pts = db_param("performance_trage_select");
 function fnQuery($query, $logtype=0) {
 	global $dbc, $pts;
@@ -1135,6 +1139,8 @@ function db_onderdelen($actie, $type="", $lidid=0) {
 	
 	if ($actie == "lijstopkode" or $actie == "basislijst") {
 		$query = sprintf("SELECT %s FROM %sOnderdl AS O %s ORDER BY O.Kode;", $sel, $table_prefix, $where);
+	} elseif ($actie == "lijstingebruik") {
+		$query = sprintf("SELECT %s FROM %sOnderdl AS O %s ORDER BY O.Type, O.Naam;", $sel, $table_prefix, $where);
 	} else {
 		$query = sprintf("SELECT %s FROM %sOnderdl AS O %s ORDER BY O.Naam, O.Kode;", $sel, $table_prefix, $where);
 	}
@@ -1204,12 +1210,12 @@ function db_lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0) {
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
-	} elseif ($actie == "kaderonderdeel" and $lidid > 0) {
+	} elseif ($actie == "kaderonderdeel") {
 		$query = sprintf("SELECT IF(O.`Type`='F', F.OMSCHRIJV, O.Naam) AS Ond FROM %s WHERE %s AND LO.Lid=%d AND O.Kader=1;", $fromlidond, $wherelidond, $lidid);
 		$result = fnQuery($query);
 		return $result->fetchColumn();
 		
-	} elseif ($actie == "onderscheiding" and $lidid > 0) {
+	} elseif ($actie == "onderscheiding") {
 		$query = sprintf("SELECT O.Naam FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON LO.OnderdeelID=O.RecordID
 					WHERE LO.Lid=%2\$d AND O.`Type`='O' AND (LO.Opgezegd IS NULL) ORDER BY LO.Vanaf DESC;", $table_prefix, $lidid);
 		$result = fnQuery($query);
@@ -1222,6 +1228,13 @@ function db_lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0) {
 		} else {
 			return true;
 		}
+		
+	} elseif ($actie == "maxgewijzigd") {
+		if (strlen($filter) > 0) {
+			$filter = " WHERE " . $filter;
+		}
+		$query = sprintf("SELECT MAX(LO.Gewijzigd) FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON LO.OnderdeelID=O.RecordID%2\$s;", $table_prefix, $filter);
+		return db_scalar($query);
 	
 	} elseif ($actie == "add") {
 		if ($lidid > 0 and $onderdlid > 0) {
@@ -1398,8 +1411,8 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			db_logboek("add", $mess, 1, $lidid);
 		}
 		
-	} elseif ($actie == "updateactiviteit" and $lidid > 0) {
-		$query = sprintf("UPDATE %sAdmin_login SET LastActivity=SYSDATE() WHERE LidID=%d;", $table_prefix, $lidid);
+	} elseif ($actie == "updateactiviteit") {
+		$query = sprintf("UPDATE %sAdmin_login SET LastActivity=SYSDATE() WHERE LidID=%d;", $table_prefix, $_SESSION['lidid']);
 		fnQuery($query);	
 		
 	} elseif ($actie == "wachtwoordreset" and $lidid > 0) {
@@ -2782,6 +2795,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrIntegers['mailing_bewakinginschrijving'] = 0;
 	$arrIntegers['mailing_herstellenwachtwoord'] = 0;
 	$arrIntegers['mailing_lidnr'] = 0;
+	$arrIntegers['mailing_mailopnieuw'] = 0;
 	$arrIntegers['mailing_rekening_stuurnaar'] = 1;
 	$arrIntegers['mailing_validatielogin'] = 0;
 	$arrIntegers['max_grootte_bijlage'] = 2048;
