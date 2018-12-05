@@ -387,6 +387,7 @@ function fnInstellingen() {
 	$arrParam['mailing_extensies_toegestaan'] = "NT";
 	$arrParam['mailing_herstellenwachtwoord'] = "NT";
 	$arrParam['mailing_lidnr'] = "NT";
+	$arrParam['mailing_mailopnieuw'] = "NT";
 	$arrParam['mailing_rekening_stuurnaar'] = "NT";
 	$arrParam['mailing_rekening_from_adres'] = "NT";
 	$arrParam['mailing_rekening_from_naam'] = "NT";
