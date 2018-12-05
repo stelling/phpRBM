@@ -1925,7 +1925,7 @@ function db_mailing_vanaf($actie, $value="", $rid=0, $kolnaam="") {
 		if ($actie == "lijst") {
 			$s = "RecordID, Vanaf_email, Vanaf_naam, SMTP_server, Ingevoerd, Gewijzigd";
 		} else {
-			$s = "RecordID AS roRecordID, Vanaf_email AS emlVanaf_email, Vanaf_naam, Ingevoerd AS rodteIngevoerd, Gewijzigd AS rodttGewijzigd";
+			$s = "RecordID AS intRecordID, Vanaf_email AS emlVanaf_email, Vanaf_naam, Ingevoerd AS dteIngevoerd, Gewijzigd AS dttGewijzigd";
 		}
 		if ($actie == "editlijst") {
 			$s .= ", RecordID AS llkRecordID";
