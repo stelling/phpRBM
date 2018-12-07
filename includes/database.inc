@@ -274,16 +274,18 @@ function db_gegevenslid($LidID, $soort="Alg") {
 								WHERE L.Nummer=%d;", $fdlang, $table_prefix, $LidID);
 								
 	} elseif ($soort == "Afdelingen") {
+		$sqlgroep = sprintf("SELECT GR.Kode FROM %sGroep AS GR WHERE GR.RecordID=LO.GroepID", $table_prefix);
 		$query = sprintf("SELECT O.Kode AS Code,
 					O.Naam,
 					LO.Vanaf AS dteVanaf,
 					F.Omschrijv AS Functie,
+					(%s) AS Groep,
 					LO.Opmerk AS Opmerking,
 					LO.Opgezegd AS dteOpgezegd,
 					CONCAT(FORMAT(DATEDIFF(IF(LO.Opgezegd IS NULL, CURDATE(), LO.Opgezegd), LO.Vanaf)/365.25, 1, 'nl_NL'), ' jaar') AS numDuur
 					FROM %s
 					WHERE O.`Type`='A' AND LO.Lid=%d
-					ORDER BY LO.Vanaf DESC, O.Naam;", $fromlidond, $LidID);
+					ORDER BY LO.Vanaf DESC, O.Naam;", $sqlgroep, $fromlidond, $LidID);
 					
 	} elseif ($soort == "Kader") {
 		$query = sprintf("SELECT O.Kode AS Code,
@@ -1106,11 +1108,13 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 	}
 }
 
-function db_onderdelen($actie, $type="", $lidid=0) {
+function db_onderdelen($actie, $type="", $lidid=0, $onderdlid=0) {
 	global $fromlidond, $wherelidond, $table_prefix;
 	
 	if ($actie == "aantal" or $actie == "aantalingebruik") {
 		$sel = "COUNT(DISTINCT O.RecordID)";
+	} elseif ($actie == "type") {
+		$sel = "O.`Type`";
 	} elseif ($actie == "basislijst") {
 		$sel = "*";
 	} else {
@@ -1124,6 +1128,8 @@ function db_onderdelen($actie, $type="", $lidid=0) {
 		$where = "O.Kader=1";
 	} elseif (strlen($type) > 0) {
 		$where = sprintf("O.`Type`='%s'", $type);
+	} elseif ($onderdlid > 0) {
+		$where = sprintf("O.RecordID=%d", $onderdlid);
 	}
 	if ($actie == "lijstingebruik" or $actie == "aantalingebruik" or $lidid > 0) {
 		if (strlen($where) > 0) {
@@ -1149,7 +1155,7 @@ function db_onderdelen($actie, $type="", $lidid=0) {
 	}
 	$result = fnQuery($query);
 	
-	if ($actie == "aantal") {
+	if ($actie == "aantal" or $actie == "type") {
 		return $result->fetchColumn();
 	} else {	
 		return $result->fetchAll();
@@ -1171,6 +1177,12 @@ function db_lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0) {
 	global $selectnaam, $selectzoeknaam, $table_prefix, $fromlidond, $wherelidond, $selectlidnr, $fdaccess;
 	
 	$mess = "";
+	
+	if (strlen($filter) > 0 and $onderdlid > 0) {
+		$filter .= sprintf(" AND LO.OnderdeelID=%d", $onderdlid);
+	} elseif ($onderdlid > 0) {
+		$filter = sprintf("LO.OnderdeelID=%d", $onderdlid);
+	}
 
 	if ($actie == "laatstgewijzigd") {
 		$query = sprintf("SELECT Max(Gewijzigd) FROM %sLidond;", $table_prefix);
@@ -1188,12 +1200,17 @@ function db_lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0) {
 		if (strlen($filter) > 0) {
 			$filter = " WHERE " . $filter;
 		}
+		if (db_groep("aantal", $onderdlid)) {
+			$sqlgroep = sprintf("(SELECT GR.Kode FROM %sGroep AS GR WHERE LO.GroepID=GR.RecordID) AS Groep, ", $table_prefix);
+		} else {
+			$sqlgroep = "";
+		}
 		$query = sprintf("SELECT L.Nummer AS lnkNummer, IFNULL((%5\$s), 0) AS numLidnr, %1\$s AS `Naam_lid`, UPPER(L.Woonplaats) AS Woonplaats,
-								L.Mobiel, L.Email AS `emlE-mail`, F.Omschrijv AS Functie, LO.OPMERK AS Opmerking, LO.Vanaf AS dteVanaf,
+								L.Mobiel, L.Email AS `emlE-mail`, F.Omschrijv AS Functie, %6\$sLO.OPMERK AS Opmerking, LO.Vanaf AS dteVanaf,
 								LO.Opgezegd AS dteTotenmet, L.Nummer AS llkNummer, L.GEBDATUM AS ndGEBDATUM, %2\$s AS ndZoeknaam
 								FROM %3\$s
 								%4\$s
-								ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectnaam, $selectzoeknaam, $fromlidond, $filter, $selectlidnr);
+								ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectnaam, $selectzoeknaam, $fromlidond, $filter, $selectlidnr, $sqlgroep);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
@@ -1277,6 +1294,21 @@ function db_lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0) {
 		}
 	}
 } # db_lidond
+
+function db_groep($actie, $onderdeelid=0) {
+	global $table_prefix;
+	
+	if ($onderdeelid > 0) {
+		$where = sprintf("WHERE OnderdeelID=%d", $onderdeelid);
+	} else {
+		$where = "";
+	}
+	
+	if ($actie == "aantal") {
+		$query = sprintf("SELECT COUNT(*) FROM %sGroep %s;", $table_prefix, $where);
+		return db_scalar($query);
+	}
+}
 
 function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="", $xtraorder="") {
 	global $dbc, $selectnaam, $selectlidnr, $table_prefix, $lididwebmasters, $wherelidond, $wherelid, $dir, $pwfromcookie;

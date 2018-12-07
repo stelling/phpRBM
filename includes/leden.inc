@@ -303,7 +303,7 @@ function fnLedenlijst() {
 		} elseif ($_SESSION['val_TL'] == "Voormalig leden") {
 			$filter .= " AND (LO.Vanaf <= CURDATE() AND ((NOT LO.Opgezegd IS NULL) OR LO.Opgezegd < CURDATE()))";
 		}
-		$rows = db_lidond("onderdeellijst", 0, "", $filter);
+		$rows = db_lidond("onderdeellijst", 0, "", $filter, $_SESSION['val_groep']);
 	}
 
 	if (count($rows) > 0) {
@@ -487,8 +487,7 @@ function fnSelectListGroepen($cv=0) {
 	$ret = "<option value=0>** Iedereen **</option>\n";
 	$rows = db_Onderdelen("lijstingebruik");
 	foreach ($rows as $row) {
-		if ($cv == $row->RecordID) {$s = " selected";} else {$s = "";}
-		$ret .= sprintf("<option%s value=%d>%s</option>\n", $s, $row->RecordID, htmlentities($row->Oms));
+		$ret .= sprintf("<option%s value=%d>%s</option>\n", checked($row->RecordID, "option", $cv), $row->RecordID, htmlentities($row->Naam));
 	}
 	return $ret;
 } # fnSelectListGroepen
@@ -575,6 +574,7 @@ function algemeenlidmuteren($lidid) {
 	}
 	if (db_param("zs_incl_emailouders") == 1 or $currenttab == "Wijzigen lid") {
 		$wijzvelden[] = array('label' => "E-mail ouders", 'naam' => "EmailOuders", 'lengte' => 45);
+		$wijzvelden[] = array('label' => "Namen ouders", 'naam' => "NamenOuders", 'lengte' => 90);
 	}
 	$wijzvelden[] = array('label' => "Geboortedatum", 'naam' => "GEBDATUM", 'lengte' => 18);
 	$wijzvelden[] = array('label' => "Geboorteplaats", 'naam' => "GEBPLAATS", 'lengte' => 22);
