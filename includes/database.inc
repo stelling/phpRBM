@@ -26,6 +26,7 @@ $arrTables[] = "Boekjaar";
 $arrTables[] = "Diploma";
 $arrTables[] = "Functie";
 $arrTables[] = "GBR";
+$arrTables[] = "Groep";
 $arrTables[] = "Kostenplaats";
 $arrTables[] = "Lid";
 $arrTables[] = "Liddipl";
@@ -238,6 +239,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					L.Email AS `emlE-mail`,
 					L.EmailVereniging AS `emlE-mail vereniging`,
 					L.EmailOuders AS `emlE-mail ouders`,
+					L.NamenOuders AS `Namen ouders`,
 					'Lidmaatschap' AS Kop4,
 					LM.Lidnr AS Lidnummer, 
 					(%s) AS Onderscheiding, 
@@ -455,6 +457,7 @@ function db_lid($actie, $filter="", $lidid=0, $xtraselect="") {
 					L.Email,
 					L.EmailVereniging,
 					L.EmailOuders,
+					L.NamenOuders,
 					L.GEBDATUM,
 					L.GEBPLAATS,
 					L.Bankrekening,
@@ -1352,7 +1355,6 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		} else {
 			$mess = sprintf("Er ging iets mis bij het valideren van de login voor %s is gevalideerd. Mogelijk is deze login al gevalideerd. Zo niet probeer het later opnieuw.", db_naamlid($lidid, "Naam"));
 		}
-		db_logboek("add", $mess, 5);
 		return $mess;
 		
 	} elseif ($actie == "controlebestaat" and strlen($login) > 5) {
@@ -1700,7 +1702,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 		if ($filter == "Concepten" or $filter === "Verzonden") {
 			if ($filter == "Verzonden") {
 				$w = sprintf("(NOT M.Sent_on IS NULL)", $table_prefix);
-				$xtra_sel = sprintf(", CONCAT(IF(M.SentBy=0, '', (SELECT %s FROM %sLid WHERE Nummer=M.SentBy)), ' & ', DATE_FORMAT(M.sent_on, %s)) AS `mrgLaatst verzonden door/op`", $selectnaam, $table_prefix, $fdtlang);
+				$xtra_sel = sprintf(", CONCAT(IF(M.SentBy=0, '', (SELECT %s FROM %sLid AS L WHERE L.Nummer=M.SentBy)), ' & ', DATE_FORMAT(M.sent_on, %s)) AS `mrgLaatst verzonden door/op`", $selectnaam, $table_prefix, $fdtlang);
 			} else {
 				$w = sprintf("(M.Sent_on IS NULL)", $table_prefix);
 			}
@@ -1710,7 +1712,7 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 			}
 		} elseif ($filter == "Templates") {
 			$w = "M.template=1 AND (deleted_on IS NULL)";
-			$xtra_sel = sprintf(", CONCAT(IF(M.SentBy=0, '', (SELECT %s FROM %sLid WHERE Nummer=M.SentBy)), ' & ', DATE_FORMAT(M.sent_on, %s)) AS `mrgLaatst verzonden door/op`", $selectnaam, $table_prefix, $fdtlang);
+			$xtra_sel = sprintf(", CONCAT(IF(M.SentBy=0, '', (SELECT %s FROM %sLid AS L WHERE L.Nummer=M.SentBy)), ' & ', DATE_FORMAT(M.sent_on, %s)) AS `mrgLaatst verzonden door/op`", $selectnaam, $table_prefix, $fdtlang);
 			$orderby = "M.subject, sent_on";
 			
 		} elseif ($filter == "Verzonden mails") {
@@ -1866,15 +1868,18 @@ function db_mailing($actie, $mid=0, $rid=0, $filter="", $subj="", $lidid=0, $ema
 function db_mailing_hist($actie, $lidid=0, $mhid=0, $mid=0, $mail=null) {
 	global $table_prefix, $selectnaam;
 	
-	if ($lidid > 0) {
-		$lw = sprintf("AND LidID=%d", $lidid);
-	} elseif ($_SESSION['webmaster'] == 1) {
-		$lw = "";
+	if ($actie == "outbox") {
+		$lw = "Successful=0";
 	} else {
-		$lw = sprintf("AND (LidID=%1\$d OR send_by=%1\$d)", $lidid);
+		$lw = "Successful=1";
+	}
+	if ($lidid > 0) {
+		$lw .= sprintf(" AND LidID=%d", $lidid);
+	} elseif ($_SESSION['webmaster'] == 0) {
+		$lw .= sprintf(" AND (LidID=%1\$d OR send_by=%1\$d)", $lidid);
 	}
 	
-	if ($actie == "lijst" or $actie == "sqllijst") {
+	if ($actie == "lijst" or $actie == "outbox" or $actie == "sqllijst") {
 		if ($mid > 0) {
 			$query = sprintf("SELECT MH.RecordID AS lnkRecordID, M.subject AS ndOnderwerp, IF(MH.Successful=1, MH.send_on, 'Niet verzonden') AS dtsVerzonden, IF(MH.LidID=0, MH.to_name, %1\$s) AS Aan,
 						to_addr AS `E-mail`, MH.cc_addr AS `CC`, L.Woonplaats, MH.RecordID AS llkRecordID
@@ -1889,7 +1894,7 @@ function db_mailing_hist($actie, $lidid=0, $mhid=0, $mid=0, $mail=null) {
 						subject AS Onderwerp,
 						RecordID AS llkRecordID
 						FROM %sMailing_hist
-						WHERE Successful=1 %s
+						WHERE %s
 						ORDER BY RecordID DESC LIMIT 1000;", $table_prefix, $lw);
 		}
 
@@ -2067,7 +2072,10 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0, $referid=0, $ipf
 			if (isset($bt[2]['function'])) {
 				$f = $bt[2]['function'] . "=>" . $f;
 			}
-			$f = substr($f, 0, 40);
+			if (isset($bt[3]['function'])) {
+				$f = $bt[3]['function'] . "=>" . $f;
+			}
+			$f = substr($f, 0, 50);
 		}
 		$query = sprintf("INSERT INTO %sAdmin_activiteit SET
 				DatumTijd=SYSDATE(),
@@ -3087,6 +3095,15 @@ function db_onderhoud($type=9) {
 	$query = sprintf("ALTER TABLE `%sAdmin_login` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NULL DEFAULT CURRENT_TIMESTAMP;", $table_prefix);
 	fnQuery($query);
 	
+	/***** Aanpassen lengte van het RefFunction in Admin_activiteit naar 50. Deze code kan na 1/1/2020 worden verwijderd. *****/
+	$table = $table_prefix . "Admin_activiteit";
+	$col = "RefFunction";
+	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%s' AND COLUMN_NAME LIKE '%s';", $db_name, $table, $col);
+	if (db_scalar($query) < 50) {
+		$query = sprintf("ALTER TABLE `%1\$s` CHANGE `%2\$s` `%2\$s` VARCHAR(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table, $col);
+		fnQuery($query, 2);
+	}
+	
 	/***** Velden die later zijn toegevoegd. *****/
 	
 	// Toevoegen veld 'VOG afgegeven' aan de tabel 'Lid'. Deze code kan na 1/9/2019 worden verwijderd.
@@ -3263,7 +3280,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_activiteit` (
   `IP_adres` varchar(45) NOT NULL,
   `USER_AGENT` varchar(110) DEFAULT NULL,
   `Getoond` tinyint(4) DEFAULT NULL COMMENT 'Is deze melding aan de gebruiker getoond?',
-  `RefFunction` varchar(30) DEFAULT NULL,
+  `RefFunction` varchar(50) NOT NULL,
   PRIMARY KEY (`RecordID`),
   KEY `TypeActiviteit` (`TypeActiviteit`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
@@ -3488,6 +3505,20 @@ CREATE TABLE IF NOT EXISTS `%1\$sGBR` (
   PRIMARY KEY (`Kode`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
+CREATE TABLE IF NOT EXISTS `%1\$sGroep` (
+  `RecordID` int(11) NOT NULL DEFAULT '0',
+  `Kode` varchar(5) DEFAULT NULL,
+  `Omschrijving` varchar(41) DEFAULT NULL,
+  `OnderdeelID` int(11) DEFAULT NULL,
+  `DiplomaID` int(11) DEFAULT NULL,
+  `Starttijd` datetime DEFAULT NULL,
+  `Eindtijd` datetime DEFAULT NULL,
+  `Ingevoerd` datetime DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL,
+  PRIMARY KEY (`RecordID`),
+  UNIQUE KEY `OnderdeelKode` (`OnderdeelID`,`Kode`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
 CREATE TABLE IF NOT EXISTS `%1\$sKostenplaats` (
   `RecordID` int(11) NOT NULL DEFAULT '0',
   `Kode` varchar(5) DEFAULT NULL,
@@ -3542,21 +3573,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sLid` (
   PRIMARY KEY (`Nummer`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `%1\$sLidRedNed` (
-  `Lidnr` int(11) DEFAULT NULL,
-  `RelnrRedNed` varchar(8) DEFAULT NULL,
-  `Roepnaam` varchar(35) DEFAULT NULL,
-  `Tussenvoegsels` varchar(7) DEFAULT NULL,
-  `Achternaam` varchar(50) DEFAULT NULL,
-  `Voorletters` varchar(10) DEFAULT NULL,
-  `Geslacht` varchar(1) DEFAULT NULL,
-  `Geboortedatum` date DEFAULT NULL,
-  `Postcode` varchar(7) DEFAULT NULL,
-  `Huisnr` smallint(6) DEFAULT NULL,
-  `Foutboodschap` varchar(75) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
 CREATE TABLE IF NOT EXISTS `%1\$sLiddipl` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `Lid` int(11) DEFAULT NULL,
@@ -3601,6 +3617,21 @@ CREATE TABLE IF NOT EXISTS `%1\$sLidond` (
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`Lid`,`OnderdeelID`,`Vanaf`,`Functie`),
   UNIQUE KEY `RecordID` (`RecordID`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `%1\$sLidRedNed` (
+  `Lidnr` int(11) DEFAULT NULL,
+  `RelnrRedNed` varchar(8) DEFAULT NULL,
+  `Roepnaam` varchar(35) DEFAULT NULL,
+  `Tussenvoegsels` varchar(7) DEFAULT NULL,
+  `Achternaam` varchar(50) DEFAULT NULL,
+  `Voorletters` varchar(10) DEFAULT NULL,
+  `Geslacht` varchar(1) DEFAULT NULL,
+  `Geboortedatum` date DEFAULT NULL,
+  `Postcode` varchar(7) DEFAULT NULL,
+  `Huisnr` smallint(6) DEFAULT NULL,
+  `Foutboodschap` varchar(75) DEFAULT NULL,
+  `Ingevoerd` date DEFAULT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sMailing` (
@@ -3659,11 +3690,11 @@ CREATE TABLE IF NOT EXISTS `%1\$sMailing_vanaf` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `Vanaf_email` varchar(30) NOT NULL,
   `Vanaf_naam` varchar(50) NOT NULL,
-  `SMTP_server` varchar(20) NOT NULL COMMENT 'Indien leeg, dan wordt de smtp server uit het config bestand gebruikt',
+  `SMTP_server` tinyint(20) NOT NULL DEFAULT '0' COMMENT 'Indien 0, dan wordt de smtp server uit het config bestand gebruikt',
   `Ingevoerd` date NOT NULL,
   `Gewijzigd` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`RecordID`),
-  UNIQUE KEY `Vanaf_email` (`Vanaf_email`)
+  UNIQUE KEY `VanafEmail` (`Vanaf_email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sMemo` (
