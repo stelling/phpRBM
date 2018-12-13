@@ -29,8 +29,6 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 	}
 	if ($_SESSION['lidid'] > 0) {
 		echo("<script>location.href='/'; </script>\n");
-	} else {
-		printf("<p class='mededeling'><a href='%s?tp=Herstellen+wachtwoord'>Druk hier om je wachtwoord te herstellen (resetten).</a></p>\n", $basisurl);
 	}
 } elseif ((!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) and isset($_COOKIE['password']) and strlen($_COOKIE['password']) > 5) {
 	fnAuthenticatie(0);
@@ -71,7 +69,7 @@ if (toegang($_GET['tp'], 1) == false) {
 	if ($currenttab == "Opvragen lidnr" and $_SERVER['REQUEST_METHOD'] == "POST") {
 	fnOpvragenLidnr("mail");
 	
-} elseif ($currenttab == "Herstellen wachtwoord" and $_SERVER['REQUEST_METHOD'] == "POST") {
+} elseif ($currenttab == "Herstellen wachtwoord") {
 	fnHerstellenWachtwoord("mail");
 	
 } elseif ($currenttab == "Validatie login") {
@@ -89,6 +87,7 @@ if (toegang($_GET['tp'], 1) == false) {
 	} else {
 		echo("<p class='mededeling'>Er is geen lid ingelogd.</p>\n");
 	}
+	
 } elseif ($currenttab == "Zelfservice") {
 	if ($currenttab2 == "Inschrijving bewaking") {
 		inschrijvenbewaking($_SESSION['lidid']);
@@ -99,34 +98,30 @@ if (toegang($_GET['tp'], 1) == false) {
 	} else {
 		fnWijzigen($_SESSION['lidid'], $currenttab2);
 	}
+	
 } elseif ($currenttab == "Overzicht lid" and toegang($currenttab, 0)) {
 	if (isset($_GET['lidid']) and is_numeric($_GET['lidid']) and $_GET['lidid'] > 0) {
 		fnEigenGegevens($_GET['lidid'], $currenttab2);
 	} else {
 		fnEigenGegevens(0, $currenttab2);
 	}
+	
 } elseif ($currenttab == "Wijzigen lid") {
 	if (isset($_GET['lidid']) and is_numeric($_GET['lidid']) and $_GET['lidid'] > 0) {
 		fnWijzigen($_GET['lidid'], $currenttab2);
 	}
 } elseif ($currenttab == "Vereniging") {
 	fnDispMenu(2);
-	if ($currenttab2 == "Introductie") { 
-		if (file_exists($fileverinfo)) {
-			fnVoorblad();
-			if (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
-				echo("<div id='kolomrechts'>\n");
-				if (db_param("mailing_lidnr") > 0) {
-					fnOpvragenLidnr("form");
-				}
-				fnLoginAanvragen();
-				echo("</div>  <!-- Einde kolomrechts -->\n");
-			}
-		} else {
+	if ($currenttab2 == "Introductie") {
+		fnVoorblad();
+		if ($_SESSION['lidid'] == 0) {
+			fnLoginAanvragen();
+			echo("<div id='kolomrechts'>\n");
 			if (db_param("mailing_lidnr") > 0) {
 				fnOpvragenLidnr("form");
 			}
-			fnLoginAanvragen();
+			fnHerstellenWachtwoord("form");
+			echo("</div>  <!-- Einde kolomrechts -->\n");
 		}
 	} else {
 		fnWieiswie($currenttab2, db_param("kaderoverzichtmetfoto"));
