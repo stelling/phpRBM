@@ -48,7 +48,7 @@ function fnWijzigen($lidid=0, $actie="") {
 		} elseif ($currenttab2 == "Toestemmingen") {
 			toestemmingenmuteren($lidid);
 			
-		} elseif ($actie == "Bijzonderheden" and count($muteerbarememos) > 0) {
+		} elseif ($actie == "Bijzonderheden") {
 			if ($_SERVER['REQUEST_METHOD'] == "POST") {
 				foreach ($muteerbarememos as $kodesoort) {
 					$namevar = "Memo_" . $kodesoort;
@@ -63,21 +63,25 @@ function fnWijzigen($lidid=0, $actie="") {
 				}
 			}
 			echo("<div id='bijzonderhedenwijzigen'>\n");
-			printf("<form method='post' action='%s' name='bijz_wijz'>\n", $actionurl);
-			echo("<table>\n");
-			foreach ($muteerbarememos as $kodesoort) {
-				$namevar = "Memo_" . $kodesoort;
-				if (array_key_exists($kodesoort, $arrSoortMemo)) {
-					$naamsoort = $arrSoortMemo[$kodesoort];
-				} else {
-					$naamsoort = "Overig " . $kodesoort;
+			if (count($muteerbarememos) > 0) {
+				printf("<form method='post' action='%s' name='bijz_wijz'>\n", $actionurl);
+				echo("<table>\n");
+				foreach ($muteerbarememos as $kodesoort) {
+					$namevar = "Memo_" . $kodesoort;
+					if (array_key_exists($kodesoort, $arrSoortMemo)) {
+						$naamsoort = $arrSoortMemo[$kodesoort];
+					} else {
+						$naamsoort = "Overig " . $kodesoort;
+					}
+					$curval = db_memo("curval", $lidid, $kodesoort);
+					printf("<tr><td class='label'>%s</td><td><textarea cols=75 rows=10 name='%s'>%s</textarea></td></tr>\n", $naamsoort, $namevar, $curval);
 				}
-				$curval = db_memo("curval", $lidid, $kodesoort);
-				printf("<tr><td class='label'>%s</td><td><textarea cols=75 rows=10 name='%s'>%s</textarea></td></tr>\n", $naamsoort, $namevar, $curval);
+				echo("<tr><th colspan=2><input type='submit' value='Bewaren' name='wijziging'></th></tr>\n");
+				echo("</table>\n");
+				echo("</form>\n");
+			} else {
+				echo("<p class='mededeling'>Er zijn geen bijzonderheden die hier gemuteerd mogen worden.</p>");
 			}
-			echo("<tr><th colspan=2><input type='submit' value='Bewaren' name='wijziging'></th></tr>\n");
-			echo("</table>\n");
-			echo("</form>\n");
 			echo("</div>  <!-- Einde bijzonderhedenwijzigen -->\n");
 
 		} elseif ($actie == "Opzegging") {
@@ -576,21 +580,18 @@ function algemeenlidmuteren($lidid) {
 		$wijzvelden[] = array('label' => "E-mail ouders", 'naam' => "EmailOuders", 'lengte' => 45);
 		$wijzvelden[] = array('label' => "Namen ouders", 'naam' => "NamenOuders", 'lengte' => 90);
 	}
-	$wijzvelden[] = array('label' => "Geboortedatum", 'naam' => "GEBDATUM", 'lengte' => 18);
+	$wijzvelden[] = array('label' => "Geboortedatum", 'naam' => "GEBDATUM", 'lengte' => 10, 'type' => 'date');
 	$wijzvelden[] = array('label' => "Geboorteplaats", 'naam' => "GEBPLAATS", 'lengte' => 22);
 	if (db_param("zs_incl_iban") == 1) {
-		$wijzvelden[] = array('label' => "IBAN", 'naam' => "Bankrekening", 'lengte' => 18);
+		$wijzvelden[] = array('label' => "Bankrekening", 'naam' => "Bankrekening", 'lengte' => 18);
 	}
 	if (db_param("zs_incl_machtiging") == 1 or $currenttab == "Wijzigen lid") {
-		$wijzvelden[] = array('label' => "Machtiging incasso afgegeven", 'naam' => "Machtiging afgegeven", 'lengte' => 1);
+		$wijzvelden[] = array('label' => "Machtiging incasso afgegeven", 'naam' => "Machtiging afgegeven", 'lengte' => 1, 'type' => 'cb');
 	}
-	if (db_param("zs_incl_bezwmachtiging") == 1 or $currenttab == "Wijzigen lid") {
-		$wijzvelden[] = array('label' => "Bezwaar machtiging incasso", 'naam' => "BezwaarMachtiging", 'lengte' => 1);
+	if (db_param("zs_incl_vogafgegeven") == 1 or $currenttab == "Wijzigen lid") {
+		$wijzvelden[] = array('label' => "VOG afgegeven op", 'naam' => "VOG afgegeven", 'lengte' => 10, 'type' => 'date');
 	}
-	if (db_param("zs_incl_vogafgegeven") == 1) {
-		$wijzvelden[] = array('label' => "VOG afgegeven op", 'naam' => "VOG afgegeven", 'lengte' => 9);
-	}
-	if (db_param("zs_incl_bsn") == 1) {
+	if (db_param("zs_incl_bsn") == 1 or $currenttab == "Wijzigen lid") {
 		$wijzvelden[] = array('label' => "Burgerservicenummer", 'naam' => "Burgerservicenummer", 'lengte' => 9);
 	}
 	if (db_param("zs_incl_slid") == 1 or $currenttab == "Wijzigen lid") {
@@ -628,7 +629,7 @@ function algemeenlidmuteren($lidid) {
 				}
 				
 			} elseif ($fn == "Bankrekening" and isset($_POST[$fn]) and strlen($_POST[$fn]) > 0 and IsIBANgoed($_POST[$fn], 1) == false) {
-				$mess .= "IBAN is niet correct, deze wijziging wordt niet verwerkt. ";
+				$mess .= "De nieuwe bankrekening is niet correct, deze wijziging wordt niet verwerkt. ";
 				$toonmess = 1;
 				
 			} elseif ($fn == "Burgerservicenummer" and isset($_POST[$fn]) and strlen($_POST[$fn]) > 0 and (!is_numeric($_POST[$fn]) or $_POST[$fn] < 100000000 or $_POST[$fn] > 999999999)) {
@@ -689,7 +690,7 @@ function algemeenlidmuteren($lidid) {
 				db_logboek("add", $mess, 6, 0, $toonmess, $lidid);
 			}
 		}
-	} # if post
+	}
 
 	$row = db_lid("wijzigingen", "", $lidid);
 	echo("<div id='wijzigengegevens'>\n");
@@ -716,7 +717,7 @@ function algemeenlidmuteren($lidid) {
 			}
 			$inp = sprintf("<select name='%s'>%s</select></td><td>", $wijzvelden[$i]['naam'], $opt);
 			
-		} elseif ($wijzvelden[$i]['naam'] == "Machtiging afgegeven") {
+		} elseif (isset($wijzvelden[$i]['type']) and $wijzvelden[$i]['type'] == "cb") {
 			if ($row->{$wijzvelden[$i]['naam']} == 1) {
 				$dv = "Ja";
 				$c = "checked";
@@ -725,22 +726,10 @@ function algemeenlidmuteren($lidid) {
 				$c = "";
 			}
 			$inp = sprintf("<input type='checkbox' name='%s' value=1 %s>", $wijzvelden[$i]['naam'], $c);
-			$t = "text";
-			
-		} elseif ($wijzvelden[$i]['naam'] == "BezwaarMachtiging") {
-			if ($row->{$wijzvelden[$i]['naam']} > "2000-01-01") {
-				$dv = strftime("%e %B %Y", strtotime($dv));
-				$c = "checked";
-			} else {
-				$dv = "Nee";
-				$c = "";
-			}
-			$inp = sprintf("<input type='checkbox' name='%s' value=1 %s>", $wijzvelden[$i]['naam'], $c);
-			$t = "text";
 		
 		} else {
-			if (strpos($wijzvelden[$i]['label'], "datum") !== FALSE) {
-				$t = "text";
+			if (isset($wijzvelden[$i]['type']) and $wijzvelden[$i]['type'] == "date") {
+				$t = "date";
 				if ($dv > "1900-01-01") {
 					$dv = strftime("%e %B %Y", strtotime($dv));
 				}
@@ -1152,7 +1141,7 @@ function lidmaatschapmuteren($lidid) {
 			db_lidmaatschap("add", $lidid);
 		}
 		
-	} # if post
+	}
 	
 	echo("<div id='lidmaatschapmuteren'>\n");
 	$actionurl = sprintf("%s?tp=%s&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
@@ -1165,19 +1154,17 @@ function lidmaatschapmuteren($lidid) {
 		echo("<tr>\n");
 		printf("<td>%d</td>\n", $row->RecordID);
 		printf("<td><input type='number' class='inputnumber' name='Lidnr_%d' value=%d></td>\n", $row->RecordID, $row->Lidnr);
-		printf("<td><input name='Vanaf_%d' value='%s'></td>\n", $row->RecordID, strftime('%e %B %Y', strtotime($row->LIDDATUM)));
+		printf("<td><input type='date' name='Vanaf_%d' value='%s'></td>\n", $row->RecordID, $row->LIDDATUM);
 		if ($row->Opgezegd >= "1901-01-01") {
-			$v = strftime('%e %B %Y', strtotime($row->Opgezegd));
 			if ($row->Opgezegd >= date("Y-m-d")) {
 				$toev = false;
 			} elseif ($row->LIDDATUM >= date("Y-m-d")) {
 				$toev = false;
 			}
 		} else {
-			$v = "";
 			$toev = false;
 		}
-		printf("<td><input name='Opgezegd_%d' value='%s'></td>\n", $row->RecordID, $v);
+		printf("<td><input type='date' name='Opgezegd_%d' value='%s'></td>\n", $row->RecordID, $row->Opgezegd);
 		if ($row->Opgezegd >= "2010-01-01" and db_param("mailing_bevestigingopzegging") > 0) {
 			printf("<td><input type='image' name='BO_%d' src='images/email.png' alt='Verstuur bevestiging' title='Verstuur bevestiging'></td>\n", $row->Lidnr);
 		} else {
@@ -1185,7 +1172,7 @@ function lidmaatschapmuteren($lidid) {
 		}
 		echo("</tr>\n");
 		$aant++;
-	} # foreach
+	}
 	
 	echo("<tr>\n<th colspan=5>\n");
 	if ($aant > 0) {
