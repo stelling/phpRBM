@@ -159,6 +159,7 @@ header a + a:visited + a:hover {
 
 #kolomlinks {
 	float: left;
+	clear: left;
 }
 
 #kolomrechts {
@@ -236,7 +237,7 @@ header a + a:visited + a:hover {
 	width: 800px;
 }
 
-#wijzigengegevens, #wijzigendiplomas, #nieuwepasfoto, #bijzonderhedenwijzigen, #lidmaatschapmuteren, #inschrijvingbewaking, #inschrijvingevenementen, #onlinebestellingen, #opzegformulier, #profielwijzigen {
+#wijzigengegevens, #wijzigendiplomas, #nieuwepasfoto, #bijzonderhedenwijzigen, #lidmaatschapmuteren, #inschrijvingbewaking, #inschrijvingevenementen, #onlinebestellingen, #opzegformulier, #profielwijzigen, #herstellenwachtwoord {
 	padding-top: 8px;
 }
 
@@ -281,6 +282,17 @@ header a + a:visited + a:hover {
 #inschrijvingbewaking table {
 	margin-left: auto;
 	margin-right: auto;
+}
+
+#groepsindeling {
+	border-style: solid;
+}
+
+.groepsindelingkolom {
+	float: left;
+	width: 200px;
+	margin-left: 0;
+	margin-right: 4px;
 }
 
 #versies {
@@ -361,9 +373,9 @@ header a + a:visited + a:hover {
 	margin-left: 6px;
 }
 
-#loginaanvraag, #opvragenlidnr, #profielwijzigen, #opzegformulier {
-	width: 432px;
-	background-color: #00FFFF; // licht blauw
+#loginaanvraag, #opvragenlidnr, #profielwijzigen, #opzegformulier, #herstellenwachtwoord {
+	width: 450px;
+	background-color: #00FFFF;
 	margin-left: auto;
 	margin-right: auto;
 	padding-left: 5px;
@@ -371,12 +383,20 @@ header a + a:visited + a:hover {
 	padding-bottom: 5px;
 }
 
-#loginaanvraag h3, #opvragenlidnr h3, #profielwijzigen h3, #opzegformulier h3{
+#loginaanvraag {
+	float: left;
+}
+
+#opvragenlidnr {
+	margin-bottom: 6px;
+}
+
+#loginaanvraag h3, #opvragenlidnr h3, #profielwijzigen h3, #opzegformulier h3, #herstellenwachtwoord h3 {
 	color: white;
 	font-size: 14pt;
 }
 
-#loginaanvraag label, #opvragenlidnr label, #profielwijzigen label, #opzegformulier label {
+#loginaanvraag label, #opvragenlidnr label, #profielwijzigen label, #opzegformulier label, #herstellenwachtwoord label {
 	width: 200px;
 	float: left;
 }
@@ -417,7 +437,7 @@ fieldset h3 {
 	margin-bottom: 12px;
 }
 
-#loginaanvraag input, #opvragenlidnr input, #profielwijzigen input, #opzegformulier input {
+#loginaanvraag input, #opvragenlidnr input, #profielwijzigen input, #opzegformulier input, #herstellenwachtwoord input {
 	width: 190px;
 	height: 22px;
 	clear: right;
@@ -432,8 +452,8 @@ fieldset h3 {
 	background-color: white;
 }
 
-#loginaanvraag input.inputnumber, #opvragenlidnr input.inputnumber, #opzegformulier input.inputnumber {
-	width: 50px;
+#loginaanvraag input.inputnumber, #opvragenlidnr input.inputnumber, #opzegformulier input.inputnumber, #lidmaatschapmuteren input.inputnumber {
+	width: 60px;
 	text-align: right;
 	padding-left: 3px;
 	padding-right: 3px;
@@ -453,6 +473,11 @@ input.knop {
 
 #loginaanvraag input.knop, #opvragenlidnr input.knop, #profielwijzigen input.knop {
 	width: 100px;
+	float: right;
+}
+
+#herstellenwachtwoord input.knop {
+	width: 225px;
 	float: right;
 }
 
