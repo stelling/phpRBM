@@ -2,210 +2,212 @@
 
 $tabpages = null;
 if ($_SERVER['PHP_SELF'] == "/admin.php") {
-	$tabpages[] = "Beheer logins";
-	$tabpages[] = "Autorisatie";
-	$tabpages[] = "Instellingen";
-	$tabpages[] = "Stamgegevens";
-	$tabpages[] = "Uploaden data";
+	addtp("Beheer logins");
+	addtp("Autorisatie");
+	addtp("Instellingen");
+	addtp("Stamgegevens");
+	addtp("Uploaden data");
 	if (db_interface("aantalopenstaand") > 0) {
-		$tabpages[] = "Downloaden wijzigingen";
+		addtp("Downloaden wijzigingen");
 	}
-	$tabpages[] = "Onderhoud";
-	$tabpages[] = "Logboek";
+	addtp("Onderhoud");
+	addtp("Logboek");
 } else {
 	$tabpages[] = "Vereniging";
-	$tabpages[] = "Vereniging/Introductie";
-	$tabpages[] = "Vereniging/Kader";
-	$tabpages[] = "Vereniging/Onderscheidingen";
-	$tabpages[] = "Vereniging/Overige commissies";
-	if ($_SESSION['lidid'] > 0 and toegang("Eigen gegevens")) {
-		$tabpages[] = "Eigen gegevens";
-		if ($currenttab == "Eigen gegevens") {
-			$tabpages[] = "Eigen gegevens/Algemeen";
-			if (count(db_gegevenslid($_SESSION['lidid'], "Afdelingen")) > 0) {
-				$tabpages[] = "Eigen gegevens/Afdelingen";
+	addtp("Vereniging/Introductie");
+	addtp("Vereniging/Kader");
+	addtp("Vereniging/Onderscheidingen");
+	addtp("Vereniging/Overige commissies");
+	if ($_SESSION['lidid'] > 0) {
+		addtp("Eigen gegevens");
+	}
+	if ($currenttab == "Eigen gegevens") {
+		addtp("Eigen gegevens/Algemeen");
+		if (count(db_gegevenslid($_SESSION['lidid'], "Afdelingen")) > 0) {
+			addtp("Eigen gegevens/Afdelingen");
+		}
+		if (count(db_gegevenslid($_SESSION['lidid'], "Kader")) > 0) {
+			addtp("Eigen gegevens/Kader");
+		}
+		if (count(db_gegevenslid($_SESSION['lidid'], "Rollen")) > 0) {
+			addtp("Eigen gegevens/Rollen");
+		}
+		if (count(db_gegevenslid($_SESSION['lidid'], "Groepen")) > 0) {
+			addtp("Eigen gegevens/Groepen");
+		}
+		if (count(db_gegevenslid($_SESSION['lidid'], "Bew")) > 0 or count(db_insbew("overzichtlid", $_SESSION['lidid'])) > 0) {
+			addtp("Eigen gegevens/Bewaking");
+		}
+		if (count(db_liddipl("lidgegevens", $_SESSION['lidid'])) > 0) {
+			addtp("Eigen gegevens/Diploma's");
+		}
+		if (db_rekening("aantal", 0, "", $_SESSION['lidid']) > 0) {
+			addtp("Eigen gegevens/Financieel");
+		}
+		addtp("Eigen gegevens/Mailing");
+		if (db_onderdelen("aantal", "T") > 0) {
+			addtp("Eigen gegevens/Toestemmingen");
+		}
+		if (count(db_gegevenslid($_SESSION['lidid'], "Evenementen")) > 0) {
+			addtp("Eigen gegevens/Evenementen");
+		}
+		addtp("Eigen gegevens/Logboek");
+	}
+	
+	if ($_SESSION['lidid'] > 0) {
+		addtp("Zelfservice");
+	}
+	if ($currenttab == "Zelfservice") {
+		addtp("Zelfservice/Algemene gegevens");
+		if (count(db_diploma("zelfservice_lijst")) > 0) {
+			addtp("Zelfservice/Diploma's");
+		}
+		addtp("Zelfservice/Pasfoto");
+		if (db_onderdelen("aantal", "T") > 0) {
+			addtp("Zelfservice/Toestemmingen");
+		}
+		if (count($muteerbarememos) > 0) { 
+			addtp("Zelfservice/Bijzonderheden");
+		}
+		if (count(db_bewaking_blok("openblokken")) > 0) {
+			addtp("Zelfservice/Inschrijving bewaking");
+		}
+		if (count(db_evenement("open")) > 0) {
+			addtp("Zelfservice/Inschrijving evenementen");
+		}
+		if (count(db_artikel("artikelbeschikbaar")) > 0) {
+			addtp("Zelfservice/Bestellingen");
+		}
+		$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap WHERE Lid=%d AND (Opgezegd IS NULL);", $table_prefix, $_SESSION['lidid']);
+		if (db_scalar($query) > 0) {
+			addtp("Zelfservice/Opzegging");
+		}
+	}
+	if ($_SESSION['lidid'] > 0) {
+		addtp("Zelfservice/Wijzigen wachtwoord");
+	}
+	
+	if (count(db_lidond("actueleleden", 0, "", "LO.GroepID > 0")) > 0) {
+		addtp("Groepsindeling");
+		if ($currenttab == "Groepsindeling") {
+			foreach(db_onderdelen("lijstopkode", "A") as $row) {
+				if (count(db_lidond("actueleleden", 0, "", "LO.GroepID > 0", $row->RecordID)) > 0) {
+					addtp("Groepsindeling/" . trim($row->Kode));
+				}
 			}
-			if (count(db_gegevenslid($_SESSION['lidid'], "Kader")) > 0) {
-				$tabpages[] = "Eigen gegevens/Kader";
-			}
-			if (count(db_gegevenslid($_SESSION['lidid'], "Rollen")) > 0) {
-				$tabpages[] = "Eigen gegevens/Rollen";
-			}
-			if (count(db_gegevenslid($_SESSION['lidid'], "Groepen")) > 0) {
-				$tabpages[] = "Eigen gegevens/Groepen";
-			}
-			if (count(db_gegevenslid($_SESSION['lidid'], "Bew")) > 0 or count(db_insbew("overzichtlid", $_SESSION['lidid'])) > 0) {
-				$tabpages[] = "Eigen gegevens/Bewaking";
-			}
-			if (count(db_liddipl("lidgegevens", $_SESSION['lidid'])) > 0) {
-				$tabpages[] = "Eigen gegevens/Diploma's";
-			}
-			if (db_rekening("aantal", 0, "", $_SESSION['lidid']) > 0) {
-				$tabpages[] = "Eigen gegevens/Financieel";
-			}
-			$tabpages[] = "Eigen gegevens/Mailing";
-			if (db_onderdelen("aantal", "T") > 0) {
-				$tabpages[] = "Eigen gegevens/Toestemmingen";
-			}
-			if (count(db_gegevenslid($_SESSION['lidid'], "Evenementen")) > 0) {
-				$tabpages[] = "Eigen gegevens/Evenementen";
-			}
-			$tabpages[] = "Eigen gegevens/Logboek";
 		}
 	}
 	
-	if ($_SESSION['lidid'] > 0 and toegang("Zelfservice")) {
-		$tabpages[] = "Zelfservice";
-		if ($currenttab == "Zelfservice") {
-			$tabpages[] = "Zelfservice/Algemene gegevens";
-			if (count(db_diploma("zelfservice_lijst")) > 0) {
-				$tabpages[] = "Zelfservice/Diploma's";
-			}
-			$tabpages[] = "Zelfservice/Pasfoto";
-			if (db_onderdelen("aantal", "T") > 0) {
-				$tabpages[] = "Zelfservice/Toestemmingen";
-			}
-			if (count($muteerbarememos) > 0) { 
-				$tabpages[] = "Zelfservice/Bijzonderheden";
-			}
-			if (count(db_bewaking_blok("openblokken")) > 0) {
-				$tabpages[] = "Zelfservice/Inschrijving bewaking";
-			}
-			if (count(db_evenement("open")) > 0) {
-				$tabpages[] = "Zelfservice/Inschrijving evenementen";
-			}
-			if (count(db_artikel("artikelbeschikbaar")) > 0) {
-				$tabpages[] = "Zelfservice/Bestellingen";
-			}
-			$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap WHERE Lid=%d AND (Opgezegd IS NULL);", $table_prefix, $_SESSION['lidid']);
-			if (db_scalar($query) > 0) {
-				$tabpages[] = "Zelfservice/Opzegging";
-			}
-		}
-		$tabpages[] = "Zelfservice/Wijzigen wachtwoord";
-	}
-	if ($_SESSION['lidid'] == 0) {
-		$tabpages[] = "Herstellen wachtwoord";
-	}
-	$tabpages[] = "Ledenlijst";
+	addtp("Ledenlijst");
 	if ($currenttab == "Overzicht lid") {
 		if (!isset($_GET['lidid']) or strlen($_GET['lidid']) == 0) {
 			$_GET['lidid'] = 0;
 		}
-		$tabpages[] = "Overzicht lid";
-		$tabpages[] = "Overzicht lid/Algemeen";
-		if (db_onderdelen("aantal", "A", $_GET['lidid']) > 0) {
-			$tabpages[] = "Overzicht lid/Afdelingen";
+		addtp("Overzicht lid");
+		addtp("Overzicht lid/Algemeen");
+		if (count(db_gegevenslid($_GET['lidid'], "Afdelingen")) > 0) {
+			addtp("Overzicht lid/Afdelingen");
 		}
-		if (db_onderdelen("aantal", "kad", $_GET['lidid']) > 0) {
-			$tabpages[] = "Overzicht lid/Kader";
+		if (count(db_gegevenslid($_GET['lidid'], "Kader")) > 0) {
+			addtp("Overzicht lid/Kader");
 		}
 		if (count(db_gegevenslid($_GET['lidid'], "Rollen")) > 0) {
-			$tabpages[] = "Overzicht lid/Rollen";
+			addtp("Overzicht lid/Rollen");
 		}
 		if (count(db_gegevenslid($_GET['lidid'], "Groepen")) > 0) {
-			$tabpages[] = "Overzicht lid/Groepen";
+			addtp("Overzicht lid/Groepen");
 		}
-		if (db_bewseiz("aantal") > 0) {
-			$tabpages[] = "Overzicht lid/Bewaking";
+		if (count(db_gegevenslid($_GET['lidid'], "Bew")) > 0) {
+			addtp("Overzicht lid/Bewaking");
 		}
 		if (count(db_liddipl("lidgegevens", $_GET['lidid'])) > 0) {
-			$tabpages[] = "Overzicht lid/Diploma's";
+			addtp("Overzicht lid/Diploma's");
 		}
 		if (db_rekening("aantal") > 0) {
-			$tabpages[] = "Overzicht lid/Financieel";
+			addtp("Overzicht lid/Financieel");
 		}
-		$tabpages[] = "Overzicht lid/Mailing";
+		if (count(db_gegevenslid($_GET['lidid'], "Mailing")) > 0) {
+			addtp("Overzicht lid/Mailing");
+		}
 		if (db_onderdelen("aantal", "T") > 0) {
-			$tabpages[] = "Overzicht lid/Toestemmingen";
+			addtp("Overzicht lid/Toestemmingen");
 		}
 		if (db_evenement("aantaldlnrs", $_GET['lidid']) > 0) {
-			$tabpages[] = "Overzicht lid/Evenementen";
+			addtp("Overzicht lid/Evenementen");
 		}
 		if (count(db_logboek("lijst", "", -1, $_GET['lidid'])) > 0) {
-			$tabpages[] = "Overzicht lid/Logboek";
+			addtp("Overzicht lid/Logboek");
 		}
 	}
 	if ($currenttab == "Wijzigen lid") {
-		$tabpages[] = "Wijzigen lid";
-		$tabpages[] = "Wijzigen lid/Algemene gegevens";
-		$tabpages[] = "Wijzigen lid/Diploma's";
-		$tabpages[] = "Wijzigen lid/Pasfoto";
-		$tabpages[] = "Wijzigen lid/Bijzonderheden";
-		$tabpages[] = "Wijzigen lid/Lidmaatschap";
+		addtp("Wijzigen lid");
+		addtp("Wijzigen lid/Algemene gegevens");
+		addtp("Wijzigen lid/Diploma's");
+		addtp("Wijzigen lid/Pasfoto");
+		addtp("Wijzigen lid/Bijzonderheden");
+		addtp("Wijzigen lid/Lidmaatschap");
 	}
 	if (db_mutatie("aantal") > 0) {
-		$tabpages[] = "Kostenoverzicht";
+		addtp("Kostenoverzicht");
 	}
-	if (toegang("Mailing")) {
-		$tabpages[] = "Mailing";
-		$tabpages[] = "Mailing/Templates";
-		$tabpages[] = "Mailing/Concepten";
-		$tabpages[] = "Mailing/Nieuw";
-		if ($currenttab == "Mailing") {
-			if (db_rekening("aantal") > 0) {
-				$tabpages[] = "Mailing/Rekeningen";
-			}
-			$tabpages[] = "Mailing/Verzonden";
-			if (db_mailing("aantalprullenbak") > 0) {
-				$tabpages[] = "Mailing/Prullenbak";
-			}
-			$tabpages[] = "Mailing/Verzonden mails";
-			$tabpages[] = "Mailing/Instellingen";
-			if (db_logboek("aantal", "", 4) > 0) {
-				$tabpages[] = "Mailing/Logboek";
-			}
+	
+	addtp("Mailing");
+	if ($currenttab == "Mailing") {
+		addtp("Mailing/Templates");
+		addtp("Mailing/Concepten");
+		addtp("Mailing/Nieuw");
+		if (db_rekening("aantal") > 0) {
+			addtp("Mailing/Rekeningen");
+		}
+		addtp("Mailing/Verzonden");
+		if (db_mailing("aantalprullenbak") > 0) {
+			addtp("Mailing/Prullenbak");
+		}
+		addtp("Mailing/Verzonden mails");
+		addtp("Mailing/Instellingen");
+		if (db_logboek("aantal", "", 4) > 0) {
+			addtp("Mailing/Logboek");
 		}
 	}
 
-	if (db_bewseiz("aantal") > 0 and toegang("Bewaking")) {
-		$tabpages[] = "Bewaking";
-		$tabpages[] = "Bewaking/Bewakingsrooster";
-		$tabpages[] = "Bewaking/Postindeling";
-		$tabpages[] = "Bewaking/Aantallen";
-		$tabpages[] = "Bewaking/Nieuwe pasfoto";
-		$tabpages[] = "Bewaking/Diploma's muteren";
+	if (db_bewseiz("aantal") > 0) {
+		addtp("Bewaking");
 		if ($currenttab == "Bewaking") {
+			addtp("Bewaking/Bewakingsrooster");
+			addtp("Bewaking/Postindeling");
+			addtp("Bewaking/Aantallen");
+			addtp("Bewaking/Nieuwe pasfoto");
+			addtp("Bewaking/Diploma's muteren");
 			if (count(db_bewaking_blok("overzicht")) > 0) {
-				$tabpages[] = "Bewaking/Overzicht inschrijvingen";
+				addtp("Bewaking/Overzicht inschrijvingen");
 			}
-			$tabpages[] = "Bewaking/Blokken muteren";
+			addtp("Bewaking/Blokken muteren");
 			if (count(db_insbew("export")) > 0) {
-				$tabpages[] = "Bewaking/Downloaden inschrijvingen";
+				addtp("Bewaking/Downloaden inschrijvingen");
 			}
-			if (db_logboek("aantal", "", 11) > 0) {
-				$tabpages[] = "Bewaking/Logboek";
-			}
+			addtp("Bewaking/Logboek");
 		}
 	}
 	
-	if (toegang("Evenementen")) {
-		$tabpages[] = "Evenementen";
-		if ($currenttab == "Evenementen") {
-			if (count(db_evenement("overzicht")) > 0) {
-				$tabpages[] = "Evenementen/Overzicht";
-			}
-			$tabpages[] = "Evenementen/Beheer";
-			$tabpages[] = "Evenementen/Types muteren";
-			$tabpages[] = "Evenementen/Logboek";
-		}
+	addtp("Evenementen");
+	if ($currenttab == "Evenementen") {
+		addtp("Evenementen/Overzicht");
+		addtp("Evenementen/Beheer");
+		addtp("Evenementen/Types muteren");
+		addtp("Evenementen/Logboek");
 	}
 	
-	if (toegang("Bestellingen")) {
-		$tabpages[] = "Bestellingen";
-		if ($currenttab == "Bestellingen") {
-			if (count(db_artikel("overzichtbeheer")) > 0) {
-				$tabpages[] = "Bestellingen/Bestellingen muteren";
-			}
-			$tabpages[] = "Bestellingen/Artikelbeheer";
-			if (db_logboek("aantal", "", 10) > 0) {
-				$tabpages[] = "Bestellingen/Logboek";
-			}
+	addtp("Bestellingen");
+	if ($currenttab == "Bestellingen") {
+		if (count(db_artikel("overzichtbeheer")) > 0) {
+			addtp("Bestellingen/Bestellingen muteren");
 		}
+		addtp("Bestellingen/Artikelbeheer");
+		addtp("Bestellingen/Logboek");
 	}
 	
 	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
-//		$tabpages[] = "DMS";   Voorlopig geen tijd voor, dus uitgezet.
+//		addtp("DMS");   Voorlopig geen tijd voor, dus uitgezet.
 	}
 }
 
@@ -378,7 +380,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 			$mailing = new Mailing(db_param("mailing_herstellenwachtwoord"));
 			$mailing->resultaatversturen = 0;
 			if ($mailing->send($row->Nummer) > 0) {
-				return sprintf("Het mail met de link is naar %s verzonden.", $row->Naam);
+				return sprintf("De e-mail met de link is naar %s verzonden.", $row->Naam);
 			} else {
 				return "Fout bij het versturen van de e-mail. Probeer het later nogmaals of neem contact op met de webmaster.";
 			}
@@ -411,7 +413,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		$login = $row->Login;
 		$dbkey = $row->ActivatieKey;
 		
-		echo("<div id='profielwijzigen'>\n");
+		echo("<div id='herstellenwachtwoord'>\n");
 		if (strlen($login) > 5 and password_verify($_GET["key"], $dbkey)) {
 			
 			printf("<form name='HerstellenWachtwoord' action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
@@ -427,7 +429,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		} else {
 			echo("<h3>Deze link is niet correct, vraag een nieuwe aan.</h3>\n");
 		}
-		echo("</div>  <!-- Einde profielwijzigen -->");
+		echo("</div>  <!-- Einde herstellenwachtwoord -->");
 	
 	} elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
 		if (strlen($_POST['login']) < 7 and strlen($_POST['login']) > 0) {
@@ -471,7 +473,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		}
 		echo("<p><a href='/'>Klik hier om verder te gaan.</a></p>\n");
 	} else {
-		echo("<div id='profielwijzigen'>\n");
+		echo("<div id='herstellenwachtwoord'>\n");
 		printf("<form name='HerstellenWachtwoord' action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
 		echo("<fieldset>
 		<h3>Herstellen wachtwoord</h3>
@@ -483,7 +485,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		</fieldset>
 		</form>
 		<p>Minimaal 2 van de 3 velden moeten correct zijn ingevuld. Na het versturen van deze link is je oude wachtwoord niet meer geldig.</p>
-		</div>  <!-- Einde profielwijzigen -->");
+		</div>  <!-- Einde herstellenwachtwoord -->");
 	}
 	return $mess;
 } # fnHerstellenWachtwoord
@@ -508,37 +510,12 @@ function fnValidatieLogin($lidid, $key, $stap) {
 			$mess = "Er kan op dit moment geen mail worden gestuurd. Probeer het over een aantal uur nog een keer.";
 			
 		} else {
-				$mailing = new Mailing(db_param("mailing_validatielogin"));
-				$mailing->resultaatversturen = 0;
-				if ($mailing->send($row->Nummer) === false) {
-					$mess = "Fout bij het versturen van de e-mail met de validatielink. Probeer het later nogmaals of neem contact op met de webmaster.";
-				}
-				$mailing = null;
-	
-/*			$mail = new RBMmailer($row->Nummer);
-			$mail->FromName = "Webmaster " . db_param("naamwebsite");
-			$mail->Subject = "Link validatie nieuwe login";
-	
-			$urlactivatie = sprintf("%s/index.php?tp=Validatie+login&lidid=%d&key=%s", $_SERVER["HTTP_HOST"], $lidid, $key);
-	
-			$content = str_replace("[%NAAMLID%]", $row->Naam, $content);
-			$content = str_replace("[%URLACTIVATIE%]", $urlactivatie, $content);
-			$content = str_replace("[%LOGIN%]", $row->Login, $content);
-			$content = str_replace("[%ROEPNAAM%]", $row->Roepnaam, $content);
-			$content = str_replace("[%GELDIGHEIDACTIVATIE%]", intval(db_param("login_geldigheidactivatie")), $content);
-			$content = str_replace("[%NAAMVERENIGING%]", db_param("naamvereniging"), $content);
-			$content = str_replace("[%NAAMWEBSITE%]", db_param("naamwebsite"), $content);
-			$content = str_replace("[%URLWEBSITE%]", $_SERVER["HTTP_HOST"], $content);
-			$content = str_replace("[%IPADDRESS%]", $_SERVER['REMOTE_ADDR'], $content);
-
-			$mail->Body = $content;
-			$mail->IsHTML(true);
-			$mail->addstationary();
-			if ($mail->Send()) {
-				$mess = sprintf(" Link om de nieuwe login te bevestigen is aan %s (%s) verzonden.", $row->Naam, $mail->ListAddresses("to"));
-			} else {
-				$mess = sprintf(" Fout tijdens het versturen van de mail: %s.<br> Probeer later nogmaals of neem contact op met de webmaster.", $mail->ErrorInfo);
-			} */
+			$mailing = new Mailing(db_param("mailing_validatielogin"));
+			$mailing->resultaatversturen = 0;
+			if ($mailing->send($row->Nummer) === false) {
+				$mess = "Fout bij het versturen van de e-mail met de validatielink. Probeer het later nogmaals of neem contact op met de webmaster.";
+			}
+			$mailing = null;
 		}
 	} else {
 		$mess = db_logins("valideerlogin", "", "", $lidid);
@@ -566,6 +543,8 @@ function fnConfirmLidnr($row) {
 
 function fnLoginAanvragen($stap="") {
 	global $table_prefix, $lididwebmasters, $selectlidnr, $basisurl;
+	
+	$login_verbodenkarakters = "@#$^&;*%éëèöôü";
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['loginaanvragen'])) {
 
@@ -596,6 +575,13 @@ function fnLoginAanvragen($stap="") {
 				$xf = sprintf("(%s)=%d", $selectlidnr, $_POST['lidnummer']);
 			} else {
 				$xf = "";
+			}
+			$gevondenverbodenkarakter = "";
+			for ($i=0; $i < strlen($login_verbodenkarakters); $i++) {
+				if (strpos($_POST['gewenstelogin'], substr($login_verbodenkarakters, $i, 1)) > 0) {
+					$gevondenverbodenkarakter = substr($login_verbodenkarakters, $i, 1);
+					break;
+				}
 			}
 			$rows = db_logins("rowlogin", $_POST['email'], "", 0, $xf);
 			if (count($rows) > 0) {
@@ -637,6 +623,8 @@ function fnLoginAanvragen($stap="") {
 							$mess = "Je hebt geen geldige login opgegeven. Er mag geen puntkomma (;) in een login zitten.";
 						} elseif (strpos($_POST['gewenstelogin'], "'") > 0 or strpos($_POST['gewenstelogin'], "\"") > 0) {
 							$mess = "Je hebt geen geldige login opgegeven. Er mogen geen aanhalingstekens in een login zitten.";
+						} elseif (strlen($gevondenverbodenkarakter) > 0) {
+							$mess = sprintf("Je hebt geen geldige login opgegeven. Het karakter '%s' mag niet in de login zitten.", $gevondenverbodenkarakter);
 						} elseif ($wwok !== "ok") {
 							$mess = $wwok;
 						} elseif (db_logins("controlebestaat", "", $_POST['gewenstelogin'], $row->Nummer) > 0) {
@@ -687,7 +675,11 @@ function fnLoginAanvragen($stap="") {
 		}
 		echo(" Je ontvangt een e-mail met daarin een link om deze aanmelding te bevestigen. Pas daarna is de login bruikbaar om in te loggen.</p>\n");
 		
-		printf("<p>Voorwaarden aan een login:<ul>\n<li>Minimaal 7 karakters en maximaal %d karakters lang</li>\n</ul>\n</p>\n", db_param("login_maxlengte"));
+		echo("<p>Voorwaarden aan een login:<ul>\n");
+		printf("<li>Minimaal 7 karakters en maximaal %d karakters lang</li>\n", db_param("login_maxlengte"));
+		echo("<li>Er mogen geen aanhalingstekens en geen spaties in zitten</li>\n");
+		printf("<li>De volgende karakters '%s' mogen er niet in zitten</li>\n", htmlent($login_verbodenkarakters));
+		echo("</ul>\n</p>\n");
 		
 		printf(fneisenwachtwoord());
 			
@@ -716,13 +708,14 @@ function fnOpvragenLidnr($stap) {
 						$mess .= sprintf("Fout bij het versturen van het lidnummer aan %s. Probeer het later nogmaals of neem contact met de webmaster op. ", $row->Naam);
 					}
 					$mailing = null;
+					sleep(3);
 				}
 			} else {
 				$mess = sprintf("Dit e-mailadres (%s) is onbekend in onze database.", $_POST['emailvoorlidnr']);
 			}		
 			
 		} else {
-			$mess = "Onbekende fout in fnOpvragenLidnr";
+			$mess = "Onbekende fout";
 		}
 		db_logboek("add", $mess, 5, 0, 1);
 		printf("<p><a href='%s' target='_top'>Klik hier om verder te gaan.</a></p>\n", $basisurl);
@@ -798,6 +791,8 @@ function checknewpassword($ww, $login="") {
 		$mess = sprintf("Het wachtwoord is te lang, het mag maximaal %d karakters lang zijn.", db_param('wachtwoord_maxlengte'));
 	} elseif (strlen($ww) < db_param('wachtwoord_minlengte') and db_param('wachtwoord_minlengte') > 0) {
 		$mess = sprintf("Het wachtwoord is te kort, het moet minimaal %d karakters lang zijn.", db_param('wachtwoord_minlengte'));
+	} elseif (strpos($ww, "'") > 0 or strpos($ww, "\"") > 0) {
+		$mess = "Er mogen geen aanhalingstekens in een wachtwoord zitten.";
 	} elseif (strpos($ww, " ") !== false) {
 		$mess = "Het wachtwoord mag geen spatie bevatten.";
 	} elseif (strlen($login) > 0 and strpos(strtolower($ww), strtolower($login)) !== false) {
@@ -830,12 +825,22 @@ function checknewpassword($ww, $login="") {
 function fneisenwachtwoord() {
 	return sprintf("<p>Voorwaarden aan een wachtwoord:</p>\n
 					<ul>\n
-					<li>Minimaal %d karakters en maximaal %d karakters lang.</li>\n
+					<li>Minimaal %d karakters en maximaal %d karakters lang</li>\n
+					<li>Er mogen geen aanhalingstekens en geen spaties in zitten</li>\n
 					<li>Mag niet je login bevatten</li>\n
 					<li>Moet minimaal 1 cijfer bevatten</li>\n
 					<li>Moet minimaal 1 kleine letter bevatten</li>\n
 					<li>Moet minimaal 1 hoofdletter bevatten</li>\n
 					</ul>\n", db_param("wachtwoord_minlengte"), db_param("wachtwoord_maxlengte"));
 } # fneisenwachtwoord
+
+function addtp($tp) {
+	global $tabpages, $currenttab;
+	
+	if ((strstr($tp, "/") === false or startwith($tp, $currenttab . "/")) and toegang($tp, 0, 0)) {
+		$tabpages[] = $tp;
+	}
+	
+} # addtp
 
 ?>
