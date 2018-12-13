@@ -396,7 +396,7 @@ function fnInstellingen() {
 	$arrParam['mailing_validatielogin'] = "NT";
 	$arrParam['max_grootte_bijlage'] = "De maximalale grootte in bytes van één bijlage in een mailing. Optioneel veld. Als je niets specificeerd dan is 2MB het maximum.";
 	$arrParam['login_maxinlogpogingen'] = "Na hoeveel foutieve inlogpogingen moet het account geblokkeerd worden? 0 = nooit.";
-	$arrParam['login_maxlengte'] = "De maximale lengte die een login mag zijn. Minimaal 7 en maximaal 15 invullen.";
+	$arrParam['login_maxlengte'] = "De maximale lengte die een login mag zijn. Minimaal 7 en maximaal 20 invullen.";
 	$arrParam['wachtwoord_minlengte'] = "De minimale lengte van een wachtwoord. Minimaal 7 en maximaal 15 invullen.";
 	$arrParam['wachtwoord_maxlengte'] = "De maximale lengte van een wachtwoord. Minimaal 7 en maximaal 15 invullen.";
 	$arrParam['maxmailsperdag'] = "NT";
@@ -407,7 +407,7 @@ function fnInstellingen() {
 	$arrParam['termijnvervallendiplomasmelden'] = "Hoeveel maanden vooruit en achteraf moeten vervallen diploma op het voorblad getoond worden.";
 	$arrParam['toneninschrijvingenbewakingen'] = "Moeten bij de gegevens van een lid ook inschrijvingen voor bewakingen getoond worden?";
 	$arrParam['tonentoekomstigebewakingen'] = "Moeten bij de gegevens van een lid ook toekomstige bewakingen getoond worden?";
-	$arrParam['typemenu'] = "1 = per niveau een aparte regel, 2 = één menu met dropdown, 3 = één menu met dropdown en extra menu voor niveau 2.";
+	$arrParam['typemenu'] = "Hoe moet het menu eruit zien? 1 = per niveau een aparte regel, 2 = één menu met dropdown, 3 = één menu met dropdown en extra menu voor niveau 2.";
 	$arrParam['urlvereniging'] = "De URL van de website van de vereniging.";
 	$arrParam['url_eigen_help'] = "Als een gebruiker op de help klikt wordt hier naar verwezen in plaats van de standaard help.";
 	$arrParam['verjaardagenaantal'] = "Hoeveel verjaardagen moeten er maximaal in de verenigingsinfo worden getoond. Als er meerdere leden op dezelfde dag jarig zijn, wordt dit aantal overschreden.";
@@ -419,7 +419,6 @@ function fnInstellingen() {
 	$arrParam['zs_incl_beroep'] = "Is het veld 'Beroep' in de zelfservice beschikbaar?";
 	$arrParam['zs_incl_bsn'] = "Is het veld 'Burgerservicenummer' in de zelfservice beschikbaar?";
 	$arrParam['zs_incl_machtiging'] = "Is het veld 'Machtiging incasso afgegeven' in de zelfservice beschikbaar?";
-	$arrParam['zs_incl_bezwmachtiging'] = "Is het veld 'Bezwaar machtiging' in de zelfservice beschikbaar?";
 	$arrParam['zs_incl_emailouders'] = "Is het veld 'E-mail ouders' in de zelfservice beschikbaar?";
 	$arrParam['zs_incl_emailvereniging'] = "Is het veld 'E-mail vereniging' in de zelfservice beschikbaar?";
 	$arrParam['zs_incl_iban'] = "Moet het IBAN via de zelfservice gemuteerd kunnen worden?";
@@ -491,8 +490,8 @@ function fnInstellingen() {
 		}
 		if (db_param("login_maxlengte") < 7) {
 			db_param("login_maxlengte", "updval", 7);
-		} elseif (db_param("login_maxlengte") > 15) {
-			db_param("login_maxlengte", "updval", 15);
+		} elseif (db_param("login_maxlengte") > 20) {
+			db_param("login_maxlengte", "updval", 20);
 		}
 	}
 
@@ -501,7 +500,7 @@ function fnInstellingen() {
 	
 	foreach (db_param("", "lijst") as $row) {
 		if (array_key_exists($row->Naam, $arrParam)) {
-			$uitleg = htmlentities($arrParam[$row->Naam]);
+			$uitleg = htmlent($arrParam[$row->Naam]);
 			if (strlen($uitleg) < 5) {
 			} elseif ($row->ParamType == "B") {
 				printf("<label>%s</label><p><input type='checkbox' name='value_%d' value='1' %s></p>\n", $uitleg, $row->RecordID, checked($row->ValueNum));
@@ -532,6 +531,8 @@ function fnStamgegevens() {
 	printf("<p>%s</p>", fnDisplayTable(db_diploma("basislijst"), "", "Basislijst Diploma's", 0, "", "", "lijst", ""));
 	
 	printf("<p>%s</p>", fnDisplayTable(db_functie("basislijst"), "", "Basislijst Functies", 0, "", "", "lijst", ""));
+	
+	printf("<p>%s</p>", fnDisplayTable(db_groep("basislijst"), "", "Basislijst Groepen", 0, "", "", "lijst", ""));
 	
 	printf("<p>%s</p>", fnDisplayTable(db_onderdelen("basislijst"), "", "Basislijst Onderdelen", 0, "", "", "lijst", ""));
 	
