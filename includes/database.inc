@@ -281,18 +281,31 @@ function db_gegevenslid($LidID, $soort="Alg") {
 								WHERE L.Nummer=%d;", $fdlang, $table_prefix, $LidID);
 								
 	} elseif ($soort == "Afdelingen") {
-		$sqlgroep = sprintf("SELECT CONCAT(IF(LENGTH(GR.Starttijd)=5, CONCAT(GR.Starttijd, ' - '), ''), IF(LENGTH(GR.Omschrijving) > 0, GR.Omschrijving, GR.Kode)) FROM %sGroep AS GR WHERE GR.RecordID=LO.GroepID", $table_prefix);
+		$query = sprintf("SELECT MAX(LO.Functie) FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON LO.OnderdeelID=O.RecordID WHERE O.`Type`='A' AND LO.Lid=%2\$d;", $table_prefix, $LidID);
+		if (db_scalar($query) > 0) {
+			$xtr_sel = "F.Omschrijv AS Functie, ";
+		} else {
+			$xtr_sel = "";
+		}
+		
+		$query = sprintf("SELECT MAX(LO.OPMERK) FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON LO.OnderdeelID=O.RecordID WHERE O.`Type`='A' AND LO.Lid=%2\$d;", $table_prefix, $LidID);
+		if (strlen(db_scalar($query)) > 0) {
+			$xtr_sel .= "LO.OPMERK AS Opmerking, ";
+		}
+		
+		$query = sprintf("SELECT MAX(LO.GroepID) FROM %sLidond AS LO WHERE LO.Lid=%d;", $table_prefix, $LidID);
+		if (db_scalar($query) > 0) {
+			$xtr_sel .= sprintf("(SELECT CONCAT(IF(LENGTH(GR.Starttijd)=5, CONCAT(GR.Starttijd, ' - '), ''), IF(LENGTH(GR.Omschrijving) > 0, GR.Omschrijving, GR.Kode)) FROM %sGroep AS GR WHERE GR.RecordID=LO.GroepID) AS Groep,", $table_prefix);
+		}
 		$query = sprintf("SELECT O.Kode AS Code,
 					O.Naam,
 					LO.Vanaf AS dteVanaf,
-					F.Omschrijv AS Functie,
-					(%s) AS Groep,
-					LO.Opmerk AS Opmerking,
+					%s
 					LO.Opgezegd AS dteOpgezegd,
 					CONCAT(FORMAT(DATEDIFF(IF(LO.Opgezegd IS NULL, CURDATE(), LO.Opgezegd), LO.Vanaf)/365.25, 1, 'nl_NL'), ' jaar') AS numDuur
 					FROM %s
 					WHERE O.`Type`='A' AND LO.Lid=%d
-					ORDER BY LO.Vanaf DESC, O.Naam;", $sqlgroep, $fromlidond, $LidID);
+					ORDER BY LO.Vanaf DESC, O.Naam;", $xtr_sel, $fromlidond, $LidID);
 					
 	} elseif ($soort == "Kader") {
 		$query = sprintf("SELECT O.Kode AS Code,
@@ -1213,17 +1226,34 @@ function db_lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0) {
 			$filter = " WHERE " . $filter;
 		}
 		
-		if (db_groep("aantal", $onderdlid)) {
-			$sqlgroep = sprintf("(SELECT GR.Kode FROM %sGroep AS GR WHERE LO.GroepID=GR.RecordID) AS Groep, ", $table_prefix);
+		$query = sprintf("SELECT MAX(LO.Functie) FROM %sLidond AS LO %s;", $table_prefix, $filter);
+		if (db_scalar($query) == 0) {
+			$xtr_sel = "";
 		} else {
-			$sqlgroep = "";
+			$xtr_sel = ", F.Omschrijv AS Functie";
 		}
+		
+		$query = sprintf("SELECT MAX(LO.GroepID) FROM %sLidond AS LO %s;", $table_prefix, $filter);
+		if (db_scalar($query) > 0) {
+			$xtr_sel .= sprintf(", (SELECT GR.Kode FROM %sGroep AS GR WHERE LO.GroepID=GR.RecordID) AS Groep", $table_prefix);
+		}
+		
+		$query = sprintf("SELECT MAX(LO.OPMERK) FROM %sLidond AS LO %s;", $table_prefix, $filter);
+		if (strlen(db_scalar($query)) > 0) {
+			$xtr_sel .= ", LO.OPMERK AS Opmerking";
+		}
+		$xtr_sel .= ", LO.Vanaf AS dteVanaf";
+		
+		$query = sprintf("SELECT MAX(LO.Opgezegd) FROM %sLidond AS LO %s;", $table_prefix, $filter);
+		if (db_scalar($query) > '2001-01-01') {
+			$xtr_sel .= ", LO.Opgezegd AS dteTotenmet";
+		}
+		
 		$query = sprintf("SELECT L.Nummer AS lnkNummer, IFNULL((%5\$s), 0) AS numLidnr, %1\$s AS `Naam_lid`, UPPER(L.Woonplaats) AS Woonplaats,
-								L.Mobiel, IF(LENGTH(L.Email) > 5, L.Email, L.EmailOuders) AS `emlE-mail`, F.Omschrijv AS Functie, %6\$sLO.OPMERK AS Opmerking, LO.Vanaf AS dteVanaf,
-								LO.Opgezegd AS dteTotenmet, L.Nummer AS llkNummer, L.GEBDATUM AS ndGEBDATUM, %2\$s AS ndZoeknaam
+								L.Mobiel, IF(LENGTH(L.Email) > 5, L.Email, L.EmailOuders) AS `emlE-mail`%6\$s, L.Nummer AS llkNummer, L.GEBDATUM AS ndGEBDATUM, %2\$s AS ndZoeknaam
 								FROM %3\$s
 								%4\$s
-								ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectnaam, $selectzoeknaam, $fromlidond, $filter, $selectlidnr, $sqlgroep);
+								ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectnaam, $selectzoeknaam, $fromlidond, $filter, $selectlidnr, $xtr_sel);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
