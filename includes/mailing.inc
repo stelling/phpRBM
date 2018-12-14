@@ -186,7 +186,7 @@ class Mailing {
 	public $xtranum = 0;
 
 	function __construct($mid=0) {
-		global $selectnaam, $table_prefix, $fdlang, $fdkort, $arrGeslacht, $wherelidond, $wherelid, $whereliddipl;
+		global $selectnaam, $table_prefix, $fdlang, $fdkort, $arrGeslacht, $wherelid, $fromlidond, $wherelidond, $whereliddipl;
 
 		$this->mid = $mid;
 		
@@ -344,6 +344,13 @@ class Mailing {
 		if (TableExists("LidRedNed") and db_scalar($query) > 0) {
 			$sql = sprintf("SELECT RN.Foutboodschap FROM %1\$sLidRedNed AS RN JOIN %1\$sLidmaatschap AS LM ON LM.LIDNR = RN.Lidnr WHERE LM.LID=%%d;", $table_prefix);
 			$this->MergeField[]=array('Naam' => "VerschilSportlink", 'SQL' => $sql);
+		}
+				
+		if (db_onderdelen("aantalingebruik", "A") > 0) {
+			$sql = sprintf("SELECT CONCAT(O.Naam, IF(LO.GroepID > 0, CONCAT(' (', GR.Starttijd, ' ', (SELECT DP.Naam FROM %1\$sDiploma AS DP WHERE DP.RecordID=GR.DiplomaID), ')'), IF(LO.Functie > 0, CONCAT(' (', F.Omschrijv , ')'), '')))
+					FROM ((%1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID = LO.OnderdeelID) LEFT JOIN %1\$sGroep AS GR ON LO.GroepID=GR.RecordID) INNER JOIN %1\$sFunctie AS F ON LO.Functie = F.Nummer
+					WHERE ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE()) AND `Type`='A' AND LO.Lid=%%d ORDER BY O.Naam;", $table_prefix);
+			$this->MergeField[]=array('Naam' => "Afdelingen", 'SQL' => $sql);
 		}
 		
 		if (db_onderdelen("aantalingebruik", "R") > 0) {
@@ -1223,7 +1230,7 @@ class Mailing {
 					$nv = "";
 					foreach($result->fetchAll(PDO::FETCH_NUM) as $val) {
 						if (strlen($nv) > 0) { $nv .= ", "; }
-						$nv .= htmlentities($val[0]);
+						$nv .= htmlent($val[0]);
 					}
 					$this->merged_subject = str_ireplace($nm, $nv, $this->merged_subject);
 					$this->merged_message = str_ireplace($nm, $nv, $this->merged_message);
