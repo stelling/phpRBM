@@ -150,7 +150,7 @@ class Mailing {
 	
 	private $MergeField;
 	private $contains_mergefield = false;
-	private $contains_losse_email = false;
+	private $bevat_losse_email = false;
 	private $merged_subject = "";
 	private $merged_message = "";
 	private $speciaal = "";
@@ -229,7 +229,7 @@ class Mailing {
 		$this->MergeField[]=array('Naam' => "Roepnaam", 'SQL' => $sql);
 		
 		$sql = sprintf("SELECT CONCAT(L.Roepnaam, IF(L.GEBDATUM > DATE_SUB(CURDATE(), INTERVAL 18 YEAR), ' of ouders/verzorgers van', '')) FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
-		$this->MergeField[]=array('Naam' => "Roepnaam_of_Ouder", 'SQL' => $sql);
+		$this->MergeField[]=array('Naam' => "RoepnaamOfOuders", 'SQL' => $sql);
 
 		$sql = sprintf("SELECT Voorletter FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
 		$this->MergeField[]=array('Naam' => "Voorletters", 'SQL' => $sql);
@@ -297,7 +297,7 @@ class Mailing {
 		}
 							  
 		$sql = sprintf("SELECT L.Bankrekening FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
-		$this->MergeField[]=array('Naam' => "IBAN", 'SQL' => $sql);
+		$this->MergeField[]=array('Naam' => "Bankrekening", 'SQL' => $sql);
 		
 		$sql = sprintf("SELECT L.Burgerservicenummer FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
 		$this->MergeField[]=array('Naam' => "BSN", 'SQL' => $sql);
@@ -322,9 +322,11 @@ class Mailing {
 				 WHERE %2$s AND LD.Lid=%%d ORDER BY DP.Volgnr, LD.DatumBehaald, DP.Naam;', $table_prefix, $whereliddipl);
 		$this->MergeField[]=array('Naam' => "DiplomaLang", 'SQL' => $sql);
 		
-		$sql = sprintf('SELECT DISTINCT DP.Naam FROM %1$sLiddipl AS LD INNER JOIN %1$sDiploma AS DP ON LD.DiplomaID = DP.RecordID
-				 WHERE %2$s AND LD.Lid=%%d AND DP.Zelfservice=1 ORDER BY DP.Volgnr, LD.DatumBehaald, DP.Naam;', $table_prefix, $whereliddipl);
-		$this->MergeField[]=array('Naam' => "DiplomaZelfservice", 'SQL' => $sql);
+		if (count(db_diploma("zelfservice_lijst")) > 0) {
+			$sql = sprintf('SELECT DISTINCT DP.Naam FROM %1$sLiddipl AS LD INNER JOIN %1$sDiploma AS DP ON LD.DiplomaID = DP.RecordID
+					WHERE %2$s AND LD.Lid=%%d AND DP.Zelfservice=1 ORDER BY DP.Volgnr, LD.DatumBehaald, DP.Naam;', $table_prefix, $whereliddipl);
+			$this->MergeField[]=array('Naam' => "DiplomaZelfservice", 'SQL' => $sql);
+		}
 	
 		$sql = sprintf("SELECT L.RelnrRedNed FROM %sLid AS L WHERE %s;", $table_prefix, "L.Nummer=%d");
 		$this->MergeField[]=array('Naam' => "RelnrRedNed", 'SQL' => $sql);
@@ -347,10 +349,18 @@ class Mailing {
 		}
 				
 		if (db_onderdelen("aantalingebruik", "A") > 0) {
-			$sql = sprintf("SELECT CONCAT(O.Naam, IF(LO.GroepID > 0, CONCAT(' (', GR.Starttijd, ' ', (SELECT DP.Naam FROM %1\$sDiploma AS DP WHERE DP.RecordID=GR.DiplomaID), ')'), IF(LO.Functie > 0, CONCAT(' (', F.Omschrijv , ')'), '')))
-					FROM ((%1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID = LO.OnderdeelID) LEFT JOIN %1\$sGroep AS GR ON LO.GroepID=GR.RecordID) INNER JOIN %1\$sFunctie AS F ON LO.Functie = F.Nummer
+			
+			$sql = sprintf("SELECT CONCAT(O.Naam, IF(LO.Functie > 0, CONCAT(' (', F.Omschrijv , ')'), ''))
+					FROM (%1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID = LO.OnderdeelID) INNER JOIN %1\$sFunctie AS F ON LO.Functie = F.Nummer
 					WHERE ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE()) AND `Type`='A' AND LO.Lid=%%d ORDER BY O.Naam;", $table_prefix);
 			$this->MergeField[]=array('Naam' => "Afdelingen", 'SQL' => $sql);
+			
+			if (db_groep("aantal") > 1) {				
+				$sql = sprintf("SELECT CONCAT(O.Naam, IF(LO.GroepID > 0, CONCAT(' (', GR.Starttijd, ' ', GR.Omschrijving, ')'), IF(LO.Functie > 0, CONCAT(' (', F.Omschrijv , ')'), '')))
+						FROM ((%1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID = LO.OnderdeelID) LEFT JOIN %1\$sGroep AS GR ON LO.GroepID=GR.RecordID) INNER JOIN %1\$sFunctie AS F ON LO.Functie = F.Nummer
+						WHERE ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE()) AND `Type`='A' AND LO.Lid=%%d ORDER BY O.Naam;", $table_prefix);
+				$this->MergeField[]=array('Naam' => "AfdelingenMetGroep", 'SQL' => $sql);
+			}
 		}
 		
 		if (db_onderdelen("aantalingebruik", "R") > 0) {
@@ -515,7 +525,7 @@ class Mailing {
 					echo("<ul class='listrecipients'>\n");
 					foreach($rcpt_rows as $rcpt) {
 						$ze = "";
-						if (!isValidMailAddress($rcpt->Email) and !isValidMailAddress($rcpt->EmailVereniging) and !isValidMailAddress($rcpt->to_address)) {
+						if (!isValidMailAddress($rcpt->Email) and !isValidMailAddress($rcpt->EmailVereniging) and !isValidMailAddress($rcpt->EmailOuders) and !isValidMailAddress($rcpt->to_address)) {
 							$ze = " *";
 							$aant_ze++;
 						}
@@ -525,7 +535,7 @@ class Mailing {
 						} else {
 							$lnk = sprintf("%s?tp=%s&amp;op=del_rcpt&amp;mid=%d&amp;addr=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, $rcpt->to_address);
 							printf("<li>%s&nbsp;<a href='%s'><img src='/images/delete.gif' alt='Verwijderen' title='Verwijderen'></a></li>\n", $rcpt->to_address, $lnk);
-							$this->contains_losse_email = true;
+							$this->bevat_losse_email = true;
 						}
 					}
 					echo("</ul>\n");
@@ -674,7 +684,7 @@ class Mailing {
 				$this->meldingen .= " Deze mailing mag niet verzonden worden.";
 			}
 			if (strlen($this->meldingen) > 0) {
-				printf("<label>Meldingen:</label><p>%s</p>\n", $this->meldingen);
+				printf("<label>Meldingen:</label><p class='mededeling'>%s</p>\n", $this->meldingen);
 			}
 		}
 		echo("<div class='clear'></div>\n");
@@ -746,7 +756,27 @@ class Mailing {
 					$this->contains_mergefield = true;
 				}
 			}
-			if ($this->contains_mergefield == true and $this->contains_losse_email == true) {
+			
+			$hv = 0;
+			while ($hv < strlen($this->message)) {
+				$bp = strpos($this->message, "[%", $hv);
+				if ($bp !== false) {
+					$bp += 2;
+					$ep = strpos($this->message, "%]", $bp);
+					if ($ep !== false) {
+						if (array_search (substr($this->message, $bp, ($ep-$bp)), array_column($this->MergeField, 'Naam')) == false) {
+							$this->meldingen .= sprintf("%s is hier geen beschikbare variable.", substr($this->message, $bp-2, ($ep-$bp)+4));
+						}
+						$hv = $ep + 2;
+					} else {
+						$hv = $bp;
+					}
+				} else {
+					$hv = strlen($this->message);
+				}
+			}
+			
+			if ($this->contains_mergefield == true and $this->bevat_losse_email == true) {
 				$this->meldingen .= "Er staan losse e-mailadressen en er wordt met mailmerge gewerkt. Bij de losse e-mailadressen werkt de mailmerge niet. \n";
 			}
 			if ($this->deleted_on > '1901-01-01') {
@@ -1046,7 +1076,7 @@ class Mailing {
 				$mail->Subject = $this->subject;
 				$mail->AddAddress($rcpt->to_address);
 				$e = $rcpt->to_address;
-				$this->contains_losse_email = true;
+				$this->bevat_losse_email = true;
 			}
 			if (isset($rcpt->Naam_lid)) {
 				$to_name = $rcpt->Naam_lid;
