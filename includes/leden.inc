@@ -272,7 +272,7 @@ function fnLedenlijst() {
 		}
 	}
 	echo("</td>\n");
-	printf("<td class='label'>Groep</td><td><select name='lbGroepFilter' onchange='this.form.submit();'>%s</select></td>\n", fnSelectListGroepen($_SESSION['val_groep']));
+	printf("<td class='label'>Onderdeel</td><td><select name='lbGroepFilter' onchange='this.form.submit();'>%s</select></td>\n", fnSelectListGroepen($_SESSION['val_groep']));
 	echo("</tr>\n");
 	echo("</table>\n");
 	echo("</form>");
@@ -1063,7 +1063,7 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 	echo("<div id='wijzigendiplomas'>\n");
 	
 	$actionurl = sprintf("%s?tp=%s&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
-	printf("<form method='post' action='%s' name='frm_pasfoto' enctype='multipart/form-data'>\n", $actionurl);
+	printf("<form method='post' action='%s' name='frm_wijzigendiplomas' enctype='multipart/form-data'>\n", $actionurl);
 	if ($lidid > 0) {
 		printf("<input type='hidden' name='lidid' value=%d>\n", $lidid);
 	}
@@ -1076,18 +1076,16 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 	printf("<tr><th>Code</th><th>Naam</th><th>Geldigheid</th><th>Behaald op</th><th>Geldig tot</th><th>Diplomanummer</th><th>Verw?</th></tr>\n");
 	foreach (db_diploma($actie, 0, $td) as $dp) {
 		$aant = 0;
-		if ($dp->GELDIGH <= 0) {
-			$geldig = "";
-		} elseif ($dp->GELDIGH == 1) {
-			$geldig = "1 maand";
-		} elseif (($dp->GELDIGH/12) == intval($dp->GELDIGH/12)) {
-			$geldig = sprintf("%d jaar", $dp->GELDIGH/12);
+		if ($dp->GELDIGH > 0 and $dp->GELDIGH == intval($dp->GELDIGH)) {
+			$geldig = sprintf("%d jaar", $dp->GELDIGH);
+		} elseif ($dp->GELDIGH > 0) {
+			$geldig = sprintf("%d maanden", 12 * $dp->GELDIGH);
 		} else {
-			$geldig = sprintf("%d maanden", $dp->GELDIGH);
+			$geldig = "";
 		}
 		$vast = sprintf("<td>%s</td>\n<td>%s</td>\n<td>%s</td>\n", $dp->Kode, $dp->Naam, $geldig);
-		$var = "<td><input type='text' name='VervaltPer_%3\$d_%4\$d' value='%1\$s'></td>\n
-				  <td><input type='text' name='Diplnr_%3\$d_%4\$d' value='%2\$s' maxlength=14></td>\n";
+		$var = "<td><input type='date' name='VervaltPer_%3\$d_%4\$d' value='%1\$s'></td>\n
+				  <td><input type='text' name='Diplnr_%3\$d_%4\$d' value='%2\$s' size=25 maxlength=25></td>\n";
 		foreach (db_liddipl("diplomalid", $lidid, 0, $dp->RecordID) as $ld) {
 			if ($eenv == 0 or $aant == 0) {
 				echo("<tr>\n");
@@ -1104,7 +1102,7 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 		if ($aant == 0 or ($eenv == 0 and $dp->GELDIGH > 0)) {
 			echo("<tr>\n");
 			echo($vast);
-			printf("<td><input type='text' name='Behaald_%d_0'></td>\n", $dp->RecordID);
+			printf("<td><input type='date' name='Behaald_%d_0'></td>\n", $dp->RecordID);
 			printf($var, "", "", $dp->RecordID, 0);
 			echo("<td></td></tr>\n");
 		}

@@ -144,6 +144,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		addtp("Wijzigen lid/Algemene gegevens");
 		addtp("Wijzigen lid/Diploma's");
 		addtp("Wijzigen lid/Pasfoto");
+		addtp("Wijzigen lid/Toestemmingen");
 		addtp("Wijzigen lid/Bijzonderheden");
 		addtp("Wijzigen lid/Lidmaatschap");
 	}
@@ -311,10 +312,6 @@ function toegang($soort, $melding=1, $log=1) {
 	$soort = str_replace("'", "", $soort);
 	
 	if (strlen($soort) > 0 and in_array($soort, $arrAltijdToegang) === false) {
-		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_access WHERE Tabpage=\"%s\";", $table_prefix, $soort);
-		if (db_scalar($query) == 0) {
-			db_authorisation("add", 0, $soort);
-		}
 		if ($_SESSION['lidid'] > 0 and in_array($_SESSION['lidid'], $lididwebmasters) === true) {
 			$_SESSION['webmaster'] == 1;
 			return true;
@@ -326,11 +323,7 @@ function toegang($soort, $melding=1, $log=1) {
 				$_SESSION['toegang'][$soort] = 1;
 				return true;
 			} else {
-				if ($_SESSION['lidid'] > 0) {
-					$mess = sprintf("%s heeft geen toegang tot het onderdeel '%s' op %s.", $_SESSION['naamingelogde'], $soort, db_param("naamwebsite"));
-				} else {
-					$mess = sprintf("Je bent niet ingelogd en hierdoor hebt geen toegang tot '%s' op %s.", $soort, db_param("naamwebsite"));
-				}
+				$mess = sprintf("Je hebt geen toegang tot '%s' op %s.", $soort, db_param("naamwebsite"));
 				if ($log == 1) {
 					db_logboek("add", $mess, 15, 0, $melding);
 				} elseif ($melding > 0) {
@@ -835,10 +828,14 @@ function fneisenwachtwoord() {
 } # fneisenwachtwoord
 
 function addtp($tp) {
-	global $tabpages, $currenttab;
+	global $tabpages, $currenttab, $table_prefix;
 	
 	if ((strstr($tp, "/") === false or startwith($tp, $currenttab . "/")) and toegang($tp, 0, 0)) {
 		$tabpages[] = $tp;
+		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_access WHERE Tabpage=\"%s\";", $table_prefix, $tp);
+		if (db_scalar($query) == 0) {
+			db_authorisation("add", 0, $tp);
+		}
 	}
 	
 } # addtp

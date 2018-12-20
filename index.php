@@ -110,6 +110,12 @@ if (toegang($_GET['tp'], 1) == false) {
 	if (isset($_GET['lidid']) and is_numeric($_GET['lidid']) and $_GET['lidid'] > 0) {
 		fnWijzigen($_GET['lidid'], $currenttab2);
 	}
+
+} elseif ($currenttab == "Groepsindeling") {
+	fnDispMenu(2);
+	echo("<p class='mededeling'>Werk in uitvoering</p>");
+	fnGroepsindeling();
+	
 } elseif ($currenttab == "Vereniging") {
 	fnDispMenu(2);
 	if ($currenttab2 == "Introductie") {
@@ -166,6 +172,7 @@ function fnVoorblad() {
 		if ($_SESSION['webmaster'] == 0) {
 			$content = removetextblock($content, "<!-- Webmaster -->", "<!-- /Webmaster -->");
 		}
+		db_logins("uitloggen");
 	
 		// Algemene statistieken
 		$stats = db_stats();
