@@ -319,6 +319,44 @@ function fnLedenlijst() {
 	}
 } # fnLedenlijst
 
+function fnGroepsindeling($afdkode="") {
+	
+	$hvafd = "";
+	$hvtijd = "";
+	$hvgroep = "";
+	
+	echo("<div id='groepsindeling'>\n");
+	
+	foreach (db_lidond("groepsindeling") as $row) {
+		if ($hvafd !== $row->AfdNaam) {
+			if (strlen($hvafd) > 0) {
+				echo("<div class='clear'></div>\n");
+			}
+			$hvafd = $row->AfdNaam;
+			printf("<h2>%s</h2>\n", $hvafd);
+		}
+		if ($hvtijd !== $row->Tijdsblok) {
+			$hvtijd = trim($row->Tijdsblok);
+			if (strlen($hvtijd) > 3) {
+				printf("<h3>%s</h3>\n", $hvtijd);
+			}
+		}
+		if ($hvgroep !== $row->GroepOms) {
+			if (strlen($hvgroep) > 0) {
+				echo("</div>  <!-- einde groepsindelingkolom -->\n");
+			}
+			$hvgroep = $row->GroepOms;
+			echo("<div class='groepsindelingkolom'>\n");
+			printf("<h4>%s</h4>\n", $hvgroep);
+			$volgnr = 1;
+		}
+		printf("<p>%d. %s</p>\n", $volgnr, $row->NaamLid);
+		$volgnr++;
+	}
+	echo("</div>  <!-- Einde groepsindeling -->\n");
+	
+} # fnGroepsindeling
+
 function fnEigenGegevens($lidid=0, $actie="") {
 	global $currenttab;
 	
@@ -895,16 +933,16 @@ function toestemmingenmuteren($lidid) {
 	
 	$actionurl = sprintf("%s?tp=%s&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		foreach (db_onderdelen("lijst", "T") as $row) {
+		foreach (db_onderdelen("lijst", "T") as $ondrow) {
 			$mess = "";
-			if (isset($_POST['T_' . $row->Kode])) {
-				if (db_lidond("islid", $lidid, "", "", $row->RecordID) == false) {
-					db_lidond("add", $lidid, "", "", $row->RecordID);
-					$mess = sprintf("Toestemming '%s' is per vandaag verleend.", $row->Naam);
+			if (isset($_POST['T_' . $ondrow->Kode])) {
+				if (db_lidond("islid", $lidid, "", "", $ondrow->RecordID) == false) {
+					db_lidond("add", $lidid, "", "", $ondrow->RecordID);
+					$mess = sprintf("Toestemming '%s' is door %s verleend.", $ondrow->Naam, db_naamlid($lidid));
 				}
 			} else {
-				if (db_lidond("delete", $lidid, "", "", $row->RecordID) > 0) {
-					$mess = sprintf("Toestemming '%s' is per vandaag beëindigd.", $row->Naam);
+				if (db_lidond("delete", $lidid, "", "", $ondrow->RecordID) > 0) {
+					$mess = sprintf("%s heeft de toestemming '%s' ingetrokken.", db_naamlid($lidid), $ondrow->Naam);
 				}
 			}
 			if (strlen($mess) > 0) {
