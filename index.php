@@ -37,6 +37,8 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 	} else {
 		echo("<script>location.href='/'; </script>\n");
 	}
+} elseif ($_SESSION['lidid'] > 0) {
+	db_logins("setingelogd", "", "", $_SESSION['lidid']);
 }
 
 if ($_SESSION['aantallid'] == 0) {
@@ -113,8 +115,7 @@ if (toegang($_GET['tp'], 1) == false) {
 
 } elseif ($currenttab == "Groepsindeling") {
 	fnDispMenu(2);
-	echo("<p class='mededeling'>Werk in uitvoering</p>");
-	fnGroepsindeling();
+	fnGroepsindeling($currenttab2);
 	
 } elseif ($currenttab == "Vereniging") {
 	fnDispMenu(2);
@@ -134,6 +135,10 @@ if (toegang($_GET['tp'], 1) == false) {
 	}
 } elseif ($currenttab == "Ledenlijst") {
 	fnLedenlijst();
+} elseif ($currenttab == "Selecties") {
+//	fnDispMenu(2);
+	echo("<p class='mededeling'>Werk in uitvoering</p>");
+	fnSelecties();
 } elseif ($currenttab == "Bewaking") {
 	fnBewaking();
 } elseif ($currenttab == "Kostenoverzicht") {
