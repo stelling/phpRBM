@@ -15,7 +15,7 @@ if ((isset($_SESSION['webmaster']) and $_SESSION['webmaster'] == 1) or $_SERVER[
 	error_reporting(E_ALL);
 } else {
 	error_reporting(0);
-	//error_reporting(E_ALL);
+//	error_reporting(E_ALL);
 }
 
 if (isset($_SERVER['HTTPS'])){
@@ -113,6 +113,14 @@ $arrSoortMemo["F"] = "Financiën";
 $arrSoortMemo["G"] = "Gezondheid/medisch";
 $arrSoortMemo["I"] = "Inschrijving bewaking";
 $arrSoortMemo["WN"] = "Waarschuwen in geval van nood";
+
+$arrTypeDiploma["B"] = "Brevet";
+$arrTypeDiploma["C"] = "Competentie";
+$arrTypeDiploma["D"] = "Diploma";
+$arrTypeDiploma["I"] = "Insigne";
+$arrTypeDiploma["L"] = "Licentie";
+$arrTypeDiploma["M"] = "Module";
+$arrTypeDiploma["P"] = "Proeve van bekwaamheid";
 
 $pasfotoextenties = array("gif", "jpg", "jpeg", "png");
 
@@ -656,7 +664,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 					if (strstr($editkols, $key) === false) {
 						$ret .= sprintf("<td>%s</td>", htmlentities($value));
 					} else {
-						$ret .= sprintf("<td><input name='%s_%d' value='%s'></td>", $key, $row->$kol_pk, $value);
+						$ret .= sprintf("<td><input name='%s_%d' value='%s' class='%s'></td>", $key, $row->$kol_pk, $value, str_replace(" ", "", strtolower($key)));
 					}
 				}
 				$kn++;
