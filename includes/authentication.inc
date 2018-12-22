@@ -45,7 +45,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			addtp("Eigen gegevens/Financieel");
 		}
 		addtp("Eigen gegevens/Mailing");
-		if (db_onderdelen("aantal", "T") > 0) {
+		if (db_onderdeel("aantal", "T") > 0) {
 			addtp("Eigen gegevens/Toestemmingen");
 		}
 		if (count(db_gegevenslid($_SESSION['lidid'], "Evenementen")) > 0) {
@@ -63,7 +63,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			addtp("Zelfservice/Diploma's");
 		}
 		addtp("Zelfservice/Pasfoto");
-		if (db_onderdelen("aantal", "T") > 0) {
+		if (db_onderdeel("aantal", "T") > 0) {
 			addtp("Zelfservice/Toestemmingen");
 		}
 		if (count($muteerbarememos) > 0) { 
@@ -90,7 +90,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if (count(db_lidond("actueleleden", 0, "", "LO.GroepID > 0")) > 0) {
 		addtp("Groepsindeling");
 		if ($currenttab == "Groepsindeling") {
-			foreach(db_onderdelen("lijstopkode", "A") as $row) {
+			foreach(db_onderdeel("lijstopkode", "A") as $row) {
 				if (count(db_lidond("actueleleden", 0, "", "LO.GroepID > 0", $row->RecordID)) > 0) {
 					addtp("Groepsindeling/" . trim($row->Kode));
 				}
@@ -129,7 +129,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (count(db_gegevenslid($_GET['lidid'], "Mailing")) > 0) {
 			addtp("Overzicht lid/Mailing");
 		}
-		if (db_onderdelen("aantal", "T") > 0) {
+		if (db_onderdeel("aantal", "T") > 0) {
 			addtp("Overzicht lid/Toestemmingen");
 		}
 		if (db_evenement("aantaldlnrs", $_GET['lidid']) > 0) {
@@ -151,6 +151,8 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if (db_mutatie("aantal") > 0) {
 		addtp("Kostenoverzicht");
 	}
+	
+	addtp("Selecties");
 	
 	addtp("Mailing");
 	if ($currenttab == "Mailing") {
@@ -269,8 +271,7 @@ function fnAuthenticatie($melding=1, $password="") {
 				$_SESSION['emailingelogde'] = strstr(strtolower($row->EmailOuders), ",", true);
 			} else {
 				$_SESSION['emailingelogde'] = "";
-			}	
-			db_logins("setingelogd", "", "", $_SESSION['lidid']);
+			}
 		} else {
 			if ($pwfromcookie == 0) {
 				$mess = sprintf("De combinatie van login '%s' en het ingevoerde wachtwoord is niet correct! Je bent niet ingelogd.", $_SESSION['username']);
@@ -289,8 +290,11 @@ function fnAuthenticatie($melding=1, $password="") {
 		$_SESSION['lidid'] = 0;
 		$_SESSION['username'] = "";
 		$_SESSION['webmaster'] = 0;
-	} elseif (in_array($_SESSION['lidid'], $lididwebmasters)) {
-		$_SESSION['webmaster'] = 1;
+	} else {
+		if (in_array($_SESSION['lidid'], $lididwebmasters)) {
+			$_SESSION['webmaster'] = 1;
+		}
+		db_logins("setingelogd", "", "", $_SESSION['lidid']);
 	}
 } # fnAuthenticatie
 	
@@ -832,7 +836,7 @@ function addtp($tp) {
 	
 	if ((strstr($tp, "/") === false or startwith($tp, $currenttab . "/")) and toegang($tp, 0, 0)) {
 		$tabpages[] = $tp;
-		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_access WHERE Tabpage=\"%s\";", $table_prefix, $tp);
+		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_access WHERE Tabpage=\"%s\";", $table_prefix, str_replace("'", "", $tp));
 		if (db_scalar($query) == 0) {
 			db_authorisation("add", 0, $tp);
 		}
