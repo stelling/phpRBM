@@ -348,7 +348,7 @@ class Mailing {
 			$this->MergeField[]=array('Naam' => "VerschilSportlink", 'SQL' => $sql);
 		}
 				
-		if (db_onderdelen("aantalingebruik", "A") > 0) {
+		if (db_onderdeel("aantalingebruik", "A") > 0) {
 			
 			$sql = sprintf("SELECT CONCAT(O.Naam, IF(LO.Functie > 0, CONCAT(' (', F.Omschrijv , ')'), ''))
 					FROM (%1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID = LO.OnderdeelID) INNER JOIN %1\$sFunctie AS F ON LO.Functie = F.Nummer
@@ -363,7 +363,7 @@ class Mailing {
 			}
 		}
 		
-		if (db_onderdelen("aantalingebruik", "R") > 0) {
+		if (db_onderdeel("aantalingebruik", "R") > 0) {
 			$sql = sprintf("SELECT O.Naam FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID = LO.OnderdeelID 
 					 WHERE %2\$s AND `Type`='R' AND LO.Lid=%%d ORDER BY O.Naam;", $table_prefix, $wherelidond);
 			$this->MergeField[]=array('Naam' => "Rollen", 'SQL' => $sql);
@@ -590,9 +590,9 @@ class Mailing {
 				$selgr = "<select name='selectie_groep'>\n
 							<option value=0>&nbsp;</option>\n";
 				if ($_POST['selectie_status'] == "L") {
-					$rows = db_onderdelen("lijstingebruik");
+					$rows = db_onderdeel("lijstingebruik");
 				} else {
-					$rows = db_onderdelen("lijst");
+					$rows = db_onderdeel("lijst");
 				}
 				foreach($rows as $grp) {
 					$selgr .= sprintf("<option value=%d>%s</option>\n", $grp->RecordID, $grp->Naam);
