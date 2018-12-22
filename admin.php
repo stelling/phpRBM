@@ -179,9 +179,10 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 		$lnk_lk = "";
 	}
 
+	db_logins("uitloggen");
 	echo(fnDisplayTable(db_logins("lijst", "", "", 0, $w, "", $ord), $lnk, "", 5, $lnk_lk));
 	
-	// Nieuwe en gewijzigde logins in de tabel interface zetten en de tabe; 'Lid' bijwerken.
+	// Nieuwe en gewijzigde logins in de tabel interface zetten en de tabel 'Lid' bijwerken.
 	$xf = "IFNULL(L.LoginWebsite, '') <> Login.Login";
 	$rows = db_logins("lijst", "", "", 0, $xf);
 	foreach ($rows as $row) {
@@ -201,7 +202,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 		$del = sprintf("<a href='%s?tp=%s&amp;op=deleteautorisatie&amp;recid=%d'><img src='images/del.png' title='Verwijder record'></a>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
 		$selectopt = sprintf("<option value=-1%s>Alleen webmasters</option>\n", checked($row->Toegang, "option", -1));
 		$selectopt .= sprintf("<option value=0%s>Iedereen</option>\n", checked($row->Toegang, "option", 0));
-		foreach(db_Onderdelen("lijst") as $ond) {
+		foreach(db_Onderdeel("lijst") as $ond) {
 			$selectopt .= sprintf("<option value=%d%s>%s</option>\n", $ond->RecordID, checked($row->Toegang, "option", $ond->RecordID), htmlentities($ond->Naam));
 		}
 		printf("<tr>\n<td>%s</td>\n<td>%s</td>\n<td><select name='toegang%d' onchange='this.form.submit();'>\n%s</select></td>\n<td>%s</td></tr>\n", $del, $row->Tabpage, $row->RecordID, $selectopt, strftime("%e %B %Y", strtotime($row->Ingevoerd)));
@@ -534,7 +535,7 @@ function fnStamgegevens() {
 	
 	printf("<p>%s</p>", fnDisplayTable(db_groep("basislijst"), "", "Basislijst Groepen", 0, "", "", "lijst", ""));
 	
-	printf("<p>%s</p>", fnDisplayTable(db_onderdelen("basislijst"), "", "Basislijst Onderdelen", 0, "", "", "lijst", ""));
+	printf("<p>%s</p>", fnDisplayTable(db_onderdeel("basislijst"), "", "Basislijst Onderdelen", 0, "", "", "lijst", ""));
 	
 } # fnStamgegevens
 
