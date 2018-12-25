@@ -57,6 +57,7 @@ $TypeActiviteit[13] = "Parameters";
 $TypeActiviteit[14] = "Rekeningen";
 $TypeActiviteit[15] = "Autorisatie";
 $TypeActiviteit[16] = "Toestemmingen";
+$TypeActiviteit[17] = "Selecties";
 $TypeActiviteit[97] = "Foutieve login";
 $TypeActiviteit[98] = "Performance";
 $TypeActiviteit[99] = "Debugging";
@@ -447,7 +448,7 @@ function db_lid($actie, $filter="", $lidid=0, $xtraselect="") {
 		$query = sprintf("SELECT COUNT(*) FROM %sLid;", $table_prefix);
 		$scalar = 1;
 		
-	} elseif ($actie == "lijst") {
+	} elseif ($actie === "lijst") {
 		$query = sprintf("SELECT L.Nummer, %1\$s AS `Naam_lid`, UPPER(L.Woonplaats) AS Woonplaats,
 					L.Telefoon, L.Mobiel, IF((L.Email IS NULL), L.EmailOuders, L.Email) AS `emlE-mail`, L.GEBDATUM AS GEBDATUM, %2\$s AS Zoeknaam
 					FROM %3\$sLid AS L
@@ -1134,22 +1135,8 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 	}
 }
 
-function db_onderdeel($actie, $type="", $lidid=0, $onderdlid=0) {
+function db_onderdeel($actie, $type="", $lidid=0, $onderdlid=0, $kolomnaam="", $waarde="") {
 	global $fromlidond, $wherelidond, $table_prefix;
-	
-	if ($actie == "aantal" or $actie == "aantalingebruik") {
-		$sel = "COUNT(*)";
-	} elseif ($actie == "type") {
-		$sel = "O.Type";
-	} elseif ($actie == "naam") {
-		$sel = "O.Naam";
-	} elseif ($actie == "basislijst") {
-		$sel = "*";
-	} elseif ($actie == "editlijst") {
-		$sel = "RecordID, Kode, Naam, RecordID AS llkRecordID";
-	} else {
-		$sel = "DISTINCT O.RecordID, CONCAT(LEFT(O.Naam, 30), ' (', O.Kode, ')') AS Oms, O.Naam, O.Kode";
-	}
 	
 	$where = "";
 	if ($type == "bw") {
@@ -1172,19 +1159,52 @@ function db_onderdeel($actie, $type="", $lidid=0, $onderdlid=0) {
 		}
 	}
 	
+	if ($actie == "aantal" or $actie == "aantalingebruik") {
+		$sel = "COUNT(*)";
+	} elseif ($actie == "type") {
+		$sel = "O.Type";
+	} elseif ($actie == "Naam" or $actie == "GekoppeldAanQuery") {
+		$query = sprintf("SELECT `%s` FROM %sOnderdl WHERE RecordID=%d;", $actie, $table_prefix, $onderdlid);
+		return db_scalar($query);
+	} elseif ($actie == "vorige") {
+		$query = sprintf("SELECT IFNULL(O.RecordID, 0) FROM %sOnderdl AS O WHERE O.Naam < '%s' AND O.Type='%s' ORDER BY O.Naam DESC", $table_prefix, db_onderdeel("Naam", "", 0, $onderdlid), $type);
+		$result = fnQuery($query);
+		return $result->fetchColumn();
+	} elseif ($actie == "volgende") {
+		$query = sprintf("SELECT IFNULL(O.RecordID, 0) FROM %sOnderdl AS O WHERE O.Naam > '%s' AND O.Type='%s' ORDER BY O.Naam", $table_prefix, db_onderdeel("Naam", "", 0, $onderdlid), $type);
+		$result = fnQuery($query);
+		return $result->fetchColumn();
+	} elseif ($actie == "basislijst") {
+		$sel = "*";
+	} elseif ($actie == "editlijst") {
+		$sel = sprintf("RecordID, Kode, Naam, (SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.OnderdeelID=O.RecordID AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE())) AS `Aantal leden`, RecordID AS llkRecordID", $table_prefix);
+	} else {
+		$sel = "DISTINCT O.RecordID, CONCAT(LEFT(O.Naam, 30), ' (', O.Kode, ')') AS Oms, O.Naam, O.Kode";
+	}
+	
 	if (strlen($where) > 0) {
 		$where = "WHERE " . $where;
 	}
 	
 	if ($actie == "add" and strlen($type) == 1) {
 		$nid = db_nieuwrecordID("Onderdl");
-		$query = sprintf("INSERT INTO %sOnderdl (RecordID, Kode, Type, Naam) VALUES (%d, '%s', '%s', 'Nieuw');", $table_prefix, $nid, "Nw" . $nid, $type);
+		$query = sprintf("INSERT INTO %sOnderdl (RecordID, Kode, Type, Naam, GekoppeldAanQuery) VALUES (%d, '%s', '%s', 'Nieuw', 0);", $table_prefix, $nid, "Nw" . $nid, $type);
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$sql = sprintf("INSERT INTO Onderdl (RecordID, Kode, Type, Naam) VALUES (%d, '%s', '%s', 'Nieuw');", $nid, "Nw" . $nid, $type);
 			db_interface("add", $sql, 0);
 		}
 		return $nid;
+		
+	} elseif ($actie == "update") {
+		$query = sprintf("UPDATE %1\$sOnderdl SET `%2\$s`='%3\$s' WHERE BINARY RecordID=%4\$d AND `%2\$s` <> '%3\$s';", $table_prefix, $kolomnaam, $waarde, $onderdlid);
+		$result = fnQuery($query);
+		if ($result > 0) {
+			$sql = sprintf("UPDATE Onderdl SET [%1\$s]='%2\$s' WHERE BINARY RecordID=%3\$d AND [%1\$s] <> '%2\$s';", $kolomnaam, $waarde, $onderdlid);
+			// interface
+		}
+		return $result;
+		
 	} elseif ($actie == "lijstopkode" or $actie == "basislijst") {
 		$query = sprintf("SELECT %s FROM %sOnderdl AS O %s ORDER BY O.Kode;", $sel, $table_prefix, $where);
 	} elseif ($actie == "lijstingebruik") {
@@ -1194,7 +1214,7 @@ function db_onderdeel($actie, $type="", $lidid=0, $onderdlid=0) {
 	}
 	$result = fnQuery($query);
 	
-	if ($actie == "aantal" or $actie == "aantalingebruik" or $actie == "type" or $actie == "naam") {
+	if ($actie == "aantal" or $actie == "aantalingebruik" or $actie == "type") {
 		return $result->fetchColumn();
 	} else {	
 		return $result->fetchAll();
@@ -1325,8 +1345,6 @@ function db_lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0, $loid=0)
 		if ($lidid > 0 and $onderdlid > 0) {
 			$nrid = db_nieuwrecordID("Lidond");
 			
-			$query = sprintf("DELETE FROM %sLidond WHERE Lid=%d AND Vanaf >= Opgezegd;", $table_prefix, $lidid);
-			fnQuery($query);
 			$query = sprintf("INSERT INTO %sLidond SET RecordID=%d, Lid=%d, OnderdeelID=%d, Vanaf=CURDATE(), Ingevoerd=CURDATE(), Gewijzigd=SYSDATE();", $table_prefix, $nrid, $lidid, $onderdlid);
 			$result = fnQuery($query);
 			if ($result > 0) {
@@ -1353,6 +1371,8 @@ function db_lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0, $loid=0)
 		
 		if ($loid > 0) {
 			$where = sprintf("WHERE RecordID=%d", $loid);
+		} elseif (is_numeric($lidid) == false and startwith($lidid, "(") and substr($lidid, -1) == ")") {
+			$where = sprintf("WHERE Lid IN %s AND OnderdeelID=%d", $lidid, $onderdlid);
 		} else {
 			$where = sprintf("WHERE Lid=%d AND OnderdeelID=%d", $lidid, $onderdlid);
 		}
@@ -1364,6 +1384,15 @@ function db_lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0, $loid=0)
 			db_interface("add", $sql, $lidid);
 		}
 		return $result;
+		
+	} elseif ($actie == "opschonen") {
+		$query = sprintf("DELETE FROM %sLidond WHERE Lid=%d AND Vanaf >= Opgezegd;", $table_prefix, $lidid);
+		fnQuery($query);
+		
+		foreach(db_onderdeel("lijst", "S") as $row) {
+			$query = sprintf("DELETE FROM %sLidond WHERE OnderdeelID=%d AND (Vanaf > CURDATE() OR ((NOT Opgezegd IS NULL) AND Opgezegd <= CURDATE()));", $table_prefix, $row->RecordID);
+			fnQuery($query);
+		}
 
 	} elseif ($actie == "lidgroepen") {
 		$rv = "";
@@ -1385,9 +1414,9 @@ function db_lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0, $loid=0)
 			$where = sprintf("AND LO.OnderdeelID IN (SELECT OnderdeelID FROM %sGroep)", $table_prefix);
 		}
 		$query = sprintf("SELECT DISTINCT O.Naam AS AfdNaam, CONCAT(GR.Starttijd, IF(LENGTH(GR.Eindtijd) > 3, CONCAT(' - ', GR.Eindtijd), '')) AS Tijdsblok, GR.Kode, GR.Omschrijving, L.Roepnaam, %1\$s AS NaamLid,
-					IF(LO.GroepID > 0, CONCAT(GR.Kode, ' - ', GR.Omschrijving, ' ', GR.Instructeurs), 'Niet ingedeeld') AS GroepOms
+					IF(LO.GroepID > 0, CONCAT(GR.Kode, ' - ', GR.Omschrijving, IF(LENGTH(Instructeurs) > 1, CONCAT(' - ', GR.Instructeurs), '')), 'Niet ingedeeld') AS GroepOms
 					FROM ((%2\$sLidond AS LO INNER JOIN %2\$sLid AS L ON LO.Lid=L.Nummer) INNER JOIN %2\$sOnderdl AS O ON LO.OnderdeelID=O.RecordID) LEFT JOIN %2\$sGroep AS GR ON LO.GroepID=GR.RecordID
-					WHERE LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE()) AND (LO.Functie = 0 OR LO.GroepID > 0) %3\$s
+					WHERE LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE()) AND LO.GroepID > 0 %3\$s
 					ORDER BY O.Kode, GR.Starttijd, GR.Kode, L.Achternaam, L.Roepnaam;", $selectnaam, $table_prefix, $where);
 		$result = fnQuery($query);
 		return $result->fetchAll();

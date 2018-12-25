@@ -319,15 +319,335 @@ function fnLedenlijst() {
 	}
 } # fnLedenlijst
 
+function fnSelecties() {
+	global $currenttab, $table_prefix;
+	
+	if (isset($_GET['Scherm'])) {
+		$scherm = $_GET['Scherm'];
+	} else {
+		$scherm = "S";
+	}
+
+	if (isset($_GET['OnderdeelID']) and $_GET['OnderdeelID'] > 0) {
+		$onderdeelid = intval($_GET['OnderdeelID']);
+	} elseif (isset($_POST['OnderdeelID']) and $_POST['OnderdeelID'] > 0) {
+		$onderdeelid = intval($_POST['OnderdeelID']);
+	} elseif (isset($_POST['muteerleden'])) {
+		$onderdeelid = intval(str_replace("muteerleden_", "", $_POST['muteerleden']));
+		$scherm = "L";
+	}
+	
+	if (isset($_POST['del_lid']) and $_POST['del_lid'] > 0) {
+		$lidid = intval($_POST['del_lid']);
+	} elseif (isset($_POST['add_lid']) and strlen($_POST['add_lid']) > 0) {
+		$lidid = intval($_POST['add_lid']);
+	} else {
+		$lidid = 0;
+	}
+	
+	if (isset($onderdeelid) and db_onderdeel("GekoppeldAanQuery", "", 0, $onderdeelid) == 0) {
+		$muteerbaar = true;
+	} else {
+		$muteerbaar = false;
+	}
+	
+	echo("<div id='selectieleden'>\n");
+	
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		foreach ($_POST as $contr_name => $contr_val) {
+			foreach (array("Kode", "Naam") as $kolomnaam) {
+				if (startwith($contr_name, $kolomnaam . "_")) {
+					$rid = intval(str_replace($kolomnaam . "_", "", $contr_name));
+					if (db_onderdeel("update", "", 0, $rid, $kolomnaam, $contr_val) > 0) {
+						$mess = sprintf("De %s van selectie %d is in %s gewijzigd.", $kolomnaam, $rid, $contr_val);
+						db_logboek("add", $mess, 17);
+					}
+				}
+			}
+		}
+	}
+
+	if (isset($_POST['selectie_toevoegen']) and $_POST['selectie_toevoegen'] == "Selectie toevoegen") {
+		$result = db_onderdeel("add", "S");
+		if ($result > 0) {
+			$mess = sprintf("Selectie %d is toegevoegd.", $result);
+			db_logboek("add", $mess, 17);
+		}
+		$scherm = "S";
+	}
+	
+	if (isset($_POST['add_lid']) and $_POST['add_lid'] > 0 and $muteerbaar) {
+		if (db_lidond("add", $lidid, "", "", $onderdeelid) == true) {
+			$mess = sprintf("%s is aan selectie %d toegevoegd.", db_naamlid($lidid), $onderdeelid);
+			db_logboek("add", $mess, 17);
+		}
+		$scherm = "L";
+	}
+	
+	if (isset($_POST['del_lid']) and $lidid > 0 and $onderdeelid > 0 and $muteerbaar) {
+		if (db_lidond("delete", $lidid, "", "", $onderdeelid) > 0) {
+			$mess = sprintf("%s is bij selectie %d verwijderd.", db_naamlid($lidid), $onderdeelid);
+			db_logboek("add", $mess, 17);
+		}
+		$scherm = "L";
+	}
+	
+	if ($muteerbaar) {
+		if (isset($_POST['LedenToevoegen']) and $_POST['LedenToevoegen'] == "Leden toevoegen") {
+			add_del_selectie("add", intval($_POST['OnderdeelID']));
+			$scherm = "L";
+		} elseif (isset($_POST['LedenVerwijderen']) and $_POST['LedenVerwijderen'] == "Leden verwijderen") {
+			add_del_selectie("del", intval($_POST['OnderdeelID']));
+			$scherm = "L";
+		} elseif (isset($_POST['AlleLedenVerwijderen'])) {
+			add_del_selectie("deleteall", intval($_POST['OnderdeelID']));
+			$scherm = "L";
+		}
+	}
+	
+	if ($scherm == "L") {
+		db_lidond("opschonen");
+		$lo_rows = db_lidond("selectieleden", 0, "", "", $onderdeelid);
+		$aant_lid = count($lo_rows);
+		if ($muteerbaar) {
+			$mut = " muteren";
+		} else {
+			$mut = "";
+		}
+			
+		printf("<h1>Leden%s van selectie %s (%d)</h1>\n", $mut, db_onderdeel("Naam", "", 0, $onderdeelid), $onderdeelid);
+		printf("<form method='post' action='%s?tp=%s&amp;OnderdeelID=%d' name='muteren_leden_selectie'>\n", $_SERVER['PHP_SELF'], $currenttab, $onderdeelid);
+		printf("<label>Huidige leden (%d):</label>", $aant_lid);
+		echo("<div class='invoerblok'>\n");
+		if ($aant_lid > 0) {
+			echo("<ul class='listrecipients'>\n");
+			foreach($lo_rows as $lid) {
+				if ($muteerbaar) {
+					printf("<li>%s&nbsp;<button type='submit' name='del_lid' value='%d'><img src='/images/delete.gif'></button></li>\n", $lid->NaamLid, $lid->Nummer);
+				} else {
+					printf("<li>%s</li>\n", $lid->NaamLid, $lid->Nummer);
+				}
+			}
+			echo("</ul>\n");
+		}
+		echo("</div> <!-- Einde invoerblok -->\n");
+		if ($muteerbaar) {
+			echo("<label>Lid toevoegen:</label>\n");
+			printf("<p><select name='add_lid' onChange='this.form.submit();'>\n");
+			printf("<option value=0>&nbsp;</option>\n");
+			$filter = sprintf("(L.Nummer NOT IN (SELECT Lid FROM %sLidond WHERE OnderdeelID=%d))", $table_prefix, $onderdeelid);
+			$pot_rows = db_lid("lijstselect", $filter);
+			foreach($pot_rows as $lid) {
+				$rnm = $lid->Zoeknaam;
+				$sl = substr(db_lidmaatschap("soortlid", $lid->Nummer), 0, 1);
+				if (strlen($sl) > 0) {
+					$rnm .= sprintf(" (%s)", $sl);
+				}
+				printf("<option value='%d'>%s</option>\n", $lid->Nummer, $rnm);
+			}
+			printf("</select></p>&nbsp;\n");
+			
+			if (!isset($_POST['selectie_status'])) {
+				$_POST['selectie_status'] = "L";
+			}
+			echo("<label>Selectie leden:</label>\n");
+			echo("<div class='invoerblok'>\n");
+			echo("<table>\n");
+			echo("<tr><td></td><td>Vanaf</td><td>Tot en met</td></tr>\n");
+			
+			printf("<tr><td>Geboortedatum:</td><td><input type='date' value='%s' name='selectie_vangebdatum'></td><td><input type='date' value='%s' name='selectie_temgebdatum'></td></tr>\n", db_lid("mingebdatum"), db_lid("maxgebdatum"));
+			printf("<tr><td>Postcode:</td><td><input type='text' name='selectie_vanpostcode' value='%s' max-length=7></td><td><input type='text' name='selectie_tempostcode' value='%s' max-length=7></td></tr>\n", db_lid("minpostcode"), db_lid("maxpostcode"));
+			printf("<tr><td>Lid vanaf:</td><td><input type='date' name='selectie_vanliddatum' value='%s'></td><td><input type='date' name='selectie_temliddatum' value='%s'></td></tr>\n", db_lid("minliddatum"), db_lid("maxliddatum"));
+			printf("<tr><td>Opgezegd per:</td><td><input type='date' name='selectie_vanopgezegd'></td><td><input type='date' name='selectie_temopgezegd' value='%s'></td></tr>\n", db_lid("maxopgezegd"));
+		
+			echo("<tr><td>Lidstatus:</td><td colspan=2><select name='selectie_status' onChange='this.form.submit();'>\n");
+			printf("<option value='L'%s>Lid</option>", checked("L", "option", $_POST['selectie_status']));
+			printf("<option value='V'%s>Voormalig lid</option>", checked("V", "option", $_POST['selectie_status']));
+			if (count(db_lidmaatschap("toekomstigeleden")) > 0) {
+				printf("<option value='T'%s>Toekomstig lid</option>", checked("T", "option", $_POST['selectie_status']));
+			}
+			printf("<option value='K'>Kloslid</option>", checked("K", "option", $_POST['selectie_status']));
+			echo("</select></td></tr>\n");
+		
+			$selgr = "<select name='selectie_groep'>\n
+						<option value=0>&nbsp;</option>\n";
+			if ($_POST['selectie_status'] == "L") {
+				$rows = db_onderdeel("lijstingebruik");
+			} else {
+				$rows = db_onderdeel("lijst");
+			}
+			foreach($rows as $grp) {
+				$selgr .= sprintf("<option value=%d>%s</option>\n", $grp->RecordID, $grp->Naam);
+			}
+			$selgr .= "</select>\n";
+			printf("<tr><td>Zit in groep:</td><td colspan=2>%s (bijgewerkt t/m %s)</td></tr>\n", $selgr, strtolower(date("j F Y", strtotime(db_lidond("maxgewijzigd", 0, "", "O.Type<>'T'")))));
+			
+			echo("</table>\n");
+		
+			printf("<input type='hidden' name='OnderdeelID' value=%d>\n", $onderdeelid);
+			echo("<input type='submit' name='LedenToevoegen' value='Leden toevoegen'>\n");
+			if ($aant_lid > 0) {
+				echo("<input type='submit' name='LedenVerwijderen' value='Leden verwijderen'>\n");
+				echo("<input type='submit' name='AlleLedenVerwijderen' value='Alle leden verwijderen'>\n");
+			}
+			echo("</div>  <!-- Einde invoerblok -->\n");
+			echo("</form>\n");
+		}
+		
+		echo("<div id='opdrachtknoppen'>\n");
+		$rid = db_onderdeel("vorige", "S", 0, $onderdeelid);
+		if ($rid > 0) {
+			printf("<input type='button' onclick=\"location.href='%s?tp=%s&amp;Scherm=L&amp;OnderdeelID=%d';\" value='Vorige selectie'>\n", $_SERVER['PHP_SELF'], $currenttab, $rid);
+		}
+		printf("<input type='button' onclick=\"location.href='%s?tp=%s&amp;Scherm=S';\" value='Overzicht selecties'>\n", $_SERVER['PHP_SELF'], $currenttab);
+		$rid = db_onderdeel("volgende", "S", 0, $onderdeelid);
+		if ($rid > 0) {
+			printf("<input type='button' onclick=\"location.href='%s?tp=%s&amp;Scherm=L&amp;OnderdeelID=%d';\" value='Volgende selectie'>\n", $_SERVER['PHP_SELF'], $currenttab, $rid);
+		}
+		echo("</div> <!-- Einde opdrachtknoppen -->\n");
+		
+		echo("<div class='clear'></div>\n");
+
+	} else {
+
+		$link_lk = "<button type='submit' name='muteerleden' value='muteerleden_%d' title='Muteer leden' onclick='this.submit();'><img src='./images/users-group.png'></button>";
+		$link_lk = sprintf("<a href=%s?tp=%s&amp;Scherm=L&amp;OnderdeelID=%%d><img src='./images/users-group.png'></a>\n", $_SERVER['PHP_SELF'], $currenttab);
+
+		echo("<div class='clear'></div>\n");
+		printf("<form method='post' action='%s?tp=%s' name='selecties'>\n", $_SERVER['PHP_SELF'], $currenttab);
+		echo(fnDisplayTable(db_onderdeel("editlijst", "S"), "", "Selecties", 0, $link_lk, "", "editselecties", "", "Kode, Naam"));
+		
+		echo("<div id='opdrachtknoppen'>");
+		echo("<button type='submit' name='selectie_toevoegen' title='Selectie toevoegen' value='Selectie toevoegen'><img src='./images/star.png'></button>&nbsp;\n
+				<button type='submit' name='selecties_bewaren' title='Bewaren' value='selecties_bewaren'><img src='./images/save.png'></button>\n");
+		echo("</div> <!-- Einde opdrachtknoppen -->\n");
+		
+		echo("</form>\n");
+	}
+	
+	echo("</div>  <!-- Einde selectieleden -->\n");	
+
+} # fnSelecties
+
+function add_del_selectie($actie, $onderdeelid) {
+	global $table_prefix, $fromlid, $wherelid, $fromlidond, $wherelidond;
+		
+	if ($actie == "add") {
+		$w = sprintf(" AND (L.Overleden IS NULL) AND (L.Verwijderd IS NULL) AND (L.Nummer NOT IN (SELECT Lid FROM %sLidond AS LOC WHERE LOC.OnderdeelID=%d AND LOC.Vanaf <= CURDATE()))", $table_prefix, $onderdeelid);
+	} else {
+		$w = sprintf("AND (L.Nummer IN (SELECT Lid FROM %sLidond AS LOC WHERE LOC.OnderdeelID=%d))", $table_prefix, $onderdeelid);
+	}
+		
+	$mess = "";
+		
+	if (strlen($_POST['selectie_vangebdatum']) == 10 and $_POST['selectie_vangebdatum'] > db_lid("mingebdatum") and $_POST['selectie_vangebdatum'] < db_lid("maxgebdatum")) {
+		$w .= sprintf(" AND L.GEBDATUM >= '%s'", $_POST['selectie_vangebdatum']);
+	} 
+	if ($_POST['selectie_temgebdatum'] > "1900-01-01" and $_POST['selectie_temgebdatum'] < db_lid("maxgebdatum")) {
+		$w .= sprintf(" AND L.GEBDATUM <= '%s'", $_POST['selectie_temgebdatum']);
+	}
+	if (strlen($_POST['selectie_vanpostcode']) >= 4 and $_POST['selectie_vanpostcode'] > db_lid("minpostcode")) {
+		$w .= sprintf(" AND L.Postcode >= '%s'", $_POST['selectie_vanpostcode']);
+	}
+	if (strlen($_POST['selectie_tempostcode']) >= 4 and $_POST['selectie_tempostcode'] < db_lid("maxpostcode")) {
+		$w .= sprintf(" AND L.Postcode <= '%s'", $_POST['selectie_tempostcode']);
+	}
+		
+	if ($actie == "deleteall") {
+		$query = sprintf("SELECT L.Nummer FROM %1\$sLid AS L WHERE L.Nummer NOT IN (SELECT LO.Lid FROM %1\$sLidond AS LO WHERE LO.OnderdeelID=%d);", $table_prefix, $onderdeelid);
+		
+	} elseif ($_POST['selectie_groep'] == 0) {
+		if (strlen($_POST['selectie_vanliddatum']) == 10 and $_POST['selectie_vanliddatum'] > db_lid("minliddatum")) {
+			$w .= sprintf(" AND LM.LIDDATUM >= '%s'", $_POST['selectie_vanliddatum']);
+		}
+		if (strlen($_POST['selectie_temliddatum']) == 10 and $_POST['selectie_temliddatum'] < db_lid("maxliddatum")) {
+			$w .= sprintf(" AND LM.LIDDATUM <= '%s'", $_POST['selectie_temliddatum']);
+		}
+		if (strlen($_POST['selectie_vanopgezegd']) == 10) {
+			$w .= sprintf(" AND LM.Opgezegd >= '%s'", $_POST['selectie_vanopgezegd']);
+		}
+		if (strlen($_POST['selectie_temopgezegd']) == 10 and $_POST['selectie_temopgezegd'] < db_lid("maxopgezegd")) {
+			$w .= sprintf(" AND LM.Opgezegd <= '%s'", $_POST['selectie_temopgezegd']);
+		}
+		
+		if ($_POST['selectie_status'] == "L") {
+			$query = sprintf("SELECT DISTINCT L.Nummer FROM %s WHERE %s %s;", $fromlid, $wherelid, $w);
+		} elseif ($_POST['selectie_status'] == "V") {
+			$query = sprintf("SELECT DISTINCT L.Nummer FROM %s WHERE (NOT LM.Opgezegd IS NULL) %s;", $fromlid, $w);
+		} elseif ($_POST['selectie_status'] == "T") {
+			$query = sprintf("SELECT DISTINCT L.Nummer FROM %s WHERE LM.LIDDATUM > CURDATE() %s;", $fromlid, $w);
+		} else {
+			$query = sprintf("SELECT DISTINCT L.Nummer FROM %s WHERE (LM.Lid IS NULL) %s;", $fromlid, $w);
+		}
+			
+	} else {
+		if (strlen($_POST['selectie_vanliddatum']) == 10 and $_POST['selectie_vanliddatum'] > db_lid("maxliddatum") and $_POST['selectie_vanliddatum'] <= db_lid("maxliddatum")) {
+			$w .= sprintf(" AND LO.Vanaf >= '%s'", $_POST['selectie_vangebdatum']);
+		}
+		if (strlen($_POST['selectie_temliddatum']) == 10 and $_POST['selectie_temliddatum'] >= db_lid("minliddatum") and $_POST['selectie_temliddatum'] < db_lid("maxliddatum")) {
+			$w .= sprintf(" AND LO.Vanaf <= '%s'", $_POST['selectie_temgebdatum']);
+		}
+		if (strlen($_POST['selectie_vanopgezegd']) == 10 and $_POST['selectie_vanopgezegd'] > db_lid("minopgezegd")) {
+			$w .= sprintf(" AND LO.Opgezegd >= '%s'", $_POST['selectie_vanopgezegd']);
+		}
+		if (strlen($_POST['selectie_temopgezegd']) == 10 and $_POST['selectie_temopgezegd'] < db_lid("maxopgezegd")) {
+			$w .= sprintf(" AND LO.Opgezegd <= '%s'", $_POST['selectie_temopgezegd']);
+		}
+
+		if ($_POST['selectie_status'] == "V") {
+			$query = sprintf("SELECT DISTINCT L.Nummer FROM %s WHERE LO.OnderdeelID=%d AND (NOT LO.Opgezegd IS NULL) %s;", $fromlidond, $_POST['selectie_groep'], $w);
+		} elseif ($_POST['selectie_status'] == "T") {
+			$query = sprintf("SELECT DISTINCT L.Nummer FROM %s WHERE LO.OnderdeelID=%d AND LO.Vanaf > CURDATE() %s;", $fromlidond, $_POST['selectie_groep'], $w);
+		} else {
+			$query = sprintf("SELECT DISTINCT L.Nummer FROM %s WHERE %s AND LO.OnderdeelID=%d %s;", $fromlidond, $wherelidond, $_POST['selectie_groep'], $w);
+		}
+	}
+		
+	$aant = 0;
+	if ($actie == "add") {
+		foreach(fnQuery($query) as $row) {
+			if (db_lidond("add", $row->Nummer, "", "", $onderdeelid) == true) {
+				$aant++;
+			}
+		}
+		if ($aant > 0) {
+			$mess = sprintf("Er zijn %d leden, via een selectie, aan selectie %d toegevoegd.", $aant, $onderdeelid);
+		}
+	} else {
+		$lidids = "(0";
+		foreach(fnQuery($query) as $row) {
+			$aant ++;
+			$lidids .= ", " . $row->Nummer;
+		}
+		if ($aant > 0) {
+			$lidids .= ")";
+			if (db_lidond("delete", $lidids, "", "", $onderdeelid) > 0) {
+				$mess = sprintf("Er zijn %d %s leden, via een selectie, bij selectie %d verwijderd.", $aant, $lidids, $onderdeelid);
+			}
+		}
+	}
+	if (strlen($mess) > 0) {
+		db_logboek("add", $mess, 17);
+	}
+		
+} # add_del_selectie
+
 function fnGroepsindeling($afdkode="") {
 	
 	$hvafd = "";
 	$hvtijd = "";
 	$hvgroep = "";
 	
+	if (strlen($afdkode) > 0) {
+		$filter = sprintf("O.Kode='%s'", $afdkode);
+	} else {
+		$filter = "";
+	}
+	
 	echo("<div id='groepsindeling'>\n");
 	
-	foreach (db_lidond("groepsindeling") as $row) {
+	
+	foreach (db_lidond("groepsindeling", 0, "", $filter) as $row) {
 		if ($hvafd !== $row->AfdNaam) {
 			if (strlen($hvafd) > 0) {
 				echo("<div class='clear'></div>\n");
@@ -335,20 +655,21 @@ function fnGroepsindeling($afdkode="") {
 			$hvafd = $row->AfdNaam;
 			printf("<h2>%s</h2>\n", $hvafd);
 		}
-		if ($hvtijd !== $row->Tijdsblok) {
-			$hvtijd = trim($row->Tijdsblok);
-			if (strlen($hvtijd) > 3) {
-				printf("<h3>%s</h3>\n", $hvtijd);
-			}
-		}
-		if ($hvgroep !== $row->GroepOms) {
+		
+		if ($hvtijd !== $row->Tijdsblok or $hvgroep !== $row->GroepOms) {
 			if (strlen($hvgroep) > 0) {
 				echo("</div>  <!-- einde groepsindelingkolom -->\n");
 			}
-			$hvgroep = $row->GroepOms;
 			echo("<div class='groepsindelingkolom'>\n");
-			printf("<h4>%s</h4>\n", $hvgroep);
 			$volgnr = 1;
+			
+			$hvtijd = $row->Tijdsblok;
+			if (strlen($hvtijd) > 3) {
+				printf("<h3>%s</h3>\n", $hvtijd);
+			}
+			
+			$hvgroep = $row->GroepOms;
+			printf("<h4>%s</h4>\n", $row->GroepOms);
 		}
 		printf("<p>%d. %s</p>\n", $volgnr, $row->NaamLid);
 		$volgnr++;
@@ -527,7 +848,7 @@ function fnEigenGegevens($lidid=0, $actie="") {
 function fnSelectListGroepen($cv=0) {
 
 	$ret = "<option value=0>** Iedereen **</option>\n";
-	$rows = db_Onderdelen("lijstingebruik");
+	$rows = db_Onderdeel("lijstingebruik");
 	foreach ($rows as $row) {
 		$ret .= sprintf("<option%s value=%d>%s</option>\n", checked($row->RecordID, "option", $cv), $row->RecordID, htmlentities($row->Naam));
 	}
@@ -933,7 +1254,7 @@ function toestemmingenmuteren($lidid) {
 	
 	$actionurl = sprintf("%s?tp=%s&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		foreach (db_onderdelen("lijst", "T") as $ondrow) {
+		foreach (db_onderdeel("lijst", "T") as $ondrow) {
 			$mess = "";
 			if (isset($_POST['T_' . $ondrow->Kode])) {
 				if (db_lidond("islid", $lidid, "", "", $ondrow->RecordID) == false) {
@@ -953,7 +1274,7 @@ function toestemmingenmuteren($lidid) {
 	
 	echo("<div id='toestemmingenmuteren'>\n");
 	printf("<form method='post' name='frmToestemming' action='%s'>\n", $actionurl);
-	foreach (db_onderdelen("lijstopkode", "T") as $row) {
+	foreach (db_onderdeel("lijstopkode", "T") as $row) {
 		printf("<label>%s: </label><p><input type='checkbox' name='T_%s' value='1' %s></p>\n", $row->Naam, $row->Kode, checked(db_lidond("islid", $lidid, "", "", $row->RecordID)));
 	}
 	echo("<div class='clear'></div>\n");
