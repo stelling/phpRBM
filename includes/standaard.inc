@@ -571,7 +571,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 					} elseif (substr($key, 0, 2) != "nd" and substr($key, 0, 3) != "lnk" and substr($key, 0, 3) != "llk") {
 						$ktot[] = "geen";
 					}
-					if (startwith($key, "lnk") or startwith($key, "llk")) {
+					if (strlen($kol_pk) == 0 and (startwith($key, "lnk") or startwith($key, "llk") or $key == "RecordID")) {
 						$kol_pk = $key;
 					}
 				}
@@ -661,7 +661,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 				} elseif (substr($key, 0, 3) == "mrg") {
 					$ret .= sprintf("<td>%s</td>", str_replace(" &amp; ", "<br>", htmlentities($value)));
 				} elseif (substr($key, 0, 2) != "nd") {
-					if (strstr($editkols, $key) === false) {
+					if (strstr($editkols, $key) === false or $row->$kol_pk == 0) {
 						$ret .= sprintf("<td>%s</td>", htmlentities($value));
 					} else {
 						$ret .= sprintf("<td><input name='%s_%d' value='%s' class='%s'></td>", $key, $row->$kol_pk, $value, str_replace(" ", "", strtolower($key)));
