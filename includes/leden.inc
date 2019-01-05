@@ -394,13 +394,13 @@ function fnSelecties() {
 	
 	if ($muteerbaar) {
 		if (isset($_POST['LedenToevoegen']) and $_POST['LedenToevoegen'] == "Leden toevoegen") {
-			add_del_selectie("add", intval($_POST['OnderdeelID']));
+			add_del_selectie("add", $onderdeelid);
 			$scherm = "L";
 		} elseif (isset($_POST['LedenVerwijderen']) and $_POST['LedenVerwijderen'] == "Leden verwijderen") {
-			add_del_selectie("del", intval($_POST['OnderdeelID']));
+			add_del_selectie("del", $onderdeelid);
 			$scherm = "L";
 		} elseif (isset($_POST['AlleLedenVerwijderen'])) {
-			add_del_selectie("deleteall", intval($_POST['OnderdeelID']));
+			add_del_selectie("deleteall", $onderdeelid);
 			$scherm = "L";
 		}
 	}
@@ -455,12 +455,13 @@ function fnSelecties() {
 			echo("<table>\n");
 			echo("<tr><td></td><td>Vanaf</td><td>Tot en met</td></tr>\n");
 			
-			printf("<tr><td>Geboortedatum:</td><td><input type='date' value='%s' name='selectie_vangebdatum'></td><td><input type='date' value='%s' name='selectie_temgebdatum'></td></tr>\n", db_lid("mingebdatum"), db_lid("maxgebdatum"));
-			printf("<tr><td>Postcode:</td><td><input type='text' name='selectie_vanpostcode' value='%s' max-length=7></td><td><input type='text' name='selectie_tempostcode' value='%s' max-length=7></td></tr>\n", db_lid("minpostcode"), db_lid("maxpostcode"));
-			printf("<tr><td>Lid vanaf:</td><td><input type='date' name='selectie_vanliddatum' value='%s'></td><td><input type='date' name='selectie_temliddatum' value='%s'></td></tr>\n", db_lid("minliddatum"), db_lid("maxliddatum"));
-			printf("<tr><td>Opgezegd per:</td><td><input type='date' name='selectie_vanopgezegd'></td><td><input type='date' name='selectie_temopgezegd' value='%s'></td></tr>\n", db_lid("maxopgezegd"));
+			printf("<tr><th>Geboortedatum:</th><td><input type='date' value='%s' name='selectie_vangebdatum'></td><td><input type='date' value='%s' name='selectie_temgebdatum'></td></tr>\n", db_lid("mingebdatum"), db_lid("maxgebdatum"));
+			printf("<tr><th>Postcode:</th><td><input type='text' name='selectie_vanpostcode' value='%s' max-length=7></td><td><input type='text' name='selectie_tempostcode' value='%s' max-length=7></td></tr>\n", db_lid("minpostcode"), db_lid("maxpostcode"));
+			printf("<tr><th>Lidnummer:</th><td><input type='number' name='selectie_vanlidnr' value='%s'></td><td><input type='number' name='selectie_temlidnr' value='%s'></td></tr>\n", db_lidmaatschap("minlidnr"), db_lidmaatschap("maxlidnr"));
+			printf("<tr><th>Lid vanaf:</th><td><input type='date' name='selectie_vanliddatum' value='%s'></td><td><input type='date' name='selectie_temliddatum' value='%s'></td></tr>\n", db_lid("minliddatum"), db_lid("maxliddatum"));
+			printf("<tr><th>Opgezegd per:</th><td><input type='date' name='selectie_vanopgezegd'></td><td><input type='date' name='selectie_temopgezegd' value='%s'></td></tr>\n", db_lid("maxopgezegd"));
 		
-			echo("<tr><td>Lidstatus:</td><td colspan=2><select name='selectie_status' onChange='this.form.submit();'>\n");
+			echo("<tr><th>Lidstatus:</th><td colspan=2><select name='selectie_status' onChange='this.form.submit();'>\n");
 			printf("<option value='L'%s>Lid</option>", checked("L", "option", $_POST['selectie_status']));
 			printf("<option value='V'%s>Voormalig lid</option>", checked("V", "option", $_POST['selectie_status']));
 			if (count(db_lidmaatschap("toekomstigeleden")) > 0) {
@@ -477,10 +478,12 @@ function fnSelecties() {
 				$rows = db_onderdeel("lijst");
 			}
 			foreach($rows as $grp) {
-				$selgr .= sprintf("<option value=%d>%s</option>\n", $grp->RecordID, $grp->Naam);
+				if ($grp->RecordID != $onderdeelid) {
+					$selgr .= sprintf("<option value=%d>%s</option>\n", $grp->RecordID, $grp->Naam);
+				}
 			}
 			$selgr .= "</select>\n";
-			printf("<tr><td>Zit in groep:</td><td colspan=2>%s (bijgewerkt t/m %s)</td></tr>\n", $selgr, strtolower(date("j F Y", strtotime(db_lidond("maxgewijzigd", 0, "", "O.Type<>'T'")))));
+			printf("<tr><th>Zit in groep:</th><td colspan=2>%s (bijgewerkt t/m %s)</td></tr>\n", $selgr, strtolower(date("j F Y", strtotime(db_lidond("maxgewijzigd", 0, "", "O.Type<>'T'")))));
 			
 			echo("</table>\n");
 		
@@ -552,9 +555,15 @@ function add_del_selectie($actie, $onderdeelid) {
 	if (strlen($_POST['selectie_tempostcode']) >= 4 and $_POST['selectie_tempostcode'] < db_lid("maxpostcode")) {
 		$w .= sprintf(" AND L.Postcode <= '%s'", $_POST['selectie_tempostcode']);
 	}
-		
+	if ($_POST['selectie_vanlidnr'] > db_lidmaatschap("minlidnr")) {
+		$w .= sprintf(" AND LM.Lidnr >= %d", $_POST['selectie_vanlidnr']);
+	}
+	if ($_POST['selectie_temlidnr'] > 0 and $_POST['selectie_temlidnr'] < db_lidmaatschap("maxlidnr")) {
+		$w .= sprintf(" AND LM.Lidnr <= %d", $_POST['selectie_temlidnr']);
+	}
+
 	if ($actie == "deleteall") {
-		$query = sprintf("SELECT L.Nummer FROM %1\$sLid AS L WHERE L.Nummer NOT IN (SELECT LO.Lid FROM %1\$sLidond AS LO WHERE LO.OnderdeelID=%d);", $table_prefix, $onderdeelid);
+		$query = sprintf("SELECT L.Nummer FROM %1\$sLid AS L WHERE L.Nummer IN (SELECT LOC.Lid FROM %1\$sLidond AS LOC WHERE LOC.OnderdeelID=%2\$d);", $table_prefix, $onderdeelid);
 		
 	} elseif ($_POST['selectie_groep'] == 0) {
 		if (strlen($_POST['selectie_vanliddatum']) == 10 and $_POST['selectie_vanliddatum'] > db_lid("minliddatum")) {
@@ -614,20 +623,17 @@ function add_del_selectie($actie, $onderdeelid) {
 			$mess = sprintf("Er zijn %d leden, via een selectie, aan selectie %d toegevoegd.", $aant, $onderdeelid);
 		}
 	} else {
-		$lidids = "(0";
 		foreach(fnQuery($query) as $row) {
-			$aant ++;
-			$lidids .= ", " . $row->Nummer;
+			$lidids[] = $row->Nummer;
 		}
-		if ($aant > 0) {
-			$lidids .= ")";
+		if (isset($lidids)) {
 			if (db_lidond("delete", $lidids, "", "", $onderdeelid) > 0) {
-				$mess = sprintf("Er zijn %d %s leden, via een selectie, bij selectie %d verwijderd.", $aant, $lidids, $onderdeelid);
+				$mess = sprintf("Er zijn %d (%s) leden, via een selectie, bij selectie %d verwijderd.", count($lidids), implode(", ", $lidids), $onderdeelid);
 			}
 		}
 	}
 	if (strlen($mess) > 0) {
-		db_logboek("add", $mess, 17);
+		db_logboek("add", $mess, 17, 0, 0, $onderdeelid);
 	}
 		
 } # add_del_selectie
@@ -1035,7 +1041,7 @@ function algemeenlidmuteren($lidid) {
 				}
 				$result = fnQuery($query);
 				if ($result > 0) {
-					if (($fn == "GEBDATUM" or $fn == "BezwaarMachtiging") and $v !== "NULL") {
+					if ($fn == "GEBDATUM" and $v !== "NULL") {
 						$query = sprintf("UPDATE Lid SET `%s`=#%s#, Gewijzigd=SYSDATE() WHERE Nummer=%d;", $fn, strftime($fdaccess, strtotime($v)), $lidid);
 					}
 					db_interface("add", $query, $lidid);
