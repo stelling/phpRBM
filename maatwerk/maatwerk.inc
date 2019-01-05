@@ -12,4 +12,8 @@ function fnMaatwerkNaWijzigenWachtwoord($lidid=0, $ww="") {
 
 }
 
+function fnMaatwerkNaUpload() {
+
+}
+
 ?>
