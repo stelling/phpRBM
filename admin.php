@@ -9,15 +9,6 @@ if (!isset($_GET['op']) or (db_lid("aantal") == 0 and toegang($_GET['tp'], 0, 1)
 	$_GET['op'] = "";
 }
 
-if (isset($_GET['op']) and $_GET['op'] == "downloadwijz" and $_GET['tp'] == "Downloaden wijzigingen") {
-	header("Content-type: text/plain");
-	header("Content-Disposition: attachment; filename=import.sql");
-	foreach(db_interface() as $row) {
-		echo($row->SQL . "\n");
-	}
-	exit();
-}
-
 if ($currenttab == "Logboek" or $currenttab == "Stamgegevens") {
 	HTMLheader(1);
 } else {
@@ -183,14 +174,10 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	echo(fnDisplayTable(db_logins("lijst", "", "", 0, $w, "", $ord), $lnk, "", 5, $lnk_lk));
 	
 	// Nieuwe en gewijzigde logins in de tabel interface zetten en de tabel 'Lid' bijwerken.
-	$xf = "IFNULL(L.LoginWebsite, '') <> Login.Login";
+	$xf = "IFNULL(L.LoginWebsite, '') <> IFNULL(Login.Login, '')";
 	$rows = db_logins("lijst", "", "", 0, $xf);
 	foreach ($rows as $row) {
-		$query = sprintf("UPDATE %sLid SET LoginWebsite='%s' WHERE Nummer=%d;", $table_prefix, $row->Login, $row->LidID);
-		if (fnQuery($query) > 0) {
-			$sql = sprintf("UPDATE Lid SET `LoginWebsite`='%s', Gewijzigd=Date() WHERE Nummer=%d;", $row->Login, $row->LidID);
-			db_interface("add", $sql, $row->LidID, 1);
-		}
+		db_lid("update", "", $row->lnkNummer, "", "LoginWebsite", $row->Login);
 	}
 	
 } elseif ($currenttab == "Autorisatie" and toegang($currenttab, 1, 1)) {
@@ -253,7 +240,6 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 			$copytext .= $row->SQL . "\n";
 		}
 		
-		echo("<p class='mededeling'><input type='submit' value='Download wijzigingen'>\n");
 		printf("&nbsp;<input type='button' value='Wijzigingen afmelden' OnClick=\"location.href='%s?tp=%s&amp;op=afmeldenwijz'\"></p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 		$copytext .= "\n";
 	} else {
