@@ -574,18 +574,7 @@ class Mailing {
 				echo("<tr><td></td><td>Vanaf</td><td>Tot en met</td></tr>\n");
 			
 				printf("<tr><td>Geboortedatum:</td><td><input type='date' value='%s' name='selectie_vangebdatum'></td><td><input type='date' value='%s' name='selectie_temgebdatum'></td></tr>\n", db_lid("mingebdatum"), db_lid("maxgebdatum"));
-				printf("<tr><td>Postcode:</td><td><input type='text' name='selectie_vanpostcode' value='%s' max-length=7></td><td><input type='text' name='selectie_tempostcode' value='%s' max-length=7></td></tr>\n", db_lid("minpostcode"), db_lid("maxpostcode"));
 				printf("<tr><td>Lid vanaf:</td><td><input type='date' name='selectie_vanliddatum' value='%s'></td><td><input type='date' name='selectie_temliddatum' value='%s'></td></tr>\n", db_lid("minliddatum"), db_lid("maxliddatum"));
-				printf("<tr><td>Opgezegd per:</td><td><input type='date' name='selectie_vanopgezegd'></td><td><input type='date' name='selectie_temopgezegd' value='%s'></td></tr>\n", db_lid("maxopgezegd"));
-			
-				echo("<tr><td>Lidstatus:</td><td colspan=2><select name='selectie_status' onChange='this.form.submit();'>\n");
-				printf("<option value='L'%s>Lid</option>", checked("L", "option", $_POST['selectie_status']));
-				printf("<option value='V'%s>Voormalig lid</option>", checked("V", "option", $_POST['selectie_status']));
-				if (count(db_lidmaatschap("toekomstigeleden")) > 0) {
-					printf("<option value='T'%s>Toekomstig lid</option>", checked("T", "option", $_POST['selectie_status']));
-				}
-				printf("<option value='K'>Kloslid</option>", checked("K", "option", $_POST['selectie_status']));
-				echo("</select></td></tr>\n");
 			
 				$selgr = "<select name='selectie_groep'>\n
 							<option value=0>&nbsp;</option>\n";
@@ -787,7 +776,7 @@ class Mailing {
 			$this->verzendenmag = false;
 			$this->meldingen = "Er is geen mailing geselecteerd.<br>\n";
 		}
-	}
+	} # controle
 	
 	public function post_form() {
 		global $table_prefix;
@@ -915,12 +904,6 @@ class Mailing {
 		if ($_POST['selectie_temgebdatum'] > "1900-01-01" and $_POST['selectie_temgebdatum'] < db_lid("maxgebdatum")) {
 			$w .= sprintf(" AND L.GEBDATUM <= '%s'", $_POST['selectie_temgebdatum']);
 		}
-		if (strlen($_POST['selectie_vanpostcode']) >= 4 and $_POST['selectie_vanpostcode'] > db_lid("minpostcode")) {
-			$w .= sprintf(" AND L.Postcode >= '%s'", $_POST['selectie_vanpostcode']);
-		}
-		if (strlen($_POST['selectie_tempostcode']) >= 4 and $_POST['selectie_tempostcode'] < db_lid("maxpostcode")) {
-			$w .= sprintf(" AND L.Postcode <= '%s'", $_POST['selectie_tempostcode']);
-		}
 		
 		if ($_POST['selectie_groep'] == 0) {
 			if (strlen($_POST['selectie_vanliddatum']) == 10 and $_POST['selectie_vanliddatum'] > db_lid("minliddatum")) {
@@ -929,22 +912,8 @@ class Mailing {
 			if (strlen($_POST['selectie_temliddatum']) == 10 and $_POST['selectie_temliddatum'] < db_lid("maxliddatum")) {
 				$w .= sprintf(" AND LM.LIDDATUM <= '%s'", $_POST['selectie_temliddatum']);
 			}
-			if (strlen($_POST['selectie_vanopgezegd']) == 10) {
-				$w .= sprintf(" AND LM.Opgezegd >= '%s'", $_POST['selectie_vanopgezegd']);
-			}
-			if (strlen($_POST['selectie_temopgezegd']) == 10 and $_POST['selectie_temopgezegd'] < db_lid("maxopgezegd")) {
-				$w .= sprintf(" AND LM.Opgezegd <= '%s'", $_POST['selectie_temopgezegd']);
-			}
 			
-			if ($_POST['selectie_status'] == "L") {
-				$query = sprintf("SELECT DISTINCT L.Nummer FROM %s WHERE %s %s;", $fromlid, $wherelid, $w);
-			} elseif ($_POST['selectie_status'] == "V") {
-				$query = sprintf("SELECT DISTINCT L.Nummer FROM %s WHERE (NOT LM.Opgezegd IS NULL) %s;", $fromlid, $w);
-			} elseif ($_POST['selectie_status'] == "T") {
-				$query = sprintf("SELECT DISTINCT L.Nummer FROM %s WHERE LM.LIDDATUM > CURDATE() %s;", $fromlid, $w);
-			} else {
-				$query = sprintf("SELECT DISTINCT L.Nummer FROM %s WHERE (LM.Lid IS NULL) %s;", $fromlid, $w);
-			}
+			$query = sprintf("SELECT DISTINCT L.Nummer FROM %s WHERE (LM.Lid IS NULL) %s;", $fromlid, $w);
 			
 		} else {
 			if (strlen($_POST['selectie_vanliddatum']) == 10 and $_POST['selectie_vanliddatum'] > db_lid("maxliddatum") and $_POST['selectie_vanliddatum'] <= db_lid("maxliddatum")) {
@@ -953,20 +922,8 @@ class Mailing {
 			if (strlen($_POST['selectie_temliddatum']) == 10 and $_POST['selectie_temliddatum'] >= db_lid("minliddatum") and $_POST['selectie_temliddatum'] < db_lid("maxliddatum")) {
 				$w .= sprintf(" AND LO.Vanaf <= '%s'", $_POST['selectie_temgebdatum']);
 			}
-			if (strlen($_POST['selectie_vanopgezegd']) == 10 and $_POST['selectie_vanopgezegd'] > db_lid("minopgezegd")) {
-				$w .= sprintf(" AND LO.Opgezegd >= '%s'", $_POST['selectie_vanopgezegd']);
-			}
-			if (strlen($_POST['selectie_temopgezegd']) == 10 and $_POST['selectie_temopgezegd'] < db_lid("maxopgezegd")) {
-				$w .= sprintf(" AND LO.Opgezegd <= '%s'", $_POST['selectie_temopgezegd']);
-			}
 
-			if ($_POST['selectie_status'] == "V") {
-				$query = sprintf("SELECT DISTINCT L.Nummer FROM %s WHERE LO.OnderdeelID=%d AND (NOT LO.Opgezegd IS NULL) %s;", $fromlidond, $_POST['selectie_groep'], $w);
-			} elseif ($_POST['selectie_status'] == "T") {
-				$query = sprintf("SELECT DISTINCT L.Nummer FROM %s WHERE LO.OnderdeelID=%d AND LO.Vanaf > CURDATE() %s;", $fromlidond, $_POST['selectie_groep'], $w);
-			} else {
-				$query = sprintf("SELECT DISTINCT L.Nummer FROM %s WHERE %s AND LO.OnderdeelID=%d %s;", $fromlidond, $wherelidond, $_POST['selectie_groep'], $w);
-			}
+			$query = sprintf("SELECT DISTINCT L.Nummer FROM %s WHERE %s AND LO.OnderdeelID=%d %s;", $fromlidond, $wherelidond, $_POST['selectie_groep'], $w);
 		}
 		
 		$aant = 0;
