@@ -136,8 +136,6 @@ if (toegang($_GET['tp'], 1) == false) {
 } elseif ($currenttab == "Ledenlijst") {
 	fnLedenlijst();
 } elseif ($currenttab == "Selecties") {
-//	fnDispMenu(2);
-	echo("<p class='mededeling'>Werk in uitvoering</p>");
 	fnSelecties();
 } elseif ($currenttab == "Bewaking") {
 	fnBewaking();
