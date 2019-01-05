@@ -5,7 +5,8 @@ $db_name=''; // Gebruikersnaam voor de MYSQL-server
 $db_user=''; // Deze gebruiker moet onder andere rechten hebben om tabellen te mogen aanmaken en te verwijderen.
 $db_pass=''; // Wachtwoord wat bij de gebruikersnaam van MySQL hoort. Het standaard wachtwoord van webmasters is gelijk aan dit wachtwoord.
 $table_prefix = "rbm_"; // Zorg dat je bij het uploaden van de gegevens uit MS-Access dezelfde prefix gebruikt.
-$lididwebmasters = array(1); // Dit is het interne nummer (RecordID) van het lid. Bij meerdere webmaster: scheiden met een komma.
+$lididwebmasters = array(1); // Dit zijn de interne nummers (RecordID's) van de webmasters. Bij meerdere webmaster: scheiden met een komma.
+$lididtestusers = array(0); // Dit zijn interne nummers (RecordID's) van het testgebruikers. Bij meerdere testgebruikers: scheiden met een komma.
 $salt2FA = ""; // Als je Two Factor Authentication wilt gebruiken vul dan hier een ongeveer 40 karakters lange code in.
 
 $smtphost = ""; // De naam van de SMTP-server voor het versturen van e-mails. Indien deze niet wordt ingevuld, wordt van de mail-functie uit PHP gebruik gemaakt.
