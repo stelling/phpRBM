@@ -146,16 +146,17 @@ function fnWijzigen($lidid=0, $actie="") {
 } # fnWijzigen
 
 function fnWieiswie($actie, $metfoto=1) {
-	global $ldl;
+	global $ldl, $lididtestusers;
 	
 	echo("<div id='wieiswie'>\n");
 	$vo = "";
+	$geentest = sprintf("(LO.Lid NOT IN (%s))", implode(",", $lididtestusers));
 	if ($actie == "Onderscheidingen") {
 		$lijst = db_lidond("actueleleden", 0, "", "O.TYPE='O'");
 	} elseif ($actie == "Overige commissies") {
-		$lijst = db_Lidond("actueleleden", 0, "", "(O.TYPE='C' AND O.Kader=False)");
+		$lijst = db_Lidond("actueleleden", 0, "", "(O.TYPE='C' AND O.Kader=False) AND ". $geentest);
 	} else {
-		$lijst = db_lidond("actueleleden", 0, "", "O.Kader=True");
+		$lijst = db_lidond("actueleleden", 0, "", "O.Kader=True AND " . $geentest);
 	}
 
 	if (($metfoto == 1) and (db_param("toonpasfotoindiennietingelogd") == 1 or strlen($_SESSION['username']) > 5)) {
