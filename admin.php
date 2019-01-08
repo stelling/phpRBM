@@ -64,6 +64,7 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 				$mess = "Bestand is in de database verwerkt.";
 				db_logboek("add", $mess, 9, 0, 1);
 				db_onderhoud(1);
+				fnMaatwerkNaUpload();
 				printf("<script>setTimeout(\"location.href='%s';\", 15000);</script>\n", $_SERVER['PHP_SELF']);
 			}
 		}
