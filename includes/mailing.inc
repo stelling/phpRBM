@@ -1147,7 +1147,7 @@ class Mailing {
 		
 		if ($this->mid == db_param("mailing_validatielogin") and $lidid > 0) {
 			$nk = db_logins("nieuweactivitiekey", "", "", $lidid);
-			$urlactivatie = sprintf("%s/index.php?tp=Validatie+login&lidid=%d&key=%s", $_SERVER["HTTP_HOST"], $lidid, $key);
+			$urlactivatie = sprintf("%s/index.php?tp=Validatie+login&lidid=%d&key=%s", $_SERVER["HTTP_HOST"], $lidid, $nk);
 			$this->merged_message = str_replace("[%URLACTIVATIE%]", $urlactivatie, $this->merged_message);
 		
 		} elseif ($this->mid == db_param("mailing_herstellenwachtwoord") and $lidid > 0) {
