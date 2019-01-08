@@ -340,9 +340,8 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					
 	} elseif ($soort == "Toestemmingen") {
 							
-		$sq = sprintf("(SELECT IFNULL(MAX(Vanaf), 'Nee') FROM %sLidond AS LO WHERE %s AND LO.Lid=%d AND LO.OnderdeelID=O.RecordID) AS `Afgegeven op`, ", $table_prefix, $wherelidond, $LidID);
-		$sq .= sprintf("(SELECT CONCAT(O.MaximaleLengtePeriode, ' maanden') FROM %sLidond AS LO WHERE %s AND LO.Lid=%d AND LO.OnderdeelID=O.RecordID) AS Geldigheid", $table_prefix, $wherelidond, $LidID);
-		$query = sprintf("SELECT O.Naam AS Omschrijving,
+		$sq = sprintf("(SELECT IFNULL(MAX(LO.Vanaf), 'Nee') FROM %sLidond AS LO WHERE %s AND LO.Lid=%d AND LO.OnderdeelID=O.RecordID) AS `Afgegeven op` ", $table_prefix, $wherelidond, $LidID);
+		$query = sprintf("SELECT O.Naam AS Omschrijving, CONCAT(O.MaximaleLengtePeriode, ' maanden') AS Geldigheid,
 					%s
 					FROM %2\$sOnderdl AS O
 					WHERE ((O.VervallenPer IS NULL) OR O.VervallenPer >= CURDATE()) AND O.Type='T'", $sq, $table_prefix);
@@ -446,7 +445,11 @@ function db_lid($actie, $filter="", $lidid=0, $xtraselect="", $kolomnm="", $waar
 		return $result->fetch();
 		
 	} elseif ($actie == "aantal") {
-		$query = sprintf("SELECT COUNT(*) FROM %sLid;", $table_prefix);
+		if ($lidid > 0) {
+			$query = sprintf("SELECT COUNT(*) FROM %sLid WHERE Nummer=%d;", $table_prefix, $lidid);
+		} else {
+			$query = sprintf("SELECT COUNT(*) FROM %sLid;", $table_prefix);
+		}
 		return db_scalar($query);
 		
 	} elseif ($actie === "lijst") {
@@ -1229,11 +1232,11 @@ function db_onderdeel($actie, $type="", $lidid=0, $onderdlid=0, $kolomnaam="", $
 	} else {
 		$query = sprintf("SELECT %s FROM %sOnderdl AS O %s ORDER BY O.Naam, O.Kode;", $sel, $table_prefix, $where);
 	}
-	$result = fnQuery($query);
 	
 	if ($actie == "aantal" or $actie == "aantalingebruik" or $actie == "type") {
-		return $result->fetchColumn();
-	} else {	
+		return db_scalar($query);
+	} else {
+		$result = fnQuery($query);
 		return $result->fetchAll();
 	}
 } # db_onderdeel
@@ -1250,7 +1253,7 @@ function db_functie($actie) {
 } # db_functie
 
 function db_lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0, $loid=0) {
-	global $selectnaam, $selectzoeknaam, $table_prefix, $fromlidond, $wherelidond, $selectlidnr, $fdaccess;
+	global $selectnaam, $selectzoeknaam, $table_prefix, $fromlidond, $wherelidond, $selectlidnr, $fdaccess, $lididtestusers;
 	
 	$mess = "";
 	
@@ -1359,20 +1362,23 @@ function db_lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0, $loid=0)
 		return db_scalar($query);
 	
 	} elseif ($actie == "add") {
-		if ($lidid > 0 and $onderdlid > 0) {
+		if (db_onderdeel("aantal", "", 0, $onderdlid) == 0) {
+			$mess = sprintf("OnderdeelID %d bestaat niet. Dit record wordt niet toegevoegd.", $onderdlid);
+			debug($mess, 99);
+		} elseif (db_lid("aantal", "", $lidid) == 0) {
+			$mess = sprintf("Lid %d bestaat niet. Dit record wordt niet toegevoegd.", $lidid);
+			debug($mess, 99);
+		} else {
 			$nrid = db_nieuwrecordID("Lidond");
 			
-			$query = sprintf("INSERT INTO %sLidond  (RecordID, Lid, OnderdeelID, Vanaf, Gewijzigd) VALUES (%d, %d, %d, CURDATE(), CURDATE(), SYSDATE());", $table_prefix, $nrid, $lidid, $onderdlid);
+			$query = sprintf("INSERT INTO %sLidond (RecordID, Lid, OnderdeelID, Vanaf, Ingevoerd, Gewijzigd) VALUES (%d, %d, %d, CURDATE(), CURDATE(), SYSDATE());", $table_prefix, $nrid, $lidid, $onderdlid);
 			$result = fnQuery($query);
-			if ($result > 0) {
-				$sql = sprintf("INSERT INTO Lidond (RecordID, Lid, OnderdeelID, Vanaf, Gewijzigd) VALUES (%d, %d, %d, #%s#, Now());", $nrid, $lidid, $onderdlid, strftime($fdaccess));
-				db_interface("add", $sql, $lidid);
+			if ($result > 0 and in_array($lidid, $lididtestusers) == false) {
+				db_interface("add", $query, $lidid);
 				return true;
 			} else {
 				return false;
 			}
-		} else {
-			return false;
 		}
 		
 	} elseif ($actie == "update") { // was delete door invullen opgezegd
@@ -1491,31 +1497,34 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		db_logboek("add", $mess, 5);
 		return $mess;
 		
-	} elseif ($actie == "add" and strlen($login) > 0 and strlen($pw) > 0) {
+	} elseif ($actie == "add") {
 		$login = cleanlogin($login);
-		$query = sprintf("SELECT Login FROM %sAdmin_login WHERE LidID=%d;", $table_prefix, $lidid);
 		$ok = false;
-		if (strlen(db_scalar($query)) == 0) {
-			if (db_logins("controlebestaat", "", $login, $lidid)) {
-				$mess = sprintf("Login '%s' is al in gebruik bij een ander lid.", $login);
-			} elseif (strlen($login) > 5 and $lidid > 0 and strlen($pw) > 5) {
-				$nk = password_hash(newkey(), PASSWORD_DEFAULT);
-				$query = sprintf("INSERT INTO %sAdmin_login SET LidID=%d, Login='%s', Wachtwoord='%s', ActivatieKey='%s', LaatsteWachtwoordWijziging=SYSDATE(), Ingevoerd=SYSDATE(), Gewijzigd=SYSDATE();", $table_prefix, $lidid, $login, password_hash($pw, PASSWORD_DEFAULT), $nk);
-				$result = fnQuery($query);
-				$mess = sprintf("Login '%s' is voor %s aangemaakt.", $login, db_naamlid($lidid));
-				$mess .= fnValidatieLogin($lidid, $nk, "mail");
-				$ok = true;
-			}
-		} else {
+		$query = sprintf("SELECT Login FROM %sAdmin_login WHERE LidID=%d;", $table_prefix, $lidid);
+		if (strlen(db_scalar($query)) > 0) {
 			$mess = sprintf("%s heeft al een login, er wordt geen nieuwe aangemaakt.", db_naamlid($lidid));
+		} elseif (db_logins("controlebestaat", "", $login, $lidid)) {
+			$mess = sprintf("Login '%s' is al in gebruik bij een ander lid.", $login);
+		} elseif (strlen($login) < 6) {
+			$mess = "De login moet minimaal 6 karakters lang zijn.";
+		} elseif (strlen($pw) < db_param("wachtwoord_minlengte")) {
+			$mess = sprintf("Het wachtwoord moet minimaal %d karakters lang zijn.", db_param("wachtwoord_minlengte"));
+		} elseif ($lidid > 0) {
+			$nk = password_hash(newkey(), PASSWORD_DEFAULT);
+			$query = sprintf("INSERT INTO %sAdmin_login (LidID, Login, Wachtwoord, ActivatieKey, LaatsteWachtwoordWijziging, Ingevoerd, Gewijzigd) VALUES 
+																	  (%d, '%s', '%s', '%s', SYSDATE(), SYSDATE(), SYSDATE());", $table_prefix, $lidid, $login, password_hash($pw, PASSWORD_DEFAULT), $nk);
+			fnQuery($query);
+			$mess = sprintf("Login '%s' is voor %s aangemaakt.", $login, db_naamlid($lidid));
+			$mess .= fnValidatieLogin($lidid, $nk, "mail");
+			$ok = true;
 		}
 		db_logboek("add", $mess, 5, 0, 1, $lidid);
 		return $ok;
 		
-	} elseif ($actie == "rowlogin" and (isValidMailAddress($email, 0) or $lidid > 0)) {
+	} elseif ($actie == "rowlogin") {
 		$query = sprintf("SELECT L.Nummer, Login.Login, %s AS Naam, L.Roepnaam, L.Email, Login.Wachtwoord, Login.FouteLogin, Login.Gewijzigd,
 								IFNULL((%s), L.Nummer) AS Lidnr,", $selectnaam, $selectlidnr);
-		if (is_array($beperkttotgroep) and count($beperktotgroep) > 0) {
+		if (is_array($beperkttotgroep) and count($beperkttotgroep) > 0) {
 			$query .= sprintf("(SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.Lid=L.Nummer AND LO.OnderdeelID IN (%s) AND LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE())) AS AanvragenMag", $table_prefix, implode(", ", $beperkttotgroep));
 		} else {
 			$query .= "1 AS AanvragenMag";
@@ -1533,7 +1542,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
-	} elseif ($actie == "valideerlogin" and $lidid > 0) {
+	} elseif ($actie == "valideerlogin") {
 		$query = sprintf("UPDATE %sAdmin_login SET ActivatieKey='', Gewijzigd=SYSDATE() WHERE LENGTH(ActivatieKey) > 5 AND LidID=%d;", $table_prefix, $lidid);
 		$result = fnQuery($query);
 		if ($result == 1) {
@@ -2295,6 +2304,9 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0, $referid=0, $ipf
 			if (isset($bt[3]['function'])) {
 				$f = $bt[3]['function'] . "=>" . $f;
 			}
+			if (isset($actie) and strlen($actie) > 0) {
+				$f .= " (" . $actie . ")";
+			}
 			$f = substr($f, 0, 50);
 		}
 		
@@ -2390,7 +2402,7 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0, $referid=0, $ipf
 		
 	} else {
 		$mess = sprintf("Actie '%s' is onbekend.", $actie);
-		db_logboek("add", $mess, 99);
+		debug($mess);
 	}
 } # db_logboek
 
