@@ -518,13 +518,13 @@ function fnValidatieLogin($lidid, $key, $stap) {
 		$mess = db_logins("valideerlogin", "", "", $lidid);
 	}
 	if (strlen($mess) > 2) {
-		db_logboek("add", $mess, 5, 0, 1, $row->Nummer);
+		db_logboek("add", $mess, 5, 0, 1, $lidid);
 	}
 	
 	return $mess;
 }
 
-function fnConfirmLidnr($row) {
+function fn22ConfirmLidnr($row) {
 
 	$mailing = new Mailing(db_param("mailing_lidnr"));
 	$mailing->xtrachar = "LNR";
@@ -539,7 +539,7 @@ function fnConfirmLidnr($row) {
 }
 
 function fnLoginAanvragen($stap="") {
-	global $table_prefix, $lididwebmasters, $selectlidnr, $basisurl;
+	global $table_prefix, $lididwebmasters, $lididtestusers, $selectlidnr, $basisurl;
 	
 	$login_verbodenkarakters = "@#$^&;*%éëèöôü";
 	
@@ -565,10 +565,10 @@ function fnLoginAanvragen($stap="") {
 			$mess = "Je hebt geen e-mailadres opgegeven.";
 		} elseif (!isValidMailAddress($_POST['email'], 0)) {
 			$mess = sprintf("Je hebt geen geldig e-mailadres (%s) opgegeven.", $_POST['email']);
-		} elseif (strlen($_POST['gewenstelogin']) > 0 and db_param("login_lidnrnodigbijaanvraag") == 1 and $_POST['lidnummer'] == 0) {
+		} elseif (db_param("login_lidnrnodigbijaanvraag") == 1 and $_POST['lidnummer'] == 0) {
 			$mess = "Je moet je lidnummer invullen om een login te kunnen aanvragen.";
 		} else {
-			if ($_POST['lidnummer'] > 0) {
+			if ($_POST['lidnummer'] > 0 and in_array($_POST['lidnummer'], $lididtestusers) == false) {
 				$xf = sprintf("(%s)=%d", $selectlidnr, $_POST['lidnummer']);
 			} else {
 				$xf = "";
@@ -587,10 +587,10 @@ function fnLoginAanvragen($stap="") {
 						$lidid = $row->Nummer;
 					} else {
 						// E-mailadres is bekend, maar een aan dit e-mailadres gekoppelde login bestaat niet.
-						if (db_param("mailing_lidnr") > 0 and $_POST['lidnummer'] == 0) {
+						if (db_param("mailing_lidnr") > 0 and $_POST['lidnummer'] == 0 and 1 == 2) { // Controleren of deze if mag vervallen
 							$mess .= fnConfirmLidnr($row) . " ";
 							$lidid = $row->Nummer;
-						} elseif ($row->AanvragenMag == 0 and in_array($row->Nummer, $lididwebmasters) == false) {
+						} elseif ($row->AanvragenMag == 0 and in_array($row->Nummer, $lididwebmasters) == false and in_array($row->Nummer, $lididtestusers) == false) {
 							if (is_array(db_param("login_beperkttotgroep")) and count(db_param("login_beperkttotgroep")) > 1) {
 								$gt = "";
 								foreach (db_param("login_beperkttotgroep") as $gr) {
