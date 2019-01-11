@@ -342,6 +342,8 @@ function fnSelecties() {
 		$lidid = intval($_POST['del_lid']);
 	} elseif (isset($_POST['add_lid']) and strlen($_POST['add_lid']) > 0) {
 		$lidid = intval($_POST['add_lid']);
+	} elseif (isset($_GET['lidid']) and $_GET['lidid'] > 0) {
+		$lidid = intval($_GET['lidid']);
 	} else {
 		$lidid = 0;
 	}
@@ -385,7 +387,7 @@ function fnSelecties() {
 		$scherm = "L";
 	}
 	
-	if (isset($_POST['del_lid']) and $lidid > 0 and $onderdeelid > 0 and $muteerbaar) {
+	if (isset($_GET['actie']) and $_GET['actie'] = "del_lid" and $lidid > 0 and $onderdeelid > 0 and $muteerbaar) {
 		if (db_lidond("delete", $lidid, "", "", $onderdeelid) > 0) {
 			$mess = sprintf("%s is bij selectie %d verwijderd.", db_naamlid($lidid), $onderdeelid);
 			db_logboek("add", $mess, 17);
@@ -416,22 +418,8 @@ function fnSelecties() {
 			$mut = "";
 		}
 			
-		printf("<h1>Leden%s van selectie %s (%d)</h1>\n", $mut, db_onderdeel("Naam", "", 0, $onderdeelid), $onderdeelid);
+		printf("<h1>Leden%s van selectie %d - %s</h1>\n", $mut, $onderdeelid, db_onderdeel("Naam", "", 0, $onderdeelid));
 		printf("<form method='post' action='%s?tp=%s&amp;OnderdeelID=%d' name='muteren_leden_selectie'>\n", $_SERVER['PHP_SELF'], $currenttab, $onderdeelid);
-		printf("<label>Huidige leden (%d):</label>", $aant_lid);
-		echo("<div class='invoerblok'>\n");
-		if ($aant_lid > 0) {
-			echo("<ul class='listrecipients'>\n");
-			foreach($lo_rows as $lid) {
-				if ($muteerbaar) {
-					printf("<li>%s&nbsp;<button type='submit' name='del_lid' value='%d'><img src='/images/delete.gif'></button></li>\n", $lid->NaamLid, $lid->Nummer);
-				} else {
-					printf("<li>%s</li>\n", $lid->NaamLid, $lid->Nummer);
-				}
-			}
-			echo("</ul>\n");
-		}
-		echo("</div> <!-- Einde invoerblok -->\n");
 		if ($muteerbaar) {
 			echo("<label>Lid toevoegen:</label>\n");
 			printf("<p><select name='add_lid' onChange='this.form.submit();'>\n");
@@ -471,8 +459,7 @@ function fnSelecties() {
 			printf("<option value='K'>Kloslid</option>", checked("K", "option", $_POST['selectie_status']));
 			echo("</select></td></tr>\n");
 		
-			$selgr = "<select name='selectie_groep'>\n
-						<option value=0>&nbsp;</option>\n";
+			$selgr = "";
 			if ($_POST['selectie_status'] == "L") {
 				$rows = db_onderdeel("lijstingebruik");
 			} else {
@@ -483,8 +470,24 @@ function fnSelecties() {
 					$selgr .= sprintf("<option value=%d>%s</option>\n", $grp->RecordID, $grp->Naam);
 				}
 			}
-			$selgr .= "</select>\n";
-			printf("<tr><th>Zit in groep:</th><td colspan=2>%s (bijgewerkt t/m %s)</td></tr>\n", $selgr, strtolower(date("j F Y", strtotime(db_lidond("maxgewijzigd", 0, "", "O.Type<>'T'")))));
+			printf("<tr><th>Zit in groep:</th><td colspan=2><select name='selectie_groep'>\n
+						<option value=0>&nbsp;</option>\n%s</select></td></tr>\n", $selgr);
+			
+			printf("<tr><th>Zit niet in groep:</th><td colspan=2><select name='selectie_niet_groep'>\n
+					<option value=0>&nbsp;</option>\n%s</select></td></tr>\n", $selgr);
+				
+
+			$seldp = "";
+			$rows = db_diploma("basislijst");
+			foreach($rows as $dip) {
+				$seldp .= sprintf("<option value=%d>%s</option>\n", $dip->RecordID, $dip->Naam);
+			}
+			
+			printf("<tr><th>In het bezit van diploma:</th><td colspan=2><select name='selectie_diploma'>\n
+						<option value=0>&nbsp;</option>\n%s</select></td></tr>\n", $seldp);
+			
+			printf("<tr><th>Niet in bezit van diploma:</th><td colspan=2><select name='selectie_niet_diploma'>\n
+					<option value=0>&nbsp;</option>\n%s</select></td></tr>\n", $seldp);
 			
 			echo("</table>\n");
 		
@@ -498,6 +501,16 @@ function fnSelecties() {
 			echo("</form>\n");
 		}
 		
+		if ($muteerbaar) {
+			$llw = sprintf("<a href='index.php?tp=%s&amp;lidid=%s&amp;OnderdeelID=%d&amp;actie=del_lid'><img src='./images/del.png' alt='Verwijder' title='Verwijderen uit selectie'></a>", $currenttab, "%d", $onderdeelid);
+		} else {
+			$llw = "";
+		}
+		$rows = db_lidond("selectielijst", 0, "", "", $onderdeelid);
+		if (count($rows) > 0) {
+			echo(fnDisplayTable($rows, "", "", 3, $llw));
+		}
+	
 		echo("<div id='opdrachtknoppen'>\n");
 		$rid = db_onderdeel("vorige", "S", 0, $onderdeelid);
 		if ($rid > 0) {
@@ -561,6 +574,18 @@ function add_del_selectie($actie, $onderdeelid) {
 	}
 	if ($_POST['selectie_temlidnr'] > 0 and $_POST['selectie_temlidnr'] < db_lidmaatschap("maxlidnr")) {
 		$w .= sprintf(" AND LM.Lidnr <= %d", $_POST['selectie_temlidnr']);
+	}
+	
+	
+	if ($_POST['selectie_niet_groep'] > 0) {
+		$w .= sprintf(" AND L.Nummer <> (SELECT IFNULL(MAX(LO.Lid), 0) FROM %sLidond AS LO WHERE OnderdeelID=%d AND LO.Lid=L.Nummer AND LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE()))", $table_prefix, $_POST['selectie_niet_groep']);
+	}
+	
+	if ($_POST['selectie_diploma'] > 0) {
+		$w .= sprintf(" AND L.Nummer IN (SELECT LD.Lid FROM %sLiddipl AS LD WHERE DiplomaID=%d AND (LD.LicentieVervallenPer IS NULL))", $table_prefix, $_POST['selectie_diploma']);
+	}
+	if ($_POST['selectie_niet_diploma'] > 0) {
+		$w .= sprintf(" AND L.Nummer <> (SELECT IFNULL(MAX(LD.Lid), 0) FROM %sLiddipl AS LD WHERE DiplomaID=%d AND LD.Lid=L.Nummer AND (LD.LicentieVervallenPer IS NULL))", $table_prefix, $_POST['selectie_niet_diploma']);
 	}
 
 	if ($actie == "deleteall") {

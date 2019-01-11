@@ -1311,6 +1311,25 @@ function db_lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0, $loid=0)
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
+	} elseif ($actie == "selectielijst") {
+		if (strlen($filter) > 0) {
+			$filter = " WHERE " . $filter;
+		}
+		$xtra_sel = "";
+		$query = sprintf("SELECT MAX(LO.OPMERK) FROM %s %s;", $fromlidond, $filter);
+		if (strlen(db_scalar($query)) > 0) {
+			$xtra_sel .= ", LO.OPMERK AS Opmerking";
+		}
+		$xtra_sel .= ", LO.Vanaf AS dteVanaf";
+		
+		$query = sprintf("SELECT L.Nummer AS lnkNummer, IFNULL((%5\$s), 0) AS numLidnr, %1\$s AS `Naam_lid`, L.Woonplaats,
+								L.Mobiel, IF(LENGTH(L.Email) > 5, L.Email, L.EmailOuders) AS `emlE-mail`%6\$s, L.Nummer AS llkNummer, L.GEBDATUM AS ndGEBDATUM
+								FROM %3\$s
+								%4\$s
+								ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectnaam, $selectzoeknaam, $fromlidond, $filter, $selectlidnr, $xtra_sel);
+		$result = fnQuery($query);
+		return $result->fetchAll();
+		
 	} elseif ($actie == "actueleleden") {
 		if (strlen($filter) > 0) {
 			$filter = $wherelidond . " AND " . $filter;
@@ -2303,9 +2322,6 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0, $referid=0, $ipf
 			}
 			if (isset($bt[3]['function'])) {
 				$f = $bt[3]['function'] . "=>" . $f;
-			}
-			if (isset($actie) and strlen($actie) > 0) {
-				$f .= " (" . $actie . ")";
 			}
 			$f = substr($f, 0, 50);
 		}
