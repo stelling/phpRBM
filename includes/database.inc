@@ -75,6 +75,15 @@ if (strlen($table_prefix) > 0 and substr($table_prefix, -1) != "_") {
 
 $selectnaam = "CONCAT(IF(LENGTH(L.Roepnaam)>1, L.Roepnaam, L.Voorletter), ' ', IF(L.Tussenv>'', CONCAT(L.Tussenv, ' '), ''), L.Achternaam)";
 $selectzoeknaam = "TRIM(CONCAT(L.Achternaam, ', ', IF(L.Tussenv>'', CONCAT(L.Tussenv, ' '), ''), IF(LENGTH(L.Roepnaam)>1, L.Roepnaam, L.Voorletter), ' '))";
+
+$selectgeslacht = "CASE L.Geslacht ";
+foreach ($arrGeslacht as $c => $o) {
+	$selectgeslacht .= sprintf("WHEN '%s' THEN '%s' ", $c, $o);
+}
+$selectgeslacht .= "ELSE 'Onbekend' END";
+
+$selecttelefoon = "IF(LENGTH(L.Telefoon) < 10, L.Mobiel, L.Telefoon)";
+$selectleeftijd = "IF(ISNULL(L.GEBDATUM) OR (NOT ISNULL(L.Overleden)), NULL, CONCAT(TIMESTAMPDIFF(YEAR, L.GEBDATUM, CURDATE()), ' jaar'))";
 $selectlidnr = sprintf("SELECT MAX(Lidnr) FROM %sLidmaatschap AS LM WHERE LM.Lid=L.Nummer AND LM.LIDDATUM <= CURDATE() AND ((LM.Opgezegd IS NULL) OR LM.Opgezegd >= CURDATE())", $table_prefix);
 $selectmailbox = "CASE WHEN (NOT M.deleted_on IS NULL) THEN 'Prullenbak'
 							  WHEN (M.Template=1) THEN 'Templates'
@@ -192,15 +201,9 @@ function TableExists($table) {
 } # TableExists
 
 function db_gegevenslid($LidID, $soort="Alg") {
-	global $selectnaam, $table_prefix, $fromlid, $fromlidond, $wherelidond, $dlnstatus, $fdlang, $arrGeslacht, $arrLegitimatie;
+	global $selectnaam, $selectgeslacht, $selectleeftijd, $table_prefix, $fromlid, $fromlidond, $wherelidond, $dlnstatus, $fdlang, $arrLegitimatie;
 
 	if ($soort == "Alg") {
-		
-		$sqlgeslacht = "CASE L.Geslacht ";
-		foreach ($arrGeslacht as $c => $o) {
-			$sqlgeslacht .= sprintf("WHEN '%s' THEN '%s' ", $c, $o);
-		}
-		$sqlgeslacht .= "ELSE 'Onbekend' END";
 		
 		$sqond = sprintf("SELECT MIN(O.Naam) FROM %1\$sOnderdl AS O INNER JOIN %1\$sLidond AS LO ON O.RecordID = LO.OnderdeelID
 								WHERE O.`Type` = 'O' AND LO.Lid = L.Nummer AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE())", $table_prefix);
@@ -235,7 +238,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					%s AS Geslacht, 
 					IF(NOT ISNULL(L.GEBDATUM), CONCAT(DATE_FORMAT(L.GEBDATUM, %s), IF(LENGTH(L.GEBPLAATS) > 1, CONCAT(' te ', L.GEBPLAATS), '')), '') AS Geboren, 
 					L.Overleden AS `dteOverleden op`,
-					IF(ISNULL(L.GEBDATUM) OR (NOT ISNULL(L.Overleden)), NULL, CONCAT(TIMESTAMPDIFF(YEAR, L.GEBDATUM, CURDATE()), ' jaar')) AS Leeftijd,
+					%s AS Leeftijd,
 					L.Burgerservicenummer,
 					'Adresgegevens' AS Kop2,
 					L.Adres,
@@ -271,7 +274,8 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					L.Gewijzigd AS `dteLaatst gewijzigd op` 
 					FROM %s 
 					WHERE L.Nummer=%d 
-					ORDER BY LM.LIDDATUM DESC;", $selectnaam, $sqlgeslacht, $fdlang, $sqond, $sqllegitimatie, $VOG, $sqlbd, $wbn, $sqdieet, $fromlid, $LidID);
+					ORDER BY LM.LIDDATUM DESC;", $selectnaam, $selectgeslacht, $fdlang, $selectleeftijd, $sqond, $sqllegitimatie, $VOG, $sqlbd, $wbn, $sqdieet, $fromlid, $LidID);
+					//debug($query);
 					
 	} elseif ($soort == "Financieel") {
 		$query = sprintf("SELECT L.Bankrekening AS Bankrekeningnummer, 
@@ -1253,7 +1257,7 @@ function db_functie($actie) {
 } # db_functie
 
 function db_lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0, $loid=0) {
-	global $selectnaam, $selectzoeknaam, $table_prefix, $fromlidond, $wherelidond, $selectlidnr, $fdaccess, $lididtestusers;
+	global $selectnaam, $selectzoeknaam, $selectgeslacht, $selecttelefoon, $selectleeftijd, $table_prefix, $fromlidond, $wherelidond, $selectlidnr, $fdaccess, $lididtestusers;
 	
 	$mess = "";
 	
@@ -1322,11 +1326,11 @@ function db_lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0, $loid=0)
 		}
 		$xtra_sel .= ", LO.Vanaf AS dteVanaf";
 		
-		$query = sprintf("SELECT L.Nummer AS lnkNummer, IFNULL((%5\$s), 0) AS numLidnr, %1\$s AS `Naam_lid`, L.Woonplaats,
-								L.Mobiel, IF(LENGTH(L.Email) > 5, L.Email, L.EmailOuders) AS `emlE-mail`%6\$s, L.Nummer AS llkNummer, L.GEBDATUM AS ndGEBDATUM
+		$query = sprintf("SELECT L.Nummer AS lnkNummer, IFNULL((%5\$s), 0) AS numLidnr, %1\$s AS `Naam_lid`, L.Woonplaats, %7\$s AS Geslacht, %8\$s AS Leeftijd, %9\$s AS Telefoon,
+								IF(LENGTH(L.Email) > 5, L.Email, L.EmailOuders) AS `emlE-mail`%6\$s, L.Nummer AS llkNummer, L.GEBDATUM AS ndGEBDATUM
 								FROM %3\$s
 								%4\$s
-								ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectnaam, $selectzoeknaam, $fromlidond, $filter, $selectlidnr, $xtra_sel);
+								ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectnaam, $selectzoeknaam, $fromlidond, $filter, $selectlidnr, $xtra_sel, $selectgeslacht, $selectleeftijd, $selecttelefoon);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		

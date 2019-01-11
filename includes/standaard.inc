@@ -3,6 +3,37 @@
 date_default_timezone_set('Europe/Amsterdam');
 setlocale(LC_ALL,'nl_NL.utf8');
 
+$arrGeslacht["V"] = "Vrouwelijk";
+$arrGeslacht["M"] = "Mannelijk";
+$arrGeslacht["B"] = "Bedrijf/Vereniging";
+$arrGeslacht["O"] = "Onbekend";
+
+$arrTL = array("Alle", "Leden", "Klosleden", "Voormalig leden");
+
+$arrLegitimatie["G"] = "Geen";
+$arrLegitimatie["I"] = "Identiteitskaart";
+$arrLegitimatie["P"] = "Paspoort";
+$arrLegitimatie["R"] = "Rijbewijs";
+	
+$arrSoortMemo["A"] = "Algemeen";
+$arrSoortMemo["B"] = "Bewaking";
+$arrSoortMemo["D"] = "Dieet";
+$arrSoortMemo["E"] = "Examen";
+$arrSoortMemo["F"] = "Financiën";
+$arrSoortMemo["G"] = "Gezondheid/medisch";
+$arrSoortMemo["I"] = "Inschrijving bewaking";
+$arrSoortMemo["WN"] = "Waarschuwen in geval van nood";
+
+$arrTypeDiploma["B"] = "Brevet";
+$arrTypeDiploma["C"] = "Competentie";
+$arrTypeDiploma["D"] = "Diploma";
+$arrTypeDiploma["I"] = "Insigne";
+$arrTypeDiploma["L"] = "Licentie";
+$arrTypeDiploma["M"] = "Module";
+$arrTypeDiploma["P"] = "Proeve van bekwaamheid";
+
+$pasfotoextenties = array("gif", "jpg", "jpeg", "png");
+
 session_cache_expire(20);
 if (isset($_SESSION['lidid'])) {
 	// Sessie bestaat al
@@ -92,37 +123,6 @@ if (strlen(db_param("zs_muteerbarememos")) > 0) {
 }
 
 $fileverinfo = 'templates/verenigingsinfo.html';
-
-$arrGeslacht["V"] = "Vrouwelijk";
-$arrGeslacht["M"] = "Mannelijk";
-$arrGeslacht["B"] = "Bedrijf/Vereniging";
-$arrGeslacht["O"] = "Onbekend";
-
-$arrTL = array("Alle", "Leden", "Klosleden", "Voormalig leden");
-
-$arrLegitimatie["G"] = "Geen";
-$arrLegitimatie["I"] = "Identiteitskaart";
-$arrLegitimatie["P"] = "Paspoort";
-$arrLegitimatie["R"] = "Rijbewijs";
-	
-$arrSoortMemo["A"] = "Algemeen";
-$arrSoortMemo["B"] = "Bewaking";
-$arrSoortMemo["D"] = "Dieet";
-$arrSoortMemo["E"] = "Examen";
-$arrSoortMemo["F"] = "Financiën";
-$arrSoortMemo["G"] = "Gezondheid/medisch";
-$arrSoortMemo["I"] = "Inschrijving bewaking";
-$arrSoortMemo["WN"] = "Waarschuwen in geval van nood";
-
-$arrTypeDiploma["B"] = "Brevet";
-$arrTypeDiploma["C"] = "Competentie";
-$arrTypeDiploma["D"] = "Diploma";
-$arrTypeDiploma["I"] = "Insigne";
-$arrTypeDiploma["L"] = "Licentie";
-$arrTypeDiploma["M"] = "Module";
-$arrTypeDiploma["P"] = "Proeve van bekwaamheid";
-
-$pasfotoextenties = array("gif", "jpg", "jpeg", "png");
 
 if (isset($_GET['tp']) and strlen($_GET['tp']) > 1) {
 	$curtab = explode("/", $_GET['tp']);
@@ -678,7 +678,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 		if ($disptot > 0 and $totaantal > 0) {
 			$ret .= "<tr>";
 			for ($kn=0; $kn < count($ktot); $kn++) {
-				if ($kn+1 == $disptot) {
+				if ($kn+1 == $disptot and $totaantal > 1) {
 					$ret .= sprintf("<th>%s records</th>", number_format($totaantal, 0, ",", "."));
 				} elseif (gettype($ktot[$kn]) == "double") {
 					$ret .= sprintf("<th class='number'>%s</th>", number_format($ktot[$kn], 2, ",", "."));
