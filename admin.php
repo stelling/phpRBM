@@ -30,7 +30,7 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 	foreach(db_authorisation("lijst") as $row) {
 		$vn = sprintf("toegang%d", $row->RecordID);
 		if (isset($_POST[$vn]) and $_POST[$vn] != $row->Toegang) {
-			$query = sprintf("UPDATE %1\$sAdmin_access SET Toegang=%2\$d, Gewijzigd=SYSDATE() WHERE RecordID=%3\$d AND Toegang<>%2\$d;", $table_prefix, $_POST[$vn], $row->RecordID);
+			$query = sprintf("UPDATE %1\$sAdmin_access SET Toegang=%2\$d, Gewijzigd=SYSDATE() WHERE RecordID=%3\$d AND Toegang<>%2\$d;", TABLE_PREFIX, $_POST[$vn], $row->RecordID);
 			$result = fnQuery($query);
 			if ($result > 0) {
 				if ($_POST[$vn] == -1) {
@@ -47,25 +47,33 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 		fnQuery("SET CHARACTER SET utf8;");
 		$queries = file_get_contents($_FILES['SQLupload']["tmp_name"]);
 		if ($queries !== false) {
+			$sp = strpos($queries, "DROP");
+			if ($sp > 0) {
+				$queries = substr($queries, $sp);
+			} else {
+				$sp = strpos($queries, "DELETE");
+				if ($sp > 0) {
+					$queries = substr($queries, $sp);
+				}
+			}
 			$mess = "Bestand is succesvol ge-upload.";
 			db_logboek("add", $mess, 9, 0, 1);
-			$querylid = sprintf("SELECT COUNT(*) FROM %sLid;", $table_prefix);
-			$querylo = sprintf("SELECT COUNT(*) FROM %sLidond;", $table_prefix);
-			if (substr_count($queries, $table_prefix) == 0) {
-				$mess = sprintf("In het upload bestand komt de juiste table name prefix (%s) niet voor. Dit bestand wordt niet verwerkt.", $table_prefix);
+			if (strpos($queries, TABLE_PREFIX) === false) {
+				$mess = sprintf("In het upload bestand komt de juiste table name prefix (%s) niet voor. Dit bestand wordt niet verwerkt.", TABLE_PREFIX);
 				db_logboek("add", $mess, 9, 0, 1);
-			} elseif (strpos($queries, $table_prefix . "Lid") === FALSE and db_scalar($querylid) < 5) {
-				$mess = sprintf("De verplichte tabel '%sLid' zit niet in deze upload. Dit bestand wordt niet verwerkt.", $table_prefix);
+				
+			} elseif (strpos($queries, TABLE_PREFIX . "Lid") === FALSE and db_lid("aantal") < 5) {
+				$mess = sprintf("De verplichte tabel '%sLid' zit niet in deze upload. Dit bestand wordt niet verwerkt.", TABLE_PREFIX);
 				db_logboek("add", $mess, 9, 0, 1);
-			} elseif (strpos($queries, $table_prefix . "Lidond") === FALSE and db_scalar($querylo) < 5) {
-				$mess = sprintf("De verplichte tabel '%sLidond' zit niet in deze upload. Dit bestand wordt niet verwerkt.", $table_prefix);
+			} elseif (strpos($queries, TABLE_PREFIX . "Lidond") === FALSE and db_lidond("aantal") < 5) {
+				$mess = sprintf("De verplichte tabel '%sLidond' zit niet in deze upload. Dit bestand wordt niet verwerkt.", TABLE_PREFIX);
 				db_logboek("add", $mess, 9, 0, 1);
 			} elseif (fnQuery($queries) !== true) {
 				$mess = "Bestand is in de database verwerkt.";
 				db_logboek("add", $mess, 9, 0, 1);
 				db_onderhoud(1);
 				fnMaatwerkNaUpload();
-				printf("<script>setTimeout(\"location.href='%s';\", 15000);</script>\n", $_SERVER['PHP_SELF']);
+				printf("<script>setTimeout(\"location.href='%s';\", 30000);</script>\n", $_SERVER['PHP_SELF']);
 			}
 		}
 	} else {
@@ -236,21 +244,18 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	$rows = db_interface("lijst");
 	if (count($rows) > 0) {
 		echo(fnDisplayTable($rows, "", "", 1));
-		
 		foreach ($rows as $row) {
 			$copytext .= $row->SQL . "\n";
 		}
-		
-		printf("&nbsp;<input type='button' value='Wijzigingen afmelden' OnClick=\"location.href='%s?tp=%s&amp;op=afmeldenwijz'\"></p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-		$copytext .= "\n";
 	} else {
 		echo("<p class='mededeling'>Er zijn geen wijzigingen die nog verwerkt moeten worden.</p>\n");
 	}
-	echo("</form>\n");
 		
 	if (strlen($copytext) > 0) {
-		echo("<h2>SQL code voor in MS-Access, om te kopi&euml;ren:</h2>\n");
-		printf("<div class='CopyPaste'>%s</div>\n", $copytext);
+		echo("<h2>SQL-code voor in MS-Access, om te gebruiken:</h2>\n");
+		printf("<textarea id='copywijzigingen' class='copypaste' rows=%d readonly>%s</textarea>\n", count($rows), $copytext);
+		echo("<p><button onClick='CopyFunction()'>Kopieer naar klembord</button>\n");
+		printf("<input type='button' value='Wijzigingen afmelden' OnClick=\"location.href='%s?tp=%s&amp;op=afmeldenwijz'\"></p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	}
 	
 } elseif ($currenttab == "Onderhoud" and toegang($currenttab, 1, 1)) {
@@ -341,8 +346,6 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	
 	$rows = db_logboek("lijst", "", $_POST['typefilter'], $_POST['lidfilter'], 0, 0, $_POST['ipfilter']);
 	echo(fnDisplayTable($rows, "", "", 0, "", "", "logboek"));
-// function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_regel="", $class="lijst", $xtra_kolom="") {
-	
 	
 } elseif ($currenttab == "Info" and toegang($currenttab, 1, 1)) {
 	phpinfo();
@@ -351,7 +354,6 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 HTMLfooter();
 
 function fnInstellingen() {
-	global $table_prefix;
 
 	// Omschrijving NT = Niet tonen in dit scherm
 	$arrParam['db_backup_type'] = "Welke taballen moeten worden gebackuped? 1=interne phpRBM-tabellen, 2=tabellen uit Access, 3=beide.";
@@ -513,8 +515,6 @@ function fnInstellingen() {
 } # fnInstellingen
 
 function fnStamgegevens() {
-	
-	// fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_regel="", $class="lijst", $xtra_kolom="") {
 		
 	printf("<p>%s</p>", fnDisplayTable(db_diploma("basislijst"), "", "Basislijst Diploma's", 0, "", "", "lijst", ""));
 	
@@ -527,3 +527,12 @@ function fnStamgegevens() {
 } # fnStamgegevens
 
 ?>
+
+<script>
+	function CopyFunction() {
+		let textarea = document.getElementById("copywijzigingen");
+		textarea.select();
+		document.execCommand('copy');
+		alert("De wijzigingen zijn naar het klembord gekopieerd.");
+	}
+</script>
