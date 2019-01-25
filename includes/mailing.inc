@@ -33,7 +33,7 @@ function fnMailing() {
 	if (isset($_GET['mid']) and $_GET['mid'] > 0) {
 		$mailing = new Mailing($_GET['mid']);
 	} else {
-			$mailing = new Mailing();
+		$mailing = new Mailing();
 	}
 	
 	if ($op != "preview") {
@@ -98,12 +98,14 @@ function fnMailing() {
 		$mailing->Add_rcpt($_GET['lidid']);
 		$mailing->edit();
 	} elseif ($op == "add_rcpt" and isset($_GET['to_address']) and isValidMailAddress($_GET['to_address'], 0)) {
+		$mailing->post_form();
 		$mailing->Add_rcpt(0, $_GET['to_address']);
 		$mailing->edit();
 	} elseif ($op == "del_rcpt" and isset($_GET['lidid']) and $_GET['lidid'] > 0) {
 		$mailing->delete_rcpt($_GET['lidid']);
 		$mailing->edit();
 	} elseif ($op == "del_rcpt" and isset($_GET['addr']) and strlen($_GET['addr']) > 0) {
+		$mailing->post_form();
 		$mailing->delete_rcpt(0, $_GET['addr']);
 		$mailing->edit();
 	} elseif ($op == "add_selectie") {
@@ -186,7 +188,7 @@ class Mailing {
 	public $xtranum = 0;
 
 	function __construct($mid=0) {
-		global $selectnaam, $table_prefix, $fdlang, $fdkort, $arrGeslacht, $wherelid, $fromlidond, $wherelidond, $whereliddipl;
+		global $selectnaam, $fdlang, $fdkort, $wherelid, $fromlidond, $wherelidond, $whereliddipl;
 
 		$this->mid = $mid;
 		
@@ -225,126 +227,126 @@ class Mailing {
 		$this->resultaatversturen = db_param("mailing_resultaatversturen");
 		$this->emailsecretariaat = db_param("emailsecretariaat");
 
-		$sql = sprintf("SELECT Roepnaam FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
+		$sql = sprintf("SELECT Roepnaam FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Roepnaam", 'SQL' => $sql);
 		
-		$sql = sprintf("SELECT CONCAT(L.Roepnaam, IF(L.GEBDATUM > DATE_SUB(CURDATE(), INTERVAL 18 YEAR), ' of ouders/verzorgers van', '')) FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
+		$sql = sprintf("SELECT CONCAT(L.Roepnaam, IF(L.GEBDATUM > DATE_SUB(CURDATE(), INTERVAL 18 YEAR), ' of ouders/verzorgers van', '')) FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "RoepnaamOfOuders", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT Voorletter FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
+		$sql = sprintf("SELECT Voorletter FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Voorletters", 'SQL' => $sql);
 
 		$sql = sprintf("SELECT (CASE ISNULL(L.Tussenv) WHEN 0 THEN CONCAT(L.Tussenv, ' ', L.Achternaam)
-				 ELSE L.Achternaam END) AS Achternaam FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
+				 ELSE L.Achternaam END) AS Achternaam FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Achternaam", 'SQL' => $sql);
 		
 		$sql = "SELECT CASE L.Geslacht";
-		foreach ($arrGeslacht as $key => $value) {
+		foreach (ARRGESLACHT as $key => $value) {
 			$sql .= sprintf(" WHEN '%s' THEN '%s'", $key, $value);
 		}
-		$sql .= sprintf(" END FROM %sLid AS L WHERE L.Nummer=%%d", $table_prefix);
+		$sql .= sprintf(" END FROM %sLid AS L WHERE L.Nummer=%%d", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Geslacht", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT L.Adres FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
+		$sql = sprintf("SELECT L.Adres FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Adres", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT L.Postcode FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
+		$sql = sprintf("SELECT L.Postcode FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Postcode", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT L.Woonplaats FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);;
+		$sql = sprintf("SELECT L.Woonplaats FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);;
 		$this->MergeField[]=array('Naam' => "Woonplaats", 'SQL' => $sql);
 							 
-		$sql = sprintf("SELECT %s AS Lidnaam FROM %sLid AS L WHERE L.Nummer=%%d;", $selectnaam, $table_prefix);
+		$sql = sprintf("SELECT %s AS Lidnaam FROM %sLid AS L WHERE L.Nummer=%%d;", $selectnaam, TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Lidnaam", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT Login FROM %sAdmin_login WHERE LidID=%%d;", $table_prefix);
+		$sql = sprintf("SELECT Login FROM %sAdmin_login WHERE LidID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Login", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT LM.Lidnr FROM %sLidmaatschap AS LM WHERE %s AND LM.Lid=%%d;", $table_prefix, $wherelid);
+		$sql = sprintf("SELECT LM.Lidnr FROM %sLidmaatschap AS LM WHERE %s AND LM.Lid=%%d;", TABLE_PREFIX, $wherelid);
 		$this->MergeField[]=array('Naam' => "Lidnummer", 'SQL' => $sql);
 		
 		$sql = sprintf("SELECT FLOOR(SUM(TIMESTAMPDIFF(MONTH, LM.LIDDATUM, IF(ISNULL(LM.Opgezegd), CURDATE(), LM.Opgezegd)))/12)
-							FROM %sLidmaatschap AS LM WHERE LM.LIDDATUM < CURDATE() AND LM.Lid=%%d LIMIT 1;", $table_prefix);
+							FROM %sLidmaatschap AS LM WHERE LM.LIDDATUM < CURDATE() AND LM.Lid=%%d LIMIT 1;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "LengteLidmaatschap", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT L.Telefoon FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
+		$sql = sprintf("SELECT L.Telefoon FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Telefoon", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT L.Mobiel FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
+		$sql = sprintf("SELECT L.Mobiel FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Mobiel", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT DATE_FORMAT(L.GEBDATUM, %s) AS Geboortedatum FROM %sLid AS L WHERE L.Nummer=%%d;", $fdlang, $table_prefix);
+		$sql = sprintf("SELECT DATE_FORMAT(L.GEBDATUM, %s) AS Geboortedatum FROM %sLid AS L WHERE L.Nummer=%%d;", $fdlang, TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Geboortedatum", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT L.GEBPLAATS FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
+		$sql = sprintf("SELECT L.GEBPLAATS FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Geboorteplaats", 'SQL' => $sql);
 
 		$sql = sprintf('SELECT O.Naam FROM %1$sLidond AS LO INNER JOIN %1$sOnderdl AS O ON O.RecordID = LO.OnderdeelID
-				 WHERE %2$s AND O.GekoppeldAanQuery=0 AND LO.Lid=%%d ORDER BY O.Naam;', $table_prefix, $wherelidond);
+				 WHERE %2$s AND O.GekoppeldAanQuery=0 AND LO.Lid=%%d ORDER BY O.Naam;', TABLE_PREFIX, $wherelidond);
 		$this->MergeField[]=array('Naam' => "Onderdelen", 'SQL' => $sql);
 	
 		if (db_bewseiz("aantal") > 0) {
 			$sql = sprintf('SELECT CONCAT(DATE_FORMAT(BEGIN_PER, %1$s), \' t/m \', DATE_FORMAT(EINDE_PER, %1$s)) AS Per'
 				  . ' FROM %2$sBewaking AS BW INNER JOIN %2$sBewseiz AS BS ON BS.RecordID = BW.SeizoenID'
-				  . ' WHERE EINDE_PER >= CURDATE() AND %3$s ORDER BY BEGIN_PER;', $fdlang, $table_prefix, "Lid=%d");
+				  . ' WHERE EINDE_PER >= CURDATE() AND %3$s ORDER BY BEGIN_PER;', $fdlang, TABLE_PREFIX, "Lid=%d");
 			$this->MergeField[]=array('Naam' => "BewakingToekomst", 'SQL' => $sql);
 							 
 			$Funct = "(CASE BW.Functie WHEN 0 THEN '' ELSE CONCAT(' (', F.Afkorting, ')') END)";
 			$sql = sprintf('SELECT CONCAT(DATE_FORMAT(BEGIN_PER, %1$s), \' t/m \', DATE_FORMAT(EINDE_PER, %1$s), %2$s) AS Per
 					 FROM (%3$sBewaking AS BW INNER JOIN %3$sBewseiz AS BS ON BS.RecordID = BW.SeizoenID) INNER JOIN %3$sFunctie AS F ON BW.Functie = F.Nummer
-					 WHERE BW.EINDE_PER < CURDATE() AND %4$s ORDER BY BW.BEGIN_PER;', $fdkort, $Funct, $table_prefix, "BW.Lid=%d");
+					 WHERE BW.EINDE_PER < CURDATE() AND %4$s ORDER BY BW.BEGIN_PER;', $fdkort, $Funct, TABLE_PREFIX, "BW.Lid=%d");
 			$this->MergeField[]=array('Naam' => "BewakingHistorie", 'SQL' => $sql);
 		}
 							  
-		$sql = sprintf("SELECT L.Bankrekening FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
+		$sql = sprintf("SELECT L.Bankrekening FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Bankrekening", 'SQL' => $sql);
 		
-		$sql = sprintf("SELECT L.Burgerservicenummer FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
+		$sql = sprintf("SELECT L.Burgerservicenummer FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "BSN", 'SQL' => $sql);
 
 		if ($_SESSION['aantalrekeningen'] > 0) {
-			$sql = sprintf("SELECT RK.Nummer FROM %sRekening AS RK WHERE RK.Bedrag > 0 AND RK.Bedrag > RK.Betaald AND %s;", $table_prefix, "RK.Lid=%d");
+			$sql = sprintf("SELECT RK.Nummer FROM %sRekening AS RK WHERE RK.Bedrag > 0 AND RK.Bedrag > RK.Betaald AND %s;", TABLE_PREFIX, "RK.Lid=%d");
 			$this->MergeField[]=array('Naam' => "OpenstaandeRekeningen", 'SQL' => $sql);
 
-			$sql = sprintf("SELECT ROUND(SUM(RK.Bedrag-RK.Betaald), 2) AS OpenstaandBedrag FROM %sRekening AS RK WHERE RK.Lid=%%d;", $table_prefix);
+			$sql = sprintf("SELECT ROUND(SUM(RK.Bedrag-RK.Betaald), 2) AS OpenstaandBedrag FROM %sRekening AS RK WHERE RK.Lid=%%d;", TABLE_PREFIX);
 			$this->MergeField[]=array('Naam' => "OpenstaandBedrag", 'SQL' => $sql);
 		}
 
 		$sql = sprintf("SELECT (CASE L.`Machtiging afgegeven` WHEN 1 THEN 'Ja' ELSE 'Nee' END) AS MachtigingAfgegeven
-							 FROM %sLid AS L WHERE L.Nummer=%%d;", $table_prefix);
+							 FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "MachtigingAfgegeven", 'SQL' => $sql);
 		
 		$sql = sprintf('SELECT DISTINCT DP.Kode FROM %1$sLiddipl AS LD INNER JOIN %1$sDiploma AS DP ON LD.DiplomaID = DP.RecordID
-				 WHERE %2$s AND LD.Lid=%%d ORDER BY DP.Volgnr, LD.DatumBehaald, DP.KODE;', $table_prefix, $whereliddipl);
+				 WHERE %2$s AND LD.Lid=%%d ORDER BY DP.Volgnr, LD.DatumBehaald, DP.KODE;', TABLE_PREFIX, $whereliddipl);
 		$this->MergeField[]=array('Naam' => "DiplomaKort", 'SQL' => $sql);
 
 		$sql = sprintf('SELECT DISTINCT DP.Naam FROM %1$sLiddipl AS LD INNER JOIN %1$sDiploma AS DP ON LD.DiplomaID = DP.RecordID
-				 WHERE %2$s AND LD.Lid=%%d ORDER BY DP.Volgnr, LD.DatumBehaald, DP.Naam;', $table_prefix, $whereliddipl);
+				 WHERE %2$s AND LD.Lid=%%d ORDER BY DP.Volgnr, LD.DatumBehaald, DP.Naam;', TABLE_PREFIX, $whereliddipl);
 		$this->MergeField[]=array('Naam' => "DiplomaLang", 'SQL' => $sql);
 		
 		if (count(db_diploma("zelfservice_lijst")) > 0) {
 			$sql = sprintf('SELECT DISTINCT DP.Naam FROM %1$sLiddipl AS LD INNER JOIN %1$sDiploma AS DP ON LD.DiplomaID = DP.RecordID
-					WHERE %2$s AND LD.Lid=%%d AND DP.Zelfservice=1 ORDER BY DP.Volgnr, LD.DatumBehaald, DP.Naam;', $table_prefix, $whereliddipl);
+					WHERE %2$s AND LD.Lid=%%d AND DP.Zelfservice=1 ORDER BY DP.Volgnr, LD.DatumBehaald, DP.Naam;', TABLE_PREFIX, $whereliddipl);
 			$this->MergeField[]=array('Naam' => "DiplomaZelfservice", 'SQL' => $sql);
 		}
 	
-		$sql = sprintf("SELECT L.RelnrRedNed FROM %sLid AS L WHERE %s;", $table_prefix, "L.Nummer=%d");
+		$sql = sprintf("SELECT L.RelnrRedNed FROM %sLid AS L WHERE %s;", TABLE_PREFIX, "L.Nummer=%d");
 		$this->MergeField[]=array('Naam' => "RelnrRedNed", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT DATE_FORMAT(LIDDATUM, %s) FROM %sLidmaatschap AS LM WHERE %s AND LM.Lid=%%d;", $fdlang, $table_prefix, $wherelid);
+		$sql = sprintf("SELECT DATE_FORMAT(LIDDATUM, %s) FROM %sLidmaatschap AS LM WHERE %s AND LM.Lid=%%d;", $fdlang, TABLE_PREFIX, $wherelid);
 		$this->MergeField[]=array('Naam' => "LidVanaf", 'SQL' => $sql);
 
 		$sql = sprintf("SELECT IF(LM.OPGEZEGD IS NULL, 'Niet', DATE_FORMAT(LM.Opgezegd, %s)) FROM %sLidmaatschap AS LM
 							 WHERE LM.LIDDATUM < CURDATE() AND LM.Lid=%%d
-							 ORDER BY LM.LIDDATUM DESC LIMIT 1;", $fdlang, $table_prefix);
+							 ORDER BY LM.LIDDATUM DESC LIMIT 1;", $fdlang, TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "OpgezegdPer", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT IF((L.Email IS NULL), L.EmailOuders, L.Email) FROM %sLid AS L WHERE Nummer=%%d;", $table_prefix);
+		$sql = sprintf("SELECT IF((L.Email IS NULL), L.EmailOuders, L.Email) FROM %sLid AS L WHERE Nummer=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Email", 'SQL' => $sql);
 
-		$query = sprintf("SELECT COUNT(*) FROM %1\$sLidRedNed AS RN JOIN %1\$sLidmaatschap AS LM ON LM.LIDNR = RN.Lidnr WHERE LENGTH(RN.Foutboodschap) > 0;", $table_prefix);
+		$query = sprintf("SELECT COUNT(*) FROM %1\$sLidRedNed AS RN JOIN %1\$sLidmaatschap AS LM ON LM.LIDNR = RN.Lidnr WHERE LENGTH(RN.Foutboodschap) > 0;", TABLE_PREFIX);
 		if (TableExists("LidRedNed") and db_scalar($query) > 0) {
-			$sql = sprintf("SELECT RN.Foutboodschap FROM %1\$sLidRedNed AS RN JOIN %1\$sLidmaatschap AS LM ON LM.LIDNR = RN.Lidnr WHERE LM.LID=%%d;", $table_prefix);
+			$sql = sprintf("SELECT RN.Foutboodschap FROM %1\$sLidRedNed AS RN JOIN %1\$sLidmaatschap AS LM ON LM.LIDNR = RN.Lidnr WHERE LM.LID=%%d;", TABLE_PREFIX);
 			$this->MergeField[]=array('Naam' => "VerschilSportlink", 'SQL' => $sql);
 		}
 				
@@ -352,35 +354,35 @@ class Mailing {
 			
 			$sql = sprintf("SELECT CONCAT(O.Naam, IF(LO.Functie > 0, CONCAT(' (', F.Omschrijv , ')'), ''))
 					FROM (%1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID = LO.OnderdeelID) INNER JOIN %1\$sFunctie AS F ON LO.Functie = F.Nummer
-					WHERE ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE()) AND `Type`='A' AND LO.Lid=%%d ORDER BY O.Naam;", $table_prefix);
+					WHERE ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE()) AND `Type`='A' AND LO.Lid=%%d ORDER BY O.Naam;", TABLE_PREFIX);
 			$this->MergeField[]=array('Naam' => "Afdelingen", 'SQL' => $sql);
 			
 			if (db_groep("aantal") > 1) {				
 				$sql = sprintf("SELECT CONCAT(O.Naam, IF(LO.GroepID > 0, CONCAT(' (', GR.Starttijd, ' ', GR.Omschrijving, ')'), IF(LO.Functie > 0, CONCAT(' (', F.Omschrijv , ')'), '')))
 						FROM ((%1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID = LO.OnderdeelID) LEFT JOIN %1\$sGroep AS GR ON LO.GroepID=GR.RecordID) INNER JOIN %1\$sFunctie AS F ON LO.Functie = F.Nummer
-						WHERE ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE()) AND `Type`='A' AND LO.Lid=%%d ORDER BY O.Naam;", $table_prefix);
+						WHERE ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE()) AND `Type`='A' AND LO.Lid=%%d ORDER BY O.Naam;", TABLE_PREFIX);
 				$this->MergeField[]=array('Naam' => "AfdelingenMetGroep", 'SQL' => $sql);
 			}
 		}
 		
 		if (db_onderdeel("aantalingebruik", "R") > 0) {
 			$sql = sprintf("SELECT O.Naam FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID = LO.OnderdeelID 
-					 WHERE %2\$s AND `Type`='R' AND LO.Lid=%%d ORDER BY O.Naam;", $table_prefix, $wherelidond);
+					 WHERE %2\$s AND `Type`='R' AND LO.Lid=%%d ORDER BY O.Naam;", TABLE_PREFIX, $wherelidond);
 			$this->MergeField[]=array('Naam' => "Rollen", 'SQL' => $sql);
 		}
 		
 		if (db_memo("aantal", 0, "D") > 0) {
-			$sql = sprintf("SELECT IF((Memo IS NULL), 'Geen', Memo) FROM %sMemo WHERE Lid=%%d AND Soort='D';", $table_prefix);
+			$sql = sprintf("SELECT IF((Memo IS NULL), 'Geen', Memo) FROM %sMemo WHERE Lid=%%d AND Soort='D';", TABLE_PREFIX);
 			$this->MergeField[]=array('Naam' => "Dieet", 'SQL' => $sql);
 		}
 		
 		if (db_memo("aantal", 0, "G") > 0) {
-			$sql = sprintf("SELECT IF((Memo IS NULL), 'Geen', Memo) FROM %sMemo WHERE Lid=%%d AND Soort='G';", $table_prefix);
+			$sql = sprintf("SELECT IF((Memo IS NULL), 'Geen', Memo) FROM %sMemo WHERE Lid=%%d AND Soort='G';", TABLE_PREFIX);
 			$this->MergeField[]=array('Naam' => "MemoGezondheid", 'SQL' => $sql);
 		}
 		
 		if (db_memo("aantal", 0, "I") > 0) {
-			$sql = sprintf("SELECT IF(Memo IS NULL, 'Geen', Memo) FROM %sMemo WHERE Lid=%%d AND Soort='I';", $table_prefix);
+			$sql = sprintf("SELECT IF(Memo IS NULL, 'Geen', Memo) FROM %sMemo WHERE Lid=%%d AND Soort='I';", TABLE_PREFIX);
 			$this->MergeField[]=array('Naam' => "OpmerkingInschrijvingBewaking", 'SQL' => $sql);
 		}
 		
@@ -608,7 +610,6 @@ class Mailing {
 		
 		echo("<div class='clear'></div>\n");
 		
-		
 		printf("</div> <!-- Einde editmailingform -->\n");
 		printf("<textarea name='message' id='editor'>%s</textarea>\n", $this->message);
 		
@@ -779,7 +780,6 @@ class Mailing {
 	} # controle
 	
 	public function post_form() {
-		global $table_prefix;
 
 		if (isset($_POST['subject']) and strlen($_POST['subject']) > 1) {
 			$this->subject = html_entity_decode(str_replace("\"", "'", $_POST['subject']));
@@ -834,6 +834,11 @@ class Mailing {
 		if (isset($_POST['add_address']) and strlen($_POST['add_address']) > 5) {
 			$this->add_rcpt(0, $_POST['add_address']);
 		}
+		
+		if (isset($_GET['op']) and isset($_GET['op']) == "del_rcpt" and isset($_GET['lidid']) and $_GET['lidid'] > 0) {
+			$this->delete_rcpt($_GET['lidid']);
+		}
+		
 	} # post_form
 	
 	public function upload() {
@@ -888,7 +893,7 @@ class Mailing {
 	}
 	
 	public function add_del_selectie($actie) {
-		global $table_prefix, $fromlid, $wherelid, $fromlidond, $wherelidond;
+		global $fromlid, $wherelid, $fromlidond, $wherelidond;
 		
 		if ($actie == "add") {
 			$w = " AND (L.Overleden IS NULL) AND (L.Verwijderd IS NULL)";
@@ -951,9 +956,8 @@ class Mailing {
 	} # add_del_selectie
 		
 	public function delete_all_rcpt() {
-		global $table_prefix;
 	
-		$query = sprintf("DELETE FROM %sMailing_rcpt WHERE MailingID=%d;", $table_prefix, $this->mid);
+		$query = sprintf("DELETE FROM %sMailing_rcpt WHERE MailingID=%d;", TABLE_PREFIX, $this->mid);
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$mess = sprintf("Alle %d ontvangers zijn uit mailing %d verwijderd.", $result, $this->mid);
@@ -989,7 +993,6 @@ class Mailing {
 	}
 	
 	private function send_mailing($preview=0, $lidid=0) {
-		global $table_prefix;
 		
 		$mail = new RBMmailer();
 		$mail->From = $this->from_addr;
@@ -1126,7 +1129,6 @@ class Mailing {
 	} # send_mailing
 	
 	private function merge($lidid=0) {
-		global $table_prefix;
 		
 		$this->merged_subject = str_ireplace("[%Naamvereniging%]", db_param("naamvereniging"), $this->subject);
 		$this->merged_subject = str_ireplace("[%Naamwebsite%]", db_param("naamwebsite"), $this->merged_subject);
@@ -1231,9 +1233,8 @@ class Mailing {
 	}
 	
 	public function delete() {
-		global $table_prefix;
 	
-		$query = sprintf("UPDATE %sMailing SET deleted_on=NOW(), DeletedBy=%d WHERE MailingID=%d AND (deleted_on IS NULL);", $table_prefix, $_SESSION['lidid'], $this->mid);
+		$query = sprintf("UPDATE %sMailing SET deleted_on=NOW(), DeletedBy=%d WHERE MailingID=%d AND (deleted_on IS NULL);", TABLE_PREFIX, $_SESSION['lidid'], $this->mid);
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$mess = sprintf("Mailing %d (%s) is naar de prullenbak verplaatst.", $this->mid, $this->subject, $_SESSION['naamingelogde']);
@@ -1242,9 +1243,8 @@ class Mailing {
 	}
 	
 	public function undelete() {
-		global $table_prefix;
 		
-		$query = sprintf("UPDATE %sMailing SET deleted_on=NULL WHERE MailingID=%d;", $table_prefix, $this->mid);
+		$query = sprintf("UPDATE %sMailing SET deleted_on=NULL WHERE MailingID=%d;", TABLE_PREFIX, $this->mid);
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$mess = sprintf("Mailing %d (%s) is door %s uit de prullenbak gehaald.", $this->mid, $this->subject, $_SESSION['naamingelogde']);
@@ -1293,7 +1293,7 @@ function toonverstuurdemail($mhid) {
 } # toonverstuurdemail
 
 function fnRekeningenMailen($op) {
-	global $currenttab, $currenttab2, $table_prefix;
+	global $currenttab, $currenttab2;
 
 	echo("<div id='rekeningenmailen'>\n");
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
@@ -1326,7 +1326,7 @@ function fnRekeningenMailen($op) {
 				$filter .= " AND RK.Bedrag <> 0";
 			}
 			if (!isset($_POST['eerderverzonden'])) {
-				$filter .= sprintf(" AND (RK.Nummer NOT IN (SELECT Xtra_Num FROM %sMailing_hist WHERE Xtra_Char='REK'))", $table_prefix);
+				$filter .= sprintf(" AND (RK.Nummer NOT IN (SELECT Xtra_Num FROM %sMailing_hist WHERE Xtra_Char='REK'))", TABLE_PREFIX);
 			}
 			if (!isset($_POST['geenemail'])) {
 				$filter .= " AND (LENGTH(L.EMAIL) > 5 OR LENGTH(L.EmailVereniging) > 5 OR LENGTH(L.EmailOuders) > 5)";
@@ -1496,7 +1496,7 @@ function fnRekeningenMailen($op) {
 		echo("</table>\n");
 		echo("</form>\n");
 	}
-	echo("</div> <!== Einde rekeningenmailen -->\n");
+	echo("</div <!== Einde rekeningenmailen -->\n");
 } # fnRekeningenMailen
 
 function fnMailingInstellingen() {
@@ -1658,7 +1658,7 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 	private $bestand_briefpapier = "templates/briefpapier.html";
 
 	function __construct($lidid=-1) {
-		global $table_prefix, $selectnaam;
+		global $selectnaam;
 		global $smtphost, $smtpport, $smtpuser, $smtppw;
 		
 		if (!isset($smtphost)) {

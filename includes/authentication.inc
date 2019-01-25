@@ -78,7 +78,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (count(db_artikel("artikelbeschikbaar")) > 0) {
 			addtp("Zelfservice/Bestellingen");
 		}
-		$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap WHERE Lid=%d AND (Opgezegd IS NULL);", $table_prefix, $_SESSION['lidid']);
+		$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap WHERE Lid=%d AND (Opgezegd IS NULL);", TABLE_PREFIX, $_SESSION['lidid']);
 		if (db_scalar($query) > 0) {
 			addtp("Zelfservice/Opzegging");
 		}
@@ -299,7 +299,7 @@ function fnAuthenticatie($melding=1, $password="") {
 } # fnAuthenticatie
 	
 function toegang($soort, $melding=1, $log=1) {
-	global $lididwebmasters, $table_prefix, $tabpages, $currenttab, $currenttab2, $muteerbarememos;
+	global $lididwebmasters, $tabpages, $currenttab, $currenttab2, $muteerbarememos;
 	
 	$arrAltijdToegang[] = "Validatie login";
 	$arrAltijdToegang[] = "Bevestiging login";
@@ -342,7 +342,6 @@ function toegang($soort, $melding=1, $log=1) {
 }
 
 function fnHerstellenWachtwoord($stap="", $lidid=0) {
-	global $table_prefix;
 	
 	$mess = "";
 	
@@ -355,7 +354,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		if (db_param("mailing_herstellenwachtwoord") == 0) {
 			$content = "<p>Herstellen wachtwoord [%NAAMWEBSITE%]: https://[%URLRESETWW%]</p>\n";
 			$mid = db_mailing("add", 0, 0, "", "Herstellen wachtwoord", 0, db_param("emailwebmaster"), "");
-			$query  = sprintf("UPDATE %sMailing SET message=\"%s\", template=1 WHERE MailingID=%d;", $table_prefix, $content, $mid);
+			$query  = sprintf("UPDATE %sMailing SET message=\"%s\", template=1 WHERE MailingID=%d;", TABLE_PREFIX, $content, $mid);
 			fnQuery($query);
 			db_param("mailing_herstellenwachtwoord", "updval", $mid);
 		}
@@ -403,7 +402,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 	
 	} elseif (isset($_GET["lidid"]) and $_GET["lidid"] > 0 and strlen($_GET["key"]) > 5) {
 		
-		$query = sprintf("SELECT Login, ActivatieKey FROM %sAdmin_login WHERE LidID=%d;", $table_prefix, $_GET["lidid"]);
+		$query = sprintf("SELECT Login, ActivatieKey FROM %sAdmin_login WHERE LidID=%d;", TABLE_PREFIX, $_GET["lidid"]);
 		$result = fnQuery($query);
 		$row = $result->fetch();
 		
@@ -459,7 +458,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 			}
 			$query = sprintf("SELECT MAX(Login.LidID)
 									FROM (%1\$sAdmin_login AS Login INNER JOIN %1\$sLid AS L ON L.Nummer = Login.LidID) INNER JOIN %1\$sLidmaatschap AS LM ON LM.Lid = L.Nummer
-									WHERE %2\$s;", $table_prefix, $w);
+									WHERE %2\$s;", TABLE_PREFIX, $w);
 			$lidid = db_scalar($query);
 			if ($lidid > 0) {
 				$mess = fnHerstellenWachtwoord("mail", $lidid);
@@ -488,7 +487,6 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 } # fnHerstellenWachtwoord
 
 function fnValidatieLogin($lidid, $key, $stap) {
-	global $basisurl;
 	
 	$mess = "";
 	if ($stap == "mail") {
@@ -498,7 +496,7 @@ function fnValidatieLogin($lidid, $key, $stap) {
 		if (db_param("mailing_validatielogin") == 0) {
 			$content = "<p>Activatie url [%NAAMWEBSITE%]: https://[%URLACTIVATIE%]</p>\n";
 			$mid = db_mailing("add", 0, 0, "", "Validatielink nieuwe login", 0, db_param("emailwebmaster"), "");
-			$query  = sprintf("UPDATE %sMailing SET message=\"%s\", template=1 WHERE MailingID=%d;", $table_prefix, $content, $mid);
+			$query  = sprintf("UPDATE %sMailing SET message=\"%s\", template=1 WHERE MailingID=%d;", TABLE_PREFIX, $content, $mid);
 			fnQuery($query);
 			db_param("mailing_validatielogin", "updval", $mid);
 		}
@@ -539,7 +537,7 @@ function fn22ConfirmLidnr($row) {
 }
 
 function fnLoginAanvragen($stap="") {
-	global $table_prefix, $lididwebmasters, $lididtestusers, $selectlidnr, $basisurl;
+	global $lididwebmasters, $lididtestusers, $selectlidnr;
 	
 	$login_verbodenkarakters = "@#$^&;*%éëèöôü";
 	
@@ -558,7 +556,7 @@ function fnLoginAanvragen($stap="") {
 		if (!isset($_POST['lidnummer']) or strlen($_POST['lidnummer']) == 0) {
 			$_POST['lidnummer'] = 0;
 		}
-		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_login WHERE (LidID=%d OR Login='%s');", $table_prefix, $_POST['lidnummer'], $_POST['gewenstelogin']);
+		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_login WHERE (LidID=%d OR Login='%s');", TABLE_PREFIX, $_POST['lidnummer'], $_POST['gewenstelogin']);
 		if (db_scalar($query) > 0) {
 			$mess = "Deze login is al in gebruik en/of er is al een login aan dit lidnummer gekoppeld.";
 		} elseif (strlen($_POST['email']) == 0) {
@@ -626,7 +624,7 @@ function fnLoginAanvragen($stap="") {
 							$mess = $wwok;
 						} elseif (db_logins("controlebestaat", "", $_POST['gewenstelogin'], $row->Nummer) > 0) {
 							$mess = sprintf("Login '%s' is al in gebruik.", $_POST['gewenstelogin']);
-						} elseif (db_param("login_lidnrnodigbijaanvraag") == 0 or $row->Lidnr == $_POST['lidnummer']) {
+						} elseif (db_param("login_lidnrnodigbijaanvraag") == 0 or $row->Lidnr == $_POST['lidnummer'] or in_array($_POST['lidnummer'], $lididtestusers)) {
 							if (db_logins("add", "", $_POST['gewenstelogin'], $row->Nummer, "", $_POST['gewenstwachtwoord'])) {
 								$rl = db_logins("rowlogin", "", "", $row->Nummer);
 								$lidid = $rl[0]->Nummer;
@@ -645,7 +643,7 @@ function fnLoginAanvragen($stap="") {
 			}
 		}
 		db_logboek("add", $mess, 5, 0, 1, $lidid);
-		printf("<p><a href='%s' target='_top'>Klik hier om verder te gaan.</a></p>\n", $basisurl);
+		printf("<p><a href='%s' target='_top'>Klik hier om verder te gaan.</a></p>\n", BASISURL);
 		
 	} else {
 
@@ -686,7 +684,6 @@ function fnLoginAanvragen($stap="") {
 } # fnLoginAanvragen
 
 function fnOpvragenLidnr($stap) {
-	global $table_prefix, $basisurl;
 	
 	if ($stap == "mail") {
 		if (!isValidMailAddress($_POST['emailvoorlidnr'], 0)) {
@@ -715,7 +712,7 @@ function fnOpvragenLidnr($stap) {
 			$mess = "Onbekende fout";
 		}
 		db_logboek("add", $mess, 5, 0, 1);
-		printf("<p><a href='%s' target='_top'>Klik hier om verder te gaan.</a></p>\n", $basisurl);
+		printf("<p><a href='%s' target='_top'>Klik hier om verder te gaan.</a></p>\n", BASISURL);
 		
 	} elseif (db_param("mailing_lidnr") > 0) {
 
@@ -832,11 +829,11 @@ function fneisenwachtwoord() {
 } # fneisenwachtwoord
 
 function addtp($tp) {
-	global $tabpages, $currenttab, $table_prefix;
+	global $tabpages, $currenttab;
 	
 	if ((strstr($tp, "/") === false or startwith($tp, $currenttab . "/")) and toegang($tp, 0, 0)) {
 		$tabpages[] = $tp;
-		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_access WHERE Tabpage=\"%s\";", $table_prefix, str_replace("'", "", $tp));
+		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_access WHERE Tabpage=\"%s\";", TABLE_PREFIX, str_replace("'", "", $tp));
 		if (db_scalar($query) == 0) {
 			db_authorisation("add", 0, $tp);
 		}

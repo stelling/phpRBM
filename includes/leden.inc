@@ -13,8 +13,8 @@ if (toegang("Wijzigen lid", 0, 0)) {
 }
 
 function fnWijzigen($lidid=0, $actie="") {
-	global $currenttab, $currenttab2, $table_prefix;
-	global $muteerbarememos, $arrLegitimatie, $arrSoortMemo, $arrGeslacht, $actionurl;
+	global $currenttab, $currenttab2;
+	global $muteerbarememos, $actionurl;
 	
 	$opzegtermijn = db_param("zs_opzegtermijn");
 	
@@ -68,8 +68,8 @@ function fnWijzigen($lidid=0, $actie="") {
 				echo("<table>\n");
 				foreach ($muteerbarememos as $kodesoort) {
 					$namevar = "Memo_" . $kodesoort;
-					if (array_key_exists($kodesoort, $arrSoortMemo)) {
-						$naamsoort = $arrSoortMemo[$kodesoort];
+					if (array_key_exists($kodesoort, ARRSOORTMEMO)) {
+						$naamsoort = ARRSOORTMEMO[$kodesoort];
 					} else {
 						$naamsoort = "Overig " . $kodesoort;
 					}
@@ -239,7 +239,7 @@ function fnWieiswie($actie, $metfoto=1) {
 } # fnWieiswie
 
 function fnLedenlijst() {
-	global $arrTL, $table_prefix, $wherelidond, $ldl;
+	global $wherelidond, $ldl;
 
 	if (toegang("Wijzigen lid", 0, 0)) {
 		$llw = "<a href='index.php?tp=Wijzigen+lid/Algemene+gegevens&amp;lidid=%d'><img src='./images/edit.png' alt='Wijzigen' title='Wijzigen lidgegevens'></a>";
@@ -256,7 +256,7 @@ function fnLedenlijst() {
 		$_SESSION['val_groep'] = $_POST['lbGroepFilter'];
 	} elseif (!isset($_SESSION['val_naamfilter'])) {
 		$_SESSION['val_naamfilter'] = "";
-		$_SESSION['val_TL'] = $arrTL[1];
+		$_SESSION['val_TL'] = ARRTL[1];
 		$_SESSION['val_groep'] = 0;
 	}
 	
@@ -266,7 +266,7 @@ function fnLedenlijst() {
 	echo("<tr>\n");
 	printf("<td class='label'>Naam bevat</td><td><input type='text' name='tbNaamFilter' size=20 value='%s' placeholder='Achter- of roepnaam' onblur='form.submit();'></td>\n", $_SESSION['val_naamfilter']);
 	echo("<td>");
-	foreach($arrTL as $tl) {
+	foreach(ARRTL as $tl) {
 		if ($tl == $_SESSION['val_TL']) {$c=" checked"; } else { $c=""; }
 		if ($tl != "Klosleden" or $_SESSION['val_groep'] == 0) {
 			printf("<input type='radio'%2\$s name='rbTL' value='%1\$s' onclick='this.form.submit();'>%1\$s\n", $tl, $c);
@@ -321,7 +321,7 @@ function fnLedenlijst() {
 } # fnLedenlijst
 
 function fnSelecties() {
-	global $currenttab, $table_prefix;
+	global $currenttab;
 	
 	if (isset($_GET['Scherm'])) {
 		$scherm = $_GET['Scherm'];
@@ -424,7 +424,7 @@ function fnSelecties() {
 			echo("<label>Lid toevoegen:</label>\n");
 			printf("<p><select name='add_lid' onChange='this.form.submit();'>\n");
 			printf("<option value=0>&nbsp;</option>\n");
-			$filter = sprintf("(L.Nummer NOT IN (SELECT Lid FROM %sLidond WHERE OnderdeelID=%d))", $table_prefix, $onderdeelid);
+			$filter = sprintf("(L.Nummer NOT IN (SELECT Lid FROM %sLidond WHERE OnderdeelID=%d))", $onderdeelid);
 			$pot_rows = db_lid("lijstselect", $filter);
 			foreach($pot_rows as $lid) {
 				$rnm = $lid->Zoeknaam;
@@ -547,12 +547,12 @@ function fnSelecties() {
 } # fnSelecties
 
 function add_del_selectie($actie, $onderdeelid) {
-	global $table_prefix, $fromlid, $wherelid, $fromlidond, $wherelidond;
+	global $fromlid, $wherelid, $fromlidond, $wherelidond;
 		
 	if ($actie == "add") {
-		$w = sprintf(" AND (L.Overleden IS NULL) AND (L.Verwijderd IS NULL) AND (L.Nummer NOT IN (SELECT Lid FROM %sLidond AS LOC WHERE LOC.OnderdeelID=%d AND LOC.Vanaf <= CURDATE()))", $table_prefix, $onderdeelid);
+		$w = sprintf(" AND (L.Overleden IS NULL) AND (L.Verwijderd IS NULL) AND (L.Nummer NOT IN (SELECT Lid FROM %sLidond AS LOC WHERE LOC.OnderdeelID=%d AND LOC.Vanaf <= CURDATE()))", TABLE_PREFIX, $onderdeelid);
 	} else {
-		$w = sprintf("AND (L.Nummer IN (SELECT Lid FROM %sLidond AS LOC WHERE LOC.OnderdeelID=%d))", $table_prefix, $onderdeelid);
+		$w = sprintf("AND (L.Nummer IN (SELECT Lid FROM %sLidond AS LOC WHERE LOC.OnderdeelID=%d))", TABLE_PREFIX, $onderdeelid);
 	}
 		
 	$mess = "";
@@ -578,18 +578,18 @@ function add_del_selectie($actie, $onderdeelid) {
 	
 	
 	if ($_POST['selectie_niet_groep'] > 0) {
-		$w .= sprintf(" AND L.Nummer <> (SELECT IFNULL(MAX(LO.Lid), 0) FROM %sLidond AS LO WHERE OnderdeelID=%d AND LO.Lid=L.Nummer AND LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE()))", $table_prefix, $_POST['selectie_niet_groep']);
+		$w .= sprintf(" AND L.Nummer <> (SELECT IFNULL(MAX(LO.Lid), 0) FROM %sLidond AS LO WHERE OnderdeelID=%d AND LO.Lid=L.Nummer AND LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE()))", TABLE_PREFIX, $_POST['selectie_niet_groep']);
 	}
 	
 	if ($_POST['selectie_diploma'] > 0) {
-		$w .= sprintf(" AND L.Nummer IN (SELECT LD.Lid FROM %sLiddipl AS LD WHERE DiplomaID=%d AND (LD.LicentieVervallenPer IS NULL))", $table_prefix, $_POST['selectie_diploma']);
+		$w .= sprintf(" AND L.Nummer IN (SELECT LD.Lid FROM %sLiddipl AS LD WHERE DiplomaID=%d AND (LD.LicentieVervallenPer IS NULL))", TABLE_PREFIX, $_POST['selectie_diploma']);
 	}
 	if ($_POST['selectie_niet_diploma'] > 0) {
-		$w .= sprintf(" AND L.Nummer <> (SELECT IFNULL(MAX(LD.Lid), 0) FROM %sLiddipl AS LD WHERE DiplomaID=%d AND LD.Lid=L.Nummer AND (LD.LicentieVervallenPer IS NULL))", $table_prefix, $_POST['selectie_niet_diploma']);
+		$w .= sprintf(" AND L.Nummer <> (SELECT IFNULL(MAX(LD.Lid), 0) FROM %sLiddipl AS LD WHERE DiplomaID=%d AND LD.Lid=L.Nummer AND (LD.LicentieVervallenPer IS NULL))", TABLE_PREFIX, $_POST['selectie_niet_diploma']);
 	}
 
 	if ($actie == "deleteall") {
-		$query = sprintf("SELECT L.Nummer FROM %1\$sLid AS L WHERE L.Nummer IN (SELECT LOC.Lid FROM %1\$sLidond AS LOC WHERE LOC.OnderdeelID=%2\$d);", $table_prefix, $onderdeelid);
+		$query = sprintf("SELECT L.Nummer FROM %1\$sLid AS L WHERE L.Nummer IN (SELECT LOC.Lid FROM %1\$sLidond AS LOC WHERE LOC.OnderdeelID=%2\$d);", TABLE_PREFIX, $onderdeelid);
 		
 	} elseif ($_POST['selectie_groep'] == 0) {
 		if (strlen($_POST['selectie_vanliddatum']) == 10 and $_POST['selectie_vanliddatum'] > db_lid("minliddatum")) {
@@ -929,10 +929,9 @@ function overzichtverjaardagen($metfoto=1) {
 } # overzichtverjaardagen
 
 function fotolid($lidid, $metversie=0) {
-	global $pasfotoextenties;
 
 	$fn = "";
-	foreach($pasfotoextenties as $ext) {
+	foreach(PASFOTOEXTENTIES as $ext) {
 		if (file_exists(sprintf("pasfoto/Pasfoto%d.%s", $lidid, $ext))) {
 			$fn = sprintf("pasfoto/Pasfoto%d.%s", $lidid, $ext);
 		} elseif (file_exists(sprintf("pasfoto/pasfoto%d.%s", $lidid, $ext))) {
@@ -950,7 +949,7 @@ function fotolid($lidid, $metversie=0) {
 } # fotolid
 
 function algemeenlidmuteren($lidid) {
-	global $arrGeslacht, $arrLegitimatie, $actionurl, $table_prefix, $fdsql, $fdaccess, $currenttab;
+	global $actionurl, $fdsql, $fdaccess, $currenttab;
 		
 	$wijzvelden[] = array('label' => "Roepnaam", 'naam' => "Roepnaam", 'lengte' => 17);
 	$wijzvelden[] = array('label' => "Voorletters", 'naam' => "VOORLETTER", 'lengte' => 10);
@@ -1061,9 +1060,9 @@ function algemeenlidmuteren($lidid) {
 			}
 			if ($v !== "__skip__" and $v != $old->$fn) {
 				if ($v === "NULL") {
-					$query = sprintf("UPDATE %sLid SET `%s`=NULL, Gewijzigd=SYSDATE() WHERE Nummer=%d;", $table_prefix, $fn, $lidid);
+					$query = sprintf("UPDATE %sLid SET `%s`=NULL, Gewijzigd=SYSDATE() WHERE Nummer=%d;", TABLE_PREFIX, $fn, $lidid);
 				} else {
-					$query = sprintf("UPDATE %sLid SET `%s`='%s', Gewijzigd=SYSDATE() WHERE Nummer=%d;", $table_prefix, $fn, $v, $lidid);
+					$query = sprintf("UPDATE %sLid SET `%s`='%s', Gewijzigd=SYSDATE() WHERE Nummer=%d;", TABLE_PREFIX, $fn, $v, $lidid);
 				}
 				$result = fnQuery($query);
 				if ($result > 0) {
@@ -1093,12 +1092,12 @@ function algemeenlidmuteren($lidid) {
 		$ph = $wijzvelden[$i]['label'];
 		if ($wijzvelden[$i]['label'] == "Geslacht" or ($wijzvelden[$i]['label'] == "Legitimatietype")) {
 			if ($wijzvelden[$i]['label'] == "Geslacht") {
-				$an = "arrGeslacht";
+				$an = "ARRGESLACHT";
 			} else {
-				$an = "arrLegitimatie";
+				$an = "ARRLEGITIMATIE";
 			}
 			$opt = "\n";
-			foreach ($$an as $key => $val) {
+			foreach (constant($an) as $key => $val) {
 				$sel = "";
 				if ($key == $row->{$wijzvelden[$i]['naam']}) {
 					$sel = " selected";
@@ -1146,7 +1145,7 @@ function algemeenlidmuteren($lidid) {
 } # algemeenlidmuteren
 
 function nieuwepasfoto($lidid, $filterlid="") {
-	global $pasfotoextenties, $actionurl;
+	global $actionurl;
 	
 	$max_size_attachm = 2 * 1024 * 1024;  // 2MB
 	$min_size_attachm = 4 * 1024;  // 4KB
@@ -1184,8 +1183,8 @@ function nieuwepasfoto($lidid, $filterlid="") {
 		}
 		$target = $ad . sprintf("Pasfoto%d.%s", $lidid, $ext);
 		$mess = "";
-		if (in_array($ext, $pasfotoextenties) === false) {
-			$mess = sprintf("Het bestand met extensie %s is niet toegestaan. De volgende extensies zijn toegestaan: %s.", $ext, implode(", ", $pasfotoextenties));
+		if (in_array($ext, PASFOTOEXTENTIES) === false) {
+			$mess = sprintf("Het bestand met extensie %s is niet toegestaan. De volgende extensies zijn toegestaan: %s.", $ext, implode(", ", PASFOTOEXTENTIES));
 		} elseif ($_FILES['UploadFoto']['size'] > $max_size_attachm) {
 			$mess = sprintf("De foto kan niet ge-upload worden, omdat het bestand groter dan %dKB is.", $max_size_attachm / 1024);
 		} elseif ($_FILES['UploadFoto']['size'] < $min_size_attachm) {
@@ -1717,7 +1716,7 @@ function MailVervallenDiplomas() {
 	if ((date('H') == 8 or ($_SESSION['webmaster'] == 1 and date('H') > 7)) and $termijnvervallendiplomasmailen > 0) {
 		$ed = date('Y-m-d', mktime(0, 0, 0, date("m")+$termijnvervallendiplomasmailen, date("d"), date("Y")));
 		foreach(db_logins("lijst", "", "", 0, "Login.HerinneringVervallenDiplomas=1") as $lid) {
-			$query = sprintf("SELECT IFNULL(MAX(LEFT(DATE_ADD(send_on, INTERVAL %d MONTH), 10)), '2012-01-01') FROM %sMailing_hist WHERE Xtra_Char='H_DP' AND LidID=%d;", $termijnvervallendiplomasmailen, $table_prefix, $lid->lnkNummer);
+			$query = sprintf("SELECT IFNULL(MAX(LEFT(DATE_ADD(send_on, INTERVAL %d MONTH), 10)), '2012-01-01') FROM %sMailing_hist WHERE Xtra_Char='H_DP' AND LidID=%d;", $termijnvervallendiplomasmailen, TABLE_PREFIX, $lid->lnkNummer);
 			$bd = db_scalar($query);
 			if ($bd < date('Y-m-d')) {
 				$bd = date('Y-m-d');

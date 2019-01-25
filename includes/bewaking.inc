@@ -1,7 +1,7 @@
 <?php
 
 function fnBewaking() {
-	global $ldl, $currenttab2, $table_prefix;
+	global $ldl, $currenttab2;
 	
 	fnDispMenu(2);
 		
@@ -23,9 +23,9 @@ function fnBewaking() {
 	} elseif (isset($_SESSION['actseizoen']) and strlen($_SESSION['actseizoen']) > 0) {
 		$seizoen = $_SESSION['actseizoen'];
 	} elseif ($currenttab2 == "Overzicht inschrijvingen" or $currenttab2 == "Blokken muteren") {
-		$seizoen = db_scalar(sprintf("SELECT MAX(SeizoenID) FROM %sBewaking_Blok;", $table_prefix));
+		$seizoen = db_scalar(sprintf("SELECT MAX(SeizoenID) FROM %sBewaking_Blok;", TABLE_PREFIX));
 	} else {
-		$seizoen = db_scalar(sprintf("SELECT MAX(SeizoenID) FROM %sBewaking;", $table_prefix));
+		$seizoen = db_scalar(sprintf("SELECT MAX(SeizoenID) FROM %sBewaking;", TABLE_PREFIX));
 	}
 	
 	$hw = db_bewaking("huidigeweek", $seizoen);
@@ -42,7 +42,6 @@ function fnBewaking() {
 	
 	$st_len_bp = 1;
 	
-	
 	if ($currenttab2 == "Downloaden inschrijvingen") {
 		$toonfilter = false;
 	} else {
@@ -55,7 +54,7 @@ function fnBewaking() {
 	if ($toonfilter == false) {
 		// Geen filter tonen
 	} elseif ($currenttab2 == "Diploma's muteren" or $currenttab2 == "Nieuwe pasfoto") {
-		$filterlid = sprintf("L.Nummer IN (SELECT Lid FROM %1\$sBewaking AS BW INNER JOIN %1\$sBewseiz AS BS ON BW.SeizoenID=BS.RecordID WHERE BS.Afgesloten=0)", $table_prefix);
+		$filterlid = sprintf("L.Nummer IN (SELECT Lid FROM %1\$sBewaking AS BW INNER JOIN %1\$sBewseiz AS BS ON BW.SeizoenID=BS.RecordID WHERE BS.Afgesloten=0)", TABLE_PREFIX);
 		$optionslid = "<option value=-1>...</option>\n";
 		foreach (db_lid("lijst", $filterlid) as $row) {
 			if ($row->Nummer == $lidid) {
@@ -162,7 +161,7 @@ function fnBewaking() {
 		$lijst = db_bewaking("aantallen", $seizoen);
 		echo(fnDisplayTable($lijst, "", "", 0, "", "", "bewakingsaantallen"));
 	} elseif ($currenttab2 == "Nieuwe pasfoto" and $lidid > 0) {
-		$filterlid = sprintf("L.Nummer IN (SELECT Lid FROM %1\$sBewaking AS BW INNER JOIN %1\$sBewseiz AS BS ON BW.SeizoenID=BS.RecordID WHERE BS.Afgesloten=0)", $table_prefix);
+		$filterlid = sprintf("L.Nummer IN (SELECT Lid FROM %1\$sBewaking AS BW INNER JOIN %1\$sBewseiz AS BS ON BW.SeizoenID=BS.RecordID WHERE BS.Afgesloten=0)", TABLE_PREFIX);
 		nieuwepasfoto($lidid, $filterlid);
 	} elseif ($currenttab2 == "Diploma's muteren" and toegang($_GET['tp']) and $lidid > 0) {
 		diplomaslidmuteren($lidid, $dptype, 0);
@@ -294,7 +293,6 @@ function bew_postindeling($seizoen, $week=-1) {
 } # bew_postindeling
 
 function inschrijvenbewaking($lidid) {
-	global $table_prefix;
 	
 	fnDispMenu(2);
 	
@@ -307,7 +305,7 @@ function inschrijvenbewaking($lidid) {
 			if (isset($_POST['insnr']) and $_POST['insnr'] > 0) {
 				$insnr = $_POST['insnr'];
 			} else {
-				$insnr = db_scalar(sprintf("SELECT MAX(Nummer) FROM %sBewaking_Inschrijving;", $table_prefix)) + 3;
+				$insnr = db_scalar(sprintf("SELECT MAX(Nummer) FROM %sBewaking_Inschrijving;", TABLE_PREFIX)) + 3;
 			}
 			foreach (db_bewaking_blok("openblokken") as $row) {
 				$k1 = sprintf("k1_%d", $row->RecordID);

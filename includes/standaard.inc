@@ -3,36 +3,18 @@
 date_default_timezone_set('Europe/Amsterdam');
 setlocale(LC_ALL,'nl_NL.utf8');
 
-$arrGeslacht["V"] = "Vrouwelijk";
-$arrGeslacht["M"] = "Mannelijk";
-$arrGeslacht["B"] = "Bedrijf/Vereniging";
-$arrGeslacht["O"] = "Onbekend";
+define("ARRGESLACHT", ["V" => "Vrouwelijk", "M" => "Mannelijk", "B" => "Bedrijf/Vereniging", "O" => "Onbekend"]);
+define("ARRTL", ["Alle", "Leden", "Klosleden", "Voormalig leden"]);
+define("ARRLEGITIMATIE", ["G" => "Geen", "I" => "Identiteitskaart", "P" => "Paspoort", "R" => "Rijbewijs"]);
+define("ARRSOORTMEMO", ["A" => "Algemeen", "B" => "Bewaking", "D" => "Dieet", "E" => "Examen", "F" => "Financiën", "G" => "Gezondheid/medisch", "I" => "Inschrijving bewaking", "WN" => "Waarschuwen in geval van nood"]);
+define("ARRTYPEDIPLOMA", ["B" => "Brevet", "C" => "Competentie", "D" => "Diploma", "I" => "Insigne", "L" => "Licentie", "M" => "Module", "P" => "Proeve van bekwaamheid"]);
+define("PASFOTOEXTENTIES", ["gif", "jpg", "jpeg", "png"]);
 
-$arrTL = array("Alle", "Leden", "Klosleden", "Voormalig leden");
-
-$arrLegitimatie["G"] = "Geen";
-$arrLegitimatie["I"] = "Identiteitskaart";
-$arrLegitimatie["P"] = "Paspoort";
-$arrLegitimatie["R"] = "Rijbewijs";
-	
-$arrSoortMemo["A"] = "Algemeen";
-$arrSoortMemo["B"] = "Bewaking";
-$arrSoortMemo["D"] = "Dieet";
-$arrSoortMemo["E"] = "Examen";
-$arrSoortMemo["F"] = "Financiën";
-$arrSoortMemo["G"] = "Gezondheid/medisch";
-$arrSoortMemo["I"] = "Inschrijving bewaking";
-$arrSoortMemo["WN"] = "Waarschuwen in geval van nood";
-
-$arrTypeDiploma["B"] = "Brevet";
-$arrTypeDiploma["C"] = "Competentie";
-$arrTypeDiploma["D"] = "Diploma";
-$arrTypeDiploma["I"] = "Insigne";
-$arrTypeDiploma["L"] = "Licentie";
-$arrTypeDiploma["M"] = "Module";
-$arrTypeDiploma["P"] = "Proeve van bekwaamheid";
-
-$pasfotoextenties = array("gif", "jpg", "jpeg", "png");
+if (isset($_SERVER['HTTPS'])){
+	define("BASISURL", "https://" . $_SERVER['HTTP_HOST']);
+} else {
+	define("BASISURL", "http://" . $_SERVER['HTTP_HOST']);
+}
 
 session_cache_expire(20);
 if (isset($_SESSION['lidid'])) {
@@ -49,12 +31,6 @@ if ((isset($_SESSION['webmaster']) and $_SESSION['webmaster'] == 1) or $_SERVER[
 //	error_reporting(E_ALL);
 }
 
-if (isset($_SERVER['HTTPS'])){
-	$basisurl = "https://" . $_SERVER['HTTP_HOST'];
-} else {
-	$basisurl = "http://" . $_SERVER['HTTP_HOST'];
-}
-
 if (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
 	$_SESSION['lidid'] = 0;
 	$_SESSION['lidnr'] = 0;
@@ -67,6 +43,10 @@ if (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
 $dir = substr(__DIR__, 0, strrpos(__DIR__, "/"));
 require($dir . '/config.php');
 $bestandsversie = filectime($dir . "/index.php");
+if (strlen($table_prefix) > 0 and substr($table_prefix, -1) != "_") {
+	$table_prefix .= "_";
+}
+define("TABLE_PREFIX", $table_prefix);
 
 if (isset($_GET['tp']) and strlen($_GET['tp']) > 1) {
 	$sp = strpos($_GET['tp'], "/");
@@ -246,7 +226,7 @@ function HTMLheader($breed=0) {
 } # HTMLheader
 
 function HTMLfooter() {
-	global $table_prefix, $navpad, $bestandsversie, $basisurl;
+	global $navpad, $bestandsversie;
 
 	if (!isset($_GET['header']) or $_GET['header'] != "no") {
 		if (strlen(db_param("naamvereniging")) > 2) {
@@ -276,7 +256,7 @@ function HTMLfooter() {
 				 <div id='footerleft'>%s</div>\n
 				 <a href='%s'>%s</a> %s\n
 				 <div id='footerright'>%s</div>\n
-				 </footer>\n", $cr, $basisurl, db_param("naamwebsite"), $np, strftime("%e %B %Y", $bestandsversie));
+				 </footer>\n", $cr, BASISURL, db_param("naamwebsite"), $np, strftime("%e %B %Y", $bestandsversie));
 		echo("</div>  <!-- Einde container of containerbreed -->\n");
 		echo("</body>\n");
 		echo("</html>\n");
