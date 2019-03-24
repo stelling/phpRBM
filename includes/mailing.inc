@@ -191,30 +191,7 @@ class Mailing {
 		global $selectnaam, $fdlang, $fdkort, $wherelid, $fromlidond, $wherelidond, $whereliddipl;
 
 		$this->mid = $mid;
-		
-		if ($this->mid > 0) {
-			$ml = db_mailing("record", $this->mid);
-			$this->from_name = trim($ml->from_name);
-			$this->from_addr = trim($ml->from_addr);
-			$this->to_name = trim($ml->to_name);
-			$this->cc_addr = trim($ml->cc_addr);
-			$this->subject = trim($ml->subject);
-			$this->message = $ml->message;
-			$this->template = $ml->template;
-			$this->confidential = $ml->confidential;
-			$this->new_on = $ml->new_on;
-			$this->AddedBy = $ml->AddedBy;
-			$this->changed_on = $ml->changed_on;
-			$this->ChangedBy = $ml->ChangedBy;
-			$this->sent_on = $ml->sent_on;
-			$this->SentBy = $ml->SentBy;
-			$this->deleted_on = $ml->deleted_on;
-			$this->DeletedBy = $ml->DeletedBy;
-			$this->aant_rcpt = db_mailing_rcpt("aantal", $this->mid);
-		} else {
-			$this->from_addr = $_SESSION['emailingelogde'];
-			$this->new_on = date("Y-m-d");
-		}
+		$this->vuldbvars();
 		
 		$this->dir_attachm = substr($_SERVER["SCRIPT_FILENAME"], 0, strrpos($_SERVER["SCRIPT_FILENAME"], "/")) . "/attachments";
 		
@@ -485,8 +462,9 @@ class Mailing {
 	
 	public function edit() {
 		global $currenttab, $currenttab2, $navpad, $fdlang;
-
+		
 		$ad = $this->dir_attachm . "/" . $this->mid;
+		$this->vuldbvars();
 		
 		if ($this->mid == 0) {
 			$currenttab2 = "Concepten";
@@ -506,7 +484,7 @@ class Mailing {
 		printf("<p><label>Vanaf e-mail:</label><input type='email' value=\"%s\" size=50 readonly></p>\n", $this->from_addr);
 		printf("<p><label>Aan:</label><input type='text' name='to_name' value=\"%s\" size=50 maxlength=50> (Omschrijving van de groep personen aan wie deze mailing gericht is)</p>\n", $this->to_name);
 		printf("<p><label>Onderwerp:</label><input type='text' name='subject' value=\"%s\" size=100 maxlength=75></p>\n", $this->subject);
-			
+
 		$this->verzendenmag = false;	
 		if ($this->mid > 0) {
 			$rcpt_rows = db_mailing("rcpt", $this->mid);
@@ -549,7 +527,7 @@ class Mailing {
 					$this->meldingen = "";
 				}
 				echo("<label>Ontvanger toevoegen:</label>\n");
-				printf("<p>Lid: <select name='add_lid' onChange='this.form.submit();'></p>\n");
+				printf("<p>Lid: <select name='add_lid' onChange='this.form.submit();'>\n");
 				printf("<option value=0>&nbsp;</option>\n");
 				$rcpt_rows = db_mailing("potrcpt", $this->mid);
 				foreach($rcpt_rows as $rcpt) {
@@ -612,15 +590,18 @@ class Mailing {
 		
 		printf("</div> <!-- Einde editmailingform -->\n");
 		printf("<textarea name='message' id='editor'>%s</textarea>\n", $this->message);
+?>
 		
-		echo("<script>
+<script>
     ClassicEditor
 	.create( document.querySelector( '#editor' )	)
 	.catch( error => {
 		console.error( error );
 	} );
-</script>\n");
 	
+</script>
+
+<?php
 		$strHV = "";
 		foreach ($this->MergeField as $v) {
 			$strHV .= "<li>[%" . $v['Naam'] . "%]</li>\n";
@@ -838,6 +819,7 @@ class Mailing {
 		if (isset($_GET['op']) and isset($_GET['op']) == "del_rcpt" and isset($_GET['lidid']) and $_GET['lidid'] > 0) {
 			$this->delete_rcpt($_GET['lidid']);
 		}
+		$this->vuldbvars();
 		
 	} # post_form
 	
@@ -1252,10 +1234,33 @@ class Mailing {
 		}
 	}
 		
-	private function vulvars() {
-	
+	private function vuldbvars() {
+			
+		if ($this->mid > 0) {
+			$ml = db_mailing("record", $this->mid);
+			$this->from_name = trim($ml->from_name);
+			$this->from_addr = trim($ml->from_addr);
+			$this->to_name = trim($ml->to_name);
+			$this->cc_addr = trim($ml->cc_addr);
+			$this->subject = trim($ml->subject);
+			$this->message = $ml->message;
+			$this->template = $ml->template;
+			$this->confidential = $ml->confidential;
+			$this->new_on = $ml->new_on;
+			$this->AddedBy = $ml->AddedBy;
+			$this->changed_on = $ml->changed_on;
+			$this->ChangedBy = $ml->ChangedBy;
+			$this->sent_on = $ml->sent_on;
+			$this->SentBy = $ml->SentBy;
+			$this->deleted_on = $ml->deleted_on;
+			$this->DeletedBy = $ml->DeletedBy;
+			$this->aant_rcpt = db_mailing_rcpt("aantal", $this->mid);
+		} else {
+			$this->from_addr = $_SESSION['emailingelogde'];
+			$this->new_on = date("Y-m-d");
+		}
 
-	} # vulvars
+	} # vuldbvars
 } # class Mailing
 
 function toonverstuurdemail($mhid) {
