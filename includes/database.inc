@@ -36,6 +36,7 @@ $arrTables[] = "LidRedNed";
 $arrTables[] = "Memo";
 $arrTables[] = "Mutatie";
 $arrTables[] = "Onderdl";
+$arrTables[] = "Organisatie";
 $arrTables[] = "Rekening";
 $arrTables[] = "Rekreg";
 $arrTables[] = "Vereniging";
@@ -2006,7 +2007,7 @@ function db_mailing($actie, $mid=0, $filter="", $new_val="", $kolnaam="") {
 		} else {
 			$new_val = str_replace("\"", "'", $new_val);
 			$clause = sprintf("`%s`=\"%s\"", $kolnaam, $new_val);
-			$where = sprintf("BINARY `%s`<>\"%s\"", $kolnaam, $new_val);
+			$where = sprintf("BINARY IFNULL(`%s`, '')<>\"%s\"", $kolnaam, $new_val);
 		}
 		$clause .= sprintf(", changed_on=SYSDATE(), ChangedBy=%d", $_SESSION['lidid']);
 		$where .= sprintf(" AND MailingID=%d", $mid);
