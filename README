@@ -1,6 +1,6 @@
 phpRBM is een website die gekoppeld is aan de MS-Access database ST-RBM. Bij phpRBM worden de gegevens in de Access-database bijgehouden. Vervolgens worden deze gegevens naar de MySQL-database achter de website ge-upload.
 
-Voor meer uitleg bezoek: https://software.telling.nl/phprbm/uitleg.php
+Voor meer uitleg bezoek: https://software.telling.nl/phpRBM/uitleg.php
 
 Groeten,
 Simon
