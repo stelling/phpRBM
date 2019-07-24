@@ -474,14 +474,13 @@ class Mailing {
 		
 		$selectfrom = "";
 		foreach (db_mailing_vanaf("lijst") as $row) {
-			$selectfrom .= sprintf("<option value='%s'%s>%s</option>\n", $row->Vanaf_email, checked(strtolower($row->Vanaf_email), "option", strtolower($this->from_addr)), $row->Vanaf_naam);
+			$selectfrom .= sprintf("<option value='%1\$s'%2\$s>%3\$s (%1\$s)</option>\n", $row->Vanaf_email, checked(strtolower($row->Vanaf_email), "option", strtolower($this->from_addr)), $row->Vanaf_naam);
 		}
 		
 		printf("<div id='editmailingform'>\n");
 		printf("<form method='post' action='%s?tp=%s/%s&amp;mid=%d' name='frm_mailedit' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2, $this->mid);
 		
 		printf("<p><label>Van:</label><select name='from_addr'>\n%s</select></p>\n", $selectfrom);
-		printf("<p><label>Vanaf e-mail:</label><input type='email' value=\"%s\" size=50 readonly></p>\n", $this->from_addr);
 		printf("<p><label>Aan:</label><input type='text' name='to_name' value=\"%s\" size=50 maxlength=50> (Omschrijving van de groep personen aan wie deze mailing gericht is)</p>\n", $this->to_name);
 		printf("<p><label>Onderwerp:</label><input type='text' name='subject' value=\"%s\" size=100 maxlength=75></p>\n", $this->subject);
 
@@ -582,9 +581,13 @@ class Mailing {
 			}
 		}
 		
-		printf("<p><label>Cc:</label><input type='text' name='cc_addr' value='%s' size=100></p>\n", $this->cc_addr);
-		printf("<p><label>Opties:</label><input type='checkbox' name='template' value=1%s>Template&nbsp;", checked($this->template));
-		printf("<input type='checkbox' name='confidential' value=1%s>Vertrouwelijk&nbsp;", checked($this->confidential));
+		if ($this->aant_rcpt > 0) {
+			printf("<p><label>Cc:</label><input type='text' name='cc_addr' value='%s' size=100></p>\n", $this->cc_addr);
+		}
+		if ($this->mid > 0) {
+			printf("<p><label>Opties:</label><input type='checkbox' name='template' value=1%s>Template&nbsp;", checked($this->template));
+			printf("<input type='checkbox' name='confidential' value=1%s>Vertrouwelijk&nbsp;", checked($this->confidential));
+		}
 		
 		echo("<div class='clear'></div>\n");
 		
@@ -602,14 +605,16 @@ class Mailing {
 </script>
 
 <?php
-		$strHV = "";
-		foreach ($this->MergeField as $v) {
-			$strHV .= "<li>[%" . $v['Naam'] . "%]</li>\n";
+		if ($this->aant_rcpt > 0) {
+			$strHV = "";
+			foreach ($this->MergeField as $v) {
+				$strHV .= "<li>[%" . $v['Naam'] . "%]</li>\n";
+			}
+			$strHV .= "";
+			printf("<div id='editmailingform'>\n");
+			echo("<div class='clear'></div>\n");
+			printf("<label>Beschikbare variabelen:</label><div class='invoerblok'><ul class='listmergefields'>\n%s</ul></div>\n", $strHV);
 		}
-		$strHV .= "";
-		printf("<div id='editmailingform'>\n");
-		echo("<div class='clear'></div>\n");
-		printf("<label>Beschikbare variabelen:</label><div class='invoerblok'><ul class='listmergefields'>\n%s</ul></div>\n", $strHV);
 		
 		if ($this->mid > 0) {
 			echo("<label>Bijlagen:</label><div class='invoerblok'>");
@@ -1256,7 +1261,7 @@ class Mailing {
 			$this->DeletedBy = $ml->DeletedBy;
 			$this->aant_rcpt = db_mailing_rcpt("aantal", $this->mid);
 		} else {
-			$this->from_addr = $_SESSION['emailingelogde'];
+			$this->from_addr = db_mailing_vanaf("curuser");
 			$this->new_on = date("Y-m-d");
 		}
 
