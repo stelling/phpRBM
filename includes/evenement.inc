@@ -288,12 +288,15 @@ function muteerevenement($eventid) {
 	printf("<td class='label'>Verzamelen:</td><td><input type='text' name='Verzameltijd' value='%s' size=5 maxlength=5></td></tr>\n", $verzameltijd);
 	printf("<tr><td class='label'>Type evenement:</td><td colspan=3><select name='TypeEvenement' onChange='this.form.submit();'>%s</select></td>\n", $optiontypes);
 	printf("<td class='label'>Aantal deelnemers:</td><td>%d</td></tr>\n", $aantdln);
+	
 	if ($eventid > 0) {
 		printf("<tr><td class='label'>Online inschrijving open:</td><td><input type='radio' name='InschrijvingOpen' value=1 %s>Ja<input type='radio' name='InschrijvingOpen' value=0 %s>Nee</td>\n", $insopen1, $insopen2);
 		printf("<td class='label'>Standaard status:</td><td><select name='StandaardStatus'>%s</select></td>\n", $optionstandstatus);
 		printf("<td class='label'>Verwijderd:</td><td><input type='radio' name='verw' value=1 %s>Ja<input type='radio' name='verw' value=0 %s>Nee</td></tr>\n", $verw1, $verw2);
+		
+		
 		$optiongroepen = "<option value=0>Geen</option>\n";
-		foreach (db_onderdelen("lijst") as $t) {
+		foreach (db_onderdeel("lijst") as $t) {
 			if ($t->RecordID == $beperktotgroep) {
 				$s = "selected";
 			} else {
@@ -303,7 +306,7 @@ function muteerevenement($eventid) {
 		}
 		printf("<tr><td class='label'>Deelname beperken tot:</td><td colspan=2><select name='BeperkTotGroep' onChange='this.form.submit();'>%s</select></td>\n", $optiongroepen);
 		$optiongroepen = "<option value=0>Iedereen</option>\n";
-		foreach (db_onderdelen("lijst") as $t) {
+		foreach (db_onderdeel("lijst") as $t) {
 			if ($t->RecordID == $zichtbaarvoor) {
 				$s = "selected";
 			} else {
