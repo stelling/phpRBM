@@ -2235,6 +2235,15 @@ function db_mailing_vanaf($actie, $value="", $rid=0, $kolnaam="") {
 			db_logboek("add", $mess, 4, 0, 1);
 		}
 		
+	} elseif ($actie == "curuser") {
+		$query = sprintf("SELECT IFNULL(Vanaf_email, '') FROM %sMailing_vanaf WHERE LOWER(Vanaf_email)='%s';", TABLE_PREFIX, strtolower($_SESSION['emailingelogde']));
+		$rv = db_scalar($query);
+		if (strlen($rv) == 0) {
+			$query = sprintf("SELECT IFNULL(from_addr, '') FROM %sMailing WHERE AddedBy=%d ORDER BY MailingID DESC LIMIT 1;", TABLE_PREFIX,$_SESSION['lidid']);
+			$rv = db_scalar($query);
+		}
+		return $rv;
+		
 	} else {
 		$mess = sprintf("Actie '%s' is onbekend.", $actie);
 	}
@@ -2597,10 +2606,11 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 		}
 		$query = sprintf("SELECT D.Kode AS Code,"
 				 . " D.Naam AS Diploma,"
+				 . " O.Naam AS `Uitgegeven door`,"
 				 . " LD.DatumBehaald AS dteDatum,"
 				 . " LD.Diplomanummer AS Gegevens,"
-				 . " IFNULL(LD.LicentieVervallenPer, IF(D.GELDIGH>0, DATE_ADD(LD.DatumBehaald, INTERVAL D.GELDIGH MONTH), IF((NOT D.Vervallen IS NULL), D.Vervallen, null))) AS `dteVervalt per`"
-				 . " FROM %1\$sLiddipl AS LD INNER JOIN %1\$sDiploma AS D ON LD.DiplomaID = D.RecordID"
+				 . " IFNULL(LD.LicentieVervallenPer, IF(D.GELDIGH>0, DATE_ADD(LD.DatumBehaald, INTERVAL D.GELDIGH MONTH), IF((NOT D.Vervallen IS NULL), D.Vervallen, null))) AS `dteGeldigheid vervalt per`"
+				 . " FROM %1\$sLiddipl AS LD INNER JOIN (%1\$sDiploma AS D INNER JOIN %1\$sOrganisatie AS O ON D.ORGANIS = O.Nummer) ON LD.DiplomaID = D.RecordID"
 				 . " WHERE LD.DatumBehaald <= CURDATE() AND LD.LaatsteBeoordeling=1 AND ((D.Vervallen IS NULL) OR D.Vervallen > CURDATE()) AND LD.Lid=%2\$d %3\$s"
 				 . " ORDER BY D.Volgnr, D.Kode, LD.DatumBehaald DESC;", TABLE_PREFIX, $lidid, $xtrafilter);
 		$result = fnQuery($query);
