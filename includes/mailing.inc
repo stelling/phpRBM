@@ -57,6 +57,8 @@ function fnMailing() {
 		$mailing->upload();
 		if ($op == "save_close") {
 			printf("<script>location.href='%s?tp=Mailing/%s';</script>\n", $_SERVER['PHP_SELF'], $mailing->folder());
+		} elseif ($op == "toevoegen") {
+			printf("<script>location.href='%s?tp=Mailing&op=edit&mid=%d';</script>\n", $_SERVER['PHP_SELF'], $mailing->mid);
 		} else {
 			$mailing->edit();
 		}
@@ -593,18 +595,15 @@ class Mailing {
 		
 		printf("</div> <!-- Einde editmailingform -->\n");
 		printf("<textarea name='message' id='editor'>%s</textarea>\n", $this->message);
-?>
 		
-<script>
-    ClassicEditor
-	.create( document.querySelector( '#editor' )	)
-	.catch( error => {
-		console.error( error );
-	} );
-	
-</script>
+		echo("<script>\n
+				ClassicEditor
+					.create( document.querySelector( '#editor' )	)
+					.catch( error => {
+				console.error( error );
+				} );\n
+				</script>\n");
 
-<?php
 		if ($this->aant_rcpt > 0) {
 			$strHV = "";
 			foreach ($this->MergeField as $v) {
