@@ -380,7 +380,7 @@ function muteertypeevenement() {
 		}
 	} elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
 		if (isset($_POST['oms_nw']) and strlen($_POST['oms_nw']) > 0) {
-			$query = sprintf("INSERT INTO %sEvenement_Type SET Omschrijving='%s', Ingevoerd=CURDATE();", $table_prefix, $_POST['oms_nw']);
+			$query = sprintf("INSERT INTO %sEvenement_Type SET Omschrijving='%s', Ingevoerd=CURDATE();", TABLE_PREFIX, $_POST['oms_nw']);
 			$id = fnQuery($query);
 			$mess = sprintf("Type evenement %d is toegevoegd.", $id);
 		} else {
@@ -398,7 +398,7 @@ function muteertypeevenement() {
 				}
 				if (strlen($set_clause) > 2) {
 					$set_clause .= sprintf("GewijzigdDoor=%d", $_SESSION['lidid']);
-					$query = sprintf("UPDATE %sEvenement_Type SET %s WHERE RecordID=%d;", $table_prefix, $set_clause, $row->RecordID);
+					$query = sprintf("UPDATE %sEvenement_Type SET %s WHERE RecordID=%d;", TABLE_PREFIX, $set_clause, $row->RecordID);
 					if (fnQuery($query) == 0) {
 						$mess = sprintf("De wijzigingen in evenement type %d konden niet verwerkt worden.", $row->RecordID);
 					}
