@@ -594,8 +594,11 @@ class Mailing {
 		echo("<div class='clear'></div>\n");
 		
 		printf("</div> <!-- Einde editmailingform -->\n");
-		printf("<textarea name='message' id='editor'>%s</textarea>\n", $this->message);
 		
+		echo("<div id='toolbar-container'></div>\n");
+		
+		printf("<div id='editor'>%s</div>\n", $this->message);
+/*		
 		echo("<script>\n
 				ClassicEditor
 					.create( document.querySelector( '#editor' )	)
@@ -603,6 +606,20 @@ class Mailing {
 				console.error( error );
 				} );\n
 				</script>\n");
+*/
+
+		echo("<script>
+    DecoupledEditor
+        .create( document.querySelector( '#editor' ) )
+        .then( editor => {
+            const toolbarContainer = document.querySelector( '#toolbar-container' );
+
+            toolbarContainer.appendChild( editor.ui.view.toolbar.element );
+        } )
+        .catch( error => {
+            console.error( error );
+        } );
+</script>\n");
 
 		if ($this->aant_rcpt > 0) {
 			$strHV = "";
