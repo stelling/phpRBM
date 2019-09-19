@@ -145,6 +145,8 @@ if (toegang($_GET['tp'], 1) == false) {
 	fnMailing();
 } elseif ($currenttab == "Evenementen") {
 	fnEvenementen();
+} elseif ($currenttab == "Taken") {
+	fnTaak();
 } elseif ($currenttab == "Bestellingen") {
 	fnWebshop();
 } elseif (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {

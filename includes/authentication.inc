@@ -66,7 +66,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (db_onderdeel("aantal", "T") > 0) {
 			addtp("Zelfservice/Toestemmingen");
 		}
-		if (count($muteerbarememos) > 0) { 
+		if (strlen(db_param("zs_muteerbarememos")) > 0) {
 			addtp("Zelfservice/Bijzonderheden");
 		}
 		if (count(db_bewaking_blok("openblokken")) > 0) {
@@ -200,6 +200,12 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		addtp("Evenementen/Logboek");
 	}
 	
+	addtp("Taken");
+	if ($currenttab == "Taken") {
+		addtp("Taken/Taakbeheer");
+		addtp("Taken/Taakgroepen");
+	}
+	
 	addtp("Bestellingen");
 	if ($currenttab == "Bestellingen") {
 		if (count(db_artikel("overzichtbeheer")) > 0) {
@@ -275,6 +281,8 @@ function fnAuthenticatie($melding=1, $password="") {
 		} else {
 			if ($pwfromcookie == 0) {
 				$mess = sprintf("De combinatie van login '%s' en het ingevoerde wachtwoord is niet correct! Je bent niet ingelogd.", $_SESSION['username']);
+			} else {
+				setcookie("password", "", time()-60);
 			}
 			$_SESSION['lidid'] = 0;
 		}
@@ -299,7 +307,7 @@ function fnAuthenticatie($melding=1, $password="") {
 } # fnAuthenticatie
 	
 function toegang($soort, $melding=1, $log=1) {
-	global $lididwebmasters, $tabpages, $currenttab, $currenttab2, $muteerbarememos;
+	global $lididwebmasters, $tabpages, $currenttab, $currenttab2;
 	
 	$arrAltijdToegang[] = "Validatie login";
 	$arrAltijdToegang[] = "Bevestiging login";
@@ -428,7 +436,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		echo("</div>  <!-- Einde herstellenwachtwoord -->");
 	
 	} elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
-		if (strlen($_POST['login']) < 7 and strlen($_POST['login']) > 0) {
+		if (strlen($_POST['username']) < 7 and strlen($_POST['username']) > 0) {
 			$mess = "Eem login moet minimaal 7 karakers hebben.";
 		} elseif (strlen($_POST['email']) > 0 and !isValidMailAddress($_POST['email'], 0)) {
 			$mess = sprintf("'%s' is geen geldig e-mailadres.", $_POST['email']);
