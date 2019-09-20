@@ -595,10 +595,10 @@ class Mailing {
 		
 		printf("</div> <!-- Einde editmailingform -->\n");
 		
-		echo("<div id='toolbar-container'></div>\n");
+//		echo("<div id='toolbar-container'></div>\n");
 		
-		printf("<div id='editor'>%s</div>\n", $this->message);
-/*		
+//		printf("<div id='editor'>\n%s\n</div>\n", $this->message);
+		printf("<textarea name='message' id='editor'>%s</textarea>\n", $this->message);
 		echo("<script>\n
 				ClassicEditor
 					.create( document.querySelector( '#editor' )	)
@@ -606,9 +606,8 @@ class Mailing {
 				console.error( error );
 				} );\n
 				</script>\n");
-*/
 
-		echo("<script>
+/*		echo("<script>
     DecoupledEditor
         .create( document.querySelector( '#editor' ) )
         .then( editor => {
@@ -620,6 +619,7 @@ class Mailing {
             console.error( error );
         } );
 </script>\n");
+*/
 
 		if ($this->aant_rcpt > 0) {
 			$strHV = "";
@@ -782,7 +782,7 @@ class Mailing {
 	} # controle
 	
 	public function post_form() {
-
+		
 		if (isset($_POST['subject']) and strlen($_POST['subject']) > 1) {
 			$this->subject = html_entity_decode(str_replace("\"", "'", $_POST['subject']));
 			$_POST['subject'] = $this->subject;

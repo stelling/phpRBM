@@ -162,8 +162,7 @@ function HTMLheader($breed=0) {
 		echo("<html lang='nl'>\n");
 		echo("<head>\n");
 		if (isset($_GET['tp']) and substr($_GET['tp'], 0, 7) == "Mailing") {
-			// echo("<script src='/includes/ckeditor5/ckeditor.js'></script>\n");
-			echo("<script src='https://cdn.ckeditor.com/ckeditor5/12.4.0/decoupled-document/ckeditor.js'></script>\n");
+			echo("<script src='https://cdn.ckeditor.com/ckeditor5/12.4.0/classic/ckeditor.js'></script>\n");
 		}
 		printf("<title>%s</title>\n", $title);
 		if (file_exists("stylesheets/default.css")) {
