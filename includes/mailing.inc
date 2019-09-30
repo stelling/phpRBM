@@ -886,7 +886,7 @@ class Mailing {
 	public function add_rcpt($lidid, $addr="") {
 		$mess = db_mailing_rcpt("add", $this->mid, $lidid, $addr);
 		if (strlen($mess) > 0) {
-			db_logboek("add", $mess, 4, 0, 0, $this->mid);
+			db_logboek("add", $mess, 4, 0, 1, $this->mid);
 		}
 	}
 
