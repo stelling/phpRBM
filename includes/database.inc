@@ -1,4 +1,4 @@
-<?
+<?php
 
 $arrTables[] = "Admin_access";
 $arrTables[] = "Admin_activiteit";
@@ -1466,9 +1466,13 @@ function db_lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0, $loid=0)
 			$where = sprintf("AND LO.OnderdeelID IN (SELECT OnderdeelID FROM %sGroep)", TABLE_PREFIX);
 		}
 		$query = sprintf("SELECT DISTINCT O.Naam AS AfdNaam, CONCAT(GR.Starttijd, IF(LENGTH(GR.Eindtijd) > 3, CONCAT(' - ', GR.Eindtijd), '')) AS Tijdsblok, GR.Kode, GR.Omschrijving, L.Roepnaam, %1\$s AS NaamLid,
-					IF(LO.GroepID > 0, CONCAT(GR.Omschrijving, IF(LENGTH(Instructeurs) > 1, CONCAT(' - ', GR.Instructeurs), '')), 'Niet ingedeeld') AS GroepOms
+					CASE 
+					WHEN GroepID=0 AND Functie=0 THEN 'Niet ingedeeld'
+					WHEN LENGTH(Instructeurs) > 1 THEN CONCAT(GR.Omschrijving, ' - ', GR.Instructeurs)
+					ELSE GR.Omschrijving
+					END AS GroepOms
 					FROM ((%2\$sLidond AS LO INNER JOIN %2\$sLid AS L ON LO.Lid=L.Nummer) INNER JOIN %2\$sOnderdl AS O ON LO.OnderdeelID=O.RecordID) LEFT JOIN %2\$sGroep AS GR ON LO.GroepID=GR.RecordID
-					WHERE LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE()) AND LO.GroepID > 0 %3\$s
+					WHERE LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE()) AND LO.Functie=0 %3\$s
 					ORDER BY O.Kode, GR.Starttijd, GR.Kode, L.Achternaam, L.Roepnaam;", $selectnaam, TABLE_PREFIX, $where);
 		$result = fnQuery($query);
 		return $result->fetchAll();
@@ -2152,7 +2156,7 @@ function db_mailing_rcpt($actie, $mid=0, $lidid=0, $email="") {
 					$query = sprintf("INSERT INTO %sMailing_rcpt SET MailingID=%d, LidID=%d, Ingevoerd=CURDATE();", TABLE_PREFIX, $mid, $lidid);
 				} else {
 					$mess = sprintf("%s is niet aan mailing %d toegevoegd, omdat er geen geldig emailadres bekend is.", $rl->NaamLid, $mid);
-					db_logboek("add", $mess, 4, 0, 0, $lidid);
+					db_logboek("add", $mess, 4, 0, 1, $lidid);
 				}
 				$r = $rl->NaamLid;
 				$rl = null;
@@ -3041,46 +3045,6 @@ function db_rekening($actie, $nr=0, $filter="", $lidid=0) {
 		return db_scalar($query);
 	}
 } # db_rekening
-
-function db_taak($actie, $tid=0) {
-	global $selectnaam;
-	
-	if ($actie == "lijst") {
-		$sq = sprintf("SELECT IFNULL(%1\$s, 'Niemand') FROM %2\$sLid AS L WHERE L.Nummer=(SELECT MAX(LidID) FROM %2\$sTaakLid AS TL WHERE TL.TaakID=T.RecordID AND Eindverantwoordelijke=1)", $selectnaam, TABLE_PREFIX);
-		$query = sprintf("SELECT T.RecordID AS lnkNummer, Omschrijving, TG.Naam AS Groep, GeplandGereed AS `Planning gereed`, (%1\$s) AS Verantwoordelijke FROM %2\$sTaak AS T INNER JOIN %2\$sTaakgroep AS TG ON TG.RecordID=T.Taakgroep
-		ORDER BY T.Omschrijving;", $sq, TABLE_PREFIX);
-		$result = fnQuery($query);
-		return $result->fetchAll();
-	} elseif ($actie == "record") {
-		$query = sprintf("SELECT * FROM %sTaak WHERE RecordID=%d;", TABLE_PREFIX, $tid);
-		$result = fnQuery($query);
-		return $result->fetch();
-	}
-}
-
-function db_taakgroep($actie, $rid=0, $waarde="", $kolomnm="") {
-	if ($actie == "lijst") {
-		$query = sprintf("SELECT RecordID, Kode, Naam FROM %sTaakgroep ORDER BY Naam;", TABLE_PREFIX);
-		$result = fnQuery($query);
-		return $result->fetchAll();
-	} elseif ($actie == "add") {
-		$query = sprintf("INSERT INTO %sTaakgroep SET Kode='%s', IngevoerdDoor='%s';", TABLE_PREFIX, $waarde, $_SESSION['lidid']);
-		$id = fnQuery($query);
-		$mess = sprintf("Taakgroep %d met kode '%s' is toegevoegd.", $id, $waarde);
-		db_logboek("add", $mess, 18);
-		return $id;
-		
-	} elseif ($actie == "update" and strlen($kolomnm) > 0) {
-		$query = sprintf("UPDATE %1\$sTaakgroep SET `%2\$s`='%3\$s', GewijzigdDoor=%4\$d WHERE RecordID=%5\$d;", TABLE_PREFIX, $kolomnm, $waarde, $_SESSION['lidid'], $rid);
-		if (fnQuery($query) > 0) {
-			$mess = sprintf("Kolom '%s' in Taakgroep %d is in '%s' gewijzigd.", $kolomnm, $rid, $waarde);
-			db_logboek("add", $mess, 18);
-			return true;
-		} else {
-			return false;
-		}
-	}
-} # db_taakgroep
 
 function db_dms() {
 }
