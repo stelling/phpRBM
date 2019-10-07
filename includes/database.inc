@@ -2017,6 +2017,7 @@ function db_mailing($actie, $mid=0, $filter="", $new_val="", $kolnaam="") {
 		$clause .= sprintf(", changed_on=SYSDATE(), ChangedBy=%d", $_SESSION['lidid']);
 		$where .= sprintf(" AND MailingID=%d", $mid);
 		$query = sprintf("UPDATE %sMailing SET %s WHERE %s;", TABLE_PREFIX, $clause, $where);
+//		debug($query);
 		$result = fnQuery($query);
 		if ($result > 0) {
 			if (is_numeric($new_val)) {
@@ -3435,7 +3436,7 @@ function db_onderhoud($type=9) {
 	$col = "2FA";
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%s' AND COLUMN_NAME='%s';", $db_name, $tab, $col);
 	if (db_scalar($query) == 0) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` tinyint;", $tab, $col);
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` TINYINT;", $tab, $col);
 		fnQuery($query, 2);
 	}
 	
@@ -3448,12 +3449,21 @@ function db_onderhoud($type=9) {
 		fnQuery($query, 2);
 	}
 	
+	// Toevoegen veld 'HTMLdirect' aan de tabel 'Mailing'. Deze code kan na 1/11/2020 worden verwijderd.
+	$tab = TABLE_PREFIX . "Mailing";
+	$col = "HTMLdirect";
+	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%s' AND COLUMN_NAME='%s';", $db_name, $tab, $col);
+	if (db_scalar($query) == 0) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` TINYINT DEFAULT '0';", $tab, $col);
+		fnQuery($query, 2);
+	}
+	
 	/***** Velden die aangepast zijn. *****/
 	
 	// Admin_Login, deze code kan na 31/12/2019 worden verwijderd.
 	fnQuery(sprintf("ALTER TABLE %sAdmin_login CHANGE `Ingevoerd` `Ingevoerd` DATETIME;", TABLE_PREFIX));
 	fnQuery($query);
-	
+
 	
 	/***** Opschonen database na een upload uit de Access-database.  *****/
 

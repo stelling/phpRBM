@@ -167,6 +167,7 @@ class Mailing {
 	private $message = "";
 	private $template = 0;
 	private $confidential = 0;
+	private $htmldirect = 0;
 	private $new_on = "0000-00-00";
 	private $AddedBy = 0;
 	private $changed_on = "0000-00-00";
@@ -589,6 +590,7 @@ class Mailing {
 		if ($this->mid > 0) {
 			printf("<p><label>Opties:</label><input type='checkbox' name='template' value=1%s>Template&nbsp;", checked($this->template));
 			printf("<input type='checkbox' name='confidential' value=1%s>Vertrouwelijk&nbsp;", checked($this->confidential));
+			printf("<input type='checkbox' name='HTMLdirect' value=1%s onChange='this.form.submit()'>HTML direct (zonder editor)&nbsp;", checked($this->htmldirect));
 		}
 		
 		echo("<div class='clear'></div>\n");
@@ -598,14 +600,18 @@ class Mailing {
 //		echo("<div id='toolbar-container'></div>\n");
 		
 //		printf("<div id='editor'>\n%s\n</div>\n", $this->message);
-		printf("<textarea name='message' id='editor'>%s</textarea>\n", $this->message);
-		echo("<script>\n
-				ClassicEditor
-					.create( document.querySelector( '#editor' )	)
-					.catch( error => {
-				console.error( error );
-				} );\n
-				</script>\n");
+		if ($this->htmldirect == 1) {
+			printf("<textarea name='message' rows=15 cols=125>%s</textarea>\n", $this->message);
+		} else {
+			printf("<textarea name='message' id='editor'>%s</textarea>\n", $this->message);
+			echo("<script>\n
+					ClassicEditor
+						.create( document.querySelector( '#editor' )	)
+						.catch( error => {
+					console.error( error );
+					} );\n
+					</script>\n");
+		}
 
 /*		echo("<script>
     DecoupledEditor
@@ -819,13 +825,20 @@ class Mailing {
 		} else {
 			$_POST['confidential'] = 0;
 		}
+		if (isset($_POST['HTMLdirect'])) {
+			$_POST['HTMLdirect'] = 1;
+		} else {
+			$_POST['HTMLdirect'] = 0;
+		}
 		
 		foreach($_POST as $key => $val) {
 			if (bestaatkolom("Mailing", $key)) {
+//				debug($key . ": " . $val);
 				$mess = db_mailing("update", $this->mid, "", $val, $key);
 				if (strlen($mess) > 0) {
 					db_logboek("add", $mess, 4);
 				}
+			} else {
 			}
 		}
 		
@@ -1267,6 +1280,7 @@ class Mailing {
 			$this->message = $ml->message;
 			$this->template = $ml->template;
 			$this->confidential = $ml->confidential;
+			$this->htmldirect = $ml->HTMLdirect;
 			$this->new_on = $ml->new_on;
 			$this->AddedBy = $ml->AddedBy;
 			$this->changed_on = $ml->changed_on;
