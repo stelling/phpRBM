@@ -3069,6 +3069,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrIntegers['mailing_lidnr'] = 0;
 	$arrIntegers['mailing_mailopnieuw'] = 0;
 	$arrIntegers['mailing_rekening_stuurnaar'] = 1;
+	$arrIntegers['mailing_type_editor'] = 1;
 	$arrIntegers['mailing_validatielogin'] = 0;
 	$arrIntegers['max_grootte_bijlage'] = 2048;
 	$arrIntegers['maxmailsperdag'] = 495;	

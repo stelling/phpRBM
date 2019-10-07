@@ -597,23 +597,13 @@ class Mailing {
 		
 		printf("</div> <!-- Einde editmailingform -->\n");
 		
-//		echo("<div id='toolbar-container'></div>\n");
-		
-//		printf("<div id='editor'>\n%s\n</div>\n", $this->message);
 		if ($this->htmldirect == 1) {
 			printf("<textarea name='message' rows=15 cols=125>%s</textarea>\n", $this->message);
-		} else {
-			printf("<textarea name='message' id='editor'>%s</textarea>\n", $this->message);
-			echo("<script>\n
-					ClassicEditor
-						.create( document.querySelector( '#editor' )	)
-						.catch( error => {
-					console.error( error );
-					} );\n
-					</script>\n");
-		}
-
-/*		echo("<script>
+		} elseif (db_param("mailing_type_editor") == 2) {
+			echo("<div id='toolbar-container'></div>\n");
+			printf("<div id='editor'>\n%s\n</div>\n", $this->message);
+			
+			echo("<script>
     DecoupledEditor
         .create( document.querySelector( '#editor' ) )
         .then( editor => {
@@ -625,7 +615,17 @@ class Mailing {
             console.error( error );
         } );
 </script>\n");
-*/
+			
+		} else {
+			printf("<textarea name='message' id='editor'>%s</textarea>\n", $this->message);
+			echo("<script>\n
+					ClassicEditor
+						.create( document.querySelector( '#editor' )	)
+						.catch( error => {
+					console.error( error );
+					} );\n
+					</script>\n");
+		}
 
 		if ($this->aant_rcpt > 0) {
 			$strHV = "";
@@ -1569,6 +1569,7 @@ function fnMailingInstellingen() {
 		}
 		db_param("maxmailsperdag", "updval", $_POST['maxmailsperdag']);
 		db_param("mailing_extensies_toegestaan", "updval", $_POST['mailing_extensies_toegestaan']);
+		db_param("mailing_type_editor", "updval", $_POST['mailing_type_editor']);
 		db_param("mailing_lidnr", "updval", $_POST['mailing_lidnr']);
 		db_param("mailing_validatielogin", "updval", $_POST['mailing_validatielogin']);
 		db_param("mailing_herstellenwachtwoord", "updval", $_POST['mailing_herstellenwachtwoord']);
@@ -1605,12 +1606,18 @@ function fnMailingInstellingen() {
 	printf("<label>Hoeveel mails mogen er per 24 uur verstuurd worden:</label><p><input class='inputnumber' type='number' name='maxmailsperdag' value=%d size=8> (0 = onbeperkt)</p>\n", db_param("maxmailsperdag"));
 	printf("<label>Welke extensies zijn als attachment toegestaan:</label><p><input class='inputtext' type='text' name='mailing_extensies_toegestaan' value='%s' size=30> (leeg = standaard lijst)</p>\n", db_param("mailing_extensies_toegestaan"));
 	
+	$options = "";
+	foreach(ARRTYPEEDITOR as $key => $oms) {
+		$options .= sprintf("<option%s value=%d>%s</option>\n", checked($key, "option", db_param("mailing_type_editor")), $key, $oms);
+	}
+	printf("<label>Welke editor wil je gebruiken?</label><p><select name='mailing_type_editor'>%s</select></p>\n", $options);
+	
 	echo("<h2>Mailings met een specifiek doel</h2>\n");
 	
 	$rows = db_mailing("lijst", 0, "Templates");
 	$options = "<Option value=0>Geen</option>";
 	foreach($rows as $row) {
-		$options .= sprintf("<Option%s value=%d>%s</option>", checked($row->lnkMailingID, "option", db_param("mailing_lidnr")), $row->lnkMailingID, $row->Onderwerp);
+		$options .= sprintf("<option%s value=%d>%s</option>", checked($row->lnkMailingID, "option", db_param("mailing_lidnr")), $row->lnkMailingID, $row->Onderwerp);
 	}
 	$rows = null;
 	printf("<label>Versturen lidnummer:</label><p><select name='mailing_lidnr'>%s</select></p>\n", $options);

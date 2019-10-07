@@ -374,6 +374,7 @@ function fnInstellingen() {
 	$arrParam['mailing_bevestigingopzegging'] = "NT";
 	$arrParam['mailing_bewaartijd'] = "NT";
 	$arrParam['mailing_bewakinginschrijving'] = "Het nummer van de mailing die als bevestiging van een inschrijving voor de bewaking verstuurd moet worden. 0 = geen.";
+	$arrParam['mailing_type_editor'] = "NT";
 	$arrParam['mailing_extensies_toegestaan'] = "NT";
 	$arrParam['mailing_herstellenwachtwoord'] = "NT";
 	$arrParam['mailing_lidnr'] = "NT";
