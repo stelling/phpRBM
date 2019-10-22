@@ -91,9 +91,9 @@ if (toegang($_GET['tp'], 1) == false) {
 	}
 	
 } elseif ($currenttab == "Zelfservice") {
-	if ($currenttab2 == "Inschrijving bewaking") {
+	if ($currenttab2 == "Inschrijven bewaking") {
 		inschrijvenbewaking($_SESSION['lidid']);
-	} elseif ($currenttab2 == "Inschrijving evenementen") {
+	} elseif ($currenttab2 == "Inschrijven evenementen") {
 		inschrijvenevenementen($_SESSION['lidid']);
 	} elseif ($currenttab2 == "Bestellingen") {
 		onlinebestellingen($_SESSION['lidid']);
@@ -145,8 +145,6 @@ if (toegang($_GET['tp'], 1) == false) {
 	fnMailing();
 } elseif ($currenttab == "Evenementen") {
 	fnEvenementen();
-} elseif ($currenttab == "Taken") {
-	fnTaak();
 } elseif ($currenttab == "Bestellingen") {
 	fnWebshop();
 } elseif (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
