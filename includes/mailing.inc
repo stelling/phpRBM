@@ -599,22 +599,11 @@ class Mailing {
 		
 		if ($this->htmldirect == 1) {
 			printf("<textarea name='message' rows=15 cols=125>%s</textarea>\n", $this->message);
-		} elseif (db_param("mailing_type_editor") == 2) {
-			echo("<div id='toolbar-container'></div>\n");
-			printf("<div id='editor'>\n%s\n</div>\n", $this->message);
-			
-			echo("<script>
-    DecoupledEditor
-        .create( document.querySelector( '#editor' ) )
-        .then( editor => {
-            const toolbarContainer = document.querySelector( '#toolbar-container' );
-
-            toolbarContainer.appendChild( editor.ui.view.toolbar.element );
-        } )
-        .catch( error => {
-            console.error( error );
-        } );
-</script>\n");
+		} elseif (db_param("mailing_type_editor") == 2) {			
+			printf("<textarea name='message'>%s</textarea>
+                <script>
+                        CKEDITOR.replace( 'message' );
+                </script>\n", $this->message);
 			
 		} else {
 			printf("<textarea name='message' id='editor'>%s</textarea>\n", $this->message);
@@ -809,7 +798,7 @@ class Mailing {
 		} else {
 			$_POST['cc_addr'] = "";
 		}
-		
+	
 		if (isset($_POST['message']) and strlen($_POST['message']) > 1) {
 			$this->message = html_entity_decode(str_replace("\"", "'", $_POST['message']));
 			$_POST['message'] = $this->message;
