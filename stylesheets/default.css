@@ -69,7 +69,7 @@ label {
 	text-align: right;
 }
 
-footer {
+footer, #footer {
 	clear: both;
 	background-color: #f0f0f0;
 	width: 100%;
@@ -100,6 +100,8 @@ input.kode, input.code {
 input.naam {
 	width: 400px;
 }
+
+
 
 #container, #containerbreed {
 	width: 1200px;
@@ -443,12 +445,15 @@ header a + a:visited + a:hover {
 }
 
 #overzichtevenementen tr, #overzichtevenementen td, #overzichtevenementen th {
-	background-color: transparent;
 	border-style: none;
 	text-align: left;
 	border-width: 1px;
 	border-right-style: solid;
 	border-bottom-style: solid;
+}
+
+#overzichtevenementen tr, #overzichtevenementen td {
+	background-color: transparent;
 }
 
 #evenementenbeheer table {
@@ -722,9 +727,9 @@ input.knop {
 }
 
 .tablist1 li, .tablist2 li {
-   float: left;
+	float: left;
 	font-style: normal;
-   display: block;
+	display: block;
 	padding-bottom: 1px;
 	border-style: solid;
 	border-width: 1px;
@@ -734,8 +739,8 @@ input.knop {
 	font-size: 10pt;
 	min-width: 85px;
 	margin-left: 2px;
-   margin-right: 2px;
-   padding-left: 5px;
+	margin-right: 2px;
+	padding-left: 5px;
 	padding-right: 5px;
 	height: 24px;
 	font-style: normal;
@@ -744,7 +749,7 @@ input.knop {
 	border-color: #f0f0f0;
 	background-color: #f0f0f0;
 	border-top-right-radius: 9px;
-   border-top-left-radius: 9px;
+	border-top-left-radius: 9px;
 }
 
 .tablist2 li, .tablist3 li {
@@ -827,7 +832,7 @@ input.knop {
 
 .listdeelnemers li {
 	float: left;
-	width: 215px;
+	width: 200px;
 	list-style-type: none;
 	margin-left: 3px;
 	margin-right: 3px;
@@ -959,7 +964,7 @@ input.knop {
 	width: 382px;
 }
 
-#editmailingform select, #edittaakform select {
+#editmailingform select {
 	width: 350px;
 }
 
@@ -1007,7 +1012,7 @@ input.knop {
 	width: 135px;
 }
 
-#instellingenmuteren label, #editmailingform label, #edittaakform label {
+#instellingenmuteren label, #editmailingform label {
 	clear: left;
 	float: left;
 	margin-top: 3px;
@@ -1032,7 +1037,7 @@ input.knop {
 	margin-top: 8px;
 }
 
-#editmailingform label, #edittaakform label {
+#editmailingform label {
 	width: 180px;
 	height: 24px;
 }
@@ -1042,7 +1047,7 @@ input.knop {
 	height: 28px;
 }
 
-#instellingenmuteren input, #editmailingform input, #edittaakform input, #editmailingform select, #toestemmingenmuteren input {
+#instellingenmuteren input, #editmailingform input, #editmailingform select, #toestemmingenmuteren input {
 	margin-top: 9px;
 	margin-bottom: 8px;
 }
