@@ -9,7 +9,7 @@ define("ARRLEGITIMATIE", ["G" => "Geen", "I" => "Identiteitskaart", "P" => "Pasp
 define("ARRSOORTMEMO", ["A" => "Algemeen", "B" => "Bewaking", "D" => "Dieet", "E" => "Examen", "F" => "Financiën", "G" => "Gezondheid/medisch", "I" => "Inschrijving bewaking", "WN" => "Waarschuwen in geval van nood"]);
 define("ARRTYPEDIPLOMA", ["B" => "Brevet", "C" => "Competentie", "D" => "Diploma", "I" => "Insigne", "L" => "Licentie", "M" => "Module", "P" => "Proeve van bekwaamheid"]);
 define("PASFOTOEXTENTIES", ["gif", "jpg", "jpeg", "png"]);
-define("ARRTYPEEDITOR", [1 => "CKEditor 5 Classic editor", 2 => "CKEditor 5 Document Editor"]);
+define("ARRTYPEEDITOR", [1 => "CKEditor 5 Classic editor", 2 => "CKEditor 4"]);
 
 if (isset($_SERVER['HTTPS'])){
 	define("BASISURL", "https://" . $_SERVER['HTTP_HOST']);
@@ -164,7 +164,7 @@ function HTMLheader($breed=0) {
 		echo("<head>\n");
 		if (isset($_GET['tp']) and substr($_GET['tp'], 0, 7) == "Mailing") {
 			if (db_param("mailing_type_editor") == 2) {
-				echo("<script src='https://cdn.ckeditor.com/ckeditor5/12.4.0/decoupled-document/ckeditor.js'></script>\n");
+				echo("<script src='https://cdn.ckeditor.com/4.13.0/standard/ckeditor.js'></script>\n");
 			} else {
 				echo("<script src='https://cdn.ckeditor.com/ckeditor5/12.4.0/classic/ckeditor.js'></script>\n");
 			}
