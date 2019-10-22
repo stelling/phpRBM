@@ -10,6 +10,7 @@ $dlnstatus['X'] = "Afgezegd";
 
 $soortevenement['B'] = "Brigade-activiteit";
 $soortevenement['G'] = "Gezellig/sociaal";
+$soortevenement['O'] = "Opleiding";
 $soortevenement['W'] = "Wedstrijd";
 
 function fnEvenementen() {
@@ -97,7 +98,7 @@ function inschrijvenevenementen($lidid) {
 	printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 	$geldig = false;
 	echo("<table>\n");
-	echo("<tr><th>Datum</th><th>Starttijd</th><th>Omschrijving</th><th>Aanmelden</th><th>Opmerking</th></tr>\n");
+	echo("<tr><th>Datum</th><th>Starttijd</th><th>Omschrijving</th><th>Aanmelden</th><th>Opmerking</th><th>In agenda</th></tr>\n");
 	foreach (db_evenement("open", $lidid) as $row) {
 		printf("<tr><td>%s</td><td>%s</td><td>%s</td>\n", strftime("%e %B %Y", strtotime($row->Datum)), strftime("%H:%M", strtotime($row->Datum)), $row->Omschrijving);
 		$ins = db_evenement("inschrijving", $lidid, $row->RecordID);
@@ -112,6 +113,27 @@ function inschrijvenevenementen($lidid) {
 			$v = $ins->Opmerking;
 		}
 		printf("<td><input type='text' onBlur='this.form.submit();' name='opm_%d' size=80 maxlength=75 value=\"%s\"></td>\n", $row->RecordID, $v);
+		
+		if (isset($ins->Status)) {
+			$t = date("Ymd\THis", strtotime($row->Datum)) . "/" . date("Ymd\THis", strtotime(substr($row->Datum, 0, 10) . " " . $row->Eindtijd));
+			if (strlen($row->Verzameltijd) > 3) {
+				$d = sprintf("Om %s verzamelen/inloop", $row->Verzameltijd);
+			} else {
+				$d = "";
+			}
+			$gu = sprintf("https://calendar.google.com/event?action=TEMPLATE&text=%s", urlencode($row->Omschrijving));
+			$gu .= sprintf("&#038;dates=%s", $t);
+			$gu .= sprintf("&#038;details=%s", urlencode($d));
+			$gu .= sprintf("&#038;location=%s", urldecode($row->Locatie));
+			$gu .= "&#038;trp=false";
+			$gu .= sprintf("&#038;sprop=website:%s", BASISURL);
+//			$gu .= "&#038;ctz=Europe%2FAmsterdam";
+			
+//			debug($gu);
+			printf("<td><a href='%s' target='_blank' rel='nofollow'><img border='0' src='https://www.google.com/calendar/images/ext/gc_button1_nl.gif'></a></td>\n", $gu);
+		} else {
+			echo("<td>&nbsp;</td>\n");
+		}
 		echo("</tr>\n");
 	}
 	echo("</table>\n");
@@ -217,6 +239,7 @@ function muteerevenement($eventid) {
 		$recordid = $row->RecordID;
 		$datum = date("Y-m-d", strtotime($row->Datum));
 		$oms = $row->Omschrijving;
+		$loc = $row->Locatie;
 		$email = $row->Email;
 		$starttijd = date("H:i", strtotime($row->Datum));
 		$eindtijd = $row->Eindtijd;
@@ -244,7 +267,8 @@ function muteerevenement($eventid) {
 		$recordid = 0;
 		$datum = date("Y-m-d");
 		$oms = "";
-		$email = "";
+		$loc = "";
+		$email = $_SESSION['emailingelogde'];
 		$starttijd = "";
 		$eindtijd = "";
 		$verzameltijd = "";
@@ -281,7 +305,8 @@ function muteerevenement($eventid) {
 	printf("<form method='post' action='%s?tp=%s&amp;op=edit&amp;eid=%d'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $eventid);
 	echo("<table>\n");
 	printf("<tr><td class='label'>Datum:</td><td colspan=5><input type='date' name='Datum' value='%s' size=25></td></tr>\n", $datum);
-	printf("<tr><td class='label'>Omschrijving:</td><td colspan=5><input type='text' name='Omschrijving' value='%s' maxlength=50 size=50></td></tr>\n", $oms);
+	printf("<tr><td class='label'>Omschrijving:</td><td colspan=5><input type='text' name='Omschrijving' value='%s' maxlength=50 size=60></td></tr>\n", $oms);
+	printf("<tr><td class='label'>Locatie:</td><td colspan=5><input type='text' name='Locatie' value='%s' maxlength=75 size=60></td></tr>\n", $loc);
 	printf("<tr><td class='label'>E-mail:</td><td colspan=5><input type='email' name='Email' value='%s' maxlength=45 size=50></td></tr>\n", $email);
 	printf("<tr><td class='label'>Starttijd:</td><td><input type='time' name='Starttijd' value='%s' size=5 maxlength=5></td>\n", $starttijd);
 	printf("<td class='label'>Eindtijd:</td><td><input type='time' name='Eindtijd' value='%s' size=5 maxlength=5></td>\n", $eindtijd);
@@ -380,7 +405,7 @@ function muteertypeevenement() {
 		}
 	} elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
 		if (isset($_POST['oms_nw']) and strlen($_POST['oms_nw']) > 0) {
-			$query = sprintf("INSERT INTO %sEvenement_Type SET Omschrijving='%s', Ingevoerd=CURDATE();", TABLE_PREFIX, $_POST['oms_nw']);
+			$query = sprintf("INSERT INTO %sEvenement_Type SET Omschrijving='%s', Ingevoerd=CURDATE();", $table_prefix, $_POST['oms_nw']);
 			$id = fnQuery($query);
 			$mess = sprintf("Type evenement %d is toegevoegd.", $id);
 		} else {
@@ -398,7 +423,7 @@ function muteertypeevenement() {
 				}
 				if (strlen($set_clause) > 2) {
 					$set_clause .= sprintf("GewijzigdDoor=%d", $_SESSION['lidid']);
-					$query = sprintf("UPDATE %sEvenement_Type SET %s WHERE RecordID=%d;", TABLE_PREFIX, $set_clause, $row->RecordID);
+					$query = sprintf("UPDATE %sEvenement_Type SET %s WHERE RecordID=%d;", $table_prefix, $set_clause, $row->RecordID);
 					if (fnQuery($query) == 0) {
 						$mess = sprintf("De wijzigingen in evenement type %d konden niet verwerkt worden.", $row->RecordID);
 					}
@@ -454,6 +479,9 @@ function overzichtevenementen() {
 			$vsrt = $row->Soort;
 		}
 		$oms = $row->Omschrijving;
+		if (strlen($row->Locatie) > 3) {
+			$oms .= "<br>Locatie: " . $row->Locatie;
+		}
 		if (IsValidMailAddress($row->emlEmail, 0)) {
 			$oms .= sprintf("<br>\n%s", fnDispEmail($row->emlEmail, "", 1));
 		}
@@ -461,17 +489,21 @@ function overzichtevenementen() {
 		if ($row->$ad > 1) {
 			$oms .= sprintf("<br>\n%d&nbsp;deelnemers", $row->$ad);
 		}
-		if (strlen($row->Starttijd) > 3) {
+		
+		if (strlen($row->Starttijd) > 3 and strlen($row->Eindtijd) > 3) {
+			$td = sprintf("<br>\nvan %s tot %s uur", $row->Starttijd, $row->Eindtijd);
+		} elseif (strlen($row->Starttijd) > 3) {
 			$td = "<br>\nStart:&nbsp;" . $row->Starttijd;
+		} elseif (strlen($row->Eindtijd) > 3) {
+			$td = "<br>\nEinde:&nbsp;" . $row->Eindtijd;
 		} else {
 			$td = "";
 		}
-		if (strlen($row->Eindtijd) > 3) {
-			$td .= "<br>\nEinde:&nbsp;" . $row->Eindtijd;
-		}
+		
 		if (strlen($row->Verzameltijd) > 3) {
-			$td .= "<br>\nVerzamelen:&nbsp;" . $row->Verzameltijd;
+			$td .= sprintf("<br>\nVerzamelen:&nbsp;%s uur", $row->Verzameltijd);
 		}
+		
 		$dames = "";
 		$heren = "";
 		$deelnemers = "";
@@ -499,7 +531,7 @@ function overzichtevenementen() {
 		if ($row->Soort == "W") {
 			printf("<tr><td>%s %s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n", strftime("%A %e %B %Y", strtotime($row->dteDatum)), $td, $oms, $dames, $heren);
 		} else {
-			printf("<tr><td class='datumtijdevenement'>%s %s</td><td class='omschrijvingevenement'>%s</td><td colspan=2><ul class='listdeelnemers'>%s</ul></td></tr>\n", strftime("%A %e %B %Y", strtotime($row->dteDatum)), $td, $oms, $deelnemers);
+			printf("<tr><td class='datumtijdevenement'>%s%s</td><td class='omschrijvingevenement'>%s</td><td colspan=2><ul class='listdeelnemers'>%s</ul></td></tr>\n", str_replace(" ", "&nbsp;", strftime("%A %e %B %Y", strtotime($row->dteDatum))), $td, $oms, $deelnemers);
 		}
 	}
 	
