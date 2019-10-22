@@ -16,6 +16,8 @@ function fnWijzigen($lidid=0, $actie="") {
 	global $currenttab, $currenttab2;
 	global $muteerbarememos, $actionurl;
 	
+	$opzegtermijn = db_param("zs_opzegtermijn");
+	
 	if ($lidid == 0) {
 		$lidid = $_SESSION['lidid'];
 	}
@@ -676,7 +678,6 @@ function fnGroepsindeling($afdkode="") {
 	
 	echo("<div id='groepsindeling'>\n");
 	
-	
 	foreach (db_lidond("groepsindeling", 0, "", $filter) as $row) {
 		if ($hvafd !== $row->AfdNaam) {
 			if (strlen($hvafd) > 0) {
@@ -828,6 +829,8 @@ function fnEigenGegevens($lidid=0, $actie="") {
 				$rows = db_gegevenslid($lidid, "Mailing");
 				if (count($rows) > 0) {
 					echo(fnDisplayTable($rows, $ld, sprintf("Aan %s verstuurde mailings", $naamlid)));
+
+					
 				} else {
 					printf("<p class='mededeling'>Er zijn vanaf deze website geen mailings naar %s verstuurd.</p>\n", $naamlid);
 				}
@@ -1315,6 +1318,7 @@ function toestemmingenmuteren($lidid) {
 function opzegginglidmaatschap($lidid) {
 	global $actionurl;
 	
+	$opzegtermijn = db_param("zs_opzegtermijn");
 	$emailledenadministratie = db_param("emailledenadministratie");
 	$fdlang = "%e %B %Y";
 	
@@ -1329,15 +1333,15 @@ function opzegginglidmaatschap($lidid) {
 		}
 		if (strlen($_POST["OpzeggingPer"]) > 3 and strtotime($_POST["OpzeggingPer"]) !== FALSE) {
 			$opgezegdper = change_month_to_uk($_POST["OpzeggingPer"]);
-			if (strtotime($opgezegdper) < mktime(0, 0, 0, date("m")+db_param("zs_opzegtermijn"), date("d"), date("Y"))) {
-				$opgezegdper = strftime($fdlang, mktime(0, 0, 0, date("m")+db_param("zs_opzegtermijn"), date("d"), date("Y")));
-				printf("<p class='mededeling'>Er geldt een opzegtermijn van %d maand(en), hierdoor wordt de datum van opzegging %s.</p>", db_param("zs_opzegtermijn"), $opgezegdper);
+			if (strtotime($opgezegdper) < mktime(0, 0, 0, date("m")+$opzegtermijn, date("d"), date("Y"))) {
+				$opgezegdper = strftime($fdlang, mktime(0, 0, 0, date("m")+$opzegtermijn, date("d"), date("Y")));
+				printf("<p class='mededeling'>Er geldt een opzegtermijn van %d maand(en), hierdoor wordt de datum van opzegging %s.</p>", $opzegtermijn, $opgezegdper);
 			} else {
 				$opgezegdper = strftime($fdlang, strtotime($opgezegdper));
 			}
 		} else {
-			$opgezegdper = strftime($fdlang, mktime(0, 0, 0, date("m")+db_param("zs_opzegtermijn"), date("d"), date("Y")));
-			printf("<p class='mededeling'>Er geldt een opzegtermijn van %d maand(en), hierdoor wordt de datum van opzeggen %s.</p>", db_param("zs_opzegtermijn"), $opgezegdper);
+			$opgezegdper = strftime($fdlang, mktime(0, 0, 0, date("m")+$opzegtermijn, date("d"), date("Y")));
+			printf("<p class='mededeling'>Er geldt een opzegtermijn van %d maand(en), hierdoor wordt de datum van opzeggen %s.</p>", $opzegtermijn, $opgezegdper);
 		}
 		if (isset($_POST['RedenOpmerking']) and strlen($_POST['RedenOpmerking']) > 1) {
 			$opm = "\n<p>" . $_POST['RedenOpmerking'] . "</p>\n";
@@ -1402,7 +1406,7 @@ function opzegginglidmaatschap($lidid) {
 			$content = $form_opzegging;
 		}
 	
-		$content = str_replace("[%OPZEGGENVANAF%]", strftime($fdlang, mktime(0, 0, 0, date("m")+db_param("zs_opzegtermijn"), date("d")+1, date("Y"))), $content);
+		$content = str_replace("[%OPZEGGENVANAF%]", strftime($fdlang, mktime(0, 0, 0, date("m")+$opzegtermijn, date("d")+1, date("Y"))), $content);
 		$content = str_replace("[%NAAMLID%]", $_SESSION['naamingelogde'], $content);
 		$content = str_replace("[%LIDNR%]", $_SESSION['lidnr'], $content);
 		$content = str_replace("[%NAAMVERENIGING%]", db_param("naamvereniging"), $content);
