@@ -4,7 +4,7 @@ if (!isset($_GET['tp'])) {
 	$_GET['tp'] = "";
 }
 
-require('./includes/standaard.inc');
+require_once("./includes/standaard.inc");
 
 if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 	$mess = db_logins("uitloggen", "", "", $_SESSION['lidid']);
