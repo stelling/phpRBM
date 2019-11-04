@@ -16,8 +16,8 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	$tabpages[] = "Vereniging";
 	addtp("Vereniging/Introductie");
 	addtp("Vereniging/Kader");
+	addtp("Vereniging/Overig");
 	addtp("Vereniging/Onderscheidingen");
-	addtp("Vereniging/Overige commissies");
 	if ($_SESSION['lidid'] > 0) {
 		addtp("Eigen gegevens");
 	}
@@ -673,7 +673,7 @@ function fnLoginAanvragen($stap="") {
 		echo("<p>Voorwaarden aan een login:<ul>\n");
 		printf("<li>Minimaal 7 karakters en maximaal %d karakters lang</li>\n", db_param("login_maxlengte"));
 		echo("<li>Er mogen geen aanhalingstekens en geen spaties in zitten</li>\n");
-		printf("<li>De volgende karakters '%s' mogen er niet in zitten</li>\n", htmlent($login_verbodenkarakters));
+		printf("<li>De karakters '%s' mogen er niet in zitten</li>\n", htmlent($login_verbodenkarakters));
 		echo("</ul>\n</p>\n");
 		
 		printf(fneisenwachtwoord());
