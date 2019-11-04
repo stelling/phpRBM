@@ -32,7 +32,9 @@ function fnEvenementen() {
 	if ($currenttab2 == "Beheer" and $op == "edit") {
 		muteerevenement($eid);
 	} elseif ($currenttab2 == "Beheer" and $op == "delete") {
-		db_evenement("deletedeelnemer", $_GET['lidid'], $_GET['eid']);
+		db_Evenement_Deelnemer("delete", $_GET['edid'], "", "", $_GET['lidid']);
+//		db_Evenement_Deelnemer($actie, $recid, $fld="", $val="", $lidid=0, $eventrow="") {
+		
 		muteerevenement($eid);
 	} elseif ($currenttab2 == "Beheer") {
 		$lijst = db_evenement("overzichtbeheer");
@@ -44,7 +46,7 @@ function fnEvenementen() {
 		}
 		echo(fnDisplayTable($lijst, $lnk, "", 0, "", $er));
 	} elseif ($currenttab2 == "Logboek") {
-		$lijst = db_logboek("lijst", "", 7);
+		$lijst = db_logboek("lijstsmal", "", 7);
 		echo(fnDisplayTable($lijst, "", "", 0, "", "", "logboek"));
 	} elseif ($currenttab2 == "Types muteren") {
 		muteertypeevenement();
@@ -82,16 +84,16 @@ function inschrijvenevenementen($lidid) {
 			$insrow = db_evenement("inschrijving", $lidid, $row->RecordID);
 			if (isset($insrow->RecordID) and $insrow->RecordID > 0) {
 				if (!isset($_POST[$ins])) {
-					db_evenement("deletedeelnemer", $lidid, $row->RecordID);
+					db_Evenement_Deelnemer("delete", $insrow->RecordID, "", "", $lidid, $row);
 				} elseif ($insrow->Opmerking != $_POST[$opm]) {
-					db_evenement("updatedeelnemer", $lidid, $row->RecordID, $_POST[$opm], $insrow->Status, $insrow->Functie);
+					db_Evenement_Deelnemer("update", $insrow->RecordID, "Opmerking", $_POST[$opm]);
 				}
 			} elseif (isset($_POST[$ins]) and $_POST[$ins] == "1") {
-				db_evenement("adddeelnemer", $lidid, $row->RecordID, $_POST[$opm], $row->StandaardStatus);
+				db_Evenement_Deelnemer("insert", 0, "Opmerking", $_POST[$opm], $lidid, $row);
 			}
 		}
 	}
-	
+
 	fnDispMenu(2);
 
 	echo("<div id='inschrijvingevenementen'>\n");
@@ -160,65 +162,59 @@ function muteerevenement($eventid) {
 		}
 		
 		$old = db_evenement("record", 0, $eventid);
-		$set_clause = "";
-		
-		$setclause = ""; 
-		$oms = "";
 		foreach($_POST as $key => $val) {
 			if (array_key_exists($key, $old) and $old->$key != $_POST[$key]) {
-				if (is_numeric($_POST[$key])) {
-					$set_clause .= sprintf("%s=%d, ", $key, $_POST[$key]);
-					$oms .= sprintf("Veld '%s' is %d geworden. ", $key, $_POST[$key]);
+				if (in_array($key, array("TypeEvenement", "InschrijvingOpen", "BeperkTotGroep", "ZichtbaarVoor"))) {
+					$query = sprintf("UPDATE %sEvenement SET `%s`=%d", TABLE_PREFIX, $key, $_POST[$key]);
+					$mess = sprintf("In evenement %d is kolom '%s' naar %d bijgewerkt.", $eventid, $key, $_POST[$key]);
 				} else {
 					$_POST[$key] = str_replace("\"", "'", $_POST[$key]);
-					$set_clause .= sprintf("%s=\"%s\", ", $key, $_POST[$key]);
-					$oms .= sprintf("Veld '%s' is '%s' geworden. ", $key, $_POST[$key]);
+					$query = sprintf("UPDATE %sEvenement SET `%s`=\"%s\"", TABLE_PREFIX, $key, $_POST[$key]);
+					$mess = sprintf("In evenement %d is kolom '%s' naar '%s' bijgewerkt.", $eventid, $key, $_POST[$key]);
+				}
+				$query .= sprintf(", GewijzigdDoor=%d WHERE RecordID=%d;", $_SESSION['lidid'], $eventid);
+				if (fnQuery($query) > 0) {
+					db_logboek("add", $mess, 7, 0, 0, $eventid, 2);
+				} else {
+					debug($query);
 				}
 			}
 		}
-		
 		if (isset($_POST['verw'])) {
+			$set_clause = "";
 			if ($old->VerwijderdOp <= '2012-01-01' and $_POST['verw'] == 1) {
-				$set_clause .= "VerwijderdOp=CURDATE(), ";
-				$oms .= "Het evenement is verwijderd. ";
+				$set_clause = "VerwijderdOp=CURDATE(), ";
+				$mess = sprintf("Evenement %d is verwijderd.", $eventid);
 			} elseif ($old->VerwijderdOp > '2012-01-01' and $_POST['verw'] == 0) {
-				$set_clause .= "VerwijderdOp='0000-00-00', ";
-				$oms .= "De verwijdering is ongedaan gemaakt. ";
+				$set_clause = "VerwijderdOp='0000-00-00', ";
+				$mess = sprintf("Evenement %d: de verwijdering is ongedaan gemaakt.", $eventid);
 			}
-		}
-		if (strlen($set_clause) > 0) {
-			$set_clause .= sprintf("GewijzigdDoor=%d", $_SESSION['lidid']);
-			$query = sprintf("UPDATE %sEvenement SET %s WHERE RecordID=%d;", $table_prefix, $set_clause, $eventid);
-			$result = fnQuery($query);
-			if ($result > 0) {
-				$oms = sprintf("In evenement %d zijn de volgende velden aangepast. %s", $eventid, $oms);
-				db_logboek("add", $oms, 7, 0, 0, $eventid);
+			if (strlen($set_clause) > 0) {
+				$set_clause .= sprintf("GewijzigdDoor=%d", $_SESSION['lidid']);
+				$query = sprintf("UPDATE %sEvenement SET %s WHERE RecordID=%d;", $table_prefix, $set_clause, $eventid);
+				if (fnQuery($query) > 0) {
+					db_logboek("add", $mess, 7, 0, 0, $eventid, 2);
+				} else {
+					debug($query);
+				}
 			}
 		}
 		foreach (db_evenement("deelnemers", 0, $eventid) as $rd) {
-			$stat = sprintf("stat_%d", $rd->RecordID);
-			$opm = sprintf("Opmerking_%d", $rd->RecordID);
-			$func = sprintf("func_%d", $rd->RecordID);
-			$result = db_evenement("updatedeelnemer", $rd->LidID, $eventid, $_POST[$opm], $_POST[$stat], $_POST[$func]);
-			if ($result > 0) {
-				$mess = sprintf("Deelnemer %s is bij evenement %d (%s) bijgewerkt. ", db_naamlid($rd->LidID), $eventid, db_evenement("oms", 0, $eventid));
-				if ($_POST[$stat] != $rd->Status) {
-					$mess .= sprintf("Status is '%s' geworden. ", $dlnstatus[$_POST[$stat]]);
+			foreach(array("Status", "Opmerking", "Functie") as $fld) {
+				$formfld = sprintf("%s_%d", $fld, $rd->RecordID);
+				if ($_POST[$formfld] != $rd->$fld) {
+//					debug($rd->RecordID . " / " . $fld . " / " . $_POST[$formfld] . " / " . $rd->$fld);
+					$result = db_Evenement_Deelnemer("update", $rd->RecordID, $fld, $_POST[$formfld]);
 				}
-				if ($_POST[$func] != $rd->Functie) {
-					$mess .= sprintf("Functie is '%s' geworden. ", $_POST[$func]);
-				}
-				if ($_POST[$opm] != $rd->Opmerking) {
-					$mess .= sprintf("Opmerking is '%s' geworden.", $_POST[$opm]);
-				}
-				db_logboek("add", $mess, 7, 0, 0, $eventid);
 			}
 		}
 		if (isset($_POST['nwdln']) and $_POST['nwdln'] > 0 and is_numeric($_POST['nwdln'])) {
-			db_evenement("adddeelnemer", $_POST['nwdln'], $eventid, "", $_POST['StandaardStatus']);
+			db_Evenement_Deelnemer("insert", 0, "", "", $_POST['nwdln'], $old);
 		}
 		
-		if (isset($_POST['maildeeln']) or isset($_POST['mailpotdeeln']) or isset($_POST['mailbeidedeeln'])) {
+		if (isset($_POST['Bewaren_Sluiten'])) {
+			printf("<script>location.href='%s?tp=Evenementen/Beheer'</script>\n", $_SERVER['PHP_SELF']);
+		} elseif (isset($_POST['maildeeln']) or isset($_POST['mailpotdeeln']) or isset($_POST['mailbeidedeeln'])) {
 			$mid = db_mailing("add", 0, 0, "", $_POST['Omschrijving'], 0, $_POST['Email'], "Deelnemers " . $_POST['Omschrijving']);
 			if (isset($_POST['maildeeln']) or isset($_POST['mailbeidedeeln'])) {
 				foreach (db_evenement("deelnemers", 0, $eventid, "", "'B', 'I', 'R', 'T'") as $row) {
@@ -348,7 +344,7 @@ function muteerevenement($eventid) {
 	echo("<table>");
 	if ($eventid > 0) {
 		echo("<tr><th colspan=6 class='tabelkop'>Deelnemers</th></tr>\n");
-		echo("<tr><th>Naam deelnemer</th><th>Status</th><th>Opmerking bij inschrijving</th><th>Functie</th><th>Toegevoegd</th><th>Del</th></tr>\n");
+		echo("<tr><th>Naam deelnemer</th><th>Status</th><th>Opmerking</th><th>Functie</th><th>Ingevoerd</th><th>Del</th></tr>\n");
 		foreach (db_evenement("deelnemers", 0, $recordid) as $rd) {
 			$optstat = "";
 			foreach ($dlnstatus as $key => $val) {
@@ -360,11 +356,11 @@ function muteerevenement($eventid) {
 			}
 			echo("<tr>\n");
 			printf("<td>%s</td>\n", htmlentities($rd->NaamDeelnemer));
-			printf("<td><select name='stat_%d' onChange='this.form.submit();'>%s</select></td>\n", $rd->RecordID, $optstat);
-			printf("<td><input type='text' name='Opmerking_%d' value='%s' size=30 maxlength=75></td>\n", $rd->RecordID, $rd->Opmerking);
-			printf("<td><input type='text' name='func_%d' value='%s' size=30 maxlength=20></td>\n", $rd->RecordID, $rd->Functie);
-			printf("<td>%s</td>\n", strftime("%e %b %Y", strtotime($rd->Ingevoerd)));
-			printf("<td><a href='%s?tp=%s&amp;op=delete&amp;eid=%d&amp;lidid=%d'><img src='images/del.png' alt='Delete'></a></td>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $eventid, $rd->LidID);
+			printf("<td><select name='Status_%d' onChange='this.form.submit();'>%s</select></td>\n", $rd->RecordID, $optstat);
+			printf("<td><input type='text' name='Opmerking_%d' value='%s' size=35 maxlength=75></td>\n", $rd->RecordID, $rd->Opmerking);
+			printf("<td><input type='text' name='Functie_%d' value='%s' size=35 maxlength=30></td>\n", $rd->RecordID, $rd->Functie);
+			printf("<td>%s</td>\n", strftime("%e %b %Y (%R)", strtotime($rd->Ingevoerd)));
+			printf("<td><a href='%s?tp=%s&amp;op=delete&amp;eid=%d&amp;lidid=%d&amp;edid=%d'><img src='images/del.png' alt='Delete'></a></td>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $eventid, $rd->LidID, $rd->RecordID);
 			echo("</tr>\n");
 			$aantdln++;
 		}
@@ -374,16 +370,18 @@ function muteerevenement($eventid) {
 		}
 		printf("<tr>\n<td colspan=6><select name='nwdln' onChange='this.form.submit();'>%s</select></td>\n</tr>\n", $optionsnieuw);
 	}
-	echo("<tr><th colspan=6>");
-	echo("<input type=submit name='Opslaan' value='Opslaan'>\n");
+	$aantpotdln = count(db_evenement("potdeelnemers", 0, $eventid));
+	echo("<tr><th colspan=6>\n");
+	echo("<input type='submit' name='Bewaren' value='Bewaren'>\n");
+	echo("<input type='submit' name='Bewaren_Sluiten' value='Bewaren & Sluiten'>\n");
 	if ($aantdln > 1) {
-		echo("<input type=submit name='maildeeln' value='Mailing deelnemers'>\n");
+		printf("<input type='submit' name='maildeeln' value='Mailing deelnemers (%d)'>\n", $aantdln);
 	}
-	if ($eventid > 0) {
-		echo("<input type=submit name='mailpotdeeln' value='Mailing potenti&euml;le deelnemers'>\n");
+	if ($eventid > 0 and $aantpotdln > 0) {
+		printf("<input type='submit' name='mailpotdeeln' value='Mailing potenti&euml;le deelnemers (%d)'>\n", $aantpotdln);
 	}
-	if ($aantdln > 1) {
-		echo("<input type=submit name='mailbeidedeeln' value='Mailing (potenti&euml;le) deelnemers'>\n");
+	if ($aantdln > 0 and $aantpotdln > 0) {
+		printf("<input type='submit' name='mailbeidedeeln' value='Mailing (potenti&euml;le) deelnemers (%d)'>\n", $aantdln + $aantpotdln);
 	}
 	echo("</th></tr>\n");
 	echo("</table>\n");
