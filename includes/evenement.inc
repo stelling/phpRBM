@@ -218,12 +218,12 @@ function muteerevenement($eventid) {
 			$mid = db_mailing("add", 0, 0, "", $_POST['Omschrijving'], 0, $_POST['Email'], "Deelnemers " . $_POST['Omschrijving']);
 			if (isset($_POST['maildeeln']) or isset($_POST['mailbeidedeeln'])) {
 				foreach (db_evenement("deelnemers", 0, $eventid, "", "'B', 'I', 'R', 'T'") as $row) {
-					db_mailing("addrcpt", $mid, 0, "", "", $row->LidID);
+					db_mailing_rcpt("add", $mid, $row->LidID);
 				}
 			} 
 			if (isset($_POST['mailpotdeeln']) or isset($_POST['mailbeidedeeln'])) {
 				foreach (db_evenement("potdeelnemers", 0, $eventid) as $row) {
-					db_mailing("addrcpt", $mid, 0, "", "", $row->Nummer);
+					db_mailing_rcpt("add", $mid, $row->Nummer);
 				}
 			}
 			printf("<script>location.href='%s?tp=Mailing/Concepten&op=edit&mid=%d'</script>\n", $_SERVER['PHP_SELF'], $mid);
@@ -377,7 +377,7 @@ function muteerevenement($eventid) {
 	if ($aantdln > 1) {
 		printf("<input type='submit' name='maildeeln' value='Mailing deelnemers (%d)'>\n", $aantdln);
 	}
-	if ($eventid > 0 and $aantpotdln > 0) {
+	if ($eventid > 0 and $aantpotdln > 1) {
 		printf("<input type='submit' name='mailpotdeeln' value='Mailing potenti&euml;le deelnemers (%d)'>\n", $aantpotdln);
 	}
 	if ($aantdln > 0 and $aantpotdln > 0) {
@@ -403,7 +403,7 @@ function muteertypeevenement() {
 		}
 	} elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
 		if (isset($_POST['oms_nw']) and strlen($_POST['oms_nw']) > 0) {
-			$query = sprintf("INSERT INTO %sEvenement_Type SET Omschrijving='%s', Ingevoerd=CURDATE();", $table_prefix, $_POST['oms_nw']);
+			$query = sprintf("INSERT INTO %sEvenement_Type SET Omschrijving='%s';", $table_prefix, $_POST['oms_nw']);
 			$id = fnQuery($query);
 			$mess = sprintf("Type evenement %d is toegevoegd.", $id);
 		} else {
@@ -468,13 +468,13 @@ function overzichtevenementen() {
 	
 	$lijst = db_evenement("overzicht");
 	foreach ($lijst as $row) {
-		if ($row->Soort != $vsrt) {
-			if ($row->Soort == "W") {
+		if ($row->ndSoort != $vsrt) {
+			if ($row->ndSoort == "W") {
 				echo("<tr><th>Datum en tijden</th><th>Omschrijving</th><th>Dames</th><th>Heren</th></tr>\n");
 			} else {
 				echo("<tr><th>Datum en tijden</th><th>Omschrijving</th><th colspan=2>Deelnemers</th></tr>\n");
 			}
-			$vsrt = $row->Soort;
+			$vsrt = $row->ndSoort;
 		}
 		$oms = $row->Omschrijving;
 		if (strlen($row->Locatie) > 3) {
