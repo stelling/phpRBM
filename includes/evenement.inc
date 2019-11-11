@@ -215,15 +215,23 @@ function muteerevenement($eventid) {
 		if (isset($_POST['Bewaren_Sluiten'])) {
 			printf("<script>location.href='%s?tp=Evenementen/Beheer'</script>\n", $_SERVER['PHP_SELF']);
 		} elseif (isset($_POST['maildeeln']) or isset($_POST['mailpotdeeln']) or isset($_POST['mailbeidedeeln'])) {
-			$mid = db_mailing("add", 0, 0, "", $_POST['Omschrijving'], 0, $_POST['Email'], "Deelnemers " . $_POST['Omschrijving']);
-			if (isset($_POST['maildeeln']) or isset($_POST['mailbeidedeeln'])) {
-				foreach (db_evenement("deelnemers", 0, $eventid, "", "'B', 'I', 'R', 'T'") as $row) {
-					db_mailing_rcpt("add", $mid, $row->LidID);
+			$mid = db_mailing("add", 0, "", $_POST['Omschrijving']);
+			if ($mid > 0) {
+				if (strlen($_POST['Email']) > 4 and isValidMailAddress($_POST['Email'])) {
+					$row = db_mailing_vanaf("record", $_POST['Email']);
+					if (isset($row->Vanaf_email) and strlen($row->Vanaf_email) > 4) {
+						db_mailing("update", $mid, "", $row->Vanaf_email, "from_addr");
+					}
 				}
-			} 
-			if (isset($_POST['mailpotdeeln']) or isset($_POST['mailbeidedeeln'])) {
-				foreach (db_evenement("potdeelnemers", 0, $eventid) as $row) {
-					db_mailing_rcpt("add", $mid, $row->Nummer);
+				if (isset($_POST['maildeeln']) or isset($_POST['mailbeidedeeln'])) {
+					foreach (db_evenement("deelnemers", 0, $eventid, "", "'B', 'I', 'R', 'T'") as $row) {
+						db_mailing_rcpt("add", $mid, $row->LidID);
+					}
+				} 
+				if (isset($_POST['mailpotdeeln']) or isset($_POST['mailbeidedeeln'])) {
+					foreach (db_evenement("potdeelnemers", 0, $eventid) as $row) {
+						db_mailing_rcpt("add", $mid, $row->Nummer);
+					}
 				}
 			}
 			printf("<script>location.href='%s?tp=Mailing/Concepten&op=edit&mid=%d'</script>\n", $_SERVER['PHP_SELF'], $mid);
