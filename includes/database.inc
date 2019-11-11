@@ -806,7 +806,7 @@ function db_authorisation($actie, $recid=0, $tabpage="") {
 		return $result->fetchAll();
 		
 	} elseif ($actie == "add") {
-		$query = sprintf("INSERT INTO %sAdmin_access SET Tabpage=\"%s\", Ingevoerd=CURDATE();", TABLE_PREFIX, $tabpage);
+		$query = sprintf("INSERT INTO %sAdmin_access SET Tabpage=\"%s\";", TABLE_PREFIX, $tabpage);
 		$result = fnQuery($query);
 		if ($tabpage == "Vereniging/Introductie") {
 			$query = sprintf("UPDATE %sAdmin_access SET Toegang=0 WHERE Tabpage='Vereniging/Introductie';", TABLE_PREFIX);
@@ -816,7 +816,7 @@ function db_authorisation($actie, $recid=0, $tabpage="") {
 		db_logboek("add", $mess, 15, 0, 0, $result);
 		
 	} elseif ($actie == "update") {  // Nog niet af en nog niet in gebruik
-		$query = sprintf("UPDATE %1\$sAdmin_access SET Toegang=%2\$d, Gewijzigd=SYSDATE() WHERE RecordID=%3\$d AND Toegang<>%2\$d;", TABLE_PREFIX, $_POST[$vn], $recid);
+		$query = sprintf("UPDATE %1\$sAdmin_access SET Toegang=%2\$d WHERE RecordID=%3\$d AND Toegang<>%2\$d;", TABLE_PREFIX, $_POST[$vn], $recid);
 		$result = fnQuery($query);
 		if ($result > 0) {
 			if ($_POST[$vn] == "-1") {
@@ -993,7 +993,7 @@ function db_bewaking_blok($actie, $seizoen=-1, $blokid=0, $field="", $val="") {
 			$e = date("Y-m-d");
 			$k = "";
 		}
-		$query = sprintf("INSERT INTO %sBewaking_Blok SET SeizoenID=%d, Kode='%s', Begindatum='%s', Einddatum='%s', Ingevoerd=CURDATE(), Gewijzigd=SYSDATE();", TABLE_PREFIX, $seizoen, $k, $b, $e);
+		$query = sprintf("INSERT INTO %sBewaking_Blok SET SeizoenID=%d, Kode='%s', Begindatum='%s', Einddatum='%s';", TABLE_PREFIX, $seizoen, $k, $b, $e);
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$mess = sprintf("Bewakingsblok %d is toegevoegd.", $result);
@@ -1007,7 +1007,7 @@ function db_bewaking_blok($actie, $seizoen=-1, $blokid=0, $field="", $val="") {
 			$set_clause = sprintf("`%s`='%s'", $field, $val);
 		}
 		
-		$query = sprintf("UPDATE %sBewaking_Blok SET %s, Gewijzigd=SYSDATE() WHERE RecordID=%d;", TABLE_PREFIX, $set_clause, $blokid);
+		$query = sprintf("UPDATE %sBewaking_Blok SET %s WHERE RecordID=%d;", TABLE_PREFIX, $set_clause, $blokid);
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$mess = sprintf("Veld '%s' in Bewakingsblok %d is in '%s' gewijzigd.", $field, $blokid, $val);
@@ -1683,12 +1683,15 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		
 	} elseif ($actie === "controle") {
 		if (db_param("login_autounlock") > 0) {
-			$query = sprintf("UPDATE %sAdmin_login SET FouteLogin=0, Gewijzigd=SYSDATE()
-						WHERE Gewijzigd < DATE_ADD(SYSDATE(), INTERVAL -%d MINUTE) AND FouteLogin > 0;", TABLE_PREFIX, db_param("login_autounlock"));
+			$query = sprintf("SELECT Login FROM %sAdmin_login WHERE Gewijzigd < DATE_SUB(SYSDATE(), INTERVAL %d MINUTE) AND FouteLogin > 0;", TABLE_PREFIX, db_param("login_autounlock"));
 			$result = fnQuery($query);
-			if ($result > 0) {
-				$mess = sprintf("%d logins zijn automatisch ge-unlocked.", $result);
-				db_logboek("add", $mess, 5);
+			foreach ($result->fetchAll() as $row) {
+				$updqry = sprintf("UPDATE %sAdmin_login SET FouteLogin=0, Gewijzigd=SYSDATE() WHERE Login='%s';", TABLE_PREFIX, $row->Login);
+				$updres = fnQuery($query);
+				if ($updres > 0) {
+					$mess = sprintf("Login %s is automatisch gedeblokkeerd.", $row->Login);
+					db_logboek("add", $mess, 5);
+				}
 			}
 		}
 	
@@ -2136,7 +2139,6 @@ function db_mailing_hist($actie, $lidid=0, $mhid=0, $mid=0, $mail=null) {
 function db_mailing_rcpt($actie, $mid=0, $lidid=0, $email="") {
 	global $selectnaam, $selectzoeknaam;
 
-
 	if ($actie == "aantal") {
 		$query = sprintf("SELECT COUNT(*) FROM %sMailing_rcpt WHERE MailingID=%d;", TABLE_PREFIX, $mid);
 		return db_scalar($query);
@@ -2154,7 +2156,7 @@ function db_mailing_rcpt($actie, $mid=0, $lidid=0, $email="") {
 			if ($lidid > 0) {
 				$rl = db_lid("record", "", $lidid);
 				if (isValidMailAddress($rl->Email) or isValidMailAddress($rl->EmailOuders) or isValidMailAddress($rl->EmailVereniging)) {
-					$query = sprintf("INSERT INTO %sMailing_rcpt SET MailingID=%d, LidID=%d, Ingevoerd=CURDATE();", TABLE_PREFIX, $mid, $lidid);
+					$query = sprintf("INSERT INTO %sMailing_rcpt SET MailingID=%d, LidID=%d;", TABLE_PREFIX, $mid, $lidid);
 				} else {
 					$mess = sprintf("%s is niet aan mailing %d toegevoegd, omdat er geen geldig emailadres bekend is.", $rl->NaamLid, $mid);
 					db_logboek("add", $mess, 4, 0, 1, $lidid);
@@ -2162,7 +2164,7 @@ function db_mailing_rcpt($actie, $mid=0, $lidid=0, $email="") {
 				$r = $rl->NaamLid;
 				$rl = null;
 			} elseif (isValidMailAddress($email)) {
-				$query = sprintf("INSERT INTO %sMailing_rcpt SET MailingID=%d, to_address='%s', Ingevoerd=CURDATE();", TABLE_PREFIX, $mid, $email);
+				$query = sprintf("INSERT INTO %sMailing_rcpt SET MailingID=%d, to_address='%s';", TABLE_PREFIX, $mid, $email);
 				$r = $email;
 			}
 			if (strlen($mess) == 0 and fnQuery($query) > 0) {
@@ -2223,9 +2225,9 @@ function db_mailing_vanaf($actie, $value="", $rid=0, $kolnaam="") {
 		
 	} elseif ($actie == "update") {
 		if ($kolnaam == "SMTP_poort") {
-			$query = sprintf("UPDATE %1\$sMailing_vanaf SET %2\$s=%3\$d, Gewijzigd=SYSDATE() WHERE %2\$s <> %3\$d AND RecordID=%4\$d;", TABLE_PREFIX, $kolnaam, $value, $rid);
+			$query = sprintf("UPDATE %1\$sMailing_vanaf SET %2\$s=%3\$d WHERE %2\$s <> %3\$d AND RecordID=%4\$d;", TABLE_PREFIX, $kolnaam, $value, $rid);
 		} else {
-			$query = sprintf("UPDATE %1\$sMailing_vanaf SET %2\$s='%3\$s', Gewijzigd=SYSDATE() WHERE BINARY %2\$s <> '%3\$s' AND RecordID=%4\$d;", TABLE_PREFIX, $kolnaam, $value, $rid);
+			$query = sprintf("UPDATE %1\$sMailing_vanaf SET %2\$s='%3\$s' WHERE BINARY %2\$s <> '%3\$s' AND RecordID=%4\$d;", TABLE_PREFIX, $kolnaam, $value, $rid);
 		}
 		$result = fnQuery($query);
 		if ($result > 0) {
@@ -2690,7 +2692,7 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 			$where = sprintf("E.Datum >= DATE_ADD(CURDATE(), INTERVAL -3 DAY) AND E.VerwijderdOp < '2012-01-01' AND E.ZichtbaarVoor IN %s", $lg);
 		}
 		$query = sprintf("SELECT E.RecordID AS lnkNummer, E.Datum AS dteDatum, DATE_FORMAT(E.Datum, '%%H:%%i') AS Starttijd, E.Omschrijving, E.Locatie,
-								E.Email AS `emlEmail`, E.Verzameltijd, E.Eindtijd,
+								E.Email AS `emlEmail`, E.Verzameltijd, E.Eindtijd, ET.Soort AS ndSoort,
 								CASE E.InschrijvingOpen WHEN 0 THEN 'Nee' ELSE 'Ja' END AS `Ins. open?`,
 								(%1\$s) AS `Aantal dln`,
 								ET.Omschrijving AS `Type`
@@ -2858,7 +2860,7 @@ function db_artikel($actie, $artikelid=0, $lidid=0) {
 		return $result->fetchAll();
 		
 	} elseif ($actie == "add") {
-		$query = sprintf("INSERT INTO %sWS_Artikel SET Ingevoerd=CURDATE(), IngevoerdDoor=%d;", TABLE_PREFIX, $_SESSION['lidid']);
+		$query = sprintf("INSERT INTO %sWS_Artikel SET IngevoerdDoor=%d;", TABLE_PREFIX, $_SESSION['lidid']);
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$mess = sprintf("Artikel %d is toegevoegd.", $result);
@@ -2953,7 +2955,7 @@ function db_orderregel($actie, $lidid=0, $artikelid=0, $aantalbesteld=0, $filter
 		return db_scalar($query);
 		
 	} elseif ($actie == "add") {
-		$query = sprintf("INSERT INTO %sWS_Orderregel SET Lid=%d, Artikel=%d, AantalBesteld=%d, Ordernr=%d, Ingevoerd=CURDATE(), IngevoerdDoor=%d;", TABLE_PREFIX, $lidid, $artikelid, $aantalbesteld, $ordernr, $_SESSION['lidid']);
+		$query = sprintf("INSERT INTO %sWS_Orderregel SET Lid=%d, Artikel=%d, AantalBesteld=%d, Ordernr=%d, IngevoerdDoor=%d;", TABLE_PREFIX, $lidid, $artikelid, $aantalbesteld, $ordernr, $_SESSION['lidid']);
 		$result = fnQuery($query);
 		if ($result > 0) {
 			if ($artikelid > 0) {
@@ -3261,7 +3263,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	} elseif ($actie == "controle" and strlen($naam) > 0) {
 		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_param WHERE Naam LIKE '%s';", TABLE_PREFIX, $naam);
 		if (db_scalar($query) == 0) {
-			$query = sprintf("INSERT INTO %sAdmin_param SET Naam='%s', ParamType='%s', Ingevoerd=CURDATE(), IngevoerdDoor=%d, GewijzigdDoor=%d;", TABLE_PREFIX, $naam, $pt, $_SESSION['lidid'], $_SESSION['lidid']);
+			$query = sprintf("INSERT INTO %sAdmin_param SET Naam='%s', ParamType='%s', IngevoerdDoor=%d, GewijzigdDoor=%d;", TABLE_PREFIX, $naam, $pt, $_SESSION['lidid'], $_SESSION['lidid']);
 			$result = fnQuery($query);
 			if ($result > 0) {
 				$mess = sprintf("Parameter '%s' is toegevoegd.", $naam);
@@ -3494,7 +3496,7 @@ function db_onderhoud($type=9) {
 	$query = sprintf("ALTER TABLE %sAdmin_login CHANGE `Ingevoerd` `Ingevoerd` DATETIME;", TABLE_PREFIX);
 	fnQuery($query);
 	
-	// Evenement_Deelnemer deze code kan na 1/12/2020 worden verwijderd.
+	// Deze code kan na 1/12/2020 worden verwijderd.
 	$query = sprintf("ALTER TABLE `%sEvenement_Deelnemer` CHANGE `Functie` `Functie` VARCHAR(30) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL;", TABLE_PREFIX);
 	fnQuery($query);
 	$query = sprintf("ALTER TABLE `%sEvenement_Deelnemer` CHANGE `Opmerking` `Opmerking` VARCHAR(75) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL;", TABLE_PREFIX);
@@ -3503,9 +3505,39 @@ function db_onderhoud($type=9) {
 	fnQuery($query);
 	$query = sprintf("ALTER TABLE `%sEvenement_Deelnemer` CHANGE `GewijzigdDoor` `GewijzigdDoor` INT(11) NOT NULL DEFAULT '0';", TABLE_PREFIX);
 	fnQuery($query);
-	
-	// Evenement deze code kan na 1/12/2020 worden verwijderd.
 	$query = sprintf("ALTER TABLE `%sEvenement` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
+	fnQuery($query);
+	$query = sprintf("ALTER TABLE `%sAdmin_access` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
+	fnQuery($query);
+	$query = sprintf("ALTER TABLE `%sAdmin_activiteit` CHANGE `DatumTijd` `DatumTijd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
+	fnQuery($query);
+	$query = sprintf("ALTER TABLE `%sAdmin_interface` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
+	fnQuery($query);
+	$query = sprintf("ALTER TABLE `%sAdmin_login` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
+	fnQuery($query);
+	$query = sprintf("ALTER TABLE `%sAdmin_param` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
+	fnQuery($query);
+	$query = sprintf("ALTER TABLE `%sMailing` CHANGE `new_on` `new_on` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
+	fnQuery($query);
+	$query = sprintf("ALTER TABLE `%sMailing` CHANGE `changed_on` `changed_on` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
+	fnQuery($query);
+	$query = sprintf("ALTER TABLE `%sMailing_rcpt` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
+	fnQuery($query);
+	$query = sprintf("ALTER TABLE `%sMailing_vanaf` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
+	fnQuery($query);
+	$query = sprintf("ALTER TABLE `%sWS_Artikel` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
+	fnQuery($query);
+	$query = sprintf("ALTER TABLE `%sWS_Orderregel` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
+	fnQuery($query);
+	$query = sprintf("ALTER TABLE `%sWS_Artikel` CHANGE `Gewijzigd` `Gewijzigd` TIMESTAMP on update CURRENT_TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
+	fnQuery($query);
+	$query = sprintf("ALTER TABLE `%sWS_Orderregel` CHANGE `Gewijzigd` `Gewijzigd` TIMESTAMP on update CURRENT_TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
+	fnQuery($query);
+	$query = sprintf("ALTER TABLE `%sEvenement_Type` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
+	fnQuery($query);
+	$query = sprintf("ALTER TABLE `%sBewaking_Blok` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
+	fnQuery($query);
+	$query = sprintf("ALTER TABLE `%sMailing_vanaf` CHANGE `Gewijzigd` `Gewijzigd` TIMESTAMP on update CURRENT_TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
 	fnQuery($query);
 	
 	/***** Opschonen database na een upload uit de Access-database.  *****/
