@@ -820,14 +820,11 @@ class Mailing {
 			$_POST['HTMLdirect'] = 0;
 		}
 		
+		$old = db_mailing("record", $this->mid);
 		foreach($_POST as $key => $val) {
-			if (bestaatkolom("Mailing", $key)) {
+			if (array_key_exists($key, $old) and $val != $old->$key) {
 //				debug($key . ": " . $val);
 				$mess = db_mailing("update", $this->mid, "", $val, $key);
-				if (strlen($mess) > 0) {
-					db_logboek("add", $mess, 4);
-				}
-			} else {
 			}
 		}
 		
