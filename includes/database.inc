@@ -1995,13 +1995,12 @@ function db_mailing($actie, $mid=0, $filter="", $new_val="", $kolnaam="") {
 		
 	} elseif ($actie == "add") {
 		$subj = str_replace("\"", "'", $new_val);
-		$query = sprintf("INSERT INTO %sMailing (subject, new_on, AddedBy)
-								VALUES (\"%s\", SYSDATE(), %d);", TABLE_PREFIX, $subj, $_SESSION['lidid']);
+		$query = sprintf("INSERT INTO %sMailing (subject, AddedBy) VALUES (\"%s\", %d);", TABLE_PREFIX, $subj, $_SESSION['lidid']);
 		$id = fnQuery($query);
 		if ($id > 0) {
 			$mess = sprintf("Mailing %d (%s) is door %s toegevoegd.", $id, $subj, $_SESSION['naamingelogde']);
 		} else {
-			$mess = "Het toevoegen van de mailing is mislukt.";
+			$mess = sprintf("Het toevoegen van mailing '%s' is mislukt.", $subj);
 		}
 		db_logboek("add", $mess, 4, 0, 0, $id);
 		return $id;
@@ -2032,7 +2031,9 @@ function db_mailing($actie, $mid=0, $filter="", $new_val="", $kolnaam="") {
 				$mess = sprintf("Mailing %d: kolom '%s' is in '%s' gewijzigd. ", $mid, $kolnaam, $new_val);
 			}
 		}
-		return $mess;
+		if (strlen($mess) > 0) {
+			db_logboek("add", $mess, 4, 0, 0, $mid);
+		}
 		
 	} elseif ($actie == "updatesent") {
 		$query = sprintf("UPDATE %sMailing SET sent_on=SYSDATE(), SentBy=%d WHERE MailingID=%d;", TABLE_PREFIX, $_SESSION['lidid'], $mid);
@@ -2136,8 +2137,10 @@ function db_mailing_hist($actie, $lidid=0, $mhid=0, $mid=0, $mail=null) {
 
 } # db_mailing_hist
 
-function db_mailing_rcpt($actie, $mid=0, $lidid=0, $email="") {
+function db_mailing_rcpt($actie, $mid=0, $lidid=0, $email="", $lb=0) {
 	global $selectnaam, $selectzoeknaam;
+	
+	$tlm = 1;
 
 	if ($actie == "aantal") {
 		$query = sprintf("SELECT COUNT(*) FROM %sMailing_rcpt WHERE MailingID=%d;", TABLE_PREFIX, $mid);
@@ -2169,9 +2172,15 @@ function db_mailing_rcpt($actie, $mid=0, $lidid=0, $email="") {
 			}
 			if (strlen($mess) == 0 and fnQuery($query) > 0) {
 				$mess = sprintf("%s is aan mailing %d toegevoegd.", $r, $mid);
+				$tlm = 0;
 			} else {
 				$mess = "";
 			}
+		}
+		if ($lb == 1 and strlen($mess) > 0) {
+			db_logboek("add", $mess, 4, $lidid, $tlm);
+		} else {
+			$mess = "";
 		}
 		return $mess;
 		
@@ -2212,7 +2221,7 @@ function db_mailing_vanaf($actie, $value="", $rid=0, $kolnaam="") {
 		return $result->fetchAll();
 		
 	} elseif ($actie == "record" and strlen($value) > 5) {
-		$query = sprintf("SELECT * FROM %sMailing_vanaf WHERE BINARY Vanaf_email='%s';", TABLE_PREFIX, $value);
+		$query = sprintf("SELECT * FROM %sMailing_vanaf WHERE BINARY LOWER(Vanaf_email)='%s';", TABLE_PREFIX, strtolower($value));
 		$result = fnQuery($query);
 		return $result->fetch();
 		
@@ -2824,6 +2833,38 @@ function db_Evenement_Deelnemer($actie, $recid, $fld="", $val="", $lidid=0, $eve
 	db_logboek("add", $mess, 7, 0, 0, $edrow->EvenementID);
 	
 }  #  db_Evenement_Deelnemer
+
+function db_Evenement_Type($actie, $etid=0, $colname="", $newval="") {
+	if ($actie == "insert") {
+		$query = sprintf("INSERT INTO %sEvenement_Type (Omschrijving) VALUES ('%s');", TABLE_PREFIX, $newval);
+		$etid = fnQuery($query);
+		if ($etid > 0) {
+			$mess = sprintf("Evenement type %d is toegevoegd.", $etid);
+		} else {
+			$mess = sprintf("Evenement type '%s' kon niet worden toegevoegd.", $newval);
+		}
+		db_logboek("add", $mess, 7, 0, 1, $etid);
+		return $etid;
+		
+	} elseif ($actie == "update" and $etid > 0 and strlen($colname) > 0) {
+		$query = sprintf("UPDATE %sEvenement_Type SET `%s`='%s' WHERE RecordID=%d;", TABLE_PREFIX, $colname, $newval, $etid);
+		if (fnQuery($query) > 0) {
+			$mess = sprintf("Kolom '%s' in Evenement type %d is in '%s' gewijzigd.", $colname, $etid, $newval);
+			db_logboek("add", $mess, 7, 0, 1, $etid);
+		}
+		
+	} elseif ($actie == "delete" and $etid > 0) {
+		$query = sprintf("DELETE FROM %1\$sEvenement_Type WHERE RecordID=%2\$d AND RecordID NOT IN (SELECT TypeEvenement FROM %1\$sEvenement)", TABLE_PREFIX, $etid);
+		$result = fnQuery($query);
+		if ($result > 0) {
+			$mess = sprintf("Evenement type %d is verwijderd.", $etid);
+		} else {
+			$mess = sprintf("Evenement type %d kon niet verwijderd worden, omdat het nog in gebruik is.", $etid);
+		}
+		db_logboek("add", $mess, 7, 0, 1, $etid);
+	}
+	
+}  # db_Evenement_Type
 
 function db_artikel($actie, $artikelid=0, $lidid=0) {
 
