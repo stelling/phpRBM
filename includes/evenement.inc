@@ -225,12 +225,12 @@ function muteerevenement($eventid) {
 				}
 				if (isset($_POST['maildeeln']) or isset($_POST['mailbeidedeeln'])) {
 					foreach (db_evenement("deelnemers", 0, $eventid, "", "'B', 'I', 'R', 'T'") as $row) {
-						db_mailing_rcpt("add", $mid, $row->LidID);
+						db_mailing_rcpt("add", $mid, $row->LidID, "", 1);
 					}
 				} 
 				if (isset($_POST['mailpotdeeln']) or isset($_POST['mailbeidedeeln'])) {
 					foreach (db_evenement("potdeelnemers", 0, $eventid) as $row) {
-						db_mailing_rcpt("add", $mid, $row->Nummer);
+						db_mailing_rcpt("add", $mid, $row->Nummer, "", 1);
 					}
 				}
 			}
@@ -398,46 +398,28 @@ function muteerevenement($eventid) {
 }
 
 function muteertypeevenement() {
-	global $table_prefix, $soortevenement;
+	global $soortevenement;
 	
 	$mess = "";
 	if (isset($_GET['op']) and $_GET['op'] == "delete" and $_GET['tid'] > 0) {
-		$query = sprintf("DELETE FROM %1\$sEvenement_Type WHERE RecordID=%2\$d AND RecordID NOT IN (SELECT TypeEvenement FROM %1\$sEvenement)", $table_prefix, $_GET['tid']);
-		$result = fnQuery($query);
-		if ($result > 0) {
-			$mess = sprintf("Evenement type %d is verwijderd.", $_GET['tid']);
-		} else {
-			$mess = sprintf("Evenement type %d kon niet verwijderd worden, omdat het nog in gebruik is.", $_GET['tid']);
-		}
+		db_Evenement_Type("delete",$_GET['tid']);
 	} elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
 		if (isset($_POST['oms_nw']) and strlen($_POST['oms_nw']) > 0) {
-			$query = sprintf("INSERT INTO %sEvenement_Type SET Omschrijving='%s';", $table_prefix, $_POST['oms_nw']);
-			$id = fnQuery($query);
-			$mess = sprintf("Type evenement %d is toegevoegd.", $id);
+			$id = db_Evenement_Type("insert", 0, "", $_POST['oms_nw']);
 		} else {
 			foreach (db_evenement("types") as $row) {
 				$set_clause = "";
 				$oms = sprintf("oms_%d", $row->RecordID);
 				$soort = sprintf("soort_%d", $row->RecordID);
 				if (isset($_POST[$oms]) and $_POST[$oms] != $row->Omschrijving) {
-					$set_clause = sprintf("Omschrijving='%s', ", $_POST[$oms]);
-					$mess = sprintf("Omschrijving evenement type %d is in '%s' gewijzigd. ", $row->RecordID, $_POST[$oms]);
+					db_Evenement_Type("update", $row->RecordID, "Omschrijving", $_POST[$oms]);
 				}
 				if (isset($_POST[$soort]) and $_POST[$soort] != $row->Soort) {
-					$set_clause .= sprintf("Soort='%s', ", $_POST[$soort]);
-					$mess = sprintf("De soort evenement type %d is in '%s' gewijzigd.", $row->RecordID, $_POST[$soort]);
-				}
-				if (strlen($set_clause) > 2) {
-					$set_clause .= sprintf("GewijzigdDoor=%d", $_SESSION['lidid']);
-					$query = sprintf("UPDATE %sEvenement_Type SET %s WHERE RecordID=%d;", $table_prefix, $set_clause, $row->RecordID);
-					if (fnQuery($query) == 0) {
-						$mess = sprintf("De wijzigingen in evenement type %d konden niet verwerkt worden.", $row->RecordID);
-					}
+					db_Evenement_Type("update", $row->RecordID, "Soort", $_POST[$soort]);
 				}
 			}
 		}
 	}
-	db_logboek("add", $mess, 7, 0, 1);
 		
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	echo("<table>\n");
