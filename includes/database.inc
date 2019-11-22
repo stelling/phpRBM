@@ -212,6 +212,13 @@ function db_gegevenslid($LidID, $soort="Alg") {
 		}
 		$sqllegitimatie .= "END, ' ', L.Legitimatienummer), NULL)";
 		
+		if (db_param("WoonadresAnderenTonen") == 1 or $LidID == $_SESSION['lidid']) {
+			$adresgegevens = "'Adresgegevens' AS Kop2,
+					L.Adres,
+					IF(LENGTH(L.Woonplaats) > 1, CONCAT(L.Postcode, '  ', L.Woonplaats), '') AS `Postcode en woonplaats`, ";
+		} else {
+			$adresgegevens = "";
+		}
 		$VOG = "`VOG afgegeven` AS 'dteVOG afgegeven op',";
 		$sqlbd = sprintf("SELECT MAX(EINDE_PER) FROM %sBewaking WHERE Lid=L.Nummer AND BEGIN_PER < CURDATE()", TABLE_PREFIX);
 		$query = sprintf("SELECT CONCAT(`Waarschuwen bij nood`, NamenOuders) FROM %sLid WHERE Nummer=%d;", TABLE_PREFIX, $LidID);
@@ -238,9 +245,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					L.Overleden AS `dteOverleden op`,
 					%s AS Leeftijd,
 					L.Burgerservicenummer,
-					'Adresgegevens' AS Kop2,
-					L.Adres,
-					IF(LENGTH(L.Woonplaats) > 1, CONCAT(L.Postcode, '  ', L.Woonplaats), '') AS `Postcode en woonplaats`, 
+					%s
 					'Contactgegevens' AS Kop3, 
 					L.Telefoon, 
 					L.Mobiel, 
@@ -272,7 +277,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					L.Gewijzigd AS `dteLaatst gewijzigd op` 
 					FROM %s 
 					WHERE L.Nummer=%d 
-					ORDER BY LM.LIDDATUM DESC;", $selectnaam, $selectgeslacht, $fdlang, $selectleeftijd, $sqond, $sqllegitimatie, $VOG, $sqlbd, $wbn, $sqdieet, $fromlid, $LidID);
+					ORDER BY LM.LIDDATUM DESC;", $selectnaam, $selectgeslacht, $fdlang, $selectleeftijd, $adresgegevens, $sqond, $sqllegitimatie, $VOG, $sqlbd, $wbn, $sqdieet, $fromlid, $LidID);
 					//debug($query);
 					
 	} elseif ($soort == "Financieel") {
@@ -1156,8 +1161,12 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 	}
 }
 
-function db_onderdeel($actie, $type="", $lidid=0, $onderdlid=0, $kolomnaam="", $waarde="") {
+function db_onderdeel($actie, $type="", $lidid=0, $onderdlid=0, $kolomnaam="", $waarde="", $per="") {
 	global $fromlidond, $wherelidond;
+	
+	if (strlen($per) >= 10) {
+		$wherelidond = sprintf("LO.Vanaf <= '%1\$s' AND IFNULL(LO.Opgezegd, '2999-12-31') >= '%1\$s'", date("Y-m-d", strtotime($per)));
+	}
 	
 	$where = "";
 	if ($type == "bw") {
@@ -1169,6 +1178,8 @@ function db_onderdeel($actie, $type="", $lidid=0, $onderdlid=0, $kolomnaam="", $
 	} elseif ($onderdlid > 0) {
 		$where = sprintf("O.RecordID=%d", $onderdlid);
 	}
+	
+	
 	if ($actie == "lijstingebruik" or $actie == "aantalingebruik" or $lidid > 0) {
 		if (strlen($where) > 0) {
 			$where .= " AND ";
@@ -1255,6 +1266,10 @@ function db_lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0, $loid=0)
 	global $selectnaam, $selectzoeknaam, $selectgeslacht, $selecttelefoon, $selectleeftijd, $fromlidond, $wherelidond, $selectlidnr, $fdaccess, $lididtestusers;
 	
 	$mess = "";
+	
+	if (strlen($per) >= 10) {
+		$wherelidond = sprintf("LO.Vanaf <= '%1\$s' AND IFNULL(LO.Opgezegd, '2999-12-31') >= '%1\$s'", date("Y-m-d", strtotime($per)));
+	}
 //	debug($actie);
 	
 	if (strlen($filter) > 0 and $onderdlid > 0) {
@@ -1271,11 +1286,10 @@ function db_lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0, $loid=0)
 		$query = sprintf("SELECT Max(Gewijzigd) FROM %sLidond;", TABLE_PREFIX);
 		return db_scalar($query);
 		
-	} elseif ($actie == "bewaking" and strlen($per) == 10) {
+	} elseif ($actie == "bewaking") {
 		$query  = sprintf("SELECT DISTINCT O.Kode FROM %s
-					 WHERE O.`Tonen in bewakingsadministratie`=1 AND LO.Lid=%2\$d
-					 AND LO.Vanaf <= '%3\$s' AND ((LO.OPGEZEGD IS NULL) OR OPGEZEGD > '%3\$s')
-					 ORDER BY O.Kode;", $fromlidond, $lidid, $per);
+						   WHERE O.`Tonen in bewakingsadministratie`=1 AND LO.Lid=%d AND %s
+						   ORDER BY O.Kode;", $fromlidond, $lidid, $wherelidond);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
@@ -1447,8 +1461,10 @@ function db_lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0, $loid=0)
 		}
 
 	} elseif ($actie == "lidgroepen") {
-		$rv = "";
-		$query = sprintf("SELECT OnderdeelID FROM %sLidond AS LO WHERE Lid=%d AND %s;", TABLE_PREFIX, $_SESSION['lidid'], $wherelidond);
+		if ($lidid <= 0) {
+			$lidid = $_SESSION['lidid'];
+		}
+		$query = sprintf("SELECT OnderdeelID FROM %sLidond AS LO WHERE Lid=%d AND %s;", TABLE_PREFIX, $lidid, $wherelidond);
 		$result = fnQuery($query);
 		$rows = $result->fetchAll(PDO::FETCH_COLUMN);
 		if (count($rows) > 0) {
@@ -2070,7 +2086,7 @@ function db_mailing_hist($actie, $lidid=0, $mhid=0, $mid=0, $mail=null) {
 	global $selectnaam;
 	
 	if ($actie == "outbox") {
-		$lw = "Successful=0";
+		$lw = "Successful=0 AND send_on < '1901-01-01'";
 	} else {
 		$lw = "Successful=1";
 	}
@@ -3154,6 +3170,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrBooleans['kaderoverzichtmetfoto'] = 1;
 	$arrBooleans['toonpasfotoindiennietingelogd'] = 0;
 	$arrBooleans['meisjesnaamtonen'] = 1;
+	$arrBooleans['WoonadresAnderenTonen'] = 1;
 	$arrBooleans['login_lidnrnodigbijaanvraag'] = 1;
 	$arrBooleans['mailing_rekening_nulregelsweglaten'] = 0;
 	$arrBooleans['mailing_resultaatversturen'] = 0;
@@ -3642,794 +3659,6 @@ function db_addautoincrement($table) {
 	}
 }
 
-function db_createtables() {
-
-	$queries = sprintf("SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO';
-
-CREATE TABLE `%1\$sAdmin_access` (
-  `RecordID` int(11) NOT NULL,
-  `Tabpage` varchar(50) NOT NULL,
-  `Toegang` int(11) NOT NULL DEFAULT '-1',
-  `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sAdmin_activiteit` (
-  `RecordID` int(11) NOT NULL,
-  `LidID` int(11) NOT NULL COMMENT 'Wie heeft deze activiteit uitgevoerd?',
-  `DatumTijd` datetime NOT NULL,
-  `Omschrijving` text NOT NULL,
-  `ReferID` int(11) NOT NULL COMMENT 'Op welk RecordID heeft deze activiteit betrekking?',
-  `Script` varchar(75) NOT NULL,
-  `TypeActiviteit` tinyint(4) DEFAULT '0',
-  `IP_adres` varchar(45) NOT NULL,
-  `USER_AGENT` varchar(110) DEFAULT NULL,
-  `Getoond` tinyint(4) DEFAULT NULL COMMENT 'Is deze melding aan de gebruiker getoond?',
-  `RefFunction` varchar(50) NOT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sAdmin_interface` (
-  `RecordID` int(11) NOT NULL,
-  `LidID` int(11) DEFAULT NULL,
-  `IP-adres` char(15) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
-  `SQL-statement` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `IngelogdLid` int(11) DEFAULT NULL,
-  `Ingevoerd` datetime DEFAULT NULL,
-  `Gedownload` datetime DEFAULT NULL,
-  `Afgemeld` datetime DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sAdmin_login` (
-  `LidID` int(11) NOT NULL,
-  `Login` varchar(15) NOT NULL,
-  `Wachtwoord` varchar(255) NOT NULL,
-  `HerinneringVervallenDiplomas` tinyint(4) NOT NULL DEFAULT '0',
-  `Ingevoerd` datetime DEFAULT NULL,
-  `Gewijzigd` datetime NOT NULL,
-  `GewijzigdDoor` int(11) NOT NULL DEFAULT '0',
-  `LastLogin` datetime DEFAULT NULL,
-  `LastActivity` datetime NOT NULL,
-  `Ingelogd` tinyint(4) NOT NULL DEFAULT '0',
-  `FouteLogin` smallint(6) NOT NULL DEFAULT '0',
-  `ActivatieKey` varchar(255) DEFAULT NULL,
-  `2FA` tinyint(4) DEFAULT NULL,
-  `LaatsteWachtwoordWijziging` datetime DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sAdmin_param` (
-  `RecordID` int(11) NOT NULL,
-  `Naam` varchar(50) CHARACTER SET utf8 NOT NULL,
-  `ParamType` char(2) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `ValueChar` text COLLATE utf8_unicode_ci,
-  `ValueNum` decimal(16,6) DEFAULT NULL,
-  `Ingevoerd` date NOT NULL DEFAULT '0000-00-00',
-  `IngevoerdDoor` int(11) NOT NULL,
-  `Gewijzigd` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE CURRENT_TIMESTAMP,
-  `GewijzigdDoor` int(11) NOT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Parameters en instellingen';
-
-CREATE TABLE `%1\$sBewaking` (
-  `RecordID` int(11) DEFAULT NULL,
-  `Lid` int(11) NOT NULL DEFAULT '0',
-  `SeizoenID` int(11) NOT NULL DEFAULT '0',
-  `Weeknr` tinyint(4) DEFAULT NULL,
-  `BEGIN_PER` date NOT NULL,
-  `EINDE_PER` date DEFAULT NULL,
-  `Post` varchar(7) DEFAULT NULL,
-  `Status` varchar(1) DEFAULT NULL,
-  `Functie` tinyint(4) DEFAULT NULL,
-  `Opmerking` varchar(50) DEFAULT NULL,
-  `Beoordeling` longtext,
-  `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sBewaking_Blok` (
-  `RecordID` int(11) NOT NULL,
-  `SeizoenID` int(11) NOT NULL,
-  `Kode` char(2) DEFAULT NULL,
-  `Begindatum` date NOT NULL,
-  `Einddatum` date NOT NULL,
-  `InschrijvingOpen` tinyint(4) NOT NULL DEFAULT '1',
-  `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sBewaking_Inschrijving` (
-  `RecordID` int(11) NOT NULL,
-  `Lid` int(11) NOT NULL,
-  `Nummer` int(11) NOT NULL DEFAULT '0',
-  `BlokID` int(11) NOT NULL,
-  `Keuze` tinyint(4) NOT NULL DEFAULT '1',
-  `Opmerking` varchar(50) DEFAULT NULL,
-  `Definitief` datetime DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `Afgemeld` datetime DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sBewseiz` (
-  `RecordID` int(11) NOT NULL DEFAULT '0',
-  `Kode` varchar(5) DEFAULT NULL,
-  `Begindatum` date DEFAULT NULL,
-  `Einde` date DEFAULT NULL,
-  `Lokatie` varchar(30) DEFAULT NULL,
-  `Geboren` date DEFAULT NULL,
-  `MIN_LFT` tinyint(4) DEFAULT NULL,
-  `ST_LEN_BP` tinyint(4) DEFAULT NULL,
-  `EersteDagWeek` tinyint(4) DEFAULT NULL,
-  `CorrectieOpWeeknr` smallint(6) DEFAULT NULL,
-  `Afgesloten` tinyint(4) DEFAULT NULL,
-  `TOONERV` varchar(1) DEFAULT NULL,
-  `Posten` varchar(30) DEFAULT NULL,
-  `KeuzesBijInschrijving` tinyint(4) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sBoekjaar` (
-  `RecordID` int(11) NOT NULL DEFAULT '0',
-  `Kode` varchar(5) DEFAULT NULL,
-  `Omschrijving` varchar(50) DEFAULT NULL,
-  `Begindatum` datetime DEFAULT NULL,
-  `Einde` datetime DEFAULT NULL,
-  `Afgesloten` tinyint(4) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sDiploma` (
-  `RecordID` int(11) NOT NULL,
-  `Kode` varchar(8) DEFAULT NULL,
-  `Naam` varchar(75) DEFAULT NULL,
-  `Type` varchar(1) DEFAULT NULL,
-  `ORGANIS` smallint(6) DEFAULT NULL,
-  `MIN_LFT` smallint(6) DEFAULT NULL,
-  `Volgnr` smallint(6) DEFAULT NULL,
-  `EXAM_OND` smallint(6) DEFAULT NULL,
-  `GELDIGH` int(11) DEFAULT NULL,
-  `AantalBeoordelingen` smallint(6) DEFAULT NULL,
-  `Vervallen` date DEFAULT NULL,
-  `HistorieOpschonen` int(11) DEFAULT NULL,
-  `VoorgangerID` int(11) DEFAULT NULL,
-  `Alternatief` varchar(20) DEFAULT NULL,
-  `Tonen in bewakingsadministratie` tinyint(4) DEFAULT NULL,
-  `Zelfservice` tinyint(4) DEFAULT NULL,
-  `RolID` int(11) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sEvenement` (
-  `RecordID` int(11) NOT NULL,
-  `Datum` datetime NOT NULL,
-  `Eindtijd` varchar(5) NOT NULL,
-  `Verzameltijd` varchar(5) NOT NULL,
-  `Omschrijving` varchar(50) NOT NULL,
-  `Locatie` varchar(75) DEFAULT NULL,
-  `Email` varchar(45) NOT NULL,
-  `TypeEvenement` int(11) NOT NULL,
-  `InschrijvingOpen` tinyint(4) NOT NULL DEFAULT '1',
-  `StandaardStatus` char(1) NOT NULL DEFAULT 'I',
-  `BeperkTotGroep` int(11) NOT NULL DEFAULT '0' COMMENT 'Welke groep mag zich voor dit evenement inschrijven? 0 = iedereen.',
-  `ZichtbaarVoor` int(11) NOT NULL DEFAULT '0' COMMENT 'Voor welke groep is dit evenement zichtbaar? 0 = iedereen.',
-  `Ingevoerd` date NOT NULL,
-  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `GewijzigdDoor` int(11) NOT NULL,
-  `VerwijderdOp` date NOT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sEvenement_Deelnemer` (
-  `RecordID` int(11) NOT NULL,
-  `LidID` int(11) NOT NULL,
-  `EvenementID` int(11) NOT NULL,
-  `Functie` varchar(20) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
-  `Opmerking` varchar(75) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
-  `Status` char(1) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT 'I',
-  `Ingevoerd` date NOT NULL,
-  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `GewijzigdDoor` int(11) NOT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sEvenement_Type` (
-  `RecordID` int(11) NOT NULL,
-  `Omschrijving` varchar(30) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
-  `Soort` char(1) NOT NULL DEFAULT 'W',
-  `Ingevoerd` date NOT NULL,
-  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `GewijzigdDoor` int(11) NOT NULL DEFAULT '0'
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sFunctie` (
-  `Nummer` smallint(6) NOT NULL,
-  `Omschrijv` varchar(35) DEFAULT NULL,
-  `Oms_Vrouw` varchar(35) DEFAULT NULL,
-  `Afkorting` varchar(10) DEFAULT NULL,
-  `Sorteringsvolgorde` smallint(6) DEFAULT NULL,
-  `Afdelingsfunctie` tinyint(4) DEFAULT NULL,
-  `Ledenadministratiefunctie` tinyint(4) DEFAULT NULL,
-  `Bewakingsfunctie` tinyint(4) DEFAULT NULL,
-  `Kader` tinyint(4) DEFAULT NULL,
-  `Vervallen per` date DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sGBR` (
-  `RecordID` int(11) DEFAULT NULL,
-  `Kode` varchar(4) NOT NULL DEFAULT '',
-  `OMSCHRIJV` varchar(40) DEFAULT NULL,
-  `Balans` tinyint(4) DEFAULT NULL,
-  `KSTNPLTS` tinyint(4) DEFAULT NULL,
-  `VerdichtingID` int(11) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL,
-  `Standaard kostenplaats` int(11) DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sGroep` (
-  `RecordID` int(11) NOT NULL,
-  `OnderdeelID` int(11) DEFAULT NULL,
-  `Kode` varchar(5) DEFAULT NULL,
-  `Omschrijving` varchar(45) DEFAULT NULL,
-  `Instructeurs` varchar(45) DEFAULT NULL,
-  `DiplomaID` int(11) DEFAULT NULL,
-  `Starttijd` varchar(5) DEFAULT NULL,
-  `Eindtijd` varchar(5) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sKostenplaats` (
-  `RecordID` int(11) NOT NULL DEFAULT '0',
-  `Kode` varchar(5) DEFAULT NULL,
-  `Naam` varchar(35) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sLid` (
-  `RecordID` int(11) DEFAULT NULL,
-  `Nummer` int(11) NOT NULL,
-  `Roepnaam` varchar(17) DEFAULT NULL,
-  `Tussenv` varchar(7) DEFAULT NULL,
-  `Achternaam` varchar(30) DEFAULT NULL,
-  `Meisjesnm` varchar(25) DEFAULT NULL,
-  `Voorletter` varchar(10) DEFAULT NULL,
-  `Geslacht` varchar(1) DEFAULT NULL,
-  `GEBDATUM` date DEFAULT NULL,
-  `Overleden` date DEFAULT NULL,
-  `GEBPLAATS` varchar(22) DEFAULT NULL,
-  `Adres` varchar(30) DEFAULT NULL,
-  `Huisnr` int(11) DEFAULT NULL,
-  `Toevoeging` varchar(5) DEFAULT NULL,
-  `Postcode` varchar(7) DEFAULT NULL,
-  `Woonplaats` varchar(22) DEFAULT NULL,
-  `Buitenland` tinyint(4) DEFAULT NULL,
-  `Telefoon` varchar(21) DEFAULT NULL,
-  `Mobiel` varchar(21) DEFAULT NULL,
-  `Email` varchar(45) DEFAULT NULL,
-  `EmailVereniging` varchar(45) DEFAULT NULL,
-  `EmailOuders` varchar(60) DEFAULT NULL,
-  `NamenOuders` varchar(90) DEFAULT NULL,
-  `Waarschuwen bij nood` varchar(255) DEFAULT NULL,
-  `Bankrekening` varchar(18) DEFAULT NULL,
-  `Burgerservicenummer` int(11) DEFAULT NULL,
-  `Machtiging afgegeven` tinyint(4) DEFAULT NULL,
-  `BezwaarMachtiging` datetime DEFAULT NULL,
-  `Legitimatietype` varchar(1) DEFAULT NULL,
-  `Legitimatienummer` varchar(15) DEFAULT NULL,
-  `VOG afgegeven` date DEFAULT NULL,
-  `LoginWebsite` varchar(20) DEFAULT NULL,
-  `Wijknummer` int(11) DEFAULT NULL,
-  `RelnrRedNed` varchar(8) DEFAULT NULL,
-  `Beroep` varchar(40) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL,
-  `Verwijderd` datetime DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sLiddipl` (
-  `RecordID` int(11) NOT NULL,
-  `Lid` int(11) DEFAULT NULL,
-  `DiplomaID` int(11) DEFAULT NULL,
-  `DatumBehaald` date DEFAULT NULL,
-  `EXPLAATS` varchar(23) DEFAULT NULL,
-  `Beoordelaar` int(11) DEFAULT NULL,
-  `LaatsteBeoordeling` tinyint(4) DEFAULT NULL,
-  `Diplomanummer` varchar(25) DEFAULT NULL,
-  `Examen` int(11) DEFAULT NULL,
-  `LicentieVervallenPer` date DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sLidmaatschap` (
-  `RecordID` int(11) NOT NULL,
-  `Lid` int(11) NOT NULL,
-  `LIDDATUM` date NOT NULL,
-  `Opgezegd` date DEFAULT NULL,
-  `OpgezegdDoorVereniging` tinyint(4) DEFAULT NULL,
-  `Lidnr` int(11) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sLidond` (
-  `RecordID` int(11) NOT NULL,
-  `Lid` int(11) NOT NULL,
-  `OnderdeelID` int(11) NOT NULL,
-  `Vanaf` date NOT NULL,
-  `Opgezegd` date DEFAULT NULL,
-  `Functie` smallint(6) NOT NULL,
-  `EmailFunctie` varchar(45) DEFAULT NULL,
-  `GroepID` int(11) DEFAULT NULL,
-  `Opmerk` varchar(30) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sLidRedNed` (
-  `Lidnr` int(11) DEFAULT NULL,
-  `RelnrRedNed` varchar(8) DEFAULT NULL,
-  `Roepnaam` varchar(35) DEFAULT NULL,
-  `Tussenvoegsels` varchar(7) DEFAULT NULL,
-  `Achternaam` varchar(50) DEFAULT NULL,
-  `Voorletters` varchar(10) DEFAULT NULL,
-  `Geslacht` varchar(1) DEFAULT NULL,
-  `Geboortedatum` date DEFAULT NULL,
-  `Postcode` varchar(7) DEFAULT NULL,
-  `Huisnr` int(11) DEFAULT NULL,
-  `Foutboodschap` varchar(75) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sMailing` (
-  `MailingID` int(11) NOT NULL,
-  `from_name` varchar(50) DEFAULT '',
-  `from_addr` varchar(50) DEFAULT '',
-  `to_name` varchar(50) DEFAULT '' COMMENT 'Omschrijving van de groep personen aan wie deze mailing gericht is',
-  `cc_addr` varchar(50) DEFAULT '',
-  `subject` varchar(75) DEFAULT '',
-  `message` text,
-  `template` tinyint(4) NOT NULL DEFAULT '0',
-  `confidential` tinyint(4) NOT NULL DEFAULT '0',
-  `verzamelen` tinyint(4) NOT NULL DEFAULT '0',
-  `new_on` datetime DEFAULT NULL,
-  `AddedBy` int(11) NOT NULL,
-  `changed_on` datetime DEFAULT NULL,
-  `ChangedBy` int(11) NOT NULL,
-  `sent_on` datetime DEFAULT NULL,
-  `SentBy` int(11) NOT NULL,
-  `deleted_on` datetime DEFAULT NULL,
-  `DeletedBy` int(11) NOT NULL,
-  `HTMLdirect` tinyint(4) DEFAULT '0'
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sMailing_hist` (
-  `RecordID` int(11) NOT NULL,
-  `LidID` int(11) NOT NULL DEFAULT '0',
-  `MailingID` int(11) NOT NULL,
-  `Xtra_Char` varchar(5) DEFAULT NULL,
-  `Xtra_Num` int(11) DEFAULT NULL,
-  `from_name` varchar(50) NOT NULL,
-  `from_addr` varchar(50) NOT NULL,
-  `to_name` varchar(50) NOT NULL,
-  `subject` varchar(75) NOT NULL,
-  `to_addr` varchar(100) NOT NULL,
-  `cc_addr` varchar(100) NOT NULL,
-  `message` text NOT NULL,
-  `send_by` int(11) NOT NULL,
-  `send_on` datetime NOT NULL,
-  `send_mt` decimal(16,6) NOT NULL,
-  `Successful` tinyint(4) NOT NULL DEFAULT '1'
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sMailing_rcpt` (
-  `RecordID` int(11) NOT NULL,
-  `MailingID` int(11) NOT NULL DEFAULT '0',
-  `LidID` int(11) NOT NULL DEFAULT '0',
-  `to_address` varchar(50) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sMailing_vanaf` (
-  `RecordID` int(11) NOT NULL,
-  `Vanaf_email` varchar(30) NOT NULL,
-  `Vanaf_naam` varchar(50) NOT NULL,
-  `SMTP_server` tinyint(20) NOT NULL DEFAULT '0' COMMENT 'Indien 0, dan wordt de smtp server uit het config bestand gebruikt',
-  `Ingevoerd` date NOT NULL,
-  `Gewijzigd` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sMemo` (
-  `RecordID` int(11) NOT NULL,
-  `Lid` int(11) NOT NULL,
-  `Soort` varchar(1) NOT NULL,
-  `Vertrouwelijk` tinyint(4) DEFAULT '0',
-  `Memo` longtext,
-  `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sMutatie` (
-  `RecordID` int(11) DEFAULT NULL,
-  `BoekjaarID` int(11) NOT NULL DEFAULT '0',
-  `Periode` tinyint(4) NOT NULL DEFAULT '0',
-  `DagboekID` int(11) NOT NULL DEFAULT '0',
-  `GBR` varchar(4) DEFAULT NULL,
-  `KostenplaatsID` int(11) DEFAULT NULL,
-  `Stuknr` smallint(6) NOT NULL DEFAULT '0',
-  `Regelnr` smallint(6) NOT NULL DEFAULT '0',
-  `Datum` date DEFAULT NULL,
-  `Debet` decimal(8,2) DEFAULT NULL,
-  `Credit` decimal(8,2) DEFAULT NULL,
-  `OMSCHRIJV` varchar(45) DEFAULT NULL,
-  `Rekening` int(11) DEFAULT NULL,
-  `BTWcode` tinyint(4) DEFAULT NULL,
-  `BTWbedrag` decimal(8,2) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sOnderdl` (
-  `RecordID` int(11) NOT NULL,
-  `Kode` varchar(6) DEFAULT NULL,
-  `Naam` varchar(50) DEFAULT NULL,
-  `LIDCB` decimal(8,2) DEFAULT NULL,
-  `JEUGDCB` decimal(8,2) DEFAULT NULL,
-  `FUNCTCB` decimal(8,2) DEFAULT NULL,
-  `Type` varchar(1) DEFAULT NULL,
-  `ORGANIS` smallint(6) DEFAULT NULL,
-  `Kader` tinyint(4) DEFAULT NULL,
-  `Alleen leden` tinyint(4) DEFAULT NULL,
-  `Tonen in bewakingsadministratie` tinyint(4) DEFAULT NULL,
-  `CentraalEmail` varchar(45) DEFAULT NULL,
-  `VervallenPer` date DEFAULT NULL,
-  `HistorieOpschonen` int(11) DEFAULT NULL,
-  `MaximaleLengtePeriode` int(11) DEFAULT NULL,
-  `GekoppeldAanQuery` int(11) DEFAULT NULL,
-  `Beschrijving` varchar(255) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sOrganisatie` (
-  `Nummer` smallint(6) NOT NULL,
-  `Naam` varchar(8) DEFAULT NULL,
-  `Volledige naam` varchar(50) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sRekening` (
-  `Nummer` int(11) NOT NULL DEFAULT '0',
-  `Seizoen` smallint(6) DEFAULT NULL,
-  `Datum` date DEFAULT NULL,
-  `OMSCHRIJV` varchar(30) DEFAULT NULL,
-  `Lid` int(11) DEFAULT NULL,
-  `DEBNAAM` varchar(60) DEFAULT NULL,
-  `Ouders` tinyint(4) DEFAULT NULL,
-  `BET_TERM` tinyint(4) DEFAULT NULL,
-  `BETAALDAG` smallint(6) DEFAULT NULL,
-  `Bedrag` decimal(8,2) DEFAULT NULL,
-  `Betaald` decimal(8,2) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sRekreg` (
-  `RecordID` int(11) DEFAULT NULL,
-  `Rekening` int(11) NOT NULL DEFAULT '0',
-  `Regelnr` smallint(6) NOT NULL DEFAULT '0',
-  `Lid` int(11) DEFAULT NULL,
-  `KSTNPLTS` varchar(5) DEFAULT NULL,
-  `OMSCHRIJV` varchar(60) DEFAULT NULL,
-  `Bedrag` decimal(8,2) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sSeizoen` (
-  `Nummer` smallint(6) NOT NULL DEFAULT '0',
-  `Begindatum` datetime DEFAULT NULL,
-  `Einddatum` datetime DEFAULT NULL,
-  `Leeftijdsgrens jeugdleden` tinyint(4) DEFAULT NULL,
-  `Contributie leden` decimal(8,2) DEFAULT NULL,
-  `Contributie jeugdleden` decimal(8,2) DEFAULT NULL,
-  `Contributie kader` decimal(8,2) DEFAULT NULL,
-  `Contributie Onderscheidingen` decimal(8,2) DEFAULT NULL,
-  `RekeningenVerzamelen` tinyint(4) DEFAULT NULL,
-  `Rekeningomschrijving` varchar(30) DEFAULT NULL,
-  `BetaaldagenTermijn` smallint(6) DEFAULT NULL,
-  `StandaardAantalTermijnen` smallint(6) DEFAULT NULL,
-  `Verenigingscontributie omschrijving` varchar(50) DEFAULT NULL,
-  `Verenigingscontributie kostenplaats` varchar(5) DEFAULT NULL,
-  `Gezinskorting bedrag` decimal(8,2) DEFAULT NULL,
-  `Maximale verenigingscontributie` decimal(8,2) DEFAULT NULL,
-  `Gezinskorting omschrijving` varchar(50) DEFAULT NULL,
-  `Gezinskorting kostenplaats` varchar(4) DEFAULT NULL,
-  `Ingevoerd` datetime DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sStukken` (
-  `RecordID` int(11) NOT NULL,
-  `Titel` varchar(50) NOT NULL,
-  `BestemdVoor` varchar(30) NOT NULL,
-  `VastgesteldOp` date NOT NULL,
-  `Ingangsdatum` date NOT NULL,
-  `Revisiedatum` date NOT NULL,
-  `Link` varchar(150) NOT NULL,
-  `VervallenPer` date DEFAULT NULL,
-  `IngevoerdOp` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `GewijzigdOp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sTaak` (
-  `RecordID` int(11) NOT NULL,
-  `Omschrijving` varchar(75) NOT NULL,
-  `Beschrijving` text NOT NULL,
-  `Verantwoordelijke` int(11) NOT NULL,
-  `TaakGroep` int(11) NOT NULL,
-  `Ingevoerd` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `IngevoerdDoor` int(11) NOT NULL,
-  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `GewijzigdDoor` int(11) NOT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sTaakGroep` (
-  `RecordID` int(11) NOT NULL,
-  `Kode` varchar(5) NOT NULL,
-  `Naam` varchar(50) NOT NULL,
-  `Ingevoerd` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `IngevoerdDoor` int(11) NOT NULL,
-  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `GewijzigdDoor` int(11) NOT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sVerdichting` (
-  `RecordID` int(11) NOT NULL DEFAULT '0',
-  `Kode` varchar(4) DEFAULT NULL,
-  `Omschrijving` varchar(40) DEFAULT NULL,
-  `DebetCredit` varchar(1) DEFAULT NULL,
-  `Ingevoerd` datetime DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sVereniging` (
-  `Naam` varchar(50) DEFAULT NULL,
-  `Brigadenaam` varchar(50) DEFAULT NULL,
-  `AfkortingNaam` varchar(5) DEFAULT NULL,
-  `Bankrekening` varchar(18) DEFAULT NULL,
-  `EmailSecretariaat` varchar(45) DEFAULT NULL,
-  `EmailLedenadministratie` varchar(45) DEFAULT NULL,
-  `BewaartijdHistorie` int(11) DEFAULT NULL,
-  `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE `%1\$sWS_Artikel` (
-  `RecordID` int(11) NOT NULL,
-  `Code` char(6) COLLATE utf8_unicode_ci NOT NULL,
-  `Omschrijving` varchar(50) COLLATE utf8_unicode_ci NOT NULL,
-  `Beschrijving` text COLLATE utf8_unicode_ci NOT NULL,
-  `Maat` char(4) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `Verkoopprijs` decimal(10,2) NOT NULL DEFAULT '0.00',
-  `BeschikbaarTot` date NOT NULL DEFAULT '9999-12-31' COMMENT 'Tot welke datum is dit artikel in de zelfservice beschikbaar?',
-  `VervallenPer` date NOT NULL DEFAULT '9999-12-31' COMMENT 'Na deze datum is dit artikel voor niemand meer beschikbaar.',
-  `MaxAantalPerLid` smallint(6) NOT NULL DEFAULT '999',
-  `BeperkTotGroep` int(11) NOT NULL DEFAULT '0' COMMENT 'Welke groep mag dit artikel in de zelfservice bestellen? 0 is iedereen.',
-  `Ingevoerd` date NOT NULL,
-  `IngevoerdDoor` int(11) NOT NULL,
-  `Gewijzigd` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE CURRENT_TIMESTAMP,
-  `GewijzigdDoor` int(11) NOT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
-CREATE TABLE `%1\$sWS_Orderregel` (
-  `RecordID` int(11) NOT NULL,
-  `Ordernr` int(11) NOT NULL DEFAULT '0',
-  `Artikel` int(11) NOT NULL DEFAULT '0',
-  `Lid` int(11) NOT NULL DEFAULT '0',
-  `AantalBesteld` smallint(6) NOT NULL DEFAULT '0',
-  `PrijsPerStuk` decimal(10,2) DEFAULT NULL,
-  `Opmerking` varchar(30) COLLATE utf8_unicode_ci NOT NULL,
-  `BestellingDefinitief` datetime DEFAULT NULL COMMENT 'Heeft het lid de bestelling bevestigd?',
-  `AantalGeleverd` smallint(6) NOT NULL DEFAULT '0',
-  `Ingevoerd` date NOT NULL,
-  `IngevoerdDoor` int(11) NOT NULL,
-  `Gewijzigd` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE CURRENT_TIMESTAMP,
-  `GewijzigdDoor` int(11) NOT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
-
-ALTER TABLE `%1\$sAdmin_access`
-  ADD PRIMARY KEY (`RecordID`);
-
-ALTER TABLE `%1\$sAdmin_activiteit`
-  ADD PRIMARY KEY (`RecordID`),
-  ADD KEY `TypeActiviteit` (`TypeActiviteit`);
-
-ALTER TABLE `%1\$sAdmin_interface`
-  ADD PRIMARY KEY (`RecordID`);
-
-ALTER TABLE `%1\$sAdmin_login`
-  ADD PRIMARY KEY (`LidID`),
-  ADD UNIQUE KEY `Login` (`Login`);
-
-ALTER TABLE `%1\$sAdmin_param`
-  ADD PRIMARY KEY (`RecordID`),
-  ADD UNIQUE KEY `Naam` (`Naam`);
-
-ALTER TABLE `%1\$sBewaking`
-  ADD PRIMARY KEY (`SeizoenID`,`Lid`,`BEGIN_PER`);
-
-ALTER TABLE `%1\$sBewaking_Blok`
-  ADD PRIMARY KEY (`RecordID`),
-  ADD UNIQUE KEY `SeizoenBegindatum` (`SeizoenID`,`Begindatum`),
-  ADD UNIQUE KEY `SeizoenKode` (`SeizoenID`,`Kode`);
-
-ALTER TABLE `%1\$sBewaking_Inschrijving`
-  ADD PRIMARY KEY (`RecordID`);
-
-ALTER TABLE `%1\$sBewseiz`
-  ADD PRIMARY KEY (`RecordID`),
-  ADD UNIQUE KEY `Kode` (`Kode`);
-
-ALTER TABLE `%1\$sBoekjaar`
-  ADD PRIMARY KEY (`RecordID`),
-  ADD UNIQUE KEY `Kode` (`Kode`);
-
-ALTER TABLE `%1\$sDiploma`
-  ADD PRIMARY KEY (`RecordID`),
-  ADD UNIQUE KEY `Kode` (`Kode`);
-
-ALTER TABLE `%1\$sEvenement`
-  ADD PRIMARY KEY (`RecordID`);
-
-ALTER TABLE `%1\$sEvenement_Deelnemer`
-  ADD PRIMARY KEY (`RecordID`),
-  ADD UNIQUE KEY `LidEvenement` (`LidID`,`EvenementID`);
-
-ALTER TABLE `%1\$sEvenement_Type`
-  ADD PRIMARY KEY (`RecordID`);
-
-ALTER TABLE `%1\$sFunctie`
-  ADD PRIMARY KEY (`Nummer`);
-
-ALTER TABLE `%1\$sGBR`
-  ADD PRIMARY KEY (`Kode`);
-
-ALTER TABLE `%1\$sGroep`
-  ADD PRIMARY KEY (`RecordID`),
-  ADD UNIQUE KEY `Kode` (`Kode`);
-
-ALTER TABLE `%1\$sKostenplaats`
-  ADD PRIMARY KEY (`RecordID`),
-  ADD UNIQUE KEY `Kode` (`Kode`);
-
-ALTER TABLE `%1\$sLid`
-  ADD PRIMARY KEY (`Nummer`);
-
-ALTER TABLE `%1\$sLiddipl`
-  ADD PRIMARY KEY (`RecordID`),
-  ADD UNIQUE KEY `RecordID` (`RecordID`);
-
-ALTER TABLE `%1\$sLidmaatschap`
-  ADD PRIMARY KEY (`Lid`,`LIDDATUM`),
-  ADD UNIQUE KEY `RecordID` (`RecordID`),
-  ADD UNIQUE KEY `Lidnr` (`Lidnr`);
-
-ALTER TABLE `%1\$sLidond`
-  ADD PRIMARY KEY (`Lid`,`OnderdeelID`,`Vanaf`,`Functie`),
-  ADD UNIQUE KEY `RecordID` (`RecordID`);
-
-ALTER TABLE `%1\$sMailing`
-  ADD PRIMARY KEY (`MailingID`);
-
-ALTER TABLE `%1\$sMailing_hist`
-  ADD PRIMARY KEY (`RecordID`),
-  ADD KEY `LidID` (`LidID`);
-
-ALTER TABLE `%1\$sMailing_rcpt`
-  ADD PRIMARY KEY (`RecordID`);
-
-ALTER TABLE `%1\$sMailing_vanaf`
-  ADD PRIMARY KEY (`RecordID`),
-  ADD UNIQUE KEY `VanafEmail` (`Vanaf_email`);
-
-ALTER TABLE `%1\$sMemo`
-  ADD PRIMARY KEY (`Lid`,`Soort`),
-  ADD UNIQUE KEY `RecordID` (`RecordID`);
-
-ALTER TABLE `%1\$sMutatie`
-  ADD PRIMARY KEY (`BoekjaarID`,`Periode`,`DagboekID`,`Stuknr`,`Regelnr`);
-
-ALTER TABLE `%1\$sOnderdl`
-  ADD PRIMARY KEY (`RecordID`),
-  ADD UNIQUE KEY `Kode` (`Kode`);
-
-ALTER TABLE `%1\$sOrganisatie`
-  ADD PRIMARY KEY (`Nummer`);
-
-ALTER TABLE `%1\$sRekening`
-  ADD PRIMARY KEY (`Nummer`);
-
-ALTER TABLE `%1\$sRekreg`
-  ADD PRIMARY KEY (`Rekening`,`Regelnr`);
-
-ALTER TABLE `%1\$sSeizoen`
-  ADD PRIMARY KEY (`Nummer`);
-
-ALTER TABLE `%1\$sStukken`
-  ADD PRIMARY KEY (`RecordID`);
-
-ALTER TABLE `%1\$sTaak`
-  ADD PRIMARY KEY (`RecordID`);
-
-ALTER TABLE `%1\$sTaakGroep`
-  ADD PRIMARY KEY (`RecordID`);
-
-ALTER TABLE `%1\$sVerdichting`
-  ADD PRIMARY KEY (`RecordID`),
-  ADD UNIQUE KEY `Kode` (`Kode`);
-
-ALTER TABLE `%1\$sWS_Artikel`
-  ADD PRIMARY KEY (`RecordID`);
-
-ALTER TABLE `%1\$sWS_Orderregel`
-  ADD PRIMARY KEY (`RecordID`),
-  ADD UNIQUE KEY `ArtikelLid` (`Artikel`,`Lid`);
-
-
-ALTER TABLE `%1\$sAdmin_access`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
-ALTER TABLE `%1\$sAdmin_activiteit`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
-ALTER TABLE `%1\$sAdmin_interface`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
-ALTER TABLE `%1\$sAdmin_param`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
-ALTER TABLE `%1\$sBewaking_Blok`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
-ALTER TABLE `%1\$sBewaking_Inschrijving`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
-ALTER TABLE `%1\$sEvenement`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
-ALTER TABLE `%1\$sEvenement_Deelnemer`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
-ALTER TABLE `%1\$sEvenement_Type`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
-ALTER TABLE `%1\$sLiddipl`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
-ALTER TABLE `%1\$sLidmaatschap`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
-ALTER TABLE `%1\$sLidond`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
-ALTER TABLE `%1\$sMailing`
-  MODIFY `MailingID` int(11) NOT NULL AUTO_INCREMENT;
-ALTER TABLE `%1\$sMailing_hist`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
-ALTER TABLE `%1\$sMailing_rcpt`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
-ALTER TABLE `%1\$sMailing_vanaf`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
-ALTER TABLE `%1\$sMemo`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
-ALTER TABLE `%1\$sStukken`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
-ALTER TABLE `%1\$sTaak`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
-ALTER TABLE `%1\$sTaakGroep`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
-ALTER TABLE `%1\$sWS_Artikel`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
-ALTER TABLE `%1\$sWS_Orderregel`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;", TABLE_PREFIX);
-
-	fnQuery($queries);
-}
-
 function db_backup() {
 	global $db_name, $arrTables;
 	
@@ -4697,5 +3926,796 @@ function db_nieuwrecordID($tabel) {
 	return $rid;
 	
 } # db_nieuwrecordID
+
+
+function db_createtables() {
+
+	$queries = sprintf("SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO';
+
+CREATE TABLE `%1\$sAdmin_access` (
+  `RecordID` int(11) NOT NULL,
+  `Tabpage` varchar(50) NOT NULL,
+  `Toegang` int(11) NOT NULL DEFAULT '-1',
+  `Ingevoerd` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sAdmin_activiteit` (
+  `RecordID` int(11) NOT NULL,
+  `LidID` int(11) NOT NULL COMMENT 'Wie heeft deze activiteit uitgevoerd?',
+  `DatumTijd` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `Omschrijving` text NOT NULL,
+  `ReferID` int(11) NOT NULL COMMENT 'Op welk RecordID heeft deze activiteit betrekking?',
+  `Script` varchar(75) NOT NULL,
+  `TypeActiviteit` tinyint(4) DEFAULT '0',
+  `IP_adres` varchar(45) NOT NULL,
+  `USER_AGENT` varchar(110) DEFAULT NULL,
+  `Getoond` tinyint(4) DEFAULT NULL COMMENT 'Is deze melding aan de gebruiker getoond?',
+  `RefFunction` varchar(50) NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sAdmin_interface` (
+  `RecordID` int(11) NOT NULL,
+  `LidID` int(11) DEFAULT NULL,
+  `IP-adres` char(15) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
+  `SQL-statement` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `IngelogdLid` int(11) DEFAULT NULL,
+  `Ingevoerd` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `Gedownload` datetime DEFAULT NULL,
+  `Afgemeld` datetime DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sAdmin_login` (
+  `LidID` int(11) NOT NULL,
+  `Login` varchar(15) NOT NULL,
+  `Wachtwoord` varchar(255) NOT NULL,
+  `HerinneringVervallenDiplomas` tinyint(4) NOT NULL DEFAULT '0',
+  `Ingevoerd` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `Gewijzigd` datetime NOT NULL,
+  `GewijzigdDoor` int(11) NOT NULL DEFAULT '0',
+  `LastLogin` datetime DEFAULT NULL,
+  `LastActivity` datetime NOT NULL,
+  `Ingelogd` tinyint(4) NOT NULL DEFAULT '0',
+  `FouteLogin` smallint(6) NOT NULL DEFAULT '0',
+  `ActivatieKey` varchar(255) DEFAULT NULL,
+  `2FA` tinyint(4) DEFAULT NULL,
+  `LaatsteWachtwoordWijziging` datetime DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sAdmin_param` (
+  `RecordID` int(11) NOT NULL,
+  `Naam` varchar(50) CHARACTER SET utf8 NOT NULL,
+  `ParamType` char(2) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `ValueChar` text COLLATE utf8_unicode_ci,
+  `ValueNum` decimal(16,6) DEFAULT NULL,
+  `Ingevoerd` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `IngevoerdDoor` int(11) NOT NULL,
+  `Gewijzigd` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE CURRENT_TIMESTAMP,
+  `GewijzigdDoor` int(11) NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Parameters en instellingen';
+
+CREATE TABLE `%1\$sBewaking` (
+  `RecordID` int(11) DEFAULT NULL,
+  `Lid` int(11) NOT NULL DEFAULT '0',
+  `SeizoenID` int(11) NOT NULL DEFAULT '0',
+  `Weeknr` tinyint(4) DEFAULT NULL,
+  `BEGIN_PER` date NOT NULL,
+  `EINDE_PER` date DEFAULT NULL,
+  `Post` varchar(7) DEFAULT NULL,
+  `Status` varchar(1) DEFAULT NULL,
+  `Functie` tinyint(4) DEFAULT NULL,
+  `Opmerking` varchar(50) DEFAULT NULL,
+  `Beoordeling` longtext,
+  `Ingevoerd` date DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sBewaking_Blok` (
+  `RecordID` int(11) NOT NULL,
+  `SeizoenID` int(11) NOT NULL,
+  `Kode` char(2) DEFAULT NULL,
+  `Begindatum` date NOT NULL,
+  `Einddatum` date NOT NULL,
+  `InschrijvingOpen` tinyint(4) NOT NULL DEFAULT '1',
+  `Ingevoerd` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sBewaking_Inschrijving` (
+  `RecordID` int(11) NOT NULL,
+  `Lid` int(11) NOT NULL,
+  `Nummer` int(11) NOT NULL DEFAULT '0',
+  `BlokID` int(11) NOT NULL,
+  `Keuze` tinyint(4) NOT NULL DEFAULT '1',
+  `Opmerking` varchar(50) DEFAULT NULL,
+  `Definitief` datetime DEFAULT NULL,
+  `Ingevoerd` date DEFAULT NULL,
+  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `Afgemeld` datetime DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sBewseiz` (
+  `RecordID` int(11) NOT NULL DEFAULT '0',
+  `Kode` varchar(5) DEFAULT NULL,
+  `Begindatum` date DEFAULT NULL,
+  `Einde` date DEFAULT NULL,
+  `Lokatie` varchar(30) DEFAULT NULL,
+  `Geboren` date DEFAULT NULL,
+  `MIN_LFT` tinyint(4) DEFAULT NULL,
+  `ST_LEN_BP` tinyint(4) DEFAULT NULL,
+  `EersteDagWeek` tinyint(4) DEFAULT NULL,
+  `CorrectieOpWeeknr` smallint(6) DEFAULT NULL,
+  `Afgesloten` tinyint(4) DEFAULT NULL,
+  `TOONERV` varchar(1) DEFAULT NULL,
+  `Posten` varchar(30) DEFAULT NULL,
+  `KeuzesBijInschrijving` tinyint(4) DEFAULT NULL,
+  `Ingevoerd` date DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sBoekjaar` (
+  `RecordID` int(11) NOT NULL DEFAULT '0',
+  `Kode` varchar(5) DEFAULT NULL,
+  `Omschrijving` varchar(50) DEFAULT NULL,
+  `Begindatum` datetime DEFAULT NULL,
+  `Einde` datetime DEFAULT NULL,
+  `Afgesloten` tinyint(4) DEFAULT NULL,
+  `Ingevoerd` date DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sDiploma` (
+  `RecordID` int(11) NOT NULL,
+  `Kode` varchar(8) DEFAULT NULL,
+  `Naam` varchar(75) DEFAULT NULL,
+  `Type` varchar(1) DEFAULT NULL,
+  `ORGANIS` smallint(6) DEFAULT NULL,
+  `MIN_LFT` smallint(6) DEFAULT NULL,
+  `Volgnr` smallint(6) DEFAULT NULL,
+  `EXAM_OND` smallint(6) DEFAULT NULL,
+  `GELDIGH` int(11) DEFAULT NULL,
+  `AantalBeoordelingen` smallint(6) DEFAULT NULL,
+  `Vervallen` date DEFAULT NULL,
+  `HistorieOpschonen` int(11) DEFAULT NULL,
+  `VoorgangerID` int(11) DEFAULT NULL,
+  `Alternatief` varchar(20) DEFAULT NULL,
+  `Tonen in bewakingsadministratie` tinyint(4) DEFAULT NULL,
+  `Zelfservice` tinyint(4) DEFAULT NULL,
+  `RolID` int(11) DEFAULT NULL,
+  `Ingevoerd` date DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sEvenement` (
+  `RecordID` int(11) NOT NULL,
+  `Datum` datetime NOT NULL,
+  `Eindtijd` varchar(5) NOT NULL,
+  `Verzameltijd` varchar(5) NOT NULL,
+  `Omschrijving` varchar(50) NOT NULL,
+  `Locatie` varchar(75) DEFAULT NULL,
+  `Email` varchar(45) NOT NULL,
+  `TypeEvenement` int(11) NOT NULL,
+  `InschrijvingOpen` tinyint(4) NOT NULL DEFAULT '1',
+  `StandaardStatus` char(1) NOT NULL DEFAULT 'I',
+  `BeperkTotGroep` int(11) NOT NULL DEFAULT '0' COMMENT 'Welke groep mag zich voor dit evenement inschrijven? 0 = iedereen.',
+  `ZichtbaarVoor` int(11) NOT NULL DEFAULT '0' COMMENT 'Voor welke groep is dit evenement zichtbaar? 0 = iedereen.',
+  `Ingevoerd` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `IngevoerdDoor` int(11) NOT NULL,
+  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `GewijzigdDoor` int(11) NOT NULL,
+  `VerwijderdOp` date NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sEvenement_Deelnemer` (
+  `RecordID` int(11) NOT NULL,
+  `LidID` int(11) NOT NULL,
+  `EvenementID` int(11) NOT NULL,
+  `Functie` varchar(30) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `Opmerking` varchar(75) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `Status` char(1) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT 'I',
+  `Ingevoerd` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `IngevoerdDoor` int(11) NOT NULL DEFAULT '0',
+  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `GewijzigdDoor` int(11) NOT NULL DEFAULT '0'
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sEvenement_Type` (
+  `RecordID` int(11) NOT NULL,
+  `Omschrijving` varchar(30) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
+  `Soort` char(1) NOT NULL DEFAULT 'W',
+  `Ingevoerd` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `GewijzigdDoor` int(11) NOT NULL DEFAULT '0'
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sFunctie` (
+  `Nummer` smallint(6) NOT NULL,
+  `Omschrijv` varchar(35) DEFAULT NULL,
+  `Oms_Vrouw` varchar(35) DEFAULT NULL,
+  `Afkorting` varchar(10) DEFAULT NULL,
+  `Sorteringsvolgorde` smallint(6) DEFAULT NULL,
+  `Afdelingsfunctie` tinyint(4) DEFAULT NULL,
+  `Ledenadministratiefunctie` tinyint(4) DEFAULT NULL,
+  `Bewakingsfunctie` tinyint(4) DEFAULT NULL,
+  `Kader` tinyint(4) DEFAULT NULL,
+  `Vervallen per` date DEFAULT NULL,
+  `Ingevoerd` date DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sGBR` (
+  `RecordID` int(11) DEFAULT NULL,
+  `Kode` varchar(4) NOT NULL DEFAULT '',
+  `OMSCHRIJV` varchar(40) DEFAULT NULL,
+  `Balans` tinyint(4) DEFAULT NULL,
+  `KSTNPLTS` tinyint(4) DEFAULT NULL,
+  `VerdichtingID` int(11) DEFAULT NULL,
+  `Ingevoerd` date DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL,
+  `Standaard kostenplaats` int(11) DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sGroep` (
+  `RecordID` int(11) NOT NULL,
+  `OnderdeelID` int(11) DEFAULT NULL,
+  `Kode` varchar(5) DEFAULT NULL,
+  `Omschrijving` varchar(45) DEFAULT NULL,
+  `Instructeurs` varchar(45) DEFAULT NULL,
+  `DiplomaID` int(11) DEFAULT NULL,
+  `Starttijd` varchar(5) DEFAULT NULL,
+  `Eindtijd` varchar(5) DEFAULT NULL,
+  `Ingevoerd` date DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sKostenplaats` (
+  `RecordID` int(11) NOT NULL DEFAULT '0',
+  `Kode` varchar(5) DEFAULT NULL,
+  `Naam` varchar(35) DEFAULT NULL,
+  `Ingevoerd` date DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sLid` (
+  `RecordID` int(11) DEFAULT NULL,
+  `Nummer` int(11) NOT NULL,
+  `Roepnaam` varchar(17) DEFAULT NULL,
+  `Tussenv` varchar(7) DEFAULT NULL,
+  `Achternaam` varchar(30) DEFAULT NULL,
+  `Meisjesnm` varchar(25) DEFAULT NULL,
+  `Voorletter` varchar(10) DEFAULT NULL,
+  `Geslacht` varchar(1) DEFAULT NULL,
+  `GEBDATUM` date DEFAULT NULL,
+  `Overleden` date DEFAULT NULL,
+  `GEBPLAATS` varchar(22) DEFAULT NULL,
+  `Adres` varchar(30) DEFAULT NULL,
+  `Huisnr` int(11) DEFAULT NULL,
+  `Toevoeging` varchar(5) DEFAULT NULL,
+  `Postcode` varchar(7) DEFAULT NULL,
+  `Woonplaats` varchar(22) DEFAULT NULL,
+  `Buitenland` tinyint(4) DEFAULT NULL,
+  `Telefoon` varchar(21) DEFAULT NULL,
+  `Mobiel` varchar(21) DEFAULT NULL,
+  `Email` varchar(45) DEFAULT NULL,
+  `EmailVereniging` varchar(45) DEFAULT NULL,
+  `EmailOuders` varchar(60) DEFAULT NULL,
+  `NamenOuders` varchar(90) DEFAULT NULL,
+  `Waarschuwen bij nood` varchar(255) DEFAULT NULL,
+  `Bankrekening` varchar(18) DEFAULT NULL,
+  `Burgerservicenummer` int(11) DEFAULT NULL,
+  `Machtiging afgegeven` tinyint(4) DEFAULT NULL,
+  `BezwaarMachtiging` datetime DEFAULT NULL,
+  `Legitimatietype` varchar(1) DEFAULT NULL,
+  `Legitimatienummer` varchar(15) DEFAULT NULL,
+  `VOG afgegeven` date DEFAULT NULL,
+  `LoginWebsite` varchar(20) DEFAULT NULL,
+  `Wijknummer` int(11) DEFAULT NULL,
+  `RelnrRedNed` varchar(8) DEFAULT NULL,
+  `Beroep` varchar(40) DEFAULT NULL,
+  `Ingevoerd` date DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL,
+  `Verwijderd` datetime DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sLiddipl` (
+  `RecordID` int(11) NOT NULL,
+  `Lid` int(11) DEFAULT NULL,
+  `DiplomaID` int(11) DEFAULT NULL,
+  `DatumBehaald` date DEFAULT NULL,
+  `EXPLAATS` varchar(23) DEFAULT NULL,
+  `Beoordelaar` int(11) DEFAULT NULL,
+  `LaatsteBeoordeling` tinyint(4) DEFAULT NULL,
+  `Diplomanummer` varchar(25) DEFAULT NULL,
+  `Examen` int(11) DEFAULT NULL,
+  `LicentieVervallenPer` date DEFAULT NULL,
+  `Ingevoerd` date DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sLidmaatschap` (
+  `RecordID` int(11) NOT NULL,
+  `Lid` int(11) NOT NULL,
+  `LIDDATUM` date NOT NULL,
+  `Opgezegd` date DEFAULT NULL,
+  `OpgezegdDoorVereniging` tinyint(4) DEFAULT NULL,
+  `Lidnr` int(11) DEFAULT NULL,
+  `Ingevoerd` date DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sLidond` (
+  `RecordID` int(11) NOT NULL,
+  `Lid` int(11) NOT NULL,
+  `OnderdeelID` int(11) NOT NULL,
+  `Vanaf` date NOT NULL,
+  `Opgezegd` date DEFAULT NULL,
+  `Functie` smallint(6) NOT NULL,
+  `EmailFunctie` varchar(45) DEFAULT NULL,
+  `GroepID` int(11) DEFAULT NULL,
+  `Opmerk` varchar(30) DEFAULT NULL,
+  `Ingevoerd` date DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sLidRedNed` (
+  `Lidnr` int(11) DEFAULT NULL,
+  `RelnrRedNed` varchar(8) DEFAULT NULL,
+  `Roepnaam` varchar(35) DEFAULT NULL,
+  `Tussenvoegsels` varchar(7) DEFAULT NULL,
+  `Achternaam` varchar(50) DEFAULT NULL,
+  `Voorletters` varchar(10) DEFAULT NULL,
+  `Geslacht` varchar(1) DEFAULT NULL,
+  `Geboortedatum` date DEFAULT NULL,
+  `Postcode` varchar(7) DEFAULT NULL,
+  `Huisnr` int(11) DEFAULT NULL,
+  `Foutboodschap` varchar(75) DEFAULT NULL,
+  `Ingevoerd` date DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sMailing` (
+  `MailingID` int(11) NOT NULL,
+  `from_name` varchar(50) DEFAULT '',
+  `from_addr` varchar(50) DEFAULT '',
+  `to_name` varchar(50) DEFAULT '' COMMENT 'Omschrijving van de groep personen aan wie deze mailing gericht is',
+  `cc_addr` varchar(50) DEFAULT '',
+  `subject` varchar(75) DEFAULT '',
+  `message` text,
+  `template` tinyint(4) NOT NULL DEFAULT '0',
+  `confidential` tinyint(4) NOT NULL DEFAULT '0',
+  `verzamelen` tinyint(4) NOT NULL DEFAULT '0',
+  `new_on` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `AddedBy` int(11) NOT NULL,
+  `changed_on` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `ChangedBy` int(11) NOT NULL,
+  `sent_on` datetime DEFAULT NULL,
+  `SentBy` int(11) NOT NULL,
+  `deleted_on` datetime DEFAULT NULL,
+  `DeletedBy` int(11) NOT NULL,
+  `HTMLdirect` tinyint(4) DEFAULT '0'
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sMailing_hist` (
+  `RecordID` int(11) NOT NULL,
+  `LidID` int(11) NOT NULL DEFAULT '0',
+  `MailingID` int(11) NOT NULL,
+  `Xtra_Char` varchar(5) DEFAULT NULL,
+  `Xtra_Num` int(11) DEFAULT NULL,
+  `from_name` varchar(50) NOT NULL,
+  `from_addr` varchar(50) NOT NULL,
+  `to_name` varchar(50) NOT NULL,
+  `subject` varchar(75) NOT NULL,
+  `to_addr` varchar(100) NOT NULL,
+  `cc_addr` varchar(100) NOT NULL,
+  `message` text NOT NULL,
+  `send_by` int(11) NOT NULL,
+  `send_on` datetime NOT NULL,
+  `send_mt` decimal(16,6) NOT NULL,
+  `Successful` tinyint(4) NOT NULL DEFAULT '1'
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sMailing_rcpt` (
+  `RecordID` int(11) NOT NULL,
+  `MailingID` int(11) NOT NULL DEFAULT '0',
+  `LidID` int(11) NOT NULL DEFAULT '0',
+  `to_address` varchar(50) DEFAULT NULL,
+  `Ingevoerd` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sMailing_vanaf` (
+  `RecordID` int(11) NOT NULL,
+  `Vanaf_email` varchar(30) NOT NULL,
+  `Vanaf_naam` varchar(50) NOT NULL,
+  `SMTP_server` tinyint(20) NOT NULL DEFAULT '0' COMMENT 'Indien 0, dan wordt de smtp server uit het config bestand gebruikt',
+  `Ingevoerd` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sMemo` (
+  `RecordID` int(11) NOT NULL,
+  `Lid` int(11) NOT NULL,
+  `Soort` varchar(1) NOT NULL,
+  `Vertrouwelijk` tinyint(4) DEFAULT '0',
+  `Memo` longtext,
+  `Ingevoerd` date DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sMutatie` (
+  `RecordID` int(11) DEFAULT NULL,
+  `BoekjaarID` int(11) NOT NULL DEFAULT '0',
+  `Periode` tinyint(4) NOT NULL DEFAULT '0',
+  `DagboekID` int(11) NOT NULL DEFAULT '0',
+  `GBR` varchar(4) DEFAULT NULL,
+  `KostenplaatsID` int(11) DEFAULT NULL,
+  `Stuknr` smallint(6) NOT NULL DEFAULT '0',
+  `Regelnr` smallint(6) NOT NULL DEFAULT '0',
+  `Datum` date DEFAULT NULL,
+  `Debet` decimal(8,2) DEFAULT NULL,
+  `Credit` decimal(8,2) DEFAULT NULL,
+  `OMSCHRIJV` varchar(45) DEFAULT NULL,
+  `Rekening` int(11) DEFAULT NULL,
+  `BTWcode` tinyint(4) DEFAULT NULL,
+  `BTWbedrag` decimal(8,2) DEFAULT NULL,
+  `Ingevoerd` date DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sOnderdl` (
+  `RecordID` int(11) NOT NULL,
+  `Kode` varchar(6) DEFAULT NULL,
+  `Naam` varchar(50) DEFAULT NULL,
+  `LIDCB` decimal(8,2) DEFAULT NULL,
+  `JEUGDCB` decimal(8,2) DEFAULT NULL,
+  `FUNCTCB` decimal(8,2) DEFAULT NULL,
+  `Type` varchar(1) DEFAULT NULL,
+  `ORGANIS` smallint(6) DEFAULT NULL,
+  `Kader` tinyint(4) DEFAULT NULL,
+  `Alleen leden` tinyint(4) DEFAULT NULL,
+  `Tonen in bewakingsadministratie` tinyint(4) DEFAULT NULL,
+  `CentraalEmail` varchar(45) DEFAULT NULL,
+  `VervallenPer` date DEFAULT NULL,
+  `HistorieOpschonen` int(11) DEFAULT NULL,
+  `MaximaleLengtePeriode` int(11) DEFAULT NULL,
+  `GekoppeldAanQuery` int(11) DEFAULT NULL,
+  `Beschrijving` varchar(255) DEFAULT NULL,
+  `Ingevoerd` date DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sOrganisatie` (
+  `Nummer` smallint(6) NOT NULL,
+  `Naam` varchar(8) DEFAULT NULL,
+  `Volledige naam` varchar(50) DEFAULT NULL,
+  `Ingevoerd` date DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sRekening` (
+  `Nummer` int(11) NOT NULL DEFAULT '0',
+  `Seizoen` smallint(6) DEFAULT NULL,
+  `Datum` date DEFAULT NULL,
+  `OMSCHRIJV` varchar(30) DEFAULT NULL,
+  `Lid` int(11) DEFAULT NULL,
+  `DEBNAAM` varchar(60) DEFAULT NULL,
+  `Ouders` tinyint(4) DEFAULT NULL,
+  `BET_TERM` tinyint(4) DEFAULT NULL,
+  `BETAALDAG` smallint(6) DEFAULT NULL,
+  `Bedrag` decimal(8,2) DEFAULT NULL,
+  `Betaald` decimal(8,2) DEFAULT NULL,
+  `Ingevoerd` date DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sRekreg` (
+  `RecordID` int(11) DEFAULT NULL,
+  `Rekening` int(11) NOT NULL DEFAULT '0',
+  `Regelnr` smallint(6) NOT NULL DEFAULT '0',
+  `Lid` int(11) DEFAULT NULL,
+  `KSTNPLTS` varchar(5) DEFAULT NULL,
+  `OMSCHRIJV` varchar(60) DEFAULT NULL,
+  `Bedrag` decimal(8,2) DEFAULT NULL,
+  `Ingevoerd` date DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sSeizoen` (
+  `Nummer` smallint(6) NOT NULL DEFAULT '0',
+  `Begindatum` datetime DEFAULT NULL,
+  `Einddatum` datetime DEFAULT NULL,
+  `Leeftijdsgrens jeugdleden` tinyint(4) DEFAULT NULL,
+  `Contributie leden` decimal(8,2) DEFAULT NULL,
+  `Contributie jeugdleden` decimal(8,2) DEFAULT NULL,
+  `Contributie kader` decimal(8,2) DEFAULT NULL,
+  `Contributie Onderscheidingen` decimal(8,2) DEFAULT NULL,
+  `RekeningenVerzamelen` tinyint(4) DEFAULT NULL,
+  `Rekeningomschrijving` varchar(30) DEFAULT NULL,
+  `BetaaldagenTermijn` smallint(6) DEFAULT NULL,
+  `StandaardAantalTermijnen` smallint(6) DEFAULT NULL,
+  `Verenigingscontributie omschrijving` varchar(50) DEFAULT NULL,
+  `Verenigingscontributie kostenplaats` varchar(5) DEFAULT NULL,
+  `Gezinskorting bedrag` decimal(8,2) DEFAULT NULL,
+  `Maximale verenigingscontributie` decimal(8,2) DEFAULT NULL,
+  `Gezinskorting omschrijving` varchar(50) DEFAULT NULL,
+  `Gezinskorting kostenplaats` varchar(4) DEFAULT NULL,
+  `Ingevoerd` datetime DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sStukken` (
+  `RecordID` int(11) NOT NULL,
+  `Titel` varchar(50) NOT NULL,
+  `BestemdVoor` varchar(30) NOT NULL,
+  `VastgesteldOp` date NOT NULL,
+  `Ingangsdatum` date NOT NULL,
+  `Revisiedatum` date NOT NULL,
+  `Link` varchar(150) NOT NULL,
+  `VervallenPer` date DEFAULT NULL,
+  `IngevoerdOp` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `GewijzigdOp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sTaak` (
+  `RecordID` int(11) NOT NULL,
+  `Omschrijving` varchar(75) NOT NULL,
+  `Beschrijving` text NOT NULL,
+  `Verantwoordelijke` int(11) NOT NULL,
+  `TaakGroep` int(11) NOT NULL,
+  `Ingevoerd` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `IngevoerdDoor` int(11) NOT NULL,
+  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `GewijzigdDoor` int(11) NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sTaakGroep` (
+  `RecordID` int(11) NOT NULL,
+  `Kode` varchar(5) NOT NULL,
+  `Naam` varchar(50) NOT NULL,
+  `Ingevoerd` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `IngevoerdDoor` int(11) NOT NULL,
+  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `GewijzigdDoor` int(11) NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sVerdichting` (
+  `RecordID` int(11) NOT NULL DEFAULT '0',
+  `Kode` varchar(4) DEFAULT NULL,
+  `Omschrijving` varchar(40) DEFAULT NULL,
+  `DebetCredit` varchar(1) DEFAULT NULL,
+  `Ingevoerd` datetime DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sVereniging` (
+  `Naam` varchar(50) DEFAULT NULL,
+  `Brigadenaam` varchar(50) DEFAULT NULL,
+  `AfkortingNaam` varchar(5) DEFAULT NULL,
+  `Bankrekening` varchar(18) DEFAULT NULL,
+  `EmailSecretariaat` varchar(45) DEFAULT NULL,
+  `EmailLedenadministratie` varchar(45) DEFAULT NULL,
+  `BewaartijdHistorie` int(11) DEFAULT NULL,
+  `Ingevoerd` date DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sWS_Artikel` (
+  `RecordID` int(11) NOT NULL,
+  `Code` char(6) COLLATE utf8_unicode_ci NOT NULL,
+  `Omschrijving` varchar(50) COLLATE utf8_unicode_ci NOT NULL,
+  `Beschrijving` text COLLATE utf8_unicode_ci NOT NULL,
+  `Maat` char(4) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `Verkoopprijs` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `BeschikbaarTot` date NOT NULL DEFAULT '9999-12-31' COMMENT 'Tot welke datum is dit artikel in de zelfservice beschikbaar?',
+  `VervallenPer` date NOT NULL DEFAULT '9999-12-31' COMMENT 'Na deze datum is dit artikel voor niemand meer beschikbaar.',
+  `MaxAantalPerLid` smallint(6) NOT NULL DEFAULT '999',
+  `BeperkTotGroep` int(11) NOT NULL DEFAULT '0' COMMENT 'Welke groep mag dit artikel in de zelfservice bestellen? 0 is iedereen.',
+  `Ingevoerd` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `IngevoerdDoor` int(11) NOT NULL,
+  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `GewijzigdDoor` int(11) NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+CREATE TABLE `%1\$sWS_Orderregel` (
+  `RecordID` int(11) NOT NULL,
+  `Ordernr` int(11) NOT NULL DEFAULT '0',
+  `Artikel` int(11) NOT NULL DEFAULT '0',
+  `Lid` int(11) NOT NULL DEFAULT '0',
+  `AantalBesteld` smallint(6) NOT NULL DEFAULT '0',
+  `PrijsPerStuk` decimal(10,2) DEFAULT NULL,
+  `Opmerking` varchar(30) COLLATE utf8_unicode_ci NOT NULL,
+  `BestellingDefinitief` datetime DEFAULT NULL COMMENT 'Heeft het lid de bestelling bevestigd?',
+  `AantalGeleverd` smallint(6) NOT NULL DEFAULT '0',
+  `Ingevoerd` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `IngevoerdDoor` int(11) NOT NULL,
+  `Gewijzigd` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `GewijzigdDoor` int(11) NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+
+ALTER TABLE `%1\$sAdmin_access`
+  ADD PRIMARY KEY (`RecordID`);
+
+ALTER TABLE `%1\$sAdmin_activiteit`
+  ADD PRIMARY KEY (`RecordID`),
+  ADD KEY `TypeActiviteit` (`TypeActiviteit`);
+
+ALTER TABLE `%1\$sAdmin_interface`
+  ADD PRIMARY KEY (`RecordID`);
+
+ALTER TABLE `%1\$sAdmin_login`
+  ADD PRIMARY KEY (`LidID`),
+  ADD UNIQUE KEY `Login` (`Login`);
+
+ALTER TABLE `%1\$sAdmin_param`
+  ADD PRIMARY KEY (`RecordID`),
+  ADD UNIQUE KEY `Naam` (`Naam`);
+
+ALTER TABLE `%1\$sBewaking`
+  ADD PRIMARY KEY (`SeizoenID`,`Lid`,`BEGIN_PER`);
+
+ALTER TABLE `%1\$sBewaking_Blok`
+  ADD PRIMARY KEY (`RecordID`),
+  ADD UNIQUE KEY `SeizoenBegindatum` (`SeizoenID`,`Begindatum`),
+  ADD UNIQUE KEY `SeizoenKode` (`SeizoenID`,`Kode`);
+
+ALTER TABLE `%1\$sBewaking_Inschrijving`
+  ADD PRIMARY KEY (`RecordID`);
+
+ALTER TABLE `%1\$sBewseiz`
+  ADD PRIMARY KEY (`RecordID`),
+  ADD UNIQUE KEY `Kode` (`Kode`);
+
+ALTER TABLE `%1\$sBoekjaar`
+  ADD PRIMARY KEY (`RecordID`),
+  ADD UNIQUE KEY `Kode` (`Kode`);
+
+ALTER TABLE `%1\$sDiploma`
+  ADD PRIMARY KEY (`RecordID`),
+  ADD UNIQUE KEY `Kode` (`Kode`);
+
+ALTER TABLE `%1\$sEvenement`
+  ADD PRIMARY KEY (`RecordID`);
+
+ALTER TABLE `%1\$sEvenement_Deelnemer`
+  ADD PRIMARY KEY (`RecordID`),
+  ADD UNIQUE KEY `LidEvenement` (`LidID`,`EvenementID`);
+
+ALTER TABLE `%1\$sEvenement_Type`
+  ADD PRIMARY KEY (`RecordID`);
+
+ALTER TABLE `%1\$sFunctie`
+  ADD PRIMARY KEY (`Nummer`);
+
+ALTER TABLE `%1\$sGBR`
+  ADD PRIMARY KEY (`Kode`);
+
+ALTER TABLE `%1\$sGroep`
+  ADD PRIMARY KEY (`RecordID`),
+  ADD UNIQUE KEY `Kode` (`Kode`);
+
+ALTER TABLE `%1\$sKostenplaats`
+  ADD PRIMARY KEY (`RecordID`),
+  ADD UNIQUE KEY `Kode` (`Kode`);
+
+ALTER TABLE `%1\$sLid`
+  ADD PRIMARY KEY (`Nummer`);
+
+ALTER TABLE `%1\$sLiddipl`
+  ADD PRIMARY KEY (`RecordID`),
+  ADD UNIQUE KEY `RecordID` (`RecordID`);
+
+ALTER TABLE `%1\$sLidmaatschap`
+  ADD PRIMARY KEY (`Lid`,`LIDDATUM`),
+  ADD UNIQUE KEY `RecordID` (`RecordID`),
+  ADD UNIQUE KEY `Lidnr` (`Lidnr`);
+
+ALTER TABLE `%1\$sLidond`
+  ADD PRIMARY KEY (`Lid`,`OnderdeelID`,`Vanaf`,`Functie`),
+  ADD UNIQUE KEY `RecordID` (`RecordID`);
+
+ALTER TABLE `%1\$sMailing`
+  ADD PRIMARY KEY (`MailingID`);
+
+ALTER TABLE `%1\$sMailing_hist`
+  ADD PRIMARY KEY (`RecordID`),
+  ADD KEY `LidID` (`LidID`);
+
+ALTER TABLE `%1\$sMailing_rcpt`
+  ADD PRIMARY KEY (`RecordID`);
+
+ALTER TABLE `%1\$sMailing_vanaf`
+  ADD PRIMARY KEY (`RecordID`),
+  ADD UNIQUE KEY `VanafEmail` (`Vanaf_email`);
+
+ALTER TABLE `%1\$sMemo`
+  ADD PRIMARY KEY (`Lid`,`Soort`),
+  ADD UNIQUE KEY `RecordID` (`RecordID`);
+
+ALTER TABLE `%1\$sMutatie`
+  ADD PRIMARY KEY (`BoekjaarID`,`Periode`,`DagboekID`,`Stuknr`,`Regelnr`);
+
+ALTER TABLE `%1\$sOnderdl`
+  ADD PRIMARY KEY (`RecordID`),
+  ADD UNIQUE KEY `Kode` (`Kode`);
+
+ALTER TABLE `%1\$sOrganisatie`
+  ADD PRIMARY KEY (`Nummer`);
+
+ALTER TABLE `%1\$sRekening`
+  ADD PRIMARY KEY (`Nummer`);
+
+ALTER TABLE `%1\$sRekreg`
+  ADD PRIMARY KEY (`Rekening`,`Regelnr`);
+
+ALTER TABLE `%1\$sSeizoen`
+  ADD PRIMARY KEY (`Nummer`);
+
+ALTER TABLE `%1\$sStukken`
+  ADD PRIMARY KEY (`RecordID`);
+
+ALTER TABLE `%1\$sTaak`
+  ADD PRIMARY KEY (`RecordID`);
+
+ALTER TABLE `%1\$sTaakGroep`
+  ADD PRIMARY KEY (`RecordID`);
+
+ALTER TABLE `%1\$sVerdichting`
+  ADD PRIMARY KEY (`RecordID`),
+  ADD UNIQUE KEY `Kode` (`Kode`);
+
+ALTER TABLE `%1\$sWS_Artikel`
+  ADD PRIMARY KEY (`RecordID`);
+
+ALTER TABLE `%1\$sWS_Orderregel`
+  ADD PRIMARY KEY (`RecordID`),
+  ADD UNIQUE KEY `ArtikelLid` (`Artikel`,`Lid`);
+
+
+ALTER TABLE `%1\$sAdmin_access`
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=169;
+ALTER TABLE `%1\$sAdmin_activiteit`
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14520;
+ALTER TABLE `%1\$sAdmin_interface`
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2783;
+ALTER TABLE `%1\$sAdmin_param`
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=98;
+ALTER TABLE `%1\$sBewaking_Blok`
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+ALTER TABLE `%1\$sBewaking_Inschrijving`
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+ALTER TABLE `%1\$sEvenement`
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+ALTER TABLE `%1\$sEvenement_Deelnemer`
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
+ALTER TABLE `%1\$sEvenement_Type`
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+ALTER TABLE `%1\$sLiddipl`
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=121749;
+ALTER TABLE `%1\$sLidmaatschap`
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=117257;
+ALTER TABLE `%1\$sLidond`
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=128788;
+ALTER TABLE `%1\$sMailing`
+  MODIFY `MailingID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=100;
+ALTER TABLE `%1\$sMailing_hist`
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2703;
+ALTER TABLE `%1\$sMailing_rcpt`
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5772;
+ALTER TABLE `%1\$sMailing_vanaf`
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+ALTER TABLE `%1\$sMemo`
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+ALTER TABLE `%1\$sStukken`
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+ALTER TABLE `%1\$sTaak`
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+ALTER TABLE `%1\$sTaakGroep`
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+ALTER TABLE `%1\$sWS_Artikel`
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+ALTER TABLE `%1\$sWS_Orderregel`
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;", TABLE_PREFIX);
+
+	fnQuery($queries);
+}  # db_createtables
 
 ?>
