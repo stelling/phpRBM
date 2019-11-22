@@ -1,7 +1,7 @@
 <?php
 
 function fnWebshop() {
-	global $currenttab, $currenttab2, $table_prefix;
+	global $currenttab, $currenttab2;
 	
 	fnDispMenu(2);
 
@@ -16,7 +16,6 @@ function fnWebshop() {
 }
 
 function onlinebestellingen($lidid) {
-	global $table_prefix;
 
 	fnDispMenu(2);
 	
@@ -67,7 +66,7 @@ function onlinebestellingen($lidid) {
 				}
 				if (strlen($set_clause) > 0) {
 					$query = sprintf("UPDATE %sWS_Orderregel SET %s BestellingDefinitief=NULL, GewijzigdDoor=%d
-								WHERE RecordID=%d;", $table_prefix, $set_clause, $_SESSION['lidid'], $ord->RecordID);
+								WHERE RecordID=%d;", TABLE_PREFIX, $set_clause, $_SESSION['lidid'], $ord->RecordID);
 					$result = fnQuery($query);
 					if ($result > 0) {
 						$mess = sprintf("Orderregel van artikel %d voor %s is gewijzigd. %s", $ord->Artikel, db_naamlid($lidid), $wijz);
@@ -148,7 +147,6 @@ function onlinebestellingen($lidid) {
 }
 
 function artikelbeheer() {
-	global $table_prefix;
 
 	if (isset($_GET['op']) and $_GET['op'] == "nieuw") {
 		db_artikel("add");
@@ -187,7 +185,7 @@ function artikelbeheer() {
 			}
 			if (strlen($set_clause) > 0) {
 				$set_clause .= sprintf("Gewijzigd=SYSDATE(), GewijzigdDoor=%d", $_SESSION['lidid']);
-				$query = sprintf("UPDATE %sWS_Artikel SET %s WHERE RecordID=%d;", $table_prefix, $set_clause, $row->RecordID);
+				$query = sprintf("UPDATE %sWS_Artikel SET %s WHERE RecordID=%d;", TABLE_PREFIX, $set_clause, $row->RecordID);
 				fnQuery($query);
 				$mess = sprintf("Artikel %d is aangepast. %s", $row->RecordID, $wijz);
 				db_logboek("add", $mess, 10, 0, 0, $row->RecordID);
@@ -242,7 +240,7 @@ function artikelbeheer() {
 }
 
 function bestellingbeheer() {
-	global $table_prefix, $fdlang;
+	global $fdlang;
 
 	$naamfilter="";
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
@@ -291,7 +289,7 @@ function bestellingbeheer() {
 			}
 			if (strlen($set_clause) > 0) {
 				$set_clause .= sprintf("GewijzigdDoor=%d", $_SESSION['lidid']);
-				$query = sprintf("UPDATE %sWS_Orderregel SET %s WHERE RecordID=%d;", $table_prefix, $set_clause, $row->RecordID);
+				$query = sprintf("UPDATE %sWS_Orderregel SET %s WHERE RecordID=%d;", TABLE_PREFIX, $set_clause, $row->RecordID);
 				$result = fnQuery($query);
 				if ($result > 0) {
 					$mess = sprintf("Orderregel %d is gewijzigd. %s", $row->RecordID, $wijz);
@@ -376,7 +374,7 @@ function bestellingbeheer() {
 	}
 	if ($nrmag) {
 		echo("<tr>\n");
-		$w = sprintf("L.Nummer IN (SELECT Lid FROM %sLidmaatschap AS LM WHERE ((LM.Opgezegd IS NULL) OR LM.Opgezegd >= CURDATE()))", $table_prefix);
+		$w = sprintf("L.Nummer IN (SELECT Lid FROM %sLidmaatschap AS LM WHERE ((LM.Opgezegd IS NULL) OR LM.Opgezegd >= CURDATE()))", TABLE_PREFIX);
 		echo("<td colspan=11><select name='Lid_0' onChange='this.form.submit();'>\n");
 		echo("<option value=0>Nieuwe regel ...</option>\n");
 		foreach(db_lid("lijst", $w) as $lid) {
