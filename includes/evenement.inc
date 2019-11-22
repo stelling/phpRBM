@@ -144,7 +144,7 @@ function inschrijvenevenementen($lidid) {
 }
 
 function muteerevenement($eventid) {
-	global $dlnstatus, $table_prefix;
+	global $dlnstatus;
 
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$_POST['Datum'] = change_month_to_uk($_POST['Datum']);
@@ -191,7 +191,7 @@ function muteerevenement($eventid) {
 			}
 			if (strlen($set_clause) > 0) {
 				$set_clause .= sprintf("GewijzigdDoor=%d", $_SESSION['lidid']);
-				$query = sprintf("UPDATE %sEvenement SET %s WHERE RecordID=%d;", $table_prefix, $set_clause, $eventid);
+				$query = sprintf("UPDATE %sEvenement SET %s WHERE RecordID=%d;", TABLE_PREFIX, $set_clause, $eventid);
 				if (fnQuery($query) > 0) {
 					db_logboek("add", $mess, 7, 0, 0, $eventid, 2);
 				} else {
@@ -323,9 +323,8 @@ function muteerevenement($eventid) {
 		printf("<td class='label'>Standaard status:</td><td><select name='StandaardStatus'>%s</select></td>\n", $optionstandstatus);
 		printf("<td class='label'>Verwijderd:</td><td><input type='radio' name='verw' value=1 %s>Ja<input type='radio' name='verw' value=0 %s>Nee</td></tr>\n", $verw1, $verw2);
 		
-		
 		$optiongroepen = "<option value=0>Geen</option>\n";
-		foreach (db_onderdeel("lijst") as $t) {
+		foreach (db_onderdeel("lijstingebruik", "", 0, 0, "", "", $datum) as $t) {
 			if ($t->RecordID == $beperktotgroep) {
 				$s = "selected";
 			} else {
@@ -335,7 +334,7 @@ function muteerevenement($eventid) {
 		}
 		printf("<tr><td class='label'>Deelname beperken tot:</td><td colspan=2><select name='BeperkTotGroep' onChange='this.form.submit();'>%s</select></td>\n", $optiongroepen);
 		$optiongroepen = "<option value=0>Iedereen</option>\n";
-		foreach (db_onderdeel("lijst") as $t) {
+		foreach (db_onderdeel("lijstingebruik", "", 0, 0, "", "", $datum) as $t) {
 			if ($t->RecordID == $zichtbaarvoor) {
 				$s = "selected";
 			} else {
