@@ -250,6 +250,14 @@ header a + a:visited + a:hover {
 	padding-top: 8px;
 }
 
+#inschrijvingevenementen td {
+	height: 75px;
+}
+
+#inschrijvingevenementen img {
+	height: 45px;
+}
+
 #lidmaatschapmuteren img {
 	height: 8px;
 }
@@ -377,6 +385,10 @@ header a + a:visited + a:hover {
 .inputnumber {
 	width: 50px;
 	text-align: right;
+}
+
+.gewijzigdestukken {
+	margin-top: 12px;
 }
 
 #artikelbeheer select {
