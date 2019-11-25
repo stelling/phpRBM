@@ -79,17 +79,26 @@ function inschrijvenevenementen($lidid) {
 
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		foreach (db_evenement("open") as $row) {
-			$ins = sprintf("ins_%d", $row->RecordID);
+			$react = sprintf("reactie_%d", $row->RecordID);
 			$opm = sprintf("opm_%d", $row->RecordID);
-			$insrow = db_evenement("inschrijving", $lidid, $row->RecordID);
-			if (isset($insrow->RecordID) and $insrow->RecordID > 0) {
-				if (!isset($_POST[$ins])) {
+			$insrow = db_Evenement_Deelnemer("record", 0, "", "", $lidid, $row);
+			if ($_POST[$react] == "Geen") {
+				if (isset($insrow->RecordID) and $insrow->RecordID > 0) {
 					db_Evenement_Deelnemer("delete", $insrow->RecordID, "", "", $lidid, $row);
-				} elseif ($insrow->Opmerking != $_POST[$opm]) {
-					db_Evenement_Deelnemer("update", $insrow->RecordID, "Opmerking", $_POST[$opm]);
 				}
-			} elseif (isset($_POST[$ins]) and $_POST[$ins] == "1") {
-				db_Evenement_Deelnemer("insert", 0, "Opmerking", $_POST[$opm], $lidid, $row);
+			} else {
+				if (!isset($insrow->RecordID)) {
+					db_Evenement_Deelnemer("insert", 0, "", "", $lidid, $row);
+					$insrow = db_Evenement_Deelnemer("record", 0, "", "", $lidid, $row);
+				}
+				if ($_POST[$react] == "Aanmelden") {
+					db_Evenement_Deelnemer("update", $insrow->RecordID, "Status", "B", $lidid, $row);
+				} elseif ($_POST[$react] == "Inschrijven") {
+					db_Evenement_Deelnemer("update", $insrow->RecordID, "Status", "I", $lidid, $row);
+				} elseif ($_POST[$react] == "Afmelden") {
+					db_Evenement_Deelnemer("update", $insrow->RecordID, "Status", "X", $lidid, $row);
+				}
+				db_Evenement_Deelnemer("update", $insrow->RecordID, "Opmerking", $_POST[$opm], $lidid, $row);
 			}
 		}
 	}
@@ -100,23 +109,41 @@ function inschrijvenevenementen($lidid) {
 	printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 	$geldig = false;
 	echo("<table>\n");
-	echo("<tr><th>Datum</th><th>Starttijd</th><th>Omschrijving</th><th>Aanmelden</th><th>Opmerking</th><th>In agenda</th></tr>\n");
+	echo("<tr><th>Datum en tijden</th><th>Omschrijving</th><th>Reactie</th><th>In agenda</th></tr>\n");
 	foreach (db_evenement("open", $lidid) as $row) {
-		printf("<tr><td>%s</td><td>%s</td><td>%s</td>\n", strftime("%e %B %Y", strtotime($row->Datum)), strftime("%H:%M", strtotime($row->Datum)), $row->Omschrijving);
+		printf("<tr><td>%s<br>van %s to %s uur</td><td>%s</td>\n", strftime("%A %e %B %Y", strtotime($row->Datum)), strftime("%R", strtotime($row->Datum)), $row->Eindtijd, $row->Omschrijving);
 		$ins = db_evenement("inschrijving", $lidid, $row->RecordID);
-		$c = "";
 		$v = "&nbsp;";
-		if (isset($ins->Status)) {
-			$c = "checked";
-			$v = "Ja";
-		}
-		printf("<td class='chk'><input type='checkbox' onClick='this.form.submit();' name='ins_%s' value=1 %s></td>\n", $row->RecordID, $c);
-		if (isset($ins->Opmerking)) {
-			$v = $ins->Opmerking;
-		}
-		printf("<td><input type='text' onBlur='this.form.submit();' name='opm_%d' size=80 maxlength=75 value=\"%s\"></td>\n", $row->RecordID, $v);
 		
-		if (isset($ins->Status)) {
+		echo("<td>");
+		if (!isset($ins->Status)) {
+			printf("<input type='radio' name='reactie_%d' value='Geen' checked onchange='this.form.submit();'>Geen&nbsp;", $row->RecordID);
+		}
+		
+		if (isset($ins->Status) and ($ins->Status == "B" or $ins->Status == "I")) {
+			$c = "checked";
+		} else {
+			$c = "";
+		}
+		
+		if ($row->StandaardStatus == "B") {
+			printf("<input type='radio' name='reactie_%d' value='Aanmelden' %s onchange='this.form.submit();'>Aanmelden&nbsp;", $row->RecordID, $c);
+		} else {
+			printf("<input type='radio' name='reactie_%d' value='Inschrijven' %s onchange='this.form.submit();'>Inschrijven&nbsp;", $row->RecordID, $c);
+		}
+		
+		if (isset($ins->Status) and $ins->Status == "X") {
+			$c = "checked";
+		} else {
+			$c = "";
+		}
+		printf("<input type='radio' name='reactie_%d' value='Afmelden' %s onchange='this.form.submit();'>Afmelden&nbsp;", $row->RecordID, $c);
+		
+		if (isset($ins->Opmerking)) {
+			printf("<br><br>Opmerking: <input type='text' onBlur='this.form.submit();' name='opm_%d' size=80 maxlength=75 value=\"%s\"></td>\n", $row->RecordID, $ins->Opmerking);
+		}
+		
+		if (isset($ins->Status) and ($ins->Status == "B" or $ins->Status == "I")) {
 			$t = date("Ymd\THis", strtotime($row->Datum)) . "/" . date("Ymd\THis", strtotime(substr($row->Datum, 0, 10) . " " . $row->Eindtijd));
 			if (strlen($row->Verzameltijd) > 3) {
 				$d = sprintf("Om %s verzamelen/inloop", $row->Verzameltijd);
@@ -131,8 +158,7 @@ function inschrijvenevenementen($lidid) {
 			$gu .= sprintf("&#038;sprop=website:%s", BASISURL);
 //			$gu .= "&#038;ctz=Europe%2FAmsterdam";
 			
-//			debug($gu);
-			printf("<td><a href='%s' target='_blank' rel='nofollow'><img border='0' src='https://www.google.com/calendar/images/ext/gc_button1_nl.gif'></a></td>\n", $gu);
+			printf("<td><a href='%s' target='_blank' rel='nofollow'><img border='0' src='https://img.icons8.com/plasticine/100/000000/google-logo.png'></a></td>\n", $gu);
 		} else {
 			echo("<td>&nbsp;</td>\n");
 		}
@@ -351,7 +377,7 @@ function muteerevenement($eventid) {
 	echo("<table>");
 	if ($eventid > 0) {
 		echo("<tr><th colspan=6 class='tabelkop'>Deelnemers</th></tr>\n");
-		echo("<tr><th>Naam deelnemer</th><th>Status</th><th>Opmerking</th><th>Functie</th><th>Ingevoerd</th><th>Del</th></tr>\n");
+		echo("<tr><th>Naam deelnemer</th><th>Status</th><th>Opmerking en functie</th><th>Ingevoerd</th><th>Del</th></tr>\n");
 		foreach (db_evenement("deelnemers", 0, $recordid) as $rd) {
 			$optstat = "";
 			foreach ($dlnstatus as $key => $val) {
@@ -364,8 +390,8 @@ function muteerevenement($eventid) {
 			echo("<tr>\n");
 			printf("<td>%s</td>\n", htmlentities($rd->NaamDeelnemer));
 			printf("<td><select name='Status_%d' onChange='this.form.submit();'>%s</select></td>\n", $rd->RecordID, $optstat);
-			printf("<td><input type='text' name='Opmerking_%d' value='%s' size=35 maxlength=75></td>\n", $rd->RecordID, $rd->Opmerking);
-			printf("<td><input type='text' name='Functie_%d' value='%s' size=35 maxlength=30></td>\n", $rd->RecordID, $rd->Functie);
+			printf("<td><input type='text' name='Opmerking_%d' value='%s' placeholder='Opmerking' size=80 maxlength=75>\n", $rd->RecordID, $rd->Opmerking);
+			printf("<br><input type='text' name='Functie_%d' value='%s' placeholder='Functie' size=40 maxlength=30></td>\n", $rd->RecordID, $rd->Functie);
 			printf("<td>%s</td>\n", strftime("%e %b %Y (%R)", strtotime($rd->Ingevoerd)));
 			printf("<td><a href='%s?tp=%s&amp;op=delete&amp;eid=%d&amp;lidid=%d&amp;edid=%d'><img src='images/del.png' alt='Delete'></a></td>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $eventid, $rd->LidID, $rd->RecordID);
 			echo("</tr>\n");
