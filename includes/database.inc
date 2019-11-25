@@ -2819,39 +2819,54 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 
 function db_Evenement_Deelnemer($actie, $recid, $fld="", $val="", $lidid=0, $eventrow="") {
 	$mess = "";
+	$rv = 0;
 	
-	if ($actie == "record" and $recid > 0) {
-		$query = sprintf("SELECT ED.*, E.Omschrijving AS OmsEvenement FROM %1\$sEvenement_Deelnemer AS ED INNER JOIN %1\$sEvenement AS E ON ED.EvenementID=E.RecordID WHERE ED.RecordID=%2\$d;", TABLE_PREFIX, $recid);
+	if ($actie == "record") {
+		if ($recid > 0) {
+			$w = sprintf("ED.RecordID=%d", $recid);
+		} else {
+			$w = sprintf("ED.LidID=%d AND ED.EvenementID=%d", $lidid, $eventrow->RecordID);
+		}
+		$query = sprintf("SELECT ED.*, E.Omschrijving AS OmsEvenement FROM %1\$sEvenement_Deelnemer AS ED INNER JOIN %1\$sEvenement AS E ON ED.EvenementID=E.RecordID WHERE %2\$s;", TABLE_PREFIX, $w);
 		$result = fnQuery($query);
 		return $result->fetch();
 	
 	} elseif ($actie == "insert") {
-		$query = sprintf("INSERT INTO %sEvenement_Deelnemer (LidID, EvenementID, Status, IngevoerdDoor) VALUES (%d, %d, '%s', %d);", TABLE_PREFIX, $lidid, $eventrow->RecordID, $eventrow->StandaardStatus, $val, $_SESSION['lidid']);
-		if (fnQuery($query) > 0) {
-			$mess = sprintf("Deelnemer %s bij evenement %d (%s) toegevoegd. ", db_naamlid($lidid), $eventrow->RecordID, $eventrow->Omschrijving);
+		$query = sprintf("INSERT INTO %sEvenement_Deelnemer (LidID, EvenementID, Status, IngevoerdDoor) VALUES (%d, %d, '%s', %d);", TABLE_PREFIX, $lidid, $eventrow->RecordID, $eventrow->StandaardStatus, $_SESSION['lidid']);
+		$rv = fnQuery($query);
+		if ($rv > 0) {
+			$mess = sprintf("Deelnemer %s bij evenement %d (%s) met status '%s' toegevoegd. ", db_naamlid($lidid), $eventrow->RecordID, $eventrow->Omschrijving, $eventrow->StandaardStatus);
 		}
 		
-	} elseif ($actie == "update" and $recid > 0) {
+	} elseif ($actie == "update") {
 		$query = sprintf("SELECT LidID, EvenementID FROM %sEvenement_Deelnemer WHERE RecordID=%d;", TABLE_PREFIX, $recid);
 		$result = fnQuery($query);
-		$edrow = $result->fetch();	
-		$query = sprintf("UPDATE %sEvenement_Deelnemer SET `%s`='%s', GewijzigdDoor=%d WHERE RecordID=%d;", TABLE_PREFIX, $fld, $val, $_SESSION['lidid'], $recid);
-		if (fnQuery($query) > 0) {
-			$mess = sprintf("Van deelnemer %s bij evenement %d (%s) is kolom '%s' naar '%s' bijgewerkt. ", db_naamlid($edrow->LidID), $edrow->EvenementID, db_evenement("oms", 0, $edrow->EvenementID), $fld, $val);
+		$edrow = $result->fetch();
+		if ($edrow->$fld !== $val) {
+			$query = sprintf("UPDATE %1\$sEvenement_Deelnemer SET `%2\$s`='%3\$s', GewijzigdDoor=%4\$d WHERE RecordID=%5\$d;", TABLE_PREFIX, $fld, $val, $_SESSION['lidid'], $recid);
+			$rv = fnQuery($query);
+			if ($rv > 0) {
+				$mess = sprintf("Van deelnemer %s bij evenement %d (%s) is kolom '%s' naar '%s' bijgewerkt. ", db_naamlid($edrow->LidID), $edrow->EvenementID, $eventrow->Omschrijving, $fld, $val);
+			}
 		}
 		
 	} elseif ($actie == "delete") {
 		if ($recid > 0) {
 			$edrow = db_Evenement_Deelnemer("record", $recid);
-		}
-		$query = sprintf("DELETE FROM %sEvenement_Deelnemer WHERE LidID=%d AND RecordID=%d;", TABLE_PREFIX, $lidid, $recid);
-		if (fnQuery($query) > 0) {
-			$mess = sprintf("Deelnemer %s bij evenement %d (%s) verwijderd. ", db_naamlid($lidid), $edrow->EvenementID, $edrow->OmsEvenement);
+			$query = sprintf("DELETE FROM %sEvenement_Deelnemer WHERE LidID=%d AND RecordID=%d;", TABLE_PREFIX, $lidid, $recid);
+			$rv = fnQuery($query);
+			if ($rv > 0) {
+				$mess = sprintf("Deelnemer %s bij evenement %d (%s) verwijderd. ", db_naamlid($lidid), $edrow->EvenementID, $eventrow->Omschrijving);
+			}
 		}
 	} else {
 		$mess = sprintf("Actie '%s' is onbekend of RecordID is 0.", $actie);
 	}
-	db_logboek("add", $mess, 7, 0, 0, $edrow->EvenementID);
+	if (strlen($mess) > 0) {
+		db_logboek("add", $mess, 7, 0, 0, $edrow->EvenementID);
+	}
+	
+	return $rv;
 	
 }  #  db_Evenement_Deelnemer
 
