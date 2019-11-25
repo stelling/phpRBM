@@ -170,6 +170,7 @@ function fnQuery($query, $logtype=0) {
 			db_logboek("add", $mess, $logtype);
 		}
 		return $rv;
+		
 	} catch (Exception $e) {					
 		$mess = sprintf("Error in SQL '%s': %s", $query, $e->getMessage());
 		debug($mess, 1, 0, 99);
@@ -1857,7 +1858,7 @@ function db_naam_onderdeel($rid, $rin="Onbekend") {
 	}
 	debug("db_naam_onderdeel moet worden vervangen", 99);
 	return $rv;
-}
+}  #  db_naam_onderdeel
 
 function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr="", $message="", $mail=null, $success=1, $xtrachar="", $xtranum=0) {
 	
@@ -1922,7 +1923,7 @@ function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr="", $message="", $
 	}
 	fnQuery($query);
 
-}
+}  # dn_add_mailing_hist
 
 function db_mailing($actie, $mid=0, $filter="", $new_val="", $kolnaam="") {
 	global $selectnaam, $selectzoeknaam, $fdtlang;
@@ -2309,14 +2310,15 @@ function db_mutatie($actie, $jaar=0, $gbr="*", $kpl="*") {
 	} else {
 		sprintf("<p class='mededeling'>Actie '%s' bestaat niet.</p>", $actie);
 	}
-}
+}  # db_mutatie
 
 function db_boekjaar() {
 	
 	$query = sprintf("SELECT RecordID, Kode AS Jaar FROM %sBoekjaar ORDER BY Begindatum DESC;", TABLE_PREFIX);
 	$result = fnQuery($query);
 	return $result->fetchAll();
-}
+	
+}  # db_Boekjaar
 
 function db_kostenplaats($actie) {
 
@@ -2327,7 +2329,7 @@ function db_kostenplaats($actie) {
 	}
 	$result = fnQuery($query);
 	return $result->fetchAll();
-}
+}  # db_kostenplaatst
 
 function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0, $referid=0, $ipfilter="", $rid=0) {
 	global $selectnaam, $selectzoeknaam;
@@ -2454,6 +2456,13 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0, $referid=0, $ipf
 		} else {
 			return false;
 		}
+		
+	} elseif ($actie == "vorigelogin") {
+		if ($lidid == 0) {
+			$lidid = $_SESSION['lidid'];
+		}
+		$query = sprintf("SELECT IFNULL(MAX(DatumTijd), 'Geen') FROM %sAdmin_activiteit WHERE LidID=%d AND TypeActiviteit=1 AND DatumTijd < DATE_SUB(SYSDATE(), INTERVAL 15 MINUTE) AND Omschrijving LIKE '%%ingelogd%%';", TABLE_PREFIX, $lidid);
+		return db_scalar($query);
 		
 	} else {
 		$mess = sprintf("Actie '%s' is onbekend.", $actie);
@@ -2829,8 +2838,6 @@ function db_Evenement_Deelnemer($actie, $recid, $fld="", $val="", $lidid=0, $eve
 		$query = sprintf("UPDATE %sEvenement_Deelnemer SET `%s`='%s', GewijzigdDoor=%d WHERE RecordID=%d;", TABLE_PREFIX, $fld, $val, $_SESSION['lidid'], $recid);
 		if (fnQuery($query) > 0) {
 			$mess = sprintf("Van deelnemer %s bij evenement %d (%s) is kolom '%s' naar '%s' bijgewerkt. ", db_naamlid($edrow->LidID), $edrow->EvenementID, db_evenement("oms", 0, $edrow->EvenementID), $fld, $val);
-		} else {
-			debug($query);
 		}
 		
 	} elseif ($actie == "delete") {
@@ -2840,8 +2847,6 @@ function db_Evenement_Deelnemer($actie, $recid, $fld="", $val="", $lidid=0, $eve
 		$query = sprintf("DELETE FROM %sEvenement_Deelnemer WHERE LidID=%d AND RecordID=%d;", TABLE_PREFIX, $lidid, $recid);
 		if (fnQuery($query) > 0) {
 			$mess = sprintf("Deelnemer %s bij evenement %d (%s) verwijderd. ", db_naamlid($lidid), $edrow->EvenementID, $edrow->OmsEvenement);
-		} else {
-			debug($query);
 		}
 	} else {
 		$mess = sprintf("Actie '%s' is onbekend of RecordID is 0.", $actie);
@@ -3125,6 +3130,20 @@ function db_rekening($actie, $nr=0, $filter="", $lidid=0) {
 		return db_scalar($query);
 	}
 } # db_rekening
+
+function db_Stukken($actie, $lidid=0) {
+	
+	if ($actie == "gewijzigdestukken") {
+		$vl = db_logboek("vorigelogin", "", 0, $lidid);
+		if (strlen($vl) >= 10) {
+			$query = sprintf("SELECT Titel FROM %sStukken WHERE ((VervallenPer IS NULL) OR VervallenPer > CURDATE()) AND GewijzigdOp > '%s' ORDER BY GewijzigdOp DESC;", TABLE_PREFIX, $vl);
+		} else {
+			$query = sprintf("SELECT Titel FROM %sStukken WHERE ((VervallenPer IS NULL) OR VervallenPer > CURDATE()) ORDER BY GewijzigdOp DESC;", TABLE_PREFIX);
+		}
+		return fnQuery($query);
+	}
+	
+}  # db_Stukken
 
 function db_dms() {
 }
