@@ -33,7 +33,6 @@ function fnEvenementen() {
 		muteerevenement($eid);
 	} elseif ($currenttab2 == "Beheer" and $op == "delete") {
 		db_Evenement_Deelnemer("delete", $_GET['edid'], "", "", $_GET['lidid']);
-//		db_Evenement_Deelnemer($actie, $recid, $fld="", $val="", $lidid=0, $eventrow="") {
 		
 		muteerevenement($eid);
 	} elseif ($currenttab2 == "Beheer") {
@@ -82,6 +81,16 @@ function inschrijvenevenementen($lidid) {
 			$react = sprintf("reactie_%d", $row->RecordID);
 			$opm = sprintf("opm_%d", $row->RecordID);
 			$insrow = db_Evenement_Deelnemer("record", 0, "", "", $lidid, $row);
+			
+			if ($_POST[$react] == "Aanmelden") {
+				$stat = "B";
+			} elseif ($_POST[$react] == "Inschrijven") {
+				$stat = "I";
+			} elseif ($_POST[$react] == "Afmelden") {
+				$stat = "X";
+			} else {
+				$stat = "";
+			}
 			if ($_POST[$react] == "Geen") {
 				if (isset($insrow->RecordID) and $insrow->RecordID > 0) {
 					db_Evenement_Deelnemer("delete", $insrow->RecordID, "", "", $lidid, $row);
@@ -91,12 +100,8 @@ function inschrijvenevenementen($lidid) {
 					db_Evenement_Deelnemer("insert", 0, "", "", $lidid, $row);
 					$insrow = db_Evenement_Deelnemer("record", 0, "", "", $lidid, $row);
 				}
-				if ($_POST[$react] == "Aanmelden") {
-					db_Evenement_Deelnemer("update", $insrow->RecordID, "Status", "B", $lidid, $row);
-				} elseif ($_POST[$react] == "Inschrijven") {
-					db_Evenement_Deelnemer("update", $insrow->RecordID, "Status", "I", $lidid, $row);
-				} elseif ($_POST[$react] == "Afmelden") {
-					db_Evenement_Deelnemer("update", $insrow->RecordID, "Status", "X", $lidid, $row);
+				if (strlen($stat) == 1) {
+					db_Evenement_Deelnemer("update", $insrow->RecordID, "Status", $stat, $lidid, $row);
 				}
 				db_Evenement_Deelnemer("update", $insrow->RecordID, "Opmerking", $_POST[$opm], $lidid, $row);
 			}
@@ -144,21 +149,7 @@ function inschrijvenevenementen($lidid) {
 		}
 		
 		if (isset($ins->Status) and ($ins->Status == "B" or $ins->Status == "I")) {
-			$t = date("Ymd\THis", strtotime($row->Datum)) . "/" . date("Ymd\THis", strtotime(substr($row->Datum, 0, 10) . " " . $row->Eindtijd));
-			if (strlen($row->Verzameltijd) > 3) {
-				$d = sprintf("Om %s verzamelen/inloop", $row->Verzameltijd);
-			} else {
-				$d = "";
-			}
-			$gu = sprintf("https://calendar.google.com/event?action=TEMPLATE&text=%s", urlencode($row->Omschrijving));
-			$gu .= sprintf("&#038;dates=%s", $t);
-			$gu .= sprintf("&#038;details=%s", urlencode($d));
-			$gu .= sprintf("&#038;location=%s", urldecode($row->Locatie));
-			$gu .= "&#038;trp=false";
-			$gu .= sprintf("&#038;sprop=website:%s", BASISURL);
-//			$gu .= "&#038;ctz=Europe%2FAmsterdam";
-			
-			printf("<td><a href='%s' target='_blank' rel='nofollow'><img border='0' src='https://img.icons8.com/plasticine/100/000000/google-logo.png'></a></td>\n", $gu);
+			printf("<td>%s</td>\n", fnAgendaKnop($row->Datum, $row->Eindtijd, $row->Verzameltijd, $row->Omschrijving, $row->Locatie));
 		} else {
 			echo("<td>&nbsp;</td>\n");
 		}
@@ -229,13 +220,12 @@ function muteerevenement($eventid) {
 			foreach(array("Status", "Opmerking", "Functie") as $fld) {
 				$formfld = sprintf("%s_%d", $fld, $rd->RecordID);
 				if ($_POST[$formfld] != $rd->$fld) {
-//					debug($rd->RecordID . " / " . $fld . " / " . $_POST[$formfld] . " / " . $rd->$fld);
 					$result = db_Evenement_Deelnemer("update", $rd->RecordID, $fld, $_POST[$formfld]);
 				}
 			}
 		}
 		if (isset($_POST['nwdln']) and $_POST['nwdln'] > 0 and is_numeric($_POST['nwdln'])) {
-			db_Evenement_Deelnemer("insert", 0, "", "", $_POST['nwdln'], $old);
+			db_Evenement_Deelnemer("insert", 0, "", "", $_POST['nwdln'], db_evenement("record", 0, $eventid));
 		}
 		
 		if (isset($_POST['Bewaren_Sluiten'])) {
@@ -324,11 +314,11 @@ function muteerevenement($eventid) {
 	$optionstandstatus = "";
 	foreach ($dlnstatus as $ds => $o) {
 		if ($ds == $standaardstatus) {
-			$s = "selected";
+			$s = " selected";
 		} else {
 			$s = "";
 		}
-		$optionstandstatus .= sprintf("<option value='%s' %s>%s</option>\n", $ds, $s, $o);
+		$optionstandstatus .= sprintf("<option value='%s'%s>%s</option>\n", $ds, $s, $o);
 	}
 	
 	echo("<div id='evenementenbeheer'>\n");
@@ -352,11 +342,11 @@ function muteerevenement($eventid) {
 		$optiongroepen = "<option value=0>Geen</option>\n";
 		foreach (db_onderdeel("lijstingebruik", "", 0, 0, "", "", $datum) as $t) {
 			if ($t->RecordID == $beperktotgroep) {
-				$s = "selected";
+				$s = " selected";
 			} else {
 				$s = "";
 			}
-			$optiongroepen .= sprintf("<option value=%d %s>%s</option>\n", $t->RecordID, $s, htmlentities($t->Oms));
+			$optiongroepen .= sprintf("<option value=%d%s>%s</option>\n", $t->RecordID, $s, htmlentities($t->Oms));
 		}
 		printf("<tr><td class='label'>Deelname beperken tot:</td><td colspan=2><select name='BeperkTotGroep' onChange='this.form.submit();'>%s</select></td>\n", $optiongroepen);
 		$optiongroepen = "<option value=0>Iedereen</option>\n";
@@ -551,5 +541,25 @@ function overzichtevenementen() {
 	echo("</table>\n");
 	echo("</div>  <!-- Einde overzichtevenementen -->\n");
 
-}
+}  # overzichtevenementen 
+
+function fnAgendaKnop($datum, $eindtijd, $verzameltijd, $omschrijving, $locatie) {
+	
+	$t = date("Ymd\THis", strtotime($datum)) . "/" . date("Ymd\THis", strtotime(substr($datum, 0, 10) . " " . $eindtijd));
+	if (strlen($verzameltijd) > 3) {
+		$d = sprintf("Om %s verzamelen/inloop", $verzameltijd);
+	} else {
+		$d = "";
+	}
+	$gu = sprintf("https://calendar.google.com/event?action=TEMPLATE&text=%s", urlencode($omschrijving));
+	$gu .= sprintf("&#038;dates=%s", $t);
+	$gu .= sprintf("&#038;details=%s", urlencode($d));
+	$gu .= sprintf("&#038;location=%s", urldecode($locatie));
+	$gu .= "&#038;trp=false";
+	$gu .= sprintf("&#038;sprop=website:%s", BASISURL);
+//			$gu .= "&#038;ctz=Europe%2FAmsterdam";
+			
+	return sprintf("<a href='%s' target='_blank' rel='nofollow'><img border='0' src='https://img.icons8.com/plasticine/100/000000/google-logo.png'></a>", $gu);
+	
+}  # fbAgendaKnop
 ?>
