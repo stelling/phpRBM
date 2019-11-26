@@ -838,7 +838,32 @@ function fnEigenGegevens($lidid=0, $actie="") {
 		} elseif ($actie == "Evenementen") {
 			$rows = db_gegevenslid($lidid, $actie);
 			if (count($rows) > 0) {
-				echo(fnDisplayTable($rows, "", "Deelname evenementen " . $naamlid));
+				echo("<div id='evenementenperlid'>\n");
+				echo("<table>\n");
+				printf("<tr><th colspan=9>Deelname evenementen %s</th></tr>\n", $naamlid);
+				echo("<tr><th>Datum en start</th><th>Omschrijving</th><th>Verzameltijd</th><th>Eindtijd</th><th>Contact</th><th>Opmerking</th><th>Functie</th><th>Status</th><th>In agenda</th></tr>\n");
+				
+				foreach($rows as $row) {
+					echo("<tr>\n");
+					printf("<td>%s</td>\n", strftime("%A %e %B %Y (%R)", strtotime($row->dteDatum)));
+					printf("<td>%s</td>\n", $row->Omschrijving);
+					printf("<td>%s</td>\n", $row->Verzameltijd);
+					printf("<td>%s</td>\n", $row->Eindtijd);
+					printf("<td>%s</td>\n", $row->Contact);
+					printf("<td>%s</td>\n", $row->Opmerking);
+					printf("<td>%s</td>\n", $row->Functie);
+					printf("<td>%s</td>\n", $row->Status);
+					if (($row->Status == "Bevestigd" or $row->Status == "Ingeschreven") and $row->dteDatum >= date("Y-m-d H:i")) {
+						printf("<td>%s</td>\n", fnAgendaKnop($row->Datum, $row->Eindtijd, $row->Verzameltijd, $row->Omschrijving, $row->Locatie));
+					} else {
+						echo("<td>&nbsp;</td>");
+					}
+					echo("</tr>\n");
+				}
+				
+				echo("</table>\n");
+				echo("</div>  <!-- einde evenementenperlid -->");
+				
 			} else {
 				printf("<p class='mededeling'>Bij %s zijn geen deelnames aan evenementen bekend.</p>", $naamlid);
 			}
