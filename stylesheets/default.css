@@ -254,8 +254,10 @@ header a + a:visited + a:hover {
 	height: 75px;
 }
 
-#inschrijvingevenementen img {
-	height: 45px;
+#inschrijvingevenementen img, #evenementenperlid img {
+	height: 40px;
+	margin-top: 0;
+	margin-bottom: 0;
 }
 
 #lidmaatschapmuteren img {
