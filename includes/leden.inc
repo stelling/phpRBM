@@ -272,12 +272,6 @@ function fnLedenlijst() {
 			printf("<input type='radio'%2\$s name='rbTL' value='%1\$s' onclick='this.form.submit();'>%1\$s\n", $tl, $c);
 		}
 	}
-	echo("</td>\n");
-	printf("<td class='label'>Onderdeel</td><td><select name='lbGroepFilter' onchange='this.form.submit();'>%s</select></td>\n", fnSelectListGroepen($_SESSION['val_groep']));
-	echo("</tr>\n");
-	echo("</table>\n");
-	echo("</form>");
-	echo("</div>  <!-- Einde filter -->\n");
 	
 	if (strlen($_SESSION['val_naamfilter']) > 1) {
 		$filter = sprintf("(L.Achternaam LIKE '%%%1\$s%%' OR L.Roepnaam LIKE '%%%1\$s%%' OR L.MEISJESNM LIKE '%%%1\$s%%')", strtoupper($_SESSION['val_naamfilter']));
@@ -310,9 +304,21 @@ function fnLedenlijst() {
 		}
 		$rows = db_lidond("onderdeellijst", 0, "", $filter, $_SESSION['val_groep']);
 	}
+	
+	echo("</td>\n");
+	if (count($rows) > 1) {
+		$al = sprintf("<td>%d leden</td>", count($rows));
+	} else {
+		$al = "";
+	}
+	printf("<td class='label'>Onderdeel</td><td><select name='lbGroepFilter' onchange='this.form.submit();'>%s</select>%s</td>\n", fnSelectListGroepen($_SESSION['val_groep']), $al);
+	echo("</tr>\n");
+	echo("</table>\n");
+	echo("</form>");
+	echo("</div>  <!-- Einde filter -->\n");
 
 	if (count($rows) > 0) {
-		echo(fnDisplayTable($rows, $ldl, "", 3, $llw, "", "ledenlijst"));
+		echo(fnDisplayTable($rows, $ldl, "", 0, $llw, "", "ledenlijst"));
 		foreach ($rows as $row) {
 			$sel_leden[] = $row->lnkNummer;
 		}
@@ -840,18 +846,27 @@ function fnEigenGegevens($lidid=0, $actie="") {
 			if (count($rows) > 0) {
 				echo("<div id='evenementenperlid'>\n");
 				echo("<table>\n");
-				printf("<tr><th colspan=9>Deelname evenementen %s</th></tr>\n", $naamlid);
-				echo("<tr><th>Datum en start</th><th>Omschrijving</th><th>Verzameltijd</th><th>Eindtijd</th><th>Contact</th><th>Opmerking</th><th>Functie</th><th>Status</th><th>In agenda</th></tr>\n");
+				printf("<tr><th colspan=6>Deelname evenementen %s</th></tr>\n", $naamlid);
+				echo("<tr><th>Wanneer</th><th>Omschrijving</th><th>Contact</th><th>Opmerking / Functie</th><th>Status</th><th>In agenda</th></tr>\n");
 				
 				foreach($rows as $row) {
 					echo("<tr>\n");
-					printf("<td>%s</td>\n", strftime("%A %e %B %Y (%R)", strtotime($row->dteDatum)));
+					if (strlen($row->Verzameltijd) >= 5 and $row->dteDatum >= date("Y-m-d H:i")) {
+						$v = sprintf("<br>Verzamelen om %s&nbsp;uur", $row->Verzameltijd);
+					} else {
+						$v = "";
+					}
+					printf("<td>%s&nbsp;tot&nbsp;%s&nbsp;uur%s</td>\n", str_replace(" ", "&nbsp;", strftime("%A %e %B %Y van %R", strtotime($row->dteDatum))), $row->Eindtijd, $v);
 					printf("<td>%s</td>\n", $row->Omschrijving);
-					printf("<td>%s</td>\n", $row->Verzameltijd);
-					printf("<td>%s</td>\n", $row->Eindtijd);
-					printf("<td>%s</td>\n", $row->Contact);
-					printf("<td>%s</td>\n", $row->Opmerking);
-					printf("<td>%s</td>\n", $row->Functie);
+					printf("<td>%s</td>\n", $row->emlContact);
+					if (strlen($row->Opmerking) > 0 and strlen($row->Functie) > 0) {
+						$of = sprintf("%s<br>%s", $row->Opmerking, $row->Functie);
+					} elseif (strlen($row->Opmerking) > 0) {
+						$of = $row->Opmerking;
+					} else {
+						$of = $row->Functie;
+					}
+					printf("<td>%s</td>\n", $of);
 					printf("<td>%s</td>\n", $row->Status);
 					if (($row->Status == "Bevestigd" or $row->Status == "Ingeschreven") and $row->dteDatum >= date("Y-m-d H:i")) {
 						printf("<td>%s</td>\n", fnAgendaKnop($row->Datum, $row->Eindtijd, $row->Verzameltijd, $row->Omschrijving, $row->Locatie));
@@ -986,7 +1001,7 @@ function algemeenlidmuteren($lidid) {
 	$wijzvelden[] = array('label' => "Adres", 'naam' => "Adres", 'lengte' => 30);
 	$wijzvelden[] = array('label' => "Postcode", 'naam' => "Postcode", 'lengte' => 7);
 	$wijzvelden[] = array('label' => "Woonplaats", 'naam' => "Woonplaats", 'lengte' => 22);
-	$wijzvelden[] = array('label' => "Telefoon", 'naam' => "Telefoon", 'lengte' => 16);
+	$wijzvelden[] = array('label' => "Vast telefoonnummer", 'naam' => "Telefoon", 'lengte' => 16);
 	$wijzvelden[] = array('label' => "Mobiel", 'naam' => "Mobiel", 'lengte' => 16);
 	$wijzvelden[] = array('label' => "E-mail", 'naam' => "Email", 'lengte' => 45);
 	if (db_param("zs_incl_emailvereniging") == 1 or $currenttab == "Wijzigen lid") {
