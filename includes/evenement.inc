@@ -11,6 +11,7 @@ $dlnstatus['X'] = "Afgezegd";
 $soortevenement['B'] = "Brigade-activiteit";
 $soortevenement['G'] = "Gezellig/sociaal";
 $soortevenement['O'] = "Opleiding";
+$soortevenement['V'] = "Vergadering/overleg";
 $soortevenement['W'] = "Wedstrijd";
 
 function fnEvenementen() {
@@ -283,6 +284,7 @@ function muteerevenement($eventid) {
 		$beperktotgroep = $row->BeperkTotGroep;
 		$zichtbaarvoor = $row->ZichtbaarVoor;
 		$aantdln = $row->AantDln;
+		$aantafgemeld = $row->AantAfgemeld;
 	} else {
 		$recordid = 0;
 		$datum = date("Y-m-d");
@@ -299,6 +301,7 @@ function muteerevenement($eventid) {
 		$beperktotgroep = 0;
 		$zichtbaarvoor = 0;
 		$aantdln = 0;
+		$aantafgemeld = 0;
 	}
 	
 	$optiontypes = "";
@@ -331,8 +334,9 @@ function muteerevenement($eventid) {
 	printf("<tr><td class='label'>Starttijd:</td><td><input type='time' name='Starttijd' value='%s' size=5 maxlength=5></td>\n", $starttijd);
 	printf("<td class='label'>Eindtijd:</td><td><input type='time' name='Eindtijd' value='%s' size=5 maxlength=5></td>\n", $eindtijd);
 	printf("<td class='label'>Verzamelen:</td><td><input type='text' name='Verzameltijd' value='%s' size=5 maxlength=5></td></tr>\n", $verzameltijd);
-	printf("<tr><td class='label'>Type evenement:</td><td colspan=3><select name='TypeEvenement' onChange='this.form.submit();'>%s</select></td>\n", $optiontypes);
-	printf("<td class='label'>Aantal deelnemers:</td><td>%d</td></tr>\n", $aantdln);
+	printf("<tr><td class='label'>Type evenement:</td><td><select name='TypeEvenement' onChange='this.form.submit();'>%s</select></td>\n", $optiontypes);
+	printf("<td class='label'>Aantal deelnemers:</td><td>%d</td>\n", $aantdln);
+	printf("<td class='label'>Aantal afgemeld:</td><td>%d</td></tr>\n", $aantafgemeld);
 	
 	if ($eventid > 0) {
 		printf("<tr><td class='label'>Online inschrijving open:</td><td><input type='radio' name='InschrijvingOpen' value=1 %s>Ja<input type='radio' name='InschrijvingOpen' value=0 %s>Nee</td>\n", $insopen1, $insopen2);
@@ -346,7 +350,7 @@ function muteerevenement($eventid) {
 			} else {
 				$s = "";
 			}
-			$optiongroepen .= sprintf("<option value=%d%s>%s</option>\n", $t->RecordID, $s, htmlentities($t->Oms));
+			$optiongroepen .= sprintf("<option value=%d%s>%s (%d leden)</option>\n", $t->RecordID, $s, htmlentities($t->Naam), $t->Aantal);
 		}
 		printf("<tr><td class='label'>Deelname beperken tot:</td><td colspan=2><select name='BeperkTotGroep' onChange='this.form.submit();'>%s</select></td>\n", $optiongroepen);
 		$optiongroepen = "<option value=0>Iedereen</option>\n";
@@ -356,14 +360,13 @@ function muteerevenement($eventid) {
 			} else {
 				$s = "";
 			}
-			$optiongroepen .= sprintf("<option value=%d %s>%s</option>\n", $t->RecordID, $s, htmlentities($t->Oms));
+			$optiongroepen .= sprintf("<option value=%d %s>%s</option>\n", $t->RecordID, $s, htmlentities($t->Naam));
 		}
 		printf("<td class='label'>Zichtbaar voor:</td><td colspan=2><select name='ZichtbaarVoor'>%s</select></td></tr>\n", $optiongroepen);
 		printf("<tr><td class='label'>Gewijzigd op / door:</td><td colspan=5>%s / %s</td></tr>\n", strftime("%e %B %Y (%H:%M)", strtotime($row->Gewijzigd)), htmlentities($row->GewijzigdDoorNaam));	
 	}
 	echo("</table>\n");
 	
-	$aantdln = 0;
 	echo("<table>");
 	if ($eventid > 0) {
 		echo("<tr><th colspan=6 class='tabelkop'>Deelnemers</th></tr>\n");
@@ -385,7 +388,6 @@ function muteerevenement($eventid) {
 			printf("<td>%s</td>\n", strftime("%e %b %Y (%R)", strtotime($rd->Ingevoerd)));
 			printf("<td><a href='%s?tp=%s&amp;op=delete&amp;eid=%d&amp;lidid=%d&amp;edid=%d'><img src='images/del.png' alt='Delete'></a></td>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $eventid, $rd->LidID, $rd->RecordID);
 			echo("</tr>\n");
-			$aantdln++;
 		}
 		$optionsnieuw = "<option value=0>Nieuwe deelnemer ...</option>\n";
 		foreach (db_evenement("potdeelnemers", 0, $recordid) as $row) {
@@ -403,9 +405,11 @@ function muteerevenement($eventid) {
 	if ($eventid > 0 and $aantpotdln > 1) {
 		printf("<input type='submit' name='mailpotdeeln' value='Mailing potenti&euml;le deelnemers (%d)'>\n", $aantpotdln);
 	}
+	/*
 	if ($aantdln > 0 and $aantpotdln > 0) {
 		printf("<input type='submit' name='mailbeidedeeln' value='Mailing (potenti&euml;le) deelnemers (%d)'>\n", $aantdln + $aantpotdln);
 	}
+	*/
 	echo("</th></tr>\n");
 	echo("</table>\n");
 	echo("</form>\n");
