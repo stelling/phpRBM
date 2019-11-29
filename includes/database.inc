@@ -2816,10 +2816,10 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 		foreach(fnQuery($query)->fetchAll() as $row) {
 			$contrqry = sprintf("SELECT COUNT(*) FROM %sEvenement_Deelnemer WHERE EvenementID=%d;", TABLE_PREFIX, $row->RecordID);
 			if (db_scalar($contrqry) ==  0) {
-				$delqry = sprintf("DELETED FROM %sEvenement WHERE RecordID=%d;", TABLE_PREFIX, $row->RecordID);
+				$delqry = sprintf("DELETE FROM %sEvenement WHERE RecordID=%d;", TABLE_PREFIX, $row->RecordID);
 				if (fnQuery($delqry) > 0) {
 					$mess = sprintf("Evenement %d (%s) is definitief verwijderd.", $row->RecordID, $row->Omschrijving);
-					db_logboek("add", $mess, 7);
+					db_logboek("add", $mess, 7, 0, 1);
 				}
 			}
 		}
