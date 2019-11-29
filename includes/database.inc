@@ -2809,9 +2809,19 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 		return $result->fetchAll();
 		
 	} elseif ($actie == "opschonen") {
-		if (1 == 2) {  // Tijdelijk uitgeschakeld. Wil ik over nadenken.
-			$query = sprintf("DELETE FROM %sEvenement WHERE VerwijderdOp >= '2012-01-01' AND VerwijderdOp <= DATE_ADD(CURDATE(), INTERVAL -6 MONTH);", TABLE_PREFIX);
-			fnQuery($query, 2);
+		$query = sprintf("DELETE FROM %1\$sEvenement_Deelnemer WHERE LidID NOT IN (SELECT RecordID FROM %1\$sLid);", TABLE_PREFIX);
+		fnQuery($query, 2);
+		
+		$query = sprintf("SELECT * FROM %sEvenement WHERE VerwijderdOp > '2000-01-01';", TABLE_PREFIX);
+		foreach(fnQuery($query)->fetchAll() as $row) {
+			$contrqry = sprintf("SELECT COUNT(*) FROM %sEvenement_Deelnemer WHERE EvenementID=%d;", TABLE_PREFIX, $row->RecordID);
+			if (db_scalar($contrqry) ==  0) {
+				$delqry = sprintf("DELETED FROM %sEvenement WHERE RecordID=%d;", TABLE_PREFIX, $row->RecordID);
+				if (fnQuery($delqry) > 0) {
+					$mess = sprintf("Evenement %d (%s) is definitief verwijderd.", $row->RecordID, $row->Omschrijving);
+					db_logboek("add", $mess, 7);
+				}
+			}
 		}
 
 		$query = sprintf("DELETE FROM %1\$sEvenement_Deelnemer WHERE EvenementID NOT IN (SELECT RecordID FROM %1\$sEvenement);", TABLE_PREFIX);
@@ -3742,33 +3752,62 @@ function db_backup() {
 			fclose($buf);
 			
 			$mess = sprintf("Backup, type %d, is in '%s.sql' gemaakt. ", db_param("db_backup_type"), str_replace($db_folderbackup, "", $FileName));
+			db_logboek("add", $mess, 3, 0, 1);
 
-			chmod($FileName . ".sql", 0000);
-
-			if (db_param("db_backupsopschonen") > 0 and $handle = opendir($db_folderbackup)) {
-				$mess .= "Opschonen backupfolder: ";
+			if ($handle = opendir($db_folderbackup)) {
 				while (false !== ($file = readdir($handle))) {
-					sleep(5);
-					if ($file != "." and $file != ".." and startwith($file, $buname) == false) {
-						if (filectime($db_folderbackup . $file) < mktime(0, 0, 0, date("m"), date("d")-db_param("db_backupsopschonen"), date("Y")) or filesize($db_folderbackup . $file) < 500 ) {
-							unlink($db_folderbackup . $file);
-							$mess .= sprintf("Bestand %s is verwijderd. ", $file);
+					sleep(2);
+					if ($file != "." and $file != "..") {
+						$vbn = $db_folderbackup . $file;
+						if (db_param("db_backupsopschonen") > 1 and filectime($db_folderbackup . $file) < mktime(0, 0, 0, date("m"), date("d")-db_param("db_backupsopschonen"), date("Y")) or filesize($db_folderbackup . $file) < 500 ) {
+							unlink($vbn);
+							$mess = sprintf("Bacckup-bestand %s is verwijderd. ", $file);
+							db_logboek("add", $mess, 2, 0, 1);
+						} elseif (fileperms($vbn) != 32768) {
+							if (chmod($vbn, 0000) == true) {
+								$mess = sprintf("Op bestand %s is chmod 0000 uitgevoerd.", $file);
+							} else {
+								$mess = sprintf("chmod 0000 op bestand %s is niet gelukt.", $vbn);
+							}
+							db_logboek("add", $mess, 2, 0, 1);
 						}
 					}
 				}
+			} else {
+				$mess = "";
 			}
 			
 		} else {
-			$mess = "Het backup-script heeft gedraaid, maar de backup is niet gelukt.\n";
+			db_logboek("add", "Het backup-script heeft gedraaid, maar de backup is niet gelukt.\n", 3, 0, 1);
 		}
 	} else {
 		db_logboek("add", "Het backupscript heeft korter dan 1 uur geleden met success gedraaid. Het wordt niet nogmaals uitgevoerd.", 2, 0, 1);
 	}
-	
-	if (strlen($mess) > 2) {
-		db_logboek("add", $mess, 3, 0, 1);
-	}
 }
+
+function fnFreeBackupFiles() {
+	
+	$mess = "Start fnFreeBackupFiles";
+	db_logboek("add", $mess, 3, 0, 1);
+	
+	$db_folderbackup = db_param("db_folderbackup");
+	$mess = "";
+	if ($handle = opendir($db_folderbackup)) {
+		while (false !== ($file = readdir($handle))) {
+			sleep(2);
+			if ($file != "." and $file != "..") {
+				$vbn = $db_folderbackup . $file;
+				if (chmod($vbn, 0755) == true) {
+					$mess = sprintf("Op bestand %s is chmod 0755 uitgevoerd.", $file);
+				} else {
+					$mess = sprintf("chmod 0755 op bestand %s is niet gelukt.", $vbn);
+				}
+				db_logboek("add", $mess, 3, 0, 1);
+			}
+		}
+	}
+	
+}  # fnFreeBackupfiles
 
 function fnBackupTables($tables="*") {
 	global $dbc;
