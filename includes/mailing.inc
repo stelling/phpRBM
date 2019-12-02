@@ -45,6 +45,8 @@ function fnMailing() {
 	} elseif ($op != "preview") {
 		fnDispMenu(2);
 	}
+	
+//	echo("<h2>De mailingsmodule is momenteel in onderhoud. Graag niet gebruiken.</h2>");
 
 	if ($op == "edit" and isset($_GET['mid'])) {
 		$mailing->edit();
@@ -64,18 +66,23 @@ function fnMailing() {
 		}
 		
 	} elseif ($op == "opnieuw" and isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0) {
-		sendfromhist($_GET['MailingHistID'], 1);
+		sendfromhist($_GET['MailingHistID']);
 		echo("<script>window.history.back();</script>\n");
 		
 	} elseif ($op == "retry" and isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0) {
-		sendfromhist($_GET['MailingHistID'], 0);
-		echo("<script>window.history.back();</script>\n");	
+		sendfromhist($_GET['MailingHistID']);
+		echo("<script>window.history.back();</script>\n");
+		
+	} elseif ($op == "deletehist" and isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0) {
+		db_mailing_hist("delete", 0, $_GET['MailingHistID']);
+		echo("<script>window.history.back();</script>\n");
 		
 	} elseif ($currenttab2 == "Nieuw" and toegang($_GET['tp'], 1, 1)) {
 		$mailing->mid = 0;
 		$mailing->edit();
 		
 	} elseif ($currenttab2 == "Rekeningen" and toegang($_GET['tp'], 1, 1)) {
+		sentoutbox();
 		fnRekeningenMailen($op);
 		
 	} elseif ($currenttab2 == "Logboek" and toegang($_GET['tp'], 1, 1)) {
@@ -139,6 +146,7 @@ function fnMailing() {
 		$mailing->undelete();
 		$mailing->lijst($currenttab2);
 	} else {
+		sentoutbox();
 		$mailing->lijst($currenttab2);
 	}
 		
@@ -189,7 +197,7 @@ class Mailing {
 	private $aant_rcpt = 0;
 	private $verzendenmag = false;
 	private $emailsecretariaat = "";
-	
+		
 	public $xtrachar = "";
 	public $xtranum = 0;
 
@@ -437,14 +445,17 @@ class Mailing {
 			toonverstuurdemail($_GET['MailingHistID']);
 		} elseif ($filter == "Verzonden mails" or $filter == "Outbox") {
 			$ld = sprintf("<a href='index.php?tp=%s&amp;op=bekijkmail&amp;MailingHistID=%%d'>%%s</a>", urlencode($_GET['tp']));
-			if (db_mailing_hist("aantal24uur") >= db_param("maxmailsperdag")) {
+			if (db_param("maxmailsperdag") > 0 and db_mailing_hist("aantal24uur") >= db_param("maxmailsperdag")) {
+				$rs = "";
+			} elseif (db_param("maxmailsperuur") > 0 and db_mailing_hist("aantalperuur") >= db_param("maxmailsperuur")) {
 				$rs = "";
 			} elseif ($filter == "Outbox") {
-				$rs = sprintf("<a href='index.php?tp=%s&amp;op=retry&amp;MailingHistID=%%d'><img src='images/sendmail.png' alt='send mail' title='Nieuwe poging'></a>", urlencode($_GET['tp']));
+				$rs = sprintf("<a href='index.php?tp=%s&amp;op=retry&amp;MailingHistID=%%d'><img src='images/sendmail.png' alt='sent mail' title='Verstuur'></a>", urlencode($_GET['tp']));
+				$rs .= sprintf("&nbsp;<a href='index.php?tp=%s&amp;op=deletehist&amp;MailingHistID=%%d'><img src='images/del.png' alt='Verwijder e-mail' title='Verwijderen'></a>", urlencode($_GET['tp']));
 			} elseif (db_param("mailing_mailopnieuw") == 0 or (db_param("mailing_mailopnieuw") == 1 and $_SESSION['webmaster'] == 0)) {
 				$rs = "";
 			} else {
-				$rs = sprintf("<a href='index.php?tp=%s&amp;op=opnieuw&amp;MailingHistID=%%d'><img src='images/sendmail.png' alt='send mail' title='Opnieuw versturen'></a>", urlencode($_GET['tp']));
+				$rs = sprintf("<a href='index.php?tp=%s&amp;op=opnieuw&amp;MailingHistID=%%d'><img src='images/sendmail.png' alt='send e-mail' title='Opnieuw versturen'></a>", urlencode($_GET['tp']));
 			}
 			if ($filter == "Outbox") {
 				echo(fnDisplayTable(db_mailing_hist("outbox"), $ld, "", 0, $rs));
@@ -734,9 +745,6 @@ class Mailing {
 				}
 				$this->verzendenmag = false;
 				
-			} elseif ((db_mailing_hist("aantal24uur") + db_mailing_rcpt("aantal", $this->mid)) >= db_param("maxmailsperdag")) {
-				$this->meldingen .= sprintf("Het maximaal aantal van %d verzonden mails per dag wordt overschreden.", db_param("maxmailsperdag"));
-				$this->verzendenmag = false;
 			}
 			
 			foreach($this->MergeField as $fld) {
@@ -978,6 +986,7 @@ class Mailing {
 		$this->controle($lidid);
 		if ($this->verzendenmag == false) {
 			db_logboek("add", $this->meldingen, 4, 0, 1, $this->mid);
+			return false;
 		} else {
 			return $this->send_mailing(0, $lidid);
 		}
@@ -1003,19 +1012,6 @@ class Mailing {
 		$mail->FromName = $this->from_name;
 		$mail->IsHTML(true);
 		
-		if ($preview == 0) {
-			$ad = $this->dir_attachm . "/" . $this->mid;
-			if (is_dir($ad)) {
-				$d = dir($ad);
-				while (false !== ($entry = $d->read())) {
-					if ($entry != "." and $entry != "..") {
-						$mail->AddAttachment($ad . "/" . $entry);
-					}
-				}
-				$d->close();
-			}
-		}
-		
 		if ($lidid == 0) {
 			$rcpts = db_mailing("rcpt", $this->mid);
 		} else {
@@ -1029,16 +1025,13 @@ class Mailing {
 			echo($mail->Body);
 		}
 		
+		$aant_rcpts = 0;
 		foreach($rcpts as $rcpt) {
 			if ($rcpt->Nummer > 0) {
 				$this->merge($rcpt->Nummer);
-				$mail->Body = $this->merged_message;
 				$mail->Subject = $this->merged_subject;
 				$e = $mail->ToevoegenLid($rcpt->Nummer);
 			} else {
-				$mail->Body = $this->message;
-				$mail->Subject = $this->subject;
-				$mail->AddAddress($rcpt->to_address);
 				$e = $rcpt->to_address;
 				$this->bevat_losse_email = true;
 			}
@@ -1057,51 +1050,26 @@ class Mailing {
 						$mail->AddCC($v);
 					}
 				}
-				if (db_param("maxmailsperdag") > 0 and db_mailing_hist("aantal24uur") >= db_param("maxmailsperdag")) {
-					db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, "", $this->merged_message, $mail, 0, $this->xtrachar, $this->xtranum);
-					$this->nok_send .= sprintf("<li>%s {%s}</li>\n", $rcpt->Naam_lid, $e);
-					$mess = sprintf("Het versturen van mailing %d (%s) aan %s is niet gelukt. Error: het maximum aantal van %d verstuurde mails per dag is bereikt.", $this->mid, $this->subject, $to_name, db_param("maxmailsperdag"));
-					db_logboek("add", $mess, 4, 0, 0, $this->mid);
-					$this->aant_nok++;
-					
-				} elseif ($mail->Send()) {
-					db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, "", $this->merged_message, $mail, 1, $this->xtrachar, $this->xtranum);
-					if (isset($rcpt->Naam_lid)) {
-						$this->ok_send .= sprintf("<li>%s {%s}</li>\n", $rcpt->Naam_lid, $e);
-					} else {
-						$this->ok_send .= sprintf("<li>%s</li>\n", $e);
-					}
-					$this->aant_ok++;
-				} else {
-					db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, "", $this->merged_message, $mail, 0, $this->xtrachar, $this->xtranum);
-					$this->nok_send .= sprintf("<li>%s {%s}</li>\n", $rcpt->Naam_lid, $e);
-					$mess = sprintf("Het versturen van mailing %d (%s) aan %s is niet gelukt. Error: %s", $this->mid, $this->subject, $to_name, $mail->ErrorInfo);
-					db_logboek("add", $mess, 4, 0, 0, $this->mid);
-					$this->aant_nok++;
-				}
+				db_add_mailing_hist($rcpt->Nummer, $this->mid, $to_name, $mail->ListAddresses(), $mail->ListAddresses("cc"), $this->merged_message, $this->xtrachar, $this->xtranum);
 				$mail->clearAllRecipients();
-			} else {
-				$this->nok_send .= sprintf("<li>%s {%s, %s&nbsp&nbsp;%s}</li>\n", $rcpt->Naam_lid, $rcpt->Adres, $rcpt->Postcode, $rcpt->Woonplaats);
-				$this->aant_nok++;
+				$aant_rcpts++;
 			}
 		}
-		$summary = "";
 		
 		if ($preview == 0) {
-			if ($this->aant_ok > 1) {
-				$mess = sprintf("Mailing %d (%s) is door %s aan %d ontvangers verzonden.", $this->mid, $this->subject, db_naamlid($_SESSION['lidid'], "", "gast"), $this->aant_ok);
-			} else {
-				$mess = sprintf("Mailing %d (%s) is door %s verzonden.", $this->mid, $this->subject, db_naamlid($_SESSION['lidid'], "", "gast"));
-			}
+			$mess = sprintf("Mailing %d (%s) is door %s verzonden.", $this->mid, $this->subject, db_naamlid($_SESSION['lidid']));
 			if ($_SESSION['lidid'] > 0) {
 				db_logboek("add", $mess, 4, 0, 1, $this->mid);
 			} else {
 				db_logboek("add", $mess, 4, 0, 0, $this->mid);
 			}
 			db_mailing("updatesent", $this->mid);
+			if (strlen($this->speciaal) > 1) {
+				sentoutbox();
+			}
 		}
 				
-		return $this->aant_ok;
+		return $aant_rcpts;
 	} # send_mailing
 	
 	private function merge($lidid=0) {
@@ -1265,17 +1233,15 @@ function toonverstuurdemail($mhid) {
 	
 	echo("<div id='verstuurdemail'>\n");
 	$row = db_mailing_hist("record", 0, $mhid);
-	if ($_SESSION['webmaster'] == 1 and $row->send_by > 0) {
-		$d = " door " . db_naamlid($row->send_by);
-	} else {
-		$d = "";
+	
+	if ($row->Ingevoerd > "2000-01-01" and $row->Ingevoerd <= $row->send_on) {
+		printf("<div class='label'>Klaar gezet op:</div><div class='veld'>%s door %s</div>\n", strftime('%e %B %Y (%H:%M:%S)', strtotime($row->Ingevoerd)), db_naamlid($row->IngevoerdDoor));
 	}
-	if ($row->Successful == 1) {
-		printf("<div class='label'>Verzonden:</div><div class='veld'>%s%s</div>\n", strftime('%e %B %Y (%H:%M:%S)', strtotime($row->send_on)), $d);
-	} elseif ($row->send_on <= '2000-01-01') {
-		printf("<div class='label'>Verzonden:</div><div class='veld'>wacht in Outbox</div>\n");
+	
+	if ($row->send_on > "2000-01-01") {
+		printf("<div class='label'>Verzonden:</div><div class='veld'>%s</div>\n", strftime('%e %B %Y (%H:%M:%S)', strtotime($row->send_on)));
 	} else {
-		printf("<div class='label'>Verzonden:</div><div class='veld'>Geprobeerd op %s%s (zie logboek)</div>\n", strftime('%e %B %Y (%H:%M:%S)', strtotime($row->send_on)), $d);
+		printf("<div class='label'>Verzonden:</div><div class='veld'>wacht in Outbox</div>\n");
 	}
 	if (strlen($row->from_name) > 0) {
 		printf("<div class='label'>Van:</div><div class='veld'>%s (%s)</div>\n", htmlentities($row->from_name), $row->from_addr);
@@ -1426,19 +1392,11 @@ function fnRekeningenMailen($op) {
 				$mail->addstationary($dn, "", 1);
 				if (strlen($mail->ListAddresses) == 0) {
 					$mess = sprintf("Rekening %d kon niet worden verzonden, omdat er van %s geen geldig e-mailadres in de database bekend is.", $rk->Nummer, $dn);
-					
-				} elseif (db_param("maxmailsperdag") > 0 and db_mailing_hist("aantal24uur") > db_param("maxmailsperdag")) {
-					db_add_mailing_hist($rk->Lid, 0, $dn, "", $rt, $mail, 0);
-					$mess = sprintf("Het versturen van rekening %d naar %s is niet gelukt. Error: het maximum aantal te versturen mails per dag (%d) is bereikt.", $rk->Nummer, $dn, db_param("maxmailsperdag"));
-					
-				} elseif ($mail->Send()) {
-					db_add_mailing_hist($rk->Lid, 0, $dn, "", $rt, $mail, 1, "REK", $rk->Nummer);
-					
-					$mess = sprintf("Rekening %d is naar %s (%s) verstuurd.", $rk->Nummer, $dn, $mail->ListAddresses);
-					$aant_ok++;
+										
 				} else {
-					db_add_mailing_hist($rk->Lid, 0, $dn, "", $rt, $mail, 0);
-					$mess = sprintf("Het versturen van rekening %d naar %s is niet gelukt. Error: %s", $rk->Nummer, $dn, $mail->ErrorInfo);
+					db_add_mailing_hist($rk->Lid, 0, $dn, $mail->ListAddresses(), $mail->ListAddresses("cc"), $rt, "REK", $rk->Nummer);		
+					$mess = sprintf("Rekening %d is naar %s (%s) verstuurd.", $rk->Nummer, $dn, $mail->ListAddresses());
+					$aant_ok++;
 				}
 				db_logboek("add", $mess, 4, 0, 0, $rk->Nummer);
 				$mail->clearAllRecipients();
@@ -1505,23 +1463,19 @@ function fnMailingInstellingen() {
 	echo("<div id='instellingenmuteren'>\n");
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 
+		if (isset($_POST['mailing_direct_verzenden']) and $_POST['mailing_direct_verzenden'] == "1") {
+			db_param("mailing_direct_verzenden", "updval", 1);
+		} else {
+			db_param("mailing_direct_verzenden", "updval", 0);
+		}
+		
 		db_param("mailing_mailopnieuw", "updval", $_POST['mailing_mailopnieuw']);
-		
-		if (strlen($_POST['mailing_bewaartijd']) == 0) {
-			$_POST['mailing_bewaartijd'] = 0;
-		}
-		db_param("mailing_bewaartijd", "updval", $_POST['mailing_bewaartijd']);
-		
-		if (strlen($_POST['maxmailsperminuut']) == 0) {
-			$_POST['maxmailsperminuut'] = 0;
-		}
-		db_param("maxmailsperminuut", "updval", $_POST['maxmailsperminuut']);
-		
-		if (strlen($_POST['maxmailsperdag']) == 0) {
-			$_POST['maxmailsperdag'] = 0;
-		}
-		db_param("maxmailsperdag", "updval", $_POST['maxmailsperdag']);
+		db_param("mailing_bewaartijd", "updval", intval("0" . $_POST['mailing_bewaartijd']));
+		db_param("maxmailsperminuut", "updval", intval("0" . $_POST['maxmailsperminuut']));
+		db_param("maxmailsperuur", "updval", intval("0" . $_POST['maxmailsperuur']));
+		db_param("maxmailsperdag", "updval", intval("0" . $_POST['maxmailsperdag']));
 		db_param("mailing_extensies_toegestaan", "updval", $_POST['mailing_extensies_toegestaan']);
+		
 		db_param("mailing_type_editor", "updval", $_POST['mailing_type_editor']);
 		db_param("mailing_lidnr", "updval", $_POST['mailing_lidnr']);
 		db_param("mailing_validatielogin", "updval", $_POST['mailing_validatielogin']);
@@ -1552,11 +1506,13 @@ function fnMailingInstellingen() {
 	$options .= sprintf("<option value=2%s>Ja</option>\n", checked(db_param("mailing_mailopnieuw"), "option", 2));
 	
 	echo("<h2>Algemeen</h2>\n");
+	printf("<label>Moeten mails direct worden verstuurd?</label><p><input type='checkbox' name='mailing_direct_verzenden' value=1%s></p>\n", checked(db_param("mailing_direct_verzenden")));
 	printf("<label>Mag een verzonden e-mail opnieuw worden verstuurd?</label><p><select name='mailing_mailopnieuw'>%s</select></p>\n", $options);
 	printf("<label>Hoeveel maanden moeten mailings in de prullenbak bewaard blijven:</label><p><input class='inputnumber' type='number' name='mailing_bewaartijd' value=%d size=8> (0 = altijd bewaren)</p>\n", db_param("mailing_bewaartijd"));
 	printf("<label>Hoeveel mails mogen er per minuut verstuurd worden:</label><p><input class='inputnumber' type='number' name='maxmailsperminuut' value=%d size=8> (0 = onbeperkt)</p>\n", db_param("maxmailsperminuut"));
+	printf("<label>Hoeveel mails mogen er per uur verstuurd worden:</label><p><input class='inputnumber' type='number' name='maxmailsperuur' value=%d size=8> (0 = onbeperkt)</p>\n", db_param("maxmailsperuur"));
 	printf("<label>Hoeveel mails mogen er per 24 uur verstuurd worden:</label><p><input class='inputnumber' type='number' name='maxmailsperdag' value=%d size=8> (0 = onbeperkt)</p>\n", db_param("maxmailsperdag"));
-	printf("<label>Aantal verstuurde mails in de afgelopen 24 uur:</label><p>%d</p>\n", db_mailing_hist("aantal24uur"));
+	printf("<label>Aantal verstuurde mails in de afgelopen uur / 24 uur:</label><p>%d / %d</p>\n", db_mailing_hist("aantalperuur"), db_mailing_hist("aantal24uur"));
 	printf("<label>Welke extensies zijn als attachment toegestaan:</label><p><input class='inputtext' type='text' name='mailing_extensies_toegestaan' value='%s' size=30> (leeg = standaard lijst)</p>\n", db_param("mailing_extensies_toegestaan"));
 	
 	$options = "";
@@ -1613,7 +1569,9 @@ function fnMailingInstellingen() {
 	
 } # fnMailingInstellingen
 
-function sendfromhist($mhid, $opnieuw=0) {
+function sendfromhist($mhid) {
+	
+	$rv = false;
 	
 	$row = db_mailing_hist("record", 0, $mhid);
 	
@@ -1633,7 +1591,7 @@ function sendfromhist($mhid, $opnieuw=0) {
 	}
 	$mail->From = $row->from_addr;
 	$mail->FromName = $row->from_name;
-	if ($opnieuw == 1 and strpos($row->subject, "opnieuw verzonden") == false) {
+	if ($row->send_on > "2000-01-01" and strpos($row->subject, "opnieuw verzonden") == false) {
 		$mail->Subject = $row->subject . " (opnieuw verzonden)";
 	} else {
 		$mail->Subject = $row->subject;
@@ -1641,7 +1599,7 @@ function sendfromhist($mhid, $opnieuw=0) {
 	$mail->Body = $row->message;
 	$mail->addstationary($row->aan);
 	
-	$ad = substr($_SERVER["SCRIPT_FILENAME"], 0, strrpos($_SERVER["SCRIPT_FILENAME"], "/")) . "/attachments/" . $row->MailingID;
+	$ad = substr($_SERVER["SCRIPT_FILENAME"], 0, strrpos($_SERVER["SCRIPT_FILENAME"], "/")) . "/attachments/" . $mhid;
 	if (is_dir($ad)) {
 		$d = dir($ad);
 		while (false !== ($entry = $d->read())) {
@@ -1653,17 +1611,45 @@ function sendfromhist($mhid, $opnieuw=0) {
 	}
 	
 	if ($mail->Send()) {
-		db_mailing_hist("updatesent", 0, $mhid, 0, $mail);
-		$mess = sprintf("Mail '%s' is opnieuw verstuurd.", $mail->Subject);
-	} else {
-		$mess = sprintf("Het versturen van mail '%s' is niet gelukt.", $mail->Subject);
+		db_mailing_hist("updatesent", 0, $mhid);
+		$rv = true;
 	}
-	db_logboek("add", $mess, 4, 0, 1);
-	
+
 	$mail = null;
-	$row = null;
 	
+	return $rv;
 } # sendfromhist
+
+function sentoutbox() {
+	
+	$aantverzonden = 0;
+	if (db_param("mailing_direct_verzenden") == 1) {
+		set_time_limit(90);
+	
+		$stop = false;
+		foreach(db_mailing_hist("outbox")->fetchAll() as $row) {
+			if ($stop == false) {
+				if (sendfromhist($row->lnkRecordID) == true) {
+					$aantverzonden++;
+				} else {
+					$stop = true;
+				}
+			}
+		}
+	
+		$aob = db_mailing_hist("aantaloutbox");
+		if ($aantverzonden > 0 or $aob > 0) {
+			$mess = sprintf("Versturen vanuit de outbox is gereed, er zijn %d mails verzonden. En er staan nog %d mails te wachten in de outbox.", $aantverzonden, $aob);
+			db_logboek("add", $mess, 4);
+		}
+	} elseif (db_mailing_hist("aantaloutbox") > 0)  {
+		$mess = "Het versturen vanuit de outbox is uitgeschekeld.";
+		db_logboek("add", $mess, 4);
+	}
+	
+	return $aantverzonden;
+	
+}  # sentoutbox
 
 class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 
@@ -1682,9 +1668,9 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 			$this->Host = $smtphost;
 			if ($smtpport > 0) {
 				$this->Port = $smtpport;
-				if ($smtpport == 587) {
-					$this->SMTPSecure = "tls";
-				}
+			}
+			if ($smtpport == 587) {
+				$this->SMTPSecure = "tls";
 			}
 			$this->IsSMTP(true);
 			if (strlen($smtpuser) > 0) {
@@ -1808,16 +1794,19 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 	
 	public function Send() {
 				
-		if (db_param("maxmailsperminuut") > 0) {
-			while ((microtime(true)-db_mailing("lastsendtime")) < (60 / db_param("maxmailsperminuut"))) {
-				usleep((60000000 / db_param("maxmailsperminuut"))+50);
-			}
-			set_time_limit(60);
-		}
+		if (db_param("maxmailsperminuut") > 0 and db_mailing_hist("aantalperminuut") >= db_param("maxmailsperminuut")) {
+			$mess = sprintf("De limiet van aantal van %d te versturen mails per minuut is bereikt.", db_param("maxmailsperminuut"));
+			db_logboek("add", $mess, 4);
+			return false;
+			
+		} elseif (db_param("maxmailsperdag") > 0 and db_mailing_hist("aantal24uur") >= db_param("maxmailsperdag")) {
+			$mess = sprintf("De limiet van aantal van %d te versturen mails per 24 uur is bereikt.", db_param("maxmailsperdag"));
+			db_logboek("add", $mess, 4);
+			return false;
 		
-		if (db_param("maxmailsperdag") > 0 and db_mailing_hist("aantal24uur") >= db_param("maxmailsperdag")) {
-			$mess = sprintf("Het maximaal aantal van %d te versturen mail per dag is bereikt.", db_param("maxmailsperdag"));
-			db_logboek("add", $mess, 4, 0, 1);
+		} elseif (db_param("maxmailsperuur") > 0 and db_mailing_hist("aantalperuur") >= db_param("maxmailsperuur")) {
+			$mess = sprintf("De limiet van aantal van %d te versturen mails per uur is bereikt.", db_param("maxmailsperuur"));
+			db_logboek("add", $mess, 4);
 			return false;
 			
 		} else {
