@@ -78,8 +78,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (count(db_artikel("artikelbeschikbaar")) > 0) {
 			addtp("Zelfservice/Bestellingen");
 		}
-		$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap WHERE Lid=%d AND (Opgezegd IS NULL);", TABLE_PREFIX, $_SESSION['lidid']);
-		if (db_scalar($query) > 0) {
+		if (db_lidmaatschap("kanopzeggen", $_SESSION['lidid']) == true) {
 			addtp("Zelfservice/Opzegging");
 		}
 	}
@@ -357,7 +356,8 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		if (db_param("mailing_herstellenwachtwoord") == 0) {
 			$content = "<p>Herstellen wachtwoord [%NAAMWEBSITE%]: https://[%URLRESETWW%]</p>\n";
 			$mid = db_mailing("add", 0, 0, "", "Herstellen wachtwoord", 0, db_param("emailwebmaster"), "");
-			$query  = sprintf("UPDATE %sMailing SET message=\"%s\", template=1 WHERE MailingID=%d;", TABLE_PREFIX, $content, $mid);
+			db_mailing("update", $mid, "", "message", $content);
+			db_mailing("update", $mid, "", "template", 1);
 			fnQuery($query);
 			db_param("mailing_herstellenwachtwoord", "updval", $mid);
 		}
