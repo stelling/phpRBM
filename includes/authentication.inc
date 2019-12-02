@@ -371,15 +371,11 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 				$mess .= sprintf("Vraag aan de <a href='mailto:%s'>webmaster</a> om deze vrij te geven.", db_param("emailwebmaster"));
 			}
 			
-		} elseif (db_mailing_hist("aantal24uur") > db_param("maxmailsperdag")) {
-			$mess = "Er kan op dit moment geen mail worden gestuurd. Probeer het over een aantal uur nog een keer.";
-			
 		} elseif (db_param("mailing_herstellenwachtwoord") > 0) {
 			
 			$mailing = new Mailing(db_param("mailing_herstellenwachtwoord"));
-			$mailing->resultaatversturen = 0;
 			if ($mailing->send($row->Nummer) > 0) {
-				return sprintf("De e-mail met de link is naar %s verzonden.", $row->Naam);
+				return sprintf("De e-mail naar %s met de link om het wachtwoord te herstellen is in de outbox geplaatst.", $row->Naam);
 			} else {
 				return "Fout bij het versturen van de e-mail. Probeer het later nogmaals of neem contact op met de webmaster.";
 			}
@@ -503,18 +499,13 @@ function fnValidatieLogin($lidid, $key, $stap) {
 			fnQuery($query);
 			db_param("mailing_validatielogin", "updval", $mid);
 		}
-				
-		if (db_mailing_hist("aantal24uur") > db_param("maxmailsperdag")) {
-			$mess = "Er kan op dit moment geen mail worden gestuurd. Probeer het over een aantal uur nog een keer.";
-			
-		} else {
-			$mailing = new Mailing(db_param("mailing_validatielogin"));
-			$mailing->resultaatversturen = 0;
-			if ($mailing->send($row->Nummer) === false) {
-				$mess = "Fout bij het versturen van de e-mail met de validatielink. Probeer het later nogmaals of neem contact op met de webmaster.";
-			}
-			$mailing = null;
+	
+		$mailing = new Mailing(db_param("mailing_validatielogin"));
+		if ($mailing->send($row->Nummer) == 0) {
+			$mess = "Fout bij het versturen van de e-mail met de validatielink. Probeer het later nogmaals of neem contact op met de webmaster.";
 		}
+		$mailing = null;
+
 	} else {
 		$mess = db_logins("valideerlogin", "", "", $lidid);
 	}
@@ -523,20 +514,6 @@ function fnValidatieLogin($lidid, $key, $stap) {
 	}
 	
 	return $mess;
-}
-
-function fn22ConfirmLidnr($row) {
-
-	$mailing = new Mailing(db_param("mailing_lidnr"));
-	$mailing->xtrachar = "LNR";
-	$mailing->xtranum = $row->Lidnr;
-	$mailing->resultaatversturen = 0;
-	if ($mailing->send($row->Nummer) > 0) {
-		return sprintf("Het lidnummer is aan %s verzonden.", $row->Naam);
-	} else {
-		return "Fout bij het versturen van de e-mail. Probeer het later nogmaals of neem contact op met de webmaster.";
-	}
-	$mailing = null;
 }
 
 function fnLoginAanvragen($stap="") {
@@ -698,9 +675,8 @@ function fnOpvragenLidnr($stap) {
 				foreach ($rows as $row) {
 					$mailing = new Mailing(db_param("mailing_lidnr"));
 					$mailing->xtranum = $row->Lidnr;
-					$mailing->resultaatversturen = 0;
 					if ($mailing->send($row->Nummer) > 0) {
-						$mess .= sprintf("Het lidnummer is aan %s verzonden. ", $row->Naam);
+						$mess .= sprintf("Een e-mail met Het lidnummer van %s is in de outbox geplaatst. ", $row->Naam);
 					} else {
 						$mess .= sprintf("Fout bij het versturen van het lidnummer aan %s. Probeer het later nogmaals of neem contact met de webmaster op. ", $row->Naam);
 					}
