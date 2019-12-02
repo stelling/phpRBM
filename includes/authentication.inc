@@ -166,6 +166,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (db_mailing("aantalprullenbak") > 0) {
 			addtp("Mailing/Prullenbak");
 		}
+		if (count(db_mailing_hist("outbox")->fetchAll()) > 0) {
+			addtp("Mailing/Outbox");
+		}
 		addtp("Mailing/Verzonden mails");
 		addtp("Mailing/Instellingen");
 		if (db_logboek("aantal", "", 4) > 0) {
