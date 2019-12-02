@@ -4,7 +4,7 @@ if (!isset($_GET['tp'])) {
 	$_GET['tp'] = "";
 }
 
-require_once("./includes/standaard.inc");
+require('./includes/standaard.inc');
 
 if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 	$mess = db_logins("uitloggen", "", "", $_SESSION['lidid']);
@@ -168,6 +168,8 @@ function fnVoorblad() {
 	} else {
 		$content = "";
 	}
+	
+//	debug(dbLogboek("vorigelogin"));
 	if ($content !== false and strlen($content) > 0) {
 		if ($_SESSION['lidid'] == 0) {
 			$content = removetextblock($content, "<!-- Ingelogd -->", "<!-- /Ingelogd -->");
@@ -213,6 +215,12 @@ function fnVoorblad() {
 			$content = str_replace("[%VERVALLENDIPLOMAS%]", $strHV, $content);
 		}
 	
+		if (strpos($content, "[%VORIGELOGIN%]") !== false) {
+			$content = str_replace("[%VORIGELOGIN%]", strftime("%e %B %Y (%R)", strtotime(db_Logboek("vorigelogin"))), $content);
+		}
+		if (strpos($content, "[%GEWIJZIGDESTUKKEN%]") !== false) {
+			$content = str_replace("[%GEWIJZIGDESTUKKEN%]", fnGewijzigdeStukken(), $content);
+		}
 		
 		if (strpos($content, "[%VERJAARFOTO%]") !== false) {
 			$content = str_replace("[%VERJAARFOTO%]", overzichtverjaardagen(1), $content);
@@ -226,10 +234,9 @@ function fnVoorblad() {
 	} else {
 		echo("<TABLE_PREFIX id='welkomstekst'>Er is geen introductie beschikbaar.</TABLE_PREFIX>  <!-- Einde welkomstekst -->\n");
 	}
-}
+}  # fnVoorblad
 
 function fnKostenoverzicht() {
-	global $TABLE_PREFIX;
 
 	$val_jaarfilter = "";
 	$val_gbrfilter = "";
@@ -265,7 +272,7 @@ function fnKostenoverzicht() {
 	$ret = "<option value='*'>Alle</option>\n";
 	$query = sprintf("SELECT DISTINCT GBR.Kode, CONCAT(GBR.Kode, ' - ', GBR.OMSCHRIJV) AS Oms
 				 FROM %1\$sMutatie AS M INNER JOIN %1\$sGBR AS GBR ON M.GBR = GBR.Kode
-				 ORDER BY GBR.Kode;", $TABLE_PREFIX);
+				 ORDER BY GBR.Kode;", TABLE_PREFIX);
 	$result = fnQuery($query);
 	foreach ($result->fetchAll() as $row) {
 		if ($val_gbrfilter == $row->Kode) {
@@ -294,6 +301,25 @@ function fnKostenoverzicht() {
 	echo("</TABLE_PREFIX>  <!-- Einde filter -->\n");
 
 	echo(fnDisplayTable(db_mutatie("lijst", $val_jaarfilter, $val_gbrfilter, $val_kplfilter), "", "", 1));
-}
+}  # fnKostenoverzicht
+
+function fnGewijzigdeStukken() {
+
+	$rv = "";
+	if ($_SESSION['lidid'] > 0) {
+		$rows = db_Stukken("gewijzigdestukken");
+		if (is_array($rows) and count($rows) > 0) {
+			$rv = "<p class='gewijzigdestukken'>De volgende stukken zijn gewijzigd sinds je laatste login.\n
+				   <ul>\n";
+			foreach($rows as $row) {
+				$rv .= sprintf("<li>%s</li>\n", $row->Titel);
+			}
+			$rv .= "</ul>\n</p>\n";
+		}
+	}
+	
+	return $rv;
+
+}  # fnGewijzigdeStukken
 
 ?>
