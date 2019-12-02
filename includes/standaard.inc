@@ -545,6 +545,11 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 							$hv .= sprintf("<th colspan=%d>&nbsp;</th>", substr_count($link_lk, "<td")+1);
 							$ktot[] = "geen";
 						}
+					} elseif (startwith($key, "lek")) {
+						if (strlen($xtra_kolom) > 1) {
+							$hv .= sprintf("<th colspan=%d>&nbsp;</th>", substr_count($link_lk, "<td")+1);
+							$ktot[] = "geen";
+						}
 					} elseif (substr($key, 0, 2) != "nd") {
 						$hv .= sprintf("<th>%s</th>", str_replace("_", " ", $key));
 					}
@@ -627,6 +632,16 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 					} elseif (strlen($link_lk) > 1) {
 						$ret .= "<td></td>\n";
 					}
+					
+				} elseif (startwith($key, "lek")) {
+					if ($value > 0 and strlen($xtra_kolom) > 1) {
+						$href = str_replace("%d", $value, $xtra_kolom);
+						$href = str_replace("%s", "<img src='images/zoom.png' alt='Details'>", $href);
+						$ret .= "<td class='details'>" . $href . "</td>";
+					} elseif (strlen($xtra_kolom) > 1) {
+						$ret .= "<td></td>\n";
+					}
+					
 				} elseif (startwith($key, "eml")) {
 					if (strstr($editkols, $key) === false) {
 						$ret .= sprintf("<td>%s</td>", fnDispEmail($value, "", 1));
@@ -660,7 +675,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 		if (strlen($xtra_regel) > 0) {
 			$ret .= sprintf("<tr>%s</tr>\n", $xtra_regel);
 		}
-		if ($disptot > 0 and $totaantal > 0) {
+		if ($disptot > 0 and $totaantal > 1) {
 			$ret .= "<tr>";
 			for ($kn=0; $kn < count($ktot); $kn++) {
 				if ($kn+1 == $disptot and $totaantal > 1) {
