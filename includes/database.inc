@@ -486,6 +486,7 @@ function db_lid($actie, $filter="", $lidid=0, $xtraselect="", $kolomnm="", $waar
 					%s
 					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, L.GEBDATUM;", $selectnaam, $selectzoeknaam, TABLE_PREFIX, $filter);
 					
+					
 	} elseif ($actie == "wijzigingen") {
 		$query = sprintf("SELECT L.Roepnaam,
 					L.VOORLETTER,
@@ -530,10 +531,11 @@ function db_lid($actie, $filter="", $lidid=0, $xtraselect="", $kolomnm="", $waar
 					ORDER BY L.Achternaam, L.Tussenv;", $selectzoeknaam, TABLE_PREFIX);
 					
 	} elseif ($actie == "update") {
+		$in = db_kolom_numeriek("Lid", $kolomnm);
 		if ($waarde == "NULL") {
 			$query = sprintf("UPDATE %1\$sLid SET `%2\$s`=NULL WHERE Nummer=%3\$d AND `%2\$s`<>NULL;", TABLE_PREFIX, $kolomnm, $lidid);
-		} elseif (is_numeric($waarde)) {
-			$query = sprintf("UPDATE %1\$sLid SET `%2\$s`=%3\$s WHERE Nummer=%4\$d AND `%2\$s`<>%3\$s;", TABLE_PREFIX, $kolomnm, $waarde, $lidid);
+		} elseif ($in) {
+			$query = sprintf("UPDATE %1\$sLid SET `%2\$s`=%3\$d WHERE Nummer=%4\$d AND `%2\$s`<>%3\$d;", TABLE_PREFIX, $kolomnm, $waarde, $lidid);
 		} else {
 			$query = sprintf("UPDATE %1\$sLid SET `%2\$s`='%3\$s' WHERE BINARY Nummer=%4\$d AND `%2\$s`<>'%3\$s';", TABLE_PREFIX, $kolomnm, $waarde, $lidid);
 		}
@@ -646,6 +648,22 @@ function db_lidmaatschap($actie, $lidid=0, $opgezegd="", $rid=0, $liddatum="", $
 								ORDER BY LIDDATUM;", TABLE_PREFIX, $lidid);
 		$result = fnQuery($query);
 		return $result->fetchAll();
+		
+	} elseif ($actie == "islid" and $lidid > 0) {
+		$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap AS LM WHERE %s AND Lid=%d;", TABLE_PREFIX, $wherelid, $lidid);
+		if (db_scalar($query) > 0) {
+			return true;
+		} else {
+			return false;
+		}
+		
+	} elseif ($actie == "kanopzeggen" and $lidid > 0) {
+		$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap AS LM WHERE (LM.Opgezegd IS NULL) AND Lid=%d;", TABLE_PREFIX, $lidid);
+		if (db_scalar($query) > 0) {
+			return true;
+		} else {
+			return false;
+		}
 		
 	} elseif ($actie == "update" and $rid > 0) {
 		$query = sprintf("SELECT * FROM %sLidmaatschap WHERE RecordID=%d AND Lid=%d;", TABLE_PREFIX, $rid, $lidid);
@@ -2017,7 +2035,8 @@ function db_mailing($actie, $mid=0, $filter="", $new_val="", $kolnaam="") {
 	} elseif ($actie === "update") {
 		
 		$mess = "";
-		if (is_numeric($new_val)) {
+		$in = db_kolom_numeriek("Mailing", $kolnaam);
+		if ($in) {
 			$clause = sprintf("`%s`=%d", $kolnaam, $new_val);
 			$where = sprintf("`%s`<>%d", $kolnaam, $new_val);
 		} else {
@@ -2031,7 +2050,7 @@ function db_mailing($actie, $mid=0, $filter="", $new_val="", $kolnaam="") {
 //		debug($query);
 		$result = fnQuery($query);
 		if ($result > 0) {
-			if (is_numeric($new_val)) {
+			if ($in) {
 				$mess = sprintf("Mailing %d: kolom '%s' is in %d gewijzigd. ", $mid, $kolnaam, $new_val);
 			} else {
 				if (strlen($new_val) > 125) {
@@ -2129,7 +2148,6 @@ function db_mailing_hist($actie, $lidid=0, $mhid=0, $mid=0) {
 						WHERE %s
 						ORDER BY RecordID DESC LIMIT 1000;", TABLE_PREFIX, $lw);
 		}
-
 		if ($actie == "sqllijst") {
 			return $query;
 		} else {
@@ -2157,10 +2175,17 @@ function db_mailing_hist($actie, $lidid=0, $mhid=0, $mid=0) {
 	} elseif ($actie == "aantal24uur") {
 		$query = sprintf("SELECT COUNT(*) FROM %sMailing_hist WHERE send_on > DATE_SUB(NOW(), INTERVAL 24 HOUR);", TABLE_PREFIX);
 		return db_scalar($query);
-				
+
 	} elseif ($actie == "updatesent") {
 		$query = sprintf("UPDATE %sMailing_hist SET send_on=SYSDATE(), send_by=%d WHERE RecordID=%d;", TABLE_PREFIX, $_SESSION['lidid'], $mhid);
 		fnQuery($query);
+		
+	} elseif ($actie == "delete") {
+		$query = sprintf("DELETE FROM %sMailing_hist WHERE RecordID=%d;", TABLE_PREFIX, $mhid);
+		if (fnQuery($query) > 0) {
+			$mess = sprintf("Record %d in Mailing_hist is verwijderd.", $mhid);
+			db_logboek("add", $mess, 4);
+		}
 		
 	} else {
 		$mess = sprintf("Actie '&s' is onbekend.", $actie);
@@ -4008,6 +4033,26 @@ function bestaatkolom($tabel, $kolom) {
 	
 } # bestaatkolom
 
+function db_typekolom($tabel, $kolom) {
+	global $db_name;
+	
+	if (!startwith($tabel, TABLE_PREFIX)) {
+		$tabel = TABLE_PREFIX . $tabel;
+	}
+	$query = sprintf("SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%s' AND COLUMN_NAME LIKE '%s';", $db_name, $tabel, $kolom);
+	return db_scalar($query);
+	
+} # db_typekolom
+
+function db_kolom_numeriek($tabel, $kolom) {
+
+	if (in_array(db_typekolom($tabel, $kolom), array("bigint", "int", "tinyint"))) {
+		return true;
+	} else {
+		return false;
+	}
+}  # db_kolom_numeriek
+
 function db_nieuwrecordID($tabel) {
 	/* Change log
 	ST20181221 RecordID's voor tabellen die uit Access komen moeten oneven zijn. Dit om het onderscheid te kunnen maken met RecordID's die uit de database zelf komen.
@@ -4035,7 +4080,6 @@ function db_nieuwrecordID($tabel) {
 	return $rid;
 	
 } # db_nieuwrecordID
-
 
 function db_createtables() {
 
