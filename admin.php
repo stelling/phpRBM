@@ -110,86 +110,7 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 }
 
 if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
-
-	$arrSort[] = "Login";
-	$arrSort[] = "Achternaam";
-	$arrSort[] = "Naam";
-	$arrSort[] = "Woonplaats";
-	$arrSort[] = "Ingevoerd";
-	$arrSort[] = "Laatste login";
-	
-	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		$naamfilter = $_POST['NaamFilter'];
-		$sorteren = $_POST['Sorteren'];
-		if (isset($_POST['sortdesc'])) {
-			$sortdesc = true;
-		} else {
-			$sortdesc = false;
-		}
-	} else {
-		$naamfilter = "";
-		$sorteren = $arrSort[1];
-		$sortdesc = false;
-	}
-	
-	echo("<div id='filter'>\n");
-	printf("<form name='filter' action='%s?%s' method='post'>", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
-	echo("<table>\n");
-	echo("<tr>\n");
-	printf("<td class='label'>Naam/login bevat</td><td><input type='text' name='NaamFilter' size=20 value='%s' onblur='form.submit();'></td>\n", $naamfilter);
-	echo("<td class='label'>Sorteren op</td><td>");
-	foreach($arrSort as $s) {
-		if ($s == $sorteren) {$c=" checked"; } else { $c=""; }
-		printf("<input type='radio'%2\$s name='Sorteren' value='%1\$s' onclick='this.form.submit();'>%1\$s\n", $s, $c);
-	}
-	if ($sortdesc) {$c = " checked";	} else {	$c = "";	}
-	printf("&nbsp;<input type='checkbox' value='1' name='sortdesc'%s onclick='this.form.submit();'> Desc</td>\n", $c);
-	echo("</tr>\n");
-	echo("</table>\n");
-	echo("</form>");
-	echo("</div>  <!-- Einde filter -->\n");
-	
-	if (strlen($naamfilter) > 0) {
-		$w = sprintf("(L.Achternaam LIKE '%%%1\$s%%' OR L.Roepnaam LIKE '%%%1\$s%%' OR Login.Login LIKE '%%%1\$s%%')", $naamfilter);
-	} else {
-		$w = "";
-	}
-	
-	if ($sorteren == $arrSort[0]) {
-		$ord = "Login.Login";
-	} elseif ($sorteren == $arrSort[2]) {
-		if ($sortdesc) {
-			$ord = "L.Roepnaam DESC, L.Tussenv DESC, L.Achternaam";
-		} else {
-			$ord = "L.Roepnaam, L.Tussenv";
-		}
-	} elseif ($sorteren == $arrSort[4]) {
-		$ord = "Login.Ingevoerd";
-	} elseif ($sorteren == $arrSort[5]) {
-		$ord = "Login.LastLogin";
-	} elseif (strlen($sorteren) > 0) {
-		$ord = "L." . $sorteren;
-	}
-	if ($sortdesc) {
-		$ord .= " DESC";
-	}
-	
-	$lnk = sprintf("<a href='%s?op=deletelogin&amp;lidid=%%d'><img src='images/del.png' title='Verwijder login'></a>", $_SERVER['PHP_SELF']);
-	if (db_param("login_maxinlogpogingen") > 0) {
-		$lnk_lk = sprintf("<a href='%s?op=unlocklogin&amp;lidid=%%d' title='Reset foutieve logins'><img src='images/unlocked_01.png'></a>", $_SERVER['PHP_SELF']);
-	} else {
-		$lnk_lk = "";
-	}
-
-	db_logins("uitloggen");
-	echo(fnDisplayTable(db_logins("lijst", "", "", 0, $w, "", $ord), $lnk, "", 5, $lnk_lk));
-	
-	// Nieuwe en gewijzigde logins in de tabel interface zetten en de tabel 'Lid' bijwerken.
-	$xf = "IFNULL(L.LoginWebsite, '') <> IFNULL(Login.Login, '')";
-	$rows = db_logins("lijst", "", "", 0, $xf);
-	foreach ($rows as $row) {
-		db_lid("update", "", $row->lnkNummer, "", "LoginWebsite", $row->Login);
-	}
+	fnBeheerLogins();
 	
 } elseif ($currenttab == "Autorisatie" and toegang($currenttab, 1, 1)) {
 	echo("<div id='lijst'>\n");
@@ -271,7 +192,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	if (db_param("logboek_bewaartijd") > 0) {
 		printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=logboekopschonen\"' value='Logboek opschonen'>&nbsp;Verwijder alle records uit het logboek, die ouder dan %d maanden zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $bewaartijdlogging);
 	}
-	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=loggingdebugopschonen\"' value='Eigen logging voor debugging opschonen'>&nbsp;Verwijder alle records uit het logboek, die onder jou account voor dedugging zijn toegevoegd.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=loggingdebugopschonen\"' value='Eigen logging voor debugging opschonen'>&nbsp;Verwijder alle records uit het logboek, die onder jou account voor debugging zijn toegevoegd.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=evenementenopschonen\"' value='Evenementen opschonen'>&nbsp;Opschonen verwijderde evenementen, die geen deelnemers meer hebben.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	if (db_param("mailing_bewaartijd") > 0 and db_mailing("aantalprullenbak") > 0) {
 		printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=mailingsopschonen\"' value='Mailings opschonen'>&nbsp;Mailings die langer dan %d maanden in de prullenbak zitten worden definitief verwijderd.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), db_param("mailing_bewaartijd"));
@@ -356,6 +277,97 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 
 HTMLfooter();
 
+function fnBeheerLogins() {
+	
+	$arrSort[] = "Login";
+	$arrSort[] = "Achternaam";
+	$arrSort[] = "Naam";
+	$arrSort[] = "Woonplaats";
+	$arrSort[] = "Ingevoerd";
+	$arrSort[] = "Laatste login";
+	
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		$naamfilter = $_POST['NaamFilter'];
+		$sorteren = $_POST['Sorteren'];
+		if (isset($_POST['sortdesc'])) {
+			$sortdesc = true;
+		} else {
+			$sortdesc = false;
+		}
+	} else {
+		$naamfilter = "";
+		$sorteren = $arrSort[1];
+		$sortdesc = false;
+	}
+
+	
+	if (strlen($naamfilter) > 0) {
+		$w = sprintf("(L.Achternaam LIKE '%%%1\$s%%' OR L.Roepnaam LIKE '%%%1\$s%%' OR Login.Login LIKE '%%%1\$s%%')", $naamfilter);
+	} else {
+		$w = "";
+	}
+	
+	if ($sorteren == $arrSort[0]) {
+		$ord = "Login.Login";
+	} elseif ($sorteren == $arrSort[2]) {
+		if ($sortdesc) {
+			$ord = "L.Roepnaam DESC, L.Tussenv DESC, L.Achternaam";
+		} else {
+			$ord = "L.Roepnaam, L.Tussenv";
+		}
+	} elseif ($sorteren == $arrSort[4]) {
+		$ord = "Login.Ingevoerd";
+	} elseif ($sorteren == $arrSort[5]) {
+		$ord = "Login.LastLogin";
+	} elseif (strlen($sorteren) > 0) {
+		$ord = "L." . $sorteren;
+	}
+	if ($sortdesc) {
+		$ord .= " DESC";
+	}
+	
+	db_logins("uitloggen");
+	$rows = db_logins("lijst", "", "", 0, $w, "", $ord);
+		
+	echo("<div id='filter'>\n");
+	printf("<form name='filter' action='%s?%s' method='post'>", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
+	echo("<table>\n");
+	echo("<tr>\n");
+	printf("<td class='label'>Naam/login bevat</td><td><input type='text' name='NaamFilter' size=20 value='%s' onblur='form.submit();'></td>\n", $naamfilter);
+	echo("<td class='label'>Sorteren op</td><td>");
+	foreach($arrSort as $s) {
+		if ($s == $sorteren) {$c=" checked"; } else { $c=""; }
+		printf("<input type='radio'%2\$s name='Sorteren' value='%1\$s' onclick='this.form.submit();'>%1\$s\n", $s, $c);
+	}
+	if ($sortdesc) {$c = " checked";	} else {	$c = "";	}
+	printf("&nbsp;<input type='checkbox' value='1' name='sortdesc'%s onclick='this.form.submit();'> Desc</td>\n", $c);
+	$al = count($rows);
+	if ($al > 1) {
+		printf("<td>%d logins</td>\n", $al);
+	}
+	echo("</tr>\n");
+	echo("</table>\n");
+	echo("</form>");
+	echo("</div>  <!-- Einde filter -->\n");
+	
+	
+	$lnk_ek = sprintf("<a href='%s?op=deletelogin&amp;lidid=%%d'><img src='images/del.png' title='Verwijder login'></a>", $_SERVER['PHP_SELF']);
+	if (db_param("login_maxinlogpogingen") > 0) {
+		$lnk_lk = sprintf("<a href='%s?op=unlocklogin&amp;lidid=%%d' title='Reset foutieve logins'><img src='images/unlocked_01.png'></a>", $_SERVER['PHP_SELF']);
+	} else {
+		$lnk_lk = "";
+	}
+	
+	echo(fnDisplayTable($rows, "", "", 0, $lnk_lk, "", "lijst", $lnk_ek));
+	
+	// Nieuwe en gewijzigde logins in de tabel interface zetten en de tabel 'Lid' bijwerken.
+	$xf = "IFNULL(L.LoginWebsite, '') <> IFNULL(Login.Login, '')";
+	$rows = db_logins("lijst", "", "", 0, $xf);
+	foreach ($rows as $row) {
+		db_lid("update", "", $row->lnkNummer, "", "LoginWebsite", $row->Login);
+	}
+}  #  fnBeheerLogins
+
 function fnInstellingen() {
 
 	// Omschrijving NT = Niet tonen in dit scherm
@@ -377,6 +389,7 @@ function fnInstellingen() {
 	$arrParam['mailing_bevestigingbestelling'] = "Het nummer van de mailing die bij een bestelling verstuurd moet worden. 0 = geen.";
 	$arrParam['mailing_bevestigingopzegging'] = "NT";
 	$arrParam['mailing_bewaartijd'] = "NT";
+	$arrParam['mailing_direct_verzenden'] = "NT";
 	$arrParam['mailing_bewakinginschrijving'] = "Het nummer van de mailing die als bevestiging van een inschrijving voor de bewaking verstuurd moet worden. 0 = geen.";
 	$arrParam['mailing_type_editor'] = "NT";
 	$arrParam['mailing_extensies_toegestaan'] = "NT";
@@ -394,6 +407,7 @@ function fnInstellingen() {
 	$arrParam['login_maxlengte'] = "De maximale lengte die een login mag zijn. Minimaal 7 en maximaal 20 invullen.";
 	$arrParam['wachtwoord_minlengte'] = "De minimale lengte van een wachtwoord. Minimaal 7 en maximaal 15 invullen.";
 	$arrParam['wachtwoord_maxlengte'] = "De maximale lengte van een wachtwoord. Minimaal 7 en maximaal 15 invullen.";
+	$arrParam['maxmailsperuur'] = "NT";
 	$arrParam['maxmailsperdag'] = "NT";
 	$arrParam['maxmailsperminuut'] = "NT";
 	$arrParam['naamwebsite'] = "Dit is de naam zoals deze in de titel en op elke pagina getoond wordt.";
