@@ -427,7 +427,9 @@ function db_naamlid($lidid, $uitv="", $riz="Onbekend") {
 		$uitv = "Naam";
 	}
 	
-	if ($uitv == "Naam") {
+	if ($lidid == 0) {
+		$query = "SELECT 'gast'";
+	} elseif ($uitv == "Naam") {
 		$query = sprintf("SELECT %s FROM %sLid AS L WHERE L.Nummer=%d;", $selectnaam, TABLE_PREFIX, $lidid);
 	} elseif ($uitv == "Roepnaam") {
 		$query = sprintf("SELECT IF(LENGTH(L.Roepnaam)=0, L.Voorletter, L.Roepnaam) FROM %sLid AS L WHERE L.Nummer=%d;", TABLE_PREFIX, $lidid);
@@ -436,7 +438,7 @@ function db_naamlid($lidid, $uitv="", $riz="Onbekend") {
 	}
 	$rv = db_scalar($query);
 	if (strlen($rv) == 0) {
-		$rv = $riz;
+		$rv = $riz . " " . $lidid;
 	}
 	return $rv;
 }
@@ -1765,7 +1767,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 					IF(LENGTH(L.Email)=0, L.EmailOuders, L.Email) AS `E-mail`, L.EmailVereniging AS ndEmailVereniging, L.Telefoon AS ndTelefoon, L.Mobiel AS ndMobiel,
 					Login.Ingevoerd AS dteIngevoerd, Login.LastLogin AS `dttLaatste login`,
 					IF(LENGTH(Login.Wachtwoord) > 5 AND LENGTH(IFNULL(Login.ActivatieKey, '')) = 0, IF(Login.Ingelogd=1, 'Ingelogd', 'Gevalideerd'), 'Niet gevalideerd') AS `Status`,
-					Login.Wachtwoord AS ndWachtwoord, IF(Login.FouteLogin > 0, Login.LidID, 0) AS llkNummer
+					Login.Wachtwoord AS ndWachtwoord, IF(Login.FouteLogin > 0, Login.LidID, 0) AS llkNummer, Login.LidID AS lekNummer
 					FROM %2\$sAdmin_login AS Login INNER JOIN %2\$sLid AS L ON Login.LidID = L.Nummer
 					WHERE LENGTH(Login.Login) > 5 %3\$s
 					ORDER BY %4\$sL.Achternaam, L.TUSSENV, L.Roepnaam, Login.LidID;", $selectnaam, TABLE_PREFIX, $xtrawhere, $xtraorder, $selectlidnr);
@@ -1863,23 +1865,18 @@ function db_naam_onderdeel($rid, $rin="Onbekend") {
 	return $rv;
 }  #  db_naam_onderdeel
 
-function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr="", $message="", $mail=null, $success=1, $xtrachar="", $xtranum=0) {
+function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr="", $cc_addr="", $message="", $xtrachar="", $xtranum=0) {
 	
-	if (is_null($mail)) {
-		$from_name = "";
-		$from_addr = "";
-		$subject = "";
-		$cc_addr = "";
-	} else {
-		$from_name = $mail->FromName;
-		$from_addr = $mail->From;
-		$subject = $mail->Subject;
-		$to_addr = $mail->ListAddresses("to");
-		$cc_addr = $mail->ListAddresses("cc");
-	}
+	$from_name = "";
+	$from_addr = "";
+	$subject = "";
+	$cc_addr = "";
 	
 	if (is_array($to_addr)) {
 		$to_addr = implode(",", $to_addr);
+	}
+	if (is_array($cc_addr)) {
+		$cc_addr = implode(",", $cc_addr);
 	}
 		
 	if (strlen($to_addr) > 100) {
@@ -1915,18 +1912,14 @@ function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr="", $message="", $
 	$subject = html_entity_decode(str_replace("\"", "'", $subject));
 	$message = html_entity_decode(str_replace("\"", "'", $message));
 	
-	if ($success == 1) {
-		$query = sprintf("INSERT INTO %sMailing_hist SET
-					LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", to_name=\"%s\", subject=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", send_by=%d, send_on=SYSDATE(), send_mt=%F, Successful=%d, Xtra_Char='%s', Xtra_Num=%d;", TABLE_PREFIX,
-					$lidid, $mid, $from_name, $from_addr, $to_name, $subject, $to_addr, $cc_addr, $message, $_SESSION['lidid'], microtime(true), $success, $xtrachar, $xtranum);
-	} else {
-		$query = sprintf("INSERT INTO %sMailing_hist SET
-					LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", to_name=\"%s\", subject=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", send_by=%d, Successful=%d, Xtra_Char='%s', Xtra_Num=%d;", TABLE_PREFIX,
-					$lidid, $mid, $from_name, $from_addr, $to_name, $subject, $to_addr, $cc_addr, $message, $_SESSION['lidid'], $success, $xtrachar, $xtranum);
-	}
-	fnQuery($query);
+	$query = sprintf("INSERT INTO %sMailing_hist SET
+					LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", to_name=\"%s\", subject=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", Xtra_Char='%s', Xtra_Num=%d, IngevoerdDoor=%d;",
+					TABLE_PREFIX, $lidid, $mid, $from_name, $from_addr, $to_name, $subject, $to_addr, $cc_addr, $message, $xtrachar, $xtranum, $_SESSION['lidid']);
+	$rv = fnQuery($query);
+	
+	return $rv;
 
-}  # dn_add_mailing_hist
+}  # db_add_mailing_hist
 
 function db_mailing($actie, $mid=0, $filter="", $new_val="", $kolnaam="") {
 	global $selectnaam, $selectzoeknaam, $fdtlang;
@@ -2000,18 +1993,14 @@ function db_mailing($actie, $mid=0, $filter="", $new_val="", $kolnaam="") {
 		return db_scalar($query);
 		
 	} elseif ($actie == "laatstehist" and $mid > 0) {
-		$query = sprintf("SELECT send_on, send_by FROM %sMailing_hist WHERE Successful=1 AND MailingID=%d ORDER BY send_mt DESC LIMIT 1;", TABLE_PREFIX, $mid);
+		$query = sprintf("SELECT send_on, send_by FROM %sMailing_hist WHERE send_on > '2000-01-01' AND MailingID=%d ORDER BY send_on DESC, RecordID DESC LIMIT 1;", TABLE_PREFIX, $mid);
 		$result = fnQuery($query);
 		return $result->fetch();
 		
 	} elseif ($actie == "laatstehist") {
-		$query = sprintf("SELECT send_on FROM %sMailing_hist WHERE Successful=1 ORDER BY send_on DESC LIMIT 1;", TABLE_PREFIX, $mid);
+		$query = sprintf("SELECT send_on FROM %sMailing_hist WHERE send_on > '2000-01-01' ORDER BY send_on DESC, RecordID DESC LIMIT 1;", TABLE_PREFIX, $mid);
 		$result = fnQuery($query);
 		return $result->fetchColumn();
-		
-	} elseif ($actie == "lastsendtime") {
-		$query = sprintf("SELECT MAX(send_mt) FROM %sMailing_hist;", TABLE_PREFIX, $mid);
-		return db_scalar($query);
 		
 	} elseif ($actie == "add") {
 		$subj = str_replace("\"", "'", $new_val);
@@ -2086,27 +2075,49 @@ function db_mailing($actie, $mid=0, $filter="", $new_val="", $kolnaam="") {
 	
 } # db_mailing
 
-function db_mailing_hist($actie, $lidid=0, $mhid=0, $mid=0, $mail=null) {
+function db_mailing_hist($actie, $lidid=0, $mhid=0, $mid=0) {
 	global $selectnaam;
 	
-	if ($actie == "outbox") {
-		$lw = "Successful=0 AND send_on < '1901-01-01'";
-	} else {
-		$lw = "Successful=1";
-	}
+	$lw = "send_on > '2000-01-01'";
 	if ($lidid > 0) {
 		$lw .= sprintf(" AND LidID=%d", $lidid);
 	} elseif ($_SESSION['webmaster'] == 0) {
 		$lw .= sprintf(" AND (LidID=%1\$d OR send_by=%1\$d)", $lidid);
 	}
 	
-	if ($actie == "lijst" or $actie == "outbox" or $actie == "sqllijst") {
+	if ($actie == "outbox") {
+		if (db_param("maxmailsperdag") > 0 and db_param("maxmailsperdag") < db_param("maxmailsperuur")) {
+			$lm = db_param("maxmailsperdag");
+		} elseif (db_param("maxmailsperuur") > 0) {
+			$lm = db_param("maxmailsperuur");
+		} elseif (db_param("maxmailsperdag") > 0) {
+			$lm = db_param("maxmailsperdag");
+		} else {
+			$lm = 400;
+		}
+		$xw = "";
+		if ($_SESSION['webmaster'] == 0) {
+			$xw = sprintf("AND MH.IngevoerdDoor=%d", $_SESSION['lidid']);
+		}
+		$query = sprintf("SELECT MH.RecordID AS lnkRecordID, MH.Ingevoerd AS `dttWacht vanaf`, MH.subject AS Onderwerp, IF(MH.LidID=0, MH.to_name, %1\$s) AS Aan,
+						MH.to_addr AS `E-mail`, MH.cc_addr AS `CC`, L.Woonplaats, MH.RecordID AS llkRecordID
+						FROM %2\$sMailing_hist AS MH LEFT OUTER JOIN %2\$sLid AS L ON MH.LidID = L.RecordID
+						WHERE MH.send_on < '2000-01-01' %3\$s
+						ORDER BY MH.RecordID LIMIT %4\$d;", $selectnaam, TABLE_PREFIX, $xw, $lm);
+		return fnQuery($query);
+		
+	} elseif ($actie == "aantaloutbox") {
+		$query = sprintf("SELECT COUNT(*) FROM %sMailing_hist AS MH WHERE MH.send_on < '2000-01-01';", TABLE_PREFIX);
+		return db_scalar($query);
+
+	} elseif ($actie == "lijst" or $actie == "sqllijst") {
 		if ($mid > 0) {
-			$query = sprintf("SELECT MH.RecordID AS lnkRecordID, M.subject AS ndOnderwerp, IF(MH.Successful=1, MH.send_on, 'Niet verzonden') AS dtsVerzonden, IF(MH.LidID=0, MH.to_name, %1\$s) AS Aan,
+			$query = sprintf("SELECT MH.RecordID AS lnkRecordID, M.subject AS ndOnderwerp, IF(MH.send_on > '2000-01-01', MH.send_on, 'Niet verzonden') AS dtsVerzonden, IF(MH.LidID=0, MH.to_name, %1\$s) AS Aan,
 						to_addr AS `E-mail`, MH.cc_addr AS `CC`, L.Woonplaats, MH.RecordID AS llkRecordID
 						FROM (%2\$sMailing_hist AS MH LEFT OUTER JOIN %2\$sLid AS L ON MH.LidID = L.Nummer) INNER JOIN %2\$sMailing AS M ON MH.MailingID = M.MailingID
 						WHERE MH.MailingID=%3\$d
 						ORDER BY MH.RecordID DESC;", $selectnaam, TABLE_PREFIX, $mid);
+						
 		} else {
 			$query = sprintf("SELECT RecordID AS lnkRecordID,
 						send_on AS dttVerzonden,
@@ -2126,8 +2137,8 @@ function db_mailing_hist($actie, $lidid=0, $mhid=0, $mid=0, $mail=null) {
 		}
 		
 	} elseif ($actie === "record") {
-		$query = sprintf("SELECT send_on, from_addr, from_name, to_name, to_addr, cc_addr, subject, message, Successful, send_by, LidID,CONCAT(to_name, ' (', to_addr, ')') AS aan
-					FROM %sMailing_hist WHERE RecordID=%d LIMIT 1;", TABLE_PREFIX, $mhid);
+		$query = sprintf("SELECT MH.Ingevoerd, MH.send_on, MH.from_addr, MH.from_name, MH.to_name, MH.to_addr, MH.cc_addr, MH.subject, MH.message, MH.send_by, LidID,CONCAT(MH.to_name, ' (', MH.to_addr, ')') AS aan
+					FROM %sMailing_hist AS MH WHERE MH.RecordID=%d LIMIT 1;", TABLE_PREFIX, $mhid);
 		$result = fnQuery($query);
 		return $result->fetch();
 	
@@ -2135,20 +2146,21 @@ function db_mailing_hist($actie, $lidid=0, $mhid=0, $mid=0, $mail=null) {
 		$query = sprintf("SELECT IFNULL(MAX(LidID), 0) FROM %sMailing_hist WHERE RecordID=%d;", TABLE_PREFIX, $mhid);
 		return db_scalar($query);
 		
+	} elseif ($actie == "aantalperminuut") {
+		$query = sprintf("SELECT COUNT(*) FROM %sMailing_hist WHERE send_on > DATE_SUB(NOW(), INTERVAL 1 MINUTE);", TABLE_PREFIX);
+		return db_scalar($query);
+		
+	} elseif ($actie == "aantalperuur") {
+		$query = sprintf("SELECT COUNT(*) FROM %sMailing_hist WHERE send_on > DATE_SUB(NOW(), INTERVAL 1 HOUR);", TABLE_PREFIX);
+		return db_scalar($query);
+		
 	} elseif ($actie == "aantal24uur") {
-		$query = sprintf("SELECT COUNT(*) FROM %sMailing_hist WHERE Successful=1 AND send_on > DATE_SUB(NOW(), INTERVAL 24 HOUR);", TABLE_PREFIX);
+		$query = sprintf("SELECT COUNT(*) FROM %sMailing_hist WHERE send_on > DATE_SUB(NOW(), INTERVAL 24 HOUR);", TABLE_PREFIX);
 		return db_scalar($query);
 				
 	} elseif ($actie == "updatesent") {
-		$query = sprintf("SELECT * FROM %sMailing_hist WHERE RecordID=%d;", TABLE_PREFIX, $mhid);
-		$result = fnQuery($query);
-		$row = $result->fetch();
-		if ($row->send_on > '2000-01-01') {
-			db_add_mailing_hist($row->LidID, $row->MailingID, $row->to_name, $row->to_addr, $row->message, $mail, 1, $row->Xtra_Char, $row->Xtra_Num);
-		} else {
-			$query = sprintf("UPDATE %sMailing_hist SET send_by=%d, send_on=SYSDATE(), send_mt=%F, Successful=1 WHERE RecordID=%d;", TABLE_PREFIX, $_SESSION['lidid'], microtime(true), $mhid);
-			fnQuery($query);
-		}
+		$query = sprintf("UPDATE %sMailing_hist SET send_on=SYSDATE(), send_by=%d WHERE RecordID=%d;", TABLE_PREFIX, $_SESSION['lidid'], $mhid);
+		fnQuery($query);
 		
 	} else {
 		$mess = sprintf("Actie '&s' is onbekend.", $actie);
@@ -2772,10 +2784,10 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 		} elseif (strlen($stat) > 1) {
 			$xtra_where = sprintf("AND ED.Status IN (%s)", $stat);
 		}
-		$query = sprintf("SELECT ED.RecordID, %1\$s AS NaamDeelnemer, ED.Status, ED.Opmerking, ED.Functie, ED.LidID, L.Geslacht, ED.Ingevoerd
-								FROM %2\$sEvenement_Deelnemer AS ED INNER JOIN %2\$sLid AS L ON ED.LidID = L.Nummer
-								WHERE ED.EvenementID=%3\$d %4\$s
-								ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectnaam, TABLE_PREFIX, $eventid, $xtra_where);
+		$query = sprintf("SELECT ED.RecordID, %1\$s AS NaamDeelnemer, ED.Status, ED.Opmerking, ED.Functie, ED.LidID, L.Geslacht, ED.Ingevoerd, ED.LidID, ED.IngevoerdDoor
+							FROM (%2\$sEvenement_Deelnemer AS ED INNER JOIN %2\$sLid AS L ON ED.LidID = L.RecordID) INNER JOIN %2\$sEvenement AS E ON E.RecordID=ED.EvenementID
+							WHERE ED.EvenementID=%3\$d %4\$s
+							ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectnaam, TABLE_PREFIX, $eventid, $xtra_where);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 				
@@ -3200,7 +3212,8 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrIntegers['mailing_type_editor'] = 1;
 	$arrIntegers['mailing_validatielogin'] = 0;
 	$arrIntegers['max_grootte_bijlage'] = 2048;
-	$arrIntegers['maxmailsperdag'] = 495;	
+	$arrIntegers['maxmailsperuur'] = 150;
+	$arrIntegers['maxmailsperdag'] = 495;
 	$arrIntegers['maxmailsperminuut'] = 360;
 	$arrIntegers['login_bewaartijd'] = 6;
 	$arrIntegers['login_bewaartijdnietgebruikt'] = 21;
@@ -3221,8 +3234,8 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrBooleans['meisjesnaamtonen'] = 1;
 	$arrBooleans['WoonadresAnderenTonen'] = 1;
 	$arrBooleans['login_lidnrnodigbijaanvraag'] = 1;
+	$arrBooleans['mailing_direct_verzenden'] = 1;
 	$arrBooleans['mailing_rekening_nulregelsweglaten'] = 0;
-	$arrBooleans['mailing_resultaatversturen'] = 0;
 	$arrBooleans['toneninschrijvingenbewakingen'] = 1;
 	$arrBooleans['tonentoekomstigebewakingen'] = 0;
 	$arrBooleans['zs_incl_beroep'] = 1;
@@ -3584,7 +3597,7 @@ function db_onderhoud($type=9) {
 	$col = "IngevoerdDoor";
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%s' AND COLUMN_NAME='%s';", $db_name, $tab, $col);
 	if (db_scalar($query) == 0) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '0' AFTER `Ingevoerd`;", $tab, $col);
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '0'`;", $tab, $col);
 		fnQuery($query, 2);
 	}
 	
@@ -3593,7 +3606,25 @@ function db_onderhoud($type=9) {
 	$col = "IngevoerdDoor";
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%s' AND COLUMN_NAME='%s';", $db_name, $tab, $col);
 	if (db_scalar($query) == 0) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '0' AFTER `Ingevoerd`;", $tab, $col);
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '0';", $tab, $col);
+		fnQuery($query, 2);
+	}
+	
+	// Toevoegen veld 'Ingevoerd' aan de tabel 'Mailing_hist'. Deze code kan na 1/12/2020 worden verwijderd.
+	$tab = TABLE_PREFIX . "Mailing_hist";
+	$col = "Ingevoerd";
+	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%s' AND COLUMN_NAME='%s';", $db_name, $tab, $col);
+	if (db_scalar($query) == 0) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", $tab, $col);
+		fnQuery($query, 2);
+	}
+		
+	// Toevoegen veld 'Ingevoerd' aan de tabel 'Mailing_hist'. Deze code kan na 1/12/2020 worden verwijderd.
+	$tab = TABLE_PREFIX . "Mailing_hist";
+	$col = "IngevoerdDoor";
+	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%s' AND COLUMN_NAME='%s';", $db_name, $tab, $col);
+	if (db_scalar($query) == 0) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL;", $tab, $col);
 		fnQuery($query, 2);
 	}
 	
