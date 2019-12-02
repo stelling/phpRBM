@@ -385,7 +385,7 @@ function muteerevenement($eventid) {
 			printf("<td><select name='Status_%d' onChange='this.form.submit();'>%s</select></td>\n", $rd->RecordID, $optstat);
 			printf("<td><input type='text' name='Opmerking_%d' value='%s' placeholder='Opmerking' size=80 maxlength=75>\n", $rd->RecordID, $rd->Opmerking);
 			printf("<br><input type='text' name='Functie_%d' value='%s' placeholder='Functie' size=40 maxlength=30></td>\n", $rd->RecordID, $rd->Functie);
-			printf("<td>%s</td>\n", strftime("%e %b %Y (%R)", strtotime($rd->Ingevoerd)));
+			printf("<td>%s<br>%s</td>\n", strftime("%e %b %Y (%R)", strtotime($rd->Ingevoerd)), db_naamlid($rd->IngevoerdDoor));
 			printf("<td><a href='%s?tp=%s&amp;op=delete&amp;eid=%d&amp;lidid=%d&amp;edid=%d'><img src='images/del.png' alt='Delete'></a></td>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $eventid, $rd->LidID, $rd->RecordID);
 			echo("</tr>\n");
 		}
@@ -466,7 +466,6 @@ function muteertypeevenement() {
 	echo("</tr>\n");
 	echo("</table>\n");
 	echo("</form>\n");
-	
 }
 
 function overzichtevenementen() {
@@ -515,27 +514,27 @@ function overzichtevenementen() {
 		$heren = "";
 		$deelnemers = "";
 		foreach (db_evenement("deelnemers", 0, $row->lnkNummer, "", "B") as $deeln) {
-			if ($row->Soort != "W") {
+			if ($row->ndSoort != "W") {
 				$vn = "deelnemers";
 			} elseif ($deeln->Geslacht == "V") {
 				$vn = "dames";
 			} else {
 				$vn = "heren";
 			}
-			if (strlen($$vn) > 0 and $row->Soort == "W") {
+			if (strlen($$vn) > 0 and $row->ndSoort == "W") {
 				$$vn .= "<br>\n";
 			}
 			$nd = htmlentities($deeln->NaamDeelnemer);
 			if (strlen($deeln->Functie) > 0) {
 				$nd .= sprintf(" (%s)", htmlentities($deeln->Functie));
 			}
-			if ($row->Soort == "W") {
+			if ($row->ndSoort == "W") {
 				$$vn .= $nd;
 			} else {
 				$$vn .= sprintf("<li>%s</li>\n", $nd);
 			}
 		}
-		if ($row->Soort == "W") {
+		if ($row->ndSoort == "W") {
 			printf("<tr><td>%s %s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n", strftime("%A %e %B %Y", strtotime($row->dteDatum)), $td, $oms, $dames, $heren);
 		} else {
 			printf("<tr><td class='datumtijdevenement'>%s%s</td><td class='omschrijvingevenement'>%s</td><td colspan=2><ul class='listdeelnemers'>%s</ul></td></tr>\n", str_replace(" ", "&nbsp;", strftime("%A %e %B %Y", strtotime($row->dteDatum))), $td, $oms, $deelnemers);
