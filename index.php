@@ -123,12 +123,12 @@ if (toegang($_GET['tp'], 1) == false) {
 		fnVoorblad();
 		if ($_SESSION['lidid'] == 0) {
 			fnLoginAanvragen();
-			echo("<TABLE_PREFIX id='kolomrechts'>\n");
+			echo("<div id='kolomrechts'>\n");
 			if (db_param("mailing_lidnr") > 0) {
 				fnOpvragenLidnr("form");
 			}
 			fnHerstellenWachtwoord("form");
-			echo("</TABLE_PREFIX>  <!-- Einde kolomrechts -->\n");
+			echo("</div>  <!-- Einde kolomrechts -->\n");
 		}
 	} else {
 		fnWieiswie($currenttab2, db_param("kaderoverzichtmetfoto"));
@@ -141,6 +141,7 @@ if (toegang($_GET['tp'], 1) == false) {
 	fnBewaking();
 } elseif ($currenttab == "Kostenoverzicht") {
 	fnKostenoverzicht();
+
 } elseif ($currenttab == "Mailing") {
 	fnMailing();
 } elseif ($currenttab == "Evenementen") {
@@ -229,10 +230,10 @@ function fnVoorblad() {
 			$content = str_replace("[%VERJAARDAGEN%]", overzichtverjaardagen(0), $content);
 		}
 
-		printf("<TABLE_PREFIX id='welkomstekst'>\n%s</TABLE_PREFIX>  <!-- Einde welkomstekst -->\n", $content);
+		printf("<div id='welkomstekst'>\n%s</div>  <!-- Einde welkomstekst -->\n", $content);
 		
 	} else {
-		echo("<TABLE_PREFIX id='welkomstekst'>Er is geen introductie beschikbaar.</TABLE_PREFIX>  <!-- Einde welkomstekst -->\n");
+		echo("<div id='welkomstekst'>Er is geen introductie beschikbaar.</div>  <!-- Einde welkomstekst -->\n");
 	}
 }  # fnVoorblad
 
@@ -253,7 +254,7 @@ function fnKostenoverzicht() {
 		}
 	}
 	
-	echo("<TABLE_PREFIX id='filter'>\n");
+	echo("<div id='filter'>\n");
 	printf("<form name='Filter' action='%s?%s' method='post'>", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
 	echo("<table>\n");
 	echo("<tr>\n");
@@ -298,7 +299,7 @@ function fnKostenoverzicht() {
 	echo("</tr>\n");
 	echo("</table>\n");
 	echo("</form>\n");
-	echo("</TABLE_PREFIX>  <!-- Einde filter -->\n");
+	echo("</div>  <!-- Einde filter -->\n");
 
 	echo(fnDisplayTable(db_mutatie("lijst", $val_jaarfilter, $val_gbrfilter, $val_kplfilter), "", "", 1));
 }  # fnKostenoverzicht
