@@ -15,6 +15,8 @@ function fnMailing() {
 		$op = "historie";
 	} elseif (isset($_POST['action']) and $_POST['action'] == "Bewaren & sluiten") {
 		$op = "save_close";
+	} elseif (isset($_POST['action']) and $_POST['action'] == "Verwijderen") {
+		$op = "verwijderen";
 	} elseif (isset($_POST['LedenToevoegen']) and $_POST['LedenToevoegen'] == "Leden toevoegen") {
 		$op = "add_selectie";
 	} elseif (isset($_POST['LedenVerwijderen']) and $_POST['LedenVerwijderen'] == "Leden verwijderen") {
@@ -139,7 +141,7 @@ function fnMailing() {
 		$mailing->upload();
 		$mailing->send();
 		$mailing->lijst($currenttab2);
-	} elseif ($op == "delete") {
+	} elseif ($op == "verwijderen") {
 		$mailing->delete();
 		$mailing->lijst($currenttab2);
 	} elseif ($op == "undelete") {
@@ -443,6 +445,7 @@ class Mailing {
 		if (isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0 and $_GET['op'] == "bekijkmail") {
 			$xtra = "<p class='mededeling'><input type='button' value='Terug' onclick='history.go(-1);'></p>\n";
 			toonverstuurdemail($_GET['MailingHistID']);
+			
 		} elseif ($filter == "Verzonden mails" or $filter == "Outbox") {
 			$ld = sprintf("<a href='index.php?tp=%s&amp;op=bekijkmail&amp;MailingHistID=%%d'>%%s</a>", urlencode($_GET['tp']));
 			if (db_param("maxmailsperdag") > 0 and db_mailing_hist("aantal24uur") >= db_param("maxmailsperdag")) {
@@ -455,13 +458,14 @@ class Mailing {
 			} elseif (db_param("mailing_mailopnieuw") == 0 or (db_param("mailing_mailopnieuw") == 1 and $_SESSION['webmaster'] == 0)) {
 				$rs = "";
 			} else {
-				$rs = sprintf("<a href='index.php?tp=%s&amp;op=opnieuw&amp;MailingHistID=%%d'><img src='images/sendmail.png' alt='send e-mail' title='Opnieuw versturen'></a>", urlencode($_GET['tp']));
+				$rs = sprintf("<a href='index.php?tp=%s&amp;op=opnieuw&amp;MailingHistID=%%d'><img src='images/sendmail.png' alt='Sent e-mail' title='Opnieuw versturen'></a>", urlencode($_GET['tp']));
 			}
 			if ($filter == "Outbox") {
 				echo(fnDisplayTable(db_mailing_hist("outbox"), $ld, "", 0, $rs));
 			} else {
 				echo(fnDisplayTable(db_mailing_hist("lijst"), $ld, "", 0, $rs));
 			}
+			
 		} else {
 			$lnk = sprintf("<a href='%s?tp=%s&amp;op=edit&amp;mid=%%d' title='Bewerk mailing'><img src='images/edit.png' alt='Edit boek'></a>", $_SERVER['PHP_SELF'], $_GET['tp']);
 			if ($filter == "Concepten") {
@@ -706,7 +710,7 @@ class Mailing {
 		if ($this->mid > 0 and $this->deleted_on > "1901-01-01" and $_SESSION['webmaster'] == 1) {
 			printf("<button type='submit' name='action' value='undelete' title='Verwijderen ongedaan maken'><img src='images/undelete.png' alt='Undelete'></button>\n");
 		} elseif ($this->mid > 0 and $this->deleted_on < "1901-01-01" and ($_SESSION['webmaster'] == 1 or $_SESSION['lidid'] == $this->AddedBy)) {
-			printf("<button type='submit' name='action' value='delete' title='Verwijderen'><img src='images/delete.png' alt='Delete'></button>\n");
+			printf("<input class='knop' type='submit' name='action' value='Verwijderen'>\n");
 		}
 		echo("</div>  <!-- Einde opdrachtknoppen -->\n");
 
@@ -1031,7 +1035,8 @@ class Mailing {
 				$this->merge($rcpt->Nummer);
 				$mail->Subject = $this->merged_subject;
 				$e = $mail->ToevoegenLid($rcpt->Nummer);
-			} else {
+			} elseif (strlen($rcpt->to_address) > 5) {
+				$mail->AddAddress($rcpt->to_address);
 				$e = $rcpt->to_address;
 				$this->bevat_losse_email = true;
 			}
