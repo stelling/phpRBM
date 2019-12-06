@@ -196,8 +196,13 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	
 	addtp("Evenementen");
 	if ($currenttab == "Evenementen") {
-		addtp("Evenementen/Overzicht");
-		addtp("Evenementen/Beheer");
+		if (db_evenement("aantal") > 0) {
+			addtp("Evenementen/Overzicht");
+			addtp("Evenementen/Beheer");
+		}
+		if (db_Evenement_Type("aantal") > 0) {
+			addtp("Evenementen/Nieuw");
+		}
 		addtp("Evenementen/Types muteren");
 		addtp("Evenementen/Logboek");
 	}

@@ -22,7 +22,10 @@ function fnEvenementen() {
 	} else {
 		$op = "overzicht";
 	}
-	if (isset($_GET['eid']) and strlen($_GET['eid']) > 0) {
+	
+	if (isset($_POST['eventid']) and strlen($_POST['eventid']) > 0) {
+		$eid = $_POST['eventid'];
+	} elseif (isset($_GET['eid']) and strlen($_GET['eid']) > 0) {
 		$eid = $_GET['eid'];
 	} else {
 		$eid = 0;
@@ -32,9 +35,11 @@ function fnEvenementen() {
 	
 	if ($currenttab2 == "Beheer" and $op == "edit") {
 		muteerevenement($eid);
+	} elseif ($currenttab2 == "Nieuw") {
+		muteerevenement(0);
+		
 	} elseif ($currenttab2 == "Beheer" and $op == "delete") {
 		db_Evenement_Deelnemer("delete", $_GET['edid'], "", "", $_GET['lidid']);
-		
 		muteerevenement($eid);
 	} elseif ($currenttab2 == "Beheer") {
 		$lijst = db_evenement("overzichtbeheer");
@@ -44,7 +49,7 @@ function fnEvenementen() {
 		} else {
 			$er = "";
 		}
-		echo(fnDisplayTable($lijst, $lnk, "", 0, "", $er));
+		echo(fnDisplayTable($lijst, $lnk, "", 0, ""));
 	} elseif ($currenttab2 == "Logboek") {
 		$lijst = db_logboek("lijstsmal", "", 7);
 		echo(fnDisplayTable($lijst, "", "", 0, "", "", "logboek"));
@@ -176,7 +181,7 @@ function muteerevenement($eventid) {
 		}
 		
 		if ($eventid == 0) {
-			$eventid = db_evenement("add");
+			$eventid = db_evenement("insert");
 		}
 		
 		$old = db_evenement("record", 0, $eventid);
@@ -295,7 +300,7 @@ function muteerevenement($eventid) {
 		$eindtijd = "";
 		$verzameltijd = "";
 		$typeevenement = 1;
-		$insopen1 = "checked='checked'";
+		$insopen1 = "";
 		$insopen2 = "";
 		$standaardstatus = "I";
 		$beperktotgroep = 0;
@@ -325,7 +330,8 @@ function muteerevenement($eventid) {
 	}
 	
 	echo("<div id='evenementenbeheer'>\n");
-	printf("<form method='post' action='%s?tp=%s&amp;op=edit&amp;eid=%d'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $eventid);
+	printf("<form method='post' action='%s?tp=Evenementen/Beheer&amp;op=edit'>\n", $_SERVER['PHP_SELF']);
+	printf("<input type='hidden' name='eventid' value=%d>\n", $eventid);
 	echo("<table>\n");
 	printf("<tr><td class='label'>Datum:</td><td colspan=5><input type='date' name='Datum' value='%s' size=25></td></tr>\n", $datum);
 	printf("<tr><td class='label'>Omschrijving:</td><td colspan=5><input type='text' name='Omschrijving' value='%s' maxlength=50 size=60></td></tr>\n", $oms);
@@ -343,7 +349,7 @@ function muteerevenement($eventid) {
 		printf("<td class='label'>Standaard status:</td><td><select name='StandaardStatus'>%s</select></td>\n", $optionstandstatus);
 		printf("<td class='label'>Verwijderd:</td><td><input type='radio' name='verw' value=1 %s>Ja<input type='radio' name='verw' value=0 %s>Nee</td></tr>\n", $verw1, $verw2);
 		
-		$optiongroepen = "<option value=0>Geen</option>\n";
+		$optiongroepen = "<option value=0>Niemand</option>\n";
 		foreach (db_onderdeel("lijstingebruik", "", 0, 0, "", "", $datum) as $t) {
 			if ($t->RecordID == $beperktotgroep) {
 				$s = " selected";
@@ -397,24 +403,24 @@ function muteerevenement($eventid) {
 	}
 	$aantpotdln = count(db_evenement("potdeelnemers", 0, $eventid));
 	echo("<tr><th colspan=6>\n");
-	echo("<input type='submit' name='Bewaren' value='Bewaren'>\n");
-	echo("<input type='submit' name='Bewaren_Sluiten' value='Bewaren & Sluiten'>\n");
-	if ($aantdln > 1) {
+	if ($eventid > 0) {
+		echo("<input type='submit' name='Bewaren' value='Bewaren'>\n");
+		echo("<input type='submit' name='Bewaren_Sluiten' value='Bewaren & Sluiten'>\n");
+	} else {
+		echo("<input type='submit' name='Toevoegen' value='Toevoegen'>\n");
+	}
+	if ($eventid > 0 and $aantdln > 1 and toegang("Mailing/Nieuw", 0, 0)) {
 		printf("<input type='submit' name='maildeeln' value='Mailing deelnemers (%d)'>\n", $aantdln);
 	}
-	if ($eventid > 0 and $aantpotdln > 1) {
+	if ($eventid > 0 and $aantpotdln > 1 and toegang("Mailing/Nieuw", 0, 0)) {
 		printf("<input type='submit' name='mailpotdeeln' value='Mailing potenti&euml;le deelnemers (%d)'>\n", $aantpotdln);
 	}
-	/*
-	if ($aantdln > 0 and $aantpotdln > 0) {
-		printf("<input type='submit' name='mailbeidedeeln' value='Mailing (potenti&euml;le) deelnemers (%d)'>\n", $aantdln + $aantpotdln);
-	}
-	*/
 	echo("</th></tr>\n");
 	echo("</table>\n");
 	echo("</form>\n");
 	echo("</div> <!-- Einde evenementenbeheer -->\n");
-}
+	
+}  # muteerevenement
 
 function muteertypeevenement() {
 	global $soortevenement;
