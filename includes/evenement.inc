@@ -383,7 +383,7 @@ function muteerevenement($eventid) {
 			echo("<tr>\n");
 			printf("<td>%s</td>\n", htmlentities($rd->NaamDeelnemer));
 			printf("<td><select name='Status_%d' onChange='this.form.submit();'>%s</select></td>\n", $rd->RecordID, $optstat);
-			printf("<td><input type='text' name='Opmerking_%d' value='%s' placeholder='Opmerking' size=80 maxlength=75>\n", $rd->RecordID, $rd->Opmerking);
+			printf("<td><input type='text' name='Opmerking_%d' value='%s' placeholder='Opmerking' size=80 maxlength=125>\n", $rd->RecordID, $rd->Opmerking);
 			printf("<br><input type='text' name='Functie_%d' value='%s' placeholder='Functie' size=40 maxlength=30></td>\n", $rd->RecordID, $rd->Functie);
 			printf("<td>%s<br>%s</td>\n", strftime("%e %b %Y (%R)", strtotime($rd->Ingevoerd)), db_naamlid($rd->IngevoerdDoor));
 			printf("<td><a href='%s?tp=%s&amp;op=delete&amp;eid=%d&amp;lidid=%d&amp;edid=%d'><img src='images/del.png' alt='Delete'></a></td>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $eventid, $rd->LidID, $rd->RecordID);
