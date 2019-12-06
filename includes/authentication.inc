@@ -673,20 +673,22 @@ function fnOpvragenLidnr($stap) {
 			$rows = db_logins("rowlogin", $_POST['emailvoorlidnr']);
 			if (count($rows) > 0) {
 				foreach ($rows as $row) {
-					$mailing = new Mailing(db_param("mailing_lidnr"));
-					$mailing->xtranum = $row->Lidnr;
-					if ($mailing->send($row->Nummer) > 0) {
-						$mess .= sprintf("Een e-mail met Het lidnummer van %s is in de outbox geplaatst. ", $row->Naam);
+					if ($row->Lidnr > 0) {
+						$mailing = new Mailing(db_param("mailing_lidnr"));
+						$mailing->xtranum = $row->Lidnr;
+						if ($mailing->send($row->Nummer) > 0) {
+							$mess .= sprintf("Een e-mail met Het lidnummer van %s is in de outbox geplaatst. ", $row->Naam);
+						} else {
+							$mess .= sprintf("Fout bij het versturen van het lidnummer aan %s. Probeer het later nogmaals of neem contact met de webmaster op. ", $row->Naam);
+						}
+						$mailing = null;
 					} else {
-						$mess .= sprintf("Fout bij het versturen van het lidnummer aan %s. Probeer het later nogmaals of neem contact met de webmaster op. ", $row->Naam);
+						$mess .= sprintf("%s is geen lid, het lidnummer is daarom ook niet verzonden. ", $row->Naam);
 					}
-					$mailing = null;
-					sleep(3);
 				}
 			} else {
 				$mess = sprintf("Dit e-mailadres (%s) is onbekend in onze database.", $_POST['emailvoorlidnr']);
-			}		
-			
+			}
 		} else {
 			$mess = "Onbekende fout";
 		}
