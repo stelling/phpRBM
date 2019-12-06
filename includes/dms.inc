@@ -4,7 +4,6 @@ class dms {
 	public $did;
 
 	function __construct() {
-		global $table_prefix;	
 	}
 
 	public function lijst($filter="") {
