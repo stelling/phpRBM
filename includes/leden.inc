@@ -869,7 +869,7 @@ function fnEigenGegevens($lidid=0, $actie="") {
 					printf("<td>%s</td>\n", $of);
 					printf("<td>%s</td>\n", $row->Status);
 					if (($row->Status == "Bevestigd" or $row->Status == "Ingeschreven") and $row->dteDatum >= date("Y-m-d H:i")) {
-						printf("<td>%s</td>\n", fnAgendaKnop($row->Datum, $row->Eindtijd, $row->Verzameltijd, $row->Omschrijving, $row->Locatie));
+						printf("<td>%s</td>\n", fnAgendaKnop($row->dteDatum, $row->Eindtijd, $row->Verzameltijd, $row->Omschrijving, $row->ndLocatie));
 					} else {
 						echo("<td>&nbsp;</td>");
 					}
