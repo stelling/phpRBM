@@ -151,7 +151,7 @@ function inschrijvenevenementen($lidid) {
 		printf("<input type='radio' name='reactie_%d' value='Afmelden' %s onchange='this.form.submit();'>Afmelden&nbsp;", $row->RecordID, $c);
 		
 		if (isset($ins->Opmerking)) {
-			printf("<br><br>Opmerking: <input type='text' onBlur='this.form.submit();' name='opm_%d' size=80 maxlength=75 value=\"%s\"></td>\n", $row->RecordID, $ins->Opmerking);
+			printf("<br><br>Opmerking: <input type='text' onBlur='this.form.submit();' name='opm_%d' size=80 maxlength=125 value=\"%s\"></td>\n", $row->RecordID, $ins->Opmerking);
 		}
 		
 		if (isset($ins->Status) and ($ins->Status == "B" or $ins->Status == "I")) {
