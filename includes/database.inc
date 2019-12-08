@@ -161,7 +161,9 @@ function fnQuery($query, $logtype=0) {
 			$result->execute();
 			$rv = $result->RowCount();
 			if (startwith($query, "UPDATE") or startwith($query, "DELETE ")) {
-				$mess = sprintf("Uitgevoerd: %s / records affected: %d", $query, $rv);
+				if ($rv > 0) {
+					$mess = sprintf("Uitgevoerd: %s / records affected: %d", $query, $rv);
+				}
 			} else {
 				$mess = sprintf("Uitgevoerd: %s", $query);
 			}
@@ -347,14 +349,22 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					ORDER BY IF(ISNULL(LO.Opgezegd), 0, 1), LO.Vanaf, O.Kode;", $fromlidond, $LidID);
 					
 	} elseif ($soort == "Toestemmingen") {
+		
+		if (db_Onderdeel("maxgeldigheidtoestemmingen") > 0) {
+			$sg = ", IF(O.MaximaleLengtePeriode > 0, CONCAT(O.MaximaleLengtePeriode, ' maanden'), 'tot intrekking') AS Geldigheid";
+			$sq2 = sprintf(", (SELECT IFNULL(MAX(LO2.Vanaf), '') FROM %sLidond AS LO2 WHERE IFNULL(LO2.Opgezegd, '2999-12-31') < CURDATE() AND LO2.Lid=%d AND LO2.OnderdeelID=O.RecordID) AS `Laatste verlopen toestemming`", TABLE_PREFIX, $LidID);
+		} else {
+			$sg = "";
+			$sq2 = "";
+		}
 							
 		$sq = sprintf("(SELECT IFNULL(MAX(LO.Vanaf), 'Nee') FROM %sLidond AS LO WHERE %s AND LO.Lid=%d AND LO.OnderdeelID=O.RecordID) AS `Afgegeven op`", TABLE_PREFIX, $wherelidond, $LidID);
-		$sq2 = sprintf("(SELECT IFNULL(MAX(LO2.Vanaf), '') FROM %sLidond AS LO2 WHERE IFNULL(LO2.Opgezegd, '2999-12-31') < CURDATE() AND LO2.Lid=%d AND LO2.OnderdeelID=O.RecordID) AS `Laatste verlopen toestemming`", TABLE_PREFIX, $LidID);
-		$query = sprintf("SELECT O.Naam AS Omschrijving, IF(O.MaximaleLengtePeriode > 0, CONCAT(O.MaximaleLengtePeriode, ' maanden'), 'tot intrekking') AS Geldigheid,
-					%1\$s,
+		$query = sprintf("SELECT O.Naam AS Omschrijving,
+					%1\$s
 					%2\$s
-					FROM %3\$sOnderdl AS O
-					WHERE IFNULL(O.VervallenPer, '2999-12-31') >= CURDATE() AND O.Type='T'", $sq, $sq2, TABLE_PREFIX);
+					%3\$s
+					FROM %4\$sOnderdl AS O
+					WHERE IFNULL(O.VervallenPer, '2999-12-31') >= CURDATE() AND O.Type='T'", $sq, $sg, $sq2, TABLE_PREFIX);
 					
 	} elseif ($soort == "Lidbew") {
 		$tw = sprintf("CONVERT((SELECT SUM(DATEDIFF(EINDE_PER, BEGIN_PER)+1) FROM %sBewaking AS BW WHERE BW.Lid = %d AND BEGIN_PER < SYSDATE())/7, SIGNED)", TABLE_PREFIX, $LidID);
@@ -1259,6 +1269,8 @@ function db_onderdeel($actie, $type="", $lidid=0, $onderdlid=0, $kolomnaam="", $
 		}
 		return $result;
 		
+	} elseif ($actie == "maxgeldigheidtoestemmingen") {
+		$query = sprintf("SELECT IFNULL(MAX(O.MaximaleLengtePeriode), 0) FROM %sOnderdl AS O WHERE O.Type='T' AND IFNULL(VervallenPer, CURDATE()) >= CURDATE();", TABLE_PREFIX);
 	} elseif ($actie == "lijstopkode" or $actie == "basislijst") {
 		$query = sprintf("SELECT %s FROM %sOnderdl AS O %s ORDER BY O.Kode;", $sel, TABLE_PREFIX, $where);
 	} elseif ($actie == "lijstingebruik") {
@@ -1267,7 +1279,7 @@ function db_onderdeel($actie, $type="", $lidid=0, $onderdlid=0, $kolomnaam="", $
 		$query = sprintf("SELECT %s FROM %sOnderdl AS O %s ORDER BY O.Naam, O.Kode;", $sel, TABLE_PREFIX, $where);
 	}
 	
-	if ($actie == "aantal" or $actie == "aantalingebruik" or $actie == "type") {
+	if ($actie == "aantal" or $actie == "aantalingebruik" or $actie == "type" or $actie == "maxgeldigheidtoestemmingen") {
 		return db_scalar($query);
 	} else {
 		$result = fnQuery($query);
@@ -1881,7 +1893,7 @@ function db_naam_onderdeel($rid, $rin="Onbekend") {
 	return $rv;
 }  #  db_naam_onderdeel
 
-function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr="", $cc_addr="", $message="", $xtrachar="", $xtranum=0) {
+function db_add_mailing_hist($lidid, $mid, $to_name="", $to_addr="", $cc_addr="", $message="", $xtrachar="", $xtranum=0) {
 	
 	$from_name = "";
 	$from_addr = "";
@@ -1913,12 +1925,11 @@ function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr="", $cc_addr="", $
 		if (strlen($subject) == 0) {
 			$subject = $row->subject;
 		}
-		
+		if (strlen($to_name) == 0) {
+			$to_name = $row->to_name;
+		}
 		if (strlen($message) == 0) {
 			$message = $row->message;
-		}
-		if (strlen($row->to_name) > 0) {
-			$to_name = $row->to_name;
 		}
 		if (strlen($cc_addr) == 0) {
 			$cc_addr = $row->cc_addr;
@@ -1926,11 +1937,12 @@ function db_add_mailing_hist($lidid, $mid, $to_name, $to_addr="", $cc_addr="", $
 	}
 	$from_name = html_entity_decode(str_replace("\"", "'", $from_name));
 	$subject = html_entity_decode(str_replace("\"", "'", $subject));
+	$to_name = html_entity_decode(str_replace("\"", "'", $to_name));
 	$message = html_entity_decode(str_replace("\"", "'", $message));
 	
 	$query = sprintf("INSERT INTO %sMailing_hist SET
-					LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", to_name=\"%s\", subject=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", Xtra_Char='%s', Xtra_Num=%d, IngevoerdDoor=%d;",
-					TABLE_PREFIX, $lidid, $mid, $from_name, $from_addr, $to_name, $subject, $to_addr, $cc_addr, $message, $xtrachar, $xtranum, $_SESSION['lidid']);
+					LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", subject=\"%s\", to_name=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", Xtra_Char='%s', Xtra_Num=%d, IngevoerdDoor=%d;",
+					TABLE_PREFIX, $lidid, $mid, $from_name, $from_addr, $subject, $to_name, $to_addr, $cc_addr, $message, $xtrachar, $xtranum, $_SESSION['lidid']);
 	$rv = fnQuery($query);
 	
 	return $rv;
@@ -2105,23 +2117,25 @@ function db_mailing_hist($actie, $lidid=0, $mhid=0, $mid=0) {
 		}
 	}
 	
-	if ($actie == "outbox") {
-		if (db_param("maxmailsperdag") > 0 and db_param("maxmailsperdag") < db_param("maxmailsperuur")) {
+	if ($actie == "outbox" or $actie == "outboxbatch") {
+		$lm = 1000;
+		if (db_param("maxmailsperdag") > 0 and db_param("maxmailsperdag") < $lm) {
 			$lm = db_param("maxmailsperdag");
-		} elseif (db_param("maxmailsperuur") > 0) {
+		}
+		if (db_param("maxmailsperuur") > 0 and db_param("maxmailsperuur") < $lm) {
 			$lm = db_param("maxmailsperuur");
-		} elseif (db_param("maxmailsperdag") > 0) {
-			$lm = db_param("maxmailsperdag");
-		} else {
-			$lm = 400;
 		}
 		$xw = "";
-		if ($_SESSION['webmaster'] == 0) {
+		if ($actie == "outboxbatch") {
+			$xw = "AND MH.Ingevoerd < DATE_SUB(SYSDATE(), INTERVAL 10 MINUTE)";
+		} elseif ($_SESSION['webmaster'] == 0) {
 			$xw = sprintf("AND MH.IngevoerdDoor=%d", $_SESSION['lidid']);
+		} else {
+			$xw = "";
 		}
 		$query = sprintf("SELECT MH.RecordID AS lnkRecordID, MH.Ingevoerd AS `dttWacht vanaf`, MH.subject AS Onderwerp, IF(MH.LidID=0, MH.to_name, %1\$s) AS Aan,
 						MH.to_addr AS `E-mail`, MH.cc_addr AS `CC`, L.Woonplaats, MH.RecordID AS llkRecordID
-						FROM %2\$sMailing_hist AS MH LEFT OUTER JOIN %2\$sLid AS L ON MH.LidID = L.RecordID
+						FROM (%2\$sMailing_hist AS MH LEFT OUTER JOIN %2\$sLid AS L ON MH.LidID = L.RecordID) LEFT JOIN %2\$sMailing AS M ON M.MailingID=MH.MailingID
 						WHERE MH.send_on < '2000-01-01' %3\$s
 						ORDER BY MH.RecordID LIMIT %4\$d;", $selectnaam, TABLE_PREFIX, $xw, $lm);
 		return fnQuery($query);
@@ -2132,9 +2146,9 @@ function db_mailing_hist($actie, $lidid=0, $mhid=0, $mid=0) {
 
 	} elseif ($actie == "lijst" or $actie == "sqllijst") {
 		if ($mid > 0) {
-			$query = sprintf("SELECT MH.RecordID AS lnkRecordID, M.subject AS ndOnderwerp, IF(MH.send_on > '2000-01-01', MH.send_on, 'Niet verzonden') AS dtsVerzonden, IF(MH.LidID=0, MH.to_name, %1\$s) AS Aan,
+			$query = sprintf("SELECT MH.RecordID AS lnkRecordID, M.subject AS ndOnderwerp, IF(MH.send_on > '2000-01-01', MH.send_on, 'Niet verzonden') AS dtsVerzonden, IF(MH.LidID=0, M.to_name, %1\$s) AS Aan,
 						to_addr AS `E-mail`, MH.cc_addr AS `CC`, L.Woonplaats, MH.RecordID AS llkRecordID
-						FROM (%2\$sMailing_hist AS MH LEFT OUTER JOIN %2\$sLid AS L ON MH.LidID = L.Nummer) INNER JOIN %2\$sMailing AS M ON MH.MailingID = M.MailingID
+						FROM (%2\$sMailing_hist AS MH LEFT JOIN %2\$sLid AS L ON MH.LidID=L.Nummer) LEFT JOIN %2\$sMailing AS M ON MH.MailingID=M.MailingID
 						WHERE MH.MailingID=%3\$d
 						ORDER BY MH.RecordID DESC;", $selectnaam, TABLE_PREFIX, $mid);
 						
@@ -2142,12 +2156,12 @@ function db_mailing_hist($actie, $lidid=0, $mhid=0, $mid=0) {
 			$query = sprintf("SELECT MH.RecordID AS lnkRecordID,
 						MH.send_on AS dttVerzonden,
 						IF(LENGTH(MH.from_name)<3, MH.from_addr, MH.from_name) AS Van,
-						CONCAT(MH.to_name, ' (', MH.to_addr, ')') AS Aan,
+						IF(MH.LidID=0, MH.to_addr, %1\$s) AS Aan,
 						MH.subject AS Onderwerp,
 						MH.RecordID AS llkRecordID
-						FROM %sMailing_hist AS MH
-						WHERE %s
-						ORDER BY MH.RecordID DESC LIMIT 1000;", TABLE_PREFIX, $xw);
+						FROM %2\$sMailing_hist AS MH LEFT JOIN %2\$sLid AS L ON MH.LidID=L.Nummer
+						WHERE %3\$s
+						ORDER BY MH.RecordID DESC LIMIT 1000;", $selectnaam, TABLE_PREFIX, $xw);
 		}
 		if ($actie == "sqllijst") {
 			return $query;
@@ -2156,8 +2170,9 @@ function db_mailing_hist($actie, $lidid=0, $mhid=0, $mid=0) {
 		}
 		
 	} elseif ($actie === "record") {
-		$query = sprintf("SELECT MH.Ingevoerd, MH.send_on, MH.from_addr, MH.from_name, MH.to_name, MH.to_addr, MH.cc_addr, MH.subject, MH.message, MH.send_by, LidID,CONCAT(MH.to_name, ' (', MH.to_addr, ')') AS aan, MH.IngevoerdDoor
-					FROM %sMailing_hist AS MH WHERE MH.RecordID=%d LIMIT 1;", TABLE_PREFIX, $mhid);
+		$query = sprintf("SELECT MH.Ingevoerd, MH.send_on, MH.from_addr, MH.from_name, M.to_name, MH.to_addr, MH.cc_addr, MH.subject, MH.message, MH.send_by, MH.LidID, IF(L.RecordID=0, MH.to_addr, %1\$s) AS Aan, MH.IngevoerdDoor
+					FROM (%2\$sMailing_hist AS MH LEFT JOIN %2\$sLid AS L ON MH.LidID=L.Nummer) LEFT JOIN %2\$sMailing AS M ON MH.MailingID=M.MailingID
+					WHERE MH.RecordID=%3\$d LIMIT 1;", $selectnaam, TABLE_PREFIX, $mhid);
 		$result = fnQuery($query);
 		return $result->fetch();
 	
@@ -2743,6 +2758,7 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 	if ($actie == "aantal") {
 		$query = sprintf("SELECT COUNT(*) FROM %sEvenement;", TABLE_PREFIX);
 		return db_scalar($query);
+		
 	} elseif ($actie == "oms") {
 		$query = sprintf("SELECT Omschrijving FROM %sEvenement WHERE RecordID=%d;", TABLE_PREFIX, $eventid);
 		return db_scalar($query);
@@ -2766,18 +2782,21 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 		
 	} elseif ($actie == "overzicht" or $actie == "overzichtbeheer") {
 		if ($actie == "overzichtbeheer") {
+			$select = "E.RecordID AS lnkNummer, E.Datum AS dteDatum, DATE_FORMAT(E.Datum, '%H:%i') AS Starttijd, E.Omschrijving, E.Locatie, E.Email AS `emlEmail`, E.Eindtijd, ET.Soort AS ndSoort,
+					   CASE E.InschrijvingOpen WHEN 0 THEN 'Nee' ELSE 'Ja' END AS `Ins. open?`, ET.Omschrijving AS `Type`";
 			$where = "E.VerwijderdOp < '2012-01-01'";
 		} else {
-			$where = sprintf("E.Datum >= DATE_ADD(CURDATE(), INTERVAL -3 DAY) AND E.VerwijderdOp < '2012-01-01' AND E.ZichtbaarVoor IN %s", $lg);
-		}
-		$query = sprintf("SELECT E.RecordID AS lnkNummer, E.Datum AS dteDatum, DATE_FORMAT(E.Datum, '%%H:%%i') AS Starttijd, E.Omschrijving, E.Locatie,
+			$select = sprintf("E.RecordID AS lnkNummer, E.Datum AS dteDatum, DATE_FORMAT(E.Datum, '%%H:%%i') AS Starttijd, E.Omschrijving, E.Locatie,
 								E.Email AS `emlEmail`, E.Verzameltijd, E.Eindtijd, ET.Soort AS ndSoort,
 								CASE E.InschrijvingOpen WHEN 0 THEN 'Nee' ELSE 'Ja' END AS `Ins. open?`,
-								(%1\$s) AS `Aantal dln`,
-								ET.Omschrijving AS `Type`
-								FROM %2\$sEvenement AS E LEFT OUTER JOIN %2\$sEvenement_Type AS ET ON E.TypeEvenement = ET.RecordID
+								(%s) AS `Aantal dln`,
+								ET.Omschrijving AS `Type`", $sqlaantdln);
+			$where = sprintf("E.Datum >= DATE_ADD(CURDATE(), INTERVAL -3 DAY) AND E.VerwijderdOp < '2012-01-01' AND E.ZichtbaarVoor IN %s", $lg);
+		}
+		$query = sprintf("SELECT %1\$s
+								FROM %2\$sEvenement AS E LEFT OUTER JOIN %2\$sEvenement_Type AS ET ON E.TypeEvenement=ET.RecordID
 								WHERE %3\$s
-								ORDER BY E.Datum DESC;", $sqlaantdln, TABLE_PREFIX, $where);
+								ORDER BY E.Datum DESC;", $select, TABLE_PREFIX, $where);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
@@ -3214,7 +3233,7 @@ function db_Stukken($actie, $lidid=0) {
 		} else {
 			$query = sprintf("SELECT Titel FROM %sStukken WHERE ((VervallenPer IS NULL) OR VervallenPer > CURDATE()) ORDER BY GewijzigdOp DESC;", TABLE_PREFIX);
 		}
-		return fnQuery($query);
+		return fnQuery($query)->fetchAll();
 	}
 	
 }  # db_Stukken
