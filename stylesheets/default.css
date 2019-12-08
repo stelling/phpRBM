@@ -1,6 +1,6 @@
 body {
 	font-family: Tahoma, Arial, Verdana, Helvetica;
-	font-size: 10pt;
+	font-size: 11pt;
 	color: #000080;
 	border-width: 1px;
 }
@@ -509,7 +509,7 @@ fieldset h3 {
 	padding-right: 3px;
 }
 
-input.knop {
+input.knop, button.knop {
 	color: #000080;
 	font-weight: bold;
 	height: auto;
@@ -546,7 +546,7 @@ input.knop {
 	float: left;
 }
 
-#verstuurdemail .label, #verstuurdemail .veld{
+#verstuurdemail .label, #verstuurdemail .veld, #verstuurdemail .veld2k {
 	min-height: 23px;
 	margin-top: 3px;
 	margin-bottom: 3px;
@@ -559,7 +559,7 @@ input.knop {
 
 #verstuurdemail .label {
 	background-color: transparent;
-	width: 90px;
+	width: 95px;
 	margin-left: 5px;
 	margin-right: 5px;
 	float: left;
@@ -569,6 +569,13 @@ input.knop {
 
 #verstuurdemail .veld {
 	width: 846px;
+	float: left;
+	margin-right: 3px;
+	border-style: solid;
+}
+
+#verstuurdemail .veld2k {
+	width: 360px;
 	float: left;
 	margin-right: 3px;
 	border-style: solid;
@@ -639,7 +646,7 @@ input.knop {
 }
 
 #handleiding {
-	font-size: 10pt;
+	font-size: 12pt;
 	padding-top: 8px;
 	padding-left: 8px;
 }
@@ -664,10 +671,10 @@ input.knop {
 	text-align: center;
 	border-style: solid;
 	border-width: 1px;
-   border-top-right-radius: 12px;
-   border-top-left-radius: 12px;
-   border-bottom-right-radius: 12px;
-   border-bottom-left-radius: 12px;
+	border-top-right-radius: 12px;
+	border-top-left-radius: 12px;
+	border-bottom-right-radius: 12px;
+	border-bottom-left-radius: 12px;
 }
 
 #opdrachtknoppen button, #opdrachtknoppen input {
@@ -675,6 +682,14 @@ input.knop {
 	margin-bottom: 8px;
 	margin-left: 8px;
 	margin-right: 8px;
+	
+	color: #000080;
+	font-weight: bold;
+	height: auto;
+	padding-top: 4px;
+	padding-bottom: 4px;
+	cursor: pointer;
+	font-size: 11pt;
 }
 
 #opdrachtknoppen input {
@@ -1104,7 +1119,7 @@ input.knop {
 }
 
 .copypaste {
-	font-size: 7pt;
+	font-size: 79;
 	width: 100%;
 	margin-top: 8px;
 	border-style: solid;
