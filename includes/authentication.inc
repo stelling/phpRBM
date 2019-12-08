@@ -73,7 +73,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			addtp("Zelfservice/Inschrijven bewaking");
 		}
 		if (count(db_evenement("open")) > 0) {
-			addtp("Zelfservice/Inschrijven evenementen");
+			addtp("Zelfservice/Evenementen");
 		}
 		if (count(db_artikel("artikelbeschikbaar")) > 0) {
 			addtp("Zelfservice/Bestellingen");
@@ -380,7 +380,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 			
 			$mailing = new Mailing(db_param("mailing_herstellenwachtwoord"));
 			if ($mailing->send($row->Nummer) > 0) {
-				return sprintf("De e-mail naar %s met de link om het wachtwoord te herstellen is in de outbox geplaatst.", $row->Naam);
+				return sprintf("De e-mail naar %s met de link om het wachtwoord te herstellen is verzonden.", $row->Naam);
 			} else {
 				return "Fout bij het versturen van de e-mail. Probeer het later nogmaals of neem contact op met de webmaster.";
 			}
@@ -682,7 +682,7 @@ function fnOpvragenLidnr($stap) {
 						$mailing = new Mailing(db_param("mailing_lidnr"));
 						$mailing->xtranum = $row->Lidnr;
 						if ($mailing->send($row->Nummer) > 0) {
-							$mess .= sprintf("Een e-mail met Het lidnummer van %s is in de outbox geplaatst. ", $row->Naam);
+							$mess .= sprintf("Een e-mail met het lidnummer van %s is verzonden. ", $row->Naam);
 						} else {
 							$mess .= sprintf("Fout bij het versturen van het lidnummer aan %s. Probeer het later nogmaals of neem contact met de webmaster op. ", $row->Naam);
 						}
