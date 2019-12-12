@@ -189,7 +189,7 @@ function HTMLheader($breed=0) {
 		if (strlen(db_param("url_eigen_help")) < 5) {
 			$htmlhelp = "<a href='https://software.telling.nl/phpRBM/uitleg.php'><img src='images/question.png' title='Uitleg gebruik en installatie' alt='Question mark'></a>\n";
 		} else {
-			$htmlhelp = sprintf("<a href='https://%s'><img src='images/question.png' title='Helpfunctie' alt='Question mark'></a>\n", db_param("url_eigen_help"));
+			$htmlhelp = sprintf("<a href='%s'><img src='images/question.png' title='Helpfunctie' alt='Question mark'></a>\n", db_param("url_eigen_help"));
 		}
 	
 		echo("<div id='login'>\n");
@@ -236,7 +236,7 @@ function HTMLfooter() {
 	if (!isset($_GET['header']) or $_GET['header'] != "no") {
 		if (strlen(db_param("naamvereniging")) > 2) {
 			if (strlen(db_param("urlvereniging")) > 3) {
-				$cr = sprintf("<a href='http://%s'>%s</a>", db_param("urlvereniging"), db_param("naamvereniging"));
+				$cr = sprintf("<a href='%s'>%s</a>", db_param("urlvereniging"), db_param("naamvereniging"));
 			} else {
 				$cr = db_param("naamvereniging");
 			}
