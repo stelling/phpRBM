@@ -210,7 +210,7 @@ function artikelbeheer() {
 		
 		printf("<td><select name='BeperkTotGroep_%d'>\n", $row->RecordID);
 		echo("<option value=0>Geen beperking</option>\n");
-		foreach(db_onderdelen() as $ond) {
+		foreach(db_onderdeel("lijstingebruik") as $ond) {
 			if ($ond->RecordID == $row->BeperkTotGroep) {
 				$s = "selected";
 			} else {
