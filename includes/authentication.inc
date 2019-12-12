@@ -45,11 +45,11 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			addtp("Eigen gegevens/Financieel");
 		}
 		addtp("Eigen gegevens/Mailing");
-		if (db_onderdeel("aantal", "T") > 0) {
-			addtp("Eigen gegevens/Toestemmingen");
-		}
 		if (count(db_gegevenslid($_SESSION['lidid'], "Evenementen")) > 0) {
 			addtp("Eigen gegevens/Evenementen");
+		}
+		if (db_onderdeel("aantal", "T") > 0) {
+			addtp("Eigen gegevens/Toestemmingen");
 		}
 		addtp("Eigen gegevens/Logboek");
 	}
@@ -63,9 +63,6 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			addtp("Zelfservice/Diploma's");
 		}
 		addtp("Zelfservice/Pasfoto");
-		if (db_onderdeel("aantal", "T") > 0) {
-			addtp("Zelfservice/Toestemmingen");
-		}
 		if (count($muteerbarememos) > 0) { 
 			addtp("Zelfservice/Bijzonderheden");
 		}
@@ -74,6 +71,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		}
 		if (count(db_evenement("open")) > 0) {
 			addtp("Zelfservice/Evenementen");
+		}
+		if (db_onderdeel("aantal", "T") > 0) {
+			addtp("Zelfservice/Toestemmingen");
 		}
 		if (count(db_artikel("artikelbeschikbaar")) > 0) {
 			addtp("Zelfservice/Bestellingen");
@@ -98,6 +98,17 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	}
 	
 	addtp("Ledenlijst");
+	if ($currenttab == "Ledenlijst") {
+		addtp("Ledenlijst/Leden");
+		if (count(db_lid("ledenlijst", "(LM.Lidnr IS NULL)")) > 0) {
+			addtp("Ledenlijst/Klosleden");
+		}
+		addtp("Ledenlijst/Voormalig leden");
+		if (count(db_Lidmaatschap("toekomstigeleden")) > 0) {
+			addtp("Ledenlijst/Toekomstige leden");
+		}
+	}
+	
 	if ($currenttab == "Overzicht lid") {
 		if (!isset($_GET['lidid']) or strlen($_GET['lidid']) == 0) {
 			$_GET['lidid'] = 0;
@@ -128,11 +139,11 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (count(db_gegevenslid($_GET['lidid'], "Mailing")) > 0) {
 			addtp("Overzicht lid/Mailing");
 		}
-		if (db_onderdeel("aantal", "T") > 0) {
-			addtp("Overzicht lid/Toestemmingen");
-		}
 		if (db_evenement("aantaldlnrs", $_GET['lidid']) > 0) {
 			addtp("Overzicht lid/Evenementen");
+		}
+		if (db_onderdeel("aantal", "T") > 0) {
+			addtp("Overzicht lid/Toestemmingen");
 		}
 		if (count(db_logboek("lijst", "", -1, $_GET['lidid'])) > 0) {
 			addtp("Overzicht lid/Logboek");
@@ -379,7 +390,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		} elseif (db_param("mailing_herstellenwachtwoord") > 0) {
 			
 			$mailing = new Mailing(db_param("mailing_herstellenwachtwoord"));
-			if ($mailing->send($row->Nummer) > 0) {
+			if ($mailing->send($row->RecordID) > 0) {
 				return sprintf("De e-mail naar %s met de link om het wachtwoord te herstellen is verzonden.", $row->Naam);
 			} else {
 				return "Fout bij het versturen van de e-mail. Probeer het later nogmaals of neem contact op met de webmaster.";
@@ -390,7 +401,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 			$mess = "Er is geen mailing voor het herstellen van het wachtwoord beschikbaar.";
 		}
 		
-		db_logboek("add", $mess, 5, 0, 1, $row->Nummer);
+		db_logboek("add", $mess, 5, 0, 1, $row->RecordID);
 		
 	} elseif ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['nieuwwachtwoord']) and strlen($_POST['nieuwwachtwoord']) > 0 and $_GET['lidid'] > 0) {
 		
@@ -461,7 +472,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 				$w .= sprintf("LM.Lidnr=%d", $_POST['lidnummer']);
 			}
 			$query = sprintf("SELECT MAX(Login.LidID)
-									FROM (%1\$sAdmin_login AS Login INNER JOIN %1\$sLid AS L ON L.Nummer = Login.LidID) INNER JOIN %1\$sLidmaatschap AS LM ON LM.Lid = L.Nummer
+									FROM (%1\$sAdmin_login AS Login INNER JOIN %1\$sLid AS L ON L.RecordID = Login.LidID) INNER JOIN %1\$sLidmaatschap AS LM ON LM.Lid = L.RecordID
 									WHERE %2\$s;", TABLE_PREFIX, $w);
 			$lidid = db_scalar($query);
 			if ($lidid > 0) {
@@ -506,7 +517,7 @@ function fnValidatieLogin($lidid, $key, $stap) {
 		}
 	
 		$mailing = new Mailing(db_param("mailing_validatielogin"));
-		if ($mailing->send($row->Nummer) == 0) {
+		if ($mailing->send($row->RecordID) == 0) {
 			$mess = "Fout bij het versturen van de e-mail met de validatielink. Probeer het later nogmaals of neem contact op met de webmaster.";
 		}
 		$mailing = null;
@@ -567,13 +578,13 @@ function fnLoginAanvragen($stap="") {
 			if (count($rows) > 0) {
 				foreach ($rows as $row) {
 					if (isset($row->Login) and strlen($row->Login) > 5 and (db_param("login_lidnrnodigbijaanvraag") == 0 or $row->Lidnr == $_POST['lidnummer'])) {
-						$lidid = $row->Nummer;
+						$lidid = $row->RecordID;
 					} else {
 						// E-mailadres is bekend, maar een aan dit e-mailadres gekoppelde login bestaat niet.
 						if (db_param("mailing_lidnr") > 0 and $_POST['lidnummer'] == 0 and 1 == 2) { // Controleren of deze if mag vervallen
 							$mess .= fnConfirmLidnr($row) . " ";
-							$lidid = $row->Nummer;
-						} elseif ($row->AanvragenMag == 0 and in_array($row->Nummer, $lididwebmasters) == false and in_array($row->Nummer, $lididtestusers) == false) {
+							$lidid = $row->RecordID;
+						} elseif ($row->AanvragenMag == 0 and in_array($row->RecordID, $lididwebmasters) == false and in_array($row->RecordID, $lididtestusers) == false) {
 							if (is_array(db_param("login_beperkttotgroep")) and count(db_param("login_beperkttotgroep")) > 1) {
 								$gt = "";
 								foreach (db_param("login_beperkttotgroep") as $gr) {
@@ -607,12 +618,12 @@ function fnLoginAanvragen($stap="") {
 							$mess = sprintf("Je hebt geen geldige login opgegeven. Het karakter '%s' mag niet in de login zitten.", $gevondenverbodenkarakter);
 						} elseif ($wwok !== "ok") {
 							$mess = $wwok;
-						} elseif (db_logins("controlebestaat", "", $_POST['gewenstelogin'], $row->Nummer) > 0) {
+						} elseif (db_logins("controlebestaat", "", $_POST['gewenstelogin'], $row->RecordID) > 0) {
 							$mess = sprintf("Login '%s' is al in gebruik.", $_POST['gewenstelogin']);
 						} elseif (db_param("login_lidnrnodigbijaanvraag") == 0 or $row->Lidnr == $_POST['lidnummer'] or in_array($_POST['lidnummer'], $lididtestusers)) {
-							if (db_logins("add", "", $_POST['gewenstelogin'], $row->Nummer, "", $_POST['gewenstwachtwoord'])) {
-								$rl = db_logins("rowlogin", "", "", $row->Nummer);
-								$lidid = $rl[0]->Nummer;
+							if (db_logins("add", "", $_POST['gewenstelogin'], $row->RecordID, "", $_POST['gewenstwachtwoord'])) {
+								$rl = db_logins("rowlogin", "", "", $row->RecordID);
+								$lidid = $rl[0]->RecordID;
 							}
 						} else {
 							$mess = "Je mag geen login aanvragen.";
@@ -681,7 +692,7 @@ function fnOpvragenLidnr($stap) {
 					if ($row->Lidnr > 0) {
 						$mailing = new Mailing(db_param("mailing_lidnr"));
 						$mailing->xtranum = $row->Lidnr;
-						if ($mailing->send($row->Nummer) > 0) {
+						if ($mailing->send($row->RecordID) > 0) {
 							$mess .= sprintf("Een e-mail met het lidnummer van %s is verzonden. ", $row->Naam);
 						} else {
 							$mess .= sprintf("Fout bij het versturen van het lidnummer aan %s. Probeer het later nogmaals of neem contact met de webmaster op. ", $row->Naam);

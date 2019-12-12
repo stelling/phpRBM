@@ -239,7 +239,9 @@ function fnWieiswie($actie, $metfoto=1) {
 } # fnWieiswie
 
 function fnLedenlijst() {
-	global $wherelidond, $ldl;
+	global $wherelidond, $ldl, $currenttab2;
+	
+	fnDispMenu(2);
 
 	if (toegang("Wijzigen lid", 0, 0)) {
 		$llw = "<a href='index.php?tp=Wijzigen+lid/Algemene+gegevens&amp;lidid=%d'><img src='./images/edit.png' alt='Wijzigen' title='Wijzigen lidgegevens'></a>";
@@ -252,27 +254,13 @@ function fnLedenlijst() {
 
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$_SESSION['val_naamfilter'] = $_POST['tbNaamFilter'];
-		$_SESSION['val_TL'] = $_POST['rbTL'];
 		$_SESSION['val_groep'] = $_POST['lbGroepFilter'];
 	} elseif (!isset($_SESSION['val_naamfilter'])) {
 		$_SESSION['val_naamfilter'] = "";
-		$_SESSION['val_TL'] = ARRTL[1];
 		$_SESSION['val_groep'] = 0;
 	}
 	
-	echo("<div id='filter'>\n");
-	printf("<form name='Filter' action='%s?%s' method='post'>", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
-	echo("<table>\n");
-	echo("<tr>\n");
-	printf("<td class='label'>Naam bevat</td><td><input type='text' name='tbNaamFilter' size=20 value='%s' placeholder='Achter- of roepnaam' onblur='form.submit();'></td>\n", $_SESSION['val_naamfilter']);
-	echo("<td>");
-	foreach(ARRTL as $tl) {
-		if ($tl == $_SESSION['val_TL']) {$c=" checked"; } else { $c=""; }
-		if ($tl != "Klosleden" or $_SESSION['val_groep'] == 0) {
-			printf("<input type='radio'%2\$s name='rbTL' value='%1\$s' onclick='this.form.submit();'>%1\$s\n", $tl, $c);
-		}
-	}
-	
+
 	if (strlen($_SESSION['val_naamfilter']) > 1) {
 		$filter = sprintf("(L.Achternaam LIKE '%%%1\$s%%' OR L.Roepnaam LIKE '%%%1\$s%%' OR L.MEISJESNM LIKE '%%%1\$s%%')", strtoupper($_SESSION['val_naamfilter']));
 	} else {
@@ -281,42 +269,47 @@ function fnLedenlijst() {
 	$xtraselect = ", LM.LIDDATUM AS `dteLid vanaf`, LM.Opgezegd AS `dteOpgezegd per`";
 	
 	if ($_SESSION['val_groep'] == 0) {
-		if ($_SESSION['val_TL'] == "Leden") {
+		if ($currenttab2 == "Leden") {
 			if (strlen($filter) > 0) {$filter .= " AND "; }
 			$filter .= "LM.Lidnr > 0 AND ((LM.Opgezegd IS NULL) OR LM.Opgezegd > CURDATE())";
 			$xtraselect = ", LM.LIDDATUM AS `dteLid vanaf`";
-		} elseif ($_SESSION['val_TL'] == "Klosleden") {
+		} elseif ($currenttab2 == "Klosleden") {
 			if (strlen($filter) > 0) {$filter .= " AND "; }
 			$filter .= "(LM.Lidnr IS NULL)";
 			$xtraselect = "";
-		} elseif ($_SESSION['val_TL'] == "Voormalig leden") {
+		} elseif ($currenttab2 == "Voormalig leden") {
 			if (strlen($filter) > 0) {$filter .= " AND "; }
 			$filter .= "(NOT LM.Opgezegd IS NULL) AND LM.Opgezegd < CURDATE()";
+		} elseif ($currenttab2 == "Toekomstige leden") {
+			if (strlen($filter) > 0) {$filter .= " AND "; }
+			$filter .= "LM.LIDDATUM > CURDATE()";
 		}
 		$rows = db_lid("ledenlijst", $filter, 0, $xtraselect);
 	} else {
 		if (strlen($filter) > 0) {$filter .= " AND ";}
 		$filter .= sprintf("LO.OnderdeelID=%d", $_SESSION['val_groep']);
-		if ($_SESSION['val_TL'] == "Leden") {
+		if ($currenttab2 == "Leden") {
 			$filter .= " AND " . $wherelidond;
-		} elseif ($_SESSION['val_TL'] == "Voormalig leden") {
+		} elseif ($currenttab2 == "Voormalig leden") {
 			$filter .= " AND (LO.Vanaf <= CURDATE() AND ((NOT LO.Opgezegd IS NULL) OR LO.Opgezegd < CURDATE()))";
 		}
 		$rows = db_lidond("onderdeellijst", 0, "", $filter, $_SESSION['val_groep']);
-	}
+	}	
 	
-	echo("</td>\n");
+	echo("<div id='filter'>\n");
+	printf("<form name='Filter' action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
+	echo("<table>\n<tr>");
+	
+	printf("<td class='label'>Naam bevat</td><td><input type='text' name='tbNaamFilter' size=20 value='%s' placeholder='Achter- of roepnaam' onblur='form.submit();'></td>\n", $_SESSION['val_naamfilter']);
+	printf("<td class='label'>Onderdeel</td><td><select name='lbGroepFilter' onchange='this.form.submit();'>\n%s</select></td>\n", fnSelectListGroepen($_SESSION['val_groep']));
+	
 	if (count($rows) > 1) {
-		$al = sprintf("<td>%d leden</td>", count($rows));
-	} else {
-		$al = "";
+		printf("<td>%d %s</td>\n", count($rows), $currenttab2);
 	}
-	printf("<td class='label'>Onderdeel</td><td><select name='lbGroepFilter' onchange='this.form.submit();'>%s</select>%s</td>\n", fnSelectListGroepen($_SESSION['val_groep']), $al);
-	echo("</tr>\n");
-	echo("</table>\n");
-	echo("</form>");
+	echo("</tr>\n</table>\n");
+	echo("</form>\n");
 	echo("</div>  <!-- Einde filter -->\n");
-
+		
 	if (count($rows) > 0) {
 		echo(fnDisplayTable($rows, $ldl, "", 0, $llw, "", "ledenlijst"));
 		foreach ($rows as $row) {
@@ -324,10 +317,11 @@ function fnLedenlijst() {
 		}
 		$_SESSION['sel_leden'] = $sel_leden;
 	}
+	
 } # fnLedenlijst
 
 function fnSelecties() {
-	global $currenttab;
+	global $currenttab,$currenttab2;
 	
 	if (isset($_GET['Scherm'])) {
 		$scherm = $_GET['Scherm'];
@@ -458,7 +452,7 @@ function fnSelecties() {
 		
 			echo("<tr><th>Lidstatus:</th><td colspan=2><select name='selectie_status' onChange='this.form.submit();'>\n");
 			printf("<option value='L'%s>Lid</option>", checked("L", "option", $_POST['selectie_status']));
-			printf("<option value='V'%s>Voormalig lid</option>", checked("V", "option", $_POST['selectie_status']));
+			printf("<option value='V'%s>Voormalig&nbsp;lid</option>", checked("V", "option", $_POST['selectie_status']));
 			if (count(db_lidmaatschap("toekomstigeleden")) > 0) {
 				printf("<option value='T'%s>Toekomstig lid</option>", checked("T", "option", $_POST['selectie_status']));
 			}
