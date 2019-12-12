@@ -330,26 +330,23 @@ function fnBeheerLogins() {
 	db_logins("uitloggen");
 	$rows = db_logins("lijst", "", "", 0, $w, "", $ord);
 		
-	echo("<div id='filter'>\n");
-	printf("<form name='filter' action='%s?%s' method='post'>", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
-	echo("<table>\n");
-	echo("<tr>\n");
-	printf("<td class='label'>Naam/login bevat</td><td><input type='text' name='NaamFilter' size=20 value='%s' onblur='form.submit();'></td>\n", $naamfilter);
-	echo("<td class='label'>Sorteren op</td><td>");
+	echo("<div id='beheerlogins'>\n");
+	printf("<form name='filter' action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
+	
+	printf("<label>Naam/login</label><div class='waarde'><input type='text' name='NaamFilter' size=20 value='%s' onblur='form.submit();'></div>\n", $naamfilter);
+	echo("<label>Sorteren op</label><div class='waarde'>");
 	foreach($arrSort as $s) {
 		if ($s == $sorteren) {$c=" checked"; } else { $c=""; }
 		printf("<input type='radio'%2\$s name='Sorteren' value='%1\$s' onclick='this.form.submit();'>%1\$s\n", $s, $c);
 	}
 	if ($sortdesc) {$c = " checked";	} else {	$c = "";	}
-	printf("&nbsp;<input type='checkbox' value='1' name='sortdesc'%s onclick='this.form.submit();'> Desc</td>\n", $c);
+	printf("&nbsp;<input type='checkbox' value='1' name='sortdesc'%s onclick='this.form.submit();'>&nbsp;Desc</div>\n", $c);
 	$al = count($rows);
 	if ($al > 1) {
-		printf("<td>%d logins</td>\n", $al);
+		printf("<div class='waarde'>%d logins</div>\n", $al);
 	}
-	echo("</tr>\n");
-	echo("</table>\n");
-	echo("</form>");
-	echo("</div>  <!-- Einde filter -->\n");
+	echo("</form>\n");
+	echo("</div>  <!-- Einde beheerlogins -->\n");
 	
 	
 	$lnk_ek = sprintf("<a href='%s?op=deletelogin&amp;lidid=%%d'><img src='images/del.png' title='Verwijder login'></a>", $_SERVER['PHP_SELF']);
@@ -460,9 +457,8 @@ function fnInstellingen() {
 				} elseif ($row->Naam == "typemenu" and (strlen($_POST[$pvn]) == 0 or $_POST[$pvn] < 1 or $_POST[$pvn] > 3)) {
 					$_POST[$pvn] = 1;
 					$mess = sprintf("Parameter '%s' wordt 1 gemaakt, omdat deze alleen 1, 2 of 3 mag zijn. ", $row->Naam);
-				} elseif (substr($row->Naam, 0, 3) == "url" and isset($_POST[$pvn])) {
-					$_POST[$pvn] = str_replace("http://", "", $_POST[$pvn]);
-					$_POST[$pvn] = str_replace("https://", "", $_POST[$pvn]);
+				} elseif (startwith($row->Naam) == "url" and isset($_POST[$pvn]) and !startwith($_POST[$pvn], "http")) {
+					$_POST[$pvn] = "https://" . $_POST[$pvn];
 				}
 				if ($row->ParamType == "B") {
 					if (isset($_POST[$pvn]) and $_POST[$pvn] == "1") {
