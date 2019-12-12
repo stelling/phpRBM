@@ -719,8 +719,9 @@ class Mailing {
 			
 		if ($this->mid > 0 and $this->verzendenmag and $this->deleted_on < "2000-01-01") {
 			printf("<button type='submit' name='action' value='send' title='Verstuur mailing'>Verstuur mailing</button>\n");
-			printf("<button type='submit' name='action' value='preview' title='Voorbeeld'>Bekijk voorbeeld</button>\n");
 		}
+		printf("<button type='submit' name='action' value='preview' title='Voorbeeld'>Bekijk voorbeeld</button>\n");
+		
 		if ($this->mid > 0 and $this->deleted_on > "1901-01-01" and $_SESSION['webmaster'] == 1) {
 			printf("<button type='submit' name='action' value='undelete' title='Verwijderen ongedaan maken'><img src='images/undelete.png' alt='Undelete'></button>\n");
 		} elseif ($this->mid > 0 and $this->deleted_on < "1901-01-01" and ($_SESSION['webmaster'] == 1 or $_SESSION['lidid'] == $this->AddedBy)) {
@@ -1053,12 +1054,14 @@ class Mailing {
 				$mail->AddAddress($rcpt->to_address);
 				$this->bevat_losse_email = true;
 			}
-			if (isset($rcpt->Naam_lid)) {
-				$mail->addstationary($rcpt->Naam_lid);
-			} else {
-				$mail->addstationary($this->to_name);
-			}
+			
 			if ($preview == 1) {
+				$mail->Body = $this->merged_message;
+				if (isset($rcpt->Naam_lid)) {
+					$mail->addstationary($rcpt->Naam_lid);
+				} else {
+					$mail->addstationary($this->to_name);
+				}
 				echo("<br>\n" . $mail->Body);
 			}
 			if (strlen($mail->ListAddresses()) > 0 and $preview == 0) {
@@ -1648,7 +1651,7 @@ function sentoutbox($mode=0) {
 	
 	/*
 	Uitleg mode:
-		0 = Bekijken outbox of versturen middels knop door gebruiker
+		0 = versturen middels knop door gebruiker
 		1 = via batchjob
 	*/
 	
@@ -1673,7 +1676,7 @@ function sentoutbox($mode=0) {
 		}
 	
 		$aob = db_mailing_hist("aantaloutbox");
-		if ($aantverzonden > 0 or $aob > 0 or $mode == 1) {
+		if ($aantverzonden > 0 or $aob > 0) {
 			if ($mode == 1) {
 				$mess = "sentoutbox is gestart door de batchjob";
 			} else {
