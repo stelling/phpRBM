@@ -61,12 +61,12 @@ label {
 	width: 133px;
 	height: 20px;
 	float: left;
-	clear: left;
 	display: block;
 	margin-top: 3px;
 	margin-bottom: 3px;
 	padding-top: 4px;
 	text-align: right;
+	width: 133px;
 }
 
 footer, #footer {
@@ -184,6 +184,49 @@ header a + a:visited + a:hover {
 	border-style: solid;
 	border-color: #000080;
 	border-width: 1px;
+}
+
+#filter td {
+	padding-left: 1px;
+	padding-right: 1px;
+}
+
+#filter label {
+	float: left;
+	margin-right: 2px;
+	padding-right: 1px;
+	height: 20px;
+}
+
+#filter .waarde {
+	clear: none;
+	float: left;
+	margin-top: 5px;
+	height: 20px;
+	border-style: solid;
+	border-width: 1px;
+	padding-left: 2px;
+	padding-right: 2px;
+}
+
+#beheerlogins label {
+	float: left;
+	margin-left: 2px;
+	margin-right: 3px;
+	padding-right: 1px;
+	height: 22px;
+	width: 90px;
+}
+
+#beheerlogins .waarde {
+	clear: none;
+	float: left;
+	margin-top: 5px;
+	height: 22px;
+	border-style: solid;
+	border-width: 1px;
+	padding-left: 2px;
+	padding-right: 2px;
 }
 
 #formulier, #overzichtlid {
@@ -994,7 +1037,7 @@ input.knop, button.knop {
 }
 
 #editmailingform select {
-	width: 350px;
+	width: 340px;
 }
 
 #selectieleden h1 {
