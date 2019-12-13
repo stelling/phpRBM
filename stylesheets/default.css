@@ -1036,7 +1036,7 @@ input.knop, button.knop {
 	width: 382px;
 }
 
-#editmailingform select {
+#editmailingform select, .editmailingform select {
 	width: 340px;
 }
 
@@ -1084,7 +1084,7 @@ input.knop, button.knop {
 	width: 135px;
 }
 
-#instellingenmuteren label, #editmailingform label {
+#instellingenmuteren label, #editmailingform label, .editmailingform label {
 	clear: left;
 	float: left;
 	margin-top: 3px;
@@ -1109,22 +1109,22 @@ input.knop, button.knop {
 	margin-top: 8px;
 }
 
-#editmailingform label {
+#editmailingform label, .editmailingform label {
 	width: 180px;
 	height: 24px;
 }
 
-#editmailingform li {
+#editmailingform li, .editmailingform li {
 	width: 156px;
 	height: 28px;
 }
 
-#instellingenmuteren input, #editmailingform input, #editmailingform select, #toestemmingenmuteren input {
+#instellingenmuteren input, #editmailingform input, #editmailingform select, .editmailingform input, .editmailingform select, #toestemmingenmuteren input {
 	margin-top: 9px;
 	margin-bottom: 8px;
 }
 
-#instellingenmuteren p, #editmailingform p {
+#instellingenmuteren p, #editmailingform p, .editmailingform p {
 	float: left;
 	height: 30px;
 	margin-top: 3px;
