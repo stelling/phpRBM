@@ -1976,7 +1976,7 @@ function db_mailing($actie, $mid=0, $filter="", $new_val="", $kolnaam="") {
 			}
 			$w .= " AND template=0 AND (deleted_on IS NULL)";
 			if ($_SESSION['webmaster'] == 0) {
-				$w .= sprintf(' AND (M.AddedBy=%1$d OR M.ChangedBy=%1$d OR M.confidential=0)', $_SESSION['lidid']);
+				$w .= sprintf(' AND (M.AddedBy=%1$d OR M.GewijzigdDoor=%1$d OR M.confidential=0)', $_SESSION['lidid']);
 			}
 		} elseif ($filter == "Templates") {
 			$w = "M.template=1 AND (deleted_on IS NULL)";
@@ -1996,7 +1996,7 @@ function db_mailing($actie, $mid=0, $filter="", $new_val="", $kolnaam="") {
 					CONCAT(%1\$s, ' & ', DATE_FORMAT(M.changed_on, %6\$s)) AS `mrgLaatst gewijzigd`
 					%2\$s,
 					IF((SELECT COUNT(*) FROM %3\$sMailing_hist AS MH WHERE MH.MailingID=M.MailingID) > 0, M.MailingID, 0) AS llkHist
-					FROM %3\$sMailing AS M LEFT JOIN %3\$sLid AS L ON M.ChangedBy = L.Nummer
+					FROM %3\$sMailing AS M LEFT JOIN %3\$sLid AS L ON M.GewijzigdDoor=L.RecordID
 					WHERE %4\$s ORDER BY %5\$s;", $selectnaam, $xtra_sel, TABLE_PREFIX, $w, $orderby, $fdtlang);
 		$result = fnQuery($query);
 		return $result->fetchAll();
@@ -2056,7 +2056,7 @@ function db_mailing($actie, $mid=0, $filter="", $new_val="", $kolnaam="") {
 			$clause = sprintf("`%s`=\"%s\"", $kolnaam, $new_val);
 			$where = sprintf("BINARY IFNULL(`%s`, '')<>\"%s\"", $kolnaam, $new_val);
 		}
-		$clause .= sprintf(", changed_on=SYSDATE(), ChangedBy=%d", $_SESSION['lidid']);
+		$clause .= sprintf(", changed_on=SYSDATE(), ChangedBy=%1\$d, GewijzigdDoor=%1\$d", $_SESSION['lidid']);
 		$where .= sprintf(" AND MailingID=%d", $mid);
 		$query = sprintf("UPDATE %sMailing SET %s WHERE %s;", TABLE_PREFIX, $clause, $where);
 //		debug($query);
@@ -2084,16 +2084,21 @@ function db_mailing($actie, $mid=0, $filter="", $new_val="", $kolnaam="") {
 			$query = sprintf("DELETE FROM %sMailing WHERE (NOT deleted_on IS NULL)
 						AND deleted_on < ADDDATE(CURDATE(), INTERVAL -%d MONTH);", TABLE_PREFIX, db_param("mailing_bewaartijd"));
 			$result = fnQuery($query, 2);
-			
-			$query = sprintf('DELETE FROM %1$sMailing_rcpt
-						WHERE MailingID NOT IN (SELECT M.MailingID FROM %1$sMailing AS M);', TABLE_PREFIX);
-			$result = fnQuery($query, 2);
-			
-			$query = sprintf('UPDATE %1$sMailing_hist SET MailingID=0
-						WHERE MailingID > 0 AND MailingID NOT IN (SELECT M.MailingID FROM %1$sMailing AS M);', TABLE_PREFIX);
-			$result = fnQuery($query, 2);
 		}
-
+			
+		$query = sprintf('DELETE FROM %1$sMailing_rcpt
+						  WHERE MailingID NOT IN (SELECT M.MailingID FROM %1$sMailing AS M);', TABLE_PREFIX);
+		$result = fnQuery($query, 2);
+			
+		$query = sprintf('UPDATE %1$sMailing_hist SET MailingID=0
+						  WHERE MailingID > 0 AND MailingID NOT IN (SELECT M.MailingID FROM %1$sMailing AS M);', TABLE_PREFIX);
+		$result = fnQuery($query, 2);
+		
+		// Deze code kan verwijderd worden na 1/1/2021
+		$query = sprintf('UPDATE %1$sMailing AS M SET M.GewijzigdDoor=ChangedBy WHERE GewijzigdDoor=0;', TABLE_PREFIX);
+		$result = fnQuery($query, 2);
+		//
+		
 	} elseif ($actie == "record") {
 		$query = sprintf("SELECT * FROM %sMailing WHERE MailingID=%d;", TABLE_PREFIX, $mid);
 		$result = fnQuery($query);
@@ -2259,17 +2264,19 @@ function db_mailing_rcpt($actie, $mid=0, $lidid=0, $email="", $lb=0) {
 		}
 		return $mess;
 		
-	} elseif ($actie == "del") {
+	} elseif ($actie == "del" or $actie == "delete") {
 		$mess = "";
 		if ($lidid > 0) {
 			$query = sprintf("DELETE FROM %sMailing_rcpt WHERE MailingID=%d AND LidID=%d;", TABLE_PREFIX, $mid, $lidid);
 			$r = db_naamlid($lidid);
 		} elseif (strlen($email) > 0) {
-			$query = sprintf("DELETE FROM %sMailing_rcpt WHERE MailingID=%d AND to_address='%s';", TABLE_PREFIX, $mid, $email);
+			$query = sprintf("DELETE FROM %sMailing_rcpt WHERE MailingID=%d AND LOWER(to_address)='%s';", TABLE_PREFIX, $mid, strtolower($email));
 			$r = $email;
 		}
 		if (fnQuery($query) > 0) {
 			$mess = sprintf("%s is bij mailing %d verwijderd.", $r, $mid);
+		} else {
+			$mess = sprintf("Foutmelding: %s is niet bij mailing %d verwijderd.", $r, $mid);
 		}
 		return $mess;
 		
@@ -3682,10 +3689,23 @@ function db_onderhoud($type=9) {
 		fnQuery($query, 2);
 	}
 	
+	// Toevoegen veld 'GewijzigdDoor' aan de tabel 'Mailing'. Deze code kan na 1/1/2021 worden verwijderd.
+	$tab = TABLE_PREFIX . "Mailing";
+	$col = "GewijzigdDoor";
+	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%s' AND COLUMN_NAME='%s';", $db_name, $tab, $col);
+	if (db_scalar($query) == 0) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '0';", $tab, $col);
+		fnQuery($query, 2);
+	}
+	
 	/***** Velden die aangepast zijn. *****/
 	
 	// Admin_Login, deze code kan na 31/12/2019 worden verwijderd.
 	$query = sprintf("ALTER TABLE %sAdmin_login CHANGE `Ingevoerd` `Ingevoerd` DATETIME;", TABLE_PREFIX);
+	fnQuery($query);
+	
+	// Mailing, deze code kan na 31/12/2020 worden verwijderd.
+	$query = sprintf("ALTER TABLE `%sMailing` CHANGE `ChangedBy` `ChangedBy` INT(11) NOT NULL DEFAULT '0';", TABLE_PREFIX);
 	fnQuery($query);
 	
 	// Deze code kan na 1/12/2020 worden verwijderd.
