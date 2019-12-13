@@ -93,7 +93,7 @@ if (toegang($_GET['tp'], 1) == false) {
 } elseif ($currenttab == "Zelfservice") {
 	if ($currenttab2 == "Inschrijven bewaking") {
 		inschrijvenbewaking($_SESSION['lidid']);
-	} elseif ($currenttab2 == "Inschrijven evenementen") {
+	} elseif ($currenttab2 == "Evenementen") {
 		inschrijvenevenementen($_SESSION['lidid']);
 	} elseif ($currenttab2 == "Bestellingen") {
 		onlinebestellingen($_SESSION['lidid']);
@@ -309,7 +309,7 @@ function fnGewijzigdeStukken() {
 	$rv = "";
 	if ($_SESSION['lidid'] > 0) {
 		$rows = db_Stukken("gewijzigdestukken");
-		if (is_array($rows) and count($rows) > 0) {
+		if (count($rows) > 0) {
 			$rv = "<p class='gewijzigdestukken'>De volgende stukken zijn gewijzigd sinds je laatste login.\n
 				   <ul>\n";
 			foreach($rows as $row) {
