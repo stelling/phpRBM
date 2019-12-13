@@ -190,7 +190,7 @@ class Mailing {
 	private $new_on = "0000-00-00";
 	private $AddedBy = 0;
 	private $changed_on = "0000-00-00";
-	private $ChangedBy = 0;
+	private $GewijzigdDoor = 0;
 	private $sent_on = "0000-00-00";
 	private $SentBy = 0;
 	private $deleted_on = "0000-00-00";
@@ -690,8 +690,8 @@ class Mailing {
 			if ($this->new_on > '1901-01-01') {
 				printf("<label>Toegevoegd door/op:</label><p>%s / %s</p>\n", db_naamlid($this->AddedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->new_on)));
 			}
-			if ($this->changed_on > '1901-01-01' and $this->ChangedBy > 0) {
-				printf("<label>Laatst gewijzigd door/op:</label><p>%s / %s</p>\n", db_naamlid($this->ChangedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->changed_on)));
+			if ($this->changed_on > '1901-01-01' and $this->GewijzigdDoor > 0) {
+				printf("<label>Laatst gewijzigd door/op:</label><p>%s / %s</p>\n", db_naamlid($this->GewijzigdDoor), strftime("%e %B %Y (%H:%M)", strtotime($this->changed_on)));
 			}
 			if ($this->sent_on > '1901-01-01' and $this->SentBy > 0) {
 				printf("<label>Laatst verzonden door/op:</label><p>%s / %s</p>\n", db_naamlid($this->SentBy), strftime("%e %B %Y (%H:%M)", strtotime($this->sent_on)));
@@ -849,11 +849,12 @@ class Mailing {
 			$_POST['HTMLdirect'] = 0;
 		}
 		
-		$old = db_mailing("record", $this->mid);
-		foreach($_POST as $key => $val) {
-			if (array_key_exists($key, $old) and $val != $old->$key) {
-//				debug($key . ": " . $val);
-				$mess = db_mailing("update", $this->mid, "", $val, $key);
+		if ($this->mid > 0) {
+			$old = db_mailing("record", $this->mid);
+			foreach($_POST as $key => $val) {
+				if (array_key_exists($key, $old) and $val != $old->$key) {
+					$mess = db_mailing("update", $this->mid, "", $val, $key);
+				}
 			}
 		}
 		
@@ -1231,7 +1232,7 @@ class Mailing {
 			$this->new_on = $ml->new_on;
 			$this->AddedBy = $ml->AddedBy;
 			$this->changed_on = $ml->changed_on;
-			$this->ChangedBy = $ml->ChangedBy;
+			$this->GewijzigdDoor = $ml->GewijzigdDoor;
 			$this->sent_on = $ml->sent_on;
 			$this->SentBy = $ml->SentBy;
 			$this->deleted_on = $ml->deleted_on;
