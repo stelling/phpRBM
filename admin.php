@@ -457,7 +457,7 @@ function fnInstellingen() {
 				} elseif ($row->Naam == "typemenu" and (strlen($_POST[$pvn]) == 0 or $_POST[$pvn] < 1 or $_POST[$pvn] > 3)) {
 					$_POST[$pvn] = 1;
 					$mess = sprintf("Parameter '%s' wordt 1 gemaakt, omdat deze alleen 1, 2 of 3 mag zijn. ", $row->Naam);
-				} elseif (startwith($row->Naam) == "url" and isset($_POST[$pvn]) and !startwith($_POST[$pvn], "http")) {
+				} elseif (startwith($row->Naam, "url") and isset($_POST[$pvn]) and !startwith($_POST[$pvn], "http")) {
 					$_POST[$pvn] = "https://" . $_POST[$pvn];
 				}
 				if ($row->ParamType == "B") {
