@@ -25,7 +25,7 @@ if (isset($_SESSION['lidid'])) {
 	db_logboek("add", $mess, 1, 0, 1);
 }
 
-if ((isset($_SESSION['webmaster']) and $_SESSION['webmaster'] == 1) or $_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
+if ((isset($_SESSION['webmaster']) and $_SESSION['webmaster'] == 1) or strpos(BASISURL, "telling.nl") > 0) {
 	error_reporting(E_ALL);
 } else {
 	error_reporting(0);
@@ -39,6 +39,7 @@ if (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
 	$_SESSION['naamingelogde'] = "gast";
 	$_SESSION['roepnaamingelogde'] = "gast";
 	$_SESSION['webmaster'] = 0;
+	$_SESSION['lidgroepen'] = "(0)";
 }
 
 $dir = substr(__DIR__, 0, strrpos(__DIR__, "/"));
@@ -171,10 +172,10 @@ function HTMLheader($breed=0) {
 		}
 		printf("<title>%s</title>\n", $title);
 		if (file_exists("stylesheets/default.css")) {
-			printf("<link rel='stylesheet' href='stylesheets/default.css?v%s'>\n", strftime("%Y%m%d%H%M", filectime("stylesheets/default.css")));
+			printf("<link rel='stylesheet' href='default.css?v%s'>\n", strftime("%Y%m%d%H%M", filectime("default.css")));
 		}
 		if (file_exists("stylesheets/kleur.css")) {
-			printf("<link rel='stylesheet' href='stylesheets/kleur.css?v%s'>\n", strftime("%Y%m%d%H%M", filectime("stylesheets/kleur.css")));
+			printf("<link rel='stylesheet' href='maatwerk/kleur.css?v%s'>\n", strftime("%Y%m%d%H%M", filectime("maatwerk/kleur.css")));
 		}
 		echo("</head>\n");
 		echo("<body>\n");
@@ -196,7 +197,7 @@ function HTMLheader($breed=0) {
 		
 		if ($_SESSION['lidid'] > 0) {
 			printf("Welkom %s\n", htmlentities($_SESSION['roepnaamingelogde']));
-			echo("<a href='/?tp=Zelfservice/Wijzigen wachtwoord'><img src='images/user.png' title='Wijzigen wachtwoord' alt='Wijzigen wachtwoord'></a>\n");
+			echo("<a href='/?tp=Zelfservice/Wijzigen+wachtwoord'><img src='images/user.png' title='Wijzigen wachtwoord' alt='Wijzigen wachtwoord'></a>\n");
 			echo("<a href='index.php?actie=uitloggen'><img src='images/power.png' title='Uitloggen' alt='Uitloggen'></a>\n");
 			if ($_SESSION['webmaster'] == 1) {
 				if ($_SERVER['PHP_SELF'] != "/admin.php") {
