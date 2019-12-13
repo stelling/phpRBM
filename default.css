@@ -1073,6 +1073,7 @@ input.knop, button.knop {
 
 #selectieleden .invoerblok {
 	width: 850px;
+	min-height: 30px;
 }
 
 #mailingselectieleden td {
@@ -1125,7 +1126,6 @@ input.knop, button.knop {
 }
 
 #instellingenmuteren p, #editmailingform p, .editmailingform p {
-	float: left;
 	height: 30px;
 	margin-top: 3px;
 	margin-bottom: 2px;
