@@ -311,6 +311,8 @@ function fnAuthenticatie($melding=1, $password="") {
 	} else {
 		if (in_array($_SESSION['lidid'], $lididwebmasters)) {
 			$_SESSION['webmaster'] = 1;
+		} else {
+			$_SESSION['webmaster'] = 0;
 		}
 		db_logins("setingelogd", "", "", $_SESSION['lidid']);
 	}
