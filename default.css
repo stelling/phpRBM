@@ -1115,6 +1115,10 @@ input.knop, button.knop {
 	height: 24px;
 }
 
+#instellingenmuteren p {
+	float: left;
+}
+
 #editmailingform li, .editmailingform li {
 	width: 156px;
 	height: 28px;
