@@ -1923,7 +1923,7 @@ function db_add_mailing_hist($lidid, $mid, $to_name="", $to_addr="", $cc_addr=""
 		
 		$from_name = $row->from_name;
 		$from_addr = $row->from_addr;
-		$zichtbaarvoor = $row>ZichtbaarVoor;
+		$zichtbaarvoor = $row->ZichtbaarVoor;
 		
 		if (strlen($subject) == 0) {
 			$subject = $row->subject;
@@ -1982,7 +1982,7 @@ function db_mailing($actie, $mid=0, $filter="", $new_val="", $kolnaam="") {
 			}
 			$w .= " AND template=0 AND (deleted_on IS NULL)";
 		} elseif ($filter == "Templates") {
-			$w .= "AND M.template=1 AND (deleted_on IS NULL)";
+			$w .= " AND M.template=1 AND (deleted_on IS NULL)";
 			$xtra_sel = sprintf(", CONCAT(IF(M.SentBy=0, '', (SELECT %s FROM %sLid AS L WHERE L.Nummer=M.SentBy)), ' & ', DATE_FORMAT(M.sent_on, %s)) AS `mrgLaatst verzonden door/op`", $selectnaam, TABLE_PREFIX, $fdtlang);
 			$orderby = "M.subject, sent_on";
 			
@@ -1996,7 +1996,6 @@ function db_mailing($actie, $mid=0, $filter="", $new_val="", $kolnaam="") {
 			$w .= " AND (M.deleted_on IS NULL)";
 		}
 		
-		debug($w);
 		$query = sprintf("SELECT M.MailingID AS lnkMailingID, M.MailingID AS intNr, M.subject AS Onderwerp, M.from_name AS Van, M.to_name AS Aan,
 					CONCAT(%1\$s, ' & ', DATE_FORMAT(M.changed_on, %6\$s)) AS `mrgLaatst gewijzigd`
 					%2\$s,
