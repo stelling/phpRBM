@@ -828,7 +828,7 @@ function fnEigenGegevens($lidid=0, $actie="") {
 				$ld = sprintf("<a href='index.php?tp=%s&amp;MailingHistID=%%d'>%%s</a>", urlencode($_GET['tp']));
 				$rows = db_gegevenslid($lidid, "Mailing");
 				if (count($rows) > 0) {
-					echo(fnDisplayTable($rows, $ld, sprintf("Aan %s verstuurde mailings", $naamlid)));
+					echo(fnDisplayTable($rows, $ld, sprintf("Aan %s verstuurde e-mails", $naamlid)));
 
 					
 				} else {
