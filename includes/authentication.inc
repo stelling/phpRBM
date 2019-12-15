@@ -1,5 +1,19 @@
 <?php
 
+$_SESSION['webmaster'] = 0;
+if ($_SESSION['lidid'] == 0 or strlen($_SESSION['username']) == 0) {
+	$_SESSION['lidid'] = 0;
+	$_SESSION['username'] = "";
+	$_SESSION['lidgroepen'] = "0";
+} else {
+	if (in_array($_SESSION['lidid'], $lididwebmasters)) {
+		$_SESSION['webmaster'] = 1;
+	}
+	if (strlen($_SESSION['lidgroepen']) < 4) {
+		$_SESSION['lidgroepen'] = db_Lidond("lidgroepen");
+	}
+}
+
 $tabpages = null;
 if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	addtp("Beheer logins");
@@ -304,16 +318,16 @@ function fnAuthenticatie($melding=1, $password="") {
 	} elseif (strlen($mess) > 0) {
 		db_logboek("add", $mess, 97);
 	}
+	$_SESSION['webmaster'] = 0;
+	$_SESSION['lidgroepen'] = "0";
 	if ($_SESSION['lidid'] == 0 or strlen($_SESSION['username']) == 0) {
 		$_SESSION['lidid'] = 0;
 		$_SESSION['username'] = "";
-		$_SESSION['webmaster'] = 0;
 	} else {
 		if (in_array($_SESSION['lidid'], $lididwebmasters)) {
 			$_SESSION['webmaster'] = 1;
-		} else {
-			$_SESSION['webmaster'] = 0;
 		}
+		$_SESSION['lidgroepen'] = db_Lidond("lidgroepen");
 		db_logins("setingelogd", "", "", $_SESSION['lidid']);
 	}
 } # fnAuthenticatie
@@ -334,7 +348,7 @@ function toegang($soort, $melding=1, $log=1) {
 		}
 	}
 	$soort = str_replace("'", "", $soort);
-	
+		
 	if (strlen($soort) > 0 and in_array($soort, $arrAltijdToegang) === false) {
 		if ($_SESSION['lidid'] > 0 and in_array($_SESSION['lidid'], $lididwebmasters) === true) {
 			$_SESSION['webmaster'] == 1;
