@@ -39,7 +39,7 @@ if (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
 	$_SESSION['naamingelogde'] = "gast";
 	$_SESSION['roepnaamingelogde'] = "gast";
 	$_SESSION['webmaster'] = 0;
-	$_SESSION['lidgroepen'] = "(0)";
+	$_SESSION['lidgroepen'] = "0";
 }
 
 $dir = substr(__DIR__, 0, strrpos(__DIR__, "/"));
@@ -171,10 +171,10 @@ function HTMLheader($breed=0) {
 			}
 		}
 		printf("<title>%s</title>\n", $title);
-		if (file_exists("stylesheets/default.css")) {
+		if (file_exists("default.css")) {
 			printf("<link rel='stylesheet' href='default.css?v%s'>\n", strftime("%Y%m%d%H%M", filectime("default.css")));
 		}
-		if (file_exists("stylesheets/kleur.css")) {
+		if (file_exists("maatwerk/kleur.css")) {
 			printf("<link rel='stylesheet' href='maatwerk/kleur.css?v%s'>\n", strftime("%Y%m%d%H%M", filectime("maatwerk/kleur.css")));
 		}
 		echo("</head>\n");
