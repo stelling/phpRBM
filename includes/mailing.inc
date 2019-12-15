@@ -13,6 +13,10 @@ function fnMailing() {
 		$op = "";
 	}
 	
+	if (db_param("mailing_direct_verzenden") == 1) {
+		sentoutbox(2);
+	}
+	
 	if (isset($_POST['Upload']) and $_POST['Upload'] == "Upload") {
 		$op = "upload";
 	} elseif ($_GET['tp'] == "Mailing/Historie" and $op != "histdetails" and $op != "opnieuw") {
@@ -59,7 +63,7 @@ function fnMailing() {
 //	echo("<h2>De mailingsmodule is momenteel in onderhoud. Graag niet gebruiken.</h2>");
 
 	$zv = db_Mailing("zichtbaarvoor");
-	$lg = explode(", ", substr(substr($_SESSION['lidgroepen'], 1), 0, -1));
+	$lg = explode(", ", $_SESSION['lidgroepen']);
 	if ($_SESSION['webmaster'] == 0 and $zv != 0 and !in_array($zv, $lg)) {
 		echo("<h2>Je hebt geen rechten om deze mailing te bekijken of te bewerken.</h2>");
 		
@@ -468,7 +472,11 @@ class Mailing {
 			} elseif (db_param("maxmailsperuur") > 0 and db_mailing_hist("aantalperuur") >= db_param("maxmailsperuur")) {
 				$rs = "";
 			} elseif ($filter == "Outbox") {
-				$rs = sprintf("<a href='index.php?tp=%s&amp;op=retry&amp;MailingHistID=%%d'><img src='images/sendmail.png' alt='sent mail' title='Verstuur'></a>", urlencode($_GET['tp']));
+				if (db_param("mailing_direct_verzenden") == 0) {
+					$rs = sprintf("<a href='index.php?tp=%s&amp;op=retry&amp;MailingHistID=%%d'><img src='images/sendmail.png' alt='sent mail' title='Verstuur'></a>", urlencode($_GET['tp']));
+				} else {
+					$rs == "";
+				}
 				$rs .= sprintf("&nbsp;<a href='index.php?tp=%s&amp;op=deletehist&amp;MailingHistID=%%d'><img src='images/del.png' alt='Verwijder e-mail' title='Verwijderen'></a>", urlencode($_GET['tp']));
 			} elseif (db_param("mailing_mailopnieuw") == 0 or (db_param("mailing_mailopnieuw") == 1 and $_SESSION['webmaster'] == 0)) {
 				$rs = "";
@@ -479,11 +487,13 @@ class Mailing {
 				$rows = db_mailing_hist("outbox");
 				if (count($rows) > 0) {
 					echo(fnDisplayTable($rows, $ld, "", 0, $rs));
-					printf("<form method='post' action='%s?tp=%s/%s' name='frm_outbox'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
-					echo("<div id='opdrachtknoppen'>\n");
-					printf("<input type='submit' name='action' value='Inhoud versturen' onClick='form.submit();'>\n");
-					echo("</div>  <!-- Einde opdrachtknoppen -->\n");
-					echo("</form>\n");
+					if (db_param("mailing_direct_verzenden") == 0) {
+						printf("<form method='post' action='%s?tp=%s/%s' name='frm_outbox'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
+						echo("<div id='opdrachtknoppen'>\n");
+						printf("<input type='submit' name='action' value='Inhoud versturen' onClick='form.submit();'>\n");
+						echo("</div>  <!-- Einde opdrachtknoppen -->\n");
+						echo("</form>\n");
+					}
 				} else {
 					echo("<p>De outbox is leeg.</p>\n");
 				}
@@ -994,18 +1004,14 @@ class Mailing {
 					$aant++;
 				}
 			}
-			if ($aant > 0) {
-				$mess = sprintf("Er zijn %d leden, via een selectie, aan mailing %d (%s) toegevoegd.", $aant, $this->mid, $this->subject);
-			}
+			$mess = sprintf("Er zijn %d leden, via een selectie, aan mailing %d (%s) toegevoegd.", $aant, $this->mid, $this->subject);
 		} else {
 			foreach(fnQuery($query) as $row) {
 				if (strlen(db_mailing_rcpt("del", $this->mid, $row->Nummer)) > 0) {
 					$aant++;
 				}
 			}
-			if ($aant > 0) {
-				$mess = sprintf("Er zijn %d leden, via een selectie, aan mailing %d (%s) verwijderd.", $aant, $this->mid, $this->subject);
-			}
+			$mess = sprintf("Er zijn %d leden, via een selectie, aan mailing %d (%s) verwijderd.", $aant, $this->mid, $this->subject);
 		}
 		db_logboek("add", $mess, 4, 0, 0, $this->mid);
 		
@@ -1513,11 +1519,17 @@ function fnMailingInstellingen() {
 	
 	echo("<div id='instellingenmuteren'>\n");
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-
+		
 		if (isset($_POST['mailing_direct_verzenden']) and $_POST['mailing_direct_verzenden'] == "1") {
 			db_param("mailing_direct_verzenden", "updval", 1);
 		} else {
 			db_param("mailing_direct_verzenden", "updval", 0);
+		}
+
+		if (isset($_POST['mailing_sentoutbox_auto']) and $_POST['mailing_sentoutbox_auto'] == "1") {
+			db_param("mailing_sentoutbox_auto", "updval", 1);
+		} else {
+			db_param("mailing_sentoutbox_auto", "updval", 0);
 		}
 		
 		db_param("mailing_mailopnieuw", "updval", $_POST['mailing_mailopnieuw']);
@@ -1557,7 +1569,8 @@ function fnMailingInstellingen() {
 	$options .= sprintf("<option value=2%s>Ja</option>\n", checked(db_param("mailing_mailopnieuw"), "option", 2));
 	
 	echo("<h2>Algemeen</h2>\n");
-	printf("<label>E-mails versturen uit de outbox?</label><p><input type='checkbox' name='mailing_direct_verzenden' value=1%s></p>\n", checked(db_param("mailing_direct_verzenden")));
+	printf("<label>E-mails in de outbox direct probereren te versturen?</label><p><input type='checkbox' name='mailing_direct_verzenden' value=1%s></p>\n", checked(db_param("mailing_direct_verzenden")));
+	printf("<label>E-mails uit de outbox automatisch in de achtergrond versturen?</label><p><input type='checkbox' name='mailing_sentoutbox_auto' value=1%s></p>\n", checked(db_param("mailing_sentoutbox_auto")));
 	printf("<label>Mag een verzonden e-mail opnieuw worden verstuurd?</label><p><select name='mailing_mailopnieuw'>%s</select></p>\n", $options);
 	printf("<label>Hoeveel maanden moeten mailings in de prullenbak bewaard blijven:</label><p><input class='inputnumber' type='number' name='mailing_bewaartijd' value=%d size=8> (0 = altijd bewaren)</p>\n", db_param("mailing_bewaartijd"));
 	printf("<label>Hoeveel mails mogen er per minuut verstuurd worden:</label><p><input class='inputnumber' type='number' name='maxmailsperminuut' value=%d size=8> (0 = onbeperkt)</p>\n", db_param("maxmailsperminuut"));
@@ -1649,7 +1662,7 @@ function sentfromhist($mhid) {
 		$mail->Subject = $row->subject;
 	}
 	$mail->Body = $row->message;
-	$mail->addstationary($row->aan);
+	$mail->addstationary($row->Aan);
 	
 	$ad = substr($_SERVER["SCRIPT_FILENAME"], 0, strrpos($_SERVER["SCRIPT_FILENAME"], "/")) . "/attachments/" . $mhid;
 	if (is_dir($ad)) {
@@ -1678,10 +1691,18 @@ function sentoutbox($mode=0) {
 	Uitleg mode:
 		0 = versturen middels knop door gebruiker
 		1 = via batchjob
+		2 = via optie 'mailing_direct_verzenden'
 	*/
 	
 	$aantverzonden = 0;
-	if (db_param("mailing_direct_verzenden") == 1) {
+	$mess = "";
+	if ($mode == 1 and db_param("mailing_sentoutbox_auto") == 0) {
+		$mess = sprintf("Het versturen in de achtergrond (via batchjob) is uitgeschakeld. Er staan %d e-mails in de outbox.", db_mailing_hist("aantaloutbox"));
+		
+	} elseif ($mode == 2 and db_param("mailing_direct_verzenden") == 0) {
+		$mess = "Het direct versturen is uitgeschakeld.";
+		
+	} else {
 		if ($mode == 1) {
 			$a = "outboxbatch";
 		} else {
@@ -1708,10 +1729,10 @@ function sentoutbox($mode=0) {
 				$mess = "Versturen vanuit de outbox is gereed";
 			}
 			$mess .= sprintf(", er zijn %d mails verzonden. Er staan nog %d mails te wachten in de outbox.", $aantverzonden, $aob);
-			db_logboek("add", $mess, 4);
 		}
-	} elseif (db_mailing_hist("aantaloutbox") > 0)  {
-		$mess = "Het versturen vanuit de outbox is uitgeschekeld.";
+	}
+	
+	if (strlen($mess) > 0) {
 		db_logboek("add", $mess, 4);
 	}
 	
