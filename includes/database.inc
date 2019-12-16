@@ -3303,6 +3303,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrBooleans['mailing_direct_verzenden'] = 0;
 	$arrBooleans['mailing_sentoutbox_auto'] = 1;
 	$arrBooleans['mailing_rekening_nulregelsweglaten'] = 0;
+	$arrBooleans['mailing_rekening_nulrekversturen'] = 1;
 	$arrBooleans['toneninschrijvingenbewakingen'] = 1;
 	$arrBooleans['tonentoekomstigebewakingen'] = 0;
 	$arrBooleans['zs_incl_beroep'] = 1;
