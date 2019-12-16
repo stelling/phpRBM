@@ -475,7 +475,7 @@ class Mailing {
 				if (db_param("mailing_direct_verzenden") == 0) {
 					$rs = sprintf("<a href='index.php?tp=%s&amp;op=retry&amp;MailingHistID=%%d'><img src='images/sendmail.png' alt='sent mail' title='Verstuur'></a>", urlencode($_GET['tp']));
 				} else {
-					$rs == "";
+					$rs = "";
 				}
 				$rs .= sprintf("&nbsp;<a href='index.php?tp=%s&amp;op=deletehist&amp;MailingHistID=%%d'><img src='images/del.png' alt='Verwijder e-mail' title='Verwijderen'></a>", urlencode($_GET['tp']));
 			} elseif (db_param("mailing_mailopnieuw") == 0 or (db_param("mailing_mailopnieuw") == 1 and $_SESSION['webmaster'] == 0)) {
@@ -1345,8 +1345,11 @@ function fnRekeningenMailen($op) {
 			if (isset($_POST['reklid']) and is_numeric($_POST['reklid']) and $_POST['reklid'] > 0) {
 				$filter .= sprintf(" AND RK.Lid=%d", $_POST['reklid']);
 			}
-			if (!isset($_POST['nulrekeningen'])) {
+			if (isset($_POST['nulrekeningen'])) {
+				db_param("mailing_rekening_nulrekversturen", "updval", 1);
+			} else {
 				$filter .= " AND RK.Bedrag <> 0";
+				db_param("mailing_rekening_nulrekversturen", "updval", 0);
 			}
 			if (!isset($_POST['eerderverzonden'])) {
 				$filter .= sprintf(" AND (RK.Nummer NOT IN (SELECT Xtra_Num FROM %sMailing_hist WHERE Xtra_Char='REK'))", TABLE_PREFIX);
@@ -1381,11 +1384,10 @@ function fnRekeningenMailen($op) {
 			}
 			
 			if (isset($_POST['mailing_rekening_nulregelsweglaten']) and $_POST['mailing_rekening_nulregelsweglaten'] == 1) {
-				$val = 1;
+				db_param("mailing_rekening_nulregelsweglaten", "updval", 1);
 			} else {
-				$val = 0;
+				db_param("mailing_rekening_nulregelsweglaten", "updval", 0);
 			}
-			db_param("mailing_rekening_nulregelsweglaten", "updval", $val);
 
 			$selrek = "";
 			$aantrek = 0;
@@ -1394,9 +1396,7 @@ function fnRekeningenMailen($op) {
 				$aantrek += 1;
 			}
 			
-			if (db_param("maxmailsperdag") > 0 and db_mailing_hist("aantal24uur") + $aantrek > db_param("maxmailsperdag")) {
-				printf("<p class='mededeling'>Er mogen maximaal %d mails per 24 uur worden verstuurd. Op dit moment zou dit over het maximum heen gaan.</p>", db_param("maxmailsperdag"));
-			} elseif (strlen($selrek) > 0) {
+			if (strlen($selrek) > 0) {
 				printf("<form method='post' action='%s?tp=%s/%s&amp;op=selectieversturen' name='mailrek'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
 				echo("De volgende rekeningen zijn geselecteerd.\n");
 				printf("<ul>\n%s</ul>\n<div class='clear'></div>\n", $selrek);
@@ -1472,23 +1472,23 @@ function fnRekeningenMailen($op) {
 			printf("<option value='%1\$d'>%1\$d</option>\n", $row->Seizoen);
 		}
 		echo("</select></td><td></td><td></td></tr>\n");
-		printf("<tr><td class='label'>Rekeningnummer</th><td><input type='number' name='reknr'></td><td><input type='number' value=%d name='minreknr'></td><td><input type='number' value=%d name='maxreknr'></td></tr>\n", db_rekening("minnummer"), db_rekening("maxnummer"));
-		printf("<tr><td class='label'>Rekeningdatum</th><td><input type='date' name='rekdatum'></td><td><input type='date' value='%s' name='mindatum'></td><td><input type='date' value='%s' name='maxdatum'></td></tr>\n", db_rekening("mindatum"), db_rekening("maxdatum"));			
-		echo("<tr><td class='label'>Betaald door (debiteur)</th><td><select name='reklid'>\n<option value='-1'>*** Iedereen ***</option>>\n");
+		printf("<tr><td class='label'>Rekeningnummer</td><td><input type='number' name='reknr'></td><td><input type='number' value=%d name='minreknr'></td><td><input type='number' value=%d name='maxreknr'></td></tr>\n", db_rekening("minnummer"), db_rekening("maxnummer"));
+		printf("<tr><td class='label'>Rekeningdatum</td><td><input type='date' name='rekdatum'></td><td><input type='date' value='%s' name='mindatum'></td><td><input type='date' value='%s' name='maxdatum'></td></tr>\n", db_rekening("mindatum"), db_rekening("maxdatum"));			
+		echo("<tr><td class='label'>Betaald door (debiteur)</td><td><select name='reklid'>\n<option value='-1'>*** Iedereen ***</option>>\n");
 		foreach(db_lid("ledenmetrekening") as $row) {
 			printf("<option value=%d>%s</option>\n", $row->Nummer, $row->Naam_lid);
 		}
 		echo("</select></td><td></td><td></td></tr>\n");
-		echo("<tr><td class='label'>Statussen</th><td colspan=3>");
+		echo("<tr><td class='label'>Statussen</td><td colspan=3>");
 		echo("<input type='checkbox' name='volbetaald' value=1 checked>Volledig betaald\n");
 		echo("<input type='checkbox' name='deelbetaald' value=1 checked>Gedeeltelijk betaald\n");
 		echo("<input type='checkbox' name='nietbetaald' value=1 checked>Niet betaald\n");
-		echo("<input type='checkbox' name='nulrekeningen' value=1 checked>Nul rekeningen\n");
+		printf("<input type='checkbox' name='nulrekeningen' value=1 %s>Nul rekeningen\n", checked(db_param("mailing_rekening_nulrekversturen")));
 		echo("<input type='checkbox' name='eerderverzonden' value=1 checked>Eerder verzonden\n");
 		echo("<input type='checkbox' name='geenemail' value=1>Geen e-mailadres\n");
 		
 		echo("<tr><th colspan=4>Instellingen</th></tr>\n");
-		echo("<tr><td class='label'>Rekening versturen aan:</th><td colspan=3><select name='rekverstuuraan'>\n");
+		echo("<tr><td class='label'>Rekening versturen aan:</td><td colspan=3><select name='rekverstuuraan'>\n");
 		$sn[1] = "Alleen betaald door (debiteur)";
 		$sn[2] = "Betaald door en alle volwassenen op de rekening";
 		$sn[3] = "Betaald door en alle leden op de rekening";
@@ -1505,12 +1505,11 @@ function fnRekeningenMailen($op) {
 		printf("<tr><td class='label'>Vanaf naam<td colspan=3><input name='vanafnaam' type='text' value='%s' size=50></td></tr>\n", db_param("mailing_rekening_from_naam"));
 		printf("<tr><td class='label'>Nulregels weglaten<td colspan=3><input name='mailing_rekening_nulregelsweglaten' type='checkbox'%s value=1></td></tr>\n", checked(db_param("mailing_rekening_nulregelsweglaten")));
 		
-		echo("</td></tr>\n");
 		echo("<tr><th colspan=4><input type='submit' value='Verder'></th></tr>\n");
 		echo("</table>\n");
 		echo("</form>\n");
 	}
-	echo("</div <!== Einde rekeningenmailen -->\n");
+	echo("</div> <!-- Einde rekeningenmailen -->\n");
 } # fnRekeningenMailen
 
 function fnMailingInstellingen() {
