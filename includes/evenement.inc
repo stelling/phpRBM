@@ -151,7 +151,7 @@ function inschrijvenevenementen($lidid) {
 		printf("<input type='radio' name='reactie_%d' value='Afmelden' %s onchange='this.form.submit();'>Afmelden&nbsp;", $row->RecordID, $c);
 		
 		if (isset($ins->Opmerking)) {
-			printf("<br><br>Opmerking: <input type='text' onBlur='this.form.submit();' name='opm_%d' size=80 maxlength=125 value=\"%s\"></td>\n", $row->RecordID, $ins->Opmerking);
+			printf("<br><br>Opmerking: <input type='text' onBlur='this.form.submit();' name='opm_%d' size=75 maxlength=125 value=\"%s\"></td>\n", $row->RecordID, $ins->Opmerking);
 		}
 		
 		if (isset($ins->Status) and ($ins->Status == "B" or $ins->Status == "I")) {
@@ -223,9 +223,9 @@ function muteerevenement($eventid) {
 			}
 		}
 		foreach (db_evenement("deelnemers", 0, $eventid) as $rd) {
-			foreach(array("Status", "Opmerking", "Functie") as $fld) {
+			foreach(array("Status", "Opmerking", "Functie", "Aantal") as $fld) {
 				$formfld = sprintf("%s_%d", $fld, $rd->RecordID);
-				if ($_POST[$formfld] != $rd->$fld) {
+				if (isset($_POST[$formfld]) and $_POST[$formfld] != $rd->$fld) {
 					$result = db_Evenement_Deelnemer("update", $rd->RecordID, $fld, $_POST[$formfld]);
 				}
 			}
@@ -279,6 +279,7 @@ function muteerevenement($eventid) {
 			$insopen2 = "checked='checked'";
 		}
 		$standaardstatus = $row->StandaardStatus;
+		$maxpersonenperdeelname = $row->MaxPersonenPerDeelname;
 		if ($row->VerwijderdOp >= '2012-01-01') {
 			$verw1 = "checked='checked'";
 			$verw2 = "";
@@ -303,6 +304,7 @@ function muteerevenement($eventid) {
 		$insopen1 = "";
 		$insopen2 = "";
 		$standaardstatus = "I";
+		$maxpersonenperdeelname = 1;
 		$beperktotgroep = 0;
 		$zichtbaarvoor = 0;
 		$aantdln = 0;
@@ -388,7 +390,11 @@ function muteerevenement($eventid) {
 			}
 			echo("<tr>\n");
 			printf("<td>%s</td>\n", htmlentities($rd->NaamDeelnemer));
-			printf("<td><select name='Status_%d' onChange='this.form.submit();'>%s</select></td>\n", $rd->RecordID, $optstat);
+			printf("<td><select name='Status_%d' onChange='this.form.submit();'>%s</select>", $rd->RecordID, $optstat);
+			if ($maxpersonenperdeelname > 1) {
+				printf("<br>\n# personen: <input type='number' class='inputnumber' name='Aantal_%d' value=%d size=5>", $rd->RecordID, $rd->Aantal);
+			}
+			echo("</td>\n");
 			printf("<td><input type='text' name='Opmerking_%d' value='%s' placeholder='Opmerking' size=80 maxlength=125>\n", $rd->RecordID, $rd->Opmerking);
 			printf("<br><input type='text' name='Functie_%d' value='%s' placeholder='Functie' size=40 maxlength=30></td>\n", $rd->RecordID, $rd->Functie);
 			printf("<td>%s<br>%s</td>\n", strftime("%e %b %Y (%R)", strtotime($rd->Ingevoerd)), db_naamlid($rd->IngevoerdDoor));
@@ -531,7 +537,9 @@ function overzichtevenementen() {
 				$$vn .= "<br>\n";
 			}
 			$nd = htmlentities($deeln->NaamDeelnemer);
-			if (strlen($deeln->Functie) > 0) {
+			if ($deeln->Aantal > 1) {
+				$nd .= sprintf(" (%dp)", $deeln->Aantal);
+			} elseif (strlen($deeln->Functie) > 0) {
 				$nd .= sprintf(" (%s)", htmlentities($deeln->Functie));
 			}
 			if ($row->ndSoort == "W") {
