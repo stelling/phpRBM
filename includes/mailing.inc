@@ -308,7 +308,7 @@ class Mailing {
 			$this->MergeField[]=array('Naam' => "BewakingHistorie", 'SQL' => $sql);
 		}
 							  
-		$sql = sprintf("SELECT L.Bankrekening FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);
+		$sql = sprintf("SELECT L.Bankrekening FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Bankrekening", 'SQL' => $sql);
 		
 		$sql = sprintf("SELECT L.Burgerservicenummer FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);
@@ -1438,7 +1438,6 @@ function fnRekeningenMailen($op) {
 					}
 				}
 				
-				$mail->Subject = sprintf("Rekening %d - %s", $rk->Nummer, $rk->OMSCHRIJV);
 				$rt = RekeningDetail($rk->Nummer);
 				$mail->Body = $rt;
 				if ($rk->Ouders == 1) {
@@ -1447,11 +1446,11 @@ function fnRekeningenMailen($op) {
 					$dn = $rk->DEBNAAM;
 				}
 				$mail->addstationary($dn, "", 1);
-				if (strlen($mail->ListAddresses) == 0) {
+				if (strlen($mail->ListAddresses()) == 0) {
 					$mess = sprintf("Rekening %d kon niet worden verzonden, omdat er van %s geen geldig e-mailadres in de database bekend is.", $rk->Nummer, $dn);
 										
 				} else {
-					db_add_mailing_hist($rk->Lid, 0, $dn, $mail->ListAddresses(), $mail->ListAddresses("cc"), $rt, "REK", $rk->Nummer);		
+					db_add_mailing_hist($rk->Lid, 0, $dn, $mail->ListAddresses(), $mail->ListAddresses("cc"), $rt, "REK", $rk->Nummer, $rk->OMSCHRIJV);
 					$mess = sprintf("Rekening %d is naar %s (%s) verstuurd.", $rk->Nummer, $dn, $mail->ListAddresses());
 					$aant_ok++;
 				}
