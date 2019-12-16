@@ -187,7 +187,7 @@ function HTMLheader($breed=0) {
 		echo("<header>\n");
 		printf("<h1>%s</h1>\n", db_param("naamwebsite"));
 		
-		if (strlen(db_param("url_eigen_help")) < 5) {
+		if (strlen(db_param("url_eigen_help")) < 10) {
 			$htmlhelp = "<a href='https://software.telling.nl/phpRBM/uitleg.php'><img src='images/question.png' title='Uitleg gebruik en installatie' alt='Question mark'></a>\n";
 		} else {
 			$htmlhelp = sprintf("<a href='%s'><img src='images/question.png' title='Helpfunctie' alt='Question mark'></a>\n", db_param("url_eigen_help"));
