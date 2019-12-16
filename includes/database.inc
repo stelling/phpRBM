@@ -429,7 +429,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 	}
 }
 
-function db_naamlid($lidid, $uitv="", $riz="Onbekend") {
+function db_naamlid($lidid, $uitv="", $riz="gast") {
 	global $selectnaam, $selectzoeknaam;
 	
 	if (strlen($uitv) == 0) {
@@ -437,7 +437,7 @@ function db_naamlid($lidid, $uitv="", $riz="Onbekend") {
 	}
 	
 	if ($lidid == 0) {
-		$query = "SELECT 'gast'";
+		$query = sprintf("SELECT '%s'", $riz);
 	} elseif ($uitv == "Naam") {
 		$query = sprintf("SELECT %s FROM %sLid AS L WHERE L.RecordID=%d;", $selectnaam, TABLE_PREFIX, $lidid);
 	} elseif ($uitv == "Roepnaam") {
@@ -1893,12 +1893,11 @@ function db_naam_onderdeel($rid, $rin="Onbekend") {
 	return $rv;
 }  #  db_naam_onderdeel
 
-function db_add_mailing_hist($lidid, $mid, $to_name="", $to_addr="", $cc_addr="", $message="", $xtrachar="", $xtranum=0) {
+function db_add_mailing_hist($lidid, $mid, $to_name="", $to_addr="", $cc_addr="", $message="", $xtrachar="", $xtranum=0, $onderwerp="") {
 	
 	$from_name = "";
 	$from_addr = "";
-	$subject = "";
-	$cc_addr = "";
+	$subject = $onderwerp;
 	$zichtbaarvoor = 0;
 	
 	if (is_array($to_addr)) {
@@ -2767,7 +2766,7 @@ function db_liddipl($actie, $lidid=0, $rid=0, $did=0, $exdat="", $vervdat="", $d
 function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie="") {
 	global $selectnaam, $selectzoeknaam;
 	
-	$sqlaantdln = sprintf("SELECT COUNT(*) FROM %sEvenement_Deelnemer AS ED WHERE ED.EvenementID = E.RecordID AND Status='B'", TABLE_PREFIX);
+	$sqlaantdln = sprintf("SELECT SUM(Aantal) FROM %sEvenement_Deelnemer AS ED WHERE ED.EvenementID = E.RecordID AND Status='B'", TABLE_PREFIX);
 	$sqlaantafgemeld = sprintf("SELECT COUNT(*) FROM %sEvenement_Deelnemer AS ED WHERE ED.EvenementID = E.RecordID AND Status='X'", TABLE_PREFIX);
 
 	$xtra_where = "";
@@ -2849,7 +2848,7 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 		} elseif (strlen($stat) > 1) {
 			$xtra_where = sprintf("AND ED.Status IN (%s)", $stat);
 		}
-		$query = sprintf("SELECT ED.RecordID, %1\$s AS NaamDeelnemer, ED.Status, ED.Opmerking, ED.Functie, ED.LidID, L.Geslacht, ED.Ingevoerd, ED.LidID, ED.IngevoerdDoor
+		$query = sprintf("SELECT ED.RecordID, %1\$s AS NaamDeelnemer, ED.Status, ED.Opmerking, ED.Functie, ED.LidID, ED.Aantal, L.Geslacht, ED.Ingevoerd, ED.LidID, ED.IngevoerdDoor
 							FROM (%2\$sEvenement_Deelnemer AS ED INNER JOIN %2\$sLid AS L ON ED.LidID = L.RecordID) INNER JOIN %2\$sEvenement AS E ON E.RecordID=ED.EvenementID
 							WHERE ED.EvenementID=%3\$d %4\$s
 							ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $selectnaam, TABLE_PREFIX, $eventid, $xtra_where);
@@ -2868,7 +2867,7 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 		} else {
 			$where = "";
 		}
-		$query = sprintf("SELECT COUNT(*) FROM %sEvenement_Deelnemer AS ED %s;", TABLE_PREFIX, $where);
+		$query = sprintf("SELECT SUM(Aantal) FROM %sEvenement_Deelnemer AS ED %s;", TABLE_PREFIX, $where);
 		return db_scalar($query);
 		
 	} elseif ($actie == "potdeelnemers") {
