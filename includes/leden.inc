@@ -790,11 +790,7 @@ function fnEigenGegevens($lidid=0, $actie="") {
 			}
 		} elseif ($actie == "Financieel") {
 			if ($op == "details" and isset($_GET['rid']) and $_GET['rid'] > 0) {
-				$rt = db_rekening("histmail", $_GET['rid']);
-				if (strlen($rt) == 0) {
-					$rt = RekeningDetail($_GET['rid']);
-				}
-				echo($rt);
+				echo(RekeningDetail($_GET['rid']));
 			} else {
 				if ($_SESSION['aantalrekeningen'] > 0) {
 					$rows = db_gegevenslid($lidid, "Rekening");
@@ -1700,6 +1696,9 @@ function RekeningDetail($nr) {
 		$content = removetextblock($content, "<!-- NietOpCredit -->", "<!-- /NietOpCredit -->");
 	} else {
 		$content = removetextblock($content, "<!-- NietOpDebet -->", "<!-- /NietOpDebet -->");
+		if ($rk->Betaald == 0) {
+			$content = removetextblock($content, "<!-- NietOpNulBetaald -->", "<!-- /NietOpNulBetaald -->");
+		}
 	}
 	
 	if (($rk->Bedrag - $rk->Betaald) < 0.50) {
@@ -1730,7 +1729,11 @@ function RekeningDetail($nr) {
 	$rrtxt = "";
 	$ireg = 1;
 	foreach($rr as $regel) {
-		$nl = db_naamlid($regel->Lid, "Naam", "");
+		if ($regel->Lid > 0) {
+			$nl = db_naamlid($regel->Lid, "Naam", "");
+		} else {
+			$nl = "";
+		}
 		if (db_param("mailing_rekening_nulregelsweglaten") == 0 or $regel->Bedrag <> 0) {
 			$rrtxt .= sprintf("<tr><td>%d</td><td>%s</td><td>%s</td><td class='number'>%03.2f</td></tr>\n", $ireg, $regel->OMSCHRIJV, $nl, $regel->Bedrag);
 			$ireg += 1;
