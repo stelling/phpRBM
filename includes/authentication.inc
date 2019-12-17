@@ -147,7 +147,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (count(db_liddipl("lidgegevens", $_GET['lidid'])) > 0) {
 			addtp("Overzicht lid/Diploma's");
 		}
-		if (db_rekening("aantal") > 0) {
+		if (db_rekening("aantal") > 0 and db_rekening("aantal", 0, "", $_GET['lidid']) > 0) {
 			addtp("Overzicht lid/Financieel");
 		}
 		if (count(db_gegevenslid($_GET['lidid'], "Mailing")) > 0) {
