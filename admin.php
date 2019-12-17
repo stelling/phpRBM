@@ -388,6 +388,7 @@ function fnInstellingen() {
 	$arrParam['mailing_bevestigingopzegging'] = "NT";
 	$arrParam['mailing_bewaartijd'] = "NT";
 	$arrParam['mailing_direct_verzenden'] = "NT";
+	$arrParam['mailing_sentoutbox_auto'] = "NT";
 	$arrParam['mailing_bewakinginschrijving'] = "Het nummer van de mailing die als bevestiging van een inschrijving voor de bewaking verstuurd moet worden. 0 = geen.";
 	$arrParam['mailing_type_editor'] = "NT";
 	$arrParam['mailing_extensies_toegestaan'] = "NT";
@@ -396,9 +397,11 @@ function fnInstellingen() {
 	$arrParam['mailing_mailopnieuw'] = "NT";
 	$arrParam['mailing_rekening_stuurnaar'] = "NT";
 	$arrParam['mailing_rekening_from_adres'] = "NT";
+	$arrParam['mailing_rekening_valuta'] = "NT";
 	$arrParam['mailing_rekening_from_naam'] = "NT";
 	$arrParam['mailing_rekening_nulregelsweglaten'] = "NT";
-	$arrParam['mailing_resultaatversturen'] = "NT";
+	$arrParam['mailing_rekening_regelnrsweglaten'] = "NT";
+	$arrParam['mailing_rekening_nulrekversturen'] = "NT";
 	$arrParam['mailing_validatielogin'] = "NT";
 	$arrParam['max_grootte_bijlage'] = "De maximalale grootte in bytes van één bijlage in een mailing. Optioneel veld. Als je niets specificeerd dan is 2MB het maximum.";
 	$arrParam['login_maxinlogpogingen'] = "Na hoeveel foutieve inlogpogingen moet het account geblokkeerd worden? 0 = nooit.";
@@ -409,6 +412,8 @@ function fnInstellingen() {
 	$arrParam['maxmailsperdag'] = "NT";
 	$arrParam['maxmailsperminuut'] = "NT";
 	$arrParam['naamwebsite'] = "Dit is de naam zoals deze in de titel en op elke pagina getoond wordt.";
+	$arrParam['path_attachments'] = "Waar staan de attachments, die bij e-mail worden gevoegd?";
+	$arrParam['path_templates'] = "Waar staan de templates?";
 	$arrParam['performance_trage_select'] = "Vanaf hoeveel seconden moet een select-statement in het logboek worden gezet. 0 = nooit.";
 	$arrParam['termijnvervallendiplomasmailen'] = "Hoeveel maanden vooruit moeten leden een herinnering krijgen als een diploma gaat vervallen. 0 = geen herinnering sturen.";
 	$arrParam['termijnvervallendiplomasmelden'] = "Hoeveel maanden vooruit en achteraf moeten vervallen diploma op het voorblad getoond worden.";
@@ -498,6 +503,27 @@ function fnInstellingen() {
 			db_param("login_maxlengte", "updval", 7);
 		} elseif (db_param("login_maxlengte") > 20) {
 			db_param("login_maxlengte", "updval", 20);
+		}
+		
+		$p = db_param("db_folderbackup");
+		if (strlen($p) < 5 or !is_dir($p)) {
+			db_param("path_templates", "updval", __DIR__ . "/backups/");
+		} elseif (substr($p, -1) != "/") {
+			db_param("db_folderbackup", "updval", $p . "/");
+		}
+		
+		$p = db_param("path_templates");
+		if (strlen($p) < 5 or !is_dir($p)) {
+			db_param("path_templates", "updval", __DIR__ . "/templates/");
+		} elseif (substr($p, -1) != "/") {
+			db_param("path_templates", "updval", $p . "/");
+		}
+		
+		$p = db_param("path_attachments");
+		if (strlen($p) < 5 or !is_dir($p)) {
+			db_param("path_attachments", "updval", __DIR__ . "/attachments/");
+		} elseif (substr($p, -1) != "/") {
+			db_param("path_attachments", "updval", $p . "/");
 		}
 	}
 
