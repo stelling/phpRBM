@@ -88,10 +88,10 @@ function fnMailing() {
 		sentfromhist($_GET['MailingHistID']);
 		echo("<script>window.history.back();</script>\n");
 		
-	} elseif ($op == "retry" and isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0) {
+	} elseif ($op == "sentmail" and isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0) {
 		sentfromhist($_GET['MailingHistID']);
-		echo("<script>window.history.back();</script>\n");
-		
+		$mailing->lijst($currenttab2);
+				
 	} elseif ($op == "deletehist" and isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0) {
 		db_mailing_hist("delete", 0, $_GET['MailingHistID']);
 		echo("<script>window.history.back();</script>\n");
@@ -465,7 +465,7 @@ class Mailing {
 			$xtra = "<p class='mededeling'><input type='button' value='Terug' onclick='history.go(-1);'></p>\n";
 			toonverstuurdemail($_GET['MailingHistID']);
 			
-		} elseif ($filter == "Verzonden mails" or $filter == "Outbox") {
+		} elseif ($filter == "Verzonden mails" or $filter == "Verzonden e-mails" or $filter == "Outbox") {
 			$ld = sprintf("<a href='index.php?tp=%s&amp;op=bekijkmail&amp;MailingHistID=%%d'>%%s</a>", urlencode($_GET['tp']));
 			if (db_param("maxmailsperdag") > 0 and db_mailing_hist("aantal24uur") >= db_param("maxmailsperdag")) {
 				$rs = "";
@@ -473,7 +473,7 @@ class Mailing {
 				$rs = "";
 			} elseif ($filter == "Outbox") {
 				if (db_param("mailing_direct_verzenden") == 0) {
-					$rs = sprintf("<a href='index.php?tp=%s&amp;op=retry&amp;MailingHistID=%%d'><img src='images/sendmail.png' alt='sent mail' title='Verstuur'></a>", urlencode($_GET['tp']));
+					$rs = sprintf("<a href='index.php?tp=%s&amp;op=sentmail&amp;MailingHistID=%%d'><img src='images/sendmail.png' alt='sent mail' title='Verstuur'></a>", urlencode($_GET['tp']));
 				} else {
 					$rs = "";
 				}
@@ -1285,7 +1285,7 @@ function toonverstuurdemail($mhid) {
 	$row = db_mailing_hist("record", 0, $mhid);
 	
 	if ($row->Ingevoerd > "2000-01-01") {
-		printf("<div class='label'>Klaar gezet op:</div><div class='veld2k'>%s</div><div class='label'>door</div><div class='veld2k'>%s</div>\n", strftime('%e %B %Y (%H:%M:%S)', strtotime($row->Ingevoerd)), db_naamlid($row->IngevoerdDoor));
+		printf("<div class='label'>Klaar gezet op:</div><div class='veld2k'>%s</div><div class='label'>door:</div><div class='veld2k'>%s</div>\n", strftime('%e %B %Y (%H:%M:%S)', strtotime($row->Ingevoerd)), db_naamlid($row->IngevoerdDoor));
 	}
 	
 	if ($row->send_on > "2000-01-01") {
@@ -1388,6 +1388,12 @@ function fnRekeningenMailen($op) {
 			} else {
 				db_param("mailing_rekening_nulregelsweglaten", "updval", 0);
 			}
+						
+			if (isset($_POST['mailing_rekening_regelnrsweglaten']) and $_POST['mailing_rekening_regelnrsweglaten'] == 1) {
+				db_param("mailing_rekening_regelnrsweglaten", "updval", 1);
+			} else {
+				db_param("mailing_rekening_regelnrsweglaten", "updval", 0);
+			}
 
 			$selrek = "";
 			$aantrek = 0;
@@ -1401,9 +1407,11 @@ function fnRekeningenMailen($op) {
 				echo("De volgende rekeningen zijn geselecteerd.\n");
 				printf("<ul>\n%s</ul>\n<div class='clear'></div>\n", $selrek);
 				printf("<input type='hidden' name='rekfilter' value=\"%s\">\n", $filter);
+				echo("</div id='opdrachtknoppen'>\n");
 				echo("Rekeningen versturen?&nbsp<input type='checkbox' value='1' name='sure'>\n");
 				echo("<input type='submit' value='Rekeningen versturen' name='StuurRek'>\n");
 				echo("<input type='button' value='Terug' onClick='history.go(-1);'>\n");
+				echo("</div>  <!-- Einde opdrachtknoppen -->\n");
 				echo("</form>\n");
 			} else {
 				echo("<p class='mededeling'>Er zijn geen rekeningen geselecteerd.</p>");
@@ -1445,7 +1453,6 @@ function fnRekeningenMailen($op) {
 				} else {
 					$dn = $rk->DEBNAAM;
 				}
-				$mail->addstationary($dn, "", 1);
 				if (strlen($mail->ListAddresses()) == 0) {
 					$mess = sprintf("Rekening %d kon niet worden verzonden, omdat er van %s geen geldig e-mailadres in de database bekend is.", $rk->Nummer, $dn);
 										
@@ -1476,7 +1483,7 @@ function fnRekeningenMailen($op) {
 		printf("<tr><td class='label'>Rekeningdatum</td><td><input type='date' name='rekdatum'></td><td><input type='date' value='%s' name='mindatum'></td><td><input type='date' value='%s' name='maxdatum'></td></tr>\n", db_rekening("mindatum"), db_rekening("maxdatum"));			
 		echo("<tr><td class='label'>Betaald door (debiteur)</td><td><select name='reklid'>\n<option value='-1'>*** Iedereen ***</option>>\n");
 		foreach(db_lid("ledenmetrekening") as $row) {
-			printf("<option value=%d>%s</option>\n", $row->Nummer, $row->Naam_lid);
+			printf("<option value=%d>%s</option>\n", $row->RecordID, $row->Naam_lid);
 		}
 		echo("</select></td><td></td><td></td></tr>\n");
 		echo("<tr><td class='label'>Statussen</td><td colspan=3>");
@@ -1504,9 +1511,13 @@ function fnRekeningenMailen($op) {
 		printf("<tr><td class='label'>Vanaf e-mailadres<td colspan=3><input name='vanafadres' type='email' value='%s' size=50></td></tr>\n", db_param("mailing_rekening_from_adres"));
 		printf("<tr><td class='label'>Vanaf naam<td colspan=3><input name='vanafnaam' type='text' value='%s' size=50></td></tr>\n", db_param("mailing_rekening_from_naam"));
 		printf("<tr><td class='label'>Nulregels weglaten<td colspan=3><input name='mailing_rekening_nulregelsweglaten' type='checkbox'%s value=1></td></tr>\n", checked(db_param("mailing_rekening_nulregelsweglaten")));
-		
-		echo("<tr><th colspan=4><input type='submit' value='Verder'></th></tr>\n");
+		printf("<tr><td class='label'>Regelnummers weglaten<td colspan=3><input name='mailing_rekening_regelnrsweglaten' type='checkbox'%s value=1></td></tr>\n", checked(db_param("mailing_rekening_regelnrsweglaten")));
 		echo("</table>\n");
+		
+		echo("<div id='opdrachtknoppen'>\n");
+		echo("<input type='submit' value='Verder'>\n");
+		echo("</div>  <!-- Einde opdrachtknoppen -->\n");
+		
 		echo("</form>\n");
 	}
 	echo("</div> <!-- Einde rekeningenmailen -->\n");
@@ -1638,18 +1649,16 @@ function sentfromhist($mhid) {
 	
 	$row = db_mailing_hist("record", 0, $mhid);
 	
-	$mail = new RBMmailer($row->LidID);
+	$mail = new RBMmailer();
 	$mail->IsHTML(true);
-	if ($row->LidID == 0) {
-		foreach (explode(",", $row->to_addr) as $e) {
-			if (isValidMailAddress($e)) {
-				$mail->AddAddress($e);
-			}
+	foreach (explode(",", $row->to_addr) as $e) {
+		if (isValidMailAddress($e)) {
+			$mail->AddAddress($e, $row->Aan);
 		}
-		foreach (explode(",", $row->cc_addr) as $e) {
-			if (isValidMailAddress($e)) {
-				$mail->AddCC($e);
-			}
+	}
+	foreach (explode(",", $row->cc_addr) as $e) {
+		if (isValidMailAddress($e)) {
+			$mail->AddCC($e);
 		}
 	}
 	$mail->From = $row->from_addr;
@@ -1660,22 +1669,27 @@ function sentfromhist($mhid) {
 		$mail->Subject = $row->subject;
 	}
 	$mail->Body = $row->message;
-	$mail->addstationary($row->Aan);
 	
-	$ad = substr($_SERVER["SCRIPT_FILENAME"], 0, strrpos($_SERVER["SCRIPT_FILENAME"], "/")) . "/attachments/" . $mhid;
-	if (is_dir($ad)) {
-		$d = dir($ad);
-		while (false !== ($entry = $d->read())) {
-			if ($entry != "." and $entry != "..") {
-				$mail->AddAttachment($ad . "/" . $entry);
+	if ($mail->addstationary($row->Aan)) {
+	
+		$ad = db_param("path_attachments") . $mhid;
+	
+		if (is_dir($ad)) {
+			$d = dir($ad);
+			while (false !== ($entry = $d->read())) {
+				if ($entry != "." and $entry != "..") {
+					$mail->AddAttachment($ad . "/" . $entry);
+				}
 			}
+			$d->close();
 		}
-		$d->close();
-	}
-	
-	if ($mail->Send()) {
-		db_mailing_hist("updatesent", 0, $mhid);
-		$rv = true;
+
+		if ($mail->Send()) {
+			db_mailing_hist("updatesent", 0, $mhid);
+			$rv = true;
+		}
+	} else {
+		$rv = false;
 	}
 
 	$mail = null;
@@ -1740,7 +1754,7 @@ function sentoutbox($mode=0) {
 
 class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 
-	private $bestand_briefpapier = "templates/briefpapier.html";
+	private $bestand_briefpapier;
 
 	function __construct($lidid=-1) {
 		global $selectnaam;
@@ -1775,6 +1789,7 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 		$this->From = db_param("emailwebmaster");
 		$this->FromName = db_param("naamvereniging");
 		$this->WordWrap = 110;
+		$this->bestand_briefpapier = db_param("path_templates") . "briefpapier.html";
 		
 		if ($lidid > 0) {
 			$this->ToevoegenLid($lidid);
@@ -1841,14 +1856,6 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 		}
 	}
 	
-	public function hasstationary() {
-		if (file_exists($this->bestand_briefpapier)) {
-			return true;
-		} else {
-			return false;
-		}
-	}
-	
 	public function addstationary($to="", $from="", $verwijderaanhef=0) {
 		
 		if (strlen($to) == 0) {
@@ -1873,9 +1880,11 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 			$htmlmessage = str_ireplace("[%TO%]", $to, $htmlmessage);
 			$htmlmessage = str_ireplace("[%SUBJECT%]", $this->Subject, $htmlmessage);
 			$this->Body = $htmlmessage;
+			return true;
 		} else {
 			$mess = sprintf("Het bestand '%s' bestaat niet.", $this->bestand_briefpapier);
-			db_logboek("add", $mess, 4);
+			db_logboek("add", $mess, 4, 0, 1);
+			return false;
 		}
 	}
 	
