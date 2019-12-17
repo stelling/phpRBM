@@ -802,7 +802,7 @@ function fnEigenGegevens($lidid=0, $actie="") {
 						}
 						echo(fnDisplayTable($rows, $lnk, "Rekeningen " . $naamlid));
 					} else {
-						printf("<p class='mededeling'>%s heeft geen rekeningen ontvangen.</p>", $naamlid);
+						printf("<p class='mededeling'>%s heeft geen rekeningen.</p>", $naamlid);
 					}
 				}
 			}
@@ -1639,11 +1639,11 @@ function RekeningDetail($nr) {
 	
 	$rk = db_rekening("hoofd", $nr);
 	
-	$rekening_template = sprintf("templates/rekening %d.html", $rk->Seizoen);
+	$rekening_template = db_param("path_templates") . sprintf("rekening %d.html", $rk->Seizoen);
 	if (file_exists($rekening_template)) {
 		$content = file_get_contents($rekening_template);
 	} else {
-		$rekening_template = "templates/rekening.html";
+		$rekening_template = db_param("path_templates") . "rekening.html";
 		if (file_exists($rekening_template)) {
 			$content = file_get_contents($rekening_template);	
 		} else {
@@ -1714,9 +1714,9 @@ function RekeningDetail($nr) {
 	$content = str_ireplace("[%SEIZOEN%]", $rk->Seizoen, $content);
 	$content = str_ireplace("[%REKENINGOMSCHRIJVING%]", $rk->OMSCHRIJV, $content);
 	$content = str_ireplace("[%REKENINGNUMMER%]", $rk->Nummer, $content);
-	$content = str_ireplace("[%REKENINGBEDRAG%]", $rk->Bedrag, $content);
-	$content = str_ireplace("[%BETAALD%]", $rk->Betaald, $content);
-	$content = str_ireplace("[%OPENSTAAND%]", number_format ($rk->Bedrag - $rk->Betaald, 2), $content);
+	$content = str_ireplace("[%REKENINGBEDRAG%]", fnBedrag($rk->Bedrag), $content);
+	$content = str_ireplace("[%BETAALD%]", fnBedrag($rk->Betaald), $content);
+	$content = str_ireplace("[%OPENSTAAND%]", fnBedrag($rk->Bedrag - $rk->Betaald), $content);
 	$content = str_ireplace("[%BANKREKENING%]", $rk->Bankrekeningnummer, $content);
 	$content = str_ireplace("[%UITERSTEBETAALDATUM%]", strftime("%e %B %Y", strtotime($rk->UitersteBetaaldatum)), $content);
 	$content = str_ireplace("[%VANAFADRES%]", db_param("mailing_rekening_from_adres"), $content);
@@ -1735,7 +1735,11 @@ function RekeningDetail($nr) {
 			$nl = "";
 		}
 		if (db_param("mailing_rekening_nulregelsweglaten") == 0 or $regel->Bedrag <> 0) {
-			$rrtxt .= sprintf("<tr><td>%d</td><td>%s</td><td>%s</td><td class='number'>%03.2f</td></tr>\n", $ireg, $regel->OMSCHRIJV, $nl, $regel->Bedrag);
+			if (db_param("mailing_rekening_regelnrsweglaten") == 0) {
+				$rrtxt .= sprintf("<tr><td>%d</td><td>%s</td><td>%s</td><td class='number'>%s</td></tr>\n", $ireg, $regel->OMSCHRIJV, $nl, fnBedrag($regel->Bedrag));
+			} else {
+				$rrtxt .= sprintf("<tr><td>%s</td><td>%s</td><td class='number'>%s</td></tr>\n", $regel->OMSCHRIJV, $nl, $b);
+			}
 			$ireg += 1;
 		}
 	}
@@ -1744,6 +1748,16 @@ function RekeningDetail($nr) {
 	return $content;
 
 } # RekeningDetail
+
+function fnBedrag($bedrag) {
+	
+	if (strlen(db_param("mailing_rekening_valuta")) == 0) {
+		return str_replace(",00", ",=&nbsp;", sprintf("%03.2f", $bedrag));
+	} else {
+		return db_param("mailing_rekening_valuta") . "&nbsp;" . str_replace(",00", ",=&nbsp;", sprintf("%03.2f", $bedrag));
+	}
+	
+}
 
 function MailVervallenDiplomas() {
 	
