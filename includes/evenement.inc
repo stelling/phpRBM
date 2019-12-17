@@ -151,7 +151,7 @@ function inschrijvenevenementen($lidid) {
 		printf("<input type='radio' name='reactie_%d' value='Afmelden' %s onchange='this.form.submit();'>Afmelden&nbsp;", $row->RecordID, $c);
 		
 		if (isset($ins->Opmerking)) {
-			printf("<br><br>Opmerking: <input type='text' onBlur='this.form.submit();' name='opm_%d' size=75 maxlength=125 value=\"%s\"></td>\n", $row->RecordID, $ins->Opmerking);
+			printf("<br><br>Opmerking: <input type='text' onBlur='this.form.submit();' name='opm_%d' size=75 maxlength=250 value=\"%s\"></td>\n", $row->RecordID, $ins->Opmerking);
 		}
 		
 		if (isset($ins->Status) and ($ins->Status == "B" or $ins->Status == "I")) {
@@ -395,7 +395,7 @@ function muteerevenement($eventid) {
 				printf("<br>\n# personen: <input type='number' class='inputnumber' name='Aantal_%d' value=%d size=5>", $rd->RecordID, $rd->Aantal);
 			}
 			echo("</td>\n");
-			printf("<td><input type='text' name='Opmerking_%d' value='%s' placeholder='Opmerking' size=80 maxlength=125>\n", $rd->RecordID, $rd->Opmerking);
+			printf("<td><input type='text' name='Opmerking_%d' value='%s' placeholder='Opmerking' size=75 maxlength=250>\n", $rd->RecordID, $rd->Opmerking);
 			printf("<br><input type='text' name='Functie_%d' value='%s' placeholder='Functie' size=40 maxlength=30></td>\n", $rd->RecordID, $rd->Functie);
 			printf("<td>%s<br>%s</td>\n", strftime("%e %b %Y (%R)", strtotime($rd->Ingevoerd)), db_naamlid($rd->IngevoerdDoor));
 			printf("<td><a href='%s?tp=%s&amp;op=delete&amp;eid=%d&amp;lidid=%d&amp;edid=%d'><img src='images/del.png' alt='Delete'></a></td>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $eventid, $rd->LidID, $rd->RecordID);
