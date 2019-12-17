@@ -390,16 +390,17 @@ function db_gegevenslid($LidID, $soort="Alg") {
 								ORDER BY BS.Begindatum DESC, BS.Lokatie, BW.BEGIN_PER DESC;", TABLE_PREFIX, $LidID, $xtra_where);
 
 	} elseif ($soort == "Rekening") {
-		$query = sprintf("SELECT RK.Nummer,
-					Seizoen,
+		$query = sprintf("SELECT
+					RK.Nummer AS lnkNummer,
+					RK.Nummer,
+					RK.Seizoen,
 					RK.Datum AS dteDatum,
 					RK.OMSCHRIJV AS Omschrijving,
-					Bedrag AS curBedrag,
-					Betaald AS curBetaald,
-					(Bedrag-Betaald) AS curOpenstaand,
-					RK.Nummer AS lnkNummer
+					RK.Bedrag AS curBedrag,
+					RK.Betaald AS curBetaald,
+					(RK.Bedrag-RK.Betaald) AS curOpenstaand
 					FROM %sRekening AS RK
-					WHERE Lid=%d
+					WHERE RK.Lid=%d
 					ORDER BY RK.Nummer DESC;", TABLE_PREFIX, $LidID);
 	} elseif ($soort == "Mailing") {
 		$query = db_mailing_hist("sqllijst", $LidID);
@@ -534,10 +535,9 @@ function db_Lid($actie, $filter="", $lidid=0, $xtraselect="", $kolomnm="", $waar
 					ORDER BY L.GEBDATUM, L.RecordID;", $selectnaam, $fromlid, $wherelid, $df, $filter);
 										
 	} elseif ($actie == "ledenmetrekening") {
-		$query = sprintf("SELECT L.Nummer, %1\$s AS `Naam_lid`
-					FROM %2\$sLid AS L
-					WHERE L.RecordID IN (SELECT MAX(RK.Lid) FROM %2\$sRekening AS RK WHERE RK.Lid=L.RecordID)
-					ORDER BY L.Achternaam, L.Tussenv;", $selectzoeknaam, TABLE_PREFIX);
+		$query = sprintf("SELECT DISTINCT L.RecordID, %1\$s AS `Naam_lid`
+					FROM %2\$sLid AS L INNER JOIN %2\$sRekening AS RK ON RK.Lid=L.RecordID
+					ORDER BY L.Achternaam, L.Tussenv, L.Roepnaam;", $selectzoeknaam, TABLE_PREFIX);
 					
 	} elseif ($actie == "update") {
 		$in = db_kolom_numeriek("Lid", $kolomnm);
@@ -1737,7 +1737,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			$result = fnQuery($query);
 			foreach ($result->fetchAll() as $row) {
 				$updqry = sprintf("UPDATE %sAdmin_login SET FouteLogin=0, Gewijzigd=SYSDATE() WHERE Login='%s';", TABLE_PREFIX, $row->Login);
-				$updres = fnQuery($query);
+				$updres = fnQuery($updqry);
 				if ($updres > 0) {
 					$mess = sprintf("Login %s is automatisch gedeblokkeerd.", $row->Login);
 					db_logboek("add", $mess, 5);
@@ -1907,11 +1907,11 @@ function db_add_mailing_hist($lidid, $mid, $to_name="", $to_addr="", $cc_addr=""
 		$cc_addr = implode(",", $cc_addr);
 	}
 		
-	if (strlen($to_addr) > 100) {
-		$to_addr = substr($to_addr, 0, 96) . " ...";
+	if (strlen($to_addr) > 250) {
+		$to_addr = substr($to_addr, 0, 251) . " ...";
 	}
-	if (strlen($cc_addr) > 100) {
-		$cc_addr = substr($cc_addr, 0, 96) . " ...";
+	if (strlen($cc_addr) > 250) {
+		$cc_addr = substr($cc_addr, 0, 251) . " ...";
 	}
 
 	if ($mid > 0) {
@@ -1935,6 +1935,9 @@ function db_add_mailing_hist($lidid, $mid, $to_name="", $to_addr="", $cc_addr=""
 		if (strlen($cc_addr) == 0) {
 			$cc_addr = $row->cc_addr;
 		}
+	} elseif ($xtrachar == "REK") {
+		$from_addr = db_param("mailing_rekening_from_adres");
+		$from_name = db_param("mailing_rekening_from_naam");
 	}
 	$from_name = html_entity_decode(str_replace("\"", "'", $from_name));
 	$subject = html_entity_decode(str_replace("\"", "'", $subject));
@@ -2146,11 +2149,11 @@ function db_mailing_hist($actie, $lidid=0, $mhid=0, $mid=0) {
 		} else {
 			$xw = "";
 		}
-		$query = sprintf("SELECT MH.RecordID AS lnkRecordID, MH.Ingevoerd AS `dttWacht vanaf`, MH.subject AS Onderwerp, IF(MH.LidID=0, MH.to_name, %1\$s) AS Aan,
-						MH.to_addr AS `E-mail`, MH.cc_addr AS `CC`, L.Woonplaats, MH.RecordID AS llkRecordID
-						FROM (%2\$sMailing_hist AS MH LEFT OUTER JOIN %2\$sLid AS L ON MH.LidID = L.RecordID) LEFT JOIN %2\$sMailing AS M ON M.MailingID=MH.MailingID
-						WHERE MH.send_on < '2000-01-01' %3\$s
-						ORDER BY MH.RecordID LIMIT %4\$d;", $selectnaam, TABLE_PREFIX, $xw, $lm);
+		$query = sprintf("SELECT MH.RecordID AS lnkRecordID, MH.Ingevoerd AS `dttWacht vanaf`, MH.subject AS Onderwerp, MH.to_name AS Aan,
+						MH.to_addr AS `E-mail`, MH.cc_addr AS `CC`, MH.RecordID AS llkRecordID
+						FROM (%1\$sMailing_hist AS MH LEFT OUTER JOIN %1\$sLid AS L ON MH.LidID=L.RecordID) LEFT JOIN %1\$sMailing AS M ON M.MailingID=MH.MailingID
+						WHERE MH.send_on < '2000-01-01' %2\$s
+						ORDER BY MH.RecordID LIMIT %3\$d;", TABLE_PREFIX, $xw, $lm);
 		return fnQuery($query);
 		
 	} elseif ($actie == "aantaloutbox") {
@@ -2183,9 +2186,9 @@ function db_mailing_hist($actie, $lidid=0, $mhid=0, $mid=0) {
 		}
 		
 	} elseif ($actie === "record") {
-		$query = sprintf("SELECT MH.Ingevoerd, MH.send_on, MH.from_addr, MH.from_name, M.to_name, MH.to_addr, MH.cc_addr, MH.subject, MH.message, MH.send_by, MH.LidID, IF(L.RecordID=0, MH.to_addr, %1\$s) AS Aan, MH.IngevoerdDoor
-					FROM (%2\$sMailing_hist AS MH LEFT JOIN %2\$sLid AS L ON MH.LidID=L.Nummer) LEFT JOIN %2\$sMailing AS M ON MH.MailingID=M.MailingID
-					WHERE MH.RecordID=%3\$d LIMIT 1;", $selectnaam, TABLE_PREFIX, $mhid);
+		$query = sprintf("SELECT MH.Ingevoerd, MH.send_on, MH.from_addr, MH.from_name, M.to_name, MH.to_addr, MH.cc_addr, MH.subject, MH.message, MH.send_by, MH.LidID, MH.to_name AS Aan, MH.IngevoerdDoor
+					FROM (%1\$sMailing_hist AS MH LEFT JOIN %1\$sLid AS L ON MH.LidID=L.Nummer) LEFT JOIN %1\$sMailing AS M ON MH.MailingID=M.MailingID
+					WHERE MH.RecordID=%2\$d LIMIT 1;", TABLE_PREFIX, $mhid);
 		$result = fnQuery($query);
 		return $result->fetch();
 	
@@ -3218,7 +3221,7 @@ function db_rekening($actie, $nr=0, $filter="", $lidid=0) {
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "seizoenen") {
-		$query = sprintf("SELECT DISTINCT Seizoen FROM %sRekening ORDER BY Seizoen DESC;", TABLE_PREFIX);
+		$query = sprintf("SELECT DISTINCT RK.Seizoen FROM %sRekening AS RK ORDER BY RK.Seizoen DESC;", TABLE_PREFIX);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "selectie") {
@@ -3303,6 +3306,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrBooleans['mailing_direct_verzenden'] = 0;
 	$arrBooleans['mailing_sentoutbox_auto'] = 1;
 	$arrBooleans['mailing_rekening_nulregelsweglaten'] = 0;
+	$arrBooleans['mailing_rekening_regelnrsweglaten'] = 0;
 	$arrBooleans['mailing_rekening_nulrekversturen'] = 1;
 	$arrBooleans['toneninschrijvingenbewakingen'] = 1;
 	$arrBooleans['tonentoekomstigebewakingen'] = 0;
@@ -3323,6 +3327,9 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrStrings['mailing_extensies_toegestaan'] = "bmp, gif, jpeg, jpg, pdf, png, pps, rar, txt, zip";
 	$arrStrings['mailing_rekening_from'] = "";
 	$arrStrings['mailing_rekening_from_naam'] = "";
+	$arrStrings['mailing_rekening_valuta'] = "&euro&nbsp;";
+	$arrStrings['path_attachments'] = "";
+	$arrStrings['path_templates'] = "";
 	$arrStrings['urlvereniging'] = "";
 	$arrStrings['url_eigen_help'] = "";
 	$arrStrings['zs_emailnieuwepasfoto'] = "";
@@ -3555,16 +3562,6 @@ function db_onderhoud($type=9) {
 		fnQuery($query, 2);
 	}
 	
-	/***** Aanpassen lengte van to_addr en cc_addr in Mailing_hist naar 100. Deze code kan na 1/1/2020 worden verwijderd. *****/
-	$table = TABLE_PREFIX . "Mailing_hist";
-	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%s' AND COLUMN_NAME LIKE 'to_addr';", $db_name, $table);
-	if (db_scalar($query) < 100) {
-		$query = sprintf("ALTER TABLE `%s` CHANGE `to_addr` `to_addr` VARCHAR(100) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table);
-		fnQuery($query, 2);
-		$query = sprintf("ALTER TABLE `%s` CHANGE `cc_addr` `cc_addr` VARCHAR(100) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table);
-		fnQuery($query, 2);
-	}
-	
 	/***** Aanpassen type veld van Ingevoerd in Admin_login naar datumtijd. Deze code kan na 1/1/2020 worden verwijderd. *****/
 	$query = sprintf("ALTER TABLE `%sAdmin_login` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
 	fnQuery($query);
@@ -3578,12 +3575,12 @@ function db_onderhoud($type=9) {
 		fnQuery($query, 2);
 	}
 	
-	/***** Aanpassen lengte van Opmerking in Evenement_Deelnemer naar 125. Deze code kan na 1/1/2021 worden verwijderd. *****/
+	/***** Aanpassen lengte van Opmerking in Evenement_Deelnemer naar 255. Deze code kan na 1/1/2021 worden verwijderd. *****/
 	$table = TABLE_PREFIX . "Evenement_Deelnemer";
 	$col = "Opmerking";
 	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%s' AND COLUMN_NAME LIKE '%s';", $db_name, $table, $col);
-	if (db_scalar($query) < 125) {
-		$query = sprintf("ALTER TABLE `%1\$s` CHANGE `%2\$s` `%2\$s` VARCHAR(125) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL;", $table, $col);
+	if (db_scalar($query) < 255) {
+		$query = sprintf("ALTER TABLE `%1\$s` CHANGE `%2\$s` `%2\$s` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL;", $table, $col);
 		fnQuery($query, 2);
 	}
 	
@@ -3710,17 +3707,17 @@ function db_onderhoud($type=9) {
 		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '1' AFTER `StandaardStatus`;", $tab, $col);
 		fnQuery($query, 2);
 	}
+		
+	// Toevoegen veld 'OmschrijvingOntvangers' aan de tabel 'Mailing'. Deze code kan na 1/1/2021 worden verwijderd.
+	$tab = TABLE_PREFIX . "Mailing";
+	$col = "OmschrijvingOntvangers";
+	if (bestaatkolom($tab, $col) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` VARCHAR(50) NOT NULL COMMENT 'Omschrijving van de groep personen aan wie deze mailing gericht is' AFTER `to_name`;", $tab, $col);
+		fnQuery($query, 2);
+	}
 	
 	/***** Velden die aangepast zijn. *****/
-	
-	// Admin_Login, deze code kan na 31/12/2019 worden verwijderd.
-	$query = sprintf("ALTER TABLE %sAdmin_login CHANGE `Ingevoerd` `Ingevoerd` DATETIME;", TABLE_PREFIX);
-	fnQuery($query);
-	
-	// Mailing, deze code kan na 31/12/2020 worden verwijderd.
-	$query = sprintf("ALTER TABLE `%sMailing` CHANGE `ChangedBy` `ChangedBy` INT(11) NOT NULL DEFAULT '0';", TABLE_PREFIX);
-	fnQuery($query);
-	
+		
 	// Deze code kan na 1/12/2020 worden verwijderd.
 	$query = sprintf("ALTER TABLE `%sEvenement_Deelnemer` CHANGE `Functie` `Functie` VARCHAR(30) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL;", TABLE_PREFIX);
 	fnQuery($query);
@@ -3761,6 +3758,16 @@ function db_onderhoud($type=9) {
 	$query = sprintf("ALTER TABLE `%sBewaking_Blok` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
 	fnQuery($query);
 	$query = sprintf("ALTER TABLE `%sMailing_vanaf` CHANGE `Gewijzigd` `Gewijzigd` TIMESTAMP on update CURRENT_TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
+	fnQuery($query);
+	
+	// Admin_Login, deze code kan na 31/12/2020 worden verwijderd.
+	$query = sprintf("ALTER TABLE %sAdmin_login CHANGE `Ingevoerd` `Ingevoerd` DATETIME;", TABLE_PREFIX);
+	fnQuery($query);
+	$query = sprintf("ALTER TABLE `%sMailing` CHANGE `ChangedBy` `ChangedBy` INT(11) NOT NULL DEFAULT '0';", TABLE_PREFIX);
+	fnQuery($query);
+	$query = sprintf("ALTER TABLE `%sMailing_hist` CHANGE `to_addr` `to_addr` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", TABLE_PREFIX);
+	fnQuery($query);
+	$query = sprintf("ALTER TABLE `%sMailing_hist` CHANGE `cc_addr` `cc_addr` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", TABLE_PREFIX);
 	fnQuery($query);
 	
 	/***** Opschonen database na een upload uit de Access-database.  *****/
@@ -3897,7 +3904,7 @@ function db_backup() {
 			db_logboek("add", "Het backup-script heeft gedraaid, maar de backup is niet gelukt.\n", 3, 0, 1);
 		}
 	} else {
-		db_logboek("add", "Het backupscript heeft korter dan 1 uur geleden met success gedraaid. Het wordt niet nogmaals uitgevoerd.", 2, 0, 1);
+		db_logboek("add", "Het backupscript heeft korter dan 1 uur geleden met succes gedraaid. Het wordt niet nogmaals uitgevoerd.", 2, 0, 1);
 	}
 }
 
@@ -4685,30 +4692,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sRekreg` (
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`Rekening`,`Regelnr`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-CREATE TABLE IF NOT EXISTS `%1\$sSeizoen` (
-  `Nummer` smallint(6) NOT NULL DEFAULT '0',
-  `Begindatum` datetime DEFAULT NULL,
-  `Einddatum` datetime DEFAULT NULL,
-  `Leeftijdsgrens jeugdleden` tinyint(4) DEFAULT NULL,
-  `Contributie leden` decimal(8,2) DEFAULT NULL,
-  `Contributie jeugdleden` decimal(8,2) DEFAULT NULL,
-  `Contributie kader` decimal(8,2) DEFAULT NULL,
-  `Contributie Onderscheidingen` decimal(8,2) DEFAULT NULL,
-  `RekeningenVerzamelen` tinyint(4) DEFAULT NULL,
-  `Rekeningomschrijving` varchar(30) DEFAULT NULL,
-  `BetaaldagenTermijn` smallint(6) DEFAULT NULL,
-  `StandaardAantalTermijnen` smallint(6) DEFAULT NULL,
-  `Verenigingscontributie omschrijving` varchar(50) DEFAULT NULL,
-  `Verenigingscontributie kostenplaats` varchar(5) DEFAULT NULL,
-  `Gezinskorting bedrag` decimal(8,2) DEFAULT NULL,
-  `Maximale verenigingscontributie` decimal(8,2) DEFAULT NULL,
-  `Gezinskorting omschrijving` varchar(50) DEFAULT NULL,
-  `Gezinskorting kostenplaats` varchar(4) DEFAULT NULL,
-  `Ingevoerd` datetime DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL,
-  PRIMARY KEY (`Nummer`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sStukken` (
