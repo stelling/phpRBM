@@ -1012,9 +1012,17 @@ input.knop, button.knop {
 	padding-left: 2px;
 }
 
+#rekeningregels {
+	margin-bottom: 15px;
+}
+
+#rekeningregels table {
+	width: 100%;
+}
+
 #rekeningregels table, #rekeningregels th, #rekeningregels td {
 	border-width: 1px;
-	border-style: solid;
+	border-style: none;
 	border-collapse: collapse;
 }
 
