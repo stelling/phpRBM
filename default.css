@@ -711,6 +711,8 @@ input.knop, button.knop {
 	clear: left;
 	margin-top: 8px;
 	margin-bottom: 2px;
+	padding-top: 3px;
+	padding-bottom: 3px;
 	text-align: center;
 	border-style: solid;
 	border-width: 1px;
@@ -732,7 +734,7 @@ input.knop, button.knop {
 	padding-top: 4px;
 	padding-bottom: 4px;
 	cursor: pointer;
-	font-size: 11pt;
+	font-size: 10pt;
 }
 
 #opdrachtknoppen input {

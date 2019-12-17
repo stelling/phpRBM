@@ -187,7 +187,7 @@ function muteerevenement($eventid) {
 		$old = db_evenement("record", 0, $eventid);
 		foreach($_POST as $key => $val) {
 			if (array_key_exists($key, $old) and $old->$key != $_POST[$key]) {
-				if (in_array($key, array("TypeEvenement", "InschrijvingOpen", "BeperkTotGroep", "ZichtbaarVoor"))) {
+				if (in_array($key, array("TypeEvenement", "InschrijvingOpen", "BeperkTotGroep", "ZichtbaarVoor", "MaxPersonenPerDeelname"))) {
 					$query = sprintf("UPDATE %sEvenement SET `%s`=%d", TABLE_PREFIX, $key, $_POST[$key]);
 					$mess = sprintf("In evenement %d is kolom '%s' naar %d bijgewerkt.", $eventid, $key, $_POST[$key]);
 				} else {
@@ -203,23 +203,22 @@ function muteerevenement($eventid) {
 				}
 			}
 		}
-		if (isset($_POST['verw'])) {
-			$set_clause = "";
-			if ($old->VerwijderdOp <= '2012-01-01' and $_POST['verw'] == 1) {
-				$set_clause = "VerwijderdOp=CURDATE(), ";
-				$mess = sprintf("Evenement %d is verwijderd.", $eventid);
-			} elseif ($old->VerwijderdOp > '2012-01-01' and $_POST['verw'] == 0) {
-				$set_clause = "VerwijderdOp='0000-00-00', ";
-				$mess = sprintf("Evenement %d: de verwijdering is ongedaan gemaakt.", $eventid);
-			}
-			if (strlen($set_clause) > 0) {
-				$set_clause .= sprintf("GewijzigdDoor=%d", $_SESSION['lidid']);
-				$query = sprintf("UPDATE %sEvenement SET %s WHERE RecordID=%d;", TABLE_PREFIX, $set_clause, $eventid);
-				if (fnQuery($query) > 0) {
-					db_logboek("add", $mess, 7, 0, 0, $eventid, 2);
-				} else {
-					debug($query);
-				}
+		
+		$set_clause = "";
+		if (isset($_POST['verwijderen']) and $old->VerwijderdOp < '2012-01-01') {
+			$set_clause = "VerwijderdOp=CURDATE(), ";
+			$mess = sprintf("Evenement %d is verwijderd.", $eventid);
+		} elseif (isset($_POST['undoverwijderen']) and $old->VerwijderdOp > '2012-01-01') {
+			$set_clause = "VerwijderdOp='0000-00-00', ";
+			$mess = sprintf("Evenement %d: de verwijdering is ongedaan gemaakt.", $eventid);
+		}
+		if (strlen($set_clause) > 0) {
+			$set_clause .= sprintf("GewijzigdDoor=%d", $_SESSION['lidid']);
+			$query = sprintf("UPDATE %sEvenement SET %s WHERE RecordID=%d;", TABLE_PREFIX, $set_clause, $eventid);
+			if (fnQuery($query) > 0) {
+				db_logboek("add", $mess, 7, 0, 0, $eventid, 2);
+			} else {
+				debug($query);
 			}
 		}
 		foreach (db_evenement("deelnemers", 0, $eventid) as $rd) {
@@ -280,13 +279,6 @@ function muteerevenement($eventid) {
 		}
 		$standaardstatus = $row->StandaardStatus;
 		$maxpersonenperdeelname = $row->MaxPersonenPerDeelname;
-		if ($row->VerwijderdOp >= '2012-01-01') {
-			$verw1 = "checked='checked'";
-			$verw2 = "";
-		} else {
-			$verw1 = "";
-			$verw2 = "checked='checked'";
-		}
 		$beperktotgroep = $row->BeperkTotGroep;
 		$zichtbaarvoor = $row->ZichtbaarVoor;
 		$aantdln = $row->AantDln;
@@ -349,7 +341,7 @@ function muteerevenement($eventid) {
 	if ($eventid > 0) {
 		printf("<tr><td class='label'>Online inschrijving open:</td><td><input type='radio' name='InschrijvingOpen' value=1 %s>Ja<input type='radio' name='InschrijvingOpen' value=0 %s>Nee</td>\n", $insopen1, $insopen2);
 		printf("<td class='label'>Standaard status:</td><td><select name='StandaardStatus'>%s</select></td>\n", $optionstandstatus);
-		printf("<td class='label'>Verwijderd:</td><td><input type='radio' name='verw' value=1 %s>Ja<input type='radio' name='verw' value=0 %s>Nee</td></tr>\n", $verw1, $verw2);
+		printf("<td class='label'>Max. personen per deelname:</td><td><input type='number' class='inputnumber' name='MaxPersonenPerDeelname' value=%d min=1></td></tr>\n", $maxpersonenperdeelname);
 		
 		$optiongroepen = "<option value=0>Niemand</option>\n";
 		foreach (db_onderdeel("lijstingebruik", "", 0, 0, "", "", $datum) as $t) {
@@ -392,7 +384,7 @@ function muteerevenement($eventid) {
 			printf("<td>%s</td>\n", htmlentities($rd->NaamDeelnemer));
 			printf("<td><select name='Status_%d' onChange='this.form.submit();'>%s</select>", $rd->RecordID, $optstat);
 			if ($maxpersonenperdeelname > 1) {
-				printf("<br>\n# personen: <input type='number' class='inputnumber' name='Aantal_%d' value=%d size=5>", $rd->RecordID, $rd->Aantal);
+				printf("<br>\n# personen: <input type='number' class='inputnumber' name='Aantal_%d' value=%d size=5 min=1 max=%d>", $rd->RecordID, $rd->Aantal, $maxpersonenperdeelname);
 			}
 			echo("</td>\n");
 			printf("<td><input type='text' name='Opmerking_%d' value='%s' placeholder='Opmerking' size=75 maxlength=250>\n", $rd->RecordID, $rd->Opmerking);
@@ -402,27 +394,35 @@ function muteerevenement($eventid) {
 			echo("</tr>\n");
 		}
 		$optionsnieuw = "<option value=0>Nieuwe deelnemer ...</option>\n";
-		foreach (db_evenement("potdeelnemers", 0, $recordid) as $row) {
-			$optionsnieuw .= sprintf("<option value=%d>%s</option>\n", $row->Nummer, htmlentities($row->Naam));
+		foreach (db_evenement("potdeelnemers", 0, $recordid) as $lidrow) {
+			$optionsnieuw .= sprintf("<option value=%d>%s</option>\n", $lidrow->RecordID, htmlentities($lidrow->Naam));
 		}
 		printf("<tr>\n<td colspan=6><select name='nwdln' onChange='this.form.submit();'>%s</select></td>\n</tr>\n", $optionsnieuw);
 	}
+	echo("</table>\n");
 	$aantpotdln = count(db_evenement("potdeelnemers", 0, $eventid));
-	echo("<tr><th colspan=6>\n");
-	if ($eventid > 0) {
+	echo("<div id='opdrachtknoppen'>\n");
+	if ($eventid == 0) {
+		echo("<input type='submit' name='Toevoegen' value='Toevoegen'>\n");
+	} elseif ($row->VerwijderdOp < '2012-01-01') {
 		echo("<input type='submit' name='Bewaren' value='Bewaren'>\n");
 		echo("<input type='submit' name='Bewaren_Sluiten' value='Bewaren & Sluiten'>\n");
-	} else {
-		echo("<input type='submit' name='Toevoegen' value='Toevoegen'>\n");
 	}
-	if ($eventid > 0 and $aantdln > 1 and toegang("Mailing/Nieuw", 0, 0)) {
+	
+	if ($eventid > 0 and $row->VerwijderdOp < '2012-01-01' and $aantdln > 1 and toegang("Mailing/Nieuw", 0, 0)) {
 		printf("<input type='submit' name='maildeeln' value='Mailing deelnemers (%d)'>\n", $aantdln);
 	}
-	if ($eventid > 0 and $aantpotdln > 1 and toegang("Mailing/Nieuw", 0, 0)) {
+	if ($eventid > 0 and $row->VerwijderdOp < '2012-01-01' and $aantpotdln > 1 and toegang("Mailing/Nieuw", 0, 0)) {
 		printf("<input type='submit' name='mailpotdeeln' value='Mailing potenti&euml;le deelnemers (%d)'>\n", $aantpotdln);
 	}
-	echo("</th></tr>\n");
-	echo("</table>\n");
+	if ($eventid > 0 and ($_SESSION['webmaster'] == 1 or $row->IngevoerdDoor == $_SESSION['lidid'])) {
+		if ($row->VerwijderdOp > '2012-01-01') {
+			echo("<input type='submit' name='undoverwijderen' value='Verwijderen terugdraaien'>\n");
+		} else {
+			echo("<input type='submit' name='verwijderen' value='Verwijderen'>\n");
+		}
+	}
+	echo("</div>  <!-- Einde opdrachtknoppen -->\n");
 	echo("</form>\n");
 	echo("</div> <!-- Einde evenementenbeheer -->\n");
 	
