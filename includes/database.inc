@@ -1650,7 +1650,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		$result = fnQuery($query);
 		if ($result > 0) {
 			if ($lidid > 0) {
-				$mess = sprintf("%s (LidID: %d) is uitgelogd.", db_naamlid($lidid), $lidid);
+				$mess = sprintf("%s (LidID: %d) heeft uitgelogd.", db_naamlid($lidid), $lidid);
 				db_logboek("add", $mess, 1, $lidid);
 				$_SESSION['lidid'] = 0;
 			}
@@ -1682,9 +1682,13 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		db_logins("uitloggen");
 		
 		$query = sprintf("UPDATE %sAdmin_login SET LastLogin=SYSDATE(), LastActivity=SYSDATE(), Ingelogd=1, FouteLogin=0 WHERE Ingelogd=0 AND LidID=%d;", TABLE_PREFIX, $lidid);
-		$result = fnQuery($query);
-		if ($result > 0) {
-			$mess = sprintf("%s is met '%s' ingelogd.", db_naamlid($lidid), $_SESSION['username']);
+		if (fnQuery($query) > 0) {
+			$mess = sprintf("%s heeft met '%s' ingelogd.", db_naamlid($lidid), $_SESSION['username']);
+			if (db_Logboek("aantal", "", -1, $lidid, 0, 0, $_SERVER['REMOTE_ADDR']) == 0) {
+				$mess .= sprintf(" Dit is voor het eerst vanaf IP-adres %s.", $_SERVER['REMOTE_ADDR']);
+				if (db_param("mailing_meldingnieuwip") > 0) {
+				}
+			}
 			db_logboek("add", $mess, 1, $lidid);
 		} elseif ($_SESSION['lidid'] > 0) {
 			$query = sprintf("UPDATE %sAdmin_login SET LastActivity=SYSDATE() WHERE LidID=%d;", TABLE_PREFIX, $_SESSION['lidid']);
@@ -2018,7 +2022,7 @@ function db_mailing($actie, $mid=0, $filter="", $new_val="", $kolnaam="") {
 	} elseif ($actie == "potrcpt") {
 		$query = sprintf("SELECT L.Nummer, %1\$s AS Zoeknaam_lid FROM %2\$sLid AS L
 					WHERE (L.Verwijderd IS NULL) AND (L.Overleden IS NULL) AND (LENGTH(L.Email) > 5 OR LENGTH(L.EmailVereniging) > 5 OR LENGTH(L.EmailOuders) > 5 OR (SELECT COUNT(*) FROM %2\$sLidmaatschap AS LM WHERE IFNULL(LM.Opgezegd, CURDATE()) >= CURDATE() AND LM.Lid=L.Nummer) > 0)
-					AND (SELECT COUNT(*) FROM %2\$sMailing_rcpt AS R WHERE R.LidID = L.Nummer AND R.MailingID=%3\$d)=0
+					AND (SELECT COUNT(*) FROM %2\$sMailing_rcpt AS R WHERE R.LidID=L.RecordID AND R.MailingID=%3\$d)=0
 					ORDER BY L.Achternaam, L.Roepnaam;", $selectzoeknaam, TABLE_PREFIX, $mid);
 		$result = fnQuery($query);
 		return $result->fetchAll();
@@ -2187,7 +2191,7 @@ function db_mailing_hist($actie, $lidid=0, $mhid=0, $mid=0) {
 		
 	} elseif ($actie === "record") {
 		$query = sprintf("SELECT MH.Ingevoerd, MH.send_on, MH.from_addr, MH.from_name, M.to_name, MH.to_addr, MH.cc_addr, MH.subject, MH.message, MH.send_by, MH.LidID, MH.to_name AS Aan, MH.IngevoerdDoor
-					FROM (%1\$sMailing_hist AS MH LEFT JOIN %1\$sLid AS L ON MH.LidID=L.Nummer) LEFT JOIN %1\$sMailing AS M ON MH.MailingID=M.MailingID
+					FROM (%1\$sMailing_hist AS MH LEFT JOIN %1\$sLid AS L ON MH.LidID=L.RecordID) LEFT JOIN %1\$sMailing AS M ON MH.MailingID=M.MailingID
 					WHERE MH.RecordID=%2\$d LIMIT 1;", TABLE_PREFIX, $mhid);
 		$result = fnQuery($query);
 		return $result->fetch();
@@ -2410,6 +2414,8 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0, $referid=0, $ipf
 	
 	if ($type >= 0 and strlen($ipfilter) > 5) {
 		$w = sprintf("TypeActiviteit=%d AND `IP_adres`='%s'", $type, $ipfilter);
+	} elseif ($lidid > 0 and strlen($ipfilter) > 5) {
+		$w = sprintf("LidID=%d AND `IP_adres`='%s'", $lidid, $ipfilter);
 	} elseif ($type >= 0) {
 		$w = sprintf("TypeActiviteit=%d", $type);
 	} elseif (strlen($ipfilter) > 5) {
@@ -2488,7 +2494,7 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0, $referid=0, $ipf
 			$s .= ", Script, RefFunction AS Functie";
 		}
 		if ($lidid > 0) {
-			$w .= sprintf(" AND (LidID=%1\$d OR (TypeActiviteit IN (1, 6, 8, 10, 12, 16) AND ReferID=%1\$d)) AND TypeActiviteit < 98", $lidid);
+			$w .= sprintf(" AND LidID=%d AND TypeActiviteit < 98", $lidid);
 		}
 		$s .= sprintf(", %s AS `Ingelogd Lid`", $selectnaam);
 
@@ -2880,9 +2886,9 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 		if ($groepid > 0) {
 			$where = sprintf("AND LO.OnderdeelID=%d", $groepid);
 		}
-		$query = sprintf("SELECT DISTINCT L.Nummer, %1\$s AS Naam
-								FROM %2\$sLid AS L LEFT OUTER JOIN %2\$sLidond AS LO ON L.Nummer = LO.Lid
-								WHERE (SELECT COUNT(*) FROM %2\$sEvenement_Deelnemer AS ED WHERE L.Nummer=ED.LidID AND ED.EvenementID=%3\$d)=0 %4\$s
+		$query = sprintf("SELECT DISTINCT L.RecordID, %1\$s AS Naam
+								FROM %2\$sLid AS L LEFT OUTER JOIN %2\$sLidond AS LO ON L.RecordID=LO.Lid
+								WHERE (SELECT COUNT(*) FROM %2\$sEvenement_Deelnemer AS ED WHERE L.RecordID=ED.LidID AND ED.EvenementID=%3\$d)=0 %4\$s
 								ORDER BY %1\$s;", $selectzoeknaam, TABLE_PREFIX, $eventid, $where);
 		$result = fnQuery($query);
 		return $result->fetchAll();
@@ -3275,6 +3281,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrIntegers['mailing_bewaartijd'] = 3;
 	$arrIntegers['mailing_bewakinginschrijving'] = 0;
 	$arrIntegers['mailing_herstellenwachtwoord'] = 0;
+	$arrIntegers['mailing_meldingnieuwip'] = 0;
 	$arrIntegers['mailing_lidnr'] = 0;
 	$arrIntegers['mailing_mailopnieuw'] = 0;
 	$arrIntegers['mailing_rekening_stuurnaar'] = 1;
@@ -3330,6 +3337,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrStrings['mailing_rekening_valuta'] = "&euro&nbsp;";
 	$arrStrings['path_attachments'] = "";
 	$arrStrings['path_templates'] = "";
+	$arrStrings['uitleg_toestemmingen'] = "";
 	$arrStrings['urlvereniging'] = "";
 	$arrStrings['url_eigen_help'] = "";
 	$arrStrings['zs_emailnieuwepasfoto'] = "";
@@ -3426,7 +3434,7 @@ function db_param($naam, $actie="curval", $newval="") {
 			$_SESSION['settings'][$row->Naam] = $retval;
 		}
 		
-	} elseif ($actie == "updval") {
+	} elseif ($actie == "updval" or $actie == "update") {
 		$query = sprintf("SELECT * FROM %sAdmin_param WHERE Naam='%s';", TABLE_PREFIX, $naam);
 		$result = fnQuery($query);
 		$cur = $result->fetch();
@@ -3439,7 +3447,7 @@ function db_param($naam, $actie="curval", $newval="") {
 			if (strlen($newval) == 0) {
 				$set = "ValueChar=NULL";
 			} else {
-				$set = sprintf("ValueChar='%s'", $newval);
+				$set = sprintf("ValueChar=\"%s\"", str_replace("\"", "'", $newval));
 			}
 		}
 		if (strlen($set) > 0) {
