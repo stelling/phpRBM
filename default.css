@@ -1037,6 +1037,11 @@ input.knop, button.knop {
 	font-size: 11pt;
 }
 
+#instellingenmuteren .invoerblok {
+	width: 100%;
+	clear: right;
+}
+
 #instellingenmuteren td {
 	padding-left: 5px;
 	padding-right: 5px;
