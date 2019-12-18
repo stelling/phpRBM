@@ -177,7 +177,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 		
 	if (strlen($copytext) > 0) {
 		echo("<h2>SQL-code voor in MS-Access, om te gebruiken:</h2>\n");
-		printf("<textarea id='copywijzigingen' class='copypaste' rows=%d readonly>%s</textarea>\n", count($rows), $copytext);
+		printf("<textarea id='copywijzigingen' class='copypaste' rows=%d readonly>%s</textarea>\n", count($rows)+1, $copytext);
 		echo("<p><button onClick='CopyFunction()'>Kopieer naar klembord</button>\n");
 		printf("<input type='button' value='Wijzigingen afmelden' OnClick=\"location.href='%s?tp=%s&amp;op=afmeldenwijz'\"></p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	}
@@ -395,6 +395,7 @@ function fnInstellingen() {
 	$arrParam['mailing_herstellenwachtwoord'] = "NT";
 	$arrParam['mailing_lidnr'] = "NT";
 	$arrParam['mailing_mailopnieuw'] = "NT";
+	$arrParam['mailing_meldingnieuwip'] = "NT";
 	$arrParam['mailing_rekening_stuurnaar'] = "NT";
 	$arrParam['mailing_rekening_from_adres'] = "NT";
 	$arrParam['mailing_rekening_valuta'] = "NT";
@@ -420,6 +421,7 @@ function fnInstellingen() {
 	$arrParam['toneninschrijvingenbewakingen'] = "Moeten bij de gegevens van een lid ook inschrijvingen voor bewakingen getoond worden?";
 	$arrParam['tonentoekomstigebewakingen'] = "Moeten bij de gegevens van een lid ook toekomstige bewakingen getoond worden?";
 	$arrParam['typemenu'] = "Hoe moet het menu eruit zien? 1 = per niveau een aparte regel, 2 = één menu met dropdown, 3 = één menu met dropdown en extra menu voor niveau 2.";
+	$arrParam['uitleg_toestemmingen'] = "Welke tekst moet er bij het verlenen van de toestemmingen worden vermeld?";
 	$arrParam['urlvereniging'] = "De URL van de website van de vereniging.";
 	$arrParam['url_eigen_help'] = "Als een gebruiker op de help klikt wordt hier naar verwezen in plaats van de standaard help.";
 	$arrParam['verjaardagenaantal'] = "Hoeveel verjaardagen moeten er maximaal in de verenigingsinfo worden getoond. Als er meerdere leden op dezelfde dag jarig zijn, wordt dit aantal overschreden.";
@@ -533,24 +535,28 @@ function fnInstellingen() {
 	foreach (db_param("", "lijst") as $row) {
 		if (array_key_exists($row->Naam, $arrParam)) {
 			$uitleg = htmlent($arrParam[$row->Naam]);
-			if (strlen($uitleg) < 5) {
-			} elseif ($row->ParamType == "B") {
-				printf("<label>%s</label><p><input type='checkbox' name='value_%d' value='1' %s></p>\n", $uitleg, $row->RecordID, checked($row->ValueNum));
-			} elseif ($row->ParamType == "I") {
-				printf("<label>%s</label><p><input type='number' class='inputnumber' name='value_%d' value=%d></p>\n", $uitleg, $row->RecordID, $row->ValueNum);
-			} elseif ($row->ParamType == "F") {
-				printf("<label>%s</label><p><input name='value_%d' value=%F size=8></p>\n", $uitleg, $row->RecordID, $row->ValueNum);
-			} elseif (strlen($row->ValueChar) > 60) {
-				printf("<label>%s</label><p><textarea cols=50 rows=10 name='value_%d'>%s</textarea></p>\n", $uitleg, $row->RecordID, $row->ValueChar);
-			} else {
-				printf("<label>%s</label><p><input type='text' class='inputtext' name='value_%d' value=\"%s\"></p>\n", $uitleg, $row->RecordID, $row->ValueChar);
+			if (strlen($uitleg) > 5) {
+				echo("<div class='invoerblok'>\n");
+				if ($row->ParamType == "B") {
+					printf("<label>%s</label><p><input type='checkbox' name='value_%d' value='1' %s></p>\n", $uitleg, $row->RecordID, checked($row->ValueNum));
+				} elseif ($row->ParamType == "I") {
+					printf("<label>%s</label><p><input type='number' class='inputnumber' name='value_%d' value=%d></p>\n", $uitleg, $row->RecordID, $row->ValueNum);
+				} elseif ($row->ParamType == "F") {
+					printf("<label>%s</label><p><input name='value_%d' value=%F size=8></p>\n", $uitleg, $row->RecordID, $row->ValueNum);
+				} elseif (strlen($row->ValueChar) > 60) {
+					printf("<label>%s</label><p><textarea cols=72 rows=2 name='value_%d'>%s</textarea></p>\n", $uitleg, $row->RecordID, $row->ValueChar);
+				} else {
+					printf("<label>%s</label><p><input type='text' class='inputtext' name='value_%d' value=\"%s\"></p>\n", $uitleg, $row->RecordID, $row->ValueChar);
+				}
+				echo("</div> <!-- Einde invoerblok -->\n");
 			}
 		} else {
 			db_param($row->Naam, "delete");
 		}
 	}
-	echo("<div class='clear'></div>\n");
+	echo("<div id='opdrachtknoppen'>\n");
 	echo("<input class='knop' type='submit' value='Bewaren'>\n");
+	echo("</div>  <!-- Einde opdrachtknoppen -->\n");
 	
 	echo("</form>\n");
 	echo("</div>  <!-- Einde instellingenmuteren -->\n");
