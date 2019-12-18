@@ -815,6 +815,9 @@ function fnEigenGegevens($lidid=0, $actie="") {
 			} else {
 				echo("<p class='mededeling'>Er zijn geen toestemmingen bekend van dit lid.</p>\n");
 			}
+			if (strlen(db_param("uitleg_toestemmingen")) > 0) {
+				printf("<p>%s</p>\n", db_param("uitleg_toestemmingen"));
+			}
 			
 		} elseif ($actie == "Mailing") {
 			if (isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0) {
@@ -873,7 +876,12 @@ function fnEigenGegevens($lidid=0, $actie="") {
 				printf("<p class='mededeling'>Bij %s zijn geen deelnames aan evenementen bekend.</p>", $naamlid);
 			}
 		} elseif ($actie == "Logboek") {
-			echo(fnDisplayTable(db_logboek("lijst", "", -1, $lidid)));
+			$rows = db_logboek("lijst", "", -1, $lidid);
+			if (count($rows) > 0) {
+				echo(fnDisplayTable($rows));
+			} else {
+				printf("<p class='mededeling'>Er is geen logging bij %s bekend.</p>\n", $naamlid);
+			}
 		} else {
 			$fn = fotolid($lidid, 1);
 			if (strlen($fn) > 3) {
@@ -1117,7 +1125,7 @@ function algemeenlidmuteren($lidid) {
 	echo("<div id='wijzigengegevens'>\n");
 	printf("<form method='post' action='%s' name='frm_wijzigingen'>\n", $actionurl);
 	echo("<table>\n");
-	echo("<tr><th>Veld</th><th>Huidige waarde</th><th>Nieuwe waarde</th><th>Leeg</th></tr>\n");
+	echo("<tr><th></th><th>Huidige waarde</th><th>Nieuwe waarde</th><th>Leeg</th></tr>\n");
 	for ($i=0; $i < count($wijzvelden); $i++) {
 		$dv = $row->{$wijzvelden[$i]['naam']};
 		$ph = $wijzvelden[$i]['label'];
@@ -1168,8 +1176,10 @@ function algemeenlidmuteren($lidid) {
 		printf('<tr><td class="label">%1$s</td><td>%2$s</td><td>%3$s</td></tr>', $wijzvelden[$i]['label'], $dv, $inp);
 		echo("\n");
 	}
-	echo("<tr><th colspan=4><input type='submit' value='Bewaren' name='adreswijziging'></th></tr>\n");
 	echo("</table>\n");
+	echo("<div id='opdrachtknoppen'>\n");
+	echo("<input type='submit' value='Bewaren' name='adreswijziging'>\n");
+	echo("</div> <!-- Einde opdrachtknoppen -->\n");
 
 	echo("</form>\n");
 	echo("</div>  <!-- Einde wijzigengegevens -->\n");	
@@ -1340,9 +1350,15 @@ function toestemmingenmuteren($lidid) {
 		printf("<label>%s: </label><p><input type='checkbox' name='T_%s' value='1' %s></p>\n", $row->Naam, $row->Kode, checked(db_lidond("islid", $lidid, "", "", $row->RecordID)));
 	}
 	echo("<div class='clear'></div>\n");
+	if (strlen(db_param("uitleg_toestemmingen")) > 0) {
+		printf("<p>%s</p>\n", db_param("uitleg_toestemmingen"));
+	}
+	
+	echo("<div id='opdrachtknoppen'>\n");
 	echo("<input class='knop' type='submit' value='Bevestigen' name='Bevestigen'>\n");
+	echo("</div> <!-- Einde opdrachtknoppen -->\n");
 	echo("</form>\n");
-	echo("</div> <!-- einde toestemmingenmuteren -->\n");
+	echo("</div> <!-- Einde toestemmingenmuteren -->\n");
 } # toestemmingenmuteren
 
 function opzegginglidmaatschap($lidid) {
