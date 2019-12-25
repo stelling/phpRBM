@@ -2888,7 +2888,7 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 		return $result->fetchAll();
 		
 	} elseif ($actie == "add" or $actie == "insert") {
-		$query = sprintf("INSERT INTO %sEvenement (InschrijvingOpen, IngevoerdDoor) VALUES (0, %d);", TABLE_PREFIX, $_SESSION['lidid']);
+		$query = sprintf("INSERT INTO %sEvenement (RecordID, InschrijvingOpen, IngevoerdDoor) VALUES (%d, 0, %d);", TABLE_PREFIX, db_nieuwrecordID("Evenement"), $_SESSION['lidid']);
 		$id = fnQuery($query);
 		$mess = sprintf("Evenement %d is toegevoegd.", $id);
 		db_logboek("add", $mess, 7, 0, 0, $id);
@@ -2995,7 +2995,7 @@ function db_Evenement_Deelnemer($actie, $recid=0, $fld="", $val="", $lidid=0, $e
 		return $result->fetch();
 	
 	} elseif ($actie == "insert") {
-		$query = sprintf("INSERT INTO %sEvenement_Deelnemer (LidID, EvenementID, Status, Opmerking, Functie, IngevoerdDoor) VALUES (%d, %d, '%s', '', '', %d);", TABLE_PREFIX, $lidid, $eventrow->RecordID, $eventrow->StandaardStatus, $_SESSION['lidid']);
+		$query = sprintf("INSERT INTO %sEvenement_Deelnemer (RecordID, LidID, EvenementID, Status, Opmerking, Functie, IngevoerdDoor) VALUES (%d, %d, %d, '%s', '', '', %d);", TABLE_PREFIX, db_nieuwrecordID("Evenement_Deelnemer"), $lidid, $eventrow->RecordID, $eventrow->StandaardStatus, $_SESSION['lidid']);
 		$recid = fnQuery($query);
 		if ($recid > 0) {
 			$mess = sprintf("Deelnemer %s bij evenement %d (%s) met status '%s' toegevoegd. ", db_naamlid($lidid), $eventrow->RecordID, $eventrow->Omschrijving, $eventrow->StandaardStatus);
@@ -3037,7 +3037,7 @@ function db_Evenement_Type($actie, $etid=0, $colname="", $newval="") {
 		$query = sprintf("SELECT COUNT(*) FROM %sEvenement_Type;", TABLE_PREFIX);
 		return db_scalar($query);
 	} elseif ($actie == "insert") {
-		$query = sprintf("INSERT INTO %sEvenement_Type (Omschrijving) VALUES ('%s');", TABLE_PREFIX, $newval);
+		$query = sprintf("INSERT INTO %sEvenement_Type (RecordID, Omschrijving) VALUES (%d, '%s');", TABLE_PREFIX, db_nieuwrecordID("Evenement_Type"), $newval);
 		$etid = fnQuery($query);
 		if ($etid > 0) {
 			$mess = sprintf("Evenement type %d is toegevoegd.", $etid);
@@ -4197,24 +4197,36 @@ function db_kolom_numeriek($tabel, $kolom) {
 function db_nieuwrecordID($tabel) {
 	/* Change log
 	ST20181221 RecordID's voor tabellen die uit Access komen moeten oneven zijn. Dit om het onderscheid te kunnen maken met RecordID's die uit de Access-database komen.
+	ST20191225 RecordID's voor tabellen die bij elkaar horen uniek binnen die groep gemaakt.
 	*/
-	global $arrTables;
 	
 	$rid = 0;
 	
-	if (!startwith($tabel, TABLE_PREFIX)) {
-		$tabel = TABLE_PREFIX . $tabel;
-	}
-	
-	if (bestaatkolom($tabel, "RecordID")) {
-		$kol = "RecordID";
+	if (startwith($tabel, "Evenement")) {
+		$rid = db_scalar(sprintf("SELECT MAX(RecordID) FROM %sEvenement;", TABLE_PREFIX));
+		$r = db_scalar(sprintf("SELECT MAX(RecordID) FROM %sEvenement_Deelnemer;", TABLE_PREFIX));
+		if ($r > $rid) {$rid = $r; }
+		$r = db_scalar(sprintf("SELECT MAX(RecordID) FROM %sEvenement_Type;", TABLE_PREFIX));
+		if ($r > $rid) {$rid = $r; }
+		
+	} elseif ($tabel == "Lid" or $tabel == "Lidmaatschap" or $tabel == "Lidond") {
+		$rid = db_scalar(sprintf("SELECT MAX(RecordID) FROM %sLid;", TABLE_PREFIX));
+		$r = db_scalar(sprintf("SELECT MAX(RecordID) FROM %sLidond;", TABLE_PREFIX));
+		if ($r > $rid) {$rid = $r; }
+		$r = db_scalar(sprintf("SELECT MAX(RecordID) FROM %sLidmaatschap;", TABLE_PREFIX));
+		if ($r > $rid) {$rid = $r; }
+		
 	} else {
-		$kol = "Nummer";
+		if (bestaatkolom($tabel, "RecordID")) {
+			$kol = "RecordID";
+		} else {
+			$kol = "Nummer";
+		}
+		$query = sprintf("SELECT MAX(IFNULL(%s, 0)) FROM %s;", $kol, TABLE_PREFIX . $tabel);
+		$rid = db_scalar($query);
 	}
-
-	$query = sprintf("SELECT MAX(IFNULL(%s, 0)) FROM %s;", $kol, $tabel);
-	$rid = db_scalar($query) + 1;
 	
+	$rid++;
 	if (($rid / 2) == intval($rid / 2)) {
 		$rid++;
 	}
