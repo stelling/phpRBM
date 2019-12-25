@@ -3,7 +3,7 @@
 date_default_timezone_set('Europe/Amsterdam');
 setlocale(LC_ALL,'nl_NL.utf8');
 
-define("ARRGESLACHT", ["V" => "Vrouwelijk", "M" => "Mannelijk", "B" => "Bedrijf/Vereniging", "O" => "Onbekend"]);
+define("ARRGESLACHT", ["O" => "Onbekend", "V" => "Vrouwelijk", "M" => "Mannelijk", "B" => "Bedrijf/Vereniging/Stichting"]);
 define("ARRTL", ["Alle", "Leden", "Klosleden", "Voormalig leden"]);
 define("ARRLEGITIMATIE", ["G" => "Geen", "I" => "Identiteitskaart", "P" => "Paspoort", "R" => "Rijbewijs"]);
 define("ARRSOORTMEMO", ["A" => "Algemeen", "B" => "Bewaking", "D" => "Dieet", "E" => "Examen", "F" => "Financiën", "G" => "Gezondheid/medisch", "I" => "Inschrijving bewaking", "WN" => "Waarschuwen in geval van nood"]);
