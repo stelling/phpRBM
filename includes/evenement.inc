@@ -454,11 +454,9 @@ function muteertypeevenement() {
 		
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	echo("<table>\n");
-	echo("<tr><th></th><th>Nummer</th><th>Omschrijving</th><th>Soort</th></tr>\n");
+	echo("<tr><th>Omschrijving</th><th>Soort</th><th></th></tr>\n");
 	foreach (db_evenement("types") as $row) {
 		echo("<tr>");
-		printf("<td><a href='%s?tp=%s&amp;op=delete&amp;tid=%d' title='Verwijder type evenement'><img src='./images/del.png' title='Verwijder type'></a></td>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $row->RecordID);
-		printf("<td class='number'>%d</td>\n", $row->RecordID);
 		printf("<td><input type='text' name='oms_%d' value='%s' onBlur='this.form.submit();'></td>\n", $row->RecordID, $row->Omschrijving);
 		$options = "\n";
 		foreach ($soortevenement as $key => $val) {
@@ -470,11 +468,11 @@ function muteertypeevenement() {
 			$options .= sprintf("<option value='%s' %s>%s</option>\n", $key, $s, $val);
 		}
 		printf("<td><select name='soort_%d' onChange='this.form.submit();'>%s</select></td>", $row->RecordID, $options);
+		printf("<td><a href='%s?tp=%s&amp;op=delete&amp;tid=%d' title='Verwijder type evenement'><img src='./images/del.png' title='Verwijder type'></a></td>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $row->RecordID);
 		echo("</tr>\n");
 	}
 	echo("<tr>");
-	echo("<td><img src='./images/star.png' title='Nieuw type'></td>");
-	echo("<td class='number'>Nw</td><td><input type='text' name='oms_nw' onBlur='this.form.submit();'></td>");
+	echo("<td><input type='text' name='oms_nw' placeholder='Nieuw type' onBlur='this.form.submit();'></td>");
 	echo("</tr>\n");
 	echo("</table>\n");
 	echo("</form>\n");
