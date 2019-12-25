@@ -252,9 +252,13 @@ function fnLedenlijst() {
 		$llw = "";
 	}
 
-	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+	if ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['tbNaamFilter'])) {
 		$_SESSION['val_naamfilter'] = $_POST['tbNaamFilter'];
-		$_SESSION['val_groep'] = $_POST['lbGroepFilter'];
+		if (isset($_POST['lbGroepFilter'])) {
+			$_SESSION['val_groep'] = $_POST['lbGroepFilter'];
+		} else {
+			$_SESSION['val_groep'] = 0;
+		}
 	} elseif (!isset($_SESSION['val_naamfilter'])) {
 		$_SESSION['val_naamfilter'] = "";
 		$_SESSION['val_groep'] = 0;
@@ -262,27 +266,23 @@ function fnLedenlijst() {
 	
 
 	if (strlen($_SESSION['val_naamfilter']) > 1) {
-		$filter = sprintf("(L.Achternaam LIKE '%%%1\$s%%' OR L.Roepnaam LIKE '%%%1\$s%%' OR L.MEISJESNM LIKE '%%%1\$s%%')", strtoupper($_SESSION['val_naamfilter']));
+		$filter = sprintf("(L.Verwijderd IS NULL) AND (L.Achternaam LIKE '%%%1\$s%%' OR L.Roepnaam LIKE '%%%1\$s%%' OR L.MEISJESNM LIKE '%%%1\$s%%')", strtoupper($_SESSION['val_naamfilter']));
 	} else {
-		$filter = "";
+		$filter = "(L.Verwijderd IS NULL)";
 	}
 	$xtraselect = ", LM.LIDDATUM AS `dteLid vanaf`, LM.Opgezegd AS `dteOpgezegd per`";
 	
 	if ($_SESSION['val_groep'] == 0) {
 		if ($currenttab2 == "Leden") {
-			if (strlen($filter) > 0) {$filter .= " AND "; }
-			$filter .= "LM.Lidnr > 0 AND ((LM.Opgezegd IS NULL) OR LM.Opgezegd > CURDATE())";
+			$filter .= " AND LM.Lidnr > 0 AND IFNULL(LM.Opgezegd, CURDATE()) >= CURDATE()";
 			$xtraselect = ", LM.LIDDATUM AS `dteLid vanaf`";
 		} elseif ($currenttab2 == "Klosleden") {
-			if (strlen($filter) > 0) {$filter .= " AND "; }
-			$filter .= "(LM.Lidnr IS NULL)";
+			$filter .= " AND (LM.Lidnr IS NULL)";
 			$xtraselect = "";
 		} elseif ($currenttab2 == "Voormalig leden") {
-			if (strlen($filter) > 0) {$filter .= " AND "; }
-			$filter .= "(NOT LM.Opgezegd IS NULL) AND LM.Opgezegd < CURDATE()";
+			$filter .= " AND IFNULL(LM.Opgezegd, CURDATE()) < CURDATE()";
 		} elseif ($currenttab2 == "Toekomstige leden") {
-			if (strlen($filter) > 0) {$filter .= " AND "; }
-			$filter .= "LM.LIDDATUM > CURDATE()";
+			$filter .= " AND LM.LIDDATUM > CURDATE()";
 		}
 		$rows = db_lid("ledenlijst", $filter, 0, $xtraselect);
 	} else {
@@ -296,26 +296,62 @@ function fnLedenlijst() {
 		$rows = db_lidond("onderdeellijst", 0, "", $filter, $_SESSION['val_groep']);
 	}	
 	
-	echo("<div id='filter'>\n");
-	printf("<form name='Filter' action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
-	echo("<table>\n<tr>");
 	
-	printf("<td class='label'>Naam bevat</td><td><input type='text' name='tbNaamFilter' size=20 value='%s' placeholder='Achter- of roepnaam' onblur='form.submit();'></td>\n", $_SESSION['val_naamfilter']);
-	printf("<td class='label'>Onderdeel</td><td><select name='lbGroepFilter' onchange='this.form.submit();'>\n%s</select></td>\n", fnSelectListGroepen($_SESSION['val_groep']));
-	
-	if (count($rows) > 1) {
-		printf("<td>%d %s</td>\n", count($rows), $currenttab2);
-	}
-	echo("</tr>\n</table>\n");
-	echo("</form>\n");
-	echo("</div>  <!-- Einde filter -->\n");
-		
-	if (count($rows) > 0) {
-		echo(fnDisplayTable($rows, $ldl, "", 0, $llw, "", "ledenlijst"));
-		foreach ($rows as $row) {
-			$sel_leden[] = $row->lnkNummer;
+	if ($currenttab2 == "Nieuw kloslid") {
+		if ($_SERVER['REQUEST_METHOD'] == "POST") {
+			
+			if (isset($_POST['addkloslid'])) {
+				$lidid = db_Lid("insert", "", 0, "", "", $_POST['achternaam']);
+				db_Lid("update", "", $lidid, "", "Geslacht", $_POST['geslacht']);
+				db_Lid("update", "", $lidid, "", "Ingevoerd", date("Y/m/d"));
+			}
+			printf("<script>location.href='%s?tp=Ledenlijst/Klosleden';</script>\n", $_SERVER['PHP_SELF']);
+			
+		} else {
+			
+			echo("<div id='wijzigengegevens'>\n");
+			printf("<form name='Filter' action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
+			echo("<label>Achternaam</label>\n<div class='invoerblok'>");
+			echo("<input type='text' name='achternaam' size=40 maxlength=40></div>\n");
+			echo("<label>Geslacht</label>\n<div class='invoerblok'>");
+			
+			$opt = "\n";
+			foreach (constant("ARRGESLACHT") as $key => $val) {
+				$opt .= sprintf("<option value='%s'>%s</option>\n", $key, $val);
+			}
+			printf("<select name='geslacht'>%s</select></div>", $opt);
+			
+			echo("<div id='opdrachtknoppen'>\n");
+			echo("<input type='submit' name='addkloslid' value='Toevoegen'>\n");
+			echo("</div> <!-- Einde opdrachtknoppen -->\n");
+			
+			echo("</form>\n");
+			echo("</div> <!-- Einde wijzigengegevens -->\n");
 		}
-		$_SESSION['sel_leden'] = $sel_leden;
+	} else {
+		echo("<div id='filter'>\n");
+		printf("<form name='Filter' action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
+		echo("<table>\n<tr>");
+	
+		printf("<td class='label'>Naam bevat</td><td><input type='text' name='tbNaamFilter' size=20 value='%s' placeholder='Achter- of roepnaam' onblur='form.submit();'></td>\n", $_SESSION['val_naamfilter']);
+		if ($currenttab2 != "Klosleden") {
+			printf("<td class='label'>Onderdeel</td><td><select name='lbGroepFilter' onchange='this.form.submit();'>\n%s</select></td>\n", fnSelectListGroepen($_SESSION['val_groep']));
+		}
+	
+		if (count($rows) > 1) {
+			printf("<td>%d %s</td>\n", count($rows), $currenttab2);
+		}
+		echo("</tr>\n</table>\n");
+		echo("</form>\n");
+		echo("</div>  <!-- Einde filter -->\n");
+		
+		if (count($rows) > 0) {
+			echo(fnDisplayTable($rows, $ldl, "", 0, $llw, "", "ledenlijst"));
+			foreach ($rows as $row) {
+				$sel_leden[] = $row->lnkNummer;
+			}
+			$_SESSION['sel_leden'] = $sel_leden;
+		}
 	}
 	
 } # fnLedenlijst
@@ -988,15 +1024,24 @@ function fotolid($lidid, $metversie=0) {
 } # fotolid
 
 function algemeenlidmuteren($lidid) {
-	global $actionurl, $fdsql, $fdaccess, $currenttab;
+	global $actionurl, $fdsql, $fdaccess, $currenttab, $currenttab2;
+	
+	$gs = db_naamlid($lidid, "Geslacht");
+	$kl = db_Lidmaatschap("isKloslid", $lidid);
 		
 	$wijzvelden[] = array('label' => "Roepnaam", 'naam' => "Roepnaam", 'lengte' => 17);
-	$wijzvelden[] = array('label' => "Voorletters", 'naam' => "VOORLETTER", 'lengte' => 10);
+	if ($kl == false) {
+		$wijzvelden[] = array('label' => "Voorletters", 'naam' => "VOORLETTER", 'lengte' => 10);
+	}
 	$wijzvelden[] = array('label' => "Tussenvoegsels", 'naam' => "Tussenv", 'lengte' => 7);
 	$wijzvelden[] = array('label' => "Achternaam", 'naam' => "Achternaam", 'lengte' => 30, 'nietverw' => true);
-	$wijzvelden[] = array('label' => "Meisjesnaam", 'naam' => "Meisjesnm", 'lengte' => 25);
+	if ($gs == "V") {
+		$wijzvelden[] = array('label' => "Meisjesnaam", 'naam' => "Meisjesnm", 'lengte' => 25);
+	}
 	$wijzvelden[] = array('label' => "Geslacht", 'naam' => "Geslacht", 'nietverw' => true);
-	$wijzvelden[] = array('label' => "Adres", 'naam' => "Adres", 'lengte' => 30);
+	if ($kl == true) {
+		$wijzvelden[] = array('label' => "Opmerking", 'naam' => "Opmerking", 'lengte' => 60);
+	}
 	$wijzvelden[] = array('label' => "Postcode", 'naam' => "Postcode", 'lengte' => 7);
 	$wijzvelden[] = array('label' => "Woonplaats", 'naam' => "Woonplaats", 'lengte' => 22);
 	$wijzvelden[] = array('label' => "Vast telefoonnummer", 'naam' => "Telefoon", 'lengte' => 16);
@@ -1005,38 +1050,45 @@ function algemeenlidmuteren($lidid) {
 	if (db_param("zs_incl_emailvereniging") == 1 or $currenttab == "Wijzigen lid") {
 		$wijzvelden[] = array('label' => "E-mail vereniging", 'naam' => "EmailVereniging", 'lengte' => 45);
 	}
-	if (db_param("zs_incl_emailouders") == 1 or $currenttab == "Wijzigen lid") {
+	if ((db_param("zs_incl_emailouders") == 1 or $currenttab == "Wijzigen lid") and $gs != "B") {
 		$wijzvelden[] = array('label' => "E-mail ouders", 'naam' => "EmailOuders", 'lengte' => 45);
 		$wijzvelden[] = array('label' => "Namen ouders", 'naam' => "NamenOuders", 'lengte' => 90);
 	}
 	$wijzvelden[] = array('label' => "Geboortedatum", 'naam' => "GEBDATUM", 'lengte' => 10, 'type' => 'date');
-	$wijzvelden[] = array('label' => "Geboorteplaats", 'naam' => "GEBPLAATS", 'lengte' => 22);
+	if ($gs != "B") {
+		$wijzvelden[] = array('label' => "Geboorteplaats", 'naam' => "GEBPLAATS", 'lengte' => 22);
+	}
 	if (db_param("zs_incl_iban") == 1) {
 		$wijzvelden[] = array('label' => "Bankrekening", 'naam' => "Bankrekening", 'lengte' => 18);
 	}
 	if (db_param("zs_incl_machtiging") == 1 or $currenttab == "Wijzigen lid") {
 		$wijzvelden[] = array('label' => "Machtiging incasso afgegeven", 'naam' => "Machtiging afgegeven", 'lengte' => 1, 'type' => 'cb');
 	}
-	if (db_param("zs_incl_vogafgegeven") == 1 or $currenttab == "Wijzigen lid") {
-		$wijzvelden[] = array('label' => "VOG afgegeven op", 'naam' => "VOG afgegeven", 'lengte' => 10, 'type' => 'date');
-	}
-	if (db_param("zs_incl_bsn") == 1 or $currenttab == "Wijzigen lid") {
-		$wijzvelden[] = array('label' => "Burgerservicenummer", 'naam' => "Burgerservicenummer", 'lengte' => 9);
-	}
-	if (db_param("zs_incl_slid") == 1 or $currenttab == "Wijzigen lid") {
-		$wijzvelden[] = array('label' => "Sportlink ID", 'naam' => "RelnrRedNed", 'lengte' => 7, 'nietverw' => true);
-	}
-	if (db_param("zs_incl_legitimatie") == 1 or $currenttab == "Wijzigen lid") {
-		$wijzvelden[] = array('label' => "Legitimatietype", 'naam' => "Legitimatietype", 'nietverw' => true);
-		$wijzvelden[] = array('label' => "Legitimatienummer", 'naam' => "Legitimatienummer", 'lengte' => 15);
-	}
-	if (db_param("zs_incl_beroep") == 1 or $currenttab == "Wijzigen lid") {
-		$wijzvelden[] = array('label' => "Beroep", 'naam' => "Beroep", 'lengte' => 40);
+	if ($gs != "B") {
+		if (db_param("zs_incl_vogafgegeven") == 1 or $currenttab == "Wijzigen lid") {
+			$wijzvelden[] = array('label' => "VOG afgegeven op", 'naam' => "VOG afgegeven", 'lengte' => 10, 'type' => 'date');
+		}
+		if (db_param("zs_incl_bsn") == 1 or $currenttab == "Wijzigen lid") {
+			$wijzvelden[] = array('label' => "Burgerservicenummer", 'naam' => "Burgerservicenummer", 'lengte' => 9);
+		}
+		if (db_param("zs_incl_slid") == 1 or $currenttab == "Wijzigen lid") {
+			$wijzvelden[] = array('label' => "Sportlink ID", 'naam' => "RelnrRedNed", 'lengte' => 7, 'nietverw' => true);
+		}
+		if (db_param("zs_incl_legitimatie") == 1 or $currenttab == "Wijzigen lid") {
+			$wijzvelden[] = array('label' => "Legitimatietype", 'naam' => "Legitimatietype", 'nietverw' => true);
+			$wijzvelden[] = array('label' => "Legitimatienummer", 'naam' => "Legitimatienummer", 'lengte' => 15);
+		}
+		if (db_param("zs_incl_beroep") == 1 or $currenttab == "Wijzigen lid") {
+			$wijzvelden[] = array('label' => "Beroep", 'naam' => "Beroep", 'lengte' => 40);
+		}
 	}
 
 	$naamlid = db_naamlid($lidid);
 		
-	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+	if (isset($_POST['Kloslid_Verwijderen'])) {
+		db_Lid("update", "", $lidid, "", "Verwijderd", date("Y/m/d"));
+		printf("<script>location.href='%s?tp=Ledenlijst/Klosleden';</script>\n", $_SERVER['PHP_SELF']);
+	} elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$old = db_lid("wijzigingen", "", $lidid);
 		for ($i=0; $i < count($wijzvelden); $i++) {
 			$mess = "";
@@ -1098,17 +1150,8 @@ function algemeenlidmuteren($lidid) {
 				$v = $_POST[$fn];
 			}
 			if ($v !== "__skip__" and $v != $old->$fn) {
-				if ($v === "NULL") {
-					$query = sprintf("UPDATE %sLid SET `%s`=NULL, Gewijzigd=SYSDATE() WHERE Nummer=%d;", TABLE_PREFIX, $fn, $lidid);
-				} else {
-					$query = sprintf("UPDATE %sLid SET `%s`='%s', Gewijzigd=SYSDATE() WHERE Nummer=%d;", TABLE_PREFIX, $fn, $v, $lidid);
-				}
-				$result = fnQuery($query);
-				if ($result > 0) {
-					if ($fn == "GEBDATUM" and $v !== "NULL") {
-						$query = sprintf("UPDATE Lid SET `%s`=#%s#, Gewijzigd=SYSDATE() WHERE Nummer=%d;", $fn, strftime($fdaccess, strtotime($v)), $lidid);
-					}
-					db_interface("add", $query, $lidid);
+				$result = db_Lid("update", "", $lidid, "", $fn, $v);
+				if ($result == true) {
 					$mess .= sprintf("%s van %s is in '%s' gewijzigd. ", $wijzvelden[$i]['label'], $naamlid, $v);
 				} else {
 					$mess .= sprintf("De wijziging in '%s' bij %s is niet verwerkt. ", strtolower($wijzvelden[$i]['label']), $naamlid);
@@ -1119,9 +1162,17 @@ function algemeenlidmuteren($lidid) {
 				db_logboek("add", $mess, 6, 0, $toonmess, $lidid);
 			}
 		}
+		
+		if (isset($_POST['Bewaren_Sluiten'])) {
+			if ($kl == true) {
+				printf("<script>location.href='%s?tp=Ledenlijst/Klosleden';</script>\n", $_SERVER['PHP_SELF']);
+			} else {
+				printf("<script>location.href='%s?tp=Ledenlijst/Leden';</script>\n", $_SERVER['PHP_SELF']);
+			}
+		}
 	}
 
-	$row = db_lid("wijzigingen", "", $lidid);
+	$row = db_Lid("wijzigingen", "", $lidid);
 	echo("<div id='wijzigengegevens'>\n");
 	printf("<form method='post' action='%s' name='frm_wijzigingen'>\n", $actionurl);
 	echo("<table>\n");
@@ -1167,8 +1218,7 @@ function algemeenlidmuteren($lidid) {
 			} else {
 				$t = "text";
 			}
-			$inp = sprintf("<input type='%s' name='%s' placeholder='%s' size=40 maxlength=%d></td><td class='chk'>", 
-					$t, $wijzvelden[$i]['naam'], $ph, $wijzvelden[$i]['lengte']);
+			$inp = sprintf("<input type='%s' name='%s' placeholder='%s' size=40 maxlength=%d></td><td class='chk'>", $t, $wijzvelden[$i]['naam'], $ph, $wijzvelden[$i]['lengte']);
 			if (strlen($dv) > 0 and (!isset($wijzvelden[$i]['nietverw']) or $wijzvelden[$i]['nietverw'] == false)) {
 				$inp .= sprintf("<input type='checkbox' name='chkLeeg_%s' value=1>", $wijzvelden[$i]['naam']);
 			}
@@ -1178,11 +1228,18 @@ function algemeenlidmuteren($lidid) {
 	}
 	echo("</table>\n");
 	echo("<div id='opdrachtknoppen'>\n");
-	echo("<input type='submit' value='Bewaren' name='adreswijziging'>\n");
+	echo("<input type='submit' value='Bewaren' name='Bewaren'>\n");
+	if ($currenttab == "Ledenlijst") {
+		echo("<input type='submit' value='Bewaren en sluiten' name='Bewaren_Sluiten'>\n");
+	}
+	if ($kl == true) {
+		echo("<input type='submit' value='Verwijderen' name='Kloslid_Verwijderen'>\n");
+	}
 	echo("</div> <!-- Einde opdrachtknoppen -->\n");
 
 	echo("</form>\n");
-	echo("</div>  <!-- Einde wijzigengegevens -->\n");	
+	echo("</div>  <!-- Einde wijzigengegevens -->\n");
+
 } # algemeenlidmuteren
 
 function nieuwepasfoto($lidid, $filterlid="") {

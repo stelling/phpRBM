@@ -92,7 +92,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (count(db_artikel("artikelbeschikbaar")) > 0) {
 			addtp("Zelfservice/Bestellingen");
 		}
-		if (db_lidmaatschap("kanopzeggen", $_SESSION['lidid']) == true) {
+		if (db_lidmaatschap("kanopzeggen", $_SESSION['lidid']) == true and db_param("mailing_bevestigingopzegging") > 0) {
 			addtp("Zelfservice/Opzegging");
 		}
 	}
@@ -121,6 +121,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (count(db_Lidmaatschap("toekomstigeleden")) > 0) {
 			addtp("Ledenlijst/Toekomstige leden");
 		}
+		addtp("Ledenlijst/Nieuw kloslid");
 	}
 	
 	if ($currenttab == "Overzicht lid") {
@@ -159,7 +160,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (db_onderdeel("aantal", "T") > 0) {
 			addtp("Overzicht lid/Toestemmingen");
 		}
-		if (count(db_logboek("lijst", "", -1, $_GET['lidid'])) > 0) {
+		if (db_logboek("aantal", "", -1, $_GET['lidid']) > 0) {
 			addtp("Overzicht lid/Logboek");
 		}
 	}

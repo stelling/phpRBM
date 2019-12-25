@@ -95,9 +95,10 @@ $wherelidond = "LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, CURDATE()) >= CURD
 $whereliddipl = "IFNULL(LD.LicentieVervallenPer, CURDATE()) >= CURDATE()";
 $sqllidgroepen = sprintf("SELECT OnderdeelID FROM %sLidond AS LO WHERE %s AND Lid=%d", TABLE_PREFIX, $wherelidond, $_SESSION['lidid']);
 
-$db_conn_pdo = sprintf("mysql:host=%s;dbname=%s;charset=utf8", $db_host, $db_name);
+// $db_conn_pdo = sprintf("mysql:host=%s;dbname=%s;charset=utf8", $db_host, $db_name);
+$db_conn_pdo = sprintf("mysql:host=%s;dbname=%s", $db_host, $db_name);
 try {
-	$dbc = new PDO($db_conn_pdo, $db_user, $db_pass);
+	$dbc = new PDO($db_conn_pdo, $db_user, $db_pass, array(PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8"));
 	$dbc->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_OBJ);
 	$dbc->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
@@ -442,7 +443,9 @@ function db_naamlid($lidid, $uitv="", $riz="gast") {
 	} elseif ($uitv == "Naam") {
 		$query = sprintf("SELECT %s FROM %sLid AS L WHERE L.RecordID=%d;", $selectnaam, TABLE_PREFIX, $lidid);
 	} elseif ($uitv == "Roepnaam") {
-		$query = sprintf("SELECT IF(LENGTH(L.Roepnaam)=0, L.Voorletter, L.Roepnaam) FROM %sLid AS L WHERE L.Nummer=%d;", TABLE_PREFIX, $lidid);
+		$query = sprintf("SELECT IF(LENGTH(L.Roepnaam)=0, L.Voorletter, L.Roepnaam) FROM %sLid AS L WHERE L.RecordID=%d;", TABLE_PREFIX, $lidid);
+	} elseif ($uitv == "Geslacht") {
+		$query = sprintf("SELECT L.Geslacht FROM %sLid AS L WHERE L.RecordID=%d;", TABLE_PREFIX, $lidid);
 	} else {
 		$query = sprintf("SELECT %s FROM %sLid AS L WHERE L.RecordID=%d;", $selectzoeknaam, TABLE_PREFIX, $lidid);
 	}
@@ -454,13 +457,14 @@ function db_naamlid($lidid, $uitv="", $riz="gast") {
 }
 
 function db_Lid($actie, $filter="", $lidid=0, $xtraselect="", $kolomnm="", $waarde="") {
-	global $selectnaam, $selectzoeknaam, $selectlidnr, $fromlid, $wherelid, $selecttelefoon;
+	global $selectnaam, $selectzoeknaam, $selectlidnr, $fromlid, $wherelid, $selecttelefoon, $fdaccess;
 	
 	if (strlen($filter) > 0 and ($actie != "verjaardagen" and $actie != "lididbijemail")) {
 		$filter = " WHERE " . $filter;
 	} elseif ($lidid > 0) {
 		$filter = sprintf(" WHERE L.RecordID=%d", $lidid);
 	}
+	$waarde = str_replace("\"", "'", $waarde);
 	
 	if ($actie == "record" and $lidid > 0) {
 		$query = sprintf("SELECT *, %s as NaamLid FROM %sLid AS L WHERE L.RecordID=%d;", $selectnaam, TABLE_PREFIX, $lidid);
@@ -483,12 +487,19 @@ function db_Lid($actie, $filter="", $lidid=0, $xtraselect="", $kolomnm="", $waar
 					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, L.RecordID DESC;", $selectnaam, $selectzoeknaam, TABLE_PREFIX, $filter);
 					
 	} elseif ($actie == "ledenlijst") {
-		$query = sprintf("SELECT L.RecordID AS lnkNummer, LM.Lidnr AS numLidnr, %1\$s AS `Naam_lid`, UPPER(L.Woonplaats) AS Woonplaats,
-					%6\$s AS Telefoon, IF((LENGTH(L.Email) > 5), L.Email, L.EmailOuders) AS `emlE-mail`%3\$s,
-					L.RecordID AS llkNummer, L.GEBDATUM AS ndGEBDATUM, %2\$s AS ndZoeknaam
-					FROM %4\$s
-					%5\$s
-					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, LM.LIDDATUM DESC;", $selectnaam, $selectzoeknaam, $xtraselect, $fromlid, $filter, $selecttelefoon);
+		if (strpos($filter, "(LM.Lidnr IS NULL)") === false) {
+			$ln = ", LM.Lidnr AS numLidnr";
+			$k4 = $selecttelefoon . " AS Telefoon";
+		} else {
+			$ln = "";
+			$k4 = "L.Opmerking";
+		}
+		$query = sprintf("SELECT L.RecordID AS lnkNummer%1\$s, %2\$s AS `Naam_lid`, UPPER(L.Woonplaats) AS Woonplaats,
+					%7\$s, IF((LENGTH(L.Email) > 5), L.Email, L.EmailOuders) AS `emlE-mail`%4\$s,
+					L.RecordID AS llkNummer, L.GEBDATUM AS ndGEBDATUM, %3\$s AS ndZoeknaam
+					FROM %5\$s
+					%6\$s
+					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, LM.LIDDATUM DESC;", $ln, $selectnaam, $selectzoeknaam, $xtraselect, $fromlid, $filter, $k4);
 					
 	} elseif ($actie == "lijstselect") {
 		$query = sprintf("SELECT L.Nummer, %s AS NaamLid, %s AS Zoeknaam
@@ -504,6 +515,7 @@ function db_Lid($actie, $filter="", $lidid=0, $xtraselect="", $kolomnm="", $waar
 					L.Achternaam,
 					L.Meisjesnm,
 					L.Geslacht,
+					L.Opmerking,
 					L.Adres,
 					L.Postcode,
 					L.Woonplaats,
@@ -539,16 +551,31 @@ function db_Lid($actie, $filter="", $lidid=0, $xtraselect="", $kolomnm="", $waar
 					FROM %2\$sLid AS L INNER JOIN %2\$sRekening AS RK ON RK.Lid=L.RecordID
 					ORDER BY L.Achternaam, L.Tussenv, L.Roepnaam;", $selectzoeknaam, TABLE_PREFIX);
 					
+	} elseif ($actie == "insert") {
+		$lidid = db_nieuwrecordID("Lid");
+		$query = sprintf("INSERT INTO %1\$sLid (RecordID, Nummer, Achternaam, Geslacht, Roepnaam, Tussenv, Voorletter) VALUES (%2\$d, %2\$d, \"%3\$s\", 'O', '', '', '');", TABLE_PREFIX, $lidid, $waarde);
+		if (fnQuery($query) > 0) {
+			db_interface("add", $query, $lidid);
+			$mess = sprintf("Kloslid %d (%s) is toegevoegd", $lidid, $waarde);
+			db_Logboek("add", $mess, 6, 0, 1);
+			return $lidid;
+		} else {
+			return false;
+		}
+					
 	} elseif ($actie == "update") {
 		$in = db_kolom_numeriek("Lid", $kolomnm);
 		if ($waarde == "NULL") {
-			$query = sprintf("UPDATE %1\$sLid AS L SET `%2\$s`=NULL WHERE L.RecordID=%3\$d AND `%2\$s`<>NULL;", TABLE_PREFIX, $kolomnm, $lidid);
+			$query = sprintf("UPDATE %1\$sLid AS L SET `%2\$s`=NULL, Gewijzigd=SYSDATE() WHERE L.RecordID=%3\$d AND `%2\$s`<>NULL;", TABLE_PREFIX, $kolomnm, $lidid);
 		} elseif ($in) {
-			$query = sprintf("UPDATE %1\$sLid AS L SET `%2\$s`=%3\$d WHERE L.RecordID=%4\$d AND `%2\$s`<>%3\$d;", TABLE_PREFIX, $kolomnm, $waarde, $lidid);
+			$query = sprintf("UPDATE %1\$sLid AS L SET `%2\$s`=%3\$d, Gewijzigd=SYSDATE() WHERE L.RecordID=%4\$d AND IFNULL(`%2\$s`,0)<>%3\$d;", TABLE_PREFIX, $kolomnm, $waarde, $lidid);
 		} else {
-			$query = sprintf("UPDATE %1\$sLid AS L SET `%2\$s`='%3\$s' WHERE BINARY L.RecordID=%4\$d AND `%2\$s`<>'%3\$s';", TABLE_PREFIX, $kolomnm, $waarde, $lidid);
+			$query = sprintf("UPDATE %1\$sLid AS L SET `%2\$s`='%3\$s', Gewijzigd=SYSDATE() WHERE BINARY L.RecordID=%4\$d AND IFNULL(`%2\$s`, '')<>'%3\$s';", TABLE_PREFIX, $kolomnm, $waarde, $lidid);
 		}
 		if (fnQuery($query) > 0) {
+			if (($kolomnm == "GEBDATUM" or $kolomnm == "Ingevoerd" or $kolomnm == "Verwijderd") and $waarde !== "NULL") {
+				$query = sprintf("UPDATE Lid SET `%s`=#%s#, Gewijzigd=SYSDATE() WHERE RecordID=%d;", $kolomnm, strftime($fdaccess, strtotime($waarde)), $lidid);
+			}
 			db_interface("add", $query, $lidid);
 			return true;
 		} else {
@@ -593,16 +620,16 @@ function db_Lid($actie, $filter="", $lidid=0, $xtraselect="", $kolomnm="", $waar
 		return db_scalar($query);
 		
 	} else {
-		$mess = sprintf("onbekende actie '%s' in db_lid", $actie);
+		$mess = sprintf("db_Lid: onbekende actie '%s'.", $actie);
 		debug($mess, 1, 0, 1);
 		$query = "";
 	}
 	
 	$result = fnQuery($query);
 	return $result->fetchAll();
-} # db_lid
+} # db_Lid
 
-function db_lidmaatschap($actie, $lidid=0, $opgezegd="", $rid=0, $liddatum="", $lidnr=0) {
+function db_Lidmaatschap($actie, $lidid=0, $opgezegd="", $rid=0, $liddatum="", $lidnr=0) {
 	global $fdaccess, $fdsql, $wherelid, $fdlang;
 
 	$naamlid = db_naamlid($lidid);
@@ -658,7 +685,7 @@ function db_lidmaatschap($actie, $lidid=0, $opgezegd="", $rid=0, $liddatum="", $
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
-	} elseif ($actie == "islid" and $lidid > 0) {
+	} elseif ($actie == "islid") {
 		$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap AS LM WHERE %s AND Lid=%d;", TABLE_PREFIX, $wherelid, $lidid);
 		if (db_scalar($query) > 0) {
 			return true;
@@ -666,7 +693,15 @@ function db_lidmaatschap($actie, $lidid=0, $opgezegd="", $rid=0, $liddatum="", $
 			return false;
 		}
 		
-	} elseif ($actie == "kanopzeggen" and $lidid > 0) {
+	} elseif ($actie == "isKloslid") {
+		$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap AS LM WHERE Lid=%d;", TABLE_PREFIX, $lidid);
+		if (db_scalar($query) > 0) {
+			return false;
+		} else {
+			return true;
+		}
+		
+	} elseif ($actie == "kanopzeggen") {
 		$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap AS LM WHERE (LM.Opgezegd IS NULL) AND Lid=%d;", TABLE_PREFIX, $lidid);
 		if (db_scalar($query) > 0) {
 			return true;
@@ -750,9 +785,12 @@ function db_lidmaatschap($actie, $lidid=0, $opgezegd="", $rid=0, $liddatum="", $
 	} elseif ($actie == "maxlidnr") {
 		$query = sprintf("SELECT MAX(Lidnr) FROM %sLidmaatschap AS LM WHERE ((LM.Opgezegd IS NULL) OR LM.Opgezegd > CURDATE());", TABLE_PREFIX);
 		return db_scalar($query);
+	} else {
+		$mess = sprintf("db_Lidmaatschap: onbekende actie '%s'.", $actie);
+		debug($mess, 1, 0, 1);
 	}
 	
-} # db_lidmaatschap
+} # db_Lidmaatschap
 
 function db_memo($actie, $lidid, $srt, $nv="") {
 	
@@ -2109,7 +2147,7 @@ function db_mailing($actie, $mid=0, $filter="", $new_val="", $kolnaam="") {
 		//
 		
 	} elseif ($actie == "record") {
-		$query = sprintf("SELECT * FROM %sMailing WHERE MailingID=%d;", TABLE_PREFIX, $mid);
+		$query = sprintf("SELECT M.* FROM %sMailing AS M WHERE MailingID=%d;", TABLE_PREFIX, $mid);
 		$result = fnQuery($query);
 		return $result->fetch();
 		
@@ -2190,7 +2228,8 @@ function db_mailing_hist($actie, $lidid=0, $mhid=0, $mid=0) {
 		}
 		
 	} elseif ($actie === "record") {
-		$query = sprintf("SELECT MH.Ingevoerd, MH.send_on, MH.from_addr, MH.from_name, M.to_name, MH.to_addr, MH.cc_addr, MH.subject, MH.message, MH.send_by, MH.LidID, MH.to_name AS Aan, MH.IngevoerdDoor
+		$query = sprintf("SELECT MH.Ingevoerd, MH.send_on, MH.from_addr, MH.from_name, M.to_name, MH.to_addr, MH.cc_addr, MH.subject, MH.message, MH.send_by, MH.LidID, MH.to_name AS Aan, MH.IngevoerdDoor, MH.LidID, 
+					MH.MailingID, MH.Xtra_Char, MH.Xtra_Num, MH.ZichtbaarVoor
 					FROM (%1\$sMailing_hist AS MH LEFT JOIN %1\$sLid AS L ON MH.LidID=L.RecordID) LEFT JOIN %1\$sMailing AS M ON MH.MailingID=M.MailingID
 					WHERE MH.RecordID=%2\$d LIMIT 1;", TABLE_PREFIX, $mhid);
 		$result = fnQuery($query);
@@ -2229,6 +2268,29 @@ function db_mailing_hist($actie, $lidid=0, $mhid=0, $mid=0) {
 	}
 
 } # db_mailing_hist
+
+function db_mailing_hist_add($email) {
+	
+	if (strlen($email->aanadres) > 250) {
+		$email->aanadres = substr($email->aanadres, 0, 251) . " ...";
+	}
+	if (strlen($email->cc) > 250) {
+		$email->cc = substr($email->cc, 0, 251) . " ...";
+	}
+
+	$email->vanafnaam = html_entity_decode(str_replace("\"", "'", $email->vanafnaam));
+	$email->onderwerp = html_entity_decode(str_replace("\"", "'", $email->onderwerp));
+	$email->aannaam = html_entity_decode(str_replace("\"", "'", $email->aannaam));
+	$email->bericht = html_entity_decode(str_replace("\"", "'", $email->bericht));
+	
+	$query = sprintf("INSERT INTO %sMailing_hist SET
+					LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", subject=\"%s\", to_name=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", ZichtbaarVoor=%d, Xtra_Char='%s', Xtra_Num=%d, IngevoerdDoor=%d;",
+					TABLE_PREFIX, $email->lidid, $email->mailingid, $email->vanafnaam, $email->vanafadres, $email->onderwerp, $email->aannaam, $email->aanadres, $email->cc, $email->bericht, $email->zichtbaarvoor, $email->xtrachar, $email->xtranum, $_SESSION['lidid']);
+	$rv = fnQuery($query);
+	
+	return $rv;
+
+}  # db_mailing_hist_add
 
 function db_mailing_rcpt($actie, $mid=0, $lidid=0, $email="", $lb=0) {
 	global $selectnaam, $selectzoeknaam;
@@ -2272,7 +2334,6 @@ function db_mailing_rcpt($actie, $mid=0, $lidid=0, $email="", $lb=0) {
 		}
 		if ($lb == 1 and strlen($mess) > 0) {
 			db_logboek("add", $mess, 4, $lidid, $tlm);
-		} else {
 			$mess = "";
 		}
 		return $mess;
@@ -2563,6 +2624,7 @@ function db_interface($actie="lijst", $query="", $lidid=0, $nip=0) {
 		$msa_sql = str_replace("SYSDATE()", "#" . strftime("%m/%d/%Y %H:%M:%S") . "#", $msa_sql);
 		$msa_sql = str_replace("CURDATE()", "#" . strftime("%m/%d/%Y") . "#", $msa_sql);
 		$msa_sql = str_replace(" BINARY", "", $msa_sql);
+		$msa_sql = str_replace("IFNULL(", "Nz(", $msa_sql);
 		if ($nip == 1) {
 			$ip = "";
 		} else {
@@ -2588,15 +2650,15 @@ function db_interface($actie="lijst", $query="", $lidid=0, $nip=0) {
 		return $result->fetchColumn();
 		
 	} elseif ($actie == "lijst") {
-		$query = sprintf("SELECT %1\$s AS `Naam lid`, I.Ingevoerd, `SQL-statement` AS `SQL`"
-				 . " FROM %2\$sAdmin_interface AS I LEFT OUTER JOIN %2\$sLid AS L ON I.LidID = L.Nummer"
-				 . " WHERE (I.Afgemeld IS NULL)"
-				 . " ORDER BY I.Ingevoerd, I.RecordID LIMIT %3\$d;", $selectnaam, TABLE_PREFIX, $maxrecordsperkeer);
+		$query = sprintf("SELECT %1\$s AS `Naam lid`, I.Ingevoerd, `SQL-statement` AS `SQL`
+						FROM %2\$sAdmin_interface AS I LEFT OUTER JOIN %2\$sLid AS L ON I.LidID=L.RecordID
+						WHERE (I.Afgemeld IS NULL)
+						ORDER BY I.Ingevoerd, I.RecordID LIMIT %3\$d;", $selectnaam, TABLE_PREFIX, $maxrecordsperkeer);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
 	} else {
-		$mess = sprintf("Actie '%s' is onbekend.", $actie);
+		$mess = sprintf("db_interface: actie '%s' is onbekend.", $actie);
 		db_logboek("add", $mess, 99);
 	}
 } # db_interface
@@ -3223,7 +3285,7 @@ function db_rekening($actie, $nr=0, $filter="", $lidid=0) {
 		$result = fnQuery($query);
 		return $result->fetch();
 	} elseif ($actie == "regels" and $nr > 0) {
-		$query = sprintf("SELECT RR.*, L.GEBDATUM FROM %1\$sRekreg AS RR LEFT JOIN %1\$sLid AS L ON RR.Lid = L.Nummer WHERE RR.Rekening=%2\$d;", TABLE_PREFIX, $nr);
+		$query = sprintf("SELECT RR.*, L.GEBDATUM, L.EmailOuders FROM %1\$sRekreg AS RR LEFT JOIN %1\$sLid AS L ON RR.Lid=L.RecordID WHERE RR.Rekening=%2\$d;", TABLE_PREFIX, $nr);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	} elseif ($actie == "seizoenen") {
@@ -4134,7 +4196,7 @@ function db_kolom_numeriek($tabel, $kolom) {
 
 function db_nieuwrecordID($tabel) {
 	/* Change log
-	ST20181221 RecordID's voor tabellen die uit Access komen moeten oneven zijn. Dit om het onderscheid te kunnen maken met RecordID's die uit de database zelf komen.
+	ST20181221 RecordID's voor tabellen die uit Access komen moeten oneven zijn. Dit om het onderscheid te kunnen maken met RecordID's die uit de Access-database komen.
 	*/
 	global $arrTables;
 	
@@ -4153,7 +4215,7 @@ function db_nieuwrecordID($tabel) {
 	$query = sprintf("SELECT MAX(IFNULL(%s, 0)) FROM %s;", $kol, $tabel);
 	$rid = db_scalar($query) + 1;
 	
-	if (array_search(str_replace(TABLE_PREFIX, "", $tabel), $arrTables) >= 20 and ($rid / 2) == intval($rid / 2)) {
+	if (($rid / 2) == intval($rid / 2)) {
 		$rid++;
 	}
 	return $rid;
