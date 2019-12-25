@@ -117,7 +117,10 @@ function fnMailing() {
 			echo("<p class='mededeling'>Deze mailing heeft geen historie.</p>\n");
 		}
 	} elseif ($op == "histdetails" and $_GET['rid'] > 0) {
-		toonverstuurdemail($_GET['rid']);
+//		toonverstuurdemail($_GET['rid']);
+		$email = new email($_GET['rid']);
+		$email->toon();
+		$mail = null;
 		
 	} elseif ($op == "upload") {
 		$mailing->upload();
@@ -237,36 +240,44 @@ class Mailing {
 		}
 		$this->emailsecretariaat = db_param("emailsecretariaat");
 
-		$sql = sprintf("SELECT Roepnaam FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);
+		$sql = sprintf("SELECT Roepnaam FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Roepnaam", 'SQL' => $sql);
 		
-		$sql = sprintf("SELECT CONCAT(L.Roepnaam, IF(L.GEBDATUM > DATE_SUB(CURDATE(), INTERVAL 18 YEAR), ' of ouders/verzorgers van', '')) FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);
+		$sql = sprintf("SELECT CASE
+								WHEN L.GEBDATUM > DATE_SUB(CURDATE(), INTERVAL 18 YEAR) AND LENGTH(Email)>5 AND LENGTH(EmailOuders)>5 THEN CONCAT(L.Roepnaam, ' of ouder/verzorger van')
+								WHEN LENGTH(Email)>5 AND LENGTH(EmailOuders)=0 THEN L.Roepnaam
+								WHEN LENGTH(Email)=0 AND LENGTH(EmailOuders)>5 THEN CONCAT('Ouder/verzorger van ', L.Roepnaam)
+								ELSE L.Roepnaam END
+								FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "RoepnaamOfOuders", 'SQL' => $sql);
+		
+		$sql = sprintf("SELECT CONCAT(L.Roepnaam, IF(L.GEBDATUM > DATE_SUB(CURDATE(), INTERVAL 18 YEAR), ' of ouders/verzorgers van', '')) FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);
+		$this->MergeField[]=array('Naam' => "RoepnaamOfOuders18", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT Voorletter FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);
+		$sql = sprintf("SELECT Voorletter FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Voorletters", 'SQL' => $sql);
 
 		$sql = sprintf("SELECT (CASE ISNULL(L.Tussenv) WHEN 0 THEN CONCAT(L.Tussenv, ' ', L.Achternaam)
-				 ELSE L.Achternaam END) AS Achternaam FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);
+				 ELSE L.Achternaam END) AS Achternaam FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Achternaam", 'SQL' => $sql);
 		
 		$sql = "SELECT CASE L.Geslacht";
 		foreach (ARRGESLACHT as $key => $value) {
 			$sql .= sprintf(" WHEN '%s' THEN '%s'", $key, $value);
 		}
-		$sql .= sprintf(" END FROM %sLid AS L WHERE L.Nummer=%%d", TABLE_PREFIX);
+		$sql .= sprintf(" END FROM %sLid AS L WHERE L.RecordID=%%d", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Geslacht", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT L.Adres FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);
+		$sql = sprintf("SELECT L.Adres FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Adres", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT L.Postcode FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);
+		$sql = sprintf("SELECT L.Postcode FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Postcode", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT L.Woonplaats FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);;
+		$sql = sprintf("SELECT L.Woonplaats FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);;
 		$this->MergeField[]=array('Naam' => "Woonplaats", 'SQL' => $sql);
 							 
-		$sql = sprintf("SELECT %s AS Lidnaam FROM %sLid AS L WHERE L.Nummer=%%d;", $selectnaam, TABLE_PREFIX);
+		$sql = sprintf("SELECT %s AS Lidnaam FROM %sLid AS L WHERE L.RecordID=%%d;", $selectnaam, TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Lidnaam", 'SQL' => $sql);
 
 		$sql = sprintf("SELECT Login FROM %sAdmin_login WHERE LidID=%%d;", TABLE_PREFIX);
@@ -463,7 +474,11 @@ class Mailing {
 	
 		if (isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0 and $_GET['op'] == "bekijkmail") {
 			$xtra = "<p class='mededeling'><input type='button' value='Terug' onclick='history.go(-1);'></p>\n";
-			toonverstuurdemail($_GET['MailingHistID']);
+//			toonverstuurdemail($_GET['MailingHistID']);
+			$email = new email($_GET['MailingHistID']);
+			$email->toon();
+			$mail = null;
+
 			
 		} elseif ($filter == "Verzonden mails" or $filter == "Verzonden e-mails" or $filter == "Outbox") {
 			$ld = sprintf("<a href='index.php?tp=%s&amp;op=bekijkmail&amp;MailingHistID=%%d'>%%s</a>", urlencode($_GET['tp']));
@@ -551,8 +566,11 @@ class Mailing {
 			
 			} else {
 				$this->meldingen = "Er zijn nog geen ontvangers aan deze mailing toegevoegd.<br>\n";
-			
-				printf("<label>Ontvangers (%d):</label>", $this->aant_rcpt);
+				if ($this->aant_rcpt == 1) {
+					echo("<label>Ontvanger:</label>");
+				} else {
+					printf("<label>Ontvangers (%d):</label>", $this->aant_rcpt);
+				}
 				$aant_ze = 0;
 				echo("<div class='invoerblok'>\n");
 				if ($this->aant_rcpt > 0) {
@@ -755,7 +773,7 @@ class Mailing {
 		if ($this->mid > 0 and $this->verzendenmag and $this->deleted_on < "2000-01-01") {
 			printf("<button type='submit' name='action' value='send' title='Verstuur mailing'>Verstuur mailing</button>\n");
 		}
-		if ($this->mid > 0 and $this->deleted_on < "2000-01-01") {
+		if ($this->mid > 0 and $this->deleted_on < "2000-01-01" and $this->aant_rcpt > 0) {
 			printf("<button type='submit' name='action' value='preview' title='Voorbeeld'>Bekijk voorbeeld</button>\n");
 		}
 		
@@ -1057,36 +1075,30 @@ class Mailing {
 	
 	private function send_mailing($preview=0, $lidid=0) {
 		
-		$mail = new RBMmailer();
-		$mail->From = $this->from_addr;
-		$mail->FromName = $this->from_name;
-		$mail->IsHTML(true);
-		
 		if ($lidid == 0) {
 			$rcpts = db_mailing("rcpt", $this->mid);
 		} else {
 			$rcpts = db_lid("lijst", "", $lidid);
 		}
-		if ($preview == 1 and count($rcpts) == 0) {
-			$this->merge($_SESSION['lidid']);
-			$mail->Subject = $this->merged_subject;
-			$mail->Body = $this->merged_message;
-			$mail->addstationary($_SESSION['naamingelogde']);
-			echo($mail->Body);
-		}
-		
+
 		$aant_rcpts = 0;
 		foreach($rcpts as $rcpt) {
+			$email = new email(0, $this->mid);
 			if ($rcpt->Nummer > 0) {
 				$this->merge($rcpt->Nummer);
-				$mail->Subject = $this->merged_subject;
-				$mail->ToevoegenLid($rcpt->Nummer);
+				$email->Subject = $this->merged_subject;
+				$email->toevoegenlid($rcpt->Nummer);
 			} elseif (strlen($rcpt->to_address) > 5) {
-				$mail->AddAddress($rcpt->to_address);
+				$email->toevoegenadres($rcpt->to_address);
 				$this->bevat_losse_email = true;
 			}
+			$email->bericht = $this->merged_message;
 			
 			if ($preview == 1) {
+				$mail = new RBMmailer();
+				$mail->From = $this->from_addr;
+				$mail->FromName = $this->from_name;
+				$mail->IsHTML(true);
 				$mail->Body = $this->merged_message;
 				if (isset($rcpt->Naam_lid)) {
 					$mail->addstationary($rcpt->Naam_lid);
@@ -1094,17 +1106,14 @@ class Mailing {
 					$mail->addstationary($this->to_name);
 				}
 				echo("<br>\n" . $mail->Body);
+				$mail = null;
 			}
-			if (strlen($mail->ListAddresses()) > 0 and $preview == 0) {
-				foreach (explode(",", $this->cc_addr) as $v) {
-					if (isValidMailAddress($v, 0)) {
-						$mail->AddCC($v);
-					}
-				}
-				$mhid = db_add_mailing_hist($rcpt->Nummer, $this->mid, $this->to_name, $mail->ListAddresses(), $mail->ListAddresses("cc"), $this->merged_message, $this->xtrachar, $this->xtranum);
-				$mail->clearAllRecipients();
-				$aant_rcpts++;
+			
+			if ($preview == 0) {
+				$mhid = $email->to_outbox();
 			}
+			$aant_rcpts++;
+			$email = null;
 		}
 		
 		if ($preview == 0) {
@@ -1276,44 +1285,167 @@ class Mailing {
 	} # vuldbvars
 } # class Mailing
 
-function toonverstuurdemail($mhid) {
-	global $navpad;
+class email {
+
+	private $mhid = 0;
+	public $mailingid = 0;
+	public $lidid = 0;
+	private $ingevoerd = "";
+	private $ingevoerddoor = "";
+	private $verstuurdop = "";
+	public $vanafnaam = "";
+	public $vanafadres = "";
+	public $omsontvangers = "";
+	public $aannaam = "";
+	public $aanadres = "";
+	public $cc = "";
+	public $zichtbaarvoor = 0;
+	
+	public $onderwerp = "";
+	public $bericht = "";
+	public $xtrachar = "";
+	public $xtranum = 0;
+	
+	function __construct($mhid, $mid=0) {
+		$this->ingevoerd = strftime('%e %B %Y (%H:%M:%S)');
+		$this->ingevoerddoor = $_SESSION['naamingelogde'];
 		
-	$navpad[]['naam'] = sprintf("Verzonden mail %d", $mhid);
+		if ($mhid > 0) {
+			$this->mhid = $mhid;
+			$mhrow = db_Mailing_hist("record", 0, $this->mhid);
+			$this->mailingid = $mhrow->MailingID;
+			$this->ingevoerd = strftime('%e %B %Y (%H:%M:%S)', strtotime($mhrow->Ingevoerd));
+			if ($mhrow->IngevoerdDoor > 0) {
+				$this->ingevoerddoor = db_naamlid($mhrow->IngevoerdDoor);
+			}
+			if ($mhrow->send_on > "2010-01-01") {
+				$this->verstuurdop = strftime('%e %B %Y (%H:%M:%S)', strtotime($mhrow->send_on));
+			}
+			$this->lidid = $mhrow->LidID;
+			$this->vanafnaam = $mhrow->from_name;
+			$this->vanafadres = htmlentities($mhrow->from_addr);
+			$this->omsontvangers = htmlentities($mhrow->to_name);
+			$this->aannaam = htmlentities($mhrow->Aan);
+			$this->aanadres = $mhrow->to_addr;
+			$this->cc = $mhrow->cc_addr;
+			$this->onderwerp = $mhrow->subject;
+			$this->bericht = $mhrow->message;
+			$this->zichtbaarvoor = $mhrow->ZichtbaarVoor;
+			$this->xtrachar = $mhrow->Xtra_Char;
+			$this->xtranum = $mhrow->Xtra_Num;
+			
+		} elseif ($mid > 0) {
+			$this->mailingid = $mid;
+			$mrow = db_Mailing("record", $this->mailingid);
+			$this->vanafnaam = $mrow->from_name;
+			$this->vanafadres = htmlentities($mrow->from_addr);
+			$this->omsontvangers = htmlentities($mrow->to_name);
+			$this->cc = $mrow->cc_addr;
+			$this->onderwerp = $mrow->subject;
+			$this->zichtbaarvoor = $mrow->ZichtbaarVoor;
+		}
+	}  # __construct
 	
-	echo("<div id='verstuurdemail'>\n");
-	$row = db_mailing_hist("record", 0, $mhid);
+	public function toon() {
+		
+		echo("<div id='verstuurdemail'>\n");
+
+		printf("<div class='label'>Klaar gezet op:</div><div class='veld2k'>%s</div><div class='label'>door:</div><div class='veld2k'>%s</div>\n", $this->ingevoerd, $this->ingevoerddoor);
+		
+		if (strlen($this->verstuurdop) > 0) {
+			printf("<div class='label'>Verzonden:</div><div class='veld'>%s</div>\n", $this->verstuurdop);
+		} else {
+			printf("<div class='label'>Verzonden:</div><div class='veld'>Wacht in outbox</div>\n");
+		}
+		
+		if (strlen($this->vanafnaam) > 0) {
+			printf("<div class='label'>Van:</div><div class='veld2k'>%s</div><div class='label'>E-mail:</div><div class='veld2k'>%s</div>\n", $this->vanafnaam, $this->vanafadres);
+		} else {
+			printf("<div class='label'>Van:</div><div class='veld'>%s</div>\n", $this->vanafadres);
+		}
+		
+		if (strlen($this->omsontvangers) > 0) {
+			printf("<div class='label'>Aan:</div><div class='veld'>%s</div>\n", $this->omsontvangers);
+		}
+		
+		if (strlen($this->aannaam) > 0 and $this->aannaam != $this->aanadres) {
+			printf("<div class='label'>Ontvanger:</div><div class='veld2k'>%s</div>\n", $this->aannaam);
+			printf("<div class='label'>E-mail:</div><div class='veld2k'>%s</div>\n", $this->aanadres);
+		} else {
+			printf("<div class='label'>Aan e-mail:</div><div class='veld'>%s</div>\n", $this->aanadres);
+		}
+		if (strlen($this->cc) > 0) {
+			printf("<div class='label'>CC:</div><div class='veld'>%s</div>\n", $this->cc);
+		}
+		
+		printf("<div class='label'>Onderwerp:</div><div class='veld'>%s</div>\n", $this->onderwerp);
+		printf("<div class='label'>Bericht:</div><div class='veld'>%s</div>\n", $this->bericht);
+		
+		echo("</div>  <!-- Einde verstuurdemail -->\n");
+		
+	} # toon
 	
-	if ($row->Ingevoerd > "2000-01-01") {
-		printf("<div class='label'>Klaar gezet op:</div><div class='veld2k'>%s</div><div class='label'>door:</div><div class='veld2k'>%s</div>\n", strftime('%e %B %Y (%H:%M:%S)', strtotime($row->Ingevoerd)), db_naamlid($row->IngevoerdDoor));
-	}
+	public function toevoegenlid($lidid) {
 	
-	if ($row->send_on > "2000-01-01") {
-		printf("<div class='label'>Verzonden:</div><div class='veld'>%s</div>\n", strftime('%e %B %Y (%H:%M:%S)', strtotime($row->send_on)));
-	} else {
-		printf("<div class='label'>Verzonden:</div><div class='veld'>wacht in Outbox</div>\n");
-	}
-	if (strlen($row->from_name) > 0) {
-		printf("<div class='label'>Van:</div><div class='veld2k'>%s</div><div class='label'>E-mail:</div><div class='veld2k'>%s</div>\n", htmlentities($row->from_name), $row->from_addr);
-	} else {
-		printf("<div class='label'>Van:</div><div class='veld'>%s</div>\n", $row->from_addr);
-	}
-	if (strlen($row->to_name) > 0) {
-		printf("<div class='label'>Aan:</div><div class='veld'>%s</div>\n", htmlentities($row->to_name));
-	}
-	if (strlen($row->Aan) > 0 and $row->Aan != $row->to_addr) {
-		printf("<div class='label'>Ontvanger:</div><div class='veld2k'>%s</div>\n", htmlentities($row->Aan));
-		printf("<div class='label'>E-mail:</div><div class='veld2k'>%s</div>\n", $row->to_addr);
-	} else {
-		printf("<div class='label'>Aan e-mail:</div><div class='veld'>%s</div>\n", $row->to_addr);
-	}
-	if (strlen($row->cc_addr) > 0) {
-		printf("<div class='label'>CC:</div><div class='veld'>%s</div>\n", $row->cc_addr);
-	}
-	printf("<div class='label'>Onderwerp:</div><div class='veld'>%s</div>\n", $row->subject);
-	printf("<div class='label'>Bericht:</div><div class='veld'>%s</div>\n", $row->message);
-	echo("</div>  <!-- Einde verstuurdemail -->\n");
-} # toonverstuurdemail
+		$row = db_lid("record", "", $lidid);
+		if ($this->lidid == 0) {
+			$this->lidid = $lidid;
+		}
+		if (isValidMailAddress($row->Email)) {
+			$this->toevoegenadres($row->Email);
+		} elseif (strlen($row->EmailOuders) > 5) {
+			$this->toevoegenadres($row->EmailOuders);
+		} elseif (isValidMailAddress($row->EmailVereniging)) {
+			$this->toevoegenadres($row->EmailVereniging);
+		}
+		
+		if ($row->GEBDATUM > date("Y-m-d", mktime(0, 0, 0, date("m"), date("d"), date("Y")-18)) and strlen($row->EmailOuders) > 5) {
+			$this->toevoegenadres($row->EmailOuders, "cc");
+		}
+	}  # toevoegenlid
+	
+	public function toevoegenadres($adres, $tp="aan") {
+		
+		foreach(explode(",", str_replace(" ", "", str_replace(";", ",", $adres))) as $e) {
+			if ($tp == "aan") {
+				if (isValidMailAddress($e) and strpos($this->aanadres, $e) === false) {
+					if (strlen($this->aanadres) > 0) {
+						$this->aanadres .= ", ";
+					}
+					$this->aanadres .= trim($e);
+				}
+			} elseif ($tp == "cc") {
+				if (isValidMailAddress($e) and strpos($this->aanadres, $e) === false and strpos($this->cc, $e) === false) {
+					if (strlen($this->cc) > 0) {
+						$this->cc .= ", ";
+					}
+					$this->cc .= trim($e);
+				}
+			}
+		}
+	}  # toevoegenadres
+	
+	public function to_outbox() {
+		
+		$rv = false;
+		if ($this->xtrachar == "REK") {
+			$this->vanafnaam = db_param("mailing_rekening_from_naam");
+			$this->vanafadres = db_param("mailing_rekening_from_adres");
+		}
+		
+		if (strlen($this->aanadres) > 5 and strlen($this->vanafadres) > 5) {
+			if (strlen($this->aannaam) == 0) {
+				$this->aannaam = $this->omsontvangers;
+			}
+			$this->mhid = db_mailing_hist_add($this);
+			$rv = true;
+		}
+		
+		return $rv;
+		
+	}  # to_outbox
+
+}  # class email
 
 function fnRekeningenMailen($op) {
 	global $currenttab, $currenttab2;
@@ -1407,7 +1539,7 @@ function fnRekeningenMailen($op) {
 				echo("De volgende rekeningen zijn geselecteerd.\n");
 				printf("<ul>\n%s</ul>\n<div class='clear'></div>\n", $selrek);
 				printf("<input type='hidden' name='rekfilter' value=\"%s\">\n", $filter);
-				echo("</div id='opdrachtknoppen'>\n");
+				echo("<div id='opdrachtknoppen'>\n");
 				echo("Rekeningen versturen?&nbsp<input type='checkbox' value='1' name='sure'>\n");
 				echo("<input type='submit' value='Rekeningen versturen' name='StuurRek'>\n");
 				echo("<input type='button' value='Terug' onClick='history.go(-1);'>\n");
@@ -1418,51 +1550,49 @@ function fnRekeningenMailen($op) {
 			}
 		} elseif ($op == "selectieversturen" and isset($_POST['sure'])) {
 			$aant_ok = 0;
-			$mail = new RBMmailer();
-			$mail->IsHTML(true);
-			if (strlen(db_param("mailing_rekening_from_adres")) > 0) {
-				$mail->From = db_param("mailing_rekening_from_adres");
-			}
-			if (strlen(db_param("mailing_rekening_from_naam")) > 0) {
-				$mail->FromName = db_param("mailing_rekening_from_naam");
-			}
 				
 			foreach(db_rekening("selectie", 0, $_POST['rekfilter']) as $rk) {
-				$mail->ToevoegenLid($rk->Lid);
-				
-				$rr = db_rekening("regels", $rk->Nummer);
-				$rrtxt = "";
+				$email = new email(0, 0);
+				$email->toevoegenlid($rk->Lid);
 				
 				if (db_param("mailing_rekening_stuurnaar") > 1) {
 					$hd = new DateTime($rk->Datum);
 					$hd->sub(new DateInterval('P18Y'));
+					$rr = db_rekening("regels", $rk->Nummer);
 					foreach($rr as $regel) {
-						$nl = db_naamlid($regel->Lid, "Naam", "");
-						if ($regel->GEBDATUM > '1900-01-01' and $regel->GEBDATUM <= $hd->format('Y-m-d')) {
-							$mail->ToevoegenLid($regel->Lid);
+						if ($regel->GEBDATUM > "1900-01-01" and $regel->GEBDATUM <= $hd->format("Y-m-d")) {
+							$email->toevoegenlid($regel->Lid);
+						} elseif (db_param("mailing_rekening_stuurnaar") == 2 and strlen($regel->EmailOuders) > 5) {
+							$email->toevoegenadres($regel->EmailOuders, "cc");
 						} elseif (db_param("mailing_rekening_stuurnaar") == 3) {
-							$mail->ToevoegenLid($regel->Lid);
+							$email->toevoegenlid($regel->Lid);
 						}
 					}
+					$rr = null;
 				}
 				
-				$rt = RekeningDetail($rk->Nummer);
-				$mail->Body = $rt;
+				$email->bericht = RekeningDetail($rk->Nummer);
 				if ($rk->Ouders == 1) {
-					$dn = "Ouders/verzorgers van " . $rk->DEBNAAM;
+					$email->aannaam = "Ouders/verzorgers van " . $rk->DEBNAAM;
 				} else {
-					$dn = $rk->DEBNAAM;
+					$email->aannaam = $rk->DEBNAAM;
 				}
-				if (strlen($mail->ListAddresses()) == 0) {
-					$mess = sprintf("Rekening %d kon niet worden verzonden, omdat er van %s geen geldig e-mailadres in de database bekend is.", $rk->Nummer, $dn);
-										
+				$email->onderwerp = $rk->OMSCHRIJV;
+				$email->xtrachar = "REK";
+				$email->xtranum = $rk->Nummer;
+				
+				if (strlen($email->aanadres) == 0) {
+					$mess = sprintf("Rekening %d kon niet worden verzonden, omdat er van %s geen geldig e-mailadres in de database bekend is.", $rk->Nummer, $email->aannaam);
 				} else {
-					db_add_mailing_hist($rk->Lid, 0, $dn, $mail->ListAddresses(), $mail->ListAddresses("cc"), $rt, "REK", $rk->Nummer, $rk->OMSCHRIJV);
-					$mess = sprintf("Rekening %d is naar %s (%s) verstuurd.", $rk->Nummer, $dn, $mail->ListAddresses());
-					$aant_ok++;
+					if ($email->to_outbox()) {
+						$mess = sprintf("Rekening %d is naar %s (%s) verstuurd.", $rk->Nummer, $email->aannaam, $email->aanadres);
+						$aant_ok++;
+					} else {
+						$mess = sprintf("Rekening %d kon niet worden verzonden.", $rk->Nummer);
+					}
 				}
 				db_logboek("add", $mess, 4, 0, 0, $rk->Nummer);
-				$mail->clearAllRecipients();
+				$email = null;
 			}
 		} elseif ($op == "selectieversturen") {
 			$mess = "De rekeningen zijn niet verzonden, omdat het vinkje niet gezet was.";
@@ -1496,9 +1626,9 @@ function fnRekeningenMailen($op) {
 		
 		echo("<tr><th colspan=4>Instellingen</th></tr>\n");
 		echo("<tr><td class='label'>Rekening versturen aan:</td><td colspan=3><select name='rekverstuuraan'>\n");
-		$sn[1] = "Alleen betaald door (debiteur)";
-		$sn[2] = "Betaald door en alle volwassenen op de rekening";
-		$sn[3] = "Betaald door en alle leden op de rekening";
+		$sn[1] = "Alleen gekoppeld lid";
+		$sn[2] = "Gekoppeld lid en alle volwassenen op de rekening";
+		$sn[3] = "Alle leden op de rekening";
 		foreach($sn as $key => $val) {
 			$s = "";
 			if (db_param("mailing_rekening_stuurnaar") == $key) {
@@ -1652,11 +1782,13 @@ function sentfromhist($mhid) {
 	$mail = new RBMmailer();
 	$mail->IsHTML(true);
 	foreach (explode(",", $row->to_addr) as $e) {
+		$e = trim($e);
 		if (isValidMailAddress($e)) {
 			$mail->AddAddress($e, $row->Aan);
 		}
 	}
 	foreach (explode(",", $row->cc_addr) as $e) {
+		$e = trim($e);
 		if (isValidMailAddress($e)) {
 			$mail->AddCC($e);
 		}
@@ -1756,8 +1888,7 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 
 	private $bestand_briefpapier;
 
-	function __construct($lidid=-1) {
-		global $selectnaam;
+	function __construct() {
 		global $smtphost, $smtpport, $smtpuser, $smtppw;
 		
 		if (!isset($smtphost)) {
@@ -1788,15 +1919,13 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 		$this->CharSet = "UTF-8";
 		$this->From = db_param("emailwebmaster");
 		$this->FromName = db_param("naamvereniging");
+		$this->IsHTML(true);
 		$this->WordWrap = 110;
 		$this->bestand_briefpapier = db_param("path_templates") . "briefpapier.html";
-		
-		if ($lidid > 0) {
-			$this->ToevoegenLid($lidid);
-		}
+
 	}
 	
-	public function ToevoegenLid($lidid) {
+	public function Toev22oegenLid($lidid) {
 	
 		$rv = "";
 		$row = db_lid("record", "", $lidid);
@@ -1821,7 +1950,7 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 		return $rv;
 	}
 	
-	public function InformerenOuders($geboren, $emailouders) {
+	public function In22formerenOuders($geboren, $emailouders) {
 		if (count($this->to) == 0) {
 			$kind = "to";
 		} else {
@@ -1844,7 +1973,7 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 		return $rv;
 	}
 	
-	public function ListAddresses($kind="to") {
+	public function ListA22ddresses($kind="to") {
 		if (count($this->$kind) > 0) {
 			$rv = "";
 			foreach ($this->$kind as $e) {
@@ -1866,9 +1995,6 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 				$to .= $e[1];
 			}
 		}
-		if (strlen($from) == 0) {
-			$from = $this->FromName;
-		}
 		if (file_exists($this->bestand_briefpapier)) {
 			if ($verwijderaanhef == 1) {
 				$htmlmessage = removetextblock(file_get_contents($this->bestand_briefpapier), "<!-- Aanhef -->", "<!-- /Aanhef -->");
@@ -1876,7 +2002,7 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 				$htmlmessage = file_get_contents($this->bestand_briefpapier);
 			}
 			$htmlmessage = str_ireplace("[%MESSAGE%]", $this->Body, $htmlmessage);
-			$htmlmessage = str_ireplace("[%FROM%]", $from, $htmlmessage);
+			$htmlmessage = str_ireplace("[%FROM%]", $this->FromName, $htmlmessage);
 			$htmlmessage = str_ireplace("[%TO%]", $to, $htmlmessage);
 			$htmlmessage = str_ireplace("[%SUBJECT%]", $this->Subject, $htmlmessage);
 			$this->Body = $htmlmessage;
@@ -1901,7 +2027,7 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 			return false;
 		
 		} elseif (db_param("maxmailsperuur") > 0 and db_mailing_hist("aantalperuur") >= db_param("maxmailsperuur")) {
-			$mess = sprintf("De limiet van aantal van %d te versturen mails per uur is bereikt.", db_param("maxmailsperuur"));
+			$mess = sprintf("De limiet van %d stuks te versturen mails per uur is bereikt.", db_param("maxmailsperuur"));
 			db_logboek("add", $mess, 4);
 			return false;
 			
