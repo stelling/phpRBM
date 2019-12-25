@@ -404,7 +404,7 @@ function fnInstellingen() {
 	$arrParam['mailing_rekening_regelnrsweglaten'] = "NT";
 	$arrParam['mailing_rekening_nulrekversturen'] = "NT";
 	$arrParam['mailing_validatielogin'] = "NT";
-	$arrParam['max_grootte_bijlage'] = "De maximalale grootte in bytes van één bijlage in een mailing. Optioneel veld. Als je niets specificeerd dan is 2MB het maximum.";
+	$arrParam['max_grootte_bijlage'] = "NT";
 	$arrParam['login_maxinlogpogingen'] = "Na hoeveel foutieve inlogpogingen moet het account geblokkeerd worden? 0 = nooit.";
 	$arrParam['login_maxlengte'] = "De maximale lengte die een login mag zijn. Minimaal 7 en maximaal 20 invullen.";
 	$arrParam['wachtwoord_minlengte'] = "De minimale lengte van een wachtwoord. Minimaal 7 en maximaal 15 invullen.";
@@ -413,7 +413,7 @@ function fnInstellingen() {
 	$arrParam['maxmailsperdag'] = "NT";
 	$arrParam['maxmailsperminuut'] = "NT";
 	$arrParam['naamwebsite'] = "Dit is de naam zoals deze in de titel en op elke pagina getoond wordt.";
-	$arrParam['path_attachments'] = "Waar staan de attachments, die bij e-mail worden gevoegd?";
+	$arrParam['path_attachments'] = "NT";
 	$arrParam['path_templates'] = "Waar staan de templates?";
 	$arrParam['performance_trage_select'] = "Vanaf hoeveel seconden moet een select-statement in het logboek worden gezet. 0 = nooit.";
 	$arrParam['termijnvervallendiplomasmailen'] = "Hoeveel maanden vooruit moeten leden een herinnering krijgen als een diploma gaat vervallen. 0 = geen herinnering sturen.";
@@ -521,12 +521,6 @@ function fnInstellingen() {
 			db_param("path_templates", "updval", $p . "/");
 		}
 		
-		$p = db_param("path_attachments");
-		if (strlen($p) < 5 or !is_dir($p)) {
-			db_param("path_attachments", "updval", __DIR__ . "/attachments/");
-		} elseif (substr($p, -1) != "/") {
-			db_param("path_attachments", "updval", $p . "/");
-		}
 	}
 
 	echo("<div id='instellingenmuteren'>\n");

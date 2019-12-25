@@ -1676,7 +1676,9 @@ function fnMailingInstellingen() {
 		db_param("maxmailsperminuut", "updval", intval("0" . $_POST['maxmailsperminuut']));
 		db_param("maxmailsperuur", "updval", intval("0" . $_POST['maxmailsperuur']));
 		db_param("maxmailsperdag", "updval", intval("0" . $_POST['maxmailsperdag']));
+		db_param("path_attachments", "updval", $_POST['path_attachments']);
 		db_param("mailing_extensies_toegestaan", "updval", $_POST['mailing_extensies_toegestaan']);
+		db_param("max_grootte_bijlage", "updval", $_POST['max_grootte_bijlage']);
 		
 		db_param("mailing_type_editor", "updval", $_POST['mailing_type_editor']);
 		db_param("mailing_lidnr", "updval", $_POST['mailing_lidnr']);
@@ -1700,6 +1702,13 @@ function fnMailingInstellingen() {
 				}
 			}
 		}
+		
+		$p = db_param("path_attachments");
+		if (strlen($p) < 5 or !is_dir($p)) {
+			db_param("path_attachments", "updval", __DIR__ . "/attachments/");
+		} elseif (substr($p, -1) != "/") {
+			db_param("path_attachments", "updval", $p . "/");
+		}
 	}
 	printf("<form method='post' action='%s?tp=%s/%s' name='mailinstellingen'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
 	
@@ -1708,21 +1717,23 @@ function fnMailingInstellingen() {
 	$options .= sprintf("<option value=2%s>Ja</option>\n", checked(db_param("mailing_mailopnieuw"), "option", 2));
 	
 	echo("<h2>Algemeen</h2>\n");
-	printf("<label>E-mails in de outbox direct probereren te versturen?</label><p><input type='checkbox' name='mailing_direct_verzenden' value=1%s></p>\n", checked(db_param("mailing_direct_verzenden")));
-	printf("<label>E-mails uit de outbox automatisch in de achtergrond versturen?</label><p><input type='checkbox' name='mailing_sentoutbox_auto' value=1%s></p>\n", checked(db_param("mailing_sentoutbox_auto")));
-	printf("<label>Mag een verzonden e-mail opnieuw worden verstuurd?</label><p><select name='mailing_mailopnieuw'>%s</select></p>\n", $options);
-	printf("<label>Hoeveel maanden moeten mailings in de prullenbak bewaard blijven:</label><p><input class='inputnumber' type='number' name='mailing_bewaartijd' value=%d size=8> (0 = altijd bewaren)</p>\n", db_param("mailing_bewaartijd"));
-	printf("<label>Hoeveel mails mogen er per minuut verstuurd worden:</label><p><input class='inputnumber' type='number' name='maxmailsperminuut' value=%d size=8> (0 = onbeperkt)</p>\n", db_param("maxmailsperminuut"));
-	printf("<label>Hoeveel mails mogen er per uur verstuurd worden:</label><p><input class='inputnumber' type='number' name='maxmailsperuur' value=%d size=8> (0 = onbeperkt)</p>\n", db_param("maxmailsperuur"));
-	printf("<label>Hoeveel mails mogen er per 24 uur verstuurd worden:</label><p><input class='inputnumber' type='number' name='maxmailsperdag' value=%d size=8> (0 = onbeperkt)</p>\n", db_param("maxmailsperdag"));
-	printf("<label>Aantal verstuurde mails in de afgelopen uur / 24 uur:</label><p>%d / %d</p>\n", db_mailing_hist("aantalperuur"), db_mailing_hist("aantal24uur"));
-	printf("<label>Welke extensies zijn als attachment toegestaan:</label><p><input class='inputtext' type='text' name='mailing_extensies_toegestaan' value='%s' size=30> (leeg = standaard lijst)</p>\n", db_param("mailing_extensies_toegestaan"));
+	printf("<div class='invoerblok'><label>E-mails in de outbox direct probereren te versturen?</label><p><input type='checkbox' name='mailing_direct_verzenden' value=1%s></div>\n", checked(db_param("mailing_direct_verzenden")));
+	printf("<div class='invoerblok'><label>E-mails uit de outbox automatisch in de achtergrond versturen?</label><p><input type='checkbox' name='mailing_sentoutbox_auto' value=1%s></div>\n", checked(db_param("mailing_sentoutbox_auto")));
+	printf("<div class='invoerblok'><label>Mag een verzonden e-mail opnieuw worden verstuurd?</label><p><select name='mailing_mailopnieuw'>%s</select></div>\n", $options);
+	printf("<div class='invoerblok'><label>Hoeveel maanden moeten mailings in de prullenbak bewaard blijven:</label><p><input class='inputnumber' type='number' name='mailing_bewaartijd' value=%d size=8> (0 = altijd bewaren)</div>\n", db_param("mailing_bewaartijd"));
+	printf("<div class='invoerblok'><label>Hoeveel mails mogen er per minuut verstuurd worden:</label><p><input class='inputnumber' type='number' name='maxmailsperminuut' value=%d size=8> (0 = onbeperkt)</div>\n", db_param("maxmailsperminuut"));
+	printf("<div class='invoerblok'><label>Hoeveel mails mogen er per uur verstuurd worden:</label><p><input class='inputnumber' type='number' name='maxmailsperuur' value=%d size=8> (0 = onbeperkt)</div>\n", db_param("maxmailsperuur"));
+	printf("<div class='invoerblok'><label>Hoeveel mails mogen er per 24 uur verstuurd worden:</label><p><input class='inputnumber' type='number' name='maxmailsperdag' value=%d size=8> (0 = onbeperkt)</div>\n", db_param("maxmailsperdag"));
+	printf("<div class='invoerblok'><label>Aantal verstuurde mails in de afgelopen uur / 24 uur:</label><p>%d / %d</div>\n", db_mailing_hist("aantalperuur"), db_mailing_hist("aantal24uur"));
+	printf("<div class='invoerblok'><label>Waar worden de attachments bewaard?</label><p><input class='inputtext' type='text' name='path_attachments' value='%s' size=30></div>\n", db_param("path_attachments"));
+	printf("<div class='invoerblok'><label>Welke extensies zijn als attachment toegestaan:</label><p><input class='inputtext' type='text' name='mailing_extensies_toegestaan' value='%s' size=30> (leeg = standaard lijst)</div>\n", db_param("mailing_extensies_toegestaan"));
+	printf("<div class='invoerblok'><label>Wat is de maximale groootte van één attachment?</label><p><input class='inputnumber' type='number' name='max_grootte_bijlage' value='%s' size=30> (nul = 2MB)</div>\n", db_param("max_grootte_bijlage"));
 	
 	$options = "";
 	foreach(ARRTYPEEDITOR as $key => $oms) {
 		$options .= sprintf("<option%s value=%d>%s</option>\n", checked($key, "option", db_param("mailing_type_editor")), $key, $oms);
 	}
-	printf("<label>Welke editor wil je gebruiken?</label><p><select name='mailing_type_editor'>%s</select></p>\n", $options);
+	printf("<div class='invoerblok'><label>Welke editor wil je gebruiken?</label><p><select name='mailing_type_editor'>%s</select></div>\n", $options);
 	
 	echo("<h2>Mailings met een specifiek doel</h2>\n");
 	
@@ -1732,7 +1743,7 @@ function fnMailingInstellingen() {
 		$options .= sprintf("<option%s value=%d>%s</option>", checked($row->lnkMailingID, "option", db_param("mailing_lidnr")), $row->lnkMailingID, $row->Onderwerp);
 	}
 	$rows = null;
-	printf("<label>Versturen lidnummer:</label><p><select name='mailing_lidnr'>%s</select></p>\n", $options);
+	printf("<div class='invoerblok'><label>Versturen lidnummer:</label><p><select name='mailing_lidnr'>%s</select></div>\n", $options);
 	
 	$rows = db_mailing("lijst", 0, "Templates");
 	$options = "";
@@ -1740,7 +1751,7 @@ function fnMailingInstellingen() {
 		$options .= sprintf("<Option%s value=%d>%s</option>", checked($row->lnkMailingID, "option", db_param("mailing_validatielogin")), $row->lnkMailingID, $row->Onderwerp);
 	}
 	$rows = null;
-	printf("<label>Versturen validatie e-mail login:</label><p><select name='mailing_validatielogin'>%s</select></p>\n", $options);
+	printf("<div class='invoerblok'><label>Versturen validatie e-mail login:</label><p><select name='mailing_validatielogin'>%s</select></div>\n", $options);
 	
 	$rows = db_mailing("lijst", 0, "Templates");
 	$options = "";
@@ -1748,7 +1759,7 @@ function fnMailingInstellingen() {
 		$options .= sprintf("<Option%s value=%d>%s</option>", checked($row->lnkMailingID, "option", db_param("mailing_herstellenwachtwoord")), $row->lnkMailingID, $row->Onderwerp);
 	}
 	$rows = null;
-	printf("<label>Versturen link herstellen wachtwoord:</label><p><select name='mailing_herstellenwachtwoord'>%s</select></p>\n", $options);
+	printf("<div class='invoerblok'><label>Versturen link herstellen wachtwoord:</label><p><select name='mailing_herstellenwachtwoord'>%s</select></div>\n", $options);
 	
 	$rows = db_mailing("lijst", 0, "Templates");
 	$options = "<Option value=0>Geen</option>";
@@ -1756,7 +1767,7 @@ function fnMailingInstellingen() {
 		$options .= sprintf("<Option%s value=%d>%s</option>", checked($row->lnkMailingID, "option", db_param("mailing_bevestigingopzegging")), $row->lnkMailingID, $row->Onderwerp);
 	}
 	$rows = null;
-	printf("<label>Versturen bevestiging opzegging lidmaatschap:</label><p><select name='mailing_bevestigingopzegging'>%s</select></p>\n", $options);
+	printf("<div class='invoerblok'><label>Versturen bevestiging opzegging lidmaatschap:</label><p><select name='mailing_bevestigingopzegging'>%s</select></div>\n", $options);
 	
 	echo("<div class='clear'></div>\n");
 	

@@ -1161,6 +1161,15 @@ input.knop, button.knop {
 	border-width: 1px;
 }
 
+#wijzigengegevens label {
+	margin-right: 8px;
+	padding-right: 3px;
+}
+
+#wijzigengegevens .invoerblok {
+	border-style: none;
+}
+
 .invoerblok table {
 	width: 100%;
 	border-style: none;
@@ -1188,7 +1197,6 @@ input.knop, button.knop {
 	border-width: 1px;
 	background-color: silver;
 }
-
 
 /* Elementen voor nieuw menu */
 
