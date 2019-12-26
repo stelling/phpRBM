@@ -534,7 +534,8 @@ function db_Lid($actie, $filter="", $lidid=0, $xtraselect="", $kolomnm="", $waar
 					L.Beroep,
 					L.Legitimatietype,
 					L.Legitimatienummer,
-					L.`VOG afgegeven`
+					L.`VOG afgegeven`,
+					IFNULL(L.Verwijderd, '1900-01-01') AS Verwijderd
 					FROM %sLid AS L WHERE L.RecordID=%d;", TABLE_PREFIX, $lidid);
 		$result = fnQuery($query);
 		return $result->fetch();
@@ -566,7 +567,7 @@ function db_Lid($actie, $filter="", $lidid=0, $xtraselect="", $kolomnm="", $waar
 	} elseif ($actie == "update") {
 		$in = db_kolom_numeriek("Lid", $kolomnm);
 		if ($waarde == "NULL") {
-			$query = sprintf("UPDATE %1\$sLid AS L SET `%2\$s`=NULL, Gewijzigd=SYSDATE() WHERE L.RecordID=%3\$d AND `%2\$s`<>NULL;", TABLE_PREFIX, $kolomnm, $lidid);
+			$query = sprintf("UPDATE %1\$sLid AS L SET `%2\$s`=NULL, Gewijzigd=SYSDATE() WHERE L.RecordID=%3\$d;", TABLE_PREFIX, $kolomnm, $lidid);
 		} elseif ($in) {
 			$query = sprintf("UPDATE %1\$sLid AS L SET `%2\$s`=%3\$d, Gewijzigd=SYSDATE() WHERE L.RecordID=%4\$d AND IFNULL(`%2\$s`,0)<>%3\$d;", TABLE_PREFIX, $kolomnm, $waarde, $lidid);
 		} else {
@@ -577,10 +578,17 @@ function db_Lid($actie, $filter="", $lidid=0, $xtraselect="", $kolomnm="", $waar
 				$query = sprintf("UPDATE Lid SET `%s`=#%s#, Gewijzigd=SYSDATE() WHERE RecordID=%d;", $kolomnm, strftime($fdaccess, strtotime($waarde)), $lidid);
 			}
 			db_interface("add", $query, $lidid);
-			return true;
+			$mess = sprintf("%s van %s is in '%s' gewijzigd. ", $kolomnm, db_Naamlid($lidid), $waarde);
+			$toonmess = 0;
+			$rv = true;
 		} else {
-			return false;
+			debug($query);
+			$mess = sprintf("De wijziging bij %s van kolom %s is niet gelukt.", db_Naamlid($lidid), $kolomnm);
+			$toonmess = 1;
+			$rv = false;
 		}
+		db_Logboek("add", $mess, 6, 0, $toonmess, $lidid);
+		return $rv;
 
 	} elseif ($actie == "lididbijemail") {
 		$filter = strtolower($filter);

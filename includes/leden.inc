@@ -1087,7 +1087,8 @@ function algemeenlidmuteren($lidid) {
 		
 	if (isset($_POST['Kloslid_Verwijderen'])) {
 		db_Lid("update", "", $lidid, "", "Verwijderd", date("Y/m/d"));
-		printf("<script>location.href='%s?tp=Ledenlijst/Klosleden';</script>\n", $_SERVER['PHP_SELF']);
+	} elseif (isset($_POST['Undo_Verwijderen'])) {
+		db_Lid("update", "", $lidid, "", "Verwijderd", "NULL");
 	} elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$old = db_lid("wijzigingen", "", $lidid);
 		for ($i=0; $i < count($wijzvelden); $i++) {
@@ -1151,12 +1152,6 @@ function algemeenlidmuteren($lidid) {
 			}
 			if ($v !== "__skip__" and $v != $old->$fn) {
 				$result = db_Lid("update", "", $lidid, "", $fn, $v);
-				if ($result == true) {
-					$mess .= sprintf("%s van %s is in '%s' gewijzigd. ", $wijzvelden[$i]['label'], $naamlid, $v);
-				} else {
-					$mess .= sprintf("De wijziging in '%s' bij %s is niet verwerkt. ", strtolower($wijzvelden[$i]['label']), $naamlid);
-					$toonmess = 1;
-				}
 			}
 			if (strlen($mess) > 0) {
 				db_logboek("add", $mess, 6, 0, $toonmess, $lidid);
@@ -1223,7 +1218,11 @@ function algemeenlidmuteren($lidid) {
 				$inp .= sprintf("<input type='checkbox' name='chkLeeg_%s' value=1>", $wijzvelden[$i]['naam']);
 			}
 		}
-		printf('<tr><td class="label">%1$s</td><td>%2$s</td><td>%3$s</td></tr>', $wijzvelden[$i]['label'], $dv, $inp);
+		if ($row->Verwijderd > "2010-01-01") {
+			printf('<tr><td class="label">%1$s</td><td>%2$s</td></tr>', $wijzvelden[$i]['label'], $dv);
+		} else {
+			printf('<tr><td class="label">%1$s</td><td>%2$s</td><td>%3$s</td></tr>', $wijzvelden[$i]['label'], $dv, $inp);
+		}
 		echo("\n");
 	}
 	echo("</table>\n");
@@ -1232,8 +1231,10 @@ function algemeenlidmuteren($lidid) {
 	if ($currenttab == "Ledenlijst") {
 		echo("<input type='submit' value='Bewaren en sluiten' name='Bewaren_Sluiten'>\n");
 	}
-	if ($kl == true) {
+	if ($kl == true and $row->Verwijderd < "2010-01-01") {
 		echo("<input type='submit' value='Verwijderen' name='Kloslid_Verwijderen'>\n");
+	} elseif ($row->Verwijderd > "2010-01-01") {
+		echo("<input type='submit' value='Verwijderen terugdraaien' name='Undo_Verwijderen'>\n");
 	}
 	echo("</div> <!-- Einde opdrachtknoppen -->\n");
 
