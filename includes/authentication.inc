@@ -35,6 +35,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if ($_SESSION['lidid'] > 0) {
 		addtp("Eigen gegevens");
 	}
+	$gs = db_Naamlid($_SESSION['lidid'], "Geslacht");
 	if ($currenttab == "Eigen gegevens") {
 		addtp("Eigen gegevens/Algemeen");
 		if (count(db_gegevenslid($_SESSION['lidid'], "Afdelingen")) > 0) {
@@ -62,7 +63,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (count(db_gegevenslid($_SESSION['lidid'], "Evenementen")) > 0) {
 			addtp("Eigen gegevens/Evenementen");
 		}
-		if (db_onderdeel("aantal", "T") > 0) {
+		if (db_onderdeel("aantal", "T") > 0 and $gs != "B") {
 			addtp("Eigen gegevens/Toestemmingen");
 		}
 		addtp("Eigen gegevens/Logboek");
@@ -73,20 +74,20 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	}
 	if ($currenttab == "Zelfservice") {
 		addtp("Zelfservice/Algemene gegevens");
-		if (count(db_diploma("zelfservice_lijst")) > 0) {
+		if (count(db_diploma("zelfservice_lijst")) > 0 and $gs != "B") {
 			addtp("Zelfservice/Diploma's");
 		}
 		addtp("Zelfservice/Pasfoto");
 		if (count($muteerbarememos) > 0) { 
 			addtp("Zelfservice/Bijzonderheden");
 		}
-		if (count(db_bewaking_blok("openblokken")) > 0) {
+		if (count(db_bewaking_blok("openblokken")) > 0 and $gs != "B") {
 			addtp("Zelfservice/Inschrijven bewaking");
 		}
 		if (count(db_evenement("open")) > 0) {
 			addtp("Zelfservice/Evenementen");
 		}
-		if (db_onderdeel("aantal", "T") > 0) {
+		if (db_onderdeel("aantal", "T") > 0 and $gs != "B") {
 			addtp("Zelfservice/Toestemmingen");
 		}
 		if (count(db_artikel("artikelbeschikbaar")) > 0) {
@@ -124,10 +125,11 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		addtp("Ledenlijst/Nieuw kloslid");
 	}
 	
+	if (!isset($_GET['lidid']) or strlen($_GET['lidid']) == 0) {
+		$_GET['lidid'] = 0;
+	}
+	$gs = db_Naamlid($_GET['lidid'], "Geslacht");
 	if ($currenttab == "Overzicht lid") {
-		if (!isset($_GET['lidid']) or strlen($_GET['lidid']) == 0) {
-			$_GET['lidid'] = 0;
-		}
 		addtp("Overzicht lid");
 		addtp("Overzicht lid/Algemeen");
 		if (count(db_gegevenslid($_GET['lidid'], "Afdelingen")) > 0) {
@@ -157,7 +159,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (db_evenement("aantaldlnrs", $_GET['lidid']) > 0) {
 			addtp("Overzicht lid/Evenementen");
 		}
-		if (db_onderdeel("aantal", "T") > 0) {
+		if (db_onderdeel("aantal", "T") > 0 and $gs != "B") {
 			addtp("Overzicht lid/Toestemmingen");
 		}
 		if (db_logboek("aantal", "", -1, $_GET['lidid']) > 0) {
@@ -167,10 +169,14 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if ($currenttab == "Wijzigen lid") {
 		addtp("Wijzigen lid");
 		addtp("Wijzigen lid/Algemene gegevens");
-		addtp("Wijzigen lid/Diploma's");
 		addtp("Wijzigen lid/Pasfoto");
-		addtp("Wijzigen lid/Toestemmingen");
-		addtp("Wijzigen lid/Bijzonderheden");
+		if ($gs != "B") {
+			addtp("Wijzigen lid/Diploma's");
+			addtp("Wijzigen lid/Toestemmingen");
+		}
+		if (count($muteerbarememos) > 0) {
+			addtp("Wijzigen lid/Bijzonderheden");
+		}
 		addtp("Wijzigen lid/Lidmaatschap");
 	}
 	if (db_mutatie("aantal") > 0) {
