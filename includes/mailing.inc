@@ -502,7 +502,7 @@ class Mailing {
 				$rows = db_mailing_hist("outbox");
 				if (count($rows) > 0) {
 					echo(fnDisplayTable($rows, $ld, "", 0, $rs));
-					if (db_param("mailing_direct_verzenden") == 0) {
+					if (db_param("mailing_direct_verzenden") == 0 and db_mailing_hist("aantaloutbox") > 1) {
 						printf("<form method='post' action='%s?tp=%s/%s' name='frm_outbox'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
 						echo("<div id='opdrachtknoppen'>\n");
 						printf("<input type='submit' name='action' value='Inhoud versturen' onClick='form.submit();'>\n");
@@ -1313,26 +1313,28 @@ class email {
 		if ($mhid > 0) {
 			$this->mhid = $mhid;
 			$mhrow = db_Mailing_hist("record", 0, $this->mhid);
-			$this->mailingid = $mhrow->MailingID;
-			$this->ingevoerd = strftime('%e %B %Y (%H:%M:%S)', strtotime($mhrow->Ingevoerd));
-			if ($mhrow->IngevoerdDoor > 0) {
-				$this->ingevoerddoor = db_naamlid($mhrow->IngevoerdDoor);
+			if (isset($mhrow->MailingID)) {
+				$this->mailingid = $mhrow->MailingID;
+				$this->ingevoerd = strftime('%e %B %Y (%H:%M:%S)', strtotime($mhrow->Ingevoerd));
+				if ($mhrow->IngevoerdDoor > 0) {
+					$this->ingevoerddoor = db_naamlid($mhrow->IngevoerdDoor);
+				}
+				if ($mhrow->send_on > "2010-01-01") {
+					$this->verstuurdop = strftime('%e %B %Y (%H:%M:%S)', strtotime($mhrow->send_on));
+				}
+				$this->lidid = $mhrow->LidID;
+				$this->vanafnaam = $mhrow->from_name;
+				$this->vanafadres = htmlentities($mhrow->from_addr);
+				$this->omsontvangers = htmlentities($mhrow->to_name);
+				$this->aannaam = htmlentities($mhrow->Aan);
+				$this->aanadres = $mhrow->to_addr;
+				$this->cc = $mhrow->cc_addr;
+				$this->onderwerp = $mhrow->subject;
+				$this->bericht = $mhrow->message;
+				$this->zichtbaarvoor = $mhrow->ZichtbaarVoor;
+				$this->xtrachar = $mhrow->Xtra_Char;
+				$this->xtranum = $mhrow->Xtra_Num;
 			}
-			if ($mhrow->send_on > "2010-01-01") {
-				$this->verstuurdop = strftime('%e %B %Y (%H:%M:%S)', strtotime($mhrow->send_on));
-			}
-			$this->lidid = $mhrow->LidID;
-			$this->vanafnaam = $mhrow->from_name;
-			$this->vanafadres = htmlentities($mhrow->from_addr);
-			$this->omsontvangers = htmlentities($mhrow->to_name);
-			$this->aannaam = htmlentities($mhrow->Aan);
-			$this->aanadres = $mhrow->to_addr;
-			$this->cc = $mhrow->cc_addr;
-			$this->onderwerp = $mhrow->subject;
-			$this->bericht = $mhrow->message;
-			$this->zichtbaarvoor = $mhrow->ZichtbaarVoor;
-			$this->xtrachar = $mhrow->Xtra_Char;
-			$this->xtranum = $mhrow->Xtra_Num;
 			
 		} elseif ($mid > 0) {
 			$this->mailingid = $mid;
