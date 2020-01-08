@@ -384,6 +384,7 @@ function fnInstellingen() {
 	$arrParam['login_geldigheidactivatie'] = "Hoelang in uren is een activatielink geldig? 0 = altijd.";
 	$arrParam['login_bewaartijdnietgebruikt'] = "Het aantal dagen dat logins wordt bewaard, nadat het is aangevraagd en nog niet gebruikt is.";
 	$arrParam['logboek_bewaartijd'] = "Hoeveel maanden moet de logging bewaard blijven. 0 = altijd bewaren.";
+	$arrParam['mailing_alle_zien'] = "NT";
 	$arrParam['mailing_bevestigingbestelling'] = "Het nummer van de mailing die bij een bestelling verstuurd moet worden. 0 = geen.";
 	$arrParam['mailing_bevestigingopzegging'] = "NT";
 	$arrParam['mailing_bewaartijd'] = "NT";
@@ -538,7 +539,7 @@ function fnInstellingen() {
 				} elseif ($row->ParamType == "F") {
 					printf("<label>%s</label><p><input name='value_%d' value=%F size=8></p>\n", $uitleg, $row->RecordID, $row->ValueNum);
 				} elseif (strlen($row->ValueChar) > 60) {
-					printf("<label>%s</label><p><textarea cols=72 rows=2 name='value_%d'>%s</textarea></p>\n", $uitleg, $row->RecordID, $row->ValueChar);
+					printf("<label>%s</label><p><textarea cols=68 rows=2 name='value_%d'>%s</textarea></p>\n", $uitleg, $row->RecordID, $row->ValueChar);
 				} else {
 					printf("<label>%s</label><p><input type='text' class='inputtext' name='value_%d' value=\"%s\"></p>\n", $uitleg, $row->RecordID, $row->ValueChar);
 				}

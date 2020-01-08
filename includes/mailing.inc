@@ -1673,6 +1673,7 @@ function fnMailingInstellingen() {
 			db_param("mailing_sentoutbox_auto", "updval", 0);
 		}
 		
+		db_param("mailing_alle_zien", "updval", $_POST['mailing_alle_zien']);
 		db_param("mailing_mailopnieuw", "updval", $_POST['mailing_mailopnieuw']);
 		db_param("mailing_bewaartijd", "updval", intval("0" . $_POST['mailing_bewaartijd']));
 		db_param("maxmailsperminuut", "updval", intval("0" . $_POST['maxmailsperminuut']));
@@ -1722,6 +1723,13 @@ function fnMailingInstellingen() {
 	printf("<div class='invoerblok'><label>E-mails in de outbox direct probereren te versturen?</label><p><input type='checkbox' name='mailing_direct_verzenden' value=1%s></div>\n", checked(db_param("mailing_direct_verzenden")));
 	printf("<div class='invoerblok'><label>E-mails uit de outbox automatisch in de achtergrond versturen?</label><p><input type='checkbox' name='mailing_sentoutbox_auto' value=1%s></div>\n", checked(db_param("mailing_sentoutbox_auto")));
 	printf("<div class='invoerblok'><label>Mag een verzonden e-mail opnieuw worden verstuurd?</label><p><select name='mailing_mailopnieuw'>%s</select></div>\n", $options);
+	
+	$options = sprintf("<option value=-1%s>Webmasters</option>\n", checked(db_param("mailing_alle_zien"), "option", -1));
+	foreach (db_Onderdeel("lijstingebruik", "kad") as $row) {
+		$options .= sprintf("<option value=%d%s>%s</option>\n", $row->RecordID, checked(db_param("mailing_alle_zien"), "option", $row->RecordID), $row->Oms);
+	}
+	printf("<div class='invoerblok'><label>Wie mag alle mailings zien en muteren?</label>\n<select name='mailing_alle_zien'>%s</select></div>\n", $options);
+
 	printf("<div class='invoerblok'><label>Hoeveel maanden moeten mailings in de prullenbak bewaard blijven:</label><p><input class='inputnumber' type='number' name='mailing_bewaartijd' value=%d size=8> (0 = altijd bewaren)</div>\n", db_param("mailing_bewaartijd"));
 	printf("<div class='invoerblok'><label>Hoeveel mails mogen er per minuut verstuurd worden:</label><p><input class='inputnumber' type='number' name='maxmailsperminuut' value=%d size=8> (0 = onbeperkt)</div>\n", db_param("maxmailsperminuut"));
 	printf("<div class='invoerblok'><label>Hoeveel mails mogen er per uur verstuurd worden:</label><p><input class='inputnumber' type='number' name='maxmailsperuur' value=%d size=8> (0 = onbeperkt)</div>\n", db_param("maxmailsperuur"));

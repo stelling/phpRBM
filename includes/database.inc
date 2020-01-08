@@ -578,7 +578,11 @@ function db_Lid($actie, $filter="", $lidid=0, $xtraselect="", $kolomnm="", $waar
 				$query = sprintf("UPDATE Lid SET `%s`=#%s#, Gewijzigd=SYSDATE() WHERE RecordID=%d;", $kolomnm, strftime($fdaccess, strtotime($waarde)), $lidid);
 			}
 			db_interface("add", $query, $lidid);
-			$mess = sprintf("%s van %s is in '%s' gewijzigd. ", $kolomnm, db_Naamlid($lidid), $waarde);
+			if ($waarde == "NULL") {
+				$mess = sprintf("%s van %s is leeg gemaakt.", $kolomnm, db_Naamlid($lidid), $waarde);
+			} else {
+				$mess = sprintf("%s van %s is in '%s' gewijzigd.", $kolomnm, db_Naamlid($lidid), $waarde);
+			}
 			$toonmess = 0;
 			$rv = true;
 		} else {
@@ -1548,10 +1552,15 @@ function db_lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0, $loid=0)
 		$query = sprintf("SELECT OnderdeelID FROM %sLidond AS LO WHERE Lid=%d AND %s;", TABLE_PREFIX, $lidid, $wherelidond);
 		$result = fnQuery($query);
 		$rows = $result->fetchAll(PDO::FETCH_COLUMN);
-		if (count($rows) > 0) {
-			return "0, " . implode(", ", $rows);
+		if ($_SESSION['webmaster'] == 1) {
+			$b = "-1, 0";
 		} else {
-			return "0";
+			$b = "0";
+		}
+		if (count($rows) > 0) {
+			return $b . ", " . implode(", ", $rows);
+		} else {
+			return $b;
 		}
 		
 	} elseif ($actie == "groepsindeling") {
@@ -2018,10 +2027,10 @@ function db_mailing($actie, $mid=0, $filter="", $new_val="", $kolnaam="") {
 		
 	} elseif ($actie == "lijst") {
 		$xtra_sel = "";
-		if ($_SESSION['webmaster'] == 0) {
-			$w = sprintf("M.ZichtbaarVoor IN (%s)", $_SESSION['lidgroepen']);
-		} else {
+		if (in_array(db_param("mailing_alle_zien"), explode(", ", $_SESSION['lidgroepen']))) {
 			$w = "1=1";
+		} else {
+			$w = sprintf("M.ZichtbaarVoor IN (%s)", $_SESSION['lidgroepen']);
 		}
 		$orderby = "sent_on DESC";
 		if ($filter == "Concepten" or $filter === "Verzonden") {
@@ -2054,6 +2063,7 @@ function db_mailing($actie, $mid=0, $filter="", $new_val="", $kolnaam="") {
 					FROM %3\$sMailing AS M LEFT JOIN %3\$sLid AS L ON M.GewijzigdDoor=L.RecordID
 					WHERE %4\$s ORDER BY %5\$s;", $selectnaam, $xtra_sel, TABLE_PREFIX, $w, $orderby, $fdtlang);
 		$result = fnQuery($query);
+//		debug($query);
 		return $result->fetchAll();
 		
 	} elseif ($actie == "rcpt") {
@@ -3346,6 +3356,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrIntegers['db_backup_type'] = 3;
 	$arrIntegers['db_backupsopschonen'] = 11;
 	$arrIntegers['login_autounlock'] = 120;
+	$arrIntegers['mailing_alle_zien'] = -1;
 	$arrIntegers['mailing_bevestigingbestelling'] = 0;
 	$arrIntegers['mailing_bevestigingopzegging'] = 0;
 	$arrIntegers['mailing_bewaartijd'] = 3;
