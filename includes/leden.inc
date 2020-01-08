@@ -245,9 +245,6 @@ function fnLedenlijst() {
 
 	if (toegang("Wijzigen lid", 0, 0)) {
 		$llw = "<a href='index.php?tp=Wijzigen+lid/Algemene+gegevens&amp;lidid=%d'><img src='./images/edit.png' alt='Wijzigen' title='Wijzigen lidgegevens'></a>";
-		if (toegang("Wijzigen lid/Pasfoto", 0)) {
-			$llw .= "</td><td class='details'><a href='index.php?tp=Wijzigen+lid/Pasfoto&amp;lidid=%d'><img src='./images/profile.png' alt='Pasfoto' title='Wijzigen pasfoto'></a>";
-		}
 	} else {
 		$llw = "";
 	}
@@ -1042,6 +1039,7 @@ function algemeenlidmuteren($lidid) {
 	if ($kl == true) {
 		$wijzvelden[] = array('label' => "Opmerking", 'naam' => "Opmerking", 'lengte' => 60);
 	}
+	$wijzvelden[] = array('label' => "Adres", 'naam' => "Adres", 'lengte' => 30);
 	$wijzvelden[] = array('label' => "Postcode", 'naam' => "Postcode", 'lengte' => 7);
 	$wijzvelden[] = array('label' => "Woonplaats", 'naam' => "Woonplaats", 'lengte' => 22);
 	$wijzvelden[] = array('label' => "Vast telefoonnummer", 'naam' => "Telefoon", 'lengte' => 16);
