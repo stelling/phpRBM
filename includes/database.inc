@@ -258,6 +258,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					L.EmailVereniging AS `emlE-mail vereniging`,
 					L.EmailOuders AS `emlE-mail ouders`,
 					L.NamenOuders AS `Namen ouders`,
+					L.`Waarschuwen bij nood`,
 					'Lidmaatschap' AS Kop4,
 					LM.Lidnr AS Lidnummer, 
 					(%s) AS Onderscheiding, 
@@ -274,14 +275,13 @@ function db_gegevenslid($LidID, $soort="Alg") {
 					L.Beroep AS `Beroep`,
 					(%s) AS `dteLaatste bewakingsdag`, 
 					%s 
-					%s
 					'Recordinformatie' as Kop7,
 					L.RecordID, 
 					L.Ingevoerd AS `dteIngevoerd op`, 
 					L.Gewijzigd AS `dteLaatst gewijzigd op` 
 					FROM %s 
 					WHERE L.RecordID=%d 
-					ORDER BY LM.LIDDATUM DESC;", $selectnaam, $selectgeslacht, $fdlang, $selectleeftijd, $adresgegevens, $sqond, $sqllegitimatie, $VOG, $sqlbd, $wbn, $sqdieet, $fromlid, $LidID);
+					ORDER BY LM.LIDDATUM DESC;", $selectnaam, $selectgeslacht, $fdlang, $selectleeftijd, $adresgegevens, $sqond, $sqllegitimatie, $VOG, $sqlbd, $sqdieet, $fromlid, $LidID);
 					//debug($query);
 					
 	} elseif ($soort == "Financieel") {
@@ -525,6 +525,7 @@ function db_Lid($actie, $filter="", $lidid=0, $xtraselect="", $kolomnm="", $waar
 					L.EmailVereniging,
 					L.EmailOuders,
 					L.NamenOuders,
+					L.`Waarschuwen bij nood`,
 					L.GEBDATUM,
 					L.GEBPLAATS,
 					L.Bankrekening,
@@ -583,15 +584,13 @@ function db_Lid($actie, $filter="", $lidid=0, $xtraselect="", $kolomnm="", $waar
 			} else {
 				$mess = sprintf("%s van %s is in '%s' gewijzigd.", $kolomnm, db_Naamlid($lidid), $waarde);
 			}
-			$toonmess = 0;
 			$rv = true;
 		} else {
 			debug($query);
 			$mess = sprintf("De wijziging bij %s van kolom %s is niet gelukt.", db_Naamlid($lidid), $kolomnm);
-			$toonmess = 1;
 			$rv = false;
 		}
-		db_Logboek("add", $mess, 6, 0, $toonmess, $lidid);
+		db_Logboek("add", $mess, 6, 0, 1, $lidid);
 		return $rv;
 
 	} elseif ($actie == "lididbijemail") {

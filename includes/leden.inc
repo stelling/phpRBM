@@ -1052,6 +1052,9 @@ function algemeenlidmuteren($lidid) {
 		$wijzvelden[] = array('label' => "E-mail ouders", 'naam' => "EmailOuders", 'lengte' => 45);
 		$wijzvelden[] = array('label' => "Namen ouders", 'naam' => "NamenOuders", 'lengte' => 90);
 	}
+	if ($_SESSION['webmaster'] == 1) {
+		$wijzvelden[] = array('label' => "Waarschuwen bij een noodgeval", 'naam' => "Waarschuwen bij nood", 'lengte' => 254);
+	}
 	$wijzvelden[] = array('label' => "Geboortedatum", 'naam' => "GEBDATUM", 'lengte' => 10, 'type' => 'date');
 	if ($gs != "B") {
 		$wijzvelden[] = array('label' => "Geboorteplaats", 'naam' => "GEBPLAATS", 'lengte' => 22);
@@ -1070,7 +1073,7 @@ function algemeenlidmuteren($lidid) {
 			$wijzvelden[] = array('label' => "Burgerservicenummer", 'naam' => "Burgerservicenummer", 'lengte' => 9);
 		}
 		if (db_param("zs_incl_slid") == 1 or $currenttab == "Wijzigen lid") {
-			$wijzvelden[] = array('label' => "Sportlink ID", 'naam' => "RelnrRedNed", 'lengte' => 7, 'nietverw' => true);
+			$wijzvelden[] = array('label' => "Sportlink ID", 'naam' => "RelnrRedNed", 'lengte' => 7, 'nietverw' => false);
 		}
 		if (db_param("zs_incl_legitimatie") == 1 or $currenttab == "Wijzigen lid") {
 			$wijzvelden[] = array('label' => "Legitimatietype", 'naam' => "Legitimatietype", 'nietverw' => true);
@@ -1080,8 +1083,6 @@ function algemeenlidmuteren($lidid) {
 			$wijzvelden[] = array('label' => "Beroep", 'naam' => "Beroep", 'lengte' => 40);
 		}
 	}
-
-	$naamlid = db_naamlid($lidid);
 		
 	if (isset($_POST['Kloslid_Verwijderen'])) {
 		db_Lid("update", "", $lidid, "", "Verwijderd", date("Y/m/d"));
@@ -1091,11 +1092,12 @@ function algemeenlidmuteren($lidid) {
 		$old = db_lid("wijzigingen", "", $lidid);
 		for ($i=0; $i < count($wijzvelden); $i++) {
 			$mess = "";
-			$toonmess = 0;
 			$fn = $wijzvelden[$i]['naam'];
+			$contrname = str_replace(" ", "_", $fn);
 			$v = "__skip__";
+//			debug("chkLeeg_" . $fn . ' / ' . $_POST["chkLeeg_" . $fn]);
 			if ($fn == "Machtiging afgegeven") {
-				if (isset($_POST["Machtiging_afgegeven"])) {
+				if (isset($_POST[$contrname])) {
 					$v = 1;
 				} else {
 					$v = 0;
@@ -1109,50 +1111,45 @@ function algemeenlidmuteren($lidid) {
 				}
 				
 			} elseif ($fn == "Bankrekening" and isset($_POST[$fn]) and strlen($_POST[$fn]) > 0 and IsIBANgoed($_POST[$fn], 1) == false) {
-				$mess .= "De nieuwe bankrekening is niet correct, deze wijziging wordt niet verwerkt. ";
-				$toonmess = 1;
+				$mess = "De bankrekening is niet correct, deze wijziging wordt niet verwerkt.";
 				
 			} elseif ($fn == "Burgerservicenummer" and isset($_POST[$fn]) and strlen($_POST[$fn]) > 0 and (!is_numeric($_POST[$fn]) or $_POST[$fn] < 100000000 or $_POST[$fn] > 999999999)) {
-				$mess .= "Burgerservicenummer is niet correct, deze wijziging wordt niet verwerkt. ";
-				$toonmess = 1;
+				$mess = "Burgerservicenummer is niet correct, deze wijziging wordt niet verwerkt.";
 				
-			} elseif (isset($_POST["chkLeeg_" . $fn]) and $_POST["chkLeeg_" . $fn] == "1") {
+			} elseif (isset($_POST["chkLeeg_" . $contrname]) and $_POST["chkLeeg_" . $contrname] == "1") {
 				if (stripos($wijzvelden[$i]['label'], "datum") === FALSE) {
 					$v = "";
 				} else {
 					$v = "NULL";
 				}
 			} elseif (stripos($wijzvelden[$i]['label'], "datum") !== FALSE) {
-				$_POST[$fn] = change_month_to_uk($_POST[$fn]);
-				if (isset($_POST[$fn]) and strlen($_POST[$fn]) > 0) {
-					if (strtotime($_POST[$fn]) === FALSE) {
-						$mess .= "Geboortedatum is niet correct, deze wijziging wordt niet verwerkt. ";
-						$toonmess = 1;
+				$_POST[$contrname] = change_month_to_uk($_POST[$contrname]);
+				if (isset($_POST[$contrname]) and strlen($_POST[$contrname]) > 0) {
+					if (strtotime($_POST[$contrname]) === FALSE) {
+						$mess = $wijzvelden[$i]['label'] . " is niet correct, deze wijziging wordt niet verwerkt.";
 					} else {
-						$v = strftime($fdsql, strtotime($_POST[$fn]));
+						$v = strftime($fdsql, strtotime($_POST[$contrname]));
 					}
 				}
 			} elseif (stripos($wijzvelden[$i]['label'], "e-mail") !== FALSE) {
-				if (isset($_POST[$fn]) and strlen($_POST[$fn]) > 0) {
-					if (isValidMailAddress($_POST[$fn], 0)) {
-						$v = $_POST[$fn];
+				if (isset($_POST[$contrname]) and strlen($_POST[$contrname]) > 0) {
+					if (isValidMailAddress($_POST[$contrname], 0)) {
+						$v = $_POST[$contrname];
 					} else {
-						$mess .= "E-mailadres is niet correct, deze wijziging wordt niet verwerkt. ";
-						$toonmess = 1;
+						$mess = "E-mailadres is niet correct, deze wijziging wordt niet verwerkt.";
 					}
 				}
-			} elseif ($fn == "RelnrRedNed" and strlen($_POST[$fn]) != 7 and strlen($_POST[$fn]) > 0) {
-				$mess .= "Het Sportlink ID moet 7 karakters lang zijn, deze wijziging wordt niet verwerkt. ";
-				$toonmess = 1;
+			} elseif ($fn == "RelnrRedNed" and strlen($_POST[$contrname]) != 7 and strlen($_POST[$contrname]) > 0) {
+				$mess = "Het Sportlink ID moet 7 karakters lang zijn, deze wijziging wordt niet verwerkt.";
 				
-			} elseif (isset($_POST[$fn]) and strlen($_POST[$fn]) > 0) {
-				$v = $_POST[$fn];
+			} elseif (isset($_POST[$contrname]) and strlen($_POST[$contrname]) > 0) {
+				$v = $_POST[$contrname];
 			}
 			if ($v !== "__skip__" and $v != $old->$fn) {
-				$result = db_Lid("update", "", $lidid, "", $fn, $v);
+				db_Lid("update", "", $lidid, "", $fn, $v);
 			}
 			if (strlen($mess) > 0) {
-				db_logboek("add", $mess, 6, 0, $toonmess, $lidid);
+				db_logboek("add", $mess, 6, 0, 1, $lidid);
 			}
 		}
 		
@@ -1171,7 +1168,7 @@ function algemeenlidmuteren($lidid) {
 	echo("<table>\n");
 	echo("<tr><th></th><th>Huidige waarde</th><th>Nieuwe waarde</th><th>Leeg</th></tr>\n");
 	for ($i=0; $i < count($wijzvelden); $i++) {
-		$dv = $row->{$wijzvelden[$i]['naam']};
+		$dv = str_replace("\n", "<br>\n", $row->{$wijzvelden[$i]['naam']});
 		$ph = $wijzvelden[$i]['label'];
 		if ($wijzvelden[$i]['label'] == "Geslacht" or ($wijzvelden[$i]['label'] == "Legitimatietype")) {
 			if ($wijzvelden[$i]['label'] == "Geslacht") {
@@ -1211,9 +1208,13 @@ function algemeenlidmuteren($lidid) {
 			} else {
 				$t = "text";
 			}
-			$inp = sprintf("<input type='%s' name='%s' placeholder='%s' size=40 maxlength=%d></td><td class='chk'>", $t, $wijzvelden[$i]['naam'], $ph, $wijzvelden[$i]['lengte']);
+			if ($wijzvelden[$i]['lengte'] > 100 and $t == "text") {
+				$inp = sprintf("<textarea name='%s' placeholder='%s' cols=50 rows=4></textarea></td><td>", str_replace(" ", "_", $wijzvelden[$i]['naam']), $ph);
+			} else {
+				$inp = sprintf("<input type='%s' name='%s' placeholder='%s' size=50 maxlength=%d></td><td class='chk'>", $t, $wijzvelden[$i]['naam'], $ph, $wijzvelden[$i]['lengte']);
+			}
 			if (strlen($dv) > 0 and (!isset($wijzvelden[$i]['nietverw']) or $wijzvelden[$i]['nietverw'] == false)) {
-				$inp .= sprintf("<input type='checkbox' name='chkLeeg_%s' value=1>", $wijzvelden[$i]['naam']);
+				$inp .= sprintf("<input type='checkbox' name='chkLeeg_%s' value=1>", str_replace(" ", "_", $wijzvelden[$i]['naam']));
 			}
 		}
 		if ($row->Verwijderd > "2010-01-01") {
