@@ -117,7 +117,6 @@ function fnMailing() {
 			echo("<p class='mededeling'>Deze mailing heeft geen historie.</p>\n");
 		}
 	} elseif ($op == "histdetails" and $_GET['rid'] > 0) {
-//		toonverstuurdemail($_GET['rid']);
 		$email = new email($_GET['rid']);
 		$email->toon();
 		$mail = null;
@@ -157,6 +156,7 @@ function fnMailing() {
 	} elseif ($op == "preview") {
 		$mailing->post_form();
 		$mailing->upload();
+		
 		$mailing->preview();
 	} elseif ($op == "send") {
 		$mailing->post_form();
@@ -774,7 +774,8 @@ class Mailing {
 			printf("<button type='submit' name='action' value='send' title='Verstuur mailing'>Verstuur mailing</button>\n");
 		}
 		if ($this->mid > 0 and $this->deleted_on < "2000-01-01" and $this->aant_rcpt > 0) {
-			printf("<button type='submit' name='action' value='preview' title='Voorbeeld'>Bekijk voorbeeld</button>\n");
+			$lnk = sprintf("%s?tp=%s&op=preview&mid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid);
+			printf("<button onclick=\"window.open('%s','_blank')\">Bekijk voorbeeld</button>", $lnk);			
 		}
 		
 		if ($this->mid > 0 and $this->deleted_on > "1901-01-01" and $_SESSION['webmaster'] == 1) {
@@ -1099,6 +1100,7 @@ class Mailing {
 				$mail->From = $this->from_addr;
 				$mail->FromName = $this->from_name;
 				$mail->IsHTML(true);
+				$mail->Subject = $this->merged_subject;
 				$mail->Body = $this->merged_message;
 				if (isset($rcpt->Naam_lid)) {
 					$mail->addstationary($rcpt->Naam_lid);
@@ -1944,66 +1946,6 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 		$this->WordWrap = 110;
 		$this->bestand_briefpapier = db_param("path_templates") . "briefpapier.html";
 
-	}
-	
-	public function Toev22oegenLid($lidid) {
-	
-		$rv = "";
-		$row = db_lid("record", "", $lidid);
-		if (strlen($row->Email) > 5 and self::ValidateAddress($row->Email)) {
-			if (in_array($row->Email, $this->to) === false) {
-				$this->AddAddress($row->Email, $row->NaamLid);
-				$rv = $row->Email;
-			}
-		} elseif (strlen($row->EmailVereniging) > 5 and self::ValidateAddress($row->EmailVereniging) and in_array($row->EmailVereniging, $this->to) === false and in_array($row->EmailVereniging, $this->cc) === false) {
-			$this->AddAddress($row->EmailVereniging, $row->NaamLid);
-			$rv = $row->EmailVereniging;
-		}
-		
-		$e = $this->InformerenOuders($row->GEBDATUM, $row->EmailOuders);
-		if (strlen($e) > 5) {
-			if (strlen($e) > 5) {
-				$rv .= ", " . $e;
-			} else {
-				$rv = $e;
-			}
-		}
-		return $rv;
-	}
-	
-	public function In22formerenOuders($geboren, $emailouders) {
-		if (count($this->to) == 0) {
-			$kind = "to";
-		} else {
-			$kind = "cc";
-		}
-		
-		$rv = "";
-		if ($geboren > date("Y-m-d", mktime(0, 0, 0, date("m"), date("d"), date("Y")-18)) and strlen($emailouders) > 5) {
-			$emailouders = str_replace(" ", "", str_replace(";", ",", $emailouders));
-			foreach(explode(",", $emailouders) as $e) {
-				if (self::ValidateAddress($e) and in_array($e, $this->to) === false and in_array($e, $this->cc) === false) {
-					$this->AddAnAddress($kind, $e);
-					if (strlen($rv) > 0) {
-						$rv .= ", ";
-					}
-					$rv .= $e;
-				}
-			}
-		}
-		return $rv;
-	}
-	
-	public function ListA22ddresses($kind="to") {
-		if (count($this->$kind) > 0) {
-			$rv = "";
-			foreach ($this->$kind as $e) {
-				$rv .= $e[0] . ",";
-			}
-			return substr($rv, 0, -1);
-		} else {
-			return "";
-		}
 	}
 	
 	public function addstationary($to="", $from="", $verwijderaanhef=0) {
