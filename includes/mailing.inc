@@ -131,6 +131,7 @@ function fnMailing() {
 		$mailing->attach_delete($_GET['attach']);
 		$mailing->edit();
 	} elseif ($op == "add_rcpt" and isset($_GET['lidid']) and $_GET['lidid'] > 0) {
+		$mailing->post_form();
 		$mailing->Add_rcpt($_GET['lidid']);
 		$mailing->edit();
 	} elseif ($op == "add_rcpt" and isset($_GET['to_address']) and isValidMailAddress($_GET['to_address'], 0)) {
@@ -145,18 +146,20 @@ function fnMailing() {
 		$mailing->delete_rcpt(0, $_GET['addr']);
 		$mailing->edit();
 	} elseif ($op == "add_selectie") {
+		$mailing->post_form();
 		$mailing->add_del_selectie("add");
 		$mailing->edit();
 	} elseif ($op == "del_selectie") {
+		$mailing->post_form();
 		$mailing->add_del_selectie("del");
 		$mailing->edit();
 	} elseif ($op == "delete_all_rcpt") {
+		$mailing->post_form();
 		$mailing->delete_all_rcpt();
 		$mailing->edit();
 	} elseif ($op == "preview") {
 		$mailing->post_form();
 		$mailing->upload();
-		
 		$mailing->preview();
 	} elseif ($op == "send") {
 		$mailing->post_form();
@@ -1083,6 +1086,7 @@ class Mailing {
 		}
 
 		$aant_rcpts = 0;
+		$aant_send = 0;
 		foreach($rcpts as $rcpt) {
 			$email = new email(0, $this->mid);
 			if ($rcpt->Nummer > 0) {
@@ -1102,31 +1106,33 @@ class Mailing {
 				$mail->IsHTML(true);
 				$mail->Subject = $this->merged_subject;
 				$mail->Body = $this->merged_message;
-				if (isset($rcpt->Naam_lid)) {
-					$mail->addstationary($rcpt->Naam_lid);
-				} else {
+				if (strlen($this->to_name) > 0) {
 					$mail->addstationary($this->to_name);
+				} elseif (isset($rcpt->Naam_lid)) {
+					$mail->addstationary($rcpt->Naam_lid);
 				}
 				echo("<br>\n" . $mail->Body);
 				$mail = null;
 			}
 			
 			if ($preview == 0) {
-				$mhid = $email->to_outbox();
+				if ($email->to_outbox() === true) {
+					$aant_send++;
+				}
 			}
 			$aant_rcpts++;
 			$email = null;
 		}
 		
-		if ($preview == 0) {
-			$mess = sprintf("Mailing %d (%s) is door %s in de outbox geplaatst.", $this->mid, $this->subject, db_naamlid($_SESSION['lidid']));
+		if ($aant_send > 0) {
+			$mess = sprintf("Via mailing %d (%s) zijn door %s %d e-mails in de outbox geplaatst.", $this->mid, $this->subject, db_naamlid($_SESSION['lidid']), $aant_send);
 			if ($_SESSION['lidid'] > 0) {
 				db_logboek("add", $mess, 4, 0, 1, $this->mid);
 			} else {
 				db_logboek("add", $mess, 4, 0, 0, $this->mid);
 			}
-			if (strlen($this->speciaal) > 1 and $this->xtrachar != "BW_I") {
-				sentfromhist($mhid);
+			if (strlen($this->speciaal) > 1) {
+				sentoutbox(3);
 			}
 			db_mailing("updatesent", $this->mid);
 		}
@@ -1298,6 +1304,7 @@ class email {
 	public $vanafnaam = "";
 	public $vanafadres = "";
 	public $omsontvangers = "";
+	private $aantalontvangers = 0;
 	public $aannaam = "";
 	public $aanadres = "";
 	public $cc = "";
@@ -1403,9 +1410,14 @@ class email {
 			$this->toevoegenadres($row->EmailVereniging);
 		}
 		
+		if ($this->xtrachar != "REK") {
+			$this->aannaam = $row->NaamLid;
+		}
+		
 		if ($row->GEBDATUM > date("Y-m-d", mktime(0, 0, 0, date("m"), date("d"), date("Y")-18)) and strlen($row->EmailOuders) > 5) {
 			$this->toevoegenadres($row->EmailOuders, "cc");
 		}
+		$this->aantalontvangers++;
 	}  # toevoegenlid
 	
 	public function toevoegenadres($adres, $tp="aan") {
@@ -1557,6 +1569,8 @@ function fnRekeningenMailen($op) {
 				
 			foreach(db_rekening("selectie", 0, $_POST['rekfilter']) as $rk) {
 				$email = new email(0, 0);
+				$email->xtrachar = "REK";
+				$email->xtranum = $rk->Nummer;
 				$email->toevoegenlid($rk->Lid);
 				
 				if (db_param("mailing_rekening_stuurnaar") > 1) {
@@ -1582,8 +1596,6 @@ function fnRekeningenMailen($op) {
 					$email->aannaam = $rk->DEBNAAM;
 				}
 				$email->onderwerp = $rk->OMSCHRIJV;
-				$email->xtrachar = "REK";
-				$email->xtranum = $rk->Nummer;
 				
 				if (strlen($email->aanadres) == 0) {
 					$mess = sprintf("Rekening %d kon niet worden verzonden, omdat er van %s geen geldig e-mailadres in de database bekend is.", $rk->Nummer, $email->aannaam);
@@ -1825,7 +1837,12 @@ function sentfromhist($mhid) {
 	}
 	$mail->Body = $row->message;
 	
-	if ($mail->addstationary($row->Aan)) {
+	if (strlen($row->to_name) > 0) {
+		$a = $row->to_name;
+	} else {
+		$a = $row->Aan;
+	}
+	if ($mail->addstationary($a)) {
 	
 		$ad = db_param("path_attachments") . $mhid;
 	
@@ -1859,6 +1876,7 @@ function sentoutbox($mode=0) {
 		0 = versturen middels knop door gebruiker
 		1 = via batchjob
 		2 = via optie 'mailing_direct_verzenden'
+		3 = direct versturen in verband met speciaal soort
 	*/
 	
 	$aantverzonden = 0;
@@ -1872,6 +1890,8 @@ function sentoutbox($mode=0) {
 	} else {
 		if ($mode == 1) {
 			$a = "outboxbatch";
+		} elseif ($mode == 3) {
+			$a = "outboxspeciaal";
 		} else {
 			$a = "outbox";
 		}
@@ -1891,9 +1911,9 @@ function sentoutbox($mode=0) {
 		$aob = db_mailing_hist("aantaloutbox");
 		if ($aantverzonden > 0 or $aob > 0) {
 			if ($mode == 1) {
-				$mess = "sentoutbox is gestart door de batchjob";
+				$mess = sprintf("sentoutbox (mode:%d) is gestart door de batchjob", $mode);
 			} else {
-				$mess = "Versturen vanuit de outbox is gereed";
+				$mess = sprintf("Versturen vanuit de outbox (mode: %d) is gereed", $mode);
 			}
 			$mess .= sprintf(", er zijn %d mails verzonden. Er staan nog %d mails te wachten in de outbox.", $aantverzonden, $aob);
 		}
@@ -1910,6 +1930,7 @@ function sentoutbox($mode=0) {
 class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 
 	private $bestand_briefpapier;
+	public $omsontvangers = "";
 
 	function __construct() {
 		global $smtphost, $smtpport, $smtpuser, $smtppw;
@@ -1945,19 +1966,10 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 		$this->IsHTML(true);
 		$this->WordWrap = 110;
 		$this->bestand_briefpapier = db_param("path_templates") . "briefpapier.html";
-
 	}
 	
 	public function addstationary($to="", $from="", $verwijderaanhef=0) {
 		
-		if (strlen($to) == 0) {
-			foreach($this->to as $e) {
-				if (strlen($to) > 0) {
-					$to .= ", ";
-				}
-				$to .= $e[1];
-			}
-		}
 		if (file_exists($this->bestand_briefpapier)) {
 			if ($verwijderaanhef == 1) {
 				$htmlmessage = removetextblock(file_get_contents($this->bestand_briefpapier), "<!-- Aanhef -->", "<!-- /Aanhef -->");
