@@ -1482,10 +1482,10 @@ function db_lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0, $loid=0)
 		$query = sprintf("SELECT MAX(LO.Gewijzigd) FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON LO.OnderdeelID=O.RecordID%2\$s;", TABLE_PREFIX, $filter);
 		return db_scalar($query);
 	
-	} elseif ($actie == "add") {
+	} elseif ($actie == "add" or $actie == "insert") {
 		if (db_onderdeel("aantal", "", 0, $onderdlid) == 0) {
 			$mess = sprintf("OnderdeelID %d bestaat niet. Dit record wordt niet toegevoegd.", $onderdlid);
-			debug($mess, 99);
+			db_Logboek("add", $mess, 99, 0, 1);
 		
 		} elseif (is_array($lidid) and count($lidid) > 0) {
 			
@@ -1493,7 +1493,7 @@ function db_lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0, $loid=0)
 			
 		} elseif (db_lid("aantal", "", $lidid) == 0) {
 			$mess = sprintf("Lid %d bestaat niet. Dit record wordt niet toegevoegd.", $lidid);
-			debug($mess, 99);
+			db_Logboek("add", $mess, 99, 0, 1);
 		} else {
 			$nrid = db_nieuwrecordID("Lidond");
 			
@@ -1658,9 +1658,9 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		return $ok;
 		
 	} elseif ($actie == "rowlogin") {
-		$query = sprintf("SELECT L. RecordID, L.Nummer, Login.Login, %s AS Naam, L.Roepnaam, L.Email, Login.Wachtwoord, Login.FouteLogin, Login.Gewijzigd, MAX(IFNULL(LM.Lidnr, 0)) AS Lidnr,", $selectnaam);
+		$query = sprintf("SELECT L.RecordID, L.Nummer, Login.Login, %s AS Naam, L.Roepnaam, L.Email, Login.Wachtwoord, Login.FouteLogin, Login.Gewijzigd, MAX(IFNULL(LM.Lidnr, 0)) AS Lidnr,", $selectnaam);
 		if (is_array($beperkttotgroep) and count($beperkttotgroep) > 0) {
-			$query .= sprintf("(SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.Lid=L.Nummer AND LO.OnderdeelID IN (%s) AND LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE())) AS AanvragenMag", TABLE_PREFIX, implode(", ", $beperkttotgroep));
+			$query .= sprintf("(SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.Lid=L.RecordID AND LO.OnderdeelID IN (%s) AND LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE())) AS AanvragenMag", TABLE_PREFIX, implode(", ", $beperkttotgroep));
 		} else {
 			$query .= "1 AS AanvragenMag";
 		}
@@ -2192,7 +2192,7 @@ function db_mailing_hist($actie, $lidid=0, $mhid=0, $mid=0) {
 		}
 	}
 	
-	if ($actie == "outbox" or $actie == "outboxbatch") {
+	if ($actie == "outbox" or $actie == "outboxbatch" or $actie == "outboxspeciaal") {
 		$lm = 1000;
 		if (db_param("maxmailsperdag") > 0 and db_param("maxmailsperdag") < $lm) {
 			$lm = db_param("maxmailsperdag");
@@ -2203,6 +2203,8 @@ function db_mailing_hist($actie, $lidid=0, $mhid=0, $mid=0) {
 		$xw = "";
 		if ($actie == "outboxbatch") {
 			$xw = "AND MH.Ingevoerd < DATE_SUB(SYSDATE(), INTERVAL 15 MINUTE)";
+		} elseif ($actie == "outboxspeciaal") {
+			$xw = sprintf("AND MH.MailingID IN (%d, %d, %d)", db_param("mailing_lidnr"), db_param("mailing_validatielogin"), db_param("mailing_herstellenwachtwoord"));
 		} elseif ($_SESSION['webmaster'] == 0) {
 			$xw = sprintf("AND MH.ZichtbaarVoor IN (%s)", $_SESSION['lidgroepen']);
 		} else {
