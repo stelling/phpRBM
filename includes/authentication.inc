@@ -115,15 +115,28 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	addtp("Ledenlijst");
 	if ($currenttab == "Ledenlijst") {
 		addtp("Ledenlijst/Leden");
-		if (count(db_lid("ledenlijst", "(LM.Lidnr IS NULL)")) > 0) {
-			addtp("Ledenlijst/Klosleden");
-		}
 		addtp("Ledenlijst/Voormalig leden");
 		if (count(db_Lidmaatschap("toekomstigeleden")) > 0) {
 			addtp("Ledenlijst/Toekomstige leden");
 		}
+		if (count(db_lid("ledenlijst", "(LM.Lidnr IS NULL)")) > 0) {
+			addtp("Ledenlijst/Klosleden");
+		}
 		addtp("Ledenlijst/Nieuw kloslid");
 	}
+	
+	/*
+// Tabblad per afdeling
+	foreach (db_Onderdeel("lijstingebruik", "A") as $row) {
+		addtp($row->Naam, $row->RecordID);
+		if ($currenttab == $row->Naam) {
+			addtp($row->Naam . "/Ledenlijst", $row->RecordID);
+			if (count(db_lidond("actueleleden", 0, "", "LO.GroepID > 0", $row->RecordID)) > 0) {
+				addtp(trim($row->Naam) . "/Groepsindeling", $row->RecordID);
+			}
+		}
+	}
+	*/
 	
 	if (!isset($_GET['lidid']) or strlen($_GET['lidid']) == 0) {
 		$_GET['lidid'] = 0;
@@ -356,29 +369,27 @@ function toegang($soort, $melding=1, $log=1) {
 	}
 	$soort = str_replace("'", "", $soort);
 		
-	if (strlen($soort) > 0 and in_array($soort, $arrAltijdToegang) === false) {
-		if ($_SESSION['lidid'] > 0 and in_array($_SESSION['lidid'], $lididwebmasters) === true) {
-			$_SESSION['webmaster'] == 1;
-			return true;
-		} elseif ($_SESSION['lidid'] > 0 and isset($_SESSION['toegang'][$soort]) and $_SESSION['toegang'][$soort] == 1) {
+	if (strlen($soort) == 0 or in_array($soort, $arrAltijdToegang) === true) {
+		return true;
+	} elseif ($_SESSION['lidid'] > 0 and in_array($_SESSION['lidid'], $lididwebmasters) === true) {
+		$_SESSION['webmaster'] == 1;
+		return true;
+	} elseif ($_SESSION['lidid'] > 0 and isset($_SESSION['toegang'][$soort]) and $_SESSION['toegang'][$soort] == 1) {
+		return true;
+	} else {
+		$_SESSION['webmaster'] == 0;
+		if (db_authorisation("heefttoegang", 0, $soort) == true) {
+			$_SESSION['toegang'][$soort] = 1;
 			return true;
 		} else {
-			$_SESSION['webmaster'] == 0;
-			if (db_authorisation("heefttoegang", 0, $soort) == true) {
-				$_SESSION['toegang'][$soort] = 1;
-				return true;
-			} else {
-				$mess = sprintf("Je hebt geen toegang tot '%s' op %s.", $soort, db_param("naamwebsite"));
-				if ($log == 1) {
-					db_logboek("add", $mess, 15, 0, $melding);
-				} elseif ($melding > 0) {
-					printf("<p class='mededeling'>%s</p>\n", $mess);
-				}
-				return false;
+			$mess = sprintf("Je hebt geen toegang tot '%s' op %s.", $soort, db_param("naamwebsite"));
+			if ($log == 1) {
+				db_logboek("add", $mess, 15, 0, $melding);
+			} elseif ($melding > 0) {
+				printf("<p class='mededeling'>%s</p>\n", $mess);
 			}
+			return false;
 		}
-	} else {
-		return true;
 	}
 }
 
@@ -848,14 +859,16 @@ function fneisenwachtwoord() {
 					</ul>\n", db_param("wachtwoord_minlengte"), db_param("wachtwoord_maxlengte"));
 } # fneisenwachtwoord
 
-function addtp($tp) {
+function addtp($tp, $afdnr=0) {
 	global $tabpages, $currenttab;
 	
 	if ((strstr($tp, "/") === false or startwith($tp, $currenttab . "/")) and toegang($tp, 0, 0)) {
 		$tabpages[] = $tp;
-		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_access WHERE Tabpage=\"%s\";", TABLE_PREFIX, str_replace("'", "", $tp));
-		if (db_scalar($query) == 0) {
-			db_authorisation("add", 0, $tp);
+		if ($_SESSION['webmaster'] == 1) {
+			$query = sprintf("SELECT COUNT(*) FROM %sAdmin_access WHERE Tabpage=\"%s\";", TABLE_PREFIX, str_replace("'", "", $tp));
+			if (db_scalar($query) == 0) {
+				db_authorisation("add", 0, $tp);
+			}
 		}
 	}
 	
