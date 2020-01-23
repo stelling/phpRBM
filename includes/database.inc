@@ -164,6 +164,8 @@ function fnQuery($query, $logtype=0) {
 			if (startwith($query, "UPDATE") or startwith($query, "DELETE ")) {
 				if ($rv > 0) {
 					$mess = sprintf("Uitgevoerd: %s / records affected: %d", $query, $rv);
+				} else {
+					$mess = sprintf("Uitgevoerd zonder resultaat: %s", $query);
 				}
 			} else {
 				$mess = sprintf("Uitgevoerd: %s", $query);
@@ -1674,7 +1676,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			$query .= " AND " . $xtrafilter;
 		}
 		$query .= ";";
-		$result = fnQuery($query);
+		$result = fnQuery($query, 99);
 		return $result->fetchAll();
 		
 	} elseif ($actie == "valideerlogin") {
@@ -2204,7 +2206,7 @@ function db_mailing_hist($actie, $lidid=0, $mhid=0, $mid=0) {
 		if ($actie == "outboxbatch") {
 			$xw = "AND MH.Ingevoerd < DATE_SUB(SYSDATE(), INTERVAL 15 MINUTE)";
 		} elseif ($actie == "outboxspeciaal") {
-			$xw = sprintf("AND MH.MailingID IN (%d, %d, %d)", db_param("mailing_lidnr"), db_param("mailing_validatielogin"), db_param("mailing_herstellenwachtwoord"));
+			$xw = sprintf("AND MH.MailingID > 0 AND MH.MailingID IN (%d, %d, %d)", db_param("mailing_lidnr"), db_param("mailing_validatielogin"), db_param("mailing_herstellenwachtwoord"));
 		} elseif ($_SESSION['webmaster'] == 0) {
 			$xw = sprintf("AND MH.ZichtbaarVoor IN (%s)", $_SESSION['lidgroepen']);
 		} else {
