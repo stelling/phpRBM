@@ -101,17 +101,6 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		addtp("Zelfservice/Wijzigen wachtwoord");
 	}
 	
-	if (count(db_lidond("actueleleden", 0, "", "LO.GroepID > 0")) > 0) {
-		addtp("Groepsindeling");
-		if ($currenttab == "Groepsindeling") {
-			foreach(db_onderdeel("lijstopkode", "A") as $row) {
-				if (count(db_lidond("actueleleden", 0, "", "LO.GroepID > 0", $row->RecordID)) > 0) {
-					addtp("Groepsindeling/" . trim($row->Kode));
-				}
-			}
-		}
-	}
-	
 	addtp("Ledenlijst");
 	if ($currenttab == "Ledenlijst") {
 		addtp("Ledenlijst/Leden");
@@ -125,18 +114,20 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		addtp("Ledenlijst/Nieuw kloslid");
 	}
 	
-	/*
-// Tabblad per afdeling
-	foreach (db_Onderdeel("lijstingebruik", "A") as $row) {
-		addtp($row->Naam, $row->RecordID);
-		if ($currenttab == $row->Naam) {
-			addtp($row->Naam . "/Ledenlijst", $row->RecordID);
-			if (count(db_lidond("actueleleden", 0, "", "LO.GroepID > 0", $row->RecordID)) > 0) {
-				addtp(trim($row->Naam) . "/Groepsindeling", $row->RecordID);
+	
+	if (db_param("menu_met_afdelingen") == 1) {
+		// Tabblad per afdeling
+		foreach (db_Onderdeel("lijstingebruik", "A") as $row) {
+			addtp($row->Naam, $row->RecordID);
+			if ($currenttab == $row->Naam) {
+				addtp($row->Naam . "/Afdelingslijst", $row->RecordID);
+				if (count(db_lidond("actueleleden", 0, "", "LO.GroepID > 0", $row->RecordID)) > 0) {
+					addtp(trim($row->Naam) . "/Groepsindeling", $row->RecordID);
+					addtp(trim($row->Naam) . "/Groepsindeling muteren");
+				}
 			}
 		}
 	}
-	*/
 	
 	if (!isset($_GET['lidid']) or strlen($_GET['lidid']) == 0) {
 		$_GET['lidid'] = 0;
