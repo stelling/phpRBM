@@ -62,13 +62,19 @@ if ($currenttab != "Mailing") {
 	HTMLheader();
 }
 
+// $query = 
+
+$isafdelingstab = 0;
+if (db_param("menu_met_afdelingen") == 1 and db_Onderdeel("aantal", "A", 0, 0, "", "", "", $currenttab) == 1) {
+	$isafdelingstab = 1;
+}
+
 if (toegang($_GET['tp'], 1) == false) {
 	if ($_SESSION['lidid'] == 0) {
 		fnLoginAanvragen();
 	}
 	
-} else
-	if ($currenttab == "Opvragen lidnr" and $_SERVER['REQUEST_METHOD'] == "POST") {
+} elseif ($currenttab == "Opvragen lidnr" and $_SERVER['REQUEST_METHOD'] == "POST") {
 	fnOpvragenLidnr("mail");
 	
 } elseif ($currenttab == "Herstellen wachtwoord") {
@@ -112,10 +118,6 @@ if (toegang($_GET['tp'], 1) == false) {
 	if (isset($_GET['lidid']) and is_numeric($_GET['lidid']) and $_GET['lidid'] > 0) {
 		fnWijzigen($_GET['lidid'], $currenttab2);
 	}
-
-} elseif ($currenttab == "Groepsindeling") {
-	fnDispMenu(2);
-	fnGroepsindeling($currenttab2);
 	
 } elseif ($currenttab == "Vereniging") {
 	fnDispMenu(2);
@@ -135,13 +137,14 @@ if (toegang($_GET['tp'], 1) == false) {
 	}
 } elseif ($currenttab == "Ledenlijst") {
 	fnLedenlijst();
+} elseif ($isafdelingstab == 1) {
+	fnAfdeling();
 } elseif ($currenttab == "Selecties") {
 	fnSelecties();
 } elseif ($currenttab == "Bewaking") {
 	fnBewaking();
 } elseif ($currenttab == "Kostenoverzicht") {
 	fnKostenoverzicht();
-
 } elseif ($currenttab == "Mailing") {
 	fnMailing();
 } elseif ($currenttab == "Evenementen") {
