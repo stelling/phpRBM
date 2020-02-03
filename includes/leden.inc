@@ -353,6 +353,64 @@ function fnLedenlijst() {
 	
 } # fnLedenlijst
 
+function fnAfdeling() {
+	global $currenttab, $currenttab2;
+	
+	$afdid = db_Onderdeel("recordid", "A", 0, 0, "", "", "", $currenttab);
+	
+	fnDispMenu(2);
+	
+	if ($currenttab2 == "Afdelingslijst") {
+		fnAfdelingslijst($afdid);
+	} elseif ($currenttab2 == "Groepsindeling") {
+		fnGroepsindeling("", $afdid);
+	} elseif ($currenttab2 == "Groepsindeling muteren") {
+		fnGroepsindeling("", $afdid, 1);
+	}
+	
+}  # fnAfdeling
+
+function fnAfdelingslijst($afdid) {
+	global $ldl, $wherelidond;
+	
+	if ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['tbNaamFilter'])) {
+		$naamfilter = $_POST['tbNaamFilter'];
+	} else {
+		$naamfilter = "";
+	}
+	
+
+	if (strlen($naamfilter) > 1) {
+		$filter = sprintf("(L.Verwijderd IS NULL) AND (L.Achternaam LIKE '%%%1\$s%%' OR L.Roepnaam LIKE '%%%1\$s%%' OR L.MEISJESNM LIKE '%%%1\$s%%')", strtoupper($naamfilter));
+	} else {
+		$filter = "(L.Verwijderd IS NULL)";
+	}
+	$filter .= " AND " . $wherelidond;
+	$rows = db_lidond("onderdeellijst", 0, "", $filter, $afdid);
+	
+	
+	echo("<div id='filter'>\n");
+	printf("<form name='Filter' action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
+	echo("<table>\n<tr>");
+
+	printf("<td class='label'>Naam bevat</td><td><input type='text' name='tbNaamFilter' size=40 value='%s' placeholder='Achter- of roepnaam' onblur='form.submit();'></td>\n", $naamfilter);
+	if (count($rows) > 1) {
+		printf("<td>%d deelnemers</td>\n", count($rows));
+	}
+	echo("</tr>\n</table>\n");
+	echo("</form>\n");
+	echo("</div>  <!-- Einde filter -->\n");
+		
+	if (count($rows) > 0) {
+		echo(fnDisplayTable($rows, $ldl, "", 0, "", "", "ledenlijst"));
+		foreach ($rows as $row) {
+			$sel_leden[] = $row->lnkNummer;
+		}
+		$_SESSION['sel_leden'] = $sel_leden;
+	}
+	
+} # fnAfdelingslijst
+
 function fnSelecties() {
 	global $currenttab,$currenttab2;
 	
@@ -697,7 +755,7 @@ function add_del_selectie($actie, $onderdeelid) {
 		
 } # add_del_selectie
 
-function fnGroepsindeling($afdkode="") {
+function fnGroepsindeling($afdkode="", $afdid=0, $muteren=0) {
 	
 	$hvafd = "";
 	$hvtijd = "";
@@ -705,39 +763,123 @@ function fnGroepsindeling($afdkode="") {
 	
 	if (strlen($afdkode) > 0) {
 		$filter = sprintf("O.Kode='%s'", $afdkode);
+	} elseif ($afdid) {
+		$filter = sprintf("O.RecordID=%d", $afdid);
 	} else {
 		$filter = "";
 	}
 	
 	echo("<div id='groepsindeling'>\n");
 	
-	foreach (db_lidond("groepsindeling", 0, "", $filter) as $row) {
-		if ($hvafd !== $row->AfdNaam) {
-			if (strlen($hvafd) > 0) {
-				echo("<div class='clear'></div>\n");
+	if ($muteren == 0) {
+	
+		foreach (db_lidond("groepsindeling", 0, "", $filter) as $row) {
+			if ($hvafd !== $row->AfdNaam) {
+				if (strlen($hvafd) > 0) {
+					echo("<div class='clear'></div>\n");
+				}
+				$hvafd = $row->AfdNaam;
+				printf("<h2>%s</h2>\n", $hvafd);
 			}
-			$hvafd = $row->AfdNaam;
-			printf("<h2>%s</h2>\n", $hvafd);
+		
+			if ($hvtijd !== $row->Tijdsblok or $hvgroep !== $row->GroepOms) {
+				if (strlen($hvgroep) > 0) {
+					echo("</div>  <!-- einde groepsindelingkolom -->\n");
+				}
+				echo("<div class='groepsindelingkolom'>\n");
+				$volgnr = 1;
+			
+				$hvtijd = $row->Tijdsblok;
+				if (strlen($hvtijd) > 3) {
+					printf("<h3>%s</h3>\n", $hvtijd);
+				}
+			
+				$hvgroep = $row->GroepOms;
+				printf("<h4>%s</h4>\n", $row->GroepOms);
+			}
+			printf("<p>%d. %s</p>\n", $volgnr, $row->NaamLid);
+			$volgnr++;
 		}
 		
-		if ($hvtijd !== $row->Tijdsblok or $hvgroep !== $row->GroepOms) {
-			if (strlen($hvgroep) > 0) {
-				echo("</div>  <!-- einde groepsindelingkolom -->\n");
+	} elseif ($afdid > 0) {
+		
+		$kn[0] = "RecordID";
+		$kn[] = "Kode";
+		$kn[] = "Omschrijving";
+		$kn[] = "Instructeurs";
+		$kn[] = "Starttijd";
+		$kn[] = "Eindtijd";
+		
+		$kl[1] = 5;
+		$kl[] = 45;
+		$kl[] = 45;
+		$kl[] = 5;
+		$kl[] = 5;
+		
+		if ($_SERVER['REQUEST_METHOD'] == "POST") {
+			foreach (db_lidond("groepsindeling", 0, "", $filter) as $row) {
+				$p = sprintf("mg_%d", $row->RecordID);
+				if (isset($_POST[$p]) and $_POST[$p] != $row->GroepID) {
+					db_lidond("update", $row->Lid, "", "", $afdid, $row->RecordID, $_POST[$p]);
+				}
 			}
-			echo("<div class='groepsindelingkolom'>\n");
-			$volgnr = 1;
 			
-			$hvtijd = $row->Tijdsblok;
-			if (strlen($hvtijd) > 3) {
-				printf("<h3>%s</h3>\n", $hvtijd);
+			foreach (db_groep("basislijst", $afdid) as $row) {
+				for ($i=1;$i<=5; $i++) {
+					$pn = sprintf("%s_%d", strtolower($kn[$i]), $row->RecordID);
+					if (isset($_POST[$pn]) and $_POST[$pn] != $row->{$kn[$i]}) {
+						db_Groep("update", 0, $row->RecordID, $kn[$i], $_POST[$pn]);
+					}
+				}
 			}
 			
-			$hvgroep = $row->GroepOms;
-			printf("<h4>%s</h4>\n", $row->GroepOms);
+			if (isset($_POST['kode_nw']) and strlen($_POST['kode_nw']) > 0) {
+				db_Groep("add", $afdid, 0, "Kode", $_POST['kode_nw']);
+			}
 		}
-		printf("<p>%d. %s</p>\n", $volgnr, $row->NaamLid);
-		$volgnr++;
+		
+		printf("<form name='mutgroeplid' method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+		print("<table>\n");
+		foreach (db_lidond("groepsindeling", 0, "", $filter) as $row) {
+			$options = "<option value=0>Niet ingedeeld</option>\n";
+			foreach (db_Groep("selectlijst", $afdid) as $grrow) {
+				$options .= sprintf("<option value=%d %s>%s</option>\n", $grrow->RecordID, checked($row->GroepID, "option", $grrow->RecordID), $grrow->GroepOms);
+			}
+			printf("<tr><td>%s</td><td>%s</td><td><select name='mg_%d' OnChange='this.form.submit();'>%s</select></td></tr>\n", $row->NaamLid, $row->Leeftijd, $row->RecordID, $options);
+		}
+		print("</table>\n");
+		
+		print("<table>\n");
+		print("<tr><th colspan=6>Muteren groepen</th></tr>\n<tr>");
+		for ($i=0;$i<=5; $i++) {
+			printf("<th>%s</th>", $kn[$i]);
+		}
+		print("</tr>\n");
+		
+		foreach (db_groep("basislijst", $afdid) as $row) {
+			if ($row->RecordID > 0) {
+				echo("<tr>\n");
+				printf("<td>%d</td>\n", $row->RecordID);
+				for ($i=1;$i<=5; $i++) {
+					if ($i >= 4) {
+						$tp = "time";
+					} else {
+						$tp = "text";
+					}
+					printf("<td><input type='%s' name='%s_%d' size=%d maxlength=%d value='%s'></td>\n", $tp, strtolower($kn[$i]), $row->RecordID, $kl[$i], $kl[$i], $row->{$kn[$i]});
+				}
+			
+				echo("</tr>\n");
+			}
+		}
+		
+		echo("<tr><td>Nieuw</td><td><input type='text' name='kode_nw' size=5 max-length=5></td></tr>\n");
+		
+		echo("<tr><th colspan=6><input type='submit' value='Groepen bewaren'></th></tr>\n");
+		echo("</table>\n");
+		echo("</form>\n");
 	}
+	
 	echo("</div>  <!-- Einde groepsindeling -->\n");
 	
 } # fnGroepsindeling
@@ -1052,9 +1194,7 @@ function algemeenlidmuteren($lidid) {
 		$wijzvelden[] = array('label' => "E-mail ouders", 'naam' => "EmailOuders", 'lengte' => 45);
 		$wijzvelden[] = array('label' => "Namen ouders", 'naam' => "NamenOuders", 'lengte' => 90);
 	}
-	if ($_SESSION['webmaster'] == 1) {
-		$wijzvelden[] = array('label' => "Waarschuwen bij een noodgeval", 'naam' => "Waarschuwen bij nood", 'lengte' => 254);
-	}
+	$wijzvelden[] = array('label' => "Waarschuwen bij een noodgeval", 'naam' => "Waarschuwen bij nood", 'lengte' => 254);
 	$wijzvelden[] = array('label' => "Geboortedatum", 'naam' => "GEBDATUM", 'lengte' => 10, 'type' => 'date');
 	if ($gs != "B") {
 		$wijzvelden[] = array('label' => "Geboorteplaats", 'naam' => "GEBPLAATS", 'lengte' => 22);
