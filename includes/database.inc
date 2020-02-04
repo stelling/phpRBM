@@ -3451,7 +3451,6 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrBooleans['mailing_rekening_nulregelsweglaten'] = 0;
 	$arrBooleans['mailing_rekening_regelnrsweglaten'] = 0;
 	$arrBooleans['mailing_rekening_nulrekversturen'] = 1;
-	$arrBooleans['menu_met_afdelingen'] = 0;
 	$arrBooleans['toneninschrijvingenbewakingen'] = 1;
 	$arrBooleans['tonentoekomstigebewakingen'] = 0;
 	$arrBooleans['zs_incl_beroep'] = 1;
@@ -3472,6 +3471,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrStrings['mailing_rekening_from'] = "";
 	$arrStrings['mailing_rekening_from_naam'] = "";
 	$arrStrings['mailing_rekening_valuta'] = "&euro&nbsp;";
+	$arrStrings['menu_met_afdelingen'] = "";
 	$arrStrings['path_attachments'] = "";
 	$arrStrings['path_templates'] = "";
 	$arrStrings['uitleg_toestemmingen'] = "";

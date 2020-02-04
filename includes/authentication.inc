@@ -115,14 +115,16 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	}
 	
 	
-	if (db_param("menu_met_afdelingen") == 1) {
+	if (strlen(db_param("menu_met_afdelingen")) > 0) {
 		// Tabblad per afdeling
 		foreach (db_Onderdeel("lijstingebruik", "A") as $row) {
-			addtp($row->Naam, $row->RecordID);
-			if ($currenttab == $row->Naam) {
-				addtp($row->Naam . "/Afdelingslijst", $row->RecordID);
-				if (count(db_lidond("actueleleden", 0, "", "LO.GroepID > 0", $row->RecordID)) > 0) {
-					addtp(trim($row->Naam) . "/Groepsindeling", $row->RecordID);
+			if (in_array($row->RecordID, explode(",", str_replace(" ", "", db_param("menu_met_afdelingen"))))) {
+				addtp($row->Naam, $row->RecordID);
+				if ($currenttab == $row->Naam) {
+					addtp($row->Naam . "/Afdelingslijst", $row->RecordID);
+					if (count(db_lidond("actueleleden", 0, "", "LO.GroepID > 0", $row->RecordID)) > 0) {
+						addtp(trim($row->Naam) . "/Groepsindeling", $row->RecordID);
+					}
 					addtp(trim($row->Naam) . "/Groepsindeling muteren");
 				}
 			}

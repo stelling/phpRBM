@@ -406,7 +406,7 @@ function fnInstellingen() {
 	$arrParam['mailing_rekening_nulrekversturen'] = "NT";
 	$arrParam['mailing_validatielogin'] = "NT";
 	$arrParam['max_grootte_bijlage'] = "NT";
-	$arrParam['menu_met_afdelingen'] = "Moet er per afdeling een tabblad worden gemaakt?";
+	$arrParam['menu_met_afdelingen'] = "Voor welke afdelingen moeten een tabblad worden gemaakt? (bij meerdere scheiden met een komma)";
 	$arrParam['login_maxinlogpogingen'] = "Na hoeveel foutieve inlogpogingen moet het account geblokkeerd worden? 0 = nooit.";
 	$arrParam['login_maxlengte'] = "De maximale lengte die een login mag zijn. Minimaal 7 en maximaal 20 invullen.";
 	$arrParam['wachtwoord_minlengte'] = "De minimale lengte van een wachtwoord. Minimaal 7 en maximaal 15 invullen.";
