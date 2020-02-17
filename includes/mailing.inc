@@ -158,8 +158,6 @@ function fnMailing() {
 		$mailing->delete_all_rcpt();
 		$mailing->edit();
 	} elseif ($op == "preview") {
-		$mailing->post_form();
-		$mailing->upload();
 		$mailing->preview();
 	} elseif ($op == "send") {
 		$mailing->post_form();
@@ -477,7 +475,6 @@ class Mailing {
 	
 		if (isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0 and $_GET['op'] == "bekijkmail") {
 			$xtra = "<p class='mededeling'><input type='button' value='Terug' onclick='history.go(-1);'></p>\n";
-//			toonverstuurdemail($_GET['MailingHistID']);
 			$email = new email($_GET['MailingHistID']);
 			$email->toon();
 			$mail = null;
@@ -909,7 +906,7 @@ class Mailing {
 			$old = db_mailing("record", $this->mid);
 			foreach($_POST as $key => $val) {
 				if (array_key_exists($key, $old) and $val != $old->$key) {
-					$mess = db_mailing("update", $this->mid, "", $val, $key);
+					db_mailing("update", $this->mid, "", $val, $key);
 				}
 			}
 		}
@@ -1450,9 +1447,6 @@ class email {
 		}
 		
 		if (strlen($this->aanadres) > 5 and strlen($this->vanafadres) > 5) {
-			if (strlen($this->aannaam) == 0) {
-				$this->aannaam = $this->omsontvangers;
-			}
 			$this->mhid = db_mailing_hist_add($this);
 			$rv = true;
 		}
