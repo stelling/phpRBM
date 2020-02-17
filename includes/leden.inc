@@ -150,13 +150,17 @@ function fnWieiswie($actie, $metfoto=1) {
 	
 	echo("<div id='wieiswie'>\n");
 	$vo = "";
-	$geentest = sprintf("(LO.Lid NOT IN (%s))", implode(",", $lididtestusers));
+	if (strlen(implode(",", $lididtestusers)) > 1) {
+		$geentest = sprintf(" AND (LO.Lid NOT IN (%s))", implode(",", $lididtestusers));
+	} else {
+		$geentest = "";
+	}
 	if ($actie == "Onderscheidingen") {
 		$lijst = db_lidond("actueleleden", 0, "", "O.TYPE='O'");
 	} elseif ($actie == "Overig") {
-		$lijst = db_Lidond("actueleleden", 0, "", "((O.TYPE='C' AND O.Kader=False) OR (O.TYPE='F' AND F.Kader=False)) AND ". $geentest);
+		$lijst = db_Lidond("actueleleden", 0, "", "((O.TYPE='C' AND O.Kader=False) OR (O.TYPE='F' AND F.Kader=False))" . $geentest);
 	} else {
-		$lijst = db_lidond("actueleleden", 0, "", "(O.Kader=True OR (F.Kader=True AND O.Type='F')) AND " . $geentest);
+		$lijst = db_lidond("actueleleden", 0, "", "(O.Kader=True OR (F.Kader=True AND O.Type='F'))" . $geentest);
 	}
 
 	if (($metfoto == 1) and (db_param("toonpasfotoindiennietingelogd") == 1 or strlen($_SESSION['username']) > 5)) {
@@ -997,7 +1001,9 @@ function fnEigenGegevens($lidid=0, $actie="") {
 		} elseif ($actie == "Mailing") {
 			if (isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0) {
 				$xtra = "<p class='mededeling'><input type='button' value='Terug' onclick='history.go(-1);'></p>\n";
-				toonverstuurdemail($_GET['MailingHistID']);
+				$email = new email($_GET['MailingHistID']);
+				$email->toon();
+				$mail = null;
 			} else {
 				$ld = sprintf("<a href='index.php?tp=%s&amp;MailingHistID=%%d'>%%s</a>", urlencode($_GET['tp']));
 				$rows = db_gegevenslid($lidid, "Mailing");
