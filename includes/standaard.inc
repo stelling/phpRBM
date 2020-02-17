@@ -398,8 +398,8 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 		echo("</ul>\n");
 	}
 	
+	$nivo = $toonnivo;
 	if (db_param("typemenu") == 1 or (db_param("typemenu") == 3 and $toonnivo == 2)) {
-		$nivo = $toonnivo;
 		printf("<ul class='tablist%d'>\n", $nivo);
 		foreach($tabpages as $tp) {
 			if ($nivo == 1 and strstr($tp, "/") === false) {
