@@ -352,7 +352,7 @@ class Mailing {
 			$this->MergeField[]=array('Naam' => "DiplomaZelfservice", 'SQL' => $sql);
 		}
 	
-		$sql = sprintf("SELECT L.RelnrRedNed FROM %sLid AS L WHERE %s;", TABLE_PREFIX, "L.Nummer=%d");
+		$sql = sprintf("SELECT L.RelnrRedNed FROM %sLid AS L WHERE %s;", TABLE_PREFIX, "L.RecordID=%d");
 		$this->MergeField[]=array('Naam' => "RelnrRedNed", 'SQL' => $sql);
 
 		$sql = sprintf("SELECT DATE_FORMAT(LIDDATUM, %s) FROM %sLidmaatschap AS LM WHERE %s AND LM.Lid=%%d;", $fdlang, TABLE_PREFIX, $wherelid);
@@ -363,7 +363,7 @@ class Mailing {
 							 ORDER BY LM.LIDDATUM DESC LIMIT 1;", $fdlang, TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "OpgezegdPer", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT IF((L.Email IS NULL), L.EmailOuders, L.Email) FROM %sLid AS L WHERE Nummer=%%d;", TABLE_PREFIX);
+		$sql = sprintf("SELECT IF((L.Email IS NULL), L.EmailOuders, L.Email) FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Email", 'SQL' => $sql);
 
 		$query = sprintf("SELECT COUNT(*) FROM %1\$sLidRedNed AS RN JOIN %1\$sLidmaatschap AS LM ON LM.LIDNR = RN.Lidnr WHERE LENGTH(RN.Foutboodschap) > 0;", TABLE_PREFIX);
@@ -1003,7 +1003,7 @@ class Mailing {
 				$w .= sprintf(" AND LM.LIDDATUM <= '%s'", $_POST['selectie_temliddatum']);
 			}
 			
-			$query = sprintf("SELECT DISTINCT L.Nummer FROM %s WHERE (LM.Lid IS NULL) %s;", $fromlid, $w);
+			$query = sprintf("SELECT DISTINCT L.RecordID FROM %s WHERE (NOT LM.Lid IS NULL) AND IFNULL(LM.Opgezegd, '9999-12-31') >= CURDATE()  %s;", $fromlid, $w);
 			
 		} else {
 			if (strlen($_POST['selectie_vanliddatum']) == 10 and $_POST['selectie_vanliddatum'] > db_lid("maxliddatum") and $_POST['selectie_vanliddatum'] <= db_lid("maxliddatum")) {
@@ -1013,20 +1013,20 @@ class Mailing {
 				$w .= sprintf(" AND LO.Vanaf <= '%s'", $_POST['selectie_temgebdatum']);
 			}
 
-			$query = sprintf("SELECT DISTINCT L.Nummer FROM %s WHERE %s AND LO.OnderdeelID=%d %s;", $fromlidond, $wherelidond, $_POST['selectie_groep'], $w);
+			$query = sprintf("SELECT DISTINCT L.RecordID FROM %s WHERE %s AND LO.OnderdeelID=%d %s;", $fromlidond, $wherelidond, $_POST['selectie_groep'], $w);
 		}
 		
 		$aant = 0;
 		if ($actie == "add") {
 			foreach(fnQuery($query) as $row) {
-				if (strlen(db_mailing_rcpt("add", $this->mid, $row->Nummer)) > 0) {
+				if (strlen(db_mailing_rcpt("add", $this->mid, $row->RecordID)) > 0) {
 					$aant++;
 				}
 			}
 			$mess = sprintf("Er zijn %d leden, via een selectie, aan mailing %d (%s) toegevoegd.", $aant, $this->mid, $this->subject);
 		} else {
 			foreach(fnQuery($query) as $row) {
-				if (strlen(db_mailing_rcpt("del", $this->mid, $row->Nummer)) > 0) {
+				if (strlen(db_mailing_rcpt("del", $this->mid, $row->RecordID)) > 0) {
 					$aant++;
 				}
 			}
