@@ -65,7 +65,7 @@ if ($currenttab != "Mailing") {
 // $query = 
 
 $isafdelingstab = 0;
-if (db_param("menu_met_afdelingen") == 1 and db_Onderdeel("aantal", "A", 0, 0, "", "", "", $currenttab) == 1) {
+if (strlen(db_param("menu_met_afdelingen")) > 0 and db_Onderdeel("aantal", "A", 0, 0, "", "", "", $currenttab) == 1) {
 	$isafdelingstab = 1;
 }
 
