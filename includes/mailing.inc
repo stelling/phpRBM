@@ -1091,6 +1091,7 @@ class Mailing {
 				$email->Subject = $this->merged_subject;
 				$email->toevoegenlid($rcpt->Nummer);
 			} elseif (strlen($rcpt->to_address) > 5) {
+				$this->merge(0);
 				$email->toevoegenadres($rcpt->to_address);
 				$this->bevat_losse_email = true;
 			}
