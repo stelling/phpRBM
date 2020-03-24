@@ -112,6 +112,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			addtp("Ledenlijst/Klosleden");
 		}
 		addtp("Ledenlijst/Nieuw kloslid");
+		addtp("Ledenlijst/Mutaties");
 	}
 	
 	
@@ -175,7 +176,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if ($currenttab == "Wijzigen lid") {
 		addtp("Wijzigen lid");
 		addtp("Wijzigen lid/Algemene gegevens");
-		addtp("Wijzigen lid/Pasfoto");
+		if (db_Onderdeel("aantal", "G") > 0) {
+			addtp("Wijzigen lid/Groepen");
+		}
 		if ($gs != "B") {
 			addtp("Wijzigen lid/Diploma's");
 			addtp("Wijzigen lid/Toestemmingen");
@@ -184,6 +187,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			addtp("Wijzigen lid/Bijzonderheden");
 		}
 		addtp("Wijzigen lid/Lidmaatschap");
+		addtp("Wijzigen lid/Pasfoto");
 	}
 	if (db_mutatie("aantal") > 0) {
 		addtp("Kostenoverzicht");
@@ -543,21 +547,25 @@ function fnValidatieLogin($lidid, $key, $stap) {
 			db_param("mailing_validatielogin", "updval", $mid);
 		}
 	
-		$mailing = new Mailing(db_param("mailing_validatielogin"));
-		if ($mailing->send($row->RecordID) == 0) {
-			$mess = "Fout bij het versturen van de e-mail met de validatielink. Probeer het later nogmaals of neem contact op met de webmaster.";
+		if ($row->LidID > 0) {
+			$mailing = new Mailing(db_param("mailing_validatielogin"));
+			if ($mailing->send($row->LidID) == 0) {
+				$mess = "Fout bij het versturen van de e-mail met de validatielink. Probeer het later nogmaals of neem contact op met de webmaster.";
+			}
+			$mailing = null;
+		} else {
+			$mess = sprintf("Login voor lidid %d bestaat niet, neem onctact op met de webmaster.", $lidid);
 		}
-		$mailing = null;
 
 	} else {
 		$mess = db_logins("valideerlogin", "", "", $lidid);
 	}
 	if (strlen($mess) > 2) {
-		db_logboek("add", $mess, 5, 0, 1, $lidid);
+		db_logboek("add", "fnValidatieLogin: " . $mess, 5, 0, 1, $lidid);
 	}
 	
 	return $mess;
-}
+}  # fnValidatieLogin
 
 function fnLoginAanvragen($stap="") {
 	global $lididwebmasters, $lididtestusers, $selectlidnr;
