@@ -10,16 +10,19 @@ function fnWebshop() {
 	} elseif ($currenttab2 == "Bestellingen muteren" and toegang($_GET['tp'], 1, 1)) {
 		bestellingbeheer();
 	} elseif ($currenttab2 == "Logboek" and toegang($_GET['tp'], 1, 1)) {
-		$lijst = db_logboek("lijst", "", 10);
+		$lijst = db_logboek("lijstsmal", "", 10);
 		echo(fnDisplayTable($lijst, "", "", 0, "", "", "logboek"));
 	}
 }
 
 function onlinebestellingen($lidid) {
+	
+	// Bestellingen door het lid via de zelfservice
 
 	fnDispMenu(2);
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		$inst_or = new cls_Orderregel();
 		$lijst = db_artikel("artikelbeschikbaar");
 		foreach ($lijst as $art) {
 			$ord = db_orderregel("bestelling", $lidid, $art->RecordID);
@@ -47,30 +50,22 @@ function onlinebestellingen($lidid) {
 				$mess = db_orderregel("add", $lidid, $art->RecordID, $_POST[$pnab], "", 0, $ordernr);
 			} elseif (isset($ord->RecordID)) {
 				if ($ordernr > 0 and $ord->Ordernr != $ordernr) {
-					$set_clause = sprintf("Ordernr=%d, ", $ordernr);
-					$wijz = sprintf("Veld 'Ordernr' is %d geworden. ", $ordernr);
+					$inst_or->update($ord->RecordID, "Ordernr", $ordernr);
 				}
-				if (isset($_POST[$pnab]) and $ord->AantalBesteld != $_POST[$pnab]) {
-					$set_clause .= sprintf("AantalBesteld=%d, ", $_POST[$pnab]);
-					$wijz .= sprintf("Veld 'AantalBesteld' is %d geworden. ", $_POST[$pnab]);
-				}
-				$pnmt = sprintf("Maat_%d", $art->RecordID);
-				if (isset($_POST[$pnmt]) and $_POST[$pnmt] != $ord->Maat) {
-					$set_clause .= sprintf("Maat='%s', ", $_POST[$pnmt]);
-					$wijz .= sprintf("Veld 'Maat' is '%s' geworden. ", $_POST[$pnmt]);
+				if (isset($_POST[$pnab])) {
+					$inst_or->update($ord->RecordID, "AantalBesteld", $_POST[$pnab]);
 				}
 				$pnopm = sprintf("Opmerking_%d", $art->RecordID);
-				if (isset($_POST[$pnopm]) and $_POST[$pnopm] != $ord->Opmerking) {
-					$set_clause .= sprintf("Opmerking='%s', ", $_POST[$pnopm]);
-					$wijz .= sprintf("Veld 'Opmerking' is '%s' geworden. ", $_POST[$pnopm]);
+				if (isset($_POST[$pnopm])) {
+					$inst_or->update($ord->RecordID, "Opmerking", $_POST[$pnopm]);
 				}
 				if (strlen($set_clause) > 0) {
 					$query = sprintf("UPDATE %sWS_Orderregel SET %s BestellingDefinitief=NULL, GewijzigdDoor=%d
 								WHERE RecordID=%d;", TABLE_PREFIX, $set_clause, $_SESSION['lidid'], $ord->RecordID);
 					$result = fnQuery($query);
 					if ($result > 0) {
-						$mess = sprintf("Orderregel van artikel %d voor %s is gewijzigd. %s", $ord->Artikel, db_naamlid($lidid), $wijz);
-						db_logboek("add", $mess, 10, 0, 0, $ord->RecordID);
+						$mess = sprintf("Orderregel van artikel %d is gewijzigd. %s", $ord->Artikel, $wijz);
+						db_logboek("add", $mess, 10, $lidid, 0, $ord->RecordID);
 					}
 				}
 			}
@@ -81,6 +76,7 @@ function onlinebestellingen($lidid) {
 				bevestigingbestelling($lidid, $ordernr);
 			}
 		}
+		$inst_or = null;
 	}
 
 	echo("<div id='onlinebestellingen'>\n");
@@ -148,8 +144,9 @@ function onlinebestellingen($lidid) {
 
 function artikelbeheer() {
 
+	$inst_art = new cls_Artikel();
 	if (isset($_GET['op']) and $_GET['op'] == "nieuw") {
-		db_artikel("add");
+		$inst_art->add();
 	} elseif (isset($_GET['op']) and $_GET['op'] == "delete" and $_GET['aid'] > 0) {
 		db_artikel("delete", $_GET['aid']);
 	}
@@ -178,20 +175,13 @@ function artikelbeheer() {
 						}
 					}
 				}
-				if (isset($_POST[$pvn]) and $_POST[$pvn] != $val) {
-					$set_clause .= sprintf("%s='%s', ", $col, $_POST[$pvn]);
-					$wijz .= sprintf("Veld %s is '%s' geworden. ", $col, $_POST[$pvn]);
+				if (isset($_POST[$pvn])) {
+					$inst_art->update($row->RecordID, $col, $_POST[$pvn]);
 				}
-			}
-			if (strlen($set_clause) > 0) {
-				$set_clause .= sprintf("Gewijzigd=SYSDATE(), GewijzigdDoor=%d", $_SESSION['lidid']);
-				$query = sprintf("UPDATE %sWS_Artikel SET %s WHERE RecordID=%d;", TABLE_PREFIX, $set_clause, $row->RecordID);
-				fnQuery($query);
-				$mess = sprintf("Artikel %d is aangepast. %s", $row->RecordID, $wijz);
-				db_logboek("add", $mess, 10, 0, 0, $row->RecordID);
 			}
 		}
 	}
+	$inst_art = null;
 	echo("<div id='artikelbeheer'>\n");
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	echo("<table>\n");
@@ -237,7 +227,7 @@ function artikelbeheer() {
 	echo("</table>\n");
 	echo("</form>\n");
 	echo("</div>  <!-- Einde artikelbeheer -->\n");
-}
+}  # artikelbeheer
 
 function bestellingbeheer() {
 	global $fdlang;
@@ -249,6 +239,7 @@ function bestellingbeheer() {
 		}
 		$lijst = db_orderregel("overzichtbeheer");
 		foreach($lijst as $row) {
+			$inst_or = new cls_Orderregel($row->Lid);
 			$pnart = sprintf("Artikel_%d", $row->RecordID);
 			$pnab = sprintf("AantalBesteld_%d", $row->RecordID);
 			$pnpps = sprintf("PrijsPerStuk_%d", $row->RecordID);
@@ -269,23 +260,26 @@ function bestellingbeheer() {
 				$_POST[$pnag] = 0;
 			}
 			if (isset($_POST[$pnart]) and $_POST[$pnart] != $row->Artikel) {
-				$set_clause = sprintf("Artikel=%d, ", $_POST[$pnart]);
-				$wijz = sprintf("Veld Artikel is '%d' geworden. ", $_POST[$pnart]);
-			} else {
-				$set_clause = "";
-				$wijz = "";
+//				$set_clause = sprintf("Artikel=%d, ", $_POST[$pnart]);
+//				$wijz = sprintf("Veld Artikel is '%d' geworden. ", $_POST[$pnart]);
+				$inst_or->update($row->RecordID, "Artikel", $_POST[$pnart]);
 			}
+			$set_clause = "";
+			$wijz = "";
 			if (isset($_POST[$pnab]) and $_POST[$pnab] != $row->AantalBesteld and $row->Ordernr == 0) {
-				$set_clause .= sprintf("AantalBesteld=%d, ", $_POST[$pnab]);
-				$wijz .= sprintf("Veld AantalBesteld is '%d' geworden. ", $_POST[$pnab]);
+//				$set_clause .= sprintf("AantalBesteld=%d, ", $_POST[$pnab]);
+//				$wijz .= sprintf("Veld AantalBesteld is '%d' geworden. ", $_POST[$pnab]);
+				$inst_or->update($row->RecordID, "AantalBesteld", $_POST[$pnab]);
 			}
 			if ($_POST[$pnpps] != $row->PrijsPerStuk) {
 				$set_clause .= sprintf("PrijsPerStuk='%s', ", number_format($_POST[$pnpps], 2, ".", ""));
 				$wijz .= sprintf("Veld PrijsPerStuk is '%s' geworden. ", number_format($_POST[$pnpps], 2));
+				$inst_or->update($row->RecordID, "PrijsPerStuk", $_POST[$pnpps]);
 			}
 			if ($_POST[$pnag] != $row->AantalGeleverd) {
-				$set_clause .= sprintf("AantalGeleverd=%d, ", $_POST[$pnag]);
-				$wijz .= sprintf("Veld AantalGeleverd is '%d' geworden. ", $_POST[$pnag]);
+//				$set_clause .= sprintf("AantalGeleverd=%d, ", $_POST[$pnag]);
+//				$wijz .= sprintf("Veld AantalGeleverd is '%d' geworden. ", $_POST[$pnag]);
+				$inst_or->update($row->RecordID, "AantalGeleverd", $_POST[$pnag]);
 			}
 			if (strlen($set_clause) > 0) {
 				$set_clause .= sprintf("GewijzigdDoor=%d", $_SESSION['lidid']);
@@ -297,6 +291,7 @@ function bestellingbeheer() {
 					db_orderregel("vulprijsperstuk");
 				}
 			}
+			$inst_or = null;
 		}
 		if (isset($_POST['tbNaamFilter']) and strlen($_POST['tbNaamFilter']) > 0) {
 			$naamfilter = $_POST['tbNaamFilter'];
@@ -374,11 +369,11 @@ function bestellingbeheer() {
 	}
 	if ($nrmag) {
 		echo("<tr>\n");
-		$w = sprintf("L.Nummer IN (SELECT Lid FROM %sLidmaatschap AS LM WHERE ((LM.Opgezegd IS NULL) OR LM.Opgezegd >= CURDATE()))", TABLE_PREFIX);
+		$w = sprintf("L.RecordID IN (SELECT Lid FROM %sLidmaatschap AS LM WHERE IFNULL(LM.Opgezegd, CURDATE()) >= CURDATE())", TABLE_PREFIX);
 		echo("<td colspan=11><select name='Lid_0' onChange='this.form.submit();'>\n");
 		echo("<option value=0>Nieuwe regel ...</option>\n");
 		foreach(db_lid("lijst", $w) as $lid) {
-			printf("<option value=%d>%s</option>\n", $lid->Nummer, $lid->Zoeknaam);
+			printf("<option value=%d>%s</option>\n", $lid->RecordID, $lid->Zoeknaam);
 		}
 		echo("</select></td>\n");
 		echo("</tr>\n");
@@ -395,7 +390,7 @@ function bestellingbeheer() {
 		echo(fnDisplayTable($tots, "", "Totalen", 99, "", "", "totalenbestellingen"));
 	}
 	
-}
+}  # bestellingbeheer
 
 function bevestigingbestelling($lidid, $ordernr=0) {
 
@@ -404,7 +399,7 @@ function bevestigingbestelling($lidid, $ordernr=0) {
 		$mailing->xtranum = $ordernr;
 		$mailing->resultaatversturen = 0;
 		if ($mailing->send($lidid) > 0) {
-			$mess = sprintf("Bevestiging bestelling %d is aan %s verzonden.", $ordernr, db_naamlid($lidid));
+			$mess = sprintf("Bevestiging bestelling %d is verzonden.", $ordernr);
 		} else {
 			$mess = sprintf("Fout bij het versturen van de bevestiging. Probeer het later nogmaals of neem contact op met de webmaster.");
 		}
@@ -415,6 +410,6 @@ function bevestigingbestelling($lidid, $ordernr=0) {
 	db_logboek("add", $mess, 10, $lidid, 2, $ordernr);
 	
 	printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-}
+}  # bevestigingbestelling
 
 ?>
