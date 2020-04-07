@@ -7,6 +7,7 @@ define("ARRGESLACHT", ["O" => "Onbekend", "V" => "Vrouwelijk", "M" => "Mannelijk
 define("ARRTL", ["Alle", "Leden", "Klosleden", "Voormalig leden"]);
 define("ARRLEGITIMATIE", ["G" => "Geen", "I" => "Identiteitskaart", "P" => "Paspoort", "R" => "Rijbewijs"]);
 define("ARRSOORTMEMO", ["A" => "Algemeen", "B" => "Bewaking", "D" => "Dieet", "E" => "Examen", "F" => "Financiën", "G" => "Gezondheid/medisch", "I" => "Inschrijving bewaking", "WN" => "Waarschuwen in geval van nood"]);
+define("ARRTYPEONDERDEEL", ["A" => "Afdeling", "B" => "Bestuur", "C" => "Commissie", "G" => "Groep", "O" => "Onderscheiding", "T" => "Toestemming"]);
 define("ARRTYPEDIPLOMA", ["B" => "Brevet", "C" => "Competentie", "D" => "Diploma", "I" => "Insigne", "L" => "Licentie", "M" => "Module", "P" => "Proeve van bekwaamheid"]);
 define("PASFOTOEXTENTIES", ["gif", "jpg", "jpeg", "png"]);
 define("ARRTYPEEDITOR", [1 => "CKEditor 5 Classic editor", 2 => "CKEditor 4"]);
@@ -29,7 +30,7 @@ if ((isset($_SESSION['webmaster']) and $_SESSION['webmaster'] == 1) or strpos(BA
 	error_reporting(E_ALL);
 } else {
 	error_reporting(0);
-//	error_reporting(E_ALL);
+	error_reporting(E_ALL);
 }
 
 if (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
@@ -521,11 +522,20 @@ function fnDisplayFormLabels($row, $xtra_eind="", $id="formulier") {
 		$ret .= sprintf("</div>  <!-- Einde %s -->\n", $id);
 	}
 	return $ret;
-}
+}  # fnDisplayFormLabels
 
-function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_regel="", $class="lijst", $xtra_kolom="", $editkols="") {
+function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_regel="", $class="", $xtra_kolom="", $editkols="", $autosubmit=0) {
+	
+	if (strlen($class) == 0) {
+		$class = "lijst";
+	}
 	$ret = sprintf("<div class='%s'>\n", $class);
 	$kol_pk = "";
+	if ($autosubmit == 1) {
+		$js = " OnChange='this.form.submit();'";
+	} else {
+		$js = "";
+	}
 	if (isset($rows) and (count($rows) > 0 or strlen($xtra_regel) > 0)) {
 		$ret .= "<table>\n";
 		$dispkop = 1;
@@ -534,7 +544,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 			if ($dispkop == 1) {
 				$hv = "<tr>";
 				foreach($row as $key => $value) {
-					if (strstr("dte, dtt, dtl, dts, boo, int, cur, eml, num, mrg, pwd", substr($key, 0, 3)) !== false) {
+					if (strstr("chk, dte, dtt, dtl, dts, boo, int, cur, eml, num, mrg, pwd", substr($key, 0, 3)) !== false) {
 						$hv .= sprintf("<th>%s</th>", str_replace("_", " ", substr($key, 3)));
 					} elseif (startwith($key, "lnk")) {
 						if (strlen($link) > 1) {
@@ -559,10 +569,12 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 						$ktot[] = 0.00;
 					} elseif (substr($key, 0, 3) == "int") {
 						$ktot[] = 0;
+					} elseif ($key == "RecordID" or $key == "ndRecordID") {
+						$ktot[] = 0;
 					} elseif (substr($key, 0, 2) != "nd" and substr($key, 0, 3) != "lnk" and substr($key, 0, 3) != "llk") {
 						$ktot[] = "geen";
 					}
-					if (strlen($kol_pk) == 0 and (startwith($key, "lnk") or startwith($key, "llk") or $key == "RecordID")) {
+					if (strlen($kol_pk) == 0 and ($key == "RecordID" or $key == "ndRecordID" or startwith($key, "lnk") or startwith($key, "llk"))) {
 						$kol_pk = $key;
 					}
 				}
@@ -575,9 +587,19 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 			$ret .= "<tr>";
 			$kn = 0;
 			foreach($row as $key => $value) {
-				if (startwith($key, "dte") or startwith($key, "rodte")) {
+				if (startwith($key, "chk")) {
+					if (strstr($editkols, $key) === false) {
+						if ($value == 1) {
+							$ret .= "<td>Ja</td>";
+						} else {
+							$ret .= "<td>Nee</td>";
+						}
+					} else {
+						$ret .= sprintf("<td><input type='checkbox'%s name='%s_%d' value=1%s></td>", $js, str_replace(" ", "_", substr($key, 3)), $row->$kol_pk, checked($value, "", 1));
+					}
+				} elseif (startwith($key, "dte") or startwith($key, "rodte")) {
 					if (startwith($key, "dte") and strstr($editkols, $key) !== false) {
-						$ret .= sprintf("<td><input type='date' name='%s_%d' value='%s'></td>", substr($key, 3), $row->$kol_pk, $value);
+						$ret .= sprintf("<td><input type='date' name='%s_%d' value='%s'%s></td>", str_replace(" ", "_", substr($key, 3)), $row->$kol_pk, $value, $js);
 					} elseif ((!is_null($value)) and $value > '1900-01-01') {
 						$ret .= sprintf("<td class='datum'>%s</td>", strftime('%e %B %Y', strtotime($value)));
 					} else {
@@ -611,7 +633,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 					} else {
 						$ret .= sprintf("<td><input type='number' name='%s_%d' value='%s'></td>", substr($key, 3), $row->$kol_pk, $value);
 					}
-					$ktot[$kn] += $value;
+					$ktot[$kn] += intval($value);
 				} elseif (substr($key, 0, 3) == "cur") {
 					$ret .= sprintf("<td class='number'>%s</td>", number_format($value, 2, ",", "."));
 					$ktot[$kn] += $value;
@@ -647,7 +669,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 					if (strstr($editkols, $key) === false) {
 						$ret .= sprintf("<td>%s</td>", fnDispEmail($value, "", 1));
 					} else {
-						$ret .= sprintf("<td><input type='email' name='%s_%d' value='%s'></td>", substr($key, 3), $row->$kol_pk, $value);
+						$ret .= sprintf("<td><input type='email' name='%s_%d' value='%s' class='email' %s></td>", substr($key, 3), $row->$kol_pk, $value, $js);
 					}
 				} elseif (startwith($key, "pwd")) {
 					if (strstr($editkols, $key) !== false) {
@@ -665,7 +687,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 					if (strstr($editkols, $key) === false or $row->$kol_pk == 0) {
 						$ret .= sprintf("<td>%s</td>", htmlentities($value));
 					} else {
-						$ret .= sprintf("<td><input name='%s_%d' value='%s' class='%s'></td>", $key, $row->$kol_pk, $value, str_replace(" ", "", strtolower($key)));
+						$ret .= sprintf("<td><input name='%s_%d' value='%s' class='%s'%s></td>", $key, $row->$kol_pk, $value, str_replace(" ", "", strtolower($key)), $js);
 					}
 				}
 				$kn++;
