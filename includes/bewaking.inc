@@ -54,15 +54,15 @@ function fnBewaking() {
 	if ($toonfilter == false) {
 		// Geen filter tonen
 	} elseif ($currenttab2 == "Diploma's muteren" or $currenttab2 == "Nieuwe pasfoto") {
-		$filterlid = sprintf("L.Nummer IN (SELECT Lid FROM %1\$sBewaking AS BW INNER JOIN %1\$sBewseiz AS BS ON BW.SeizoenID=BS.RecordID WHERE BS.Afgesloten=0)", TABLE_PREFIX);
+		$filterlid = sprintf("L.RecordID IN (SELECT Lid FROM %1\$sBewaking AS BW INNER JOIN %1\$sBewseiz AS BS ON BW.SeizoenID=BS.RecordID WHERE BS.Afgesloten=0)", TABLE_PREFIX);
 		$optionslid = "<option value=-1>...</option>\n";
 		foreach (db_lid("lijst", $filterlid) as $row) {
-			if ($row->Nummer == $lidid) {
+			if ($row->RecordID == $lidid) {
 				$s = "selected";
 			} else {
 				$s = "";
 			}
-			$optionslid .= sprintf("<option value=%1\$d %3\$s>%2\$s</option>\n", $row->Nummer, htmlentities($row->Zoeknaam), $s);
+			$optionslid .= sprintf("<option value=%1\$d %3\$s>%2\$s</option>\n", $row->RecordID, htmlentities($row->Zoeknaam), $s);
 		} # foreach
 		echo("<td class='label'>Selecteer lid:</td>\n");
 		printf("<td><select name='lidid' onChange='this.form.submit();'>%s</select></td>\n", $optionslid);
@@ -161,7 +161,7 @@ function fnBewaking() {
 		$lijst = db_bewaking("aantallen", $seizoen);
 		echo(fnDisplayTable($lijst, "", "", 0, "", "", "bewakingsaantallen"));
 	} elseif ($currenttab2 == "Nieuwe pasfoto" and $lidid > 0) {
-		$filterlid = sprintf("L.Nummer IN (SELECT Lid FROM %1\$sBewaking AS BW INNER JOIN %1\$sBewseiz AS BS ON BW.SeizoenID=BS.RecordID WHERE BS.Afgesloten=0)", TABLE_PREFIX);
+		$filterlid = sprintf("L.RecordID IN (SELECT Lid FROM %1\$sBewaking AS BW INNER JOIN %1\$sBewseiz AS BS ON BW.SeizoenID=BS.RecordID WHERE BS.Afgesloten=0)", TABLE_PREFIX);
 		nieuwepasfoto($lidid, $filterlid);
 	} elseif ($currenttab2 == "Diploma's muteren" and toegang($_GET['tp']) and $lidid > 0) {
 		diplomaslidmuteren($lidid, $dptype, 0);
@@ -230,7 +230,7 @@ function bew_rooster($seizoen, $week=-1) {
 		}
 		$aantalbewdag += ($row->Dagen / $row->ST_LEN_BP);
 		$aantalervdag += $row->ErvaringDagen/7 * ($row->Dagen / $row->ST_LEN_BP);
-		$sel_leden[] = $row->Nummer;
+		$sel_leden[] = $row->RecordID;
 	} # foreach
 	if ($aantalbewdag > 2) {
 		if ($row->TOONERV == "W") {
@@ -272,7 +272,7 @@ function bew_postindeling($seizoen, $week=-1) {
 			$vp = $row->Post;
 		}
 		
-		$fn = fotolid($row->Nummer, 1);
+		$fn = fotolid($row->RecordID, 1);
 		if (strlen($fn) > 0) {
 			$fn = sprintf("<img src='%s' alt='%s'>\n", $fn, htmlentities($row->NaamBewaker));
 		}
@@ -287,7 +287,7 @@ function bew_postindeling($seizoen, $week=-1) {
 		}
 		printf("<div class='bewaker'>%s<p class='bewfunctie'>%s</p>\n<p class='bewnaam'>%s</p>\n<div class='bewleeftijd'>%d jaar</div>\n<div class='bewervaring'>%s ervaring</div>\n</div>\n",
 				 $fn, $of, fnDispBW($row, "Naam"), $lft, fnDispBW($row, "Erv"));
-		$sel_leden[] = $row->Nummer;
+		$sel_leden[] = $row->RecordID;
 	}
 	echo("</div> <!-- Einde postindeling -->\n");
 } # bew_postindeling
@@ -305,7 +305,7 @@ function inschrijvenbewaking($lidid) {
 			if (isset($_POST['insnr']) and $_POST['insnr'] > 0) {
 				$insnr = $_POST['insnr'];
 			} else {
-				$insnr = db_scalar(sprintf("SELECT MAX(Nummer) FROM %sBewaking_Inschrijving;", TABLE_PREFIX)) + 3;
+				$insnr = db_scalar(sprintf("SELECT MAX(BI.Nummer) FROM %sBewaking_Inschrijving AS BI;", TABLE_PREFIX)) + 3;
 			}
 			foreach (db_bewaking_blok("openblokken") as $row) {
 				$k1 = sprintf("k1_%d", $row->RecordID);
@@ -469,7 +469,7 @@ function BevestInschrBewaking($lidid, $insnr) {
 		$mailing->xtranum = $insnr;
 		$mailing->resultaatversturen = 0;
 		if ($mailing->send($lidid) > 0) {
-			$mess = sprintf("Inschrijving %d is aan %s verzonden.", $insnr, db_naamlid($lidid));
+			$mess = sprintf("Inschrijving %d is aan %s verzonden.", $insnr, cls_Lid::Naam($lidid));
 		} else {
 			$mess = sprintf("Fout bij het versturen van de e-mail. Probeer het later nogmaals of neem contact op met de webmaster.");
 		}
