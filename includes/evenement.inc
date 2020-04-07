@@ -251,7 +251,7 @@ function muteerevenement($eventid) {
 				} 
 				if (isset($_POST['mailpotdeeln']) or isset($_POST['mailbeidedeeln'])) {
 					foreach (db_evenement("potdeelnemers", 0, $eventid) as $row) {
-						db_mailing_rcpt("add", $mid, $row->Nummer, "", 1);
+						db_mailing_rcpt("add", $mid, $row->LidID, "", 1);
 					}
 				}
 			}
@@ -389,7 +389,7 @@ function muteerevenement($eventid) {
 			echo("</td>\n");
 			printf("<td><input type='text' name='Opmerking_%d' value='%s' placeholder='Opmerking' size=75 maxlength=250>\n", $rd->RecordID, $rd->Opmerking);
 			printf("<br><input type='text' name='Functie_%d' value='%s' placeholder='Functie' size=40 maxlength=30></td>\n", $rd->RecordID, $rd->Functie);
-			printf("<td>%s<br>%s</td>\n", strftime("%e %b %Y (%R)", strtotime($rd->Ingevoerd)), db_naamlid($rd->IngevoerdDoor));
+			printf("<td>%s<br>%s</td>\n", strftime("%e %b %Y (%R)", strtotime($rd->Ingevoerd)), cls_Lid::Naam($rd->IngevoerdDoor));
 			printf("<td><a href='%s?tp=%s&amp;op=delete&amp;eid=%d&amp;lidid=%d&amp;edid=%d'><img src='images/del.png' alt='Delete'></a></td>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $eventid, $rd->LidID, $rd->RecordID);
 			echo("</tr>\n");
 		}
