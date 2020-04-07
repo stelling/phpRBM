@@ -104,7 +104,7 @@ function fnMailing() {
 		fnRekeningenMailen($op);
 		
 	} elseif ($currenttab2 == "Logboek" and toegang($_GET['tp'], 1, 1)) {
-		$lijst = db_logboek("lijst", "", 4);
+		$lijst = db_logboek("lijstsmal", "", 4);
 		echo(fnDisplayTable($lijst, "", "", 0, "", "", "logboek"));
 	} elseif ($op == "historie" and $_GET['mid'] > 0) {
 		$result = db_mailing_hist("lijst", 0, 0, $_GET['mid']);
@@ -252,7 +252,7 @@ class Mailing {
 								FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "RoepnaamOfOuders", 'SQL' => $sql);
 		
-		$sql = sprintf("SELECT CONCAT(L.Roepnaam, IF(L.GEBDATUM > DATE_SUB(CURDATE(), INTERVAL 18 YEAR), ' of ouders/verzorgers van', '')) FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);
+		$sql = sprintf("SELECT CONCAT(L.Roepnaam, IF(L.GEBDATUM > DATE_SUB(CURDATE(), INTERVAL 18 YEAR), ' of ouders/verzorgers van', '')) FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "RoepnaamOfOuders18", 'SQL' => $sql);
 
 		$sql = sprintf("SELECT Voorletter FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
@@ -291,16 +291,16 @@ class Mailing {
 							FROM %sLidmaatschap AS LM WHERE LM.LIDDATUM < CURDATE() AND LM.Lid=%%d LIMIT 1;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "LengteLidmaatschap", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT L.Telefoon FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);
+		$sql = sprintf("SELECT L.Telefoon FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Telefoon", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT L.Mobiel FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);
+		$sql = sprintf("SELECT L.Mobiel FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Mobiel", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT DATE_FORMAT(L.GEBDATUM, %s) AS Geboortedatum FROM %sLid AS L WHERE L.Nummer=%%d;", $fdlang, TABLE_PREFIX);
+		$sql = sprintf("SELECT DATE_FORMAT(L.GEBDATUM, %s) AS Geboortedatum FROM %sLid AS L WHERE L.RecordID=%%d;", $fdlang, TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Geboortedatum", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT L.GEBPLAATS FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);
+		$sql = sprintf("SELECT L.GEBPLAATS FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Geboorteplaats", 'SQL' => $sql);
 
 		$sql = sprintf('SELECT O.Naam FROM %1$sLidond AS LO INNER JOIN %1$sOnderdl AS O ON O.RecordID = LO.OnderdeelID
@@ -323,7 +323,7 @@ class Mailing {
 		$sql = sprintf("SELECT L.Bankrekening FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Bankrekening", 'SQL' => $sql);
 		
-		$sql = sprintf("SELECT L.Burgerservicenummer FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);
+		$sql = sprintf("SELECT L.Burgerservicenummer FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "BSN", 'SQL' => $sql);
 
 		if ($_SESSION['aantalrekeningen'] > 0) {
@@ -335,7 +335,7 @@ class Mailing {
 		}
 
 		$sql = sprintf("SELECT (CASE L.`Machtiging afgegeven` WHEN 1 THEN 'Ja' ELSE 'Nee' END) AS MachtigingAfgegeven
-							 FROM %sLid AS L WHERE L.Nummer=%%d;", TABLE_PREFIX);
+							 FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "MachtigingAfgegeven", 'SQL' => $sql);
 		
 		$sql = sprintf('SELECT DISTINCT DP.Kode FROM %1$sLiddipl AS LD INNER JOIN %1$sDiploma AS DP ON LD.DiplomaID = DP.RecordID
@@ -604,11 +604,11 @@ class Mailing {
 				$rcpt_rows = db_mailing("potrcpt", $this->mid);
 				foreach($rcpt_rows as $rcpt) {
 					$rnm = $rcpt->Zoeknaam_lid;
-					$sl = substr(db_lidmaatschap("soortlid", $rcpt->Nummer), 0, 1);
+					$sl = substr(db_lidmaatschap("soortlid", $rcpt->LidID), 0, 1);
 					if (strlen($sl) > 0) {
 						$rnm .= sprintf(" (%s)", $sl);
 					}
-					printf("<option value='%d'>%s</option>\n", $rcpt->Nummer, $rnm);
+					printf("<option value='%d'>%s</option>\n", $rcpt->LidID, $rnm);
 				}
 				printf("</select>&nbsp;\n");
 			
@@ -747,8 +747,9 @@ class Mailing {
 			if ($this->changed_on > '1901-01-01' and $this->GewijzigdDoor > 0) {
 				printf("<label>Laatst gewijzigd door/op:</label><div class='invoerblok'>%s / %s</div>\n", db_naamlid($this->GewijzigdDoor), strftime("%e %B %Y (%H:%M)", strtotime($this->changed_on)));
 			}
-			if ($this->sent_on > '1901-01-01' and $this->SentBy > 0) {
-				printf("<label>Laatst verzonden door/op:</label><div class='invoerblok'>%s / %s</div>\n", db_naamlid($this->SentBy), strftime("%e %B %Y (%H:%M)", strtotime($this->sent_on)));
+			$rls = db_mailing_hist("laatste", 0, 0, $this->mid);
+			if ($rls->VerzondenOp > '2010-01-01') {
+				printf("<label>Laatst verzonden door/op:</label><div class='invoerblok'>%s / %s</div>\n", $rls->Door, strftime("%e %B %Y (%H:%M)", strtotime($rls->VerzondenOp)));
 			}
 			if ($this->deleted_on > '1901-01-01') {
 				printf("<label>Verwijderd door/op:</label><div class='invoerblok'>%s / %s</div>\n", db_naamlid($this->DeletedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->deleted_on)));
@@ -968,13 +969,12 @@ class Mailing {
 	public function add_rcpt($lidid, $addr="") {
 		$mess = db_mailing_rcpt("add", $this->mid, $lidid, $addr);
 		if (strlen($mess) > 0) {
-			db_logboek("add", $mess, 4, 0, 1, $this->mid);
+			db_logboek("add", $mess, 4, $lidid, 1, $this->mid);
 		}
 	}
 
 	public function delete_rcpt($lidid, $addr="") {
-		$mess = db_mailing_rcpt("del", $this->mid, $lidid, $addr);
-		db_logboek("add", $mess, 4, 0, 0, $this->mid);
+		db_mailing_rcpt("del", $this->mid, $lidid, $addr);
 	}
 	
 	public function add_del_selectie($actie) {
@@ -1086,10 +1086,10 @@ class Mailing {
 		$aant_send = 0;
 		foreach($rcpts as $rcpt) {
 			$email = new email(0, $this->mid);
-			if ($rcpt->Nummer > 0) {
-				$this->merge($rcpt->Nummer);
+			if ($rcpt->RecordID > 0) {
+				$this->merge($rcpt->RecordID);
 				$email->Subject = $this->merged_subject;
-				$email->toevoegenlid($rcpt->Nummer);
+				$email->toevoegenlid($rcpt->RecordID);
 			} elseif (strlen($rcpt->to_address) > 5) {
 				$this->merge(0);
 				$email->toevoegenadres($rcpt->to_address);
@@ -1123,7 +1123,7 @@ class Mailing {
 		}
 		
 		if ($aant_send > 0) {
-			$mess = sprintf("Via mailing %d (%s) zijn door %s %d e-mails in de outbox geplaatst.", $this->mid, $this->subject, db_naamlid($_SESSION['lidid']), $aant_send);
+			$mess = sprintf("Via mailing %d (%s) zijn %d e-mails in de outbox geplaatst.", $this->mid, $this->subject, $aant_send);
 			if ($_SESSION['lidid'] > 0) {
 				db_logboek("add", $mess, 4, 0, 1, $this->mid);
 			} else {
@@ -1256,7 +1256,7 @@ class Mailing {
 		$query = sprintf("UPDATE %sMailing SET deleted_on=NULL WHERE MailingID=%d;", TABLE_PREFIX, $this->mid);
 		$result = fnQuery($query);
 		if ($result > 0) {
-			$mess = sprintf("Mailing %d (%s) is door %s uit de prullenbak gehaald.", $this->mid, $this->subject, $_SESSION['naamingelogde']);
+			$mess = sprintf("Mailing %d (%s) is uit de prullenbak gehaald.", $this->mid, $this->subject);
 			db_logboek("add", $mess, 4, 0, 1, $this->mid);
 		}
 	}
