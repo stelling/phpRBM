@@ -248,7 +248,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 			} else {
 				$s = "";
 			}
-			printf("<option value=%d %s>%s (%d)</option>\n", $key, $s, htmlentities($val), $key);
+			printf("<option value=%d %s>%s</option>\n", $key, $s, htmlentities($val));
 		}
 	}
 	echo("</select>\n</td>\n");
