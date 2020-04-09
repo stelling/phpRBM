@@ -35,7 +35,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if ($_SESSION['lidid'] > 0) {
 		addtp("Eigen gegevens");
 	}
-	$gs = db_Naamlid($_SESSION['lidid'], "Geslacht");
+	$gs = (new cls_Lid())->Geslacht($_SESSION['lidid']);
 	if ($currenttab == "Eigen gegevens") {
 		addtp("Eigen gegevens/Algemeen");
 		if (count(db_gegevenslid($_SESSION['lidid'], "Afdelingen")) > 0) {
@@ -93,7 +93,8 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (count(db_artikel("artikelbeschikbaar")) > 0) {
 			addtp("Zelfservice/Bestellingen");
 		}
-		if (db_lidmaatschap("kanopzeggen", $_SESSION['lidid']) == true and db_param("mailing_bevestigingopzegging") > 0) {
+//		if (db_lidmaatschap("kanopzeggen", $_SESSION['lidid']) == true and db_param("mailing_bevestigingopzegging") > 0) {
+		if (db_lidmaatschap("kanopzeggen", $_SESSION['lidid']) == true) {
 			addtp("Zelfservice/Opzegging");
 		}
 	}
@@ -112,6 +113,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			addtp("Ledenlijst/Klosleden");
 		}
 		addtp("Ledenlijst/Nieuw kloslid");
+		addtp("Ledenlijst/Groepen muteren");
 		addtp("Ledenlijst/Mutaties");
 	}
 	
@@ -135,7 +137,8 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if (!isset($_GET['lidid']) or strlen($_GET['lidid']) == 0) {
 		$_GET['lidid'] = 0;
 	}
-	$gs = db_Naamlid($_GET['lidid'], "Geslacht");
+	$gs = (new cls_Lid())->Geslacht($_GET['lidid']);
+
 	if ($currenttab == "Overzicht lid") {
 		addtp("Overzicht lid");
 		addtp("Overzicht lid/Algemeen");
@@ -192,8 +195,6 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if (db_mutatie("aantal") > 0) {
 		addtp("Kostenoverzicht");
 	}
-	
-	addtp("Selecties");
 	
 	addtp("Mailing");
 	if ($currenttab == "Mailing") {
@@ -530,6 +531,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		</div>  <!-- Einde herstellenwachtwoord -->");
 	}
 	return $mess;
+	
 } # fnHerstellenWachtwoord
 
 function fnValidatieLogin($lidid, $key, $stap) {
@@ -561,7 +563,7 @@ function fnValidatieLogin($lidid, $key, $stap) {
 		$mess = db_logins("valideerlogin", "", "", $lidid);
 	}
 	if (strlen($mess) > 2) {
-		db_logboek("add", "fnValidatieLogin: " . $mess, 5, 0, 1, $lidid);
+		db_logboek("add", "fnValidatieLogin: " . $mess, 5, $lidid, 1);
 	}
 	
 	return $mess;
