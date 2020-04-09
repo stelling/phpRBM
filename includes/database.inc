@@ -5334,10 +5334,10 @@ function db_nieuwrecordID($tabel) {
 		if ($r > $rid) {$rid = $r; }
 		
 	} else {
-		if (bestaatkolom($tabel, "RecordID")) {
-			$kol = "RecordID";
-		} elseif ($tabel == "Mailing") {
+		if ($tabel == "Mailing") {
 			$kol = "MailingID";
+		} elseif (bestaatkolom($tabel, "RecordID")) {
+			$kol = "RecordID";
 		} else {
 			$kol = "Nummer";
 		}
