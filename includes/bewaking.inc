@@ -469,7 +469,7 @@ function BevestInschrBewaking($lidid, $insnr) {
 		$mailing->xtranum = $insnr;
 		$mailing->resultaatversturen = 0;
 		if ($mailing->send($lidid) > 0) {
-			$mess = sprintf("Inschrijving %d is aan %s verzonden.", $insnr, cls_Lid::Naam($lidid));
+			$mess = sprintf("Inschrijving %d is aan %s verzonden.", $insnr, (new cls_Lid())->Naam($lidid));
 		} else {
 			$mess = sprintf("Fout bij het versturen van de e-mail. Probeer het later nogmaals of neem contact op met de webmaster.");
 		}
