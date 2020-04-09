@@ -170,7 +170,7 @@ function fnQuery($query, $logtype=0) {
 				if ($rv > 0) {
 					$mess = sprintf("Uitgevoerd: %s / records affected: %d", $query, $rv);
 				} else {
-					$mess = sprintf("Uitgevoerd zonder resultaat: %s", $query);
+//					$mess = sprintf("Uitgevoerd zonder resultaat: %s", $query);
 				}
 			} else {
 				$mess = sprintf("Uitgevoerd: %s", $query);
@@ -204,7 +204,7 @@ class cls_db_base {
 	public $wherelid = "LM.LIDDATUM <= CURDATE() AND IFNULL(LM.Opgezegd, CURDATE()) >= CURDATE()";
 	
 	public function is_kolom_numeriek($p_kolom) {
-		if (!startwith($this->table, TABLE_PREFIX)) {
+		if (startwith($this->table, TABLE_PREFIX) == false) {
 			$this->table = TABLE_PREFIX . $this->table;
 		}
 
@@ -217,7 +217,7 @@ class cls_db_base {
 	
 	public function Log($p_refID=0) {
 		if (strlen($this->mess) > 0) {
-			db_Logboek("add", $this->mess, $this->ta, $this->lidid, $this->tm, $p_refID);
+			db_Logboek("add", $this->mess, $this->ta, $this->lidid, $this->tm, $p_refID, $this->table);
 			$this->mess = "";
 		}
 	}
@@ -920,6 +920,7 @@ function db_Lidmaatschap($actie, $lidid=0, $opgezegd="", $lmid=0, $liddatum="", 
 class cls_Lidmaatschap extends cls_db_base {
 	
 	function __construct() {
+		$this->table = TABLE_PREFIX . "Lidmaatschap";
 		$this->ta = 6;
 	}
 	
@@ -1139,6 +1140,10 @@ function db_authorisation($actie, $recid=0, $tabpage="") {
 } # db_authorisation
 
 class cls_Authorisation extends cls_db_base {
+	
+	function __construct() {
+		$this->table = TABLE_PREFIX . "Admin_access";
+	}
 	
 	public function add($p_tabpage) {
 		
@@ -2935,7 +2940,7 @@ function db_mailing_hist_add($email) {
 
 }  # db_mailing_hist_add
 
-class cls_Mailing_hist {
+class cls_Mailing_hist extends cls_db_base {
 		
 	function __construct() {
 		$this->table = TABLE_PREFIX . "Mailing_hist";
@@ -2944,11 +2949,12 @@ class cls_Mailing_hist {
 	
 	public function add($p_email) {
 		$this->lidid = $p_email->lidid;
+		$nrid = db_nieuwrecordID($this->table);
 		
-		if (strlen($email->aanadres) > 250) {
+		if (strlen($p_email->aanadres) > 250) {
 			$p_email->aanadres = substr($p_email->aanadres, 0, 251) . " ...";
 		}
-		if (strlen($email->cc) > 250) {
+		if (strlen($p_email->cc) > 250) {
 			$p_email->cc = substr($p_email->cc, 0, 251) . " ...";
 		}
 
@@ -2958,11 +2964,13 @@ class cls_Mailing_hist {
 		$p_email->bericht = html_entity_decode(str_replace("\"", "'", $p_email->bericht));
 	
 		$query = sprintf("INSERT INTO %sMailing_hist SET
-						LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", subject=\"%s\", to_name=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", ZichtbaarVoor=%d, Xtra_Char='%s', Xtra_Num=%d, IngevoerdDoor=%d;",
-						TABLE_PREFIX, $p_email->lidid, $p_email->mailingid, $p_email->vanafnaam, $p_email->vanafadres, $p_email->onderwerp, $p_email->aannaam, $p_email->aanadres, $p_email->cc, $p_email->bericht, $p_email->zichtbaarvoor, $p_email->xtrachar, $p_email->xtranum, $_SESSION['lidid']);
-		$rv = fnQuery($query);
-	
-		return $rv;
+						RecordID=%d, LidID=%d, MailingID=%d, from_name=\"%s\", from_addr=\"%s\", subject=\"%s\", to_name=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", ZichtbaarVoor=%d, Xtra_Char='%s', Xtra_Num=%d, IngevoerdDoor=%d;",
+						TABLE_PREFIX, $nrid, $p_email->lidid, $p_email->mailingid, $p_email->vanafnaam, $p_email->vanafadres, $p_email->onderwerp, $p_email->aannaam, $p_email->aanadres, $p_email->cc, $p_email->bericht, $p_email->zichtbaarvoor, $p_email->xtrachar, $p_email->xtranum, $_SESSION['lidid']);
+		if (fnQuery($query) > 0) {
+			return $nrid;
+		} else {
+			return 0;
+		}
 	}
 	
 	public function update($p_mhid, $p_kolom, $p_waarde) {
@@ -2975,12 +2983,15 @@ class cls_Mailing_hist {
 			$xw = sprintf("IFNULL(`%s`, '')<>%s", $p_kolom, $p_waarde);
 		}
 		
-		$query = sprintf("UPDATE %sMailing_hist SET `%s`=%s WHERE RecordID=%d AND %s;", TABLE_PREFIX, $p_kolom, $p_waarde, $p_mhid, $xw);
+		$query = sprintf("UPDATE %s SET `%s`=%s WHERE RecordID=%d AND %s;", $this->table, $p_kolom, $p_waarde, $p_mhid, $xw);
 		if (fnQuery($query) > 0) {
-			$this->mess = sprintf();
-			$this->Log($p_mhid);
+			$this->mess = sprintf("in %s-record %d is kolom '%s' in %s gewijzigd.", $this->table, $p_mhid, $p_kolom, $p_waarde);
+			
+		} else {
+			$this->ta = 99;
+			$this->mess = sprintf("Update mislukt: %s", $query);
 		}
-		
+//		$this->Log($p_mhid);
 	}
 }
 
