@@ -27,7 +27,6 @@ function onlinebestellingen($lidid) {
 		foreach ($lijst as $art) {
 			$ord = db_orderregel("bestelling", $lidid, $art->RecordID);
 			$mess = "";
-			$set_clause = "";
 			$wijz = "";
 			$pnab = sprintf("AantalBesteld_%d", $art->RecordID);
 			if (isset($_POST[$pnab])) {
@@ -59,19 +58,10 @@ function onlinebestellingen($lidid) {
 				if (isset($_POST[$pnopm])) {
 					$inst_or->update($ord->RecordID, "Opmerking", $_POST[$pnopm]);
 				}
-				if (strlen($set_clause) > 0) {
-					$query = sprintf("UPDATE %sWS_Orderregel SET %s BestellingDefinitief=NULL, GewijzigdDoor=%d
-								WHERE RecordID=%d;", TABLE_PREFIX, $set_clause, $_SESSION['lidid'], $ord->RecordID);
-					$result = fnQuery($query);
-					if ($result > 0) {
-						$mess = sprintf("Orderregel van artikel %d is gewijzigd. %s", $ord->Artikel, $wijz);
-						db_logboek("add", $mess, 10, $lidid, 0, $ord->RecordID);
-					}
-				}
 			}
 		}
 		if (isset($_POST['defmaken'])) {
-			db_orderregel("defmaken", $lidid);
+			(new cls_orderregel())->definitiefmaken($lidid);
 			if (db_param("mailing_bevestigingbestelling") > 0) {
 				bevestigingbestelling($lidid, $ordernr);
 			}
@@ -397,7 +387,6 @@ function bevestigingbestelling($lidid, $ordernr=0) {
 	if (db_param("mailing_bevestigingbestelling") > 0) {
 		$mailing = new Mailing(db_param("mailing_bevestigingbestelling"));
 		$mailing->xtranum = $ordernr;
-		$mailing->resultaatversturen = 0;
 		if ($mailing->send($lidid) > 0) {
 			$mess = sprintf("Bevestiging bestelling %d is verzonden.", $ordernr);
 		} else {

@@ -38,7 +38,7 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 		echo("<script>location.href='/'; </script>\n");
 	}
 } elseif ($_SESSION['lidid'] > 0) {
-	db_logins("setingelogd", "", "", $_SESSION['lidid']);
+	(new cls_Login())->setingelogd($_SESSION['lidid']);
 }
 
 if ($_SESSION['aantallid'] == 0) {
@@ -181,7 +181,7 @@ function fnVoorblad() {
 		if ($_SESSION['webmaster'] == 0) {
 			$content = removetextblock($content, "<!-- Webmaster -->", "<!-- /Webmaster -->");
 		}
-		db_logins("uitloggen");
+		(new cls_login())->uitloggen();
 	
 		// Algemene statistieken
 		$stats = db_stats();

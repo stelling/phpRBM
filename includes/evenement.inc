@@ -39,7 +39,7 @@ function fnEvenementen() {
 		muteerevenement(0);
 		
 	} elseif ($currenttab2 == "Beheer" and $op == "delete") {
-		db_Evenement_Deelnemer("delete", $_GET['edid'], "", "", $_GET['lidid']);
+		(new cls_Evenement_Deelnemer())->delete($_GET['edid']);
 		muteerevenement($eid);
 	} elseif ($currenttab2 == "Beheer") {
 		$lijst = db_evenement("overzichtbeheer");
@@ -83,10 +83,16 @@ function ToekomstigeEvenementen() {
 function inschrijvenevenementen($lidid) {
 
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		$inst_ed = new cls_Evenement_Deelnemer();
 		foreach (db_evenement("open") as $row) {
 			$react = sprintf("reactie_%d", $row->RecordID);
 			$opm = sprintf("opm_%d", $row->RecordID);
 			$insrow = db_Evenement_Deelnemer("record", 0, "", "", $lidid, $row);
+			if (isset($insrow->RecordID)) {
+				$edid = $insrow->RecordID;
+			} else {
+				$edid = 0;
+			}
 			
 			if ($_POST[$react] == "Aanmelden") {
 				$stat = "B";
@@ -98,20 +104,22 @@ function inschrijvenevenementen($lidid) {
 				$stat = "";
 			}
 			if ($_POST[$react] == "Geen") {
-				if (isset($insrow->RecordID) and $insrow->RecordID > 0) {
-					db_Evenement_Deelnemer("delete", $insrow->RecordID, "", "", $lidid, $row);
+				if ($edid > 0) {
+					$inst_ed($edid);
 				}
 			} else {
-				if (!isset($insrow->RecordID)) {
-					db_Evenement_Deelnemer("insert", 0, "", "", $lidid, $row);
-					$insrow = db_Evenement_Deelnemer("record", 0, "", "", $lidid, $row);
+				if ($edid == 0) {
+					$edid = $inst_ed->add($row->RecordID, $lidid, $stat);
 				}
 				if (strlen($stat) == 1) {
-					db_Evenement_Deelnemer("update", $insrow->RecordID, "Status", $stat, $lidid, $row);
+					$inst_ed->update($edid, "Status", $stat);
 				}
-				db_Evenement_Deelnemer("update", $insrow->RecordID, "Opmerking", $_POST[$opm], $lidid, $row);
+				if (isset($_POST[$opm])) {
+					$inst_ed->update($edid, "Opmerking", $_POST[$opm]);
+				}
 			}
 		}
+		$inst_ed = null;
 	}
 
 	fnDispMenu(2);
@@ -185,77 +193,60 @@ function muteerevenement($eventid) {
 		}
 		
 		$old = db_evenement("record", 0, $eventid);
+		$inst_ev = new cls_Evenement();
 		foreach($_POST as $key => $val) {
 			if (array_key_exists($key, $old) and $old->$key != $_POST[$key]) {
-				if (in_array($key, array("TypeEvenement", "InschrijvingOpen", "BeperkTotGroep", "ZichtbaarVoor", "MaxPersonenPerDeelname"))) {
-					$query = sprintf("UPDATE %sEvenement SET `%s`=%d", TABLE_PREFIX, $key, $_POST[$key]);
-					$mess = sprintf("In evenement %d is kolom '%s' naar %d bijgewerkt.", $eventid, $key, $_POST[$key]);
-				} else {
-					$_POST[$key] = str_replace("\"", "'", $_POST[$key]);
-					$query = sprintf("UPDATE %sEvenement SET `%s`=\"%s\"", TABLE_PREFIX, $key, $_POST[$key]);
-					$mess = sprintf("In evenement %d is kolom '%s' naar '%s' bijgewerkt.", $eventid, $key, $_POST[$key]);
-				}
-				$query .= sprintf(", GewijzigdDoor=%d WHERE RecordID=%d;", $_SESSION['lidid'], $eventid);
-				if (fnQuery($query) > 0) {
-					db_logboek("add", $mess, 7, 0, 0, $eventid, 2);
-				} else {
-					debug($query);
-				}
+				$inst_ev->update($eventid, $key, $_POST[$key]);
 			}
 		}
-		
-		$set_clause = "";
+
 		if (isset($_POST['verwijderen']) and $old->VerwijderdOp < '2012-01-01') {
-			$set_clause = "VerwijderdOp=CURDATE(), ";
-			$mess = sprintf("Evenement %d is verwijderd.", $eventid);
+			$inst_ev->update($eventid, "VerwijderdOp", date("Y-m-d"));
 		} elseif (isset($_POST['undoverwijderen']) and $old->VerwijderdOp > '2012-01-01') {
-			$set_clause = "VerwijderdOp='0000-00-00', ";
-			$mess = sprintf("Evenement %d: de verwijdering is ongedaan gemaakt.", $eventid);
+			$inst_ev->update($eventid, "VerwijderdOp", "0000-00-00");
 		}
-		if (strlen($set_clause) > 0) {
-			$set_clause .= sprintf("GewijzigdDoor=%d", $_SESSION['lidid']);
-			$query = sprintf("UPDATE %sEvenement SET %s WHERE RecordID=%d;", TABLE_PREFIX, $set_clause, $eventid);
-			if (fnQuery($query) > 0) {
-				db_logboek("add", $mess, 7, 0, 0, $eventid, 2);
-			} else {
-				debug($query);
-			}
-		}
+		$inst_ed = new cls_Evenement_Deelnemer();
 		foreach (db_evenement("deelnemers", 0, $eventid) as $rd) {
 			foreach(array("Status", "Opmerking", "Functie", "Aantal") as $fld) {
 				$formfld = sprintf("%s_%d", $fld, $rd->RecordID);
-				if (isset($_POST[$formfld]) and $_POST[$formfld] != $rd->$fld) {
-					$result = db_Evenement_Deelnemer("update", $rd->RecordID, $fld, $_POST[$formfld]);
+				if (isset($_POST[$formfld])) {
+					$inst_ed->update($rd->RecordID, $fld, $_POST[$formfld]);
 				}
 			}
 		}
 		if (isset($_POST['nwdln']) and $_POST['nwdln'] > 0 and is_numeric($_POST['nwdln'])) {
-			db_Evenement_Deelnemer("insert", 0, "", "", $_POST['nwdln'], db_evenement("record", 0, $eventid));
+			$inst_ed->add($eventid, $_POST['nwdln'], $inst_ev->standaardstatus($eventid));
 		}
+		$inst_ev = null;
+		$inst_ed = null;
 		
 		if (isset($_POST['Bewaren_Sluiten'])) {
 			printf("<script>location.href='%s?tp=Evenementen/Beheer'</script>\n", $_SERVER['PHP_SELF']);
 		} elseif (isset($_POST['maildeeln']) or isset($_POST['mailpotdeeln']) or isset($_POST['mailbeidedeeln'])) {
-			$mid = db_mailing("add", 0, "", $_POST['Omschrijving']);
+			$inst_M = new cls_Mailing();
+			$inst_MR = new cls_Mailing_rcpt();
+			$mid = $inst_M->add($_POST['Omschrijving']);
 			if ($mid > 0) {
 				if (strlen($_POST['Email']) > 4 and isValidMailAddress($_POST['Email'])) {
 					$row = db_mailing_vanaf("record", $_POST['Email']);
 					if (isset($row->Vanaf_email) and strlen($row->Vanaf_email) > 4) {
-						db_mailing("update", $mid, "", $row->Vanaf_email, "from_addr");
+						$inst_M->update($mid, "from_addr", $row->Vanaf_email);
 					}
 				}
 				if (isset($_POST['maildeeln']) or isset($_POST['mailbeidedeeln'])) {
 					foreach (db_evenement("deelnemers", 0, $eventid, "", "'B', 'I', 'R', 'T'") as $row) {
-						db_mailing_rcpt("add", $mid, $row->LidID, "", 1);
+						$inst_MR->add($mid, $row->LidID);
 					}
-				} 
+				}
 				if (isset($_POST['mailpotdeeln']) or isset($_POST['mailbeidedeeln'])) {
 					foreach (db_evenement("potdeelnemers", 0, $eventid) as $row) {
-						db_mailing_rcpt("add", $mid, $row->LidID, "", 1);
+						$inst_MR->add($mid, $row->LidID);
 					}
 				}
 			}
 			printf("<script>location.href='%s?tp=Mailing/Concepten&op=edit&mid=%d'</script>\n", $_SERVER['PHP_SELF'], $mid);
+			$inst_M = null;
+			$inst_MR = null;
 		}
 	}
 	
@@ -389,13 +380,13 @@ function muteerevenement($eventid) {
 			echo("</td>\n");
 			printf("<td><input type='text' name='Opmerking_%d' value='%s' placeholder='Opmerking' size=75 maxlength=250>\n", $rd->RecordID, $rd->Opmerking);
 			printf("<br><input type='text' name='Functie_%d' value='%s' placeholder='Functie' size=40 maxlength=30></td>\n", $rd->RecordID, $rd->Functie);
-			printf("<td>%s<br>%s</td>\n", strftime("%e %b %Y (%R)", strtotime($rd->Ingevoerd)), cls_Lid::Naam($rd->IngevoerdDoor));
+			printf("<td>%s<br>%s</td>\n", strftime("%e %b %Y (%R)", strtotime($rd->Ingevoerd)), (new cls_Lid())->Naam($rd->IngevoerdDoor));
 			printf("<td><a href='%s?tp=%s&amp;op=delete&amp;eid=%d&amp;lidid=%d&amp;edid=%d'><img src='images/del.png' alt='Delete'></a></td>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $eventid, $rd->LidID, $rd->RecordID);
 			echo("</tr>\n");
 		}
 		$optionsnieuw = "<option value=0>Nieuwe deelnemer ...</option>\n";
 		foreach (db_evenement("potdeelnemers", 0, $recordid) as $lidrow) {
-			$optionsnieuw .= sprintf("<option value=%d>%s</option>\n", $lidrow->RecordID, htmlentities($lidrow->Naam));
+			$optionsnieuw .= sprintf("<option value=%d>%s</option>\n", $lidrow->LidID, htmlentities($lidrow->Naam));
 		}
 		printf("<tr>\n<td colspan=6><select name='nwdln' onChange='this.form.submit();'>%s</select></td>\n</tr>\n", $optionsnieuw);
 	}
@@ -431,26 +422,26 @@ function muteerevenement($eventid) {
 function muteertypeevenement() {
 	global $soortevenement;
 	
-	$mess = "";
+	$inst_et = new cls_evenement_type();
 	if (isset($_GET['op']) and $_GET['op'] == "delete" and $_GET['tid'] > 0) {
-		db_Evenement_Type("delete",$_GET['tid']);
+		$inst_et->delete($_GET['tid']);
 	} elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
 		if (isset($_POST['oms_nw']) and strlen($_POST['oms_nw']) > 0) {
-			$id = db_Evenement_Type("insert", 0, "", $_POST['oms_nw']);
+			$inst_et->add($_POST['oms_nw']);
 		} else {
 			foreach (db_evenement("types") as $row) {
-				$set_clause = "";
 				$oms = sprintf("oms_%d", $row->RecordID);
 				$soort = sprintf("soort_%d", $row->RecordID);
-				if (isset($_POST[$oms]) and $_POST[$oms] != $row->Omschrijving) {
-					db_Evenement_Type("update", $row->RecordID, "Omschrijving", $_POST[$oms]);
+				if (isset($_POST[$oms])) {
+					$inst_et->update($row->RecordID, "Omschrijving", $_POST[$oms]);
 				}
-				if (isset($_POST[$soort]) and $_POST[$soort] != $row->Soort) {
-					db_Evenement_Type("update", $row->RecordID, "Soort", $_POST[$soort]);
+				if (isset($_POST[$soort])) {
+					$inst_et->update($row->RecordID, "Soort", $_POST[$soort]);
 				}
 			}
 		}
 	}
+	$inst_et = null;
 		
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	echo("<table>\n");

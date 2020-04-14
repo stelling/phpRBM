@@ -1,0 +1,3 @@
+Ongebruikte kolommen (nog te verwijderen)
+- Mailing_hist: send_by, send_mt, successful
+

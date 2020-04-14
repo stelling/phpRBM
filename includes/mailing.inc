@@ -307,7 +307,7 @@ class Mailing {
 				 WHERE %2$s AND O.GekoppeldAanQuery=0 AND LO.Lid=%%d ORDER BY O.Naam;', TABLE_PREFIX, $wherelidond);
 		$this->MergeField[]=array('Naam' => "Onderdelen", 'SQL' => $sql);
 	
-		if (db_bewseiz("aantal") > 0) {
+		if ((new cls_db_base("Bewseiz"))->aantal() > 0) {
 			$sql = sprintf('SELECT CONCAT(DATE_FORMAT(BEGIN_PER, %1$s), \' t/m \', DATE_FORMAT(EINDE_PER, %1$s)) AS Per'
 				  . ' FROM %2$sBewaking AS BW INNER JOIN %2$sBewseiz AS BS ON BS.RecordID = BW.SeizoenID'
 				  . ' WHERE EINDE_PER >= CURDATE() AND %3$s ORDER BY BEGIN_PER;', $fdlang, TABLE_PREFIX, "Lid=%d");
@@ -604,8 +604,8 @@ class Mailing {
 				$rcpt_rows = db_mailing("potrcpt", $this->mid);
 				foreach($rcpt_rows as $rcpt) {
 					$rnm = $rcpt->Zoeknaam_lid;
-					$sl = substr(db_lidmaatschap("soortlid", $rcpt->LidID), 0, 1);
-					if (strlen($sl) > 0) {
+					$sl = substr((new cls_Lidmaatschap())->soortlid($rcpt->LidID), 0, 1);
+					if ($sl != "L") {
 						$rnm .= sprintf(" (%s)", $sl);
 					}
 					printf("<option value='%d'>%s</option>\n", $rcpt->LidID, $rnm);
@@ -624,9 +624,11 @@ class Mailing {
 				echo("<div id='mailingselectieleden'>\n");
 				echo("<table>\n");
 				echo("<tr><td></td><td>Vanaf</td><td>Tot en met</td></tr>\n");
-			
-				printf("<tr><td>Geboortedatum:</td><td><input type='date' value='%s' name='selectie_vangebdatum'></td><td><input type='date' value='%s' name='selectie_temgebdatum'></td></tr>\n", db_lid("mingebdatum"), db_lid("maxgebdatum"));
-				printf("<tr><td>Lid vanaf:</td><td><input type='date' name='selectie_vanliddatum' value='%s'></td><td><input type='date' name='selectie_temliddatum' value='%s'></td></tr>\n", db_lid("minliddatum"), db_lid("maxliddatum"));
+
+				$inst_lid = new cls_Lid();
+				$inst_lm = new cls_Lidmaatschap();
+				printf("<tr><td>Geboortedatum:</td><td><input type='date' value='%s' name='selectie_vangebdatum'></td><td><input type='date' value='%s' name='selectie_temgebdatum'></td></tr>\n", $inst_lid->mingebdatum(), $inst_lid->maxgebdatum());
+				printf("<tr><td>Lid vanaf:</td><td><input type='date' name='selectie_vanliddatum' value='%s'></td><td><input type='date' name='selectie_temliddatum' value='%s'></td></tr>\n", $inst_lm->minliddatum(), $inst_lm->maxliddatum());
 			
 				$selgr = "<select name='selectie_groep'>\n
 							<option value=0>&nbsp;</option>\n";
@@ -639,7 +641,7 @@ class Mailing {
 					$selgr .= sprintf("<option value=%d>%s</option>\n", $grp->RecordID, $grp->Naam);
 				}
 				$selgr .= "</select>\n";
-				printf("<tr><td>Zit in groep:</td><td colspan=2>%s (bijgewerkt t/m %s)</td></tr>\n", $selgr, strtolower(date("j F Y", strtotime(db_lidond("maxgewijzigd", 0, "", "O.Type<>'T'")))));
+				printf("<tr><td>Zit in groep:</td><td colspan=2>%s</td></tr>\n", $selgr);
 				
 				echo("</table>\n");
 				echo("</div> <!-- Einde mailingselectieleden -->\n");
@@ -741,18 +743,19 @@ class Mailing {
 		
 		$this->controle();
 		if ($this->mid > 0) {
+			$inst_lid = new cls_Lid();
 			if ($this->new_on > '1901-01-01') {
-				printf("<label>Toegevoegd door/op:</label><div class='invoerblok'>%s / %s</div>\n", db_naamlid($this->AddedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->new_on)));
+				printf("<label>Toegevoegd door/op:</label><div class='invoerblok'>%s / %s</div>\n", $inst_lid->naam($this->AddedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->new_on)));
 			}
 			if ($this->changed_on > '1901-01-01' and $this->GewijzigdDoor > 0) {
-				printf("<label>Laatst gewijzigd door/op:</label><div class='invoerblok'>%s / %s</div>\n", db_naamlid($this->GewijzigdDoor), strftime("%e %B %Y (%H:%M)", strtotime($this->changed_on)));
+				printf("<label>Laatst gewijzigd door/op:</label><div class='invoerblok'>%s / %s</div>\n", $inst_lid->naam($this->GewijzigdDoor), strftime("%e %B %Y (%H:%M)", strtotime($this->changed_on)));
 			}
 			$rls = db_mailing_hist("laatste", 0, 0, $this->mid);
-			if ($rls->VerzondenOp > '2010-01-01') {
+			if (isset($rls->VerzondenOp) and $rls->VerzondenOp > '2010-01-01') {
 				printf("<label>Laatst verzonden door/op:</label><div class='invoerblok'>%s / %s</div>\n", $rls->Door, strftime("%e %B %Y (%H:%M)", strtotime($rls->VerzondenOp)));
 			}
 			if ($this->deleted_on > '1901-01-01') {
-				printf("<label>Verwijderd door/op:</label><div class='invoerblok'>%s / %s</div>\n", db_naamlid($this->DeletedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->deleted_on)));
+				printf("<label>Verwijderd door/op:</label><div class='invoerblok'>%s / %s</div>\n", $inst_lid->naam($this->DeletedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->deleted_on)));
 			}
 
 			if ($this->verzendenmag == false) {
@@ -761,6 +764,7 @@ class Mailing {
 			if (strlen($this->meldingen) > 0) {
 				printf("<label>Meldingen:</label><div class='invoerblok'>%s</div>\n", $this->meldingen);
 			}
+			$cls_lid = null;
 		}
 		
 		echo("<div id='opdrachtknoppen'>\n");
@@ -871,8 +875,9 @@ class Mailing {
 			$_POST['subject'] = $this->subject;
 		}
 		
+		$inst_M = new cls_Mailing();
 		if ($this->mid == 0) {
-			$this->mid = db_mailing("add", 0, "", $this->subject);
+			$this->mid = $inst_M->add($this->subject);
 		}
 		
 		if (isset($_POST['from_addr']) and strlen($_POST['from_addr']) > 5) {
@@ -906,11 +911,12 @@ class Mailing {
 		if ($this->mid > 0) {
 			$old = db_mailing("record", $this->mid);
 			foreach($_POST as $key => $val) {
-				if (array_key_exists($key, $old) and $val != $old->$key) {
-					db_mailing("update", $this->mid, "", $val, $key);
+				if (array_key_exists($key, $old)) {
+					$inst_M->update($this->mid, $key, $val);
 				}
 			}
 		}
+		$inst_M = null;
 		
 		if (isset($_POST['add_lid']) and $_POST['add_lid'] > 0) {
 			$this->add_rcpt($_POST['add_lid']);
@@ -938,7 +944,7 @@ class Mailing {
 					$mess = sprintf("Directory '%s' bestaat niet en kan niet aangemaakt worden. Probeer het later opnieuw of neem contact op met de webmaster.", $ad);
 					$ad = "";
 				}
-				db_logboek("add", $mess, 4, 0, 0, $this->mid);
+				(new cls_Logboek())->add($mess, 4, 0, 0, $this->mid);
 			} else {
 				chmod($ad, 0755);
 			}
@@ -957,7 +963,7 @@ class Mailing {
 					$mess = sprintf("In mailing %d (%s) is bestand '%s' bijgesloten.", $this->mid, $this->subject, $_FILES['UploadFile']['name']);
 				}
 			}
-			db_logboek("add", $mess, 4, 0, 2, $this->mid);
+			(new cls_Logboek())->add($mess, 4, 0, 2, $this->mid);
 		}
 	}
 	
@@ -967,10 +973,7 @@ class Mailing {
 	}
 	
 	public function add_rcpt($lidid, $addr="") {
-		$mess = db_mailing_rcpt("add", $this->mid, $lidid, $addr);
-		if (strlen($mess) > 0) {
-			db_logboek("add", $mess, 4, $lidid, 1, $this->mid);
-		}
+		(new cls_Mailing_rcpt())->add($this->mid, $lidid, $addr);
 	}
 
 	public function delete_rcpt($lidid, $addr="") {
@@ -988,62 +991,64 @@ class Mailing {
 		
 		$mess = "";
 		
-		if (strlen($_POST['selectie_vangebdatum']) == 10 and $_POST['selectie_vangebdatum'] > db_lid("mingebdatum") and $_POST['selectie_vangebdatum'] < db_lid("maxgebdatum")) {
+		$inst_lid = new cls_Lid();
+		$inst_lm = new cls_Lidmaatschap();
+		
+		if (strlen($_POST['selectie_vangebdatum']) == 10 and $_POST['selectie_vangebdatum'] > $inst_lid->mingebdatum() and $_POST['selectie_vangebdatum'] < $inst_lid->maxgebdatum()) {
 			$w .= sprintf(" AND L.GEBDATUM >= '%s'", $_POST['selectie_vangebdatum']);
 		} 
-		if ($_POST['selectie_temgebdatum'] > "1900-01-01" and $_POST['selectie_temgebdatum'] < db_lid("maxgebdatum")) {
+		if ($_POST['selectie_temgebdatum'] > "1900-01-01" and $_POST['selectie_temgebdatum'] < $inst_lid->maxgebdatum()) {
 			$w .= sprintf(" AND L.GEBDATUM <= '%s'", $_POST['selectie_temgebdatum']);
 		}
 		
 		if ($_POST['selectie_groep'] == 0) {
-			if (strlen($_POST['selectie_vanliddatum']) == 10 and $_POST['selectie_vanliddatum'] > db_lid("minliddatum")) {
+			if (strlen($_POST['selectie_vanliddatum']) == 10 and $_POST['selectie_vanliddatum'] > $inst_lm->minliddatum()) {
 				$w .= sprintf(" AND LM.LIDDATUM >= '%s'", $_POST['selectie_vanliddatum']);
 			}
-			if (strlen($_POST['selectie_temliddatum']) == 10 and $_POST['selectie_temliddatum'] < db_lid("maxliddatum")) {
+			if (strlen($_POST['selectie_temliddatum']) == 10 and $_POST['selectie_temliddatum'] < $inst_lm(maxliddatum)) {
 				$w .= sprintf(" AND LM.LIDDATUM <= '%s'", $_POST['selectie_temliddatum']);
 			}
 			
 			$query = sprintf("SELECT DISTINCT L.RecordID FROM %s WHERE (NOT LM.Lid IS NULL) AND IFNULL(LM.Opgezegd, '9999-12-31') >= CURDATE()  %s;", $fromlid, $w);
 			
 		} else {
-			if (strlen($_POST['selectie_vanliddatum']) == 10 and $_POST['selectie_vanliddatum'] > db_lid("maxliddatum") and $_POST['selectie_vanliddatum'] <= db_lid("maxliddatum")) {
+			if (strlen($_POST['selectie_vanliddatum']) == 10 and $_POST['selectie_vanliddatum'] > $inst_lm->maxliddatum() and $_POST['selectie_vanliddatum'] <= $inst_lm->maxliddatum()) {
 				$w .= sprintf(" AND LO.Vanaf >= '%s'", $_POST['selectie_vangebdatum']);
 			}
-			if (strlen($_POST['selectie_temliddatum']) == 10 and $_POST['selectie_temliddatum'] >= db_lid("minliddatum") and $_POST['selectie_temliddatum'] < db_lid("maxliddatum")) {
+			if (strlen($_POST['selectie_temliddatum']) == 10 and $_POST['selectie_temliddatum'] >= $inst_lm->minliddatum() and $_POST['selectie_temliddatum'] < $inst_lm->maxliddatum()) {
 				$w .= sprintf(" AND LO.Vanaf <= '%s'", $_POST['selectie_temgebdatum']);
 			}
-
 			$query = sprintf("SELECT DISTINCT L.RecordID FROM %s WHERE %s AND LO.OnderdeelID=%d %s;", $fromlidond, $wherelidond, $_POST['selectie_groep'], $w);
 		}
+		$inst_lid = null;
+		$inst_lm = null;
 		
 		$aant = 0;
+		$inst_mr = new cls_Mailing_rcpt();
 		if ($actie == "add") {
 			foreach(fnQuery($query) as $row) {
-				if (strlen(db_mailing_rcpt("add", $this->mid, $row->RecordID)) > 0) {
+				if ($inst_mr->add($this->mid, $row->RecordID) > 0) {
 					$aant++;
 				}
 			}
 			$mess = sprintf("Er zijn %d leden, via een selectie, aan mailing %d (%s) toegevoegd.", $aant, $this->mid, $this->subject);
 		} else {
 			foreach(fnQuery($query) as $row) {
-				if (strlen(db_mailing_rcpt("del", $this->mid, $row->RecordID)) > 0) {
+				if ($inst_mr->delete($this->mid, $row->RecordID) > 0) {
 					$aant++;
 				}
 			}
-			$mess = sprintf("Er zijn %d leden, via een selectie, aan mailing %d (%s) verwijderd.", $aant, $this->mid, $this->subject);
+			$mess = sprintf("Er zijn %d leden, via een selectie, bij mailing %d (%s) verwijderd.", $aant, $this->mid, $this->subject);
 		}
+		$inst_mr = null;
 		db_logboek("add", $mess, 4, 0, 0, $this->mid);
 		
 	} # add_del_selectie
 		
 	public function delete_all_rcpt() {
 	
-		$query = sprintf("DELETE FROM %sMailing_rcpt WHERE MailingID=%d;", TABLE_PREFIX, $this->mid);
-		$result = fnQuery($query);
-		if ($result > 0) {
-			$mess = sprintf("Alle %d ontvangers zijn uit mailing %d verwijderd.", $result, $this->mid);
-			db_logboek("add", $mess, 4, 0, 0, $this->mid);
-		}
+		(new cls_Mailing_rcpt())->delete_all($this->mid);
+		
 	} # delete_all_rcpt
 	
 	public function preview() {
@@ -1243,22 +1248,12 @@ class Mailing {
 	
 	public function delete() {
 	
-		$query = sprintf("UPDATE %sMailing SET deleted_on=NOW(), DeletedBy=%d WHERE MailingID=%d AND (deleted_on IS NULL);", TABLE_PREFIX, $_SESSION['lidid'], $this->mid);
-		$result = fnQuery($query);
-		if ($result > 0) {
-			$mess = sprintf("Mailing %d (%s) is naar de prullenbak verplaatst.", $this->mid, $this->subject, $_SESSION['naamingelogde']);
-			db_logboek("add", $mess, 4, 0, 1, $this->mid);
-		}
+		(new cls_Mailing())->trash($this->mid, "in");
 	}
 	
 	public function undelete() {
 		
-		$query = sprintf("UPDATE %sMailing SET deleted_on=NULL WHERE MailingID=%d;", TABLE_PREFIX, $this->mid);
-		$result = fnQuery($query);
-		if ($result > 0) {
-			$mess = sprintf("Mailing %d (%s) is uit de prullenbak gehaald.", $this->mid, $this->subject);
-			db_logboek("add", $mess, 4, 0, 1, $this->mid);
-		}
+		(new cls_Mailing())->trash($this->mid, "out");
 	}
 		
 	private function vuldbvars() {
@@ -1324,7 +1319,7 @@ class email {
 				$this->mailingid = $mhrow->MailingID;
 				$this->ingevoerd = strftime('%e %B %Y (%H:%M:%S)', strtotime($mhrow->Ingevoerd));
 				if ($mhrow->IngevoerdDoor > 0) {
-					$this->ingevoerddoor = db_naamlid($mhrow->IngevoerdDoor);
+					$this->ingevoerddoor = (new cls_Lid())->Naam($mhrow->IngevoerdDoor);
 				}
 				if ($mhrow->send_on > "2010-01-01") {
 					$this->verstuurdop = strftime('%e %B %Y (%H:%M:%S)', strtotime($mhrow->send_on));
@@ -1448,7 +1443,7 @@ class email {
 		}
 		
 		if (strlen($this->aanadres) > 5 and strlen($this->vanafadres) > 5) {
-			$this->mhid = db_mailing_hist_add($this);
+			$this->mhid = (new cls_Mailing_hist())->add($this);
 			$rv = true;
 		}
 		
@@ -1852,7 +1847,8 @@ function sentfromhist($mhid) {
 		}
 
 		if ($mail->Send()) {
-			db_mailing_hist("updatesent", 0, $mhid);
+//			db_mailing_hist("updatesent", 0, $mhid);
+			(new cls_Mailing_hist())->update($mhid, "send_on", date("Y-m-d H:i:s"));
 			$rv = true;
 		}
 	} else {

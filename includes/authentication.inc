@@ -93,8 +93,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (count(db_artikel("artikelbeschikbaar")) > 0) {
 			addtp("Zelfservice/Bestellingen");
 		}
-//		if (db_lidmaatschap("kanopzeggen", $_SESSION['lidid']) == true and db_param("mailing_bevestigingopzegging") > 0) {
-		if (db_lidmaatschap("kanopzeggen", $_SESSION['lidid']) == true) {
+		if ((new cls_Lidmaatschap())->kanopzeggen($_SESSION['lidid']) == true) {
 			addtp("Zelfservice/Opzegging");
 		}
 	}
@@ -106,9 +105,10 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if ($currenttab == "Ledenlijst") {
 		addtp("Ledenlijst/Leden");
 		addtp("Ledenlijst/Voormalig leden");
-		if (count(db_Lidmaatschap("toekomstigeleden")) > 0) {
+		if ((new cls_db_base("Lidmaatschap"))->aantal("LIDDATUM > CURDATE()")) {
 			addtp("Ledenlijst/Toekomstige leden");
 		}
+		
 		if (count(db_lid("ledenlijst", "(LM.Lidnr IS NULL)")) > 0) {
 			addtp("Ledenlijst/Klosleden");
 		}
@@ -116,7 +116,6 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		addtp("Ledenlijst/Groepen muteren");
 		addtp("Ledenlijst/Mutaties");
 	}
-	
 	
 	if (strlen(db_param("menu_met_afdelingen")) > 0) {
 		// Tabblad per afdeling
@@ -218,7 +217,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		}
 	}
 
-	if (db_bewseiz("aantal") > 0) {
+	$inst_db = new cls_db_base();
+	$inst_db->table = TABLE_PREFIX . "Bewseiz"; 
+	if ($inst_db->aantal() > 0) {
 		addtp("Bewaking");
 		if ($currenttab == "Bewaking") {
 			addtp("Bewaking/Bewakingsrooster");
@@ -322,6 +323,7 @@ function fnAuthenticatie($melding=1, $password="") {
 			} else {
 				$_SESSION['emailingelogde'] = "";
 			}
+			(new cls_Login())->setingelogd($row->LidID);
 		} else {
 			if ($pwfromcookie == 0) {
 				$mess = sprintf("De combinatie van login '%s' en het ingevoerde wachtwoord is niet correct! Je bent niet ingelogd.", $_SESSION['username']);
@@ -332,21 +334,13 @@ function fnAuthenticatie($melding=1, $password="") {
 		$_SESSION['lidid'] = 0;
 	}
 	if ($melding == 1 and strlen($mess) > 0) {
-		db_logboek("add", $mess, 97, 0, 1);
+		(new cls_Logboek())->add($mess, 97, 0, 1);
 	} elseif (strlen($mess) > 0) {
-		db_logboek("add", $mess, 97);
+		(new cls_Logboek())->add($mess, 97);
 	}
-	$_SESSION['webmaster'] = 0;
-	$_SESSION['lidgroepen'] = "0";
 	if ($_SESSION['lidid'] == 0 or strlen($_SESSION['username']) == 0) {
 		$_SESSION['lidid'] = 0;
 		$_SESSION['username'] = "";
-	} else {
-		if (in_array($_SESSION['lidid'], $lididwebmasters)) {
-			$_SESSION['webmaster'] = 1;
-		}
-		$_SESSION['lidgroepen'] = db_Lidond("lidgroepen");
-		db_logins("setingelogd", "", "", $_SESSION['lidid']);
 	}
 } # fnAuthenticatie
 	
@@ -365,6 +359,14 @@ function toegang($soort, $melding=1, $log=1) {
 			$soort .= "/" . $currenttab2;
 		}
 	}
+	
+	$_SESSION['webmaster'] = 0;
+	$_SESSION['lidgroepen'] = "0";
+	if (in_array($_SESSION['lidid'], $lididwebmasters)) {
+		$_SESSION['webmaster'] = 1;
+	}
+	$_SESSION['lidgroepen'] = db_Lidond("lidgroepen");
+	
 	$soort = str_replace("'", "", $soort);
 		
 	if (strlen($soort) == 0 or in_array($soort, $arrAltijdToegang) === true) {
@@ -382,7 +384,7 @@ function toegang($soort, $melding=1, $log=1) {
 		} else {
 			$mess = sprintf("Je hebt geen toegang tot '%s' op %s.", $soort, db_param("naamwebsite"));
 			if ($log == 1) {
-				db_logboek("add", $mess, 15, 0, $melding);
+				(new cls_Logboek())->add($mess, 15, 0, $melding);
 			} elseif ($melding > 0) {
 				printf("<p class='mededeling'>%s</p>\n", $mess);
 			}
@@ -402,12 +404,13 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 	if ($stap == "mail" and $lidid > 0) {
 
 		if (db_param("mailing_herstellenwachtwoord") == 0) {
-			$content = "<p>Herstellen wachtwoord [%NAAMWEBSITE%]: https://[%URLRESETWW%]</p>\n";
-			$mid = db_mailing("add", 0, 0, "", "Herstellen wachtwoord", 0, db_param("emailwebmaster"), "");
-			db_mailing("update", $mid, "", "message", $content);
-			db_mailing("update", $mid, "", "template", 1);
-			fnQuery($query);
+			$inst_M = new cls_Mailing();
+			$mid = $inst_M->add("Herstellen wachtwoord");
+			$inst_M->update($mid, "from_addr", db_param("emailwebmaster"));
+			$inst_M->update($mid, "message", "<p>Herstellen wachtwoord [%NAAMWEBSITE%]: https://[%URLRESETWW%]</p>\n");
+			$inst_M->update($mid, "template", 1);
 			db_param("mailing_herstellenwachtwoord", "updval", $mid);
+			$inst_M = null;
 		}
 
 		$row = db_logins("rowlogin", "", "", $lidid)[0];
@@ -433,7 +436,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 			$mess = "Er is geen mailing voor het herstellen van het wachtwoord beschikbaar.";
 		}
 		
-		db_logboek("add", $mess, 5, 0, 1, $row->RecordID);
+		(new cls_Logboek())->add($mess, 5, $row->RecordID, 1);
 		
 	} elseif ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['nieuwwachtwoord']) and strlen($_POST['nieuwwachtwoord']) > 0 and $_GET['lidid'] > 0) {
 		
@@ -445,13 +448,10 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		} else {
 			$mess = db_change_password($_POST['nieuwwachtwoord'], "", $_GET['lidid']);
 		}
-		db_logboek("add", $mess, 5, $_GET['lidid'], 1);
+		(new cls_logboek())->add($mess, 5, $_GET['lidid'], 1);
 	
 	} elseif (isset($_GET["lidid"]) and $_GET["lidid"] > 0 and strlen($_GET["key"]) > 5) {
-		
-		$query = sprintf("SELECT Login, ActivatieKey FROM %sAdmin_login WHERE LidID=%d;", TABLE_PREFIX, $_GET["lidid"]);
-		$result = fnQuery($query);
-		$row = $result->fetch();
+		$row = (new cls_Login())->record($_GET['lidid']);
 		
 		$login = $row->Login;
 		$dbkey = $row->ActivatieKey;
@@ -542,11 +542,14 @@ function fnValidatieLogin($lidid, $key, $stap) {
 		$row = db_logins("rowlogin", "", "", $lidid)[0];
 		
 		if (db_param("mailing_validatielogin") == 0) {
+			$inst_M = new cls_Mailing();
 			$content = "<p>Activatie url [%NAAMWEBSITE%]: https://[%URLACTIVATIE%]</p>\n";
-			$mid = db_mailing("add", 0, 0, "", "Validatielink nieuwe login", 0, db_param("emailwebmaster"), "");
-			$query  = sprintf("UPDATE %sMailing SET message=\"%s\", template=1 WHERE MailingID=%d;", TABLE_PREFIX, $content, $mid);
-			fnQuery($query);
+			$mid = $inst_M->add("Validatielink nieuwe login");
+			$inst_M->update($mid, "from_addr", db_param("emailwebmaster"));
+			$inst_M->update($mid, "template", 1);
+			$inst_M->update($mid, "message", $content);
 			db_param("mailing_validatielogin", "updval", $mid);
+			$inst_M = null;
 		}
 	
 		if ($row->LidID > 0) {
@@ -563,7 +566,7 @@ function fnValidatieLogin($lidid, $key, $stap) {
 		$mess = db_logins("valideerlogin", "", "", $lidid);
 	}
 	if (strlen($mess) > 2) {
-		db_logboek("add", "fnValidatieLogin: " . $mess, 5, $lidid, 1);
+		(new cls_Logboek())->add("fnValidatieLogin: " . $mess, 5, $lidid, 1);
 	}
 	
 	return $mess;
@@ -613,6 +616,7 @@ function fnLoginAanvragen($stap="") {
 			}
 			$rows = db_logins("rowlogin", $_POST['email'], "", 0, $xf);
 			if (count($rows) > 0) {
+				$inst_Login = new cls_Login();
 				foreach ($rows as $row) {
 					if (isset($row->Login) and strlen($row->Login) > 5 and (db_param("login_lidnrnodigbijaanvraag") == 0 or $row->Lidnr == $_POST['lidnummer'])) {
 						$lidid = $row->RecordID;
@@ -658,7 +662,7 @@ function fnLoginAanvragen($stap="") {
 						} elseif (db_logins("controlebestaat", "", $_POST['gewenstelogin'], $row->RecordID) > 0) {
 							$mess = sprintf("Login '%s' is al in gebruik.", $_POST['gewenstelogin']);
 						} elseif (db_param("login_lidnrnodigbijaanvraag") == 0 or $row->Lidnr == $_POST['lidnummer'] or in_array($_POST['lidnummer'], $lididtestusers)) {
-							if (db_logins("add", "", $_POST['gewenstelogin'], $row->RecordID, "", $_POST['gewenstwachtwoord'])) {
+							if ($inst_Login->add($row->RecordID, $_POST['gewenstelogin'], $_POST['gewenstwachtwoord'])) {
 								$rl = db_logins("rowlogin", "", "", $row->RecordID);
 								$lidid = $rl[0]->RecordID;
 							}
@@ -667,6 +671,7 @@ function fnLoginAanvragen($stap="") {
 						}
 					}
 				}
+				$inst_Login = null;
 			} else {
 				if ($_POST['lidnummer'] > 0) {
 					$mess = sprintf("De combinatie van lidnummer %d en e-mailadres '%s' is in de database onbekend.", $_POST['lidnummer'], $_POST['email']);	
@@ -675,7 +680,7 @@ function fnLoginAanvragen($stap="") {
 				}
 			}
 		}
-		db_logboek("add", $mess, 5, 0, 1, $lidid);
+		(new cls_Logboek())->add($mess, 5, $lidid, 1);
 		printf("<p><a href='%s' target='_top'>Klik hier om verder te gaan.</a></p>\n", BASISURL);
 		
 	} else {
@@ -719,6 +724,7 @@ function fnLoginAanvragen($stap="") {
 function fnOpvragenLidnr($stap) {
 	
 	if ($stap == "mail") {
+		$lidid = 0;
 		if (!isValidMailAddress($_POST['emailvoorlidnr'], 0)) {
 			$mess = sprintf("Je hebt geen geldig e-mailadres (%s) opgegeven.", $_POST['emailvoorlidnr']);
 		} elseif (db_param("mailing_lidnr") > 0) {
@@ -731,6 +737,7 @@ function fnOpvragenLidnr($stap) {
 						$mailing->xtranum = $row->Lidnr;
 						if ($mailing->send($row->RecordID) > 0) {
 							$mess .= sprintf("Een e-mail met het lidnummer van %s is verzonden. ", $row->Naam);
+							$lidid = $row->RecordID;
 						} else {
 							$mess .= sprintf("Fout bij het versturen van het lidnummer aan %s. Probeer het later nogmaals of neem contact met de webmaster op. ", $row->Naam);
 						}
@@ -745,7 +752,7 @@ function fnOpvragenLidnr($stap) {
 		} else {
 			$mess = "Onbekende fout";
 		}
-		db_logboek("add", $mess, 5, 0, 1);
+		(new cls_Logboek())->add($mess, 5, $lidid, 1);
 		printf("<p><a href='%s' target='_top'>Klik hier om verder te gaan.</a></p>\n", BASISURL);
 		
 	} elseif (db_param("mailing_lidnr") > 0) {
@@ -870,7 +877,7 @@ function addtp($tp, $afdnr=0) {
 		if ($_SESSION['webmaster'] == 1) {
 			$query = sprintf("SELECT COUNT(*) FROM %sAdmin_access WHERE Tabpage=\"%s\";", TABLE_PREFIX, str_replace("'", "", $tp));
 			if (db_scalar($query) == 0) {
-				db_authorisation("add", 0, $tp);
+				(new cls_Authorisation())->add($tp);
 			}
 		}
 	}

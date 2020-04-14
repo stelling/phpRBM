@@ -23,14 +23,14 @@ if (isset($_SESSION['lidid'])) {
 	// Sessie bestaat al
 } elseif (session_start() === FALSE or strlen(session_id()) == 0) {
 	$mess = "De sessie kan niet gestart worden, hierdoor kan er op dit moment niet ingelogd worden.";
-	db_logboek("add", $mess, 1, 0, 1);
+	(new cls_Logboek())->add($mess, 1, 0, 1);
 }
 
 if ((isset($_SESSION['webmaster']) and $_SESSION['webmaster'] == 1) or strpos(BASISURL, "telling.nl") > 0) {
 	error_reporting(E_ALL);
 } else {
 	error_reporting(0);
-	error_reporting(E_ALL);
+//	error_reporting(E_ALL);
 }
 
 if (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
@@ -105,6 +105,10 @@ if (strlen(db_param("zs_muteerbarememos")) > 0) {
 	$muteerbarememos = array();
 }
 
+if ($_SESSION['lidid'] > 0) {
+	(new cls_Login())->setlastactivity();
+}
+
 $fileverinfo = 'templates/verenigingsinfo.html';
 
 if (isset($_GET['tp']) and strlen($_GET['tp']) > 1) {
@@ -140,9 +144,6 @@ if (!isset($currenttab2) or strlen($currenttab2) == 0) {
 		}
 	}
 }
-
-$query = "SET lc_time_names='nl_NL';";
-fnQuery($query);
 
 function HTMLheader($breed=0) {
 	global $currenttab, $currenttab2;
@@ -736,7 +737,7 @@ function debug($tekst, $alleenwm=1, $alert=0, $logact=0) {
 		}
 	}
 	if ($logact == 1) {
-		db_logboek("add", "Debug: " . $tekst, 99);
+		(new cls_Logboek())->add("Debug: " . $tekst, 99);
 	}
 } # debug
 

@@ -22,29 +22,21 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 	db_logins("unlock", "", "", $_GET['lidid']);
 	printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $currenttab);
 } elseif (isset($_POST['tabpage_nw']) and strlen($_POST['tabpage_nw']) > 0 and $_GET['tp'] == "Autorisatie") {
-	db_authorisation("add", 0, $_POST['tabpage_nw']);
+	(new cls_Authorisation())->add($_POST['tabpage_nw']);
 } elseif ($_GET['op'] == "deleteautorisatie" and $_GET['tp'] == "Autorisatie") {
 	db_authorisation("delete", $_GET['recid']);
 	printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $currenttab);
 } elseif ($_GET['op'] == "changeaccess" and $_GET['tp'] == "Autorisatie") {
 	foreach(db_authorisation("lijst") as $row) {
 		$vn = sprintf("toegang%d", $row->RecordID);
-		if (isset($_POST[$vn]) and $_POST[$vn] != $row->Toegang) {
-			$query = sprintf("UPDATE %1\$sAdmin_access SET Toegang=%2\$d, Gewijzigd=SYSDATE() WHERE RecordID=%3\$d AND Toegang<>%2\$d;", TABLE_PREFIX, $_POST[$vn], $row->RecordID);
-			$result = fnQuery($query);
-			if ($result > 0) {
-				if ($_POST[$vn] == -1) {
-					$mess = sprintf("Totgang tot '%s' is alleen voor webmasters beschibaar gemaakt.", $row->Tabpage);
-				} else {
-					$mess = sprintf("Toegang '%s' is naar groep '%s' aangepast.", $row->Tabpage, db_naam_onderdeel($_POST[$vn], "Iedereen"));
-				}
-				db_logboek("add", $mess, 5);
-			}
+		if (isset($_POST[$vn])) {
+			(new cls_Authorisation())->update($row->RecordID, "Toegang", $_POST[$vn]);
 		}
 	}
 } elseif ($_GET['op'] == "uploaddata") {
+	$inst_lb = new cls_Logboek();
 	if (isset($_FILES['SQLupload']['tmp_name']) and strlen($_FILES['SQLupload']['tmp_name']) > 3) {
-		fnQuery("SET CHARACTER SET utf8;");
+		(new cls_db_base())->setcharset();
 		$queries = file_get_contents($_FILES['SQLupload']["tmp_name"]);
 		if ($queries !== false) {
 			$sp = strpos($queries, "DROP");
@@ -57,29 +49,29 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 				}
 			}
 			$mess = "Bestand is succesvol ge-upload.";
-			db_logboek("add", $mess, 9, 0, 1);
+			$inst_lb->add($mess, 9, 0, 1);
+			$mess = "";
 			if (strpos($queries, TABLE_PREFIX) === false) {
 				$mess = sprintf("In het upload bestand komt de juiste table name prefix (%s) niet voor. Dit bestand wordt niet verwerkt.", TABLE_PREFIX);
-				db_logboek("add", $mess, 9, 0, 1);
-				
 			} elseif (strpos($queries, TABLE_PREFIX . "Lid") === FALSE and db_lid("aantal") < 5) {
 				$mess = sprintf("De verplichte tabel '%sLid' zit niet in deze upload. Dit bestand wordt niet verwerkt.", TABLE_PREFIX);
-				db_logboek("add", $mess, 9, 0, 1);
 			} elseif (strpos($queries, TABLE_PREFIX . "Lidond") === FALSE and db_lidond("aantal") < 5) {
 				$mess = sprintf("De verplichte tabel '%sLidond' zit niet in deze upload. Dit bestand wordt niet verwerkt.", TABLE_PREFIX);
-				db_logboek("add", $mess, 9, 0, 1);
-			} elseif (fnQuery($queries) !== true) {
+			} elseif ((new cls_db_base())->execsql($queries) !== true) {
 				$mess = "Bestand is in de database verwerkt.";
-				db_logboek("add", $mess, 9, 0, 1);
 				db_onderhoud(1);
 				fnMaatwerkNaUpload();
 				printf("<script>setTimeout(\"location.href='%s';\", 30000);</script>\n", $_SERVER['PHP_SELF']);
 			}
+			if (strlen($mess) > 0) {
+				$inst_lb->add($mess, 9, 0, 1);
+			}
 		}
 	} else {
 		$mess = sprintf("Er is iets mis gegaan tijdens het uploaden. Error: %s. Klik <a href='http://nl3.php.net/manual/en/features.file-upload.errors.php'>hier</a> voor uitleg van de code.", $_FILES['SQLupload']['error']);
-		db_logboek("add", $mess, 2, 0, 1);
+		$inst_lb->add($mess, 2, 0, 1);
 	}
+	$inst_lb = null;
 } elseif ($_GET['op'] == "afmeldenwijz" and $_GET['tp'] == "Downloaden wijzigingen") {
 	$mess = db_interface("afmelden");
 	printf("<p class='mededeling'>%s</p>\n", $mess);
@@ -209,8 +201,8 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	echo("</div>  <!-- Einde dbonderhoud -->\n");
 	
 	$query = "SELECT Version() AS Version;";
-	$result = fnQuery($query);
-	printf("<div id='versies'>PHP: %s / Database: %s</div>  <!-- Einde versies -->\n", substr(phpversion(), 0, 6), $result->fetchColumn());
+	$vdb = (new cls_db_base())->versiedb();
+	printf("<div id='versies'>PHP: %s / Database: %s</div>  <!-- Einde versies -->\n", substr(phpversion(), 0, 6), $vdb);
 	db_param("versiephp", "updval", substr(phpversion(), 0, 6));
 	
 } elseif ($currenttab == "Logboek" and toegang($currenttab, 1, 1)) {
@@ -484,7 +476,7 @@ function fnInstellingen() {
 					}
 				}
 				if (strlen($mess) > 0) {
-					db_logboek("add", $mess, 13, 0, 1);
+					(new cls_Logboek())->add($mess, 13, 0, 1);
 				}
 				if (strlen($arrParam[$row->Naam]) > 2) {
 					db_param($row->Naam, "updval", $_POST[$pvn]);
@@ -560,13 +552,17 @@ function fnInstellingen() {
 
 function fnStamgegevens() {
 		
-	printf("<p>%s</p>", fnDisplayTable(db_diploma("basislijst"), "", "Basislijst Diploma's", 0, "", "", "lijst", ""));
+	$rows = (new cls_db_base("Diploma"))->basislijst();
+	printf("<p>%s</p>", fnDisplayTable($rows, "", "Basislijst Diploma's", 0, "", "", "lijst", ""));
 	
-	printf("<p>%s</p>", fnDisplayTable(db_functie("basislijst"), "", "Basislijst Functies", 0, "", "", "lijst", ""));
+	$rows = (new cls_db_base("Functie"))->basislijst();
+	printf("<p>%s</p>", fnDisplayTable($rows, "", "Basislijst Functies", 0, "", "", "lijst", ""));
 	
-	printf("<p>%s</p>", fnDisplayTable(db_groep("basislijst"), "", "Basislijst Groepen", 0, "", "", "lijst", ""));
+	$rows = (new cls_db_base("Groep"))->basislijst();
+	printf("<p>%s</p>", fnDisplayTable($rows, "", "Basislijst Groepen", 0, "", "", "lijst", ""));
 	
-	printf("<p>%s</p>", fnDisplayTable(db_onderdeel("basislijst"), "", "Basislijst Onderdelen", 0, "", "", "lijst", ""));
+	$rows = (new cls_db_base("Onderdl"))->basislijst();
+	printf("<p>%s</p>", fnDisplayTable($rows, "", "Basislijst Onderdelen", 0, "", "", "lijst", ""));
 	
 } # fnStamgegevens
 
