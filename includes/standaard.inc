@@ -209,7 +209,7 @@ function HTMLheader($breed=0) {
 				}
 			}
 			echo($htmlhelp);
-		} elseif ($_SESSION['aantallogin'] > 0) {
+		} elseif ((new cls_Login())->aantal() > 0) {
 			echo("<form name='Login' action='/index.php' method='post'>\n");
 			echo("\nLogin: <input type='text' name='username' size=12>\n");
 			echo("&nbsp;Wachtwoord: <input type='password' name='password' size=12>\n");
@@ -544,40 +544,42 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 		foreach($rows as $row) {
 			if ($dispkop == 1) {
 				$hv = "<tr>";
+				$kn = 0;
 				foreach($row as $key => $value) {
 					if (strstr("chk, dte, dtt, dtl, dts, boo, int, cur, eml, num, mrg, pwd", substr($key, 0, 3)) !== false) {
 						$hv .= sprintf("<th>%s</th>", str_replace("_", " ", substr($key, 3)));
 					} elseif (startwith($key, "lnk")) {
 						if (strlen($link) > 1) {
 							$hv .= "<th>&nbsp;</th>";
-							$ktot[] = "geen";
+							$ktot[$kn] = "geen";
 						}
 					} elseif (startwith($key, "llk")) {
 						if (strlen($link_lk) > 1) {
 							$hv .= sprintf("<th colspan=%d>&nbsp;</th>", substr_count($link_lk, "<td")+1);
-							$ktot[] = "geen";
+							$ktot[$kn] = "geen";
 						}
 					} elseif (startwith($key, "lek")) {
 						if (strlen($xtra_kolom) > 1) {
 							$hv .= sprintf("<th colspan=%d>&nbsp;</th>", substr_count($link_lk, "<td")+1);
-							$ktot[] = "geen";
+							$ktot[$kn] = "geen";
 						}
 					} elseif (substr($key, 0, 2) != "nd") {
 						$hv .= sprintf("<th>%s</th>", str_replace("_", " ", $key));
 					}
 					
 					if (startwith($key, "cur")) {
-						$ktot[] = 0.00;
+						$ktot[$kn] = 0.00;
 					} elseif (substr($key, 0, 3) == "int") {
-						$ktot[] = 0;
+						$ktot[$kn] = 0;
 					} elseif ($key == "RecordID" or $key == "ndRecordID") {
-						$ktot[] = 0;
+						$ktot[$kn] = 0;
 					} elseif (substr($key, 0, 2) != "nd" and substr($key, 0, 3) != "lnk" and substr($key, 0, 3) != "llk") {
-						$ktot[] = "geen";
+						$ktot[$kn] = "geen";
 					}
 					if (strlen($kol_pk) == 0 and ($key == "RecordID" or $key == "ndRecordID" or startwith($key, "lnk") or startwith($key, "llk"))) {
 						$kol_pk = $key;
 					}
+					$kn++;
 				}
 				if (strlen($th) > 1) {
 					$ret .= sprintf("<tr><th colspan=%d class='tabelkop'>%s</th></tr>\n", count($ktot), $th);
