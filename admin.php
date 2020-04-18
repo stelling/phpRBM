@@ -5,7 +5,7 @@ if ((!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) and isset($_COOKIE['
 	fnAuthenticatie(0);
 }
 
-if (!isset($_GET['op']) or (db_lid("aantal") == 0 and toegang($_GET['tp'], 0, 1) === false)) {
+if (!isset($_GET['op']) or ((new cls_lid())->aantal() == 0 and toegang($_GET['tp'], 0, 1) === false)) {
 	$_GET['op'] = "";
 }
 
@@ -15,19 +15,20 @@ if ($currenttab == "Logboek" or $currenttab == "Stamgegevens") {
 	HTMLheader(0);
 }
 
+$inst_login = new cls_Login();
 if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
-	db_logins("delete", "", "", $_GET['lidid']);
+	$inst_login->delete($_GET['lidid']);
 	printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $currenttab);
 } elseif ($_GET['op'] == "unlocklogin" and $_GET['tp'] == "Beheer logins") {
-	db_logins("unlock", "", "", $_GET['lidid']);
+	$inst_login->update($_GET['lidid'], "FouteLogin", 0);
 	printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $currenttab);
 } elseif (isset($_POST['tabpage_nw']) and strlen($_POST['tabpage_nw']) > 0 and $_GET['tp'] == "Autorisatie") {
 	(new cls_Authorisation())->add($_POST['tabpage_nw']);
 } elseif ($_GET['op'] == "deleteautorisatie" and $_GET['tp'] == "Autorisatie") {
-	db_authorisation("delete", $_GET['recid']);
+	(new cls_Authorisation())->delete($_GET['recid']);
 	printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $currenttab);
 } elseif ($_GET['op'] == "changeaccess" and $_GET['tp'] == "Autorisatie") {
-	foreach(db_authorisation("lijst") as $row) {
+	foreach((new cls_Authorisation())->lijst() as $row) {
 		$vn = sprintf("toegang%d", $row->RecordID);
 		if (isset($_POST[$vn])) {
 			(new cls_Authorisation())->update($row->RecordID, "Toegang", $_POST[$vn]);
@@ -53,9 +54,9 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 			$mess = "";
 			if (strpos($queries, TABLE_PREFIX) === false) {
 				$mess = sprintf("In het upload bestand komt de juiste table name prefix (%s) niet voor. Dit bestand wordt niet verwerkt.", TABLE_PREFIX);
-			} elseif (strpos($queries, TABLE_PREFIX . "Lid") === FALSE and db_lid("aantal") < 5) {
+			} elseif (strpos($queries, TABLE_PREFIX . "Lid") === FALSE and (new cls_Lid())->aantal() < 5) {
 				$mess = sprintf("De verplichte tabel '%sLid' zit niet in deze upload. Dit bestand wordt niet verwerkt.", TABLE_PREFIX);
-			} elseif (strpos($queries, TABLE_PREFIX . "Lidond") === FALSE and db_lidond("aantal") < 5) {
+			} elseif (strpos($queries, TABLE_PREFIX . "Lidond") === FALSE and (new cls_Lidond())->aantal() < 5) {
 				$mess = sprintf("De verplichte tabel '%sLidond' zit niet in deze upload. Dit bestand wordt niet verwerkt.", TABLE_PREFIX);
 			} elseif ((new cls_db_base())->execsql($queries) !== true) {
 				$mess = "Bestand is in de database verwerkt.";
@@ -73,8 +74,7 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 	}
 	$inst_lb = null;
 } elseif ($_GET['op'] == "afmeldenwijz" and $_GET['tp'] == "Downloaden wijzigingen") {
-	$mess = db_interface("afmelden");
-	printf("<p class='mededeling'>%s</p>\n", $mess);
+	(new cls_interface())->afmelden();
 } elseif ($_GET['op'] == "backup") {
 	db_backup();
 } elseif ($_GET['op'] == "FreeBackupFiles") {
@@ -183,7 +183,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=backup\"' value='Backup'>&nbsp;Maak een backup van de database. Laatste backup is op %s gemaakt.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), db_param("laatstebackup"));
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=FreeBackupFiles\"' value='Vrijgeven backup-bestanden'>&nbsp;Geef de backup-bestanden vrij door middel van een chmod 0755.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	if (db_param("logboek_bewaartijd") > 0) {
-		printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=logboekopschonen\"' value='Logboek opschonen'>&nbsp;Verwijder alle records uit het logboek, die ouder dan %d maanden zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $bewaartijdlogging);
+		printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=logboekopschonen\"' value='Logboek opschonen'>&nbsp;Verwijder alle records uit het logboek, die ouder dan %d maanden zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), db_param("logboek_bewaartijd"));
 	}
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=loggingdebugopschonen\"' value='Eigen logging voor debugging opschonen'>&nbsp;Verwijder alle records uit het logboek, die onder jou account voor debugging zijn toegevoegd.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=evenementenopschonen\"' value='Evenementen opschonen'>&nbsp;Opschonen verwijderde evenementen, die geen deelnemers meer hebben.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
@@ -319,6 +319,8 @@ function fnBeheerLogins() {
 		$ord .= " DESC";
 	}
 	
+	$inst_login = new cls_Login();
+	
 	db_logins("uitloggen");
 	$rows = db_logins("lijst", "", "", 0, $w, "", $ord);
 		
@@ -351,11 +353,13 @@ function fnBeheerLogins() {
 	echo(fnDisplayTable($rows, "", "", 0, $lnk_lk, "", "lijst", $lnk_ek));
 	
 	// Nieuwe en gewijzigde logins in de tabel interface zetten en de tabel 'Lid' bijwerken.
-	$xf = "IFNULL(L.LoginWebsite, '') <> IFNULL(Login.Login, '')";
-	$rows = db_logins("lijst", "", "", 0, $xf);
-	foreach ($rows as $row) {
-		db_lid("update", "", $row->lnkNummer, "", "LoginWebsite", $row->Login);
+	$inst_lid = new cls_Lid();
+	$f = "IFNULL(L.LoginWebsite, '') <> IFNULL(Login.Login, '')";
+	foreach ($inst_login->lijst($f) as $row) {
+		$inst_lid->update($row->lnkNummer, "LoginWebsite", $row->Login);
 	}
+	$inst_lid = null;
+	$inst_login = null;
 }  #  fnBeheerLogins
 
 function fnInstellingen() {
@@ -366,7 +370,7 @@ function fnInstellingen() {
 	$arrParam['db_folderbackup'] = "In welke folder moet de backup worden geplaatst?";
 	$arrParam['emailwebmaster'] = "Het e-mailadres van de webmaster.";
 	$arrParam['kaderoverzichtmetfoto'] = "Moeten op het kaderoverzicht pasfoto's getoond worden?";
-	$arrParam['toonpasfotoindiennietingelogd'] = "Mag de bezoeker een pasfoto worden getoond als deze niet ingelogd?";
+	$arrParam['toonpasfotoindiennietingelogd'] = "Mogen pasfoto's zichtbaar voor bezoekers (niet ingelogd) zijn?";
 	$arrParam['meisjesnaamtonen'] = "Moeten de namen van leden ook de meisjesnaam bevatten?";
 	$arrParam['WoonadresAnderenTonen'] = "Moet het woonadres van een lid ook aan andere leden worden getoond?";
 	$arrParam['login_lidnrnodigbijaanvraag'] = "Moet een lid zijn of haar lidnummer opgeven als er een login aangevraagd wordt?";
