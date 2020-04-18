@@ -7,7 +7,7 @@ if (!isset($_GET['tp'])) {
 require('./includes/standaard.inc');
 
 if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
-	$mess = db_logins("uitloggen", "", "", $_SESSION['lidid']);
+	(new cls_login())->uitloggen($_SESSION['lidid']);
 	setcookie("username", "", time()-60);
 	setcookie("password", "", time()-60);
 	$_SESSION['lidid'] = 0;
@@ -41,12 +41,9 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 	(new cls_Login())->setingelogd($_SESSION['lidid']);
 }
 
-if ($_SESSION['aantallid'] == 0) {
-	$_SESSION['aantallid'] = db_lid("aantal");
-	if ($_SESSION['aantallid'] == 0) {
-		echo("<script>alert('Voordat deze website gebruikt kan worden moeten er eerst gegevens uit de Access-database ge-upload worden.');
-			location.href='./admin.php?tp=Uploaden+data';</script>\n");
-	}
+if ((new cls_Lid())->aantal() == 0) {
+	echo("<script>alert('Voordat deze website gebruikt kan worden moeten er eerst gegevens uit de Access-database ge-upload worden.');
+		location.href='./admin.php?tp=Uploaden+data';</script>\n");
 }
 
 if (isset($_GET['op']) and $_GET['op'] == "exportins") {

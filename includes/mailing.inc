@@ -326,7 +326,7 @@ class Mailing {
 		$sql = sprintf("SELECT L.Burgerservicenummer FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "BSN", 'SQL' => $sql);
 
-		if ($_SESSION['aantalrekeningen'] > 0) {
+		if ((new cls_Rekening())->aantal() > 0) {
 			$sql = sprintf("SELECT RK.Nummer FROM %sRekening AS RK WHERE RK.Bedrag > 0 AND RK.Bedrag > RK.Betaald AND %s;", TABLE_PREFIX, "RK.Lid=%d");
 			$this->MergeField[]=array('Naam' => "OpenstaandeRekeningen", 'SQL' => $sql);
 
@@ -499,7 +499,7 @@ class Mailing {
 				$rs = sprintf("<a href='index.php?tp=%s&amp;op=sentoutbox&amp;MailingHistID=%%d'><img src='images/sendmail.png' alt='Sent e-mail' title='Opnieuw versturen'></a>", urlencode($_GET['tp']));
 			}
 			if ($filter == "Outbox") {
-				$rows = db_mailing_hist("outbox");
+				$rows = db_mailing_hist("outbox")->fetchAll();
 				if (count($rows) > 0) {
 					echo(fnDisplayTable($rows, $ld, "", 0, $rs));
 					if (db_param("mailing_direct_verzenden") == 0 and db_mailing_hist("aantaloutbox") > 1) {
@@ -513,7 +513,8 @@ class Mailing {
 					echo("<p>De outbox is leeg.</p>\n");
 				}
 			} else {
-				echo(fnDisplayTable(db_mailing_hist("lijst"), $ld, "", 0, $rs));
+				$rows = db_mailing_hist("lijst")->fetchAll();
+				echo(fnDisplayTable($rows, $ld, "", 0, $rs));
 			}
 			
 		} else {
@@ -1005,7 +1006,7 @@ class Mailing {
 			if (strlen($_POST['selectie_vanliddatum']) == 10 and $_POST['selectie_vanliddatum'] > $inst_lm->minliddatum()) {
 				$w .= sprintf(" AND LM.LIDDATUM >= '%s'", $_POST['selectie_vanliddatum']);
 			}
-			if (strlen($_POST['selectie_temliddatum']) == 10 and $_POST['selectie_temliddatum'] < $inst_lm(maxliddatum)) {
+			if (strlen($_POST['selectie_temliddatum']) == 10 and $_POST['selectie_temliddatum'] < $inst_lm->maxliddatum()) {
 				$w .= sprintf(" AND LM.LIDDATUM <= '%s'", $_POST['selectie_temliddatum']);
 			}
 			
@@ -1172,13 +1173,12 @@ class Mailing {
 			$urlresetww = sprintf("%s/index.php?tp=Herstellen+wachtwoord&lidid=%d&key=%s", $_SERVER["HTTP_HOST"], $lidid, $nk);
 			$this->merged_message = str_replace("[%URLRESETWW%]", $urlresetww, $this->merged_message);
 			
-		} elseif ($this->mid == db_param("mailing_bevestigingopzegging")) {
-			if ($this->xtranum > 0) {
-				$this->merged_message = str_ireplace("[%Lidnummer%]", $this->xtranum, $this->merged_message);
-				$row = db_lidmaatschap("record", 0, "", 0, "", $this->xtranum);
-				if (isset($row->OpgezegdPer)) {
-					$this->merged_message = str_ireplace("[%OpgezegdPer%]", $row->OpgezegdPer, $this->merged_message);
-				}
+		} elseif ($this->mid == db_param("mailing_bevestigingopzegging") and $this->xtranum > 0) {
+			$this->merged_message = str_ireplace("[%Lidnummer%]", $this->xtranum, $this->merged_message);
+			$f = sprintf("Lidnr=%d", $this->xtranum);
+			$row = (new cls_Lidmaatschap())->basislijst($f)->fetch;
+			if (isset($row->Opgezegd)) {
+				$this->merged_message = str_ireplace("[%OpgezegdPer%]", stftime("%e %B %Y",strtotime($row->Opgezegd)), $this->merged_message);
 			}
 			
 		} elseif ($this->mid == db_param("mailing_bewakinginschrijving")) {
@@ -1520,12 +1520,6 @@ function fnRekeningenMailen($op) {
 			if (isset($_POST['vanafnaam'])) {
 				db_param("mailing_rekening_from_naam", "updval", $_POST['vanafnaam']);
 			}
-			
-			if (isset($_POST['mailing_rekening_nulregelsweglaten']) and $_POST['mailing_rekening_nulregelsweglaten'] == 1) {
-				db_param("mailing_rekening_nulregelsweglaten", "updval", 1);
-			} else {
-				db_param("mailing_rekening_nulregelsweglaten", "updval", 0);
-			}
 						
 			if (isset($_POST['mailing_rekening_regelnrsweglaten']) and $_POST['mailing_rekening_regelnrsweglaten'] == 1) {
 				db_param("mailing_rekening_regelnrsweglaten", "updval", 1);
@@ -1646,7 +1640,6 @@ function fnRekeningenMailen($op) {
 		
 		printf("<tr><td class='label'>Vanaf e-mailadres<td colspan=3><input name='vanafadres' type='email' value='%s' size=50></td></tr>\n", db_param("mailing_rekening_from_adres"));
 		printf("<tr><td class='label'>Vanaf naam<td colspan=3><input name='vanafnaam' type='text' value='%s' size=50></td></tr>\n", db_param("mailing_rekening_from_naam"));
-		printf("<tr><td class='label'>Nulregels weglaten<td colspan=3><input name='mailing_rekening_nulregelsweglaten' type='checkbox'%s value=1></td></tr>\n", checked(db_param("mailing_rekening_nulregelsweglaten")));
 		printf("<tr><td class='label'>Regelnummers weglaten<td colspan=3><input name='mailing_rekening_regelnrsweglaten' type='checkbox'%s value=1></td></tr>\n", checked(db_param("mailing_rekening_regelnrsweglaten")));
 		echo("</table>\n");
 		

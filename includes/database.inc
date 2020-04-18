@@ -780,10 +780,11 @@ class cls_Lid extends cls_db_base {
 		$this->lidid = db_nieuwrecordID($this->table);
 		$query = sprintf("INSERT INTO %sLid (RecordID, Nummer, Achternaam, Geslacht, Ingevoerd) VALUES (%d, %d, \"%s\", '%s', CURDATE());", TABLE_PREFIX, $this->lidid, $this->lidid, $p_achternaam, $p_geslacht);
 		if ($this->execsql($query) > 0) {
-			db_interface("add", $query, $this->lidid);
 			$this->mess = sprintf("Kloslid %d (%s) is toegevoegd", $this->lidid, $p_achternaam);
+			$this->Log();
+			db_interface("add", $query, $this->lidid);
 		}
-		$this->Log();
+		return $this->lidid;
 	}
 	
 	public function update($p_lidid, $p_kolom, $p_waarde) {
@@ -1008,7 +1009,8 @@ class cls_Lidmaatschap extends cls_db_base {
 		} else {
 			$query = sprintf("SELECT LM.Lid FROM %sLidmaatschap AS LM WHERE LM.RecordID=%d;", TABLE_PREFIX, $p_lmid);
 		}
-		return db_scalar($query);
+		$this->lidid = db_scalar($query);
+		return $this->lidid;
 	}
 	
 	public function soortlid($p_lidid) {
@@ -1072,14 +1074,14 @@ class cls_Lidmaatschap extends cls_db_base {
 	public function add($p_lidid) {
 		$this->lidid = $p_lidid;
 		$lidnr = $this->maxlidnr() + 1;
-		$nrid = db_nieuwrecordID("Lidmaatschap");
-		$query = sprintf("INSERT INTO %sLidmaatschap (RecordID, Lid, Lidnr, LIDDATUM, Ingevoerd) VALUES (%d, %d, %d, CURDATE(), CURDATE());", TABLE_PREFIX, $nrid, $p_lidid, $lidnr);
+		$nrid = db_nieuwrecordID($this->table);
+		$query = sprintf("INSERT INTO %s (RecordID, Lid, Lidnr, LIDDATUM, Ingevoerd) VALUES (%d, %d, %d, CURDATE(), CURDATE());", $this->table, $nrid, $p_lidid, $lidnr);
 		if ($this->execsql($query) > 0) {
 			$this->mess = sprintf("Lidmaatschap met lidnummer %d toegevoegd.", $lidnr);
 			
 			$this->Interface($query);
 		}
-		$this->Log();
+		$this->Log($nrid);
 	}
 	
 	public function update($p_lmid, $p_kolom, $p_waarde) {
@@ -1112,14 +1114,14 @@ class cls_Lidmaatschap extends cls_db_base {
 			if ($this->execsql($query) > 0) {
 				$this->mess = sprintf("In lidmaatschap is de kolom '%s' is in %s gewijzigd.", $p_kolom, $p_waarde);
 				
-				if ($p_kolom == "LIDDATUM" or $p_kolom == "Opgezegd") {
+				if ($p_waarde != "NULL" and ($p_kolom == "LIDDATUM" or $p_kolom == "Opgezegd")) {
 					$p_waarde = "#" . substr($p_waarde, 1, -1) . "#";
 				}
 				$query = sprintf("UPDATE Lidmaatschap SET [%s]=%s, Gewijzigd=SYSDATE() WHERE RecordID=%d;", $p_kolom, $p_waarde, $p_lmid);
 				$this->Interface($query);
 			}
-			$this->Log();
 		}
+		$this->Log($p_lmid);
 	}
 	
 	public function opzegging($p_lidid, $p_per) {
@@ -1804,6 +1806,28 @@ function db_Functie($actie) {
 	
 } # db_functie
 
+class cls_Functie extends cls_db_base {
+	
+	function __construct() {
+		$this->table = TABLE_PREFIX . "Functie";
+	}
+	
+	public function selectlijst($p_soort) {
+		
+		if ($p_soort == "A") {
+			$f = "F.Afdelingsfunctie=1";
+		} elseif ($p_soort == "L") {
+			$f = "F.Ledenadministratiefunctie=1";
+		} else {
+			$f = "";
+		}
+		
+		$query = sprintf("SELECT F.Nummer, F.Omschrijv FROM %s AS F WHERE %s ORDER BY F.Omschrijv;", $this->table, $f);
+		return $this->execsql($query)->fetchAll();
+	}
+	
+}  # cls_Functie
+
 function db_Lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0, $loid=0, $kolnaam="", $waarde="") {
 	global $selectnaam, $selectzoeknaam, $selectgeslacht, $selecttelefoon, $selectemail, $selectleeftijd, $fromlidond, $wherelidond, $selectlidnr, $fdaccess, $lididtestusers;
 	
@@ -1936,7 +1960,7 @@ function db_Lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0, $loid=0,
 		
 	} elseif ($actie == "editlijst") {
 		$filter .= " AND O.GekoppeldAanQuery=0";
-		$query = sprintf("SELECT LO.RecordID, O.Kode, O.Naam, LO.OPMERK, LO.Vanaf, LO.Opgezegd, LO.OnderdeelID FROM %s WHERE %s ORDER BY LO.Opgezegd;", $fromlidond, $filter);
+		$query = sprintf("SELECT LO.RecordID, O.Kode, O.Naam, LO.OPMERK, LO.Vanaf, LO.Opgezegd, LO.OnderdeelID, LO.Functie FROM %s WHERE %s ORDER BY LO.Opgezegd;", $fromlidond, $filter);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
@@ -2124,6 +2148,7 @@ class cls_Lidond extends cls_db_base {
 		$this->ondid = $p_ondid;
 		$this->lidid = $p_lidid;
 		$this->vulvars();
+		$nrid = 0;
 		
 		$query = sprintf("SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.Lid=%d AND LO.OnderdeelID=%d AND LO.Vanaf=CURDATE();", TABLE_PREFIX, $this->lidid, $this->ondid);
 		if (strlen($this->ondnaam) == 0) {
@@ -2147,20 +2172,15 @@ class cls_Lidond extends cls_db_base {
 				if (in_array($this->lidid, $lididtestusers) == false) {
 					db_interface("add", $query, $this->lidid);
 				}
-			} else {
-				$this->mess = sprintf("Er ging iets mis. Is niet aan '%s' toegevoegd.", $this->ondnaam);
-				$this->ta = 99;
-				$this->tm = 1;
 			}
 		}
 		
-		$this->log();
+		$this->log($nrid);
 	}
 	
 	public function update($p_loid, $p_kolom, $p_waarde) {
 		
 		$this->loid = $p_loid;
-		$sql = "";
 		$this->vulvars();
 		
 		if ($p_kolom == "Vanaf" and strlen($p_waarde) < 5) {
@@ -2179,7 +2199,7 @@ class cls_Lidond extends cls_db_base {
 				$xw = sprintf("AND IFNULL(`%s`, '')<>%s", $p_kolom, $p_waarde);
 			}
 			$query = sprintf("UPDATE %sLidond SET %s=%s, Gewijzigd=SYSDATE() WHERE RecordID=%d %s;", TABLE_PREFIX, $p_kolom, $p_waarde, $this->loid, $xw);
-			if (fnQuery($query) > 0) {
+			if ($this->execsql($query) > 0) {
 				$this->mess = sprintf("Bij %s is kolom '%s' in %s gewijzigd.", $this->ondnaam, $p_kolom, $p_waarde);
 				
 				if (($p_kolom == "Vanaf" or $p_kolom == "Opgezegd") and strlen($p_waarde) > 5) {
@@ -5340,6 +5360,22 @@ function db_onderhoud($type=9) {
 	$col = "RecordID";
 	if (bestaatkolom($tab, $col) == false) {
 		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '0' FIRST;", $tab, $col);
+		fnQuery($query, 2);
+	}
+	
+	// Toevoegen kolom 'Opmerking' aan de tabel 'Lid'. Deze code kan na 1 mei 2021 worden verwijderd.
+	$tab = TABLE_PREFIX . "Lid";
+	$col = "Opmerking";
+	if (bestaatkolom($tab, $col) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` VARCHAR(60) NULL AFTER `Beroep`;", $tab, $col);
+		fnQuery($query, 2);
+	}
+	
+	// Toevoegen kolom 'Opmerking' aan de tabel 'Lid'. Deze code kan na 1 mei 2021 worden verwijderd.
+	$tab = TABLE_PREFIX . "Evenement_Deelnemer";
+	$col = "Aantal";
+	if (bestaatkolom($tab, $col) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '1' AFTER `Status`;", $tab, $col);
 		fnQuery($query, 2);
 	}
 	
