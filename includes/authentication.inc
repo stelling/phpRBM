@@ -78,7 +78,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			addtp("Zelfservice/Diploma's");
 		}
 		addtp("Zelfservice/Pasfoto");
-		if (count($muteerbarememos) > 0) { 
+		if (strlen(db_param("zs_muteerbarememos")) > 0) {
 			addtp("Zelfservice/Bijzonderheden");
 		}
 		if (count(db_bewaking_blok("openblokken")) > 0 and $gs != "B") {
@@ -112,7 +112,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (count(db_lid("ledenlijst", "(LM.Lidnr IS NULL)")) > 0) {
 			addtp("Ledenlijst/Klosleden");
 		}
-		addtp("Ledenlijst/Nieuw kloslid");
+		addtp("Ledenlijst/Nieuw (klos)lid");
 		addtp("Ledenlijst/Groepen muteren");
 		addtp("Ledenlijst/Mutaties");
 	}
@@ -178,6 +178,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if ($currenttab == "Wijzigen lid") {
 		addtp("Wijzigen lid");
 		addtp("Wijzigen lid/Algemene gegevens");
+		if (db_Onderdeel("aantal", "A") > 0) {
+			addtp("Wijzigen lid/Afdelingen");
+		}
 		if (db_Onderdeel("aantal", "G") > 0) {
 			addtp("Wijzigen lid/Groepen");
 		}
@@ -185,7 +188,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			addtp("Wijzigen lid/Diploma's");
 			addtp("Wijzigen lid/Toestemmingen");
 		}
-		if (count($muteerbarememos) > 0) {
+		if (strlen(db_param("zs_muteerbarememos")) > 0) {
 			addtp("Wijzigen lid/Bijzonderheden");
 		}
 		addtp("Wijzigen lid/Lidmaatschap");
@@ -240,8 +243,10 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	
 	addtp("Evenementen");
 	if ($currenttab == "Evenementen") {
-		if (db_evenement("aantal") > 0) {
+		if (count(db_evenement("overzicht")) > 0) {
 			addtp("Evenementen/Overzicht");
+		}
+		if (count(db_evenement("overzichtbeheer")) > 0) {
 			addtp("Evenementen/Beheer");
 		}
 		if (db_Evenement_Type("aantal") > 0) {
@@ -346,7 +351,7 @@ function fnAuthenticatie($melding=1, $password="") {
 	
 function toegang($soort, $melding=1, $log=1) {
 	global $lididwebmasters, $tabpages, $currenttab, $currenttab2, $muteerbarememos;
-	
+
 	$arrAltijdToegang[] = "Validatie login";
 	$arrAltijdToegang[] = "Bevestiging login";
 	$arrAltijdToegang[] = "Opvragen lidnr";
