@@ -310,10 +310,11 @@ function fnLedenlijst() {
 				$lidid = $inst_lid->add($_POST['achternaam'], $_POST['geslacht']);
 				$inst_lid = null;
 				if (isset($_POST['lidmtoevoegen'])) {
-					(new cls_Lidmaatschap())->add();
+					(new cls_Lidmaatschap())->add($lidid);
 				}
 			}
-			printf("<script>location.href='%s?tp=Ledenlijst/Klosleden';</script>\n", $_SERVER['PHP_SELF']);
+			$tp = sprintf("Wijzigen+lid/Algemene+gegevens&lidid=%d", $lidid);
+			printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $tp);
 			
 		} else {
 			
