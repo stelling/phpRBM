@@ -18,7 +18,6 @@ if ($currenttab == "Logboek" or $currenttab == "Stamgegevens") {
 $inst_login = new cls_Login();
 if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 	$inst_login->delete($_GET['lidid']);
-	printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $currenttab);
 } elseif ($_GET['op'] == "unlocklogin" and $_GET['tp'] == "Beheer logins") {
 	$inst_login->update($_GET['lidid'], "FouteLogin", 0);
 	printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $currenttab);
@@ -175,20 +174,27 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	}
 	
 } elseif ($currenttab == "Onderhoud" and toegang($currenttab, 1, 1)) {
+	
+	if (isset($_POST['logboek_bewaartijd']) and $_POST['logboek_bewaartijd'] > 0) {
+		(new cls_Parameter())->update("logboek_bewaartijd", $_POST['logboek_bewaartijd']);
+	}
+	if (isset($_POST['mailing_bewaartijd']) and $_POST['mailing_bewaartijd'] > 0) {
+		(new cls_Parameter())->update("mailing_bewaartijd", $_POST['mailing_bewaartijd']);
+	}
+	
 	db_createtables();
 	db_onderhoud();
 
 	echo("<div id='dbonderhoud'>\n");
 	
+	printf("<form method='post' name='frmOnderhoud' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=backup\"' value='Backup'>&nbsp;Maak een backup van de database. Laatste backup is op %s gemaakt.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), db_param("laatstebackup"));
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=FreeBackupFiles\"' value='Vrijgeven backup-bestanden'>&nbsp;Geef de backup-bestanden vrij door middel van een chmod 0755.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	if (db_param("logboek_bewaartijd") > 0) {
-		printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=logboekopschonen\"' value='Logboek opschonen'>&nbsp;Verwijder alle records uit het logboek, die ouder dan %d maanden zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), db_param("logboek_bewaartijd"));
-	}
-	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=loggingdebugopschonen\"' value='Eigen logging voor debugging opschonen'>&nbsp;Verwijder alle records uit het logboek, die onder jou account voor debugging zijn toegevoegd.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=logboekopschonen\"' value='Logboek opschonen'>&nbsp;Verwijder alle records uit het logboek, die ouder dan <input type='number' class='inputnumber' name='logboek_bewaartijd' onChange='this.form.submit();' value=%d> maanden zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), db_param("logboek_bewaartijd"));
+	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=loggingdebugopschonen\"' value='Eigen logging voor debugging opschonen'>&nbsp;Verwijder alle records uit het logboek, die onder jouw account voor debugging zijn toegevoegd.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=evenementenopschonen\"' value='Evenementen opschonen'>&nbsp;Opschonen verwijderde evenementen, die geen deelnemers meer hebben.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	if (db_param("mailing_bewaartijd") > 0 and db_mailing("aantalprullenbak") > 0) {
-		printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=mailingsopschonen\"' value='Mailings opschonen'>&nbsp;Mailings die langer dan %d maanden in de prullenbak zitten worden definitief verwijderd.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), db_param("mailing_bewaartijd"));
+	if (db_mailing("aantalprullenbak") > 0) {
+		printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=mailingsopschonen\"' value='Mailings opschonen'>&nbsp;Mailings, die langer dan <input type='number' name='mailing_bewaartijd' class='inputnumber' onChange='this.form.submit();' value=%d> maanden in de prullenbak zitten, definitief verwijderen.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), db_param("mailing_bewaartijd"));
 	}
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=loginsopschonen\"' value='Logins opschonen'>&nbsp;Opschonen van logins die om diverse redenen niet meer nodig zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=autorisatieopschonen\"' value='Autorisatie opschonen'>&nbsp;Verwijderen toegang waar alleen de webmaster toegang toe heeft en die ouder dan 3 maanden zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
@@ -198,6 +204,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	if (db_artikel("aantal") > 0) {
 		printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=artikelenopschonen\"' value='Artikelen opschonen'>&nbsp;Opschonen van artikelen zonder bestellingen uit de webshop.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	}
+	echo("</form>\n");
 	echo("</div>  <!-- Einde dbonderhoud -->\n");
 	
 	$query = "SELECT Version() AS Version;";
@@ -340,8 +347,7 @@ function fnBeheerLogins() {
 		printf("<div class='waarde'>%d logins</div>\n", $al);
 	}
 	echo("</form>\n");
-	echo("</div>  <!-- Einde beheerlogins -->\n");
-	
+	echo("<div class='clear'></div>\n");
 	
 	$lnk_ek = sprintf("<a href='%s?op=deletelogin&amp;lidid=%%d'><img src='images/del.png' title='Verwijder login'></a>", $_SERVER['PHP_SELF']);
 	if (db_param("login_maxinlogpogingen") > 0) {
@@ -351,6 +357,8 @@ function fnBeheerLogins() {
 	}
 	
 	echo(fnDisplayTable($rows, "", "", 0, $lnk_lk, "", "lijst", $lnk_ek));
+	
+	echo("</div>  <!-- Einde beheerlogins -->\n");
 	
 	// Nieuwe en gewijzigde logins in de tabel interface zetten en de tabel 'Lid' bijwerken.
 	$inst_lid = new cls_Lid();
@@ -364,7 +372,7 @@ function fnBeheerLogins() {
 
 function fnInstellingen() {
 
-	// Omschrijving NT = Niet tonen in dit scherm
+	// Omschrijving NT = Niet tonen in dit scherm, de meeste kunnen in een ander scherm worden gemuteerd.
 	$arrParam['db_backup_type'] = "Welke taballen moeten worden gebackuped? 1=interne phpRBM-tabellen, 2=tabellen uit Access, 3=beide.";
 	$arrParam['db_backupsopschonen'] = "Na hoeveel dagen moeten back-ups automatisch verwijderd worden? 0 = nooit.";
 	$arrParam['db_folderbackup'] = "In welke folder moet de backup worden geplaatst?";
@@ -379,7 +387,7 @@ function fnInstellingen() {
 	$arrParam['login_bewaartijd'] = "Het aantal maanden dat logins na het laatste gebruik bewaard blijven. Historie is direct aan het lid gekopppeld en wordt dus niet verwijderd. 0 = altijd bewaren.";
 	$arrParam['login_geldigheidactivatie'] = "Hoelang in uren is een activatielink geldig? 0 = altijd.";
 	$arrParam['login_bewaartijdnietgebruikt'] = "Het aantal dagen dat logins wordt bewaard, nadat het is aangevraagd en nog niet gebruikt is.";
-	$arrParam['logboek_bewaartijd'] = "Hoeveel maanden moet de logging bewaard blijven. 0 = altijd bewaren.";
+	$arrParam['logboek_bewaartijd'] = "NT";
 	$arrParam['mailing_alle_zien'] = "NT";
 	$arrParam['mailing_bevestigingbestelling'] = "Het nummer van de mailing die bij een bestelling verstuurd moet worden. 0 = geen.";
 	$arrParam['mailing_bevestigingopzegging'] = "NT";
@@ -507,7 +515,7 @@ function fnInstellingen() {
 		
 		$p = db_param("db_folderbackup");
 		if (strlen($p) < 5 or !is_dir($p)) {
-			db_param("path_templates", "updval", __DIR__ . "/backups/");
+			db_param("db_folderbackup", "updval", __DIR__ . "/backups/");
 		} elseif (substr($p, -1) != "/") {
 			db_param("db_folderbackup", "updval", $p . "/");
 		}
