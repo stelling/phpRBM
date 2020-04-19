@@ -62,7 +62,7 @@ if (isset($_GET['tp']) and mb_substr_count($_GET['tp'], "/") == 2) {
 	$currenttab = explode("/", $_GET['tp'])[0];
 	$currenttab2 = explode("/", $_GET['tp'])[1];
 	
-} elseif (isset($_GET['tp'])) {
+} elseif (isset($_GET['tp']) and strlen($_GET['tp']) > 1) {
 	$currenttab = $_GET['tp'];
 	
 } else {
