@@ -2624,8 +2624,8 @@ class cls_Login extends cls_db_base {
 	
 	private function vulvars() {
 		if ($this->lidid > 0) {
-			$query = sprintf("SELECT Login FROM %s WHERE LidID=%d;", $this->table, $lidid);
-			$login = db_scalar($query);
+			$query = sprintf("SELECT Login FROM %s WHERE LidID=%d;", $this->table, $this->lidid);
+			$this->login = db_scalar($query);
 		}
 	}
 	
@@ -2710,22 +2710,18 @@ class cls_Login extends cls_db_base {
 		}
 			
 		$this->Log();
-		
 	}
 	
 	public function delete($p_lidid) {
 		$this->lidid = $p_lidid;
 		$this->vulvars();
 		
-		if ($_SESSION['webmaster'] == 1) {
-			$query = sprintf("DELETE FROM %s WHERE LidID=%d;", $this->table, $lidid);
-			if (fnQuery($query) > 0) {
-				$this->mess = sprintf("Login '%s' is verwijderd.", $this->login);
-			}
-		} else {
-			$this->mess = "Je bent niet bevoegd om logins te verwijderen.";
+		$query = sprintf("DELETE FROM %s WHERE LidID=%d;", $this->table, $p_lidid);
+		if (fnQuery($query) > 0) {
+			$this->mess = sprintf("Login '%s' is verwijderd.", $this->login);
+			$this->tas = 3;
+			$this->Log();
 		}
-		$this->Log();
 	}
 	
 	public function setlastactivity() {
@@ -3673,7 +3669,7 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0, $referid=0, $ipf
 			$selbetreftlid = "";
 		}
 		if ($type < 0) {
-			$s = ", TypeActiviteit AS `Type`";
+			$s = ", CONCAT(TypeActiviteit, IF(TypeActiviteitSpecifiek > 0, CONCAT('-', TypeActiviteitSpecifiek), '')) AS `Type`";
 			$w .= " AND TypeActiviteit < 98";
 		} else {
 			$s = "";
@@ -4908,7 +4904,6 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrBooleans['login_lidnrnodigbijaanvraag'] = 1;
 	$arrBooleans['mailing_direct_verzenden'] = 0;
 	$arrBooleans['mailing_sentoutbox_auto'] = 1;
-	$arrBooleans['mailing_rekening_nulregelsweglaten'] = 0;
 	$arrBooleans['mailing_rekening_regelnrsweglaten'] = 0;
 	$arrBooleans['mailing_rekening_nulrekversturen'] = 1;
 	$arrBooleans['toneninschrijvingenbewakingen'] = 1;
@@ -5080,6 +5075,48 @@ function db_param($naam, $actie="curval", $newval="") {
 		}
 	}
 }
+
+class cls_Parameter extends cls_db_base {
+	
+	function __construct() {
+		$this->table = TABLE_PREFIX . "Admin_param";
+		$this->ta = 13;
+	}
+	
+	function update($p_naam, $p_waarde) {
+		$query = sprintf("SELECT * FROM %s WHERE Naam='%s';", $this->table, $p_naam);
+		$cur = $this->execsql($query)->fetch();
+		$set = "";
+		if (($cur->ParamType == "B" or $cur->ParamType == "I") and $cur->ValueNum != $p_waarde) {
+			$set = sprintf("ValueNum=%d", $p_waarde);
+			$xw = sprintf("IFNULL(ValueNum, 0)<>%d", $p_waarde);
+		} elseif ($cur->ParamType == "F" and $cur->ValueNum != $p_waarde) {
+			$p_waarde = sprintf("%F", $p_waarde);
+			$set = sprintf("ValueNum=%s", $p_waarde);
+			$xw = sprintf("IFNULL(ValueNum, 0)<>%F", $p_waarde);
+		} elseif (($cur->ParamType == "S" or $cur->ParamType == "T") and $cur->ValueChar != $p_waarde) {
+			if (strlen($p_waarde) == 0) {
+				$set = "ValueChar=NULL";
+				$xw = "(ValueChar NOT IS NULL)";
+			} else {
+				$p_waarde = "\"" . str_replace("\"", "'", $p_waarde) . "\"";
+				$set = sprintf("ValueChar=%s", $p_waarde);
+				$xw = sprintf("IFNULL(ValueNum, '')<>%s", $p_waarde);
+			}
+		}
+		if (strlen($set) > 0) {
+			$query = sprintf("UPDATE %s SET %s, GewijzigdDoor=%d WHERE RecordID=%d AND %s;", $this->table, $set, $_SESSION['lidid'], $cur->RecordID, $xw);
+			if ($this->execsql($query) > 0) {
+				$_SESSION['settings'][$p_naam] = $p_waarde;
+				if ($p_naam !== "versie") {
+					$this->mess = sprintf("Parameter '%s' is in %s gewijzigd.", $p_naam, $p_waarde);
+					$this->Log($cur->RecordID);
+				}
+			}
+		}
+	}
+	
+}  # cls_Parameter
 
 function db_delete_local_tables() {
 	global $arrTables;
@@ -5545,36 +5582,38 @@ function db_backup() {
 		
 			$buf = fopen($FileName . ".sql", 'w');		
 			fwrite($buf, $data);
-			fclose($buf);
+			if (fclose($buf) == true) {
 			
-			$mess = sprintf("Backup, type %d, is in '%s.sql' gemaakt. ", db_param("db_backup_type"), str_replace($db_folderbackup, "", $FileName));
-			db_logboek("add", $mess, 3, 0, 1);
+				$mess = sprintf("Backup, type %d, is in '%s.sql' gemaakt. ", db_param("db_backup_type"), str_replace($db_folderbackup, "", $FileName));
+				db_logboek("add", $mess, 3, 0, 1);
 
-			if ($handle = opendir($db_folderbackup)) {
-				while (false !== ($file = readdir($handle))) {
-					sleep(2);
-					if ($file != "." and $file != "..") {
-						$vbn = $db_folderbackup . $file;
-						if (db_param("db_backupsopschonen") > 1 and filectime($db_folderbackup . $file) < mktime(0, 0, 0, date("m"), date("d")-db_param("db_backupsopschonen"), date("Y")) or filesize($db_folderbackup . $file) < 500 ) {
-							unlink($vbn);
-							$mess = sprintf("Bacckup-bestand %s is verwijderd. ", $file);
-							db_logboek("add", $mess, 2, 0, 1);
-						} elseif (fileperms($vbn) != 32768) {
-							if (chmod($vbn, 0000) == true) {
-								$mess = sprintf("Op bestand %s is chmod 0000 uitgevoerd.", $file);
-							} else {
-								$mess = sprintf("chmod 0000 op bestand %s is niet gelukt.", $vbn);
+				if ($handle = opendir($db_folderbackup)) {
+					while (false !== ($file = readdir($handle))) {
+						sleep(2);
+						if ($file != "." and $file != "..") {
+							$vbn = $db_folderbackup . $file;
+							if (db_param("db_backupsopschonen") > 1 and filectime($db_folderbackup . $file) < mktime(0, 0, 0, date("m"), date("d")-db_param("db_backupsopschonen"), date("Y")) or filesize($db_folderbackup . $file) < 500 ) {
+								unlink($vbn);
+								$mess = sprintf("Bacckup-bestand %s is verwijderd. ", $file);
+								db_logboek("add", $mess, 2, 0, 1);
+							} elseif (fileperms($vbn) != 32768) {
+								if (chmod($vbn, 0000) == true) {
+									$mess = sprintf("Op bestand %s is chmod 0000 uitgevoerd.", $file);
+								} else {
+									$mess = sprintf("chmod 0000 op bestand %s is niet gelukt.", $vbn);
+								}
+								db_logboek("add", $mess, 2, 0, 1);
 							}
-							db_logboek("add", $mess, 2, 0, 1);
 						}
 					}
+				} else {
+					$mess = "";
 				}
 			} else {
-				$mess = "";
+				db_logboek("add", "Het backup-script heeft gedraaid, maar de backup is niet gelukt.\n", 2, 0, 1);
 			}
-			
 		} else {
-			db_logboek("add", "Het backup-script heeft gedraaid, maar de backup is niet gelukt.\n", 3, 0, 1);
+			db_logboek("add", "Het backup-script heeft gedraaid, maar de backup is niet gelukt.\n", 2, 0, 1);
 		}
 	} else {
 		db_logboek("add", "Het backupscript heeft korter dan 1 uur geleden met succes gedraaid. Het wordt niet nogmaals uitgevoerd.", 2, 0, 1);
