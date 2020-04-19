@@ -138,62 +138,64 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	}
 	$gs = (new cls_Lid())->Geslacht($_GET['lidid']);
 
-	if ($currenttab == "Overzicht lid") {
-		addtp("Overzicht lid");
-		addtp("Overzicht lid/Algemeen");
+	if ($currenttab2 == "Overzicht lid") {
+		addtp("Ledenlijst/Overzicht lid");
+		addtp("Ledenlijst/Overzicht lid/Algemeen");
 		if (count(db_gegevenslid($_GET['lidid'], "Afdelingen")) > 0) {
-			addtp("Overzicht lid/Afdelingen");
+			addtp("Ledenlijst/Overzicht lid/Afdelingen");
 		}
 		if (count(db_gegevenslid($_GET['lidid'], "Kader")) > 0) {
-			addtp("Overzicht lid/Kader");
+			addtp("Ledenlijst/Overzicht lid/Kader");
 		}
 		if (count(db_gegevenslid($_GET['lidid'], "Rollen")) > 0) {
-			addtp("Overzicht lid/Rollen");
+			addtp("Ledenlijst/Overzicht lid/Rollen");
 		}
 		if (count(db_gegevenslid($_GET['lidid'], "Groepen")) > 0) {
-			addtp("Overzicht lid/Groepen");
+			addtp("Ledenlijst/Overzicht lid/Groepen");
 		}
 		if (count(db_gegevenslid($_GET['lidid'], "Bew")) > 0) {
-			addtp("Overzicht lid/Bewaking");
+			addtp("Ledenlijst/Overzicht lid/Bewaking");
 		}
 		if (count(db_liddipl("lidgegevens", $_GET['lidid'])) > 0) {
-			addtp("Overzicht lid/Diploma's");
+			addtp("Ledenlijst/Overzicht lid/Diploma's");
 		}
 		if (db_rekening("aantal") > 0 and db_rekening("aantal", 0, "", $_GET['lidid']) > 0) {
-			addtp("Overzicht lid/Financieel");
+			addtp("Ledenlijst/Overzicht lid/Financieel");
 		}
 		if (count(db_gegevenslid($_GET['lidid'], "Mailing")) > 0) {
-			addtp("Overzicht lid/Mailing");
+			addtp("Ledenlijst/Overzicht lid/Mailing");
 		}
 		if (db_evenement("aantaldlnrs", $_GET['lidid']) > 0) {
-			addtp("Overzicht lid/Evenementen");
+			addtp("Ledenlijst/Overzicht lid/Evenementen");
 		}
 		if (db_onderdeel("aantal", "T") > 0 and $gs != "B") {
-			addtp("Overzicht lid/Toestemmingen");
+			addtp("OLedenlijst/verzicht lid/Toestemmingen");
 		}
 		if (db_logboek("aantal", "", -1, $_GET['lidid']) > 0) {
-			addtp("Overzicht lid/Logboek");
+			addtp("Ledenlijst/Overzicht lid/Logboek");
 		}
 	}
-	if ($currenttab == "Wijzigen lid") {
-		addtp("Wijzigen lid");
-		addtp("Wijzigen lid/Algemene gegevens");
+	
+	if ($currenttab2 == "Wijzigen lid") {
+		addtp("Ledenlijst/Wijzigen lid");
+		addtp("Ledenlijst/Wijzigen lid/Algemene gegevens");
 		if (db_Onderdeel("aantal", "A") > 0) {
-			addtp("Wijzigen lid/Afdelingen");
+			addtp("Ledenlijst/Wijzigen lid/Afdelingen");
 		}
 		if (db_Onderdeel("aantal", "G") > 0) {
-			addtp("Wijzigen lid/Groepen");
+			addtp("Ledenlijst/Wijzigen lid/Groepen");
 		}
 		if ($gs != "B") {
-			addtp("Wijzigen lid/Diploma's");
-			addtp("Wijzigen lid/Toestemmingen");
+			addtp("Ledenlijst/Wijzigen lid/Diploma's");
+			addtp("Ledenlijst/Wijzigen lid/Toestemmingen");
 		}
 		if (strlen(db_param("zs_muteerbarememos")) > 0) {
-			addtp("Wijzigen lid/Bijzonderheden");
+			addtp("Ledenlijst/Wijzigen lid/Bijzonderheden");
 		}
-		addtp("Wijzigen lid/Lidmaatschap");
-		addtp("Wijzigen lid/Pasfoto");
+		addtp("Ledenlijst/Wijzigen lid/Lidmaatschap");
+		addtp("Ledenlijst/Wijzigen lid/Pasfoto");
 	}
+	
 	if (db_mutatie("aantal") > 0) {
 		addtp("Kostenoverzicht");
 	}

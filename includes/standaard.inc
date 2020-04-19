@@ -18,7 +18,7 @@ if (isset($_SERVER['HTTPS'])){
 	define("BASISURL", "http://" . $_SERVER['HTTP_HOST']);
 }
 
-session_cache_expire(20);
+session_cache_expire(25);
 if (isset($_SESSION['lidid'])) {
 	// Sessie bestaat al
 } elseif (session_start() === FALSE or strlen(session_id()) == 0) {
@@ -51,15 +51,20 @@ if (strlen($table_prefix) > 0 and substr($table_prefix, -1) != "_") {
 }
 define("TABLE_PREFIX", $table_prefix);
 
-if (isset($_GET['tp']) and strlen($_GET['tp']) > 1) {
-	$sp = strpos($_GET['tp'], "/");
-	if ($sp > 0) {
-		$currenttab = substr($_GET['tp'], 0, $sp);
-		$currenttab2 = substr($_GET['tp'], $sp+1);
-	} else {
-		$currenttab = $_GET['tp'];
-		$currenttab2 = "";
-	}
+$currenttab2 = "";
+$currenttab3 = "";
+if (isset($_GET['tp']) and mb_substr_count($_GET['tp'], "/") == 2) {
+	$currenttab = explode("/", $_GET['tp'])[0];
+	$currenttab2 = explode("/", $_GET['tp'])[1];
+	$currenttab3 = explode("/", $_GET['tp'])[2];
+	
+} elseif (isset($_GET['tp']) and mb_substr_count($_GET['tp'], "/") == 1) {
+	$currenttab = explode("/", $_GET['tp'])[0];
+	$currenttab2 = explode("/", $_GET['tp'])[1];
+	
+} elseif (isset($_GET['tp'])) {
+	$currenttab = $_GET['tp'];
+	
 } else {
 	if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		$currenttab = "Beheer logins";
@@ -111,37 +116,13 @@ if ($_SESSION['lidid'] > 0) {
 
 $fileverinfo = 'templates/verenigingsinfo.html';
 
-if (isset($_GET['tp']) and strlen($_GET['tp']) > 1) {
-	$curtab = explode("/", $_GET['tp']);
-	for ($i=0; $i < 2; $i++) {
-		if ($i == 0) {
-			$ct = $curtab[$i];
-		} else {
-			$ct = $_GET['tp'];
-		}
-		$ia = false;
-		foreach ($tabpages as $val) {
-			if (str_replace("'", "", $val) === $ct) {
-				$ia = true;
-			}
-		}
-		if ($ia == false) {
-			$tabpages[] = $ct;
-		}
+foreach ($tabpages as $tp) {
+	$arrTP = explode("/", $tp);
+	if (strlen($currenttab2) == 0 and count($arrTP) > 1 and $arrTP[0] == $currenttab and toegang($tp, 0)) {
+		$currenttab2 = $arrTP[1];
 	}
-} else {
-	$curtab[0] = $tabpages[0];
-	$_GET['tp'] = $tabpages[0];
-	$currenttab = $tabpages[0];
-}
-
-if (!isset($currenttab2) or strlen($currenttab2) == 0) {
-	$currenttab2 = "";
-	foreach ($tabpages as $tp) {
-		if (startwith($tp, $currenttab) == true and strlen($tp) > strlen($currenttab) and strpos($tp, "/") > 0 and toegang($tp, 0)) {
-			$currenttab2 = substr($tp, strpos($tp, "/")+1);
-			break;
-		}
+	if (strlen($currenttab3) == 0 and count($arrTP) > 2 and $arrTP[0] == $currenttab and $arrTP[1] == $currenttab2 and toegang($tp, 0)) {
+		$currenttab3 = $arrTP[2];
 	}
 }
 
@@ -343,8 +324,9 @@ function getvar($nm, $riz="") {
 }
 
 function fnDispMenu($toonnivo=1, $xtra="") {
-	global $tabpages, $currenttab, $currenttab2, $navpad;
+	global $tabpages, $currenttab, $currenttab2, $currenttab3, $navpad;
 	
+	$tpd = ""; // Dit wordt getoond in het menu.
 	$ulopen = false;
 
 	if (strlen($xtra) > 0 and startwith($xtra, "&amp;") == false) {
@@ -406,8 +388,11 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 		foreach($tabpages as $tp) {
 			if ($nivo == 1 and strstr($tp, "/") === false) {
 				$tpd = $tp;
-			} elseif ($nivo == 2 and strpos($tp, "/") > 1 and $currenttab == substr($tp, 0, strlen($currenttab))) {
-				$tpd = substr($tp, strpos($tp, "/")+1);
+			} elseif ($nivo == 2 and mb_substr_count($tp, "/") == 1 and startwith($tp, $currenttab . "/")) {
+				$tpd = str_replace($currenttab . "/", "", $tp);
+			
+			} elseif ($nivo == 3 and mb_substr_count($tp, "/") == 2 and startwith($tp, $currenttab . "/") and strpos($tp, $currenttab2) > 1) {
+				$tpd = str_replace($currenttab2 . "/", "", str_replace($currenttab . "/", "", $tp));
 			} else {
 				$tpd = "";
 			}
@@ -424,6 +409,8 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 					}
 					$navpad[$nivo]['naam'] = $tpd;
 					$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
+				} elseif ($nivo == 3 and ($currenttab3 == str_replace("'", "", $tpd) or strlen($currenttab3) == 0)) {
+					$cl = " class='current'";
 				}
 				printf("<li%s><a href=\"%s?tp=%s%s\">%s</a></li>\n", $cl, $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra, $tpd);
 			}
@@ -437,7 +424,7 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 	if ($nivo > 1) {
 		echo("<div class='clear'></div>\n");
 	}
-}
+}  # fnDispMenu
 
 function fnDisplayForm($row, $xtra_eind="", $id="formulier") {
 
@@ -754,7 +741,9 @@ function accessdate($sqldate) {
 } # accessdate
 
 function startwith($haystack, $start) {
-	if (substr($haystack, 0, strlen($start)) == $start) {
+	if (strlen($haystack) < strlen($start)) {
+		return false;
+	} elseif (substr($haystack, 0, strlen($start)) == $start) {
 		return true;
 	} else {
 		return false;

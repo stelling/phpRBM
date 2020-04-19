@@ -104,16 +104,16 @@ if (toegang($_GET['tp'], 1) == false) {
 		fnWijzigen($_SESSION['lidid'], $currenttab2);
 	}
 	
-} elseif ($currenttab == "Overzicht lid" and toegang($currenttab, 0)) {
+} elseif ($currenttab2 == "Overzicht lid" and toegang($currenttab, 0)) {
 	if (isset($_GET['lidid']) and is_numeric($_GET['lidid']) and $_GET['lidid'] > 0) {
-		fnEigenGegevens($_GET['lidid'], $currenttab2);
+		fnEigenGegevens($_GET['lidid'], $currenttab3);
 	} else {
-		fnEigenGegevens(0, $currenttab2);
+		fnEigenGegevens(0, $currenttab3);
 	}
 	
-} elseif ($currenttab == "Wijzigen lid") {
+} elseif ($currenttab2 == "Wijzigen lid") {
 	if (isset($_GET['lidid']) and is_numeric($_GET['lidid']) and $_GET['lidid'] > 0) {
-		fnWijzigen($_GET['lidid'], $currenttab2);
+		fnWijzigen($_GET['lidid'], $currenttab3);
 	}
 	
 } elseif ($currenttab == "Vereniging") {

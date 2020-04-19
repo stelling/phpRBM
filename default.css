@@ -787,7 +787,12 @@ input.knop, button.knop {
 	margin-bottom: 6px;
 }
 
-#menu_l1, #menu_l2, .tablist1, .tablist2 {
+#menu_l3 {
+	clear: right;
+	margin-bottom: 6px;
+}
+
+#menu_l1, #menu_l2, #menu_l3, .tablist1, .tablist2 {
    list-style: none;
    height: 24px;
    padding: 0; 
@@ -795,14 +800,14 @@ input.knop, button.knop {
    border: none;
 }
 
-.tablist2 ul {
+.tablist2 ul, .tablist2 ul {
 	width: 100%;
 	clear: right;
 	margin-bottom: 6px;
 	padding-left: 2px;
 }
 
-.tablist1 li, .tablist2 li {
+.tablist1 li, .tablist2 li, .tablist3 li {
 	float: left;
 	font-style: normal;
 	display: block;

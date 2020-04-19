@@ -1,19 +1,19 @@
 <?php
 
-if (toegang("Overzicht lid", 0, 0)) {
-	$ldl = "<a href='index.php?tp=Overzicht+lid&amp;lidid=%d'>%s</a>";
+if (toegang("Ledenlijst/Overzicht lid", 0, 0)) {
+	$ldl = "<a href='index.php?tp=Ledenlijst/Overzicht+lid&amp;lidid=%d'>%s</a>";
 } else {
 	$ldl = "";
 }
 
-if (toegang("Wijzigen lid", 0, 0)) {
-	$llw = "<a href='index.php?tp=Wijzigen+lid&amp;lidid=%d'>%s</a>";
+if (toegang("Ledenlijst/Wijzigen lid", 0, 0)) {
+	$llw = "<a href='index.php?tp=Ledenlijst/Wijzigen+lid&amp;lidid=%d'>%s</a>";
 } else {
 	$llw = "";
 }
 
 function fnWijzigen($lidid=0, $actie="") {
-	global $currenttab, $currenttab2;
+	global $currenttab, $currenttab2, $currenttab3;
 	global $muteerbarememos, $actionurl;
 	
 	$opzegtermijn = db_param("zs_opzegtermijn");
@@ -22,7 +22,7 @@ function fnWijzigen($lidid=0, $actie="") {
 		$lidid = $_SESSION['lidid'];
 	}
 	if (strlen($actie) == 0) {
-		$actie = $currenttab2;
+		$actie = $currenttab3;
 	}
 	
 	$xtra_param = sprintf("lidid=%d", $lidid);
@@ -31,6 +31,7 @@ function fnWijzigen($lidid=0, $actie="") {
 	$naamlid = (new cls_Lid())->Naam($lidid);
 	if ($lidid > 0) {
 		fnDispMenu(2, $xtra_param);
+		fnDispMenu(3, $xtra_param);
 
 		if ($actie == "Algemene gegevens") {
 			algemeenlidmuteren($lidid);
@@ -48,10 +49,10 @@ function fnWijzigen($lidid=0, $actie="") {
 				diplomaslidmuteren($lidid, "*");
 			}
 			
-		} elseif ($currenttab2 == "Pasfoto") {
+		} elseif ($actie == "Pasfoto") {
 			nieuwepasfoto($lidid);
 			
-		} elseif ($currenttab2 == "Toestemmingen") {
+		} elseif ($actie == "Toestemmingen") {
 			toestemmingenmuteren($lidid);
 			
 		} elseif ($actie == "Bijzonderheden") {
@@ -144,7 +145,7 @@ function fnWijzigen($lidid=0, $actie="") {
 				</div>  <!-- Einde profielwijzigen -->");
 			}	
 		} else {
-			printf("<p class='mededeling'>Actie '%s' bestaat niet.</p>\n", $actie);
+			printf("<p class='mededeling'>fnWijzigen: actie '%s' bestaat niet.</p>\n", $actie);
 		}
 	} else {
 		echo("<p class='mededeling'>Er is geen lid geselecteerd.</p>\n");
@@ -249,12 +250,12 @@ function fnWieiswie($actie, $metfoto=1) {
 } # fnWieiswie
 
 function fnLedenlijst() {
-	global $wherelidond, $ldl, $currenttab2;
+	global $wherelidond, $ldl, $currenttab2, $currenttab3;
 	
 	fnDispMenu(2);
 
-	if (toegang("Wijzigen lid", 0, 0)) {
-		$llw = "<a href='index.php?tp=Wijzigen+lid/Algemene+gegevens&amp;lidid=%d'><img src='./images/edit.png' alt='Wijzigen' title='Wijzigen lidgegevens'></a>";
+	if (toegang("Ledenlijst/Wijzigen lid", 0, 0)) {
+		$llw = "<a href='index.php?tp=Ledenlijst/Wijzigen+lid/Algemene+gegevens&amp;lidid=%d'><img src='./images/edit.png' alt='Wijzigen' title='Wijzigen lidgegevens'></a>";
 	} else {
 		$llw = "";
 	}
@@ -953,7 +954,7 @@ function fnGroepsindeling($afdkode="", $afdid=0, $muteren=0) {
 } # fnGroepsindeling
 
 function fnEigenGegevens($lidid=0, $actie="") {
-	global $currenttab;
+	global $currenttab, $currenttab2, $currenttab3;
 	
 	if ($lidid == 0 and isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0) {
 		$lidid = db_mailing_hist("lidbijmail", 0, $_GET['MailingHistID']);
@@ -979,6 +980,9 @@ function fnEigenGegevens($lidid=0, $actie="") {
 	} else {
 	
 		fnDispMenu(2, $xtra_param);
+		if ($currenttab != "Eigen gegevens") {
+			fnDispMenu(3, $xtra_param);
+		}
 		$naamlid = htmlentities((new cls_Lid())->Naam($lidid));
 		
 		if ($actie == "Afdelingen") {
