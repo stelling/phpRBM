@@ -1,5 +1,7 @@
 <?php
 
+define("BASEDIR", __DIR__);
+
 if (!isset($_GET['tp'])) {
 	$_GET['tp'] = "";
 }
