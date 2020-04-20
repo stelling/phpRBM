@@ -352,7 +352,7 @@ function fnAuthenticatie($melding=1, $password="") {
 } # fnAuthenticatie
 	
 function toegang($soort, $melding=1, $log=1) {
-	global $lididwebmasters, $tabpages, $currenttab, $currenttab2, $muteerbarememos;
+	global $lididwebmasters, $tabpages, $currenttab, $currenttab2, $currenttab3, $muteerbarememos;
 
 	$arrAltijdToegang[] = "Validatie login";
 	$arrAltijdToegang[] = "Bevestiging login";
@@ -365,21 +365,21 @@ function toegang($soort, $melding=1, $log=1) {
 		if (strlen($currenttab2) > 0) {
 			$soort .= "/" . $currenttab2;
 		}
+		if (strlen($currenttab3) > 0) {
+			$soort .= "/" . $currenttab3;
+		}
 	}
 	
 	$_SESSION['webmaster'] = 0;
 	$_SESSION['lidgroepen'] = "0";
-	if (in_array($_SESSION['lidid'], $lididwebmasters)) {
+	if ($_SESSION['lidid'] > 0 and in_array($_SESSION['lidid'], $lididwebmasters)) {
 		$_SESSION['webmaster'] = 1;
 	}
 	$_SESSION['lidgroepen'] = db_Lidond("lidgroepen");
 	
 	$soort = str_replace("'", "", $soort);
 		
-	if (strlen($soort) == 0 or in_array($soort, $arrAltijdToegang) === true) {
-		return true;
-	} elseif ($_SESSION['lidid'] > 0 and in_array($_SESSION['lidid'], $lididwebmasters) === true) {
-		$_SESSION['webmaster'] == 1;
+	if (strlen($soort) == 0 or in_array($soort, $arrAltijdToegang) === true or $_SESSION['webmaster'] == 1) {
 		return true;
 	} elseif ($_SESSION['lidid'] > 0 and isset($_SESSION['toegang'][$soort]) and $_SESSION['toegang'][$soort] == 1) {
 		return true;
