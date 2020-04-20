@@ -12,7 +12,7 @@ if (toegang("Ledenlijst/Wijzigen lid", 0, 0)) {
 	$llw = "";
 }
 
-function fnWijzigen($lidid=0, $actie="") {
+function fnWijzigen($lidid, $actie="") {
 	global $currenttab, $currenttab2, $currenttab3;
 	global $muteerbarememos, $actionurl;
 	
@@ -21,9 +21,6 @@ function fnWijzigen($lidid=0, $actie="") {
 	if ($lidid == 0) {
 		$lidid = $_SESSION['lidid'];
 	}
-	if (strlen($actie) == 0) {
-		$actie = $currenttab3;
-	}
 	
 	$xtra_param = sprintf("lidid=%d", $lidid);
 	$actionurl = sprintf("%s?tp=%s&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
@@ -31,7 +28,9 @@ function fnWijzigen($lidid=0, $actie="") {
 	$naamlid = (new cls_Lid())->Naam($lidid);
 	if ($lidid > 0) {
 		fnDispMenu(2, $xtra_param);
-		fnDispMenu(3, $xtra_param);
+		if ($currenttab != "Zelfservice") {
+			fnDispMenu(3, $xtra_param);
+		}
 
 		if ($actie == "Algemene gegevens") {
 			algemeenlidmuteren($lidid);
