@@ -602,25 +602,27 @@ input.knop, button.knop {
 	border-color: inherit;
 }
 
-#verstuurdemail .label {
+#verstuurdemail label, #verstuurdemail .label {
 	background-color: transparent;
-	width: 95px;
+	width: 150px;
 	margin-left: 5px;
 	margin-right: 5px;
 	float: left;
 	border-top-style: solid;
 	border-bottom-style: solid;
+	border-top-width: 1px;
+	border-bottom-width: 1px;
 }
 
 #verstuurdemail .veld {
-	width: 846px;
+	width: 1022px;
 	float: left;
 	margin-right: 3px;
 	border-style: solid;
 }
 
 #verstuurdemail .veld2k {
-	width: 360px;
+	width: 425px;
 	float: left;
 	margin-right: 3px;
 	border-style: solid;
