@@ -1,4 +1,4 @@
-<?
+<?php
 
 $arrTables[] = "Admin_access";
 $arrTables[] = "Admin_activiteit";
@@ -3190,7 +3190,7 @@ function db_mailing_hist($actie, $lidid=0, $mhid=0, $mid=0) {
 		
 	} elseif ($actie === "record") {
 		$query = sprintf("SELECT MH.Ingevoerd, MH.send_on, MH.from_addr, MH.from_name, M.to_name, MH.to_addr, MH.cc_addr, MH.subject, MH.message, MH.send_by, MH.LidID, MH.to_name AS Aan, MH.IngevoerdDoor, MH.LidID, 
-					MH.MailingID, MH.Xtra_Char, MH.Xtra_Num, MH.ZichtbaarVoor, M.GebruikPlaatjeAlsBericht
+					MH.MailingID, MH.Xtra_Char, MH.Xtra_Num, MH.ZichtbaarVoor, M.ZonderBriefpapier
 					FROM (%1\$sMailing_hist AS MH LEFT JOIN %1\$sLid AS L ON MH.LidID=L.RecordID) LEFT JOIN %1\$sMailing AS M ON MH.MailingID=M.MailingID
 					WHERE MH.RecordID=%2\$d LIMIT 1;", TABLE_PREFIX, $mhid);
 		$result = fnQuery($query);
@@ -3265,6 +3265,16 @@ class cls_Mailing_hist extends cls_db_base {
 	function __construct() {
 		$this->table = TABLE_PREFIX . "Mailing_hist";
 		$this->ta = 4;
+	}
+		
+	public function record($p_mhid) {
+		
+		$query = sprintf("SELECT MH.Ingevoerd, MH.send_on, MH.from_addr, MH.from_name, M.to_name, MH.to_addr, MH.cc_addr, MH.subject, MH.message, MH.send_by, MH.LidID, MH.to_name AS Aan, MH.IngevoerdDoor, MH.LidID, 
+						  MH.MailingID, MH.Xtra_Char, MH.Xtra_Num, MH.ZichtbaarVoor, M.ZonderBriefpapier
+						  FROM (%1\$sMailing_hist AS MH LEFT JOIN %1\$sLid AS L ON MH.LidID=L.RecordID) LEFT JOIN %1\$sMailing AS M ON MH.MailingID=M.MailingID
+						  WHERE MH.RecordID=%2\$d LIMIT 1;", TABLE_PREFIX, $p_mhid);
+		$result = $this->execsql($query);
+		return $result->fetch();
 	}
 	
 	public function add($p_email) {
@@ -3606,6 +3616,9 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0, $referid=0, $ipf
 	$script = $_SERVER['PHP_SELF'];
 	if (strlen($_SERVER['QUERY_STRING']) > 0) {
 		$script .= "?" . $_SERVER['QUERY_STRING'];
+	}
+	if (strlen($script) > 90) {
+		$script = substr($script, 0, 86) . " ...";
 	}
 	
 	if ($actie == "add" or $actie == "insert") {
@@ -5469,9 +5482,9 @@ function db_onderhoud($type=9) {
 		fnQuery($query, 2);
 	}
 	
-	// Toevoegen kolom 'GebruikPlaatjeAlsBericht' aan de tabel 'Mailing'. Deze code kan na 1 mei 2021 worden verwijderd.
+	// Toevoegen kolom 'ZonderBriefpapier' aan de tabel 'Mailing'. Deze code kan na 1 mei 2021 worden verwijderd.
 	$tab = TABLE_PREFIX . "Mailing";
-	$col = "GebruikPlaatjeAlsBericht";
+	$col = "ZonderBriefpapier";
 	if (bestaatkolom($tab, $col) == false) {
 		$query = sprintf("ALTER TABLE `%s` ADD `%s` TINYINT NULL DEFAULT '0' AFTER `message`;", $tab, $col);
 		fnQuery($query, 2);
@@ -5547,6 +5560,8 @@ function db_onderhoud($type=9) {
 	$query = sprintf("ALTER TABLE `%sMailing_hist` CHANGE `send_on` `send_on` DATETIME NULL;", TABLE_PREFIX);
 	fnQuery($query);
 	$query = sprintf("ALTER TABLE `%sMailing_hist` CHANGE `send_mt` `send_mt` DECIMAL(16,6) NULL;", TABLE_PREFIX);
+	fnQuery($query);
+	$query = sprintf("ALTER TABLE `%sAdmin_activiteit` CHANGE `Script` `Script` VARCHAR(90) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", TABLE_PREFIX);
 	fnQuery($query);
 	
 	
@@ -5687,7 +5702,7 @@ function db_backup() {
 			db_logboek("add", "Het backup-script heeft gedraaid, maar de backup is niet gelukt.\n", 2, 0, 1);
 		}
 	} else {
-		db_logboek("add", "Het backupscript heeft korter dan 1 uur geleden met succes gedraaid. Het wordt niet nogmaals uitgevoerd.", 2, 0, 1);
+//		db_logboek("add", "Het backupscript heeft korter dan 1 uur geleden met succes gedraaid. Het wordt niet nogmaals uitgevoerd.", 2, 0, 1);
 	}
 }
 
