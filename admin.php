@@ -5,6 +5,10 @@ if ((!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) and isset($_COOKIE['
 	fnAuthenticatie(0);
 }
 
+if ($_SESSION['lidid'] == 0) {
+	header("location: index.php");
+}
+
 if (!isset($_GET['op']) or ((new cls_lid())->aantal() == 0 and toegang($_GET['tp'], 0, 1) === false)) {
 	$_GET['op'] = "";
 }
