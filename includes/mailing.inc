@@ -95,6 +95,10 @@ function fnMailing() {
 	} elseif ($op == "afbeeldingalsbericht" and isset($_GET['attach'])) {
 		$mailing->plaatjealsbericht($_GET['attach']);
 		$mailing->edit();
+		
+	} elseif ($op == "htmlafbeelding" and isset($_GET['attach'])) {
+		$mailing->htmlafbeelding($_GET['attach']);
+		$mailing->edit();
 				
 	} elseif ($op == "deletehist" and isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0) {
 		db_mailing_hist("delete", 0, $_GET['MailingHistID']);
@@ -190,7 +194,7 @@ class Mailing {
 	public $mid;
 	
 	private $allowed_ext = "bmp, gif, jpeg, jpg, pdf, png, pps, rar, txt, zip";
-	private $allowed_ext_afb = "bmp, gif, jpeg, jpg, pdf, png";
+	private $allowed_ext_afb = "bmp, gif, jpeg, jpg, png";
 	private $dir_attachm = "/attachments";
 	private $dir_afbeeldingen = "/afbeeldingen";
 	private $max_size_attachm = 2097152; // 2MB
@@ -695,9 +699,7 @@ class Mailing {
 			printf("<p><label>Zichtbaar voor:</label><select name='ZichtbaarVoor'>\n%s</select></p>\n", $select);
 			printf("<p><label>Opties:</label><input type='checkbox' name='template' value=1%s>Template&nbsp;", checked($this->template));
 			printf("<input type='checkbox' name='HTMLdirect' value=1%s onChange='this.form.submit()'>HTML direct (zonder editor)&nbsp;", checked($this->htmldirect));
-			if ($_SESSION['webmaster'] == 1) {
-				printf("<input type='checkbox' name='ZonderBriefpapier' value=1%s onChange='this.form.submit()'>Zonder briefpapier versturen", checked($this->zonderbriefpapier));
-			}
+			printf("<input type='checkbox' name='ZonderBriefpapier' value=1%s onChange='this.form.submit()'>Zonder briefpapier versturen", checked($this->zonderbriefpapier));
 			echo("</p>\n<div class='clear'></div>\n");
 		}
 		
@@ -766,7 +768,11 @@ class Mailing {
 						printf("<td><a href='%s'>Verwijder</a>&nbsp;", $lnk);
 						if (strlen($this->message) == 0) {
 							$lnk = sprintf("%s?tp=%s&op=afbeeldingalsbericht&mid=%d&attach=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, str_replace(".", "!", $entry));
-							printf("<a href='%s'>Als bericht</a>&nbsp;", $lnk);
+							printf("&nbsp;-&nbsp;<a href='%s'>Als bericht</a>", $lnk);
+						}
+						if ($this->htmldirect == 1) {
+							$lnk = sprintf("%s?tp=%s&op=htmlafbeelding&mid=%d&attach=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, str_replace(".", "!", $entry));
+							printf("&nbsp;-&nbsp;<a href='%s'>HTML Afbeelding</a>", $lnk);
 						}
 					}
 				}
@@ -843,7 +849,12 @@ class Mailing {
 		$this->message = sprintf("<img src='%1\$s' style='display:block;margin-right:auto;margin-left:auto;'>\n<br><p style='text-align:center;font-size:9pt;'>Indien deze e-mail  niet goed leesbaar is klik dan <a href='%1\$s'>hier</a>.</p>\n", $url);
 		$this->zonderbriefpapier = 1;
 		$this->htmldirect = 1;
+	}
+	
+	public function htmlafbeelding($p_bestand) {
 		
+		$url = BASISURL . str_replace(BASEDIR, "", $this->dir_afbeeldingen) . "/" . $this->mid . "/" . str_replace("!", ".", $p_bestand);
+		$this->message = $this->message . "\n" . sprintf("<img src='%s'>", $url);
 	}
 	
 	private function controle($enkellid=0) {
