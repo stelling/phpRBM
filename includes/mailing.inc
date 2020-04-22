@@ -17,7 +17,7 @@ function fnMailing() {
 		sentoutbox(2);
 	}
 	
-	if (isset($_POST['Upload']) and $_POST['Upload'] == "Upload") {
+	if (isset($_POST['UploadBijlage']) or isset($_POST['UploadAfbeelding'])) {
 		$op = "upload";
 	} elseif ($_GET['tp'] == "Mailing/Historie" and $op != "histdetails" and $op != "opnieuw") {
 		$op = "historie";
@@ -89,8 +89,12 @@ function fnMailing() {
 		echo("<script>window.history.back();</script>\n");
 		
 	} elseif ($op == "sentmail" and isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0) {
-		sentfromhist($_GET['MailingHistID']);
+		sentfromhist($_GET['MailingHistID'], 1);
 		$mailing->lijst($currenttab2);
+		
+	} elseif ($op == "afbeeldingalsbericht" and isset($_GET['attach'])) {
+		$mailing->plaatjealsbericht($_GET['attach']);
+		$mailing->edit();
 				
 	} elseif ($op == "deletehist" and isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0) {
 		db_mailing_hist("delete", 0, $_GET['MailingHistID']);
@@ -128,7 +132,10 @@ function fnMailing() {
 		sentoutbox();
 		$mailing->lijst($currenttab2);
 	} elseif ($op == "del_attach" and isset($_GET['attach'])) {
-		$mailing->attach_delete($_GET['attach']);
+		$mailing->attach_delete($_GET['attach'], "bijlage");
+		$mailing->edit();
+	} elseif ($op == "del_afbeelding" and isset($_GET['attach'])) {
+		$mailing->attach_delete($_GET['attach'], "afbeelding");
 		$mailing->edit();
 	} elseif ($op == "add_rcpt" and isset($_GET['lidid']) and $_GET['lidid'] > 0) {
 		$mailing->post_form();
@@ -183,7 +190,9 @@ class Mailing {
 	public $mid;
 	
 	private $allowed_ext = "bmp, gif, jpeg, jpg, pdf, png, pps, rar, txt, zip";
+	private $allowed_ext_afb = "bmp, gif, jpeg, jpg, pdf, png";
 	private $dir_attachm = "/attachments";
+	private $dir_afbeeldingen = "/afbeeldingen";
 	private $max_size_attachm = 2097152; // 2MB
 	private $vertraging_tussen_verzenden = 30; // de minimale tijd (in seconden) die er tussen het verzenden van dezelfde mailing moet zitten.
 	private $smtpserver = 0; // De details van de server moeten in config.php gespecificeerd worden.
@@ -204,6 +213,7 @@ class Mailing {
 	private $zichtbaarvoor = 0;
 	private $template = 0;
 	private $htmldirect = 0;
+	private $zonderbriefpapier = 0;
 	private $new_on = "0000-00-00";
 	private $AddedBy = 0;
 	private $changed_on = "0000-00-00";
@@ -221,7 +231,7 @@ class Mailing {
 	private $aant_rcpt = 0;
 	private $verzendenmag = false;
 	private $emailsecretariaat = "";
-		
+
 	public $xtrachar = "";
 	public $xtranum = 0;
 
@@ -232,6 +242,7 @@ class Mailing {
 		$this->vuldbvars();
 		
 		$this->dir_attachm = substr($_SERVER["SCRIPT_FILENAME"], 0, strrpos($_SERVER["SCRIPT_FILENAME"], "/")) . "/attachments";
+		$this->dir_afbeeldingen = substr($_SERVER["SCRIPT_FILENAME"], 0, strrpos($_SERVER["SCRIPT_FILENAME"], "/")) . "/afbeeldingen";
 		
 		if (strlen(db_param("mailing_extensies_toegestaan")) > 0) {
 			$this->allowed_ext = db_param("mailing_extensies_toegestaan");
@@ -535,7 +546,8 @@ class Mailing {
 		global $currenttab, $currenttab2, $navpad, $fdlang;
 		
 		$ad = $this->dir_attachm . "/" . $this->mid;
-		$this->vuldbvars();
+		$bd = $this->dir_afbeeldingen . "/" . $this->mid;
+//		$this->vuldbvars();
 		
 		if ($this->mid == 0) {
 			$currenttab2 = "Concepten";
@@ -600,7 +612,7 @@ class Mailing {
 				}
 				echo("</div> <!-- Einde invoerblok -->\n");
 				echo("<label>Ontvanger toevoegen:</label>\n");
-				printf("<p>Lid: <select name='add_lid' onChange='this.form.submit();'>\n");
+				printf("<p><select name='add_lid' onChange='this.form.submit();'>\n");
 				printf("<option value=0>&nbsp;</option>\n");
 				$rcpt_rows = db_mailing("potrcpt", $this->mid);
 				foreach($rcpt_rows as $rcpt) {
@@ -682,8 +694,11 @@ class Mailing {
 			
 			printf("<p><label>Zichtbaar voor:</label><select name='ZichtbaarVoor'>\n%s</select></p>\n", $select);
 			printf("<p><label>Opties:</label><input type='checkbox' name='template' value=1%s>Template&nbsp;", checked($this->template));
-			printf("<input type='checkbox' name='HTMLdirect' value=1%s onChange='this.form.submit()'>HTML direct (zonder editor)</p>\n", checked($this->htmldirect));
-			echo("<div class='clear'></div>\n");
+			printf("<input type='checkbox' name='HTMLdirect' value=1%s onChange='this.form.submit()'>HTML direct (zonder editor)&nbsp;", checked($this->htmldirect));
+			if ($_SESSION['webmaster'] == 1) {
+				printf("<input type='checkbox' name='ZonderBriefpapier' value=1%s onChange='this.form.submit()'>Zonder briefpapier versturen", checked($this->zonderbriefpapier));
+			}
+			echo("</p>\n<div class='clear'></div>\n");
 		}
 		
 		if ($this->htmldirect == 1) {
@@ -718,9 +733,7 @@ class Mailing {
 			echo("<div class='clear'></div>\n");
 			printf("<label>Beschikbare variabelen:</label><div class='invoerblok'><ul class='listmergefields'>\n%s</ul></div>\n", $strHV);
 
-			echo("<label>Bijlagen:</label><div class='invoerblok'>");
-			
-			echo("<table>\n");
+			echo("<label>Bijlagen:</label>\n<div class='invoerblok'>\n<table>\n");
 			if (is_dir($ad)) {
 				$d = dir($ad);
 				while (false !== ($entry = $d->read())) {
@@ -735,11 +748,37 @@ class Mailing {
 				$d->close();
 			}
 			echo("</table>\n");
-
-			echo("<input type='file' name='UploadFile' id='UploadFile' size='40'>\n");
-			echo("<input type='submit' name='Upload' value='Upload'>&nbsp;");
+			echo("<input type='file' name='UploadFile' size='40'>\n");
+			echo("<input type='submit' name='UploadBijlage' value='Upload bijlage'>&nbsp;");
 			printf("(Extensies '%s' zijn toegestaan)\n", $this->allowed_ext);
 			echo("</div>  <!-- Einde invoerblok -->\n");
+			
+			
+			echo("<label>Afbeeldingen:</label>\n<div class='invoerblok'>\n<table>\n");
+			if (is_dir($bd)) {
+				$d = dir($bd);
+				while (false !== ($entry = $d->read())) {
+					if ($entry != "." and $entry != "..") {
+						echo("<tr>\n<td>" . $entry . "</td>\n");
+						$stat = stat($bd . "/" . $entry);
+						echo("<td>" . number_format(($stat['size'] / 1024), 0, ',', '.') . " KB</td>\n");
+						$lnk = sprintf("%s?tp=%s&op=del_afbeelding&mid=%d&attach=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, str_replace(".", "!", $entry));
+						printf("<td><a href='%s'>Verwijder</a>&nbsp;", $lnk);
+						if (strlen($this->message) == 0) {
+							$lnk = sprintf("%s?tp=%s&op=afbeeldingalsbericht&mid=%d&attach=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, str_replace(".", "!", $entry));
+							printf("<a href='%s'>Als bericht</a>&nbsp;", $lnk);
+						}
+					}
+				}
+				$d->close();
+			}
+			echo("</table>\n");
+
+			echo("<input type='file' name='UploadAfbeelding' size='40'>\n");
+			echo("<input type='submit' name='UploadAfbeelding' value='Upload afbeelding'>&nbsp;");
+			printf("(Extensies '%s' zijn toegestaan)\n", $this->allowed_ext_afb);
+			echo("</div>  <!-- Einde invoerblok -->\n");
+
 		}
 		
 		$this->controle();
@@ -797,6 +836,16 @@ class Mailing {
 		echo("</div>  <!-- Einde mailing -->\n");
 	} # edit
 	
+	public function plaatjealsbericht($p_bestand) {
+		
+		$url = BASISURL . str_replace(BASEDIR, "", $this->dir_afbeeldingen) . "/" . $this->mid . "/" . str_replace("!", ".", $p_bestand);
+		
+		$this->message = sprintf("<img src='%1\$s' style='display:block;margin-right:auto;margin-left:auto;'>\n<br><p style='text-align:center;font-size:9pt;'>Indien deze e-mail  niet goed leesbaar is klik dan <a href='%1\$s'>hier</a>.</p>\n", $url);
+		$this->zonderbriefpapier = 1;
+		$this->htmldirect = 1;
+		
+	}
+	
 	private function controle($enkellid=0) {
 	
 		if ($this->mid > 0) {
@@ -816,6 +865,8 @@ class Mailing {
 				$this->meldingen .= "Het onderwerp is leeg en dat moet ingevuld zijn. \n";
 				$this->verzendenmag = false;
 			}
+			
+			
 			if (strlen($this->message) == 0) {
 				$this->meldingen .= "Het bericht is leeg en dat moet ingevuld zijn. \n";
 				$this->verzendenmag = false;
@@ -909,6 +960,12 @@ class Mailing {
 			$_POST['HTMLdirect'] = 0;
 		}
 		
+		if (isset($_POST['ZonderBriefpapier'])) {
+			$_POST['ZonderBriefpapier'] = 1;
+		} else {
+			$_POST['ZonderBriefpapier'] = 0;
+		}
+				
 		if ($this->mid > 0) {
 			$old = db_mailing("record", $this->mid);
 			foreach($_POST as $key => $val) {
@@ -935,9 +992,18 @@ class Mailing {
 	} # post_form
 	
 	public function upload() {
-	
-		if (isset($_FILES['UploadFile']['name']) and strlen($_FILES['UploadFile']['name']) > 3 and $this->mid > 0) {
-			$ad = $this->dir_attachm . "/" . $this->mid . "/";
+		
+		if ((isset($_FILES['UploadFile']['name']) and strlen($_FILES['UploadFile']['name']) > 3) or (isset($_FILES['UploadAfbeelding']['name']) and strlen($_FILES['UploadAfbeelding']['name']) > 3) and $this->mid > 0) {
+			if (isset($_POST['UploadAfbeelding'])) {
+				$ad = $this->dir_afbeeldingen . "/" . $this->mid . "/";
+				$ae = $this->allowed_ext_afb;
+				$target = $ad . $_FILES['UploadAfbeelding']['name'];
+			} else {
+				$ad = $this->dir_attachm . "/" . $this->mid . "/";
+				$ae = $this->allowed_ext;
+				$target = $ad . $_FILES['UploadFile']['name'];
+			}
+			
 			if (!file_exists($ad)) {
 				if (mkdir($ad, 0755, true) == true) {
 					$mess = sprintf("Directory '%s' is aangemaakt.", $ad);
@@ -950,27 +1016,46 @@ class Mailing {
 				chmod($ad, 0755);
 			}
 
-			$target = $ad . $_FILES['UploadFile']['name'];
-			$ext = explode(".", $_FILES['UploadFile']['name']);  
+			$ext = explode(".", $target);
 			$ext = strtolower($ext[count($ext) - 1]);
-			if (strpos($this->allowed_ext, $ext) === false) {
-				$mess = sprintf("In mailing %d kan het bestand '%s' niet worden bijgesloten, omdat de extensie niet toegestaan is. Alleen de volgende extensies zijn toegestaan: %s", $this->mid, $_FILES['UploadFile']['name'], $this->allowed_ext);
-			} elseif ($_FILES['UploadFile']['size'] > $this->max_size_attachm) {
+			if (strpos($ae, $ext) === false) {
+				$mess = sprintf("In mailing %d kan dit bestand niet worden ge-upload, omdat de extensie niet is toegestaan. Alleen de volgende extensies zijn toegestaan: %s", $this->mid, $ae);
+			} elseif (isset($_POST['UploadFile']) and $_FILES['UploadFile']['size'] > $this->max_size_attachm) {
 				$mess = sprintf("In mailing %d kan het bestand '%s' niet worden bijgesloten, omdat het te groot is.", $this->mid, $_FILES['UploadFile']['name']);
 			} elseif (strlen($ad) > 0) {
-				if (move_uploaded_file($_FILES['UploadFile']['tmp_name'], $target) == false) {
-					$mess = sprintf("Fout %d is opgetreden bij het uploaden van bestand '%s'. Probeer het later opnieuw of neem contact op met de webmaster.", $_FILES['UploadFile']['error'], $_FILES['UploadFile']['name']);
+				if (isset($_POST['UploadAfbeelding'])) {
+					if (move_uploaded_file($_FILES['UploadAfbeelding']['tmp_name'], $target) == false) {
+						$mess = sprintf("Fout %d is opgetreden bij het uploaden van afbeelding '%s'. Probeer het later opnieuw of neem contact op met de webmaster.", $_FILES['UploadAfbeelding']['error'], $_FILES['UploadAfbeelding']['name']);
+					} else {
+						$mess = sprintf("In mailing %d (%s) is afbeelding '%s' bijgesloten.", $this->mid, $this->subject, $_FILES['UploadAfbeelding']['name']);
+					}
 				} else {
-					$mess = sprintf("In mailing %d (%s) is bestand '%s' bijgesloten.", $this->mid, $this->subject, $_FILES['UploadFile']['name']);
+					if (move_uploaded_file($_FILES['UploadFile']['tmp_name'], $target) == false) {
+						$mess = sprintf("Fout %d is opgetreden bij het uploaden van bestand '%s'. Probeer het later opnieuw of neem contact op met de webmaster.", $_FILES['UploadFile']['error'], $_FILES['UploadFile']['name']);
+					} else {
+						$mess = sprintf("In mailing %d (%s) is bestand '%s' bijgesloten.", $this->mid, $this->subject, $_FILES['UploadFile']['name']);
+					}
 				}
 			}
-			(new cls_Logboek())->add($mess, 4, 0, 2, $this->mid);
+			(new cls_Logboek())->add($mess, 4, 0, 1, $this->mid);
 		}
 	}
 	
-	public function attach_delete($attach) {
-		$ad = $this->dir_attachm . "/" . $this->mid . "/";
-		unlink($ad . str_replace("!", ".", $attach));
+	public function attach_delete($p_bestand, $p_soort="bijlage") {
+		$tm = 0;
+		if ($p_soort == "bijlage") {
+			$ad = $this->dir_attachm . "/" . $this->mid . "/";
+		} else {
+			$ad = $this->dir_afbeeldingen . "/" . $this->mid . "/";
+		}
+		$p_bestand = str_replace("!", ".", $p_bestand);
+		if (unlink($ad . $p_bestand)) {
+			$mess = sprintf("Bestand '%s' bij mailing %d is verwijderd.", $p_bestand, $this->mid);
+		} else {
+			$mess = sprint("Het is niet gelukt om bestand '%s' uit directory '%s' te verwijderen.", $p_bestand, $ad);
+			$tm = 1;
+		}
+		(new cls_Logboek())->add($mess, 4, 0, $tm, $this->mid);
 	}
 	
 	public function add_rcpt($lidid, $addr="") {
@@ -1111,16 +1196,16 @@ class Mailing {
 				$mail->Subject = $this->merged_subject;
 				$mail->Body = $this->merged_message;
 				if (strlen($this->to_name) > 0) {
-					$mail->addstationary($this->to_name);
+					$mail->addstationary($this->to_name, "", 0, $this->zonderbriefpapier);
 				} elseif (isset($rcpt->Naam_lid)) {
-					$mail->addstationary($rcpt->Naam_lid);
+					$mail->addstationary($rcpt->Naam_lid, "", 0, $this->zonderbriefpapier);
 				}
-				echo("<br>\n" . $mail->Body);
+				echo($mail->Body);
 				$mail = null;
 			}
 			
 			if ($preview == 0) {
-				if ($email->to_outbox() === true) {
+				if ($email->to_outbox() == true) {
 					$aant_send++;
 				}
 			}
@@ -1138,7 +1223,7 @@ class Mailing {
 			if (strlen($this->speciaal) > 1) {
 				sentoutbox(3);
 			}
-			db_mailing("updatesent", $this->mid);
+			(new cls_Mailing())->updatesent($this->mid);
 		}
 				
 		return $aant_rcpts;
@@ -1269,6 +1354,7 @@ class Mailing {
 			$this->template = $ml->template;
 			$this->zichtbaarvoor = $ml->ZichtbaarVoor;
 			$this->htmldirect = $ml->HTMLdirect;
+			$this->zonderbriefpapier = $ml->ZonderBriefpapier;
 			$this->new_on = $ml->new_on;
 			$this->AddedBy = $ml->AddedBy;
 			$this->changed_on = $ml->changed_on;
@@ -1354,36 +1440,36 @@ class email {
 		
 		echo("<div id='verstuurdemail'>\n");
 
-		printf("<div class='label'>Klaar gezet op:</div><div class='veld2k'>%s</div><div class='label'>door:</div><div class='veld2k'>%s</div>\n", $this->ingevoerd, $this->ingevoerddoor);
+		printf("<label>Klaar gezet op:</label><div class='veld2k'>%s</div><label>door:</label><div class='veld2k'>%s</div>\n", $this->ingevoerd, $this->ingevoerddoor);
 		
 		if (strlen($this->verstuurdop) > 0) {
-			printf("<div class='label'>Verzonden:</div><div class='veld'>%s</div>\n", $this->verstuurdop);
+			printf("<label>Verzonden:</label><div class='veld'>%s</div>\n", $this->verstuurdop);
 		} else {
-			printf("<div class='label'>Verzonden:</div><div class='veld'>Wacht in outbox</div>\n");
+			printf("<label>Verzonden:</label><div class='veld'>Wacht in outbox</div>\n");
 		}
 		
 		if (strlen($this->vanafnaam) > 0) {
-			printf("<div class='label'>Van:</div><div class='veld2k'>%s</div><div class='label'>E-mail:</div><div class='veld2k'>%s</div>\n", $this->vanafnaam, $this->vanafadres);
+			printf("<label>Van:</label><div class='veld2k'>%s</div><label>E-mail:</label><div class='veld2k'>%s</div>\n", $this->vanafnaam, $this->vanafadres);
 		} else {
-			printf("<div class='label'>Van:</div><div class='veld'>%s</div>\n", $this->vanafadres);
+			printf("<label>Van:</label><div class='veld'>%s</div>\n", $this->vanafadres);
 		}
 		
 		if (strlen($this->omsontvangers) > 0) {
-			printf("<div class='label'>Aan:</div><div class='veld'>%s</div>\n", $this->omsontvangers);
+			printf("<label>Aan:</label><div class='veld'>%s</div>\n", $this->omsontvangers);
 		}
 		
 		if (strlen($this->aannaam) > 0 and $this->aannaam != $this->aanadres) {
-			printf("<div class='label'>Ontvanger:</div><div class='veld2k'>%s</div>\n", $this->aannaam);
-			printf("<div class='label'>E-mail:</div><div class='veld2k'>%s</div>\n", $this->aanadres);
+			printf("<label>Ontvanger:</label><div class='veld2k'>%s</div>\n", $this->aannaam);
+			printf("<label>E-mail:</label><div class='veld2k'>%s</div>\n", $this->aanadres);
 		} else {
-			printf("<div class='label'>Aan e-mail:</div><div class='veld'>%s</div>\n", $this->aanadres);
+			printf("<label>Aan e-mail:</label><div class='veld'>%s</div>\n", $this->aanadres);
 		}
 		if (strlen($this->cc) > 0) {
-			printf("<div class='label'>CC:</div><div class='veld'>%s</div>\n", $this->cc);
+			printf("<label>CC:</label><div class='veld'>%s</div>\n", $this->cc);
 		}
 		
-		printf("<div class='label'>Onderwerp:</div><div class='veld'>%s</div>\n", $this->onderwerp);
-		printf("<div class='label'>Bericht:</div><div class='veld'>%s</div>\n", $this->bericht);
+		printf("<label>Onderwerp:</label><div class='veld'>%s</div>\n", $this->onderwerp);
+		printf("<label>Bericht:</label><div class='veld'>%s</div>\n", $this->bericht);
 		
 		echo("</div>  <!-- Einde verstuurdemail -->\n");
 		
@@ -1444,7 +1530,9 @@ class email {
 		
 		if (strlen($this->aanadres) > 5 and strlen($this->vanafadres) > 5) {
 			$this->mhid = (new cls_Mailing_hist())->add($this);
-			$rv = true;
+			if ($this->mhid > 0) {
+				$rv = true;
+			}
 		}
 		
 		return $rv;
@@ -1791,11 +1879,12 @@ function fnMailingInstellingen() {
 	
 } # fnMailingInstellingen
 
-function sentfromhist($mhid) {
+function sentfromhist($p_mhid, $p_handm=0) {
 	
 	$rv = false;
+	$mess = "";
 	
-	$row = db_mailing_hist("record", 0, $mhid);
+	$row = (new cls_mailing_hist())->record($p_mhid);
 	
 	$mail = new RBMmailer();
 	$mail->IsHTML(true);
@@ -1825,9 +1914,9 @@ function sentfromhist($mhid) {
 	} else {
 		$a = $row->Aan;
 	}
-	if ($mail->addstationary($a)) {
-	
-		$ad = db_param("path_attachments") . $mhid;
+	if ($mail->addstationary($a, "", 0, $row->ZonderBriefpapier)) {
+
+		$ad = db_param("path_attachments") . $p_mhid;
 	
 		if (is_dir($ad)) {
 			$d = dir($ad);
@@ -1839,18 +1928,32 @@ function sentfromhist($mhid) {
 			$d->close();
 		}
 
-		if ($mail->Send()) {
-//			db_mailing_hist("updatesent", 0, $mhid);
-			(new cls_Mailing_hist())->update($mhid, "send_on", date("Y-m-d H:i:s"));
-			$rv = true;
+		$error = "";
+		try {
+			$rv = $mail->Send();
+		} catch (phpmailerException $e) {
+			$error = $e->errorMessage();
+		} catch (Exception $e) {
+			$error = $e->getMessage();
 		}
-	} else {
-		$rv = false;
+		if ($rv) {
+			(new cls_Mailing_hist())->update($p_mhid, "send_on", date("Y-m-d H:i:s"));
+			if ($p_handm == 1) {
+				$mess = sprintf("E-mail %d (%s) is aan %s verstuurd.", $p_mhid, $mail->Subject, $a);
+			}
+		} else {
+			$mess = sprintf("Versturen van e-mail %d (%s) aan %s is mislukt. Foutboodschap: %s", $p_mhid, $mail->Subject, $a, $mail, $error);
+		}
+	}
+	
+	if (strlen($mess) > 0) {
+		(new cls_Logboek())->add($mess, 4, $row->LidID, 1);
 	}
 
 	$mail = null;
 	
 	return $rv;
+	
 } # sentfromhist
 
 function sentoutbox($mode=0) {
@@ -1952,9 +2055,22 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 		$this->bestand_briefpapier = db_param("path_templates") . "briefpapier.html";
 	}
 	
-	public function addstationary($to="", $from="", $verwijderaanhef=0) {
+	public function addstationary($to="", $from="", $verwijderaanhef=0, $p_zb=0) {
 		
-		if (file_exists($this->bestand_briefpapier)) {
+		if ($p_zb == 1) {
+			
+			$this->Body = sprintf("<!DOCTYPE html>
+<html>
+	<head>
+		<title>%s</title>
+	</head>
+	<body>
+	%s
+	</body>
+</html>", $this->Subject, $this->Body);
+			return true;
+			
+		} elseif (file_exists($this->bestand_briefpapier)) {
 			if ($verwijderaanhef == 1) {
 				$htmlmessage = removetextblock(file_get_contents($this->bestand_briefpapier), "<!-- Aanhef -->", "<!-- /Aanhef -->");
 			} else {
@@ -1998,6 +2114,7 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 				$this->SentMIMEMessage = '';
 				$this->SetError($e->getMessage());
 				if ($this->exceptions) {
+					debug($e->getMessage());
 					throw $e;
 				}
 				return false;
