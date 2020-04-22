@@ -3105,7 +3105,7 @@ class cls_Mailing extends cls_db_base {
 	public function updatesent($p_mid) {
 		$query = sprintf("UPDATE %s SET sent_on=SYSDATE(), SentBy=%d WHERE MailingID=%d;", $this->table, $_SESSION['lidid'], $p_mid);
 		if (fnQuery($query) > 0) {
-			$this->mess = sprintf("Verzonden op/door van mailing %d is aangepast", $p_mid);
+			$this->mess = sprintf("Verzonden op/door van mailing %d zijn aangepast", $p_mid);
 			$this->Log($p_mid);
 		}
 	}
