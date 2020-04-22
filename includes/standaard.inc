@@ -12,6 +12,18 @@ define("ARRTYPEDIPLOMA", ["B" => "Brevet", "C" => "Competentie", "D" => "Diploma
 define("PASFOTOEXTENTIES", ["gif", "jpg", "jpeg", "png"]);
 define("ARRTYPEEDITOR", [1 => "CKEditor 5 Classic editor", 2 => "CKEditor 4"]);
 
+$dir = substr(__DIR__, 0, strrpos(__DIR__, "/"));
+require($dir . '/config.php');
+$bestandsversie = filectime($dir . "/index.php");
+if (strlen($table_prefix) > 0 and substr($table_prefix, -1) != "_") {
+	$table_prefix .= "_";
+}
+define("TABLE_PREFIX", $table_prefix);
+
+if (isset($httpsverplicht) and $httpsverplicht == 1 and !isset($_SERVER['HTTPS'])) {
+	header(sprintf("location: https:%s", $_SERVER['HTTP_HOST']));
+}
+
 if (isset($_SERVER['HTTPS'])){
 	define("BASISURL", "https://" . $_SERVER['HTTP_HOST']);
 } else {
@@ -42,14 +54,6 @@ if (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
 	$_SESSION['webmaster'] = 0;
 	$_SESSION['lidgroepen'] = "0";
 }
-
-$dir = substr(__DIR__, 0, strrpos(__DIR__, "/"));
-require($dir . '/config.php');
-$bestandsversie = filectime($dir . "/index.php");
-if (strlen($table_prefix) > 0 and substr($table_prefix, -1) != "_") {
-	$table_prefix .= "_";
-}
-define("TABLE_PREFIX", $table_prefix);
 
 $currenttab2 = "";
 $currenttab3 = "";
