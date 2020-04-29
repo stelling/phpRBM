@@ -16,8 +16,6 @@ function fnWijzigen($lidid, $actie="") {
 	global $currenttab, $currenttab2, $currenttab3;
 	global $muteerbarememos, $actionurl;
 	
-	$opzegtermijn = db_param("zs_opzegtermijn");
-	
 	if ($lidid == 0) {
 		$lidid = $_SESSION['lidid'];
 	}
@@ -169,7 +167,7 @@ function fnWieiswie($actie, $metfoto=1) {
 		$lijst = db_lidond("actueleleden", 0, "", "(O.Kader=True OR (F.Kader=True AND O.Type='F'))" . $geentest);
 	}
 
-	if (($metfoto == 1) and (db_param("toonpasfotoindiennietingelogd") == 1 or strlen($_SESSION['username']) > 5)) {
+	if (($metfoto == 1) and ($_SESSION['settings']['toonpasfotoindiennietingelogd'] == 1 or strlen($_SESSION['username']) > 5)) {
 		foreach ($lijst as $row) {
 			if ($vo != $row->OndNaam) {
 				if (strlen($vo) > 0) {
@@ -442,7 +440,7 @@ function fnOnderdelenmuteren($ondtype="G") {
 	
 	echo("<div id='onderdelenmuteren'>\n");
 	
-	echo("<h2>Dit onderdeel wordt momenteel aangepast, graag niet gebruiken.</h2>\n");
+//	echo("<h2>Dit onderdeel wordt momenteel aangepast, graag niet gebruiken.</h2>\n");
 	
 	if (isset($_GET['Scherm'])) {
 		$scherm = $_GET['Scherm'];
@@ -1024,7 +1022,7 @@ function fnEigenGegevens($lidid=0, $actie="") {
 				echo(fnDisplayForm($rows[0]));
 			}
 			$rows = db_insbew("overzichtlid", $lidid);
-			if (db_param("toneninschrijvingenbewakingen") == 1 and count($rows) > 0) {
+			if ($_SESSION['settings']['toneninschrijvingenbewakingen'] == 1 and count($rows) > 0) {
 				echo(fnDisplayTable($rows, "", "Ingeschreven voor bewakingen"));
 			}
 		} elseif ($actie == "Diplomas") {
@@ -1057,8 +1055,8 @@ function fnEigenGegevens($lidid=0, $actie="") {
 			} else {
 				echo("<p class='mededeling'>Er zijn geen toestemmingen bekend van dit lid.</p>\n");
 			}
-			if (strlen(db_param("uitleg_toestemmingen")) > 0) {
-				printf("<p>%s</p>\n", db_param("uitleg_toestemmingen"));
+			if (strlen($_SESSION['settings']['uitleg_toestemmingen']) > 0) {
+				printf("<p>%s</p>\n", $_SESSION['settings']['uitleg_toestemmingen']);
 			}
 			
 		} elseif ($actie == "Mailing") {
@@ -1176,7 +1174,7 @@ function overzichtverjaardagen($metfoto=1) {
 	$verj = "";
 	$verjfoto = "";
 	$aantgetoond = 0;
-	for ($i = 0; $i < db_param("verjaardagenvooruit") and $aantgetoond < db_param("verjaardagenaantal"); $i++) {
+	for ($i = 0; $i < $_SESSION['settings']['verjaardagenvooruit'] and $aantgetoond < $_SESSION['settings']['verjaardagenaantal']; $i++) {
 		$dteHV = mktime(0, 0, 0, date("m"), date("d")+$i, date("Y"));
 		foreach(db_lid("verjaardagen", date("Y-m-d", $dteHV)) as $row) {
 			$o = db_lidond("onderscheiding", $row->RecordID);
@@ -1257,10 +1255,10 @@ function algemeenlidmuteren($lidid) {
 	$wijzvelden[] = array('label' => "Vast telefoonnummer", 'naam' => "Telefoon", 'lengte' => 16);
 	$wijzvelden[] = array('label' => "Mobiel", 'naam' => "Mobiel", 'lengte' => 16);
 	$wijzvelden[] = array('label' => "E-mail", 'naam' => "Email", 'lengte' => 45);
-	if (db_param("zs_incl_emailvereniging") == 1 or $currenttab == "Wijzigen lid") {
+	if ($_SESSION['settings']['zs_incl_emailvereniging'] == 1 or $currenttab == "Wijzigen lid") {
 		$wijzvelden[] = array('label' => "E-mail vereniging", 'naam' => "EmailVereniging", 'lengte' => 45);
 	}
-	if ((db_param("zs_incl_emailouders") == 1 or $currenttab == "Wijzigen lid") and $gs != "B") {
+	if (($_SESSION['settings']['zs_incl_emailouders'] == 1 or $currenttab == "Wijzigen lid") and $gs != "B") {
 		$wijzvelden[] = array('label' => "E-mail ouders", 'naam' => "EmailOuders", 'lengte' => 45);
 		$wijzvelden[] = array('label' => "Namen ouders", 'naam' => "NamenOuders", 'lengte' => 90);
 	}
@@ -1269,27 +1267,27 @@ function algemeenlidmuteren($lidid) {
 	if ($gs != "B") {
 		$wijzvelden[] = array('label' => "Geboorteplaats", 'naam' => "GEBPLAATS", 'lengte' => 22);
 	}
-	if (db_param("zs_incl_iban") == 1) {
+	if ($_SESSION['settings']['zs_incl_iban'] == 1) {
 		$wijzvelden[] = array('label' => "Bankrekening", 'naam' => "Bankrekening", 'lengte' => 18);
 	}
-	if (db_param("zs_incl_machtiging") == 1 or $currenttab == "Wijzigen lid") {
+	if ($_SESSION['settings']['zs_incl_machtiging'] == 1 or $currenttab == "Wijzigen lid") {
 		$wijzvelden[] = array('label' => "Machtiging incasso afgegeven", 'naam' => "Machtiging afgegeven", 'lengte' => 1, 'type' => 'cb');
 	}
 	if ($gs != "B") {
-		if (db_param("zs_incl_vogafgegeven") == 1 or $currenttab == "Wijzigen lid") {
+		if ($_SESSION['settings']['zs_incl_vogafgegeven'] == 1 or $currenttab == "Wijzigen lid") {
 			$wijzvelden[] = array('label' => "VOG afgegeven op", 'naam' => "VOG afgegeven", 'lengte' => 10, 'type' => 'date');
 		}
-		if (db_param("zs_incl_bsn") == 1 or $currenttab == "Wijzigen lid") {
+		if ($_SESSION['settings']['zs_incl_bsn'] == 1 or $currenttab == "Wijzigen lid") {
 			$wijzvelden[] = array('label' => "Burgerservicenummer", 'naam' => "Burgerservicenummer", 'lengte' => 9);
 		}
-		if (db_param("zs_incl_slid") == 1 or $currenttab == "Wijzigen lid") {
+		if ($_SESSION['settings']['zs_incl_slid'] == 1 or $currenttab == "Wijzigen lid") {
 			$wijzvelden[] = array('label' => "Sportlink ID", 'naam' => "RelnrRedNed", 'lengte' => 7, 'nietverw' => false);
 		}
-		if (db_param("zs_incl_legitimatie") == 1 or $currenttab == "Wijzigen lid") {
+		if ($_SESSION['settings']['zs_incl_legitimatie'] == 1 or $currenttab == "Wijzigen lid") {
 			$wijzvelden[] = array('label' => "Legitimatietype", 'naam' => "Legitimatietype", 'nietverw' => true);
 			$wijzvelden[] = array('label' => "Legitimatienummer", 'naam' => "Legitimatienummer", 'lengte' => 15);
 		}
-		if (db_param("zs_incl_beroep") == 1 or $currenttab == "Wijzigen lid") {
+		if ($_SESSION['settings']['zs_incl_beroep'] == 1 or $currenttab == "Wijzigen lid") {
 			$wijzvelden[] = array('label' => "Beroep", 'naam' => "Beroep", 'lengte' => 40);
 		}
 	}
@@ -1514,16 +1512,16 @@ function nieuwepasfoto($lidid, $filterlid="") {
 				$image = null;
 			}
 			
-			if ($lidid == $_SESSION['lidid'] and isValidMailAddress(db_param("zs_emailnieuwepasfoto"), 0) and (file_exists($target))) {
+			if ($lidid == $_SESSION['lidid'] and isValidMailAddress($_SESSION['settings']['zs_emailnieuwepasfoto'], 0) and (file_exists($target))) {
 				$mail = new RBMmailer();
 				$mail->From = $_SESSION['emailingelogde'];
 				$mail->FromName = $naamlid;
 				$mail->Subject = "Nieuwe pasfoto " . $naamlid;
-				if (isValidMailAddress(db_param("zs_emailnieuwepasfoto"), 0) and db_param("zs_emailnieuwepasfoto") != db_param("emailledenadministratie")) {
-					$mail->AddAddress(db_param("zs_emailnieuwepasfoto"));
+				if (isValidMailAddress($_SESSION['settings']['zs_emailnieuwepasfoto'], 0) and $_SESSION['settings']['zs_emailnieuwepasfoto'] != $_SESSION['settings']['emailledenadministratie']) {
+					$mail->AddAddress($_SESSION['settings']['zs_emailnieuwepasfoto']);
 				}
-				if (isValidMailAddress(db_param("emailledenadministratie"), 0)) {
-					$mail->AddAddress(db_param("emailledenadministratie"));
+				if (isValidMailAddress($_SESSION['settings']['emailledenadministratie'], 0)) {
+					$mail->AddAddress($_SESSION['settings']['emailledenadministratie']);
 				}
 				$mail->AddCC($_SESSION['emailingelogde']);
 				$body = sprintf("<p>Beste ledenadministratie,</p>
@@ -1605,8 +1603,8 @@ function toestemmingenmuteren($lidid) {
 		printf("<label>%s: </label><p><input type='checkbox' name='T_%s' value='1' %s></p>\n", $row->Naam, $row->Kode, checked(db_lidond("islid", $lidid, "", "", $row->RecordID)));
 	}
 	echo("<div class='clear'></div>\n");
-	if (strlen(db_param("uitleg_toestemmingen")) > 0) {
-		printf("<p>%s</p>\n", db_param("uitleg_toestemmingen"));
+	if (strlen($_SESSION['settings']['uitleg_toestemmingen']) > 0) {
+		printf("<p>%s</p>\n", $_SESSION['settings']['uitleg_toestemmingen']);
 	}
 	
 	echo("<div id='opdrachtknoppen'>\n");
@@ -1619,8 +1617,6 @@ function toestemmingenmuteren($lidid) {
 function opzegginglidmaatschap($lidid) {
 	global $actionurl;
 	
-	$opzegtermijn = db_param("zs_opzegtermijn");
-	$emailledenadministratie = db_param("emailledenadministratie");
 	$fdlang = "%e %B %Y";
 	
 	$lid = db_lid("record", "", $lidid);
@@ -1634,16 +1630,16 @@ function opzegginglidmaatschap($lidid) {
 		}
 		if (strlen($_POST["OpzeggingPer"]) > 3 and strtotime($_POST["OpzeggingPer"]) !== FALSE) {
 			$opgezegdper = change_month_to_uk($_POST["OpzeggingPer"]);
-			if (strtotime($opgezegdper) < mktime(0, 0, 0, date("m")+$opzegtermijn, date("d"), date("Y"))) {
-				$opgezegdper = strftime($fdlang, mktime(0, 0, 0, date("m")+$opzegtermijn, date("d"), date("Y")));
-				$mess = sprintf("Er geldt een opzegtermijn van %d maand(en), hierdoor wordt de datum van opzegging %s.", $opzegtermijn, $opgezegdper);
+			if (strtotime($opgezegdper) < mktime(0, 0, 0, date("m")+$_SESSION['settings']['zs_opzegtermijn'], date("d"), date("Y"))) {
+				$opgezegdper = strftime($fdlang, mktime(0, 0, 0, date("m")+$_SESSION['settings']['zs_opzegtermijn'], date("d"), date("Y")));
+				$mess = sprintf("Er geldt een opzegtermijn van %d maand(en), hierdoor wordt de datum van opzegging %s.", $_SESSION['settings']['zs_opzegtermijn'], $opgezegdper);
 				db_logboek("add", $mess, 6, $lidid, 1);
 			} else {
 				$opgezegdper = strftime($fdlang, strtotime($opgezegdper));
 			}
 		} else {
-			$opgezegdper = strftime($fdlang, mktime(0, 0, 0, date("m")+$opzegtermijn, date("d"), date("Y")));
-			printf("<p class='mededeling'>Er geldt een opzegtermijn van %d maand(en), hierdoor wordt de datum van opzeggen %s.</p>", $opzegtermijn, $opgezegdper);
+			$opgezegdper = strftime($fdlang, mktime(0, 0, 0, date("m")+$_SESSION['settings']['zs_opzegtermijn'], date("d"), date("Y")));
+			printf("<p class='mededeling'>Er geldt een opzegtermijn van %d maand(en), hierdoor wordt de datum van opzeggen %s.</p>", $_SESSION['settings']['zs_opzegtermijn'], $opgezegdper);
 		}
 		if (isset($_POST['RedenOpmerking']) and strlen($_POST['RedenOpmerking']) > 1) {
 			$opm = "\n<p>" . $_POST['RedenOpmerking'] . "</p>\n";
@@ -1658,14 +1654,14 @@ function opzegginglidmaatschap($lidid) {
 		<p>Hierbij zeg ik mijn lidmaatschap van de %s per %s op. Mijn lidnummer is %d.</p>\n
 		%s
 		<p>Met vriendelijke groeten,<br>
-		<strong>%s</strong></p>\n", db_param("naamvereniging"), $opgezegdper, $_SESSION['lidnr'], $opm, $naamlid);
+		<strong>%s</strong></p>\n", $_SESSION['settings']['naamvereniging'], $opgezegdper, $_SESSION['lidnr'], $opm, $naamlid);
 				
 		$body .= sprintf("\n<p>Dit formulier is verzonden vanaf IP-adres %s.</p>\n", $_SERVER['REMOTE_ADDR']);
 	
 		$mail = new RBMmailer();
 		$mail->From = $_SESSION['emailingelogde'];
 		$mail->FromName = $naamlid;
-		$mail->AddAddress(db_param("emailledenadministratie"));
+		$mail->AddAddress($_SESSION['settings']['emailledenadministratie']);
 		$mail->InformerenOuders($lid->GEBDATUM, $lid->EmailOuders);
 		$mail->AddCC($_SESSION['emailingelogde']);
 		if (isValidMailAddress($_SESSION['emailsecretariaat'], 0)) {
@@ -1680,10 +1676,10 @@ function opzegginglidmaatschap($lidid) {
 			$mess = "Het versturen van de opzegging is mislukt. Probeer het later nogmaals.";
 			$success = 0;
 		}
-		db_add_mailing_hist(0, 0, "Ledenadministratie", db_param("emailledenadministratie"), $body, $mail, $success);
+		db_add_mailing_hist(0, 0, "Ledenadministratie", $_SESSION['settings']['emailledenadministratie'], $body, $mail, $success);
 		db_logboek("add", $mess, 6, 0, 1);
 		$mail = null;
-		if (db_param("zs_opzeggingautomatischverwerken") == 1) {
+		if ($_SESSION['settings']['zs_opzeggingautomatischverwerken'] == 1) {
 			(new cls_lidmaatschap())->opzegging($lidid, $opgezegdper);
 		}
 		
@@ -1707,11 +1703,11 @@ function opzegginglidmaatschap($lidid) {
 			$content = $form_opzegging;
 		}
 	
-		$content = str_replace("[%OPZEGGENVANAF%]", strftime($fdlang, mktime(0, 0, 0, date("m")+$opzegtermijn, date("d")+1, date("Y"))), $content);
+		$content = str_replace("[%OPZEGGENVANAF%]", strftime($fdlang, mktime(0, 0, 0, date("m")+$_SESSION['settings']['zs_opzegtermijn'], date("d")+1, date("Y"))), $content);
 		$content = str_replace("[%NAAMLID%]", $_SESSION['naamingelogde'], $content);
 		$content = str_replace("[%LIDNR%]", $_SESSION['lidnr'], $content);
-		$content = str_replace("[%NAAMVERENIGING%]", db_param("naamvereniging"), $content);
-		$content = str_replace("[%NAAMWEBSITE%]", db_param("naamwebsite"), $content);
+		$content = str_replace("[%NAAMVERENIGING%]", $_SESSION['settings']['naamvereniging'], $content);
+		$content = str_replace("[%NAAMWEBSITE%]", $_SESSION['settings']['naamwebsite'], $content);
 		$content = str_replace("[%URLWEBSITE%]", $_SERVER["HTTP_HOST"], $content);
 		
 		echo($content);
@@ -1881,8 +1877,8 @@ function lidmaatschapmuteren($lidid) {
 			}
 			
 			$nm = sprintf("BO_%d_x", $row->Lidnr);
-			if (isset($_POST[$nm]) and $_POST[$opgezegd] > "2010-01-01" and db_param("mailing_bevestigingopzegging") > 0) {
-				$mailing = new Mailing(db_param("mailing_bevestigingopzegging"));
+			if (isset($_POST[$nm]) and $_POST[$opgezegd] > "2010-01-01" and $_SESSION['settings']['mailing_bevestigingopzegging'] > 0) {
+				$mailing = new Mailing($_SESSION['settings']['mailing_bevestigingopzegging']);
 				$mailing->xtrachar = "BO_LM";
 				$mailing->xtranum = $row->Lidnr;
 				$mailing->send($row->Lid);
@@ -1919,7 +1915,7 @@ function lidmaatschapmuteren($lidid) {
 			$toev = false;
 		}
 		printf("<td><input type='date' name='Opgezegd_%d' value='%s' onchange='this.form.submit();'></td>\n", $row->RecordID, $row->Opgezegd);
-		if ($row->Opgezegd >= date("Y-m-d") and db_param("mailing_bevestigingopzegging") > 0) {
+		if ($row->Opgezegd >= date("Y-m-d") and $_SESSION['settings']['mailing_bevestigingopzegging'] > 0) {
 			printf("<td><input type='image' name='BO_%d' src='images/email.png' alt='Verstuur bevestiging' title='Verstuur bevestiging'></td>\n", $row->Lidnr);
 		} else {
 			echo("<td></td>\n");
@@ -1970,11 +1966,11 @@ function RekeningDetail($nr) {
 	
 	$rk = db_rekening("hoofd", $nr);
 	
-	$rekening_template = db_param("path_templates") . sprintf("rekening %d.html", $rk->Seizoen);
+	$rekening_template = $_SESSION['settings']['path_templates'] . sprintf("rekening %d.html", $rk->Seizoen);
 	if (file_exists($rekening_template)) {
 		$content = file_get_contents($rekening_template);
 	} else {
-		$rekening_template = db_param("path_templates") . "rekening.html";
+		$rekening_template = $_SESSION['settings']['path_templates'] . "rekening.html";
 		if (file_exists($rekening_template)) {
 			$content = file_get_contents($rekening_template);	
 		} else {
@@ -2050,10 +2046,10 @@ function RekeningDetail($nr) {
 	$content = str_ireplace("[%OPENSTAAND%]", fnBedrag($rk->Bedrag - $rk->Betaald), $content);
 	$content = str_ireplace("[%BANKREKENING%]", $rk->Bankrekeningnummer, $content);
 	$content = str_ireplace("[%UITERSTEBETAALDATUM%]", strftime("%e %B %Y", strtotime($rk->UitersteBetaaldatum)), $content);
-	$content = str_ireplace("[%VANAFADRES%]", db_param("mailing_rekening_from_adres"), $content);
-	$content = str_ireplace("[%VANAFNAAM%]", db_param("mailing_rekening_from_naam"), $content);
-	$content = str_ireplace("[%NAAMVERENIGING%]", db_param("naamvereniging"), $content);
-	$content = str_ireplace("[%NAAMWEBSITE%]", db_param("naamwebsite"), $content);
+	$content = str_ireplace("[%VANAFADRES%]", $_SESSION['settings']['mailing_rekening_from_adres'], $content);
+	$content = str_ireplace("[%VANAFNAAM%]", $_SESSION['settings']['mailing_rekening_from_naam'], $content);
+	$content = str_ireplace("[%NAAMVERENIGING%]", $_SESSION['settings']['naamvereniging'], $content);
+	$content = str_ireplace("[%NAAMWEBSITE%]", $_SESSION['settings']['naamwebsite'], $content);
 	$content = str_ireplace("[%URLWEBSITE%]", $_SERVER["HTTP_HOST"], $content);
 	
 	$rr = (new cls_Rekeningregel())->perrekening($nr);
@@ -2066,7 +2062,7 @@ function RekeningDetail($nr) {
 			$nl = "";
 		}
 		if ($regel->ToonOpRekening == 1) {
-			if (db_param("mailing_rekening_regelnrsweglaten") == 0) {
+			if ($_SESSION['settings']['mailing_rekening_regelnrsweglaten'] == 0) {
 				$rrtxt .= sprintf("<tr><td>%d</td><td>%s</td><td>%s</td><td class='number'>%s</td></tr>\n", $ireg, $regel->OMSCHRIJV, $nl, fnBedrag($regel->Bedrag));
 			} else {
 				$rrtxt .= sprintf("<tr><td>%s</td><td>%s</td><td class='number'>%s</td></tr>\n", $regel->OMSCHRIJV, $nl, $b);
@@ -2082,10 +2078,10 @@ function RekeningDetail($nr) {
 
 function fnBedrag($bedrag) {
 	
-	if (strlen(db_param("mailing_rekening_valuta")) == 0) {
+	if (strlen($_SESSION['settings']['mailing_rekening_valuta']) == 0) {
 		return str_replace(",00", ",=&nbsp;", sprintf("%03.2f", $bedrag));
 	} else {
-		return db_param("mailing_rekening_valuta") . "&nbsp;" . str_replace(",00", ",=&nbsp;", sprintf("%03.2f", $bedrag));
+		return $_SESSION['settings']['mailing_rekening_valuta'] . "&nbsp;" . str_replace(",00", ",=&nbsp;", sprintf("%03.2f", $bedrag));
 	}
 	
 }
@@ -2094,7 +2090,7 @@ function MailVervallenDiplomas() {
 	
 	// Deze functie is nog niet klaar en wordt nog nergens aangeroepen.
 	
-	$termijnvervallendiplomasmailen = db_param("termijnvervallendiplomasmailen");
+	$termijnvervallendiplomasmailen = $_SESSION['settings']['termijnvervallendiplomasmailen'];
 
 	if ((date('H') == 8 or ($_SESSION['webmaster'] == 1 and date('H') > 7)) and $termijnvervallendiplomasmailen > 0) {
 		$ed = date('Y-m-d', mktime(0, 0, 0, date("m")+$termijnvervallendiplomasmailen, date("d"), date("Y")));
