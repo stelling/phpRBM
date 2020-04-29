@@ -343,7 +343,7 @@ function inschrijvenbewaking($lidid) {
 			if ($geldig) {
 				if (isset($_POST['Definitief'])) {
 					db_insbew("defmaken", $lidid, $insnr);
-					if (db_param("mailing_bewakinginschrijving") > 0) {
+					if ($_SESSION['settings']['mailing_bewakinginschrijving'] > 0) {
 						BevestInschrBewaking($lidid, $insnr);
 					}
 				}
@@ -403,7 +403,7 @@ function inschrijvenbewaking($lidid) {
 		}
 		printf("<tr><td colspan=6>Opmerking(en) bij de inschrijving:<br><textarea onBlur='this.form.submit();' cols=90 rows=8 name='opmalg'>%s</textarea></td></tr>\n", db_memo("curval", $lidid, "I"));
 		echo("<tr><th colspan=6>");
-		printf("<p>%s</p>", db_param("zs_voorwaardeninschrijving"));
+		printf("<p>%s</p>", $_SESSION['settings']['zs_voorwaardeninschrijving']);
 		if ($geldig and $kandef) {
 			echo("&nbsp;<input type='submit' value='Definitief maken' name='Definitief'>");
 			echo("<p>Zolang een inschrijving niet definitief gemaakt is, geldt deze niet als inschrijving.</p>\n");
@@ -463,8 +463,8 @@ function fnDispBW($row, $output) {
 
 function BevestInschrBewaking($lidid, $insnr) {
 
-	if (db_param("mailing_bewakinginschrijving") > 0) {
-		$mailing = new Mailing(db_param("mailing_bewakinginschrijving"));
+	if ($_SESSION['settings']['mailing_bewakinginschrijving'] > 0) {
+		$mailing = new Mailing($_SESSION['settings']['mailing_bewakinginschrijving']);
 		$mailing->xtrachar = "BW_I";
 		$mailing->xtranum = $insnr;
 		$mailing->resultaatversturen = 0;
