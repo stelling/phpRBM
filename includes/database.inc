@@ -109,8 +109,10 @@ try {
 	printf("<p>Verbinding naar database '%s' mislukt: %s</p>\n", $db_name, $e->getMessage());
 }
 
-if (db_param("meisjesnaamtonen") == 1) {
-	$selectnaam = "CONCAT(IF(LENGTH(L.Roepnaam)>1, L.Roepnaam, L.Voorletter), ' ', IF(L.Tussenv>'', CONCAT(L.Tussenv, ' '), ''), L.Achternaam, IF(L.Meisjesnm>'', CONCAT('-', L.Meisjesnm), ''))";	
+if (!isset($_SESSION['settings']['meisjesnaamtonen'])) {
+	(new cls_Parameter())->vulsessie();
+} elseif ($_SESSION['settings']['meisjesnaamtonen'] == 1) {
+	$selectnaam = "CONCAT(IF(LENGTH(L.Roepnaam)>1, L.Roepnaam, L.Voorletter), ' ', IF(L.Tussenv>'', CONCAT(L.Tussenv, ' '), ''), L.Achternaam, IF(L.Meisjesnm>'', CONCAT('-', L.Meisjesnm), ''))";
 }
 
 if ((TableExists("Lid") == false or TableExists("Lidond") == false)) {
@@ -118,13 +120,17 @@ if ((TableExists("Lid") == false or TableExists("Lidond") == false)) {
 	db_onderhoud(2);
 }
 
-$pts = db_param("performance_trage_select");
 function fnQuery($query, $logtype=0) {
-	global $dbc, $pts;
+	global $dbc;
 	
 	$starttijd = microtime(true);
 	$mess = "";
 	
+	if (isset($_SESSION['settings']['performance_trage_select'])) {
+		$pts = $_SESSION['settings']['performance_trage_select'];
+	} else {
+		$pts = 0;
+	}
 	try {
 		
 		if (startwith($query, "SELECT")) {
@@ -193,7 +199,7 @@ class cls_db_base {
 	function __construct($p_table="") {
 		$this->table = TABLE_PREFIX . $p_table;
 		$this->execsql("SET lc_time_names='nl_NL';");
-		if (db_param("meisjesnaamtonen") == 1) {
+		if ($_SESSION['settings']['meisjesnaamtonen'] == 1) {
 			$this->selectnaam = "CONCAT(IF(LENGTH(L.Roepnaam)>1, L.Roepnaam, L.Voorletter), ' ', IF(L.Tussenv>'', CONCAT(L.Tussenv, ' '), ''), L.Achternaam, IF(L.Meisjesnm>'', CONCAT('-', L.Meisjesnm), ''))";	
 		}
 	}
@@ -308,7 +314,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 		}
 		$sqllegitimatie .= "END, ' ', L.Legitimatienummer), NULL)";
 		
-		if (db_param("WoonadresAnderenTonen") == 1 or $LidID == $_SESSION['lidid']) {
+		if ($_SESSION['settings']['WoonadresAnderenTonen'] == 1 or $LidID == $_SESSION['lidid']) {
 			$adresgegevens = "'Adresgegevens' AS Kop2,
 					L.Adres,
 					IF(LENGTH(L.Woonplaats) > 1, CONCAT(L.Postcode, '  ', L.Woonplaats), '') AS `Postcode en woonplaats`, ";
@@ -467,7 +473,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 
 	} elseif ($soort == "Bew") {
 		$xtra_where = "";
-		if (db_param("tonentoekomstigebewakingen") == 0) {
+		if ($_SESSION['settings']['tonentoekomstigebewakingen'] == 0) {
 			$xtra_where = "AND BS.Einde <= CURDATE()";
 		}
 		$query = sprintf("SELECT BS.Kode AS Seizoen,
@@ -2319,8 +2325,8 @@ class cls_Groep extends cls_db_base {
 function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="", $xtraorder="") {
 	global $dbc, $selectnaam, $selectlidnr, $lididwebmasters, $wherelidond, $wherelid, $dir, $pwfromcookie;
 	
-	if (strlen(db_param("login_beperkttotgroep")) > 0) {
-		$beperkttotgroep = explode(",", db_param("login_beperkttotgroep"));
+	if (strlen($_SESSION['settings']['login_beperkttotgroep']) > 0) {
+		$beperkttotgroep = explode(",", $_SESSION['settings']['login_beperkttotgroep']);
 	} else {
 		$beperkttotgroep = array(0);
 	}
@@ -2335,7 +2341,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			$lidid = $row->RecordID;
 			if (strlen($row->Login) > 5 and $row->Login != $login) {
 				$mess = sprintf("Er is al een ander login aan dit emailadres gekoppeld.");
-			} elseif (strlen($login) > 5 and strlen($login) <= db_param("login_maxlengte")) {
+			} elseif (strlen($login) > 5 and strlen($login) <= $_SESSION['settings']['login_maxlengte']) {
 				$mess = db_logins("add", "", $login, $row->RecordID, "", $pw);
 			}
 		} else {
@@ -2354,8 +2360,8 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			$mess = sprintf("Login '%s' is al in gebruik bij een ander lid.", $login);
 		} elseif (strlen($login) < 6) {
 			$mess = "De login moet minimaal 6 karakters lang zijn.";
-		} elseif (strlen($pw) < db_param("wachtwoord_minlengte")) {
-			$mess = sprintf("Het wachtwoord moet minimaal %d karakters lang zijn.", db_param("wachtwoord_minlengte"));
+		} elseif (strlen($pw) < $_SESSION['settings']['wachtwoord_minlengte']) {
+			$mess = sprintf("Het wachtwoord moet minimaal %d karakters lang zijn.", $_SESSION['settings']['wachtwoord_minlengte']);
 		} elseif ($lidid > 0) {
 			$nrid = db_nieuwrecordID("Admin_login");
 			$nk = password_hash(newkey(), PASSWORD_DEFAULT);
@@ -2489,8 +2495,8 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		}
 		
 	} elseif ($actie === "controle") {
-		if (db_param("login_autounlock") > 0) {
-			$query = sprintf("SELECT Login, LidID FROM %sAdmin_login WHERE Gewijzigd < DATE_SUB(SYSDATE(), INTERVAL %d MINUTE) AND FouteLogin > 0;", TABLE_PREFIX, db_param("login_autounlock"));
+		if ($_SESSION['settings']['login_autounlock'] > 0) {
+			$query = sprintf("SELECT Login, LidID FROM %sAdmin_login WHERE Gewijzigd < DATE_SUB(SYSDATE(), INTERVAL %d MINUTE) AND FouteLogin > 0;", TABLE_PREFIX, $_SESSION['settings']['login_autounlock']);
 			$result = fnQuery($query);
 			foreach ($result->fetchAll() as $row) {
 				$updqry = sprintf("UPDATE %sAdmin_login SET FouteLogin=0, Gewijzigd=SYSDATE() WHERE Login='%s';", TABLE_PREFIX, $row->Login);
@@ -2563,9 +2569,9 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 		return db_scalar($query);
 		
 	} elseif ($actie == "opschonen") {
-		if (db_param("login_bewaartijd") > 0) {
+		if ($_SESSION['settings']['login_bewaartijd'] > 0) {
 			$query = sprintf("DELETE FROM %1\$sAdmin_login
-						WHERE LastLogin < DATE_ADD(CURDATE(), INTERVAL -%2\$d MONTH) AND Ingevoerd < DATE_ADD(CURDATE(), INTERVAL -%2\$d MONTH);", TABLE_PREFIX, db_param("login_bewaartijd"));
+						WHERE LastLogin < DATE_ADD(CURDATE(), INTERVAL -%2\$d MONTH) AND Ingevoerd < DATE_ADD(CURDATE(), INTERVAL -%2\$d MONTH);", TABLE_PREFIX, $_SESSION['settings']['login_bewaartijd']);
 			$result = fnQuery($query, 2);
 		}
 		$mess = "";
@@ -2585,14 +2591,14 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 			$mess .= ", omdat ze geen toegang meer hebben.<br>\n";
 		}
 		$query = sprintf("DELETE FROM %sAdmin_login
-					WHERE ((LastLogin IS NULL) OR LastLogin < '2012-01-01') AND Ingevoerd < DATE_ADD(CURDATE(), INTERVAL -%d DAY);", TABLE_PREFIX, db_param("login_bewaartijdnietgebruikt"));
+					WHERE ((LastLogin IS NULL) OR LastLogin < '2012-01-01') AND Ingevoerd < DATE_ADD(CURDATE(), INTERVAL -%d DAY);", TABLE_PREFIX, $_SESSION['settings']['login_bewaartijdnietgebruikt']);
 		$result = fnQuery($query);
 		if ($result > 0) {
 			$mess .= sprintf("Er zijn %d logins verwijderd", $result);
 		} else {
 			$mess .= "Er zijn geen logins verwijderd";
 		}
-		$mess .= sprintf(", omdat ze niet binnen %d dagen na aanvragen gebruikt zijn.<br>\n", db_param("login_bewaartijdnietgebruikt"));
+		$mess .= sprintf(", omdat ze niet binnen %d dagen na aanvragen gebruikt zijn.<br>\n", $_SESSION['settings']['login_bewaartijdnietgebruikt']);
 		
 		$query = sprintf("UPDATE %1\$sAdmin_login SET HerinneringVervallenDiplomas=0 WHERE HerinneringVervallenDiplomas=1 AND 
 					LidID NOT IN (SELECT Lid FROM %1\$sLidmaatschap WHERE IFNULL(Opgezegd, CURDATE()) >= CURDATE());", TABLE_PREFIX);
@@ -2622,7 +2628,10 @@ class cls_Login extends cls_db_base {
 		$this->ta = 5;
 	}
 	
-	private function vulvars() {
+	private function vulvars($p_lidid=0) {
+		if ($p_lidid > 0) {
+			$this->lidid = $p_lidid;
+		}
 		if ($this->lidid > 0) {
 			$query = sprintf("SELECT Login FROM %s WHERE LidID=%d;", $this->table, $this->lidid);
 			$this->login = db_scalar($query);
@@ -2668,8 +2677,8 @@ class cls_Login extends cls_db_base {
 			$this->mess = sprintf("Login '%s' is al in gebruik bij een ander lid.", $p_login);
 		} elseif (strlen($p_login) < 6) {
 			$this->mess = "De login moet minimaal 6 karakters lang zijn.";
-		} elseif (strlen($p_wachtwoord) < db_param("wachtwoord_minlengte")) {
-			$this->mess = sprintf("Het wachtwoord moet minimaal %d karakters lang zijn.", db_param("wachtwoord_minlengte"));
+		} elseif (strlen($p_wachtwoord) < $_SESSION['settings']['wachtwoord_minlengte']) {
+			$this->mess = sprintf("Het wachtwoord moet minimaal %d karakters lang zijn.", $_SESSION['settings']['wachtwoord_minlengte']);
 		} elseif ($lidid > 0) {
 			$nrid = db_nieuwrecordID("Admin_login");
 			$nk = password_hash(newkey(), PASSWORD_DEFAULT);
@@ -2689,8 +2698,7 @@ class cls_Login extends cls_db_base {
 	}
 	
 	public function update($p_lidid, $p_kolom, $p_waarde) {
-		$this->lidid = $p_lidid;
-		$this->vulvars();
+		$this->vulvars($p_lidid);
 		
 		if ($this->is_kolom_numeriek($p_kolom)) {
 			$p_waarde = intval($p_waarde);
@@ -2713,8 +2721,7 @@ class cls_Login extends cls_db_base {
 	}
 	
 	public function delete($p_lidid) {
-		$this->lidid = $p_lidid;
-		$this->vulvars();
+		$this->vulvars($p_lidid);
 		
 		$query = sprintf("DELETE FROM %s WHERE LidID=%d;", $this->table, $p_lidid);
 		if (fnQuery($query) > 0) {
@@ -2730,8 +2737,8 @@ class cls_Login extends cls_db_base {
 	}
 	
 	public function autounlock() {
-		if (db_param("login_autounlock") > 0) {
-			$query = sprintf("SELECT Login, LidID FROM %s WHERE Gewijzigd < DATE_SUB(SYSDATE(), INTERVAL %d MINUTE) AND FouteLogin > 0;", $this->table, db_param("login_autounlock"));
+		if ($_SESSION['settings']['login_autounlock'] > 0) {
+			$query = sprintf("SELECT Login, LidID FROM %s WHERE Gewijzigd < DATE_SUB(SYSDATE(), INTERVAL %d MINUTE) AND FouteLogin > 0;", $this->table, $_SESSION['settings']['login_autounlock']);
 			$result = $this->execsql($query);
 			foreach ($result->fetchAll() as $row) {
 				$updqry = sprintf("UPDATE %s SET FouteLogin=0, Gewijzigd=SYSDATE() WHERE Login='%s';", $this->table, $row->Login);
@@ -2745,17 +2752,22 @@ class cls_Login extends cls_db_base {
 		}
 	}
 		
-	public function setingelogd($p_lidid) {
+	public function setingelogd($p_lidid, $p_napost=0) {
 		$this->lidid = $p_lidid;
 		$this->ta = 1;
+		if ($p_napost == 1) {
+			$xw = "";
+		} else {
+			$xw = "AND Ingelogd=0";
+		}
 		
-		$query = sprintf("UPDATE %s SET LastLogin=SYSDATE(), LastActivity=SYSDATE(), Ingelogd=1, FouteLogin=0 WHERE Ingelogd=0 AND LidID=%d;", $this->table, $this->lidid);
+		$query = sprintf("UPDATE %s SET LastLogin=SYSDATE(), LastActivity=SYSDATE(), Ingelogd=1, FouteLogin=0 WHERE LidID=%d %s;", $this->table, $this->lidid, $xw);
 		if (fnQuery($query) > 0) {
 			$this->tas = 1;
 			$this->mess = sprintf("Heeft met '%s' ingelogd.", $_SESSION['username']);
 			if (db_Logboek("aantal", "", -1, $p_lidid, 0, 0, $_SERVER['REMOTE_ADDR']) == 0) {
 				$this->mess .= sprintf(" Dit is voor het eerst vanaf IP-adres %s.", $_SERVER['REMOTE_ADDR']);
-				if (db_param("mailing_meldingnieuwip") > 0) {
+				if ($_SESSION['settings']['mailing_meldingnieuwip'] > 0) {
 				}
 			}
 			$this->Log();
@@ -2872,8 +2884,8 @@ function db_add_mailing_hist($lidid, $mid, $to_name="", $to_addr="", $cc_addr=""
 			$cc_addr = $row->cc_addr;
 		}
 	} elseif ($xtrachar == "REK") {
-		$from_addr = db_param("mailing_rekening_from_adres");
-		$from_name = db_param("mailing_rekening_from_naam");
+		$from_addr = $_SESSION['settings']['mailing_rekening_from_adres'];
+		$from_name = $_SESSION['settings']['mailing_rekening_from_naam'];
 	}
 	$from_name = html_entity_decode(str_replace("\"", "'", $from_name));
 	$subject = html_entity_decode(str_replace("\"", "'", $subject));
@@ -2905,7 +2917,7 @@ function db_mailing($actie, $mid=0, $filter="", $new_val="", $kolnaam="") {
 		
 	} elseif ($actie == "lijst") {
 		$xtra_sel = "";
-		if (in_array(db_param("mailing_alle_zien"), explode(", ", $_SESSION['lidgroepen']))) {
+		if (in_array($_SESSION['settings']['mailing_alle_zien'], explode(", ", $_SESSION['lidgroepen']))) {
 			$w = "1=1";
 		} else {
 			$w = sprintf("M.ZichtbaarVoor IN (%s)", $_SESSION['lidgroepen']);
@@ -2935,7 +2947,7 @@ function db_mailing($actie, $mid=0, $filter="", $new_val="", $kolnaam="") {
 		}
 		
 		$query = sprintf("SELECT M.MailingID AS lnkMailingID, M.MailingID AS intNr, M.subject AS Onderwerp, M.from_name AS Van, M.to_name AS Aan,
-					CONCAT(%1\$s, ' & ', DATE_FORMAT(M.changed_on, %6\$s)) AS `mrgLaatst gewijzigd`
+					CONCAT(%1\$s, ' & ', DATE_FORMAT(M.Gewijzigd, %6\$s)) AS `mrgLaatst gewijzigd`
 					%2\$s,
 					IF((SELECT COUNT(*) FROM %3\$sMailing_hist AS MH WHERE MH.MailingID=M.MailingID) > 0, M.MailingID, 0) AS llkHist
 					FROM %3\$sMailing AS M LEFT JOIN %3\$sLid AS L ON M.GewijzigdDoor=L.RecordID
@@ -3024,9 +3036,9 @@ function db_mailing($actie, $mid=0, $filter="", $new_val="", $kolnaam="") {
 		fnQuery($query);
 		
 	} elseif ($actie == "opschonen") {
-		if (db_param("mailing_bewaartijd") > 0) {
+		if ($_SESSION['settings']['mailing_bewaartijd'] > 0) {
 			$query = sprintf("DELETE FROM %sMailing WHERE (NOT deleted_on IS NULL)
-						AND deleted_on < ADDDATE(CURDATE(), INTERVAL -%d MONTH);", TABLE_PREFIX, db_param("mailing_bewaartijd"));
+						AND deleted_on < ADDDATE(CURDATE(), INTERVAL -%d MONTH);", TABLE_PREFIX, $_SESSION['settings']['mailing_bewaartijd']);
 			$result = fnQuery($query, 2);
 		}
 			
@@ -3070,13 +3082,20 @@ class cls_Mailing extends cls_db_base {
 		
 		$p_subject = str_replace("\"", "'", $p_subject);
 		$nrid = db_nieuwrecordID("Mailing");
-		$query = sprintf("INSERT INTO %s (MailingID, subject, OmschrijvingOntvangers, AddedBy) VALUES (%d, \"%s\", '', %d);", $this->table, $nrid, $p_subject, $_SESSION['lidid']);
+		$query = sprintf("INSERT INTO %s (MailingID, subject, OmschrijvingOntvangers, IngevoerdDoor) VALUES (%d, \"%s\", '', %d);", $this->table, $nrid, $p_subject, $_SESSION['lidid']);
 		if (fnQuery($query) > 0) {
 			$this->mess = sprintf("Mailing %d (%s) is toegevoegd.", $nrid, $p_subject);
 			$this->Log($nrid);
 			
-			$query = sprintf("UPDATE %s SET RecordID=MailingID WHERE MailingID > 0 AND IFNULL(RecordID, 0)=0;", $this->table);
+			// Tijdelijke code in verband met nieuwe kolomnamen ****
+			$query = sprintf("UPDATE %s SET RecordID=MailingID WHERE MailingID > 0 AND IFNULL(RecordID, 0)<>MailingID;", $this->table);
 			$this->execsql($query);
+			$query = sprintf("UPDATE %s SET Ingevoerd=new_on WHERE new_on > '2000-01-01' AND IFNULL(Ingevoerd, '') < '2000-01-01';", $this->table);
+			$this->execsql($query);
+			$query = sprintf("UPDATE %s SET IngevoerdDoor=AddedBy WHERE AddedBy > 0 AND IFNULL(IngevoerdDoor, 0)=0;", $this->table);
+			$this->execsql($query);
+			// ****
+			
 			return $nrid;
 		} else {
 			return 0;
@@ -3100,6 +3119,14 @@ class cls_Mailing extends cls_db_base {
 			$this->mess = sprintf("In mailing %d is kolom '%s' is in %s gewijzigd. ", $p_mid, $p_kolom, $p_waarde);
 			$this->Log($p_mid);
 		}
+		
+		// Tijdelijke code in verband met nieuwe kolomnamen ****
+		$query = sprintf("UPDATE %s SET Gewijzigd=changed_on WHERE changed_on > '2000-01-01' AND IFNULL(Gewijzigd, '')<'2000-01-01';", $this->table);
+		$this->execsql($query);
+		$query = sprintf("UPDATE %s SET GewijzigdDoor=ChangedBy WHERE ChangedBy > 0 AND IFNULL(GewijzigdDoor, 0)=0;", $this->table);
+		$this->execsql($query);
+		// ****
+			
 	}
 	
 	public function updatesent($p_mid) {
@@ -3144,17 +3171,17 @@ function db_mailing_hist($actie, $lidid=0, $mhid=0, $mid=0) {
 	
 	if ($actie == "outbox" or $actie == "outboxbatch" or $actie == "outboxspeciaal") {
 		$lm = 1000;
-		if (db_param("maxmailsperdag") > 0 and db_param("maxmailsperdag") < $lm) {
-			$lm = db_param("maxmailsperdag");
+		if ($_SESSION['settings']['maxmailsperdag'] > 0 and $_SESSION['settings']['maxmailsperdag'] < $lm) {
+			$lm = $_SESSION['settings']['maxmailsperdag'];
 		}
-		if (db_param("maxmailsperuur") > 0 and db_param("maxmailsperuur") < $lm) {
-			$lm = db_param("maxmailsperuur");
+		if ($_SESSION['settings']['maxmailsperuur'] > 0 and $_SESSION['settings']['maxmailsperuur'] < $lm) {
+			$lm = $_SESSION['settings']['maxmailsperuur'];
 		}
 		$xw = "";
 		if ($actie == "outboxbatch") {
 			$xw = "AND MH.Ingevoerd < DATE_SUB(SYSDATE(), INTERVAL 15 MINUTE)";
 		} elseif ($actie == "outboxspeciaal") {
-			$xw = sprintf("AND MH.MailingID > 0 AND MH.MailingID IN (%d, %d, %d)", db_param("mailing_lidnr"), db_param("mailing_validatielogin"), db_param("mailing_herstellenwachtwoord"));
+			$xw = sprintf("AND MH.MailingID > 0 AND MH.MailingID IN (%d, %d, %d)", $_SESSION['settings']['mailing_lidnr'], $_SESSION['settings']['mailing_validatielogin'], $_SESSION['settings']['mailing_herstellenwachtwoord']);
 		} elseif ($_SESSION['webmaster'] == 0) {
 			$xw = sprintf("AND MH.ZichtbaarVoor IN (%s)", $_SESSION['lidgroepen']);
 		} else {
@@ -3674,8 +3701,8 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0, $referid=0, $ipf
 		return $nrid;
 		
 	} elseif ($actie == "opschonen") {
-		if (db_param("logboek_bewaartijd") > 0) {
-			$query = sprintf("DELETE FROM %sAdmin_activiteit WHERE DatumTijd < DATE_ADD(CURDATE(), INTERVAL -%d MONTH);", TABLE_PREFIX, db_param("logboek_bewaartijd"));
+		if ($_SESSION['settings']['logboek_bewaartijd'] > 0) {
+			$query = sprintf("DELETE FROM %sAdmin_activiteit WHERE DatumTijd < DATE_ADD(CURDATE(), INTERVAL -%d MONTH);", TABLE_PREFIX, $_SESSION['settings']['logboek_bewaartijd']);
 			fnQuery($query, 2);
 		}
 				
@@ -3736,8 +3763,8 @@ function db_logboek($actie, $oms="", $type=-1, $lidid=0, $tm=0, $referid=0, $ipf
 	
 	} elseif ($actie == "iplogincontrole") {
 		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_activiteit WHERE TypeActiviteit=97 AND IP_adres='%s' AND DatumTijd >= ", TABLE_PREFIX, $_SERVER['HTTP_USER_AGENT']);
-		if (db_param("login_autounlock") > 0) {
-			$query .= sprintf("DATE_ADD(SYSDATE(), INTERVAL -%d MINUTE);", db_param("login_autounlock"));
+		if ($_SESSION['settings']['login_autounlock'] > 0) {
+			$query .= sprintf("DATE_ADD(SYSDATE(), INTERVAL -%d MINUTE);", $_SESSION['settings']['login_autounlock']);
 		} else {
 			$query .= "DATE_ADD(SYSDATE(), INTERVAL -1 HOUR);";
 		}
@@ -3821,8 +3848,8 @@ class cls_Logboek extends cls_db_base {
 	
 	public function opschonen() {
 		
-		if (db_param("logboek_bewaartijd") > 0) {
-			$query = sprintf("DELETE FROM %s WHERE DatumTijd < DATE_ADD(CURDATE(), INTERVAL -%d MONTH);", $this->table, db_param("logboek_bewaartijd"));
+		if ($_SESSION['settings']['logboek_bewaartijd'] > 0) {
+			$query = sprintf("DELETE FROM %s WHERE DatumTijd < DATE_ADD(CURDATE(), INTERVAL -%d MONTH);", $this->table, $_SESSION['settings']['logboek_bewaartijd']);
 			$this->execsql($query, 2);
 		}
 	}
@@ -4082,7 +4109,7 @@ function db_liddipl($actie, $lidid=0, $ldid=0, $dpid=0, $exdat="", $vervdat="", 
 				 . " FROM %1\$sLiddipl AS LD INNER JOIN %1\$sDiploma AS D ON LD.DiplomaID=D.RecordID"
 				 . " WHERE D.Zelfservice=1 AND ((D.Vervallen IS NULL) OR D.Vervallen > CURDATE()) AND ((NOT LD.LicentieVervallenPer IS NULL) OR D.GELDIGH > 0) AND LD.Lid=%2\$d"
 				 . " AND IFNULL(LD.LicentieVervallenPer, DATE_ADD(LD.DatumBehaald, INTERVAL D.GELDIGH MONTH)) < DATE_ADD(CURDATE(), INTERVAL %3\$d MONTH) AND LD.LicentieVervallenPer > DATE_ADD(CURDATE(), INTERVAL -%3\$d MONTH)"
-				 . " ORDER BY D.Volgnr, D.Kode, LD.DatumBehaald DESC;", TABLE_PREFIX, $lidid, db_param("termijnvervallendiplomasmelden"));
+				 . " ORDER BY D.Volgnr, D.Kode, LD.DatumBehaald DESC;", TABLE_PREFIX, $lidid, $_SESSION['settings']['termijnvervallendiplomasmelden']);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
@@ -5175,7 +5202,78 @@ class cls_Parameter extends cls_db_base {
 		$this->ta = 13;
 	}
 	
-	function update($p_naam, $p_waarde) {
+	public function waarde($p_naam) {
+		
+		if (isset($_SESSION['settings'][$p_naam]) and $p_naam != "laatstebackup") {
+			$retval = $_SESSION['settings'][$p_naam];
+		} else {
+			if (array_key_exists($p_naam, $arrBooleans)) {
+				$retval = $arrBooleans[$p_naam];
+			} elseif (array_key_exists($p_naam, $arrIntegers)) {
+				$retval = $arrIntegers[$p_naam];
+			} elseif (array_key_exists($p_naam, $arrFloats)) {
+				$retval = $arrFloats[$p_naam];
+			} elseif (array_key_exists($p_naam, $arrStrings)) {
+				$retval = $arrStrings[$p_naam];
+			} else {
+				$mess = sprintf("Parameter %s bestaat niet. Neem contact op met de ontwikkelaar.", $p_naam);
+				debug($mess, 1, 0, 1);
+				$retval = "";
+			}
+			
+			if ($p_naam == "naamvereniging") {
+				$query = sprintf("SELECT 1 AS RecordID, 'T' AS ParamType, Naam AS ValueChar FROM %sVereniging;", TABLE_PREFIX);
+			} elseif ($p_naam == "naamvereniging_afkorting") {
+				$query = sprintf("SELECT 1 AS RecordID, 'T' AS ParamType, AfkortingNaam AS ValueChar FROM %sVereniging;", TABLE_PREFIX);
+			} elseif ($p_naam == "emailsecretariaat") {
+				$query = sprintf("SELECT 1 AS RecordID, 'T' AS ParamType, EmailSecretariaat AS ValueChar FROM %sVereniging;", TABLE_PREFIX);
+			} elseif ($p_naam == "emailledenadministratie") {
+				$query = sprintf("SELECT 1 AS RecordID, 'T' AS ParamType, EmailLedenadministratie AS ValueChar FROM %sVereniging;", TABLE_PREFIX);
+			} elseif ($p_naam == "laatstebackup") {
+				$query = sprintf("SELECT 1 AS RecordID, 'T' AS ParamType, MAX(DatumTijd) AS ValueChar FROM %sAdmin_activiteit WHERE TypeActiviteit=3;", TABLE_PREFIX);
+			} else {
+				$query = sprintf("SELECT IFNULL(RecordID, 0) AS RecordID, ParamType, ValueNum, ValueChar FROM %s WHERE Naam='%s';", $this->table, $p_naam);
+			}
+			$result = $this->execsql($query);
+			$row = $result->fetch();
+			if (isset($row->RecordID) and $row->RecordID > 0) {
+				if (($row->ParamType == "F" or $row->ParamType == "I") and empty($row->ValueNum)) {
+					$retval = 0;
+				} elseif ($row->ParamType == "B" or $row->ParamType == "F" or $row->ParamType == "I") {
+					$retval = $row->ValueNum;
+				} elseif (empty($row->ValueChar)) {
+					$retval = "";
+				} else {
+					$retval = $row->ValueChar;
+				}
+			}
+			$_SESSION['settings'][$p_naam] = $retval;
+		}
+		return $retval;
+	}
+	
+	public function lijst() {
+		$query = sprintf("SELECT *, IFNULL(ValueNum, ValueChar) AS CurVal FROM %s ORDER BY Naam;", $this->table);
+		$result = $this->execsql($query);
+		return $result->fetchAll();
+	}
+	
+	public function vulsessie() {
+		foreach ($this->lijst() as $row) {
+			if (($row->ParamType == "F" or $row->ParamType == "I") and empty($row->ValueNum)) {
+				$retval = 0;
+			} elseif ($row->ParamType == "B" or $row->ParamType == "F" or $row->ParamType == "I") {
+				$retval = $row->ValueNum;
+			} elseif (empty($row->ValueChar)) {
+				$retval = "";
+			} else {
+				$retval = $row->ValueChar;
+			}
+			$_SESSION['settings'][$row->Naam] = $retval;
+		}
+	}
+	
+	public function update($p_naam, $p_waarde) {
 		$query = sprintf("SELECT * FROM %s WHERE Naam='%s';", $this->table, $p_naam);
 		$cur = $this->execsql($query)->fetch();
 		$set = "";
@@ -5268,8 +5366,8 @@ function db_onderhoud($type=9) {
 	$table = TABLE_PREFIX . "Admin_login";
 	$col = "Login";
 	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%s' AND COLUMN_NAME LIKE '%s';", $db_name, $table, $col);
-	if (db_scalar($query) < db_param("login_maxlengte")) {
-		$query = sprintf("ALTER TABLE `%1\$s` CHANGE `%2\$s` `%2\$s` VARCHAR( %3\$d ) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table, $col, db_param("login_maxlengte"));
+	if (db_scalar($query) < $_SESSION['settings']['login_maxlengte']) {
+		$query = sprintf("ALTER TABLE `%1\$s` CHANGE `%2\$s` `%2\$s` VARCHAR( %3\$d ) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table, $col, $_SESSION['settings']['login_maxlengte']);
 		fnQuery($query, 2);
 	}
 	
@@ -5368,7 +5466,7 @@ function db_onderhoud($type=9) {
 		fnQuery($query, 2);
 	}
 	
-	// Toevoegen veld 'ZichtbaarVoor' aan de tabel 'Mailing'. Deze code kan na 1/1/2021 worden verwijderd.
+	// Toevoegen veld 'ZichtbaarVoor' aan de tabel 'Mailing'. Deze code kan na 1 januari 2021 worden verwijderd.
 	$tab = TABLE_PREFIX . "Mailing";
 	$col = "ZichtbaarVoor";
 	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%s' AND COLUMN_NAME='%s';", $db_name, $tab, $col);
@@ -5498,9 +5596,24 @@ function db_onderhoud($type=9) {
 		fnQuery($query, 2);
 	}
 	
+	// Toevoegen kolommen 'Ingevoerd' en 'IngevoerdDoor' aan de tabel 'Mailing'. Deze code kan na 1 mei 2021 worden verwijderd.
+	$tab = TABLE_PREFIX . "Mailing";
+	$col = "Ingevoerd";
+	if (bestaatkolom($tab, $col) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `HTMLdirect`;", $tab, $col);
+		fnQuery($query, 2);
+	}
+	$tab = TABLE_PREFIX . "Mailing";
+	$col = "IngevoerdDoor";
+	if (bestaatkolom($tab, $col) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NULL DEFAULT '0' AFTER `Ingevoerd`;", $tab, $col);
+		fnQuery($query, 2);
+	}
+	
+	
 	/***** Velden die aangepast zijn. *****/
 		
-	// Deze code kan na 1/12/2020 worden verwijderd.
+	// Deze code kan na 1 december 2020 worden verwijderd.
 	$query = sprintf("ALTER TABLE `%sEvenement_Deelnemer` CHANGE `Functie` `Functie` VARCHAR(30) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL;", TABLE_PREFIX);
 	fnQuery($query);
 	$query = sprintf("ALTER TABLE `%sEvenement_Deelnemer` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
@@ -5554,7 +5667,7 @@ function db_onderhoud($type=9) {
 	$query = sprintf("ALTER TABLE `%sMailing_hist` CHANGE `cc_addr` `cc_addr` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", TABLE_PREFIX);
 	fnQuery($query);
 	
-	// Admin_activiteit, deze code kan na 1/3/2021 worden verwijderd.
+	// Admin_activiteit, deze code kan na 1 maart 2021 worden verwijderd.
 	$query = sprintf("ALTER TABLE `%sAdmin_activiteit` CHANGE `USER_AGENT` `USER_AGENT` VARCHAR(125) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL;", TABLE_PREFIX);
 	fnQuery($query);
 	
@@ -5595,10 +5708,10 @@ function db_onderhoud($type=9) {
 		fnQuery($query, 2);
 	}
 	
-	if (db_param("login_geldigheidactivatie") > 0) {
+	if ($_SESSION['settings']['login_geldigheidactivatie'] > 0) {
 		$query = sprintf("UPDATE %1\$sAdmin_login SET ActivatieKey='', Wachtwoord='', LaatsteWachtwoordWijziging=SYSDATE(), Gewijzigd=SYSDATE()
 					WHERE Ingelogd=0 AND LENGTH(ActivatieKey) > 5 AND Gewijzigd < ADDDATE(SYSDATE(), INTERVAL -%2\$d HOUR) AND (Gewijzigd IS NOT NULL) AND Gewijzigd > '2000-01-01';"
-					, TABLE_PREFIX, db_param("login_geldigheidactivatie"));
+					, TABLE_PREFIX, $_SESSION['settings']['login_geldigheidactivatie']);
 		$result = fnQuery($query);
 	}
 	
@@ -5638,7 +5751,7 @@ function db_addautoincrement($table) {
 function db_backup() {
 	global $db_name, $arrTables;
 	
-	$db_folderbackup = db_param("db_folderbackup");
+	$db_folderbackup = $_SESSION['settings']['db_folderbackup'];
 	
 	$buname = $db_name . "_backup_" . Date("Y-m-d-H-i-s") . "-" . rand(10001, 99998);
 	
@@ -5656,10 +5769,10 @@ function db_backup() {
 	db_param("db_folderbackup", "updval", $db_folderbackup);
 
 	$mess = "";
-	if (strtotime(db_param("laatstebackup")) < mktime(date("H")-1, date("m"), 0, date("m"), date("d"), date("Y"))) {
+	if (strtotime($_SESSION['settings']['laatstebackup']) < mktime(date("H")-1, date("m"), 0, date("m"), date("d"), date("Y"))) {
 		$FileName = $db_folderbackup . $buname;
 		
-		if (db_param("db_backup_type") == 1 or db_param("db_backup_type") == 2) {
+		if ($_SESSION['settings']['db_backup_type'] == 1 or $_SESSION['settings']['db_backup_type'] == 2) {
 			$tabs = "";
 			foreach ($arrTables as $tnr => $tnm) {
 				if ((db_param("db_backup_type") == 1 and $tnr < 20) or (db_param("db_backup_type") == 2 and $tnr >= 20)) {
