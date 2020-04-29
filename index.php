@@ -27,7 +27,7 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 				setcookie("password", $_POST['password'], time()+(3600*24*30));
 			}
 		}
-		fnAuthenticatie(1, $_POST['password']);
+		fnAuthenticatie(1, $_POST['password'], 1);
 	}
 	if ($_SESSION['lidid'] > 0) {
 		echo("<script>location.href='/'; </script>\n");
@@ -61,10 +61,9 @@ if ($currenttab != "Mailing") {
 	HTMLheader();
 }
 
-// $query = 
-
 $isafdelingstab = 0;
-if (strlen(db_param("menu_met_afdelingen")) > 0 and db_Onderdeel("aantal", "A", 0, 0, "", "", "", $currenttab) == 1) {
+$f = sprintf("Type='A' AND Naam='%s'", $currenttab);
+if (strlen($_SESSION['settings']['menu_met_afdelingen']) > 0 and (new cls_Onderdeel())->aantal($f) == 1) {
 	$isafdelingstab = 1;
 }
 
@@ -125,14 +124,14 @@ if (toegang($_GET['tp'], 1) == false) {
 		if ($_SESSION['lidid'] == 0) {
 			fnLoginAanvragen();
 			echo("<div id='kolomrechts'>\n");
-			if (db_param("mailing_lidnr") > 0) {
+			if ($_SESSION['settings']['mailing_lidnr'] > 0) {
 				fnOpvragenLidnr("form");
 			}
 			fnHerstellenWachtwoord("form");
 			echo("</div>  <!-- Einde kolomrechts -->\n");
 		}
 	} else {
-		fnWieiswie($currenttab2, db_param("kaderoverzichtmetfoto"));
+		fnWieiswie($currenttab2, $_SESSION['settings']['kaderoverzichtmetfoto']);
 	}
 } elseif ($currenttab == "Ledenlijst") {
 	fnLedenlijst();
@@ -151,7 +150,7 @@ if (toegang($_GET['tp'], 1) == false) {
 } elseif ($currenttab == "Bestellingen") {
 	fnWebshop();
 } elseif (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
-	if (db_param("mailing_lidnr") > 0) {
+	if ($_SESSION['settings']['mailing_lidnr'] > 0) {
 		fnOpvragenLidnr("form");
 	}
 	fnLoginAanvragen();
