@@ -191,14 +191,17 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 
 	echo("<div id='dbonderhoud'>\n");
 	
+	$query = sprintf("SELECT MAX(DatumTijd) AS LB FROM %sAdmin_activiteit WHERE TypeActiviteit=3;", TABLE_PREFIX);
+	$laatstebackup = db_scalar($query);
+	
 	printf("<form method='post' name='frmOnderhoud' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
-	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=backup\"' value='Backup'>&nbsp;Maak een backup van de database. Laatste backup is op %s gemaakt.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), db_param("laatstebackup"));
+	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=backup\"' value='Backup'>&nbsp;Maak een backup van de database. Laatste backup is op %s gemaakt.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $laatstebackup);
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=FreeBackupFiles\"' value='Vrijgeven backup-bestanden'>&nbsp;Geef de backup-bestanden vrij door middel van een chmod 0755.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=logboekopschonen\"' value='Logboek opschonen'>&nbsp;Verwijder alle records uit het logboek, die ouder dan <input type='number' class='inputnumber' name='logboek_bewaartijd' onChange='this.form.submit();' value=%d> maanden zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), db_param("logboek_bewaartijd"));
+	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=logboekopschonen\"' value='Logboek opschonen'>&nbsp;Verwijder alle records uit het logboek, die ouder dan <input type='number' class='inputnumber' name='logboek_bewaartijd' onChange='this.form.submit();' value=%d> maanden zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['logboek_bewaartijd']);
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=loggingdebugopschonen\"' value='Eigen logging voor debugging opschonen'>&nbsp;Verwijder alle records uit het logboek, die onder jouw account voor debugging zijn toegevoegd.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=evenementenopschonen\"' value='Evenementen opschonen'>&nbsp;Opschonen verwijderde evenementen, die geen deelnemers meer hebben.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	if (db_mailing("aantalprullenbak") > 0) {
-		printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=mailingsopschonen\"' value='Mailings opschonen'>&nbsp;Mailings, die langer dan <input type='number' name='mailing_bewaartijd' class='inputnumber' onChange='this.form.submit();' value=%d> maanden in de prullenbak zitten, definitief verwijderen.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), db_param("mailing_bewaartijd"));
+		printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=mailingsopschonen\"' value='Mailings opschonen'>&nbsp;Mailings, die langer dan <input type='number' name='mailing_bewaartijd' class='inputnumber' onChange='this.form.submit();' value=%d> maanden in de prullenbak zitten, definitief verwijderen.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['mailing_bewaartijd']);
 	}
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=loginsopschonen\"' value='Logins opschonen'>&nbsp;Opschonen van logins die om diverse redenen niet meer nodig zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=autorisatieopschonen\"' value='Autorisatie opschonen'>&nbsp;Verwijderen toegang waar alleen de webmaster toegang toe heeft en die ouder dan 3 maanden zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
@@ -214,7 +217,6 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	$query = "SELECT Version() AS Version;";
 	$vdb = (new cls_db_base())->versiedb();
 	printf("<div id='versies'>PHP: %s / Database: %s</div>  <!-- Einde versies -->\n", substr(phpversion(), 0, 6), $vdb);
-	db_param("versiephp", "updval", substr(phpversion(), 0, 6));
 	
 } elseif ($currenttab == "Logboek" and toegang($currenttab, 1, 1)) {
 	if (!isset($_POST['lidfilter']) or strlen($_POST['lidfilter']) == 0) {
@@ -354,7 +356,7 @@ function fnBeheerLogins() {
 	echo("<div class='clear'></div>\n");
 	
 	$lnk_ek = sprintf("<a href='%s?op=deletelogin&amp;lidid=%%d'><img src='images/del.png' title='Verwijder login'></a>", $_SERVER['PHP_SELF']);
-	if (db_param("login_maxinlogpogingen") > 0) {
+	if ($_SESSION['settings']['login_maxinlogpogingen'] > 0) {
 		$lnk_lk = sprintf("<a href='%s?op=unlocklogin&amp;lidid=%%d' title='Reset foutieve logins'><img src='images/unlocked_01.png'></a>", $_SERVER['PHP_SELF']);
 	} else {
 		$lnk_lk = "";
@@ -375,8 +377,12 @@ function fnBeheerLogins() {
 }  #  fnBeheerLogins
 
 function fnInstellingen() {
+	
+	$inst_p = new cls_Parameter();
+	$inst_p->controle();
+	$inst_p->vulsessie();
+	$inst_p = null;
 
-	// Omschrijving NT = Niet tonen in dit scherm, de meeste kunnen in een ander scherm worden gemuteerd.
 	$arrParam['db_backup_type'] = "Welke taballen moeten worden gebackuped? 1=interne phpRBM-tabellen, 2=tabellen uit Access, 3=beide.";
 	$arrParam['db_backupsopschonen'] = "Na hoeveel dagen moeten back-ups automatisch verwijderd worden? 0 = nooit.";
 	$arrParam['db_folderbackup'] = "In welke folder moet de backup worden geplaatst?";
@@ -391,39 +397,14 @@ function fnInstellingen() {
 	$arrParam['login_bewaartijd'] = "Het aantal maanden dat logins na het laatste gebruik bewaard blijven. Historie is direct aan het lid gekopppeld en wordt dus niet verwijderd. 0 = altijd bewaren.";
 	$arrParam['login_geldigheidactivatie'] = "Hoelang in uren is een activatielink geldig? 0 = altijd.";
 	$arrParam['login_bewaartijdnietgebruikt'] = "Het aantal dagen dat logins wordt bewaard, nadat het is aangevraagd en nog niet gebruikt is.";
-	$arrParam['logboek_bewaartijd'] = "NT";
-	$arrParam['mailing_alle_zien'] = "NT";
 	$arrParam['mailing_bevestigingbestelling'] = "Het nummer van de mailing die bij een bestelling verstuurd moet worden. 0 = geen.";
-	$arrParam['mailing_bevestigingopzegging'] = "NT";
-	$arrParam['mailing_bewaartijd'] = "NT";
-	$arrParam['mailing_direct_verzenden'] = "NT";
-	$arrParam['mailing_sentoutbox_auto'] = "NT";
 	$arrParam['mailing_bewakinginschrijving'] = "Het nummer van de mailing die als bevestiging van een inschrijving voor de bewaking verstuurd moet worden. 0 = geen.";
-	$arrParam['mailing_type_editor'] = "NT";
-	$arrParam['mailing_extensies_toegestaan'] = "NT";
-	$arrParam['mailing_herstellenwachtwoord'] = "NT";
-	$arrParam['mailing_lidnr'] = "NT";
-	$arrParam['mailing_mailopnieuw'] = "NT";
-	$arrParam['mailing_meldingnieuwip'] = "NT";
-	$arrParam['mailing_rekening_stuurnaar'] = "NT";
-	$arrParam['mailing_rekening_from_adres'] = "NT";
-	$arrParam['mailing_rekening_valuta'] = "NT";
-	$arrParam['mailing_rekening_from_naam'] = "NT";
-	$arrParam['mailing_rekening_nulregelsweglaten'] = "NT";
-	$arrParam['mailing_rekening_regelnrsweglaten'] = "NT";
-	$arrParam['mailing_rekening_nulrekversturen'] = "NT";
-	$arrParam['mailing_validatielogin'] = "NT";
-	$arrParam['max_grootte_bijlage'] = "NT";
 	$arrParam['menu_met_afdelingen'] = "Voor welke afdelingen moeten een tabblad worden gemaakt? (bij meerdere scheiden met een komma)";
 	$arrParam['login_maxinlogpogingen'] = "Na hoeveel foutieve inlogpogingen moet het account geblokkeerd worden? 0 = nooit.";
 	$arrParam['login_maxlengte'] = "De maximale lengte die een login mag zijn. Minimaal 7 en maximaal 20 invullen.";
 	$arrParam['wachtwoord_minlengte'] = "De minimale lengte van een wachtwoord. Minimaal 7 en maximaal 15 invullen.";
 	$arrParam['wachtwoord_maxlengte'] = "De maximale lengte van een wachtwoord. Minimaal 7 en maximaal 15 invullen.";
-	$arrParam['maxmailsperuur'] = "NT";
-	$arrParam['maxmailsperdag'] = "NT";
-	$arrParam['maxmailsperminuut'] = "NT";
 	$arrParam['naamwebsite'] = "Dit is de naam zoals deze in de titel en op elke pagina getoond wordt.";
-	$arrParam['path_attachments'] = "NT";
 	$arrParam['path_templates'] = "Waar staan de templates?";
 	$arrParam['performance_trage_select'] = "Vanaf hoeveel seconden moet een select-statement in het logboek worden gezet. 0 = nooit.";
 	$arrParam['termijnvervallendiplomasmailen'] = "Hoeveel maanden vooruit moeten leden een herinnering krijgen als een diploma gaat vervallen. 0 = geen herinnering sturen.";
@@ -436,8 +417,6 @@ function fnInstellingen() {
 	$arrParam['url_eigen_help'] = "Als een gebruiker op de help klikt wordt hier naar verwezen in plaats van de standaard help.";
 	$arrParam['verjaardagenaantal'] = "Hoeveel verjaardagen moeten er maximaal in de verenigingsinfo worden getoond. Als er meerdere leden op dezelfde dag jarig zijn, wordt dit aantal overschreden.";
 	$arrParam['verjaardagenvooruit'] = "Hoeveel dagen vooruit moeten de verjaardagen in de verenigingsinfo getoond worden?";
-	$arrParam['versie'] = "NT";
-	$arrParam['versiephp'] = "NT";
 	
 	$arrParam['zs_emailnieuwepasfoto'] = "Waar moet een nieuwe pasfoto naar toe gemaild worden?";
 	$arrParam['zs_incl_beroep'] = "Is het veld 'Beroep' in de zelfservice beschikbaar?";
@@ -454,15 +433,36 @@ function fnInstellingen() {
 	$arrParam['zs_voorwaardenbestelling'] = "Deze regel wordt bij de online-bestellingen in de zelfservice vermeld.";
 	$arrParam['zs_voorwaardeninschrijving'] = "Deze regel wordt bij de inschrijving als voorwaarde voor de inschrijving voor de bewaking vemeld.";
 	
-	foreach ($arrParam as $naam => $val) {
-		db_param($naam, "controle");
-	}
 	$specmailing = array("mailing_bewakinginschrijving", "mailing_bevestigingbestelling");
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		$inst_p = new cls_Parameter();
 		foreach (db_param("", "lijst") as $row) {
 			$mess = "";
-			$pvn = sprintf("value_%d", $row->RecordID);
-			if (isset($_POST[$pvn]) or $row->ParamType == "B") {
+			$pvn = $row->Naam;
+			if (array_key_exists($row->Naam, $arrParam) == true) {
+				if ($pvn == "wachtwoord_minlengte") {
+					if ($_POST[$pvn] < 7) {
+						$_POST[$pvn] = 7;
+					} elseif ($_POST[$pvn] > 15) {
+						$_POST[$pvn] = 15;
+					}
+				} elseif ($pvn == "wachtwoord_maxlengte") {
+					if ($_POST[$pvn] < 7) {
+						$_POST[$pvn] = 7;
+					} elseif ($_POST[$pvn] > 15) {
+						$_POST[$pvn] = 15;
+					}
+				} elseif ($pvn == "login_maxlengte") {
+					if ($_POST[$pvn] < 7) {
+						$_POST[$pvn] = 7;
+					} elseif ($_POST[$pvn] > 20) {
+						$_POST[$pvn] = 20;
+					}
+				}
+				if ($_POST['wachtwoord_minlengte'] > $_POST['wachtwoord_maxlengte']) {
+					$_POST['wachtwoord_minlengte'] = $_POST['wachtwoord_maxlengte'];
+				}
+				
 				if (isset($_POST[$pvn])) {
 					$_POST[$pvn] = str_replace("\"", "'", $_POST[$pvn]);
 				}
@@ -495,41 +495,25 @@ function fnInstellingen() {
 					(new cls_Logboek())->add($mess, 13, 0, 1);
 				}
 				if (strlen($arrParam[$row->Naam]) > 2) {
-					db_param($row->Naam, "updval", $_POST[$pvn]);
+					$inst_p->update($row->Naam, $_POST[$pvn]);
 				}
 			}
 		}
-		if (db_param("wachtwoord_minlengte") < 7) {
-			db_param("wachtwoord_minlengte", "updval", 7);
-		} elseif (db_param("wachtwoord_minlengte") > 15) {
-			db_param("wachtwoord_minlengte", "updval", 15);
-		} elseif (db_param("wachtwoord_minlengte") > db_param("wachtwoord_maxlengte")) {
-			db_param("wachtwoord_maxlengte", "updval", db_param("wachtwoord_minlengte"));
-		}
-		if (db_param("wachtwoord_maxlengte") < 7) {
-			db_param("wachtwoord_maxlengte", "updval", 7);
-		} elseif (db_param("wachtwoord_maxlengte") > 15) {
-			db_param("wachtwoord_maxlengte", "updval", 15);
-		}
-		if (db_param("login_maxlengte") < 7) {
-			db_param("login_maxlengte", "updval", 7);
-		} elseif (db_param("login_maxlengte") > 20) {
-			db_param("login_maxlengte", "updval", 20);
+		
+		$p = $_SESSION['settings']['db_folderbackup'];
+		if (strlen($p) < 5 or !is_dir($p)) {
+			$inst_p->update("db_folderbackup", __DIR__ . "/backups/");
+		} elseif (substr($p, -1) != "/") {
+			$inst_p->update("db_folderbackup", $p . "/");
 		}
 		
-		$p = db_param("db_folderbackup");
+		$p = $_SESSION['settings']['path_templates'];
 		if (strlen($p) < 5 or !is_dir($p)) {
-			db_param("db_folderbackup", "updval", __DIR__ . "/backups/");
+			$instr_p->update("path_templates", __DIR__ . "/templates/");
 		} elseif (substr($p, -1) != "/") {
-			db_param("db_folderbackup", "updval", $p . "/");
+			$inst_p->update("path_templates", $p . "/");
 		}
-		
-		$p = db_param("path_templates");
-		if (strlen($p) < 5 or !is_dir($p)) {
-			db_param("path_templates", "updval", __DIR__ . "/templates/");
-		} elseif (substr($p, -1) != "/") {
-			db_param("path_templates", "updval", $p . "/");
-		}
+		$inst_p = null;
 		
 	}
 
@@ -539,23 +523,22 @@ function fnInstellingen() {
 	foreach (db_param("", "lijst") as $row) {
 		if (array_key_exists($row->Naam, $arrParam)) {
 			$uitleg = htmlent($arrParam[$row->Naam]);
-			if (strlen($uitleg) > 5) {
-				echo("<div class='invoerblok'>\n");
+			echo("<div class='invoerblok'>\n");
+			if (strlen($row->ValueChar) > 60 and $row->ParamType="T") {
+				printf("<label>%s</label><p><textarea cols=68 rows=2 name='%s'>%s</textarea></p>\n", $uitleg, $row->Naam, $row->ValueChar);
+			} else {
+				printf("<label>%s</label><p><input name='%s' ", $uitleg, $row->Naam);
 				if ($row->ParamType == "B") {
-					printf("<label>%s</label><p><input type='checkbox' name='value_%d' value='1' %s></p>\n", $uitleg, $row->RecordID, checked($row->ValueNum));
+					printf("type='checkbox' value='1' %s></p>\n", checked($row->ValueNum));
 				} elseif ($row->ParamType == "I") {
-					printf("<label>%s</label><p><input type='number' class='inputnumber' name='value_%d' value=%d></p>\n", $uitleg, $row->RecordID, $row->ValueNum);
+					printf("type='number' class='inputnumber' value=%d></p>\n", $row->ValueNum);
 				} elseif ($row->ParamType == "F") {
-					printf("<label>%s</label><p><input name='value_%d' value=%F size=8></p>\n", $uitleg, $row->RecordID, $row->ValueNum);
-				} elseif (strlen($row->ValueChar) > 60) {
-					printf("<label>%s</label><p><textarea cols=68 rows=2 name='value_%d'>%s</textarea></p>\n", $uitleg, $row->RecordID, $row->ValueChar);
+					printf("value=%F size=8></p>\n", $row->ValueNum);
 				} else {
-					printf("<label>%s</label><p><input type='text' class='inputtext' name='value_%d' value=\"%s\"></p>\n", $uitleg, $row->RecordID, $row->ValueChar);
+					printf("type='text' class='inputtext' value=\"%s\"></p>\n", $row->ValueChar);
 				}
-				echo("</div> <!-- Einde invoerblok -->\n");
 			}
-		} else {
-			db_param($row->Naam, "delete");
+			echo("</div> <!-- Einde invoerblok -->\n");
 		}
 	}
 	echo("<div id='opdrachtknoppen'>\n");
