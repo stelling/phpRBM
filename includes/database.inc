@@ -1068,7 +1068,7 @@ class cls_Lidmaatschap extends cls_db_base {
 	}
 	
 	public function minopgezegd() {
-		$query = sprintf("SELECT SUBSTRING(MIN(LM.Opgezegd), 1, 10) FROM %s AS LM WHERE (LM.Opgezegd NOT IS NULL);", $this->table);
+		$query = sprintf("SELECT SUBSTRING(MIN(LM.Opgezegd), 1, 10) FROM %s AS LM WHERE (LM.Opgezegd IS NOT NULL);", $this->table);
 		return db_scalar($query);
 	}
 	
@@ -3145,7 +3145,7 @@ class cls_Mailing extends cls_db_base {
 				$this->mess = sprintf("Mailing %d is naar de prullenbak verplaatst.", $p_mid);
 			}
 		} else {
-			$query = sprintf("UPDATE %s SET deleted_on=NULL WHERE MailingID=%d AND (deleted_on NOT IS NULL);", $this->table, $p_mid);
+			$query = sprintf("UPDATE %s SET deleted_on=NULL WHERE MailingID=%d AND (deleted_on IS NOT NULL);", $this->table, $p_mid);
 			if (fnQuery($query) > 0) {
 				$this->mess = sprintf("Mailing %d is uit de prullenbak gehaald.", $p_mid);
 			}
@@ -5059,11 +5059,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrFloats['performance_trage_select'] = 0.5;
 	
 	// Onderstaande zijn niet in te stellen via een instellingen scherm.
-	$arrStrings["emailsecretariaat"] = ""; // Komt uit de Access-database
-	$arrStrings["emailledenadministratie"] = ""; // Komt uit de Access-database
 	$arrStrings['laatstebackup'] = "";  // Komt uit de logging
-	$arrStrings['naamvereniging'] = "Naam vereniging"; // Komt uit de Access-database
-	$arrStrings['naamvereniging_afkorting'] = ""; // Komt uit de Access-database
 	$arrIntegers['versie'] = 0; // Wordt automatisch bijgewerkt op basis van de php-bestanden
 	$arrStrings['versiephp'] = ""; // Wordt automatisch bijgewerkt op basis van de laatst waargenomen PHP versie
 	// *******
@@ -5197,65 +5193,135 @@ function db_param($naam, $actie="curval", $newval="") {
 
 class cls_Parameter extends cls_db_base {
 	
+	private $arrParam;
+	
 	function __construct() {
 		$this->table = TABLE_PREFIX . "Admin_param";
 		$this->ta = 13;
-	}
-	
-	public function waarde($p_naam) {
 		
-		if (isset($_SESSION['settings'][$p_naam]) and $p_naam != "laatstebackup") {
-			$retval = $_SESSION['settings'][$p_naam];
-		} else {
-			if (array_key_exists($p_naam, $arrBooleans)) {
-				$retval = $arrBooleans[$p_naam];
-			} elseif (array_key_exists($p_naam, $arrIntegers)) {
-				$retval = $arrIntegers[$p_naam];
-			} elseif (array_key_exists($p_naam, $arrFloats)) {
-				$retval = $arrFloats[$p_naam];
-			} elseif (array_key_exists($p_naam, $arrStrings)) {
-				$retval = $arrStrings[$p_naam];
-			} else {
-				$mess = sprintf("Parameter %s bestaat niet. Neem contact op met de ontwikkelaar.", $p_naam);
-				debug($mess, 1, 0, 1);
-				$retval = "";
-			}
-			
-			if ($p_naam == "naamvereniging") {
-				$query = sprintf("SELECT 1 AS RecordID, 'T' AS ParamType, Naam AS ValueChar FROM %sVereniging;", TABLE_PREFIX);
-			} elseif ($p_naam == "naamvereniging_afkorting") {
-				$query = sprintf("SELECT 1 AS RecordID, 'T' AS ParamType, AfkortingNaam AS ValueChar FROM %sVereniging;", TABLE_PREFIX);
-			} elseif ($p_naam == "emailsecretariaat") {
-				$query = sprintf("SELECT 1 AS RecordID, 'T' AS ParamType, EmailSecretariaat AS ValueChar FROM %sVereniging;", TABLE_PREFIX);
-			} elseif ($p_naam == "emailledenadministratie") {
-				$query = sprintf("SELECT 1 AS RecordID, 'T' AS ParamType, EmailLedenadministratie AS ValueChar FROM %sVereniging;", TABLE_PREFIX);
-			} elseif ($p_naam == "laatstebackup") {
-				$query = sprintf("SELECT 1 AS RecordID, 'T' AS ParamType, MAX(DatumTijd) AS ValueChar FROM %sAdmin_activiteit WHERE TypeActiviteit=3;", TABLE_PREFIX);
-			} else {
-				$query = sprintf("SELECT IFNULL(RecordID, 0) AS RecordID, ParamType, ValueNum, ValueChar FROM %s WHERE Naam='%s';", $this->table, $p_naam);
-			}
-			$result = $this->execsql($query);
-			$row = $result->fetch();
-			if (isset($row->RecordID) and $row->RecordID > 0) {
-				if (($row->ParamType == "F" or $row->ParamType == "I") and empty($row->ValueNum)) {
-					$retval = 0;
-				} elseif ($row->ParamType == "B" or $row->ParamType == "F" or $row->ParamType == "I") {
-					$retval = $row->ValueNum;
-				} elseif (empty($row->ValueChar)) {
-					$retval = "";
-				} else {
-					$retval = $row->ValueChar;
-				}
-			}
-			$_SESSION['settings'][$p_naam] = $retval;
-		}
-		return $retval;
+		$this->arrParam['kaderoverzichtmetfoto'] = array("Type" => "B", "Default" => 1);
+		$this->arrParam['toonpasfotoindiennietingelogd'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['meisjesnaamtonen'] = array("Type" => "B", "Default" => 1);
+		$this->arrParam['WoonadresAnderenTonen'] = array("Type" => "B", "Default" => 1);
+		$this->arrParam['login_lidnrnodigbijaanvraag'] = array("Type" => "B", "Default" => 1);
+		$this->arrParam['mailing_direct_verzenden'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['mailing_sentoutbox_auto'] = array("Type" => "B", "Default" => 1);
+		$this->arrParam['mailing_rekening_regelnrsweglaten'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['mailing_rekening_nulrekversturen'] = array("Type" => "B", "Default" => 1);
+		$this->arrParam['toneninschrijvingenbewakingen'] = array("Type" => "B", "Default" => 1);
+		$this->arrParam['tonentoekomstigebewakingen'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['zs_incl_beroep'] = array("Type" => "B", "Default" => 1);
+		$this->arrParam['zs_incl_vogafgegeven'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['zs_incl_bsn'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['zs_incl_emailouders'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['zs_incl_emailvereniging'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['zs_incl_iban'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['zs_incl_legitimatie'] = array("Type" => "B", "Default" => 1);
+		$this->arrParam['zs_incl_machtiging'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['zs_incl_slid'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['zs_opzeggingautomatischverwerken'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['mailing_rekening_nulregelsweglaten'] = array("Type" => "B", "Default" => 0);
+		
+		$this->arrParam['performance_trage_select'] = array("Type" => "F", "Default" => 0.5);
+		
+		$this->arrParam['logboek_bewaartijd'] = array("Type" => "I", "Default" => 6);
+		$this->arrParam['login_geldigheidactivatie'] = array("Type" => "I", "Default" => 36);
+		$this->arrParam['db_backup_type'] = array("Type" => "I", "Default" => 3);
+		$this->arrParam['db_backupsopschonen'] = array("Type" => "I", "Default" => 11);
+		$this->arrParam['login_autounlock'] = array("Type" => "I", "Default" => 120);
+		$this->arrParam['mailing_alle_zien'] = array("Type" => "I", "Default" => -1);
+		$this->arrParam['mailing_bevestigingbestelling'] = array("Type" => "I", "Default" => 0);
+		$this->arrParam['mailing_bevestigingopzegging'] = array("Type" => "I", "Default" => 0);
+		$this->arrParam['mailing_bewaartijd'] = array("Type" => "I", "Default" => 3);
+		$this->arrParam['mailing_bewakinginschrijving'] = array("Type" => "I", "Default" => 0);
+		$this->arrParam['mailing_herstellenwachtwoord'] = array("Type" => "I", "Default" => 0);
+		$this->arrParam['mailing_meldingnieuwip'] = array("Type" => "I", "Default" => 0);
+		$this->arrParam['mailing_lidnr'] = array("Type" => "I", "Default" => 0);
+		$this->arrParam['mailing_mailopnieuw'] = array("Type" => "I", "Default" => 0);
+		$this->arrParam['mailing_rekening_stuurnaar'] = array("Type" => "I", "Default" => 1);
+		$this->arrParam['mailing_type_editor'] = array("Type" => "I", "Default" => 1);
+		$this->arrParam['mailing_validatielogin'] = array("Type" => "I", "Default" => 0);
+		$this->arrParam['max_grootte_bijlage'] = array("Type" => "I", "Default" => 2048);
+		$this->arrParam['maxmailsperuur'] = array("Type" => "I", "Default" => 150);
+		$this->arrParam['maxmailsperdag'] = array("Type" => "I", "Default" => 495);
+		$this->arrParam['maxmailsperminuut'] = array("Type" => "I", "Default" => 360);
+		$this->arrParam['login_bewaartijd'] = array("Type" => "I", "Default" => 6);
+		$this->arrParam['login_bewaartijdnietgebruikt'] = array("Type" => "I", "Default" => 21);
+		$this->arrParam['login_maxlengte'] = array("Type" => "I", "Default" => 12);
+		$this->arrParam['wachtwoord_minlengte'] = array("Type" => "I", "Default" => 7);
+		$this->arrParam['wachtwoord_maxlengte'] = array("Type" => "I", "Default" => 12);
+		$this->arrParam['login_maxinlogpogingen'] = array("Type" => "I", "Default" => 4);
+		$this->arrParam['termijnvervallendiplomasmailen'] = array("Type" => "I", "Default" => 3);
+		$this->arrParam['termijnvervallendiplomasmelden'] = array("Type" => "I", "Default" => 6);
+		$this->arrParam['typemenu'] = array("Type" => "I", "Default" => 1);
+		$this->arrParam['verjaardagenaantal'] = array("Type" => "I", "Default" => 7);
+		$this->arrParam['verjaardagenvooruit'] = array("Type" => "I", "Default" => 5);
+		$this->arrParam['zs_opzegtermijn'] = array("Type" => "I", "Default" => 1);
+		$this->arrParam['versie'] = array("Type" => "I", "Default" => 0); 
+		
+		$this->arrParam['db_folderbackup'] = array("Type" => "T", "Default" => "");
+		$this->arrParam['emailwebmaster'] = array("Type" => "T", "Default" => "");
+		$this->arrParam['login_beperkttotgroep'] = array("Type" => "T", "Default" => "");
+		$this->arrParam['muteerbarememos'] = array("Type" => "T", "Default" => "D,G,WN");
+		$this->arrParam['naamwebsite'] = array("Type" => "T", "Default" => "Naam website");
+		$this->arrParam['mailing_extensies_toegestaan'] = array("Type" => "T", "Default" => "bmp, gif, jpeg, jpg, pdf, png, pps, rar, txt, zip");
+		$this->arrParam['mailing_rekening_from_naam'] = array("Type" => "T", "Default" => "");
+		$this->arrParam['mailing_rekening_from_adres'] = array("Type" => "T", "Default" => "");
+		$this->arrParam['mailing_rekening_valuta'] = array("Type" => "T", "Default" => "&euro&nbsp;");
+		$this->arrParam['menu_met_afdelingen'] = array("Type" => "T", "Default" => "");
+		$this->arrParam['path_attachments'] = array("Type" => "T", "Default" => "");
+		$this->arrParam['path_templates'] = array("Type" => "T", "Default" => "");
+		$this->arrParam['uitleg_toestemmingen'] = array("Type" => "T", "Default" => "");
+		$this->arrParam['urlvereniging'] = array("Type" => "T", "Default" => "");
+		$this->arrParam['url_eigen_help'] = array("Type" => "T", "Default" => "");
+		$this->arrParam['zs_emailnieuwepasfoto'] = array("Type" => "T", "Default" => "");
+		$this->arrParam['zs_muteerbarememos'] = array("Type" => "T", "Default" => "");
+		$this->arrParam['zs_voorwaardenbestelling'] = array("Type" => "T", "Default" => "");
+		$this->arrParam['zs_voorwaardeninschrijving'] = array("Type" => "T", "Default" => "");
 	}
 	
 	public function lijst() {
 		$query = sprintf("SELECT *, IFNULL(ValueNum, ValueChar) AS CurVal FROM %s ORDER BY Naam;", $this->table);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
+	}
+	
+
+	public function controle() {
+		foreach ($this->lijst() as $row) {
+			if (array_key_exists($row->Naam, $this->arrParam) == false) {
+				$query = sprintf("DELETE FROM %s WHERE Naam='%s';", $this->table, $row->Naam);
+				if ($this->execsql($query) > 0) {
+					$this->mess = sprintf("Parameter '%s' is verwijderd.", $row->Naam);
+					$this->Log($row->RecordID);
+				}
+			}
+		}
+		
+		foreach ($this->arrParam as $naam => $val) {
+			$query = sprintf("SELECT COUNT(*) FROM %s WHERE Naam LIKE '%s';", $this->table, $naam);
+			if (db_scalar($query) == 0) {
+				if ($val['Type'] == "S") {
+					$query = sprintf("INSERT INTO %s SET Naam='%s', ValueChar='%s', IngevoerdDoor=%d, GewijzigdDoor=%d;", $this->table, $naam, $val['Default'], $_SESSION['lidid'], $_SESSION['lidid']);
+				} elseif ($val['Type'] == "F") {
+					$query = sprintf("INSERT INTO %s SET Naam='%s', ValueNum=%F, IngevoerdDoor=%d, GewijzigdDoor=%d;", $this->table, $naam, $val['Default'], $_SESSION['lidid'], $_SESSION['lidid']);
+				} else {
+					$query = sprintf("INSERT INTO %s SET Naam='%s', ValueNum=%d, IngevoerdDoor=%d, GewijzigdDoor=%d;", $this->table, $naam, $val['Default'], $_SESSION['lidid'], $_SESSION['lidid']);
+				}
+				if ($this->execsql($query) > 0) {
+					$this->mess = sprintf("Parameter '%s' is toegevoegd.", $naam);
+					$this->Log($result);
+				}
+			}
+			$query = sprintf("SELECT * FROM %s WHERE Naam LIKE '%s' AND IFNULL(ParamType, '')<>'%s';", $this->table, $naam, $val['Type']);
+			foreach ($this->execsql($query) as $row) {
+				$updqry = sprintf("UPDATE %s SET ParamType='%s' WHERE RecordID=%d;", $this->table, $val['Type'], $row->RecordID);
+				if ($this->execsql($updqry) > 0) {
+					$this->mess = sprintf("Van parameter '%s' is het type in '%s' gewijzigd.", $naam, $val['Type']);
+					$this->Log($row->RecordID);
+				}
+			}
+		}
 	}
 	
 	public function vulsessie() {
@@ -5277,31 +5343,31 @@ class cls_Parameter extends cls_db_base {
 		$query = sprintf("SELECT * FROM %s WHERE Naam='%s';", $this->table, $p_naam);
 		$cur = $this->execsql($query)->fetch();
 		$set = "";
-		if (($cur->ParamType == "B" or $cur->ParamType == "I") and $cur->ValueNum != $p_waarde) {
+		if ($cur->ParamType == "B" or $cur->ParamType == "I") {
 			$set = sprintf("ValueNum=%d", $p_waarde);
 			$xw = sprintf("IFNULL(ValueNum, 0)<>%d", $p_waarde);
-		} elseif ($cur->ParamType == "F" and $cur->ValueNum != $p_waarde) {
+		} elseif ($cur->ParamType == "F") {
 			$p_waarde = sprintf("%F", $p_waarde);
 			$set = sprintf("ValueNum=%s", $p_waarde);
 			$xw = sprintf("IFNULL(ValueNum, 0)<>%F", $p_waarde);
-		} elseif (($cur->ParamType == "S" or $cur->ParamType == "T") and $cur->ValueChar != $p_waarde) {
+		} elseif ($cur->ParamType == "S" or $cur->ParamType == "T") {
 			if (strlen($p_waarde) == 0) {
 				$set = "ValueChar=NULL";
-				$xw = "(ValueChar NOT IS NULL)";
+				$xw = "(ValueChar IS NOT NULL)";
 			} else {
 				$p_waarde = "\"" . str_replace("\"", "'", $p_waarde) . "\"";
 				$set = sprintf("ValueChar=%s", $p_waarde);
-				$xw = sprintf("IFNULL(ValueNum, '')<>%s", $p_waarde);
+				$xw = sprintf("IFNULL(ValueChar, '')<>%s", $p_waarde);
 			}
+		} else {
+			debug("ParamType: " . $cur->ParamType);
 		}
 		if (strlen($set) > 0) {
 			$query = sprintf("UPDATE %s SET %s, Gewijzigd=SYSDATE(), GewijzigdDoor=%d WHERE RecordID=%d AND %s;", $this->table, $set, $_SESSION['lidid'], $cur->RecordID, $xw);
 			if ($this->execsql($query) > 0) {
 				$_SESSION['settings'][$p_naam] = $p_waarde;
-				if ($p_naam !== "versie") {
-					$this->mess = sprintf("Parameter '%s' is in %s gewijzigd.", $p_naam, $p_waarde);
-					$this->Log($cur->RecordID);
-				}
+				$this->mess = sprintf("Parameter '%s' is in %s gewijzigd.", $p_naam, $p_waarde);
+				$this->Log($cur->RecordID);
 			}
 		}
 	}
@@ -5769,7 +5835,10 @@ function db_backup() {
 	db_param("db_folderbackup", "updval", $db_folderbackup);
 
 	$mess = "";
-	if (strtotime($_SESSION['settings']['laatstebackup']) < mktime(date("H")-1, date("m"), 0, date("m"), date("d"), date("Y"))) {
+	
+	$query = sprintf("SELECT MAX(DatumTijd) AS LB FROM %sAdmin_activiteit WHERE TypeActiviteit=3;", TABLE_PREFIX);
+	$laatstebackup = db_scalar($query);
+	if (strtotime($laatstebackup) < mktime(date("H")-1, date("m"), 0, date("m"), date("d"), date("Y"))) {
 		$FileName = $db_folderbackup . $buname;
 		
 		if ($_SESSION['settings']['db_backup_type'] == 1 or $_SESSION['settings']['db_backup_type'] == 2) {
