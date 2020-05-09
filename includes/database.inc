@@ -3256,11 +3256,17 @@ class cls_Mailing extends cls_db_base {
 		$this->ta = 4;
 	}
 	
+	public function record($p_mid) {
+		$query = sprintf("SELECT M.* FROM %s AS M WHERE RecordID=%d;", $this->table, $p_mid);
+		$result = fnQuery($query);
+		return $result->fetch();
+	}
+	
 	public function add($p_subject) {
 		
 		$p_subject = str_replace("\"", "'", $p_subject);
 		$nrid = $this->nieuwrecordid();
-		$query = sprintf("INSERT INTO %s (RecordID, subject, OmschrijvingOntvangers, IngevoerdDoor) VALUES (%d, \"%s\", '', %d);", $this->table, $nrid, $p_subject, $_SESSION['lidid']);
+		$query = sprintf("INSERT INTO %s (RecordID, MailingID, subject, OmschrijvingOntvangers, IngevoerdDoor) VALUES (%d, %d, \"%s\", '', %d);", $this->table, $nrid, $nrid, $p_subject, $_SESSION['lidid']);
 		if (fnQuery($query) > 0) {
 			$this->mess = sprintf("Mailing %d (%s) is toegevoegd.", $nrid, $p_subject);
 			$this->Log($nrid);
