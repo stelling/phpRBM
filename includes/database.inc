@@ -346,7 +346,7 @@ function db_gegevenslid($LidID, $soort="Alg") {
 		}
 		$sqllegitimatie .= "END, ' ', L.Legitimatienummer), NULL)";
 		
-		if ($_SESSION['settings']['WoonadresAnderenTonen'] == 1 or $LidID == $_SESSION['lidid']) {
+		if ($_SESSION['settings']['woonadres_anderen_tonen'] == 1 or $LidID == $_SESSION['lidid']) {
 			$adresgegevens = "'Adresgegevens' AS Kop2,
 					L.Adres,
 					IF(LENGTH(L.Woonplaats) > 1, CONCAT(L.Postcode, '  ', L.Woonplaats), '') AS `Postcode en woonplaats`, ";
@@ -772,6 +772,11 @@ class cls_Lid extends cls_db_base {
 	
 	public function ledenlijst($p_filter="", $p_xtraselect) {
 		
+		if ($_SESSION['settings']['woonadres_anderen_tonen'] == 1) {
+			$wa = "CONCAT(L.Adres, ', ', L.Woonplaats) AS `Adres`,";
+		} else {
+			$wa = "";
+		}
 		if (strlen($p_filter) > 0) {
 			$p_filter = "WHERE " . $p_filter;
 		}
@@ -787,11 +792,11 @@ class cls_Lid extends cls_db_base {
 			$ln = "";
 			$k4 = "L.Opmerking";
 		}
-		$query = sprintf("SELECT L.RecordID AS lnkNummer%s, %s AS `Naam_lid`, CONCAT(L.Adres, ', ', L.Woonplaats) AS `Adres`, %s AS `emlE-mail`, %s %s,
+		$query = sprintf("SELECT L.RecordID AS lnkNummer%s, %s AS `Naam_lid`, %s %s AS `emlE-mail`, %s %s,
 					L.RecordID AS llkNummer, L.GEBDATUM AS ndGEBDATUM, %s AS ndZoeknaam
 					FROM %s
 					%s
-					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, LM.LIDDATUM DESC;", $ln, $this->selectnaam, $this->selectemail, $k4, $p_xtraselect, $this->selectzoeknaam, $this->fromlid, $p_filter);
+					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, LM.LIDDATUM DESC;", $ln, $this->selectnaam, $wa, $this->selectemail, $k4, $p_xtraselect, $this->selectzoeknaam, $this->fromlid, $p_filter);
 					
 		$result = $this->execsql($query);
 		return $result->fetchAll();
@@ -5426,7 +5431,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	$arrBooleans['kaderoverzichtmetfoto'] = 1;
 	$arrBooleans['toonpasfotoindiennietingelogd'] = 0;
 	$arrBooleans['meisjesnaamtonen'] = 1;
-	$arrBooleans['WoonadresAnderenTonen'] = 1;
+	$arrBooleans['woonadres_anderen_tonen'] = 1;
 	$arrBooleans['login_lidnrnodigbijaanvraag'] = 1;
 	$arrBooleans['mailing_direct_verzenden'] = 0;
 	$arrBooleans['mailing_sentoutbox_auto'] = 1;
@@ -5609,7 +5614,7 @@ class cls_Parameter extends cls_db_base {
 		$this->arrParam['kaderoverzichtmetfoto'] = array("Type" => "B", "Default" => 1);
 		$this->arrParam['toonpasfotoindiennietingelogd'] = array("Type" => "B", "Default" => 0);
 		$this->arrParam['meisjesnaamtonen'] = array("Type" => "B", "Default" => 1);
-		$this->arrParam['WoonadresAnderenTonen'] = array("Type" => "B", "Default" => 1);
+		$this->arrParam['woonadres_anderen_tonen'] = array("Type" => "B", "Default" => 1);
 		$this->arrParam['login_lidnrnodigbijaanvraag'] = array("Type" => "B", "Default" => 1);
 		$this->arrParam['mailing_direct_verzenden'] = array("Type" => "B", "Default" => 0);
 		$this->arrParam['mailing_sentoutbox_auto'] = array("Type" => "B", "Default" => 1);
