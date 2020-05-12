@@ -227,6 +227,15 @@ class cls_db_base {
 	
 	public function waarde($p_recid, $p_kolom) {
 	}
+		
+	public function aantal($p_filter="") {
+		
+		if (strlen($p_filter) > 0) {
+			$p_filter = "WHERE " . $p_filter;
+		}
+		$query = sprintf("SELECT COUNT(*) FROM %s %s;", $this->table, $p_filter);
+		return $this->scalar($query);
+	}
 	
 	public function min($p_kolom) {
 		if ($this->is_kolom_numeriek($p_kolom) == true) {
@@ -238,12 +247,16 @@ class cls_db_base {
 		return $result->fetchColumn();
 	}
 	
-	public function max($p_kolom) {
+	public function max($p_kolom, $p_filter="") {
 		if ($this->is_kolom_numeriek($p_kolom) == true) {
-			$query = sprintf("SELECT MAX(IFNULL(`%s`, 0)) FROM %s;", $p_kolom, $this->table);
+			$query = sprintf("SELECT MAX(IFNULL(`%s`, 0)) FROM %s", $p_kolom, $this->table);
 		} else {
-			$query = sprintf("SELECT MAX(IFNULL(`%s`, '')) FROM %s;", $p_kolom, $this->table);
+			$query = sprintf("SELECT MAX(IFNULL(`%s`, '')) FROM %s", $p_kolom, $this->table);
 		}
+		if (strlen($p_filter) > 0) {
+			$query .= " WHERE " . $p_filter;
+		}
+		$query .= ";";
 		$result = $this->execsql($query);
 		return $result->fetchColumn();
 	}
@@ -267,15 +280,6 @@ class cls_db_base {
 	public function scalar($p_query) {
 		$result = $this->execsql($p_query);
 		return $result->fetchColumn();
-	}
-	
-	public function aantal($p_filter="") {
-		
-		if (strlen($p_filter) > 0) {
-			$p_filter = "WHERE " . $p_filter;
-		}
-		$query = sprintf("SELECT COUNT(*) FROM %s %s;", $this->table, $p_filter);
-		return $this->scalar($query);
 	}
 	
 	public function basislijst($p_filter="", $p_orderby="") {
@@ -1110,37 +1114,7 @@ class cls_Lidmaatschap extends cls_db_base {
 			return false;
 		}
 	}
-	
-	public function minlidnr() {
-		$query = sprintf("SELECT MIN(LM.Lidnr) FROM %s AS LM;", $this->table);
-		return db_scalar($query);
-	}
-	
-	public function maxlidnr() {
-		$query = sprintf("SELECT MAX(LM.Lidnr) FROM %s AS LM;", $this->table);
-		return db_scalar($query);
-	}
-	
-	public function minliddatum() {
-		$query = sprintf("SELECT SUBSTRING(MIN(LM.LIDDATUM), 1, 10) FROM %s AS LM;", $this->table);
-		return db_scalar($query);
-	}
-	
-	public function maxliddatum() {
-		$query = sprintf("SELECT SUBSTRING(MAX(LM.LIDDATUM), 1, 10) FROM %s AS LM;", $this->table);
-		return db_scalar($query);
-	}
-	
-	public function minopgezegd() {
-		$query = sprintf("SELECT SUBSTRING(MIN(LM.Opgezegd), 1, 10) FROM %s AS LM WHERE (LM.Opgezegd IS NOT NULL);", $this->table);
-		return db_scalar($query);
-	}
-	
-	public function maxopgezegd() {
-		$query = sprintf("SELECT SUBSTRING(MAX(LM.Opgezegd), 1, 10) FROM %s AS LM WHERE %s;", $this->table, $this->wherelid);
-		return db_scalar($query);
-	}
-			
+		
 	public function add($p_lidid) {
 		$this->lidid = $p_lidid;
 		$lidnr = $this->maxlidnr() + 1;
@@ -1757,7 +1731,25 @@ function db_insbew($actie, $lidid=0, $insnr=0, $blok=0, $keuze=0, $opmerk="", $s
 	} else {
 		debug(sprintf("Onbekende actie '%s' in db_insbew", $actie));
 	}
-}
+}  # db_insbew
+
+class cls_InsBew extends cls_db_base {
+	
+	function __construct() {
+		$this->table = TABLE_PREFIX . "Bewaking_Inschrijving";
+		$this->ta = 11;
+	}
+	
+	public function export() {
+		$query = sprintf("SELECT %1\$s AS NaamLid, BI.Lid, BB.SeizoenID, BB.Begindatum, BB.Einddatum
+							FROM (%2\$s AS BI INNER JOIN %3\$sLid AS L ON BI.Lid=L.RecordID) INNER JOIN %3\$sBewaking_Blok AS BB ON BI.BlokID = BB.RecordID
+							WHERE IFNULL(BI.Afgemeld, '0000-00-00') < BI.Ingevoerd AND BI.Definitief > BI.Ingevoerd AND BI.Keuze IN (1, 3)
+							ORDER BY L.Achternaam, L.Tussenv, L.Roepnaam, BB.Begindatum;", $this->selectnaam, $this->table, TABLE_PREFIX);
+		$result = $this->execsql($query);
+		return $result->fetchAll();
+	}
+	
+}  # cls_InsBew
 
 function db_Onderdeel($actie, $type="", $lidid=0, $onderdlid=0, $kolomnaam="", $waarde="", $per="", $naamfilter="") {
 	global $fromlidond, $wherelidond, $fdaccess;
@@ -3623,6 +3615,17 @@ class cls_Mailing_rcpt extends cls_db_base {
 	function __construct() {
 		$this->table = TABLE_PREFIX . "Mailing_rcpt";
 		$this->ta = 4;
+		$this->tas = 10;
+	}
+	
+	public function lijst($p_mid) {
+		$query = sprintf("SELECT R.LidID, IFNULL(L.RecordID, 0) AS RecordID, %1\$s AS Naam_lid, %2\$s AS Zoeknaam_lid, L.Adres, L.Postcode, 
+					L.Woonplaats, L.Email, L.EmailVereniging, L.EmailOuders, L.GEBDATUM, R.to_address
+					FROM %3\$sMailing_rcpt AS R LEFT OUTER JOIN %3\$sLid AS L ON R.LidID = L.RecordID
+					WHERE R.MailingID=%4\$d
+					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, R.to_address, R.Ingevoerd;", $this->selectnaam, $this->selectzoeknaam, TABLE_PREFIX, $p_mid);
+		$result = $this->execsql($query);
+		return $result->fetchAll();
 	}
 	
 	public function add($p_mid, $p_lidid, $p_email="") {
@@ -3760,6 +3763,28 @@ function db_mailing_vanaf($actie, $value="", $rid=0, $kolnaam="") {
 	}
 	
 } # db_mailing_vanaf
+
+class cls_Mailing_vanaf extends cls_db_base {
+	
+	function __construct() {
+		$this->table = TABLE_PREFIX . "Mailing_vanaf";
+		$this->ta = 4;
+		$this->tas = 30;
+	}
+	
+	public function curuser() {
+		
+		$query = sprintf("SELECT IFNULL(Vanaf_email, '') FROM %s WHERE LOWER(Vanaf_email)='%s';", $this->table, strtolower($_SESSION['emailingelogde']));
+		$rv = db_scalar($query);
+		if (strlen($rv) == 0) {
+			$query = sprintf("SELECT IFNULL(from_addr, '') FROM %sMailing AS M WHERE M.IngevoerdDoor=%d ORDER BY RecordID DESC LIMIT 1;", TABLE_PREFIX, $_SESSION['lidid']);
+			$rv = db_scalar($query);
+		}
+		return $rv;
+		
+	}
+	
+}  # cls_Mailing_vanaf
 
 function db_mutatie($actie, $jaar=0, $gbr="*", $kpl="*") {
 	
@@ -4991,8 +5016,13 @@ class cls_Artikel extends cls_db_base{
 		$this->ta = 10;
 	}
 	
-	public function lijst() {
-		$query = sprintf("SELECT * FROM %s WHERE IFNULL(BeschikbaarTot, CURDATE()) >= CURDATE() AND IFNULL(VervallenPer, CURDATE()) >= CURDATE() AND (BeperkTotGroep IN (%s)) ORDER BY Code, Omschrijving, RecordID;", $this->table, $_SESSION["lidgroepen"]);
+	public function lijst($p_type="bestellijst") {
+		$query = sprintf("SELECT ART.*, CONCAT(Omschrijving, IF(LENGTH(Maat)>0, CONCAT(' (', Maat, ')'), '')) AS OmsMaat, IF((SELECT COUNT(*) FROM %sWS_Orderregel AS ORD WHERE ORD.Artikel=ART.RecordID) > 0, 1, 0) AS InGebruik FROM %s AS ART", TABLE_PREFIX, $this->table);
+		if ($p_type == "bestellijst") {
+			$query .= sprintf(" WHERE IFNULL(ART.BeschikbaarTot, CURDATE()) >= CURDATE() AND IFNULL(ART.VervallenPer, CURDATE()) >= CURDATE() AND (ART.BeperkTotGroep IN (%s))", $_SESSION["lidgroepen"]);
+		}
+		$query .= " ORDER BY ART.Code, ART.Omschrijving, ART.RecordID;";
+		
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	}
@@ -5709,7 +5739,7 @@ class cls_Parameter extends cls_db_base {
 		}
 		
 		foreach ($this->arrParam as $naam => $val) {
-			$query = sprintf("SELECT COUNT(*) FROM %s WHERE Naam LIKE '%s';", $this->table, $naam);
+			$query = sprintf("SELECT COUNT(*) FROM %s WHERE Naam='%s';", $this->table, $naam);
 			if (db_scalar($query) == 0) {
 				$this->add($naam);
 				$this->update($naam, $val['Default']);
@@ -5769,7 +5799,7 @@ class cls_Parameter extends cls_db_base {
 				$xw = "(ValueChar IS NOT NULL)";
 			} else {
 				$p_waarde = "\"" . str_replace("\"", "'", $p_waarde) . "\"";
-				$set = sprintf("ValueChar=%s", $p_waarde);
+				$set = sprintf("ValueChar=%s, ValueNum=NULL", $p_waarde);
 				$xw = sprintf("IFNULL(ValueChar, '')<>%s", $p_waarde);
 			}
 		} else {
@@ -6498,14 +6528,6 @@ function db_stats($lidid=0) {
 	$lgw = db_scalar($query);
 	if ($lgw > $stats['laatstgewijzigd']) {
 		$stats['laatstgewijzigd'] = $lgw;
-	}	
-	
-	if ($lidid == 0) {
-		$query = sprintf("SELECT MAX(M.Gewijzigd) FROM %sMutatie AS M;", TABLE_PREFIX);
-		$lgw = db_scalar($query);
-		if ($lgw > $stats['laatstgewijzigd']) {
-			$stats['laatstgewijzigd'] = $lgw;
-		}
 	}	
 	
 	return $stats;

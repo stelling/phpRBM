@@ -6,7 +6,7 @@ setlocale(LC_ALL,'nl_NL.utf8');
 define("ARRGESLACHT", ["O" => "Onbekend", "V" => "Vrouwelijk", "M" => "Mannelijk", "B" => "Bedrijf/Vereniging/Stichting"]);
 define("ARRTL", ["Alle", "Leden", "Klosleden", "Voormalig leden"]);
 define("ARRLEGITIMATIE", ["G" => "Geen", "I" => "Identiteitskaart", "P" => "Paspoort", "R" => "Rijbewijs"]);
-define("ARRSOORTMEMO", ["A" => "Algemeen", "B" => "Bewaking", "D" => "Dieet", "E" => "Examen", "F" => "Financiën", "G" => "Gezondheid/medisch", "I" => "Inschrijving bewaking", "WN" => "Waarschuwen in geval van nood"]);
+define("ARRSOORTMEMO", ["A" => "Algemeen", "B" => "Bewaking", "D" => "Dieet", "E" => "Examen", "F" => "Financiën", "G" => "Gezondheid/medisch", "I" => "Inschrijving bewaking"]);
 define("ARRTYPEONDERDEEL", ["A" => "Afdeling", "B" => "Bestuur", "C" => "Commissie", "G" => "Groep", "O" => "Onderscheiding", "T" => "Toestemming"]);
 define("ARRTYPEDIPLOMA", ["B" => "Brevet", "C" => "Competentie", "D" => "Diploma", "I" => "Insigne", "L" => "Licentie", "M" => "Module", "P" => "Proeve van bekwaamheid"]);
 define("PASFOTOEXTENTIES", ["gif", "jpg", "jpeg", "png"]);
@@ -99,20 +99,25 @@ foreach ($includes as $incl) {
 	require_once($incl);
 }
 
+$inst_p = new cls_Parameter();
+
 if (!isset($_SESSION['settings']['naamvereniging'])) {
-	db_param("", "curval");
+	$inst_p->vulsessie();
+	$row = (new cls_db_base("Vereniging"))->basislijst()[0];
+	$_SESSION['settings']['naamvereniging'] = $row->Naam;
+	$_SESSION['settings']['naamvereniging_afkorting'] = $row->AfkortingNaam;
+	$_SESSION['settings']['emailsecretariaat'] = $row->EmailSecretariaat;
+	$_SESSION['settings']['emailledenadministratie'] = $row->EmailLedenadministratie;
 }
-if ($bestandsversie != db_param("versie")) {
+// debug($_SESSION['settings']['muteerbarememos'] . " / " . $_SESSION['settings']['zs_muteerbarememos']);
+if ($bestandsversie != $_SESSION['settings']['versie']) {
+	debug(sprintf("Nieuwe versie: %s", strftime("%c")));
+	$inst_p->controle();
 	db_createtables();
 	db_onderhoud(2);
-	db_param("versie", "updval", $bestandsversie);
+	$inst_p->update("versie", $bestandsversie);
 }
-
-if (strlen(db_param("zs_muteerbarememos")) > 0) {
-	$muteerbarememos = explode(",", db_param("zs_muteerbarememos"));
-} else {
-	$muteerbarememos = array();
-}
+$inst_p = null;
 
 if ($_SESSION['lidid'] > 0) {
 	(new cls_Login())->setlastactivity();
@@ -131,19 +136,22 @@ foreach ($tabpages as $tp) {
 }
 
 function HTMLheader($breed=0) {
-	global $currenttab, $currenttab2;
+	global $currenttab, $currenttab2, $currenttab3;
 	
-	if (strlen(db_param("naamvereniging_afkorting")) > 0) {
-		$title = db_param("naamvereniging_afkorting") . " | ";
+	if (isset($_SESSION['settings']['naamvereniging_afkorting']) and strlen($_SESSION['settings']['naamvereniging_afkorting']) > 0) {
+		$title = $_SESSION['settings']['naamvereniging_afkorting'] . " | ";
 	} else {
 		$title = "";
 	}
-	if (strlen($currenttab) > 0 and strlen($currenttab2) > 0) {
-		$title .= db_param("naamwebsite") . " | " . $currenttab . " | " . $currenttab2;
+	
+	if (strlen($currenttab) > 0 and strlen($currenttab2) > 0 and strlen($currenttab3) > 0) {
+		$title .= $_SESSION['settings']['naamwebsite'] . " | " . $currenttab . " | " . $currenttab2 . " | " . $currenttab3;
+	} elseif (strlen($currenttab) > 0 and strlen($currenttab2) > 0) {
+		$title .= $_SESSION['settings']['naamwebsite'] . " | " . $currenttab . " | " . $currenttab2;
 	} elseif (strlen($currenttab) > 0) {
-		$title .= db_param("naamwebsite") . " | " . $currenttab;
+		$title .= $_SESSION['settings']['naamwebsite'] . " | " . $currenttab;
 	} else {
-		$title .= db_param("naamwebsite");
+		$title .= $_SESSION['settings']['naamwebsite'];
 	}
 
    if (!isset($_GET['header']) or $_GET['header'] != "no") {
@@ -151,7 +159,7 @@ function HTMLheader($breed=0) {
 		echo("<html lang='nl'>\n");
 		echo("<head>\n");
 		if (isset($_GET['tp']) and substr($_GET['tp'], 0, 7) == "Mailing") {
-			if (db_param("mailing_type_editor") == 2) {
+			if ($_SESSION['settings']['mailing_type_editor'] == 2) {
 				echo("<script src='https://cdn.ckeditor.com/4.13.0/standard/ckeditor.js'></script>\n");
 			} else {
 				echo("<script src='https://cdn.ckeditor.com/ckeditor5/12.4.0/classic/ckeditor.js'></script>\n");
@@ -172,12 +180,12 @@ function HTMLheader($breed=0) {
 			echo("<div id='containerbreed'>\n");
 		}
 		echo("<header>\n");
-		printf("<h1>%s</h1>\n", db_param("naamwebsite"));
+		printf("<h1>%s</h1>\n", $_SESSION['settings']['naamwebsite']);
 		
-		if (strlen(db_param("url_eigen_help")) < 10) {
+		if (strlen($_SESSION['settings']['url_eigen_help']) < 10) {
 			$htmlhelp = "<a href='https://software.telling.nl/phpRBM/uitleg.php'><img src='images/question.png' title='Uitleg gebruik en installatie' alt='Question mark'></a>\n";
 		} else {
-			$htmlhelp = sprintf("<a href='%s'><img src='images/question.png' title='Helpfunctie' alt='Question mark'></a>\n", db_param("url_eigen_help"));
+			$htmlhelp = sprintf("<a href='%s'><img src='images/question.png' title='Helpfunctie' alt='Question mark'></a>\n", $_SESSION['settings']['url_eigen_help']);
 		}
 	
 		echo("<div id='login'>\n");
@@ -219,14 +227,14 @@ function HTMLheader($breed=0) {
 } # HTMLheader
 
 function HTMLfooter() {
-	global $navpad, $bestandsversie;
+	global $navpad, $bestandsversie, $currenttab, $currenttab2, $currenttab3;
 
 	if (!isset($_GET['header']) or $_GET['header'] != "no") {
-		if (strlen(db_param("naamvereniging")) > 2) {
-			if (strlen(db_param("urlvereniging")) > 3) {
-				$cr = sprintf("<a href='%s'>%s</a>", db_param("urlvereniging"), db_param("naamvereniging"));
+		if (isset($_SESSION['settings']['naamvereniging']) and strlen($_SESSION['settings']['naamvereniging']) > 2) {
+			if (strlen($_SESSION['settings']['urlvereniging']) > 3) {
+				$cr = sprintf("<a href='%s'>%s</a>", $_SESSION['settings']['urlvereniging'], $_SESSION['settings']['naamvereniging']);
 			} else {
-				$cr = db_param("naamvereniging");
+				$cr = $_SESSION['settings']['naamvereniging'];
 			}
 		} else {
 			$cr = "<a href='https://www.telling.nl'>&copy;&nbsp;S.Telling</a>";
@@ -249,7 +257,7 @@ function HTMLfooter() {
 				 <div id='footerleft'>%s</div>\n
 				 <a href='%s'>%s</a> %s\n
 				 <div id='footerright'>%s</div>\n
-				 </footer>\n", $cr, BASISURL, db_param("naamwebsite"), $np, strftime("%e %B %Y", $bestandsversie));
+				 </footer>\n", $cr, BASISURL, $_SESSION['settings']['naamwebsite'], $np, strftime("%e %B %Y", $bestandsversie));
 		echo("</div>  <!-- Einde container of containerbreed -->\n");
 		echo("</body>\n");
 		echo("</html>\n");
@@ -337,11 +345,11 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 		$xtra = "&amp;" . $xtra;
 	}
 	
-	if (db_param("typemenu") == 1 or db_param("typemenu") == 3) {
+	if ($_SESSION['settings']['typemenu'] == 1 or $_SESSION['settings']['typemenu'] == 3) {
 		printf("<div id='menu_l%s'>\n", $toonnivo);
 	}
 
-	if ((db_param("typemenu") == 2 or db_param("typemenu") == 3) and $toonnivo == 1) {  // Dit is het menu met hovering
+	if (($_SESSION['settings']['typemenu'] == 2 or $_SESSION['settings']['typemenu'] == 3) and $toonnivo == 1) {  // Dit is het menu met hovering
 		echo("<ul id='nav'>\n");
 		$nivo = 0;
 		foreach($tabpages as $tp) {
@@ -387,7 +395,7 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 	}
 	
 	$nivo = $toonnivo;
-	if (db_param("typemenu") == 1 or (db_param("typemenu") == 3 and $toonnivo == 2)) {
+	if ($_SESSION['settings']['typemenu'] == 1 or ($_SESSION['settings']['typemenu'] == 3 and $toonnivo == 2)) {
 		printf("<ul class='tablist%d'>\n", $nivo);
 		foreach($tabpages as $tp) {
 			if ($nivo == 1 and strstr($tp, "/") === false) {
@@ -415,6 +423,8 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 					$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
 				} elseif ($nivo == 3 and ($currenttab3 == str_replace("'", "", $tpd) or strlen($currenttab3) == 0)) {
 					$cl = " class='current'";
+					$navpad[$nivo]['naam'] = $tpd;
+					$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
 				}
 				printf("<li%s><a href=\"%s?tp=%s%s\">%s</a></li>\n", $cl, $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra, $tpd);
 			}
@@ -422,7 +432,7 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 		echo("</ul>\n");
 	}
 	
-	if (db_param("typemenu") == 1 or db_param("typemenu") == 3) {
+	if ($_SESSION['settings']['typemenu'] == 1 or $_SESSION['settings']['typemenu'] == 3) {
 		printf("</div> <!-- Einde menu_l%s -->\n", $toonnivo);
 	}
 	if ($nivo > 1) {
@@ -818,5 +828,13 @@ function checked($val, $tp="", $sv=1) {
 function htmlent($text) {
 	return htmlentities($text, ENT_COMPAT,'ISO-8859-1', true);
 } # htmlent
+
+function fnExtBestand($p_fn) {
+	
+	$p_fn = str_replace("!", ".", $p_fn);
+	$hv_ext = explode(".", $p_fn);
+	return $hv_ext[count($hv_ext)-1];
+	
+}  # extbestand
 
 ?>
