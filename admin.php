@@ -83,9 +83,9 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 } elseif ($_GET['op'] == "FreeBackupFiles") {
 	fnFreeBackupFiles();
 } elseif ($_GET['op'] == "logboekopschonen") {
-	db_logboek("opschonen");
+	(new cls_Logboek())->opschonen();
 } elseif ($_GET['op'] == "loggingdebugopschonen") {
-	db_logboek("debugopschonen");
+	(new cls_logboek())->debugopschonen();
 } elseif ($_GET['op'] == "evenementenopschonen") {
 	$mess = db_evenement("opschonen");
 	printf("<p class='mededeling'>%s</p>\n", $mess);
@@ -95,25 +95,24 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 	$mess = db_logins("opschonen");
 	printf("<p class='mededeling'>%s</p>\n", $mess);
 } elseif ($_GET['op'] == "autorisatieopschonen") {
-	db_authorisation("opschonen");
+	(new cls_Authorisation())->opschonen();
 } elseif ($_GET['op'] == "orderregelsopschonen") {
-	$mess = db_orderregel("opschonen");
-	printf("<p class='mededeling'>%s</p>\n", $mess);
+	(new cls_Orderregel())->opschonen();
 } elseif ($_GET['op'] == "artikelenopschonen") {
-	$mess = db_artikel("opschonen");
-	printf("<p class='mededeling'>%s</p>\n", $mess);
+	(new cls_Artikel())->opschonen();
 }
 
 if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	fnBeheerLogins();
 	
 } elseif ($currenttab == "Autorisatie" and toegang($currenttab, 1, 1)) {
+	$i_auth = new cls_Authorisation();
 	echo("<div id='lijst'>\n");
 	printf("<form name='formauth' method='post' action='%s?tp=%s&amp;op=changeaccess'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	echo("<table>\n");
 	echo("<tr><th></th><th>Onderdeel</th><th>Toegankelijk voor</th><th>Ingevoerd</th></tr>\n");
 	$ondrows = db_Onderdeel("lijst");
-	foreach(db_authorisation("lijst") as $row) {
+	foreach($i_auth->lijst() as $row) {
 		$del = sprintf("<a href='%s?tp=%s&amp;op=deleteautorisatie&amp;recid=%d'><img src='images/del.png' title='Verwijder record'></a>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
 		$selectopt = sprintf("<option value=-1%s>Alleen webmasters</option>\n", checked($row->Toegang, "option", -1));
 		$selectopt .= sprintf("<option value=0%s>Iedereen</option>\n", checked($row->Toegang, "option", 0));
@@ -123,7 +122,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 		printf("<tr>\n<td>%s</td>\n<td>%s</td>\n<td><select name='toegang%d' onchange='this.form.submit();'>\n%s</select></td>\n<td>%s</td></tr>\n", $del, $row->Tabpage, $row->RecordID, $selectopt, strftime("%e %B %Y", strtotime($row->Ingevoerd)));
 	}
 	$optionstab = "<option value=''>Selecteer ...</option>\n";
-	foreach (db_authorisation("tabpages") as $row) {
+	foreach ($i_auth->lijst("DISTINCT") as $row) {
 		$optionstab .= sprintf("<option value='%1\$s'>%1\$s</option>\n", $row->Tabpage);
 	}
 	printf("<tr><td><img src='images/star.png' alt='Ster' title='Nieuw record'></td><td><select name='tabpage_nw' onChange='this.form.submit();'>%s</select></td><td></td><td></td></tr>\n", $optionstab);
@@ -131,7 +130,8 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	echo("</form>\n");
 	echo("</div>  <!-- Einde lijst -->\n");
 	
-	echo(fnDisplayTable(db_authorisation("autorisatiesperonderdeel"), "", "Overzicht autorisaties per onderdeel"));
+	echo(fnDisplayTable($i_auth->autorisatiesperonderdeel(), "", "Overzicht autorisaties per onderdeel"));
+	$i_auth = null;
 	
 } elseif ($currenttab == "Instellingen" and toegang($currenttab, 1, 1)) {
 	fnInstellingen();
@@ -205,10 +205,10 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	}
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=loginsopschonen\"' value='Logins opschonen'>&nbsp;Opschonen van logins die om diverse redenen niet meer nodig zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=autorisatieopschonen\"' value='Autorisatie opschonen'>&nbsp;Verwijderen toegang waar alleen de webmaster toegang toe heeft en die ouder dan 3 maanden zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	if (db_orderregel("aantal") > 0) {
+	if ((new cls_Orderregel())->aantal() > 0) {
 		printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=orderregelsopschonen\"' value='Orderregels opschonen'>&nbsp;Opschonen van de orderregels van de bestellingen.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	}
-	if (db_artikel("aantal") > 0) {
+	if ((new cls_Artikel())->aantal() > 0) {
 		printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=artikelenopschonen\"' value='Artikelen opschonen'>&nbsp;Opschonen van artikelen zonder bestellingen uit de webshop.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	}
 	echo("</form>\n");
@@ -229,10 +229,10 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 		$_POST['ipfilter'] = "";
 	}
 	echo("<div id='filter'>\n");
-	printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
-	echo("<table>\n<tr>\n");
 	
-	echo("<td class='label'>Filter op lid:</td><td><select name='lidfilter' id='lidfilter' onchange='form.submit();'>\n");
+	printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+	
+	echo("<label>Filter op lid:</label><div class='waarde'>\n<select name='lidfilter' id='lidfilter' onchange='form.submit();'>\n");
 	echo("<option value=0>Alle</option>\n");
 	foreach (db_logboek("lidlijst") as $row) {
 		if ($row->LidID == $_POST['lidfilter']) {
@@ -242,9 +242,9 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 		}
 		printf("<option value=%d %s>%s</option>\n", $row->LidID, $s, htmlentities($row->Naam));
 	}
-	echo("</select>\n</td>\n");
+	echo("</select>\n</div>\n");
 	
-	echo("<td class='label'>Filter op type:</td><td><select name='typefilter' id='typefilter' onchange='form.submit();'>\n");
+	echo("<label>Filter op type:</label><div class='waarde'>\n<select name='typefilter' id='typefilter' onchange='form.submit();'>\n");
 	echo("<option value=-1>Alle</option>\n");
 	foreach ($TypeActiviteit as $key => $val) {
 		if (db_logboek("aantal", "", $key) > 0) {
@@ -256,9 +256,9 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 			printf("<option value=%d %s>%s</option>\n", $key, $s, htmlentities($val));
 		}
 	}
-	echo("</select>\n</td>\n");
+	echo("</select>\n</div>\n");
 	
-	echo("<td class='label'>Filter op IP-adres:</td><td><select name='ipfilter' id='ipfilter' onchange='form.submit();'>\n");
+	echo("<label>Filter op IP-adres:</label><div class='waarde'>\n<select name='ipfilter' id='ipfilter' onchange='form.submit();'>\n");
 	echo("<option value='*'>Alle</option>\n");
 	foreach (db_logboek("iplijst") as $row) {
 		if ($row->IP_adres == $_POST['ipfilter']) {
@@ -268,9 +268,8 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 		}
 		printf("<option value='%s'%s>%s</option>\n", $row->IP_adres, $s, $row->IP_adres);
 	}
-	echo("</select>\n</td>\n");
+	echo("</select>\n</div>\n");
 	
-	echo("</tr>\n</table>\n");
 	echo("</form>\n");
 	echo("</div>  <!-- Einde filter -->\n");
 	
@@ -383,14 +382,15 @@ function fnInstellingen() {
 	$inst_p->vulsessie();
 	$inst_p = null;
 
-	$arrParam['db_backup_type'] = "Welke taballen moeten worden gebackuped? 1=interne phpRBM-tabellen, 2=tabellen uit Access, 3=beide.";
+	$arrParam['db_backup_type'] = "Welke tabellen moeten worden gebackuped? 1=interne phpRBM-tabellen, 2=tabellen uit Access, 3=beide.";
 	$arrParam['db_backupsopschonen'] = "Na hoeveel dagen moeten back-ups automatisch verwijderd worden? 0 = nooit.";
 	$arrParam['db_folderbackup'] = "In welke folder moet de backup worden geplaatst?";
 	$arrParam['emailwebmaster'] = "Het e-mailadres van de webmaster.";
 	$arrParam['kaderoverzichtmetfoto'] = "Moeten op het kaderoverzicht pasfoto's getoond worden?";
 	$arrParam['toonpasfotoindiennietingelogd'] = "Mogen pasfoto's zichtbaar voor bezoekers (niet ingelogd) zijn?";
 	$arrParam['meisjesnaamtonen'] = "Moeten de namen van leden ook de meisjesnaam bevatten?";
-	$arrParam['WoonadresAnderenTonen'] = "Moet het woonadres van een lid ook aan andere leden worden getoond?";
+	$arrParam['woonadres_anderen_tonen'] = "Moet het woonadres van een lid ook aan andere leden worden getoond?";
+	$arrParam['muteerbarememos'] = "Welke soorten memo's zijn in gebruik? Bij meerdere scheiden door een komma.";
 	$arrParam['login_lidnrnodigbijaanvraag'] = "Moet een lid zijn of haar lidnummer opgeven als er een login aangevraagd wordt?";
 	$arrParam['login_autounlock'] = "Na hoeveel minuten moet een gelockede login automatisch geunlocked worden? 0 = alleen handmatig unlocken.";
 	$arrParam['login_beperkttotgroep'] = "Vul hier de RecordID's, gescheiden door een komma, van de groepen (zie tabel ONDERDL) in die toegang hebben. Leeg = alleen webmasters hebben toegang.";
@@ -427,16 +427,16 @@ function fnInstellingen() {
 	$arrParam['zs_incl_iban'] = "Moet het IBAN via de zelfservice gemuteerd kunnen worden?";
 	$arrParam['zs_incl_legitimatie'] = "Is de legitimatie in de zelfservice beschikbaar?";
 	$arrParam['zs_incl_slid'] = "Is het veld 'Sportlink ID' in de zelfservice beschikbaar?";
-	$arrParam['zs_muteerbarememos'] = "Welke soorten memo's mogen leden zelf muteren, scheiden door een komma.";
+	$arrParam['zs_muteerbarememos'] = "Welke soorten memo's mogen leden zelf muteren? Bij meerdere scheiden door een komma.";
 	$arrParam['zs_opzeggingautomatischverwerken'] = "Moet een opzegging van een lid in de zelfservice automatisch verwerkt worden?";
 	$arrParam['zs_opzegtermijn'] = "De opzegtermijn van de vereniging in maanden.";
 	$arrParam['zs_voorwaardenbestelling'] = "Deze regel wordt bij de online-bestellingen in de zelfservice vermeld.";
 	$arrParam['zs_voorwaardeninschrijving'] = "Deze regel wordt bij de inschrijving als voorwaarde voor de inschrijving voor de bewaking vemeld.";
 	
 	$specmailing = array("mailing_bewakinginschrijving", "mailing_bevestigingbestelling");
+	$inst_p = new cls_Parameter();
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		$inst_p = new cls_Parameter();
-		foreach (db_param("", "lijst") as $row) {
+		foreach ($inst_p->lijst() as $row) {
 			$mess = "";
 			$pvn = $row->Naam;
 			if (array_key_exists($row->Naam, $arrParam) == true) {
@@ -466,8 +466,9 @@ function fnInstellingen() {
 				if (isset($_POST[$pvn])) {
 					$_POST[$pvn] = str_replace("\"", "'", $_POST[$pvn]);
 				}
-				if (in_array($row->Naam, array("beperktotgroep", "muteerbarememos"))) {
+				if (in_array($row->Naam, array("beperktotgroep", "zs_muteerbarememos"))) {
 					$_POST[$pvn] = str_replace(" ", "", $_POST[$pvn]);
+					$_POST[$pvn] = str_replace("'", "", $_POST[$pvn]);
 				} elseif (in_array($row->Naam, $specmailing) and $_POST[$pvn] > 0 and db_mailing("exist", $_POST[$pvn]) == false) {
 					$_POST[$pvn] = 0;
 					$mess = sprintf("Parameter '%s' wordt 0 gemaakt, omdat de ingevoerde mailing niet (meer) bestaat. ", $row->Naam);
@@ -494,9 +495,7 @@ function fnInstellingen() {
 				if (strlen($mess) > 0) {
 					(new cls_Logboek())->add($mess, 13, 0, 1);
 				}
-				if (strlen($arrParam[$row->Naam]) > 2) {
-					$inst_p->update($row->Naam, $_POST[$pvn]);
-				}
+				$inst_p->update($row->Naam, $_POST[$pvn]);
 			}
 		}
 		
@@ -509,18 +508,16 @@ function fnInstellingen() {
 		
 		$p = $_SESSION['settings']['path_templates'];
 		if (strlen($p) < 5 or !is_dir($p)) {
-			$instr_p->update("path_templates", __DIR__ . "/templates/");
+			$inst_p->update("path_templates", __DIR__ . "/templates/");
 		} elseif (substr($p, -1) != "/") {
 			$inst_p->update("path_templates", $p . "/");
 		}
-		$inst_p = null;
-		
 	}
 
 	echo("<div id='instellingenmuteren'>\n");
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	
-	foreach (db_param("", "lijst") as $row) {
+	foreach ($inst_p->lijst() as $row) {
 		if (array_key_exists($row->Naam, $arrParam)) {
 			$uitleg = htmlent($arrParam[$row->Naam]);
 			echo("<div class='invoerblok'>\n");
@@ -541,6 +538,7 @@ function fnInstellingen() {
 			echo("</div> <!-- Einde invoerblok -->\n");
 		}
 	}
+	$inst_p = null;
 	echo("<div id='opdrachtknoppen'>\n");
 	echo("<input class='knop' type='submit' value='Bewaren'>\n");
 	echo("</div>  <!-- Einde opdrachtknoppen -->\n");
