@@ -410,21 +410,23 @@ class Mailing {
 					 WHERE %2\$s AND `Type`='R' AND LO.Lid=%%d ORDER BY O.Naam;", TABLE_PREFIX, $wherelidond);
 			$this->MergeField[]=array('Naam' => "Rollen", 'SQL' => $sql);
 		}
-		
-		if (db_memo("aantal", 0, "D") > 0) {
+
+		$i_memo = new cls_Memo();
+		if ($i_memo->aantal("Soort = 'D'") > 0) {
 			$sql = sprintf("SELECT IF((Memo IS NULL), 'Geen', Memo) FROM %sMemo WHERE Lid=%%d AND Soort='D';", TABLE_PREFIX);
 			$this->MergeField[]=array('Naam' => "Dieet", 'SQL' => $sql);
 		}
 		
-		if (db_memo("aantal", 0, "G") > 0) {
+		if ($i_memo->aantal("Soort = 'G'") > 0) {
 			$sql = sprintf("SELECT IF((Memo IS NULL), 'Geen', Memo) FROM %sMemo WHERE Lid=%%d AND Soort='G';", TABLE_PREFIX);
 			$this->MergeField[]=array('Naam' => "MemoGezondheid", 'SQL' => $sql);
 		}
 		
-		if (db_memo("aantal", 0, "I") > 0) {
+		if ($i_memo->aantal("Soort = 'I'") > 0) {
 			$sql = sprintf("SELECT IF(Memo IS NULL, 'Geen', Memo) FROM %sMemo WHERE Lid=%%d AND Soort='I';", TABLE_PREFIX);
 			$this->MergeField[]=array('Naam' => "OpmerkingInschrijvingBewaking", 'SQL' => $sql);
 		}
+		$i_memo = null;
 		
 		$this->MergeField[]=array('Naam' => "Naamvereniging", 'SQL' => "");
 		$this->MergeField[]=array('Naam' => "Naamwebsite", 'SQL' => "");
@@ -556,7 +558,6 @@ class Mailing {
 		
 		$ad = $this->dir_attachm . "/" . $this->mid;
 		$bd = $this->dir_media . "/" . $this->mid;
-//		$this->vuldbvars();
 		
 		if ($this->mid == 0) {
 			$currenttab2 = "Concepten";
@@ -1047,7 +1048,7 @@ class Mailing {
 			$ext = explode(".", $target);
 			$ext = strtolower($ext[count($ext) - 1]);
 			if (strpos($ae, $ext) === false) {
-				$mess = sprintf("In mailing %d kan dit bestand niet worden ge-upload, omdat de extensie niet is toegestaan. Alleen de volgende extensies zijn toegestaan: %s", $this->mid, $ae);
+				$mess = sprintf("In mailing %d kan bestand '%s' niet worden ge-upload, omdat de extensie niet is toegestaan. Alleen de volgende extensies zijn toegestaan: %s", $this->mid, $_FILES['UploadFile']['name'], $ae);
 			} elseif (isset($_POST['UploadFile']) and $_FILES['UploadFile']['size'] > $this->max_size_attachm) {
 				$mess = sprintf("In mailing %d kan het bestand '%s' niet worden bijgesloten, omdat het te groot is.", $this->mid, $_FILES['UploadFile']['name']);
 			} elseif (strlen($ad) > 0) {
@@ -1324,7 +1325,7 @@ class Mailing {
 							<tr><th>Code</th><th>Omschrijving</th><th>Maat</th><th class='number'>Aantal</th><th class='number'>Bedrag</th><th>Opmerking</th><tr>\n";
 			
 			$totbedrag = 0;
-			foreach (db_orderregel("bevestiging", $lidid, 0, 0, $filter) as $row) {
+			foreach ((new cls_Orderregel())->bevestiging($lidid, $filter) as $row) {
 				$ordernr = $row->Ordernr;
 				$bestelling .= sprintf("<tr><td>%s</td><td>%s</td><td>%s</td><td class='number'>%d</td><td class='number'>&euro;&nbsp;%s</td><td>%s</td></tr>\n", $row->Code, $row->Omschrijving, $row->Maat, $row->AantalBesteld, number_format($row->Bedrag, 2), $row->Opmerking);
 				$totbedrag += $row->Bedrag;
@@ -1592,12 +1593,12 @@ function fnRekeningenMailen($op) {
 			if (strtotime($mindat) !== FALSE) {
 				$mindat = date("Y-m-d", strtotime($mindat));
 			} else {
-				$mindat = db_rekening("mindatum");
+				$mindat = $i_rek->min("Datum");
 			}
 			if (strtotime($maxdat) !== FALSE) {
 				$maxdat = date("Y-m-d", strtotime($maxdat));
 			} else {
-				$maxdat = db_rekening("maxdatum");
+				$maxdat = $i_rek->max("Datum");
 			}
 			$filter = sprintf("RK.seizoen = %d AND RK.Nummer >= %d AND RK.Nummer <= %d AND RK.Datum >= '%s' AND RK.Datum <= '%s'", $_POST['rekseizoen'], $_POST['minreknr'], $_POST['maxreknr'], $mindat, $maxdat);
 			if (isset($_POST['reklid']) and is_numeric($_POST['reklid']) and $_POST['reklid'] > 0) {
@@ -1951,8 +1952,7 @@ function sentfromhist($p_mhid, $p_handm=0) {
 	}
 	if ($mail->addstationary($a, "", 0, $row->ZonderBriefpapier)) {
 
-		$ad = $_SESSION['settings']['path_attachments'] . $p_mhid;
-	
+		$ad = $_SESSION['settings']['path_attachments'] . $row->MailingID;
 		if (is_dir($ad)) {
 			$d = dir($ad);
 			while (false !== ($entry = $d->read())) {
