@@ -81,13 +81,14 @@ function ToekomstigeEvenementen() {
 }
 
 function inschrijvenevenementen($lidid) {
+	// Onderdeel van de zelfservice
 
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		$inst_ed = new cls_Evenement_Deelnemer();
+		$i_ed = new cls_Evenement_Deelnemer();
 		foreach (db_evenement("open") as $row) {
 			$react = sprintf("reactie_%d", $row->RecordID);
 			$opm = sprintf("opm_%d", $row->RecordID);
-			$insrow = db_Evenement_Deelnemer("record", 0, "", "", $lidid, $row);
+			$insrow = $i_ed->record(0, $lidid, $row->RecordID);
 			if (isset($insrow->RecordID)) {
 				$edid = $insrow->RecordID;
 			} else {
@@ -105,21 +106,21 @@ function inschrijvenevenementen($lidid) {
 			}
 			if ($_POST[$react] == "Geen") {
 				if ($edid > 0) {
-					$inst_ed($edid);
+					$i_ed($edid);
 				}
 			} else {
 				if ($edid == 0) {
-					$edid = $inst_ed->add($row->RecordID, $lidid, $stat);
+					$edid = $i_ed->add($row->RecordID, $lidid, $stat);
 				}
 				if (strlen($stat) == 1) {
-					$inst_ed->update($edid, "Status", $stat);
+					$i_ed->update($edid, "Status", $stat);
 				}
 				if (isset($_POST[$opm])) {
-					$inst_ed->update($edid, "Opmerking", $_POST[$opm]);
+					$i_ed->update($edid, "Opmerking", $_POST[$opm]);
 				}
 			}
 		}
-		$inst_ed = null;
+		$i_ed = null;
 	}
 
 	fnDispMenu(2);
