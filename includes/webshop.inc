@@ -218,7 +218,7 @@ function bestellingbeheer() {
 	$i_or = new cls_Orderregel();
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		if (isset($_POST['Lid_0']) and is_numeric($_POST['Lid_0']) and $_POST['Lid_0'] > 0) {
-			db_orderregel("add", $_POST['Lid_0']);
+			$i_or->add($_POST['Lid_0'], 0);
 		}
 		foreach($i_or->lijst() as $row) {
 			$i_or->lidid = $row->Lid;
@@ -259,7 +259,7 @@ function bestellingbeheer() {
 			$naamfilter = $_POST['tbNaamFilter'];
 		}	
 	} elseif (isset($_GET['op']) and $_GET['op'] == "delete" and $_GET['rid'] > 0) {
-		db_orderregel("delete", 0, 0, 0, "", $_GET['rid']);
+		(new cls_Orderregel())->delete($_GET['rid']);
 	}
 	
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
@@ -331,12 +331,9 @@ function bestellingbeheer() {
 	}
 	if ($nrmag) {
 		echo("<tr>\n");
-		$w = sprintf("L.RecordID IN (SELECT Lid FROM %sLidmaatschap AS LM WHERE IFNULL(LM.Opgezegd, CURDATE()) >= CURDATE())", TABLE_PREFIX);
 		echo("<td colspan=11><select name='Lid_0' onChange='this.form.submit();'>\n");
 		echo("<option value=0>Nieuwe regel ...</option>\n");
-		foreach(db_lid("lijst", $w) as $lid) {
-			printf("<option value=%d>%s</option>\n", $lid->RecordID, $lid->Zoeknaam);
-		}
+		echo((new cls_Lid())->htmloptions(-1, 1));
 		echo("</select></td>\n");
 		echo("</tr>\n");
 	}
@@ -347,7 +344,7 @@ function bestellingbeheer() {
 	echo("</table>\n");
 	echo("</div>  <!-- Einde bestellingbeheer -->\n");
 	
-	$tots = db_orderregel("totalen");
+	$tots = $i_or->totalen();
 	if (count($tots) > 0) {
 		echo(fnDisplayTable($tots, "", "Totalen", 99, "", "", "totalenbestellingen"));
 	}
