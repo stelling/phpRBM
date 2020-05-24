@@ -11,6 +11,7 @@ define("ARRTYPEONDERDEEL", ["A" => "Afdeling", "B" => "Bestuur", "C" => "Commiss
 define("ARRTYPEDIPLOMA", ["B" => "Brevet", "C" => "Competentie", "D" => "Diploma", "I" => "Insigne", "L" => "Licentie", "M" => "Module", "P" => "Proeve van bekwaamheid"]);
 define("PASFOTOEXTENTIES", ["gif", "jpg", "jpeg", "png"]);
 define("ARRTYPEEDITOR", [1 => "CKEditor 5 Classic editor", 2 => "CKEditor 4"]);
+define("ARRDLNSTATUS", ["A" => "Afgewezen", "B" => "Bevestigd", "I" => "Ingeschreven", "N" => "Niet geweest", "R" => "Reserve", "T" => "Onder voorbehoud", "X" => "Afgezegd"]);
 
 $dir = substr(__DIR__, 0, strrpos(__DIR__, "/"));
 require($dir . '/config.php');
@@ -99,10 +100,10 @@ foreach ($includes as $incl) {
 	require_once($incl);
 }
 
-$inst_p = new cls_Parameter();
+$i_p = new cls_Parameter();
 
 if (!isset($_SESSION['settings']['naamvereniging'])) {
-	$inst_p->vulsessie();
+	$i_p->vulsessie();
 	$row = (new cls_db_base("Vereniging"))->basislijst()[0];
 	$_SESSION['settings']['naamvereniging'] = $row->Naam;
 	$_SESSION['settings']['naamvereniging_afkorting'] = $row->AfkortingNaam;
@@ -112,12 +113,12 @@ if (!isset($_SESSION['settings']['naamvereniging'])) {
 // debug($_SESSION['settings']['muteerbarememos'] . " / " . $_SESSION['settings']['zs_muteerbarememos']);
 if ($bestandsversie != $_SESSION['settings']['versie']) {
 	debug(sprintf("Nieuwe versie: %s", strftime("%c")));
-	$inst_p->controle();
+	$i_p->controle();
 	db_createtables();
 	db_onderhoud(2);
-	$inst_p->update("versie", $bestandsversie);
+	$i_p->update("versie", $bestandsversie);
 }
-$inst_p = null;
+$i_p = null;
 
 if ($_SESSION['lidid'] > 0) {
 	(new cls_Login())->setlastactivity();
