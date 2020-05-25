@@ -13,10 +13,10 @@ define("PASFOTOEXTENTIES", ["gif", "jpg", "jpeg", "png"]);
 define("ARRTYPEEDITOR", [1 => "CKEditor 5 Classic editor", 2 => "CKEditor 4"]);
 define("ARRSOORTEVENEMENT", ["B" => "Brigade-activiteit", "G" => "Gezellig/sociaal", "O" => "Opleiding", "V" => "Vergadering/overleg", "W" => "Wedstrijd"]);
 define("ARRDLNSTATUS", ["A" => "Afgewezen", "B" => "Bevestigd", "I" => "Ingeschreven", "N" => "Niet geweest", "R" => "Reserve", "T" => "Onder voorbehoud", "X" => "Afgezegd"]);
+define("BASEDIR", substr(__DIR__, 0, strrpos(__DIR__, "/")));
 
-$dir = substr(__DIR__, 0, strrpos(__DIR__, "/"));
-require($dir . '/config.php');
-$bestandsversie = filectime($dir . "/index.php");
+require(BASEDIR . '/config.php');
+$bestandsversie = filectime(BASEDIR . "/index.php");
 if (strlen($table_prefix) > 0 and substr($table_prefix, -1) != "_") {
 	$table_prefix .= "_";
 }
@@ -81,7 +81,7 @@ if (isset($_GET['tp']) and mb_substr_count($_GET['tp'], "/") == 2) {
 }
 
 /* Included maatwerk */
-$incl = $dir . "/maatwerk/maatwerk.inc";
+$incl = BASEDIR . "/maatwerk/maatwerk.inc";
 require_once($incl);
 /* Einde includen maatwerk*/
 
