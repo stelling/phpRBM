@@ -1357,7 +1357,7 @@ class cls_Bewaking extends cls_db_base {
 	public function overzichtlid($p_lidid) {
 		$w = sprintf("BW.Lid=%d", $p_lidid);
 		if ($_SESSION['settings']['tonentoekomstigebewakingen'] == 0) {
-			$w .= " AND BW.BS.Einde < CURDATE()";
+			$w .= " AND BW.EINDE_PER < CURDATE()";
 		}
 		
 		$query = sprintf("SELECT MAX(Post) FROM %s AS BW WHERE %s;", $this->table, $w);
@@ -1637,7 +1637,7 @@ class cls_InsBew extends cls_db_base {
 								WHERE BB.Einddatum > CURDATE() AND %3\$s AND BI.Definitief > BI.Ingevoerd
 								ORDER BY BS.Kode, BB.Kode, BB.Begindatum;", TABLE_PREFIX, $this->selectnaam, $xw);
 								
-		$result = $tis->execsql($query);
+		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
 	
@@ -5686,7 +5686,7 @@ class cls_Parameter extends cls_db_base {
 		foreach ($this->arrParam as $naam => $val) {
 			$query = sprintf("SELECT COUNT(*) FROM %s WHERE Naam='%s';", $this->table, $naam);
 			if ($this->scalar($query) == 0) {
-				$this->add($naam);
+				$this->add($naam, $val['Type']);
 				if (isset($val['Default'])) {
 					$this->update($naam, $val['Default']);
 				}
@@ -5706,8 +5706,10 @@ class cls_Parameter extends cls_db_base {
 		foreach ($this->lijst() as $row) {
 			if (($row->ParamType == "F" or $row->ParamType == "I") and empty($row->ValueNum)) {
 				$_SESSION['settings'][$row->Naam] = 0;
-			} elseif ($row->ParamType == "B" or $row->ParamType == "F" or $row->ParamType == "I") {
+			} elseif ($row->ParamType == "F") {
 				$_SESSION['settings'][$row->Naam] = $row->ValueNum;
+			} elseif ($row->ParamType == "B" or $row->ParamType == "I") {
+				$_SESSION['settings'][$row->Naam] = intval($row->ValueNum);
 			} elseif (empty($row->ValueChar)) {
 				$_SESSION['settings'][$row->Naam] = "";
 			} else {
@@ -5716,12 +5718,12 @@ class cls_Parameter extends cls_db_base {
 		}
 	}
 	
-	public function add($p_naam) {
+	public function add($p_naam, $p_type) {
 		$nrid = $this->nieuwrecordid();
 		
-		$query = sprintf("INSERT INTO %s (RecordID, Naam, IngevoerdDoor) VALUES (%d, '%s', %d);", $this->table, $nrid, $p_naam, $_SESSION['lidid']);
+		$query = sprintf("INSERT INTO %s (RecordID, Naam, ParamType, IngevoerdDoor) VALUES (%d, '%s', '%s', %d);", $this->table, $nrid, $p_naam, $p_type, $_SESSION['lidid']);
 		if ($this->execsql($query) > 0) {
-			$this->mess = sprintf("Parameter '%s' is toegevoegd.", $p_naam);
+			$this->mess = sprintf("Parameter '%s', type '%s', is toegevoegd.", $p_naam, $p_type);
 			$this->Log($nrid);
 		}
 	}
@@ -5758,7 +5760,6 @@ class cls_Parameter extends cls_db_base {
 				$this->Log($cur->RecordID);
 			}
 		}
-		$_SESSION['settings'][$p_naam] = $p_waarde;
 	}
 	
 }  # cls_Parameter
