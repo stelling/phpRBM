@@ -118,6 +118,7 @@ if ($bestandsversie != $_SESSION['settings']['versie']) {
 	db_createtables();
 	db_onderhoud(2);
 	$i_p->update("versie", $bestandsversie);
+	$i_p->vulsessie();
 }
 $i_p = null;
 
