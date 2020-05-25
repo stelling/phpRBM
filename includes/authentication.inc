@@ -10,7 +10,7 @@ if ($_SESSION['lidid'] == 0 or strlen($_SESSION['username']) == 0) {
 		$_SESSION['webmaster'] = 1;
 	}
 	if (strlen($_SESSION['lidgroepen']) < 4) {
-		$_SESSION['lidgroepen'] = db_Lidond("lidgroepen");
+		$_SESSION['lidgroepen'] = (new cls_Lidond())->lidgroepen();;
 	}
 }
 
@@ -21,7 +21,8 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	addtp("Instellingen");
 	addtp("Stamgegevens");
 	addtp("Uploaden data");
-	if (db_interface("aantalopenstaand") > 0) {
+	$f = "IFNULL(Afgemeld, '2000-01-01') < '2010-01-01'";
+	if ((new cls_Interface())->aantal($f) > 0) {
 		addtp("Downloaden wijzigingen");
 	}
 	addtp("Onderhoud");
@@ -35,38 +36,63 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if ($_SESSION['lidid'] > 0) {
 		addtp("Eigen gegevens");
 	}
-	$gs = (new cls_Lid())->Geslacht($_SESSION['lidid']);
-	if ($currenttab == "Eigen gegevens") {
+	$i_lo = new cls_Lidond();
+	
+	if ($currenttab == "Eigen gegevens" or ($currenttab == "Ledenlijst" and $currenttab2 == "Overzicht lid")) {
+		if ($currenttab == "Eigen gegevens") {
+			$b = $currenttab . "/";
+			$lidid = $_SESSION['lidid'];
+		} elseif ($currenttab2 == "Overzicht lid") {
+			$b = $currenttab . "/" . $currenttab2 . "/";
+			if (!isset($_GET['lidid']) or strlen($_GET['lidid']) == 0) {
+				$lidid = 0;
+			} else {
+				$lidid = $_GET['lidid'];
+			}
+		}
+		
+		$gs = (new cls_Lid())->Geslacht($lidid);
 		addtp("Eigen gegevens/Algemeen");
-		if (count(db_gegevenslid($_SESSION['lidid'], "Afdelingen")) > 0) {
-			addtp("Eigen gegevens/Afdelingen");
+		$f = "`Type`='A' AND IFNULL(VervallenPer, CURDATE()) >= CURDATE()";
+		if ((new cls_Onderdeel())->aantal($f) > 0) {
+			addtp($b . "Afdelingen");
 		}
-		if (count(db_gegevenslid($_SESSION['lidid'], "Kader")) > 0) {
-			addtp("Eigen gegevens/Kader");
+		if (count($i_lo->overzichtlid($lidid, "K")) > 0) {
+			addtp($b . "Kader");
 		}
-		if (count(db_gegevenslid($_SESSION['lidid'], "Rollen")) > 0) {
-			addtp("Eigen gegevens/Rollen");
+		if (count($i_lo->overzichtlid($lidid, "G")) > 0) {
+			addtp($b . "Groepen");
 		}
-		if (count(db_gegevenslid($_SESSION['lidid'], "Groepen")) > 0) {
-			addtp("Eigen gegevens/Groepen");
+		if (count($i_lo->overzichtlid($lidid, "R")) > 0) {
+			addtp($b . "Rollen");
 		}
-		if (count(db_gegevenslid($_SESSION['lidid'], "Bew")) > 0 or count(db_insbew("overzichtlid", $_SESSION['lidid'])) > 0) {
-			addtp("Eigen gegevens/Bewaking");
+		
+		$f = "`Type`='T' AND IFNULL(VervallenPer, CURDATE()) >= CURDATE()";
+		if ($gs != "B" and (new cls_Onderdeel())->aantal($f) > 0) {
+			addtp($b . "Toestemmingen");
 		}
-		if (count(db_liddipl("lidgegevens", $_SESSION['lidid'])) > 0) {
-			addtp("Eigen gegevens/Diploma's");
+		if (count((new cls_Bewaking())->overzichtlid($lidid)) > 0 or count((new cls_InsBew())->overzichtlid($lidid)) > 0) {
+			addtp($b . "Bewaking");
 		}
-		if (db_rekening("aantal", 0, "", $_SESSION['lidid']) > 0) {
-			addtp("Eigen gegevens/Financieel");
+		
+		if (count((new cls_Liddipl())->overzichtlid($lidid)) > 0) {
+			addtp($b . "Diploma's");
 		}
-		addtp("Eigen gegevens/Mailing");
-		if (count(db_gegevenslid($_SESSION['lidid'], "Evenementen")) > 0) {
-			addtp("Eigen gegevens/Evenementen");
+		
+		$f = sprintf("LidID=%d", $lidid);
+		if ((new cls_Mailing_hist())->aantal($f) > 0) {
+			addtp($b . "Mailing");
 		}
-		if (db_onderdeel("aantal", "T") > 0 and $gs != "B") {
-			addtp("Eigen gegevens/Toestemmingen");
+		if (count((new cls_Evenement_Deelnemer())->overzichtlid($lidid)) > 0) {
+			addtp($b . "Evenementen");
 		}
-		addtp("Eigen gegevens/Logboek");
+		$f = sprintf("Lid=%d", $lidid);
+		if ((new cls_Rekening())->aantal($f) > 0) {
+			addtp($b . "Rekenigen");
+		}
+		if (count((new cls_Logboek())->overzichtlid($lidid)) > 0) {
+			addtp($b . "Logboek");
+		}
 	}
 	
 	if ($_SESSION['lidid'] > 0) {
@@ -90,7 +116,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (db_onderdeel("aantal", "T") > 0 and $gs != "B") {
 			addtp("Zelfservice/Toestemmingen");
 		}
-		if (count(db_artikel("artikelbeschikbaar")) > 0) {
+		if (count((new cls_Artikel())->lijst("bestellijst")) > 0) {
 			addtp("Zelfservice/Bestellingen");
 		}
 		if ((new cls_Lidmaatschap())->kanopzeggen($_SESSION['lidid']) == true) {
@@ -132,12 +158,12 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			}
 		}
 	}
-	
+
 	if (!isset($_GET['lidid']) or strlen($_GET['lidid']) == 0) {
 		$_GET['lidid'] = 0;
 	}
 	$gs = (new cls_Lid())->Geslacht($_GET['lidid']);
-
+/*
 	if ($currenttab2 == "Overzicht lid") {
 		addtp("Ledenlijst/Overzicht lid");
 		addtp("Ledenlijst/Overzicht lid/Algemeen");
@@ -147,11 +173,14 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (count(db_gegevenslid($_GET['lidid'], "Kader")) > 0) {
 			addtp("Ledenlijst/Overzicht lid/Kader");
 		}
+		if (count(db_gegevenslid($_GET['lidid'], "Groepen")) > 0) {
+			addtp("Ledenlijst/Overzicht lid/Groepen");
+		}
 		if (count(db_gegevenslid($_GET['lidid'], "Rollen")) > 0) {
 			addtp("Ledenlijst/Overzicht lid/Rollen");
 		}
-		if (count(db_gegevenslid($_GET['lidid'], "Groepen")) > 0) {
-			addtp("Ledenlijst/Overzicht lid/Groepen");
+		if ((new cls_Onderdeel())->aantal("`Type`='T'") > 0 and $gs != "B") {
+			addtp("Ledenlijst/Overzicht lid/Toestemmingen");
 		}
 		if (count(db_gegevenslid($_GET['lidid'], "Bew")) > 0) {
 			addtp("Ledenlijst/Overzicht lid/Bewaking");
@@ -159,60 +188,80 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (count(db_liddipl("lidgegevens", $_GET['lidid'])) > 0) {
 			addtp("Ledenlijst/Overzicht lid/Diploma's");
 		}
-		if (db_rekening("aantal") > 0 and db_rekening("aantal", 0, "", $_GET['lidid']) > 0) {
-			addtp("Ledenlijst/Overzicht lid/Financieel");
-		}
 		if (count(db_gegevenslid($_GET['lidid'], "Mailing")) > 0) {
 			addtp("Ledenlijst/Overzicht lid/Mailing");
 		}
 		if (db_evenement("aantaldlnrs", $_GET['lidid']) > 0) {
 			addtp("Ledenlijst/Overzicht lid/Evenementen");
 		}
-		if (db_onderdeel("aantal", "T") > 0 and $gs != "B") {
-			addtp("OLedenlijst/verzicht lid/Toestemmingen");
+		if (db_rekening("aantal") > 0 and db_rekening("aantal", 0, "", $_GET['lidid']) > 0) {
+			addtp("Ledenlijst/Overzicht lid/Rekeningen");
 		}
-		if (db_logboek("aantal", "", -1, $_GET['lidid']) > 0) {
+		if (count((new cls_Logboek())->overzichtlid($_GET['lidid'])) > 0) {
 			addtp("Ledenlijst/Overzicht lid/Logboek");
 		}
 	}
-	
+*/	
 	if ($currenttab2 == "Wijzigen lid") {
-		addtp("Ledenlijst/Wijzigen lid");
-		addtp("Ledenlijst/Wijzigen lid/Algemene gegevens");
+		$b = "Ledenlijst/Wijzigen lid";
+		addtp($b);
+		$b .= "/";
+		addtp($b . "Algemene gegevens");
 		if (db_Onderdeel("aantal", "A") > 0) {
-			addtp("Ledenlijst/Wijzigen lid/Afdelingen");
+			addtp($b . "Afdelingen");
 		}
-		if (db_Onderdeel("aantal", "G") > 0) {
-			addtp("Ledenlijst/Wijzigen lid/Groepen");
+		addtp($b . "B, C en F");
+		if ((new cls_Onderdeel())->aantal("Type='G'") > 0) {	
+			addtp($b . "Groepen");
 		}
-		if ($gs != "B") {
-			addtp("Ledenlijst/Wijzigen lid/Diploma's");
-			addtp("Ledenlijst/Wijzigen lid/Toestemmingen");
+		if ((new cls_Onderdeel())->aantal("Type='O'") > 0) {	
+			addtp($b . "Onderscheidingen");
 		}
-		if (strlen($_SESSION['settings']['zs_muteerbarememos']) > 0) {
-			addtp("Ledenlijst/Wijzigen lid/Bijzonderheden");
+		if ($gs != "B" and (new cls_Diploma())->aantal() > 0) {
+			addtp($b . "Diploma's");
 		}
-		addtp("Ledenlijst/Wijzigen lid/Lidmaatschap");
-		addtp("Ledenlijst/Wijzigen lid/Pasfoto");
+		$f = "`Type`='T' AND IFNULL(VervallenPer, CURDATE()) >= CURDATE()";
+		if ($gs != "B" and (new cls_Onderdeel())->aantal($f) > 0) {
+			addtp($b . "Toestemmingen");
+		}
+		if (strlen($_SESSION['settings']['muteerbarememos']) > 0) {
+			addtp($b . "Bijzonderheden");
+		}
+		addtp($b . "Lidmaatschap");
+		addtp($b . "Pasfoto");
 	}
 	
-	if (db_mutatie("aantal") > 0) {
+	if ((new cls_Mutatie())->aantal() > 0) {
 		addtp("Kostenoverzicht");
 	}
 	
 	addtp("Mailing");
+	$i_M = new cls_Mailing();
 	if ($currenttab == "Mailing") {
-		addtp("Mailing/Templates");
-		addtp("Mailing/Concepten");
+		$f = "Template=1 AND (deleted_on IS NULL)";
+		if ($i_M->aantal($f) > 0) {
+			addtp("Mailing/Templates");
+		}
+		$f = "Template=0 AND (sent_on IS NULL) AND (deleted_on IS NULL)";
+		if ($i_M->aantal($f) > 0) {
+			addtp("Mailing/Concepten");
+		}
 		addtp("Mailing/Nieuw");
-		if (db_rekening("aantal") > 0) {
+		if ((new cls_Rekening())->aantal() > 0) {
 			addtp("Mailing/Rekeningen");
 		}
-		addtp("Mailing/Verzonden");
-		if (db_mailing("aantalprullenbak") > 0) {
+		
+		$f = "(sent_on IS NOT NULL) AND (deleted_on IS NULL)";
+		if ($i_M->aantal($f) > 0) {
+			addtp("Mailing/Verzonden");
+		}
+		
+		$f = "(deleted_on IS NOT NULL)";
+		if ($i_M->aantal($f) > 0) {
 			addtp("Mailing/Prullenbak");
 		}
-		if (count(db_mailing_hist("outbox")->fetchAll()) > 0) {
+		$f = "(send_on IS NULL)";
+		if ((new cls_Mailing_hist())->aantal($f) > 0) {
 			addtp("Mailing/Outbox");
 		}
 		addtp("Mailing/Verzonden mails");
@@ -221,22 +270,25 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			addtp("Mailing/Logboek");
 		}
 	}
+	$i_M = null;
 
-	$inst_db = new cls_db_base();
-	$inst_db->table = TABLE_PREFIX . "Bewseiz"; 
-	if ($inst_db->aantal() > 0) {
+	$i_db = new cls_db_base("Bewseiz");
+	if ($i_db->aantal() > 0) {
 		addtp("Bewaking");
 		if ($currenttab == "Bewaking") {
 			addtp("Bewaking/Bewakingsrooster");
 			addtp("Bewaking/Postindeling");
 			addtp("Bewaking/Aantallen");
 			addtp("Bewaking/Nieuwe pasfoto");
-			addtp("Bewaking/Diploma's muteren");
-			if (count(db_bewaking_blok("overzicht")) > 0) {
+			$f = "Zelfservice=1";
+			if ((new cls_diploma())->aantal($f) > 0) {
+				addtp("Bewaking/Diploma's muteren");
+			}
+			if ((new cls_Bewaking_blok())->aantal() > 0) {
 				addtp("Bewaking/Overzicht inschrijvingen");
 			}
 			addtp("Bewaking/Blokken muteren");
-			if (count(db_insbew("export")) > 0) {
+			if (count((new cls_InsBew())->export()) > 0) {
 				addtp("Bewaking/Downloaden inschrijvingen");
 			}
 			addtp("Bewaking/Logboek");
@@ -245,22 +297,25 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	
 	addtp("Evenementen");
 	if ($currenttab == "Evenementen") {
-		if (count(db_evenement("overzicht")) > 0) {
-			addtp("Evenementen/Overzicht");
-		}
-		if (count(db_evenement("overzichtbeheer")) > 0) {
+		$i_ev = new cls_Evenement();
+		$f = "IFNULL(VerwijderdOp, '2000-01-01') < '2012-01-01'";
+		if ($i_ev->aantal($f) > 0) {
+			if (count($i_ev->lijst(1)) > 0) {
+				addtp("Evenementen/Overzicht");
+			}
 			addtp("Evenementen/Beheer");
 		}
-		if (db_Evenement_Type("aantal") > 0) {
+		if ((new cls_Evenement_Type())->aantal() > 0) {
 			addtp("Evenementen/Nieuw");
 		}
 		addtp("Evenementen/Types muteren");
 		addtp("Evenementen/Logboek");
+		$i_ev = null;
 	}
 	
 	addtp("Bestellingen");
 	if ($currenttab == "Bestellingen") {
-		if (count(db_artikel("overzichtbeheer")) > 0) {
+		if ((new cls_Artikel())->aantal() > 0) {
 			addtp("Bestellingen/Bestellingen muteren");
 		}
 		addtp("Bestellingen/Artikelbeheer");
@@ -345,9 +400,9 @@ function fnAuthenticatie($melding=1, $password="", $p_napost=0) {
 		$_SESSION['lidid'] = 0;
 	}
 	if ($melding == 1 and strlen($mess) > 0) {
-		(new cls_Logboek())->add($mess, 97, 0, 1);
+		(new cls_Logboek())->add($mess, 1, 0, 1, 0, 4);
 	} elseif (strlen($mess) > 0) {
-		(new cls_Logboek())->add($mess, 97);
+		(new cls_Logboek())->add($mess, 1, 0, 0, 0, 4);
 	}
 	if ($_SESSION['lidid'] == 0 or strlen($_SESSION['username']) == 0) {
 		$_SESSION['lidid'] = 0;
@@ -357,9 +412,9 @@ function fnAuthenticatie($melding=1, $password="", $p_napost=0) {
 } # fnAuthenticatie
 	
 function toegang($soort, $melding=1, $log=1) {
-	global $lididwebmasters, $tabpages, $currenttab, $currenttab2, $currenttab3, $muteerbarememos;
+	global $lididwebmasters, $tabpages, $currenttab, $currenttab2, $currenttab3;
 
-	$arrAltijdToegang[] = "Validatie login";
+	$arrAltijdToeg1ang[] = "Validatie login";
 	$arrAltijdToegang[] = "Bevestiging login";
 	$arrAltijdToegang[] = "Opvragen lidnr";
 	if ($_SESSION['lidid'] == 0) {
@@ -390,7 +445,7 @@ function toegang($soort, $melding=1, $log=1) {
 		return true;
 	} else {
 		$_SESSION['webmaster'] == 0;
-		if (db_authorisation("heefttoegang", 0, $soort) == true) {
+		if ((new cls_Authorisation())->toegang($soort) == true) {
 			$_SESSION['toegang'][$soort] = 1;
 			return true;
 		} else {
@@ -403,7 +458,7 @@ function toegang($soort, $melding=1, $log=1) {
 			return false;
 		}
 	}
-}
+}  # toegang
 
 function fnHerstellenWachtwoord($stap="", $lidid=0) {
 	
@@ -421,7 +476,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 			$inst_M->update($mid, "from_addr", $_SESSION['settings']['emailwebmaster']);
 			$inst_M->update($mid, "message", "<p>Herstellen wachtwoord [%NAAMWEBSITE%]: https://[%URLRESETWW%]</p>\n");
 			$inst_M->update($mid, "template", 1);
-			db_param("mailing_herstellenwachtwoord", "updval", $mid);
+			(new cls_Parameter())->update("mailing_herstellenwachtwoord", $mid);
 			$inst_M = null;
 		}
 
@@ -487,17 +542,17 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		echo("</div>  <!-- Einde herstellenwachtwoord -->");
 	
 	} elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
-		if (strlen($_POST['login']) < 7 and strlen($_POST['login']) > 0) {
-			$mess = "Eem login moet minimaal 7 karakers hebben.";
-		} elseif (strlen($_POST['email']) > 0 and !isValidMailAddress($_POST['email'], 0)) {
+		if (isset($_POST['login']) and strlen($_POST['login']) < 7 and strlen($_POST['login']) > 0) {
+			$mess = "Een login moet minimaal 7 karakers hebben.";
+		} elseif (isset($_POST['email']) and strlen($_POST['email']) > 0 and !isValidMailAddress($_POST['email'], 0)) {
 			$mess = sprintf("'%s' is geen geldig e-mailadres.", $_POST['email']);
-		} elseif (strlen($_POST['login']) < 7 and !isValidMailAddress($_POST['email'], 0)) {
+		} elseif (isset($_POST['login']) and strlen($_POST['login']) < 7 and !isValidMailAddress($_POST['email'], 0)) {
 			$mess = "Vul minimaal 2 van de 3 velden in.";
-		} elseif ($_POST['lidnummer'] < 1 and !isValidMailAddress($_POST['email'], 0)) {
+		} elseif (isset($_POST['lidnummer']) and $_POST['lidnummer'] < 1 and !isValidMailAddress($_POST['email'], 0)) {
 			$mess = "Vul minimaal 2 van de 3 velden in.";
-		} elseif (strlen($_POST['login']) < 7 and $_POST['lidnummer'] < 1) {
+		} elseif (isset($_POST['login']) and strlen($_POST['login']) < 7 and $_POST['lidnummer'] < 1) {
 			$mess = "Vul minimaal 2 van de 3 velden in.";
-		} else {
+		} elseif (isset($_POST['login'])) {
 			if (strlen($_POST['login']) > 5) {
 				$w = sprintf("Login='%s'", $_POST['login']);
 			} else {
@@ -560,7 +615,7 @@ function fnValidatieLogin($lidid, $key, $stap) {
 			$inst_M->update($mid, "from_addr", $_SESSION['settings']['emailwebmaster']);
 			$inst_M->update($mid, "template", 1);
 			$inst_M->update($mid, "message", $content);
-			db_param("mailing_validatielogin", "updval", $mid);
+			(new cls_Parameter())->update("mailing_validatielogin", $mid);
 			$inst_M = null;
 		}
 	
@@ -604,8 +659,9 @@ function fnLoginAanvragen($stap="") {
 		if (!isset($_POST['lidnummer']) or strlen($_POST['lidnummer']) == 0) {
 			$_POST['lidnummer'] = 0;
 		}
-		$query = sprintf("SELECT COUNT(*) FROM %sAdmin_login WHERE (LidID=%d OR Login='%s');", TABLE_PREFIX, $_POST['lidnummer'], $_POST['gewenstelogin']);
-		if (db_scalar($query) > 0) {
+		$i_login = new cls_Login();
+		$f = sprintf("(LidID=%d OR Login='%s')", $_POST['lidnummer'], $_POST['gewenstelogin']);
+		if ($i_login->aantal($f) > 0) {
 			$mess = "Deze login is al in gebruik en/of er is al een login aan dit lidnummer gekoppeld.";
 		} elseif (strlen($_POST['email']) == 0) {
 			$mess = "Je hebt geen e-mailadres opgegeven.";
@@ -834,10 +890,10 @@ function checknewpassword($ww, $login="") {
 	$alphabet = "abcdefghijklmnopqrstuvwxyz";
 	$mess = "ok";
 	
-	if (strlen($ww) > db_param('wachtwoord_maxlengte') and db_param('wachtwoord_maxlengte') >= 7) {
-		$mess = sprintf("Het wachtwoord is te lang, het mag maximaal %d karakters lang zijn.", db_param('wachtwoord_maxlengte'));
-	} elseif (strlen($ww) < db_param('wachtwoord_minlengte') and db_param('wachtwoord_minlengte') > 0) {
-		$mess = sprintf("Het wachtwoord is te kort, het moet minimaal %d karakters lang zijn.", db_param('wachtwoord_minlengte'));
+	if (strlen($ww) > $_SESSION['settings']['wachtwoord_maxlengte'] and $_SESSION['settings']['wachtwoord_maxlengte'] >= 7) {
+		$mess = sprintf("Het wachtwoord is te lang, het mag maximaal %d karakters lang zijn.", $_SESSION['settings']['wachtwoord_maxlengte']);
+	} elseif (strlen($ww) < $_SESSION['settings']['wachtwoord_minlengte'] and $_SESSION['settings']['wachtwoord_minlengte'] > 0) {
+		$mess = sprintf("Het wachtwoord is te kort, het moet minimaal %d karakters lang zijn.", $_SESSION['settings']['wachtwoord_minlengte']);
 	} elseif (strpos($ww, "'") > 0 or strpos($ww, "\"") > 0) {
 		$mess = "Er mogen geen aanhalingstekens in een wachtwoord zitten.";
 	} elseif (strpos($ww, " ") !== false) {
