@@ -174,7 +174,6 @@ function fnMailing() {
 		$mailing->preview();
 	} elseif ($op == "send") {
 		$mailing->post_form();
-		$mailing->upload();
 		$mailing->send();
 		$mailing->lijst($currenttab2);
 	} elseif ($op == "verwijderen") {
@@ -197,8 +196,8 @@ class Mailing {
 	
 	private $allowed_ext = "bmp, gif, jpeg, jpg, pdf, png, pps, rar, txt, zip";
 	private $allowed_ext_afb = "bmp, gif, jpeg, jpg, mp3, mp4, png";
-	private $dir_attachm = "/attachments";
-	private $dir_media = "/media";
+	private $dir_attachm = "";
+	private $dir_media = "";
 	private $max_size_attachm = 2097152; // 2MB
 	private $vertraging_tussen_verzenden = 30; // de minimale tijd (in seconden) die er tussen het verzenden van dezelfde mailing moet zitten.
 	private $smtpserver = 0; // De details van de server moeten in config.php gespecificeerd worden.
@@ -248,8 +247,10 @@ class Mailing {
 		$this->mid = $mid;
 		$this->vuldbvars();
 		
-		$this->dir_attachm = substr($_SERVER["SCRIPT_FILENAME"], 0, strrpos($_SERVER["SCRIPT_FILENAME"], "/")) . "/attachments";
-		$this->dir_media = substr($_SERVER["SCRIPT_FILENAME"], 0, strrpos($_SERVER["SCRIPT_FILENAME"], "/")) . "/media";
+		if ($this->mid > 0) {
+			$this->dir_attachm = $_SESSION['settings']['path_attachments'] . $this->mid . "/";
+			$this->dir_media = substr($_SERVER["SCRIPT_FILENAME"], 0, strrpos($_SERVER["SCRIPT_FILENAME"], "/")) . "/media/" . $this->mid . "/";
+		}
 		
 		if (strlen($_SESSION['settings']['mailing_extensies_toegestaan']) > 0) {
 			$this->allowed_ext = $_SESSION['settings']['mailing_extensies_toegestaan'];
@@ -554,10 +555,9 @@ class Mailing {
 	public function edit() {
 		global $currenttab, $currenttab2, $navpad, $fdlang;
 		
+		$f = sprintf("MailingID=%d", $this->mid);
+		$this->aant_rcpt = (new cls_Mailing_rcpt())->aantal($f);
 		$i_mr = new cls_Mailing_rcpt();
-		
-		$ad = $this->dir_attachm . "/" . $this->mid;
-		$bd = $this->dir_media . "/" . $this->mid;
 		
 		if ($this->mid == 0) {
 			$currenttab2 = "Concepten";
@@ -577,48 +577,48 @@ class Mailing {
 		printf("<p><label>Aan:</label><input type='text' name='to_name' value=\"%s\" size=50 maxlength=50> (Omschrijving van de groep personen aan wie deze mailing gericht is)</p>\n", $this->to_name);
 		printf("<p><label>Onderwerp:</label><input type='text' name='subject' value=\"%s\" size=100 maxlength=75></p>\n", $this->subject);
 
-		$this->verzendenmag = false;	
+		$this->verzendenmag = false;
 		if ($this->mid > 0) {
 			$rcpt_rows = $i_mr->lijst($this->mid);
 			if (strlen($this->speciaal) > 0) {
 				printf("<label>Specifiek doel:</label><p>%s</p>\n", $this->speciaal);
-				if ($this->aant_rcpt > 0) {
-					$this->delete_all_rcpt();
-				}
+				$this->delete_all_rcpt();
 			
 			} else {
 				$this->meldingen = "Er zijn nog geen ontvangers aan deze mailing toegevoegd.<br>\n";
 				if ($this->aant_rcpt == 1) {
 					echo("<label>Ontvanger:</label>");
-				} else {
+				} elseif ($this->aant_rcpt > 1) {
 					printf("<label>Ontvangers (%d):</label>", $this->aant_rcpt);
+				} else {
+					echo("<label>Ontvangers:</label>");
 				}
 				$aant_ze = 0;
 				echo("<div class='invoerblok'>\n");
-				if ($this->aant_rcpt > 0) {
-					echo("<ul class='listrecipients'>\n");
-					foreach($rcpt_rows as $rcpt) {
-						$ze = "";
-						if (!isValidMailAddress($rcpt->Email) and !isValidMailAddress($rcpt->EmailVereniging) and !isValidMailAddress($rcpt->EmailOuders) and !isValidMailAddress($rcpt->to_address)) {
-							$ze = " *";
-							$aant_ze++;
-						}
-						if ($rcpt->LidID > 0) {
-							$lnk = sprintf("%s?tp=%s&amp;op=del_rcpt&amp;mid=%d&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, $rcpt->LidID);
-							printf("<li>%s&nbsp;<a href='%s'><img src='/images/delete.gif' alt='Verwijderen' title='Verwijderen'></a></li>\n", htmlentities($rcpt->Naam_lid . $ze), $lnk);
-						} else {
-							$lnk = sprintf("%s?tp=%s&amp;op=del_rcpt&amp;mid=%d&amp;addr=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, $rcpt->to_address);
-							printf("<li>%s&nbsp;<a href='%s'><img src='/images/delete.gif' alt='Verwijderen' title='Verwijderen'></a></li>\n", $rcpt->to_address, $lnk);
-							$this->bevat_losse_email = true;
-						}
+				$this_aant_rcpt = 0;
+				echo("<ul class='listrecipients'>\n");
+				foreach($rcpt_rows as $rcpt) {
+					$ze = "";
+					if (!isValidMailAddress($rcpt->Email) and !isValidMailAddress($rcpt->EmailVereniging) and !isValidMailAddress($rcpt->EmailOuders) and !isValidMailAddress($rcpt->to_address)) {
+						$ze = " *";
+						$aant_ze++;
 					}
-					echo("</ul>\n");
-					if ($aant_ze > 0) {
-						printf("<span>* = zonder e-mailadres, totaal %d stuks</span>", $aant_ze);
+					if ($rcpt->LidID > 0) {
+						$lnk = sprintf("%s?tp=%s&amp;op=del_rcpt&amp;mid=%d&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, $rcpt->LidID);
+						printf("<li>%s&nbsp;<a href='%s'><img src='/images/delete.gif' alt='Verwijderen' title='Verwijderen'></a></li>\n", htmlentities($rcpt->Naam_lid . $ze), $lnk);
+					} else {
+						$lnk = sprintf("%s?tp=%s&amp;op=del_rcpt&amp;mid=%d&amp;addr=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, $rcpt->to_address);
+						printf("<li>%s&nbsp;<a href='%s'><img src='/images/delete.gif' alt='Verwijderen' title='Verwijderen'></a></li>\n", $rcpt->to_address, $lnk);
+						$this->bevat_losse_email = true;
 					}
-					$this->verzendenmag = true;
-					$this->meldingen = "";
+					$this->aant_rcpt++;
 				}
+				echo("</ul>\n");
+				if ($aant_ze > 0) {
+					printf("<span>* = zonder e-mailadres, totaal %d stuks</span>", $aant_ze);
+				}
+				$this->verzendenmag = true;
+				$this->meldingen = "";
 				echo("</div> <!-- Einde invoerblok -->\n");
 				echo("<label>Ontvanger toevoegen:</label>\n");
 				printf("<p><select name='add_lid' onChange='this.form.submit();'>\n");
@@ -736,12 +736,12 @@ class Mailing {
 			printf("<label>Beschikbare variabelen:</label><div class='invoerblok'><ul class='listmergefields'>\n%s</ul></div>\n", $strHV);
 
 			echo("<label>Bijlagen:</label>\n<div class='invoerblok'>\n<table>\n");
-			if (is_dir($ad)) {
-				$d = dir($ad);
+			if (is_dir($this->dir_attachm)) {
+				$d = dir($this->dir_attachm);
 				while (false !== ($entry = $d->read())) {
 					if ($entry != "." and $entry != "..") {
 						echo("<tr>\n<td>" . $entry . "</td>\n");
-						$stat = stat($ad . "/" . $entry);
+						$stat = stat($this->dir_attachm . $entry);
 						echo("<td>" . number_format(($stat['size'] / 1024), 0, ',', '.') . " KB</td>\n");
 						$lnk = sprintf("%s?tp=%s&op=del_attach&mid=%d&attach=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, str_replace(".", "!", $entry));
 						printf("<td><a href='%s'><img src='/images/delete.gif' alt='Verwijderen' title='Verwijder'></a></td>\n", $lnk);
@@ -757,12 +757,12 @@ class Mailing {
 			
 			
 			echo("<label>Media:</label>\n<div class='invoerblok'>\n<table>\n");
-			if (is_dir($bd)) {
-				$d = dir($bd);
+			if (is_dir($this->dir_media)) {
+				$d = dir($this->dir_media);
 				while (false !== ($entry = $d->read())) {
 					if ($entry != "." and $entry != "..") {
 						echo("<tr>\n<td>" . $entry . "</td>\n");
-						$stat = stat($bd . "/" . $entry);
+						$stat = stat($this->dir_media . "/" . $entry);
 						echo("<td>" . number_format(($stat['size'] / 1024), 0, ',', '.') . " KB</td>\n");
 						$lnk = sprintf("%s?tp=%s&op=del_media&mid=%d&attach=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, str_replace(".", "!", $entry));
 						printf("<td><a href='%s'>Verwijder</a>&nbsp;", $lnk);
@@ -1024,11 +1024,11 @@ class Mailing {
 		
 		if ((isset($_FILES['UploadFile']['name']) and strlen($_FILES['UploadFile']['name']) > 3) or (isset($_FILES['UploadMedia']['name']) and strlen($_FILES['UploadMedia']['name']) > 3) and $this->mid > 0) {
 			if (isset($_POST['UploadMedia'])) {
-				$ad = $this->dir_media . "/" . $this->mid . "/";
+				$ad = $this->dir_media;
 				$ae = $this->allowed_ext_afb;
 				$target = $ad . $_FILES['UploadMedia']['name'];
 			} else {
-				$ad = $this->dir_attachm . "/" . $this->mid . "/";
+				$ad = $this->dir_attachm;
 				$ae = $this->allowed_ext;
 				$target = $ad . $_FILES['UploadFile']['name'];
 			}
@@ -1071,20 +1071,19 @@ class Mailing {
 	}
 	
 	public function attach_delete($p_bestand, $p_soort="bijlage") {
-		$tm = 0;
+		
 		if ($p_soort == "bijlage") {
-			$ad = $this->dir_attachm . "/" . $this->mid . "/";
+			$ad = $this->dir_attachm;
 		} else {
-			$ad = $this->dir_media . "/" . $this->mid . "/";
+			$ad = $this->dir_media;
 		}
 		$p_bestand = str_replace("!", ".", $p_bestand);
 		if (unlink($ad . $p_bestand)) {
 			$mess = sprintf("Bestand '%s' bij mailing %d is verwijderd.", $p_bestand, $this->mid);
 		} else {
 			$mess = sprint("Het is niet gelukt om bestand '%s' uit directory '%s' te verwijderen.", $p_bestand, $ad);
-			$tm = 1;
 		}
-		(new cls_Logboek())->add($mess, 4, 0, $tm, $this->mid);
+		(new cls_Logboek())->add($mess, 4, 0, 1, $this->mid);
 	}
 	
 	public function add_rcpt($lidid, $addr="") {
@@ -1828,7 +1827,7 @@ function fnMailingInstellingen() {
 		
 		$p = $_SESSION['settings']['path_attachments'];
 		if (strlen($p) < 5 or !is_dir($p)) {
-			$i_p->update("path_attachments", __DIR__ . "/attachments/");
+			$i_p->update("path_attachments", BASEDIR . "/attachments/");
 		} elseif (substr($p, -1) != "/") {
 			$i_p->update("path_attachments", $p . "/");
 		}
@@ -2042,7 +2041,7 @@ function sentoutbox($mode=0) {
 	}
 	
 	if (strlen($mess) > 0) {
-		db_logboek("add", $mess, 4);
+		(new cls_Logboek())->add($mess, 4);
 	}
 	
 	return $aantverzonden;
