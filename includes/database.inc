@@ -17,6 +17,8 @@ $arrTables[] = "Mailing_vanaf";
 $arrTables[] = "Stukken";
 $arrTables[] = "WS_Artikel";
 $arrTables[] = "WS_Orderregel";
+$arrTables[] = "Afdelingskalender";
+$arrTables[] = "Aanwezigheid";
 // $arrTables[] = "DMS_Document";
 // $arrTables[] = "DMS_Folder";
 
@@ -64,6 +66,7 @@ $TypeActiviteit[17] = "";  // was selecties
 $TypeActiviteit[18] = "Taken";
 $TypeActiviteit[19] = "Groepsindeling";
 $TypeActiviteit[20] = "Stamgegevens";
+$TypeActiviteit[21] = "Afdelingskalender";
 $TypeActiviteit[97] = "Foutieve login";
 $TypeActiviteit[98] = "Performance";
 $TypeActiviteit[99] = "Debugging";
@@ -192,7 +195,9 @@ class cls_db_base {
 	public $lidid = 0;	// RecordID van het lid
 	
 	public $fromlid = TABLE_PREFIX . "Lid AS L LEFT OUTER JOIN " . TABLE_PREFIX . "Lidmaatschap AS LM ON L.RecordID=LM.Lid";
-	public $fromlidond = TABLE_PREFIX . 'Lid AS L INNER JOIN ((' . TABLE_PREFIX . 'Lidond AS LO INNER JOIN ' . TABLE_PREFIX . 'Functie AS F ON LO.Functie=F.Nummer) INNER JOIN ' . TABLE_PREFIX . 'Onderdl AS O ON LO.OnderdeelID=O.RecordID) ON L.RecordID=LO.Lid';
+	//public $fromlidond = TABLE_PREFIX . 'Lid AS L INNER JOIN ((' . TABLE_PREFIX . 'Lidond AS LO INNER JOIN ' . TABLE_PREFIX . 'Functie AS F ON LO.Functie=F.Nummer) INNER JOIN ' . TABLE_PREFIX . 'Onderdl AS O ON LO.OnderdeelID=O.RecordID) ON L.RecordID=LO.Lid';
+	
+	public $fromlidond = '(' . TABLE_PREFIX . 'Lid AS L INNER JOIN ((' . TABLE_PREFIX . 'Lidond AS LO INNER JOIN ' . TABLE_PREFIX . 'Functie AS F ON LO.Functie=F.Nummer) INNER JOIN ' . TABLE_PREFIX . 'Onderdl AS O ON LO.OnderdeelID=O.RecordID) ON L.RecordID=LO.Lid) LEFT JOIN ' . TABLE_PREFIX . 'Groep AS GR ON LO.GroepID=GR.RecordID';
 
 	public $wherelid = "LM.LIDDATUM <= CURDATE() AND IFNULL(LM.Opgezegd, CURDATE()) >= CURDATE()";
 	public $wherelidond = "LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()";
@@ -203,6 +208,11 @@ class cls_db_base {
 	public $selectlidnr = "SELECT MAX(IFNULL(Lidnr, 0)) FROM " . TABLE_PREFIX . "Lidmaatschap AS LM WHERE LM.Lid=L.RecordID AND LM.LIDDATUM <= CURDATE() AND IFNULL(LM.Opgezegd, CURDATE()) >= CURDATE()";
 	public $selecttelefoon = "IF(LENGTH(L.Mobiel) < 10, L.Telefoon, L.Mobiel)";
 	public $selectemail = "IF(LENGTH(L.Email) > 5, L.Email, IF(LENGTH(L.EmailOuders) > 5, L.EmailOuders, L.EmailVereniging))";
+	public $selectgroep = "CASE 
+					WHEN LO.GroepID=0 AND LO.Functie=0 THEN 'Niet ingedeeld'
+					WHEN LENGTH(Instructeurs) > 1 THEN CONCAT(GR.Omschrijving, ' - ', GR.Instructeurs)
+					ELSE GR.Omschrijving
+					END";
 	
 	function __construct($p_table="") {
 		$this->table = TABLE_PREFIX . $p_table;
@@ -262,8 +272,10 @@ class cls_db_base {
 	public function max($p_kolom, $p_filter="") {
 		if ($this->is_kolom_numeriek($p_kolom) == true) {
 			$query = sprintf("SELECT MAX(IFNULL(`%s`, 0)) FROM %s", $p_kolom, $this->table);
-		} else {
+		} elseif ($this->bestaat_kolom($this->table, $p_kolom) == true) {
 			$query = sprintf("SELECT MAX(IFNULL(`%s`, '')) FROM %s", $p_kolom, $this->table);
+		} else {
+			$query = sprintf("SELECT MAX(IFNULL(%s, '')) FROM %s", $p_kolom, $this->table);
 		}
 		if (strlen($p_filter) > 0) {
 			$query .= " WHERE " . $p_filter;
@@ -330,7 +342,8 @@ class cls_db_base {
 	public function Interface($p_query) {
 		db_Interface("add", $p_query, $this->lidid);
 	}
-}
+	
+}  # cls_db_base
 
 function TableExists($table) {
 	global $db_name;
@@ -1846,6 +1859,7 @@ class cls_Functie extends cls_db_base {
 	
 	function __construct() {
 		$this->table = TABLE_PREFIX . "Functie";
+		$this->ta = 20;
 	}
 	
 	public function selectlijst($p_soort) {
@@ -1863,6 +1877,114 @@ class cls_Functie extends cls_db_base {
 	}
 	
 }  # cls_Functie
+
+class cls_Afdelingskalender extends cls_db_base {
+	
+	function __construct() {
+		$this->table = TABLE_PREFIX . "Afdelingskalender";
+		$this->ta = 21;
+	}
+	
+	public function lijst($p_onderdeelid) {
+		$query = sprintf("SELECT AK.* FROM %s AS AK INNER JOIN %sOnderdl AS O ON O.RecordID=AK.OnderdeelID WHERE AK.OnderdeelID=%d ORDER BY AK.Datum;", $this->table, TABLE_PREFIX, $p_onderdeelid);
+		$result = $this->execsql($query);
+		return $result->fetchAll();
+	}
+	
+	public function add($p_onderdeelid) {
+		$this->tas = 1;
+		$nrid = $this->nieuwrecordID();
+		$dat = $this->max("DATE_ADD(Datum, INTERVAL 1 WEEK)");
+		if (strlen($dat) < 10) {
+			$dat = date("Y-m-d");
+		}
+		$query = sprintf("INSERT INTO %s (RecordID, OnderdeelID, Datum, IngevoerdDoor) VALUES (%d, %d, '%s', %d);", $this->table, $nrid, $p_onderdeelid, $dat, $_SESSION['lidid']);
+		if ($this->execsql($query) > 0) {
+			$this->mess = sprintf("Record %d is met datum '%s' in de afdelingskalender toegevoegd.", $nrid, $dat);
+			$this->Log($nrid);
+			return $nrid;
+		}
+	}
+	
+	public function update($p_akid, $p_kolom, $p_waarde) {
+		$this->tas = 2;
+		if ($this->is_kolom_numeriek($p_kolom)) {
+			$p_waarde = intval("0" . $p_waarde);
+			$xw = sprintf("IFNULL(`%s`, 0)<>%d;", $p_kolom, $p_waarde);
+		} else {
+			$p_waarde = "\"" . str_replace("\"", "'", $p_waarde) . "\"";
+			$xw = sprintf("IFNULL(`%s`, '')<>%s;", $p_kolom, $p_waarde);
+		}
+		
+		$query = sprintf("UPDATE %s SET `%s`=%s, GewijzigdDoor=%d WHERE RecordID=%d AND %s;", $this->table, $p_kolom, $p_waarde, $_SESSION['lidid'], $p_akid, $xw);
+		if ($this->execsql($query) > 0) {
+			$this->mess = sprintf("Kolom '%s' in record %d in de tabel 'Afdelingskalender' is in %s gewijzigd.", $p_kolom, $p_akid, $p_waarde);
+			$this->Log($p_akid);
+		}
+	}
+	
+}  # cls_Afdelingskalender
+
+class cls_Aanwezigheid extends cls_db_base {
+	
+	private $loid = 0;
+	
+	function __construct() {
+		$this->table = TABLE_PREFIX . "Aanwezigheid";
+		$this->ta = 21;
+	}
+	
+	private function vulvars($p_loid) {
+		$this->loid = $p_loid;
+		$query = sprintf("SELECT IFNULL(LO.Lid, 0) FROM %sLidond AS LO WHERE LO.RecordID=%d;", TABLE_PREFIX, $this->loid);
+		$this->lidid = $this->scalar($query);
+	}
+	
+	public function status($p_lidondid, $p_akid) {
+		$query = sprintf("SELECT IFNULL(MAX(Status), '') FROM %s WHERE LidondID=%d AND AfdelingskalenderID=%d", $this->table, $p_lidondid, $p_akid);
+		return $this->scalar($query);
+	}
+	
+	public function overzichtlid($p_lidid) {
+		
+		$query = sprintf("SELECT AK.Datum, AK.Omschrijving, AW.Status
+						  FROM %2\$sAfdelingskalender AS AK INNER JOIN (%1\$s AS AW INNER JOIN %2\$sLidond AS LO ON AW.LidondID=LO.RecordID) ON AW.AfdelingskalenderID=AK.RecordID
+						  WHERE LO.Lid=%3\$d AND LENGTH(Status) > 0
+						  ORDER BY AK.Datum DESC;", $this->table, TABLE_PREFIX, $p_lidid);
+		$result = $this->execsql($query);
+		return $result->fetchAll();
+	}
+	
+	private function add($p_loid, $p_akid, $p_waarde) {
+		$this->vulvars($p_loid);
+		$nrid = $this->nieuwrecordid();
+		$this->tas = 11;
+		
+		$query = sprintf("INSERT INTO %s (RecordID, LidondID, AfdelingskalenderID, Status, IngevoerdDoor) VALUES (%d, %d, %d, '%s', %d);", $this->table, $nrid, $p_loid, $p_akid, $p_waarde, $_SESSION['lidid']);
+		if ($this->execsql($query) > 0) {
+			$this->mess = sprintf("Record %d met status '%s' is aan tabel '%s' toegevoegd.", $nrid, $p_waarde, $this->table);
+			$this->Log($nrid);
+			return $nrid;
+		}
+	}
+	
+	public function update($p_loid, $p_akid, $p_kolom, $p_waarde) {
+		$this->vulvars($p_loid);
+		$this->tas = 12;
+		$query = sprintf("SELECT IFNULL(RecordID, 0) FROM %s WHERE lidondID=%d AND AfdelingskalenderID=%d;", $this->table, $p_loid, $p_akid);
+		$aanwid = $this->scalar($query);
+		if ($aanwid == 0 and strlen($p_waarde) > 0) {
+			$aanwid = $this->add($p_loid, $p_akid, $p_waarde);
+		}
+		$xw = sprintf("IFNULL(`%s`, '')<>'%s'", $p_kolom, $p_waarde);
+		$query = sprintf("UPDATE %s SET `%s`='%s' WHERE RecordID=%d AND %s;", $this->table, $p_kolom, $p_waarde, $aanwid, $xw);
+		if ($this->execsql($query) > 0) {
+			$this->mess = sprintf("Kolom '%s' in record %d in tabel '%s' is in '%s' gewijzigd.", $p_kolom, $aanwid, $this->table, $p_waarde);
+			$this->Log($aanwid);
+		}
+	}
+	
+}  # cls_Aanwezigheid
 
 function db_Lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0, $loid=0, $kolnaam="", $waarde="") {
 	global $selectnaam, $selectzoeknaam, $selectgeslacht, $selecttelefoon, $selectemail, $selectleeftijd, $fromlidond, $wherelidond, $selectlidnr, $fdaccess, $lididtestusers;
@@ -1990,7 +2112,7 @@ function db_Lidond($actie, $lidid=0, $per="", $filter="", $onderdlid=0, $loid=0,
 		return $result->fetchAll();
 		
 	} elseif ($actie == "selectieleden") {
-		$query = sprintf("SELECT SQL_NO_CACHE L.RecordID, %s AS NaamLid FROM %s WHERE %s AND LO.OnderdeelID=%d ORDER BY L.Achternaam, L.Tussenv, L.Roepnaam, L.GEBDATUM;", $selectnaam, $fromlidond, $wherelidond, $onderdlid);
+		$query = sprintf("SELECT L.RecordID, %s AS NaamLid FROM %s WHERE %s AND LO.OnderdeelID=%d ORDER BY L.Achternaam, L.Tussenv, L.Roepnaam, L.GEBDATUM;", $selectnaam, $fromlidond, $wherelidond, $onderdlid);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 		
@@ -2190,6 +2312,33 @@ class cls_Lidond extends cls_db_base {
 		if ($this->ondtype == "T") {
 			$this->ta = 16;
 		}
+	}
+	
+	public function lijst($p_ondid) {
+		$query = sprintf("SELECT DISTINCT LO.RecordID, %s AS NaamLid, %s AS Leeftijd, F.Omschrijv AS Functie, %s AS Groep
+						  FROM %s
+						  WHERE LO.OnderdeelID=%d AND %s
+						  ORDER BY GR.Kode, L.Achternaam, L.Tussenv, L.Roepnaam;", $this->selectnaam, $this->selectleeftijd, $this->selectgroep, $this->fromlidond, $p_ondid, $this->wherelidond);
+		$result = $this->execsql($query);
+		return $result->fetchAll();
+	}
+	
+	public function groepsindeling($p_onderdeelid, $p_filter="") {
+		
+		if ($p_onderdeelid > 0) {
+			$where = sprintf("AND LO.OnderdeelID=%d", $p_onderdeelid);
+		} elseif (strlen($p_filter) > 0) {
+			$where = "AND " . $p_filter;
+		} else {
+			$where = sprintf("AND LO.OnderdeelID IN (SELECT OnderdeelID FROM %sGroep)", TABLE_PREFIX);
+		}
+		$query = sprintf("SELECT DISTINCT O.Naam AS AfdNaam, CONCAT(GR.Starttijd, IF(LENGTH(GR.Eindtijd) > 3, CONCAT(' - ', GR.Eindtijd), '')) AS Tijdsblok, GR.Kode, GR.Omschrijving, L.Roepnaam, %1\$s AS NaamLid, %5\$s AS GroepOms,
+					LO.RecordID, LO.GroepID, LO.Lid, %2\$s AS Leeftijd
+					FROM %3\$s
+					WHERE ((LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE()) AND (LO.Functie=0 OR GroepID > 0) %4\$s
+					ORDER BY O.Kode, GR.Starttijd, GR.Kode, L.Achternaam, L.Roepnaam;", $selectnaam, $selectleeftijd, $this->fromlidond, $where, $this->selectgroep);
+		$result = fnQuery($query);
+		return $result->fetchAll();
 	}
 	
 	public function lidgroepen() {
@@ -3731,16 +3880,32 @@ class cls_Mailing_vanaf extends cls_db_base {
 		$this->tas = 30;
 	}
 	
+	public function vanafnaam($p_vanafadres) {
+		$query = sprintf("SELECT IFNULL(Vanaf_naam, '') FROM %s WHERE BINARY Vanaf_email='%s';", $this->table, $p_vanafadres);
+		return $this->scalar($query);
+	}
+	
+	public function htmloptions($p_cv="") {
+		$p_cv = strtolower($p_cv);
+		$rv = "";
+		
+		$query = sprintf("SELECT Vanaf_email, Vanaf_naam FROM %s ORDER BY Vanaf_naam", $this->table);
+		$result = $this->execsql($query);
+		foreach ($result->fetchAll() as $row) {
+			$rv .= sprintf("<option value='%1\$s'%2\$s>%3\$s (%1\$s)</option>\n", $row->Vanaf_email, checked(strtolower($row->Vanaf_email), "option", $p_cv), $row->Vanaf_naam);
+		}
+		return $rv;
+	}
+	
 	public function curuser() {
 		
 		$query = sprintf("SELECT IFNULL(Vanaf_email, '') FROM %s WHERE LOWER(Vanaf_email)='%s';", $this->table, strtolower($_SESSION['emailingelogde']));
-		$rv = db_scalar($query);
+		$rv = $this->scalar($query);
 		if (strlen($rv) == 0) {
 			$query = sprintf("SELECT IFNULL(from_addr, '') FROM %sMailing AS M WHERE M.IngevoerdDoor=%d ORDER BY RecordID DESC LIMIT 1;", TABLE_PREFIX, $_SESSION['lidid']);
-			$rv = db_scalar($query);
+			$rv = $this->scalar($query);
 		}
 		return $rv;
-		
 	}
 	
 }  # cls_Mailing_vanaf
@@ -6597,28 +6762,40 @@ function db_createtables() {
 
 	$queries = sprintf("SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO';
 
+CREATE TABLE `%1\$sAanwezigheid` (
+  `RecordID` int(11) NOT NULL,
+  `AfdelingskalenderID` int(11) NOT NULL,
+  `LidondID` int(11) NOT NULL,
+  `Status` char(1) DEFAULT NULL,
+  `Opmerking` varchar(75) DEFAULT NULL,
+  `Ingevoerd` datetime NOT NULL DEFAULT current_timestamp(),
+  `IngevoerdDoor` int(11) NOT NULL,
+  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `GewijzigdDoor` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 CREATE TABLE `%1\$sAdmin_access` (
   `RecordID` int(11) NOT NULL,
   `Tabpage` varchar(50) NOT NULL,
   `Toegang` int(11) NOT NULL DEFAULT -1,
   `Ingevoerd` datetime NOT NULL DEFAULT current_timestamp(),
-  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp
-) ;
+  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE `%1\$sAdmin_activiteit` (
   `RecordID` int(11) NOT NULL,
   `LidID` int(11) NOT NULL COMMENT 'Wie heeft deze activiteit uitgevoerd?',
   `DatumTijd` datetime NOT NULL DEFAULT current_timestamp(),
   `Omschrijving` text NOT NULL,
-  `ReferID` int(11) NOT NULL DEFAULT 0 COMMENT 'Op welk RecordID heeft deze mutatie betrekking?',
-  `ReferLidID` int(11) NOT NULL DEFAULT 0 COMMENT 'Op welk lid heeft deze mutatie betrekking?',
-  `Script` varchar(75) NOT NULL,
+  `ReferID` int(11) NOT NULL COMMENT 'Op welk RecordID heeft deze activiteit betrekking?',
+  `ReferLidID` int(11) NOT NULL DEFAULT 0,
+  `Script` varchar(90) NOT NULL,
   `TypeActiviteit` tinyint(4) DEFAULT 0,
   `TypeActiviteitSpecifiek` smallint(6) DEFAULT NULL,
   `IP_adres` varchar(45) NOT NULL,
   `USER_AGENT` varchar(125) DEFAULT NULL,
   `Getoond` tinyint(4) DEFAULT NULL COMMENT 'Is deze melding aan de gebruiker getoond?',
-  `RefFunction` varchar(50) DEFAULT NULL,
+  `RefFunction` varchar(75) DEFAULT NULL,
   `RefTable` varchar(30) DEFAULT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
@@ -6639,7 +6816,7 @@ CREATE TABLE `%1\$sAdmin_login` (
   `Wachtwoord` varchar(255) NOT NULL,
   `HerinneringVervallenDiplomas` tinyint(4) NOT NULL DEFAULT 0,
   `Ingevoerd` datetime DEFAULT NULL,
-  `Gewijzigd` datetime DEFAULT NULL,
+  `Gewijzigd` datetime NOT NULL,
   `GewijzigdDoor` int(11) NOT NULL DEFAULT 0,
   `LastLogin` datetime DEFAULT NULL,
   `LastActivity` datetime DEFAULT NULL,
@@ -6658,8 +6835,21 @@ CREATE TABLE `%1\$sAdmin_param` (
   `ValueNum` decimal(16,6) DEFAULT NULL,
   `Ingevoerd` datetime NOT NULL DEFAULT current_timestamp(),
   `IngevoerdDoor` int(11) NOT NULL,
-  `Gewijzigd` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE current_timestamp
-) ;
+  `Gewijzigd` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE current_timestamp(),
+  `GewijzigdDoor` int(11) DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Parameters en instellingen';
+
+CREATE TABLE `%1\$sAfdelingskalender` (
+  `RecordID` int(11) NOT NULL,
+  `OnderdeelID` int(11) NOT NULL,
+  `Datum` date NOT NULL,
+  `Omschrijving` varchar(75) DEFAULT NULL,
+  `Activiteit` tinyint(4) NOT NULL DEFAULT 1,
+  `Ingevoerd` datetime NOT NULL DEFAULT current_timestamp(),
+  `IngevoerdDoor` int(11) NOT NULL DEFAULT 0,
+  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `GewijzigdDoor` int(11) NOT NULL DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `%1\$sBewaking` (
   `RecordID` int(11) DEFAULT NULL,
@@ -6685,8 +6875,8 @@ CREATE TABLE `%1\$sBewaking_Blok` (
   `Einddatum` date NOT NULL,
   `InschrijvingOpen` tinyint(4) NOT NULL DEFAULT 1,
   `Ingevoerd` datetime NOT NULL DEFAULT current_timestamp(),
-  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp
-) ;
+  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE `%1\$sBewaking_Inschrijving` (
   `RecordID` int(11) NOT NULL,
@@ -6697,8 +6887,9 @@ CREATE TABLE `%1\$sBewaking_Inschrijving` (
   `Opmerking` varchar(50) DEFAULT NULL,
   `Definitief` datetime DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
-  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp
-) ;
+  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `Afgemeld` datetime DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE `%1\$sBewseiz` (
   `RecordID` int(11) NOT NULL DEFAULT 0,
@@ -6758,7 +6949,6 @@ CREATE TABLE `%1\$sEvenement` (
   `Eindtijd` varchar(5) NOT NULL,
   `Verzameltijd` varchar(5) NOT NULL,
   `Omschrijving` varchar(50) NOT NULL,
-  `Locatie` varchar(75) DEFAULT NULL,
   `Email` varchar(45) NOT NULL,
   `TypeEvenement` int(11) NOT NULL,
   `InschrijvingOpen` tinyint(4) NOT NULL DEFAULT 1,
@@ -6767,9 +6957,12 @@ CREATE TABLE `%1\$sEvenement` (
   `BeperkTotGroep` int(11) NOT NULL DEFAULT 0 COMMENT 'Welke groep mag zich voor dit evenement inschrijven? 0 = iedereen.',
   `ZichtbaarVoor` int(11) NOT NULL DEFAULT 0 COMMENT 'Voor welke groep is dit evenement zichtbaar? 0 = iedereen.',
   `Ingevoerd` datetime NOT NULL DEFAULT current_timestamp(),
-  `IngevoerdDoor` int(11) NOT NULL,
-  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp
-) ;
+  `IngevoerdDoor` int(11) NOT NULL DEFAULT 0,
+  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `GewijzigdDoor` int(11) NOT NULL,
+  `VerwijderdOp` date NOT NULL,
+  `Locatie` varchar(75) DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE `%1\$sEvenement_Deelnemer` (
   `RecordID` int(11) NOT NULL,
@@ -6781,16 +6974,18 @@ CREATE TABLE `%1\$sEvenement_Deelnemer` (
   `Aantal` int(11) NOT NULL DEFAULT 1,
   `Ingevoerd` datetime NOT NULL DEFAULT current_timestamp(),
   `IngevoerdDoor` int(11) NOT NULL DEFAULT 0,
-  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp
-) ;
+  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `GewijzigdDoor` int(11) NOT NULL DEFAULT 0
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE `%1\$sEvenement_Type` (
   `RecordID` int(11) NOT NULL,
   `Omschrijving` varchar(30) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
   `Soort` char(1) NOT NULL DEFAULT 'W',
   `Ingevoerd` datetime NOT NULL DEFAULT current_timestamp(),
-  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp
-) ;
+  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `GewijzigdDoor` int(11) NOT NULL DEFAULT 0
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE `%1\$sFunctie` (
   `Nummer` smallint(6) NOT NULL,
@@ -6845,7 +7040,7 @@ CREATE TABLE `%1\$sLid` (
   `Nummer` int(11) NOT NULL,
   `Roepnaam` varchar(17) DEFAULT NULL,
   `Tussenv` varchar(7) DEFAULT NULL,
-  `Achternaam` varchar(40) DEFAULT NULL,
+  `Achternaam` varchar(30) DEFAULT NULL,
   `Meisjesnm` varchar(25) DEFAULT NULL,
   `Voorletter` varchar(10) DEFAULT NULL,
   `Geslacht` varchar(1) DEFAULT NULL,
@@ -6862,7 +7057,7 @@ CREATE TABLE `%1\$sLid` (
   `Mobiel` varchar(21) DEFAULT NULL,
   `Email` varchar(45) DEFAULT NULL,
   `EmailVereniging` varchar(45) DEFAULT NULL,
-  `EmailOuders` varchar(75) DEFAULT NULL,
+  `EmailOuders` varchar(60) DEFAULT NULL,
   `NamenOuders` varchar(90) DEFAULT NULL,
   `Waarschuwen bij nood` varchar(255) DEFAULT NULL,
   `Bankrekening` varchar(18) DEFAULT NULL,
@@ -6943,25 +7138,30 @@ CREATE TABLE `%1\$sMailing` (
   `from_name` varchar(50) DEFAULT '',
   `from_addr` varchar(50) DEFAULT '',
   `to_name` varchar(50) DEFAULT '' COMMENT 'Omschrijving van de groep personen aan wie deze mailing gericht is',
-  `OmschrijvingOntvangers` varchar(50) NOT NULL DEFAULT '' COMMENT 'Omschrijving van de groep personen aan wie deze mailing gericht is',
+  `OmschrijvingOntvangers` varchar(50) DEFAULT NULL COMMENT 'Omschrijving van de groep personen aan wie deze mailing gericht is',
   `cc_addr` varchar(50) DEFAULT '',
   `subject` varchar(75) DEFAULT '',
   `message` text DEFAULT NULL,
+  `ZonderBriefpapier` tinyint(4) DEFAULT 0,
+  `GebruikPlaatjeAlsBericht` tinyint(4) DEFAULT 0,
   `template` tinyint(4) NOT NULL DEFAULT 0,
   `confidential` tinyint(4) NOT NULL DEFAULT 0,
   `ZichtbaarVoor` int(11) NOT NULL DEFAULT 0,
   `verzamelen` tinyint(4) NOT NULL DEFAULT 0,
   `new_on` datetime NOT NULL DEFAULT current_timestamp(),
-  `AddedBy` int(11) NOT NULL,
+  `AddedBy` int(11) NOT NULL DEFAULT 0,
   `changed_on` datetime NOT NULL DEFAULT current_timestamp(),
   `ChangedBy` int(11) NOT NULL DEFAULT 0,
   `sent_on` datetime DEFAULT NULL,
   `SentBy` int(11) NOT NULL DEFAULT 0,
   `deleted_on` datetime DEFAULT NULL,
-  `DeletedBy` int(11) NOT NULL DEFAULT 0,
+  `DeletedBy` int(11) DEFAULT NULL,
   `HTMLdirect` tinyint(4) DEFAULT 0,
-  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp
-) ;
+  `Ingevoerd` datetime NOT NULL DEFAULT current_timestamp(),
+  `IngevoerdDoor` int(11) DEFAULT 0,
+  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `GewijzigdDoor` int(11) NOT NULL DEFAULT 0
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE `%1\$sMailing_hist` (
   `RecordID` int(11) NOT NULL,
@@ -6979,12 +7179,12 @@ CREATE TABLE `%1\$sMailing_hist` (
   `ZichtbaarVoor` int(11) NOT NULL DEFAULT 0,
   `send_by` int(11) DEFAULT NULL,
   `send_on` datetime DEFAULT NULL,
-  `send_mt` decimal(16,0) DEFAULT NULL,
+  `send_mt` decimal(16,6) DEFAULT NULL,
   `Successful` tinyint(4) NOT NULL DEFAULT 1,
   `Ingevoerd` datetime NOT NULL DEFAULT current_timestamp(),
   `IngevoerdDoor` int(11) NOT NULL,
-  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp
-) ;
+  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE `%1\$sMailing_rcpt` (
   `RecordID` int(11) NOT NULL,
@@ -7000,8 +7200,8 @@ CREATE TABLE `%1\$sMailing_vanaf` (
   `Vanaf_naam` varchar(50) NOT NULL,
   `SMTP_server` tinyint(20) NOT NULL DEFAULT 0 COMMENT 'Indien 0, dan wordt de smtp server uit het config bestand gebruikt',
   `Ingevoerd` datetime NOT NULL DEFAULT current_timestamp(),
-  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp
-) ;
+  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `%1\$sMemo` (
   `RecordID` int(11) NOT NULL,
@@ -7035,7 +7235,7 @@ CREATE TABLE `%1\$sMutatie` (
 
 CREATE TABLE `%1\$sOnderdl` (
   `RecordID` int(11) NOT NULL,
-  `Kode` varchar(7) DEFAULT NULL,
+  `Kode` varchar(6) DEFAULT NULL,
   `Naam` varchar(50) DEFAULT NULL,
   `LIDCB` decimal(8,2) DEFAULT NULL,
   `JEUGDCB` decimal(8,2) DEFAULT NULL,
@@ -7064,16 +7264,15 @@ CREATE TABLE `%1\$sOrganisatie` (
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE `%1\$sRekening` (
-  `Nummer` int(11) NOT NULL,
-  `Seizoen` int(11) DEFAULT NULL,
+  `Nummer` int(11) NOT NULL DEFAULT 0,
+  `Seizoen` smallint(6) DEFAULT NULL,
   `Datum` date DEFAULT NULL,
   `OMSCHRIJV` varchar(30) DEFAULT NULL,
   `Lid` int(11) DEFAULT NULL,
   `DEBNAAM` varchar(60) DEFAULT NULL,
   `Ouders` tinyint(4) DEFAULT NULL,
-  `BetaaldDoor` int(11) DEFAULT NULL,
-  `BET_TERM` smallint(6) DEFAULT NULL,
-  `BETAALDAG` int(11) DEFAULT NULL,
+  `BET_TERM` tinyint(4) DEFAULT NULL,
+  `BETAALDAG` smallint(6) DEFAULT NULL,
   `Bedrag` decimal(8,2) DEFAULT NULL,
   `Betaald` decimal(8,2) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
@@ -7082,14 +7281,36 @@ CREATE TABLE `%1\$sRekening` (
 
 CREATE TABLE `%1\$sRekreg` (
   `RecordID` int(11) DEFAULT NULL,
-  `Rekening` int(11) NOT NULL,
-  `Regelnr` int(11) NOT NULL,
+  `Rekening` int(11) NOT NULL DEFAULT 0,
+  `Regelnr` smallint(6) NOT NULL DEFAULT 0,
   `Lid` int(11) DEFAULT NULL,
   `KSTNPLTS` varchar(5) DEFAULT NULL,
   `OMSCHRIJV` varchar(60) DEFAULT NULL,
   `Bedrag` decimal(8,2) DEFAULT NULL,
-  `ToonOpRekening` tinyint(4) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
+  `Gewijzigd` datetime DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sSeizoen` (
+  `Nummer` smallint(6) NOT NULL DEFAULT 0,
+  `Begindatum` datetime DEFAULT NULL,
+  `Einddatum` datetime DEFAULT NULL,
+  `Leeftijdsgrens jeugdleden` tinyint(4) DEFAULT NULL,
+  `Contributie leden` decimal(8,2) DEFAULT NULL,
+  `Contributie jeugdleden` decimal(8,2) DEFAULT NULL,
+  `Contributie kader` decimal(8,2) DEFAULT NULL,
+  `Contributie Onderscheidingen` decimal(8,2) DEFAULT NULL,
+  `RekeningenVerzamelen` tinyint(4) DEFAULT NULL,
+  `Rekeningomschrijving` varchar(30) DEFAULT NULL,
+  `BetaaldagenTermijn` smallint(6) DEFAULT NULL,
+  `StandaardAantalTermijnen` smallint(6) DEFAULT NULL,
+  `Verenigingscontributie omschrijving` varchar(50) DEFAULT NULL,
+  `Verenigingscontributie kostenplaats` varchar(5) DEFAULT NULL,
+  `Gezinskorting bedrag` decimal(8,2) DEFAULT NULL,
+  `Maximale verenigingscontributie` decimal(8,2) DEFAULT NULL,
+  `Gezinskorting omschrijving` varchar(50) DEFAULT NULL,
+  `Gezinskorting kostenplaats` varchar(4) DEFAULT NULL,
+  `Ingevoerd` datetime DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
@@ -7104,19 +7325,21 @@ CREATE TABLE `%1\$sStukken` (
   `Link` varchar(150) NOT NULL,
   `VervallenPer` date DEFAULT NULL,
   `IngevoerdOp` datetime NOT NULL DEFAULT current_timestamp(),
-  `GewijzigdOp` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp
-) ;
+  `GewijzigdOp` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `%1\$sTaak` (
   `RecordID` int(11) NOT NULL,
   `Omschrijving` varchar(75) NOT NULL,
-  `Beschrijving` text NOT NULL,
-  `Verantwoordelijke` int(11) NOT NULL,
-  `TaakGroep` int(11) NOT NULL,
+  `Beschrijving` text DEFAULT NULL,
+  `Taakgroep` int(11) NOT NULL,
+  `GeplandGereed` date DEFAULT NULL,
+  `WerkelijkGereed` date DEFAULT NULL,
   `Ingevoerd` datetime NOT NULL DEFAULT current_timestamp(),
   `IngevoerdDoor` int(11) NOT NULL,
-  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp
-) ;
+  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `GewijzigdDoor` int(11) DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE `%1\$sTaakGroep` (
   `RecordID` int(11) NOT NULL,
@@ -7124,8 +7347,31 @@ CREATE TABLE `%1\$sTaakGroep` (
   `Naam` varchar(50) NOT NULL,
   `Ingevoerd` datetime NOT NULL DEFAULT current_timestamp(),
   `IngevoerdDoor` int(11) NOT NULL,
-  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp
-) ;
+  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `GewijzigdDoor` int(11) NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sTaakgroep` (
+  `RecordID` int(11) NOT NULL,
+  `Kode` varchar(5) NOT NULL,
+  `Naam` varchar(50) DEFAULT NULL,
+  `Ingevoerd` datetime NOT NULL DEFAULT current_timestamp(),
+  `IngevoerdDoor` int(11) NOT NULL,
+  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `GewijzigdDoor` int(11) NOT NULL DEFAULT 0
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `%1\$sTaakLid` (
+  `RecordID` int(11) NOT NULL,
+  `TaakID` int(11) NOT NULL,
+  `LidID` int(11) NOT NULL,
+  `Eindverantwoordelijke` tinyint(4) NOT NULL DEFAULT 0,
+  `Functie` varchar(50) NOT NULL,
+  `Ingevoerd` int(11) NOT NULL,
+  `IngevoerdDoor` datetime NOT NULL DEFAULT current_timestamp(),
+  `Gewijzigd` int(11) NOT NULL,
+  `GewijzigdDoor` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=COMPACT;
 
 CREATE TABLE `%1\$sVerdichting` (
   `RecordID` int(11) NOT NULL DEFAULT 0,
@@ -7144,7 +7390,6 @@ CREATE TABLE `%1\$sVereniging` (
   `EmailSecretariaat` varchar(45) DEFAULT NULL,
   `EmailLedenadministratie` varchar(45) DEFAULT NULL,
   `BewaartijdHistorie` int(11) DEFAULT NULL,
-  `GroepKaderleden` int(11) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
@@ -7156,14 +7401,15 @@ CREATE TABLE `%1\$sWS_Artikel` (
   `Beschrijving` text COLLATE utf8_unicode_ci DEFAULT NULL,
   `Maat` char(4) COLLATE utf8_unicode_ci DEFAULT NULL,
   `Verkoopprijs` decimal(10,2) NOT NULL DEFAULT 0.00,
-  `BeschikbaarTot` date NOT NULL DEFAULT '9999-12-31' COMMENT 'Tot welke datum is dit artikel in de zelfservice beschikbaar?',
-  `VervallenPer` date NOT NULL DEFAULT '9999-12-31' COMMENT 'Na deze datum is dit artikel voor niemand meer beschikbaar.',
+  `BeschikbaarTot` date DEFAULT NULL COMMENT 'Tot welke datum is dit artikel in de zelfservice beschikbaar?',
+  `VervallenPer` date DEFAULT NULL COMMENT 'Na deze datum is dit artikel voor niemand meer beschikbaar.',
   `MaxAantalPerLid` smallint(6) NOT NULL DEFAULT 999,
   `BeperkTotGroep` int(11) NOT NULL DEFAULT 0 COMMENT 'Welke groep mag dit artikel in de zelfservice bestellen? 0 is iedereen.',
   `Ingevoerd` datetime NOT NULL DEFAULT current_timestamp(),
   `IngevoerdDoor` int(11) NOT NULL,
-  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp
-) ;
+  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `GewijzigdDoor` int(11) DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 CREATE TABLE `%1\$sWS_Orderregel` (
   `RecordID` int(11) NOT NULL,
@@ -7177,9 +7423,16 @@ CREATE TABLE `%1\$sWS_Orderregel` (
   `AantalGeleverd` smallint(6) NOT NULL DEFAULT 0,
   `Ingevoerd` datetime NOT NULL DEFAULT current_timestamp(),
   `IngevoerdDoor` int(11) NOT NULL,
-  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp
-) ;
+  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `GewijzigdDoor` int(11) DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
+
+ALTER TABLE `%1\$sAanwezigheid`
+  ADD PRIMARY KEY (`RecordID`);
+
+ALTER TABLE `%1\$sAdmin_access`
+  ADD PRIMARY KEY (`RecordID`);
 
 ALTER TABLE `%1\$sAdmin_activiteit`
   ADD PRIMARY KEY (`RecordID`),
@@ -7192,8 +7445,23 @@ ALTER TABLE `%1\$sAdmin_login`
   ADD PRIMARY KEY (`LidID`),
   ADD UNIQUE KEY `Login` (`Login`);
 
+ALTER TABLE `%1\$sAdmin_param`
+  ADD PRIMARY KEY (`RecordID`),
+  ADD UNIQUE KEY `Naam` (`Naam`);
+
+ALTER TABLE `%1\$sAfdelingskalender`
+  ADD PRIMARY KEY (`RecordID`);
+
 ALTER TABLE `%1\$sBewaking`
   ADD PRIMARY KEY (`SeizoenID`,`Lid`,`BEGIN_PER`);
+
+ALTER TABLE `%1\$sBewaking_Blok`
+  ADD PRIMARY KEY (`RecordID`),
+  ADD UNIQUE KEY `SeizoenBegindatum` (`SeizoenID`,`Begindatum`),
+  ADD UNIQUE KEY `SeizoenKode` (`SeizoenID`,`Kode`);
+
+ALTER TABLE `%1\$sBewaking_Inschrijving`
+  ADD PRIMARY KEY (`RecordID`);
 
 ALTER TABLE `%1\$sBewseiz`
   ADD PRIMARY KEY (`RecordID`),
@@ -7207,8 +7475,15 @@ ALTER TABLE `%1\$sDiploma`
   ADD PRIMARY KEY (`RecordID`),
   ADD UNIQUE KEY `Kode` (`Kode`);
 
-ALTER TABLE `%1\$sEigenQueries`
-  ADD PRIMARY KEY (`Nummer`);
+ALTER TABLE `%1\$sEvenement`
+  ADD PRIMARY KEY (`RecordID`);
+
+ALTER TABLE `%1\$sEvenement_Deelnemer`
+  ADD PRIMARY KEY (`RecordID`),
+  ADD UNIQUE KEY `LidEvenement` (`LidID`,`EvenementID`);
+
+ALTER TABLE `%1\$sEvenement_Type`
+  ADD PRIMARY KEY (`RecordID`);
 
 ALTER TABLE `%1\$sFunctie`
   ADD PRIMARY KEY (`Nummer`);
@@ -7240,8 +7515,19 @@ ALTER TABLE `%1\$sLidond`
   ADD PRIMARY KEY (`Lid`,`OnderdeelID`,`Vanaf`,`Functie`),
   ADD UNIQUE KEY `RecordID` (`RecordID`);
 
+ALTER TABLE `%1\$sMailing`
+  ADD PRIMARY KEY (`MailingID`);
+
+ALTER TABLE `%1\$sMailing_hist`
+  ADD PRIMARY KEY (`RecordID`),
+  ADD KEY `LidID` (`LidID`);
+
 ALTER TABLE `%1\$sMailing_rcpt`
   ADD PRIMARY KEY (`RecordID`);
+
+ALTER TABLE `%1\$sMailing_vanaf`
+  ADD PRIMARY KEY (`RecordID`),
+  ADD UNIQUE KEY `VanafEmail` (`Vanaf_email`);
 
 ALTER TABLE `%1\$sMemo`
   ADD PRIMARY KEY (`Lid`,`Soort`),
@@ -7263,55 +7549,109 @@ ALTER TABLE `%1\$sRekening`
 ALTER TABLE `%1\$sRekreg`
   ADD PRIMARY KEY (`Rekening`,`Regelnr`);
 
+ALTER TABLE `%1\$sSeizoen`
+  ADD PRIMARY KEY (`Nummer`);
+
+ALTER TABLE `%1\$sStukken`
+  ADD PRIMARY KEY (`RecordID`);
+
+ALTER TABLE `%1\$sTaak`
+  ADD PRIMARY KEY (`RecordID`);
+
+ALTER TABLE `%1\$sTaakGroep`
+  ADD PRIMARY KEY (`RecordID`);
+
+ALTER TABLE `%1\$sTaakgroep`
+  ADD PRIMARY KEY (`RecordID`),
+  ADD UNIQUE KEY `Kode` (`Kode`);
+
+ALTER TABLE `%1\$sTaakLid`
+  ADD PRIMARY KEY (`RecordID`);
+
 ALTER TABLE `%1\$sVerdichting`
   ADD PRIMARY KEY (`RecordID`),
   ADD UNIQUE KEY `Kode` (`Kode`);
 
+ALTER TABLE `%1\$sWS_Artikel`
+  ADD PRIMARY KEY (`RecordID`);
+
+ALTER TABLE `%1\$sWS_Orderregel`
+  ADD PRIMARY KEY (`RecordID`),
+  ADD UNIQUE KEY `ArtikelLid` (`Artikel`,`Lid`);
+
 
 ALTER TABLE `%1\$sAdmin_access`
   MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `%1\$sAdmin_activiteit`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23487;
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `%1\$sAdmin_interface`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3161;
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `%1\$sAdmin_param`
   MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `%1\$sBewaking_Blok`
   MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `%1\$sBewaking_Inschrijving`
   MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `%1\$sEvenement`
   MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `%1\$sEvenement_Deelnemer`
   MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `%1\$sEvenement_Type`
   MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `%1\$sLiddipl`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=121967;
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `%1\$sLidmaatschap`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=117291;
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `%1\$sLidond`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=129763;
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `%1\$sMailing`
   MODIFY `MailingID` int(11) NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `%1\$sMailing_hist`
   MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `%1\$sMailing_rcpt`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8424;
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `%1\$sMailing_vanaf`
   MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `%1\$sMemo`
   MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `%1\$sStukken`
   MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `%1\$sTaak`
   MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `%1\$sTaakGroep`
   MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE `%1\$sTaakgroep`
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE `%1\$sTaakLid`
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `%1\$sWS_Artikel`
   MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `%1\$sWS_Orderregel`
-  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;", TABLE_PREFIX);
+  MODIFY `RecordID` int(11) NOT NULL AUTO_INCREMENT;
+COMMIT;", TABLE_PREFIX);
 
 	fnQuery($queries);
 }  # db_createtables
