@@ -1886,9 +1886,22 @@ class cls_Afdelingskalender extends cls_db_base {
 	}
 	
 	public function lijst($p_onderdeelid) {
-		$query = sprintf("SELECT AK.* FROM %s AS AK INNER JOIN %sOnderdl AS O ON O.RecordID=AK.OnderdeelID WHERE AK.OnderdeelID=%d ORDER BY AK.Datum;", $this->table, TABLE_PREFIX, $p_onderdeelid);
+		$query = sprintf("SELECT AK.* FROM %s AS AK INNER JOIN %sOnderdl AS O ON O.RecordID=AK.OnderdeelID WHERE AK.OnderdeelID=%d ORDER BY AK.Datum DESC;", $this->table, TABLE_PREFIX, $p_onderdeelid);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
+	}
+	
+	public function htmloptions($p_onderdeelid, $p_cv) {
+		$rv = "";
+		foreach ($this->lijst($p_onderdeelid) as $row) {
+			$d = strftime("%A %e %B %Y", strtotime($row->Datum))	;
+			if (strlen($row->Omschrijving) > 0) {
+				$d .= " - " . $row->Omschrijving;
+			}
+			$c = checked($row->RecordID, "option", $p_cv);
+			$rv .= sprintf("<option value=%d %s>%s</option>\n", $row->RecordID, $c, $d);
+		}
+		return $rv;
 	}
 	
 	public function add($p_onderdeelid) {
@@ -1977,7 +1990,7 @@ class cls_Aanwezigheid extends cls_db_base {
 			$aanwid = $this->add($p_loid, $p_akid, $p_waarde);
 		}
 		$xw = sprintf("IFNULL(`%s`, '')<>'%s'", $p_kolom, $p_waarde);
-		$query = sprintf("UPDATE %s SET `%s`='%s' WHERE RecordID=%d AND %s;", $this->table, $p_kolom, $p_waarde, $aanwid, $xw);
+		$query = sprintf("UPDATE %s SET `%s`='%s', GewijzigdDoor=%d WHERE RecordID=%d AND %s;", $this->table, $p_kolom, $p_waarde, $_SESSION['lidid'], $aanwid, $xw);
 		if ($this->execsql($query) > 0) {
 			$this->mess = sprintf("Kolom '%s' in record %d in tabel '%s' is in '%s' gewijzigd.", $p_kolom, $aanwid, $this->table, $p_waarde);
 			$this->Log($aanwid);
@@ -2336,7 +2349,7 @@ class cls_Lidond extends cls_db_base {
 					LO.RecordID, LO.GroepID, LO.Lid, %2\$s AS Leeftijd
 					FROM %3\$s
 					WHERE ((LO.Opgezegd IS NULL) OR LO.Opgezegd >= CURDATE()) AND (LO.Functie=0 OR GroepID > 0) %4\$s
-					ORDER BY O.Kode, GR.Starttijd, GR.Kode, L.Achternaam, L.Roepnaam;", $selectnaam, $selectleeftijd, $this->fromlidond, $where, $this->selectgroep);
+					ORDER BY O.Kode, GR.Starttijd, GR.Kode, L.Achternaam, L.Roepnaam;", $this->selectnaam, $this->selectleeftijd, $this->fromlidond, $where, $this->selectgroep);
 		$result = fnQuery($query);
 		return $result->fetchAll();
 	}
