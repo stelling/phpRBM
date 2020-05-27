@@ -209,7 +209,6 @@ class Mailing {
 	private $merged_message = "";
 	private $speciaal = "";
 	
-	private $from_name = "";
 	private $from_addr = "";
 	private $to_name = "";
 	private $cc_addr = "";
@@ -255,9 +254,7 @@ class Mailing {
 		if (strlen($_SESSION['settings']['mailing_extensies_toegestaan']) > 0) {
 			$this->allowed_ext = $_SESSION['settings']['mailing_extensies_toegestaan'];
 		}
-		if ($_SESSION['settings']['max_grootte_bijlage'] > 0) {
-			$this->max_size_attachm = $_SESSION['settings']['max_grootte_bijlage'];
-		}
+		$this->max_size_attachm = $_SESSION['settings']['max_grootte_bijlage'] * 1024;
 		$this->emailsecretariaat = $_SESSION['settings']['emailsecretariaat'];
 
 		$sql = sprintf("SELECT Roepnaam FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
@@ -295,6 +292,9 @@ class Mailing {
 		$this->MergeField[]=array('Naam' => "Postcode", 'SQL' => $sql);
 
 		$sql = sprintf("SELECT L.Woonplaats FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);;
+		$this->MergeField[]=array('Naam' => "Woonplaats_HL", 'SQL' => $sql);
+		
+		$sql = sprintf("SELECT UPPER(L.Woonplaats) FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);;
 		$this->MergeField[]=array('Naam' => "Woonplaats", 'SQL' => $sql);
 							 
 		$sql = sprintf("SELECT %s AS Lidnaam FROM %sLid AS L WHERE L.RecordID=%%d;", $selectnaam, TABLE_PREFIX);
@@ -565,11 +565,8 @@ class Mailing {
 			$navpad[]['naam'] = sprintf("Details mailing %d", $this->mid);
 		}
 		
-		$selectfrom = "";
-		foreach (db_mailing_vanaf("lijst") as $row) {
-			$selectfrom .= sprintf("<option value='%1\$s'%2\$s>%3\$s (%1\$s)</option>\n", $row->Vanaf_email, checked(strtolower($row->Vanaf_email), "option", strtolower($this->from_addr)), $row->Vanaf_naam);
-		}
-		
+		$selectfrom = "<option value=''>Selecteer ...</option>\n" . (new cls_Mailing_vanaf())->htmloptions($this->from_addr);
+				
 		printf("<div class='editmailingform'>\n");
 		printf("<form method='post' action='%s?tp=%s/%s&amp;mid=%d' name='frm_mailedit' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2, $this->mid);
 		
@@ -870,26 +867,31 @@ class Mailing {
 	private function controle($enkellid=0) {
 	
 		if ($this->mid > 0) {
+			$this->meldingen = "";
+			$this->verzendenmag = true;
+
+			if (strlen($this->from_addr) == 0) {
+				$this->meldingen = "De Van moet ingevuld zijn. \n";
+				$this->verzendenmag = false;
+			}
+			
 			if ($this->aant_rcpt == 0 and $enkellid == 0) {
 				if (strlen($this->speciaal) > 0) {
-					$this->meldingen = "Een mailing met een speciaal doel, kan niet los worden verzonden.<br>\n";
+					$this->meldingen .= "Een mailing met een speciaal doel, kan niet los worden verzonden.<br>\n";
 				} else {
-					$this->meldingen = "Er zijn geen ontvangers aan deze mailing toegevoegd.<br>\n";
+					$this->meldingen .= "Er zijn geen ontvangers aan deze mailing toegevoegd.<br>\n";
 				}
 				$this->verzendenmag = false;
 			} else {
-				$this->meldingen = "";
-				$this->verzendenmag = true;
 			}
 
 			if (strlen($this->subject) == 0) {
-				$this->meldingen .= "Het onderwerp is leeg en dat moet ingevuld zijn. \n";
+				$this->meldingen .= "Het onderwerp moet ingevuld zijn. \n";
 				$this->verzendenmag = false;
 			}
 			
-			
 			if (strlen($this->message) == 0) {
-				$this->meldingen .= "Het bericht is leeg en dat moet ingevuld zijn. \n";
+				$this->meldingen .= "Het bericht moet ingevuld zijn. \n";
 				$this->verzendenmag = false;
 			}
 			if (strtotime($this->sent_on) > (time() - $this->vertraging_tussen_verzenden)) {
@@ -951,11 +953,6 @@ class Mailing {
 		$i_M = new cls_Mailing();
 		if ($this->mid == 0) {
 			$this->mid = $i_M->add($this->subject);
-		}
-		
-		if (isset($_POST['from_addr']) and strlen($_POST['from_addr']) > 5) {
-			$row = db_mailing_vanaf("record", $_POST['from_addr']);
-			$_POST['from_name'] = $row->Vanaf_naam;
 		}
 		
 		if (isset($_POST['cc_addr']) and strlen($_POST['cc_addr']) > 5) {
@@ -1047,6 +1044,7 @@ class Mailing {
 
 			$ext = explode(".", $target);
 			$ext = strtolower($ext[count($ext) - 1]);
+			debug($_FILES['UploadFile']['size']);
 			if (strpos($ae, $ext) === false) {
 				$mess = sprintf("In mailing %d kan bestand '%s' niet worden ge-upload, omdat de extensie niet is toegestaan. Alleen de volgende extensies zijn toegestaan: %s", $this->mid, $_FILES['UploadFile']['name'], $ae);
 			} elseif (isset($_POST['UploadFile']) and $_FILES['UploadFile']['size'] > $this->max_size_attachm) {
@@ -1219,7 +1217,7 @@ class Mailing {
 			if ($preview == 1) {
 				$mail = new RBMmailer();
 				$mail->From = $this->from_addr;
-				$mail->FromName = $this->from_name;
+				$mail->FromName = (new cls_Mailing_vanaf())->vanafnaam($this->from_addr);
 				$mail->IsHTML(true);
 				$mail->Subject = $this->merged_subject;
 				$mail->Body = $this->merged_message;
@@ -1360,12 +1358,10 @@ class Mailing {
 	}
 	
 	public function delete() {
-	
 		(new cls_Mailing())->trash($this->mid, "in");
 	}
 	
 	public function undelete() {
-		
 		(new cls_Mailing())->trash($this->mid, "out");
 	}
 		
@@ -1373,8 +1369,7 @@ class Mailing {
 			
 		if ($this->mid > 0) {
 			$ml = (new cls_Mailing())->record($this->mid);
-			$this->from_name = trim($ml->from_name);
-			$this->from_addr = trim($ml->from_addr);
+			$this->from_addr = $ml->from_addr;
 			$this->to_name = trim($ml->to_name);
 			$this->cc_addr = trim($ml->cc_addr);
 			$this->subject = trim($ml->subject);
@@ -1394,7 +1389,6 @@ class Mailing {
 			$f = sprintf("MailingID=%d", $this->mid);
 			$this->aant_rcpt = (new cls_Mailing_rcpt())->aantal($f);
 		} else {
-			$this->from_addr = (new cls_Mailing_vanaf())->curuser();
 			$this->Ingevoerd = date("Y-m-d");
 		}
 
@@ -1456,7 +1450,7 @@ class email {
 		} elseif ($mid > 0) {
 			$this->mailingid = $mid;
 			$mrow = db_Mailing("record", $this->mailingid);
-			$this->vanafnaam = $mrow->from_name;
+			$this->vanafnaam = (new cls_Mailing_vanaf())->vanafnaam($mrow->from_addr);
 			$this->vanafadres = htmlentities($mrow->from_addr);
 			$this->omsontvangers = htmlentities($mrow->to_name);
 			$this->cc = $mrow->cc_addr;
@@ -1777,8 +1771,8 @@ function fnMailingInstellingen() {
 	global $currenttab, $currenttab2;
 	
 	echo("<div id='instellingenmuteren'>\n");
+	$i_p = new cls_Parameter();
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		$i_p = new cls_Parameter();
 		
 		if (isset($_POST['mailing_direct_verzenden']) and $_POST['mailing_direct_verzenden'] == "1") {
 			$i_p->update("mailing_direct_verzenden", 1);
@@ -1825,14 +1819,21 @@ function fnMailingInstellingen() {
 			}
 		}
 		
-		$p = $_SESSION['settings']['path_attachments'];
-		if (strlen($p) < 5 or !is_dir($p)) {
-			$i_p->update("path_attachments", BASEDIR . "/attachments/");
-		} elseif (substr($p, -1) != "/") {
-			$i_p->update("path_attachments", $p . "/");
-		}
-		$i_p = null;
 	}
+	$i_p->vulsessie();
+	
+	$p = $_SESSION['settings']['path_attachments'];
+	if (strlen($p) < 5 or !is_dir($p)) {
+		$i_p->update("path_attachments", BASEDIR . "/attachments/");
+	} elseif (substr($p, -1) != "/") {
+		$i_p->update("path_attachments", $p . "/");
+	}
+	if (intval($_SESSION['settings']['max_grootte_bijlage']) < 5) {
+		$i_p->update("max_grootte_bijlage", 2048);
+	}
+
+	$i_p = null;
+	
 	printf("<form method='post' action='%s?tp=%s/%s' name='mailinstellingen'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
 	
 	$options = sprintf("<option value=0%s>Nee</option>\n", checked($_SESSION['settings']['mailing_mailopnieuw'], "option", 0));
@@ -1857,7 +1858,7 @@ function fnMailingInstellingen() {
 	printf("<div class='invoerblok'><label>Aantal verstuurde mails in de afgelopen uur / 24 uur:</label><p>%d / %d</div>\n", db_mailing_hist("aantalperuur"), db_mailing_hist("aantal24uur"));
 	printf("<div class='invoerblok'><label>Waar worden de attachments bewaard?</label><p><input class='inputtext' type='text' name='path_attachments' value='%s' size=30></div>\n", $_SESSION['settings']['path_attachments']);
 	printf("<div class='invoerblok'><label>Welke extensies zijn als attachment toegestaan:</label><p><input class='inputtext' type='text' name='mailing_extensies_toegestaan' value='%s' size=30> (leeg = standaard lijst)</div>\n", $_SESSION['settings']['mailing_extensies_toegestaan']);
-	printf("<div class='invoerblok'><label>Wat is de maximale groootte van één attachment?</label><p><input class='inputnumber' type='number' name='max_grootte_bijlage' value='%s' size=30> (nul = 2MB)</div>\n", $_SESSION['settings']['max_grootte_bijlage']);
+	printf("<div class='invoerblok'><label>Wat is de maximale groootte van één attachment?</label><p><input class='inputnumber' type='number' name='max_grootte_bijlage' value='%s' size=30> KB (nul = 2MB)</div>\n", $_SESSION['settings']['max_grootte_bijlage']);
 	
 	$options = "";
 	foreach(ARRTYPEEDITOR as $key => $oms) {
