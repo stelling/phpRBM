@@ -18,7 +18,7 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 } else if ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['Inloggen']) and $_POST['Inloggen'] == "Inloggen") {
 	if (strlen($_POST['password']) < 5) {
 		$mess = "Om in te loggen is het invullen van een wachtwoord van minimaal 5 karakters vereist.";
-		db_logboek("add", $mess, 1, 0, 2);
+		(new cls_Logboek())->add($mess, 1, 0, 2);
 	} else {
 		$_SESSION['username'] = cleanlogin($_POST['username']);
 		if (isset($_POST['cookie']) and $_POST['cookie'] == 1) {                                    
@@ -51,7 +51,7 @@ if ((new cls_Lid())->aantal() == 0) {
 if (isset($_GET['op']) and $_GET['op'] == "exportins") {
 	header("Content-type: text/plain");
 	header("Content-Disposition: attachment; filename=inschrijvingen.sql");
-	foreach(db_insbew("export") as $row) {
+	foreach((new cls_InsBew())->export() as $row) {
 		echo(SQLexport($row) . "\n");
 	}
 	exit();
@@ -171,7 +171,6 @@ function fnVoorblad() {
 		$content = "";
 	}
 	
-//	debug(dbLogboek("vorigelogin"));
 	if ($content !== false and strlen($content) > 0) {
 		if ($_SESSION['lidid'] == 0) {
 			$content = removetextblock($content, "<!-- Ingelogd -->", "<!-- /Ingelogd -->");
@@ -184,10 +183,19 @@ function fnVoorblad() {
 		// Algemene statistieken
 		$stats = db_stats();
 		foreach (array('aantalleden', 'aantalvrouwen', 'aantalmannen', 'gemiddeldeleeftijd', 'aantalkaderleden', 'nieuwstelogin', 'aantallogins', 'nuingelogd') as $v) {
-			$content = str_replace("[%" . strtoupper($v) . "%]", htmlentities($stats[$v]), $content);
+			if (strpos($content, strtoupper($v)) !== false) {
+				$content = str_replace("[%" . strtoupper($v) . "%]", htmlentities($stats[$v]), $content);
+			}
 		}
-		$content = str_replace("[%LAATSTGEWIJZIGD%]", strftime("%e %B %Y (%H:%M)", strtotime($stats['laatstgewijzigd'])), $content);
-		$content = str_replace("[%LAATSTEUPLOAD%]", strftime("%e %B %Y (%H:%M)", strtotime($stats['laatsteupload'])), $content);
+		
+		if (strpos($content, "[%LAATSTGEWIJZIGD%]") !== false) {
+			$content = str_replace("[%LAATSTGEWIJZIGD%]", strftime("%e %B %Y (%H:%M)", strtotime($stats['laatstgewijzigd'])), $content);
+		}
+		
+		if (strpos($content, "[%LAATSTEUPLOAD%]") !== false) {
+			$lu = (new cls_Logboek())->max("DatumTijd", "TypeActiviteit=9");
+			$content = str_replace("[%LAATSTEUPLOAD%]", strftime("%e %B %Y", strtotime($lu)), $content);
+		}
 		
 		// Gebruiker-specifieke statistieken
 		if ($_SESSION['lidid'] > 0) {
@@ -204,7 +212,7 @@ function fnVoorblad() {
 		$content = str_replace("[%ROEPNAAM%]", $_SESSION['roepnaamingelogde'], $content);
 		if (strpos($content, "[%VERVALLENDIPLOMAS%]") !== false and $_SESSION['lidid'] > 0) {
 			$strHV = "";
-			foreach (db_liddipl("vervallenbinnenkort", $_SESSION['lidid']) as $row) {
+			foreach ((new cls_Liddipl())->vervallenbinnenkort() as $row) {
 				if ($row->VervaltPer <= date("Y-m-d")) {
 					$strHV .= sprintf("<li>%s, gehaald op %s, is per %s vervallen.</li>\n", $row->Diploma, strftime("%e %h %Y", strtotime($row->DatumBehaald)), strftime("%e %h %Y", strtotime($row->VervaltPer)));
 				} else {
@@ -218,7 +226,7 @@ function fnVoorblad() {
 		}
 	
 		if (strpos($content, "[%VORIGELOGIN%]") !== false) {
-			$content = str_replace("[%VORIGELOGIN%]", strftime("%e %B %Y (%R)", strtotime(db_Logboek("vorigelogin"))), $content);
+			$content = str_replace("[%VORIGELOGIN%]", (new cls_Logboek())->vorigelogin(1), $content);
 		}
 		if (strpos($content, "[%GEWIJZIGDESTUKKEN%]") !== false) {
 			$content = str_replace("[%GEWIJZIGDESTUKKEN%]", fnGewijzigdeStukken(), $content);
@@ -260,7 +268,7 @@ function fnKostenoverzicht() {
 	echo("<table>\n");
 	echo("<tr>\n");
 	$ret = "";
-	foreach (db_boekjaar() as $row) {
+	foreach ((new cls_Boekjaar())-basislijst("", "Begindatum") as $row) {
 		if ($val_jaarfilter == $row->RecordID or strlen($val_jaarfilter) == 0) {
 			$s = " selected";
 			$val_jaarfilter = $row->RecordID;
@@ -287,7 +295,7 @@ function fnKostenoverzicht() {
 	printf("<td class='label'>Grootboekrekening</td><td><select name='lbGBRFilter' onchange='form.submit();'>%s</select></td>\n", $ret);
 	
 	$ret = "<option value='*'>Alle</option>\n";
-	foreach (db_kostenplaats("distinct") as $row) {
+	foreach ((new cls_Kostenplaats())->basislijst("", "Kode") as $row) {
 		if ($val_kplfilter == $row->Kode) {
 			$s = " selected";
 		} else {
@@ -302,14 +310,15 @@ function fnKostenoverzicht() {
 	echo("</form>\n");
 	echo("</div>  <!-- Einde filter -->\n");
 
-	echo(fnDisplayTable(db_mutatie("lijst", $val_jaarfilter, $val_gbrfilter, $val_kplfilter), "", "", 1));
+	$lijst = (new cls_Mutatie())->lijst($val_jaarfilter, $val_gbrfilter, $val_kplfilter);
+	echo(fnDisplayTable($lijst, "", "", 1));
 }  # fnKostenoverzicht
 
 function fnGewijzigdeStukken() {
 
 	$rv = "";
 	if ($_SESSION['lidid'] > 0) {
-		$rows = db_Stukken("gewijzigdestukken");
+		$rows = (new cls_Stukken())->gewijzigdestukken();
 		if (count($rows) > 0) {
 			$rv = "<p class='gewijzigdestukken'>De volgende stukken zijn gewijzigd sinds je laatste login.\n
 				   <ul>\n";
