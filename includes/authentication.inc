@@ -50,9 +50,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 				$lidid = $_GET['lidid'];
 			}
 		}
-		
 		$gs = (new cls_Lid())->Geslacht($lidid);
-		addtp("Eigen gegevens/Algemeen");
+		
+		addtp($b . "Algemeen");
 		$f = "`Type`='A' AND IFNULL(VervallenPer, CURDATE()) >= CURDATE()";
 		if ((new cls_Onderdeel())->aantal($f) > 0) {
 			addtp($b . "Afdelingen");
@@ -71,6 +71,10 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if ($gs != "B" and (new cls_Onderdeel())->aantal($f) > 0) {
 			addtp($b . "Toestemmingen");
 		}
+		if (count((new cls_Aanwezigheid())->overzichtlid($lidid)) > 0) {
+			addtp($b . "Presentie");
+		}
+		
 		if (count((new cls_Bewaking())->overzichtlid($lidid)) > 0 or count((new cls_InsBew())->overzichtlid($lidid)) > 0) {
 			addtp($b . "Bewaking");
 		}
@@ -88,7 +92,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		}
 		$f = sprintf("Lid=%d", $lidid);
 		if ((new cls_Rekening())->aantal($f) > 0) {
-			addtp($b . "Rekenigen");
+			addtp($b . "Rekeningen");
 		}
 		if (count((new cls_Logboek())->overzichtlid($lidid)) > 0) {
 			addtp($b . "Logboek");
@@ -99,8 +103,10 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		addtp("Zelfservice");
 	}
 	if ($currenttab == "Zelfservice") {
+		$gs = (new cls_Lid())->Geslacht($_SESSION['lidid']);
 		addtp("Zelfservice/Algemene gegevens");
-		if (count(db_diploma("zelfservice_lijst")) > 0 and $gs != "B") {
+		$f = "Zelfservice=1";
+		if ($gs != "B" and (new cls_diploma())->aantal($f) > 0) {
 			addtp("Zelfservice/Diploma's");
 		}
 		addtp("Zelfservice/Pasfoto");
@@ -154,6 +160,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 						addtp(trim($row->Naam) . "/Groepsindeling", $row->RecordID);
 					}
 					addtp(trim($row->Naam) . "/Groepsindeling muteren");
+					addtp(trim($row->Naam) . "/Kalender muteren");
 				}
 			}
 		}
@@ -506,16 +513,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		(new cls_Logboek())->add($mess, 5, $row->RecordID, 1);
 		
 	} elseif ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['nieuwwachtwoord']) and strlen($_POST['nieuwwachtwoord']) > 0 and $_GET['lidid'] > 0) {
-		
-		$wwok = checknewpassword($_POST['nieuwwachtwoord'], $_POST['login']);
-		if ($wwok !== "ok") {
-			$mess = $wwok;
-		} elseif (strlen($_POST['nieuwwachtwoord']) != strlen($_POST['herhaalwachtwoord']) or $_POST['nieuwwachtwoord'] !== $_POST['herhaalwachtwoord']) {
-			$mess = "De twee ingevoerde wachtwoorden zijn niet exact gelijk aan elkaar. Het wachtwoord wordt niet gewijzigd.";
-		} else {
-			$mess = db_change_password($_POST['nieuwwachtwoord'], "", $_GET['lidid']);
-		}
-		(new cls_logboek())->add($mess, 5, $_GET['lidid'], 1);
+		$mess = (new cls_login())->wijzigenwachtwoord($_POST['nieuwwachtwoord'], "", $_POST['herhaalwachtwoord'], $_GET['lidid']);
 	
 	} elseif (isset($_GET["lidid"]) and $_GET["lidid"] > 0 and strlen($_GET["key"]) > 5) {
 		$row = (new cls_Login())->record($_GET['lidid']);
@@ -885,21 +883,29 @@ function newkey() {
 	return $ww;
 } # newkey
 
-function checknewpassword($ww, $login="") {
+function checknewpassword($ww, $login="", $p_wwh="") {
 	
 	$alphabet = "abcdefghijklmnopqrstuvwxyz";
 	$mess = "ok";
 	
+	if (strlen($login) < 5) {
+		$login = $_SESSION['username'];
+	}
+	
 	if (strlen($ww) > $_SESSION['settings']['wachtwoord_maxlengte'] and $_SESSION['settings']['wachtwoord_maxlengte'] >= 7) {
 		$mess = sprintf("Het wachtwoord is te lang, het mag maximaal %d karakters lang zijn.", $_SESSION['settings']['wachtwoord_maxlengte']);
-	} elseif (strlen($ww) < $_SESSION['settings']['wachtwoord_minlengte'] and $_SESSION['settings']['wachtwoord_minlengte'] > 0) {
+	} elseif (strlen($ww) < $_SESSION['settings']['wachtwoord_minlengte']) {
 		$mess = sprintf("Het wachtwoord is te kort, het moet minimaal %d karakters lang zijn.", $_SESSION['settings']['wachtwoord_minlengte']);
 	} elseif (strpos($ww, "'") > 0 or strpos($ww, "\"") > 0) {
 		$mess = "Er mogen geen aanhalingstekens in een wachtwoord zitten.";
 	} elseif (strpos($ww, " ") !== false) {
 		$mess = "Het wachtwoord mag geen spatie bevatten.";
 	} elseif (strlen($login) > 0 and strpos(strtolower($ww), strtolower($login)) !== false) {
-		$mess = "Het wachtwoord mag uw login niet bevatten.";
+		$mess = "Het wachtwoord mag niet je login bevatten.";
+	} elseif (strlen($_SESSION['roepnaamingelogde']) > 0 and strpos(strtolower($ww), strtolower($_SESSION['roepnaamingelogde'])) !== false) {
+		$mess = "Het wachtwoord mag niet je roepnaam bevatten.";
+	} elseif (strlen($p_wwh) == 0 or $ww !== $p_wwh) {
+		$mess = "De nieuwe wachtwoorden zijn niet aan elkaar gelijk.";
 	} else {
 		$bevatc=0;
 		$bevatk=0;
@@ -930,7 +936,7 @@ function fneisenwachtwoord() {
 					<ul>\n
 					<li>Minimaal %d karakters en maximaal %d karakters lang</li>\n
 					<li>Er mogen geen aanhalingstekens en geen spaties in zitten</li>\n
-					<li>Mag niet je login bevatten</li>\n
+					<li>Mag niet je login of roepnaam bevatten</li>\n
 					<li>Moet minimaal 1 cijfer bevatten</li>\n
 					<li>Moet minimaal 1 kleine letter bevatten</li>\n
 					<li>Moet minimaal 1 hoofdletter bevatten</li>\n
@@ -938,7 +944,7 @@ function fneisenwachtwoord() {
 } # fneisenwachtwoord
 
 function addtp($tp, $afdnr=0) {
-	global $tabpages, $currenttab;
+	global $tabpages, $currenttab, $currenttab2;
 	
 	if ((strstr($tp, "/") === false or startwith($tp, $currenttab . "/")) and toegang($tp, 0, 0)) {
 		$tabpages[] = $tp;
