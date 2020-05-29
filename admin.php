@@ -61,7 +61,21 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 				$mess = sprintf("De verplichte tabel '%sLid' zit niet in deze upload. Dit bestand wordt niet verwerkt.", TABLE_PREFIX);
 			} elseif (strpos($queries, TABLE_PREFIX . "Lidond") === FALSE and (new cls_Lidond())->aantal() < 5) {
 				$mess = sprintf("De verplichte tabel '%sLidond' zit niet in deze upload. Dit bestand wordt niet verwerkt.", TABLE_PREFIX);
-			} elseif ((new cls_db_base())->execsql($queries) !== true) {
+			} else {
+				
+				while (strlen($queries) > 1) {
+					$sp = strpos($queries, "DROP TABLE", 12);
+					if ($sp === false) {
+						$query = $queries;
+						$queries = "";
+					} else {
+						$query = substr($queries, 0, $sp);
+						$queries = substr($queries, $sp);
+					}
+//					debug($query . "<br><br>\n");
+					(new cls_db_base())->execsql($query);				
+				}
+				
 				$mess = "Bestand is in de database verwerkt.";
 				db_onderhoud(1);
 				fnMaatwerkNaUpload();
