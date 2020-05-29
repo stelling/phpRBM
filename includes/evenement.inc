@@ -1,18 +1,6 @@
 <?php
 
-$dlnstatus['A'] = "Afgewezen";
-$dlnstatus['B'] = "Bevestigd";
-$dlnstatus['I'] = "Ingeschreven";
-$dlnstatus['N'] = "Niet geweest";
-$dlnstatus['R'] = "Reserve";
-$dlnstatus['T'] = "Onder voorbehoud";
-$dlnstatus['X'] = "Afgezegd";
-
-$soortevenement['B'] = "Brigade-activiteit";
-$soortevenement['G'] = "Gezellig/sociaal";
-$soortevenement['O'] = "Opleiding";
-$soortevenement['V'] = "Vergadering/overleg";
-$soortevenement['W'] = "Wedstrijd";
+// $dlnstatus, $soortevenement
 
 function fnEvenementen() {
 	global $currenttab2;
@@ -176,7 +164,6 @@ function inschrijvenevenementen($lidid) {
 }
 
 function muteerevenement($eventid) {
-	global $dlnstatus;
 
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$_POST['Datum'] = change_month_to_uk($_POST['Datum']);
@@ -306,7 +293,7 @@ function muteerevenement($eventid) {
 	}
 	
 	$optionstandstatus = "";
-	foreach ($dlnstatus as $ds => $o) {
+	foreach (ARRDLNSTATUS as $ds => $o) {
 		if ($ds == $standaardstatus) {
 			$s = " selected";
 		} else {
@@ -365,7 +352,7 @@ function muteerevenement($eventid) {
 		echo("<tr><th>Naam deelnemer</th><th>Status</th><th>Opmerking en functie</th><th>Ingevoerd</th><th>Del</th></tr>\n");
 		foreach (db_evenement("deelnemers", 0, $recordid) as $rd) {
 			$optstat = "";
-			foreach ($dlnstatus as $key => $val) {
+			foreach (ARRDLNSTATUS as $key => $val) {
 				$s = "";
 				if ($key == $rd->Status) {
 					$s = "selected";
@@ -421,7 +408,6 @@ function muteerevenement($eventid) {
 }  # muteerevenement
 
 function muteertypeevenement() {
-	global $soortevenement;
 	
 	$inst_et = new cls_evenement_type();
 	if (isset($_GET['op']) and $_GET['op'] == "delete" and $_GET['tid'] > 0) {
@@ -451,7 +437,7 @@ function muteertypeevenement() {
 		echo("<tr>");
 		printf("<td><input type='text' name='oms_%d' value='%s' onBlur='this.form.submit();'></td>\n", $row->RecordID, $row->Omschrijving);
 		$options = "\n";
-		foreach ($soortevenement as $key => $val) {
+		foreach (ARRSOORTEVENEMENT as $key => $val) {
 			if ($key == $row->Soort) {
 				$s = "selected";
 			} else {
