@@ -13,6 +13,7 @@ define("PASFOTOEXTENTIES", ["gif", "jpg", "jpeg", "png"]);
 define("ARRTYPEEDITOR", [1 => "CKEditor 5 Classic editor", 2 => "CKEditor 4"]);
 define("ARRSOORTEVENEMENT", ["B" => "Brigade-activiteit", "G" => "Gezellig/sociaal", "O" => "Opleiding", "V" => "Vergadering/overleg", "W" => "Wedstrijd"]);
 define("ARRDLNSTATUS", ["A" => "Afgewezen", "B" => "Bevestigd", "I" => "Ingeschreven", "N" => "Niet geweest", "R" => "Reserve", "T" => "Onder voorbehoud", "X" => "Afgezegd"]);
+define("ARRPRESENTIESTATUS", ["A" => "Aangemeld/aanwezig", "R" => "Afgemeld/afwezig met bekende reden", "T" => "Onder voorbehoud", "X" => "Afgemeld/afwezig zonder bekende reden", "Z" => "Afgemeld/afwezig wegens ziekte"]);
 define("BASEDIR", substr(__DIR__, 0, strrpos(__DIR__, "/")));
 
 require(BASEDIR . '/config.php');
@@ -111,7 +112,6 @@ if (!isset($_SESSION['settings']['naamvereniging'])) {
 	$_SESSION['settings']['emailsecretariaat'] = $row->EmailSecretariaat;
 	$_SESSION['settings']['emailledenadministratie'] = $row->EmailLedenadministratie;
 }
-// debug($_SESSION['settings']['muteerbarememos'] . " / " . $_SESSION['settings']['zs_muteerbarememos']);
 if ($bestandsversie != $_SESSION['settings']['versie']) {
 	debug(sprintf("Nieuwe versie: %s", strftime("%c")));
 	$i_p->controle();
