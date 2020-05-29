@@ -332,14 +332,16 @@ function inschrijvenbewaking($lidid) {
 					db_insbew("add", $lidid, $insnr, $row->RecordID, $kz, $_POST[$opm]);
 				}
 			}
-			$opmcv = db_memo("curval", $lidid, "I");
-			if (strlen($_POST['opmalg']) > 0 and strlen($opmcv) == 0) {
-				db_memo("add", $lidid, "I", $_POST['opmalg']);
-			} elseif (strlen($_POST['opmalg']) == 0 and strlen($opmcv) > 0) {
-				db_memo("delete", $lidid, "I");
-			} elseif ($_POST['opmalg'] != $opmcv) {
-				db_memo("update", $lidid, "I", $_POST['opmalg']);
+			$i_memo = new cls_Memo();
+			$f = sprintf("Lid=%d AND Soort='I'", $lidid);
+			if (strlen($_POST['opmalg']) == 0) {
+				$i_memo->delete($lidid, "I");
+			} elseif ($i_memo->aantal($f) == 0) {
+				$i_memo->add($lidid, "I", $_POST['opmalg']);
+			} else {
+				$i_memo->update($lidid, "I", $_POST['opmalg']);
 			}
+			$i_memo = null;
 			if ($geldig) {
 				if (isset($_POST['Definitief'])) {
 					db_insbew("defmaken", $lidid, $insnr);
@@ -401,7 +403,7 @@ function inschrijvenbewaking($lidid) {
 				$kandef = true;
 			}
 		}
-		printf("<tr><td colspan=6>Opmerking(en) bij de inschrijving:<br><textarea onBlur='this.form.submit();' cols=90 rows=8 name='opmalg'>%s</textarea></td></tr>\n", db_memo("curval", $lidid, "I"));
+		printf("<tr><td colspan=6>Opmerking(en) bij de inschrijving:<br><textarea onBlur='this.form.submit();' cols=90 rows=8 name='opmalg'>%s</textarea></td></tr>\n", (new cls_Memo())->inhoud($lidid, "I"));
 		echo("<tr><th colspan=6>");
 		printf("<p>%s</p>", $_SESSION['settings']['zs_voorwaardeninschrijving']);
 		if ($geldig and $kandef) {
@@ -499,7 +501,7 @@ function DetailsInschrijvingBewaking($rows) {
 				$voriglid = $row->ndLidID;
 				$aantalreg = 0;
 				$hv = "";
-				$opmins = db_memo("curval", $row->ndLidID, "I");
+				$opmins = (new cls_Memo())->inhoud($row->ndLidID, "I");
 			} elseif (strlen($hv) > 0) {
 				$hv .= "</tr>\n<tr>";
 			}
