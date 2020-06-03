@@ -100,14 +100,16 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 	(new cls_Logboek())->opschonen();
 } elseif ($_GET['op'] == "loggingdebugopschonen") {
 	(new cls_logboek())->debugopschonen();
+} elseif ($_GET['op'] == "onderdelenopschonen") {
+	(new cls_Onderdeel())->opschonen();
+} elseif ($_GET['op'] == "lidondopschonen") {
+	(new cls_Lidond())->opschonen();
 } elseif ($_GET['op'] == "evenementenopschonen") {
-	$mess = db_evenement("opschonen");
-	printf("<p class='mededeling'>%s</p>\n", $mess);
+	(new cls_Evenement())->opschonen();
 } elseif ($_GET['op'] == "mailingsopschonen") {
-	db_mailing("opschonen");
+	(new cls_Mailing())->opschonen();
 } elseif ($_GET['op'] == "loginsopschonen") {
-	$mess = db_logins("opschonen");
-	printf("<p class='mededeling'>%s</p>\n", $mess);
+	(new cls_Login())->opschonen();
 } elseif ($_GET['op'] == "autorisatieopschonen") {
 	(new cls_Authorisation())->opschonen();
 } elseif ($_GET['op'] == "orderregelsopschonen") {
@@ -125,7 +127,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	printf("<form name='formauth' method='post' action='%s?tp=%s&amp;op=changeaccess'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	echo("<table>\n");
 	echo("<tr><th></th><th>Onderdeel</th><th>Toegankelijk voor</th><th>Ingevoerd</th></tr>\n");
-	$ondrows = db_Onderdeel("lijst");
+	$ondrows = (new cls_Onderdeel())->lijst(0);
 	foreach($i_auth->lijst() as $row) {
 		$del = sprintf("<a href='%s?tp=%s&amp;op=deleteautorisatie&amp;recid=%d'><img src='images/del.png' title='Verwijder record'></a>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
 		$selectopt = sprintf("<option value=-1%s>Alleen webmasters</option>\n", checked($row->Toegang, "option", -1));
@@ -153,12 +155,12 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 } elseif ($currenttab == "Stamgegevens" and toegang($currenttab, 1, 1)) {
 	fnStamgegevens();
 	
-} elseif ($currenttab == "Uploaden data" and (db_lid("aantal") == 0 or toegang($currenttab, 1, 1))) {
-	$aantal = db_interface("aantalopenstaand");
+} elseif ($currenttab == "Uploaden data" and ((new cls_Lid())->aantal() == 0 or toegang($currenttab, 1, 1))) {
+	$aantal = (new cls_Interface())->aantal("IFNULL(Afgemeld, '1900-01-01') < '2011-01-01'");
 	if ($aantal > 0) {
 		printf("<p class='mededeling'>Er staan %d wijzigingen te wachten om verwerkt te worden. Het is daarom niet verstandig om een upload te doen.</p>", $aantal);
 	}
-	$aantal = db_logins("aantalingelogd");
+	$aantal = (new cls_Login())->aantal("Ingelogd=1");
 	if ($aantal > 1) {
 		printf("<p class='mededeling'>Er staan zijn momenteel %d gebruikers ingelogd. Het is daarom niet verstandig om een upload te doen.</p>", $aantal);
 	}
@@ -174,7 +176,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	$copytext = "";
 	echo("<h2>Wijzigen op de website, te verwerken in de Access database.</h2>");
 	printf("<form name='formdownload' method='post' action='%s?tp=%s&amp;op=downloadwijz'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	$rows = db_interface("lijst");
+	$rows = (new cls_Interface())->lijst();
 	if (count($rows) > 0) {
 		echo(fnDisplayTable($rows, "", "", 1));
 		foreach ($rows as $row) {
@@ -205,16 +207,21 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 
 	echo("<div id='dbonderhoud'>\n");
 	
-	$query = sprintf("SELECT MAX(DatumTijd) AS LB FROM %sAdmin_activiteit WHERE TypeActiviteit=3;", TABLE_PREFIX);
-	$laatstebackup = db_scalar($query);
+	$f = "TypeActiviteit=3";
+	$laatstebackup = (new cls_Logboek())->max($f);
 	
 	printf("<form method='post' name='frmOnderhoud' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=backup\"' value='Backup'>&nbsp;Maak een backup van de database. Laatste backup is op %s gemaakt.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $laatstebackup);
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=FreeBackupFiles\"' value='Vrijgeven backup-bestanden'>&nbsp;Geef de backup-bestanden vrij door middel van een chmod 0755.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=logboekopschonen\"' value='Logboek opschonen'>&nbsp;Verwijder alle records uit het logboek, die ouder dan <input type='number' class='inputnumber' name='logboek_bewaartijd' onChange='this.form.submit();' value=%d> maanden zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['logboek_bewaartijd']);
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=loggingdebugopschonen\"' value='Eigen logging voor debugging opschonen'>&nbsp;Verwijder alle records uit het logboek, die onder jouw account voor debugging zijn toegevoegd.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	
+	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=onderdelenopschonen\"' value='Onderdelen opschonen'>&nbsp;Opschonen onderdelen die vervallen en niet meer in gebruik zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=onderdelenopschonen\"' value='Leden bij onderdelen opschonen'>&nbsp;Opschonen op basis van historie en 'Alleen leden'.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=evenementenopschonen\"' value='Evenementen opschonen'>&nbsp;Opschonen verwijderde evenementen, die geen deelnemers meer hebben.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	if (db_mailing("aantalprullenbak") > 0) {
+	$f = "(deleted_on IS NOT NULL)";
+	if ((new cls_Mailing())->aantal($f) > 0) {
 		printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=mailingsopschonen\"' value='Mailings opschonen'>&nbsp;Mailings, die langer dan <input type='number' name='mailing_bewaartijd' class='inputnumber' onChange='this.form.submit();' value=%d> maanden in de prullenbak zitten, definitief verwijderen.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['mailing_bewaartijd']);
 	}
 	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=loginsopschonen\"' value='Logins opschonen'>&nbsp;Opschonen van logins die om diverse redenen niet meer nodig zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
@@ -233,6 +240,8 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	printf("<div id='versies'>PHP: %s / Database: %s</div>  <!-- Einde versies -->\n", substr(phpversion(), 0, 6), $vdb);
 	
 } elseif ($currenttab == "Logboek" and toegang($currenttab, 1, 1)) {
+	$i_lb = new cls_logboek();
+	
 	if (!isset($_POST['lidfilter']) or strlen($_POST['lidfilter']) == 0) {
 		$_POST['lidfilter'] = 0;
 	}
@@ -242,13 +251,15 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	if (!isset($_POST['ipfilter']) or strlen($_POST['ipfilter']) == 0) {
 		$_POST['ipfilter'] = "";
 	}
+	$rows = $i_lb->lijst($_POST['typefilter'], 0, $_POST['lidfilter'], $_POST['ipfilter']);
+	
 	echo("<div id='filter'>\n");
 	
 	printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 	
-	echo("<label>Filter op lid:</label><div class='waarde'>\n<select name='lidfilter' id='lidfilter' onchange='form.submit();'>\n");
+	echo("<label>Filter op lid:</label><select name='lidfilter' onchange='this.form.submit();'>\n");
 	echo("<option value=0>Alle</option>\n");
-	foreach (db_logboek("lidlijst") as $row) {
+	foreach ((new cls_Logboek())->lidlijst() as $row) {
 		if ($row->LidID == $_POST['lidfilter']) {
 			$s = "selected";
 		} else {
@@ -256,12 +267,13 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 		}
 		printf("<option value=%d %s>%s</option>\n", $row->LidID, $s, htmlentities($row->Naam));
 	}
-	echo("</select>\n</div>\n");
+	echo("</select>\n");
 	
-	echo("<label>Filter op type:</label><div class='waarde'>\n<select name='typefilter' id='typefilter' onchange='form.submit();'>\n");
+	echo("<label>Filter op type:</label><select name='typefilter' onchange='this.form.submit();'>\n");
 	echo("<option value=-1>Alle</option>\n");
 	foreach ($TypeActiviteit as $key => $val) {
 		if (db_logboek("aantal", "", $key) > 0) {
+		
 			if ($key == $_POST['typefilter']) {
 				$s = "selected";
 			} else {
@@ -270,9 +282,9 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 			printf("<option value=%d %s>%s</option>\n", $key, $s, htmlentities($val));
 		}
 	}
-	echo("</select>\n</div>\n");
+	echo("</select>\n");
 	
-	echo("<label>Filter op IP-adres:</label><div class='waarde'>\n<select name='ipfilter' id='ipfilter' onchange='form.submit();'>\n");
+	echo("<label>Filter op IP-adres:</label><select name='ipfilter' onchange='form.submit();'>\n");
 	echo("<option value='*'>Alle</option>\n");
 	foreach (db_logboek("iplijst") as $row) {
 		if ($row->IP_adres == $_POST['ipfilter']) {
@@ -282,13 +294,19 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 		}
 		printf("<option value='%s'%s>%s</option>\n", $row->IP_adres, $s, $row->IP_adres);
 	}
-	echo("</select>\n</div>\n");
+	echo("</select>\n");
 	
 	echo("</form>\n");
+	
+	if (count($rows) > 1) {
+		printf("<p class='aantrecords'>%d regels</p>\n", count($rows));
+	}
+	
 	echo("</div>  <!-- Einde filter -->\n");
 	
-	$rows = db_logboek("lijst", "", $_POST['typefilter'], $_POST['lidfilter'], 0, 0, $_POST['ipfilter']);
 	echo(fnDisplayTable($rows, "", "", 0, "", "", "logboek"));
+	
+	$i_lb = null;
 	
 } elseif ($currenttab == "Info" and toegang($currenttab, 1, 1)) {
 	phpinfo();
@@ -349,25 +367,27 @@ function fnBeheerLogins() {
 	
 	db_logins("uitloggen");
 	$rows = db_logins("lijst", "", "", 0, $w, "", $ord);
-		
-	echo("<div id='beheerlogins'>\n");
-	printf("<form name='filter' action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
 	
-	printf("<label>Naam/login</label><div class='waarde'><input type='text' name='NaamFilter' size=20 value='%s' onblur='form.submit();'></div>\n", $naamfilter);
-	echo("<label>Sorteren op</label><div class='waarde'>");
+	echo("<div id='filter'>\n");
+	printf("<form action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
+	
+	printf("<label for='NaamFilter'>Naam/login:</label><input type='text' name='NaamFilter' class='tb' id='NaamFilter' size=20 value='%s' onblur='this.form.submit();'>\n", $naamfilter);
+	
+	echo("<label>Sorteren op: </label>");
 	foreach($arrSort as $s) {
-		if ($s == $sorteren) {$c=" checked"; } else { $c=""; }
-		printf("<input type='radio'%2\$s name='Sorteren' value='%1\$s' onclick='this.form.submit();'>%1\$s\n", $s, $c);
+		if ($s == $sorteren) {$c="checked"; } else { $c=""; }
+		printf("<label for='%1\$s'>%1\$s</label><input type='radio' class='rb' %2\$s name='Sorteren' id='%1\$s' value='%1\$s' onclick='this.form.submit();'>\n", $s, $c);
 	}
 	if ($sortdesc) {$c = " checked";	} else {	$c = "";	}
-	printf("&nbsp;<input type='checkbox' value='1' name='sortdesc'%s onclick='this.form.submit();'>&nbsp;Desc</div>\n", $c);
-	$al = count($rows);
-	if ($al > 1) {
-		printf("<div class='waarde'>%d logins</div>\n", $al);
+	printf("&nbsp;<label><input class='cb' type='checkbox' value='1' name='sortdesc'%s onclick='this.form.submit();'>&nbsp;Desc</label>\n", $c);
+	if (count($rows) > 1) {
+		printf("<p class='aantrecords'>%d logins</p>", count($rows));
 	}
 	echo("</form>\n");
+	echo("</div>\n");
 	echo("<div class='clear'></div>\n");
 	
+	echo("<div id='beheerlogins'>\n");
 	$lnk_ek = sprintf("<a href='%s?op=deletelogin&amp;lidid=%%d'><img src='images/del.png' title='Verwijder login'></a>", $_SERVER['PHP_SELF']);
 	if ($_SESSION['settings']['login_maxinlogpogingen'] > 0) {
 		$lnk_lk = sprintf("<a href='%s?op=unlocklogin&amp;lidid=%%d' title='Reset foutieve logins'><img src='images/unlocked_01.png'></a>", $_SERVER['PHP_SELF']);
