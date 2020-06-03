@@ -58,15 +58,12 @@ p {
 }
 
 label {
-	width: 133px;
-	height: 20px;
 	float: left;
 	display: block;
 	margin-top: 3px;
 	margin-bottom: 3px;
 	padding-top: 4px;
 	text-align: right;
-	width: 133px;
 }
 
 footer, #footer {
@@ -83,9 +80,9 @@ footer, #footer {
 	font-style: italic;
 	font-size: 8pt;
 	border-top-right-radius: 9px;
-   border-top-left-radius: 9px;
+	border-top-left-radius: 9px;
 	border-bottom-right-radius: 9px;
-   border-bottom-left-radius: 9px;
+	border-bottom-left-radius: 9px;
 }
 
 footer a, footer a:visited, #footer a, #footer a:visited {
@@ -127,8 +124,8 @@ header {
 	padding-left: 0;
 	padding-right: 0;
 	background-color: #00FFFF;
-   border-top-right-radius: 12px;
-   border-top-left-radius: 12px;
+	border-top-right-radius: 12px;
+	border-top-left-radius: 12px;
 }
 
 header h1 {
@@ -176,13 +173,16 @@ header a + a:visited + a:hover {
 
 #filter {
 	width: 100%;
+	margin-right: 0;
 	margin-top: 8px;
 	margin-bottom: 4px;
-	padding: 0;
+	padding-left: 0px;
+	padding-right: 0px;
+	padding-top: 4px;
 	border-style: solid;
 	border-color: #000080;
 	border-width: 1px;
-	height: 40px;
+	min-height: 34px;
 }
 
 #filter td {
@@ -192,9 +192,42 @@ header a + a:visited + a:hover {
 
 #filter label {
 	float: left;
-	margin-right: 2px;
-	padding-right: 1px;
+	margin-left: 6px;
+	margin-right: 4px;
+	margin-top: 3px;
 	height: 20px;
+}
+
+#filter p {
+	float: right;
+	margin-right: 6px;
+	margin-top: 6px;
+}
+
+#filter select {
+	float: left;
+	margin-top: 8px;
+	margin-bottom: 8px;
+	margin-left: 3px;
+}
+
+#filter .aantrecords {
+	float: right;
+}
+
+#filter .tb {
+	float: left;
+	margin-right: 6px;
+	margin-top: 6px;
+}
+
+#filter .cb {
+	margin-top: 2px;
+}
+
+#filter .rb {
+	float: left;
+	margin-top: 8px;
 }
 
 #filter .waarde {
@@ -208,10 +241,52 @@ header a + a:visited + a:hover {
 	padding-right: 2px;
 }
 
-#filter select {
+#formulier {
+	text-align: left;
+	margin-bottom: 10px;
+}
+
+#formulier label {
+	clear: left;
+	float: left;
+	width: 250px;
+	margin-right: 6px;
+	margin-top: 6px;
+	padding-right: 6px;
+	border-style: solid;
+	border-width: 1px;
+	background-color: #00FFFF;
+	color: #000080;
+}
+
+#formulier textarea {
+	float: left;
+	margin-top: 6px;
+	margin-bottom: 6px;
+}
+
+#formulier .cb {
+	float: left;
 	margin-top: 9px;
-	margin-bottom: 8px;
-	margin-left: 3px;
+}
+
+#formulier .tb {
+	float: left;
+	margin-right: 6px;
+	margin-top: 6px;
+}
+
+#formulier .number {
+	float: left;
+	margin-top: 6px;
+	margin-right: 6px;
+	width: 112px;
+}
+
+#formulier p {
+	float: left;
+	margin-right: 6px;
+	margin-top: 6px;
 }
 
 #beheerlogins label {
