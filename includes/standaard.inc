@@ -676,7 +676,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 					if (strstr($editkols, $key) === false) {
 						$ret .= sprintf("<td>%s</td>", fnDispEmail($value, "", 1));
 					} else {
-						$ret .= sprintf("<td><input type='email' name='%s_%d' value='%s' class='email' %s></td>", substr($key, 3), $row->$kol_pk, $value, $js);
+						$ret .= sprintf("<td><input type='email' name='%s_%d' value='%s' class='email' %s></td>", str_replace(" ", "_", substr($key, 3)), $row->$kol_pk, $value, $js);
 					}
 				} elseif (startwith($key, "pwd")) {
 					if (strstr($editkols, $key) !== false) {
@@ -816,13 +816,11 @@ function removetextblock($content, $start_block="<!-- Ingelogd -->", $end_block=
 	
 } # removetextblock
 
-function checked($val, $tp="", $sv=1) {
-	if ($val == $sv or $val === true) {
-		if ($tp === "option") {
-			return " selected";
-		} else {
-			return " checked";
-		}
+function checked($val, $tp="checkbox", $sv=1) { 
+	if ($tp === "option" and $val == $sv) {
+		return " selected";
+	} elseif ($tp === "checkbox" and ($val == 1 or $val == true)) {
+		return " checked";
 	} else {
 		return "";
 	}
