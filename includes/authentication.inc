@@ -160,7 +160,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 						addtp(trim($row->Naam) . "/Groepsindeling", $row->RecordID);
 					}
 					addtp(trim($row->Naam) . "/Groepsindeling muteren");
-					addtp(trim($row->Naam) . "/Kalender muteren");
+//					addtp(trim($row->Naam) . "/Kalender muteren");
 				}
 			}
 		}
@@ -170,45 +170,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		$_GET['lidid'] = 0;
 	}
 	$gs = (new cls_Lid())->Geslacht($_GET['lidid']);
-/*
-	if ($currenttab2 == "Overzicht lid") {
-		addtp("Ledenlijst/Overzicht lid");
-		addtp("Ledenlijst/Overzicht lid/Algemeen");
-		if (count(db_gegevenslid($_GET['lidid'], "Afdelingen")) > 0) {
-			addtp("Ledenlijst/Overzicht lid/Afdelingen");
-		}
-		if (count(db_gegevenslid($_GET['lidid'], "Kader")) > 0) {
-			addtp("Ledenlijst/Overzicht lid/Kader");
-		}
-		if (count(db_gegevenslid($_GET['lidid'], "Groepen")) > 0) {
-			addtp("Ledenlijst/Overzicht lid/Groepen");
-		}
-		if (count(db_gegevenslid($_GET['lidid'], "Rollen")) > 0) {
-			addtp("Ledenlijst/Overzicht lid/Rollen");
-		}
-		if ((new cls_Onderdeel())->aantal("`Type`='T'") > 0 and $gs != "B") {
-			addtp("Ledenlijst/Overzicht lid/Toestemmingen");
-		}
-		if (count(db_gegevenslid($_GET['lidid'], "Bew")) > 0) {
-			addtp("Ledenlijst/Overzicht lid/Bewaking");
-		}
-		if (count(db_liddipl("lidgegevens", $_GET['lidid'])) > 0) {
-			addtp("Ledenlijst/Overzicht lid/Diploma's");
-		}
-		if (count(db_gegevenslid($_GET['lidid'], "Mailing")) > 0) {
-			addtp("Ledenlijst/Overzicht lid/Mailing");
-		}
-		if (db_evenement("aantaldlnrs", $_GET['lidid']) > 0) {
-			addtp("Ledenlijst/Overzicht lid/Evenementen");
-		}
-		if (db_rekening("aantal") > 0 and db_rekening("aantal", 0, "", $_GET['lidid']) > 0) {
-			addtp("Ledenlijst/Overzicht lid/Rekeningen");
-		}
-		if (count((new cls_Logboek())->overzichtlid($_GET['lidid'])) > 0) {
-			addtp("Ledenlijst/Overzicht lid/Logboek");
-		}
-	}
-*/	
+
 	if ($currenttab2 == "Wijzigen lid") {
 		$b = "Ledenlijst/Wijzigen lid";
 		addtp($b);
