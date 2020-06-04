@@ -128,7 +128,8 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	echo("<table>\n");
 	echo("<tr><th></th><th>Onderdeel</th><th>Toegankelijk voor</th><th>Ingevoerd</th></tr>\n");
 	$ondrows = (new cls_Onderdeel())->lijst(0);
-	foreach($i_auth->lijst() as $row) {
+	$authrows = $i_auth->lijst();
+	foreach($authrows as $row) {
 		$del = sprintf("<a href='%s?tp=%s&amp;op=deleteautorisatie&amp;recid=%d'><img src='images/del.png' title='Verwijder record'></a>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
 		$selectopt = sprintf("<option value=-1%s>Alleen webmasters</option>\n", checked($row->Toegang, "option", -1));
 		$selectopt .= sprintf("<option value=0%s>Iedereen</option>\n", checked($row->Toegang, "option", 0));
@@ -235,9 +236,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	echo("</form>\n");
 	echo("</div>  <!-- Einde dbonderhoud -->\n");
 	
-	$query = "SELECT Version() AS Version;";
-	$vdb = (new cls_db_base())->versiedb();
-	printf("<div id='versies'>PHP: %s / Database: %s</div>  <!-- Einde versies -->\n", substr(phpversion(), 0, 6), $vdb);
+	printf("<div id='versies'>PHP: %s / Database: %s</div>  <!-- Einde versies -->\n", substr(phpversion(), 0, 6), (new cls_db_base())->versiedb());
 	
 } elseif ($currenttab == "Logboek" and toegang($currenttab, 1, 1)) {
 	$i_lb = new cls_logboek();
@@ -316,71 +315,54 @@ HTMLfooter();
 
 function fnBeheerLogins() {
 	
-	$arrSort[] = "Login";
-	$arrSort[] = "Achternaam";
-	$arrSort[] = "Naam";
-	$arrSort[] = "Woonplaats";
-	$arrSort[] = "Ingevoerd";
-	$arrSort[] = "Laatste login";
+	$i_login = new cls_Login();
+	
+	$arrSort[0] = "Login.Login";
+	$arrSort[1] = "";
+	$arrSort[2] = "L.Woonplaats";
+	$arrSort[3] = "Lidnr";
+	$arrSort[4] = "L.Email";
+	$arrSort[5] = "Login.Ingevoerd";
+	$arrSort[6] = "Login.LastLogin";
+	$arrSort[7] = "Status";
+	$w = "";
+	$snr = -1;
+	$ord = "";
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$naamfilter = $_POST['NaamFilter'];
-		$sorteren = $_POST['Sorteren'];
-		if (isset($_POST['sortdesc'])) {
-			$sortdesc = true;
-		} else {
-			$sortdesc = false;
-		}
 	} else {
 		$naamfilter = "";
-		$sorteren = $arrSort[1];
-		$sortdesc = false;
 	}
-
 	
 	if (strlen($naamfilter) > 0) {
 		$w = sprintf("(L.Achternaam LIKE '%%%1\$s%%' OR L.Roepnaam LIKE '%%%1\$s%%' OR Login.Login LIKE '%%%1\$s%%')", $naamfilter);
-	} else {
-		$w = "";
 	}
 	
-	if ($sorteren == $arrSort[0]) {
-		$ord = "Login.Login";
-	} elseif ($sorteren == $arrSort[2]) {
-		if ($sortdesc) {
-			$ord = "L.Roepnaam DESC, L.Tussenv DESC, L.Achternaam";
+	if (isset($_GET['sort']) and intval($_GET['sort']) >= 0) {
+		if ($_SESSION['huidsort'] == $_GET['sort'] and $_SESSION['huidsort'] < 50) {
+			$ord = $arrSort[$_SESSION['huidsort']] . " DESC";
+			$_SESSION['huidsort'] = $_GET['sort']+50;
 		} else {
-			$ord = "L.Roepnaam, L.Tussenv";
+			$_SESSION['huidsort'] = $_GET['sort'];
+			$ord = $arrSort[$_SESSION['huidsort']];
 		}
-	} elseif ($sorteren == $arrSort[4]) {
-		$ord = "Login.Ingevoerd";
-	} elseif ($sorteren == $arrSort[5]) {
-		$ord = "Login.LastLogin";
-	} elseif (strlen($sorteren) > 0) {
-		$ord = "L." . $sorteren;
+	} else {
+		$_SESSION['huidsort'] = -1;
 	}
-	if ($sortdesc) {
+	
+	if (isset($POST['huidsort']) and $POST['huidsort'] == $snr) {
 		$ord .= " DESC";
 	}
 	
-	$inst_login = new cls_Login();
-	
-	db_logins("uitloggen");
-	$rows = db_logins("lijst", "", "", 0, $w, "", $ord);
+	$i_login->uitloggen();
+	$rows = $i_login->lijst($w, $ord);
 	
 	echo("<div id='filter'>\n");
 	printf("<form action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
-	
 	printf("<label for='NaamFilter'>Naam/login:</label><input type='text' name='NaamFilter' class='tb' id='NaamFilter' size=20 value='%s' onblur='this.form.submit();'>\n", $naamfilter);
 	
-	echo("<label>Sorteren op: </label>");
-	foreach($arrSort as $s) {
-		if ($s == $sorteren) {$c="checked"; } else { $c=""; }
-		printf("<label for='%1\$s'>%1\$s</label><input type='radio' class='rb' %2\$s name='Sorteren' id='%1\$s' value='%1\$s' onclick='this.form.submit();'>\n", $s, $c);
-	}
-	if ($sortdesc) {$c = " checked";	} else {	$c = "";	}
-	printf("&nbsp;<label><input class='cb' type='checkbox' value='1' name='sortdesc'%s onclick='this.form.submit();'>&nbsp;Desc</label>\n", $c);
-	if (count($rows) > 1) {
+	if (count($rows) > 2) {
 		printf("<p class='aantrecords'>%d logins</p>", count($rows));
 	}
 	echo("</form>\n");
@@ -395,18 +377,19 @@ function fnBeheerLogins() {
 		$lnk_lk = "";
 	}
 	
-	echo(fnDisplayTable($rows, "", "", 0, $lnk_lk, "", "lijst", $lnk_ek));
+	echo(fnDisplayTable($rows, "", "", 0, $lnk_lk, "", "lijst", $lnk_ek, "", 0, $arrSort));
 	
 	echo("</div>  <!-- Einde beheerlogins -->\n");
 	
 	// Nieuwe en gewijzigde logins in de tabel interface zetten en de tabel 'Lid' bijwerken.
 	$inst_lid = new cls_Lid();
 	$f = "IFNULL(L.LoginWebsite, '') <> IFNULL(Login.Login, '')";
-	foreach ($inst_login->lijst($f) as $row) {
-		$inst_lid->update($row->lnkNummer, "LoginWebsite", $row->Login);
+	foreach ($i_login->lijst($f) as $row) {
+		$i_lid->update($row->lnkNummer, "LoginWebsite", $row->Login);
 	}
 	$inst_lid = null;
 	$inst_login = null;
+	
 }  #  fnBeheerLogins
 
 function fnInstellingen() {
