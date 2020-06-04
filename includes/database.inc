@@ -1053,16 +1053,19 @@ class cls_Lidmaatschap extends cls_db_base {
 		return $this->lidid;
 	}
 	
-	public function soortlid($p_lidid) {
+	public function soortlid($p_lidid, $p_per="") {
+		if (strlen($p_per) < 10) {
+			$p_per = date("Y-m-d");
+		}
+		
 		$rv = "Lid";
-			
-		$query = sprintf("SELECT * FROM %s WHERE Lid=%d ORDER BY LIDDATUM DESC;", $this->table, $p_lidid);
+		$query = sprintf("SELECT LM.* FROM %s AS LM  WHERE LM.Lid=%d ORDER BY LM.LIDDATUM DESC;", $this->table, $p_lidid);
 		$result = $this->execsql($query);
 		$row = $result->fetch();
 		if (isset($row->Lid) and $row->Lid > 0) {
-			if ($row->Opgezegd > '1970-01-01' and $row->Opgezegd < date("Y-m-d")) {
+			if ($row->Opgezegd > '1900-01-01' and $row->Opgezegd < $p_per) {
 				$rv = "Voormalig lid";
-			} elseif (strtotime($row->LIDDATUM) > time()) {
+			} elseif ($row->LIDDATUM > $p_per) {
 				$rv = "Toekomstig lid";
 			}
 		} else {
@@ -2449,6 +2452,44 @@ class cls_Lidond extends cls_db_base {
 		return $result->fetchAll();
 	}
 	
+	public function onderdeellijst($p_ondid, $p_filter="") {
+		$filter = sprintf("LO.OnderdeelID=%d AND %s", $p_ondid, $this->wherelidond);
+		if (strlen($p_filter) > 0) {
+			$filter .= " AND " . $p_filter;
+		}
+		
+		$query = sprintf("SELECT MAX(LO.Functie) FROM %s WHERE %s;", $this->fromlidond, $filter);
+		if ($this->scalar($query) == 0) {
+			$xtr_sel = "";
+		} else {
+			$xtr_sel = ", F.Omschrijv AS Functie";
+		}
+		
+		$query = sprintf("SELECT MAX(LO.GroepID) FROM %s WHERE %s;", $this->fromlidond, $filter);
+		if ($this->scalar($query) > 0) {
+			$xtr_sel .= sprintf(", (SELECT GR.Kode FROM %sGroep AS GR WHERE LO.GroepID=GR.RecordID) AS Groep", TABLE_PREFIX);
+		}
+		
+		$query = sprintf("SELECT MAX(LO.OPMERK) FROM %s WHERE %s;", $this->fromlidond, $filter);
+		if (strlen($this->scalar($query)) > 0) {
+			$xtr_sel .= ", LO.OPMERK AS Opmerking";
+		}
+		$xtr_sel .= ", LO.Vanaf AS dteVanaf";
+		
+		$query = sprintf("SELECT MAX(LO.Opgezegd) FROM %s WHERE %s;", $this->fromlidond, $filter);
+		if ($this->scalar($query) > '2001-01-01') {
+			$xtr_sel .= ", LO.Opgezegd AS dteTotenmet";
+		}
+		
+		$query = sprintf("SELECT L.RecordID AS lnkNummer, %1\$s AS `Naam_lid`, L.Woonplaats,
+							L.Mobiel, IF(LENGTH(L.Email) > 5, L.Email, L.EmailOuders) AS `emlE-mail`%5\$s, L.RecordID AS llkNummer, L.GEBDATUM AS ndGEBDATUM, %2\$s AS ndZoeknaam
+							FROM %3\$s
+							WHERE %4\$s
+							ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $this->selectnaam, $this->selectzoeknaam, $this->fromlidond, $filter, $xtr_sel);
+		$result = $this->execsql($query);
+		return $result->fetchAll();
+	}
+	
 	public function groepsindeling($p_onderdeelid, $p_filter="") {
 		
 		if ($p_onderdeelid > 0) {
@@ -2655,11 +2696,11 @@ class cls_Lidond extends cls_db_base {
 			$this->delete($row->RecordID, $reden);
 		}
 		
-		$query = sprintf('SELECT LO.RecordID, LO.Lid, O.`Alleen leden` FROM %s AS LO INNER JOIN %sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE();', $this->table, TABLE_PREFIX);
+		$query = sprintf('SELECT LO.RecordID, LO.Lid, LO.Vanaf, IFNULL(LO.Opgezegd, CURDATE()) AS Opgezegd FROM %s AS LO INNER JOIN %sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE O.`Alleen leden`=1 AND LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE();', $this->table, TABLE_PREFIX);
 		$reden = "omdat de persoon geen lid (meer) is";
 		$result = $this->execsql($query);
 		foreach ($result->fetchAll() as $row) {
-			if ($row->{'Alleen leden'} == 1 and (new cls_Lidmaatschap())->soortlid($row->Lid) != "Lid") {
+			if ((new cls_Lidmaatschap())->soortlid($row->Lid, $row->Vanaf) != "Lid" or (new cls_Lidmaatschap())->soortlid($row->Lid, $row->Opgezegd) != "Lid") {
 				$i_ond->update($row->RecordID, "Opgezegd", date("Y-m-d"), $reden);
 			}
 		}
