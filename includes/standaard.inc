@@ -529,7 +529,8 @@ function fnDisplayFormLabels($row, $xtra_eind="", $id="formulier") {
 	return $ret;
 }  # fnDisplayFormLabels
 
-function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_regel="", $class="", $xtra_kolom="", $editkols="", $autosubmit=0) {
+function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_regel="", $class="", $xtra_kolom="", $editkols="", $autosubmit=0, $sortkols=null) {
+	global $currenttab;
 	
 	if (strlen($class) == 0) {
 		$class = "lijst";
@@ -549,9 +550,21 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 			if ($dispkop == 1) {
 				$hv = "<tr>";
 				$kn = 0;
+				$skn = 0;
 				foreach($row as $key => $value) {
+					$sortlink = "";
+					if (empty($sortkols) == false) {
+						if (isset($sortkols[$skn])) {
+							$sortlink = sprintf("%s?tp=%s&sort=%d", $_SERVER["PHP_SELF"], $currenttab, $skn);
+						}
+					}
 					if (strstr("chk, dte, dtt, dtl, dts, boo, int, cur, eml, num, mrg, pwd", substr($key, 0, 3)) !== false) {
-						$hv .= sprintf("<th>%s</th>", str_replace("_", " ", substr($key, 3)));
+						if (strlen($sortlink) > 0) {
+							$hv .= sprintf("<th><a href='%s'>%s</a></th>", $sortlink, str_replace("_", " ", substr($key, 3)));
+						} else {
+							$hv .= sprintf("<th>%s</th>", str_replace("_", " ", substr($key, 3)));
+						}
+						$skn++;
 					} elseif (startwith($key, "lnk")) {
 						if (strlen($link) > 1) {
 							$hv .= "<th>&nbsp;</th>";
@@ -568,7 +581,12 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 							$ktot[$kn] = "geen";
 						}
 					} elseif (substr($key, 0, 2) != "nd") {
-						$hv .= sprintf("<th>%s</th>", str_replace("_", " ", $key));
+						if (strlen($sortlink) > 0) {
+							$hv .= sprintf("<th><a href='%s'>%s</a></th>", $sortlink, str_replace("_", " ", $key));
+						} else {
+							$hv .= sprintf("<th>%s</th>", str_replace("_", " ", $key));
+						}
+						$skn++;
 					}
 					
 					if (startwith($key, "cur")) {
