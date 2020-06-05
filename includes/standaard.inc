@@ -553,18 +553,9 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 				$skn = 0;
 				foreach($row as $key => $value) {
 					$sortlink = "";
-					if (empty($sortkols) == false) {
-						if (isset($sortkols[$skn])) {
-							$sortlink = sprintf("%s?tp=%s&sort=%d", $_SERVER["PHP_SELF"], $currenttab, $skn);
-						}
-					}
+					$ht = "";
 					if (strstr("chk, dte, dtt, dtl, dts, boo, int, cur, eml, num, mrg, pwd", substr($key, 0, 3)) !== false) {
-						if (strlen($sortlink) > 0) {
-							$hv .= sprintf("<th><a href='%s'>%s</a></th>", $sortlink, str_replace("_", " ", substr($key, 3)));
-						} else {
-							$hv .= sprintf("<th>%s</th>", str_replace("_", " ", substr($key, 3)));
-						}
-						$skn++;
+						$ht = str_replace("_", " ", substr($key, 3));
 					} elseif (startwith($key, "lnk")) {
 						if (strlen($link) > 1) {
 							$hv .= "<th>&nbsp;</th>";
@@ -581,13 +572,31 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 							$ktot[$kn] = "geen";
 						}
 					} elseif (substr($key, 0, 2) != "nd") {
-						if (strlen($sortlink) > 0) {
-							$hv .= sprintf("<th><a href='%s'>%s</a></th>", $sortlink, str_replace("_", " ", $key));
-						} else {
-							$hv .= sprintf("<th>%s</th>", str_replace("_", " ", $key));
-						}
-						$skn++;
+						$ht = str_replace("_", " ", $key);
 					}
+					
+					
+					if (empty($sortkols) == false) {
+						$skn = -1;
+						foreach ($sortkols as $k => $v) {
+							if (startwith($v, $ht)) {
+								$skn = $k;
+							}
+						}
+						if (isset($_SESSION['huidsort']) and $_SESSION['huidsort'] < 50 and $_SESSION['huidsort'] == $skn and $skn >= 0) {
+							$skn += 50;
+						}
+						if ($skn >= 0) {
+							$sortlink = sprintf("%s?tp=%s&sort=%d", $_SERVER["PHP_SELF"], $currenttab, $skn);
+						}
+					}
+					
+					if (strlen($ht) > 0 and strlen($sortlink) > 0) {
+						$hv .= sprintf("<th><a href='%s'>%s</a></th>", $sortlink, $ht);
+					} elseif (strlen($ht) > 0) {
+						$hv .= sprintf("<th>%s</th>", $ht);
+					}
+					
 					
 					if (startwith($key, "cur")) {
 						$ktot[$kn] = 0.00;
@@ -744,7 +753,49 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 	}
 	$ret .= sprintf("</div>  <!-- Einde %s -->\n", $class);
 	return $ret;
+	
 } # fnDisplayTable
+
+function fnOrderBy($p_arrSort) {
+	$ord = "";
+	
+	if (isset($_GET['sort'])) {
+		$_SESSION['huidsort'] = $_GET['sort'];
+	} else {
+		$_SESSION['huidsort'] = -1;
+	}
+	
+	if ($_SESSION['huidsort'] >= 50) {
+		$sk = $_SESSION['huidsort'] - 50;
+	} else {
+		$sk= $_SESSION['huidsort'];
+	}
+	
+	$sw = "";
+	if ($sk >= 0 and array_key_exists($sk, $p_arrSort)) {
+		$sw = $p_arrSort[$sk];
+		if (strpos($sw, ";") > 0) {
+			$sw = explode(";", $sw)[1];
+		}
+	}
+	
+	if (strlen($sw) > 0 and (strpos($sw, " ") !== false or strpos($sw, "-") !== false)) {
+		if (strpos($sw, ".") !== false) {
+			$ord = explode(".", $sw)[0] . ".`" . explode(".", $sw)[1] . "`";
+		} else {
+			$ord = "`" . $sw . "`";
+		}
+	} else {
+		$ord = $sw;
+	}
+	
+	if ($_SESSION['huidsort'] >= 50 and strlen($ord) > 0) {
+		$ord .= " DESC";
+	}
+	
+	return $ord;
+
+}  # fnOrderBy
 
 function debug($tekst, $alleenwm=1, $alert=0, $logact=0) {
 	if (is_array($tekst) or is_object($tekst)) {
