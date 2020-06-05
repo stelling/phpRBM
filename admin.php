@@ -77,8 +77,9 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 				}
 				
 				$mess = "Bestand is in de database verwerkt.";
-				db_onderhoud(1);
-				fnMaatwerkNaUpload();
+				debug("aantal onderdelen: " . (new cls_Onderdeel())->aantal());
+//				db_onderhoud(1);
+//				fnMaatwerkNaUpload();
 				printf("<script>setTimeout(\"location.href='%s';\", 30000);</script>\n", $_SERVER['PHP_SELF']);
 			}
 			if (strlen($mess) > 0) {
@@ -241,6 +242,26 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 } elseif ($currenttab == "Logboek" and toegang($currenttab, 1, 1)) {
 	$i_lb = new cls_logboek();
 	
+	$arrSort[] = "Datum en tijd;DatumTijd";
+	$arrSort[] = "Omschrijving;Omschrijving";
+	$arrSort[] = "Type;Type";
+	$arrSort[] = "Script / Functie;Script / Functie";
+	$arrSort[] = "Ingelogd Lid;Ingelogd Lid";
+	$arrSort[] = "IP adres;A.IP_adres";
+	
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		$naamfilter = $_POST['NaamFilter'];
+	} else {
+		$naamfilter = "";
+	}
+
+	$w = "";	
+	if (strlen($naamfilter) > 0) {
+		$w = sprintf("(L.Achternaam LIKE '%%%1\$s%%' OR L.Roepnaam LIKE '%%%1\$s%%' OR Login.Login LIKE '%%%1\$s%%')", $naamfilter);
+	}
+	
+	$ord = fnOrderBy($arrSort);
+	
 	if (!isset($_POST['lidfilter']) or strlen($_POST['lidfilter']) == 0) {
 		$_POST['lidfilter'] = 0;
 	}
@@ -250,7 +271,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	if (!isset($_POST['ipfilter']) or strlen($_POST['ipfilter']) == 0) {
 		$_POST['ipfilter'] = "";
 	}
-	$rows = $i_lb->lijst($_POST['typefilter'], 0, $_POST['lidfilter'], $_POST['ipfilter']);
+	$rows = $i_lb->lijst($_POST['typefilter'], 0, $_POST['lidfilter'], $_POST['ipfilter'], $ord);
 	
 	echo("<div id='filter'>\n");
 	
@@ -271,30 +292,16 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	echo("<label>Filter op type:</label><select name='typefilter' onchange='this.form.submit();'>\n");
 	echo("<option value=-1>Alle</option>\n");
 	foreach ($TypeActiviteit as $key => $val) {
-		if (db_logboek("aantal", "", $key) > 0) {
-		
-			if ($key == $_POST['typefilter']) {
-				$s = "selected";
-			} else {
-				$s = "";
-			}
-			printf("<option value=%d %s>%s</option>\n", $key, $s, htmlentities($val));
-		}
-	}
-	echo("</select>\n");
-	
-	echo("<label>Filter op IP-adres:</label><select name='ipfilter' onchange='form.submit();'>\n");
-	echo("<option value='*'>Alle</option>\n");
-	foreach (db_logboek("iplijst") as $row) {
-		if ($row->IP_adres == $_POST['ipfilter']) {
+		if ($key == $_POST['typefilter']) {
 			$s = "selected";
 		} else {
 			$s = "";
 		}
-		printf("<option value='%s'%s>%s</option>\n", $row->IP_adres, $s, $row->IP_adres);
+		printf("<option value=%d %s>%s</option>\n", $key, $s, htmlentities($val));
 	}
 	echo("</select>\n");
 	
+	echo("<label>Filter op IP-adres:</label><input type='text' class='tb' name='ipfilter' max-length=32 size=25 onchange='this.form.submit();'>\n");
 	echo("</form>\n");
 	
 	if (count($rows) > 1) {
@@ -303,7 +310,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	
 	echo("</div>  <!-- Einde filter -->\n");
 	
-	echo(fnDisplayTable($rows, "", "", 0, "", "", "logboek"));
+	echo(fnDisplayTable($rows, "", "", 0, "", "", "logboek", "", "", 0, $arrSort));
 	
 	$i_lb = null;
 	
@@ -317,17 +324,14 @@ function fnBeheerLogins() {
 	
 	$i_login = new cls_Login();
 	
-	$arrSort[0] = "Login.Login";
-	$arrSort[1] = "";
-	$arrSort[2] = "L.Woonplaats";
-	$arrSort[3] = "Lidnr";
-	$arrSort[4] = "L.Email";
-	$arrSort[5] = "Login.Ingevoerd";
-	$arrSort[6] = "Login.LastLogin";
-	$arrSort[7] = "Status";
-	$w = "";
-	$snr = -1;
-	$ord = "";
+	$arrSort[0] = "Login;Login";
+	$arrSort[1] = "Naam lid;Achternaam";
+	$arrSort[2] = "Woonplaats;Woonplaats";
+	$arrSort[3] = "Lidnr;Lidnr";
+	$arrSort[4] = "E-mail;E-mail";
+	$arrSort[5] = "Ingevoerd;Login.Ingevoerd";
+	$arrSort[6] = "Laatste login;LastLogin";
+	$arrSort[7] = "Status;Status";
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$naamfilter = $_POST['NaamFilter'];
@@ -335,25 +339,12 @@ function fnBeheerLogins() {
 		$naamfilter = "";
 	}
 	
+	$w = "";
 	if (strlen($naamfilter) > 0) {
 		$w = sprintf("(L.Achternaam LIKE '%%%1\$s%%' OR L.Roepnaam LIKE '%%%1\$s%%' OR Login.Login LIKE '%%%1\$s%%')", $naamfilter);
 	}
 	
-	if (isset($_GET['sort']) and intval($_GET['sort']) >= 0) {
-		if ($_SESSION['huidsort'] == $_GET['sort'] and $_SESSION['huidsort'] < 50) {
-			$ord = $arrSort[$_SESSION['huidsort']] . " DESC";
-			$_SESSION['huidsort'] = $_GET['sort']+50;
-		} else {
-			$_SESSION['huidsort'] = $_GET['sort'];
-			$ord = $arrSort[$_SESSION['huidsort']];
-		}
-	} else {
-		$_SESSION['huidsort'] = -1;
-	}
-	
-	if (isset($POST['huidsort']) and $POST['huidsort'] == $snr) {
-		$ord .= " DESC";
-	}
+	$ord = fnOrderBy($arrSort);
 	
 	$i_login->uitloggen();
 	$rows = $i_login->lijst($w, $ord);
