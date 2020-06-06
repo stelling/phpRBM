@@ -60,12 +60,15 @@ function fnMailing() {
 		fnDispMenu(2);
 	}
 	
-//	echo("<h2>De mailingsmodule is momenteel in onderhoud. Graag niet gebruiken.</h2>");
+//	echo("<h2>Werk in uitvoering. Graag niet gebruiken.</h2>");
 
-	$zv = db_Mailing("zichtbaarvoor");
+	$f = sprintf("RecordID=%d", $_GET['mid']);
+	$zv = (new cls_Mailing())->max("ZichtbaarVoor", $f);
 	$lg = explode(", ", $_SESSION['lidgroepen']);
-	if ($_SESSION['webmaster'] == 0 and $zv != 0 and !in_array($zv, $lg)) {
-		echo("<h2>Je hebt geen rechten om deze mailing te bekijken of te bewerken.</h2>");
+	if ($_SESSION['webmaster'] == 0 and $zv != 0 and in_array($zv, $lg) === false) {
+		$mess = "Je hebt geen rechten om deze mailing te bekijken of te bewerken.";
+		printf("<h2>%s</h2>", $mess);
+		debug($mess, 1, 0, 1);
 		
 	} elseif ($op == "edit") {
 		$mailing->edit();
@@ -240,10 +243,10 @@ class Mailing {
 	public $xtrachar = "";
 	public $xtranum = 0;
 
-	function __construct($mid=0) {
+	function __construct($p_mid=0) {
 		global $selectnaam, $fdlang, $fdkort, $wherelid, $fromlidond, $wherelidond, $whereliddipl;
 
-		$this->mid = $mid;
+		$this->mid = $p_mid;
 		$this->vuldbvars();
 		
 		if ($this->mid > 0) {
@@ -390,27 +393,37 @@ class Mailing {
 			$sql = sprintf("SELECT RN.Foutboodschap FROM %1\$sLidRedNed AS RN JOIN %1\$sLidmaatschap AS LM ON LM.LIDNR = RN.Lidnr WHERE LM.LID=%%d;", TABLE_PREFIX);
 			$this->MergeField[]=array('Naam' => "VerschilSportlink", 'SQL' => $sql);
 		}
-				
-		if (db_onderdeel("aantalingebruik", "A") > 0) {
-			
+		
+		$i_ond = new cls_Onderdeel();
+
+		if (count($i_ond->lijst(1, "O.`Type`='A'")) > 0) {
 			$sql = sprintf("SELECT CONCAT(O.Naam, IF(LO.Functie > 0, CONCAT(' (', F.Omschrijv , ')'), ''))
-					FROM (%1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID = LO.OnderdeelID) INNER JOIN %1\$sFunctie AS F ON LO.Functie = F.Nummer
-					WHERE ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE()) AND `Type`='A' AND LO.Lid=%%d ORDER BY O.Naam;", TABLE_PREFIX);
+					FROM %s
+					WHERE IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()) AND O.`Type`='A' AND LO.Lid=%%d ORDER BY O.Naam;", $i_ond->fromlidond);
 			$this->MergeField[]=array('Naam' => "Afdelingen", 'SQL' => $sql);
 			
-			if (db_groep("aantal") > 1) {				
+			if ((new cls_Groep())->aantal() > 1) {				
 				$sql = sprintf("SELECT CONCAT(O.Naam, IF(LO.GroepID > 0, CONCAT(' (', GR.Starttijd, ' ', GR.Omschrijving, ')'), IF(LO.Functie > 0, CONCAT(' (', F.Omschrijv , ')'), '')))
-						FROM ((%1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID = LO.OnderdeelID) LEFT JOIN %1\$sGroep AS GR ON LO.GroepID=GR.RecordID) INNER JOIN %1\$sFunctie AS F ON LO.Functie = F.Nummer
-						WHERE ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE()) AND `Type`='A' AND LO.Lid=%%d ORDER BY O.Naam;", TABLE_PREFIX);
+						FROM %s
+						WHERE IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()) AND O.`Type`='A' AND LO.Lid=%%d ORDER BY O.Naam;", $i_ond->fromlidond);
 				$this->MergeField[]=array('Naam' => "AfdelingenMetGroep", 'SQL' => $sql);
 			}
 		}
 		
-		if (db_onderdeel("aantalingebruik", "R") > 0) {
-			$sql = sprintf("SELECT O.Naam FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID = LO.OnderdeelID 
-					 WHERE %2\$s AND `Type`='R' AND LO.Lid=%%d ORDER BY O.Naam;", TABLE_PREFIX, $wherelidond);
+		if (count($i_ond->lijst(1, "O.`Type`='R'")) > 0) {
+			$sql = sprintf("SELECT O.Naam FROM %sLidond AS LO INNER JOIN %s AS O ON O.RecordID = LO.OnderdeelID 
+					 WHERE %s AND `Type`='R' AND LO.Lid=%%d ORDER BY O.Naam;", TABLE_PREFIX, $i_ond->table, $i_ond->wherelidond);
 			$this->MergeField[]=array('Naam' => "Rollen", 'SQL' => $sql);
 		}
+		
+				
+		if (count($i_ond->lijst(1, "O.`Type`='T'")) > 0) {
+			$sql = sprintf("SELECT O.Naam FROM %sLidond AS LO INNER JOIN %s AS O ON O.RecordID = LO.OnderdeelID 
+					 WHERE %s AND `Type`='T' AND LO.Lid=%%d ORDER BY O.Naam;", TABLE_PREFIX, $i_ond->table, $i_ond->wherelidond);
+			$this->MergeField[]=array('Naam' => "Toestemmingen", 'SQL' => $sql);
+		}
+		
+		$i_ond =  null;
 
 		$i_memo = new cls_Memo();
 		if ($i_memo->aantal("Soort = 'D'") > 0) {
