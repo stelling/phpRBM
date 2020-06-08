@@ -448,7 +448,7 @@ function fnDisplayForm($row, $xtra_eind="", $id="formulier") {
 	if (strlen($id) > 0) {
 		$ret = sprintf("<div id='%s'>\n", $id);
 	}
-	if (isset($row)) {
+	if (isset($row) and $row != null) {
 		$ret .= "<table>\n";
 		foreach($row as $key => $value) {
 			if (substr($key, 0, 3) == "Kop") {
@@ -492,7 +492,7 @@ function fnDisplayFormLabels($row, $xtra_eind="", $id="formulier") {
 	if (strlen($id) > 0) {
 		$ret = sprintf("<div id='%s'>\n", $id);
 	}
-	if (isset($row)) {
+	if (isset($row) and $row != null) {
 		foreach($row as $key => $value) {
 			if (substr($key, 0, 3) == "Kop") {
 				$ret .= sprintf("<h3>%s</h3>\n", $value);
