@@ -77,9 +77,8 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 				}
 				
 				$mess = "Bestand is in de database verwerkt.";
-				debug("aantal onderdelen: " . (new cls_Onderdeel())->aantal());
-//				db_onderhoud(1);
-//				fnMaatwerkNaUpload();
+				db_onderhoud(1);
+				fnMaatwerkNaUpload();
 				printf("<script>setTimeout(\"location.href='%s';\", 30000);</script>\n", $_SERVER['PHP_SELF']);
 			}
 			if (strlen($mess) > 0) {
