@@ -165,6 +165,8 @@ function inschrijvenevenementen($lidid) {
 
 function muteerevenement($eventid) {
 
+	$i_ev = new cls_Evenement();
+	$i_ed = new cls_Evenement_Deelnemer();
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$_POST['Datum'] = change_month_to_uk($_POST['Datum']);
 		if (strtotime($_POST['Datum']) === FALSE) {
@@ -181,7 +183,6 @@ function muteerevenement($eventid) {
 		}
 		
 		$old = db_evenement("record", 0, $eventid);
-		$inst_ev = new cls_Evenement();
 		foreach($_POST as $key => $val) {
 			if (array_key_exists($key, $old) and $old->$key != $_POST[$key]) {
 				$inst_ev->update($eventid, $key, $_POST[$key]);
@@ -189,52 +190,49 @@ function muteerevenement($eventid) {
 		}
 
 		if (isset($_POST['verwijderen']) and $old->VerwijderdOp < '2012-01-01') {
-			$inst_ev->update($eventid, "VerwijderdOp", date("Y-m-d"));
+			$i_ev->update($eventid, "VerwijderdOp", date("Y-m-d"));
 		} elseif (isset($_POST['undoverwijderen']) and $old->VerwijderdOp > '2012-01-01') {
-			$inst_ev->update($eventid, "VerwijderdOp", "0000-00-00");
+			$i_ev->update($eventid, "VerwijderdOp", "0000-00-00");
 		}
-		$inst_ed = new cls_Evenement_Deelnemer();
 		foreach (db_evenement("deelnemers", 0, $eventid) as $rd) {
 			foreach(array("Status", "Opmerking", "Functie", "Aantal") as $fld) {
 				$formfld = sprintf("%s_%d", $fld, $rd->RecordID);
 				if (isset($_POST[$formfld])) {
-					$inst_ed->update($rd->RecordID, $fld, $_POST[$formfld]);
+					$i_ed->update($rd->RecordID, $fld, $_POST[$formfld]);
 				}
 			}
 		}
 		if (isset($_POST['nwdln']) and $_POST['nwdln'] > 0 and is_numeric($_POST['nwdln'])) {
-			$inst_ed->add($eventid, $_POST['nwdln'], $inst_ev->standaardstatus($eventid));
+			$i_ed->add($eventid, $_POST['nwdln'], $inst_ev->standaardstatus($eventid));
 		}
-		$inst_ev = null;
-		$inst_ed = null;
 		
 		if (isset($_POST['Bewaren_Sluiten'])) {
 			printf("<script>location.href='%s?tp=Evenementen/Beheer'</script>\n", $_SERVER['PHP_SELF']);
 		} elseif (isset($_POST['maildeeln']) or isset($_POST['mailpotdeeln']) or isset($_POST['mailbeidedeeln'])) {
-			$inst_M = new cls_Mailing();
-			$inst_MR = new cls_Mailing_rcpt();
+			$i_M = new cls_Mailing();
+			$i_MR = new cls_Mailing_rcpt();
 			$mid = $inst_M->add($_POST['Omschrijving']);
 			if ($mid > 0) {
 				if (strlen($_POST['Email']) > 4 and isValidMailAddress($_POST['Email'])) {
 					$row = db_mailing_vanaf("record", $_POST['Email']);
 					if (isset($row->Vanaf_email) and strlen($row->Vanaf_email) > 4) {
-						$inst_M->update($mid, "from_addr", $row->Vanaf_email);
+						$i_M->update($mid, "from_addr", $row->Vanaf_email);
 					}
 				}
 				if (isset($_POST['maildeeln']) or isset($_POST['mailbeidedeeln'])) {
 					foreach (db_evenement("deelnemers", 0, $eventid, "", "'B', 'I', 'R', 'T'") as $row) {
-						$inst_MR->add($mid, $row->LidID);
+						$i_MR->add($mid, $row->LidID);
 					}
 				}
 				if (isset($_POST['mailpotdeeln']) or isset($_POST['mailbeidedeeln'])) {
 					foreach (db_evenement("potdeelnemers", 0, $eventid) as $row) {
-						$inst_MR->add($mid, $row->LidID);
+						$i_MR->add($mid, $row->LidID);
 					}
 				}
 			}
 			printf("<script>location.href='%s?tp=Mailing/Concepten&op=edit&mid=%d'</script>\n", $_SERVER['PHP_SELF'], $mid);
-			$inst_M = null;
-			$inst_MR = null;
+			$i_M = null;
+			$i_MR = null;
 		}
 	}
 	
@@ -318,22 +316,23 @@ function muteerevenement($eventid) {
 	printf("<td class='label'>Aantal afgemeld:</td><td>%d</td></tr>\n", $aantafgemeld);
 	
 	if ($eventid > 0) {
+		$ondrows = (new cls_Onderdeel())->lijst(1, "", $datum);
 		printf("<tr><td class='label'>Online inschrijving open:</td><td><input type='radio' name='InschrijvingOpen' value=1 %s>Ja<input type='radio' name='InschrijvingOpen' value=0 %s>Nee</td>\n", $insopen1, $insopen2);
 		printf("<td class='label'>Standaard status:</td><td><select name='StandaardStatus'>%s</select></td>\n", $optionstandstatus);
 		printf("<td class='label'>Max. personen per deelname:</td><td><input type='number' class='inputnumber' name='MaxPersonenPerDeelname' value=%d min=1></td></tr>\n", $maxpersonenperdeelname);
 		
 		$optiongroepen = "<option value=0>Niemand</option>\n";
-		foreach (db_onderdeel("lijstingebruik", "", 0, 0, "", "", $datum) as $t) {
+		foreach ($ondrows as $t) {
 			if ($t->RecordID == $beperktotgroep) {
 				$s = " selected";
 			} else {
 				$s = "";
 			}
-			$optiongroepen .= sprintf("<option value=%d%s>%s (%d leden)</option>\n", $t->RecordID, $s, htmlentities($t->Naam), $t->Aantal);
+			$optiongroepen .= sprintf("<option value=%d%s>%s</option>\n", $t->RecordID, $s, htmlentities($t->Naam));
 		}
 		printf("<tr><td class='label'>Deelname beperken tot:</td><td colspan=2><select name='BeperkTotGroep' onChange='this.form.submit();'>%s</select></td>\n", $optiongroepen);
 		$optiongroepen = "<option value=0>Iedereen</option>\n";
-		foreach (db_onderdeel("lijstingebruik", "", 0, 0, "", "", $datum) as $t) {
+		foreach ($ondrows as $t) {
 			if ($t->RecordID == $zichtbaarvoor) {
 				$s = "selected";
 			} else {
