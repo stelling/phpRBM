@@ -194,7 +194,7 @@ function HTMLheader($breed=0) {
 		echo("<div id='login'>\n");
 		
 		if ($_SESSION['lidid'] > 0) {
-			printf("Welkom %s\n", htmlentities($_SESSION['roepnaamingelogde']));
+			printf("<p>Welkom %s</p>\n", htmlentities($_SESSION['roepnaamingelogde']));
 			echo("<a href='/?tp=Zelfservice/Wijzigen+wachtwoord'><img src='images/user.png' title='Wijzigen wachtwoord' alt='Wijzigen wachtwoord'></a>\n");
 			echo("<a href='index.php?actie=uitloggen'><img src='images/power.png' title='Uitloggen' alt='Uitloggen'></a>\n");
 			if ($_SESSION['webmaster'] == 1) {
@@ -207,9 +207,9 @@ function HTMLheader($breed=0) {
 			echo($htmlhelp);
 		} elseif ((new cls_Login())->aantal() > 0) {
 			echo("<form name='Login' action='/index.php' method='post'>\n");
-			echo("\nLogin: <input type='text' name='username' size=12>\n");
-			echo("&nbsp;Wachtwoord: <input type='password' name='password' size=12>\n");
-			echo("&nbsp;<input type='submit' value='Inloggen' name='Inloggen'>\n");
+			echo("<label>Login:</label><input type='text' name='username'>\n");
+			echo("<label>Wachtwoord:</label><input type='password' name='password'>\n");
+			echo("<input type='submit' value='Inloggen' name='Inloggen'>\n");
 			echo("<input type='checkbox' name='cookie' value=1 title='Ingelogd blijven (werkt met cookies)'>\n");
 			echo($htmlhelp);
 			echo("</form>\n");
@@ -885,10 +885,10 @@ function removetextblock($content, $start_block="<!-- Ingelogd -->", $end_block=
 	
 } # removetextblock
 
-function checked($val, $tp="checkbox", $sv=1) { 
+function checked($val, $tp="checkbox", $sv=1) {
 	if ($tp === "option" and $val == $sv) {
 		return " selected";
-	} elseif ($tp === "checkbox" and ($val == 1 or $val == true)) {
+	} elseif ($tp === "checkbox" and ($val == 1 or $val === true)) {
 		return " checked";
 	} else {
 		return "";
