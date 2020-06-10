@@ -119,7 +119,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (count(db_evenement("open")) > 0) {
 			addtp("Zelfservice/Evenementen");
 		}
-		if (db_onderdeel("aantal", "T") > 0 and $gs != "B") {
+		if ((new cls_Onderdeel())->aantal(0, "`Type`='T'") > 0 and $gs != "B") {
 			addtp("Zelfservice/Toestemmingen");
 		}
 		if (count((new cls_Artikel())->lijst("bestellijst")) > 0) {
@@ -151,8 +151,8 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	
 	if (strlen($_SESSION['settings']['menu_met_afdelingen']) > 0) {
 		// Tabblad per afdeling
-		foreach (db_Onderdeel("lijstingebruik", "A") as $row) {
-			if (in_array($row->RecordID, explode(",", str_replace(" ", "", $_SESSION['settings']['menu_met_afdelingen'])))) {
+		foreach ((new cls_Onderdeel())->lijst(1, "`Type`='A'") as $row) {
+			if (in_array($row->RecordID, explode(",", $_SESSION['settings']['menu_met_afdelingen']))) {
 				addtp($row->Naam, $row->RecordID);
 				if ($currenttab == $row->Naam) {
 					addtp($row->Naam . "/Afdelingslijst", $row->RecordID);
@@ -176,7 +176,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		addtp($b);
 		$b .= "/";
 		addtp($b . "Algemene gegevens");
-		if (db_Onderdeel("aantal", "A") > 0) {
+		if ((new cls_Onderdeel())->aantal("Type='A'") > 0) {
 			addtp($b . "Afdelingen");
 		}
 		addtp($b . "B, C en F");
@@ -404,7 +404,7 @@ function toegang($soort, $melding=1, $log=1) {
 	if ($_SESSION['lidid'] > 0 and in_array($_SESSION['lidid'], $lididwebmasters)) {
 		$_SESSION['webmaster'] = 1;
 	}
-	$_SESSION['lidgroepen'] = db_Lidond("lidgroepen");
+	$_SESSION['lidgroepen'] = (new cls_Lidond())->lidgroepen();
 	
 	$soort = str_replace("'", "", $soort);
 		
@@ -440,13 +440,13 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 	if ($stap == "mail" and $lidid > 0) {
 
 		if ($_SESSION['settings']['mailing_herstellenwachtwoord'] == 0) {
-			$inst_M = new cls_Mailing();
+			$i_M = new cls_Mailing();
 			$mid = $inst_M->add("Herstellen wachtwoord");
-			$inst_M->update($mid, "from_addr", $_SESSION['settings']['emailwebmaster']);
-			$inst_M->update($mid, "message", "<p>Herstellen wachtwoord [%NAAMWEBSITE%]: https://[%URLRESETWW%]</p>\n");
-			$inst_M->update($mid, "template", 1);
+			$i_M->update($mid, "from_addr", $_SESSION['settings']['emailwebmaster']);
+			$i_M->update($mid, "message", "<p>Herstellen wachtwoord [%NAAMWEBSITE%]: https://[%URLRESETWW%]</p>\n");
+			$i_M->update($mid, "template", 1);
 			(new cls_Parameter())->update("mailing_herstellenwachtwoord", $mid);
-			$inst_M = null;
+			$i_M = null;
 		}
 
 		$row = db_logins("rowlogin", "", "", $lidid)[0];
@@ -492,7 +492,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 			<label>Login:</label><input type=text value='%s' name='login' readonly>
 			<label>Nieuw wachtwoord:</label><input type='password' name='nieuwwachtwoord' size=25>
 			<label>Herhaal wachtwoord:</label><input type='password' name='herhaalwachtwoord' size=25>
-			<input type='submit' class='knop' value='Bevestig'>\n
+			<input type='submit' value='Bevestig'>\n
 			</fieldset>
 			</form>
 			%s", $login, fneisenwachtwoord());
@@ -725,7 +725,7 @@ function fnLoginAanvragen($stap="") {
 		printf("<p><label>Gewenste login:</label><input type='text' name='gewenstelogin' maxlength=%d>\n", $_SESSION['settings']['login_maxlengte']);
 		echo("<p><label>Gewenst wachtwoord:</label><input type='password' name='gewenstwachtwoord' maxlength=15>\n");
 
-		echo("<input class='knop' type='submit' name='loginaanvragen' value='Aanvragen'></p>\n");
+		echo("<input type='submit' name='loginaanvragen' value='Aanvragen'></p>\n");
 		echo("</fieldset>\n");
 
 		echo("<p>");
@@ -791,7 +791,7 @@ function fnOpvragenLidnr($stap) {
 		echo("<fieldset>\n");
 		echo("<h3>Opvragen Lidnummer</h3>\n");
 		echo("<label>E-mailadres:</label><input type='email' name='emailvoorlidnr'>\n");
-		echo("<input class='knop' type='submit' name='opvragenlidnr' value='Opvragen'></p>\n");
+		echo("<input type='submit' name='opvragenlidnr' value='Opvragen'></p>\n");
 		echo("</fieldset>\n");
 			
 		echo("</form>\n
