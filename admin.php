@@ -159,11 +159,11 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 } elseif ($currenttab == "Uploaden data" and ((new cls_Lid())->aantal() == 0 or toegang($currenttab, 1, 1))) {
 	$aantal = (new cls_Interface())->aantal("IFNULL(Afgemeld, '1900-01-01') < '2011-01-01'");
 	if ($aantal > 0) {
-		printf("<p class='mededeling'>Er staan %d wijzigingen te wachten om verwerkt te worden. Het is daarom niet verstandig om een upload te doen.</p>", $aantal);
+		printf("<p class='mededeling'>Er staan %d wijzigingen te wachten om verwerkt te worden. Het is niet verstandig om een upload te doen.</p>", $aantal);
 	}
 	$aantal = (new cls_Login())->aantal("Ingelogd=1");
 	if ($aantal > 1) {
-		printf("<p class='mededeling'>Er staan zijn momenteel %d gebruikers ingelogd. Het is daarom niet verstandig om een upload te doen.</p>", $aantal);
+		printf("<p class='mededeling'>Er staan zijn momenteel %d gebruikers ingelogd. Het is niet verstandig om een upload te doen.</p>", $aantal);
 	}
 	echo("<div id='invulformulier'>\n");
 	printf("<form name='formupload' method='post' action='%s?tp=%s&amp;op=uploaddata' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
@@ -395,7 +395,7 @@ function fnInstellingen() {
 	$arrParam['emailwebmaster'] = "Het e-mailadres van de webmaster.";
 	$arrParam['kaderoverzichtmetfoto'] = "Moeten op het kaderoverzicht pasfoto's getoond worden?";
 	$arrParam['toonpasfotoindiennietingelogd'] = "Mogen pasfoto's zichtbaar voor bezoekers (niet ingelogd) zijn?";
-	$arrParam['meisjesnaamtonen'] = "Moeten de namen van leden ook de meisjesnaam bevatten?";
+	$arrParam['meisjesnaamtonen'] = "Moeten de naam van een lid de meisjesnaam bevatten?";
 	$arrParam['woonadres_anderen_tonen'] = "Moet het woonadres van een lid ook aan andere leden worden getoond?";
 	$arrParam['muteerbarememos'] = "Welke soorten memo's zijn in gebruik? Bij meerdere scheiden door een komma.";
 	$arrParam['login_lidnrnodigbijaanvraag'] = "Moet een lid zijn of haar lidnummer opgeven als er een login aangevraagd wordt?";
@@ -441,9 +441,9 @@ function fnInstellingen() {
 	$arrParam['zs_voorwaardeninschrijving'] = "Deze regel wordt bij de inschrijving als voorwaarde voor de inschrijving voor de bewaking vemeld.";
 	
 	$specmailing = array("mailing_bewakinginschrijving", "mailing_bevestigingbestelling");
-	$inst_p = new cls_Parameter();
+	$i_p = new cls_Parameter();
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		foreach ($inst_p->lijst() as $row) {
+		foreach ($i_p->lijst() as $row) {
 			$mess = "";
 			$pvn = $row->Naam;
 			if (array_key_exists($row->Naam, $arrParam) == true) {
@@ -473,8 +473,8 @@ function fnInstellingen() {
 				if (isset($_POST[$pvn])) {
 					$_POST[$pvn] = str_replace("\"", "'", $_POST[$pvn]);
 				}
-				if (in_array($row->Naam, array("beperktotgroep", "zs_muteerbarememos"))) {
-					$_POST[$pvn] = str_replace(" ", "", $_POST[$pvn]);
+				if (in_array($row->Naam, array("beperktotgroep", "zs_muteerbarememos", "menu_met_afdelingen"))) {
+					$_POST[$pvn] = str_replace(";", ",", $_POST[$pvn]);
 					$_POST[$pvn] = str_replace("'", "", $_POST[$pvn]);
 				} elseif (in_array($row->Naam, $specmailing) and $_POST[$pvn] > 0 and db_mailing("exist", $_POST[$pvn]) == false) {
 					$_POST[$pvn] = 0;
@@ -502,38 +502,37 @@ function fnInstellingen() {
 				if (strlen($mess) > 0) {
 					(new cls_Logboek())->add($mess, 13, 0, 1);
 				}
-				$inst_p->update($row->Naam, $_POST[$pvn]);
+				$i_p->update($row->Naam, $_POST[$pvn]);
 			}
 		}
 		
 		$p = $_SESSION['settings']['db_folderbackup'];
 		if (strlen($p) < 5 or !is_dir($p)) {
-			$inst_p->update("db_folderbackup", __DIR__ . "/backups/");
+			$i_p->update("db_folderbackup", __DIR__ . "/backups/");
 		} elseif (substr($p, -1) != "/") {
-			$inst_p->update("db_folderbackup", $p . "/");
+			$i_p->update("db_folderbackup", $p . "/");
 		}
 		
 		$p = $_SESSION['settings']['path_templates'];
 		if (strlen($p) < 5 or !is_dir($p)) {
-			$inst_p->update("path_templates", __DIR__ . "/templates/");
+			$i_p->update("path_templates", __DIR__ . "/templates/");
 		} elseif (substr($p, -1) != "/") {
-			$inst_p->update("path_templates", $p . "/");
+			$i_p->update("path_templates", $p . "/");
 		}
 	}
 
 	echo("<div id='instellingenmuteren'>\n");
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	
-	foreach ($inst_p->lijst() as $row) {
+	foreach ($i_p->lijst() as $row) {
 		if (array_key_exists($row->Naam, $arrParam)) {
 			$uitleg = htmlent($arrParam[$row->Naam]);
-			echo("<div class='invoerblok'>\n");
 			if (strlen($row->ValueChar) > 60 and $row->ParamType="T") {
 				printf("<label>%s</label><p><textarea cols=68 rows=2 name='%s'>%s</textarea></p>\n", $uitleg, $row->Naam, $row->ValueChar);
 			} else {
 				printf("<label>%s</label><p><input name='%s' ", $uitleg, $row->Naam);
 				if ($row->ParamType == "B") {
-					printf("type='checkbox' value='1' %s></p>\n", checked($row->ValueNum));
+					printf("type='checkbox' value='1' %s></p>\n", checked(intval($row->ValueNum)));
 				} elseif ($row->ParamType == "I") {
 					printf("type='number' class='inputnumber' value=%d></p>\n", $row->ValueNum);
 				} elseif ($row->ParamType == "F") {
@@ -542,10 +541,9 @@ function fnInstellingen() {
 					printf("type='text' class='inputtext' value=\"%s\"></p>\n", $row->ValueChar);
 				}
 			}
-			echo("</div> <!-- Einde invoerblok -->\n");
 		}
 	}
-	$inst_p = null;
+	$i_p = null;
 	echo("<div id='opdrachtknoppen'>\n");
 	echo("<input class='knop' type='submit' value='Bewaren'>\n");
 	echo("</div>  <!-- Einde opdrachtknoppen -->\n");
