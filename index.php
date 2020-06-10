@@ -134,7 +134,11 @@ if (toegang($_GET['tp'], 1) == false) {
 		fnWieiswie($currenttab2, $_SESSION['settings']['kaderoverzichtmetfoto']);
 	}
 } elseif ($currenttab == "Ledenlijst") {
-	fnLedenlijst();
+	if ($currenttab2 == "Groepen muteren") {
+		fnOnderdelenmuteren("G");
+	} else {
+		fnLedenlijst();
+	}
 } elseif ($isafdelingstab == 1) {
 	fnAfdeling();
 } elseif ($currenttab == "Selecties") {
