@@ -59,14 +59,23 @@ p {
 
 label {
 	float: left;
+	clear: left;
 	display: block;
+	margin-right: 5px;
 	margin-top: 3px;
 	margin-bottom: 3px;
 	padding-top: 4px;
+	padding-left: 5px;
+	padding-right: 5px;
+	padding-bottom:4px;
 	text-align: right;
+	background-color: #00FFFF;
+	color: #000080;
+	border-style: solid;
+	border-width: 1px;
 }
 
-footer, #footer {
+footer {
 	clear: both;
 	background-color: #f0f0f0;
 	width: 100%;
@@ -85,9 +94,15 @@ footer, #footer {
 	border-bottom-left-radius: 9px;
 }
 
-footer a, footer a:visited, #footer a, #footer a:visited {
+footer a, footer a:visited {
 	text-decoration: underline;
 	color: inherit;
+}
+
+select {
+	float: left;
+	font-size: 11pt;
+	margin-right: 6px;
 }
 
 input.kode, input.code {
@@ -96,6 +111,17 @@ input.kode, input.code {
 
 input.naam, input.email {
 	width: 400px;
+}
+
+input.tb, input[type='text'], input[type='number'], input[type='email'], input[type='date'], input[type='time'], input[type='password'] {
+	float: left;
+	font-size: 11pt;
+	margin-right: 6px;
+	margin-top: 6px;
+}
+
+input.cb, input[type='checkbox'] {
+	margin-top: 8px;
 }
 
 #container, #containerbreed {
@@ -191,6 +217,7 @@ header a + a:visited + a:hover {
 }
 
 #filter label {
+	clear: none;
 	float: left;
 	margin-left: 6px;
 	margin-right: 4px;
@@ -221,7 +248,7 @@ header a + a:visited + a:hover {
 	margin-top: 6px;
 }
 
-#filter .cb {
+#filter .cb, #filter input[type='checkbox'] {
 	margin-top: 2px;
 }
 
@@ -253,10 +280,6 @@ header a + a:visited + a:hover {
 	margin-right: 6px;
 	margin-top: 6px;
 	padding-right: 6px;
-	border-style: solid;
-	border-width: 1px;
-	background-color: #00FFFF;
-	color: #000080;
 }
 
 #formulier textarea {
@@ -265,12 +288,12 @@ header a + a:visited + a:hover {
 	margin-bottom: 6px;
 }
 
-#formulier .cb {
+#formulier .cb, #formulier input[type='checkbox'] {
 	float: left;
 	margin-top: 9px;
 }
 
-#formulier .tb {
+#formulier .tb, #formulier input[type='text'] {
 	float: left;
 	margin-right: 6px;
 	margin-top: 6px;
@@ -557,15 +580,33 @@ header a + a:visited + a:hover {
 	border-top: 0;
 	border-bottom: 1px;
 	border-style: solid;
-   border-bottom-left-radius: 9px;
+	border-bottom-left-radius: 9px;
 }
 
 #login img {
+	float: left;
 	height: 22px;
 	width: 22px;
 	border: 0;
 	margin-left: 6px;
 }
+
+#login input, #login label {
+	float: left;
+	clear: none;
+	font-size: 10pt;
+	border-style: none;
+}
+
+#login input[type='submit'] {
+	margin-top: 4px;
+	height: 22px;
+}
+
+#login p {
+	clear: none;
+	float: left;
+}	
 
 #loginaanvraag, #opvragenlidnr, #profielwijzigen, #opzegformulier, #herstellenwachtwoord {
 	width: 450px;
@@ -579,6 +620,18 @@ header a + a:visited + a:hover {
 
 #loginaanvraag {
 	float: left;
+}
+
+#loginaanvraag input[type='submit'], #opvragenlidnr input[type='submit'], #herstellenwachtwoord input[type='submit'] {
+	color: #000080;
+	font-weight: bold;
+	height: 26px;
+	margin-top: 16px;
+	margin-bottom: 4px;
+	padding-top: 4px;
+	padding-bottom: 4px;
+	cursor: pointer;
+	font-size: 11pt;
 }
 
 #opvragenlidnr {
@@ -649,7 +702,7 @@ fieldset h3 {
 	background-color: white;
 }
 
-#loginaanvraag input.inputnumber, #opvragenlidnr input.inputnumber, #opzegformulier input.inputnumber, #lidmaatschapmuteren input.inputnumber {
+#opzegformulier input.inputnumber, #lidmaatschapmuteren input.inputnumber {
 	width: 60px;
 	text-align: right;
 	padding-left: 3px;
@@ -1209,15 +1262,6 @@ input.knop, button.knop {
 
 #mailingselectieleden input, #mailingselectieleden select {
 	width: 135px;
-}
-
-#instellingenmuteren label, #editmailingform label, .editmailingform label {
-	clear: left;
-	float: left;
-	margin-top: 3px;
-	margin-right: 5px;
-	padding-left: 5px;
-	padding-right: 5px;
 }
 
 #instellingenmuteren label {
