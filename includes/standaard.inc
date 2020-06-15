@@ -495,26 +495,26 @@ function fnDisplayFormLabels($row, $xtra_eind="", $id="formulier") {
 	if (isset($row) and $row != null) {
 		foreach($row as $key => $value) {
 			if (substr($key, 0, 3) == "Kop") {
-				$ret .= sprintf("<h3>%s</h3>\n", $value);
+				$ret .= sprintf("<h2>%s</h2>\n", $value);
 			} elseif (substr($key, 0, 3) == "dte" and (!is_null($value))) {
 				if (strtotime($value) == false) {
 					$dv = $value;
 				} else {
 					$dv = strftime('%e %B %Y', strtotime($value));
 				}
-				$ret .= sprintf("<label>%s</label><span class='datum'>%s</span>\n", substr($key, 3), $dv);
+				$ret .= sprintf("<label>%s</label><span>%s</span>\n", substr($key, 3), $dv);
 			} elseif (substr($key, 0, 3) == "dtt" and (!is_null($value))) {
-				$ret .= sprintf("<label>%s<value class='datumtijd'>%s</value>\n", substr($key, 3), strftime('%e %B %Y (%H:%M)', strtotime($value)));
+				$ret .= sprintf("<label>%s<span>%s</span>\n", substr($key, 3), strftime('%e %B %Y (%H:%M)', strtotime($value)));
 			} elseif (substr($key, 0, 3) == "boo" and $value == 1) {
-				$ret .= sprintf("<label>%s</label><value>Ja</value>\n", substr($key, 3));
+				$ret .= sprintf("<label>%s</label><span>Ja</span>\n", substr($key, 3));
 			} elseif (substr($key, 0, 3) == "boo" and $value != 1) {
-				$ret .= sprintf("<label>%s</label><value>Nee</value>\n", substr($key, 3));
+				$ret .= sprintf("<label>%s</label><span>Nee</span>\n", substr($key, 3));
 			} elseif (substr($key, 0, 3) == "mem" and strlen($value) > 1) {
 				$ret .= sprintf("<value>%s</value>\n", htmlentities($value));
 			} elseif (substr($key, 0, 3) == "eml" and strlen($value) > 1) {
-				$ret .= sprintf("<span><label>%s</label>%s</span>\n", substr($key, 3), fnDispEmail($value, "", 1));
+				$ret .= sprintf("<label>%s</label><span>%s</span>\n", substr($key, 3), fnDispEmail($value, "", 1));
 			} elseif (substr($key, 0, 2) != "nd" and strlen($value) > 0) {
-				$ret .= sprintf("<span><label>%s</label>%s</span>\n", $key, htmlentities($value));
+				$ret .= sprintf("<label>%s</label><span>%s</span>\n", $key, htmlentities($value));
 			}
 		}
 	} else {
