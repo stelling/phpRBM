@@ -4,10 +4,16 @@ body {
 td, th {
 }
 
-#header, header {
+label {
 }
 
-.label, th {
+span {
+}
+
+header {
+}
+
+footer {
 }
 
 .tablist li a, .tablist li a:visited {
