@@ -209,29 +209,31 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	echo("<div id='dbonderhoud'>\n");
 	
 	$f = "TypeActiviteit=3";
-	$laatstebackup = (new cls_Logboek())->max($f);
+	$laatstebackup = (new cls_Logboek())->max("DatumTijd", $f);
 	
 	printf("<form method='post' name='frmOnderhoud' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
-	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=backup\"' value='Backup'>&nbsp;Maak een backup van de database. Laatste backup is op %s gemaakt.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $laatstebackup);
-	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=FreeBackupFiles\"' value='Vrijgeven backup-bestanden'>&nbsp;Geef de backup-bestanden vrij door middel van een chmod 0755.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=logboekopschonen\"' value='Logboek opschonen'>&nbsp;Verwijder alle records uit het logboek, die ouder dan <input type='number' class='inputnumber' name='logboek_bewaartijd' onChange='this.form.submit();' value=%d> maanden zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['logboek_bewaartijd']);
-	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=loggingdebugopschonen\"' value='Eigen logging voor debugging opschonen'>&nbsp;Verwijder alle records uit het logboek, die onder jouw account voor debugging zijn toegevoegd.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	
-	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=onderdelenopschonen\"' value='Onderdelen opschonen'>&nbsp;Opschonen onderdelen die vervallen en niet meer in gebruik zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=onderdelenopschonen\"' value='Leden bij onderdelen opschonen'>&nbsp;Opschonen op basis van historie en 'Alleen leden'.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=backup\"' value='Backup'><p>Maak een backup van de database. Laatste backup is op %s gemaakt.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $laatstebackup);
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=FreeBackupFiles\"' value='Vrijgeven backup-bestanden'><p>Geef de backup-bestanden vrij door middel van een chmod 0755.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=logboekopschonen\"' value='Logboek opschonen'><p>Verwijder alle records uit het logboek, die ouder dan <input type='number' name='logboek_bewaartijd' onChange='this.form.submit();' value=%d> maanden zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['logboek_bewaartijd']);
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=loggingdebugopschonen\"' value='Eigen logging voor debugging opschonen'><p>Verwijder alle records uit het logboek, die onder jouw account voor debugging zijn toegevoegd.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	
-	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=evenementenopschonen\"' value='Evenementen opschonen'>&nbsp;Opschonen verwijderde evenementen, die geen deelnemers meer hebben.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=onderdelenopschonen\"' value='Onderdelen opschonen'><p>Opschonen onderdelen die vervallen en niet meer in gebruik zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=lidondopschonen\"' value='Leden bij onderdelen opschonen'><p>Opschonen op basis van historie en 'Alleen leden'.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=evenementenopschonen\"' value='Evenementen opschonen'><p>Opschonen verwijderde evenementen, die geen deelnemers meer hebben.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+
 	$f = "(deleted_on IS NOT NULL)";
 	if ((new cls_Mailing())->aantal($f) > 0) {
-		printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=mailingsopschonen\"' value='Mailings opschonen'>&nbsp;Mailings, die langer dan <input type='number' name='mailing_bewaartijd' class='inputnumber' onChange='this.form.submit();' value=%d> maanden in de prullenbak zitten, definitief verwijderen.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['mailing_bewaartijd']);
+		printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=mailingsopschonen\"' value='Mailings opschonen'><p>Mailings, die langer dan <input type='number' name='mailing_bewaartijd' onChange='this.form.submit();' value=%d> maanden in de prullenbak zitten, definitief verwijderen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['mailing_bewaartijd']);
 	}
-	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=loginsopschonen\"' value='Logins opschonen'>&nbsp;Opschonen van logins die om diverse redenen niet meer nodig zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=autorisatieopschonen\"' value='Autorisatie opschonen'>&nbsp;Verwijderen toegang waar alleen de webmaster toegang toe heeft en die ouder dan 3 maanden zijn.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=loginsopschonen\"' value='Logins opschonen'><p>Opschonen van logins die om diverse redenen niet meer nodig zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=autorisatieopschonen\"' value='Autorisatie opschonen'><p>Verwijderen toegang waar alleen de webmaster toegang toe heeft en die ouder dan 3 maanden zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	if ((new cls_Orderregel())->aantal() > 0) {
-		printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=orderregelsopschonen\"' value='Orderregels opschonen'>&nbsp;Opschonen van de orderregels van de bestellingen.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+		printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=orderregelsopschonen\"' value='Orderregels opschonen'><p>Opschonen van de orderregels van de bestellingen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	}
 	if ((new cls_Artikel())->aantal() > 0) {
-		printf("<p><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=artikelenopschonen\"' value='Artikelen opschonen'>&nbsp;Opschonen van artikelen zonder bestellingen uit de webshop.</p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+		printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=artikelenopschonen\"' value='Artikelen opschonen'><p>Opschonen van artikelen zonder bestellingen uit de webshop.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	}
 	echo("</form>\n");
 	echo("</div>  <!-- Einde dbonderhoud -->\n");
@@ -395,7 +397,7 @@ function fnInstellingen() {
 	$arrParam['emailwebmaster'] = "Het e-mailadres van de webmaster.";
 	$arrParam['kaderoverzichtmetfoto'] = "Moeten op het kaderoverzicht pasfoto's getoond worden?";
 	$arrParam['toonpasfotoindiennietingelogd'] = "Mogen pasfoto's zichtbaar voor bezoekers (niet ingelogd) zijn?";
-	$arrParam['meisjesnaamtonen'] = "Moeten de naam van een lid de meisjesnaam bevatten?";
+	$arrParam['meisjesnaamtonen'] = "Moet de naam van een lid de meisjesnaam bevatten?";
 	$arrParam['woonadres_anderen_tonen'] = "Moet het woonadres van een lid ook aan andere leden worden getoond?";
 	$arrParam['muteerbarememos'] = "Welke soorten memo's zijn in gebruik? Bij meerdere scheiden door een komma.";
 	$arrParam['login_lidnrnodigbijaanvraag'] = "Moet een lid zijn of haar lidnummer opgeven als er een login aangevraagd wordt?";
@@ -413,6 +415,7 @@ function fnInstellingen() {
 	$arrParam['wachtwoord_maxlengte'] = "De maximale lengte van een wachtwoord. Minimaal 7 en maximaal 15 invullen.";
 	$arrParam['naamwebsite'] = "Dit is de naam zoals deze in de titel en op elke pagina getoond wordt.";
 	$arrParam['path_templates'] = "Waar staan de templates?";
+	$arrParam['path_pasfoto'] = "Waar staan de pasfotos?";
 	$arrParam['performance_trage_select'] = "Vanaf hoeveel seconden moet een select-statement in het logboek worden gezet. 0 = nooit.";
 	$arrParam['termijnvervallendiplomasmailen'] = "Hoeveel maanden vooruit moeten leden een herinnering krijgen als een diploma gaat vervallen. 0 = geen herinnering sturen.";
 	$arrParam['termijnvervallendiplomasmelden'] = "Hoeveel maanden vooruit en achteraf moeten vervallen diploma op het voorblad getoond worden.";
@@ -508,14 +511,21 @@ function fnInstellingen() {
 		
 		$p = $_SESSION['settings']['db_folderbackup'];
 		if (strlen($p) < 5 or !is_dir($p)) {
-			$i_p->update("db_folderbackup", __DIR__ . "/backups/");
+			$i_p->update("db_folderbackup", BASEDIR . "/backups/");
 		} elseif (substr($p, -1) != "/") {
 			$i_p->update("db_folderbackup", $p . "/");
 		}
 		
+		$p = $_SESSION['settings']['path_pasfoto'];
+		if (strlen($p) < 5 or !is_dir($p)) {
+			$i_p->update("path_pasfoto", BASEDIR . "/pasfoto/");
+		} elseif (substr($p, -1) != "/") {
+			$i_p->update("path_pasfoto", $p . "/");
+		}
+		
 		$p = $_SESSION['settings']['path_templates'];
 		if (strlen($p) < 5 or !is_dir($p)) {
-			$i_p->update("path_templates", __DIR__ . "/templates/");
+			$i_p->update("path_templates", BASEDIR . "/templates/");
 		} elseif (substr($p, -1) != "/") {
 			$i_p->update("path_templates", $p . "/");
 		}
