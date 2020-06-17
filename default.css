@@ -75,6 +75,15 @@ label {
 	border-width: 1px;
 }
 
+span {
+	float: left;
+	clear: right;
+	height: 22px;
+	width: 500px;
+	margin-top: 8px;
+	background-color: #FFFF99;
+}
+
 footer {
 	clear: both;
 	background-color: #f0f0f0;
@@ -109,11 +118,11 @@ input.kode, input.code {
 	width: 60px;
 }
 
-input.naam, input.email {
+input.naam, input.email, input[type='email'] {
 	width: 400px;
 }
 
-input.tb, input[type='text'], input[type='number'], input[type='email'], input[type='date'], input[type='time'], input[type='password'] {
+input {
 	float: left;
 	font-size: 11pt;
 	margin-right: 6px;
@@ -162,7 +171,7 @@ header h1 {
 }
 
 .tabelkop {
-	font-size: 15pt;
+	font-size: 140%;
 }
 
 header a + a:visited + a:hover {
@@ -366,37 +375,22 @@ header a + a:visited + a:hover {
 	margin-top: 10px;
 }
 
-#overzichtlid table {
-	min-width: 300px;
-	max-width: 600px;
-}
-
-#overzichtlid td {
-	max-width: 590px;
-}
-
 #overzichtlid label {
-	width: 250px;
-	margin-right: 5px;
+	width: 225px;
 	float: left;
 	clear: left;
-	background-color: #00FFFF;
-	color: #000080;
 }
 
-#overzichtlid span {
-    display: block;
+#overzichtlid h2 {
+	float: left;
+	clear: both;
+	width: 225px;
+	padding-right: 5px;
+	text-align: right;
+	border-style: none;
 }
 
-#overzichtlid h3 {
-	width: 800px;
-}
-
-.ledenlijst, .ledenlijst tr, .ledenlijst td {
-	font-size: 11pt;
-}
-
-#wijzigengegevens, #nieuwlid, #wijzigendiplomas, #nieuwepasfoto, #bijzonderhedenwijzigen, #lidmaatschapmuteren, #inschrijvingbewaking, #inschrijvingevenementen, #onlinebestellingen, #opzegformulier, #profielwijzigen, #herstellenwachtwoord {
+#wijzigengegevens, #nieuwlid, #wijzigendiplomas, #nieuwepasfoto, #bijzonderhedenwijzigen, #lidmaatschapmuteren, #inschrijvingbewaking, #inschrijvingevenementen, #onlinebestellingen, #opzegformulier, #profielwijzigen {
 	padding-top: 8px;
 }
 
@@ -479,7 +473,6 @@ header a + a:visited + a:hover {
 #groepsindeling h3, #groepsindeling h4 {
 	margin-top: 1px;
 	margin-bottom: 1px;
-	font-size: 11pt;
 }
 
 #groepsindeling p {
@@ -505,6 +498,8 @@ header a + a:visited + a:hover {
 }
 
 #versies {
+	float: left;
+	clear: left;
 	border-style: solid;
 	border-width: 1px;
 	margin-top: 8px;
@@ -609,10 +604,12 @@ header a + a:visited + a:hover {
 }	
 
 #loginaanvraag, #opvragenlidnr, #profielwijzigen, #opzegformulier, #herstellenwachtwoord {
-	width: 450px;
+	width: 455px;
 	background-color: #00FFFF;
 	margin-left: auto;
 	margin-right: auto;
+	margin-bottom: 6px;
+	padding-top: 8px;
 	padding-left: 5px;
 	padding-right: 5px;
 	padding-bottom: 5px;
@@ -622,30 +619,35 @@ header a + a:visited + a:hover {
 	float: left;
 }
 
-#loginaanvraag input[type='submit'], #opvragenlidnr input[type='submit'], #herstellenwachtwoord input[type='submit'] {
+#loginaanvraag label, #opvragenlidnr label, #profielwijzigen label, #herstellenwachtwoord label, #opzegformulier label {
+	width: 195px;
+	height: 20px;
+	float: left;
+	margin-right: 8px;
+	padding-bottom: 2px;
+}
+
+#loginaanvraag input, #opvragenlidnr input, #profielwijzigen input, #herstellenwachtwoord input, #opzegformulier input {
+	clear: right;
+	font-size: 11pt;
+	height: 22px;
+	width: 200px;
 	color: #000080;
 	font-weight: bold;
-	height: 26px;
-	margin-top: 16px;
+	margin-left: 2px;
+	margin-top: 4px;
 	margin-bottom: 4px;
 	padding-top: 4px;
 	padding-bottom: 4px;
 	cursor: pointer;
-	font-size: 11pt;
+	border-style: solid;
+	border-width: 1px;
 }
 
-#opvragenlidnr {
-	margin-bottom: 6px;
-}
-
-#loginaanvraag h3, #opvragenlidnr h3, #profielwijzigen h3, #opzegformulier h3, #herstellenwachtwoord h3 {
-	color: white;
-	font-size: 14pt;
-}
-
-#loginaanvraag label, #opvragenlidnr label, #profielwijzigen label, #opzegformulier label, #herstellenwachtwoord label {
-	width: 200px;
-	float: left;
+#loginaanvraag input[type='submit'], #opvragenlidnr input[type='submit'], #profielwijzigen input[type='submit'], #herstellenwachtwoord input[type='submit'], #opzegformulier input[type='submit'] {
+	clear: both;
+	float: right;
+	height: 40px;
 }
 
 #overzichtevenementen {
@@ -687,7 +689,7 @@ fieldset h3 {
 	margin-bottom: 12px;
 }
 
-#loginaanvraag input, #opvragenlidnr input, #profielwijzigen input, #opzegformulier input, #herstellenwachtwoord input {
+#profielwijzigen input, #opzegformulier input {
 	width: 190px;
 	height: 22px;
 	clear: right;
@@ -757,7 +759,7 @@ input.knop, button.knop {
 	border-color: inherit;
 }
 
-#verstuurdemail label, #verstuurdemail .label {
+#verstuurdemail label {
 	background-color: transparent;
 	width: 150px;
 	margin-left: 5px;
@@ -847,31 +849,16 @@ input.knop, button.knop {
 	padding-right: 4px;
 }
 
-#handleiding {
-	font-size: 12pt;
-	padding-top: 8px;
-	padding-left: 8px;
-}
-
-#handleiding img {
-	margin-top: 10px;
-}
-
-#handleiding ul {
-	padding-left: 14px;
-}
-
-#handleiding li {
-	margin-top: 4px;
-	margin-bottom: 4px;
-}
-
 #opdrachtknoppen {
-	clear: left;
-	margin-top: 8px;
+	clear: both;
+	float: left;
+	height: 36px;
+	width: 100%;
+	margin-top: 18px;
 	margin-bottom: 2px;
-	padding-top: 3px;
-	padding-bottom: 3px;
+	padding-right: 6px;
+	padding-top: 8px;
+	padding-bottom: 6px;
 	text-align: center;
 	border-style: solid;
 	border-width: 1px;
@@ -886,7 +873,6 @@ input.knop, button.knop {
 	margin-bottom: 8px;
 	margin-left: 8px;
 	margin-right: 8px;
-	
 	color: #000080;
 	font-weight: bold;
 	height: auto;
@@ -898,6 +884,12 @@ input.knop, button.knop {
 
 #opdrachtknoppen input {
 	margin-top: 2px;
+}
+
+#opdrachtknoppen p {
+	float: right;
+	margin-top: 6px;
+	padding-top: 0;
 }
 
 #bestellingbeheer table {
@@ -1174,7 +1166,7 @@ input.knop, button.knop {
 #rekeningenmailen li {
 	display: block;
 	width: 33%;
-   float: left;
+	float: left;
 	padding-left: 2px;
 }
 
@@ -1193,12 +1185,30 @@ input.knop, button.knop {
 }
 
 #dbonderhoud p {
+	height: 12px;
 	margin-top: 12px;
-	margin-bottom: 12px;
-	margin-left: 6px;
-	border-style: solid;
-	border-width: 1px;
-	font-size: 11pt;
+	margin-bottom: 4px;
+	display: block;
+}
+
+#dbonderhoud input {
+	clear: left;
+	float: left;
+	height: 30px;
+	margin-top: 4px;
+}
+
+#dbonderhoud input[type='button'] {
+	width: 300px;
+}
+
+#dbonderhoud input[type='number'] {
+	float: none;
+	clear: none;
+	height: 18px;
+	width: 40px;
+	margin-top: 1px;
+	text-align: right;
 }
 
 #instellingenmuteren .invoerblok {
