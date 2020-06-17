@@ -425,7 +425,7 @@ function fnInstellingen() {
 	$arrParam['uitleg_toestemmingen'] = "Welke tekst moet er bij het verlenen van de toestemmingen worden vermeld?";
 	$arrParam['urlvereniging'] = "De URL van de website van de vereniging.";
 	$arrParam['url_eigen_help'] = "Als een gebruiker op de help klikt wordt hier naar verwezen in plaats van de standaard help.";
-	$arrParam['verjaardagenaantal'] = "Hoeveel verjaardagen moeten er maximaal in de verenigingsinfo worden getoond. Als er meerdere leden op dezelfde dag jarig zijn, wordt dit aantal overschreden.";
+	$arrParam['verjaardagenaantal'] = "Aantal verjaardagen dat maximaal in de verenigingsinfo wordt getoond. Als er meerdere leden op dezelfde dag jarig zijn, wordt dit aantal overschreden.";
 	$arrParam['verjaardagenvooruit'] = "Hoeveel dagen vooruit moeten de verjaardagen in de verenigingsinfo getoond worden?";
 	
 	$arrParam['zs_emailnieuwepasfoto'] = "Waar moet een nieuwe pasfoto naar toe gemaild worden?";
@@ -485,7 +485,7 @@ function fnInstellingen() {
 				} elseif ($row->Naam == "typemenu" and (strlen($_POST[$pvn]) == 0 or $_POST[$pvn] < 1 or $_POST[$pvn] > 3)) {
 					$_POST[$pvn] = 1;
 					$mess = sprintf("Parameter '%s' wordt 1 gemaakt, omdat deze alleen 1, 2 of 3 mag zijn. ", $row->Naam);
-				} elseif (startwith($row->Naam, "url") and isset($_POST[$pvn]) and !startwith($_POST[$pvn], "http")) {
+				} elseif (startwith($row->Naam, "url") and isset($_POST[$pvn]) and strlen($_POST[$pvn]) > 3 and startwith($_POST[$pvn], "http") == false) {
 					$_POST[$pvn] = "https://" . $_POST[$pvn];
 				}
 				if ($row->ParamType == "B") {
