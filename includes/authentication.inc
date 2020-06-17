@@ -487,13 +487,12 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		if (strlen($login) > 5 and password_verify($_GET["key"], $dbkey)) {
 			
 			printf("<form name='HerstellenWachtwoord' action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
-			printf("<fieldset>
+			printf("
 			<h3>Herstellen wachtwoord</h3>
 			<label>Login:</label><input type=text value='%s' name='login' readonly>
 			<label>Nieuw wachtwoord:</label><input type='password' name='nieuwwachtwoord' size=25>
 			<label>Herhaal wachtwoord:</label><input type='password' name='herhaalwachtwoord' size=25>
 			<input type='submit' value='Bevestig'>\n
-			</fieldset>
 			</form>
 			%s", $login, fneisenwachtwoord());
 		} else {
@@ -551,7 +550,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		<label>Lidnummer:</label><input class='inputnumber' type='number' min=0 name='lidnummer' value=0>
 		<label>Login:</label><input type='text' name='login' size=50 maxlength=15>
 		<input type='hidden' value='mail' name='stap'>
-		<input type='submit' class='knop' value='Stuur mail met herstellink'>\n
+		<input type='submit' value='Stuur herstellink'>\n
 		</fieldset>
 		</form>
 		<p>Minimaal 2 van de 3 velden moeten correct zijn ingevuld. Na het versturen van deze link is je oude wachtwoord niet meer geldig.</p>
@@ -714,19 +713,20 @@ function fnLoginAanvragen($stap="") {
 	} else {
 
 		echo("<div id='loginaanvraag'>\n");
-		printf("<form name=Loginaanvraag action='%s?tp=Bevestiging+login' method='post'>\n", $_SERVER["PHP_SELF"]);
-		echo("<fieldset>\n");
+		printf("<form action='%s?tp=Bevestiging+login' method='post'>\n", $_SERVER["PHP_SELF"]);
 		echo("<h3>Aanvragen login</h3>\n");
-		
+		echo("<fieldset>\n");
+				
 		if ($_SESSION['settings']['login_lidnrnodigbijaanvraag'] == 1) {
 			echo("<label>Lidnummer:</label><input class='inputnumber' type='number' name='lidnummer' min=0>\n");
 		}
 		echo("<label>E-mailadres:</label><input type='email' name='email'>\n");
-		printf("<p><label>Gewenste login:</label><input type='text' name='gewenstelogin' maxlength=%d>\n", $_SESSION['settings']['login_maxlengte']);
-		echo("<p><label>Gewenst wachtwoord:</label><input type='password' name='gewenstwachtwoord' maxlength=15>\n");
+		printf("<label>Gewenste login:</label><input type='text' name='gewenstelogin' maxlength=%d>\n", $_SESSION['settings']['login_maxlengte']);
+		echo("<label>Gewenst wachtwoord:</label><input type='password' name='gewenstwachtwoord' maxlength=15>\n");
 
-		echo("<input type='submit' name='loginaanvragen' value='Aanvragen'></p>\n");
+		echo("<input type='submit' name='loginaanvragen' value='Aanvragen'>\n");
 		echo("</fieldset>\n");
+		echo("</form>\n");
 
 		echo("<p>");
 		if ($_SESSION['settings']['login_lidnrnodigbijaanvraag'] == 1) {
@@ -736,16 +736,15 @@ function fnLoginAanvragen($stap="") {
 		}
 		echo(" Je ontvangt een e-mail met daarin een link om deze aanmelding te bevestigen. Pas daarna is de login bruikbaar om in te loggen.</p>\n");
 		
-		echo("<p>Voorwaarden aan een login:<ul>\n");
+		echo("<p>Voorwaarden aan een login:</p>\n<ul>\n");
 		printf("<li>Minimaal 7 karakters en maximaal %d karakters lang</li>\n", $_SESSION['settings']['login_maxlengte']);
 		echo("<li>Er mogen geen aanhalingstekens en geen spaties in zitten</li>\n");
 		printf("<li>De karakters '%s' mogen er niet in zitten</li>\n", htmlent($login_verbodenkarakters));
-		echo("</ul>\n</p>\n");
+		echo("</ul>\n");
 		
 		printf(fneisenwachtwoord());
 			
-		echo("</form>
-		</div>  <!-- Einde loginaanvraag -->\n");
+		echo("</div>  <!-- Einde loginaanvraag -->\n");
 	}
 } # fnLoginAanvragen
 
@@ -786,12 +785,12 @@ function fnOpvragenLidnr($stap) {
 	} elseif ($_SESSION['settings']['mailing_lidnr'] > 0) {
 
 		echo("<div id='opvragenlidnr'>\n");
-		printf("<form name='OpvragenLidnr' action='%s?tp=Opvragen+lidnr' method='post'>\n", $_SERVER["PHP_SELF"]);
+		printf("<form action='%s?tp=Opvragen+lidnr' method='post'>\n", $_SERVER["PHP_SELF"]);
 		
 		echo("<fieldset>\n");
 		echo("<h3>Opvragen Lidnummer</h3>\n");
 		echo("<label>E-mailadres:</label><input type='email' name='emailvoorlidnr'>\n");
-		echo("<input type='submit' name='opvragenlidnr' value='Opvragen'></p>\n");
+		echo("<input type='submit' name='opvragenlidnr' value='Opvragen'>\n");
 		echo("</fieldset>\n");
 			
 		echo("</form>\n
