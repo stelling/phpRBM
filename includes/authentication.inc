@@ -145,6 +145,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			addtp("Ledenlijst/Klosleden");
 		}
 		addtp("Ledenlijst/Nieuw (klos)lid");
+		addtp("Ledenlijst/Commissies muteren");
 		addtp("Ledenlijst/Groepen muteren");
 		addtp("Ledenlijst/Mutaties");
 	}
