@@ -1,4 +1,7 @@
 <?php
+
+define("BASEDIR", __DIR__);
+
 include('./includes/standaard.inc');
 
 if ((!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) and isset($_COOKIE['password']) and strlen($_COOKIE['password']) > 5) {
