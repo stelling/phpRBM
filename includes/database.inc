@@ -209,7 +209,6 @@ class cls_db_base {
 	
 	function __construct($p_table="") {
 		$this->table = TABLE_PREFIX . $p_table;
-		$this->execsql("SET lc_time_names='nl_NL';");
 		
 		if ($_SESSION['settings']['meisjesnaamtonen'] == 1) {
 			$this->selectnaam = "CONCAT(IF(LENGTH(L.Roepnaam)>1, L.Roepnaam, L.Voorletter), ' ', IF(L.Tussenv>'', CONCAT(L.Tussenv, ' '), ''), L.Achternaam, IF(L.Meisjesnm>'', CONCAT('-', L.Meisjesnm), ''))";	
@@ -288,6 +287,7 @@ class cls_db_base {
 	
 	public function setcharset() {
 		$this->execsql("SET CHARACTER SET utf8;");
+		$this->execsql("SET lc_time_names='nl_NL';");
 	}
 	
 	public function execsql($p_query, $p_ta=-1) {
@@ -1644,7 +1644,11 @@ class cls_Onderdeel extends cls_db_base {
 	
 	public function editlijst($p_ondtype) {
 		
-		$sel = sprintf("O.RecordID AS lnkRecordID, O.Kode, O.Naam, CentraalEmail AS `emlCentraal E-mail`, `Alleen leden` AS `chkAlleen leden`, (SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.OnderdeelID=O.RecordID AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()) AS `intAantal leden`, O.RecordID AS llkRecordID", TABLE_PREFIX);
+		$sel = "O.RecordID AS lnkRecordID, O.Kode, O.Naam, CentraalEmail AS `emlCentraal E-mail`, `Alleen leden` AS `chkAlleen leden`, ";
+		if ($p_ondtype == "G") {
+			$sel .= "IF(O.GekoppeldAanQuery > 0, 'EQ', IF(LENGTH(O.MySQL) > 10, 'MySQL', 'Nee'))  AS Autom, ";
+		}
+		$sel .= sprintf("(SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.OnderdeelID=O.RecordID AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()) AS `intAantal leden`, O.RecordID AS llkRecordID", TABLE_PREFIX);
 		
 		$query = sprintf("SELECT %s FROM %s AS O WHERE O.`Type`='%s' ORDER BY Kode;", $sel, $this->table, $p_ondtype);
 
@@ -1765,7 +1769,7 @@ class cls_Functie extends cls_db_base {
 		$this->ta = 20;
 	}
 	
-	public function selectlijst($p_soort) {
+	public function selectlijst($p_soort, $p_per="") {
 		
 		if ($p_soort == "A") {
 			$f = "WHERE F.Afdelingsfunctie=1";
@@ -1775,7 +1779,16 @@ class cls_Functie extends cls_db_base {
 			$f = "";
 		}
 		
-		$query = sprintf("SELECT F.Nummer, F.Omschrijv FROM %s AS F %s ORDER BY F.Omschrijv;", $this->table, $f);
+		if (strlen($p_per) == 10) {
+			if (strlen($f) > 0) {
+				$f .= " AND ";
+			} else {
+				$f = "WHERE ";
+			}
+			$f .= sprintf("IFNULL(F.`Vervallen per`, '9999-12-31') >= '%s'", $p_per);
+		}
+		
+		$query = sprintf("SELECT F.Nummer, F.Omschrijv, IFNULL(F.`Vervallen per`, '9999-12-31') AS Vervallen FROM %s AS F %s ORDER BY F.Omschrijv;", $this->table, $f);
 		return $this->execsql($query)->fetchAll();
 	}
 	
@@ -2252,16 +2265,16 @@ class cls_Lidond extends cls_db_base {
 	
 	public function selectielijst($p_ondid) {
 		
-		$selectemail = "";
+		$selectkader = "";
 		$f = sprintf("RecordID=%d", $p_ondid);
 		if ((new cls_Onderdeel())->max("Kader", $f) == 1) {
-			$selectemail = ", LO.EmailFunctie AS `emlEmail`";
+			$selectkader = ", LO.Functie AS cboFunctie, LO.EmailFunctie AS `emlEmail`";
 		}
 		
-		$query = sprintf("SELECT LO.RecordID AS lnkNummer, %1\$s AS `Naam_lid`, %2\$s AS Telefoon, LO.Vanaf AS dteVanaf %3\$s, LO.Opmerk AS Opmerking, LO.Opgezegd AS `dteTot en met`, LO.RecordID AS llkNummer, L.GEBDATUM AS ndGEBDATUM
-								FROM %4\$s
-								WHERE LO.OnderdeelID=%5\$d
-								ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $this->selectnaam, $this->selecttelefoon, $selectemail, $this->fromlidond, $p_ondid);
+		$query = sprintf("SELECT LO.RecordID AS lnkNummer, %s AS `Naam_lid`, LO.Vanaf AS dteVanaf %s, LO.Opmerk AS Opmerking, LO.Opgezegd AS `dteTot en met`, LO.RecordID AS llkNummer, L.GEBDATUM AS ndGEBDATUM
+								FROM %s
+								WHERE LO.OnderdeelID=%d
+								ORDER BY IF(IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE(), 0, 1), L.Achternaam, L.TUSSENV, L.Roepnaam, LO.Vanaf DESC;", $this->selectnaam, $selectkader, $this->fromlidond, $p_ondid);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
