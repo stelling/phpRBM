@@ -2545,7 +2545,7 @@ class cls_Lidond extends cls_db_base {
 	
 	public function autogroepenbijwerken() {
 		
-		$f = "LENGTH(MySQL) > 10";
+		$f = "LENGTH(MySQL) > 10 AND IFNULL(VervallenPer, CURDATE()) >= CURDATE()";
 		$ondrows = (new cls_Onderdeel())->basislijst($f);
 		foreach ($ondrows as $ondrow) {
 			$reden = "";
@@ -2566,7 +2566,11 @@ class cls_Lidond extends cls_db_base {
 					}
 					$reden = "op basis van de MySQL-code dit lid niet in deze groep hoort.";
 					if ($aanw == false) {
-						$this->update($targetrow->RecordID, "Opgezegd", date("Y-m-d"), $reden);
+						if ($targetrow->Vanaf == date("Y-m-d")) {
+							$this->delete($targetrow->RecordID, 0, 0, $reden);
+						} else {
+							$this->update($targetrow->RecordID, "Opgezegd", date("Y-m-d"), $reden);
+						}
 					}
 				}
 			
