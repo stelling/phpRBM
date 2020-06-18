@@ -136,6 +136,8 @@ if (toegang($_GET['tp'], 1) == false) {
 } elseif ($currenttab == "Ledenlijst") {
 	if ($currenttab2 == "Groepen muteren") {
 		fnOnderdelenmuteren("G");
+	} elseif ($currenttab2 == "Commissies muteren") {
+		fnOnderdelenmuteren("C");
 	} else {
 		fnLedenlijst();
 	}
