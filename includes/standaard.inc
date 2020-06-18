@@ -14,7 +14,6 @@ define("ARRTYPEEDITOR", [1 => "CKEditor 5 Classic editor", 2 => "CKEditor 4"]);
 define("ARRSOORTEVENEMENT", ["B" => "Brigade-activiteit", "G" => "Gezellig/sociaal", "O" => "Opleiding", "V" => "Vergadering/overleg", "W" => "Wedstrijd"]);
 define("ARRDLNSTATUS", ["A" => "Afgewezen", "B" => "Bevestigd", "I" => "Ingeschreven", "N" => "Niet geweest", "R" => "Reserve", "T" => "Onder voorbehoud", "X" => "Afgezegd"]);
 define("ARRPRESENTIESTATUS", ["A" => "Aangemeld/aanwezig", "R" => "Afgemeld/afwezig met bekende reden", "T" => "Onder voorbehoud", "X" => "Afgemeld/afwezig zonder bekende reden", "Z" => "Afgemeld/afwezig wegens ziekte"]);
-define("BASEDIR", substr(__DIR__, 0, strrpos(__DIR__, "/")));
 
 require(BASEDIR . '/config.php');
 $bestandsversie = filectime(BASEDIR . "/index.php");
@@ -529,7 +528,7 @@ function fnDisplayFormLabels($row, $xtra_eind="", $id="formulier") {
 	return $ret;
 }  # fnDisplayFormLabels
 
-function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_regel="", $class="", $xtra_kolom="", $editkols="", $autosubmit=0, $sortkols=null) {
+function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_regel="", $class="", $xtra_kolom="", $editkols="", $autosubmit=0, $sortkols=null, $rowscbo=null) {
 	global $currenttab;
 	
 	if (strlen($class) == 0) {
@@ -554,7 +553,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 				foreach($row as $key => $value) {
 					$sortlink = "";
 					$ht = "";
-					if (strstr("chk, dte, dtt, dtl, dts, boo, int, cur, eml, num, mrg, pwd", substr($key, 0, 3)) !== false) {
+					if (strstr("cbo, chk, dte, dtt, dtl, dts, boo, int, cur, eml, num, mrg, pwd", substr($key, 0, 3)) !== false) {
 						$ht = str_replace("_", " ", substr($key, 3));
 					} elseif (startwith($key, "lnk")) {
 						if (strlen($link) > 1) {
@@ -574,7 +573,6 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 					} elseif (substr($key, 0, 2) != "nd") {
 						$ht = str_replace("_", " ", $key);
 					}
-					
 					
 					if (empty($sortkols) == false) {
 						$skn = -1;
@@ -631,6 +629,20 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 					} else {
 						$ret .= sprintf("<td><input type='checkbox'%s name='%s_%d' value=1%s></td>", $js, str_replace(" ", "_", substr($key, 3)), $row->$kol_pk, checked($value, "", 1));
 					}
+					
+				} elseif ($key == "cboFunctie") {
+					$ret .= "<td>";
+					if ($rowscbo != null) {
+						$ret .= sprintf("<select name='%s_%d' %s>", substr($key, 3), $row->$kol_pk, $js);
+						foreach ($rowscbo as $rowcbo) {
+							if ($rowcbo->Vervallen >= $row->dteVanaf) {
+								$ret .= sprintf("<option value=%d %s>%s</option>", $rowcbo->Nummer, checked($rowcbo->Nummer, "option", $value), $rowcbo->Omschrijv);
+							}
+						}
+						$ret.= "</select>";
+					}
+					$ret .= "</td>\n";
+					
 				} elseif (startwith($key, "dte") or startwith($key, "rodte")) {
 					if (startwith($key, "dte") and strstr($editkols, $key) !== false) {
 						$ret .= sprintf("<td><input type='date' name='%s_%d' value='%s'%s></td>", str_replace(" ", "_", substr($key, 3)), $row->$kol_pk, $value, $js);
@@ -827,6 +839,8 @@ function accessdate($sqldate) {
 } # accessdate
 
 function startwith($haystack, $start) {
+//	debug("startwith: ");
+//	debug($haystack);
 	if (strlen($haystack) < strlen($start)) {
 		return false;
 	} elseif (substr($haystack, 0, strlen($start)) == $start) {
