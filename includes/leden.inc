@@ -255,6 +255,7 @@ function fnLedenlijst() {
 	$arrSort[] = "Lidnr;Lidnr";
 	$arrSort[] = "Naam lid;L.Achternaam";
 	$arrSort[] = "Lid vanaf;LM.LIDDATUM";
+	$arrSort[] = "Opgezegd;LM.Opgezegd";
 	
 	$ord = fnOrderBy($arrSort);
 	
