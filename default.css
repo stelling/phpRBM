@@ -122,7 +122,7 @@ input.naam, input.email, input[type='email'] {
 	width: 400px;
 }
 
-input {
+input, button {
 	float: left;
 	font-size: 11pt;
 	margin-right: 6px;
