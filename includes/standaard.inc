@@ -3,6 +3,7 @@
 date_default_timezone_set('Europe/Amsterdam');
 setlocale(LC_ALL,'nl_NL.utf8');
 
+define("BASEDIR", $_SERVER['DOCUMENT_ROOT']);
 define("ARRGESLACHT", ["O" => "Onbekend", "V" => "Vrouwelijk", "M" => "Mannelijk", "B" => "Bedrijf/Vereniging/Stichting"]);
 define("ARRTL", ["Alle", "Leden", "Klosleden", "Voormalig leden"]);
 define("ARRLEGITIMATIE", ["G" => "Geen", "I" => "Identiteitskaart", "P" => "Paspoort", "R" => "Rijbewijs"]);
