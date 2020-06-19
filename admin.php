@@ -1,7 +1,5 @@
 <?php
 
-define("BASEDIR", __DIR__);
-
 include('./includes/standaard.inc');
 
 if ((!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) and isset($_COOKIE['password']) and strlen($_COOKIE['password']) > 5) {
@@ -168,14 +166,12 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	if ($aantal > 1) {
 		printf("<p class='mededeling'>Er staan zijn momenteel %d gebruikers ingelogd. Het is niet verstandig om een upload te doen.</p>", $aantal);
 	}
-	echo("<div id='invulformulier'>\n");
+	echo("<div id='formulier'>\n");
 	printf("<form name='formupload' method='post' action='%s?tp=%s&amp;op=uploaddata' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	echo("<table>\n");
-	echo("<tr><td class='label'>Bestand</td><td><input type='file' name='SQLupload'><input type='submit' value='Verwerk'></td></tr>\n");
-	echo("</table>\n");
+	echo("<label>Bestand</label><input type='file' name='SQLupload'><input type='submit' value='Verwerk'>\n");
 	echo("</form>\n");
-	echo("</div>  <!-- Einde invulformulier -->\n");
-	
+	echo("</div>  <!-- Einde formulier -->\n");
+
 } elseif ($currenttab == "Downloaden wijzigingen" and toegang($currenttab, 1, 1)) {
 	$copytext = "";
 	echo("<h2>Wijzigen op de website, te verwerken in de Access database.</h2>");
@@ -193,8 +189,8 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	if (strlen($copytext) > 0) {
 		echo("<h2>SQL-code voor in MS-Access, om te gebruiken:</h2>\n");
 		printf("<textarea id='copywijzigingen' class='copypaste' rows=%d readonly>%s</textarea>\n", count($rows)+1, $copytext);
-		echo("<p><button onClick='CopyFunction()'>Kopieer naar klembord</button>\n");
-		printf("<input type='button' value='Wijzigingen afmelden' OnClick=\"location.href='%s?tp=%s&amp;op=afmeldenwijz'\"></p>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+		echo("<button onClick='CopyFunction()'>Kopieer naar klembord</button>\n");
+		printf("<input type='button' value='Wijzigingen afmelden' OnClick=\"location.href='%s?tp=%s&amp;op=afmeldenwijz'\">\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	}
 	
 } elseif ($currenttab == "Onderhoud" and toegang($currenttab, 1, 1)) {
