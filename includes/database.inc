@@ -46,7 +46,7 @@ $arrTables[] = "Vereniging";
 
 $TypeActiviteit[0] = "N.T.B.";
 $TypeActiviteit[1] = "Inloggen/Uitloggen";
-$TypeActiviteit[2] = "Onderhoud/beheer";
+$TypeActiviteit[2] = "Onderhoud/beheer/Jobs";
 $TypeActiviteit[3] = "DB backup";
 $TypeActiviteit[4] = "Mailing";
 $TypeActiviteit[5] = "Authenticatie";
@@ -551,6 +551,7 @@ class cls_Lid extends cls_db_base {
 	
 	public function ledenlijst($p_filter="", $p_xtraselect="", $p_ord="") {
 		
+		$opg = "";
 		if ($_SESSION['settings']['woonadres_anderen_tonen'] == 1) {
 			$wa = "CONCAT(L.Adres, ', ', L.Woonplaats) AS `Adres`,";
 		} else {
@@ -567,6 +568,10 @@ class cls_Lid extends cls_db_base {
 				$p_xtraselect .= sprintf(", (SELECT GROUP_CONCAT(DISTINCT O.Kode SEPARATOR '/') FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE O.Type='A' AND LO.Lid=L.RecordID AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()) AS `Afd.`", TABLE_PREFIX);
 			}
 			
+			if ((new cls_Lidmaatschap())->max("Opgezegd") >= date("Y-m-d")) {
+				$opg = ", LM.Opgezegd";
+			}
+			
 		} else {
 			$ln = "";
 			$k4 = "L.Opmerking";
@@ -576,11 +581,11 @@ class cls_Lid extends cls_db_base {
 			$p_ord .= ", ";
 		}
 		
-		$query = sprintf("SELECT L.RecordID AS lnkNummer%s, %s AS `Naam_lid`, %s %s AS `emlE-mail`, %s %s,
+		$query = sprintf("SELECT L.RecordID AS lnkNummer%s, %s AS `Naam_lid`, %s %s AS `emlE-mail`, %s %s %s,
 					L.RecordID AS llkNummer, L.GEBDATUM AS ndGEBDATUM, %s AS ndZoeknaam
 					FROM %s
 					%s
-					ORDER BY %sL.Achternaam, L.TUSSENV, LM.LIDDATUM DESC;", $ln, $this->selectnaam, $wa, $this->selectemail, $k4, $p_xtraselect, $this->selectzoeknaam, $this->fromlid, $p_filter, $p_ord);
+					ORDER BY %sL.Achternaam, L.TUSSENV, LM.LIDDATUM DESC;", $ln, $this->selectnaam, $wa, $this->selectemail, $k4, $p_xtraselect, $opg, $this->selectzoeknaam, $this->fromlid, $p_filter, $p_ord);
 					
 		$result = $this->execsql($query);
 		return $result->fetchAll();
@@ -1749,16 +1754,12 @@ class cls_Onderdeel extends cls_db_base {
 		foreach ($this->basislijst() as $row) {
 			if (strlen($row->MySQL) > 0 and strlen($row->MySQL) <= 10) {
 				$this->update($row->RecordID, "MySQL", "");
-			} elseif (strlen($row->MySQL) > 10 and $row->GekoppeldAanQuery > 0) {
-				$reden = "SQL code voor automatisch bijwerken is ingevuld";
-				$this->update($row->RecordID, "GekoppeldAanQuery", 0);
 			} elseif (strpos("ART", $row->Type) !== false and $row->Kader == 1) {
 				$reden = "een afdeling, rol of toestemming mag niet op kader ja staan";
 				$this->update($row->RecordID, "Kader", 0, $reden);
 			}
 		}
 	}
-	
 	
 }  # cls_Onderdeel
 
@@ -2545,6 +2546,8 @@ class cls_Lidond extends cls_db_base {
 	
 	public function autogroepenbijwerken() {
 		
+		$rv= 0;
+		
 		$f = "LENGTH(MySQL) > 10 AND IFNULL(VervallenPer, CURDATE()) >= CURDATE()";
 		$ondrows = (new cls_Onderdeel())->basislijst($f);
 		foreach ($ondrows as $ondrow) {
@@ -2571,6 +2574,7 @@ class cls_Lidond extends cls_db_base {
 						} else {
 							$this->update($targetrow->RecordID, "Opgezegd", date("Y-m-d"), $reden);
 						}
+						$rv++;
 					}
 				}
 			
@@ -2585,6 +2589,7 @@ class cls_Lidond extends cls_db_base {
 						} else {
 							$this->add($ondrow->RecordID, $sourcerow->{$pk}, $reden);
 						}
+						$rv++;
 					}
 				}
 			} else {
@@ -2599,12 +2604,25 @@ class cls_Lidond extends cls_db_base {
 			if ((new cls_Lidmaatschap())->soortlid($row->Lid, $row->Opgezegd) != "Lid") {
 				$reden = "omdat de persoon geen lid van de vereniging (meer) is";
 				$this->update($row->RecordID, "Opgezegd", date("Y-m-d"), $reden);
+				$rv++;
 			} elseif ((new cls_Lidmaatschap())->soortlid($row->Lid, $row->Vanaf) != "Lid") {
 				$reden = "omdat de persoon toen nog geen lid van de vereniging was";
 				$this->update($row->RecordID, "Vanaf", date("Y-m-d"), $reden);
+				$rv++;
 			}
 		}
+	
+		$query = sprintf("SELECT LO.RecordID, O.VervallenPer FROM %s AS LO INNER JOIN %sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE IFNULL(O.VervallenPer, '1900-01-01') > '1900-01-01' AND O.VervallenPer < IFNULL(LO.Opgezegd, CURDATE());", $this->table, TABLE_PREFIX);
+		$result = $this->execsql($query);
+		$reden = "het onderdeel per die datum vervallen is.";
+		foreach ($result->fetchAll() as $row) {
+			$this->update($row->RecordID, "Opgezegd", $row->VervallenPer, $reden);
+			$rv++;
+		}
+		
+		return $rv;
 	}
+	
 	
 }  # cls_Lidond
 
@@ -6716,7 +6734,6 @@ function db_onderhoud($type=9) {
 		(new cls_Diploma())->opschonen();
 		(new cls_Liddipl())->opschonen();
 		(new cls_Lid())->opschonen();
-		(new cls_Lidond())->opschonen();
 		
 		$query = sprintf("DELETE FROM %sLid WHERE (Verwijderd IS NOT NULL);", TABLE_PREFIX);
 		fnQuery($query, 2);
@@ -6752,6 +6769,8 @@ function db_onderhoud($type=9) {
 function db_backup() {
 	global $db_name, $arrTables;
 	
+	$rv = false;
+	
 	$db_folderbackup = $_SESSION['settings']['db_folderbackup'];
 	
 	$buname = $db_name . "_backup_" . Date("Y-m-d-H-i-s") . "-" . rand(10001, 99998);
@@ -6771,8 +6790,7 @@ function db_backup() {
 
 	$mess = "";
 	
-	$query = sprintf("SELECT MAX(DatumTijd) AS LB FROM %sAdmin_activiteit WHERE TypeActiviteit=3;", TABLE_PREFIX);
-	$laatstebackup = db_scalar($query);
+	$laatstebackup = (new cls_Logboek())->max("DatumTijd", "TypeActiviteit=3");
 	if (strtotime($laatstebackup) < mktime(date("H")-1, date("m"), 0, date("m"), date("d"), date("Y"))) {
 		$FileName = $db_folderbackup . $buname;
 		
@@ -6797,6 +6815,7 @@ function db_backup() {
 			
 				$mess = sprintf("Backup, type %d, is in '%s.sql' gemaakt. ", $_SESSION['settings']['db_backup_type'], str_replace($db_folderbackup, "", $FileName));
 				db_logboek("add", $mess, 3, 0, 1);
+				$rv= true;
 
 				if ($handle = opendir($db_folderbackup)) {
 					while (false !== ($file = readdir($handle))) {
@@ -6829,6 +6848,7 @@ function db_backup() {
 	} else {
 //		db_logboek("add", "Het backupscript heeft korter dan 1 uur geleden met succes gedraaid. Het wordt niet nogmaals uitgevoerd.", 2, 0, 1);
 	}
+	return $rv;
 }
 
 function fnFreeBackupFiles() {
