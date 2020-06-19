@@ -2620,6 +2620,12 @@ class cls_Lidond extends cls_db_base {
 			$rv++;
 		}
 		
+		if ($rv > 0) {
+			$this->mess = sprinf("autogroepenbijwerken uitgevoerd, %d aanpassingen gedaan.", $rv);
+			$this->tas = 31;
+			$this->Log();
+		}
+		
 		return $rv;
 	}
 	
