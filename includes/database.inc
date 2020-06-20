@@ -3156,6 +3156,7 @@ class cls_Login extends cls_db_base {
 	}
 	
 	public function autounlock() {
+		$rv = 0;
 		if ($_SESSION['settings']['login_autounlock'] > 0) {
 			$query = sprintf("SELECT Login, LidID FROM %s WHERE Gewijzigd < DATE_SUB(SYSDATE(), INTERVAL %d MINUTE) AND FouteLogin > 0;", $this->table, $_SESSION['settings']['login_autounlock']);
 			$result = $this->execsql($query);
@@ -3166,9 +3167,11 @@ class cls_Login extends cls_db_base {
 					$this->mess = sprintf("Login %s is automatisch gedeblokkeerd.", $row->Login);
 					$this->tas = 5;
 					$this->Log();
+					$rv++;
 				}
 			}
 		}
+		return $rv;
 	}
 		
 	public function setingelogd($p_lidid, $p_napost=0) {
@@ -3199,6 +3202,7 @@ class cls_Login extends cls_db_base {
 	public function uitloggen($p_lidid=0) {
 		$this->ta = 1;
 		$this->tas = 2;
+		$rv = 0;
 		if ($p_lidid > 0) {
 			$this->lidid = $p_lidid;
 			$query = sprintf("UPDATE %s SET Ingelogd=0 WHERE Ingelogd > 0 AND LidID=%d;", $this->table, $p_lidid);
@@ -3206,6 +3210,7 @@ class cls_Login extends cls_db_base {
 				$this->mess = "Heeft uitgelogd.";
 				$this->Log();
 				$_SESSION['lidid'] = 0;
+				$rv++;
 			}
 			fnMaatwerkNaUitloggen();
 		} else {
@@ -3217,9 +3222,11 @@ class cls_Login extends cls_db_base {
 					$this->lidid = $row->LidID;
 					$this->mess = "Is automatisch uitgelogd.";
 					$this->Log();
+					$rv++;
 				}
 			}
 		}
+		return $rv;
 	}
 	
 	public function wijzigenwachtwoord($p_nieuw, $p_oud, $p_nieuwherh, $p_lidid) {
