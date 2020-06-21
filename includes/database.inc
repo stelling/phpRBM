@@ -1700,7 +1700,7 @@ class cls_Onderdeel extends cls_db_base {
 			$xw = sprintf("BINARY IFNULL(`%s`, '')<>%s;", $p_kolom, $p_waarde);
 		} else {
 			$p_waarde = "'" . $p_waarde . "'";
-			$xw = sprintf("IFNULL(`%s`, '')<>%s;", $p_kolom, $p_waarde);
+			$xw = sprintf("BINARY IFNULL(`%s`, '')<>%s;", $p_kolom, $p_waarde);
 		}
 		
 		$query = sprintf("UPDATE %s SET `%s`=%s, Gewijzigd=SYSDATE() WHERE RecordID=%d AND %s;", $this->table, $p_kolom, $p_waarde, $p_oid, $xw);
@@ -2544,7 +2544,7 @@ class cls_Lidond extends cls_db_base {
 		
 	}
 	
-	public function autogroepenbijwerken() {
+	public function autogroepenbijwerken($altijdlog=0) {
 		
 		$rv= 0;
 		
@@ -2620,7 +2620,7 @@ class cls_Lidond extends cls_db_base {
 			$rv++;
 		}
 		
-		if ($rv > 0) {
+		if ($rv > 0 or $altijdlog == 1) {
 			$this->mess = sprinf("autogroepenbijwerken uitgevoerd, %d aanpassingen gedaan.", $rv);
 			$this->tas = 31;
 			$this->Log();
@@ -3173,7 +3173,7 @@ class cls_Login extends cls_db_base {
 		}
 		return $rv;
 	}
-		
+
 	public function setingelogd($p_lidid, $p_napost=0) {
 		$this->lidid = $p_lidid;
 		$this->ta = 1;
