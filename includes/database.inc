@@ -2621,7 +2621,7 @@ class cls_Lidond extends cls_db_base {
 		}
 		
 		if ($rv > 0 or $altijdlog == 1) {
-			$this->mess = sprinf("autogroepenbijwerken uitgevoerd, %d aanpassingen gedaan.", $rv);
+			$this->mess = sprintf("autogroepenbijwerken uitgevoerd, %d aanpassingen gedaan.", $rv);
 			$this->tas = 31;
 			$this->Log();
 		}
