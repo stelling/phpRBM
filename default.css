@@ -1290,9 +1290,35 @@ input.knop, button.knop {
 	margin-top: 8px;
 }
 
-#editmailingform label, .editmailingform label {
+.editmailingform fieldset {
+	margin-top: 3px;
+	margin-bottom: 3px;
+	margin-left: 0;
+	margin-right: 0;
+	padding-left: 0;
+	padding-right: 0;
+}
+
+.editmailingform label {
 	width: 180px;
 	height: 24px;
+	padding-top: 6px;
+}
+
+.editmailingform p {
+	float: left;
+	margin-top: 8px;
+	margin-right: 8px;
+	border-style: none;
+	border-width: 1px;
+	padding-top: 4px;
+}
+
+.editmailingform .invoerblok {
+	width: 990px;
+	min-height: 24px;
+	margin-right: 0;
+	padding-right: 0;
 }
 
 #instellingenmuteren p {
