@@ -303,6 +303,19 @@ class cls_db_base {
 		return $result->fetchColumn();
 	}
 	
+	public function pdoupdate($r_recid, $p_kolom, $p_waarde) {
+		global $dbc;
+		
+		if ($this->bestaat_kolom($this->table, "GewijzigdDoor") {
+			$query = sprintf("UPDATE %s SET `%s`=?, GewijzigdDoor=%d;", $this->table, $p_kolom, $_SESSION['lidid']);
+		} else {
+			$query = sprintf("UPDATE %s SET `%s`=?;", $this->table, $p_kolom);
+		}
+		$stmt = $dbc->prepare($query);
+		$stmt->bindParam(1, $p_waarde);
+		$stmt->execute();
+	}
+	
 	public function controleersql($p_query, $p_melding=0) {
 		global $dbc;
 		
@@ -4703,7 +4716,6 @@ class cls_interface extends cls_db_base {
 		$this->ta = 8;
 	}
 	
-	
 	public function lijst() {
 		$query = sprintf("SELECT %1\$s AS `Naam lid`, I.Ingevoerd, `SQL-statement` AS `SQL`
 						FROM %2\$sAdmin_interface AS I LEFT OUTER JOIN %2\$sLid AS L ON I.LidID=L.RecordID
@@ -4713,10 +4725,9 @@ class cls_interface extends cls_db_base {
 		return $result->fetchAll();
 	}
 	
-	public function add ($p_query, $p_lidid=0, $p_nip=0) {
+	public function add($p_query, $p_lidid=0, $p_nip=0) {
 		global $dbc;
 		
-//		$msa_sql = str_replace("\"", "'", $p_query);
 		$msa_sql = str_replace("Now()", "#" . strftime("%m/%d/%Y %H:%M:%S") . "#", $p_query);
 		if (strpos($p_query, '[MySQL]') === false) {
 			$msa_sql = str_replace(TABLE_PREFIX, "", $msa_sql);
@@ -4741,9 +4752,6 @@ class cls_interface extends cls_db_base {
 		$stmt->bindParam(2, $p_lidid);
 		$stmt->bindParam(3, $msa_sql);
 		$stmt->execute();
-		
-//		$query = sprintf("INSERT INTO %s (`IP-adres`, LidID, `SQL-statement`, IngelogdLid, Ingevoerd) VALUES ('%s', %d, \"%s\", %d, SYSDATE());", $this->table, $ip, $p_lidid, $msa_sql, $_SESSION['lidid']);
-//		$this->execsql($query);
 	}
 	
 	public function afmelden() {
