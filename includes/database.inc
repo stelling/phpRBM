@@ -306,7 +306,7 @@ class cls_db_base {
 	public function pdoupdate($r_recid, $p_kolom, $p_waarde) {
 		global $dbc;
 		
-		if ($this->bestaat_kolom($this->table, "GewijzigdDoor") {
+		if ($this->bestaat_kolom($this->table, "GewijzigdDoor")) {
 			$query = sprintf("UPDATE %s SET `%s`=?, GewijzigdDoor=%d;", $this->table, $p_kolom, $_SESSION['lidid']);
 		} else {
 			$query = sprintf("UPDATE %s SET `%s`=?;", $this->table, $p_kolom);
