@@ -1674,7 +1674,7 @@ class cls_Onderdeel extends cls_db_base {
 			if ($this->execsql($query) > 0) {
 				$this->mess = sprintf("%s %d met code '%s' is toegevoegd.", ARRTYPEONDERDEEL[$p_type], $nrid, $p_code);
 			
-				db_interface("add", $query, 0);
+				(new cls_Interface())->add($query, 0);
 			}
 		}
 		$this->Log($nrid);
@@ -1716,7 +1716,7 @@ class cls_Onderdeel extends cls_db_base {
 				$p_waarde = str_replace(";", "", $p_waarde);
 			}
 			$sql = sprintf("UPDATE Onderdl SET [%s]=%s, Gewijzigd=Now() WHERE RecordID=%d", $p_kolom, $p_waarde, $p_oid);
-			db_interface("add", $sql, 0);
+			(new cls_Interface())->add($sql, 0);
 		}
 		
 		$this->Log($this->oid);
@@ -2420,7 +2420,9 @@ class cls_Lidond extends cls_db_base {
 	public function add($p_ondid, $p_lidid, $p_reden="") {
 		global $lididtestusers;
 		
-		$this->tas = 11;
+		if ($this->tas != 31) {
+			$this->tas = 11;
+		}
 		$this->loid = 0;
 		$this->ondid = $p_ondid;
 		$this->lidid = $p_lidid;
@@ -2458,7 +2460,9 @@ class cls_Lidond extends cls_db_base {
 	}
 	
 	public function update($p_loid, $p_kolom, $p_waarde, $p_reden="") {
-		$this->tas = 12;		
+		if ($this->tas != 32) {
+			$this->tas = 12;		
+		}
 		$this->loid = $p_loid;
 		$this->vulvars();
 		
@@ -2494,7 +2498,9 @@ class cls_Lidond extends cls_db_base {
 	}
 	
 	public function delete($p_loid, $p_lidid=0, $p_ondid=0, $p_reden="") {
-		$this->tas = 13;
+		if ($this->tas != 33) {
+			$this->tas = 13;
+		}
 		
 		if ($p_loid > 0) {
 			$this->loid = $p_loid;
@@ -2570,8 +2576,10 @@ class cls_Lidond extends cls_db_base {
 					$reden = "op basis van de MySQL-code dit lid niet in deze groep hoort.";
 					if ($aanw == false) {
 						if ($targetrow->Vanaf == date("Y-m-d")) {
+							$this->tas = 33;
 							$this->delete($targetrow->RecordID, 0, 0, $reden);
 						} else {
+							$this->tas = 32;
 							$this->update($targetrow->RecordID, "Opgezegd", date("Y-m-d"), $reden);
 						}
 						$rv++;
@@ -2585,8 +2593,10 @@ class cls_Lidond extends cls_db_base {
 						$reden = "op basis van de MySQL-code dit lid in deze groep hoort.";
 						$rec = $this->max("RecordID", $f);
 						if ($rec > 0) {
+							$this->tas = 32;
 							$this->update($rec, "Opgezegd", '', $reden);
 						} else {
+							$this->tas = 31;
 							$this->add($ondrow->RecordID, $sourcerow->{$pk}, $reden);
 						}
 						$rv++;
@@ -2603,10 +2613,12 @@ class cls_Lidond extends cls_db_base {
 		foreach ($result->fetchAll() as $row) {
 			if ((new cls_Lidmaatschap())->soortlid($row->Lid, $row->Opgezegd) != "Lid") {
 				$reden = "omdat de persoon geen lid van de vereniging (meer) is";
+				$this->tas = 32;
 				$this->update($row->RecordID, "Opgezegd", date("Y-m-d"), $reden);
 				$rv++;
 			} elseif ((new cls_Lidmaatschap())->soortlid($row->Lid, $row->Vanaf) != "Lid") {
 				$reden = "omdat de persoon toen nog geen lid van de vereniging was";
+				$this->tas = 32;
 				$this->update($row->RecordID, "Vanaf", date("Y-m-d"), $reden);
 				$rv++;
 			}
@@ -2616,13 +2628,14 @@ class cls_Lidond extends cls_db_base {
 		$result = $this->execsql($query);
 		$reden = "het onderdeel per die datum vervallen is.";
 		foreach ($result->fetchAll() as $row) {
+			$this->tas = 32;
 			$this->update($row->RecordID, "Opgezegd", $row->VervallenPer, $reden);
 			$rv++;
 		}
 		
 		if ($rv > 0 or $altijdlog == 1) {
 			$this->mess = sprintf("autogroepenbijwerken uitgevoerd, %d aanpassingen gedaan.", $rv);
-			$this->tas = 31;
+			$this->tas = 30;
 			$this->Log();
 		}
 		
@@ -4475,16 +4488,16 @@ class cls_Logboek extends cls_db_base {
 		return $script;
 	}
 	
-	public function lijst($p_type, $p_smal=0, $p_lidid=0, $p_ipfilter="", $p_sort="") {
+	public function lijst($p_type, $p_smal=0, $p_lidid=0, $p_filter="", $p_sort="") {
 		
-		if ($p_type >= 0 and strlen($p_ipfilter) > 5) {
-			$w = sprintf("TypeActiviteit=%d AND `IP_adres`='%s'", $p_type, $p_ipfilter);
-		} elseif ($p_lidid > 0 and strlen($p_ipfilter) > 5) {
-			$w = sprintf("LidID=%d AND `IP_adres`='%s'", $p_lidid, $p_ipfilter);
+		if ($p_type >= 0 and strlen($p_filter) > 5) {
+			$w = sprintf("TypeActiviteit=%d AND %s", $p_type, $p_filter);
+		} elseif ($p_lidid > 0 and strlen($p_filter) > 5) {
+			$w = sprintf("LidID=%d AND %s", $p_lidid, $p_filter);
 		} elseif ($p_type >= 0) {
 			$w = sprintf("TypeActiviteit=%d", $p_type);
-		} elseif (strlen($p_ipfilter) > 5) {
-			$w = sprintf("`IP_adres`='%s'", $p_ipfilter);
+		} elseif (strlen($p_filter) > 5) {
+			$w = $p_filter;
 		} else {
 			$w = "TypeActiviteit >= 0";
 		}
@@ -4508,7 +4521,7 @@ class cls_Logboek extends cls_db_base {
 			$s = "";
 		}
 		if ($_SESSION['webmaster'] == 1 and $p_smal == 0) {
-			$s .= ", CONCAT(Script, ' / ', RefFunction) AS `Script / Functie`";
+			$s .= ", CONCAT(Script, ' / ', RefFunction) AS `Script / Functie`, `IP_adres` AS `IP adres`";
 		}
 		if ($p_lidid > 0) {
 			$w .= sprintf(" AND (LidID=%1\$d OR ReferLidID=%1\$d) AND (TypeActiviteit NOT IN (2, 9, 98, 99))", $p_lidid);
@@ -4517,9 +4530,6 @@ class cls_Logboek extends cls_db_base {
 			$w .= " AND DatumTijd >= DATE_SUB(NOW(), INTERVAL 6 MONTH)";
 		}
 		$s .= sprintf(", %s AS `Ingelogd Lid`", $this->selectnaam);
-		if (strlen($p_ipfilter) <= 5 and $_SESSION['webmaster'] == 1 and $p_smal == 0) {
-			$s .= ", A.IP_adres";
-		}
 		
 		if (strlen($p_sort) > 0) {
 			$p_sort .= ", ";
@@ -4703,20 +4713,37 @@ class cls_interface extends cls_db_base {
 		return $result->fetchAll();
 	}
 	
-	public function add ($query, $lidid=0, $nip=0) {
-		$msa_sql = str_replace(TABLE_PREFIX, "", $query);
-		$msa_sql = str_replace("\"", "'", $msa_sql);
-		$msa_sql = str_replace("SYSDATE()", "#" . strftime("%m/%d/%Y %H:%M:%S") . "#", $msa_sql);
-		$msa_sql = str_replace("CURDATE()", "#" . strftime("%m/%d/%Y") . "#", $msa_sql);
-		$msa_sql = str_replace(" BINARY", "", $msa_sql);
-		$msa_sql = str_replace("IFNULL(", "Nz(", $msa_sql);
-		if ($nip == 1) {
+	public function add ($p_query, $p_lidid=0, $p_nip=0) {
+		global $dbc;
+		
+//		$msa_sql = str_replace("\"", "'", $p_query);
+		$msa_sql = str_replace("Now()", "#" . strftime("%m/%d/%Y %H:%M:%S") . "#", $p_query);
+		if (strpos($p_query, '[MySQL]') === false) {
+			$msa_sql = str_replace(TABLE_PREFIX, "", $msa_sql);
+			$msa_sql = str_replace("SYSDATE()", "#" . strftime("%m/%d/%Y %H:%M:%S") . "#", $msa_sql);
+			$msa_sql = str_replace("CURDATE()", "#" . strftime("%m/%d/%Y") . "#", $msa_sql);
+			$msa_sql = str_replace(" BINARY", "", $msa_sql);
+			$msa_sql = str_replace("IFNULL(", "Nz(", $msa_sql);
+		}
+		if (substr($msa_sql, -1) != ";") {
+			$msa_sql .= ";";
+		}
+		
+		if ($p_nip == 1) {
 			$ip = "";
 		} else {
 			$ip = $_SERVER['REMOTE_ADDR'];
 		}
-		$query = sprintf("INSERT INTO %s (`IP-adres`, LidID, `SQL-statement`, IngelogdLid, Ingevoerd) VALUES ('%s', %d, \"%s\", %d, SYSDATE());", $this->table, $ip, $lidid, $msa_sql, $_SESSION['lidid']);
-		$this->execsql($query);
+		
+		$query = sprintf("INSERT INTO %s (`IP-adres`, LidID, `SQL-statement`, IngelogdLid, Ingevoerd) VALUES (?, ?, ?, %d, SYSDATE())", $this->table, $_SESSION['lidid']);
+		$stmt = $dbc->prepare($query);
+		$stmt->bindParam(1, $ip);
+		$stmt->bindParam(2, $p_lidid);
+		$stmt->bindParam(3, $msa_sql);
+		$stmt->execute();
+		
+//		$query = sprintf("INSERT INTO %s (`IP-adres`, LidID, `SQL-statement`, IngelogdLid, Ingevoerd) VALUES ('%s', %d, \"%s\", %d, SYSDATE());", $this->table, $ip, $p_lidid, $msa_sql, $_SESSION['lidid']);
+//		$this->execsql($query);
 	}
 	
 	public function afmelden() {
