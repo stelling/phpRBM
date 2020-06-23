@@ -350,7 +350,7 @@ function fnLedenlijst() {
 		
 	} elseif ($currenttab2 == "Mutaties") {
 		
-		$rows = (new cls_Logboek())->lijst(6, 1);
+		$rows = (new cls_Logboek())->lijst(6, 1, 0, "TypeActiviteitSpecifiek < 30");
 		
 		if (count($rows) > 0) {
 			echo(fnDisplayTable($rows, "", "Mutaties in lidgegevens", 0, "", "", "logboek"));
@@ -569,7 +569,9 @@ function fnOnderdelenmuteren($ondtype="G") {
 			$scherm = "S";
 		}
 	} else {
-		if ($ondtype == "G") {
+		$lagb = (new cls_Logboek())->max("DatumTijd", "TypeActiviteit=6 AND TypeActiviteitSpecifiek=31");
+		
+		if ($ondtype == "G" and $lagb < date("Y-m-d H:i:s", mktime(date("H"), date("i")-10, 0, date("m"), date("d"), date("Y")))) {
 			$i_lo->autogroepenbijwerken();
 		}
 		$i_ond->datacontrole();
