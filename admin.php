@@ -79,6 +79,7 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 				
 				$mess = "Bestand is in de database verwerkt.";
 				db_onderhoud(1);
+				(new cls_lidond())->autogroepenbijwerken();
 				fnMaatwerkNaUpload();
 				printf("<script>setTimeout(\"location.href='%s';\", 30000);</script>\n", $_SERVER['PHP_SELF']);
 			}
@@ -249,17 +250,6 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	$arrSort[] = "Ingelogd Lid;Ingelogd Lid";
 	$arrSort[] = "IP adres;A.IP_adres";
 	
-	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		$naamfilter = $_POST['NaamFilter'];
-	} else {
-		$naamfilter = "";
-	}
-
-	$w = "";	
-	if (strlen($naamfilter) > 0) {
-		$w = sprintf("(L.Achternaam LIKE '%%%1\$s%%' OR L.Roepnaam LIKE '%%%1\$s%%' OR Login.Login LIKE '%%%1\$s%%')", $naamfilter);
-	}
-	
 	$ord = fnOrderBy($arrSort);
 	
 	if (!isset($_POST['lidfilter']) or strlen($_POST['lidfilter']) == 0) {
@@ -271,7 +261,12 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	if (!isset($_POST['ipfilter']) or strlen($_POST['ipfilter']) == 0) {
 		$_POST['ipfilter'] = "";
 	}
-	$rows = $i_lb->lijst($_POST['typefilter'], 0, $_POST['lidfilter'], $_POST['ipfilter'], $ord);
+	if (strlen($_POST['ipfilter']) >= 10) {
+		$ipf = sprintf("`IP_adres`='%s'", $_POST['ipfilter']);
+	} else {
+		$ipf = "";
+	}
+	$rows = $i_lb->lijst($_POST['typefilter'], 0, $_POST['lidfilter'], $ipf, $ord);
 	
 	echo("<div id='filter'>\n");
 	
