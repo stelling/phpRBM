@@ -185,7 +185,7 @@ function muteerevenement($eventid) {
 		$old = db_evenement("record", 0, $eventid);
 		foreach($_POST as $key => $val) {
 			if (array_key_exists($key, $old) and $old->$key != $_POST[$key]) {
-				$inst_ev->update($eventid, $key, $_POST[$key]);
+				$i_ev->update($eventid, $key, $_POST[$key]);
 			}
 		}
 
