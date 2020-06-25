@@ -2648,15 +2648,10 @@ class cls_Lidond extends cls_db_base {
 							$aanw = true;
 						}
 					}
-					$reden = "op basis van de MySQL-code dit lid niet in deze groep hoort.";
+					$reden = "op basis van de MySQL-code hoort dit lid niet in deze groep.";
 					if ($aanw == false) {
-						if ($targetrow->Vanaf == date("Y-m-d")) {
-							$this->tas = 33;
-							$this->delete($targetrow->RecordID, 0, 0, $reden);
-						} else {
-							$this->tas = 32;
-							$this->update($targetrow->RecordID, "Opgezegd", date("Y-m-d"), $reden);
-						}
+						$this->tas = 32;
+						$this->update($targetrow->RecordID, "Opgezegd", date("Y-m-d", strtotime("yesterday")), $reden);
 						$rv++;
 					}
 				}
