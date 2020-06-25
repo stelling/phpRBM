@@ -398,6 +398,10 @@ header a + a:visited + a:hover {
 	width: 100%;
 }
 
+#onderdelenperlidmuteren input {
+	width: 150px;
+}
+
 #inschrijvingevenementen td {
 	height: 75px;
 }
