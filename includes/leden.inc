@@ -289,7 +289,7 @@ function fnLedenlijst() {
 	if ($currenttab2 == "Klosleden") {
 		$filter .= " AND (LM.Lidnr IS NULL)";
 		$rows = $i_lid->ledenlijst($filter);
-	} else {
+	} elseif ($currenttab2 != "Mutaties") {
 		if ($_SESSION['val_groep'] > 0) {
 			if (strlen($filter) > 0) {$filter .= " AND ";}
 			$filter .= sprintf("L.RecordID IN (SELECT LO.Lid FROM %sLidond AS LO WHERE ", TABLE_PREFIX);
@@ -716,23 +716,23 @@ function fnOnderdelenmuteren($ondtype="G") {
 		printf("<form method='post' action='%s?tp=%s&amp;OnderdeelID=%d&Scherm=W'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $onderdeelid);
 		echo("<input type='hidden' name='formname' value='muteren_detail_onderdeel'>\n");
 		
-		printf("<label>RecordID:</label><input type='text' name='kode' value='%s' readonly size=5>\n", $row->RecordID);
-		printf("<label>Kode:</label><input type='text' name='kode' value='%s' max-lentgh=5 size=5>\n", $row->Kode);
-		printf("<label>Naam:</label><input type='text' name='naam' value='%s' max-lentgh=50 size=45>\n", $row->Naam);
-		printf("<label>Centraal e-mailadres:</label><input type='email' name='centraalemail' value='%s' max-lentgh=50 size=45>\n", $row->CentraalEmail);
-		printf("<label>Is kader:</label><input type='checkbox' class='cb' name='kader' %s>\n", checked($row->Kader));
-		printf("<label for='alleenleden'>Alleen leden:</label><input type='checkbox' class='cb' name='alleenleden' id='alleenleden' %s>\n", checked($row->AlleenLeden));
-		printf("<label for='vervallenper'>Vervallen per:</label><input type='date' name='vervallenper' id='vervallenper' value='%s'>\n", $row->VervallenPer);
-		printf("<label>Historie opschonen:</label><input type='number' class='number' name='historieopschonen' value=%d><p>in dagen</p>\n", $row->HistorieOpschonen);
-		printf("<label>Maximale periode:</label><input type='number' class='number' name='maximalelengteperiode' value=%d><p>in dagen</p>\n", $row->MaximaleLengtePeriode);
+		printf("<label>RecordID</label><input type='text' name='kode' value='%s' readonly size=5>\n", $row->RecordID);
+		printf("<label>Kode</label><input type='text' name='kode' value='%s' max-lentgh=5 size=5>\n", $row->Kode);
+		printf("<label>Naam</label><input type='text' name='naam' value='%s' max-lentgh=50 size=45>\n", $row->Naam);
+		printf("<label>Centraal e-mailadres</label><input type='email' name='centraalemail' value='%s' max-lentgh=50 size=45>\n", $row->CentraalEmail);
+		printf("<label>Is kader</label><input type='checkbox' class='cb' name='kader' %s>\n", checked($row->Kader));
+		printf("<label for='alleenleden'>Alleen leden</label><input type='checkbox' class='cb' name='alleenleden' id='alleenleden' %s>\n", checked($row->AlleenLeden));
+		printf("<label for='vervallenper'>Vervallen per</label><input type='date' name='vervallenper' id='vervallenper' value='%s'>\n", $row->VervallenPer);
+		printf("<label>Historie opschonen</label><input type='number' class='number' name='historieopschonen' value=%d><p>in dagen</p>\n", $row->HistorieOpschonen);
+		printf("<label>Maximale periode</label><input type='number' class='number' name='maximalelengteperiode' value=%d><p>in dagen</p>\n", $row->MaximaleLengtePeriode);
 		
 		if ($ondtype == "G" and $_SESSION['webmaster'] == 1) {
-			printf("<label>MySQL-code automatisch bijwerken:</label><textarea id='mysql' name='mysql' rows=5 cols=100>%s</textarea>\n", $row->MySQL);
+			printf("<label>MySQL-code automatisch bijwerken</label><textarea id='mysql' name='mysql' rows=5 cols=100>%s</textarea>\n", $row->MySQL);
 			if (strlen($row->MySQL) > 10 and (new cls_db_base())->controleersql($row->MySQL, 1) == false) {
 				echo("<p class='mededeling'>Deze code kan niet worden uitgevoerd.</p>");
 			} elseif (strlen($row->MySQL) > 10) {
 				$result = (new cls_db_base())->execsql($row->MySQL);
-				printf("<label>Aantal records:</label><p>%s</p>\n", count($result->fetchAll()));			
+				printf("<label>Aantal records</label><p>%s</p>\n", count($result->fetchAll()));			
 			}
 		}
 		
@@ -1544,28 +1544,7 @@ function algemeenlidmuteren($lidid) {
 				}
 				
 			} elseif (isset($_POST["chkLeeg_" . $contrname]) and $_POST["chkLeeg_" . $contrname] == "1") {
-				if (stripos($wijzvelden[$i]['label'], "datum") === FALSE) {
-					$v = "";
-				} else {
-					$v = "NULL";
-				}
-			} elseif (stripos($wijzvelden[$i]['label'], "datum") !== FALSE) {
-				$_POST[$contrname] = change_month_to_uk($_POST[$contrname]);
-				if (isset($_POST[$contrname]) and strlen($_POST[$contrname]) > 0) {
-					if (strtotime($_POST[$contrname]) === FALSE) {
-						$mess = $wijzvelden[$i]['label'] . " is niet correct, deze wijziging wordt niet verwerkt.";
-					} else {
-						$v = strftime($fdsql, strtotime($_POST[$contrname]));
-					}
-				}
-			} elseif (stripos($wijzvelden[$i]['label'], "e-mail") !== FALSE) {
-				if (isset($_POST[$contrname]) and strlen($_POST[$contrname]) > 0) {
-					if (isValidMailAddress($_POST[$contrname], 0)) {
-						$v = $_POST[$contrname];
-					} else {
-						$mess = "E-mailadres is niet correct, deze wijziging wordt niet verwerkt.";
-					}
-				}
+				$v = "NULL";
 				
 			} elseif (isset($_POST[$contrname]) and strlen($_POST[$contrname]) > 0) {
 				$v = $_POST[$contrname];
@@ -1956,11 +1935,17 @@ function onderdelenlidmuteren($lidid, $p_type="G") {
 	
 	$actionurl = sprintf("%s?tp=%s&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
 	
+	$i_lo = new cls_Lidond();
+	$i_gr = new cls_Groep();
+	
 	$kf = "";
 	$tf = "";
 	if ($p_type == "A") {
 		$typeoms = "Afdelingen";
 		$kf = "<th>Functie</th><th>Functionele e-mail</th>";
+		if ($i_gr->aantal() > 0) {
+			$kf .= "<th>Groep</th>";
+		}
 		$tf = "A";
 	} elseif ($p_type == "BCF") {
 		$typeoms = "Bestuur, commissies en functionarissen";
@@ -1973,14 +1958,13 @@ function onderdelenlidmuteren($lidid, $p_type="G") {
 	}
 	
 	if ($p_type == "BCF") {
-		$f = "(O.Type IN ('B', 'C', 'F') OR O.Kader=True)";
+		$f = "(O.Type IN ('B', 'C', 'F') OR O.Kader=1)";
 	} elseif ($p_type == "G") {
-		$f = sprintf("O.Type='G' AND O.Kader=false");
+		$f = sprintf("O.Type='G' AND O.Kader=0");
 	} else {
 		$f = sprintf("O.Type='%s'", $p_type);
 	}
 
-	$i_lo = new cls_Lidond();
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		if (isset($_POST['Nieuw']) and $_POST['Nieuw'] > 0) {
 			$i_lo->add($_POST['Nieuw'], $lidid);
@@ -1991,19 +1975,23 @@ function onderdelenlidmuteren($lidid, $p_type="G") {
 				$i_lo->update($row->RecordID, "Vanaf", $_POST[$vn]);
 			}
 			$vn = sprintf("Functie_%d", $row->RecordID);
-			if (isset($_POST[$vn]) and $_POST[$vn] != $row->Vanaf) {
+			if (isset($_POST[$vn])) {
 				$i_lo->update($row->RecordID, "Functie", $_POST[$vn]);
 			}
 			$vn = sprintf("Email_%d", $row->RecordID);
-			if (isset($_POST[$vn]) and $_POST[$vn] != $row->EmailFunctie) {
+			if (isset($_POST[$vn])) {
 				$i_lo->update($row->RecordID, "EmailFunctie", $_POST[$vn]);
 			}
+			$vn = sprintf("GroepID_%d", $row->RecordID);
+			if (isset($_POST[$vn])) {
+				$i_lo->update($row->RecordID, "GroepID", $_POST[$vn]);
+			}
 			$vn = sprintf("Opmerking_%d", $row->RecordID);
-			if (isset($_POST[$vn]) and $_POST[$vn] != $row->OPMERK) {
+			if (isset($_POST[$vn])) {
 				$i_lo->update($row->RecordID, "OPMERK", $_POST[$vn]);
 			}
 			$vn = sprintf("Opgezegd_%d", $row->RecordID);
-			if (isset($_POST[$vn]) and $_POST[$vn] != $row->Opgezegd) {
+			if (isset($_POST[$vn])) {
 				$i_lo->update($row->RecordID, "Opgezegd", $_POST[$vn]);
 			}
 		}
@@ -2012,9 +2000,15 @@ function onderdelenlidmuteren($lidid, $p_type="G") {
 	echo("<div id='onderdelenperlidmuteren'>\n");
 	printf("<form method='post' name='frmOnderdelenPerLidMuteren' action='%s'>\n", $actionurl);
 	echo("<table>\n");
-	printf("<tr><th colspan=6 class='tabelkop'>%s %s muteren</th></tr>\n", $typeoms, (new cls_Lid())->Naam($lidid));
+	printf("<tr><th colspan=7 class='tabelkop'>%s %s muteren</th></tr>\n", $typeoms, (new cls_Lid())->Naam($lidid));
 	$frows = (new cls_functie())->selectlijst($tf);
-	printf("<tr><th>Groep</th><th>Vanaf</th>%s<th>Opmerking</th><th>Tot en met</th></tr>\n", $kf);
+	if ($p_type == "A") {
+		printf("<tr><th>Afdeling</th><th>Vanaf</th>%s<th>Opmerking</th><th>Tot en met</th></tr>\n", $kf);
+	} elseif ($p_type == "BCF") {
+		printf("<tr><th>onderdeel</th><th>Vanaf</th>%s<th>Opmerking</th><th>Tot en met</th></tr>\n", $kf);
+	} else {
+		printf("<tr><th>Groep</th><th>Vanaf</th>%s<th>Opmerking</th><th>Tot en met</th></tr>\n", $kf);
+	}
 	foreach ($i_lo->editlijst($f, $lidid) as $row) {
 		printf("<tr>\n<td>%s - %s</td>\n", $row->Kode, $row->Naam);
 		printf("<td><input type='date' name='Vanaf_%d' value='%s' OnChange='this.form.submit();'></td>\n", $row->RecordID, $row->Vanaf);
@@ -2026,13 +2020,25 @@ function onderdelenlidmuteren($lidid, $p_type="G") {
 			printf("<td><select name='Functie_%d' OnChange='this.form.submit();'>%s</select></td>\n", $row->RecordID, $options);
 			printf("<td><input type='email' name='Email_%d' value='%s' OnChange='this.form.submit();'></td>\n", $row->RecordID, $row->EmailFunctie);
 		}
+		if ($p_type == "A" and $i_gr->aantal() > 0) {
+			$f2 = sprintf("OnderdeelID=%d", $row->OnderdeelID);
+			if ($i_gr->aantal($f2) > 0) {
+				$options = "<option value=0></option>\n";
+				foreach ((new cls_Groep())->selectlijst($row->OnderdeelID) as $grow) {
+					$options .= sprintf("<option value=%d %s>%s</option>\n", $grow->RecordID, checked($grow->RecordID, "option", $row->GroepID), $grow->Kode);
+				}
+				printf("<td><select name='GroepID_%d' OnChange='this.form.submit();'>%s</select></td>\n", $row->RecordID, $options);
+			} else {
+				echo("<td></td>\n");
+			}
+		}
 		printf("<td><input type='text' name='Opmerking_%d' value='%s' OnChange='this.form.submit();'></td>\n", $row->RecordID, $row->OPMERK);
 		printf("<td><input type='date' name='Opgezegd_%d' value='%s' OnChange='this.form.submit();'></td>\n", $row->RecordID, $row->Opgezegd);
 		echo("</tr>\n");
 	}
-	$options = "<option value=0>Nieuw ....</option>\n";
 	
-	$f .= " AND IFNULL(O.VervallenPer, CURDATE()) >= CURDATE() AND O.GekoppeldAanQuery=0 AND LENGTH(O.MySQL) < 10";
+	$options = "<option value=0>Nieuw ....</option>\n";
+	$f .= " AND IFNULL(O.VervallenPer, CURDATE()) >= CURDATE() AND O.GekoppeldAanQuery=0 AND LENGTH(IFNULL(O.MySQL, '')) < 10";
 	foreach((new cls_Onderdeel())->lijst(0, $f) as $row) {
 		$options .= sprintf("<option value=%d>%s - %s</option>\n", $row->RecordID, $row->Kode, $row->Naam);
 	}
