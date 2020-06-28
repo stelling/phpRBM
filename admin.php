@@ -368,13 +368,11 @@ function fnBeheerLogins() {
 	echo("</div>  <!-- Einde beheerlogins -->\n");
 	
 	// Nieuwe en gewijzigde logins in de tabel interface zetten en de tabel 'Lid' bijwerken.
-	$inst_lid = new cls_Lid();
 	$f = "IFNULL(L.LoginWebsite, '') <> IFNULL(Login.Login, '')";
 	foreach ($i_login->lijst($f) as $row) {
-		$i_lid->update($row->lnkNummer, "LoginWebsite", $row->Login);
+		(new cls_Lid())->update($row->lnkNummer, "LoginWebsite", $row->Login);
 	}
-	$inst_lid = null;
-	$inst_login = null;
+	$i_login = null;
 	
 }  #  fnBeheerLogins
 
@@ -394,7 +392,6 @@ function fnInstellingen() {
 	$arrParam['meisjesnaamtonen'] = "Moet de naam van een lid de meisjesnaam bevatten?";
 	$arrParam['woonadres_anderen_tonen'] = "Moet het woonadres van een lid ook aan andere leden worden getoond?";
 	$arrParam['muteerbarememos'] = "Welke soorten memo's zijn in gebruik? Bij meerdere scheiden door een komma.";
-	$arrParam['login_lidnrnodigbijaanvraag'] = "Moet een lid zijn of haar lidnummer opgeven als er een login aangevraagd wordt?";
 	$arrParam['login_autounlock'] = "Na hoeveel minuten moet een gelockede login automatisch geunlocked worden? 0 = alleen handmatig unlocken.";
 	$arrParam['login_beperkttotgroep'] = "Vul hier de RecordID's, gescheiden door een komma, van de groepen (zie tabel ONDERDL) in die toegang hebben. Leeg = alleen webmasters hebben toegang.";
 	$arrParam['login_bewaartijd'] = "Het aantal maanden dat logins na het laatste gebruik bewaard blijven. Historie is direct aan het lid gekopppeld en wordt dus niet verwijderd. 0 = altijd bewaren.";
