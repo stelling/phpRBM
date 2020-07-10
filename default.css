@@ -75,6 +75,10 @@ label {
 	border-width: 1px;
 }
 
+label.k2 {
+	clear: none;
+}
+
 span {
 	float: left;
 	clear: right;
@@ -595,6 +599,11 @@ header a + a:visited + a:hover {
 	clear: none;
 	font-size: 10pt;
 	border-style: none;
+}
+
+
+#login input[type='text'], #login input[type='password'] {
+	width: 125px;
 }
 
 #login input[type='submit'] {
@@ -1160,6 +1169,28 @@ input.knop, button.knop {
 
 .opmerkinginschrijving, .opmerkingweek {
 	max-width: 200px;
+}
+
+#rekeningmuteren label {
+	width: 250px;
+}
+
+#rekeningmuteren input {
+	width: 350px;	
+}
+
+#rekeningmuteren input[type='number'], #rekeningmuteren input[type='date'] {
+	width: 150px;	
+}
+
+#rekeningmuteren p {
+	width: 350px;
+	float: left;
+	clear: none;
+	margin -top: 4px;
+	margin-right: 8px;
+	padding-top: 6px;
+	background-color: yellow;
 }
 
 #rekeningenmailen ul {
