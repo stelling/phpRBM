@@ -775,7 +775,7 @@ class cls_Lid extends cls_db_base {
 	
 	public function Geslacht($p_lidid) {
 		$query = sprintf("SELECT IFNULL(MAX(L.Geslacht), '0') FROM %sLid AS L WHERE L.RecordID=%d;", TABLE_PREFIX, $p_lidid);
-		return db_scalar($query);
+		return $this->scalar($query);
 	}
 	
 	public function lijstselect($p_filter=0, $p_xf="") {
@@ -1761,7 +1761,7 @@ class cls_Onderdeel extends cls_db_base {
 		}
 		$sel .= sprintf("(SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.OnderdeelID=O.RecordID AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()) AS `intAantal leden`, O.RecordID AS llkRecordID", TABLE_PREFIX);
 		
-		$query = sprintf("SELECT %s FROM %s AS O WHERE O.`Type`='%s' ORDER BY Kode;", $sel, $this->table, $p_ondtype);
+		$query = sprintf("SELECT %s FROM %s AS O WHERE O.`Type`='%s' ORDER BY Naam;", $sel, $this->table, $p_ondtype);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
@@ -2640,7 +2640,7 @@ class cls_Lidond extends cls_db_base {
 		
 	}
 	
-	public function autogroepenbijwerken($altijdlog=0) {
+	public function autogroepenbijwerken($p_altijdlog=0) {
 		
 		$rv= 0;
 		
@@ -2692,8 +2692,8 @@ class cls_Lidond extends cls_db_base {
 				$this->tas = 30;
 				$this->mess = sprintf("De MySQL-code van onderdeel %d (%s) is niet uitvoerbaar.", $ondrow->RecordID, $ondrow->Naam);
 			}
+			$this->Log();
 		}
-		$this->Log();
 		
 		$query = sprintf('SELECT LO.RecordID, LO.Lid, LO.Vanaf, IFNULL(LO.Opgezegd, CURDATE()) AS Opgezegd FROM %s AS LO INNER JOIN %sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE O.`Alleen leden`=1 AND LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE();', $this->table, TABLE_PREFIX);
 		$result = $this->execsql($query);
@@ -2720,15 +2720,15 @@ class cls_Lidond extends cls_db_base {
 			$rv++;
 		}
 		
-		if ($rv > 0 or $altijdlog == 1) {
+		if ($rv > 0 or $p_altijdlog == 1) {
 			$this->mess = sprintf("autogroepenbijwerken uitgevoerd, %d aanpassingen gedaan.", $rv);
+			$this->ta =6;
 			$this->tas = 30;
 			$this->Log();
 		}
 		
 		return $rv;
-	}
-	
+	} # autogroepenbijwerken
 	
 }  # cls_Lidond
 
@@ -4774,7 +4774,6 @@ class cls_Logboek extends cls_db_base {
 		
 		if ($p_type < 0) {
 			$s = ", CONCAT(TypeActiviteit, IF(TypeActiviteitSpecifiek > 0, CONCAT('-', TypeActiviteitSpecifiek), '')) AS `Type`";
-			$w .= " AND TypeActiviteit < 98";
 		} else {
 			$s = "";
 		}
@@ -6141,6 +6140,7 @@ function db_rekening($actie, $nr=0, $filter="", $lidid=0) {
 class cls_Rekening extends cls_db_base {
 	
 	function __construct() {
+		parent::__construct();
 		$this->table = TABLE_PREFIX . "Rekening";
 	}
 	
@@ -6156,6 +6156,12 @@ class cls_Rekening extends cls_db_base {
 					ORDER BY RK.Nummer;", $this->selectlidnr, TABLE_PREFIX, $p_filter);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
+	}
+	
+	public function record($p_rknr) {
+		$query = sprintf("SELECT RK.*, %s AS NaamLid FROM %s AS RK INNER JOIN %sLid AS L ON RK.Lid=L.RecordID WHERE RK.Nummer=%d;", $this->selectnaam, $this->table, TABLE_PREFIX, $p_rknr);
+		$result = $this->execsql($query);
+		return $result->fetch();
 	}
 	
 	public function overzichtlid($p_lidid) {
@@ -6681,6 +6687,8 @@ function db_onderhoud($type=9) {
 		// Overige vaste aanpassingen aan de database na een upload,
 		$query = sprintf("ALTER TABLE `%sMemo` CHANGE `Vertrouwelijk` `Vertrouwelijk` TINYINT(4) NULL DEFAULT '0'", TABLE_PREFIX);
 		fnQuery($query, 9);
+		$query = sprintf("ALTER TABLE `%sRekening` CHANGE `BET_TERM` `BET_TERM` SMALLINT(6) NULL DEFAULT '1'; ", TABLE_PREFIX);
+		fnQuery($query);
 	}
 
 	/***** Aanpassen lengte login in de database als deze kleiner is dan login_maxlengte  *****/
@@ -7042,14 +7050,12 @@ function db_onderhoud($type=9) {
 	fnQuery($query);
 	
 	// Deze code kan na 1 juli 2021 worden verwijderd.
-/*
 	$query = sprintf("SELECT Login.LidID FROM %sAdmin_login AS Login WHERE IFNULL(Login.RecordID, 0)=0;", TABLE_PREFIX);
 	$result = fnQuery($query);
 	foreach($result->fetchAll() as $row) {
 		$nrid = db_nieuwrecordid("Admin_login");
 		(new cls_Login())->update($row->LidID, "RecordID", $nrid);
 	}
-*/
 
 	/***** Opschonen database na een upload uit de Access-database.  *****/
 
