@@ -488,8 +488,8 @@ function DetailsInschrijvingBewaking($rows) {
 	
 	if (isset($rows) and count($rows) > 0) {
 		$ret .= "<table>\n";
-		$ret .= "<tr><th colspan=8 class='tabelkop'>Details inschrijving bewaking</th></tr>\n";
-		$ret .= "<tr><th colspan=2>Bewaker</th><th>Week</th><th>Periode</th><th>Keuze 1</th><th>Keuze 2</th><th>Opmerking (week)</th><th>Opmerking (Inschrijving)</th></tr>\n";
+		$ret .= "<caption>Details inschrijving bewaking</caption>\n";
+		$ret .= "<thead>\n<tr><th colspan=2>Bewaker</th><th>Week</th><th>Periode</th><th>Keuze 1</th><th>Keuze 2</th><th>Opmerking (week)</th><th>Opmerking (Inschrijving)</th></tr>\n</thead>\n";
 		$voriglid = -1;
 		$hv = "";
 		foreach($rows as $row) {
