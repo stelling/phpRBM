@@ -106,7 +106,7 @@ function fnMailing() {
 		$mailing->edit();
 				
 	} elseif ($op == "deletehist" and isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0) {
-		db_mailing_hist("delete", 0, $_GET['MailingHistID']);
+		(new cls_Mailing_hist())->delete($_GET['MailingHistID']);
 		echo("<script>window.history.back();</script>\n");
 		
 	} elseif ($currenttab2 == "Nieuw" and toegang($_GET['tp'], 1, 1)) {
@@ -117,11 +117,10 @@ function fnMailing() {
 		fnRekeningenMailen($op);
 		
 	} elseif ($currenttab2 == "Logboek" and toegang($_GET['tp'], 1, 1)) {
-		$lijst = db_logboek("lijstsmal", "", 4);
-		echo(fnDisplayTable($lijst, "", "", 0, "", "", "logboek"));
+		$lijst = (new cls_Logboek())->lijst(4, 1);
+		echo(fnDisplayTable($lijst));
 	} elseif ($op == "historie" and $_GET['mid'] > 0) {
-		$result = db_mailing_hist("lijst", 0, 0, $_GET['mid']);
-		$rows = $result->fetchAll();
+		$rows = (new cls_Mailing_hist())->lijst($_GET['mid']);
 		if (count($rows) > 0) {
 			$ld = sprintf("<a href='index.php?tp=%s&amp;op=histdetails&amp;rid=%%d&amp;mid=%d'>%%s</a>", $_GET['tp'], $_GET['mid']);
 			$th = sprintf("%d. %s", $mailing->mid, $rows[0]->ndOnderwerp);
@@ -368,7 +367,7 @@ class Mailing {
 				 WHERE %2$s AND LD.Lid=%%d ORDER BY DP.Volgnr, LD.DatumBehaald, DP.Naam;', TABLE_PREFIX, $whereliddipl);
 		$this->MergeField[]=array('Naam' => "DiplomaLang", 'SQL' => $sql);
 		
-		if (count(db_diploma("zelfservice_lijst")) > 0) {
+		if ((new cls_Diploma())->aantal("Zelfservice=1") > 0) {
 			$sql = sprintf('SELECT DISTINCT DP.Naam FROM %1$sLiddipl AS LD INNER JOIN %1$sDiploma AS DP ON LD.DiplomaID = DP.RecordID
 					WHERE %2$s AND LD.Lid=%%d AND DP.Zelfservice=1 ORDER BY DP.Volgnr, LD.DatumBehaald, DP.Naam;', TABLE_PREFIX, $whereliddipl);
 			$this->MergeField[]=array('Naam' => "DiplomaZelfservice", 'SQL' => $sql);
@@ -389,7 +388,7 @@ class Mailing {
 		$this->MergeField[]=array('Naam' => "Email", 'SQL' => $sql);
 
 		$query = sprintf("SELECT COUNT(*) FROM %1\$sLidRedNed AS RN JOIN %1\$sLidmaatschap AS LM ON LM.LIDNR = RN.Lidnr WHERE LENGTH(RN.Foutboodschap) > 0;", TABLE_PREFIX);
-		if (TableExists("LidRedNed") and db_scalar($query) > 0) {
+		if (db_scalar($query) > 0) {
 			$sql = sprintf("SELECT RN.Foutboodschap FROM %1\$sLidRedNed AS RN JOIN %1\$sLidmaatschap AS LM ON LM.LIDNR = RN.Lidnr WHERE LM.LID=%%d;", TABLE_PREFIX);
 			$this->MergeField[]=array('Naam' => "VerschilSportlink", 'SQL' => $sql);
 		}
@@ -583,25 +582,26 @@ class Mailing {
 		printf("<div class='editmailingform'>\n");
 		printf("<form method='post' action='%s?tp=%s/%s&amp;mid=%d' name='frm_mailedit' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2, $this->mid);
 		
-		printf("<p><label>Van:</label><select name='from_addr'>\n%s</select></p>\n", $selectfrom);
-		printf("<p><label>Aan:</label><input type='text' name='to_name' value=\"%s\" size=50 maxlength=50> (Omschrijving van de groep personen aan wie deze mailing gericht is)</p>\n", $this->to_name);
-		printf("<p><label>Onderwerp:</label><input type='text' name='subject' value=\"%s\" size=100 maxlength=75></p>\n", $this->subject);
+		printf("<fieldset><label>Van</label><select name='from_addr'>\n%s</select></fieldset>\n", $selectfrom);
+		printf("<fieldset><label>Aan</label><input type='text' class='naam' name='to_name' value=\"%s\" maxlength=50 placeholder='Omschrijving groep personen aan wie de mailing is gericht'></fieldset>\n", $this->to_name);
+		printf("<fieldset><label>Onderwerp</label><input type='text' class='naam' name='subject' value=\"%s\" maxlength=75 placeholder='Onderwerp'></fieldset>\n", $this->subject);
 
 		$this->verzendenmag = false;
 		if ($this->mid > 0) {
 			$rcpt_rows = $i_mr->lijst($this->mid);
 			if (strlen($this->speciaal) > 0) {
-				printf("<label>Specifiek doel:</label><p>%s</p>\n", $this->speciaal);
+				printf("<fieldset><label>Specifiek doel</label><p>%s</fieldset>\n", $this->speciaal);
 				$this->delete_all_rcpt();
 			
 			} else {
 				$this->meldingen = "Er zijn nog geen ontvangers aan deze mailing toegevoegd.<br>\n";
+				echo("<fieldset><label>");
 				if ($this->aant_rcpt == 1) {
-					echo("<label>Ontvanger:</label>");
+					echo("Ontvanger</label>");
 				} elseif ($this->aant_rcpt > 1) {
-					printf("<label>Ontvangers (%d):</label>", $this->aant_rcpt);
+					printf(">Ontvangers (%d)</label>", $this->aant_rcpt);
 				} else {
-					echo("<label>Ontvangers:</label>");
+					echo("Ontvangers</label>");
 				}
 				$aant_ze = 0;
 				echo("<div class='invoerblok'>\n");
@@ -630,9 +630,12 @@ class Mailing {
 				$this->verzendenmag = true;
 				$this->meldingen = "";
 				echo("</div> <!-- Einde invoerblok -->\n");
-				echo("<label>Ontvanger toevoegen:</label>\n");
-				printf("<p><select name='add_lid' onChange='this.form.submit();'>\n");
-				printf("<option value=0>&nbsp;</option>\n");
+				echo("</fieldset>\n");
+
+
+				echo("<label>Ontvanger toevoegen</label>\n");
+				printf("<select name='add_lid' onChange='this.form.submit();'>\n");
+				printf("<option value=0>Toevoegen lid ...</option>\n");
 				$rcpt_rows = db_mailing("potrcpt", $this->mid);
 				foreach($rcpt_rows as $rcpt) {
 					$rnm = $rcpt->Zoeknaam_lid;
@@ -644,14 +647,14 @@ class Mailing {
 				}
 				printf("</select>&nbsp;\n");
 			
-				echo("E-mail: <input type='email' name='add_address' size=50 maxlength=50 onBlur='this.form.submit();'>");
-				echo("</p>\n");
+				echo("<input type='email' name='add_address' size=50 maxlength=50 placeholder='Toevoegen e-mailadres' onBlur='this.form.submit();'>");
+				echo("<div class='clear'></div>\n");
 				
 				if (!isset($_POST['selectie_status'])) {
 					$_POST['selectie_status'] = "L";
 				}
 
-				echo("<label>Selectie leden:</label>\n");
+				echo("<label>Selectie leden</label>\n");
 				echo("<div class='invoerblok'>\n");
 				echo("<div id='mailingselectieleden'>\n");
 				echo("<table>\n");
@@ -684,7 +687,7 @@ class Mailing {
 		}
 		
 		if ($this->aant_rcpt > 0) {
-			printf("<p><label>Cc:</label><input type='text' name='cc_addr' value='%s' size=100></p>\n", $this->cc_addr);
+			printf("<fieldset><label>Cc</label><input type='text' name='cc_addr' value='%s' size=100></fieldset>\n", $this->cc_addr);
 		}
 		if ($this->mid > 0) {
 			$ondrows = db_Onderdeel("lijstingebruik", "<>'T'", $_SESSION['lidid']);
@@ -706,13 +709,15 @@ class Mailing {
 				}
 			}
 			
-			printf("<p><label>Zichtbaar voor:</label><select name='ZichtbaarVoor'>\n%s</select></p>\n", $select);
-			printf("<p><label>Opties:</label><input type='checkbox' name='template' value=1%s>Template&nbsp;", checked($this->template));
-			printf("<input type='checkbox' name='HTMLdirect' value=1%s onChange='this.form.submit()'>HTML direct (zonder editor)&nbsp;", checked($this->htmldirect));
-			printf("<input type='checkbox' name='ZonderBriefpapier' value=1%s onChange='this.form.submit()'>Zonder briefpapier versturen", checked($this->zonderbriefpapier));
-			echo("</p>\n<div class='clear'></div>\n");
+			echo("<fieldset>\n");
+			printf("<label>Zichtbaar voor</label><select name='ZichtbaarVoor'>\n%s</select></fieldset>\n", $select);
+			printf("<label>Opties</label><input type='checkbox' name='template' value=1%s><p>Template</p>", checked($this->template));
+			printf("<input type='checkbox' name='HTMLdirect' value=1%s onChange='this.form.submit()'><p>HTML direct (zonder editor)</p>", checked($this->htmldirect));
+			printf("<input type='checkbox' name='ZonderBriefpapier' value=1%s onChange='this.form.submit()'><p>Zonder briefpapier versturen</p>", checked($this->zonderbriefpapier));
+			echo("</fieldset>\n");
 		}
 		
+		echo("<div class='clear'></div>\n");
 		if ($this->htmldirect == 1) {
 			printf("<textarea name='message' rows=15 cols=125>%s</textarea>\n", $this->message);
 		} else {
@@ -743,7 +748,7 @@ class Mailing {
 			}
 			$strHV .= "";
 			echo("<div class='clear'></div>\n");
-			printf("<label>Beschikbare variabelen:</label><div class='invoerblok'><ul class='listmergefields'>\n%s</ul></div>\n", $strHV);
+			printf("<label>Beschikbare variabelen</label><div class='invoerblok'><ul class='listmergefields'>\n%s</ul></div>\n", $strHV);
 
 			echo("<label>Bijlagen:</label>\n<div class='invoerblok'>\n<table>\n");
 			if (is_dir($this->dir_attachm)) {
@@ -766,7 +771,8 @@ class Mailing {
 			echo("</div>  <!-- Einde invoerblok -->\n");
 			
 			
-			echo("<label>Media:</label>\n<div class='invoerblok'>\n<table>\n");
+			echo("<label>Media</label>\n<div class='invoerblok'>\n");
+			echo("<table>\n");
 			if (is_dir($this->dir_media)) {
 				$d = dir($this->dir_media);
 				while (false !== ($entry = $d->read())) {
@@ -793,6 +799,7 @@ class Mailing {
 			echo("<input type='file' name='UploadMedia' size='40'>\n");
 			echo("<input type='submit' name='UploadMedia' value='Upload mediabestand'>&nbsp;");
 			printf("(Extensies '%s' zijn toegestaan)\n", $this->allowed_ext_afb);
+			
 			echo("</div>  <!-- Einde invoerblok -->\n");
 
 		}
@@ -801,24 +808,24 @@ class Mailing {
 		if ($this->mid > 0) {
 			$i_lid = new cls_Lid();
 			if ($this->Ingevoerd > '1901-01-01') {
-				printf("<label>Toegevoegd door/op:</label><div class='invoerblok'>%s / %s</div>\n", $i_lid->naam($this->IngevoerdDoor), strftime("%e %B %Y (%H:%M)", strtotime($this->Ingevoerd)));
+				printf("<fieldset><label>Toegevoegd door/op</label><p>%s / %s</p></fieldset>\n", $i_lid->naam($this->IngevoerdDoor), strftime("%e %B %Y (%H:%M)", strtotime($this->Ingevoerd)));
 			}
 			if ($this->Gewijzigd > '1901-01-01' and $this->GewijzigdDoor > 0) {
-				printf("<label>Laatst gewijzigd door/op:</label><div class='invoerblok'>%s / %s</div>\n", $i_lid->naam($this->GewijzigdDoor), strftime("%e %B %Y (%H:%M)", strtotime($this->Gewijzigd)));
+				printf("<fieldset><label>Laatst gewijzigd door/op</label><p>%s / %s</p></fieldset>\n", $i_lid->naam($this->GewijzigdDoor), strftime("%e %B %Y (%H:%M)", strtotime($this->Gewijzigd)));
 			}
 			$rls = db_mailing_hist("laatste", 0, 0, $this->mid);
 			if (isset($rls->VerzondenOp) and $rls->VerzondenOp > '2010-01-01') {
-				printf("<label>Laatst verzonden door/op:</label><div class='invoerblok'>%s / %s</div>\n", $rls->Door, strftime("%e %B %Y (%H:%M)", strtotime($rls->VerzondenOp)));
+				printf("<fieldset><label>Laatst verzonden door/op</label><p>%s / %s</p></fieldset>\n", $rls->Door, strftime("%e %B %Y (%H:%M)", strtotime($rls->VerzondenOp)));
 			}
 			if ($this->deleted_on > '1901-01-01') {
-				printf("<label>Verwijderd door/op:</label><div class='invoerblok'>%s / %s</div>\n", $i_lid->naam($this->DeletedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->deleted_on)));
+				printf("<fieldset><label>Verwijderd door/op</label><p>%s / %s</p></fieldset>\n", $i_lid->naam($this->DeletedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->deleted_on)));
 			}
 
 			if ($this->verzendenmag == false) {
 				$this->meldingen .= " Deze mailing mag niet verzonden worden.";
 			}
 			if (strlen($this->meldingen) > 0) {
-				printf("<label>Meldingen:</label><div class='invoerblok'>%s</div>\n", $this->meldingen);
+				printf("<fieldset><label>Meldingen</label><p>%s</p></fieldset>\n", $this->meldingen);
 			}
 			$cls_lid = null;
 		}
@@ -865,9 +872,8 @@ class Mailing {
 	
 	public function htmlmedia($p_bestand) {
 		
-		$url = BASISURL . str_replace(BASEDIR, "", $this->dir_media) . "/" . $this->mid . "/" . str_replace("!", ".", $p_bestand);
+		$url = BASISURL . str_replace(BASEDIR, "", $this->dir_media) . str_replace("!", ".", $p_bestand);
 		$ext = fnExtBestand($p_bestand);
-		debug($ext);
 		if ($ext == "mp3") {
 			$this->message .= "\n<audio controls>" . sprintf("<source src='%s' type='audio/mpeg'>Deze browser ondersteunt geen audio.</audio>", $url);
 		} elseif ($ext == "mp4") {
@@ -1057,7 +1063,6 @@ class Mailing {
 
 			$ext = explode(".", $target);
 			$ext = strtolower($ext[count($ext) - 1]);
-			debug($_FILES['UploadFile']['size']);
 			if (strpos($ae, $ext) === false) {
 				$mess = sprintf("In mailing %d kan bestand '%s' niet worden ge-upload, omdat de extensie niet is toegestaan. Alleen de volgende extensies zijn toegestaan: %s", $this->mid, $_FILES['UploadFile']['name'], $ae);
 			} elseif (isset($_POST['UploadFile']) and $_FILES['UploadFile']['size'] > $this->max_size_attachm) {
@@ -1859,7 +1864,7 @@ function fnMailingInstellingen() {
 	printf("<div class='invoerblok'><label>Mag een verzonden e-mail opnieuw worden verstuurd?</label><p><select name='mailing_mailopnieuw'>%s</select></div>\n", $options);
 	
 	$options = sprintf("<option value=-1%s>Webmasters</option>\n", checked($_SESSION['settings']['mailing_alle_zien'], "option", -1));
-	foreach (db_Onderdeel("lijstingebruik", "kad") as $row) {
+	foreach ((new cls_Onderdeel())->lijst(1) as $row) {
 		$options .= sprintf("<option value=%d%s>%s</option>\n", $row->RecordID, checked($_SESSION['settings']['mailing_alle_zien'], "option", $row->RecordID), $row->Oms);
 	}
 	printf("<div class='invoerblok'><label>Wie mag alle mailings zien en muteren?</label>\n<select name='mailing_alle_zien'>%s</select></div>\n", $options);
@@ -1990,7 +1995,7 @@ function sentfromhist($p_mhid, $p_handm=0) {
 				$mess = sprintf("E-mail %d (%s) is aan %s verstuurd.", $p_mhid, $mail->Subject, $a);
 			}
 		} else {
-			$mess = sprintf("Versturen van e-mail %d (%s) aan %s is mislukt. Foutboodschap: %s", $p_mhid, $mail->Subject, $a, $mail, $error);
+			$mess = sprintf("Versturen van e-mail %d (%s) aan %s is mislukt. Foutboodschap: %s", $p_mhid, $mail->Subject, $a, $error);
 		}
 	}
 	
@@ -2072,11 +2077,12 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 		
 		if (!isset($smtphost)) {
 			$mess = "Er is geen SMTP host in config.php gedefinieerd. Indien u geen SMTP wilt gebruiker, maak de variabele dan leeg.";
-			db_logboek("add", $mess, 4);
+			(new cls_Logboek())->add($mess, 4);
 			$this->IsMail(true);
 			$this->IsSMTP(false);
 		} elseif (strlen($smtphost) > 0) {
 			$this->Host = $smtphost;
+			$this->SMTPdebug = 3;
 			if ($smtpport > 0) {
 				$this->Port = $smtpport;
 			}
@@ -2091,7 +2097,6 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 			} else {
 				$this->SMTPAuth = false;
 			}
-			$this->SMTPdebug = 2;
 		} else {
 			$this->IsMail(true);
 		}
@@ -2132,20 +2137,22 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 	}
 	
 	public function Send() {
+		
+		$i_lb = new cls_Logboek();
 				
 		if ($_SESSION['settings']['maxmailsperminuut'] > 0 and db_mailing_hist("aantalperminuut") >= $_SESSION['settings']['maxmailsperminuut']) {
 			$mess = sprintf("De limiet van aantal van %d te versturen mails per minuut is bereikt.", $_SESSION['settings']['maxmailsperminuut']);
-			db_logboek("add", $mess, 4);
+			$i_lb->add($mess, 4);
 			return false;
 			
 		} elseif ($_SESSION['settings']['maxmailsperdag'] > 0 and db_mailing_hist("aantal24uur") >= $_SESSION['settings']['maxmailsperdag']) {
 			$mess = sprintf("De limiet van aantal van %d te versturen mails per 24 uur is bereikt.", $_SESSION['settings']['maxmailsperdag']);
-			db_logboek("add", $mess, 4);
+			$i_lb->add($mess, 4);
 			return false;
 		
 		} elseif ($_SESSION['settings']['maxmailsperuur'] > 0 and db_mailing_hist("aantalperuur") >= $_SESSION['settings']['maxmailsperuur']) {
 			$mess = sprintf("De limiet van %d stuks te versturen mails per uur is bereikt.", $_SESSION['settings']['maxmailsperuur']);
-			db_logboek("add", $mess, 4);
+			$i_lb->add($mess, 4);
 			return false;
 			
 		} else {
@@ -2156,7 +2163,7 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 				$this->SentMIMEMessage = '';
 				$this->SetError($e->getMessage());
 				if ($this->exceptions) {
-					debug($e->getMessage());
+					$i_lb->add($e->getMessage(), 4, 0, 1);
 					throw $e;
 				}
 				return false;
