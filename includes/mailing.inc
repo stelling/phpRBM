@@ -211,7 +211,9 @@ class Mailing {
 	private $merged_message = "";
 	private $speciaal = "";
 	
-	private $from_addr = "";
+	private $mailingvanafid = 0;
+	private $vanafnaam = "";
+	private $vanafadres = "";
 	private $to_name = "";
 	private $cc_addr = "";
 	private $subject = "";
@@ -505,6 +507,7 @@ class Mailing {
 	
 	public function lijst($filter="") {
 		global $currenttab, $currenttab2;
+		$i_M = new cls_Mailing();
 	
 		if (isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0 and $_GET['op'] == "bekijkmail") {
 			$xtra = "<p class='mededeling'><input type='button' value='Terug' onclick='history.go(-1);'></p>\n";
@@ -557,11 +560,12 @@ class Mailing {
 			} else {
 				$lnk_lk = sprintf("<a href='%s?tp=Mailing/Historie&amp;op=historie&amp;mid=%%d' title='Bekijk historie'><img src='images/object_10.png' alt='Historie'></a>", $_SERVER['PHP_SELF']);
 			}
-			echo(fnDisplayTable(db_mailing("lijst", 0, $filter), $lnk, "", 0, $lnk_lk));
+			echo(fnDisplayTable($i_M->lijst($filter), $lnk, "", 0, $lnk_lk));
 			if ($filter == "Prullenbak" and $_SESSION['settings']['mailing_bewaartijd'] > 0) {
 				printf("<p>Mailings die langer dan %d maanden geleden verwijderd zijn, worden automatisch definitief opgeschoond.</p>\n", $_SESSION['settings']['mailing_bewaartijd']);
 			}
 		}
+		$i_m = null;
 	} # lijst
 	
 	public function edit() {
@@ -576,13 +580,11 @@ class Mailing {
 		} else {
 			$navpad[]['naam'] = sprintf("Details mailing %d", $this->mid);
 		}
-		
-		$selectfrom = "<option value=''>Selecteer ...</option>\n" . (new cls_Mailing_vanaf())->htmloptions($this->from_addr);
 				
 		printf("<div class='editmailingform'>\n");
 		printf("<form method='post' action='%s?tp=%s/%s&amp;mid=%d' name='frm_mailedit' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2, $this->mid);
 		
-		printf("<fieldset><label>Van</label><select name='from_addr'>\n%s</select></fieldset>\n", $selectfrom);
+		printf("<fieldset><label>Van</label><select name='MailingVanafID'>\n<option value=''>Selecteer ...</option>%s</select></fieldset>\n", (new cls_Mailing_vanaf())->htmloptions($this->mailingvanafid));
 		printf("<fieldset><label>Aan</label><input type='text' class='naam' name='to_name' value=\"%s\" maxlength=50 placeholder='Omschrijving groep personen aan wie de mailing is gericht'></fieldset>\n", $this->to_name);
 		printf("<fieldset><label>Onderwerp</label><input type='text' class='naam' name='subject' value=\"%s\" maxlength=75 placeholder='Onderwerp'></fieldset>\n", $this->subject);
 
@@ -631,7 +633,6 @@ class Mailing {
 				$this->meldingen = "";
 				echo("</div> <!-- Einde invoerblok -->\n");
 				echo("</fieldset>\n");
-
 
 				echo("<label>Ontvanger toevoegen</label>\n");
 				printf("<select name='add_lid' onChange='this.form.submit();'>\n");
@@ -808,14 +809,15 @@ class Mailing {
 		if ($this->mid > 0) {
 			$i_lid = new cls_Lid();
 			if ($this->Ingevoerd > '1901-01-01') {
-				printf("<fieldset><label>Toegevoegd door/op</label><p>%s / %s</p></fieldset>\n", $i_lid->naam($this->IngevoerdDoor), strftime("%e %B %Y (%H:%M)", strtotime($this->Ingevoerd)));
+				printf("<label>Toegevoegd door/op</label><p>%s / %s</p>\n", $i_lid->naam($this->IngevoerdDoor), strftime("%e %B %Y (%H:%M)", strtotime($this->Ingevoerd)));
 			}
 			if ($this->Gewijzigd > '1901-01-01' and $this->GewijzigdDoor > 0) {
-				printf("<fieldset><label>Laatst gewijzigd door/op</label><p>%s / %s</p></fieldset>\n", $i_lid->naam($this->GewijzigdDoor), strftime("%e %B %Y (%H:%M)", strtotime($this->Gewijzigd)));
+				printf("<label>Laatst gewijzigd door/op</label><p>%s / %s</p>\n", $i_lid->naam($this->GewijzigdDoor), strftime("%e %B %Y (%H:%M)", strtotime($this->Gewijzigd)));
 			}
-			$rls = db_mailing_hist("laatste", 0, 0, $this->mid);
-			if (isset($rls->VerzondenOp) and $rls->VerzondenOp > '2010-01-01') {
-				printf("<fieldset><label>Laatst verzonden door/op</label><p>%s / %s</p></fieldset>\n", $rls->Door, strftime("%e %B %Y (%H:%M)", strtotime($rls->VerzondenOp)));
+			
+			$rls = (new cls_Mailing_hist())->record(0, $this->mid);
+			if (isset($rls->Ingevoerd) and $rls->Ingevoerd > '2010-01-01') {
+				printf("<label>Laatst verzonden door/op</label><p>%s / %s</p>\n", $rls->IngevoerdDoor, strftime("%e %B %Y (%H:%M)", strtotime($rls->Ingevoerd)));
 			}
 			if ($this->deleted_on > '1901-01-01') {
 				printf("<fieldset><label>Verwijderd door/op</label><p>%s / %s</p></fieldset>\n", $i_lid->naam($this->DeletedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->deleted_on)));
@@ -839,7 +841,7 @@ class Mailing {
 		}
 			
 		if ($this->mid > 0 and $this->verzendenmag and $this->deleted_on < "2000-01-01") {
-			printf("<button type='submit' name='action' value='send' title='Verstuur mailing'>Verstuur mailing</button>\n");
+			printf("<input type='submit' name='action' value='send' title='Verstuur mailing'>Verstuur mailing</button>\n");
 		}
 		if ($this->mid > 0 and $this->deleted_on < "2000-01-01" and $this->aant_rcpt > 0) {
 			$lnk = sprintf("%s?tp=%s&op=preview&mid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid);
@@ -889,7 +891,7 @@ class Mailing {
 			$this->meldingen = "";
 			$this->verzendenmag = true;
 
-			if (strlen($this->from_addr) == 0) {
+			if (strlen($this->vanafadres) == 0) {
 				$this->meldingen = "De Van moet ingevuld zijn. \n";
 				$this->verzendenmag = false;
 			}
@@ -1387,7 +1389,11 @@ class Mailing {
 			
 		if ($this->mid > 0) {
 			$ml = (new cls_Mailing())->record($this->mid);
-			$this->from_addr = $ml->from_addr;
+			
+			$this->mailingvanafid = $ml->MailingVanafID;
+			$this->vanafnaam = $ml->Vanaf_naam;
+			$this->vanafadres = $ml->Vanaf_email;
+			
 			$this->to_name = trim($ml->to_name);
 			$this->cc_addr = trim($ml->cc_addr);
 			$this->subject = trim($ml->subject);
@@ -1465,11 +1471,11 @@ class email {
 				$this->xtranum = $mhrow->Xtra_Num;
 			}
 			
-		} elseif ($mid > 0) {
+		} elseif ($mid > 0) {	
 			$this->mailingid = $mid;
-			$mrow = db_Mailing("record", $this->mailingid);
-			$this->vanafnaam = (new cls_Mailing_vanaf())->vanafnaam($mrow->from_addr);
-			$this->vanafadres = htmlentities($mrow->from_addr);
+			$mrow = (new cls_Mailing())->record($this->mailingid);
+			$this->vanafnaam = $mrow->Vanaf_naam;
+			$this->vanafadres = htmlentities($mrow->Vanaf_email);
 			$this->omsontvangers = htmlentities($mrow->to_name);
 			$this->cc = $mrow->cc_addr;
 			$this->onderwerp = $mrow->subject;
@@ -1510,7 +1516,13 @@ class email {
 		}
 		
 		printf("<label>Onderwerp:</label><div class='veld'>%s</div>\n", $this->onderwerp);
-		printf("<label>Bericht:</label><div class='veld'>%s</div>\n", $this->bericht);
+		
+		$b = str_replace("<!DOCTYPE html>", "", $this->bericht);
+		$b = str_replace("<html>", "", str_replace("</html>", "", $b));
+		$b = str_replace("<body>", "", str_replace("</body>", "", $b));
+		$b = removetextblock($b, "<head>", "</head>");
+		
+		printf("<label>Bericht:</label><div class='bericht'>%s</div>\n", $b);
 		
 		echo("</div>  <!-- Einde verstuurdemail -->\n");
 		
@@ -1790,6 +1802,8 @@ function fnMailingInstellingen() {
 	
 	echo("<div id='instellingenmuteren'>\n");
 	$i_p = new cls_Parameter();
+	$i_m = new cls_Mailing();
+	$i_mv = new cls_Mailing_vanaf();
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		
 		if (isset($_POST['mailing_direct_verzenden']) and $_POST['mailing_direct_verzenden'] == "1") {
@@ -1824,14 +1838,14 @@ function fnMailingInstellingen() {
 		foreach ($_POST as $contr_name => $contr_val) {
 			if (startwith($contr_name, "delete_vanaf")) {
 				$rid = intval(str_replace("delete_vanaf_", "", $contr_name));
-				db_mailing_vanaf("delete", "", $rid);
+				$i_mv->delete($rid);
 			} elseif ($contr_name == "vanaf_adres_toevoegen") {
-				db_mailing_vanaf("add");
+				$i_mv->add();
 			} else {
 				foreach ($kolomnamen as $kolomnaam) {
 					if (startwith($contr_name, $kolomnaam . "_")) {
 						$rid = intval(str_replace($kolomnaam . "_", "", $contr_name));
-						db_mailing_vanaf("update", $contr_val, $rid, $kolomnaam);
+						$i_mv->update($rid, $kolomnaam, $contr_val);
 					}
 				}
 			}
@@ -1859,19 +1873,20 @@ function fnMailingInstellingen() {
 	$options .= sprintf("<option value=2%s>Ja</option>\n", checked($_SESSION['settings']['mailing_mailopnieuw'], "option", 2));
 	
 	echo("<h2>Algemeen</h2>\n");
-	printf("<div class='invoerblok'><label>E-mails in de outbox direct probereren te versturen?</label><p><input type='checkbox' name='mailing_direct_verzenden' value=1%s></div>\n", checked($_SESSION['settings']['mailing_direct_verzenden']));
-	printf("<div class='invoerblok'><label>E-mails uit de outbox automatisch in de achtergrond versturen?</label><p><input type='checkbox' name='mailing_sentoutbox_auto' value=1%s></div>\n", checked($_SESSION['settings']['mailing_sentoutbox_auto']));
-	printf("<div class='invoerblok'><label>Mag een verzonden e-mail opnieuw worden verstuurd?</label><p><select name='mailing_mailopnieuw'>%s</select></div>\n", $options);
+	printf("<label>E-mails in de outbox direct probereren te versturen?</label><input type='checkbox' name='mailing_direct_verzenden' value=1%s>\n", checked($_SESSION['settings']['mailing_direct_verzenden']));
+	printf("<label>E-mails uit de outbox automatisch in de achtergrond versturen?</label><input type='checkbox' name='mailing_sentoutbox_auto' value=1%s>\n", checked($_SESSION['settings']['mailing_sentoutbox_auto']));
+	printf("<label>Mag een verzonden e-mail opnieuw worden verstuurd?</label><p><select name='mailing_mailopnieuw'>%s</select></p>\n", $options);
 	
 	$options = sprintf("<option value=-1%s>Webmasters</option>\n", checked($_SESSION['settings']['mailing_alle_zien'], "option", -1));
+	
 	foreach ((new cls_Onderdeel())->lijst(1) as $row) {
 		$options .= sprintf("<option value=%d%s>%s</option>\n", $row->RecordID, checked($_SESSION['settings']['mailing_alle_zien'], "option", $row->RecordID), $row->Oms);
 	}
-	printf("<div class='invoerblok'><label>Wie mag alle mailings zien en muteren?</label>\n<select name='mailing_alle_zien'>%s</select></div>\n", $options);
+	printf("<label>Wie mag alle mailings zien en muteren?</label>\n<p><select name='mailing_alle_zien'>%s</select></p>\n", $options);
 
-	printf("<div class='invoerblok'><label>Hoeveel maanden moeten mailings in de prullenbak bewaard blijven:</label><p><input class='inputnumber' type='number' name='mailing_bewaartijd' value=%d size=8> (0 = altijd bewaren)</div>\n", $_SESSION['settings']['mailing_bewaartijd']);
-	printf("<div class='invoerblok'><label>Hoeveel mails mogen er per minuut verstuurd worden:</label><p><input class='inputnumber' type='number' name='maxmailsperminuut' value=%d size=8> (0 = onbeperkt)</div>\n", $_SESSION['settings']['maxmailsperminuut']);
-	printf("<div class='invoerblok'><label>Hoeveel mails mogen er per uur verstuurd worden:</label><p><input class='inputnumber' type='number' name='maxmailsperuur' value=%d size=8> (0 = onbeperkt)</div>\n", $_SESSION['settings']['maxmailsperuur']);
+	printf("<label>Hoeveel maanden moeten mailings in de prullenbak bewaard blijven:</label><input class='inputnumber' type='number' name='mailing_bewaartijd' value=%d size=8> <p>(0 = altijd bewaren)</p>\n", $_SESSION['settings']['mailing_bewaartijd']);
+	printf("<label>Hoeveel mails mogen er per minuut verstuurd worden:</label><p><input class='inputnumber' type='number' name='maxmailsperminuut' value=%d size=8> (0 = onbeperkt)</p>\n", $_SESSION['settings']['maxmailsperminuut']);
+	printf("<label>Hoeveel mails mogen er per uur verstuurd worden:</label><input class='inputnumber' type='number' name='maxmailsperuur' value=%d size=8> (0 = onbeperkt)\n", $_SESSION['settings']['maxmailsperuur']);
 	printf("<div class='invoerblok'><label>Hoeveel mails mogen er per 24 uur verstuurd worden:</label><p><input class='inputnumber' type='number' name='maxmailsperdag' value=%d size=8> (0 = onbeperkt)</div>\n", $_SESSION['settings']['maxmailsperdag']);
 	printf("<div class='invoerblok'><label>Aantal verstuurde mails in de afgelopen uur / 24 uur:</label><p>%d / %d</div>\n", db_mailing_hist("aantalperuur"), db_mailing_hist("aantal24uur"));
 	printf("<div class='invoerblok'><label>Waar worden de attachments bewaard?</label><p><input class='inputtext' type='text' name='path_attachments' value='%s' size=30></div>\n", $_SESSION['settings']['path_attachments']);
@@ -1882,41 +1897,35 @@ function fnMailingInstellingen() {
 	foreach(ARRTYPEEDITOR as $key => $oms) {
 		$options .= sprintf("<option%s value=%d>%s</option>\n", checked($key, "option", $_SESSION['settings']['mailing_type_editor']), $key, $oms);
 	}
-	printf("<div class='invoerblok'><label>Welke editor wil je gebruiken?</label><p><select name='mailing_type_editor'>%s</select></div>\n", $options);
+	printf("<label>Welke editor wil je gebruiken?</label><p><select name='mailing_type_editor'>%s</select>\n", $options);
 	
 	echo("<h2>Mailings met een specifiek doel</h2>\n");
 	
-	$rows = db_mailing("lijst", 0, "Templates");
-	$options = "<Option value=0>Geen</option>";
+	$rows = $i_m->lijst("Templates");
+	$options = "";
 	foreach($rows as $row) {
 		$options .= sprintf("<option%s value=%d>%s</option>", checked($row->lnkMailingID, "option", $_SESSION['settings']['mailing_lidnr']), $row->lnkMailingID, $row->Onderwerp);
 	}
-	$rows = null;
-	printf("<div class='invoerblok'><label>Versturen lidnummer:</label><p><select name='mailing_lidnr'>%s</select></div>\n", $options);
+	printf("<label>Versturen lidnummer:</label><select name='mailing_lidnr'><Option value=0>Geen</option>%s</select>\n", $options);
 	
-	$rows = db_mailing("lijst", 0, "Templates");
 	$options = "";
 	foreach($rows as $row) {
 		$options .= sprintf("<Option%s value=%d>%s</option>", checked($row->lnkMailingID, "option", $_SESSION['settings']['mailing_validatielogin']), $row->lnkMailingID, $row->Onderwerp);
 	}
-	$rows = null;
-	printf("<div class='invoerblok'><label>Versturen validatie e-mail login:</label><p><select name='mailing_validatielogin'>%s</select></div>\n", $options);
+	printf("<label>Versturen validatie e-mail login:</label><select name='mailing_validatielogin'>%s</select>\n", $options);
 	
-	$rows = db_mailing("lijst", 0, "Templates");
 	$options = "";
 	foreach($rows as $row) {
 		$options .= sprintf("<Option%s value=%d>%s</option>", checked($row->lnkMailingID, "option", $_SESSION['settings']['mailing_herstellenwachtwoord']), $row->lnkMailingID, $row->Onderwerp);
 	}
-	$rows = null;
-	printf("<div class='invoerblok'><label>Versturen link herstellen wachtwoord:</label><p><select name='mailing_herstellenwachtwoord'>%s</select></div>\n", $options);
-	
-	$rows = db_mailing("lijst", 0, "Templates");
+	printf("<label>Versturen link herstellen wachtwoord:</label><select name='mailing_herstellenwachtwoord'>%s</select>\n", $options);
+
 	$options = "<Option value=0>Geen</option>";
 	foreach($rows as $row) {
 		$options .= sprintf("<Option%s value=%d>%s</option>", checked($row->lnkMailingID, "option", $_SESSION['settings']['mailing_bevestigingopzegging']), $row->lnkMailingID, $row->Onderwerp);
 	}
 	$rows = null;
-	printf("<div class='invoerblok'><label>Versturen bevestiging opzegging lidmaatschap:</label><p><select name='mailing_bevestigingopzegging'>%s</select></div>\n", $options);
+	printf("<label>Versturen bevestiging opzegging lidmaatschap:</label><select name='mailing_bevestigingopzegging'>%s</select>\n", $options);
 	
 	echo("<div class='clear'></div>\n");
 	
