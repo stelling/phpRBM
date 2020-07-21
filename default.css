@@ -259,11 +259,6 @@ header a + a:visited + a:hover {
 	margin-left: 3px;
 }
 
-
-.tabelkop {
-	font-size: 140%;
-}
-
 .tbsmal {
 	width: 75px;
 }
@@ -778,7 +773,7 @@ input.knop, button.knop {
 	float: left;
 }
 
-#verstuurdemail .label, #verstuurdemail .veld, #verstuurdemail .veld2k {
+#verstuurdemail .label, #verstuurdemail .veld, #verstuurdemail .veld2k, #verstuurdemail .bericht {
 	min-height: 23px;
 	margin-top: 3px;
 	margin-bottom: 3px;
@@ -801,7 +796,7 @@ input.knop, button.knop {
 	border-bottom-width: 1px;
 }
 
-#verstuurdemail .veld {
+#verstuurdemail .veld, #verstuurdemail .bericht {
 	width: 1000px;
 	float: left;
 	margin-right: 3px;
@@ -813,6 +808,10 @@ input.knop, button.knop {
 	float: left;
 	margin-right: 3px;
 	border-style: solid;
+}
+
+#verstuurdemail .bericht {
+	border-style: none;
 }
 
 #verstuurdemail li {
@@ -899,7 +898,7 @@ input.knop, button.knop {
 }
 
 #opdrachtknoppen button, #opdrachtknoppen input {
-	margin-top: 8px;
+	margin-top: 2px;
 	margin-bottom: 8px;
 	margin-left: 8px;
 	margin-right: 8px;
@@ -910,10 +909,6 @@ input.knop, button.knop {
 	padding-bottom: 4px;
 	cursor: pointer;
 	font-size: 10pt;
-}
-
-#opdrachtknoppen input {
-	margin-top: 2px;
 }
 
 #opdrachtknoppen p {
@@ -1290,10 +1285,6 @@ input.knop, button.knop {
 	width: 382px;
 }
 
-#editmailingform select, .editmailingform select {
-	width: 340px;
-}
-
 #onderdelenmuteren h1 {
 	color: #000080;
 	text-align: center;
@@ -1355,6 +1346,10 @@ input.knop, button.knop {
 	margin-top: 8px;
 }
 
+.editmailingform input[type='text'], .editmailingform select {
+	width: 440px;
+}
+
 .editmailingform fieldset {
 	margin-top: 3px;
 	margin-bottom: 3px;
@@ -1365,6 +1360,7 @@ input.knop, button.knop {
 }
 
 .editmailingform label {
+	clear: left;
 	width: 180px;
 	height: 24px;
 	padding-top: 6px;
