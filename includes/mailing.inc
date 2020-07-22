@@ -1884,20 +1884,20 @@ function fnMailingInstellingen() {
 	}
 	printf("<label>Wie mag alle mailings zien en muteren?</label>\n<p><select name='mailing_alle_zien'>%s</select></p>\n", $options);
 
-	printf("<label>Hoeveel maanden moeten mailings in de prullenbak bewaard blijven:</label><input class='inputnumber' type='number' name='mailing_bewaartijd' value=%d size=8> <p>(0 = altijd bewaren)</p>\n", $_SESSION['settings']['mailing_bewaartijd']);
-	printf("<label>Hoeveel mails mogen er per minuut verstuurd worden:</label><p><input class='inputnumber' type='number' name='maxmailsperminuut' value=%d size=8> (0 = onbeperkt)</p>\n", $_SESSION['settings']['maxmailsperminuut']);
-	printf("<label>Hoeveel mails mogen er per uur verstuurd worden:</label><input class='inputnumber' type='number' name='maxmailsperuur' value=%d size=8> (0 = onbeperkt)\n", $_SESSION['settings']['maxmailsperuur']);
-	printf("<div class='invoerblok'><label>Hoeveel mails mogen er per 24 uur verstuurd worden:</label><p><input class='inputnumber' type='number' name='maxmailsperdag' value=%d size=8> (0 = onbeperkt)</div>\n", $_SESSION['settings']['maxmailsperdag']);
-	printf("<div class='invoerblok'><label>Aantal verstuurde mails in de afgelopen uur / 24 uur:</label><p>%d / %d</div>\n", db_mailing_hist("aantalperuur"), db_mailing_hist("aantal24uur"));
-	printf("<div class='invoerblok'><label>Waar worden de attachments bewaard?</label><p><input class='inputtext' type='text' name='path_attachments' value='%s' size=30></div>\n", $_SESSION['settings']['path_attachments']);
-	printf("<div class='invoerblok'><label>Welke extensies zijn als attachment toegestaan:</label><p><input class='inputtext' type='text' name='mailing_extensies_toegestaan' value='%s' size=30> (leeg = standaard lijst)</div>\n", $_SESSION['settings']['mailing_extensies_toegestaan']);
-	printf("<div class='invoerblok'><label>Wat is de maximale groootte van één attachment?</label><p><input class='inputnumber' type='number' name='max_grootte_bijlage' value='%s' size=30> KB (nul = 2MB)</div>\n", $_SESSION['settings']['max_grootte_bijlage']);
+	printf("<label>Hoeveel maanden moeten mailings in de prullenbak bewaard blijven: (0 = altijd bewaren)</label><input class='inputnumber' type='number' name='mailing_bewaartijd' value=%d size=8>\n", $_SESSION['settings']['mailing_bewaartijd']);
+	printf("<label>Hoeveel mails mogen er per minuut verstuurd worden: (0 = onbeperkt)</label><input class='inputnumber' type='number' name='maxmailsperminuut' value=%d size=8>\n", $_SESSION['settings']['maxmailsperminuut']);
+	printf("<label>Hoeveel mails mogen er per uur verstuurd worden: (0 = onbeperkt)</label><input class='inputnumber' type='number' name='maxmailsperuur' value=%d size=8>\n", $_SESSION['settings']['maxmailsperuur']);
+	printf("<label>Hoeveel mails mogen er per 24 uur verstuurd worden: (0 = onbeperkt)</label><input class='inputnumber' type='number' name='maxmailsperdag' value=%d size=8>\n", $_SESSION['settings']['maxmailsperdag']);
+	printf("<label>Aantal verstuurde mails in de afgelopen uur / 24 uur:</label><p>%d / %d</p>\n", db_mailing_hist("aantalperuur"), db_mailing_hist("aantal24uur"));
+	printf("<label>Waar worden de attachments bewaard?</label><input class='inputtext' type='text' name='path_attachments' value='%s' size=30>\n", $_SESSION['settings']['path_attachments']);
+	printf("<label>Welke extensies zijn als attachment toegestaan: (leeg = standaard lijst)</label><input class='inputtext' type='text' name='mailing_extensies_toegestaan' value='%s' size=30>\n", $_SESSION['settings']['mailing_extensies_toegestaan']);
+	printf("<label>Wat is de maximale groootte van één attachment?</label><input class='inputnumber' type='number' name='max_grootte_bijlage' value='%s' size=30><p>KB (nul = 2MB)</p>\n", $_SESSION['settings']['max_grootte_bijlage']);
 	
 	$options = "";
 	foreach(ARRTYPEEDITOR as $key => $oms) {
 		$options .= sprintf("<option%s value=%d>%s</option>\n", checked($key, "option", $_SESSION['settings']['mailing_type_editor']), $key, $oms);
 	}
-	printf("<label>Welke editor wil je gebruiken?</label><p><select name='mailing_type_editor'>%s</select>\n", $options);
+	printf("<label>Welke editor wil je gebruiken?</label><select name='mailing_type_editor'>%s</select>\n", $options);
 	
 	echo("<h2>Mailings met een specifiek doel</h2>\n");
 	
