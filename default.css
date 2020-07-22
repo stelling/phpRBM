@@ -138,7 +138,7 @@ input.naam, input.email, input[type='email'] {
 	width: 400px;
 }
 
-input, button {
+input, button, textarea {
 	float: left;
 	font-size: 11pt;
 	margin-right: 6px;
@@ -1271,20 +1271,6 @@ input.knop, button.knop {
 	text-align: right;
 }
 
-#instellingenmuteren .invoerblok {
-	width: 100%;
-	clear: right;
-}
-
-#instellingenmuteren td {
-	padding-left: 5px;
-	padding-right: 5px;
-}
-
-#instellingenmuteren .inputtext {
-	width: 382px;
-}
-
 #onderdelenmuteren h1 {
 	color: #000080;
 	text-align: center;
@@ -1330,6 +1316,20 @@ input.knop, button.knop {
 	width: 135px;
 }
 
+#instellingenmuteren .invoerblok {
+	width: 100%;
+	clear: right;
+}
+
+#instellingenmuteren td {
+	padding-left: 5px;
+	padding-right: 5px;
+}
+
+#instellingenmuteren .inputtext {
+	width: 382px;
+}
+
 #instellingenmuteren label {
 	width: 525px;
 	height: 40px;
@@ -1343,7 +1343,18 @@ input.knop, button.knop {
 }
 
 #instellingenmuteren select {
+	margin-left: 4px;
 	margin-top: 8px;
+}
+
+#instellingenmuteren input, #instellingenmuteren textarea {
+	margin-left: 8px;
+	margin-top: 8px;
+}
+
+#instellingenmuteren p {
+	padding-top: 12px;
+	margin-left: 6px;
 }
 
 .editmailingform input[type='text'], .editmailingform select {
