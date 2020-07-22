@@ -1,7 +1,5 @@
 <?php
 
-define("BASEDIR", __DIR__);
-
 if (!isset($_GET['tp'])) {
 	$_GET['tp'] = "";
 }
@@ -83,7 +81,8 @@ if (toegang($_GET['tp'], 1) == false) {
 		// Valideren van de nieuwe login op de website
 		fnValidatieLogin($_GET['lidid'], $_GET['key'], "validatie");
 	}
-	printf("<p>Klik <a href='%s'>hier</a> om verder te gaan.</p>\n", BASISURL);
+	printf("<p class='mededeling'><a href='%s'>Klik hier om verder te gaan.</p></p>\n", BASISURL);
+	
 } elseif ($currenttab == "Bevestiging login") {
 		fnLoginAanvragen();
 	
@@ -100,7 +99,7 @@ if (toegang($_GET['tp'], 1) == false) {
 	} elseif ($currenttab2 == "Evenementen") {
 		inschrijvenevenementen($_SESSION['lidid']);
 	} elseif ($currenttab2 == "Bestellingen") {
-		onlinebestellingen($_SESSION['lidid']);
+		fnWinkelwagen($_SESSION['lidid']);
 	} else {
 		fnWijzigen($_SESSION['lidid'], $currenttab2);
 	}
@@ -143,10 +142,10 @@ if (toegang($_GET['tp'], 1) == false) {
 	}
 } elseif ($isafdelingstab == 1) {
 	fnAfdeling();
-} elseif ($currenttab == "Selecties") {
-	fnSelecties();
 } elseif ($currenttab == "Bewaking") {
 	fnBewaking();
+} elseif ($currenttab == "Rekeningen") {
+	fnRekeningen();
 } elseif ($currenttab == "Kostenoverzicht") {
 	fnKostenoverzicht();
 } elseif ($currenttab == "Mailing") {
@@ -251,74 +250,6 @@ function fnVoorblad() {
 		echo("<div id='welkomstekst'>Er is geen introductie beschikbaar.</div>  <!-- Einde welkomstekst -->\n");
 	}
 }  # fnVoorblad
-
-function fnKostenoverzicht() {
-
-	$val_jaarfilter = "";
-	$val_gbrfilter = "";
-	$val_kplfilter = "";
-	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		if (isset($_POST['lbJaarFilter'])) {
-			$val_jaarfilter = $_POST['lbJaarFilter'];
-		}
-		if (isset($_POST['lbGBRFilter'])) {
-			$val_gbrfilter = $_POST['lbGBRFilter'];
-		}
-		if (isset($_POST['lbKPLFilter'])) {
-			$val_kplfilter = $_POST['lbKPLFilter'];
-		}
-	}
-	
-	echo("<div id='filter'>\n");
-	printf("<form name='Filter' action='%s?%s' method='post'>", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
-	echo("<table>\n");
-	echo("<tr>\n");
-	$ret = "";
-	foreach ((new cls_Boekjaar())-basislijst("", "Begindatum") as $row) {
-		if ($val_jaarfilter == $row->RecordID or strlen($val_jaarfilter) == 0) {
-			$s = " selected";
-			$val_jaarfilter = $row->RecordID;
-		} else {
-			$s = "";
-		}
-		$ret .= sprintf('<option%s value="%2$s">%3$s</option>\n', $s, $row->RecordID, $row->Jaar);
-	}
-	printf("<td class='label'>Boekjaar</td><td><select name='lbJaarFilter' onchange='form.submit();'>%s</select></td>\n", $ret);
-	
-	$ret = "<option value='*'>Alle</option>\n";
-	$query = sprintf("SELECT DISTINCT GBR.Kode, CONCAT(GBR.Kode, ' - ', GBR.OMSCHRIJV) AS Oms
-				 FROM %1\$sMutatie AS M INNER JOIN %1\$sGBR AS GBR ON M.GBR = GBR.Kode
-				 ORDER BY GBR.Kode;", TABLE_PREFIX);
-	$result = fnQuery($query);
-	foreach ($result->fetchAll() as $row) {
-		if ($val_gbrfilter == $row->Kode) {
-			$s = " selected";
-		} else {
-			$s = "";
-		}
-		$ret .= sprintf('<option%s value="%s">%s</option>\n', $s, $row->Kode, $row->Oms);
-	}
-	printf("<td class='label'>Grootboekrekening</td><td><select name='lbGBRFilter' onchange='form.submit();'>%s</select></td>\n", $ret);
-	
-	$ret = "<option value='*'>Alle</option>\n";
-	foreach ((new cls_Kostenplaats())->basislijst("", "Kode") as $row) {
-		if ($val_kplfilter == $row->Kode) {
-			$s = " selected";
-		} else {
-			$s = "";
-		}
-		$ret .= sprintf('<option%s value="%s">%s</option>\n', $s, $row->Kode, $row->Kode);
-	}
-	printf("<td class='label'>Kostenplaats</td><td><select name='lbKPLFilter' onchange='form.submit();'>%s</select></td>\n", $ret);
-	
-	echo("</tr>\n");
-	echo("</table>\n");
-	echo("</form>\n");
-	echo("</div>  <!-- Einde filter -->\n");
-
-	$lijst = (new cls_Mutatie())->lijst($val_jaarfilter, $val_gbrfilter, $val_kplfilter);
-	echo(fnDisplayTable($lijst, "", "", 1));
-}  # fnKostenoverzicht
 
 function fnGewijzigdeStukken() {
 
