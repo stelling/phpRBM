@@ -113,10 +113,11 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (strlen($_SESSION['settings']['zs_muteerbarememos']) > 0) {
 			addtp("Zelfservice/Bijzonderheden");
 		}
-		if (count(db_bewaking_blok("openblokken")) > 0 and $gs != "B") {
+		if ($gs != "B" and (new cls_Bewaking_blok())->aantal("InschrijvingOpen=1 AND Einddatum >= CURDATE()") > 0) {
 			addtp("Zelfservice/Inschrijven bewaking");
 		}
-		if (count(db_evenement("open")) > 0) {
+		$f = sprintf("Datum >= CURDATE() AND VerwijderdOp < '2012-01-01' AND InschrijvingOpen=1 AND BeperkTotGroep IN (%s)", $_SESSION["lidgroepen"]);
+		if ((new cls_Evenement())->aantal($f) > 0) {
 			addtp("Zelfservice/Evenementen");
 		}
 		if ((new cls_Onderdeel())->aantal(0, "`Type`='T'") > 0 and $gs != "B") {
@@ -137,11 +138,11 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if ($currenttab == "Ledenlijst") {
 		addtp("Ledenlijst/Leden");
 		addtp("Ledenlijst/Voormalig leden");
-		if ((new cls_db_base("Lidmaatschap"))->aantal("LIDDATUM > CURDATE()")) {
+		if ((new cls_Lidmaatschap())->aantal("LIDDATUM > CURDATE()")) {
 			addtp("Ledenlijst/Toekomstige leden");
 		}
 		
-		if (count(db_lid("ledenlijst", "(LM.Lidnr IS NULL)")) > 0) {
+		if (count((new cls_Lid())->ledenlijst("(LM.Lidnr IS NULL)")) > 0) {
 			addtp("Ledenlijst/Klosleden");
 		}
 		addtp("Ledenlijst/Nieuw (klos)lid");
@@ -157,11 +158,14 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 				addtp($row->Naam, $row->RecordID);
 				if ($currenttab == $row->Naam) {
 					addtp($row->Naam . "/Afdelingslijst", $row->RecordID);
-					if (count(db_lidond("actueleleden", 0, "", "LO.GroepID > 0", $row->RecordID)) > 0) {
+					$f = sprintf("GroepID > 0 AND IFNULL(Opgezegd, CURDATE()) >= CURDATE() AND OnderdeelID=%d", $row->RecordID);
+					if ((new cls_Lidond())->aantal($f) > 0) {
 						addtp(trim($row->Naam) . "/Groepsindeling", $row->RecordID);
 					}
 					addtp(trim($row->Naam) . "/Groepsindeling muteren");
-//					addtp(trim($row->Naam) . "/Kalender muteren");
+					if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
+						addtp(trim($row->Naam) . "/Kalender muteren");
+					}
 				}
 			}
 		}
@@ -205,9 +209,18 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		addtp("Kostenoverzicht");
 	}
 	
+	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
+		addtp("Rekeningen");
+		if ($currenttab == "Rekeningen") {
+			$b = "Rekeningen/";
+			addtp($b . "Nieuw");
+			addtp($b . "Muteren");
+		}
+	}
+	
 	addtp("Mailing");
-	$i_M = new cls_Mailing();
 	if ($currenttab == "Mailing") {
+		$i_M = new cls_Mailing();
 		$f = "Template=1 AND (deleted_on IS NULL)";
 		if ($i_M->aantal($f) > 0) {
 			addtp("Mailing/Templates");
@@ -236,14 +249,15 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		}
 		addtp("Mailing/Verzonden mails");
 		addtp("Mailing/Instellingen");
-		if (db_logboek("aantal", "", 4) > 0) {
+		
+		$f = "TypeActiviteit=4";
+		if ((new cls_Logboek())->aantal($f) > 0) {
 			addtp("Mailing/Logboek");
 		}
+		$i_M = null;
 	}
-	$i_M = null;
 
-	$i_db = new cls_db_base("Bewseiz");
-	if ($i_db->aantal() > 0) {
+	if ((new cls_db_base("Bewseiz"))->aantal() > 0) {
 		addtp("Bewaking");
 		if ($currenttab == "Bewaking") {
 			addtp("Bewaking/Bewakingsrooster");
@@ -268,7 +282,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	addtp("Evenementen");
 	if ($currenttab == "Evenementen") {
 		$i_ev = new cls_Evenement();
-		$f = "IFNULL(VerwijderdOp, '2000-01-01') < '2012-01-01'";
+		$f = "IFNULL(VerwijderdOp, '1900-01-01') < '2012-01-01'";
 		if ($i_ev->aantal($f) > 0) {
 			if (count($i_ev->lijst(1)) > 0) {
 				addtp("Evenementen/Overzicht");
@@ -289,7 +303,12 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			addtp("Bestellingen/Bestellingen muteren");
 		}
 		addtp("Bestellingen/Artikelbeheer");
-		addtp("Bestellingen/Logboek");
+		if ((new cls_Artikel())->aantal() > 0) {
+			addtp("Bestellingen/Voorraadbeheer");
+		}
+		if ((new cls_Logboek())->aantal("TypeActiviteit=10") > 0) {
+			addtp("Bestellingen/Logboek");
+		}
 	}
 	
 	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
@@ -304,6 +323,9 @@ function fnAuthenticatie($melding=1, $password="", $p_napost=0) {
 	*/
 	global $lididwebmasters;
 	
+	$i_login = new cls_Login();
+	$i_lb = new cls_Logboek();
+	
 	if ((!isset($_SESSION['username']) or strlen($_SESSION['username']) == 0)) {
 		if (isset($_COOKIE['username'])) {
 			$_SESSION['username'] = $_COOKIE['username'];
@@ -313,18 +335,18 @@ function fnAuthenticatie($melding=1, $password="", $p_napost=0) {
 	}
 	
 	$pwfromcookie = 0;	
-	if (strlen($password) == 0 and isset($_COOKIE['password']) and strlen($_COOKIE['password']) > 5) {
+	if (strlen($password) == 0 and isset($_COOKIE['password']) and strlen($_COOKIE['password']) > 4) {
 		$password = $_COOKIE['password'];
 		$pwfromcookie = 1;
 	}
 		
 	$mess = "";
-	if ($_SESSION['settings']['login_maxinlogpogingen'] > 0 and db_logboek("iplogincontrole") > $_SESSION['settings']['login_maxinlogpogingen']) {
+	if ($_SESSION['settings']['login_maxinlogpogingen'] > 0 and $i_lb->iplogincontrole() > $_SESSION['settings']['login_maxinlogpogingen']) {
 		$mess = sprintf("Inloggen vanaf IP-adres '%s' is geblokkeerd, omdat er teveel mislukte inlog-pogingingen mee gedaan zijn! Je bent niet ingelogd.", $_SERVER['HTTP_USER_AGENT']);
 		$_SESSION['lidid'] = 0;
 			
 	} elseif (isset($_SESSION['username']) and strlen($_SESSION['username']) > 0 and strlen($password) > 0) {
-		$row = db_logins("controle", "", $_SESSION['username'], 0, "", $password);
+		$row = $i_login->controle($password, $pwfromcookie);
 		if ($_SESSION['settings']['login_maxinlogpogingen'] > 0 and isset($row->FouteLogin) and $row->FouteLogin > $_SESSION['settings']['login_maxinlogpogingen']) {
 			if ($_SESSION['settings']['login_autounlock'] > 0 and $_SESSION['settings']['login_autounlock'] < 12*60) {
 				$mess = sprintf("Login '%s' is tot uiterlijk %s uur geblokkeerd", $_SESSION['username'], date("G:i", strtotime($row->Gewijzigd)+(60*$_SESSION['settings']['login_autounlock'])));
@@ -359,7 +381,7 @@ function fnAuthenticatie($melding=1, $password="", $p_napost=0) {
 			} else {
 				$_SESSION['emailingelogde'] = "";
 			}
-			(new cls_Login())->setingelogd($row->LidID, $p_napost);
+			$i_login->setingelogd($row->LidID, $p_napost);
 		} else {
 			if ($pwfromcookie == 0) {
 				$mess = sprintf("De combinatie van login '%s' en het ingevoerde wachtwoord is niet correct! Je bent niet ingelogd.", $_SESSION['username']);
@@ -433,6 +455,7 @@ function toegang($soort, $melding=1, $log=1) {
 function fnHerstellenWachtwoord($stap="", $lidid=0) {
 	
 	$mess = "";
+	$i_login = new cls_Login();
 	
 	if (strlen($stap) == 0 and isset($_POST['stap']) and strlen($_POST['stap']) > 0) {
 		$stap = $_POST['stap'];
@@ -450,7 +473,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 			$i_M = null;
 		}
 
-		$row = db_logins("rowlogin", "", "", $lidid)[0];
+		$row = $i_login->record($lidid);
 		if ($_SESSION['settings']['login_maxinlogpogingen'] > 0 and $row->FouteLogin > $_SESSION['settings']['login_maxinlogpogingen']) {
 			$mess = "Er is teveel foutief met deze login proberen in te loggen. Hierdoor is dit account geblokkeerd. ";
 			if ($_SESSION['settings']['login_autounlock'] > 0 and $_SESSION['settings']['login_autounlock'] <= 24*60) {
@@ -502,54 +525,31 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		echo("</div>  <!-- Einde herstellenwachtwoord -->");
 	
 	} elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
-		if (isset($_POST['login']) and strlen($_POST['login']) < 7 and strlen($_POST['login']) > 0) {
-			$mess = "Een login moet minimaal 7 karakers hebben.";
-		} elseif (isset($_POST['email']) and strlen($_POST['email']) > 0 and !isValidMailAddress($_POST['email'], 0)) {
-			$mess = sprintf("'%s' is geen geldig e-mailadres.", $_POST['email']);
-		} elseif (isset($_POST['login']) and strlen($_POST['login']) < 7 and !isValidMailAddress($_POST['email'], 0)) {
+		if (isset($_POST['login']) and strlen($_POST['login']) < 7 and !isValidMailAddress($_POST['email'], 0)) {
 			$mess = "Vul minimaal 2 van de 3 velden in.";
 		} elseif (isset($_POST['lidnummer']) and $_POST['lidnummer'] < 1 and !isValidMailAddress($_POST['email'], 0)) {
 			$mess = "Vul minimaal 2 van de 3 velden in.";
 		} elseif (isset($_POST['login']) and strlen($_POST['login']) < 7 and $_POST['lidnummer'] < 1) {
 			$mess = "Vul minimaal 2 van de 3 velden in.";
 		} elseif (isset($_POST['login'])) {
-			if (strlen($_POST['login']) > 5) {
-				$w = sprintf("Login='%s'", $_POST['login']);
-			} else {
-				$w = "";
-			}
-			if (isValidMailAddress($_POST['email'], 0)) {
-				if (strlen($w) > 0) {
-					$w .= " AND ";
-				}
-				$w .= sprintf("(LOWER(L.Email)='%1\$s' OR LOWER(L.EmailVereniging)='%1\$s')", strtolower($_POST['email']));
-			}
-			if ($_POST['lidnummer'] > 0) {
-				if (strlen($w) > 0) {
-					$w .= " AND ";
-				}
-				$w .= sprintf("LM.Lidnr=%d", $_POST['lidnummer']);
-			}
-			$query = sprintf("SELECT MAX(Login.LidID)
-									FROM (%1\$sAdmin_login AS Login INNER JOIN %1\$sLid AS L ON L.RecordID = Login.LidID) INNER JOIN %1\$sLidmaatschap AS LM ON LM.Lid = L.RecordID
-									WHERE %2\$s;", TABLE_PREFIX, $w);
-			$lidid = db_scalar($query);
+			
+			$lidid = $i_login->lididherstel($_POST['login'], $_POST['lidnummer'], $_POST['email']);
 			if ($lidid > 0) {
 				$mess = fnHerstellenWachtwoord("mail", $lidid);
 			} else {
 				$mess = "De ingevulde combinatie is niet gevonden. Er wordt geen e-mail verstuurd om het wachtwoord te herstellen.";
 			}
-			printf("<p class='mededeling'>%s</p>", htmlentities($mess));
 		}
+		printf("<p class='mededeling'>%s</p>", htmlentities($mess));
 		echo("<p><a href='/'>Klik hier om verder te gaan.</a></p>\n");
 	} else {
 		echo("<div id='herstellenwachtwoord'>\n");
-		printf("<form name='HerstellenWachtwoord' action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
+		printf("<form name='HerstellenWachtwoord' action='%s?Herstellen+wachtwoord' method='post'>\n", $_SERVER["PHP_SELF"]);
 		echo("<fieldset>
 		<h3>Herstellen wachtwoord</h3>
-		<label>E-mailadres:</label><input type='text' name='email' size=50 maxlength=45>
-		<label>Lidnummer:</label><input class='inputnumber' type='number' min=0 name='lidnummer' value=0>
-		<label>Login:</label><input type='text' name='login' size=50 maxlength=15>
+		<label>E-mailadres:</label><input type='email' name='email'>
+		<label>Lidnummer:</label><input type='number' min=0 name='lidnummer' value=0>
+		<label>Login:</label><input type='text' name='login'>
 		<input type='hidden' value='mail' name='stap'>
 		<input type='submit' value='Stuur herstellink'>\n
 		</fieldset>
@@ -564,9 +564,10 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 function fnValidatieLogin($lidid, $key, $stap) {
 	
 	$mess = "";
+	$i_login = new cls_Login();
 	if ($stap == "mail") {
 	
-		$row = db_logins("rowlogin", "", "", $lidid)[0];
+		$row = $i_login->record($lidid);
 		
 		if ($_SESSION['settings']['mailing_validatielogin'] == 0) {
 			$inst_M = new cls_Mailing();
@@ -588,25 +589,28 @@ function fnValidatieLogin($lidid, $key, $stap) {
 		} else {
 			$mess = sprintf("Login voor lidid %d bestaat niet, neem onctact op met de webmaster.", $lidid);
 		}
+		
+		if (strlen($mess) > 2) {
+			(new cls_Logboek())->add($mess, 5, $lidid, 1);
+		}
 
 	} else {
-		$mess = db_logins("valideerlogin", "", "", $lidid);
+		$i_login->valideerlogin($lidid);
 	}
-	if (strlen($mess) > 2) {
-		(new cls_Logboek())->add("fnValidatieLogin: " . $mess, 5, $lidid, 1);
-	}
+	
+	$i_login = null;
 	
 	return $mess;
 }  # fnValidatieLogin
 
 function fnLoginAanvragen($stap="") {
-	global $lididwebmasters, $lididtestusers, $selectlidnr;
+	global $lididwebmasters, $lididtestusers;
 	
-	$login_verbodenkarakters = "@#$^&;*%éëèöôü";
+	$i_login = new cls_Login();
+	$login_verbodenkarakters = "@#$^&;*%éëèöôü'\"";
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['loginaanvragen'])) {
 
-		$login = "";
 		$mess = "";
 		$lidid = 0;
 		if (!isset($_POST['gewenstelogin'])) {
@@ -619,96 +623,54 @@ function fnLoginAanvragen($stap="") {
 		if (!isset($_POST['lidnummer']) or strlen($_POST['lidnummer']) == 0) {
 			$_POST['lidnummer'] = 0;
 		}
-		$i_login = new cls_Login();
-		$f = sprintf("(LidID=%d OR Login='%s')", $_POST['lidnummer'], $_POST['gewenstelogin']);
-		if ($i_login->aantal($f) > 0) {
-			$mess = "Deze login is al in gebruik en/of er is al een login aan dit lidnummer gekoppeld.";
-		} elseif (strlen($_POST['email']) == 0) {
-			$mess = "Je hebt geen e-mailadres opgegeven.";
-		} elseif (!isValidMailAddress($_POST['email'], 0)) {
-			$mess = sprintf("Je hebt geen geldig e-mailadres (%s) opgegeven.", $_POST['email']);
-		} elseif ($_SESSION['settings']['login_lidnrnodigbijaanvraag'] == 1 and $_POST['lidnummer'] == 0) {
-			$mess = "Je moet je lidnummer invullen om een login te kunnen aanvragen.";
-		} else {
-			if ($_POST['lidnummer'] > 0 and in_array($_POST['lidnummer'], $lididtestusers) == false) {
-				$xf = sprintf("(%s)=%d", $selectlidnr, $_POST['lidnummer']);
-			} else {
-				$xf = "";
-			}
-			$gevondenverbodenkarakter = "";
-			for ($i=0; $i < strlen($login_verbodenkarakters); $i++) {
-				if (strpos($_POST['gewenstelogin'], substr($login_verbodenkarakters, $i, 1)) > 0) {
-					$gevondenverbodenkarakter = substr($login_verbodenkarakters, $i, 1);
-					break;
-				}
-			}
-			$rows = db_logins("rowlogin", $_POST['email'], "", 0, $xf);
-			if (count($rows) > 0) {
-				$inst_Login = new cls_Login();
-				foreach ($rows as $row) {
-					if (isset($row->Login) and strlen($row->Login) > 5 and ($_SESSION['settings']['login_lidnrnodigbijaanvraag'] == 0 or $row->Lidnr == $_POST['lidnummer'])) {
-						$lidid = $row->RecordID;
-					} else {
-						// E-mailadres is bekend, maar een aan dit e-mailadres gekoppelde login bestaat niet.
-						if ($_SESSION['settings']['mailing_lidnr'] > 0 and $_POST['lidnummer'] == 0 and 1 == 2) { // Controleren of deze if mag vervallen
-							$mess .= fnConfirmLidnr($row) . " ";
-							$lidid = $row->RecordID;
-						} elseif ($row->AanvragenMag == 0 and in_array($row->RecordID, $lididwebmasters) == false and in_array($row->RecordID, $lididtestusers) == false) {
-							if (is_array($_SESSION['settings']['login_beperkttotgroep']) and count($_SESSION['settings']['login_beperkttotgroep']) > 1) {
-								$gt = "";
-								foreach ($_SESSION['settings']['login_beperkttotgroep'] as $gr) {
-									if (strlen($gt) > 0) {$gt .= ", ";}
-									$gt .= "'" . db_naam_onderdeel($gr) . "'";
-								}
-								$mess = sprintf("Je behoort niet tot één van de groepen %s van %s. Een login mag niet aangevraagd worden.", $gt, $_SESSION['settings']['naamvereniging']);
-							} else {
-								if (is_array($_SESSION['settings']['login_beperkttotgroep']) and count($_SESSION['settings']['login_beperkttotgroep']) == 1) {
-									$gr = $_SESSION['settings']['login_beperkttotgroep'][0];
-								} elseif (is_numeric($_SESSION['settings']['login_beperkttotgroep'])) {
-									$gr = $_SESSION['settings']['login_beperkttotgroep'];
-								} else {
-									$gr = 0;
-								}
-								$mess = sprintf("Je behoort niet tot groep '%s' van %s. Een login mag niet aangevraagd worden.", db_naam_onderdeel($gr), $_SESSION['settings']['naamvereniging']);
-							}
-						} elseif (strlen($_POST['gewenstelogin']) == 0) {
-							$mess = "Je hebt geen gewenste login opgegeven.";
-						} elseif (strlen($_POST['gewenstelogin']) < 6) {
-							$mess = "Je hebt geen geldige gewenste login opgegeven. Een login moet uit minimaal 6 karakters bestaan.";
-						} elseif (strlen($_POST['gewenstelogin']) > $_SESSION['settings']['login_maxlengte']) {
-							$mess = sprintf("Je hebt geen geldige login opgegeven. Een login mag uit maximaal %d karakters bestaan.", $_SESSION['settings']['login_maxlengte']);
-						} elseif (strpos($_POST['gewenstelogin'], " ") > 0) {
-							$mess = "Je hebt geen geldige login opgegeven. Er mag geen spatie in een login zitten.";
-						} elseif (strpos($_POST['gewenstelogin'], ";") > 0) {
-							$mess = "Je hebt geen geldige login opgegeven. Er mag geen puntkomma (;) in een login zitten.";
-						} elseif (strpos($_POST['gewenstelogin'], "'") > 0 or strpos($_POST['gewenstelogin'], "\"") > 0) {
-							$mess = "Je hebt geen geldige login opgegeven. Er mogen geen aanhalingstekens in een login zitten.";
-						} elseif (strlen($gevondenverbodenkarakter) > 0) {
-							$mess = sprintf("Je hebt geen geldige login opgegeven. Het karakter '%s' mag niet in de login zitten.", $gevondenverbodenkarakter);
-						} elseif ($wwok !== "ok") {
-							$mess = $wwok;
-						} elseif (db_logins("controlebestaat", "", $_POST['gewenstelogin'], $row->RecordID) > 0) {
-							$mess = sprintf("Login '%s' is al in gebruik.", $_POST['gewenstelogin']);
-						} elseif ($_SESSION['settings']['login_lidnrnodigbijaanvraag'] == 0 or $row->Lidnr == $_POST['lidnummer'] or in_array($_POST['lidnummer'], $lididtestusers)) {
-							if ($inst_Login->add($row->RecordID, $_POST['gewenstelogin'], $_POST['gewenstwachtwoord'])) {
-								$rl = db_logins("rowlogin", "", "", $row->RecordID);
-								$lidid = $rl[0]->RecordID;
-							}
-						} else {
-							$mess = "Je mag geen login aanvragen.";
-						}
-					}
-				}
-				$inst_Login = null;
-			} else {
-				if ($_POST['lidnummer'] > 0) {
-					$mess = sprintf("De combinatie van lidnummer %d en e-mailadres '%s' is in de database onbekend.", $_POST['lidnummer'], $_POST['email']);	
-				} else {
-					$mess = sprintf("E-mailadres '%s' is onbekend in de database.", $_POST['email']);
-				}
+		
+		$gevondenverbodenkarakter = "";
+		for ($i=0; $i < strlen($login_verbodenkarakters); $i++) {
+			if (strpos($_POST['gewenstelogin'], substr($login_verbodenkarakters, $i, 1)) > 0) {
+				$gevondenverbodenkarakter = substr($login_verbodenkarakters, $i, 1);
 			}
 		}
-		(new cls_Logboek())->add($mess, 5, $lidid, 1);
+		
+		$i_login = new cls_Login();
+		if (!isValidMailAddress($_POST['email'], 0)) {
+			$mess = "Je hebt geen geldig e-mailadres opgegeven.";
+		} elseif (strlen($_POST['gewenstelogin']) < 6) {
+			$mess = "Je hebt geen geldige gewenste login opgegeven. Een login moet uit minimaal 6 karakters bestaan.";
+		} elseif ($i_login->aantal(sprintf("Login='%s'", $_POST['gewenstelogin'])) > 0) {
+			$mess = "Deze login is al in gebruik.";
+		} elseif (strlen($_POST['gewenstelogin']) > $_SESSION['settings']['login_maxlengte']) {
+			$mess = sprintf("Je hebt geen geldige login opgegeven. Een login mag uit maximaal %d karakters bestaan.", $_SESSION['settings']['login_maxlengte']);
+		} elseif (strpos($_POST['gewenstelogin'], " ") > 0) {
+			$mess = "Je hebt geen geldige login opgegeven. Er mag geen spatie in een login zitten.";
+		} elseif (strlen($gevondenverbodenkarakter) > 0) {
+			$mess = sprintf("e hebt geen geldige login opgegeven. Er mag geen '%s' in een login zitten.", $gevondenverbodenkarakter);
+		} elseif ($wwok !== "ok") {
+			$mess = $wwok;
+		} else {
+			$lidid = $i_login->lidid($_POST['email'], $_POST['lidnummer']);
+			if ($lidid > 0) {
+				if ($i_login->aanvragenmag($lidid)) {
+					$i_login->add($lidid, $_POST['gewenstelogin'], $_POST['gewenstwachtwoord']);
+				} else {
+					if (count($i_login->beperkttotgroep) > 1) {
+						$gt = "Webmasters";
+						foreach ($i_login->beperkttotgroep as $gr) {
+							$gt .= ", " . (new cls_Onderdeel())->naam($gr);
+						}
+						$mess = sprintf("Je behoort niet tot één van de groepen %s van %s. Een login mag niet aangevraagd worden.", $gt, $_SESSION['settings']['naamvereniging']);
+					} else {
+						$mess = sprintf("Je behoort niet tot de webmasters van %s. Een login mag niet aangevraagd worden.", $_SESSION['settings']['naamvereniging']);
+					}
+				}
+			} elseif ($_POST['lidnummer'] > 0) {
+				$mess = sprintf("De combinatie van lidnummer %d en e-mailadres '%s' is in de database onbekend.", $_POST['lidnummer'], $_POST['email']);	
+			} else {
+				$mess = sprintf("E-mailadres '%s' is onbekend in de database of komt meerdere keren voor.", $_POST['email']);
+			}
+		}
+		if (strlen($mess) > 0) {
+			(new cls_Logboek())->add($mess, 5, $lidid, 1);
+		}
 		printf("<p><a href='%s' target='_top'>Klik hier om verder te gaan.</a></p>\n", BASISURL);
 		
 	} else {
@@ -718,23 +680,17 @@ function fnLoginAanvragen($stap="") {
 		echo("<h3>Aanvragen login</h3>\n");
 		echo("<fieldset>\n");
 				
-		if ($_SESSION['settings']['login_lidnrnodigbijaanvraag'] == 1) {
-			echo("<label>Lidnummer:</label><input class='inputnumber' type='number' name='lidnummer' min=0>\n");
-		}
+		echo("<label>Lidnummer:</label><input type='number' name='lidnummer' value=0>\n");
 		echo("<label>E-mailadres:</label><input type='email' name='email'>\n");
 		printf("<label>Gewenste login:</label><input type='text' name='gewenstelogin' maxlength=%d>\n", $_SESSION['settings']['login_maxlengte']);
-		echo("<label>Gewenst wachtwoord:</label><input type='password' name='gewenstwachtwoord' maxlength=15>\n");
+		echo("<label>Gewenst wachtwoord:</label><input type='password' name='gewenstwachtwoord'>\n");
 
 		echo("<input type='submit' name='loginaanvragen' value='Aanvragen'>\n");
 		echo("</fieldset>\n");
 		echo("</form>\n");
 
 		echo("<p>");
-		if ($_SESSION['settings']['login_lidnrnodigbijaanvraag'] == 1) {
-			echo("Met de juiste combinatie van lidnummer en e-mailadres kan je een login aanvragen.");
-		} else {
-			echo("Met het, in de ledenadministratie bekende e-mailadres, kan je een login aanvragen.");
-		}
+		echo("Met de juiste combinatie van lidnummer en e-mailadres kan je een login aanvragen.");
 		echo(" Je ontvangt een e-mail met daarin een link om deze aanmelding te bevestigen. Pas daarna is de login bruikbaar om in te loggen.</p>\n");
 		
 		echo("<p>Voorwaarden aan een login:</p>\n<ul>\n");
@@ -751,41 +707,41 @@ function fnLoginAanvragen($stap="") {
 
 function fnOpvragenLidnr($stap) {
 	
+	$mess = "";
+	echo("<div id='opvragenlidnr'>\n");
+			
 	if ($stap == "mail") {
 		$lidid = 0;
 		if (!isValidMailAddress($_POST['emailvoorlidnr'], 0)) {
-			$mess = sprintf("Je hebt geen geldig e-mailadres (%s) opgegeven.", $_POST['emailvoorlidnr']);
+			$mess = "Je hebt geen geldig e-mailadres opgegeven.";
 		} elseif ($_SESSION['settings']['mailing_lidnr'] > 0) {
-			$mess = "";
-			$rows = db_logins("rowlogin", $_POST['emailvoorlidnr']);
+			$rows = (new cls_login())->lijst("Lidnr > 0", "", $_POST['emailvoorlidnr']);
 			if (count($rows) > 0) {
 				foreach ($rows as $row) {
-					if ($row->Lidnr > 0) {
-						$mailing = new Mailing($_SESSION['settings']['mailing_lidnr']);
-						$mailing->xtranum = $row->Lidnr;
-						if ($mailing->send($row->RecordID) > 0) {
-							$mess .= sprintf("Een e-mail met het lidnummer van %s is verzonden. ", $row->Naam);
-							$lidid = $row->RecordID;
-						} else {
-							$mess .= sprintf("Fout bij het versturen van het lidnummer aan %s. Probeer het later nogmaals of neem contact met de webmaster op. ", $row->Naam);
-						}
-						$mailing = null;
+					$mailing = new Mailing($_SESSION['settings']['mailing_lidnr']);
+					$mailing->xtranum = $row->Lidnr;
+					if ($mailing->send($row->lnkLidID) > 0) {
+						$mess = sprintf("Een e-mail met het lidnummer van %s is verzonden. ", $row->Naam_lid);
 					} else {
-						$mess .= sprintf("%s is geen lid, het lidnummer is daarom ook niet verzonden. ", $row->Naam);
+						$mess = sprintf("Fout bij het versturen van het lidnummer aan %s. Probeer het later nogmaals of neem contact met de webmaster op. ", $row->Naam_lid);
 					}
+					(new cls_Logboek())->add($mess, 5, $row->lnkLidID, 1, $row->RecordID, 11);
+					$mess = "";
+					$mailing = null;
 				}
 			} else {
-				$mess = sprintf("Dit e-mailadres (%s) is onbekend in onze database.", $_POST['emailvoorlidnr']);
+				$mess = "Er is geen lid met dit e-mailadres in onze database bekend.";
 			}
 		} else {
-			$mess = "Onbekende fout";
+			$mess = "Er is geen mailing beschikbaar voor het versturen van het lidnummer. Neem contact op met de webmaster.";
 		}
-		(new cls_Logboek())->add($mess, 5, $lidid, 1);
+		if (strlen($mess) > 0) {
+			(new cls_Logboek())->add($mess, 5, 0, 1);
+		}
 		printf("<p><a href='%s' target='_top'>Klik hier om verder te gaan.</a></p>\n", BASISURL);
 		
 	} elseif ($_SESSION['settings']['mailing_lidnr'] > 0) {
 
-		echo("<div id='opvragenlidnr'>\n");
 		printf("<form action='%s?tp=Opvragen+lidnr' method='post'>\n", $_SERVER["PHP_SELF"]);
 		
 		echo("<fieldset>\n");
@@ -793,10 +749,12 @@ function fnOpvragenLidnr($stap) {
 		echo("<label>E-mailadres:</label><input type='email' name='emailvoorlidnr'>\n");
 		echo("<input type='submit' name='opvragenlidnr' value='Opvragen'>\n");
 		echo("</fieldset>\n");
-			
-		echo("</form>\n
-		</div>  <!-- Einde opvragenlidnr -->\n");
+		
+		echo("</form>\n");
 	}
+	
+	echo("</div>  <!-- Einde opvragenlidnr -->\n");
+	
 } # fnOpvragenLidnr
 
 function cleanlogin($login) {
@@ -845,7 +803,7 @@ function newkey() {
 	return $ww;
 } # newkey
 
-function checknewpassword($ww, $login="", $p_wwh="") {
+function checknewpassword($ww, $login="", $p_wwh="ghc") {
 	
 	$alphabet = "abcdefghijklmnopqrstuvwxyz";
 	$mess = "ok";
@@ -866,7 +824,7 @@ function checknewpassword($ww, $login="", $p_wwh="") {
 		$mess = "Het wachtwoord mag niet je login bevatten.";
 	} elseif (strlen($_SESSION['roepnaamingelogde']) > 0 and strpos(strtolower($ww), strtolower($_SESSION['roepnaamingelogde'])) !== false) {
 		$mess = "Het wachtwoord mag niet je roepnaam bevatten.";
-	} elseif (strlen($p_wwh) == 0 or $ww !== $p_wwh) {
+	} elseif ($p_wwh !== "ghc" and (strlen($p_wwh) == 0 or $ww !== $p_wwh)) {
 		$mess = "De nieuwe wachtwoorden zijn niet aan elkaar gelijk.";
 	} else {
 		$bevatc=0;
@@ -908,15 +866,17 @@ function fneisenwachtwoord() {
 function addtp($tp, $afdnr=0) {
 	global $tabpages, $currenttab, $currenttab2;
 	
+	$i_acc = new cls_Authorisation();
+	
 	if ((strstr($tp, "/") === false or startwith($tp, $currenttab . "/")) and toegang($tp, 0, 0)) {
 		$tabpages[] = $tp;
-		if ($_SESSION['webmaster'] == 1) {
-			$query = sprintf("SELECT COUNT(*) FROM %sAdmin_access WHERE Tabpage=\"%s\";", TABLE_PREFIX, str_replace("'", "", $tp));
-			if (db_scalar($query) == 0) {
-				(new cls_Authorisation())->add($tp);
-			}
+		$f = sprintf("Tabpage=\"%s\"", str_replace("'", "", $tp));
+		if ($_SESSION['webmaster'] == 1 and $i_acc->aantal($f) == 0) {
+			$i_acc->add($tp);
 		}
 	}
+	
+	$i_acc = null;
 	
 } # addtp
 
