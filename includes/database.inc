@@ -24,7 +24,7 @@ $arrTables[] = "WS_Voorraadboeking";
 // $arrTables[] = "DMS_Folder";
 
 // Overgenomen uit de Access-database
-$arrTables[20] = "Bewaking";
+$arrTables[30] = "Bewaking";
 $arrTables[] = "Bewseiz";
 $arrTables[] = "Boekjaar";
 $arrTables[] = "Diploma";
@@ -5075,7 +5075,7 @@ class cls_interface extends cls_db_base {
 	}
 	
 	public function lijst() {
-		$query = sprintf("SELECT %1\$s AS `Betreft lid`, I.Ingevoerd, `SQL-statement` AS `SQL`
+		$query = sprintf("SELECT %1\$s AS `Betreft lid`, I.Ingevoerd, I.`SQL-statement` AS `SQL`, I.RecordID AS llkRecordID
 						FROM %2\$sAdmin_interface AS I LEFT OUTER JOIN %2\$sLid AS L ON I.LidID=L.RecordID
 						WHERE IFNULL(I.Afgemeld, '1970-01-01') < '2000-01-01'
 						ORDER BY I.Ingevoerd, I.RecordID LIMIT %3\$d;", $this->selectnaam, TABLE_PREFIX, $this->maxrecords);
@@ -5110,6 +5110,14 @@ class cls_interface extends cls_db_base {
 		$stmt->bindParam(2, $p_lidid);
 		$stmt->bindParam(3, $msa_sql);
 		$stmt->execute();
+	}
+	
+	public function delete($p_recid) {
+		$query = sprintf("DELETE FROM %s WHERE RecordID=%d;", $this->table, $p_recid);
+		if ($this->execsql($query) > 0) {
+			$this->mess = sprintf("Record %d is uit tabel '%s' verwijderd.", $p_recid, $this->table);
+			$this->Log($p_recid);
+		}
 	}
 	
 	public function afmelden() {
@@ -7318,63 +7326,60 @@ function db_backup() {
 
 	$mess = "";
 	
-	$laatstebackup = (new cls_Logboek())->max("DatumTijd", "TypeActiviteit=3");
-	if (strtotime($laatstebackup) < mktime(date("H")-1, date("m"), 0, date("m"), date("d"), date("Y"))) {
-		$FileName = $db_folderbackup . $buname;
+	$laatstebackup = (new cls_Logboek())->max("DatumTijd", "TypeActiviteit=3 AND TypeActiviteitSpecifiek=1");
+	if (strtotime($laatstebackup) < mktime(date("H")-1, date("m"), 0, date("m"), date("d"), date("Y")) or 1 == 2) {
+		$FileName = $db_folderbackup . $buname . ".sql";
 		
-		if ($_SESSION['settings']['db_backup_type'] == 1 or $_SESSION['settings']['db_backup_type'] == 2) {
-			$tabs = "";
-			foreach ($arrTables as $tnr => $tnm) {
-				if (($_SESSION['settings']['db_backup_type'] == 1 and $tnr < 20) or ($_SESSION['settings']['db_backup_type'] == 2 and $tnr >= 20)) {
-					$tabs .= TABLE_PREFIX . $tnm . ",";
+		$aanttab = 0;
+		$buf = fopen($FileName, 'w+');
+		$i_base = new cls_db_base();
+		foreach ($arrTables as $tnr => $tnm) {
+			$i_base->table = TABLE_PREFIX . $tnm;
+			if ($i_base->aantal() > 0 and ($_SESSION['settings']['db_backup_type'] == 3 or ($_SESSION['settings']['db_backup_type'] == 1 and $tnr < 30) or ($_SESSION['settings']['db_backup_type'] == 2 and $tnr >= 30))) {
+				$data = fnBackupTables(TABLE_PREFIX . $tnm);
+				if (strlen($data) > 50) {
+					fwrite($buf, $data);
+					$aanttab++;
 				}
 			}
-		} else {
-			$tabs = "*";
 		}
-		
-		$data = fnBackupTables($tabs);
+		$i_base = null;
+		fclose($buf);
 
-		if (strlen($data) > 500) {
+		if ($aanttab > 0) {
 		
-			$buf = fopen($FileName . ".sql", 'w');		
-			fwrite($buf, $data);
-			if (fclose($buf) == true) {
-			
-				$mess = sprintf("Backup, type %d, is in '%s.sql' gemaakt. ", $_SESSION['settings']['db_backup_type'], str_replace($db_folderbackup, "", $FileName));
-				(new cls_Logboek())->add($mess, 3, 0, 1);
-				$rv= true;
+			$mess = sprintf("Backup, type %s (%d tabellen), is in '%s.sql' gemaakt.", ARRTYPEBACKUP[$_SESSION['settings']['db_backup_type']], $aanttab, str_replace($db_folderbackup, "", $FileName));
+			(new cls_Logboek())->add($mess, 3, 0, 1, 0, 1);
+			$rv= true;
 
-				if ($handle = opendir($db_folderbackup)) {
-					while (false !== ($file = readdir($handle))) {
-						sleep(2);
-						if ($file != "." and $file != "..") {
-							$vbn = $db_folderbackup . $file;
-							if ($_SESSION['settings']['db_backupsopschonen'] > 1 and filectime($db_folderbackup . $file) < mktime(0, 0, 0, date("m"), date("d")-$_SESSION['settings']['db_backupsopschonen'], date("Y")) or filesize($db_folderbackup . $file) < 500 ) {
-								unlink($vbn);
-								$mess = sprintf("Bacckup-bestand %s is verwijderd. ", $file);
-								db_logboek("add", $mess, 2, 0, 1);
-							} elseif (fileperms($vbn) != 32768) {
-								if (chmod($vbn, 0000) == true) {
-									$mess = sprintf("Op bestand %s is chmod 0000 uitgevoerd.", $file);
-								} else {
-									$mess = sprintf("chmod 0000 op bestand %s is niet gelukt.", $vbn);
-								}
-								(new cls_Logboek())->add($mess, 2, 0, 1);
+
+			if ($handle = opendir($db_folderbackup)) {
+				while (false !== ($file = readdir($handle))) {
+					sleep(2);
+					if ($file != "." and $file != "..") {
+						$vbn = $db_folderbackup . $file;
+						if ($_SESSION['settings']['db_backupsopschonen'] > 1 and filectime($db_folderbackup . $file) < mktime(0, 0, 0, date("m"), date("d")-$_SESSION['settings']['db_backupsopschonen'], date("Y")) or filesize($db_folderbackup . $file) < 500 ) {
+							unlink($vbn);
+							$mess = sprintf("Backup-bestand %s is verwijderd. ", $file);
+							db_logboek("add", $mess, 2, 0, 1);
+						} elseif (fileperms($vbn) != 32768) {
+							if (chmod($vbn, 0000) == true) {
+								$mess = sprintf("Op bestand %s is chmod 0000 uitgevoerd.", $file);
+							} else {
+								$mess = sprintf("chmod 0000 op bestand %s is niet gelukt.", $vbn);
 							}
+							(new cls_Logboek())->add($mess, 2, 0, 1);
 						}
 					}
-				} else {
-					$mess = "";
 				}
 			} else {
-				(new cls_Logboek())->add("Het backup-script heeft gedraaid, maar de backup is niet gelukt.\n", 2, 0, 1);
+				$mess = "";
 			}
 		} else {
-			(new cls_Logboek())->add("Het backup-script heeft gedraaid, maar de backup is niet gelukt.", 2, 0, 1);
+			(new cls_Logboek())->add("Het backup-script heeft gedraaid, maar de backup is niet gelukt.\n", 2, 0, 1, 0, 2);
 		}
 	} else {
-//		db_logboek("add", "Het backupscript heeft korter dan 1 uur geleden met succes gedraaid. Het wordt niet nogmaals uitgevoerd.", 2, 0, 1);
+//		db_logboek("add", "Het backupscript heeft korter dan 1 uur geleden met succes gedraaid. Het wordt niet nogmaals uitgevoerd.", 2, 0, 1, 0, 2);
 	}
 	return $rv;
 }
@@ -7421,6 +7426,7 @@ function fnBackupTables($tables="*") {
 	}
    
 	foreach($tables as $table) {
+		debug($table);
 		$query = sprintf("SELECT * FROM `%s`;", $table);
 		$resultcount = $dbc->prepare($query);
 		$resultcount->execute();
@@ -7431,25 +7437,25 @@ function fnBackupTables($tables="*") {
 		$result->execute();
 		$data .= sprintf("DROP TABLE IF EXISTS `%s`;", $table);
 
-      $result2 = $dbc->prepare('SHOW CREATE TABLE '.$table);  
-      $result2->execute();                            
-      $row2 = $result2->fetch(PDO::FETCH_NUM);
-      $data .= sprintf("\n\n%s;\n\n", $row2[1]);
+		$result2 = $dbc->prepare('SHOW CREATE TABLE '.$table);  
+		$result2->execute();                            
+		$row2 = $result2->fetch(PDO::FETCH_NUM);
+		$data .= sprintf("\n\n%s;\n\n", $row2[1]);
 		
 		for ($i = 0; $i < $num_fields; $i++) {
 			while($row = $result->fetch(PDO::FETCH_NUM)) { 
 				$data .= sprintf("INSERT INTO `%s` VALUES(", $table);
             for($j=0; $j<$num_fields; $j++) {
-					$row[$j] = addslashes($row[$j]); 
-               $row[$j] = str_replace("\n","\\n",$row[$j]);
-               if (isset($row[$j])) {
-						$data .= '"' . $row[$j] . '"' ;
-					} else {
-						$data .= '""';
-					}
+				$row[$j] = addslashes($row[$j]); 
+				$row[$j] = str_replace("\n","\\n",$row[$j]);
+				if (isset($row[$j])) {
+					$data .= '"' . $row[$j] . '"' ;
+				} else {
+					$data .= '""';
+				}
                if ($j < ($num_fields-1)) {
-						$data .= ",";
-					}
+					$data .= ",";
+				}
             }
             $data .= ");\n";
          }
