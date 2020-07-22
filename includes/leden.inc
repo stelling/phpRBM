@@ -1010,7 +1010,7 @@ function fnGroepsindeling($afdkode="", $afdid=0, $muteren=0) {
 		echo("</table>\n");
 		
 		echo("<table>\n");
-		echo("<tr><th colspan=6 class='tabelkop'>Muteren groepen</th></tr>\n<tr>");
+		echo("<caption>Muteren groepen</caption>\n<tr>");
 		for ($i=1;$i<=5; $i++) {
 			printf("<th>%s</th>", $kn[$i]);
 		}
@@ -2000,14 +2000,14 @@ function onderdelenlidmuteren($lidid, $p_type="G") {
 	echo("<div id='onderdelenperlidmuteren'>\n");
 	printf("<form method='post' name='frmOnderdelenPerLidMuteren' action='%s'>\n", $actionurl);
 	echo("<table>\n");
-	printf("<tr><th colspan=7 class='tabelkop'>%s %s muteren</th></tr>\n", $typeoms, (new cls_Lid())->Naam($lidid));
+	printf("<caption>%s %s muteren</caption>\n", $typeoms, (new cls_Lid())->Naam($lidid));
 	$frows = (new cls_functie())->selectlijst($tf);
 	if ($p_type == "A") {
 		printf("<tr><th>Afdeling</th><th>Vanaf</th>%s<th>Opmerking</th><th>Tot en met</th></tr>\n", $kf);
-	} elseif ($p_type == "BCF") {
-		printf("<tr><th>onderdeel</th><th>Vanaf</th>%s<th>Opmerking</th><th>Tot en met</th></tr>\n", $kf);
-	} else {
+	} elseif ($p_type == "G") {
 		printf("<tr><th>Groep</th><th>Vanaf</th>%s<th>Opmerking</th><th>Tot en met</th></tr>\n", $kf);
+	} else {
+		printf("<tr><th>Onderdeel</th><th>Vanaf</th>%s<th>Opmerking</th><th>Tot en met</th></tr>\n", $kf);
 	}
 	foreach ($i_lo->editlijst($f, $lidid) as $row) {
 		printf("<tr>\n<td>%s - %s</td>\n", $row->Kode, $row->Naam);
@@ -2124,7 +2124,7 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 	}
 	
 	echo("<table>\n");
-	printf("<tr><th class='tabelkop' colspan=7>Diploma's %s muteren</th></tr>\n", (new cls_Lid())->Naam($lidid));
+	printf("<caption>Diploma's %s muteren</caption>\n", (new cls_Lid())->Naam($lidid));
 	printf("<tr><th>Code</th><th>Naam</th><th>Geldigheid</th><th>Behaald op</th><th>Diplomanummer</th><th>Geldig tot</th></tr>\n");
 	foreach ($i_dp->basislijst($f, "kode") as $dp) {
 		if ($dp->GELDIGH > 0) {
@@ -2201,7 +2201,7 @@ function lidmaatschapmuteren($lidid) {
 	$actionurl = sprintf("%s?tp=%s&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
 	printf("<form method='post' action='%s' name='frm_lidmaatschapmuteren'>\n", $actionurl);
 	echo("<table>\n");
-	printf("<tr><th colspan=5 class='tabelkop'>Lidmaatschap %s muteren</th></tr>\n", (new cls_Lid())->Naam($lidid));
+	printf("<caption>Lidmaatschap %s muteren</caption>\n", (new cls_Lid())->Naam($lidid));
 	echo("<tr><th>RecordID</th><th>Lidnummer</th><th>Lid vanaf</th><th>Opgezegd per</th><th></th><tr>\n");
 	$toev = true;
 	$aant = 0;
@@ -2209,7 +2209,7 @@ function lidmaatschapmuteren($lidid) {
 	foreach ($i_lm->basislijst($f, "LIDDATUM") as $row) {
 		echo("<tr>\n");
 		printf("<td>%d</td>\n", $row->RecordID);
-		printf("<td><input type='number' class='inputnumber' name='Lidnr_%d' value=%d onchange='this.form.submit();'></td>\n", $row->RecordID, $row->Lidnr);
+		printf("<td><input type='number' name='Lidnr_%d' value=%d onchange='this.form.submit();'></td>\n", $row->RecordID, $row->Lidnr);
 		printf("<td><input type='date' name='Vanaf_%d' value='%s' onchange='this.form.submit();'></td>\n", $row->RecordID, $row->LIDDATUM);
 		if ($row->Opgezegd >= "1901-01-01") {
 			if ($row->Opgezegd >= date("Y-m-d")) {
@@ -2267,130 +2267,6 @@ function IsIBANgoed($IBAN, $LeegIsGoed=1) {
    return $retval;
 
 } # IsIBANgoed
-
-function RekeningDetail($nr) {
-	
-	$rk = db_rekening("hoofd", $nr);
-	
-	$rekening_template = $_SESSION['settings']['path_templates'] . sprintf("rekening %d.html", $rk->Seizoen);
-	if (file_exists($rekening_template)) {
-		$content = file_get_contents($rekening_template);
-	} else {
-		$rekening_template = $_SESSION['settings']['path_templates'] . "rekening.html";
-		if (file_exists($rekening_template)) {
-			$content = file_get_contents($rekening_template);	
-		} else {
-			$content = "<p>[%NAAMDEBITEUR%]<br>
-[%ADRES%]<br>
-[%POSTCODE%]  [%WOONPLAATS%]</p>
-<br>
-<p>Mijdrecht, [%REKENINGDATUM%]</p>
-<br>
-<p><u>Betreft: [%REKENINGOMSCHRIJVING%] [%REKENINGNUMMER%]</u></p>
-<br>
-<div id='rekeningregels'>
-<table>
-<tr><th>Regel</th><th>Omschrijving</th><th>Lid</th><th class='number'>Bedrag in &euro;</th></tr>
-[%REKENINGREGELS%]
-<tr><th colspan=3>Totaal</th><th class='number'>[%REKENINGBEDRAG%]</th><tr>
-</table>
-</div> <!-- Einde rekeningregels -->
-
-<!-- NietOpCredit -->
-<!-- NietOpNulRekening -->
-<p>Deze rekening dient op [%UITERSTEBETAALDATUM%], onder vermelding van rekeningnummer [%REKENINGNUMMER%], volledig betaald te zijn.</p>
-<p>Indien u een andere betalingsregeling wenst of een vraag over deze rekening heeft kunt u contact met de <a href='mailto:[%VANAFADRES%]'>[%VANAFNAAM%]</a> opnemen.</p>
-<!-- /NietOpNulRekening -->
-<!-- /NietOpCredit -->
-
-<!-- NietOpDebet -->
-<!-- NietOpNulRekening -->
-<p>Bovenstaand bedrag wordt zo spoedig mogelijk aan u overgemaakt.</p>
-<!-- /NietOpNulRekening -->
-<!-- /NietOpDebet -->
-
-<!-- NietOpDebet -->
-<p>Indien u een vraag over deze rekening heeft kunt u contact met de <a href='mailto:[%VANAFADRES%]'>[%VANAFNAAM%]</a> opnemen.</p>
-<!-- /NietOpDebet -->
-
-<p><strong>Het bestuur van [%NAAMVERENIGING%]</strong></p>\n";
-		}
-	}
-	
-	if ($rk->Machtiging == 1) {
-		$content = removetextblock($content, "<!-- Geen machtiging -->", "<!-- /Geen machtiging -->");
-	} else {
-		$content = removetextblock($content, "<!-- Wel machtiging -->", "<!-- /Wel machtiging -->");
-	}
-	
-	if ($rk->Bedrag == 0) {
-		$content = removetextblock($content, "<!-- NietOpNulRekening -->", "<!-- /NietOpNulRekening -->");
-	} elseif ($rk->Bedrag < 0) {
-		$content = removetextblock($content, "<!-- NietOpCredit -->", "<!-- /NietOpCredit -->");
-	} else {
-		$content = removetextblock($content, "<!-- NietOpDebet -->", "<!-- /NietOpDebet -->");
-		if ($rk->Betaald == 0) {
-			$content = removetextblock($content, "<!-- NietOpNulBetaald -->", "<!-- /NietOpNulBetaald -->");
-		}
-	}
-	
-	if (($rk->Bedrag - $rk->Betaald) < 0.50) {
-		$content = removetextblock($content, "<!-- NietOpVolledigBetaald -->", "<!-- /NietOpVolledigBetaald -->");
-	}
-	
-	$content = str_ireplace("[%NAAMDEBITEUR%]", $rk->DEBNAAM, $content);
-	$content = str_ireplace("[%ADRES%]", $rk->Adres, $content);
-	$content = str_ireplace("[%POSTCODE%]", $rk->Postcode, $content);
-	$content = str_ireplace("[%WOONPLAATS%]", $rk->Woonplaats, $content);
-	$content = str_ireplace("[%LIDNR%]", $rk->Lidnr, $content);
-	$content = str_ireplace("[%REKENINGDATUM%]", strftime("%e %B %Y", strtotime($rk->Datum)), $content);
-	$content = str_ireplace("[%SEIZOEN%]", $rk->Seizoen, $content);
-	$content = str_ireplace("[%REKENINGOMSCHRIJVING%]", $rk->OMSCHRIJV, $content);
-	$content = str_ireplace("[%REKENINGNUMMER%]", $rk->Nummer, $content);
-	$content = str_ireplace("[%REKENINGBEDRAG%]", fnBedrag($rk->Bedrag), $content);
-	$content = str_ireplace("[%BETAALD%]", fnBedrag($rk->Betaald), $content);
-	$content = str_ireplace("[%OPENSTAAND%]", fnBedrag($rk->Bedrag - $rk->Betaald), $content);
-	$content = str_ireplace("[%BANKREKENING%]", $rk->Bankrekeningnummer, $content);
-	$content = str_ireplace("[%UITERSTEBETAALDATUM%]", strftime("%e %B %Y", strtotime($rk->UitersteBetaaldatum)), $content);
-	$content = str_ireplace("[%VANAFADRES%]", $_SESSION['settings']['mailing_rekening_from_adres'], $content);
-	$content = str_ireplace("[%VANAFNAAM%]", $_SESSION['settings']['mailing_rekening_from_naam'], $content);
-	$content = str_ireplace("[%NAAMVERENIGING%]", $_SESSION['settings']['naamvereniging'], $content);
-	$content = str_ireplace("[%NAAMWEBSITE%]", $_SESSION['settings']['naamwebsite'], $content);
-	$content = str_ireplace("[%URLWEBSITE%]", $_SERVER["HTTP_HOST"], $content);
-	
-	$rr = (new cls_Rekeningregel())->perrekening($nr);
-	$rrtxt = "";
-	$ireg = 1;
-	foreach($rr as $regel) {
-		if ($regel->Lid > 0) {
-			$nl = (new cls_Lid())->Naam($regel->Lid, "");
-		} else {
-			$nl = "";
-		}
-		if ($regel->ToonOpRekening == 1) {
-			if ($_SESSION['settings']['mailing_rekening_regelnrsweglaten'] == 0) {
-				$rrtxt .= sprintf("<tr><td>%d</td><td>%s</td><td>%s</td><td class='number'>%s</td></tr>\n", $ireg, $regel->OMSCHRIJV, $nl, fnBedrag($regel->Bedrag));
-			} else {
-				$rrtxt .= sprintf("<tr><td>%s</td><td>%s</td><td class='number'>%s</td></tr>\n", $regel->OMSCHRIJV, $nl, $b);
-			}
-			$ireg += 1;
-		}
-	}
-	$content = str_ireplace("[%REKENINGREGELS%]", $rrtxt, $content);
-	
-	return $content;
-
-} # RekeningDetail
-
-function fnBedrag($bedrag) {
-	
-	if (strlen($_SESSION['settings']['mailing_rekening_valuta']) == 0) {
-		return str_replace(",00", ",=&nbsp;", sprintf("%03.2f", $bedrag));
-	} else {
-		return $_SESSION['settings']['mailing_rekening_valuta'] . "&nbsp;" . str_replace(",00", ",=&nbsp;", sprintf("%03.2f", $bedrag));
-	}
-	
-}
 
 function MailVervallenDiplomas() {
 	
