@@ -15,6 +15,7 @@ define("ARRTYPEEDITOR", [1 => "CKEditor 5 Classic editor", 2 => "CKEditor 4"]);
 define("ARRSOORTEVENEMENT", ["B" => "Brigade-activiteit", "G" => "Gezellig/sociaal", "O" => "Opleiding", "V" => "Vergadering/overleg", "W" => "Wedstrijd"]);
 define("ARRDLNSTATUS", ["A" => "Afgewezen", "B" => "Bevestigd", "I" => "Ingeschreven", "N" => "Niet geweest", "R" => "Reserve", "T" => "Onder voorbehoud", "X" => "Afgezegd"]);
 define("ARRPRESENTIESTATUS", ["A" => "Aangemeld/aanwezig", "R" => "Afgemeld/afwezig met bekende reden", "T" => "Onder voorbehoud", "X" => "Afgemeld/afwezig zonder bekende reden", "Z" => "Afgemeld/afwezig wegens ziekte"]);
+define("ARRTYPEBACKUP", [1 => "phpRBM-tabellen", 2=> "Tabellen uit MS-Access", 3 => "Beide"]);
 
 require(BASEDIR . '/config.php');
 $bestandsversie = filectime(BASEDIR . "/index.php");
@@ -93,13 +94,14 @@ require_once("phpmailer/Exception.php");
 require_once("simpleimage.php");
 /* Einde includen open source libs*/
 
-$includes = array("database", "authentication", "leden", "bewaking", "evenement", "mailing", "standaard", "webshop", "taken");
-foreach ($includes as $incl) {
+foreach (array("database", "authentication", "leden", "bewaking", "evenement", "financieel", "mailing", "standaard", "webshop", "taken") as $incl) {
 	$incl .= ".inc";
-	if ($bestandsversie < filectime(__DIR__ . "/" . $incl)) {
-		$bestandsversie = filectime(__DIR__ . "/" . $incl);
+	if (file_exists(__DIR__ . "/" . $incl)) {
+		if ($bestandsversie < filectime(__DIR__ . "/" . $incl)) {
+			$bestandsversie = filectime(__DIR__ . "/" . $incl);
+		}
+		require_once($incl);
 	}
-	require_once($incl);
 }
 
 $i_p = new cls_Parameter();
@@ -548,7 +550,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 		$totaantal = 0;
 		foreach($rows as $row) {
 			if ($dispkop == 1) {
-				$hv = "<tr>";
+				$hv = "<thead>\n<tr>";
 				$kn = 0;
 				$skn = 0;
 				foreach($row as $key => $value) {
@@ -612,9 +614,9 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 					$kn++;
 				}
 				if (strlen($th) > 1) {
-					$ret .= sprintf("<tr><th colspan=%d class='tabelkop'>%s</th></tr>\n", count($ktot), $th);
+					$ret .= sprintf("<caption>%s</caption>\n", $th);
 				}
-				$ret .= $hv . "</tr>\n";
+				$ret .= $hv . "</tr>\n</thead>\n<tbody>\n";
 				$dispkop = 0;
 			}
 			$ret .= "<tr>";
@@ -745,8 +747,9 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 		if (strlen($xtra_regel) > 0) {
 			$ret .= sprintf("<tr>%s</tr>\n", $xtra_regel);
 		}
+		$ret .= "</tbody>\n";
 		if ($disptot > 0 and $totaantal > 1) {
-			$ret .= "<tr>";
+			$ret .= "<tfoot>\n<tr>";
 			for ($kn=0; $kn < count($ktot); $kn++) {
 				if ($kn+1 == $disptot and $totaantal > 1) {
 					$ret .= sprintf("<th>%s records</th>", number_format($totaantal, 0, ",", "."));
@@ -758,7 +761,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 					$ret .= "<th></th>";
 				}
 			}
-			$ret .= "</tr>\n";
+			$ret .= "</tr>\n</tfoot>\n";
 		}
 		$ret .= "</table>\n";
 	} else {
