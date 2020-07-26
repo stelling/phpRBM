@@ -569,11 +569,6 @@ function fnOnderdelenmuteren($ondtype="G") {
 			$scherm = "S";
 		}
 	} else {
-		$lagb = (new cls_Logboek())->max("DatumTijd", "TypeActiviteit=6 AND TypeActiviteitSpecifiek=31");
-		
-		if ($ondtype == "G" and $lagb < date("Y-m-d H:i:s", mktime(date("H"), date("i")-10, 0, date("m"), date("d"), date("Y")))) {
-			$i_lo->autogroepenbijwerken();
-		}
 		$i_ond->datacontrole();
 	}
 	
