@@ -20,11 +20,11 @@ if ($currenttab == "Logboek" or $currenttab == "Stamgegevens") {
 	HTMLheader(0);
 }
 
-$inst_login = new cls_Login();
+$i_login = new cls_Login();
 if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
-	$inst_login->delete($_GET['lidid']);
+	$i_login->delete($_GET['lidid']);
 } elseif ($_GET['op'] == "unlocklogin" and $_GET['tp'] == "Beheer logins") {
-	$inst_login->update($_GET['lidid'], "FouteLogin", 0);
+	$i_login->update($_GET['lidid'], "FouteLogin", 0);
 	printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $currenttab);
 } elseif (isset($_POST['tabpage_nw']) and strlen($_POST['tabpage_nw']) > 0 and $_GET['tp'] == "Autorisatie") {
 	(new cls_Authorisation())->add($_POST['tabpage_nw']);
@@ -39,7 +39,7 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 		}
 	}
 } elseif ($_GET['op'] == "uploaddata") {
-	$inst_lb = new cls_Logboek();
+	$i_lb = new cls_Logboek();
 	if (isset($_FILES['SQLupload']['tmp_name']) and strlen($_FILES['SQLupload']['tmp_name']) > 3) {
 		(new cls_db_base())->setcharset();
 		$queries = file_get_contents($_FILES['SQLupload']["tmp_name"]);
@@ -54,7 +54,7 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 				}
 			}
 			$mess = "Bestand is succesvol ge-upload.";
-			$inst_lb->add($mess, 9, 0, 1);
+			$i_lb->add($mess, 9, 0, 1);
 			$mess = "";
 			if (strpos($queries, TABLE_PREFIX) === false) {
 				$mess = sprintf("In het upload bestand komt de juiste table name prefix (%s) niet voor. Dit bestand wordt niet verwerkt.", TABLE_PREFIX);
@@ -84,18 +84,22 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 				printf("<script>setTimeout(\"location.href='%s';\", 30000);</script>\n", $_SERVER['PHP_SELF']);
 			}
 			if (strlen($mess) > 0) {
-				$inst_lb->add($mess, 9, 0, 1);
+				$i_lb->add($mess, 9, 0, 1);
 			}
 		}
 	} else {
 		$mess = sprintf("Er is iets mis gegaan tijdens het uploaden. Error: %s. Klik <a href='http://nl3.php.net/manual/en/features.file-upload.errors.php'>hier</a> voor uitleg van de code.", $_FILES['SQLupload']['error']);
-		$inst_lb->add($mess, 2, 0, 1);
+		$i_lb->add($mess, 2, 0, 1);
 	}
-	$inst_lb = null;
+	$i_lb = null;
 } elseif ($_GET['op'] == "afmeldenwijz" and $_GET['tp'] == "Downloaden wijzigingen") {
 	(new cls_interface())->afmelden();
+	
+} elseif ($_GET['op'] == "deleteint" and $_GET['tp'] == "Downloaden wijzigingen") {
+	(new cls_interface())->delete($_GET['recid']);
+	
 } elseif ($_GET['op'] == "backup") {
-	db_backup();
+	db_backup($_SESSION['settings']['db_backup_type']);
 } elseif ($_GET['op'] == "FreeBackupFiles") {
 	fnFreeBackupFiles();
 } elseif ($_GET['op'] == "logboekopschonen") {
@@ -106,10 +110,10 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 	(new cls_Onderdeel())->opschonen();
 } elseif ($_GET['op'] == "lidondopschonen") {
 	(new cls_Lidond())->opschonen();
-} elseif ($_GET['op'] == "evenementenopschonen") {
-	(new cls_Evenement())->opschonen();
 } elseif ($_GET['op'] == "mailingsopschonen") {
 	(new cls_Mailing())->opschonen();
+} elseif ($_GET['op'] == "evenementenopschonen") {
+	(new cls_Evenement())->opschonen();
 } elseif ($_GET['op'] == "loginsopschonen") {
 	(new cls_Login())->opschonen();
 } elseif ($_GET['op'] == "autorisatieopschonen") {
@@ -177,9 +181,10 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	$copytext = "";
 	echo("<h2>Wijzigen op de website, te verwerken in de Access database.</h2>");
 	printf("<form name='formdownload' method='post' action='%s?tp=%s&amp;op=downloadwijz'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	$linklk = sprintf("<a href='/admin.php?op=deleteint&amp;recid=%%d&amp;tp=%s'><img src='images/del.png' title='Verwijder record'></a>", urlencode($_GET['tp']));
 	$rows = (new cls_Interface())->lijst();
 	if (count($rows) > 0) {
-		echo(fnDisplayTable($rows, "", "", 1));
+		echo(fnDisplayTable($rows, "", "", 1, $linklk));
 		foreach ($rows as $row) {
 			$copytext .= $row->SQL . "\n";
 		}
@@ -220,20 +225,18 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=onderdelenopschonen\"' value='Onderdelen opschonen'><p>Opschonen onderdelen die vervallen en niet meer in gebruik zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=lidondopschonen\"' value='Leden bij onderdelen opschonen'><p>Opschonen op basis van historie en 'Alleen leden'.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=mailingsopschonen\"' value='Mailings opschonen'><p>Mailings, die langer dan <input type='number' name='mailing_bewaartijd' onChange='this.form.submit();' value=%d> maanden in de prullenbak zitten, definitief verwijderen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['mailing_bewaartijd']);
 	
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=evenementenopschonen\"' value='Evenementen opschonen'><p>Opschonen verwijderde evenementen, die geen deelnemers meer hebben.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 
-	$f = "(deleted_on IS NOT NULL)";
-	if ((new cls_Mailing())->aantal($f) > 0) {
-		printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=mailingsopschonen\"' value='Mailings opschonen'><p>Mailings, die langer dan <input type='number' name='mailing_bewaartijd' onChange='this.form.submit();' value=%d> maanden in de prullenbak zitten, definitief verwijderen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['mailing_bewaartijd']);
-	}
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=loginsopschonen\"' value='Logins opschonen'><p>Opschonen van logins die om diverse redenen niet meer nodig zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=autorisatieopschonen\"' value='Autorisatie opschonen'><p>Verwijderen toegang waar alleen de webmaster toegang toe heeft en die ouder dan 3 maanden zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	if ((new cls_Orderregel())->aantal() > 0) {
 		printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=orderregelsopschonen\"' value='Orderregels opschonen'><p>Opschonen van de orderregels van de bestellingen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	}
 	if ((new cls_Artikel())->aantal() > 0) {
-		printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=artikelenopschonen\"' value='Artikelen opschonen'><p>Opschonen van artikelen zonder bestellingen uit de webshop.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+		printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=artikelenopschonen\"' value='Artikelen opschonen'><p>Opschonen van artikelen zonder bestellingen en zonder voorraadboekingen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	}
 	echo("</form>\n");
 	echo("</div>  <!-- Einde dbonderhoud -->\n");
@@ -378,12 +381,12 @@ function fnBeheerLogins() {
 
 function fnInstellingen() {
 	
-	$inst_p = new cls_Parameter();
-	$inst_p->controle();
-	$inst_p->vulsessie();
-	$inst_p = null;
+	$i_p = new cls_Parameter();
+	$i_p->controle();
+	$i_p->vulsessie();
+	$i_p = null;
 
-	$arrParam['db_backup_type'] = "Welke tabellen moeten worden gebackuped? 1=interne phpRBM-tabellen, 2=tabellen uit Access, 3=beide.";
+	$arrParam['db_backup_type'] = "Welke tabellen moeten worden gebackuped?";
 	$arrParam['db_backupsopschonen'] = "Na hoeveel dagen moeten back-ups automatisch verwijderd worden? 0 = nooit.";
 	$arrParam['db_folderbackup'] = "In welke folder moet de backup worden geplaatst?";
 	$arrParam['emailwebmaster'] = "Het e-mailadres van de webmaster.";
@@ -529,17 +532,23 @@ function fnInstellingen() {
 		if (array_key_exists($row->Naam, $arrParam)) {
 			$uitleg = htmlent($arrParam[$row->Naam]);
 			if (strlen($row->ValueChar) > 60 and $row->ParamType="T") {
-				printf("<label>%s</label><p><textarea cols=68 rows=2 name='%s'>%s</textarea></p>\n", $uitleg, $row->Naam, $row->ValueChar);
+				printf("<label>%s</label><textarea cols=68 rows=2 name='%s'>%s</textarea>\n", $uitleg, $row->Naam, $row->ValueChar);
+			} elseif ($row->Naam == "db_backup_type") {
+				printf("<label>%s</label><select name='%s'>", $uitleg, $row->Naam);
+				foreach (ARRTYPEBACKUP as $key => $val) {
+					printf("<option value=%d %s>%s</option>\n", $key, checked($row->ValueNum, "option", $key), $val);
+				}
+				echo("</select>\n");
 			} else {
-				printf("<label>%s</label><p><input name='%s' ", $uitleg, $row->Naam);
+				printf("<label>%s</label><input name='%s' ", $uitleg, $row->Naam);
 				if ($row->ParamType == "B") {
-					printf("type='checkbox' value='1' %s></p>\n", checked(intval($row->ValueNum)));
+					printf("type='checkbox' value='1' %s>\n", checked(intval($row->ValueNum)));
 				} elseif ($row->ParamType == "I") {
-					printf("type='number' class='inputnumber' value=%d></p>\n", $row->ValueNum);
+					printf("type='number' class='inputnumber' value=%d>\n", $row->ValueNum);
 				} elseif ($row->ParamType == "F") {
-					printf("value=%F size=8></p>\n", $row->ValueNum);
+					printf("value=%F size=8>\n", $row->ValueNum);
 				} else {
-					printf("type='text' class='inputtext' value=\"%s\"></p>\n", $row->ValueChar);
+					printf("type='text' class='inputtext' value=\"%s\">\n", $row->ValueChar);
 				}
 			}
 		}
