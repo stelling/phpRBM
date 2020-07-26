@@ -1,6 +1,6 @@
 <?php
 
-$arrTables[] = "Admin_access";
+$arrTables[0] = "Admin_access";
 $arrTables[] = "Admin_activiteit";
 $arrTables[] = "Admin_interface";
 $arrTables[] = "Admin_login";
@@ -330,7 +330,7 @@ class cls_db_base {
 		
 		if (($this->typekolom($p_kolom) == "date" or $this->typekolom($p_kolom) == "datetime") and (strlen($p_waarde) < 4 or $p_waarde <= "1900-01-01")) {
 			$p_waarde = "NULL";
-		} elseif (strlen($p_waarde) == 0 and $this->is_kolom_numeriek($p_kolom))  {
+		} elseif (strlen($p_waarde) == 0 and $this->is_kolom_numeriek($p_kolom)) {
 			$p_waarde = 0;
 		}
 		
@@ -338,8 +338,6 @@ class cls_db_base {
 			$kpk = "RecordID";
 		} elseif ($this->bestaat_kolom("Nummer")) {
 			$kpk = "Nummer";
-		} elseif ($this->bestaat_kolom("Login")) {
-			$kpk = "Login";
 		}
 		
 		if ($this->bestaat_kolom("Gewijzigd")) {
@@ -358,19 +356,26 @@ class cls_db_base {
 		} elseif ($this->is_kolom_numeriek($p_kolom) == true) {
 			$xw = sprintf("IFNULL(`%s`, 0)<>%d", $p_kolom, $p_waarde);
 		} else {
-			$xw = sprintf("BINARY IFNULL(`%s`, '')<>'%s'", $p_kolom, $p_waarde);
+//			debug($p_kolom . ": " . $p_waarde);
+			if (strpos($p_waarde, "'") !== false) {
+				$xw = sprintf("BINARY IFNULL(`%s`, '')<>\"%s\"", $p_kolom, $p_waarde);
+			} else {
+				$xw = sprintf("BINARY IFNULL(`%s`, '')<>'%s'", $p_kolom, $p_waarde);
+			}
 		}
 		
-		$query = sprintf("UPDATE %s SET `%s`=? %s WHERE RecordID=? AND %s;", $this->table, $p_kolom, $gw, $xw);
+		$query = sprintf("UPDATE %s SET `%s`=:nw %s WHERE `%s`=:id AND %s;", $this->table, $p_kolom, $gw, $kpk, $xw);
 		
 		$stmt = $dbc->prepare($query);
 		if ($p_waarde === "NULL") {
 			$n = null;
-			$stmt->bindParam(1, $n, PDO::PARAM_NULL);
+			$stmt->bindValue(":nw", $n, PDO::PARAM_NULL);
+		} elseif ($this->is_kolom_numeriek($p_kolom)) {
+			$stmt->bindValue(":nw", $p_waarde, PDO::PARAM_INT);
 		} else {
-			$stmt->bindParam(1, $p_waarde);
+			$stmt->bindValue(":nw", $p_waarde, PDO::PARAM_STR);
 		}
-		$stmt->bindParam(2, $p_recid);
+		$stmt->bindValue(":id", $p_recid);
 		if ($stmt->execute()) {
 			return $stmt->rowCount();
 		} else {
@@ -426,6 +431,28 @@ class cls_db_base {
 	public function Interface($p_query) {
 		db_Interface("add", $p_query, $this->lidid);
 	}
+	
+	public function exporttosql($p_type) {
+		/*
+		
+		2 = structuur tabel
+		*/
+		global $dbc;
+		
+		$rv = "";
+		
+		if ($p_type == 2) {
+			$rv = sprintf("DROP TABLE IF EXISTS `%s`;", $this->table);
+
+			$query = sprintf("SHOW CREATE TABLE %s;", $this->table);
+			$result2 = $dbc->prepare($query);  
+			$result2->execute();                            
+			$row2 = $result2->fetch(PDO::FETCH_NUM);
+			$rv .= sprintf("\n\n%s;\n\n", $row2[1]);
+		}
+		
+		return $rv;
+	}  # exporttosql
 	
 }  # cls_db_base
 
@@ -1820,6 +1847,8 @@ class cls_Onderdeel extends cls_db_base {
 			}
 			$sql = sprintf("UPDATE Onderdl SET [%s]=%s, Gewijzigd=Now() WHERE RecordID=%d", $p_kolom, $p_waarde, $p_oid);
 			(new cls_Interface())->add($sql, 0);
+			
+			(new cls_Lidond())->autogroepenbijwerken();
 		}
 		
 		$this->Log($this->oid);
@@ -2651,89 +2680,93 @@ class cls_Lidond extends cls_db_base {
 		
 		$rv= 0;
 		
-		$f = "LENGTH(MySQL) > 10 AND IFNULL(VervallenPer, CURDATE()) >= CURDATE()";
-		$ondrows = (new cls_Onderdeel())->basislijst($f);
-		foreach ($ondrows as $ondrow) {
-			$reden = "";
-			if (startwith($ondrow->MySQL, "SELECT ") == false) {
-				$this->mess = sprintf("Deze MySQL-code voor onderdeel %d (%s) wordt niet uitgevoerd, omdat deze niet met SELECT begint.", $ondrow->RecordID, $ondrow->Naam);
-			} elseif ((new cls_db_base())->controleersql($ondrow->MySQL) == true) {
-				$sourceres = $this->execsql($ondrow->MySQL);
-				$pk = $sourceres->getColumnMeta(0)['name'];
-				$sourcerows = $sourceres->fetchAll();
+		$lagb = (new cls_Logboek())->max("DatumTijd", "TypeActiviteit=6 AND TypeActiviteitSpecifiek=31");
+		if ($lagb < date("Y-m-d H:i:s", mktime(date("H"), date("i")-15, 0, date("m"), date("d"), date("Y")))) {
+		
+			$f = "LENGTH(MySQL) > 10 AND IFNULL(VervallenPer, CURDATE()) >= CURDATE()";
+			$ondrows = (new cls_Onderdeel())->basislijst($f);
+			foreach ($ondrows as $ondrow) {
+				$reden = "";
+				if (startwith($ondrow->MySQL, "SELECT ") == false) {
+					$this->mess = sprintf("Deze MySQL-code voor onderdeel %d (%s) wordt niet uitgevoerd, omdat deze niet met SELECT begint.", $ondrow->RecordID, $ondrow->Naam);
+				} elseif ((new cls_db_base())->controleersql($ondrow->MySQL) == true) {
+					$sourceres = $this->execsql($ondrow->MySQL);
+					$pk = $sourceres->getColumnMeta(0)['name'];
+					$sourcerows = $sourceres->fetchAll();
 				
-				$targetrows = $this->lijst($ondrow->RecordID);
-				foreach ($targetrows as $targetrow) {
-					$aanw = false;
-					foreach ($sourcerows as $sourcerow) {
-						if ($sourcerow->{$pk} == $targetrow->Lid) {
-							$aanw = true;
+					$targetrows = $this->lijst($ondrow->RecordID);
+					foreach ($targetrows as $targetrow) {
+						$aanw = false;
+						foreach ($sourcerows as $sourcerow) {
+							if ($sourcerow->{$pk} == $targetrow->Lid) {
+								$aanw = true;
+							}
 						}
-					}
-					$reden = "op basis van de MySQL-code hoort dit lid niet in deze groep.";
-					if ($aanw == false) {
-						$this->tas = 32;
-						$this->update($targetrow->RecordID, "Opgezegd", date("Y-m-d", strtotime("yesterday")), $reden);
-						$rv++;
-					}
-				}
-			
-				foreach($sourcerows as $sourcerow) {
-					$query = sprintf("SELECT COUNT(*) FROM %s AS LO WHERE %s AND LO.OnderdeelID=%d AND LO.Lid=%d;", $this->table, $this->wherelidond, $ondrow->RecordID, $sourcerow->{$pk});
-					if ($this->scalar($query) == 0 and ($ondrow->{'Alleen leden'} == 0 or (new cls_Lidmaatschap())->soortlid($sourcerow->{$pk}) == "Lid")) {
-						$f = sprintf("Lid=%d AND OnderdeelID=%d AND Vanaf <= CURDATE() AND (Opgezegd IS NOT NULL) AND Opgezegd >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)", $sourcerow->{$pk}, $ondrow->RecordID);
-						$reden = "op basis van de MySQL-code dit lid in deze groep hoort.";
-						$rec = $this->max("RecordID", $f);
-						if ($rec > 0) {
+						$reden = "op basis van de MySQL-code hoort dit lid niet in deze groep.";
+						if ($aanw == false) {
 							$this->tas = 32;
-							$this->update($rec, "Opgezegd", '', $reden);
-						} else {
-							$this->tas = 31;
-							$this->add($ondrow->RecordID, $sourcerow->{$pk}, $reden);
+							$this->update($targetrow->RecordID, "Opgezegd", date("Y-m-d", strtotime("yesterday")), $reden);
+							$rv++;
 						}
-						$rv++;
 					}
+			
+					foreach($sourcerows as $sourcerow) {
+						$query = sprintf("SELECT COUNT(*) FROM %s AS LO WHERE %s AND LO.OnderdeelID=%d AND LO.Lid=%d;", $this->table, $this->wherelidond, $ondrow->RecordID, $sourcerow->{$pk});
+						if ($this->scalar($query) == 0 and ($ondrow->{'Alleen leden'} == 0 or (new cls_Lidmaatschap())->soortlid($sourcerow->{$pk}) == "Lid")) {
+							$f = sprintf("Lid=%d AND OnderdeelID=%d AND Vanaf <= CURDATE() AND (Opgezegd IS NOT NULL) AND Opgezegd >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)", $sourcerow->{$pk}, $ondrow->RecordID);
+							$reden = "op basis van de MySQL-code dit lid in deze groep hoort.";
+							$rec = $this->max("RecordID", $f);
+							if ($rec > 0) {
+								$this->tas = 32;
+								$this->update($rec, "Opgezegd", '', $reden);
+							} else {
+								$this->tas = 31;
+								$this->add($ondrow->RecordID, $sourcerow->{$pk}, $reden);
+							}
+							$rv++;
+						}
+					}
+				} else {
+					$this->ta = 99;
+					$this->tas = 30;
+					$this->mess = sprintf("De MySQL-code van onderdeel %d (%s) is niet uitvoerbaar.", $ondrow->RecordID, $ondrow->Naam);
 				}
-			} else {
-				$this->ta = 99;
-				$this->tas = 30;
-				$this->mess = sprintf("De MySQL-code van onderdeel %d (%s) is niet uitvoerbaar.", $ondrow->RecordID, $ondrow->Naam);
+				$this->Log();
 			}
-			$this->Log();
-		}
 		
-		$query = sprintf('SELECT LO.RecordID, LO.Lid, LO.Vanaf, IFNULL(LO.Opgezegd, CURDATE()) AS Opgezegd FROM %s AS LO INNER JOIN %sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE O.`Alleen leden`=1 AND LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE();', $this->table, TABLE_PREFIX);
-		$result = $this->execsql($query);
-		foreach ($result->fetchAll() as $row) {
-			if ((new cls_Lidmaatschap())->soortlid($row->Lid, $row->Opgezegd) != "Lid") {
-				$reden = "omdat de persoon geen lid van de vereniging (meer) is";
-				$this->tas = 32;
-				$this->update($row->RecordID, "Opgezegd", date("Y-m-d"), $reden);
-				$rv++;
-			} elseif ((new cls_Lidmaatschap())->soortlid($row->Lid, $row->Vanaf) != "Lid") {
-				$reden = "omdat de persoon toen nog geen lid van de vereniging was";
-				$this->tas = 32;
-				$this->update($row->RecordID, "Vanaf", date("Y-m-d"), $reden);
-				$rv++;
+			$query = sprintf('SELECT LO.RecordID, LO.Lid, LO.Vanaf, IFNULL(LO.Opgezegd, CURDATE()) AS Opgezegd FROM %s AS LO INNER JOIN %sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE O.`Alleen leden`=1 AND LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE();', $this->table, TABLE_PREFIX);
+			$result = $this->execsql($query);
+			foreach ($result->fetchAll() as $row) {
+				if ((new cls_Lidmaatschap())->soortlid($row->Lid, $row->Opgezegd) != "Lid") {
+					$reden = "omdat de persoon geen lid van de vereniging (meer) is";
+					$this->tas = 32;
+					$this->update($row->RecordID, "Opgezegd", date("Y-m-d"), $reden);
+					$rv++;
+				} elseif ((new cls_Lidmaatschap())->soortlid($row->Lid, $row->Vanaf) != "Lid") {
+					$reden = "omdat de persoon toen nog geen lid van de vereniging was";
+					$this->tas = 32;
+					$this->update($row->RecordID, "Vanaf", date("Y-m-d"), $reden);
+					$rv++;
+				}
 			}
-		}
 	
-		$query = sprintf("SELECT LO.RecordID, O.VervallenPer FROM %s AS LO INNER JOIN %sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE IFNULL(O.VervallenPer, '1900-01-01') > '1900-01-01' AND O.VervallenPer < IFNULL(LO.Opgezegd, CURDATE());", $this->table, TABLE_PREFIX);
-		$result = $this->execsql($query);
-		$reden = "het onderdeel per die datum vervallen is.";
-		foreach ($result->fetchAll() as $row) {
-			$this->tas = 32;
-			$this->update($row->RecordID, "Opgezegd", $row->VervallenPer, $reden);
-			$rv++;
-		}
+			$query = sprintf("SELECT LO.RecordID, O.VervallenPer FROM %s AS LO INNER JOIN %sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE IFNULL(O.VervallenPer, '1900-01-01') > '1900-01-01' AND O.VervallenPer < IFNULL(LO.Opgezegd, CURDATE());", $this->table, TABLE_PREFIX);
+			$result = $this->execsql($query);
+			$reden = "het onderdeel per die datum vervallen is.";
+			foreach ($result->fetchAll() as $row) {
+				$this->tas = 32;
+				$this->update($row->RecordID, "Opgezegd", $row->VervallenPer, $reden);
+				$rv++;
+			}
 		
-		if ($rv > 0 or $p_altijdlog == 1) {
-			$this->mess = sprintf("autogroepenbijwerken uitgevoerd, %d aanpassingen gedaan.", $rv);
-			$this->ta =6;
-			$this->tas = 30;
-			$this->Log();
+			if ($rv > 0 or $p_altijdlog == 1) {
+				$this->mess = sprintf("autogroepenbijwerken uitgevoerd, %d aanpassingen gedaan.", $rv);
+				$this->ta =6;
+				$this->tas = 30;
+				$this->lidid = 0;
+				$this->Log();
+			}
 		}
-		
 		return $rv;
 	} # autogroepenbijwerken
 	
@@ -6403,7 +6436,7 @@ function db_param($naam, $actie="curval", $newval="") {
 	
 	$arrIntegers['logboek_bewaartijd'] = 6;
 	$arrIntegers['login_geldigheidactivatie'] = 36;
-	$arrIntegers['db_backup_type'] = 3;
+	$arrIntegers['db_backup_type'] = 1;
 	$arrIntegers['db_backupsopschonen'] = 11;
 	$arrIntegers['login_autounlock'] = 120;
 	$arrIntegers['mailing_alle_zien'] = -1;
@@ -7302,14 +7335,14 @@ function db_onderhoud($type=9) {
 	}
 }
 
-function db_backup() {
-	global $db_name, $arrTables;
+function db_backup($p_typebackup=1) {
+	global $dbc, $db_name, $arrTables;
 	
 	$rv = false;
 	
 	$db_folderbackup = $_SESSION['settings']['db_folderbackup'];
 	
-	$buname = $db_name . "_backup_" . Date("Y-m-d-H-i-s") . "-" . rand(10001, 99998);
+	$buname = "backup_" . $p_typebackup . "_" . Date("Y-m-d-H-i-s") . "-" . rand(10001, 99998);
 	
 	if (strlen($db_folderbackup) < 5) {
 		$db_folderbackup = str_replace($_SERVER['PHP_SELF'], "", $_SERVER["SCRIPT_FILENAME"]) . "/backups/";
@@ -7327,20 +7360,69 @@ function db_backup() {
 	$mess = "";
 	
 	$laatstebackup = (new cls_Logboek())->max("DatumTijd", "TypeActiviteit=3 AND TypeActiviteitSpecifiek=1");
-	if (strtotime($laatstebackup) < mktime(date("H")-1, date("m"), 0, date("m"), date("d"), date("Y")) or 1 == 2) {
+	if (strtotime($laatstebackup) < mktime(date("H")-1, date("m"), 0, date("m"), date("d"), date("Y")) or $_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 		$FileName = $db_folderbackup . $buname . ".sql";
 		
 		$aanttab = 0;
 		$buf = fopen($FileName, 'w+');
 		$i_base = new cls_db_base();
 		foreach ($arrTables as $tnr => $tnm) {
-			$i_base->table = TABLE_PREFIX . $tnm;
-			if ($i_base->aantal() > 0 and ($_SESSION['settings']['db_backup_type'] == 3 or ($_SESSION['settings']['db_backup_type'] == 1 and $tnr < 30) or ($_SESSION['settings']['db_backup_type'] == 2 and $tnr >= 30))) {
-				$data = fnBackupTables(TABLE_PREFIX . $tnm);
-				if (strlen($data) > 50) {
+			$table = TABLE_PREFIX . $tnm;
+			$i_base->table = $table;
+			if ($i_base->aantal() > 0 and ($p_typebackup == 3 or ($p_typebackup == 1 and $tnr < 30) or ($p_typebackup == 2 and $tnr >= 30))) {
+				fwrite($buf, $i_base->exporttosql(2));
+				
+				$query = sprintf("SELECT * FROM `%s`;", $table);
+				$resultcount = $dbc->prepare($query);
+				$resultcount->execute();
+				$num_fields = $resultcount->columnCount();
+
+				$query = sprintf("SELECT * FROM `%s`;", $table);
+				$result = $dbc->prepare($query);
+				$result->execute();
+		
+				while($row = $result->fetch(PDO::FETCH_NUM)) { 
+					$data = sprintf("INSERT INTO `%s` VALUES(", $table);
+					for($j=0; $j<$num_fields; $j++) {
+						$meta = $result->GetColumnMeta($j);
+						$row[$j] = addslashes($row[$j]); 
+						$row[$j] = str_replace("\n","\\n",$row[$j]);
+						if ($meta['native_type'] == "LONG" or $meta['native_type'] == "TINY"  or $meta['native_type'] == "SHORT") {
+							if (isset($row[$j]) and strlen($row[$j]) > 0) {
+								$data .= $row[$j];
+							} else {
+								$data .= "0";
+							}
+							
+						} elseif ($meta['native_type'] == "DATE" or $meta['native_type'] == "DATETIME"  or $meta['native_type'] == "TIMESTAMP") {
+							if (isset($row[$j]) and strlen($row[$j]) > 0) {
+								$data .= "'" . $row[$j] . "'";
+							} else {
+								$data .= "NULL";
+							}
+							
+						} elseif ($meta['native_type'] == "NEWDECIMAL") {
+							if (isset($row[$j]) and strlen($row[$j]) > 0) {
+								$data .= $row[$j];
+							} else {
+								$data .= "0";
+							}
+							
+						} elseif (isset($row[$j])) {
+							$data .= '"' . $row[$j] . '"' ;
+//							debug($meta['name'] . ": " . $meta['native_type']);
+						} else {
+							$data .= '""';
+						}
+						if ($j < ($num_fields-1)) {
+							$data .= ",";
+						}
+					}
+					$data .= ");\n";
 					fwrite($buf, $data);
-					$aanttab++;
 				}
+				$aanttab++;
+				fwrite($buf, "\n\n");
 			}
 		}
 		$i_base = null;
@@ -7348,10 +7430,9 @@ function db_backup() {
 
 		if ($aanttab > 0) {
 		
-			$mess = sprintf("Backup, type %s (%d tabellen), is in '%s.sql' gemaakt.", ARRTYPEBACKUP[$_SESSION['settings']['db_backup_type']], $aanttab, str_replace($db_folderbackup, "", $FileName));
+			$mess = sprintf("Backup %s (%d tabellen) is, in '%s', gemaakt.", ARRTYPEBACKUP[$p_typebackup], $aanttab, str_replace($db_folderbackup, "", $FileName));
 			(new cls_Logboek())->add($mess, 3, 0, 1, 0, 1);
 			$rv= true;
-
 
 			if ($handle = opendir($db_folderbackup)) {
 				while (false !== ($file = readdir($handle))) {
@@ -7426,7 +7507,6 @@ function fnBackupTables($tables="*") {
 	}
    
 	foreach($tables as $table) {
-		debug($table);
 		$query = sprintf("SELECT * FROM `%s`;", $table);
 		$resultcount = $dbc->prepare($query);
 		$resultcount->execute();
@@ -7435,33 +7515,33 @@ function fnBackupTables($tables="*") {
 		$query = sprintf("SELECT * FROM `%s`;", $table);
 		$result = $dbc->prepare($query);
 		$result->execute();
+/*
 		$data .= sprintf("DROP TABLE IF EXISTS `%s`;", $table);
 
 		$result2 = $dbc->prepare('SHOW CREATE TABLE '.$table);  
 		$result2->execute();                            
 		$row2 = $result2->fetch(PDO::FETCH_NUM);
 		$data .= sprintf("\n\n%s;\n\n", $row2[1]);
+*/
 		
-		for ($i = 0; $i < $num_fields; $i++) {
-			while($row = $result->fetch(PDO::FETCH_NUM)) { 
-				$data .= sprintf("INSERT INTO `%s` VALUES(", $table);
-            for($j=0; $j<$num_fields; $j++) {
+		while($row = $result->fetch(PDO::FETCH_NUM)) { 
+			$data .= sprintf("INSERT INTO `%s` VALUES(", $table);
+			for($j=0; $j<$num_fields; $j++) {
 				$row[$j] = addslashes($row[$j]); 
 				$row[$j] = str_replace("\n","\\n",$row[$j]);
 				if (isset($row[$j])) {
 					$data .= '"' . $row[$j] . '"' ;
 				} else {
-					$data .= '""';
+				$data .= '""';
 				}
-               if ($j < ($num_fields-1)) {
+				if ($j < ($num_fields-1)) {
 					$data .= ",";
 				}
-            }
-            $data .= ");\n";
-         }
-      }
-      $data .= "\n\n\n";
-   }
+			}
+			$data .= ");\n";
+		}
+		$data .= "\n\n\n";
+	}
 
 	return $data;
 }
