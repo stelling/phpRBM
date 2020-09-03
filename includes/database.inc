@@ -200,7 +200,7 @@ class cls_db_base {
 	public $selectgeslacht = "";
 	public $selectleeftijd = "IF(ISNULL(L.GEBDATUM) OR L.GEBDATUM < '1920-01-01' OR (NOT ISNULL(L.Overleden)), NULL, CONCAT(TIMESTAMPDIFF(YEAR, L.GEBDATUM, CURDATE()), ' jaar'))";
 	public $selectlidnr = "SELECT MAX(IFNULL(Lidnr, 0)) FROM " . TABLE_PREFIX . "Lidmaatschap AS LM WHERE LM.Lid=L.RecordID AND LM.LIDDATUM <= CURDATE() AND IFNULL(LM.Opgezegd, CURDATE()) >= CURDATE()";
-	public $selecttelefoon = "IF(LENGTH(L.Mobiel) < 10, L.Telefoon, L.Mobiel)";
+	public $selecttelefoon = "IF(LENGTH(IFNULL(L.Mobiel, '')) < 10, L.Telefoon, L.Mobiel)";
 	public $selectemail = "IF(LENGTH(L.Email) > 5, L.Email, IF(LENGTH(L.EmailOuders) > 5, L.EmailOuders, L.EmailVereniging))";
 	public $selectgroep = "CASE 
 					WHEN LO.GroepID=0 AND LO.Functie=0 THEN 'Niet ingedeeld'
@@ -683,8 +683,7 @@ class cls_Lid extends cls_db_base {
 			$p_ord .= ", ";
 		}
 		
-		$query = sprintf("SELECT L.RecordID AS lnkNummer%s, %s AS `Naam_lid`, %s %s AS `emlE-mail`, %s %s %s,
-					L.RecordID AS llkNummer, L.GEBDATUM AS ndGEBDATUM, %s AS ndZoeknaam
+		$query = sprintf("SELECT L.RecordID AS lnkNummer%s, %s AS `Naam_lid`, %s %s AS `emlE-mail`, %s %s %s, L.RecordID AS llkNummer, L.GEBDATUM AS ndGEBDATUM, %s AS ndZoeknaam
 					FROM %s
 					%s
 					ORDER BY %sL.Achternaam, L.TUSSENV, LM.LIDDATUM DESC;", $ln, $this->selectnaam, $wa, $this->selectemail, $k4, $p_xtraselect, $opg, $this->selectzoeknaam, $this->fromlid, $p_filter, $p_ord);
@@ -693,8 +692,12 @@ class cls_Lid extends cls_db_base {
 		return $result->fetchAll();
 	}
 		
-	public function record($p_lidid) {
-		$query = sprintf("SELECT L.*, %s as NaamLid FROM %s AS L WHERE L.RecordID=%d;", $this->selectnaam, $this->table, $p_lidid);
+	public function record($p_lidid=-1) {
+		if ($p_lidid > 0) {
+			$this->lidid = $p_lidid;
+		}
+		
+		$query = sprintf("SELECT L.*, %s as NaamLid FROM %s AS L WHERE L.RecordID=%d;", $this->selectnaam, $this->table, $this->lidid);
 		$result = $this->execsql($query);
 		return $result->fetch();
 	}
@@ -2740,12 +2743,12 @@ class cls_Lidond extends cls_db_base {
 				if ((new cls_Lidmaatschap())->soortlid($row->Lid, $row->Opgezegd) != "Lid") {
 					$reden = "omdat de persoon geen lid van de vereniging (meer) is";
 					$this->tas = 32;
-					$this->update($row->RecordID, "Opgezegd", date("Y-m-d"), $reden);
+					$this->update($row->RecordID, "Opgezegd", date("Y-m-d", strtotime("Yesterday")), $reden);
 					$rv++;
 				} elseif ((new cls_Lidmaatschap())->soortlid($row->Lid, $row->Vanaf) != "Lid") {
 					$reden = "omdat de persoon toen nog geen lid van de vereniging was";
 					$this->tas = 32;
-					$this->update($row->RecordID, "Vanaf", date("Y-m-d"), $reden);
+					$this->update($row->RecordID, "Vanaf", date("Y-m-d", strtotime("Yesterday")), $reden);
 					$rv++;
 				}
 			}
@@ -3211,7 +3214,7 @@ class cls_Login extends cls_db_base {
 			$p_orderby .= ", ";
 		}
 		
-		$query = sprintf("SELECT  Login.RecordID, Login.LidID AS lnkLidID, Login.Login, %1\$s AS Naam_lid, L.Woonplaats, (%5\$s) AS Lidnr, L.Roepnaam AS ndRoepnaam,
+		$query = sprintf("SELECT Login.RecordID, Login.LidID AS lnkLidID, Login.Login, %1\$s AS Naam_lid, L.Woonplaats, (%5\$s) AS Lidnr, L.Roepnaam AS ndRoepnaam,
 					L.Achternaam AS ndAchternaam, L.Tussenv AS ndTussenvoegsels, L.Meisjesnm AS ndMeisjesnaam, L.GEBDATUM AS ndGeboren,
 					IF(LENGTH(L.Email)=0, L.EmailOuders, L.Email) AS `E-mail`, L.EmailVereniging AS ndEmailVereniging, L.Telefoon AS ndTelefoon, L.Mobiel AS ndMobiel,
 					Login.Ingevoerd AS dteIngevoerd, Login.LastLogin AS `dttLaatste login`,
@@ -3587,7 +3590,7 @@ class cls_Login extends cls_db_base {
 		}
 		$this->Log();
 		return $this->mess;
-	}
+	}  # wijzigenwachtwoord
 	
 	public function opschonen() {
 		global $lididwebmasters;
@@ -3621,33 +3624,9 @@ class cls_Login extends cls_db_base {
 				$this->delete($row->LidID, $reden);
 			}
 		}
-	}
+	}  # opschonen
 	
 }  # cls_Login
-
-function db_change_password($pw_new, $pw_old, $lidid) {
-	
-	$mess = "ok";
-	if (strlen($pw_old) > 0) {
-		$query = sprintf("SELECT Wachtwoord from %sAdmin_login WHERE LidID=%d;", TABLE_PREFIX, $lidid);
-		$pw_hash = db_scalar($query);
-		if (password_verify($pw_old, $pw_hash) == false) {
-			$mess = "Oude wachtwoord is niet correct, wachtwoord is niet gewijzigd.";	
-		}
-	}
-	if ($mess == "ok") {
-		$query = sprintf("UPDATE %sAdmin_login SET Gewijzigd=SYSDATE(), GewijzigdDoor=%d, Wachtwoord='%s', LaatsteWachtwoordWijziging=SYSDATE(), ActivatieKey='' WHERE LidID=%d;",
-					 TABLE_PREFIX, $_SESSION['lidid'], password_hash($pw_new, PASSWORD_DEFAULT), $lidid);
-		$result = fnQuery($query);
-		if ($result > 0) {
-			$mess = "Het wachtwoord van de login is gewijzigd.";
-			fnMaatwerkNaWijzigenWachtwoord($lidid, $pw_new);
-		} else {
-			$mess = "Wachtwoord is niet gewijzigd.";
-		}
-	}
-	return $mess;
-} # db_change_password
 
 function db_naam_onderdeel($rid, $rin="Onbekend") {
 
@@ -6407,7 +6386,16 @@ function db_Stukken($actie, $lidid=0) {
 class cls_Stukken extends cls_db_base {
 	
 	function __construct() {
+		parent::__construct();
 		$this->table = TABLE_PREFIX . "Stukken";
+	}
+	
+	public function editlijst() {
+		
+		$query = sprintf("SELECT RecordID, S.Titel, S.`Type`, BestemdVoor, VastgesteldOp, Ingangsdatum, Revisiedatum, VervallenPer, Link FROM %s AS S ORDER BY S.`Type`, S.Titel;", $this->table);
+		$result = $this->execsql($query);
+		return $result->fetchAll();
+		
 	}
 	
 	public function gewijzigdestukken() {
@@ -7467,24 +7455,33 @@ function db_backup($p_typebackup=1) {
 
 function fnFreeBackupFiles() {
 	
+	$i_lb = new cls_Logboek();
+	
 	$mess = "Start fnFreeBackupFiles";
-	db_logboek("add", $mess, 3, 0, 1);
+	$i_lb->add($mess, 3, 0, 1);
 	
 	$mess = "";
-	if ($handle = opendir($$_SESSION['settings']['db_folderbackup'])) {
-		while (false !== ($file = readdir($handle))) {
-			sleep(2);
-			if ($file != "." and $file != "..") {
-				$vbn = $_SESSION['settings']['db_folderbackup'] . $file;
-				if (chmod($vbn, 0755) == true) {
-					$mess = sprintf("Op bestand %s is chmod 0755 uitgevoerd.", $file);
-				} else {
-					$mess = sprintf("chmod 0755 op bestand %s is niet gelukt.", $vbn);
+	if (is_dir($_SESSION['settings']['db_folderbackup'])) {
+		if ($handle = opendir($_SESSION['settings']['db_folderbackup'])) {
+			while (false !== ($file = readdir($handle))) {
+				sleep(2);
+				if ($file != "." and $file != "..") {
+					$vbn = $_SESSION['settings']['db_folderbackup'] . $file;
+					if (chmod($vbn, 0755) == true) {
+						$mess = sprintf("Op bestand %s is chmod 0755 uitgevoerd.", $file);
+					} else {
+						$mess = sprintf("chmod 0755 op bestand %s is niet gelukt.", $vbn);
+					}
+					$i_lb->add($mess, 3, 0, 1);
 				}
-				(new cls_Logboek())->add($mess, 3, 0, 1);
 			}
 		}
+	} else {
+		$mess = "De backup-directory bestaat niet.";
+		$i_lb->add($mess, 3, 0, 1);
 	}
+	
+	$i_lb = null;
 	
 }  # fnFreeBackupfiles
 
