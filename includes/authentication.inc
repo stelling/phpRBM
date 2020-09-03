@@ -771,25 +771,6 @@ function cleanlogin($login) {
 	return $login;
 } # cleanlogin
 
-function newpassword($lidid) {
-	
-	$alphabet = "abcdefghjklmnpqrstuwxyz@!%&#";
-	$ww = "";
-	for ($i = 0; $i < 10; $i++) {
-		$n = rand(0, strlen($alphabet)-1);
-		$ww .= substr($alphabet, $n, 1);
-	}
-	$ww = strtoupper(substr($ww, 0, 2)) . substr($ww, 2, 4). rand(100, 999);
-	
-	if ($lidid <= 0) {
-		return false;
-	} elseif (db_change_password($ww, "", $lidid) == "ok") {
-		return $ww;
-	} else {
-		return false;
-	}
-} # newpassword
-
 function newkey() {
 	
 	$alphabet = "ABCDEFGHIJKLMNOPQRSTXYZabcdefghijklmnopqrstuwxyz()@$!0123456789";
