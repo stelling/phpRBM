@@ -345,10 +345,10 @@ function muteerevenement($eventid) {
 	}
 	echo("</table>\n");
 	
-	echo("<table>");
+	echo("<table>\n");
 	if ($eventid > 0) {
-		echo("<tr><th colspan=6 class='tabelkop'>Deelnemers</th></tr>\n");
-		echo("<tr><th>Naam deelnemer</th><th>Status</th><th>Opmerking en functie</th><th>Ingevoerd</th><th>Del</th></tr>\n");
+		echo("<caption>Deelnemers</caption>\n");
+		echo("<thead>\n<tr><th>Naam deelnemer</th><th>Status</th><th>Opmerking en functie</th><th>Ingevoerd</th><th>Del</th></tr>\n</thead>\n");
 		foreach (db_evenement("deelnemers", 0, $recordid) as $rd) {
 			$optstat = "";
 			foreach (ARRDLNSTATUS as $key => $val) {
