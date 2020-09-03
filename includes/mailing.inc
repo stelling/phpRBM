@@ -181,7 +181,7 @@ function fnMailing() {
 	} elseif ($op == "verwijderen") {
 		$mailing->delete();
 		$mailing->lijst($currenttab2);
-	} elseif ($op == "undelete") {
+	} elseif ($op == "verwijderen ongedaan maken") {
 		$mailing->undelete();
 		$mailing->lijst($currenttab2);
 	} else {
@@ -400,13 +400,13 @@ class Mailing {
 		if (count($i_ond->lijst(1, "O.`Type`='A'")) > 0) {
 			$sql = sprintf("SELECT CONCAT(O.Naam, IF(LO.Functie > 0, CONCAT(' (', F.Omschrijv , ')'), ''))
 					FROM %s
-					WHERE IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()) AND O.`Type`='A' AND LO.Lid=%%d ORDER BY O.Naam;", $i_ond->fromlidond);
+					WHERE IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE() AND O.`Type`='A' AND LO.Lid=%%d ORDER BY O.Naam;", $i_ond->fromlidond);
 			$this->MergeField[]=array('Naam' => "Afdelingen", 'SQL' => $sql);
 			
 			if ((new cls_Groep())->aantal() > 1) {				
 				$sql = sprintf("SELECT CONCAT(O.Naam, IF(LO.GroepID > 0, CONCAT(' (', GR.Starttijd, ' ', GR.Omschrijving, ')'), IF(LO.Functie > 0, CONCAT(' (', F.Omschrijv , ')'), '')))
 						FROM %s
-						WHERE IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()) AND O.`Type`='A' AND LO.Lid=%%d ORDER BY O.Naam;", $i_ond->fromlidond);
+						WHERE IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE() AND O.`Type`='A' AND LO.Lid=%%d ORDER BY O.Naam;", $i_ond->fromlidond);
 				$this->MergeField[]=array('Naam' => "AfdelingenMetGroep", 'SQL' => $sql);
 			}
 		}
@@ -570,6 +570,8 @@ class Mailing {
 	
 	public function edit() {
 		global $currenttab, $currenttab2, $navpad, $fdlang;
+		
+		(new cls_Lidond())->autogroepenbijwerken();
 		
 		$f = sprintf("MailingID=%d", $this->mid);
 		$this->aant_rcpt = (new cls_Mailing_rcpt())->aantal($f);
@@ -820,14 +822,14 @@ class Mailing {
 				printf("<label>Laatst verzonden door/op</label><p>%s / %s</p>\n", $rls->IngevoerdDoor, strftime("%e %B %Y (%H:%M)", strtotime($rls->Ingevoerd)));
 			}
 			if ($this->deleted_on > '1901-01-01') {
-				printf("<fieldset><label>Verwijderd door/op</label><p>%s / %s</p></fieldset>\n", $i_lid->naam($this->DeletedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->deleted_on)));
+				printf("<label>Verwijderd door/op</label><p>%s / %s</p>\n", $i_lid->naam($this->DeletedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->deleted_on)));
 			}
 
 			if ($this->verzendenmag == false) {
 				$this->meldingen .= " Deze mailing mag niet verzonden worden.";
 			}
 			if (strlen($this->meldingen) > 0) {
-				printf("<fieldset><label>Meldingen</label><p>%s</p></fieldset>\n", $this->meldingen);
+				printf("<label>Meldingen</label><p>%s</p>\n", $this->meldingen);
 			}
 			$cls_lid = null;
 		}
@@ -841,7 +843,9 @@ class Mailing {
 		}
 			
 		if ($this->mid > 0 and $this->verzendenmag and $this->deleted_on < "2000-01-01") {
-			printf("<input type='submit' name='action' value='send' title='Verstuur mailing'>Verstuur mailing</button>\n");
+//			printf("<input type='submit' name='action' value='Verstuur mailing' title='Verstuur mailing'>\n");
+			$lnk = sprintf("%s?tp=%s&op=send&mid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid);
+			printf("<button onclick=\"window.open('%s','_blank')\">Verstuur mailing</button>", $lnk);	
 		}
 		if ($this->mid > 0 and $this->deleted_on < "2000-01-01" and $this->aant_rcpt > 0) {
 			$lnk = sprintf("%s?tp=%s&op=preview&mid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid);
@@ -849,7 +853,7 @@ class Mailing {
 		}
 		
 		if ($this->mid > 0 and $this->deleted_on > "1901-01-01" and $_SESSION['webmaster'] == 1) {
-			printf("<button type='submit' name='action' value='undelete' title='Verwijderen ongedaan maken'><img src='images/undelete.png' alt='Undelete'></button>\n");
+			printf("<input type='submit' name='action' value='Verwijderen ongedaan maken' title='Verwijderen ongedaan maken'>\n");
 		} elseif ($this->mid > 0 and $this->deleted_on < "1901-01-01" and ($_SESSION['webmaster'] == 1 or $_SESSION['lidid'] == $this->IngevoerdDoor)) {
 			printf("<input type='submit' name='action' value='Verwijderen'>\n");
 		}
@@ -1218,7 +1222,7 @@ class Mailing {
 		} else {
 			$rcpts = db_lid("lijst", "", $lidid);
 		}
-
+		
 		$aant_rcpts = 0;
 		$aant_send = 0;
 		foreach($rcpts as $rcpt) {
@@ -1236,8 +1240,6 @@ class Mailing {
 			
 			if ($preview == 1) {
 				$mail = new RBMmailer();
-				$mail->From = $this->from_addr;
-				$mail->FromName = (new cls_Mailing_vanaf())->vanafnaam($this->from_addr);
 				$mail->IsHTML(true);
 				$mail->Subject = $this->merged_subject;
 				$mail->Body = $this->merged_message;
