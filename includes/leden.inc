@@ -621,7 +621,7 @@ function fnOnderdelenmuteren($ondtype="G") {
 			$i_lid = new cls_Lid();
 			$i_lm = new cls_Lidmaatschap();
 			printf("<tr><th>Geboortedatum:</th><td><input type='date' value='%s' name='selectie_vangebdatum'></td><td><input type='date' value='%s' name='selectie_temgebdatum'></td></tr>\n", $i_lid->min("GEBDATUM"), $i_lid->max("GEBDATUM"));
-			printf("<tr><th>Postcode:</th><td><input type='text' name='selectie_vanpostcode' value='%s' max-length=7></td><td><input type='text' name='selectie_tempostcode' value='%s' max-length=7></td></tr>\n", $i_lid->min("Postcode"), $i_lid->max("Postcode"));
+			printf("<tr><th>Postcode:</th><td><input type='text' name='selectie_vanpostcode' value='%s' maxlength=7></td><td><input type='text' name='selectie_tempostcode' value='%s' maxlength=7></td></tr>\n", $i_lid->min("Postcode"), $i_lid->max("Postcode"));
 			printf("<tr><th>Lidnummer:</th><td><input type='number' name='selectie_vanlidnr' value='%s'></td><td><input type='number' name='selectie_temlidnr' value='%s'></td></tr>\n", $i_lm->minlidnr(), $i_lm->maxlidnr());
 			printf("<tr><th>Lid vanaf:</th><td><input type='date' name='selectie_vanliddatum' value='%s'></td><td><input type='date' name='selectie_temliddatum' value='%s'></td></tr>\n", $i_lm->min("LIDDATUM"), $i_lm->max("LIDDATUM"));
 			printf("<tr><th>Opgezegd per:</th><td><input type='date' name='selectie_vanopgezegd'></td><td><input type='date' name='selectie_temopgezegd' value='%s'></td></tr>\n", $i_lm->max("Opgezegd"));
@@ -712,9 +712,9 @@ function fnOnderdelenmuteren($ondtype="G") {
 		echo("<input type='hidden' name='formname' value='muteren_detail_onderdeel'>\n");
 		
 		printf("<label>RecordID</label><input type='text' name='kode' value='%s' readonly size=5>\n", $row->RecordID);
-		printf("<label>Kode</label><input type='text' name='kode' value='%s' max-lentgh=5 size=5>\n", $row->Kode);
-		printf("<label>Naam</label><input type='text' name='naam' value='%s' max-lentgh=50 size=45>\n", $row->Naam);
-		printf("<label>Centraal e-mailadres</label><input type='email' name='centraalemail' value='%s' max-lentgh=50 size=45>\n", $row->CentraalEmail);
+		printf("<label>Kode</label><input type='text' name='kode' value='%s' maxlength=5 size=5>\n", $row->Kode);
+		printf("<label>Naam</label><input type='text' name='naam' value='%s' maxlength=50 size=45>\n", $row->Naam);
+		printf("<label>Centraal e-mailadres</label><input type='email' name='centraalemail' value='%s' maxlength=50 size=45>\n", $row->CentraalEmail);
 		printf("<label>Is kader</label><input type='checkbox' class='cb' name='kader' %s>\n", checked($row->Kader));
 		printf("<label for='alleenleden'>Alleen leden</label><input type='checkbox' class='cb' name='alleenleden' id='alleenleden' %s>\n", checked($row->AlleenLeden));
 		printf("<label for='vervallenper'>Vervallen per</label><input type='date' name='vervallenper' id='vervallenper' value='%s'>\n", $row->VervallenPer);
@@ -1455,18 +1455,37 @@ function fotolid($lidid, $metversie=0) {
 } # fotolid
 
 function algemeenlidmuteren($lidid) {
-	global $actionurl, $fdsql, $fdaccess, $currenttab, $currenttab2;
+	global $actionurl, $currenttab, $currenttab2;
+	
+	$jsoc = "";
+	if ($currenttab == "Zelfservice") {
+		$jsoc = "OnChange='this.form.submit();'";
+	} elseif (isset($_POST['AutoBewaren']) and $_POST['AutoBewaren'] == "1") {
+		$jsoc = "OnChange='this.form.submit();'";
+		setcookie("AutoBewaren", 1, time()+(24*3600));
+	} elseif ($_SERVER['REQUEST_METHOD'] == "POST" and !isset($_POST['AutoBewaren'])) {
+		setcookie("AutoBewaren", 0, time()+(24*3600));
+	} elseif (isset($_COOKIE['AutoBewaren']) and $_COOKIE['AutoBewaren'] == "1") {
+		$jsoc = "OnChange='this.form.submit();'";
+		$_POST['AutoBewaren'] = "1";
+	} else {
+		setcookie("AutoBewaren", 0, time()+(24*3600));
+	}
+	
+	$i_lid = new cls_Lid();
 	
 	if ($currenttab == "Zelfservice") {
 		$lidid = $_SESSION['lidid'];
+	} elseif (isset($_POST['lidid'])) {
+		$lidid = intval($_POST['lidid']);
 	}
 	
-	$gs = (new cls_lid())->Geslacht($lidid);
+	$gs = $i_lid->Geslacht($lidid);
 	$sl = substr((new cls_Lidmaatschap())->soortlid($lidid), 0, 1);
 		
 	$wijzvelden[] = array('label' => "Roepnaam", 'naam' => "Roepnaam", 'lengte' => 17);
 	if ($sl != "K") {
-		$wijzvelden[] = array('label' => "Voorletters", 'naam' => "VOORLETTER", 'lengte' => 10);
+		$wijzvelden[] = array('label' => "Voorletters", 'naam' => "Voorletter", 'lengte' => 10);
 	}
 	$wijzvelden[] = array('label' => "Tussenvoegsels", 'naam' => "Tussenv", 'lengte' => 7);
 	$wijzvelden[] = array('label' => "Achternaam", 'naam' => "Achternaam", 'lengte' => 30, 'nietverw' => true);
@@ -1491,7 +1510,7 @@ function algemeenlidmuteren($lidid) {
 		$wijzvelden[] = array('label' => "Namen ouders", 'naam' => "NamenOuders", 'lengte' => 90);
 	}
 	$wijzvelden[] = array('label' => "Waarschuwen bij een noodgeval", 'naam' => "Waarschuwen bij nood", 'lengte' => 254);
-	$wijzvelden[] = array('label' => "Geboortedatum", 'naam' => "GEBDATUM", 'lengte' => 10, 'type' => 'date');
+	$wijzvelden[] = array('label' => "Geboortedatum", 'naam' => "GEBDATUM", 'type' => 'date');
 	if ($gs != "B") {
 		$wijzvelden[] = array('label' => "Geboorteplaats", 'naam' => "GEBPLAATS", 'lengte' => 22);
 	}
@@ -1521,13 +1540,11 @@ function algemeenlidmuteren($lidid) {
 	}
 		
 	if (isset($_POST['Kloslid_Verwijderen'])) {
-		(new cls_Lid())->update($lidid, "Verwijderd", date("Y-m-d"));
+		$i_lid->update($lidid, "Verwijderd", date("Y-m-d"));
 	} elseif (isset($_POST['Undo_Verwijderen'])) {
-		(new cls_Lid())->update($lidid, "Verwijderd", "NULL");
+		$i_lid->update($lidid, "Verwijderd", "NULL");
 	} elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
-		$i_lid = new cls_Lid();
 		for ($i=0; $i < count($wijzvelden); $i++) {
-			$mess = "";
 			$fn = $wijzvelden[$i]['naam'];
 			$contrname = str_replace(" ", "_", $fn);
 			$v = "__skip__";
@@ -1538,17 +1555,11 @@ function algemeenlidmuteren($lidid) {
 					$v = 0;
 				}
 				
-			} elseif (isset($_POST["chkLeeg_" . $contrname]) and $_POST["chkLeeg_" . $contrname] == "1") {
-				$v = "NULL";
-				
-			} elseif (isset($_POST[$contrname]) and strlen($_POST[$contrname]) > 0) {
+			} elseif (isset($_POST[$contrname])) {
 				$v = $_POST[$contrname];
 			}
 			if ($v !== "__skip__") {
 				$i_lid->update($lidid, $fn, $v);
-			}
-			if (strlen($mess) > 0) {
-				(new cls_Logboek())->add($mess, 6, $lidid, 1, $lidid, 0, 9);
 			}
 		}
 		
@@ -1561,14 +1572,12 @@ function algemeenlidmuteren($lidid) {
 				printf("<script>location.href='%s?tp=Ledenlijst/Leden';</script>\n", $_SERVER['PHP_SELF']);
 			}
 		}
-		$i_lid = null;
 	}
 
-	$row = db_Lid("wijzigingen", "", $lidid);
+	$row = $i_lid->record($lidid);
 	echo("<div id='wijzigengegevens'>\n");
 	printf("<form method='post' action='%s' name='frm_wijzigingen'>\n", $actionurl);
-	echo("<table>\n");
-	echo("<tr><th></th><th>Huidige waarde</th><th>Nieuwe waarde</th><th>Leeg</th></tr>\n");
+	printf("<input type='hidden' name-'lidid' value=%d>\n", $lidid);
 	for ($i=0; $i < count($wijzvelden); $i++) {
 		$dv = str_replace("\n", "<br>\n", $row->{$wijzvelden[$i]['naam']});
 		$ph = $wijzvelden[$i]['label'];
@@ -1587,7 +1596,7 @@ function algemeenlidmuteren($lidid) {
 				}
 				$opt .= sprintf("<option value='%s'%s>\n%s</option>\n", $key, $sel, $val);
 			}
-			$inp = sprintf("<select name='%s' OnChange='this.form.submit();'>%s</select></td><td>", $wijzvelden[$i]['naam'], $opt);
+			$inp = sprintf("<select name='%s' %s>%s</select>", $wijzvelden[$i]['naam'], $jsoc, $opt);
 			
 		} elseif (isset($wijzvelden[$i]['type']) and $wijzvelden[$i]['type'] == "cb") {
 			if ($row->{$wijzvelden[$i]['naam']} == 1) {
@@ -1597,49 +1606,55 @@ function algemeenlidmuteren($lidid) {
 				$dv = "Nee";
 				$c = "";
 			}
-			$inp = sprintf("<input type='checkbox' name='%s' value=1 %s OnChange='this.form.submit();'>", $wijzvelden[$i]['naam'], $c);
+			$inp = sprintf("<input type='checkbox' name='%s' value=1 %s %s>", $wijzvelden[$i]['naam'], $c, $jsoc);
 		
 		} else {
 			if (isset($wijzvelden[$i]['type']) and $wijzvelden[$i]['type'] == "date") {
 				$t = "date";
-				if ($dv > "1900-01-01") {
-					$dv = strftime("%e %B %Y", strtotime($dv));
-				}
 			} elseif (stripos($wijzvelden[$i]['label'], "e-mail") !== FALSE) {
 				$t = "email";
 			} else {
 				$t = "text";
 			}
-			if ($wijzvelden[$i]['lengte'] > 100 and $t == "text") {
-				$inp = sprintf("<textarea name='%s' placeholder='%s' cols=50 rows=4 OnChange='this.form.submit();'></textarea></td><td>", str_replace(" ", "_", $wijzvelden[$i]['naam']), $ph);
+			if ($t == "text" and $wijzvelden[$i]['lengte'] > 100) {
+				$inp = sprintf("<textarea name='%s' placeholder='%s' cols=50 rows=4 %s>%s</textarea>", str_replace(" ", "_", $wijzvelden[$i]['naam']), $ph, $jsoc, $dv);
+			} elseif ($t == "date") {
+				$inp = sprintf("<input type='date' name='%s' value='%s' %s'>", $wijzvelden[$i]['naam'], $dv, $jsoc);
 			} else {
-				$inp = sprintf("<input type='%s' name='%s' placeholder='%s' size=50 maxlength=%d onfocusout='this.form.submit();'></td><td class='chk'>", $t, $wijzvelden[$i]['naam'], $ph, $wijzvelden[$i]['lengte']);
-			}
-			if (strlen($dv) > 0 and (!isset($wijzvelden[$i]['nietverw']) or $wijzvelden[$i]['nietverw'] == false)) {
-				$inp .= sprintf("<input type='checkbox' name='chkLeeg_%s' value=1 OnChange='this.form.submit();'>", str_replace(" ", "_", $wijzvelden[$i]['naam']));
+				$inp = sprintf("<input type='%s' name='%s' placeholder='%s' value='%s' maxlength=%d %s'>", $t, $wijzvelden[$i]['naam'], $ph, $dv, $wijzvelden[$i]['lengte'], $jsoc);
 			}
 		}
 		if ($row->Verwijderd > "2010-01-01") {
 			printf('<tr><td class="label">%1$s</td><td>%2$s</td></tr>', $wijzvelden[$i]['label'], $dv);
 		} else {
-			printf('<tr><td class="label">%1$s</td><td>%2$s</td><td>%3$s</td></tr>', $wijzvelden[$i]['label'], $dv, $inp);
+//			printf('<tr><td class="label">%1$s</td><td>%2$s</td><td>%3$s</td></tr>', $wijzvelden[$i]['label'], $dv, $inp);
+			printf('<label>%1$s</label>%2$s', $wijzvelden[$i]['label'], $inp);
 		}
 		echo("\n");
 	}
-	echo("</table>\n");
+	echo("</div>  <!-- Einde wijzigengegevens -->\n");
+//	echo("</table>\n");
+
+	$c = "";
+	$d = "";
+	if (isset($_POST['AutoBewaren']) and $_POST['AutoBewaren'] == "1") {
+		$c = "checked";
+		$d = "disabled";
+	}
 	if ($currenttab == "Ledenlijst") {
 		echo("<div id='opdrachtknoppen'>\n");
+		printf("<input type='submit' value='Bewaren' name='Bewaren' %s>\n", $d);
 		echo("<input type='submit' value='Sluiten' name='Sluiten'>\n");
 		if ($sl == "K" and $row->Verwijderd < "2010-01-01") {
 			echo("<input type='submit' value='Verwijderen' name='Kloslid_Verwijderen'>\n");
 		}	 elseif ($row->Verwijderd > "2010-01-01") {
 			echo("<input type='submit' value='Verwijderen terugdraaien' name='Undo_Verwijderen'>\n");
 		}
+		printf("<input type='checkbox' name='AutoBewaren' value='1' %s OnChange='this.form.submit();'> Automatisch bewaren", $c);
 		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 	}
 
 	echo("</form>\n");
-	echo("</div>  <!-- Einde wijzigengegevens -->\n");
 
 } # algemeenlidmuteren
 
@@ -1762,20 +1777,14 @@ function nieuwepasfoto($lidid, $filterlid="") {
 	$actionurl = sprintf("%s?tp=%s&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
 	printf("<form method='post' action='%s' name='frm_pasfoto' enctype='multipart/form-data'>\n", $actionurl);
 	printf("<input type='hidden' name='MAX_FILE_SIZE' value=%d>\n", $max_size_attachm);
-	if ($lidid > 0) {
-		printf("<p><label for='UploadFoto'>Nieuwe pasfoto %s:&nbsp;</label>\n", $naamlid);
-		printf("<input type='hidden' name='lidid' value=%d>\n", $lidid);
-	} else {
-		$optionslid = "<option value=-1>Selecteer lid ...</option>\n";
-		foreach (db_lid("lijst", $filterlid) as $row) {
-			$optionslid .= sprintf("<option value=%1\$d>%2\$s (%1\$d)</option>\n", $row->RecordID, htmlentities($row->Zoeknaam));
-		}
-		printf("<p><select name='lidid'>%s</select></p>\n", $optionslid);
-	}
+	printf("<label for='UploadFoto'>Nieuwe pasfoto %s:&nbsp;</label>\n", $naamlid);
+	printf("<input type='hidden' name='lidid' value=%d>\n", $lidid);
 	echo("<input type='file' name='UploadFoto' id='UploadFoto'>&nbsp;");
 	echo("<input type='submit' name='Upload' value='Insturen'>\n");
 	printf("<p>Het ideale formaat van de pasfoto is 390 pixels breed bij 500 pixels hoog. Het bestand moet minimaal %d bytes groot zijn en mag niet groter dan %d KB zijn.</p>\n", $min_size_attachm, $max_size_attachm / 1024);
-	echo("<p>Met het uploaden van deze pasfoto geef je toestemming om deze foto aan bezoekers van deze website te tonen.</p>");
+	if ($lidid == $_SESSION['lidid']) {
+		echo("<p>Met het uploaden van deze pasfoto geef je toestemming om deze foto aan bezoekers van deze website te tonen.</p>");
+	}
 	echo("</form>\n");
 
 	echo("</div>  <!-- Einde nieuwepasfoto -->\n");	
