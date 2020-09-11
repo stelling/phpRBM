@@ -2613,8 +2613,12 @@ class cls_Lidond extends cls_db_base {
 					$this->mess .= ", omdat " . $p_reden;
 				}
 				
-				if ($this->typekolom($p_kolom) == "date" and strlen($p_waarde) > 5) {
-					$p_waarde = "#" . $p_waarde . "#";
+				if ($this->typekolom($p_kolom) == "date") {
+					if (strlen($p_waarde) > 5) {
+						$p_waarde = "#" . $p_waarde . "#";
+					} else {
+						$p_waarde = "NULL";
+					}
 				} elseif ($p_waarde != "NULL" and $this->is_kolom_tekst($p_kolom)) {
 					$p_waarde = "'" . $p_waarde . "'";
 				}
