@@ -5444,7 +5444,7 @@ class cls_Liddipl extends cls_db_base {
 			$query = sprintf("INSERT INTO %s (RecordID, Lid, DiplomaID, DatumBehaald, LaatsteBeoordeling, Ingevoerd, Gewijzigd)
 									VALUES (%d, %d, %d, '%s', 1, CURDATE(), SYSDATE());", $this->table, $nrid, $this->lidid, $p_dpid, $p_behaaldop);
 			if ($this->execsql($query) > 0) {
-				$query = sprintf("INSERT INTO Liddipl (RecordID, Lid, DiplomaID, DatumBehaald, Ingevoerd, Gewijzigd) VALUES (%d, %d, %s, CURDATE(), Now());", $nrid, $this->lidid, $p_dpid, $p_behaaldop);
+				$query = sprintf("INSERT INTO Liddipl (RecordID, Lid, DiplomaID, DatumBehaald, Ingevoerd, Gewijzigd) VALUES (%d, %d, %d, #%s#, CURDATE(), Now());", $nrid, $this->lidid, $p_dpid, $p_behaaldop);
 				db_interface("add", $query, $this->lidid);
 				$this->mess = sprintf("Diploma '%s', behaald op '%s', is toegevoegd.", $this->dpnaam, $p_behaaldop);
 			}
@@ -5524,6 +5524,11 @@ class cls_Organisatie extends cls_db_base {
 	
 	function __construct() {
 		$this->table = TABLE_PREFIX . "Organisatie";
+	}
+	
+	public function naam($p_nr) {
+		$query = sprintf("SELECT TRIM(Naam) FROM %sOrganisatie WHERE Nummer=%d;", TABLE_PREFIX, $p_nr);
+		return $this->scalar($query);
 	}
 	
 	public function htmloptions ($p_filter=0, $p_cv) {
