@@ -5,6 +5,8 @@
 function fnEvenementen() {
 	global $currenttab2;
 	
+	$i_ev = new cls_Evenement();
+	
 	if (isset($_GET['op']) and strlen($_GET['op']) > 0) {
 		$op = $_GET['op'];
 	} else {
@@ -30,7 +32,7 @@ function fnEvenementen() {
 		(new cls_Evenement_Deelnemer())->delete($_GET['edid']);
 		muteerevenement($eid);
 	} elseif ($currenttab2 == "Beheer") {
-		$lijst = db_evenement("overzichtbeheer");
+		$lijst = $i_ev->lijst(2);
 		$lnk = sprintf("<a href='%s?tp=%s&amp;op=edit&amp;eid=%%d' title='Muteer evenement'><img src='images/edit.png' alt='Muteren'></a>", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 		if (count(db_evenement("types")) > 0) {
 			$er = sprintf("<td><a href='%s?%s&amp;op=edit&amp;eid=0' title='Nieuw evenement'><img src='images/star.png' alt='Nieuw'></a></td><td colspan=10>Nieuw evenement</td>", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
@@ -47,6 +49,8 @@ function fnEvenementen() {
 		$currenttab2 = "Overzicht";
 		overzichtevenementen();
 	}
+	
+	$i_ev = null;
 }
 
 function ToekomstigeEvenementen() {
@@ -179,7 +183,7 @@ function muteerevenement($eventid) {
 		}
 		
 		if ($eventid == 0) {
-			$eventid = db_evenement("insert");
+			$eventid = $i_ev->add($_POST['TypeEvenement']);
 		}
 		
 		$old = db_evenement("record", 0, $eventid);
@@ -203,7 +207,7 @@ function muteerevenement($eventid) {
 			}
 		}
 		if (isset($_POST['nwdln']) and $_POST['nwdln'] > 0 and is_numeric($_POST['nwdln'])) {
-			$i_ed->add($eventid, $_POST['nwdln'], $inst_ev->standaardstatus($eventid));
+			$i_ed->add($eventid, $_POST['nwdln'], $i_ev->standaardstatus($eventid));
 		}
 		
 		if (isset($_POST['Bewaren_Sluiten'])) {
@@ -247,13 +251,7 @@ function muteerevenement($eventid) {
 		$eindtijd = $row->Eindtijd;
 		$verzameltijd = $row->Verzameltijd;
 		$typeevenement = $row->TypeEvenement;
-		if ($row->InschrijvingOpen == 1) {
-			$insopen1 = "checked='checked'";
-			$insopen2 = "";
-		} else {
-			$insopen1 = "";
-			$insopen2 = "checked='checked'";
-		}
+		$insopen = $row->InschrijvingOpen;
 		$standaardstatus = $row->StandaardStatus;
 		$maxpersonenperdeelname = $row->MaxPersonenPerDeelname;
 		$beperktotgroep = $row->BeperkTotGroep;
@@ -270,8 +268,7 @@ function muteerevenement($eventid) {
 		$eindtijd = "";
 		$verzameltijd = "";
 		$typeevenement = 1;
-		$insopen1 = "";
-		$insopen2 = "";
+		$insopen = 0;
 		$standaardstatus = "I";
 		$maxpersonenperdeelname = 1;
 		$beperktotgroep = 0;
@@ -317,7 +314,7 @@ function muteerevenement($eventid) {
 	
 	if ($eventid > 0) {
 		$ondrows = (new cls_Onderdeel())->lijst(1, "", $datum);
-		printf("<tr><td class='label'>Online inschrijving open:</td><td><input type='radio' name='InschrijvingOpen' value=1 %s>Ja<input type='radio' name='InschrijvingOpen' value=0 %s>Nee</td>\n", $insopen1, $insopen2);
+		printf("<tr><td class='label'>Online inschrijving open:</td><td><input type='checkbox' name='InschrijvingOpen' value=1 %s></td>\n", checked($insopen));
 		printf("<td class='label'>Standaard status:</td><td><select name='StandaardStatus'>%s</select></td>\n", $optionstandstatus);
 		printf("<td class='label'>Max. personen per deelname:</td><td><input type='number' class='inputnumber' name='MaxPersonenPerDeelname' value=%d min=1></td></tr>\n", $maxpersonenperdeelname);
 		
@@ -457,11 +454,14 @@ function muteertypeevenement() {
 
 function overzichtevenementen() {
 
+	$i_ev = new cls_Evenement();
+
 	echo("<div id='overzichtevenementen'>\n");
 	echo("<table>\n");
 	$vsrt = "Q";
 	
-	$lijst = db_evenement("overzicht");
+	
+	$lijst = $i_ev->lijst(1);
 	foreach ($lijst as $row) {
 		if ($row->ndSoort != $vsrt) {
 			if ($row->ndSoort == "W") {
@@ -532,6 +532,8 @@ function overzichtevenementen() {
 	
 	echo("</table>\n");
 	echo("</div>  <!-- Einde overzichtevenementen -->\n");
+	
+	$i_ev = null;
 
 }  # overzichtevenementen 
 
