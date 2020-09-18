@@ -5736,12 +5736,12 @@ class cls_Evenement extends cls_db_base {
 		return $this->standaardstatus;
 	}
 	
-	public function add() {
+	public function add($p_te) {
 		$nrid = $this->nieuwrecordID();
-		$query = sprintf("INSERT INTO %s (RecordID, InschrijvingOpen, StandaardStatus, IngevoerdDoor) VALUES (%d, 0, 'I', %d);", $this->table, $nrid, $_SESSION['lidid']);
+		$query = sprintf("INSERT INTO %s (RecordID, Datum, Omschrijving, TypeEvenement, InschrijvingOpen, StandaardStatus, IngevoerdDoor) VALUES (%d, CURDATE(), '', %d, 0, 'I', %d);", $this->table, $nrid, $p_te, $_SESSION['lidid']);
 		if (fnQuery($query) > 0) {
 			$this->mess = sprintf("Evenement %d is toegevoegd.", $nrid);
-			$this-Log($nrid);
+			$this->Log($nrid);
 			return $nrid;
 		} else {
 			return 0;
@@ -5867,8 +5867,8 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 		
 		$query = sprintf("DELETE FROM %s WHERE RecordID=%d;", $this->table, $p_edid);
 		if (fnQuery($query) > 0) {
-			$mess = sprintf("Is bij evenement %d (%s) verwijderd.", $this->evid, $this->OmsEvenement);
-			$this-Log($p_edid);
+			$this->mess = sprintf("Is bij evenement %d (%s) verwijderd.", $this->evid, $this->OmsEvenement);
+			$this->Log($p_edid);
 		}
 	}
 	
@@ -7282,7 +7282,7 @@ function db_onderhoud($type=9) {
 	fnQuery($query);
 	$query = sprintf("ALTER TABLE `%sWS_Artikel` CHANGE `Code` `Code` VARCHAR(8) CHARACTER SET utf8 COLLATE utf8_unicode_ci NULL DEFAULT NULL;", TABLE_PREFIX);
 	fnQuery($query);
-	$query = sprintf("ALTER TABLE `rbm_WS_Artikel` CHANGE `Maat` `Maat` VARCHAR(6) CHARACTER SET utf8 COLLATE utf8_unicode_ci NULL DEFAULT NULL;", TABLE_PREFIX);
+	$query = sprintf("ALTER TABLE `%sWS_Artikel` CHANGE `Maat` `Maat` VARCHAR(6) CHARACTER SET utf8 COLLATE utf8_unicode_ci NULL DEFAULT NULL;", TABLE_PREFIX);
 	fnQuery($query);
 	
 	// Deze code kan na 1 juli 2021 worden verwijderd.
@@ -7292,6 +7292,18 @@ function db_onderhoud($type=9) {
 		$nrid = db_nieuwrecordid("Admin_login");
 		(new cls_Login())->update($row->LidID, "RecordID", $nrid);
 	}
+	
+	// Deze code kan na 1 oktober 2021 worden verwijderd.
+	$query = sprintf("ALTER TABLE `%sEvenement` CHANGE `Eindtijd` `Eindtijd` VARCHAR(5) CHARACTER SET utf8 COLLATE utf8_general_ci NULL;", TABLE_PREFIX);
+	fnQuery($query);
+	$query = sprintf("ALTER TABLE `%sEvenement` CHANGE `Verzameltijd` `Verzameltijd` VARCHAR(5) CHARACTER SET utf8 COLLATE utf8_general_ci NULL;", TABLE_PREFIX);
+	fnQuery($query);
+	$query = sprintf("ALTER TABLE `%sEvenement` CHANGE `Email` `Email` VARCHAR(45) CHARACTER SET utf8 COLLATE utf8_general_ci NULL;", TABLE_PREFIX);
+	fnQuery($query);
+	$query = sprintf("ALTER TABLE `%sEvenement` CHANGE `GewijzigdDoor` `GewijzigdDoor` INT(11) NULL;", TABLE_PREFIX);
+	fnQuery($query);
+	$query = sprintf("ALTER TABLE `%sEvenement` CHANGE `VerwijderdOp` `VerwijderdOp` DATE NULL;", TABLE_PREFIX);
+	fnQuery($query);
 	
 
 	/***** Opschonen database na een upload uit de Access-database.  *****/
@@ -7330,7 +7342,7 @@ function db_onderhoud($type=9) {
 		$query = sprintf("DROP TABLE IF EXISTS %sDMS_Document;", TABLE_PREFIX);
 		fnQuery($query);
 	}
-}
+}  # db_onderhoud
 
 function db_backup($p_typebackup=1) {
 	global $dbc, $db_name, $arrTables;
