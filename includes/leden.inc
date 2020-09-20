@@ -12,8 +12,16 @@ if (toegang("Ledenlijst/Wijzigen lid", 0, 0)) {
 	$llw = "";
 }
 
+$autobewaren = 0;
+if (isset($_POST['AutoBewaren']) and $_POST['AutoBewaren'] == "1") {
+	$autobewaren = 1;
+} elseif (isset($_COOKIE['AutoBewaren']) and $_COOKIE['AutoBewaren'] == "1") {
+	$autobewaren = 1;
+}
+setcookie("AutoBewaren", $autobewaren, time()+(24*3600));
+
 function fnWijzigen($lidid, $actie="") {
-	global $currenttab, $currenttab2, $currenttab3, $actionurl;
+	global $currenttab, $currenttab2, $currenttab3, $actionurl, $autobewaren;
 	
 	if ($currenttab == "Zelfservice") {
 		$xtra_param = "";
@@ -35,7 +43,7 @@ function fnWijzigen($lidid, $actie="") {
 		}
 
 		if ($actie == "Algemene gegevens") {
-			algemeenlidmuteren($lidid);
+			algemeenlidmuteren($lidid, $autobewaren);
 			
 		} elseif ($currenttab3 == "Afdelingen") {
 			onderdelenlidmuteren($lidid, "A");
@@ -559,6 +567,7 @@ function fnOnderdelenmuteren($ondtype="G") {
 			}
 			if (isset($_POST['Bewaren_Sluiten'])) {
 				$scherm = "B";
+				$i_lo->autogroepenbijwerken(0, 1);
 			} else {
 				$scherm = "W";
 			}
@@ -1454,22 +1463,12 @@ function fotolid($lidid, $metversie=0) {
 	
 } # fotolid
 
-function algemeenlidmuteren($lidid) {
+function algemeenlidmuteren($lidid, $p_autobewaren=0) {
 	global $actionurl, $currenttab, $currenttab2;
 	
 	$jsoc = "";
-	if ($currenttab == "Zelfservice") {
+	if ($currenttab == "Zelfservice" or $p_autobewaren == 1) {
 		$jsoc = "OnChange='this.form.submit();'";
-	} elseif (isset($_POST['AutoBewaren']) and $_POST['AutoBewaren'] == "1") {
-		$jsoc = "OnChange='this.form.submit();'";
-		setcookie("AutoBewaren", 1, time()+(24*3600));
-	} elseif ($_SERVER['REQUEST_METHOD'] == "POST" and !isset($_POST['AutoBewaren'])) {
-		setcookie("AutoBewaren", 0, time()+(24*3600));
-	} elseif (isset($_COOKIE['AutoBewaren']) and $_COOKIE['AutoBewaren'] == "1") {
-		$jsoc = "OnChange='this.form.submit();'";
-		$_POST['AutoBewaren'] = "1";
-	} else {
-		setcookie("AutoBewaren", 0, time()+(24*3600));
 	}
 	
 	$i_lid = new cls_Lid();
@@ -1637,7 +1636,7 @@ function algemeenlidmuteren($lidid) {
 
 	$c = "";
 	$d = "";
-	if (isset($_POST['AutoBewaren']) and $_POST['AutoBewaren'] == "1") {
+	if ($p_autobewaren == 1) {
 		$c = "checked";
 		$d = "disabled";
 	}
@@ -2064,6 +2063,10 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 		$actie = "muteerlijst";
 	}
 	
+	if (!isset($_SESSION['dipltextfilter'])) {
+		$_SESSION['dipltextfilter'] = "";
+	}
+	
 	if (!isset($_SESSION['orgfilter'])) {
 		$_SESSION['orgfilter'] = -1;
 	}
@@ -2101,6 +2104,10 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 			}
 		}
 		
+		if (isset($_POST['textfilter'])) {
+			$_SESSION['dipltextfilter'] = $_POST['textfilter'];
+		}
+		
 		if (isset($_POST['orgfilter'])) {
 			$_SESSION['orgfilter'] = intval($_POST['orgfilter']);
 		}
@@ -2115,14 +2122,18 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 	$f = "";
 	if ($td == "ZS") {
 		$f = "Zelfservice=1";
-		$_SESSION['orgfilter'] = -1;
 	} else {
 		echo("<div id='filter'>\n");
-		
-		printf("<label>Uitgegeven door: </label><select name='orgfilter' OnChange='this.form.submit();'>\n<option value=-1>Geen</option>\n%s</select>\n", (new cls_Organisatie())->htmloptions(1, $_SESSION['orgfilter']));
+		printf("<label>Code/naam bevat</label><input name='textfilter' value='%s' onBlur='this.form.submit();'>", $_SESSION['dipltextfilter']);
+		printf("<label>Uitgegeven door: </label><select name='orgfilter' OnChange='this.form.submit();'>\n<option value=-1>Geen filter</option>\n%s</select>\n", (new cls_Organisatie())->htmloptions(1, $_SESSION['orgfilter']));
 		echo("</div> <!-- Einde filter -->\n");
 		
-		if ($_SESSION['orgfilter'] >= 0) {
+		if (strlen($_SESSION['dipltextfilter']) > 0) {
+			$f = sprintf("(Kode LIKE '%%%1\$s%%' OR Naam LIKE '%%%1\$s%%')", $_SESSION['dipltextfilter']);
+			if ($_SESSION['orgfilter'] >= 0) {
+				$f .= sprintf("AND ORGANIS=%d", $_SESSION['orgfilter']);
+			}
+		} elseif ($_SESSION['orgfilter'] >= 0) {
 			$f = sprintf("ORGANIS=%d", $_SESSION['orgfilter']);
 		}
 	}
@@ -2131,12 +2142,20 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 	printf("<caption>Diploma's %s muteren</caption>\n", (new cls_Lid())->Naam($lidid));
 	printf("<tr><th>Code</th><th>Naam</th><th>Geldigheid</th><th>Behaald op</th><th>Diplomanummer</th><th>Geldig tot</th></tr>\n");
 	foreach ($i_dp->basislijst($f, "kode") as $dp) {
+		$orgcode = (new cls_Organisatie())->naam($dp->ORGANIS);
+		if (strlen($orgcode) > 4) {
+			$dpnm = $orgcode . " - " . $dp->Naam;
+		} elseif (strlen($orgcode) > 1) {
+			$dpnm = $orgcode . " " . $dp->Naam;
+		} else {
+			$dpnm = $dp->Naam;
+		}
 		if ($dp->GELDIGH > 0) {
 			$geldig = sprintf("%d maanden", $dp->GELDIGH);
 		} else {
 			$geldig = "";
 		}
-		printf("<tr>\n<td>%s</td>\n<td>%s</td>\n<td>%s</td>\n", $dp->Kode, $dp->Naam, $geldig);
+		printf("<tr>\n<td>%s</td>\n<td>%s</td>\n<td>%s</td>\n", $dp->Kode, $dpnm, $geldig);
 		
 		$f = sprintf("Lid=%d AND DiplomaID=%d", $lidid, $dp->RecordID);
 		$aant = 0;
@@ -2144,13 +2163,13 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 			if ($aant > 0) {
 				echo("</tr>\n<tr><td></td><td></td><td></td>");
 			}
-			printf("<td><input type='date' name='Behaald_%d' value='%s' OnChange='this.form.submit();'></td>\n", $ld->RecordID, $ld->DatumBehaald);
-			printf("<td><input type='text' name='Diplnr_%d' value='%s' size=30 maxlength=30 OnChange='this.form.submit();'></td>\n", $ld->RecordID, $ld->Diplomanummer);
-			printf("<td><input type='date' name='VervaltPer_%d' value='%s' OnChange='this.form.submit();'></td>\n", $ld->RecordID, $ld->LicentieVervallenPer);
+			printf("<td><input type='date' name='Behaald_%d' value='%s' OnBlur='this.form.submit();'></td>\n", $ld->RecordID, $ld->DatumBehaald);
+			printf("<td><input type='text' name='Diplnr_%d' value='%s' maxlength=30 OnBlur='this.form.submit();'></td>\n", $ld->RecordID, $ld->Diplomanummer);
+			printf("<td><input type='date' name='VervaltPer_%d' value='%s' OnBlur='this.form.submit();'></td>\n", $ld->RecordID, $ld->LicentieVervallenPer);
 			$aant++;
 		}
 		if ($aant == 0) {
-			printf("<td><input type='date' name='Nieuw_%d' OnChange='this.form.submit();'></td><td></td><td></td>\n", $dp->RecordID);
+			printf("<td><input type='date' name='Nieuw_%d' OnBlur='this.form.submit();'></td><td></td><td></td>\n", $dp->RecordID);
 		}
 		echo("</tr>\n");
 	}
