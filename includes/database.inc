@@ -995,6 +995,10 @@ class cls_Lidmaatschap extends cls_db_base {
 	public function add($p_lidid) {
 		$this->lidid = $p_lidid;
 		$lidnr = $this->max("Lidnr") + 1;
+		if (($lidnr / 2) == intval($lidnr / 2)) {
+			$lidnr++;
+		}
+		
 		$nrid = $this->nieuwrecordID();
 		$query = sprintf("INSERT INTO %s (RecordID, Lid, Lidnr, LIDDATUM, Ingevoerd) VALUES (%d, %d, %d, CURDATE(), CURDATE());", $this->table, $nrid, $p_lidid, $lidnr);
 		if ($this->execsql($query) > 0) {
@@ -1810,7 +1814,7 @@ class cls_Onderdeel extends cls_db_base {
 			$this->mess = sprintf("De code '%s' is al in gebruik. Deze %s wordt niet toegevoegd.", $p_code, strtolower(ARRTYPEONDERDEEL[$p_type]));
 		} else {
 			$nrid = $this->nieuwrecordID();
-			$query = sprintf("INSERT INTO %s (RecordID, Kode, Type, Naam, `Alleen leden`, GekoppeldAanQuery) VALUES (%d, '%s', '%s', 'Nieuw', 0, 0);", $this->table, $nrid, $p_code, $p_type);
+			$query = sprintf("INSERT INTO %s (RecordID, Kode, Type, Naam, `Alleen leden`, GekoppeldAanQuery) VALUES (%d, '%s', '%s', '%s *** nieuw', 0, 0);", $this->table, $nrid, $p_code, $p_type, $p_code);
 			if ($this->execsql($query) > 0) {
 				$this->mess = sprintf("%s %d met code '%s' is toegevoegd.", ARRTYPEONDERDEEL[$p_type], $nrid, $p_code);
 			
@@ -2683,12 +2687,12 @@ class cls_Lidond extends cls_db_base {
 		
 	}
 	
-	public function autogroepenbijwerken($p_altijdlog=0) {
+	public function autogroepenbijwerken($p_altijdlog=0, $p_altijd=0) {
 		
 		$rv= 0;
 		
 		$lagb = (new cls_Logboek())->max("DatumTijd", "TypeActiviteit=6 AND TypeActiviteitSpecifiek=31");
-		if ($lagb < date("Y-m-d H:i:s", mktime(date("H"), date("i")-15, 0, date("m"), date("d"), date("Y")))) {
+		if (($lagb < date("Y-m-d H:i:s", mktime(date("H"), date("i")-15, 0, date("m"), date("d"), date("Y"))) or $p_altijd == 1)) {
 		
 			$f = "LENGTH(MySQL) > 10 AND IFNULL(VervallenPer, CURDATE()) >= CURDATE()";
 			$ondrows = (new cls_Onderdeel())->basislijst($f);
@@ -5833,8 +5837,9 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 		$this->evid = $p_evid;
 		$nrid = $this->nieuwrecordID();
 		
-		$query = sprintf("INSERT INTO %sEvenement_Deelnemer (RecordID, LidID, EvenementID, Status, Opmerking, Functie, IngevoerdDoor) VALUES (%d, %d, %d, '%s', '', '', %d);", TABLE_PREFIX, $nrid, $p_lidid, $p_evid, $p_status, $_SESSION['lidid']);
+		$query = sprintf("INSERT INTO %sEvenement_Deelnemer (RecordID, LidID, EvenementID, Status, Opmerking, Functie, IngevoerdDoor) VALUES (%d, %d, %d, '%s', '', '', %d);", TABLE_PREFIX, $nrid, $this->lidid, $this->evid, $p_status, $_SESSION['lidid']);
 		if (fnQuery($query) > 0) {
+			$this->edid = $nrid;
 			$this->vulvars();
 			$this->mess = sprintf("Is bij evenement %d (%s) met status '%s' toegevoegd.", $p_evid, $this->OmsEvenement, $p_status);
 			$this->Log($nrid);
