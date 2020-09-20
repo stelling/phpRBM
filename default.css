@@ -429,7 +429,27 @@ header a + a:visited + a:hover {
 }
 
 #lidmaatschapmuteren img {
-	height: 8px;
+	height: 10px;
+}
+
+#stukkenmuteren table {
+	width: 100%;
+}
+
+#stukkenmuteren input[type='url'] {
+	width: 600px;
+}
+
+#stukkenmuteren select {
+	width: 200px;
+}
+
+#stukkenmuteren .tbtitel {
+	width: 325px;
+}
+
+#stukkenmuteren .tbbestemdvoor {
+	width: 200px;
 }
 
 #wijzigengegevens img {
@@ -888,7 +908,6 @@ input.knop, button.knop {
 	padding-right: 6px;
 	padding-top: 8px;
 	padding-bottom: 6px;
-	text-align: center;
 	border-style: solid;
 	border-width: 1px;
 	border-top-right-radius: 12px;
@@ -909,6 +928,10 @@ input.knop, button.knop {
 	padding-bottom: 4px;
 	cursor: pointer;
 	font-size: 10pt;
+}
+
+#opdrachtknoppen input[type='checkbox'] {
+	margin-top: 9px;
 }
 
 #opdrachtknoppen p {
@@ -1425,12 +1448,22 @@ input.knop, button.knop {
 }
 
 #wijzigengegevens label, #nieuwlid label {
+	width: 225px;
 	margin-right: 8px;
 	padding-right: 3px;
 }
 
-#nieuwlid label {
-	width: 200px;
+#wijzigengegevens input {
+	width: 350px;
+	margin-right: 0;
+	padding-right: 0;
+}
+
+#wijzigengegevens select {
+	width: 350px;
+	margin-top: 4pt;
+	margin-right: 0;
+	padding-right: 0;
 }
 
 #wijzigengegevens .invoerblok, #nieuwlid .invoerblok {
