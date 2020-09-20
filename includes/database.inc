@@ -67,6 +67,7 @@ $TypeActiviteit[18] = "Taken";
 $TypeActiviteit[19] = "Groepsindeling";
 $TypeActiviteit[20] = "Stamgegevens";
 $TypeActiviteit[21] = "Afdelingskalender";
+$TypeActiviteit[22] = "Stukken";
 $TypeActiviteit[97] = "Foutieve login";
 $TypeActiviteit[98] = "Performance";
 $TypeActiviteit[99] = "Debug- en foutmeldingen";
@@ -1817,7 +1818,6 @@ class cls_Onderdeel extends cls_db_base {
 			$query = sprintf("INSERT INTO %s (RecordID, Kode, Type, Naam, `Alleen leden`, GekoppeldAanQuery) VALUES (%d, '%s', '%s', '%s *** nieuw', 0, 0);", $this->table, $nrid, $p_code, $p_type, $p_code);
 			if ($this->execsql($query) > 0) {
 				$this->mess = sprintf("%s %d met code '%s' is toegevoegd.", ARRTYPEONDERDEEL[$p_type], $nrid, $p_code);
-			
 				(new cls_Interface())->add($query, 0);
 			}
 		}
@@ -6402,11 +6402,12 @@ class cls_Stukken extends cls_db_base {
 	function __construct() {
 		parent::__construct();
 		$this->table = TABLE_PREFIX . "Stukken";
+		$this->ta = 22;
 	}
 	
 	public function editlijst() {
 		
-		$query = sprintf("SELECT RecordID, S.Titel, S.`Type`, BestemdVoor, VastgesteldOp, Ingangsdatum, Revisiedatum, VervallenPer, Link FROM %s AS S ORDER BY S.`Type`, S.Titel;", $this->table);
+		$query = sprintf("SELECT RecordID, S.Titel, S.`Type`, BestemdVoor, VastgesteldOp, Ingangsdatum, Revisiedatum, VervallenPer, Link FROM %s AS S ORDER BY S.VervallenPer, S.Titel;", $this->table);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 		
@@ -6423,6 +6424,24 @@ class cls_Stukken extends cls_db_base {
 		
 		$result = $this->execsql($query);
 		return $result->fetchAll();
+	}
+	
+	public function add() {
+		$nrid = $this->nieuwrecordID();
+		$query = sprintf("INSERT INTO %sStukken (RecordID, Titel, BestemdVoor) VALUES (%d, '*** Nieuw stuk ***', 'Leden');", TABLE_PREFIX, $nrid);
+		if ($this->execsql($query) > 0) {
+			$this->mess = sprintf("Stuk met RecordID %d is toegevoegd.", $nrid);
+			$this->Log($nrid);
+		}
+	}
+	
+	public function update($p_sid, $p_kolom, $p_waarde) {
+		
+		if ($this->pdoupdate($p_sid, $p_kolom, $p_waarde) > 0) {
+			$this->mess = sprintf("Kolom '%s' in stuk %d is in '%s' gewijzigd.", $p_kolom, $p_sid, $p_waarde);
+			$this->tas = 2;
+			$this->Log($p_sid);
+		}
 	}
 	
 }  # cls_Stukken
@@ -7309,7 +7328,12 @@ function db_onderhoud($type=9) {
 	fnQuery($query);
 	$query = sprintf("ALTER TABLE `%sEvenement` CHANGE `VerwijderdOp` `VerwijderdOp` DATE NULL;", TABLE_PREFIX);
 	fnQuery($query);
-	
+	$query = sprintf("ALTER TABLE `%sStukken` CHANGE `VastgesteldOp` `VastgesteldOp` DATE NULL;", TABLE_PREFIX);
+	fnQuery($query);
+	$query = sprintf("ALTER TABLE `%sStukken` CHANGE `Ingangsdatum` `Ingangsdatum` DATE NULL;", TABLE_PREFIX);
+	fnQuery($query);
+	$query = sprintf("ALTER TABLE `%sStukken` CHANGE `Revisiedatum` `Revisiedatum` DATE NULL;", TABLE_PREFIX);
+	fnQuery($query);
 
 	/***** Opschonen database na een upload uit de Access-database.  *****/
 

@@ -18,6 +18,7 @@ $tabpages = null;
 if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	addtp("Beheer logins");
 	addtp("Autorisatie");
+	addtp("Stukken");
 	addtp("Instellingen");
 	addtp("Stamgegevens");
 	addtp("Uploaden data");

@@ -156,6 +156,8 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	echo(fnDisplayTable($i_auth->autorisatiesperonderdeel(), "", "Overzicht autorisaties per onderdeel"));
 	$i_auth = null;
 	
+} elseif ($currenttab == "Stukken" and toegang($currenttab, 1, 1)) {
+	fnStukken();
 } elseif ($currenttab == "Instellingen" and toegang($currenttab, 1, 1)) {
 	fnInstellingen();
 	
@@ -373,7 +375,7 @@ function fnBeheerLogins() {
 	// Nieuwe en gewijzigde logins in de tabel interface zetten en de tabel 'Lid' bijwerken.
 	$f = "IFNULL(L.LoginWebsite, '') <> IFNULL(Login.Login, '')";
 	foreach ($i_login->lijst($f) as $row) {
-		(new cls_Lid())->update($row->lnkNummer, "LoginWebsite", $row->Login);
+		(new cls_Lid())->update($row->lnkLidID, "LoginWebsite", $row->Login);
 	}
 	$i_login = null;
 	
@@ -578,6 +580,68 @@ function fnStamgegevens() {
 	
 } # fnStamgegevens
 
+function fnStukken() {
+	
+	$i_stuk = new cls_Stukken();
+	
+	echo("<div id='stukkenmuteren'>\n");
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		if (isset($_POST['Toevoegen']) and $_POST['Toevoegen'] == "Toevoegen") {
+			$i_stuk->add();
+		}
+		$rows = $i_stuk->editlijst();
+		foreach ($rows as $row) {
+			foreach ($row as $col => $val){
+				$cn = $col . "_" . $row->RecordID;
+				if (isset($_POST[$cn])) {
+//					debug($cn . ": " . $val);
+					$i_stuk->update($row->RecordID, $col, $_POST[$cn]);
+				}
+			}
+		}
+		
+	}
+	
+	$rows = $i_stuk->editlijst();
+	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+	echo("<table>\n");
+	echo("<caption>Stukken muteren</caption>\n");
+	echo("<tr><th rowspan=2>Titel</th><th>Bestemd voor</th><th>Vastgesteld op</th><th>Ingangsdatum</th><th>Revisiedatum</th><th>Vervallen per</th></tr>\n");
+	echo("<tr>");
+	echo("<th>Type</th><th colspan=4>Link naar document</th>");
+	foreach ($rows as $row) {
+		echo("<tr>\n");
+		printf("<td rowspan=2><input type='text' name='Titel_%d' value='%s' class='tbtitel'></td>\n", $row->RecordID, $row->Titel);
+		printf("<td><input type='text' name='BestemdVoor_%d' value='%s' class='tbbestemdvoor'></td>\n", $row->RecordID, $row->BestemdVoor);
+		printf("<td><input type='date' name='VastgesteldOp_%d' value='%s'></td>\n", $row->RecordID, $row->VastgesteldOp);
+		printf("<td><input type='date' name='Ingangsdatum_%d' value='%s'></td>\n", $row->RecordID, $row->Ingangsdatum);
+		printf("<td><input type='date' name='Revisiedatum_%d' value='%s'></td>\n", $row->RecordID, $row->Revisiedatum);
+		printf("<td><input type='date' name='VervallenPer_%d' value='%s'></td>\n", $row->RecordID, $row->VervallenPer);
+		
+		echo("</tr><tr>");
+		
+		$options = "";
+		foreach (ARRTYPESTUK as $k => $v) {
+			$options .= sprintf("<option value='%s' %s>%s</option>\n", $k, checked($k, "option", $row->Type), $v);
+		}
+		printf("<td><select name='Type_%d'>%s</select></td>\n", $row->RecordID, $options);
+		printf("<td colspan=4><input type='url' name='Link_%d' value='%s'></td>\n", $row->RecordID, $row->Link);
+		
+		echo("</tr>\n");
+	}
+	echo("</table>\n");
+	
+	echo("<div id='opdrachtknoppen'>\n");
+	
+	echo("<button name='Toevoegen' value='Toevoegen'>Stuk toevoegen</button>");
+	
+	echo("<input type='submit' value='Bewaren'>\n");
+	
+	echo("</div> <!-- Einde opdrachtknoppen -->\n");
+	echo("</div> <!-- Einde stukkenmuteren -->\n");
+	
+	$i_stuk = null;
+}  # fnStukken
 ?>
 
 <script>
