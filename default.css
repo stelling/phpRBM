@@ -428,6 +428,11 @@ header a + a:visited + a:hover {
 	margin-bottom: 0;
 }
 
+#inschrijvingevenementen input {
+	clear: none;
+	float: none;
+}
+
 #lidmaatschapmuteren img {
 	height: 10px;
 }
@@ -1129,10 +1134,6 @@ input.knop, button.knop {
 	margin-right: 3px;
 }
 
-.datumtijdevenement, .omschrijvingevenement {
-	min-width: 125px;
-}
-
 .jarige {
 	margin-top: 10px;
 	height: 83px;
@@ -1219,26 +1220,74 @@ input.knop, button.knop {
 	max-width: 200px;
 }
 
+.ed_status_B {
+	color: green;
+}
+
+.ed_status_N {
+	text-decoration: line-through;
+}
+
+.ed_status_X {
+	color: red;
+}
+
 #rekeningmuteren label {
 	width: 250px;
 }
 
 #rekeningmuteren input {
-	width: 350px;	
+	width: 350px;
 }
 
-#rekeningmuteren input[type='number'], #rekeningmuteren input[type='date'] {
-	width: 150px;	
+#rekeningmuteren input[type='date'] {
+	width: 150px;
+}
+
+#rekeningmuteren input[type='number'] {
+	width: 75px;
+}
+
+#rekeningmuteren select {
+	margin-top: 6px;
+	width: 250px;
 }
 
 #rekeningmuteren p {
 	width: 350px;
 	float: left;
 	clear: none;
-	margin -top: 4px;
+	margin-top: 4px;
 	margin-right: 8px;
+	padding-left: 4px;
 	padding-top: 6px;
-	background-color: yellow;
+	background-color: #FFFF99;
+	border-style: solid;
+	border-width: 1px;
+}
+
+#rekeningmuteren table {
+	margin-top: 8px;
+	clear: both;
+	width: 100%;
+}
+
+#rekeninginfo {
+	float: right;
+	clear: right;
+	padding-left: 3px;
+	padding-right: 3px;
+	
+	border-style: solid;
+	border-width: 1px;
+}
+
+#rekeninginfo label {
+	width: 150px;
+}
+
+#rekeninginfo p {
+	width: 250px;
 }
 
 #rekeningenmailen ul {
