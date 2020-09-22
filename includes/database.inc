@@ -2543,7 +2543,7 @@ class cls_Lidond extends cls_db_base {
 							  LO.Vanaf AS dteVanaf,
 							  %s
 							  LO.Opgezegd AS dteOpgezegd,
-							  CONCAT(FORMAT(DATEDIFF(IF(LO.Opgezegd IS NULL, CURDATE(), LO.Opgezegd), LO.Vanaf)/365.25, 1, 'nl_NL'), ' jaar') AS numDuur
+							  IF(LO.Vanaf > DATE_SUB(CURDATE(), INTERVAL 6 MONTH), '', CONCAT(FORMAT(DATEDIFF(IF(LO.Opgezegd IS NULL, CURDATE(), LO.Opgezegd), LO.Vanaf)/365.25, 1, 'nl_NL'), ' jaar')) AS numDuur
 							  FROM %s
 							  WHERE %s AND LO.Lid=%d
 							  ORDER BY LO.Vanaf DESC, O.Naam;", $xtr_sel, $this->fromlidond, $xw, $p_lidid);
@@ -5551,7 +5551,7 @@ class cls_Organisatie extends cls_db_base {
 		}
 		return $rv;
 	}
-}
+}  # cls_Organisatie
 
 function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie="") {
 	global $selectnaam, $selectzoeknaam;
@@ -5572,7 +5572,7 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 	} elseif ($actie == "komende") {
 		$query = sprintf("SELECT E.Datum, E.Omschrijving
 								FROM %sEvenement AS E
-								WHERE E.Datum >= CURDATE() AND E.Datum < DATE_ADD(CURDATE(), INTERVAL 2 MONTH) AND E.VerwijderdOp < '2012-01-01' AND E.ZichtbaarVoor IN (%s)
+								WHERE E.Datum >= CURDATE() AND E.Datum < DATE_ADD(CURDATE(), INTERVAL 2 MONTH) AND IFNULL(E.VerwijderdOp, '1900-01-01') < '2012-01-01' AND E.ZichtbaarVoor IN (%s)
 								ORDER BY E.Datum LIMIT 5;", TABLE_PREFIX, $_SESSION["lidgroepen"]);
 		$result = fnQuery($query);
 		return $result->fetchAll();
@@ -5580,7 +5580,7 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 	} elseif ($actie == "open") {
 		$query = sprintf("SELECT E.*, ET.Omschrijving AS TypeEvenement
 								FROM %1\$sEvenement AS E INNER JOIN %1\$sEvenement_Type AS ET ON E.TypeEvenement = ET.RecordID
-								WHERE E.Datum >= SYSDATE() AND E.VerwijderdOp < '2012-01-01' AND InschrijvingOpen=1 AND E.BeperkTotGroep IN (%2\$s)
+								WHERE E.Datum >= SYSDATE() AND IFNULL(E.VerwijderdOp, '1900-01-01') < '2012-01-01' AND InschrijvingOpen=1 AND E.BeperkTotGroep IN (%2\$s)
 								ORDER BY E.Datum;", TABLE_PREFIX, $_SESSION["lidgroepen"]);
 		$result = fnQuery($query);
 		return $result->fetchAll();
@@ -5589,14 +5589,14 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 		if ($actie == "overzichtbeheer") {
 			$select = "E.RecordID AS lnkNummer, E.Datum AS dteDatum, DATE_FORMAT(E.Datum, '%H:%i') AS Starttijd, E.Omschrijving, E.Locatie, E.Email AS `emlEmail`, E.Eindtijd, ET.Soort AS ndSoort,
 					   CASE E.InschrijvingOpen WHEN 0 THEN 'Nee' ELSE 'Ja' END AS `Ins. open?`, ET.Omschrijving AS `Type`";
-			$where = "E.VerwijderdOp < '2012-01-01'";
+			$where = "IFNULL(E.VerwijderdOp, '1900-01-01') < '2012-01-01'";
 		} else {
 			$select = sprintf("E.RecordID AS lnkNummer, E.Datum AS dteDatum, DATE_FORMAT(E.Datum, '%%H:%%i') AS Starttijd, E.Omschrijving, E.Locatie,
 								E.Email AS `emlEmail`, E.Verzameltijd, E.Eindtijd, ET.Soort AS ndSoort,
 								CASE E.InschrijvingOpen WHEN 0 THEN 'Nee' ELSE 'Ja' END AS `Ins. open?`,
 								(%s) AS `Aantal dln`,
 								ET.Omschrijving AS `Type`", $sqlaantdln);
-			$where = sprintf("E.Datum >= DATE_ADD(CURDATE(), INTERVAL -3 DAY) AND E.VerwijderdOp < '2012-01-01' AND E.ZichtbaarVoor IN (%s)", $_SESSION["lidgroepen"]);
+			$where = sprintf("E.Datum >= DATE_ADD(CURDATE(), INTERVAL -3 DAY) AND IFNULL(E.VerwijderdOp, '1900-01-01') < '2012-01-01' AND E.ZichtbaarVoor IN (%s)", $_SESSION["lidgroepen"]);
 		}
 		$query = sprintf("SELECT %1\$s
 								FROM %2\$sEvenement AS E LEFT OUTER JOIN %2\$sEvenement_Type AS ET ON E.TypeEvenement=ET.RecordID
@@ -5675,7 +5675,7 @@ function db_evenement($actie, $lidid=0, $eventid=0, $opm="", $stat="", $functie=
 		
 	} elseif ($actie == "opschonen") {
 		
-		$query = sprintf("SELECT * FROM %sEvenement WHERE VerwijderdOp > '2000-01-01';", TABLE_PREFIX);
+		$query = sprintf("SELECT * FROM %sEvenement AS E WHERE IFNULL(E.VerwijderdOp, '1900-01-01') > '2000-01-01';", TABLE_PREFIX);
 		foreach(fnQuery($query)->fetchAll() as $row) {
 			$contrqry = sprintf("SELECT COUNT(*) FROM %sEvenement_Deelnemer WHERE EvenementID=%d;", TABLE_PREFIX, $row->RecordID);
 			if (db_scalar($contrqry) ==  0) {
@@ -5762,7 +5762,7 @@ class cls_Evenement extends cls_db_base {
 	
 	public function opschonen() {
 		
-		$query = sprintf("SELECT * FROM %s WHERE VerwijderdOp > '2000-01-01';", $this->table);
+		$query = sprintf("SELECT * FROM %s AS E WHERE IFNULL(E.VerwijderdOp, '1900-01-01') > '2000-01-01';", $this->table);
 		foreach(fnQuery($query)->fetchAll() as $row) {
 			$contrqry = sprintf("SELECT COUNT(*) FROM %sEvenement_Deelnemer WHERE EvenementID=%d;", TABLE_PREFIX, $row->RecordID);
 			if (db_scalar($contrqry) ==  0) {
@@ -5784,6 +5784,7 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 	private $omsEvenement = "";
 	
 	function __construct() {
+		parent::__construct();
 		$this->table = TABLE_PREFIX . "Evenement_Deelnemer";
 		$this->ta = 7;
 	}
@@ -5815,6 +5816,25 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 		$query = sprintf("SELECT ED.*, E.Omschrijving AS OmsEvenement FROM %s AS ED INNER JOIN %sEvenement AS E ON ED.EvenementID=E.RecordID WHERE ED.RecordID=%d;", $this->table, TABLE_PREFIX, $this->edid);
 		$result = $this->execsql($query);
 		return $result->fetch();
+	}
+	
+	public function overzichtevenement($p_evid, $p_stat="") {
+		$this->evid = $p_evid;
+		if (strlen($p_stat) == 1) {
+			$xw = sprintf("AND ED.Status='%s'", $p_stat);
+		} elseif (strlen($p_stat) > 1) {
+			$xw = sprintf("AND ED.Status IN (%s)", $p_stat);
+		} else {
+			$xw = "";
+		}
+		
+		$query = sprintf("SELECT ED.RecordID, %1\$s AS NaamDeelnemer, IF(LENGTH(IFNULL(L.Mobiel, '')) >= 10, L.Mobiel, L.Telefoon) AS Telefoon,
+							ED.Status, ED.Opmerking, ED.Functie, ED.LidID, ED.Aantal, L.Geslacht, ED.Ingevoerd, ED.LidID, ED.IngevoerdDoor
+							FROM (%2\$sEvenement_Deelnemer AS ED INNER JOIN %2\$sLid AS L ON ED.LidID = L.RecordID) INNER JOIN %2\$sEvenement AS E ON E.RecordID=ED.EvenementID
+							WHERE ED.EvenementID=%3\$d %4\$s
+							ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;", $this->selectnaam, TABLE_PREFIX, $p_evid, $xw);
+		$result = $this->execsql($query);
+		return $result->fetchAll();
 	}
 	
 	public function overzichtlid($p_lidid) {
@@ -6372,16 +6392,36 @@ class cls_Rekening extends cls_db_base {
 class cls_Rekeningregel extends cls_db_base {
 	
 	function __construct() {
+		parent::__construct();
 		$this->table = TABLE_PREFIX . "Rekreg";
 	}
 	
 	function perrekening($p_nummer) {
-		$query = sprintf("SELECT RR.*, L.GEBDATUM, L.EmailOuders FROM %1\$sRekreg AS RR LEFT JOIN %1\$sLid AS L ON RR.Lid=L.RecordID WHERE RR.Rekening=%2\$d;", TABLE_PREFIX, $p_nummer);
+		$query = sprintf("SELECT RR.*, %s AS NaamLid, L.GEBDATUM, L.EmailOuders FROM %s AS RR LEFT JOIN %sLid AS L ON RR.Lid=L.RecordID WHERE RR.Rekening=%d ORDER BY Regelnr;", $this->selectnaam, $this->table, TABLE_PREFIX, $p_nummer);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
 	
 }  # cls_Rekeningregel
+
+class cls_Seizoen extends cls_db_base {
+	
+	function __construct() {
+		$this->table = TABLE_PREFIX . "Seizoen";
+	}
+	
+	function htmloptions($p_cv) {
+		$query = sprintf("SELECT * FROM %s AS S ORDER BY S.Begindatum DESC;", $this->table);
+		$result = $this->execsql($query);
+		$rv = "";
+		foreach ($result->fetchAll() as $row) {
+			$s = checked($row->Nummer, "option", $p_cv);
+			$rv .= sprintf("<option value=%d %s>%s</option>", $row->Nummer, $s, $row->Nummer);
+		}
+		return $rv;
+	}
+	
+}
 
 function db_Stukken($actie, $lidid=0) {
 	
@@ -6431,6 +6471,7 @@ class cls_Stukken extends cls_db_base {
 		$query = sprintf("INSERT INTO %sStukken (RecordID, Titel, BestemdVoor) VALUES (%d, '*** Nieuw stuk ***', 'Leden');", TABLE_PREFIX, $nrid);
 		if ($this->execsql($query) > 0) {
 			$this->mess = sprintf("Stuk met RecordID %d is toegevoegd.", $nrid);
+			$this->tas = 1;
 			$this->Log($nrid);
 		}
 	}
