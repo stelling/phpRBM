@@ -149,10 +149,10 @@ function inschrijvenevenementen($lidid) {
 		} else {
 			$c = "";
 		}
-		printf("<input type='radio' name='reactie_%d' value='Afmelden' %s onchange='this.form.submit();'>Afmelden&nbsp;", $row->RecordID, $c);
+		printf("<input type='radio' name='reactie_%d' value='Afmelden' %s onchange='this.form.submit();'>Afmelden&nbsp;\n", $row->RecordID, $c);
 		
 		if (isset($ins->Opmerking)) {
-			printf("<br><br>Opmerking: <input type='text' onBlur='this.form.submit();' name='opm_%d' size=75 maxlength=250 value=\"%s\"></td>\n", $row->RecordID, $ins->Opmerking);
+			printf("<br>\n<input type='text' placeholder='Opmerking' onBlur='this.form.submit();' name='opm_%d' size=75 maxlength=250 value=\"%s\"></td>\n", $row->RecordID, $ins->Opmerking);
 		}
 		
 		if (isset($ins->Status) and ($ins->Status == "B" or $ins->Status == "I")) {
@@ -171,6 +171,7 @@ function muteerevenement($eventid) {
 
 	$i_ev = new cls_Evenement();
 	$i_ed = new cls_Evenement_Deelnemer();
+	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$_POST['Datum'] = change_month_to_uk($_POST['Datum']);
 		if (strtotime($_POST['Datum']) === FALSE) {
@@ -215,7 +216,7 @@ function muteerevenement($eventid) {
 		} elseif (isset($_POST['maildeeln']) or isset($_POST['mailpotdeeln']) or isset($_POST['mailbeidedeeln'])) {
 			$i_M = new cls_Mailing();
 			$i_MR = new cls_Mailing_rcpt();
-			$mid = $inst_M->add($_POST['Omschrijving']);
+			$mid = $i_M->add($_POST['Omschrijving']);
 			if ($mid > 0) {
 				if (strlen($_POST['Email']) > 4 and isValidMailAddress($_POST['Email'])) {
 					$row = db_mailing_vanaf("record", $_POST['Email']);
@@ -345,8 +346,8 @@ function muteerevenement($eventid) {
 	echo("<table>\n");
 	if ($eventid > 0) {
 		echo("<caption>Deelnemers</caption>\n");
-		echo("<thead>\n<tr><th>Naam deelnemer</th><th>Status</th><th>Opmerking en functie</th><th>Ingevoerd</th><th>Del</th></tr>\n</thead>\n");
-		foreach (db_evenement("deelnemers", 0, $recordid) as $rd) {
+		echo("<thead>\n<tr><th>Deelnemer</th><th>Status</th><th>Opmerking en functie</th><th>Ingevoerd</th><th>Del</th></tr>\n</thead>\n");
+		foreach ($i_ed->overzichtevenement($recordid) as $rd) {
 			$optstat = "";
 			foreach (ARRDLNSTATUS as $key => $val) {
 				$s = "";
@@ -356,7 +357,12 @@ function muteerevenement($eventid) {
 				$optstat .= sprintf("<option value='%s' %s>%s</option>\n", $key, $s, $val);
 			}
 			echo("<tr>\n");
-			printf("<td>%s</td>\n", htmlentities($rd->NaamDeelnemer));
+			if (strlen($rd->Telefoon) >= 10) {
+				$t = "<br>\n" . $rd->Telefoon;
+			} else {
+				$t = "";
+			}
+			printf("<td class='ed_status_%s'>%s %s</td>\n", $rd->Status, htmlentities($rd->NaamDeelnemer), $t);
 			printf("<td><select name='Status_%d' onChange='this.form.submit();'>%s</select>", $rd->RecordID, $optstat);
 			if ($maxpersonenperdeelname > 1) {
 				printf("<br>\n# personen: <input type='number' class='inputnumber' name='Aantal_%d' value=%d size=5 min=1 max=%d>", $rd->RecordID, $rd->Aantal, $maxpersonenperdeelname);
