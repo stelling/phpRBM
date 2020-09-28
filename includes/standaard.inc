@@ -13,7 +13,7 @@ define("ARRTYPEDIPLOMA", ["B" => "Brevet", "C" => "Competentie", "D" => "Diploma
 define("PASFOTOEXTENTIES", ["gif", "jpg", "jpeg", "png"]);
 define("ARRTYPEEDITOR", [1 => "CKEditor 5 Classic editor", 2 => "CKEditor 4"]);
 define("ARRSOORTEVENEMENT", ["B" => "Brigade-activiteit", "G" => "Gezellig/sociaal", "O" => "Opleiding", "V" => "Vergadering/overleg", "W" => "Wedstrijd"]);
-define("ARRDLNSTATUS", ["A" => "Afgewezen", "B" => "Bevestigd", "I" => "Ingeschreven", "N" => "Niet geweest", "R" => "Reserve", "T" => "Onder voorbehoud", "X" => "Afgemeld/Afgezegd"]);
+define("ARRDLNSTATUS", ["A" => "Afgewezen", "B" => "Bevestigd", "I" => "Ingeschreven", "J" => "Aangemeld", "N" => "Niet geweest", "R" => "Reserve", "T" => "Onder voorbehoud", "X" => "Afgemeld/Afgezegd"]);
 define("ARRPRESENTIESTATUS", ["A" => "Aangemeld/aanwezig", "R" => "Afgemeld/afwezig met bekende reden", "T" => "Onder voorbehoud", "X" => "Afgemeld/afwezig zonder bekende reden", "Z" => "Afgemeld/afwezig wegens ziekte"]);
 define("ARRTYPEBACKUP", [1 => "phpRBM-tabellen", 2 => "Tabellen uit MS-Access", 3 => "Beide"]);
 define("ARRTYPESTUK", ["B" => "Beleidsstuk", "F" => "Formulier", "H" => "Handleiding", "P" => "Promotiemateriaal", "R" => "Regeling", "V" => "Verklaring"]);
@@ -164,6 +164,7 @@ function HTMLheader($breed=0) {
 		echo("<!DOCTYPE HTML>\n");
 		echo("<html lang='nl'>\n");
 		echo("<head>\n");
+		printf("<script src='%s/includes/javascript.js'></script>\n", BASISURL);
 		if (isset($_GET['tp']) and substr($_GET['tp'], 0, 7) == "Mailing") {
 			if ($_SESSION['settings']['mailing_type_editor'] == 2) {
 				echo("<script src='https://cdn.ckeditor.com/4.13.0/standard/ckeditor.js'></script>\n");
@@ -546,7 +547,11 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 		$js = "";
 	}
 	if (isset($rows) and (count($rows) > 0 or strlen($xtra_regel) > 0)) {
-		$ret .= "<table>\n";
+		if (strlen($class) > 0) {
+			$ret .= sprintf("<table id='%s'>\n", $class);
+		} else {
+			$ret .= "<table>\n";
+		}
 		$dispkop = 1;
 		$totaantal = 0;
 		foreach($rows as $row) {
@@ -693,9 +698,13 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 					$ret .= sprintf("<td>Nee</td>");
 				} elseif (startwith($key, "lnk")) {
 					if (strlen($link) > 1) {
-						$href = str_replace("%d", $value, $link);
-						$href = str_replace("%s", "<img src='images/zoom.png' alt='Details'>", $href);
-						$ret .= "<td class='details'>" . $href . "</td>";
+						if ($value > 0) {
+							$href = str_replace("%d", $value, $link);
+							$href = str_replace("%s", "<img src='images/zoom.png' alt='Details'>", $href);
+							$ret .= "<td class='details'>" . $href . "</td>";
+						} else {
+							$ret .= "<td>&nbsp;</td>";
+						}
 					}
 				} elseif (startwith($key, "llk")) {
 					if ($value > 0 and strlen($link_lk) > 1) {
