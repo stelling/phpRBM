@@ -92,7 +92,7 @@ $selecttelefoon = "IF(LENGTH(L.Mobiel) < 10, L.Telefoon, L.Mobiel)";
 $selectemail = "IF(LENGTH(L.Email) > 5, L.Email, IF(LENGTH(L.EmailOuders) > 5, L.EmailOuders, L.EmailVereniging))";
 $selectleeftijd = "IF(ISNULL(L.GEBDATUM) OR L.GEBDATUM < '1920-01-01' OR (NOT ISNULL(L.Overleden)), NULL, CONCAT(TIMESTAMPDIFF(YEAR, L.GEBDATUM, CURDATE()), ' jaar'))";
 $selectlidnr = sprintf("SELECT MAX(IFNULL(Lidnr, 0)) FROM %sLidmaatschap AS LM WHERE LM.Lid=L.RecordID AND LM.LIDDATUM <= CURDATE() AND IFNULL(LM.Opgezegd, CURDATE()) >= CURDATE()", TABLE_PREFIX);
-$selectmailbox = "CASE WHEN (NOT M.deleted_on IS NULL) THEN 'Prullenbak'
+$selectmailbox = "CASE WHEN IFNULL(M.deleted_on, '1900-01-01') > '2000-01-01' THEN 'Prullenbak'
 							  WHEN (M.Template=1) THEN 'Templates'
 							  WHEN (M.sent_on IS NULL) THEN 'Concepten'
 							  ELSE 'Verzonden' END";  // Moet nog verder ingevoerd worden, indien wenselijk
@@ -240,6 +240,13 @@ class cls_db_base {
 		return db_typekolom($this->table, $p_kolom);
 	}
 	
+	public function scalekolom($p_kolom) {
+		global $db_name;
+			
+		$query = sprintf("SELECT NUMERIC_SCALE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%s' AND COLUMN_NAME LIKE '%s';", $db_name, $this->table, $p_kolom);
+		return $this->scalar($query);
+	}
+	
 	public function is_kolom_tekst($p_kolom) {
 
 		if (in_array($this->typekolom($p_kolom), array("char", "longtext", "tex", "varchar"))) {
@@ -251,7 +258,7 @@ class cls_db_base {
 	
 	public function is_kolom_numeriek($p_kolom) {
 
-		if (in_array($this->typekolom($p_kolom), array("bigint", "int", "smallint", "tinyint"))) {
+		if (in_array($this->typekolom($p_kolom), array("bigint", "decimal", "int", "smallint", "tinyint"))) {
 			return true;
 		} else {
 			return false;
@@ -303,6 +310,16 @@ class cls_db_base {
 		$result = $this->execsql($query);
 		return $result->fetchColumn();
 	}
+		
+	public function totaal($p_kolom, $p_filter="") {
+		$query = sprintf("SELECT SUM(IFNULL(`%s`, 0)) FROM %s", $p_kolom, $this->table);
+		if (strlen($p_filter) > 0) {
+			$query .= " WHERE " . $p_filter;
+		}
+		$query .= ";";
+		$result = $this->execsql($query);
+		return $result->fetchColumn();
+	}
 	
 	public function versiedb() {
 		return $this->execsql("SELECT Version() AS Version;")->fetchColumn();
@@ -333,6 +350,13 @@ class cls_db_base {
 			$p_waarde = "NULL";
 		} elseif (strlen($p_waarde) == 0 and $this->is_kolom_numeriek($p_kolom)) {
 			$p_waarde = 0;
+		} elseif ($this->typekolom($p_kolom) == "decimal") {
+			$s = $this->scalekolom($p_kolom);
+			if ($s > 0) {
+				$p_waarde = round(floatval($p_waarde), $s);
+			} else {
+				$p_waarde = floatval($p_waarde);
+			}
 		}
 		
 		if ($this->bestaat_kolom("RecordID")) {
@@ -355,7 +379,7 @@ class cls_db_base {
 		if ($p_waarde === "NULL") {
 			$xw = sprintf("(`%s` IS NOT NULL)", $p_kolom);
 		} elseif ($this->is_kolom_numeriek($p_kolom) == true) {
-			$xw = sprintf("IFNULL(`%s`, 0)<>%d", $p_kolom, $p_waarde);
+			$xw = sprintf("IFNULL(`%s`, 0)<>:nw", $p_kolom);
 		} else {
 //			debug($p_kolom . ": " . $p_waarde);
 			if (strpos($p_waarde, "'") !== false) {
@@ -371,8 +395,10 @@ class cls_db_base {
 		if ($p_waarde === "NULL") {
 			$n = null;
 			$stmt->bindValue(":nw", $n, PDO::PARAM_NULL);
+			
 		} elseif ($this->is_kolom_numeriek($p_kolom)) {
-			$stmt->bindValue(":nw", $p_waarde, PDO::PARAM_INT);
+			$stmt->bindValue(":nw", $p_waarde);
+			
 		} else {
 			$stmt->bindValue(":nw", $p_waarde, PDO::PARAM_STR);
 		}
@@ -684,10 +710,10 @@ class cls_Lid extends cls_db_base {
 			$p_ord .= ", ";
 		}
 		
-		$query = sprintf("SELECT L.RecordID AS lnkNummer%s, %s AS `Naam_lid`, %s %s AS `emlE-mail`, %s %s %s, L.RecordID AS llkNummer, L.GEBDATUM AS ndGEBDATUM, %s AS ndZoeknaam
+		$query = sprintf("SELECT L.RecordID AS lnkNummer, %s AS `Naam_lid`, %s %s AS `emlE-mail`, %s %s %s %s, L.RecordID AS llkNummer, L.GEBDATUM AS ndGEBDATUM, %s AS ndZoeknaam
 					FROM %s
 					%s
-					ORDER BY %sL.Achternaam, L.TUSSENV, LM.LIDDATUM DESC;", $ln, $this->selectnaam, $wa, $this->selectemail, $k4, $p_xtraselect, $opg, $this->selectzoeknaam, $this->fromlid, $p_filter, $p_ord);
+					ORDER BY %sL.Achternaam, L.TUSSENV, L.Roepnaam, LM.LIDDATUM;", $this->selectnaam, $wa, $this->selectemail, $k4, $ln, $p_xtraselect, $opg, $this->selectzoeknaam, $this->fromlid, $p_filter, $p_ord);
 					
 		$result = $this->execsql($query);
 		return $result->fetchAll();
@@ -785,7 +811,7 @@ class cls_Lid extends cls_db_base {
 	
 	public function Naam($p_lidid, $p_riz="gast") {
 		$query = sprintf("SELECT %s FROM %s AS L WHERE L.RecordID=%d;", $this->selectnaam, $this->table, $p_lidid);
-		$rv = db_scalar($query);
+		$rv = $this->scalar($query);
 		if (strlen($rv) == 0) {
 			$rv = $p_riz;
 		}
@@ -811,12 +837,27 @@ class cls_Lid extends cls_db_base {
 		return $this->scalar($query);
 	}
 	
+	public function telefoon($p_lidid) {
+		$query = sprintf("SELECT %s AS Telefoonnummer FROM %s AS L WHERE RecordID=%d;", $this->selecttelefoon, $this->table, $p_lidid);
+		return $this->scalar($query);
+	}
+	
+	public function email($p_lidid) {
+		$query = sprintf("SELECT %s FROM %s AS L WHERE RecordID=%d;", $this->selectemail, $this->table, $p_lidid);
+		return $this->scalar($query);
+	}
+	
 	public function lijstselect($p_filter=0, $p_xf="") {
 	
 		$query = sprintf("SELECT L.RecordID, %s AS NaamLid, %s AS Zoeknaam ", $this->selectnaam, $this->selectzoeknaam); 
 		if ($p_filter == 1) {
 			// Alleen leden
 			$query .= sprintf("FROM %s AS L INNER JOIN %sLidmaatschap AS LM ON L.RecordID=LM.Lid WHERE %s", $this->table, TABLE_PREFIX, $this->wherelid);
+			
+		} elseif ($p_filter == 2) {
+			// Geen voormalige leden
+			$query .= sprintf("FROM %s AS L LEFT OUTER JOIN %sLidmaatschap AS LM ON L.RecordID=LM.Lid WHERE ((LM.Lid IS NULL) OR IFNULL(LM.Opgezegd, CURDATE()) >= CURDATE())", $this->table, TABLE_PREFIX);
+			
 		} else {
 			$query .= sprintf("FROM %s AS L WHERE L.RecordID > 0", $this->table);
 		}
@@ -981,6 +1022,12 @@ class cls_Lidmaatschap extends cls_db_base {
 			$rv = "Kloslid";
 		}
 		return $rv;
+	}
+	
+	public function overzichtlid($p_lidid) {
+		$query = sprintf("SELECT LM.Lidnr AS Lidnummer, LM.LIDDATUM AS dteVanaf, LM.Opgezegd AS dteOpgezegd FROM %s AS LM WHERE LM.Lid=%d ORDER BY LM.LIDDATUM;", $this->table, $p_lidid);
+		$result = $this->execsql($query);
+		return $result->fetchAll();
 	}
 	
 	public function kanopzeggen($p_lidid) {
@@ -2607,8 +2654,13 @@ class cls_Lidond extends cls_db_base {
 		$this->loid = $p_loid;
 		$this->vulvars();
 		
+		
+		
 		if ($p_kolom == "Vanaf" and strlen($p_waarde) < 5) {
 			$this->mess = "De datum 'Vanaf' mag niet leeg zijn, deze aanpassing wordt niet verwerkt.";
+			$this->tm = 1;
+		} elseif ($this->typekolom($p_kolom) == "date" and strlen($p_waarde) > 5 and $p_waarde <= '1970-01-01') {
+			$this->mess = sprintf("De waarde '%s' voor kolom '%s' is ongeldig, deze aanpassing wordt niet verwerkt.", $p_waarde, $p_kolom);
 			$this->tm = 1;
 		} else {
 			if ($this->pdoupdate($this->loid, $p_kolom, $p_waarde) > 0) {
@@ -3714,7 +3766,7 @@ function db_mailing($actie, $mid=0, $filter="", $new_val="", $kolnaam="") {
 	
 	$mess = "";
 	if ($actie == "exist") {
-		$query = sprintf("SELECT COUNT(*) FROM %sMailing AS M WHERE M.RecordID=%d AND (deleted_on IS NULL);", TABLE_PREFIX, $mid);
+		$query = sprintf("SELECT COUNT(*) FROM %sMailing AS M WHERE M.RecordID=%d AND IFNULL(M.deleted_on, '1900-01-01') < '2000-01-01';", TABLE_PREFIX, $mid);
 		$result = fnQuery($query);
 		if ($result->fetchColumn() == 1) {
 			return true;
@@ -3737,7 +3789,7 @@ function db_mailing($actie, $mid=0, $filter="", $new_val="", $kolnaam="") {
 			} else {
 				$w .= sprintf(" AND (M.Sent_on IS NULL)", TABLE_PREFIX);
 			}
-			$w .= " AND template=0 AND (deleted_on IS NULL)";
+			$w .= " AND template=0 AND IFNULL(M.deleted_on) < '2000-01-01'";
 		} elseif ($filter == "Templates") {
 			$w .= " AND M.template=1 AND (deleted_on IS NULL)";
 //			$xtra_sel = sprintf(", CONCAT(IF(M.SentBy=0, '', (SELECT %s FROM %sLid AS L WHERE L.RecordID=M.SentBy)), ' & ', DATE_FORMAT(M.sent_on, %s)) AS `mrgLaatst verzonden door/op`", $selectnaam, TABLE_PREFIX, $fdtlang);
@@ -4525,23 +4577,32 @@ function db_mailing_vanaf($actie, $value="", $rid=0, $kolnaam="") {
 class cls_Mailing_vanaf extends cls_db_base {
 	
 	private $mvid = 0;
-	private $vanaf_email = "";
+	public $vanaf_email = "";
+	public $vanaf_naam = "";
 	
-	function __construct() {
+	function __construct($p_mvid=0) {
 		$this->table = TABLE_PREFIX . "Mailing_vanaf";
 		$this->ta = 4;
 		$this->tas = 30;
+		if ($p_mvid > 0) {
+			$this->mvid = $p_mvid;
+			$this->vulvars($this->mvid);
+		}
 	}
 	
 	private function vulvars($p_mvid) {
 		$this->mvid = $p_mvid;
-		$query = sprintf("SELECT MAX(IFNULL(MV.Vanaf_email, '')) FROM %s AS MV WHERE RecordID=%d;", $this->table, $p_mvid);
-		$this->vanaf_email = $this->scalar($query);
+		$query = sprintf("SELECT MAX(IFNULL(MV.Vanaf_email, '')) AS VE, MAX(IFNULL(MV.Vanaf_naam, '')) AS VN FROM %s AS MV WHERE MV.RecordID=%d;", $this->table, $this->mvid);
+		$result = $this->execsql($query);
+		$row = $result->fetch();
+		$this->vanaf_email = $row->VE;
+		$this->vanaf_naam = $row->VN;
 	}
 	
 	public function vanafnaam($p_vanafadres) {
 		$query = sprintf("SELECT IFNULL(Vanaf_naam, '') FROM %s WHERE BINARY Vanaf_email='%s';", $this->table, $p_vanafadres);
-		return $this->scalar($query);
+		$this->vanaf_naam = $this->scalar($query);
+		return $this->vanaf_naam;
 	}
 	
 	public function htmloptions($p_cv="") {
@@ -5199,6 +5260,7 @@ function db_diploma($actie, $did=0, $td="*", $lidid=0) {
 class cls_Diploma extends cls_db_base {
 	
 	function __construct() {
+		parent::__construct();
 		$this->table = TABLE_PREFIX . "Diploma";
 	}
 		
@@ -5211,10 +5273,12 @@ class cls_Diploma extends cls_db_base {
 		return $result->fetchAll();
 	}
 	
-	public function htmloptions($p_cv=0, $p_orgfilter=-1) {
+	public function htmloptions($p_cv=0, $p_orgfilter=-1, $p_afdfilter=-1) {
 		$rv = "";
 		if ($p_orgfilter >= 0) {
 			$this->where = sprintf("WHERE DP.ORGANIS=%d", $p_orgfilter);
+		} elseif ($p_afdfilter > 0) {
+			$this->where = sprintf("WHERE DP.RecordID IN (SELECT DiplomaID FROM %1\$sLiddipl AS LD WHERE LD.Lid IN (SELECT Lid FROM %1\$sLidond AS LO WHERE LO.OnderdeelID=%2\$d AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()))", TABLE_PREFIX, $p_afdfilter);
 		}
 		$query = sprintf("SELECT DP.*, CONCAT(DP.Kode, ' - ', DP.Naam) AS ToonWaarde FROM %s AS DP %s ORDER BY DP.Kode;", $this->table, $this->where);
 		foreach ($this->execsql($query) as $row) {
@@ -5709,13 +5773,13 @@ class cls_Evenement extends cls_db_base {
 			2=beheer
 		*/
 		
-		$sqlaantdln = sprintf("SELECT SUM(Aantal) FROM %sEvenement_Deelnemer AS ED WHERE ED.EvenementID = E.RecordID AND Status='B'", TABLE_PREFIX);
+		$sqlaantdln = sprintf("SELECT SUM(Aantal) FROM %sEvenement_Deelnemer AS ED WHERE ED.EvenementID = E.RecordID AND Status IN ('B', 'J')", TABLE_PREFIX);
 		$sqlaantafgemeld = sprintf("SELECT COUNT(*) FROM %sEvenement_Deelnemer AS ED WHERE ED.EvenementID = E.RecordID AND Status='X'", TABLE_PREFIX);
 	
 		if ($p_soort == 2) {
 			$select = "E.RecordID AS lnkNummer, E.Datum AS dteDatum, DATE_FORMAT(E.Datum, '%H:%i') AS Starttijd, E.Omschrijving, E.Locatie, E.Email AS `emlEmail`, E.Eindtijd, ET.Soort AS ndSoort,
 					   CASE E.InschrijvingOpen WHEN 0 THEN 'Nee' ELSE 'Ja' END AS `Ins. open?`, ET.Omschrijving AS `Type`";
-			$where = "IFNULL(E.VerwijderdOp, '2000-01-01') < '2012-01-01'";
+			$where = "IFNULL(E.VerwijderdOp, '1900-01-01') < '2012-01-01'";
 		} else {
 			$select = sprintf("E.RecordID AS lnkNummer, E.Datum AS dteDatum, DATE_FORMAT(E.Datum, '%%H:%%i') AS Starttijd, E.Omschrijving, E.Locatie,
 								E.Email AS `emlEmail`, E.Verzameltijd, E.Eindtijd, ET.Soort AS ndSoort,
@@ -5836,7 +5900,7 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
-	
+
 	public function overzichtlid($p_lidid) {
 		
 		$query = "SELECT E.Datum AS dteDatum, E.Omschrijving, E.Verzameltijd, DATE_FORMAT(E.Datum, '%H:%i') AS Starttijd, Locatie AS ndLocatie, E.Eindtijd, E.Email AS emlContact, ED.Opmerking, ED.Functie ";
@@ -6349,6 +6413,7 @@ class cls_Rekening extends cls_db_base {
 	function __construct() {
 		parent::__construct();
 		$this->table = TABLE_PREFIX . "Rekening";
+		$this->ta = 14;
 	}
 	
 	public function lijst($p_filter) {
@@ -6366,7 +6431,8 @@ class cls_Rekening extends cls_db_base {
 	}
 	
 	public function record($p_rknr) {
-		$query = sprintf("SELECT RK.*, %s AS NaamLid FROM %s AS RK INNER JOIN %sLid AS L ON RK.Lid=L.RecordID WHERE RK.Nummer=%d;", $this->selectnaam, $this->table, TABLE_PREFIX, $p_rknr);
+		$query = sprintf("SELECT RK.*, %1\$s AS NaamLid, (SELECT COUNT(DISTINCT(RR.Lid)) FROM %3\$sRekreg AS RR WHERE RR.Rekening=RK.Nummer AND RR.Lid > 0) AS AantLid, DATE_ADD(RK.Datum, INTERVAL (RK.BETAALDAG * RK.BET_TERM) DAY) AS UitersteBetaaldatum
+						  FROM %2\$s AS RK INNER JOIN %3\$sLid AS L ON RK.Lid=L.RecordID WHERE RK.Nummer=%4\$d;", $this->selectnaam, $this->table, TABLE_PREFIX, $p_rknr);
 		$result = $this->execsql($query);
 		return $result->fetch();
 	}
@@ -6387,19 +6453,90 @@ class cls_Rekening extends cls_db_base {
 		return $result->fetchAll();
 	}
 	
+	public function update($p_rkid, $p_kolom, $p_waarde) {
+			
+		if ($this->pdoupdate($p_rkid, $p_kolom, $p_waarde)) {
+			$this->mess = sprintf("Kolom '%s' van rekening %d is in '%s' gewijzigd.", $p_kolom, $p_rkid, $p_waarde);
+			$this->tas = 2;
+			$this->Log($p_rkid);
+			
+		}
+	}
+	
 }  # cls_Rekening
 
 class cls_Rekeningregel extends cls_db_base {
 	
+	private $rrid = 0;
+	private $rkid = 0;
+	private $regelnr = 0;
+	
 	function __construct() {
 		parent::__construct();
 		$this->table = TABLE_PREFIX . "Rekreg";
+		$this->ta = 14;
 	}
 	
-	function perrekening($p_nummer) {
-		$query = sprintf("SELECT RR.*, %s AS NaamLid, L.GEBDATUM, L.EmailOuders FROM %s AS RR LEFT JOIN %sLid AS L ON RR.Lid=L.RecordID WHERE RR.Rekening=%d ORDER BY Regelnr;", $this->selectnaam, $this->table, TABLE_PREFIX, $p_nummer);
+	private function vulvars($p_rrid) {
+		$this->rrid = $p_rrid;
+		$query = sprintf("SELECT RR.Rekening, RR.Regelnr FROM %s AS RR WHERE RR.RecordID=%d;", $this->table, $this->rrid);
+		$result = $this->execsql($query);
+		$row = $result->fetch();
+		$this->rkid = $row->Rekening;
+		$this->regelnr = $row->Regelnr;
+	}
+	
+	function perrekening($p_rkid) {
+		$query = sprintf("SELECT RR.*, %s AS NaamLid, L.GEBDATUM, L.EmailOuders FROM %s AS RR LEFT JOIN %sLid AS L ON RR.Lid=L.RecordID WHERE RR.Rekening=%d ORDER BY Regelnr;", $this->selectnaam, $this->table, TABLE_PREFIX, $p_rkid);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
+	}
+	
+	public function overzichtlid($p_lidid) {
+		$query = sprintf("SELECT IF((SELECT COUNT(*) FROM %sRekreg AS RR WHERE RR.Rekening=RK.Nummer AND RR.ToonOpRekening=1) > 0, RK.Nummer, 0) AS lnkNummer,
+					RK.Nummer,
+					RK.Seizoen,
+					RK.Datum AS dteDatum,
+					RR.OMSCHRIJV AS Omschrijving,
+					RR.Bedrag AS curBedrag
+					FROM %s AS RR INNER JOIN %sRekening AS RK ON RR.Rekening=RK.Nummer
+					WHERE RR.Lid=%d
+					ORDER BY RK.Nummer DESC;", TABLE_PREFIX, $this->table, TABLE_PREFIX, $p_lidid);
+		$result = $this->execsql($query);
+		return $result->fetchAll();
+	}
+	
+	public function add($p_rkid, $p_lidid) {
+		$this->rkid = $p_rkid;
+		$nrid = $this->nieuwrecordID();
+		$nr = $this->max("Regelnr", sprintf("Rekening=%d", $p_rkid)) + 1;
+		
+		$query = sprintf("INSERT INTO %s (RecordID, Rekening, Lid, Regelnr, ToonOpRekening) VALUES (%d, %d, %d, %d, 1);", $this->table, $nrid, $p_rkid, $p_lidid, $nr);
+		if ($this->execsql($query) > 0) {
+			$this->mess = sprintf("Regel %d aan rekening %d toegevoegd", $nr, $p_rkid);
+			$this->tas = 11;
+			$this->Log();
+		}
+	}
+	
+	public function update($p_rrid, $p_kolom, $p_waarde) {
+		$this->vulvars($p_rrid);
+		if ($this->pdoupdate($this->rrid, $p_kolom, $p_waarde)) {
+			$this->mess = sprintf("Op regel %d van rekening %d is kolom '%s' in '%s' gewijzigd.", $this->regelnr, $this->rkid, $p_kolom, $p_waarde);
+			$this->tas = 12;
+			$this->Log($this->rrid);
+		}
+	}
+	
+	public function delete($p_rrid) {
+		$this->vulvars($p_rrid);
+		
+		$query = sprintf("DELETE FROM %s WHERE RecordID=%d;", $this->table, $this->rrid);
+		if ($this->execsql($query)) {
+			$this->mess = sprintf("Regel %d van rekening %d is verwijderd.", $this->regelnr, $this->rkid);
+			$this->tas = 13;
+			$this->Log($this->rrid);
+		}
 	}
 	
 }  # cls_Rekeningregel
@@ -6724,16 +6861,6 @@ class cls_Parameter extends cls_db_base {
 		$this->arrParam['mailing_rekening_nulrekversturen'] = array("Type" => "B", "Default" => 1);
 		$this->arrParam['toneninschrijvingenbewakingen'] = array("Type" => "B", "Default" => 1);
 		$this->arrParam['tonentoekomstigebewakingen'] = array("Type" => "B", "Default" => 0);
-		$this->arrParam['zs_incl_beroep'] = array("Type" => "B", "Default" => 1);
-		$this->arrParam['zs_incl_vogafgegeven'] = array("Type" => "B", "Default" => 0);
-		$this->arrParam['zs_incl_bsn'] = array("Type" => "B", "Default" => 0);
-		$this->arrParam['zs_incl_emailouders'] = array("Type" => "B", "Default" => 0);
-		$this->arrParam['zs_incl_emailvereniging'] = array("Type" => "B", "Default" => 0);
-		$this->arrParam['zs_incl_iban'] = array("Type" => "B", "Default" => 0);
-		$this->arrParam['zs_incl_legitimatie'] = array("Type" => "B", "Default" => 1);
-		$this->arrParam['zs_incl_machtiging'] = array("Type" => "B", "Default" => 0);
-		$this->arrParam['zs_incl_slid'] = array("Type" => "B", "Default" => 0);
-		$this->arrParam['zs_opzeggingautomatischverwerken'] = array("Type" => "B", "Default" => 0);
 		
 		$this->arrParam['performance_trage_select'] = array("Type" => "F", "Default" => 0.5);
 		
@@ -6742,18 +6869,23 @@ class cls_Parameter extends cls_db_base {
 		$this->arrParam['db_backup_type'] = array("Type" => "I", "Default" => 3);
 		$this->arrParam['db_backupsopschonen'] = array("Type" => "I", "Default" => 11);
 		$this->arrParam['login_autounlock'] = array("Type" => "I", "Default" => 120);
+		
 		$this->arrParam['mailing_alle_zien'] = array("Type" => "I", "Default" => -1);
 		$this->arrParam['mailing_bevestigingbestelling'] = array("Type" => "I", "Default" => 0);
 		$this->arrParam['mailing_bevestigingopzegging'] = array("Type" => "I", "Default" => 0);
 		$this->arrParam['mailing_bewaartijd'] = array("Type" => "I", "Default" => 3);
 		$this->arrParam['mailing_bewakinginschrijving'] = array("Type" => "I", "Default" => 0);
+		$this->arrParam['mailing_extensies_toegestaan'] = array("Type" => "T", "Default" => "bmp, gif, jpeg, jpg, pdf, png, pps, rar, txt, zip");
 		$this->arrParam['mailing_herstellenwachtwoord'] = array("Type" => "I", "Default" => 0);
 		$this->arrParam['mailing_meldingnieuwip'] = array("Type" => "I", "Default" => 0);
 		$this->arrParam['mailing_lidnr'] = array("Type" => "I", "Default" => 0);
 		$this->arrParam['mailing_mailopnieuw'] = array("Type" => "I", "Default" => 0);
 		$this->arrParam['mailing_rekening_stuurnaar'] = array("Type" => "I", "Default" => 1);
+		$this->arrParam['mailing_rekening_valuta'] = array("Type" => "T", "Default" => "&euro&nbsp;");
+		$this->arrParam['mailing_rekening_vanafid'] = array("Type" => "I", "Defailt" => 0);
 		$this->arrParam['mailing_type_editor'] = array("Type" => "I", "Default" => 1);
 		$this->arrParam['mailing_validatielogin'] = array("Type" => "I", "Default" => 0);
+		
 		$this->arrParam['max_grootte_bijlage'] = array("Type" => "I", "Default" => 2048);
 		$this->arrParam['maxmailsperuur'] = array("Type" => "I", "Default" => 150);
 		$this->arrParam['maxmailsperdag'] = array("Type" => "I", "Default" => 495);
@@ -6769,7 +6901,6 @@ class cls_Parameter extends cls_db_base {
 		$this->arrParam['typemenu'] = array("Type" => "I", "Default" => 1);
 		$this->arrParam['verjaardagenaantal'] = array("Type" => "I", "Default" => 7);
 		$this->arrParam['verjaardagenvooruit'] = array("Type" => "I", "Default" => 5);
-		$this->arrParam['zs_opzegtermijn'] = array("Type" => "I", "Default" => 1);
 		$this->arrParam['versie'] = array("Type" => "I");
 		
 		$this->arrParam['db_folderbackup'] = array("Type" => "T");
@@ -6777,10 +6908,6 @@ class cls_Parameter extends cls_db_base {
 		$this->arrParam['login_beperkttotgroep'] = array("Type" => "T");
 		$this->arrParam['muteerbarememos'] = array("Type" => "T", "Default" => "D,G");
 		$this->arrParam['naamwebsite'] = array("Type" => "T", "Default" => "Naam website");
-		$this->arrParam['mailing_extensies_toegestaan'] = array("Type" => "T", "Default" => "bmp, gif, jpeg, jpg, pdf, png, pps, rar, txt, zip");
-		$this->arrParam['mailing_rekening_from_naam'] = array("Type" => "T");
-		$this->arrParam['mailing_rekening_from_adres'] = array("Type" => "T");
-		$this->arrParam['mailing_rekening_valuta'] = array("Type" => "T", "Default" => "&euro&nbsp;");
 		$this->arrParam['menu_met_afdelingen'] = array("Type" => "T");
 		$this->arrParam['path_attachments'] = array("Type" => "T");
 		$this->arrParam['path_pasfoto'] = array("Type" => "T");
@@ -6788,10 +6915,23 @@ class cls_Parameter extends cls_db_base {
 		$this->arrParam['uitleg_toestemmingen'] = array("Type" => "T");
 		$this->arrParam['urlvereniging'] = array("Type" => "T");
 		$this->arrParam['url_eigen_help'] = array("Type" => "T");
+		
 		$this->arrParam['zs_emailnieuwepasfoto'] = array("Type" => "T");
+		$this->arrParam['zs_incl_beroep'] = array("Type" => "B", "Default" => 1);
+		$this->arrParam['zs_incl_vogafgegeven'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['zs_incl_bsn'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['zs_incl_emailouders'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['zs_incl_emailvereniging'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['zs_incl_iban'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['zs_incl_legitimatie'] = array("Type" => "B", "Default" => 1);
+		$this->arrParam['zs_incl_machtiging'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['zs_incl_slid'] = array("Type" => "B", "Default" => 0);
 		$this->arrParam['zs_muteerbarememos'] = array("Type" => "T");
+		$this->arrParam['zs_opzeggingautomatischverwerken'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['zs_opzegtermijn'] = array("Type" => "I", "Default" => 1);
 		$this->arrParam['zs_voorwaardenbestelling'] = array("Type" => "T");
 		$this->arrParam['zs_voorwaardeninschrijving'] = array("Type" => "T");
+	
 	}
 	
 	public function lijst() {
