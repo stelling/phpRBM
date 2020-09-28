@@ -139,7 +139,6 @@ input.naam, input.email, input[type='email'] {
 }
 
 input, button, textarea {
-	float: left;
 	font-size: 11pt;
 	margin-right: 6px;
 	margin-top: 6px;
@@ -273,6 +272,10 @@ header a + a:visited + a:hover {
 	margin-top: 6px;
 }
 
+#filter input {
+	float: left;
+}
+
 #filter .cb, #filter input[type='checkbox'] {
 	margin-top: 2px;
 }
@@ -313,19 +316,20 @@ header a + a:visited + a:hover {
 	margin-bottom: 6px;
 }
 
-#formulier .cb, #formulier input[type='checkbox'] {
+#formulier input {
 	float: left;
+}
+
+#formulier input[type='checkbox'] {
 	margin-top: 9px;
 }
 
-#formulier .tb, #formulier input[type='text'] {
-	float: left;
+#formulier input[type='text'] {
 	margin-right: 6px;
 	margin-top: 6px;
 }
 
-#formulier .number {
-	float: left;
+#formulier input[type='number'] {
 	margin-top: 6px;
 	margin-right: 6px;
 	width: 112px;
@@ -722,6 +726,10 @@ header a + a:visited + a:hover {
 	background-color: transparent;
 }
 
+#overzichtevenementen td:last-child {
+	width: 60%;
+}
+
 #evenementenbeheer table {
 	width: 100%;
 }
@@ -1092,6 +1100,10 @@ input.knop, button.knop {
 	color: green;
 }
 
+.telaat {
+	color: red;
+}
+
 .mededeling, .mededeling a {
 	font-size: 13pt;
 	color: red;
@@ -1118,7 +1130,7 @@ input.knop, button.knop {
 	padding-left: 3px;
 }
 
-.listdeelnemers {
+#overzichtevenementen ul {
 	list-style: none;
 	padding-left: 0;
 	padding-right: 0;
@@ -1126,9 +1138,9 @@ input.knop, button.knop {
 	margin-top: 0;
 }
 
-.listdeelnemers li {
+#overzichtevenementen li {
 	float: left;
-	width: 200px;
+	width: 210px;
 	list-style-type: none;
 	margin-left: 3px;
 	margin-right: 3px;
@@ -1220,7 +1232,7 @@ input.knop, button.knop {
 	max-width: 200px;
 }
 
-.ed_status_B {
+.ed_status_B, .ed_status_J {
 	color: green;
 }
 
@@ -1237,6 +1249,7 @@ input.knop, button.knop {
 }
 
 #rekeningmuteren input {
+	float: left;
 	width: 350px;
 }
 
@@ -1260,7 +1273,8 @@ input.knop, button.knop {
 	margin-top: 4px;
 	margin-right: 8px;
 	padding-left: 4px;
-	padding-top: 6px;
+	padding-top: 3px;
+	padding-bottom: 3px;
 	background-color: #FFFF99;
 	border-style: solid;
 	border-width: 1px;
@@ -1276,18 +1290,39 @@ input.knop, button.knop {
 	float: right;
 	clear: right;
 	padding-left: 3px;
-	padding-right: 3px;
-	
+	padding-right: 3px;	
+	padding-top: 3px;
+	padding-bottom: 3px;
 	border-style: solid;
 	border-width: 1px;
 }
 
 #rekeninginfo label {
 	width: 150px;
+	margin-left: 3px;
 }
 
 #rekeninginfo p {
-	width: 250px;
+	width: 225px;
+	margin-right: 3px;
+}
+
+#rekeningregelsmuteren {
+	clear: left;
+	margin-top: 10px;
+}
+
+#rekeningregelsmuteren input {
+	margin-top: 2px;
+	margin-bottom: 2px;
+}
+
+#rekeningregelsmuteren .kostenplaats {
+	width: 60px;
+}
+
+#rekeningregelsmuteren input[type='checkbox'] {
+	width: 75px;
 }
 
 #rekeningenmailen ul {
@@ -1370,6 +1405,9 @@ input.knop, button.knop {
 	border-style: none;
 }
 
+#onderdelenmuteren input {
+	float; left;
+}
 
 #onderdelenmuteren input.naam {
 	width: 300px;
@@ -1391,6 +1429,10 @@ input.knop, button.knop {
 #instellingenmuteren .invoerblok {
 	width: 100%;
 	clear: right;
+}
+
+#instellingenmuteren input {
+	float: left;
 }
 
 #instellingenmuteren td {
@@ -1458,6 +1500,10 @@ input.knop, button.knop {
 	padding-top: 4px;
 }
 
+.editmailingform input {
+	float: left;
+}
+
 .editmailingform .invoerblok {
 	width: 990px;
 	min-height: 24px;
@@ -1503,9 +1549,14 @@ input.knop, button.knop {
 }
 
 #wijzigengegevens input {
+	float: left;
 	width: 350px;
 	margin-right: 0;
 	padding-right: 0;
+}
+
+#wijzigengegevens textarea {
+	float: left;
 }
 
 #wijzigengegevens select {
@@ -1586,16 +1637,16 @@ input.knop, button.knop {
 	
 	margin-top: 15px;
 	margin-left: 2px;
-   margin-right: 2px;
+	margin-right: 2px;
 	
 	padding-top: 8px;
-   padding-left: 0;
+	padding-left: 0;
 	padding-right: 0;
 	
 	border-color: transparent;
-   background-color: #cdcdcd;
-   border-top-right-radius: 9px;
-   border-top-left-radius: 9px;
+	background-color: #cdcdcd;
+	border-top-right-radius: 9px;
+	border-top-left-radius: 9px;
 }
 
 /* main level link */
