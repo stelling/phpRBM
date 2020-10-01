@@ -603,7 +603,7 @@ class Mailing {
 				if ($this->aant_rcpt == 1) {
 					echo("Ontvanger</label>");
 				} elseif ($this->aant_rcpt > 1) {
-					printf(">Ontvangers (%d)</label>", $this->aant_rcpt);
+					printf("Ontvangers (%d)</label>", $this->aant_rcpt);
 				} else {
 					echo("Ontvangers</label>");
 				}
@@ -712,12 +712,10 @@ class Mailing {
 				}
 			}
 			
-			echo("<fieldset>\n");
 			printf("<label>Zichtbaar voor</label><select name='ZichtbaarVoor'>\n%s</select></fieldset>\n", $select);
 			printf("<label>Opties</label><input type='checkbox' name='template' value=1%s><p>Template</p>", checked($this->template));
-			printf("<input type='checkbox' name='HTMLdirect' value=1%s onChange='this.form.submit()'><p>HTML direct (zonder editor)</p>", checked($this->htmldirect));
-			printf("<input type='checkbox' name='ZonderBriefpapier' value=1%s onChange='this.form.submit()'><p>Zonder briefpapier versturen</p>", checked($this->zonderbriefpapier));
-			echo("</fieldset>\n");
+			printf("<input type='checkbox' name='HTMLdirect' value=1%s onChange='this.form.submit();'><p>HTML direct (zonder editor)</p>", checked($this->htmldirect));
+			printf("<input type='checkbox' name='ZonderBriefpapier' value=1%s><p>Zonder briefpapier versturen</p>", checked($this->zonderbriefpapier));
 		}
 		
 		echo("<div class='clear'></div>\n");
@@ -1578,9 +1576,11 @@ class email {
 	public function to_outbox() {
 		
 		$rv = false;
-		if ($this->xtrachar == "REK") {
-			$this->vanafnaam = $_SESSION['settings']['mailing_rekening_from_naam'];
-			$this->vanafadres = $_SESSION['settings']['mailing_rekening_from_adres'];
+		if ($this->xtrachar == "REK" and $_SESSION['settings']['mailing_rekening_vanafid'] > 0) {
+			$i_mv = new cls_Mailing_vanaf($_SESSION['settings']['mailing_rekening_vanafid']);
+			$this->vanafadres = $i_mv->vanaf_email;
+			$this->vanafnaam = $i_mv->vanaf_naam;
+			$i_mv = null;
 		}
 		
 		if (strlen($this->aanadres) > 5 and strlen($this->vanafadres) > 5) {
@@ -1600,10 +1600,10 @@ function fnRekeningenMailen($op) {
 	global $currenttab, $currenttab2;
 	
 	$i_rek = new cls_Rekening();
+	$i_p = new cls_Parameter();
 
 	echo("<div id='rekeningenmailen'>\n");
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		$i_p = new cls_Parameter();
 		if ($op == "selectierekeningen") {
 			if (isset($_POST['reknr']) and is_numeric($_POST['reknr'])) {
 				$_POST['minreknr'] = $_POST['reknr'];
@@ -1625,7 +1625,7 @@ function fnRekeningenMailen($op) {
 			} else {
 				$maxdat = $i_rek->max("Datum");
 			}
-			$filter = sprintf("RK.seizoen = %d AND RK.Nummer >= %d AND RK.Nummer <= %d AND RK.Datum >= '%s' AND RK.Datum <= '%s'", $_POST['rekseizoen'], $_POST['minreknr'], $_POST['maxreknr'], $mindat, $maxdat);
+			$filter = sprintf("RK.seizoen=%d AND RK.Nummer >= %d AND RK.Nummer <= %d AND RK.Datum >= '%s' AND RK.Datum <= '%s'", $_POST['rekseizoen'], $_POST['minreknr'], $_POST['maxreknr'], $mindat, $maxdat);
 			if (isset($_POST['reklid']) and is_numeric($_POST['reklid']) and $_POST['reklid'] > 0) {
 				$filter .= sprintf(" AND RK.Lid=%d", $_POST['reklid']);
 			}
@@ -1663,8 +1663,8 @@ function fnRekeningenMailen($op) {
 				$i_p->update("mailing_rekening_stuurnaar", $_POST['rekverstuuraan']);
 			}
 			
-			if (isset($_POST['vanafnaam'])) {
-				$i_p->update("mailing_rekening_from_naam", $_POST['vanafnaam']);
+			if (isset($_POST['vanafid'])) {
+				$i_p->update("mailing_rekening_vanafid", $_POST['vanafid']);
 			}
 						
 			if (isset($_POST['mailing_rekening_regelnrsweglaten']) and $_POST['mailing_rekening_regelnrsweglaten'] == 1) {
@@ -1744,25 +1744,17 @@ function fnRekeningenMailen($op) {
 			$mess = "De rekeningen zijn niet verzonden, omdat het vinkje niet gezet was.";
 			db_logboek("add", $mess, 4, 0, 1);
 		}
-		$i_p = null;
 	}
 		
 	if ($_SERVER['REQUEST_METHOD'] != "POST" or $op == "selectieversturen") {
+		$i_p->vulsessie();
 		printf("<form method='post' action='%s?tp=%s/%s&amp;op=selectierekeningen' name='mailrek'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
 		echo("<table>\n");
 		echo("<tr><th></th><th>Gelijk aan</th><th>Vanaf</th><th>Totenmet</th></tr>");
-		echo("<tr><td class='label'>Seizoen</th><td><select name='rekseizoen'>\n");
-		foreach(db_rekening("seizoenen") as $row) {
-			printf("<option value='%1\$d'>%1\$d</option>\n", $row->Seizoen);
-		}
-		echo("</select></td><td></td><td></td></tr>\n");
+		printf("<tr><td class='label'>Seizoen</th><td><select name='rekseizoen'>\n%s</select></td><td></td><td></td></tr>\n", (new cls_Seizoen())->htmloptions());
 		printf("<tr><td class='label'>Rekeningnummer</td><td><input type='number' name='reknr'></td><td><input type='number' value=%d name='minreknr'></td><td><input type='number' value=%d name='maxreknr'></td></tr>\n", $i_rek->min("Nummer"), $i_rek->max("Nummer"));
 		printf("<tr><td class='label'>Rekeningdatum</td><td><input type='date' name='rekdatum'></td><td><input type='date' value='%s' name='mindatum'></td><td><input type='date' value='%s' name='maxdatum'></td></tr>\n", $i_rek->min("Datum"), $i_rek->max("Datum"));			
-		echo("<tr><td class='label'>Betaald door (debiteur)</td><td><select name='reklid'>\n<option value='-1'>*** Iedereen ***</option>>\n");
-		foreach(db_lid("ledenmetrekening") as $row) {
-			printf("<option value=%d>%s</option>\n", $row->RecordID, $row->Naam_lid);
-		}
-		echo("</select></td><td></td><td></td></tr>\n");
+		printf("<tr><td class='label'>Betaald door (debiteur)</td><td><select name='reklid'>\n<option value='-1'>*** Iedereen ***</option>\n%s</select></td><td></td><td></td></tr>\n", (new cls_lid())->htmloptions(-1, 3));
 		echo("<tr><td class='label'>Statussen</td><td colspan=3>");
 		echo("<input type='checkbox' name='volbetaald' value=1 checked>Volledig betaald\n");
 		echo("<input type='checkbox' name='deelbetaald' value=1 checked>Gedeeltelijk betaald\n");
@@ -1770,9 +1762,11 @@ function fnRekeningenMailen($op) {
 		printf("<input type='checkbox' name='nulrekeningen' value=1 %s>Nul rekeningen\n", checked($_SESSION['settings']['mailing_rekening_nulrekversturen']));
 		echo("<input type='checkbox' name='eerderverzonden' value=1 checked>Eerder verzonden\n");
 		echo("<input type='checkbox' name='geenemail' value=1>Geen e-mailadres\n");
+		echo("</table>\n");
 		
-		echo("<tr><th colspan=4>Instellingen</th></tr>\n");
-		echo("<tr><td class='label'>Rekening versturen aan:</td><td colspan=3><select name='rekverstuuraan'>\n");
+		echo("<div id='instellingenmuteren'>\n");
+		echo("<h2>Instellingen</h2>\n");
+		echo("<label>Rekening versturen aan:</label><select name='rekverstuuraan'>\n");
 		$sn[1] = "Alleen gekoppeld lid";
 		$sn[2] = "Gekoppeld lid en alle volwassenen op de rekening";
 		$sn[3] = "Alle leden op de rekening";
@@ -1783,12 +1777,14 @@ function fnRekeningenMailen($op) {
 			}
 			printf("<option value=%d%s>%s</option>>\n", $key, $s, $val);
 		}
-		echo("</select></td></tr>\n");
+		echo("</select>\n");
 		
-		printf("<tr><td class='label'>Vanaf e-mailadres<td colspan=3><input name='vanafadres' type='email' value='%s' size=50></td></tr>\n", $_SESSION['settings']['mailing_rekening_from_adres']);
-		printf("<tr><td class='label'>Vanaf naam<td colspan=3><input name='vanafnaam' type='text' value='%s' size=50></td></tr>\n", $_SESSION['settings']['mailing_rekening_from_naam']);
-		printf("<tr><td class='label'>Regelnummers weglaten<td colspan=3><input name='mailing_rekening_regelnrsweglaten' type='checkbox'%s value=1></td></tr>\n", checked($_SESSION['settings']['mailing_rekening_regelnrsweglaten']));
-		echo("</table>\n");
+		$i_mv = new cls_Mailing_vanaf();
+		printf("<label>Vanaf e-mailadres</label><select name='vanafid'>%s</select>\n", $i_mv->htmloptions($_SESSION['settings']['mailing_rekening_vanafid']));
+		$i_mv = null;
+		
+		printf("<label>Regelnummers weglaten</label><input name='mailing_rekening_regelnrsweglaten' type='checkbox'%s value=1>\n", checked($_SESSION['settings']['mailing_rekening_regelnrsweglaten']));
+		echo("</div> <!-- Einde instellingenmuteren -->\n");
 		
 		echo("<div id='opdrachtknoppen'>\n");
 		echo("<input type='submit' value='Verder'>\n");
@@ -1797,6 +1793,8 @@ function fnRekeningenMailen($op) {
 		echo("</form>\n");
 	}
 	echo("</div> <!-- Einde rekeningenmailen -->\n");
+	
+	$i_p = null;
 } # fnRekeningenMailen
 
 function fnMailingInstellingen() {
@@ -1997,8 +1995,13 @@ function sentfromhist($p_mhid, $p_handm=0) {
 			$rv = $mail->Send();
 		} catch (phpmailerException $e) {
 			$error = $e->errorMessage();
+			debug("phpmailerException: " . $error);
 		} catch (Exception $e) {
 			$error = $e->getMessage();
+			debug("Exception: " . $error);
+		}
+		if (strlen($error) <4) {
+			$error = $mail->ErrorInfo;
 		}
 		if ($rv) {
 			(new cls_Mailing_hist())->update($p_mhid, "send_on", date("Y-m-d H:i:s"));
@@ -2093,7 +2096,7 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 			$this->IsSMTP(false);
 		} elseif (strlen($smtphost) > 0) {
 			$this->Host = $smtphost;
-			$this->SMTPdebug = 3;
+			$this->SMTPdebug = 4;
 			if ($smtpport > 0) {
 				$this->Port = $smtpport;
 			}
