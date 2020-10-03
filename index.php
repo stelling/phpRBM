@@ -183,6 +183,21 @@ function fnVoorblad() {
 		if ($_SESSION['webmaster'] == 0) {
 			$content = removetextblock($content, "<!-- Webmaster -->", "<!-- /Webmaster -->");
 		}
+		
+		$pos = 0;
+		while ($pos < strlen($content)) {
+			$p = strpos($content, "<!-- Ond_", $pos);
+			if ($p > 0) {
+				$ondid = intval(substr($content, $p+9, strpos($content, " ", $p+9)-($p+9)));
+				if (in_array($ondid, explode(",", $_SESSION['lidgroepen'])) === false) {
+					$b = sprintf("Ond_%d", $ondid);
+					$content = removetextblock($content, sprintf("<!-- %s -->", $b), sprintf("<!-- /%s -->", $b));
+				}
+				$pos = $p;
+			}
+			$pos++;
+		}
+		
 		(new cls_login())->uitloggen();
 	
 		// Algemene statistieken
@@ -219,9 +234,9 @@ function fnVoorblad() {
 			$strHV = "";
 			foreach ((new cls_Liddipl())->vervallenbinnenkort() as $row) {
 				if ($row->VervaltPer <= date("Y-m-d")) {
-					$strHV .= sprintf("<li>%s, gehaald op %s, is per %s vervallen.</li>\n", $row->Diploma, strftime("%e %h %Y", strtotime($row->DatumBehaald)), strftime("%e %h %Y", strtotime($row->VervaltPer)));
+					$strHV .= sprintf("<li>%s is per %s vervallen.</li>\n", $row->DiplOms, strftime("%e %h %Y", strtotime($row->VervaltPer)));
 				} else {
-					$strHV .= sprintf("<li>%s, gehaald op %s, vervalt op %s.</li>\n", $row->Diploma, strftime("%e %h %Y", strtotime($row->DatumBehaald)), strftime("%e %h %Y", strtotime($row->VervaltPer)));
+					$strHV .= sprintf("<li>%s vervalt op %s.</li>\n", $row->DiplOms, strftime("%e %h %Y", strtotime($row->VervaltPer)));
 				}
 			}
 			if (strlen($strHV) == 0) {
