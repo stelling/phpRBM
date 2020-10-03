@@ -5500,15 +5500,16 @@ class cls_Liddipl extends cls_db_base {
 	}
 	
 	public function vervallenbinnenkort() {
-		$query = sprintf("SELECT D.Kode AS Code,"
-				 . " D.Naam AS Diploma,"
-				 . " LD.DatumBehaald AS DatumBehaald,"
-				 . " LD.Diplomanummer,"
-				 . " IFNULL(LD.LicentieVervallenPer, IF(D.GELDIGH>0, DATE_ADD(LD.DatumBehaald, INTERVAL D.GELDIGH MONTH), NULL)) AS VervaltPer"
-				 . " FROM %1\$sLiddipl AS LD INNER JOIN %1\$sDiploma AS D ON LD.DiplomaID=D.RecordID"
-				 . " WHERE D.Zelfservice=1 AND ((D.Vervallen IS NULL) OR D.Vervallen > CURDATE()) AND ((NOT LD.LicentieVervallenPer IS NULL) OR D.GELDIGH > 0) AND LD.Lid=%2\$d"
-				 . " AND IFNULL(LD.LicentieVervallenPer, DATE_ADD(LD.DatumBehaald, INTERVAL D.GELDIGH MONTH)) < DATE_ADD(CURDATE(), INTERVAL %3\$d MONTH) AND LD.LicentieVervallenPer > DATE_ADD(CURDATE(), INTERVAL -%3\$d MONTH)"
-				 . " ORDER BY D.Volgnr, D.Kode, LD.DatumBehaald DESC;", TABLE_PREFIX, $_SESSION['lidid'], $_SESSION['settings']['termijnvervallendiplomasmelden']);
+		$query = sprintf("SELECT D.Kode AS Code,
+						  D.Naam AS Diploma,
+						  CONCAT(D.Kode, ' ', D.Naam) AS DiplOms,
+						  LD.DatumBehaald AS DatumBehaald,
+						  LD.Diplomanummer,
+						  IFNULL(LD.LicentieVervallenPer, IF(D.GELDIGH>0, DATE_ADD(LD.DatumBehaald, INTERVAL D.GELDIGH MONTH), NULL)) AS VervaltPer
+						  FROM %1\$sLiddipl AS LD INNER JOIN %1\$sDiploma AS D ON LD.DiplomaID=D.RecordID
+						  WHERE IFNULL(D.Vervallen, CURDATE()) >= CURDATE() AND ((NOT LD.LicentieVervallenPer IS NULL) OR D.GELDIGH > 0) AND LD.Lid=%2\$d
+						  AND IFNULL(LD.LicentieVervallenPer, DATE_ADD(LD.DatumBehaald, INTERVAL D.GELDIGH MONTH)) < DATE_ADD(CURDATE(), INTERVAL %3\$d MONTH) AND LD.LicentieVervallenPer > DATE_SUB(CURDATE(), INTERVAL %3\$d MONTH)
+						  ORDER BY D.Volgnr, D.Kode, LD.DatumBehaald DESC;", TABLE_PREFIX, $_SESSION['lidid'], $_SESSION['settings']['termijnvervallendiplomasmelden']);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
