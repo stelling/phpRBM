@@ -64,7 +64,7 @@ function fnMailing() {
 
 	$f = sprintf("RecordID=%d", $_GET['mid']);
 	$zv = (new cls_Mailing())->max("ZichtbaarVoor", $f);
-	$lg = explode(", ", $_SESSION['lidgroepen']);
+	$lg = explode(",", $_SESSION['lidgroepen']);
 	if ($_SESSION['webmaster'] == 0 and $zv != 0 and in_array($zv, $lg) === false) {
 		$mess = "Je hebt geen rechten om deze mailing te bekijken of te bewerken.";
 		printf("<h2>%s</h2>", $mess);
