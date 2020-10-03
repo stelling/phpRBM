@@ -79,7 +79,6 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 				
 				$mess = "Bestand is in de database verwerkt.";
 				db_onderhoud(1);
-				(new cls_lidond())->autogroepenbijwerken();
 				fnMaatwerkNaUpload();
 				printf("<script>setTimeout(\"location.href='%s';\", 30000);</script>\n", $_SERVER['PHP_SELF']);
 			}
@@ -181,6 +180,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 
 } elseif ($currenttab == "Downloaden wijzigingen" and toegang($currenttab, 1, 1)) {
 	$copytext = "";
+	(new cls_lidond())->autogroepenbijwerken();
 	echo("<h2>Wijzigen op de website, te verwerken in de Access database.</h2>");
 	printf("<form name='formdownload' method='post' action='%s?tp=%s&amp;op=downloadwijz'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	$linklk = sprintf("<a href='/admin.php?op=deleteint&amp;recid=%%d&amp;tp=%s'><img src='images/del.png' title='Verwijder record'></a>", urlencode($_GET['tp']));
@@ -569,14 +569,18 @@ function fnStamgegevens() {
 	$rows = (new cls_db_base("Diploma"))->basislijst();
 	printf("<p>%s</p>", fnDisplayTable($rows, "", "Basislijst Diploma's", 0, "", "", "lijst", ""));
 	
+	$rows = (new cls_db_base("Onderdl"))->basislijst();
+	printf("<p>%s</p>", fnDisplayTable($rows, "", "Basislijst Onderdelen", 0, "", "", "lijst", ""));
+	
+	$rows = (new cls_db_base("Organisatie"))->basislijst();
+	printf("<p>%s</p>", fnDisplayTable($rows, "", "Basislijst Organisaties", 0, "", "", "lijst", ""));
+	
 	$rows = (new cls_db_base("Functie"))->basislijst();
 	printf("<p>%s</p>", fnDisplayTable($rows, "", "Basislijst Functies", 0, "", "", "lijst", ""));
 	
 	$rows = (new cls_db_base("Groep"))->basislijst();
 	printf("<p>%s</p>", fnDisplayTable($rows, "", "Basislijst Groepen", 0, "", "", "lijst", ""));
 	
-	$rows = (new cls_db_base("Onderdl"))->basislijst();
-	printf("<p>%s</p>", fnDisplayTable($rows, "", "Basislijst Onderdelen", 0, "", "", "lijst", ""));
 	
 } # fnStamgegevens
 
