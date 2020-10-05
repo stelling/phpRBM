@@ -723,7 +723,11 @@ class Mailing {
 			printf("<textarea name='message' rows=15 cols=125>%s</textarea>\n", $this->message);
 		} else {
 			echo("</div> <!-- Einde editmailingform -->\n");
-			if ($_SESSION['settings']['mailing_type_editor'] == 2) {			
+			if ($_SESSION['settings']['mailing_type_editor'] == 3) {
+				
+				printf("<textarea id='message' name='message'>%s</textarea>\n", $this->message);
+				
+			} elseif ($_SESSION['settings']['mailing_type_editor'] == 2) {
 				printf("<textarea name='message'>%s</textarea>
                 <script>
                 CKEDITOR.replace( 'message' );
@@ -769,8 +773,7 @@ class Mailing {
 			echo("<input type='file' name='UploadFile' size='40'>\n");
 			echo("<input type='submit' name='UploadBijlage' value='Upload bijlage'>&nbsp;");
 			printf("(Extensies '%s' zijn toegestaan)\n", $this->allowed_ext);
-			echo("</div>  <!-- Einde invoerblok -->\n");
-			
+			echo("</div>  <!-- Einde invoerblok -->\n");	
 			
 			echo("<label>Media</label>\n<div class='invoerblok'>\n");
 			echo("<table>\n");
@@ -1829,6 +1832,12 @@ function fnMailingInstellingen() {
 		$i_p->update("max_grootte_bijlage", $_POST['max_grootte_bijlage']);
 		
 		$i_p->update("mailing_type_editor", $_POST['mailing_type_editor']);
+		if (isset($_POST['mailing_tinymce_apikey'])) {
+			if (strlen($_POST['mailing_tinymce_apikey']) < 8) {
+				$_POST['mailing_tinymce_apikey'] = "no-api-key";
+			}
+			$i_p->update("mailing_tinymce_apikey", $_POST['mailing_tinymce_apikey']);
+		}
 		$i_p->update("mailing_lidnr", $_POST['mailing_lidnr']);
 		$i_p->update("mailing_validatielogin", $_POST['mailing_validatielogin']);
 		$i_p->update("mailing_herstellenwachtwoord", $_POST['mailing_herstellenwachtwoord']);
@@ -1884,20 +1893,25 @@ function fnMailingInstellingen() {
 	}
 	printf("<label>Wie mag alle mailings zien en muteren?</label>\n<p><select name='mailing_alle_zien'>%s</select></p>\n", $options);
 
-	printf("<label>Hoeveel maanden moeten mailings in de prullenbak bewaard blijven: (0 = altijd bewaren)</label><input class='inputnumber' type='number' name='mailing_bewaartijd' value=%d size=8>\n", $_SESSION['settings']['mailing_bewaartijd']);
-	printf("<label>Hoeveel mails mogen er per minuut verstuurd worden: (0 = onbeperkt)</label><input class='inputnumber' type='number' name='maxmailsperminuut' value=%d size=8>\n", $_SESSION['settings']['maxmailsperminuut']);
-	printf("<label>Hoeveel mails mogen er per uur verstuurd worden: (0 = onbeperkt)</label><input class='inputnumber' type='number' name='maxmailsperuur' value=%d size=8>\n", $_SESSION['settings']['maxmailsperuur']);
-	printf("<label>Hoeveel mails mogen er per 24 uur verstuurd worden: (0 = onbeperkt)</label><input class='inputnumber' type='number' name='maxmailsperdag' value=%d size=8>\n", $_SESSION['settings']['maxmailsperdag']);
+	printf("<label>Hoeveel maanden moeten mailings in de prullenbak bewaard blijven: (0 = altijd bewaren)</label><input type='number' name='mailing_bewaartijd' value=%d>\n", $_SESSION['settings']['mailing_bewaartijd']);
+	printf("<label>Hoeveel mails mogen er per minuut verstuurd worden: (0 = onbeperkt)</label><input type='number' name='maxmailsperminuut' value=%d>\n", $_SESSION['settings']['maxmailsperminuut']);
+	printf("<label>Hoeveel mails mogen er per uur verstuurd worden: (0 = onbeperkt)</label><input type='number' name='maxmailsperuur' value=%d>\n", $_SESSION['settings']['maxmailsperuur']);
+	printf("<label>Hoeveel mails mogen er per 24 uur verstuurd worden: (0 = onbeperkt)</label><input type='number' name='maxmailsperdag' value=%d>\n", $_SESSION['settings']['maxmailsperdag']);
+	$i_mh = new cls_Mailing_hist();
 	printf("<label>Aantal verstuurde mails in de afgelopen uur / 24 uur:</label><p>%d / %d</p>\n", db_mailing_hist("aantalperuur"), db_mailing_hist("aantal24uur"));
-	printf("<label>Waar worden de attachments bewaard?</label><input class='inputtext' type='text' name='path_attachments' value='%s' size=30>\n", $_SESSION['settings']['path_attachments']);
-	printf("<label>Welke extensies zijn als attachment toegestaan: (leeg = standaard lijst)</label><input class='inputtext' type='text' name='mailing_extensies_toegestaan' value='%s' size=30>\n", $_SESSION['settings']['mailing_extensies_toegestaan']);
-	printf("<label>Wat is de maximale groootte van één attachment?</label><input class='inputnumber' type='number' name='max_grootte_bijlage' value='%s' size=30><p>KB (nul = 2MB)</p>\n", $_SESSION['settings']['max_grootte_bijlage']);
+	$i_mh = null;
+	printf("<label>Waar worden de attachments bewaard?</label><input type='text' name='path_attachments' value='%s'>\n", $_SESSION['settings']['path_attachments']);
+	printf("<label>Welke extensies zijn als attachment toegestaan: (leeg = standaard lijst)</label><input type='text' name='mailing_extensies_toegestaan' value='%s'>\n", $_SESSION['settings']['mailing_extensies_toegestaan']);
+	printf("<label>Wat is de maximale groootte van één attachment?</label><input type='number' name='max_grootte_bijlage' value=%d><p>KB (nul = 2MB)</p>\n", $_SESSION['settings']['max_grootte_bijlage']);
 	
 	$options = "";
 	foreach(ARRTYPEEDITOR as $key => $oms) {
 		$options .= sprintf("<option%s value=%d>%s</option>\n", checked($key, "option", $_SESSION['settings']['mailing_type_editor']), $key, $oms);
 	}
 	printf("<label>Welke editor wil je gebruiken?</label><select name='mailing_type_editor'>%s</select>\n", $options);
+	if ($_SESSION['settings']['mailing_type_editor'] == 3) {
+		printf("<label>Wat is de API-key voor TinyMCE?</label><input type='text' name='mailing_tinymce_apikey' value='%s'>\n", $_SESSION['settings']['mailing_tinymce_apikey']);
+	}
 	
 	echo("<h2>Mailings met een specifiek doel</h2>\n");
 	

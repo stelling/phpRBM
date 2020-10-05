@@ -6932,14 +6932,33 @@ class cls_Parameter extends cls_db_base {
 		$this->table = TABLE_PREFIX . "Admin_param";
 		$this->ta = 13;
 		
+		// Instellingen ledenadministratie
 		$this->arrParam['kaderoverzichtmetfoto'] = array("Type" => "B", "Default" => 1);
-		$this->arrParam['toonpasfotoindiennietingelogd'] = array("Type" => "B", "Default" => 0);
 		$this->arrParam['meisjesnaamtonen'] = array("Type" => "B", "Default" => 1);
+		$this->arrParam['menu_met_afdelingen'] = array("Type" => "T");
+		$this->arrParam['muteerbarememos'] = array("Type" => "T", "Default" => "D,G");
+		$this->arrParam['toonpasfotoindiennietingelogd'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['uitleg_toestemmingen'] = array("Type" => "T");
+		$this->arrParam['verjaardagenvooruit'] = array("Type" => "I", "Default" => 5);
 		$this->arrParam['woonadres_anderen_tonen'] = array("Type" => "B", "Default" => 1);
-		$this->arrParam['mailing_direct_verzenden'] = array("Type" => "B", "Default" => 0);
-		$this->arrParam['mailing_sentoutbox_auto'] = array("Type" => "B", "Default" => 1);
-		$this->arrParam['mailing_rekening_regelnrsweglaten'] = array("Type" => "B", "Default" => 0);
-		$this->arrParam['mailing_rekening_nulrekversturen'] = array("Type" => "B", "Default" => 1);
+		
+		$this->arrParam['zs_emailnieuwepasfoto'] = array("Type" => "T");
+		$this->arrParam['zs_incl_beroep'] = array("Type" => "B", "Default" => 1);
+		$this->arrParam['zs_incl_vogafgegeven'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['zs_incl_bsn'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['zs_incl_emailouders'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['zs_incl_emailvereniging'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['zs_incl_iban'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['zs_incl_legitimatie'] = array("Type" => "B", "Default" => 1);
+		$this->arrParam['zs_incl_machtiging'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['zs_incl_slid'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['zs_muteerbarememos'] = array("Type" => "T");
+		$this->arrParam['zs_opzeggingautomatischverwerken'] = array("Type" => "B", "Default" => 0);
+		$this->arrParam['zs_opzegtermijn'] = array("Type" => "I", "Default" => 1);
+		$this->arrParam['zs_voorwaardenbestelling'] = array("Type" => "T");
+		$this->arrParam['zs_voorwaardeninschrijving'] = array("Type" => "T");
+		// ***
+		
 		$this->arrParam['toneninschrijvingenbewakingen'] = array("Type" => "B", "Default" => 1);
 		$this->arrParam['tonentoekomstigebewakingen'] = array("Type" => "B", "Default" => 0);
 		
@@ -6956,14 +6975,19 @@ class cls_Parameter extends cls_db_base {
 		$this->arrParam['mailing_bevestigingopzegging'] = array("Type" => "I", "Default" => 0);
 		$this->arrParam['mailing_bewaartijd'] = array("Type" => "I", "Default" => 3);
 		$this->arrParam['mailing_bewakinginschrijving'] = array("Type" => "I", "Default" => 0);
+		$this->arrParam['mailing_direct_verzenden'] = array("Type" => "B", "Default" => 0);
 		$this->arrParam['mailing_extensies_toegestaan'] = array("Type" => "T", "Default" => "bmp, gif, jpeg, jpg, pdf, png, pps, rar, txt, zip");
 		$this->arrParam['mailing_herstellenwachtwoord'] = array("Type" => "I", "Default" => 0);
 		$this->arrParam['mailing_meldingnieuwip'] = array("Type" => "I", "Default" => 0);
 		$this->arrParam['mailing_lidnr'] = array("Type" => "I", "Default" => 0);
 		$this->arrParam['mailing_mailopnieuw'] = array("Type" => "I", "Default" => 0);
+		$this->arrParam['mailing_rekening_nulrekversturen'] = array("Type" => "B", "Default" => 1);
+		$this->arrParam['mailing_rekening_regelnrsweglaten'] = array("Type" => "B", "Default" => 0);
 		$this->arrParam['mailing_rekening_stuurnaar'] = array("Type" => "I", "Default" => 1);
 		$this->arrParam['mailing_rekening_valuta'] = array("Type" => "T", "Default" => "&euro&nbsp;");
 		$this->arrParam['mailing_rekening_vanafid'] = array("Type" => "I", "Default" => 0);
+		$this->arrParam['mailing_sentoutbox_auto'] = array("Type" => "B", "Default" => 1);
+		$this->arrParam['mailing_tinymce_apikey'] = array("Type" => "T", "Default" => "");
 		$this->arrParam['mailing_type_editor'] = array("Type" => "I", "Default" => 1);
 		$this->arrParam['mailing_validatielogin'] = array("Type" => "I", "Default" => 0);
 		
@@ -6981,37 +7005,17 @@ class cls_Parameter extends cls_db_base {
 		$this->arrParam['termijnvervallendiplomasmelden'] = array("Type" => "I", "Default" => 6);
 		$this->arrParam['typemenu'] = array("Type" => "I", "Default" => 1);
 		$this->arrParam['verjaardagenaantal'] = array("Type" => "I", "Default" => 7);
-		$this->arrParam['verjaardagenvooruit'] = array("Type" => "I", "Default" => 5);
 		$this->arrParam['versie'] = array("Type" => "I");
 		
 		$this->arrParam['db_folderbackup'] = array("Type" => "T");
 		$this->arrParam['emailwebmaster'] = array("Type" => "T");
 		$this->arrParam['login_beperkttotgroep'] = array("Type" => "T");
-		$this->arrParam['muteerbarememos'] = array("Type" => "T", "Default" => "D,G");
 		$this->arrParam['naamwebsite'] = array("Type" => "T", "Default" => "Naam website");
-		$this->arrParam['menu_met_afdelingen'] = array("Type" => "T");
 		$this->arrParam['path_attachments'] = array("Type" => "T");
 		$this->arrParam['path_pasfoto'] = array("Type" => "T");
 		$this->arrParam['path_templates'] = array("Type" => "T");
-		$this->arrParam['uitleg_toestemmingen'] = array("Type" => "T");
 		$this->arrParam['urlvereniging'] = array("Type" => "T");
 		$this->arrParam['url_eigen_help'] = array("Type" => "T");
-		
-		$this->arrParam['zs_emailnieuwepasfoto'] = array("Type" => "T");
-		$this->arrParam['zs_incl_beroep'] = array("Type" => "B", "Default" => 1);
-		$this->arrParam['zs_incl_vogafgegeven'] = array("Type" => "B", "Default" => 0);
-		$this->arrParam['zs_incl_bsn'] = array("Type" => "B", "Default" => 0);
-		$this->arrParam['zs_incl_emailouders'] = array("Type" => "B", "Default" => 0);
-		$this->arrParam['zs_incl_emailvereniging'] = array("Type" => "B", "Default" => 0);
-		$this->arrParam['zs_incl_iban'] = array("Type" => "B", "Default" => 0);
-		$this->arrParam['zs_incl_legitimatie'] = array("Type" => "B", "Default" => 1);
-		$this->arrParam['zs_incl_machtiging'] = array("Type" => "B", "Default" => 0);
-		$this->arrParam['zs_incl_slid'] = array("Type" => "B", "Default" => 0);
-		$this->arrParam['zs_muteerbarememos'] = array("Type" => "T");
-		$this->arrParam['zs_opzeggingautomatischverwerken'] = array("Type" => "B", "Default" => 0);
-		$this->arrParam['zs_opzegtermijn'] = array("Type" => "I", "Default" => 1);
-		$this->arrParam['zs_voorwaardenbestelling'] = array("Type" => "T");
-		$this->arrParam['zs_voorwaardeninschrijving'] = array("Type" => "T");
 	
 	}
 	
