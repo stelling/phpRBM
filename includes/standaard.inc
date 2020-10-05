@@ -11,7 +11,7 @@ define("ARRSOORTMEMO", ["A" => "Algemeen", "B" => "Bewaking", "D" => "Dieet", "E
 define("ARRTYPEONDERDEEL", ["A" => "Afdeling", "B" => "Bestuur", "C" => "Commissie", "G" => "Groep", "O" => "Onderscheiding", "T" => "Toestemming"]);
 define("ARRTYPEDIPLOMA", ["B" => "Brevet", "C" => "Competentie", "D" => "Diploma", "I" => "Insigne", "L" => "Licentie", "M" => "Module", "P" => "Proeve van bekwaamheid"]);
 define("PASFOTOEXTENTIES", ["gif", "jpg", "jpeg", "png"]);
-define("ARRTYPEEDITOR", [1 => "CKEditor 5 Classic editor", 2 => "CKEditor 4"]);
+define("ARRTYPEEDITOR", [1 => "CKEditor 5 Classic editor", 2 => "CKEditor 4", 3 => "TinyMCE"]);
 define("ARRSOORTEVENEMENT", ["B" => "Brigade-activiteit", "G" => "Gezellig/sociaal", "O" => "Opleiding", "V" => "Vergadering/overleg", "W" => "Wedstrijd"]);
 define("ARRDLNSTATUS", ["A" => "Afgewezen", "B" => "Bevestigd", "I" => "Ingeschreven", "J" => "Aangemeld", "N" => "Niet geweest", "R" => "Reserve", "T" => "Onder voorbehoud", "X" => "Afgemeld/Afgezegd"]);
 define("ARRPRESENTIESTATUS", ["A" => "Aangemeld/aanwezig", "R" => "Afgemeld/afwezig met bekende reden", "T" => "Onder voorbehoud", "X" => "Afgemeld/afwezig zonder bekende reden", "Z" => "Afgemeld/afwezig wegens ziekte"]);
@@ -166,7 +166,23 @@ function HTMLheader($breed=0) {
 		echo("<head>\n");
 		printf("<script src='%s/includes/javascript.js'></script>\n", BASISURL);
 		if (isset($_GET['tp']) and substr($_GET['tp'], 0, 7) == "Mailing") {
-			if ($_SESSION['settings']['mailing_type_editor'] == 2) {
+			if ($_SESSION['settings']['mailing_type_editor'] == 3) {
+				printf("<script src='https://cdn.tiny.cloud/1/%s/tinymce/5/tinymce.min.js' referrerpolicy='origin'></script>", $_SESSION['settings']['mailing_tinymce_apikey']);
+				echo("<script>
+		tinymce.init({
+			selector: '#message',
+			height: 600,
+			plugins: 'hr link lists table',
+			menu: {
+				table: { title: 'Table', items: 'inserttable | cell row column | tableprops deletetable' }
+			},
+			toolbar: 'undo redo | styleselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist | link | hr',
+			menubar: 'edit insert format tools table'
+		});
+  </script>");
+  
+  
+			} elseif ($_SESSION['settings']['mailing_type_editor'] == 2) {
 				echo("<script src='https://cdn.ckeditor.com/4.13.0/standard/ckeditor.js'></script>\n");
 			} else {
 				echo("<script src='https://cdn.ckeditor.com/ckeditor5/12.4.0/classic/ckeditor.js'></script>\n");
