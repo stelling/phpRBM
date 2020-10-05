@@ -1325,6 +1325,11 @@ input.knop, button.knop {
 	width: 75px;
 }
 
+#rekeningregelsmuteren img {
+	margin-left: auto;
+	margin-right: auto;
+}
+
 #rekeningenmailen ul {
 	margin-left: 0;
 	padding-left: 0;
@@ -1433,6 +1438,15 @@ input.knop, button.knop {
 
 #instellingenmuteren input {
 	float: left;
+}
+
+#instellingenmuteren input[type="text"], #instellingenmuteren input[type="email"] {
+	width: 400px;
+}
+
+#instellingenmuteren input[type="number"] {
+	width: 125px;
+	text-align: right;
 }
 
 #instellingenmuteren td {
