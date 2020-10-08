@@ -905,6 +905,14 @@ class cls_Lid extends cls_db_base {
 		return $rv;
 	}
 	
+	public function lidbijemail($p_email) {
+		$p_email = strtolower($p_email);
+		$query = sprintf("SELECT IFNULL(L.RecordID, 0) AS LidID, LM.Lidnr, %1\$s AS NaamLid FROM %2\$s AS L INNER JOIN %3\$sLidmaatschap AS LM ON L.RecordID=LM.Lid
+						  WHERE IFNULL(LM.Opgezegd, CURDATE()) >= CURDATE() AND (LOWER(L.Email)='%4\$s' OR LOWER(L.EmailOuders)='%4\$s' OR LOWER(L.EmailVereniging)='%4\$s')
+						  ORDER BY LM.Lidnr;", $this->selectnaam, $this->table, TABLE_PREFIX, $p_email);
+		return $this->execsql($query)->fetchAll();
+	}
+	
 	public function add($p_achternaam, $p_geslacht) {
 		$this->lidid = $this->nieuwrecordID();
 		$query = sprintf("INSERT INTO %sLid (RecordID, Nummer, Achternaam, Geslacht, Ingevoerd) VALUES (%d, %d, \"%s\", '%s', CURDATE());", TABLE_PREFIX, $this->lidid, $this->lidid, $p_achternaam, $p_geslacht);
@@ -1830,15 +1838,20 @@ class cls_Onderdeel extends cls_db_base {
 		return $result->fetch();
 	}
 	
-	public function lijst($p_ingebruik=1, $p_filter="", $p_per="") {
+	public function lijst($p_ingebruik=1, $p_filter="", $p_per="", $p_lidid=0) {
 		
 		$filter = "";
 		if ($p_ingebruik == 1) {
 			if (strlen($p_per) < 10) {
 				$p_per = date("Y-m-d");
 			}
-			$filter = sprintf(" WHERE O.RecordID IN (SELECT LO.OnderdeelID FROM %sLidond AS LO WHERE LO.OnderdeelID=O.RecordID AND %s)", TABLE_PREFIX, str_replace("CURDATE()", "'" . $p_per . "'", $this->wherelidond));
+			if ($_SESSION['webmaster'] == 0 and $p_lidid > 0) {
+				$filter .= sprintf(" WHERE O.RecordID IN (SELECT LO.OnderdeelID FROM %sLidond AS LO WHERE %s AND LO.Lid=%d)", TABLE_PREFIX, $this->wherelidond, $p_lidid);
+			} else {
+				$filter = sprintf(" WHERE O.RecordID IN (SELECT LO.OnderdeelID FROM %sLidond AS LO WHERE LO.OnderdeelID=O.RecordID AND %s)", TABLE_PREFIX, str_replace("CURDATE()", "'" . $p_per . "'", $this->wherelidond));
+			}
 		}
+		
 		if (strlen($p_filter) > 0) {
 			if (strlen($filter) > 0) {
 				$filter .= " AND ";
@@ -2615,6 +2628,15 @@ class cls_Lidond extends cls_db_base {
 		return $result->fetchAll();
 	}
 	
+	public function islid($p_lidid, $p_oid) {
+		$query = sprintf("SELECT COUNT(*) FROM %s AS LO WHERE %s AND Lid=%d AND OnderdeelID=%d;", $this->table, $this->wherelidond, $p_lidid, $p_oid);
+		if ($this->scalar($query) == 0) {
+			return false;
+		} else {
+			return true;
+		}
+	}
+	
 	public function add($p_ondid, $p_lidid, $p_reden="") {
 		global $lididtestusers;
 		
@@ -3362,9 +3384,9 @@ class cls_Login extends cls_db_base {
 	}
 	
 	public function aanvragenmag($p_lidid) {
-		global $lididwebmasters, $lididtestusers;
+		global $lididtestusers;
 		
-		if (in_array($p_lidid, $lididwebmasters) == true or in_array($p_lidid, $lididtestusers) == true) {
+		if (in_array($p_lidid, LIDIDWEBMASTERS) == true or in_array($p_lidid, $lididtestusers) == true) {
 			return true;
 		} else {
 			$query = sprintf("SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE() AND LO.Lid=%d AND LO.OnderdeelID IN (%s);", TABLE_PREFIX, $p_lidid, implode(",", $this->beperkttotgroep));
@@ -3375,9 +3397,13 @@ class cls_Login extends cls_db_base {
 			}
 		}
 	}
+
+	public function lididbijlogin($p_login) {
+		$query = sprintf("SELECT IFNULL(MAX(LidID), 0) FROM %s WHERE Login='%s';", $this->table, $p_login);
+		return $this->scalar($query);
+	}
 		
 	public function controle($p_wachtwoord, $p_fromcookie=0) {
-		global $lididwebmasters;
 		
 		$login = $_SESSION['username'];
 		
@@ -3410,9 +3436,9 @@ class cls_Login extends cls_db_base {
 		
 		$xw = sprintf("AND Login.Login LIKE '%s'", cleanlogin($login));
 		if (is_array($this->beperkttotgroep) and count($this->beperkttotgroep) > 0) {
-			$xw .= sprintf(" AND (Login.LidID IN (SELECT Lid FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID IN (%s)) OR Login.LidID IN (%s))", TABLE_PREFIX, $this->wherelidond, implode(", ", $this->beperkttotgroep), implode(", ", $lididwebmasters));
+			$xw .= sprintf(" AND (Login.LidID IN (SELECT Lid FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID IN (%s)) OR Login.LidID IN (%s))", TABLE_PREFIX, $this->wherelidond, implode(", ", $this->beperkttotgroep), implode(", ", LIDIDWEBMASTERS));
 		} else {
-			$xw .= sprintf(" AND Login.LidID IN (%s)", implode(", ", $lididwebmasters));
+			$xw .= sprintf(" AND Login.LidID IN (%s)", implode(", ", LIDIDWEBMASTERS));
 		}
 		$query = sprintf("SELECT Login.LidID, Login.Login, %3\$s AS NaamLid, L.Roepnaam, L.Email, L.EmailVereniging, L.EmailOuders, Login.Wachtwoord, Login.ActivatieKey,
 					IFNULL((%4\$s), 0) AS Lidnr, Login.FouteLogin, Login.Gewijzigd
@@ -3444,7 +3470,7 @@ class cls_Login extends cls_db_base {
 		if ($result == 1) {
 			$this->mess = "Login is gevalideerd en kan worden gebruikt.";
 		} else {
-			$this->mess = sprintf("Er ging iets mis bij het valideren van de login voor %s is gevalideerd. Mogelijk is deze login al gevalideerd. Zo niet probeer het later opnieuw.", (new cls_Lid())->Naam($lidid));
+			$this->mess = sprintf("Er ging iets mis bij het valideren van de login voor %s is gevalideerd. Mogelijk is deze login al gevalideerd. Zo niet probeer het later opnieuw.", (new cls_Lid())->Naam($p_lidid));
 		}
 		$this->tas = 4;
 		$this->Log(0, 1);
@@ -3996,6 +4022,15 @@ class cls_Mailing extends cls_db_base {
 		return $result->fetchAll();
 	}  # lijst
 	
+	public function mogelijkeontvangers($p_mid) {
+		$query = sprintf("SELECT L.RecordID AS LidID, %1\$s AS Zoeknaam_lid FROM %2\$sLid AS L
+					WHERE (L.Verwijderd IS NULL) AND (L.Overleden IS NULL) AND (LENGTH(L.Email) > 5 OR LENGTH(L.EmailVereniging) > 5 OR LENGTH(L.EmailOuders) > 5 OR (SELECT COUNT(*) FROM %2\$sLidmaatschap AS LM WHERE IFNULL(LM.Opgezegd, CURDATE()) >= CURDATE() AND LM.Lid=L.RecordID) > 0)
+					AND (SELECT COUNT(*) FROM %2\$sMailing_rcpt AS R WHERE R.LidID=L.RecordID AND R.MailingID=%3\$d)=0
+					ORDER BY L.Achternaam, L.Roepnaam;", $this->selectzoeknaam, TABLE_PREFIX, $p_mid);
+		$result = $this->execsql($query);
+		return $result->fetchAll();
+	}
+	
 	public function add($p_subject) {
 		
 		$p_subject = str_replace("\"", "'", $p_subject);
@@ -4293,6 +4328,38 @@ class cls_Mailing_hist extends cls_db_base {
 		return $result->fetchAll();
 	}
 	
+	public function outbox($p_srt=1) {
+		/* p_srt
+			1 = standaardstatus
+			2 = voor versturen in batch
+			3 = speciale mailingen die direct verstuurd moeten worden
+		*/
+			
+		$lm = 1000;
+		if ($_SESSION['settings']['maxmailsperdag'] > 0 and $_SESSION['settings']['maxmailsperdag'] < $lm) {
+			$lm = $_SESSION['settings']['maxmailsperdag'];
+		}
+		if ($_SESSION['settings']['maxmailsperuur'] > 0 and $_SESSION['settings']['maxmailsperuur'] < $lm) {
+			$lm = $_SESSION['settings']['maxmailsperuur'];
+		}
+		$xw = "";
+		if ($p_srt == 2) {
+			$xw = "AND MH.Ingevoerd < DATE_SUB(SYSDATE(), INTERVAL 15 MINUTE)";
+		} elseif ($p_srt == 3) {
+			$xw = sprintf("AND MH.MailingID > 0 AND MH.MailingID IN (%d, %d, %d)", $_SESSION['settings']['mailing_lidnr'], $_SESSION['settings']['mailing_validatielogin'], $_SESSION['settings']['mailing_herstellenwachtwoord']);
+		} elseif ($_SESSION['webmaster'] == 0) {
+			$xw = sprintf("AND MH.ZichtbaarVoor IN (%s)", $_SESSION['lidgroepen']);
+		} else {
+			$xw = "";
+		}
+		$query = sprintf("SELECT MH.RecordID AS lnkRecordID, MH.Ingevoerd AS `dttWacht vanaf`, MH.subject AS Onderwerp, MH.to_name AS Aan,
+						MH.to_addr AS `E-mail`, MH.cc_addr AS `CC`, MH.RecordID AS llkRecordID
+						FROM (%1\$sMailing_hist AS MH LEFT OUTER JOIN %1\$sLid AS L ON MH.LidID=L.RecordID) LEFT JOIN %1\$sMailing AS M ON M.RecordID=MH.MailingID
+						WHERE IFNULL(MH.send_on, '1970-01-01') <= '2000-01-01' %2\$s
+						ORDER BY MH.RecordID LIMIT %3\$d;", TABLE_PREFIX, $xw, $lm);
+		return $this->execsql($query);
+	}
+	
 	public function overzichtlid($p_lidid) {
 		
 		$query = sprintf("SELECT MH.RecordID AS lnkRecordID,
@@ -4446,12 +4513,18 @@ class cls_Mailing_rcpt extends cls_db_base {
 		$this->tas = 10;
 	}
 	
-	public function lijst($p_mid) {
+	public function lijst($p_mid, $p_lidid=0) {
+		
+		$w = sprintf("R.MailingID=%d", $p_mid);
+		if ($p_lidid > 0) {
+			$w .= sprintf(" AND L.RecordID=%d", $p_lidid);
+		}
+		
 		$query = sprintf("SELECT R.LidID, IFNULL(L.RecordID, 0) AS RecordID, %1\$s AS Naam_lid, %2\$s AS Zoeknaam_lid, L.Adres, L.Postcode, 
 					L.Woonplaats, L.Email, L.EmailVereniging, L.EmailOuders, L.GEBDATUM, R.to_address
 					FROM %3\$sMailing_rcpt AS R LEFT OUTER JOIN %3\$sLid AS L ON R.LidID = L.RecordID
-					WHERE R.MailingID=%4\$d
-					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, R.to_address, R.Ingevoerd;", $this->selectnaam, $this->selectzoeknaam, TABLE_PREFIX, $p_mid);
+					WHERE %4\$s
+					ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, R.to_address, R.Ingevoerd;", $this->selectnaam, $this->selectzoeknaam, TABLE_PREFIX, $w);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
@@ -5780,10 +5853,14 @@ class cls_Evenement extends cls_db_base {
 	
 	private $standaaarstatus;
 	private $evid = 0;
+	private $sqlaantdln;
+	private $sqlaantafgemeld;
 	
 	function  __construct() {
 		$this->table = TABLE_PREFIX . "Evenement";
 		$this->ta = 7;
+		$this->sqlaantdln = sprintf("SELECT SUM(Aantal) FROM %sEvenement_Deelnemer AS ED WHERE ED.EvenementID = E.RecordID AND Status IN ('B', 'J')", TABLE_PREFIX);
+		$this->sqlaantafgemeld = sprintf("SELECT COUNT(*) FROM %sEvenement_Deelnemer AS ED WHERE ED.EvenementID = E.RecordID AND Status='X'", TABLE_PREFIX);
 	}
 	
 	public function lijst($p_soort=1) {
@@ -5791,9 +5868,6 @@ class cls_Evenement extends cls_db_base {
 			1=overzicht
 			2=beheer
 		*/
-		
-		$sqlaantdln = sprintf("SELECT SUM(Aantal) FROM %sEvenement_Deelnemer AS ED WHERE ED.EvenementID = E.RecordID AND Status IN ('B', 'J')", TABLE_PREFIX);
-		$sqlaantafgemeld = sprintf("SELECT COUNT(*) FROM %sEvenement_Deelnemer AS ED WHERE ED.EvenementID = E.RecordID AND Status='X'", TABLE_PREFIX);
 	
 		if ($p_soort == 2) {
 			$select = "E.RecordID AS lnkNummer, E.Datum AS dteDatum, DATE_FORMAT(E.Datum, '%H:%i') AS Starttijd, E.Omschrijving, E.Locatie, E.Email AS `emlEmail`, E.Eindtijd, ET.Soort AS ndSoort,
@@ -5804,7 +5878,7 @@ class cls_Evenement extends cls_db_base {
 								E.Email AS `emlEmail`, E.Verzameltijd, E.Eindtijd, ET.Soort AS ndSoort,
 								CASE E.InschrijvingOpen WHEN 0 THEN 'Nee' ELSE 'Ja' END AS `Ins. open?`,
 								(%s) AS `Aantal dln`,
-								ET.Omschrijving AS `Type`", $sqlaantdln);
+								ET.Omschrijving AS `Type`", $this->sqlaantdln);
 			$where = sprintf("E.Datum >= DATE_ADD(CURDATE(), INTERVAL -3 DAY) AND IFNULL(E.VerwijderdOp, '2000-01-01') < '2012-01-01' AND E.ZichtbaarVoor IN (%s)", $_SESSION["lidgroepen"]);
 		}
 		$query = sprintf("SELECT %s
@@ -5814,6 +5888,14 @@ class cls_Evenement extends cls_db_base {
 	
 		$result = $this->execsql($query);
 		return $result->fetchAll();
+	}
+	
+	public function record($p_evid) {
+		$query = sprintf("SELECT E.*, %s AS GewijzigdDoorNaam, (%s) AS AantDln, (%s) AS AantAfgemeld
+								FROM %s AS E LEFT OUTER JOIN %sLid AS L ON E.GewijzigdDoor = L.RecordID
+								WHERE E.RecordID=%d;", $this->selectnaam, $this->sqlaantdln, $this->sqlaantafgemeld, $this->table, TABLE_PREFIX, $p_evid);
+		$result = $this->execsql($query);
+		return $result->fetch();
 	}
 	
 	public function standaardstatus($p_evid) {
