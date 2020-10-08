@@ -1,7 +1,5 @@
 <?php
 
-// $dlnstatus, $soortevenement
-
 function fnEvenementen() {
 	global $currenttab2;
 	
@@ -183,11 +181,15 @@ function muteerevenement($eventid) {
 			$_POST['Datum'] .= " " . $_POST['Starttijd'] . ":00";
 		}
 		
+		if (!isset($_POST['InschrijvingOpen'])) {
+			$_POST['InschrijvingOpen'] = 0;
+		}
+		
 		if ($eventid == 0) {
 			$eventid = $i_ev->add($_POST['TypeEvenement']);
 		}
 		
-		$old = db_evenement("record", 0, $eventid);
+		$old = $i_ev->record($eventid);
 		foreach($_POST as $key => $val) {
 			if (array_key_exists($key, $old) and $old->$key != $_POST[$key]) {
 				$i_ev->update($eventid, $key, $_POST[$key]);
@@ -242,7 +244,7 @@ function muteerevenement($eventid) {
 	}
 	
 	if ($eventid > 0) {
-		$row = db_evenement("record", 0, $eventid);
+		$row = $i_ev->record($eventid);
 		$recordid = $row->RecordID;
 		$datum = date("Y-m-d", strtotime($row->Datum));
 		$oms = $row->Omschrijving;
@@ -461,11 +463,11 @@ function muteertypeevenement() {
 function overzichtevenementen() {
 
 	$i_ev = new cls_Evenement();
+	$i_ed = new cls_Evenement_Deelnemer();
 
 	echo("<div id='overzichtevenementen'>\n");
 	echo("<table>\n");
 	$vsrt = "Q";
-	
 	
 	$lijst = $i_ev->lijst(1);
 	foreach ($lijst as $row) {
@@ -483,10 +485,6 @@ function overzichtevenementen() {
 		}
 		if (IsValidMailAddress($row->emlEmail, 0)) {
 			$oms .= sprintf("<br>\n%s", fnDispEmail($row->emlEmail, "", 1));
-		}
-		$ad = "Aantal dln";
-		if ($row->$ad > 1) {
-			$oms .= sprintf("<br>\n%d&nbsp;deelnemers", $row->$ad);
 		}
 		
 		if (strlen($row->Starttijd) > 3 and strlen($row->Eindtijd) > 3) {
@@ -506,9 +504,12 @@ function overzichtevenementen() {
 		$dames = "";
 		$heren = "";
 		$deelnemers = "";
-		foreach (db_evenement("deelnemers", 0, $row->lnkNummer, "", "B") as $deeln) {
+		$ad = 0;
+		
+		foreach($i_ed->overzichtevenement($row->lnkNummer, "'B', 'J'") as $deeln) {
 			if ($row->ndSoort != "W") {
 				$vn = "deelnemers";
+				$ad++;
 			} elseif ($deeln->Geslacht == "V") {
 				$vn = "dames";
 			} else {
@@ -530,16 +531,18 @@ function overzichtevenementen() {
 			}
 		}
 		if ($row->ndSoort == "W") {
-			printf("<tr><td>%s %s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n", strftime("%A %e %B %Y", strtotime($row->dteDatum)), $td, $oms, $dames, $heren);
+			printf("<tr><td>%s %s</td><td>%s</td><td>%s</td><td>%s", strftime("%A %e %B %Y", strtotime($row->dteDatum)), $td, $oms, $dames, $heren);
 		} else {
-			printf("<tr><td class='datumtijdevenement'>%s%s</td><td class='omschrijvingevenement'>%s</td><td colspan=2><ul class='listdeelnemers'>%s</ul></td></tr>\n", str_replace(" ", "&nbsp;", strftime("%A %e %B %Y", strtotime($row->dteDatum))), $td, $oms, $deelnemers);
+			printf("<tr><td>%s%s</td><td>%s</td><td colspan=2><ul>%s<li>%d deelnemers</li></ul>", str_replace(" ", "&nbsp;", strftime("%A %e %B %Y", strtotime($row->dteDatum))), $td, $oms, $deelnemers, $ad);
 		}
+		printf("</td></tr>\n");
 	}
 	
 	echo("</table>\n");
 	echo("</div>  <!-- Einde overzichtevenementen -->\n");
 	
 	$i_ev = null;
+	$i_ed = null;
 
 }  # overzichtevenementen 
 
