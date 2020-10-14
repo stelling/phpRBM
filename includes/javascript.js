@@ -1,15 +1,30 @@
-function fnFilter() {
-	var input, filter, table, tr, td, i, txtValue;
-	input = document.getElementById("tbNaamFilter");
+function fnFilter(p_table, p_filterelement, p_kolom, p_kolom2) {
+	var input, filter, table, tr, td, td2, i, txtValue, txtValue2;
+	
+	input = document.getElementById(p_filterelement);
 	filter = input.value.toUpperCase();
-	table = document.getElementById("ledenlijst");
+	table = document.getElementById(p_table);
 	tr = table.getElementsByTagName("tr");
+	
+	if (p_kolom2 == undefined) {
+		p_kolom2 = -1;
+	}
 
 	for (i = 0; i < tr.length; i++) {
-		td = tr[i].getElementsByTagName("td")[1];
+		td = tr[i].getElementsByTagName("td")[p_kolom];
+		if (p_kolom2 >= 0) {
+			td2 = tr[i].getElementsByTagName("td")[p_kolom2];	
+		}
 		if (td) {
 			txtValue = td.textContent || td.innerText;
+			if (p_kolom2 > -1) {
+				txtValue2 = td2.textContent || td2.innerText;
+			} else { 
+				txtValue2 = "";
+			}
 			if (txtValue.toUpperCase().indexOf(filter) > -1) {
+				tr[i].style.display = "";
+			} else if (p_kolom2 > -1 && txtValue2.toUpperCase().indexOf(filter) > -1) {
 				tr[i].style.display = "";
 			} else {
 				tr[i].style.display = "none";
@@ -70,4 +85,9 @@ function fnFilterDiplomaLid() {
 	}
 }
 
-
+function CopyFunction() {
+	let textarea = document.getElementById("copywijzigingen");
+	textarea.select();
+	document.execCommand('copy');
+	alert("De wijzigingen zijn naar het klembord gekopieerd.");
+}
