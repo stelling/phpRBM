@@ -221,14 +221,14 @@ header a + a:visited + a:hover {
 	width: 100%;
 	margin-right: 0;
 	margin-top: 8px;
-	margin-bottom: 4px;
+	margin-bottom: 8px;
 	padding-left: 0px;
 	padding-right: 0px;
 	padding-top: 4px;
 	border-style: solid;
 	border-color: #000080;
 	border-width: 1px;
-	min-height: 34px;
+	min-height: 38px;
 }
 
 #filter td {
@@ -242,6 +242,7 @@ header a + a:visited + a:hover {
 	margin-left: 6px;
 	margin-right: 4px;
 	margin-top: 3px;
+	margin-bottom: 3px;
 	height: 20px;
 }
 
@@ -249,6 +250,10 @@ header a + a:visited + a:hover {
 	float: right;
 	margin-right: 6px;
 	margin-top: 6px;
+}
+
+#filter input[type='text'] {
+	width: 150px;
 }
 
 #filter select {
@@ -603,7 +608,8 @@ header a + a:visited + a:hover {
 	text-align: right;
 }
 
-.gewijzigdestukken {
+.gewijzigdestukken p {
+	margin-left: 2px;
 	margin-top: 12px;
 }
 
@@ -827,6 +833,10 @@ input.knop, button.knop {
 	border-bottom-style: solid;
 	border-top-width: 1px;
 	border-bottom-width: 1px;
+}
+
+#verstuurdemail p {
+	float: none;
 }
 
 #verstuurdemail .veld, #verstuurdemail .bericht {
@@ -1454,10 +1464,6 @@ input.knop, button.knop {
 	padding-right: 5px;
 }
 
-#instellingenmuteren .inputtext {
-	width: 382px;
-}
-
 #instellingenmuteren label {
 	width: 525px;
 	height: 40px;
@@ -1475,9 +1481,15 @@ input.knop, button.knop {
 	margin-top: 8px;
 }
 
-#instellingenmuteren input, #instellingenmuteren textarea {
+#instellingenmuteren input {
 	margin-left: 8px;
 	margin-top: 8px;
+}
+
+#instellingenmuteren textarea {
+	float: left;
+	margin-left: 8px;
+	margin-top: 6px;
 }
 
 #instellingenmuteren p {
@@ -1485,7 +1497,7 @@ input.knop, button.knop {
 	margin-left: 6px;
 }
 
-.editmailingform input[type='text'], .editmailingform select {
+.editmailingform input[type='text'], .editmailingform input[type='email'], .editmailingform select {
 	width: 440px;
 }
 
@@ -1500,6 +1512,7 @@ input.knop, button.knop {
 
 .editmailingform label {
 	clear: left;
+	float: left;
 	width: 180px;
 	height: 24px;
 	padding-top: 6px;
