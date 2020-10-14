@@ -12,7 +12,7 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 	setcookie("password", "", time()-60);
 	$_SESSION['lidid'] = 0;
 	$_SESSION['webmaster'] = 0;
-	echo("<script>location.href='/'; </script>\n");
+	// echo("<script>location.href='/'; </script>\n");
 } else if ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['Inloggen']) and $_POST['Inloggen'] == "Inloggen") {
 	if (strlen($_POST['password']) < 5) {
 		$mess = "Om in te loggen is het invullen van een wachtwoord van minimaal 5 karakters vereist.";
@@ -272,7 +272,7 @@ function fnGewijzigdeStukken() {
 	if ($_SESSION['lidid'] > 0) {
 		$rows = (new cls_Stukken())->gewijzigdestukken();
 		if (count($rows) > 0) {
-			$rv = "<p class='gewijzigdestukken'>De volgende stukken zijn gewijzigd sinds je laatste login.\n
+			$rv = "<p class='gewijzigdestukken'>De volgende stukken zijn gewijzigd sinds je laatste login of korter dan een week geleden.\n
 				   <ul>\n";
 			foreach($rows as $row) {
 				$rv .= sprintf("<li>%s</li>\n", $row->Titel);
