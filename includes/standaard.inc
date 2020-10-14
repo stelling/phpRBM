@@ -17,8 +17,10 @@ define("ARRDLNSTATUS", ["A" => "Afgewezen", "B" => "Bevestigd", "I" => "Ingeschr
 define("ARRPRESENTIESTATUS", ["A" => "Aangemeld/aanwezig", "R" => "Afgemeld/afwezig met bekende reden", "T" => "Onder voorbehoud", "X" => "Afgemeld/afwezig zonder bekende reden", "Z" => "Afgemeld/afwezig wegens ziekte"]);
 define("ARRTYPEBACKUP", [1 => "phpRBM-tabellen", 2 => "Tabellen uit MS-Access", 3 => "Beide"]);
 define("ARRTYPESTUK", ["B" => "Beleidsstuk", "F" => "Formulier", "H" => "Handleiding", "P" => "Promotiemateriaal", "R" => "Regeling", "V" => "Verklaring"]);
+define("ARRTYPEMENU", [1 => "per niveau een aparte regel", 2 => "&eacute;&eacute;n menu met dropdown", 3 => "&eacute;&eacute;n menu met dropdown en extra menu voor niveau 2"]);
 
 require(BASEDIR . '/config.php');
+define("LIDIDWEBMASTERS", $lididwebmasters);
 $bestandsversie = filectime(BASEDIR . "/index.php");
 if (strlen($table_prefix) > 0 and substr($table_prefix, -1) != "_") {
 	$table_prefix .= "_";
@@ -47,7 +49,7 @@ if ((isset($_SESSION['webmaster']) and $_SESSION['webmaster'] == 1) or strpos(BA
 	error_reporting(E_ALL);
 } else {
 	error_reporting(0);
-//	error_reporting(E_ALL);
+	error_reporting(E_ALL);
 }
 
 if (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
@@ -165,23 +167,53 @@ function HTMLheader($breed=0) {
 		echo("<html lang='nl'>\n");
 		echo("<head>\n");
 		printf("<script src='%s/includes/javascript.js'></script>\n", BASISURL);
-		if (isset($_GET['tp']) and substr($_GET['tp'], 0, 7) == "Mailing") {
+		if ($currenttab2 == "Wijzigen mailing") {
+			if (file_exists(BASEDIR . '/maatwerk/email.css')) {
+				$ss = "content_css: 'maatwerk/email.css',";
+			} else {
+				$ss = "";
+			}
 			if ($_SESSION['settings']['mailing_type_editor'] == 3) {
-				printf("<script src='https://cdn.tiny.cloud/1/%s/tinymce/5/tinymce.min.js' referrerpolicy='origin'></script>", $_SESSION['settings']['mailing_tinymce_apikey']);
-				echo("<script>
+				$img = "";
+				if (isset($_GET['mid']) and $_GET['mid'] > 0) {
+					$dir_media = (new Mailing($_GET['mid']))->dir_media;
+					if (is_dir($dir_media)) {
+						$md = dir($dir_media);
+						$il = "";
+						while (false !== ($entry = $md->read())) {
+							if (endswith($entry, "jpg") or endswith($entry, "jepg") or endswith($entry, "bmp") or endswith($entry, "gif") or endswith($entry, "png")) {
+								if (strlen($il) > 0) {
+									$il .= ",\n";
+								}
+								$il .= sprintf("{title: '%s', value: '%s'}", $entry, BASISURL. '/media/' . intval($_GET['mid']) . '/' . $entry);
+							}
+						}
+						if (strlen($il) > 0) {
+							$img = sprintf("image_list: [\n%s],", $il);
+					}
+				}
+				$src = "/includes/tinymce/js/tinymce/tinymce.min.js";
+				if (file_exists(BASEDIR . $src)) {
+					$src = BASISURL . $src;
+				} else {
+					$src = sprintf("https://cdn.tiny.cloud/1/%s/tinymce/5/tinymce.min.js", $_SESSION['settings']['mailing_tinymce_apikey']);
+				}
+				printf("<script src='%s' referrerpolicy='origin'></script>\n", $src);
+				printf("<script>
 		tinymce.init({
 			selector: '#message',
+			%s
+			%s
 			height: 600,
-			plugins: 'hr link lists table',
+			plugins: 'hr link lists table image',
 			menu: {
 				table: { title: 'Table', items: 'inserttable | cell row column | tableprops deletetable' }
 			},
-			toolbar: 'undo redo | styleselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist | link | hr',
+			toolbar: 'undo redo | styleselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist | link image | hr',
 			menubar: 'edit insert format tools table'
 		});
-  </script>");
-  
-  
+  </script>\n", $ss, $img);
+				}
 			} elseif ($_SESSION['settings']['mailing_type_editor'] == 2) {
 				echo("<script src='https://cdn.ckeditor.com/4.13.0/standard/ckeditor.js'></script>\n");
 			} else {
@@ -287,6 +319,116 @@ function HTMLfooter() {
 	}
 } # HTMLfooter
 
+function fnDispMenu($toonnivo=1, $xtra="") {
+	global $tabpages, $currenttab, $currenttab2, $currenttab3, $navpad;
+	
+	$tpd = ""; // Dit wordt getoond in het menu.
+	$ulopen = false;
+
+	if (strlen($xtra) > 0 and startwith($xtra, "&amp;") == false) {
+		$xtra = "&amp;" . $xtra;
+	}
+	
+	if ($_SESSION['settings']['typemenu'] == 1 or $_SESSION['settings']['typemenu'] == 3) {
+		printf("<div id='menu_l%s'>\n", $toonnivo);
+	}
+
+	if (($_SESSION['settings']['typemenu'] == 2 or $_SESSION['settings']['typemenu'] == 3) and $toonnivo == 1) {  // Dit is het menu met hovering
+		echo("<ul id='nav'>\n");
+		$nivo = 0;
+		foreach($tabpages as $tp) {
+			$cl = "";
+			if (strstr($tp, "/") === false) {
+				if ($nivo > 0) {
+					if ($ulopen) {
+						echo("		</ul>\n	");
+						$ulopen = false;
+					}
+					echo("</li>\n");
+				}
+				$nivo = 1;
+				$tpd = $tp;
+				$tp1 = $tp;
+				$ulopen = false;
+				if ($currenttab == str_replace("'", "", $tpd)) {
+					$cl = " class='current'";
+					$navpad[$nivo]['naam'] = $tpd;
+					$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
+				}
+				printf("	<li%s><a href=\"%s?tp=%s%s\">%s</a>", $cl, $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra, $tpd);
+			} elseif (strpos($tp, "/") > 1 and startwith($tp, $tp1) == true) {
+				if ($nivo == 1) {
+					echo("\n		<ul>\n");
+					$ulopen = true;
+				}
+				$nivo = 2;
+				$tpd = substr($tp, strpos($tp, "/")+1);
+			
+				if ($currenttab2 == str_replace("'", "", $tpd)) {
+					$cl = " class='current'";
+					$navpad[$nivo]['naam'] = $tpd;
+					$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
+				}
+				printf("			<li%s><a href=\"%s?tp=%s%s\">%s</a></li>\n", $cl, $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra, $tpd);
+			}
+		}
+		if ($ulopen) {
+			echo("		</ul>\n</li>\n");
+		}
+		echo("</ul>\n");
+	}
+	
+	$nivo = $toonnivo;
+//	debug($nivo);
+//	print_r($tabpages);
+	if ($_SESSION['settings']['typemenu'] == 1 or ($_SESSION['settings']['typemenu'] == 3 and $toonnivo == 2)) {
+		printf("<ul class='tablist%d'>\n", $nivo);
+		foreach($tabpages as $tp) {
+			if ($nivo == 1 and strstr($tp, "/") === false) {
+				$tpd = $tp;
+			} elseif ($nivo == 2 and mb_substr_count($tp, "/") == 1 and startwith($tp, $currenttab . "/")) {
+				$tpd = str_replace($currenttab . "/", "", $tp);
+			
+			} elseif ($nivo == 3 and mb_substr_count($tp, "/") == 2 and startwith($tp, $currenttab . "/") and strpos($tp, $currenttab2) > 1) {
+				$tpd = str_replace($currenttab2 . "/", "", str_replace($currenttab . "/", "", $tp));
+				
+//			} elseif ($currenttab2 == "Overzicht lid") {
+				
+			} else {
+				$tpd = "";
+			}
+			if (strlen($tpd) > 1) {
+				$cl = "";
+				if ($nivo == 1 and $currenttab == str_replace("'", "", $tp)) {
+					$cl = " class='current'";
+					$navpad[$nivo]['naam'] = $tpd;
+					$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
+				} elseif ($nivo == 2 and ($currenttab2 == str_replace("'", "", $tpd) or strlen($currenttab2) == 0)) {
+					$cl = " class='current'";
+					if (toegang($currenttab . "/" . str_replace("'", "", $tpd), 0)) {
+						$currenttab2 = $tpd;
+					}
+					$navpad[$nivo]['naam'] = $tpd;
+					$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
+				} elseif ($nivo == 3 and ($currenttab3 == str_replace("'", "", $tpd) or strlen($currenttab3) == 0)) {
+					$cl = " class='current'";
+					$navpad[$nivo]['naam'] = $tpd;
+					$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
+				}
+				printf("<li%s><a href=\"%s?tp=%s%s\">%s</a></li>\n", $cl, $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra, $tpd);
+			}
+		}
+		echo("</ul>\n");
+	}
+	
+	if ($_SESSION['settings']['typemenu'] == 1 or $_SESSION['settings']['typemenu'] == 3) {
+		printf("</div> <!-- Einde menu_l%s -->\n", $toonnivo);
+	}
+	if ($nivo > 1) {
+		echo("<div class='clear'></div>\n");
+	}
+}  # fnDispMenu
+
 function isValidMailAddress($address, $LeegIsGoed=0){
 
   	if ($LeegIsGoed == 1 and strlen($address) == 0) {
@@ -357,111 +499,6 @@ function getvar($nm, $riz="") {
 		return $riz;
 	}
 }
-
-function fnDispMenu($toonnivo=1, $xtra="") {
-	global $tabpages, $currenttab, $currenttab2, $currenttab3, $navpad;
-	
-	$tpd = ""; // Dit wordt getoond in het menu.
-	$ulopen = false;
-
-	if (strlen($xtra) > 0 and startwith($xtra, "&amp;") == false) {
-		$xtra = "&amp;" . $xtra;
-	}
-	
-	if ($_SESSION['settings']['typemenu'] == 1 or $_SESSION['settings']['typemenu'] == 3) {
-		printf("<div id='menu_l%s'>\n", $toonnivo);
-	}
-
-	if (($_SESSION['settings']['typemenu'] == 2 or $_SESSION['settings']['typemenu'] == 3) and $toonnivo == 1) {  // Dit is het menu met hovering
-		echo("<ul id='nav'>\n");
-		$nivo = 0;
-		foreach($tabpages as $tp) {
-			$cl = "";
-			if (strstr($tp, "/") === false) {
-				if ($nivo > 0) {
-					if ($ulopen) {
-						echo("		</ul>\n	");
-						$ulopen = false;
-					}
-					echo("</li>\n");
-				}
-				$nivo = 1;
-				$tpd = $tp;
-				$tp1 = $tp;
-				$ulopen = false;
-				if ($currenttab == str_replace("'", "", $tpd)) {
-					$cl = " class='current'";
-					$navpad[$nivo]['naam'] = $tpd;
-					$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
-				}
-				printf("	<li%s><a href=\"%s?tp=%s%s\">%s</a>", $cl, $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra, $tpd);
-			} elseif (strpos($tp, "/") > 1 and startwith($tp, $tp1) == true) {
-				if ($nivo == 1) {
-					echo("\n		<ul>\n");
-					$ulopen = true;
-				}
-				$nivo = 2;
-				$tpd = substr($tp, strpos($tp, "/")+1);
-			
-				if ($currenttab2 == str_replace("'", "", $tpd)) {
-					$cl = " class='current'";
-					$navpad[$nivo]['naam'] = $tpd;
-					$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
-				}
-				printf("			<li%s><a href=\"%s?tp=%s%s\">%s</a></li>\n", $cl, $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra, $tpd);
-			}
-		}
-		if ($ulopen) {
-			echo("		</ul>\n</li>\n");
-		}
-		echo("</ul>\n");
-	}
-	
-	$nivo = $toonnivo;
-	if ($_SESSION['settings']['typemenu'] == 1 or ($_SESSION['settings']['typemenu'] == 3 and $toonnivo == 2)) {
-		printf("<ul class='tablist%d'>\n", $nivo);
-		foreach($tabpages as $tp) {
-			if ($nivo == 1 and strstr($tp, "/") === false) {
-				$tpd = $tp;
-			} elseif ($nivo == 2 and mb_substr_count($tp, "/") == 1 and startwith($tp, $currenttab . "/")) {
-				$tpd = str_replace($currenttab . "/", "", $tp);
-			
-			} elseif ($nivo == 3 and mb_substr_count($tp, "/") == 2 and startwith($tp, $currenttab . "/") and strpos($tp, $currenttab2) > 1) {
-				$tpd = str_replace($currenttab2 . "/", "", str_replace($currenttab . "/", "", $tp));
-			} else {
-				$tpd = "";
-			}
-			if (strlen($tpd) > 1) {
-				$cl = "";
-				if ($nivo == 1 and $currenttab == str_replace("'", "", $tp)) {
-					$cl = " class='current'";
-					$navpad[$nivo]['naam'] = $tpd;
-					$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
-				} elseif ($nivo == 2 and ($currenttab2 == str_replace("'", "", $tpd) or strlen($currenttab2) == 0)) {
-					$cl = " class='current'";
-					if (toegang($currenttab . "/" . str_replace("'", "", $tpd), 0)) {
-						$currenttab2 = $tpd;
-					}
-					$navpad[$nivo]['naam'] = $tpd;
-					$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
-				} elseif ($nivo == 3 and ($currenttab3 == str_replace("'", "", $tpd) or strlen($currenttab3) == 0)) {
-					$cl = " class='current'";
-					$navpad[$nivo]['naam'] = $tpd;
-					$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
-				}
-				printf("<li%s><a href=\"%s?tp=%s%s\">%s</a></li>\n", $cl, $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra, $tpd);
-			}
-		}
-		echo("</ul>\n");
-	}
-	
-	if ($_SESSION['settings']['typemenu'] == 1 or $_SESSION['settings']['typemenu'] == 3) {
-		printf("</div> <!-- Einde menu_l%s -->\n", $toonnivo);
-	}
-	if ($nivo > 1) {
-		echo("<div class='clear'></div>\n");
-	}
-}  # fnDispMenu
 
 function fnDisplayForm($row, $xtra_eind="", $id="formulier") {
 
@@ -882,13 +919,13 @@ function startwith($haystack, $start) {
 
 function endswith($haystack, $end) {
     $length = strlen($end);
-	 if (strlen($haystack) == 0) {
+	if (strlen($haystack) == 0) {
 		 return false;
     } elseif ($length == 0) {
 		return true;
-    }
-
-    return (substr($haystack, -$length) === $end);
+    } else {
+		return (substr($haystack, -$length) === $end);
+	}
 } # endswith
 
 function change_month_to_uk($strdate) {
