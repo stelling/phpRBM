@@ -63,6 +63,36 @@ function fnFilterAfdelingslijst() {
 	}
 }
 
+function fnFilterTwee(p_table, p_input1, p_input2, p_col1, p_col2) {
+	var filter1, filter2, input1, input2, table, tr, td1, td2, i, txtValue1, txtValue2;
+	
+	input1 = document.getElementById(p_input1);
+	filter1 = input1.value.toUpperCase();
+	input2 = document.getElementById(p_input2);
+	filter2 = input2.value.toUpperCase();
+	
+	table = document.getElementById(p_table);
+	tr = table.getElementsByTagName("tr");
+
+	for (i = 0; i < tr.length; i++) {
+		td1 = tr[i].getElementsByTagName("td")[p_col1];
+		td2 = tr[i].getElementsByTagName("td")[p_col2];
+		if (td1) {
+			txtValue1 = td1.textContent || td1.innerText;
+			txtValue2 = td2.textContent || td2.innerText;
+			if (filter1.length == 0 && funcfilter.length == 0) {
+				tr[i].style.display = "";
+			} else if (filter1.length > 0 && txtValue1.toUpperCase().indexOf(filter1) > -1) {
+				tr[i].style.display = "";
+			} else if (filter2.length > 0 && txtValue2.toUpperCase().indexOf(filter2) > -1) {
+				tr[i].style.display = "";
+			} else {
+				tr[i].style.display = "none";
+			}
+		}
+	}
+}
+
 function fnFilterDiplomaLid() {
 	var input, filter, table, tr, td1, td2, i, txtValue;
 	input = document.getElementById("tbFilterCodeNaam");
