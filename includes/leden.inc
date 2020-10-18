@@ -7,7 +7,7 @@ if (toegang("Ledenlijst/Overzicht lid", 0, 0)) {
 }
 
 if (toegang("Ledenlijst/Wijzigen lid", 0, 0)) {
-	$llw = "<a href='index.php?tp=Ledenlijst/Wijzigen+lid&amp;lidid=%d'>%s</a>";
+	$llw = "<a href='index.php?tp=Ledenlijst/Wijzigen+lid/Algemene+gegevens&amp;lidid=%d'><img src='./images/edit.png' alt='Wijzigen' title='Wijzigen lidgegevens'></a>";
 } else {
 	$llw = "";
 }
@@ -167,12 +167,16 @@ function fnWieiswie($actie, $metfoto=1) {
 		$geentest = "";
 	}
 	if ($actie == "Onderscheidingen") {
-		$lijst = $i_lo->lijst(0, "O.TYPE='O'", "O.Naam, LO.Vanaf");
+		$lijst = $i_lo->lijst(0, "O.TYPE='O'", "O.Naam, LO.Vanaf, LO.Lid");
+		
+	} elseif ($actie == "Afdelingskader") {
+		$lijst = $i_lo->lijst(0, "O.TYPE='A' AND LO.Functie > 0", "O.Naam, F.Sorteringsvolgorde, F.Omschrijv");
 		
 	} elseif ($actie == "Overig") {
 		$lijst = $i_lo->lijst(0, "((O.TYPE='C' AND O.Kader=False) OR (O.TYPE='F' AND F.Kader=False))", "O.Type, O.Naam");
 		
 	} else {
+		// Kader of Verenigingskader
 		$lijst = $i_lo->lijst(0, "(O.Kader=True OR (F.Kader=True AND O.Type='F'))", "O.Type, O.Naam, F.Sorteringsvolgorde, F.Omschrijv");
 	}
 
@@ -256,7 +260,7 @@ function fnWieiswie($actie, $metfoto=1) {
 } # fnWieiswie
 
 function fnLedenlijst() {
-	global $wherelidond, $ldl, $currenttab2, $currenttab3;
+	global $wherelidond, $ldl, $llw, $currenttab2, $currenttab3;
 	
 	$i_lid = new cls_Lid();
 	
@@ -268,12 +272,6 @@ function fnLedenlijst() {
 	$ord = fnOrderBy($arrSort);
 	
 	fnDispMenu(2);
-
-	if (toegang("Ledenlijst/Wijzigen lid", 0, 0)) {
-		$llw = "<a href='index.php?tp=Ledenlijst/Wijzigen+lid/Algemene+gegevens&amp;lidid=%d'><img src='./images/edit.png' alt='Wijzigen' title='Wijzigen lidgegevens'></a>";
-	} else {
-		$llw = "";
-	}
 
 	if ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['lbGroepFilter'])) {
 		if (isset($_POST['lbGroepFilter'])) {
@@ -362,11 +360,11 @@ function fnLedenlijst() {
 		
 	} else {
 		echo("<div id='filter'>\n");
-		printf("<form name='Filter' action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
+		printf("<form action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
 	
-		echo("<label>Naam bevat: </label><input type='text' name='tbNaamFilter' id='tbNaamFilter' placeholder='Achter- of roepnaam' OnKeyUp='fnFilter();'>\n");
+		echo("<label>Naam/E-mail bevat</label><input type='text' name='tbNaamFilter' id='tbNaamFilter' placeholder='Achter- of roepnaam' OnKeyUp=\"fnFilter('ledenlijst', 'tbNaamFilter', 1, 3);\">\n");
 		if ($currenttab2 != "Klosleden") {
-			printf("<label>Onderdeel: </label><select name='lbGroepFilter' onchange='this.form.submit();'>\n%s</select>\n", fnSelectListGroepen($_SESSION['val_groep']));
+			printf("<label>Onderdeel</label><select name='lbGroepFilter' onchange='this.form.submit();'>\n%s</select>\n", fnSelectListGroepen($_SESSION['val_groep']));
 		}
 	
 		if (count($rows) > 1) {
@@ -437,7 +435,7 @@ function fnAfdelingslijst($afdid) {
 	$rows = (new cls_Lidond())->onderdeellijst($afdid, $filter, fnOrderBy($arrSort));
 	
 	echo("<div id='filter'>\n");
-	printf("<form name='Filter' action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
+	printf("<form action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
 
 	printf("<label>Naam bevat</label><input type='text' name='tbNaamFilter' id='tbNaamFilter' value='%s' placeholder='Achter- of roepnaam' OnKeyUp='fnFilterAfdelingslijst();'>\n", $naamfilter);
 	printf("<label>Functie bevat</label><input type='text' name='tbFuncFilter' id='tbFuncFilter' value='%s' placeholder='Functie' OnKeyUp='fnFilterAfdelingslijst();'>\n", $funcfilter);
@@ -1173,7 +1171,7 @@ function fnEigenGegevens($lidid=0, $actie="") {
 	global $currenttab, $currenttab2, $currenttab3;
 	
 	if ($lidid == 0 and isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0) {
-		$lidid = db_mailing_hist("lidbijmail", 0, $_GET['MailingHistID']);
+		$lidid = (new cls_Mailing_hist())->lidbijemail($_GET['MailingHistID']);
 	}
 	
 	if ($currenttab == "Eigen gegevens") {
@@ -1344,7 +1342,7 @@ function fnEigenGegevens($lidid=0, $actie="") {
 					}
 					printf("<td>%s</td>\n", $of);
 					printf("<td>%s</td>\n", $row->Status);
-					if (($row->Status == "Bevestigd" or $row->Status == "Ingeschreven") and $row->dteDatum >= date("Y-m-d H:i")) {
+					if (($row->Status == "Aangemeld" or $row->Status == "Bevestigd" or $row->Status == "Ingeschreven") and $row->dteDatum >= date("Y-m-d H:i")) {
 						printf("<td>%s</td>\n", fnAgendaKnop($row->dteDatum, $row->Eindtijd, $row->Verzameltijd, $row->Omschrijving, $row->ndLocatie));
 					} else {
 						echo("<td>&nbsp;</td>");
@@ -2229,7 +2227,7 @@ function lidmaatschapmuteren($lidid) {
 	
 	echo("<div id='lidmaatschapmuteren'>\n");
 	$actionurl = sprintf("%s?tp=%s&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
-	printf("<form method='post' action='%s' name='frm_lidmaatschapmuteren'>\n", $actionurl);
+	printf("<form method='post' action='%s'>\n", $actionurl);
 	echo("<table>\n");
 	printf("<caption>Lidmaatschap %s muteren</caption>\n", (new cls_Lid())->Naam($lidid));
 	echo("<tr><th>RecordID</th><th>Lidnummer</th><th>Lid vanaf</th><th>Opgezegd per</th><th></th><tr>\n");
