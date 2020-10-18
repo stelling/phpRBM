@@ -128,11 +128,14 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	
 } elseif ($currenttab == "Autorisatie" and toegang($currenttab, 1, 1)) {
 	$i_auth = new cls_Authorisation();
+	echo("<div id='filter'>\n");
+	echo("<label>Onderdeel bevat</label><input name='tbOndFilter' id='tbOndFilter' OnKeyUp=\"fnFilter('lijst', 'tbOndFilter', 1);\">\n");
+	echo("</div> <!-- Einde filter -->\n");
 	echo("<div id='lijst'>\n");
-	printf("<form name='formauth' method='post' action='%s?tp=%s&amp;op=changeaccess'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-	echo("<table>\n");
+	printf("<form method='post' action='%s?tp=%s&amp;op=changeaccess'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+	echo("<table id='lijst'>\n");
 	echo("<tr><th></th><th>Onderdeel</th><th>Toegankelijk voor</th><th>Ingevoerd</th></tr>\n");
-	$ondrows = (new cls_Onderdeel())->lijst(0);
+	$ondrows = (new cls_Onderdeel())->lijst(0, "O.`Type`<>'T'");
 	$authrows = $i_auth->lijst();
 	foreach($authrows as $row) {
 		$del = sprintf("<a href='%s?tp=%s&amp;op=deleteautorisatie&amp;recid=%d'><img src='images/del.png' title='Verwijder record'></a>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
@@ -263,21 +266,14 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	if (!isset($_POST['typefilter']) or strlen($_POST['typefilter']) == 0) {
 		$_POST['typefilter'] = -1;
 	}
-	if (!isset($_POST['ipfilter']) or strlen($_POST['ipfilter']) == 0) {
-		$_POST['ipfilter'] = "";
-	}
-	if (strlen($_POST['ipfilter']) >= 10) {
-		$ipf = sprintf("`IP_adres`='%s'", $_POST['ipfilter']);
-	} else {
-		$ipf = "";
-	}
-	$rows = $i_lb->lijst($_POST['typefilter'], 0, $_POST['lidfilter'], $ipf, $ord);
+	$rows = $i_lb->lijst($_POST['typefilter'], 0, $_POST['lidfilter'], "", $ord);
 	
 	echo("<div id='filter'>\n");
-	
 	printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 	
-	echo("<label>Filter op lid:</label><select name='lidfilter' onchange='this.form.submit();'>\n");
+	echo("<label>Omschrijving bevat</label><input id='tbOmsFilter' OnKeyUp=\"fnFilterTwee('logboek', 'tbOmsFilter', 'tbIPfilter', 2, 5);\">");
+	
+	echo("<label>Filter op lid</label><select name='lidfilter' onchange='this.form.submit();'>\n");
 	echo("<option value=0>Alle</option>\n");
 	foreach ((new cls_Logboek())->lidlijst() as $row) {
 		if ($row->LidID == $_POST['lidfilter']) {
@@ -289,7 +285,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	}
 	echo("</select>\n");
 	
-	echo("<label>Filter op type:</label><select name='typefilter' onchange='this.form.submit();'>\n");
+	echo("<label>Filter op type</label><select name='typefilter' onchange='this.form.submit();'>\n");
 	echo("<option value=-1>Alle</option>\n");
 	foreach ($TypeActiviteit as $key => $val) {
 		if ($key == $_POST['typefilter']) {
@@ -301,13 +297,12 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	}
 	echo("</select>\n");
 	
-	echo("<label>Filter op IP-adres:</label><input type='text' class='tb' name='ipfilter' max-length=32 size=25 onchange='this.form.submit();'>\n");
+	echo("<label>IP-adres bevat</label><input type='text' id='tbIPfilter' name='tbIPfilter' OnKeyUp=\"fnFilterTwee('logboek', 'tbOmsFilter', 'tbIPfilter', 2, 5);\">\n");
 	echo("</form>\n");
 	
 	if (count($rows) > 1) {
 		printf("<p class='aantrecords'>%d regels</p>\n", count($rows));
 	}
-	
 	echo("</div>  <!-- Einde filter -->\n");
 	
 	echo(fnDisplayTable($rows, "", "", 0, "", "", "logboek", "", "", 0, $arrSort));
@@ -333,25 +328,14 @@ function fnBeheerLogins() {
 	$arrSort[6] = "Laatste login;LastLogin";
 	$arrSort[7] = "Status;Status";
 	
-	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		$naamfilter = $_POST['NaamFilter'];
-	} else {
-		$naamfilter = "";
-	}
-	
-	$w = "";
-	if (strlen($naamfilter) > 0) {
-		$w = sprintf("(L.Achternaam LIKE '%%%1\$s%%' OR L.Roepnaam LIKE '%%%1\$s%%' OR Login.Login LIKE '%%%1\$s%%')", $naamfilter);
-	}
-	
 	$ord = fnOrderBy($arrSort);
 	
 	$i_login->uitloggen();
-	$rows = $i_login->lijst($w, $ord);
+	$rows = $i_login->lijst("", $ord);
 	
 	echo("<div id='filter'>\n");
 	printf("<form action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
-	printf("<label for='NaamFilter'>Naam/login:</label><input type='text' name='NaamFilter' class='tb' id='NaamFilter' size=20 value='%s' onblur='this.form.submit();'>\n", $naamfilter);
+	echo("<label>Naam/login bevat</label><input type='text' name='tbNaamFilter' id='tbNaamFilter' OnKeyUp=\"fnFilter('lijst', 'tbNaamFilter', 1, 2);\">\n");
 	
 	if (count($rows) > 2) {
 		printf("<p class='aantrecords'>%d logins</p>", count($rows));
@@ -417,7 +401,7 @@ function fnInstellingen() {
 	$arrParam['termijnvervallendiplomasmelden'] = "Hoeveel maanden vooruit en achteraf moeten vervallen diploma op het voorblad getoond worden.";
 	$arrParam['toneninschrijvingenbewakingen'] = "Moeten bij de gegevens van een lid ook inschrijvingen voor bewakingen getoond worden?";
 	$arrParam['tonentoekomstigebewakingen'] = "Moeten bij de gegevens van een lid ook toekomstige bewakingen getoond worden?";
-	$arrParam['typemenu'] = "Hoe moet het menu eruit zien? 1 = per niveau een aparte regel, 2 = één menu met dropdown, 3 = één menu met dropdown en extra menu voor niveau 2.";
+	$arrParam['typemenu'] = "Welk menu moet worden gebruikt?";
 	$arrParam['uitleg_toestemmingen'] = "Welke tekst moet er bij het verlenen van de toestemmingen worden vermeld?";
 	$arrParam['urlvereniging'] = "De URL van de website van de vereniging.";
 	$arrParam['url_eigen_help'] = "Als een gebruiker op de help klikt wordt hier naar verwezen in plaats van de standaard help.";
@@ -478,9 +462,6 @@ function fnInstellingen() {
 				} elseif (in_array($row->Naam, $specmailing) and $_POST[$pvn] > 0 and db_mailing("exist", $_POST[$pvn]) == false) {
 					$_POST[$pvn] = 0;
 					$mess = sprintf("Parameter '%s' wordt 0 gemaakt, omdat de ingevoerde mailing niet (meer) bestaat. ", $row->Naam);
-				} elseif ($row->Naam == "typemenu" and (strlen($_POST[$pvn]) == 0 or $_POST[$pvn] < 1 or $_POST[$pvn] > 3)) {
-					$_POST[$pvn] = 1;
-					$mess = sprintf("Parameter '%s' wordt 1 gemaakt, omdat deze alleen 1, 2 of 3 mag zijn. ", $row->Naam);
 				} elseif (startwith($row->Naam, "url") and isset($_POST[$pvn]) and strlen($_POST[$pvn]) > 3 and startwith($_POST[$pvn], "http") == false) {
 					$_POST[$pvn] = "https://" . $_POST[$pvn];
 				}
@@ -541,16 +522,22 @@ function fnInstellingen() {
 					printf("<option value=%d %s>%s</option>\n", $key, checked($row->ValueNum, "option", $key), $val);
 				}
 				echo("</select>\n");
+			} elseif ($row->Naam == "typemenu") {
+				printf("<label>%s</label><select name='%s'>", $uitleg, $row->Naam);
+				foreach (ARRTYPEMENU as $key => $val) {
+					printf("<option value=%d %s>%s</option>\n", $key, checked($row->ValueNum, "option", $key), $val);
+				}
+				echo("</select>\n");
 			} else {
 				printf("<label>%s</label><input name='%s' ", $uitleg, $row->Naam);
 				if ($row->ParamType == "B") {
 					printf("type='checkbox' value='1' %s>\n", checked(intval($row->ValueNum)));
 				} elseif ($row->ParamType == "I") {
-					printf("type='number' class='inputnumber' value=%d>\n", $row->ValueNum);
+					printf("type='number' value=%d>\n", $row->ValueNum);
 				} elseif ($row->ParamType == "F") {
 					printf("value=%F size=8>\n", $row->ValueNum);
 				} else {
-					printf("type='text' class='inputtext' value=\"%s\">\n", $row->ValueChar);
+					printf("type='text' value=\"%s\">\n", $row->ValueChar);
 				}
 			}
 		}
@@ -648,11 +635,3 @@ function fnStukken() {
 }  # fnStukken
 ?>
 
-<script>
-	function CopyFunction() {
-		let textarea = document.getElementById("copywijzigingen");
-		textarea.select();
-		document.execCommand('copy');
-		alert("De wijzigingen zijn naar het klembord gekopieerd.");
-	}
-</script>
