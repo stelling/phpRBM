@@ -31,7 +31,12 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 } else {
 	$tabpages[] = "Vereniging";
 	addtp("Vereniging/Introductie");
-	addtp("Vereniging/Kader");
+	if ((new cls_Onderdeel())->aantal("`Type`='A'") > 0) {
+		addtp("Vereniging/Verenigingskader");
+		addtp("Vereniging/Afdelingskader");
+	} else {
+		addtp("Vereniging/Kader");
+	}
 	addtp("Vereniging/Overig");
 	addtp("Vereniging/Onderscheidingen");
 	if ($_SESSION['lidid'] > 0) {
@@ -54,8 +59,11 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		$gs = (new cls_Lid())->Geslacht($lidid);
 		
 		addtp($b . "Algemeen");
-		$f = "`Type`='A' AND IFNULL(VervallenPer, CURDATE()) >= CURDATE()";
-		if ((new cls_Onderdeel())->aantal($f) > 0) {
+		if (count((new cls_Lidmaatschap())->overzichtlid($lidid)) > 1) {
+			addtp($b . "Lidmaatschappen");
+		}
+		
+		if (count((new cls_Lidond())->overzichtlid($lidid, "A")) > 0) {
 			addtp($b . "Afdelingen");
 		}
 		if (count($i_lo->overzichtlid($lidid, "K")) > 0) {
@@ -92,11 +100,14 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			addtp($b . "Evenementen");
 		}
 		$f = sprintf("Lid=%d", $lidid);
-		if ((new cls_Rekening())->aantal($f) > 0) {
+		if ((new cls_Rekeningregel())->aantal($f) > 0) {
 			addtp($b . "Rekeningen");
 		}
 		if (count((new cls_Logboek())->overzichtlid($lidid)) > 0) {
 			addtp($b . "Logboek");
+		}
+		if ($currenttab2 == "Overzicht lid") {
+			addtp($currenttab . "/" . $currenttab2);
 		}
 	}
 	
@@ -117,11 +128,11 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if ($gs != "B" and (new cls_Bewaking_blok())->aantal("InschrijvingOpen=1 AND Einddatum >= CURDATE()") > 0) {
 			addtp("Zelfservice/Inschrijven bewaking");
 		}
-		$f = sprintf("Datum >= CURDATE() AND VerwijderdOp < '2012-01-01' AND InschrijvingOpen=1 AND BeperkTotGroep IN (%s)", $_SESSION["lidgroepen"]);
+		$f = sprintf("Datum >= CURDATE() AND IFNULL(VerwijderdOp, '1900-01-01') < '2012-01-01' AND InschrijvingOpen=1 AND BeperkTotGroep IN (%s)", $_SESSION["lidgroepen"]);
 		if ((new cls_Evenement())->aantal($f) > 0) {
 			addtp("Zelfservice/Evenementen");
 		}
-		if ((new cls_Onderdeel())->aantal(0, "`Type`='T'") > 0 and $gs != "B") {
+		if ((new cls_Onderdeel())->aantal("`Type`='T'") > 0 and $gs != "B") {
 			addtp("Zelfservice/Toestemmingen");
 		}
 		if (count((new cls_Artikel())->lijst("bestellijst")) > 0) {
@@ -178,7 +189,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	$gs = (new cls_Lid())->Geslacht($_GET['lidid']);
 
 	if ($currenttab2 == "Wijzigen lid") {
-		$b = "Ledenlijst/Wijzigen lid";
+		$b = $currenttab . "/" . $currenttab2;
 		addtp($b);
 		$b .= "/";
 		addtp($b . "Algemene gegevens");
@@ -210,25 +221,17 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		addtp("Kostenoverzicht");
 	}
 	
-	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
-		addtp("Rekeningen");
-		if ($currenttab == "Rekeningen") {
-			$b = "Rekeningen/";
-			addtp($b . "Nieuw");
-			addtp($b . "Muteren");
-		}
-	}
-	
 	addtp("Mailing");
 	if ($currenttab == "Mailing") {
 		$i_M = new cls_Mailing();
 		$f = "Template=1 AND (deleted_on IS NULL)";
+		addtp("Mailing/Muteren");
 		if ($i_M->aantal($f) > 0) {
-			addtp("Mailing/Templates");
+//			addtp("Mailing/Templates");
 		}
 		$f = "Template=0 AND (sent_on IS NULL) AND (deleted_on IS NULL)";
 		if ($i_M->aantal($f) > 0) {
-			addtp("Mailing/Concepten");
+//			addtp("Mailing/Concepten");
 		}
 		addtp("Mailing/Nieuw");
 		if ((new cls_Rekening())->aantal() > 0) {
@@ -237,7 +240,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		
 		$f = "(sent_on IS NOT NULL) AND (deleted_on IS NULL)";
 		if ($i_M->aantal($f) > 0) {
-			addtp("Mailing/Verzonden");
+//			addtp("Mailing/Verzonden");
 		}
 		
 		$f = "(deleted_on IS NOT NULL)";
@@ -256,6 +259,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			addtp("Mailing/Logboek");
 		}
 		$i_M = null;
+		if ($currenttab2 == "Wijzigen mailing") {
+			addtp($currenttab . "/" . $currenttab2);
+		}
 	}
 
 	if ((new cls_db_base("Bewseiz"))->aantal() > 0) {
@@ -296,6 +302,16 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		addtp("Evenementen/Types muteren");
 		addtp("Evenementen/Logboek");
 		$i_ev = null;
+	}	
+	
+	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
+		addtp("Rekeningen");
+		if ($currenttab == "Rekeningen") {
+			$b = "Rekeningen/";
+			addtp($b . "Nieuw");
+			addtp($b . "Muteren");
+			addtp($b . "Logboek");
+		}
 	}
 	
 	addtp("Bestellingen");
@@ -407,7 +423,7 @@ function fnAuthenticatie($melding=1, $password="", $p_napost=0) {
 function toegang($soort, $melding=1, $log=1) {
 	global $lididwebmasters, $tabpages, $currenttab, $currenttab2, $currenttab3;
 
-	$arrAltijdToeg1ang[] = "Validatie login";
+	$arrAltijdToegang[] = "Validatie login";
 	$arrAltijdToegang[] = "Bevestiging login";
 	$arrAltijdToegang[] = "Opvragen lidnr";
 	if ($_SESSION['lidid'] == 0) {
@@ -709,24 +725,23 @@ function fnLoginAanvragen($stap="") {
 function fnOpvragenLidnr($stap) {
 	
 	$mess = "";
-	echo("<div id='opvragenlidnr'>\n");
 			
 	if ($stap == "mail") {
 		$lidid = 0;
 		if (!isValidMailAddress($_POST['emailvoorlidnr'], 0)) {
 			$mess = "Je hebt geen geldig e-mailadres opgegeven.";
 		} elseif ($_SESSION['settings']['mailing_lidnr'] > 0) {
-			$rows = (new cls_login())->lijst("Lidnr > 0", "", $_POST['emailvoorlidnr']);
+			$rows = (new cls_Lid())->lidbijemail($_POST['emailvoorlidnr']);
 			if (count($rows) > 0) {
 				foreach ($rows as $row) {
 					$mailing = new Mailing($_SESSION['settings']['mailing_lidnr']);
 					$mailing->xtranum = $row->Lidnr;
-					if ($mailing->send($row->lnkLidID) > 0) {
-						$mess = sprintf("Een e-mail met het lidnummer van %s is verzonden. ", $row->Naam_lid);
+					if ($mailing->send($row->LidID) > 0) {
+						$mess = sprintf("Een e-mail aan %s met lidnummer %d is in de outbox geplaatst en wordt zo spoedig mogelijk verzonden. ", $row->NaamLid, $row->Lidnr);
 					} else {
-						$mess = sprintf("Fout bij het versturen van het lidnummer aan %s. Probeer het later nogmaals of neem contact met de webmaster op. ", $row->Naam_lid);
+						$mess = sprintf("Fout bij het versturen van het lidnummer aan %s. Probeer het later nogmaals of neem contact met de webmaster op. ", $row->NaamLid);
 					}
-					(new cls_Logboek())->add($mess, 5, $row->lnkLidID, 1, $row->RecordID, 11);
+					(new cls_Logboek())->add($mess, 5, $row->LidID, 1, $row->LidID, 11);
 					$mess = "";
 					$mailing = null;
 				}
@@ -742,6 +757,7 @@ function fnOpvragenLidnr($stap) {
 		printf("<p><a href='%s' target='_top'>Klik hier om verder te gaan.</a></p>\n", BASISURL);
 		
 	} elseif ($_SESSION['settings']['mailing_lidnr'] > 0) {
+		echo("<div id='opvragenlidnr'>\n");
 
 		printf("<form action='%s?tp=Opvragen+lidnr' method='post'>\n", $_SERVER["PHP_SELF"]);
 		
@@ -752,9 +768,9 @@ function fnOpvragenLidnr($stap) {
 		echo("</fieldset>\n");
 		
 		echo("</form>\n");
+		echo("</div>  <!-- Einde opvragenlidnr -->\n");
 	}
 	
-	echo("</div>  <!-- Einde opvragenlidnr -->\n");
 	
 } # fnOpvragenLidnr
 
