@@ -80,7 +80,7 @@ function fnFilterTwee(p_table, p_input1, p_input2, p_col1, p_col2) {
 		if (td1) {
 			txtValue1 = td1.textContent || td1.innerText;
 			txtValue2 = td2.textContent || td2.innerText;
-			if (filter1.length == 0 && funcfilter.length == 0) {
+			if (filter1.length == 0 && filter2.length == 0) {
 				tr[i].style.display = "";
 			} else if (filter1.length > 0 && txtValue1.toUpperCase().indexOf(filter1) > -1) {
 				tr[i].style.display = "";
