@@ -85,9 +85,7 @@ function inschrijvenevenementen($lidid) {
 				$edid = 0;
 			}
 			
-			if ($_POST[$react] == "Aanmelden") {
-				$stat = "B";
-			} elseif ($_POST[$react] == "Inschrijven") {
+			if ($_POST[$react] == "Inschrijven") {
 				$stat = "I";
 			} elseif ($_POST[$react] == "Afmelden") {
 				$stat = "X";
@@ -96,7 +94,7 @@ function inschrijvenevenementen($lidid) {
 			}
 			if ($_POST[$react] == "Geen") {
 				if ($edid > 0) {
-					$i_ed($edid);
+					$i_ed->delete($edid);
 				}
 			} else {
 				if ($edid == 0) {
@@ -120,7 +118,7 @@ function inschrijvenevenementen($lidid) {
 	$geldig = false;
 	echo("<table>\n");
 	echo("<tr><th>Datum en tijden</th><th>Omschrijving</th><th>Reactie</th><th>In agenda</th></tr>\n");
-	foreach (db_evenement("open", $lidid) as $row) {
+	foreach ((new cls_Evenement())->lijst(3) as $row) {
 		printf("<tr><td>%s<br>van %s to %s uur</td><td>%s</td>\n", strftime("%A %e %B %Y", strtotime($row->Datum)), strftime("%R", strtotime($row->Datum)), $row->Eindtijd, $row->Omschrijving);
 		$ins = db_evenement("inschrijving", $lidid, $row->RecordID);
 		$v = "&nbsp;";
@@ -136,7 +134,7 @@ function inschrijvenevenementen($lidid) {
 			$c = "";
 		}
 		
-		if ($row->StandaardStatus == "B") {
+		if ($row->StandaardStatus == "B" or  $row->StandaardStatus == "J") {
 			printf("<input type='radio' name='reactie_%d' value='Aanmelden' %s onchange='this.form.submit();'>Aanmelden&nbsp;", $row->RecordID, $c);
 		} else {
 			printf("<input type='radio' name='reactie_%d' value='Inschrijven' %s onchange='this.form.submit();'>Inschrijven&nbsp;", $row->RecordID, $c);
@@ -305,21 +303,21 @@ function muteerevenement($eventid) {
 	printf("<input type='hidden' name='eventid' value=%d>\n", $eventid);
 	echo("<table>\n");
 	printf("<tr><td class='label'>Datum:</td><td colspan=5><input type='date' name='Datum' value='%s' size=25></td></tr>\n", $datum);
-	printf("<tr><td class='label'>Omschrijving:</td><td colspan=5><input type='text' name='Omschrijving' value='%s' maxlength=50 size=60></td></tr>\n", $oms);
-	printf("<tr><td class='label'>Locatie:</td><td colspan=5><input type='text' name='Locatie' value='%s' maxlength=75 size=60></td></tr>\n", $loc);
-	printf("<tr><td class='label'>E-mail:</td><td colspan=5><input type='email' name='Email' value='%s' maxlength=45 size=50></td></tr>\n", $email);
-	printf("<tr><td class='label'>Starttijd:</td><td><input type='time' name='Starttijd' value='%s' size=5 maxlength=5></td>\n", $starttijd);
-	printf("<td class='label'>Eindtijd:</td><td><input type='time' name='Eindtijd' value='%s' size=5 maxlength=5></td>\n", $eindtijd);
-	printf("<td class='label'>Verzamelen:</td><td><input type='text' name='Verzameltijd' value='%s' size=5 maxlength=5></td></tr>\n", $verzameltijd);
-	printf("<tr><td class='label'>Type evenement:</td><td><select name='TypeEvenement' onChange='this.form.submit();'>%s</select></td>\n", $optiontypes);
-	printf("<td class='label'>Aantal deelnemers:</td><td>%d</td>\n", $aantdln);
-	printf("<td class='label'>Aantal afgemeld:</td><td>%d</td></tr>\n", $aantafgemeld);
+	printf("<tr><td class='label'>Omschrijving</td><td colspan=5><input type='text' name='Omschrijving' value='%s' maxlength=50 size=60></td></tr>\n", $oms);
+	printf("<tr><td class='label'>Locatie</td><td colspan=5><input type='text' name='Locatie' value='%s' maxlength=75 size=60></td></tr>\n", $loc);
+	printf("<tr><td class='label'>E-mail</td><td colspan=5><input type='email' name='Email' value='%s' maxlength=45 size=50></td></tr>\n", $email);
+	printf("<tr><td class='label'>Starttijd</td><td><input type='time' name='Starttijd' value='%s' size=5 maxlength=5></td>\n", $starttijd);
+	printf("<td class='label'>Eindtijd</td><td><input type='time' name='Eindtijd' value='%s' size=5 maxlength=5></td>\n", $eindtijd);
+	printf("<td class='label'>Verzamelen</td><td><input type='time' name='Verzameltijd' value='%s' size=5 maxlength=5></td></tr>\n", $verzameltijd);
+	printf("<tr><td class='label'>Type evenement</td><td><select name='TypeEvenement' onChange='this.form.submit();'>%s</select></td>\n", $optiontypes);
+	printf("<td class='label'>Aantal deelnemers</td><td>%d</td>\n", $aantdln);
+	printf("<td class='label'>Aantal afgemeld</td><td>%d</td></tr>\n", $aantafgemeld);
 	
 	if ($eventid > 0) {
 		$ondrows = (new cls_Onderdeel())->lijst(1, "", $datum);
-		printf("<tr><td class='label'>Online inschrijving open:</td><td><input type='checkbox' name='InschrijvingOpen' value=1 %s></td>\n", checked($insopen));
-		printf("<td class='label'>Standaard status:</td><td><select name='StandaardStatus'>%s</select></td>\n", $optionstandstatus);
-		printf("<td class='label'>Max. personen per deelname:</td><td><input type='number' class='inputnumber' name='MaxPersonenPerDeelname' value=%d min=1></td></tr>\n", $maxpersonenperdeelname);
+		printf("<tr><td class='label'>Online inschrijving open</td><td><input type='checkbox' name='InschrijvingOpen' value=1 %s></td>\n", checked($insopen));
+		printf("<td class='label'>Standaard status</td><td><select name='StandaardStatus'>%s</select></td>\n", $optionstandstatus);
+		printf("<td class='label'>Max. personen per deelname</td><td><input type='number' class='inputnumber' name='MaxPersonenPerDeelname' value=%d min=1></td></tr>\n", $maxpersonenperdeelname);
 		
 		$optiongroepen = "<option value=0>Niemand</option>\n";
 		foreach ($ondrows as $t) {
@@ -330,7 +328,7 @@ function muteerevenement($eventid) {
 			}
 			$optiongroepen .= sprintf("<option value=%d%s>%s</option>\n", $t->RecordID, $s, htmlentities($t->Naam));
 		}
-		printf("<tr><td class='label'>Deelname beperken tot:</td><td colspan=2><select name='BeperkTotGroep' onChange='this.form.submit();'>%s</select></td>\n", $optiongroepen);
+		printf("<tr><td class='label'>Deelname beperken tot</td><td colspan=2><select name='BeperkTotGroep' onChange='this.form.submit();'>%s</select></td>\n", $optiongroepen);
 		$optiongroepen = "<option value=0>Iedereen</option>\n";
 		foreach ($ondrows as $t) {
 			if ($t->RecordID == $zichtbaarvoor) {
@@ -340,8 +338,8 @@ function muteerevenement($eventid) {
 			}
 			$optiongroepen .= sprintf("<option value=%d %s>%s</option>\n", $t->RecordID, $s, htmlentities($t->Naam));
 		}
-		printf("<td class='label'>Zichtbaar voor:</td><td colspan=2><select name='ZichtbaarVoor'>%s</select></td></tr>\n", $optiongroepen);
-		printf("<tr><td class='label'>Gewijzigd op / door:</td><td colspan=5>%s / %s</td></tr>\n", strftime("%e %B %Y (%H:%M)", strtotime($row->Gewijzigd)), htmlentities($row->GewijzigdDoorNaam));	
+		printf("<td class='label'>Zichtbaar voor</td><td colspan=2><select name='ZichtbaarVoor'>%s</select></td></tr>\n", $optiongroepen);
+		printf("<tr><td class='label'>Gewijzigd op / door</td><td colspan=5>%s / %s</td></tr>\n", strftime("%e %B %Y (%H:%M)", strtotime($row->Gewijzigd)), htmlentities($row->GewijzigdDoorNaam));	
 	}
 	echo("</table>\n");
 	
