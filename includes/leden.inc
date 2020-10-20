@@ -12,16 +12,14 @@ if (toegang("Ledenlijst/Wijzigen lid", 0, 0)) {
 	$llw = "";
 }
 
-$autobewaren = 0;
 if (isset($_POST['AutoBewaren']) and $_POST['AutoBewaren'] == "1") {
-	$autobewaren = 1;
-} elseif (isset($_COOKIE['AutoBewaren']) and $_COOKIE['AutoBewaren'] == "1") {
-	$autobewaren = 1;
+	$_SESSION['AutoBewaren'] = 1;
+} elseif (!isset($_SESSION['AutoBewaren'])) {
+	$_SESSION['AutoBewaren'] = 0;
 }
-setcookie("AutoBewaren", $autobewaren, time()+(24*3600));
 
 function fnWijzigen($lidid, $actie="") {
-	global $currenttab, $currenttab2, $currenttab3, $actionurl, $autobewaren;
+	global $currenttab, $currenttab2, $currenttab3, $actionurl;
 	
 	if ($currenttab == "Zelfservice") {
 		$xtra_param = "";
@@ -43,7 +41,7 @@ function fnWijzigen($lidid, $actie="") {
 		}
 
 		if ($actie == "Algemene gegevens") {
-			algemeenlidmuteren($lidid, $autobewaren);
+			algemeenlidmuteren($lidid, $_SESSION['AutoBewaren']);
 			
 		} elseif ($currenttab3 == "Afdelingen") {
 			onderdelenlidmuteren($lidid, "A");
@@ -72,8 +70,13 @@ function fnWijzigen($lidid, $actie="") {
 			
 		} elseif ($actie == "Bijzonderheden") {
 			$i_Mm = new cls_Memo();
+			if ($currenttab == "Zelfservice") {
+				$mm = $_SESSION['settings']['zs_muteerbarememos'];
+			} else {
+				$mm = $_SESSION['settings']['muteerbarememos'];
+			}
 			if ($_SERVER['REQUEST_METHOD'] == "POST") {
-				foreach (explode(",", $_SESSION['settings']['muteerbarememos']) as $kodesoort) {
+				foreach (explode(",", $mm) as $kodesoort) {
 					$namevar = "Memo_" . $kodesoort;
 					$curval = $i_Mm->inhoud($lidid, $kodesoort);
 					if (strlen($_POST[$namevar]) == 0) {
@@ -87,19 +90,16 @@ function fnWijzigen($lidid, $actie="") {
 			}
 			
 			echo("<div id='bijzonderhedenwijzigen'>\n");
-			if (strlen($_SESSION['settings']['muteerbarememos']) > 0) {
+			if (strlen($mm) > 0) {
 				
-				printf("<form method='post' action='%s' name='bijz_wijz'>\n", $actionurl);
-				echo("<table>\n");
-				foreach (explode(",", $_SESSION['settings']['muteerbarememos']) as $kodesoort) {
+				printf("<form method='post' action='%s'>\n", $actionurl);
+				foreach (explode(",", $mm) as $kodesoort) {
 					$namevar = "Memo_" . $kodesoort;
 					if (array_key_exists($kodesoort, ARRSOORTMEMO)) {
 						$curval = $i_Mm->inhoud($lidid, $kodesoort);
-						printf("<tr><td class='label'>%s</td><td><textarea cols=85 rows=10 name='%s'>%s</textarea></td></tr>\n", ARRSOORTMEMO[$kodesoort], $namevar, $curval);
+						printf("<label>%s</label><textarea cols=85 rows=10 name='%s' OnChange='this.form.submit();'>%s</textarea>\n", ARRSOORTMEMO[$kodesoort], $namevar, $curval);
 					}
 				}
-				echo("<tr><th colspan=2><input type='submit' value='Bewaren' name='wijziging'></th></tr>\n");
-				echo("</table>\n");
 				echo("</form>\n");
 			} else {
 				echo("<p class='mededeling'>Er zijn geen bijzonderheden die hier gemuteerd mogen worden.</p>");
@@ -170,7 +170,7 @@ function fnWieiswie($actie, $metfoto=1) {
 		$lijst = $i_lo->lijst(0, "O.TYPE='O'", "O.Naam, LO.Vanaf, LO.Lid");
 		
 	} elseif ($actie == "Afdelingskader") {
-		$lijst = $i_lo->lijst(0, "O.TYPE='A' AND LO.Functie > 0", "O.Naam, F.Sorteringsvolgorde, F.Omschrijv");
+		$lijst = $i_lo->lijst(0, "O.TYPE='A' AND F.Kader=1", "O.Naam, F.Sorteringsvolgorde, F.Omschrijv");
 		
 	} elseif ($actie == "Overig") {
 		$lijst = $i_lo->lijst(0, "((O.TYPE='C' AND O.Kader=False) OR (O.TYPE='F' AND F.Kader=False))", "O.Type, O.Naam");
@@ -348,11 +348,17 @@ function fnLedenlijst() {
 			echo("</div> <!-- Einde nieuwlid -->\n");
 		}
 		
+	} elseif ($currenttab2 == "Instellingen") {
+		instellingenledenmuteren();
+		
 	} elseif ($currenttab2 == "Mutaties") {
 		
 		$rows = (new cls_Logboek())->lijst(6, 1, 0, "TypeActiviteitSpecifiek < 30");
 		
 		if (count($rows) > 0) {
+			echo("<div id='filter'>\n");
+			echo("<label>Omschrijving bevat</label><input id='tbOmsFilter' OnKeyUp=\"fnFilter('logboek', 'tbOmsFilter', 2);\">");
+			echo("</div> <!-- Einde filter -->\n");
 			echo(fnDisplayTable($rows, "", "Mutaties in lidgegevens", 0, "", "", "logboek"));
 		} else {
 			echo("<p>Er zijn geen mutaties bekend.</p>\n");
@@ -891,7 +897,7 @@ function add_del_selectie($actie, $onderdeelid) {
 		
 } # add_del_selectie
 
-function fnGroepsindeling($afdkode="", $afdid=0, $muteren=0) {
+function fnGroepsindeling($afdkode="", $afdid=0, $p_muteren=0) {
 	
 	$hvafd = "";
 	$hvtijd = "";
@@ -910,7 +916,7 @@ function fnGroepsindeling($afdkode="", $afdid=0, $muteren=0) {
 	
 	echo("<div id='groepsindeling'>\n");
 	
-	if ($muteren == 0) {
+	if ($p_muteren == 0) {
 		
 		$i_ak = new cls_afdelingskalender();
 		$toonpresentie = 0;
@@ -1008,21 +1014,20 @@ function fnGroepsindeling($afdkode="", $afdid=0, $muteren=0) {
 		
 		$grrows = $i_gr->selectlijst($afdid);
 		echo("<table>\n");
-		foreach (db_lidond("groepsindeling", 0, "", $filter) as $row) {
+		echo("<tr><th>Naam</th><th>Leeftijd</th><th>Laatst behaalde diploma's</th><th>Groep</th></tr>\n\n");
+		foreach ($i_lo->groepsindeling($afdid) as $row) {
 			$options = "<option value=0>Niet ingedeeld</option>\n";
 			foreach ($grrows as $grrow) {
 				$options .= sprintf("<option value=%d %s>%s</option>\n", $grrow->RecordID, checked($row->GroepID, "option", $grrow->RecordID), $grrow->GroepOms);
 			}
-			printf("<tr><td>%s</td><td>%s</td><td><select name='mg_%d' OnChange='this.form.submit();'>%s</select></td></tr>\n", $row->NaamLid, $row->Leeftijd, $row->RecordID, $options);
+			$ld = (new cls_Liddipl())->lidlaatstediplomas($row->Lid, 3);
+			printf("<tr><td>%s</td><td>%s</td><td>%s</td><td><select name='mg_%d' OnChange='this.form.submit();'>%s</select></td></tr>\n", $row->NaamLid, $row->Leeftijd, $ld, $row->RecordID, $options);
 		}
 		echo("</table>\n");
 		
 		echo("<table>\n");
-		echo("<caption>Muteren groepen</caption>\n<tr>");
-		for ($i=1;$i<=5; $i++) {
-			printf("<th>%s</th>", $kn[$i]);
-		}
-		echo("</tr>\n");
+		echo("<caption>Muteren groepen</caption>\n");
+		echo("<tr><th>Code</th><th>Omschrijving</th><th>Instructeurs</th><th>Starttijd</th><th>Eindtijd</th></tr>\n");
 		
 		$f = sprintf("OnderdeelID=%d", $afdid);
 		foreach ($i_gr->basislijst($f, "Kode") as $row) {
@@ -1041,10 +1046,13 @@ function fnGroepsindeling($afdkode="", $afdid=0, $muteren=0) {
 			}
 		}
 		
-		echo("<tr><td>Nieuw</td><td><input type='text' name='kode_nw' size=5 max-length=5></td></tr>\n");
-		
-		echo("<tr><th colspan=6><input type='submit' value='Groepen bewaren'></th></tr>\n");
+		echo("<tr><td>Nieuw</td><td colspan=4><input type='text' name='kode_nw' max-length=5 placeholder='Code'></td></tr>\n");
 		echo("</table>\n");
+		
+		echo("<div id='knoppenbalk'>\n");
+		echo("<input type='submit' value='Groepen bewaren'>\n");
+		echo("</div> <!-- Einde knoppenbalk -->\n");
+		
 		echo("</form>\n");
 	}
 	
@@ -1330,8 +1338,12 @@ function fnEigenGegevens($lidid=0, $actie="") {
 					} else {
 						$v = "";
 					}
-					printf("<td>%s&nbsp;tot&nbsp;%s&nbsp;uur%s</td>\n", str_replace(" ", "&nbsp;", strftime("%A %e %B %Y van %R", strtotime($row->dteDatum))), $row->Eindtijd, $v);
-					printf("<td>%s</td>\n", $row->Omschrijving);
+					printf("<td>%s&nbsp;tot&nbsp;%s&nbsp;uur%s</td>\n", str_replace(" ", "&nbsp;", str_replace("  ", "&nbsp;", strftime("%A %e %B %Y van %R", strtotime($row->dteDatum)))), $row->Eindtijd, $v);
+					$oms = $row->Omschrijving;
+					if (strlen($row->ndLocatie) > 1) {
+						$oms .= "<br>\n" . $row->ndLocatie;
+					}
+					printf("<td>%s</td>\n", $oms);
 					printf("<td>%s</td>\n", $row->emlContact);
 					if (strlen($row->Opmerking) > 0 and strlen($row->Functie) > 0) {
 						$of = sprintf("%s<br>%s", $row->Opmerking, $row->Functie);
@@ -1472,11 +1484,11 @@ function fotolid($lidid, $metversie=0) {
 	
 } # fotolid
 
-function algemeenlidmuteren($lidid, $p_autobewaren=0) {
+function algemeenlidmuteren($lidid) {
 	global $actionurl, $currenttab, $currenttab2;
 	
 	$jsoc = "";
-	if ($currenttab == "Zelfservice" or $p_autobewaren == 1) {
+	if ($currenttab == "Zelfservice" or $_SESSION['AutoBewaren'] == 1) {
 		$jsoc = "OnChange='this.form.submit();'";
 	}
 	
@@ -1645,7 +1657,7 @@ function algemeenlidmuteren($lidid, $p_autobewaren=0) {
 
 	$c = "";
 	$d = "";
-	if ($p_autobewaren == 1) {
+	if ($_SESSION['AutoBewaren'] == 1) {
 		$c = "checked";
 		$d = "disabled";
 	}
@@ -2267,6 +2279,62 @@ function lidmaatschapmuteren($lidid) {
 	echo("</div>  <!-- Einde lidmaatschapmuteren -->\n");
 	$i_lm = null;
 } # lidmaatschapmuteren
+
+function instellingenledenmuteren() {
+	global $currenttab, $currenttab2;
+	
+	$i_p = new cls_Parameter();
+	
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		
+		foreach (array("meisjesnaamtonen", "woonadres_anderen_tonen", "zs_incl_beroep", "zs_incl_bsn", "zs_incl_emailouders", "zs_incl_emailvereniging", "zs_incl_iban", "zs_incl_legitimatie", "zs_incl_slid", "zs_opzeggingautomatischverwerken") as $c) {
+			if (isset($_POST[$c])) {
+				$_POST[$c] = 1;
+			} else {
+				$_POST[$c] = 0;
+			}
+		}
+		
+		foreach ($i_p->lijst() as $row) {
+			if (isset($_POST[$row->Naam])) {
+				$i_p->update($row->Naam, $_POST[$row->Naam]);
+			}
+		}
+		
+	}	
+	$i_p->vulsessie();
+	
+	echo("<div id='instellingenmuteren'>\n");
+	printf("<form method='post' action='%s?tp=%s/%s'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
+	
+	echo("<h2>Algemeen</h2>\n");
+	printf("<label>Moet de naam van een lid de meisjesnaam bevatten?</label><input type='checkbox' name='meisjesnaamtonen' OnChange='this.form.submit();' %s>\n", checked($_SESSION['settings']['meisjesnaamtonen']));
+	printf("<label>Moet het woonadres van een lid ook aan andere leden worden getoond?</label><input type='checkbox' name='woonadres_anderen_tonen' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['woonadres_anderen_tonen']));
+	printf("<label>Opzegtermijn van de vereniging in maanden</label><input type='number' name='zs_opzegtermijn' value=%d OnChange='this.form.submit();'>\n", $_SESSION['settings']['zs_opzegtermijn']);
+	
+	$options = "";
+	foreach((new cls_Mailing())->lijst("Templates") as $row) {
+		$options .= sprintf("<option%s value=%d>%s</option>", checked($row->lnkMailingID, "option", $_SESSION['settings']['mailingbijadreswijziging']), $row->lnkMailingID, $row->Onderwerp);
+	}
+	printf("<label>Mailing voor versturen e-mail naar ledenadministratie bij wijzigen postcode</label><select name='mailingbijadreswijziging' OnChange='this.form.submit();'>\n<Option value=0>Geen</option>%s</select>\n", $options);
+	
+	printf("<label>Moet een opzegging door een lid automatisch worden verwerkt?</label><input type='checkbox' name='zs_opzeggingautomatischverwerken' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_opzeggingautomatischverwerken']));	
+	
+	echo("<h2>Beschikbaar in de zelfservice</h2>\n");
+	printf("<label>Beroep?</label><input type='checkbox' name='zs_incl_beroep' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_beroep']));
+	printf("<label>Burgerservicenummer (BSN)?</label><input type='checkbox' name='zs_incl_bsn' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_bsn']));
+	printf("<label>E-mail ouders?</label><input type='checkbox' name='zs_incl_emailouders' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_emailouders']));
+	printf("<label>E-mail vereniging?</label><input type='checkbox' name='zs_incl_emailvereniging' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_emailvereniging']));
+	printf("<label>Bankrekening / IBAN?</label><input type='checkbox' name='zs_incl_iban' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_iban']));
+	printf("<label>Legitimatie?</label><input type='checkbox' name='zs_incl_legitimatie' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_legitimatie']));
+	printf("<label>Sportlink ID?</label><input type='checkbox' name='zs_incl_slid' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_slid']));
+	echo("<h2>Overig in de zelfservice</h2>\n");
+	printf("<label>Welke soorten memo's mogen leden zelf muteren?</label><input type='text' name='zs_muteerbarememos' value=\"%s\" OnChange='this.form.submit();'><p>(Scheiden met een komma)</p>\n", $_SESSION['settings']['zs_muteerbarememos']);
+	
+	echo("</form>\n");
+	echo("</div> <!-- Einde instellingenmuteren -->\n");
+	
+}  # instellingenledenmuteren
 
 function IsIBANgoed($IBAN, $LeegIsGoed=1) {
    $retval = false;
