@@ -1113,7 +1113,7 @@ class Mailing {
 			$rcpts = (new cls_Mailing_rcpt())->lijst($this->mid);
 			$pk = "RecordID";
 		} else {
-			$f = sprintf("RecordID=%d", $p_lidid);
+			$f = sprintf("L.RecordID=%d", $p_lidid);
 			$rcpts = (new cls_Lid())->ledenlijst($f);
 			$pk = "lnkNummer";
 		}
