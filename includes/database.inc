@@ -3333,7 +3333,7 @@ class cls_Login extends cls_db_base {
 		
 		$p_email = strtolower($p_email);
 		if (isValidMailAddress($p_email, 0)) {
-			$this->filteremail = sprintf("(LOWER(L.Email) LIKE '%1\$s' OR LOWER(L.EmailVereniging) LIKE '%1\$s' OR LOWER(L.EmailOuders) LIKE '%1\$s');", $p_email);
+			$this->filteremail = sprintf("(LOWER(L.Email)='%1\$s' OR LOWER(L.EmailVereniging)='%1\$s' OR LOWER(L.EmailOuders)='%1\$s')", $p_email);
 		} else {
 			$this->filteremail = "";
 		}
