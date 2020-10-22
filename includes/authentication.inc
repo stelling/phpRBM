@@ -80,6 +80,10 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if ($gs != "B" and (new cls_Onderdeel())->aantal($f) > 0) {
 			addtp($b . "Toestemmingen");
 		}
+		$f = sprintf("Lid=%d", $lidid);
+		if ($gs != "B" and (new cls_Memo())->aantal($f) > 0) {
+			addtp($b . "Bijzonderheden");
+		}
 		if (count((new cls_Aanwezigheid())->overzichtlid($lidid)) > 0) {
 			addtp($b . "Presentie");
 		}
@@ -160,6 +164,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		addtp("Ledenlijst/Nieuw (klos)lid");
 		addtp("Ledenlijst/Commissies muteren");
 		addtp("Ledenlijst/Groepen muteren");
+		addtp("Ledenlijst/Instellingen");
 		addtp("Ledenlijst/Mutaties");
 	}
 	
@@ -224,40 +229,20 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	addtp("Mailing");
 	if ($currenttab == "Mailing") {
 		$i_M = new cls_Mailing();
-		$f = "Template=1 AND (deleted_on IS NULL)";
 		addtp("Mailing/Muteren");
-		if ($i_M->aantal($f) > 0) {
-//			addtp("Mailing/Templates");
-		}
-		$f = "Template=0 AND (sent_on IS NULL) AND (deleted_on IS NULL)";
-		if ($i_M->aantal($f) > 0) {
-//			addtp("Mailing/Concepten");
-		}
 		addtp("Mailing/Nieuw");
 		if ((new cls_Rekening())->aantal() > 0) {
 			addtp("Mailing/Rekeningen");
-		}
-		
-		$f = "(sent_on IS NOT NULL) AND (deleted_on IS NULL)";
-		if ($i_M->aantal($f) > 0) {
-//			addtp("Mailing/Verzonden");
 		}
 		
 		$f = "(deleted_on IS NOT NULL)";
 		if ($i_M->aantal($f) > 0) {
 			addtp("Mailing/Prullenbak");
 		}
-		$f = "(send_on IS NULL)";
-		if ((new cls_Mailing_hist())->aantal($f) > 0) {
-			addtp("Mailing/Outbox");
-		}
+		addtp("Mailing/Outbox");
 		addtp("Mailing/Verzonden mails");
 		addtp("Mailing/Instellingen");
-		
-		$f = "TypeActiviteit=4";
-		if ((new cls_Logboek())->aantal($f) > 0) {
-			addtp("Mailing/Logboek");
-		}
+		addtp("Mailing/Logboek");
 		$i_M = null;
 		if ($currenttab2 == "Wijzigen mailing") {
 			addtp($currenttab . "/" . $currenttab2);
@@ -449,6 +434,9 @@ function toegang($soort, $melding=1, $log=1) {
 	$soort = str_replace("'", "", $soort);
 		
 	if (strlen($soort) == 0 or in_array($soort, $arrAltijdToegang) === true or $_SESSION['webmaster'] == 1) {
+		if (strlen($soort) > 0 and in_array($soort, $arrAltijdToegang) === false and in_array($soort, $tabpages) == false) {
+			addtp($soort);
+		}
 		return true;
 	} elseif ($_SESSION['lidid'] > 0 and isset($_SESSION['toegang'][$soort]) and $_SESSION['toegang'][$soort] == 1) {
 		return true;
@@ -863,10 +851,10 @@ function fneisenwachtwoord() {
 
 function addtp($tp, $afdnr=0) {
 	global $tabpages, $currenttab, $currenttab2;
-	
+
 	$i_acc = new cls_Authorisation();
 	
-	if ((strstr($tp, "/") === false or startwith($tp, $currenttab . "/")) and toegang($tp, 0, 0)) {
+	if ((strstr($tp, "/") === false or startwith($tp, $currenttab . "/")) and ($_SESSION['webmaster'] == 1 or toegang($tp, 0, 0))) {
 		$tabpages[] = $tp;
 		$f = sprintf("Tabpage=\"%s\"", str_replace("'", "", $tp));
 		if ($_SESSION['webmaster'] == 1 and $i_acc->aantal($f) == 0) {
