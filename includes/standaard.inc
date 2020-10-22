@@ -8,7 +8,7 @@ define("ARRGESLACHT", ["O" => "Onbekend", "V" => "Vrouwelijk", "M" => "Mannelijk
 define("ARRTL", ["Alle", "Leden", "Klosleden", "Voormalig leden"]);
 define("ARRLEGITIMATIE", ["G" => "Geen", "I" => "Identiteitskaart", "P" => "Paspoort", "R" => "Rijbewijs"]);
 define("ARRSOORTMEMO", ["A" => "Algemeen", "B" => "Bewaking", "D" => "Dieet", "E" => "Examen", "F" => "Financiën", "G" => "Gezondheid/medisch", "I" => "Inschrijving bewaking"]);
-define("ARRTYPEONDERDEEL", ["A" => "Afdeling", "B" => "Bestuur", "C" => "Commissie", "G" => "Groep", "O" => "Onderscheiding", "T" => "Toestemming"]);
+define("ARRTYPEONDERDEEL", ["A" => "Afdeling", "B" => "Bestuur", "C" => "Commissie", "G" => "Groep", "O" => "Onderscheiding", "R" => "Rol", "T" => "Toestemming"]);
 define("ARRTYPEDIPLOMA", ["B" => "Brevet", "C" => "Competentie", "D" => "Diploma", "I" => "Insigne", "L" => "Licentie", "M" => "Module", "P" => "Proeve van bekwaamheid"]);
 define("PASFOTOEXTENTIES", ["gif", "jpg", "jpeg", "png"]);
 define("ARRTYPEEDITOR", [1 => "CKEditor 5 Classic editor", 2 => "CKEditor 4", 3 => "TinyMCE"]);
@@ -166,7 +166,7 @@ function HTMLheader($breed=0) {
 		echo("<!DOCTYPE HTML>\n");
 		echo("<html lang='nl'>\n");
 		echo("<head>\n");
-		printf("<script src='%s/includes/javascript.js'></script>\n", BASISURL);
+		printf("<script src='%s/includes/javascript.js' async></script>\n", BASISURL);
 		if ($currenttab2 == "Wijzigen mailing") {
 			if (file_exists(BASEDIR . '/maatwerk/email.css')) {
 				$ss = "content_css: 'maatwerk/email.css',";
@@ -731,7 +731,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 					if ((!is_null($value)) and $value > '1900-01-01' and strtotime($value) !== false) {
 						$ret .= sprintf("<td class='datumtijd'>%s</td>", strftime('%e %B %Y (%H:%M:%S)', strtotime($value)));
 					} elseif (strlen($value) > 0) {
-						$ret .= sprintf("<td class='mededeling'>%s</td>", $value);
+						$ret .= sprintf("<td>%s</td>", $value);
 					} else {
 						$ret .= "<td>&nbsp;</td>";
 					}
