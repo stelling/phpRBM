@@ -399,7 +399,7 @@ class cls_db_base {
 		}
 		
 		$query = sprintf("UPDATE %s SET `%s`=:nw %s WHERE `%s`=:id AND %s;", $this->table, $p_kolom, $gw, $kpk, $xw);
-		
+				
 		$stmt = $dbc->prepare($query);
 		if ($p_waarde === "NULL") {
 			$n = null;
@@ -415,7 +415,7 @@ class cls_db_base {
 		if ($stmt->execute()) {
 			return $stmt->rowCount();
 		} else {
-			return false;
+			return 0;
 		}
 	}
 	
@@ -3237,7 +3237,7 @@ function db_logins($actie, $email="", $login="", $lidid=0, $xtrafilter="", $pw="
 					L.Achternaam AS ndAchternaam, L.Tussenv AS ndTussenvoegsels, L.Meisjesnm AS ndMeisjesnaam, L.GEBDATUM AS ndGeboren,
 					IF(LENGTH(L.Email)=0, L.EmailOuders, L.Email) AS `E-mail`, L.EmailVereniging AS ndEmailVereniging, L.Telefoon AS ndTelefoon, L.Mobiel AS ndMobiel,
 					Login.Ingevoerd AS dteIngevoerd, Login.LastLogin AS `dttLaatste login`,
-					IF(LENGTH(Login.Wachtwoord) > 5 AND LENGTH(IFNULL(Login.ActivatieKey, '')) = 0, IF(Login.Ingelogd=1, 'Ingelogd', 'Gevalideerd'), 'Niet gevalideerd') AS `Status`,
+					IF(LENGTH(Login.Wachtwoord) > 5 AND LENGTH(IFNULL(Login.ActivatieKey, ''))=0, IF(Login.Ingelogd=1, 'Ingelogd', 'Gevalideerd'), 'Niet gevalideerd') AS `Status`,
 					Login.Wachtwoord AS ndWachtwoord, IF(Login.FouteLogin > 0, Login.LidID, 0) AS llkNummer, Login.LidID AS lekNummer
 					FROM %2\$sAdmin_login AS Login INNER JOIN %2\$sLid AS L ON Login.LidID = L.RecordID
 					WHERE LENGTH(Login.Login) > 5 %3\$s
@@ -3504,10 +3504,10 @@ class cls_Login extends cls_db_base {
 			return false;
 		}
 	}
-			
-	public function valideerlogin($p_lidid) {
+
+	public function valideerlogin($p_lidid, $p_key) {
 		$this->lidid = $p_lidid;
-		$query = sprintf("UPDATE %s SET ActivatieKey='', Gewijzigd=SYSDATE() WHERE LENGTH(ActivatieKey) > 5 AND LidID=%d;", $this->table, $p_lidid);
+		$query = sprintf("UPDATE %s SET ActivatieKey='', Gewijzigd=SYSDATE() WHERE ActivatieKey='%s' AND LidID=%d;", $this->table, $p_key, $p_lidid);
 		$result = $this->execsql($query);
 		if ($result == 1) {
 			$this->mess = "Login is gevalideerd en kan worden gebruikt.";
@@ -3520,13 +3520,24 @@ class cls_Login extends cls_db_base {
 		return $this->mess;
 	}
 	
+	public function vernieuwactivatiekeys() {
+		
+		if ($_SESSION['settings']['login_geldigheidactivatie'] > 0) {
+			$query = sprintf("SELECT Login.LidID FROM %s AS Login WHERE Login.Ingelogd=0 AND LENGTH(Login.ActivatieKey) > 5 AND IFNULL(Login.Gewijzigd, '1970-01-01') < ADDDATE(SYSDATE(), INTERVAL -%2\$d HOUR);", $this->table, $_SESSION['settings']['login_geldigheidactivatie']);
+			$result = $this->execsql($query);
+			foreach($result->fetchAll() as $row) {
+				$this->nieuweactivitiekey($row->LidID);
+			}
+		}
+	}
+	
 	public function nieuweactivitiekey($p_lidid) {
 		$this->vulvars($p_lidid);
 		$nk = newkey();
 		$this->tas = 7;
 		
-		if (strlen($nk) > 5 and $this->lidid > 0) {
-			if ($this->pdoupdate($this->lidid, "ActivatieKey", $nk) > 0) {
+		if (strlen($nk) > 5 and $this->loginid > 0) {
+			if ($this->pdoupdate($this->loginid, "ActivatieKey", $nk) > 0) {
 				$this->mess = "Er is een nieuwe activatiekey gemaakt voor de login.";
 				$this->Log($this->loginid);
 				return $nk;
@@ -3998,7 +4009,7 @@ function db_mailing($actie, $mid=0, $filter="", $new_val="", $kolnaam="") {
 		}
 			
 		$query = sprintf('DELETE FROM %1$sMailing_rcpt
-						  WHERE MailingID NOT IN (SELECT M.RecordIDID FROM %1$sMailing AS M);', TABLE_PREFIX);
+						  WHERE MailingID NOT IN (SELECT M.RecordID FROM %1$sMailing AS M);', TABLE_PREFIX);
 		$result = fnQuery($query, 2);
 			
 		$query = sprintf('UPDATE %1$sMailing_hist SET MailingID=0
@@ -4058,7 +4069,7 @@ class cls_Mailing extends cls_db_base {
 			}
 			$w .= " AND template=0 AND (deleted_on IS NULL)";
 		} elseif ($p_filter == "Templates") {
-			$w .= " AND M.template=1 AND (deleted_on IS NULL)";
+			$w .= " AND M.template=1 AND (M.deleted_on IS NULL)";
 			$orderby = "M.subject";
 			
 		} elseif ($p_filter == "Prullenbak") {
@@ -4176,7 +4187,7 @@ class cls_Mailing extends cls_db_base {
 		}
 
 		$query = sprintf('DELETE FROM %1$sMailing_rcpt
-						  WHERE MailingID NOT IN (SELECT M.RecordIDID FROM %1$sMailing AS M);', TABLE_PREFIX);
+						  WHERE MailingID NOT IN (SELECT M.RecordID FROM %1$sMailing AS M);', TABLE_PREFIX);
 		$this->execsql($query, 2);
 
 		$query = sprintf('UPDATE %1$sMailing_hist SET MailingID=0
@@ -4786,6 +4797,12 @@ class cls_Mailing_vanaf extends cls_db_base {
 		$this->vanaf_naam = $row->VN;
 	}
 	
+	public function lijst() {
+		$query = sprintf("SELECT MV.RecordID AS intRecordID, MV.Vanaf_email AS emlVanaf_email, MV.Vanaf_naam, MV.Ingevoerd AS dteIngevoerd, Gewijzigd AS dttGewijzigd, RecordID AS llkRecordID FROM %s AS MV ORDER BY MV.Vanaf_email;", $this->table);
+		$result = $this->execsql($query);
+		return $result->fetchAll();
+	}
+	
 	public function vanafnaam($p_vanafadres) {
 		$query = sprintf("SELECT IFNULL(Vanaf_naam, '') FROM %s WHERE BINARY Vanaf_email='%s';", $this->table, $p_vanafadres);
 		$this->vanaf_naam = $this->scalar($query);
@@ -4815,6 +4832,7 @@ class cls_Mailing_vanaf extends cls_db_base {
 	}
 	
 	public function add() {
+		$this->tas = 31;
 		$query = sprintf("INSERT INTO %s (Vanaf_email, Ingevoerd) VALUES ('** nieuw **', CURDATE());", $this->table);
 		$result = $this->execsql($query);
 		if ($result > 0) {
@@ -4825,6 +4843,9 @@ class cls_Mailing_vanaf extends cls_db_base {
 	}
 	
 	public function update($p_mvid, $p_kolom, $p_waarde) {
+		$this->vulvars($p_mvid);
+		$this->tas = 32;
+		
 		if ($this->pdoupdate($p_mvid, $p_kolom, $p_waarde) > 0) {
 			$this->mess = sprintf("Kolom '%s' in record %d in tabel '%s' is in '%s' gewijzigd.", $p_kolom, $p_mvid, $this->table, $p_waarde);
 			$this->Log($p_mvid);
@@ -4834,14 +4855,14 @@ class cls_Mailing_vanaf extends cls_db_base {
 	public function delete($p_mvid) {
 		$this->vulvars($p_mvid);
 		$this->tas = 33;
-		$query = sprintf("SELECT COUNT(*) FROM %sMailing AS M WHERE LOWER(M.from_addr)='%s';", TABLE_PREFIX, strtolower($this->vanaf_email));
+		$query = sprintf("SELECT COUNT(*) FROM %sMailing AS M WHERE LOWER(M.MailingVanafID)=%d;", TABLE_PREFIX, $this->mvid);
 		if ($this->scalar($query) == 0) {
 			$query = sprintf("DELETE FROM %s WHERE RecordID=%d", $this->table, $p_mvid);
 			if ($this->execsql($query) > 0) {
-				$this->mess = sprintf("Record met RecordID %d (%s) is uit tabel %s verwijderd.", $p_mvid, $this->vanaf_email, $this->table);
+				$this->mess = sprintf("Record met RecordID %d (%s) is uit tabel %s verwijderd.", $this->mvid, $this->vanaf_email, $this->table);
 			}
 		} else {
-			$this->mess = sprintf("%s is nog in gebruik en mag niet verwijderd worden.", $this->vanaf_email);
+			$this->mess = sprintf("Record %d (%s) is nog in gebruik en mag niet verwijderd worden.", $this->mvid, $this->vanaf_email);
 		}
 		$this->Log($p_mvid, 1);
 	}
@@ -6254,7 +6275,7 @@ class cls_Evenement_Type extends cls_db_base {
 		$rv = "";
 		foreach ($this->lijst() as $row) {
 			$s = checked($cv, "option", $row->RecordID);
-			$rv .= sprintf("<option value=%d %s>%s</option>\n", $t->RecordID, $s, $t->Omschrijving);
+			$rv .= sprintf("<option value=%d %s>%s</option>\n", $row->RecordID, $s, $row->Omschrijving);
 		}
 		return $rv;
 	}
@@ -6894,7 +6915,7 @@ class cls_Seizoen extends cls_db_base {
 		$rv = "";
 		foreach ($result->fetchAll() as $row) {
 			$s = checked($row->Nummer, "option", $p_cv);
-			$rv .= sprintf("<option value=%d %s>%s</option>", $row->Nummer, $s, $row->Nummer);
+			$rv .= sprintf("<option value=%d %s>%s</option>\n", $row->Nummer, $s, $row->Nummer);
 		}
 		return $rv;
 	}
@@ -7891,13 +7912,6 @@ function db_onderhoud($type=9) {
 		fnQuery($query, 2);
 		$query = sprintf('DELETE FROM %1$sMutatie WHERE GBR NOT IN (SELECT Kode FROM %1$sGBR);', TABLE_PREFIX);
 		fnQuery($query, 2);
-	}
-	
-	if ($_SESSION['settings']['login_geldigheidactivatie'] > 0) {
-		$query = sprintf("UPDATE %1\$sAdmin_login SET ActivatieKey='', Wachtwoord='', LaatsteWachtwoordWijziging=SYSDATE(), Gewijzigd=SYSDATE()
-					WHERE Ingelogd=0 AND LENGTH(ActivatieKey) > 5 AND Gewijzigd < ADDDATE(SYSDATE(), INTERVAL -%2\$d HOUR) AND (Gewijzigd IS NOT NULL) AND Gewijzigd > '2000-01-01';"
-					, TABLE_PREFIX, $_SESSION['settings']['login_geldigheidactivatie']);
-		$result = fnQuery($query);
 	}
 	
 	if ($type != 2) {
