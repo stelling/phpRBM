@@ -61,7 +61,7 @@ function fnMailing() {
 	
 	if (($op == "historie" or $op == "histdetails") and $mailing->mid > 0) {
 		fnDispMenu(2, sprintf("mid=%d", $mailing->mid));
-	} elseif ($op != "preview" and $currenttab2 != "previewwindow") {
+	} elseif ($currenttab2 != "previewwindow") {
 		fnDispMenu(2);
 	}
 	
@@ -190,7 +190,7 @@ class Mailing {
 	private $zichtbaarvoor = 0;
 	private $template = 0;
 	private $htmldirect = 0;
-	private $zonderbriefpapier = 0;
+	public $zonderbriefpapier = 0;
 	private $changed_on = "0000-00-00";
 	private $Gewijzigd = "0000-00-00";
 	private $IngevoerdDoor = 0;
@@ -535,7 +535,7 @@ class Mailing {
 						printf("<li>%s&nbsp;<a href='%s'><img src='/images/delete.gif' alt='Verwijderen' title='Verwijderen'></a></li>\n", htmlentities($rcpt->Naam_lid . $ze), $lnk);
 					} else {
 						$lnk = sprintf("%s?tp=%s&amp;op=del_rcpt&amp;mid=%d&amp;addr=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, $rcpt->to_address);
-						printf("<li>%s&nbsp;<a href='%s'><img src='/images/delete.gif' alt='Verwijderen' title='Verwijderen'></a></li>\n", $rcpt->to_address, $lnk);
+						printf("<li>%s&nbsp;<a href='%s'><img src='%s' alt='Verwijderen' title='Verwijderen'></a></li>\n", $rcpt->to_address, $lnk, BASE64_VERWIJDER_KLEIN);
 						$this->bevat_losse_email = true;
 					}
 					$this->aant_rcpt++;
@@ -624,7 +624,7 @@ class Mailing {
 		if ($this->mid > 0) {
 			printf("<label>Opties</label><input type='checkbox' name='template' value=1%s><p>Template</p>", checked($this->template));
 			printf("<input type='checkbox' name='HTMLdirect' value=1%s onChange='this.form.submit();'><p>HTML direct (zonder editor)</p>", checked($this->htmldirect));
-			printf("<input type='checkbox' name='ZonderBriefpapier' value=1%s><p>Zonder briefpapier versturen</p>", checked($this->zonderbriefpapier));
+			printf("<input type='checkbox' name='ZonderBriefpapier' value=1%s  onChange='this.form.submit();'><p>Zonder briefpapier versturen</p>", checked($this->zonderbriefpapier));
 
 			echo("<div class='clear'></div>\n");
 			if ($this->htmldirect == 1) {
@@ -1328,11 +1328,11 @@ function lijstmailings($p_filter="") {
 	} elseif ($p_filter == "Verzonden mails" or $p_filter == "Verzonden e-mails" or $p_filter == "Outbox") {
 		$i_mh = new cls_Mailing_hist();
 		$ld = sprintf("<a href='index.php?tp=%s&amp;op=bekijkmail&amp;MailingHistID=%%d'>%%s</a>", urlencode($_GET['tp']));
-		$f = "send_on > DATE_SUB(NOW(), INTERVAL 24 HOUR)";
-		$f2 = "send_on > DATE_SUB(NOW(), INTERVAL 1 HOUR)";
-		if ($_SESSION['settings']['maxmailsperdag'] > 0 and $i_mh->aantal($f) >= $_SESSION['settings']['maxmailsperdag']) {
+		if ($_SESSION['settings']['maxmailsperdag'] > 0 and $i_mh->aantalverzonden(1) >= $_SESSION['settings']['maxmailsperdag']) {
 			$rs = "";
-		} elseif ($_SESSION['settings']['maxmailsperuur'] > 0 and $i_mh->aantal($f2) >= $_SESSION['settings']['maxmailsperuur']) {
+		} elseif ($_SESSION['settings']['maxmailsperuur'] > 0 and $i_mh->aantalverzonden(2) >= $_SESSION['settings']['maxmailsperuur']) {
+			$rs = "";
+		} elseif ($p_filter == "Verzonden mails" or $p_filter == "Verzonden e-mails") {
 			$rs = "";
 		} elseif ($p_filter == "Outbox") {
 			if ($_SESSION['settings']['mailing_direct_verzenden'] == 0) {
@@ -1340,11 +1340,7 @@ function lijstmailings($p_filter="") {
 			} else {
 				$rs = "";
 			}
-			$rs .= sprintf("&nbsp;<a href='index.php?tp=%s&amp;op=deletehist&amp;MailingHistID=%%d'><img src='images/del.png' alt='Verwijder e-mail' title='Verwijderen'></a>", urlencode($_GET['tp']));
-		} elseif ($_SESSION['settings']['mailing_mailopnieuw'] == 0 or ($_SESSION['settings']['mailing_mailopnieuw'] == 1 and $_SESSION['webmaster'] == 0)) {
-			$rs = "";
-		} else {
-			$rs = sprintf("<a href='index.php?tp=%s&amp;op=sentoutbox&amp;MailingHistID=%%d'><img src='images/sendmail.png' alt='Sent e-mail' title='Opnieuw versturen'></a>", urlencode($_GET['tp']));
+			$rs .= sprintf("&nbsp;<a href='index.php?tp=%s&amp;op=deletehist&amp;MailingHistID=%%d'><img src='%s' alt='Verwijder e-mail' title='Verwijderen'></a>", urlencode($_GET['tp']), BASE64_VERWIJDER);
 		}
 		if ($p_filter == "Outbox") {
 			$rows = $i_mh->outbox(1)->fetchAll();
@@ -1372,7 +1368,7 @@ function lijstmailings($p_filter="") {
 			
 	} else {
 		if (toegang("Mailing/Wijzigen mailing")) {
-			$lnk = sprintf("<a href='%s?tp=%s/Wijzigen+mailing&mid=%%d' title='Wijzigen mailing'><img src='images/edit.png' alt='Wijzig mailing'></a>", $_SERVER['PHP_SELF'], $currenttab);
+			$lnk = sprintf("<a href='%s?tp=%s/Wijzigen+mailing&mid=%%d' title='Wijzigen mailing'><img src='%s' alt='Wijzig mailing'></a>", $_SERVER['PHP_SELF'], $currenttab, BASE64_MUTEER);
 		} else {
 			$lnk = "";
 		}
@@ -1382,7 +1378,7 @@ function lijstmailings($p_filter="") {
 		printf("<p class='aantrecords'>%d mailings</p>\n", count($rows));
 		echo("</div> <!-- Einde filter -->\n");
 			
-		$lnk_lk = sprintf("<a href='%s?tp=Mailing/Historie&amp;op=historie&amp;mid=%%d' title='Verstuurde e-mails'><img src='images/object_10.png' alt='Historie'></a>", $_SERVER['PHP_SELF']);
+		$lnk_lk = sprintf("<a href='%s?tp=Mailing/Historie&amp;op=historie&amp;mid=%%d' title='Verstuurde e-mails'><img src='" . BASE64_DETAILREGELS . "' alt='Historie'></a>", $_SERVER['PHP_SELF']);
 		
 		echo(fnDisplayTable($rows, $lnk, "", 0, $lnk_lk, "", "lijstmailingen"));
 		if ($p_filter == "Prullenbak" and $_SESSION['settings']['mailing_bewaartijd'] > 0) {
@@ -1844,8 +1840,7 @@ function fnMailingInstellingen() {
 	}
 
 	$i_p = null;
-	
-	echo("<div id='instellingenmuteren'>\n");
+
 	printf("<form method='post' action='%s?tp=%s/%s'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
 	
 	$options = sprintf("<option value=0%s>Nee</option>\n", checked($_SESSION['settings']['mailing_mailopnieuw'], "option", 0));
@@ -1892,19 +1887,19 @@ function fnMailingInstellingen() {
 	foreach($rows as $row) {
 		$options .= sprintf("<option%s value=%d>%s</option>", checked($row->lnkMailingID, "option", $_SESSION['settings']['mailing_lidnr']), $row->lnkMailingID, $row->Onderwerp);
 	}
-	printf("<label>Versturen lidnummer</label><select name='mailing_lidnr'>\n<Option value=0>Geen</option>%s</select>\n", $options);
+	printf("<label>Versturen lidnummer</label><select name='mailing_lidnr'>\n<Option value=0>Geen</option>\n%s</select>\n", $options);
 	
 	$options = "";
 	foreach($rows as $row) {
 		$options .= sprintf("<Option%s value=%d>%s</option>", checked($row->lnkMailingID, "option", $_SESSION['settings']['mailing_validatielogin']), $row->lnkMailingID, $row->Onderwerp);
 	}
-	printf("<label>Versturen validatie e-mail login</label><select name='mailing_validatielogin'>%s</select>\n", $options);
+	printf("<label>Versturen validatie e-mail login</label><select name='mailing_validatielogin'><Option value=0>Geen</option>\n%s</select>\n", $options);
 	
 	$options = "";
 	foreach($rows as $row) {
 		$options .= sprintf("<Option%s value=%d>%s</option>", checked($row->lnkMailingID, "option", $_SESSION['settings']['mailing_herstellenwachtwoord']), $row->lnkMailingID, $row->Onderwerp);
 	}
-	printf("<label>Versturen link herstellen wachtwoord</label><select name='mailing_herstellenwachtwoord'>%s</select>\n", $options);
+	printf("<label>Versturen link herstellen wachtwoord</label><select name='mailing_herstellenwachtwoord'><Option value=0>Geen</option>\n%s</select>\n", $options);
 
 	$options = "<Option value=0>Geen</option>";
 	foreach($rows as $row) {
@@ -1915,10 +1910,11 @@ function fnMailingInstellingen() {
 	
 	echo("<div class='clear'></div>\n");
 	
-	$link_lk = "<button type='submit' name='delete_vanaf_%d' title='Verwijder vanaf adres %d' onclick='this.submit();'><img src='./images/del.png'></button>";
+	$link_lk = "<button type='submit' name='delete_vanaf_%d' title='Verwijder vanaf adres %d' onclick='this.submit();'><img src='" . BASE64_VERWIJDER . "'></button>";
 	$xr = "<td colspan=6><button type='submit' name='vanaf_adres_toevoegen' title='Vanaf adres toevoegen' value='Vanaf adres toevoegen'><img src='./images/star.png'></button></td>";
 	
-	echo(fnDisplayTable(db_mailing_vanaf("editlijst"), "", "Vanaf adressen", 0, $link_lk, $xr, "editmailingvanaf", "", "Vanaf_naam, emlVanaf_email"));
+	$rows = (new cls_Mailing_vanaf())->lijst(); 
+	echo(fnDisplayTable($rows, "", "Vanaf adressen", 0, $link_lk, $xr, "editmailingvanaf", "", "Vanaf_naam, emlVanaf_email"));
 	
 	echo("<div id='opdrachtknoppen'>\n");
 	echo("<input type='submit' value='Bewaren' name='InstellingenBewaren'>\n");
