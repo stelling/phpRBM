@@ -570,6 +570,7 @@ function fnValidatieLogin($lidid, $key, $stap) {
 	
 	$mess = "";
 	$i_login = new cls_Login();
+	$i_login->vernieuwactivatiekeys();
 	if ($stap == "mail") {
 	
 		$row = $i_login->record($lidid);
@@ -600,7 +601,7 @@ function fnValidatieLogin($lidid, $key, $stap) {
 		}
 
 	} else {
-		$i_login->valideerlogin($lidid);
+		$i_login->valideerlogin($lidid, $key);
 	}
 	
 	$i_login = null;
@@ -637,12 +638,18 @@ function fnLoginAanvragen($stap="") {
 		}
 		
 		$i_login = new cls_Login();
+		$lidid = $i_login->lidid($_POST['email'], $_POST['lidnummer']);
 		if (!isValidMailAddress($_POST['email'], 0)) {
 			$mess = "Je hebt geen geldig e-mailadres opgegeven.";
 		} elseif (strlen($_POST['gewenstelogin']) < 6) {
 			$mess = "Je hebt geen geldige gewenste login opgegeven. Een login moet uit minimaal 6 karakters bestaan.";
 		} elseif ($i_login->aantal(sprintf("Login='%s'", $_POST['gewenstelogin'])) > 0) {
-			$mess = "Deze login is al in gebruik.";
+			$ak = $i_login->record($lidid)->ActivatieKey;
+			if (strlen($ak) > 5 and $lidid > 0) {
+				fnValidatieLogin($lidid, $ak, "mail");
+			} else {
+				$mess = sprintf("Login '%s' is al in gebruik.", $_POST['gewenstelogin']);
+			}
 		} elseif (strlen($_POST['gewenstelogin']) > $_SESSION['settings']['login_maxlengte']) {
 			$mess = sprintf("Je hebt geen geldige login opgegeven. Een login mag uit maximaal %d karakters bestaan.", $_SESSION['settings']['login_maxlengte']);
 		} elseif (strpos($_POST['gewenstelogin'], " ") > 0) {
@@ -652,7 +659,6 @@ function fnLoginAanvragen($stap="") {
 		} elseif ($wwok !== "ok") {
 			$mess = $wwok;
 		} else {
-			$lidid = $i_login->lidid($_POST['email'], $_POST['lidnummer']);
 			if ($lidid > 0) {
 				if ($i_login->aanvragenmag($lidid)) {
 					$i_login->add($lidid, $_POST['gewenstelogin'], $_POST['gewenstwachtwoord']);
