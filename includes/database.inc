@@ -2432,6 +2432,7 @@ class cls_Lidond extends cls_db_base {
 	private $ondid = 0; // RecordID van het onderdeel
 	private $ondnaam = ""; // Naam van het onderdeel
 	private $ondtype = ""; // Type van het onderdeel
+	private $ondkader = 0; // Is dit kader?
 	
 	function __construct() {
 		parent::__construct();
@@ -2439,31 +2440,30 @@ class cls_Lidond extends cls_db_base {
 		$this->ta = 6;
 	}
 	
-	private function vulvars() {
+	private function vulvars($p_loid=0) {
+		if ($p_loid > 0) {
+			$this->loid = $p_loid;
+		}
 	
 		if ($this->loid > 0) {
-			$query = sprintf("SELECT LO.Lid, LO.OnderdeelID, O.Naam, O.Type FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE LO.RecordID=%2\$d;", TABLE_PREFIX, $this->loid);
+			$query = sprintf("SELECT LO.Lid, LO.OnderdeelID FROM %s AS LO WHERE LO.RecordID=%d;", $this->table, $this->loid);
 			$row = fnQuery($query)->fetch();
 			if (isset($row)) {
 				$this->lidid = $row->Lid;
 				$this->ondid = $row->OnderdeelID;
-				$this->ondnaam = $row->Naam;
-				$this->ondtype = $row->Type;
 			} else {
 				$this->mess = sprintf("Record in lidond met ID %d bestaat niet.", $this->loid);
 				$this->ta = 99;
 				$this->tm = 1;
 			}
-		} elseif ($this->ondid > 0) {
-			$query = sprintf("SELECT O.Naam, O.Type FROM %sOnderdl AS O WHERE O.RecordID=%d;", TABLE_PREFIX, $this->ondid);
+		}
+		if ($this->ondid > 0) {
+			$query = sprintf("SELECT O.Naam, O.Type, O.Kader FROM %sOnderdl AS O WHERE O.RecordID=%d;", TABLE_PREFIX, $this->ondid);
 			$row = $this->execsql($query)->fetch();
 			if (isset($row)) {
 				$this->ondnaam = $row->Naam;
 				$this->ondtype = $row->Type;
-			} else {
-				$this->mess = sprintf("Record in onderdl met ID %d bestaat niet.", $this->loid);
-				$this->ta = 99;
-				$this->tm = 1;
+				$this->ondkader = $row->Kader;
 			}
 		}
 		if ($this->ondtype == "T") {
@@ -2494,17 +2494,22 @@ class cls_Lidond extends cls_db_base {
 	}
 	
 	public function selectielijst($p_ondid) {
+		$this->ondid = $p_ondid;
+		$this->vulvars();
 		
 		$selectkader = "";
-		$f = sprintf("RecordID=%d", $p_ondid);
-		if ((new cls_Onderdeel())->max("Kader", $f) == 1) {
+		$selectopm = "";
+		if ($this->ondtype != "C") {
+			$selectopm = ", LO.Opmerk AS Opmerking";
+		}
+		if ($this->ondkader == 1) {
 			$selectkader = ", LO.Functie AS cboFunctie, LO.EmailFunctie AS `emlEmail`";
 		}
 		
-		$query = sprintf("SELECT LO.RecordID AS lnkNummer, %s AS `Naam_lid`, LO.Vanaf AS dteVanaf %s, LO.Opmerk AS Opmerking, LO.Opgezegd AS `dteTot en met`, LO.RecordID AS llkNummer, L.GEBDATUM AS ndGEBDATUM
+		$query = sprintf("SELECT LO.RecordID AS lnkNummer, %s AS `Naam_lid`, LO.Vanaf AS dteVanaf %s%s, LO.Opgezegd AS `dteTot en met`, LO.RecordID AS llkNummer, L.GEBDATUM AS ndGEBDATUM
 								FROM %s
 								WHERE LO.OnderdeelID=%d AND IFNULL(LO.Opgezegd, CURDATE()) >= LO.Vanaf
-								ORDER BY IF(IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE(), 0, 1), L.Achternaam, L.TUSSENV, L.Roepnaam, LO.Vanaf DESC;", $this->selectnaam, $selectkader, $this->fromlidond, $p_ondid);
+								ORDER BY IF(IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE(), 0, 1), L.Achternaam, L.TUSSENV, L.Roepnaam, LO.Vanaf DESC;", $this->selectnaam, $selectopm, $selectkader, $this->fromlidond, $p_ondid);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
@@ -2718,6 +2723,8 @@ class cls_Lidond extends cls_db_base {
 	}
 	
 	public function update($p_loid, $p_kolom, $p_waarde, $p_reden="") {
+		$this->vulvars($p_loid);
+		
 		if ($p_kolom == "GroepID") {
 			$this->ta = 19;
 			$this->tas = 0;
@@ -2727,10 +2734,6 @@ class cls_Lidond extends cls_db_base {
 		if ($this->tas != 32 and $this->ta == 6) {
 			$this->tas = 12;
 		}
-		$this->loid = $p_loid;
-		$this->vulvars();
-		
-		
 		
 		if ($p_kolom == "Vanaf" and strlen($p_waarde) < 5) {
 			$this->mess = "De datum 'Vanaf' mag niet leeg zijn, deze aanpassing wordt niet verwerkt.";
@@ -3523,7 +3526,7 @@ class cls_Login extends cls_db_base {
 	public function vernieuwactivatiekeys() {
 		
 		if ($_SESSION['settings']['login_geldigheidactivatie'] > 0) {
-			$query = sprintf("SELECT Login.LidID FROM %s AS Login WHERE Login.Ingelogd=0 AND LENGTH(Login.ActivatieKey) > 5 AND IFNULL(Login.Gewijzigd, '1970-01-01') < ADDDATE(SYSDATE(), INTERVAL -%2\$d HOUR);", $this->table, $_SESSION['settings']['login_geldigheidactivatie']);
+			$query = sprintf("SELECT Login.LidID FROM %s AS Login WHERE Login.Ingelogd=0 AND ((LENGTH(Login.ActivatieKey) > 5 AND IFNULL(Login.Gewijzigd, '1970-01-01') < ADDDATE(SYSDATE(), INTERVAL -%2\$d HOUR)) OR LENGTH(Login.Wachtwoord) < 5);", $this->table, $_SESSION['settings']['login_geldigheidactivatie']);
 			$result = $this->execsql($query);
 			foreach($result->fetchAll() as $row) {
 				$this->nieuweactivitiekey($row->LidID);
@@ -4061,14 +4064,7 @@ class cls_Mailing extends cls_db_base {
 		}
 		
 		$orderby = "M.RecordID DESC";
-		if ($p_filter == "Concepten" or $p_filter === "Verzonden") {
-			if ($p_filter == "Verzonden") {
-				$w .= " AND (NOT M.Sent_on IS NULL)";
-			} else {
-				$w .= " AND (M.Sent_on IS NULL)";
-			}
-			$w .= " AND template=0 AND (deleted_on IS NULL)";
-		} elseif ($p_filter == "Templates") {
+		if ($p_filter == "Templates") {
 			$w .= " AND M.template=1 AND (M.deleted_on IS NULL)";
 			$orderby = "M.subject";
 			
@@ -4077,6 +4073,9 @@ class cls_Mailing extends cls_db_base {
 			$orderby = "M.deleted_on DESC";
 			$xtra_sel = sprintf(", CONCAT((SELECT %s FROM %sLid AS L WHERE L.RecordID=M.DeletedBy), ' & ', DATE_FORMAT(M.deleted_on, %s)) AS `mrgVerwijderd`", $this->selectnaam, TABLE_PREFIX, $this->fdtlang);
 		} else {
+			if ($_SESSION['webmaster'] == 1) {
+				
+			}
 			$w .= " AND (M.deleted_on IS NULL)";
 			$orderby = "M.template DESC, M.RecordID DESC";
 		}
@@ -4093,9 +4092,10 @@ class cls_Mailing extends cls_db_base {
 	
 	public function mogelijkeontvangers($p_mid) {
 		$query = sprintf("SELECT L.RecordID AS LidID, %1\$s AS Zoeknaam_lid FROM %2\$sLid AS L
-					WHERE (L.Verwijderd IS NULL) AND (L.Overleden IS NULL) AND (LENGTH(L.Email) > 5 OR LENGTH(L.EmailVereniging) > 5 OR LENGTH(L.EmailOuders) > 5 OR (SELECT COUNT(*) FROM %2\$sLidmaatschap AS LM WHERE IFNULL(LM.Opgezegd, CURDATE()) >= CURDATE() AND LM.Lid=L.RecordID) > 0)
-					AND (SELECT COUNT(*) FROM %2\$sMailing_rcpt AS R WHERE R.LidID=L.RecordID AND R.MailingID=%3\$d)=0
+					WHERE (L.Verwijderd IS NULL) AND (L.Overleden IS NULL) AND (LENGTH(L.Email) > 5 OR LENGTH(L.EmailVereniging) > 5 OR LENGTH(L.EmailOuders) > 5)
+					AND (L.RecordID NOT IN (SELECT R.LidID FROM %2\$sMailing_rcpt AS R WHERE R.MailingID=%3\$d))
 					ORDER BY L.Achternaam, L.Roepnaam;", $this->selectzoeknaam, TABLE_PREFIX, $p_mid);
+//					debug($query);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
@@ -5502,8 +5502,6 @@ class cls_Diploma extends cls_db_base {
 	}
 	
 	public function opschonen() {
-		$query = sprintf("DELETE FROM %s WHERE (NOT Vervallen IS NULL) AND Vervallen < CURDATE();", $this->table);
-		$this->execsql($query, 2);
 	}
 	
 }  # cls_Diploma
@@ -7428,26 +7426,26 @@ function db_onderhoud($type=9) {
 	
 	if ($type == 1) {
 		// Vaste aanpassingen aan de database na een upload, omdat MS-Access geen datum velden kent, alleen datum_tijd.
-		fnQuery(sprintf("ALTER TABLE %sBewaking CHANGE `BEGIN_PER` `BEGIN_PER` DATE;", TABLE_PREFIX), 9);
-		fnQuery(sprintf("ALTER TABLE %sBewaking CHANGE `EINDE_PER` `EINDE_PER` DATE;", TABLE_PREFIX), 9);
-		fnQuery(sprintf("ALTER TABLE %sBewseiz CHANGE Begindatum Begindatum DATE;", TABLE_PREFIX), 9);
-		fnQuery(sprintf("ALTER TABLE %sBewseiz CHANGE `Einde` `Einde` DATE;", TABLE_PREFIX), 9);
-		fnQuery(sprintf("ALTER TABLE %sBewseiz CHANGE Geboren Geboren DATE;", TABLE_PREFIX), 9);
-		fnQuery(sprintf("ALTER TABLE %sDiploma CHANGE `Vervallen` `Vervallen` DATE;", TABLE_PREFIX), 9);
-		fnQuery(sprintf("ALTER TABLE %sFunctie CHANGE `Vervallen per` `Vervallen per` DATE;", TABLE_PREFIX), 9);
-		fnQuery(sprintf("ALTER TABLE %sLid CHANGE `GEBDATUM` `GEBDATUM` DATE;", TABLE_PREFIX), 9);
-		fnQuery(sprintf("ALTER TABLE %sLid CHANGE `Overleden` `Overleden` DATE;", TABLE_PREFIX), 9);
-		fnQuery(sprintf("ALTER TABLE %sLid CHANGE `VOG afgegeven` `VOG afgegeven` DATE;", TABLE_PREFIX), 9);
-		fnQuery(sprintf("ALTER TABLE %sLiddipl CHANGE `DatumBehaald` `DatumBehaald` DATE;", TABLE_PREFIX), 9);
-		fnQuery(sprintf("ALTER TABLE %sLiddipl CHANGE `LicentieVervallenPer` `LicentieVervallenPer` DATE DEFAULT NULL;", TABLE_PREFIX), 9);
-		fnQuery(sprintf("ALTER TABLE %sLidmaatschap CHANGE `LIDDATUM` `LIDDATUM` DATE;", TABLE_PREFIX), 9);
-		fnQuery(sprintf("ALTER TABLE %sLidmaatschap CHANGE `Opgezegd` `Opgezegd` DATE;", TABLE_PREFIX), 9);
-		fnQuery(sprintf("ALTER TABLE %sLidond CHANGE `Vanaf` `Vanaf` DATE;", TABLE_PREFIX), 9);
-		fnQuery(sprintf("ALTER TABLE %sLidond CHANGE `Opgezegd` `Opgezegd` DATE;", TABLE_PREFIX), 9);
-		fnQuery(sprintf("ALTER TABLE %sLidRedNed CHANGE Geboortedatum Geboortedatum DATE;", TABLE_PREFIX), 9);
-		fnQuery(sprintf("ALTER TABLE %sMutatie CHANGE `Datum` `Datum` DATE;", TABLE_PREFIX), 9);
-		fnQuery(sprintf("ALTER TABLE %sOnderdl CHANGE `VervallenPer` `VervallenPer` DATE;", TABLE_PREFIX), 9);
-		fnQuery(sprintf("ALTER TABLE %sRekening CHANGE `Datum` `Datum` DATE;", TABLE_PREFIX), 9);
+		fnQuery(sprintf("ALTER TABLE %sBewaking CHANGE `BEGIN_PER` `BEGIN_PER` DATE;", TABLE_PREFIX));
+		fnQuery(sprintf("ALTER TABLE %sBewaking CHANGE `EINDE_PER` `EINDE_PER` DATE;", TABLE_PREFIX));
+		fnQuery(sprintf("ALTER TABLE %sBewseiz CHANGE Begindatum Begindatum DATE;", TABLE_PREFIX));
+		fnQuery(sprintf("ALTER TABLE %sBewseiz CHANGE `Einde` `Einde` DATE;", TABLE_PREFIX));
+		fnQuery(sprintf("ALTER TABLE %sBewseiz CHANGE Geboren Geboren DATE;", TABLE_PREFIX));
+		fnQuery(sprintf("ALTER TABLE %sDiploma CHANGE `Vervallen` `Vervallen` DATE;", TABLE_PREFIX));
+		fnQuery(sprintf("ALTER TABLE %sFunctie CHANGE `Vervallen per` `Vervallen per` DATE;", TABLE_PREFIX));
+		fnQuery(sprintf("ALTER TABLE %sLid CHANGE `GEBDATUM` `GEBDATUM` DATE;", TABLE_PREFIX));
+		fnQuery(sprintf("ALTER TABLE %sLid CHANGE `Overleden` `Overleden` DATE;", TABLE_PREFIX));
+		fnQuery(sprintf("ALTER TABLE %sLid CHANGE `VOG afgegeven` `VOG afgegeven` DATE;", TABLE_PREFIX));
+		fnQuery(sprintf("ALTER TABLE %sLiddipl CHANGE `DatumBehaald` `DatumBehaald` DATE;", TABLE_PREFIX));
+		fnQuery(sprintf("ALTER TABLE %sLiddipl CHANGE `LicentieVervallenPer` `LicentieVervallenPer` DATE DEFAULT NULL;", TABLE_PREFIX));
+		fnQuery(sprintf("ALTER TABLE %sLidmaatschap CHANGE `LIDDATUM` `LIDDATUM` DATE;", TABLE_PREFIX));
+		fnQuery(sprintf("ALTER TABLE %sLidmaatschap CHANGE `Opgezegd` `Opgezegd` DATE;", TABLE_PREFIX));
+		fnQuery(sprintf("ALTER TABLE %sLidond CHANGE `Vanaf` `Vanaf` DATE;", TABLE_PREFIX));
+		fnQuery(sprintf("ALTER TABLE %sLidond CHANGE `Opgezegd` `Opgezegd` DATE;", TABLE_PREFIX));
+		fnQuery(sprintf("ALTER TABLE %sLidRedNed CHANGE Geboortedatum Geboortedatum DATE;", TABLE_PREFIX));
+		fnQuery(sprintf("ALTER TABLE %sMutatie CHANGE `Datum` `Datum` DATE;", TABLE_PREFIX));
+		fnQuery(sprintf("ALTER TABLE %sOnderdl CHANGE `VervallenPer` `VervallenPer` DATE;", TABLE_PREFIX));
+		fnQuery(sprintf("ALTER TABLE %sRekening CHANGE `Datum` `Datum` DATE;", TABLE_PREFIX));
 		foreach ($arrTables as $key => $tn) {
 			if ($key >= 20) {
 				fnQuery(sprintf("ALTER TABLE %s%s CHANGE Ingevoerd Ingevoerd DATE;", TABLE_PREFIX, $tn));
@@ -7456,7 +7454,7 @@ function db_onderhoud($type=9) {
 
 		// Overige vaste aanpassingen aan de database na een upload,
 		$query = sprintf("ALTER TABLE `%sMemo` CHANGE `Vertrouwelijk` `Vertrouwelijk` TINYINT(4) NULL DEFAULT '0'", TABLE_PREFIX);
-		fnQuery($query, 9);
+		fnQuery($query);
 		$query = sprintf("ALTER TABLE `%sRekening` CHANGE `BET_TERM` `BET_TERM` SMALLINT(6) NULL DEFAULT '1'; ", TABLE_PREFIX);
 		fnQuery($query);
 	}
