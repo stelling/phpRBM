@@ -605,7 +605,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 	$ret = sprintf("<div class='%s'>\n", $class);
 	$kol_pk = "";
 	if ($autosubmit == 1) {
-		$js = " OnChange='this.form.submit();'";
+		$js = " OnBlur='this.form.submit();'";
 	} else {
 		$js = "";
 	}
@@ -625,7 +625,7 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 				foreach($row as $key => $value) {
 					$sortlink = "";
 					$ht = "";
-					if (strstr("cbo, chk, dte, dtt, dtl, dts, boo, int, cur, eml, num, mrg, pwd", substr($key, 0, 3)) !== false) {
+					if (strstr("cbo, chk, dte, dtt, dtl, dts, boo, int, cur, eml, num, mrg, pwd, lnm", substr($key, 0, 3)) !== false) {
 						$ht = str_replace("_", " ", substr($key, 3));
 					} elseif (startwith($key, "lnk")) {
 						if (strlen($link) > 1) {
@@ -756,9 +756,17 @@ function fnDisplayTable($rows, $link="", $th="", $disptot=0, $link_lk="", $xtra_
 					$ret .= sprintf("<td class='number'>%s</td>", number_format($value, 2, ",", "."));
 					$ktot[$kn] += $value;
 				} elseif (substr($key, 0, 3) == "boo" and $value == 1) {
-					$ret .= sprintf("<td>Ja</td>");
+					$ret .= "<td>Ja</td>";
 				} elseif (substr($key, 0, 3) == "boo" and $value != 1) {
-					$ret .= sprintf("<td>Nee</td>");
+					$ret .= "<td>Nee</td>";
+					
+				} elseif (substr($key, 0, 3) == "lnm" and strlen($value) > 0) {
+					if (is_numeric($value)) {
+						$ret .= sprintf("<td>%s</td>", (new cls_lid())->Naam($value, "onbekend"));
+					} else {
+						$ret .= sprintf("<td>%s</td>", $value);
+					}
+					
 				} elseif (startwith($key, "lnk")) {
 					if (strlen($link) > 1) {
 						if ($value > 0) {
