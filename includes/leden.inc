@@ -78,7 +78,7 @@ function fnWijzigen($lidid, $actie="") {
 					$curval = $i_Mm->inhoud($lidid, $kodesoort);
 					if (strlen($_POST[$namevar]) == 0) {
 						$i_Mm->delete($lidid, $kodesoort);
-					} elseif (strlen($curval) == 0 and array_key_exists($kodesoort, ARRSOORTMEMO)) {
+					} elseif (strlen($curval) == 0 and isset(ARRSOORTMEMO[$kodesoort])) {
 						$i_Mm->add($lidid, $kodesoort, $_POST[$namevar]);
 					} elseif ($curval != $_POST[$namevar]) {
 						$i_Mm->update($lidid, $kodesoort, $_POST[$namevar]);
@@ -91,7 +91,7 @@ function fnWijzigen($lidid, $actie="") {
 				printf("<form method='post' action='%s'>\n", $actionurl);
 				foreach (explode(",", $mm) as $kodesoort) {
 					$namevar = "Memo_" . $kodesoort;
-					if (array_key_exists($kodesoort, ARRSOORTMEMO)) {
+					if (isset(ARRSOORTMEMO[$kodesoort])) {
 						$curval = $i_Mm->inhoud($lidid, $kodesoort);
 						printf("<label>%s</label><textarea cols=85 rows=10 name='%s' OnChange='this.form.submit();'>%s</textarea>\n", ARRSOORTMEMO[$kodesoort], $namevar, $curval);
 					}
@@ -353,7 +353,7 @@ function fnLedenlijst() {
 		
 		if (count($rows) > 0) {
 			echo("<div id='filter'>\n");
-			echo("<label>Omschrijving bevat</label><input id='tbOmsFilter' OnKeyUp=\"fnFilter('logboek', 'tbOmsFilter', 2);\">");
+			echo("<label>Omschrijving bevat</label><input id='tbOmsFilter' OnKeyUp=\"fnFilter('logboek', 'tbOmsFilter', 1);\">");
 			echo("</div> <!-- Einde filter -->\n");
 			echo(fnDisplayTable($rows, "", "Mutaties in lidgegevens", 0, "", "", "logboek"));
 		} else {
@@ -442,19 +442,18 @@ function fnAfdelingslijst($afdid) {
 	echo("<div id='filter'>\n");
 	printf("<form action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
 
-	printf("<label>Naam bevat</label><input type='text' name='tbNaamFilter' id='tbNaamFilter' value='%s' placeholder='Achter- of roepnaam' OnKeyUp='fnFilterAfdelingslijst();'>\n", $naamfilter);
-	printf("<label>Functie bevat</label><input type='text' name='tbFuncFilter' id='tbFuncFilter' value='%s' placeholder='Functie' OnKeyUp='fnFilterAfdelingslijst();'>\n", $funcfilter);
+	printf("<label>Naam bevat</label><input type='text' name='tbNaamFilter' id='tbNaamFilter' value='%s' placeholder='Achter- of roepnaam' OnKeyUp=\"fnFilterTwee('afdelingslijst', 'tbNaamFilter', 'tbFuncFilter', 1, 5);\">\n", $naamfilter);
+	printf("<label>Functie bevat</label><input type='text' name='tbFuncFilter' id='tbFuncFilter' value='%s' placeholder='Functie' OnKeyUp=\"fnFilterTwee('afdelingslijst', 'tbNaamFilter', 'tbFuncFilter', 1, 5)\">\n", $funcfilter);
 	printf("<label>Bezit diploma</label><select name='bezitdiploma' onchange='this.form.submit();'>\n<option value=-1>Geen filter</option>\n%s</select>\n", $i_dp->htmloptions($diplfilter, -1, $afdid));
 	if (count($rows) > 1) {
-		printf("<p class='aantrecords'>%d records</p>\n", count($rows));
+		printf("<p class='aantrecords'>%d rijen</p>\n", count($rows));
 	}
 	echo("</form>\n");
 	echo("</div>  <!-- Einde filter -->\n");
-	
-	echo("<script>fnFilterAfdelingslijst();</script>\n");
 
 	if (count($rows) > 0) {
 		echo(fnDisplayTable($rows, $ldl, "", 0, "", "", "afdelingslijst", "", "", 0, $arrSort));
+		echo("<script>fnFilterTwee('afdelingslijst', 'tbNaamFilter', 'tbFuncFilter', 1, 5);</script>\n");
 		foreach ($rows as $row) {
 			$sel_leden[] = $row->lnkNummer;
 		}
@@ -747,7 +746,7 @@ function fnOnderdelenmuteren($ondtype="G") {
 				$st = microtime(true);
 				$result = (new cls_db_base())->execsql($row->MySQL);
 				printf("<label>Duur query in seconden</label><p>%f</p>\n", microtime(true) - $st);
-				printf("<label>Aantal records</label><p>%s</p>\n", count($result->fetchAll()));			
+				printf("<label>Aantal rijen</label><p>%s</p>\n", count($result->fetchAll()));			
 			}
 		}
 		
@@ -954,6 +953,9 @@ function fnGroepsindeling($afdkode="", $afdid=0, $p_muteren=0, $p_toonleeftijd=2
 				if (strlen($hvgroep) > 0) {
 					echo("</ol>");
 					echo("</div>  <!-- einde groepsindelingkolom -->\n");
+					if ($hvtijd !== $row->Tijdsblok) {
+						echo("<div class='clear'></div>\n");
+					}
 				}
 				echo("<div class='groepsindelingkolom'>\n");
 				$volgnr = 1;
