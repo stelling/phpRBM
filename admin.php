@@ -138,7 +138,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	$ondrows = (new cls_Onderdeel())->lijst(0, "O.`Type`<>'T'");
 	$authrows = $i_auth->lijst();
 	foreach($authrows as $row) {
-		$del = sprintf("<a href='%s?tp=%s&amp;op=deleteautorisatie&amp;recid=%d'><img src='images/del.png' title='Verwijder record'></a>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
+		$del = sprintf("<a href='%s?tp=%s&amp;op=deleteautorisatie&amp;recid=%d'><img src='%s' title='Verwijder record'></a>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID, BASE64_VERWIJDER);
 		$selectopt = sprintf("<option value=-1%s>Alleen webmasters</option>\n", checked($row->Toegang, "option", -1));
 		$selectopt .= sprintf("<option value=0%s>Iedereen</option>\n", checked($row->Toegang, "option", 0));
 		foreach($ondrows as $ond) {
@@ -186,7 +186,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	(new cls_lidond())->autogroepenbijwerken();
 	echo("<h2>Wijzigen op de website, te verwerken in de Access database.</h2>");
 	printf("<form name='formdownload' method='post' action='%s?tp=%s&amp;op=downloadwijz'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	$linklk = sprintf("<a href='/admin.php?op=deleteint&amp;recid=%%d&amp;tp=%s'><img src='images/del.png' title='Verwijder record'></a>", urlencode($_GET['tp']));
+	$linklk = sprintf("<a href='/admin.php?op=deleteint&amp;recid=%%d&amp;tp=%s'><img src='" . BASE64_VERWIJDER . "' title='Verwijder record'></a>", urlencode($_GET['tp']));
 	$rows = (new cls_Interface())->lijst();
 	if (count($rows) > 0) {
 		echo(fnDisplayTable($rows, "", "", 1, $linklk));
@@ -251,7 +251,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 } elseif ($currenttab == "Logboek" and toegang($currenttab, 1, 1)) {
 	$i_lb = new cls_logboek();
 	
-	$arrSort[] = "Datum en tijd;DatumTijd";
+	$arrSort[] = "Datum en tijd;RecordID";
 	$arrSort[] = "Omschrijving;Omschrijving";
 	$arrSort[] = "Type;Type";
 	$arrSort[] = "Script / Functie;Script / Functie";
@@ -260,48 +260,42 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	
 	$ord = fnOrderBy($arrSort);
 	
-	if (!isset($_POST['lidfilter']) or strlen($_POST['lidfilter']) == 0) {
-		$_POST['lidfilter'] = 0;
+	if (!isset($_POST['tbLidFilter']) or strlen($_POST['tbLidFilter']) == 0) {
+		$_POST['tbLidFilter'] = "";
 	}
 	if (!isset($_POST['typefilter']) or strlen($_POST['typefilter']) == 0) {
 		$_POST['typefilter'] = -1;
 	}
-	$rows = $i_lb->lijst($_POST['typefilter'], 0, $_POST['lidfilter'], "", $ord);
+	if (!isset($_POST['aantalrijen']) or $_POST['aantalrijen'] < 2) {
+		$_POST['aantalrijen'] = 100;
+	}
+	
+	$rows = $i_lb->lijst($_POST['typefilter'], 0, 0, "", $ord, $_POST['aantalrijen']);
 	
 	echo("<div id='filter'>\n");
 	printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 	
-	echo("<label>Omschrijving bevat</label><input id='tbOmsFilter' OnKeyUp=\"fnFilterTwee('logboek', 'tbOmsFilter', 'tbIPfilter', 2, 5);\">");
+	echo("<label>Omschrijving bevat</label><input type='text' id='tbOmsFilter' OnKeyUp=\"fnFilterTwee('logboek', 'tbOmsFilter', 'tbIPfilter', 1, 5, 'tbLidFilter', 4);\">");
 	
-	echo("<label>Filter op lid</label><select name='lidfilter' onchange='this.form.submit();'>\n");
-	echo("<option value=0>Alle</option>\n");
-	foreach ((new cls_Logboek())->lidlijst() as $row) {
-		if ($row->LidID == $_POST['lidfilter']) {
-			$s = "selected";
-		} else {
-			$s = "";
-		}
-		printf("<option value=%d %s>%s</option>\n", $row->LidID, $s, htmlentities($row->Naam));
-	}
-	echo("</select>\n");
+	echo("<label>Ingelogd lid bevat</label><input type='text' id='tbLidFilter' OnKeyUp=\"fnFilterTwee('logboek', 'tbOmsFilter', 'tbIPfilter', 1, 5, 'tbLidFilter', 4);\">\n");
 	
 	echo("<label>Filter op type</label><select name='typefilter' onchange='this.form.submit();'>\n");
 	echo("<option value=-1>Alle</option>\n");
 	foreach ($TypeActiviteit as $key => $val) {
-		if ($key == $_POST['typefilter']) {
-			$s = "selected";
-		} else {
-			$s = "";
-		}
-		printf("<option value=%d %s>%s</option>\n", $key, $s, htmlentities($val));
+		printf("<option value=%d %s>%s</option>\n", $key, checked($key, "option", $_POST['typefilter']), htmlentities($val));
 	}
 	echo("</select>\n");
 	
-	echo("<label>IP-adres bevat</label><input type='text' id='tbIPfilter' name='tbIPfilter' OnKeyUp=\"fnFilterTwee('logboek', 'tbOmsFilter', 'tbIPfilter', 2, 5);\">\n");
+	echo("<label>IP-adres bevat</label><input type='text' id='tbIPfilter' name='tbIPfilter' OnKeyUp=\"fnFilterTwee('logboek', 'tbOmsFilter', 'tbIPfilter', 1, 6, 'tbLidFilter', 4);\">\n");
+	$options = "";
+	foreach (array(25, 100, 250, 750, 1500, 3000, 10000) as $a) {
+		$options .= sprintf("<option value=%d %s>%s</option>\n", $a, checked($a, "option", $_POST['aantalrijen']), number_format($a, 0, ",", "."));
+	}
+	printf("<label>Max. aantal rijen</label><select name='aantalrijen' OnChange='this.form.submit();'>%s</select>\n", $options);
 	echo("</form>\n");
 	
 	if (count($rows) > 1) {
-		printf("<p class='aantrecords'>%d regels</p>\n", count($rows));
+		printf("<p class='aantrecords'>%s rijen</p>\n", number_format(count($rows), 0, ",", "."));
 	}
 	echo("</div>  <!-- Einde filter -->\n");
 	
@@ -345,7 +339,7 @@ function fnBeheerLogins() {
 	echo("<div class='clear'></div>\n");
 	
 	echo("<div id='beheerlogins'>\n");
-	$lnk_ek = sprintf("<a href='%s?op=deletelogin&amp;lidid=%%d'><img src='images/del.png' title='Verwijder login'></a>", $_SERVER['PHP_SELF']);
+	$lnk_ek = sprintf("<a href='%s?op=deletelogin&amp;lidid=%%d'><img src='" . BASE64_VERWIJDER . "' title='Verwijder login'></a>", $_SERVER['PHP_SELF']);
 	if ($_SESSION['settings']['login_maxinlogpogingen'] > 0) {
 		$lnk_lk = sprintf("<a href='%s?op=unlocklogin&amp;lidid=%%d' title='Reset foutieve logins'><img src='images/unlocked_01.png'></a>", $_SERVER['PHP_SELF']);
 	} else {
@@ -429,7 +423,7 @@ function fnInstellingen() {
 		foreach ($i_p->lijst() as $row) {
 			$mess = "";
 			$pvn = $row->Naam;
-			if (array_key_exists($row->Naam, $arrParam) == true) {
+			if (isset($arrParam[$row->Naam])) {
 				if ($pvn == "wachtwoord_minlengte") {
 					if ($_POST[$pvn] < 7) {
 						$_POST[$pvn] = 7;
@@ -512,7 +506,7 @@ function fnInstellingen() {
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	
 	foreach ($i_p->lijst() as $row) {
-		if (array_key_exists($row->Naam, $arrParam)) {
+		if (isset($arrParam[$row->Naam])) {
 			$uitleg = htmlent($arrParam[$row->Naam]);
 			if (strlen($row->ValueChar) > 60 and $row->ParamType="T") {
 				printf("<label>%s</label><textarea cols=68 rows=2 name='%s'>%s</textarea>\n", $uitleg, $row->Naam, $row->ValueChar);
@@ -597,7 +591,7 @@ function fnStukken() {
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	echo("<table>\n");
 	echo("<caption>Stukken muteren</caption>\n");
-	echo("<tr><th rowspan=2>Titel</th><th>Bestemd voor</th><th>Vastgesteld op</th><th>Ingangsdatum</th><th>Revisiedatum</th><th>Vervallen per</th></tr>\n");
+	echo("<tr><th rowspan=2>Titel</th><th>Bestemd voor</th><th>Vastgesteld op</th><th>Ingangsdatum/Versie</th><th>Revisiedatum</th><th>Vervallen per</th></tr>\n");
 	echo("<tr>");
 	echo("<th>Type</th><th colspan=4>Link naar document</th>");
 	foreach ($rows as $row) {
