@@ -112,9 +112,7 @@ if (toegang($_GET['tp'], 1) == false) {
 	}
 	
 } elseif ($currenttab2 == "Wijzigen lid") {
-	if (isset($_GET['lidid']) and is_numeric($_GET['lidid']) and $_GET['lidid'] > 0) {
-		fnWijzigen($_GET['lidid'], $currenttab3);
-	}
+	fnWijzigen($_GET['lidid'], $currenttab3);
 	
 } elseif ($currenttab == "Vereniging") {
 	fnDispMenu(2);
@@ -232,15 +230,17 @@ function fnVoorblad() {
 		$content = str_replace("[%ROEPNAAM%]", $_SESSION['roepnaamingelogde'], $content);
 		if (strpos($content, "[%VERVALLENDIPLOMAS%]") !== false and $_SESSION['lidid'] > 0) {
 			$strHV = "";
-			foreach ((new cls_Liddipl())->vervallenbinnenkort() as $row) {
-				if ($row->VervaltPer <= date("Y-m-d")) {
-					$strHV .= sprintf("<li>%s is per %s vervallen.</li>\n", $row->DiplOms, strftime("%e %h %Y", strtotime($row->VervaltPer)));
-				} else {
-					$strHV .= sprintf("<li>%s vervalt op %s.</li>\n", $row->DiplOms, strftime("%e %h %Y", strtotime($row->VervaltPer)));
+			$rows = (new cls_Liddipl())->vervallenbinnenkort();
+			if (count($rows) > 0){
+				$strHV = "<p>Je volgende diploma's zijn recent vervallen of komen binnenkort te vervallen.</p>\n<ul>";
+				foreach ($rows as $row) {
+					if ($row->VervaltPer <= date("Y-m-d")) {
+						$strHV .= sprintf("<li>%s is per %s vervallen.</li>\n", $row->DiplOms, strftime("%e %h %Y", strtotime($row->VervaltPer)));
+					} else {
+						$strHV .= sprintf("<li>%s vervalt op %s.</li>\n", $row->DiplOms, strftime("%e %h %Y", strtotime($row->VervaltPer)));
+					}
 				}
-			}
-			if (strlen($strHV) == 0) {
-				$strHV = "<li>Geen</li>\n";
+				$strHV .= "</ul>\n";
 			}
 			$content = str_replace("[%VERVALLENDIPLOMAS%]", $strHV, $content);
 		}
@@ -272,12 +272,12 @@ function fnGewijzigdeStukken() {
 	if ($_SESSION['lidid'] > 0) {
 		$rows = (new cls_Stukken())->gewijzigdestukken();
 		if (count($rows) > 0) {
-			$rv = "<p class='gewijzigdestukken'>De volgende stukken zijn gewijzigd sinds je laatste login of korter dan een week geleden.\n
+			$rv = "<p>De volgende stukken zijn gewijzigd sinds je laatste login of korter dan een week geleden.</p>\n
 				   <ul>\n";
 			foreach($rows as $row) {
 				$rv .= sprintf("<li>%s</li>\n", $row->Titel);
 			}
-			$rv .= "</ul>\n</p>\n";
+			$rv .= "</ul>\n";
 		}
 	}
 	
