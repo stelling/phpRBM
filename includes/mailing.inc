@@ -21,9 +21,7 @@ function fnMailing() {
 	
 	$mailing = new Mailing($_GET['mid']);
 	
-	if (isset($_POST['UploadBijlage']) or isset($_POST['UploadMedia'])) {
-		$op = "upload";
-	} elseif ($_GET['tp'] == "Mailing/Historie" and $op != "histdetails" and $op != "opnieuw") {
+	if ($_GET['tp'] == "Mailing/Historie" and $op != "histdetails" and $op != "opnieuw") {
 		$op = "historie";
 	} elseif (isset($_POST['action']) and $_POST['action'] == "Bewaren") {
 		$op = "save";
@@ -45,11 +43,7 @@ function fnMailing() {
 		$op = "delete_all_rcpt";
 	}
 	
-	if ($op == "upload") {
-		$mailing->upload();
-	} elseif ($op == "del_attach" and isset($_GET['attach'])) {
-		$mailing->attach_delete($_GET['attach'], "bijlage");
-	} elseif ($op == "htmlmedia" and isset($_GET['attach'])) {
+	if ($op == "htmlmedia" and isset($_GET['attach'])) {
 		$mailing->htmlmedia($_GET['attach']);
 	} elseif ($op == "del_media" and isset($_GET['attach'])) {
 		$mailing->attach_delete($_GET['attach'], "media");
@@ -144,9 +138,7 @@ function fnMailing() {
 		if ($_SERVER['REQUEST_METHOD'] == "POST" or strlen($op) > 0) {
 			$mailing->post_form($op);
 		}
-		if ($op == "Upload") {
-			printf("<script>location.href='%s?%s';</script>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
-		} elseif ($op == "save_close") {
+		if ($op == "save_close") {
 			printf("<script>location.href='%s?tp=Mailing/Muteren';</script>\n", $_SERVER['PHP_SELF']);
 		} elseif (isset($_POST['toevoegen'])) {
 			printf("<script>location.href='%s?tp=Mailing/Wijzigen mailing&mid=%d';</script>\n", $_SERVER['PHP_SELF'], $mailing->mid);
@@ -532,7 +524,7 @@ class Mailing {
 					}
 					if ($rcpt->LidID > 0) {
 						$lnk = sprintf("%s?tp=%s&amp;op=del_rcpt&amp;mid=%d&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, $rcpt->LidID);
-						printf("<li>%s&nbsp;<a href='%s'><img src='/images/delete.gif' alt='Verwijderen' title='Verwijderen'></a></li>\n", htmlentities($rcpt->Naam_lid . $ze), $lnk);
+						printf("<li>%s&nbsp;<a href='%s'><img src='%s' alt='Verwijderen' title='Verwijderen'></a></li>\n", htmlentities($rcpt->Naam_lid . $ze), $lnk, BASE64_VERWIJDER_KLEIN);
 					} else {
 						$lnk = sprintf("%s?tp=%s&amp;op=del_rcpt&amp;mid=%d&amp;addr=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, $rcpt->to_address);
 						printf("<li>%s&nbsp;<a href='%s'><img src='%s' alt='Verwijderen' title='Verwijderen'></a></li>\n", $rcpt->to_address, $lnk, BASE64_VERWIJDER_KLEIN);
@@ -654,13 +646,13 @@ class Mailing {
 				printf("<div class='editmailingform'>\n");
 			}
 
-			$strHV = "";
-			foreach ($this->MergeField as $v) {
-				$strHV .= "<li>[%" . $v['Naam'] . "%]</li>\n";
-			}
-			$strHV .= "";
+
 			echo("<div class='clear'></div>\n");
-			printf("<label>Beschikbare variabelen</label><div class='invoerblok'><ul class='listmergefields'>\n%s</ul></div>\n", $strHV);
+			echo("<label>Beschikbare variabelen</label><div class='invoerblok'>\n<ul class='lijstvariabelen'>\n");
+			foreach ($this->MergeField as $v) {
+				echo("<li>[%" . $v['Naam'] . "%]</li>\n");
+			}
+			echo("</ul></div>\n");
 
 			echo("<label>Bijlagen:</label>\n<div class='invoerblok'>\n<table>\n");
 			if (is_dir($this->dir_attachm)) {
@@ -670,8 +662,7 @@ class Mailing {
 						echo("<tr>\n<td>" . $entry . "</td>\n");
 						$stat = stat($this->dir_attachm . $entry);
 						echo("<td>" . number_format(($stat['size'] / 1024), 0, ',', '.') . " KB</td>\n");
-						$lnk = sprintf("%s?tp=%s&op=del_attach&mid=%d&attach=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, str_replace(".", "!", $entry));
-						printf("<td><a href='%s'><img src='/images/delete.gif' alt='Verwijderen' title='Verwijder'></a></td>\n", $lnk);
+						printf("<td><input type='image' src='%s' name='del_attach_%s' alt='Verwijderen' title='Verwijder %s'></td>\n", BASE64_VERWIJDER_KLEIN, str_replace(".", "!", $entry), $entry);
 					}
 				}
 				$d->close();
@@ -691,16 +682,20 @@ class Mailing {
 						echo("<tr>\n<td>" . $entry . "</td>\n");
 						$stat = stat($this->dir_media . "/" . $entry);
 						echo("<td>" . number_format(($stat['size'] / 1024), 0, ',', '.') . " KB</td>\n");
-						$lnk = sprintf("%s?tp=%s&op=del_media&mid=%d&attach=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, str_replace(".", "!", $entry));
-						printf("<td><a href='%s'>Verwijder</a>&nbsp;", $lnk);
-						if (strlen($this->message) == 0) {
-							$lnk = sprintf("%s?tp=%s&op=afbeeldingalsbericht&mid=%d&attach=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, str_replace(".", "!", $entry));
-							printf("&nbsp;-&nbsp;<a href='%s'>Als bericht</a>", $lnk);
-						}
+						
+						
 						if ($this->htmldirect == 1) {
 							$lnk = sprintf("%s?tp=%s&op=htmlmedia&mid=%d&attach=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, str_replace(".", "!", $entry));
-							printf("&nbsp;-&nbsp;<a href='%s'>HTML Media</a>", $lnk);
+							printf("<td><a href='%s'>HTML Media</a></td>\n", $lnk);
 						}
+						if (strlen($this->message) == 0) {
+							$lnk = sprintf("%s?tp=%s&op=afbeeldingalsbericht&mid=%d&attach=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, str_replace(".", "!", $entry));
+							printf("<td><a href='%s'>Als bericht</a></td>\n", $lnk);
+						}
+						
+						$lnk = sprintf("%s?tp=%s&op=del_media&mid=%d&attach=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, str_replace(".", "!", $entry));
+//						printf("<td><a href='%s'>Verwijder</a>&nbsp;", $lnk);
+						printf("<td><input type='image' src='%s' name='del_media_%s' alt='Verwijderen' title='Verwijder %s'></td>\n", BASE64_VERWIJDER_KLEIN, str_replace(".", "!", $entry), $entry);
 					}
 				}
 				$d->close();
@@ -879,6 +874,26 @@ class Mailing {
 			$this->add_del_selectie("del");
 		}  elseif ($p_actie == "delete_all_rcpt") {
 			$i_mr->delete_all($this->mid);
+		} 
+		
+		// ** Bijlagen en media bijwerken.
+		$this->upload();
+		
+		$sw = "del_attach_";
+		$swm = "del_media_";
+		foreach ($_POST as $key => $val) {
+			if (substr($key, -2) == ".x" or substr($key, -2) == "_x") {
+				$key = substr($key, 0, -2);
+			}
+			if ((startwith($key, $sw) or startwith($key, $swm)) and endswith($key, "y") == false) {
+				if (startwith($key, $swm)) {
+					$fn = str_replace($swm, "", $key);
+					$this->attach_delete($fn, "media");
+				} else {
+					$fn = str_replace($sw, "", $key);
+					$this->attach_delete($fn);
+				}
+			}
 		}
 		
 		if ($p_actie == "afbeeldingalsbericht" and isset($_GET['attach'])) {
@@ -893,7 +908,6 @@ class Mailing {
 			$_POST['ZonderBriefpapier'] = 1;
 			$_POST['HTMLdirect'] = 1;
 		}
-		
 		if (isset($_POST['subject']) and strlen($_POST['subject']) > 1) {
 			$this->subject = html_entity_decode(str_replace("\"", "'", $_POST['subject']));
 			$_POST['subject'] = $this->subject;
@@ -935,7 +949,7 @@ class Mailing {
 		if ($this->mid > 0) {
 			$old = $i_M->record($this->mid);
 			foreach($_POST as $key => $val) {
-				if (array_key_exists($key, $old)) {
+				if (property_exists($old, $key)) {
 					$i_M->update($this->mid, $key, $val);
 				}
 			}
@@ -1000,18 +1014,20 @@ class Mailing {
 	
 	public function attach_delete($p_bestand, $p_soort="bijlage") {
 		
+		$p_bestand = str_replace("!", ".", $p_bestand);
 		if ($p_soort == "bijlage") {
 			$ad = $this->dir_attachm;
 		} else {
 			$ad = $this->dir_media;
 		}
-		$p_bestand = str_replace("!", ".", $p_bestand);
-		if (unlink($ad . $p_bestand)) {
-			$mess = sprintf("Bestand '%s' bij mailing %d is verwijderd.", $p_bestand, $this->mid);
-		} else {
-			$mess = sprint("Het is niet gelukt om bestand '%s' uit directory '%s' te verwijderen.", $p_bestand, $ad);
+		if (file_exists($ad . $p_bestand)) {
+			if (unlink($ad . $p_bestand)) {
+				$mess = sprintf("Bestand '%s' bij mailing %d is verwijderd.", $p_bestand, $this->mid);
+			} else {
+				$mess = sprintf("Het is niet gelukt om bestand '%s' uit directory '%s' te verwijderen.", $p_bestand, $ad);
+			}
+			(new cls_Logboek())->add($mess, 4, 0, 0, $this->mid);
 		}
-		(new cls_Logboek())->add($mess, 4, 0, 0, $this->mid);
 	}
 	
 	public function add_del_selectie($actie) {
@@ -1988,7 +2004,7 @@ function sentfromhist($p_mhid, $p_handm=0) {
 		if ($rv) {
 			(new cls_Mailing_hist())->update($p_mhid, "send_on", date("Y-m-d H:i:s"));
 			if ($p_handm == 1) {
-				$mess = sprintf("E-mail %d (%s) is aan %s verstuurd.", $p_mhid, $mail->Subject, $a);
+				$mess = sprintf("E-mail %d (%s) is naar %s verstuurd.", $p_mhid, $mail->Subject, $row->to_addr);
 			}
 		} else {
 			$mess = sprintf("Versturen van e-mail %d (%s) aan %s is mislukt. Foutboodschap: %s", $p_mhid, $mail->Subject, $a, $error);
