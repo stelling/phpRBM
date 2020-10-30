@@ -253,7 +253,7 @@ header a + a:visited + a:hover {
 }
 
 #filter input[type='text'] {
-	width: 150px;
+	width: 200px;
 }
 
 #filter select {
@@ -427,6 +427,10 @@ header a + a:visited + a:hover {
 	width: 150px;
 }
 
+.ledenperonderdeelmuteren td:nth-child(2), .ledenperonderdeelmuteren td:last-child {
+	max-width: 110px;
+}
+
 #inschrijvingevenementen td {
 	height: 75px;
 }
@@ -529,10 +533,15 @@ header a + a:visited + a:hover {
 	margin-bottom: 1px;
 }
 
+#groepsindeling table {
+	width: 100%;
+}
+
 #groepsindeling p {
 	margin-top: 2px;
 	margin-bottom: 1px;
 }
+
 #groepsindeling select {
 	margin-top: 9px;
 	margin-bottom: 8px;
@@ -542,7 +551,7 @@ header a + a:visited + a:hover {
 .groepsindelingkolom {
 	float: left;
 	width: 32%;
-	min-height: 300px;
+	min-height: 225px;
 	border-right-style: solid;
 	border-width: 1px;
 	margin-left: 0;
@@ -679,7 +688,7 @@ header a + a:visited + a:hover {
 	float: left;
 }
 
-#loginaanvraag label, #opvragenlidnr label, #profielwijzigen label, #herstellenwachtwoord label, #opzegformulier label {
+#loginaanvraag label, #opvragenlidnr label, #profielwijzigen label, #herstellenwachtwoord label, #opzegformulier label, #bijzonderhedenwijzigen label {
 	width: 195px;
 	height: 20px;
 	float: left;
@@ -738,6 +747,14 @@ header a + a:visited + a:hover {
 
 #evenementenbeheer table {
 	width: 100%;
+}
+
+#evenementenbeheer input[type='text'], #evenementenbeheer input[type='email'] {
+	width: 500px;
+}
+
+#deelnemersevenementmuteren td:last-child {
+	text-align: center;
 }
 
 fieldset {
@@ -893,8 +910,12 @@ input.knop, button.knop {
 	text-decoration: none;
 }
 
-#mailing table {
+#mailing table, .lijstmailingen table {
 	width: 100%;
+}
+
+.lijstmailingen td:last-child {
+	text-align: center;
 }
 
 .editmailingvanaf input {
@@ -1111,10 +1132,17 @@ input.knop, button.knop {
 }
 
 .telaat {
+	font-size: 110%;
 	color: red;
 }
 
 .mededeling, .mededeling a {
+	margin-left: auto;
+	margin-right: auto;
+	width: 90%;
+	border-color: black;
+	border-style: solid;
+	border-width: 1px;
 	font-size: 13pt;
 	color: red;
 	text-align: center;
@@ -1125,7 +1153,7 @@ input.knop, button.knop {
 	color: orange;
 }
 
-.listmergefields, .listrecipients {
+.listmergefields, .listrecipients, .lijstvariabelen, .lijstontvangers {
 	list-style: none;
 	padding-left: 3px;
 	padding-right: 3px;
@@ -1133,11 +1161,13 @@ input.knop, button.knop {
 	margin-top: 0;
 }
 
-.listmergefields li, .listrecipients li {
+.listmergefields li, .listrecipients li, .lijstvariabelen li, .lijstontvangers li {
 	float: left;
 	display: inline-block;
 	margin-left: 3px;
 	padding-left: 3px;
+	height: 28px;
+	min-width: 240px;
 }
 
 #overzichtevenementen ul {
@@ -1340,6 +1370,10 @@ input.knop, button.knop {
 	margin-right: auto;
 }
 
+#rekeningregelsmuteren td:last-child {
+	text-align: center;
+}
+
 #rekeningenmailen ul {
 	margin-left: 0;
 	padding-left: 0;
@@ -1448,20 +1482,17 @@ input.knop, button.knop {
 
 #instellingenmuteren input {
 	float: left;
+	margin-left: 8px;
+	margin-top: 8px;
 }
 
-#instellingenmuteren input[type="text"], #instellingenmuteren input[type="email"] {
+#instellingenmuteren input[type="text"], #instellingenmuteren input[type="email"], #formulier input[type="text"], #formulier input[type="email"] {
 	width: 400px;
 }
 
-#instellingenmuteren input[type="number"] {
+#instellingenmuteren input[type="number"], #formulier input[type="number"] {
 	width: 125px;
 	text-align: right;
-}
-
-#instellingenmuteren td {
-	padding-left: 5px;
-	padding-right: 5px;
 }
 
 #instellingenmuteren label {
@@ -1481,12 +1512,7 @@ input.knop, button.knop {
 	margin-top: 8px;
 }
 
-#instellingenmuteren input {
-	margin-left: 8px;
-	margin-top: 8px;
-}
-
-#instellingenmuteren textarea {
+#instellingenmuteren textarea, #bijzonderhedenwijzigen textarea {
 	float: left;
 	margin-left: 8px;
 	margin-top: 6px;
@@ -1543,7 +1569,6 @@ input.knop, button.knop {
 }
 
 #editmailingform li, .editmailingform li {
-	width: 182px;
 	height: 28px;
 }
 
