@@ -407,6 +407,8 @@ function fnAuthenticatie($melding=1, $password="", $p_napost=0) {
 	
 function toegang($soort, $melding=1, $log=1) {
 	global $lididwebmasters, $tabpages, $currenttab, $currenttab2, $currenttab3;
+	
+	$i_aut = new cls_Authorisation();
 
 	$arrAltijdToegang[] = "Validatie login";
 	$arrAltijdToegang[] = "Bevestiging login";
@@ -434,15 +436,16 @@ function toegang($soort, $melding=1, $log=1) {
 	$soort = str_replace("'", "", $soort);
 		
 	if (strlen($soort) == 0 or in_array($soort, $arrAltijdToegang) === true or $_SESSION['webmaster'] == 1) {
-		if (strlen($soort) > 0 and in_array($soort, $arrAltijdToegang) === false and in_array($soort, $tabpages) == false) {
-			addtp($soort);
+		$f = sprintf("Tabpage=\"%s\"", $soort);
+		if (strlen($soort) > 0 and in_array($soort, $arrAltijdToegang) === false and in_array($soort, $tabpages) == false and $i_aut->aantal($f) == 0) {
+			$i_aut->add($soort);
 		}
 		return true;
 	} elseif ($_SESSION['lidid'] > 0 and isset($_SESSION['toegang'][$soort]) and $_SESSION['toegang'][$soort] == 1) {
 		return true;
 	} else {
 		$_SESSION['webmaster'] == 0;
-		if ((new cls_Authorisation())->toegang($soort) == true) {
+		if ($i_aut->toegang($soort) == true) {
 			$_SESSION['toegang'][$soort] = 1;
 			return true;
 		} else {
@@ -455,6 +458,8 @@ function toegang($soort, $melding=1, $log=1) {
 			return false;
 		}
 	}
+	
+	$i_aut = null;
 }  # toegang
 
 function fnHerstellenWachtwoord($stap="", $lidid=0) {
@@ -570,7 +575,6 @@ function fnValidatieLogin($lidid, $key, $stap) {
 	
 	$mess = "";
 	$i_login = new cls_Login();
-	$i_login->vernieuwactivatiekeys();
 	if ($stap == "mail") {
 	
 		$row = $i_login->record($lidid);
@@ -586,7 +590,7 @@ function fnValidatieLogin($lidid, $key, $stap) {
 			$inst_M = null;
 		}
 	
-		if ($row->LidID > 0) {
+		if ($row->LidID > 0 and strlen($row->Wachtwoord) >= 5) {
 			$mailing = new Mailing($_SESSION['settings']['mailing_validatielogin']);
 			if ($mailing->send($row->LidID) == 0) {
 				$mess = "Fout bij het versturen van de e-mail met de validatielink. Probeer het later nogmaals of neem contact op met de webmaster.";
@@ -601,6 +605,7 @@ function fnValidatieLogin($lidid, $key, $stap) {
 		}
 
 	} else {
+		$i_login->vernieuwactivatiekeys();
 		$i_login->valideerlogin($lidid, $key);
 	}
 	
@@ -857,7 +862,7 @@ function fneisenwachtwoord() {
 
 function addtp($tp, $afdnr=0) {
 	global $tabpages, $currenttab, $currenttab2;
-
+	
 	$i_acc = new cls_Authorisation();
 	
 	if ((strstr($tp, "/") === false or startwith($tp, $currenttab . "/")) and ($_SESSION['webmaster'] == 1 or toegang($tp, 0, 0))) {
