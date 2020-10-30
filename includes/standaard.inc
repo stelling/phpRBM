@@ -56,7 +56,7 @@ if ((isset($_SESSION['webmaster']) and $_SESSION['webmaster'] == 1) or strpos(BA
 	error_reporting(E_ALL);
 } else {
 	error_reporting(0);
-	error_reporting(E_ALL);
+//	error_reporting(E_ALL);
 }
 
 if (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
@@ -869,7 +869,7 @@ function fnOrderBy($p_arrSort) {
 	}
 	
 	$sw = "";
-	if ($sk >= 0 and array_key_exists($sk, $p_arrSort)) {
+	if ($sk >= 0 and isset($p_arrSort[$sk])) {
 		$sw = $p_arrSort[$sk];
 		if (strpos($sw, ";") > 0) {
 			$sw = explode(";", $sw)[1];
@@ -900,6 +900,9 @@ function debug($tekst, $alleenwm=1, $alert=0, $logact=0) {
 	}
 	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 		$alleenwm = 0;
+		
+//		$dbgt=debug_backtrace();
+//		echo("$error in {$dbgt[1][file]} on line {$dbgt[1][line]}");
 	}
 	if ($alleenwm != 1 or (isset($_SESSION['webmaster']) and $_SESSION['webmaster'] == 1)) {
 		if ($alert == 1) {
