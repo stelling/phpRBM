@@ -285,7 +285,7 @@ function fnLedenlijst() {
 	if ($currenttab2 == "Klosleden") {
 		$filter .= " AND (LM.Lidnr IS NULL)";
 		$rows = $i_lid->ledenlijst($filter);
-	} elseif ($currenttab2 != "Mutaties") {
+	} elseif ($currenttab2 != "Mutaties" and $currenttab2 != "Instellingen") {
 		if ($_SESSION['val_groep'] > 0) {
 			if (strlen($filter) > 0) {$filter .= " AND ";}
 			$filter .= sprintf("L.RecordID IN (SELECT LO.Lid FROM %sLidond AS LO WHERE ", TABLE_PREFIX);
@@ -294,6 +294,8 @@ function fnLedenlijst() {
 				$filter .= " AND " . $i_lid->wherelidond . ")";
 			} elseif ($currenttab2 == "Voormalig leden") {
 				$filter .= " AND (LO.Vanaf <= CURDATE() AND ((NOT LO.Opgezegd IS NULL) OR LO.Opgezegd < CURDATE())))";
+			} else {
+				$filter .= ")";
 			}
 		}
 		if ($currenttab2 == "Leden") {
@@ -349,11 +351,12 @@ function fnLedenlijst() {
 		
 	} elseif ($currenttab2 == "Mutaties") {
 		
-		$rows = (new cls_Logboek())->lijst(6, 1, 0, "TypeActiviteitSpecifiek < 30");
+		$rows = (new cls_Logboek())->lijst(6, 1, 0, "TypeActiviteitSpecifiek < 30", "", 750);
 		
 		if (count($rows) > 0) {
 			echo("<div id='filter'>\n");
 			echo("<label>Omschrijving bevat</label><input id='tbOmsFilter' OnKeyUp=\"fnFilter('logboek', 'tbOmsFilter', 1);\">");
+			printf("<p class='aantrecords'>%d rijen</p>\n", count($rows));
 			echo("</div> <!-- Einde filter -->\n");
 			echo(fnDisplayTable($rows, "", "Mutaties in lidgegevens", 0, "", "", "logboek"));
 		} else {
@@ -368,10 +371,11 @@ function fnLedenlijst() {
 		}
 		printf("<label>Naam/E-mail bevat</label><input type='text' name='tbNaamFilter' id='tbNaamFilter' placeholder='Achter-, roepnaam of e-mail' OnKeyUp=\"fnFilter('ledenlijst', 'tbNaamFilter', 1, %d);\">\n", $zk2);
 		printf("<form action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
+		
 		if ($currenttab2 != "Klosleden") {
-			printf("<label>Onderdeel</label><select name='lbGroepFilter' onchange='this.form.submit();'>\n%s</select>\n", fnSelectListGroepen($_SESSION['val_groep']));
+			printf("<label>Onderdeel</label><select name='lbGroepFilter' onchange='this.form.submit();'>\n<option value=0>** Iedereen **</option>\n%s</select>\n", (new cls_Onderdeel())->htmloptions($_SESSION['val_groep']));
 		}
-	
+
 		if (count($rows) > 1) {
 			printf("<p class='aantrecords'>%d %s</p>\n", count($rows), $currenttab2);
 		}
@@ -657,9 +661,9 @@ function fnOnderdelenmuteren($ondtype="G") {
 		
 			$selgr = "";
 			if ($_POST['selectie_status'] == "L") {
-				$rows = db_onderdeel("lijstingebruik");
+				$rows = $i_ond->lijst(1);
 			} else {
-				$rows = db_onderdeel("lijst");
+				$rows = $i_ond->lijst(0);
 			}
 			foreach($rows as $grp) {
 				if ($grp->RecordID != $onderdeelid) {
@@ -1437,9 +1441,11 @@ function fnEigenGegevens($lidid=0, $actie="") {
 } # fnEigenGegevens
 
 function fnSelectListGroepen($cv=0) {
+	
+	debug("fnSelectListGroepen todo: vervangen door class");
 
 	$ret = "<option value=0>** Iedereen **</option>\n";
-	$rows = db_Onderdeel("lijstingebruik");
+	$rows = (new cls_Onderdeel())->lijst(1);
 	foreach ($rows as $row) {
 		$ret .= sprintf("<option%s value=%d>%s</option>\n", checked($row->RecordID, "option", $cv), $row->RecordID, htmlentities($row->Naam));
 	}
