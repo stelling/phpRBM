@@ -1862,7 +1862,7 @@ class cls_Onderdeel extends cls_db_base {
 		
 		$filter = "";
 		if ($p_ingebruik == 1) {
-			if (strlen($p_per) < 10) {
+			if (strlen($p_per) < 8) {
 				$p_per = date("Y-m-d");
 			}
 			if ($_SESSION['webmaster'] == 0 and $p_lidid > 0) {
@@ -1897,6 +1897,16 @@ class cls_Onderdeel extends cls_db_base {
 		$query = sprintf("SELECT %s FROM %s AS O WHERE O.`Type`='%s' ORDER BY Naam;", $sel, $this->table, $p_ondtype);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
+	}
+	
+	public function htmloptions($p_cv=0, $p_ingebruik=1) {
+		
+		$ret = "";
+		$rows = $this->lijst($p_ingebruik);
+		foreach ($rows as $row) {
+			$ret .= sprintf("<option%s value=%d>%s</option>\n", checked($row->RecordID, "option", $p_cv), $row->RecordID, htmlentities($row->Naam));
+		}
+		return $ret;
 	}
 	
 	public function add($p_type, $p_code) {
@@ -7781,6 +7791,19 @@ function db_onderhoud($type=9) {
 		$query = sprintf("ALTER TABLE `%sMailing_hist` ADD INDEX `MailingID` (`MailingID`);", TABLE_PREFIX);
 		fnQuery($query, 2);
 	}
+	
+	$query = sprintf("SELECT COUNT(1) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema='%s' AND table_name='%sLidond' AND index_name='OnderdeelID';", $db_name, TABLE_PREFIX);
+	if (db_scalar($query) == 0) {
+		$query = sprintf("ALTER TABLE `%sLidond` ADD INDEX `OnderdeelID` (`OnderdeelID`);", TABLE_PREFIX);
+		fnQuery($query, 2);
+	}
+	
+	$query = sprintf("SELECT COUNT(1) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema='%s' AND table_name='%sAdmin_activiteit' AND index_name='DatumTijd';", $db_name, TABLE_PREFIX);
+	if (db_scalar($query) == 0) {
+		$query = sprintf("ALTER TABLE `%sAdmin_activiteit` ADD INDEX `DatumTijd` (`DatumTijd`);", TABLE_PREFIX);
+		fnQuery($query, 2);
+	}
+
 
 	/***** Velden die aangepast zijn *****/
 		
