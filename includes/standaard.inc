@@ -174,7 +174,7 @@ function HTMLheader($breed=0) {
 		echo("<html lang='nl'>\n");
 		echo("<head>\n");
 		printf("<script src='%s/includes/javascript.js' async></script>\n", BASISURL);
-		if ($currenttab2 == "Wijzigen mailing") {
+		if ($currenttab2 == "Wijzigen mailing" or ($currenttab == "Mailing" and $currenttab2 == "Nieuw")) {
 			if (!isset($_GET['mid']))  {
 				$_GET['mid'] = 0;
 			}
@@ -200,6 +200,7 @@ function HTMLheader($breed=0) {
 						}
 						if (strlen($il) > 0) {
 							$img = sprintf("image_list: [\n%s],", $il);
+						}
 					}
 				}
 				$src = "/includes/tinymce/js/tinymce/tinymce.min.js";
@@ -223,7 +224,6 @@ function HTMLheader($breed=0) {
 			menubar: 'edit insert format tools table'
 		});
   </script>\n", $ss, $img);
-				}
 			} elseif ($_SESSION['settings']['mailing_type_editor'] == 2) {
 				echo("<script src='https://cdn.ckeditor.com/4.13.0/standard/ckeditor.js'></script>\n");
 			} else {
