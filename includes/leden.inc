@@ -477,6 +477,8 @@ function fnOnderdelenmuteren($ondtype="G") {
 	
 	if ($ondtype == "C") {
 		$ondnaammv = "Commissies";
+	} else	if ($ondtype == "R") {
+		$ondnaammv = "Rollen";
 	} else {
 		$ondnaammv = ARRTYPEONDERDEEL[$ondtype] . "en";
 	}
@@ -634,7 +636,7 @@ function fnOnderdelenmuteren($ondtype="G") {
 		$rowsfunc = (new cls_Functie())->selectlijst("L", $i_lo->min("Vanaf", $f));
 		echo(fnDisplayTable($rows, "", $th, 0, "", $nl, "ledenperonderdeelmuteren", "", "dteVanaf, emlEmail, cboFunctie, Opmerking, dteTot en met", 1, "", $rowsfunc));
 		
-		if ($ondtype == "G" and $i_ond->autogroep($onderdeelid) == false and 1 == 2) {
+		if (($ondtype == "G") and $i_ond->autogroep($onderdeelid) == false and 1 == 2) {
 			echo("<table>\n");
 			echo("<tr><th colspan=3>Meerdere leden toevoegen of verwijderen</th></tr>\n");
 			echo("<tr><td></td><td>Vanaf</td><td>Tot en met</td></tr>\n");
@@ -742,7 +744,7 @@ function fnOnderdelenmuteren($ondtype="G") {
 		printf("<label>Historie opschonen</label><input type='number' name='historieopschonen' value=%d><p>in dagen</p>\n", $row->HistorieOpschonen);
 		printf("<label>Maximale periode</label><input type='number' name='maximalelengteperiode' value=%d><p>in dagen</p>\n", $row->MaximaleLengtePeriode);
 		
-		if ($ondtype == "G" and $_SESSION['webmaster'] == 1) {
+		if (($ondtype == "G"  or $ondtype == "R") and $_SESSION['webmaster'] == 1) {
 			printf("<label>MySQL-code automatisch bijwerken</label><textarea id='mysql' name='mysql' rows=5 cols=100>%s</textarea>\n", $row->MySQL);
 			if (strlen($row->MySQL) > 10 and (new cls_db_base())->controleersql($row->MySQL, 1) == false) {
 				echo("<p class='mededeling'>Deze code kan niet worden uitgevoerd.</p>");
@@ -1399,11 +1401,15 @@ function fnEigenGegevens($lidid=0, $actie="") {
 				printf("<p class='mededeling'>Bij %s zijn geen deelnames aan evenementen bekend.</p>", $naamlid);
 			}
 		} elseif ($actie == "Logboek") {
-			$rows = (new cls_Logboek())->overzichtlid($lidid);
-			if (count($rows) > 0) {
-				echo(fnDisplayTable($rows, "", sprintf("Logboek %s", $naamlid)));
+			if ($lidid > 0) {
+				$rows = (new cls_Logboek())->overzichtlid($lidid);
+				if (count($rows) > 0) {
+					echo(fnDisplayTable($rows, "", sprintf("Logboek %s", $naamlid)));
+				} else {
+					printf("<p class='mededeling'>Er is geen logging bij %s bekend.</p>\n", $naamlid);
+				}
 			} else {
-				printf("<p class='mededeling'>Er is geen logging bij %s bekend.</p>\n", $naamlid);
+				echo("<p class='mededeling'>Er is geen lidid bekend.</p>\n");
 			}
 		} else {
 			$fn = fotolid($lidid, 1);
@@ -2366,7 +2372,7 @@ function instellingenledenmuteren() {
 	printf("<label>Sportlink ID?</label><input type='checkbox' name='zs_incl_slid' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_slid']));
 	echo("<h2>Overig in de zelfservice</h2>\n");
 	printf("<label>Welke soorten memo's mogen leden zelf muteren?</label><input type='text' name='zs_muteerbarememos' value=\"%s\" OnChange='this.form.submit();'><p>(Scheiden met een komma)</p>\n", $_SESSION['settings']['zs_muteerbarememos']);
-	printf("<label>Welke tekst moet er als uitleg bij de toestemmingen worden vermeld?</label><textarea name='uitleg_toestemmingen' rows=2 cols=70 OnChange='this.form.submit();'>%s</textarea>\n", $_SESSION['settings']['uitleg_toestemmingen']);
+	printf("<label>Welke tekst moet er als uitleg bij de toestemmingen worden vermeld?</label><textarea name='uitleg_toestemmingen' rows=2 cols=68 OnChange='this.form.submit();'>%s</textarea>\n", $_SESSION['settings']['uitleg_toestemmingen']);
 	
 	echo("</form>\n");
 	echo("</div> <!-- Einde instellingenmuteren -->\n");
