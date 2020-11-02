@@ -131,10 +131,12 @@ if (toegang($_GET['tp'], 1) == false) {
 		fnWieiswie($currenttab2, $_SESSION['settings']['kaderoverzichtmetfoto']);
 	}
 } elseif ($currenttab == "Ledenlijst") {
-	if ($currenttab2 == "Groepen muteren") {
-		fnOnderdelenmuteren("G");
-	} elseif ($currenttab2 == "Commissies muteren") {
+	if ($currenttab2 == "Commissies muteren") {
 		fnOnderdelenmuteren("C");
+	} elseif ($currenttab2 == "Groepen muteren") {
+		fnOnderdelenmuteren("G");
+	} elseif ($currenttab2 == "Rollen muteren") {
+		fnOnderdelenmuteren("R");
 	} else {
 		fnLedenlijst();
 	}
