@@ -184,11 +184,11 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 } elseif ($currenttab == "Downloaden wijzigingen" and toegang($currenttab, 1, 1)) {
 	$copytext = "";
 	(new cls_lidond())->autogroepenbijwerken();
-	echo("<h2>Wijzigen op de website, te verwerken in de Access database.</h2>");
 	printf("<form name='formdownload' method='post' action='%s?tp=%s&amp;op=downloadwijz'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	$linklk = sprintf("<a href='/admin.php?op=deleteint&amp;recid=%%d&amp;tp=%s'><img src='" . BASE64_VERWIJDER . "' title='Verwijder record'></a>", urlencode($_GET['tp']));
 	$rows = (new cls_Interface())->lijst();
 	if (count($rows) > 0) {
+		echo("<h2>Wijzigen op de website, te verwerken in de Access database.</h2>");
 		echo(fnDisplayTable($rows, "", "", 1, $linklk));
 		foreach ($rows as $row) {
 			$copytext .= $row->SQL . "\n";
@@ -198,7 +198,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	}
 		
 	if (strlen($copytext) > 0) {
-		echo("<h2>SQL-code voor in MS-Access, om te gebruiken:</h2>\n");
+		echo("<h2>SQL-code, te gebruiken in MS-Access:</h2>\n");
 		printf("<textarea id='copywijzigingen' class='copypaste' rows=%d readonly>%s</textarea>\n", count($rows)+1, $copytext);
 		echo("<button onClick='CopyFunction()'>Kopieer naar klembord</button>\n");
 		printf("<input type='button' value='Wijzigingen afmelden' OnClick=\"location.href='%s?tp=%s&amp;op=afmeldenwijz'\">\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
@@ -372,8 +372,6 @@ function fnInstellingen() {
 	$arrParam['emailwebmaster'] = "Het e-mailadres van de webmaster.";
 	$arrParam['kaderoverzichtmetfoto'] = "Moeten op het kaderoverzicht pasfoto's getoond worden?";
 	$arrParam['toonpasfotoindiennietingelogd'] = "Mogen pasfoto's zichtbaar voor bezoekers (niet ingelogd) zijn?";
-	$arrParam['meisjesnaamtonen'] = "Moet de naam van een lid de meisjesnaam bevatten?";
-	$arrParam['woonadres_anderen_tonen'] = "Moet het woonadres van een lid ook aan andere leden worden getoond?";
 	$arrParam['muteerbarememos'] = "Welke soorten memo's zijn in gebruik? Bij meerdere scheiden door een komma.";
 	$arrParam['login_autounlock'] = "Na hoeveel minuten moet een gelockede login automatisch geunlocked worden? 0 = alleen handmatig unlocken.";
 	$arrParam['login_beperkttotgroep'] = "Vul hier de RecordID's, gescheiden door een komma, van de groepen (zie tabel ONDERDL) in die toegang hebben. Leeg = alleen webmasters hebben toegang.";
@@ -396,23 +394,13 @@ function fnInstellingen() {
 	$arrParam['toneninschrijvingenbewakingen'] = "Moeten bij de gegevens van een lid ook inschrijvingen voor bewakingen getoond worden?";
 	$arrParam['tonentoekomstigebewakingen'] = "Moeten bij de gegevens van een lid ook toekomstige bewakingen getoond worden?";
 	$arrParam['typemenu'] = "Welk menu moet worden gebruikt?";
-	$arrParam['uitleg_toestemmingen'] = "Welke tekst moet er bij het verlenen van de toestemmingen worden vermeld?";
 	$arrParam['urlvereniging'] = "De URL van de website van de vereniging.";
 	$arrParam['url_eigen_help'] = "Als een gebruiker op de help klikt wordt hier naar verwezen in plaats van de standaard help.";
 	$arrParam['verjaardagenaantal'] = "Aantal verjaardagen dat maximaal in de verenigingsinfo wordt getoond. Als er meerdere leden op dezelfde dag jarig zijn, wordt dit aantal overschreden.";
 	$arrParam['verjaardagenvooruit'] = "Hoeveel dagen vooruit moeten de verjaardagen in de verenigingsinfo getoond worden?";
 	
 	$arrParam['zs_emailnieuwepasfoto'] = "Waar moet een nieuwe pasfoto naar toe gemaild worden?";
-	$arrParam['zs_incl_beroep'] = "Is het veld 'Beroep' in de zelfservice beschikbaar?";
-	$arrParam['zs_incl_bsn'] = "Is het veld 'Burgerservicenummer' in de zelfservice beschikbaar?";
 	$arrParam['zs_incl_machtiging'] = "Is het veld 'Machtiging incasso afgegeven' in de zelfservice beschikbaar?";
-	$arrParam['zs_incl_emailouders'] = "Is het veld 'E-mail ouders' in de zelfservice beschikbaar?";
-	$arrParam['zs_incl_emailvereniging'] = "Is het veld 'E-mail vereniging' in de zelfservice beschikbaar?";
-	$arrParam['zs_incl_iban'] = "Moet het IBAN via de zelfservice gemuteerd kunnen worden?";
-	$arrParam['zs_incl_legitimatie'] = "Is de legitimatie in de zelfservice beschikbaar?";
-	$arrParam['zs_incl_slid'] = "Is het veld 'Sportlink ID' in de zelfservice beschikbaar?";
-	$arrParam['zs_muteerbarememos'] = "Welke soorten memo's mogen leden zelf muteren? Bij meerdere scheiden door een komma.";
-	$arrParam['zs_opzeggingautomatischverwerken'] = "Moet een opzegging van een lid in de zelfservice automatisch verwerkt worden?";
 	$arrParam['zs_opzegtermijn'] = "De opzegtermijn van de vereniging in maanden.";
 	$arrParam['zs_voorwaardenbestelling'] = "Deze regel wordt bij de online-bestellingen in de zelfservice vermeld.";
 	$arrParam['zs_voorwaardeninschrijving'] = "Deze regel wordt bij de inschrijving als voorwaarde voor de inschrijving voor de bewaking vemeld.";
