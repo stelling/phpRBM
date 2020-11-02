@@ -1888,8 +1888,12 @@ class cls_Onderdeel extends cls_db_base {
 	
 	public function editlijst($p_ondtype) {
 		
-		$sel = "O.RecordID AS lnkRecordID, O.Kode, O.Naam, CentraalEmail AS `emlCentraal E-mail`, `Alleen leden` AS `chkAlleen leden`, ";
-		if ($p_ondtype == "G") {
+		$sel = "O.RecordID AS lnkRecordID, O.Kode, O.Naam,";
+		if ($p_ondtype != "O" and $p_ondtype != "R" and $p_ondtype != "T") {
+			$sel .= "CentraalEmail AS `emlCentraal E-mail`, ";
+		}
+		$sel .= "`Alleen leden` AS `chkAlleen leden`, ";
+		if ($p_ondtype == "G" or $p_ondtype == "R") {
 			$sel .= "IF(O.GekoppeldAanQuery > 0, 'EQ', IF(LENGTH(O.MySQL) > 10, 'MySQL', 'Nee'))  AS Autom, ";
 		}
 		$sel .= sprintf("(SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.OnderdeelID=O.RecordID AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()) AS `intAantal leden`, O.RecordID AS llkRecordID", TABLE_PREFIX);
@@ -2660,7 +2664,7 @@ class cls_Lidond extends cls_db_base {
 				$xtr_sel .= sprintf("(SELECT CONCAT(IF(LENGTH(GR.Starttijd)=5, CONCAT(GR.Starttijd, ' - '), ''), IF(LENGTH(GR.Omschrijving) > 0, GR.Omschrijving, GR.Kode)) FROM %sGroep AS GR WHERE GR.RecordID=LO.GroepID) AS Groep,", TABLE_PREFIX);
 			}
 			
-			if ($p_soort == "G" or $p_soort == "K") {
+			if ($p_soort == "G" or $p_soort == "R" or $p_soort == "K") {
 				$do = "`dteTot en met`";
 			} else {
 				$do = "dteOpgezegd";
@@ -3382,7 +3386,7 @@ class cls_Login extends cls_db_base {
 	public function record($p_lidid, $p_email="") {
 		$this->vulvars($p_lidid, $p_email);
 		
-		$query = sprintf("SELECT L.RecordID, Login.*, %s AS Naam, L.Roepnaam, L.Email, Login.LidID, ", $this->selectnaam);
+		$query = sprintf("SELECT Login.*, %s AS Naam, L.Roepnaam, L.Email, Login.LidID, ", $this->selectnaam);
 		
 		$query .= sprintf("(SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.Lid=L.RecordID AND LO.OnderdeelID IN (%s) AND LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()) AS AanvragenMag", TABLE_PREFIX, implode(", ", $this->beperkttotgroep));
 		$query .= sprintf(" FROM %1\$sLid AS L LEFT JOIN %1\$sAdmin_login AS Login ON L.RecordID=Login.LidID WHERE ", TABLE_PREFIX);
@@ -3551,6 +3555,25 @@ class cls_Login extends cls_db_base {
 		if (strlen($nk) > 5 and $this->loginid > 0) {
 			if ($this->pdoupdate($this->loginid, "ActivatieKey", $nk) > 0) {
 				$this->mess = "Er is een nieuwe activatiekey gemaakt voor de login.";
+				$this->log($this->loginid);
+				return $nk;
+			} else {
+				return false;
+			}
+		} else {
+			return false;
+		}
+	}
+	
+	public function wachtwoordreset($p_lidid) {
+		$this->vulvars($p_lidid);
+		$this->tas = 8;
+		$nk = newkey();
+		if (strlen($nk) > 0) {
+			debug($nk);
+			$query = sprintf("UPDATE %sAdmin_login SET ActivatieKey='%s', Wachtwoord='', LaatsteWachtwoordWijziging=SYSDATE(), Gewijzigd=SYSDATE(), GewijzigdDoor=%d WHERE LidID=%d;", TABLE_PREFIX, password_hash($nk, PASSWORD_DEFAULT), $_SESSION['lidid'], $p_lidid);
+			if ($this->execsql($query) == 1) {
+				$this->mess = "Het wachtwoord is leeg gemaakt, zodat het hersteld kan worden.";
 				$this->log($this->loginid);
 				return $nk;
 			} else {
@@ -4414,12 +4437,17 @@ class cls_Mailing_hist extends cls_db_base {
 	
 	public function outbox($p_srt=1) {
 		/* uitleg p_srt
-			1 = overzicht outbox, ook gebruikt voor direct verzenden
-			2 = versturen in batch
+			1 = overzicht outbox
+			2 = versturen in batchjob
+			3 = direct versturen
 			4 = speciale mailingen die direct verstuurd moeten worden
 		*/
 			
-		$lm = 1500;
+		if ($p_srt > 1 and $_SESSION['settings']['maxmailsperminuut'] > 0) {
+			$lm = $_SESSION['settings']['maxmailsperminuut'];
+		} else {
+			$lm = 1500;
+		}
 		if ($p_srt == 2 and $_SESSION['settings']['maxmailsperdag'] > 0 and $_SESSION['settings']['maxmailsperdag'] < $lm) {
 			$lm = $_SESSION['settings']['maxmailsperdag'];
 		}
@@ -4427,9 +4455,10 @@ class cls_Mailing_hist extends cls_db_base {
 			$lm = $_SESSION['settings']['maxmailsperuur'];
 		}
 		
-		$xw = "";
 		if ($p_srt == 2) {
 			$xw = "AND MH.Ingevoerd < DATE_SUB(SYSDATE(), INTERVAL 15 MINUTE)";
+		} elseif ($p_srt == 3) {
+			$xw = "";
 		} elseif ($p_srt == 4) {
 			$xw = sprintf("AND MH.MailingID > 0 AND MH.MailingID IN (%d, %d, %d)", $_SESSION['settings']['mailing_lidnr'], $_SESSION['settings']['mailing_validatielogin'], $_SESSION['settings']['mailing_herstellenwachtwoord']);
 		} else {
@@ -4439,7 +4468,7 @@ class cls_Mailing_hist extends cls_db_base {
 						MH.to_addr AS `E-mail`, MH.cc_addr AS `CC`, MH.RecordID AS llkRecordID
 						FROM (%1\$sMailing_hist AS MH LEFT OUTER JOIN %1\$sLid AS L ON MH.LidID=L.RecordID) LEFT JOIN %1\$sMailing AS M ON M.RecordID=MH.MailingID
 						WHERE IFNULL(MH.send_on, '1970-01-01') <= '2000-01-01' %2\$s
-						ORDER BY MH.RecordID LIMIT %3\$d;", TABLE_PREFIX, $xw, $lm);
+						ORDER BY MH.Ingevoerd, MH.LidID, MH.RecordID LIMIT %3\$d;", TABLE_PREFIX, $xw, $lm);
 		return $this->execsql($query);
 	}
 	
@@ -4660,9 +4689,9 @@ class cls_Mailing_rcpt extends cls_db_base {
 		} else {
 			$query = "";
 		}
-		if (strlen($query) > 0 and db_scalar($query) == 0) {
+		if (strlen($query) > 0 and $this->scalar($query) == 0) {
 			$query = "";
-			$nrid = db_nieuwrecordID("Mailing_rcpt");
+			$nrid = $this->nieuwrecordID();
 			if ($p_lidid > 0) {
 				$rl = (new cls_lid())->record($p_lidid);
 				$r = $rl->NaamLid;
