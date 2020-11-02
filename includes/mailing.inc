@@ -15,8 +15,8 @@ function fnMailing() {
 		$op = "";
 	}
 	
-	if ($_SESSION['settings']['mailing_direct_verzenden'] == 1) {
-		sentoutbox(1);
+	if ($_SESSION['settings']['mailing_direct_verzenden'] > 0) {
+		sentoutbox(3);
 	}
 	
 	$mailing = new Mailing($_GET['mid']);
@@ -1059,7 +1059,7 @@ class Mailing {
 				$w .= sprintf(" AND LM.LIDDATUM <= '%s'", $_POST['selectie_temliddatum']);
 			}
 			
-			$query = sprintf("SELECT DISTINCT L.RecordID FROM %s WHERE (NOT LM.Lid IS NULL) AND IFNULL(LM.Opgezegd, '9999-12-31') >= CURDATE()  %s;", $fromlid, $w);
+			$query = sprintf("SELECT DISTINCT L.RecordID FROM %s WHERE (NOT LM.Lid IS NULL) AND IFNULL(LM.Opgezegd, '9999-12-31') >= CURDATE() %s ORDER BY L.RecordID;", $fromlid, $w);
 			
 		} else {
 			if (strlen($_POST['selectie_vanliddatum']) == 10 and $_POST['selectie_vanliddatum'] > $i_lm->max("LIDDATUM") and $_POST['selectie_vanliddatum'] <= $i_lm->max("LIDDATUM")) {
@@ -1068,7 +1068,7 @@ class Mailing {
 			if (strlen($_POST['selectie_temliddatum']) == 10 and $_POST['selectie_temliddatum'] >= $i_lm->min("LIDDATUM") and $_POST['selectie_temliddatum'] < $i_lm->max("LIDDATUM")) {
 				$w .= sprintf(" AND LO.Vanaf <= '%s'", $_POST['selectie_temgebdatum']);
 			}
-			$query = sprintf("SELECT DISTINCT L.RecordID FROM %s WHERE %s AND LO.OnderdeelID=%d %s;", $fromlidond, $wherelidond, $_POST['selectie_groep'], $w);
+			$query = sprintf("SELECT DISTINCT L.RecordID FROM %s WHERE %s AND LO.OnderdeelID=%d %s ORDER BY L.RecordID;", $fromlidond, $wherelidond, $_POST['selectie_groep'], $w);
 		}
 		$i_lid = null;
 		$i_lm = null;
@@ -2021,12 +2021,13 @@ function sentfromhist($p_mhid, $p_handm=0) {
 	
 } # sentfromhist
 
-function sentoutbox($mode) {
+function sentoutbox($p_mode) {
 	
 	/*
-	Uitleg mode:
+	Uitleg p_mode:
 		1 = versturen middels knop door gebruiker
 		2 = via batchjob
+		3 = direct versturen
 		4 = direct versturen in verband met speciaal soort
 	*/
 	
@@ -2034,11 +2035,11 @@ function sentoutbox($mode) {
 	
 	$aantverzonden = 0;
 	$mess = "";
-	if ($mode == 2 and $_SESSION['settings']['mailing_sentoutbox_auto'] == 0) {
+	if ($p_mode == 2 and $_SESSION['settings']['mailing_sentoutbox_auto'] == 0) {
 		$mess = sprintf("Het versturen in de achtergrond (via batchjob) is uitgeschakeld. Er staan %d e-mails in de outbox.", $i_mh->aantaloutbox());
 		
-	} elseif ($mode == 4 and $_SESSION['settings']['mailing_direct_verzenden'] == 0) {
-		$mess = "Het direct versturen is uitgeschakeld.";
+	} elseif ($p_mode == 3 and $_SESSION['settings']['mailing_direct_verzenden'] == 0) {
+		$mess = sprintf("Het direct versturen is uitgeschakeld. Er staan %d e-mails in de outbox.", $i_mh->aantaloutbox());
 		
 	} elseif ($_SESSION['settings']['maxmailsperdag'] > 0 and $i_mh->aantalverzonden(3) >= $_SESSION['settings']['maxmailsperdag']) {
 		$mess = "Het versturen is niet gestart, omdat het maximale aantal ter versturen e-mails per 24 uur al is bereikt.";
@@ -2051,7 +2052,7 @@ function sentoutbox($mode) {
 		
 	} else {
 		$stop = false;
-		foreach($i_mh->outbox($mode)->fetchAll() as $row) {
+		foreach($i_mh->outbox($p_mode)->fetchAll() as $row) {
 			if ($i_mh->aantalverzonden(1) >= $_SESSION['settings']['maxmailsperminuut']) {
 				$stop = true;
 			} elseif ($stop == false) {
@@ -2065,10 +2066,10 @@ function sentoutbox($mode) {
 	
 		$aob = $i_mh->aantaloutbox();
 		if ($aantverzonden > 0 or $aob > 0) {
-			if ($mode == 2) {
-				$mess = sprintf("sentoutbox (mode: %d) is gestart door de batchjob", $mode);
+			if ($p_mode == 2) {
+				$mess = sprintf("sentoutbox (mode: %d) is gestart door de batchjob", $p_mode);
 			} else {
-				$mess = sprintf("Versturen vanuit de outbox (mode: %d) is gereed", $mode);
+				$mess = sprintf("Versturen vanuit de outbox (mode: %d) is gereed", $p_mode);
 			}
 			$mess .= sprintf(", er zijn %d mails verzonden. Er staan nog %d mails te wachten in de outbox.", $aantverzonden, $aob);
 		}
