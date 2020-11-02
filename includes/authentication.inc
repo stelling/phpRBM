@@ -164,6 +164,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		addtp("Ledenlijst/Nieuw (klos)lid");
 		addtp("Ledenlijst/Commissies muteren");
 		addtp("Ledenlijst/Groepen muteren");
+		if ((new cls_Onderdeel())->aantal("`Type`='R' AND IFNULL(VervallenPer, CURDATE()) >= CURDATE()") > 0) {
+			addtp("Ledenlijst/Rollen muteren");
+		}
 		addtp("Ledenlijst/Instellingen");
 		addtp("Ledenlijst/Mutaties");
 	}
@@ -470,7 +473,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 	if (strlen($stap) == 0 and isset($_POST['stap']) and strlen($_POST['stap']) > 0) {
 		$stap = $_POST['stap'];
 	}
-		
+
 	if ($stap == "mail" and $lidid > 0) {
 
 		if ($_SESSION['settings']['mailing_herstellenwachtwoord'] == 0) {
@@ -495,10 +498,10 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		} elseif ($_SESSION['settings']['mailing_herstellenwachtwoord'] > 0) {
 			
 			$mailing = new Mailing($_SESSION['settings']['mailing_herstellenwachtwoord']);
-			if ($mailing->send($row->RecordID) > 0) {
-				return sprintf("De e-mail naar %s met de link om het wachtwoord te herstellen is verzonden.", $row->Naam);
+			if ($mailing->send($row->LidID) > 0) {
+				$mess = sprintf("De e-mail naar %s met de link om het wachtwoord te herstellen is verzonden.", $row->Naam);
 			} else {
-				return "Fout bij het versturen van de e-mail. Probeer het later nogmaals of neem contact op met de webmaster.";
+				$mess = "Fout bij het versturen van de e-mail. Probeer het later nogmaals of neem contact op met de webmaster.";
 			}
 			$mailing = null;
 
@@ -506,7 +509,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 			$mess = "Er is geen mailing voor het herstellen van het wachtwoord beschikbaar.";
 		}
 		
-		(new cls_Logboek())->add($mess, 5, $row->RecordID, 1);
+		(new cls_Logboek())->add($mess, 5, $row->LidID, 1);
 		
 	} elseif ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['nieuwwachtwoord']) and strlen($_POST['nieuwwachtwoord']) > 0 and $_GET['lidid'] > 0) {
 		$mess = (new cls_login())->wijzigenwachtwoord($_POST['nieuwwachtwoord'], "", $_POST['herhaalwachtwoord'], $_GET['lidid']);
@@ -566,6 +569,9 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		</form>
 		<p>Minimaal 2 van de 3 velden moeten correct zijn ingevuld. Na het versturen van deze link is je oude wachtwoord niet meer geldig.</p>
 		</div>  <!-- Einde herstellenwachtwoord -->");
+	}
+	if (strlen($mess) > 0) {
+		(new cls_Logboek())->add($mess, 5, 0, 0, 0, 8);
 	}
 	return $mess;
 	
