@@ -89,6 +89,7 @@ label {
 
 label.k2 {
 	clear: none;
+	float: left;
 }
 
 span {
@@ -829,8 +830,8 @@ input.knop, button.knop {
 	float: left;
 }
 
-#verstuurdemail .label, #verstuurdemail .veld, #verstuurdemail .veld2k, #verstuurdemail .bericht {
-	min-height: 23px;
+#verstuurdemail .bericht {
+	clear: left;
 	margin-top: 3px;
 	margin-bottom: 3px;
 	padding-top: 3px;
@@ -838,6 +839,11 @@ input.knop, button.knop {
 	padding-right: 4px;
 	border-width: 1px;
 	border-color: inherit;
+}
+
+#verstuurdemail .bericht p, #verstuurdemail .bericht ul {
+	float: left;
+	clear: both;
 }
 
 #verstuurdemail label {
@@ -853,34 +859,16 @@ input.knop, button.knop {
 }
 
 #verstuurdemail p {
-	float: none;
-}
-
-#verstuurdemail .veld, #verstuurdemail .bericht {
-	width: 1000px;
 	float: left;
-	margin-right: 3px;
-	border-style: solid;
+	height: 20px;
+	min-width: 300px;
+	margin-right: 6px;
+	margin-top: 6px;
+	padding-top: 3px;
+	padding-bottom: 3px;
 }
 
-#verstuurdemail .veld2k {
-	width: 425px;
-	float: left;
-	margin-right: 3px;
-	border-style: solid;
-}
-
-#verstuurdemail .bericht {
-	border-style: none;
-}
-
-#verstuurdemail li {
-	margin-left: 15px;
-	margin-top: 3px;
-	margin-bottom: 3px;
-}
-
-.wieiswie-onderdeelnaam , .wieiswie-onderdeelemail, #bewakingsrooster h2, #bewakingsrooster h3 {
+.wieiswie-onderdeelnaam, .wieiswie-onderdeelemail, #bewakingsrooster h2, #bewakingsrooster h3 {
 	margin-top: 15px;
 	padding-top: 3px;
 	padding-bottom: 1px;
@@ -1097,10 +1085,10 @@ input.knop, button.knop {
 	
 	margin-top: 2px;
 	margin-left: 0;
-   margin-right: 0;
+	margin-right: 0;
 	
 	padding-top: 4px;
-   padding-left: 4px;
+	padding-left: 4px;
 	padding-right: 4px;
 }
 

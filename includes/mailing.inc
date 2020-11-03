@@ -1436,9 +1436,7 @@ class email {
 			if (isset($mhrow->MailingID)) {
 				$this->mailingid = $mhrow->MailingID;
 				$this->ingevoerd = strftime('%e %B %Y (%H:%M:%S)', strtotime($mhrow->Ingevoerd));
-				if ($mhrow->IngevoerdDoor > 0) {
-					$this->ingevoerddoor = (new cls_Lid())->Naam($mhrow->IngevoerdDoor);
-				}
+				$this->ingevoerddoor = (new cls_Lid())->Naam($mhrow->IngevoerdDoor);
 				if ($mhrow->send_on > "2010-01-01") {
 					$this->verstuurdop = strftime('%e %B %Y (%H:%M:%S)', strtotime($mhrow->send_on));
 				}
@@ -1472,44 +1470,47 @@ class email {
 		
 		echo("<div id='verstuurdemail'>\n");
 
-		printf("<label>Klaar gezet op:</label><div class='veld2k'>%s</div><label>door:</label><div class='veld2k'>%s</div>\n", $this->ingevoerd, $this->ingevoerddoor);
+		printf("<label>Klaar gezet op</label><p>%s</p><label class='k2'>door</label><p>%s</p>\n", $this->ingevoerd, $this->ingevoerddoor);
 		
 		if (strlen($this->verstuurdop) > 0) {
-			printf("<label>Verzonden:</label><div class='veld'>%s</div>\n", $this->verstuurdop);
+			printf("<label>Verzonden</label><p>%s</p>\n", $this->verstuurdop);
 		} else {
-			printf("<label>Verzonden:</label><div class='veld'>Wacht in outbox</div>\n");
+			printf("<label>Verzonden</label><p>Wacht in outbox</p>\n");
 		}
 		
 		if (strlen($this->vanafnaam) > 0) {
-			printf("<label>Van:</label><div class='veld2k'>%s</div><label>E-mail:</label><div class='veld2k'>%s</div>\n", $this->vanafnaam, $this->vanafadres);
+			printf("<label>Van</label><p>%s</p><label class='k2'>E-mail</label><p>%s</p>\n", $this->vanafnaam, $this->vanafadres);
 		} else {
-			printf("<label>Van:</label><div class='veld'>%s</div>\n", $this->vanafadres);
+			printf("<label>Van</label><p>%s</p>\n", $this->vanafadres);
 		}
 		
 		if (strlen($this->omsontvangers) > 0) {
-			printf("<label>Aan:</label><div class='veld'>%s</div>\n", $this->omsontvangers);
+			printf("<label>Aan</label><p>%s</p>\n", $this->omsontvangers);
 		}
 		
 		if (strlen($this->aannaam) > 0 and $this->aannaam != $this->aanadres) {
-			printf("<label>Ontvanger:</label><div class='veld2k'>%s</div>\n", $this->aannaam);
-			printf("<label>E-mail:</label><div class='veld2k'>%s</div>\n", $this->aanadres);
+			printf("<label>Ontvanger</label><p>%s</p>", $this->aannaam);
+			printf("<label class='k2'>E-mail</label><p>%s</p>\n", $this->aanadres);
 		} else {
-			printf("<label>Aan e-mail:</label><div class='veld'>%s</div>\n", $this->aanadres);
+			printf("<label>Aan e-mail</label><p>%s</p>\n", $this->aanadres);
 		}
 		if (strlen($this->cc) > 0) {
-			printf("<label>CC:</label><div class='veld'>%s</div>\n", $this->cc);
+			printf("<label>CC:</label><p>%s</p>\n", $this->cc);
 		}
 		
-		printf("<label>Onderwerp:</label><div class='veld'>%s</div>\n", $this->onderwerp);
+		printf("<label>Onderwerp</label><p>%s</p>\n", $this->onderwerp);
+		
+		echo("<label>Bericht</label>\n");
+		
+		echo("</div>  <!-- Einde verstuurdemail -->\n");
 		
 		$b = str_replace("<!DOCTYPE html>", "", $this->bericht);
 		$b = str_replace("<html>", "", str_replace("</html>", "", $b));
 		$b = str_replace("<body>", "", str_replace("</body>", "", $b));
 		$b = removetextblock($b, "<head>", "</head>");
 		
-		printf("<label>Bericht:</label><div class='bericht'>%s</div>\n", $b);
+		printf("<div class='bericht'>\n%s\n</div> <!-- Einde bericht -->\n", $b);
 		
-		echo("</div>  <!-- Einde verstuurdemail -->\n");
 		
 	} # toon
 	
