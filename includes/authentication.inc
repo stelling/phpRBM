@@ -129,7 +129,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (strlen($_SESSION['settings']['zs_muteerbarememos']) > 0) {
 			addtp("Zelfservice/Bijzonderheden");
 		}
-		if ($gs != "B" and (new cls_Bewaking_blok())->aantal("InschrijvingOpen=1 AND Einddatum >= CURDATE()") > 0) {
+		if ($gs != "B" and (new cls_Bewaking_blok())->aantal("InschrijvingOpen=1 AND Eind >= CURDATE()") > 0) {
 			addtp("Zelfservice/Inschrijven bewaking");
 		}
 		$f = sprintf("Datum >= CURDATE() AND IFNULL(VerwijderdOp, '1900-01-01') < '2012-01-01' AND InschrijvingOpen=1 AND BeperkTotGroep IN (%s)", $_SESSION["lidgroepen"]);
@@ -458,6 +458,9 @@ function toegang($soort, $melding=1, $log=1) {
 			} elseif ($melding > 0) {
 				printf("<p class='mededeling'>%s</p>\n", $mess);
 			}
+			if (isset($_GET['tp']) and strlen($_GET['tp']) > 0) {
+				echo("<script>location.href='/index.php'</script>\n");
+			}
 			return false;
 		}
 	}
@@ -739,16 +742,19 @@ function fnOpvragenLidnr($stap) {
 			$rows = (new cls_Lid())->lidbijemail($_POST['emailvoorlidnr']);
 			if (count($rows) > 0) {
 				foreach ($rows as $row) {
-					$mailing = new Mailing($_SESSION['settings']['mailing_lidnr']);
-					$mailing->xtranum = $row->Lidnr;
-					if ($mailing->send($row->LidID) > 0) {
+					$mail = new email(0, $_SESSION['settings']['mailing_lidnr']);
+					$mail->xtranum = $row->Lidnr;
+					$mail->toevoegenlid($row->LidID);
+					$mail->bericht = (new Mailing($_SESSION['settings']['mailing_lidnr']))->merge($row->LidID);
+					if ($mail->to_outbox(1) > 0) {
 						$mess = sprintf("Een e-mail aan %s met lidnummer %d is in de outbox geplaatst en wordt zo spoedig mogelijk verzonden. ", $row->NaamLid, $row->Lidnr);
 					} else {
 						$mess = sprintf("Fout bij het versturen van het lidnummer aan %s. Probeer het later nogmaals of neem contact met de webmaster op. ", $row->NaamLid);
 					}
 					(new cls_Logboek())->add($mess, 5, $row->LidID, 1, $row->LidID, 11);
 					$mess = "";
-					$mailing = null;
+					$mail = null;
+					
 				}
 			} else {
 				$mess = "Er is geen lid met dit e-mailadres in onze database bekend.";

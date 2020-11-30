@@ -329,6 +329,7 @@ function muteerevenement($eventid) {
 	
 	echo("<div id='deelnemersevenementmuteren'>\n");
 	echo("<table>\n");
+	$rowpd = $i_ev->potdeelnemers($recordid);
 	if ($eventid > 0) {
 		echo("<caption>Deelnemers</caption>\n");
 		echo("<thead>\n<tr><th>Deelnemer</th><th>Status</th><th>Opmerking en functie</th><th>Ingevoerd</th><th></th></tr>\n</thead>\n");
@@ -360,14 +361,14 @@ function muteerevenement($eventid) {
 			echo("</tr>\n");
 		}
 		$optionsnieuw = "<option value=0>Nieuwe deelnemer ...</option>\n";
-		foreach ($i_ev->potdeelnemers($recordid) as $lidrow) {
+		foreach ($rowpd as $lidrow) {
 			$optionsnieuw .= sprintf("<option value=%d>%s</option>\n", $lidrow->LidID, htmlentities($lidrow->Naam));
 		}
 		printf("<tr>\n<td colspan=6><select name='nwdln' onChange='this.form.submit();'>%s</select></td>\n</tr>\n", $optionsnieuw);
 	}
 	echo("</table>\n");
 	echo("</div> <!-- Einde deelnemersevenementmuteren -->\n");
-	$aantpotdln = count(db_evenement("potdeelnemers", 0, $eventid));
+	$aantpotdln = count($rowpd);
 	echo("<div id='opdrachtknoppen'>\n");
 	if ($eventid == 0) {
 		echo("<input type='submit' name='Toevoegen' value='Toevoegen'>\n");

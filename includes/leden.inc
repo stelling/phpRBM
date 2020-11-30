@@ -314,7 +314,7 @@ function fnLedenlijst() {
 	if ($currenttab2 == "Nieuw (klos)lid") {
 		if ($_SERVER['REQUEST_METHOD'] == "POST") {
 			if (isset($_POST['addkloslid']) and isset($_POST['achternaam']) and strlen($_POST['achternaam']) > 1) {
-				$lidid = $i_lid->add($_POST['achternaam'], $_POST['geslacht']);
+				$lidid = $i_lid->add($_POST['achternaam'], $_POST['geslacht'], $_POST['postcode']);
 				if (isset($_POST['lidmtoevoegen'])) {
 					(new cls_Lidmaatschap())->add($lidid);
 				}
@@ -326,16 +326,18 @@ function fnLedenlijst() {
 			
 			echo("<div id='nieuwlid'>\n");
 			printf("<form name='frmNieuwLid' action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
-			echo("<label>Achternaam</label>\n<div class='invoerblok'><input type='text' name='achternaam' size=40 maxlength=40></div>\n");
+			echo("<label>Achternaam</label><input type='text' name='achternaam' maxlength=40>\n");
 						
 			$opt = "\n";
 			foreach (constant("ARRGESLACHT") as $key => $val) {
 				$opt .= sprintf("<option value='%s'>%s</option>\n", $key, $val);
 			}
-			printf("<label>Geslacht</label>\n<div class='invoerblok'><select name='geslacht'>%s</select></div>\n", $opt);
+			printf("<label>Geslacht</label><select name='geslacht'>%s</select>", $opt);
+			
+			echo("<label>Postcode</label><input type='text' class='postcode' name='postcode' maxlength=7>\n");
 			
 			if (toegang("Ledenlijst/Wijzigen lid/Lidmaatschap", 0, 0) == true) {
-				echo("<label>Lidmaatschap toevoegen?</label>\n<div class='invoerblok'><input type='checkbox' name='lidmtoevoegen'></div>\n");
+				echo("<label>Lidmaatschap toevoegen?</label><input type='checkbox' name='lidmtoevoegen'>\n");
 			}
 			
 			echo("<div id='opdrachtknoppen'>\n");
@@ -678,13 +680,8 @@ function fnOnderdelenmuteren($ondtype="G") {
 			printf("<tr><th>Zit niet in groep:</th><td colspan=2><select name='selectie_niet_groep'>\n
 					<option value=0>&nbsp;</option>\n%s</select></td></tr>\n", $selgr);
 				
-
-			$seldp = "";
-			$rows = db_diploma("basislijst");
-			foreach($rows as $dip) {
-				$seldp .= sprintf("<option value=%d>%s</option>\n", $dip->RecordID, $dip->Naam);
-			}
-			
+			$seldp = (new cls_diploma())->htmloptions(0);
+						
 			printf("<tr><th>In het bezit van diploma:</th><td colspan=2><select name='selectie_diploma'>\n
 						<option value=0>&nbsp;</option>\n%s</select></td></tr>\n", $seldp);
 			
@@ -734,8 +731,8 @@ function fnOnderdelenmuteren($ondtype="G") {
 		printf("<form method='post' action='%s?tp=%s&amp;OnderdeelID=%d&Scherm=W'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $onderdeelid);
 		echo("<input type='hidden' name='formname' value='muteren_detail_onderdeel'>\n");
 		
-		printf("<label>RecordID</label><input type='text' name='kode' value='%s' readonly>\n", $row->RecordID);
-		printf("<label>Kode</label><input type='text' name='kode' value='%s' maxlength=5>\n", $row->Kode);
+		printf("<label>RecordID</label><input type='text' value='%s' readonly>\n", $row->RecordID);
+		printf("<label>Code</label><input type='text' name='kode' value='%s' maxlength=5>\n", $row->Kode);
 		printf("<label>Naam</label><input type='text' name='naam' value='%s' maxlength=50>\n", $row->Naam);
 		printf("<label>Centraal e-mailadres</label><input type='email' name='centraalemail' value='%s' maxlength=50>\n", $row->CentraalEmail);
 		printf("<label>Is kader</label><input type='checkbox' name='kader' %s>\n", checked($row->Kader));
@@ -773,8 +770,8 @@ function fnOnderdelenmuteren($ondtype="G") {
 		echo("<div class='clear'></div>\n");
 		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 		echo("<input type='hidden' name='formname' value='muteren_onderdelen'>\n");
-		$xr = "<tr><td></td><td><input type='text' class='kode' OnChange='this.form.submit();' name='NieuwOnderdeel' value=''></td><td>Vul de code in om een nieuwe toe te voegen</td></tr>\n";
-		echo(fnDisplayTable($ondrows, $link_ek, $ondnaammv . " muteren", 0, $link_lk, $xr, "editonderdelen", "", "Kode, Naam, emlCentraal E-mail", 1));
+		$xr = "<tr><td></td><td><input type='text' class='code' OnChange='this.form.submit();' name='NieuwOnderdeel' value=''></td><td>Vul de code in om een nieuwe toe te voegen</td></tr>\n";
+		echo(fnDisplayTable($ondrows, $link_ek, $ondnaammv . " muteren", 0, $link_lk, $xr, "editonderdelen", "", "Code, Naam, emlCentraal E-mail", 1));
 		
 		echo("</form>\n");
 	}
@@ -782,126 +779,6 @@ function fnOnderdelenmuteren($ondtype="G") {
 	echo("</div>  <!-- Einde onderdelenmuteren -->\n");	
 
 } # fnOnderdelenmuteren
-
-function add_del_selectie($actie, $onderdeelid) {
-	global $fromlid, $wherelid, $fromlidond, $wherelidond;
-		
-	if ($actie == "add") {
-		$w = sprintf(" AND (L.Overleden IS NULL) AND (L.Verwijderd IS NULL) AND (L.RecordID NOT IN (SELECT Lid FROM %sLidond AS LOC WHERE LOC.OnderdeelID=%d AND LOC.Vanaf <= CURDATE()))", TABLE_PREFIX, $onderdeelid);
-	} else {
-		$w = sprintf("AND (L.RecordID IN (SELECT Lid FROM %sLidond AS LOC WHERE LOC.OnderdeelID=%d))", TABLE_PREFIX, $onderdeelid);
-	}
-		
-	$mess = "";
-		
-	$i_lid = new cls_Lid();
-	if (strlen($_POST['selectie_vangebdatum']) == 10 and $_POST['selectie_vangebdatum'] > $i_lid->min("GEBDATUM") and $_POST['selectie_vangebdatum'] < $i_lid->max("GEBDATUM")) {
-		$w .= sprintf(" AND L.GEBDATUM >= '%s'", $_POST['selectie_vangebdatum']);
-	} 
-	if ($_POST['selectie_temgebdatum'] > "1900-01-01" and $_POST['selectie_temgebdatum'] < $i_lid->max("GEBDATUM")) {
-		$w .= sprintf(" AND L.GEBDATUM <= '%s'", $_POST['selectie_temgebdatum']);
-	}
-	if (strlen($_POST['selectie_vanpostcode']) >= 4 and $_POST['selectie_vanpostcode'] > $i_lid->min("Postcode")) {
-		$w .= sprintf(" AND L.Postcode >= '%s'", $_POST['selectie_vanpostcode']);
-	}
-	if (strlen($_POST['selectie_tempostcode']) >= 4 and $_POST['selectie_tempostcode'] < $i_lid->max("Postcode")) {
-		$w .= sprintf(" AND L.Postcode <= '%s'", $_POST['selectie_tempostcode']);
-	}
-	$i_lid = null;
-	
-	$i_lm = new cls_Lidmaatschap();
-	if ($_POST['selectie_vanlidnr'] > $i_lm->minlidnr()) {
-		$w .= sprintf(" AND LM.Lidnr >= %d", $_POST['selectie_vanlidnr']);
-	}
-	if ($_POST['selectie_temlidnr'] > 0 and $_POST['selectie_temlidnr'] < $i_lm->maxlidnr()) {
-		$w .= sprintf(" AND LM.Lidnr <= %d", $_POST['selectie_temlidnr']);
-	}
-	$i_lm = null;
-	
-	
-	if ($_POST['selectie_niet_groep'] > 0) {
-		$w .= sprintf(" AND L.RecordID <> (SELECT IFNULL(MAX(LO.Lid), 0) FROM %sLidond AS LO WHERE OnderdeelID=%d AND LO.Lid=L.RecordID AND LO.Vanaf <= CURDATE() AND ((LO.Opgezegd IS NULL) OR LO.Opgezegd > CURDATE()))", TABLE_PREFIX, $_POST['selectie_niet_groep']);
-	}
-	
-	if ($_POST['selectie_diploma'] > 0) {
-		$w .= sprintf(" AND L.RecordID IN (SELECT LD.Lid FROM %sLiddipl AS LD WHERE DiplomaID=%d AND (LD.LicentieVervallenPer IS NULL))", TABLE_PREFIX, $_POST['selectie_diploma']);
-	}
-	if ($_POST['selectie_niet_diploma'] > 0) {
-		$w .= sprintf(" AND L.RecordID <> (SELECT IFNULL(MAX(LD.Lid), 0) FROM %sLiddipl AS LD WHERE DiplomaID=%d AND LD.Lid=L.RecordID AND (LD.LicentieVervallenPer IS NULL))", TABLE_PREFIX, $_POST['selectie_niet_diploma']);
-	}
-
-	if ($actie == "deleteall") {
-		$query = sprintf("SELECT L.RecordID FROM %1\$sLid AS L WHERE L.RecordID IN (SELECT LOC.Lid FROM %1\$sLidond AS LOC WHERE LOC.OnderdeelID=%2\$d);", TABLE_PREFIX, $onderdeelid);
-		
-	} elseif ($_POST['selectie_groep'] == 0) {
-		if (strlen($_POST['selectie_vanliddatum']) == 10 and $_POST['selectie_vanliddatum'] > db_lid("minliddatum")) {
-			$w .= sprintf(" AND LM.LIDDATUM >= '%s'", $_POST['selectie_vanliddatum']);
-		}
-		if (strlen($_POST['selectie_temliddatum']) == 10 and $_POST['selectie_temliddatum'] < db_lid("maxliddatum")) {
-			$w .= sprintf(" AND LM.LIDDATUM <= '%s'", $_POST['selectie_temliddatum']);
-		}
-		if (strlen($_POST['selectie_vanopgezegd']) == 10) {
-			$w .= sprintf(" AND LM.Opgezegd >= '%s'", $_POST['selectie_vanopgezegd']);
-		}
-		if (strlen($_POST['selectie_temopgezegd']) == 10 and $_POST['selectie_temopgezegd'] < db_lid("maxopgezegd")) {
-			$w .= sprintf(" AND LM.Opgezegd <= '%s'", $_POST['selectie_temopgezegd']);
-		}
-		
-		if ($_POST['selectie_status'] == "L") {
-			$query = sprintf("SELECT DISTINCT L.RecordID FROM %s WHERE %s %s;", $fromlid, $wherelid, $w);
-		} elseif ($_POST['selectie_status'] == "V") {
-			$query = sprintf("SELECT DISTINCT L.RecordID FROM %s WHERE (NOT LM.Opgezegd IS NULL) %s;", $fromlid, $w);
-		} elseif ($_POST['selectie_status'] == "T") {
-			$query = sprintf("SELECT DISTINCT L.RecordID FROM %s WHERE LM.LIDDATUM > CURDATE() %s;", $fromlid, $w);
-		} else {
-			$query = sprintf("SELECT DISTINCT L.RecordID FROM %s WHERE (LM.Lid IS NULL) %s;", $fromlid, $w);
-		}
-			
-	} else {
-		if (strlen($_POST['selectie_vanliddatum']) == 10 and $_POST['selectie_vanliddatum'] > db_lid("maxliddatum") and $_POST['selectie_vanliddatum'] <= db_lid("maxliddatum")) {
-			$w .= sprintf(" AND LO.Vanaf >= '%s'", $_POST['selectie_vangebdatum']);
-		}
-		if (strlen($_POST['selectie_temliddatum']) == 10 and $_POST['selectie_temliddatum'] >= db_lid("minliddatum") and $_POST['selectie_temliddatum'] < db_lid("maxliddatum")) {
-			$w .= sprintf(" AND LO.Vanaf <= '%s'", $_POST['selectie_temgebdatum']);
-		}
-		if (strlen($_POST['selectie_vanopgezegd']) == 10 and $_POST['selectie_vanopgezegd'] > db_lid("minopgezegd")) {
-			$w .= sprintf(" AND LO.Opgezegd >= '%s'", $_POST['selectie_vanopgezegd']);
-		}
-		if (strlen($_POST['selectie_temopgezegd']) == 10 and $_POST['selectie_temopgezegd'] < db_lid("maxopgezegd")) {
-			$w .= sprintf(" AND LO.Opgezegd <= '%s'", $_POST['selectie_temopgezegd']);
-		}
-
-		if ($_POST['selectie_status'] == "V") {
-			$query = sprintf("SELECT DISTINCT L.RecordID FROM %s WHERE LO.OnderdeelID=%d AND (NOT LO.Opgezegd IS NULL) %s;", $fromlidond, $_POST['selectie_groep'], $w);
-		} elseif ($_POST['selectie_status'] == "T") {
-			$query = sprintf("SELECT DISTINCT L.RecordID FROM %s WHERE LO.OnderdeelID=%d AND LO.Vanaf > CURDATE() %s;", $fromlidond, $_POST['selectie_groep'], $w);
-		} else {
-			$query = sprintf("SELECT DISTINCT L.RecordID FROM %s WHERE %s AND LO.OnderdeelID=%d %s;", $fromlidond, $wherelidond, $_POST['selectie_groep'], $w);
-		}
-	}
-		
-	$aant = 0;
-	if ($actie == "add") {
-		foreach(fnQuery($query) as $row) {
-			if (db_lidond("add", $row->RecordID, "", "", $onderdeelid) == true) {
-				$aant++;
-			}
-		}
-	} else {
-		foreach(fnQuery($query) as $row) {
-			$lidids[] = $row->RecordID;
-		}
-		if (isset($lidids)) {
-			if (db_lidond("delete", $lidids, "", "", $onderdeelid) > 0) {
-				$mess = sprintf("Er zijn %d (%s) leden, via een selectie, bij selectie %d verwijderd.", count($lidids), implode(", ", $lidids), $onderdeelid);
-			}
-		}
-	}
-	if (strlen($mess) > 0) {
-		(new cls_Logboek())->add($mess, 17, 0, 0, $onderdeelid);
-	}
-		
-} # add_del_selectie
 
 function fnGroepsindeling($afdkode="", $afdid=0, $p_muteren=0, $p_toonleeftijd=2) {
 	/* p_toonleeftijd
@@ -1009,7 +886,7 @@ function fnGroepsindeling($afdkode="", $afdid=0, $p_muteren=0, $p_toonleeftijd=2
 		$i_gr = new cls_Groep();
 			
 		if ($_SERVER['REQUEST_METHOD'] == "POST") {
-			foreach (db_lidond("groepsindeling", 0, "", $filter) as $row) {
+			foreach ($i_lo->groepsindeling($afdid) as $row) {
 				$p = sprintf("mg_%d", $row->RecordID);
 				if (isset($_POST[$p]) and $_POST[$p] != $row->GroepID) {
 					$i_lo->update($row->RecordID, "GroepID", $_POST[$p]);
@@ -1466,7 +1343,7 @@ function overzichtverjaardagen($metfoto=1) {
 	for ($i = 0; $i < $_SESSION['settings']['verjaardagenvooruit'] and $aantgetoond < $_SESSION['settings']['verjaardagenaantal']; $i++) {
 		$dteHV = mktime(0, 0, 0, date("m"), date("d")+$i, date("Y"));
 		foreach(db_lid("verjaardagen", date("Y-m-d", $dteHV)) as $row) {
-			$o = db_lidond("onderscheiding", $row->RecordID);
+			$o = (new cls_Lidond())->onderscheiding($row->RecordID);
 			if (strlen($o) > 0) {
 				$nm = $o . " ";
 			} else {
@@ -1636,9 +1513,17 @@ function algemeenlidmuteren($lidid) {
 	$row = $i_lid->record($lidid);
 	echo("<div id='wijzigengegevens'>\n");
 	printf("<form method='post' action='%s' name='frm_wijzigingen'>\n", $actionurl);
-	printf("<input type='hidden' name-'lidid' value=%d>\n", $lidid);
+	printf("<input type='hidden' name='lidid' value=%d>\n", $lidid);
 	for ($i=0; $i < count($wijzvelden); $i++) {
 		$dv = str_replace("\n", "<br>\n", $row->{$wijzvelden[$i]['naam']});
+		if ($wijzvelden[$i]['naam'] == "Woonplaats" and strlen($dv) == 0 and strlen($row->Postcode) >= 4) {
+			$dv = $i_lid->max("Woonplaats", sprintf("LEFT(Postcode, 4)='%s'", substr($row->Postcode, 0, 4)));
+		} elseif ($wijzvelden[$i]['naam'] == "Adres" and strlen($dv) == 0 and strlen($row->Postcode) == 7) {
+			$dv = $i_lid->max("Adres", sprintf("LEFT(Postcode, 7)='%s'", substr($row->Postcode, 0, 7)));
+			if (strlen($dv) > 2 and strrpos($dv, " ") > 1) {
+				$dv = substr($dv, 0, strrpos($dv, " "));
+			}
+		}
 		$ph = $wijzvelden[$i]['label'];
 		if ($wijzvelden[$i]['label'] == "Geslacht" or ($wijzvelden[$i]['label'] == "Legitimatietype")) {
 			if ($wijzvelden[$i]['label'] == "Geslacht") {
@@ -1653,7 +1538,7 @@ function algemeenlidmuteren($lidid) {
 					$sel = " selected";
 					$dv = $val;
 				}
-				$opt .= sprintf("<option value='%s'%s>\n%s</option>\n", $key, $sel, $val);
+				$opt .= sprintf("<option value='%s'%s>%s</option>\n", $key, $sel, $val);
 			}
 			$inp = sprintf("<select name='%s' %s>%s</select>", $wijzvelden[$i]['naam'], $jsoc, $opt);
 			
@@ -1678,9 +1563,9 @@ function algemeenlidmuteren($lidid) {
 			if ($t == "text" and $wijzvelden[$i]['lengte'] > 100) {
 				$inp = sprintf("<textarea name='%s' placeholder='%s' cols=50 rows=4 %s>%s</textarea>", str_replace(" ", "_", $wijzvelden[$i]['naam']), $ph, $jsoc, $dv);
 			} elseif ($t == "date") {
-				$inp = sprintf("<input type='date' name='%s' value='%s' %s'>", $wijzvelden[$i]['naam'], $dv, $jsoc);
+				$inp = sprintf("<input type='date' name='%s' value='%s' %s>", $wijzvelden[$i]['naam'], $dv, $jsoc);
 			} else {
-				$inp = sprintf("<input type='%s' name='%s' placeholder='%s' value='%s' maxlength=%d %s'>", $t, $wijzvelden[$i]['naam'], $ph, $dv, $wijzvelden[$i]['lengte'], $jsoc);
+				$inp = sprintf("<input type='%s' name='%s' placeholder='%s' value='%s' maxlength=%d %s>", $t, $wijzvelden[$i]['naam'], $ph, $dv, $wijzvelden[$i]['lengte'], $jsoc);
 			}
 		}
 		if ($row->Verwijderd > "2010-01-01") {
@@ -1885,10 +1770,15 @@ function toestemmingenmuteren($lidid) {
 	}
 	
 	if ($lidid == $_SESSION['lidid']) {
-		echo("<div id='opdrachtknoppen'>\n");
-		echo("<input class='knop' type='submit' value='Bevestigen' name='Bevestigen'>\n");
-		echo("</div> <!-- Einde opdrachtknoppen -->\n");
+		$tb = "Bevestigen";
+	} else {
+		$tb = "Bewaren";
 	}
+	
+	echo("<div id='opdrachtknoppen'>\n");
+	printf("<input class='knop' type='submit' value='%s' name='Bevestigen'>\n", $tb);
+	echo("</div> <!-- Einde opdrachtknoppen -->\n");
+	
 	echo("</form>\n");
 	echo("</div> <!-- Einde toestemmingenmuteren -->\n");
 	
@@ -1902,7 +1792,7 @@ function opzegginglidmaatschap($lidid) {
 	
 	$fdlang = "%e %B %Y";
 	
-	$lid = db_lid("record", "", $lidid);
+	$lid = (new cls_Lid())->record($lidid);
 	$naamlid = $lid->NaamLid;
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
@@ -1941,26 +1831,14 @@ function opzegginglidmaatschap($lidid) {
 				
 		$body .= sprintf("\n<p>Dit formulier is verzonden vanaf IP-adres %s.</p>\n", $_SERVER['REMOTE_ADDR']);
 	
-		$mail = new RBMmailer();
-		$mail->From = $_SESSION['emailingelogde'];
-		$mail->FromName = $naamlid;
-		$mail->AddAddress($_SESSION['settings']['emailledenadministratie']);
-		$mail->InformerenOuders($lid->GEBDATUM, $lid->EmailOuders);
-		$mail->AddCC($_SESSION['emailingelogde']);
-		if (isValidMailAddress($_SESSION['emailsecretariaat'], 0)) {
-			$mail->AddCC($_SESSION['emailsecretariaat']);
-		}
-		$mail->Subject = sprintf("Opzegging lidmaatschap %s per %s", $naamlid, $opgezegdper);
-		$mail->Body = $body;
-		if ($mail->Send()) {
-			$mess = sprintf("De opzegging per '%s' is verzonden.", $opgezegdper);
-			$success = 1;
-		} else {
-			$mess = "Het versturen van de opzegging is mislukt. Probeer het later nogmaals.";
-			$success = 0;
-		}
-		db_add_mailing_hist(0, 0, "Ledenadministratie", $_SESSION['settings']['emailledenadministratie'], $body, $mail, $success);
-		db_logboek("add", $mess, 6, 0, 1);
+		$mail = new email();
+		$mail->toevoegenadres($_SESSION['settings']['emailledenadministratie'], "aan", "Ledenadministratie");
+		$mail->toevoegenlid($lidid, "cc");
+		$mail->onderwerp = sprintf("Opzegging lidmaatschap %s per %s", $naamlid, $opgezegdper);
+		$mail->bericht = $body;
+		$mail->to_outbox();
+		$mess = "Een e-mail is klaar gezet om deze opzegging te bevestigen.";
+		(new cls_Logboek())->add($mess, 6, $lidid, 1, 0, 8);
 		$mail = null;
 		if ($_SESSION['settings']['zs_opzeggingautomatischverwerken'] == 1) {
 			(new cls_lidmaatschap())->opzegging($lidid, $opgezegdper);
@@ -2415,7 +2293,7 @@ function MailVervallenDiplomas() {
 
 	if ((date('H') == 8 or ($_SESSION['webmaster'] == 1 and date('H') > 7)) and $termijnvervallendiplomasmailen > 0) {
 		$ed = date('Y-m-d', mktime(0, 0, 0, date("m")+$termijnvervallendiplomasmailen, date("d"), date("Y")));
-		foreach(db_logins("lijst", "", "", 0, "Login.HerinneringVervallenDiplomas=1") as $lid) {
+		foreach((new cls_Login())->lijst("Login.HerinneringVervallenDiplomas=1") as $lid) {
 			$query = sprintf("SELECT IFNULL(MAX(LEFT(DATE_ADD(send_on, INTERVAL %d MONTH), 10)), '2012-01-01') FROM %sMailing_hist WHERE Xtra_Char='H_DP' AND LidID=%d;", $termijnvervallendiplomasmailen, TABLE_PREFIX, $lid->lnkNummer);
 			$bd = db_scalar($query);
 			if ($bd < date('Y-m-d')) {

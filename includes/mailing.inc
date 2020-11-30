@@ -227,10 +227,10 @@ class Mailing {
 		$this->MergeField[]=array('Naam' => "Roepnaam", 'SQL' => $sql);
 		
 		$sql = sprintf("SELECT CASE
-								WHEN L.GEBDATUM > DATE_SUB(CURDATE(), INTERVAL 18 YEAR) AND LENGTH(Email)>5 AND LENGTH(EmailOuders)>5 THEN CONCAT(IF(LENGTH(L.Roepnaam) < 2, 'leden', L.Roepnaam), ' of ouder/verzorger van')
-								WHEN LENGTH(Email)>5 AND LENGTH(EmailOuders)=0 THEN IF(LENGTH(L.Roepnaam) < 2, 'leden', L.Roepnaam)
-								WHEN LENGTH(Email)=0 AND LENGTH(EmailOuders)>5 THEN CONCAT('Ouder/verzorger van ', IF(LENGTH(L.Roepnaam) < 2, 'leden', L.Roepnaam))
-								ELSE IF(LENGTH(L.Roepnaam) < 2, 'leden', L.Roepnaam) END
+								WHEN L.GEBDATUM > DATE_SUB(CURDATE(), INTERVAL 18 YEAR) AND LENGTH(IFNULL(L.Email, '')) > 5 AND LENGTH(IFNULL(L.EmailOuders, '')) > 5 THEN CONCAT(IF(LENGTH(L.Roepnaam) < 2, 'leden', L.Roepnaam), ' of ouder/verzorger van')
+								WHEN LENGTH(IFNULL(L.Email, '')) > 5 AND LENGTH(IFNULL(L.EmailOuders, ''))=0 THEN IF(LENGTH(L.Roepnaam) < 2, 'leden', L.Roepnaam)
+								WHEN LENGTH(IFNULL(L.Email, ''))=0 AND LENGTH(IFNULL(L.EmailOuders, '')) > 5 THEN CONCAT('ouder/verzorger van ', IF(LENGTH(L.Roepnaam) < 2, 'leden', L.Roepnaam))
+								ELSE IF(LENGTH(IFNULL(L.Roepnaam, '')) < 2, 'leden', L.Roepnaam) END
 								FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "RoepnaamOfOuders", 'SQL' => $sql);
 		
@@ -282,7 +282,7 @@ class Mailing {
 		$sql = sprintf("SELECT L.Mobiel FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Mobiel", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT DATE_FORMAT(L.GEBDATUM, %s) AS Geboortedatum FROM %sLid AS L WHERE L.RecordID=%%d;", $fdlang, TABLE_PREFIX);
+		$sql = sprintf("SELECT DATE_FORMAT(L.GEBDATUM, %s, 'nl_NL') AS Geboortedatum FROM %sLid AS L WHERE L.RecordID=%%d;", $fdlang, TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Geboortedatum", 'SQL' => $sql);
 
 		$sql = sprintf("SELECT L.GEBPLAATS FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
@@ -293,13 +293,13 @@ class Mailing {
 		$this->MergeField[]=array('Naam' => "Onderdelen", 'SQL' => $sql);
 	
 		if ((new cls_db_base("Bewseiz"))->aantal() > 0) {
-			$sql = sprintf('SELECT CONCAT(DATE_FORMAT(BEGIN_PER, %1$s), \' t/m \', DATE_FORMAT(EINDE_PER, %1$s)) AS Per'
+			$sql = sprintf('SELECT CONCAT(DATE_FORMAT(BEGIN_PER, %1$s, \'nl_NL\'), \' t/m \', DATE_FORMAT(EINDE_PER, %1$s, \'nl_NL\')) AS Per'
 				  . ' FROM %2$sBewaking AS BW INNER JOIN %2$sBewseiz AS BS ON BS.RecordID = BW.SeizoenID'
 				  . ' WHERE EINDE_PER >= CURDATE() AND %3$s ORDER BY BEGIN_PER;', $fdlang, TABLE_PREFIX, "Lid=%d");
 			$this->MergeField[]=array('Naam' => "BewakingToekomst", 'SQL' => $sql);
 							 
 			$Funct = "(CASE BW.Functie WHEN 0 THEN '' ELSE CONCAT(' (', F.Afkorting, ')') END)";
-			$sql = sprintf('SELECT CONCAT(DATE_FORMAT(BEGIN_PER, %1$s), \' t/m \', DATE_FORMAT(EINDE_PER, %1$s), %2$s) AS Per
+			$sql = sprintf('SELECT CONCAT(DATE_FORMAT(BEGIN_PER, %1$s, \'nl_NL\'), \' t/m \', DATE_FORMAT(EINDE_PER, %1$s, \'nl_NL\'), %2$s) AS Per
 					 FROM (%3$sBewaking AS BW INNER JOIN %3$sBewseiz AS BS ON BS.RecordID = BW.SeizoenID) INNER JOIN %3$sFunctie AS F ON BW.Functie = F.Nummer
 					 WHERE BW.EINDE_PER < CURDATE() AND %4$s ORDER BY BW.BEGIN_PER;', $fdkort, $Funct, TABLE_PREFIX, "BW.Lid=%d");
 			$this->MergeField[]=array('Naam' => "BewakingHistorie", 'SQL' => $sql);
@@ -340,10 +340,10 @@ class Mailing {
 		$sql = sprintf("SELECT L.RelnrRedNed FROM %sLid AS L WHERE %s;", TABLE_PREFIX, "L.RecordID=%d");
 		$this->MergeField[]=array('Naam' => "RelnrRedNed", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT DATE_FORMAT(LIDDATUM, %s) FROM %sLidmaatschap AS LM WHERE %s AND LM.Lid=%%d;", $fdlang, TABLE_PREFIX, $wherelid);
+		$sql = sprintf("SELECT DATE_FORMAT(LIDDATUM, %s, 'nl_NL') FROM %sLidmaatschap AS LM WHERE %s AND LM.Lid=%%d;", $fdlang, TABLE_PREFIX, $wherelid);
 		$this->MergeField[]=array('Naam' => "LidVanaf", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT IF(LM.OPGEZEGD IS NULL, 'Niet', DATE_FORMAT(LM.Opgezegd, %s)) FROM %sLidmaatschap AS LM
+		$sql = sprintf("SELECT IF(LM.OPGEZEGD IS NULL, 'Niet', DATE_FORMAT(LM.Opgezegd, %s, 'nl_NL')) FROM %sLidmaatschap AS LM
 							 WHERE LM.LIDDATUM < CURDATE() AND LM.Lid=%%d
 							 ORDER BY LM.LIDDATUM DESC LIMIT 1;", $fdlang, TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "OpgezegdPer", 'SQL' => $sql);
@@ -614,13 +614,14 @@ class Mailing {
 		}	
 		printf("<label>Zichtbaar voor</label><select name='ZichtbaarVoor'>\n%s</select>\n", $select);
 		if ($this->mid > 0) {
+			$ob = "OnBlur='this.form.submit();'";
 			printf("<label>Opties</label><input type='checkbox' name='template' value=1%s><p>Template</p>", checked($this->template));
 			printf("<input type='checkbox' name='HTMLdirect' value=1%s onChange='this.form.submit();'><p>HTML direct (zonder editor)</p>", checked($this->htmldirect));
 			printf("<input type='checkbox' name='ZonderBriefpapier' value=1%s  onChange='this.form.submit();'><p>Zonder briefpapier versturen</p>", checked($this->zonderbriefpapier));
 
 			echo("<div class='clear'></div>\n");
 			if ($this->htmldirect == 1) {
-				printf("<textarea name='message' rows=15 cols=125>%s</textarea>\n", $this->message);
+				printf("<textarea name='message' rows=15 cols=125 %s>%s</textarea>\n", $this->message, $ob);
 			} else {
 				echo("</div> <!-- Einde editmailingform -->\n");
 				if ($_SESSION['settings']['mailing_type_editor'] == 3) {
@@ -628,13 +629,13 @@ class Mailing {
 					printf("<textarea id='message' name='message'>%s</textarea>\n", $this->message);
 				
 				} elseif ($_SESSION['settings']['mailing_type_editor'] == 2) {
-					printf("<textarea name='message'>%s</textarea>
+					printf("<textarea name='message' %s>%s</textarea>
 					<script>
 					CKEDITOR.replace( 'message' );
-					</script>\n", $this->message);
+					</script>\n", $this->message, $ob);
 			
 				} else {
-					printf("<textarea name='message' id='editor'>%s</textarea>\n", $this->message);
+					printf("<textarea name='message' id='editor' %s>%s</textarea>\n", $this->message, $ob);
 					echo("<script>\n
 						ClassicEditor
 							.create( document.querySelector( '#editor' )	)
@@ -1211,7 +1212,7 @@ class Mailing {
 			$this->merged_message = str_replace("[%URLACTIVATIE%]", $urlactivatie, $this->merged_message);
 		
 		} elseif ($this->mid == $_SESSION['settings']['mailing_herstellenwachtwoord'] and $lidid > 0) {
-			$nk = db_logins("wachtwoordreset", "", "", $lidid);
+			$nk = (new cls_Login())->wachtwoordreset($lidid);
 			$urlresetww = sprintf("%s/index.php?tp=Herstellen+wachtwoord&lidid=%d&key=%s", $_SERVER["HTTP_HOST"], $lidid, $nk);
 			$this->merged_message = str_replace("[%URLRESETWW%]", $urlresetww, $this->merged_message);
 			
@@ -1224,10 +1225,11 @@ class Mailing {
 			}
 			
 		} elseif ($this->mid == $_SESSION['settings']['mailing_bewakinginschrijving']) {
+			$i_ib = new cls_InsBew();
 			if ($this->xtranum == 0 and $lidid > 0) {
-				$this->xtranum = db_insbew("laatstelid", $lidid);
+				$this->xtranum = $i_ib->laatstevanlid($lidid);
 			}
-			$rows = db_insbew("overzichtlid", 0, $this->xtranum);
+			$rows = $i_ib->overzichtlid(0, $this->xtranum);
 			$bevins = "<ul>\n";
 			foreach ($rows as $row) {		
 				$bevins .= sprintf("<li>%s - %s t/m %s", $row->Seizoen, strftime("%e %B %Y", strtotime($row->dteBegin)), strftime("%e %B %Y", strtotime($row->dteEinde)));
@@ -1242,6 +1244,8 @@ class Mailing {
 			$bevins .= "</ul>\n";
 			$this->merged_message = str_ireplace("[%VoorwaardenInschrijving%]", $_SESSION['settings']['zs_voorwaardeninschrijving'], $this->merged_message);
 			$this->merged_message = str_ireplace("[%InschrijvingBewaking%]", $bevins, $this->merged_message);
+			
+			$i_ib = null;
 			
 		} elseif ($this->mid == $_SESSION['settings']['mailing_bevestigingbestelling']) {
 			if ($this->xtranum > 0) {
@@ -1286,6 +1290,7 @@ class Mailing {
 				}
 			}
 		}
+		return $this->merged_message;
 	}
 	
 	public function delete() {
@@ -1361,14 +1366,12 @@ function lijstmailings($p_filter="") {
 		if ($p_filter == "Outbox") {
 			$rows = $i_mh->outbox(1)->fetchAll();
 			if (count($rows) > 0) {
-				echo(fnDisplayTable($rows, $ld, "", 0, $rs));
-				if ($_SESSION['settings']['mailing_direct_verzenden'] == 0 and count($rows) > 1) {
-					printf("<form method='post' action='%s?tp=%s/%s'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
-					echo("<div id='opdrachtknoppen'>\n");
-					printf("<input type='submit' name='action' value='Inhoud versturen' onClick='this.form.submit();'>\n");
-					echo("</div>  <!-- Einde opdrachtknoppen -->\n");
-					echo("</form>\n");
+				if (count($rows) > 3) {
+					echo("<div id='filter'>\n");
+					printf("<p class='aantrecords'>%d e-mails</p>\n", count($rows));
+					echo("</div> <!-- Einde filter -->\n");
 				}
+				echo(fnDisplayTable($rows, $ld, "", 0, $rs));
 			} else {
 				echo("<p class='mededeling'>Er staan geen e-mails te wachten om verzonden te worden.</p>\n");
 			}
@@ -1423,10 +1426,11 @@ class email {
 	
 	public $onderwerp = "";
 	public $bericht = "";
+	public $zonderbriefpapier = 0;
 	public $xtrachar = "";
 	public $xtranum = 0;
 	
-	function __construct($mhid, $mid=0) {
+	function __construct($mhid=0, $mid=0) {
 		$this->ingevoerd = strftime('%e %B %Y (%H:%M:%S)');
 		$this->ingevoerddoor = $_SESSION['naamingelogde'];
 		
@@ -1449,6 +1453,7 @@ class email {
 				$this->cc = $mhrow->cc_addr;
 				$this->onderwerp = $mhrow->subject;
 				$this->bericht = $mhrow->message;
+				$this->zonderbriefpapier = $mhrow->ZonderBriefpapier;
 				$this->zichtbaarvoor = $mhrow->ZichtbaarVoor;
 				$this->xtrachar = $mhrow->Xtra_Char;
 				$this->xtranum = $mhrow->Xtra_Num;
@@ -1463,6 +1468,9 @@ class email {
 			$this->cc = $mrow->cc_addr;
 			$this->onderwerp = $mrow->subject;
 			$this->zichtbaarvoor = $mrow->ZichtbaarVoor;
+			$this->zonderbriefpapier = $mrow->ZonderBriefpapier;
+		} else {
+			$this->vanafadres = $_SESSION['settings']['emailwebmaster'];
 		}
 	}  # __construct
 	
@@ -1495,7 +1503,7 @@ class email {
 			printf("<label>Aan e-mail</label><p>%s</p>\n", $this->aanadres);
 		}
 		if (strlen($this->cc) > 0) {
-			printf("<label>CC:</label><p>%s</p>\n", $this->cc);
+			printf("<label>CC</label><p>%s</p>\n", $this->cc);
 		}
 		
 		printf("<label>Onderwerp</label><p>%s</p>\n", $this->onderwerp);
@@ -1514,21 +1522,21 @@ class email {
 		
 	} # toon
 	
-	public function toevoegenlid($lidid) {
+	public function toevoegenlid($p_lidid, $p_tp="aan") {
 	
-		$row = db_lid("record", "", $lidid);
+		$row = (new cls_Lid())->record($p_lidid);
 		if ($this->lidid == 0) {
-			$this->lidid = $lidid;
+			$this->lidid = $p_lidid;
 		}
 		if (isValidMailAddress($row->Email)) {
-			$this->toevoegenadres($row->Email);
+			$this->toevoegenadres($row->Email, $p_tp);
 		} elseif (strlen($row->EmailOuders) > 5) {
-			$this->toevoegenadres($row->EmailOuders);
+			$this->toevoegenadres($row->EmailOuders, $p_tp);
 		} elseif (isValidMailAddress($row->EmailVereniging)) {
-			$this->toevoegenadres($row->EmailVereniging);
+			$this->toevoegenadres($row->EmailVereniging, $p_tp);
 		}
 		
-		if ($this->xtrachar != "REK") {
+		if ($this->xtrachar != "REK" and $p_tp == "aan") {
 			$this->aannaam = $row->NaamLid;
 		}
 		
@@ -1538,15 +1546,16 @@ class email {
 		$this->aantalontvangers++;
 	}  # toevoegenlid
 	
-	public function toevoegenadres($adres, $tp="aan") {
+	public function toevoegenadres($adres, $tp="aan", $p_naam="") {
 		
 		foreach(explode(",", str_replace(" ", "", str_replace(";", ",", $adres))) as $e) {
-			if ($tp == "aan") {
+			if ($tp == "aan" or $tp == "to") {
 				if (isValidMailAddress($e) and strpos($this->aanadres, $e) === false) {
 					if (strlen($this->aanadres) > 0) {
 						$this->aanadres .= ", ";
 					}
 					$this->aanadres .= trim($e);
+					$this->aannaam = $p_naam;
 				}
 			} elseif ($tp == "cc") {
 				if (isValidMailAddress($e) and strpos($this->aanadres, $e) === false and strpos($this->cc, $e) === false) {
@@ -1559,9 +1568,9 @@ class email {
 		}
 	}  # toevoegenadres
 	
-	public function to_outbox() {
+	public function to_outbox($p_direct=0) {
 		
-		$rv = false;
+		$rv = 0;
 		if ($this->xtrachar == "REK" and $_SESSION['settings']['mailing_rekening_vanafid'] > 0) {
 			$i_mv = new cls_Mailing_vanaf($_SESSION['settings']['mailing_rekening_vanafid']);
 			$this->vanafadres = $i_mv->vanaf_email;
@@ -1572,7 +1581,10 @@ class email {
 		if (strlen($this->aanadres) > 5 and strlen($this->vanafadres) > 5) {
 			$this->mhid = (new cls_Mailing_hist())->add($this);
 			if ($this->mhid > 0) {
-				$rv = true;
+				$rv = $this->mhid;
+				if ($p_direct == 1) {
+					sentoutbox(0, $this->mhid);
+				}
 			}
 		}
 		
@@ -1585,7 +1597,7 @@ class email {
 function fnRekeningenMailen($op) {
 	global $currenttab, $currenttab2;
 	
-	$i_rek = new cls_Rekening();
+	$i_rk = new cls_Rekening();
 	$i_p = new cls_Parameter();
 
 	echo("<div id='rekeningenmailen'>\n");
@@ -1604,12 +1616,12 @@ function fnRekeningenMailen($op) {
 			if (strtotime($mindat) !== FALSE) {
 				$mindat = date("Y-m-d", strtotime($mindat));
 			} else {
-				$mindat = $i_rek->min("Datum");
+				$mindat = $i_rk->min("Datum");
 			}
 			if (strtotime($maxdat) !== FALSE) {
 				$maxdat = date("Y-m-d", strtotime($maxdat));
 			} else {
-				$maxdat = $i_rek->max("Datum");
+				$maxdat = $i_rk->max("Datum");
 			}
 			$filter = sprintf("RK.seizoen=%d AND RK.Nummer >= %d AND RK.Nummer <= %d AND RK.Datum >= '%s' AND RK.Datum <= '%s'", $_POST['rekseizoen'], $_POST['minreknr'], $_POST['maxreknr'], $mindat, $maxdat);
 			if (isset($_POST['reklid']) and is_numeric($_POST['reklid']) and $_POST['reklid'] > 0) {
@@ -1661,7 +1673,7 @@ function fnRekeningenMailen($op) {
 
 			$selrek = "";
 			$aantrek = 0;
-			foreach(db_rekening("selectie", 0, $filter) as $rk) {
+			foreach($i_rk->lijst($filter) as $rk) {
 				$selrek .= sprintf("<li>%d - %s - &euro;&nbsp;%03.2f</li>\n", $rk->Nummer, $rk->DEBNAAM, $rk->Bedrag);
 				$aantrek += 1;
 			}
@@ -1683,7 +1695,7 @@ function fnRekeningenMailen($op) {
 		} elseif ($op == "selectieversturen" and isset($_POST['sure'])) {
 			$aant_ok = 0;
 				
-			foreach(db_rekening("selectie", 0, $_POST['rekfilter']) as $rk) {
+			foreach($i_rk->lijst($_POST['rekfilter']) as $rk) {
 				$email = new email(0, 0);
 				$email->xtrachar = "REK";
 				$email->xtranum = $rk->Nummer;
@@ -1692,8 +1704,7 @@ function fnRekeningenMailen($op) {
 				if ($_SESSION['settings']['mailing_rekening_stuurnaar'] > 1) {
 					$hd = new DateTime($rk->Datum);
 					$hd->sub(new DateInterval('P18Y'));
-					$rr = db_rekening("regels", $rk->Nummer);
-					foreach($rr as $regel) {
+					foreach((new cls_Rekeningregel())->perrekening($rk->Nummer) as $regel) {
 						if ($regel->GEBDATUM > "1900-01-01" and $regel->GEBDATUM <= $hd->format("Y-m-d")) {
 							$email->toevoegenlid($regel->Lid);
 						} elseif ($_SESSION['settings']['mailing_rekening_stuurnaar'] == 2 and strlen($regel->EmailOuders) > 5) {
@@ -1702,33 +1713,28 @@ function fnRekeningenMailen($op) {
 							$email->toevoegenlid($regel->Lid);
 						}
 					}
-					$rr = null;
 				}
 				
 				$email->bericht = RekeningDetail($rk->Nummer);
-				if ($rk->Ouders == 1) {
-					$email->aannaam = "Ouders/verzorgers van " . $rk->DEBNAAM;
-				} else {
-					$email->aannaam = $rk->DEBNAAM;
-				}
+				$email->aannaam = $rk->Tenaamstelling;
 				$email->onderwerp = $rk->OMSCHRIJV;
 				
 				if (strlen($email->aanadres) == 0) {
-					$mess = sprintf("Rekening %d kon niet worden verzonden, omdat er van %s geen geldig e-mailadres in de database bekend is.", $rk->Nummer, $email->aannaam);
+					$mess = sprintf("Rekening %d kan niet worden verzonden, omdat er van %s geen geldig e-mailadres in de database bekend is.", $rk->Nummer, $email->aannaam);
 				} else {
-					if ($email->to_outbox()) {
-						$mess = sprintf("Rekening %d is naar %s (%s) verstuurd.", $rk->Nummer, $email->aannaam, $email->aanadres);
+					if ($email->to_outbox(0)) {
+						$mess = sprintf("Rekening %d van %s (%s) is in de outbox geplaatst.", $rk->Nummer, $email->aannaam, $email->aanadres);
 						$aant_ok++;
 					} else {
-						$mess = sprintf("Rekening %d kon niet worden verzonden.", $rk->Nummer);
+						$mess = sprintf("Rekening %d kon niet in de outbox worden geplaatst.", $rk->Nummer);
 					}
 				}
-				db_logboek("add", $mess, 4, 0, 0, $rk->Nummer);
+				(new cls_Logboek())->add($mess, 4, 0, 0, $rk->Nummer);
 				$email = null;
 			}
 		} elseif ($op == "selectieversturen") {
 			$mess = "De rekeningen zijn niet verzonden, omdat het vinkje niet gezet was.";
-			db_logboek("add", $mess, 4, 0, 1);
+			(new cls_Logboek())->add($mess, 4, 0, 1);
 		}
 	}
 		
@@ -1738,8 +1744,8 @@ function fnRekeningenMailen($op) {
 		echo("<table>\n");
 		echo("<tr><th></th><th>Gelijk aan</th><th>Vanaf</th><th>Totenmet</th></tr>");
 		printf("<tr><td class='label'>Seizoen</th><td><select name='rekseizoen'>\n%s</select></td><td></td><td></td></tr>\n", (new cls_Seizoen())->htmloptions());
-		printf("<tr><td class='label'>Rekeningnummer</td><td><input type='number' name='reknr'></td><td><input type='number' value=%d name='minreknr'></td><td><input type='number' value=%d name='maxreknr'></td></tr>\n", $i_rek->min("Nummer"), $i_rek->max("Nummer"));
-		printf("<tr><td class='label'>Rekeningdatum</td><td><input type='date' name='rekdatum'></td><td><input type='date' value='%s' name='mindatum'></td><td><input type='date' value='%s' name='maxdatum'></td></tr>\n", $i_rek->min("Datum"), $i_rek->max("Datum"));			
+		printf("<tr><td class='label'>Rekeningnummer</td><td><input type='number' name='reknr'></td><td><input type='number' value=%d name='minreknr'></td><td><input type='number' value=%d name='maxreknr'></td></tr>\n", $i_rk->min("Nummer"), $i_rk->max("Nummer"));
+		printf("<tr><td class='label'>Rekeningdatum</td><td><input type='date' name='rekdatum'></td><td><input type='date' value='%s' name='mindatum'></td><td><input type='date' value='%s' name='maxdatum'></td></tr>\n", $i_rk->min("Datum"), $i_rk->max("Datum"));			
 		printf("<tr><td class='label'>Betaald door (debiteur)</td><td><select name='reklid'>\n<option value='-1'>*** Iedereen ***</option>\n%s</select></td><td></td><td></td></tr>\n", (new cls_lid())->htmloptions(-1, 3));
 		echo("<tr><td class='label'>Statussen</td><td colspan=3>");
 		echo("<input type='checkbox' name='volbetaald' value=1 checked>Volledig betaald\n");
@@ -1791,6 +1797,18 @@ function fnMailingInstellingen() {
 	$i_m = new cls_Mailing();
 	$i_mv = new cls_Mailing_vanaf();
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		if (strlen($_POST['mailing_bewaartijd']) == 0 or $_POST['mailing_bewaartijd'] < 1) {
+			$_POST['mailing_bewaartijd'] = 999;
+		}
+		if (strlen($_POST['maxmailsperminuut']) == 0 or $_POST['maxmailsperminuut'] < 1) {
+			$_POST['maxmailsperminuut'] = 9999;
+		}
+		if (strlen($_POST['maxmailsperuur']) == 0 or $_POST['maxmailsperuur'] < 1) {
+			$_POST['maxmailsperuur'] = 9999;
+		}
+		if (strlen($_POST['maxmailsperdag']) == 0 or $_POST['maxmailsperdag'] < 1) {
+			$_POST['maxmailsperdag'] = 9999;
+		}
 		
 		if (isset($_POST['mailing_direct_verzenden']) and $_POST['mailing_direct_verzenden'] == "1") {
 			$i_p->update("mailing_direct_verzenden", 1);
@@ -1804,6 +1822,7 @@ function fnMailingInstellingen() {
 			$i_p->update("mailing_sentoutbox_auto", 0);
 		}
 		
+		$i_p->update("mailing_wachttijdinoutbox", $_POST['mailing_wachttijdinoutbox']);
 		$i_p->update("mailing_alle_zien", $_POST['mailing_alle_zien']);
 		$i_p->update("mailing_mailopnieuw", $_POST['mailing_mailopnieuw']);
 		$i_p->update("mailing_bewaartijd", intval("0" . $_POST['mailing_bewaartijd']));
@@ -1865,21 +1884,23 @@ function fnMailingInstellingen() {
 	$options .= sprintf("<option value=2%s>Ja</option>\n", checked($_SESSION['settings']['mailing_mailopnieuw'], "option", 2));
 	
 	echo("<h2>Algemeen</h2>\n");
-	printf("<label>E-mails in de outbox direct probereren te versturen?</label><input type='checkbox' name='mailing_direct_verzenden' value=1%s>\n", checked($_SESSION['settings']['mailing_direct_verzenden']));
-	printf("<label>E-mails uit de outbox automatisch in de achtergrond versturen?</label><input type='checkbox' name='mailing_sentoutbox_auto' value=1%s>\n", checked($_SESSION['settings']['mailing_sentoutbox_auto']));
-	printf("<label>Mag een verzonden e-mail opnieuw worden verstuurd?</label><p><select name='mailing_mailopnieuw'>%s</select></p>\n", $options);
+	printf("<label>E-mails in de outbox direct probereren te versturen?</label><input type='checkbox' name='mailing_direct_verzenden' value='1'%s>\n", checked($_SESSION['settings']['mailing_direct_verzenden']));
+	printf("<label>E-mails uit de outbox automatisch in de achtergrond versturen?</label><input type='checkbox' name='mailing_sentoutbox_auto' value='1'%s>\n", checked($_SESSION['settings']['mailing_sentoutbox_auto']));
+	printf("<label>Hoeveel minuten moeten mails minimaal wachten totdat ze automatisch worden verstuurd?</label><input type='number' name='mailing_wachttijdinoutbox' value=%d>\n", $_SESSION['settings']['mailing_wachttijdinoutbox']);
+	
+	printf("<label>Mag een verzonden e-mail opnieuw worden verstuurd?</label><select name='mailing_mailopnieuw'>%s</select></p>\n", $options);
 	
 	$options = sprintf("<option value=-1%s>Webmasters</option>\n", checked($_SESSION['settings']['mailing_alle_zien'], "option", -1));
 	
 	foreach ((new cls_Onderdeel())->lijst(1) as $row) {
 		$options .= sprintf("<option value=%d%s>%s</option>\n", $row->RecordID, checked($_SESSION['settings']['mailing_alle_zien'], "option", $row->RecordID), $row->Naam);
 	}
-	printf("<label>Wie mogen alle mailings zien en muteren?</label>\n<p><select name='mailing_alle_zien'>%s</select></p>\n", $options);
+	printf("<label>Wie mogen alle mailings zien en muteren?</label>\n<select name='mailing_alle_zien'>%s</select>\n", $options);
 
-	printf("<label>Hoeveel maanden moeten mailings in de prullenbak bewaard blijven (0 = altijd bewaren)</label><input type='number' name='mailing_bewaartijd' value=%d>\n", $_SESSION['settings']['mailing_bewaartijd']);
-	printf("<label>Hoeveel mails mogen er per minuut verstuurd worden (0 = onbeperkt)</label><input type='number' name='maxmailsperminuut' value=%d>\n", $_SESSION['settings']['maxmailsperminuut']);
-	printf("<label>Hoeveel mails mogen er per uur verstuurd worden (0 = onbeperkt)</label><input type='number' name='maxmailsperuur' value=%d>\n", $_SESSION['settings']['maxmailsperuur']);
-	printf("<label>Hoeveel mails mogen er per 24 uur verstuurd worden (0 = onbeperkt)</label><input type='number' name='maxmailsperdag' value=%d>\n", $_SESSION['settings']['maxmailsperdag']);
+	printf("<label>Hoeveel maanden moeten mailings in de prullenbak bewaard blijven</label><input type='number' name='mailing_bewaartijd' value=%d min=1 max=999>\n", $_SESSION['settings']['mailing_bewaartijd']);
+	printf("<label>Hoeveel mails mogen er per minuut verstuurd worden</label><input type='number' name='maxmailsperminuut' value=%d min=1 max=9999>\n", $_SESSION['settings']['maxmailsperminuut']);
+	printf("<label>Hoeveel mails mogen er per uur verstuurd worden</label><input type='number' name='maxmailsperuur' value=%d min=1 max=9999>\n", $_SESSION['settings']['maxmailsperuur']);
+	printf("<label>Hoeveel mails mogen er per 24 uur verstuurd worden</label><input type='number' name='maxmailsperdag' value=%d min=1 max=9999>\n", $_SESSION['settings']['maxmailsperdag']);
 	$i_mh = new cls_Mailing_hist();
 	printf("<label>Aantal verstuurde mails in de afgelopen uur / 24 uur:</label><p>%d / %d</p>\n", $i_mh->aantalverzonden(2), $i_mh->aantalverzonden(3));
 	$i_mh = null;
@@ -2022,7 +2043,7 @@ function sentfromhist($p_mhid, $p_handm=0) {
 	
 } # sentfromhist
 
-function sentoutbox($p_mode) {
+function sentoutbox($p_mode, $p_mhid=-1) {
 	
 	/*
 	Uitleg p_mode:
@@ -2042,13 +2063,13 @@ function sentoutbox($p_mode) {
 	} elseif ($p_mode == 3 and $_SESSION['settings']['mailing_direct_verzenden'] == 0) {
 		$mess = sprintf("Het direct versturen is uitgeschakeld. Er staan %d e-mails in de outbox.", $i_mh->aantaloutbox());
 		
-	} elseif ($_SESSION['settings']['maxmailsperdag'] > 0 and $i_mh->aantalverzonden(3) >= $_SESSION['settings']['maxmailsperdag']) {
+	} elseif ($i_mh->aantalverzonden(3) >= $_SESSION['settings']['maxmailsperdag']) {
 		$mess = "Het versturen is niet gestart, omdat het maximale aantal ter versturen e-mails per 24 uur al is bereikt.";
 		
-	} elseif ($_SESSION['settings']['maxmailsperuur'] > 0 and $i_mh->aantalverzonden(2) >= $_SESSION['settings']['maxmailsperuur']) {
+	} elseif ($i_mh->aantalverzonden(2) >= $_SESSION['settings']['maxmailsperuur']) {
 		$mess = "Het versturen is niet gestart, omdat het maximale aantal ter versturen e-mails per uur al is bereikt.";
 		
-	} elseif ($_SESSION['settings']['maxmailsperminuut'] > 0 and $i_mh->aantalverzonden(1) >= $_SESSION['settings']['maxmailsperminuut']) {
+	} elseif ($i_mh->aantalverzonden(1) >= $_SESSION['settings']['maxmailsperminuut']) {
 		$mess = "Het versturen is niet gestart, omdat het maximale aantal ter versturen e-mails per minuut al is bereikt.";
 		
 	} else {
@@ -2158,18 +2179,19 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 	public function Send() {
 		
 		$i_lb = new cls_Logboek();
-				
-		if ($_SESSION['settings']['maxmailsperminuut'] > 0 and db_mailing_hist("aantalperminuut") >= $_SESSION['settings']['maxmailsperminuut']) {
+		$i_mh = new cls_Mailing_hist();
+
+		if ($i_mh->aantalverzonden(1) >= $_SESSION['settings']['maxmailsperminuut']) {
 			$mess = sprintf("De limiet van aantal van %d te versturen mails per minuut is bereikt.", $_SESSION['settings']['maxmailsperminuut']);
 			$i_lb->add($mess, 4);
 			return false;
 			
-		} elseif ($_SESSION['settings']['maxmailsperdag'] > 0 and db_mailing_hist("aantal24uur") >= $_SESSION['settings']['maxmailsperdag']) {
+		} elseif ($i_mh->aantalverzonden(3) >= $_SESSION['settings']['maxmailsperdag']) {
 			$mess = sprintf("De limiet van aantal van %d te versturen mails per 24 uur is bereikt.", $_SESSION['settings']['maxmailsperdag']);
 			$i_lb->add($mess, 4);
 			return false;
 		
-		} elseif ($_SESSION['settings']['maxmailsperuur'] > 0 and db_mailing_hist("aantalperuur") >= $_SESSION['settings']['maxmailsperuur']) {
+		} elseif ($i_mh->aantalverzonden(2) >= $_SESSION['settings']['maxmailsperuur']) {
 			$mess = sprintf("De limiet van %d stuks te versturen mails per uur is bereikt.", $_SESSION['settings']['maxmailsperuur']);
 			$i_lb->add($mess, 4);
 			return false;
