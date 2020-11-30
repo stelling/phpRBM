@@ -131,22 +131,23 @@ select {
 	margin-right: 6px;
 }
 
-input.kode, input.code {
-	width: 60px;
+input {
+	float: left;
 }
 
-input.naam, input.email, input[type='email'] {
+input.naam, input[type='email'] {
 	width: 400px;
+}
+
+input[type='checkbox'] {
+	width: 20px;
+	margin-top: 8px;
 }
 
 input, button, textarea {
 	font-size: 11pt;
 	margin-right: 6px;
 	margin-top: 6px;
-}
-
-input.cb, input[type='checkbox'] {
-	margin-top: 8px;
 }
 
 header {
@@ -278,11 +279,7 @@ header a + a:visited + a:hover {
 	margin-top: 6px;
 }
 
-#filter input {
-	float: left;
-}
-
-#filter .cb, #filter input[type='checkbox'] {
+#filter input[type='checkbox'] {
 	margin-top: 2px;
 }
 
@@ -320,10 +317,6 @@ header a + a:visited + a:hover {
 	float: left;
 	margin-top: 6px;
 	margin-bottom: 6px;
-}
-
-#formulier input {
-	float: left;
 }
 
 #formulier input[type='checkbox'] {
@@ -573,6 +566,14 @@ header a + a:visited + a:hover {
 	text-align: center;
 }
 
+.kode, .code {
+	width: 75px;
+}
+
+.kode {
+	background-color: yellow;
+}
+
 .nietdefinitief {
 	background-color: red;
 	color: white;
@@ -613,14 +614,13 @@ header a + a:visited + a:hover {
 	padding-right: 3px;
 }
 
-.inputnumber {
-	width: 50px;
-	text-align: right;
-}
-
 .gewijzigdestukken p {
 	margin-left: 2px;
 	margin-top: 12px;
+}
+
+.postcode {
+	width: 65px;
 }
 
 #webshop select {
@@ -699,7 +699,6 @@ header a + a:visited + a:hover {
 
 #loginaanvraag input, #opvragenlidnr input, #profielwijzigen input, #herstellenwachtwoord input, #opzegformulier input {
 	clear: right;
-	font-size: 11pt;
 	height: 22px;
 	width: 200px;
 	color: #000080;
@@ -1589,7 +1588,6 @@ input.knop, button.knop {
 }
 
 #wijzigengegevens input {
-	float: left;
 	width: 350px;
 	margin-right: 0;
 	padding-right: 0;
@@ -1599,7 +1597,7 @@ input.knop, button.knop {
 	float: left;
 }
 
-#wijzigengegevens select {
+#wijzigengegevens select, #nieuwlid select {
 	width: 350px;
 	margin-top: 4pt;
 	margin-right: 0;
@@ -1615,10 +1613,8 @@ input.knop, button.knop {
 	clear: left;
 }
 
-#nieuwlid .invoerblok {
-	clear: right;
-	float: left;
-	width: 350px;
+#nieuwlid input {
+	
 }
 
 .invoerblok table {
