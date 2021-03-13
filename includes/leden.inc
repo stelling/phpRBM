@@ -533,7 +533,7 @@ function fnOnderdelenmuteren($ondtype="G") {
 	$ondrows = $i_ond->editlijst($ondtype);
 	if ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['formname'])) {
 		if ($_POST['formname'] == "muteren_onderdelen") {
-			$omz["Kode"] = "Kode";
+			$omz["Kode"] = "Code";
 			$omz["Naam"] = "Naam";
 			$omz["CentraalEmail"] = "Centraal_E-mail";
 			foreach ($ondrows as $row) {
@@ -876,7 +876,7 @@ function fnGroepsindeling($afdkode="", $afdid=0, $p_muteren=0, $p_toonleeftijd=2
 		$kn[] = "Starttijd";
 		$kn[] = "Eindtijd";
 		
-		$kl[1] = 5;
+		$kl[1] = 6;
 		$kl[] = 45;
 		$kl[] = 45;
 		$kl[] = 5;
@@ -886,13 +886,15 @@ function fnGroepsindeling($afdkode="", $afdid=0, $p_muteren=0, $p_toonleeftijd=2
 		$i_gr = new cls_Groep();
 			
 		if ($_SERVER['REQUEST_METHOD'] == "POST") {
+			//Bijwerken groepsindeling
 			foreach ($i_lo->groepsindeling($afdid) as $row) {
 				$p = sprintf("mg_%d", $row->RecordID);
 				if (isset($_POST[$p]) and $_POST[$p] != $row->GroepID) {
 					$i_lo->update($row->RecordID, "GroepID", $_POST[$p]);
 				}
 			}
-			foreach ($i_gr->onderdeellijst($afdid, 1) as $row) {
+			//Bijwerken afdelingsgroepen
+			foreach ($i_gr->selectlijst($afdid) as $row) {
 				for ($i=1;$i<=5; $i++) {
 					$pn = sprintf("%s_%d", strtolower($kn[$i]), $row->RecordID);
 					if (isset($_POST[$pn])) {
@@ -946,7 +948,7 @@ function fnGroepsindeling($afdkode="", $afdid=0, $p_muteren=0, $p_toonleeftijd=2
 			}
 		}
 		
-		echo("<tr><td>Nieuw</td><td colspan=4><input type='text' name='kode_nw' max-length=5 placeholder='Code'></td></tr>\n");
+		printf("<tr><td>Nieuw</td><td colspan=4><input type='text' name='kode_nw' max-length=%d placeholder='Code'></td></tr>\n", $kl[1]);
 		echo("</table>\n");
 		
 		echo("<div id='knoppenbalk'>\n");
