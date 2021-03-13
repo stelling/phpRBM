@@ -1117,12 +1117,12 @@ class cls_Lidmaatschap extends cls_db_base {
 			if ($this->pdoupdate($p_lmid, $p_kolom, $p_waarde) > 0) {
 				$this->mess = sprintf("In lidmaatschap is de kolom '%s' is in '%s' gewijzigd.", $p_kolom, $p_waarde);
 				
-				if ($p_waarde != "NULL") {
-					if ($this->typekolom($p_kolom) == "date") {
-						$p_waarde = "#" . $p_waarde . "#";
-					} else {
-						$p_waarde = "'" . $p_waarde . "'";
-					}
+				if ($this->typekolom($p_kolom) == "date" and strlen($p_waarde) == 0) {
+					$p_waarde = "NULL";
+				} elseif ($this->typekolom($p_kolom) == "date") {
+					$p_waarde = "#" . $p_waarde . "#";
+				} else {
+					$p_waarde = "'" . $p_waarde . "'";
 				}
 				$query = sprintf("UPDATE Lidmaatschap SET [%s]=%s, Gewijzigd=SYSDATE() WHERE RecordID=%d;", $p_kolom, $p_waarde, $p_lmid);
 				$this->Interface($query);
@@ -6994,6 +6994,10 @@ function db_onderhoud($type=9) {
 	$query = sprintf("ALTER TABLE `%sStukken` CHANGE `Ingangsdatum` `Ingangsdatum` DATE NULL;", TABLE_PREFIX);
 	fnQuery($query);
 	$query = sprintf("ALTER TABLE `%sStukken` CHANGE `Revisiedatum` `Revisiedatum` DATE NULL;", TABLE_PREFIX);
+	fnQuery($query);
+	
+	// Deze code mag na 1 april 2022 worden verwijderd.
+	$query = sprintf("ALTER TABLE `%sGroep` CHANGE `Kode` `Kode` VARCHAR(6) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL; ", TABLE_PREFIX);
 	fnQuery($query);
 
 	/***** Opschonen database na een upload uit de Access-database.  *****/
