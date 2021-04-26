@@ -215,16 +215,10 @@ function RekeningDetail($p_rkid) {
 		}
 	}
 	
-	if (($rk->Bedrag - $rk->Betaald) < 0.50) {
+	if (($rk->Openstaand) < 0.50) {
 		$content = removetextblock($content, "<!-- NietOpVolledigBetaald -->", "<!-- /NietOpVolledigBetaald -->");
 	}
-	
-	if ($rk->Ouders == 1) {
-		$dn = "Ouders/verzorgers van " . $rk->DEBNAAM;
-	} else {
-		$dn = $rk->DEBNAAM;
-	}
-	$content = str_ireplace("[%NAAMDEBITEUR%]", $dn, $content);
+	$content = str_ireplace("[%NAAMDEBITEUR%]", $rk->Tenaamstelling, $content);
 	$content = str_ireplace("[%ADRES%]", $rk->Adres, $content);
 	$content = str_ireplace("[%POSTCODE%]", $rk->Postcode, $content);
 	$content = str_ireplace("[%WOONPLAATS%]", $rk->Woonplaats, $content);
@@ -235,7 +229,7 @@ function RekeningDetail($p_rkid) {
 	$content = str_ireplace("[%REKENINGNUMMER%]", $rk->Nummer, $content);
 	$content = str_ireplace("[%REKENINGBEDRAG%]", fnBedrag($rk->Bedrag), $content);
 	$content = str_ireplace("[%BETAALD%]", fnBedrag($rk->Betaald), $content);
-	$content = str_ireplace("[%OPENSTAAND%]", fnBedrag($rk->Bedrag - $rk->Betaald), $content);
+	$content = str_ireplace("[%OPENSTAAND%]", fnBedrag($rk->Openstaand), $content);
 	$content = str_ireplace("[%BANKREKENING%]", $rk->Bankrekeningnummer, $content);
 	$content = str_ireplace("[%UITERSTEBETAALDATUM%]", strftime("%e %B %Y", strtotime($rk->UitersteBetaaldatum)), $content);
 	$i_mv = new cls_Mailing_vanaf($_SESSION['settings']['mailing_rekening_vanafid']);
