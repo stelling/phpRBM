@@ -6027,6 +6027,53 @@ class cls_Stukken extends cls_db_base {
 	
 }  # cls_Stukken
 
+class cls_Eigen_lijst extends cls_db_base {
+	public $elid = 0;
+	
+	function __construct($p_naam="") {
+		parent::__construct();
+		$this->table = TABLE_PREFIX . "Eigen_lijst";
+		if (strlen($p_naam) > 1) {
+			$query = sprintf("SELECT IFNULL(MAX(RecordID), 0) FROM %s WHERE Naam='%s';", $this->table, $p_naam);
+			$this->elid = $this->scalar($query);
+		}
+	}
+	
+	public function lijst() {
+		$query = sprintf("SELECT * FROM %s ORDER BY Naam;", $this->table);
+		$result = $this->execsql($query);
+		return $result->fetchAll();
+	}
+	
+	public function mysql() {
+		$query = sprintf("SELECT IFNULL(MySQL, '') FROM %s WHERE RecordID=%d;", $this->table, $this->elid);
+		return $this->scalar($query);
+	}
+	
+	public function record($p_elid=-1) {
+		if ($p_elid == -1) {
+			$p_elid = $this->elid;
+		}
+		$query = sprintf("SELECT * FROM %s WHERE RecordID=%d;", $this->table, $this->elid);
+		$result = $this->execsql($query);
+		return $result->fetch();
+	}
+	
+	public function update($p_elid, $p_kolom, $p_waarde) {
+		
+		if ($p_kolom == "MySQL") {
+			$p_waarde = str_replace("[%LIDNAAM%]", $this->selectnaam, $p_waarde);
+			$p_waarde = str_replace("[%EMAIL%]", $this->selectemail, $p_waarde);
+		}
+		
+		if ($this->pdoupdate($p_elid, $p_kolom, $p_waarde) > 0) {
+			$this->mess = sprintf("Kolom '%s' in Eigen_lijst %d is in '%s' gewijzigd.", $p_kolom, $p_elid, $p_waarde);
+			$this->tas = 2;
+			$this->log($p_elid);
+		}
+	}
+}
+
 class cls_dms extends cls_db_base {
 }  # cls_dms
 
@@ -6527,24 +6574,7 @@ function db_onderhoud($type=9) {
 	fnQuery($query);
 	$query = sprintf("ALTER TABLE `%sAdmin_login` CHANGE `LastActivity` `LastActivity` DATETIME NULL;", TABLE_PREFIX);
 	fnQuery($query);
-	
-	/***** Aanpassen lengte van Opmerking in Evenement_Deelnemer naar 255. Deze code kan na 1/1/2021 worden verwijderd. *****/
-	$table = TABLE_PREFIX . "Evenement_Deelnemer";
-	$col = "Opmerking";
-	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%s' AND COLUMN_NAME LIKE '%s';", $db_name, $table, $col);
-	if (db_scalar($query) < 255) {
-		$query = sprintf("ALTER TABLE `%1\$s` CHANGE `%2\$s` `%2\$s` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL;", $table, $col);
-		fnQuery($query, 2);
-	}
-	
-	/***** Aanpassen lengte van het IP-adres in Admin_interface naar 45 voor IP v6 adressen. Deze code kan na 1/4/2021 worden verwijderd. *****/
-	$table = TABLE_PREFIX . "Admin_interface";
-	$col = "IP-adres";
-	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%s' AND COLUMN_NAME LIKE '%s';", $db_name, $table, $col);
-	if (db_scalar($query) < 45) {
-		$query = sprintf("ALTER TABLE `%1\$s` CHANGE `%2\$s` `%2\$s` VARCHAR(45) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table, $col);
-		fnQuery($query, 2);
-	}
+
 	
 	/***** In de tabel mailing de inhoud van MailingID overboeken naar RecordID. Deze code kan na 1 mei 2021 worden verwijderd. *****/
 	$query = sprintf("UPDATE %sMailing SET RecordID=MailingID WHERE MailingID > 0 AND IFNULL(RecordID, 0)<>MailingID;", TABLE_PREFIX);
@@ -6562,146 +6592,6 @@ function db_onderhoud($type=9) {
 	fnQuery($query);
 	
 	/***** Kolommen die later zijn toegevoegd. *****/
-	
-	// Toevoegen veld 'HTMLdirect' aan de tabel 'Mailing'. Deze code kan na 1 november 2020 worden verwijderd.
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "HTMLdirect";
-	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%s' AND COLUMN_NAME='%s';", $db_name, $tab, $col);
-	if (db_scalar($query) == 0) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` TINYINT DEFAULT '0';", $tab, $col);
-		fnQuery($query, 2);
-	}
-	
-	// Toevoegen veld 'Locatie' aan de tabel 'Evenement'. Deze code kan na 1/12/2020 worden verwijderd.
-	$tab = TABLE_PREFIX . "Evenement";
-	$col = "Locatie";
-	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%s' AND COLUMN_NAME='%s';", $db_name, $tab, $col);
-	if (db_scalar($query) == 0) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` VARCHAR(75);", $tab, $col);
-		fnQuery($query, 2);
-	}
-		
-	// Toevoegen veld 'IngevoerdDoor' aan de tabel 'Evenement_Deelnemer'. Deze code kan na 1/12/2020 worden verwijderd.
-	$tab = TABLE_PREFIX . "Evenement_Deelnemer";
-	$col = "IngevoerdDoor";
-	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%s' AND COLUMN_NAME='%s';", $db_name, $tab, $col);
-	if (db_scalar($query) == 0) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '0'`;", $tab, $col);
-		fnQuery($query, 2);
-	}
-	
-	// Toevoegen veld 'IngevoerdDoor' aan de tabel 'Evenement'. Deze code kan na 1/12/2020 worden verwijderd.
-	$tab = TABLE_PREFIX . "Evenement";
-	$col = "IngevoerdDoor";
-	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%s' AND COLUMN_NAME='%s';", $db_name, $tab, $col);
-	if (db_scalar($query) == 0) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '0';", $tab, $col);
-		fnQuery($query, 2);
-	}
-	
-	// Toevoegen veld 'Ingevoerd' aan de tabel 'Mailing_hist'. Deze code kan na 1/12/2020 worden verwijderd.
-	$tab = TABLE_PREFIX . "Mailing_hist";
-	$col = "Ingevoerd";
-	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%s' AND COLUMN_NAME='%s';", $db_name, $tab, $col);
-	if (db_scalar($query) == 0) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", $tab, $col);
-		fnQuery($query, 2);
-	}
-		
-	// Toevoegen veld 'Ingevoerd' aan de tabel 'Mailing_hist'. Deze code kan na 1 december 2020 worden verwijderd.
-	$tab = TABLE_PREFIX . "Mailing_hist";
-	$col = "IngevoerdDoor";
-	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%s' AND COLUMN_NAME='%s';", $db_name, $tab, $col);
-	if (db_scalar($query) == 0) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL;", $tab, $col);
-		fnQuery($query, 2);
-	}
-	
-	// Toevoegen veld 'ZichtbaarVoor' aan de tabel 'Mailing'. Deze code kan na 1 januari 2021 worden verwijderd.
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "ZichtbaarVoor";
-	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%s' AND COLUMN_NAME='%s';", $db_name, $tab, $col);
-	if (db_scalar($query) == 0) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '0' AFTER `confidential`;", $tab, $col);
-		fnQuery($query, 2);
-	}
-	
-	// Deze code kan na 1 januari 2021 worden verwijderd.
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "Gewijzigd";
-	$query = sprintf("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='%s' AND TABLE_NAME='%s' AND COLUMN_NAME='%s';", $db_name, $tab, $col);
-	if (db_scalar($query) == 0) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` TIMESTAMP NOT NULL;", $tab, $col);
-		fnQuery($query, 2);
-		$query = sprintf("UPDATE %s SET `%s`=changed_on;", $tab, $col);
-		fnQuery($query, 2);
-	}
-		
-	// Toevoegen veld 'ZichtbaarVoor' aan de tabel 'Mailing_hist'. Deze code kan na 1/1/2021 worden verwijderd.
-	$tab = TABLE_PREFIX . "Mailing_hist";
-	$col = "ZichtbaarVoor";
-	if (bestaatkolom($tab, $col) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '0' AFTER `message`;", $tab, $col);
-		fnQuery($query, 2);
-	}
-	
-	// Toevoegen veld 'Gewijzigd' aan de tabel 'Mailing_hist'. Deze code kan na 1/1/2021 worden verwijderd.
-	$tab = TABLE_PREFIX . "Mailing_hist";
-	$col = "Gewijzigd";
-	if (bestaatkolom($tab, $col) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` TIMESTAMP NOT NULL;", $tab, $col);
-		fnQuery($query, 2);
-	}
-	
-	// Deze code kan na 1 januari 2021 worden verwijderd.
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "GewijzigdDoor";
-	if (bestaatkolom($tab, $col) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '0';", $tab, $col);
-		fnQuery($query, 2);	
-		$query = sprintf('UPDATE %1$sMailing AS M SET M.GewijzigdDoor=M.ChangedBy;', TABLE_PREFIX);
-		fnQuery($query, 2);
-	}
-	
-	// Toevoegen veld 'MaxPersonenPerDeelname' aan de tabel 'Evenement'. Deze code kan na 1/1/2021 worden verwijderd.
-	$tab = TABLE_PREFIX . "Evenement";
-	$col = "MaxPersonenPerDeelname";
-	if (bestaatkolom($tab, $col) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '1' AFTER `StandaardStatus`;", $tab, $col);
-		fnQuery($query, 2);
-	}
-		
-	// Toevoegen veld 'OmschrijvingOntvangers' aan de tabel 'Mailing'. Deze code kan na 1 januari 2021 worden verwijderd.
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "OmschrijvingOntvangers";
-	if (bestaatkolom($tab, $col) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` VARCHAR(50) NULL DEFAULT  '' COMMENT 'Omschrijving van de groep personen aan wie deze mailing gericht is' AFTER `to_name`;", $tab, $col);
-		fnQuery($query, 2);
-	}
-	
-	// Toevoegen veld 'SentBy' aan de tabel 'Mailing'. Deze code kan na 1 maart 2021 worden verwijderd.
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "SentBy";
-	if (bestaatkolom($tab, $col) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT(11) NOT NULL DEFAULT 0 AFTER `ChangedBy`;", $tab, $col);
-		fnQuery($query, 2);
-	}
-	
-	// Toevoegen veld 'DeletedBy' aan de tabel 'Mailing'. Deze code kan na 1 maart 2021 worden verwijderd.
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "DeletedBy";
-	if (bestaatkolom($tab, $col) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT(11) NOT NULL DEFAULT 0 AFTER `SentBy`;", $tab, $col);
-		fnQuery($query, 2);
-	}
-		
-	// Toevoegen veld 'ReferLidID' aan de tabel 'Admin_activiteit'. Deze code kan na 1 april 2021 worden verwijderd.
-	$tab = TABLE_PREFIX . "Admin_activiteit";
-	$col = "ReferLidID";
-	if (bestaatkolom($tab, $col) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT(11) NOT NULL DEFAULT 0 AFTER `ReferID`;", $tab, $col);
-		fnQuery($query, 2);
-	}
 		
 	// Toevoegen kolom 'RefTable' aan de tabel 'Admin_activiteit'. Deze code kan na 1 mei 2021 worden verwijderd.
 	$tab = TABLE_PREFIX . "Admin_activiteit";
@@ -6740,6 +6630,22 @@ function db_onderhoud($type=9) {
 	$col = "Aantal";
 	if (bestaatkolom($tab, $col) == false) {
 		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '1' AFTER `Status`;", $tab, $col);
+		fnQuery($query, 2);
+	}
+	
+	// Toevoegen kolom 'AantalRecords' aan de tabel 'Eigen_lijst'. Deze code kan na 1 mei 2022 worden verwijderd.
+	$tab = TABLE_PREFIX . "Eigen_lijst";
+	$col = "AantalRecords";
+	if (bestaatkolom($tab, $col) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '0' AFTER `MySQL`; ", $tab, $col);
+		fnQuery($query, 2);
+	}
+	
+	// Toevoegen kolom 'LaatstGebruikt' aan de tabel 'Admin_access'. Deze code kan na 1 mei 2022 worden verwijderd.
+	$tab = TABLE_PREFIX . "Admin_access";
+	$col = "LaatstGebruikt";
+	if (bestaatkolom($tab, $col) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` DATE NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `Toegang`; ", $tab, $col);
 		fnQuery($query, 2);
 	}
 	
