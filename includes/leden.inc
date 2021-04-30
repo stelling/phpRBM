@@ -771,7 +771,7 @@ function fnOnderdelenmuteren($ondtype="G") {
 		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 		echo("<input type='hidden' name='formname' value='muteren_onderdelen'>\n");
 		$xr = "<tr><td></td><td><input type='text' class='code' OnChange='this.form.submit();' name='NieuwOnderdeel' value=''></td><td>Vul de code in om een nieuwe toe te voegen</td></tr>\n";
-		echo(fnDisplayTable($ondrows, $link_ek, $ondnaammv . " muteren", 0, $link_lk, $xr, "editonderdelen", "", "Code, Naam, emlCentraal E-mail", 1));
+		echo(fnDisplayTable($ondrows, $link_ek, $ondnaammv . " muteren", 0, $link_lk, $xr, "editonderdelen", "", "Code, Naam", 1));
 		
 		echo("</form>\n");
 	}
@@ -1075,7 +1075,7 @@ function fnAfdelingskalenderMuteren($p_onderdeelid){
 	$i_ak = null;
 	$i_lo = null;
 	
-}
+}  # fnAfdelingskalenderMuteren
 
 function fnEigenGegevens($lidid=0, $actie="") {
 	global $currenttab, $currenttab2, $currenttab3;
@@ -2258,6 +2258,79 @@ function instellingenledenmuteren() {
 	echo("</div> <!-- Einde instellingenmuteren -->\n");
 	
 }  # instellingenledenmuteren
+
+function fnEigenlijstenmuteren() {
+	
+	$i_el = new cls_Eigen_lijst();
+	if (isset($_GET['paramID']) and $_GET['paramID'] > 0) {
+		$elid = intval($_GET['paramID']);
+		$i_el->elid = $elid;
+	} else {
+		$elid = 0;
+	}
+	
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		
+		if (isset($_POST['Toevoegen']) and $_POST['Toevoegen'] == "lijst_toevoegen") {
+			$i_el->add();
+		}
+		
+		if (isset($_POST['naam'])) {
+			$i_el->update($elid, "Naam", $_POST['naam']);
+		}
+		
+		if (isset($_POST['mysql'])) {
+			if ($i_el->controleersql($_POST['mysql']) == false) {
+				$i_el->update($elid, "AantalRecords", -1);
+			} else {
+				$result = $i_el->execsql($_POST['mysql']);
+				$rows = $result->fetchAll();
+				$i_el->update($elid, "AantalRecords", count($rows));
+			}
+			$i_el->update($elid, "MySQL", $_POST['mysql']);
+		}
+		
+	} elseif (isset($_GET['paramActie']) and $_GET['paramActie'] == 2 and $elid > 0) {
+		
+		$row = $i_el->record();
+		
+		echo("<div id='formulier'>\n");
+		printf("<form method='post' action='%s?tp=%s&paramID=%d'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $elid);
+		
+		printf("<label>Naam eigen lijst</label><input type='text' name='naam' value='%s'>", $row->Naam);
+		printf("<label>MySQL-code</label><textarea id='mysql' name='mysql' rows=10 cols=100>%s</textarea>\n", $row->MySQL);
+		echo("<label>Aantal records</label>");
+		if ($row->AantalRecords >= 0) {
+			printf("<p>%d</p>\n", $row->AantalRecords);
+		} else {
+			echo("<p>De MySQL-code is niet uitvoerbaar</p>\n");
+		}
+		
+		echo("<div id='opdrachtknoppen'>\n");
+		echo("<input type='submit' value='Bewaren' name='Bewaren'>\n");
+		echo("</div>\n");
+		
+		echo("</form>\n");
+		echo("</div> <!-- Einde formulier -->\n");
+		
+	}
+		
+	$rows = $i_el->lijst();
+	if (count($rows) > 0) {
+		echo("<table>\n");
+		echo("<caption>Overzicht Eigen lijsten</caption>\n");
+		foreach($rows as $row) {
+			printf("<tr><td><a href='%s?tp=%s&paramID=%d&paramActie=2'><img src='%s'></a></td><td>%s</td><td>%s</td></tr>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID, BASE64_MUTEER, $row->Naam, $row->MySQL);
+		}
+		echo("</table>\n");
+	}
+	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+	echo("<div id='opdrachtknoppen'>\n");
+	echo("<button type='submit' name='Toevoegen' value='lijst_toevoegen'>Lijst toevoegen</button>\n");
+	echo("</div>\n");
+	echo("</form\n");
+	
+}  # fnEigenlijstenmuteren
 
 function IsIBANgoed($IBAN, $LeegIsGoed=1) {
    $retval = false;
