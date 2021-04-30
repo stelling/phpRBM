@@ -7181,7 +7181,7 @@ function db_nieuwrecordID($tabel) {
 	if ($r > $rid) {$rid = $r; }
 	$r = db_scalar(sprintf("SELECT IFNULL(MAX(AK.RecordID), 0) FROM %sAfdelingskalender AS AK;", TABLE_PREFIX));
 	if ($r > $rid) {$rid = $r; }
-	$r = db_scalar(sprintf("SELECT IFNULL(MAX(EL.RecordID), 0) FROM %Eigen_lijst AS EL;", TABLE_PREFIX));
+	$r = db_scalar(sprintf("SELECT IFNULL(MAX(EL.RecordID), 0) FROM %sEigen_lijst AS EL;", TABLE_PREFIX));
 	if ($r > $rid) {$rid = $r; }
 	
 	if (startwith($tabel, "Evenement")) {
