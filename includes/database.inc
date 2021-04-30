@@ -922,7 +922,7 @@ class cls_Lid extends cls_db_base {
 	}
 	
 	public function add($p_achternaam, $p_geslacht, $p_postcode="") {
-		$this->lidid = $this->nieuwrecordID();
+		$this->lidid = $this->nieuwrecordid();
 		$p_postcode = trim(strtoupper($p_postcode));
 		$query = sprintf("INSERT INTO %sLid (RecordID, Nummer, Achternaam, Geslacht, Postcode, Ingevoerd) VALUES (%d, %d, \"%s\", '%s', '%s', CURDATE());", TABLE_PREFIX, $this->lidid, $this->lidid, $p_achternaam, $p_geslacht, $p_postcode);
 		if ($this->execsql($query) > 0) {
@@ -1250,8 +1250,13 @@ class cls_Authorisation extends cls_db_base {
 		return $this->naamtp;
 	}
 	
+	public function recordid($tp) {
+		$query = sprintf("SELECT IFNULL(MAX(RecordID), 0) FROM %s WHERE Tabpage=\"%s\"", $this->table, str_replace("'", "", $tp));
+		return $this->scalar($query);
+	}
+	
 	public function lijst($p_distinct="") {
-		$query = sprintf("SELECT %s RecordID, Toegang, Tabpage, Ingevoerd FROM %s ORDER BY Tabpage;", $p_distinct, $this->table);
+		$query = sprintf("SELECT %s RecordID, Toegang, Tabpage, Ingevoerd, LaatstGebruikt FROM %s ORDER BY Tabpage;", $p_distinct, $this->table);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
@@ -1295,8 +1300,10 @@ class cls_Authorisation extends cls_db_base {
 		$this->tas = 2;
 		if ($this->pdoupdate($p_aid, $p_kolom, $p_waarde) > 0) {
 			$this->vulvars($p_aid);
-			$this->mess = sprintf("Toegang '%s' is naar groep '%s' aangepast.", $this->naamtp, $this->ondnaam);
-			$this->log($p_aid);
+			if ($p_kolom == "Toegang") {
+				$this->mess = sprintf("Toegang '%s' is naar groep '%s' aangepast.", $this->naamtp, $this->ondnaam);
+				$this->log($p_aid);
+			}
 		}
 	}
 	
@@ -2040,11 +2047,7 @@ class cls_Onderdeel extends cls_db_base {
 	
 	public function editlijst($p_ondtype) {
 		
-		$sel = "O.RecordID AS lnkRecordID, O.Kode AS Code, O.Naam,";
-		if ($p_ondtype != "O" and $p_ondtype != "R" and $p_ondtype != "T") {
-			$sel .= "CentraalEmail AS `emlCentraal E-mail`, ";
-		}
-		$sel .= "`Alleen leden` AS `chkAlleen leden`, ";
+		$sel = "O.RecordID AS lnkRecordID, O.Kode AS Code, O.Naam, `Alleen leden` AS `chkAlleen leden`, ";
 		if ($p_ondtype == "G" or $p_ondtype == "R") {
 			$sel .= "IF(O.GekoppeldAanQuery > 0, 'EQ', IF(LENGTH(O.MySQL) > 10, 'MySQL', 'Nee'))  AS Autom, ";
 		}
@@ -6059,6 +6062,18 @@ class cls_Eigen_lijst extends cls_db_base {
 		return $result->fetch();
 	}
 	
+	public function add() {
+		
+		if ($_SESSION['webmaster'] == 1)  {
+			$query = sprintf("INSERT INTO %s (RecordID, Naam, MySQL, AantalRecords, Ingevoerd, IngevoerdDoor, GewijzigdDoor) VALUES (%d, '*** Nieuwe lijst ***', '', 0, NOW(), %d, 0);", $this->table, $this->nieuwrecordid(), $_SESSION['lidid']);
+			$elid = $this->execsql($query);
+		} else {
+			$elid = 0;
+		}
+		return $elid;
+		
+	}
+	
 	public function update($p_elid, $p_kolom, $p_waarde) {
 		
 		if ($p_kolom == "MySQL") {
@@ -6066,10 +6081,12 @@ class cls_Eigen_lijst extends cls_db_base {
 			$p_waarde = str_replace("[%EMAIL%]", $this->selectemail, $p_waarde);
 		}
 		
-		if ($this->pdoupdate($p_elid, $p_kolom, $p_waarde) > 0) {
-			$this->mess = sprintf("Kolom '%s' in Eigen_lijst %d is in '%s' gewijzigd.", $p_kolom, $p_elid, $p_waarde);
-			$this->tas = 2;
-			$this->log($p_elid);
+		if ($_SESSION['webmaster'] == 1)  {
+			if ($this->pdoupdate($p_elid, $p_kolom, $p_waarde) > 0) {
+				$this->mess = sprintf("Kolom '%s' in Eigen_lijst %d is in '%s' gewijzigd.", $p_kolom, $p_elid, $p_waarde);
+				$this->tas = 2;
+				$this->log($p_elid);
+			}
 		}
 	}
 }
@@ -6561,25 +6578,6 @@ function db_onderhoud($type=9) {
 		fnQuery($query, 2);
 	}
 	
-	/***** Aanpassen lengte van het IP-adres in Admin_activiteit naar 45 voor IP v6 adressen. Deze code kan na 1/1/2020 worden verwijderd. *****/
-	$table = TABLE_PREFIX . "Admin_activiteit";
-	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%s' AND COLUMN_NAME LIKE 'IP_adres';", $db_name, $table);
-	if (db_scalar($query) < 45) {
-		$query = sprintf("ALTER TABLE `%s` CHANGE `IP_adres` `IP_adres` VARCHAR(45) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table);
-		fnQuery($query, 2);
-	}
-	
-	/***** Aanpassen type veld van Ingevoerd in Admin_login naar datumtijd. Deze code kan na 1/3/2021 worden verwijderd. *****/
-	$query = sprintf("ALTER TABLE `%sAdmin_login` CHANGE `LastLogin` `LastLogin` DATETIME NULL;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sAdmin_login` CHANGE `LastActivity` `LastActivity` DATETIME NULL;", TABLE_PREFIX);
-	fnQuery($query);
-
-	
-	/***** In de tabel mailing de inhoud van MailingID overboeken naar RecordID. Deze code kan na 1 mei 2021 worden verwijderd. *****/
-	$query = sprintf("UPDATE %sMailing SET RecordID=MailingID WHERE MailingID > 0 AND IFNULL(RecordID, 0)<>MailingID;", TABLE_PREFIX);
-	fnQuery($query);
-	
 	/***** Verwijderen index 'ArtikelLid' uit de tabel 'WS_Orderregel'. Deze code kan na 1 augustus 2021 worden verwijderd. *****/
 	$query = sprintf("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_NAME = '%sWS_Orderregel' AND INDEX_NAME = 'ArtikelLid' AND INDEX_SCHEMA='%s';", TABLE_PREFIX, $db_name);
 	if (db_scalar($query) > 0) {
@@ -6592,46 +6590,6 @@ function db_onderhoud($type=9) {
 	fnQuery($query);
 	
 	/***** Kolommen die later zijn toegevoegd. *****/
-		
-	// Toevoegen kolom 'RefTable' aan de tabel 'Admin_activiteit'. Deze code kan na 1 mei 2021 worden verwijderd.
-	$tab = TABLE_PREFIX . "Admin_activiteit";
-	$col = "RefTable";
-	if (bestaatkolom($tab, $col) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` VARCHAR(30) NULL AFTER `RefFunction`;", $tab, $col);
-		fnQuery($query, 2);
-	}
-	
-	// Toevoegen kolom 'TypeActiviteitSpecifiek' aan de tabel 'Admin_activiteit'. Deze code kan na 1 mei 2021 worden verwijderd.
-	$tab = TABLE_PREFIX . "Admin_activiteit";
-	$col = "TypeActiviteitSpecifiek";
-	if (bestaatkolom($tab, $col) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` SMALLINT NULL AFTER `TypeActiviteit`;", $tab, $col);
-		fnQuery($query, 2);
-	}
-	
-	// Toevoegen kolom 'RecordID' aan de tabel 'Mailing'. Deze code kan na 1 mei 2021 worden verwijderd.
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "RecordID";
-	if (bestaatkolom($tab, $col) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '0' FIRST;", $tab, $col);
-		fnQuery($query, 2);
-	}
-	
-	// Toevoegen kolom 'Opmerking' aan de tabel 'Lid'. Deze code kan na 1 mei 2021 worden verwijderd.
-	$tab = TABLE_PREFIX . "Lid";
-	$col = "Opmerking";
-	if (bestaatkolom($tab, $col) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` VARCHAR(60) NULL AFTER `Beroep`;", $tab, $col);
-		fnQuery($query, 2);
-	}
-	
-	// Toevoegen kolom 'Aantal' aan de tabel 'Evenement_Deelnemer'. Deze code kan na 1 mei 2021 worden verwijderd.
-	$tab = TABLE_PREFIX . "Evenement_Deelnemer";
-	$col = "Aantal";
-	if (bestaatkolom($tab, $col) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '1' AFTER `Status`;", $tab, $col);
-		fnQuery($query, 2);
-	}
 	
 	// Toevoegen kolom 'AantalRecords' aan de tabel 'Eigen_lijst'. Deze code kan na 1 mei 2022 worden verwijderd.
 	$tab = TABLE_PREFIX . "Eigen_lijst";
@@ -6775,96 +6733,16 @@ function db_onderhoud($type=9) {
 		$query = sprintf("ALTER TABLE `%s` CHANGE `Einddatum` `Eind` DATETIME NULL;", $tab);
 		fnQuery($query, 2);
 	}
+	
+	// Deze code kan na 1 mei 2022 worden verwijderd.
+	$tab = TABLE_PREFIX . "Eigen_lijst";
+	$col = "KolomLidID";
+	if (bestaatkolom($tab, $col) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '-1' AFTER `MySQL`;", $tab, $col);
+		fnQuery($query, 2);
+	}
 
 	/***** Velden die aangepast zijn *****/
-		
-	// Deze code kan na 1 december 2020 worden verwijderd.
-	$query = sprintf("ALTER TABLE `%sEvenement_Deelnemer` CHANGE `Functie` `Functie` VARCHAR(30) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sEvenement_Deelnemer` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sEvenement_Deelnemer` CHANGE `GewijzigdDoor` `GewijzigdDoor` INT(11) NOT NULL DEFAULT '0';", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sEvenement` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sAdmin_access` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sAdmin_activiteit` CHANGE `DatumTijd` `DatumTijd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sAdmin_interface` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sAdmin_login` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sAdmin_param` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sMailing` CHANGE `new_on` `new_on` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sMailing` CHANGE `changed_on` `changed_on` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sMailing_rcpt` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sMailing_vanaf` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sWS_Artikel` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sWS_Orderregel` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sWS_Artikel` CHANGE `Gewijzigd` `Gewijzigd` TIMESTAMP on update CURRENT_TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sWS_Orderregel` CHANGE `Gewijzigd` `Gewijzigd` TIMESTAMP on update CURRENT_TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sEvenement_Type` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sBewaking_Blok` CHANGE `Ingevoerd` `Ingevoerd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sMailing_vanaf` CHANGE `Gewijzigd` `Gewijzigd` TIMESTAMP on update CURRENT_TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
-	fnQuery($query);
-	
-	// Admin_Login, deze code kan na 31 december 2020 worden verwijderd.\
-	$query = sprintf("ALTER TABLE %sAdmin_login CHANGE `Ingevoerd` `Ingevoerd` DATETIME;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sMailing` CHANGE `ChangedBy` `ChangedBy` INT(11) NOT NULL DEFAULT '0';", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sMailing_hist` CHANGE `to_addr` `to_addr` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sMailing_hist` CHANGE `cc_addr` `cc_addr` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", TABLE_PREFIX);
-	fnQuery($query);
-	
-	// Admin_activiteit, deze code kan na 1 maart 2021 worden verwijderd.
-	$query = sprintf("ALTER TABLE `%sAdmin_activiteit` CHANGE `USER_AGENT` `USER_AGENT` VARCHAR(125) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL;", TABLE_PREFIX);
-	fnQuery($query);
-	
-	// Deze code kan na 1 mei 2021 worden verwijderd.
-	$query = sprintf("ALTER TABLE `%sMailing` CHANGE `OmschrijvingOntvangers` `OmschrijvingOntvangers` VARCHAR(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL COMMENT 'Omschrijving van de groep personen aan wie deze mailing gericht is';", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sMailing` CHANGE `DeletedBy` `DeletedBy` INT(11) NULL;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sMailing_hist` CHANGE `send_by` `send_by` INT(11) NULL;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sMailing_hist` CHANGE `send_on` `send_on` DATETIME NULL;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sMailing_hist` CHANGE `send_mt` `send_mt` DECIMAL(16,6) NULL;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sAdmin_activiteit` CHANGE `Script` `Script` VARCHAR(100) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sWS_Orderregel` CHANGE `GewijzigdDoor` `GewijzigdDoor` INT(11) NULL DEFAULT NULL;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sWS_Orderregel` CHANGE `Opmerking` `Opmerking` VARCHAR(30) CHARACTER SET utf8 COLLATE utf8_unicode_ci NULL DEFAULT NULL;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sWS_Artikel` CHANGE `Omschrijving` `Omschrijving` VARCHAR(50) CHARACTER SET utf8 COLLATE utf8_unicode_ci NULL DEFAULT NULL;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sMailing` CHANGE `SentBy` `SentBy` INT(11) NOT NULL DEFAULT '0';", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sWS_Artikel` CHANGE `BeschikbaarTot` `BeschikbaarTot` DATE NULL DEFAULT NULL COMMENT 'Tot welke datum is dit artikel in de zelfservice beschikbaar?';", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sWS_Artikel` CHANGE `VervallenPer` `VervallenPer` DATE NULL DEFAULT NULL COMMENT 'Na deze datum is dit artikel voor niemand meer beschikbaar.';", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sWS_Artikel` CHANGE `Beschrijving` `Beschrijving` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NULL DEFAULT NULL;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sWS_Artikel` CHANGE `GewijzigdDoor` `GewijzigdDoor` INT(11) NULL DEFAULT NULL;", TABLE_PREFIX);
-	fnQuery($query);
-	$query = sprintf("ALTER TABLE `%sAdmin_param` CHANGE `GewijzigdDoor` `GewijzigdDoor` INT(11) NULL DEFAULT NULL;", TABLE_PREFIX);
-	fnQuery($query);
 
 	// Deze code kan na 1 juli 2021 worden verwijderd.
 	$query = sprintf("ALTER TABLE `%sAdmin_activiteit` CHANGE `RefFunction` `RefFunction` VARCHAR(75) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL;", TABLE_PREFIX);
@@ -7303,6 +7181,8 @@ function db_nieuwrecordID($tabel) {
 	if ($r > $rid) {$rid = $r; }
 	$r = db_scalar(sprintf("SELECT IFNULL(MAX(AK.RecordID), 0) FROM %sAfdelingskalender AS AK;", TABLE_PREFIX));
 	if ($r > $rid) {$rid = $r; }
+	$r = db_scalar(sprintf("SELECT IFNULL(MAX(EL.RecordID), 0) FROM %Eigen_lijst AS EL;", TABLE_PREFIX));
+	if ($r > $rid) {$rid = $r; }
 	
 	if (startwith($tabel, "Evenement")) {
 		$r = db_scalar(sprintf("SELECT IFNULL(MAX(RecordID), 0) FROM %sEvenement;", TABLE_PREFIX));
@@ -7353,7 +7233,7 @@ function db_nieuwrecordID($tabel) {
 		$r = db_scalar(sprintf("SELECT IFNULL(MAX(VB.RecordID), 0) FROM %sWS_Voorraadboeking AS VB;", TABLE_PREFIX));
 		if ($r > $rid) {$rid = $r; }
 		
-	} elseif ($tabel != "Onderdl" and $tabel != "Functie" and $tabel != "Groep") {
+	} elseif ($tabel != "Onderdl" and $tabel != "Functie" and $tabel != "Groep"  and $tabel != "Eigen_lijst") {
 		if (bestaatkolom($tabel, "RecordID")) {
 			$kol = "RecordID";
 		} elseif (bestaatkolom($tabel, "Nummer")) {
