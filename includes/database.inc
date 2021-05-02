@@ -6048,8 +6048,32 @@ class cls_Eigen_lijst extends cls_db_base {
 		return $result->fetchAll();
 	}
 	
-	public function mysql() {
+	public function htmloptions() {
+		$query = sprintf("SELECT * FROM %s WHERE KolomLidID >= 0 ORDER BY Naam;", $this->table);
+		$result = $this->execsql($query);
+		
+		$rv = "";
+		foreach ($result->fetchAll() as $row) {
+			// $s = checked($row->Nummer, "option", $p_cv);
+			$rv .= sprintf("<option value=%d>%s</option>\n", $row->RecordID, $row->Naam);
+		}
+		return $rv;
+	}
+	
+	public function mysql($p_elid=-1) {
+		if ($p_elid > 0) {
+			$this->elid = $p_elid;
+		}
 		$query = sprintf("SELECT IFNULL(MySQL, '') FROM %s WHERE RecordID=%d;", $this->table, $this->elid);
+		return $this->scalar($query);
+	}
+	
+		
+	public function kolomlidid($p_elid=-1) {
+		if ($p_elid > 0) {
+			$this->elid = $p_elid;
+		}
+		$query = sprintf("SELECT IFNULL(KolomLidID, 0) FROM %s WHERE RecordID=%d;", $this->table, $this->elid);
 		return $this->scalar($query);
 	}
 	
@@ -6087,6 +6111,37 @@ class cls_Eigen_lijst extends cls_db_base {
 				$this->tas = 2;
 				$this->log($p_elid);
 			}
+		}
+	}
+	
+	public function controle($p_elid=0) {
+		
+		$w = "";
+		if ($p_elid > 0) {
+			$w = sprintf("WHERE RecordID=%d", $p_elid);
+		}
+		$query = sprintf("SELECT * FROM %sEigen_lijst %s;", TABLE_PREFIX, $w);
+		$result = $this->execsql($query);
+		foreach ($result->fetchAll() as $row) {
+			$kid = -1;
+			if ($this->controleersql($row->MySQL) == false) {
+				$this->update($row->RecordID, "AantalRecords", -1);
+			} else {
+				$result = $this->execsql($row->MySQL);
+				$rows = $result->fetchAll();
+				$this->update($row->RecordID, "AantalRecords", count($rows));
+				if (count($rows) > 0) {
+					$kr = $this->execsql($row->MySQL)->fetch();
+					foreach ($kr as $key => $value) {
+						$kn = 0;
+						if (($key == "LidID" or $key == "ndLidID") and $kid == -1) {
+							$kid = $kn;
+						}
+						$kn++;
+					}
+				}
+			}
+			$this->update($row->RecordID, "KolomLidID", $kid);
 		}
 	}
 }

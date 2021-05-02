@@ -535,7 +535,6 @@ function fnOnderdelenmuteren($ondtype="G") {
 		if ($_POST['formname'] == "muteren_onderdelen") {
 			$omz["Kode"] = "Code";
 			$omz["Naam"] = "Naam";
-			$omz["CentraalEmail"] = "Centraal_E-mail";
 			foreach ($ondrows as $row) {
 				foreach ($omz as $kolomnaam => $bascn) {
 					$contr_name = $bascn . "_" . $row->lnkRecordID;
@@ -2280,15 +2279,9 @@ function fnEigenlijstenmuteren() {
 		}
 		
 		if (isset($_POST['mysql'])) {
-			if ($i_el->controleersql($_POST['mysql']) == false) {
-				$i_el->update($elid, "AantalRecords", -1);
-			} else {
-				$result = $i_el->execsql($_POST['mysql']);
-				$rows = $result->fetchAll();
-				$i_el->update($elid, "AantalRecords", count($rows));
-			}
 			$i_el->update($elid, "MySQL", $_POST['mysql']);
 		}
+		$i_el->controle($elid);
 		
 	} elseif (isset($_GET['paramActie']) and $_GET['paramActie'] == 2 and $elid > 0) {
 		

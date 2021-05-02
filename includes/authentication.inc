@@ -319,6 +319,18 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 //		addtp("DMS");   Voorlopig geen tijd voor, dus uitgezet.
 	}
+	
+	addtp("Eigen lijsten");
+	if ($currenttab == "Eigen lijsten") {
+		addtp("Eigen lijsten/Muteren");
+		(new cls_Eigen_lijst())->controle();
+		foreach((new cls_Eigen_lijst())->lijst() as $row) {
+			if ($row->AantalRecords > 0) {
+				addtp("Eigen lijsten/" . $row->Naam);
+			}
+		}
+	}
+	
 }
 
 function fnAuthenticatie($melding=1, $password="", $p_napost=0) {
@@ -445,6 +457,7 @@ function toegang($soort, $melding=1, $log=1) {
 		}
 		return true;
 	} elseif ($_SESSION['lidid'] > 0 and isset($_SESSION['toegang'][$soort]) and $_SESSION['toegang'][$soort] == 1) {
+//		debug($soort . ": " . $_SESSION['toegang'][$soort], 0);
 		return true;
 	} else {
 		$_SESSION['webmaster'] == 0;
@@ -457,9 +470,6 @@ function toegang($soort, $melding=1, $log=1) {
 				(new cls_Logboek())->add($mess, 15, 0, $melding);
 			} elseif ($melding > 0) {
 				printf("<p class='mededeling'>%s</p>\n", $mess);
-			}
-			if (isset($_GET['tp']) and strlen($_GET['tp']) > 0) {
-				echo("<script>location.href='/index.php'</script>\n");
 			}
 			return false;
 		}
@@ -879,9 +889,13 @@ function addtp($tp, $afdnr=0) {
 	
 	if ((strstr($tp, "/") === false or startwith($tp, $currenttab . "/")) and ($_SESSION['webmaster'] == 1 or toegang($tp, 0, 0))) {
 		$tabpages[] = $tp;
-		$f = sprintf("Tabpage=\"%s\"", str_replace("'", "", $tp));
-		if ($_SESSION['webmaster'] == 1 and $i_acc->aantal($f) == 0) {
+		$aid = $i_acc->recordid($tp);
+		
+		if ($_SESSION['webmaster'] == 1 and $aid == 0) {
 			$i_acc->add($tp);
+		} elseif ($aid > 0) {
+			$updqry = sprintf("UPDATE %sAdmin_access SET LaatstGebruikt=CURDATE() WHERE LaatstGebruikt < CURDATE() AND Tabpage=\"%s\"", TABLE_PREFIX, str_replace("'", "", $tp));
+			$i_acc->execsql($updqry);
 		}
 	}
 	

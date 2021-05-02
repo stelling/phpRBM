@@ -154,6 +154,18 @@ if (toegang($_GET['tp'], 1) == false) {
 	fnEvenementen();
 } elseif ($currenttab == "Bestellingen") {
 	fnWebshop();
+} elseif ($currenttab == "Eigen lijsten") {
+	
+	fnDispMenu(2);
+	if ($currenttab2 == "Muteren") {
+		fnEigenlijstenmuteren();
+	} else {
+		$i_el = new cls_Eigen_lijst($currenttab2);
+		$rows = (new cls_db_base())->execsql($i_el->mysql())->fetchAll();
+		$i_el->update($i_el->elid, "AantalRecords", count($rows));
+		printf("<p>%s</p>", fnDisplayTable($rows, "", $currenttab2, 0, "", "", "lijst", ""));
+	}
+	
 } elseif (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
 	if ($_SESSION['settings']['mailing_lidnr'] > 0) {
 		fnOpvragenLidnr("form");

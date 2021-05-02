@@ -555,6 +555,8 @@ class Mailing {
 				printf("</select>&nbsp;\n");
 			
 				echo("<input type='email' name='add_address' size=50 maxlength=50 placeholder='Toevoegen e-mailadres' onBlur='this.form.submit();'>");
+				echo("<label>Eigen lijst toevoegen</label>");
+				printf("<select name='add_eigen_lijst' onChange='this.form.submit();'><option value=0>Toevoegen lijst ....</option>%s</select>\n", (new cls_Eigen_lijst())->htmloptions());
 				echo("<div class='clear'></div>\n");
 				
 				if (!isset($_POST['selectie_status'])) {
@@ -857,13 +859,24 @@ class Mailing {
 		
 		$i_M = new cls_Mailing();
 		$i_mr = new cls_Mailing_rcpt();
+		$i_el = new cls_Eigen_lijst();
 		
 		// ** Gerelateerde tabellen bijwerken.
 		if (isset($_POST['add_lid']) and $_POST['add_lid'] > 0) {
 			$i_mr->add($this->mid, $_POST['add_lid']);
 		} elseif (isset($_POST['add_address']) and strlen($_POST['add_address']) > 5) {
 			$i_mr->add($this->mid, 0, $_POST['add_address']);
+		} elseif  (isset($_POST['add_eigen_lijst']) and $_POST['add_eigen_lijst'] > 0) {
+			
+			$kid = $i_el->kolomlidid($_POST['add_eigen_lijst']);
+			$mysql = $i_el->mysql($_POST['add_eigen_lijst']);
+			$result = $i_el->execsql($mysql);
+			$result->setFetchMode(PDO::FETCH_NUM);
+			foreach ($result->fetchAll() as $r) {
+				$i_mr->add($this->mid, intval($r[$kid]));
+			}
 		}
+		
 		if ($p_actie == "add_selectie") {
 			$this->add_del_selectie("add");
 			
@@ -1952,9 +1965,10 @@ function fnMailingInstellingen() {
 	$xr = "<td colspan=6><button type='submit' name='vanaf_adres_toevoegen' title='Vanaf adres toevoegen' value='Vanaf adres toevoegen'><img src='./images/star.png'></button></td>";
 	
 	$rows = (new cls_Mailing_vanaf())->lijst(); 
-	echo(fnDisplayTable($rows, "", "Vanaf adressen", 0, $link_lk, $xr, "editmailingvanaf", "", "Vanaf_naam, emlVanaf_email"));
+	echo(fnDisplayTable($rows, "", "Vanaf adressen", 0, $link_lk, "", "editmailingvanaf", "", "Vanaf_naam, emlVanaf_email"));
 	
 	echo("<div id='opdrachtknoppen'>\n");
+	echo("<button type='submit' name='vanaf_adres_toevoegen' value='Vanaf adres toevoegen'>Vanaf adres toevoegen</button>");
 	echo("<input type='submit' value='Bewaren' name='InstellingenBewaren'>\n");
 	echo("</div> <!-- Einde opdrachtknoppen -->\n");
 	echo("</form>");
@@ -2157,6 +2171,7 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 			return true;
 			
 		} elseif (file_exists($this->bestand_briefpapier)) {
+//			debug($this->bestand_briefpapier, 1, 0, 1);
 			if ($verwijderaanhef == 1) {
 				$htmlmessage = removetextblock(file_get_contents($this->bestand_briefpapier), "<!-- Aanhef -->", "<!-- /Aanhef -->");
 			} else {
