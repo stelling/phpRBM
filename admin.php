@@ -134,7 +134,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	echo("<div id='lijst'>\n");
 	printf("<form method='post' action='%s?tp=%s&amp;op=changeaccess'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	echo("<table id='lijst'>\n");
-	echo("<tr><th></th><th>Onderdeel</th><th>Toegankelijk voor</th><th>Ingevoerd</th></tr>\n");
+	echo("<tr><th></th><th>Onderdeel</th><th>Toegankelijk voor</th><th>Ingevoerd</th><th>Laatst gebruikt</th></tr>\n");
 	$ondrows = (new cls_Onderdeel())->lijst(0, "O.`Type`<>'T'");
 	$authrows = $i_auth->lijst();
 	foreach($authrows as $row) {
@@ -144,7 +144,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 		foreach($ondrows as $ond) {
 			$selectopt .= sprintf("<option value=%d%s>%s</option>\n", $ond->RecordID, checked($row->Toegang, "option", $ond->RecordID), htmlentities($ond->Naam));
 		}
-		printf("<tr>\n<td>%s</td>\n<td>%s</td>\n<td><select name='toegang%d' onchange='this.form.submit();'>\n%s</select></td>\n<td>%s</td></tr>\n", $del, $row->Tabpage, $row->RecordID, $selectopt, strftime("%e %B %Y", strtotime($row->Ingevoerd)));
+		printf("<tr>\n<td>%s</td>\n<td>%s</td>\n<td><select name='toegang%d' onchange='this.form.submit();'>\n%s</select></td>\n<td>%s</td><td>%s</td></tr>\n", $del, $row->Tabpage, $row->RecordID, $selectopt, strftime("%e %B %Y", strtotime($row->Ingevoerd)), strftime("%e %B %Y", strtotime($row->LaatstGebruikt)));
 	}
 	$optionstab = "<option value=''>Selecteer ...</option>\n";
 	foreach ($i_auth->lijst("DISTINCT") as $row) {
@@ -184,7 +184,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 } elseif ($currenttab == "Downloaden wijzigingen" and toegang($currenttab, 1, 1)) {
 	$copytext = "";
 	(new cls_lidond())->autogroepenbijwerken();
-	printf("<form name='formdownload' method='post' action='%s?tp=%s&amp;op=downloadwijz'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<form name='formdownload' method='post' action='%s?tp=%s&op=afmeldenwijz'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	$linklk = sprintf("<a href='/admin.php?op=deleteint&amp;recid=%%d&amp;tp=%s'><img src='" . BASE64_VERWIJDER . "' title='Verwijder record'></a>", urlencode($_GET['tp']));
 	$rows = (new cls_Interface())->lijst();
 	if (count($rows) > 0) {
@@ -201,7 +201,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 		echo("<h2>SQL-code, te gebruiken in MS-Access:</h2>\n");
 		printf("<textarea id='copywijzigingen' class='copypaste' rows=%d readonly>%s</textarea>\n", count($rows)+1, $copytext);
 		echo("<button onClick='CopyFunction()'>Kopieer naar klembord</button>\n");
-		printf("<input type='button' value='Wijzigingen afmelden' OnClick=\"location.href='%s?tp=%s&amp;op=afmeldenwijz'\">\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+		echo("<button type='submit'>Wijzigingen afmelden</button>\n");
 	}
 	
 } elseif ($currenttab == "Onderhoud" and toegang($currenttab, 1, 1)) {
@@ -606,11 +606,11 @@ function fnStukken() {
 	
 	echo("<div id='opdrachtknoppen'>\n");
 	
-	echo("<button name='Toevoegen' value='Toevoegen'>Stuk toevoegen</button>");
-	
+	echo("<button name='Toevoegen' value='Toevoegen'>Stuk toevoegen</button>\n");
 	echo("<input type='submit' value='Bewaren'>\n");
-	
 	echo("</div> <!-- Einde opdrachtknoppen -->\n");
+	echo("</form>");
+	
 	echo("</div> <!-- Einde stukkenmuteren -->\n");
 	
 	$i_stuk = null;
