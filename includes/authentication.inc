@@ -323,14 +323,12 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	addtp("Eigen lijsten");
 	if ($currenttab == "Eigen lijsten") {
 		addtp("Eigen lijsten/Muteren");
-		(new cls_Eigen_lijst())->controle();
 		foreach((new cls_Eigen_lijst())->lijst() as $row) {
 			if ($row->AantalRecords > 0) {
 				addtp("Eigen lijsten/" . $row->Naam);
 			}
 		}
 	}
-	
 }
 
 function fnAuthenticatie($melding=1, $password="", $p_napost=0) {

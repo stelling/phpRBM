@@ -2261,6 +2261,10 @@ function instellingenledenmuteren() {
 function fnEigenlijstenmuteren() {
 	
 	$i_el = new cls_Eigen_lijst();
+	if (isset($_GET['tp'])) {
+		$tp = $_GET['tp'];
+	}
+	
 	if (isset($_GET['paramID']) and $_GET['paramID'] > 0) {
 		$elid = intval($_GET['paramID']);
 		$i_el->elid = $elid;
@@ -2283,6 +2287,12 @@ function fnEigenlijstenmuteren() {
 		}
 		$i_el->controle($elid);
 		
+		if (isset($_POST['BewarenSluiten'])) {
+			printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $tp);
+		} else {
+			printf("<script>location.href='%s?tp=%s&paramActie=2&paramID=%d';</script>\n", $_SERVER['PHP_SELF'], $tp, $elid);
+		}
+		
 	} elseif (isset($_GET['paramActie']) and $_GET['paramActie'] == 2 and $elid > 0) {
 		
 		$row = $i_el->record();
@@ -2301,27 +2311,29 @@ function fnEigenlijstenmuteren() {
 		
 		echo("<div id='opdrachtknoppen'>\n");
 		echo("<input type='submit' value='Bewaren' name='Bewaren'>\n");
+		echo("<input type='submit' value='Bewaren & Sluiten' name='BewarenSluiten'>\n");
 		echo("</div>\n");
 		
 		echo("</form>\n");
 		echo("</div> <!-- Einde formulier -->\n");
 		
-	}
+	} else {
 		
-	$rows = $i_el->lijst();
-	if (count($rows) > 0) {
-		echo("<table>\n");
-		echo("<caption>Overzicht Eigen lijsten</caption>\n");
-		foreach($rows as $row) {
-			printf("<tr><td><a href='%s?tp=%s&paramID=%d&paramActie=2'><img src='%s'></a></td><td>%s</td><td>%s</td></tr>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID, BASE64_MUTEER, $row->Naam, $row->MySQL);
+		$rows = $i_el->lijst();
+		if (count($rows) > 0) {
+			echo("<table>\n");
+			echo("<caption>Overzicht Eigen lijsten</caption>\n");
+			foreach($rows as $row) {
+				printf("<tr><td><a href='%s?tp=%s&paramID=%d&paramActie=2'><img src='%s'></a></td><td>%s</td><td>%s</td><td>%d</td></tr>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID, BASE64_MUTEER, $row->Naam, $row->MySQL, $row->AantalRecords);
+			}
+			echo("</table>\n");
 		}
-		echo("</table>\n");
+		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+		echo("<div id='opdrachtknoppen'>\n");
+		echo("<button type='submit' name='Toevoegen' value='lijst_toevoegen'>Lijst toevoegen</button>\n");
+		echo("</div>\n");
+		echo("</form\n");
 	}
-	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-	echo("<div id='opdrachtknoppen'>\n");
-	echo("<button type='submit' name='Toevoegen' value='lijst_toevoegen'>Lijst toevoegen</button>\n");
-	echo("</div>\n");
-	echo("</form\n");
 	
 }  # fnEigenlijstenmuteren
 
