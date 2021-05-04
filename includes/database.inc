@@ -68,6 +68,7 @@ $TypeActiviteit[19] = "Groepsindeling";
 $TypeActiviteit[20] = "Stamgegevens";
 $TypeActiviteit[21] = "Afdelingskalender";
 $TypeActiviteit[22] = "Stukken";
+$TypeActiviteit[23] = "Eigen lijsten";
 $TypeActiviteit[97] = "Foutieve login";
 $TypeActiviteit[98] = "Performance";
 $TypeActiviteit[99] = "Debug- en foutmeldingen";
@@ -6036,6 +6037,7 @@ class cls_Eigen_lijst extends cls_db_base {
 	function __construct($p_naam="") {
 		parent::__construct();
 		$this->table = TABLE_PREFIX . "Eigen_lijst";
+		$this->ta = 23;
 		if (strlen($p_naam) > 1) {
 			$query = sprintf("SELECT IFNULL(MAX(RecordID), 0) FROM %s WHERE Naam='%s';", $this->table, $p_naam);
 			$this->elid = $this->scalar($query);
@@ -6115,6 +6117,7 @@ class cls_Eigen_lijst extends cls_db_base {
 	}
 	
 	public function controle($p_elid=0) {
+		global $dbc;
 		
 		$w = "";
 		if ($p_elid > 0) {
@@ -6123,11 +6126,10 @@ class cls_Eigen_lijst extends cls_db_base {
 		$query = sprintf("SELECT * FROM %sEigen_lijst %s;", TABLE_PREFIX, $w);
 		$result = $this->execsql($query);
 		foreach ($result->fetchAll() as $row) {
+			$this->elid = $row->RecordID;
 			$kid = -1;
-			if ($this->controleersql($row->MySQL) == false) {
-				$this->update($row->RecordID, "AantalRecords", -1);
-			} else {
-				$result = $this->execsql($row->MySQL);
+			try {
+				$result = $dbc->query($row->MySQL);
 				$rows = $result->fetchAll();
 				$this->update($row->RecordID, "AantalRecords", count($rows));
 				if (count($rows) > 0) {
@@ -6140,6 +6142,9 @@ class cls_Eigen_lijst extends cls_db_base {
 						$kn++;
 					}
 				}
+				
+			} catch (Exception $e) {
+				$this->update($row->RecordID, "AantalRecords", -1);
 			}
 			$this->update($row->RecordID, "KolomLidID", $kid);
 		}
@@ -6792,6 +6797,13 @@ function db_onderhoud($type=9) {
 	// Deze code kan na 1 mei 2022 worden verwijderd.
 	$tab = TABLE_PREFIX . "Eigen_lijst";
 	$col = "KolomLidID";
+	if (bestaatkolom($tab, $col) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '-1' AFTER `MySQL`;", $tab, $col);
+		fnQuery($query, 2);
+	}
+	
+	$tab = TABLE_PREFIX . "Eigen_lijst";
+	$col = "AantalKolommen";
 	if (bestaatkolom($tab, $col) == false) {
 		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '-1' AFTER `MySQL`;", $tab, $col);
 		fnQuery($query, 2);
