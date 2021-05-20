@@ -504,6 +504,10 @@ header a + a:visited + a:hover {
 	padding-right: 4px;
 }
 
+#afdelingskalendermuteren input, #afdelingskalendermuteren select {
+	width: 500px;
+}
+
 #inschrijvingbewaking table {
 	margin-left: auto;
 	margin-right: auto;
@@ -1615,6 +1619,11 @@ input.knop, button.knop {
 
 #nieuwlid input {
 	
+}
+
+.attentie {
+	color: red;
+	font-weight: bold;
 }
 
 .invoerblok table {

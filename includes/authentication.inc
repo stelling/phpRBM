@@ -44,7 +44,15 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	}
 	$i_lo = new cls_Lidond();
 	
-	if ($currenttab == "Eigen gegevens" or ($currenttab == "Ledenlijst" and $currenttab2 == "Overzicht lid")) {
+	$arr_tp_afdnm = array();
+	if (strlen($_SESSION['settings']['menu_met_afdelingen']) > 0) {
+		// Tabblad per afdeling
+		foreach ((new cls_Onderdeel())->lijst(1, "`Type`='A'") as $row) {
+			$arr_tp_afdnm[] = $row->Naam;
+		}
+	}
+	
+	if ($currenttab == "Eigen gegevens" or (($currenttab == "Ledenlijst" or in_array($currenttab, $arr_tp_afdnm)) and $currenttab2 == "Overzicht lid")) {
 		if ($currenttab == "Eigen gegevens") {
 			$b = $currenttab . "/";
 			$lidid = $_SESSION['lidid'];
@@ -183,8 +191,10 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 						addtp(trim($row->Naam) . "/Groepsindeling", $row->RecordID);
 					}
 					addtp(trim($row->Naam) . "/Groepsindeling muteren");
-					if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
-						addtp(trim($row->Naam) . "/Kalender muteren");
+					addtp(trim($row->Naam) . "/Kalender muteren");
+					$f = sprintf("OnderdeelID=%d AND Datum > DATE_SUB(CURDATE(), INTERVAL 9 MONTH)", $row->RecordID);
+					if ((new cls_Afdelingskalender())->aantal($f) > 0) {
+						addtp(trim($row->Naam) . "/Aanwezigheid muteren");
 					}
 				}
 			}
@@ -324,7 +334,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if ($currenttab == "Eigen lijsten") {
 		addtp("Eigen lijsten/Muteren");
 		foreach((new cls_Eigen_lijst())->lijst() as $row) {
-			if ($row->AantalRecords > 0) {
+			if ($row->AantalRecords > 0 and $row->AantalKolommen > 1) {
 				addtp("Eigen lijsten/" . $row->Naam);
 			}
 		}

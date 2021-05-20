@@ -65,6 +65,7 @@ if (strlen($_SESSION['settings']['menu_met_afdelingen']) > 0 and (new cls_Onderd
 	$isafdelingstab = 1;
 }
 
+
 if (toegang($_GET['tp'], 1) == false) {
 	if ($_SESSION['lidid'] == 0) {
 		fnLoginAanvragen();

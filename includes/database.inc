@@ -1320,7 +1320,7 @@ class cls_Authorisation extends cls_db_base {
 	}
 	
 	public function opschonen() {
-		$query = sprintf("SELECT RecordID FROM %s WHERE Ingevoerd < DATE_ADD(CURDATE(), INTERVAL -3 MONTH) AND Toegang < 0;", $this->table);
+		$query = sprintf("SELECT RecordID FROM %s WHERE LaatstGebruikt < DATE_ADD(CURDATE(), INTERVAL -3 MONTH) AND Toegang < 0;", $this->table);
 		$result = $this->execsql($query);
 		foreach ($result->fetchAll() as $row) {
 			$this->delete($row->RecordID);
@@ -2198,14 +2198,22 @@ class cls_Functie extends cls_db_base {
 }  # cls_Functie
 
 class cls_Afdelingskalender extends cls_db_base {
+	private $ondid = 0;
 	
-	function __construct() {
+	function __construct($p_ondid=-1) {
 		$this->table = TABLE_PREFIX . "Afdelingskalender";
 		$this->ta = 21;
+		if ($p_ondid > 0) {
+			$this->ondid = $p_ondid;
+		}
 	}
 	
-	public function lijst($p_onderdeelid) {
-		$query = sprintf("SELECT AK.* FROM %s AS AK INNER JOIN %sOnderdl AS O ON O.RecordID=AK.OnderdeelID WHERE AK.OnderdeelID=%d ORDER BY AK.Datum DESC;", $this->table, TABLE_PREFIX, $p_onderdeelid);
+	public function lijst($p_ondid=-1) {
+		if ($p_ondid > 0) {
+			$this->ondid = $p_ondid;
+		}
+		
+		$query = sprintf("SELECT AK.* FROM %s AS AK INNER JOIN %sOnderdl AS O ON O.RecordID=AK.OnderdeelID WHERE AK.OnderdeelID=%d ORDER BY AK.Datum DESC;", $this->table, TABLE_PREFIX, $this->ondid);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
@@ -2223,17 +2231,12 @@ class cls_Afdelingskalender extends cls_db_base {
 		return $rv;
 	}
 	
-	public function add($p_onderdeelid) {
+	public function add($p_ondid, $p_datum) {
 		$this->tas = 1;
 		$nrid = $this->nieuwrecordID();
-		$f = sprintf("OnderdeelID=%d", $p_onderdeelid);	
-		$dat = $this->max("DATE_ADD(Datum, INTERVAL 1 WEEK)", $f);
-		if (strlen($dat) < 10) {
-			$dat = date("Y-m-d");
-		}
-		$query = sprintf("INSERT INTO %s (RecordID, OnderdeelID, Datum, IngevoerdDoor) VALUES (%d, %d, '%s', %d);", $this->table, $nrid, $p_onderdeelid, $dat, $_SESSION['lidid']);
+		$query = sprintf("INSERT INTO %s (RecordID, OnderdeelID, Datum, IngevoerdDoor) VALUES (%d, %d, '%s', %d);", $this->table, $nrid, $p_ondid, $p_datum, $_SESSION['lidid']);
 		if ($this->execsql($query) > 0) {
-			$this->mess = sprintf("Record %d is met datum '%s' in de afdelingskalender toegevoegd.", $nrid, $dat);
+			$this->mess = sprintf("Record %d is met datum '%s' in de afdelingskalender toegevoegd.", $nrid, $p_datum);
 			$this->log($nrid);
 			return $nrid;
 		}
@@ -2245,6 +2248,21 @@ class cls_Afdelingskalender extends cls_db_base {
 			$this->mess = sprintf("Kolom '%s' in record %d in de tabel 'Afdelingskalender' is in '%s' gewijzigd.", $p_kolom, $p_akid, $p_waarde);
 			$this->log($p_akid);
 		}
+	}
+	
+	public function delete($p_akid) {
+		$this->tas = 3;
+		if ((new cls_Aanwezigheid())->aantal(sprintf("AfdelingskalenderID=%d", $p_akid)) == 0) {
+			$query = sprintf("DELETE FROM %s WHERE RecordID=%d;", $this->table, $p_akid);
+			if ($this->execsql($query) > 0) {
+				$this->mess = sprintf("Record %d uit de afdelingskalender is verwijderd.", $p_akid);
+			} else {
+				$this->mess = sprintf("Record %d uit de afdelingskalender bestaat niet en kan dus niet worden verwijderd.", $p_akid);
+			}
+		} else {
+			$this->mess = sprintf("Record %d uit de afdelingskalender mag niet worden verwijderd, want die is nog in gebruik.", $p_akid);
+		}
+		$this->log($p_akid);
 	}
 	
 }  # cls_Afdelingskalender
@@ -2260,7 +2278,7 @@ class cls_Aanwezigheid extends cls_db_base {
 		$this->ta = 21;
 	}
 	
-	private function vulvars($p_loid) {
+	private function vulvars($p_loid, $p_akid) {
 		$this->loid = $p_loid;
 		$this->akid = $p_akid;
 		$query = sprintf("SELECT IFNULL(LO.Lid, 0) FROM %sLidond AS LO WHERE LO.RecordID=%d;", TABLE_PREFIX, $this->loid);
@@ -2324,9 +2342,12 @@ class cls_Lidond extends cls_db_base {
 	private $ondkader = 0; // Is dit kader?
 	private $lidnaam = "";  // De naam van het lid
 	
-	function __construct() {
+	function __construct($p_ondid=-1) {
 		parent::__construct();
 		$this->table = TABLE_PREFIX . "Lidond";
+		if ($p_ondid > 0) {
+			$this->ondid = $p_ondid;
+		}
 		$this->ta = 6;
 	}
 	
@@ -2503,6 +2524,15 @@ class cls_Lidond extends cls_db_base {
 		}
 		return $rv;
 	}
+	
+	public function groepeningebruik($p_ondid=-1) {
+		if ($p_ondid > 0) {
+			$this->ondid = $p_ondid;
+		}
+		$query = sprintf("SELECT DISTINCT LO.GroepID, IF(LO.GroepID=0, 'Niet ingedeeld', GR.Omschrijving) AS Omschrijving, GR.Kode FROM %s AS LO LEFT OUTER JOIN %sGroep AS GR ON LO.GroepID=GR.RecordID WHERE (NOT LO.GroepID IS NULL) AND LO.OnderdeelID=%d AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE() ORDER BY GR.Kode, GR.Omschrijving;", $this->table, TABLE_PREFIX, $this->ondid);
+		$result = $this->execsql($query);
+		return $result->fetchAll();
+	}  # groepeningebruik
 	
 	public function overzichtlid($p_lidid, $p_soort) {
 		
@@ -6104,9 +6134,10 @@ class cls_Eigen_lijst extends cls_db_base {
 		
 		if ($p_kolom == "MySQL") {
 			$p_waarde = str_replace("[%LIDNAAM%]", $this->selectnaam, $p_waarde);
+			$p_waarde = str_replace("[%TELEFOON%]", $this->selecttelefoon, $p_waarde);
 			$p_waarde = str_replace("[%EMAIL%]", $this->selectemail, $p_waarde);
 		}
-		
+
 		if ($_SESSION['webmaster'] == 1)  {
 			if ($this->pdoupdate($p_elid, $p_kolom, $p_waarde) > 0) {
 				$this->mess = sprintf("Kolom '%s' in Eigen_lijst %d is in '%s' gewijzigd.", $p_kolom, $p_elid, $p_waarde);
@@ -6134,17 +6165,19 @@ class cls_Eigen_lijst extends cls_db_base {
 				$this->update($row->RecordID, "AantalRecords", count($rows));
 				if (count($rows) > 0) {
 					$kr = $this->execsql($row->MySQL)->fetch();
+					$kn = 0;
 					foreach ($kr as $key => $value) {
-						$kn = 0;
 						if (($key == "LidID" or $key == "ndLidID") and $kid == -1) {
 							$kid = $kn;
 						}
 						$kn++;
 					}
+					$this->update($row->RecordID, "AantalKolommen", $kn);
 				}
 				
 			} catch (Exception $e) {
 				$this->update($row->RecordID, "AantalRecords", -1);
+				$this->update($row->RecordID, "AantalKolommen", -1);
 			}
 			$this->update($row->RecordID, "KolomLidID", $kid);
 		}
@@ -6651,22 +6684,6 @@ function db_onderhoud($type=9) {
 	
 	/***** Kolommen die later zijn toegevoegd. *****/
 	
-	// Toevoegen kolom 'AantalRecords' aan de tabel 'Eigen_lijst'. Deze code kan na 1 mei 2022 worden verwijderd.
-	$tab = TABLE_PREFIX . "Eigen_lijst";
-	$col = "AantalRecords";
-	if (bestaatkolom($tab, $col) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '0' AFTER `MySQL`; ", $tab, $col);
-		fnQuery($query, 2);
-	}
-	
-	// Toevoegen kolom 'LaatstGebruikt' aan de tabel 'Admin_access'. Deze code kan na 1 mei 2022 worden verwijderd.
-	$tab = TABLE_PREFIX . "Admin_access";
-	$col = "LaatstGebruikt";
-	if (bestaatkolom($tab, $col) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` DATE NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `Toegang`; ", $tab, $col);
-		fnQuery($query, 2);
-	}
-	
 	// Deze code kan na 1 mei 2021 worden verwijderd.
 	$tab = TABLE_PREFIX . "Mailing";
 	$col = "ZonderBriefpapier";
@@ -6791,6 +6808,23 @@ function db_onderhoud($type=9) {
 	$col = "Einddatum";
 	if (bestaatkolom($tab, $col) == true) {
 		$query = sprintf("ALTER TABLE `%s` CHANGE `Einddatum` `Eind` DATETIME NULL;", $tab);
+		fnQuery($query, 2);
+	}
+	
+	
+	// Deze code kan na 1 mei 2022 worden verwijderd.
+	$tab = TABLE_PREFIX . "Eigen_lijst";
+	$col = "AantalRecords";
+	if (bestaatkolom($tab, $col) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '0' AFTER `MySQL`; ", $tab, $col);
+		fnQuery($query, 2);
+	}
+	
+	// Deze code kan na 1 mei 2022 worden verwijderd.
+	$tab = TABLE_PREFIX . "Admin_access";
+	$col = "LaatstGebruikt";
+	if (bestaatkolom($tab, $col) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` DATE NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `Toegang`; ", $tab, $col);
 		fnQuery($query, 2);
 	}
 	

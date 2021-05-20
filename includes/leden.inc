@@ -411,12 +411,21 @@ function fnAfdeling() {
 		fnGroepsindeling("", $afdid, 1);
 	} elseif ($currenttab2 == "Kalender muteren") {
 		fnAfdelingskalenderMuteren($afdid);
+	} elseif ($currenttab2 == "Aanwezigheid muteren") {
+		fnAanwezigheidMuteren($afdid);
 	}
 	
 }  # fnAfdeling
 
 function fnAfdelingslijst($afdid) {
-	global $ldl;
+	
+	$afdnm = (new cls_Onderdeel())->naam($afdid);
+	
+	if (toegang($afdnm . "/Overzicht lid", 0, 0)) {
+		$ldl = "<a href='index.php?tp=" . $afdnm . "/Overzicht+lid&amp;lidid=%d'>%s</a>";
+	} else {
+		$ldl = "";
+	}
 	
 	$i_dp = new cls_Diploma();
 	
@@ -966,7 +975,72 @@ function fnAfdelingskalenderMuteren($p_onderdeelid){
 	$i_ak = new cls_Afdelingskalender();
 	$i_aanw = new cls_Aanwezigheid();
 	
+	$akid = -1;
+	
+	if (isset($_GET['op']) and $_GET['op'] == "delete" and isset($_GET['KalID']) and $_GET['KalID'] > 0) {
+		$i_ak->delete($_GET['KalID']);
+	}
+	
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		
+		if (isset($_POST['nieuw']) and $_POST['nieuw'] >= "2020-01-01") {
+			$akid = $i_ak->add($p_onderdeelid, $_POST['nieuw']);
+		}
+		
+		foreach ($i_ak->lijst($p_onderdeelid) as $row) {
+			$k = sprintf("kaloms_%d", $row->RecordID);
+			if (isset($_POST[$k])) {
+				$i_ak->update($row->RecordID, "Omschrijving", $_POST[$k]);
+			}
+		}
+	}
+	
+	echo("<div id='afdelingskalendermuteren'>\n");
+	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+	
+	echo("<table>\n");
+	$dat = "";
+	$oms = "";
+	$act = false;
+	echo("<tr><th>ID</th><th>Datum</th><th>Opmerking</th><th>Aanwezig</th><th></th></tr>\n");
+	echo("<tr><td>Nieuw</td><td colspan=4><input type='date' name='nieuw' onChange='this.form.submit();'></td></tr>\n");
+	
+	foreach ($i_ak->lijst($p_onderdeelid) as $row) {
+		$d = "";
+		$aw = 0;
+		if ($i_aanw->aantal(sprintf("AfdelingskalenderID=%d", $row->RecordID)) == 0) {
+			$d = sprintf("<a href='%s?tp=%s&KalID=%d&op=delete'><img src=%s></a>", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID, BASE64_VERWIJDER);
+		} else {
+			$aw = $i_aanw->aantal(sprintf("AfdelingskalenderID=%d AND Status='A'", $row->RecordID));
+		}
+		
+		printf("<tr><td>%d</td><td>%s</td><td><input type='text' name='kaloms_%1\$d' value='%3\$s' onChange='this.form.submit();'></td><td>%4\$d</td><td>%5\$s</td></tr>\n", $row->RecordID, strftime("%A %e %B %Y", strtotime($row->Datum)), $row->Omschrijving, $aw, $d);
+		if ($akid == $row->RecordID) {
+			$dat = $row->Datum;
+			$oms = $row->Omschrijving;
+			if ($row->Activiteit == 1) {
+				$act = true;
+			}
+		}
+	}
+	
+	echo("</table>\n");
+	echo("</form>\n");
+	
+	echo("</div> <!-- Einde afdelingskalendermuteren -->\n");
+	$i_ak = null;
+	$i_lo = null;
+	
+}  # fnAfdelingskalenderMuteren
+
+function fnAanwezigheidMuteren($p_onderdeelid){
+	
+	$i_ak = new cls_Afdelingskalender($p_onderdeelid);
+	$i_aanw = new cls_Aanwezigheid();
+	$i_lo = new cls_Lidond($p_onderdeelid);
+	
 	$akid = 0;
+	$grid = -1;
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		
 		foreach ($_POST as $k => $v) {
@@ -977,13 +1051,9 @@ function fnAfdelingskalenderMuteren($p_onderdeelid){
 		}
 	
 		if (isset($_POST['selecteerdatum'])) {
-			if ($_POST['selecteerdatum'] == 0) {
-				$akid = $i_ak->add($p_onderdeelid);
-			} else {
-				$akid = $_POST['selecteerdatum'];
-			}
+			$akid = $_POST['selecteerdatum'];
 		}
-			
+
 		if (isset($_POST['akid']) and $_POST['akid'] > 0) {
 			if (isset($_POST['Datum']) and strlen($_POST['Datum']) == 10) {
 				$i_ak->update($_POST['akid'], "Datum", $_POST['Datum']);
@@ -999,12 +1069,16 @@ function fnAfdelingskalenderMuteren($p_onderdeelid){
 				$i_ak->update($_POST['akid'], "Activiteit", 0);
 			}
 		}
+		
+		if (isset($_POST['selecteergroep']) and $_POST['selecteergroep'] >= 0) {
+			$grid = intval($_POST['selecteergroep']);
+		}
 	}
 	
 	echo("<div id='afdelingskalendermuteren'>\n");
 	printf("<form name='kalmut' method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	
-	echo("<label>Selecteer dag:</label><p>");
+	echo("<label>Selecteer datum:</label><p>");
 	echo("<select name='selecteerdatum' OnChange='this.form.submit();'>\n");
 	echo("<option value=-1>...</option>\n");
 	$dat = "";
@@ -1020,8 +1094,18 @@ function fnAfdelingskalenderMuteren($p_onderdeelid){
 			}
 		}
 	}
-	echo("<option value=0>Nieuwe datum</option>\n");
 	echo("</select></p>\n");
+	$row = null;
+	
+	echo("<label>Selecteer groep:</label><p>");
+	echo("<select name='selecteergroep' OnChange='this.form.submit();'>\n");
+	echo("<option value=-1>...</option>\n");
+	foreach ($i_lo->groepeningebruik() as $row) {
+		printf("<option value=%d %s>%s - %s</option>\n", $row->GroepID, checked($row->GroepID, "option", $grid), $row->Kode, $row->Omschrijving);
+	}
+	echo("</select></p>\n");
+	$row = null;
+	
 	echo("<div class='clear'></div>\n");
 	
 	if ($akid > 0) {
@@ -1031,26 +1115,24 @@ function fnAfdelingskalenderMuteren($p_onderdeelid){
 		if ($i_aanw->aantal($f) > 0) {
 			$ro = "readonly";
 		}
-		printf("<label>Datum:</label><p><input type='date' name='Datum' value='%s' %s></p>\n", $dat, $ro);
-		printf("<label>Omschrijving:</label><p><input type='text' name='Omschrijving' value='%s' size=75 max-length=75 OnChange='this.form.submit();'></p>\n", $oms);
-//		printf("<label>Activiteit gepland?</label><p><input type='checkbox' name='Activiteit' %s  OnChange='this.form.submit();'></p>\n", checked($act));
-		echo("<div class='clear'></div>\n");
-		
-		$i_lo = new cls_Lidond();
 		
 		echo("<table>\n");
 		printf("<tr><th colspan=5>Presentielijst %s</th></tr>\n", strftime("%A %e %B %Y", strtotime($dat)));
-		echo("<tr><th>Naam</th><th>Functie</th><th>Groep</th><th>Aanwezigheid</th></tr>\n");
+		echo("<tr><th>Naam</th><th>Functie</th><th>Aanwezigheid</th></tr>\n");
 		
-		foreach ($i_lo->lijst($p_onderdeelid) as $row) {
+		$f = "";
+		if ($grid >= 0) {
+			$f = sprintf("LO.GroepID=%d", $grid);
+		}
+		
+		foreach ($i_lo->lijst($p_onderdeelid, $f, "L.Achternaam, L.Tussenv, L.Roepnaam") as $row) {
 			$stat = $i_aanw->status($row->RecordID, $akid);
 			if (strlen($stat) > 0) {
 				$cl = sprintf("class='presstat_%s'", strtolower($stat));
 			} else {
 				$cl = "";
 			}
-			printf("<tr><td %s>%s</td><td>%s</td><td>%s</td>\n", $cl, $row->NaamLid, $row->Functie, $row->Groep);
-			
+			printf("<tr><td %s>%s</td><td>%s</td>\n", $cl, $row->NaamLid, $row->Functie);
 			
 			$options = "<option value=''>Onbekend</option>\n";
 			foreach (ARRPRESENTIESTATUS as $k => $o) {
@@ -1066,17 +1148,17 @@ function fnAfdelingskalenderMuteren($p_onderdeelid){
 		}
 		echo("</table>\n");
 	}
-	
-	
 	echo("</form>\n");
 	
 	echo("</div> <!-- Einde afdelingskalendermuteren -->\n");
 	$i_ak = null;
+	$i_aanw = null;
 	$i_lo = null;
 	
-}  # fnAfdelingskalenderMuteren
+}  # fnAanwezigheidMuteren
 
 function fnEigenGegevens($lidid=0, $actie="") {
+	
 	global $currenttab, $currenttab2, $currenttab3;
 	
 	if ($lidid == 0 and isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0) {
@@ -2306,7 +2388,12 @@ function fnEigenlijstenmuteren() {
 		if ($row->AantalRecords >= 0) {
 			printf("<p>%d</p>\n", $row->AantalRecords);
 		} else {
-			echo("<p>De MySQL-code is niet uitvoerbaar</p>\n");
+			$i_el->mess = sprintf("In Eigen_lijst %d is de MySQL-code niet correct en kan niet worden uitgevoerd.", $elid);
+			printf("<p>%s</p>\n", $i_el->mess);
+			$i_el->Log($elid);
+		}
+		if ($row->AantalKolommen > 0) {
+			printf("<label>Aantal kolommen</label><p>%d</p>\n", $row->AantalKolommen);
 		}
 		
 		echo("<div id='opdrachtknoppen'>\n");
