@@ -10,8 +10,8 @@ a, a:visited {
 }
 
 h1 {
+	font-size: 164%;
 	font-weight: bold;
-	font-size: 18pt;
 	margin-top: 2px;
 	margin-bottom: 2px;
 }
@@ -47,11 +47,11 @@ td, th {
 	border-width: 1px;
 	background-color: #FFFF99;
 	border-color: #000080;
-	vertical-align: middle;
 }
 
 th {
 	background-color: #00FFFF;
+	vertical-align: middle;
 }
 
 ul {
@@ -67,6 +67,14 @@ li {
 p {
 	margin-top: 1px;
 	margin-bottom: 6px;
+}
+
+p.uitleg {
+	clear: none;
+	float: left;
+	margin-left: 5px;
+	padding-top: 7px;
+	font-style: italic;
 }
 
 label {
@@ -104,7 +112,6 @@ span {
 footer {
 	clear: both;
 	background-color: #f0f0f0;
-	width: 100%;
 	height: 22px;
 	text-align: center;
 	margin-top: 15px;
@@ -126,9 +133,11 @@ footer a, footer a:visited {
 }
 
 select {
-	float: left;
 	font-size: 11pt;
+	float: left;
 	margin-right: 6px;
+	margin-top: 5px;
+	margin-bottom: 5px;
 }
 
 input {
@@ -151,7 +160,6 @@ input, button, textarea {
 }
 
 header {
-	width: 100%;
 	height: 90px;
 	margin-bottom: 0;
 	padding-top: 6px;
@@ -164,7 +172,6 @@ header {
 
 header h1 {
 	float: left;
-	color: white;
 	margin-top: 3px;
 	padding-left: 4px;
 }
@@ -175,16 +182,12 @@ header h1 {
 	margin-right: auto;
 	padding-left: 0;
 	padding-right: 0;
+	border-style: none;
+	border-width: 1px;
 }
 
 #containerbreed {
 	width: 1850px;
-}
-
-@media screen and (max-width: 1200px) {
-	#container, #containerbreed {
-		width: 960px;
-	}
 }
 
 header a + a:visited + a:hover {
@@ -199,6 +202,10 @@ header a + a:visited + a:hover {
 
 #welkomstekst a, #welkomstekst a:visited {
 	color: inherit;
+}
+
+#welkomstekst ul {
+	padding-left: 12px;
 }
 
 #kolomlinks, #kolomrechts {
@@ -227,7 +234,10 @@ header a + a:visited + a:hover {
 	padding-left: 0px;
 	padding-right: 0px;
 	padding-top: 4px;
-	border-style: solid;
+	border-top-style: solid;
+	border-bottom-style: solid;
+	border-left-style: none;
+	border-right-style: none;
 	border-color: #000080;
 	border-width: 1px;
 	min-height: 38px;
@@ -360,6 +370,61 @@ header a + a:visited + a:hover {
 	padding-right: 2px;
 }
 
+.ledenlijst table {
+	width: 100%;
+}
+
+td.details, td.muteren, td.detailregels, td.leden, td.sendmail, td.unlock, .lijstverzondenmails td:first-child, .lijstoutbox td:first-child, #overzichteigenlijsten td:first-child {
+	background-repeat: no-repeat;
+	background-position: center center;
+	text-align: center;
+	width: 45px;
+	height: 45px;
+}
+
+td.details, .lijstverzondenmails td:first-child, .lijstoutbox td:first-child {
+	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAA5UlEQVR42u3XMQsBYRjA8TuTwUAGBgOTsiA+AIPJ6AM4G5+IzfkQJgOrIiZlsyiLlAwGyV/33iLFXb09Xb1P/ZZ38PzLHb225U0KE7QRs/TOE1N0cbHV4RB9zYs/Z4SBH7BCDQe4mhc7yGONuh+wQQULNDUHzNHAFlUTYAJ+BbRQwhVjddZBLsDCHWZhA95LHct7PQsfH/DvuOhFNiCNBB44qrMM4gECbjiHDdAx0QooIos7luqsjGSAhSfswwaIP4TiAeJfgY6JVoD4D5H4QygeIP53rGNMgAn4GiB+NRO/nIpdz1/cVqwhhT3ieQAAAABJRU5ErkJggg==");
+}
+
+td.muteren, #overzichteigenlijsten td:first-child {
+	background-image: url("data:image/jpg;base64,AAABAAEAICAAAAEAIACoEAAAFgAAACgAAAAgAAAAQAAAAAEAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAfICAgOiAgIDugICA7oCAgO6AgIDugICA7oCAgO6AgIDugICA7oCAgO6AgIDugICA7oCAgO6AgIDugICA7oCAgO6AgIDugICA7oCAgO6AgIDugICA6oCAgIqAgIACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgEiAgID/gICA7oCAgNKAgIDSgICA0oCAgNKAgIDSgICAwoCAgHKAgICSgICAzoCAgNKAgIDSgICA0oCAgNKAgIDSgICA0oCAgNKAgIDSgICA0oCAgNKAgIDqgICA/4CAgFgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICADoCAgAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgEaAgID/gICAigAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgICEgICA7oCAgKKAgIBQgICACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAPoCAgP+AgICKAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgHqAgID/gICAUgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgDqAgID/gICA/4CAgNyAgIDsgICArICAgFyAgIAOAAAAAAAAAAAAAAAAAAAAAAAAAACAgIA+gICA/4CAgIoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAAoCAgOaAgIC6gICACoCAgAyAgIBmgICA/ICAgOCAgIAiAAAAAAAAAAAAAAAAAAAAAICAgD6AgID/gICAigAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAloCAgGwAAAAAgICAEICAgMyAgID/gICA/4CAgOCAgIAiAAAAAAAAAAAAAAAAgICAPoCAgP+AgICKAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgHqAgID/gICAUgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIBGgICAvICAgBCAgIDMgICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAAAAAACAgIA+gICA/4CAgIoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgAaAgIDqgICAzoCAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAICAgD6AgID/gICAigAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgKCAgID/gICA/ICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAigICAHICAgOaAgICKAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgHqAgID/gICAUgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgNKAgIB4gICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAigICAKICAgHQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAigICAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAICAgA6AgICqgICAroCAgK6AgICugICAroCAgK6AgICugICAxICAgPaAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgHqAgID/gICAUgAAAAAAAAAAgICABICAgGSAgIBqgICAaoCAgGqAgIBqgICAaoCAgGqAgIBqgICAaoCAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAAAAAAAAAAAAAAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAAAAAAAAAAAAAAAAAICAgHqAgID/gICAUgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBSAAAAAAAAAACAgIAQgICAxICAgMqAgIDKgICAyoCAgMqAgIDKgICAyoCAgMqAgIDKgICAyoCAgMqAgIDKgICAiICAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA0oCAgBaAgIAOAAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAICAgAKAgIBIgICAToCAgE6AgIBOgICAToCAgE6AgIBOgICAToCAgE6AgIBOgICAToCAgE6AgIAkgICAFoCAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgNKAgIAWgICAdoCAgOCAgIAiAAAAAICAgHqAgID/gICAUgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgMqAgIBIgICAsICAgP+AgIDSgICAFoCAgHaAgID/gICA/4CAgOCAgIAcgICAeoCAgP+AgIBSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgNCAgID8gICA0oCAgBaAgIB2gICA/4CAgP+AgID/gICA/4CAgHqAgIB6gICA/4CAgFIAAAAAAAAAAICAgASAgIBegICAYoCAgGKAgIBigICAYoCAgGKAgIBigICAYoCAgGKAgIBigICAYoCAgGKAgIAwAAAAAAAAAAAAAAAAgICAFoCAgKiAgIAWgICAdoCAgP+AgID/gICA/4CAgP+AgIDugICALoCAgHqAgID/gICAUgAAAAAAAAAAgICADoCAgLCAgIC2gICAtoCAgLaAgIC2gICAtoCAgLaAgIC2gICAtoCAgLaAgIC2gICAtoCAgGYAAAAAAAAAAAAAAAAAAAAAAAAAAICAgGKAgID/gICA/4CAgP+AgID/gICA7oCAgDYAAAAAgICAeoCAgP+AgIBSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgCKAgIAYgICAFoCAgNKAgID/gICA/4CAgO6AgIA2AAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAPoCAgNSAgIAYgICAFoCAgMSAgIDmgICANgAAAAAAAAAAAAAAAICAgHqAgID/gICAUgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIA+gICA/4CAgIoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBSAAAAAAAAAACAgIBUgICAGAAAAAAAAAAAgICADICAgGAAAAAAAAAAAICAgACAgIBkgICABgAAAAAAAAAAgICAMoCAgDgAAAAAAAAAAICAgD6AgID/gICAigAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIB4gICA/4CAgGAAAAAAAAAAAICAgNqAgIBaAAAAAAAAAACAgIA6gICA+gAAAAAAAAAAgICADICAgP+AgIAoAAAAAAAAAACAgICSgICAngAAAAAAAAAAgICATICAgP+AgICIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgDqAgID/gICA+oCAgO6AgIDugICA/ICAgPSAgIDugICA7oCAgPKAgID/gICA7oCAgO6AgIDugICA/4CAgPCAgIDugICA7oCAgPiAgID4gICA7oCAgO6AgID4gICA/4CAgEwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgGCAgIDQgICA3oCAgN6AgID6gICA6oCAgN6AgIDegICA5oCAgP+AgIDegICA3oCAgOCAgID/gICA4oCAgN6AgIDegICA8ICAgPKAgIDegICA3oCAgNKAgIBsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgNqAgIBaAAAAAAAAAACAgIA6gICA+gAAAAAAAAAAgICAEICAgP+AgIAoAAAAAAAAAACAgICSgICAngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAsoCAgEAAAAAAAAAAAICAgCaAgIDKAAAAAAAAAACAgIAGgICA0oCAgBgAAAAAAAAAAICAgHKAgIB8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwAAA/4BAAP+///5/v4/+f7/B/n+/zn5/v9w+f7/oHn+/4A5/v+AGf7/0A/+/+gH/vAEA/7/+gH+//0A/v/+gH7//0A+8AAgPv//0G7//+jG///xhv//+wbwAP4O///+Hv//+z7///n+///5/u93Of4AAAP/AAAH/+93P//vd//8=");
+}
+
+td.detailregels {
+	background-image: url("data:image/jpg;base64,AAABAAEAICAAAAEAIACoEAAAFgAAACgAAAAgAAAAQAAAAAEAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICACoCAgFCAgICUgICAxoCAgOSAgIDugICA7oCAgOSAgIDKgICAnICAgFqAgIAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAHICAgJCAgIDwgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgPaAgICegICAKAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICABICAgHyAgID0gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID6gICAkICAgAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgBiAgIDEgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA1oCAgCgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIAigICA3oCAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgPCAgIDqgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA7ICAgDYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAGICAgN6AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIDugICAKoCAgBKAgIDUgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA7ICAgCoAAAAAAAAAAAAAAAAAAAAAAAAAAICAgASAgIDAgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA+ICAgEIAAAAAAAAAAICAgCCAgIDogICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA2ICAgAwAAAAAAAAAAAAAAAAAAAAAgICAdICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIBiAAAAAAAAAAAAAAAAAAAAAICAgDiAgID2gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICAlgAAAAAAAAAAAAAAAICAgBaAgIDwgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICAhgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgFiAgID8gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID6gICALgAAAAAAAAAAgICAhICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgKyAgIACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgIKAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgICmAAAAAICAgASAgIDogICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIDMgICACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAAoCAgKqAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgPiAgIAUgICAQoCAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA5oCAgBwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICACoCAgM6AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgGSAgICEgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgPyAgIA6AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAIICAgO6AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICApoCAgLSAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgJ6AgICMgICAioCAgIqAgIAeAAAAAAAAAAAAAAAAAAAAAICAgAyAgICKgICAioCAgIyAgICUgICA8oCAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIDWgICA0ICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgDYAAAAAAAAAAAAAAAAAAAAAgICAFICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOyAgIDagICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICANgAAAAAAAAAAAAAAAAAAAACAgIAUgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA7oCAgNqAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIBkgICAMoCAgDCAgIAwgICAMICAgECAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIDugICA0ICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgO6AgIC0gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA9oCAgPSAgID0gICA9ICAgPSAgID2gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA1oCAgISAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIA2AAAAAAAAAAAAAAAAAAAAAICAgBSAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgICkgICAQICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgDYAAAAAAAAAAAAAAAAAAAAAgICAFICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgGKAgIACgICA5oCAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICApoCAgI6AgICOgICAjoCAgI6AgICWgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID4gICAFAAAAACAgICAgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgKQAAAAAAAAAAICAgBKAgIDugICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgLSAgICcgICAmoCAgJiAgICWgICAoICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID6gICAKgAAAAAAAAAAAAAAAICAgGyAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICAOgAAAAAAAAAAAAAAAAAAAACAgIAUgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgJAAAAAAAAAAAAAAAAAAAAAAgICAAoCAgLqAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIBQAAAAAAAAAAAAAAAAAAAAAICAgCiAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIDUgICACgAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFICAgNiAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOaAgICKgICAhICAgIKAgICEgICA0oCAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA6oCAgCYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAHoCAgNqAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOqAgIAyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFICAgL6AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIDSgICAJAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAAoCAgHSAgIDygICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID4gICAioCAgAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgBiAgICKgICA7ICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIDygICAmICAgCIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIAIgICASoCAgIyAgIC8gICA3oCAgOyAgIDogICA3oCAgMKAgICSgICAUoCAgAoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//AP//+AAf//AAB//AAAP/gAAB/wAYAP4APAB+AH4APAB/ADgA/wAYAf+AGAP/wBAH/+AAAH4AAAB+AAAAfgAAAH4AAAAAAAAAAAAAAH4ACAB+ABgAAAAYAAAAHAAAAD4AfgA+AH4AfwAAAP+AAAH/wAAD//AAB//4AB///wD/8=");
+}
+
+td.leden {
+	background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAACXBIWXMAAA3WAAAN1gGQb3mcAAAAB3RJTUUH4gwVDR0w5AKVZgAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMS40E0BoxAAAAtVJREFUWEfV12mITlEYwPGXSAglUULIF8mSLEn2RJaypywjRAofKEuSklKyplBEtlCEkiIpa3wgFEpESPGBUvb1/5/eW8d5z/uamWZGnvo1M88999xz7znnuXdy/1M0xAIcwG5MQB3USrTGQ/yKnEZ91HicRXzxzCrUaHj3P5G6uJ6gRqM3UhfOfEGx8NyjuI1TGI5KRwt8R+riuo9UjMVXhG19kvNR6TiEsKOQOyOOeniJVPsPaI6/Rt38T6MpLiLsyLvZhnArZud0Qdg2NgbJsINleA4v8AhzYHTEcjiXxzALLdEA6/EannMX47ESqYtrJJKxFakTlmBnlNMMnIhyciBTcDzIZd6hCQqiHYottvcYkv/dNt/gXA7M51Keon+U8zwHloxxCBvHBmEYfOyt0Bk+gVTbTBtsx3lYvnuiaAxGqhMdRldcgo/X3D34BNbm/465BR1AmPMJWBNcVwXvEWu6jy08Qa/gAnSRxcc+oQduBrmMC3VilAsdRMEgeiG+0CYUu0sdgcUlzHmXbeGOCPOx2fgjGsGpcL6cN+fPxXkSqQ70ALbxNX0OG9ANHbAfP5A6T7dQHm6LHfiIuJFvu11RLmSBmhzl9AZuX4tOql+5Tso/NFJzmLmBvih2J9Pg3aeOyfpRFuVCudVRIsUOnOfPQc4BWQEHoNTLSm7fO1EuU15uUwcybkFru3vYQbgezmAp+sEdsgWlBrEPa6JcpuQiWYgReBzkYu4a3wvOdfz6zVxGqmi9RUEysxejYPFIHY852BVRLnMVk/AC1+GiduE2RvIEq10n+FZMHU9xpbeHL5v4mAMoGnFj+ZVj7U8dK2UuUjWj5ACuIF5AFzA9ylWEFdN6EuacQhdpyWgGPxKcwz2wo5kIO6qIdVgEvwOsiFPhN2WVoqoDqLb45wPog2uo6DZ8htGo9vCLeCgWYzOs+/6z4ZtuI+ahO2rtH9VqjFzuNzLZGFCEevNwAAAAAElFTkSuQmCC');
+}
+
+td.sendmail {
+	background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACUAAAAYCAYAAAB9ejRwAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAT2SURBVEhLtZZtSGRVGMfvvXNHHVc3DBstXAqNJGhEc4WVZIoip3a2fJkJ/CC46wv1IQi22CiCKLYvvbKw1X4R+lDEtmIqkSu77Lq6RmJlmvi2GUKKL4majjg649z+/+uc4ezsjC8rPfDMPOfl/ud3nnOec0dNTk7O9Pv99YqiGGHX4CG4GnYz1jRFDYWULcQWxIqI4fJzO2rIMfU0Tb9YVlb2F0zLzs4Ozc/Pqz6fT1WtVmthMBj8BRP3ZCpkDf7sAUxoaJrmzs/PvyIDMY4FtQK/Dr9jhRBTw0D8ZB9NZIbfsWJZ4xg07GJRgHqhsrKyXQZiTKgCQP22PS1iH3q93rdFWtmRlpamLS0tmXF0ukXMMbvdbnA8JSXFkOPu7u7XwPkRgMx5zJaqaidKSko6ZA3GmmEYPBe0IPz8dqicaWpqurC+vm4KHBSoq6vrPQB9HAb6Ft6J+A9VVVeigRjL2xdwOp3JEHgH8btw2iWHw34qN9fpZ2O/QFzUyMjIOWTllfCWfeFyuU6npqYGozXk2ALLDIVCL+OBUFFR0dmkpKSbs7OzC2i7IPbY3Nxa4czMTCvaW/sBmpub0/H9FTROhoHO8kgkJiayahUsPm1qauqZ5eXlyYSEBEPWk7cvkgmPx/O5rqu1EAug24Wt6xgbG7snGohxLKDJycmk6enpZgBVQcPANp1uaGh4H1omEOesra19gGS0YN53XIC8QA0PmGeFxh/jN89Qebnna1THS2iuw49B5Fpvb+/9MhDjaKDx8fHDi4uL7QB6DkBB6NfW19efjz6T0L6CJiFPAOzS6OhootBgyd5m8qHGHfIj7xKE/8IdGxsb11tbW7PjAQ0PD9+HsWuY+wSA/FwUgL6JVSTQbgXwSXSzwNzou9jZ2Wmjnqrr+tGtra0+DASQ4kNCQMBRoKenpwBzfkC3HT6DZ57Py8sbloGGhoaObG5udmD8YfgqgMpxB91saWl5FEfkMPq4PcyMSAR/xwJd7sarZo+itGdmZnpZfY+j+n5FugMej9fGERlIZAUZyg0EApcxfAS+iAJ5saKi4mcCDQ4O5kKDQA/AFzB2vLa29vfGxkY3zs336NuPfWJSAyjy6ogFxNjhcNxClTgxZQx+L1Z4ubm5+dmBgQEuqhN9BJrGIp8kEDWQrb/RNwVf2sF5NISxKEZVm00/6vffvn3RQHLc19eXjvuHW1kI3+Bz8BT4n4AurampmaIG2rvea/39/frExMSXaJ6CE+hNVP6nWjCommXKbAmxeEAcc7vd/+DyK0V4A54IJ9CAzWZz3gXQBTQF0BkCcae4fWhvbx8f2k2M4wUFBSuIWZXM2E+AfLq6unphNyDGQgNAb2Eqq49AbwDoM3F0NF03cIFSaucMCTFRcVlZWZs5OTne9PR0V1VV1epegBgLDYBw63mPvQ6gcwKIGvK/hABeA7a9AIkf5pgstlcgocGbvLi4eDNaj9sXuUAPAsQ4GiIeUFtb20O41x7EZWyJpcd3n/njtIMAMY4HxFjWwCV7A34Lr6OnYunx3WdWH+3/AuI8WY/tsJmxrMc50X+H+R7a0eSLVo73aTo/cLker6uruyoDcSGR8xQ2To7rgNABcUd8F26axaJYooGYWTUjI+MQ9vYR9DPNnCBAY8XMi2G1KpZAwOxjm//HeAT4POeIOJ5eRMNqTZ4oLS1dlYF8Pp/6H1ogutvk38RvAAAAAElFTkSuQmCC');
+}
+
+td.unlock {
+	background-image: url('data:image/jpg;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAAGXcA1uAAAACXBIWXMAAFxGAABcRgEUlENBAAAACXRFWHRDb21tZW50AACJKo0GAAAEZklEQVR4nI1WW2xUVRQdjV/6R0gs2opoZyqgVNAW1ApabYq0iMSa2IZgUPwp+KUkAqZWGoQWsJVSH4hKKZ2ZENHUQaGUD4nU+kGMUqPwoULRtMbHhxiYmftY7rXPPdfptIiT7M7knrP2c619GwEQiTQONqvxz5xdWdzznmuetp9wgeBKlA/098yOLB5LuljU4yEy/dU0MnKrbLej12KlXQ7ufttRJ7yx/KMgRPG2DBKnPCyQm+uOeiYKHVbIA7qJyoVZ4rsmfsEcCKopTK5xsEGfle36BXPfdFC+x0VFt4sH45JF4yAisR0Z/HER4w5LdpxH5JbWNEpey+COzizmveVg/rsuYtvkoGhzGre2peF40BruksPi1hFErl47hKLNGT28rT2DMjmQGCmb1dic9rN4+gjwTP9Ee/zgRVy15gsCpmkJMzsc3L4zi+FffWz93ENy2McD3aYBTJJdYhVTNw7/2ykmzEZvOe4h/0Pg/fs8lGw/bwA3SfdYJYHxbzwFVnc74DBf6Pd0Hqy6uM0A6kvkIqtn21kkW89C2X62qbQrq93QOoKiC9jla577Etc9f3KC6QQaB/v0Lv8EoIac+eUa5xoN77FVDMXWTdZStpotZ+stAA/v98I8yb4FUuC977tYKJ1ZJGeVCWGlkIWkjEzZcCos7vhZH60nPKRl5JOBNL2ilpGwI1V7HY009jcmjSSAlxUQ226GNvv17IShfTUK3Lc3UA0BN74yogOzoEOnfR3Yig9cHdifl8ykCVLADQK4eUs6BKUEwEgtn3m48w0DKH/HNcJSQPM5kBozthoQP+Q5LSu0Ov0bNBLVogDOoLDl0jgQZcX0yGCmR3lVmAj1nENqSe8FkVPmMiAH1b0eKKiQGuQJBzgZj8ivgEsF+VwqsEBLxGsF8H8sxykCHwWh38B5iinWJv5CQwqoPeCjStJ+aL8x/q4ShVYnjC1OenhE7tQEtvSgjzrh/spPoT7oiz4tV+vZ2EqROptICrKRTx5wkDrj49gPYj/6GJDvdQOesosjJMO4HpRlPYZpXBOVCR/LPvTtjtEhNBdu+knpyqbPCqbFZVjTY6jLqVEofLZcdjdHfqVA0bZzhhYMQHpHg8naQJ1DcnmPoxXVJWSry6rhLuX36j4Xqz928WzKU1soCy8/kO4vG6Bwk5GDZbddgLSkvDbO/A7USeaL9zlY0uOittfF0riLR8WS3/qhXKxkwgVpA1j52EWZG4jvJSsnVrMm5epcKCu+Mvi+svKaH7SNFm3LDdA8oiKg5QeKf+3h5M8i8E4n3BCWCLSOIROAclRJBoGKcwI0TVn/ncqTm5tBpgeK4waf3Z7F2j4HLx5xsb7fxYajxjYOuHjpmHyLcY9ZIjAId9n1Td+bhadrUgQyb+coZojjywViNflEsIyzFZFx5btdlHWNWtHFrNCmcYmTu6Wy0J+Qhb9KRLPyUGCfAE/9h606DMUQG/B/jD7HrYqclRENXkG5/0ZcyZoCTDTf3z9hwQPsF1ehhQAAAABJRU5ErkJggg==');
+}
+
+td.trash, .beheerlogins td:last-child, #beheerautorisatie td:last-child, .beheerwijzigingen td:last-child, #deelnemersevenementmuteren td:last-child, #lijstoutbox td:last-child, #muteertypeevenement td:last-child {
+	background-image: url("data:image/jpg;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAA7EAAAOxAGVKw4bAAABK0lEQVRIie3VMUoDURAG4C8hbCEiaCEiQaw8gQewFOyscoGUFhYWnsDKIljmEjaCpbXnkBAipBCrEILFzjMvISar6SQ/DPv4d97/z8xb9tWsxh4ecIBJcHX0cYVhBY2l6OASBRoRRXCdVZvrFQze8YgRxhGj4N5Xba5l63NcVDCsgic8U7ZLOedr3JjO+a+o4x6vGCaDAk3crimecBiaMyPaD3IbHxlfKOc+Me14HJU2lOeRsIPP4AapnYRBiLXRy6KlHGEPpxG94Fpzue3QGCTRhlkUUUWOXWxlFSZsxbscO6HxjSqf6VrYGGwMNgb/wWD+X7QI6RaTPdP613fHCbpLiqib7Xq+wG5o/JjQxxGO8bYkb5FJM/b288T8wkk4U95svz2fCe7wkpNfrmk0W0pz02cAAAAASUVORK5CYII=");
+	background-repeat: no-repeat;
+	background-position: center center;
+	text-align: center;
+	width: 45px;
+	height: 45px;
+}
+
+.beheerlogins a, #beheerautorisatie a, .beheerwijzigingen a, #deelnemersevenementmuteren a, #afdelingskalendermuteren a, #deelnemersevenementmuteren a, #lijstoutbox a, td.details a, td.muteren a, td.detailregels a, td.leden a, td.trash a {
+  text-decoration: none;
+}
+
+#autorisatiesperonderdeel {
+	clear: left;
+	margin-top: 75px;
+	border-width: 1px;
+}
+
 #formulier, #overzichtlid {
 	position: relative;
 }
@@ -409,7 +474,7 @@ header a + a:visited + a:hover {
 	border-style: none;
 }
 
-#wijzigengegevens, #nieuwlid, #wijzigendiplomas, #nieuwepasfoto, #bijzonderhedenwijzigen, #lidmaatschapmuteren, #inschrijvingbewaking, #inschrijvingevenementen, #webshop, #opzegformulier, #profielwijzigen {
+#wijzigenlidgegevens, #nieuwlid, #wijzigendiplomas, #nieuwepasfoto, #bijzonderhedenwijzigen, #lidmaatschapmuteren, #inschrijvingbewaking, #inschrijvingevenementen, #webshop, #opzegformulier, #profielwijzigen {
 	padding-top: 8px;
 }
 
@@ -421,8 +486,8 @@ header a + a:visited + a:hover {
 	width: 150px;
 }
 
-.ledenperonderdeelmuteren td:nth-child(2), .ledenperonderdeelmuteren td:last-child {
-	max-width: 110px;
+.ledenperonderdeelmuteren select {
+	width: 150px;
 }
 
 #inschrijvingevenementen td {
@@ -464,7 +529,7 @@ header a + a:visited + a:hover {
 	width: 200px;
 }
 
-#wijzigengegevens img {
+#wijzigenlidgegevens img {
 	max-width: 250px;
 }
 
@@ -480,6 +545,41 @@ header a + a:visited + a:hover {
 	width: 390px;
 	height: 500px;
 	margin-bottom: 5px;
+}
+
+#agenda table {
+	width: 100%;
+}
+
+#agenda tr {
+	vertical-align: top;
+	height: 80px;
+}
+
+#agenda tr:first-child {
+	height: 40px;
+}
+
+#agenda ul {
+	list-style-type: none;
+	border-style: none;
+	margin-top: 0;
+	margin-bottom: 0;
+	margin-left: 0;
+	margin-right: 0;
+	padding-top: 0;
+	padding-bottom: 0;
+	padding-left: 0;
+	padding-right: 0;
+}
+
+#agenda li {
+	font-size: 85%;
+}
+
+#agenda li:first-child {
+	text-align: right;
+	font-weight: bolder;
 }
 
 #nieuwepasfoto label {
@@ -504,8 +604,12 @@ header a + a:visited + a:hover {
 	padding-right: 4px;
 }
 
-#afdelingskalendermuteren input, #afdelingskalendermuteren select {
+#afdelingskalendermuteren input[type="text"] {
 	width: 500px;
+}
+
+#afdelingskalendermuteren select {
+	width: 300px;
 }
 
 #inschrijvingbewaking table {
@@ -541,7 +645,7 @@ header a + a:visited + a:hover {
 }
 
 #groepsindeling select {
-	margin-top: 9px;
+	margin-top: 5px;
 	margin-bottom: 8px;
 	margin-left: 3px;
 }
@@ -558,6 +662,19 @@ header a + a:visited + a:hover {
 	padding-left: 6px;
 }
 
+
+#groepenmuteren input[type='text'] {
+	width: 225px;
+}
+
+#groepenmuteren input.code {
+	width: 75px;
+}
+
+#groepenmuteren input[type='number'] {
+	width: 60px;
+}
+
 #versies {
 	float: left;
 	clear: left;
@@ -570,12 +687,16 @@ header a + a:visited + a:hover {
 	text-align: center;
 }
 
-.kode, .code {
+input.kode, input.code, .code {
 	width: 75px;
 }
 
 .kode {
 	background-color: yellow;
+}
+
+input.omschrijving {
+	width: 250px;
 }
 
 .nietdefinitief {
@@ -662,9 +783,8 @@ header a + a:visited + a:hover {
 	border-style: none;
 }
 
-
 #login input[type='text'], #login input[type='password'] {
-	width: 125px;
+	width: 100px;
 }
 
 #login input[type='submit'] {
@@ -678,10 +798,13 @@ header a + a:visited + a:hover {
 }	
 
 #loginaanvraag, #opvragenlidnr, #profielwijzigen, #opzegformulier, #herstellenwachtwoord {
-	width: 455px;
-	background-color: #00FFFF;
 	margin-left: auto;
 	margin-right: auto;
+}
+
+#loginaanvraag, #opvragenlidnr, #profielwijzigen, #opzegformulier, #herstellenwachtwoord {
+	width: 455px;
+	background-color: #00FFFF;
 	margin-bottom: 6px;
 	padding-top: 8px;
 	padding-left: 5px;
@@ -689,22 +812,40 @@ header a + a:visited + a:hover {
 	padding-bottom: 5px;
 }
 
-#loginaanvraag {
-	float: left;
+#opvragenlidnr input[type='email']{
+	width: 225px;
+	clear: none;
+}
+
+@media screen and (max-width: 1000px) {
+	#container, #containerbreed {
+		width: 98%;
+	}
+	
+	#loginaanvraag, #opvragenlidnr, #profielwijzigen, #opzegformulier, #herstellenwachtwoord {
+		width: 96%;
+	}
+	
+	header h1 {
+		color: red;
+	}
 }
 
 #loginaanvraag label, #opvragenlidnr label, #profielwijzigen label, #herstellenwachtwoord label, #opzegformulier label, #bijzonderhedenwijzigen label {
-	width: 195px;
+	width: 150px;
 	height: 20px;
 	float: left;
+	margin-left: 0;
 	margin-right: 8px;
 	padding-bottom: 2px;
 }
 
 #loginaanvraag input, #opvragenlidnr input, #profielwijzigen input, #herstellenwachtwoord input, #opzegformulier input {
+	float: left;
 	clear: right;
 	height: 22px;
-	width: 200px;
+	width: 185px;
+	display: inline;
 	color: #000080;
 	font-weight: bold;
 	margin-left: 2px;
@@ -715,12 +856,6 @@ header a + a:visited + a:hover {
 	cursor: pointer;
 	border-style: solid;
 	border-width: 1px;
-}
-
-#loginaanvraag input[type='submit'], #opvragenlidnr input[type='submit'], #profielwijzigen input[type='submit'], #herstellenwachtwoord input[type='submit'], #opzegformulier input[type='submit'] {
-	clear: both;
-	float: right;
-	height: 40px;
 }
 
 #overzichtevenementen {
@@ -745,8 +880,13 @@ header a + a:visited + a:hover {
 	background-color: transparent;
 }
 
+#overzichtevenementen ul {
+	float: left;
+	clear: left;
+}
+
 #overzichtevenementen td:last-child {
-	width: 60%;
+	width: 75%;
 }
 
 #evenementenbeheer table {
@@ -757,9 +897,33 @@ header a + a:visited + a:hover {
 	width: 500px;
 }
 
-#deelnemersevenementmuteren td:last-child {
-	text-align: center;
+#evenementenbeheer input[type='time'], #evenementenbeheer input[type='number'] {
+	width: 85px;
+	margin-right: 10px;
 }
+
+#evenementenbeheer select, #evenementenbeheer label {
+	width: 200px;
+}
+
+#evenementenbeheer p {
+	float: left;
+	min-width: 90px;
+	margin-left: 5px;
+	margin-top: 6px;
+}
+
+#evenementenbeheer input[type='checkbox'] {
+	margin-left: 0;
+	margin-right: 75px;
+	padding-left: 2px;
+	background-color: green;
+}
+
+#evenementenbeheer select {
+	margin-top: 5px;
+}
+
 
 fieldset {
 	margin-top: 3px;
@@ -786,7 +950,6 @@ fieldset h3 {
 	padding-right: 3px;
 	border-width: 1px;
 	border-style: none;
-	background-color: white;
 }
 
 #opzegformulier input.inputnumber, #lidmaatschapmuteren input.inputnumber {
@@ -808,7 +971,7 @@ input.knop, button.knop {
 	font-size: 11pt;
 }
 
-#loginaanvraag input.knop, #opvragenlidnr input.knop, #profielwijzigen input.knop {
+#loginaanvraag input.knop, #profielwijzigen input.knop {
 	width: 100px;
 	float: right;
 }
@@ -1436,25 +1599,12 @@ input.knop, button.knop {
 	margin-bottom: 5px;
 }
 
-#onderdelenmuteren button {
-	margin-top: 5px;
-	margin-left: 1px;
-	padding-top: 0;
-	padding-left: 0;
-	background-color: inherit;
-	border-style: none;
-}
-
 #onderdelenmuteren input {
 	float; left;
 }
 
 #onderdelenmuteren input.naam {
-	width: 300px;
-}
-
-#onderdelenmuteren input.email {
-	width: 200px;
+	width: 400px;
 }
 
 #mailingselectieleden td {
@@ -1585,30 +1735,36 @@ input.knop, button.knop {
 	border-width: 1px;
 }
 
-#wijzigengegevens label, #nieuwlid label {
-	width: 225px;
+#wijzigenlidgegevens label, #nieuwlid label {
+	width: 150px;
 	margin-right: 8px;
 	padding-right: 3px;
 }
 
-#wijzigengegevens input {
+#wijzigenlidgegevens input, #wijzigenlidgegevens select {
 	width: 350px;
 	margin-right: 0;
 	padding-right: 0;
 }
 
-#wijzigengegevens textarea {
+#wijzigenlidgegevens textarea {
 	float: left;
 }
 
-#wijzigengegevens select, #nieuwlid select {
-	width: 350px;
+#wijzigenlidgegevens select, #nieuwlid select {
 	margin-top: 4pt;
 	margin-right: 0;
 	padding-right: 0;
 }
 
-#wijzigengegevens .invoerblok, #nieuwlid .invoerblok {
+#wijzigenlidgegevens p {
+	clear: none;
+	float: left;
+	margin-left: 5px;
+	padding-top: 7px;
+}
+
+#wijzigenlidgegevens .invoerblok, #nieuwlid .invoerblok {
 	border-style: none;
 }
 
@@ -1666,188 +1822,121 @@ input.knop, button.knop {
 	color: orange;
 }
 
-/* Elementen voor nieuw menu */
+@media only screen and (max-width: 500px) {
+	h1 {
+		font-size: 125%;
+	}
+	
+	#overzichtlid label {
+		width: 135px;
+	}
+	
+	#overzichtlid span {
+		width: 225px;
+	}
+	
+	#wijzigenlidgegevens input, #wijzigenlidgegevens select {
+		width: 200px;
+	}
+}
 
-#nav {
+nav {
+	width: 100%;
+	font-size: 10pt;
 	margin: 0;
 	padding: 0;
-}
-#nav li {
-	float: left;
-	position: relative;
-	list-style: none;
-	
-	min-width: 107px;
-	height: 30px;
-	
-	margin-top: 15px;
-	margin-left: 2px;
-	margin-right: 2px;
-	
-	padding-top: 8px;
-	padding-left: 0;
-	padding-right: 0;
-	
-	border-color: transparent;
-	background-color: #cdcdcd;
-	border-top-right-radius: 9px;
-	border-top-left-radius: 9px;
-}
-
-/* main level link */
-#nav a {
-	color: #000080;
-	text-decoration: none;
-	display: block;
-	padding-top: 4px;
-	padding-bottom: 4px;
-	padding-left: 4px;
-	padding-right: 4px;
-	margin: 0;
-}
-
-/* main level link hover */
-#nav .current a {
-	font-weight: bolder;
-}
-
-#nav li:hover > a {
-	background-color: #0399d4;
-	color: white;
-	font-weight: normal;
-}
-
-/* sub levels link hover */
-#nav ul li:hover a, #nav li:hover li a {
-	background-color: none;
-	border: none;
-	font-weight: normal;
-}
-#nav ul a:hover {
-	background-color: #0399d4 !important; /* for non-css3 browsers */
-	color: white !important;
-}
-/* level 2 list */
-#nav ul {
-	background: #ddd; /* for non-css3 browsers */
-
-	display: none;
-	margin: 0;
-	padding: 0;
-	width: 185px;
-	position: absolute;
-	top: 35px;
-	left: 0;
 	border-style: solid;
 	border-width: 1px;
-	border-color: #b4b4b4;
 }
 
-/* dropdown */
-#nav li:hover > ul {
-	display: block;
+nav ul {
+	padding-inline-start: 0;
+	clear: right;
+}
+
+nav ul li {
+	line-height: 40px;
+	padding-left: 8px;
+	padding-right: 8px;
+	padding-bottom: 0;
+	list-style: none;
+	position: relative;
+	text-align: center;
+	float: left;
+}
+
+nav li:first-child {
+	clear: left;
+}
+
+nav img {
+	margin-bottom: 0;
+	padding-bottom: 0;
+	height: 40px;
+}
+
+nav li.hm {
+	line-height: 2px;
+}
+
+nav li.down {
+	list-style: none;
+	float: none;
 	z-index: 2;
 }
-#nav ul li {
-	float: none;
-	margin: 0;
-	padding: 0;
-}
-#nav ul a {
-	font-weight: normal;
+
+nav li.current {
+	font-weight: bolder;
+	font-size: 110%;
 }
 
-
-/* Elementen voor treeview */
-
-.css-treeview ul, .css-treeview li {
-	padding: 0;
-	margin: 0;
-	list-style: none;
-}
-
-.css-treeview input 	{
-	position: absolute;
-	opacity: 0;
-}
-
-.css-treeview {
-	-moz-user-select: none;
-	-webkit-user-select: none;
-	user-select: none;
-}
-
-.css-treeview a {
-	color: #00f;
+nav ul li a {
+	display: inline-block;
 	text-decoration: none;
 }
 
-.css-treeview a:hover {
-	text-decoration: underline;
+nav ul li a:hover {
+	font-weight: bold;
+	border-bottom: 2px solid #fff;
 }
 
-.css-treeview input + label + ul {
-	margin: 0 0 0 22px;
-}
-
-.css-treeview input + label + ul {
+nav ul li ul {
 	display: none;
 }
 
-.css-treeview label, .css-treeview label::before {
-	cursor: pointer;
-}
-
-.css-treeview input:disabled + label {
-	cursor: default;
-	opacity: .6;
-}
-
-.css-treeview input:checked:not(:disabled) + label + ul {
+nav ul li:hover ul {
 	display: block;
 }
 
-.css-treeview label, .css-treeview label::before {
-	background: url("icons.png") no-repeat;
+ul.menulaag_1 li {
+	font-size: 10pt;
+	box-shadow: 0px 2px 5px 0px grey;
+	background: linear-gradient(white 20%, grey 80%);
 }
 
-.css-treeview label, .css-treeview a, .css-treeview label::before {
-	display: inline-block;
-	height: 16px;
-	line-height: 16px;
-	vertical-align: middle;
+ul.menulaag_2 li {
+	font-size: 9pt;
+	margin-right: 3px;
+	background: linear-gradient(white 20%, grey 80%);
 }
 
-.css-treeview label {
-	background-position: 18px 0;
+ul.menulaag_3 li {
+	margin-top: 3px;
+	font-size: 9pt;
+	border-left-style: none;
+	border-right-style: solid;
+	border-width: 1px;
 }
 
-.css-treeview label::before {
-	content: "";
-	width: 16px;
-	margin: 0 22px 0 0;
-	vertical-align: middle;
-	background-position: 0 -32px;
+ul.menulaag_3 li:last-child {
+	border-right-style: none;
 }
 
-.css-treeview input:checked + label::before {
-	background-position: 0 -16px;
+#agenda li.ZR {
+	color: yellow;
+	background-color: red;
 }
 
-/* webkit adjacent element selector bugfix */
-@media screen and (-webkit-min-device-pixel-ratio:0) {
-	.css-treeview {
-		-webkit-animation: webkit-adjacent-element-selector-bugfix infinite 1s;
-	}
-			
-	@-webkit-keyframes webkit-adjacent-element-selector-bugfix {
-		from { 
-			padding: 0;
-		} 
-		to  { 
-			padding: 0;
-		}
-	}
+#agenda li.DZ {
+	color: aqua;
 }
-
-/* Einde elementen voor treeview */

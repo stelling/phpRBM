@@ -2,8 +2,6 @@
 
 function fnBewaking() {
 	global $ldl, $currenttab2;
-	
-	fnDispMenu(2);
 		
 	if (isset($_POST['lidid']) and $_POST['lidid'] > 0) {
 		$lidid = $_POST['lidid'];
@@ -81,14 +79,6 @@ function fnBewaking() {
 		if (!isset($_POST['lidfilter']) or strlen($_POST['lidfilter']) == 0) {
 			$_POST['lidfilter'] = 0;
 		}
-		/* Filter tijdelijk uitgeschakeld.
-		echo("<label>Filter op lid</label><select name='lidfilter' id='lidfilter' onchange='this.form.submit();'>\n");
-		echo("<option value=-1>Alle</option>\n");
-		foreach (db_logboek("lidlijst", "", 6) as $row) {
-			printf("<option %s value=%d>%s</option>\n", checked($row->LidID, "option", $_POST['lidfilter']), $row->LidID, htmlentities($row->Naam));
-		}
-		echo("</select>\n");
-		*/
 	} else {
 		echo("<label>Bewakingsseizoen</label>");
 		echo("<select name='seizoen' id='seizoen' onchange='this.form.submit();'>\n");
@@ -340,7 +330,7 @@ function inschrijvenbewaking($lidid) {
 			$i_memo = null;
 			if ($geldig) {
 				if (isset($_POST['Definitief'])) {
-					db_insbew("defmaken", $lidid, $insnr);
+					$i_ib->defmaken($lidid, $insnr);
 					if ($_SESSION['settings']['mailing_bewakinginschrijving'] > 0) {
 						BevestInschrBewaking($lidid, $insnr);
 					}
@@ -476,7 +466,7 @@ function BevestInschrBewaking($lidid, $insnr) {
 	} else {
 		$mess = "Er is geen mailing voor het bevestigingen van de inschrijving gedefinieerd.";
 	}
-	db_logboek("add", $mess, 11, $lidid, 2);
+	(new cls_Logboek())->add($mess, 11, $lidid, 2);
 	echo("<script>location.href='/index.php';</script>\n");
 }
 
@@ -559,10 +549,10 @@ function DetailsInschrijvingBewaking($rows) {
 function exportinschrijvingen() {
 
 	if (isset($_GET['op']) and $_GET['op'] == "afmelden") {
-		printf("<p class='mededeling'>%s</p>\n", db_insbew("afmelden"));
+		(new cls_insbew())->afmelden();
 	}
 	
-	$rows = db_insbew("export");
+	$rows = (new cls_insbew())->export();
 	if (count($rows) > 0) {
 		printf("<form name='formdownload' method='post' action='%s?%s&amp;op=exportins'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 		echo("<table>\n");

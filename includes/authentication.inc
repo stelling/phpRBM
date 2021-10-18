@@ -31,6 +31,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 } else {
 	$tabpages[] = "Vereniging";
 	addtp("Vereniging/Introductie");
+	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
+		addtp("Vereniging/Agenda");
+	}
 	if ((new cls_Onderdeel())->aantal("`Type`='A'") > 0) {
 		addtp("Vereniging/Verenigingskader");
 		addtp("Vereniging/Afdelingskader");
@@ -41,18 +44,15 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	addtp("Vereniging/Onderscheidingen");
 	if ($_SESSION['lidid'] > 0) {
 		addtp("Eigen gegevens");
+	} else {
+		addtp("Login aanvragen");
+		addtp("Herstel wachtwoord");
+		addtp("Opvragen lidnr");
 	}
 	$i_lo = new cls_Lidond();
 	
-	$arr_tp_afdnm = array();
-	if (strlen($_SESSION['settings']['menu_met_afdelingen']) > 0) {
-		// Tabblad per afdeling
-		foreach ((new cls_Onderdeel())->lijst(1, "`Type`='A'") as $row) {
-			$arr_tp_afdnm[] = $row->Naam;
-		}
-	}
-	
-	if ($currenttab == "Eigen gegevens" or (($currenttab == "Ledenlijst" or in_array($currenttab, $arr_tp_afdnm)) and $currenttab2 == "Overzicht lid")) {
+//	if ($currenttab == "Eigen gegevens" or ($currenttab == "Ledenlijst" and $currenttab2 == "Overzicht lid")) {
+	if ($currenttab == "Eigen gegevens" or ($currenttab2 == "Overzicht lid")) {
 		if ($currenttab == "Eigen gegevens") {
 			$b = $currenttab . "/";
 			$lidid = $_SESSION['lidid'];
@@ -170,16 +170,17 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			addtp("Ledenlijst/Klosleden");
 		}
 		addtp("Ledenlijst/Nieuw (klos)lid");
-		addtp("Ledenlijst/Commissies muteren");
-		addtp("Ledenlijst/Groepen muteren");
+		addtp("Ledenlijst/Afdelingen");
+		addtp("Ledenlijst/Commissies");
+		addtp("Ledenlijst/Groepen");
 		if ((new cls_Onderdeel())->aantal("`Type`='R' AND IFNULL(VervallenPer, CURDATE()) >= CURDATE()") > 0) {
-			addtp("Ledenlijst/Rollen muteren");
+			addtp("Ledenlijst/Rollen");
 		}
 		addtp("Ledenlijst/Instellingen");
 		addtp("Ledenlijst/Mutaties");
 	}
 	
-	if (strlen($_SESSION['settings']['menu_met_afdelingen']) > 0) {
+	if (isset($_SESSION['settings']['menu_met_afdelingen']) and strlen($_SESSION['settings']['menu_met_afdelingen']) > 0) {
 		// Tabblad per afdeling
 		foreach ((new cls_Onderdeel())->lijst(1, "`Type`='A'") as $row) {
 			if (in_array($row->RecordID, explode(",", $_SESSION['settings']['menu_met_afdelingen']))) {
@@ -192,7 +193,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 					}
 					addtp(trim($row->Naam) . "/Groepsindeling muteren");
 					addtp(trim($row->Naam) . "/Kalender muteren");
-					$f = sprintf("OnderdeelID=%d AND Datum > DATE_SUB(CURDATE(), INTERVAL 9 MONTH)", $row->RecordID);
+					$f = sprintf("OnderdeelID=%d AND Datum > DATE_SUB(CURDATE(), INTERVAL 9 MONTH) AND Activiteit=1", $row->RecordID);
 					if ((new cls_Afdelingskalender())->aantal($f) > 0) {
 						addtp(trim($row->Naam) . "/Aanwezigheid muteren");
 					}
@@ -337,6 +338,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			if ($row->AantalRecords > 0 and $row->AantalKolommen > 1) {
 				addtp("Eigen lijsten/" . $row->Naam);
 			}
+//			debug($row->Naam . ": " . $row->AantalRecords . " / " . $row->AantalKolommen);
 		}
 	}
 }
@@ -407,6 +409,7 @@ function fnAuthenticatie($melding=1, $password="", $p_napost=0) {
 				$_SESSION['emailingelogde'] = "";
 			}
 			$i_login->setingelogd($row->LidID, $p_napost);
+			(new cls_Parameter())->vulsessie();
 		} else {
 			if ($pwfromcookie == 0) {
 				$mess = sprintf("De combinatie van login '%s' en het ingevoerde wachtwoord is niet correct! Je bent niet ingelogd.", $_SESSION['username']);
@@ -435,9 +438,10 @@ function toegang($soort, $melding=1, $log=1) {
 
 	$arrAltijdToegang[] = "Validatie login";
 	$arrAltijdToegang[] = "Bevestiging login";
-	$arrAltijdToegang[] = "Opvragen lidnr";
 	if ($_SESSION['lidid'] == 0) {
-		$arrAltijdToegang[] = "Herstellen wachtwoord";
+		$arrAltijdToegang[] = "Login aanvragen";
+		$arrAltijdToegang[] = "Herstel wachtwoord";
+		$arrAltijdToegang[] = "Opvragen lidnr";
 	}
 	if (strlen($soort) == 0) {
 		$soort = $currenttab;
@@ -473,7 +477,7 @@ function toegang($soort, $melding=1, $log=1) {
 			$_SESSION['toegang'][$soort] = 1;
 			return true;
 		} else {
-			$mess = sprintf("Je hebt geen toegang tot '%s' op %s.", $soort, $_SESSION['settings']['naamwebsite']);
+			$mess = sprintf("Je hebt geen toegang tot '%s'.", $soort);
 			if ($log == 1) {
 				(new cls_Logboek())->add($mess, 15, 0, $melding);
 			} elseif ($melding > 0) {
@@ -546,13 +550,17 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 			
 			printf("<form name='HerstellenWachtwoord' action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
 			printf("
-			<h3>Herstellen wachtwoord</h3>
-			<label>Login:</label><input type=text value='%s' name='login' readonly>
-			<label>Nieuw wachtwoord:</label><input type='password' name='nieuwwachtwoord' size=25>
-			<label>Herhaal wachtwoord:</label><input type='password' name='herhaalwachtwoord' size=25>
+			<h3>Herstel wachtwoord</h3>
+			<fieldset>
+			<label>Login</label><input type=text value='%s' name='login' readonly>
+			<label>Nieuw wachtwoord</label><input type='password' name='nieuwwachtwoord'>
+			<label>Herhaal wachtwoord</label><input type='password' name='herhaalwachtwoord'>
+			</fieldset>
+			%s
+			<div id='opdrachtknoppen'>\n
 			<input type='submit' value='Bevestig'>\n
-			</form>
-			%s", $login, fneisenwachtwoord());
+			</div> <!-- Einde opdrachtknoppen -->\n
+			</form>", $login, fneisenwachtwoord());
 		} else {
 			echo("<h3>Deze link is niet correct, vraag een nieuwe aan.</h3>\n");
 		}
@@ -578,17 +586,19 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		echo("<p><a href='/'>Klik hier om verder te gaan.</a></p>\n");
 	} else {
 		echo("<div id='herstellenwachtwoord'>\n");
-		printf("<form name='HerstellenWachtwoord' action='%s?Herstellen+wachtwoord' method='post'>\n", $_SERVER["PHP_SELF"]);
+		printf("<form name='HerstellenWachtwoord' action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER['QUERY_STRING']);
 		echo("<fieldset>
 		<h3>Herstellen wachtwoord</h3>
-		<label>E-mailadres:</label><input type='email' name='email'>
-		<label>Lidnummer:</label><input type='number' min=0 name='lidnummer' value=0>
-		<label>Login:</label><input type='text' name='login'>
+		<label>E-mailadres</label><input type='email' name='email'>
+		<label>Lidnummer</label><input type='number' min=0 name='lidnummer' value=0>
+		<label>Login</label><input type='text' name='login'>
 		<input type='hidden' value='mail' name='stap'>
-		<input type='submit' value='Stuur herstellink'>\n
 		</fieldset>
-		</form>
 		<p>Minimaal 2 van de 3 velden moeten correct zijn ingevuld. Na het versturen van deze link is je oude wachtwoord niet meer geldig.</p>
+		<div id='opdrachtknoppen'>\n
+		<input type='submit' value='Stuur herstellink'>\n
+		</div> <!-- Einde opdrachtknoppen -->\n
+		</form>
 		</div>  <!-- Einde herstellenwachtwoord -->");
 	}
 	if (strlen($mess) > 0) {
@@ -608,7 +618,8 @@ function fnValidatieLogin($lidid, $key, $stap) {
 		
 		if ($_SESSION['settings']['mailing_validatielogin'] == 0) {
 			$inst_M = new cls_Mailing();
-			$content = "<p>Activatie url [%NAAMWEBSITE%]: https://[%URLACTIVATIE%]</p>\n";
+			$content = "<p>Naam lid: [%Lidnaam%]</p>
+						<p>Activatie url [%NAAMWEBSITE%]: https://[%URLACTIVATIE%]</p>\n";
 			$mid = $inst_M->add("Validatielink nieuwe login");
 			$inst_M->update($mid, "from_addr", $_SESSION['settings']['emailwebmaster']);
 			$inst_M->update($mid, "template", 1);
@@ -706,9 +717,11 @@ function fnLoginAanvragen($stap="") {
 					}
 				}
 			} elseif ($_POST['lidnummer'] > 0) {
-				$mess = sprintf("De combinatie van lidnummer %d en e-mailadres '%s' is in de database onbekend.", $_POST['lidnummer'], $_POST['email']);	
+				$mess = sprintf("De combinatie van lidnummer %d en e-mailadres '%s' is in de database onbekend.", $_POST['lidnummer'], $_POST['email']);
+			} elseif ($lidid == -1) {
+				$mess = sprintf("E-mailadres '%s' komt meerdere keren voor, vul het lidnummer in bij de login aanvraag.", $_POST['email']);
 			} else {
-				$mess = sprintf("E-mailadres '%s' is onbekend in de database of komt meerdere keren voor.", $_POST['email']);
+				$mess = sprintf("E-mailadres '%s' is onbekend in de database.", $_POST['email']);
 			}
 		}
 		if (strlen($mess) > 0) {
@@ -720,21 +733,18 @@ function fnLoginAanvragen($stap="") {
 
 		echo("<div id='loginaanvraag'>\n");
 		printf("<form action='%s?tp=Bevestiging+login' method='post'>\n", $_SERVER["PHP_SELF"]);
-		echo("<h3>Aanvragen login</h3>\n");
-		echo("<fieldset>\n");
-				
-		echo("<label>Lidnummer:</label><input type='number' name='lidnummer' value=0>\n");
-		echo("<label>E-mailadres:</label><input type='email' name='email'>\n");
-		printf("<label>Gewenste login:</label><input type='text' name='gewenstelogin' maxlength=%d>\n", $_SESSION['settings']['login_maxlengte']);
-		echo("<label>Gewenst wachtwoord:</label><input type='password' name='gewenstwachtwoord'>\n");
+		echo("<h3>Login aanvraag</h3>\n");
+		
+		echo("<label>E-mailadres</label><input type='email' name='email' value=''>\n");
+		echo("<label>Lidnummer</label><input type='number' name='lidnummer'>\n");
+		printf("<label>Gewenste login</label><input type='text' name='gewenstelogin' maxlength=%d>\n", $_SESSION['settings']['login_maxlengte']);
+		echo("<label>Gewenst wachtwoord</label><input type='password' name='gewenstwachtwoord' value=''>\n");
 
-		echo("<input type='submit' name='loginaanvragen' value='Aanvragen'>\n");
-		echo("</fieldset>\n");
-		echo("</form>\n");
+//		echo("</fieldset>\n");
 
-		echo("<p>");
-		echo("Met de juiste combinatie van lidnummer en e-mailadres kan je een login aanvragen.");
-		echo(" Je ontvangt een e-mail met daarin een link om deze aanmelding te bevestigen. Pas daarna is de login bruikbaar om in te loggen.</p>\n");
+		echo("<div class='clear'></div>\n");
+
+		echo("<p>Je ontvangt een e-mail met daarin een link om deze aanmelding te bevestigen. Pas na het bevestigen is de login bruikbaar om in te loggen.</p>\n");
 		
 		echo("<p>Voorwaarden aan een login:</p>\n<ul>\n");
 		printf("<li>Minimaal 7 karakters en maximaal %d karakters lang</li>\n", $_SESSION['settings']['login_maxlengte']);
@@ -743,7 +753,12 @@ function fnLoginAanvragen($stap="") {
 		echo("</ul>\n");
 		
 		printf(fneisenwachtwoord());
-			
+		
+		echo("<div id='opdrachtknoppen'>\n");
+		echo("<input type='submit' name='loginaanvragen' value='Aanvragen'>\n");
+		echo("</div> <!-- Einde opdrachtknoppen -->\n");
+		
+		echo("</form>\n");
 		echo("</div>  <!-- Einde loginaanvraag -->\n");
 	}
 } # fnLoginAanvragen
@@ -786,20 +801,22 @@ function fnOpvragenLidnr($stap) {
 		printf("<p><a href='%s' target='_top'>Klik hier om verder te gaan.</a></p>\n", BASISURL);
 		
 	} elseif ($_SESSION['settings']['mailing_lidnr'] > 0) {
+		
 		echo("<div id='opvragenlidnr'>\n");
 
 		printf("<form action='%s?tp=Opvragen+lidnr' method='post'>\n", $_SERVER["PHP_SELF"]);
 		
-		echo("<fieldset>\n");
 		echo("<h3>Opvragen Lidnummer</h3>\n");
-		echo("<label>E-mailadres:</label><input type='email' name='emailvoorlidnr'>\n");
-		echo("<input type='submit' name='opvragenlidnr' value='Opvragen'>\n");
+		echo("<fieldset>\n");
+		echo("<label>E-mailadres</label><input type='email' name='emailvoorlidnr'>\n");
 		echo("</fieldset>\n");
+		echo("<div id='opdrachtknoppen'>\n");
+		echo("<input type='submit' name='opvragenlidnr' value='Opvragen'>\n");
+		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 		
 		echo("</form>\n");
 		echo("</div>  <!-- Einde opvragenlidnr -->\n");
 	}
-	
 	
 } # fnOpvragenLidnr
 
@@ -879,19 +896,19 @@ function checknewpassword($ww, $login="", $p_wwh="ghc") {
 } # checknewpassword
 
 function fneisenwachtwoord() {
-	return sprintf("<p>Voorwaarden aan een wachtwoord:</p>\n
-					<ul>\n
-					<li>Minimaal %d karakters en maximaal %d karakters lang</li>\n
-					<li>Er mogen geen aanhalingstekens en geen spaties in zitten</li>\n
-					<li>Mag niet je login of roepnaam bevatten</li>\n
-					<li>Moet minimaal 1 cijfer bevatten</li>\n
-					<li>Moet minimaal 1 kleine letter bevatten</li>\n
-					<li>Moet minimaal 1 hoofdletter bevatten</li>\n
+	return sprintf("<p>Voorwaarden aan een wachtwoord:</p>
+					<ul>
+					<li>Minimaal %d karakters en maximaal %d karakters lang</li>
+					<li>Er mogen geen aanhalingstekens en geen spaties in zitten</li>
+					<li>Mag niet je login of roepnaam bevatten</li>
+					<li>Moet minimaal 1 cijfer bevatten</li>
+					<li>Moet minimaal 1 kleine letter bevatten</li>
+					<li>Moet minimaal 1 hoofdletter bevatten</li>
 					</ul>\n", $_SESSION['settings']['wachtwoord_minlengte'], $_SESSION['settings']['wachtwoord_maxlengte']);
 } # fneisenwachtwoord
 
 function addtp($tp, $afdnr=0) {
-	global $tabpages, $currenttab, $currenttab2;
+	global $tabpages, $currenttab;
 	
 	$i_acc = new cls_Authorisation();
 	

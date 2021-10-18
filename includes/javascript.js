@@ -1,3 +1,4 @@
+
 function fnFilter(p_table, p_filterelement, p_kolom, p_kolom2) {
 	var input, filter, table, tr, td, td2, i, txtValue, txtValue2;
 	

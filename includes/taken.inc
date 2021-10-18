@@ -51,7 +51,7 @@ function fnTaakEdit($tid) {
 	printf("<p><label>Omschrijving:</label><input type='text' name='Omschrijving' value='%s'></p>\n", $row->Omschrijving);
 	$selectgroep = "<select name='taakgroepid'>\n";
 	$query = sprintf("SELECT RecordID, CONCAT(Kode, ' - ', Naam) AS Oms FROM %sTaakgroep ORDER BY Kode;", TABLE_PREFIX);
-	$result = fnQuery($query);
+	$result = $this->execsql($query);
 	foreach ($result->fetchAll() as $rowsel) {
 		if ($rowsel->RecordID == $row->Taakgroep) {
 			$s = " selected";
@@ -84,7 +84,7 @@ function fnTaakgroepen() {
 		}
 	}
 	if (strlen($mess) > 0) {
-		db_logboek("add", $mess, 18, 0, 1);
+		(new cls_Logboek())->add($mess, 18, 0, 1);
 	}
 	
 	printf("<form method='post' action='%s?tp=%s' name='BrowseTaakgroep'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
@@ -106,5 +106,47 @@ function fnTaakgroepen() {
 	echo("</form>\n");
 	
 }
+
+
+// Tijdens de ontwikkeling worden deze functies tijdelijk hier geplaatst. Uiteindelijk moeten deze verplaatst worden naar database.inc
+function db_taak($actie, $tid=0) {
+	global $selectnaam;
+	
+	if ($actie == "lijst") {
+		$sq = sprintf("SELECT IFNULL(%1\$s, 'Niemand') FROM %2\$sLid AS L WHERE L.Nummer=(SELECT MAX(LidID) FROM %2\$sTaakLid AS TL WHERE TL.TaakID=T.RecordID AND Eindverantwoordelijke=1)", $selectnaam, TABLE_PREFIX);
+		$query = sprintf("SELECT T.RecordID AS lnkNummer, Omschrijving, TG.Naam AS Groep, GeplandGereed AS `Planning gereed`, (%1\$s) AS Verantwoordelijke FROM %2\$sTaak AS T INNER JOIN %2\$sTaakgroep AS TG ON TG.RecordID=T.Taakgroep
+		ORDER BY T.Omschrijving;", $sq, TABLE_PREFIX);
+		$result = $this->execsql($query);
+		return $result->fetchAll();
+	} elseif ($actie == "record") {
+		$query = sprintf("SELECT * FROM %sTaak WHERE RecordID=%d;", TABLE_PREFIX, $tid);
+		$result = $this->execsql($query);
+		return $result->fetch();
+	}
+} # db_taak
+
+function db_taakgroep($actie, $rid=0, $waarde="", $kolomnm="") {
+	if ($actie == "lijst") {
+		$query = sprintf("SELECT RecordID, Kode, Naam FROM %sTaakgroep ORDER BY Naam;", TABLE_PREFIX);
+		$result = $this->execsql($query);
+		return $result->fetchAll();
+	} elseif ($actie == "add") {
+		$query = sprintf("INSERT INTO %sTaakgroep SET Kode='%s', IngevoerdDoor='%s';", TABLE_PREFIX, $waarde, $_SESSION['lidid']);
+		$id = (new cls_db_base())->execsql($query);
+		$mess = sprintf("Taakgroep %d met kode '%s' is toegevoegd.", $id, $waarde);
+		(new cls_Logboek())->add($mess, 18);
+		return $id;
+		
+	} elseif ($actie == "update" and strlen($kolomnm) > 0) {
+		$query = sprintf("UPDATE %1\$sTaakgroep SET `%2\$s`='%3\$s', GewijzigdDoor=%4\$d WHERE RecordID=%5\$d;", TABLE_PREFIX, $kolomnm, $waarde, $_SESSION['lidid'], $rid);
+		if ((new cls_db_base())->execsql($query) > 0) {
+			$mess = sprintf("Kolom '%s' in Taakgroep %d is in '%s' gewijzigd.", $kolomnm, $rid, $waarde);
+			(new cls_Logboek())->add($mess, 18);
+			return true;
+		} else {
+			return false;
+		}
+	}
+} # db_taakgroep
 
 ?>

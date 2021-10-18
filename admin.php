@@ -21,7 +21,7 @@ if ($currenttab == "Logboek" or $currenttab == "Stamgegevens") {
 }
 
 $i_login = new cls_Login();
-if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
+if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Beheer logins") {
 	$i_login->delete($_GET['lidid']);
 } elseif ($_GET['op'] == "unlocklogin" and $_GET['tp'] == "Beheer logins") {
 	$i_login->update($_GET['lidid'], "FouteLogin", 0);
@@ -30,7 +30,6 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 	(new cls_Authorisation())->add($_POST['tabpage_nw']);
 } elseif ($_GET['op'] == "deleteautorisatie" and $_GET['tp'] == "Autorisatie") {
 	(new cls_Authorisation())->delete($_GET['recid']);
-	printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $currenttab);
 } elseif ($_GET['op'] == "changeaccess" and $_GET['tp'] == "Autorisatie") {
 	foreach((new cls_Authorisation())->lijst() as $row) {
 		$vn = sprintf("toegang%d", $row->RecordID);
@@ -86,13 +85,12 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 				$i_lb->add($mess, 9, 0, 1);
 			}
 		}
+		(new cls_Eigen_lijst())->controle();
 	} else {
 		$mess = sprintf("Er is iets mis gegaan tijdens het uploaden. Error: %s. Klik <a href='http://nl3.php.net/manual/en/features.file-upload.errors.php'>hier</a> voor uitleg van de code.", $_FILES['SQLupload']['error']);
 		$i_lb->add($mess, 2, 0, 1);
 	}
 	$i_lb = null;
-} elseif ($_GET['op'] == "afmeldenwijz" and $_GET['tp'] == "Downloaden wijzigingen") {
-	(new cls_interface())->afmelden();
 	
 } elseif ($_GET['op'] == "deleteint" and $_GET['tp'] == "Downloaden wijzigingen") {
 	(new cls_interface())->delete($_GET['recid']);
@@ -111,6 +109,7 @@ if ($_GET['op'] == "deletelogin" and $_GET['tp'] == "Beheer logins") {
 	(new cls_Lidond())->opschonen();
 } elseif ($_GET['op'] == "mailingsopschonen") {
 	(new cls_Mailing())->opschonen();
+	(new cls_Mailing_hist())->opschonen();
 } elseif ($_GET['op'] == "evenementenopschonen") {
 	(new cls_Evenement())->opschonen();
 } elseif ($_GET['op'] == "loginsopschonen") {
@@ -130,36 +129,44 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	$i_auth = new cls_Authorisation();
 	echo("<div id='filter'>\n");
 	echo("<label>Onderdeel bevat</label><input name='tbOndFilter' id='tbOndFilter' OnKeyUp=\"fnFilter('lijst', 'tbOndFilter', 1);\">\n");
-	echo("</div> <!-- Einde filter -->\n");
-	echo("<div id='lijst'>\n");
-	printf("<form method='post' action='%s?tp=%s&amp;op=changeaccess'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-	echo("<table id='lijst'>\n");
-	echo("<tr><th></th><th>Onderdeel</th><th>Toegankelijk voor</th><th>Ingevoerd</th><th>Laatst gebruikt</th></tr>\n");
+	echo("</div> <!-- Einde filter -->\n\n");
+	
+	echo("<div id='beheerautorisatie'>\n");
+	printf("<form method='post' action='%s?tp=%s&op=changeaccess'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+	echo("<table>\n");
+	echo("<tr><th>Onderdeel</th><th>Toegankelijk voor</th><th>Ingevoerd</th><th>Laatst gebruikt</th><th></th></tr>\n");
 	$ondrows = (new cls_Onderdeel())->lijst(0, "O.`Type`<>'T'");
 	$authrows = $i_auth->lijst();
 	foreach($authrows as $row) {
-		$del = sprintf("<a href='%s?tp=%s&amp;op=deleteautorisatie&amp;recid=%d'><img src='%s' title='Verwijder record'></a>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID, BASE64_VERWIJDER);
+		$del = sprintf("<a href='%s?tp=%s&amp;op=deleteautorisatie&amp;recid=%d'>&nbsp;&nbsp;&nbsp;</a>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
 		$selectopt = sprintf("<option value=-1%s>Alleen webmasters</option>\n", checked($row->Toegang, "option", -1));
 		$selectopt .= sprintf("<option value=0%s>Iedereen</option>\n", checked($row->Toegang, "option", 0));
 		foreach($ondrows as $ond) {
 			$selectopt .= sprintf("<option value=%d%s>%s</option>\n", $ond->RecordID, checked($row->Toegang, "option", $ond->RecordID), htmlentities($ond->Naam));
 		}
-		printf("<tr>\n<td>%s</td>\n<td>%s</td>\n<td><select name='toegang%d' onchange='this.form.submit();'>\n%s</select></td>\n<td>%s</td><td>%s</td></tr>\n", $del, $row->Tabpage, $row->RecordID, $selectopt, strftime("%e %B %Y", strtotime($row->Ingevoerd)), strftime("%e %B %Y", strtotime($row->LaatstGebruikt)));
+		$cllg = "";
+		if ($row->LaatstGebruikt <= date("Y-m-d", mktime(0, 0, 0, date("m")-6, date("d"), date("Y")))) {
+			$cllg = "class='attentie'";
+		}
+		printf("<tr>\n<td>%s</td>\n<td><select name='toegang%d' onchange='this.form.submit();'>\n%s</select></td>\n<td>%s</td><td %s>%s</td><td>%s</td>\n</tr>\n", $row->Tabpage, $row->RecordID, $selectopt, strftime("%e %B %Y", strtotime($row->Ingevoerd)), $cllg, strftime("%e %B %Y", strtotime($row->LaatstGebruikt)), $del);
 	}
 	$optionstab = "<option value=''>Selecteer ...</option>\n";
 	foreach ($i_auth->lijst("DISTINCT") as $row) {
 		$optionstab .= sprintf("<option value='%1\$s'>%1\$s</option>\n", $row->Tabpage);
 	}
-	printf("<tr><td><img src='images/star.png' alt='Ster' title='Nieuw record'></td><td><select name='tabpage_nw' onChange='this.form.submit();'>%s</select></td><td></td><td></td></tr>\n", $optionstab);
 	echo("</table>\n");
+	printf("<label>Nieuw</label><select name='tabpage_nw' onChange='this.form.submit();'>%s</select>\n", $optionstab);
 	echo("</form>\n");
-	echo("</div>  <!-- Einde lijst -->\n");
+	echo("</div> <!-- Einde beheerautorisatie -->\n\n");
 	
-	echo(fnDisplayTable($i_auth->autorisatiesperonderdeel(), "", "Overzicht autorisaties per onderdeel"));
+	echo("<div id='autorisatiesperonderdeel'>\n");
+	echo(fnDisplayTable($i_auth->autorisatiesperonderdeel(), null, "Autorisaties per onderdeel"));
+	echo("</div> <!-- Einde autorisatiesperonderdeel -->\n");
 	$i_auth = null;
 	
 } elseif ($currenttab == "Stukken" and toegang($currenttab, 1, 1)) {
 	fnStukken();
+	
 } elseif ($currenttab == "Instellingen" and toegang($currenttab, 1, 1)) {
 	fnInstellingen();
 	
@@ -183,13 +190,20 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 
 } elseif ($currenttab == "Downloaden wijzigingen" and toegang($currenttab, 1, 1)) {
 	$copytext = "";
+	
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		if (isset($_POST['afmelden'])) {
+			(new cls_interface())->afmelden();
+		}
+	}
+	
 	(new cls_lidond())->autogroepenbijwerken();
-	printf("<form name='formdownload' method='post' action='%s?tp=%s&op=afmeldenwijz'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	$linklk = sprintf("<a href='/admin.php?op=deleteint&amp;recid=%%d&amp;tp=%s'><img src='" . BASE64_VERWIJDER . "' title='Verwijder record'></a>", urlencode($_GET['tp']));
+	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	$kols[-1]['link'] = sprintf("<a href='/admin.php?op=deleteint&amp;recid=%%d&amp;tp=%s'>&nbsp;&nbsp;&nbsp;</a>", urlencode($_GET['tp']));
 	$rows = (new cls_Interface())->lijst();
 	if (count($rows) > 0) {
 		echo("<h2>Wijzigen op de website, te verwerken in de Access database.</h2>");
-		echo(fnDisplayTable($rows, "", "", 1, $linklk));
+		echo(fnDisplayTable($rows, $kols, "", 1, "", "beheerwijzigingen"));
 		foreach ($rows as $row) {
 			$copytext .= $row->SQL . "\n";
 		}
@@ -200,8 +214,8 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	if (strlen($copytext) > 0) {
 		echo("<h2>SQL-code, te gebruiken in MS-Access:</h2>\n");
 		printf("<textarea id='copywijzigingen' class='copypaste' rows=%d readonly>%s</textarea>\n", count($rows)+1, $copytext);
-		echo("<button onClick='CopyFunction()'>Kopieer naar klembord</button>\n");
-		echo("<button type='submit'>Wijzigingen afmelden</button>\n");
+		echo("<button name='kopieer' onClick='CopyFunction()'>Kopieer naar klembord</button>\n");
+		echo("<button name='afmelden' type='submit'>Wijzigingen afmelden</button>\n");
 	}
 	
 } elseif ($currenttab == "Onderhoud" and toegang($currenttab, 1, 1)) {
@@ -231,7 +245,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=onderdelenopschonen\"' value='Onderdelen opschonen'><p>Opschonen onderdelen die vervallen en niet meer in gebruik zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=lidondopschonen\"' value='Leden bij onderdelen opschonen'><p>Opschonen op basis van historie en 'Alleen leden'.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 
-	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=mailingsopschonen\"' value='Mailings opschonen'><p>Mailings, die langer dan <input type='number' name='mailing_bewaartijd' onChange='this.form.submit();' value=%d> maanden in de prullenbak zitten, definitief verwijderen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['mailing_bewaartijd']);
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=mailingsopschonen\"' value='Mailings opschonen'><p>Mailings, die langer dan %d maanden in de prullenbak zitten, verwijderen. En verzonden mails aan voormalig leden verwijderen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['mailing_bewaartijd']);
 	
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=evenementenopschonen\"' value='Evenementen opschonen'><p>Opschonen verwijderde evenementen, die geen deelnemers meer hebben.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 
@@ -299,7 +313,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	}
 	echo("</div>  <!-- Einde filter -->\n");
 	
-	echo(fnDisplayTable($rows, "", "", 0, "", "", "logboek", "", "", 0, $arrSort));
+	echo(fnDisplayTable($rows, null, "", 0, "", "logboek", "", "", 0, $arrSort));
 	
 	$i_lb = null;
 	
@@ -329,7 +343,7 @@ function fnBeheerLogins() {
 	
 	echo("<div id='filter'>\n");
 	printf("<form action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
-	echo("<label>Naam/login bevat</label><input type='text' name='tbNaamFilter' id='tbNaamFilter' OnKeyUp=\"fnFilter('lijst', 'tbNaamFilter', 1, 2);\">\n");
+	echo("<label>Naam/login bevat</label><input type='text' name='tbNaamFilter' id='tbNaamFilter' OnKeyUp=\"fnFilter('beheerlogins', 'tbNaamFilter', 1, 2);\">\n");
 	
 	if (count($rows) > 2) {
 		printf("<p class='aantrecords'>%d logins</p>", count($rows));
@@ -338,26 +352,16 @@ function fnBeheerLogins() {
 	echo("</div>\n");
 	echo("<div class='clear'></div>\n");
 	
-	echo("<div id='beheerlogins'>\n");
-	$lnk_ek = sprintf("<a href='%s?op=deletelogin&amp;lidid=%%d'><img src='" . BASE64_VERWIJDER . "' title='Verwijder login'></a>", $_SERVER['PHP_SELF']);
+	$kols[9]['link'] = sprintf("<a href='%s?op=deletelogin&tp=Beheer logins&lidid=%%d'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF']);
 	if ($_SESSION['settings']['login_maxinlogpogingen'] > 0) {
-		$lnk_lk = sprintf("<a href='%s?op=unlocklogin&amp;lidid=%%d' title='Reset foutieve logins'><img src='images/unlocked_01.png'></a>", $_SERVER['PHP_SELF']);
-	} else {
-		$lnk_lk = "";
+		$kols[8]['link'] = sprintf("<a href='%s?op=unlocklogin&tp=Beheer logins&lidid=%%d' title='Reset foutieve logins'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF']);
+		$kols[8]['class'] = "unlock";
 	}
+	echo(fnDisplayTable($rows, $kols, "", 0, "", "beheerlogins", "", "", 0, $arrSort));
 	
-	echo(fnDisplayTable($rows, "", "", 0, $lnk_lk, "", "lijst", $lnk_ek, "", 0, $arrSort));
-	
-	echo("</div>  <!-- Einde beheerlogins -->\n");
-	
-	// Nieuwe en gewijzigde logins in de tabel interface zetten en de tabel 'Lid' bijwerken.
-	$f = "IFNULL(L.LoginWebsite, '') <> IFNULL(Login.Login, '')";
-	foreach ($i_login->lijst($f) as $row) {
-		(new cls_Lid())->update($row->lnkLidID, "LoginWebsite", $row->Login);
-	}
 	$i_login = null;
 	
-}  #  fnBeheerLogins
+}  # fnBeheerLogins
 
 function fnInstellingen() {
 	
@@ -393,7 +397,6 @@ function fnInstellingen() {
 	$arrParam['termijnvervallendiplomasmelden'] = "Hoeveel maanden vooruit en achteraf moeten vervallen diploma op het voorblad getoond worden.";
 	$arrParam['toneninschrijvingenbewakingen'] = "Moeten bij de gegevens van een lid ook inschrijvingen voor bewakingen getoond worden?";
 	$arrParam['tonentoekomstigebewakingen'] = "Moeten bij de gegevens van een lid ook toekomstige bewakingen getoond worden?";
-	$arrParam['typemenu'] = "Welk menu moet worden gebruikt?";
 	$arrParam['urlvereniging'] = "De URL van de website van de vereniging.";
 	$arrParam['url_eigen_help'] = "Als een gebruiker op de help klikt wordt hier naar verwezen in plaats van de standaard help.";
 	$arrParam['verjaardagenaantal'] = "Aantal verjaardagen dat maximaal in de verenigingsinfo wordt getoond. Als er meerdere leden op dezelfde dag jarig zijn, wordt dit aantal overschreden.";
@@ -501,12 +504,6 @@ function fnInstellingen() {
 			} elseif ($row->Naam == "db_backup_type") {
 				printf("<label>%s</label><select name='%s'>", $uitleg, $row->Naam);
 				foreach (ARRTYPEBACKUP as $key => $val) {
-					printf("<option value=%d %s>%s</option>\n", $key, checked($row->ValueNum, "option", $key), $val);
-				}
-				echo("</select>\n");
-			} elseif ($row->Naam == "typemenu") {
-				printf("<label>%s</label><select name='%s'>", $uitleg, $row->Naam);
-				foreach (ARRTYPEMENU as $key => $val) {
 					printf("<option value=%d %s>%s</option>\n", $key, checked($row->ValueNum, "option", $key), $val);
 				}
 				echo("</select>\n");

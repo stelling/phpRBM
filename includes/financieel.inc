@@ -4,7 +4,6 @@ function fnRekeningen() {
 	global $currenttab, $currenttab2;
 	
 	fnDispMenu(2);
-	
 		
 	if ($currenttab2 == "Muteren") {
 		fnRekeningMuteren();
@@ -28,7 +27,6 @@ function fnRekeningMuteren() {
 	$reknr = 2020000;
 	
 	echo("<div id='rekeningmuteren'>\n");
-	
 	
 	if (isset($_GET['op']) and $_GET['op'] == "delete" and $_GET['rrid'] > 0) {
 		$i_rr->delete($_GET['rrid']);
@@ -113,7 +111,6 @@ function fnRekeningMuteren() {
 		echo("<div class='clear'></div>\n");
 		echo("<div id='rekeningregelsmuteren'>\n");
 		echo("<table>\n");
-		echo("<caption>Rekening regels</caption>\n");
 		echo("<tr><th>#</th><th>Kostenplaats</th><th>Lid</th><th>Omschrijving</th><th>Bedrag in &euro;</th><th>Zichtbaar</th><th>&nbsp;</th></tr>\n");
 		foreach($i_rr->perrekening($reknr) as $rrrow) {
 			echo("<tr>\n");
@@ -127,15 +124,12 @@ function fnRekeningMuteren() {
 			} else {
 				printf("<td><input type='checkbox' name='ToonOpRekening_%d' value=1%s></td>\n", $rrrow->RecordID, checked($rrrow->ToonOpRekening));
 			}
-			printf("<td><a href='%s?tp=%s&amp;op=delete&rrid=%d'><img src='%s' alt='Verwijderen' title='Verwijder regel'></a></td>", $_SERVER['PHP_SELF'], $_GET['tp'], $rrrow->RecordID, BASE64_VERWIJDER);
+			printf("<td class='trash'><a href='%s?tp=%s&amp;op=delete&rrid=%d'>&nbsp&nbsp&nbsp</a></td>", $_SERVER['PHP_SELF'], $_GET['tp'], $rrrow->RecordID);
 			
 			echo("</tr>\n");
 		}
-		printf("<tr><td>*</td>\n<td><input type='text' name='KSTNPLTSnieuw' class='kostenplaats' maxlength=5></td>\n");
-		printf("<td colspan=4><select name='RRnieuw'>\n<option value=-1>Nieuwe regel ...</option><option value=0>Geen lid</option>%s</select></td>\n", $i_lid->htmloptions(0, 2));
-		printf("<td><button type='submit' name='NieuweRegel' title='Toevoegen rekeningregel'><img src='%s' alt='Toevoegen'></button>\n", BASE64_TOEVOEGEN);
-		echo("</tr>\n");
 		echo("</table>\n");
+		printf("<select name='RRnieuw'>\n<option value=-1>Regel toevoegen ...</option><option value=0>Geen lid</option>%s</select>\n", $i_lid->htmloptions(0, 2));
 		echo("</div> <!-- Einde rekeningregelsmuteren -->\n");
 		
 		echo("<div id='opdrachtknoppen'>\n");
@@ -265,6 +259,9 @@ function RekeningDetail($p_rkid) {
 } # RekeningDetail
 
 function fnKostenoverzicht() {
+	
+	$i_mut = new cls_Mutatie();
+	$i_gbr = new cls_GBR();
 
 	$val_jaarfilter = "";
 	$val_gbrfilter = "";
@@ -297,19 +294,7 @@ function fnKostenoverzicht() {
 	}
 	printf("<td class='label'>Boekjaar</td><td><select name='lbJaarFilter' onchange='form.submit();'>%s</select></td>\n", $ret);
 	
-	$ret = "<option value='*'>Alle</option>\n";
-	$query = sprintf("SELECT DISTINCT GBR.Kode, CONCAT(GBR.Kode, ' - ', GBR.OMSCHRIJV) AS Oms
-				 FROM %1\$sMutatie AS M INNER JOIN %1\$sGBR AS GBR ON M.GBR = GBR.Kode
-				 ORDER BY GBR.Kode;", TABLE_PREFIX);
-	$result = fnQuery($query);
-	foreach ($result->fetchAll() as $row) {
-		if ($val_gbrfilter == $row->Kode) {
-			$s = " selected";
-		} else {
-			$s = "";
-		}
-		$ret .= sprintf('<option%s value="%s">%s</option>\n', $s, $row->Kode, $row->Oms);
-	}
+	$ret = "<option value='*'>Alle</option>\n" . $i_gbr->htmloptions($val_gbrfilter);
 	printf("<td class='label'>Grootboekrekening</td><td><select name='lbGBRFilter' onchange='form.submit();'>%s</select></td>\n", $ret);
 	
 	$ret = "<option value='*'>Alle</option>\n";

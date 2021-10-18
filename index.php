@@ -65,17 +65,27 @@ if (strlen($_SESSION['settings']['menu_met_afdelingen']) > 0 and (new cls_Onderd
 	$isafdelingstab = 1;
 }
 
-
 if (toegang($_GET['tp'], 1) == false) {
 	if ($_SESSION['lidid'] == 0) {
 		fnLoginAanvragen();
 	}
 	
-} elseif ($currenttab == "Opvragen lidnr" and $_SERVER['REQUEST_METHOD'] == "POST") {
-	fnOpvragenLidnr("mail");
+} elseif ($currenttab == "Login aanvragen") {
+	fnLoginAanvragen();
 	
-} elseif ($currenttab == "Herstellen wachtwoord") {
-	fnHerstellenWachtwoord("mail");
+} elseif ($currenttab == "Opvragen lidnr") {
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		fnOpvragenLidnr("mail");
+	} else {
+		fnOpvragenLidnr("form");
+	}
+	
+} elseif ($currenttab == "Herstel wachtwoord") {
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		fnHerstellenWachtwoord("mail");
+	} else {
+		fnHerstellenWachtwoord("form");
+	}
 	
 } elseif ($currenttab == "Validatie login") {
 	if (isset($_GET['key']) and isset($_GET['lidid'])) {
@@ -86,6 +96,8 @@ if (toegang($_GET['tp'], 1) == false) {
 	
 } elseif ($currenttab == "Bevestiging login") {
 		fnLoginAanvragen();
+		
+		
 	
 } elseif ($currenttab == "Eigen gegevens") {
 	if ($_SESSION['lidid'] > 0) {
@@ -120,23 +132,24 @@ if (toegang($_GET['tp'], 1) == false) {
 	if ($currenttab2 == "Introductie") {
 		fnVoorblad();
 		if ($_SESSION['lidid'] == 0) {
-			fnLoginAanvragen();
 			echo("<div id='kolomrechts'>\n");
-			if ($_SESSION['settings']['mailing_lidnr'] > 0) {
-				fnOpvragenLidnr("form");
-			}
-			fnHerstellenWachtwoord("form");
 			echo("</div>  <!-- Einde kolomrechts -->\n");
 		}
+	} elseif ($currenttab2 == "Agenda") {
+		echo("<p class='mededeling'>De agenda is nog in ontwikkeling</p>\n");
+		fnAgenda($_SESSION['lidid']);
+		
 	} else {
 		fnWieiswie($currenttab2, $_SESSION['settings']['kaderoverzichtmetfoto']);
 	}
 } elseif ($currenttab == "Ledenlijst") {
-	if ($currenttab2 == "Commissies muteren") {
+	if ($currenttab2 == "Afdelingen") {
+		fnOnderdelenmuteren("A");
+	} elseif ($currenttab2 == "Commissies") {
 		fnOnderdelenmuteren("C");
-	} elseif ($currenttab2 == "Groepen muteren") {
+	} elseif ($currenttab2 == "Groepen") {
 		fnOnderdelenmuteren("G");
-	} elseif ($currenttab2 == "Rollen muteren") {
+	} elseif ($currenttab2 == "Rollen") {
 		fnOnderdelenmuteren("R");
 	} else {
 		fnLedenlijst();
@@ -163,7 +176,8 @@ if (toegang($_GET['tp'], 1) == false) {
 	} else {
 		$i_el = new cls_Eigen_lijst($currenttab2);
 		$rows = (new cls_db_base())->execsql($i_el->mysql())->fetchAll();
-		printf("<p>%s</p>", fnDisplayTable($rows, "", $currenttab2, 0, "", "", "lijst", ""));
+		printf("<p>%s</p>", fnDisplayTable($rows, null, $currenttab2));
+		printf("<p>%d rijen</p>\n", count($rows));
 		$i_el->update($i_el->elid, "AantalRecords", count($rows));
 		$i_el = null;
 	}
@@ -280,7 +294,82 @@ function fnVoorblad() {
 	} else {
 		echo("<div id='welkomstekst'>Er is geen introductie beschikbaar.</div>  <!-- Einde welkomstekst -->\n");
 	}
-}  # fnVoorblad
+}  # fnVoorbladt
+
+function fnAgenda($p_lidid=0) {
+	
+	
+	$ics = file_get_contents("https://calendar.google.com/calendar/ical/nl.dutch%23holiday%40group.v.calendar.google.com/public/basic.ics");
+	if ($ics === FALSE) {
+		$fds["99991231"] = "geen";
+	} else {
+		$icslines = explode("\n", $ics);
+		foreach ($icslines as $line) {
+			if (substr($line, 0, 7) == "DTSTART") {
+				$d = substr(trim($line), -8);
+			//} elseif (substr($line, 0, 7) == "SUMMARY" and intval($d) >= intval(date("Ymd", $Hulpdatum)) and intval($d) <= intval(date("Ymd", $Einddatum))) {
+			} elseif (substr($line, 0, 7) == "SUMMARY") {
+				$fds[$d] = substr($line, 8);
+			}
+		}
+	}
+	
+	$dtStart = mktime(0, 0, 0, date("m"), 1, date("Y"));
+	
+	while (date("N", $dtStart) > 1) {
+		$dtStart = strtotime("-1 day", $dtStart);
+	}
+	
+	echo("<div id=agenda>\n");
+	echo("<table>\n<tr>\n");
+	for ($dn=1;$dn<=7;$dn++) {
+		printf("<th>%s</th>", strftime("%A", strtotime(sprintf("+%d day", $dn-1), $dtStart)));
+	}
+	for ($sw=$dtStart;$sw <= strtotime("+370 day");$sw=strtotime("+7 day", $sw)) {
+		echo("<tr>\n");
+		for ($dn=1;$dn<=7;$dn++) {
+			$td = strtotime(sprintf("+%d day", $dn-1), $sw);
+			if (array_key_exists(date("Ymd", $td), $fds)) {
+				printf("<td><ul><li>%s</li>", $fds[date("Ymd", $td)]);
+			} else {
+				printf("<td><ul><li>%s</li>", strftime("%e %B", $td));
+			}
+			
+			// Evenementen
+			foreach ((new cls_Evenement())->lijst(5, date("Y-m-d", $td)) as $evrow) {
+				$bt = "";
+				if (substr($evrow->Datum, 11, 5) > "00:00") {
+					$bt = substr($evrow->Datum, 11, 5) . "&nbsp;";
+				}
+				printf("<li class='EVT_%d'>%s%s</li>", $evrow->TypeEvenement, $bt, $evrow->Omschrijving);
+			}
+			
+			// Afdelingskalender
+			foreach ((new cls_Afdelingskalender())->lijst(-1, date("Y-m-d", $td)) as $akrow) {
+				if (strlen($akrow->Omschrijving) > 1) {
+					if ($akrow->Activiteit == 1) {
+						$oms = $akrow->Kode . ": " . $akrow->Omschrijving;
+					} else {
+						$oms = "Geen " . $akrow->Kode . " (" . $akrow->Omschrijving . ")";
+					}
+				} else {
+					if (strlen($akrow->Activiteit) == 	 	 1) {
+						$oms = $akrow->Naam;
+					} else {
+						$oms = "Geen " . $akrow->Naam;
+					}
+				}
+				printf("<li class='%s'>%s</li>", $akrow->Kode, $oms);
+			}
+			echo("</ul></td>\n");
+		}
+		echo("</tr>\n");
+	}
+	
+	echo("</tr>\n");
+	echo("</table>\n");
+	echo("</div> <!-- Einde agenda -->\n");
+}  # fnAgenda
 
 function fnGewijzigdeStukken() {
 
