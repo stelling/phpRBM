@@ -128,7 +128,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 } elseif ($currenttab == "Autorisatie" and toegang($currenttab, 1, 1)) {
 	$i_auth = new cls_Authorisation();
 	echo("<div id='filter'>\n");
-	echo("<label>Onderdeel bevat</label><input name='tbOndFilter' id='tbOndFilter' OnKeyUp=\"fnFilter('lijst', 'tbOndFilter', 1);\">\n");
+	echo("<label>Onderdeel bevat</label><input name='tbOndFilter' id='tbOndFilter' OnKeyUp=\"fnFilter('beheerautorisatie', 'tbOndFilter', 0);\">\n");
 	echo("</div> <!-- Einde filter -->\n\n");
 	
 	echo("<div id='beheerautorisatie'>\n");
@@ -163,9 +163,6 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	echo(fnDisplayTable($i_auth->autorisatiesperonderdeel(), null, "Autorisaties per onderdeel"));
 	echo("</div> <!-- Einde autorisatiesperonderdeel -->\n");
 	$i_auth = null;
-	
-} elseif ($currenttab == "Stukken" and toegang($currenttab, 1, 1)) {
-	fnStukken();
 	
 } elseif ($currenttab == "Instellingen" and toegang($currenttab, 1, 1)) {
 	fnInstellingen();
@@ -274,14 +271,14 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	
 	$ord = fnOrderBy($arrSort);
 	
-	if (!isset($_POST['tbLidFilter']) or strlen($_POST['tbLidFilter']) == 0) {
-		$_POST['tbLidFilter'] = "";
+	if (!isset($_POST['tbTekstFilter']) or strlen($_POST['tbTekstFilter']) == 0) {
+		$_POST['tbTekstFilter'] = "";
 	}
 	if (!isset($_POST['typefilter']) or strlen($_POST['typefilter']) == 0) {
 		$_POST['typefilter'] = -1;
 	}
 	if (!isset($_POST['aantalrijen']) or $_POST['aantalrijen'] < 2) {
-		$_POST['aantalrijen'] = 100;
+		$_POST['aantalrijen'] = 1500;
 	}
 	
 	$rows = $i_lb->lijst($_POST['typefilter'], 0, 0, "", $ord, $_POST['aantalrijen']);
@@ -289,9 +286,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	echo("<div id='filter'>\n");
 	printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 	
-	echo("<label>Omschrijving bevat</label><input type='text' id='tbOmsFilter' OnKeyUp=\"fnFilterTwee('logboek', 'tbOmsFilter', 'tbIPfilter', 1, 5, 'tbLidFilter', 4);\">");
-	
-	echo("<label>Ingelogd lid bevat</label><input type='text' id='tbLidFilter' OnKeyUp=\"fnFilterTwee('logboek', 'tbOmsFilter', 'tbIPfilter', 1, 5, 'tbLidFilter', 4);\">\n");
+	echo("<input type='text' id='tbTekstFilter' placeholder='Tekst filter' OnKeyUp=\"fnFilter('logboek', 'tbTekstFilter', 1, 2, 4, 5);\">");
 	
 	echo("<label>Filter op type</label><select name='typefilter' onchange='this.form.submit();'>\n");
 	echo("<option value=-1>Alle</option>\n");
@@ -300,9 +295,9 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	}
 	echo("</select>\n");
 	
-	echo("<label>IP-adres bevat</label><input type='text' id='tbIPfilter' name='tbIPfilter' OnKeyUp=\"fnFilterTwee('logboek', 'tbOmsFilter', 'tbIPfilter', 1, 6, 'tbLidFilter', 4);\">\n");
+	echo("<label>IP-adres bevat</label><input type='text' id='tbIPfilter' name='tbIPfilter' OnKeyUp=\"fnFilter('logboek', 'tbIPfilter', 6);\">\n");
 	$options = "";
-	foreach (array(25, 100, 250, 750, 1500, 3000, 10000) as $a) {
+	foreach (array(25, 100, 250, 750, 1500, 3000, 10000, 25000) as $a) {
 		$options .= sprintf("<option value=%d %s>%s</option>\n", $a, checked($a, "option", $_POST['aantalrijen']), number_format($a, 0, ",", "."));
 	}
 	printf("<label>Max. aantal rijen</label><select name='aantalrijen' OnChange='this.form.submit();'>%s</select>\n", $options);
@@ -342,14 +337,11 @@ function fnBeheerLogins() {
 	$rows = $i_login->lijst("", $ord);
 	
 	echo("<div id='filter'>\n");
-	printf("<form action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
 	echo("<label>Naam/login bevat</label><input type='text' name='tbNaamFilter' id='tbNaamFilter' OnKeyUp=\"fnFilter('beheerlogins', 'tbNaamFilter', 1, 2);\">\n");
-	
 	if (count($rows) > 2) {
 		printf("<p class='aantrecords'>%d logins</p>", count($rows));
 	}
-	echo("</form>\n");
-	echo("</div>\n");
+	echo("</div> <!-- Einde filter -->\n");
 	echo("<div class='clear'></div>\n");
 	
 	$kols[9]['link'] = sprintf("<a href='%s?op=deletelogin&tp=Beheer logins&lidid=%%d'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF']);
@@ -550,67 +542,5 @@ function fnStamgegevens() {
 	
 } # fnStamgegevens
 
-function fnStukken() {
-	
-	$i_stuk = new cls_Stukken();
-	
-	echo("<div id='stukkenmuteren'>\n");
-	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		if (isset($_POST['Toevoegen']) and $_POST['Toevoegen'] == "Toevoegen") {
-			$i_stuk->add();
-		}
-		$rows = $i_stuk->editlijst();
-		foreach ($rows as $row) {
-			foreach ($row as $col => $val){
-				$cn = $col . "_" . $row->RecordID;
-				if (isset($_POST[$cn])) {
-//					debug($cn . ": " . $val);
-					$i_stuk->update($row->RecordID, $col, $_POST[$cn]);
-				}
-			}
-		}
-		
-	}
-	
-	$rows = $i_stuk->editlijst();
-	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-	echo("<table>\n");
-	echo("<caption>Stukken muteren</caption>\n");
-	echo("<tr><th rowspan=2>Titel</th><th>Bestemd voor</th><th>Vastgesteld op</th><th>Ingangsdatum/Versie</th><th>Revisiedatum</th><th>Vervallen per</th></tr>\n");
-	echo("<tr>");
-	echo("<th>Type</th><th colspan=4>Link naar document</th>");
-	foreach ($rows as $row) {
-		echo("<tr>\n");
-		printf("<td rowspan=2><input type='text' name='Titel_%d' value='%s' class='tbtitel'></td>\n", $row->RecordID, $row->Titel);
-		printf("<td><input type='text' name='BestemdVoor_%d' value='%s' class='tbbestemdvoor'></td>\n", $row->RecordID, $row->BestemdVoor);
-		printf("<td><input type='date' name='VastgesteldOp_%d' value='%s'></td>\n", $row->RecordID, $row->VastgesteldOp);
-		printf("<td><input type='date' name='Ingangsdatum_%d' value='%s'></td>\n", $row->RecordID, $row->Ingangsdatum);
-		printf("<td><input type='date' name='Revisiedatum_%d' value='%s'></td>\n", $row->RecordID, $row->Revisiedatum);
-		printf("<td><input type='date' name='VervallenPer_%d' value='%s'></td>\n", $row->RecordID, $row->VervallenPer);
-		
-		echo("</tr><tr>");
-		
-		$options = "";
-		foreach (ARRTYPESTUK as $k => $v) {
-			$options .= sprintf("<option value='%s' %s>%s</option>\n", $k, checked($k, "option", $row->Type), $v);
-		}
-		printf("<td><select name='Type_%d'>%s</select></td>\n", $row->RecordID, $options);
-		printf("<td colspan=4><input type='url' name='Link_%d' value='%s'></td>\n", $row->RecordID, $row->Link);
-		
-		echo("</tr>\n");
-	}
-	echo("</table>\n");
-	
-	echo("<div id='opdrachtknoppen'>\n");
-	
-	echo("<button name='Toevoegen' value='Toevoegen'>Stuk toevoegen</button>\n");
-	echo("<input type='submit' value='Bewaren'>\n");
-	echo("</div> <!-- Einde opdrachtknoppen -->\n");
-	echo("</form>");
-	
-	echo("</div> <!-- Einde stukkenmuteren -->\n");
-	
-	$i_stuk = null;
-}  # fnStukken
 ?>
 

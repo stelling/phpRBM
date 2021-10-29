@@ -52,71 +52,6 @@ function fnEvenementen() {
 	$i_ev = null;
 }
 
-function ToekomstigeEvenementen() {
-	
-	$i_ak = new cls_Afdelingskalender();
-	$kalitem = null;
-	$in = 0;
-	
-	if ($_SESSION['lidid'] > 0) {
-		foreach ($i_ak->lijst(-1, "", "Datum >= CURDATE() AND (Activiteit=0 OR LENGTH(Omschrijving) > 0)") as $row) {
-			if (in_array($row->OnderdeelID, explode(",", $_SESSION['lidgroepen']))) {
-				$kalitem[$in]['datum'] = date("Y-m-d", strtotime($row->Datum));
-				$kalitem[$in]['tijd'] = "";
-				
-				$lorow = (new cls_Lidond())->record($_SESSION['lidid'], $row->OnderdeelID);
-				if (isset($lorow->Starttijd) and strlen($lorow->Starttijd) > 3 and $row->Activiteit == 1) {
-					$kalitem[$in]['tijd'] = $lorow->Starttijd;
-				}
-				
-				if ($row->Activiteit == 1) {
-					$oms = $lorow->AfdNaam;
-				} else {
-					$oms = "Geen " . $lorow->AfdNaam;
-				}
-				if (strlen($row->Omschrijving) > 1) {
-					$oms .= " (" . $row->Omschrijving . ")";
-				}
-				$kalitem[$in]['oms']= $oms;
-				$in++;
-			}
-		}
-	}
-	
-	foreach ((new cls_Evenement())->lijst(4) as $row) {
-		$kalitem[$in]['datum'] = date("Y-m-d", strtotime($row->Datum));
-		$kalitem[$in]['tijd'] = "";
-		$kalitem[$in]['oms']= $row->Omschrijving;
-		if (date("H:i", strtotime($row->Datum)) > "00:00" and $row->MeerdereStartMomenten == 0) {
-			$kalitem[$in]['tijd'] =  date("H:i", strtotime($row->Datum));
-		} elseif ($_SESSION['lidid'] > 0) {
-			$edrow = (new cls_Evenement_Deelnemer())->record(0, $_SESSION['lidid'], $row->RecordID);
-			if (isset($edrow->RecordID) and $edrow->RecordID > 0) {
-				if ($row->MeerdereStartMomenten == 1) {
-					$kalitem[$in]['tijd'] = $edrow->StartMoment;
-				}
-			}
-		}
-		$in++;
-	}
-	
-	$rv = "";
-	usort($kalitem, function($a, $b) {
-		return $a['datum'] <=> $b['datum'];
-	});
-	for ($in=0;$in<=9;$in++) {
-		if (isset($kalitem[$in]['datum'])) {
-			$dat = strftime("%A %e %B", strtotime($kalitem[$in]['datum']));
-			if (strlen($kalitem[$in]['tijd']) > 2) {
-				$dat .= " (" . substr($kalitem[$in]['tijd'], 0, 5) . ")";
-			}
-			$rv .= sprintf("<li>%s: %s</li>\n", $dat, $kalitem[$in]['oms']);
-		}
-	}
-
-	return $rv;
-}
-
 function inschrijvenevenementen($lidid) {
 	// Onderdeel van de zelfservice
 	$i_ev = new cls_evenement();
@@ -523,6 +458,7 @@ function overzichtevenementen() {
 	echo("<div id='overzichtevenementen'>\n");
 	echo("<table>\n");
 	$vsrt = "Q";
+	$vn = "";
 	
 	$evlijst = $i_ev->lijst(1);
 	foreach ($evlijst as $row) {
@@ -561,6 +497,7 @@ function overzichtevenementen() {
 		$deelnemers = "";
 		$ad = 0;
 		$vsm = "";
+		$vn = "deelnemers";
 		
 		foreach($dlnlijst as $deeln) {
 			if ($row->ndSoort != "W") {

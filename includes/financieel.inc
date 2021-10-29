@@ -4,9 +4,16 @@ function fnRekeningen() {
 	global $currenttab, $currenttab2;
 	
 	fnDispMenu(2);
+	
+	$reknr = 0;
+	if (isset($_GET['p_reknr']) and $_GET['p_reknr'] > 0) {
+		$reknr = $_GET['p_reknr'];
+	}
 		
 	if ($currenttab2 == "Muteren") {
-		fnRekeningMuteren();
+		fnRekeningMuteren($reknr);
+	} elseif ($currenttab2 == "Beheer") {
+		fnRekeningbeheer();
 	} elseif ($currenttab2 == "Logboek") {
 		$rows = (new cls_Logboek())->lijst(14);
 		if (count($rows) > 0) {
@@ -17,18 +24,46 @@ function fnRekeningen() {
 	}
 }
 
-function fnRekeningMuteren() {
+function fnRekeningbeheer() {
+	global $currenttab;
+	
+	$i_rek = new cls_Rekening();
+	$i_sz = new cls_Seizoen();
+
+	if (isset($_POST['filterseizoen'])) {
+		$filterseizoen = $_POST['filterseizoen'];
+	} else {
+		$filterseizoen = 0;
+	}
+	
+	echo("<div id='filter'>\n");
+	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+	printf("<select name='filterseizoen' onChange='this.form.submit();'>\n<option value=0>Filter op seizoen</option>\n%s</select>\n", $i_sz->htmloptions($filterseizoen));
+	echo("</form>\n");
+	echo("</div> <!-- Einde filter -->\n");
+	
+	$rows = $i_rek->overzichtbeheer($filterseizoen);
+	$kols[0]['link'] = sprintf("%s?tp=%s/Muteren&p_reknr=%%d", $_SERVER['PHP_SELF'], $currenttab);
+	echo(fnDisplayTable($rows, $kols, "", 0, "", "overzichtrekeningen"));
+}
+
+function fnRekeningMuteren($p_rkid=-1) {
 	$scherm = "M";
-	$i_rk = new cls_Rekening();
-	$i_rr = new cls_Rekeningregel();
+	if (isset($_POST['rkid']) and $_POST['rkid'] > 0) {
+		$reknr = $_POST['rkid'];
+	} elseif ($p_rkid > 0) {
+		$reknr = $p_rkid;
+	} else {
+		$reknr = 2020000;
+	}
+	
+	$i_rk = new cls_Rekening($reknr);
+	$i_rr = new cls_Rekeningregel($reknr);
 	$i_lid = new cls_Lid();
 	$i_seiz = new cls_Seizoen();
+	$i_ond = new cls_Onderdeel();
 	
-	$reknr = 2020000;
-	
-	echo("<div id='rekeningmuteren'>\n");
-	
-	if (isset($_GET['op']) and $_GET['op'] == "delete" and $_GET['rrid'] > 0) {
+	if (isset($_GET['op']) and $_GET['op'] == "deleteregel" and $_GET['rrid'] > 0) {
 		$i_rr->delete($_GET['rrid']);
 	}
 	
@@ -65,21 +100,21 @@ function fnRekeningMuteren() {
 		}
 				
 		if (isset($_POST['RRnieuw']) and $_POST['RRnieuw'] >= 0) {
-			$i_rr->add($reknr, $_POST['RRnieuw'], $_POST['KSTNPLTSnieuw']);
+			$i_rr->add($reknr, $_POST['RRnieuw']);
 		}
-		
-		$f = sprintf("Rekening=%d", $reknr);
-		$i_rk->update($reknr, "Bedrag", $i_rr->totaal("Bedrag", $f));
-		
 	}
+	$f = sprintf("Rekening=%d", $reknr);
+	$i_rk->update(0, "Bedrag", $i_rr->totaal("Bedrag", $f));
 	
 	if ($scherm == "M")  {
 		$row = $i_rk->record($reknr);
 		
-		$actionurl = sprintf("%s?tp=%s&amp;rekid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $reknr);
+		echo("<div id='rekeningmuteren'>\n");
+		$actionurl = sprintf("%s?tp=%s", $_SERVER['PHP_SELF'], $_GET['tp']);
 		printf("<form method='post' action='%s' name='wijzigenrekening'>\n", $actionurl);
 		
 		printf("<label>Rekeningnummer</label><p>%d</p>\n", $row->Nummer);
+		printf("<input type='hidden' name='rkid' value=%d>\n", $row->Nummer);
 		
 		echo("<div id='rekeninginfo'>\n");
 		printf("<label>Totaal bedrag</label><p>&euro;&nbsp;%s</p>\n", fnBedrag($row->Bedrag));
@@ -89,8 +124,14 @@ function fnRekeningMuteren() {
 			$cl = "class='telaat'";
 		}
 		printf("<label>Uiterste betaling op</label><p %s>%s</p>\n", $cl, strftime("%e %B %Y", strtotime($row->UitersteBetaaldatum)));
-		printf("<label>Telefoon debiteur</label><p>%s</p>\n", $i_lid->telefoon($row->BetaaldDoor));
-		printf("<label>E-mail debiteur</label><p>%s</p>\n", $i_lid->email($row->BetaaldDoor));
+		$t = $i_lid->telefoon($row->BetaaldDoor);
+		if (strlen($t) > 9) {
+			printf("<label>Telefoon debiteur</label><p>%s</p>\n", $t);
+		}
+		$e = $i_lid->email($row->BetaaldDoor);
+		if (strlen($e) > 5) {
+			printf("<label>E-mail debiteur</label><p>%s</p>\n", $e);
+		}
 		echo("</div> <!-- Einde rekeninginfo -->\n");
 		
 		printf("<label>Seizoen</label><select name='seizoen'>%s</select>\n", $i_seiz->htmloptions($row->Seizoen));
@@ -101,35 +142,43 @@ function fnRekeningMuteren() {
 			printf("<input type='hidden' name='lid' value=%d>\n", $i_rr->min("Lid", $f));
 		} elseif ($row->AantLid > 1) {
 			$f = sprintf("L.RecordID IN (SELECT RR.Lid FROM %sRekreg AS RR WHERE RR.Rekening=%d)", TABLE_PREFIX, $row->Nummer);
-			printf("<label>Gekoppeld aan lid</label><select name='lid'><option value=-1></option>%s</select>", $i_lid->htmloptions($row->Lid, 0, $f));
+			printf("<label>Gekoppeld lid</label><select name='lid'><option value=-1></option>%s</select>", $i_lid->htmloptions($row->Lid, 0, $f, $row->Datum));
 		}
-		printf("<label>Betaald door</label><select name='betaalddoor'>\n%s</select>\n", $i_lid->htmloptions($row->BetaaldDoor));
+		printf("<label>Betaald door</label><select name='betaalddoor'>\n%s</select>\n", $i_lid->htmloptions($row->BetaaldDoor, 2, "", $row->Datum));
 		printf("<label>Rekeningdatum</label><input type='date' name='datum' value='%s'>\n", $row->Datum);
 		printf("<label>Betaaltermijn in dagen</label><input type='number' name='betaaldag' value=%d min=1>\n", $row->BETAALDAG);
 		printf("<label class='k2'>Aantal betaaltermijnen</label><input type='number' name='betaaldag' value=%d min=1>\n", $row->BET_TERM);
+		echo("</div> <!-- einde rekeningmuteren  -->\n");
 		
 		echo("<div class='clear'></div>\n");
 		echo("<div id='rekeningregelsmuteren'>\n");
 		echo("<table>\n");
 		echo("<tr><th>#</th><th>Kostenplaats</th><th>Lid</th><th>Omschrijving</th><th>Bedrag in &euro;</th><th>Zichtbaar</th><th>&nbsp;</th></tr>\n");
-		foreach($i_rr->perrekening($reknr) as $rrrow) {
+		foreach($i_rr->perrekening() as $rrrow) {
 			echo("<tr>\n");
 			printf("<td><input type='number' name='Regelnr_%d' step=1 value=%d min=1></td>\n", $rrrow->RecordID, $rrrow->Regelnr);
-			printf("<td><input type='text' name='KSTNPLTS_%d' value='%s' class='kostenplaats' maxlength=5></td>\n", $rrrow->RecordID, $rrrow->KSTNPLTS);
+			printf("<td><input type='text' name='KSTNPLTS_%d' value='%s' class='code' maxlength=7 onBlur='this.form.submit();'></td>\n", $rrrow->RecordID, $rrrow->KSTNPLTS);
+			if (strlen($rrrow->KSTNPLTS) > 0 and strlen($rrrow->OMSCHRIJV) == 0) {
+				$o = $i_rr->standaardwaarde($rrrow->KSTNPLTS, 'oms', $rrrow->Lid);
+				$cb = $i_rr->standaardwaarde($rrrow->KSTNPLTS, 'cb', $rrrow->Lid);
+			} else {
+				$o = $rrrow->OMSCHRIJV;
+				$cb = $rrrow->Bedrag;
+			}
 			printf("<td>%s</td>\n", $rrrow->NaamLid);
-			printf("<td><input type='text' name='OMSCHRIJV_%d' value='%s'></td>\n", $rrrow->RecordID, $rrrow->OMSCHRIJV);
-			printf("<td><input type='number' name='Bedrag_%d' step='0.01' value='%s'></td>\n", $rrrow->RecordID, number_format($rrrow->Bedrag, 2, ".", ""));
+			printf("<td><input type='text' name='OMSCHRIJV_%d' value='%s'></td>\n", $rrrow->RecordID, $o);
+			printf("<td><input type='number' name='Bedrag_%d' step='0.01' value='%s'></td>\n", $rrrow->RecordID, number_format($cb, 2, ".", ""));
 			if ($rrrow->Bedrag == 0) {
 				printf("<td><input type='checkbox' name='ToonOpRekening_%d' value=1%s readonly></td>\n", $rrrow->RecordID, checked($rrrow->ToonOpRekening));
 			} else {
 				printf("<td><input type='checkbox' name='ToonOpRekening_%d' value=1%s></td>\n", $rrrow->RecordID, checked($rrrow->ToonOpRekening));
 			}
-			printf("<td class='trash'><a href='%s?tp=%s&amp;op=delete&rrid=%d'>&nbsp&nbsp&nbsp</a></td>", $_SERVER['PHP_SELF'], $_GET['tp'], $rrrow->RecordID);
+			printf("<td class='trash'><a href='%s?tp=%s&amp;op=deleteregel&rrid=%d'>&nbsp;&nbsp;&nbsp;</a></td>", $_SERVER['PHP_SELF'], $_GET['tp'], $rrrow->RecordID);
 			
 			echo("</tr>\n");
 		}
 		echo("</table>\n");
-		printf("<select name='RRnieuw'>\n<option value=-1>Regel toevoegen ...</option><option value=0>Geen lid</option>%s</select>\n", $i_lid->htmloptions(0, 2));
+		printf("<select name='RRnieuw' onChange='this.form.submit();'>\n<option value=-1>Regel toevoegen ...</option><option value=0>Geen lid</option>%s</select>\n", $i_lid->htmloptions(0, 2));
 		echo("</div> <!-- Einde rekeningregelsmuteren -->\n");
 		
 		echo("<div id='opdrachtknoppen'>\n");
@@ -139,7 +188,6 @@ function fnRekeningMuteren() {
 		echo("</form>\n");
 		
 	}
-	echo("</div> <!-- einde rekeningmuteren  -->\n");
 	
 }  # fnRekeningMuteren
 

@@ -96,11 +96,10 @@ $selectlidnr = sprintf("SELECT MAX(IFNULL(Lidnr, 0)) FROM %sLidmaatschap AS LM W
 $selectmailbox = "CASE WHEN IFNULL(M.deleted_on, '1900-01-01') > '2000-01-01' THEN 'Prullenbak'
 							  WHEN (M.Template=1) THEN 'Templates'
 							  WHEN (M.sent_on IS NULL) THEN 'Concepten'
-							  ELSE 'Verzonden' END";  // Moet nog verder ingevoerd worden, indien wenselijk
-
+							  ELSE 'Verzonden' END";  // Moet nog verder ingevoerd worden, indien wenselijep
 $fromlid = sprintf('%1$sLid AS L LEFT OUTER JOIN %1$sLidmaatschap AS LM ON L.RecordID=LM.Lid', TABLE_PREFIX);
 $wherelid = "LM.LIDDATUM <= CURDATE() AND IFNULL(LM.Opgezegd, CURDATE()) >= CURDATE()";
-$fromlidond = sprintf('%1$sLid AS L INNER JOIN ((%1$sLidond AS LO INNER JOIN %1$sFunctie AS F ON LO.Functie=F.Nummer) INNER JOIN %1$sOnderdl AS O ON LO.OnderdeelID=O.RecordID) ON L.RecordID=LO.Lid', TABLE_PREFIX);
+$fromlidond = sprintf('%1$sLid AS L INNER JOIN (((%1$sLidond AS LO INNER JOIN %1\$sGroep AS Groep ON GR.Recordid=LO.GroepID) INNER JOIN %1$sFunctie AS F ON LO.Functie=F.Nummer) INNER JOIN %1$sOnderdl AS O ON LO.OnderdeelID=O.RecordID) ON L.RecordID=LO.Lid', TABLE_PREFIX);
 $wherelidond = "LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()";
 $whereliddipl = "IFNULL(LD.LicentieVervallenPer, CURDATE()) >= CURDATE()";
 $sqllidgroepen = sprintf("SELECT OnderdeelID FROM %sLidond AS LO WHERE %s AND Lid=%d", TABLE_PREFIX, $wherelidond, $_SESSION['lidid']);
@@ -178,8 +177,8 @@ class cls_db_base {
 	public $table = "";		// Naam van de tabel
 	public $mess = "";		// Boodschap in de logging
 	public $ta = 0;			// Type activiteit van de logging
-	public $tas = 0;		// Type activiteit specifiek van de logging
-	public $tm = 0; 		// Toon boodschap 1 = ja, 0 = nee
+	public $tas = 0;			// Type activiteit specifiek van de logging
+	public $tm = 0; 			// Toon boodschap 1 = ja, 0 = nee, 2 = alleen voor webmasters
 	public $lidid = 0;		// RecordID van het lid
 	public $query = "";		// De SQL-code die moet worden uitgevoerd.
 	public $where = "";
@@ -206,6 +205,7 @@ class cls_db_base {
 					ELSE GR.Omschrijving
 					END";
 	public $selectgebdatum = "";
+	public $selectmhaan = "";
 	
 	function __construct($p_table="") {
 		global $db_name;
@@ -222,6 +222,7 @@ class cls_db_base {
 		}
 		$this->selectgeslacht .= "ELSE 'Onbekend' END";
 		$this->selectgebdatum = sprintf("IF(ISNULL(L.GEBDATUM), '', DATE_FORMAT(L.GEBDATUM, %s, %s))", $this->fdlang, $this->db_language);
+		$this->selectmhaan = sprintf("CONCAT(IF(MH.LidID=0, '', %s), ' & ', MH.to_addr, IF(LENGTH(IFNULL(MH.cc_addr, '')) < 5, '', CONCAT(' & CC: ', MH.cc_addr)))", $this->selectnaam);
 	}
 		
 	public function execsql($p_query="", $p_logtype=-1) {
@@ -231,7 +232,7 @@ class cls_db_base {
 			$this->query = $p_query;
 		}
 		
-		if 	(strlen($this->query) > 5) {
+		if (strlen($this->query) > 5) {
 			$starttijd = microtime(true);
 			$mess = "";
 	
@@ -654,14 +655,23 @@ class cls_db_base {
 		return $result->fetchAll();
 	}
 	
-	public function log($p_refID=0, $p_prtmess=0) {
+	public function log($p_refID=0, $p_prtmess=-1) {
+		/* p_prtmess
+			0 = Nee
+			1 = ja, altijd
+			2 = ja, alleen bij webmasters
+		*/
+		if ($p_prtmess > -1) {
+			$this->tm = $p_prtmess;
+		}
+
 		if (strlen($this->mess) > 0) {
 			if (substr($this->mess, -1) != ".") {
 				$this->mess .= ".";
 			}
 			$lbid = (new cls_Logboek())->add($this->mess, $this->ta, $this->lidid, $this->tm, $p_refID, $this->tas, $this->table);
 			
-			if ($p_prtmess == 1) {
+			if ($this->tm == 1 or ($_SESSION['webmaster'] == 1 and $this->tm == 2)) {
 				printf("<p class='mededeling'>%s</p>\n", $this->mess);
 			}
 			$this->mess = "";
@@ -707,17 +717,19 @@ class cls_Lid extends cls_db_base {
 	public function ledenlijst($p_filter="", $p_xtraselect="", $p_ord="") {
 		
 		$opg = "";
+		$wa = "";
 		if ($_SESSION['settings']['woonadres_anderen_tonen'] == 1) {
-			$wa = "CONCAT(L.Adres, ', ', L.Woonplaats) AS `Adres`,";
-		} else {
-			$wa = "L.Woonplaats,";
+			$wa = ", CONCAT(L.Adres, ', ', L.Woonplaats) AS `Adres`";
 		}
+		$k3 = sprintf(", CONCAT(%s, ' & ', %s) AS mrgBereiken", $this->selecttelefoon, $this->selectemail);
+		$k4 = "";
+		
 		if (strlen($p_filter) > 0) {
 			$p_filter = "WHERE " . $p_filter;
 		}
+		
 		if (strpos($p_filter, "(LM.Lidnr IS NULL)") === false) {
 			$ln = ", LM.Lidnr AS numLidnr";
-			$k4 = $this->selecttelefoon . " AS Telefoon";
 			$f = "Type='A' AND (VervallenPer IS NULL)";
 			if (strpos($p_filter, "LM.Lidnr > 0") > 0 and (new cls_Onderdeel())->aantal($f) > 1) {
 				$p_xtraselect .= sprintf(", (SELECT GROUP_CONCAT(DISTINCT O.Kode SEPARATOR '/') FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE O.Type='A' AND LO.Lid=L.RecordID AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()) AS `Afd.`", TABLE_PREFIX);
@@ -729,17 +741,17 @@ class cls_Lid extends cls_db_base {
 			
 		} else {
 			$ln = "";
-			$k4 = "L.Opmerking";
+			$k4 = ", L.Opmerking";
 		}
 		
 		if (strlen($p_ord) > 0) {
 			$p_ord .= ", ";
 		}
 		
-		$query = sprintf("SELECT L.RecordID AS lnkNummer, %s AS `Naam_lid`, %s %s AS `emlE-mail`, %s %s %s %s, L.RecordID AS llkNummer, L.GEBDATUM AS ndGEBDATUM, %s AS ndZoeknaam
+		$query = sprintf("SELECT L.RecordID AS lnkNummer, %s AS `Naam_lid` %s %s %s %s %s %s, L.RecordID AS llkNummer, L.GEBDATUM AS ndGEBDATUM, %s AS ndZoeknaam
 					FROM %s
 					%s
-					ORDER BY %sL.Achternaam, L.TUSSENV, L.Roepnaam, LM.LIDDATUM;", $this->selectnaam, $wa, $this->selectemail, $k4, $ln, $p_xtraselect, $opg, $this->selectzoeknaam, $this->fromlid, $p_filter, $p_ord);
+					ORDER BY %sL.Achternaam, L.TUSSENV, L.Roepnaam, LM.LIDDATUM;", $this->selectnaam, $wa, $k3, $k4, $ln, $p_xtraselect, $opg, $this->selectzoeknaam, $this->fromlid, $p_filter, $p_ord);
 					
 		$result = $this->execsql($query);
 		return $result->fetchAll();
@@ -766,7 +778,7 @@ class cls_Lid extends cls_db_base {
 		}
 		$sqllegitimatie .= "END, ' ', L.Legitimatienummer), NULL)";
 		
-		if ($_SESSION['settings']['woonadres_anderen_tonen'] == 1 or $p_lidid == $_SESSION['lidid']) {
+		if ($_SESSION['settings']['woonadres_anderen_tonen'] == 1 or $p_lidid == $_SESSION['lidid'] or $_SESSION['webmaster'] == 1) {
 			$adresgegevens = "'Adresgegevens' AS Kop2,
 					L.Adres,
 					IF(LENGTH(L.Woonplaats) > 1, CONCAT(L.Postcode, '  ', L.Woonplaats), '') AS `Postcode en woonplaats`, ";
@@ -868,8 +880,11 @@ class cls_Lid extends cls_db_base {
 		return $this->scalar($query);
 	}
 	
-	public function iskader($p_lidid) {
-		$query = sprintf("SELECT COUNT(*) FROM %s WHERE LO.Lid=%d AND (O.Kader=1 OR F.Kader=1) AND LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE();", $this->fromlidond, $p_lidid);
+	public function iskader($p_lidid, $p_per="") {
+		if (strlen($p_per) < 10) {
+			$p_per = date("Y-m-d");
+		}
+		$query = sprintf("SELECT COUNT(*) FROM %s WHERE LO.Lid=%d AND (O.Kader=1 OR F.Kader=1) AND LO.Vanaf <= '%3\$s' AND IFNULL(LO.Opgezegd, '9999-12-31') >= %3\$s;", $this->fromlidond, $p_lidid, $p_per);
 		if ($this->scalar($query) > 0) {
 			return true;
 		} else {
@@ -877,7 +892,19 @@ class cls_Lid extends cls_db_base {
 		}
 	}
 	
-	public function lijstselect($p_filter=0, $p_xf="") {
+	public function onderscheiding($p_lidid, $p_per="") {
+		if (strlen($p_per) < 10) {
+			$p_per = date("Y-m-d");
+		}
+		$query = sprintf("SELECT IFNULL(MAX(O.Naam), '') FROM %s WHERE LO.Lid=%d AND O.`Type`='O' AND LO.Vanaf <= '%3\$s' AND IFNULL(LO.Opgezegd, '9999-12-31') >= %3\$s;", $this->fromlidond, $p_lidid, $p_per);
+		return $this->scalar($query);
+	}
+	
+	public function lijstselect($p_filter=0, $p_xf="", $p_per="") {
+		
+		if (strlen($p_per) < 10) {
+			$p_per = date("Y-m-d");
+		}
 	
 		$query = sprintf("SELECT L.RecordID, %s AS NaamLid, %s AS Zoeknaam ", $this->selectnaam, $this->selectzoeknaam); 
 		if ($p_filter == 1) {
@@ -886,14 +913,14 @@ class cls_Lid extends cls_db_base {
 			
 		} elseif ($p_filter == 2) {
 			// Geen voormalige leden
-			$query .= sprintf("FROM %s AS L LEFT OUTER JOIN %sLidmaatschap AS LM ON L.RecordID=LM.Lid WHERE ((LM.Lid IS NULL) OR IFNULL(LM.Opgezegd, CURDATE()) >= CURDATE())", $this->table, TABLE_PREFIX);		
+			$query .= sprintf("FROM %s AS L LEFT OUTER JOIN %sLidmaatschap AS LM ON L.RecordID=LM.Lid WHERE ((LM.Lid IS NULL) OR IFNULL(LM.Opgezegd, '999-12-31') >= '%s')", $this->table, TABLE_PREFIX, $p_per);
 			
 		} elseif ($p_filter == 3) {
 			// Leden die aan een rekening zijn gekoppeld middels BetaaldDoor
 			$query .= sprintf("FROM %s AS L WHERE L.RecordID IN (SELECT RK.BetaaldDoor FROM %sRekening AS RK)", $this->table, TABLE_PREFIX);
 			
 		} elseif ($p_filter == 4) {
-			// Leden die in een niet-afgesloten bewakingsseizoen actief  zijn.	
+			// Leden die in een niet-afgesloten bewakingsseizoen actief zijn.	
 			$query .= sprintf("FROM %1\$s AS L WHERE L.RecordID IN (SELECT BW.Lid FROM %2\$sBewaking AS BW INNER JOIN %2\$sBewseiz AS BS ON BW.SeizoenID=BS.RecordID WHERE BS.Afgesloten=0)", $this->table, TABLE_PREFIX);
 			
 		} else {
@@ -908,21 +935,22 @@ class cls_Lid extends cls_db_base {
 		return $result->fetchAll();
 	}
 	
-	public function htmloptions($p_cv=-1, $p_filter=0, $p_xf="") {
+	public function htmloptions($p_cv=-1, $p_filter=0, $p_xf="", $p_per="") {
+		if (strlen($p_per) < 10) {
+			$p_per = date("Y-m-d");
+		}
 		$rv = "";
 		
-		foreach($this->lijstselect($p_filter, $p_xf) as $lid) {
+		foreach($this->lijstselect($p_filter, $p_xf, $p_per) as $lid) {
 			if ($lid->RecordID == $p_cv) {
 				$s = " selected";
 			} else {
 				$s = "";
 			}
 			$tw = $lid->Zoeknaam;
-			if ($p_filter == 0) {
-				$sl = substr((new cls_Lidmaatschap())->soortlid($lid->RecordID), 0, 1);
-				if ($sl != "L" > 0) {
-					$tw .= sprintf(" (%s)", $sl);
-				}
+			$sl = substr((new cls_Lidmaatschap())->soortlid($lid->RecordID, $p_per), 0, 1);
+			if ($p_filter == 0 and $sl != "L") {
+				$tw .= sprintf(" (%s)", $sl);
 			}
 			$rv .= sprintf("<option%s value=%d>%s</option>\n", $s, $lid->RecordID, $tw);
 		}
@@ -1121,10 +1149,11 @@ class cls_Lidmaatschap extends cls_db_base {
 		}
 		
 		$nrid = $this->nieuwrecordID();
-		$query = sprintf("INSERT INTO %s (RecordID, Lid, Lidnr, LIDDATUM, Ingevoerd) VALUES (%d, %d, %d, '0000-00-00', CURDATE());", $this->table, $nrid, $this->lidid, $lidnr);
+		$query = sprintf("INSERT INTO %s (RecordID, Lid, Lidnr, LIDDATUM, Ingevoerd) VALUES (%d, %d, %d, CURDATE(), CURDATE());", $this->table, $nrid, $this->lidid, $lidnr);
 		if ($this->execsql($query) > 0) {
-			$this->mess = sprintf("Lidmaatschap %d met lidnummer %d is toegevoegd.", $nrid, $lidnr);
-			
+			$this->mess = sprintf("Lidmaatschap %d met lidnummer %d is toegevoegd.", $nrid, $lidnr);	
+
+			$query = sprintf("INSERT INTO %s (RecordID, Lid, Lidnr, LIDDATUM, Ingevoerd) VALUES (%d, %d, %d, CURDATE(), CURDATE());", $this->table, $nrid, $this->lidid, $lidnr);
 			$this->Interface($query);
 		}
 		$this->Log($nrid);
@@ -1750,8 +1779,12 @@ class cls_Onderdeel extends cls_db_base {
 		}
 	}
 	
-	public function record($p_oid) {
-		$query = sprintf("SELECT O.*, O.`Alleen leden` AS AlleenLeden FROM %s AS O WHERE O.RecordID=%d;", $this->table, $p_oid);
+	public function record($p_oid, $p_kode="") {
+		if ($p_oid > 0) {
+			$query = sprintf("SELECT O.*, O.`Alleen leden` AS AlleenLeden FROM %s AS O WHERE O.RecordID=%d;", $this->table, $p_oid);
+		} else {
+			$query = sprintf("SELECT O.*, O.`Alleen leden` AS AlleenLeden FROM %s AS O WHERE UPPER(O.Kode)='%s';", $this->table, strtoupper($p_kode));
+		}
 		$result = $this->execsql($query);
 		return $result->fetch();
 	}
@@ -2109,7 +2142,7 @@ class cls_Lidond extends cls_db_base {
 		$this->ta = 6;
 	}
 	
-	private function vulvars($p_loid=0, $p_lidid=0, $p_ondid=0) {
+	private function vulvars($p_loid=0, $p_lidid=0, $p_ondid=0, $p_per="") {
 		if ($p_loid > 0) {
 			$this->loid = $p_loid;
 		}
@@ -2118,6 +2151,9 @@ class cls_Lidond extends cls_db_base {
 		}
 		if ($p_ondid > 0) {
 			$this->ondid = $p_ondid;
+		}
+		if (strlen($p_per) < 10) {
+			$p_per = date("Y-m-d");
 		}
 
 		if ($this->loid > 0) {
@@ -2128,11 +2164,10 @@ class cls_Lidond extends cls_db_base {
 				$this->ondid = $row->OnderdeelID;
 			} else {
 				$this->mess = sprintf("Record in lidond met ID %d bestaat niet.", $this->loid);
-				$this->ta = 99;
 				$this->tm = 1;
 			}
 		} elseif ($this->lidid > 0 and $this->ondid > 0) {
-			$query = sprintf("SELECT IFNULL(MAX(LO.RecordID), 0) FROM %s AS LO WHERE LO.Lid=%d AND LO.OnderdeelID=%d AND IFNULL(LO.Opgezegd, CURDATE()) <= CURDATE();", $this->table, $this->lidid, $this->ondid);
+			$query = sprintf("SELECT IFNULL(MAX(LO.RecordID), 0) FROM %s AS LO WHERE LO.Lid=%d AND LO.OnderdeelID=%d AND LO.Vanaf <= '%4\$s' AND IFNULL(LO.Opgezegd, '9999-12-31') >= '%4\$s';", $this->table, $this->lidid, $this->ondid, $p_per);
 			$this->loid = $this->scalar($query);
 		}
 		if ($this->ondid > 0) {
@@ -2155,10 +2190,14 @@ class cls_Lidond extends cls_db_base {
 		}
 	}
 	
-	public function record($p_lidid, $p_ondid) {
-		$this->vulvars(0, $p_lidid, $p_ondid);
+	public function record($p_lidid, $p_ondid, $p_per="", $p_loid=0) {
+		if (strlen($p_per) < 10) {
+			$p_per = date("Y-m-d");
+		}
+		$this->vulvars($p_loid, $p_lidid, $p_ondid, $p_per);
 		
-		$this->query = sprintf("SELECT LO.*, GR.Starttijd, O.Naam AS AfdNaam FROM (%s AS LO INNER JOIN %sGroep AS GR ON LO.GroepID=GR.RecordID) INNER JOIN %2\$sOnderdl AS O ON LO.OnderdeelID=O.RecordID WHERE LO.RecordID=%3\$d;", $this->table, TABLE_PREFIX, $this->loid);
+		$this->query = sprintf("SELECT LO.*, GR.Starttijd, O.Naam AS AfdNaam, GR.Activiteit AS GrActiviteit, GR.Contributie AS GrContributie, F.Omschrijv AS Functie, LO.Functie AS FunctieID, F.Kader
+								FROM ((%s AS LO INNER JOIN %2\$sGroep AS GR ON LO.GroepID=GR.RecordID) INNER JOIN %2\$sFunctie AS F ON F.Nummer=LO.Functie) INNER JOIN %2\$sOnderdl AS O ON LO.OnderdeelID=O.RecordID WHERE LO.RecordID=%3\$d;", $this->table, TABLE_PREFIX, $this->loid);
 		$result = $this->execsql();
 		return $result->fetch();
 	}
@@ -2231,31 +2270,31 @@ class cls_Lidond extends cls_db_base {
 			$filter .= " AND " . $p_extrafilter;
 		}
 		
-		$sel = sprintf("L.RecordID AS ndLidID, %s AS `Naam_lid`, L.Woonplaats, %s AS Telefoon, %s AS `emlE-mail`", $this->selectnaam, $this->selecttelefoon, $this->selectemail);
-		$query = sprintf("SELECT MAX(LO.Functie) FROM %s WHERE %s;", $this->fromlidond, $filter);
-		if ($this->scalar($query) > 0) {
-			$sel .= ", F.Omschrijv AS Functie";
+		$sel = sprintf("L.RecordID AS ndLidID, %s AS `Naam_lid`, CONCAT(%s, ' & ', %s) AS mrgBereiken", $this->selectnaam, $this->selecttelefoon, $this->selectemail);
+		$f_query = sprintf("SELECT MAX(LO.Functie) FROM %s WHERE %s;", $this->fromlidond, $filter);
+		$gr_query = sprintf("SELECT MAX(LO.GroepID) FROM %s WHERE %s;", $this->fromlidond, $filter);
+		$opm_query = sprintf("SELECT MAX(LO.OPMERK) FROM %s WHERE %s;", $this->fromlidond, $filter);
+		$opg_query = sprintf("SELECT MAX(LO.Opgezegd) FROM %s WHERE %s;", $this->fromlidond, $filter);
+		
+		if ($this->scalar($f_query) > 0 and $this->scalar($gr_query) > 0) {
+			$sel .= ", CASE WHEN LO.GroepID > 0 AND LO.Functie > 0 THEN CONCAT(F.OMSCHRIJV, '/', IF(LENGTH(GR.Kode)=0, GR.RecordID, GR.Kode))
+							WHEN LO.Functie > 0 THEN F.OMSCHRIJV
+							WHEN LO.GroepID > 0 THEN IF(LENGTH(GR.Kode)=0, GR.RecordID, GR.Kode)
+							ELSE '' END AS `Functie / Groep`";
+		} elseif ($this->scalar($f_query) > 0) {
+			$sel .= ", F.Afkorting AS Functie";
+		} elseif ($this->scalar($gr_query) > 0) {
+			$sel .= sprintf(", IF(LENGTH(GR.Kode)=0, GR.RecordID, GR.Kode) AS Groep", TABLE_PREFIX);
 		}
+		
 		$sel .= ", F.Afkorting AS ndAfkFunc";
-		
-		$query = sprintf("SELECT MAX(LO.GroepID) FROM %s WHERE %s;", $this->fromlidond, $filter);
-		if ($this->scalar($query) > 0) {
-			$sel .= sprintf(", (SELECT IF(LENGTH(GR.Kode)>0, GR.Kode, IF(GR.RecordID > 0, GR.RecordID, '')) FROM %sGroep AS GR WHERE LO.GroepID=GR.RecordID) AS Groep", TABLE_PREFIX);
-		}
-		
-		$query = sprintf("SELECT MAX(LO.OPMERK) FROM %s WHERE %s;", $this->fromlidond, $filter);
-		if (strlen($this->scalar($query)) > 0) {
+		if (strlen($this->scalar($opm_query)) > 0) {
 			$sel .= ", LO.OPMERK AS Opmerking";
 		}
-		$sel .= ", LO.Vanaf AS dteVanaf";
+		$sel .= ", LO.Vanaf AS dtkVanaf";
 		
-		$query = sprintf("SELECT MAX(LO.Opgezegd) FROM %s WHERE %s;", $this->fromlidond, $filter);
-		if ($this->scalar($query) > '2001-01-01') {
+		if ($this->scalar($opg_query) > '2001-01-01') {
 			$sel .= ", LO.Opgezegd AS dteTotenmet";
-		}
-		$f = sprintf("RecordID=%d", $p_ondid);
-		if ((new cls_Onderdeel())->max("ORGANIS", $f) == 1) {
-			$sel .= ", L.RelnrRedNed AS `Sportlink ID`";
 		}
 		
 		$sel .= sprintf(", L.GEBDATUM AS ndGEBDATUM, %s AS ndZoeknaam, LO.GroepID AS ndGroepID, LO.RecordID AS ndRecordID, %s AS ndLeeftijd", $this->selectzoeknaam, $this->selectleeftijd);
@@ -2371,8 +2410,7 @@ class cls_Lidond extends cls_db_base {
 				$do = "dteOpgezegd";
 			}
 			
-			$query = sprintf("SELECT O.Kode AS Code,
-							  O.Naam,
+			$query = sprintf("SELECT O.Naam,
 							  LO.Vanaf AS dteVanaf,
 							  %s
 							  LO.Opgezegd AS %s,
@@ -2424,24 +2462,22 @@ class cls_Lidond extends cls_db_base {
 		$this->vulvars();
 		$nrid = 0;
 		
-		$query = sprintf("SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.Lid=%d AND LO.OnderdeelID=%d AND LO.Vanaf=CURDATE();", TABLE_PREFIX, $this->lidid, $this->ondid);
+		$vanaf = date("Y-m-d");
+		if ($this->ondtype == "A") {
+			$query = sprintf("SELECT IFNULL(MAX(LM.LIDDATUM), CURDATE()) FROM %sLidmaatschap AS LM WHERE LM.Lid=%d AND (LM.Opgezegd IS NULL) AND LM.LIDDATUM > DATE_SUB(CURDATE(), INTERVAL 3 MONTH);", TABLE_PREFIX, $this->lidid);
+			$vanaf = $this->scalar($query);
+		}
+		
 		if (strlen($this->ondnaam) == 0) {
 			$this->mess = sprintf("OnderdeelID %d bestaat niet. Record wordt niet toegevoegd.", $this->ondid);
-			$this->ta = 99;
-			$this->tm = 1;
-		} elseif ($this->scalar($query) > 0) {	
-			$this->mess = sprintf("Deze combinatie (lid: %d / OnderdeelID: %d) bestaat al en wordt niet dubbel ingevoerd.", $this->lidid, $this->ondid);
-			$this->tm = 1;
 		} elseif (strlen($this->lidnaam) == 0) {
-			$mess = sprintf("Lid %d bestaat niet. Dit record wordt niet toegevoegd.", $this->lidid);
-			$this->ta = 99;
-			$this->tm = 1;
+			$this->mess = sprintf("Lid %d bestaat niet. Dit record wordt niet toegevoegd.", $this->lidid);
 			
 		} else {
 			$nrid = $this->nieuwrecordid();
-			$query = sprintf("INSERT INTO %s (RecordID, Lid, OnderdeelID, Vanaf, Functie, Ingevoerd, Gewijzigd) VALUES (%d, %d, %d, CURDATE(), 0, CURDATE(), SYSDATE());", $this->table, $nrid, $this->lidid, $this->ondid);
+			$query = sprintf("INSERT INTO %s (RecordID, Lid, OnderdeelID, Vanaf, Functie, Ingevoerd, Gewijzigd) VALUES (%d, %d, %d, '%s', 0, CURDATE(), SYSDATE());", $this->table, $nrid, $this->lidid, $this->ondid, $vanaf);
 			if ($this->execsql($query) > 0) {
-				$this->mess = sprintf("Is aan '%s' toegevoegd", $this->ondnaam);
+				$this->mess = sprintf("%s is aan '%s' toegevoegd", $this->lidnaam, $this->ondnaam);
 				if (strlen($p_reden) > 0) {
 					$this->mess .= ", omdat " . $p_reden;
 				}
@@ -2452,13 +2488,14 @@ class cls_Lidond extends cls_db_base {
 				$rv = true;
 			}
 		}
-		$this->log($nrid);
+		$this->log($nrid, 2);
 		return $rv;
 	}
 	
 	public function update($p_loid, $p_kolom, $p_waarde, $p_reden="") {
 		$this->vulvars($p_loid);
 		$rv = false;
+		$this->tm = 0;
 		
 		if ($p_kolom == "GroepID") {
 			$this->ta = 19;
@@ -2470,8 +2507,8 @@ class cls_Lidond extends cls_db_base {
 			$this->tas = 12;
 		}
 		
-		if ($p_kolom == "Vanaf" and strlen($p_waarde) < 5) {
-			$this->mess = "De datum 'Vanaf' mag niet leeg zijn, deze aanpassing wordt niet verwerkt.";
+		if ($p_kolom == "Vanaf" and strlen($p_waarde) < 6) {
+			$this->mess = sprintf("In %s mag de datum 'Vanaf' niet leeg zijn, deze aanpassing wordt niet verwerkt.", $this->table);
 			$this->tm = 1;
 		} elseif ($this->typekolom($p_kolom) == "date" and strlen($p_waarde) > 5 and $p_waarde <= '1970-01-01') {
 			$this->mess = sprintf("De waarde '%s' voor kolom '%s' is ongeldig, deze aanpassing wordt niet verwerkt.", $p_waarde, $p_kolom);
@@ -2479,7 +2516,7 @@ class cls_Lidond extends cls_db_base {
 		} else {
 			if ($this->pdoupdate($this->loid, $p_kolom, $p_waarde) > 0) {
 				$rv = true;
-				$this->mess = sprintf("Bij %s is kolom '%s' in '%s' gewijzigd", $this->ondnaam, $p_kolom, $p_waarde);
+				$this->mess = sprintf("%s: bij %s is kolom '%s' in '%s' gewijzigd", $this->lidnaam, $this->ondnaam, $p_kolom, $p_waarde);
 				if (strlen($p_reden) > 0) {
 					$this->mess .= ", omdat " . $p_reden;
 				}
@@ -2497,7 +2534,7 @@ class cls_Lidond extends cls_db_base {
 				(new cls_Interface())->add($sql, $this->lidid);
 			}
 		}
-		$this->log($p_loid);
+		$this->log($this->loid);
 		return $rv;
 	}
 	
@@ -2524,7 +2561,7 @@ class cls_Lidond extends cls_db_base {
 			
 			(new cls_Interface())->add($query, $this->lidid);
 		}
-		$this->log($this->loid);
+		$this->log($this->loid, 2);
 		return $rv;
 	}
 	
@@ -2609,7 +2646,6 @@ class cls_Lidond extends cls_db_base {
 						}
 					}
 				} else {
-					$this->ta = 99;
 					$this->tas = 30;
 					$this->mess = sprintf("De MySQL-code van onderdeel %d (%s) is niet uitvoerbaar.", $ondrow->RecordID, $ondrow->Naam);
 				}
@@ -2758,7 +2794,7 @@ class cls_Login extends cls_db_base {
 		
 		$query = sprintf("SELECT Login.Login, %1\$s AS Naam_lid, L.Woonplaats, (%5\$s) AS Lidnr, IF(LENGTH(L.Email)=0, L.EmailOuders, L.Email) AS `E-mail`, Login.Ingevoerd AS dteIngevoerd, Login.LastLogin AS `dttLaatste login`, 
 					IF(LENGTH(Login.Wachtwoord) > 5 AND LENGTH(IFNULL(Login.ActivatieKey, '')) = 0, IF(Login.Ingelogd=1, 'Ingelogd', 'Gevalideerd'), 'Niet gevalideerd') AS `Status`, IF(Login.FouteLogin > 0, Login.LidID, 0) AS `Unlock`, Login.LidID AS lekNummer,
-					L.Roepnaam AS ndRoepnaam, L.Telefoon AS ndTelefoon, L.Mobiel AS ndMobiel, L.Achternaam AS ndAchternaam, L.Tussenv AS ndTussenvoegsels, L.Meisjesnm AS ndMeisjesnaam, L.GEBDATUM AS ndGeboren, L.EmailVereniging AS ndEmailVereniging,
+					L.Roepnaam AS ndRoepnaam, L.Telefoon AS ndTelefoon, L.Mobiel AS ndMobiel, L.Achternaam AS ndAchternaam, L.Tussenv AS ndTussenvoegsels, L.Meisjesnm AS ndMeisjesnaam, L.GEBDATUM AS ndGeboren, L.EmailVereniging AS ndEmailVereniging, Login.LidID AS ndLidID,
 					Login.Wachtwoord AS ndWachtwoord
 					FROM %2\$sAdmin_login AS Login INNER JOIN %2\$sLid AS L ON Login.LidID=L.RecordID
 					WHERE LENGTH(Login.Login) > 5 %3\$s
@@ -3257,12 +3293,12 @@ class cls_Mailing extends cls_db_base {
 			$orderby = "M.template DESC, M.RecordID DESC";
 		}
 		
-		$query = sprintf("SELECT M.RecordID AS lnkMailingID, M.RecordID AS intNr, M.subject AS Onderwerp, IFNULL(MV.Vanaf_naam, '') AS Van, M.to_name AS Aan,
+		$query = sprintf("SELECT M.RecordID AS lnkMailingID, M.subject AS Onderwerp, IFNULL(MV.Vanaf_naam, '') AS Van,
 					CONCAT(%1\$s, ' & ', DATE_FORMAT(M.Gewijzigd, %6\$s, 'nl_NL')) AS `mrgLaatst gewijzigd`
 					%2\$s,
 					IF((SELECT COUNT(*) FROM %3\$sMailing_hist AS MH WHERE MH.MailingID=M.RecordID) > 0, M.RecordID, 0) AS llkHist
 					FROM (%3\$sMailing AS M LEFT JOIN %3\$sMailing_vanaf AS MV ON M.MailingVanafID=MV.RecordID) LEFT JOIN %3\$sLid AS L ON M.GewijzigdDoor=L.RecordID
-					WHERE %4\$s ORDER BY %5\$s;", $this->selectnaam, $xtra_sel, TABLE_PREFIX, $w, $orderby, $this->fdtlang);
+					WHERE %4\$s ORDER BY %5\$s;", $this->selectnaam, $xtra_sel, TABLE_PREFIX, $w, $orderby, $this->fdlang);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}  # lijst
@@ -3419,20 +3455,17 @@ class cls_Mailing_hist extends cls_db_base {
 	
 	public function lijst($p_mid=0) {
 		if ($p_mid > 0) {
-			$query = sprintf("SELECT MH.RecordID AS lnkRecordID, M.subject AS ndOnderwerp, IF(MH.send_on > '2000-01-01', MH.send_on, 'In outbox') AS dtsVerzonden, IF(MH.LidID=0, M.to_name, %1\$s) AS Aan,
-						to_addr AS `E-mail`, MH.cc_addr AS `CC`
+			$query = sprintf("SELECT MH.RecordID AS lnkRecordID, M.subject AS ndOnderwerp, IF(MH.send_on > '2000-01-01', MH.send_on, 'In outbox') AS dteVerzonden, %1\$s AS mrgAan
 						FROM (%2\$sMailing_hist AS MH LEFT JOIN %2\$sLid AS L ON MH.LidID=L.RecordID) LEFT JOIN %2\$sMailing AS M ON MH.MailingID=M.RecordID
 						WHERE MH.MailingID=%3\$d %4\$s
-						ORDER BY MH.RecordID DESC;", $this->selectnaam, TABLE_PREFIX, $p_mid, $this->zichtbaarwhere);
+						ORDER BY MH.RecordID DESC;", $this->selectmhaan, TABLE_PREFIX, $p_mid, $this->zichtbaarwhere);
 		} else {
-			$query = sprintf("SELECT MH.RecordID AS lnkRecordID,
-						MH.send_on AS dttVerzonden,
+			$query = sprintf("SELECT MH.RecordID AS lnkRecordID, MH.send_on AS dteVerzonden,
 						IF(LENGTH(MH.from_name)<3, MH.from_addr, MH.from_name) AS Van,
-						IF(MH.LidID=0, MH.to_addr, MH.LidID) AS lnmAan,
-						MH.subject AS Onderwerp
-						FROM %s AS MH
+						%s AS mrgAan, MH.subject AS Onderwerp
+						FROM %s AS MH LEFT JOIN %sLid AS L ON MH.LidID=L.RecordID
 						WHERE MH.send_on > '2000-01-01' %s
-						ORDER BY MH.RecordID DESC LIMIT %d;", $this->table, $this->zichtbaarwhere, $this->limit);
+						ORDER BY MH.RecordID DESC LIMIT %d;", $this->selectmhaan, $this->table, TABLE_PREFIX, $this->zichtbaarwhere, $this->limit);
 		}
 		
 		$result = $this->execsql($query);
@@ -3500,7 +3533,7 @@ class cls_Mailing_hist extends cls_db_base {
 	public function overzichtlid($p_lidid) {
 		
 		$query = sprintf("SELECT MH.RecordID AS lnkRecordID,
-						  MH.send_on AS dttVerzonden,
+						  MH.send_on AS dteVerzonden,
 						  IF(LENGTH(MH.from_name)<3, MH.from_addr, MH.from_name) AS Van,
 						  MH.subject AS Onderwerp
 						  FROM %s AS MH LEFT JOIN %sLid AS L ON MH.LidID=L.RecordID
@@ -4141,10 +4174,10 @@ class cls_Diploma extends cls_db_base {
 		} elseif ($p_afdfilter > 0) {
 			$this->where = sprintf("WHERE DP.RecordID IN (SELECT DiplomaID FROM %1\$sLiddipl AS LD WHERE LD.Lid IN (SELECT Lid FROM %1\$sLidond AS LO WHERE LO.OnderdeelID=%2\$d AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()))", TABLE_PREFIX, $p_afdfilter);
 		}
-		$query = sprintf("SELECT DP.*, CONCAT(DP.Kode, ' - ', DP.Naam) AS ToonWaarde FROM %s AS DP %s ORDER BY DP.Kode;", $this->table, $this->where);
+		$query = sprintf("SELECT DP.*, CONCAT(DP.Kode, ' - ', DP.Naam) AS ToonWaarde, DP.Naam FROM %s AS DP %s ORDER BY DP.Kode;", $this->table, $this->where);
 		foreach ($this->execsql($query) as $row) {
 			$s = checked($row->RecordID, "option", $p_cv);
-			$rv .= sprintf("<option value=%d %s>%s</option>\n", $row->RecordID, $s, $row->ToonWaarde);
+			$rv .= sprintf("<option value=%d %s>%s</option>\n", $row->RecordID, $s, $row->Naam);
 		}
 		return $rv;
 	}
@@ -4181,12 +4214,11 @@ class cls_Liddipl extends cls_db_base {
 	}
 	
 	public function overzichtlid($p_lidid) {
-		$query = sprintf("SELECT D.Kode AS Code,
-						  D.Naam AS Diploma,
+		$query = sprintf("SELECT D.Naam AS Diploma,
 						  O.Naam AS `Uitgegeven door`,
 						  LD.DatumBehaald AS dteDatum,
 						  LD.Diplomanummer AS Gegevens,
-						  IFNULL(LD.LicentieVervallenPer, IF(D.GELDIGH>0, DATE_ADD(LD.DatumBehaald, INTERVAL D.GELDIGH MONTH), IF((NOT D.Vervallen IS NULL), D.Vervallen, null))) AS `dteGeldigheid vervalt per`
+						  IFNULL(LD.LicentieVervallenPer, IF(D.GELDIGH>0, DATE_ADD(LD.DatumBehaald, INTERVAL D.GELDIGH MONTH), IF((NOT D.Vervallen IS NULL), D.Vervallen, null))) AS `dteGeldig tot`
 						  FROM %1\$sLiddipl AS LD INNER JOIN (%1\$sDiploma AS D INNER JOIN %1\$sOrganisatie AS O ON D.ORGANIS = O.Nummer) ON LD.DiplomaID = D.RecordID
 						  WHERE LD.DatumBehaald <= CURDATE() AND LD.LaatsteBeoordeling=1 AND IFNULL(D.Vervallen, CURDATE()) >= CURDATE() AND LD.Lid=%2\$d
 						  ORDER BY LD.DatumBehaald;", TABLE_PREFIX, $p_lidid);
@@ -4388,7 +4420,7 @@ class cls_Evenement extends cls_db_base {
 			
 		} elseif ($p_soort == 4) {
 			$select = "E.Datum, E.Omschrijving, E.MeerdereStartMomenten, E.RecordID";
-			$where = sprintf("E.Datum >= CURDATE() AND E.Datum < DATE_ADD(CURDATE(), INTERVAL 3 MONTH) AND IFNULL(E.VerwijderdOp, '1900-01-01') < '2012-01-01' AND E.ZichtbaarVoor IN (%s)", $_SESSION["lidgroepen"]);
+			$where = sprintf("E.Datum >= CURDATE() AND IFNULL(E.VerwijderdOp, '1900-01-01') < '2012-01-01' AND E.ZichtbaarVoor IN (%s)", $_SESSION["lidgroepen"]);
 			$ord = "E.Datum;";
 			
 		} elseif ($p_soort == 5) {
@@ -4402,6 +4434,7 @@ class cls_Evenement extends cls_db_base {
 								CASE E.InschrijvingOpen WHEN 0 THEN 'Nee' ELSE 'Ja' END AS `Ins. open?`,
 								(%s) AS `Aantal dln`,
 								ET.Omschrijving AS `Type`", $this->sqlaantdln);
+			$ord = "E.Datum;";
 		}
 		$query = sprintf("SELECT %s
 							FROM %s AS E LEFT OUTER JOIN %sEvenement_Type AS ET ON E.TypeEvenement=ET.RecordID
@@ -5016,6 +5049,7 @@ class cls_Rekening extends cls_db_base {
 	
 	private $rkid = 0;
 	private $reksel = "";
+	private $seizoen = 0;
 	
 	function __construct($p_rkid=-1) {
 		parent::__construct();
@@ -5023,6 +5057,7 @@ class cls_Rekening extends cls_db_base {
 		$this->ta = 14;
 		if ($p_rkid > 0) {
 			$this->rkid = $p_rkid;
+			$this->seizoen = (new cls_Rekening())->max("Seizoen", sprintf("Nummer=%d", $this->rkid));
 		}
 		$this->reksel = sprintf("RK.*, (RK.Bedrag-RK.Betaald) AS Openstaand, %s AS NaamLid, L.Adres, L.Postcode, L.Woonplaats, L.`Machtiging afgegeven` AS Machtiging, L.Bankrekening AS Bankrekeningnummer, (%s) AS Lidnr,
 						 (SELECT COUNT(DISTINCT(RR.Lid)) FROM %sRekreg AS RR WHERE RR.Rekening=RK.Nummer AND RR.Lid > 0) AS AantLid,
@@ -5038,9 +5073,23 @@ class cls_Rekening extends cls_db_base {
 	
 	public function record($p_rkid) {
 		$this->rkid = $p_rkid;
-		$query = sprintf("SELECT %s FROM %s AS RK INNER JOIN %sLid AS L ON RK.Lid=L.RecordID WHERE RK.Nummer=%d;", $this->reksel, $this->table, TABLE_PREFIX, $p_rkid);
+		$query = sprintf("SELECT %s FROM %s AS RK LEFT OUTER JOIN %sLid AS L ON RK.Lid=L.RecordID WHERE RK.Nummer=%d;", $this->reksel, $this->table, TABLE_PREFIX, $p_rkid);
 		$result = $this->execsql($query);
 		return $result->fetch();
+	}
+		
+	function overzichtbeheer($p_seizoen=-1) {
+		
+		$w = "";
+		if ($p_seizoen > 0) {
+			$w = sprintf("WHERE RK.Seizoen=%d", $p_seizoen);
+		}
+		
+		$this->query = sprintf("SELECT RK.Nummer AS lnkNummer, RK.Nummer, RK.Datum, RK.OMSCHRIJV AS Omschrijving, RK.DEBNAAM AS Tenaamstelling, RK.Bedrag AS curBedrag, RK.Betaald AS curBetaald
+								FROM %s AS RK INNER JOIN %sLid AS L ON L.RecordID=RK.Lid %s ORDER BY RK.Nummer;", $this->table, TABLE_PREFIX, $w);
+		$result = $this->execsql();
+		return $result->fetchAll();
+		
 	}
 	
 	public function overzichtlid($p_lidid) {
@@ -5059,12 +5108,25 @@ class cls_Rekening extends cls_db_base {
 		return $result->fetchAll();
 	}
 	
+	public function add() {
+		$nwreknr = $this->max("Nummer") + 1;
+		if (($nwreknr / 2) == intval($nwreknr / 2)) {
+			$nwreknr++;
+		}		
+
+		$query = sprintf("INSERT INTO %s (Nummer) VALUES (%d);", $this->table, $nwreknr);
+		
+	}
+	
 	public function update($p_rkid, $p_kolom, $p_waarde) {
+		if ($p_rkid > 0) {
+			$this->rkid = $p_rkid;
+		}
 			
-		if ($this->pdoupdate($p_rkid, $p_kolom, $p_waarde)) {
-			$this->mess = sprintf("Kolom '%s' van rekening %d is in '%s' gewijzigd.", $p_kolom, $p_rkid, $p_waarde);
+		if ($this->pdoupdate($this->rkid, $p_kolom, $p_waarde)) {
+			$this->mess = sprintf("Kolom '%s' van rekening %d is in '%s' gewijzigd.", $p_kolom, $this->rkid, $p_waarde);
 			$this->tas = 2;
-			$this->log($p_rkid);
+			$this->log($this->rkid);
 		}
 	}
 	
@@ -5077,20 +5139,25 @@ class cls_Rekeningregel extends cls_db_base {
 	private $regelnr = 0;
 	private $seizoen = 0;
 	
-	function __construct($p_rkid=0) {
+	function __construct($p_rkid=-1) {
 		parent::__construct();
 		$this->table = TABLE_PREFIX . "Rekreg";
 		$this->ta = 14;
 		if ($p_rkid > 0) {
 			$this->rkid = $p_rkid;
+			$this->seizoen = (new cls_Rekening())->max("Seizoen", sprintf("Nummer=%d", $this->rkid));
 		}
 	}
 	
-	private function vulvars($p_rrid, $p_rkid=0) {
+	private function vulvars($p_rrid, $p_rkid=-1, $p_lidid=-1) {
+		if ($p_rrid > 0) {
+			$this->rrid = $p_rrid;
+		}
 		if ($p_rkid > 0) {
 			$this->rkid = $p_rkid;
-		} elseif ($p_rrid > 0) {
-			$this->rrid = $p_rrid;
+		}
+		if ($p_lidid > 0) {
+			$this->lidid = $p_lidid;
 		}
 		if ($this->rrid > 0) {
 			$query = sprintf("SELECT RR.Rekening, RR.Regelnr FROM %s AS RR WHERE RR.RecordID=%d;", $this->table, $this->rrid);
@@ -5099,13 +5166,10 @@ class cls_Rekeningregel extends cls_db_base {
 			$this->rkid = $row->Rekening;
 			$this->regelnr = $row->Regelnr;
 		}
-		if ($this->rkid > 0) {
-			$this->seizoen = (new cls_Rekening())->max("Seizoen", sprintf("Nummer=%d", $this->rkid));
-		}
 	}
 	
-	function perrekening($p_rkid) {
-		$query = sprintf("SELECT RR.*, %s AS NaamLid, L.GEBDATUM, L.EmailOuders FROM %s AS RR LEFT JOIN %sLid AS L ON RR.Lid=L.RecordID WHERE RR.Rekening=%d ORDER BY Regelnr;", $this->selectnaam, $this->table, TABLE_PREFIX, $p_rkid);
+	function perrekening() {
+		$query = sprintf("SELECT RR.*, %s AS NaamLid, L.GEBDATUM, L.EmailOuders FROM %s AS RR LEFT JOIN %sLid AS L ON RR.Lid=L.RecordID WHERE RR.Rekening=%d ORDER BY Regelnr;", $this->selectnaam, $this->table, TABLE_PREFIX, $this->rkid);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
@@ -5123,11 +5187,12 @@ class cls_Rekeningregel extends cls_db_base {
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
-	
-	public function add($p_rkid, $p_lidid, $p_kpl="") {
-		$this->vulvars(0, $p_rkid);
-		$nrid = $this->nieuwrecordID();
-		$rnr = $this->max("Regelnr", sprintf("Rekening=%d", $p_rkid)) + 1;
+
+	public function standaardwaarde($p_kstnplts, $p_retval, $p_lidid=0, $p_per="", $p_loid=0) {
+		
+		if (strlen($p_per) < 10) {
+			$p_per = date("Y-m-d");
+		}
 		
 		$szrow = (new cls_Seizoen())->record($this->seizoen);
 		$jl = false;
@@ -5144,49 +5209,82 @@ class cls_Rekeningregel extends cls_db_base {
 		}
 		
 		$oms = "";
-		$bdr = 0;
-		if (strlen($p_kpl) > 0) {
-			if (strtoupper($p_kpl) == strtoupper($szrow->{'Verenigingscontributie kostenplaats'})) {
+		$kpl = "";
+		$cb = 0;
+		$i_ond = new cls_Onderdeel();
+		$i_lo = new cls_Lidond();
+
+		if (strlen($p_kstnplts) > 0) {
+			if (strtoupper($p_kstnplts) == strtoupper($szrow->{'Verenigingscontributie kostenplaats'})) {
 				$oms = $szrow->{'Verenigingscontributie omschrijving'};
-				if ($kl) {
-					$bdr = $szrow->{'Contributie kader'};
-					$oms .= " kader";	
+				$onderscheiding = (new cls_lid())->onderscheiding($p_lidid);
+				if (strlen($onderscheiding) > 0) {
+					$cb = 0;
+					$oms .= " " . $onderscheiding;
+				} elseif ($kl) {
+					$cb = $szrow->{'Contributie kader'};
+					$oms .= " kader";
 				} elseif ($jl) {
-					$bdr = $szrow->{'Contributie jeugdleden'};
+					$cb = $szrow->{'Contributie jeugdleden'};
 					$oms .= " jeugdlid";
 				} else {
-					$bdr = $szrow->{'Contributie leden'};
+					$cb = $szrow->{'Contributie leden'};
 				}
-			} elseif (strtoupper($p_kpl) == strtoupper($szrow->{'Gezinskorting kostenplaats'})) {
+				
+			} elseif (strtoupper($p_kstnplts) == strtoupper($szrow->{'Gezinskorting kostenplaats'})) {
 				$oms = $szrow->{'Gezinskorting omschrijving'};
-				$bdr = $szrow->{'Gezinskorting bedrag'} * -1;
+				$cb = $szrow->{'Gezinskorting bedrag'} * -1;
+				
 			} else {
-				$query = sprintf("SELECT O.* FROM %sOnderdl AS O WHERE UPPER(Kode)='%s';", TABLE_PREFIX, strtoupper($p_kpl));
-				$row = $this->execsql($query)->fetch();
-				if (isset($row->Naam)) {
-					$p_kpl = $row->Kode;
-					$oms = $row->Naam;
-					if ($jl) {
-						$bdr = $row->JEUGDCB;
+				$ondrow = $i_ond->record(0, $p_kstnplts);
+				$ondid = $ondrow->RecordID;
+				$oms = $ondrow->Naam;
+				$kpl = $ondrow->Kode;
+				$lorow = $i_lo->Record($p_lidid, $ondid, $p_loid);
+				if ($ondid > 0 and $p_lidid > 0 and $ondrow->ContributiePerActiviteit == 1) {
+					if (isset($lorow->GrActiviteit) and strlen($lorow->GrActiviteit) > 0) {
+						$oms .= " (" . $lorow->GrActiviteit . ")";
+					}
+					if (isset($lorow->GrContributie)) {
+						$cb = $lorow->GrContributie;
+					}
+				} else {
+					if ($lorow->FunctieID > 0) {
+						$oms .= " (" . $lorow->Functie . ")";
+					}
+					if ($lorow->Kader == 1) {
+						$cb = $ondrow->FUNCTCB;
+					} elseif ($jl) {
+						$cb = $ondrow->JEUGDCB;
 					} else {
-						$bdr = $row->LIDCB;
+						$cb = $ondrow->LIDCB;
 					}
 				}
 			}
 		}
+
+		$i_ond = null;
+		$i_lo = null;
 		
-		$query = sprintf("INSERT INTO %s (RecordID, Rekening, Lid, Regelnr, ToonOpRekening, KSTNPLTS, OMSCHRIJV, Bedrag) VALUES (%d, %d, %d, %d, 1, '%s', '%s', %F);", $this->table, $nrid, $p_rkid, $p_lidid, $rnr, $p_kpl, $oms, $bdr);
+		return $$p_retval;
+	}
+	
+	public function add($p_rkid, $p_lidid=-1, $p_kpl="") {
+		$this->vulvars(0, $p_rkid, $p_lidid);
+		
+		$nrid = $this->nieuwrecordID();
+		$rnr = $this->max("Regelnr", sprintf("Rekening=%d", $this->rkid)) + 1;
+		
+		$query = sprintf("INSERT INTO %s (RecordID, Rekening, Lid, Regelnr, ToonOpRekening, KSTNPLTS) VALUES (%d, %d, %d, %d, 1, '%s');", $this->table, $nrid, $this->rkid, $this->lidid, $rnr, $p_kpl);
 		if ($this->execsql($query) > 0) {
-			$this->mess = sprintf("Regel %d aan rekening %d toegevoegd", $rnr, $p_rkid);
+			$this->mess = sprintf("Regel %d aan rekening %d toegevoegd", $rnr, $this->rkid);
 			$this->tas = 11;
-			$this->log();
+			$this->log($nrid);
 		}
 	}
 	
 	public function update($p_rrid, $p_kolom, $p_waarde) {
 		$this->vulvars($p_rrid);
-		
-		
 		
 		if ($this->pdoupdate($this->rrid, $p_kolom, $p_waarde)) {
 			$this->mess = sprintf("Op regel %d van rekening %d is kolom '%s' in '%s' gewijzigd.", $this->regelnr, $this->rkid, $p_kolom, $p_waarde);
@@ -5229,7 +5327,7 @@ class cls_Seizoen extends cls_db_base {
 		$rv = "";
 		foreach ($result->fetchAll() as $row) {
 			$s = checked($row->Nummer, "option", $p_cv);
-			$rv .= sprintf("<option value=%d %s>%s</option>\n", $row->Nummer, $s, $row->Nummer);
+			$rv .= sprintf("<option value=%d %s>%s: %s tot %s</option>\n", $row->Nummer, $s, $row->Nummer, $row->Begindatum, $row->Einddatum);
 		}
 		return $rv;
 	}
@@ -5237,19 +5335,28 @@ class cls_Seizoen extends cls_db_base {
 }
 
 class cls_Stukken extends cls_db_base {
+	private $stid = 0;
 	
 	function __construct() {
 		parent::__construct();
 		$this->table = TABLE_PREFIX . "Stukken";
 		$this->ta = 22;
 	}
+
+	public function record($p_stid) {
+		if ($p_stid > 0) {
+			$this->stid = $p_stid;
+		}
+		$this->query = sprintf("SELECT S.* FROM %s AS S WHERE RecordID=%d;", $this->table, $this->stid);
+		return $this->execsql()->fetch();
+	}
 	
 	public function editlijst() {
 		
-		$query = sprintf("SELECT RecordID, S.Titel, S.`Type`, BestemdVoor, VastgesteldOp, Ingangsdatum, Revisiedatum, VervallenPer, Link FROM %s AS S ORDER BY S.VervallenPer, S.Titel;", $this->table);
+		$query = sprintf("SELECT RecordID, S.Titel, S.`Type`, BestemdVoor, VastgesteldOp AS `dtkVastgesteld op`, Revisiedatum AS dtkRevisiedatum, VervallenPer AS `dtkVervallen per`, S.RecordID AS llkRecordID
+						  FROM %s AS S ORDER BY S.VervallenPer, S.Titel;", $this->table);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
-		
 	}
 	
 	public function gewijzigdestukken() {
@@ -5286,6 +5393,11 @@ class cls_Stukken extends cls_db_base {
 			$this->log($p_sid);
 		}
 	}
+
+	public function delete($p_stid) {
+		$this->pdodelete($p_stid);
+		$this->log($p_stid, 1);
+	}
 	
 }  # cls_Stukken
 
@@ -5308,7 +5420,7 @@ class cls_Eigen_lijst extends cls_db_base {
 		if (strlen($p_filter) > 0) {
 			$w = "WHERE " . $p_filter;
 		}
-		$query = sprintf("SELECT * FROM %s %s ORDER BY Naam;", $this->table, $w);
+		$query = sprintf("SELECT * FROM %s AS EL %s ORDER BY Naam;", $this->table, $w);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
@@ -5381,6 +5493,10 @@ class cls_Eigen_lijst extends cls_db_base {
 				$this->log($p_elid);
 			}
 		}
+	}
+	
+	public function delete ($p_elid) {
+		$this->pdodelete($p_elid);
 	}
 	
 	public function controle($p_elid=0) {
@@ -5855,6 +5971,14 @@ function db_onderhoud($type=9) {
 	// Deze code mag na 1 november 2022 worden verwijderd.
 	$query = sprintf("ALTER TABLE `%sAfdelingskalender` CHANGE `Datum` `Datum` DATE NOT NULL DEFAULT '0000-00-00';", TABLE_PREFIX);
 	$i_base->execsql($query);
+	
+	$table = TABLE_PREFIX . "Admin_access";
+	$col = "Tabpage";
+	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%s' AND COLUMN_NAME LIKE '%s';", $db_name, $table, $col);
+	if ($i_base->scalar($query) < 75) {
+		$query = sprintf("ALTER TABLE `%1\$s` CHANGE `%2\$s` `%2\$s` VARCHAR(75) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table, $col);
+		$i_base->execsql($query, 2);
+	}
 
 	/***** Opschonen database na een upload uit de Access-database.  *****/
 
@@ -5921,11 +6045,12 @@ function db_backup($p_typebackup=1) {
 		$buf = fopen($FileName, 'w+');
 		$i_base = new cls_db_base();
 		foreach ($arrTables as $tnr => $tnm) {
+			set_time_limit(60);
 			$table = TABLE_PREFIX . $tnm;
 			$i_base->table = $table;
 			if ($i_base->aantal() > 0 and ($p_typebackup == 3 or ($p_typebackup == 1 and $tnr < 30) or ($p_typebackup == 2 and $tnr >= 30))) {
-				$mess = sprintf("Start backup tabel '%s'", $table);
-				(new cls_Logboek())->add($mess, 3, 0, 0, 0, 4);
+//				$mess = sprintf("Start backup tabel '%s'", $table);
+//				(new cls_Logboek())->add($mess, 3, 0, 0, 0, 4);
 				
 				fwrite($buf, $i_base->exporttosql(2));
 

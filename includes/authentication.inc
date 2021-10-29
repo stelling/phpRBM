@@ -18,7 +18,6 @@ $tabpages = null;
 if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	addtp("Beheer logins");
 	addtp("Autorisatie");
-	addtp("Stukken");
 	addtp("Instellingen");
 	addtp("Stamgegevens");
 	addtp("Uploaden data");
@@ -44,10 +43,8 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	addtp("Vereniging/Onderscheidingen");
 	if ($_SESSION['lidid'] > 0) {
 		addtp("Eigen gegevens");
-	} else {
-		addtp("Login aanvragen");
-		addtp("Herstel wachtwoord");
-		addtp("Opvragen lidnr");
+	} elseif ((new cls_Login())->aantal() > 0) {
+		addtp("Inloggen");
 	}
 	$i_lo = new cls_Lidond();
 	
@@ -176,9 +173,22 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if ((new cls_Onderdeel())->aantal("`Type`='R' AND IFNULL(VervallenPer, CURDATE()) >= CURDATE()") > 0) {
 			addtp("Ledenlijst/Rollen");
 		}
+
+		addtp("Ledenlijst/Eigen lijsten");
+		if ($currenttab2 == "Eigen lijsten") {
+			addtp("Ledenlijst/Eigen lijsten/Muteren");
+			foreach((new cls_Eigen_lijst())->lijst() as $row) {
+				if ($row->AantalRecords > 0 and $row->AantalKolommen > 1) {
+					addtp("Ledenlijst/Eigen lijsten/" . $row->Naam);
+				}
+			}
+		}
+	
 		addtp("Ledenlijst/Instellingen");
 		addtp("Ledenlijst/Mutaties");
 	}
+	
+	addtp("Stukken");
 	
 	if (isset($_SESSION['settings']['menu_met_afdelingen']) and strlen($_SESSION['settings']['menu_met_afdelingen']) > 0) {
 		// Tabblad per afdeling
@@ -187,12 +197,12 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 				addtp($row->Naam, $row->RecordID);
 				if ($currenttab == $row->Naam) {
 					addtp($row->Naam . "/Afdelingslijst", $row->RecordID);
+					addtp(trim($row->Naam) . "/Kalender");
 					$f = sprintf("GroepID > 0 AND IFNULL(Opgezegd, CURDATE()) >= CURDATE() AND OnderdeelID=%d", $row->RecordID);
 					if ((new cls_Lidond())->aantal($f) > 0) {
 						addtp(trim($row->Naam) . "/Groepsindeling", $row->RecordID);
 					}
 					addtp(trim($row->Naam) . "/Groepsindeling muteren");
-					addtp(trim($row->Naam) . "/Kalender muteren");
 					$f = sprintf("OnderdeelID=%d AND Datum > DATE_SUB(CURDATE(), INTERVAL 9 MONTH) AND Activiteit=1", $row->RecordID);
 					if ((new cls_Afdelingskalender())->aantal($f) > 0) {
 						addtp(trim($row->Naam) . "/Aanwezigheid muteren");
@@ -307,6 +317,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		addtp("Rekeningen");
 		if ($currenttab == "Rekeningen") {
 			$b = "Rekeningen/";
+			addtp($b . "Beheer");
 			addtp($b . "Nieuw");
 			addtp($b . "Muteren");
 			addtp($b . "Logboek");
@@ -330,17 +341,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 //		addtp("DMS");   Voorlopig geen tijd voor, dus uitgezet.
 	}
-	
-	addtp("Eigen lijsten");
-	if ($currenttab == "Eigen lijsten") {
-		addtp("Eigen lijsten/Muteren");
-		foreach((new cls_Eigen_lijst())->lijst() as $row) {
-			if ($row->AantalRecords > 0 and $row->AantalKolommen > 1) {
-				addtp("Eigen lijsten/" . $row->Naam);
-			}
-//			debug($row->Naam . ": " . $row->AantalRecords . " / " . $row->AantalKolommen);
-		}
-	}
+
 }
 
 function fnAuthenticatie($melding=1, $password="", $p_napost=0) {
@@ -372,7 +373,7 @@ function fnAuthenticatie($melding=1, $password="", $p_napost=0) {
 		$mess = sprintf("Inloggen vanaf IP-adres '%s' is geblokkeerd, omdat er teveel mislukte inlog-pogingingen mee gedaan zijn! Je bent niet ingelogd.", $_SERVER['HTTP_USER_AGENT']);
 		$_SESSION['lidid'] = 0;
 			
-	} elseif (isset($_SESSION['username']) and strlen($_SESSION['username']) > 0 and strlen($password) > 0) {
+	} elseif (isset($_SESSION['username']) and strlen($_SESSION['username']) > 0 and strlen($password) > 4) {
 		$row = $i_login->controle($password, $pwfromcookie);
 		if ($_SESSION['settings']['login_maxinlogpogingen'] > 0 and isset($row->FouteLogin) and $row->FouteLogin > $_SESSION['settings']['login_maxinlogpogingen']) {
 			if ($_SESSION['settings']['login_autounlock'] > 0 and $_SESSION['settings']['login_autounlock'] < 12*60) {
@@ -414,6 +415,7 @@ function fnAuthenticatie($melding=1, $password="", $p_napost=0) {
 			if ($pwfromcookie == 0) {
 				$mess = sprintf("De combinatie van login '%s' en het ingevoerde wachtwoord is niet correct! Je bent niet ingelogd.", $_SESSION['username']);
 			}
+			setcookie("password", "", time()-60);	
 			$_SESSION['lidid'] = 0;
 		}
 	} else {
@@ -436,6 +438,7 @@ function toegang($soort, $melding=1, $log=1) {
 	
 	$i_aut = new cls_Authorisation();
 
+	$arrAltijdToegang[] = "Inloggen";
 	$arrAltijdToegang[] = "Validatie login";
 	$arrAltijdToegang[] = "Bevestiging login";
 	if ($_SESSION['lidid'] == 0) {
@@ -489,6 +492,26 @@ function toegang($soort, $melding=1, $log=1) {
 	
 	$i_aut = null;
 }  # toegang
+
+function fnInloggen() {
+	echo("<div id='login'>\n");
+	echo("<h2>Inloggen</h2>\n");
+	echo("<form action='/index.php' method='post'>\n");
+	echo("<label>Login</label><input type='text' name='username'>\n");
+	echo("<label>Wachtwoord</label><input type='password' name='password'>\n");
+	echo("<label>Ingelogd blijven?</label><input type='checkbox' name='cookie' value=1 title='Ingelogd blijven'> <p>(werkt met cookies)</p>\n");
+	echo("<p>Heb je nog geen login, dan kan je die <a href='\?tp=Login+aanvragen'>aanvragen</a>.</p>");
+	echo("<p>Ben je je wachtwoord vergeten, dan kan je deze <a href='\?tp=Herstel+wachtwoord'>opnieuw instellen</a>.</p>\n");
+
+	echo("<div id='opdrachtknoppen'>\n");
+	echo("<input type='submit' value='Inloggen' name='Inloggen'>\n");
+	echo("</div <!-- Einde opdrachtknoppen -->\n");
+
+	echo("</form>\n");
+
+	echo("</div>  <!-- Einde login -->\n");
+
+}  # fnInloggen
 
 function fnHerstellenWachtwoord($stap="", $lidid=0) {
 	
@@ -681,8 +704,8 @@ function fnLoginAanvragen($stap="") {
 		}
 		
 		$i_login = new cls_Login();
-		$lidid = $i_login->lidid($_POST['email'], $_POST['lidnummer']);
-		if (!isValidMailAddress($_POST['email'], 0)) {
+		$lidid = $i_login->lidid($_POST['loginemail'], $_POST['lidnummer']);
+		if (!isValidMailAddress($_POST['loginemail'], 0)) {
 			$mess = "Je hebt geen geldig e-mailadres opgegeven.";
 		} elseif (strlen($_POST['gewenstelogin']) < 6) {
 			$mess = "Je hebt geen geldige gewenste login opgegeven. Een login moet uit minimaal 6 karakters bestaan.";
@@ -717,11 +740,11 @@ function fnLoginAanvragen($stap="") {
 					}
 				}
 			} elseif ($_POST['lidnummer'] > 0) {
-				$mess = sprintf("De combinatie van lidnummer %d en e-mailadres '%s' is in de database onbekend.", $_POST['lidnummer'], $_POST['email']);
+				$mess = sprintf("De combinatie van lidnummer %d en e-mailadres '%s' is in de database onbekend.", $_POST['lidnummer'], $_POST['loginemail']);
 			} elseif ($lidid == -1) {
-				$mess = sprintf("E-mailadres '%s' komt meerdere keren voor, vul het lidnummer in bij de login aanvraag.", $_POST['email']);
+				$mess = sprintf("E-mailadres '%s' komt meerdere keren voor, vul het lidnummer in bij de login aanvraag.", $_POST['loginemail']);
 			} else {
-				$mess = sprintf("E-mailadres '%s' is onbekend in de database.", $_POST['email']);
+				$mess = sprintf("E-mailadres '%s' is onbekend in de database.", $_POST['loginemail']);
 			}
 		}
 		if (strlen($mess) > 0) {
@@ -735,7 +758,7 @@ function fnLoginAanvragen($stap="") {
 		printf("<form action='%s?tp=Bevestiging+login' method='post'>\n", $_SERVER["PHP_SELF"]);
 		echo("<h3>Login aanvraag</h3>\n");
 		
-		echo("<label>E-mailadres</label><input type='email' name='email' value=''>\n");
+		echo("<label>E-mailadres</label><input type='email' name='loginemail' value=''>\n");
 		echo("<label>Lidnummer</label><input type='number' name='lidnummer'>\n");
 		printf("<label>Gewenste login</label><input type='text' name='gewenstelogin' maxlength=%d>\n", $_SESSION['settings']['login_maxlengte']);
 		echo("<label>Gewenst wachtwoord</label><input type='password' name='gewenstwachtwoord' value=''>\n");
@@ -744,6 +767,7 @@ function fnLoginAanvragen($stap="") {
 
 		echo("<div class='clear'></div>\n");
 
+		echo("<p>Je lidnummer kan je <a href='\?tp=Opvragen+lidnr'>opvragen</a>.</p>\n");
 		echo("<p>Je ontvangt een e-mail met daarin een link om deze aanmelding te bevestigen. Pas na het bevestigen is de login bruikbaar om in te loggen.</p>\n");
 		
 		echo("<p>Voorwaarden aan een login:</p>\n<ul>\n");

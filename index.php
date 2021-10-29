@@ -12,8 +12,7 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 	setcookie("password", "", time()-60);
 	$_SESSION['lidid'] = 0;
 	$_SESSION['webmaster'] = 0;
-	// echo("<script>location.href='/'; </script>\n");
-} else if ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['Inloggen']) and $_POST['Inloggen'] == "Inloggen") {
+} elseif ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['Inloggen']) and $_POST['Inloggen'] == "Inloggen") {
 	if (strlen($_POST['password']) < 5) {
 		$mess = "Om in te loggen is het invullen van een wachtwoord van minimaal 5 karakters vereist.";
 		(new cls_Logboek())->add($mess, 1, 0, 2);
@@ -69,6 +68,9 @@ if (toegang($_GET['tp'], 1) == false) {
 	if ($_SESSION['lidid'] == 0) {
 		fnLoginAanvragen();
 	}
+	
+} elseif ($currenttab == "Inloggen") {
+	fnInloggen();
 	
 } elseif ($currenttab == "Login aanvragen") {
 	fnLoginAanvragen();
@@ -145,17 +147,37 @@ if (toegang($_GET['tp'], 1) == false) {
 } elseif ($currenttab == "Ledenlijst") {
 	if ($currenttab2 == "Afdelingen") {
 		fnOnderdelenmuteren("A");
+		
 	} elseif ($currenttab2 == "Commissies") {
 		fnOnderdelenmuteren("C");
+		
 	} elseif ($currenttab2 == "Groepen") {
 		fnOnderdelenmuteren("G");
+		
 	} elseif ($currenttab2 == "Rollen") {
 		fnOnderdelenmuteren("R");
+		
+	} elseif ($currenttab2 == "Eigen lijsten") {
+		fnDispMenu(2);
+		fnDispMenu(3);
+		if ($currenttab3 == "Muteren") {
+			fnEigenlijstenmuteren();
+		} else {
+			$i_el = new cls_Eigen_lijst($currenttab3);
+			$rows = (new cls_db_base())->execsql($i_el->mysql())->fetchAll();
+			printf("<p>%s</p>", fnDisplayTable($rows, null, $currenttab3));
+			printf("<p>%d rijen</p>\n", count($rows));
+			$i_el->update($i_el->elid, "AantalRecords", count($rows));
+			$i_el = null;
+		}
+		
 	} else {
 		fnLedenlijst();
 	}
 } elseif ($isafdelingstab == 1) {
 	fnAfdeling();
+} elseif ($currenttab == "Stukken" and toegang($currenttab, 1, 1)) {
+	fnStukken();
 } elseif ($currenttab == "Bewaking") {
 	fnBewaking();
 } elseif ($currenttab == "Rekeningen") {
@@ -168,20 +190,7 @@ if (toegang($_GET['tp'], 1) == false) {
 	fnEvenementen();
 } elseif ($currenttab == "Bestellingen") {
 	fnWebshop();
-} elseif ($currenttab == "Eigen lijsten") {
-	
-	fnDispMenu(2);
-	if ($currenttab2 == "Muteren") {
-		fnEigenlijstenmuteren();
-	} else {
-		$i_el = new cls_Eigen_lijst($currenttab2);
-		$rows = (new cls_db_base())->execsql($i_el->mysql())->fetchAll();
-		printf("<p>%s</p>", fnDisplayTable($rows, null, $currenttab2));
-		printf("<p>%d rijen</p>\n", count($rows));
-		$i_el->update($i_el->elid, "AantalRecords", count($rows));
-		$i_el = null;
-	}
-	
+
 } elseif (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
 	if ($_SESSION['settings']['mailing_lidnr'] > 0) {
 		fnOpvragenLidnr("form");
@@ -255,7 +264,7 @@ function fnVoorblad() {
 			$content = str_replace("[%INGELOGDEGEWIJZIGD%]", "", $content);
 		}
 		if (strpos($content, "[%KOMENDEEVENEMENTEN%]") !== false) {
-			$content = str_replace("[%KOMENDEEVENEMENTEN%]", ToekomstigeEvenementen(), $content);
+			$content = str_replace("[%KOMENDEEVENEMENTEN%]", fnAgendaItems(), $content);
 		}
 		$content = str_replace("[%ROEPNAAM%]", $_SESSION['roepnaamingelogde'], $content);
 		if (strpos($content, "[%VERVALLENDIPLOMAS%]") !== false and $_SESSION['lidid'] > 0) {
@@ -370,6 +379,88 @@ function fnAgenda($p_lidid=0) {
 	echo("</table>\n");
 	echo("</div> <!-- Einde agenda -->\n");
 }  # fnAgenda
+
+function fnStukken() {
+	
+	$i_stuk = new cls_Stukken();
+	if (isset($_GET['p_scherm']) and $_GET['p_scherm'] == "F") {
+		$scherm = $_GET['p_scherm'];
+	} else {
+		$scherm = "";
+	}
+	if (isset($_POST['stid']) and $_POST['stid'] > 0) {
+		$stid = $_POST['stid'];
+	} elseif (isset($_GET['p_stid']) and $_GET['p_stid'] > 0) {
+		$stid = $_GET['p_stid'];
+	} else {
+		$stid = 0;
+	}
+	
+	if (isset($_GET['op']) and $_GET['op'] == "delete" and $stid > 0) {
+		$i_stuk->delete($stid);
+	}
+	
+	echo("<div id='stukkenmuteren'>\n");
+	
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		if (isset($_POST['Toevoegen'])) {
+			$i_stuk->add();
+		}
+		
+		if ($stid > 0) {
+			$row = $i_stuk->record($stid);
+			foreach ($row as $col => $val){
+				if (isset($_POST[$col])) {
+					$i_stuk->update($row->RecordID, $col, $_POST[$col]);
+				}
+			}
+		}
+	}
+	
+	if ($scherm == "F" and $stid > 0) {
+		
+		$row = $i_stuk->record($stid);
+		
+		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+		printf("<label>RecordID</label><p>%d</p>\n", $row->RecordID);
+		printf("<input type='hidden' name='stid' value=%d>\n", $row->RecordID);
+		printf("<label>Titel</label><input type='text' name='Titel' value='%s'>\n", $row->Titel);
+		printf("<label>Bestemd voor</label><input type='text' name='BestemdVoor' value='%s'>\n", $row->BestemdVoor);
+		printf("<label>Vastgesteld op</label><input type='date' name='VastgesteldOp' value='%s'>\n", $row->VastgesteldOp);
+		printf("<label>Ingangsdatum</label><input type='date' name='Ingangsdatum' value='%s'>\n", $row->Ingangsdatum);
+		printf("<label>Revisiedatum</label><input type='date' name='Revisiedatum' value='%s'>\n", $row->Revisiedatum);
+		printf("<label>Vervallen per</label><input type='date' name='VervallenPer' value='%s'>\n", $row->VervallenPer);
+			
+		$options = "";
+		foreach (ARRTYPESTUK as $k => $v) {
+			$options .= sprintf("<option value='%s' %s>%s</option>\n", $k, checked($k, "option", $row->Type), $v);
+		}
+		printf("<label>Type</label><select name='Type'>%s</select>\n", $options);
+		printf("<label>Link naar document</label><input type='url' name='Link' value='%s'>\n", $row->Link);
+		
+		echo("<div id='opdrachtknoppen'>\n");
+		echo("<input type='submit' value='Bewaren'>\n");
+		echo("</div> <!-- Einde opdrachtknoppen -->\n");
+		
+		echo("</form>");
+		
+	} else {
+	
+		$rows = $i_stuk->editlijst();
+		$kols[0]['link'] = sprintf("%s?tp=%s&p_scherm=F&p_stid=%%d", BASISURL, $_GET['tp']);
+		$kols[7]['link'] = sprintf("%s?tp=%s&op=delete&p_stid=%%d", BASISURL, $_GET['tp']);
+		echo(fnDisplayTable($rows, $kols));
+		
+		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+		echo("<div id='opdrachtknoppen'>\n");
+		echo("<input type='submit' name='Toevoegen' value='Stuk toevoegen'>\n");
+		echo("</div> <!-- Einde opdrachtknoppen -->\n");
+		echo("</form>\n");
+		
+	}
+	$i_stuk = null;
+	echo("</div> <!-- Einde stukkenmuteren -->\n");
+}  # fnStukken
 
 function fnGewijzigdeStukken() {
 

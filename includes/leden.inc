@@ -17,7 +17,6 @@ function fnWijzigen($lidid, $actie="") {
 	} else {
 		$xtra_param = sprintf("lidid=%d", $lidid);
 		$actionurl = sprintf("%s?tp=%s&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
-		
 	}
 	
 	if ($lidid > 0) {
@@ -292,7 +291,7 @@ function fnLedenlijst() {
 		}
 		if ($currenttab2 == "Leden") {
 			$filter .= " AND LM.Lidnr > 0 AND IFNULL(LM.Opgezegd, CURDATE()) >= CURDATE()";
-			$xtraselect = ", LM.LIDDATUM AS `dteLid vanaf`";
+			$xtraselect = ", LM.LIDDATUM AS `dtkLid vanaf`";
 		} elseif ($currenttab2 == "Voormalig leden") {
 			$filter .= " AND IFNULL(LM.Opgezegd, CURDATE()) < CURDATE()";
 		} elseif ($currenttab2 == "Toekomstige leden") {
@@ -349,7 +348,7 @@ function fnLedenlijst() {
 		
 		if (count($rows) > 0) {
 			echo("<div id='filter'>\n");
-			echo("<label>Omschrijving bevat</label><input id='tbOmsFilter' OnKeyUp=\"fnFilter('logboek', 'tbOmsFilter', 1);\">");
+			echo("<input id='tbOmsFilter' OnKeyUp=\"fnFilter('logboek', 'tbOmsFilter', 1);\">");
 			printf("<p class='aantrecords'>%d rijen</p>\n", count($rows));
 			echo("</div> <!-- Einde filter -->\n");
 			echo(fnDisplayTable($rows, null, "Mutaties in lidgegevens", 0, "", "logboek"));
@@ -372,11 +371,11 @@ function fnLedenlijst() {
 		}
 		
 		echo("<div id='filter'>\n");
-		printf("<label>Naam/E-mail bevat</label><input type='text' name='tbNaamFilter' id='tbNaamFilter' placeholder='Naam of e-mail' OnKeyUp=\"fnFilter('ledenlijst', 'tbNaamFilter', %d, %d);\">\n", $zk1, $zk2);
+		printf("<input type='text' name='tbTekstFilter' id='tbTekstFilter' placeholder='Tekstfilter' OnKeyUp=\"fnFilter('ledenlijst', 'tbTekstFilter', %d, %d);\">\n", $zk1, $zk1+1, $zk2);
 		printf("<form action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
 
 		if ($currenttab2 != "Klosleden") {
-			printf("<label>Onderdeel</label><select name='lbGroepFilter' onchange='this.form.submit();'>\n<option value=0>** Iedereen **</option>\n%s</select>\n", (new cls_Onderdeel())->htmloptions($_SESSION['val_groep']));
+			printf("<select name='lbGroepFilter' onchange='this.form.submit();'>\n<option value=0>Filter op onderdeel</option>\n%s</select>\n", (new cls_Onderdeel())->htmloptions($_SESSION['val_groep']));
 		}
 
 		if (count($rows) > 1) {
@@ -386,7 +385,6 @@ function fnLedenlijst() {
 		echo("</div>  <!-- Einde filter -->\n");
 		
 		if (count($rows) > 0) {
-		
 			echo(fnDisplayTable($rows, $kols, "", 0, "", "ledenlijst", "", "", 0, $arrSort));
 			foreach ($rows as $row) {
 				$sel_leden[] = $row->lnkNummer;
@@ -510,10 +508,10 @@ function fnOnderdelenmuteren($ondtype="G") {
 			}
 			if (isset($_POST['Bewaren_Sluiten'])) {
 				$scherm = "B";
-				$i_lo->autogroepenbijwerken(0, 1);
 			} else {
 				$scherm = "W";
 			}
+			$i_lo->opschonen();
 		}
 	} else {
 		$i_ond->datacontrole();
@@ -527,6 +525,7 @@ function fnOnderdelenmuteren($ondtype="G") {
 	if (isset($_POST['add_lid']) and $_POST['add_lid'] > 0 and $muteerbaar) {
 		$i_lo->add($onderdeelid, $lidid);
 		$scherm = "L";
+		$i_lo->autogroepenbijwerken(0, 1);
 	}
 	
 	if ($muteerbaar) {
@@ -670,7 +669,7 @@ function fnOnderdelenmuteren($ondtype="G") {
 		printf("<form method='post' action='%s?tp=%s&amp;OnderdeelID=%d&Scherm=W'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $onderdeelid);
 		echo("<input type='hidden' name='formname' value='muteren_detail_onderdeel'>\n");
 		
-		printf("<label>RecordID</label><input type='text' value='%s' readonly>\n", $row->RecordID);
+		printf("<label>RecordID</label><p>%s</p>\n", $row->RecordID);
 		printf("<label>Code</label><input type='text' name='kode' value='%s' maxlength=5>\n", $row->Kode);
 		printf("<label>Naam</label><input type='text' name='naam' value='%s' maxlength=50>\n", $row->Naam);
 		printf("<label>Centraal e-mailadres</label><input type='email' name='centraalemail' value='%s' maxlength=50>\n", $row->CentraalEmail);
@@ -995,18 +994,6 @@ function fnEigenGegevens($lidid=0, $actie="") {
 		}
 	}
 } # fnEigenGegevens
-
-function fn22SelectListGroepen($cv=0) {
-	
-	debug("fnSelectListGroepen todo: vervangen door class");
-
-	$ret = "<option value=0>** Iedereen **</option>\n";
-	$rows = (new cls_Onderdeel())->lijst(1);
-	foreach ($rows as $row) {
-		$ret .= sprintf("<option%s value=%d>%s</option>\n", checked($row->RecordID, "option", $cv), $row->RecordID, htmlentities($row->Naam));
-	}
-	return $ret;
-} # fnSelectListGroepen
 
 function overzichtverjaardagen($metfoto=1) {
 	
@@ -1623,7 +1610,7 @@ function onderdelenlidmuteren($lidid, $p_type="G") {
 		}
 		foreach ($i_lo->editlijst($f, $lidid) as $row) {
 			$vn = sprintf("Vanaf_%d", $row->RecordID);
-			if (isset($_POST[$vn]) and strlen($_POST[$vn]) >= 10 and $_POST[$vn] != $row->Vanaf) {
+			if (isset($_POST[$vn])) {
 				$i_lo->update($row->RecordID, "Vanaf", $_POST[$vn]);
 			}
 			$vn = sprintf("Functie_%d", $row->RecordID);
@@ -1998,6 +1985,11 @@ function fnEigenlijstenmuteren() {
 			printf("<script>location.href='%s?tp=%s&paramActie=2&paramID=%d';</script>\n", $_SERVER['PHP_SELF'], $tp, $elid);
 		}
 		
+	} elseif (isset($_GET['paramActie']) and $_GET['paramActie'] == 3 and $elid > 0) {
+		
+		$i_el->delete($elid);
+		printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $tp);
+		
 	} elseif (isset($_GET['paramActie']) and $_GET['paramActie'] == 2 and $elid > 0) {
 		
 		$row = $i_el->record();
@@ -2006,7 +1998,7 @@ function fnEigenlijstenmuteren() {
 		printf("<form method='post' action='%s?tp=%s&paramID=%d'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $elid);
 		
 		printf("<label>Naam eigen lijst</label><input type='text' name='naam' value='%s'>", $row->Naam);
-		printf("<label>MySQL-code</label><textarea id='mysql' name='mysql' rows=10 cols=100>%s</textarea>\n", $row->MySQL);
+		printf("<label>MySQL-code</label><textarea id='mysql' name='mysql' rows=16 cols=100>%s</textarea>\n", $row->MySQL);
 		echo("<label>Beschikbare variabelen</label><p>[%LIDNAAM%], [%TELEFOON%], [%EMAIL%]</p>");
 		echo("<label>Aantal records</label>");
 		if ($row->AantalRecords >= 0) {
@@ -2034,7 +2026,8 @@ function fnEigenlijstenmuteren() {
 			echo("<table>\n");
 			echo("<caption>Overzicht Eigen lijsten</caption>\n");
 			foreach($rows as $row) {
-				printf("<tr><td><a href='%s?tp=%s&paramID=%d&paramActie=2'>&nbsp;&nbsp;&nbsp;</a></td><td>%s</td><td>%s</td><td>%d</td></tr>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID, $row->Naam, $row->MySQL, $row->AantalRecords);
+				$bl = sprintf("<a href='%s?tp=%s&paramID=%d&paramActie=%%d'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
+				printf("<tr><td>%s</td><td>%s</td><td>%d</td><td>%s</td></tr>\n", sprintf($bl, 2), $row->Naam, $row->AantalRecords, sprintf($bl, 3));
 			}
 			echo("</table>\n");
 		}
@@ -2047,6 +2040,72 @@ function fnEigenlijstenmuteren() {
 	}
 	
 }  # fnEigenlijstenmuteren
+
+function fnAgendaItems() {
+	
+	$i_ak = new cls_Afdelingskalender();
+	$kalitem = null;
+	$in = 0;
+	
+	if ($_SESSION['lidid'] > 0) {
+		foreach ($i_ak->lijst(-1, "", "Datum >= CURDATE() AND (Activiteit=0 OR LENGTH(Omschrijving) > 0)") as $row) {
+			if (in_array($row->OnderdeelID, explode(",", $_SESSION['lidgroepen']))) {
+				$kalitem[$in]['datum'] = date("Y-m-d", strtotime($row->Datum));
+				
+				$lorow = (new cls_Lidond())->record($_SESSION['lidid'], $row->OnderdeelID);
+				if (isset($lorow->Starttijd) and strlen($lorow->Starttijd) > 3 and $row->Activiteit == 1) {
+					$kalitem[$in]['datum'] .= " " . $lorow->Starttijd;
+				}
+				
+				if ($row->Activiteit == 1) {
+					$oms = $lorow->AfdNaam;
+				} else {
+					$oms = "Geen " . $lorow->AfdNaam;
+				}
+				if (strlen($row->Omschrijving) > 1) {
+					$oms .= " (" . $row->Omschrijving . ")";
+				}
+				$kalitem[$in]['oms'] = $oms;
+				$in++;
+			}
+		}
+	}
+	
+	foreach ((new cls_Evenement())->lijst(4) as $row) {
+		if ($row->MeerdereStartMomenten == 0) {
+			$kalitem[$in]['datum'] = date("Y-m-d H:i", strtotime($row->Datum));
+		} else {
+			$kalitem[$in]['datum'] = date("Y-m-d", strtotime($row->Datum));
+			if ($_SESSION['lidid'] > 0) {
+				$edrow = (new cls_Evenement_Deelnemer())->record(0, $_SESSION['lidid'], $row->RecordID);
+				if (isset($edrow->RecordID) and strlen($edrow->StartMoment) > 2) {
+					$kalitem[$in]['datum'] .= " " . $edrow->StartMoment;
+				}
+			}
+		}
+		$kalitem[$in]['oms']= $row->Omschrijving;
+		$in++;
+	}
+	
+	$rv = "";
+	usort($kalitem, function($a, $b) {
+		return $a['datum'] <=> $b['datum'];
+	});
+	for ($in=0;$in<=9;$in++) {
+		if (isset($kalitem[$in]['datum'])) {
+			$dat = strftime("%A %e %B", strtotime($kalitem[$in]['datum']));
+			$tijd = date("H:i", strtotime($kalitem[$in]['datum']));
+			if ($tijd > "00:00") {
+				$dat .= " (" . $tijd . ")";
+			}
+			$rv .= sprintf("<li>%s: %s</li>\n", $dat, $kalitem[$in]['oms']);
+		}
+	}
+
+	return $rv;
+	
+}  #fnAgendaItems
+
 
 function IsIBANgoed($IBAN, $LeegIsGoed=1) {
    $retval = false;

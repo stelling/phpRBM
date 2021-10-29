@@ -1,35 +1,67 @@
-
-function fnFilter(p_table, p_filterelement, p_kolom, p_kolom2) {
-	var input, filter, table, tr, td, td2, i, txtValue, txtValue2;
+function fnFilter(p_table, p_filterelement, p_kolom, p_kolom2, p_kolom3, p_kolom4) {
+	var input, filter, table, tr, td, td2, td3, td4, i, txtValue, txtValue2, txtValue3, txtValue4;
 	
 	input = document.getElementById(p_filterelement);
 	filter = input.value.toUpperCase();
 	table = document.getElementById(p_table);
 	tr = table.getElementsByTagName("tr");
 	
-	if (p_kolom2 == undefined) {
-		p_kolom2 = -1;
-	}
-
-	for (i = 0; i < tr.length; i++) {
-		td = tr[i].getElementsByTagName("td")[p_kolom];
-		if (p_kolom2 >= 0) {
-			td2 = tr[i].getElementsByTagName("td")[p_kolom2];	
+	if (filter.length > 2) {
+	
+		if (p_kolom2 == undefined) {
+			p_kolom2 = -1;
 		}
-		if (td) {
-			txtValue = td.textContent || td.innerText;
-			if (p_kolom2 > -1) {
-				txtValue2 = td2.textContent || td2.innerText;
-			} else { 
-				txtValue2 = "";
+		if (p_kolom3 == undefined) {
+			p_kolom3 = -1;
+		}
+		if (p_kolom4 == undefined) {
+			p_kolom4 = -1;
+		}
+
+		for (i = 0; i < tr.length; i++) {
+			td = tr[i].getElementsByTagName("td")[p_kolom];
+			if (p_kolom2 >= 0) {
+				td2 = tr[i].getElementsByTagName("td")[p_kolom2];	
 			}
-			if (txtValue.toUpperCase().indexOf(filter) > -1) {
-				tr[i].style.display = "";
-			} else if (p_kolom2 > -1 && txtValue2.toUpperCase().indexOf(filter) > -1) {
-				tr[i].style.display = "";
-			} else {
-				tr[i].style.display = "none";
+			if (p_kolom3 >= 0) {
+				td3 = tr[i].getElementsByTagName("td")[p_kolom3];	
 			}
+			if (p_kolom4 >= 0) {
+				td4 = tr[i].getElementsByTagName("td")[p_kolom4];	
+			}
+			if (td) {
+				txtValue = td.textContent || td.innerText;
+				if (p_kolom2 > -1) {
+					txtValue2 = td2.textContent || td2.innerText;
+				} else { 
+					txtValue2 = "";
+				}
+				if (p_kolom3 > -1) {
+					txtValue3 = td3.textContent || td3.innerText;
+				} else { 
+					txtValue3 = "";
+				}
+				if (p_kolom4 > -1) {
+					txtValue4 = td4.textContent || td4.innerText;
+				} else { 
+					txtValue4 = "";
+				}
+				if (txtValue.toUpperCase().indexOf(filter) > -1) {
+					tr[i].style.display = "";
+				} else if (p_kolom2 > -1 && txtValue2.toUpperCase().indexOf(filter) > -1) {
+					tr[i].style.display = "";
+				} else if (p_kolom3 > -1 && txtValue3.toUpperCase().indexOf(filter) > -1) {
+					tr[i].style.display = "";
+				} else if (p_kolom4 > -1 && txtValue4.toUpperCase().indexOf(filter) > -1) {
+					tr[i].style.display = "";
+				} else {
+					tr[i].style.display = "none";
+				}
+			}
+		}
+	} else {
+		for (i = 0; i < tr.length; i++) {
+			tr[i].style.display = "";
 		}
 	}
 }

@@ -10,12 +10,12 @@ function fnAfdeling() {
 	
 	if ($currenttab2 == "Afdelingslijst") {
 		fnAfdelingslijst($afdid);
+	} elseif ($currenttab2 == "Kalender") {
+		fnAfdelingskalenderMuteren($afdid);
 	} elseif ($currenttab2 == "Groepsindeling") {
 		fnGroepsindeling($afdid);
 	} elseif ($currenttab2 == "Groepsindeling muteren") {
 		fnGroepsindeling($afdid, 1);
-	} elseif ($currenttab2 == "Kalender muteren") {
-		fnAfdelingskalenderMuteren($afdid);
 	} elseif ($currenttab2 == "Aanwezigheid muteren") {
 		fnAanwezigheidMuteren($afdid);
 	}
@@ -37,12 +37,8 @@ function fnAfdelingslijst($afdid) {
 	$arrSort[] = "Totenmet;LO.Opgezegd";
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		$naamfilter = $_POST['tbNaamFilter'];
-		$funcfilter = $_POST['tbFuncFilter'];
 		$diplfilter = $_POST['bezitdiploma'];
 	} else {
-		$naamfilter = "";
-		$funcfilter = "";
 		$diplfilter = -1;
 	}
 	
@@ -56,9 +52,8 @@ function fnAfdelingslijst($afdid) {
 	echo("<div id='filter'>\n");
 	printf("<form action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
 
-	printf("<label>Naam bevat</label><input type='text' name='tbNaamFilter' id='tbNaamFilter' value='%s' placeholder='Achter- of roepnaam' OnKeyUp=\"fnFilterTwee('afdelingslijst', 'tbNaamFilter', 'tbFuncFilter', 1, 5);\">\n", $naamfilter);
-	printf("<label>Functie bevat</label><input type='text' name='tbFuncFilter' id='tbFuncFilter' value='%s' placeholder='Functie' OnKeyUp=\"fnFilterTwee('afdelingslijst', 'tbNaamFilter', 'tbFuncFilter', 1, 5)\">\n", $funcfilter);
-	printf("<label>Bezit diploma</label><select name='bezitdiploma' onchange='this.form.submit();'>\n<option value=-1>Geen filter</option>\n%s</select>\n", $i_dp->htmloptions($diplfilter, -1, $afdid));
+	print("<input type='text' name='tbTekstFilter' id='tbTekstFilter' placeholder='Tekstfilter' OnKeyUp=\"fnFilter('afdelingslijst', 'tbTekstFilter', 1, 2, 3);\">\n");
+	printf("<select name='bezitdiploma' id='bezitdiploma' onchange='this.form.submit();'>\n<option value=-1>Filter op diploma</option>\n%s</select>\n", $i_dp->htmloptions($diplfilter, -1, $afdid));
 	if (count($rows) > 1) {
 		printf("<p class='aantrecords'>%d rijen</p>\n", count($rows));
 	}
@@ -296,24 +291,26 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 		
 		$grrows = $i_gr->selectlijst($afdid);
-		echo("<table>\n");
-		echo("<tr><th>Naam</th><th>Leeftijd</th><th>Laatst behaalde diploma's</th><th>Groep</th></tr>\n\n");
-		foreach ($i_lo->onderdeellijst($afdid, 1, "", "GR.Volgnummer, L.Achternaam, L.Tussenv, L.Roepnaam") as $row) {
-			$options = "<option value=0>Niet ingedeeld</option>\n";
-			foreach ($grrows as $grrow) {
-				$options .= sprintf("<option value=%d %s>%s</option>\n", $grrow->RecordID, checked($row->ndGroepID, "option", $grrow->RecordID), $grrow->Omschrijving);
+		if (count($grrows) > 0) {
+			echo("<table>\n");
+			echo("<tr><th>Naam</th><th>Leeftijd</th><th>Laatst behaalde diploma's</th><th>Groep</th></tr>\n\n");
+			foreach ($i_lo->onderdeellijst($afdid, 1, "", "GR.Volgnummer, GR.Starttijd, GR.Omschrijving, L.Achternaam, L.Tussenv, L.Roepnaam") as $row) {
+				$options = "<option value=0>Niet ingedeeld</option>\n";
+				foreach ($grrows as $grrow) {
+					$options .= sprintf("<option value=%d %s>%s</option>\n", $grrow->RecordID, checked($row->ndGroepID, "option", $grrow->RecordID), $grrow->Omschrijving);
+				}
+				$nm = $row->Naam_lid;
+				if (strlen($row->ndAfkFunc) > 0) {
+					$nm .= " (" . $row->ndAfkFunc . ")";
+				}
+				$ld = (new cls_Liddipl())->lidlaatstediplomas($row->ndLidID, 3);
+				printf("<tr><td>%s</td><td>%s</td><td>%s</td><td><select name='mg_%d' OnChange='this.form.submit();'>%s</select></td></tr>\n", $nm, $row->ndLeeftijd, $ld, $row->ndRecordID, $options);
 			}
-			$nm = $row->Naam_lid;
-			if (strlen($row->ndAfkFunc) > 0) {
-				$nm .= " (" . $row->ndAfkFunc . ")";
-			}
-			$ld = (new cls_Liddipl())->lidlaatstediplomas($row->ndLidID, 3);
-			printf("<tr><td>%s</td><td>%s</td><td>%s</td><td><select name='mg_%d' OnChange='this.form.submit();'>%s</select></td></tr>\n", $nm, $row->ndLeeftijd, $ld, $row->ndRecordID, $options);
+			echo("</table>\n");
+			echo("</div>  <!-- Einde groepsindelingmuteren -->\n");
 		}
-		echo("</table>\n");
-		echo("</div>  <!-- Einde groepsindelingmuteren -->\n");
 		
-		echo("<a name='gropepenmuteren'>\n");
+		echo("<a name='groepenmuteren'>\n");
 		echo("<div id='groepenmuteren'>\n");
 		echo("<table>\n");
 		echo("<caption>Muteren groepen</caption>\n");
@@ -330,7 +327,7 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 				printf("<td><input type='text' name='Instructeurs_%d' maxlength=45 value=\"%s\"></td>\n", $row->RecordID, $row->Instructeurs);
 				printf("<td><input type='time' name='Starttijd_%d' value='%s'></td>\n", $row->RecordID, $row->Starttijd);
 				printf("<td><input type='time' name='Eindtijd_%d' value='%s'></td>\n", $row->RecordID, $row->Eindtijd);
-				printf("<td><input type='text' name='Activiteit_%d' maxlength=30 value=\"%s\"></td>\n", $row->RecordID, $row->Activiteit);
+				printf("<td>%s</td>\n", $row->Activiteit);
 				
 				echo("</tr>\n");
 			}

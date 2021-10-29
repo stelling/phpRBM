@@ -77,6 +77,10 @@ p.uitleg {
 	font-style: italic;
 }
 
+p.aantrecords {
+	clear: right;
+}
+
 label {
 	float: left;
 	clear: left;
@@ -120,7 +124,7 @@ footer {
 	padding-left: 2px;
 	padding-right: 2px;
 	font-style: italic;
-	font-size: 8pt;
+	font-size: 80%;
 	border-top-right-radius: 9px;
 	border-top-left-radius: 9px;
 	border-bottom-right-radius: 9px;
@@ -133,7 +137,6 @@ footer a, footer a:visited {
 }
 
 select {
-	font-size: 11pt;
 	float: left;
 	margin-right: 6px;
 	margin-top: 5px;
@@ -154,7 +157,6 @@ input[type='checkbox'] {
 }
 
 input, button, textarea {
-	font-size: 11pt;
 	margin-right: 6px;
 	margin-top: 6px;
 }
@@ -227,25 +229,20 @@ header a + a:visited + a:hover {
 }
 
 #filter {
-	width: 100%;
+	overflow: auto;
 	margin-right: 0;
 	margin-top: 8px;
 	margin-bottom: 8px;
 	padding-left: 0px;
 	padding-right: 0px;
 	padding-top: 4px;
+	padding-bottom: 4px;
 	border-top-style: solid;
 	border-bottom-style: solid;
 	border-left-style: none;
 	border-right-style: none;
 	border-color: #000080;
 	border-width: 1px;
-	min-height: 38px;
-}
-
-#filter td {
-	padding-left: 1px;
-	padding-right: 1px;
 }
 
 #filter label {
@@ -254,39 +251,41 @@ header a + a:visited + a:hover {
 	margin-left: 6px;
 	margin-right: 4px;
 	margin-top: 3px;
-	margin-bottom: 3px;
-	height: 20px;
+	margin-bottom: 5px;
+	height: 21px;
+	width: 125px;
+	border-width: 1px;
+	border-style: solid;
 }
 
 #filter p {
-	float: right;
 	margin-right: 6px;
 	margin-top: 6px;
 }
 
 #filter input[type='text'] {
+	clear: none;
+	float: left;
 	width: 200px;
+	height: 26px;
+	margin-left: 3px;
+	margin-top: 3px;
+	margin-bottom: 4px;
 }
 
 #filter select {
+	clear: none;
 	float: left;
+	width: 200px;
+	height: 32px;
 	margin-top: 8px;
-	margin-bottom: 8px;
 	margin-left: 3px;
-}
-
-.tbsmal {
-	width: 75px;
+	margin-top: 3px;
+	margin-bottom: 4px;
 }
 
 #filter .aantrecords {
 	float: right;
-}
-
-#filter .tb {
-	float: left;
-	margin-right: 6px;
-	margin-top: 6px;
 }
 
 #filter input[type='checkbox'] {
@@ -374,7 +373,7 @@ header a + a:visited + a:hover {
 	width: 100%;
 }
 
-td.details, td.muteren, td.detailregels, td.leden, td.sendmail, td.unlock, .lijstverzondenmails td:first-child, .lijstoutbox td:first-child, #overzichteigenlijsten td:first-child {
+td.details, td.muteren, td.detailregels, td.leden, td.sendmail, td.unlock, .lijstverzondenmails td:first-child, .lijstoutbox td:first-child, #overzichteigenlijsten td:first-child, #stukkenmuteren td:first-child, #overzichtrekeningen td:first-child {
 	background-repeat: no-repeat;
 	background-position: center center;
 	text-align: center;
@@ -386,7 +385,7 @@ td.details, .lijstverzondenmails td:first-child, .lijstoutbox td:first-child {
 	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAA5UlEQVR42u3XMQsBYRjA8TuTwUAGBgOTsiA+AIPJ6AM4G5+IzfkQJgOrIiZlsyiLlAwGyV/33iLFXb09Xb1P/ZZ38PzLHb225U0KE7QRs/TOE1N0cbHV4RB9zYs/Z4SBH7BCDQe4mhc7yGONuh+wQQULNDUHzNHAFlUTYAJ+BbRQwhVjddZBLsDCHWZhA95LHct7PQsfH/DvuOhFNiCNBB44qrMM4gECbjiHDdAx0QooIos7luqsjGSAhSfswwaIP4TiAeJfgY6JVoD4D5H4QygeIP53rGNMgAn4GiB+NRO/nIpdz1/cVqwhhT3ieQAAAABJRU5ErkJggg==");
 }
 
-td.muteren, #overzichteigenlijsten td:first-child {
+td.muteren, #overzichteigenlijsten td:first-child, #stukkenmuteren td:first-child, #overzichtrekeningen td:first-child {
 	background-image: url("data:image/jpg;base64,AAABAAEAICAAAAEAIACoEAAAFgAAACgAAAAgAAAAQAAAAAEAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAfICAgOiAgIDugICA7oCAgO6AgIDugICA7oCAgO6AgIDugICA7oCAgO6AgIDugICA7oCAgO6AgIDugICA7oCAgO6AgIDugICA7oCAgO6AgIDugICA6oCAgIqAgIACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgEiAgID/gICA7oCAgNKAgIDSgICA0oCAgNKAgIDSgICAwoCAgHKAgICSgICAzoCAgNKAgIDSgICA0oCAgNKAgIDSgICA0oCAgNKAgIDSgICA0oCAgNKAgIDqgICA/4CAgFgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICADoCAgAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgEaAgID/gICAigAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgICEgICA7oCAgKKAgIBQgICACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAPoCAgP+AgICKAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgHqAgID/gICAUgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgDqAgID/gICA/4CAgNyAgIDsgICArICAgFyAgIAOAAAAAAAAAAAAAAAAAAAAAAAAAACAgIA+gICA/4CAgIoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAAoCAgOaAgIC6gICACoCAgAyAgIBmgICA/ICAgOCAgIAiAAAAAAAAAAAAAAAAAAAAAICAgD6AgID/gICAigAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAloCAgGwAAAAAgICAEICAgMyAgID/gICA/4CAgOCAgIAiAAAAAAAAAAAAAAAAgICAPoCAgP+AgICKAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgHqAgID/gICAUgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIBGgICAvICAgBCAgIDMgICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAAAAAACAgIA+gICA/4CAgIoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgAaAgIDqgICAzoCAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAICAgD6AgID/gICAigAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgKCAgID/gICA/ICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAigICAHICAgOaAgICKAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgHqAgID/gICAUgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgNKAgIB4gICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAigICAKICAgHQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAigICAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAICAgA6AgICqgICAroCAgK6AgICugICAroCAgK6AgICugICAxICAgPaAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgHqAgID/gICAUgAAAAAAAAAAgICABICAgGSAgIBqgICAaoCAgGqAgIBqgICAaoCAgGqAgIBqgICAaoCAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAAAAAAAAAAAAAAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAAAAAAAAAAAAAAAAAICAgHqAgID/gICAUgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBSAAAAAAAAAACAgIAQgICAxICAgMqAgIDKgICAyoCAgMqAgIDKgICAyoCAgMqAgIDKgICAyoCAgMqAgIDKgICAiICAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA0oCAgBaAgIAOAAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAICAgAKAgIBIgICAToCAgE6AgIBOgICAToCAgE6AgIBOgICAToCAgE6AgIBOgICAToCAgE6AgIAkgICAFoCAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgNKAgIAWgICAdoCAgOCAgIAiAAAAAICAgHqAgID/gICAUgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgMqAgIBIgICAsICAgP+AgIDSgICAFoCAgHaAgID/gICA/4CAgOCAgIAcgICAeoCAgP+AgIBSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgNCAgID8gICA0oCAgBaAgIB2gICA/4CAgP+AgID/gICA/4CAgHqAgIB6gICA/4CAgFIAAAAAAAAAAICAgASAgIBegICAYoCAgGKAgIBigICAYoCAgGKAgIBigICAYoCAgGKAgIBigICAYoCAgGKAgIAwAAAAAAAAAAAAAAAAgICAFoCAgKiAgIAWgICAdoCAgP+AgID/gICA/4CAgP+AgIDugICALoCAgHqAgID/gICAUgAAAAAAAAAAgICADoCAgLCAgIC2gICAtoCAgLaAgIC2gICAtoCAgLaAgIC2gICAtoCAgLaAgIC2gICAtoCAgGYAAAAAAAAAAAAAAAAAAAAAAAAAAICAgGKAgID/gICA/4CAgP+AgID/gICA7oCAgDYAAAAAgICAeoCAgP+AgIBSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgCKAgIAYgICAFoCAgNKAgID/gICA/4CAgO6AgIA2AAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAPoCAgNSAgIAYgICAFoCAgMSAgIDmgICANgAAAAAAAAAAAAAAAICAgHqAgID/gICAUgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIA+gICA/4CAgIoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBSAAAAAAAAAACAgIBUgICAGAAAAAAAAAAAgICADICAgGAAAAAAAAAAAICAgACAgIBkgICABgAAAAAAAAAAgICAMoCAgDgAAAAAAAAAAICAgD6AgID/gICAigAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIB4gICA/4CAgGAAAAAAAAAAAICAgNqAgIBaAAAAAAAAAACAgIA6gICA+gAAAAAAAAAAgICADICAgP+AgIAoAAAAAAAAAACAgICSgICAngAAAAAAAAAAgICATICAgP+AgICIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgDqAgID/gICA+oCAgO6AgIDugICA/ICAgPSAgIDugICA7oCAgPKAgID/gICA7oCAgO6AgIDugICA/4CAgPCAgIDugICA7oCAgPiAgID4gICA7oCAgO6AgID4gICA/4CAgEwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgGCAgIDQgICA3oCAgN6AgID6gICA6oCAgN6AgIDegICA5oCAgP+AgIDegICA3oCAgOCAgID/gICA4oCAgN6AgIDegICA8ICAgPKAgIDegICA3oCAgNKAgIBsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgNqAgIBaAAAAAAAAAACAgIA6gICA+gAAAAAAAAAAgICAEICAgP+AgIAoAAAAAAAAAACAgICSgICAngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAsoCAgEAAAAAAAAAAAICAgCaAgIDKAAAAAAAAAACAgIAGgICA0oCAgBgAAAAAAAAAAICAgHKAgIB8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwAAA/4BAAP+///5/v4/+f7/B/n+/zn5/v9w+f7/oHn+/4A5/v+AGf7/0A/+/+gH/vAEA/7/+gH+//0A/v/+gH7//0A+8AAgPv//0G7//+jG///xhv//+wbwAP4O///+Hv//+z7///n+///5/u93Of4AAAP/AAAH/+93P//vd//8=");
 }
 
@@ -406,7 +405,7 @@ td.unlock {
 	background-image: url('data:image/jpg;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAAGXcA1uAAAACXBIWXMAAFxGAABcRgEUlENBAAAACXRFWHRDb21tZW50AACJKo0GAAAEZklEQVR4nI1WW2xUVRQdjV/6R0gs2opoZyqgVNAW1ApabYq0iMSa2IZgUPwp+KUkAqZWGoQWsJVSH4hKKZ2ZENHUQaGUD4nU+kGMUqPwoULRtMbHhxiYmftY7rXPPdfptIiT7M7knrP2c619GwEQiTQONqvxz5xdWdzznmuetp9wgeBKlA/098yOLB5LuljU4yEy/dU0MnKrbLej12KlXQ7ufttRJ7yx/KMgRPG2DBKnPCyQm+uOeiYKHVbIA7qJyoVZ4rsmfsEcCKopTK5xsEGfle36BXPfdFC+x0VFt4sH45JF4yAisR0Z/HER4w5LdpxH5JbWNEpey+COzizmveVg/rsuYtvkoGhzGre2peF40BruksPi1hFErl47hKLNGT28rT2DMjmQGCmb1dic9rN4+gjwTP9Ee/zgRVy15gsCpmkJMzsc3L4zi+FffWz93ENy2McD3aYBTJJdYhVTNw7/2ykmzEZvOe4h/0Pg/fs8lGw/bwA3SfdYJYHxbzwFVnc74DBf6Pd0Hqy6uM0A6kvkIqtn21kkW89C2X62qbQrq93QOoKiC9jla577Etc9f3KC6QQaB/v0Lv8EoIac+eUa5xoN77FVDMXWTdZStpotZ+stAA/v98I8yb4FUuC977tYKJ1ZJGeVCWGlkIWkjEzZcCos7vhZH60nPKRl5JOBNL2ilpGwI1V7HY009jcmjSSAlxUQ226GNvv17IShfTUK3Lc3UA0BN74yogOzoEOnfR3Yig9cHdifl8ykCVLADQK4eUs6BKUEwEgtn3m48w0DKH/HNcJSQPM5kBozthoQP+Q5LSu0Ov0bNBLVogDOoLDl0jgQZcX0yGCmR3lVmAj1nENqSe8FkVPmMiAH1b0eKKiQGuQJBzgZj8ivgEsF+VwqsEBLxGsF8H8sxykCHwWh38B5iinWJv5CQwqoPeCjStJ+aL8x/q4ShVYnjC1OenhE7tQEtvSgjzrh/spPoT7oiz4tV+vZ2EqROptICrKRTx5wkDrj49gPYj/6GJDvdQOesosjJMO4HpRlPYZpXBOVCR/LPvTtjtEhNBdu+knpyqbPCqbFZVjTY6jLqVEofLZcdjdHfqVA0bZzhhYMQHpHg8naQJ1DcnmPoxXVJWSry6rhLuX36j4Xqz928WzKU1soCy8/kO4vG6Bwk5GDZbddgLSkvDbO/A7USeaL9zlY0uOittfF0riLR8WS3/qhXKxkwgVpA1j52EWZG4jvJSsnVrMm5epcKCu+Mvi+svKaH7SNFm3LDdA8oiKg5QeKf+3h5M8i8E4n3BCWCLSOIROAclRJBoGKcwI0TVn/ncqTm5tBpgeK4waf3Z7F2j4HLx5xsb7fxYajxjYOuHjpmHyLcY9ZIjAId9n1Td+bhadrUgQyb+coZojjywViNflEsIyzFZFx5btdlHWNWtHFrNCmcYmTu6Wy0J+Qhb9KRLPyUGCfAE/9h606DMUQG/B/jD7HrYqclRENXkG5/0ZcyZoCTDTf3z9hwQPsF1ehhQAAAABJRU5ErkJggg==');
 }
 
-td.trash, .beheerlogins td:last-child, #beheerautorisatie td:last-child, .beheerwijzigingen td:last-child, #deelnemersevenementmuteren td:last-child, #lijstoutbox td:last-child, #muteertypeevenement td:last-child {
+td.trash, .beheerlogins td:last-child, #beheerautorisatie td:last-child, .beheerwijzigingen td:last-child, #deelnemersevenementmuteren td:last-child, #lijstoutbox td:last-child, #muteertypeevenement td:last-child, #overzichteigenlijsten td:last-child, #stukkenmuteren td:last-child {
 	background-image: url("data:image/jpg;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAA7EAAAOxAGVKw4bAAABK0lEQVRIie3VMUoDURAG4C8hbCEiaCEiQaw8gQewFOyscoGUFhYWnsDKIljmEjaCpbXnkBAipBCrEILFzjMvISar6SQ/DPv4d97/z8xb9tWsxh4ecIBJcHX0cYVhBY2l6OASBRoRRXCdVZvrFQze8YgRxhGj4N5Xba5l63NcVDCsgic8U7ZLOedr3JjO+a+o4x6vGCaDAk3crimecBiaMyPaD3IbHxlfKOc+Me14HJU2lOeRsIPP4AapnYRBiLXRy6KlHGEPpxG94Fpzue3QGCTRhlkUUUWOXWxlFSZsxbscO6HxjSqf6VrYGGwMNgb/wWD+X7QI6RaTPdP613fHCbpLiqib7Xq+wG5o/JjQxxGO8bYkb5FJM/b288T8wkk4U95svz2fCe7wkpNfrmk0W0pz02cAAAAASUVORK5CYII=");
 	background-repeat: no-repeat;
 	background-position: center center;
@@ -459,12 +458,6 @@ td.trash, .beheerlogins td:last-child, #beheerautorisatie td:last-child, .beheer
 	margin-top: 10px;
 }
 
-#overzichtlid label {
-	width: 225px;
-	float: left;
-	clear: left;
-}
-
 #overzichtlid h2 {
 	float: left;
 	clear: both;
@@ -472,6 +465,21 @@ td.trash, .beheerlogins td:last-child, #beheerautorisatie td:last-child, .beheer
 	padding-right: 5px;
 	text-align: right;
 	border-style: none;
+}
+
+#overzichtlid label {
+	width: 225px;
+	float: left;
+	clear: left;
+}
+
+#overzichtlid p {
+	float: left;
+	overflow: visible;
+	min-height: 22px;
+	width: 300px;
+	margin-top: 8px;
+	background-color: #FFFF99;
 }
 
 #wijzigenlidgegevens, #nieuwlid, #wijzigendiplomas, #nieuwepasfoto, #bijzonderhedenwijzigen, #lidmaatschapmuteren, #inschrijvingbewaking, #inschrijvingevenementen, #webshop, #opzegformulier, #profielwijzigen {
@@ -513,20 +521,24 @@ td.trash, .beheerlogins td:last-child, #beheerautorisatie td:last-child, .beheer
 	width: 100%;
 }
 
+#stukkenmuteren label {
+	width: 175px;
+}
+
+#stukkenmuteren p {
+	padding-top: 6px;
+}
+
+#stukkenmuteren input[type='text'] {
+	width: 300px;
+}
+
 #stukkenmuteren input[type='url'] {
-	width: 600px;
+	width: 700px;
 }
 
 #stukkenmuteren select {
-	width: 200px;
-}
-
-#stukkenmuteren .tbtitel {
-	width: 325px;
-}
-
-#stukkenmuteren .tbbestemdvoor {
-	width: 200px;
+	width: 300px;
 }
 
 #wijzigenlidgegevens img {
@@ -652,8 +664,8 @@ td.trash, .beheerlogins td:last-child, #beheerautorisatie td:last-child, .beheer
 
 .groepsindelingkolom {
 	float: left;
-	width: 32%;
-	min-height: 225px;
+	width: 31%;
+	min-height: 250px;
 	border-right-style: solid;
 	border-width: 1px;
 	margin-left: 0;
@@ -665,10 +677,6 @@ td.trash, .beheerlogins td:last-child, #beheerautorisatie td:last-child, .beheer
 
 #groepenmuteren input[type='text'] {
 	width: 225px;
-}
-
-#groepenmuteren input.code {
-	width: 75px;
 }
 
 #groepenmuteren input[type='number'] {
@@ -687,12 +695,8 @@ td.trash, .beheerlogins td:last-child, #beheerautorisatie td:last-child, .beheer
 	text-align: center;
 }
 
-input.kode, input.code, .code {
+input.code, .code {
 	width: 75px;
-}
-
-.kode {
-	background-color: yellow;
 }
 
 input.omschrijving {
@@ -752,7 +756,7 @@ input.omschrijving {
 	max-width: 180px;
 }
 
-#login {
+#welkom {
 	float: right;
 	margin-top: 0;
 	margin-right: 0;
@@ -768,7 +772,7 @@ input.omschrijving {
 	border-bottom-left-radius: 9px;
 }
 
-#login img {
+#welkom img {
 	float: left;
 	height: 22px;
 	width: 22px;
@@ -776,26 +780,44 @@ input.omschrijving {
 	margin-left: 6px;
 }
 
-#login input, #login label {
+#welkom input, #welkom label {
 	float: left;
 	clear: none;
-	font-size: 10pt;
+	font-size: 90%;
 	border-style: none;
 }
 
-#login input[type='text'], #login input[type='password'] {
-	width: 100px;
+#welkom p {
+	clear: none;
+	float: left;
+}
+
+#login {
+	overflow: auto;
+	width: 450px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+#login h2 {
+	width: 100%;
+	text-align: center;
+	padding-top: 6px;
+	padding-bottom: 6px;
+}
+
+#login label {
+	width: 150px;
 }
 
 #login input[type='submit'] {
-	margin-top: 4px;
-	height: 22px;
+	clear: left;
 }
 
 #login p {
-	clear: none;
 	float: left;
-}	
+	padding-top: 5px;
+}
 
 #loginaanvraag, #opvragenlidnr, #profielwijzigen, #opzegformulier, #herstellenwachtwoord {
 	margin-left: auto;
@@ -924,7 +946,6 @@ input.omschrijving {
 	margin-top: 5px;
 }
 
-
 fieldset {
 	margin-top: 3px;
 	margin-right: auto;
@@ -950,25 +971,6 @@ fieldset h3 {
 	padding-right: 3px;
 	border-width: 1px;
 	border-style: none;
-}
-
-#opzegformulier input.inputnumber, #lidmaatschapmuteren input.inputnumber {
-	width: 60px;
-	text-align: right;
-	padding-left: 3px;
-	padding-right: 3px;
-}
-
-input.knop, button.knop {
-	color: #000080;
-	font-weight: bold;
-	height: auto;
-	margin-top: 16px;
-	margin-bottom: 4px;
-	padding-top: 4px;
-	padding-bottom: 4px;
-	cursor: pointer;
-	font-size: 11pt;
 }
 
 #loginaanvraag input.knop, #profielwijzigen input.knop {
@@ -1039,7 +1041,7 @@ input.knop, button.knop {
 	padding-top: 3px;
 	padding-bottom: 1px;
 	font-weight: bolder;
-	font-size: 16pt;
+	font-size: 150%;
 }
 
 .wieiswie-onderdeelnaam {
@@ -1080,10 +1082,6 @@ input.knop, button.knop {
    min-height: 500px;
 }
 
-.ck-editor__editable p {
-	font-size: 11pt;
-}
-
 #footerleft {
 	float: left;
 	margin-top: 0;
@@ -1100,9 +1098,13 @@ input.knop, button.knop {
 	clear: both;
 	float: left;
 	height: 36px;
-	width: 100%;
+	width: 98%;
+	
 	margin-top: 18px;
 	margin-bottom: 2px;
+	margin-left: auto;
+	margin-right: auto;
+	
 	padding-right: 6px;
 	padding-top: 8px;
 	padding-bottom: 6px;
@@ -1125,7 +1127,7 @@ input.knop, button.knop {
 	padding-top: 4px;
 	padding-bottom: 4px;
 	cursor: pointer;
-	font-size: 10pt;
+	font-size: 90%;
 }
 
 #opdrachtknoppen input[type='checkbox'] {
@@ -1186,8 +1188,113 @@ input.knop, button.knop {
 	text-align: right;
 }
 
-#menu_l1 {
+/* Menu */
+
+nav {
+   list-style: none;
+   padding: 0; 
+   margin: 0; 
+   border: none;
+}
+
+nav ul {
+	padding-inline-start: 0;
+	clear: right;
+}
+
+nav ul li {
+	min-width: 50px;
+	padding-left: 8px;
+	padding-right: 8px;
+	padding-bottom: 0;
+	list-style: none;
+	position: relative;
+	text-align: center;
+	float: left;
+}
+
+nav li:hover {
+	cursor: pointer;
+}
+
+ul#menu_l1 li {
+	line-height: 40px;
+	border-top-right-radius: 9px;
+	border-top-left-radius: 9px;
+}
+
+nav li:first-child {
+	clear: left;
+}
+
+nav li.current {
+	font-weight: bolder;
+	font-size: 105%;
+}
+
+nav li.dropdown {
+	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAAOw0AADsNAWEPgO4AAAJ/SURBVFhHvdfHaxRhHIfxjcabBQy22ECIYkPEWMCLKKJgQxDUs9hv4klEvSiI9eZNxfIPiAWJB0+C3YCCLRbQHGJB0FMi6vO8Ouw47GZnsjvzhQ/Zd5O8M/O+77zzm6ZS+ozGMqxCO1owBKYPX3AfN3ALPaiZNCcwC3uxFI/hAR7gE37gN4ZhFBZgJeaiAyfwDAPKCJzCW+zDOKTNeOzHO5yEfWXKDDzBeWQ5cDKtuIxHsM9UcRi96u0Y5Bd1ZjB2wT7n+0V/8Sz9w/Wh1dhshH1PD60KcZ4cdq88r+yG0zE8tBI5Dee8EcNeLfbtmjgWWrF4qzk89Sy4tPEOeY8wFdE+4JW/xJHQKsffe49n2bDicY/4/u9nPAcxCVvseAzcWBaiG/HMxhU0h1b2uEOuwKvQKmcC7qDdE9iMTViHZPIaAXMdjnzpEnb6oeC4N1zww3P4cCk6i9HpbTESPliKzge0OrffMAVfkcxYbIPb6UDyE2fwObT+j4/zrlqbTqXFkzU1+3D4J//9WGg8Zo8jYCVjtVN0JqLbuXUD+gXLqSKzBs3RRqS1SCbvjeicHTv8D7EIHxFPXluxw+9WPC+6srPowuHQKievETgEn4pbQ4vMhI9ja7i8Ez2Op4VWLFavF5FnQeKityA5GlqJWJJZLu0IrXxiSXYPTmvFREXphtBqbCxKX6MttPqJpfMb+IhuxHTYh1fuwX1jShXrNW9N10Q9C9MF55zfxVS/yBJLZ6tXX68OwDIqbbzPrfv8Xxdc1TlPc3+7LvZgOZ7iGjrh89yXUzMUHnQOfHu2yr6J43iBqsmywbhjLsFqeCCnJno974UFrSd2FbeRosgplf4A8LF9Vvt1J9YAAAAASUVORK5CYII=");
+	background-repeat: no-repeat;
+	background-position: center;
+}
+
+#memu_l2 li.dropdown {
+	z-index: 1;
+}
+
+nav ul li a {
+	display: inline-block;
+	text-decoration: none;
+}
+
+nav ul li ul {
+	display: none;
+}
+
+nav ul li:hover ul {
+	display: block;
+}
+
+ul#menu_l1 li {
+	display: block;
+	transition-duration: 0.8s;
+	font-size: 105%;
 	
+	margin-top: 21px;
+	margin-bottom: 1px;
+	margin-left: 2px;
+	margin-right: 2px;
+	
+	padding-top: 3px;
+	padding-left: 5px;
+	padding-right: 5px;
+	
+	font-style: normal;
+	border-color: #f0f0f0;
+	background-color: #f0f0f0;
+}
+
+ul#menu_l1 li ul {
+	visibility: hidden;
+	position: absolute;
+	transition: all 0.8s ease;
+	display: none;
+	clear: both;
+	text-align: left;
+	opacity: 1;
+	background-color: #f0f0f0;
+	border-width: 1px;
+	border-style: solid;
+	z-index: 2;
+	
+	padding-left: 2px;
+}
+
+ul#menu_l1 li ul li {
+	font-size: 105%;
+	padding-top: 2px;
+	padding-bottom: 2px;
+	line-height: 100%;
 }
 
 #menu_l2 {
@@ -1195,18 +1302,101 @@ input.knop, button.knop {
 	margin-bottom: 6px;
 }
 
+ul#menu_l2 li {
+	
+	float: left;
+	font-style: normal;
+	display: block;
+	height: 18px;
+	
+	text-align: center;
+	background-color: transparent;
+	border-right-style: none;
+	
+	border-left-style: solid;
+	border-width: 1px;
+	
+	margin-top: 2px;
+	margin-left: 0;
+	margin-right: 0;
+	
+	padding-top: 0;
+	padding-bottom: 1px;
+	padding-left: 4px;
+	padding-right: 4px;
+}
+
+ul#menu_l2 li:last-child {
+	border-right-style: solid;
+}
+	
+ul#menu_l2 li ul li {
+	border-style: none;
+	text-align: left;
+	padding-top: 4px;
+	padding-bottom: 4px;
+}
+
 #menu_l3 {
 	clear: right;
 	margin-bottom: 6px;
 }
 
-#menu_l1, #menu_l2, #menu_l3, .tablist1, .tablist2 {
-   list-style: none;
-   height: 24px;
-   padding: 0; 
-   margin: 0; 
-   border: none;
+ul#menu_l3 li {
+	display: block;
+	font-size: 90%;
+	transition-duration: 0.8s;
+	
+	margin-top: 3px;
+	margin-bottom: 3px;
+	margin-left: 2px;
+	margin-right: 2px;
+	
+	padding-top: 3px;
+	padding-left: 5px;
+	padding-right: 5px;
+	
+	font-style: normal;
+	border-color: #f0f0f0;
+	background-color: #f0f0f0;
+
+	border-left-style: solid;
+	border-right-style: none;
+	border-width: 1px;
 }
+
+ul#menu_l1 li ul, ul#menu_l2 li ul, ul#menu_l3 li ul {
+	visibility: hidden;
+	position: absolute;
+	transition: all 0.8s ease;
+	display: none;
+	clear: both;
+	text-align: left;
+	opacity: 1;
+	background-color: #f0f0f0;
+	padding-left: 2px;
+	border-width: 1px;
+	border-style: solid;
+	z-index: 2;
+}
+
+nav ul li ul li {
+	width: 175px;
+	text-align: left;
+	border-bottom-style: solid;
+}
+
+ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li ul:hover {
+  visibility: visible;
+  opacity: 1;
+  display: block;
+  clear: right;
+}
+
+
+/* Einde menu */
+
+
 
 .tablist2 ul, .tablist2 ul {
 	width: 100%;
@@ -1222,23 +1412,6 @@ input.knop, button.knop {
 	padding-bottom: 1px;
 	border-style: solid;
 	border-width: 1px;
-}
-
-.tablist1 li {
-	font-size: 10pt;
-	min-width: 85px;
-	margin-left: 2px;
-	margin-right: 2px;
-	padding-left: 5px;
-	padding-right: 5px;
-	height: 24px;
-	font-style: normal;
-	margin-top: 15px;
-	padding-top: 11px;
-	border-color: #f0f0f0;
-	background-color: #f0f0f0;
-	border-top-right-radius: 9px;
-	border-top-left-radius: 9px;
 }
 
 .tablist2 li, .tablist3 li {
@@ -1297,7 +1470,7 @@ input.knop, button.knop {
 	border-color: black;
 	border-style: solid;
 	border-width: 1px;
-	font-size: 13pt;
+	font-size: 125%;
 	color: red;
 	text-align: center;
 }
@@ -1442,16 +1615,12 @@ input.knop, button.knop {
 	width: 250px;
 }
 
-#rekeningmuteren input {
+#rekeningmuteren input[type='text'], #rekeningregelsmuteren input[type='text'] {
 	float: left;
 	width: 350px;
 }
 
-#rekeningmuteren input[type='date'] {
-	width: 150px;
-}
-
-#rekeningmuteren input[type='number'] {
+#rekeningmuteren input[type='number'], #rekeningregelsmuteren input[type='number'] {
 	width: 75px;
 }
 
@@ -1461,7 +1630,7 @@ input.knop, button.knop {
 }
 
 #rekeningmuteren p {
-	width: 350px;
+	width: 248px;
 	float: left;
 	clear: none;
 	margin-top: 4px;
@@ -1472,12 +1641,6 @@ input.knop, button.knop {
 	background-color: #FFFF99;
 	border-style: solid;
 	border-width: 1px;
-}
-
-#rekeningmuteren table {
-	margin-top: 8px;
-	clear: both;
-	width: 100%;
 }
 
 #rekeninginfo {
@@ -1502,6 +1665,7 @@ input.knop, button.knop {
 }
 
 #rekeningregelsmuteren {
+	overflow: auto;
 	clear: left;
 	margin-top: 10px;
 }
@@ -1511,34 +1675,10 @@ input.knop, button.knop {
 	margin-bottom: 2px;
 }
 
-#rekeningregelsmuteren .kostenplaats {
-	width: 60px;
-}
-
-#rekeningregelsmuteren input[type='checkbox'] {
+#rekeningregelsmuteren input[type='checkbox'], #rekeningregelsmuteren input.code {
 	width: 75px;
 }
 
-#rekeningregelsmuteren img {
-	margin-left: auto;
-	margin-right: auto;
-}
-
-#rekeningregelsmuteren td:last-child {
-	text-align: center;
-}
-
-#rekeningenmailen ul {
-	margin-left: 0;
-	padding-left: 0;
-}
-
-#rekeningenmailen li {
-	display: block;
-	width: 33%;
-	float: left;
-	padding-left: 2px;
-}
 
 #rekeningregels {
 	margin-bottom: 15px;
@@ -1552,6 +1692,18 @@ input.knop, button.knop {
 	border-width: 1px;
 	border-style: none;
 	border-collapse: collapse;
+}
+
+#rekeningenmailen ul {
+	margin-left: 0;
+	padding-left: 0;
+}
+
+#rekeningenmailen li {
+	display: block;
+	width: 33%;
+	float: left;
+	padding-left: 2px;
 }
 
 #dbonderhoud p {
@@ -1600,7 +1752,7 @@ input.knop, button.knop {
 }
 
 #onderdelenmuteren input {
-	float; left;
+	float: left;
 }
 
 #onderdelenmuteren input.naam {
@@ -1773,10 +1925,6 @@ input.knop, button.knop {
 	clear: left;
 }
 
-#nieuwlid input {
-	
-}
-
 .attentie {
 	color: red;
 	font-weight: bold;
@@ -1802,7 +1950,6 @@ input.knop, button.knop {
 }
 
 .copypaste {
-	font-size: 79;
 	width: 100%;
 	margin-top: 8px;
 	border-style: solid;
@@ -1838,98 +1985,6 @@ input.knop, button.knop {
 	#wijzigenlidgegevens input, #wijzigenlidgegevens select {
 		width: 200px;
 	}
-}
-
-nav {
-	width: 100%;
-	font-size: 10pt;
-	margin: 0;
-	padding: 0;
-	border-style: solid;
-	border-width: 1px;
-}
-
-nav ul {
-	padding-inline-start: 0;
-	clear: right;
-}
-
-nav ul li {
-	line-height: 40px;
-	padding-left: 8px;
-	padding-right: 8px;
-	padding-bottom: 0;
-	list-style: none;
-	position: relative;
-	text-align: center;
-	float: left;
-}
-
-nav li:first-child {
-	clear: left;
-}
-
-nav img {
-	margin-bottom: 0;
-	padding-bottom: 0;
-	height: 40px;
-}
-
-nav li.hm {
-	line-height: 2px;
-}
-
-nav li.down {
-	list-style: none;
-	float: none;
-	z-index: 2;
-}
-
-nav li.current {
-	font-weight: bolder;
-	font-size: 110%;
-}
-
-nav ul li a {
-	display: inline-block;
-	text-decoration: none;
-}
-
-nav ul li a:hover {
-	font-weight: bold;
-	border-bottom: 2px solid #fff;
-}
-
-nav ul li ul {
-	display: none;
-}
-
-nav ul li:hover ul {
-	display: block;
-}
-
-ul.menulaag_1 li {
-	font-size: 10pt;
-	box-shadow: 0px 2px 5px 0px grey;
-	background: linear-gradient(white 20%, grey 80%);
-}
-
-ul.menulaag_2 li {
-	font-size: 9pt;
-	margin-right: 3px;
-	background: linear-gradient(white 20%, grey 80%);
-}
-
-ul.menulaag_3 li {
-	margin-top: 3px;
-	font-size: 9pt;
-	border-left-style: none;
-	border-right-style: solid;
-	border-width: 1px;
-}
-
-ul.menulaag_3 li:last-child {
-	border-right-style: none;
 }
 
 #agenda li.ZR {

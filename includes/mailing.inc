@@ -278,7 +278,7 @@ class Mailing {
 							FROM %sLidmaatschap AS LM WHERE LM.LIDDATUM < CURDATE() AND LM.Lid=%%d LIMIT 1;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "LengteLidmaatschap", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT L.Telefoon FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
+		$sql = sprintf("SELECT IF(LENGTH(IFNULL(L.Telefoon, '')) < 10, L.Mobiel, L.Telefoon) FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Telefoon", 'SQL' => $sql);
 
 		$sql = sprintf("SELECT L.Mobiel FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
@@ -419,7 +419,6 @@ class Mailing {
 			}
 			$sql .= "END";
 			$sql .= sprintf(" FROM %1\$sEvenement_Deelnemer AS ED WHERE ED.LidID=%%d AND ED.EvenementID=%2\$d;", TABLE_PREFIX, $this->evenementid);
-//			debug($sql);
 			$this->MergeField[]=array('Naam' => "DeelnemerStatus", 'SQL' => $sql);
 			
 			$sql = sprintf("SELECT IF(E.MeerdereStartMomenten=1, LEFT(ED.StartMoment, 5), SUBSTRING(E.Datum, 12, 5)) FROM %1\$sEvenement_Deelnemer AS ED INNER JOIN %1\$sEvenement AS E ON E.RecordID=ED.EvenementID WHERE ED.LidID=%%d AND ED.EvenementID=%2\$d;", TABLE_PREFIX, $this->evenementid);
@@ -1440,7 +1439,7 @@ function lijstmailings($p_filter="") {
 		if ($p_filter == "Outbox") {
 			$rows = $i_mh->outbox(1)->fetchAll();
 			if (count($rows) > 0) {
-				if (count($rows) > 3) {
+				if (count($rows) > 2) {
 					echo("<div id='filter'>\n");
 					printf("<p class='aantrecords'>%d e-mails</p>\n", count($rows));
 					echo("</div> <!-- Einde filter -->\n");
@@ -1450,7 +1449,15 @@ function lijstmailings($p_filter="") {
 				echo("<p class='mededeling'>Er staan geen e-mails te wachten om verzonden te worden.</p>\n");
 			}
 		} else {
+			
 			$rows = $i_mh->lijst();
+			echo("<div id='filter'>\n");
+			echo("<input id='tbTekstFilter' placeholder='Tekstfilter' onKeyUp=\"fnFilter('lijstverzondenmails', 'tbTekstFilter', 2, 3, 4);\">\n");
+			if (count($rows) > 2) {
+				printf("<p class='aantrecords'>%d Verzonden e-mails</p>\n", count($rows));
+			}
+			echo("</div> <!-- Einde filter -->\n");
+			
 			if (count($rows) > 0) {
 				echo(fnDisplayTable($rows, $kols, "", 0, "", "lijstverzondenmails"));
 			} else {
@@ -1465,9 +1472,9 @@ function lijstmailings($p_filter="") {
 			$kols[0]['link'] = sprintf("<a href='%s?tp=%s/Wijzigen+mailing&mid=%%d' title='Wijzigen mailing'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF'], $currenttab);
 			$kols[0]['class'] = "muteren";
 		}
-		$rows = $i_M->lijst($p_filter);	
+		$rows = $i_M->lijst($p_filter);
 		echo("<div id='filter'>\n");
-		echo("<label>Onderwerp/Aan bevat</label><input id='tbSubjectFilter' onKeyUp=\"fnFilter('lijstmailingen', 'tbSubjectFilter', 2, 4);\">\n");
+		echo("<input id='tbTekstFilter' placeholder='Tekstfilter' onKeyUp=\"fnFilter('lijstmailingen', 'tbTekstFilter', 2, 3, 4);\">\n");
 		printf("<p class='aantrecords'>%d mailings</p>\n", count($rows));
 		echo("</div> <!-- Einde filter -->\n");
 			
