@@ -8,7 +8,7 @@ define("ARRGESLACHT", ["O" => "Onbekend", "V" => "Vrouwelijk", "M" => "Mannelijk
 define("ARRTL", ["Alle", "Leden", "Klosleden", "Voormalig leden"]);
 define("ARRLEGITIMATIE", ["G" => "Geen", "I" => "Identiteitskaart", "P" => "Paspoort", "R" => "Rijbewijs"]);
 define("ARRSOORTMEMO", ["A" => "Algemeen", "B" => "Bewaking", "D" => "Dieet", "E" => "Examen", "F" => "Financiën", "G" => "Gezondheid/medisch", "I" => "Inschrijving bewaking"]);
-define("ARRTYPEONDERDEEL", ["A" => "Afdeling", "B" => "Bestuur", "C" => "Commissie", "G" => "Groep", "O" => "Onderscheiding", "R" => "Rol", "T" => "Toestemming"]);
+define("ARRTYPEONDERDEEL", ["A" => "Afdeling", "B" => "Bestuur", "C" => "Commissie", "F" => "Functionarissen", "G" => "Groep", "O" => "Onderscheiding", "R" => "Rol", "T" => "Toestemming"]);
 define("ARRTYPEDIPLOMA", ["B" => "Brevet", "C" => "Competentie", "D" => "Diploma", "I" => "Insigne", "L" => "Licentie", "M" => "Module", "P" => "Proeve van bekwaamheid"]);
 define("PASFOTOEXTENTIES", ["gif", "jpg", "jpeg", "png"]);
 define("ARRTYPEEDITOR", [1 => "CKEditor 5 Classic editor", 2 => "CKEditor 4", 3 => "TinyMCE"]);
@@ -52,13 +52,13 @@ if (isset($_SESSION['lidid'])) {
 	(new cls_Logboek())->add($mess, 1, 0, 1);
 }
 
-if (!isset($_SESSION['pagbreedte'])) {
-	$_SESSION['pagbreedte'] = 0;
-}
-if (isset($_GET['p_pagbreedte'])) {
-	$_SESSION['pagbreedte'] = $_GET['p_pagbreedte'];
-} elseif ($_SESSION['pagbreedte'] == 0) {
-	printf("<script>location.href=\"%s?p_pagbreedte=\" + screen.width + \"'\"</script>\n", BASISURL);
+if ($_SERVER['PHP_SELF'] == "/index.php") {
+	if (!isset($_SESSION['pagbreedte']) or $_SESSION['pagbreedte'] == 0) {
+		$_SESSION['pagbreedte'] = $_GET['p_pagbreedte'] ?? 0;
+	}
+	if ($_SESSION['pagbreedte'] == 0) {
+		printf("<script>location.href=\"%s?p_pagbreedte=\" + screen.width + \"\"</script>\n", BASISURL);
+	}
 }
 
 if ((isset($_SESSION['webmaster']) and $_SESSION['webmaster'] == 1) or strpos(BASISURL, "telling.nl") > 0) {
@@ -245,6 +245,11 @@ function HTMLheader($breed=0) {
 			} else {
 				echo("<script src='https://cdn.ckeditor.com/ckeditor5/12.4.0/classic/ckeditor.js'></script>\n");
 			}
+		} else {
+
+			echo("<link rel='stylesheet' href='//code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css'>\n");
+			echo("<script src='https://code.jquery.com/jquery-3.6.0.js'></script>\n");
+			echo("<script src='https://code.jquery.com/ui/1.13.1/jquery-ui.js'></script>\n");
 		}
 		printf("<title>%s</title>\n", $title);
 		if (file_exists("default.css")) {
@@ -253,6 +258,7 @@ function HTMLheader($breed=0) {
 		if (file_exists("maatwerk/kleur.css")) {
 			printf("<link rel='stylesheet' href='maatwerk/kleur.css?v%s'>\n", strftime("%Y%m%d%H%M", filectime("maatwerk/kleur.css")));
 		}
+		
 		echo("</head>\n");
 		echo("<body>\n");
 		if ($breed == 0) {
@@ -352,8 +358,8 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 	$tpd = ""; // Dit wordt getoond in het menu.
 	$ulopen = false;
 	$_SESSION['settings']['typemenu'] = 1;
-	if ($_SESSION['pagbreedte'] > 3600) {
-		$mamk = 18;
+	if ($_SESSION['pagbreedte'] > 2500) {
+		$mamk = 12;
 	} elseif ($_SESSION['pagbreedte'] > 1250) {
 		$mamk = 11;
 	} else {
@@ -365,8 +371,6 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 	}
 	
 	$nivo = $toonnivo;
-//	debug($nivo);
-//	print_r($tabpages);
 	if ($_SESSION['settings']['typemenu'] == 1 or ($_SESSION['settings']['typemenu'] == 3 and $toonnivo == 2)) {
 		printf("<ul id='menu_l%d'>\n", $toonnivo);
 		$itp = 1;
@@ -581,13 +585,13 @@ function fnDisplayFormLabels($row, $xtra_eind="", $id="") {
 	return $ret;
 }  # fnDisplayFormLabels
 
-function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $class="", $xtra_kolom="", $editkols="", $autosubmit=0, $sortkols=null, $rowscbo=null) {
+function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $class="lijst", $xtra_kolom="", $editkols="", $autosubmit=0, $sortkols=null, $rowscbo=null) {
 	global $currenttab;
 	
-	if (strlen($class) == 0) {
-		$class = "lijst";
+	$ret = "";
+	if (strlen($class) > 0) {
+		$ret = sprintf("<div class='%s'>\n", $class);
 	}
-	$ret = sprintf("<div class='%s'>\n", $class);
 	$kol_pk = "";
 	if ($autosubmit == 1) {
 		$js = " OnBlur='this.form.submit();'";
@@ -720,8 +724,10 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 				} elseif (startwith($key, "dte") or startwith($key, "rodte")) {
 					if (startwith($key, "dte") and $kol_edit == 1) {
 						$ret .= sprintf("<td><input type='date' name='%s_%d' value='%s'%s></td>", str_replace(" ", "_", substr($key, 3)), $row->$kol_pk, $value, $js);
-					} elseif ((!is_null($value)) and $value > '1900-01-01') {
+					} elseif ((!is_null($value)) and $value > '1900-01-01' and strtotime($value) !== false) {
 						$ret .= sprintf("<td class='datum'>%s</td>", strftime('%e %B %Y', strtotime($value)));
+					} elseif ((!is_null($value)) and strlen($value) > 0) {
+						$ret .= sprintf("<td>%s</td>", $value);
 					} else {
 						$ret .= "<td>&nbsp;</td>";
 					}
@@ -848,7 +854,8 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 			$ret .= "<tfoot>\n<tr>";
 			for ($kn=0; $kn < count($ktot); $kn++) {
 				if ($kn+1 == $disptot and $totaantal > 1) {
-					$ret .= sprintf("<th>%s records</th>", number_format($totaantal, 0, ",", "."));
+					$ret .= sprintf("<th colspan=2>%s records</th>", number_format($totaantal, 0, ",", "."));
+					$kn++;
 				} elseif (gettype($ktot[$kn]) == "double") {
 					$ret .= sprintf("<th class='number'>%s</th>", number_format($ktot[$kn], 2, ",", "."));
 				} elseif (gettype($ktot[$kn]) == "integer") {
@@ -863,7 +870,9 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 	} else {
 		$ret .= "<p class='mededeling'>Er zijn geen records beschikbaar.</p>\n";
 	}
-	$ret .= sprintf("</div>  <!-- Einde %s -->\n", $class);
+	if (strlen($class) > 0) {
+		$ret .= sprintf("</div>  <!-- Einde %s -->\n", $class);
+	}
 	return $ret;
 	
 } # fnDisplayTable
@@ -1296,5 +1305,72 @@ function pv($p_control, $p_ookget=1) {
 		return "";
 	}
 }  # pv
+
+function aantaluniekeleden($rows, $veldnm) {
+	
+	$aant = 0;
+	$vw = -1;
+	
+	asort($rows);
+	
+	foreach ($rows as $row) {
+		if ($vw != $row->$veldnm) {
+			$aant++;
+		}
+		$vw = $row->$veldnm;
+	}
+	
+	return $aant;
+	
+}  # aantaluniekeleden
+
+function fnControleTelefoon($tn, $srt="telefoon") {
+	
+	if (strlen(trim($tn)) == 0) {
+		$rv = "";
+	} elseif (substr($tn, 2, 1) == "-" and strlen($tn) == 11 and $srt == "mobiel") {
+		$rv = "";
+	} elseif (substr($tn, 3, 1) == "-" and strlen($tn) == 11 and $srt == "telefoon") {
+		$rv = "";
+	} elseif (substr($tn, 4, 1) == "-" and strlen($tn) == 11 and $srt == "telefoon") {
+		$rv = "";
+	} elseif (strlen($tn) == 10 and strstr($tn, "-") === false) {
+		$rv = "";
+	} elseif ($srt == "telefoon") {
+		$rv = "Formaat telefoonnummer is niet correct.";
+	} else {
+		$rv = "Formaat mobiele nummer is niet correct.";
+	}
+	
+	return $rv;
+}
+
+function DisplayTabs($tabblad, $inittab=0) {
+	
+	printf("<script>
+		$( function() {
+			$('#tabs').tabs({
+				active: %d
+			});
+		} );
+	</script>\n", $inittab);	
+		
+	echo("<div id='tabs'>\n");
+	echo("<ul>\n");
+	$tn = 1;
+	foreach ($tabblad as $nm=>$inhoud) {
+		printf("<li><a href='#tab-%s'>%s</a></li>\n", str_replace("'", "", strtolower($nm)), $nm);
+		$tn++;
+	}
+	echo("</ul>\n");
+		
+	$tn = 1;
+	foreach ($tabblad as $nm=>$inhoud) {
+		printf("<div id='tab-%1\$s'>\n%2\$s</div> <!-- Einde tab-%1\$s -->\n", str_replace("'", "", strtolower($nm)), $inhoud);
+		$tn++;
+	}
+	
+	echo("</div> <!-- Einde tabs -->\n");
+}
 
 ?>
