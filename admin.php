@@ -103,8 +103,9 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 	(new cls_Logboek())->opschonen();
 } elseif ($_GET['op'] == "loggingdebugopschonen") {
 	(new cls_logboek())->debugopschonen();
-} elseif ($_GET['op'] == "onderdelenopschonen") {
+} elseif ($_GET['op'] == "beheeronderdelen") {
 	(new cls_Onderdeel())->opschonen();
+	(new cls_Onderdeel())->datacontrole();
 } elseif ($_GET['op'] == "lidondopschonen") {
 	(new cls_Lidond())->opschonen();
 } elseif ($_GET['op'] == "mailingsopschonen") {
@@ -155,7 +156,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 		$optionstab .= sprintf("<option value='%1\$s'>%1\$s</option>\n", $row->Tabpage);
 	}
 	echo("</table>\n");
-	printf("<label>Nieuw</label><select name='tabpage_nw' onChange='this.form.submit();'>%s</select>\n", $optionstab);
+	printf("<label>Nieuw</label><select name='tabpage_nw' onBlur='this.form.submit();'>%s</select>\n", $optionstab);
 	echo("</form>\n");
 	echo("</div> <!-- Einde beheerautorisatie -->\n\n");
 	
@@ -193,8 +194,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 			(new cls_interface())->afmelden();
 		}
 	}
-	
-	(new cls_lidond())->autogroepenbijwerken();
+
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	$kols[-1]['link'] = sprintf("<a href='/admin.php?op=deleteint&amp;recid=%%d&amp;tp=%s'>&nbsp;&nbsp;&nbsp;</a>", urlencode($_GET['tp']));
 	$rows = (new cls_Interface())->lijst();
@@ -239,7 +239,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=logboekopschonen\"' value='Logboek opschonen'><p>Verwijder alle records uit het logboek, die ouder dan <input type='number' name='logboek_bewaartijd' onChange='this.form.submit();' value=%d> maanden zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['logboek_bewaartijd']);
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=loggingdebugopschonen\"' value='Eigen logging voor debugging opschonen'><p>Verwijder alle records uit het logboek, die onder jouw account voor debugging zijn toegevoegd.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	
-	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=onderdelenopschonen\"' value='Onderdelen opschonen'><p>Opschonen onderdelen die vervallen en niet meer in gebruik zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=beheeronderdelen\"' value='Beheer onderdelen'><p>Opschonen en controle op data-integriteit van onderdelen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=lidondopschonen\"' value='Leden bij onderdelen opschonen'><p>Opschonen op basis van historie en 'Alleen leden'.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=mailingsopschonen\"' value='Mailings opschonen'><p>Mailings, die langer dan %d maanden in de prullenbak zitten, verwijderen. En verzonden mails aan voormalig leden verwijderen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['mailing_bewaartijd']);
@@ -288,14 +288,14 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	
 	echo("<input type='text' id='tbTekstFilter' placeholder='Tekst filter' OnKeyUp=\"fnFilter('logboek', 'tbTekstFilter', 1, 2, 4, 5);\">");
 	
-	echo("<label>Filter op type</label><select name='typefilter' onchange='this.form.submit();'>\n");
-	echo("<option value=-1>Alle</option>\n");
+	echo("<select name='typefilter' onchange='this.form.submit();'>\n");
+	echo("<option value=-1>Selecteer op type ....</option>\n");
 	foreach ($TypeActiviteit as $key => $val) {
 		printf("<option value=%d %s>%s</option>\n", $key, checked($key, "option", $_POST['typefilter']), htmlentities($val));
 	}
 	echo("</select>\n");
 	
-	echo("<label>IP-adres bevat</label><input type='text' id='tbIPfilter' name='tbIPfilter' OnKeyUp=\"fnFilter('logboek', 'tbIPfilter', 6);\">\n");
+	echo("<input type='text' id='tbIPfilter' name='tbIPfilter' placeholder='IP-adres bevat' OnKeyUp=\"fnFilter('logboek', 'tbIPfilter', 6);\">\n");
 	$options = "";
 	foreach (array(25, 100, 250, 750, 1500, 3000, 10000, 25000) as $a) {
 		$options .= sprintf("<option value=%d %s>%s</option>\n", $a, checked($a, "option", $_POST['aantalrijen']), number_format($a, 0, ",", "."));
