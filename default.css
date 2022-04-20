@@ -179,13 +179,14 @@ header h1 {
 }
 
 #container, #containerbreed {
-	width: 1200px;
+	width: 1250px;
 	margin-left: auto;
 	margin-right: auto;
 	padding-left: 0;
 	padding-right: 0;
 	border-style: none;
 	border-width: 1px;
+	color: inherit;
 }
 
 #containerbreed {
@@ -276,7 +277,7 @@ header a + a:visited + a:hover {
 #filter select {
 	clear: none;
 	float: left;
-	width: 200px;
+	width: 220px;
 	height: 32px;
 	margin-top: 8px;
 	margin-left: 3px;
@@ -426,6 +427,10 @@ td.trash, .beheerlogins td:last-child, #beheerautorisatie td:last-child, .beheer
 
 #formulier, #overzichtlid {
 	position: relative;
+	display: inline-block;
+	width: 100%;
+	margin-top: 6px;
+	color: inherit;
 }
 
 #formulier table {
@@ -433,6 +438,7 @@ td.trash, .beheerlogins td:last-child, #beheerautorisatie td:last-child, .beheer
 }
 
 #pasfoto {
+	float: right;
 	position: absolute;
 	top: 8px;
 	right: 8px;
@@ -465,6 +471,7 @@ td.trash, .beheerlogins td:last-child, #beheerautorisatie td:last-child, .beheer
 	padding-right: 5px;
 	text-align: right;
 	border-style: none;
+	color: inherit;
 }
 
 #overzichtlid label {
@@ -570,6 +577,10 @@ td.trash, .beheerlogins td:last-child, #beheerautorisatie td:last-child, .beheer
 
 #agenda tr:first-child {
 	height: 40px;
+}
+
+#agenda td.vandaag {
+	border-width: 3px;
 }
 
 #agenda ul {
@@ -708,8 +719,9 @@ input.omschrijving {
 	color: white;
 }
 
-.lijst, .onderdelenperlid, #overzichtlid {
+.lijst, .onderdelenperlid {
 	margin-top: 6px;
+	overflow: visible;
 }
 
 .lijst table, .onderdelenperlid table {
@@ -880,6 +892,10 @@ input.omschrijving {
 	border-width: 1px;
 }
 
+#herstellenwachtwoord p {
+	clear: left;
+}
+
 #overzichtevenementen {
 	clear: both;
 	margin-top: 8px;
@@ -911,31 +927,64 @@ input.omschrijving {
 	width: 75%;
 }
 
+#evenementenbeheer {
+	border-width: 1px;
+	border-style: none;
+}
+
 #evenementenbeheer table {
 	width: 100%;
 }
 
-#evenementenbeheer input[type='text'], #evenementenbeheer input[type='email'] {
-	width: 500px;
+#evenementenbeheer label {
+	clear: none;
 }
 
-#evenementenbeheer input[type='time'], #evenementenbeheer input[type='number'] {
-	width: 85px;
-	margin-right: 10px;
+#evenementenbeheer input[type='text'], #evenementenbeheer input[type='email'] {
+	width: 390px;
+}
+
+#evenementenbeheer span {
+	display: inline-block;
+	width: 100%;
+	height: 36px;
+	vertical-align: middle;
+	margin-top: 1px;
+	margin-bottom: 1px;
+	padding-top: 1px;
+	padding-bottom: 1px;
+	background-color: inherit;	
 }
 
 #evenementenbeheer select, #evenementenbeheer label {
-	width: 200px;
+	width: 195px;
+	margin-right: 5px;
 }
 
-#evenementenbeheer p {
+#evenementenbeheer p, #evenementenbeheer input[type='checkbox'], #evenementenbeheer input[type='number'], #evenementenbeheer input[type='time'], #evenementenbeheer input[type='checkbox'] {
 	float: left;
-	min-width: 90px;
+/*	min-width: 120px; */
 	margin-left: 5px;
+	margin-right: 5px;
+	padding-left: 3px;
+	padding-right: 3px;
+	height: 22px;
 	margin-top: 6px;
+	border-width: 1px;
 }
 
-#evenementenbeheer input[type='checkbox'] {
+#evenementenbeheer input[type='time'], #evenementenbeheer input[type='number'] {
+	width: 75px;
+}
+
+/*
+#evenementenbeheer label.k2, #evenementenbeheer label.k3 {
+	position: absolute;
+	left: 750px;
+}
+*/
+
+#eve22nementenbeheer input[type='checkbox'] {
 	margin-left: 0;
 	margin-right: 75px;
 	padding-left: 2px;
@@ -971,24 +1020,6 @@ fieldset h3 {
 	padding-right: 3px;
 	border-width: 1px;
 	border-style: none;
-}
-
-#loginaanvraag input.knop, #profielwijzigen input.knop {
-	width: 100px;
-	float: right;
-}
-
-#herstellenwachtwoord input.knop {
-	width: 225px;
-	float: right;
-}
-
-#opzegformulier input.knop {
-	width: 150px;
-	float: right;
-	margin-top: 8px;
-	padding-top: 5px;
-	padding-bottom: 5px;
 }
 
 #verstuurdemail {
@@ -1195,6 +1226,7 @@ nav {
    padding: 0; 
    margin: 0; 
    border: none;
+   color: inherit;
 }
 
 nav ul {
@@ -1620,7 +1652,11 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	width: 350px;
 }
 
-#rekeningmuteren input[type='number'], #rekeningregelsmuteren input[type='number'] {
+#rekeningmuteren input[type='number'] {
+	width: 125px;
+}
+
+#rekeningregelsmuteren input[type='number'] {
 	width: 75px;
 }
 
@@ -1706,6 +1742,16 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	padding-left: 2px;
 }
 
+#rekeningenmailen label {
+	height: 22px;
+	width: 225px;
+}
+
+#rekeningenmailen p {
+	margin-top: 7px;
+	margin-bottom: 3px;	
+}
+
 #dbonderhoud p {
 	height: 12px;
 	margin-top: 12px;
@@ -1746,7 +1792,6 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 
 #onderdelenmuteren select {
 	height: 22px;
-	width: 350px;
 	margin-top: 5px;
 	margin-bottom: 5px;
 }
@@ -1756,7 +1801,11 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 }
 
 #onderdelenmuteren input.naam {
-	width: 400px;
+	width: 350px;
+}
+
+#onderdelenmuteren input.code {
+	width: 80px;
 }
 
 #mailingselectieleden td {
@@ -1764,7 +1813,7 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	padding-bottom: 2px;
 }
 
-#mailingselectieleden input, #mailingselectieleden select {
+#mailingselectieleden input {
 	width: 135px;
 }
 
@@ -1857,7 +1906,7 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	padding-right: 0;
 }
 
-#instellingenmuteren p {
+.editmailingform button {
 	float: left;
 }
 
@@ -1868,6 +1917,10 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 #instellingenmuteren input, #editmailingform input, #editmailingform select, .editmailingform input, .editmailingform select, #toestemmingenmuteren input, #afdelingskalendermuteren input, #afdelingskalendermuteren select {
 	margin-top: 9px;
 	margin-bottom: 8px;
+}
+
+#instellingenmuteren p {
+	float: left;
 }
 
 #instellingenmuteren p, #editmailingform p, .editmailingform p {
@@ -1994,4 +2047,39 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 
 #agenda li.DZ {
 	color: aqua;
+}
+
+#agenda li.opleiding_eerste_hulp {
+	color: orange;
+	font-weight: bolder;
+}
+
+#agenda li.jarige {
+	font-size: 85%;
+	margin-top: inherit;
+	height: inherit;
+	line-height: inherit;
+}
+
+/* jQuery specifiek */
+
+.ui-widget-content {
+	color: inherit;
+	font-size: inherit;
+}
+
+.ui-state-default a:link {
+	color: #000080;
+}
+
+.ui-tabs .ui-tabs-nav .ui-tabs-anchor {
+	padding-left: 4px;
+	padding-right: 4px;
+}
+
+.ui-state-active, .ui-widget-content .ui-state-active, .ui-widget-header .ui-state-active, a.ui-button:active, .ui-button:active, .ui-button.ui-state-active:hover {
+	color: inherit;
+	font-size: inherit;
+	background-color: inherit;
+	font-weight: bolder;
 }
