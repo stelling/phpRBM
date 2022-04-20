@@ -242,6 +242,7 @@ function muteerevenement($eventid) {
 		$beperktotgroep = $row->BeperkTotGroep;
 		$zichtbaarvoor = $row->ZichtbaarVoor;
 		$aantdln = $row->AantDln;
+		$aantalingeschreven = $row->AantInschr;
 		$aantafgemeld = $row->AantAfgemeld;
 	} else {
 		$recordid = 0;
@@ -260,6 +261,7 @@ function muteerevenement($eventid) {
 		$beperktotgroep = 0;
 		$zichtbaarvoor = 0;
 		$aantdln = 0;
+		$aantalingeschreven = 0;
 		$aantafgemeld = 0;
 	}
 	
@@ -272,29 +274,36 @@ function muteerevenement($eventid) {
 	}
 	
 	echo("<div id='evenementenbeheer'>\n");
-	printf("<form method='post' action='%s?tp=Evenementen/Beheer&amp;op=edit'>\n", $_SERVER['PHP_SELF']);
+	printf("<form method='post' action='%s?tp=Evenementen/Beheer&op=edit'>\n", $_SERVER['PHP_SELF']);
 	printf("<input type='hidden' name='eventid' value=%d>\n", $eventid);
 	
-	printf("<label>Datum:</label><input type='date' name='Datum' value='%s'>\n", $datum);
+	echo("<span>\n");	
+	printf("<label>Datum</label><input type='date' name='Datum' value='%s'>\n", $datum);
+	printf("<label>Starttijd</label><input type='time' name='Starttijd' value='%s'>\n", $starttijd);
+	printf("<label>Eindtijd</label><input type='time' name='Eindtijd' value='%s'>\n", $eindtijd);
+	printf("<label>Verzamelen</label><input type='time' name='Verzameltijd' value='%s'>\n", $verzameltijd);
+	echo("</span>\n");
+	echo("<span>\n");
 	printf("<label>Omschrijving</label><input type='text' name='Omschrijving' value='%s' maxlength=50>\n", $oms);
 	printf("<label>Locatie</label><input type='text' name='Locatie' value='%s' maxlength=75>\n", $loc);
+	echo("</span>\n");
+	echo("<span>\n");
 	printf("<label>E-mail</label><input type='email' name='Email' value='%s' maxlength=45>\n", $email);
+	echo("</span>\n");
 	
-	
-	printf("<label>Starttijd</label><input type='time' name='Starttijd' value='%s'>\n", $starttijd);
-	printf("<label class='k2'>Eindtijd</label><input type='time' name='Eindtijd' value='%s'>\n", $eindtijd);
-	printf("<label class='k2'>Verzamelen</label><input type='time' name='Verzameltijd' value='%s'>\n", $verzameltijd);
-	
+	echo("<span>\n");
 	printf("<label>Type evenement</label><select name='TypeEvenement' onChange='this.form.submit();'>%s</select>\n", $optiontypes);
-	printf("<label>Aantal deelnemers</label><p>%d</p>\n", $aantdln);
-	printf("<label class='k2'>Aantal afgemeld</label><p>%d</p>\n", $aantafgemeld);
+
+	echo("</span>\n");
 	
 	if ($eventid > 0) {
 		$ondrows = (new cls_Onderdeel())->lijst(1, "", $datum);
+		echo("<span>\n");
 		printf("<label>Online inschrijving open</label><input type='checkbox' name='InschrijvingOpen' value=1 %s>\n", checked($insopen));
-		printf("<label class='k2'>Standaard status</label><select name='StandaardStatus'>%s</select>\n", $optionstandstatus);
-		printf("<label>Max. personen per deelname</label><input type='number' name='MaxPersonenPerDeelname' value=%d min=1 onChange='this.form.submit();'>\n", $maxpersonenperdeelname);
-		printf("<label class='k2'>Meerdere startmomenten</label><input type='checkbox' name='MeerdereStartMomenten' value=1  onChange='this.form.submit();' %s>\n", checked($meerderestartmomenten));
+		printf("<label>Standaard status</label><select name='StandaardStatus'>%s</select>\n", $optionstandstatus);
+		printf("<label>Max. pers. per deelname</label><input type='number' name='MaxPersonenPerDeelname' value=%d min=1 onChange='this.form.submit();'>\n", $maxpersonenperdeelname);
+		printf("<label>Meerdere startmomenten</label><input type='checkbox' name='MeerdereStartMomenten' value=1  onChange='this.form.submit();' %s>\n", checked($meerderestartmomenten));
+		echo("</span>\n");
 		
 		$optiongroepen = "<option value=0>Niemand</option>\n";
 		foreach ($ondrows as $t) {
@@ -305,6 +314,7 @@ function muteerevenement($eventid) {
 			}
 			$optiongroepen .= sprintf("<option value=%d%s>%s</option>\n", $t->RecordID, $s, htmlentities($t->Naam));
 		}
+		echo("<span>\n");
 		printf("<label>Deelname beperken tot</label><select name='BeperkTotGroep' onChange='this.form.submit();'>\n%s</select>\n", $optiongroepen);
 		
 		$optiongroepen = "<option value=0>Iedereen</option>\n";
@@ -317,7 +327,13 @@ function muteerevenement($eventid) {
 			$optiongroepen .= sprintf("<option value=%d %s>%s</option>\n", $t->RecordID, $s, htmlentities($t->Naam));
 		}
 		printf("<label>Zichtbaar voor</label><select name='ZichtbaarVoor'>%s</select>\n", $optiongroepen);
-		printf("<label>Gewijzigd op / door</label><p>%s / %s</p>\n", strftime("%e %B %Y (%H:%M)", strtotime($row->Gewijzigd)), htmlentities($row->GewijzigdDoorNaam));	
+		echo("</span>\n");
+		echo("<span>\n");
+		printf("<label>Gewijzigd op / door</label><p>%s / %s</p>\n", strftime("%e %B %Y (%H:%M)", strtotime($row->Gewijzigd)), htmlentities($row->GewijzigdDoorNaam));
+		printf("<label>Aantal deelnemers</label><p>%d</p>\n", $aantdln);
+		printf("<label>Aantal ingeschreven</label><p>%d</p>\n", $aantalingeschreven);
+		printf("<label>Aantal afgemeld</label><p>%d</p>\n", $aantafgemeld);
+		echo("</span>\n");
 	}
 	
 //	echo("<div id='deelnemersevenementmuteren'>\n");
