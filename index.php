@@ -1,8 +1,6 @@
 <?php
 
-if (!isset($_GET['tp'])) {
-	$_GET['tp'] = "";
-}
+$_GET['tp'] = $_GET['tp'] ?? "";
 
 require('./includes/standaard.inc');
 
@@ -12,6 +10,7 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 	setcookie("password", "", time()-60);
 	$_SESSION['lidid'] = 0;
 	$_SESSION['webmaster'] = 0;
+	
 } elseif ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['Inloggen']) and $_POST['Inloggen'] == "Inloggen") {
 	if (strlen($_POST['password']) < 5) {
 		$mess = "Om in te loggen is het invullen van een wachtwoord van minimaal 5 karakters vereist.";
@@ -26,9 +25,7 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 		}
 		fnAuthenticatie(1, $_POST['password'], 1);
 	}
-	if ($_SESSION['lidid'] > 0) {
-		echo("<script>location.href='/'; </script>\n");
-	}
+	echo("<script>location.href='/'; </script>\n");
 } elseif ((!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) and isset($_COOKIE['password']) and strlen($_COOKIE['password']) > 5) {
 	fnAuthenticatie(0);
 	if (isset($_GET['tp']) and strlen($_GET['tp']) > 0) {
@@ -43,15 +40,6 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 if ((new cls_Lid())->aantal() == 0) {
 	echo("<script>alert('Voordat deze website gebruikt kan worden moeten er eerst gegevens uit de Access-database ge-upload worden.');
 		location.href='./admin.php?tp=Uploaden+data';</script>\n");
-}
-
-if (isset($_GET['op']) and $_GET['op'] == "exportins") {
-	header("Content-type: text/plain");
-	header("Content-Disposition: attachment; filename=inschrijvingen.sql");
-	foreach((new cls_InsBew())->export() as $row) {
-		echo(SQLexport($row) . "\n");
-	}
-	exit();
 }
 
 if ($currenttab != "Mailing") {
@@ -98,9 +86,7 @@ if (toegang($_GET['tp'], 1) == false) {
 	
 } elseif ($currenttab == "Bevestiging login") {
 		fnLoginAanvragen();
-		
-		
-	
+
 } elseif ($currenttab == "Eigen gegevens") {
 	if ($_SESSION['lidid'] > 0) {
 		fnEigenGegevens($_SESSION['lidid'], $currenttab2);
@@ -130,20 +116,26 @@ if (toegang($_GET['tp'], 1) == false) {
 	fnWijzigen($_GET['lidid'], $currenttab3);
 	
 } elseif ($currenttab == "Vereniging") {
-	fnDispMenu(2);
-	if ($currenttab2 == "Introductie") {
-		fnVoorblad();
-		if ($_SESSION['lidid'] == 0) {
-			echo("<div id='kolomrechts'>\n");
-			echo("</div>  <!-- Einde kolomrechts -->\n");
-		}
-	} elseif ($currenttab2 == "Agenda") {
-		echo("<p class='mededeling'>De agenda is nog in ontwikkeling</p>\n");
-		fnAgenda($_SESSION['lidid']);
-		
-	} else {
-		fnWieiswie($currenttab2, $_SESSION['settings']['kaderoverzichtmetfoto']);
+	$tabblad["Introductie"] = fnVoorblad();
+	$tn = "Agenda";
+	if (toegang($currenttab . "/" . $tn, 0) and ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl" or $_SERVER["HTTPS_HOST"] == "phprbm.telling.nl")) {
+		$tabblad["Agenda"] = fnAgenda($_SESSION['lidid']);
 	}
+	
+	if ((new cls_Onderdeel())->aantal("`Type`='A'") > 0) {
+		$atn = array("Verenigingskader", "Afdelingskader");
+	} else {
+		$atn = array("Kader");
+	}
+	$atn[] = "Overig";
+	$atn[] = "Onderscheidingen";
+	foreach ($atn as $tn) {
+		if (toegang($currenttab . "/" . $tn, 0)) {
+			$tabblad[$tn] = fnWieiswie($tn, $_SESSION['settings']['kaderoverzichtmetfoto']);
+		}
+	}
+	DisplayTabs($tabblad);
+
 } elseif ($currenttab == "Ledenlijst") {
 	if ($currenttab2 == "Afdelingen") {
 		fnOnderdelenmuteren("A");
@@ -156,6 +148,9 @@ if (toegang($_GET['tp'], 1) == false) {
 		
 	} elseif ($currenttab2 == "Rollen") {
 		fnOnderdelenmuteren("R");
+		
+	} elseif ($currenttab2 == "Toestemmingen") {
+		fnOnderdelenmuteren("T");
 		
 	} elseif ($currenttab2 == "Eigen lijsten") {
 		fnDispMenu(2);
@@ -170,6 +165,11 @@ if (toegang($_GET['tp'], 1) == false) {
 			$i_el->update($i_el->elid, "AantalRecords", count($rows));
 			$i_el = null;
 		}
+		
+	} elseif ($currenttab2 == "Basisgegevens") {
+		fnDispMenu(2);
+		fnDispMenu(3);
+		fnBasisgegevens($currenttab3);
 		
 	} else {
 		fnLedenlijst();
@@ -297,16 +297,17 @@ function fnVoorblad() {
 		if (strpos($content, "[%VERJAARDAGEN%]") !== false) {
 			$content = str_replace("[%VERJAARDAGEN%]", overzichtverjaardagen(0), $content);
 		}
-
-		printf("<div id='welkomstekst'>\n%s</div>  <!-- Einde welkomstekst -->\n", $content);
 		
 	} else {
-		echo("<div id='welkomstekst'>Er is geen introductie beschikbaar.</div>  <!-- Einde welkomstekst -->\n");
+		$content = "Er is geen introductie beschikbaar.";
 	}
-}  # fnVoorbladt
+	
+	
+	return sprintf("<div id='welkomstekst'>\n%s</div>  <!-- Einde welkomstekst -->\n", $content);
+	
+}  # fnVoorblad
 
 function fnAgenda($p_lidid=0) {
-	
 	
 	$ics = file_get_contents("https://calendar.google.com/calendar/ical/nl.dutch%23holiday%40group.v.calendar.google.com/public/basic.ics");
 	if ($ics === FALSE) {
@@ -329,19 +330,26 @@ function fnAgenda($p_lidid=0) {
 		$dtStart = strtotime("-1 day", $dtStart);
 	}
 	
-	echo("<div id=agenda>\n");
-	echo("<table>\n<tr>\n");
+	$txt = "<div id=agenda>\n";
+	$txt .= "<p class='mededeling'>De agenda is nog in ontwikkeling</p>\n";
+	$txt .= "<table>\n<tr>\n";
 	for ($dn=1;$dn<=7;$dn++) {
-		printf("<th>%s</th>", strftime("%A", strtotime(sprintf("+%d day", $dn-1), $dtStart)));
+		$txt .= sprintf("<th>%s</th>", strftime("%A", strtotime(sprintf("+%d day", $dn-1), $dtStart)));
 	}
 	for ($sw=$dtStart;$sw <= strtotime("+370 day");$sw=strtotime("+7 day", $sw)) {
-		echo("<tr>\n");
+		$txt .= "<tr>\n";
+		
 		for ($dn=1;$dn<=7;$dn++) {
+			
 			$td = strtotime(sprintf("+%d day", $dn-1), $sw);
+			$c = "";
+			if (date("Ymd", $td) == date("Ymd")) {
+				$c = " class='vandaag'";
+			}
 			if (array_key_exists(date("Ymd", $td), $fds)) {
-				printf("<td><ul><li>%s</li>", $fds[date("Ymd", $td)]);
+				$txt .= sprintf("<td%s><ul><li>%s</li>", $c, $fds[date("Ymd", $td)]);
 			} else {
-				printf("<td><ul><li>%s</li>", strftime("%e %B", $td));
+				$txt .= sprintf("<td%s><ul><li>%s</li>", $c, strftime("%e %B", $td));
 			}
 			
 			// Evenementen
@@ -350,7 +358,7 @@ function fnAgenda($p_lidid=0) {
 				if (substr($evrow->Datum, 11, 5) > "00:00") {
 					$bt = substr($evrow->Datum, 11, 5) . "&nbsp;";
 				}
-				printf("<li class='EVT_%d'>%s%s</li>", $evrow->TypeEvenement, $bt, $evrow->Omschrijving);
+				$txt .= sprintf("<li class='%s'>%s%s</li>", str_replace("'", "", str_replace(" ", "_", strtolower($evrow->OmsType))), $bt, $evrow->Omschrijving);
 			}
 			
 			// Afdelingskalender
@@ -362,22 +370,30 @@ function fnAgenda($p_lidid=0) {
 						$oms = "Geen " . $akrow->Kode . " (" . $akrow->Omschrijving . ")";
 					}
 				} else {
-					if (strlen($akrow->Activiteit) == 	 	 1) {
+					if (strlen($akrow->Activiteit) == 1) {
 						$oms = $akrow->Naam;
 					} else {
 						$oms = "Geen " . $akrow->Naam;
 					}
 				}
-				printf("<li class='%s'>%s</li>", $akrow->Kode, $oms);
+				$txt .= sprintf("<li class='%s'>%s</li>", $akrow->Kode, $oms);
 			}
-			echo("</ul></td>\n");
+			
+			// Verjaardagen
+			foreach ((new cls_Lid())->verjaardagen($td) AS $row) {
+				$txt .= sprintf("<li class='jarige'>%s is jarig</li>", $row->Naam_lid);
+			}
+			$txt .= "</ul></td>\n";
 		}
-		echo("</tr>\n");
+		$txt .= "</tr>\n";
 	}
 	
-	echo("</tr>\n");
-	echo("</table>\n");
-	echo("</div> <!-- Einde agenda -->\n");
+	$txt .= "</tr>\n";
+	$txt .= "</table>\n";
+	$txt .= "</div> <!-- Einde agenda -->\n";
+	
+	return $txt;
+	
 }  # fnAgenda
 
 function fnStukken() {
