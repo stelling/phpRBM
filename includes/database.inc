@@ -5758,7 +5758,11 @@ class cls_Parameter extends cls_db_base {
 		$cur = $this->execsql($query)->fetch();
 		$set = "";
 		if ($cur->ParamType == "B" or $cur->ParamType == "I") {
-			$p_waarde = intval("0" . $p_waarde);
+			if (strlen($p_waarde) == 0) {
+				$p_waarde = 0;
+			} else {
+				$p_waarde = intval($p_waarde);
+			}
 			$set = sprintf("ValueNum=%d", $p_waarde);
 			$xw = sprintf("IFNULL(ValueNum, 0)<>%d", $p_waarde);
 		} elseif ($cur->ParamType == "F") {
