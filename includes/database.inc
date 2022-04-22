@@ -92,6 +92,7 @@ $i_base = null;
 class cls_db_base {
 	private $db_name = "";		// Naam van de database
 	public $table = "";			// Naam van de tabel
+	public $basefrom = "";		// Naam van de tabel met alias
 	public $pkkol = "RecordID";	// Naam van de kolom met de primary key
 	public $mess = "";			// Boodschap in de logging
 	public $ta = 0;				// Type activiteit van de logging
@@ -629,9 +630,12 @@ class cls_db_base {
 
 class cls_Lid extends cls_db_base {
 	
-	function __construct() {
+	function __construct($p_lidid=0) {
 		parent::__construct();
 		$this->table = TABLE_PREFIX . "Lid";
+		if ($p_lidid > 0) {
+			$this->lidid = $p_lidid;
+		}
 		$this->ta = 6;
 	}
 	
@@ -794,8 +798,11 @@ class cls_Lid extends cls_db_base {
 		return $result->fetch();
 	}
 	
-	public function Naam($p_lidid, $p_riz="gast") {
-		$query = sprintf("SELECT %s FROM %s AS L WHERE L.RecordID=%d;", $this->selectnaam, $this->table, $p_lidid);
+	public function Naam($p_lidid=0, $p_riz="gast") {
+		if ($p_lidid > 0) {
+			$this->lidid = $p_lidid;
+		}
+		$query = sprintf("SELECT %s FROM %s AS L WHERE L.RecordID=%d;", $this->selectnaam, $this->table, $this->lidid);
 		$rv = $this->scalar($query);
 		if (strlen($rv) == 0) {
 			$rv = $p_riz;
@@ -5342,17 +5349,18 @@ class cls_Seizoen extends cls_db_base {
 	
 	function __construct() {
 		$this->table = TABLE_PREFIX . "Seizoen";
+		$this->basefrom = $this->table . "AS SZ";
 		$this->pkkol = "Nummer";
 	}
 	
 	public function record($p_szid) {
-		$query = sprintf("SELECT SZ.*, DATE_SUB(SZ.Begindatum, INTERVAL SZ.`Leeftijdsgrens jeugdleden` YEAR) AS PDJL FROM %s AS SZ WHERE `%s`=%d;", $this->table, $this->pkkol, $p_szid);
-		$result = $this->execsql($query);
+		$this->query = sprintf("SELECT SZ.*, DATE_SUB(SZ.Begindatum, INTERVAL SZ.`Leeftijdsgrens jeugdleden` YEAR) AS PDJL FROM %s WHERE `%s`=%d;", $this->basefrom, $this->pkkol, $p_szid);
+		$result = $this->execsql();
 		return $result->fetch();
 	}
 	
 	function htmloptions($p_cv=-1) {
-		$query = sprintf("SELECT SZ.* FROM %s AS SZ ORDER BY SZ.Begindatum DESC;", $this->table);
+		$query = sprintf("SELECT SZ.* FROM %s ORDER BY SZ.Begindatum DESC;", $this->basefrom);
 		$result = $this->execsql($query);
 		$rv = "";
 		foreach ($result->fetchAll() as $row) {
@@ -5360,6 +5368,17 @@ class cls_Seizoen extends cls_db_base {
 			$rv .= sprintf("<option value=%d %s>%s: %s tot %s</option>\n", $row->Nummer, $s, $row->Nummer, $row->Begindatum, $row->Einddatum);
 		}
 		return $rv;
+	}
+	
+	function lijst() {
+		$this->query = sprintf("SELECT SZ.Nummer, SZ.Begindatum FROM %s ORDER BY SZ.Begindatum;", $this->basefrom);
+		$result = $this->execsql();
+		return $result->fetchAll();
+	}
+	
+	public function eindehuidige() {
+		$this->query = sprintf("SELECT MAX(SZ.Einddatum) FROM %s WHERE SZ.Einddatum <= '%s';", $this->basefrom, date("Y-m-d"));
+		return $this->scalar();
 	}
 	
 }
@@ -5583,6 +5602,7 @@ class cls_Parameter extends cls_db_base {
 		$this->arrParam['toonpasfotoindiennietingelogd'] = array("Type" => "B", "Default" => 0);
 		$this->arrParam['uitleg_toestemmingen'] = array("Type" => "T");
 		$this->arrParam['verjaardagenvooruit'] = array("Type" => "I", "Default" => 5);
+		$this->arrParam['verjaardagen_op_agenda'] = array("Type" => "I", "Default" => 0);
 		$this->arrParam['woonadres_anderen_tonen'] = array("Type" => "B", "Default" => 1);
 		
 		$this->arrParam['zs_emailnieuwepasfoto'] = array("Type" => "T");
