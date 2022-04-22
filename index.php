@@ -118,7 +118,7 @@ if (toegang($_GET['tp'], 1) == false) {
 } elseif ($currenttab == "Vereniging") {
 	$tabblad["Introductie"] = fnVoorblad();
 	$tn = "Agenda";
-	if (toegang($currenttab . "/" . $tn, 0) and ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl" or $_SERVER["HTTPS_HOST"] == "phprbm.telling.nl")) {
+	if (toegang($currenttab . "/" . $tn, 0)) {
 		$tabblad["Agenda"] = fnAgenda($_SESSION['lidid']);
 	}
 	
@@ -380,10 +380,24 @@ function fnAgenda($p_lidid=0) {
 			}
 			
 			// Verjaardagen
+			$aant = 0;
 			foreach ((new cls_Lid())->verjaardagen($td) AS $row) {
-				$txt .= sprintf("<li class='jarige'>%s is jarig</li>", $row->Naam_lid);
+				$aant++;
+				if ($aant == 1) {
+					$vj = $row->Naam_lid;
+				} elseif ($aant == 2) {
+					$vj = $row->Naam_lid . " en " . $vj;
+				} else {
+					$vj = $row->Naam_lid . ", " . $vj;
+				}
 			}
-			$txt .= "</ul></td>\n";
+			if ($aant == 1) {
+				$txt .= sprintf("<li class='jarigen'>%s is jarig</li>", $vj);
+			} elseif ($aant > 1) {
+				$txt .= sprintf("<li class='jarigen'>%s zijn jarig</li>", $vj);
+			}
+			$txt .= "</ul>";
+			$txt .= "</td>\n";
 		}
 		$txt .= "</tr>\n";
 	}
