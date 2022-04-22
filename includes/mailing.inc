@@ -500,41 +500,55 @@ class Mailing {
 			$ss = "";
 		}
 		$bnr = 1;
+		$tabbijlagefiles = "";
+		if (is_dir($this->dir_attachm)) {
+			$d = dir($this->dir_attachm);
+			while (false !== ($entry = $d->read())) {
+				if ($entry != "." and $entry != "..") {
+					$tabbijlagefiles .= sprintf("<tr>\n<td>%s</td>\n", $entry);
+					$stat = stat($this->dir_attachm . $entry);
+					$tabbijlagefiles .= sprintf("<td>%s KB</td>\n", number_format(($stat['size'] / 1024), 0, ',', '.'));
+					$tabbijlagefiles .= sprintf("<td><input type='image' src='%s' name='del_attach_%d' alt='Verwijderen' title='Verwijder %s'></td>\n", BASE64_VERWIJDER_KLEIN, $bnr, $entry);
+					$tabbijlagefiles .= sprintf("<input type='hidden' name='name_attach_%d' value='%s'>\n", $bnr, str_replace(".", "!", $entry));
+					$bnr++;
+				}
+			}
+			$d->close();
+		}
 		
 		$img = "";
 		$tabmediafiles = "";
-		if ($this->mid > 0) {
-			if (is_dir($this->dir_media)) {
-				$md = dir($this->dir_media);
-				$il = "";
-				while (false !== ($entry = $md->read())) {
-					if ($entry != "." and $entry != "..") {
-						if (strlen($il) > 0) {
-							$il .= ",\n";
-						}
-						$il .= sprintf("{title: '%s', value: '%s'}", $entry, './media/' . intval($this->mid) . '/' . $entry);
-				
-						$tabmediafiles .= sprintf("<tr>\n<td>%s</td>\n", $entry);
-						$stat = stat($this->dir_media . "/" . $entry);
-						$tabmediafiles .= sprintf("<td>%s KB</td>\n", number_format(($stat['size'] / 1024), 0, ',', '.'));
-						if ($this->htmldirect == 1) {
-							$lnk = sprintf("%s?tp=%s&op=htmlmedia&mid=%d&attach=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, str_replace(".", "!", $entry));
-							$tabmediafiles .= sprintf("<td><a href='%s'>HTML Media</a></td>\n", $lnk);
-						}
-						if (strlen($this->message) == 0) {
-							$lnk = sprintf("%s?tp=%s&op=afbeeldingalsbericht&mid=%d&attach=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, str_replace(".", "!", $entry));
-							$tabmediafiles .= sprintf("<td><a href='%s'>Als bericht</a></td>\n", $lnk);
-						}
-						$lnk = sprintf("%s?tp=%s&op=del_media&mid=%d&attach=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, str_replace(".", "!", $entry));
-						$tabmediafiles .= sprintf("<td><input type='image' src='%s' name='del_media_%d' alt='Verwijderen' title='Verwijder %s'></td>\n", BASE64_VERWIJDER_KLEIN, $bnr, $entry);
-						$tabmediafiles .= sprintf("<input type='hidden' name='name_attach_%d' value='%s'>\n", $bnr, str_replace(".", "!", $entry));
-						$bnr++;
+		if (is_dir($this->dir_media)) {
+			$md = dir($this->dir_media);
+			$il = "";
+			while (false !== ($entry = $md->read())) {
+				if ($entry != "." and $entry != "..") {
+					if (strlen($il) > 0) {
+						$il .= ",\n";
 					}
-				}
-				if (strlen($il) > 0) {
-					$img = sprintf("image_list: [\n%s],", $il);
+					$il .= sprintf("{title: '%s', value: '%s'}", $entry, './media/' . intval($this->mid) . '/' . $entry);
+			
+					$tabmediafiles .= sprintf("<tr>\n<td>%s</td>\n", $entry);
+					$stat = stat($this->dir_media . "/" . $entry);
+					$tabmediafiles .= sprintf("<td>%s KB</td>\n", number_format(($stat['size'] / 1024), 0, ',', '.'));
+					if ($this->htmldirect == 1) {
+						$lnk = sprintf("%s?tp=%s&op=htmlmedia&mid=%d&attach=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, str_replace(".", "!", $entry));
+						$tabmediafiles .= sprintf("<td><a href='%s'>HTML Media</a></td>\n", $lnk);
+					}
+					if (strlen($this->message) == 0) {
+						$lnk = sprintf("%s?tp=%s&op=afbeeldingalsbericht&mid=%d&attach=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, str_replace(".", "!", $entry));
+						$tabmediafiles .= sprintf("<td><a href='%s'>Als bericht</a></td>\n", $lnk);
+					}
+					$lnk = sprintf("%s?tp=%s&op=del_media&mid=%d&attach=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, str_replace(".", "!", $entry));
+					$tabmediafiles .= sprintf("<td><input type='image' src='%s' name='del_media_%d' alt='Verwijderen' title='Verwijder %s'></td>\n", BASE64_VERWIJDER_KLEIN, $bnr, $entry);
+					$tabmediafiles .= sprintf("<input type='hidden' name='name_attach_%d' value='%s'>\n", $bnr, str_replace(".", "!", $entry));
+					$bnr++;
 				}
 			}
+			if (strlen($il) > 0) {
+				$img = sprintf("image_list: [\n%s],", $il);
+			}
+			$md->close();
 		}
 				
 		if ($_SESSION['settings']['mailing_type_editor'] == 3) {
@@ -542,7 +556,7 @@ class Mailing {
 				if (file_exists(BASEDIR . $src)) {
 					$src = BASISURL . $src;
 				} else {
-					$src = sprintf("https://cdn.tiny.cloud/1/%s/tinymce/5/tinymce.min.js", $_SESSION['settings']['mailing_tinymce_apikey']);
+					$src = sprintf("https://cdn.tiny.cloud/1/%s/tinymce/6/tinymce.min.js", $_SESSION['settings']['mailing_tinymce_apikey']);
 				}
 				printf("<script src='%s' referrerpolicy='origin'></script>\n", $src);
 				printf("<script>
@@ -566,12 +580,11 @@ class Mailing {
 		});
   </script>\n", $img, BASISURL, $ss);
   
-			} elseif ($_SESSION['settings']['mailing_type_editor'] == 2) {
-				echo("<script src='https://cdn.ckeditor.com/4.13.0/standard/ckeditor.js'></script>\n");
-			} else {
-				echo("<script src='https://cdn.ckeditor.com/ckeditor5/12.4.0/classic/ckeditor.js'></script>\n");
-			}
-		
+		} elseif ($_SESSION['settings']['mailing_type_editor'] == 2) {
+			echo("<script src='https://cdn.ckeditor.com/4.13.0/standard/ckeditor.js'></script>\n");
+		} else {
+			echo("<script src='https://cdn.ckeditor.com/ckeditor5/12.4.0/classic/ckeditor.js'></script>\n");
+		}
 		
 		(new cls_Lidond())->autogroepenbijwerken();
 		foreach ($i_el->lijst("AantalRecords=0 AND KolomLidID >= 0") as $elrow) {
@@ -789,23 +802,13 @@ class Mailing {
 			}
 			echo("</ul></div>\n");
 
-			echo("<label>Bijlagen:</label>\n<div class='invoerblok'>\n<table>\n");
-			if (is_dir($this->dir_attachm)) {
-				$d = dir($this->dir_attachm);
-				while (false !== ($entry = $d->read())) {
-					if ($entry != "." and $entry != "..") {
-						echo("<tr>\n<td>" . $entry . "</td>\n");
-						$stat = stat($this->dir_attachm . $entry);
-						echo("<td>" . number_format(($stat['size'] / 1024), 0, ',', '.') . " KB</td>\n");
-						printf("<td><input type='image' src='%s' name='del_attach_%d' alt='Verwijderen' title='Verwijder %s'></td>\n", BASE64_VERWIJDER_KLEIN, $bnr, $entry);
-						printf("<input type='hidden' name='name_attach_%d' value='%s'>\n", $bnr, str_replace(".", "!", $entry));
-						$bnr++;
-					}
-				}
-				$d->close();
+			echo("<label>Bijlagen</label>\n<div class='invoerblok'>\n");
+			if (strlen($tabbijlagefiles) > 0) {
+				echo("<table>\n");
+				echo($tabbijlagefiles);
+				echo("</table>\n");
 			}
-			echo("</table>\n");
-			echo("<input type='file' name='UploadFile' size='40'>\n");
+			echo("<input type='file' name='UploadFile'>\n");
 			echo("<input type='submit' name='UploadBijlage' value='Upload bijlage'>");
 			printf("<p>(Extensies '%s' zijn toegestaan)</p>\n", $this->allowed_ext);
 			echo("</div>  <!-- Einde invoerblok -->\n");	
