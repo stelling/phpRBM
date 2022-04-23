@@ -5349,7 +5349,7 @@ class cls_Seizoen extends cls_db_base {
 	
 	function __construct() {
 		$this->table = TABLE_PREFIX . "Seizoen";
-		$this->basefrom = $this->table . "AS SZ";
+		$this->basefrom = $this->table . " AS SZ";
 		$this->pkkol = "Nummer";
 	}
 	
@@ -5493,6 +5493,14 @@ class cls_Eigen_lijst extends cls_db_base {
 		return $this->scalar($query);
 	}
 	
+	public function rowset($p_elid=-1) {
+		if ($p_elid > 0) {
+			$this->elid = $p_elid;
+		}
+		$this->query = $this->mysql();
+		$result = $this->execsql();
+		return $result->fetchAll();
+	}
 		
 	public function kolomlidid($p_elid=-1) {
 		if ($p_elid > 0) {
