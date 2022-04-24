@@ -118,7 +118,7 @@ if (toegang($_GET['tp'], 1) == false) {
 } elseif ($currenttab == "Vereniging") {
 	$tabblad["Introductie"] = fnVoorblad();
 	$tn = "Agenda";
-	if (toegang($currenttab . "/" . $tn, 0)) {
+	if (toegang($currenttab . "/" . $tn, 0, 0)) {
 		$tabblad["Agenda"] = fnAgenda($_SESSION['lidid']);
 	}
 	
@@ -380,23 +380,41 @@ function fnAgenda($p_lidid=0) {
 			}
 			
 			// Verjaardagen
-			$aant = 0;
-			foreach ((new cls_Lid())->verjaardagen($td) AS $row) {
-				$aant++;
-				if ($aant == 1) {
-					$vj = $row->Naam_lid;
-				} elseif ($aant == 2) {
-					$vj = $row->Naam_lid . " en " . $vj;
-				} else {
-					$vj = $row->Naam_lid . ", " . $vj;
+			if ($_SESSION['settings']['verjaardagen_op_agenda'] >= 0) {
+				$aant = 0;
+				if ($_SESSION['settings']['verjaardagen_op_agenda'] > 0) {
+					$ondrows = (new cls_eigen_lijst())->rowset($_SESSION['settings']['verjaardagen_op_agenda']);
 				}
+				foreach ((new cls_Lid())->verjaardagen($td) as $row) {
+					if ($_SESSION['settings']['verjaardagen_op_agenda'] > 0) {
+						$toon = false;
+						foreach ($ondrows as $ondrow) {
+							if ($ondrow->LidID == $row->RecordID) {
+								$toon = true;
+								break;
+							}
+						}
+					} else {
+						$toon = true;
+					}
+					if ($toon == true) {
+						$aant++;
+						if ($aant == 1) {
+							$vj = $row->Naam_lid;
+						} elseif ($aant == 2) {
+							$vj = $row->Naam_lid . " en " . $vj;
+						} else {
+							$vj = $row->Naam_lid . ", " . $vj;
+						}
+					}
+				}
+				if ($aant == 1) {
+					$txt .= sprintf("<li class='jarigen'>%s is jarig</li>", $vj);
+				} elseif ($aant > 1) {
+					$txt .= sprintf("<li class='jarigen'>%s zijn jarig</li>", $vj);
+				}
+				$txt .= "</ul>";
 			}
-			if ($aant == 1) {
-				$txt .= sprintf("<li class='jarigen'>%s is jarig</li>", $vj);
-			} elseif ($aant > 1) {
-				$txt .= sprintf("<li class='jarigen'>%s zijn jarig</li>", $vj);
-			}
-			$txt .= "</ul>";
 			$txt .= "</td>\n";
 		}
 		$txt .= "</tr>\n";

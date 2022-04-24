@@ -711,7 +711,7 @@ function fnEigenGegevens($lidid=0) {
 		$gs = (new cls_Lid())->Geslacht($lidid);
 		
 		$tn = "Algemeen";
-		if (toegang($ct . $tn, 0)) {
+		if (toegang($ct . $tn, 0, 0)) {
 			$fn = fotolid($lidid, 1);
 			$nl = (new cls_Lid())->Roepnaam($lidid);
 			if (strlen($fn) > 3) {
@@ -724,7 +724,7 @@ function fnEigenGegevens($lidid=0) {
 		}
 		
 		$tn = "Lidmaatschappen";
-		if (toegang($ct . $tn, 0)) {
+		if (toegang($ct . $tn, 0, 0)) {
 			$rows = (new cls_Lidmaatschap())->overzichtlid($lidid);
 			if (count($rows) > 1) {
 				$tabblad[$tn] = fnDisplayTable($rows, null, $tn . " " . $naamlid, 0, "Lidmaatschappen");
@@ -732,7 +732,7 @@ function fnEigenGegevens($lidid=0) {
 		}
 		
 		$tn = "Afdelingen";
-		if ((new cls_Onderdeel())->Aantal("Type='A'") > 0 and toegang($ct . $tn, 0)) {
+		if ((new cls_Onderdeel())->Aantal("Type='A'") > 0 and toegang($ct . $tn, 0, 0)) {
 			$rows = (new cls_Lidond())->overzichtlid($lidid, "A");
 			if (count($rows) > 0) {
 				$tabblad[$tn] = fnDisplayTable($rows, null, $tn . " " . $naamlid, 0, "", "");
@@ -742,7 +742,7 @@ function fnEigenGegevens($lidid=0) {
 		}
 		
 		$tn = "Groepen";
-		if ((new cls_Onderdeel())->Aantal("Type='G'") > 0 and toegang($ct . $tn, 0)) {
+		if ((new cls_Onderdeel())->Aantal("Type='G'") > 0 and toegang($ct . $tn, 0, 0)) {
 			$rows = (new cls_Lidond())->overzichtlid($lidid, "G");
 			if (count($rows) > 0) {
 				$tabblad[$tn] = fnDisplayTable($rows, null, $tn . " " . $naamlid, 0, "", "");
@@ -750,7 +750,7 @@ function fnEigenGegevens($lidid=0) {
 		}
 		
 		$tn = "Kader";
-		if (toegang($ct . $tn, 0)) {
+		if (toegang($ct . $tn, 0, 0)) {
 			$rows = (new cls_Lidond())->overzichtlid($lidid, "K");
 			if (count($rows) > 0) {
 				$tabblad[$tn] = fnDisplayTable($rows, null, $tn . " " . $naamlid, 0, "", "");
@@ -758,7 +758,7 @@ function fnEigenGegevens($lidid=0) {
 		}
 
 		$tn = "Rollen";
-		if (toegang($ct . $tn, 0)) {
+		if (toegang($ct . $tn, 0, 0)) {
 			$rows = (new cls_Lidond())->overzichtlid($lidid, "R");
 			if (count($rows) > 0) {
 				$tabblad[$tn] = fnDisplayTable($rows, null, $tn . " " . $naamlid, 0, "", "Rollen");
@@ -766,7 +766,7 @@ function fnEigenGegevens($lidid=0) {
 		}
 		
 		$tn = "Diploma's";
-		if ((new cls_Diploma())->aantal() > 0 and toegang($ct . $tn, 0)) {
+		if ((new cls_Diploma())->aantal() > 0 and toegang($ct . $tn, 0, 0)) {
 			$rows = (new cls_Liddipl())->overzichtlid($lidid);
 			if (count($rows) > 0) {
 				$tabblad[$tn] = fnDisplayTable($rows, null, "Diploma's " . $naamlid);
@@ -776,7 +776,7 @@ function fnEigenGegevens($lidid=0) {
 		}
 		
 		$tn = "Toestemmingen";
-		if ($gs != "B" and (new cls_Onderdeel())->Aantal("Type='T'") > 0 and toegang($ct . $tn, 0)) {
+		if ($gs != "B" and (new cls_Onderdeel())->Aantal("Type='T'") > 0 and toegang($ct . $tn, 0, 0)) {
 			$rows = (new cls_Lidond())->overzichtlid($lidid, "T");
 			if (count($rows) > 0) {
 				$tabblad[$tn] = fnDisplayTable($rows, null, $tn . " " . $naamlid, 0, "", "toestemmingen");
@@ -790,7 +790,7 @@ function fnEigenGegevens($lidid=0) {
 
 		$tn = "Bijzonderheden";
 		$rows = (new cls_Memo())->overzichtlid($lidid);
-		if (count($rows) > 0 and toegang($ct . $tn, 0)) {
+		if (count($rows) > 0 and toegang($ct . $tn, 0, 0)) {
 			$tabblad[$tn] = "<div id='bijzonderheden'>\n";
 			$tabblad[$tn] .= sprintf("<h2>%s %s</h2>\n", $tn, $naamlid);
 			foreach ($rows as $row) {
@@ -802,7 +802,7 @@ function fnEigenGegevens($lidid=0) {
 			
 		$tn = "Presentie";
 		$rows = (new cls_Aanwezigheid())->overzichtlid($lidid);
-		if (count($rows) > 0 and toegang($ct . $tn, 0)) {				
+		if (count($rows) > 0 and toegang($ct . $tn, 0, 0)) {				
 			$tabblad[$tn] = "<table>\n";
 			$tabblad[$tn] .= sprintf("<caption>Presentie %s</caption>\n", $naamlid);
 			$tabblad[$tn] .= "<tr><th>Datum</th><th>Omschrijving</th><th>Status</th></tr>\n";
@@ -813,7 +813,7 @@ function fnEigenGegevens($lidid=0) {
 		}
 			
 		$tn = "Bewaking";
-		if (toegang($ct . $tn, 0)) {
+		if (toegang($ct . $tn, 0, 0)) {
 			$rows = (new cls_Bewaking())->overzichtlid($lidid);
 			if (count($rows) > 0) {
 				$txt = fnDisplayTable($rows, null, "Bewaking " . $naamlid);
@@ -836,7 +836,7 @@ function fnEigenGegevens($lidid=0) {
 		}
 		
 		$tn = "Rekeningen";
-		if ((new cls_Rekening())->aantal() > 0 and toegang($ct . $tn, 0)) {
+		if ((new cls_Rekening())->aantal() > 0 and toegang($ct . $tn, 0, 0)) {
 			$rows = (new cls_Rekeningregel())->overzichtlid($lidid);
 			if (count($rows) > 0) {
 				$kols[0]['link'] = sprintf("<a href='%s?tp=%s&op=details&lidid=%d&rid=%%d' title='Details rekening'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
@@ -854,7 +854,7 @@ function fnEigenGegevens($lidid=0) {
 
 		
 		$tn = "Mailing";
-		if (toegang($ct . $tn, 0) and (new cls_Mailing_hist())->aantal() > 0) {
+		if (toegang($ct . $tn, 0, 0) and (new cls_Mailing_hist())->aantal() > 0) {
 			$kols[0]['link'] = sprintf("<a href='index.php?tp=%s&amp;MailingHistID=%%d'>%%s</a>", urlencode($_GET['tp']));
 			$kols[0]['class'] = "details";
 			$rows = (new cls_Mailing_hist())->overzichtlid($lidid);
@@ -874,7 +874,7 @@ function fnEigenGegevens($lidid=0) {
 			
 		$tn = "Evenementen";
 		$rows = (new cls_Evenement_Deelnemer())->overzichtlid($lidid);
-		if (count($rows) > 0 and toegang($ct . $tn, 0)) {
+		if (count($rows) > 0 and toegang($ct . $tn, 0, 0)) {
 			$tabblad[$tn] = "<div id='evenementenperlid'>\n";
 			$tabblad[$tn] .= "<table>\n";
 			$tabblad[$tn] .= sprintf("<caption>Deelname evenementen %s</caption>\n", $naamlid);
@@ -924,7 +924,7 @@ function fnEigenGegevens($lidid=0) {
 		}
 
 		$tn = "Logboek";
-		if ($lidid > 0 and toegang($ct . $tn, 0)) {
+		if ($lidid > 0 and toegang($ct . $tn, 0, 0)) {
 			$rows = (new cls_Logboek())->overzichtlid($lidid);
 			if (count($rows) > 0) {
 				$tabblad[$tn] = fnDisplayTable($rows, null, $tn . " " .  $naamlid);
@@ -983,7 +983,7 @@ function fnEigenGegevens_BU($lidid=0, $actie="") {
 	
 	if ($lidid <= 0) {
 		echo("<p class='mededeling'>Er is geen lid geselecteerd.</p>\n");
-	} elseif (toegang($_GET['tp'], 0) == false) {
+	} elseif (toegang($_GET['tp'], 0, 0) == false) {
 		$mess = sprintf("Je hebt tot tabblad '%s' geen toegang.", $actie);
 		(new cls_Logboek())->add($mess, 5, $lidid, 1);
 	} else {
@@ -1719,27 +1719,22 @@ function toestemmingenmuteren($lidid) {
 function opzegginglidmaatschap($lidid) {
 	global $actionurl;
 	
-	$i_lid = (new cls_Lid())->record($lidid);
-	$naamlid = $i_lid->NaamLid;
+	$i_lid = new cls_Lid($lidid);
+	$naamlid = $i_lid->Naam();
+	$minopzeggenper = new DateTime(sprintf("+%d month", $_SESSION['settings']['zs_opzegtermijn']));
+	$eindeseizoen = new DateTime((new cls_seizoen())->eindehuidige());
+	while ($eindeseizoen < $minopzeggenper) {
+		$eindeseizoen->modify("+1 year");
+	}
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		if (isset($_POST["OpzeggingPer"]) and strlen($_POST["OpzeggingPer"]) > 3) {
-			$_POST["OpzeggingPer"] = change_month_to_uk($_POST["OpzeggingPer"]);
-		} else {
-			$_POST["OpzeggingPer"] = "";
-		}
-		if (strlen($_POST["OpzeggingPer"]) > 3 and strtotime($_POST["OpzeggingPer"]) !== FALSE) {
-			$opgezegdper = change_month_to_uk($_POST["OpzeggingPer"]);
-			if (strtotime($opgezegdper) < mktime(0, 0, 0, date("m")+$_SESSION['settings']['zs_opzegtermijn'], date("d"), date("Y"))) {
-				$opgezegdper = strftime($i_lid->fdlang, mktime(0, 0, 0, date("m")+$_SESSION['settings']['zs_opzegtermijn'], date("d"), date("Y")));
-				$mess = sprintf("Er geldt een opzegtermijn van %d maand(en), hierdoor wordt de datum van opzegging %s.", $_SESSION['settings']['zs_opzegtermijn'], $opgezegdper);
-				(new cls_Logboek())->add($mess, 6, $lidid, 1, 0, 8);
-			} else {
-				$opgezegdper = strftime($i_lid->fdlang, strtotime($opgezegdper));
-			}
-		} else {
-			$opgezegdper = strftime($i_lid->fdlang, mktime(0, 0, 0, date("m")+$_SESSION['settings']['zs_opzegtermijn'], date("d"), date("Y")));
-			printf("<p class='mededeling'>Er geldt een opzegtermijn van %d maand(en), hierdoor wordt de datum van opzeggen %s.</p>", $_SESSION['settings']['zs_opzegtermijn'], $opgezegdper);
+		$opgezegdper = new DateTime($_POST["OpzeggingPer"]);
+		
+		if ($opgezegdper < $minopzeggenper) {
+			$opgezegdper = $minopzeggenper;
+			$mess = sprintf("Er geldt een opzegtermijn van %d maand(en), hierdoor wordt de datum van opzegging %s.", $_SESSION['settings']['zs_opzegtermijn'], strftime("%e %B %Y", $opgezegdper->getTimestamp()));
+			
+			(new cls_Logboek())->add($mess, 6, $lidid, 1, 0, 8);
 		}
 		if (isset($_POST['RedenOpmerking']) and strlen($_POST['RedenOpmerking']) > 1) {
 			$opm = "\n<p>" . $_POST['RedenOpmerking'] . "</p>\n";
@@ -1747,28 +1742,28 @@ function opzegginglidmaatschap($lidid) {
 			$opm = "";
 		}
 			
-		$mess = sprintf("Het lidmaatschap is per %s opgezegd.", $opgezegdper);
+		$mess = sprintf("Het lidmaatschap is per %s opgezegd.", $opgezegdper->format("d-m-Y"));
 		(new cls_Logboek())->add($mess, 6, $lidid, 0, 0, 8);
 			
 		$body = sprintf("<p>Beste ledenadministratie,</p>\n
 		<p>Hierbij zeg ik mijn lidmaatschap van de %s per %s op. Mijn lidnummer is %d.</p>\n
 		%s
 		<p>Met vriendelijke groeten,<br>
-		<strong>%s</strong></p>\n", $_SESSION['settings']['naamvereniging'], $opgezegdper, $_SESSION['lidnr'], $opm, $naamlid);
+		<strong>%s</strong></p>\n", $_SESSION['settings']['naamvereniging'], strftime("%e %B %Y", $opgezegdper->getTimestamp()), $_SESSION['lidnr'], $opm, $naamlid);
 				
 		$body .= sprintf("\n<p>Dit formulier is verzonden vanaf IP-adres %s.</p>\n", $_SERVER['REMOTE_ADDR']);
 	
 		$mail = new email();
 		$mail->toevoegenadres($_SESSION['settings']['emailledenadministratie'], "aan", "Ledenadministratie");
 		$mail->toevoegenlid($lidid, "cc");
-		$mail->onderwerp = sprintf("Opzegging lidmaatschap %s per %s", $naamlid, $opgezegdper);
+		$mail->onderwerp = sprintf("Opzegging lidmaatschap %s per %s", $naamlid, $opgezegdper->format("d-m-Y"));
 		$mail->bericht = $body;
 		$mail->to_outbox();
 		$mess = "Een e-mail is klaar gezet om deze opzegging te bevestigen.";
 		(new cls_Logboek())->add($mess, 6, $lidid, 1, 0, 8);
 		$mail = null;
 		if ($_SESSION['settings']['zs_opzeggingautomatischverwerken'] == 1) {
-			(new cls_lidmaatschap())->opzegging($lidid, $opgezegdper);
+			(new cls_lidmaatschap())->opzegging($lidid, $opgezegdper->format("Y-m-d"));
 		}
 		
 	} else {
@@ -1790,7 +1785,7 @@ function opzegginglidmaatschap($lidid) {
 			$content = $form_opzegging;
 		}
 	
-		$content = str_replace("[%OPZEGGENVANAF%]", strftime($i_lid->fdlang, mktime(0, 0, 0, date("m")+$_SESSION['settings']['zs_opzegtermijn'], date("d")+1, date("Y"))), $content);
+		$content = str_replace("[%OPZEGGENVANAF%]", $eindeseizoen->format("Y-m-d"), $content);
 		$content = str_replace("[%NAAMLID%]", $_SESSION['naamingelogde'], $content);
 		$content = str_replace("[%LIDNR%]", $_SESSION['lidnr'], $content);
 		$content = str_replace("[%NAAMVERENIGING%]", $_SESSION['settings']['naamvereniging'], $content);
@@ -2149,6 +2144,7 @@ function instellingenledenmuteren() {
 		
 		foreach ($i_p->lijst() as $row) {
 			if (isset($_POST[$row->Naam])) {
+//				debug($row->Naam . ": " . $_POST[$row->Naam]);
 				$i_p->update($row->Naam, $_POST[$row->Naam]);
 			}
 		}
@@ -2167,8 +2163,12 @@ function instellingenledenmuteren() {
 		$options .= sprintf("<option%s value=%d>%s</option>", checked($row->lnkMailingID, "option", $_SESSION['settings']['mailingbijadreswijziging']), $row->lnkMailingID, $row->Onderwerp);
 	}
 	printf("<label>Mailing voor versturen e-mail naar ledenadministratie bij wijzigen postcode</label><select name='mailingbijadreswijziging' OnChange='this.form.submit();'>\n<Option value=0>Geen</option>%s</select>\n", $options);
+	printf("<label>Moet een opzegging door een lid automatisch worden verwerkt?</label><input type='checkbox' name='zs_opzeggingautomatischverwerken' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_opzeggingautomatischverwerken']));
+
+	$oi = sprintf("<option value=-1%s>Niemand</option>\n", checked($_SESSION['settings']['verjaardagen_op_agenda'], "option", -1)) .
+		  sprintf("<option value=0%s>Alle leden</option>\n", checked($_SESSION['settings']['verjaardagen_op_agenda'], "option", 0));
 	
-	printf("<label>Moet een opzegging door een lid automatisch worden verwerkt?</label><input type='checkbox' name='zs_opzeggingautomatischverwerken' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_opzeggingautomatischverwerken']));	
+	printf("<label>Van wie moeten de verjaardagen op de agenda worden vermeld?</label><select name='verjaardagen_op_agenda' OnChange='this.form.submit();'>\n%s%s</select>\n", $oi, (new cls_eigen_lijst())->htmloptions($_SESSION['settings']['verjaardagen_op_agenda']));
 	
 	echo("<h2>Beschikbaar in de zelfservice</h2>\n");
 	printf("<label>Beroep?</label><input type='checkbox' name='zs_incl_beroep' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_beroep']));
