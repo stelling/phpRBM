@@ -4,11 +4,11 @@ date_default_timezone_set('Europe/Amsterdam');
 setlocale(LC_ALL,'nl_NL.utf8');
 
 define("BASEDIR", $_SERVER['DOCUMENT_ROOT']);
-define("ARRGESLACHT", ["O" => "Onbekend", "V" => "Vrouwelijk", "M" => "Mannelijk", "B" => "Bedrijf/Vereniging/Stichting"]);
+define("ARRGESLACHT", ["O" => "Onbekend", "V" => "Vrouwelijk", "M" => "Mannelijk", "N" => "Neutraal", "B" => "Bedrijf/Vereniging/Stichting"]);
 define("ARRTL", ["Alle", "Leden", "Klosleden", "Voormalig leden"]);
 define("ARRLEGITIMATIE", ["G" => "Geen", "I" => "Identiteitskaart", "P" => "Paspoort", "R" => "Rijbewijs"]);
 define("ARRSOORTMEMO", ["A" => "Algemeen", "B" => "Bewaking", "D" => "Dieet", "E" => "Examen", "F" => "Financiën", "G" => "Gezondheid/medisch", "I" => "Inschrijving bewaking"]);
-define("ARRTYPEONDERDEEL", ["A" => "Afdeling", "B" => "Bestuur", "C" => "Commissie", "F" => "Functionarissen", "G" => "Groep", "O" => "Onderscheiding", "R" => "Rol", "T" => "Toestemming"]);
+define("ARRTYPEONDERDEEL", ["A" => "Afdeling", "B" => "Bestuur", "C" => "Commissie", "E" => "Eigenschap", "F" => "Functionarissen", "G" => "Groep", "O" => "Onderscheiding", "R" => "Rol", "T" => "Toestemming"]);
 define("ARRTYPEDIPLOMA", ["B" => "Brevet", "C" => "Competentie", "D" => "Diploma", "I" => "Insigne", "L" => "Licentie", "M" => "Module", "P" => "Proeve van bekwaamheid"]);
 define("PASFOTOEXTENTIES", ["gif", "jpg", "jpeg", "png"]);
 define("ARRTYPEEDITOR", [1 => "CKEditor 5 Classic editor", 2 => "CKEditor 4", 3 => "TinyMCE"]);
@@ -185,8 +185,10 @@ function HTMLheader($breed=0) {
 		echo("<meta name='viewport' content='width=device-width, initial-scale=1.0'>\n");
 		printf("<title>%s</title>\n", $title);
 		echo("<link rel='stylesheet' href='//code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css'>\n");
+		echo("<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css'>");
 		echo("<script src='https://code.jquery.com/jquery-3.6.0.js'></script>\n");
 		echo("<script src='https://code.jquery.com/ui/1.13.1/jquery-ui.js'></script>\n");
+		
 		if (file_exists("default.css")) {
 			printf("<link rel='stylesheet' href='default.css?v%s'>\n", strftime("%Y%m%d%H%M", filectime("default.css")));
 		}
@@ -230,7 +232,6 @@ function HTMLheader($breed=0) {
 
 		echo("</div>  <!-- Einde welkom -->\n");
 		echo("<div class='clear'></div>\n");
-		
 		
 		$xtra = "";
 		if ($currenttab == "Overzicht lid" and isset($_GET['lidid']) and $_GET['lidid'] > 0) {
@@ -811,6 +812,144 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 	return $ret;
 	
 } # fnDisplayTable
+
+function fnEditTable($res, $kols, $id, $th) {
+	
+	$rows = $res->fetchAll(PDO::FETCH_NUM);
+	
+	$ret = sprintf("<table id='%s'>\n", $id);
+	$ret .= sprintf("<caption>%s</caption>\n", $th);
+	$ret .= "<thead>\n";
+	$ret .= "<tr>";
+	foreach ($kols as $kol) {
+		if (isset($kol['headertext']) and strlen($kol['headertext']) > 1) {
+			$ret .= sprintf("<th>%s</th>", $kol['headertext']);
+		}
+	}
+	$ret .= "</tr>\n";
+	$ret .= "</thead>\n";
+	
+	$ret .= "<tbody>\n";
+	$dispkop = 1;
+	$totaantal = 0;
+	foreach($rows as $row) {
+		$ret .= "<tr>";
+		$kn = 0;
+		$valpk = 0;
+		$colpk = "";
+		$js = "";
+		foreach ($kols as $key => $kol) {
+			$tp = $kol['type'] ?? "text";
+			$ro = $kol['readonly'] ?? false;
+			$value = $row[$key];
+			if ($tp == "pk") {
+				$valpk = $row[$key];
+				$colpk = $res->getColumnMeta($key)['name'];
+			}
+			$colname = $res->getColumnMeta($key)['name'];
+			$collen = intval($res->getColumnMeta($key)['len'] / 3);
+			
+			if ($tp == "checkbox") {
+				if ($ro) {
+					if ($value == 1) {
+						$ret .= "<td>Ja</td>";
+					} else {
+						$ret .= "<td>Nee</td>";
+					}
+				} else {
+					$ret .= sprintf("<td><input type='checkbox' name='%s_%d' value=1%s></td>", str_replace(" ", "_", substr($key, 3)), $row->$kol_pk, checked($value, "", 1));
+				}
+				
+			} elseif (isset($kol['bronselect']) and count($kol['bronselect']) > 0) {
+				$opt = "";
+				foreach ($kol['bronselect'] as $k => $v) {
+					$opt .= sprintf("<option%s value=%s>%s</option>\n", checked($k, "option", $value), $k, $v);
+				}
+				$ret .= sprintf("<td><select class='selectedit' id='%s_%d'>\n%s</select></td>\n", $colname, $valpk, $opt);
+
+			} elseif ($tp == "date") {
+				if ($ro == false) {
+					$ret .= sprintf("<input type='date' name='%s_%d' value='%s'>", $colname, $valpk, $value);
+				} elseif ((!is_null($value)) and $value > '1900-01-01') {
+					$ret .= sprintf("<td class='datumkort'>%s</td>", date('d/m/Y', strtotime($value)));
+				} else {
+					$ret .= "<td>&nbsp;</td>";
+				}
+				
+			} elseif ($tp == "integer") {
+				if ($ro) {
+					$ret .= sprintf("<td class='number'>%d</td>", $value);
+				} else {
+					$ret .= sprintf("<td><input type='number' id='%s_%d' value='%s' class='numedit w10'></td>", $colname, $valpk, $value);
+				}
+				
+			} elseif ($tp == "email") {
+				if ($ro) {
+					$ret .= sprintf("<td>%s</td>", fnDispEmail($value, "", 1));
+				} else {
+					$ret .= sprintf("<td><input type='email' id='%s_%d' value='%s' class='txtedit'></td>", $colname, $valpk, $value);
+				}
+				
+			} elseif ($tp == "pwd") {
+				if ($kol_edit == 0) {
+					$ret .= "<td></td>";
+				} else {
+					$ret .= sprintf("<td><input type='password' name='%s_%d'></td>", $colname, $valpk);
+				}
+
+			} elseif (isset($kol['headertext'])) {
+				if ($ro) {
+					$ret .= sprintf("<td>%s</td>", htmlentities($value));
+				} else {
+					$xc = sprintf("w%d", $collen);
+					$ret .= sprintf("<td><input type='text' id='%s_%d' value='%s' class='txtedit %s'></td>", $colname, $valpk, $value, $xc);
+				}
+			}
+		}
+		$ret .= "</tr>\n";
+	}
+	$ret .= "</tbody>\n";
+	$ret .= "</table>\n";
+	
+	$ret .= sprintf("<script>
+$(document).ready(function() {
+
+	// Save data
+	$('.txtedit').focusout(function(){
+		savedata(this.id, $(this).val());
+	});
+	
+	$('.selectedit').change(function(){
+		savedata(this.id, $(this).val());
+	});
+	
+	$('.numedit').change(function(){
+		savedata(this.id, $(this).val());
+	});
+});
+
+function savedata(id, value) {
+	
+  // Get edit id, field name and value
+  var split_id = id.split('_');
+  var field_name = split_id[0];
+  var edit_id = split_id[1];
+
+  // Sending AJAX request
+  $.ajax({
+   url: 'ajax_update.php?entiteit=%1\$s',
+   type: 'post',
+   data: { field:field_name, value:value, id:edit_id },
+   success:function(response){}
+  });
+}
+
+</script>\n", $id);
+
+	return $ret;
+	
+} # fnEditTable
+
 
 function fnOrderBy($p_arrSort) {
 	$ord = "";
