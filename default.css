@@ -25,6 +25,10 @@ img {
 	border-style: none;
 }
 
+table {
+	border-collapse: collapse;
+}
+
 tr {
 	vertical-align: middle;
 }
@@ -35,10 +39,10 @@ caption {
 	font-weight: bolder;
 	border-style: solid;
 	border-width: 1px;
-	margin-left: 2px;
-	margin-right: 2px;
-	padding-top: 3px;
-	padding-bottom: 3px;
+	margin-left: 0;
+	margin-right: 0;
+	padding-top: 5px;
+	padding-bottom: 5px;
 }
 
 td, th {
@@ -1958,6 +1962,17 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	padding-right: 0;
 }
 
+#wijzigenlidgegevens input.smal, #wijzigenlidgegevens select, #wijzigenlidgegevens input[type='date'] {
+	width: 225px;
+}
+
+#wijzigenlidgegevens input.xsmal, #wijzigenlidgegevens input[type='date'] {
+	width: 110px;
+}
+#wijzigenlidgegevens textarea {
+	width: 350px;
+}
+
 #wijzigenlidgegevens textarea {
 	float: left;
 }
@@ -2065,6 +2080,7 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	margin-top: inherit;
 	height: inherit;
 	line-height: inherit;
+	font-style: italic;
 }
 
 /* jQuery specifiek */
