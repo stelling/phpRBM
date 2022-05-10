@@ -916,33 +916,17 @@ $(document).ready(function() {
 
 	// Save data
 	$('.txtedit').focusout(function(){
-		savedata(this.id, $(this).val());
+		savedata('%1\$s', this.id, $(this).val());
 	});
 	
 	$('.selectedit').change(function(){
-		savedata(this.id, $(this).val());
+		savedata('%1\$s', this.id, $(this).val());
 	});
 	
 	$('.numedit').change(function(){
-		savedata(this.id, $(this).val());
+		savedata('%1\$s', this.id, $(this).val());
 	});
 });
-
-function savedata(id, value) {
-	
-  // Get edit id, field name and value
-  var split_id = id.split('_');
-  var field_name = split_id[0];
-  var edit_id = split_id[1];
-
-  // Sending AJAX request
-  $.ajax({
-   url: 'ajax_update.php?entiteit=%1\$s',
-   type: 'post',
-   data: { field:field_name, value:value, id:edit_id },
-   success:function(response){}
-  });
-}
 
 </script>\n", $id);
 
