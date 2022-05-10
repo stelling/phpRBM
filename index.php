@@ -130,7 +130,7 @@ if (toegang($_GET['tp'], 1) == false) {
 	$atn[] = "Overig";
 	$atn[] = "Onderscheidingen";
 	foreach ($atn as $tn) {
-		if (toegang($currenttab . "/" . $tn, 0)) {
+		if (toegang($currenttab . "/" . $tn, 0, 0)) {
 			$tabblad[$tn] = fnWieiswie($tn, $_SESSION['settings']['kaderoverzichtmetfoto']);
 		}
 	}
@@ -159,7 +159,7 @@ if (toegang($_GET['tp'], 1) == false) {
 			fnEigenlijstenmuteren();
 		} else {
 			$i_el = new cls_Eigen_lijst($currenttab3);
-			$rows = (new cls_db_base())->execsql($i_el->mysql())->fetchAll();
+			$rows = $i_el->rowset();
 			printf("<p>%s</p>", fnDisplayTable($rows, null, $currenttab3));
 			printf("<p>%d rijen</p>\n", count($rows));
 			$i_el->update($i_el->elid, "AantalRecords", count($rows));
@@ -383,29 +383,18 @@ function fnAgenda($p_lidid=0) {
 			if ($_SESSION['settings']['verjaardagen_op_agenda'] >= 0) {
 				$aant = 0;
 				if ($_SESSION['settings']['verjaardagen_op_agenda'] > 0) {
-					$ondrows = (new cls_eigen_lijst())->rowset($_SESSION['settings']['verjaardagen_op_agenda']);
+					$rows = (new cls_eigen_lijst())->rowset($_SESSION['settings']['verjaardagen_op_agenda'], date("Y-m-d", $td));
+				} else {
+					$rows = (new cls_Lid())->verjaardagen($td);
 				}
-				foreach ((new cls_Lid())->verjaardagen($td) as $row) {
-					if ($_SESSION['settings']['verjaardagen_op_agenda'] > 0) {
-						$toon = false;
-						foreach ($ondrows as $ondrow) {
-							if ($ondrow->LidID == $row->RecordID) {
-								$toon = true;
-								break;
-							}
-						}
+				foreach ($rows as $row) {
+					$aant++;
+					if ($aant == 1) {
+						$vj = $row->Naam_lid;
+					} elseif ($aant == 2) {
+						$vj = $row->Naam_lid . " en " . $vj;
 					} else {
-						$toon = true;
-					}
-					if ($toon == true) {
-						$aant++;
-						if ($aant == 1) {
-							$vj = $row->Naam_lid;
-						} elseif ($aant == 2) {
-							$vj = $row->Naam_lid . " en " . $vj;
-						} else {
-							$vj = $row->Naam_lid . ", " . $vj;
-						}
+						$vj = $row->Naam_lid . ", " . $vj;
 					}
 				}
 				if ($aant == 1) {
