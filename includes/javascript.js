@@ -142,3 +142,23 @@ function CopyFunction() {
 	document.execCommand('copy');
 	alert("De wijzigingen zijn naar het klembord gekopieerd.");
 }
+
+function savedata(entity, id, value, field_name='') {
+
+  // Get edit id, field name and value
+	if (field_name == "") {
+		var split_id = id.split('_');
+		var field_name = split_id[0];
+		var edit_id = split_id[1];
+	} else {
+		var edit_id = id;
+	}
+
+	// Sending AJAX request
+	$.ajax({
+		url: 'ajax_update.php?entiteit=' + entity,
+		type: 'post',
+		data: { field:field_name, value:value, id:edit_id },
+		success:function(response){}
+	});
+}
