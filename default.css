@@ -182,6 +182,38 @@ header h1 {
 	padding-left: 4px;
 }
 
+input.w7 {
+	width: 60px;
+}
+
+input.w9, input.w10 {
+	width: 65px;
+}
+
+input.w15 {
+	width: 80px;
+}
+
+input.w21, input.w22 {
+	width: 160px;
+}
+
+input.w30 {
+	width: 240px;
+}
+
+input.w40, input.w45 {
+	width: 180px;
+}
+
+input.w75 {
+	width: 300px;
+}
+
+input.w90 {
+	width: 350px;
+}
+
 #container, #containerbreed {
 	width: 1250px;
 	margin-left: auto;
@@ -320,7 +352,7 @@ header a + a:visited + a:hover {
 	margin-bottom: 10px;
 }
 
-#formulier label {
+#formulier label, #eigenlijstmuteren label {
 	clear: left;
 	float: left;
 	width: 250px;
@@ -329,17 +361,21 @@ header a + a:visited + a:hover {
 	padding-right: 6px;
 }
 
-#formulier textarea {
+#formulier textarea, #eigenlijstmuteren textarea {
 	float: left;
 	margin-top: 6px;
 	margin-bottom: 6px;
+}
+
+#eigenlijstmuteren textarea {
+	width: 965px;
 }
 
 #formulier input[type='checkbox'] {
 	margin-top: 9px;
 }
 
-#formulier input[type='text'] {
+#formulier input[type='text'], #eigenlijstmuteren input[type='text'] {
 	margin-right: 6px;
 	margin-top: 6px;
 }
@@ -350,7 +386,7 @@ header a + a:visited + a:hover {
 	width: 112px;
 }
 
-#formulier p {
+#formulier p, #eigenlijstmuteren p {
 	float: left;
 	margin-right: 6px;
 	margin-top: 6px;
@@ -499,12 +535,12 @@ td.trash, .beheerlogins td:last-child, #beheerautorisatie td:last-child, .beheer
 	padding-top: 8px;
 }
 
-#onderdelenperlidmuteren table {
-	width: 100%;
-}
-
 #onderdelenperlidmuteren input {
 	width: 150px;
+}
+
+#onderdelenperlidmuteren input[type='date'] {
+	width: 110px;
 }
 
 .ledenperonderdeelmuteren select {
@@ -1818,13 +1854,34 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	width: 80px;
 }
 
-#mailingselectieleden td {
-	padding-top: 2px;
-	padding-bottom: 2px;
+#mailingselectieleden {
+	overflow: visible;
+	float: left;
+	clear: right;
+	height: 175px;
+	border-style: solid;
+	border-width: 1px;
+	padding-left: 5px;
 }
 
-#mailingselectieleden input {
-	width: 135px;
+#mailingselectieleden input, #mailingselectieleden label {
+	width: 150px;
+}
+
+#mailingselectieleden label.kop {
+	clear: none;
+	float: left;
+	text-align: left;
+	background: transparent;
+	border-style: none;
+}
+
+#mailingselectieleden select {
+	width: auto;
+}
+
+#mailingselectieleden button, #mailingselectieleden p {
+	height: 33px;
 }
 
 #instellingenmuteren .invoerblok {
@@ -1838,7 +1895,7 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	margin-top: 8px;
 }
 
-#instellingenmuteren input[type="text"], #instellingenmuteren input[type="email"], #formulier input[type="text"], #formulier input[type="email"] {
+#instellingenmuteren input[type="text"], #instellingenmuteren input[type="email"], #formulier input[type="text"], #eigenlijstmuteren input[type="text"], #formulier input[type="email"] {
 	width: 400px;
 }
 
@@ -1920,11 +1977,11 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	float: left;
 }
 
-#editmailingform li, .editmailingform li {
+.editmailingform li, .editmailingform li {
 	height: 28px;
 }
 
-#instellingenmuteren input, #editmailingform input, #editmailingform select, .editmailingform input, .editmailingform select, #toestemmingenmuteren input, #afdelingskalendermuteren input, #afdelingskalendermuteren select {
+#instellingenmuteren input, .editmailingform input, .editmailingform select, .editmailingform input, .editmailingform select, #toestemmingenmuteren input, #afdelingskalendermuteren input, #afdelingskalendermuteren select {
 	margin-top: 9px;
 	margin-bottom: 8px;
 }
@@ -1933,7 +1990,7 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	float: left;
 }
 
-#instellingenmuteren p, #editmailingform p, .editmailingform p {
+#instellingenmuteren p, .editmailingform p, .editmailingform p {
 	height: 30px;
 	margin-top: 3px;
 	margin-bottom: 2px;
@@ -1957,7 +2014,6 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 }
 
 #wijzigenlidgegevens input, #wijzigenlidgegevens select {
-	width: 350px;
 	margin-right: 0;
 	padding-right: 0;
 }
