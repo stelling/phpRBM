@@ -29,18 +29,6 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	addtp("Logboek");
 } else {
 	$tabpages[] = "Vereniging";
-	addtp("Vereniging/Introductie");
-	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
-		addtp("Vereniging/Agenda");
-	}
-	if ((new cls_Onderdeel())->aantal("`Type`='A'") > 0) {
-		addtp("Vereniging/Verenigingskader");
-		addtp("Vereniging/Afdelingskader");
-	} else {
-		addtp("Vereniging/Kader");
-	}
-	addtp("Vereniging/Overig");
-	addtp("Vereniging/Onderscheidingen");
 	if ($_SESSION['lidid'] > 0) {
 		addtp("Eigen gegevens");
 	} elseif ((new cls_Login())->aantal() > 0) {
@@ -62,62 +50,6 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			}
 		}
 		$gs = (new cls_Lid())->Geslacht($lidid);
-		
-		addtp($b . "Algemeen");
-		if (count((new cls_Lidmaatschap())->overzichtlid($lidid)) > 1) {
-			addtp($b . "Lidmaatschappen");
-		}
-		
-		if (count((new cls_Lidond())->overzichtlid($lidid, "A")) > 0) {
-			addtp($b . "Afdelingen");
-		}
-		if (count($i_lo->overzichtlid($lidid, "K")) > 0) {
-			addtp($b . "Kader");
-		}
-		if (count($i_lo->overzichtlid($lidid, "G")) > 0) {
-			addtp($b . "Groepen");
-		}
-		if (count($i_lo->overzichtlid($lidid, "R")) > 0) {
-			addtp($b . "Rollen");
-		}
-		
-		$f = "`Type`='T' AND IFNULL(VervallenPer, CURDATE()) >= CURDATE()";
-		if ($gs != "B" and (new cls_Onderdeel())->aantal($f) > 0) {
-			addtp($b . "Toestemmingen");
-		}
-		$f = sprintf("Lid=%d", $lidid);
-		if ($gs != "B" and (new cls_Memo())->aantal($f) > 0) {
-			addtp($b . "Bijzonderheden");
-		}
-		if (count((new cls_Aanwezigheid())->overzichtlid($lidid)) > 0) {
-			addtp($b . "Presentie");
-		}
-		
-		if (count((new cls_Bewaking())->overzichtlid($lidid)) > 0 or count((new cls_InsBew())->overzichtlid($lidid)) > 0) {
-			addtp($b . "Bewaking");
-		}
-		
-		if (count((new cls_Liddipl())->overzichtlid($lidid)) > 0) {
-			addtp($b . "Diploma's");
-		}
-		
-		$f = sprintf("LidID=%d", $lidid);
-		if ((new cls_Mailing_hist())->aantal($f) > 0) {
-			addtp($b . "Mailing");
-		}
-		if (count((new cls_Evenement_Deelnemer())->overzichtlid($lidid)) > 0) {
-			addtp($b . "Evenementen");
-		}
-		$f = sprintf("Lid=%d", $lidid);
-		if ((new cls_Rekeningregel())->aantal($f) > 0) {
-			addtp($b . "Rekeningen");
-		}
-		if (count((new cls_Logboek())->overzichtlid($lidid)) > 0) {
-			addtp($b . "Logboek");
-		}
-		if ($currenttab2 == "Overzicht lid") {
-			addtp($currenttab . "/" . $currenttab2);
-		}
 	}
 	
 	if ($_SESSION['lidid'] > 0) {
@@ -131,6 +63,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			addtp("Zelfservice/Diploma's");
 		}
 		addtp("Zelfservice/Pasfoto");
+		$_SESSION['settings']['zs_muteerbarememos'] = $_SESSION['settings']['zs_muteerbarememos'] ?? "";
 		if (strlen($_SESSION['settings']['zs_muteerbarememos']) > 0) {
 			addtp("Zelfservice/Bijzonderheden");
 		}
@@ -163,7 +96,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			addtp("Ledenlijst/Toekomstige leden");
 		}
 		
-		if (count((new cls_Lid())->ledenlijst("(LM.Lidnr IS NULL)")) > 0) {
+		if (count((new cls_Lid())->klosledenlijst()) > 0) {
 			addtp("Ledenlijst/Klosleden");
 		}
 		addtp("Ledenlijst/Nieuw (klos)lid");
@@ -172,6 +105,10 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		addtp("Ledenlijst/Groepen");
 		if ((new cls_Onderdeel())->aantal("`Type`='R' AND IFNULL(VervallenPer, CURDATE()) >= CURDATE()") > 0) {
 			addtp("Ledenlijst/Rollen");
+		}
+		
+		if ((new cls_Onderdeel())->aantal("`Type`='T' AND IFNULL(VervallenPer, CURDATE()) >= CURDATE()") > 0) {
+			addtp("Ledenlijst/Toestemmingen");
 		}
 
 		addtp("Ledenlijst/Eigen lijsten");
@@ -183,12 +120,45 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 				}
 			}
 		}
+		
+		if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
+			$b = "Ledenlijst/Basisgegevens";
+			addtp($b);
+			if ($currenttab2 == "Basisgegevens") {
+				addtp($b . "/Onderdelen");
+				addtp($b . "/Functies");
+				addtp($b . "/Diploma's");
+				addtp($b . "/Seizoenen");
+				addtp($b . "/Organisaties");
+			}
+		}
 	
 		addtp("Ledenlijst/Instellingen");
 		addtp("Ledenlijst/Mutaties");
 	}
 	
-	addtp("Stukken");
+	addtp("Mailing");
+	if ($currenttab == "Mailing") {
+		$i_M = new cls_Mailing();
+		addtp("Mailing/Muteren");
+		addtp("Mailing/Nieuw");
+		if ((new cls_Rekening())->aantal() > 0) {
+			addtp("Mailing/Rekeningen");
+		}
+		
+		$f = "(deleted_on IS NOT NULL)";
+		if ($i_M->aantal($f) > 0) {
+			addtp("Mailing/Prullenbak");
+		}
+		addtp("Mailing/Outbox");
+		addtp("Mailing/Verzonden mails");
+		addtp("Mailing/Instellingen");
+		addtp("Mailing/Logboek");
+		$i_M = null;
+		if ($currenttab2 == "Wijzigen mailing") {
+			addtp($currenttab . "/" . $currenttab2);
+		}
+	}
 	
 	if (isset($_SESSION['settings']['menu_met_afdelingen']) and strlen($_SESSION['settings']['menu_met_afdelingen']) > 0) {
 		// Tabblad per afdeling
@@ -222,14 +192,16 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		addtp($b);
 		$b .= "/";
 		addtp($b . "Algemene gegevens");
-		if ((new cls_Onderdeel())->aantal("Type='A'") > 0) {
+		if ((new cls_Onderdeel())->aantal("Type='A'") > 0 and (new cls_Lidmaatschap())->soortlid($_GET['lidid']) != "Kloslid") {
 			addtp($b . "Afdelingen");
 		}
-		addtp($b . "B, C en F");
+		if ($gs != "B") {
+			addtp($b . "B, C en F");
+		}
 		if ((new cls_Onderdeel())->aantal("Type='G'") > 0) {	
 			addtp($b . "Groepen");
 		}
-		if ((new cls_Onderdeel())->aantal("Type='O'") > 0) {	
+		if ((new cls_Onderdeel())->aantal("Type='O'") > 0 and $gs != "B") {	
 			addtp($b . "Onderscheidingen");
 		}
 		if ($gs != "B" and (new cls_Diploma())->aantal() > 0) {
@@ -242,36 +214,17 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if (strlen($_SESSION['settings']['muteerbarememos']) > 0) {
 			addtp($b . "Bijzonderheden");
 		}
-		addtp($b . "Lidmaatschap");
-		addtp($b . "Pasfoto");
+		if ($gs != "B") {
+			addtp($b . "Lidmaatschap");
+			addtp($b . "Pasfoto");
+		}
 	}
 	
 	if ((new cls_Mutatie())->aantal() > 0) {
 		addtp("Kostenoverzicht");
 	}
 	
-	addtp("Mailing");
-	if ($currenttab == "Mailing") {
-		$i_M = new cls_Mailing();
-		addtp("Mailing/Muteren");
-		addtp("Mailing/Nieuw");
-		if ((new cls_Rekening())->aantal() > 0) {
-			addtp("Mailing/Rekeningen");
-		}
-		
-		$f = "(deleted_on IS NOT NULL)";
-		if ($i_M->aantal($f) > 0) {
-			addtp("Mailing/Prullenbak");
-		}
-		addtp("Mailing/Outbox");
-		addtp("Mailing/Verzonden mails");
-		addtp("Mailing/Instellingen");
-		addtp("Mailing/Logboek");
-		$i_M = null;
-		if ($currenttab2 == "Wijzigen mailing") {
-			addtp($currenttab . "/" . $currenttab2);
-		}
-	}
+	addtp("Stukken");
 
 	if ((new cls_db_base("Bewseiz"))->aantal() > 0) {
 		addtp("Bewaking");
@@ -313,15 +266,12 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		$i_ev = null;
 	}	
 	
-	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
-		addtp("Rekeningen");
-		if ($currenttab == "Rekeningen") {
-			$b = "Rekeningen/";
-			addtp($b . "Beheer");
-			addtp($b . "Nieuw");
-			addtp($b . "Muteren");
-			addtp($b . "Logboek");
-		}
+	addtp("Rekeningen");
+	if ($currenttab == "Rekeningen") {
+		$b = "Rekeningen/";
+		addtp($b . "Beheer");
+		addtp($b . "Nieuw");
+		addtp($b . "Logboek");
 	}
 	
 	addtp("Bestellingen");
@@ -433,7 +383,7 @@ function fnAuthenticatie($melding=1, $password="", $p_napost=0) {
 	
 } # fnAuthenticatie
 	
-function toegang($soort, $melding=1, $log=1) {
+function toegang($soort, $melding=1, $p_log=1) {
 	global $lididwebmasters, $tabpages, $currenttab, $currenttab2, $currenttab3;
 	
 	$i_aut = new cls_Authorisation();
@@ -481,8 +431,9 @@ function toegang($soort, $melding=1, $log=1) {
 			return true;
 		} else {
 			$mess = sprintf("Je hebt geen toegang tot '%s'.", $soort);
-			if ($log == 1) {
+			if ($p_log == 1) {
 				(new cls_Logboek())->add($mess, 15, 0, $melding);
+				
 			} elseif ($melding > 0) {
 				printf("<p class='mededeling'>%s</p>\n", $mess);
 			}
@@ -533,7 +484,6 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 			(new cls_Parameter())->update("mailing_herstellenwachtwoord", $mid);
 			$i_M = null;
 		}
-
 		$row = $i_login->record($lidid);
 		if ($_SESSION['settings']['login_maxinlogpogingen'] > 0 and $row->FouteLogin > $_SESSION['settings']['login_maxinlogpogingen']) {
 			$mess = "Er is teveel foutief met deze login proberen in te loggen. Hierdoor is dit account geblokkeerd. ";
@@ -557,52 +507,49 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 			$mess = "Er is geen mailing voor het herstellen van het wachtwoord beschikbaar.";
 		}
 		
-		(new cls_Logboek())->add($mess, 5, $row->LidID, 1);
+	} elseif ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['nieuwwachtwoord']) and strlen($_POST['nieuwwachtwoord']) > 0 and $_POST['lidid'] > 0) {
+		$mess = (new cls_login())->wijzigenwachtwoord($_POST['nieuwwachtwoord'], $_POST["key"], $_POST['herhaalwachtwoord'], $_POST['lidid']);
 		
-	} elseif ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['nieuwwachtwoord']) and strlen($_POST['nieuwwachtwoord']) > 0 and $_GET['lidid'] > 0) {
-		$mess = (new cls_login())->wijzigenwachtwoord($_POST['nieuwwachtwoord'], "", $_POST['herhaalwachtwoord'], $_GET['lidid']);
+		echo("<p><a href='/?tp=Inloggen'>Klik hier om verder te gaan.</a></p>\n");
 	
 	} elseif (isset($_GET["lidid"]) and $_GET["lidid"] > 0 and strlen($_GET["key"]) > 5) {
 		$row = (new cls_Login())->record($_GET['lidid']);
 		
 		$login = $row->Login;
-		$dbkey = $row->ActivatieKey;
 		
 		echo("<div id='herstellenwachtwoord'>\n");
-		if (strlen($login) > 5 and password_verify($_GET["key"], $dbkey)) {
+		if (strlen($login) > 5) {
 			
-			printf("<form name='HerstellenWachtwoord' action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
-			printf("
+			printf("<form name='HerstellenWachtwoord' action='%s?tp=Herstel+wachtwoord' method='post'>\n", $_SERVER["PHP_SELF"]);
+			printf("<input type='hidden' name='key' value='%s'><input type='hidden' name='lidid' value=%d>\n
 			<h3>Herstel wachtwoord</h3>
-			<fieldset>
 			<label>Login</label><input type=text value='%s' name='login' readonly>
 			<label>Nieuw wachtwoord</label><input type='password' name='nieuwwachtwoord'>
 			<label>Herhaal wachtwoord</label><input type='password' name='herhaalwachtwoord'>
-			</fieldset>
 			%s
 			<div id='opdrachtknoppen'>\n
 			<input type='submit' value='Bevestig'>\n
 			</div> <!-- Einde opdrachtknoppen -->\n
-			</form>", $login, fneisenwachtwoord());
+			</form>", $_GET["key"], $_GET['lidid'], $login, fneisenwachtwoord());
 		} else {
 			echo("<h3>Deze link is niet correct, vraag een nieuwe aan.</h3>\n");
 		}
 		echo("</div>  <!-- Einde herstellenwachtwoord -->");
 	
 	} elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
-		if (isset($_POST['login']) and strlen($_POST['login']) < 7 and !isValidMailAddress($_POST['email'], 0)) {
-			$mess = "Vul minimaal 2 van de 3 velden in.";
-		} elseif (isset($_POST['lidnummer']) and $_POST['lidnummer'] < 1 and !isValidMailAddress($_POST['email'], 0)) {
-			$mess = "Vul minimaal 2 van de 3 velden in.";
-		} elseif (isset($_POST['login']) and strlen($_POST['login']) < 7 and $_POST['lidnummer'] < 1) {
-			$mess = "Vul minimaal 2 van de 3 velden in.";
+		if (strlen($_POST['email']) > 0 and isValidMailAddress($_POST['email'], 0) == false) {
+			$mess = "Dit is geen geldig e-mailadres.";
+			
+		} elseif (strlen($_POST['login']) < 5 and $_POST['lidnummer'] < 1 and strlen($_POST['email']) == 0) {
+			$mess = "Vul minimaal 1 veld in.";
+			
 		} elseif (isset($_POST['login'])) {
 			
 			$lidid = $i_login->lididherstel($_POST['login'], $_POST['lidnummer'], $_POST['email']);
 			if ($lidid > 0) {
 				$mess = fnHerstellenWachtwoord("mail", $lidid);
 			} else {
-				$mess = "De ingevulde combinatie is niet gevonden. Er wordt geen e-mail verstuurd om het wachtwoord te herstellen.";
+				$mess = "Er is geen uniek lid gevonden. Er wordt geen e-mail verstuurd om het wachtwoord te herstellen.";
 			}
 		}
 		printf("<p class='mededeling'>%s</p>", htmlentities($mess));
@@ -617,7 +564,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		<label>Login</label><input type='text' name='login'>
 		<input type='hidden' value='mail' name='stap'>
 		</fieldset>
-		<p>Minimaal 2 van de 3 velden moeten correct zijn ingevuld. Na het versturen van deze link is je oude wachtwoord niet meer geldig.</p>
+		<p>Na het versturen van deze link is je oude wachtwoord niet meer geldig.</p>
 		<div id='opdrachtknoppen'>\n
 		<input type='submit' value='Stuur herstellink'>\n
 		</div> <!-- Einde opdrachtknoppen -->\n
@@ -625,7 +572,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		</div>  <!-- Einde herstellenwachtwoord -->");
 	}
 	if (strlen($mess) > 0) {
-		(new cls_Logboek())->add($mess, 5, 0, 0, 0, 8);
+		(new cls_Logboek())->add($mess, 5, $lidid, 0, 0, 8);
 	}
 	return $mess;
 	
@@ -847,15 +794,21 @@ function fnOpvragenLidnr($stap) {
 function cleanlogin($login) {
 
 	$login = trim($login);
-	if (strlen($login) > 15) {
-		$login = substr($login, 0, 15);
+	if (strlen($login) > 0 and isValidMailAddress($login) == false) {
+		
+		$ll = (new cls_Login())->lengtekolom("Login");
+		
+		if (strlen($login) > $ll) {
+			$login = substr($login, 0, $ll);
+		}
+		$login = str_replace(" ", "_", $login);
+		$login = str_replace("'", "", $login);
+		$login = str_replace("\"", "", $login);
+		$login = str_replace(";", "", $login);
 	}
-	$login = str_replace(" ", "_", $login);
-	$login = str_replace("'", "", $login);
-	$login = str_replace("\"", "", $login);
-	$login = str_replace(";", "", $login);
 	
 	return $login;
+	
 } # cleanlogin
 
 function newkey() {
