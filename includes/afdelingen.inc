@@ -47,7 +47,7 @@ function fnAfdelingslijst($afdid) {
 		$xf = sprintf("L.RecordID IN (SELECT LD.Lid FROM %sLiddipl AS LD WHERE LD.DiplomaID=%d AND IFNULL(LD.LicentieVervallenPer, CURDATE()) >= CURDATE())", TABLE_PREFIX, $diplfilter);
 	}
 	
-	$rows = (new cls_Lidond())->onderdeellijst($afdid, 1, $xf, fnOrderBy($arrSort));
+	$rows = (new cls_Lidond())->onderdeellijst($afdid, 2, $xf, fnOrderBy($arrSort));
 	
 	echo("<div id='filter'>\n");
 	printf("<form action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
@@ -55,7 +55,7 @@ function fnAfdelingslijst($afdid) {
 	print("<input type='text' name='tbTekstFilter' id='tbTekstFilter' placeholder='Tekstfilter' OnKeyUp=\"fnFilter('afdelingslijst', 'tbTekstFilter', 1, 2, 3);\">\n");
 	printf("<select name='bezitdiploma' id='bezitdiploma' onchange='this.form.submit();'>\n<option value=-1>Filter op diploma</option>\n%s</select>\n", $i_dp->htmloptions($diplfilter, -1, $afdid));
 	if (count($rows) > 1) {
-		printf("<p class='aantrecords'>%d rijen</p>\n", count($rows));
+		printf("<p class='aantrecords'>%d rijen / %d leden</p>\n", count($rows), aantaluniekeleden($rows, "ndLidID"));
 	}
 	echo("</form>\n");
 	echo("</div>  <!-- Einde filter -->\n");
@@ -162,9 +162,9 @@ function fnAfdelingskalenderMuteren($p_onderdeelid){
 
 function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 	/* p_toonleeftijd
-	0: nee
-	1: ja, alle
-	2: alleen bij jonger dan 18 jaar
+		0: nee
+		1: ja, alle
+		2: alleen bij jonger dan 18 jaar
 	*/
 	
 	$hvafd = "";
@@ -177,7 +177,6 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 	} else {
 		$filter = "";
 	}
-	
 	
 	if ($p_muteren == 0) {
 		
@@ -209,7 +208,7 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 				
 			}
 		
-			if ($hvtijd !== $row->Tijdsblok or $hvgroep !== $row->GroepID) {
+			if ($hvgroep != $row->GroepID) {
 				if ($hvgroep > -1) {
 					echo("</ol>\n");
 					echo("</div>  <!-- einde groepsindelingkolom -->\n");
@@ -218,14 +217,12 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 					}
 				}
 				echo("<div class='groepsindelingkolom'>\n");
-				$volgnr = 1;
 			
 				if (strlen($row->Tijdsblok) > 3 and $hvtijd !== $row->Tijdsblok) {
 					printf("<h3>%s</h3>\n", $row->Tijdsblok);
 				}
 				$hvtijd = $row->Tijdsblok;
 			
-				$hvgroep = $row->GroepID;
 				printf("<h4>%s</h4>\n", $row->GroepOms);
 				echo("<ol>\n");
 			}
@@ -240,9 +237,9 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 			if (strlen($row->Leeftijd) > 5 and ($p_toonleeftijd == 1 or ($p_toonleeftijd == 2 and intval(substr($row->Leeftijd, 0, 2)) < 18))) {
 				$nm .= " (" .  $row->Leeftijd . ")";
 			}
-			printf("<li %s>%s</li>\n", $cl, $nm);
+			printf("<li%s>%s</li>\n", $cl, $nm);
+			$hvgroep = $row->GroepID * 1;
 			$hvzaal = $row->Zwemzaal;
-			$volgnr++;
 		}
 		echo("</ol>");
 		echo("</div>  <!-- einde groepsindelingkolom -->\n");
@@ -294,7 +291,7 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 		if (count($grrows) > 0) {
 			echo("<table>\n");
 			echo("<tr><th>Naam</th><th>Leeftijd</th><th>Laatst behaalde diploma's</th><th>Groep</th></tr>\n\n");
-			foreach ($i_lo->onderdeellijst($afdid, 1, "", "GR.Volgnummer, GR.Starttijd, GR.Omschrijving, L.Achternaam, L.Tussenv, L.Roepnaam") as $row) {
+			foreach ($i_lo->onderdeellijst($afdid, 2, "", "GR.Volgnummer, GR.Starttijd, GR.Omschrijving, L.Achternaam, L.Tussenv, L.Roepnaam") as $row) {
 				$options = "<option value=0>Niet ingedeeld</option>\n";
 				foreach ($grrows as $grrow) {
 					$options .= sprintf("<option value=%d %s>%s</option>\n", $grrow->RecordID, checked($row->ndGroepID, "option", $grrow->RecordID), $grrow->Omschrijving);
