@@ -701,7 +701,7 @@ class Mailing {
 				if (!isset($_POST['selectie_groep'])) {
 					$_POST['selectie_groep'] = 0;
 				}
-				$selgr = sprintf("<option value=0>&nbsp;</option>\n%s<option disabled>-- Eigen lijsten --</option>\n%s</select>\n", $i_ond->htmloptions($_POST['selectie_groep'], 1), $i_el->htmloptions($_POST['selectie_groep']));
+				$selgr = sprintf("<option value=0>&nbsp;</option>\n%s<option disabled>-- Eigen lijsten --</option>\n%s</select>\n", $i_ond->htmloptions($_POST['selectie_groep'], 1), $i_el->htmloptions($_POST['selectie_groep'], 0));
 				printf("<label>Zit in groep</label><select name='selectie_groep' onChange='this.form.submit();'>%s</selectie>\n", $selgr);
 				
 				$this->add_del_selectie("aantal", $_POST['selectie_groep']);
@@ -721,7 +721,7 @@ class Mailing {
 			}
 		}
 		
-		printf("<label>Cc</label><input type='email' name='cc_addr' value='%s'>\n", $this->cc_addr);
+		printf("<label>Cc</label><input type='text' name='cc_addr' value='%s'>\n", $this->cc_addr);
 		
 		if ((new cls_Onderdeel())->aantal("`Type`='A' AND LENGTH(CentraalEmail) > 4 AND IFNULL(VervallenPer, CURDATE()) >= CURDATE()") > 0) {
 			printf("<label>Cc aan afdelingen</label><input type='checkbox' name='CCafdelingen' value=1 %s>\n", checked($this->CCafdelingen));
@@ -1264,7 +1264,7 @@ class Mailing {
 			$pk = "RecordID";
 		} else {
 			$f = sprintf("L.RecordID=%d", $p_lidid);
-			$rcpts = (new cls_Lid())->ledenlijst($f);
+			$rcpts = (new cls_Lid())->ledenlijst(1, 0, "", $f);
 			$pk = "lnkNummer";
 		}
 		
