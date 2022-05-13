@@ -121,16 +121,14 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			}
 		}
 		
-		if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
-			$b = "Ledenlijst/Basisgegevens";
-			addtp($b);
-			if ($currenttab2 == "Basisgegevens") {
-				addtp($b . "/Onderdelen");
-				addtp($b . "/Functies");
-				addtp($b . "/Diploma's");
-				addtp($b . "/Seizoenen");
-				addtp($b . "/Organisaties");
-			}
+		$b = "Ledenlijst/Basisgegevens";
+		addtp($b);
+		if ($currenttab2 == "Basisgegevens") {
+			addtp($b . "/Onderdelen");
+			addtp($b . "/Functies");
+			addtp($b . "/Diploma's");
+			addtp($b . "/Seizoenen");
+			addtp($b . "/Organisaties");
 		}
 	
 		addtp("Ledenlijst/Instellingen");
@@ -632,12 +630,10 @@ function fnLoginAanvragen($stap="") {
 
 		$mess = "";
 		$lidid = 0;
-		if (!isset($_POST['gewenstelogin'])) {
-			$_POST['gewenstelogin'] = "";
-		}
-		if (!isset($_POST['gewenstwachtwoord'])) {
-			$_POST['gewenstwachtwoord'] = "";
-		}
+		$_POST['emailadres'] = $_POST['emailadres'] ?? "";
+		$_POST['gewenstelogin'] = $_POST['gewenstelogin'] ?? "";
+		$_POST['gewenstwachtwoord'] = $_POST['gewenstwachtwoord'] ?? "";
+
 		$wwok = checknewpassword($_POST['gewenstwachtwoord'], $_POST['gewenstelogin']);
 		if (!isset($_POST['lidnummer']) or strlen($_POST['lidnummer']) == 0) {
 			$_POST['lidnummer'] = 0;
@@ -651,8 +647,8 @@ function fnLoginAanvragen($stap="") {
 		}
 		
 		$i_login = new cls_Login();
-		$lidid = $i_login->lidid($_POST['loginemail'], $_POST['lidnummer']);
-		if (!isValidMailAddress($_POST['loginemail'], 0)) {
+		$lidid = $i_login->lidid($_POST['emailadres'], $_POST['lidnummer']);
+		if (!isValidMailAddress($_POST['emailadres'], 0)) {
 			$mess = "Je hebt geen geldig e-mailadres opgegeven.";
 		} elseif (strlen($_POST['gewenstelogin']) < 6) {
 			$mess = "Je hebt geen geldige gewenste login opgegeven. Een login moet uit minimaal 6 karakters bestaan.";
@@ -687,11 +683,11 @@ function fnLoginAanvragen($stap="") {
 					}
 				}
 			} elseif ($_POST['lidnummer'] > 0) {
-				$mess = sprintf("De combinatie van lidnummer %d en e-mailadres '%s' is in de database onbekend.", $_POST['lidnummer'], $_POST['loginemail']);
+				$mess = sprintf("De combinatie van lidnummer %d en e-mailadres '%s' is in de database onbekend.", $_POST['lidnummer'], $_POST['emailadres']);
 			} elseif ($lidid == -1) {
-				$mess = sprintf("E-mailadres '%s' komt meerdere keren voor, vul het lidnummer in bij de login aanvraag.", $_POST['loginemail']);
+				$mess = sprintf("E-mailadres '%s' komt meerdere keren voor, vul het lidnummer in bij de login aanvraag.", $_POST['emailadres']);
 			} else {
-				$mess = sprintf("E-mailadres '%s' is onbekend in de database.", $_POST['loginemail']);
+				$mess = sprintf("E-mailadres '%s' is onbekend in de database.", $_POST['emailadres']);
 			}
 		}
 		if (strlen($mess) > 0) {
@@ -705,7 +701,7 @@ function fnLoginAanvragen($stap="") {
 		printf("<form action='%s?tp=Bevestiging+login' method='post'>\n", $_SERVER["PHP_SELF"]);
 		echo("<h3>Login aanvraag</h3>\n");
 		
-		echo("<label>E-mailadres</label><input type='email' name='loginemail' value=''>\n");
+		echo("<label>E-mailadres</label><input type='email' name='emailadres' value=''>\n");
 		echo("<label>Lidnummer</label><input type='number' name='lidnummer'>\n");
 		printf("<label>Gewenste login</label><input type='text' name='gewenstelogin' maxlength=%d>\n", $_SESSION['settings']['login_maxlengte']);
 		echo("<label>Gewenst wachtwoord</label><input type='password' name='gewenstwachtwoord' value=''>\n");
