@@ -311,17 +311,18 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 		echo("<div id='groepenmuteren'>\n");
 		echo("<table>\n");
 		echo("<caption>Muteren groepen</caption>\n");
-		echo("<tr><th>Volgnr</th><th>Code</th><th>Omschrijving</th><th>Instructeurs</th><th>Starttijd</th><th>Eindtijd</th><th>Activiteit</th></tr>\n");
+		echo("<tr><th>#</th><th>Volgnr</th><th>Code</th><th>Omschrijving</th><th>Instructeurs</th><th>Starttijd</th><th>Eindtijd</th><th>Activiteit</th></tr>\n");
 		
 	
 		$f = sprintf("OnderdeelID=%d", $afdid);
 		foreach ($i_gr->basislijst($f, "Volgnummer, Omschrijving") as $row) {
 			if ($row->RecordID > 0) {
 				echo("<tr>\n");
+				printf("<td>%d</td>\n", $row->RecordID);
 				printf("<td><input type='number' name='Volgnummer_%d' value='%s'></td>\n", $row->RecordID, $row->Volgnummer);
-				printf("<td><input type='text' class='code' name='Kode_%d' maxlength=8 value=\"%s\"></td>\n", $row->RecordID, $row->Kode);
-				printf("<td><input type='text' name='Omschrijving_%d' maxlength=45 value=\"%s\"></td>\n", $row->RecordID, $row->Omschrijving);
-				printf("<td><input type='text' name='Instructeurs_%d' maxlength=45 value=\"%s\"></td>\n", $row->RecordID, $row->Instructeurs);
+				printf("<td><input type='text' class='w8' name='Kode_%d' maxlength=8 value=\"%s\"></td>\n", $row->RecordID, $row->Kode);
+				printf("<td><input type='text' class='w45' name='Omschrijving_%d' maxlength=45 value=\"%s\"></td>\n", $row->RecordID, $row->Omschrijving);
+				printf("<td><input type='text' class='w60' name='Instructeurs_%d' maxlength=60 value=\"%s\"></td>\n", $row->RecordID, $row->Instructeurs);
 				printf("<td><input type='time' name='Starttijd_%d' value='%s'></td>\n", $row->RecordID, $row->Starttijd);
 				printf("<td><input type='time' name='Eindtijd_%d' value='%s'></td>\n", $row->RecordID, $row->Eindtijd);
 				printf("<td>%s</td>\n", $row->Activiteit);
