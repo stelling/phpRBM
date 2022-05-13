@@ -857,7 +857,7 @@ function fnEditTable($res, $kols, $id, $th) {
 						$ret .= "<td>Nee</td>";
 					}
 				} else {
-					$ret .= sprintf("<td><input type='checkbox' name='%s_%d' value=1%s></td>", str_replace(" ", "_", substr($key, 3)), $row->$kol_pk, checked($value, "", 1));
+					$ret .= sprintf("<td><input type='checkbox' id='%s_%d' class='cbedit' value=1%s></td>", $colname, $valpk, checked($value));
 				}
 				
 			} elseif (isset($kol['bronselect']) and count($kol['bronselect']) > 0) {
@@ -869,7 +869,7 @@ function fnEditTable($res, $kols, $id, $th) {
 
 			} elseif ($tp == "date") {
 				if ($ro == false) {
-					$ret .= sprintf("<input type='date' name='%s_%d' value='%s'>", $colname, $valpk, $value);
+					$ret .= sprintf("<td><input type='date' id='%s_%d' value='%s' class='dateedit'></td>", $colname, $valpk, $value);
 				} elseif ((!is_null($value)) and $value > '1900-01-01') {
 					$ret .= sprintf("<td class='datumkort'>%s</td>", date('d/m/Y', strtotime($value)));
 				} else {
@@ -914,7 +914,15 @@ function fnEditTable($res, $kols, $id, $th) {
 	$ret .= sprintf("<script>
 $(document).ready(function() {
 
-	// Save data
+	$('.cbedit').focusout(function(){
+		if (this.checked == true) {
+			savedata('%1\$s', this.id, 1);
+		} else {
+			savedata('%1\$s', this.id, 0);
+		}
+		
+	});
+	
 	$('.txtedit').focusout(function(){
 		savedata('%1\$s', this.id, $(this).val());
 	});
@@ -924,6 +932,10 @@ $(document).ready(function() {
 	});
 	
 	$('.numedit').change(function(){
+		savedata('%1\$s', this.id, $(this).val());
+	});
+	
+	$('.dateedit').focusout(function(){
 		savedata('%1\$s', this.id, $(this).val());
 	});
 });
@@ -1070,7 +1082,7 @@ function removetextblock($content, $start_block="<!-- Ingelogd -->", $end_block=
 function checked($val, $tp="checkbox", $sv=1) {
 	if ($tp === "option" and $val == $sv) {
 		return " selected";
-	} elseif ($tp === "checkbox" and ($val == 1 or $val === true)) {
+	} elseif ($tp === "checkbox" and (intval($val) == 1 or $val === true)) {
 		return " checked";
 	} else {
 		return "";
