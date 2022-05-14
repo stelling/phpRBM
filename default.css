@@ -186,8 +186,12 @@ input.w7 {
 	width: 60px;
 }
 
+input.w8 {
+	width: 70px;
+}
+
 input.w9, input.w10 {
-	width: 65px;
+	width: 90px;
 }
 
 input.w15 {
@@ -206,12 +210,24 @@ input.w40, input.w45 {
 	width: 180px;
 }
 
+input.w60 {
+	width: 240px;
+}
+
 input.w75 {
 	width: 300px;
 }
 
 input.w90 {
 	width: 350px;
+}
+
+input.w110 {
+	width: 430px;
+}
+
+input.w150 {
+	width: 585px;
 }
 
 #container, #containerbreed {
@@ -287,7 +303,7 @@ header a + a:visited + a:hover {
 #filter label {
 	clear: none;
 	float: left;
-	margin-left: 6px;
+	margin-left: 0;
 	margin-right: 4px;
 	margin-top: 3px;
 	margin-bottom: 5px;
@@ -321,6 +337,10 @@ header a + a:visited + a:hover {
 	margin-left: 3px;
 	margin-top: 3px;
 	margin-bottom: 4px;
+}
+
+#filter span {
+	background-color: transparent;
 }
 
 #filter .aantrecords {
@@ -725,11 +745,6 @@ td.trash, .beheerlogins td:last-child, #beheerautorisatie td:last-child, .beheer
 	margin-right: 8px;
 	margin-bottom: 8px;
 	padding-left: 6px;
-}
-
-
-#groepenmuteren input[type='text'] {
-	width: 225px;
 }
 
 #groepenmuteren input[type='number'] {
@@ -2115,20 +2130,6 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	#wijzigenlidgegevens input, #wijzigenlidgegevens select {
 		width: 200px;
 	}
-}
-
-#agenda li.ZR {
-	color: yellow;
-	background-color: red;
-}
-
-#agenda li.DZ {
-	color: aqua;
-}
-
-#agenda li.opleiding_eerste_hulp {
-	color: orange;
-	font-weight: bolder;
 }
 
 #agenda li.jarigen {
