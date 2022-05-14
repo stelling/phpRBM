@@ -5773,6 +5773,39 @@ class cls_Eigen_lijst extends cls_db_base {
 	
 } # cls_Eigen_lijst
 
+class cls_Foto extends cls_db_base {
+	
+	public $laatstgewijzigd;
+	
+	function __construct() {
+		$this->table = TABLE_PREFIX . "Foto";
+		$this->ta = 6;
+		$this->tas = 21;
+	}
+	
+	public function add($p_id, $p_lidid) {
+		$nrid = $this->nieuwrecordID();
+		$this->query = sprintf("INSERT INTO %s (RecordID, FotoData, LidID) VALUES (%d, '%s', %d);", $this->table, $nrid, $p_id, $p_lidid);
+		if ($this->execsql()) {
+			$this->mess = sprintf("Nieuwe pasfoto voor lid %d in de tabel gezet.", $p_lidid);
+			$this->Log($nrid);
+		}
+	}
+	
+	public function fotolid($p_lidid) {
+		$query = sprintf("SELECT * FROM %s WHERE LidID=%d ORDER BY Ingevoerd DESC;", $this->table, $p_lidid);
+		$fr = $this->execsql($query)->fetch();
+		
+		if (isset($fr->RecordID)) {
+			$this->laatstgewijzigd = $fr->Ingevoerd;
+			return "data:image/jpg;charset=utf8;base64," . base64_encode($fr->FotoData);
+		} else {
+			return false;
+		}
+	}
+	
+}  # cls_Foto
+
 class cls_dms extends cls_db_base {
 }  # cls_dms
 
@@ -6648,7 +6681,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sAanwezigheid` (
 
 CREATE TABLE IF NOT EXISTS `%1\$sAdmin_access` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
-  `Tabpage` varchar(50) NOT NULL,
+  `Tabpage` varchar(75) NOT NULL,
   `Toegang` int(11) NOT NULL DEFAULT -1,
   `LaatstGebruikt` date NOT NULL DEFAULT current_timestamp(),
   `Ingevoerd` datetime NOT NULL DEFAULT current_timestamp(),
@@ -6726,7 +6759,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_param` (
 CREATE TABLE IF NOT EXISTS `%1\$sAfdelingskalender` (
   `RecordID` int(11) NOT NULL,
   `OnderdeelID` int(11) NOT NULL,
-  `Datum` date NOT NULL,
+  `Datum` date NOT NULL DEFAULT '0000-00-00',
   `Omschrijving` varchar(75) DEFAULT NULL,
   `Activiteit` tinyint(4) NOT NULL DEFAULT 1 COMMENT '1 = wel activiteit, 0 = geen activiteit',
   `Ingevoerd` datetime NOT NULL DEFAULT current_timestamp(),
@@ -6829,6 +6862,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sDiploma` (
   `GELDIGH` int(11) DEFAULT NULL,
   `AantalBeoordelingen` smallint(6) DEFAULT NULL,
   `Vervallen` date DEFAULT NULL,
+  `EindeUitgifte` date DEFAULT NULL,
   `HistorieOpschonen` int(11) DEFAULT NULL,
   `VoorgangerID` int(11) DEFAULT NULL,
   `Alternatief` varchar(20) DEFAULT NULL,
@@ -6845,6 +6879,8 @@ CREATE TABLE IF NOT EXISTS `%1\$sEigen_lijst` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `Naam` varchar(35) NOT NULL,
   `MySQL` longtext NOT NULL,
+  `Aantal_params` tinyint(4) NOT NULL DEFAULT 0,
+  `Default_value_params` varchar(100) DEFAULT NULL,
   `AantalKolommen` int(11) NOT NULL DEFAULT -1,
   `KolomLidID` int(11) NOT NULL DEFAULT -1,
   `AantalRecords` int(11) NOT NULL DEFAULT 0,
@@ -6868,6 +6904,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sEvenement` (
   `MaxPersonenPerDeelname` int(11) NOT NULL DEFAULT 1,
   `BeperkTotGroep` int(11) NOT NULL DEFAULT 0 COMMENT 'Welke groep mag zich voor dit evenement inschrijven? 0 = iedereen.',
   `ZichtbaarVoor` int(11) NOT NULL DEFAULT 0 COMMENT 'Voor welke groep is dit evenement zichtbaar? 0 = iedereen.',
+  `MeerdereStartMomenten` tinyint(4) NOT NULL DEFAULT 0,
   `Ingevoerd` datetime NOT NULL DEFAULT current_timestamp(),
   `IngevoerdDoor` int(11) NOT NULL DEFAULT 0,
   `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
@@ -6884,6 +6921,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sEvenement_Deelnemer` (
   `Functie` varchar(30) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `Opmerking` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `Status` char(1) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT 'I',
+  `StartMoment` time DEFAULT NULL,
   `Aantal` int(11) NOT NULL DEFAULT 1,
   `Ingevoerd` datetime NOT NULL DEFAULT current_timestamp(),
   `IngevoerdDoor` int(11) NOT NULL DEFAULT 0,
@@ -6902,6 +6940,15 @@ CREATE TABLE IF NOT EXISTS `%1\$sEvenement_Type` (
   `GewijzigdDoor` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `%1\$sFoto` (
+  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
+  `LidID` int(11) NOT NULL DEFAULT 0,
+  `FotoData` longblob NOT NULL,
+  `Type` char(1) NOT NULL DEFAULT 'P',
+  `Ingevoerd` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`RecordID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sFunctie` (
   `Nummer` smallint(6) NOT NULL,
@@ -6935,9 +6982,10 @@ CREATE TABLE IF NOT EXISTS `%1\$sGBR` (
 CREATE TABLE IF NOT EXISTS `%1\$sGroep` (
   `RecordID` int(11) NOT NULL,
   `OnderdeelID` int(11) DEFAULT NULL,
-  `Kode` varchar(6) DEFAULT NULL,
+  `Kode` varchar(8) DEFAULT NULL,
+  `Volgnummer` int(11) DEFAULT NULL,
   `Omschrijving` varchar(45) DEFAULT NULL,
-  `Instructeurs` varchar(45) DEFAULT NULL,
+  `Instructeurs` varchar(60) DEFAULT NULL,
   `Zwemzaal` varchar(15) DEFAULT NULL,
   `DiplomaID` int(11) DEFAULT NULL,
   `Starttijd` varchar(5) DEFAULT NULL,
@@ -6946,8 +6994,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sGroep` (
   `Contributie` decimal(8,2) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
-  PRIMARY KEY (`RecordID`),
-  UNIQUE KEY `Kode` (`Kode`)
+  PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sKostenplaats` (
@@ -6965,7 +7012,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sLid` (
   `Nummer` int(11) DEFAULT NULL,
   `Roepnaam` varchar(17) DEFAULT NULL,
   `Tussenv` varchar(7) DEFAULT NULL,
-  `Achternaam` varchar(40) DEFAULT NULL,
+  `Achternaam` varchar(45) DEFAULT NULL,
   `Meisjesnm` varchar(25) DEFAULT NULL,
   `Voorletter` varchar(10) DEFAULT NULL,
   `Voornamen` varchar(40) DEFAULT NULL,
@@ -6973,7 +7020,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sLid` (
   `GEBDATUM` date DEFAULT NULL,
   `Overleden` date DEFAULT NULL,
   `GEBPLAATS` varchar(22) DEFAULT NULL,
-  `Adres` varchar(30) DEFAULT NULL,
+  `Adres` varchar(35) DEFAULT NULL,
   `Huisnr` int(11) DEFAULT NULL,
   `Toevoeging` varchar(5) DEFAULT NULL,
   `Postcode` varchar(7) DEFAULT NULL,
@@ -6987,6 +7034,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sLid` (
   `NamenOuders` varchar(90) DEFAULT NULL,
   `Waarschuwen bij nood` varchar(255) DEFAULT NULL,
   `Bankrekening` varchar(18) DEFAULT NULL,
+  `RekeningBetaaldDoor` int(11) DEFAULT NULL,
   `Burgerservicenummer` int(11) DEFAULT NULL,
   `Machtiging afgegeven` tinyint(4) DEFAULT NULL,
   `BezwaarMachtiging` datetime DEFAULT NULL,
@@ -7022,16 +7070,16 @@ CREATE TABLE IF NOT EXISTS `%1\$sLiddipl` (
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `%1\$sLidmaatschap` (
-  `RecordID` int(11) DEFAULT NULL,
-  `Lid` int(11) NOT NULL,
-  `LIDDATUM` date NOT NULL,
+  `RecordID` int(11) NOT NULL,
+  `Lid` int(11) DEFAULT NULL,
+  `LIDDATUM` date DEFAULT NULL,
   `Opgezegd` date DEFAULT NULL,
   `OpgezegdDoorVereniging` tinyint(4) DEFAULT NULL,
   `RedenOpzegging` longtext DEFAULT NULL,
   `Lidnr` int(11) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
-  PRIMARY KEY (`Lid`,`LIDDATUM`),
+  PRIMARY KEY (`RecordID`),
   UNIQUE KEY `Lidnr` (`Lidnr`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
@@ -7048,7 +7096,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sLidond` (
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`RecordID`),
-  UNIQUE KEY `LidOndVanafFunctie` (`Lid`,`OnderdeelID`,`Vanaf`,`Functie`),
   KEY `OnderdeelID` (`OnderdeelID`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
@@ -7078,19 +7125,19 @@ CREATE TABLE IF NOT EXISTS `%1\$sMailing` (
   `cc_addr` varchar(50) DEFAULT '',
   `subject` varchar(75) DEFAULT '',
   `message` text DEFAULT NULL,
+  `NietVersturenVoor` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
+  `GroepOntvangers` int(11) NOT NULL DEFAULT 0,
   `ZonderBriefpapier` tinyint(4) DEFAULT 0,
   `GebruikPlaatjeAlsBericht` tinyint(4) DEFAULT 0,
   `template` tinyint(4) NOT NULL DEFAULT 0,
   `CCafdelingen` tinyint(4) NOT NULL DEFAULT 0,
   `Concept` tinyint(4) DEFAULT 1,
-  `confidential` tinyint(4) NOT NULL DEFAULT 0,
   `ZichtbaarVoor` int(11) NOT NULL DEFAULT 0,
-  `verzamelen` tinyint(4) NOT NULL DEFAULT 0,
+  `EvenementID` int(11) NOT NULL DEFAULT 0,
   `new_on` datetime NOT NULL DEFAULT current_timestamp(),
   `AddedBy` int(11) NOT NULL DEFAULT 0,
   `changed_on` datetime NOT NULL DEFAULT current_timestamp(),
   `ChangedBy` int(11) NOT NULL DEFAULT 0,
-  `sent_on` datetime DEFAULT NULL,
   `SentBy` int(11) NOT NULL DEFAULT 0,
   `deleted_on` datetime DEFAULT NULL,
   `DeletedBy` int(11) DEFAULT NULL,
@@ -7120,7 +7167,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sMailing_hist` (
   `ZichtbaarVoor` int(11) NOT NULL DEFAULT 0,
   `send_by` int(11) DEFAULT NULL,
   `send_on` datetime DEFAULT NULL,
-  `send_mt` decimal(16,6) DEFAULT NULL,
   `Successful` tinyint(4) NOT NULL DEFAULT 1,
   `Ingevoerd` datetime NOT NULL DEFAULT current_timestamp(),
   `IngevoerdDoor` int(11) NOT NULL,
@@ -7135,6 +7181,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sMailing_rcpt` (
   `MailingID` int(11) NOT NULL DEFAULT 0,
   `LidID` int(11) NOT NULL DEFAULT 0,
   `to_address` varchar(50) DEFAULT NULL,
+  `Rcpt_Type` char(1) NOT NULL DEFAULT 'T',
   `Ingevoerd` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
@@ -7189,6 +7236,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sOnderdl` (
   `LIDCB` decimal(8,2) DEFAULT NULL,
   `JEUGDCB` decimal(8,2) DEFAULT NULL,
   `FUNCTCB` decimal(8,2) DEFAULT NULL,
+  `ContributiePerActiviteit` tinyint(4) DEFAULT NULL,
   `Type` varchar(1) DEFAULT NULL,
   `ORGANIS` smallint(6) DEFAULT NULL,
   `Kader` tinyint(4) DEFAULT NULL,
@@ -7211,7 +7259,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sOnderdl` (
 CREATE TABLE IF NOT EXISTS `%1\$sOrganisatie` (
   `Nummer` smallint(6) NOT NULL,
   `Naam` varchar(8) DEFAULT NULL,
-  `Volledige naam` varchar(50) DEFAULT NULL,
+  `Volledige naam` varchar(55) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL,
   PRIMARY KEY (`Nummer`)
@@ -7240,7 +7288,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sRekreg` (
   `Rekening` int(11) DEFAULT NULL,
   `Regelnr` int(11) DEFAULT NULL,
   `Lid` int(11) DEFAULT NULL,
-  `KSTNPLTS` varchar(5) DEFAULT NULL,
+  `KSTNPLTS` varchar(7) DEFAULT NULL,
   `OMSCHRIJV` varchar(60) DEFAULT NULL,
   `Bedrag` decimal(8,2) DEFAULT NULL,
   `ToonOpRekening` tinyint(4) DEFAULT NULL,
@@ -7252,8 +7300,8 @@ CREATE TABLE IF NOT EXISTS `%1\$sRekreg` (
 
 CREATE TABLE IF NOT EXISTS `%1\$sSeizoen` (
   `Nummer` int(11) NOT NULL,
-  `Begindatum` datetime DEFAULT NULL,
-  `Einddatum` datetime DEFAULT NULL,
+  `Begindatum` date DEFAULT NULL,
+  `Einddatum` date DEFAULT NULL,
   `Leeftijdsgrens jeugdleden` smallint(6) DEFAULT NULL,
   `Contributie leden` decimal(8,2) DEFAULT NULL,
   `Contributie jeugdleden` decimal(8,2) DEFAULT NULL,
@@ -7348,6 +7396,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sVereniging` (
   `EmailLedenadministratie` varchar(45) DEFAULT NULL,
   `BewaartijdHistorie` int(11) DEFAULT NULL,
   `GroepKaderleden` int(11) DEFAULT NULL,
+  `GroepJeugdkaderleden` int(11) DEFAULT NULL,
   `Ingevoerd` date DEFAULT NULL,
   `Gewijzigd` datetime DEFAULT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
