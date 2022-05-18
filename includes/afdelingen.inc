@@ -25,7 +25,7 @@ function fnAfdeling() {
 function fnAfdelingslijst($afdid) {
 	
 	$afdnm = (new cls_Onderdeel())->naam($afdid);
-	
+	(new cls_lidond())->auto_einde($afdid);
 	$i_dp = new cls_Diploma();
 	
 	$arrSort[] = "Naam lid;L.Achternaam";
@@ -230,12 +230,18 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 			if ($toonpresentie > 0) {
 				$stat = (new cls_Aanwezigheid())->status($row->RecordID, $toonpresentie);
 				if (strlen($stat) > 0) {
-					$cl = sprintf("class='presstat_%s'", strtolower($stat));
+					$cl = sprintf("presstat_%s", strtolower($stat));
 				}
+			}
+			if ($row->Opgezegd < date("Y-m-d", strtotime("+3 MONTH"))) {
+				$cl .= " opgezegd";
 			}
 			$nm = $row->NaamLid;
 			if (strlen($row->Leeftijd) > 5 and ($p_toonleeftijd == 1 or ($p_toonleeftijd == 2 and intval(substr($row->Leeftijd, 0, 2)) < 18))) {
 				$nm .= " (" .  $row->Leeftijd . ")";
+			}
+			if (strlen($cl) > 0) {
+				$cl = sprintf(" class='%s'", $cl);
 			}
 			printf("<li%s>%s</li>\n", $cl, $nm);
 			$hvgroep = $row->GroepID * 1;
