@@ -309,7 +309,14 @@ function fnVoorblad() {
 
 function fnAgenda($p_lidid=0) {
 	
-	$ics = file_get_contents("https://calendar.google.com/calendar/ical/nl.dutch%23holiday%40group.v.calendar.google.com/public/basic.ics");
+	$i_lid = new cls_Lid();
+	
+	if (strlen($_SESSION['settings']['agenda_url_feestdagen']) > 4) {
+		$ics = file_get_contents($_SESSION['settings']['agenda_url_feestdagen']);
+	} else {
+		$ics = false;
+	}
+	
 	if ($ics === FALSE) {
 		$fds["99991231"] = "geen";
 	} else {
@@ -331,7 +338,7 @@ function fnAgenda($p_lidid=0) {
 	}
 	
 	$txt = "<div id=agenda>\n";
-	$txt .= "<p class='mededeling'>De agenda is nog in ontwikkeling</p>\n";
+//	$txt .= "<p class='mededeling'>De agenda is nog in ontwikkeling</p>\n";
 	$txt .= "<table>\n<tr>\n";
 	for ($dn=1;$dn<=7;$dn++) {
 		$txt .= sprintf("<th>%s</th>", strftime("%A", strtotime(sprintf("+%d day", $dn-1), $dtStart)));
@@ -358,7 +365,7 @@ function fnAgenda($p_lidid=0) {
 				if (substr($evrow->Datum, 11, 5) > "00:00") {
 					$bt = substr($evrow->Datum, 11, 5) . "&nbsp;";
 				}
-				$txt .= sprintf("<li class='%s'>%s%s</li>", str_replace("'", "", str_replace(" ", "_", strtolower($evrow->OmsType))), $bt, $evrow->Omschrijving);
+				$txt .= sprintf("<li class='%s'>%s%s</li>\n", str_replace("'", "", str_replace(" ", "_", strtolower($evrow->OmsType))), $bt, $evrow->Omschrijving);
 			}
 			
 			// Afdelingskalender
@@ -376,17 +383,13 @@ function fnAgenda($p_lidid=0) {
 						$oms = "Geen " . $akrow->Naam;
 					}
 				}
-				$txt .= sprintf("<li class='%s'>%s</li>", $akrow->Kode, $oms);
+				$txt .= sprintf("<li class='%s'>%s</li>\n", strtolower($akrow->Kode), $oms);
 			}
 			
 			// Verjaardagen
-			if ($_SESSION['settings']['verjaardagen_op_agenda'] >= 0) {
+			if ($_SESSION['settings']['agenda_verjaardagen'] > 0) {
 				$aant = 0;
-				if ($_SESSION['settings']['verjaardagen_op_agenda'] > 0) {
-					$rows = (new cls_eigen_lijst())->rowset($_SESSION['settings']['verjaardagen_op_agenda'], date("Y-m-d", $td));
-				} else {
-					$rows = (new cls_Lid())->verjaardagen($td);
-				}
+				$rows = $i_lid->verjaardagen($td);
 				foreach ($rows as $row) {
 					$aant++;
 					if ($aant == 1) {
