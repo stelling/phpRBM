@@ -143,22 +143,40 @@ function CopyFunction() {
 	alert("De wijzigingen zijn naar het klembord gekopieerd.");
 }
 
-function savedata(entity, id, value, field_name='') {
+function savedata(entity, rid, control, field_name='') {
 
-  // Get edit id, field name and value
-	if (field_name == "") {
+	id = control.id;
+	if (id.indexOf("_") !== -1) {
 		var split_id = id.split('_');
 		var field_name = split_id[0];
-		var edit_id = split_id[1];
+		var rid = split_id[1];
 	} else {
-		var edit_id = id;
+		var field_name = control.id;
 	}
+	var value = control.value;
 
 	// Sending AJAX request
 	$.ajax({
 		url: 'ajax_update.php?entiteit=' + entity,
 		type: 'post',
-		data: { field:field_name, value:value, id:edit_id },
+		data: { field:field_name, value:value, id:rid },
+		success:function(response){}
+	});
+}
+
+function savecb(entity, rid, control) {
+	
+	if (control.checked == true) {
+		value = 1;
+	} else {
+		value = 0;
+	}
+	
+	// Sending AJAX request
+	$.ajax({
+		url: 'ajax_update.php?entiteit=' + entity,
+		type: 'post',
+		data: { field:control.id, value:value, id:rid },
 		success:function(response){}
 	});
 }
