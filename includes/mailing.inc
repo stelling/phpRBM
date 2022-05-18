@@ -39,8 +39,9 @@ function fnMailing() {
 		$op = "add_selectie";
 	} elseif (isset($_POST['LedenVerwijderen'])) {
 		$op = "del_selectie";
-	} elseif (isset($_POST['OntvangersVerwijderen']) and $_POST['OntvangersVerwijderen'] == "Alle ontvangers verwijderen") {
+	} elseif (isset($_POST['OntvangersVerwijderen'])) {
 		$op = "delete_all_rcpt";
+		
 	}
 	
 	if ($op == "htmlmedia" and isset($_GET['attach'])) {
@@ -499,6 +500,8 @@ class Mailing {
 		$i_el = new cls_Eigen_lijst();
 		$i_ond = new cls_Onderdeel();
 		$ob = "OnBlur='this.form.submit();'";
+		$jstb = sprintf("OnBlur=\"savedata('mailing', %d, $(this).val(), 'Roepnaam');\"", $this->mid);
+		$jscb = sprintf("OnClick=\"savecb('mailing', %d, this);\"", $this->mid);
 		
 		if (file_exists(BASEDIR . '/maatwerk/email.css') and $this->zonderbriefpapier == 0) {
 			$ss = "content_css: 'maatwerk/email.css',";
@@ -687,7 +690,6 @@ class Mailing {
 
 				echo("<label>Selectie leden</label>\n");
 				echo("<div id='mailingselectieleden'>\n");
-				echo("<label class='kop'></label><label class='kop'>Vanaf</label><label class='kop'>Tot en met</label>\n");
 
 				$i_lid = new cls_Lid();
 				$i_lm = new cls_Lidmaatschap();
@@ -695,8 +697,8 @@ class Mailing {
 				$_POST['selectie_vangebdatum'] = $_POST['selectie_vangebdatum'] ?? $i_lid->min("GEBDATUM");
 				$_POST['selectie_temgebdatum'] = $_POST['selectie_temgebdatum'] ?? $i_lid->max("GEBDATUM");
 				
-				printf("<label>Geboortedatum</label><input type='date' value='%s' name='selectie_vangebdatum' %s>", $_POST['selectie_vangebdatum'], $ob);
-				printf("<input type='date' value='%s' name='selectie_temgebdatum' %s>\n", $_POST['selectie_temgebdatum'], $ob);
+				printf("<label>Vanaf geboortedatum</label><input type='date' value='%s' name='selectie_vangebdatum' %s><p> (%s)</p>\n", $_POST['selectie_vangebdatum'], $ob, trim(strftime('%e %B %Y', strtotime($_POST['selectie_vangebdatum']))));
+				printf("<label>T/m geboortedatum</label><input type='date' value='%s' name='selectie_temgebdatum' %s><p> (%s)</p>\n", $_POST['selectie_temgebdatum'], $ob, trim(strftime('%e %B %Y', strtotime($_POST['selectie_temgebdatum']))));
 
 				if (!isset($_POST['selectie_groep'])) {
 					$_POST['selectie_groep'] = 0;
@@ -705,7 +707,7 @@ class Mailing {
 				printf("<label>Zit in groep</label><select name='selectie_groep' onChange='this.form.submit();'>%s</selectie>\n", $selgr);
 				
 				$this->add_del_selectie("aantal", $_POST['selectie_groep']);
-				printf("<label>Aantal personen</label><p>%d</p>", $this->sl_aantingroep);
+				printf("<label>Aantal personen in groep</label><p id='aantalpersoneningroep'>%d</p>", $this->sl_aantingroep);
 				
 				if ($this->sl_aanttoevoegen > 0) {
 					printf("<button type='submit' name='LedenToevoegen'>%d ontvangers toevoegen</button>\n", $this->sl_aanttoevoegen);
@@ -724,9 +726,9 @@ class Mailing {
 		printf("<label>Cc</label><input type='text' name='cc_addr' value='%s'>\n", $this->cc_addr);
 		
 		if ((new cls_Onderdeel())->aantal("`Type`='A' AND LENGTH(CentraalEmail) > 4 AND IFNULL(VervallenPer, CURDATE()) >= CURDATE()") > 0) {
-			printf("<label>Cc aan afdelingen</label><input type='checkbox' name='CCafdelingen' value=1 %s>\n", checked($this->CCafdelingen));
+			printf("<label>Cc aan afdelingen</label><input type='checkbox' name='CCafdelingen' id='CCafdelingen' value=1 %s %s>\n", checked($this->CCafdelingen), $jscb);
 		}
-		
+
 		$ondrows = (new cls_Onderdeel())->lijst(1, "`Type`<>'T'", "", $_SESSION['lidid']);
 		if ($this->zichtbaarvoor == 0) {
 			$select = "<option value=0 selected>Iedereen</option>\n";
@@ -747,7 +749,7 @@ class Mailing {
 		}	
 		printf("<label>Zichtbaar voor</label><select name='ZichtbaarVoor'>\n%s</select>\n", $select);
 		if ($this->mid > 0) {
-			printf("<label>Opties</label><input type='checkbox' name='template' value=1%s><p>Template</p>", checked($this->template));
+			printf("<label>Opties</label><input type='checkbox' name='template' id='template' value=1%s %s><p>Template</p>", checked($this->template), $jscb);
 			printf("<input type='checkbox' name='HTMLdirect' value=1%s onChange='this.form.submit();'><p>HTML direct (zonder editor)</p>", checked($this->htmldirect));
 			printf("<input type='checkbox' name='ZonderBriefpapier' value=1%s  onChange='this.form.submit();'><p>Zonder briefpapier versturen</p>", checked($this->zonderbriefpapier));
 
@@ -864,6 +866,12 @@ class Mailing {
 		echo("</div>  <!-- Einde mailing -->\n");
 		
 		$i_el = null;
+		
+		echo("<script>
+			function mailingprops() {
+				
+			}
+		</script>\n");
 	} # edit
 	
 	public function htmlmedia($p_bestand) {
@@ -1416,7 +1424,7 @@ class Mailing {
 						} elseif (strlen($nv) > 0) {
 							$nv .= ", ";
 						}
-						$nv .= htmlent($val[0]);
+						$nv .= htmlentities($val[0]);
 						if (substr($fld['Naam'], -3) == "_UL") {
 							$nv .= "</li>\n";
 						}
@@ -1552,7 +1560,7 @@ function lijstmailings($p_filter="") {
 		}
 		$rows = $i_M->lijst($p_filter);
 		echo("<div id='filter'>\n");
-		echo("<input id='tbTekstFilter' placeholder='Tekstfilter' onKeyUp=\"fnFilter('lijstmailingen', 'tbTekstFilter', 2, 3, 4);\">\n");
+		echo("<input id='tbTekstFilter' placeholder='Tekstfilter' onKeyUp=\"fnFilter('lijstmailingen', 'tbTekstFilter', 1, 2, 3);\">\n");
 		printf("<p class='aantrecords'>%d mailings</p>\n", count($rows));
 		echo("</div> <!-- Einde filter -->\n");
 			
