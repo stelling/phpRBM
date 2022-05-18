@@ -652,7 +652,7 @@ class cls_Lid extends cls_db_base {
 		
 		$xtraselect = "";
 		
-		if ($_SESSION['settings']['woonadres_anderen_tonen'] == 1) {
+		if (in_array($_SESSION['settings']['woonadres_anderen_tonen'], explode(",", $_SESSION['lidgroepen']))) {
 			$xtraselect .= ", CONCAT(L.Adres, ', ', L.Woonplaats) AS `Adres`";
 		}
 		
@@ -1004,8 +1004,11 @@ class cls_Lid extends cls_db_base {
 		
 		if ($p_kolom == "Voorletter") {
 			$p_waarde = trim(strtoupper($p_waarde));
-			if (substr($p_waarde, -1) != ".") {
+			if (strlen($p_waarde) > 0 and substr($p_waarde, -1) != ".") {
 				$p_waarde .= ".";
+			}
+			if (strlen($p_waarde) > 2) {
+				$p_waarde = str_replace(" ", "", $p_waarde);
 			}
 		}
 		
@@ -1014,6 +1017,14 @@ class cls_Lid extends cls_db_base {
 			if (strlen($p_waarde) == 6) {
 				$p_waarde = substr($p_waarde, 0, 4) . " " . substr($p_waarde, -2);
 			}
+		}
+		
+		if ($p_kolom == "Mobiel" and strlen($p_waarde) == 10) {
+			$p_waarde = "06-" . substr($p_waarde, -8);
+		}
+		
+		if ($p_kolom == "EmailOuders" and strlen($p_waarde) > 1) {
+			$p_waarde = str_replace(";", ",", $p_waarde);
 		}
 		
 		if ($p_kolom == "Postcode" and strlen($p_waarde) != 0 and strlen($p_waarde) != 7 and substr($p_waarde, 0, 4) < "9999" and substr($p_waarde, 0, 4) >= "1000") {
@@ -1132,9 +1143,14 @@ class cls_Lidmaatschap extends cls_db_base {
 	}
 	
 	public function overzichtlid($p_lidid) {
-		$query = sprintf("SELECT LM.Lidnr AS Lidnummer, LM.LIDDATUM AS dteVanaf, LM.Opgezegd AS dteOpgezegd FROM %s AS LM WHERE LM.Lid=%d ORDER BY LM.LIDDATUM;", $this->table, $p_lidid);
-		$result = $this->execsql($query);
+		$this->query = sprintf("SELECT LM.Lidnr AS Lidnummer, LM.LIDDATUM AS dteVanaf, LM.Opgezegd AS dteOpgezegd FROM %s AS LM WHERE LM.Lid=%d ORDER BY LM.LIDDATUM;", $this->table, $p_lidid);
+		$result = $this->execsql();
 		return $result->fetchAll();
+	}
+	
+	public function eindelidmaatschap($p_lidid) {
+		$query = sprintf("SELECT IFNULL(LM.Opgezegd, '9999-12-31') FROM %s WHERE LM.Lid=%d ORDER BY LM.LIDDATUM DESC;", $this->basefrom, $p_lidid);
+		return $this->scalar($query);
 	}
 	
 	public function kanopzeggen($p_lidid) {
@@ -2324,8 +2340,9 @@ class cls_Lidond extends cls_db_base {
 	public function onderdeellijst($p_ondid, $p_filter=1, $p_extrafilter="", $p_sort="") {
 		/*
 			Uitleg p_filter
-			1: huidige leden
-			2: huidige en toekomstige leden
+			- 1: huidige leden
+			- 2: huidige en toekomstige leden
+			- 3: leden zonder einde-datum
 		*/
 		
 		$filter = sprintf("LO.OnderdeelID=%d", $p_ondid);
@@ -2333,6 +2350,8 @@ class cls_Lidond extends cls_db_base {
 			$filter .= " AND " . cls_db_base::$wherelidond;
 		} elseif ($p_filter == 2) {
 			$filter .= " AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE()";
+		} elseif ($p_filter == 3) {
+			$filter .= " AND (LO.Opgezegd IS NULL)";
 		}
 		
 		if (strlen($p_extrafilter) > 0) {
@@ -2398,7 +2417,7 @@ class cls_Lidond extends cls_db_base {
 			$where = sprintf("AND LO.OnderdeelID IN (SELECT OnderdeelID FROM %sGroep)", TABLE_PREFIX);
 		}
 		$this->query = sprintf("SELECT DISTINCT O.Naam AS AfdNaam, CONCAT(GR.Starttijd, IF(LENGTH(GR.Eindtijd) > 3, CONCAT(' - ', GR.Eindtijd), '')) AS Tijdsblok, GR.Kode, GR.Omschrijving, L.Roepnaam, %1\$s AS NaamLid, %5\$s AS GroepOms, GR.Zwemzaal,
-					LO.RecordID, LO.GroepID, LO.Lid, %2\$s AS Leeftijd
+					LO.RecordID, LO.GroepID, LO.Lid, %2\$s AS Leeftijd, IFNULL(LO.Opgezegd, '9999-12-31') AS Opgezegd
 					FROM %3\$s
 					WHERE IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE() AND (LO.Functie=0 OR LO.GroepID > 0) %4\$s
 					ORDER BY O.Naam, GR.Starttijd, GR.Volgnummer, GR.Omschrijving, GR.RecordID, L.Achternaam, L.Roepnaam;", $this->selectnaam, $this->selectleeftijd, $this->fromlidond, $where, $this->selectgroep);
@@ -2776,6 +2795,29 @@ class cls_Lidond extends cls_db_base {
 		}
 		return $rv;
 	} # autogroepenbijwerken
+	
+	public function auto_einde($p_ondid=0) {
+		$i_ond = new cls_Onderdeel();
+		$i_lm = new cls_Lidmaatschap();
+		
+		$f = "`Alleen leden`=1";
+		if ($p_ondid > 0) {
+			$f .= sprintf(" AND O.RecordID=%d", $p_ondid);
+		}
+		$ondrows = $i_ond->lijst(1, $f);
+		foreach ($ondrows as $ondrow) {
+			$lorows = $this->onderdeellijst($ondrow->RecordID, 3);
+			foreach ($lorows as $lorow) {
+				$eindelm = $i_lm->eindelidmaatschap($lorow->ndLidID);
+				if ($eindelm < "9999-12-31" and (($ondrow->Type == "A" and $eindelm <= date("Y-m-d", strtotime("+6 month"))) or $eindelm <= date("Y-m-d"))) {
+					$this->update($lorow->ndRecordID, "Opgezegd", $eindelm, sprintf("het lidmaatschap per %s is beëindigd.", $eindelm));
+				}
+			}
+		}
+		
+		$i_ond = null;
+		$i_lm = null;
+	}
 	
 }  # cls_Lidond
 
@@ -3425,23 +3467,14 @@ class cls_Mailing extends cls_db_base {
 	
 	public function update($p_mid, $p_kolom, $p_waarde) {
 		$this->tas = 2;
-		
-		if ($this->is_kolom_numeriek($p_kolom)) {
-			$p_waarde = intval($p_waarde);
-			$xw = sprintf("IFNULL(`%s`, 0)<>%d", $p_kolom, $p_waarde);
-		} else {
-			$p_waarde = "\"" . str_replace("\"", "'", $p_waarde) . "\"";
-			$xw = sprintf("BINARY IFNULL(`%s`, '')<>%s", $p_kolom, $p_waarde);
-		}
-		$this->query = sprintf("UPDATE %s SET `%s`=%s, Gewijzigd=SYSDATE(), GewijzigdDoor=%d WHERE RecordID=%d AND %s;", $this->table, $p_kolom, $p_waarde, $_SESSION['lidid'], $p_mid, $xw);
-		if ($this->execsql() > 0) {
+	
+		if ($this->pdoupdate($p_mid, $p_kolom, $p_waarde) > 0) {
 			if (strlen($p_waarde) > 125) {
 				$p_waarde = substr($p_waarde, 0, 121) . " ...";
 			}
 			$this->mess = sprintf("In mailing %d is kolom '%s' is in %s gewijzigd. ", $p_mid, $p_kolom, $p_waarde);
 			$this->log($p_mid);
 		}
-
 	}
 	
 	public function delete($p_mid) {
@@ -5775,21 +5808,12 @@ class cls_Eigen_lijst extends cls_db_base {
 
 class cls_Foto extends cls_db_base {
 	
-	public $laatstgewijzigd;
+	public $laatstgewijzigd = "";
 	
 	function __construct() {
 		$this->table = TABLE_PREFIX . "Foto";
 		$this->ta = 6;
-		$this->tas = 21;
-	}
-	
-	public function add($p_id, $p_lidid) {
-		$nrid = $this->nieuwrecordID();
-		$this->query = sprintf("INSERT INTO %s (RecordID, FotoData, LidID) VALUES (%d, '%s', %d);", $this->table, $nrid, $p_id, $p_lidid);
-		if ($this->execsql()) {
-			$this->mess = sprintf("Nieuwe pasfoto voor lid %d in de tabel gezet.", $p_lidid);
-			$this->Log($nrid);
-		}
+		$laatstgewijzigd = date("Y-m-d H:i:s");
 	}
 	
 	public function fotolid($p_lidid) {
@@ -5797,10 +5821,93 @@ class cls_Foto extends cls_db_base {
 		$fr = $this->execsql($query)->fetch();
 		
 		if (isset($fr->RecordID)) {
-			$this->laatstgewijzigd = $fr->Ingevoerd;
+			$this->laatstgewijzigd = $fr->FotoGewijzigd;
 			return "data:image/jpg;charset=utf8;base64," . base64_encode($fr->FotoData);
 		} else {
 			return false;
+		}
+	}
+	
+	public function aantalwijzigingen($p_lidid, $p_duur=30) {
+		$query = sprintf("SELECT IFNULL(COUNT(*), 0) FROM %s WHERE LidID=%d AND Ingevoerd > DATE_SUB(NOW(), INTERVAL %d MINUTE);", $this->table, $p_lidid, $p_duur);
+		return $this->scalar($query);
+	}
+	
+	public function add($p_file, $p_lidid, $p_ext) {
+		$this->lidid = $p_lidid;
+		$this->tas = 21;
+		$nrid = 0;
+		
+		$maxwidth = 390;
+		$maxheight = 500;
+		
+		if (file_exists($p_file)) {
+			
+			if ($p_ext == "jpg") {
+				$gdimg = imagecreatefromjpeg($p_file);
+			} elseif ($p_ext == "gif") {
+				$gdimg = imagecreatefromgif($p_file);
+			} elseif ($p_ext == "png") {
+				$gdimg = imagecreatefrompng($p_file);
+			} else {
+				$gdimg = null;
+			}
+						
+			if (imagesx($gdimg) > $maxwidth) {
+				$scale = $maxwidth / imagesx($gdimg);
+				if ($scale < 1) {
+					$gdimg = imagescale($gdimg, imagesx($gdimg) * $scale);
+				}
+			}
+			
+			if (imagesy($gdimg) > $maxheight) {
+				$scale = $maxheight / imagesy($gdimg);
+				if ($scale < 1) {
+					$gdimg = imagescale($gdimg, imagesx($gdimg) * $scale);
+				}
+			}
+
+			ob_start();
+			if ($p_ext == "jpg") {
+				imagejpeg($gdimg);
+			} elseif ($p_ext == "png") {
+				imagepng($gdimg);
+			} elseif ($p_ext == "gif") {
+				imagegif($gdimg);
+			}
+			$imageData = addslashes(ob_get_contents());
+			ob_end_clean();
+			
+			if ($p_ext == "jpg" and function_exists("exif_read_data")) {
+				$exif = exif_read_data($p_file, 0, true);
+				if ($exif === false) {
+					$laatstgewijzigd = filemtime($p_file);
+				} else {
+					$laatstgewijzigd = date("Y-m-d H:i:s", $exif['FILE']['FileDateTime']);
+				}
+			}
+			
+			$nrid = $this->nieuwrecordID();
+			$this->query = sprintf("INSERT INTO %s (RecordID, FotoData, LidID, FotoGewijzigd) VALUES (%d, '%s', %d, '%s');", $this->table, $nrid, $imageData, $this->lidid, $laatstgewijzigd);
+			if ($this->execsql()) {
+				$this->mess = sprintf("Nieuwe pasfoto voor lid %d in de tabel gezet.", $this->lidid);
+				$this->Log($nrid);
+			} else {
+				$nrid = 0;
+			}
+
+		} else {
+			$this->mess = sprintf("Bestand '%s' bestaat niet, pasfoto voor lid %d is niet toegevoegd.", $p_file, $this->lidid);
+			$this->Log();
+		}
+		return $nrid;
+	}
+	
+	public function update($p_sid, $p_kolom, $p_waarde) {
+		
+		if ($this->pdoupdate($p_sid, $p_kolom, $p_waarde) > 0) {
+			$this->tas = 22;
+			$this->log($p_sid);
 		}
 	}
 	
@@ -5827,7 +5934,7 @@ class cls_Parameter extends cls_db_base {
 		$this->arrParam['toonpasfotoindiennietingelogd'] = array("Type" => "B", "Default" => 0);
 		$this->arrParam['uitleg_toestemmingen'] = array("Type" => "T");
 		$this->arrParam['verjaardagenvooruit'] = array("Type" => "I", "Default" => 5);
-		$this->arrParam['woonadres_anderen_tonen'] = array("Type" => "B", "Default" => 1);
+		$this->arrParam['woonadres_anderen_tonen'] = array("Type" => "I", "Default" => 0);
 		
 		$this->arrParam['zs_emailnieuwepasfoto'] = array("Type" => "T");
 		$this->arrParam['zs_incl_beroep'] = array("Type" => "B", "Default" => 1);
@@ -6093,75 +6200,6 @@ function db_onderhoud($type=9) {
 	
 	/***** Kolommen/indexen die later zijn toegevoegd. *****/
 	
-	// Deze code kan na 1 november 2021 worden verwijderd.
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "Concept";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` TINYINT NULL DEFAULT '1' AFTER `template`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$query = sprintf("SELECT COUNT(1) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema='%s' AND table_name='%sMailing_hist' AND index_name='MailingID';", $db_name, TABLE_PREFIX);
-	if ($i_base->scalar($query) == 0) {
-		$query = sprintf("ALTER TABLE `%sMailing_hist` ADD INDEX `MailingID` (`MailingID`);", TABLE_PREFIX);
-		$i_base->execsql($query, 2);
-	}
-	
-	$query = sprintf("SELECT COUNT(1) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema='%s' AND table_name='%sLidond' AND index_name='OnderdeelID';", $db_name, TABLE_PREFIX);
-	if ($i_base->scalar($query) == 0) {
-		$query = sprintf("ALTER TABLE `%sLidond` ADD INDEX `OnderdeelID` (`OnderdeelID`);", TABLE_PREFIX);
-		$i_base->execsql($query, 2);
-	}
-	
-	$query = sprintf("SELECT COUNT(1) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema='%s' AND table_name='%sAdmin_activiteit' AND index_name='DatumTijd';", $db_name, TABLE_PREFIX);
-	if ($i_base->scalar($query) == 0) {
-		$query = sprintf("ALTER TABLE `%sAdmin_activiteit` ADD INDEX `DatumTijd` (`DatumTijd`);", TABLE_PREFIX);
-		$i_base->execsql($query, 2);
-	}
-	
-	$query = sprintf("SELECT COUNT(1) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema='%s' AND table_name='%sAdmin_activiteit' AND index_name='LidID';", $db_name, TABLE_PREFIX);
-	if ($i_base->scalar($query) == 0) {
-		$query = sprintf("ALTER TABLE `%sAdmin_activiteit` ADD INDEX `LidID` (`LidID`);", TABLE_PREFIX);
-		$i_base->execsql($query, 2);
-	}
-	
-	// Deze code mag weg na 1 december 2021	
-	$table = TABLE_PREFIX . "Mailing_hist";
-	$col = "to_name";
-	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%s' AND COLUMN_NAME LIKE '%s';", $db_name, $table, $col);
-	if ($i_base->scalar($query) < 100) {
-		$query = sprintf("ALTER TABLE `%1\$s` CHANGE `%2\$s` `%2\$s` VARCHAR(100) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Mailing_hist";
-	$col = "ZonderBriefpapier";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` TINYINT NULL DEFAULT '0' AFTER `message`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Bewaking_Blok";
-	$col = "Omschrijving";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` VARCHAR(40) NULL AFTER `Kode`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Bewaking_Blok";
-	$col = "Begindatum";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` CHANGE `Begindatum` `Begin` DATETIME NOT NULL;", $tab);
-		$i_base->execsql($query, 2);
-	}
-		
-	$tab = TABLE_PREFIX . "Bewaking_Blok";
-	$col = "Einddatum";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` CHANGE `Einddatum` `Eind` DATETIME NULL;", $tab);
-		$i_base->execsql($query, 2);
-	}
-	
 	// Deze code kan na 1 mei 2022 worden verwijderd.
 	$tab = TABLE_PREFIX . "Eigen_lijst";
 	$col = "AantalRecords";
@@ -6271,6 +6309,13 @@ function db_onderhoud($type=9) {
 	$col = "GroepOntvangers";
 	if ($i_base->bestaat_kolom($col, $tab) == false) {
 		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '0' AFTER `NietVersturenVoor`;", $tab, $col);
+		$i_base->execsql($query, 2);	
+	}
+	
+	$tab = TABLE_PREFIX . "Foto";
+	$col = "FotoGewijzigd";
+	if ($i_base->bestaat_kolom($col, $tab) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `Type`;", $tab, $col);
 		$i_base->execsql($query, 2);	
 	}
 	
