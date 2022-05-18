@@ -1150,6 +1150,25 @@ function fnControleTelefoon($tn, $srt="telefoon") {
 	return $rv;
 }
 
+function fnControleEmail($p_email) {
+	
+	
+	if (strlen($p_email) == 0 or strpos($p_email, ",") !== false) {
+		$rv = "";
+	} elseif (isValidMailAddress($p_email) == false) {
+		$rv = "Het formaat van het e-mailadres is niet correct.";
+	} else {
+		$domein = explode("@", $p_email)[1];
+		if (gethostbyname($domein) == $domein) {
+			$rv = "Het domein van dit e-mailadres bestaat niet.";
+		} else {
+			$rv = "";
+		}
+	}
+	
+	return $rv;
+}
+
 function DisplayTabs($tabblad, $inittab=0) {
 	
 	printf("<script>
