@@ -248,6 +248,7 @@ function fnLedenlijst() {
 	global $wherelidond, $currenttab2, $currenttab3;
 	
 	$i_lid = new cls_Lid();
+	(new cls_lidond())->auto_einde();
 	
 	$arrSort[] = "Lidnr;Lidnr";
 	$arrSort[] = "Naam lid;L.Achternaam";
@@ -941,266 +942,6 @@ function fnEigenGegevens($lidid=0) {
 	
 } # fnEigenGegevens
 
-function fnEigenGegevens_BU($lidid=0, $actie="") {
-	
-	global $currenttab, $currenttab2, $currenttab3;
-	
-	if ($lidid == 0 and isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0) {
-		$lidid = (new cls_Mailing_hist())->lidbijemail($_GET['MailingHistID']);
-	}
-	
-	if ($currenttab == "Eigen gegevens") {
-		$xtra_param = "";
-		$lidid = $_SESSION['lidid'];
-	} else {
-		$xtra_param = sprintf("lidid=%d", $lidid);
-	}
-	
-	if (isset($_GET['op'])) {
-		$op = $_GET['op'];
-	} else {
-		$op = "";
-	}
-	
-	if ($lidid <= 0) {
-		echo("<p class='mededeling'>Er is geen lid geselecteerd.</p>\n");
-	} elseif (toegang($_GET['tp'], 0, 0) == false) {
-		$mess = sprintf("Je hebt tot tabblad '%s' geen toegang.", $actie);
-		(new cls_Logboek())->add($mess, 5, $lidid, 1);
-	} else {
-	
-		fnDispMenu(2, $xtra_param);
-		if ($currenttab != "Eigen gegevens") {
-			fnDispMenu(3, $xtra_param);
-		}
-		$naamlid = htmlentities((new cls_Lid())->Naam($lidid));
-				
-		if ($actie == "Lidmaatschappen") {
-			$rows = (new cls_Lidmaatschap())->overzichtlid($lidid);
-			if (count($rows) > 0) {
-				echo(fnDisplayTable($rows, null, $actie . " " . $naamlid, 0));
-			} else {
-				printf("<p class='mededeling'>%s heeft geen andere %s.</p>\n", $naamlid, $actie);
-			}
-			
-		} elseif ($actie == "Afdelingen") {
-			$rows = (new cls_Lidond())->overzichtlid($lidid, "A");
-			if (count($rows) > 0) {
-				echo(fnDisplayTable($rows, null, $actie . " " . $naamlid, 0, "", "onderdelenperlid"));
-			} else {
-				printf("<p class='mededeling'>%s heeft geen %s.</p>\n", $naamlid, $actie);
-			}
-			
-		} elseif ($actie == "Groepen") {
-			$rows = (new cls_Lidond())->overzichtlid($lidid, "G");
-			if (count($rows) > 0) {
-				echo(fnDisplayTable($rows, null, $actie . " " . $naamlid, 0, "", "onderdelenperlid"));
-			} else {
-				printf("<p class='mededeling'>%s is bij geen enkele groep ingedeeld.</p>\n", $naamlid);
-			}
-		} elseif ($actie == "Kader") {
-			$rows = (new cls_Lidond())->overzichtlid($lidid, "K");
-			if (count($rows) > 0) {
-				echo(fnDisplayTable($rows, null, $actie . " " . $naamlid, 0, "", "onderdelenperlid"));
-			} else {
-				printf("<p class='mededeling'>%s is niet ingedeeld (geweest) bij het kader.</p>\n", $naamlid);
-			}
-		} elseif ($actie == "Rollen") {
-			$rows = (new cls_Lidond())->overzichtlid($lidid, "R");
-			if (count($rows) > 0) {
-				echo(fnDisplayTable($rows, null, $actie . " " . $naamlid, 0, "", "onderdelenperlid"));
-			} else {
-				printf("<p class='mededeling'>%s heeft geen %s.</p>\n", $naamlid, $actie);
-			}
-		} elseif ($actie == "Toestemmingen") {
-			$rows = (new cls_Lidond())->overzichtlid($lidid, "T");
-			if (count($rows) > 0) {
-				echo(fnDisplayTable($rows, null, $actie . " " . $naamlid, 0, "", "toestemmingenperlid"));
-			} else {
-				printf("<p class='mededeling'>Er zijn geen toestemmingen bekend van %s.</p>\n", $naamlid);
-			}
-			if (strlen($_SESSION['settings']['uitleg_toestemmingen']) > 0) {
-				printf("<p>%s</p>\n", $_SESSION['settings']['uitleg_toestemmingen']);
-			}
-			
-		} elseif ($actie == "Bijzonderheden") {
-			$rows = (new cls_Memo())->overzichtlid($lidid);
-			echo("<div id='bijzonderheden'>\n");
-			printf("<h2>Bijzonderheden %s</h2>\n", $naamlid);
-			foreach ($rows as $row) {
-				printf("<h3>%s</h3>\n", ARRSOORTMEMO[$row->Soort]);
-				printf("<p>%s</p>\n", $row->Memo);
-			}
-			echo("</div> <!-- Einde bijzonderheden -->\n");
-		} elseif ($actie == "Presentie") {
-			$rows = (new cls_Aanwezigheid())->overzichtlid($lidid);
-			if (count($rows) > 0) {				
-				echo("<table>\n");
-				printf("<tr><th colspan=3>Presentie %s</th></tr>\n", $naamlid);
-				echo("<tr><th>Datum</th><th>Omschrijving</th><th>Status</th></tr>\n");
-				foreach ($rows as $row) {
-					printf("<tr><td>%s</td><td>%s</td><td>%s</td></tr>\n", strftime("%A %e %B %Y", strtotime($row->Datum)), $row->Omschrijving, ARRPRESENTIESTATUS[$row->Status]);
-				}
-				echo("</table>\n");
-			} else {
-				printf("<p class='mededeling'>Bij %s is geen presentie bekend.</p>", $naamlid);
-			}
-			
-		} elseif ($actie == "Bewaking") {
-			$rows = (new cls_Bewaking())->overzichtlid($lidid);
-			if (count($rows) > 0) {
-				echo(fnDisplayTable($rows, null, "Bewaking " . $naamlid));
-			} else {
-				printf("<p class='mededeling'>%s heeft geen bewakingshistorie.</p>", $naamlid);
-			}
-			$row = (new cls_Bewaking())->lidbew($lidid);
-			if (isset($row) and $row != null) {
-				echo(fnDisplayForm($row));
-			}
-			$rows = (new cls_insbew())->overzichtlid($lidid);
-			if ($_SESSION['settings']['toneninschrijvingenbewakingen'] == 1 and count($rows) > 0) {
-				echo(fnDisplayTable($rows, null, "Ingeschreven voor bewakingen"));
-			}
-			
-		} elseif ($actie == "Diplomas" or $actie == "Diploma's") {
-			$rows = (new cls_Liddipl())->overzichtlid($lidid);
-			if (count($rows) > 0) {
-				echo(fnDisplayTable($rows, null, "Diploma's " . $naamlid));
-			} else {
-				printf("<p class='mededeling'>Bij %s zijn geen diploma's bekend.</p>", $naamlid);
-			}
-			
-		} elseif ($actie == "Rekeningen") {
-			if ($op == "details" and isset($_GET['rid']) and $_GET['rid'] > 0) {
-				echo(RekeningDetail($_GET['rid']));
-			} else {
-				$rows = (new cls_Rekeningregel())->overzichtlid($lidid);
-				if (count($rows) > 0) {
-					$kols[0]['link'] = sprintf("<a href='%s?tp=%s&op=details&lidid=%d&rid=%%d' title='Details rekening'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
-					$kols[0]['class'] = "details";
-					echo(fnDisplayTable($rows, $kols, "Rekeningen " . $naamlid));
-				} else {
-					printf("<p class='mededeling'>%s heeft geen rekeningen.</p>", $naamlid);
-				}
-			}
-			
-		} elseif ($actie == "Mailing") {
-			if (isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0) {
-				$xtra = "<p class='mededeling'><input type='button' value='Terug' onclick='history.go(-1);'></p>\n";
-				$email = new email($_GET['MailingHistID']);
-				$email->toon();
-				$mail = null;
-			} else {
-				$kols[0]['link'] = sprintf("<a href='index.php?tp=%s&amp;MailingHistID=%%d'>%%s</a>", urlencode($_GET['tp']));
-				$kols[0]['class'] = "details";
-				$rows = (new cls_Mailing_hist())->overzichtlid($lidid);
-				if (count($rows) > 0) {
-					echo(fnDisplayTable($rows, $kols, sprintf("Aan %s verstuurde e-mails", $naamlid)));
-				} else {
-					printf("<p class='mededeling'>Er zijn vanaf deze website geen mailings naar %s verstuurd.</p>\n", $naamlid);
-				}
-			}
-			
-		} elseif ($actie == "Evenementen") {
-			$rows = (new cls_Evenement_Deelnemer())->overzichtlid($lidid);
-			if (count($rows) > 0) {
-				echo("<div id='evenementenperlid'>\n");
-				echo("<table>\n");
-				printf("<tr><th colspan=6>Deelname evenementen %s</th></tr>\n", $naamlid);
-				echo("<tr><th>Wanneer</th><th>Omschrijving</th><th>Contact</th><th>Opmerking / Functie</th><th>Status</th><th>In agenda</th></tr>\n");
-				
-				foreach($rows as $row) {
-					echo("<tr>\n");
-
-					$tijden = strftime("%A %e %B %Y", strtotime($row->dteDatum));
-					if ($row->Starttijd > "00:00") {
-						$tijden .= " van " . $row->Starttijd;
-					}
-					if ($row->Eindtijd > "00:00" and $row->MeerdereStartMomenten == 0) {
-						$tijden .= " tot " . $row->Eindtijd . " uur";
-					}
-					
-					$tijden = str_replace(" ", "&nbsp;", str_replace("  ", "&nbsp;", $tijden));
-					if (strlen($row->Verzameltijd) >= 5 and $row->dteDatum >= date("Y-m-d H:i")) {
-						$tijden .= sprintf("<br>Verzamelen om %s&nbsp;uur", $row->Verzameltijd);
-					}
-					
-					printf("<td>%s</td>\n", $tijden);
-					$oms = $row->Omschrijving;
-					if (strlen($row->ndLocatie) > 1) {
-						$oms .= "<br>\n" . $row->ndLocatie;
-					}
-					printf("<td>%s</td>\n", $oms);
-					printf("<td>%s</td>\n", $row->emlContact);
-					if (strlen($row->Opmerking) > 0 and strlen($row->Functie) > 0) {
-						$of = sprintf("%s<br>%s", $row->Opmerking, $row->Functie);
-					} elseif (strlen($row->Opmerking) > 0) {
-						$of = $row->Opmerking;
-					} else {
-						$of = $row->Functie;
-					}
-					printf("<td>%s</td>\n", $of);
-					printf("<td>%s</td>\n", $row->Status);
-					if (($row->Status == "Aangemeld" or $row->Status == "Bevestigd" or $row->Status == "Ingeschreven") and $row->dteDatum >= date("Y-m-d H:i")) {
-						printf("<td>%s</td>\n", fnAgendaKnop($row->dteDatum, $row->Eindtijd, $row->Verzameltijd, $row->Omschrijving, $row->ndLocatie));
-					} else {
-						echo("<td>&nbsp;</td>");
-					}
-					echo("</tr>\n");
-				}
-				
-				echo("</table>\n");
-				echo("</div>  <!-- einde evenementenperlid -->");
-				
-			} else {
-				printf("<p class='mededeling'>Bij %s zijn geen deelnames aan evenementen bekend.</p>", $naamlid);
-			}
-		} elseif ($actie == "Logboek") {
-			if ($lidid > 0) {
-				$rows = (new cls_Logboek())->overzichtlid($lidid);
-				if (count($rows) > 0) {
-					echo(fnDisplayTable($rows, null, sprintf("Logboek %s", $naamlid)));
-				} else {
-					printf("<p class='mededeling'>Er is geen logging bij %s bekend.</p>\n", $naamlid);
-				}
-			} else {
-				echo("<p class='mededeling'>Er is geen lidid bekend.</p>\n");
-			}
-		} else {
-			$fn = fotolid($lidid, 1);
-			$nl = (new cls_Lid())->Roepnaam($lidid);
-			if (strlen($fn) > 3) {
-				$xtra = sprintf("<div id='pasfoto'><img src='%s' alt='Pasfoto %s' title='Laatst gewijzigd op %s'></div>\n", $fn, $nl, strftime("%e %B %Y", filectime(fotolid($lidid, 0))));
-			} else {
-				$xtra = "";
-			}
-			$row = (new cls_Lid())->overzichtlid($lidid);
-			echo(fnDisplayFormLabels($row, $xtra, "overzichtlid"));
-		}
-		if (isset($_SESSION['sel_leden']) and count($_SESSION['sel_leden']) > 1 and $currenttab != "Eigen gegevens" and !isset($_GET['MailingID'])) {
-			$current_key = -1;
-			foreach ($_SESSION['sel_leden'] as $key => $val) {
-				if ($val == $lidid) {
-					$current_key = $key;
-				}
-			}
-			
-			$lnk = sprintf("<input type='button' OnClick=\"location.href='%s?tp=%s&amp;lidid=%s';\" value='%s lid'>&nbsp;\n", $_SERVER['PHP_SELF'], "%s", "%d", "%s");
-			echo("<div id='opdrachtknoppen'>\n");
-			if ($current_key > 0) {
-				printf($lnk, $_GET['tp'], $_SESSION['sel_leden'][0], "Eerste");
-				printf($lnk, $_GET['tp'], $_SESSION['sel_leden'][$current_key-1], "Vorige");
-			}
-			if ($_SESSION['sel_leden'][count($_SESSION['sel_leden'])-1] != $lidid) {
-				printf($lnk, $_GET['tp'], $_SESSION['sel_leden'][$current_key+1], "Volgende");
-				printf($lnk, $_GET['tp'], $_SESSION['sel_leden'][count($_SESSION['sel_leden'])-1], "Laatste");
-			}
-			printf("<p>Lid %d van de %d</p>\n", $current_key+1, count($_SESSION['sel_leden']));
-			echo("</div>  <!-- Einde opdrachtknoppen -->\n");
-		}
-	}
-} # fnEigenGegevens_BU
-
 function overzichtverjaardagen($metfoto=1) {
 	
 	$i_lid = new cls_Lid();
@@ -1288,17 +1029,12 @@ function algemeenlidmuteren($lidid) {
 	$gs = $row->Geslacht;
 	$sl = substr((new cls_Lidmaatschap())->soortlid($lidid), 0, 1);
 	
-	if (!isset($_POST['GEBDATUM'])) {
-		$_POST['GEBDATUM'] = $row->GEBDATUM;
-	}
-	
-	if (!isset($_POST['Telefoon'])) {
-		$_POST['Telefoon'] = $row->Telefoon;
-	}
-	
-	if (!isset($_POST['Mobiel'])) {
-		$_POST['Mobiel'] = $row->Mobiel;
-	}
+	$_POST['GEBDATUM'] = $_POST['GEBDATUM'] ?? $row->GEBDATUM;
+	$_POST['Telefoon'] = $_POST['Telefoon'] ?? $row->Telefoon;
+	$_POST['Mobiel'] = $_POST['Mobiel'] ?? $row->Mobiel;
+	$_POST['Email'] = $_POST['Email'] ?? $row->Email;
+	$_POST['EmailVereniging'] = $_POST['EmailVereniging'] ?? $row->EmailVereniging;
+	$_POST['EmailOuders'] = $_POST['EmailOuders'] ?? $row->EmailOuders;
 		
 	$wijzvelden[] = array('label' => "Roepnaam", 'naam' => "Roepnaam", 'lengte' => 17);
 	if ($sl != "K") {
@@ -1328,12 +1064,12 @@ function algemeenlidmuteren($lidid) {
 	$wijzvelden[] = array('label' => "Woonplaats", 'naam' => "Woonplaats", 'lengte' => 22);
 	$wijzvelden[] = array('label' => "Vast telefoonnummer", 'naam' => "Telefoon", 'lengte' => 21, 'uitleg' => fnControleTelefoon($_POST['Telefoon'], "telefoon"));
 	$wijzvelden[] = array('label' => "Mobiel", 'naam' => "Mobiel", 'lengte' => 21, 'uitleg' => fnControleTelefoon($_POST['Mobiel'], "mobiel"));
-	$wijzvelden[] = array('label' => "E-mail", 'naam' => "Email", 'lengte' => 45);
+	$wijzvelden[] = array('label' => "E-mail", 'naam' => "Email", 'lengte' => 45, 'uitleg' => fnControleEmail($_POST['Email']));
 	if ($_SESSION['settings']['zs_incl_emailvereniging'] == 1 or $currenttab2 == "Wijzigen lid") {
-		$wijzvelden[] = array('label' => "E-mail vereniging", 'naam' => "EmailVereniging", 'lengte' => 45);
+		$wijzvelden[] = array('label' => "E-mail vereniging", 'naam' => "EmailVereniging", 'lengte' => 45, 'uitleg' => fnControleEmail($_POST['EmailVereniging']));
 	}
 	if (($_SESSION['settings']['zs_incl_emailouders'] == 1 or $currenttab2 == "Wijzigen lid") and $gs != "B") {
-		$wijzvelden[] = array('label' => "E-mail ouders", 'naam' => "EmailOuders", 'lengte' => 75);
+		$wijzvelden[] = array('label' => "E-mail ouders", 'naam' => "EmailOuders", 'lengte' => 75, 'uitleg' => fnControleEmail($_POST['EmailOuders']));
 		$wijzvelden[] = array('label' => "Namen ouders", 'naam' => "NamenOuders", 'lengte' => 90);
 	}
 	$wijzvelden[] = array('label' => "Waarschuwen bij nood", 'naam' => "Waarschuwen bij nood", 'lengte' => 254);
@@ -1404,7 +1140,7 @@ function algemeenlidmuteren($lidid) {
 	printf("<input type='hidden' name='lidid' value=%d>\n", $lidid);
 	printf("<label>RecordID</label><p>%d</p>\n", $row->RecordID);
 	for ($i=0; $i < count($wijzvelden); $i++) {
-		$jsoc = sprintf("OnBlur=\"savedata('lid', %d, $(this).val(), '%s');\"", $row->RecordID, $wijzvelden[$i]['naam']);
+		$jsoc = sprintf("OnBlur=\"savedata('lid', %d, this);\"", $row->RecordID, $wijzvelden[$i]['naam']);
 		$dv = str_replace("\n", "<br>\n", $row->{$wijzvelden[$i]['naam']});
 		if ($wijzvelden[$i]['naam'] == "Woonplaats" and strlen($dv) == 0 and strlen($row->Postcode) >= 4) {
 			$dv = $i_lid->max("Woonplaats", sprintf("LEFT(Postcode, 4)='%s'", substr($row->Postcode, 0, 4)));
@@ -1431,9 +1167,9 @@ function algemeenlidmuteren($lidid) {
 				$opt .= sprintf("<option value='%s'%s>%s</option>\n", $key, $sel, $val);
 			}
 			if ($wijzvelden[$i]['label'] == "Geslacht") {
-				$inp = sprintf("<select name='%s' %s onChange='this.form.submit();'>%s</select>", $wijzvelden[$i]['naam'], $jsoc, $opt);
+				$inp = sprintf("<select name='%s' onChange='this.form.submit();'>%s</select>", $wijzvelden[$i]['naam'], $opt);
 			} else {
-				$inp = sprintf("<select name='%s' %s>%s</select>", $wijzvelden[$i]['naam'], $jsoc, $opt);
+				$inp = sprintf("<select id='%s' %s>%s</select>", $wijzvelden[$i]['naam'], $jsoc, $opt);
 			}
 			
 		} elseif (isset($wijzvelden[$i]['type']) and $wijzvelden[$i]['type'] == "cb") {
@@ -1444,7 +1180,7 @@ function algemeenlidmuteren($lidid) {
 				$dv = "Nee";
 				$c = "";
 			}
-			$inp = sprintf("<input type='checkbox' name='%s' value=1 %s %s>", $wijzvelden[$i]['naam'], $c, $jsoc);
+			$inp = sprintf("<input type='checkbox' id='%s' value=1 %s %s>", $wijzvelden[$i]['naam'], $c, $jsoc);
 		
 		} else {
 			if (isset($wijzvelden[$i]['type']) and $wijzvelden[$i]['type'] == "date") {
@@ -1461,9 +1197,9 @@ function algemeenlidmuteren($lidid) {
 			if ($t == "text" and $wijzvelden[$i]['lengte'] > 100) {
 				$inp = sprintf("<textarea name='%s' placeholder='%s' cols=50 rows=4 %s>%s</textarea>", str_replace(" ", "_", $wijzvelden[$i]['naam']), $ph, $jsoc, $dv);
 			} elseif ($t == "date") {
-				$inp = sprintf("<input type='date' name='%s' value='%s' %s>", $wijzvelden[$i]['naam'], $dv, $jsoc);
+				$inp = sprintf("<input type='date' id='%s' value='%s' %s>", $wijzvelden[$i]['naam'], $dv, $jsoc);
 			} else {
-				$inp = sprintf("<input type='%s' %sname='%s' value='%s' maxlength=%d %s>", $t, $c, $wijzvelden[$i]['naam'], $dv, $wijzvelden[$i]['lengte'], $jsoc);
+				$inp = sprintf("<input type='%s' %sid='%s' value='%s' maxlength=%d %s>", $t, $c, $wijzvelden[$i]['naam'], $dv, $wijzvelden[$i]['lengte'], $jsoc);
 			}
 		}
 		if ($row->Verwijderd > "2010-01-01") {
@@ -1479,6 +1215,9 @@ function algemeenlidmuteren($lidid) {
 		
 		echo("\n");
 	}
+	echo("<div id='opdrachtknoppen'>\n");
+	echo("<input type='submit' value='Controleer gegevens'>\n");
+	echo("</div> <!-- Einde opdrachtknoppen -->\n");
 	echo("</form>\n");
 	echo("</div>  <!-- Einde wijzigenlidgegevens -->\n");
 	
@@ -1499,69 +1238,62 @@ function nieuwepasfoto($lidid, $filterlid="") {
 	
 	$i_foto = new cls_Foto();
 	
-	$max_size_attachm = 2 * 1024 * 1024;  // 2MB
+	$max_size_attachm = 3 * 1024 * 1024;  // 3MB
 	$min_size_attachm = 4 * 1024;  // 4KB
 	
 	$naamlid = (new cls_Lid())->Naam($lidid);
+	$ad = $_SESSION['settings']['path_pasfoto'] ?? "";
 	
-	if (isset($_FILES['UploadFoto']['name']) and strlen($_FILES['UploadFoto']['name']) > 3 and $lidid > 0) {
-		$ad = $_SESSION['settings']['path_pasfoto'] ?? "";
-		$mess = "";
-		
-        $image = $_FILES['UploadFoto']['tmp_name']; 
-        $imgContent = addslashes(file_get_contents($image));
-		
-		$i_foto->add($imgContent, $lidid);
-		
-		
-		if (strlen($ad) > 0 and file_exists($ad)) {
-			if (is_writable($ad) == false) {
-				$mess = sprintf("Directory '%s' bestaat, maar de website heeft geen schrijfrechten. Vraag de webmaster om dit aan te passen.", $ad);
-			} else {
-				$adv = $ad . "vervangen/";
-				if (file_exists($adv)) {
-					if (is_writable($adv) == false) {
-						$mess = sprintf("Directory '%s' bestaat, maar de website heeft geen schrijfrechten. Vraag de webmaster om dit aan te passen.", $adv);
-					}
-				} else {
-					$mess = sprintf("Directory '%s' bestaat niet. Vraag de webmaster om deze aan te maken.", $adv);
-				}
-			}
-		} elseif (strlen($ad) > 0) {
-			$mess = sprintf("Directory '%s' bestaat niet. Vraag de webmaster om deze aan te maken.", $ad);
-		}
-		
-		if (strlen($mess) > 0) {
-			(new cls_Logboek())->add($mess, 6, 0, 1, 0, 20);
-			$mess = "";
-		} else {
+	if (isset($_FILES['UploadFoto']['name']) and strlen($_FILES['UploadFoto']['name']) > 3) {
 
-			$ext = explode(".", $_FILES['UploadFoto']['name']);
-			$ext = strtolower($ext[count($ext) - 1]);
-			if ($ext == "jpeg") {
-				$ext = "jpg";
-			}
-			$target = $ad . sprintf("Pasfoto%d.%s", $lidid, $ext);
+//		debug($_FILES['UploadFoto']);
+	
+		$ext = explode(".", $_FILES['UploadFoto']['name']);
+		$ext = strtolower($ext[count($ext) - 1]);
+		if ($ext == "jpeg") {
+			$ext = "jpg";
+		}
+	
+		if (in_array($ext, PASFOTOEXTENTIES) === false) {
+			$mess = sprintf("Het bestand met extensie %s is niet toegestaan. De volgende extensies zijn toegestaan: %s.", $ext, implode(", ", PASFOTOEXTENTIES));
+		} elseif ($_FILES['UploadFoto']['size'] > $max_size_attachm or $_FILES['UploadFoto']['error'] == 2) {
+			$mess = sprintf("De foto kan niet ge-upload worden, omdat het bestand groter dan %dKB is.", $max_size_attachm / 1024);
+		} elseif ($_FILES['UploadFoto']['size'] < $min_size_attachm) {
+			$mess = sprintf("De foto kan niet worden ge-upload, omdat het bestand kleiner dan %d bytes is.", $min_size_attachm);
+		} elseif (strlen($ad) > 0 and file_exists($ad) == false) {
+			$mess = "De folder om de pasfoto op te staan bestaat niet, neem hiervoor contact op met de webmaster.";
+		} elseif ($lidid == 0) {
+			$mess = "Er is geen lid geselecteerd, neem hiervoor contact op met de webmaster.";
+		} else {
 			$mess = "";
-			
-			if (in_array($ext, PASFOTOEXTENTIES) === false) {
-				$mess = sprintf("Het bestand met extensie %s is niet toegestaan. De volgende extensies zijn toegestaan: %s.", $ext, implode(", ", PASFOTOEXTENTIES));
-			} elseif ($_FILES['UploadFoto']['size'] > $max_size_attachm) {
-				$mess = sprintf("De foto kan niet ge-upload worden, omdat het bestand groter dan %dKB is.", $max_size_attachm / 1024);
-			} elseif ($_FILES['UploadFoto']['size'] < $min_size_attachm) {
-				$mess = sprintf("De foto kan niet worden ge-upload, omdat het bestand kleiner dan %d bytes is.", $min_size_attachm);
-			} elseif (file_exists($ad) == false) {
-				$mess = "De folder om de pasfoto op te staan bestaat niet, neem hiervoor contact op met de websmaster.";
-			} else {
-				$of = fotolid($lidid, 0);
-				while (strlen($of) > 3 and file_exists($of)) {
-					$of_ext = substr(strrchr($of, "."), 1);
-					$bu_name = "vervangen/" . sprintf("Pasfoto%d_%d.%s", $lidid, strftime("%Y%m%d", filectime($of)), $of_ext);
-					if (rename($of, $ad . $bu_name)) {
-						$mess = sprintf("Pasfoto './%s' is verplaatst en hernoemd naar './%s'.", $of, $bu_name);
+
+			$target = $ad . sprintf("Pasfoto%d.%s", $lidid, $ext);
+		
+			$i_foto->add($_FILES['UploadFoto']['tmp_name'], $lidid, $ext);
+
+			if (strlen($ad) > 0 and file_exists($ad) and 1 == 2) {
+				if (is_writable($ad) == false) {
+					$mess = sprintf("Directory '%s' bestaat, maar de website heeft geen schrijfrechten. Vraag de webmaster om dit aan te passen.", $ad);
+				} else {
+					$adv = $ad . "vervangen/";
+					if (file_exists($adv)) {
+						if (is_writable($adv) == false) {
+							$mess = sprintf("Directory '%s' bestaat, maar de website heeft geen schrijfrechten. Vraag de webmaster om dit aan te passen.", $adv);
+						}
+					} else {
+						$mess = sprintf("Directory '%s' bestaat niet. Vraag de webmaster om deze aan te maken.", $adv);
+					}
+				}
+		
+//			(new cls_Logboek())->add($mess, 6, 0, 1, 0, 20);
+				$mess = "";
+				if (strlen($target) > 3 and file_exists($target)) {
+					$of_ext = substr(strrchr($target, "."), 1);
+					$bu_name = "vervangen/" . sprintf("Pasfoto%d_%d.%s", $lidid, strftime("%Y%m%d", filectime($target)), $of_ext);
+					if (rename($target, $ad . $bu_name)) {
+						$mess = sprintf("Pasfoto './%s' is verplaatst en hernoemd naar './%s'.", $target, $bu_name);
 						(new cls_Logboek())->add($mess, 6, $lidid, 0, 0, 21);
 					}
-					$of = fotolid($lidid, 0);
 				}
 				if (move_uploaded_file($_FILES['UploadFoto']["tmp_name"], $target)) {
 					$image = new SimpleImage();
@@ -1576,36 +1308,36 @@ function nieuwepasfoto($lidid, $filterlid="") {
 					}
 					$image = null;
 				}
-			}
 			
-			if ($lidid == $_SESSION['lidid'] and isValidMailAddress($_SESSION['settings']['zs_emailnieuwepasfoto'], 0) and (file_exists($target))) {
-				$mail = new RBMmailer();
-				$mail->From = $_SESSION['emailingelogde'];
-				$mail->FromName = $naamlid;
-				$mail->Subject = "Nieuwe pasfoto " . $naamlid;
-				if (isValidMailAddress($_SESSION['settings']['zs_emailnieuwepasfoto'], 0) and $_SESSION['settings']['zs_emailnieuwepasfoto'] != $_SESSION['settings']['emailledenadministratie']) {
-					$mail->AddAddress($_SESSION['settings']['zs_emailnieuwepasfoto']);
-				}
-				if (isValidMailAddress($_SESSION['settings']['emailledenadministratie'], 0)) {
-					$mail->AddAddress($_SESSION['settings']['emailledenadministratie']);
-				}
-				$mail->AddCC($_SESSION['emailingelogde']);
-				$body = sprintf("<p>Beste ledenadministratie,</p>
+				if ($lidid == $_SESSION['lidid'] and isValidMailAddress($_SESSION['settings']['zs_emailnieuwepasfoto'], 0) and (file_exists($target))) {
+					$mail = new RBMmailer();
+					$mail->From = $_SESSION['emailingelogde'];
+					$mail->FromName = $naamlid;
+					$mail->Subject = "Nieuwe pasfoto " . $naamlid;
+					if (isValidMailAddress($_SESSION['settings']['zs_emailnieuwepasfoto'], 0) and $_SESSION['settings']['zs_emailnieuwepasfoto'] != $_SESSION['settings']['emailledenadministratie']) {
+						$mail->AddAddress($_SESSION['settings']['zs_emailnieuwepasfoto']);
+					}
+					if (isValidMailAddress($_SESSION['settings']['emailledenadministratie'], 0)) {
+						$mail->AddAddress($_SESSION['settings']['emailledenadministratie']);
+					}
+					$mail->AddCC($_SESSION['emailingelogde']);
+					$body = sprintf("<p>Beste ledenadministratie,</p>
 										<p>Bijgevoegd is mijn nieuwe pasfoto.</p>
 										<p>Met vriendelijke groeten,<br>
 										<strong>%s<strong></p>\n", $naamlid);
-				$mail->MsgHTML($body);
-				$mail->AddAttachment($target);
-				if ($mail->Send()) {
-					$mess = sprintf("%s heeft een nieuwe pasfoto ingestuurd.", $naamlid);
+					$mail->MsgHTML($body);
+					$mail->AddAttachment($target);
+					if ($mail->Send()) {
+						$mess = sprintf("%s heeft een nieuwe pasfoto ingestuurd.", $naamlid);
+					} else {
+						$mess = sprintf("Fout bij het e-mailen van de pasfoto: %s.", $mail->ErrorInfo);
+					}
+					$mail = null;
+				} elseif (file_exists($target)) {
+					$mess = "Er is een nieuwe pasfoto ge-upload.";
 				} else {
-					$mess = sprintf("Fout bij het e-mailen van de pasfoto: %s.", $mail->ErrorInfo);
+					$mess = "Het is fout gegaan bij het uploaden van het bestand. Probeer het nog een keer of neem contact op met de webmaster.";
 				}
-				$mail = null;
-			} elseif (file_exists($target)) {
-				$mess = "Er is een nieuwe pasfoto ge-upload.";
-			} else {
-				$mess = "Het is fout gegaan bij het uploaden van het bestand. Probeer het nog een keer of neem contact op met de webmaster.";
 			}
 		}
 		(new cls_Logboek())->add($mess, 6, $lidid, 1, 0, 22);
@@ -1613,7 +1345,11 @@ function nieuwepasfoto($lidid, $filterlid="") {
 
 	echo("<div id='nieuwepasfoto'>\n");
 	$fn = fotolid($lidid, 1);
-	if (strlen($fn) > 4) {
+	$fd = $i_foto->fotolid($lidid);
+	if ($fd !== false) {
+		printf("<img src='%s' alt='Huidige pasfoto %s'>\n", $fd, $naamlid);
+		printf("<p>Deze foto is voor het laatst op %s gewijzigd.</p>", strftime("%e %B %Y", strtotime($i_foto->laatstgewijzigd)));
+	} elseif (strlen($fn) > 4 and file_exists($fn)) {
 		echo("<p>\n");
 		printf("<img src='%s' alt='Huidige pasfoto %s'>\n", $fn, $naamlid);
 		$fn = fotolid($lidid, 0);
@@ -1622,19 +1358,24 @@ function nieuwepasfoto($lidid, $filterlid="") {
 	} elseif ($lidid > 0) {
 		printf("<p class='mededeling'>Geen huidige pasfoto van %s beschikbaar.</p>\n", $naamlid);
 	}
-			
-	$actionurl = sprintf("%s?tp=%s&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
-	printf("<form method='post' action='%s' name='frm_pasfoto' enctype='multipart/form-data'>\n", $actionurl);
-	printf("<input type='hidden' name='MAX_FILE_SIZE' value=%d>\n", $max_size_attachm);
-	printf("<label for='UploadFoto'>Nieuwe pasfoto %s:&nbsp;</label>\n", $naamlid);
-	printf("<input type='hidden' name='lidid' value=%d>\n", $lidid);
-	echo("<input type='file' name='UploadFoto' id='UploadFoto'>&nbsp;");
-	echo("<input type='submit' name='Upload' value='Insturen'>\n");
-	printf("<p>Het ideale formaat van de pasfoto is 390 pixels breed bij 500 pixels hoog. Het bestand moet minimaal %d bytes groot zijn en mag niet groter dan %d KB zijn.</p>\n", $min_size_attachm, $max_size_attachm / 1024);
-	if ($lidid == $_SESSION['lidid']) {
-		echo("<p>Met het uploaden van deze pasfoto geef je toestemming om deze foto aan bezoekers van deze website te tonen.</p>");
+	
+	if ($i_foto->aantalwijzigingen($lidid) <= 3) {
+		$actionurl = sprintf("%s?tp=%s&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
+		printf("<form method='post' action='%s' name='frm_pasfoto' enctype='multipart/form-data'>\n", $actionurl);
+		printf("<input type='hidden' name='MAX_FILE_SIZE' value=%d>\n", ($max_size_attachm * 2));
+		printf("<label for='UploadFoto'>Nieuwe pasfoto %s:&nbsp;</label>\n", $naamlid);
+		printf("<input type='hidden' name='lidid' value=%d>\n", $lidid);
+		echo("<input type='file' name='UploadFoto' id='UploadFoto'>&nbsp;");
+		echo("<input type='submit' name='Upload' value='Insturen'>\n");
+		echo("<div class='clear'></div>\n");
+		printf("<p>Het ideale formaat van de pasfoto is 390 pixels breed bij 500 pixels hoog. Het bestand moet minimaal %d&nbsp;bytes groot zijn en mag niet groter dan %d KB zijn.</p>\n", $min_size_attachm, $max_size_attachm / 1024);
+		if ($lidid == $_SESSION['lidid']) {
+			echo("<p>Met het uploaden van deze pasfoto geef je toestemming om deze foto aan bezoekers van deze website te tonen.</p>");
+		}
+		echo("</form>\n");
+	} else {
+		echo("<p>Je mag op dit moment geen pasfoto toevoegen, probeer het later nogmaals.</p>\n");
 	}
-	echo("</form>\n");
 
 	echo("</div>  <!-- Einde nieuwepasfoto -->\n");	
 } # nieuwepasfoto
@@ -1863,14 +1604,13 @@ function onderdelenlidmuteren($lidid, $p_type="G") {
 	}
 	foreach ($i_lo->editlijst($f, $lidid) as $row) {
 		printf("<tr>\n<td>%s - %s</td>\n", $row->Kode, $row->Naam);
-		$jsoc = "OnBlur=\"savedata('lidond', this.id, $(this).val());\"";
+		$jsoc = "OnBlur=\"savedata('lidond', 0, this);\"";
 		printf("<td><input type='date' id='Vanaf_%d' value='%s' %s></td>\n", $row->RecordID, $row->Vanaf, $jsoc);
 		if (strlen($kf) > 0) {
 			$options = "";
 			foreach ($frows as $frow) {
 				$options .= sprintf("<option value=%d %s>%s</option>\n", $frow->Nummer, checked($frow->Nummer, "option", $row->Functie), $frow->Omschrijv);
 			}
-			$jsoc = "OnChange=\"savedata('lidond', this.id, $(this).val());\"";
 			printf("<td><select id='Functie_%d' %s>%s</select></td>\n", $row->RecordID, $jsoc, $options);
 			printf("<td><input type='email' id='EmailFunctie_%d' value='%s' %s></td>\n", $row->RecordID, $row->EmailFunctie, $jsoc);
 		}
@@ -1976,13 +1716,13 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 		}
 		$f .= sprintf("(Kode LIKE '%%%1\$s%%' OR Naam LIKE '%%%1\$s%%')", $_SESSION['dipltextfilter']);
 	}
-	if ($_SESSION['orgfilter'] >= 0) {
+	if ($_SESSION['orgfilter'] >= 0 and $td != "ZS") {
 		if (strlen($f) > 0) {
 			$f .= " AND ";
 		}
 		$f .= sprintf("ORGANIS=%d", $_SESSION['orgfilter']);
 	}
-	if ($_SESSION['inclVervallen'] == 0) {
+	if ($_SESSION['inclVervallen'] == 0 and $td != "ZS") {
 		if (strlen($f) > 0) {
 			$f .= " AND ";
 		}
@@ -2009,22 +1749,22 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 		}
 		$f = sprintf("Lid=%d AND DiplomaID=%d", $lidid, $dp->RecordID);
 		$ldrows = $i_ld->basislijst($f);
-			printf("<tr>\n<td>%s</td>\n<td>%s</td>\n<td>%s</td>\n", $dp->Kode, $dpnm, $geldig);
-			$jsoc = "OnBlur=\"savedata('liddipl', this.id, $(this).val());\"";
-			$aant = 0;
-			foreach ($i_ld->basislijst($f) as $ld) {
-				if ($aant > 0) {
-					echo("</tr>\n<tr><td></td><td></td><td></td>");
-				}
-				printf("<td><input type='date' id='DatumBehaald_%d' value='%s' %s></td>\n", $ld->RecordID, $ld->DatumBehaald, $jsoc);
-				printf("<td><input type='text' id='Diplomanummer_%d' value='%s' maxlength=30 %s></td>\n", $ld->RecordID, $ld->Diplomanummer, $jsoc);
-				printf("<td><input type='date' id='LicentieVervallenPer_%d' value='%s' %s></td>\n", $ld->RecordID, $ld->LicentieVervallenPer, $jsoc);
-				$aant++;
+		printf("<tr>\n<td>%s</td>\n<td>%s</td>\n<td>%s</td>\n", $dp->Kode, $dpnm, $geldig);
+		$jsoc = "OnBlur=\"savedata('liddipl', 0, this);\"";
+		$aant = 0;
+		foreach ($i_ld->basislijst($f) as $ld) {
+			if ($aant > 0) {
+				echo("</tr>\n<tr><td></td><td></td><td></td>");
 			}
-			if (count($ldrows) == 0) {
-				printf("<td><input type='date' name='Nieuw_%d' OnBlur='this.form.submit();'></td><td></td><td></td>\n", $dp->RecordID);
-			}
-			echo("</tr>\n");
+			printf("<td><input type='date' id='DatumBehaald_%d' value='%s' %s></td>\n", $ld->RecordID, $ld->DatumBehaald, $jsoc);
+			printf("<td><input type='text' id='Diplomanummer_%d' value='%s' maxlength=30 %s></td>\n", $ld->RecordID, $ld->Diplomanummer, $jsoc);
+			printf("<td><input type='date' id='LicentieVervallenPer_%d' value='%s' %s></td>\n", $ld->RecordID, $ld->LicentieVervallenPer, $jsoc);
+			$aant++;
+		}
+		if (count($ldrows) == 0) {
+			printf("<td><input type='date' name='Nieuw_%d' OnBlur='this.form.submit();'></td><td></td><td></td>\n", $dp->RecordID);
+		}
+		echo("</tr>\n");
 	}
 	if ($td != "ZS") {
 		printf("<tr><td colspan=2><select name='Extra' OnChange-='this.form.submit();'><option value=-1>Toevoegen ...</option>%s</select></td></tr>\n", $i_dp->htmloptions(0, $_SESSION['orgfilter']));
@@ -2123,7 +1863,7 @@ function instellingenledenmuteren() {
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		
-		foreach (array("woonadres_anderen_tonen", "zs_incl_beroep", "zs_incl_bsn", "zs_incl_emailouders", "zs_incl_emailvereniging", "zs_incl_iban", "zs_incl_legitimatie", "zs_incl_slid", "zs_opzeggingautomatischverwerken") as $c) {
+		foreach (array("zs_incl_beroep", "zs_incl_bsn", "zs_incl_emailouders", "zs_incl_emailvereniging", "zs_incl_iban", "zs_incl_legitimatie", "zs_incl_slid", "zs_opzeggingautomatischverwerken") as $c) {
 			if (isset($_POST[$c])) {
 				$_POST[$c] = 1;
 			} else {
@@ -2144,8 +1884,9 @@ function instellingenledenmuteren() {
 	printf("<form method='post' action='%s?tp=%s/%s'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
 	
 	echo("<h2>Algemeen</h2>\n");
-	printf("<label>Moet het woonadres van een lid ook aan andere leden worden getoond?</label><input type='checkbox' name='woonadres_anderen_tonen' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['woonadres_anderen_tonen']));
-	printf("<label>Opzegtermijn van de vereniging in maanden</label><input type='number' name='zs_opzegtermijn' value=%d OnChange='this.form.submit();'>\n", $_SESSION['settings']['zs_opzegtermijn']);
+	$opt = (new cls_Onderdeel())->htmloptions($_SESSION['settings']['woonadres_anderen_tonen']);
+	printf("<label>Aan wie moet het woonadres aan andere leden worden getoond?</label><select name='woonadres_anderen_tonen' OnChange='this.form.submit();'<option value=-2>Niemand</option>\n%s</select>\n", $opt);
+	printf("<label>Opzegtermijn in maanden</label><input type='number' name='zs_opzegtermijn' value=%d OnChange='this.form.submit();'>\n", $_SESSION['settings']['zs_opzegtermijn']);
 	
 	$options = "";
 	foreach((new cls_Mailing())->lijst("Templates") as $row) {
