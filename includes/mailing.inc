@@ -199,6 +199,7 @@ class Mailing {
 	private $aant_ok = 0;
 	private $aant_nok = 0;
 	private $aant_rcpt = 0;
+	private $aant_ontvangers_zonder_email = 0;
 	private $verzendenmag = false;
 	private $emailsecretariaat = "";
 	
@@ -500,8 +501,9 @@ class Mailing {
 		$i_el = new cls_Eigen_lijst();
 		$i_ond = new cls_Onderdeel();
 		$ob = "OnBlur='this.form.submit();'";
-		$jstb = sprintf("OnBlur=\"savedata('mailing', %d, $(this).val(), 'Roepnaam');\"", $this->mid);
+		$jstb = sprintf("OnBlur=\"savedata('mailing', %d, this);\"", $this->mid);
 		$jscb = sprintf("OnClick=\"savecb('mailing', %d, this);\"", $this->mid);
+		$jsoc = sprintf("OnChange=\"savedata('mailing', %d, this);\"", $this->mid);
 		
 		if (file_exists(BASEDIR . '/maatwerk/email.css') and $this->zonderbriefpapier == 0) {
 			$ss = "content_css: 'maatwerk/email.css',";
@@ -616,69 +618,35 @@ class Mailing {
 		printf("<form method='post' action='%s?tp=Mailing/Wijzigen+mailing%s' name='frm_mailedit' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], $m);
 		
 		if ($this->mid > 0) {
-			printf("<label class='k2'>RecordID</label><p>%d</p>\n", $this->mid);
+			printf("<label class='k2'>RecordID</label><p id='recordid'>%d</p>\n", $this->mid);
 		}
-		printf("<label>Van</label><select name='MailingVanafID'>\n<option value=''>Selecteer ...</option>%s</select>\n", (new cls_Mailing_vanaf())->htmloptions($this->mailingvanafid));
-		printf("<label>Aan</label><input type='text' class='naam' name='to_name' value=\"%s\" maxlength=50 placeholder='Omschrijving groep personen aan wie de mailing is gericht'>\n", $this->to_name);
-		printf("<label>Onderwerp</label><input type='text' class='naam' name='subject' value=\"%s\" maxlength=75 placeholder='Onderwerp'>\n", $this->subject);
+		printf("<input type='hidden' name='mailingid' value=%d>\n", $this->mid);
+		printf("<label>Van</label><select id='MailingVanafID' %s>\n<option value=''>Selecteer ...</option>%s</select>\n", $jsoc, (new cls_Mailing_vanaf())->htmloptions($this->mailingvanafid));
+		printf("<label>Aan</label><input type='text' id='OmschrijvingOntvangers' value=\"%s\" maxlength=50 placeholder='Omschrijving groep personen aan wie de mailing is gericht' %s>\n", $this->to_name, $jstb);
+		printf("<label>Onderwerp</label><input type='text' id='subject' value=\"%s\" maxlength=75 placeholder='Onderwerp' %s>\n", $this->subject, $jstb);
 
 		$this->verzendenmag = false;
 		if ($this->mid > 0) {
-			$rcpt_rows = $i_mr->lijst($this->mid);
 			if (strlen($this->speciaal) > 0) {
 				printf("<label>Specifiek doel</label><p>%s</p>\n", $this->speciaal);
 				$i_mr->delete_all($this->mid);
 			} else {
-				$this->meldingen = "Er zijn nog geen ontvangers aan deze mailing toegevoegd.<br>\n";
-				echo("<label>");
-				if ($this->aant_rcpt == 1) {
-					echo("Ontvanger</label>");
-				} elseif ($this->aant_rcpt > 1) {
-					printf("Ontvangers (%d)</label>", $this->aant_rcpt);
-				} else {
-					echo("Ontvangers</label>");
-				}
-				$aant_ze = 0;
+				echo("<label id='lblOntvangers'>Ontvangers</label>");
 				echo("<div class='invoerblok'>\n");
-				$this->aant_rcpt = 0;
 				echo("<ul class='lijstontvangers'>\n");
-				foreach($rcpt_rows as $rcpt) {
-					$ze = "";
-					if (!isValidMailAddress($rcpt->Email) and !isValidMailAddress($rcpt->EmailVereniging) and !isValidMailAddress($rcpt->EmailOuders) and !isValidMailAddress($rcpt->to_address)) {
-						$ze = " *";
-						$aant_ze++;
-					}
-					if ($rcpt->LidID > 0) {
-						$lnk = sprintf("%s?tp=%s&amp;op=del_rcpt&mid=%d&lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, $rcpt->LidID);
-						printf("<li>%s&nbsp;<a href='%s'><img src='%s' alt='Verwijderen' title='Verwijderen'></a></li>\n", htmlentities($rcpt->Naam_lid . $ze), $lnk, BASE64_VERWIJDER_KLEIN);
-					} else {
-						$lnk = sprintf("%s?tp=%s&amp;op=del_rcpt&amp;mid=%d&amp;addr=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, $rcpt->to_address);
-						printf("<li>%s&nbsp;<a href='%s'><img src='%s' alt='Verwijderen' title='Verwijderen'></a></li>\n", $rcpt->to_address, $lnk, BASE64_VERWIJDER_KLEIN);
-						$this->bevat_losse_email = true;
-					}
-					$this->aant_rcpt++;
-				}
-				echo("</ul>\n");
-				if ($aant_ze > 0) {
-					printf("<span>* = zonder e-mailadres, totaal %d stuks</span>", $aant_ze);
-				}
+				echo("<div id='lijstontvangers'>\n");
+//				echo($this->html_ontvangers());
+				echo("</div> <!-- Einde lijstontvangers -->\n");
+				echo("</ul> <!-- Einde lijstontvangers -->\n");
+				echo("</div> <!-- Einde invoerblok -->\n");
 				$this->verzendenmag = true;
 				$this->meldingen = "";
-				echo("</div> <!-- Einde invoerblok -->\n");
 
 				echo("<label>Ontvanger toevoegen</label>\n");
-				printf("<select name='add_lid' onChange='this.form.submit();'>\n");
-				printf("<option value=0>Toevoegen lid ...</option>\n");
-				$rcpt_rows = $i_m->mogelijkeontvangers($this->mid);
-				foreach($rcpt_rows as $rcpt) {
-					$rnm = $rcpt->Zoeknaam_lid;
-					$sl = substr((new cls_Lidmaatschap())->soortlid($rcpt->LidID), 0, 1);
-					if ($sl != "L") {
-						$rnm .= sprintf(" (%s)", $sl);
-					}
-					printf("<option value='%d'>%s</option>\n", $rcpt->LidID, $rnm);
-				}
-				printf("</select>&nbsp;\n");
+				printf("<select id='add_lid' onChange=\"mailing_add_ontvanger($(this).val(), '');\">\n");
+//				echo($this->options_mogelijke_ontvangers($this->mid, 0));
+				
+				echo("<input type='checkbox' id='cb_alle_personen' OnClick=\"options_mogelijke_ontvangers();\"><p>Alle</p>");
 			
 				$_POST['selecteer_groep'] = $_POST['selecteer_groep'] ?? 0;
 				echo("<input type='email' name='add_address' maxlength=50 placeholder='Toevoegen e-mailadres' onBlur='this.form.submit();'>");
@@ -697,33 +665,24 @@ class Mailing {
 				$_POST['selectie_vangebdatum'] = $_POST['selectie_vangebdatum'] ?? $i_lid->min("GEBDATUM");
 				$_POST['selectie_temgebdatum'] = $_POST['selectie_temgebdatum'] ?? $i_lid->max("GEBDATUM");
 				
-				printf("<label>Vanaf geboortedatum</label><input type='date' value='%s' name='selectie_vangebdatum' %s><p> (%s)</p>\n", $_POST['selectie_vangebdatum'], $ob, trim(strftime('%e %B %Y', strtotime($_POST['selectie_vangebdatum']))));
-				printf("<label>T/m geboortedatum</label><input type='date' value='%s' name='selectie_temgebdatum' %s><p> (%s)</p>\n", $_POST['selectie_temgebdatum'], $ob, trim(strftime('%e %B %Y', strtotime($_POST['selectie_temgebdatum']))));
+				printf("<label>Vanaf geboortedatum</label><input type='date' value='%s' name='selectie_vangebdatum' id='selectie_vangebdatum' OnBlur='mailingprops();'><p id='tekst_vangebdatum'></p>\n", $_POST['selectie_vangebdatum']);
+				printf("<label>T/m geboortedatum</label><input type='date' value='%s' name='selectie_temgebdatum' id='selectie_temgebdatum' OnBlur='mailingprops();'><p id='tekst_temgebdatum'></p>\n", $_POST['selectie_temgebdatum']);
 
-				if (!isset($_POST['selectie_groep'])) {
-					$_POST['selectie_groep'] = 0;
-				}
+				$_POST['selectie_groep'] = $_POST['selectie_groep'] ?? 0;
 				$selgr = sprintf("<option value=0>&nbsp;</option>\n%s<option disabled>-- Eigen lijsten --</option>\n%s</select>\n", $i_ond->htmloptions($_POST['selectie_groep'], 1), $i_el->htmloptions($_POST['selectie_groep'], 0));
-				printf("<label>Zit in groep</label><select name='selectie_groep' onChange='this.form.submit();'>%s</selectie>\n", $selgr);
+				printf("<label>Zit in groep</label><select name='selectie_groep' id='selectie_groep' OnChange='mailingprops();'>%s</selectie>\n", $selgr);
 				
-				$this->add_del_selectie("aantal", $_POST['selectie_groep']);
-				printf("<label>Aantal personen in groep</label><p id='aantalpersoneningroep'>%d</p>", $this->sl_aantingroep);
-				
-				if ($this->sl_aanttoevoegen > 0) {
-					printf("<button type='submit' name='LedenToevoegen'>%d ontvangers toevoegen</button>\n", $this->sl_aanttoevoegen);
-				}
-				if ($this->sl_aantverwijderen > 0) {
-					printf("<button type='submit' name='LedenVerwijderen'>%d ontvangers verwijderen</button>\n", $this->sl_aantverwijderen);
-				}
-				if ($this->aant_rcpt > 1 and $this->sl_aantverwijderen < $this->aant_rcpt) {
-					echo("<button type='submit' name='OntvangersVerwijderen'>Alle ontvangers verwijderen</button>\n");
-				}
+				//$this->add_del_selectie("aantal");
+				echo("<label>Aantal personen in groep</label><p id='aantalpersoneningroep'></p>\n");
+				echo("<button type='submit' name='LedenToevoegen' id='LedenToevoegen'>Groepsleden toevoegen</button>\n");
+				echo("<button type='submit' name='LedenVerwijderen' id='LedenVerwijderen'>Groepsleden verwijderen</button>\n");
+				echo("<button type='submit' name='OntvangersVerwijderen' id='OntvangersVerwijderen'>Alle ontvangers verwijderen</button>\n");
 				echo("</div> <!-- Einde mailingselectieleden -->\n");
 				echo("<div class='clear'></div>\n");
 			}
 		}
 		
-		printf("<label>Cc</label><input type='text' name='cc_addr' value='%s'>\n", $this->cc_addr);
+		printf("<label>Cc</label><input type='text' id='cc_addr' value='%s' %s>\n", $this->cc_addr, $jstb);
 		
 		if ((new cls_Onderdeel())->aantal("`Type`='A' AND LENGTH(CentraalEmail) > 4 AND IFNULL(VervallenPer, CURDATE()) >= CURDATE()") > 0) {
 			printf("<label>Cc aan afdelingen</label><input type='checkbox' name='CCafdelingen' id='CCafdelingen' value=1 %s %s>\n", checked($this->CCafdelingen), $jscb);
@@ -780,7 +739,6 @@ class Mailing {
 				}
 				printf("<div class='editmailingform'>\n");
 			}
-
 
 			echo("<div class='clear'></div>\n");
 			echo("<label>Beschikbare variabelen</label><div class='invoerblok'>\n<ul class='lijstvariabelen'>\n");
@@ -867,14 +825,166 @@ class Mailing {
 		
 		$i_el = null;
 		
-		echo("<script>
+		printf("
+		<script>
+			$(document).ready(function() {
+				mailingprops();
+			});
+			
 			function mailingprops() {
+				$.ajax({
+					url: 'ajax_update.php?entiteit=mailingprops',
+					type: 'post',
+					dataType: 'json',
+					data: { mailingid: %1\$d, selectie_vangebdatum: $('#selectie_vangebdatum').val(), selectie_temgebdatum: $('#selectie_temgebdatum').val(), selectie_groep: $('#selectie_groep').val() },
+					success: function(response) {
+						retvals = response.split(',');
+						document.getElementById('aantalpersoneningroep').innerHTML = retvals[0];
+						document.getElementById('tekst_vangebdatum').innerHTML = ' (' + retvals[3] + ')';
+						document.getElementById('tekst_temgebdatum').innerHTML = ' (' + retvals[4] + ')';
+					}
+				});
 				
+				$.ajax({
+					url: 'ajax_update.php?entiteit=mailingaantontvangers',
+					type: 'post',
+					dataType: 'json',
+					data: { mailingid: %1\$d },
+					success: function(response) {
+						if (response > 1) {
+							document.getElementById('lblOntvangers').innerHTML = 'Ontvangers (' + response + ')';
+						} else {
+							document.getElementById('lblOntvangers').innerHTML = 'Ontvangers';
+						}
+					}
+				});
+				
+				$.ajax({
+					url: 'ajax_update.php?entiteit=mailing_html_ontvangers',
+					type: 'post',
+					dataType: 'json',
+					data: { mailingid: %1\$d },
+					success: function(response) {
+						document.getElementById('lijstontvangers').innerHTML = response;
+					}
+				});
+				options_mogelijke_ontvangers();
 			}
-		</script>\n");
+			
+			function mailing_verw_ontvanger(p_lidid, p_email) {
+				$.ajax({
+					url: 'ajax_update.php?entiteit=mailing_verw_ontvanger',
+					type: 'post',
+					dataType: 'json',
+					data: { mid: %1\$d, lidid: p_lidid, email: p_email }
+				});
+				mailingprops();
+			}
+			
+			function mailing_add_ontvanger(p_lidid, p_email) {
+				$.ajax({
+					url: 'ajax_update.php?entiteit=mailing_add_ontvanger',
+					type: 'post',
+					dataType: 'json',
+					data: { mid: %1\$d, lidid: p_lidid, email: p_email }
+				});
+				document.getElementById('add_lid').value = 0;
+				mailingprops();
+			}
+			
+			function options_mogelijke_ontvangers() {
+				if (document.getElementById('cb_alle_personen').checked == true) {
+					f = 1;
+				} else {
+					f = 0;
+				}
+				
+				$.ajax({
+					url: 'ajax_update.php?entiteit=options_mogelijke_ontvangers',
+					type: 'post',
+					dataType: 'json',
+					data: { mailingid: %1\$d, alle: f },
+					success: function(response) {
+						document.getElementById('add_lid').innerHTML = response;
+					}
+				});
+			}
+		</script>\n", $this->mid);
 	} # edit
 	
-	public function htmlmedia($p_bestand) {
+	public function options_mogelijke_ontvangers($p_mid, $p_alle=0) {
+		$i_m = new cls_Mailing();
+		
+		
+		if ($p_mid > 0) {
+			$this->mid = $p_mid;
+		}
+		
+		if ($p_alle == 0) {
+			$f = 1;
+		} else {
+			$f = 0;
+		}
+		
+		if ($p_alle == 1) {
+			$rv = sprintf("<option value=0>Toevoegen ontvanger ...</option>\n");
+		} else {
+			$rv = sprintf("<option value=0>Toevoegen lid ...</option>\n");
+		}
+		$rcpt_rows = $i_m->mogelijkeontvangers($this->mid, $f);
+		foreach($rcpt_rows as $rcpt) {
+			$rnm = $rcpt->Zoeknaam_lid;
+			if ($f == 0) {
+				$sl = substr((new cls_Lidmaatschap())->soortlid($rcpt->LidID), 0, 1);
+				if ($sl != "L") {
+					$rnm .= sprintf(" (%s)", $sl);
+				}
+			}
+			$rv .= sprintf("<option value='%d'>%s</option>\n", $rcpt->LidID, $rnm);
+		}
+		
+		$i_m = null;
+		
+		
+		return $rv;
+	}
+	
+	public function html_ontvangers($p_mid=-1) {
+		
+		if ($p_mid > 0) {
+			$this->mid = $p_mid;
+		}
+		
+		$i_mr = new cls_Mailing_rcpt();
+		
+		$rcpt_rows = $i_mr->lijst($this->mid);
+		$this->meldingen = "Er zijn nog geen ontvangers aan deze mailing toegevoegd.<br>\n";
+		
+		$this->aant_rcpt = 0;
+		$this->aant_ontvangers_zonder_email = 0;
+		$rv = "";
+		foreach($rcpt_rows as $rcpt) {
+			$ze = "";
+			if (!isValidMailAddress($rcpt->Email) and !isValidMailAddress($rcpt->EmailVereniging) and !isValidMailAddress($rcpt->EmailOuders) and !isValidMailAddress($rcpt->to_address)) {
+				$ze = " *";
+				$this->aant_ontvangers_zonder_email++;
+			}
+			$jsdo = sprintf("OnClick=\"mailing_verw_ontvanger(%d, '%s');\"", $rcpt->LidID, $rcpt->to_address);
+			if ($rcpt->LidID > 0) {
+//				$lnk = sprintf("%s?tp=Mailing&op=del_rcpt&mid=%d&lidid=%d", $_SERVER['PHP_SELF'], $this->mid, $rcpt->LidID);
+				$rv .= sprintf("<li>%s&nbsp;<img src='%s' alt='Verwijderen' title='Verwijderen' %s></li>\n", htmlentities($rcpt->Naam_lid . $ze), BASE64_VERWIJDER_KLEIN, $jsdo);
+			} else {
+				$lnk = sprintf("%s?tp=Mailing&op=del_rcpt&amp;mid=%d&amp;addr=%s", $_SERVER['PHP_SELF'], $this->mid, $rcpt->to_address);
+				$rv .= sprintf("<li>%s&nbsp;<img src='%s' alt='Verwijderen' title='Verwijderen' %s></li>\n", $rcpt->to_address, BASE64_VERWIJDER_KLEIN, $jsdo);
+				$this->bevat_losse_email = true;
+			}
+			$this->aant_rcpt++;
+		}
+
+		return $rv;		
+	}
+	
+	private function htmlmedia($p_bestand) {
 		
 		$url = BASISURL . str_replace(BASEDIR, "", $this->dir_media) . str_replace("!", ".", $p_bestand);
 		$ext = fnExtBestand($p_bestand);
@@ -963,35 +1073,10 @@ class Mailing {
 		$i_el = new cls_Eigen_lijst();
 		$i_lo = new cls_Lidond();
 		
-		// ** Gerelateerde tabellen bijwerken.
-		if (isset($_POST['add_lid']) and $_POST['add_lid'] > 0) {
-			$i_mr->add($this->mid, $_POST['add_lid']);
-		} elseif (isset($_POST['add_address']) and strlen($_POST['add_address']) > 5) {
-			$i_mr->add($this->mid, 0, $_POST['add_address']);
-			
-		} elseif  (isset($_POST['LedenEigenLijstToevoegen']) and $_POST['selecteer_groep'] > 0) {
-			$kid = $i_el->kolomlidid($_POST['selecteer_groep']);
-			$mysql = $i_el->mysql($_POST['selecteer_groep']);
-			$result = $i_el->execsql($mysql);
-			$result->setFetchMode(PDO::FETCH_NUM);
-			foreach ($result->fetchAll() as $r) {
-				$i_mr->add($this->mid, intval($r[$kid]));
-			}
-						
-		} elseif  (isset($_POST['LedenOnderdeelToevoegen']) and $_POST['selecteer_groep'] > 0) {
-			foreach ($i_lo->lijst($_POST['selecteer_groep']) as $r) {
-				$i_mr->add($this->mid, $r->Lid);
-			}
-		}
-		
 		if ($p_actie == "add_selectie") {
-			$this->add_del_selectie("add", $_POST['selectie_groep']);			
-		} elseif ($p_actie == "del_rcpt" and isset($_GET['lidid']) and $_GET['lidid'] > 0) {
-			$i_mr->delete($this->mid, $_GET['lidid']);
-		} elseif ($p_actie == "del_rcpt" and isset($_GET['addr']) and strlen($_GET['addr']) > 0) {
-			$i_mr->delete($this->mid, 0, $_GET['addr']);
+			$this->add_del_selectie("add", $_POST['selectie_groep']);
 		} elseif ($p_actie == "del_selectie") {
-			$this->add_del_selectie("delete", $_POST['selectie_groep']);
+			$this->add_del_selectie("delete");
 		}  elseif ($p_actie == "delete_all_rcpt") {
 			$i_mr->delete_all($this->mid);
 		} 
@@ -1162,18 +1247,17 @@ class Mailing {
 		(new cls_Logboek())->add($mess, 4, 0, 1, $this->mid, 43);
 	}
 	
-	public function add_del_selectie($actie="aantal", $p_ondid) {
+	public function add_del_selectie($actie="aantal", $p_ondid=0) {
 		$_POST['selectie_vangebdatum'] = $_POST['selectie_vangebdatum'] ?? "1900-01-01";
+		$_POST['selectie_temgebdatum'] = $_POST['selectie_temgebdatum'] ?? date("Y-m-d");
 		
 		$lidqry = sprintf("SELECT L.RecordID FROM %sLid AS L WHERE L.GEBDATUM >= '%s'", TABLE_PREFIX, $_POST['selectie_vangebdatum']);
 		if ($_POST['selectie_temgebdatum'] >= $_POST['selectie_vangebdatum']) {
 			$lidqry .= sprintf(" AND L.GEBDATUM <= '%s'", $_POST['selectie_temgebdatum']);
 		}
-		if ($actie == "add") {
-			$lidqry .= " AND (L.Overleden IS NULL) AND (L.Verwijderd IS NULL)";
-		}
+		$lidqry .= " AND (L.Overleden IS NULL) AND (L.Verwijderd IS NULL)";
 		
-		
+		$ondid = $_POST['selectie_groep'] ?? $p_ondid;
 		
 		/*
 		if (strlen($_POST['selectie_vanliddatum']) == 10 and $_POST['selectie_vanliddatum'] > $i_lm->max("LIDDATUM") and $_POST['selectie_vanliddatum'] <= $i_lm->max("LIDDATUM")) {
@@ -1186,39 +1270,42 @@ class Mailing {
 		
 		$i_el = new cls_Eigen_lijst();
 		$i_base = new cls_db_base();
-		if ($p_ondid > 0) {
-			$elid = $i_el->controle($p_ondid);
+		if ($ondid > 0) {
+			$elid = $i_el->controle($ondid);
 			if ($elid > 0) {
-				$query = $i_el->mysql($elid);
+				$subqry = $i_el->mysql($elid, 1);
 			} else {
-				$query = sprintf("SELECT DISTINCT LO.Lid AS LidID FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID=%d;", TABLE_PREFIX, cls_db_base::$wherelidond, $p_ondid);
+				$subqry = sprintf("(SELECT DISTINCT LO.Lid AS LidID FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID=%d)", TABLE_PREFIX, cls_db_base::$wherelidond, $ondid);
 			}
 		} else {
-			$query = sprintf("SELECT LM.Lid AS LidID FROM %sLidmaatschap AS LM WHERE IFNULL(LM.Opgezegd, CURDATE()) >= CURDATE();", TABLE_PREFIX);
+			$subqry = sprintf("(SELECT LM.Lid AS LidID FROM %sLidmaatschap AS LM WHERE IFNULL(LM.Opgezegd, CURDATE()) >= CURDATE())", TABLE_PREFIX);
 		}
 		
-		$aant = 0;
+		$lidqry .= sprintf(" AND L.RecordID IN %s;", $subqry);
+		
 		$i_mr = new cls_Mailing_rcpt();
-		$selrows = $i_base->execsql($query);
+		
+		$selrows = $i_base->execsql($lidqry)->fetchAll();
+		
+//	debug($lidqry, 1, 0, 1);
+//	debug($lidqry . ": ". count($selrows), 1, -1, 1);
+		
 		$this->sl_aantingroep = 0;
 		$this->sl_aanttoevoegen = 0;
 		$this->sl_aantverwijderen = 0;
-		foreach($selrows as $row) {
-			$contrqry = $lidqry . sprintf(" AND L.RecordID=%d;", $row->LidID);
-			if ($i_base->scalar($contrqry) > 0) {
+		if ($actie == "aantal") {
+			$this->sl_aantingroep = count($selrows);
+		} else {
+			
+			foreach($selrows as $row) {
 				$this->sl_aantingroep++;
-				$f = sprintf("LidID=%d AND MailingID=%d", $row->LidID, $this->mid);
-				$amr = $i_mr->aantal($f);
-				if ($amr > 0) {
+				$amr = $i_mr->aantalontvangers($this->mid, $row->RecordID);
+				if ($amr > 0 and $actie == "delete") {
 					$this->sl_aantverwijderen++;
-					if ($actie == "delete") {
-						$i_mr->delete($this->mid, $row->LidID, "", 1);
-					}
-				} else {
+					$i_mr->delete($this->mid, $row->RecordID, "", 1);
+				} elseif ($actie == "add") {
 					$this->sl_aanttoevoegen++;
-					if ($actie == "add") {
-						$i_mr->add($this->mid, $row->LidID, "", 1);
-					}
+					$i_mr->add($this->mid, $row->RecordID, "", 1);
 				}
 			}
 		}
@@ -1231,7 +1318,11 @@ class Mailing {
 			(new cls_Logboek())->add($mess, 4, 0, 0, $this->mid, 13);
 		}
 		
-		return $aant;
+		$rv = sprintf("%d,%d,%d",$this->sl_aantingroep, $this->sl_aanttoevoegen, $this->sl_aantverwijderen);
+		$rv .= "," . trim(strftime('%e %B %Y', strtotime($_POST['selectie_vangebdatum'])));
+		$rv .= "," . trim(strftime('%e %B %Y', strtotime($_POST['selectie_temgebdatum'])));
+		
+		return $rv;
 		
 	} # add_del_selectie
 	
@@ -1761,7 +1852,9 @@ class email {
 			$i_mv = null;
 		}
 		
-		if (strlen($this->aanadres) > 5 and strlen($this->vanafadres) > 5) {
+		if (strlen($this->aanadres) < 5) {
+			debug("geen aanadres aanwezig");
+		} elseif (strlen($this->vanafadres) > 5) {
 			$this->mhid = (new cls_Mailing_hist())->add($this);
 			if ($this->mhid > 0) {
 				$rv = $this->mhid;
@@ -2290,6 +2383,7 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 
 	private $bestand_briefpapier;
 	public $omsontvangers = "";
+	public $zonderbriefpapier = 0;
 
 	function __construct() {
 		global $smtphost, $smtpport, $smtpuser, $smtppw;
@@ -2329,9 +2423,13 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 		$this->bestand_briefpapier = $_SESSION['settings']['path_templates'] . "briefpapier.html";
 	}
 	
-	public function addstationary($to="", $from="", $verwijderaanhef=0, $p_zb=0) {
+	public function addstationary($to="", $from="", $verwijderaanhef=0, $p_zb=-1) {
 		
-		if ($p_zb == 1) {
+		if ($p_zb >= 0) {
+			$this->zonderbriefpapier = $p_zb;
+		}
+			
+		if ($this->zonderbriefpapier == 1) {
 			if (startwith($this->Body, "<!DOCTYPE html>") == false) {
 				$this->Body = "<!DOCTYPE html>\n" . $this->Body;
 			}
