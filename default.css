@@ -198,11 +198,15 @@ input.w15 {
 	width: 80px;
 }
 
+input.w17, p.w17 {
+	width: 150px;
+}
+
 input.w21, input.w22 {
 	width: 160px;
 }
 
-input.w30 {
+input.w25, input.w30 {
 	width: 240px;
 }
 
@@ -1584,6 +1588,11 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	margin-top: 0;
 }
 
+.lijstontvangers ul {
+	border-width: 1px;
+	border-style: solid;
+}
+
 .listmergefields li, .listrecipients li, .lijstvariabelen li, .lijstontvangers li {
 	float: left;
 	display: inline-block;
@@ -1960,17 +1969,11 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	margin-left: 6px;
 }
 
-.editmailingform input[type='text'], .editmailingform input[type='email'], .editmailingform select {
+.editmailingform input[type='text'], .editmailingform input[type='email'] {
 	width: 440px;
 }
-
-.editmailingform fieldset {
-	margin-top: 3px;
-	margin-bottom: 3px;
-	margin-left: 0;
-	margin-right: 0;
-	padding-left: 0;
-	padding-right: 0;
+.editmailingform input[type='checkbox'] {
+	padding-top: 12px;
 }
 
 .editmailingform label {
@@ -1983,7 +1986,7 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 
 .editmailingform p {
 	float: left;
-	margin-top: 8px;
+	margin-top: 10px;
 	margin-right: 8px;
 	border-style: none;
 	border-width: 1px;
@@ -2009,7 +2012,7 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	height: 28px;
 }
 
-#instellingenmuteren input, .editmailingform input, .editmailingform select, .editmailingform input, .editmailingform select, #toestemmingenmuteren input, #afdelingskalendermuteren input, #afdelingskalendermuteren select {
+#instellingenmuteren input, .editmailingform input, .editmailingform input, .editmailingform select, #toestemmingenmuteren input, #afdelingskalendermuteren input, #afdelingskalendermuteren select {
 	margin-top: 9px;
 	margin-bottom: 8px;
 }
@@ -2046,11 +2049,11 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	padding-right: 0;
 }
 
-#wijzigenlidgegevens input.smal, #wijzigenlidgegevens select, #wijzigenlidgegevens input[type='date'] {
+#wijzigenlidgegevens select, #wijzigenlidgegevens input[type='date'] {
 	width: 225px;
 }
 
-#wijzigenlidgegevens input.xsmal, #wijzigenlidgegevens input[type='date'] {
+#wijzigenlidgegevens input[type='date'] {
 	width: 110px;
 }
 #wijzigenlidgegevens textarea {
@@ -2071,6 +2074,7 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	clear: none;
 	float: left;
 	margin-left: 5px;
+	margin-right: 8px;
 	padding-top: 7px;
 }
 
@@ -2174,4 +2178,9 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	font-size: inherit;
 	background-color: inherit;
 	font-weight: bolder;
+}
+
+.handCursor {
+    cursor: pointer;
+    cursor: hand;
 }
