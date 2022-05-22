@@ -949,9 +949,9 @@ function overzichtverjaardagen($metfoto=1) {
 	$verj = "";
 	$verjfoto = "";
 	$aantgetoond = 0;
+	$dteHV = new DateTime();
 	for ($i = 0; $i < $_SESSION['settings']['verjaardagenvooruit'] and $aantgetoond < $_SESSION['settings']['verjaardagenaantal']; $i++) {
-		$dteHV = mktime(0, 0, 0, date("m"), date("d")+$i, date("Y"));
-		foreach($i_lid->verjaardagen(date("Y-m-d", $dteHV)) as $row) {
+		foreach($i_lid->verjaardagen($dteHV->format("Y-m-d")) as $row) {
 			$o = (new cls_Lidond())->onderscheiding($row->RecordID);
 			if (strlen($o) > 0) {
 				$nm = $o . " ";
@@ -964,7 +964,7 @@ function overzichtverjaardagen($metfoto=1) {
 			} elseif ($i == 1) {
 				$t = sprintf("%s wordt morgen %d jaar", $nm, $row->Leeftijd);
 			} else {
-				$t = sprintf("Op %s is %s jarig", strftime("%A %e %B", $dteHV), $nm);
+				$t = sprintf("Op %s is %s jarig", strftime("%A %e %B", $dteHV->getTimestamp()), $nm);
 			}
 			$fn = fotolid($row->RecordID, 1);
 			if (strlen($t) > 3) {
@@ -977,6 +977,7 @@ function overzichtverjaardagen($metfoto=1) {
 			}
 			$aantgetoond++;
 		}
+		$dteHV->modify("+1 day");
 	}
 	if ($metfoto == 1) {
 		return $verjfoto;
@@ -1019,6 +1020,7 @@ function algemeenlidmuteren($lidid) {
 	$row = $i_lid->record($lidid);
 	$i_lo = new cls_Lidond();
 	$i_ond = new cls_Onderdeel();
+	$i_lm = new cls_Lidmaatschap();
 	
 	if ($currenttab == "Zelfservice") {
 		$lidid = $_SESSION['lidid'];
@@ -1042,7 +1044,7 @@ function algemeenlidmuteren($lidid) {
 	}
 	$wijzvelden[] = array('label' => "Tussenvoegsels", 'naam' => "Tussenv", 'lengte' => 7);
 	if ($gs == "V") {
-		$wijzvelden[] = array('label' => "Achternaam", 'naam' => "Achternaam", 'lengte' => 30, 'nietverw' => true, 'uitleg' => 'Dit is de naam die wordt getoond');
+		$wijzvelden[] = array('label' => "Achternaam", 'naam' => "Achternaam", 'lengte' => 30, 'nietverw' => true, 'uitleg' => 'Dit is de naam die wordt getoond.');
 		$wijzvelden[] = array('label' => "Meisjesnaam", 'naam' => "Meisjesnm", 'lengte' => 25, 'uitleg' => 'Wordt niet in de achternaam getoond.');
 	} else {
 		$wijzvelden[] = array('label' => "Achternaam", 'naam' => "Achternaam", 'lengte' => 30, 'nietverw' => true);
@@ -1138,7 +1140,9 @@ function algemeenlidmuteren($lidid) {
 	echo("<div id='wijzigenlidgegevens'>\n");
 	printf("<form method='post' action='%s' name='frm_wijzigingen'>\n", $actionurl);
 	printf("<input type='hidden' name='lidid' value=%d>\n", $lidid);
-	printf("<label>RecordID</label><p>%d</p>\n", $row->RecordID);
+	printf("<label>RecordID</label><p class='w17'>%d</p>\n", $row->RecordID);
+	printf("<label class='k2'>Lidnummer</label><p>%s</p>\n", $i_lm->lidnummer($row->RecordID));
+	
 	for ($i=0; $i < count($wijzvelden); $i++) {
 		$jsoc = sprintf("OnBlur=\"savedata('lid', %d, this);\"", $row->RecordID, $wijzvelden[$i]['naam']);
 		$dv = str_replace("\n", "<br>\n", $row->{$wijzvelden[$i]['naam']});
@@ -1428,7 +1432,7 @@ function toestemmingenmuteren($lidid) {
 	
 	echo("<div id='toestemmingenmuteren'>\n");
 	printf("<h3>Toestemmingen %s muteren</h3>\n", (new cls_Lid())->Naam($lidid));
-	$rows = $i_ond->lijst(0, $f);
+	$rows = $i_ond->lijst(0, $f, "", 0, "O.Kode");
 	if (count($rows) > 0) {
 		printf("<form method='post' action='%s'>\n", $actionurl);
 		foreach ($rows as $row) {
@@ -1885,7 +1889,7 @@ function instellingenledenmuteren() {
 	
 	echo("<h2>Algemeen</h2>\n");
 	$opt = (new cls_Onderdeel())->htmloptions($_SESSION['settings']['woonadres_anderen_tonen']);
-	printf("<label>Aan wie moet het woonadres aan andere leden worden getoond?</label><select name='woonadres_anderen_tonen' OnChange='this.form.submit();'<option value=-2>Niemand</option>\n%s</select>\n", $opt);
+	printf("<label>Aan wie moet het woonadres aan andere leden worden getoond?</label><select name='woonadres_anderen_tonen' OnChange='this.form.submit();'><option value=-2>Niemand</option>\n%s</select>\n", $opt);
 	printf("<label>Opzegtermijn in maanden</label><input type='number' name='zs_opzegtermijn' value=%d OnChange='this.form.submit();'>\n", $_SESSION['settings']['zs_opzegtermijn']);
 	
 	$options = "";
