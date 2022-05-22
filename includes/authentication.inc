@@ -9,9 +9,7 @@ if ($_SESSION['lidid'] == 0 or strlen($_SESSION['username']) == 0) {
 	if (in_array($_SESSION['lidid'], $lididwebmasters)) {
 		$_SESSION['webmaster'] = 1;
 	}
-	if (strlen($_SESSION['lidgroepen']) < 4) {
-		$_SESSION['lidgroepen'] = (new cls_Lidond())->lidgroepen();;
-	}
+	$_SESSION['lidgroepen'] = (new cls_Lidond())->lidgroepen();
 }
 
 $tabpages = null;
@@ -405,11 +403,9 @@ function toegang($soort, $melding=1, $p_log=1) {
 	}
 	
 	$_SESSION['webmaster'] = 0;
-	$_SESSION['lidgroepen'] = "0";
 	if ($_SESSION['lidid'] > 0 and in_array($_SESSION['lidid'], $lididwebmasters)) {
 		$_SESSION['webmaster'] = 1;
 	}
-	$_SESSION['lidgroepen'] = (new cls_Lidond())->lidgroepen();
 	
 	$soort = str_replace("'", "", $soort);
 		
