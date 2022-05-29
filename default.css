@@ -269,6 +269,11 @@ header a + a:visited + a:hover {
 	padding-left: 12px;
 }
 
+#welkomstekst li {
+	margin-top: 6px;
+	margin-bottom: 6px;
+}
+
 #kolomlinks, #kolomrechts {
 	width: 48%;
 	margin-left: 0;
@@ -1580,26 +1585,52 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	color: orange;
 }
 
-.listmergefields, .listrecipients, .lijstvariabelen, .lijstontvangers {
+.listmergefields, .listrecipients, #lijstvariabelen, #lijstontvangers {
 	list-style: none;
 	padding-left: 3px;
 	padding-right: 3px;
 	text-align: left;
 	margin-top: 0;
+	min-height: 29px;
 }
 
-.lijstontvangers ul {
+#lijstontvangers, #lijstvariabelen {
+	float: left;
+	clear: right;
+	width: 1040px;
+	margin-top: 3px;
+	padding-top: 4px;
 	border-width: 1px;
 	border-style: solid;
 }
 
-.listmergefields li, .listrecipients li, .lijstvariabelen li, .lijstontvangers li {
+#lijstontvangers ul, #lijstvariabelen ul {
+	padding-left: 0;
+	padding-right: 0;
+}
+
+.listmergefields li, .listrecipients li, #lijstontvangers li, #lijstvariabelen li {
 	float: left;
 	display: inline-block;
 	margin-left: 3px;
 	padding-left: 3px;
 	height: 28px;
 	min-width: 240px;
+}
+
+#lijstvariabelen {
+	overflow: hidden;
+	padding-top: 6px;
+	padding-bottom: 0;
+	height: 24px;
+}
+
+#lblbeschikbarevariabelen span {
+	float: none;
+	clear: none;
+	font-weight: bolder;
+	font-size: 133%;
+	background-color: inherit;
 }
 
 #overzichtevenementen ul {
@@ -1969,14 +2000,18 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	margin-left: 6px;
 }
 
-.editmailingform input[type='text'], .editmailingform input[type='email'] {
+#editmailingform label#lblrecordid, #editmailingform p#recordid {
+	float: right;
+}
+
+#editmailingform input[type='text'], #editmailingform input[type='email'] {
 	width: 440px;
 }
-.editmailingform input[type='checkbox'] {
+#editmailingform input[type='checkbox'] {
 	padding-top: 12px;
 }
 
-.editmailingform label {
+#editmailingform label {
 	clear: left;
 	float: left;
 	width: 180px;
@@ -1984,7 +2019,7 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	padding-top: 6px;
 }
 
-.editmailingform p {
+#editmailingform p {
 	float: left;
 	margin-top: 10px;
 	margin-right: 8px;
@@ -1993,26 +2028,26 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	padding-top: 4px;
 }
 
-.editmailingform input {
+#editmailingform input {
 	float: left;
 }
 
-.editmailingform .invoerblok {
+#editmailingform .invoerblok {
 	width: 990px;
 	min-height: 24px;
 	margin-right: 0;
 	padding-right: 0;
 }
 
-.editmailingform button {
+#editmailingform button {
 	float: left;
 }
 
-.editmailingform li, .editmailingform li {
+#editmailingform li, #editmailingform li {
 	height: 28px;
 }
 
-#instellingenmuteren input, .editmailingform input, .editmailingform input, .editmailingform select, #toestemmingenmuteren input, #afdelingskalendermuteren input, #afdelingskalendermuteren select {
+#instellingenmuteren input, #editmailingform input, #editmailingform select, #toestemmingenmuteren input, #afdelingskalendermuteren input, #afdelingskalendermuteren select {
 	margin-top: 9px;
 	margin-bottom: 8px;
 }
@@ -2021,7 +2056,7 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	float: left;
 }
 
-#instellingenmuteren p, .editmailingform p, .editmailingform p {
+#instellingenmuteren p, #editmailingform p {
 	height: 30px;
 	margin-top: 3px;
 	margin-bottom: 2px;

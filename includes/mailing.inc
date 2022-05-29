@@ -39,15 +39,7 @@ function fnMailing() {
 		$op = "add_selectie";
 	} elseif (isset($_POST['LedenVerwijderen'])) {
 		$op = "del_selectie";
-	} elseif (isset($_POST['OntvangersVerwijderen'])) {
-		$op = "delete_all_rcpt";
 		
-	}
-	
-	if ($op == "htmlmedia" and isset($_GET['attach'])) {
-		$mailing->htmlmedia($_GET['attach']);
-	} elseif ($op == "del_media" and isset($_GET['attach'])) {
-		$mailing->attach_delete($_GET['attach'], "media");
 	}
 	
 	if ($currenttab2 != "previewwindow") {
@@ -158,7 +150,6 @@ class Mailing {
 	private $allowed_ext = "bmp, gif, jpeg, jpg, pdf, png, pps, rar, txt, zip";
 	private $allowed_ext_afb = "bmp, gif, jpeg, jpg, mp3, mp4, png";
 	private $dir_attachm = "";
-	public $dir_media = "";
 	private $max_size_attachm = 2097152; // 2MB
 	private $vertraging_tussen_verzenden = 30; // de minimale tijd (in seconden) die er tussen het verzenden van dezelfde mailing moet zitten.
 	private $smtpserver = 0; // De details van de server moeten in config.php gespecificeerd worden.
@@ -169,6 +160,7 @@ class Mailing {
 	private $merged_subject = "";
 	private $merged_message = "";
 	private $speciaal = "";
+	private $opmerking = "";
 	
 	private $mailingvanafid = 0;
 	private $vanafnaam = "";
@@ -198,11 +190,11 @@ class Mailing {
 	private $meldingen = "";
 	private $aant_ok = 0;
 	private $aant_nok = 0;
-	private $aant_rcpt = 0;
-	private $aant_ontvangers_zonder_email = 0;
+	public $aant_rcpt = 0;
 	private $verzendenmag = false;
 	private $emailsecretariaat = "";
 	
+	private $sl_huidigegroep = 0;
 	private $sl_aantingroep = 0;
 	private $sl_aanttoevoegen = 0;
 	private $sl_aantverwijderen = 0;
@@ -219,7 +211,6 @@ class Mailing {
 		
 		if ($this->mid > 0) {
 			$this->dir_attachm = $_SESSION['settings']['path_attachments'] . $this->mid . "/";
-			$this->dir_media = substr($_SERVER["SCRIPT_FILENAME"], 0, strrpos($_SERVER["SCRIPT_FILENAME"], "/")) . "/media/" . $this->mid . "/";
 		}
 		
 		if (strlen($_SESSION['settings']['mailing_extensies_toegestaan']) > 0) {
@@ -480,6 +471,11 @@ class Mailing {
 		} elseif ($this->mid == $_SESSION['settings']['mailing_bevestigingopzegging'] and $this->mid > 0) {
 			$this->xtrachar = "BO_LM";
 			$this->speciaal = "Bevestiging opzegging lidmaatschap";
+
+		} elseif ($this->mid == $_SESSION['settings']['mailingbijadreswijziging'] and $this->mid > 0) {
+			$this->xtrachar = "LIDAW";
+			$this->speciaal = "Melding wijziging postcode";
+			
 		}
 
 		sort($this->MergeField);
@@ -505,7 +501,7 @@ class Mailing {
 		$jscb = sprintf("OnClick=\"savecb('mailing', %d, this);\"", $this->mid);
 		$jsoc = sprintf("OnChange=\"savedata('mailing', %d, this);\"", $this->mid);
 		
-		if (file_exists(BASEDIR . '/maatwerk/email.css') and $this->zonderbriefpapier == 0) {
+		if (file_exists(BASEDIR . '/maatwerk/email.css')) {
 			$ss = "content_css: 'maatwerk/email.css',";
 		} else {
 			$ss = "";
@@ -527,76 +523,6 @@ class Mailing {
 			$d->close();
 		}
 		
-		$img = "";
-		$tabmediafiles = "";
-		if (is_dir($this->dir_media)) {
-			$md = dir($this->dir_media);
-			$il = "";
-			while (false !== ($entry = $md->read())) {
-				if ($entry != "." and $entry != "..") {
-					if (strlen($il) > 0) {
-						$il .= ",\n";
-					}
-					$il .= sprintf("{title: '%s', value: '%s'}", $entry, './media/' . intval($this->mid) . '/' . $entry);
-			
-					$tabmediafiles .= sprintf("<tr>\n<td>%s</td>\n", $entry);
-					$stat = stat($this->dir_media . "/" . $entry);
-					$tabmediafiles .= sprintf("<td>%s KB</td>\n", number_format(($stat['size'] / 1024), 0, ',', '.'));
-					if ($this->htmldirect == 1) {
-						$lnk = sprintf("%s?tp=%s&op=htmlmedia&mid=%d&attach=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, str_replace(".", "!", $entry));
-						$tabmediafiles .= sprintf("<td><a href='%s'>HTML Media</a></td>\n", $lnk);
-					}
-					if (strlen($this->message) == 0) {
-						$lnk = sprintf("%s?tp=%s&op=afbeeldingalsbericht&mid=%d&attach=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, str_replace(".", "!", $entry));
-						$tabmediafiles .= sprintf("<td><a href='%s'>Als bericht</a></td>\n", $lnk);
-					}
-					$lnk = sprintf("%s?tp=%s&op=del_media&mid=%d&attach=%s", $_SERVER['PHP_SELF'], $_GET['tp'], $this->mid, str_replace(".", "!", $entry));
-					$tabmediafiles .= sprintf("<td><input type='image' src='%s' name='del_media_%d' alt='Verwijderen' title='Verwijder %s'></td>\n", BASE64_VERWIJDER_KLEIN, $bnr, $entry);
-					$tabmediafiles .= sprintf("<input type='hidden' name='name_attach_%d' value='%s'>\n", $bnr, str_replace(".", "!", $entry));
-					$bnr++;
-				}
-			}
-			if (strlen($il) > 0) {
-				$img = sprintf("image_list: [\n%s],", $il);
-			}
-			$md->close();
-		}
-				
-		if ($_SESSION['settings']['mailing_type_editor'] == 3) {
-				$src = "/includes/tinymce/js/tinymce/tinymce.min.js";
-				if (file_exists(BASEDIR . $src)) {
-					$src = BASISURL . $src;
-				} else {
-					$src = sprintf("https://cdn.tiny.cloud/1/%s/tinymce/6/tinymce.min.js", $_SESSION['settings']['mailing_tinymce_apikey']);
-				}
-				printf("<script src='%s' referrerpolicy='origin'></script>\n", $src);
-				printf("<script>
-		tinymce.init({
-			selector: '#message',
-			%s
-			height: 650,
-			image_prepend_url: '%s/',
-			relative_urls: false,
-			convert_urls: false,
-			remove_script_host : false,
-			plugins: 'hr link lists table image paste importcss',
-			paste_as_text: true,
-			%s
-			importcss_append: true,
-			menu: {
-				table: { title: 'Table', items: 'inserttable | cell row column | tableprops deletetable' }
-			},
-			toolbar: 'undo redo | styleselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist | link image | hr | removeformat',
-			menubar: 'edit insert format tools table'
-		});
-  </script>\n", $img, BASISURL, $ss);
-  
-		} elseif ($_SESSION['settings']['mailing_type_editor'] == 2) {
-			echo("<script src='https://cdn.ckeditor.com/4.13.0/standard/ckeditor.js'></script>\n");
-		} else {
-			echo("<script src='https://cdn.ckeditor.com/ckeditor5/12.4.0/classic/ckeditor.js'></script>\n");
-		}
-		
 		(new cls_Lidond())->autogroepenbijwerken();
 		foreach ($i_el->lijst("AantalRecords=0 AND KolomLidID >= 0") as $elrow) {
 			$i_el->controle($elrow->RecordID);
@@ -614,16 +540,17 @@ class Mailing {
 		} else {
 			$m = "";
 		}	
-		printf("<div class='editmailingform'>\n");
-		printf("<form method='post' action='%s?tp=Mailing/Wijzigen+mailing%s' name='frm_mailedit' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], $m);
+		printf("<div id='editmailingform'>\n");
+		printf("<form method='post' action='%s?tp=Mailing/Wijzigen+mailing%s' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], $m);
 		
 		if ($this->mid > 0) {
-			printf("<label class='k2'>RecordID</label><p id='recordid'>%d</p>\n", $this->mid);
+			printf("<p id='recordid'>%d</p><label id='lblrecordid'>RecordID</label>\n", $this->mid);
 		}
 		printf("<input type='hidden' name='mailingid' value=%d>\n", $this->mid);
 		printf("<label>Van</label><select id='MailingVanafID' %s>\n<option value=''>Selecteer ...</option>%s</select>\n", $jsoc, (new cls_Mailing_vanaf())->htmloptions($this->mailingvanafid));
-		printf("<label>Aan</label><input type='text' id='OmschrijvingOntvangers' value=\"%s\" maxlength=50 placeholder='Omschrijving groep personen aan wie de mailing is gericht' %s>\n", $this->to_name, $jstb);
-		printf("<label>Onderwerp</label><input type='text' id='subject' value=\"%s\" maxlength=75 placeholder='Onderwerp' %s>\n", $this->subject, $jstb);
+		printf("<label>Aan</label><input type='text' id='OmschrijvingOntvangers' class='w50' value=\"%s\" maxlength=50 placeholder='Omschrijving groep personen aan wie de mailing is gericht' %s>\n", $this->to_name, $jstb);
+		printf("<label>Onderwerp</label><input type='text' id='subject' class='w75' value=\"%s\" maxlength=75 placeholder='Onderwerp' %s>\n", $this->subject, $jstb);
+		printf("<label>Opmerking (intern)</label><input type='text' id='Opmerking' class='w75' value=\"%s\" maxlength=75 placeholder='Extra verduidelijking' %s>\n", $this->Opmerking, $jstb);
 
 		$this->verzendenmag = false;
 		if ($this->mid > 0) {
@@ -631,25 +558,19 @@ class Mailing {
 				printf("<label>Specifiek doel</label><p>%s</p>\n", $this->speciaal);
 				$i_mr->delete_all($this->mid);
 			} else {
-				echo("<label id='lblOntvangers'>Ontvangers</label>");
-				echo("<div class='invoerblok'>\n");
-				echo("<ul class='lijstontvangers'>\n");
+				echo("<label id='lblOntvangers'>Ontvangers</label>\n");
 				echo("<div id='lijstontvangers'>\n");
-//				echo($this->html_ontvangers());
 				echo("</div> <!-- Einde lijstontvangers -->\n");
-				echo("</ul> <!-- Einde lijstontvangers -->\n");
-				echo("</div> <!-- Einde invoerblok -->\n");
 				$this->verzendenmag = true;
 				$this->meldingen = "";
 
 				echo("<label>Ontvanger toevoegen</label>\n");
-				printf("<select id='add_lid' onChange=\"mailing_add_ontvanger($(this).val(), '');\">\n");
-//				echo($this->options_mogelijke_ontvangers($this->mid, 0));
-				
-				echo("<input type='checkbox' id='cb_alle_personen' OnClick=\"options_mogelijke_ontvangers();\"><p>Alle</p>");
+				printf("<select id='add_lid' onChange=\"mailing_add_ontvanger(%d, $(this).val(), '');\"></select>\n", $this->mid);
+				printf("<input type='checkbox' id='cb_alle_personen' OnClick=\"options_mogelijke_ontvangers(%d);\"><p>Alle</p>", $this->mid);
 			
 				$_POST['selecteer_groep'] = $_POST['selecteer_groep'] ?? 0;
-				echo("<input type='email' name='add_address' maxlength=50 placeholder='Toevoegen e-mailadres' onBlur='this.form.submit();'>");
+				
+				printf("<input type='email' maxlength=50 placeholder='Toevoegen e-mailadres' onBlur=\"mailing_add_ontvanger(%d, 0, $(this).val());\">", $this->mid);
 				echo("<div class='clear'></div>\n");
 				
 				if (!isset($_POST['selectie_status'])) {
@@ -665,18 +586,18 @@ class Mailing {
 				$_POST['selectie_vangebdatum'] = $_POST['selectie_vangebdatum'] ?? $i_lid->min("GEBDATUM");
 				$_POST['selectie_temgebdatum'] = $_POST['selectie_temgebdatum'] ?? $i_lid->max("GEBDATUM");
 				
-				printf("<label>Vanaf geboortedatum</label><input type='date' value='%s' name='selectie_vangebdatum' id='selectie_vangebdatum' OnBlur='mailingprops();'><p id='tekst_vangebdatum'></p>\n", $_POST['selectie_vangebdatum']);
-				printf("<label>T/m geboortedatum</label><input type='date' value='%s' name='selectie_temgebdatum' id='selectie_temgebdatum' OnBlur='mailingprops();'><p id='tekst_temgebdatum'></p>\n", $_POST['selectie_temgebdatum']);
+				printf("<label>Vanaf geboortedatum</label><input type='date' value='%s' name='selectie_vangebdatum' id='selectie_vangebdatum' OnBlur='mailingprops(%d);'><p id='tekst_vangebdatum'></p>\n", $_POST['selectie_vangebdatum'], $this->mid);
+				printf("<label>T/m geboortedatum</label><input type='date' value='%s' name='selectie_temgebdatum' id='selectie_temgebdatum' OnBlur='mailingprops(%d);'><p id='tekst_temgebdatum'></p>\n", $_POST['selectie_temgebdatum'], $this->mid);
 
-				$_POST['selectie_groep'] = $_POST['selectie_groep'] ?? 0;
-				$selgr = sprintf("<option value=0>&nbsp;</option>\n%s<option disabled>-- Eigen lijsten --</option>\n%s</select>\n", $i_ond->htmloptions($_POST['selectie_groep'], 1), $i_el->htmloptions($_POST['selectie_groep'], 0));
-				printf("<label>Zit in groep</label><select name='selectie_groep' id='selectie_groep' OnChange='mailingprops();'>%s</selectie>\n", $selgr);
+				$this->sl_huidigegroep = $_POST['selectie_groep'] ?? 0;
+				$selgr = sprintf("<option value=0>&nbsp;</option>\n%s<option disabled>-- Eigen lijsten --</option>\n%s</select>\n", $i_ond->htmloptions($this->sl_huidigegroep, 1), $i_el->htmloptions($this->sl_huidigegroep, 2));
+				printf("<label>Zit in groep</label><select name='selectie_groep' id='selectie_groep' OnChange='mailingprops(%d);'>%s</selectie>\n", $this->mid, $selgr);
 				
 				//$this->add_del_selectie("aantal");
 				echo("<label>Aantal personen in groep</label><p id='aantalpersoneningroep'></p>\n");
-				echo("<button type='submit' name='LedenToevoegen' id='LedenToevoegen'>Groepsleden toevoegen</button>\n");
-				echo("<button type='submit' name='LedenVerwijderen' id='LedenVerwijderen'>Groepsleden verwijderen</button>\n");
-				echo("<button type='submit' name='OntvangersVerwijderen' id='OntvangersVerwijderen'>Alle ontvangers verwijderen</button>\n");
+				echo("<button type='button' id='LedenToevoegen' OnClick='mailing_add_selectie_ontvangers();'>Groepsleden toevoegen</button>\n");
+				echo("<button type='button' id='LedenVerwijderen' OnClick='mailing_verw_selectie_ontvangers();'>Groepsleden verwijderen</button>\n");
+				echo("<button type='button' id='OntvangersVerwijderen' OnClick='mailing_verw_alle_ontvangers();'>Alle ontvangers verwijderen</button>\n");
 				echo("</div> <!-- Einde mailingselectieleden -->\n");
 				echo("<div class='clear'></div>\n");
 			}
@@ -685,7 +606,7 @@ class Mailing {
 		printf("<label>Cc</label><input type='text' id='cc_addr' value='%s' %s>\n", $this->cc_addr, $jstb);
 		
 		if ((new cls_Onderdeel())->aantal("`Type`='A' AND LENGTH(CentraalEmail) > 4 AND IFNULL(VervallenPer, CURDATE()) >= CURDATE()") > 0) {
-			printf("<label>Cc aan afdelingen</label><input type='checkbox' name='CCafdelingen' id='CCafdelingen' value=1 %s %s>\n", checked($this->CCafdelingen), $jscb);
+			printf("<label>Cc aan afdelingen</label><input type='checkbox' id='CCafdelingen' value=1 %s %s>\n", checked($this->CCafdelingen), $jscb);
 		}
 
 		$ondrows = (new cls_Onderdeel())->lijst(1, "`Type`<>'T'", "", $_SESSION['lidid']);
@@ -706,17 +627,16 @@ class Mailing {
 				$select .= sprintf("<option value=%d>%s</option>\n", $ondrow->RecordID, $ondrow->Naam);
 			}
 		}	
-		printf("<label>Zichtbaar voor</label><select name='ZichtbaarVoor'>\n%s</select>\n", $select);
+		printf("<label>Zichtbaar voor</label><select id='ZichtbaarVoor' %s>\n%s</select>\n", $jsoc, $select);
 		if ($this->mid > 0) {
-			printf("<label>Opties</label><input type='checkbox' name='template' id='template' value=1%s %s><p>Template</p>", checked($this->template), $jscb);
+			printf("<label>Opties</label><input type='checkbox' id='template' value=1%s %s><p>Template</p>", checked($this->template), $jscb);
 			printf("<input type='checkbox' name='HTMLdirect' value=1%s onChange='this.form.submit();'><p>HTML direct (zonder editor)</p>", checked($this->htmldirect));
-			printf("<input type='checkbox' name='ZonderBriefpapier' value=1%s  onChange='this.form.submit();'><p>Zonder briefpapier versturen</p>", checked($this->zonderbriefpapier));
+			printf("<input type='checkbox' id='ZonderBriefpapier' value=1%s %s><p>Zonder briefpapier versturen</p>", checked($this->zonderbriefpapier), $jscb);
 
 			echo("<div class='clear'></div>\n");
 			if ($this->htmldirect == 1) {
 				printf("<textarea name='message' rows=15 cols=125 %s>%s</textarea>\n", $ob, $this->message);
 			} else {
-				echo("</div> <!-- Einde editmailingform -->\n");
 				if ($_SESSION['settings']['mailing_type_editor'] == 3) {
 				
 					printf("<textarea id='message' name='message'>%s</textarea>\n", $this->message);
@@ -728,24 +648,26 @@ class Mailing {
 					</script>\n", $this->message, $ob);
 			
 				} else {
-					printf("<textarea name='message' id='editor' %s>%s</textarea>\n", $ob, $this->message);
+					printf("<textarea name='message' id='message' %s);\">%s</textarea>\n", $jstb, $this->message);
 					echo("<script>\n
 						ClassicEditor
-							.create( document.querySelector( '#editor' )	)
+							.create( document.querySelector( '#message' )	)
 							.catch( error => {
 						console.error( error );
 						} );n
 						</script>\n");
 				}
-				printf("<div class='editmailingform'>\n");
 			}
 
 			echo("<div class='clear'></div>\n");
-			echo("<label>Beschikbare variabelen</label><div class='invoerblok'>\n<ul class='lijstvariabelen'>\n");
+			echo("<label for='lblbeschikbarevariabelen' id='lblbeschikbarevariabelen' OnClick=\"togglevariabelen();\">Beschikbare variabelen <span>+</span></label>");
+			echo("<div id='lijstvariabelen'>\n");
+			echo("<ul class='lijstvariabelen'>\n");
 			foreach ($this->MergeField as $v) {
 				echo("<li>[%" . $v['Naam'] . "%]</li>\n");
 			}
-			echo("</ul></div>\n");
+			echo("</ul>");
+			echo("</div>  <!-- Einde lijstvariabelen -->\n");
 
 			echo("<label>Bijlagen</label>\n<div class='invoerblok'>\n");
 			if (strlen($tabbijlagefiles) > 0) {
@@ -756,19 +678,6 @@ class Mailing {
 			echo("<input type='file' name='UploadFile'>\n");
 			echo("<input type='submit' name='UploadBijlage' value='Upload bijlage'>");
 			printf("<p>(Extensies '%s' zijn toegestaan)</p>\n", $this->allowed_ext);
-			echo("</div>  <!-- Einde invoerblok -->\n");	
-			
-			echo("<label>Media</label>\n<div class='invoerblok'>\n");
-			if (strlen($tabmediafiles) > 0) {
-				echo("<table>\n");
-				echo($tabmediafiles);
-				echo("</table>\n");
-			}
-
-			echo("<input type='file' name='UploadMedia'>\n");
-			echo("<input type='submit' name='UploadMedia' value='Upload mediabestand'>");
-			printf("<p>(Extensies '%s' zijn toegestaan)</p>\n", $this->allowed_ext_afb);
-			
 			echo("</div>  <!-- Einde invoerblok -->\n");
 		}
 		
@@ -786,12 +695,7 @@ class Mailing {
 				printf("<label>Verwijderd door/op</label><p>%s / %s</p>\n", $i_lid->naam($this->DeletedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->deleted_on)));
 			}
 
-			if ($this->verzendenmag == false) {
-				$this->meldingen .= " Deze mailing mag niet verzonden worden.";
-			}
-			if (strlen($this->meldingen) > 0) {
-				printf("<label>Meldingen</label><p>%s</p>\n", $this->meldingen);
-			}
+			echo("<label>Meldingen</label><p id='meldingen'>Meldingen</p>\n");
 			$cls_lid = null;
 		}
 		
@@ -802,15 +706,12 @@ class Mailing {
 		} else {
 			echo("<input type='submit' name='Toevoegen' value='Toevoegen'>\n");
 		}
-			
-		if ($this->mid > 0 and $this->verzendenmag and $this->deleted_on < "2000-01-01") {
-			printf("<input type='submit' name='action' value='Verstuur mailing' title='Verstuur mailing'>\n");
-		}
-		if ($this->mid > 0 and $this->aant_rcpt > 0 and strlen($this->message) > 4) {
-			$lnk = sprintf("%s?tp=%s&op=savepreview&mid=%d", $_SERVER['PHP_SELF'], $currenttab, $this->mid);
-			echo("<input type='submit' name='action' value='Bekijk voorbeeld'>\n");
-		}
+
+		echo("<input type='submit' name='action' value='Verstuur mailing' title='Verstuur mailing' id='btnverstuurmailing'>\n");
 		
+		$lnk = sprintf("%s?tp=%s&op=savepreview&mid=%d", $_SERVER['PHP_SELF'], $currenttab, $this->mid);
+		echo("<input type='submit' name='action' value='Bekijk voorbeeld' id='btnbekijkvoorbeeld'>\n");
+				
 		if ($this->mid > 0 and $this->deleted_on > "1901-01-01" and $_SESSION['webmaster'] == 1) {
 			printf("<input type='submit' name='action' value='Verwijderen ongedaan maken' title='Verwijderen ongedaan maken'>\n");
 		} elseif ($this->mid > 0 and $this->deleted_on < "1901-01-01" and ($_SESSION['webmaster'] == 1 or $_SESSION['lidid'] == $this->IngevoerdDoor)) {
@@ -825,101 +726,63 @@ class Mailing {
 		
 		$i_el = null;
 		
-		printf("
-		<script>
+		echo("<script>
 			$(document).ready(function() {
 				mailingprops();
 			});
-			
-			function mailingprops() {
-				$.ajax({
-					url: 'ajax_update.php?entiteit=mailingprops',
-					type: 'post',
-					dataType: 'json',
-					data: { mailingid: %1\$d, selectie_vangebdatum: $('#selectie_vangebdatum').val(), selectie_temgebdatum: $('#selectie_temgebdatum').val(), selectie_groep: $('#selectie_groep').val() },
-					success: function(response) {
-						retvals = response.split(',');
-						document.getElementById('aantalpersoneningroep').innerHTML = retvals[0];
-						document.getElementById('tekst_vangebdatum').innerHTML = ' (' + retvals[3] + ')';
-						document.getElementById('tekst_temgebdatum').innerHTML = ' (' + retvals[4] + ')';
-					}
-				});
-				
-				$.ajax({
-					url: 'ajax_update.php?entiteit=mailingaantontvangers',
-					type: 'post',
-					dataType: 'json',
-					data: { mailingid: %1\$d },
-					success: function(response) {
-						if (response > 1) {
-							document.getElementById('lblOntvangers').innerHTML = 'Ontvangers (' + response + ')';
-						} else {
-							document.getElementById('lblOntvangers').innerHTML = 'Ontvangers';
-						}
-					}
-				});
-				
-				$.ajax({
-					url: 'ajax_update.php?entiteit=mailing_html_ontvangers',
-					type: 'post',
-					dataType: 'json',
-					data: { mailingid: %1\$d },
-					success: function(response) {
-						document.getElementById('lijstontvangers').innerHTML = response;
-					}
-				});
-				options_mogelijke_ontvangers();
-			}
-			
-			function mailing_verw_ontvanger(p_lidid, p_email) {
-				$.ajax({
-					url: 'ajax_update.php?entiteit=mailing_verw_ontvanger',
-					type: 'post',
-					dataType: 'json',
-					data: { mid: %1\$d, lidid: p_lidid, email: p_email }
-				});
-				mailingprops();
-			}
-			
-			function mailing_add_ontvanger(p_lidid, p_email) {
-				$.ajax({
-					url: 'ajax_update.php?entiteit=mailing_add_ontvanger',
-					type: 'post',
-					dataType: 'json',
-					data: { mid: %1\$d, lidid: p_lidid, email: p_email }
-				});
-				document.getElementById('add_lid').value = 0;
-				mailingprops();
-			}
-			
-			function options_mogelijke_ontvangers() {
-				if (document.getElementById('cb_alle_personen').checked == true) {
-					f = 1;
+		</script>\n");
+		
+		if ($_SESSION['settings']['mailing_type_editor'] == 3) {
+				$src = "/includes/tinymce/js/tinymce/tinymce.min.js";
+				if (file_exists(BASEDIR . $src)) {
+					$src = BASISURL . $src;
 				} else {
-					f = 0;
+					$src = sprintf("https://cdn.tiny.cloud/1/%s/tinymce/6/tinymce.min.js", $_SESSION['settings']['mailing_tinymce_apikey']);
 				}
-				
-				$.ajax({
-					url: 'ajax_update.php?entiteit=options_mogelijke_ontvangers',
-					type: 'post',
-					dataType: 'json',
-					data: { mailingid: %1\$d, alle: f },
-					success: function(response) {
-						document.getElementById('add_lid').innerHTML = response;
-					}
+				printf("<script src='%s' referrerpolicy='origin'></script>\n", $src);
+				printf("<script>
+		tinymce.init({
+			selector: '#message',
+			placeholder: 'Bericht hier ...',
+			mobile: {
+				theme: 'mobile',
+				menubar: true
+			},
+			height: 650,
+			relative_urls: false,
+			convert_urls: false,
+			remove_script_host : false,
+			plugins: 'link lists table image importcss',
+			paste_as_text: true,
+			%s
+			importcss_append: true,
+			menu: {
+				table: { title: 'Table', items: 'inserttable | cell row column | tableprops deletetable' }
+			},
+			toolbar: 'undo redo | styleselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist | link image | removeformat',
+			menubar: 'edit insert format tools table',
+			
+			setup: function(editor) {
+				editor.on('blur', function(e) {
+					mailing_savemessage();
 				});
 			}
-		</script>\n", $this->mid);
+		});
+  </script>\n", $ss);
+  		} elseif ($_SESSION['settings']['mailing_type_editor'] == 2) {
+			echo("<script src='https://cdn.ckeditor.com/4.13.0/standard/ckeditor.js'></script>\n");
+		} else {
+			echo("<script src='https://cdn.ckeditor.com/ckeditor5/12.4.0/classic/ckeditor.js'></script>\n");
+		}
 	} # edit
 	
 	public function options_mogelijke_ontvangers($p_mid, $p_alle=0) {
 		$i_m = new cls_Mailing();
 		
-		
 		if ($p_mid > 0) {
 			$this->mid = $p_mid;
 		}
-		
+
 		if ($p_alle == 0) {
 			$f = 1;
 		} else {
@@ -949,71 +812,67 @@ class Mailing {
 		return $rv;
 	}
 	
-	public function html_ontvangers($p_mid=-1) {
+	public function html_ontvangers($p_mid=-1, $p_asarray=false) {
 		
-		if ($p_mid > 0) {
-			$this->mid = $p_mid;
-		}
+		$this->mid = $p_mid;
 		
 		$i_mr = new cls_Mailing_rcpt();
 		
 		$rcpt_rows = $i_mr->lijst($this->mid);
 		$this->meldingen = "Er zijn nog geen ontvangers aan deze mailing toegevoegd.<br>\n";
-		
-		$this->aant_rcpt = 0;
-		$this->aant_ontvangers_zonder_email = 0;
-		$rv = "";
+
+		if ($p_asarray) {
+			$rv = array();
+		} else {
+			$rv = "<ul>\n";
+		}
 		foreach($rcpt_rows as $rcpt) {
-			$ze = "";
-			if (!isValidMailAddress($rcpt->Email) and !isValidMailAddress($rcpt->EmailVereniging) and !isValidMailAddress($rcpt->EmailOuders) and !isValidMailAddress($rcpt->to_address)) {
-				$ze = " *";
-				$this->aant_ontvangers_zonder_email++;
-			}
-			$jsdo = sprintf("OnClick=\"mailing_verw_ontvanger(%d, '%s');\"", $rcpt->LidID, $rcpt->to_address);
+			$jsdo = sprintf("OnClick=\"mailing_verw_ontvanger(%d, %d, '%s');\"", $this->mid, $rcpt->LidID, $rcpt->to_address);
 			if ($rcpt->LidID > 0) {
 //				$lnk = sprintf("%s?tp=Mailing&op=del_rcpt&mid=%d&lidid=%d", $_SERVER['PHP_SELF'], $this->mid, $rcpt->LidID);
-				$rv .= sprintf("<li>%s&nbsp;<img src='%s' alt='Verwijderen' title='Verwijderen' %s></li>\n", htmlentities($rcpt->Naam_lid . $ze), BASE64_VERWIJDER_KLEIN, $jsdo);
+				$item = sprintf("%s&nbsp;<img src='%s' alt='Verwijderen' title='Verwijderen' %s>", htmlentities($rcpt->Naam_lid), BASE64_VERWIJDER_KLEIN, $jsdo);
+//				$item = htmlentities($rcpt->Naam_lid);
 			} else {
 				$lnk = sprintf("%s?tp=Mailing&op=del_rcpt&amp;mid=%d&amp;addr=%s", $_SERVER['PHP_SELF'], $this->mid, $rcpt->to_address);
-				$rv .= sprintf("<li>%s&nbsp;<img src='%s' alt='Verwijderen' title='Verwijderen' %s></li>\n", $rcpt->to_address, BASE64_VERWIJDER_KLEIN, $jsdo);
+				$item = sprintf("%s&nbsp;<img src='%s' alt='Verwijderen' title='Verwijderen' %s>", $rcpt->to_address, BASE64_VERWIJDER_KLEIN, $jsdo);
 				$this->bevat_losse_email = true;
 			}
-			$this->aant_rcpt++;
+			if ($p_asarray) {
+				$rv[] = $item;
+			} else {
+				$rv .= sprintf("<li>%s</li>\n", $item);
+			}
+		}
+		
+		if (!$p_asarray) {
+			$rv .= "</ul>\n";
 		}
 
 		return $rv;		
 	}
 	
-	private function htmlmedia($p_bestand) {
-		
-		$url = BASISURL . str_replace(BASEDIR, "", $this->dir_media) . str_replace("!", ".", $p_bestand);
-		$ext = fnExtBestand($p_bestand);
-		if ($ext == "mp3") {
-			$this->message .= "\n<audio controls>" . sprintf("<source src='%s' type='audio/mpeg'>Deze browser ondersteunt geen audio.</audio>", $url);
-		} elseif ($ext == "mp4") {
-			$this->message .= sprintf("<video width='800' height='600'><source src='%s' type='video/mp4'>Deze browser ondersteunt geen video's.</video> ", $url);
-		} else {
-			$this->message .= "\n" . sprintf("<img src='%s'>", $url);
-		}
-	}  # htmlmedia
-	
-	private function controle($enkellid=0) {
+	public function controle($enkellid=0) {
 	
 		if ($this->mid > 0) {
-			$this->meldingen = "";
-			$this->verzendenmag = true;
+			
+			if ($this->deleted_on > "2000-01-01") {
+				$this->meldingen = "Deze mailing staat op verwijderen en mag daarom niet worden verzonden. \n";
+				$this->verzendenmag = false;
+			} else {
+				$this->meldingen = "";
+				$this->verzendenmag = true;
+			}
 
 			if (strlen($this->vanafadres) == 0) {
-				$this->meldingen = "De Van moet ingevuld zijn. \n";
+				$this->meldingen .= "De Van moet ingevuld zijn.<br>\n";
 				$this->verzendenmag = false;
 			}
 			
-			if ($this->aant_rcpt == 0 and $enkellid == 0) {
-				if (strlen($this->speciaal) > 0) {
-					$this->meldingen .= "Een mailing met een speciaal doel, kan niet los worden verzonden.<br>\n";
-				} else {
-					$this->meldingen .= "Er zijn geen ontvangers aan deze mailing toegevoegd.<br>\n";
-				}
+			if (strlen($this->speciaal) > 0) {
+				$this->meldingen .= "Een mailing met een speciaal doel, kan niet los worden verzonden.<br>\n";
+				$this->verzendenmag = false;
+			} elseif ($this->aant_rcpt == 0 and $enkellid == 0) {
+				$this->meldingen .= "Er zijn geen ontvangers aan deze mailing toegevoegd.<br>\n";
 				$this->verzendenmag = false;
 			}
 
@@ -1064,6 +923,18 @@ class Mailing {
 			$this->verzendenmag = false;
 			$this->meldingen = "Er is geen mailing geselecteerd.<br>\n";
 		}
+		
+		if ($this->verzendenmag) {
+			$this->meldingen .= "Deze mailing kan verzonden worden.";
+		} else {
+			$this->meldingen .= "Deze mailing mag nog niet verzonden worden.";
+		}
+		
+		$rv['verzendenmag'] = $this->verzendenmag;
+		$rv['meldingen'] = $this->meldingen;
+		
+		return $rv;
+		
 	} # controle
 	
 	public function post_form($p_actie="save") {
@@ -1073,102 +944,28 @@ class Mailing {
 		$i_el = new cls_Eigen_lijst();
 		$i_lo = new cls_Lidond();
 		
-		if ($p_actie == "add_selectie") {
-			$this->add_del_selectie("add", $_POST['selectie_groep']);
-		} elseif ($p_actie == "del_selectie") {
-			$this->add_del_selectie("delete");
-		}  elseif ($p_actie == "delete_all_rcpt") {
-			$i_mr->delete_all($this->mid);
-		} 
-		
-		// ** Bijlagen en media bijwerken.
+		// ** Bijlagen bijwerken.
 		$this->upload();
 		
 		$sw = "del_attach_";
-		$swm = "del_media_";
 		foreach ($_POST as $key => $val) {
 			if (substr($key, -2) == ".x" or substr($key, -2) == "_x") {
 				$key = substr($key, 0, -2);
 			}
-			if ((startwith($key, $sw) or startwith($key, $swm)) and endswith($key, "y") == false) {
-				if (startwith($key, $swm)) {
-					$fnr = intval(str_replace($swm, "", $key));
-					$fn = $_POST[sprintf("name_attach_%d", $fnr)];
-					$this->attach_delete($fn, "media");
-				} else {
-					$fnr = intval(str_replace($sw, "", $key));
-					$fn = $_POST[sprintf("name_attach_%d", $fnr)];
-					$this->attach_delete($fn);
-				}
+			if (startwith($key, $sw) and endswith($key, "y") == false) {
+				$fnr = intval(str_replace($sw, "", $key));
+				$fn = $_POST[sprintf("name_attach_%d", $fnr)];
+				$this->attach_delete($fn);
 			}
 		}
 		
-		if ($p_actie == "afbeeldingalsbericht" and isset($_GET['attach'])) {
-		
-			$url = BASISURL . str_replace(BASEDIR, "", $this->dir_media) . "/" . $this->mid . "/" . str_replace("!", ".", $p_bestand);
-							
-			$m = sprintf("<html>\n<head>\n<title>%s</title>\n</head>\n<body>\n", $this->subject);
-			$m .= sprintf("<img src='%1\$s' style='display:block;margin-right:auto;margin-left:auto;'>\n<br>\n<p style='text-align:center;font-size:9pt;'>Indien deze e-mail niet goed leesbaar is klik dan <a href='%1\$s'>hier</a>.</p>\n", $url);
-			$m .= "</body>\n</html>\n";
-			
-			$_POST['message'] = $m;
-			$_POST['ZonderBriefpapier'] = 1;
+		if (isset($_POST['HTMLdirect'])) {
 			$_POST['HTMLdirect'] = 1;
-		}
-		if (isset($_POST['subject']) and strlen($_POST['subject']) > 1) {
-			$this->subject = html_entity_decode(str_replace("\"", "'", $_POST['subject']));
-			$_POST['subject'] = $this->subject;
+		} else {
+			$_POST['HTMLdirect'] = 0;
 		}
 		
-		if ($this->mid == 0) {
-			$this->mid = $i_M->add($this->subject);
-		}
-		
-		if (isset($_POST['cc_addr']) and strlen($_POST['cc_addr']) > 5) {
-			$_POST['cc_addr'] = str_replace(" ", "", $_POST['cc_addr']);
-			$_POST['cc_addr'] = str_replace(";", ",", $_POST['cc_addr']);
-		}
-	
-		if (isset($_POST['message']) and strlen($_POST['message']) > 1) {
-			$this->message = html_entity_decode(str_replace("\"", "'", $_POST['message']));
-			$_POST['message'] = $this->message;
-		}
-		
-		if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		
-			if (isset($_POST['CCafdelingen'])) {
-				$_POST['CCafdelingen'] = 1;
-			} else {
-				$_POST['CCafdelingen'] = 0;
-			}
-		
-			if (isset($_POST['template'])) {
-				$_POST['template'] = 1;
-			} else {
-				$_POST['template'] = 0;
-			}
-			
-			if (isset($_POST['HTMLdirect'])) {
-				$_POST['HTMLdirect'] = 1;
-			} else {
-				$_POST['HTMLdirect'] = 0;
-			}
-		
-			if (isset($_POST['ZonderBriefpapier'])) {
-				$_POST['ZonderBriefpapier'] = 1;
-			} else {
-				$_POST['ZonderBriefpapier'] = 0;
-			}
-		}
-				
-		if ($this->mid > 0) {
-			$old = $i_M->record($this->mid);
-			foreach($_POST as $key => $val) {
-				if (property_exists($old, $key)) {
-					$i_M->update($this->mid, $key, $val);
-				}
-			}
-		}
+		$i_M->update($this->mid, "HTMLdirect", $_POST['HTMLdirect']);
 		
 		$this->vuldbvars();
 		
@@ -1179,16 +976,10 @@ class Mailing {
 	
 	public function upload() {
 		
-		if ((isset($_FILES['UploadFile']['name']) and strlen($_FILES['UploadFile']['name']) > 3) or (isset($_FILES['UploadMedia']['name']) and strlen($_FILES['UploadMedia']['name']) > 3) and $this->mid > 0) {
-			if (isset($_POST['UploadMedia'])) {
-				$ad = $this->dir_media;
-				$ae = $this->allowed_ext_afb;
-				$target = $ad . $_FILES['UploadMedia']['name'];
-			} else {
-				$ad = $this->dir_attachm;
-				$ae = $this->allowed_ext;
-				$target = $ad . $_FILES['UploadFile']['name'];
-			}
+		if (isset($_FILES['UploadFile']['name']) and strlen($_FILES['UploadFile']['name']) > 3 and $this->mid > 0) {
+			$ad = $this->dir_attachm;
+			$ae = $this->allowed_ext;
+			$target = $ad . $_FILES['UploadFile']['name'];
 			
 			if (!file_exists($ad)) {
 				if (mkdir($ad, 0755, true) == true) {
@@ -1209,32 +1000,20 @@ class Mailing {
 			} elseif (isset($_POST['UploadFile']) and $_FILES['UploadFile']['size'] > $this->max_size_attachm) {
 				$mess = sprintf("In mailing %d kan het bestand '%s' niet worden bijgesloten, omdat het te groot is.", $this->mid, $_FILES['UploadFile']['name']);
 			} elseif (strlen($ad) > 0) {
-				if (isset($_POST['UploadMedia'])) {
-					if (move_uploaded_file($_FILES['UploadMedia']['tmp_name'], $target) == false) {
-						$mess = sprintf("Fout %d is opgetreden bij het uploaden van bestand '%s'. Probeer het later opnieuw of neem contact op met de webmaster.", $_FILES['UploadMedia']['error'], $_FILES['UploadMedia']['name']);
-					} else {
-						$mess = sprintf("In mailing %d (%s) is afbeelding '%s' bijgesloten.", $this->mid, $this->subject, $_FILES['UploadMedia']['name']);
-					}
+				if (move_uploaded_file($_FILES['UploadFile']['tmp_name'], $target) == false) {
+					$mess = sprintf("Fout %d is opgetreden bij het uploaden van bestand '%s'. Probeer het later opnieuw of neem contact op met de webmaster.", $_FILES['UploadFile']['error'], $_FILES['UploadFile']['name']);
 				} else {
-					if (move_uploaded_file($_FILES['UploadFile']['tmp_name'], $target) == false) {
-						$mess = sprintf("Fout %d is opgetreden bij het uploaden van bestand '%s'. Probeer het later opnieuw of neem contact op met de webmaster.", $_FILES['UploadFile']['error'], $_FILES['UploadFile']['name']);
-					} else {
-						$mess = sprintf("In mailing %d (%s) is bestand '%s' bijgesloten.", $this->mid, $this->subject, $_FILES['UploadFile']['name']);
-					}
+					$mess = sprintf("In mailing %d (%s) is bestand '%s' bijgesloten.", $this->mid, $this->subject, $_FILES['UploadFile']['name']);
 				}
 			}
 			(new cls_Logboek())->add($mess, 4, 0, 1, $this->mid, 41);
 		}
 	}
 	
-	public function attach_delete($p_bestand, $p_soort="bijlage") {
+	public function attach_delete($p_bestand) {
 		
 		$p_bestand = str_replace("!", ".", $p_bestand);
-		if ($p_soort == "bijlage") {
-			$ad = $this->dir_attachm;
-		} else {
-			$ad = $this->dir_media;
-		}
+		$ad = $this->dir_attachm;
 		if (file_exists($ad . $p_bestand)) {
 			if (unlink($ad . $p_bestand)) {
 				$mess = sprintf("Bestand '%s' bij mailing %d is verwijderd.", $p_bestand, $this->mid);
@@ -1247,26 +1026,20 @@ class Mailing {
 		(new cls_Logboek())->add($mess, 4, 0, 1, $this->mid, 43);
 	}
 	
-	public function add_del_selectie($actie="aantal", $p_ondid=0) {
-		$_POST['selectie_vangebdatum'] = $_POST['selectie_vangebdatum'] ?? "1900-01-01";
-		$_POST['selectie_temgebdatum'] = $_POST['selectie_temgebdatum'] ?? date("Y-m-d");
+	public function add_del_selectie($actie="aantal", $p_ondid=0, $p_vangebdatum="", $p_temgebdatum="") {
 		
-		$lidqry = sprintf("SELECT L.RecordID FROM %sLid AS L WHERE L.GEBDATUM >= '%s'", TABLE_PREFIX, $_POST['selectie_vangebdatum']);
-		if ($_POST['selectie_temgebdatum'] >= $_POST['selectie_vangebdatum']) {
-			$lidqry .= sprintf(" AND L.GEBDATUM <= '%s'", $_POST['selectie_temgebdatum']);
+		$ondid = $_POST['selectie_groep'] ?? $p_ondid;
+		$vangebdatum = $_POST['selectie_vangebdatum'] ?? $p_vangebdatum;
+		$temgebdatum = $_POST['selectie_temgebdatum'] ?? $p_temgebdatum;
+		
+		$lidqry = sprintf("SELECT L.RecordID FROM %sLid AS L WHERE L.GEBDATUM >= '%s'", TABLE_PREFIX, $vangebdatum);
+		if ($temgebdatum >= $vangebdatum and strlen($temgebdatum) == 10) {
+			$lidqry .= sprintf(" AND L.GEBDATUM <= '%s'", $temgebdatum);
 		}
 		$lidqry .= " AND (L.Overleden IS NULL) AND (L.Verwijderd IS NULL)";
 		
-		$ondid = $_POST['selectie_groep'] ?? $p_ondid;
-		
-		/*
-		if (strlen($_POST['selectie_vanliddatum']) == 10 and $_POST['selectie_vanliddatum'] > $i_lm->max("LIDDATUM") and $_POST['selectie_vanliddatum'] <= $i_lm->max("LIDDATUM")) {
-			$lidqry .= sprintf(" AND LO.Vanaf >= '%s'", $_POST['selectie_vangebdatum']);
-		}
-		if (strlen($_POST['selectie_temliddatum']) == 10 and $_POST['selectie_temliddatum'] >= $i_lm->min("LIDDATUM") and $_POST['selectie_temliddatum'] < $i_lm->max("LIDDATUM")) {
-			$lidqry .= sprintf(" AND LO.Vanaf <= '%s'", $_POST['selectie_temgebdatum']);
-		}
-		*/
+//		debug("mid: " . $this->mid . " aantalonvangers: " . $this->aant_rcpt);
+//		debug($lidqry);
 		
 		$i_el = new cls_Eigen_lijst();
 		$i_base = new cls_db_base();
@@ -1290,22 +1063,19 @@ class Mailing {
 //	debug($lidqry, 1, 0, 1);
 //	debug($lidqry . ": ". count($selrows), 1, -1, 1);
 		
-		$this->sl_aantingroep = 0;
+		$this->sl_aantingroep = count($selrows);
 		$this->sl_aanttoevoegen = 0;
 		$this->sl_aantverwijderen = 0;
-		if ($actie == "aantal") {
-			$this->sl_aantingroep = count($selrows);
-		} else {
-			
+		if ($actie == "add" or $actie == "delete") {
 			foreach($selrows as $row) {
-				$this->sl_aantingroep++;
-				$amr = $i_mr->aantalontvangers($this->mid, $row->RecordID);
-				if ($amr > 0 and $actie == "delete") {
-					$this->sl_aantverwijderen++;
-					$i_mr->delete($this->mid, $row->RecordID, "", 1);
-				} elseif ($actie == "add") {
-					$this->sl_aanttoevoegen++;
-					$i_mr->add($this->mid, $row->RecordID, "", 1);
+				if ($actie == "delete") {
+					if ($i_mr->delete($this->mid, $row->RecordID, "", 0) > 0) {
+						$this->sl_aantverwijderen++;
+					}
+				} elseif ($actie == "add" and $this->mid > 0) {
+					if ($i_mr->add($this->mid, $row->RecordID, "", 1) > 0) {
+						$this->sl_aanttoevoegen++;
+					}
 				}
 			}
 		}
@@ -1317,10 +1087,15 @@ class Mailing {
 			$mess = sprintf("Er zijn %d ontvangers via een selectie bij mailing %d (%s) verwijderd.", $this->sl_aantverwijderen, $this->mid, $this->subject);
 			(new cls_Logboek())->add($mess, 4, 0, 0, $this->mid, 13);
 		}
-		
-		$rv = sprintf("%d,%d,%d",$this->sl_aantingroep, $this->sl_aanttoevoegen, $this->sl_aantverwijderen);
-		$rv .= "," . trim(strftime('%e %B %Y', strtotime($_POST['selectie_vangebdatum'])));
-		$rv .= "," . trim(strftime('%e %B %Y', strtotime($_POST['selectie_temgebdatum'])));
+
+		if ($actie == "add") {
+			$rv = $this->sl_aanttoevoegen;
+		} elseif ($actie == "delete") {
+			$rv = $this->sl_aantverwijderen;
+		} else {
+			$rv['aantalontvangers'] = $this->aant_rcpt;
+			$rv['aantalingroep'] = $this->sl_aantingroep;
+		}
 		
 		return $rv;
 		
@@ -1557,6 +1332,7 @@ class Mailing {
 			$this->to_name = trim($ml->to_name);
 			$this->cc_addr = trim($ml->cc_addr);
 			$this->subject = trim($ml->subject);
+			$this->Opmerking = trim($ml->Opmerking);
 			$this->message = $ml->message;
 			$this->NietVersturenVoor = $ml->NietVersturenVoor;
 			$this->CCafdelingen = $ml->CCafdelingen;
@@ -1572,8 +1348,7 @@ class Mailing {
 			$this->deleted_on = $ml->deleted_on;
 			$this->DeletedBy = $ml->DeletedBy;
 			$this->evenementid = $ml->EvenementID;
-			$f = sprintf("MailingID=%d", $this->mid);
-			$this->aant_rcpt = (new cls_Mailing_rcpt())->aantal($f);
+			$this->aant_rcpt = (new cls_Mailing_rcpt())->aantalontvangers($this->mid);
 		} else {
 			$this->Ingevoerd = date("Y-m-d");
 		}
