@@ -6,6 +6,7 @@ toegang("", 0, 0);
 $ent = $_GET['entiteit'] ?? "";
 $rid = $_POST['id'] ?? 0;
 $kolom = $_POST['field'] ?? "";
+$newvalue = $_POST['value'] ?? 0;
 	
 if ($_SESSION['lidid'] > 0) {
 
@@ -17,17 +18,27 @@ if ($_SESSION['lidid'] > 0) {
 		$i_ld = new cls_Liddipl();
 		$i_ld->update($rid, $kolom, $_POST['value']);
 		
-	} elseif ($ent === "lidond") {
-		$i_lo = new cls_Lidond();
-		$i_lo->update($rid, $kolom, $_POST['value']);
+	} elseif ($ent === "lidond" or $ent === "logroep" or $ent === "ledenperonderdeelmuteren") {
+		if ($rid > 0) {
+			$i_lo = new cls_Lidond();
+			$i_lo->update($rid, $kolom, $newvalue);
+		}
 		
-	} elseif ($ent === "logroep") {
-		$i_lo = new cls_Lidond();
-		$i_lo->update($rid, $kolom, $_POST['value']);
+	} elseif ($ent == "onderdeeledit" and toegang("Ledenlijst/Basisgegevens/Onderdelen")) {
+		$i_ond = new cls_Onderdeel();
+		$i_ond->update($rid, $kolom, $_POST['value']);
+			
+	} elseif ($ent == "functieedit" and toegang("Ledenlijst/Basisgegevens/Functies")) {
+		$i_fnk = new cls_Functie();
+		$i_fnk->update($rid, $kolom, $_POST['value']);
 	
 	} elseif ($ent == "diplomaedit" and toegang("Ledenlijst/Basisgegevens/Diplomas")) {
 		$i_dp = new cls_Diploma();
 		$i_dp->update($rid, $kolom, $_POST['value']);
+		
+	} elseif ($ent == "organisatieedit" and toegang("Ledenlijst/Basisgegevens/Organisaties")) {
+		$i_org = new cls_Organisatie();
+		$i_org->update($rid, $kolom, $_POST['value']);
 		
 	} elseif ($ent == "mailing" and toegang("Mailing/Wijzigen")) {
 		$i_m = new cls_Mailing();
@@ -70,7 +81,7 @@ if ($_SESSION['lidid'] > 0) {
 		
 		echo(json_encode($rv));
 				
-	} elseif ($ent == "mailing_add_ontvanger" and toegang("Mailing/Wijzigen")) {
+	} elseif ($ent == "mailing_add_ontvanger" and toegang("Mailing/Muteren")) {
 		$mid = $_POST['mid'] ?? 0;
 		$lidid = $_POST['lidid'] ?? 0;
 		$email = $_POST['email'] ?? "";
@@ -80,7 +91,7 @@ if ($_SESSION['lidid'] > 0) {
 		
 		echo(true);
 		
-	} elseif ($ent == "mailing_add_selectie_ontvangers" and toegang("Mailing/Wijzigen")) {
+	} elseif ($ent == "mailing_add_selectie_ontvangers" and toegang("Mailing/Muteren")) {
 		$mid = $_POST['mid'] ?? 4778;
 		$selgroep = $_POST['selgroep'] ?? 0;
 		$vangebdatum = $_POST['vangebdatum'] ?? "1900-01-01";
@@ -92,7 +103,7 @@ if ($_SESSION['lidid'] > 0) {
 		
 		echo($rv);
 		
-	} elseif ($ent == "mailing_verw_ontvanger" and toegang("Mailing/Wijzigen")) {
+	} elseif ($ent == "mailing_verw_ontvanger" and toegang("Mailing/Muteren")) {
 		$mid = $_POST['mid'] ?? 0;
 		$lidid = $_POST['lidid'] ?? 0;
 		$email = $_POST['email'] ?? 0;
@@ -102,7 +113,7 @@ if ($_SESSION['lidid'] > 0) {
 		
 		echo(true);
 		
-	} elseif ($ent == "mailing_verw_selectie_ontvangers" and toegang("Mailing/Wijzigen")) {
+	} elseif ($ent == "mailing_verw_selectie_ontvangers" and toegang("Mailing/Muteren")) {
 		$mid = $_POST['mid'] ?? 0;
 		$selgroep = $_POST['selgroep'] ?? 0;
 		$vangebdatum = $_POST['vangebdatum'] ?? "1900-01-01";
@@ -113,7 +124,7 @@ if ($_SESSION['lidid'] > 0) {
 		
 		echo(json_encode($rv));
 				
-	} elseif ($ent == "mailing_verw_alle_ontvangers" and toegang("Mailing/Wijzigen")) {
+	} elseif ($ent == "mailing_verw_alle_ontvangers" and toegang("Mailing/Muteren")) {
 		$mid = $_POST['mid'] ?? 4778;
 		$i_mr = new cls_Mailing_rcpt();
 		$rv = $i_mr->delete_all($mid);
