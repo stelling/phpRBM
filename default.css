@@ -1,7 +1,11 @@
+:root {
+	--default-text-color: #000080;
+}
+
 body {
 	font-family: Tahoma, Arial, Verdana, Helvetica;
 	font-size: 11pt;
-	color: #000080;
+	color: var(--default-text-color);
 	border-width: 1px;
 }
 
@@ -98,7 +102,6 @@ label {
 	padding-bottom:4px;
 	text-align: right;
 	background-color: #00FFFF;
-	color: #000080;
 	border-style: solid;
 	border-width: 1px;
 }
@@ -142,6 +145,7 @@ footer a, footer a:visited {
 
 select {
 	float: left;
+	color: var(--default-text-color);
 	margin-right: 6px;
 	margin-top: 5px;
 	margin-bottom: 5px;
@@ -149,10 +153,11 @@ select {
 
 input {
 	float: left;
+	color: var(--default-text-color);
 }
 
-input.naam, input[type='email'] {
-	width: 400px;
+input[type='email'] {
+	width: 250px;
 }
 
 input[type='checkbox'] {
@@ -161,6 +166,7 @@ input[type='checkbox'] {
 }
 
 input, button, textarea {
+	color: var(--default-text-color);
 	margin-right: 6px;
 	margin-top: 6px;
 }
@@ -210,12 +216,20 @@ input.w25, input.w30 {
 	width: 240px;
 }
 
+input.w35 {
+	width: 250px;
+}
+
 input.w40, input.w45 {
 	width: 180px;
 }
 
-input.w60 {
-	width: 240px;
+input.w50 {
+	width: 300px;
+}
+
+input.w55, input.w60 {
+	width: 350px;
 }
 
 input.w75 {
@@ -875,7 +889,7 @@ input.omschrijving {
 
 #login {
 	overflow: auto;
-	width: 450px;
+	width: 440px;
 	margin-left: auto;
 	margin-right: auto;
 }
@@ -897,7 +911,9 @@ input.omschrijving {
 
 #login p {
 	float: left;
-	padding-top: 5px;
+	clear: right;
+	margin-top: 8px;
+	padding-top: 2px;
 }
 
 #loginaanvraag, #opvragenlidnr, #profielwijzigen, #opzegformulier, #herstellenwachtwoord {
@@ -925,12 +941,12 @@ input.omschrijving {
 		width: 98%;
 	}
 	
-	#loginaanvraag, #opvragenlidnr, #profielwijzigen, #opzegformulier, #herstellenwachtwoord {
+	#loginaanvraag, #login, #opvragenlidnr, #profielwijzigen, #opzegformulier, #herstellenwachtwoord {
 		width: 96%;
 	}
 	
-	header h1 {
-		color: red;
+	#pasfoto {
+		display: none;
 	}
 }
 
@@ -1045,13 +1061,6 @@ input.omschrijving {
 #evenementenbeheer input[type='time'], #evenementenbeheer input[type='number'] {
 	width: 75px;
 }
-
-/*
-#evenementenbeheer label.k2, #evenementenbeheer label.k3 {
-	position: absolute;
-	left: 750px;
-}
-*/
 
 #eve22nementenbeheer input[type='checkbox'] {
 	margin-left: 0;
@@ -1174,6 +1183,10 @@ fieldset h3 {
 	width: 100%;
 }
 
+#lijstontvangers img:hover {
+	cursor: pointer;
+}
+
 .lijstmailingen td:last-child {
 	text-align: center;
 }
@@ -1290,6 +1303,11 @@ fieldset h3 {
 
 .number {
 	text-align: right;
+}
+
+td.checkbox {
+	text-align: center;
+	vertical-align: middle;
 }
 
 /* Menu */
@@ -2166,9 +2184,13 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	color: orange;
 }
 
-@media only screen and (max-width: 500px) {
+@media only screen and (max-width: 750px) {
 	h1 {
 		font-size: 125%;
+	}
+	
+	#container {
+		width: 98%;
 	}
 	
 	#overzichtlid label {
@@ -2203,13 +2225,18 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	color: #000080;
 }
 
+#tabs {
+	color: inherit;
+}
+
 .ui-tabs .ui-tabs-nav .ui-tabs-anchor {
+	color: var(--default-text-color);
 	padding-left: 4px;
 	padding-right: 4px;
 }
 
-.ui-state-active, .ui-widget-content .ui-state-active, .ui-widget-header .ui-state-active, a.ui-button:active, .ui-button:active, .ui-button.ui-state-active:hover {
-	color: inherit;
+.ui-state-active, .ui-widget-content .ui-state-active, .ui-widget-header, .ui-state-active, a.ui-button:active, .ui-button:active, .ui-button.ui-state-active:hover {
+	color: var(--default-text-color);
 	font-size: inherit;
 	background-color: inherit;
 	font-weight: bolder;
