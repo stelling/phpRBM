@@ -10,6 +10,7 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 	setcookie("password", "", time()-60);
 	$_SESSION['lidid'] = 0;
 	$_SESSION['webmaster'] = 0;
+	echo("<script>location.href='/index.php';</script>\n");
 	
 } elseif ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['Inloggen']) and $_POST['Inloggen'] == "Inloggen") {
 	if (strlen($_POST['password']) < 5) {
@@ -160,9 +161,11 @@ if (toegang($_GET['tp'], 1) == false) {
 		} else {
 			$i_el = new cls_Eigen_lijst($currenttab3);
 			$rows = $i_el->rowset();
-			printf("<p>%s</p>", fnDisplayTable($rows, null, $currenttab3));
-			printf("<p>%d rijen</p>\n", count($rows));
-			$i_el->update($i_el->elid, "AantalRecords", count($rows));
+			if ($rows !== false) {
+				printf("<p>%s</p>", fnDisplayTable($rows, null, $currenttab3));
+				printf("<p>%d rijen</p>\n", count($rows));
+				$i_el->update($i_el->elid, "AantalRecords", count($rows));
+			}
 			$i_el = null;
 		}
 		
@@ -252,6 +255,11 @@ function fnVoorblad() {
 		if (strpos($content, "[%LAATSTEUPLOAD%]") !== false) {
 			$lu = (new cls_Logboek())->max("DatumTijd", "TypeActiviteit=9");
 			$content = str_replace("[%LAATSTEUPLOAD%]", strftime("%e %B %Y", strtotime($lu)), $content);
+		}
+			
+		if (strpos($content, "[%BEWAARTIJDLOGGING%]") !== false) {
+			$lu = (new cls_Logboek())->max("DatumTijd", "TypeActiviteit=9");
+			$content = str_replace("[%BEWAARTIJDLOGGING%]", $_SESSION['settings']['logboek_bewaartijd'], $content);
 		}
 		
 		// Gebruiker-specifieke statistieken
@@ -488,7 +496,19 @@ function fnStukken() {
 	
 		$rows = $i_stuk->editlijst();
 		$kols[0]['link'] = sprintf("%s?tp=%s&p_scherm=F&p_stid=%%d", BASISURL, $_GET['tp']);
+		$kols[0]['columnname'] = "RecordID";
+		$kols[1]['headertext'] = "Titel";
+		$kols[2]['headertext'] = "Type";
+		$kols[3]['headertext'] = "Bestemd voor";
+		$kols[4]['headertext'] = "Vastgesteld op";
+		$kols[4]['type'] = "dateshort";
+		$kols[5]['headertext'] = "Revisiedatum";
+		$kols[5]['type'] = "dateshort";
+		$kols[6]['headertext'] = "Vervallen per";
+		$kols[6]['type'] = "dateshort";
+		
 		$kols[7]['link'] = sprintf("%s?tp=%s&op=delete&p_stid=%%d", BASISURL, $_GET['tp']);
+		$kols[7]['columnname'] = "RecordID";
 		echo(fnDisplayTable($rows, $kols));
 		
 		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
