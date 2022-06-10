@@ -99,6 +99,8 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 	db_backup($_SESSION['settings']['db_backup_type']);
 } elseif ($_GET['op'] == "FreeBackupFiles") {
 	fnFreeBackupFiles();
+} elseif ($_GET['op'] == "automatischegroepenbijwerken") {
+	(new cls_Lidond())->autogroepenbijwerken(1, 1);
 } elseif ($_GET['op'] == "logboekopschonen") {
 	(new cls_Logboek())->opschonen();
 } elseif ($_GET['op'] == "loggingdebugopschonen") {
@@ -111,6 +113,7 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 } elseif ($_GET['op'] == "mailingsopschonen") {
 	(new cls_Mailing())->opschonen();
 	(new cls_Mailing_hist())->opschonen();
+	(new cls_Mailing_rcpt())->opschonen();
 } elseif ($_GET['op'] == "evenementenopschonen") {
 	(new cls_Evenement())->opschonen();
 } elseif ($_GET['op'] == "loginsopschonen") {
@@ -194,18 +197,24 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 			(new cls_interface())->afmelden();
 		}
 	}
+	
+	$kols[0]['headertext'] = "Betreft lid";
+	$kols[0]['columnname'] = "betreftLid";
+	$kols[1]['headertext'] = "ingevoerd";
+	$kols[2]['headertext'] = "SQL-statement";
+	$kols[3]['link'] = sprintf("<a href='/admin.php?op=deleteint&amp;recid=%%d&amp;tp=%s'>&nbsp;&nbsp;&nbsp;</a>", urlencode($_GET['tp']));
+	$kols[3]['columnname'] = "RecordID";
+	$kols[3]['class'] = "delete";
 
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	$kols[-1]['link'] = sprintf("<a href='/admin.php?op=deleteint&amp;recid=%%d&amp;tp=%s'>&nbsp;&nbsp;&nbsp;</a>", urlencode($_GET['tp']));
 	$rows = (new cls_Interface())->lijst();
 	if (count($rows) > 0) {
-		echo("<h2>Wijzigen op de website, te verwerken in de Access database.</h2>");
-		echo(fnDisplayTable($rows, $kols, "", 1, "", "beheerwijzigingen"));
+		echo(fnDisplayTable($rows, $kols, "Wijzigen op de website, te verwerken in de Access database", 1, "", "beheerwijzigingen"));
 		foreach ($rows as $row) {
 			$copytext .= $row->SQL . "\n";
 		}
 	} else {
-		echo("<p class='mededeling'>Er zijn geen wijzigingen die nog verwerkt moeten worden.</p>\n");
+		echo("<p class='mededeling'>Er zijn geen wijzigingen die nog verwerkt moeten worden</p>\n");
 	}
 		
 	if (strlen($copytext) > 0) {
@@ -236,6 +245,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=backup\"' value='Backup'><p>Maak een backup van de database. Laatste backup is op %s gemaakt.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $laatstebackup);
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=FreeBackupFiles\"' value='Vrijgeven backup-bestanden'><p>Geef de backup-bestanden vrij door middel van een chmod 0755.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=automatischegroepenbijwerken\"' value='Automatische groepen bijwerken'><p>Bijwerken van alle onderdelen die een MySQL code hebben.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=logboekopschonen\"' value='Logboek opschonen'><p>Verwijder alle records uit het logboek, die ouder dan <input type='number' name='logboek_bewaartijd' onChange='this.form.submit();' value=%d> maanden zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['logboek_bewaartijd']);
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=loggingdebugopschonen\"' value='Eigen logging voor debugging opschonen'><p>Verwijder alle records uit het logboek, die onder jouw account voor debugging zijn toegevoegd.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	
@@ -262,14 +272,8 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 } elseif ($currenttab == "Logboek" and toegang($currenttab, 1, 1)) {
 	$i_lb = new cls_logboek();
 	
-	$arrSort[] = "Datum en tijd;RecordID";
-	$arrSort[] = "Omschrijving;Omschrijving";
-	$arrSort[] = "Type;Type";
-	$arrSort[] = "Script / Functie;Script / Functie";
-	$arrSort[] = "Ingelogd Lid;Ingelogd Lid";
-	$arrSort[] = "IP adres;A.IP_adres";
-	
-	$ord = fnOrderBy($arrSort);
+	$kols = fnStandaardKols("logboek");
+	$ord = fnOrderBy($kols);
 	
 	if (!isset($_POST['tbTekstFilter']) or strlen($_POST['tbTekstFilter']) == 0) {
 		$_POST['tbTekstFilter'] = "";
@@ -308,7 +312,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	}
 	echo("</div>  <!-- Einde filter -->\n");
 	
-	echo(fnDisplayTable($rows, null, "", 0, "", "logboek", "", "", 0, $arrSort));
+	echo(fnDisplayTable($rows, $kols, "", 0, "", "logboek"));
 	
 	$i_lb = null;
 	
@@ -331,11 +335,31 @@ function fnBeheerLogins() {
 	$arrSort[6] = "Laatste login;LastLogin";
 	$arrSort[7] = "Status;Status";
 	
-	$ord = fnOrderBy($arrSort);
-	
+	$kols[0]['headertext'] = "Login";
+	$kols[0]['sortcolumn'] = "Login";
+	$kols[1]['headertext'] = "Naam lid";
+	$kols[1]['sortcolumn'] = "L.Achternaam";
+	$kols[2]['headertext'] = "Woonplaats";
+	$kols[3]['headertext'] = "Lidnr";
+	$kols[3]['sortcolumn'] = "Lidnr";
+	$kols[4]['headertext'] = "E-mail";
+	$kols[5]['headertext'] = "Ingevoerd";
+	$kols[5]['sortcolumn'] = "Login.Ingevoerd";
+	$kols[6]['headertext'] = "Laatste login";
+	$kols[6]['sortcolumn'] = "Login.LastLogin";
+	$kols[7]['headertext'] = "Status";
+	$kols[7]['sortcolumn'] = "Status";
+		
 	$i_login->uitloggen();
-	$rows = $i_login->lijst("", $ord);
+
+	$kols[9]['link'] = sprintf("<a href='%s?op=deletelogin&tp=Beheer logins&lidid=%%d'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF']);
+	if ($_SESSION['settings']['login_maxinlogpogingen'] > 0) {
+		$kols[8]['link'] = sprintf("<a href='%s?op=unlocklogin&tp=Beheer logins&lidid=%%d' title='Reset foutieve logins'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF']);
+		$kols[8]['class'] = "unlock";
+	}
 	
+	$ord = fnOrderBy($kols);
+	$rows = $i_login->lijst("", $ord);
 	echo("<div id='filter'>\n");
 	echo("<label>Naam/login bevat</label><input type='text' name='tbNaamFilter' id='tbNaamFilter' OnKeyUp=\"fnFilter('beheerlogins', 'tbNaamFilter', 1, 2);\">\n");
 	if (count($rows) > 2) {
@@ -343,13 +367,7 @@ function fnBeheerLogins() {
 	}
 	echo("</div> <!-- Einde filter -->\n");
 	echo("<div class='clear'></div>\n");
-	
-	$kols[9]['link'] = sprintf("<a href='%s?op=deletelogin&tp=Beheer logins&lidid=%%d'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF']);
-	if ($_SESSION['settings']['login_maxinlogpogingen'] > 0) {
-		$kols[8]['link'] = sprintf("<a href='%s?op=unlocklogin&tp=Beheer logins&lidid=%%d' title='Reset foutieve logins'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF']);
-		$kols[8]['class'] = "unlock";
-	}
-	echo(fnDisplayTable($rows, $kols, "", 0, "", "beheerlogins", "", "", 0, $arrSort));
+	echo(fnDisplayTable($rows, $kols, "", 0, "", "beheerlogins"));
 	
 	$i_login = null;
 	
@@ -525,19 +543,19 @@ function fnInstellingen() {
 function fnStamgegevens() {
 		
 	$rows = (new cls_db_base("Diploma"))->basislijst();
-	printf("<p>%s</p>", fnDisplayTable($rows, "", "Basislijst Diploma's", 0, "", "", "lijst", ""));
+	printf("<p>%s</p>", fnDisplayTable($rows, null, "Basislijst Diploma's", 0, "", "", "lijst"));
 	
 	$rows = (new cls_db_base("Onderdl"))->basislijst();
-	printf("<p>%s</p>", fnDisplayTable($rows, "", "Basislijst Onderdelen", 0, "", "", "lijst", ""));
+	printf("<p>%s</p>", fnDisplayTable($rows, null, "Basislijst Onderdelen", 0, "", "", "lijst"));
 	
 	$rows = (new cls_db_base("Organisatie"))->basislijst();
-	printf("<p>%s</p>", fnDisplayTable($rows, "", "Basislijst Organisaties", 0, "", "", "lijst", ""));
+	printf("<p>%s</p>", fnDisplayTable($rows, null, "Basislijst Organisaties", 0, "", "", "lijst"));
 	
 	$rows = (new cls_db_base("Functie"))->basislijst();
-	printf("<p>%s</p>", fnDisplayTable($rows, "", "Basislijst Functies", 0, "", "", "lijst", ""));
+	printf("<p>%s</p>", fnDisplayTable($rows, null, "Basislijst Functies", 0, "", "", "lijst"));
 	
 	$rows = (new cls_db_base("Groep"))->basislijst();
-	printf("<p>%s</p>", fnDisplayTable($rows, "", "Basislijst Groepen", 0, "", "", "lijst", ""));
+	printf("<p>%s</p>", fnDisplayTable($rows, null, "Basislijst Groepen", 0, "", "", "lijst"));
 	
 	
 } # fnStamgegevens
