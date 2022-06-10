@@ -323,7 +323,7 @@ function bestellingbeheer() {
 	
 	$tots = $i_or->totalen();
 	if (count($tots) > 0) {
-		echo(fnDisplayTable($tots, "", "Totalen", 99, "", "", "totalenbestellingen"));
+		echo(fnDisplayTable($tots, null, "Totalen", 99, "", "", "totalenbestellingen"));
 	}
 	$i_or = null;
 	
