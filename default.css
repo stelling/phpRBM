@@ -115,9 +115,7 @@ span {
 	float: left;
 	clear: right;
 	height: 22px;
-	width: 500px;
 	margin-top: 8px;
-	background-color: #FFFF99;
 }
 
 footer {
@@ -236,7 +234,7 @@ input.w75 {
 	width: 300px;
 }
 
-input.w90 {
+input.w90, textarea.w90 {
 	width: 350px;
 }
 
@@ -549,27 +547,30 @@ td.trash, .beheerlogins td:last-child, #beheerautorisatie td:last-child, .beheer
 	margin-top: 10px;
 }
 
+#overzichtlid {
+	margin-left: 1px;
+}
+
 #overzichtlid h2 {
 	float: left;
 	clear: both;
-	width: 225px;
-	padding-right: 5px;
-	text-align: right;
+	text-align: left;
 	border-style: none;
 	color: inherit;
 }
 
 #overzichtlid label {
-	width: 225px;
+	width: 175px;
 	float: left;
 	clear: left;
+	margin-left: 0;
 }
 
 #overzichtlid p {
 	float: left;
 	overflow: visible;
 	min-height: 22px;
-	width: 300px;
+	width: 225px;
 	margin-top: 8px;
 	background-color: #FFFF99;
 }
@@ -584,6 +585,32 @@ td.trash, .beheerlogins td:last-child, #beheerautorisatie td:last-child, .beheer
 
 #onderdelenperlidmuteren input[type='date'] {
 	width: 110px;
+}
+#algemenegegevenslidmuteren {
+	float: left;
+	clear: left;
+}
+
+#eigenschappenlidmuteren {
+	border-style: solid;
+	border-width: 1px;
+	border-bottom-right-radius: 9px;
+	border-bottom-left-radius: 9px;
+	float: right;
+	clear: right;
+	padding-left: 5px;
+	padding-right: 5px;
+}
+
+#eigenschappenlidmuteren h2, #eigenschappenlidmuteren input {
+	float: left;
+	clear: left;
+}
+
+#eigenschappenlidmuteren h2 {
+	font-size: 110%;
+	border-bottom-style: solid;
+	border-width: 1px;
 }
 
 .ledenperonderdeelmuteren select {
@@ -775,6 +802,19 @@ td.trash, .beheerlogins td:last-child, #beheerautorisatie td:last-child, .beheer
 
 #groepenmuteren input[type='number'] {
 	width: 60px;
+}
+
+#presentieperlid table {
+	min-width: 350px;
+}
+
+#presentieperlid tr.lidtotaal {
+	display: none;
+}
+
+#presentieperlid th.teken {
+	font-weight: bolder;
+	cursor: pointer;
 }
 
 #versies {
@@ -972,7 +1012,6 @@ input.omschrijving {
 	margin-bottom: 4px;
 	padding-top: 4px;
 	padding-bottom: 4px;
-	cursor: pointer;
 	border-style: solid;
 	border-width: 1px;
 }
@@ -1147,22 +1186,31 @@ fieldset h3 {
 
 #wieiswie {
 	display: inline-block;
+	width: 100%;
 }
 
-.wieiswie-onderdeelnaam, .wieiswie-onderdeelemail, #bewakingsrooster h2, #bewakingsrooster h3 {
+#wieiswie h2.onderdeelnaam, #wieiswie h2.onderdeelemail, #bewakingsrooster h2, #bewakingsrooster h3 {
 	margin-top: 15px;
 	padding-top: 3px;
 	padding-bottom: 1px;
+	padding-left: 5px;
 	font-weight: bolder;
 	font-size: 150%;
 }
 
-.wieiswie-onderdeelnaam {
-	float: left;
+#wieiswie h2 {
+	padding-left: 4px;
+	padding-bottom: 2px;
 }
 
-.wieiswie-onderdeelemail {
+#wieiswie h2.onderdeelnaam {
+	float: left;
+	clear: right;
+}
+
+#wieiswie h2.onderdeelemail {
 	float: right;
+	clear: right;
 }
 
 #bewakingsrooster h2, #postindeling h2 {
@@ -1241,6 +1289,8 @@ fieldset h3 {
 	color: #000080;
 	font-weight: bold;
 	height: auto;
+	padding-left: 4px;
+	padding-right: 4px;
 	padding-top: 4px;
 	padding-bottom: 4px;
 	cursor: pointer;
@@ -1285,7 +1335,7 @@ fieldset h3 {
 
 .clear {
 	clear: both;
-	height: 9px;
+	height: 1px;
 }
 
 .label {
@@ -1685,7 +1735,8 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	width: 310px;
 	border-style: solid;
 	border-width: 1px;
-	margin-top: 10px;
+	margin-top: 2px;
+	margin-bottom: 8px;
 	margin-left: 3px;
 	margin-right: 3px;
 	padding-right: 1px;
@@ -2102,15 +2153,12 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	padding-right: 0;
 }
 
-#wijzigenlidgegevens select, #wijzigenlidgegevens input[type='date'] {
+#wijzigenlidgegevens select {
 	width: 225px;
 }
 
 #wijzigenlidgegevens input[type='date'] {
 	width: 110px;
-}
-#wijzigenlidgegevens textarea {
-	width: 350px;
 }
 
 #wijzigenlidgegevens textarea {
@@ -2172,15 +2220,20 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	background-color: silver;
 }
 
-.presstat_a {
+li.presstat_a {
 	color: limegreen;
 }
 
-.presstat_r, .presstat_x, .presstat_z {
+li.presstat_n {
+	color: red;
+	font-weight: bolder;
+}
+
+li.presstat_r, li.presstat_x, li.presstat_z {
 	color: red;
 }
 
-.presstat_t {
+li.presstat_t {
 	color: orange;
 }
 
@@ -2245,4 +2298,9 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 .handCursor {
     cursor: pointer;
     cursor: hand;
+}
+
+.ui-tabs .ui-tabs-panel {
+	padding-left: 2px;
+	padding-right: 2px;
 }
