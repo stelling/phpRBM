@@ -72,7 +72,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if ((new cls_Evenement())->aantal($f) > 0) {
 			addtp("Zelfservice/Evenementen");
 		}
-		if ((new cls_Onderdeel())->aantal("`Type`='T'") > 0 and $gs != "B") {
+		
+		$_SESSION['aantaltoestemmingen'] = $_SESSION['aantaltoestemmingen'] ?? (new cls_Onderdeel())->aantal("`Type`='T' AND IFNULL(VervallenPer, '9999-12-31') >= CURDATE()");
+		if ($_SESSION['aantaltoestemmingen'] > 0 and $gs != "B") {
 			addtp("Zelfservice/Toestemmingen");
 		}
 		if (count((new cls_Artikel())->lijst("bestellijst")) > 0) {
@@ -94,19 +96,18 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			addtp("Ledenlijst/Toekomstige leden");
 		}
 		
-		if (count((new cls_Lid())->klosledenlijst()) > 0) {
+		$_SESSION['aantalklosleden'] = $_SESSION['aantalklosleden'] ?? (new cls_Lid())->aantalklosleden();
+		if ($_SESSION['aantalklosleden'] > 0) {
 			addtp("Ledenlijst/Klosleden");
 		}
 		addtp("Ledenlijst/Nieuw (klos)lid");
-		addtp("Ledenlijst/Afdelingen");
+		if ((new cls_Onderdeel())->aantal("`Type`='A' AND IFNULL(VervallenPer, '9999-12-31') >= CURDATE()") > 0) {
+			addtp("Ledenlijst/Afdelingen");
+		}
 		addtp("Ledenlijst/Commissies");
 		addtp("Ledenlijst/Groepen");
-		if ((new cls_Onderdeel())->aantal("`Type`='R' AND IFNULL(VervallenPer, CURDATE()) >= CURDATE()") > 0) {
+		if ((new cls_Onderdeel())->aantal("`Type`='R' AND IFNULL(VervallenPer, '9999-12-31') >= CURDATE()") > 0) {
 			addtp("Ledenlijst/Rollen");
-		}
-		
-		if ((new cls_Onderdeel())->aantal("`Type`='T' AND IFNULL(VervallenPer, CURDATE()) >= CURDATE()") > 0) {
-			addtp("Ledenlijst/Toestemmingen");
 		}
 
 		addtp("Ledenlijst/Eigen lijsten");
@@ -138,7 +139,8 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		$i_M = new cls_Mailing();
 		addtp("Mailing/Muteren");
 		addtp("Mailing/Nieuw");
-		if ((new cls_Rekening())->aantal() > 0) {
+		$_SESSION['aantalrekeningen'] = $_SESSION['aantalrekeningen'] ?? (new cls_Rekening())->aantal();
+		if ($_SESSION['aantalrekeningen'] > 0) {
 			addtp("Mailing/Rekeningen");
 		}
 		
@@ -158,6 +160,22 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	
 	if (isset($_SESSION['settings']['menu_met_afdelingen']) and strlen($_SESSION['settings']['menu_met_afdelingen']) > 0) {
 		// Tabblad per afdeling
+		
+		/* Voor later
+		$arrafdinmenu = array();
+		
+		foreach ((new cls_Onderdeel())->lijst(1, "`Type`='A'") as $row) {
+			if (in_array($row->RecordID, explode(",", $_SESSION['settings']['menu_met_afdelingen']))) {
+				if (toegang($row->Naam, 0, 0)) {
+					$arrafdinmenu[] = $row->Naam;
+				}
+			}
+		}
+		*/
+		
+		
+		
+		
 		foreach ((new cls_Onderdeel())->lijst(1, "`Type`='A'") as $row) {
 			if (in_array($row->RecordID, explode(",", $_SESSION['settings']['menu_met_afdelingen']))) {
 				addtp($row->Naam, $row->RecordID);
@@ -172,6 +190,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 					$f = sprintf("OnderdeelID=%d AND Datum > DATE_SUB(CURDATE(), INTERVAL 9 MONTH) AND Activiteit=1", $row->RecordID);
 					if ((new cls_Afdelingskalender())->aantal($f) > 0) {
 						addtp(trim($row->Naam) . "/Aanwezigheid muteren");
+						addtp(trim($row->Naam) . "/Presentie per lid");
 					}
 				}
 			}
@@ -203,8 +222,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if ($gs != "B" and (new cls_Diploma())->aantal() > 0) {
 			addtp($b . "Diploma's");
 		}
-		$f = "`Type`='T' AND IFNULL(VervallenPer, CURDATE()) >= CURDATE()";
-		if ($gs != "B" and (new cls_Onderdeel())->aantal($f) > 0) {
+		
+		$_SESSION['aantaltoestemmingen'] = $_SESSION['aantaltoestemmingen'] ?? (new cls_Onderdeel())->aantal("`Type`='T' AND IFNULL(VervallenPer, '9999-12-31') >= CURDATE()");
+		if ($gs != "B" and $_SESSION['aantaltoestemmingen'] > 0) {
 			addtp($b . "Toestemmingen");
 		}
 		if (strlen($_SESSION['settings']['muteerbarememos']) > 0) {
@@ -368,7 +388,7 @@ function fnAuthenticatie($melding=1, $password="", $p_napost=0) {
 		$_SESSION['lidid'] = 0;
 	}
 	if ($melding == 1 and strlen($mess) > 0) {
-		(new cls_Logboek())->add($mess, 1, 0, 1, 0, 4);
+		(new cls_Logboek())->add($mess, 1, 0, 3, 0, 4);
 	} elseif (strlen($mess) > 0) {
 		(new cls_Logboek())->add($mess, 1, 0, 0, 0, 4);
 	}
@@ -450,7 +470,7 @@ function fnInloggen() {
 
 	echo("<div id='opdrachtknoppen'>\n");
 	echo("<input type='submit' value='Inloggen' name='Inloggen'>\n");
-	echo("</div <!-- Einde opdrachtknoppen -->\n");
+	echo("</div> <!-- Einde opdrachtknoppen -->\n");
 
 	echo("</form>\n");
 
