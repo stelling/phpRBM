@@ -33,15 +33,28 @@ function fnEvenementen() {
 		$lijst = $i_ev->lijst(2);
 		$kols[0]['link'] = sprintf("<a href='%s?tp=%s&amp;op=edit&amp;eid=%%d' title='Muteer evenement'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 		$kols[0]['class'] = "muteren";
+		$kols[0]['columnname'] = "RecordID";
+		$kols[1]['headertext'] = "Datum";
+		$kols[2]['headertext'] = "Starttijd";
+		$kols[3]['headertext'] = "Omschrijving";
+		$kols[4]['headertext'] = "Locatie";
+		$kols[5]['headertext'] = "Dln";
+		$kols[5]['type'] = "integer";
+		$kols[6]['headertext'] = "Email";
+		$kols[7]['headertext'] = "Einddtijd";
+		$kols[8]['headertext'] = "Ins open?";
+		$kols[9]['headertext'] = "Type";
+		
 		if ((new cls_db_base("Evenement_Type"))->aantal() > 0) {
 			$er = sprintf("<td><a href='%s?%s&amp;op=edit&amp;eid=0' title='Nieuw evenement'><img src='images/star.png' alt='Nieuw'></a></td><td colspan=10>Nieuw evenement</td>", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 		} else {
 			$er = "";
 		}
-		echo(fnDisplayTable($lijst, $kols, "", 0, ""));
+		echo(fnDisplayTable($lijst, $kols));
 	} elseif ($currenttab2 == "Logboek") {
 		$rows = (new cls_Logboek())->lijst(7, 1);
-		echo(fnDisplayTable($rows, "", "", 0, "", "", "logboek"));
+		
+		echo(fnDisplayTable($rows, "logboek", "", 0, "", "", "logboek"));
 	} elseif ($currenttab2 == "Types muteren") {
 		muteertypeevenement();
 	} else {
@@ -103,7 +116,12 @@ function inschrijvenevenementen($lidid) {
 	echo("<table>\n");
 	echo("<tr><th>Datum en tijden</th><th>Omschrijving</th><th>Reactie</th><th>Agenda</th></tr>\n");
 	foreach ($i_ev->lijst(3) as $row) {
-		printf("<tr><td>%s<br>van %s to %s uur</td><td>%s</td>\n", strftime("%A %e %B %Y", strtotime($row->Datum)), strftime("%R", strtotime($row->Datum)), $row->Eindtijd, $row->Omschrijving);
+		if ($row->Eindtijd > "00:00") {
+			$tijden = sprintf("van %s tot %s uur", strftime("%R", strtotime($row->Datum)), $row->Eindtijd);
+		} else {
+			$tijden = sprintf("vanaf %s uur", strftime("%R", strtotime($row->Datum)));
+		}
+		printf("<tr><td>%s<br>%s</td><td>%s</td>\n", strftime("%A %e %B %Y", strtotime($row->Datum)), $tijden, $row->Omschrijving);
 		$ins = $i_ed->record(0, $lidid, $row->RecordID);
 		$v = "&nbsp;";
 		
@@ -145,7 +163,8 @@ function inschrijvenevenementen($lidid) {
 	echo("</table>\n");
 	echo("</form>\n");
 	echo("</div>  <!-- Einde inschrijvingevenementen -->\n");
-}
+	
+}  # inschrijvenevenementen
 
 function muteerevenement($eventid) {
 
@@ -160,14 +179,6 @@ function muteerevenement($eventid) {
 		}
 		if (isset($_POST['Starttijd']) and strlen($_POST['Starttijd']) == 5) {
 			$_POST['Datum'] .= " " . $_POST['Starttijd'] . ":00";
-		}
-		
-		if (!isset($_POST['InschrijvingOpen'])) {
-			$_POST['InschrijvingOpen'] = 0;
-		}
-		
-		if (!isset($_POST['MeerdereStartMomenten'])) {
-			$_POST['MeerdereStartMomenten'] = 0;
 		}
 
 		if ($eventid == 0) {
@@ -278,7 +289,7 @@ function muteerevenement($eventid) {
 	printf("<input type='hidden' name='eventid' value=%d>\n", $eventid);
 	
 	echo("<span>\n");	
-	printf("<label>Datum</label><input type='date' name='Datum' value='%s'>\n", $datum);
+	printf("<label>Datum</label><input type='date' id='Datum' value='%s'>\n", $datum);
 	printf("<label>Starttijd</label><input type='time' name='Starttijd' value='%s'>\n", $starttijd);
 	printf("<label>Eindtijd</label><input type='time' name='Eindtijd' value='%s'>\n", $eindtijd);
 	printf("<label>Verzamelen</label><input type='time' name='Verzameltijd' value='%s'>\n", $verzameltijd);
@@ -299,10 +310,10 @@ function muteerevenement($eventid) {
 	if ($eventid > 0) {
 		$ondrows = (new cls_Onderdeel())->lijst(1, "", $datum);
 		echo("<span>\n");
-		printf("<label>Online inschrijving open</label><input type='checkbox' name='InschrijvingOpen' value=1 %s>\n", checked($insopen));
+		printf("<label>Online inschrijving open</label><input type='checkbox' id='InschrijvingOpen' value=1 %s>\n", checked($insopen));
 		printf("<label>Standaard status</label><select name='StandaardStatus'>%s</select>\n", $optionstandstatus);
 		printf("<label>Max. pers. per deelname</label><input type='number' name='MaxPersonenPerDeelname' value=%d min=1 onChange='this.form.submit();'>\n", $maxpersonenperdeelname);
-		printf("<label>Meerdere startmomenten</label><input type='checkbox' name='MeerdereStartMomenten' value=1  onChange='this.form.submit();' %s>\n", checked($meerderestartmomenten));
+		printf("<label>Meerdere startmomenten</label><input type='checkbox' id='MeerdereStartMomenten' value=1' %s>\n", checked($meerderestartmomenten));
 		echo("</span>\n");
 		
 		$optiongroepen = "<option value=0>Niemand</option>\n";
@@ -414,6 +425,13 @@ function muteerevenement($eventid) {
 	echo("</form>\n");
 	echo("</div> <!-- Einde evenementenbeheer -->\n");
 	
+	printf("<script>
+		\$( document ).ready(function() {
+			\$(\"input[type='checkbox']\").click(function(){
+				savedata('evenement', %1\$d, this);
+			});
+		});
+	</script>\n", $eventid);
 }  # muteerevenement
 
 function muteertypeevenement() {
