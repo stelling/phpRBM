@@ -46,7 +46,7 @@ function fnRekeningen() {
 	} elseif ($currenttab2 == "Logboek") {
 		$rows = (new cls_Logboek())->lijst(14);
 		if (count($rows) > 0) {
-			echo(fnDisplayTable($rows, "", "Logboek rekeningen", 0, "", "", "logboek"));
+			echo(fnDisplayTable($rows, "logboek", "Logboek rekeningen", 0, "", "", "logboek"));
 		} else {
 			echo("<p>Er zijn geen mutaties bekend.</p>\n");
 		}
@@ -78,8 +78,32 @@ function fnRekeningbeheer() {
 	
 	$rows = $i_rk->overzichtbeheer($filterseizoen);
 	$kols[0]['link'] = sprintf("%s?tp=%s/Muteren&p_reknr=%%d", $_SERVER['PHP_SELF'], $currenttab);
+	$kols[0]['columnname'] = "Nummer";
+	
+	$kols[1]['headertext'] = "Nummer";
+	$kols[1]['columnname'] = "Nummer";
+	
+	$kols[2]['headertext'] = "Datum";
+	$kols[2]['columnname'] = "Datum";
+	
+	$kols[3]['headertext'] = "Omschrijving";
+	$kols[3]['columnname'] = "OMSCHRIJV";
+	
+	$kols[3]['headertext'] = "Tenaamstelling";
+	$kols[3]['columnname'] = "DEBNAAM";
+	
+	$kols[4]['headertext'] = "Bedrag";
+	$kols[4]['columnname'] = "Bedrag";
+	$kols[4]['type'] = "currency";
+		
+	$kols[5]['headertext'] = "Betaald";
+	$kols[5]['columnname'] = "Betaald";
+	$kols[5]['type'] = "currency";
+	
 	$kols[7]['link'] = sprintf("%s?tp=%s/Beheer&op=deleterekening&p_reknr=%%d", $_SERVER['PHP_SELF'], $currenttab);
 	$kols[7]['class'] = 'trash';
+	$kols[7]['columnname'] = "linkDelete";
+	
 	echo(fnDisplayTable($rows, $kols, "", 0, "", "overzichtrekeningen"));
 }
 
