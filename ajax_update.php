@@ -7,6 +7,9 @@ $ent = $_GET['entiteit'] ?? "";
 $rid = $_POST['id'] ?? 0;
 $kolom = $_POST['field'] ?? "";
 $newvalue = $_POST['value'] ?? 0;
+$lidid = $_POST['lidid'] ?? 0;
+$ondtype = $_POST['ondtype'] ?? "C";
+$ondid = $_POST['ondid'] ?? 0;
 	
 if ($_SESSION['lidid'] > 0) {
 
@@ -23,6 +26,35 @@ if ($_SESSION['lidid'] > 0) {
 			$i_lo = new cls_Lidond();
 			$i_lo->update($rid, $kolom, $newvalue);
 		}
+				
+	} elseif ($ent === "addlidond") {
+		$i_lo = new cls_Lidond();
+		$i_lo->add($ondid, $lidid);
+		
+	} elseif ($ent === "lo_presentie") {
+		$loid = $_POST['loid'] ?? 0;
+		$akid = $_POST['akid'] ?? 0;
+		
+		if ($loid > 0 and $akid > 0) {
+			$i_aanw = new cls_Aanwezigheid();
+			$i_aanw->update($loid, $akid, "Status", $newvalue);
+		}
+		
+	} elseif ($ent == "htmlloperlid") {
+		
+		echo(json_encode(htmlloperlid($lidid, $ondtype)));
+		
+	} elseif ($ent === "zeteigenschap") {
+		$i_lo = new cls_Lidond();
+		$value = $_POST['value'] ?? 1;
+		$i_lo->zeteigenschap($lidid, $ondid, $value);
+		
+				
+	} elseif ($ent === "liddipl") {
+		if ($rid > 0) {
+			$i_ld = new cls_Liddipl();
+			$i_ld->update($rid, $kolom, $newvalue);
+		}
 		
 	} elseif ($ent == "onderdeeledit" and toegang("Ledenlijst/Basisgegevens/Onderdelen")) {
 		$i_ond = new cls_Onderdeel();
@@ -35,6 +67,10 @@ if ($_SESSION['lidid'] > 0) {
 	} elseif ($ent == "diplomaedit" and toegang("Ledenlijst/Basisgegevens/Diplomas")) {
 		$i_dp = new cls_Diploma();
 		$i_dp->update($rid, $kolom, $_POST['value']);
+		
+	} elseif ($ent == "afdelingskalenderedit") {
+		$i_ak = new cls_Afdelingskalender();
+		$i_ak->update($rid, $kolom, $newvalue);
 		
 	} elseif ($ent == "organisatieedit" and toegang("Ledenlijst/Basisgegevens/Organisaties")) {
 		$i_org = new cls_Organisatie();
@@ -140,6 +176,10 @@ if ($_SESSION['lidid'] > 0) {
 		$i_m = null;
 		
 		echo(json_encode($rv));
+		
+	} elseif ($ent == "evenement" and toegang("Evenement/Beheer")) {
+		$i_ev = new cls_Evenement();
+		$i_ev->update($rid, $kolom, $newvalue);
 		
 	} else {
 		$mess = "Je roept deze procedure op een niet correcte manier aan.";
