@@ -14,7 +14,7 @@ define("PASFOTOEXTENTIES", ["gif", "jpg", "jpeg", "png"]);
 define("ARRTYPEEDITOR", [1 => "CKEditor 5 Classic editor", 2 => "CKEditor 4", 3 => "TinyMCE"]);
 define("ARRSOORTEVENEMENT", ["B" => "Brigade-activiteit", "G" => "Gezellig/sociaal", "O" => "Opleiding", "V" => "Vergadering/overleg", "W" => "Wedstrijd"]);
 define("ARRDLNSTATUS", ["A" => "Afgewezen", "B" => "Bevestigd", "I" => "Ingeschreven", "J" => "Aangemeld", "N" => "Niet geweest", "R" => "Reserve", "T" => "Onder voorbehoud", "X" => "Afgemeld/Afgezegd"]);
-define("ARRPRESENTIESTATUS", ["A" => "Aangemeld/aanwezig", "H" => "Aangemeld, door vereninging afgezegd", "N" => "Niet aanwezig", "R" => "Afgemeld/afwezig met bekende reden", "T" => "Onder voorbehoud", "X" => "Afgemeld/afwezig zonder bekende reden", "Z" => "Afgemeld/afwezig wegens ziekte"]);
+define("ARRPRESENTIESTATUS", ["A" => "Aangemeld/aanwezig", "H" => "Aangemeld, door vereniging afgezegd", "N" => "Niet aanwezig (onafgemeld)", "R" => "Afgemeld/afwezig met bekende reden", "T" => "Onder voorbehoud", "X" => "Afgemeld/afwezig zonder bekende reden", "Z" => "Afgemeld/afwezig wegens ziekte"]);
 define("ARRTYPEBACKUP", [1 => "phpRBM-tabellen", 2 => "Tabellen uit MS-Access", 3 => "Beide"]);
 define("ARRTYPESTUK", ["A" => "Algemene Vergadering", "B" => "Beleidsstuk", "F" => "Formulier", "H" => "Handleiding", "P" => "Promotiemateriaal", "R" => "Regeling", "V" => "Verklaring"]);
 define("ARRTYPEMENU", [1 => "per niveau een aparte regel", 2 => "&eacute;&eacute;n menu met dropdown", 3 => "&eacute;&eacute;n menu met dropdown en extra menu voor niveau 2"]);
@@ -53,8 +53,13 @@ if (isset($_SESSION['lidid'])) {
 }
 
 if ($_SERVER['PHP_SELF'] == "/index.php") {
-	if (!isset($_SESSION['pagbreedte']) or $_SESSION['pagbreedte'] == 0) {
+	if (isset($_COOKIE["pagbreedte"]) and $_COOKIE["pagbreedte"] > 0) {
+		$_SESSION['pagbreedte'] = $_COOKIE["pagbreedte"];
+	} elseif ($_SESSION['pagbreedte'] == 0) {
 		$_SESSION['pagbreedte'] = $_GET['p_pagbreedte'] ?? 0;
+		if ($_SESSION['pagbreedte'] > 0) {
+			setcookie("pagbreedte", $_SESSION['pagbreedte'], time()+(3600*24*90));
+		}
 	}
 	if ($_SESSION['pagbreedte'] == 0) {
 		printf("<script>location.href=\"%s?p_pagbreedte=\" + screen.width + \"\"</script>\n", BASISURL);
@@ -181,19 +186,21 @@ function HTMLheader($breed=0) {
 		echo("<!DOCTYPE HTML>\n");
 		echo("<html lang='nl'>\n");
 		echo("<head>\n");
-		printf("<script src='%s/includes/javascript.js'></script>\n", BASISURL);
+		if (file_exists("includes/javascript.js")) {
+			printf("<script src='includes/javascript.js?v%d'></script>\n", filectime("includes/javascript.js"));
+		}
 		echo("<meta name='viewport' content='width=device-width, initial-scale=1.0'>\n");
 		printf("<title>%s</title>\n", $title);
 		echo("<link rel='stylesheet' href='//code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css'>\n");
-		echo("<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css'>");
+//		echo("<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css'>\n");
 		echo("<script src='https://code.jquery.com/jquery-3.6.0.js'></script>\n");
 		echo("<script src='https://code.jquery.com/ui/1.13.1/jquery-ui.js'></script>\n");
 		
 		if (file_exists("default.css")) {
-			printf("<link rel='stylesheet' href='default.css?v%s'>\n", strftime("%Y%m%d%H%M", filectime("default.css")));
+			printf("<link rel='stylesheet' href='default.css?v%d'>\n", filectime("default.css"));
 		}
 		if (file_exists("maatwerk/kleur.css")) {
-			printf("<link rel='stylesheet' href='maatwerk/kleur.css?v%s'>\n", strftime("%Y%m%d%H%M", filectime("maatwerk/kleur.css")));
+			printf("<link rel='stylesheet' href='maatwerk/kleur.css?v%d'>\n", filectime("maatwerk/kleur.css"));
 		}
 		
 		echo("</head>\n");
@@ -521,19 +528,14 @@ function fnDisplayFormLabels($row, $xtra_eind="", $id="") {
 	return $ret;
 }  # fnDisplayFormLabels
 
-function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $class="lijst", $xtra_kolom="", $editkols="", $autosubmit=0, $sortkols=null, $rowscbo=null) {
-	global $currenttab;
+function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $class="lijst", $xtra_kolom="") {
+	global $currenttab, $currenttab2;
 	
 	$ret = "";
 	if (strlen($class) > 0) {
 		$ret = sprintf("<div class='%s'>\n", $class);
 	}
 	$kol_pk = "";
-	if ($autosubmit == 1) {
-		$js = " OnBlur='this.form.submit();'";
-	} else {
-		$js = "";
-	}
 	if (isset($rows) and (count($rows) > 0 or strlen($xtra_regel) > 0)) {
 		if (strlen($class) > 0) {
 			$ret .= sprintf("<table id='%1\$s' name='%1\$s'>\n", $class);
@@ -542,98 +544,198 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 		}
 		$dispkop = 1;
 		$totaantal = 0;
-		foreach($rows as $row) {
-			if ($dispkop == 1) {
-				$hv = "<tr>";
-				$kn = 0;
-				$skn = 0;
-				foreach($row as $key => $value) {
-					$sortlink = "";
-					$ht = "";
-					if (strstr("cbo, chk, dte, dtk, dtt, dtl, dts, boo, int, cur, eml, num, mrg, pwd, lnm", substr($key, 0, 3)) !== false) {
-						$ht = str_replace("_", " ", substr($key, 3));
-					} elseif (isset($kols[$kn]['link'])) {
-						$hv .= "<th>&nbsp;</th>";
-						$ktot[$kn] = "geen";
-
-					} elseif (startwith($key, "llk") and isset($kols[-1]['link'])) {
-						$hv .= "<th>&nbsp;</th>";
-						$ktot[$kn] = "geen";
-						
-					} elseif (startwith($key, "lek")) {
-						if (strlen($xtra_kolom) > 1) {
-							$hv .= "<th>&nbsp;</th>";
-							$ktot[$kn] = "geen";
-						}
-					} elseif (substr($key, 0, 2) != "nd") {
-						$ht = str_replace("_", " ", $key);
-					}
+		
+		if (strlen($th) > 1) {
+			$ret .= sprintf("<caption>%s</caption>\n", $th);
+		}
+		$ret .= "<thead>\n<tr>";
+		
+		if ($kols == "logboek") {
+			$kols = fnStandaardKols($kols);
+		}
+			
+		if ($kols == null) {
+			$kn = 0;
+			$skn = 0;
+			$hv = "";
+			foreach($rows[0] as $key => $value) {
+				$kols[$kn]['columnname'] = $key;
+				$sortlink = "";
+				$ht = "";
+				if (strstr("cbo, chk, dte, dtk, dtt, dtl, dts, boo, int, cur, eml, num, mrg, pwd, lnm", substr($key, 0, 3)) !== false) {
+					$ht = str_replace("_", " ", substr($key, 3));
 					
-					if (empty($sortkols) == false) {
-						$skn = -1;
-						foreach ($sortkols as $k => $v) {
-							if (startwith($v, $ht)) {
-								$skn = $k;
+				} elseif (isset($kols[$kn]['link'])) {
+					$hv .= "<th>&nbsp;</th>";
+					$ktot[$kn] = "geen";
+
+				} elseif (startwith($key, "llk") and isset($kols[-1]['link'])) {
+					$hv .= "<th>&nbsp;</th>";
+					$ktot[$kn] = "geen";
+						
+				} elseif (isset($kols[$kn]['skip']) and $kols[$kn]['skip'] == true) {
+					// Deze kolom moet worden overgeslagen.
+					
+				} elseif (isset($kols[$kn]['headertext'])) {
+					$hv .= sprintf("<th>%s</th>", $kols[$kn]['headertext']);
+					
+				} elseif (startwith($key, "lek")) {
+					if (strlen($xtra_kolom) > 1) {
+						$hv .= "<th>&nbsp;</th>";
+						$ktot[$kn] = "geen";
+					}
+				} elseif (substr($key, 0, 2) != "nd") {
+					$ht = str_replace("_", " ", $key);
+				}
+					
+				if (empty($sortkols) == false) {
+					$skn = -1;
+					foreach ($sortkols as $k => $v) {
+						if (startwith($v, $ht)) {
+							$skn = $k;
+						}
+					}
+					if (isset($_SESSION['huidsort']) and $_SESSION['huidsort'] < 50 and $_SESSION['huidsort'] == $skn and $skn >= 0) {
+						$skn += 50;
+					}
+					if ($skn >= 0) {
+						$sortlink = sprintf("%s?tp=%s&sort=%d", $_SERVER["PHP_SELF"], $currenttab, $skn);
+					}
+				}
+					
+				if (strlen($ht) > 0 and strlen($sortlink) > 0) {
+					$hv .= sprintf("<th><a href='%s'>%s</a></th>", $sortlink, $ht);
+				} elseif (strlen($ht) > 0) {
+					$hv .= sprintf("<th>%s</th>", $ht);
+				}
+					
+				if (startwith($key, "cur")) {
+					$ktot[$kn] = 0.00;
+				} elseif (substr($key, 0, 3) == "int") {
+					$ktot[$kn] = 0;
+				} elseif ($key == "RecordID" or $key == "ndRecordID") {
+					$ktot[$kn] = 0;
+				} elseif (substr($key, 0, 2) != "nd" and substr($key, 0, 3) != "lnk" and substr($key, 0, 3) != "llk") {
+					$ktot[$kn] = "geen";
+				}
+				if (strlen($kol_pk) == 0 and ($key == "RecordID" or $key == "ndRecordID" or startwith($key, "lnk") or startwith($key, "llk"))) {
+					$kol_pk = $key;
+				}
+				$kn++;
+			}
+			
+			$ret .= $hv;
+			
+		} else {
+		
+			foreach ($kols as $k => $kol) {
+				$iq = false;
+				if (isset($kol['headertext']) or isset($kol['link'])) {
+					if (isset($kol['columnname']) and strlen($kol['columnname']) > 0) {
+						foreach($rows[0] as $key => $val) {
+							if ($key == $kol['columnname']) {
+								$iq = true;
 							}
 						}
-						if (isset($_SESSION['huidsort']) and $_SESSION['huidsort'] < 50 and $_SESSION['huidsort'] == $skn and $skn >= 0) {
-							$skn += 50;
+					} else {
+						$iq = true;
+						$kn = 0;
+						foreach($rows[0] as $key => $val) {
+							if ($k == $kn) {
+								$kols[$k]['columnname'] = $key;
+							}
+							$kn++;
 						}
-						if ($skn >= 0) {
-							$sortlink = sprintf("%s?tp=%s&sort=%d", $_SERVER["PHP_SELF"], $currenttab, $skn);
+					}
+				}
+				
+				if ($iq) {
+					if (!isset($kol['headertext'])) {
+						$kols[$k]['headertext'] = "&nbsp;";
+					}
+					if (isset($kol['sortcolumn'])) {
+						if (isset($_SESSION['huidsort']) and $_SESSION['huidsort'] < 50 and $_SESSION['huidsort'] == $k and $k >= 0) {
+							$skn = $k + 50;
+						} else {
+							$skn = $k;
 						}
+						if (strlen($currenttab2) > 0) {
+							$ct = $currenttab . "/" . $currenttab2;
+						} else {
+							$ct = $currenttab;
+						}
+						$sortlink = sprintf("%s?tp=%s&sort=%d", $_SERVER["PHP_SELF"], $ct, $skn);
+						$ret .= sprintf("<th><a href='%s'>%s</a></th>", $sortlink, $kols[$k]['headertext']);
+					} else {
+						$ret .= sprintf("<th>%s</th>", $kols[$k]['headertext']);
 					}
-					
-					if (strlen($ht) > 0 and strlen($sortlink) > 0) {
-						$hv .= sprintf("<th><a href='%s'>%s</a></th>", $sortlink, $ht);
-					} elseif (strlen($ht) > 0) {
-						$hv .= sprintf("<th>%s</th>", $ht);
-					}
-					
-					
-					if (startwith($key, "cur")) {
-						$ktot[$kn] = 0.00;
-					} elseif (substr($key, 0, 3) == "int") {
-						$ktot[$kn] = 0;
-					} elseif ($key == "RecordID" or $key == "ndRecordID") {
-						$ktot[$kn] = 0;
-					} elseif (substr($key, 0, 2) != "nd" and substr($key, 0, 3) != "lnk" and substr($key, 0, 3) != "llk") {
-						$ktot[$kn] = "geen";
-					}
-					if (strlen($kol_pk) == 0 and ($key == "RecordID" or $key == "ndRecordID" or startwith($key, "lnk") or startwith($key, "llk"))) {
-						$kol_pk = $key;
-					}
-					$kn++;
+//					debug($k . ": " . $kols[$k]['headertext'] . ": " . $kols[$k]['columnname']);
+				} else {
+					$kols[$k]['skip'] = true;
 				}
-				if (strlen($th) > 1) {
-					$ret .= sprintf("<caption>%s</caption>\n", $th);
-				}
-				$ret .= $hv . "</tr>\n<tbody>\n";
-				$dispkop = 0;
+				$ktot[$k] = 0;
 			}
-			$ret .= "<tr>";
+		}
+		$ret .= "</tr>\n</thead>\n<tbody>\n";
+		
+		foreach($rows as $row) {
 			$kn = 0;
-			foreach($row as $key => $value) {
+			$ret .= "<tr>";
+//			foreach($row as $key => $value) {
+			foreach ($kols as $kn => $kol) {
+				if (isset($kol['columnname'])) {
+					$key = $kol['columnname'];
+					if (isset($kol['skip']) and $kol['skip'] == true) {
+						$value = null;
+					} else {
+						$value = $row->{$key};
+						$kol['skip'] = false;
+					}
+				} else {
+					$key = "";
+					$kol['skip'] = true;
+					$value = null;
+				}
+				$kol_edit = 0;
 				$kol_link = "";
 				$kol_class = "";
-				$kol_edit = 0;
-				if (strstr($editkols, $key)) {
-					$kol_edit = 1;
-				}
-				if (isset($kols[$kn]['link'])) {
-					if (startwith($kols[$kn]['link'], "<a href") == true) {
-						$kol_link = $kols[$kn]['link'];
-					} else {
-						$kol_link = "<a href='" . $kols[$kn]['link'] . "'>&nbsp;&nbsp;&nbsp;</a>";
-					}
-				}
-				if (isset($kols[$kn]['class'])) {
-					$kol_class = sprintf("class='%s'", $kols[$kn]['class']);
-				}
 				if (isset($kols[$kn]['edit'])) {
 					$kol_edit = $kols[$kn]['edit'];
 				}
-				if (startwith($key, "chk")) {
+				
+				if ($kol_edit == 1) {
+					debug("Edit in display");
+				}
+				
+				if (isset($kols[$kn]['type'])) {
+					$kol_type = $kols[$kn]['type'];
+				} elseif (strlen($key) >= 3 and strstr("cbo, chk, dte, dtk, dtt, dtl, dts, boo, int, cur, eml, num, mrg, pwd, lnm", substr($key, 0, 3)) !== false) {
+					$kol_type = substr($key, 0, 3);
+				} else {
+					$kol_type = "text";
+				}
+				
+				if (isset($kols[$kn]['link'])) {
+					$kol_type = "lnk";
+					if (startwith($kols[$kn]['link'], "<a href") == true) {
+						$kol_link = $kols[$kn]['link'];
+					} else {
+						$kol_link = "<a href='" . $kols[$kn]['link'] . "'";
+						if (isset($kols[$kn]['title'])) {
+							$kol_link .= sprintf(" title='%s'", $kols[$kn]['title']);
+						}
+						$kol_link .= ">&nbsp;&nbsp;&nbsp;</a>";
+					}
+				}
+				
+				if (isset($kols[$kn]['class'])) {
+					$kol_class = sprintf("class='%s'", $kols[$kn]['class']);
+				}
+				
+				if ($kol['skip'] == true) {
+						// Deze kolom moet worden overgeslagen.
+						
+				} elseif ($kol_type == "chk") {
 					if ($kol_edit == 0) {
 						if ($value == 1) {
 							$ret .= "<td>Ja</td>";
@@ -645,6 +747,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					}
 					
 				} elseif ($key == "cboFunctie") {
+//					debug("fnDisplayTable/cboFunctie", 1, 0, 1);
 					$ret .= "<td>";
 					if ($rowscbo != null) {
 						$ret .= sprintf("<select name='%s_%d' %s>", substr($key, 3), $row->$kol_pk, $js);
@@ -657,8 +760,8 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					}
 					$ret .= "</td>\n";
 					
-				} elseif (startwith($key, "dte") or startwith($key, "rodte")) {
-					if (startwith($key, "dte") and $kol_edit == 1) {
+				} elseif ($kol_type == "dte" or $kol_type == "rodte" or $kol_type == "date") {
+					if ($kol_type =="dte" and $kol_edit == 1) {
 						$ret .= sprintf("<td><input type='date' name='%s_%d' value='%s'%s></td>", str_replace(" ", "_", substr($key, 3)), $row->$kol_pk, $value, $js);
 					} elseif ((!is_null($value)) and $value > '1900-01-01' and strtotime($value) !== false) {
 						$ret .= sprintf("<td class='datum'>%s</td>", strftime('%e %B %Y', strtotime($value)));
@@ -667,13 +770,14 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					} else {
 						$ret .= "<td>&nbsp;</td>";
 					}
-				} elseif (substr($key, 0, 3) == "dtk") {
+					
+				} elseif ($kol_type == "dtk" or $kol_type == "dateshort") {
 					if ((!is_null($value)) and $value > '1900-01-01') {
 						$ret .= sprintf("<td class='datumkort'>%s</td>", date('d/m/Y', strtotime($value)));
 					} else {
 						$ret .= "<td>&nbsp;</td>";
 					}
-				} elseif (substr($key, 0, 3) == "dtl") {
+				} elseif ($kol_type == "dtl") {
 					if ((!is_null($value)) and $value > '1900-01-01') {
 						$ret .= sprintf("<td class='datumlang'>%s</td>", strftime('%A %e %B %Y', strtotime($value)));
 					} else {
@@ -687,7 +791,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					} else {
 						$ret .= "<td>&nbsp;</td>";
 					}
-				} elseif (substr($key, 0, 3) == "dts") {
+				} elseif ($kol_type == "dts" or $kol_type == "datetimesecond") {
 					if ((!is_null($value)) and $value > '1900-01-01' and strtotime($value) !== false) {
 						$ret .= sprintf("<td class='datumtijd'>%s</td>", strftime('%e %B %Y (%H:%M:%S)', strtotime($value)));
 					} elseif (strlen($value) > 0) {
@@ -695,22 +799,28 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					} else {
 						$ret .= "<td>&nbsp;</td>";
 					}
-				} elseif (substr($key, 0, 3) == "int") {
+				} elseif ($kol_type == "int" or $kol_type == "integer") {
 					if ($kol_edit == 0) {
 						$ret .= sprintf("<td class='number'>%d</td>", $value);
 					} else {
 						$ret .= sprintf("<td><input type='number' name='%s_%d' value='%s'></td>", substr($key, 3), $row->$kol_pk, $value);
 					}
 					$ktot[$kn] += intval($value);
-				} elseif (substr($key, 0, 3) == "cur") {
+					
+				} elseif ($kol_type == "cur" or $kol_type == "currency") {
 					$ret .= sprintf("<td class='number'>%s</td>", number_format($value, 2, ",", "."));
 					$ktot[$kn] += $value;
-				} elseif (substr($key, 0, 3) == "boo" and $value == 1) {
-					$ret .= "<td>Ja</td>";
-				} elseif (substr($key, 0, 3) == "boo" and $value != 1) {
-					$ret .= "<td>Nee</td>";
 					
-				} elseif (substr($key, 0, 3) == "lnm" and strlen($value) > 0) {
+				} elseif ($kol_type == "boo" or $kol_type == "boolean") {
+					if ($value == 1) {
+						$ret .= "<td>Ja</td>";
+					} elseif ($value == 0 or $value == -1) {
+						$ret .= "<td>Nee</td>";
+					} else {
+						$ret .= "<td>Onbekend</td>";
+					}
+					
+				} elseif (($kol_type == "lnm" or $kol_type == "lidnaam") and strlen($value) > 0) {
 					if (is_numeric($value)) {
 						$ret .= sprintf("<td>%s</td>", (new cls_lid())->Naam($value, "onbekend"));
 					} else {
@@ -726,7 +836,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 						$ret .= "<td>&nbsp;</td>";
 					}
 						
-				} elseif (startwith($key, "llk")) {
+				} elseif (startwith($key, "llk") or $kol_type == "link") {
 					if ($value > 0 and isset($kols[-1]['link'])) {
 						if (startwith($kols[-1]['link'], "<a href") == true) {
 							$kol_link = $kols[-1]['link'];
@@ -766,10 +876,11 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					}
 				} elseif (substr($key, 0, 3) === "num") {
 					$ret .= sprintf("<td class='number'>%s</td>", $value);
-				} elseif (substr($key, 0, 3) == "nm2") {
+				} elseif (substr($key, 0, 3) == "nm2" or $kol_type == "num2") {
 					$ret .= sprintf("<td class='number'>%s</td>", number_format(floatval($value), 2, ",", "."));
-				} elseif (substr($key, 0, 3) == "mrg") {
-					$ret .= sprintf("<td>%s</td>", str_replace(" &amp; ", "<br>", htmlentities($value)));
+				} elseif ($kol_type == "mrg" or $kol_type == "combitext") {
+					$ret .= sprintf("<td>%s</td>", str_replace(" &amp; ", "<br>", htmlentities($value, ENT_HTML5)));
+					
 				} elseif (substr($key, 0, 2) != "nd") {
 					if ($kol_edit == 0 or $row->$kol_pk == 0) {
 						$ret .= sprintf("<td>%s</td>", htmlentities($value));
@@ -821,9 +932,13 @@ function fnEditTable($res, $kols, $id, $th) {
 	$ret .= sprintf("<caption>%s</caption>\n", $th);
 	$ret .= "<thead>\n";
 	$ret .= "<tr>";
-	foreach ($kols as $kol) {
-		if (isset($kol['headertext']) and strlen($kol['headertext']) > 1) {
+	$colpk = -1;
+	foreach ($kols as $kn => $kol) {
+		if (isset($kol['headertext']) and strlen($kol['headertext']) > 0) {
 			$ret .= sprintf("<th>%s</th>", $kol['headertext']);
+		}
+		if (isset($kol['type']) and $kol['type'] == "pk") {
+			$colpk = $kn;
 		}
 	}
 	$ret .= "</tr>\n";
@@ -835,29 +950,60 @@ function fnEditTable($res, $kols, $id, $th) {
 	foreach($rows as $row) {
 		$ret .= "<tr>";
 		$kn = 0;
-		$valpk = 0;
-		$colpk = "";
-		$js = "";
+		$valpk = $row[$colpk];
 		foreach ($kols as $key => $kol) {
 			$tp = $kol['type'] ?? "text";
-			$ro = $kol['readonly'] ?? false;
-			$value = $row[$key];
-			if ($tp == "pk") {
-				$valpk = $row[$key];
-				$colpk = $res->getColumnMeta($key)['name'];
+			$kol_class = "";
+			if (isset($kol['class'])) {
+				$kol_class = sprintf("class='%s'", $kol['class']);
 			}
-			$colname = $res->getColumnMeta($key)['name'];
-			$collen = intval($res->getColumnMeta($key)['len'] / 3);
+			if (isset($kol['link'])) {
+				$tp = "link";
+				if (substr($kol['link'], 0, 7) == "<a href") {
+					$kol_link = $kol['link'];
+				} else {
+					$kol_link = "<a href='" . $kol['link'] . "'";
+					if (isset($kol['title'])) {
+						$kol_link .= sprintf(" title='%s'", $kol['title']);
+					}
+					$kol_link .= ">&nbsp;&nbsp;&nbsp;</a>";
+				}
+				
+			}
+			$ro = $kol['readonly'] ?? false;
+			$colnum = 0;
+			if (isset($kol['columnname']) and strlen($kol['columnname']) > 0) {
+				foreach ($row as $k => $v) {
+					if ($res->getColumnMeta($k)['name'] == $kol['columnname']) {
+						$colnum = $k;
+					}
+				}
+			} else {
+				$colnum = $key;
+			}
+			$value = $row[$colnum];
+			$colname = $res->getColumnMeta($colnum)['name'];
+			$collen = intval($res->getColumnMeta($colnum)['len'] / 3);
 			
-			if ($tp == "checkbox") {
+			if ($tp == "link") {
+				if ($value > 0) {
+					$href = str_replace("%d", $value, $kol_link);
+					$href = str_replace("%s", "&nbsp;&nbsp;&nbsp;", $href);
+					$ret .= sprintf("<td %s>%s</td>", $kol_class, $href);
+				} else {
+					$ret .= "<td>&nbsp;</td>";
+				}	
+			
+			} elseif ($tp == "checkbox") {
+				$ret .= "<td class='checkbox'>";
 				if ($ro) {
 					if ($value == 1) {
-						$ret .= "<td>Ja</td>";
+						$ret .= "Ja</td>";
 					} else {
-						$ret .= "<td>Nee</td>";
+						$ret .= "Nee</td>";
 					}
 				} else {
-					$ret .= sprintf("<td><input type='checkbox' id='%s_%d' class='cbedit' value=1%s></td>", $colname, $valpk, checked($value));
+					$ret .= sprintf("<input type='checkbox' id='%s_%d' value=1%s></td>", $colname, $valpk, checked($value));
 				}
 				
 			} elseif (isset($kol['bronselect']) and count($kol['bronselect']) > 0) {
@@ -865,29 +1011,29 @@ function fnEditTable($res, $kols, $id, $th) {
 				foreach ($kol['bronselect'] as $k => $v) {
 					$opt .= sprintf("<option%s value=%s>%s</option>\n", checked($k, "option", $value), $k, $v);
 				}
-				$ret .= sprintf("<td><select class='selectedit' id='%s_%d'>\n%s</select></td>\n", $colname, $valpk, $opt);
+				$ret .= sprintf("<td><select id='%s_%d'>\n%s</select></td>\n", $colname, $valpk, $opt);
 
 			} elseif ($tp == "date") {
 				if ($ro == false) {
-					$ret .= sprintf("<td><input type='date' id='%s_%d' value='%s' class='dateedit'></td>", $colname, $valpk, $value);
+					$ret .= sprintf("<td><input type='date' id='%s_%d' value='%s'></td>", $colname, $valpk, $value);
 				} elseif ((!is_null($value)) and $value > '1900-01-01') {
 					$ret .= sprintf("<td class='datumkort'>%s</td>", date('d/m/Y', strtotime($value)));
 				} else {
 					$ret .= "<td>&nbsp;</td>";
 				}
-				
-			} elseif ($tp == "integer") {
+					
+			} elseif ($tp == "integer" or ($tp == "pk" and isset($kols[$colpk]['headertext']))) {
 				if ($ro) {
 					$ret .= sprintf("<td class='number'>%d</td>", $value);
 				} else {
-					$ret .= sprintf("<td><input type='number' id='%s_%d' value='%s' class='numedit w10'></td>", $colname, $valpk, $value);
+					$ret .= sprintf("<td><input type='number' id='%s_%d' value=%d class='w10'></td>", $colname, $valpk, $value);
 				}
 				
 			} elseif ($tp == "email") {
 				if ($ro) {
 					$ret .= sprintf("<td>%s</td>", fnDispEmail($value, "", 1));
 				} else {
-					$ret .= sprintf("<td><input type='email' id='%s_%d' value='%s' class='txtedit'></td>", $colname, $valpk, $value);
+					$ret .= sprintf("<td><input type='email' id='%s_%d' value='%s'></td>", $colname, $valpk, $value);
 				}
 				
 			} elseif ($tp == "pwd") {
@@ -902,7 +1048,7 @@ function fnEditTable($res, $kols, $id, $th) {
 					$ret .= sprintf("<td>%s</td>", htmlentities($value));
 				} else {
 					$xc = sprintf("w%d", $collen);
-					$ret .= sprintf("<td><input type='text' id='%s_%d' value='%s' class='txtedit %s'></td>", $colname, $valpk, $value, $xc);
+					$ret .= sprintf("<td><input type='text' id='%s_%d' value=\"%s\" class='%s'></td>", $colname, $valpk, $value, $xc);
 				}
 			}
 		}
@@ -914,29 +1060,16 @@ function fnEditTable($res, $kols, $id, $th) {
 	$ret .= sprintf("<script>
 $(document).ready(function() {
 
-	$('.cbedit').focusout(function(){
-		if (this.checked == true) {
-			savedata('%1\$s', this.id, 1);
-		} else {
-			savedata('%1\$s', this.id, 0);
-		}
-		
+	$(\"input[type='checkbox']\").click(function(){
+		savedata('%1\$s', 0, this);	
 	});
 	
-	$('.txtedit').focusout(function(){
-		savedata('%1\$s', this.id, $(this).val());
+	$('select').change(function(){
+		savedata('%1\$s', 0, this);
 	});
 	
-	$('.selectedit').change(function(){
-		savedata('%1\$s', this.id, $(this).val());
-	});
-	
-	$('.numedit').change(function(){
-		savedata('%1\$s', this.id, $(this).val());
-	});
-	
-	$('.dateedit').focusout(function(){
-		savedata('%1\$s', this.id, $(this).val());
+	$(\"input[type='text'], input[type='date'], input[type='time']\").focusout(function(){
+		savedata('%1\$s', 0, this);
 	});
 });
 
@@ -946,16 +1079,43 @@ $(document).ready(function() {
 	
 } # fnEditTable
 
+function fnStandaardKols($p_ent) {
+	
+	if ($p_ent == "logboek") {
+		$kols = null;
+		$kols[0]['headertext'] = "Datum en tijd";
+		$kols[0]['type'] = "datetimesecond";
+		$kols[0]['sortcolumn'] = "RecordID";
+		$kols[1]['headertext'] = "Omschrijving";
+		$kols[1]['sortcolumn'] = "Omschrijving";
+		$kols[2]['headertext'] = "Betreft lid";
+		$kols[2]['columnname'] = "betreftLid";
+		$kols[2]['type'] = "lidnaam";
+		$kols[3]['headertext'] = "Type";
+		$kols[3]['sortcolumn'] = "Type";
+		$kols[4]['headertext'] = "Ingelogd lid";
+		$kols[4]['sortcolumn'] = "ingelogdLid";
+		$kols[4]['type'] = "lidnaam";
+		$kols[5]['headertext'] = "Getoond?";
+		$kols[5]['type'] = "boolean";
+		if ($_SESSION['webmaster'] == 1) {
+			$kols[6]['headertext'] = "Script / functie";
+			$kols[6]['columnname'] = "scriptFunctie";
+			$kols[6]['sortcolumn'] = "scriptFunctie";
+			$kols[7]['headertext'] = "IP adres";
+			$kols[7]['columnname'] = "IP_adres";
+			$kols[7]['sortcolumn'] = "A.IP_adres";
+		}
+	}
+	
+	return $kols;
+}
 
 function fnOrderBy($p_arrSort) {
 	$ord = "";
 	
-	if (isset($_GET['sort'])) {
-		$_SESSION['huidsort'] = $_GET['sort'];
-	} else {
-		$_SESSION['huidsort'] = -1;
-	}
-	
+	$_SESSION['huidsort'] = $_GET['sort'] ?? -1;
+		
 	if ($_SESSION['huidsort'] >= 50) {
 		$sk = $_SESSION['huidsort'] - 50;
 	} else {
@@ -964,9 +1124,14 @@ function fnOrderBy($p_arrSort) {
 	
 	$sw = "";
 	if ($sk >= 0 and isset($p_arrSort[$sk])) {
-		$sw = $p_arrSort[$sk];
-		if (strpos($sw, ";") > 0) {
-			$sw = explode(";", $sw)[1];
+		//$sw = $p_arrSort[$sk];
+		if (isset($p_arrSort[$sk]['sortcolumn'])) {
+			$sw = $p_arrSort[$sk]['sortcolumn'];
+		} else {
+			$sw = $p_arrSort[$sk];
+			if (strpos($sw, ";") > 0) {
+				$sw = explode(";", $sw)[1];
+			}
 		}
 	}
 	
@@ -994,15 +1159,34 @@ function debug($tekst, $alleenwm=1, $alert=0, $logact=0) {
 	}
 	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 		$alleenwm = 0;
-		
-//		$dbgt=debug_backtrace();
-//		echo("$error in {$dbgt[1][file]} on line {$dbgt[1][line]}");
 	}
-	if ($alleenwm == 0 or (isset($_SESSION['webmaster']) and $_SESSION['webmaster'] == 1)) {
+	
+	$_SESSION['webmaster'] = $_SESSION['webmaster'] ?? 0;
+	$f = "";
+	if ($_SESSION['webmaster'] == 1) {
+		$bt = debug_backtrace(2, 3);
+		for ($t=count($bt)-1;$t >= 0;$t += -1) {
+			if (isset($bt[$t]['function']) and $bt[$t]['function'] <> "Log" and isset($bt[$t]['class']) and $bt[$t]['class'] <> "cls_Logboek") {
+				if (strlen($f) > 0) {
+					$f .= "=>";
+				}
+				if (strlen($bt[$t]['class']) > 0) {
+					$f .= $bt[$t]['class'];
+				}
+				if (strlen($bt[$t]['function']) > 0) {
+					$f .= $bt[$t]['type'] . $bt[$t]['function'];
+				}
+			}
+		}
+		$f = "/" . $f;
+	}
+	
+	if ($alleenwm == 0 or $_SESSION['webmaster'] == 1) {
+		
 		if ($alert == 1) {
 			printf("<script>alert('Debug: %s');</script>\n", $tekst);
-		} else {
-			printf("<p class='debug'>Debug: %s</p>\n", $tekst);
+		} elseif ($alert >= 0) {
+			printf("<p class='debug'>Debug%s: %s</p>\n", $f, $tekst);
 		}
 	}
 	if ($logact == 1) {
