@@ -153,13 +153,22 @@ function savedata(entity, rid, control) {
 	} else {
 		var field_name = control.id;
 	}
-	var value = control.value;
+	
+	if (control.type == "checkbox") {
+		if (control.checked == true) {
+			var value = 1;
+		} else {
+			var value = 0;
+		}
+	} else {
+		var value = control.value;
+	}
 
 	$.ajax({
 		url: 'ajax_update.php?entiteit=' + entity,
 		type: 'post',
 		dataType: 'json',
-		data: { field:field_name, value:value, id:rid },
+		data: { field: field_name, value: value, id: rid },
 		success:function(response){}
 	});
 }
@@ -179,6 +188,83 @@ function savecb(entity, rid, control) {
 		data: { field:control.id, value:value, id:rid },
 		success:function(response){}
 	});
+}
+
+/* Ledenadministratie specifiek */
+
+function lidalgwijzprops() {
+	
+	var rn = $('#Roepnaam');
+	var vl = $('#Voorletter');
+	if (vl.val().trim.length == 0 && rn.val().length > 1) {
+		vl.val(rn.val().substring(0, 1) + '.');
+	}
+	
+	if ($('#Geslacht').val() == "V") {
+		$('#lblMeisjesnm, #Meisjesnm, #uitleg_meisjesnm').show();
+	} else {
+		$('#lblMeisjesnm, #Meisjesnm, #uitleg_meisjesnm').hide();
+	}
+	
+	var gbd = $('#GEBDATUM');
+	if (gbd.val().length == 10 && gbd.val() > '1920-01-01') {
+		const options = { year: 'numeric', month: 'long', day: 'numeric' };
+		var dat = new Date(gbd.val());
+		$('#uitleg_gebdatum').text(' (' + dat.toLocaleDateString('nl-NL', options) + ')');
+	} else {
+		$('#uitleg_gebdatum').text('');
+	}
+	
+	var tel = $('#Telefoon').val();
+	$('#uitleg_telefoon').text(fnControleTelefoon(tel));
+	
+	var tel = $('#Mobiel').val();
+	$('#uitleg_mobiel').text(fnControleTelefoon(tel, "mobiel"));
+	
+	var e = $('#Email').val();
+	$('#uitleg_email').text(fnControleEmail(e));
+	
+	var e = $('#EmailOuders').val();
+	$('#uitleg_emailouders').text(fnControleEmail(e));
+	
+	if($("#EmailVereniging").length > 0) {
+		var e = $('#EmailVereniging').val();
+		$('#uitleg_emailvereniging').text(fnControleEmail(e));
+	}
+	
+}
+
+function loperlidprops() {
+	
+	var lidid = $('#lidid').val();
+	var ondtype = $('#ondtype').val();
+	
+	$.ajax({
+		url: 'ajax_update.php?entiteit=htmlloperlid',
+		type: 'post',
+		dataType: 'json',
+		data: { lidid: lidid, ondtype: ondtype },
+		success:function(reshtml){
+			$('#tablelidond > tbody').empty();
+			$('#tablelidond > tbody').append(reshtml);
+		}
+	});
+}
+
+function addlidond() {
+	
+	var lidid = $('#lidid').val();
+	var ondid = $('#NieuwOnderdeel').val();
+	
+	if (ondid > 0) {
+		$.ajax({
+			url: 'ajax_update.php?entiteit=addlidond',
+			type: 'post',
+			dataType: 'json',
+			data: { lidid: lidid, ondid: ondid }
+		});
+		loperlidprops();
+	}
 }
 
 /* Mailing specifiek */
@@ -364,3 +450,43 @@ function togglevariabelen() {
 	}
 
 }
+
+function fnControleTelefoon(p_nr, p_srt="telefoon") {
+	
+	var rv;
+	
+	if (p_nr.length == 0) {
+		rv = "";
+	} else if (p_nr.substr(2, 1) == "-" && p_nr.length == 11 && p_srt == "mobiel") {
+		rv = "";
+	} else if (p_nr.substr(3, 1) == "-" && p_nr.length == 11 && p_srt == "telefoon") {
+		rv = "";
+	} else if (p_nr.substr(4, 1) == "-" && p_nr.length == 11 && p_srt == "telefoon") {
+		rv = "";
+	} else if (p_nr.lengte == 10 && p_nr.includes("-") === false) {
+		rv = "";
+	} else if (p_srt == "telefoon") {
+		rv = "Formaat telefoonnummer is niet correct.";
+	} else {
+		rv = "Formaat mobiele nummer is niet correct.";
+	}
+	
+	return rv;
+}
+
+function fnControleEmail(p_email, p_rvbijleeg="") {
+	
+	var emailReg = /^([\w-\.]+@([\w-]+\.)+[\w-]{2,4})?$/;
+	
+	if (p_email.length == 0) {
+		rv = p_rvbijleeg;
+	} else if (p_email.match(emailReg)) {
+		rv = "";
+	} else {
+		rv = "Formaat e-mailadres is niet correct.";
+	}
+	
+	return rv;
+	
+}
+
