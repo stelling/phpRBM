@@ -68,6 +68,7 @@ $TypeActiviteit[20] = "Stamgegevens";
 $TypeActiviteit[21] = "Afdelingskalender";
 $TypeActiviteit[22] = "Stukken";
 $TypeActiviteit[23] = "Eigen lijsten";
+$TypeActiviteit[24] = "Aanwezigheid muteren";
 $TypeActiviteit[97] = "Foutieve login";
 $TypeActiviteit[98] = "Performance";
 $TypeActiviteit[99] = "Debug- en foutmeldingen";
@@ -410,15 +411,20 @@ class cls_db_base {
 		if (strlen($p_filter) > 0) {
 			$p_filter = "WHERE " . $p_filter;
 		}
-		$query = sprintf("SELECT COUNT(*) FROM %s %s;", $this->table, $p_filter);
+		if (strlen($this->basefrom) > 0) {
+			$from = $this->basefrom;
+		} else {
+			$from = $this->table;
+		}
+		$query = sprintf("SELECT COUNT(*) FROM %s %s;", $from, $p_filter);
 		return $this->scalar($query);
 	}
 	
 	public function min($p_kolom, $p_filter="") {
 		if ($this->is_kolom_numeriek($p_kolom) == true) {
-			$query = sprintf("SELECT MIN(IFNULL(`%1\$s`, 0)) FROM %2\$s WHERE (`%1\$s` IS NOT NULL)", $p_kolom, $this->table);
+			$query = sprintf("SELECT MIN(IFNULL(`%1\$s`, 0)) FROM %2\$s WHERE (`%1\$s` IS NOT NULL)", $p_kolom, $this->basefrom);
 		} else {
-			$query = sprintf("SELECT MIN(IFNULL(`%1\$s`, '')) FROM %2\$s WHERE (`%1\$s` IS NOT NULL)", $p_kolom, $this->table);
+			$query = sprintf("SELECT MIN(IFNULL(`%1\$s`, '')) FROM %2\$s WHERE (`%1\$s` IS NOT NULL)", $p_kolom, $this->basefrom);
 		}
 		if (strlen($p_filter) > 0) {
 			$query .= " AND " . $p_filter;
@@ -2111,6 +2117,7 @@ class cls_Afdelingskalender extends cls_db_base {
 	
 	function __construct($p_ondid=-1) {
 		$this->table = TABLE_PREFIX . "Afdelingskalender";
+		$this->basefrom = $this->table . " AS AK";
 		$this->ta = 21;
 		if ($p_ondid > 0) {
 			$this->ondid = $p_ondid;
@@ -2120,9 +2127,9 @@ class cls_Afdelingskalender extends cls_db_base {
 	public function lijst($p_ondid=-1, $p_datum="", $p_filter="") {
 		if ($p_ondid > 0) {
 			$this->ondid = $p_ondid;
-			$where = sprintf("OnderdeelID=%d", $this->ondid);
+			$where = sprintf("AK.OnderdeelID=%d", $this->ondid);
 		} else {
-			$where = "1=1";
+			$where = "O.`Type`='A'";
 		}
 		if (strlen($p_datum) > 5) {
 			$where .= sprintf(" AND Datum='%s'", $p_datum);
@@ -2131,7 +2138,7 @@ class cls_Afdelingskalender extends cls_db_base {
 			$where .= sprintf(" AND %s", $p_filter);
 		}
 		
-		$query = sprintf("SELECT AK.*, O.Kode, O.Naam FROM %s AS AK INNER JOIN %sOnderdl AS O ON O.RecordID=AK.OnderdeelID WHERE %s ORDER BY IF(AK.Datum > '1900-01-01', 1, 0), AK.Datum DESC, O.Naam;", $this->table, TABLE_PREFIX, $where);
+		$query = sprintf("SELECT AK.*, O.Kode, O.Naam FROM %s INNER JOIN %sOnderdl AS O ON O.RecordID=AK.OnderdeelID WHERE %s ORDER BY IF(AK.Datum > '1900-01-01', 1, 0), AK.Datum DESC, O.Naam;", $this->basefrom, TABLE_PREFIX, $where);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
@@ -2196,7 +2203,7 @@ class cls_Aanwezigheid extends cls_db_base {
 	function __construct() {
 		$this->table = TABLE_PREFIX . "Aanwezigheid";
 		$this->basefrom = $this->table . " AS AW";
-		$this->ta = 21;
+		$this->ta = 24;
 	}
 	
 	private function vulvars($p_loid, $p_akid) {
@@ -2211,6 +2218,11 @@ class cls_Aanwezigheid extends cls_db_base {
 	
 	public function status($p_lidondid, $p_akid) {
 		$query = sprintf("SELECT IFNULL(MAX(Status), '') FROM %s WHERE LidondID=%d AND AfdelingskalenderID=%d", $this->table, $p_lidondid, $p_akid);
+		return $this->scalar($query);
+	}
+	
+	public function aantalstatus($p_stat, $p_ondid) {
+		$query = sprintf("SELECT COUNT(*) FROM %s INNER JOIN %sLidond AS LO ON AW.LidondID=LO.RecordID WHERE AW.Status='%s' AND LO.OnderdeelID=%d;", $this->basefrom, TABLE_PREFIX, $p_stat, $p_ondid);
 		return $this->scalar($query);
 	}
 	
@@ -2234,9 +2246,12 @@ class cls_Aanwezigheid extends cls_db_base {
 	
 	public function perlidperperiode($p_loid, $p_vanaf, $p_tm) {
 		
-		$query = sprintf("SELECT SUM(IF(AW.Status='A', 1, 0)) AS aantAanwezig, SUM(IF(AW.Status='A', 0, 1)) AS aantAfwezig, SUM(IF(AW.Status='N', 1, 0)) AS aantOnafgemeld
-						  FROM %s INNER JOIN %sAfdelingskalender AS AK ON AW.AfdelingskalenderID=AK.RecordID
-						  WHERE AK.Datum >= '%s' AND AK.Datum <= '%s' AND AK.Datum <= CURDATE() AND AW.LidondID=%d;", $this->basefrom, TABLE_PREFIX, $p_vanaf, $p_tm, $p_loid);
+		$query = sprintf("SELECT MAX(LO.Lid) AS LidID, SUM(IF(AW.Status='A', 1, 0)) AS aantAanwezig, SUM(IF(AW.Status IN ('A', 'L'), 0, 1)) AS aantAfwezig,
+						  SUM(IF(AW.Status IN ('N', 'X'), 1, 0)) AS aantZonderReden,
+						  SUM(IF(AW.Status='R', 1, 0)) AS aantMetReden,
+						  SUM(IF(AW.Status='Z', 1, 0)) AS aantZiek, SUM(IF(AW.Status='L', 1, 0)) AS aantLaat
+						  FROM (%1\$s INNER JOIN %2\$sLidond AS LO ON LO.RecordID=AW.LidondID) INNER JOIN %2\$sAfdelingskalender AS AK ON AW.AfdelingskalenderID=AK.RecordID
+						  WHERE AK.Datum >= '%3\$s' AND AK.Datum <= '%4\$s' AND AK.Datum <= CURDATE() AND AW.LidondID=%5\$d;", $this->basefrom, TABLE_PREFIX, $p_vanaf, $p_tm, $p_loid);
 		$result = $this->execsql($query);
 		
 		return $result->fetchAll();
@@ -2245,7 +2260,7 @@ class cls_Aanwezigheid extends cls_db_base {
 	private function add($p_loid, $p_akid, $p_waarde) {
 		$this->vulvars($p_loid, $p_akid);
 		$nrid = $this->nieuwrecordid();
-		$this->tas = 11;
+		$this->tas = 1;
 		
 		$query = sprintf("INSERT INTO %s (RecordID, LidondID, AfdelingskalenderID, Status, IngevoerdDoor) VALUES (%d, %d, %d, '%s', %d);", $this->table, $nrid, $p_loid, $p_akid, $p_waarde, $_SESSION['lidid']);
 		if ($this->execsql($query) > 0) {
@@ -2258,7 +2273,7 @@ class cls_Aanwezigheid extends cls_db_base {
 	
 	public function update($p_loid, $p_akid, $p_kolom, $p_waarde) {
 		$this->vulvars($p_loid, $p_akid);
-		$this->tas = 12;
+		$this->tas = 2;
 		
 		if ($this->aanwid == 0 and strlen($p_waarde) > 0) {
 			$this->add($this->loid, $this->akid, $p_waarde);
@@ -2384,7 +2399,7 @@ class cls_Lidond extends cls_db_base {
 		}
 		
 		$query = sprintf("SELECT LO.RecordID, %s AS NaamLid, %s AS Leeftijd, F.Omschrijv AS Functie, F.Afkorting AS FunctAfk, %s AS Groep, LO.Lid, O.Naam AS OndNaam, O.CentraalEmail, L.EmailVereniging, LO.Opmerk, LO.Vanaf,
-						  LO.EmailFunctie, GR.Kode AS GrCode, GR.Omschrijving AS GrNaam
+						  LO.EmailFunctie, GR.Kode AS GrCode, GR.Omschrijving AS GrNaam, GR.Aanwezigheidsnorm
 						  FROM %s
 						  WHERE %s
 						  ORDER BY %sL.Achternaam, L.Tussenv, L.Roepnaam;", $this->selectnaam, $this->selectleeftijd, $this->selectgroep, $this->fromlidond, $w, $p_ord);
@@ -2911,7 +2926,7 @@ class cls_Lidond extends cls_db_base {
 			foreach ($lorows as $lorow) {
 				$eindelm = $i_lm->eindelidmaatschap($lorow->ndLidID);
 				if ($eindelm < "9999-12-31" and (($ondrow->Type == "A" and $eindelm <= date("Y-m-d", strtotime("+6 month"))) or $eindelm <= date("Y-m-d"))) {
-					$this->update($lorow->ndRecordID, "Opgezegd", $eindelm, sprintf("het lidmaatschap per %s is beëindigd.", $eindelm));
+					$this->update($lorow->RecordID, "Opgezegd", $eindelm, sprintf("het lidmaatschap per %s is beëindigd.", $eindelm));
 				}
 			}
 		}
@@ -5552,6 +5567,7 @@ class cls_Rekeningregel extends cls_db_base {
 	function __construct($p_rkid=-1) {
 		parent::__construct();
 		$this->table = TABLE_PREFIX . "Rekreg";
+		$this->basefrom = $this->table . " AS RR";
 		$this->ta = 14;
 		if ($p_rkid > 0) {
 			$this->rkid = $p_rkid;
