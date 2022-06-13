@@ -57,6 +57,12 @@ td, th {
 	border-color: #000080;
 }
 
+td input[type='checkbox'] {
+    float: left;
+    margin: 0 auto;
+    width: 100%;
+}
+
 th {
 	background-color: #00FFFF;
 	vertical-align: middle;
@@ -788,10 +794,14 @@ td.trash, .beheerlogins td:last-child, #beheerautorisatie td:last-child, .beheer
 	font-style: italic;
 }
 
+#aanwezigheidmuteren label {
+	width: 110px;
+}
+
 .groepsindelingkolom {
 	float: left;
 	width: 31%;
-	min-height: 250px;
+	min-height: 275px;
 	border-right-style: solid;
 	border-width: 1px;
 	margin-left: 0;
@@ -804,17 +814,39 @@ td.trash, .beheerlogins td:last-child, #beheerautorisatie td:last-child, .beheer
 	width: 60px;
 }
 
-#presentieperlid table {
-	min-width: 350px;
+#presentieperlid label {
+	width: 175px;
 }
 
-#presentieperlid tr.lidtotaal {
-	display: none;
+#presentieperlid > #filter p {
+	float: left;
+	clear: none;
+}
+
+#presentieperlid > #filter p, #presentieperlid > #filter input[type='checkbox'] {
+	margin-top: 10px;
+}
+
+#presentieperlid table {
+	min-width: 350px;
 }
 
 #presentieperlid th.teken {
 	font-weight: bolder;
 	cursor: pointer;
+}
+
+#presentieperlid td {
+	min-width: 60px;
+}
+
+#presentieperlid td:nth-child(1) {
+	min-width: 25px;
+	width: 25px;
+}
+
+#presentieperlid td.NOK {
+	font-weight: bolder;
 }
 
 #versies {
@@ -1351,13 +1383,8 @@ fieldset h3 {
 	max-height: 24px;
 }
 
-.number {
+td.number {
 	text-align: right;
-}
-
-td.checkbox {
-	text-align: center;
-	vertical-align: middle;
 }
 
 /* Menu */
@@ -1431,7 +1458,6 @@ nav ul li:hover ul {
 ul#menu_l1 li {
 	display: block;
 	transition-duration: 0.8s;
-	font-size: 105%;
 	
 	margin-top: 21px;
 	margin-bottom: 1px;
@@ -2303,4 +2329,8 @@ li.presstat_t {
 .ui-tabs .ui-tabs-panel {
 	padding-left: 2px;
 	padding-right: 2px;
+}
+
+.ui-tabs .ui-tabs-nav li {
+	font-size: 10pt;
 }
