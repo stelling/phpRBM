@@ -875,7 +875,10 @@ function fnEigenGegevens($lidid=0) {
 			
 		$tn = "Presentie";
 		$rows = (new cls_Aanwezigheid())->overzichtlid($lidid);
-		if (count($rows) > 0 and toegang($ct . $tn, 0, 0)) {				
+		if (count($rows) > 0 and toegang($ct . $tn, 0, 0)) {	
+			if ($tn == $currenttab3) {
+				$tabidx = count($tabblad);
+			}			
 			$tabblad[$tn] = "<table>\n";
 			$tabblad[$tn] .= sprintf("<caption>Presentie %s</caption>\n", $naamlid);
 			$tabblad[$tn] .= "<tr><th>Datum</th><th>Omschrijving</th><th>Status</th></tr>\n";
