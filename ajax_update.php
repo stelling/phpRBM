@@ -58,7 +58,11 @@ if ($_SESSION['lidid'] > 0) {
 		
 	} elseif ($ent == "onderdeeledit" and toegang("Ledenlijst/Basisgegevens/Onderdelen")) {
 		$i_ond = new cls_Onderdeel();
-		$i_ond->update($rid, $kolom, $_POST['value']);
+		$i_ond->update($rid, $kolom, $newvalue);
+		
+	} elseif ($ent == "groepedit") {
+		$i_gr = new cls_Groep();
+		$i_gr->update($rid, $kolom, $newvalue);
 			
 	} elseif ($ent == "functieedit" and toegang("Ledenlijst/Basisgegevens/Functies")) {
 		$i_fnk = new cls_Functie();
@@ -76,7 +80,7 @@ if ($_SESSION['lidid'] > 0) {
 		$i_org = new cls_Organisatie();
 		$i_org->update($rid, $kolom, $_POST['value']);
 		
-	} elseif ($ent == "mailing" and toegang("Mailing/Wijzigen")) {
+	} elseif ($ent == "mailing" and toegang("Mailing/Muteren")) {
 		$i_m = new cls_Mailing();
 		$i_m->update($rid, $kolom, $_POST['value']);
 		$i_m = null;
@@ -182,7 +186,7 @@ if ($_SESSION['lidid'] > 0) {
 		$i_ev->update($rid, $kolom, $newvalue);
 		
 	} else {
-		$mess = "Je roept deze procedure op een niet correcte manier aan.";
+		$mess = sprintf("%s: je roept deze procedure op een niet correcte manier aan.", $ent);
 		(new cls_Logboek())->add($mess, 15, $_SESSION['lidid'], 1, 0, 9);
 	}
 	
