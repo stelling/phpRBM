@@ -174,8 +174,6 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		*/
 		
 		
-		
-		
 		foreach ((new cls_Onderdeel())->lijst(1, "`Type`='A'") as $row) {
 			if (in_array($row->RecordID, explode(",", $_SESSION['settings']['menu_met_afdelingen']))) {
 				addtp($row->Naam, $row->RecordID);
@@ -192,6 +190,12 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 						addtp(trim($row->Naam) . "/Aanwezigheid muteren");
 						addtp(trim($row->Naam) . "/Presentie per lid");
 					}
+					
+					if (toegang("Mailing/Muteren") and $_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
+						$tp = trim($row->Naam) . "/Afdelingsmailing";
+						addtp($tp);
+					}
+					
 				}
 			}
 		}
@@ -242,7 +246,8 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	
 	addtp("Stukken");
 
-	if ((new cls_db_base("Bewseiz"))->aantal() > 0) {
+
+	if ((new cls_Bewakingsseizoen())->aantal() > 0) {
 		addtp("Bewaking");
 		if ($currenttab == "Bewaking") {
 			addtp("Bewaking/Bewakingsrooster");
