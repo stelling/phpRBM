@@ -20,6 +20,8 @@ function fnAfdeling() {
 		fnAanwezigheidMuteren($afdid);
 	} elseif ($currenttab2 == "Presentie per lid") {
 		fnPresentiePerLid($afdid);
+	} elseif ($currenttab2 == "Afdelingsmailing") {
+		fnAfdelingsmailing($afdid);
 	}
 	
 }  # fnAfdeling
@@ -46,6 +48,10 @@ function fnAfdelingslijst($afdid) {
 	$kols[5]['headertext'] = "Tot en met";
 	$kols[5]['columnname'] = "Opgezegd";
 	$kols[5]['sortcolumn'] = "LO.Opgezegd";
+	if ($i_lo->organisatie == 1) {
+		$kols[6]['headertext'] = "Sportlink ID";
+		$kols[6]['columnname'] = "SportlinkID";
+	}
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$diplfilter = $_POST['bezitdiploma'];
@@ -58,7 +64,7 @@ function fnAfdelingslijst($afdid) {
 		$xf = sprintf("L.RecordID IN (SELECT LD.Lid FROM %sLiddipl AS LD WHERE LD.DiplomaID=%d AND IFNULL(LD.LicentieVervallenPer, CURDATE()) >= CURDATE())", TABLE_PREFIX, $diplfilter);
 	}
 	
-	$rows = $i_lo->onderdeellijst($afdid, 2, $xf, fnOrderBy($kols));
+	$rows = $i_lo->onderdeellijst($afdid, 1, $xf, fnOrderBy($kols));
 	
 	echo("<div id='filter'>\n");
 	printf("<form action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
@@ -226,12 +232,15 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 			if ($toonpresentie > 0) {
 				$stat = (new cls_Aanwezigheid())->status($row->RecordID, $toonpresentie);
 				if (strlen($stat) > 0) {
-					$cl = sprintf("presstat_%s", strtolower($stat));
+					$cl = sprintf("presstat_%s ", strtolower($stat));
 				}
 			}
-			if ($row->Opgezegd < date("Y-m-d", strtotime("+3 MONTH"))) {
-				$cl .= " opgezegd";
+			if ($row->Vanaf > date("Y-m-d")) {
+				$cl .= "wordtlid";
+			} elseif ($row->Opgezegd < date("Y-m-d", strtotime("+3 MONTH"))) {
+				$cl .= "opgezegd";
 			}
+			$cl = trim($cl);
 			$nm = $row->NaamLid;
 			if (strlen($row->Leeftijd) > 5 and ($p_toonleeftijd == 1 or ($p_toonleeftijd == 2 and intval(substr($row->Leeftijd, 0, 2)) < 18))) {
 				$nm .= " (" .  $row->Leeftijd . ")";
@@ -252,13 +261,9 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 		
 		$i_lo = new cls_Lidond();
 		$i_gr = new cls_Groep();
-			
-		if ($_SERVER['REQUEST_METHOD'] == "POST") {
-			
-			// Afdelingsgroep toevoegen
-			if (isset($_POST['NieuweGroep'])) {
-				$i_gr->add($afdid);
-			}
+
+		if (isset($_POST['NieuweGroep'])) {
+			$i_gr->add($afdid);
 		}
 		
 		$kols[0]['headertext'] = "Naam lid";
@@ -274,16 +279,22 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 			echo("<table>\n");
 			echo("<tr><th>Naam</th><th>Leeftijd</th><th>Laatst behaalde diploma's</th><th>Groep</th></tr>\n\n");
 			foreach ($i_lo->onderdeellijst($afdid, 2, "", "GR.Volgnummer, GR.Starttijd, GR.Omschrijving, F.Afkorting, L.Achternaam, L.Tussenv, L.Roepnaam") as $row) {
-				$options = "<option value=0>Niet ingedeeld</option>\n";
+				$cl = "";
+				if ($row->Vanaf > date("Y-m-d")) {
+					$cl = " class='wordtlid'";
+				} elseif (isset($row->Opgezegd) and $row->Opgezegd > "1900-01-01" and $row->Opgezegd < date("Y-m-d", strtotime("+3 MONTH"))) {
+					$cl = " class='opgezegd'";
+				}
+				$options = "\n";
 				foreach ($grrows as $grrow) {
-					$options .= sprintf("<option value=%d %s>%s</option>\n", $grrow->RecordID, checked($row->ndGroepID, "option", $grrow->RecordID), $grrow->Omschrijving);
+					$options .= sprintf("<option value=%d%s>%s</option>\n", $grrow->RecordID, checked($row->GroepID, "option", $grrow->RecordID), $grrow->GroepOms);
 				}
 				$nm = $row->Naam_lid;
-				if (strlen($row->ndAfkFunc) > 0) {
-					$nm .= " (" . $row->ndAfkFunc . ")";
+				if (strlen($row->AfkFunc) > 0) {
+					$nm .= " (" . $row->AfkFunc . ")";
 				}
 				$ld = (new cls_Liddipl())->lidlaatstediplomas($row->ndLidID, 3);
-				printf("<tr><td>%s</td><td>%s</td><td>%s</td><td><select id='GroepID_%d'>%s</select></td></tr>\n", $nm, $row->Leeftijd, $ld, $row->RecordID, $options);
+				printf("<tr><td%s>%s</td><td>%s</td><td>%s</td><td><select id='GroepID_%d'>%s</select></td></tr>\n", $cl, $nm, $row->Leeftijd, $ld, $row->RecordID, $options);
 			}
 			echo("</table>\n");
 		}
@@ -572,6 +583,100 @@ function fnPresentiePerLid($p_ondid) {
 			});
 		});
 	</script>\n");
-}
+}  # fnPresentiePerLid
+
+function fnAfdelingsmailing($p_afdid) {
+	$i_gr = new cls_Groep($p_afdid);
+	$i_m = new cls_Mailing();
+	$i_mr = new cls_Mailing_rcpt();
+	$i_lo = new cls_Lidond($p_afdid);
+	$i_f = new cls_Functie();
+	
+	$selmailing = $_POST['SelecteerMailing'] ?? 0;
+	
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		
+		if ($selmailing == -1) {
+			$selmailing = $i_m->add("Afdelingsmailing " . $i_lo->ondnaam);
+		}
+		
+		if (isset($_POST['btnOntvangersAanpassen']) and $selmailing > 0) {
+			$i_mr->delete_all($selmailing);
+			foreach ($i_lo->lijst($p_afdid) as $lorow) {
+				$cn = sprintf("chkGroep_%d", $lorow->GroepID);
+				$cnf = sprintf("chkFunctie_%d", $lorow->FunctieID);
+				if (isset($_POST[$cn]) or (isset($_POST['chkGroepAlle']) and $lorow->GroepID > 0)) {
+					$i_mr->add($selmailing, $lorow->Lid, "", 0, "AfdGr", $lorow->GroepID);
+				} elseif ((isset($_POST[$cnf]) or isset($_POST['chkFunctiesAlle'])) and $lorow->FunctieID > 0) {
+					$i_mr->add($selmailing, $lorow->Lid, "", 0);
+				}
+			}
+		}
+	}
+
+	$grrows = $i_gr->selectlijst();
+
+	echo("<div id='afdelingsmailing'>\n");
+	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+	
+	if (count($grrows) > 0) {
+		echo("<h2>Selecteer groepen</h2>\n");
+		echo("<ul>\n");
+		foreach ($grrows as $grrow) {
+			if ($grrow->aantalInGroep > 0) {
+				$cn = sprintf("chkGroep_%d", $grrow->RecordID);
+				if ($grrow->RecordID > 0) {
+					$o = $grrow->Omschrijving;
+				} else {
+					$o = "Niet ingedeeld";
+				}
+				printf("<li><input type='checkbox' value=1 name='%s'%s><p>%s (%d)</p></li>\n", $cn, checked(getvar($cn)), $o, $grrow->aantalInGroep);
+			}
+		}
+		$cn = "chkGroepAlle";
+		printf("<li><input type='checkbox' value=1 name='%s'%s><p>Alle groepen</p></li>\n", $cn, checked(getvar($cn)));
+		echo("</ul>\n");
+	}
+
+	echo("<h2>Selecteer functies</h2>");
+	echo("<ul>\n");
+	foreach ($i_f->selectlijst("A", "", 0, $p_afdid) as $frow) {
+		$cn = sprintf("chkFunctie_%d", $frow->Nummer);
+		if ($frow->Nummer > 0 and $frow->aantalMetFunctie > 0) {
+			printf("<li><input type='checkbox' value=1 name='%s'%s><p>%s (%d)</p></li>\n", $cn, checked(getvar($cn)), $frow->Omschrijv, $frow->aantalMetFunctie);
+		}
+	}
+	$cn = "chkFunctiesAlle";
+	printf("<li><input type='checkbox' value=1 name='%s'%s><p>Alle functies</p></li>\n", $cn, checked(getvar($cn)));
+	echo("</ul>\n");
+	
+	echo("<h2>Selecteer mailing</h2>");
+		
+	$txtao = "";
+	if ($selmailing > 0) {
+		$ao = $i_mr->aantalontvangers($selmailing);
+		if ($ao == 1) {
+			$txtao = " (1 ontvanger)";
+		} elseif ($ao == 0) {
+			$txtao = " (geen ontvangers)";
+		} else {
+			$txtao = sprintf(" (%d ontvangers)", $ao);
+		}
+	}
+	printf("<select name='SelecteerMailing' OnChange='this.form.submit();'>\n<option value=0>Selecteer ...</option>\n<option value=-1>*** Nieuwe mailing</option>\n%s</select><p>%s</p>\n", $i_m->htmloptions($selmailing), $txtao);
+	
+	echo("<div id='opdrachtknoppen'>\n");
+	echo("<button type='submit' name='btnOntvangersAanpassen'>Ontvangers in mailing aanpassen</button>");
+	if ($selmailing > 0) {
+		printf("<button type='button' OnClick=\"location.href='%s?tp=Mailing/Wijzigen mailing&mid=%d'\">Ga naar mailing</button>", $_SERVER['PHP_SELF'], $selmailing);
+	}
+	
+	echo("</div> <! Einde opdrachtknoppen -->\n");
+	echo("</form>\n");
+	
+	echo("</div> <!-- Einde afdelingsmailing -->\n");
+
+
+}  # fnAfdelingsmailing
 
 ?>
