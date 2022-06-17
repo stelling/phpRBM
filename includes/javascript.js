@@ -146,13 +146,21 @@ function CopyFunction() {
 function savedata(entity, rid, control) {
 
 	id = control.id;
-	if (id.indexOf("_") !== -1 && id !== "cc_addr") {
+	
+	if (id.startsWith("Vanaf_naam") || id.startsWith("Vanaf_email")) {
+		var split_id = id.split('_');
+		var field_name = split_id[0] + '_' + split_id[1];
+		var rid = split_id[2];
+		
+	} else if (id.indexOf("_") !== -1 && id !== "cc_addr" && id !== "BET_TERM") {
 		var split_id = id.split('_');
 		var field_name = split_id[0];
 		var rid = split_id[1];
 	} else {
 		var field_name = control.id;
 	}
+	
+//	alert(id + ' / ' + field_name);
 	
 	if (control.type == "checkbox") {
 		if (control.checked == true) {
@@ -163,6 +171,8 @@ function savedata(entity, rid, control) {
 	} else {
 		var value = control.value;
 	}
+	
+//	alert(entity + ' / ' + field_name + ' / ' + value + ' / ' + rid);
 
 	$.ajax({
 		url: 'ajax_update.php?entiteit=' + entity,
@@ -231,7 +241,6 @@ function lidalgwijzprops() {
 		var e = $('#EmailVereniging').val();
 		$('#uitleg_emailvereniging').text(fnControleEmail(e));
 	}
-	
 }
 
 function loperlidprops() {
@@ -334,7 +343,6 @@ function mailingprops() {
 		}
 	});
 	
-	
 	if (document.getElementById('cb_alle_personen').checked == true) {
 		f = 1;
 	} else {
@@ -423,7 +431,6 @@ function mailing_verw_alle_ontvangers() {
 			}
 		}
 	});
-	
 }
 			
 function mailing_savemessage() {
@@ -448,8 +455,69 @@ function togglevariabelen() {
 		$("#lblbeschikbarevariabelen > span").text("+");
 		$("#lijstvariabelen").height($("#lblbeschikbarevariabelen").height());
 	}
-
 }
+
+/* Rekening-specifiek */
+
+function rekeningprops() {
+	var rkid = $('#reknr').text();
+	
+	days = $("#BETAALDAG").val() * $("#BET_TERM").val();
+	
+	var betaaldatum = new Date($('#Datum').val());
+	var today = new Date();
+	
+	betaaldatum.setDate(betaaldatum.getDate() + days);
+	
+	const options = { year: 'numeric', month: 'long', day: 'numeric' };
+	$("#uitersteBetaling").html(betaaldatum.toLocaleDateString('nl-NL', options));
+	if (betaaldatum.getTime() < today.getTime()) {
+		$("#uitersteBetaling").addClass("telaat");
+	} else {
+		$("#uitersteBetaling").removeClass("telaat");
+	}
+	
+	var dn = $("#DEBNAAM");
+	if (dn.val().length == 0) {
+		var lid = $("#Lid").val();
+		
+		$.ajax({
+			url: 'ajax_update.php?entiteit=naamlid',
+			type: 'post',
+			dataType: 'json',
+			data: { id:lid },
+			success: function(response){
+				dn.val(response);
+			}
+			
+		});
+	}
+	
+	tb = 0;
+	
+	table = document.getElementById("rekregels");
+	tr = table.getElementsByTagName("tr");
+	
+	for (i = 0; i < tr.length; i++) {
+		td = tr[i].getElementsByTagName("td")[4];
+		if (td) {
+			cntr = td.getElementsByTagName("input")[0];
+			tb = tb + Number(cntr.value);
+		}
+	}
+	
+	rv = "€ ";
+	if (tb == Math.round(tb)) {
+		rv = rv + tb + ",=";
+	} else {
+		rv = rv + Math.floor(tb) + "," + (tb-Math.floor(tb))*100;
+	}
+	
+	$("#rekeningbedrag").html(rv);
+	
+}
+
+/* Algemeen */
 
 function fnControleTelefoon(p_nr, p_srt="telefoon") {
 	
