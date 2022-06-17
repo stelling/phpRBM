@@ -147,6 +147,11 @@ footer a, footer a:visited {
 	color: inherit;
 }
 
+form p {
+	float: left;
+	margin-left: 4px;
+}
+
 select {
 	float: left;
 	color: var(--default-text-color);
@@ -193,7 +198,7 @@ header h1 {
 }
 
 input.w7 {
-	width: 60px;
+	width: 66px;
 }
 
 input.w8 {
@@ -216,16 +221,24 @@ input.w21, input.w22 {
 	width: 160px;
 }
 
-input.w25, input.w30 {
-	width: 240px;
+input.w25 {
+	width: 210px;
+}
+
+input.w30 {
+	width: 220px;
 }
 
 input.w35 {
 	width: 250px;
 }
 
-input.w40, input.w45 {
+input.w40 {
 	width: 180px;
+}
+
+input.w45 {
+	width: 220px;
 }
 
 input.w50 {
@@ -585,13 +598,6 @@ td.trash, .beheerlogins td:last-child, #beheerautorisatie td:last-child, .beheer
 	padding-top: 8px;
 }
 
-#onderdelenperlidmuteren input {
-	width: 150px;
-}
-
-#onderdelenperlidmuteren input[type='date'] {
-	width: 110px;
-}
 #algemenegegevenslidmuteren {
 	float: left;
 	clear: left;
@@ -789,7 +795,12 @@ td.trash, .beheerlogins td:last-child, #beheerautorisatie td:last-child, .beheer
 	margin-left: 3px;
 }
 
-#groepsindeling li.opgezegd {
+#groepsindeling li.wordtlid, td.wordtlid {
+	color: #00bfff;
+	font-style: italic;
+}
+
+#groepsindeling li.opgezegd, td.opgezegd {
 	font-weight: bolder;
 	font-style: italic;
 }
@@ -847,6 +858,41 @@ td.trash, .beheerlogins td:last-child, #beheerautorisatie td:last-child, .beheer
 
 #presentieperlid td.NOK {
 	font-weight: bolder;
+}
+
+#afdelingsmailing h2 {
+	font-size: 110%;
+	clear: both;
+	float: left;
+}
+
+#afdelingsmailing ul, #afdelingsmailing select {
+	padding-left: 0;
+	clear: left;
+	float: left;
+}
+
+#afdelingsmailing li {
+	list-style: none;
+	position: relative;
+	float: left;
+	margin-left: 0;
+	padding-left: 0;
+}
+
+#afdelingsmailing input[type='checkbox'] {
+	margin-left: 0;
+	padding-left: 0;
+	margin-right: 1px;
+}
+
+#afdelingsmailing p {
+	margin-right: 8px;
+	overflow: hidden;
+	width: 275px;
+	height: 18px;
+	padding-top: 3px;
+	padding-bottom: 3px;
 }
 
 #versies {
@@ -1846,25 +1892,20 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	width: 250px;
 }
 
-#rekeningmuteren input[type='text'], #rekeningregelsmuteren input[type='text'] {
+#rekeningmuteren input[type='text'] {
 	float: left;
-	width: 350px;
 }
 
 #rekeningmuteren input[type='number'] {
-	width: 125px;
-}
-
-#rekeningregelsmuteren input[type='number'] {
 	width: 75px;
 }
 
-#rekeningmuteren select {
+#rekeningkopmuteren select {
 	margin-top: 6px;
 	width: 250px;
 }
 
-#rekeningmuteren p {
+#rekeningkopmuteren p {
 	width: 248px;
 	float: left;
 	clear: none;
@@ -1909,11 +1950,6 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	margin-top: 2px;
 	margin-bottom: 2px;
 }
-
-#rekeningregelsmuteren input[type='checkbox'], #rekeningregelsmuteren input.code {
-	width: 75px;
-}
-
 
 #rekeningregels {
 	margin-bottom: 15px;
@@ -1981,12 +2017,6 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 #onderdelenmuteren h1 {
 	color: #000080;
 	text-align: center;
-}
-
-#onderdelenmuteren table {
-	margin-left: auto;
-	margin-right: auto;
-	width: 100%;
 }
 
 #onderdelenmuteren select {
