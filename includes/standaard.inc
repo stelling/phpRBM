@@ -131,7 +131,7 @@ $i_p = new cls_Parameter();
 
 if (!isset($_SESSION['settings']['naamvereniging'])) {
 	$i_p->vulsessie();
-	$row = (new cls_db_base("Vereniging"))->basislijst()[0];
+	$row = (new cls_Vereniging())->basislijst()[0];
 	$_SESSION['settings']['naamvereniging'] = $row->Naam;
 	$_SESSION['settings']['naamvereniging_afkorting'] = $row->AfkortingNaam;
 	$_SESSION['settings']['emailsecretariaat'] = $row->EmailSecretariaat;
@@ -435,6 +435,8 @@ function getvar($nm, $riz="") {
 		return $_GET[$nm];
 	} elseif (isset($_POST[$nm])) {
 		return $_POST[$nm];
+	} elseif (isset($_SESSION[$nm])) {
+		return $_SESSION[$nm];
 	} else {
 		return $riz;
 	}
@@ -747,7 +749,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					}
 					
 				} elseif ($key == "cboFunctie") {
-//					debug("fnDisplayTable/cboFunctie", 1, 0, 1);
+					debug("fnDisplayTable/cboFunctie", 2, 1);
 					$ret .= "<td>";
 					if ($rowscbo != null) {
 						$ret .= sprintf("<select name='%s_%d' %s>", substr($key, 3), $row->$kol_pk, $js);
@@ -761,9 +763,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					$ret .= "</td>\n";
 					
 				} elseif ($kol_type == "dte" or $kol_type == "rodte" or $kol_type == "date") {
-					if ($kol_type =="dte" and $kol_edit == 1) {
-						$ret .= sprintf("<td><input type='date' name='%s_%d' value='%s'%s></td>", str_replace(" ", "_", substr($key, 3)), $row->$kol_pk, $value, $js);
-					} elseif ((!is_null($value)) and $value > '1900-01-01' and strtotime($value) !== false) {
+					if ((!is_null($value)) and $value > '1900-01-01' and strtotime($value) !== false) {
 						$ret .= sprintf("<td class='datum'>%s</td>", strftime('%e %B %Y', strtotime($value)));
 					} elseif ((!is_null($value)) and strlen($value) > 0) {
 						$ret .= sprintf("<td>%s</td>", $value);
@@ -783,10 +783,8 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					} else {
 						$ret .= "<td>&nbsp;</td>";
 					}
-				} elseif (startwith($key, "dtt") or startwith($key, "rodtt")) {
-					if (startwith($key, "dtt") and $kol_edit == 1) {
-						$ret .= sprintf("<td><input type='datetime' name='%s_%d' value='%s'></td>", substr($key, 3), $row->$kol_pk, $value);
-					} elseif ((!is_null($value)) and $value > '1900-01-01') {
+				} elseif ($kol_type == "dtt" or $kol_type == "rodtt" or $kol_type == "datetime") {
+					if ((!is_null($value)) and $value > '1900-01-01') {
 						$ret .= sprintf("<td class='datumtijd'>%s</td>", strftime('%e %B %Y (%H:%M)', strtotime($value)));
 					} else {
 						$ret .= "<td>&nbsp;</td>";
@@ -964,7 +962,12 @@ function fnEditTable($res, $kols, $id, $th) {
 				} else {
 					$kol_link = "<a href='" . $kol['link'] . "'";
 					if (isset($kol['title'])) {
-						$kol_link .= sprintf(" title='%s'", $kol['title']);
+						if (isset($kol['columntitle']) and strpos($kol['title'], "%") !== false) {
+							$t = sprintf($kol['title'], $row[$kol['columntitle']]);
+						} else {
+							$t = $kol['title'];
+						}
+						$kol_link .= sprintf(" title='%s'", $t);
 					}
 					$kol_link .= ">&nbsp;&nbsp;&nbsp;</a>";
 				}
@@ -1017,7 +1020,18 @@ function fnEditTable($res, $kols, $id, $th) {
 				if ($ro == false) {
 					$ret .= sprintf("<td><input type='date' id='%s_%d' value='%s'></td>", $colname, $valpk, $value);
 				} elseif ((!is_null($value)) and $value > '1900-01-01') {
-					$ret .= sprintf("<td class='datumkort'>%s</td>", date('d/m/Y', strtotime($value)));
+					$ret .= sprintf("<td>%s</td>", strftime('%e %B %Y', strtotime($value)));
+				} else {
+					$ret .= "<td>&nbsp;</td>";
+				}
+				
+			} elseif ($tp == "datetime") {
+				if ($ro == false) {
+					// Nog aanpassen, klopt nog niet.
+					$ret .= sprintf("<td><input type='date' id='%s_%d' value='%s'></td>", $colname, $valpk, $value);
+					
+				} elseif ((!is_null($value)) and $value > '1900-01-01') {
+					$ret .= sprintf("<td>%s</td>", strftime('%e %B %Y (%H:%M)', strtotime($value)));
 				} else {
 					$ret .= "<td>&nbsp;</td>";
 				}
@@ -1068,7 +1082,7 @@ $(document).ready(function() {
 		savedata('%1\$s', 0, this);
 	});
 	
-	$(\"input[type='text'], input[type='date'], input[type='time']\").focusout(function(){
+	$(\"input[type='text'], input[type='email'], input[type='date'], input[type='time']\").blur(function(){
 		savedata('%1\$s', 0, this);
 	});
 });
@@ -1155,12 +1169,21 @@ function fnOrderBy($p_arrSort) {
 
 }  # fnOrderBy
 
-function debug($tekst, $alleenwm=1, $alert=0, $logact=0) {
-	if (is_array($tekst) or is_object($tekst)) {
+function debug($tekst, $p_tm=2, $logact=0) {
+	
+	/*
+	$p_tm
+		* 0: nooit tonen
+		* 1: aan iedereen tonen
+		* 2: alleen tonen aan webmasters
+		* 3: aan iedereen als alert tonen
+	*/
+	
+	if (is_array($tekst) or is_object($tekst) and $p_tm > 0) {
 		$tekst = print_r($tekst, true);
 	}
-	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
-		$alleenwm = 0;
+	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl" and $p_tm == 2) {
+		$p_tm = 1;
 	}
 	
 	$_SESSION['webmaster'] = $_SESSION['webmaster'] ?? 0;
@@ -1183,16 +1206,19 @@ function debug($tekst, $alleenwm=1, $alert=0, $logact=0) {
 		$f = "/" . $f;
 	}
 	
-	if ($alleenwm == 0 or $_SESSION['webmaster'] == 1) {
-		
-		if ($alert == 1) {
-			printf("<script>alert('Debug: %s');</script>\n", $tekst);
-		} elseif ($alert >= 0) {
-			printf("<p class='debug'>Debug%s: %s</p>\n", $f, $tekst);
+	if ($p_tm == 3) {
+		printf("<script>alert('Debug: %s');</script>\n", $tekst);
+	} elseif ($p_tm == 1 or ($p_tm == 2 and $_SESSION['webmaster'] == 1)) {
+		if ($_SESSION['webmaster'] == 0) {
+			$et = ". Neem contact op met de webmaster om dit op te laten lossen.";
+		} else {
+			$et = "";
 		}
+		printf("<p class='debug'>Debug%s: %s%s</p>\n", $f, $tekst, $et);
 	}
+
 	if ($logact == 1) {
-		(new cls_Logboek())->add("Debug: " . $tekst, 99);
+		(new cls_Logboek())->add("Debug: " . $tekst, 99, 0, $p_tm);
 	}
 } # debug
 
