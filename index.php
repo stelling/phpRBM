@@ -472,8 +472,8 @@ function fnStukken() {
 		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 		printf("<label>RecordID</label><p>%d</p>\n", $row->RecordID);
 		printf("<input type='hidden' name='stid' value=%d>\n", $row->RecordID);
-		printf("<label>Titel</label><input type='text' name='Titel' value='%s'>\n", $row->Titel);
-		printf("<label>Bestemd voor</label><input type='text' name='BestemdVoor' value='%s'>\n", $row->BestemdVoor);
+		printf("<label>Titel</label><input type='text' name='Titel' value=\"%s\">\n", str_replace("\"", "'", $row->Titel));
+		printf("<label>Bestemd voor</label><input type='text' name='BestemdVoor' value=\"%s\">\n", str_replace("\"", "'", $row->BestemdVoor));
 		printf("<label>Vastgesteld op</label><input type='date' name='VastgesteldOp' value='%s'>\n", $row->VastgesteldOp);
 		printf("<label>Ingangsdatum</label><input type='date' name='Ingangsdatum' value='%s'>\n", $row->Ingangsdatum);
 		printf("<label>Revisiedatum</label><input type='date' name='Revisiedatum' value='%s'>\n", $row->Revisiedatum);
@@ -484,7 +484,7 @@ function fnStukken() {
 			$options .= sprintf("<option value='%s' %s>%s</option>\n", $k, checked($k, "option", $row->Type), $v);
 		}
 		printf("<label>Type</label><select name='Type'>%s</select>\n", $options);
-		printf("<label>Link naar document</label><input type='url' name='Link' value='%s'>\n", $row->Link);
+		printf("<label>Link naar document</label><input type='url' name='Link' value='%1\$s'><p id='ganaarurl'><a href='%1\$s'>Ga naar</a></p>\n", $row->Link);
 		
 		echo("<div id='opdrachtknoppen'>\n");
 		echo("<input type='submit' value='Bewaren'>\n");
