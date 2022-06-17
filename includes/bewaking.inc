@@ -21,13 +21,13 @@ function fnBewaking() {
 	} elseif (isset($_SESSION['actseizoen']) and strlen($_SESSION['actseizoen']) > 0) {
 		$seizoen = $_SESSION['actseizoen'];
 	} elseif ($currenttab2 == "Overzicht inschrijvingen" or $currenttab2 == "Blokken muteren") {
-		$seizoen = (new cls_db_base("Bewaking_Blok"))->max("SeizoenID");
+		$seizoen = (new cls_Bewaking_Blok())->max("SeizoenID");
 	} else {
-		$seizoen = (new cls_db_base("Bewaking"))->max("SeizoenID");
+		$seizoen = (new cls_Bewaking())->max("SeizoenID");
 	}
 	
 	$f = sprintf("SeizoenID=%d AND BEGIN_PER <= CURDATE() AND EINDE_PER >= CURDATE()", $seizoen);
-	$hw = (new cls_db_base("Bewaking"))->min("WeekNr", $f);
+	$hw = (new cls_Bewaking())->min("WeekNr", $f);
 	if (isset($_POST['week']) and strlen($_POST['week']) > 0) {
 		$week = $_POST['week'];
 		$_SESSION['actweek'] = $week;
