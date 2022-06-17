@@ -607,12 +607,12 @@ function fnOnderdelenmuteren($ondtype="G") {
 		$vor = 0;
 		$vol = 0;
 		for ($t=0;$t<count($ondrows);$t++) {
-			if ($ondrows[$t]->llkRecordID == $onderdeelid) {
+			if ($ondrows[$t]->RecordID == $onderdeelid) {
 				if ($t > 0) {
-					$vor = $ondrows[$t-1]->llkRecordID;
+					$vor = $ondrows[$t-1]->RecordID;
 				}
 				if ($t < (count($ondrows)-1)) {
-					$vol = $ondrows[$t+1]->llkRecordID;
+					$vol = $ondrows[$t+1]->RecordID;
 				}
 			}
 		}
@@ -701,15 +701,13 @@ function fnOnderdelenmuteren($ondtype="G") {
 		$kols[3]['headertext'] = "Kader?";
 		$kols[3]['columnname'] = "Kader";
 		$kols[3]['type'] = "checkbox";
-		
-		$kols[4]['headertext'] = "Aantal leden";
-		$kols[4]['columnname'] = "aantalLeden";
-		$kols[4]['readonly'] = true;
-		
-		$kols[5]['headertext'] = "&nbsp";
-		$kols[5]['link'] = sprintf("%s?tp=%s&Scherm=L&OnderdeelID=%%d", $_SERVER['PHP_SELF'], $_GET['tp'], strtolower(ARRTYPEONDERDEEL[$ondtype]));
-		$kols[5]['class'] = "leden";
-		$kols[5]['columnname'] = "RecordID";
+				
+		$kols[4]['headertext'] = "&nbsp";
+		$kols[4]['link'] = sprintf("%s?tp=%s&Scherm=L&OnderdeelID=%%d", $_SERVER['PHP_SELF'], $_GET['tp'], strtolower(ARRTYPEONDERDEEL[$ondtype]));
+		$kols[4]['class'] = "leden";
+		$kols[4]['columnname'] = "RecordID";
+		$kols[4]['title'] = "%d leden";
+		$kols[4]['columntitle'] = 22;
 
 		echo("<div class='clear'></div>\n");
 	
@@ -1726,18 +1724,14 @@ function onderdelenlidmuteren($lidid, $p_type="G") {
 	echo("</table>\n");
 	echo("</form>\n");
 	echo("</div>\n <!-- Einde onderdelenperlidmuteren -->\n");
+	$i_lo = null;
 	
 	echo("<script>
 			$( document ).ready(function() {
 				loperlidprops();
 			});
-		
-			$('input, select').blur(function(){
-				savedata('lidond', 0, this);
-			});
-		
+			
 		</script>\n");
-	$i_lo = null;
 
 }  # onderdelenlidmuteren
 
@@ -1765,17 +1759,19 @@ function htmlloperlid($p_lidid, $p_type) {
 	}
 	
 	$frows = (new cls_functie())->selectlijst($tf);
+	$jsoc = sprintf("OnChange=\"savedata('lidond', 0, this)\"");
+	$jsob = sprintf("OnBlur=\"savedata('lidond', 0, this)\"");
 	
 	foreach ($i_lo->editlijst($f, $p_lidid) as $row) {
 		$rv .= sprintf("<tr>\n<td>%s - %s</td>\n", $row->Kode, $row->Naam);
-		$rv .= sprintf("<td><input type='date' id='Vanaf_%d' value='%s'></td>\n", $row->RecordID, $row->Vanaf);
+		$rv .= sprintf("<td><input type='date' id='Vanaf_%d' value='%s' required %s></td>\n", $row->RecordID, $row->Vanaf, $jsob);
 		if ($p_type == "BCF" or $p_type == "A") {
 			$options = "";
 			foreach ($frows as $frow) {
 				$options .= sprintf("<option value=%d %s>%s</option>\n", $frow->Nummer, checked($frow->Nummer, "option", $row->Functie), $frow->Omschrijv);
 			}
-			$rv .= sprintf("<td><select id='Functie_%d'>%s</select></td>\n", $row->RecordID, $options);
-			$rv .= sprintf("<td><input type='email' id='EmailFunctie_%d' value='%s'></td>\n", $row->RecordID, $row->EmailFunctie);
+			$rv .= sprintf("<td><select id='Functie_%d' %s>%s</select></td>\n", $row->RecordID, $jsoc, $options);
+			$rv .= sprintf("<td><input type='email' id='EmailFunctie_%d' value='%s' class='w45' maxlength=45 %s></td>\n", $row->RecordID, $row->EmailFunctie, $jsob);
 		}
 		if ($p_type == "A" and $i_gr->aantal() > 0) {
 			$f2 = sprintf("OnderdeelID=%d", $row->OnderdeelID);
@@ -1784,13 +1780,13 @@ function htmlloperlid($p_lidid, $p_type) {
 				foreach ((new cls_Groep())->selectlijst($row->OnderdeelID) as $grow) {
 					$options .= sprintf("<option value=%d %s>%s</option>\n", $grow->RecordID, checked($grow->RecordID, "option", $row->GroepID), $grow->Kode);
 				}
-				$rv .= sprintf("<td><select id='GroepID_%d'>%s</select></td>\n", $row->RecordID, $options);
+				$rv .= sprintf("<td><select id='GroepID_%d' %s>%s</select></td>\n", $row->RecordID, $jsoc, $options);
 			} else {
 				$rv .= "<td></td>\n";
 			}
 		}
-		$rv .= sprintf("<td><input type='text' id='Opmerk_%d' value='%s'></td>\n", $row->RecordID, $row->OPMERK);
-		$rv .= sprintf("<td><input type='date' id='Opgezegd_%d' value='%s'></td>\n", $row->RecordID, $row->Opgezegd);
+		$rv .= sprintf("<td><input type='text' id='Opmerk_%d' class='w30' value='%s' maxlength=30 %s></td>\n", $row->RecordID, $row->OPMERK, $jsob);
+		$rv .= sprintf("<td><input type='date' id='Opgezegd_%d' value='%s' %s></td>\n", $row->RecordID, $row->Opgezegd, $jsob);
 		$rv .= "</tr>\n";
 	}
 	
@@ -1800,7 +1796,7 @@ function htmlloperlid($p_lidid, $p_type) {
 		foreach((new cls_Onderdeel())->lijst(0, $f) as $row) {
 			$options .= sprintf("<option value=%d>%s - %s</option>\n", $row->RecordID, $row->Kode, $row->Naam);
 		}
-		$rv .= sprintf("<tr><td><select id='NieuwOnderdeel' OnBlur='addlidond();'>%s</select>\n</td></tr>\n", $options);
+		$rv .= sprintf("<tr><td><select id='NieuwOnderdeel' OnChange='addlidond();'>%s</select>\n</td></tr>\n", $options);
 	}
 	
 	return $rv;
@@ -1812,12 +1808,11 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 	if ($td == "ZS") {
 		$actie = "zelfservice_lijst";
 		$zs = 1;
-		$lidid = $_SESSION['lidid'];
+		$lidid = $_SESSION['lidid'] ?? 0;
 	} else {
 		$actie = "muteerlijst";
 		$zs = 0;
 	}
-	$_SESSION['inclVervallen'] = $_SESSION['inclVervallen'] ?? 0;
 	
 	$i_dp = new cls_Diploma();
 	$i_ld = new cls_Liddipl();
@@ -1825,6 +1820,10 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		if (isset($_POST['Extra']) and $_POST['Extra'] > 0) {
 			$nrid = $i_ld->add($lidid, $_POST['Extra']);
+		}
+		
+		if (isset($_POST['inclVervallen'])) {
+			$_SESSION['inclVervallen'] = $_POST['inclVervallen'];
 		}
 		
 		$omz["DatumBehaald"] = "Behaald";
@@ -1879,17 +1878,24 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 		}
 		printf("<tr>\n<td>%s</td>\n<td>%s</td>\n\n", $ldrow->Kode, $dpnm);
 		$id = sprintf("DatumBehaald_%d", $ldrow->RecordID);
-		printf("<td><input type='date' id='%s' value='%s'></td>\n", $id, $ldrow->DatumBehaald);
+		printf("<td><input type='date' id='%s' value='%s' required></td>\n", $id, $ldrow->DatumBehaald);
 		$script .= sprintf("$('#%1\$s').datepicker();\n$('#%1\$s').datepicker('dateFormat', 'yy-mm-dd').datepicker('maxDate', new Date());\n$('#%1\$s').datepicker('setDate', '%3\$s').datepicker('option', 'gotoCurrent', true);\n", $id, $minbehaald, $ldrow->DatumBehaald);
 		printf("<td><input type='text' id='Diplomanummer_%d' value='%s' maxlength=30></td>\n", $ldrow->RecordID, $ldrow->Diplomanummer);
 		printf("<td><input type='date' id='LicentieVervallenPer_%d' value='%s'></td>\n", $ldrow->RecordID, $ldrow->LicentieVervallenPer);
 		echo("</tr>\n");
 	}
-	$vf = sprintf("<input type='checkbox' name='inclVervallen' value=1 %s  OnChange='this.form.submit();'>Inclusief vervallen\n", checked($_SESSION['inclVervallen']));
-	printf("<tr><td colspan=5><select name='Extra' OnChange='this.form.submit();'><option value=-1>Toevoegen ...</option>%s</select>%s</td></tr>\n", $i_dp->htmloptions(0, -1, $zs, $_SESSION['inclVervallen']), $vf);
 	echo("</tbody>\n");
-
 	echo("</table>\n");
+	
+	$f = "(EindeUitgifte IS NULL)";
+	if ($zs == 1) {
+		$f .= " AND Zelfservice=1";
+	}
+	$vf = "";
+	if ($i_dp->aantal($f) > 0) {
+		$vf = sprintf("<input type='checkbox' name='inclVervallen' value=1 %s  OnChange='this.form.submit();'><p>Inclusief vervallen</p>\n", checked(getvar("inclVervallen", 0)));
+	}
+	printf("<select name='Extra' OnChange='this.form.submit();'><option value=-1>Toevoegen ...</option>%s</select>%s\n", $i_dp->htmloptions(0, -1, $zs, getvar("inclVervallen", 0)), $vf);
 
 //	echo("<div id='opdrachtknoppen'><input type='submit' value='Bewaren' name='diplwijz'></div>\n");
 
