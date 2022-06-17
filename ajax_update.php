@@ -17,9 +17,13 @@ if ($_SESSION['lidid'] > 0) {
 		$i_lid = new cls_Lid();
 		$i_lid->update($rid, $kolom, $_POST['value']);
 		
+	} elseif ($ent == "naamlid") {
+		$i_lid = new cls_Lid($rid);
+		echo(json_encode($i_lid->Naam()));
+		
 	} elseif ($ent === "liddipl") {
 		$i_ld = new cls_Liddipl();
-		$i_ld->update($rid, $kolom, $_POST['value']);
+		$i_ld->update($rid, $kolom, $newvalue);
 		
 	} elseif ($ent === "lidond" or $ent === "logroep" or $ent === "ledenperonderdeelmuteren") {
 		if ($rid > 0) {
@@ -28,6 +32,8 @@ if ($_SESSION['lidid'] > 0) {
 		}
 				
 	} elseif ($ent === "addlidond") {
+//		$mess = sprintf("%d / %d", $ondid, $lidid);
+//		debug($mess, 0, 1);
 		$i_lo = new cls_Lidond();
 		$i_lo->add($ondid, $lidid);
 		
@@ -41,14 +47,12 @@ if ($_SESSION['lidid'] > 0) {
 		}
 		
 	} elseif ($ent == "htmlloperlid") {
-		
 		echo(json_encode(htmlloperlid($lidid, $ondtype)));
 		
 	} elseif ($ent === "zeteigenschap") {
 		$i_lo = new cls_Lidond();
 		$value = $_POST['value'] ?? 1;
 		$i_lo->zeteigenschap($lidid, $ondid, $value);
-		
 				
 	} elseif ($ent === "liddipl") {
 		if ($rid > 0) {
@@ -70,7 +74,7 @@ if ($_SESSION['lidid'] > 0) {
 	
 	} elseif ($ent == "diplomaedit" and toegang("Ledenlijst/Basisgegevens/Diplomas")) {
 		$i_dp = new cls_Diploma();
-		$i_dp->update($rid, $kolom, $_POST['value']);
+		$i_dp->update($rid, $kolom, $newvalue);
 		
 	} elseif ($ent == "afdelingskalenderedit") {
 		$i_ak = new cls_Afdelingskalender();
@@ -81,9 +85,14 @@ if ($_SESSION['lidid'] > 0) {
 		$i_org->update($rid, $kolom, $_POST['value']);
 		
 	} elseif ($ent == "mailing" and toegang("Mailing/Muteren")) {
-		$i_m = new cls_Mailing();
-		$i_m->update($rid, $kolom, $_POST['value']);
-		$i_m = null;
+//		$mess = sprintf("%d / %s / %s", $rid, $kolom, $newvalue);
+//		debug($mess, 0, 1);
+
+		if ($rid > 0 and strlen($kolom) > 0) {
+			$i_m = new cls_Mailing();
+			$i_m->update($rid, $kolom, $newvalue);
+			$i_m = null;
+		}
 		
 	} elseif ($ent == "mailingprops") {
 		$rid = $_POST['mailingid'] ?? 0;
@@ -180,6 +189,22 @@ if ($_SESSION['lidid'] > 0) {
 		$i_m = null;
 		
 		echo(json_encode($rv));
+		
+	} elseif ($ent == "editmailingvanaf") {
+		$i_mv = new cls_Mailing_vanaf();
+		$i_mv->update($rid, $kolom, $newvalue);
+		
+	} elseif ($ent == "rekeningedit" and toegang("Rekeningen/Muteren")) {
+//		$mess = sprintf("%d / %s /%s", $rid, $kolom, $newvalue);
+//		debug($mess, 0, 1);
+		$i_rk = new cls_Rekening();
+		$i_rk->update($rid, $kolom, $newvalue);
+		
+	} elseif ($ent == "rekregedit" and toegang("Rekeningen/Muteren")) {
+//		$mess = sprintf("%d / %s /%s", $rid, $kolom, $newvalue);
+//		debug($mess, 0, 1);
+		$i_rr = new cls_Rekeningregel();
+		$i_rr->update($rid, $kolom, $newvalue);
 		
 	} elseif ($ent == "evenement" and toegang("Evenement/Beheer")) {
 		$i_ev = new cls_Evenement();
