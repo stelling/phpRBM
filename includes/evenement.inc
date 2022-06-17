@@ -45,7 +45,7 @@ function fnEvenementen() {
 		$kols[8]['headertext'] = "Ins open?";
 		$kols[9]['headertext'] = "Type";
 		
-		if ((new cls_db_base("Evenement_Type"))->aantal() > 0) {
+		if ((new cls_Evenement_Type())->aantal() > 0) {
 			$er = sprintf("<td><a href='%s?%s&amp;op=edit&amp;eid=0' title='Nieuw evenement'><img src='images/star.png' alt='Nieuw'></a></td><td colspan=10>Nieuw evenement</td>", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 		} else {
 			$er = "";
