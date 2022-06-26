@@ -34,7 +34,6 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	}
 	$i_lo = new cls_Lidond();
 	
-//	if ($currenttab == "Eigen gegevens" or ($currenttab == "Ledenlijst" and $currenttab2 == "Overzicht lid")) {
 	if ($currenttab == "Eigen gegevens" or ($currenttab2 == "Overzicht lid")) {
 		if ($currenttab == "Eigen gegevens") {
 			$b = $currenttab . "/";
@@ -176,6 +175,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		
 		foreach ((new cls_Onderdeel())->lijst(1, "`Type`='A'") as $row) {
 			if (in_array($row->RecordID, explode(",", $_SESSION['settings']['menu_met_afdelingen']))) {
+//				debug($row->Naam);
 				addtp($row->Naam, $row->RecordID);
 				if ($currenttab == $row->Naam) {
 					addtp($row->Naam . "/Afdelingslijst", $row->RecordID);
@@ -187,15 +187,16 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 					addtp(trim($row->Naam) . "/Groepsindeling muteren");
 					$f = sprintf("OnderdeelID=%d AND Datum > DATE_SUB(CURDATE(), INTERVAL 9 MONTH) AND Activiteit=1", $row->RecordID);
 					if ((new cls_Afdelingskalender())->aantal($f) > 0) {
-						addtp(trim($row->Naam) . "/Aanwezigheid muteren");
-						addtp(trim($row->Naam) . "/Presentie per lid");
+						addtp(trim($row->Naam) . "/Presentie muteren");
+						if ((new cls_Aanwezigheid())->aantalstatus("*", $row->RecordID) > 0) {
+							addtp(trim($row->Naam) . "/Presentie per lid");
+						}
 					}
 					
-					if (toegang("Mailing/Muteren") and $_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
+					if (toegang("Mailing/Muteren")) {
 						$tp = trim($row->Naam) . "/Afdelingsmailing";
 						addtp($tp);
 					}
-					
 				}
 			}
 		}
@@ -317,8 +318,8 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 
 function fnAuthenticatie($melding=1, $password="", $p_napost=0) {
 	/*
-	melding: 1 = toon melding aan gebruiker
-	p_napost: 1 = de gebruiker heeft op de knop inloggen geklikt en dus geen automatisch login.
+		melding: 1 = toon melding aan gebruiker
+		p_napost: 1 = de gebruiker heeft op de knop inloggen geklikt en dus geen automatisch login.
 	*/
 	global $lididwebmasters;
 	
@@ -408,6 +409,7 @@ function toegang($soort, $melding=1, $p_log=1) {
 	global $lididwebmasters, $tabpages, $currenttab, $currenttab2, $currenttab3;
 	
 	$i_aut = new cls_Authorisation();
+	$rv = false;
 
 	$arrAltijdToegang[] = "Inloggen";
 	$arrAltijdToegang[] = "Validatie login";
@@ -433,21 +435,23 @@ function toegang($soort, $melding=1, $p_log=1) {
 	}
 	
 	$soort = str_replace("'", "", $soort);
+	$aid = $i_aut->recordid($soort);
+//	debug($aid . " aid in toegang");
 		
 	if (strlen($soort) == 0 or in_array($soort, $arrAltijdToegang) === true or $_SESSION['webmaster'] == 1) {
-		$f = sprintf("Tabpage=\"%s\"", $soort);
-		if (strlen($soort) > 0 and in_array($soort, $arrAltijdToegang) === false and in_array($soort, $tabpages) == false and $i_aut->aantal($f) == 0) {
-			$i_aut->add($soort);
+		if (strlen($soort) > 0 and in_array($soort, $arrAltijdToegang) === false and in_array($soort, $tabpages) == false and $aid == 0) {
+			$aid = $i_aut->add($soort);
 		}
-		return true;
-	} elseif ($_SESSION['lidid'] > 0 and isset($_SESSION['toegang'][$soort]) and $_SESSION['toegang'][$soort] == 1) {
-//		debug($soort . ": " . $_SESSION['toegang'][$soort], 0);
-		return true;
+		$rv = true;
+		
+	} elseif ($_SESSION['lidid'] > 0 and isset($_SESSION['toegang'][$soort]) and $_SESSION['toegang'][$soort] == 1 and 1 == 2) {
+		$rv = true;
+		
 	} else {
 		$_SESSION['webmaster'] == 0;
 		if ($i_aut->toegang($soort) == true) {
 			$_SESSION['toegang'][$soort] = 1;
-			return true;
+			$rv = true;
 		} else {
 			$mess = sprintf("Je hebt geen toegang tot '%s'.", $soort);
 			if ($p_log == 1) {
@@ -456,11 +460,18 @@ function toegang($soort, $melding=1, $p_log=1) {
 			} elseif ($melding > 0) {
 				printf("<p class='mededeling'>%s</p>\n", $mess);
 			}
-			return false;
+			$rv = false;
 		}
 	}
 	
+	
+	if ($rv and $aid > 0) {
+		$i_aut->update($aid, "LaatstGebruikt", date("Y-m-d"));
+	}
 	$i_aut = null;
+	
+	return $rv;
+	
 }  # toegang
 
 function fnInloggen() {
@@ -904,17 +915,19 @@ function fneisenwachtwoord() {
 function addtp($tp, $afdnr=0) {
 	global $tabpages, $currenttab;
 	
+//	debug($tp, 1);
+	
 	$i_acc = new cls_Authorisation();
+//	debug($tp . " in addtp");
 	
 	if ((strstr($tp, "/") === false or startwith($tp, $currenttab . "/")) and ($_SESSION['webmaster'] == 1 or toegang($tp, 0, 0))) {
+//	if (toegang($tp, 0, 0)) {
+//		debug($tp . " toegevoegd");
 		$tabpages[] = $tp;
 		$aid = $i_acc->recordid($tp);
 		
 		if ($_SESSION['webmaster'] == 1 and $aid == 0) {
 			$i_acc->add($tp);
-		} elseif ($aid > 0) {
-			$updqry = sprintf("UPDATE %sAdmin_access SET LaatstGebruikt=CURDATE() WHERE LaatstGebruikt < CURDATE() AND Tabpage=\"%s\"", TABLE_PREFIX, str_replace("'", "", $tp));
-			$i_acc->execsql($updqry);
 		}
 	}
 	
