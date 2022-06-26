@@ -1,62 +1,25 @@
-function fnFilter(p_table, p_filterelement, p_kolom, p_kolom2, p_kolom3, p_kolom4) {
-	var input, filter, table, tr, td, td2, td3, td4, i, txtValue, txtValue2, txtValue3, txtValue4;
+function fnFilter(p_table, p_filtercontrol, p_skipkolom=-1) {
+	var filter, table, tr, td, i, j, txtValue;
 	
-	input = document.getElementById(p_filterelement);
-	filter = input.value.toUpperCase();
+	filter = p_filtercontrol.value.toUpperCase();
 	table = document.getElementById(p_table);
-	tr = table.getElementsByTagName("tr");
+	tr = table.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
 	
 	if (filter.length > 2) {
-	
-		if (p_kolom2 == undefined) {
-			p_kolom2 = -1;
-		}
-		if (p_kolom3 == undefined) {
-			p_kolom3 = -1;
-		}
-		if (p_kolom4 == undefined) {
-			p_kolom4 = -1;
-		}
 
 		for (i = 0; i < tr.length; i++) {
-			td = tr[i].getElementsByTagName("td")[p_kolom];
-			if (p_kolom2 >= 0) {
-				td2 = tr[i].getElementsByTagName("td")[p_kolom2];	
-			}
-			if (p_kolom3 >= 0) {
-				td3 = tr[i].getElementsByTagName("td")[p_kolom3];	
-			}
-			if (p_kolom4 >= 0) {
-				td4 = tr[i].getElementsByTagName("td")[p_kolom4];	
-			}
-			if (td) {
+			var hideline = true;
+			for (j = 0; j < tr[i].getElementsByTagName("td").length; j++) {
+				td = tr[i].getElementsByTagName("td")[j];
 				txtValue = td.textContent || td.innerText;
-				if (p_kolom2 > -1) {
-					txtValue2 = td2.textContent || td2.innerText;
-				} else { 
-					txtValue2 = "";
+				if (txtValue.toUpperCase().indexOf(filter) > -1 && p_skipkolom != j) {
+					hideline = false;
 				}
-				if (p_kolom3 > -1) {
-					txtValue3 = td3.textContent || td3.innerText;
-				} else { 
-					txtValue3 = "";
-				}
-				if (p_kolom4 > -1) {
-					txtValue4 = td4.textContent || td4.innerText;
-				} else { 
-					txtValue4 = "";
-				}
-				if (txtValue.toUpperCase().indexOf(filter) > -1) {
-					tr[i].style.display = "";
-				} else if (p_kolom2 > -1 && txtValue2.toUpperCase().indexOf(filter) > -1) {
-					tr[i].style.display = "";
-				} else if (p_kolom3 > -1 && txtValue3.toUpperCase().indexOf(filter) > -1) {
-					tr[i].style.display = "";
-				} else if (p_kolom4 > -1 && txtValue4.toUpperCase().indexOf(filter) > -1) {
-					tr[i].style.display = "";
-				} else {
-					tr[i].style.display = "none";
-				}
+			}
+			if (hideline) {
+				tr[i].style.display = "none";
+			} else {
+				tr[i].style.display = "";
 			}
 		}
 	} else {
@@ -179,7 +142,10 @@ function savedata(entity, rid, control) {
 		type: 'post',
 		dataType: 'json',
 		data: { field: field_name, value: value, id: rid },
-		success:function(response){}
+		success: function(response){},
+		fail: function( data, textStatus, jqXHR ) {
+			alert(entity + 'update database is niet gelukt. ' + textStatus);
+		}
 	});
 }
 
@@ -206,11 +172,13 @@ function lidalgwijzprops() {
 	
 	var rn = $('#Roepnaam');
 	var vl = $('#Voorletter');
-	if (vl.val().trim.length == 0 && rn.val().length > 1) {
+	var gs = $('#Geslacht');
+	
+	if (vl.val().trim.length == 0 && rn.val().length > 1 && gs.val() != "B") {
 		vl.val(rn.val().substring(0, 1) + '.');
 	}
 	
-	if ($('#Geslacht').val() == "V") {
+	if (gs.val() == "V") {
 		$('#lblMeisjesnm, #Meisjesnm, #uitleg_meisjesnm').show();
 	} else {
 		$('#lblMeisjesnm, #Meisjesnm, #uitleg_meisjesnm').hide();
@@ -513,7 +481,18 @@ function rekeningprops() {
 		rv = rv + Math.floor(tb) + "," + (tb-Math.floor(tb))*100;
 	}
 	
-	$("#rekeningbedrag").html(rv);
+	$("#rekeningbedrag").html(rv);	
+}
+
+function blurkostenplaats(control) {
+	
+	var split_id = control.id.split('_');
+	var rid = split_id[1];
+	var oms = $("$OMSCHRIJV_" + rid);
+	
+	if (oms.val().length == 0) {
+		oms.val(control.value);
+	}
 	
 }
 
