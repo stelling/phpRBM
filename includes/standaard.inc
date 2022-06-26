@@ -14,7 +14,7 @@ define("PASFOTOEXTENTIES", ["gif", "jpg", "jpeg", "png"]);
 define("ARRTYPEEDITOR", [1 => "CKEditor 5 Classic editor", 2 => "CKEditor 4", 3 => "TinyMCE"]);
 define("ARRSOORTEVENEMENT", ["B" => "Brigade-activiteit", "G" => "Gezellig/sociaal", "O" => "Opleiding", "V" => "Vergadering/overleg", "W" => "Wedstrijd"]);
 define("ARRDLNSTATUS", ["A" => "Afgewezen", "B" => "Bevestigd", "I" => "Ingeschreven", "J" => "Aangemeld", "N" => "Niet geweest", "R" => "Reserve", "T" => "Onder voorbehoud", "X" => "Afgemeld/Afgezegd"]);
-define("ARRPRESENTIESTATUS", ["A" => "Aangemeld/aanwezig", "L" => "Aanwezig, maar te laat", "H" => "Aangemeld, door vereniging afgezegd", "N" => "Niet aanwezig (onafgemeld)", "R" => "Afwezig met bekende reden", "T" => "Onder voorbehoud", "X" => "Afgemeld zonder bekende reden", "Z" => "Ziek"]);
+define("ARRPRESENTIESTATUS", ["A" => "Aangemeld", "L" => "Aanwezig, maar te laat", "H" => "Aangemeld, door vereniging afgezegd", "N" => "Niet aanwezig (onafgemeld)", "R" => "Afwezig met bekende reden", "T" => "Onder voorbehoud", "V" => "Les is vervallen", "X" => "Afgemeld zonder bekende reden", "Z" => "Ziek"]);
 define("ARRTYPEBACKUP", [1 => "phpRBM-tabellen", 2 => "Tabellen uit MS-Access", 3 => "Beide"]);
 define("ARRTYPESTUK", ["A" => "Algemene Vergadering", "B" => "Beleidsstuk", "F" => "Formulier", "H" => "Handleiding", "P" => "Promotiemateriaal", "R" => "Regeling", "V" => "Verklaring"]);
 define("ARRTYPEMENU", [1 => "per niveau een aparte regel", 2 => "&eacute;&eacute;n menu met dropdown", 3 => "&eacute;&eacute;n menu met dropdown en extra menu voor niveau 2"]);
@@ -301,6 +301,7 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 	$tpd = ""; // Dit wordt getoond in het menu.
 	$ulopen = false;
 	$_SESSION['settings']['typemenu'] = 1;
+	$_SESSION['pagbreedte'] = $_SESSION['pagbreedte'] ?? 900;
 	if ($_SESSION['pagbreedte'] > 2500) {
 		$mamk = 12;
 	} elseif ($_SESSION['pagbreedte'] > 1250) {
@@ -718,7 +719,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 				}
 				
 				if (isset($kols[$kn]['link'])) {
-					$kol_type = "lnk";
+					$kol_type = "link";
 					if (startwith($kols[$kn]['link'], "<a href") == true) {
 						$kol_link = $kols[$kn]['link'];
 					} else {
@@ -735,7 +736,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 				}
 				
 				if ($kol['skip'] == true) {
-						// Deze kolom moet worden overgeslagen.
+					// Deze kolom moet worden overgeslagen.
 						
 				} elseif ($kol_type == "chk") {
 					if ($kol_edit == 0) {
@@ -764,7 +765,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					
 				} elseif ($kol_type == "dte" or $kol_type == "rodte" or $kol_type == "date") {
 					if ((!is_null($value)) and $value > '1900-01-01' and strtotime($value) !== false) {
-						$ret .= sprintf("<td class='datum'>%s</td>", strftime('%e %B %Y', strtotime($value)));
+						$ret .= sprintf("<td>%s</td>", strftime('%e %B %Y', strtotime($value)));
 					} elseif ((!is_null($value)) and strlen($value) > 0) {
 						$ret .= sprintf("<td>%s</td>", $value);
 					} else {
@@ -773,25 +774,25 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					
 				} elseif ($kol_type == "dtk" or $kol_type == "dateshort") {
 					if ((!is_null($value)) and $value > '1900-01-01') {
-						$ret .= sprintf("<td class='datumkort'>%s</td>", date('d/m/Y', strtotime($value)));
+						$ret .= sprintf("<td>%s</td>", date('d/m/Y', strtotime($value)));
 					} else {
 						$ret .= "<td>&nbsp;</td>";
 					}
 				} elseif ($kol_type == "dtl") {
 					if ((!is_null($value)) and $value > '1900-01-01') {
-						$ret .= sprintf("<td class='datumlang'>%s</td>", strftime('%A %e %B %Y', strtotime($value)));
+						$ret .= sprintf("<td>%s</td>", strftime('%A %e %B %Y', strtotime($value)));
 					} else {
 						$ret .= "<td>&nbsp;</td>";
 					}
 				} elseif ($kol_type == "dtt" or $kol_type == "rodtt" or $kol_type == "datetime") {
 					if ((!is_null($value)) and $value > '1900-01-01') {
-						$ret .= sprintf("<td class='datumtijd'>%s</td>", strftime('%e %B %Y (%H:%M)', strtotime($value)));
+						$ret .= sprintf("<td>%s</td>", strftime('%e %B %Y (%H:%M)', strtotime($value)));
 					} else {
 						$ret .= "<td>&nbsp;</td>";
 					}
 				} elseif ($kol_type == "dts" or $kol_type == "datetimesecond") {
 					if ((!is_null($value)) and $value > '1900-01-01' and strtotime($value) !== false) {
-						$ret .= sprintf("<td class='datumtijd'>%s</td>", strftime('%e %B %Y (%H:%M:%S)', strtotime($value)));
+						$ret .= sprintf("<td>%s</td>", strftime('%e %B %Y (%H:%M:%S)', strtotime($value)));
 					} elseif (strlen($value) > 0) {
 						$ret .= sprintf("<td>%s</td>", $value);
 					} else {
@@ -834,7 +835,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 						$ret .= "<td>&nbsp;</td>";
 					}
 						
-				} elseif (startwith($key, "llk") or $kol_type == "link") {
+				} elseif ($kol_type == "llk" or $kol_type == "link") {
 					if ($value > 0 and isset($kols[-1]['link'])) {
 						if (startwith($kols[-1]['link'], "<a href") == true) {
 							$kol_link = $kols[-1]['link'];
@@ -1072,20 +1073,14 @@ function fnEditTable($res, $kols, $id, $th) {
 	$ret .= "</table>\n";
 	
 	$ret .= sprintf("<script>
-$(document).ready(function() {
-
-	$(\"input[type='checkbox']\").click(function(){
-		savedata('%1\$s', 0, this);	
-	});
 	
 	$('select').change(function(){
 		savedata('%1\$s', 0, this);
 	});
 	
-	$(\"input[type='text'], input[type='email'], input[type='date'], input[type='time']\").blur(function(){
+	$('input').blur(function(){
 		savedata('%1\$s', 0, this);
 	});
-});
 
 </script>\n", $id);
 
@@ -1218,7 +1213,7 @@ function debug($tekst, $p_tm=2, $logact=0) {
 	}
 
 	if ($logact == 1) {
-		(new cls_Logboek())->add("Debug: " . $tekst, 99, 0, $p_tm);
+		(new cls_Logboek())->add("Debug: " . $tekst, 99);
 	}
 } # debug
 
