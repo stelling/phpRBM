@@ -15,7 +15,7 @@ if ($_SESSION['lidid'] > 0) {
 
 	if ($ent === "lid") {
 		$i_lid = new cls_Lid();
-		$i_lid->update($rid, $kolom, $_POST['value']);
+		$i_lid->update($rid, $kolom, $newvalue);
 		
 	} elseif ($ent == "naamlid") {
 		$i_lid = new cls_Lid($rid);
@@ -24,6 +24,11 @@ if ($_SESSION['lidid'] > 0) {
 	} elseif ($ent === "liddipl") {
 		$i_ld = new cls_Liddipl();
 		$i_ld->update($rid, $kolom, $newvalue);
+		
+	} elseif ($ent == "woonplaats") {
+		$postcode = $_POST['postcode'] ?? "";
+		$i_lid = new cls_Lid();
+		echo(json_encode($i_lid->woonplaats($postcode)));
 		
 	} elseif ($ent === "lidond" or $ent === "logroep" or $ent === "ledenperonderdeelmuteren") {
 		if ($rid > 0) {
@@ -209,6 +214,10 @@ if ($_SESSION['lidid'] > 0) {
 	} elseif ($ent == "evenement" and toegang("Evenement/Beheer")) {
 		$i_ev = new cls_Evenement();
 		$i_ev->update($rid, $kolom, $newvalue);
+		
+	} elseif ($ent == "autorisatieedit" and $_SESSION['webmaster'] == 1) {
+		$i_aa = new cls_Authorisation();
+		$i_aa->update($rid, $kolom, $newvalue);
 		
 	} else {
 		$mess = sprintf("%s: je roept deze procedure op een niet correcte manier aan.", $ent);
