@@ -16,8 +16,8 @@ function fnAfdeling() {
 		fnGroepsindeling($afdid);
 	} elseif ($currenttab2 == "Groepsindeling muteren") {
 		fnGroepsindeling($afdid, 1);
-	} elseif ($currenttab2 == "Aanwezigheid muteren") {
-		fnAanwezigheidMuteren($afdid);
+	} elseif ($currenttab2 == "Presentie muteren") {
+		fnPresentieMuteren($afdid);
 	} elseif ($currenttab2 == "Presentie per lid") {
 		fnPresentiePerLid($afdid);
 	} elseif ($currenttab2 == "Afdelingsmailing") {
@@ -69,7 +69,7 @@ function fnAfdelingslijst($afdid) {
 	echo("<div id='filter'>\n");
 	printf("<form action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
 
-	print("<input type='text' name='tbTekstFilter' id='tbTekstFilter' placeholder='Tekstfilter' OnKeyUp=\"fnFilter('afdelingslijst', 'tbTekstFilter', 1, 2, 3);\">\n");
+	print("<input type='text' name='tbTekstFilter' id='tbTekstFilter' placeholder='Tekstfilter' OnKeyUp=\"fnFilter('afdelingslijst', this);\">\n");
 	printf("<select name='bezitdiploma' id='bezitdiploma' onchange='this.form.submit();'>\n<option value=-1>Filter op diploma</option>\n%s</select>\n", $i_dp->htmloptions($diplfilter, $afdid));
 	if (count($rows) > 1) {
 		printf("<p class='aantrecords'>%d rijen / %d leden</p>\n", count($rows), aantaluniekeleden($rows, "ndLidID"));
@@ -116,6 +116,7 @@ function fnAfdelingskalenderMuteren($p_onderdeelid){
 	$dat = "";
 	$oms = "";
 	$act = false;
+	
 	echo("<tr><th>Datum</th><th>Opmerking</th><th>Activiteit?</th><th></th></tr>\n");
 	
 	foreach ($i_ak->lijst($p_onderdeelid) as $row) {
@@ -155,11 +156,7 @@ function fnAfdelingskalenderMuteren($p_onderdeelid){
 	
 	echo("<script>
 				$( document ).ready(function() {
-					\$(\"input[type='text'], input[type='date']\").blur(function(){
-						savedata('afdelingskalenderedit', 0, this);
-					});
-		
-					\$(\"input[type='checkbox']\").click(function(){
+					\$('input').blur(function(){
 						savedata('afdelingskalenderedit', 0, this);
 					});
 				});
@@ -190,12 +187,11 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 		
 		$i_ak = new cls_afdelingskalender();
 		$toonpresentie = 0;
-		$f = sprintf("OnderdeelID=%d AND Activiteit=1", $afdid);
+		$f = sprintf("AK.OnderdeelID=%d AND (SELECT COUNT(*) FROM %sAanwezigheid AS AW WHERE AW.AfdelingskalenderID=AK.RecordID) > 0", $afdid, TABLE_PREFIX);
 		if ($i_ak->aantal($f) > 0) {
-			$f = sprintf("AK.OnderdeelID=%d AND (SELECT COUNT(*) FROM %sAanwezigheid AS AW WHERE AW.AfdelingskalenderID=AK.RecordID) > 0", $afdid, TABLE_PREFIX);
 			$toonpresentie = $_POST['toonpresentie'] ?? $i_ak->min("RecordID", "Datum >= CURDATE() AND " . $f);
 			printf("<form name='grpfilter' method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-			printf("<label>Inclusief aanwezigheid</label><select name='toonpresentie' OnChange='this.form.submit();'>\n<option value=0>Geen</option>\n%s</select>", $i_ak->htmloptions($afdid, $toonpresentie, $f));
+			printf("<label>Inclusief afwezigheid</label><select name='toonpresentie' OnChange='this.form.submit();'>\n<option value=0>Geen</option>\n%s</select>", $i_ak->htmloptions($afdid, $toonpresentie, $f));
 			echo("</form>\n");
 			echo("<div class='clear'></div>\n");
 		}
@@ -278,7 +274,7 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 		if (count($grrows) > 0) {
 			echo("<table>\n");
 			echo("<tr><th>Naam</th><th>Leeftijd</th><th>Laatst behaalde diploma's</th><th>Groep</th></tr>\n\n");
-			foreach ($i_lo->onderdeellijst($afdid, 2, "", "GR.Volgnummer, GR.Starttijd, GR.Omschrijving, F.Afkorting, L.Achternaam, L.Tussenv, L.Roepnaam") as $row) {
+			foreach ($i_lo->onderdeellijst($afdid, 2, "", "GR.Volgnummer, GR.Starttijd, GR.Omschrijving, F.Sorteringsvolgorde, F.Afkorting") as $row) {
 				$cl = "";
 				if ($row->Vanaf > date("Y-m-d")) {
 					$cl = " class='wordtlid'";
@@ -346,7 +342,7 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 	
 } # fnGroepsindeling
 
-function fnAanwezigheidMuteren($p_onderdeelid){
+function fnPresentieMuteren($p_onderdeelid){
 	
 	$i_ak = new cls_Afdelingskalender($p_onderdeelid);
 	$i_aanw = new cls_Aanwezigheid();
@@ -424,7 +420,7 @@ function fnAanwezigheidMuteren($p_onderdeelid){
 			$gh = "<th>Groep</th>";
 		}
 		echo("<thead>\n");
-		printf("<tr><th>Naam</th>%s<th>Aanwezigheid</th></tr>\n", $gh);
+		printf("<tr><th>Naam</th>%s<th>Status presentie</th></tr>\n", $gh);
 		echo("</thead>\n");
 		
 		foreach ($i_lo->lijst($p_onderdeelid, $f, "L.Achternaam, L.Tussenv, L.Roepnaam", $dat) as $row) {
@@ -444,13 +440,13 @@ function fnAanwezigheidMuteren($p_onderdeelid){
 			}
 			printf("<tr><td %s>%s</td>%s\n", $cl, $nm, $gr);
 			
-			$options = "<option value=''>Onbekend</option>\n";
+			$options = "<option value=''>Aanwezig</option>\n";
 			foreach (ARRPRESENTIESTATUS as $k => $o) {
 				$s = "";
 				if ($k == $stat) {
 					$s = "selected";
 				}				
-				$options .= sprintf("<option value='%s' %s>%s</option>\n", $k, $s, $o);
+				$options .= sprintf("<option value='%1\$s' %2\$s>%1\$s - %3\$s</option>\n", $k, $s, $o);
 			}
 			
 			printf("<td><select id='Status_%d'>%s</select></td>", $row->RecordID, $options);
@@ -493,9 +489,9 @@ function fnPresentiePerLid($p_ondid) {
 	$seizrows = $i_aw->seizoenen($p_ondid);
 	
 	if ($i_aw->aantalstatus('A', $p_ondid) > 0) {
-		$kop_aanw = "<th>Aanwezig</th>";
+		$kop_aangemeld = "<th>Aangemeld</th>";
 	} else {
-		$kop_aanw = "";
+		$kop_aangemeld = "";
 	}
 	
 	if ($i_aw->aantalstatus('L', $p_ondid) > 0) {
@@ -509,60 +505,62 @@ function fnPresentiePerLid($p_ondid) {
 	echo("<div id='filter'>\n");
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		$_POST['filterAanzigheidsnormOnder'] = $_POST['filterAanzigheidsnormOnder'] ?? 0;
-		$_POST['filterAanzigheidsnormBoven'] = $_POST['filterAanzigheidsnormBoven'] ?? 0;
+		$_POST['filterAanwezigheidsnormOnder'] = $_POST['filterAanwezigheidsnormOnder'] ?? 0;
+		$_POST['filterAanwezigheidsnormBoven'] = $_POST['filterAanwezigheidsnormBoven'] ?? 0;
 	} else {
-		$_POST['filterAanzigheidsnormOnder'] = 1;
-		$_POST['filterAanzigheidsnormBoven'] = 1;
+		$_POST['filterAanwezigheidsnormOnder'] = 1;
+		$_POST['filterAanwezigheidsnormBoven'] = 1;
 	}
 	
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	echo("<label>Filter aanwezigheidsnorm</label>\n");
-	printf("<input type='checkbox' name='filterAanzigheidsnormOnder'%s value=1 OnClick='this.form.submit();'><p>Onder</p>\n", checked($_POST['filterAanzigheidsnormOnder']));
-	printf("<input type='checkbox' name='filterAanzigheidsnormBoven'%s value=1 OnClick='this.form.submit();'><p>Boven</p>\n", checked($_POST['filterAanzigheidsnormBoven']));
+	printf("<input type='checkbox' name='filterAanwezigheidsnormOnder'%s value=1 OnClick='this.form.submit();'><p>Onder</p>\n", checked($_POST['filterAanwezigheidsnormOnder']));
+	printf("<input type='checkbox' name='filterAanwezigheidsnormBoven'%s value=1 OnClick='this.form.submit();'><p>Boven</p>\n", checked($_POST['filterAanwezigheidsnormBoven']));
 	echo("</div> <!-- Einde filter -->\n");
 	echo("</form>\n");
 	
 	echo("<table>\n");
 	printf("<caption> Presentie per lid %s</caption>\n", $i_lo->ondnaam);
 	foreach ($seizrows as $seizrow) {
-		printf("<tr class='seizoentotaal'><th class='teken'>-</th><th>%d</th><th>%s t/m %s</th><th>%d act.</th><th>Groep</th>", $seizrow->Nummer, strftime('%e %B %Y', strtotime($seizrow->Begindatum)), strftime('%e %B %Y', strtotime($seizrow->Einddatum)), $seizrow->aantalAct);
-		printf("%s<th>Afwezig</th><th>%% aanwezig</th><th>Ziek</th><th>Met reden</th><th>Zonder reden</th>%s</tr>\n", $kop_aanw, $kop_telaat);
+		printf("<tr class='seizoentotaal'><th class='teken'>-</th><th>%d</th><th>%s t/m %s</th><th>Groep</th><th># act.</th>", $seizrow->Nummer, strftime('%e %B %Y', strtotime($seizrow->Begindatum)), strftime('%e %B %Y', strtotime($seizrow->Einddatum)));
+		printf("%s<th>Afwezig</th><th>%% aanwezig</th><th>Ziek</th><th>Met reden</th><th>Zonder reden</th>%s</tr>\n", $kop_aangemeld, $kop_telaat);
 		$lorows = $i_lo->lijst($p_ondid, "", "", $seizrow->Einddatum);
 		foreach ($lorows as $lorow) {
-			$aanwtotrows = $i_aw->perlidperperiode($lorow->RecordID, $seizrow->Begindatum, $seizrow->Einddatum);
+			$aanwtotrow = $i_aw->perlidperperiode($lorow->RecordID, $seizrow->Begindatum, $seizrow->Einddatum);
 			$lnklid = "";
-			if (count($aanwtotrows) == 1 and ($aanwtotrows[0]->aantAanwezig + $aanwtotrows[0]->aantAfwezig) > 0) {
-				$awperc = (($seizrow->aantalAct-$aanwtotrows[0]->aantAfwezig)/$seizrow->aantalAct)*100;
+			if (($aanwtotrow->aantAangemeld + $aanwtotrow->aantAfwezig) > 0) {
+				$aa = $seizrow->aantalAct - $aanwtotrow->aantVervallen;
+				$awperc = (($aa-$aanwtotrow->aantAfwezig)/$aa)*100;
 				$toon = false;
-				if ($_POST['filterAanzigheidsnormBoven'] == 1 and $awperc >= $lorow->Aanwezigheidsnorm) {
+				if ($_POST['filterAanwezigheidsnormBoven'] == 1 and $awperc >= $lorow->Aanwezigheidsnorm) {
 					$toon = true;
-				} elseif ($_POST['filterAanzigheidsnormOnder'] == 1 and $awperc < $lorow->Aanwezigheidsnorm) {
+				} elseif ($_POST['filterAanwezigheidsnormOnder'] == 1 and $awperc < $lorow->Aanwezigheidsnorm) {
 					$toon = true;
 				}
 				if ($toon) {
-					$tab = sprintf("%s/Overzicht lid/Presentie", $i_lo->ondnaam);
+					$tab = sprintf("%s/Overzicht lid/Afwezigheden", $i_lo->ondnaam);
 					if (toegang($tab, 0, 0)) {
 						$lnklid = sprintf("%s?tp=%s&lidid=%d", $_SERVER['PHP_SELF'], $tab, $lorow->Lid);
 						$kollid = sprintf("<a href='%s'>%s</a>", $lnklid, $lorow->NaamLid);
 					} else {
 						$kollid = $lorow->NaamLid;
 					}
-					printf("<tr class='lidtotaal'><td></td><td colspan=3>%s</td><td>%s</td>", $kollid, $lorow->GrCode);
-					if (strlen($kop_aanw) > 0) {
-						printf("<td class='number'>%d</td>", $aanwtotrows[0]->aantAanwezig);
+					printf("<tr class='lidtotaal'><td></td><td colspan=2>%s</td><td>%s</td>", $kollid, $lorow->GrCode);
+					printf("<td class='number'>%d</td>", $aa);
+					if (strlen($kop_aangemeld) > 0) {
+						printf("<td class='number'>%d</td>", $aanwtotrow->aantAangemeld);
 					}
-					printf("<td class='number'>%d</td>", $aanwtotrows[0]->aantAfwezig);
+					printf("<td class='number'>%d</td>", $aanwtotrow->aantAfwezig);
 					$cl = "OK";
 					if ($lorow->Aanwezigheidsnorm > 0 and $lorow->Aanwezigheidsnorm > $awperc) {
 						$cl = "NOK";
 					}
 					printf("<td class='number %s'>%.2f</td>", $cl, $awperc);
-					printf("<td class='number'>%d</td>", $aanwtotrows[0]->aantZiek);
-					printf("<td class='number'>%d</td>", $aanwtotrows[0]->aantMetReden);
-					printf("<td class='number'>%d</td>", $aanwtotrows[0]->aantZonderReden);
+					printf("<td class='number'>%d</td>", $aanwtotrow->aantZiek);
+					printf("<td class='number'>%d</td>", $aanwtotrow->aantMetReden);
+					printf("<td class='number'>%d</td>", $aanwtotrow->aantZonderReden);
 					if (strlen($kop_telaat) > 0) {
-						printf("<td class='number'>%d</td>", $aanwtotrows[0]->aantLaat);
+						printf("<td class='number'>%d</td>", $aanwtotrow->aantLaat);
 					}
 					echo("</tr>\n");
 				}
@@ -666,8 +664,8 @@ function fnAfdelingsmailing($p_afdid) {
 	printf("<select name='SelecteerMailing' OnChange='this.form.submit();'>\n<option value=0>Selecteer ...</option>\n<option value=-1>*** Nieuwe mailing</option>\n%s</select><p>%s</p>\n", $i_m->htmloptions($selmailing), $txtao);
 	
 	echo("<div id='opdrachtknoppen'>\n");
-	echo("<button type='submit' name='btnOntvangersAanpassen'>Ontvangers in mailing aanpassen</button>");
 	if ($selmailing > 0) {
+		echo("<button type='submit' name='btnOntvangersAanpassen'>Ontvangers in mailing aanpassen</button>");
 		printf("<button type='button' OnClick=\"location.href='%s?tp=Mailing/Wijzigen mailing&mid=%d'\">Ga naar mailing</button>", $_SERVER['PHP_SELF'], $selmailing);
 	}
 	
