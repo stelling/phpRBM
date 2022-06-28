@@ -299,13 +299,14 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 		echo("<div id='groepenmuteren'>\n");
 		echo("<table>\n");
 		echo("<caption>Muteren groepen</caption>\n");
-		echo("<tr><th>#</th><th>Volgnr</th><th>Code</th><th>Omschrijving</th><th>Instructeurs</th><th>Starttijd</th><th>Eindtijd</th><th>Norm aanwezigheid</th></tr>\n");
+		echo("<tr><th>#</th><th>Volgnr</th><th>Code</th><th>Omschrijving</th><th>Instructeurs</th><th>Starttijd</th><th>Eindtijd</th><th>Norm aanw.</th><th></th></tr>\n");
 	
 		$f = sprintf("OnderdeelID=%d", $afdid);
+		
 		foreach ($i_gr->basislijst($f, "Volgnummer, Omschrijving") as $row) {
 			if ($row->RecordID > 0) {
 				echo("<tr>\n");
-				printf("<td>%d</td>\n", $row->RecordID);
+				printf("<td class='number'>%d</td>\n", $row->RecordID);
 				printf("<td><input type='number' id='Volgnummer_%d' value='%s'></td>\n", $row->RecordID, $row->Volgnummer);
 				printf("<td><input type='text' class='w8' id='Kode_%d' maxlength=8 value=\"%s\"></td>\n", $row->RecordID, $row->Kode);
 				printf("<td><input type='text' class='w45' id='Omschrijving_%d' maxlength=45 value=\"%s\"></td>\n", $row->RecordID, $row->Omschrijving);
@@ -313,7 +314,11 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 				printf("<td><input type='time' id='Starttijd_%d' value='%s'></td>\n", $row->RecordID, $row->Starttijd);
 				printf("<td><input type='time' id='Eindtijd_%d' value='%s'></td>\n", $row->RecordID, $row->Eindtijd);
 				printf("<td><input type='number' id='Aanwezigheidsnorm_%d' value=%d></td>\n", $row->RecordID, $row->Aanwezigheidsnorm);
-				
+				if (file_exists("maatwerk/Presentielijst.php")) {
+					printf("<td class='print'><a href='./maatwerk/Presentielijst.php?p_groep=%d' title='Presentielijst'>&nbsp;</a></td>", $row->RecordID);
+				} else {
+					echo("<td></td>");
+				}
 				echo("</tr>\n");
 			}
 		}
@@ -545,7 +550,14 @@ function fnPresentiePerLid($p_ondid) {
 					} else {
 						$kollid = $lorow->NaamLid;
 					}
-					printf("<tr class='lidtotaal'><td></td><td colspan=2>%s</td><td>%s</td>", $kollid, $lorow->GrCode);
+					if ($lorow->FunctieID > 0) {
+						$kollid .= sprintf(" (%s)", $lorow->FunctAfk);
+					}
+					$cl = "";
+					if ($lorow->Opgezegd < date("Y-m-d", strtotime("+3 MONTH")) and $lorow->Opgezegd > $seizrow->Begindatum) {
+						$cl = " class='opgezegd'";
+					}
+					printf("<tr class='lidtotaal'><td></td><td colspan=2%s>%s</td><td>%s</td>", $cl, $kollid, $lorow->GrCode);
 					printf("<td class='number'>%d</td>", $aa);
 					if (strlen($kop_aangemeld) > 0) {
 						printf("<td class='number'>%d</td>", $aanwtotrow->aantAangemeld);
