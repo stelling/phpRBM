@@ -201,6 +201,7 @@ class Mailing {
 	public $aant_rcpt = 0;
 	private $verzendenmag = false;
 	private $emailsecretariaat = "";
+	private $automontvanger = false;
 	
 	private $sl_huidigegroep = 0;
 	private $sl_aantingroep = 0;
@@ -382,6 +383,10 @@ class Mailing {
 			}
 		}
 		
+		$sql = sprintf("SELECT CONCAT(IF(LENGTH(F.OMSCHRIJV) > 0, F.OMSCHRIJV, 'Lid'), IF(O.`TYPE` IN ('A', 'C', 'G'), CONCAT(' ', O.Naam), '')) FROM (%1\$sLidond AS LO INNER JOIN %1\$sFunctie AS F ON LO.Functie=F.Nummer) INNER JOIN %2\$s AS O ON O.RecordID=LO.OnderdeelID 
+						WHERE %3\$s AND (O.Kader=1 OR F.Kader=1) AND LO.Lid=%%d ORDER BY LO.Vanaf, O.Naam;", TABLE_PREFIX, $i_ond->table, cls_db_base::$wherelidond);
+		$this->MergeField[]=array('Naam' => "Kaderact.", 'SQL' => $sql);
+		
 		if (count($i_ond->lijst(1, "O.`Type`='R'")) > 0) {
 			$sql = sprintf("SELECT O.Naam FROM %sLidond AS LO INNER JOIN %s AS O ON O.RecordID = LO.OnderdeelID 
 					 WHERE %s AND `Type`='R' AND LO.Lid=%%d ORDER BY O.Naam;", TABLE_PREFIX, $i_ond->table, cls_db_base::$wherelidond);
@@ -457,6 +462,7 @@ class Mailing {
 		if ($this->mid == $_SESSION['settings']['mailing_lidnr'] and $this->mid > 0) {
 			$this->xtrachar = "LNR";
 			$this->speciaal = "Versturen lidnummer";
+			$this->automontvanger = true;
 			$this->vertraging_tussen_verzenden = 2;
 			$this->MergeField[]=array('Naam' => "Geblokkeerd", 'SQL' => "");
 			$this->MergeField[]=array('Naam' => "IPaddress", 'SQL' => "");
@@ -464,6 +470,7 @@ class Mailing {
 		} elseif ($this->mid == $_SESSION['settings']['mailing_validatielogin'] and $this->mid > 0) {
 			$this->xtrachar = "VALLOGIN";
 			$this->speciaal = "Validatie login";
+			$this->automontvanger = true;
 			$this->vertraging_tussen_verzenden = 5;
 			$this->MergeField[]=array('Naam' => "Geblokkeerd", 'SQL' => "");
 			$this->MergeField[]=array('Naam' => "IPaddress", 'SQL' => "");
@@ -473,6 +480,7 @@ class Mailing {
 		} elseif ($this->mid == $_SESSION['settings']['mailing_herstellenwachtwoord'] and $this->mid > 0) {
 			$this->xtrachar = "HERWW";
 			$this->speciaal = "Herstellen wachtwoord";
+			$this->automontvanger = true;
 			$this->vertraging_tussen_verzenden = 5;
 			$this->MergeField[]=array('Naam' => "Geblokkeerd", 'SQL' => "");
 			$this->MergeField[]=array('Naam' => "IPaddress", 'SQL' => "");
@@ -482,6 +490,7 @@ class Mailing {
 		} elseif ($this->mid == $_SESSION['settings']['mailing_bewakinginschrijving'] and $this->mid > 0) {
 			$this->xtrachar = "BW_I";
 			$this->speciaal = "Bevestiging inschrijving bewaking";
+			$this->automontvanger = true;
 			$this->vertraging_tussen_verzenden = 5;
 			$this->MergeField[]=array('Naam' => "VoorwaardenInschrijving", 'SQL' => "");
 			$this->MergeField[]=array('Naam' => "InschrijvingBewaking", 'SQL' => "");
@@ -489,6 +498,7 @@ class Mailing {
 		} elseif ($this->mid == $_SESSION['settings']['mailing_bevestigingbestelling'] and $this->mid > 0) {
 			$this->xtrachar = "BEST";
 			$this->speciaal = "Bevestiging bestelling webshop";
+			$this->automontvanger = true;
 			$this->vertraging_tussen_verzenden = 5;
 			$this->MergeField[]=array('Naam' => "Ordernummer", 'SQL' => "");
 			$this->MergeField[]=array('Naam' => "Bestelling", 'SQL' => "");
@@ -498,6 +508,7 @@ class Mailing {
 		} elseif ($this->mid == $_SESSION['settings']['mailing_bevestigingopzegging'] and $this->mid > 0) {
 			$this->xtrachar = "BO_LM";
 			$this->speciaal = "Bevestiging opzegging lidmaatschap";
+			$this->automontvanger = true;
 
 		} elseif ($this->mid == $_SESSION['settings']['mailingbijadreswijziging'] and $this->mid > 0) {
 			$this->xtrachar = "LIDAW";
@@ -587,6 +598,8 @@ class Mailing {
 			printf("<label>Opmerking (intern)</label><input type='text' id='Opmerking' class='w75' value=\"%s\" maxlength=75 placeholder='Extra verduidelijking' %s>\n", $this->Opmerking, $jstb);
 			if (strlen($this->speciaal) > 0) {
 				printf("<label>Specifiek doel</label><p>%s</p>\n", $this->speciaal);
+			}
+			if ($this->automontvanger == true) {
 				$i_mr->delete_all($this->mid);
 			} else {
 				echo("<label id='lblOntvangers'>Ontvangers</label>\n");
@@ -893,10 +906,7 @@ class Mailing {
 				$this->verzendenmag = false;
 			}
 			
-			if (strlen($this->speciaal) > 0) {
-				$this->meldingen .= "Een mailing met een speciaal doel, kan niet los worden verzonden.<br>\n";
-				$this->verzendenmag = false;
-			} elseif ($this->aant_rcpt == 0 and $enkellid == 0) {
+			if ($this->aant_rcpt == 0 and $enkellid == 0) {
 				$this->meldingen .= "Er zijn geen ontvangers aan deze mailing toegevoegd.<br>\n";
 				$this->verzendenmag = false;
 			}
@@ -1176,7 +1186,7 @@ class Mailing {
 		} else {
 			$f = sprintf("L.RecordID=%d", $p_lidid);
 			$rcpts = (new cls_Lid())->ledenlijst(1, 0, "", $f);
-			$pk = "lnkNummer";
+			$pk = "RecordID";
 		}
 		
 		$aant_rcpts = 0;
@@ -1457,7 +1467,7 @@ function lijstmailings($p_filter="") {
 			
 			$rows = $i_mh->lijst();
 			echo("<div id='filter'>\n");
-			echo("<input id='tbTekstFilter' placeholder='Tekstfilter' onKeyUp=\"fnFilter('lijstverzondenmails', 'tbTekstFilter', 2, 3, 4);\">\n");
+			echo("<input id='tbTekstFilter' placeholder='Tekstfilter' onKeyUp=\"fnFilter('lijstverzondenmails', this);\">\n");
 			if (count($rows) > 2) {
 				printf("<p class='aantrecords'>%d Verzonden e-mails</p>\n", count($rows));
 			}
@@ -1484,13 +1494,15 @@ function lijstmailings($p_filter="") {
 		$kols[3]['headertext'] = "Laatst gewijzigd";
 		$kols[3]['type'] = "mrg";
 		$kols[4]['skip'] = true;
+		
+		$kols[5]['columnname'] = "RecordID";
 		$kols[5]['link'] = sprintf("%s?tp=Mailing/Historie&op=historie&mid=%%d", $_SERVER['PHP_SELF']);
 		$kols[5]['class'] = "detailregels";
 		$kols[5]['title'] = "Verstuurde e-mails";
 		
 		$rows = $i_m->lijst($p_filter);
 		echo("<div id='filter'>\n");
-		echo("<input id='tbTekstFilter' placeholder='Tekstfilter' onKeyUp=\"fnFilter('lijstmailingen', 'tbTekstFilter', 1, 2, 3);\">\n");
+		echo("<input id='tbTekstFilter' placeholder='Tekstfilter' onKeyUp=\"fnFilter('lijstmailingen', this);\">\n");
 		printf("<p class='aantrecords'>%d mailings</p>\n", count($rows));
 		echo("</div> <!-- Einde filter -->\n");
 		
@@ -1523,6 +1535,7 @@ class email {
 	public $onderwerp = "";
 	public $bericht = "";
 	public $zonderbriefpapier = 0;
+	public $nietversturenvoor = "";
 	public $xtrachar = "";
 	public $xtranum = 0;
 	
@@ -1691,6 +1704,11 @@ class email {
 		if (strlen($this->aanadres) < 5) {
 			debug("geen aanadres aanwezig");
 		} elseif (strlen($this->vanafadres) > 5) {
+			if ($p_direct == 1) {
+				$this->nietversturenvoor = date("Y-m-d H:i:s");
+			} else {
+				$this->nietversturenvoor = date("Y-m-d H:i:s", strtotime(sprintf("+ %d minute", $_SESSION['settings']['mailing_wachttijdinoutbox'])));
+			}
 			$this->mhid = (new cls_Mailing_hist())->add($this);
 			if ($this->mhid > 0) {
 				$rv = $this->mhid;
