@@ -127,22 +127,28 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 }
 
 if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
+	if ($_GET['op'] == "validatielink" and isset($_GET['lidid'])) {
+		fnHerstellenWachtwoord("mail", $_GET['lidid']);
+	}
 	fnBeheerLogins();
 	
 } elseif ($currenttab == "Autorisatie" and toegang($currenttab, 1, 1)) {
 	$i_auth = new cls_Authorisation();
 	echo("<div id='filter'>\n");
-	echo("<label>Onderdeel bevat</label><input name='tbOndFilter' id='tbOndFilter' OnKeyUp=\"fnFilter('beheerautorisatie', 'tbOndFilter', 0);\">\n");
+	echo("<label>Onderdeel bevat</label><input OnKeyUp=\"fnFilter('beheerautorisatie', this, 1);\">\n");
 	echo("</div> <!-- Einde filter -->\n\n");
 	
 	echo("<div id='beheerautorisatie'>\n");
 	printf("<form method='post' action='%s?tp=%s&op=changeaccess'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-	echo("<table>\n");
+	echo("<table id='beheerautorisatie'>\n");
+	echo("<thead>\n");
 	echo("<tr><th>Onderdeel</th><th>Toegankelijk voor</th><th>Ingevoerd</th><th>Laatst gebruikt</th><th></th></tr>\n");
+	echo("</thead>\n");
+	echo("<tbody>\n");
 	$ondrows = (new cls_Onderdeel())->lijst(0, "O.`Type`<>'T'");
 	$authrows = $i_auth->lijst();
 	foreach($authrows as $row) {
-		$del = sprintf("<a href='%s?tp=%s&amp;op=deleteautorisatie&amp;recid=%d'>&nbsp;&nbsp;&nbsp;</a>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
+		$del = sprintf("<a href='%s?tp=%s&op=deleteautorisatie&recid=%d'>&nbsp;&nbsp;&nbsp;</a>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
 		$selectopt = sprintf("<option value=-1%s>Alleen webmasters</option>\n", checked($row->Toegang, "option", -1));
 		$selectopt .= sprintf("<option value=0%s>Iedereen</option>\n", checked($row->Toegang, "option", 0));
 		foreach($ondrows as $ond) {
@@ -152,20 +158,27 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 		if ($row->LaatstGebruikt <= date("Y-m-d", mktime(0, 0, 0, date("m")-6, date("d"), date("Y")))) {
 			$cllg = "class='attentie'";
 		}
-		printf("<tr>\n<td>%s</td>\n<td><select name='toegang%d' onchange='this.form.submit();'>\n%s</select></td>\n<td>%s</td><td %s>%s</td><td>%s</td>\n</tr>\n", $row->Tabpage, $row->RecordID, $selectopt, strftime("%e %B %Y", strtotime($row->Ingevoerd)), $cllg, strftime("%e %B %Y", strtotime($row->LaatstGebruikt)), $del);
+		printf("<tr>\n<td>%s</td>\n<td><select id='Toegang_%d'>\n%s</select></td>\n<td>%s</td><td %s>%s</td><td>%s</td>\n</tr>\n", $row->Tabpage, $row->RecordID, $selectopt, strftime("%e %B %Y", strtotime($row->Ingevoerd)), $cllg, strftime("%e %B %Y", strtotime($row->LaatstGebruikt)), $del);
 	}
 	$optionstab = "<option value=''>Selecteer ...</option>\n";
 	foreach ($i_auth->lijst("DISTINCT") as $row) {
 		$optionstab .= sprintf("<option value='%1\$s'>%1\$s</option>\n", $row->Tabpage);
 	}
+	echo("</tbody>\n");
 	echo("</table>\n");
 	printf("<label>Nieuw</label><select name='tabpage_nw' onBlur='this.form.submit();'>%s</select>\n", $optionstab);
 	echo("</form>\n");
-	echo("</div> <!-- Einde beheerautorisatie -->\n\n");
+	echo("</div> <!-- Einde beheerautorisatie -->\n\n");	
 	
 	echo("<div id='autorisatiesperonderdeel'>\n");
 	echo(fnDisplayTable($i_auth->autorisatiesperonderdeel(), null, "Autorisaties per onderdeel"));
 	echo("</div> <!-- Einde autorisatiesperonderdeel -->\n");
+	
+	echo("<script>
+			$('select').change(function() {
+				savedata('autorisatieedit', 0, this);
+			});
+			</script>\n");
 	$i_auth = null;
 	
 } elseif ($currenttab == "Instellingen" and toegang($currenttab, 1, 1)) {
@@ -209,7 +222,8 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	$rows = (new cls_Interface())->lijst();
 	if (count($rows) > 0) {
-		echo(fnDisplayTable($rows, $kols, "Wijzigen op de website, te verwerken in de Access database", 1, "", "beheerwijzigingen"));
+		$th = sprintf("%d wijzigen op de website, te verwerken in de Access database", count($rows));
+		echo(fnDisplayTable($rows, $kols, $th, 0, "", "beheerwijzigingen"));
 		foreach ($rows as $row) {
 			$copytext .= $row->SQL . "\n";
 		}
@@ -290,7 +304,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	echo("<div id='filter'>\n");
 	printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 	
-	echo("<input type='text' id='tbTekstFilter' placeholder='Tekst filter' OnKeyUp=\"fnFilter('logboek', 'tbTekstFilter', 1, 2, 4, 5);\">");
+	echo("<input type='text' id='tbTekstFilter' placeholder='Tekst filter' OnKeyUp=\"fnFilter('logboek', this);\">");
 	
 	echo("<select name='typefilter' onchange='this.form.submit();'>\n");
 	echo("<option value=-1>Selecteer op type ....</option>\n");
@@ -299,7 +313,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	}
 	echo("</select>\n");
 	
-	echo("<input type='text' id='tbIPfilter' name='tbIPfilter' placeholder='IP-adres bevat' OnKeyUp=\"fnFilter('logboek', 'tbIPfilter', 6);\">\n");
+	echo("<input type='text' id='tbIPfilter' name='tbIPfilter' placeholder='IP-adres bevat' OnKeyUp=\"fnFilter('logboek', this);\">\n");
 	$options = "";
 	foreach (array(25, 100, 250, 750, 1500, 3000, 10000, 25000) as $a) {
 		$options .= sprintf("<option value=%d %s>%s</option>\n", $a, checked($a, "option", $_POST['aantalrijen']), number_format($a, 0, ",", "."));
@@ -325,6 +339,7 @@ HTMLfooter();
 function fnBeheerLogins() {
 	
 	$i_login = new cls_Login();
+	$i_login->uitloggen();
 	
 	$arrSort[0] = "Login;Login";
 	$arrSort[1] = "Naam lid;Achternaam";
@@ -343,25 +358,38 @@ function fnBeheerLogins() {
 	$kols[3]['headertext'] = "Lidnr";
 	$kols[3]['sortcolumn'] = "Lidnr";
 	$kols[4]['headertext'] = "E-mail";
+	
 	$kols[5]['headertext'] = "Ingevoerd";
+	$kols[5]['columnname'] = "Ingevoerd";
+	$kols[5]['type'] = "date";
 	$kols[5]['sortcolumn'] = "Login.Ingevoerd";
+	
 	$kols[6]['headertext'] = "Laatste login";
 	$kols[6]['sortcolumn'] = "Login.LastLogin";
+	$kols[6]['columnname'] = "LastLogin";
+	$kols[6]['type'] = "datetime";
+	
 	$kols[7]['headertext'] = "Status";
 	$kols[7]['sortcolumn'] = "Status";
-		
-	$i_login->uitloggen();
 
-	$kols[9]['link'] = sprintf("<a href='%s?op=deletelogin&tp=Beheer logins&lidid=%%d'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF']);
 	if ($_SESSION['settings']['login_maxinlogpogingen'] > 0) {
 		$kols[8]['link'] = sprintf("<a href='%s?op=unlocklogin&tp=Beheer logins&lidid=%%d' title='Reset foutieve logins'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF']);
+		$kols[8]['columnname'] = "Unlock";
 		$kols[8]['class'] = "unlock";
+		$kols[8]['headertext'] = "&nbsp;";
 	}
+	
+	$kols[9]['link'] = sprintf("<a href='%s?op=deletelogin&tp=Beheer logins&lidid=%%d'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF']);
+	$kols[9]['class'] = "trash";
+	
+	$kols[10]['columnname'] = "ValLink";
+	$kols[10]['link'] = sprintf("<a href='%s?op=validatielink&tp=Beheer logins&lidid=%%d'>Stuur validatielink</a>", $_SERVER['PHP_SELF']);
+	$kols[10]['headertext'] = "&nbsp;";
 	
 	$ord = fnOrderBy($kols);
 	$rows = $i_login->lijst("", $ord);
 	echo("<div id='filter'>\n");
-	echo("<label>Naam/login bevat</label><input type='text' name='tbNaamFilter' id='tbNaamFilter' OnKeyUp=\"fnFilter('beheerlogins', 'tbNaamFilter', 1, 2);\">\n");
+	echo("<label>Naam/login bevat</label><input type='text' name='tbNaamFilter' id='tbNaamFilter' OnKeyUp=\"fnFilter('beheerlogins', this);\">\n");
 	if (count($rows) > 2) {
 		printf("<p class='aantrecords'>%d logins</p>", count($rows));
 	}
@@ -412,8 +440,6 @@ function fnInstellingen() {
 	$arrParam['verjaardagenaantal'] = "Aantal verjaardagen dat maximaal in de verenigingsinfo wordt getoond. Als er meerdere leden op dezelfde dag jarig zijn, wordt dit aantal overschreden.";
 	$arrParam['verjaardagenvooruit'] = "Hoeveel dagen vooruit moeten de verjaardagen in de verenigingsinfo getoond worden?";
 	
-	$arrParam['zs_emailnieuwepasfoto'] = "Waar moet een nieuwe pasfoto naar toe gemaild worden?";
-	$arrParam['zs_incl_machtiging'] = "Is het veld 'Machtiging incasso afgegeven' in de zelfservice beschikbaar?";
 	$arrParam['zs_opzegtermijn'] = "De opzegtermijn van de vereniging in maanden.";
 	$arrParam['zs_voorwaardenbestelling'] = "Deze regel wordt bij de online-bestellingen in de zelfservice vermeld.";
 	$arrParam['zs_voorwaardeninschrijving'] = "Deze regel wordt bij de inschrijving als voorwaarde voor de inschrijving voor de bewaking vemeld.";
