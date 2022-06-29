@@ -2227,7 +2227,7 @@ class cls_Afdelingskalender extends cls_db_base {
 		}
 	}
 	
-	public function lijst($p_ondid=-1, $p_datum="", $p_filter="") {
+	public function lijst($p_ondid=-1, $p_datum="", $p_filter="", $p_order="", $p_limiet=-1) {
 		if ($p_ondid > 0) {
 			$this->ondid = $p_ondid;
 			$where = sprintf("AK.OnderdeelID=%d", $this->ondid);
@@ -2241,7 +2241,16 @@ class cls_Afdelingskalender extends cls_db_base {
 			$where .= sprintf(" AND %s", $p_filter);
 		}
 		
-		$query = sprintf("SELECT AK.*, O.Kode, O.Naam FROM %s INNER JOIN %sOnderdl AS O ON O.RecordID=AK.OnderdeelID WHERE %s ORDER BY IF(AK.Datum > '1900-01-01', 1, 0), AK.Datum DESC, O.Naam;", $this->basefrom, TABLE_PREFIX, $where);
+		if (strlen($p_order) == 0) {
+			$p_order = "IF(AK.Datum > '1900-01-01', 1, 0), AK.Datum DESC, O.Naam";
+		}
+		
+		$lm = "";
+		if ($p_limiet > 0) {
+			$lm = sprintf(" LIMIT %d", $p_limiet);
+		}
+		
+		$query = sprintf("SELECT AK.*, O.Kode, O.Naam FROM %s INNER JOIN %sOnderdl AS O ON O.RecordID=AK.OnderdeelID WHERE %s ORDER BY %s%s;", $this->basefrom, TABLE_PREFIX, $where, $p_order, $lm);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
@@ -2494,7 +2503,7 @@ class cls_Lidond extends cls_db_base {
 		return $result->fetch();
 	}
 	
-	public function lijst($p_ondid, $p_filter="", $p_ord="GR.Kode", $p_per="") {
+	public function lijst($p_ondid, $p_filter="", $p_ord="GR.Kode", $p_per="", $p_limiet=0) {
 		
 		if (strlen($p_per) >= 8) {
 			$w = sprintf("LO.Vanaf <= '%1\$s' AND IFNULL(LO.Opgezegd, '9999-12-31') >= '%1\$s'", $p_per);
@@ -2512,11 +2521,16 @@ class cls_Lidond extends cls_db_base {
 			$p_ord .= ", ";
 		}
 		
-		$query = sprintf("SELECT LO.RecordID, %s AS NaamLid, %s AS Leeftijd, F.Omschrijv AS Functie, F.Afkorting AS FunctAfk, %s AS Groep, LO.Lid, O.Naam AS OndNaam, O.CentraalEmail, L.EmailVereniging, LO.Opmerk, LO.Vanaf,
-						  LO.EmailFunctie, GR.Kode AS GrCode, GR.Omschrijving AS GrNaam, GR.Aanwezigheidsnorm, L.RelnrRedNed AS SportlinkID, LO.GroepID, LO.Functie AS FunctieID
+		$lm = "";
+		if ($p_limiet > 0) {
+			$lm = sprintf(" LIMIT %d", $p_limiet);
+		}
+		
+		$query = sprintf("SELECT LO.RecordID, %s AS NaamLid, %s AS Leeftijd, F.Omschrijv AS Functie, F.Afkorting AS FunctAfk, %s AS Groep, LO.Lid, O.Naam AS OndNaam, O.CentraalEmail, L.EmailVereniging, LO.Opmerk,
+						  LO.Vanaf, LO.Opgezegd, LO.EmailFunctie, GR.Kode AS GrCode, GR.Omschrijving AS GrNaam, GR.Aanwezigheidsnorm, L.RelnrRedNed AS SportlinkID, LO.GroepID, LO.Functie AS FunctieID
 						  FROM %s
 						  WHERE %s
-						  ORDER BY %sL.Achternaam, L.Tussenv, L.Roepnaam;", $this->selectnaam, $this->selectleeftijd, $this->selectgroep, $this->fromlidond, $w, $p_ord);
+						  ORDER BY %sL.Achternaam, L.Tussenv, L.Roepnaam%s;", $this->selectnaam, $this->selectleeftijd, $this->selectgroep, $this->fromlidond, $w, $p_ord, $lm);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
@@ -2939,6 +2953,15 @@ class cls_Lidond extends cls_db_base {
 			}
 		}
 		
+		$query = sprintf("SELECT LO.RecordID FROM %s WHERE LO.GroepID > 0 AND IFNULL(LO.Opgezegd, '9999-12-31') < DATE_SUB(CURDATE, INTERVAL 3 MONTH);", $this->basefrom);
+		$result = $this->execsql($query);
+		$reden = "omdat de activiteit is beëindigd";
+		foreach ($result->fetchAll() as $lorow) {
+			if ($this->update($lorow->RecordID, "GroepID", 0, $reden)) {
+				$this->log($lorow->RecordID);
+			}
+		}
+		
 	}
 	
 	public function autogroepenbijwerken($p_altijdlog=0, $p_altijd=0) {
@@ -3064,14 +3087,30 @@ class cls_Groep extends cls_db_base {
 	// Afdelingsgroepen
 	
 	private $afdid = 0;
+	private $grid = -1;
 	
-	function __construct($p_afdid=-1) {
+	function __construct($p_afdid=-1, $p_grid=-1) {
 		$this->table = TABLE_PREFIX . "Groep";
 		$this->basefrom = $this->table . " AS GR";
 		$this->ta = 19;
 		if ($p_afdid >= 0) {
 			$this->afdid = $p_afdid;
 		}
+		if ($p_grid >= 0) {
+			$this->grid = $p_grid;
+		}
+	}
+	
+	public function record($p_grid=-1) {
+		
+		if ($p_grid >= 0) {
+			$this->grid = $p_grid;
+		}
+		
+		$query = sprintf("SELECT GR.* FROM %s WHERE GR.RecordID=%d;", $this->basefrom, $this->grid);
+		$result = $this->execsql($query);
+		
+		return $result->fetch();
 	}
 	
 	public function selectlijst($p_afdid=-1) {
@@ -4597,15 +4636,15 @@ class cls_interface extends cls_db_base {
 	
 	function __construct() {
 		$this->table = TABLE_PREFIX . "Admin_interface";
-		$this->basefrom = $this->table . " AS Interface";
+		$this->basefrom = $this->table . " AS I";
 		$this->ta = 8;
 	}
-	
+
 	public function lijst() {
-		$query = sprintf("SELECT %1\$s AS betreftLid, I.Ingevoerd, I.`SQL-statement` AS `SQL`, I.RecordID
-						FROM %2\$sAdmin_interface AS I LEFT OUTER JOIN %2\$sLid AS L ON I.LidID=L.RecordID
+		$query = sprintf("SELECT %s AS betreftLid, I.Ingevoerd, I.`SQL-statement` AS `SQL`, I.RecordID
+						FROM %s LEFT OUTER JOIN %sLid AS L ON I.LidID=L.RecordID
 						WHERE IFNULL(I.Afgemeld, '1970-01-01') < '2000-01-01'
-						ORDER BY I.Ingevoerd, I.RecordID LIMIT %3\$d;", $this->selectnaam, TABLE_PREFIX, $this->maxrecords);
+						ORDER BY I.Ingevoerd, I.RecordID LIMIT %d;", $this->selectnaam, $this->basefrom, TABLE_PREFIX, $this->maxrecords);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
@@ -6031,7 +6070,7 @@ class cls_Seizoen extends cls_db_base {
 	}
 	
 	public function eindehuidige() {
-		$query = sprintf("SELECT MAX(SZ.Einddatum) FROM %s WHERE SZ.Einddatum <= '%s';", $this->basefrom, date("Y-m-d"));
+		$query = sprintf("SELECT MAX(SZ.Einddatum) FROM %s WHERE SZ.Begindatum <= CURDATE() AND SZ.Einddatum >= CURDATE();", $this->basefrom);
 		return $this->scalar($query);
 	}
 	
@@ -6481,7 +6520,6 @@ class cls_Parameter extends cls_db_base {
 		$this->arrParam['woonadres_anderen_tonen'] = array("Type" => "I", "Default" => 0);
 		$this->arrParam['rekening_groep_betaalddoor'] = array("Type" => "I", "Default" => 0);
 		
-		$this->arrParam['zs_emailnieuwepasfoto'] = array("Type" => "T");
 		$this->arrParam['zs_incl_beroep'] = array("Type" => "B", "Default" => 1);
 		$this->arrParam['zs_incl_vogafgegeven'] = array("Type" => "B", "Default" => 0);
 		$this->arrParam['zs_incl_bsn'] = array("Type" => "B", "Default" => 0);
