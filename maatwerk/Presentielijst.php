@@ -27,7 +27,8 @@ echo("<!DOCTYPE html>
 				
 				header h1 {
 					clear: right;
-					width: 80%;
+					width: 82%;
+					margin-left: 200px;
 					text-align: center;
 					margin-top: 6px;
 					margin-bottom: 2px;
@@ -97,12 +98,13 @@ echo("<!DOCTYPE html>
 				</style>
 			</head>\n");
 
-if ($grid > 0) {
-	$grrow = $i_gr->record();
-	$afdid = $grrow->OnderdeelID ?? 0;
-	
-	$i_lo = new cls_Lidond($afdid);
-	
+$grrow = $i_gr->record(-1, $grid);
+$afdid = $grrow->OnderdeelID ?? 0;
+$i_lo = new cls_Lidond($afdid);
+
+
+if ($grid > 0 and strlen($i_lo->ondnaam) > 0) {
+		
 	$tp = $i_lo->ondnaam . "/Groepsindeling muteren";
 
 	$i_ak = new cls_Afdelingskalender();
