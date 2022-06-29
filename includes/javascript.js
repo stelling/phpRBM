@@ -122,7 +122,7 @@ function savedata(entity, rid, control) {
 	} else {
 		var field_name = control.id;
 	}
-	
+
 //	alert(id + ' / ' + field_name);
 	
 	if (control.type == "checkbox") {
@@ -131,6 +131,10 @@ function savedata(entity, rid, control) {
 		} else {
 			var value = 0;
 		}
+
+	} else if (field_name == "Bedrag") {
+		var value = control.value.replace(",", ".");
+		
 	} else {
 		var value = control.value;
 	}
@@ -428,21 +432,65 @@ function togglevariabelen() {
 /* Rekening-specifiek */
 
 function rekeningprops() {
+	
+	var euroformat = new Intl.NumberFormat('nl-NL', {
+		style: 'decimal',
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2
+	});
+	
+	rkbedrag = 0;
+	table = document.getElementById("rekregels");
+	tr = table.getElementsByTagName("tr");
+	for (i = 0; i < tr.length; i++) {
+		td = tr[i].getElementsByTagName("td")[4];
+		if (td) {
+			cntr = td.getElementsByTagName("input")[0];
+			rkbedrag = rkbedrag + parseFloat(cntr.value.replace(",", "."));
+		}
+	}
+	
+	$("#rekeningbedrag").html(euroformat.format(rkbedrag));
+	
 	var rkid = $('#reknr').text();
 	
 	days = $("#BETAALDAG").val() * $("#BET_TERM").val();
 	
 	var betaaldatum = new Date($('#Datum').val());
+	var bedragbetaald = $('#bedragbetaald').val();
 	var today = new Date();
+	
+	if (rkbedrag == 0 && bedragbetaald == 0) {
+		$('#lblbedragbetaald').hide();
+		$('#bedragbetaald').hide();
+	} else {
+		$('#lblbedragbetaald').show();
+		$('#bedragbetaald').show();
+	}
 	
 	betaaldatum.setDate(betaaldatum.getDate() + days);
 	
-	const options = { year: 'numeric', month: 'long', day: 'numeric' };
-	$("#uitersteBetaling").html(betaaldatum.toLocaleDateString('nl-NL', options));
-	if (betaaldatum.getTime() < today.getTime()) {
-		$("#uitersteBetaling").addClass("telaat");
+	if (rkbedrag != 0) {
+		$("#lblBETAALDAG").show();
+		$("#BETAALDAG").show();
+		$("#lblBET_TERM").show();
+		$("#BET_TERM").show();
+		$("#lbluitersteBetaling").show();
+		$("#uitersteBetaling").show();
+		const options = { year: 'numeric', month: 'long', day: 'numeric' };
+		$("#uitersteBetaling").html(betaaldatum.toLocaleDateString('nl-NL', options));
+		if (betaaldatum.getTime() < today.getTime() && bedragbetaald < rkbedrag) {
+			$("#uitersteBetaling").addClass("telaat");
+		} else {
+			$("#uitersteBetaling").removeClass("telaat");
+		}
 	} else {
-		$("#uitersteBetaling").removeClass("telaat");
+		$("#lblBETAALDAG").hide();
+		$("#BETAALDAG").hide();
+		$("#lblBET_TERM").hide();
+		$("#BET_TERM").hide();
+		$("#lbluitersteBetaling").hide();
+		$("#uitersteBetaling").hide();
 	}
 	
 	var dn = $("#DEBNAAM");
@@ -461,27 +509,6 @@ function rekeningprops() {
 		});
 	}
 	
-	tb = 0;
-	
-	table = document.getElementById("rekregels");
-	tr = table.getElementsByTagName("tr");
-	
-	for (i = 0; i < tr.length; i++) {
-		td = tr[i].getElementsByTagName("td")[4];
-		if (td) {
-			cntr = td.getElementsByTagName("input")[0];
-			tb = tb + Number(cntr.value);
-		}
-	}
-	
-	rv = "€ ";
-	if (tb == Math.round(tb)) {
-		rv = rv + tb + ",=";
-	} else {
-		rv = rv + Math.floor(tb) + "," + (tb-Math.floor(tb))*100;
-	}
-	
-	$("#rekeningbedrag").html(rv);	
 }
 
 function blurkostenplaats(control) {
@@ -537,3 +564,5 @@ function fnControleEmail(p_email, p_rvbijleeg="") {
 	
 }
 
+
+$('#lblbedragbetaald').hide();
