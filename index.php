@@ -345,9 +345,8 @@ function fnAgenda($p_lidid=0) {
 		$dtStart = strtotime("-1 day", $dtStart);
 	}
 	
-	$txt = "<div id=agenda>\n";
-//	$txt .= "<p class='mededeling'>De agenda is nog in ontwikkeling</p>\n";
-	$txt .= "<table>\n<tr>\n";
+	//	$txt .= "<p class='mededeling'>De agenda is nog in ontwikkeling</p>\n";
+	$txt = "<table>\n<tr>\n";
 	for ($dn=1;$dn<=7;$dn++) {
 		$txt .= sprintf("<th>%s</th>", strftime("%A", strtotime(sprintf("+%d day", $dn-1), $dtStart)));
 	}
@@ -422,7 +421,6 @@ function fnAgenda($p_lidid=0) {
 	
 	$txt .= "</tr>\n";
 	$txt .= "</table>\n";
-	$txt .= "</div> <!-- Einde agenda -->\n";
 	
 	return $txt;
 	
