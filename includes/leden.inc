@@ -1366,7 +1366,10 @@ function nieuwepasfoto($lidid, $filterlid="") {
 	$naamlid = (new cls_Lid())->Naam($lidid);
 	$ad = $_SESSION['settings']['path_pasfoto'] ?? "";
 	
-	if (isset($_FILES['UploadFoto']['name']) and strlen($_FILES['UploadFoto']['name']) > 3) {
+	if ($lidid == 0) {
+		$mess = "Er is geen lid geselecteerd, neem hiervoor contact op met de webmaster.";
+	
+	} elseif (isset($_FILES['UploadFoto']['name']) and strlen($_FILES['UploadFoto']['name']) > 3) {
 
 //		debug($_FILES['UploadFoto']);
 	
@@ -1376,93 +1379,69 @@ function nieuwepasfoto($lidid, $filterlid="") {
 			$ext = "jpg";
 		}
 	
+		$mess = "";
 		if (in_array($ext, PASFOTOEXTENTIES) === false) {
 			$mess = sprintf("Het bestand met extensie %s is niet toegestaan. De volgende extensies zijn toegestaan: %s.", $ext, implode(", ", PASFOTOEXTENTIES));
+
 		} elseif ($_FILES['UploadFoto']['size'] > $max_size_attachm or $_FILES['UploadFoto']['error'] == 2) {
 			$mess = sprintf("De foto kan niet ge-upload worden, omdat het bestand groter dan %dKB is.", $max_size_attachm / 1024);
+
 		} elseif ($_FILES['UploadFoto']['size'] < $min_size_attachm) {
 			$mess = sprintf("De foto kan niet worden ge-upload, omdat het bestand kleiner dan %d bytes is.", $min_size_attachm);
+
 		} elseif (strlen($ad) > 0 and file_exists($ad) == false) {
-			$mess = "De folder om de pasfoto op te staan bestaat niet, neem hiervoor contact op met de webmaster.";
-		} elseif ($lidid == 0) {
-			$mess = "Er is geen lid geselecteerd, neem hiervoor contact op met de webmaster.";
+			$mess = "De folder om de pasfoto op te slaan bestaat niet, neem hiervoor contact op met de webmaster.";
+
 		} else {
-			$mess = "";
 
 			$target = $ad . sprintf("Pasfoto%d.%s", $lidid, $ext);
 		
 			$i_foto->add($_FILES['UploadFoto']['tmp_name'], $lidid, $ext);
 
-			if (strlen($ad) > 0 and file_exists($ad) and 1 == 2) {
+			if (strlen($ad) > 0 and file_exists($ad)) {
 				if (is_writable($ad) == false) {
-					$mess = sprintf("Directory '%s' bestaat, maar de website heeft geen schrijfrechten. Vraag de webmaster om dit aan te passen.", $ad);
+					$mess = sprintf("Directory '%s' bestaat, maar de website heeft geen schrijfrechten.", $ad);
+					(new cls_Logboek())->add($mess, 6, 0, 0, 0, 20);
+					$mess = "";
+					
 				} else {
 					$adv = $ad . "vervangen/";
-					if (file_exists($adv)) {
-						if (is_writable($adv) == false) {
-							$mess = sprintf("Directory '%s' bestaat, maar de website heeft geen schrijfrechten. Vraag de webmaster om dit aan te passen.", $adv);
+					if (file_exists($adv) and is_writable($adv) == false) {
+						$mess = sprintf("Directory '%s' bestaat, maar de website heeft geen schrijfrechten.", $adv);
+						(new cls_Logboek())->add($mess, 6, 0, 0, 0, 20);
+						$mess = "";
+					}
+
+					if (strlen($target) > 3 and file_exists($target) and file_exists($adv) and is_writable($adv) == true) {
+						$of_ext = substr(strrchr($target, "."), 1);
+						$bu_name = $adv . sprintf("Pasfoto%d_%d.%s", $lidid, strftime("%Y%m%d", filectime($target)), $of_ext);
+						if (rename($target, $bu_name)) {
+							$mess = sprintf("Pasfoto './%s' is hernoemd naar './%s'.", $target, $bu_name);
+							(new cls_Logboek())->add($mess, 6, $lidid, 0, 0, 21);
 						}
+					}
+
+					if (move_uploaded_file($_FILES['UploadFoto']["tmp_name"], $target)) {
+						$image = new SimpleImage();
+						$image->load($target);
+						if ($image->GetWidth() > 390) {
+							$image->resizeToWidth(390);
+							$image->save($target);
+						}
+						if ($image->GetHeight() > 500) {
+							$image->resizeToHeight(500);
+							$image->save($target);
+						}
+						$image = null;
+						$mess = "Er is een nieuwe pasfoto ge-upload.";
+					
 					} else {
-						$mess = sprintf("Directory '%s' bestaat niet. Vraag de webmaster om deze aan te maken.", $adv);
+						$mess = "Het is fout gegaan bij het uploaden van het bestand. Probeer het nog een keer of neem contact op met de webmaster.";
 					}
 				}
-		
-//			(new cls_Logboek())->add($mess, 6, 0, 1, 0, 20);
-				$mess = "";
-				if (strlen($target) > 3 and file_exists($target)) {
-					$of_ext = substr(strrchr($target, "."), 1);
-					$bu_name = "vervangen/" . sprintf("Pasfoto%d_%d.%s", $lidid, strftime("%Y%m%d", filectime($target)), $of_ext);
-					if (rename($target, $ad . $bu_name)) {
-						$mess = sprintf("Pasfoto './%s' is verplaatst en hernoemd naar './%s'.", $target, $bu_name);
-						(new cls_Logboek())->add($mess, 6, $lidid, 0, 0, 21);
-					}
-				}
-				if (move_uploaded_file($_FILES['UploadFoto']["tmp_name"], $target)) {
-					$image = new SimpleImage();
-					$image->load($target);
-					if ($image->GetWidth() > 390) {
-						$image->resizeToWidth(390);
-						$image->save($target);
-					}
-					if ($image->GetHeight() > 500) {
-						$image->resizeToHeight(500);
-						$image->save($target);
-					}
-					$image = null;
-				}
-			
-				if ($lidid == $_SESSION['lidid'] and isValidMailAddress($_SESSION['settings']['zs_emailnieuwepasfoto'], 0) and (file_exists($target))) {
-					$mail = new RBMmailer();
-					$mail->From = $_SESSION['emailingelogde'];
-					$mail->FromName = $naamlid;
-					$mail->Subject = "Nieuwe pasfoto " . $naamlid;
-					if (isValidMailAddress($_SESSION['settings']['zs_emailnieuwepasfoto'], 0) and $_SESSION['settings']['zs_emailnieuwepasfoto'] != $_SESSION['settings']['emailledenadministratie']) {
-						$mail->AddAddress($_SESSION['settings']['zs_emailnieuwepasfoto']);
-					}
-					if (isValidMailAddress($_SESSION['settings']['emailledenadministratie'], 0)) {
-						$mail->AddAddress($_SESSION['settings']['emailledenadministratie']);
-					}
-					$mail->AddCC($_SESSION['emailingelogde']);
-					$body = sprintf("<p>Beste ledenadministratie,</p>
-										<p>Bijgevoegd is mijn nieuwe pasfoto.</p>
-										<p>Met vriendelijke groeten,<br>
-										<strong>%s<strong></p>\n", $naamlid);
-					$mail->MsgHTML($body);
-					$mail->AddAttachment($target);
-					if ($mail->Send()) {
-						$mess = sprintf("%s heeft een nieuwe pasfoto ingestuurd.", $naamlid);
-					} else {
-						$mess = sprintf("Fout bij het e-mailen van de pasfoto: %s.", $mail->ErrorInfo);
-					}
-					$mail = null;
-				} elseif (file_exists($target)) {
-					$mess = "Er is een nieuwe pasfoto ge-upload.";
-				} else {
-					$mess = "Het is fout gegaan bij het uploaden van het bestand. Probeer het nog een keer of neem contact op met de webmaster.";
-				}
+				(new cls_Logboek())->add($mess, 6, $lidid, 1, 0, 21);
 			}
 		}
-		(new cls_Logboek())->add($mess, 6, $lidid, 1, 0, 22);
 	}
 
 	echo("<div id='nieuwepasfoto'>\n");
@@ -1577,7 +1556,7 @@ function toestemmingenmuteren($lidid) {
 	echo("<div id='opdrachtknoppen'>\n");
 	printf("<input class='knop' type='submit' value='%s' name='Bevestigen'>\n", $tb);
 	echo("</div> <!-- Einde opdrachtknoppen -->\n");
-	
+
 	echo("</form>\n");
 	echo("</div> <!-- Einde toestemmingenmuteren -->\n");
 
@@ -2044,8 +2023,10 @@ function instellingenledenmuteren() {
 	printf("<label>E-mail ouders?</label><input type='checkbox' name='zs_incl_emailouders' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_emailouders']));
 	printf("<label>E-mail vereniging?</label><input type='checkbox' name='zs_incl_emailvereniging' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_emailvereniging']));
 	printf("<label>Bankrekening / IBAN?</label><input type='checkbox' name='zs_incl_iban' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_iban']));
+	printf("<label>Machtiging automatische incasso afgegeven?</label><input type='checkbox' name='zs_incl_machtiging' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_machtiging']));
 	printf("<label>Legitimatie?</label><input type='checkbox' name='zs_incl_legitimatie' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_legitimatie']));
 	printf("<label>Sportlink ID?</label><input type='checkbox' name='zs_incl_slid' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_slid']));
+	
 	echo("<h2>Overig in de zelfservice</h2>\n");
 	printf("<label>Welke soorten memo's mogen leden zelf muteren?</label><input type='text' name='zs_muteerbarememos' value=\"%s\" OnChange='this.form.submit();'><p>(Scheiden met een komma)</p>\n", $_SESSION['settings']['zs_muteerbarememos']);
 	printf("<label>Welke tekst moet er als uitleg bij de toestemmingen worden vermeld?</label><textarea name='uitleg_toestemmingen' rows=2 cols=68 OnChange='this.form.submit();'>%s</textarea>\n", $_SESSION['settings']['uitleg_toestemmingen']);
