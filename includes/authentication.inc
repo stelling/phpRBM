@@ -435,22 +435,12 @@ function toegang($soort, $melding=1, $p_log=1) {
 	}
 	
 	$soort = str_replace("'", "", $soort);
-	$aid = $i_aut->recordid($soort);
-//	debug($aid . " aid in toegang");
 		
-	if (strlen($soort) == 0 or in_array($soort, $arrAltijdToegang) === true or $_SESSION['webmaster'] == 1) {
-		if (strlen($soort) > 0 and in_array($soort, $arrAltijdToegang) === false and in_array($soort, $tabpages) == false and $aid == 0) {
-			$aid = $i_aut->add($soort);
-		}
-		$rv = true;
-		
-	} elseif ($_SESSION['lidid'] > 0 and isset($_SESSION['toegang'][$soort]) and $_SESSION['toegang'][$soort] == 1 and 1 == 2) {
+	if (strlen($soort) == 0 or in_array($soort, $arrAltijdToegang) === true) {
 		$rv = true;
 		
 	} else {
-		$_SESSION['webmaster'] == 0;
 		if ($i_aut->toegang($soort) == true) {
-			$_SESSION['toegang'][$soort] = 1;
 			$rv = true;
 		} else {
 			$mess = sprintf("Je hebt geen toegang tot '%s'.", $soort);
@@ -464,10 +454,6 @@ function toegang($soort, $melding=1, $p_log=1) {
 		}
 	}
 	
-	
-	if ($rv and $aid > 0) {
-		$i_aut->update($aid, "LaatstGebruikt", date("Y-m-d"));
-	}
 	$i_aut = null;
 	
 	return $rv;
@@ -733,7 +719,7 @@ function fnLoginAanvragen($stap="") {
 		printf("<form action='%s?tp=Bevestiging+login' method='post'>\n", $_SERVER["PHP_SELF"]);
 		echo("<h3>Login aanvraag</h3>\n");
 		
-		echo("<label>E-mailadres</label><input type='email' name='emailadres' value=''>\n");
+		echo("<label>E-mailadres</label><input type='email' name='emailadres' value='' autocomplete='off'>\n");
 		echo("<label>Lidnummer</label><input type='number' name='lidnummer'>\n");
 		printf("<label>Gewenste login</label><input type='text' name='gewenstelogin' maxlength=%d>\n", $_SESSION['settings']['login_maxlengte']);
 		echo("<label>Gewenst wachtwoord</label><input type='password' name='gewenstwachtwoord' value=''>\n");
