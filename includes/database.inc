@@ -1420,7 +1420,7 @@ class cls_Authorisation extends cls_db_base {
 		$this->ta = 15;
 	}
 	
-	private function vulvars($p_aid=0) {
+	private function vulvars($p_aid=-1) {
 		$this->aid = $p_aid;
 
 		if ($this->aid > 0) {	
@@ -1456,26 +1456,35 @@ class cls_Authorisation extends cls_db_base {
 	
 	public function toegang($p_tabpage, $p_aid=-1) {
 		
+		$rv = false;
+		
 		if ($p_aid > 0) {
-			$aid = $p_aid;
-		} else {
-			$aid = $this->recordid($p_tabpage);
+			$this->vulvars($p_aid);
+			$p_tabpage = $this->naamtp;
 		}
 		
 //		debug($p_tabpage . ": ". $aid . " in toegang");
 		
-		if ($aid == 0) {
-			return false;
-		} elseif ($_SESSION['webmaster'] == 1) {
-			return true;
+		if ($_SESSION['webmaster'] == 1) {
+			$query = sprintf("SELECT IFNULL(MIN(AA.RecordID), 0) FROM %s WHERE AA.Tabpage='%s';", $this->basefrom, $p_tabpage);
+			$aid = $this->scalar($query);
+			if (strlen($p_tabpage) > 0 and $aid == 0) {
+				$aid = $i_aut->add($p_tabpage);
+			}
+			$rv = true;
 		} else {
-			$query = sprintf("SELECT COUNT(*) FROM %s WHERE RecordID=%d AND Toegang IN (%s);", $this->table, $aid, $_SESSION['lidgroepen']);
-			if ($this->scalar($query) > 0) {
-				return true;
-			} else {
-				return false;
+			$query = sprintf("SELECT IFNULL(MIN(AA.RecordID), 0) FROM %s WHERE AA.Tabpage='%s' AND AA.Toegang IN (%s);", $this->basefrom, $p_tabpage, $_SESSION['lidgroepen']);
+			$aid = $this->scalar($query);
+			if ($aid > 0) {
+				$rv = true;
 			}
 		}
+		
+		if ($rv and $aid > 0) {
+			$this->update($aid, "LaatstGebruikt", date("Y-m-d"));
+		}
+		
+		return $rv;
 	}
 	
 	public function autorisatiesperonderdeel() {
@@ -2264,12 +2273,8 @@ class cls_Afdelingskalender extends cls_db_base {
 	public function htmloptions($p_onderdeelid, $p_cv, $p_filter="") {
 		$rv = "";
 		foreach ($this->lijst($p_onderdeelid, "", $p_filter) as $row) {
-			$d = strftime("%A %e %B %Y", strtotime($row->Datum));
-			if (strlen($row->Omschrijving) > 0) {
-				$d .= " - " . $row->Omschrijving;
-			}
 			$c = checked($row->RecordID, "option", $p_cv);
-			$rv .= sprintf("<option value=%d %s>%s</option>\n", $row->RecordID, $c, $d);
+			$rv .= sprintf("<option value=%d %s>%s</option>\n", $row->RecordID, $c, strftime("%e %B %Y", strtotime($row->Datum)));
 		}
 		return $rv;
 	}
