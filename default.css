@@ -375,7 +375,6 @@ header a + a:visited + a:hover {
 #filter select {
 	clear: none;
 	float: left;
-	width: 220px;
 	height: 32px;
 	margin-top: 8px;
 	margin-left: 3px;
@@ -791,6 +790,11 @@ td.print {
 	border-bottom-style: solid;
 }
 
+#groepsindeling h3 {
+	width: 100%;
+	background-color: gainsboro;
+}
+
 #groepsindeling h3, #groepsindeling h4 {
 	margin-top: 1px;
 	margin-bottom: 1px;
@@ -811,6 +815,12 @@ td.print {
 	margin-left: 3px;
 }
 
+#groepsindeling ol {
+	margin-left: 1px;
+	padding-left: 22px;
+	padding-right: 2px;
+}
+
 #groepsindeling li.wordtlid, td.wordtlid {
 	color: #00bfff;
 	font-style: italic;
@@ -821,24 +831,25 @@ td.print {
 	font-style: italic;
 }
 
-#aanwezigheidmuteren label {
-	width: 110px;
-}
-
 .groepsindelingkolom {
 	float: left;
-	width: 31%;
-	min-height: 275px;
+	width: 290px;
+	min-height: 200px;
 	border-right-style: solid;
 	border-width: 1px;
 	margin-left: 0;
-	margin-right: 8px;
+	margin-right: 6px;
 	margin-bottom: 8px;
-	padding-left: 6px;
+	padding-left: 2px;
+	padding-right: 2px;
 }
 
 #groepenmuteren input[type='number'] {
 	width: 60px;
+}
+
+#aanwezigheidmuteren label {
+	width: 110px;
 }
 
 #presentieperlid label {
@@ -2292,17 +2303,38 @@ li.presstat_a {
 	color: limegreen;
 }
 
-li.presstat_n {
+li.presstat_n, td.presstat_n {
 	color: red;
 	font-weight: bolder;
 }
 
-li.presstat_r, li.presstat_x, li.presstat_z {
+li.presstat_l, td.presstat_l {
+	color: blue;
+}
+
+li.presstat_r, li.presstat_x, li.presstat_z, td.presstat_r, td.presstat_x, td.presstat_z {
 	color: red;
 }
 
-li.presstat_t {
+li.presstat_t, td.presstat_t {
 	color: orange;
+}
+
+li.presstat_v, td.presstat_v {
+	color: gainsboro;
+}
+
+
+#presentielijst td {
+	text-align: center;
+}
+
+#presentielijst td:first-child {
+	text-align: right;
+}
+
+#presentielijst td:last-child {
+	text-align: left;
 }
 
 @media only screen and (max-width: 750px) {
