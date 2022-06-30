@@ -210,17 +210,17 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 				if ($hvgroep > -1) {
 					echo("</ol>\n");
 					echo("</div>  <!-- einde groepsindelingkolom -->\n");
-					if ($hvtijd !== $row->Tijdsblok) {
-//						echo("<div class='clear'></div>\n");
+					if ($hvtijd !== $row->Tijdsblok and strlen($hvtijd) > 0) {
+						echo("<div class='clear'></div>\n");
 					}
 				}
-				echo("<div class='groepsindelingkolom'>\n");
 			
 				if (strlen($row->Tijdsblok) > 3 and $hvtijd !== $row->Tijdsblok) {
 					printf("<h3>%s</h3>\n", $row->Tijdsblok);
 				}
 				$hvtijd = $row->Tijdsblok;
 			
+				echo("<div class='groepsindelingkolom'>\n");
 				printf("<h4>%s</h4>\n", $row->GroepOms);
 				echo("<ol>\n");
 			}
