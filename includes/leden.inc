@@ -2215,29 +2215,39 @@ function fnBasisgegevens($p_type) {
 		$ondrows = $i_ond->lijst(0, "", "", 0, "IF(O.VervallenPer IS NULL, 0, 1), O.`Type`", 0);
 		
 		$kols[0]['headertext'] = "#";
+		$kols[0]['columnname'] = "RecordID";
 		$kols[0]['type'] = "pk";
 		$kols[0]['readonly'] = true;
 		
 		$kols[1]['headertext'] = "Code";
+		$kols[1]['columnname'] = "Kode";
 		
 		$kols[2]['headertext'] = "Naam";
+		$kols[2]['columnname'] = "Naam";
 		
-		$kols[7]['headertext'] = "Type";
-		$kols[7]['bronselect'] = ARRTYPEONDERDEEL;
+		$kols[4]['headertext'] = "Type";
+		$kols[4]['bronselect'] = ARRTYPEONDERDEEL;
+		$kols[4]['columnname'] = "Type";
 		
-		$kols[9]['headertext'] = "Kader?";
-		$kols[9]['type'] = "checkbox";
-		$kols[10]['headertext'] = "Alleen leden?";
-		$kols[10]['type'] = "checkbox";
+		$kols[5]['headertext'] = "Kader?";
+		$kols[5]['type'] = "checkbox";
+		$kols[5]['columnname'] = "Kader";
 		
-		$kols[12]['headertext'] = "E-mailadres";
-		$kols[12]['type'] = "email";
+		$kols[6]['headertext'] = "Alleen leden?";
+		$kols[6]['type'] = "checkbox";
+		$kols[6]['columnname'] = "Alleen leden";
 		
-		$kols[13]['headertext'] = "Vervallen per";
-		$kols[13]['type'] = "date";
+		$kols[7]['headertext'] = "E-mailadres";
+		$kols[7]['type'] = "email";
+		$kols[7]['columnname'] = "CentraalEmail";
 		
-		$kols[14]['headertext'] = "Opschonen na X dagen";
-		$kols[14]['type'] = "integer";
+		$kols[8]['headertext'] = "Vervallen per";
+		$kols[8]['type'] = "date";
+		$kols[8]['columnname'] = "VervallenPer ";
+		
+		$kols[9]['headertext'] = "Opschonen na X dagen";
+		$kols[9]['type'] = "integer";
+		$kols[9]['columnname'] = "HistorieOpschonen";
 		
 		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 		echo(fnEditTable($ondrows, $kols, "onderdeeledit", "Muteren onderdelen"));
@@ -2355,6 +2365,38 @@ function fnBasisgegevens($p_type) {
 		
 		echo("<div id='opdrachtknoppen'>\n");
 		echo("<button name='NieuweOrganisatie' onClick='this.form.submit();'>Nieuwe organisatie</button>\n");
+		echo("</div> <! =-- Einde opdrachtknoppen -->\n");
+		echo("</form>\n");
+		
+	} elseif ($p_type == "Seizoenen") {
+		$i_sz = new cls_Seizoen();
+		
+		if (isset($_POST['NieuwSeizoen'])) {
+			$i_sz->add();
+		}
+		
+		$kols[0]['headertext'] = "Nummer";
+		$kols[0]['columnname'] = "Nummer";
+		$kols[0]['type'] = "pk";
+		
+		$kols[1]['headertext'] = "Begindatum";
+		$kols[1]['columnname'] = "Begindatum";
+		$kols[1]['type'] = "rqdate";
+		
+		$kols[2]['headertext'] = "Einddatum";
+		$kols[2]['columnname'] = "Einddatum";
+		$kols[2]['type'] = "rqdate";
+		
+		$kols[3]['headertext'] = "Leeftijdgrens jeugdleden";
+		$kols[3]['columnname'] = "Leeftijdsgrens jeugdleden";
+		$kols[3]['type'] = "integer";
+		
+		$seizres = $i_sz->lijst(0);
+		
+		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+		echo(fnEditTable($seizres, $kols, "seizoenedit", "Muteren seizoenen"));
+		echo("<div id='opdrachtknoppen'>\n");
+		echo("<button name='NieuwSeizoen' onClick='this.form.submit();'>Nieuw seizoen</button>\n");
 		echo("</div> <! =-- Einde opdrachtknoppen -->\n");
 		echo("</form>\n");
 		
