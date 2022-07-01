@@ -43,6 +43,7 @@ $arrTables[] = "Onderdl";
 $arrTables[] = "Organisatie";
 $arrTables[] = "Rekening";
 $arrTables[] = "Rekreg";
+$arrTables[] = "Seizoen";
 $arrTables[] = "Vereniging";
 
 $TypeActiviteit[0] = "N.T.B.";
@@ -515,8 +516,9 @@ class cls_db_base {
 			} elseif($this->typekolom($p_kolom) == "text" or $this->typekolom($p_kolom) == "longtext" or $this->typekolom($p_kolom) == "longblob") {
 				$xw = sprintf("(IFNULL(`%s`, '') NOT LIKE :nw)", $p_kolom);
 
-			} else {	
-				$xw = sprintf("BINARY IFNULL(`%s`, '')<>'%s'", $p_kolom, $p_waarde);
+			} else {
+				$p_waarde = str_replace("\"", "'", $p_waarde);
+				$xw = sprintf("BINARY IFNULL(`%s`, '')<>:nw", $p_kolom, $p_waarde);
 			}
 			$query = sprintf("UPDATE %s SET `%s`=:nw %s WHERE `%s`=:id AND %s;", $this->table, $p_kolom, $gw, $this->pkkol, $xw);
 //			debug($query, 0, 1);
@@ -535,12 +537,12 @@ class cls_db_base {
 				$stmt->bindValue(":nw", $p_waarde, PDO::PARAM_STR);
 			}
 			$stmt->bindValue(":id", $p_recid);
-//			debug($query, 0, 1);
+//			debug($query . " / " . $p_waarde, 0, 1);
 		
 			if ($stmt->execute()) {
 				$effectedRows = $stmt->rowCount();
+				$t = str_replace(TABLE_PREFIX, "", $this->table);
 				if ($effectedRows > 0) {
-					$t = str_replace(TABLE_PREFIX, "", $this->table);
 					if (array_search($t, $arrTables) >= 30) {
 						if (($this->typekolom($p_kolom) == "date" or $this->typekolom($p_kolom) == "datetime") and $p_waarde !== "NULL") {
 							$p_waarde = "#" . $p_waarde . "#";
@@ -561,9 +563,8 @@ class cls_db_base {
 					
 						$sql = sprintf("UPDATE [%s] SET [%s]=%s, Gewijzigd=#%s# WHERE %s=%d;", $t, $p_kolom, $p_waarde, date("m/d/Y H:i:s"), $this->pkkol, $p_recid);
 						(new cls_Interface())->add($sql, $this->lidid);
-					
-						$this->mess = sprintf("Tabel %s: van record %d is kolom '%s' in %s gewijzigd.", str_replace(TABLE_PREFIX, "", $this->table), $p_recid, $p_kolom, $p_waarde);
 					}
+					$this->mess = sprintf("Tabel %s: van record %d is kolom '%s' in %s gewijzigd.", str_replace(TABLE_PREFIX, "", $this->table), $p_recid, $p_kolom, $p_waarde);
 					$rv = true;
 				}
 			}
@@ -1088,7 +1089,7 @@ class cls_Lid extends cls_db_base {
 		$query = sprintf("INSERT INTO %s (RecordID, Nummer, Achternaam, Geslacht, Postcode, Ingevoerd) VALUES (%d, %d, \"%s\", '%s', '%s', CURDATE());", $this->table, $this->lidid, $this->lidid, $p_achternaam, $p_geslacht, $p_postcode);
 		if ($this->execsql($query) > 0) {
 			$this->mess = sprintf("Kloslid %d (%s) is toegevoegd", $this->lidid, $p_achternaam);
-			$this->log();
+			$this->log($this->lidid);
 			(new cls_Interface())->add($query, $this->lidid);
 		}
 		return $this->lidid;
@@ -2042,8 +2043,13 @@ class cls_Onderdeel extends cls_db_base {
 		$this->oid = $p_oid;
 		$this->tas = 2;
 		
-		if ($p_kolom == "Naam") {
+		
+		if ($p_kolom == "VervallenPer" and strlen($p_waarde) < 8) {
+			$p_waarde = "";
+		
+		} elseif ($p_kolom == "Naam") {
 			$p_waarde = str_replace("\"", "'", $p_waarde);
+			
 		} elseif ($p_kolom == "MySQL" and strlen($p_waarde) > 10) {
 			if (startwith($p_waarde, "SELECT")) {
 				$p_waarde = str_replace("\"", "'", $p_waarde);
@@ -2053,15 +2059,14 @@ class cls_Onderdeel extends cls_db_base {
 				$p_waarde = "";
 			}
 		}
-		
-		if ($this->pdoupdate($p_oid, $p_kolom, $p_waarde) > 0) {
+
+//		debug("$p_oid, $p_kolom, $p_waarde", 0, 1);
+		if ($this->pdoupdate($p_oid, $p_kolom, $p_waarde)) {
 			if (strlen($p_reden) > 0) {
 				$this->mess .= ", omdat " . $p_reden;
 			}
-			
-			(new cls_Lidond())->autogroepenbijwerken();
 		}
-		
+
 		$this->log($this->oid);
 	}
 	
@@ -6058,24 +6063,31 @@ class cls_Seizoen extends cls_db_base {
 	}
 	
 	function htmloptions($p_cv=-1) {
-		$query = sprintf("SELECT SZ.* FROM %s ORDER BY SZ.Begindatum DESC;", $this->basefrom);
-		$result = $this->execsql($query);
 		$rv = "";
-		foreach ($result->fetchAll() as $row) {
+		foreach ($this->lijst() as $row) {
 			$s = checked($row->Nummer, "option", $p_cv);
 			$rv .= sprintf("<option value=%d %s>%s: %s tot %s</option>\n", $row->Nummer, $s, $row->Nummer, $row->Begindatum, $row->Einddatum);
 		}
 		return $rv;
 	}
 	
-	function lijst() {
-		$this->query = sprintf("SELECT SZ.Nummer, SZ.Begindatum FROM %s ORDER BY SZ.Begindatum;", $this->basefrom);
+	function lijst($p_fetched=1) {
+		$this->query = sprintf("SELECT SZ.* FROM %s ORDER BY SZ.Begindatum DESC;", $this->basefrom);
 		$result = $this->execsql();
-		return $result->fetchAll();
+		if ($p_fetched == 1) {
+			return $result->fetchAll();
+		} else {
+			return $result;
+		}
 	}
 	
-	public function eindehuidige() {
-		$query = sprintf("SELECT MAX(SZ.Einddatum) FROM %s WHERE SZ.Begindatum <= CURDATE() AND SZ.Einddatum >= CURDATE();", $this->basefrom);
+	public function eindehuidige($p_per="") {
+		
+		if (strlen($p_per) < 8) {
+			$p_per = date("Y-m-d");
+		}
+		
+		$query = sprintf("SELECT MAX(SZ.Einddatum) FROM %1\$s WHERE SZ.Begindatum <= '%2\$s' AND SZ.Einddatum >= '%2\$s';", $this->basefrom, $p_per);
 		return $this->scalar($query);
 	}
 	
@@ -6089,9 +6101,18 @@ class cls_Seizoen extends cls_db_base {
 				$nnr = 2000;
 			}
 		}
-		
 		$query = sprintf("INSERT INTO %s (Nummer) VALUES (%d);", $this->table, $nnr);
-		
+		if ($this->execsql($query) > 0) {
+			$this->mess = sprintf("Seizoen %d is toegevoegd.", $nnr);
+			$this->Log($nnr);
+			(new cls_Interface())->add($query);
+		}
+	}
+	
+	public function update($p_seiznr, $p_kolom, $p_waarde) {
+		if ($this->pdoupdate($p_seiznr, $p_kolom, $p_waarde)) {
+			$this->Log($p_seiznr);
+		}
 	}
 	
 }

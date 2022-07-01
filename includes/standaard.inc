@@ -893,7 +893,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 			$totaantal++;
 		}
 		if (strlen($xtra_regel) > 0) {
-			$ret .= sprintf("<tr><td colspan=11>%s</td></tr>\n", $xtra_regel);
+			$ret .= sprintf("<tr><td colspan=%d>%s</td></tr>\n", count($kols), $xtra_regel);
 		}
 		$ret .= "</tbody>\n";
 		if ($disptot > 0 and $totaantal > 1) {

@@ -66,6 +66,7 @@ if ($_SESSION['lidid'] > 0) {
 		}
 		
 	} elseif ($ent == "onderdeeledit" and toegang("Ledenlijst/Basisgegevens/Onderdelen")) {
+		
 		$i_ond = new cls_Onderdeel();
 		$i_ond->update($rid, $kolom, $newvalue);
 		
@@ -87,7 +88,11 @@ if ($_SESSION['lidid'] > 0) {
 		
 	} elseif ($ent == "organisatieedit" and toegang("Ledenlijst/Basisgegevens/Organisaties")) {
 		$i_org = new cls_Organisatie();
-		$i_org->update($rid, $kolom, $_POST['value']);
+		$i_org->update($rid, $kolom, $newvalue);	
+		
+	} elseif ($ent == "seizoenedit" and toegang("Ledenlijst/Basisgegevens/Seizoenen")) {
+		$i_sz = new cls_Seizoen();
+		$i_sz->update($rid, $kolom, $newvalue);
 		
 	} elseif ($ent == "mailing" and toegang("Mailing/Muteren")) {
 //		$mess = sprintf("%d / %s / %s", $rid, $kolom, $newvalue);
