@@ -6140,6 +6140,8 @@ class cls_Seizoen extends cls_db_base {
 
 	public function delete($p_seiznr) {
 		$this->tas = 23;
+		$this->pdodelete($p_seiznr);
+		$this->log($p_seiznr);
 	}
 	
 }
