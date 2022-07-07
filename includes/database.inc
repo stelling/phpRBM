@@ -1470,7 +1470,7 @@ class cls_Authorisation extends cls_db_base {
 			$query = sprintf("SELECT IFNULL(MIN(AA.RecordID), 0) FROM %s WHERE AA.Tabpage='%s';", $this->basefrom, $p_tabpage);
 			$aid = $this->scalar($query);
 			if (strlen($p_tabpage) > 0 and $aid == 0) {
-				$aid = $i_aut->add($p_tabpage);
+				$aid = $this->add($p_tabpage);
 			}
 			$rv = true;
 		} else {
@@ -4955,16 +4955,21 @@ class cls_Organisatie extends cls_db_base {
 		return $this->scalar($query);
 	}
 	
-	public function lijst($p_filter=0) {
+	public function lijst($p_filter=0, $p_fetched=1) {
 		
 		if ($p_filter == 1) {	
 			// Organisaties gekoppeld aan een diploma
 			$this->where = sprintf("WHERE Nummer IN (SELECT ORGANIS FROM %sDiploma)", TABLE_PREFIX);
 		}
 		
-		$this->query = sprintf("SELECT * FROM %s %s ORDER BY 'Volledige naam';", $this->table, $this->where);
+		$this->query = sprintf("SELECT Org.*, (SELECT IFNULL(COUNT(*), 0) FROM %1\$sDiploma AS DP WHERE DP.ORGANIS=Org.Nummer) + (SELECT IFNULL(COUNT(*), 0) FROM %1\$sOnderdl AS O WHERE O.ORGANIS=Org.Nummer) AS aantalLinked FROM %2\$s %3\$s ORDER BY 'Volledige naam';", TABLE_PREFIX, $this->basefrom, $this->where);
 		$result = $this->execsql();
-		return $result->fetchAll();
+		
+		if ($p_fetched == 1) {
+			return $result->fetchAll();
+		} else {
+			return $result;
+		}
 	}
 	
 	public function htmloptions($p_filter=0, $p_cv=-1) {
@@ -5007,6 +5012,14 @@ class cls_Organisatie extends cls_db_base {
 			}
 		}
 		$this->log($p_orgid);
+	}
+	
+	public function delete($p_orgid) {
+		$this->tas = 3;
+		
+		if ($this->pdodelete($p_orgid) > 0) {
+			$this->Log($p_orgid);
+		}
 	}
 	
 }  # cls_Organisatie
@@ -6054,6 +6067,7 @@ class cls_Seizoen extends cls_db_base {
 		$this->table = TABLE_PREFIX . "Seizoen";
 		$this->basefrom = $this->table . " AS SZ";
 		$this->pkkol = "Nummer";
+		$this->ta = 20;
 	}
 	
 	public function record($p_szid) {
@@ -6072,7 +6086,7 @@ class cls_Seizoen extends cls_db_base {
 	}
 	
 	function lijst($p_fetched=1) {
-		$this->query = sprintf("SELECT SZ.* FROM %s ORDER BY SZ.Begindatum DESC;", $this->basefrom);
+		$this->query = sprintf("SELECT SZ.*, (SELECT COUNT(*) FROM %sRekening AS RK WHERE RK.Seizoen=SZ.Nummer) AS aantalRek FROM %s ORDER BY SZ.Begindatum DESC;", TABLE_PREFIX, $this->basefrom);
 		$result = $this->execsql();
 		if ($p_fetched == 1) {
 			return $result->fetchAll();
@@ -6092,6 +6106,7 @@ class cls_Seizoen extends cls_db_base {
 	}
 	
 	public function add($p_nr=0) {
+		$this->tas = 21;
 		
 		if ($p_nr > 0) {
 			$nnr = $p_nr;
@@ -6101,7 +6116,14 @@ class cls_Seizoen extends cls_db_base {
 				$nnr = 2000;
 			}
 		}
-		$query = sprintf("INSERT INTO %s (Nummer) VALUES (%d);", $this->table, $nnr);
+		
+		$bd = new datetime($this->max("Einddatum"));
+		$bd->modify("+1 day");
+		$ed = new datetime($bd->format("Y-M-d"));
+		$ed->modify("+1 year");
+		$ed->modify("-1 day");
+		
+		$query = sprintf("INSERT INTO %s (Nummer, Begindatum, Einddatum) VALUES (%d, '%s', '%s');", $this->table, $nnr, $bd->format("Y-m-d"), $ed->format("Y-m-d"));
 		if ($this->execsql($query) > 0) {
 			$this->mess = sprintf("Seizoen %d is toegevoegd.", $nnr);
 			$this->Log($nnr);
@@ -6110,9 +6132,14 @@ class cls_Seizoen extends cls_db_base {
 	}
 	
 	public function update($p_seiznr, $p_kolom, $p_waarde) {
+		$this->tas = 22;
 		if ($this->pdoupdate($p_seiznr, $p_kolom, $p_waarde)) {
 			$this->Log($p_seiznr);
 		}
+	}
+
+	public function delete($p_seiznr) {
+		$this->tas = 23;
 	}
 	
 }
