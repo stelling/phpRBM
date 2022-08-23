@@ -22,6 +22,7 @@ function fnWijzigen($lidid, $actie="") {
 
 		if ($actie == "Algemene gegevens") {
 			algemeenlidmuteren($lidid);
+			
 		} elseif ($currenttab3 == "Afdelingen") {
 			onderdelenlidmuteren($lidid, "A");
 			
@@ -313,7 +314,7 @@ function fnLedenlijst() {
 	} else {
 		
 		if (toegang("Ledenlijst/Overzicht lid", 0, 0)) {
-			$kols[0]['link'] = "<a href='index.php?tp=Ledenlijst/Overzicht+lid&amp;lidid=%d'>%s</a>";
+			$kols[0]['link'] = "<a href='index.php?tp=Ledenlijst/Overzicht+lid&lidid=%d'>%s</a>";
 			$kols[0]['class'] = "details";
 			$kols[0]['columnname'] = "RecordID";
 			$kols[1]['headertext'] = "Naam";
@@ -1299,7 +1300,11 @@ function algemeenlidmuteren($lidid) {
 			if ($i_lo->islid($lidid, $ondrow->RecordID) == true) {
 				$c = " checked";
 			}
-			printf("<input type='checkbox' id='eigenschap_%d'%s><p>%s</p>", $ondrow->RecordID, $c, $ondrow->Naam);
+			$ro = "";
+			if (strlen($ondrow->MySQL) > 10) {
+				$ro = " disabled readonly";
+			}
+			printf("<input type='checkbox' id='eigenschap_%d'%s%s><p>%s</p>", $ondrow->RecordID, $c, $ro, $ondrow->Naam);
 		}
 		
 		echo("</div> <!-- eigenschappenlidmuteren -->\n");
@@ -1903,10 +1908,14 @@ function lidmaatschapmuteren($lidid) {
 		$omz['Lidnr'] = "Lidnr";
 		$omz['LIDDATUM'] = "Vanaf";
 		$omz['Opgezegd'] = "Opgezegd";
+		$omz['OpgezegdDoorVereniging'] = "OpgezegdDoorVereniging";
 		$f = sprintf("Lid=%d", $lidid);
 		foreach ($i_lm->basislijst($f, "LIDDATUM") as $row) {
 			foreach($omz as $kolomnaam => $bascn) {
 				$contr_name = sprintf("%s_%d", $bascn, $row->RecordID);
+				if ($bascn == "OpgezegdDoorVereniging") {
+					$_POST[$contr_name] = $_POST[$contr_name] ?? 0;
+				}
 				if (isset($_POST[$contr_name])) {
 					$i_lm->update($row->RecordID, $kolomnaam, $_POST[$contr_name]);
 				}
@@ -1932,7 +1941,7 @@ function lidmaatschapmuteren($lidid) {
 	printf("<form method='post' action='%s'>\n", $actionurl);
 	echo("<table>\n");
 	printf("<caption>Lidmaatschap %s muteren</caption>\n", (new cls_Lid())->Naam($lidid));
-	echo("<tr><th>RecordID</th><th>Lidnummer</th><th>Lid vanaf</th><th>Opgezegd per</th><th></th><tr>\n");
+	echo("<tr><th>RecordID</th><th>Lidnummer</th><th>Lid vanaf</th><th>Opgezegd per</th><th>Door vereniging?</th><th></th><tr>\n");
 	$toev = true;
 	$aant = 0;
 	$f = sprintf("Lid=%d", $lidid);
@@ -1942,6 +1951,14 @@ function lidmaatschapmuteren($lidid) {
 		printf("<td><input type='number' name='Lidnr_%d' value=%d onblur='this.form.submit();'></td>\n", $row->RecordID, $row->Lidnr);
 		printf("<td><input type='date' name='Vanaf_%d' value='%s' onblur='this.form.submit();'></td>\n", $row->RecordID, $row->LIDDATUM);
 		printf("<td><input type='date' name='Opgezegd_%d' value='%s' onblur='this.form.submit();'></td>\n", $row->RecordID, $row->Opgezegd);
+		
+		if ($row->Opgezegd > "1900-01-01") {
+			printf("<td><input type='checkbox' name='OpgezegdDoorVereniging_%d' value=1 %s onClick='this.form.submit();'></td>\n", $row->RecordID, checked($row->OpgezegdDoorVereniging));
+		} else {
+			echo("<td></td>");
+			printf("<input type='hidden' name='OpgezegdDoorVereniging_%d' value=0>\n", $row->RecordID);
+		}
+		
 		if ($row->Opgezegd >= "1901-01-01") {
 			if ($row->Opgezegd >= date("Y-m-d")) {
 				$toev = false;
@@ -2348,16 +2365,25 @@ function fnBasisgegevens($p_type) {
 		
 		if (isset($_POST['NieuweOrganisatie'])) {
 			$i_org->add();
+		} elseif (isset($_GET['op']) and $_GET['op'] == "delete" and isset($_GET['OrgNr']) and $_GET['OrgNr'] > 0) {
+			$i_org->delete($_GET['OrgNr']);
 		}
 		
-		$orgres = $i_org->basislijst("", "Org.Nummer", 0);
+		$orgres = $i_org->lijst(0, 0);
 		
 		$kols[0]['headertext'] = "Nummer";
 		$kols[0]['type'] = "pk";
-		$kols[0]['readonly'] = true;
+		$kols[0]['cond_ro'] = "aantalLinked";
 		
 		$kols[1]['headertext'] = "Afkorting";
 		$kols[2]['headertext'] = "Volledige naam";
+
+
+		$kols[3]['headertext'] = "&nbsp;";
+		$kols[3]['columnname'] = "Nummer";
+		$kols[3]['link'] = sprintf("%s?tp=%s&op=delete&OrgNr=%%d", $_SERVER['PHP_SELF'], $_GET['tp']);
+		$kols[3]['cond_ro'] = "aantalLinked";
+		$kols[3]['class'] = "trash";
 		
 		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 		
@@ -2373,11 +2399,14 @@ function fnBasisgegevens($p_type) {
 		
 		if (isset($_POST['NieuwSeizoen'])) {
 			$i_sz->add();
+		} elseif (isset($_GET['op']) and $_GET['op'] == "delete" and isset($_GET['SeizoenNr']) and $_GET['SeizoenNr'] > 0) {
+			$i_sz->delete($_GET['SeizoenNr']);
 		}
 		
 		$kols[0]['headertext'] = "Nummer";
 		$kols[0]['columnname'] = "Nummer";
 		$kols[0]['type'] = "pk";
+		$kols[0]['cond_ro'] = "aantalRek";
 		
 		$kols[1]['headertext'] = "Begindatum";
 		$kols[1]['columnname'] = "Begindatum";
@@ -2390,6 +2419,12 @@ function fnBasisgegevens($p_type) {
 		$kols[3]['headertext'] = "Leeftijdgrens jeugdleden";
 		$kols[3]['columnname'] = "Leeftijdsgrens jeugdleden";
 		$kols[3]['type'] = "integer";
+		
+		$kols[4]['headertext'] = "&nbsp;";
+		$kols[4]['columnname'] = "Nummer";
+		$kols[4]['class'] = "trash";
+		$kols[4]['link'] = sprintf("%s?tp=%s&op=delete&SeizoenNr=%%d", $_SERVER['PHP_SELF'], $_GET['tp']);
+		$kols[4]['cond_ro'] = "aantalRek";
 		
 		$seizres = $i_sz->lijst(0);
 		
