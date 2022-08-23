@@ -350,8 +350,11 @@ class Mailing {
 							 ORDER BY LM.LIDDATUM DESC LIMIT 1;", $i_base->fdlang, TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "OpgezegdPer", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT IFNULL(L.Email, 'Geen') FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
+		$sql = sprintf("SELECT IFNULL(L.Email, '') FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Email", 'SQL' => $sql);
+		
+		$sql = sprintf("SELECT IF(LENGTH(IFNULL(L.Email, '')) < 5, IFNULL(L.EmailOuders, ''), IFNULL(L.Email, '')) FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
+		$this->MergeField[]=array('Naam' => "EmailLidOfOuders", 'SQL' => $sql);
 		
 		$sql = sprintf("SELECT IFNULL(L.EmailOuders, '') FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "EmailOuders", 'SQL' => $sql);
@@ -1791,12 +1794,6 @@ function fnRekeningenMailen($op) {
 			if (isset($_POST['vanafid'])) {
 				$i_p->update("mailing_rekening_vanafid", $_POST['vanafid']);
 			}
-						
-			if (isset($_POST['mailing_rekening_regelnrsweglaten']) and $_POST['mailing_rekening_regelnrsweglaten'] == 1) {
-				$i_p->update("mailing_rekening_regelnrsweglaten", 1);
-			} else {
-				$i_p->update("mailing_rekening_regelnrsweglaten", 0);
-			}
 			
 			$i_p->update("mailing_rekening_zichtbaarvoor", $_POST['zichtbaarvoor']);
 
@@ -1813,7 +1810,7 @@ function fnRekeningenMailen($op) {
 				printf("<ul>\n%s</ul>\n<div class='clear'></div>\n", $selrek);
 				printf("<input type='hidden' name='rekfilter' value=\"%s\">\n", $filter);
 				echo("<div id='opdrachtknoppen'>\n");
-				echo("Rekeningen versturen?&nbsp<input type='checkbox' value='1' name='sure'>\n");
+				echo("<input type='checkbox' value='1' name='sure'>\n");
 				echo("<input type='submit' value='Rekeningen versturen' name='StuurRek'>\n");
 				echo("<input type='button' value='Terug' onClick='history.go(-1);'>\n");
 				echo("</div>  <!-- Einde opdrachtknoppen -->\n");
@@ -1877,16 +1874,15 @@ function fnRekeningenMailen($op) {
 		echo("<h2>Filters</h2>\n");
 		echo("<table>\n");
 		echo("<tr><th></th><th>Gelijk aan</th><th>Vanaf</th><th>Totenmet</th></tr>");
-		printf("<tr><td class='label'>Seizoen</th><td><select name='rekseizoen'>\n%s</select></td><td></td><td></td></tr>\n", (new cls_Seizoen())->htmloptions());
-		printf("<tr><td class='label'>Rekeningnummer</td><td><input type='number' name='reknr'></td><td><input type='number' value=%d name='minreknr'></td><td><input type='number' value=%d name='maxreknr'></td></tr>\n", $i_rk->min("Nummer"), $i_rk->max("Nummer"));
-		printf("<tr><td class='label'>Rekeningdatum</td><td><input type='date' name='rekdatum'></td><td><input type='date' value='%s' name='mindatum'></td><td><input type='date' value='%s' name='maxdatum'></td></tr>\n", $i_rk->min("Datum"), $i_rk->max("Datum"));			
-		printf("<tr><td class='label'>Betaald door (debiteur)</td><td><select name='reklid'>\n<option value=-1>*** Iedereen ***</option>\n%s</select></td><td></td><td></td></tr>\n", (new cls_lid())->htmloptions(-1, 3));
-		echo("<tr><td class='label'>Statussen</td><td colspan=3>\n");
-		echo("<input type='checkbox' name='volbetaald' value=1 checked><p>Volledig betaald</p>\n");
-		echo("<input type='checkbox' name='deelbetaald' value=1 checked><p>Gedeeltelijk betaald</p>\n");
-		echo("<input type='checkbox' name='nietbetaald' value=1 checked><p>Niet betaald</p>\n");
-		printf("<input type='checkbox' name='nulrekeningen' value=1 %s><p>Nul rekeningen</p>\n", checked($_SESSION['settings']['mailing_rekening_nulrekversturen']));
-		echo("<input type='checkbox' name='eerderverzonden' value=1 checked><p>Eerder verzonden</p>\n");
+		printf("<tr><th>Seizoen</th><td><select name='rekseizoen'>\n%s</select></td><td></td><td></td></tr>\n", (new cls_Seizoen())->htmloptions(-1, 1));
+		printf("<tr><th>Rekeningnummer</th><td><input type='number' name='reknr'></td><td><input type='number' value=%d name='minreknr'></td><td><input type='number' value=%d name='maxreknr'></td></tr>\n", $i_rk->min("Nummer"), $i_rk->max("Nummer"));
+		printf("<tr><th>Rekeningdatum</th><td><input type='date' name='rekdatum'></td><td><input type='date' value='%s' name='mindatum'></td><td><input type='date' value='%s' name='maxdatum'></td></tr>\n", $i_rk->min("Datum"), $i_rk->max("Datum"));			
+		printf("<tr><th>Betaald door (debiteur)</th><td><select name='reklid'>\n<option value=-1>*** Iedereen ***</option>\n%s</select></td><td></td><td></td></tr>\n", (new cls_lid())->htmloptions(-1, 3));
+		echo("<tr><th>Volledig betaald</th><td><input type='checkbox' name='volbetaald' value=1 checked></td></tr>\n");
+		echo("<tr><th>Gedeeltelijk betaald</th><td><input type='checkbox' name='deelbetaald' value=1 checked></td></tr>\n");
+		echo("<tr><th>Niet betaald</th><td><input type='checkbox' name='nietbetaald' value=1 checked></td></tr>\n");
+		printf("<tr><th>Nul rekeningen</th><td><input type='checkbox' name='nulrekeningen' value=1 %s></td></tr>\n", checked($_SESSION['settings']['mailing_rekening_nulrekversturen']));
+		echo("<tr><th>Eerder verzonden</th><td><input type='checkbox' name='eerderverzonden' value=1 checked></td></tr>\n");
 		echo("</table>\n");
 		
 		echo("<h2>Instellingen</h2>\n");
