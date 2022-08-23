@@ -257,6 +257,7 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 		
 		$i_lo = new cls_Lidond();
 		$i_gr = new cls_Groep();
+		$i_ak = new cls_Afdelingskalender($afdid);
 
 		if (isset($_POST['NieuweGroep'])) {
 			$i_gr->add($afdid);
@@ -295,15 +296,22 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 			echo("</table>\n");
 		}
 		echo("</div>  <!-- Einde groepsindelingmuteren -->\n");
-
+		
 		echo("<div id='groepenmuteren'>\n");
 		echo("<table>\n");
 		echo("<caption>Muteren groepen</caption>\n");
-		echo("<tr><th>#</th><th>Volgnr</th><th>Code</th><th>Omschrijving</th><th>Instructeurs</th><th>Starttijd</th><th>Eindtijd</th><th>Norm aanw.</th><th></th></tr>\n");
-	
-		$f = sprintf("OnderdeelID=%d", $afdid);
+		echo("<tr><th>#</th><th>Volgnr</th><th>Code</th><th>Omschrijving</th><th>Instructeurs</th><th>Starttijd</th><th>Eindtijd</th><th>Norm aanw.</th>");
 		
-		foreach ($i_gr->basislijst($f, "Volgnummer, Omschrijving") as $row) {
+		$f = sprintf("AK.OnderdeelID=%d AND AK.Datum >= CURDATE()", $afdid);
+		if (file_exists("maatwerk/Presentielijst.php") and $i_ak->aantal($f) > 0) {
+			$plmog = true;
+			echo("<th></th>");
+		} else {
+			$plmog = false;
+		}
+		echo("</tr>\n");
+
+		foreach ($i_gr->selectlijst($afdid) as $row) {
 			if ($row->RecordID > 0) {
 				echo("<tr>\n");
 				printf("<td class='number'>%d</td>\n", $row->RecordID);
@@ -314,10 +322,12 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 				printf("<td><input type='time' id='Starttijd_%d' value='%s'></td>\n", $row->RecordID, $row->Starttijd);
 				printf("<td><input type='time' id='Eindtijd_%d' value='%s'></td>\n", $row->RecordID, $row->Eindtijd);
 				printf("<td><input type='number' id='Aanwezigheidsnorm_%d' value=%d></td>\n", $row->RecordID, $row->Aanwezigheidsnorm);
-				if (file_exists("maatwerk/Presentielijst.php")) {
-					printf("<td class='print'><a href='./maatwerk/Presentielijst.php?p_groep=%d' title='Presentielijst'>&nbsp;</a></td>", $row->RecordID);
-				} else {
-					echo("<td></td>");
+				if ($plmog) {
+					if ($row->aantalInGroep > 0) {
+						printf("<td class='print'><a href='./maatwerk/Presentielijst.php?p_groep=%d' title='Presentielijst %d leden'>&nbsp;</a></td>", $row->RecordID, $row->aantalInGroep);
+					} else {
+						echo("<td></td>");
+					}
 				}
 				echo("</tr>\n");
 			}
