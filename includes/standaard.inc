@@ -9,7 +9,7 @@ define("ARRTL", ["Alle", "Leden", "Klosleden", "Voormalig leden"]);
 define("ARRLEGITIMATIE", ["G" => "Geen", "I" => "Identiteitskaart", "P" => "Paspoort", "R" => "Rijbewijs"]);
 define("ARRSOORTMEMO", ["A" => "Algemeen", "B" => "Bewaking", "D" => "Dieet", "E" => "Examen", "F" => "Financiën", "G" => "Gezondheid/medisch", "I" => "Inschrijving bewaking"]);
 define("ARRTYPEONDERDEEL", ["A" => "Afdeling", "B" => "Bestuur", "C" => "Commissie", "E" => "Eigenschap", "F" => "Functionarissen", "G" => "Groep", "O" => "Onderscheiding", "R" => "Rol", "T" => "Toestemming"]);
-define("ARRTYPEDIPLOMA", ["B" => "Brevet", "C" => "Competentie", "D" => "Diploma", "I" => "Insigne", "L" => "Licentie", "M" => "Module", "P" => "Proeve van bekwaamheid"]);
+define("ARRTYPEDIPLOMA", ["B" => "Brevet", "C" => "Competentie", "D" => "Diploma", "I" => "Insigne", "L" => "Licentie", "M" => "Module", "P" => "PvB"]);
 define("PASFOTOEXTENTIES", ["gif", "jpg", "jpeg", "png"]);
 define("ARRTYPEEDITOR", [1 => "CKEditor 5 Classic editor", 2 => "CKEditor 4", 3 => "TinyMCE"]);
 define("ARRSOORTEVENEMENT", ["B" => "Brigade-activiteit", "G" => "Gezellig/sociaal", "O" => "Opleiding", "V" => "Vergadering/overleg", "W" => "Wedstrijd"]);
@@ -350,7 +350,7 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 					$navpad[$nivo]['naam'] = $tpd;
 					$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
 				}
-				if ($itp == $mamk) {
+				if ($itp == $mamk and 1 == 2) {
 					echo("<li class='dropdown'>&nbsp;\n");
 					echo("<ul>\n");
 				}
@@ -358,7 +358,7 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 				$itp++;
 			}
 		}
-		if ($itp > $mamk) {
+		if ($itp > $mamk and 1 == 2) {
 			echo("</ul> <!-- Einde dropdown -->\n");
 			echo("</li>\n");
 		}
@@ -933,6 +933,25 @@ function fnEditTable($res, $kols, $id, $th) {
 	$ret .= "<tr>";
 	$colpk = -1;
 	foreach ($kols as $kn => $kol) {
+		$kols[$kn]['colnum'] = $kn;
+		$kols[$kn]['col_cond_ro'] = -1;
+		if (count($rows) > 0) {
+			foreach ($rows[0] as $k => $v) {
+				if ($kn == $k and !isset($kol['columnname'])) {
+					$kols[$kn]['columnname'] = $res->getColumnMeta($k)['name'];
+					$kols[$kn]['colnum'] = $k;
+				} elseif (isset($kol['columnname']) and $res->getColumnMeta($k)['name'] == $kol['columnname']) {
+					$kols[$kn]['colnum'] = $k;
+				}
+				if (!isset($kol['type'])) {
+					$kols[$kn]['type'] = strtolower($res->getColumnMeta($kn)['native_type']);
+				}
+				if (isset($kol['cond_ro']) and strlen($kol['cond_ro']) > 0 and $res->getColumnMeta($k)['name'] == $kol['cond_ro']) {
+					$kols[$kn]['col_cond_ro'] = $k;
+				}
+			}
+		}
+		
 		if (isset($kol['headertext']) and strlen($kol['headertext']) > 0) {
 			$ret .= sprintf("<th>%s</th>", $kol['headertext']);
 		}
@@ -940,6 +959,8 @@ function fnEditTable($res, $kols, $id, $th) {
 			$colpk = $kn;
 		}
 	}
+	
+//	debug($kols);
 	$ret .= "</tr>\n";
 	$ret .= "</thead>\n";
 	
@@ -974,23 +995,18 @@ function fnEditTable($res, $kols, $id, $th) {
 				}
 				
 			}
+			$colnum = $kol['colnum'];
+			$col_cond_ro = $kol['col_cond_ro'];
 			$ro = $kol['readonly'] ?? false;
-			$colnum = 0;
-			if (isset($kol['columnname']) and strlen($kol['columnname']) > 0) {
-				foreach ($row as $k => $v) {
-					if ($res->getColumnMeta($k)['name'] == $kol['columnname']) {
-						$colnum = $k;
-					}
-				}
-			} else {
-				$colnum = $key;
+			if ($col_cond_ro >= 0 and $row[$col_cond_ro] > 0) {
+				$ro = true;
 			}
 			$value = $row[$colnum];
 			$colname = $res->getColumnMeta($colnum)['name'];
 			$collen = intval($res->getColumnMeta($colnum)['len'] / 3);
 			
 			if ($tp == "link") {
-				if ($value > 0) {
+				if ($value > 0 and $ro == false) {
 					$href = str_replace("%d", $value, $kol_link);
 					$href = str_replace("%s", "&nbsp;&nbsp;&nbsp;", $href);
 					$ret .= sprintf("<td %s>%s</td>", $kol_class, $href);
@@ -1017,9 +1033,13 @@ function fnEditTable($res, $kols, $id, $th) {
 				}
 				$ret .= sprintf("<td><select id='%s_%d'>\n%s</select></td>\n", $colname, $valpk, $opt);
 
-			} elseif ($tp == "date") {
+			} elseif ($tp == "date" or $tp == "rqdate") {
 				if ($ro == false) {
-					$ret .= sprintf("<td><input type='date' id='%s_%d' value='%s'></td>", $colname, $valpk, $value);
+					$rq = "";
+					if ($tp == "rqdate") {
+						$rq = " required";
+					}
+					$ret .= sprintf("<td><input type='date' id='%s_%d' value='%s'%s></td>", $colname, $valpk, $value, $rq);
 				} elseif ((!is_null($value)) and $value > '1900-01-01') {
 					$ret .= sprintf("<td>%s</td>", strftime('%e %B %Y', strtotime($value)));
 				} else {
@@ -1028,7 +1048,7 @@ function fnEditTable($res, $kols, $id, $th) {
 				
 			} elseif ($tp == "datetime") {
 				if ($ro == false) {
-					// Nog aanpassen, klopt nog niet.
+					// Nog aanpassen, klopt niet
 					$ret .= sprintf("<td><input type='date' id='%s_%d' value='%s'></td>", $colname, $valpk, $value);
 					
 				} elseif ((!is_null($value)) and $value > '1900-01-01') {
@@ -1078,7 +1098,7 @@ function fnEditTable($res, $kols, $id, $th) {
 		savedata('%1\$s', 0, this);
 	});
 	
-	$('input').blur(function(){
+	$('input').focusout(function(){
 		savedata('%1\$s', 0, this);
 	});
 
