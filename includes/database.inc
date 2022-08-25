@@ -6258,6 +6258,11 @@ class cls_Eigen_lijst extends cls_db_base {
 		}
 	}
 	
+	public function recordid($p_filter) {
+		$query = sprintf("SELECT IFNULL(MIN(EL.RecordID), 0) FROM %s WHERE %s", $this->basefrom, $p_filter);
+		return $this->scalar($query);
+	}
+	
 	public function lijst($p_filter="") {
 		
 		$w = "";
@@ -6328,16 +6333,20 @@ class cls_Eigen_lijst extends cls_db_base {
 		$elrows = $result->fetchAll();
 		foreach ($elrows as $row) {
 			$this->elid = $row->RecordID;
-			
-			$elres = $dbc->prepare($this->mysql($this->elid));
-			try {
-				$elres->execute();
-				$cc = $elres->ColumnCount();
-				$rc = $elres->RowCount();
-				$this->sqlerror = "";
+			if (strlen($this->mysql($this->elid)) > 7) {
+				$elres = $dbc->prepare($this->mysql($this->elid));
+				try {
+					$elres->execute();
+					$cc = $elres->ColumnCount();
+					$rc = $elres->RowCount();
+					$this->sqlerror = "";
 		
-			} catch (Exception $e) {
-				$this->sqlerror = $e->getMessage();
+				} catch (Exception $e) {
+					$this->sqlerror = $e->getMessage();
+				}
+			} else {
+				$cc = 0;
+				$rc = 0;
 			}
 			
 			$kol_lidid = -1;
@@ -6440,6 +6449,7 @@ class cls_Eigen_lijst extends cls_db_base {
 	}
 	
 	public function update($p_elid, $p_kolom, $p_waarde) {
+		$this->tas = 2;
 		
 		if ($p_kolom == "Naam") {
 			$p_waarde = str_replace("/", "_", $p_waarde);
@@ -6448,11 +6458,24 @@ class cls_Eigen_lijst extends cls_db_base {
 			$p_waarde = str_ireplace("[%LIDNAAM%]", $this->selectnaam, $p_waarde);
 			$p_waarde = str_ireplace("[%TELEFOON%]", $this->selecttelefoon, $p_waarde);
 			$p_waarde = str_ireplace("[%EMAIL%]", $this->selectemail, $p_waarde);
+			
+		} elseif ($p_kolom == "Tabpage" and strlen($p_waarde) > 0)	{
+			if (substr($p_waarde, -1) == "\\") {
+				$p_waarde = substr($p_waard, 0, -1);
+			}
+			$i_auth = new cls_Authorisation();
+			
+			if ($i_auth->recordid($p_waarde) == 0) {
+				$this->mess = sprintf("Tabpagina '%s' bestaat niet en kan dus niet aan een eigen lijst worden gekoppeld.", $p_waarde);
+				$p_waarde = "";
+				$this->log($p_elid, 1);
+			}
+			
+			$i_auth = null;
 		}
 
 		if ($_SESSION['webmaster'] == 1)  {
 			if ($this->pdoupdate($p_elid, $p_kolom, $p_waarde) > 0) {
-				$this->tas = 2;
 				$this->log($p_elid);
 			}
 		}
@@ -6994,6 +7017,21 @@ function db_onderhoud($type=9) {
 		$query = sprintf("ALTER TABLE `%s` ADD `%s` VARCHAR(75) NULL AFTER `AantalRecords`; ", $tab, $col);
 		$i_base->execsql($query, 2);
 	}
+	
+	$tab = TABLE_PREFIX . "Evenement_Type";
+	$col = "Achtergrondkleur";
+	if ($i_base->bestaat_kolom($col, $tab) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` VARCHAR(12) NULL AFTER `Soort`; ", $tab, $col);
+		$i_base->execsql($query, 2);
+	}
+	
+	$tab = TABLE_PREFIX . "Evenement_Type";
+	$col = "Tekstkleur";
+	if ($i_base->bestaat_kolom($col, $tab) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` VARCHAR(12) NULL AFTER `Soort`; ", $tab, $col);
+		$i_base->execsql($query, 2);
+	}
+	
 	
 	/***** Velden die aangepast zijn *****/
 	
