@@ -5078,7 +5078,7 @@ class cls_Evenement extends cls_db_base {
 			$ord = "E.Datum;";
 			
 		} elseif ($p_soort == 5) {
-			$select = "E.Datum, E.Omschrijving, E.TypeEvenement, ET.Omschrijving AS OmsType";
+			$select = "E.Datum, E.Omschrijving, E.TypeEvenement, ET.Omschrijving AS OmsType, ET.Tekstkleur, ET.Achtergrondkleur";
 			$where = sprintf("LEFT(E.Datum, 10)='%s' AND IFNULL(E.VerwijderdOp, '1900-01-01') < '2012-01-01' AND E.ZichtbaarVoor IN (%s)", $p_datum, $_SESSION["lidgroepen"]);
 			$ord = "E.Datum;";
 			
@@ -5332,7 +5332,7 @@ class cls_Evenement_Type extends cls_db_base {
 	}
 	
 	public function lijst() {
-		$query = sprintf("SELECT ET.RecordID, ET.Omschrijving, ET.Soort FROM %s ORDER BY ET.Omschrijving;", $this->basefrom);
+		$query = sprintf("SELECT ET.* FROM %s ORDER BY ET.Omschrijving;", $this->basefrom);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}

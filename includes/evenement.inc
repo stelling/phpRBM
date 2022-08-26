@@ -289,7 +289,7 @@ function muteerevenement($eventid) {
 	printf("<input type='hidden' name='eventid' value=%d>\n", $eventid);
 	
 	echo("<span>\n");	
-	printf("<label>Datum</label><input type='date' id='Datum' value='%s'>\n", $datum);
+	printf("<label>Datum</label><input type='date' id='Datum' name='Datum' value='%s'>\n", $datum);
 	printf("<label>Starttijd</label><input type='time' name='Starttijd' value='%s'>\n", $starttijd);
 	printf("<label>Eindtijd</label><input type='time' name='Eindtijd' value='%s'>\n", $eindtijd);
 	printf("<label>Verzamelen</label><input type='time' name='Verzameltijd' value='%s'>\n", $verzameltijd);
@@ -446,11 +446,19 @@ function muteertypeevenement() {
 			foreach ($i_et->lijst() as $row) {
 				$oms = sprintf("oms_%d", $row->RecordID);
 				$soort = sprintf("soort_%d", $row->RecordID);
+				$tk = sprintf("tekstkleur_%d", $row->RecordID);
+				$ak = sprintf("achtergrondkleur_%d", $row->RecordID);
 				if (isset($_POST[$oms])) {
 					$i_et->update($row->RecordID, "Omschrijving", $_POST[$oms]);
 				}
 				if (isset($_POST[$soort])) {
 					$i_et->update($row->RecordID, "Soort", $_POST[$soort]);
+				}
+				if (isset($_POST[$tk])) {
+					$i_et->update($row->RecordID, "Tekstkleur", $_POST[$tk]);
+				}
+				if (isset($_POST[$ak])) {
+					$i_et->update($row->RecordID, "Achtergrondkleur", $_POST[$ak]);
 				}
 			}
 		}
@@ -459,20 +467,38 @@ function muteertypeevenement() {
 	echo("<div id='muteertypeevenement'>\n");
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	echo("<table>\n");
-	echo("<tr><th>Omschrijving</th><th>Soort</th><th></th></tr>\n");
+	echo("<tr><th>Omschrijving</th><th>Soort</th><th>Tekstkleur</th><th>Achtergrondkleur</th><th>Voorbeeld</th><th></th></tr>\n");
 	foreach ($i_et->lijst() as $row) {
 		echo("<tr>");
-		printf("<td><input type='text' name='oms_%d' value='%s' onBlur='this.form.submit();'></td>\n", $row->RecordID, $row->Omschrijving);
+		printf("<td><input type='text' name='oms_%d' value='%s' class='w30' max-length=30 onBlur='this.form.submit();'></td>\n", $row->RecordID, $row->Omschrijving);
 		$options = "\n";
 		foreach (ARRSOORTEVENEMENT as $key => $val) {
 			if ($key == $row->Soort) {
 				$s = "selected";
 			} else {
 				$s = "";
-			}
+			}	
 			$options .= sprintf("<option value='%s' %s>%s</option>\n", $key, $s, $val);
 		}
 		printf("<td><select name='soort_%d' onChange='this.form.submit();'>%s</select></td>", $row->RecordID, $options);
+		
+		printf("<td><input type='text' name='tekstkleur_%d' value='%s' class='w12' onBlur='this.form.submit();'></td>\n", $row->RecordID, $row->Tekstkleur);
+		printf("<td><input type='text' name='achtergrondkleur_%d' class='w12' value='%s' onBlur='this.form.submit();'></td>\n", $row->RecordID, $row->Achtergrondkleur);
+		
+		$s = "";
+		if (strlen($row->Tekstkleur) > 2 or strlen($row->Achtergrondkleur) > 2) {
+			$s = " style='";
+			if (strlen($row->Tekstkleur) > 2) {
+				$s .= "color: " . $row->Tekstkleur . ";";
+			}
+			if (strlen($row->Achtergrondkleur) > 2) {
+				$s .= "background-color: " . $row->Achtergrondkleur . ";";
+			}
+			$s .= "'";
+		}
+		
+		printf("<td class='%s'%s>%s</td>\n", str_replace("'", "", str_replace(" ", "_", strtolower($row->Omschrijving))), $s, $row->Omschrijving);
+		
 		printf("<td><a href='%s?tp=%s&amp;op=delete&amp;tid=%d' title='Verwijder type evenement'>&nbsp;&nbsp;&nbsp;</a></td>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $row->RecordID);
 		echo("</tr>\n");
 	}
