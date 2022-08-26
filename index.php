@@ -53,6 +53,18 @@ if (strlen($_SESSION['settings']['menu_met_afdelingen']) > 0 and (new cls_Onderd
 	$isafdelingstab = 1;
 }
 
+$eigenlijstid = 0;
+$f = "";
+if (strlen($currenttab2) > 0 and strlen($currenttab3) > 0) {
+	$f = sprintf("EL.Tabpage='%s\%s' AND EL.Naam='%s'", $currenttab, $currenttab2, $currenttab3);
+} elseif (strlen($currenttab2) > 0) {
+	$f = sprintf("EL.Tabpage='%s' AND EL.Naam='%s'", $currenttab, $currenttab2);
+}
+if (strlen($f) > 0) {
+	$f .= " AND LENGTH(EL.Tabpage) > 0";
+	$eigenlijstid = (new cls_Eigen_lijst())->recordid($f);
+}
+
 if (toegang($_GET['tp'], 1) == false) {
 	if ($_SESSION['lidid'] == 0) {
 		fnLoginAanvragen();
@@ -136,6 +148,26 @@ if (toegang($_GET['tp'], 1) == false) {
 		}
 	}
 	DisplayTabs($tabblad);
+	
+} elseif (($currenttab == "Ledenlijst" and $currenttab2 == "Eigen lijsten") or $eigenlijstid > 0) {
+	fnDispMenu(2);
+	fnDispMenu(3);
+	if ($currenttab3 == "Muteren") {
+		fnEigenlijstenmuteren();
+	} else {
+		if ($eigenlijstid > 0) {
+			$i_el = new cls_Eigen_lijst("", $eigenlijstid);
+		} else {
+			$i_el = new cls_Eigen_lijst($currenttab3);
+		}
+		$rows = $i_el->rowset();
+		if ($rows !== false) {
+			printf("<p>%s</p>", fnDisplayTable($rows, null, $currenttab3));
+			printf("<p>%d rijen</p>\n", count($rows));
+			$i_el->update($i_el->elid, "AantalRecords", count($rows));
+		}
+		$i_el = null;
+	}
 
 } elseif ($currenttab == "Ledenlijst") {
 	if ($currenttab2 == "Afdelingen") {
@@ -152,22 +184,7 @@ if (toegang($_GET['tp'], 1) == false) {
 		
 	} elseif ($currenttab2 == "Toestemmingen") {
 		fnOnderdelenmuteren("T");
-		
-	} elseif ($currenttab2 == "Eigen lijsten") {
-		fnDispMenu(2);
-		fnDispMenu(3);
-		if ($currenttab3 == "Muteren") {
-			fnEigenlijstenmuteren();
-		} else {
-			$i_el = new cls_Eigen_lijst($currenttab3);
-			$rows = $i_el->rowset();
-			if ($rows !== false) {
-				printf("<p>%s</p>", fnDisplayTable($rows, null, $currenttab3));
-				printf("<p>%d rijen</p>\n", count($rows));
-				$i_el->update($i_el->elid, "AantalRecords", count($rows));
-			}
-			$i_el = null;
-		}
+	
 		
 	} elseif ($currenttab2 == "Basisgegevens") {
 		fnDispMenu(2);
@@ -372,7 +389,19 @@ function fnAgenda($p_lidid=0) {
 				if (substr($evrow->Datum, 11, 5) > "00:00") {
 					$bt = substr($evrow->Datum, 11, 5) . "&nbsp;";
 				}
-				$txt .= sprintf("<li class='%s'>%s%s</li>\n", str_replace("'", "", str_replace(" ", "_", strtolower($evrow->OmsType))), $bt, $evrow->Omschrijving);
+				$s = "";
+				if (strlen($evrow->Tekstkleur) > 2 or strlen($evrow->Achtergrondkleur) > 2) {
+					$s = " style='";
+					if (strlen($evrow->Tekstkleur) > 2) {
+						$s .= "color: " . $evrow->Tekstkleur . ";";
+					}
+					
+					if (strlen($evrow->Achtergrondkleur) > 2) {
+						$s .= "background-color: " . $evrow->Achtergrondkleur . ";";
+					}
+					$s .= "'";
+				}
+				$txt .= sprintf("<li class='%s'%s>%s%s</li>\n", str_replace("'", "", str_replace(" ", "_", strtolower($evrow->OmsType))), $s, $bt, $evrow->Omschrijving);
 			}
 			
 			// Afdelingskalender

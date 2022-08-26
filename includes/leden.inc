@@ -2072,8 +2072,14 @@ function fnEigenlijstenmuteren() {
 			$i_el->add();
 		}
 		
-		if (isset($_POST['naam'])) {
-			$i_el->update($elid, "Naam", $_POST['naam']);
+		$i_el->update($elid, "Naam", $_POST['naam']);
+		
+		if (isset($_POST['tabpage'])) {
+			if (substr($_POST['tabpage'], -1) == "\\") {
+				$_POST['tabpage'] = substr($_POST['tabpage'], 0, -1);
+			}
+			$_POST['tabpage'] = str_replace("\\" . $_POST['naam'], "", $_POST['tabpage']);
+			$i_el->update($elid, "Tabpage", $_POST['tabpage']);
 		}
 		
 		if (isset($_POST['mysql'])) {
@@ -2105,8 +2111,9 @@ function fnEigenlijstenmuteren() {
 		echo("<div id='eigenlijstmuteren'>\n");
 		printf("<form method='post' action='%s?tp=%s&paramID=%d'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $elid);
 		
-		printf("<label>Naam eigen lijst</label><input type='text' name='naam' value='%s' maxlength=35>", $row->Naam);
+		printf("<label>Naam eigen lijst</label><input type='text' name='naam' class='w35' value='%s' maxlength=35>\n", $row->Naam);
 		printf("<label>MySQL-code</label><textarea id='mysql' name='mysql' rows=16 cols=100>%s</textarea>\n", $row->MySQL);
+		printf("<label>Tonen in tabblad</label><input type='text' name='tabpage' class='w75' value='%s' maxlength=75>\n", $row->Tabpage);
 		printf("<label>Standaard waarden parameter(s)</label><input type='text' name='default_waarde_params' value='%s' maxlength=100><p>(bij meedere scheiden met een ;)</p>\n", $row->Default_value_params);
 		echo("<label>Beschikbare variabelen</label><p>[%LIDNAAM%], [%TELEFOON%], [%EMAIL%]</p>");
 		if (strlen($i_el->sqlerror) == 0) {
@@ -2121,10 +2128,24 @@ function fnEigenlijstenmuteren() {
 		echo("<div id='opdrachtknoppen'>\n");
 		echo("<input type='submit' value='Bewaren' name='Bewaren'>\n");
 		echo("<input type='submit' value='Bewaren & Sluiten' name='BewarenSluiten'>\n");
+		if ($row->AantalRecords > 0 and $row->AantalKolommen > 1) {
+			echo("<button type='button' onClick=\"$('#resultaatlijst').toggle();\">Toon/verberg resultaat</button>\n");
+		}
 		echo("</div>\n");
 		
 		echo("</form>\n");
 		echo("</div> <!-- Einde eigenlijstmuteren -->\n");
+		
+		if ($row->AantalRecords > 0 and $row->AantalKolommen > 1) {
+			echo("<div id='resultaatlijst'>\n");
+			$i_el = new cls_Eigen_lijst($row->Naam);
+			$rows = $i_el->rowset();
+			if ($rows !== false) {
+				printf("<p>%s</p>", fnDisplayTable($rows, null, "Resultaat"));
+				printf("<p>%d rijen</p>\n", count($rows));
+			}
+			echo("</div> <!-- Einde resultaatlijst -->\n");
+		}
 		
 	} else {
 		

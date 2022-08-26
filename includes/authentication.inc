@@ -112,11 +112,6 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		addtp("Ledenlijst/Eigen lijsten");
 		if ($currenttab2 == "Eigen lijsten") {
 			addtp("Ledenlijst/Eigen lijsten/Muteren");
-			foreach((new cls_Eigen_lijst())->lijst() as $row) {
-				if ($row->AantalRecords > 0 and $row->AantalKolommen > 1) {
-					addtp("Ledenlijst/Eigen lijsten/" . $row->Naam);
-				}
-			}
 		}
 		
 		$b = "Ledenlijst/Basisgegevens";
@@ -193,7 +188,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 						}
 					}
 					
-					if (toegang("Mailing/Muteren")) {
+					if (toegang("Mailing/Muteren", 0, 0)) {
 						$tp = trim($row->Naam) . "/Afdelingsmailing";
 						addtp($tp);
 					}
@@ -246,7 +241,6 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	}
 	
 	addtp("Stukken");
-
 
 	if ((new cls_Bewakingsseizoen())->aantal() > 0) {
 		addtp("Bewaking");
@@ -312,6 +306,16 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	
 	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 //		addtp("DMS");   Voorlopig geen tijd voor, dus uitgezet.
+	}
+	
+	foreach((new cls_Eigen_lijst())->lijst("EL.AantalRecords > 0") as $row) {
+		if (($row->AantalKolommen > 1 or strlen($row->Tabpage) > 0)) {
+			if (strlen($row->Tabpage) > 0) {
+				addtp($row->Tabpage . "/" . $row->Naam);
+			} else {
+				addtp("Ledenlijst/Eigen lijsten/" . $row->Naam);
+			}
+		}
 	}
 
 }
@@ -464,9 +468,9 @@ function fnInloggen() {
 	echo("<div id='login'>\n");
 	echo("<h2>Inloggen</h2>\n");
 	echo("<form action='/index.php' method='post'>\n");
-	echo("<label>Login</label><input type='text' name='username'>\n");
-	echo("<label>Wachtwoord</label><input type='password' name='password'>\n");
-	echo("<label>Ingelogd blijven?</label><input type='checkbox' name='cookie' value=1 title='Ingelogd blijven'> <p>(werkt met cookies)</p>\n");
+	echo("<label>Login</label><input type='text' name='username' class='w15'>\n");
+	printf("<label>Wachtwoord</label><input type='password' name='password' class='w%d'>\n", $_SESSION['settings']['wachtwoord_maxlengte']);
+	echo("<label>Ingelogd blijven?</label><input type='checkbox' name='cookie' value=1 title='Ingelogd blijven'><p>(werkt met cookies)</p>\n");
 	echo("<p>Heb je nog geen login, dan kan je die <a href='\?tp=Login+aanvragen'>aanvragen</a>.</p>");
 	echo("<p>Ben je je wachtwoord vergeten, dan kan je deze <a href='\?tp=Herstel+wachtwoord'>opnieuw instellen</a>.</p>\n");
 
@@ -906,7 +910,7 @@ function addtp($tp, $afdnr=0) {
 	$i_acc = new cls_Authorisation();
 //	debug($tp . " in addtp");
 	
-	if ((strstr($tp, "/") === false or startwith($tp, $currenttab . "/")) and ($_SESSION['webmaster'] == 1 or toegang($tp, 0, 0))) {
+	if ((strstr($tp, "/") === false or startwith($tp, $currenttab . "/")) and toegang($tp, 0, 0)) {
 //	if (toegang($tp, 0, 0)) {
 //		debug($tp . " toegevoegd");
 		$tabpages[] = $tp;
