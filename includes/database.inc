@@ -2244,13 +2244,21 @@ class cls_Functie extends cls_db_base {
 class cls_Afdelingskalender extends cls_db_base {
 	private $ondid = 0;
 	private $akid = 0;
+	private $ondnaam = "";
 	
 	function __construct($p_ondid=-1) {
 		$this->table = TABLE_PREFIX . "Afdelingskalender";
 		$this->basefrom = $this->table . " AS AK";
 		$this->ta = 21;
-		if ($p_ondid > 0) {
+		$this->vulvars($p_ondid);
+	}
+	
+	private function vulvars($p_ondid=-1) {
+		if ($p_ondid >= 0) {
 			$this->ondid = $p_ondid;
+		}
+		if ($this->ondid > 0) {
+			$this->ondnaam = (new cls_Onderdeel())->Naam($this->ondid);
 		}
 	}
 	
@@ -2299,13 +2307,18 @@ class cls_Afdelingskalender extends cls_db_base {
 	
 	public function add($p_ondid) {
 		$this->tas = 1;
+		$this->vulvars($p_ondid);
 		$nrid = $this->nieuwrecordID();
-		$query = sprintf("INSERT INTO %s (RecordID, OnderdeelID, IngevoerdDoor) VALUES (%d, %d, %d);", $this->table, $nrid, $p_ondid, $_SESSION['lidid']);
+		
+		$query = sprintf("SELECT DATE_ADD(IFNULL(MAX(AK.Datum), CURDATE()), INTERVAL 7 DAY) FROM %s WHERE OnderdeelID=%d;", $this->basefrom, $p_ondid);
+		$dat = $this->scalar($query);
+		
+		$query = sprintf("INSERT INTO %s (RecordID, OnderdeelID, Datum, IngevoerdDoor) VALUES (%d, %d, '%s', %d);", $this->table, $nrid, $p_ondid, $dat, $_SESSION['lidid']);
 		if ($this->execsql($query) > 0) {
-			$this->mess = sprintf("Record %d is voor afdeling %d in '%s' toegevoegd.", $nrid, $p_ondid, $this->table);
+			$this->mess = sprintf("Record %d (%s) is voor afdeling %s in '%s' toegevoegd.", $nrid, $dat, $this->ondnaam, $this->table);
 		}
 		
-		$this->log($nrid, 1);
+		$this->log($nrid, 0);
 		return $nrid;
 	}
 	
@@ -5061,7 +5074,9 @@ class cls_Evenement extends cls_db_base {
 			5=voor op de agenda
 		*/
 		
+		$st = "DATE_FORMAT(E.Datum, '%H:%i', 'nl_NL')";
 		$where = sprintf("E.Datum >= DATE_SUB(CURDATE(), INTERVAL 4 DAY) AND IFNULL(E.VerwijderdOp, '2000-01-01') < '2012-01-01' AND E.ZichtbaarVoor IN (%s)", $_SESSION["lidgroepen"]);
+		
 		$ord = "E.Datum DESC";
 		if ($p_soort == 2) {
 			$select = "E.RecordID, E.Datum, DATE_FORMAT(E.Datum, '%H:%i', 'nl_NL') AS Starttijd, E.Omschrijving, E.Locatie, (" . $this->sqlaantdln . ") AS Dln, E.Email, E.Eindtijd,
@@ -5078,16 +5093,15 @@ class cls_Evenement extends cls_db_base {
 			$ord = "E.Datum;";
 			
 		} elseif ($p_soort == 5) {
-			$select = "E.Datum, E.Omschrijving, E.TypeEvenement, ET.Omschrijving AS OmsType, ET.Tekstkleur, ET.Achtergrondkleur";
+			$select = sprintf("E.Datum, E.Omschrijving, E.TypeEvenement, %s AS Starttijd, ET.Omschrijving AS OmsType, ET.Tekstkleur, ET.Achtergrondkleur, ET.Vet, ET.Cursief", $st);
 			$where = sprintf("LEFT(E.Datum, 10)='%s' AND IFNULL(E.VerwijderdOp, '1900-01-01') < '2012-01-01' AND E.ZichtbaarVoor IN (%s)", $p_datum, $_SESSION["lidgroepen"]);
 			$ord = "E.Datum;";
 			
 		} else {
-			$select = sprintf("E.RecordID AS lnkNummer, E.Datum AS dteDatum, DATE_FORMAT(E.Datum, '%%H:%%i', 'nl_NL') AS Starttijd, E.Omschrijving, E.Locatie, E.MeerdereStartMomenten,
-								E.Email AS `emlEmail`, E.Verzameltijd, E.Eindtijd, ET.Soort AS ndSoort,
+			$select = sprintf("E.RecordID, E.Datum, %s AS Starttijd, E.Omschrijving, E.Locatie, E.MeerdereStartMomenten,
+								E.Email, E.Verzameltijd, E.Eindtijd, ET.Omschrijving AS OmsType, ET.Soort, ET.Tekstkleur, ET.Achtergrondkleur, ET.Vet, ET.Cursief,
 								CASE E.InschrijvingOpen WHEN 0 THEN 'Nee' ELSE 'Ja' END AS `Ins. open?`,
-								(%s) AS `Aantal dln`,
-								ET.Omschrijving AS `Type`", $this->sqlaantdln);
+								(%s) AS `Aantal dln`", $st, $this->sqlaantdln);
 			$ord = "E.Datum;";
 		}
 		$query = sprintf("SELECT %s
@@ -5332,7 +5346,7 @@ class cls_Evenement_Type extends cls_db_base {
 	}
 	
 	public function lijst() {
-		$query = sprintf("SELECT ET.* FROM %s ORDER BY ET.Omschrijving;", $this->basefrom);
+		$query = sprintf("SELECT ET.*, ET.Omschrijving AS OmsType FROM %s ORDER BY ET.Omschrijving;", $this->basefrom);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
@@ -7032,6 +7046,19 @@ function db_onderhoud($type=9) {
 		$i_base->execsql($query, 2);
 	}
 	
+	$tab = TABLE_PREFIX . "Evenement_Type";
+	$col = "Vet";
+	if ($i_base->bestaat_kolom($col, $tab) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` TINYINT NOT NULL DEFAULT '0' AFTER `Tekstkleur`; ", $tab, $col);
+		$i_base->execsql($query, 2);
+	}
+	
+	$tab = TABLE_PREFIX . "Evenement_Type";
+	$col = "Cursief";
+	if ($i_base->bestaat_kolom($col, $tab) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` TINYINT NOT NULL DEFAULT '0' AFTER `Vet`; ", $tab, $col);
+		$i_base->execsql($query, 2);
+	}
 	
 	/***** Velden die aangepast zijn *****/
 	
