@@ -107,11 +107,17 @@ function fnAfdelingskalenderMuteren($p_onderdeelid){
 		
 		if (isset($_POST['nieuw'])) {
 			$akid = $i_ak->add($p_onderdeelid);
+		} elseif (isset($_POST['nieuw7'])) {
+			for ($i=1;$i<=7;$i++) {
+				$akid = $i_ak->add($p_onderdeelid);
+			}
 		}
 	}
 	
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	
+	echo("<button type='submit' name='nieuw'>Nieuw item</button>\n");
+	echo("<button type='submit' name='nieuw7'>7 nieuwe items</button>\n");
 	echo("<table>\n");
 	$dat = "";
 	$oms = "";
@@ -147,7 +153,6 @@ function fnAfdelingskalenderMuteren($p_onderdeelid){
 	
 	echo("</table>\n");
 	
-	echo("<button type='submit' name='nieuw'>Nieuw item</button>\n");
 	echo("</form>\n");
 	
 	echo("</div> <!-- Einde afdelingskalendermuteren -->\n");
