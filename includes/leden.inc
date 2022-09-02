@@ -702,7 +702,7 @@ function fnOnderdelenmuteren($ondtype="G") {
 		$kols[4]['class'] = "leden";
 		$kols[4]['columnname'] = "RecordID";
 		$kols[4]['title'] = "%d leden";
-		$kols[4]['columntitle'] = 22;
+		$kols[4]['columntitle'] = 4;
 
 		echo("<div class='clear'></div>\n");
 	
