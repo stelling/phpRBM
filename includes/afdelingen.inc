@@ -175,7 +175,6 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 		2: alleen bij jonger dan 18 jaar
 	*/
 	
-	$hvafd = "";
 	$hvtijd = "";
 	$hvgroep = -1;
 	$hvzaal = "";
@@ -186,9 +185,13 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 		$filter = "";
 	}
 	
+	$afdnaam = (new cls_Onderdeel())->naam($afdid);
+	printf("<div id='%s'>\n", strtolower(str_replace(" ", "", $afdnaam)));
+	
 	if ($p_muteren == 0) {
 		
 		echo("<div id='groepsindeling'>\n");
+		printf("<h2>%s</h2>\n", $afdnaam);
 		
 		$i_ak = new cls_afdelingskalender();
 		$toonpresentie = 0;
@@ -201,16 +204,7 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 			echo("<div class='clear'></div>\n");
 		}
 	
-		foreach ((new cls_Lidond())->groepsindeling($afdid) as $row) {
-			if ($hvafd !== $row->AfdNaam) {
-				if (strlen($hvafd) > 0) {
-					echo("<div class='clear'></div>\n");
-				}
-				$hvafd = $row->AfdNaam;
-				printf("<h2>%s</h2>\n", $hvafd);
-				
-			}
-		
+		foreach ((new cls_Lidond())->groepsindeling($afdid) as $row) {		
 			if ($hvgroep != $row->GroepID) {
 				if ($hvgroep > -1) {
 					echo("</ol>\n");
@@ -359,6 +353,8 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 		});
 		</script>\n");
 	}
+	
+	printf("</div> <!-- Einde %s -->\n", strtolower(str_replace(" ", "", $afdnaam)));
 	
 } # fnGroepsindeling
 
@@ -644,7 +640,7 @@ function fnAfdelingsmailing($p_afdid) {
 	echo("<div id='afdelingsmailing'>\n");
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	
-	if (count($grrows) > 0) {
+	if (count($grrows) > 1) {
 		echo("<h2>Selecteer groepen</h2>\n");
 		echo("<ul>\n");
 		foreach ($grrows as $grrow) {
