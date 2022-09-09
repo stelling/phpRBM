@@ -243,7 +243,7 @@ function fnRekeningMuteren($p_rkid=-1) {
 				}
 				printf("<td><input type='text' id='KSTNPLTS_%d' value='%s' class='w7' maxlength=7%s></td>\n", $rrrow->RecordID, $rrrow->KSTNPLTS, $jsob);
 				printf("<td>%s</td>\n", $rrrow->NaamLid);
-				printf("<td><input type='text' id='OMSCHRIJV_%d' class='w60' value='%s' maxlength=60></td>\n", $rrrow->RecordID, $rrrow->OMSCHRIJV);
+				printf("<td><input type='text' id='OMSCHRIJV_%d' class='w60' value=\"%s\" maxlength=60></td>\n", $rrrow->RecordID, $rrrow->OMSCHRIJV);
 				printf("<td><input type='text' id='Bedrag_%d' value='%s' class='d8'></td>\n", $rrrow->RecordID, number_format($rrrow->Bedrag, 2, ",", ""));
 				printf("<td><input type='checkbox' id='ToonOpRekening_%d' value=1%s></td>\n", $rrrow->RecordID, checked($rrrow->ToonOpRekening));
 				printf("<td class='trash'><a href='%s?tp=%s&op=deleteregel&rrid=%d&rkid=%d'>&nbsp;&nbsp;&nbsp;</a></td>", $_SERVER['PHP_SELF'], $_GET['tp'], $rrrow->RecordID, $rrrow->Rekening);
