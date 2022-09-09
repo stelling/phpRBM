@@ -112,7 +112,7 @@ class cls_db_base {
 	public $db_language = "'nl_NL'";
 	
 	public $fromlid = TABLE_PREFIX . "Lid AS L INNER JOIN " . TABLE_PREFIX . "Lidmaatschap AS LM ON L.RecordID=LM.Lid";
-	public $fromlidond = '(' . TABLE_PREFIX . 'Lid AS L INNER JOIN ((' . TABLE_PREFIX . 'Lidond AS LO INNER JOIN ' . TABLE_PREFIX . 'Functie AS F ON LO.Functie=F.Nummer) INNER JOIN ' . TABLE_PREFIX . 'Onderdl AS O ON LO.OnderdeelID=O.RecordID) ON L.RecordID=LO.Lid) LEFT JOIN ' . TABLE_PREFIX . 'Groep AS GR ON LO.GroepID=GR.RecordID';
+	public $fromlidond = '(' . TABLE_PREFIX . 'Lid AS L INNER JOIN ((' . TABLE_PREFIX . 'Lidond AS LO INNER JOIN ' . TABLE_PREFIX . 'Functie AS F ON LO.Functie=F.Nummer) INNER JOIN ' . TABLE_PREFIX . 'Onderdl AS O ON LO.OnderdeelID=O.RecordID) ON L.RecordID=LO.Lid) LEFT JOIN (' . TABLE_PREFIX . 'Groep AS GR LEFT JOIN ' . TABLE_PREFIX . 'Activiteit AS Act ON Act.RecordID=GR.ActiviteitID) ON LO.GroepID=GR.RecordID';
 
 	public $wherelid = "LM.LIDDATUM <= CURDATE() AND IFNULL(LM.Opgezegd, '9999-12-31') >= CURDATE()";
 	public static $wherelidond = "LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE()";
@@ -2562,8 +2562,8 @@ class cls_Lidond extends cls_db_base {
 		}
 		$this->vulvars($p_loid, $p_lidid, $p_ondid, $p_per);
 		
-		$this->query = sprintf("SELECT LO.*, GR.Starttijd, O.Naam AS AfdNaam, GR.Activiteit AS GrActiviteit, GR.Contributie AS GrContributie, F.Omschrijv AS Functie, LO.Functie AS FunctieID, F.Kader
-								FROM ((%s INNER JOIN %2\$sGroep AS GR ON LO.GroepID=GR.RecordID) INNER JOIN %2\$sFunctie AS F ON F.Nummer=LO.Functie) INNER JOIN %2\$sOnderdl AS O ON LO.OnderdeelID=O.RecordID WHERE LO.RecordID=%3\$d;", $this->basefrom, TABLE_PREFIX, $this->loid);
+		$this->query = sprintf("SELECT LO.*, GR.Starttijd, O.Naam AS AfdNaam, Act.Omschrijving AS GrActiviteit, Act.Contributie AS GrContributie, F.Omschrijv AS Functie, LO.Functie AS FunctieID, F.Kader
+								FROM ((%s INNER JOIN (%2\$sGroep AS GR LEFT OUTER JOIN %2\$sActiviteit AS Act ON Act.RecordID=GR.ActiviteitID) ON LO.GroepID=GR.RecordID) INNER JOIN %2\$sFunctie AS F ON F.Nummer=LO.Functie) INNER JOIN %2\$sOnderdl AS O ON LO.OnderdeelID=O.RecordID WHERE LO.RecordID=%3\$d;", $this->basefrom, TABLE_PREFIX, $this->loid);
 		$result = $this->execsql();
 		return $result->fetch();
 	}
@@ -2708,7 +2708,7 @@ class cls_Lidond extends cls_db_base {
 			$w .= sprintf(" AND O.`Type`='%s'", $p_type);
 		}
 		
-		$query = sprintf("SELECT LO.*, O.Naam AS NaamOnderdeel, O.CentraalEmail, F.OMSCHRIJV AS FunctieOms, F.Kader, O.ContributiePerActiviteit, GR.Activiteit AS GrActiviteit, GR.Contributie AS GrContributie
+		$query = sprintf("SELECT LO.*, O.Naam AS NaamOnderdeel, O.CentraalEmail, F.OMSCHRIJV AS FunctieOms, F.Kader, O.ContributiePerActiviteit, Act.Omschrijving AS GrActiviteit, Act.Contributie AS GrContributie
 						  FROM %s WHERE %s ORDER BY LO.Vanaf;", $this->fromlidond, $w);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
@@ -3194,6 +3194,18 @@ class cls_Activiteit extends cls_db_base {
 		}
 		
 		$this->log($nrid);
+	}
+	
+	public function update($p_actid, $p_kolom, $p_waarde) {
+		if ($p_kolom == "Contributie") {
+			if (intval($p_waarde) <= 0 or strlen($p_waarde) == 0) {
+				$p_waarde = 0;
+			} else {
+				$p_waarde = round($p_waarde, 2);
+			}
+		}
+		$this->pdoupdate($p_actid, $p_kolom, $p_waarde);
+		$this->log($p_actid);
 	}
 	
 }  # cls_Activiteit
@@ -7538,7 +7550,7 @@ function db_stats($lidid=0) {
 	$query = sprintf("SELECT ROUND(AVG(DATEDIFF(CURDATE(), L.GEBDATUM))/365.25, 1) FROM %s WHERE %s AND (NOT L.GEBDATUM IS NULL);", $i_base->fromlid, $i_base->wherelid);
 	$stats['gemiddeldeleeftijd'] = $i_base->scalar($query);
 	
-   $query = sprintf("SELECT COUNT(DISTINCT LO.Lid) FROM %s WHERE (O.Kader=1 OR F.Kader=1) AND %s;", $i_base->fromlidond, cls_db_base::$wherelidond);
+	$query = sprintf("SELECT COUNT(DISTINCT LO.Lid) FROM %s WHERE (O.Kader=1 OR F.Kader=1) AND %s;", $i_base->fromlidond, cls_db_base::$wherelidond);
 	$stats['aantalkaderleden'] = $i_base->scalar($query);
 	
 	$query = sprintf("SELECT %1\$s AS LidNaam FROM %2\$sLid AS L INNER JOIN %2\$sAdmin_login AS Login ON L.RecordID = Login.LidID"
