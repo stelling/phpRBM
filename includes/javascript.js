@@ -122,8 +122,6 @@ function savedata(entity, rid, control) {
 	} else {
 		var field_name = control.id;
 	}
-
-//	alert(id + ' / ' + field_name);
 	
 	if (control.type == "checkbox") {
 		if (control.checked == true) {
@@ -138,8 +136,8 @@ function savedata(entity, rid, control) {
 	} else {
 		var value = control.value;
 	}
-	
-//	alert(entity + ' / ' + field_name + ' / ' + value + ' / ' + rid);
+
+//	alert(entity + ' / field_name: ' + field_name + ' / value: ' + value + ' / rid: ' + rid);
 
 	$.ajax({
 		url: 'ajax_update.php?entiteit=' + entity,
@@ -147,7 +145,7 @@ function savedata(entity, rid, control) {
 		dataType: 'json',
 		data: { field: field_name, value: value, id: rid },
 		success: function(response){},
-		fail: function( data, textStatus, jqXHR ) {
+		fail: function( data, textStatus ) {
 			alert(entity + 'update database is niet gelukt. ' + textStatus);
 		}
 	});
@@ -178,7 +176,7 @@ function lidalgwijzprops() {
 	var vl = $('#Voorletter');
 	var gs = $('#Geslacht');
 	
-	if (vl.val().trim.length == 0 && rn.val().length > 1 && gs.val() != "B") {
+	if (vl.val().length == 0 && rn.val().length > 1 && gs.val() != "B") {
 		vl.val(rn.val().substring(0, 1) + '.');
 	}
 	
@@ -563,6 +561,3 @@ function fnControleEmail(p_email, p_rvbijleeg="") {
 	return rv;
 	
 }
-
-
-$('#lblbedragbetaald').hide();
