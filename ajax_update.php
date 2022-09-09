@@ -77,6 +77,10 @@ if ($_SESSION['lidid'] > 0) {
 	} elseif ($ent == "functieedit" and toegang("Ledenlijst/Basisgegevens/Functies")) {
 		$i_fnk = new cls_Functie();
 		$i_fnk->update($rid, $kolom, $_POST['value']);
+		
+	} elseif ($ent == "activiteitedit" and toegang("Ledenlijst/Basisgegevens/Activiteiten")) {
+		$i_act = new cls_Activiteit();
+		$i_act->update($rid, $kolom, $_POST['value']);
 	
 	} elseif ($ent == "diplomaedit" and toegang("Ledenlijst/Basisgegevens/Diplomas")) {
 		$i_dp = new cls_Diploma();
