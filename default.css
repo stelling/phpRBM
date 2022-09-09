@@ -197,8 +197,16 @@ header h1 {
 	padding-left: 4px;
 }
 
+input.w5 {
+	width: 60px;
+}
+
 input.w7 {
 	width: 66px;
+}
+
+input.num2 {
+	width: 40px;
 }
 
 input.w8, input.d8 {
@@ -846,14 +854,15 @@ td.print {
 .groepsindelingkolom {
 	float: left;
 	width: 290px;
-	min-height: 200px;
+	min-height: 220px;
 	border-right-style: solid;
 	border-width: 1px;
 	margin-left: 0;
 	margin-right: 6px;
-	margin-bottom: 8px;
+	margin-bottom: 12px;
 	padding-left: 2px;
 	padding-right: 2px;
+	padding-bottom: 1px;
 }
 
 #groepenmuteren input[type='number'] {
@@ -1184,10 +1193,6 @@ input.omschrijving {
 
 #evenementenbeheer label {
 	clear: none;
-}
-
-#evenementenbeheer input[type='text'], #evenementenbeheer input[type='email'] {
-	width: 390px;
 }
 
 #evenementenbeheer span {
