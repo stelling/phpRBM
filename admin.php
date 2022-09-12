@@ -108,8 +108,12 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 } elseif ($_GET['op'] == "beheeronderdelen") {
 	(new cls_Onderdeel())->opschonen();
 	(new cls_Onderdeel())->datacontrole();
+	(new cls_Groep())->opschonen();
+	(new cls_Groep())->datacontrole();
+	(new cls_Organisatie())->opschonen();
 } elseif ($_GET['op'] == "lidondopschonen") {
 	(new cls_Lidond())->opschonen();
+	(new cls_Onderdeel())->opschonen();
 } elseif ($_GET['op'] == "mailingsopschonen") {
 	(new cls_Mailing())->opschonen();
 	(new cls_Mailing_hist())->opschonen();
@@ -249,6 +253,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	
 	db_createtables();
 	db_onderhoud();
+	(new cls_Eigen_lijst())->controle();
 
 	echo("<div id='dbonderhoud'>\n");
 	
@@ -263,7 +268,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=logboekopschonen\"' value='Logboek opschonen'><p>Verwijder alle records uit het logboek, die ouder dan <input type='number' name='logboek_bewaartijd' onChange='this.form.submit();' value=%d> maanden zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['logboek_bewaartijd']);
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=loggingdebugopschonen\"' value='Eigen logging voor debugging opschonen'><p>Verwijder alle records uit het logboek, die onder jouw account voor debugging zijn toegevoegd.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	
-	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=beheeronderdelen\"' value='Beheer onderdelen'><p>Opschonen en controle op data-integriteit van onderdelen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=beheeronderdelen\"' value='Beheer onderdelen'><p>Opschonen en controle op data-integriteit van onderdelen, afdelingsgroepen en organisaties.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=lidondopschonen\"' value='Leden bij onderdelen opschonen'><p>Opschonen op basis van historie en 'Alleen leden'.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=mailingsopschonen\"' value='Mailings opschonen'><p>Mailings, die langer dan %d maanden in de prullenbak zitten, verwijderen. En verzonden mails aan voormalig leden verwijderen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['mailing_bewaartijd']);
