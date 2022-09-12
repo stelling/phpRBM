@@ -262,7 +262,7 @@ input.w50 {
 }
 
 input.w55, input.w60 {
-	width: 350px;
+	width: 300px;
 }
 
 input.w75 {
@@ -279,6 +279,10 @@ input.w110 {
 
 input.w150 {
 	width: 585px;
+}
+
+input.w250 {
+	width: 625px;
 }
 
 #container, #containerbreed {
