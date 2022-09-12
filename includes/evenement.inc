@@ -63,6 +63,7 @@ function fnEvenementen() {
 	}
 	
 	$i_ev = null;
+	
 }  # fnEvenementen
 
 function inschrijvenevenementen($lidid) {
@@ -150,7 +151,7 @@ function inschrijvenevenementen($lidid) {
 		printf("<input type='radio' name='reactie_%d' value='Afmelden' %s onchange='this.form.submit();'>Afmelden&nbsp;\n", $row->RecordID, $c);
 		
 		if (isset($ins->Opmerking)) {
-			printf("<br>\n<input type='text' placeholder='Opmerking' onBlur='this.form.submit();' name='opm_%d' maxlength=250 value=\"%s\"></td>\n", $row->RecordID, $ins->Opmerking);
+			printf("<br>\n<input type='text' placeholder='Opmerking' onBlur='this.form.submit();' name='opm_%d' class='w250' maxlength=250 value=\"%s\"></td>\n", $row->RecordID, $ins->Opmerking);
 		}
 		
 		if (isset($ins->Status) and ($ins->Status == "B" or $ins->Status == "I" or $ins->Status == "J")) {
@@ -182,7 +183,7 @@ function muteerevenement($eventid) {
 		}
 
 		if ($eventid == 0) {
-			$eventid = $i_ev->add($_POST['TypeEvenement']);
+			$eventid = $i_ev->add();
 		}
 		
 		$old = $i_ev->record($eventid);
@@ -215,7 +216,12 @@ function muteerevenement($eventid) {
 		} elseif (isset($_POST['maildeeln']) or isset($_POST['mailpotdeeln']) or isset($_POST['mailbeidedeeln'])) {
 			$i_m = new cls_Mailing();
 			$i_mr = new cls_Mailing_rcpt();
-			$mid = $i_m->add($_POST['Omschrijving']);
+			$eo = sprintf("Evenement %d", $eventid);
+			if (isset($_POST['Omschrijving']) and strlen($_POST['Omschrijving']) >= 4) {
+				$eo = $_POST['Omschrijving'];
+			}
+			
+			$mid = $i_m->add($eo);
 			$i_m->update($mid, "EvenementID", $eventid);
 			if ($mid > 0) {
 				if (isset($_POST['maildeeln']) or isset($_POST['mailbeidedeeln'])) {
@@ -290,29 +296,31 @@ function muteerevenement($eventid) {
 	
 	echo("<span>\n");	
 	printf("<label>Datum</label><input type='date' id='Datum' name='Datum' value='%s'>\n", $datum);
-	printf("<label>Starttijd</label><input type='time' id='Starttijd' value='%s'>\n", $starttijd);
-	printf("<label>Eindtijd</label><input type='time' id='Eindtijd' value='%s'>\n", $eindtijd);
-	printf("<label>Verzamelen</label><input type='time' id='Verzameltijd' value='%s'>\n", $verzameltijd);
-	echo("</span>\n");
-	echo("<span>\n");
-	printf("<label>Omschrijving</label><input type='text' id='Omschrijving' class='w50' value='%s' maxlength=50>\n", $oms);
-	printf("<label>Locatie</label><input type='text' id='Locatie' value='%s' class='w75' maxlength=75>\n", $loc);
-	echo("</span>\n");
-	echo("<span>\n");
-	printf("<label>E-mail</label><input type='email' id='Email' value='%s' class='w45' maxlength=45>\n", $email);
-	echo("</span>\n");
-	
-	echo("<span>\n");
-	printf("<label>Type evenement</label><select name='TypeEvenement' onChange='this.form.submit();'>%s</select>\n", $optiontypes);
-
-	echo("</span>\n");
-	
+	printf("<label>Starttijd</label><input type='time' id='Starttijd' name='Starttijd' value='%s'>\n", $starttijd);
 	if ($eventid > 0) {
+		printf("<label>Eindtijd</label><input type='time' id='Eindtijd' value='%s'>\n", $eindtijd);
+		printf("<label>Verzamelen</label><input type='time' id='Verzameltijd' value='%s'>\n", $verzameltijd);
+	}
+	echo("</span>\n");
+	echo("<span>\n");
+	printf("<label>Omschrijving</label><input type='text' id='Omschrijving' name='Omschrijving' class='w50' value='%s' maxlength=50>\n", $oms);
+	printf("<label>Locatie</label><input type='text' id='Locatie' name='Locatie' value='%s' class='w75' maxlength=75>\n", $loc);
+	echo("</span>\n");
+	if ($eventid > 0) {
+		echo("<span>\n");
+		printf("<label>E-mail</label><input type='email' id='Email' value='%s' class='w45' maxlength=45>\n", $email);
+		echo("</span>\n");
+	
+		echo("<span>\n");
+		printf("<label>Type evenement</label><select name='TypeEvenement'>%s</select>\n", $optiontypes);
+		printf("<label>In agenda</label>%s\n", fnEvenementOmschrijving($row, 1, "p"));
+		echo("</span>\n");
+	
 		$ondrows = (new cls_Onderdeel())->lijst(1, "", $datum);
 		echo("<span>\n");
 		printf("<label>Online inschrijving open</label><input type='checkbox' id='InschrijvingOpen' value=1 %s>\n", checked($insopen));
-		printf("<label>Standaard status</label><select name='StandaardStatus'>%s</select>\n", $optionstandstatus);
-		printf("<label>Max. pers. per deelname</label><input type='number' name='MaxPersonenPerDeelname' value=%d min=1 onChange='this.form.submit();'>\n", $maxpersonenperdeelname);
+		printf("<label>Standaard status</label><select id='StandaardStatus'>%s</select>\n", $optionstandstatus);
+		printf("<label>Max. pers. per deelname</label><input type='number' id='MaxPersonenPerDeelname' value=%d min=1>\n", $maxpersonenperdeelname);
 		printf("<label>Meerdere startmomenten</label><input type='checkbox' id='MeerdereStartMomenten' value=1 %s>\n", checked($meerderestartmomenten));
 		echo("</span>\n");
 		
@@ -384,8 +392,8 @@ function muteerevenement($eventid) {
 			}
 			printf("<td><select name='Status_%d' onChange='this.form.submit();'>%s</select>", $rd->RecordID, $optstat);
 			echo("</td>\n");
-			printf("<td><input type='text' name='Opmerking_%d' value='%s' placeholder='Opmerking' maxlength=250>\n", $rd->RecordID, $rd->Opmerking);
-			printf("<br><input type='text' name='Functie_%d' value='%s' placeholder='Functie' maxlength=30></td>\n", $rd->RecordID, $rd->Functie);
+			printf("<td><input type='text' name='Opmerking_%d' value='%s' placeholder='Opmerking' class='w250' maxlength=250>\n", $rd->RecordID, $rd->Opmerking);
+			printf("<br><input type='text' name='Functie_%d' value='%s' placeholder='Functie' class='w30' maxlength=30></td>\n", $rd->RecordID, $rd->Functie);
 			printf("<td>%s<br>%s</td>\n", strftime("%e %b %Y (%R)", strtotime($rd->Ingevoerd)), (new cls_Lid())->Naam($rd->IngevoerdDoor));
 			printf("<td><a href='%s?tp=%s&amp;op=delete&eid=%d&lidid=%d&edid=%d'>&nbsp;&nbsp;&nbsp;</a></td>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $eventid, $rd->LidID, $rd->RecordID);
 			echo("</tr>\n");
@@ -444,8 +452,15 @@ function muteerevenement($eventid) {
 				}
 			});
 			
-			
 			\$('#ZichtbaarVoor').change(function(){
+				savedata('evenement', %1\$d, this);
+			});
+			
+			\$('#StandaardStatus').change(function(){
+				savedata('evenement', %1\$d, this);
+			});
+			
+			\$('#MaxPersonenPerDeelname').change(function(){
 				savedata('evenement', %1\$d, this);
 			});
 			
@@ -675,21 +690,25 @@ function fnEvenementOmschrijving($p_row, $p_mettijd=0, $p_element="") {
 			$eo .= sprintf("<br>\nVerzamelen:&nbsp;%s uur", $p_row->Verzameltijd);
 		}
 
-
-	
 	} else {
 		$eo = $p_row->Omschrijving;
-		if ($p_mettijd > 0 and $p_row->Starttijd > "00:00") {
-			if ($p_mettijd == 1) {
-				$eo = $p_row->Starttijd . "&nbsp;" . $eo;
-			} elseif ($p_mettijd == 2) {
-				$eo .= " (" . $p_row->Starttijd . ")";
+		if (isset($p_row->Datum)) {
+			$st = date("H:i", strtotime($p_row->Datum));
+			if ($p_mettijd > 0 and $st > "00:00") {
+				if ($p_mettijd == 1) {
+					$eo = $st . "&nbsp;" . $eo;
+				} elseif ($p_mettijd == 2) {
+					$eo .= " (" . $st . ")";
+				}
 			}
+		}
+		if ($p_mettijd == 1 and strlen($p_row->Locatie) > 1) {
+			$eo .= sprintf(" (%s)", $p_row->Locatie);
 		}
 	}
 	
 	$s = "";
-	if (strlen($p_row->Tekstkleur) > 2 or strlen($p_row->Achtergrondkleur) > 2) {
+	if (strlen($p_row->Tekstkleur) > 2 or strlen($p_row->Achtergrondkleur) > 2 or $p_row->Vet == 1 or $p_row->Cursief == 1) {
 		$s = " style='";
 		if (strlen($p_row->Tekstkleur) > 2) {
 			$s .= "color: " . $p_row->Tekstkleur . ";";
@@ -710,6 +729,8 @@ function fnEvenementOmschrijving($p_row, $p_mettijd=0, $p_element="") {
 		return sprintf("<td class='%s'%s>%s</td>", str_replace("'", "", str_replace(" ", "_", strtolower($p_row->OmsType))), $s, $eo);
 	} elseif ($p_element === "li") {
 		return sprintf("<li class='%s'%s>%s</li>", str_replace("'", "", str_replace(" ", "_", strtolower($p_row->OmsType))), $s, $eo);
+	} elseif ($p_element === "p") {
+		return sprintf("<p class='%s'%s>%s</p>", str_replace("'", "", str_replace(" ", "_", strtolower($p_row->OmsType))), $s, $eo);
 	} else {
 		return $eo;
 	}
