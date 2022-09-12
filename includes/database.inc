@@ -728,7 +728,7 @@ class cls_Lid extends cls_db_base {
 			$xtraselect .= ", CONCAT(L.Adres, ', ', L.Woonplaats) AS `Adres`";
 		}
 		
-		$xtraselect .= sprintf(", CONCAT(%s, ' & ', %s) AS Bereiken", $this->selecttelefoon, $this->selectemail);
+		$xtraselect .= sprintf(", CONCAT(%s, ' & ', IFNULL(%s, '')) AS Bereiken", $this->selecttelefoon, $this->selectemail);
 		$xtraselect .= ", LM.Lidnr";
 		$xtraselect .= ", LM.LIDDATUM";
 		if ($p_soortlid != 2 and (new cls_Lidmaatschap())->max("Opgezegd", "Opgezegd <= DATE_ADD(CURDATE(), INTERVAL 3 MONTH)") >= date("Y-m-d")) {
@@ -2876,7 +2876,7 @@ class cls_Lidond extends cls_db_base {
 			
 		} else {
 			$nrid = $this->nieuwrecordid();
-			$query = sprintf("INSERT INTO %s (RecordID, Lid, OnderdeelID, Vanaf, Functie, Ingevoerd, Gewijzigd) VALUES (%d, %d, %d, '%s', 0, CURDATE(), SYSDATE());", $this->table, $nrid, $this->lidid, $this->ondid, $vanaf);
+			$query = sprintf("INSERT INTO %s (RecordID, Lid, OnderdeelID, Vanaf, Functie, GroepID, Ingevoerd, Gewijzigd) VALUES (%d, %d, %d, '%s', 0, 0, CURDATE(), SYSDATE());", $this->table, $nrid, $this->lidid, $this->ondid, $vanaf);
 			if ($this->execsql($query) > 0) {
 				$this->mess = sprintf("%s is aan '%s' toegevoegd", $this->lidnaam, $this->ondnaam);
 				if (strlen($p_reden) > 0) {
@@ -3182,6 +3182,16 @@ class cls_Activiteit extends cls_db_base {
 		if ($p_actid > 0) {
 			$this->actid = $p_actid;
 		}
+	}
+	
+	public function htmloptions($p_cv=-1) {
+		
+		$ret = "<option value=0>Geen</option>\n";
+		$rows = $this->basislijst("", "Act.Code");
+		foreach ($rows as $row) {
+			$ret .= sprintf("<option%s value=%d>%s</option>\n", checked($row->RecordID, "option", $p_cv), $row->RecordID, $row->Code);
+		}
+		return $ret;
 	}
 	
 	public function add() {
@@ -3946,17 +3956,21 @@ class cls_Mailing extends cls_db_base {
 	
 	public function add($p_subject) {
 		$nrid = 0;
-		
-		$p_subject = str_replace("\"", "'", $p_subject);
-		$nrid = $this->nieuwrecordid();
 		$this->tas = 1;
 		
-		$query = sprintf("INSERT INTO %s (RecordID, MailingID, subject, OmschrijvingOntvangers, IngevoerdDoor) VALUES (%d, %d, \"%s\", '', %d);", $this->table, $nrid, $nrid, $p_subject, $_SESSION['lidid']);
-		if ($this->execsql($query) > 0) {
-			$this->mess = sprintf("Mailing %d (%s) is toegevoegd.", $nrid, $p_subject);
+		if (strlen($p_subject) < 4) {
+			$this->mess = "Het onderwerp moet uit minimaal 4 karakers bestaan. Deze mailing wordt niet toegevoegd.";
 		} else {
-			$this->mess = "Geen mailing toegevoegd.";
-			$nrid = 0;
+			$p_subject = str_replace("\"", "'", $p_subject);
+			$nrid = $this->nieuwrecordid();
+		
+			$query = sprintf("INSERT INTO %s (RecordID, MailingID, subject, OmschrijvingOntvangers, IngevoerdDoor) VALUES (%d, %d, \"%s\", '', %d);", $this->table, $nrid, $nrid, $p_subject, $_SESSION['lidid']);
+			if ($this->execsql($query) > 0) {
+				$this->mess = sprintf("Mailing %d (%s) is toegevoegd.", $nrid, $p_subject);
+			} else {
+				$this->mess = "Geen mailing toegevoegd.";
+				$nrid = 0;
+			}
 		}
 		
 		$this->log($nrid);
@@ -5231,12 +5245,12 @@ class cls_Evenement extends cls_db_base {
 			$where = sprintf("E.Datum >= CURDATE() AND IFNULL(E.VerwijderdOp, '1900-01-01') < '2012-01-01' AND E.InschrijvingOpen=1 AND E.BeperkTotGroep IN (%s)", $_SESSION["lidgroepen"]);
 			
 		} elseif ($p_soort == 4) {
-			$select = "E.Datum, E.Omschrijving, E.MeerdereStartMomenten, E.RecordID";
+			$select = "E.Datum, E.Omschrijving, E.Locatie, E.MeerdereStartMomenten, E.RecordID";
 			$where = sprintf("E.Datum >= CURDATE() AND IFNULL(E.VerwijderdOp, '1900-01-01') < '2012-01-01' AND E.BeperkTotGroep IN (%s)", $_SESSION["lidgroepen"]);
 			$ord = "E.Datum;";
 			
 		} elseif ($p_soort == 5) {
-			$select = sprintf("E.Datum, E.Omschrijving, E.TypeEvenement, %s AS Starttijd, ET.Omschrijving AS OmsType, ET.Tekstkleur, ET.Achtergrondkleur, ET.Vet, ET.Cursief", $st);
+			$select = sprintf("E.Datum, E.Omschrijving, E.Locatie, E.TypeEvenement, %s AS Starttijd, ET.Omschrijving AS OmsType, ET.Tekstkleur, ET.Achtergrondkleur, ET.Vet, ET.Cursief", $st);
 			$where = sprintf("LEFT(E.Datum, 10)='%s' AND IFNULL(E.VerwijderdOp, '1900-01-01') < '2012-01-01' AND E.ZichtbaarVoor IN (%s)", $p_datum, $_SESSION["lidgroepen"]);
 			$ord = "E.Datum;";
 			
@@ -5251,15 +5265,14 @@ class cls_Evenement extends cls_db_base {
 							FROM %s LEFT OUTER JOIN %sEvenement_Type AS ET ON E.TypeEvenement=ET.RecordID
 							WHERE %s
 							ORDER BY %s;", $select, $this->basefrom, TABLE_PREFIX, $where, $ord);
-	
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
 	
 	public function record($p_evid) {
-		$query = sprintf("SELECT E.*, %s AS GewijzigdDoorNaam, (%s) AS AantDln, (%s) AantInschr, (%s) AS AantAfgemeld
-								FROM %s LEFT OUTER JOIN %sLid AS L ON E.GewijzigdDoor=L.RecordID
-								WHERE E.RecordID=%d;", $this->selectnaam, $this->sqlaantdln, $this->sqlaantingeschreven, $this->sqlaantafgemeld, $this->basefrom, TABLE_PREFIX, $p_evid);
+		$query = sprintf("SELECT E.*, ET.Omschrijving AS OmsType, %s AS GewijzigdDoorNaam, (%s) AS AantDln, (%s) AantInschr, (%s) AS AantAfgemeld, ET.Tekstkleur, ET.Achtergrondkleur, ET.Vet, ET.Cursief
+								FROM (%s LEFT JOIN %6\$sEvenement_Type AS ET ON ET.RecordID=E.TypeEvenement) LEFT JOIN %6\$sLid AS L ON E.GewijzigdDoor=L.RecordID
+								WHERE E.RecordID=%7\$d;", $this->selectnaam, $this->sqlaantdln, $this->sqlaantingeschreven, $this->sqlaantafgemeld, $this->basefrom, TABLE_PREFIX, $p_evid);
 		$result = $this->execsql($query);
 		return $result->fetch();
 	}
@@ -5441,7 +5454,7 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 				return 0;
 			}
 		} else {
-			$this->mess = sprintf("Dit lid %d is al deelnemer aan evenement %d (%s).", $this->evid, $this->omsEvenement);
+			$this->mess = sprintf("Lid %d is al deelnemer aan evenement %d (%s) en wordt niet toegevoegd.", $this->lidid, $this->evid, $this->omsEvenement);
 			$this->log(0, 1);
 			return 0;
 		}
@@ -5912,7 +5925,7 @@ class cls_Rekening extends cls_db_base {
 	
 	public function record($p_rkid) {
 		$this->rkid = $p_rkid;
-		$query = sprintf("SELECT %s FROM %s AS RK LEFT OUTER JOIN %sLid AS L ON RK.Lid=L.RecordID WHERE RK.Nummer=%d;", $this->reksel, $this->table, TABLE_PREFIX, $p_rkid);
+		$query = sprintf("SELECT %s FROM %s LEFT JOIN %sLid AS L ON RK.Lid=L.RecordID WHERE RK.Nummer=%d;", $this->reksel, $this->basefrom, TABLE_PREFIX, $p_rkid);
 		$result = $this->execsql($query);
 		return $result->fetch();
 	}
