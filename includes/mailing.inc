@@ -353,7 +353,7 @@ class Mailing {
 		$sql = sprintf("SELECT IFNULL(L.Email, '') FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Email", 'SQL' => $sql);
 		
-		$sql = sprintf("SELECT IF(LENGTH(IFNULL(L.Email, '')) < 5, IFNULL(L.EmailOuders, ''), IFNULL(L.Email, '')) FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
+		$sql = sprintf("SELECT IF(LENGTH(IFNULL(L.Email, '')) < 6, IFNULL(L.EmailOuders, ''), L.Email) FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "EmailLidOfOuders", 'SQL' => $sql);
 		
 		$sql = sprintf("SELECT IFNULL(L.EmailOuders, '') FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
@@ -982,14 +982,15 @@ class Mailing {
 		$i_el = new cls_Eigen_lijst();
 		$i_lo = new cls_Lidond();
 		
-		$_POST['mailingid'] = $_POST['mailingid'] ?? 0;
+		if (isset($_POST['mailingid']) and $_POST['mailingid'] > 0) {
+			$this->mid = $_POST['mailingid'];
+		} elseif (isset($_GET['mailingid']) and $_GET['mailingid'] > 0) {
+			$this->mid = $_GET['mailingid'];
+		}
 		
-		if ($_POST['mailingid'] == 0) {
-			if (strlen($_POST['subject']) < 4) {
-				$mess = "Het onderwerp moet uit minimaal 4 karakers bestaan. Deze mailing wordt niet toegevoegd.";
-				(new cls_Logboek())->add($mess, 4, 0, 1, $this->mid, 1);
-			} else {
-				$this->mid = $i_M->add($_POST['subject']);
+		if ($this->mid == 0) {
+			$this->mid = $i_M->add($_POST['subject']);
+			if ($this->mid > 0) {
 				$i_M->update($this->mid, "MailingVanafID", $_POST['MailingVanafID']);
 				$i_M->update($this->mid, "OmschrijvingOntvangers", $_POST['OmschrijvingOntvangers']);
 			}
