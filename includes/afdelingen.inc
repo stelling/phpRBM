@@ -179,11 +179,7 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 	$hvgroep = -1;
 	$hvzaal = "";
 	
-	if ($afdid > 0) {
-		$filter = sprintf("O.RecordID=%d", $afdid);
-	} else {
-		$filter = "";
-	}
+	$filter = sprintf("O.RecordID=%d", $afdid);
 	
 	$afdnaam = (new cls_Onderdeel())->naam($afdid);
 	printf("<div id='%s'>\n", strtolower(str_replace(" ", "", $afdnaam)));
@@ -257,6 +253,7 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 		$i_lo = new cls_Lidond();
 		$i_gr = new cls_Groep();
 		$i_ak = new cls_Afdelingskalender($afdid);
+		$i_act = new cls_Activiteit();
 
 		if (isset($_POST['NieuweGroep'])) {
 			$i_gr->add($afdid);
@@ -299,7 +296,7 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 		echo("<div id='groepenmuteren'>\n");
 		echo("<table>\n");
 		echo("<caption>Muteren groepen</caption>\n");
-		echo("<tr><th>#</th><th>Volgnr</th><th>Code</th><th>Omschrijving</th><th>Instructeurs</th><th>Starttijd</th><th>Eindtijd</th><th>Norm aanw.</th>");
+		echo("<tr><th>#</th><th>Volgnr</th><th>Code</th><th>Omschrijving</th><th>Activiteit</th><th>Instructeurs</th><th>Starttijd</th><th>Eindtijd</th><th>Norm aanw.</th>");
 		
 		$f = sprintf("AK.OnderdeelID=%d AND AK.Datum >= CURDATE()", $afdid);
 		if (file_exists("maatwerk/Presentielijst.php") and $i_ak->aantal($f) > 0) {
@@ -317,6 +314,9 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 				printf("<td><input type='number' id='Volgnummer_%d' value='%s'></td>\n", $row->RecordID, $row->Volgnummer);
 				printf("<td><input type='text' class='w8' id='Kode_%d' maxlength=8 value=\"%s\"></td>\n", $row->RecordID, $row->Kode);
 				printf("<td><input type='text' class='w45' id='Omschrijving_%d' maxlength=45 value=\"%s\"></td>\n", $row->RecordID, $row->Omschrijving);
+				
+				printf("<td><select id='ActiviteitID_%d'>%s</td>\n", $row->RecordID, $i_act->htmloptions($row->ActiviteitID));
+				
 				printf("<td><input type='text' class='w60' id='Instructeurs_%d' maxlength=60 value=\"%s\"></td>\n", $row->RecordID, $row->Instructeurs);
 				printf("<td><input type='time' id='Starttijd_%d' value='%s'></td>\n", $row->RecordID, $row->Starttijd);
 				printf("<td><input type='time' id='Eindtijd_%d' value='%s'></td>\n", $row->RecordID, $row->Eindtijd);
@@ -345,11 +345,16 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 		
 		echo("<script>
 		\$('select').change(function(){
-			savedata('logroep', 0, this);
+			if (this.id.substring(0, 5) == 'Groep') {
+				savedata('logroep', 0, this);
+			} else {
+				savedata('groepedit', 0, this);
+			}
 		});
 		
 		\$('input').change(function(){
 			savedata('groepedit', 0, this);
+
 		});
 		</script>\n");
 	}
