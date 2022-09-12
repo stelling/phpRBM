@@ -220,7 +220,7 @@ if ($_SESSION['lidid'] > 0) {
 		$i_rr = new cls_Rekeningregel();
 		$i_rr->update($rid, $kolom, $newvalue);
 		
-	} elseif ($ent == "evenement" and toegang("Evenement/Beheer")) {
+	} elseif ($ent == "evenement" and toegang("Evenementen/Beheer")) {
 		$i_ev = new cls_Evenement();
 		$i_ev->update($rid, $kolom, $newvalue);
 		
