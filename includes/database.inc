@@ -2369,16 +2369,18 @@ class cls_Aanwezigheid extends cls_db_base {
 		$this->ta = 24;
 	}
 	
-	private function vulvars($p_loid, $p_akid) {
+	private function vulvars($p_loid, $p_akid=-1) {
 		$this->loid = $p_loid;
-		$this->akid = $p_akid;
+		if ($p_akid > 0) {
+			$this->akid = $p_akid;
+		}
 		$query = sprintf("SELECT IFNULL(LO.Lid, 0) FROM %sLidond AS LO WHERE LO.RecordID=%d;", TABLE_PREFIX, $this->loid);
 		$this->lidid = $this->scalar($query);
 		
-		$query = sprintf("SELECT IFNULL(RecordID, 0) FROM %s WHERE LidondID=%d AND AfdelingskalenderID=%d;", $this->table, $this->loid, $this->akid);
+		$query = sprintf("SELECT IFNULL(RecordID, 0) FROM %s WHERE AW.LidondID=%d AND AW.AfdelingskalenderID=%d;", $this->basefrom, $this->loid, $this->akid);
 		$this->aanwid = $this->scalar($query);
 		
-		$query = sprintf("SELECT IFNULL(Ak.Datum, '') FROM %sAfdelingskalender AS AK WHERE AK.RecordID=%d;", TABLE_PREFIX, $this->akid);
+		$query = sprintf("SELECT IFNULL(AK.Datum, '') FROM %sAfdelingskalender AS AK WHERE AK.RecordID=%d;", TABLE_PREFIX, $this->akid);
 		$this->akdatum = $this->scalar($query);
 	}
 	
@@ -2415,6 +2417,7 @@ class cls_Aanwezigheid extends cls_db_base {
 	}
 	
 	public function perlidperperiode($p_loid, $p_vanaf, $p_tm) {
+		$this->vulvars($p_loid);
 		
 		$query = sprintf("SELECT MAX(LO.Lid) AS LidID, SUM(IF(AW.Status='A', 1, 0)) AS aantAangemeld, IFNULL(SUM(IF(AW.Status IN ('A', 'L', 'V'), 0, 1)), 0) AS aantAfwezig,
 						  IFNULL(SUM(IF(AW.Status='V', 1, 0)), 0) AS aantVervallen,
@@ -2438,6 +2441,7 @@ class cls_Aanwezigheid extends cls_db_base {
 			if ($this->execsql($query) > 0) {
 				$this->mess = sprintf("Record %d (%s) met status '%s' is aan tabel '%s' toegevoegd.", $nrid, $this->akdatum, $p_waarde, $this->table);
 			} else {
+				$this->mess = "Toevoegen record aanwezigheid is mislukt.";
 				$nrid = 0;
 			}
 		} else {
