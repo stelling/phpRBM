@@ -260,7 +260,7 @@ function fnLedenlijst() {
 	if ($currenttab2 == "Nieuw (klos)lid") {
 		if ($_SERVER['REQUEST_METHOD'] == "POST") {
 			if (isset($_POST['addkloslid']) and isset($_POST['achternaam']) and strlen($_POST['achternaam']) > 1) {
-				$lidid = $i_lid->add($_POST['achternaam'], $_POST['geslacht'], $_POST['postcode']);
+				$lidid = $i_lid->add($_POST['achternaam'], $_POST['postcode']);
 				if (isset($_POST['lidvanaf']) and $_POST['lidvanaf'] >= "1950-01-01" and strtotime($_POST['lidvanaf']) !== false) {
 					(new cls_Lidmaatschap())->add($lidid, $_POST['lidvanaf']);
 				}
@@ -273,13 +273,7 @@ function fnLedenlijst() {
 			echo("<div id='nieuwlid'>\n");
 			printf("<form name='frmNieuwLid' action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
 			echo("<label>Achternaam</label><input type='text' name='achternaam' maxlength=40><p>(zonder tussenvoegsels)</p>\n");
-						
-			$opt = "\n";
-			foreach (constant("ARRGESLACHT") as $key => $val) {
-				$opt .= sprintf("<option value='%s'>%s</option>\n", $key, $val);
-			}
-			printf("<label>Geslacht</label><select name='geslacht'>%s</select>", $opt);
-			
+
 			echo("<label>Postcode</label><input type='text' class='postcode' name='postcode' maxlength=7>\n");
 			
 			if (toegang("Ledenlijst/Wijzigen lid/Lidmaatschap", 0, 0) == true) {
@@ -327,8 +321,12 @@ function fnLedenlijst() {
 			$kn = 4;
 			if ($currenttab2 == "Klosleden") {
 				$kols[$kn]['headertext'] = "Opmerking";
+				$kols[$kn]['columnname'] = "Opmerking";
 				$kn++;
 				$kols[$kn]['headertext'] = "Ond.";
+				$kols[$kn]['type'] = "subqry";
+				$kols[$kn]['subqry'] = sprintf("SELECT GROUP_CONCAT(DISTINCT O.Kode SEPARATOR '/') FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE LO.Lid=%%d AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()", TABLE_PREFIX);
+				$kols[$kn]['columnname'] = "RecordID";
 				$kn++;
 			} else {
 				$kols[$kn]['headertext'] = "Lidnummer";
@@ -348,8 +346,12 @@ function fnLedenlijst() {
 					$kols[$kn]['type'] = "date";
 					$kn++;
 				}
-				$kols[$kn]['headertext'] = "Afd.";
-				$kols[$kn]['columnname'] = "Afdelingen";
+				if ($currenttab2 == "Leden") {
+					$kols[$kn]['headertext'] = "Afd.";
+					$kols[$kn]['type'] = "subqry";
+					$kols[$kn]['subqry'] = sprintf("SELECT GROUP_CONCAT(DISTINCT O.Kode SEPARATOR '/') FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE O.Type='A' AND LO.Lid=%%d AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()", TABLE_PREFIX);
+					$kols[$kn]['columnname'] = "RecordID";
+				}
 				$kn++;
 			}
 		}
@@ -1050,6 +1052,10 @@ function fnEigenGegevens($lidid=0) {
 } # fnEigenGegevens
 
 function overzichtverjaardagen($metfoto=1) {
+
+	if ($metfoto != 0 and $_SESSION['settings']['toonpasfotoindiennietingelogd'] == 0 and $_SESSION['lidid'] == 0) {
+		$metfoto = 0;
+	}
 	
 	$i_lid = new cls_Lid();
 
@@ -1086,12 +1092,17 @@ function overzichtverjaardagen($metfoto=1) {
 		}
 		$dteHV->modify("+1 day");
 	}
+	$i_lid = null;
+	if (strlen($verj) > 0) {
+		$verj = "<h3>Verjaardagen</h3>\n" . $verj;
+		$verjfoto = "<h3>Verjaardagen</h3>\n" . $verjfoto;
+	}
 	if ($metfoto == 1) {
 		return $verjfoto;
 	} else {
 		return $verj;
 	}
-	$i_lid = null;
+	
 } # overzichtverjaardagen
 
 function fotolid($lidid, $metversie=0) {
@@ -1219,16 +1230,33 @@ function algemeenlidmuteren($lidid) {
 	}
 	
 	for ($i=0; $i < count($wijzvelden); $i++) {
+		
 		$jsoc = sprintf("OnBlur=\"savedata('lid', %d, this);\"", $row->RecordID, $wijzvelden[$i]['naam']);
 		$dv = str_replace("\n", "<br>\n", $row->{$wijzvelden[$i]['naam']});
-		if ($wijzvelden[$i]['naam'] == "Woonplaats" and strlen($dv) == 0 and strlen($row->Postcode) >= 4) {
-			$dv = $i_lid->max("Woonplaats", sprintf("LEFT(Postcode, 4)='%s'", substr($row->Postcode, 0, 4)));
-		} elseif ($wijzvelden[$i]['naam'] == "Adres" and strlen($dv) == 0 and strlen($row->Postcode) == 7) {
-			$dv = $i_lid->max("Adres", sprintf("LEFT(Postcode, 7)='%s'", substr($row->Postcode, 0, 7)));
-			if (strlen($dv) > 2 and strrpos($dv, " ") > 1) {
-				$dv = substr($dv, 0, strrpos($dv, " "));
+		
+		if (($wijzvelden[$i]['naam'] == "Adres" or $wijzvelden[$i]['naam'] == "Woonplaats") and strlen($row->Postcode) >= 6) {
+			
+			$curl= curl_init();
+			curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+			$url = sprintf("https://geodata.nationaalgeoregister.nl/locatieserver/free?fq=postcode:%s", str_replace(" ", "", $row->Postcode));
+			curl_setopt($curl, CURLOPT_URL, $url);
+			$respdok = curl_exec($curl);
+			$pdok = json_decode($respdok)->response;
+			if ($pdok->numFound > 0) {
+//				print_r($pdok->docs[0]);
 			}
+			
+			if ($wijzvelden[$i]['naam'] == "Woonplaats" and strlen($dv) == 0 and isset($pdok->docs[0]->woonplaatsnaam)) {
+				$dv = $pdok->docs[0]->woonplaatsnaam;
+				$i_lid->update($lidid, "Woonplaats", $dv);
+				
+			} elseif ($wijzvelden[$i]['naam'] == "Adres" and strlen($dv) == 0 and isset($pdok->docs[0]->straatnaam)) {
+				$dv = $pdok->docs[0]->straatnaam;
+			}
+			curl_close($curl);
 		}
+			
+		
 		$ph = $wijzvelden[$i]['label'];
 		if ($wijzvelden[$i]['label'] == "Geslacht" or ($wijzvelden[$i]['label'] == "Legitimatietype")) {
 			if ($wijzvelden[$i]['label'] == "Geslacht") {
@@ -1502,19 +1530,11 @@ function toestemmingenmuteren($lidid) {
 		$mess = "";
 		foreach ($i_ond->lijst(0, "`Type`='T'") as $ondrow) {
 			if (isset($_POST['T_' . $ondrow->Kode])) {
-				$loid = $i_lo->loid($lidid, $ondrow->RecordID);
-				if ($loid == 0) {
-					if ($i_lo->add($ondrow->RecordID, $lidid) == true) {
-						$mess .= sprintf("%s is toegevoegd. ", $ondrow->Naam);
-					}
-				} elseif ($lidid == $_SESSION['lidid']) {
-					if ($i_lo->update($loid, "Vanaf", date("Y-m-d"), "Bevestiging toestemming")) {
-						$mess .= sprintf("%s is bevestigd. ", $ondrow->Naam);
-					}
+				if ($i_lo->zeteigenschap($lidid, $ondrow->RecordID, 1) == true) {
+					$mess .= sprintf("%s is toegevoegd of opnieuw bevestigd. ", $ondrow->Naam);
 				}
-				
 			} else {
-				if ($i_lo->delete(0, $lidid, $ondrow->RecordID) > 0) {
+				if ($i_lo->zeteigenschap($lidid, $ondrow->RecordID, 0) == true) {
 					$mess .= sprintf("%s is verwijderd. ", $ondrow->Naam);
 				}
 			}
@@ -2072,9 +2092,12 @@ function fnEigenlijstenmuteren() {
 			$i_el->add();
 		}
 		
-		$i_el->update($elid, "Naam", $_POST['naam']);
+		if (isset($_POST['naam'])) {
+			$i_el->update($elid, "Naam", $_POST['naam']);
+		}
 		
 		if (isset($_POST['tabpage'])) {
+			$_POST['tabpage'] = trim($_POST['tabpage']);
 			if (substr($_POST['tabpage'], -1) == "\\") {
 				$_POST['tabpage'] = substr($_POST['tabpage'], 0, -1);
 			}
@@ -2105,7 +2128,6 @@ function fnEigenlijstenmuteren() {
 		
 	} elseif (isset($_GET['paramActie']) and $_GET['paramActie'] == 2 and $elid > 0) {
 		
-		$i_el->controle($elid);
 		$row = $i_el->record();
 		
 		echo("<div id='eigenlijstmuteren'>\n");
@@ -2128,7 +2150,7 @@ function fnEigenlijstenmuteren() {
 		echo("<div id='opdrachtknoppen'>\n");
 		echo("<input type='submit' value='Bewaren' name='Bewaren'>\n");
 		echo("<input type='submit' value='Bewaren & Sluiten' name='BewarenSluiten'>\n");
-		if ($row->AantalRecords > 0 and $row->AantalKolommen > 1) {
+		if ($row->AantalRecords > 0 and $row->AantalKolommen > 0) {
 			echo("<button type='button' onClick=\"$('#resultaatlijst').toggle();\">Toon/verberg resultaat</button>\n");
 		}
 		echo("</div>\n");
@@ -2136,7 +2158,7 @@ function fnEigenlijstenmuteren() {
 		echo("</form>\n");
 		echo("</div> <!-- Einde eigenlijstmuteren -->\n");
 		
-		if ($row->AantalRecords > 0 and $row->AantalKolommen > 1) {
+		if ($row->AantalRecords > 0 and $row->AantalKolommen > 0) {
 			echo("<div id='resultaatlijst'>\n");
 			$i_el = new cls_Eigen_lijst($row->Naam);
 			$rows = $i_el->rowset();
@@ -2150,15 +2172,14 @@ function fnEigenlijstenmuteren() {
 	} else {
 		
 		echo("<div id='overzichteigenlijsten'>\n");
-//		$i_el->controle();
 		$rows = $i_el->lijst();
 		if (count($rows) > 0) {
 			echo("<table>\n");
 			echo("<caption>Overzicht Eigen lijsten</caption>\n");
-			echo("<tr><th></th><th>Naam</th><th># records</th><th># kolommen</th><th>LidID</th><th></th></tr>\n");
+			echo("<tr><th></th><th>Naam</th><th># records</th><th># kolommen</th><th>Tabblad</th><th></th></tr>\n");
 			foreach($rows as $row) {
 				$bl = sprintf("<a href='%s?tp=%s&paramID=%d&paramActie=%%d'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
-				printf("<tr><td>%s</td><td>%s</td><td class='number'>%d</td><td class='number'>%d</td><td class='number'>%d</td><td>%s</td></tr>\n", sprintf($bl, 2), $row->Naam, $row->AantalRecords, $row->AantalKolommen, $row->KolomLidID, sprintf($bl, 3));
+				printf("<tr><td>%s</td><td>%s</td><td class='number'>%d</td><td class='number'>%d</td><td>%s</td><td>%s</td></tr>\n", sprintf($bl, 2), $row->Naam, $row->AantalRecords, $row->AantalKolommen, $row->Tabpage, sprintf($bl, 3));
 			}
 			echo("</table>\n");
 		}
@@ -2172,72 +2193,85 @@ function fnEigenlijstenmuteren() {
 	
 }  # fnEigenlijstenmuteren
 
-function fnAgendaItems() {
+function fnPersoonlijkeAgenda() {
 	
 	$i_ak = new cls_Afdelingskalender();
 	$kalitem = null;
 	$in = 0;
 	
-	if ($_SESSION['lidid'] > 0) {
-		foreach ($i_ak->lijst(-1, "", "Datum >= CURDATE() AND (Activiteit=0 OR LENGTH(Omschrijving) > 0)") as $row) {
-			if (in_array($row->OnderdeelID, explode(",", $_SESSION['lidgroepen']))) {
+	$f = sprintf("AK.Datum >= CURDATE() AND AK.OnderdeelID IN (%s) AND AK.Datum <= DATE_ADD(CURDATE(), INTERVAL 5 WEEK)", $_SESSION['lidgroepen']);
+	foreach ($i_ak->lijst(-1, "", $f) as $row) {
+		$kalitem[$in]['datum'] = date("Y-m-d", strtotime($row->Datum));
+			
+		$lorow = (new cls_Lidond())->record($_SESSION['lidid'], $row->OnderdeelID);
+		if (isset($lorow->Starttijd) and strlen($lorow->Starttijd) > 3 and $row->Activiteit == 1) {
+			$kalitem[$in]['datum'] .= " " . $lorow->Starttijd;
+		}
+				
+		if ($row->Activiteit == 1) {
+			$oms = $row->Naam;
+		} else {
+			$oms = "Geen " . $row->Naam;
+		}
+		if (strlen($row->Omschrijving) > 1) {
+			$oms .= " (" . $row->Omschrijving . ")";
+		}
+		$kalitem[$in]['oms'] = $oms;
+		$in++;
+	}
+	
+	foreach ((new cls_Evenement())->lijst(4) as $row) {
+		$edrow = (new cls_Evenement_Deelnemer())->record(0, $_SESSION['lidid'], $row->RecordID);
+		if ($row->Dln == 0 or (isset($edrow->RecordID) and strstr("BIJRT", $edrow->Status) !== false)) {
+			if ($row->MeerdereStartMomenten == 0) {
+				$kalitem[$in]['datum'] = date("Y-m-d H:i", strtotime($row->Datum));
+			} else {
 				$kalitem[$in]['datum'] = date("Y-m-d", strtotime($row->Datum));
-				
-				$lorow = (new cls_Lidond())->record($_SESSION['lidid'], $row->OnderdeelID);
-				if (isset($lorow->Starttijd) and strlen($lorow->Starttijd) > 3 and $row->Activiteit == 1) {
-					$kalitem[$in]['datum'] .= " " . $lorow->Starttijd;
+				if (isset($edrow->RecordID) and strlen($edrow->StartMoment) > 2) {
+					$kalitem[$in]['datum'] .= " " . $edrow->StartMoment;
 				}
-				
-				if ($row->Activiteit == 1) {
-					$oms = $lorow->AfdNaam;
-				} else {
-					$oms = "Geen " . $lorow->AfdNaam;
-				}
-				if (strlen($row->Omschrijving) > 1) {
-					$oms .= " (" . $row->Omschrijving . ")";
-				}
-				$kalitem[$in]['oms'] = $oms;
+			}
+			$kalitem[$in]['oms'] = $row->Omschrijving;
+			if (isset($edrow->RecordID)) {
+				$kalitem[$in]['oms'] .= ": " . ARRDLNSTATUS[$edrow->Status];
+			}
+			$in++;
+		}
+	}
+	
+	if ($_SESSION['lidid'] > 0 and  $_SESSION['settings']['termijnvervallendiplomasmelden'] > 0) {
+		$rows = (new cls_Liddipl())->vervallenbinnenkort($_SESSION['lidid']);
+		foreach ($rows as $row) {
+			if ($row->VervaltPer >= date("Y-m-d", strtotime("-7 days"))) {
+				$kalitem[$in]['datum'] = date("Y-m-d H:i", strtotime($row->VervaltPer));
+				$kalitem[$in]['oms'] = sprintf("%s vervalt", $row->DiplOms);
 				$in++;
 			}
 		}
 	}
 	
-	foreach ((new cls_Evenement())->lijst(4) as $row) {
-		if ($row->MeerdereStartMomenten == 0) {
-			$kalitem[$in]['datum'] = date("Y-m-d H:i", strtotime($row->Datum));
-		} else {
-			$kalitem[$in]['datum'] = date("Y-m-d", strtotime($row->Datum));
-			if ($_SESSION['lidid'] > 0) {
-				$edrow = (new cls_Evenement_Deelnemer())->record(0, $_SESSION['lidid'], $row->RecordID);
-				if (isset($edrow->RecordID) and strlen($edrow->StartMoment) > 2) {
-					$kalitem[$in]['datum'] .= " " . $edrow->StartMoment;
-				}
-			}
-		}
-		$kalitem[$in]['oms']= $row->Omschrijving;
-		$in++;
-	}
-	
 	$rv = "";
-	if (isset($kalitem) and count($kalitem) > 1) {
+	if (isset($kalitem) and count($kalitem) > 0) {
+		$rv = "<h3>Persoonlijke agenda</h3>\n<ul>\n";
 		usort($kalitem, function($a, $b) {
 			return $a['datum'] <=> $b['datum'];
 		});
-	}
-	for ($in=0;$in<=9;$in++) {
-		if (isset($kalitem[$in]['datum'])) {
-			$dat = strftime("%A %e %B", strtotime($kalitem[$in]['datum']));
-			$tijd = date("H:i", strtotime($kalitem[$in]['datum']));
-			if ($tijd > "00:00") {
-				$dat .= " (" . $tijd . ")";
+		for ($in=0;$in<=9;$in++) {
+			if (isset($kalitem[$in]['datum'])) {
+				$dat = strftime("%A %e %B", strtotime($kalitem[$in]['datum']));
+				$tijd = date("H:i", strtotime($kalitem[$in]['datum']));
+				if ($tijd > "00:00") {
+					$dat .= " (" . $tijd . ")";
+				}
+				$rv .= sprintf("<li>%s: %s</li>\n", $dat, $kalitem[$in]['oms']);
 			}
-			$rv .= sprintf("<li>%s: %s</li>\n", $dat, $kalitem[$in]['oms']);
 		}
+		$rv .= "</ul>\n";
 	}
 
 	return $rv;
 	
-}  #fnAgendaItems
+}  # fnPersoonlijkeAgenda
 
 function fnBasisgegevens($p_type) {
 	
@@ -2339,7 +2373,39 @@ function fnBasisgegevens($p_type) {
 		
 		echo("<div id='opdrachtknoppen'>\n");
 		echo("<button name='NieuweFunctie' onClick='this.form.submit();'>Nieuwe functie</button>\n");
-		echo("</div> <! =-- Einde opdrachtknoppen -->\n");
+		echo("</div> <!-- Einde opdrachtknoppen -->\n");
+		echo("</form>\n");
+		
+		$i_ond = null;
+		
+		
+	} elseif ($p_type == "Activiteiten") {
+		$i_act = new cls_Activiteit();
+
+		if (isset($_POST['NieuweActiviteit'])) {
+			$i_act->add();
+		}
+		
+		$res = $i_act->basislijst("", "Omschrijving", 0);
+		
+		$kols = null;
+		$kols[0]['headertext'] = "#";
+		$kols[0]['readonly'] = true;
+		$kols[0]['type'] = "pk";
+		
+		$kols[1]['headertext'] = "Code";
+		$kols[2]['headertext'] = "Omschrijving";
+		
+		$kols[3]['headertext'] = "Contributie";
+		$kols[3]['type'] = "bedrag";
+				
+		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+		
+		echo(fnEditTable($res, $kols, "activiteitedit", "Muteren activiteiten"));
+		
+		echo("<div id='opdrachtknoppen'>\n");
+		echo("<button name='NieuweActiviteit' onClick='this.form.submit();'>Nieuwe activiteit</button>\n");
+		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 		echo("</form>\n");
 		
 		$i_ond = null;
@@ -2437,9 +2503,9 @@ function fnBasisgegevens($p_type) {
 		$kols[2]['columnname'] = "Einddatum";
 		$kols[2]['type'] = "rqdate";
 		
-		$kols[3]['headertext'] = "Leeftijdgrens jeugdleden";
+		$kols[3]['headertext'] = "Jeugdlid tot";
 		$kols[3]['columnname'] = "Leeftijdsgrens jeugdleden";
-		$kols[3]['type'] = "integer";
+		$kols[3]['type'] = "leeftijd";
 		
 		$kols[4]['headertext'] = "&nbsp;";
 		$kols[4]['columnname'] = "Nummer";
