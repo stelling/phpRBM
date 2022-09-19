@@ -163,13 +163,18 @@ if (toegang($_GET['tp'], 1) == false) {
 		$rows = $i_el->rowset();
 		if ($rows !== false) {
 			printf("<p>%s</p>", fnDisplayTable($rows, null, $currenttab3));
-			printf("<p>%d rijen</p>\n", count($rows));
-			$i_el->update($i_el->elid, "AantalRecords", count($rows));
+			if (count($rows) > 1) {
+				printf("<p>%d rijen</p>\n", count($rows));
+			}
 		}
+		$i_el->controle($i_el->elid);
 		$i_el = null;
 	}
 
 } elseif ($currenttab == "Ledenlijst") {
+	
+	(new cls_Eigen_lijst())->controle();
+	
 	if ($currenttab2 == "Afdelingen") {
 		fnOnderdelenmuteren("A");
 		
@@ -289,7 +294,7 @@ function fnVoorblad() {
 			$content = str_replace("[%INGELOGDEGEWIJZIGD%]", "", $content);
 		}
 		if (strpos($content, "[%KOMENDEEVENEMENTEN%]") !== false) {
-			$content = str_replace("[%KOMENDEEVENEMENTEN%]", fnAgendaItems(), $content);
+			$content = str_replace("[%KOMENDEEVENEMENTEN%]", fnPersoonlijkeAgenda(), $content);
 		}
 		$content = str_replace("[%ROEPNAAM%]", $_SESSION['roepnaamingelogde'], $content);
 		if (strpos($content, "[%VERVALLENDIPLOMAS%]") !== false and $_SESSION['lidid'] > 0) {
@@ -326,7 +331,6 @@ function fnVoorblad() {
 	} else {
 		$content = "Er is geen introductie beschikbaar.";
 	}
-	
 	
 	return sprintf("<div id='welkomstekst'>\n%s</div>  <!-- Einde welkomstekst -->\n", $content);
 	
@@ -385,23 +389,7 @@ function fnAgenda($p_lidid=0) {
 			
 			// Evenementen
 			foreach ((new cls_Evenement())->lijst(5, date("Y-m-d", $td)) as $evrow) {
-				$bt = "";
-				if (substr($evrow->Datum, 11, 5) > "00:00") {
-					$bt = substr($evrow->Datum, 11, 5) . "&nbsp;";
-				}
-				$s = "";
-				if (strlen($evrow->Tekstkleur) > 2 or strlen($evrow->Achtergrondkleur) > 2) {
-					$s = " style='";
-					if (strlen($evrow->Tekstkleur) > 2) {
-						$s .= "color: " . $evrow->Tekstkleur . ";";
-					}
-					
-					if (strlen($evrow->Achtergrondkleur) > 2) {
-						$s .= "background-color: " . $evrow->Achtergrondkleur . ";";
-					}
-					$s .= "'";
-				}
-				$txt .= sprintf("<li class='%s'%s>%s%s</li>\n", str_replace("'", "", str_replace(" ", "_", strtolower($evrow->OmsType))), $s, $bt, $evrow->Omschrijving);
+				$txt .= fnEvenementOmschrijving($evrow, 1, "li") . "\n";
 			}
 			
 			// Afdelingskalender
@@ -555,8 +543,8 @@ function fnGewijzigdeStukken() {
 	if ($_SESSION['lidid'] > 0) {
 		$rows = (new cls_Stukken())->gewijzigdestukken();
 		if (count($rows) > 0) {
-			$rv = "<p>De volgende stukken zijn gewijzigd sinds je laatste login of korter dan een week geleden.</p>\n
-				   <ul>\n";
+			$rv = "<h3>Gewijzigde stukken</h3>\n";
+			$rv .= sprintf("<p>Er zijn %d stukken gewijzigd sinds je laatste login of korter dan een week geleden.</p>\n<ul>\n", count($rows));
 			foreach($rows as $row) {
 				$rv .= sprintf("<li>%s</li>\n", $row->Titel);
 			}
