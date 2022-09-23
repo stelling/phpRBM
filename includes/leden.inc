@@ -249,7 +249,9 @@ function fnLedenlijst() {
 	global $wherelidond, $currenttab2, $currenttab3;
 	
 	$i_lid = new cls_Lid();
-	(new cls_lidond())->auto_einde();
+	$i_lo = new cls_Lidond();
+	$i_lo->auto_einde();
+	$i_lo->autogroepenbijwerken(1);
 	
 	fnDispMenu(2);
 	
@@ -540,7 +542,6 @@ function fnOnderdelenmuteren($ondtype="G") {
 	if (isset($_POST['add_lid']) and $_POST['add_lid'] > 0 and $muteerbaar) {
 		$i_lo->add($onderdeelid, $lidid);
 		$scherm = "L";
-		$i_lo->autogroepenbijwerken(0, 1);
 	}
 	
 	if ($muteerbaar) {
@@ -2099,6 +2100,7 @@ function instellingenledenmuteren() {
 }  # instellingenledenmuteren
 
 function fnEigenlijstenmuteren() {
+	global $dtfmt;
 	
 	if (isset($_GET['tp'])) {
 		$tp = $_GET['tp'];
@@ -2110,6 +2112,7 @@ function fnEigenlijstenmuteren() {
 		$elid = 0;
 	}
 	$i_el = new cls_Eigen_lijst("", $elid);
+	$i_el->controle(elid, 1);
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		
@@ -2171,6 +2174,8 @@ function fnEigenlijstenmuteren() {
 			printf("<p>%s</p>\n", $i_el->mess);
 			$i_el->Log($elid);
 		}
+		$dtfmt->setPattern(DTLONGSEC);
+		printf("<label>Laatste controle</label><p>%s</p>\n", $dtfmt->format(strtotime($row->LaatsteControle)));
 		
 		echo("<div id='opdrachtknoppen'>\n");
 		echo("<input type='submit' value='Bewaren' name='Bewaren'>\n");
@@ -2201,7 +2206,7 @@ function fnEigenlijstenmuteren() {
 		if (count($rows) > 0) {
 			echo("<table>\n");
 			echo("<caption>Overzicht Eigen lijsten</caption>\n");
-			echo("<tr><th></th><th>Naam</th><th># records</th><th># kolommen</th><th>Tabblad</th><th><th>Laatste controle</th></th></tr>\n");
+			echo("<tr><th></th><th>Naam</th><th># records</th><th># kolommen</th><th>Tabblad</th><th>Laatste controle</th><th></th></tr>\n");
 			foreach($rows as $row) {
 				$bl = sprintf("<a href='%s?tp=%s&paramID=%d&paramActie=%%d'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
 				printf("<tr><td>%s</td><td>%s</td><td class='number'>%d</td><td class='number'>%d</td><td>%s</td><td>%s</td><td>%s</td>", sprintf($bl, 2), $row->Naam, $row->AantalRecords, $row->AantalKolommen, $row->Tabpage, date("d-m-Y H:i", strtotime($row->LaatsteControle)), sprintf($bl, 3));
