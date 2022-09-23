@@ -85,6 +85,7 @@ function fnRekeningbeheer() {
 	
 	$kols[2]['headertext'] = "Datum";
 	$kols[2]['columnname'] = "Datum";
+	$kols[2]['type'] = "date";
 	
 	$kols[3]['headertext'] = "Omschrijving";
 	$kols[3]['columnname'] = "OMSCHRIJV";
@@ -95,14 +96,27 @@ function fnRekeningbeheer() {
 	$kols[4]['headertext'] = "Bedrag";
 	$kols[4]['columnname'] = "Bedrag";
 	$kols[4]['type'] = "currency";
-		
-	$kols[5]['headertext'] = "Betaald";
-	$kols[5]['columnname'] = "Betaald";
-	$kols[5]['type'] = "currency";
+
+	$f = sprintf("RK.Seizoen=%d", $filterseizoen);
+	if ($i_rk->max("Betaald", $f) > 0) {
+		debug($filterseizoen);
+		$kols[5]['headertext'] = "Betaald";
+		$kols[5]['columnname'] = "Betaald";
+		$kols[5]['type'] = "currency";
+	}
 	
-	$kols[7]['link'] = sprintf("%s?tp=%s/Beheer&op=deleterekening&p_reknr=%%d", $_SERVER['PHP_SELF'], $currenttab);
-	$kols[7]['class'] = 'trash';
-	$kols[7]['columnname'] = "linkDelete";
+	$adl = 0;
+	foreach ($rows as $row) {
+		if ($row->linkDelete > 0) {
+			$adl++;
+		}
+	}
+	
+	if ($adl > 0) {
+		$kols[7]['link'] = sprintf("%s?tp=%s/Beheer&op=deleterekening&p_reknr=%%d", $_SERVER['PHP_SELF'], $currenttab);
+		$kols[7]['class'] = 'trash';
+		$kols[7]['columnname'] = "linkDelete";
+	}
 	
 	echo(fnDisplayTable($rows, $kols, "", 0, "", "overzichtrekeningen"));
 }
@@ -166,7 +180,7 @@ function fnRekeningMuteren($p_rkid=-1) {
 	$f = sprintf("Rekening=%d", $reknr);
 	$i_rk->update($reknr, "Bedrag", $i_rr->totaal("Bedrag", $f));
 	
-	if ($scherm == "M")  {
+	if ($scherm == "M" and $reknr > 0)  {
 		$row = $i_rk->record($reknr);
 		if ($row->AantLid == 1) {
 			$i_rk->update($reknr, "Lid", $row->EersteLid);
@@ -216,7 +230,6 @@ function fnRekeningMuteren($p_rkid=-1) {
 			$bdt = $row->BETAALDAG;
 		}
 		printf("<label id='lblBETAALDAG'>Betaaltermijn in dagen</label><input type='number' id='BETAALDAG' value=%d min=1>\n", $bdt);
-		printf("<label id='lblBET_TERM'>Aantal betaaltermijnen</label><input type='number' id='BET_TERM' value=%d min=1>\n", $row->BET_TERM);
 		echo("</div> <!-- einde rekeningkopmuteren  -->\n");
 		
 		echo("<div class='clear'></div>\n");
@@ -292,6 +305,7 @@ function fnRekeningMuteren($p_rkid=-1) {
 }  # fnRekeningMuteren
 
 function RekeningDetail($p_rkid) {
+	global $dtfmt;
 	
 	$rk = (new cls_Rekening())->record($p_rkid);
 	
@@ -369,12 +383,13 @@ function RekeningDetail($p_rkid) {
 	if (($rk->Openstaand) < 0.50) {
 		$content = removetextblock($content, "<!-- NietOpVolledigBetaald -->", "<!-- /NietOpVolledigBetaald -->");
 	}
+	$dtfmt->setPattern(DTTEXT);
 	$content = str_ireplace("[%NAAMDEBITEUR%]", $rk->Tenaamstelling, $content);
 	$content = str_ireplace("[%ADRES%]", $rk->Adres, $content);
 	$content = str_ireplace("[%POSTCODE%]", $rk->Postcode, $content);
 	$content = str_ireplace("[%WOONPLAATS%]", $rk->Woonplaats, $content);
 	$content = str_ireplace("[%LIDNR%]", $rk->Lidnr, $content);
-	$content = str_ireplace("[%REKENINGDATUM%]", strftime("%e %B %Y", strtotime($rk->Datum)), $content);
+	$content = str_ireplace("[%REKENINGDATUM%]", $dtfmt->format(strtotime($rk->Datum)), $content);
 	$content = str_ireplace("[%SEIZOEN%]", $rk->Seizoen, $content);
 	$content = str_ireplace("[%REKENINGOMSCHRIJVING%]", $rk->OMSCHRIJV, $content);
 	$content = str_ireplace("[%REKENINGNUMMER%]", $rk->Nummer, $content);
@@ -382,7 +397,7 @@ function RekeningDetail($p_rkid) {
 	$content = str_ireplace("[%BETAALD%]", fnBedrag($rk->Betaald), $content);
 	$content = str_ireplace("[%OPENSTAAND%]", fnBedrag($rk->Openstaand), $content);
 	$content = str_ireplace("[%BANKREKENING%]", $rk->Bankrekeningnummer, $content);
-	$content = str_ireplace("[%UITERSTEBETAALDATUM%]", strftime("%e %B %Y", strtotime($rk->UitersteBetaaldatum)), $content);
+	$content = str_ireplace("[%UITERSTEBETAALDATUM%]", $dtfmt->format(strtotime($rk->UitersteBetaaldatum)), $content);
 	$i_mv = new cls_Mailing_vanaf($_SESSION['settings']['mailing_rekening_vanafid']);
 	$content = str_ireplace("[%VANAFADRES%]", $i_mv->vanaf_email, $content);
 	$content = str_ireplace("[%VANAFNAAM%]", $i_mv->vanaf_naam, $content);
