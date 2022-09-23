@@ -587,14 +587,17 @@ class cls_db_base {
 		return $rv;
 	}
 	
-	public function pdodelete($p_recid) {
+	public function pdodelete($p_recid, $p_reden="") {
 		global $dbc, $arrTables;
 		
 		$query = sprintf("DELETE FROM `%s` WHERE `%s`=:id;", $this->table, $this->pkkol);
 		$stmt = $dbc->prepare($query);
 		$stmt->bindValue(":id", $p_recid);
 		if ($stmt->execute()) {
-			$this->mess = sprintf("%s: Record %d is verwijderd", $this->table, $p_recid);
+			if (strlen($p_reden) > 0) {
+				$p_reden = ", omdat " . $p_reden;
+			}
+			$this->mess = sprintf("%s: Record %d is verwijderd%s", $this->table, $p_recid, $p_reden);
 			
 			$t = str_replace(TABLE_PREFIX, "", $this->table);
 			if (array_search($t, $arrTables) >= 30) {
@@ -1373,6 +1376,18 @@ class cls_Lidmaatschap extends cls_db_base {
 			foreach ($this->execsql()->fetchAll() as $row) {
 				$this->update($row->RecordID, "Opgezegd", $p_per);
 			}
+		}
+	}
+	
+	public function opschonen() {
+		
+		$query = sprintf("SELECT LM.RecordID, LM.Lid FROM %s WHERE LM.LIDDATUM > IFNULL(LM.Opgezegd, '9999-12-31');", $this->basefrom);
+		$result = $this->execsql($query);
+		
+		foreach ($result->fetchAll() as $row) {
+			$this->lidid = $row->Lid;
+			$this->pdodelete($row->RecordID, "de datum van lid worden na de datum van opzeggen ligt");
+			$this->Log($row->RecordID);
 		}
 	}
 	
@@ -3078,10 +3093,14 @@ class cls_Lidond extends cls_db_base {
 	}  # opschonen
 	
 	public function autogroepenbijwerken($p_altijdlog=0, $p_altijd=0) {
-		
 		$rv = 0;
+		$lagb = "";
 		
-		$lagb = (new cls_Logboek())->max("DatumTijd", "TypeActiviteit=6 AND TypeActiviteitSpecifiek=31");
+		if ($p_altijd == 0) {
+			$f = sprintf("TypeActiviteit=%d AND TypeActiviteitSpecifiek=30", $this->ta);
+			$lagb = (new cls_Logboek())->max("DatumTijd", $f);
+		}
+		
 		if (($lagb < date("Y-m-d H:i:s", strtotime("-15 minutes")) or $p_altijd == 1)) {
 		
 			$f = "LENGTH(MySQL) > 10 AND IFNULL(VervallenPer, CURDATE()) >= CURDATE()";
@@ -3162,7 +3181,6 @@ class cls_Lidond extends cls_db_base {
 		
 			if ($rv > 0 or $p_altijdlog == 1) {
 				$this->mess = sprintf("autogroepenbijwerken uitgevoerd, %d aanpassingen gedaan.", $rv);
-				$this->ta =6;
 				$this->tas = 30;
 				$this->lidid = 0;
 				$this->log();
@@ -6494,7 +6512,7 @@ class cls_Eigen_lijst extends cls_db_base {
 	private function vulvars($p_elid) {
 		$this->elid = $p_elid;
 		if ($this->elid > 0) {
-			$query = sprintf("SELECT IFNULL(Naam, '') FROM %s WHERE RecordID=%d;", $this->basefrom, $this->elid);
+			$query = sprintf("SELECT IFNULL(EL.Naam, '') FROM %s WHERE EL.RecordID=%d;", $this->basefrom, $this->elid);
 			$this->elnaam = $this->scalar($query);
 		}
 	}
@@ -6546,7 +6564,7 @@ class cls_Eigen_lijst extends cls_db_base {
 	}
 	
 	public function mysql($p_elid=-1, $p_assub=0) {
-		$query = trim(sprintf("SELECT EL.* FROM %s WHERE RecordID=%d;", $this->basefrom, $p_elid));
+		$query = trim(sprintf("SELECT EL.* FROM %s WHERE EL.RecordID=%d;", $this->basefrom, $p_elid));
 		$elres = $this->execsql($query);
 		$elrow = $elres->fetch();
 		$rv = $elrow->MySQL;
@@ -6562,14 +6580,20 @@ class cls_Eigen_lijst extends cls_db_base {
 		return $rv;
 	}
 	
-	public function controle($p_elid=-1) {
+	public function controle($p_elid=-1, $p_altijd=0) {
 		global $dbc;
 
 		if ($p_elid > 0) {
-			$w = sprintf("RecordID=%d", $p_elid);
-		} else {
-			$w = "LaatsteControle < DATE_SUB(NOW(), INTERVAL 18 HOUR)";
+			$this->elid = $p_elid;
 		}
+		if ($this->elid > 0 and $p_altijd == 1) {
+			$w = sprintf("EL.RecordID=%d", $this->elid);
+		} elseif ($this->elid > 0) {
+			$w = sprintf("EL.RecordID=%d AND EL.LaatsteControle < DATE_SUB(NOW(), INTERVAL 5 MINUTE)", $this->elid);
+		} else {
+			$w = "EL.LaatsteControle < DATE_SUB(NOW(), INTERVAL 8 HOUR)";
+		}
+		
 		$query = sprintf("SELECT * FROM %s WHERE %s LIMIT 3;", $this->basefrom, $w);
 		$result = $this->execsql($query);
 		$elrows = $result->fetchAll();
@@ -6666,7 +6690,7 @@ class cls_Eigen_lijst extends cls_db_base {
 		if ($p_elid > 0) {
 			$this->elid = $p_elid;
 		}
-		$query = sprintf("SELECT IFNULL(KolomLidID, 0) FROM %s WHERE RecordID=%d;", $this->table, $this->elid);
+		$query = sprintf("SELECT IFNULL(EL.KolomLidID, 0) FROM %s WHERE EL.RecordID=%d;", $this->basefrom, $this->elid);
 		return $this->scalar($query);
 	}
 	
@@ -6674,7 +6698,7 @@ class cls_Eigen_lijst extends cls_db_base {
 		if ($p_elid > 0) {
 			$this->elid = $p_elid; 
 		}
-		$query = sprintf("SELECT * FROM %s WHERE RecordID=%d;", $this->table, $this->elid);
+		$query = sprintf("SELECT EL.* FROM %s WHERE EL.RecordID=%d;", $this->basefrom, $this->elid);
 		$result = $this->execsql($query);
 		return $result->fetch();
 	}
@@ -7361,6 +7385,7 @@ function db_onderhoud($type=9) {
 	}
 	
 	(new cls_Eigen_lijst())->controle();
+	(new cls_Lidmaatschap())->opschonen();
 	
 	if ($type != 2) {
 		foreach ($arrTables as $tn) {
