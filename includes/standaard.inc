@@ -2,6 +2,12 @@
 
 date_default_timezone_set('Europe/Amsterdam');
 setlocale(LC_ALL,'nl_NL.utf8');
+$dtfmt = new IntlDateFormatter(
+    'nl_NL',
+    IntlDateFormatter::LONG,
+    IntlDateFormatter::LONG,
+    'Europe/Amsterdam'
+);
 
 define("BASEDIR", $_SERVER['DOCUMENT_ROOT']);
 define("ARRGESLACHT", ["O" => "Onbekend", "V" => "Vrouwelijk", "M" => "Mannelijk", "N" => "Neutraal", "B" => "Bedrijf/Vereniging/Stichting"]);
@@ -26,6 +32,15 @@ define("BASE64_VERWIJDER_KLEIN", "data:image/jpg;base64,R0lGODlhCQALAJEAAP///8zM
 define("BASE64_DETAILS", "data:image/jpg;base64,AAABAAEAICAAAAEAIACoEAAAFgAAACgAAAAgAAAAQAAAAAEAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICANoCAgHyAgIB+gICAfoCAgH6AgIB+gICAfoCAgH6AgIB+gICAfoCAgH6AgIB+gICAfoCAgH6AgIB+gICAfoCAgH6AgIB+gICAfoCAgH6AgIB+gICAfoCAgH6AgIB+gICAfoCAgH6AgIB+gICAfoCAgH6AgIB+gICAfoCAgDSAgIDYgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA4ICAgOSAgID/gICA9ICAgOqAgIDsgICA/4CAgP+AgIDygICA6oCAgOqAgIDqgICA6oCAgOqAgIDqgICA6oCAgOqAgIDqgICA6oCAgOqAgIDqgICA6oCAgOqAgIDqgICA6oCAgOqAgIDqgICA6oCAgOqAgIDqgICA9ICAgP+AgIDugICA5oCAgP+AgIB8AAAAAICAgASAgID/gICA/4CAgGgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIB8gICA/4CAgO6AgIDogICA/4CAgHwAAAAAgICABICAgP+AgID/gICAaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgHyAgID/gICA7oCAgOqAgID/gICA0ICAgKSAgICmgICA/4CAgP+AgIDIgICApICAgKSAgICkgICApICAgKSAgICkgICApICAgKSAgICkgICApICAgKSAgICkgICApICAgKSAgICkgICApICAgKSAgICkgICApICAgKSAgICkgICA0ICAgP+AgIDugICA7ICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgO6AgIDsgICA/4CAgOqAgIDWgICA1oCAgP+AgID/gICA5oCAgNaAgIDWgICA1oCAgNaAgIDWgICA1oCAgNaAgIDWgICA1oCAgNaAgIDWgICA1oCAgNaAgIDWgICA1oCAgNaAgIDWgICA1oCAgNaAgIDWgICA1oCAgOqAgID/gICA7oCAgOyAgID/gICAfAAAAACAgIAEgICA/4CAgP+AgIBoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAfICAgP+AgIDugICA7ICAgP+AgIB8AAAAAICAgASAgID/gICA/4CAgGgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIB8gICA/4CAgO6AgIDugICA/4CAgNyAgIC6gICAvICAgP+AgID/gICA1oCAgLqAgIC6gICAuoCAgLqAgIC6gICAuoCAgLqAgIC6gICAuoCAgLqAgIC6gICAuoCAgLqAgIC6gICAuoCAgLqAgIC6gICAuoCAgLqAgIC6gICAuoCAgNyAgID/gICA7oCAgO6AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIDugICA7oCAgP+AgIDcgICAtICAgLKAgID/gICA/4CAgNCAgICwgICAsICAgLCAgICygICAsoCAgLKAgICygICAsoCAgLKAgICygICAsoCAgLSAgIC0gICAtICAgLSAgIC2gICAtoCAgLaAgIC2gICAuICAgLiAgIDcgICA/4CAgO6AgIDugICA/4CAgIIAAAAAgICABICAgP+AgID/gICAaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgISAgID/gICA7oCAgO6AgID/gICAgAAAAACAgIAEgICA/4CAgP+AgIBoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAhICAgP+AgIDugICA7oCAgP+AgIDqgICA0ICAgNCAgID/gICA/4CAgOKAgIDQgICA0ICAgNCAgIDSgICA0oCAgNKAgIDSgICA0oCAgNKAgIDSgICA0oCAgNSAgIDUgICA1ICAgNSAgIDWgICA1oCAgNaAgIDWgICA2ICAgNiAgIDsgICA/4CAgO6AgIDugICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA7oCAgO6AgID/gICAyoCAgJqAgICcgICA/4CAgP+AgIDCgICAmoCAgJqAgICagICAmoCAgJqAgICagICAmoCAgJqAgICagICAmoCAgJqAgICagICAmoCAgJqAgICagICAmoCAgJqAgICagICAmoCAgJqAgICagICAyoCAgP+AgIDugICA7oCAgP+AgIB8AAAAAICAgASAgID/gICA/4CAgGgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIB8gICA/4CAgO6AgIDugICA/4CAgHwAAAAAgICABICAgP+AgID/gICAaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgHyAgID/gICA7oCAgO6AgID/gICA+oCAgPSAgID2gICA/4CAgP+AgID4gICA9ICAgPSAgID0gICA9ICAgPSAgID0gICA9ICAgPSAgID0gICA9ICAgPSAgID0gICA9ICAgPSAgID0gICA9ICAgPSAgID0gICA9ICAgPSAgID0gICA+oCAgP+AgIDsgICA7oCAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOyAgIDugICA/4CAgMCAgICEgICAhoCAgP+AgID/gICAtoCAgISAgICEgICAhICAgISAgICEgICAhICAgISAgICEgICAhICAgISAgICEgICAhICAgISAgICEgICAhICAgISAgICEgICAhICAgISAgICEgICAhICAgMCAgID/gICA7ICAgO6AgID/gICAfAAAAACAgIAEgICA/4CAgP+AgIBoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAfICAgP+AgIDqgICA7oCAgP+AgICEgICADICAgBKAgID/gICA/4CAgHCAgIAMgICADICAgAyAgIAMgICADICAgAyAgIAMgICADICAgAyAgIAMgICADICAgAyAgIAMgICADICAgAyAgIAMgICADICAgAyAgIAMgICADICAgAyAgICEgICA/4CAgOiAgIDugICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA5oCAgNaAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIDQgICAHoCAgGKAgIBkgICAZoCAgGaAgIBogICAaICAgGqAgIBqgICAaoCAgGqAgIBsgICAbICAgGyAgIBsgICAbICAgGyAgIBsgICAbICAgG6AgIBugICAboCAgG6AgIBugICAboCAgG6AgIBsgICAbICAgGqAgIBmgICAXICAgCIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA////////////////AAAAAAAAAAA5///8Of///AAAAAAAAAAAAAAAADn///w5///8AAAAAAAAAAAAAAAAGf//+Bn///gAAAAAAAAAAAAAAAA5///8Of///AAAAAAAAAAAAAAAADn///wZ///4AAAAAAAAAAD///////////////8=");
 define("BASE64_DETAILREGELS", "data:image/jpg;base64,AAABAAEAICAAAAEAIACoEAAAFgAAACgAAAAgAAAAQAAAAAEAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICACoCAgFCAgICUgICAxoCAgOSAgIDugICA7oCAgOSAgIDKgICAnICAgFqAgIAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAHICAgJCAgIDwgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgPaAgICegICAKAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICABICAgHyAgID0gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID6gICAkICAgAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgBiAgIDEgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA1oCAgCgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIAigICA3oCAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgPCAgIDqgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA7ICAgDYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAGICAgN6AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIDugICAKoCAgBKAgIDUgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA7ICAgCoAAAAAAAAAAAAAAAAAAAAAAAAAAICAgASAgIDAgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA+ICAgEIAAAAAAAAAAICAgCCAgIDogICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA2ICAgAwAAAAAAAAAAAAAAAAAAAAAgICAdICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIBiAAAAAAAAAAAAAAAAAAAAAICAgDiAgID2gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICAlgAAAAAAAAAAAAAAAICAgBaAgIDwgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICAhgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgFiAgID8gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID6gICALgAAAAAAAAAAgICAhICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgKyAgIACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgIKAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgICmAAAAAICAgASAgIDogICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIDMgICACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAAoCAgKqAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgPiAgIAUgICAQoCAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA5oCAgBwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICACoCAgM6AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgGSAgICEgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgPyAgIA6AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAIICAgO6AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICApoCAgLSAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgJ6AgICMgICAioCAgIqAgIAeAAAAAAAAAAAAAAAAAAAAAICAgAyAgICKgICAioCAgIyAgICUgICA8oCAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIDWgICA0ICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgDYAAAAAAAAAAAAAAAAAAAAAgICAFICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOyAgIDagICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICANgAAAAAAAAAAAAAAAAAAAACAgIAUgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA7oCAgNqAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIBkgICAMoCAgDCAgIAwgICAMICAgECAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIDugICA0ICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgO6AgIC0gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA9oCAgPSAgID0gICA9ICAgPSAgID2gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA1oCAgISAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIA2AAAAAAAAAAAAAAAAAAAAAICAgBSAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgICkgICAQICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgDYAAAAAAAAAAAAAAAAAAAAAgICAFICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgGKAgIACgICA5oCAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICApoCAgI6AgICOgICAjoCAgI6AgICWgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID4gICAFAAAAACAgICAgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgKQAAAAAAAAAAICAgBKAgIDugICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgLSAgICcgICAmoCAgJiAgICWgICAoICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID6gICAKgAAAAAAAAAAAAAAAICAgGyAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICAOgAAAAAAAAAAAAAAAAAAAACAgIAUgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgJAAAAAAAAAAAAAAAAAAAAAAgICAAoCAgLqAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIBQAAAAAAAAAAAAAAAAAAAAAICAgCiAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIDUgICACgAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFICAgNiAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOaAgICKgICAhICAgIKAgICEgICA0oCAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA6oCAgCYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAHoCAgNqAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOqAgIAyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFICAgL6AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIDSgICAJAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAAoCAgHSAgIDygICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID4gICAioCAgAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgBiAgICKgICA7ICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIDygICAmICAgCIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIAIgICASoCAgIyAgIC8gICA3oCAgOyAgIDogICA3oCAgMKAgICSgICAUoCAgAoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//AP//+AAf//AAB//AAAP/gAAB/wAYAP4APAB+AH4APAB/ADgA/wAYAf+AGAP/wBAH/+AAAH4AAAB+AAAAfgAAAH4AAAAAAAAAAAAAAH4ACAB+ABgAAAAYAAAAHAAAAD4AfgA+AH4AfwAAAP+AAAH/wAAD//AAB//4AB///wD/8=");
 define("BASE64_MUTEER", "data:image/jpg;base64,AAABAAEAICAAAAEAIACoEAAAFgAAACgAAAAgAAAAQAAAAAEAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAfICAgOiAgIDugICA7oCAgO6AgIDugICA7oCAgO6AgIDugICA7oCAgO6AgIDugICA7oCAgO6AgIDugICA7oCAgO6AgIDugICA7oCAgO6AgIDugICA6oCAgIqAgIACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgEiAgID/gICA7oCAgNKAgIDSgICA0oCAgNKAgIDSgICAwoCAgHKAgICSgICAzoCAgNKAgIDSgICA0oCAgNKAgIDSgICA0oCAgNKAgIDSgICA0oCAgNKAgIDqgICA/4CAgFgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICADoCAgAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgEaAgID/gICAigAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgICEgICA7oCAgKKAgIBQgICACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAPoCAgP+AgICKAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgHqAgID/gICAUgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgDqAgID/gICA/4CAgNyAgIDsgICArICAgFyAgIAOAAAAAAAAAAAAAAAAAAAAAAAAAACAgIA+gICA/4CAgIoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAAoCAgOaAgIC6gICACoCAgAyAgIBmgICA/ICAgOCAgIAiAAAAAAAAAAAAAAAAAAAAAICAgD6AgID/gICAigAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAloCAgGwAAAAAgICAEICAgMyAgID/gICA/4CAgOCAgIAiAAAAAAAAAAAAAAAAgICAPoCAgP+AgICKAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgHqAgID/gICAUgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIBGgICAvICAgBCAgIDMgICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAAAAAACAgIA+gICA/4CAgIoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgAaAgIDqgICAzoCAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAICAgD6AgID/gICAigAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgKCAgID/gICA/ICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAigICAHICAgOaAgICKAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgHqAgID/gICAUgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgNKAgIB4gICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAigICAKICAgHQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAigICAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAICAgA6AgICqgICAroCAgK6AgICugICAroCAgK6AgICugICAxICAgPaAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgHqAgID/gICAUgAAAAAAAAAAgICABICAgGSAgIBqgICAaoCAgGqAgIBqgICAaoCAgGqAgIBqgICAaoCAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAAAAAAAAAAAAAAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAAAAAAAAAAAAAAAAAICAgHqAgID/gICAUgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBSAAAAAAAAAACAgIAQgICAxICAgMqAgIDKgICAyoCAgMqAgIDKgICAyoCAgMqAgIDKgICAyoCAgMqAgIDKgICAiICAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA0oCAgBaAgIAOAAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAICAgAKAgIBIgICAToCAgE6AgIBOgICAToCAgE6AgIBOgICAToCAgE6AgIBOgICAToCAgE6AgIAkgICAFoCAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgNKAgIAWgICAdoCAgOCAgIAiAAAAAICAgHqAgID/gICAUgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgMqAgIBIgICAsICAgP+AgIDSgICAFoCAgHaAgID/gICA/4CAgOCAgIAcgICAeoCAgP+AgIBSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgNCAgID8gICA0oCAgBaAgIB2gICA/4CAgP+AgID/gICA/4CAgHqAgIB6gICA/4CAgFIAAAAAAAAAAICAgASAgIBegICAYoCAgGKAgIBigICAYoCAgGKAgIBigICAYoCAgGKAgIBigICAYoCAgGKAgIAwAAAAAAAAAAAAAAAAgICAFoCAgKiAgIAWgICAdoCAgP+AgID/gICA/4CAgP+AgIDugICALoCAgHqAgID/gICAUgAAAAAAAAAAgICADoCAgLCAgIC2gICAtoCAgLaAgIC2gICAtoCAgLaAgIC2gICAtoCAgLaAgIC2gICAtoCAgGYAAAAAAAAAAAAAAAAAAAAAAAAAAICAgGKAgID/gICA/4CAgP+AgID/gICA7oCAgDYAAAAAgICAeoCAgP+AgIBSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgCKAgIAYgICAFoCAgNKAgID/gICA/4CAgO6AgIA2AAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAPoCAgNSAgIAYgICAFoCAgMSAgIDmgICANgAAAAAAAAAAAAAAAICAgHqAgID/gICAUgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIA+gICA/4CAgIoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBSAAAAAAAAAACAgIBUgICAGAAAAAAAAAAAgICADICAgGAAAAAAAAAAAICAgACAgIBkgICABgAAAAAAAAAAgICAMoCAgDgAAAAAAAAAAICAgD6AgID/gICAigAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIB4gICA/4CAgGAAAAAAAAAAAICAgNqAgIBaAAAAAAAAAACAgIA6gICA+gAAAAAAAAAAgICADICAgP+AgIAoAAAAAAAAAACAgICSgICAngAAAAAAAAAAgICATICAgP+AgICIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgDqAgID/gICA+oCAgO6AgIDugICA/ICAgPSAgIDugICA7oCAgPKAgID/gICA7oCAgO6AgIDugICA/4CAgPCAgIDugICA7oCAgPiAgID4gICA7oCAgO6AgID4gICA/4CAgEwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgGCAgIDQgICA3oCAgN6AgID6gICA6oCAgN6AgIDegICA5oCAgP+AgIDegICA3oCAgOCAgID/gICA4oCAgN6AgIDegICA8ICAgPKAgIDegICA3oCAgNKAgIBsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgNqAgIBaAAAAAAAAAACAgIA6gICA+gAAAAAAAAAAgICAEICAgP+AgIAoAAAAAAAAAACAgICSgICAngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAsoCAgEAAAAAAAAAAAICAgCaAgIDKAAAAAAAAAACAgIAGgICA0oCAgBgAAAAAAAAAAICAgHKAgIB8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwAAA/4BAAP+///5/v4/+f7/B/n+/zn5/v9w+f7/oHn+/4A5/v+AGf7/0A/+/+gH/vAEA/7/+gH+//0A/v/+gH7//0A+8AAgPv//0G7//+jG///xhv//+wbwAP4O///+Hv//+z7///n+///5/u93Of4AAAP/AAAH/+93P//vd//8=");
+
+define("DTDAYMONTH", "d MMMM");
+define("DTTEXT", "d MMMM yyyy");
+define("DTPERSCAL", "EEEE d MMMM");
+define("DTTEXTWD", "EEEE d MMMM yyyy");
+define("DTLONG", "d MMMM yyyy (HH:mm)");
+define("DTLONGWD", "EEEE d MMMM yyyy (HH:mm)");
+define("DTLONGSEC", "d MMMM yyyy (HH:mm:ss)");
+define("DTLONGWDSEC", "EEEE d MMMM yyyy (HH:mm:ss)");
 
 require(BASEDIR . '/config.php');
 define("LIDIDWEBMASTERS", $lididwebmasters);
@@ -139,7 +154,7 @@ if (!isset($_SESSION['settings']['naamvereniging'])) {
 	$_SESSION['settings']['emailledenadministratie'] = $row->EmailLedenadministratie;
 }
 if ($bestandsversie != $_SESSION['settings']['versie']) {
-	debug(sprintf("Nieuwe versie: %s", strftime("%c")));
+	debug(sprintf("Nieuwe versie: %s", $dtfmt->format(time())));
 	$i_p->controle();
 	db_createtables();
 	db_onderhoud(2);
@@ -147,11 +162,12 @@ if ($bestandsversie != $_SESSION['settings']['versie']) {
 	$i_p->vulsessie();
 }
 $i_p = null;
+(new cls_Eigen_lijst())->controle();
 
 if ($_SESSION['lidid'] > 0) {
 	(new cls_Login())->setlastactivity();
 }
-
+$dtfmt->setPattern(DTTEXT);
 $fileverinfo = 'templates/verenigingsinfo.html';
 
 foreach ($tabpages as $tp) {
@@ -280,13 +296,6 @@ function HTMLfooter() {
 			}
 		}
 		echo("<footer>\n");
-		/*
-		if ($_SESSION['pagbreedte'] > 500) {
-			printf("<div id='footerleft'>%s</div>\n
-					<a href='%s'>%s</a> %s\n
-					<div id='footerright'>%s</div>\n", $cr, BASISURL, $_SESSION['settings']['naamwebsite'], $np, strftime("%e %B %Y", $bestandsversie));
-		} else {
-			*/
 		printf("<a href='%s'>%s</a> %s\n", BASISURL, $_SESSION['settings']['naamwebsite'], $np);
 		echo("</footer>\n");
 		echo("</div>  <!-- Einde container of containerbreed -->\n");
@@ -445,6 +454,7 @@ function getvar($nm, $riz="") {
 }
 
 function fnDisplayForm($row, $xtra_eind="", $id="formulier") {
+	global $dtfmt;
 
 	if (strlen($id) > 0) {
 		$ret = sprintf("<div id='%s'>\n", $id);
@@ -458,11 +468,13 @@ function fnDisplayForm($row, $xtra_eind="", $id="formulier") {
 				if (strtotime($value) == false) {
 					$dv = $value;
 				} else {
-					$dv = strftime('%e %B %Y', strtotime($value));
+					$dtfmt->setPattern(DTTEXT);
+					$dv = $dtfmt->format(strtotime($value));
 				}
 				$ret .= sprintf("<tr><td class='label'>%s</td><td class='datum'>%s</td></tr>\n", substr($key, 3), $dv);
 			} elseif (substr($key, 0, 3) == "dtt" and (!is_null($value))) {
-				$ret .= sprintf("<tr><td class='label'>%s</td><td class='datumtijd'>%s</td></tr>\n", substr($key, 3), strftime('%e %B %Y (%H:%M)', strtotime($value)));
+				$dtfmt->setPattern(DTLONG);
+				$ret .= sprintf("<tr><td class='label'>%s</td><td class='datumtijd'>%s</td></tr>\n", substr($key, 3), $dtfmt->format(strtotime($value)));
 			} elseif (substr($key, 0, 3) == "boo" and $value == 1) {
 				$ret .= sprintf("<tr><td class='label'>%s</td><td>Ja</td></tr>\n", substr($key, 3));
 			} elseif (substr($key, 0, 3) == "boo" and $value != 1) {
@@ -489,6 +501,9 @@ function fnDisplayForm($row, $xtra_eind="", $id="formulier") {
 }
 
 function fnDisplayFormLabels($row, $xtra_eind="", $id="") {
+	global $dtfmt;
+	
+	$dtfmt->setPattern(DTTEXT);
 
 	if (strlen($id) > 0) {
 		$ret = sprintf("<div id='%s'>\n", $id);
@@ -503,11 +518,12 @@ function fnDisplayFormLabels($row, $xtra_eind="", $id="") {
 				} elseif (strtotime($value) == false) {
 					$dv = $value;
 				} else {
-					$dv = strftime('%e %B %Y', strtotime($value));
+					$dv = $dtfmt->format(strtotime($value));
 				}
 				$ret .= sprintf("<label>%s</label><p>%s</p>\n", substr($key, 3), $dv);
 			} elseif (substr($key, 0, 3) == "dtt" and (!is_null($value))) {
-				$ret .= sprintf("<label>%s<p>%s</p>\n", substr($key, 3), strftime('%e %B %Y (%H:%M)', strtotime($value)));
+				$dtfmt->setPattern(DTLONG);
+				$ret .= sprintf("<label>%s<p>%s</p>\n", substr($key, 3), $dtfmt->format(strtotime($value)));
 			} elseif (substr($key, 0, 3) == "boo" and $value == 1) {
 				$ret .= sprintf("<label>%s</label><p>Ja</p>\n", substr($key, 3));
 			} elseif (substr($key, 0, 3) == "boo" and $value != 1) {
@@ -533,7 +549,7 @@ function fnDisplayFormLabels($row, $xtra_eind="", $id="") {
 }  # fnDisplayFormLabels
 
 function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $class="lijst", $xtra_kolom="") {
-	global $currenttab, $currenttab2;
+	global $currenttab, $currenttab2, $dtfmt;
 	
 	$ret = "";
 	if (strlen($class) > 0) {
@@ -635,7 +651,9 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 			foreach ($kols as $k => $kol) {
 				$iq = false;
 				if (isset($kol['headertext']) or isset($kol['link'])) {
-					if (isset($kol['columnname']) and strlen($kol['columnname']) > 0) {
+					if (isset($kol['subqry']) and strlen($kol['subqry']) > 6) {
+						$iq = true;
+					} elseif (isset($kol['columnname']) and strlen($kol['columnname']) > 0) {
 						foreach($rows[0] as $key => $val) {
 							if ($key == $kol['columnname']) {
 								$iq = true;
@@ -691,6 +709,10 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					$key = $kol['columnname'];
 					if (isset($kol['skip']) and $kol['skip'] == true) {
 						$value = null;
+					} elseif (isset($kol['subqry']) and strlen($kol['subqry']) > 6) {
+						$sq = str_replace("%d", $row->{$key}, $kol['subqry']);
+						$value = (new cls_db_base())->scalar($sq);
+						$kol['skip'] = false;
 					} else {
 						$value = $row->{$key};
 						$kol['skip'] = false;
@@ -764,9 +786,11 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					}
 					$ret .= "</td>\n";
 					
-				} elseif ($kol_type == "dte" or $kol_type == "rodte" or $kol_type == "date") {
+				} elseif ($kol_type == "dte" or $kol_type == "rodte" or $kol_type == "date" or $kol_type == "DTTEXT") {
+					// 1 januari 2020
 					if ((!is_null($value)) and $value > '1900-01-01' and strtotime($value) !== false) {
-						$ret .= sprintf("<td>%s</td>", strftime('%e %B %Y', strtotime($value)));
+						$dtfmt->setPattern(DTTEXT);
+						$ret .= sprintf("<td>%s</td>", $dtfmt->format(strtotime($value)));
 					} elseif ((!is_null($value)) and strlen($value) > 0) {
 						$ret .= sprintf("<td>%s</td>", $value);
 					} else {
@@ -779,21 +803,25 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					} else {
 						$ret .= "<td>&nbsp;</td>";
 					}
-				} elseif ($kol_type == "dtl") {
+				} elseif ($kol_type == "dtl" or $kol_type == "DTTEXTWD") {
+					$dtfmt->setPattern(DTTEXTWD);
 					if ((!is_null($value)) and $value > '1900-01-01') {
-						$ret .= sprintf("<td>%s</td>", strftime('%A %e %B %Y', strtotime($value)));
+						$ret .= sprintf("<td>%s</td>", $dtfmt->format(strtotime($value)));
 					} else {
 						$ret .= "<td>&nbsp;</td>";
 					}
-				} elseif ($kol_type == "dtt" or $kol_type == "rodtt" or $kol_type == "datetime") {
+				} elseif ($kol_type == "dtt" or $kol_type == "rodtt" or $kol_type == "datetime" or $kol_type == "DTLONG") {
+					$dtfmt->setPattern(DTLONG);
 					if ((!is_null($value)) and $value > '1900-01-01') {
-						$ret .= sprintf("<td>%s</td>", strftime('%e %B %Y (%H:%M)', strtotime($value)));
+						$ret .= sprintf("<td>%s</td>", $dtfmt->format(strtotime($value)));
 					} else {
 						$ret .= "<td>&nbsp;</td>";
 					}
-				} elseif ($kol_type == "dts" or $kol_type == "datetimesecond") {
+					
+				} elseif ($kol_type == "dts" or $kol_type == "datetimesecond" or $kol_type == "DTLONGSEC") {
 					if ((!is_null($value)) and $value > '1900-01-01' and strtotime($value) !== false) {
-						$ret .= sprintf("<td>%s</td>", strftime('%e %B %Y (%H:%M:%S)', strtotime($value)));
+						$dtfmt->setPattern(DTLONGSEC);
+						$ret .= sprintf("<td>%s</td>", $dtfmt->format(strtotime($value)));
 					} elseif (strlen($value) > 0) {
 						$ret .= sprintf("<td>%s</td>", $value);
 					} else {
@@ -881,6 +909,9 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 				} elseif ($kol_type == "mrg" or $kol_type == "combitext") {
 					$ret .= sprintf("<td>%s</td>", str_replace(" &amp; ", "<br>", htmlentities($value, ENT_HTML5)));
 					
+				} elseif ($kol_type == "subqry") {
+					$ret .= sprintf("<td>%s</td>", $value);
+					
 				} elseif (substr($key, 0, 2) != "nd") {
 					if ($kol_edit == 0 or $row->$kol_pk == 0) {
 						$ret .= sprintf("<td>%s</td>", htmlentities($value));
@@ -925,11 +956,14 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 } # fnDisplayTable
 
 function fnEditTable($res, $kols, $id, $th) {
+	global $dtfmt;
 	
 	$rows = $res->fetchAll(PDO::FETCH_NUM);
 	
 	$ret = sprintf("<table id='%s'>\n", $id);
-	$ret .= sprintf("<caption>%s</caption>\n", $th);
+	if (strlen($th) > 0) {
+		$ret .= sprintf("<caption>%s</caption>\n", $th);
+	}
 	$ret .= "<thead>\n";
 	$ret .= "<tr>";
 	$colpk = -1;
@@ -944,7 +978,9 @@ function fnEditTable($res, $kols, $id, $th) {
 				} elseif (isset($kol['columnname']) and $res->getColumnMeta($k)['name'] == $kol['columnname']) {
 					$kols[$kn]['colnum'] = $k;
 				}
-				if (!isset($kol['type'])) {
+				if (isset($kol['link']) and strlen($kol['link']) > 1) {
+					$kols[$kn]['type'] = "link";
+				} elseif (!isset($kol['type'])) {
 					$kols[$kn]['type'] = strtolower($res->getColumnMeta($kn)['native_type']);
 				}
 				if (isset($kol['cond_ro']) and strlen($kol['cond_ro']) > 0 and $res->getColumnMeta($k)['name'] == $kol['cond_ro']) {
@@ -1034,7 +1070,7 @@ function fnEditTable($res, $kols, $id, $th) {
 				}
 				$ret .= sprintf("<td><select id='%s_%d'>\n%s</select></td>\n", $colname, $valpk, $opt);
 
-			} elseif ($tp == "date" or $tp == "rqdate") {
+			} elseif ($tp == "date" or $tp == "rqdate" or $tp == "DTTEXT") {
 				if ($ro == false) {
 					$rq = "";
 					if ($tp == "rqdate") {
@@ -1042,28 +1078,44 @@ function fnEditTable($res, $kols, $id, $th) {
 					}
 					$ret .= sprintf("<td><input type='date' id='%s_%d' value='%s'%s></td>", $colname, $valpk, $value, $rq);
 				} elseif ((!is_null($value)) and $value > '1900-01-01') {
-					$ret .= sprintf("<td>%s</td>", strftime('%e %B %Y', strtotime($value)));
+					$dtfmt->setPattern(DTTEXT);
+					$ret .= sprintf("<td>%s</td>", $dtfmt->format(strtotime($value)));
 				} else {
 					$ret .= "<td>&nbsp;</td>";
 				}
 				
-			} elseif ($tp == "datetime") {
+			} elseif ($tp == "datetime" or $tp == "DTLONG") {
+				$dtfmt->setPattern(DTLONG); // 1 januari 2020 (14:12)
 				if ($ro == false) {
 					// Nog aanpassen, klopt niet
 					$ret .= sprintf("<td><input type='date' id='%s_%d' value='%s'></td>", $colname, $valpk, $value);
 					
 				} elseif ((!is_null($value)) and $value > '1900-01-01') {
-					$ret .= sprintf("<td>%s</td>", strftime('%e %B %Y (%H:%M)', strtotime($value)));
+					$ret .= sprintf("<td>%s</td>", $dtfmt->format(strtotime($value)));
 				} else {
 					$ret .= "<td>&nbsp;</td>";
 				}
-					
+
 			} elseif ($tp == "integer" or ($tp == "pk" and isset($kols[$colpk]['headertext']))) {
 				if ($ro) {
 					$ret .= sprintf("<td class='number'>%d</td>", $value);
 				} else {
 					$ret .= sprintf("<td><input type='number' id='%s_%d' value=%d class='w10'></td>", $colname, $valpk, $value);
 				}
+									
+			} elseif ($tp == "leeftijd") {
+				if ($ro) {
+					$ret .= sprintf("<td class='number'>%d</td>", $value);
+				} else {
+					$ret .= sprintf("<td><input type='number' id='%s_%d' value=%d class='num2' min=0 max=99></td>", $colname, $valpk, $value);
+				}
+
+			} elseif ($tp == "bedrag") {
+				if ($ro) {
+					$ret .= sprintf("<td class='number'>%.2F</td>", $value);
+				} else {
+					$ret .= sprintf("<td><input type='text' id='%s_%d' value=%.2F class='d8'></td>", $colname, $valpk, $value);
+				}				
 				
 			} elseif ($tp == "email") {
 				if ($ro) {
@@ -1114,7 +1166,7 @@ function fnStandaardKols($p_ent) {
 	if ($p_ent == "logboek") {
 		$kols = null;
 		$kols[0]['headertext'] = "Datum en tijd";
-		$kols[0]['type'] = "datetimesecond";
+		$kols[0]['type'] = "DTLONGSEC";
 		$kols[0]['sortcolumn'] = "RecordID";
 		$kols[1]['headertext'] = "Omschrijving";
 		$kols[1]['sortcolumn'] = "Omschrijving";
@@ -1141,7 +1193,8 @@ function fnStandaardKols($p_ent) {
 	}
 	
 	return $kols;
-}
+	
+}  # fnStandaardKols
 
 function fnOrderBy($p_arrSort) {
 	$ord = "";
@@ -1376,11 +1429,10 @@ function fnControleTelefoon($tn, $srt="telefoon") {
 	}
 	
 	return $rv;
-}
+}  # fnControleTelefoon
 
 function fnControleEmail($p_email) {
-	
-	
+
 	if (strlen($p_email) == 0 or strpos($p_email, ",") !== false) {
 		$rv = "";
 	} elseif (isValidMailAddress($p_email) == false) {
@@ -1395,7 +1447,8 @@ function fnControleEmail($p_email) {
 	}
 	
 	return $rv;
-}
+	
+}  # fnControleEmail
 
 function DisplayTabs($tabblad, $inittab=0) {
 	
@@ -1423,6 +1476,7 @@ function DisplayTabs($tabblad, $inittab=0) {
 	}
 	
 	echo("</div> <!-- Einde tabs -->\n");
-}
+	
+}  # DisplayTabs
 
 ?>
