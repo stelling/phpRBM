@@ -230,7 +230,7 @@ if ($currenttab != "Mailing") {
 }
 
 function fnVoorblad() {
-	global $fileverinfo;
+	global $fileverinfo, $dtfmt;
 
 	if (file_exists($fileverinfo)) {
 		$content = file_get_contents($fileverinfo);
@@ -271,12 +271,14 @@ function fnVoorblad() {
 		}
 		
 		if (strpos($content, "[%LAATSTGEWIJZIGD%]") !== false) {
-			$content = str_replace("[%LAATSTGEWIJZIGD%]", strftime("%e %B %Y (%H:%M)", strtotime($stats['laatstgewijzigd'])), $content);
+			$dtfmt->setPattern(DTLONG);
+			$content = str_replace("[%LAATSTGEWIJZIGD%]", $dtfmt->format(strtotime($stats['laatstgewijzigd'])), $content);
 		}
 		
 		if (strpos($content, "[%LAATSTEUPLOAD%]") !== false) {
 			$lu = (new cls_Logboek())->max("DatumTijd", "TypeActiviteit=9");
-			$content = str_replace("[%LAATSTEUPLOAD%]", strftime("%e %B %Y", strtotime($lu)), $content);
+			$dtfmt->setPattern(DTTEXT);
+			$content = str_replace("[%LAATSTEUPLOAD%]", $dtfmt->format(strtotime($lu)), $content);
 		}
 			
 		if (strpos($content, "[%BEWAARTIJDLOGGING%]") !== false) {
@@ -287,9 +289,10 @@ function fnVoorblad() {
 		// Gebruiker-specifieke statistieken
 		if ($_SESSION['lidid'] > 0) {
 			$stats = db_stats($_SESSION['lidid']);
+			$dtfmt->setPattern(DTLONG);
 			$content = str_replace("[%NAAMLID%]", $_SESSION['naamingelogde'], $content);
 			$content = str_replace("[%LIDNR%]", $_SESSION['lidnr'], $content);
-			$content = str_replace("[%INGELOGDEGEWIJZIGD%]", strftime("%e %B %Y (%H:%m)", strtotime($stats['laatstgewijzigd'])), $content);
+			$content = str_replace("[%INGELOGDEGEWIJZIGD%]", $dtfmt->format(strtotime($stats['laatstgewijzigd'])), $content);
 		} else {
 			$content = str_replace("[%INGELOGDEGEWIJZIGD%]", "", $content);
 		}
@@ -302,11 +305,12 @@ function fnVoorblad() {
 			$rows = (new cls_Liddipl())->vervallenbinnenkort();
 			if (count($rows) > 0){
 				$strHV = "<p>Je volgende diploma's zijn recent vervallen of komen binnenkort te vervallen.</p>\n<ul>";
+				$dtfmt->setPattern(DTTEXT);
 				foreach ($rows as $row) {
 					if ($row->VervaltPer <= date("Y-m-d")) {
-						$strHV .= sprintf("<li>%s is per %s vervallen.</li>\n", $row->DiplOms, strftime("%e %h %Y", strtotime($row->VervaltPer)));
+						$strHV .= sprintf("<li>%s is per %s vervallen.</li>\n", $row->DiplOms, $dtfmt->format(strtotime($row->VervaltPer)));
 					} else {
-						$strHV .= sprintf("<li>%s vervalt op %s.</li>\n", $row->DiplOms, strftime("%e %h %Y", strtotime($row->VervaltPer)));
+						$strHV .= sprintf("<li>%s vervalt op %s.</li>\n", $row->DiplOms, $dtfmt->format(strtotime($row->VervaltPer)));
 					}
 				}
 				$strHV .= "</ul>\n";
@@ -337,6 +341,7 @@ function fnVoorblad() {
 }  # fnVoorblad
 
 function fnAgenda($p_lidid=0) {
+	global $dtfmt;
 	
 	$i_lid = new cls_Lid();
 	
@@ -368,8 +373,9 @@ function fnAgenda($p_lidid=0) {
 	
 	//	$txt .= "<p class='mededeling'>De agenda is nog in ontwikkeling</p>\n";
 	$txt = "<table>\n<tr>\n";
+	$dtfmt->setPattern("EEE");
 	for ($dn=1;$dn<=7;$dn++) {
-		$txt .= sprintf("<th>%s</th>", strftime("%A", strtotime(sprintf("+%d day", $dn-1), $dtStart)));
+		$txt .= sprintf("<th>%s</th>", $dtfmt->format(strtotime(sprintf("+%d day", $dn-1), $dtStart)));
 	}
 	for ($sw=$dtStart;$sw <= strtotime("+370 day");$sw=strtotime("+7 day", $sw)) {
 		$txt .= "<tr>\n";
@@ -384,7 +390,8 @@ function fnAgenda($p_lidid=0) {
 			if (array_key_exists(date("Ymd", $td), $fds)) {
 				$txt .= sprintf("<td%s><ul><li>%s</li>", $c, $fds[date("Ymd", $td)]);
 			} else {
-				$txt .= sprintf("<td%s><ul><li>%s</li>", $c, strftime("%e %B", $td));
+				$dtfmt->setPattern(DTDAYMONTH);
+				$txt .= sprintf("<td%s><ul><li>%s</li>", $c, $dtfmt->format($td));
 			}
 			
 			// Evenementen
