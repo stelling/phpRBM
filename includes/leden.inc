@@ -136,7 +136,7 @@ function fnWijzigen($lidid, $actie="") {
 } # fnWijzigen
 
 function fnWieiswie($actie, $metfoto=1) {
-	global $ldl, $lididtestusers;
+	global $ldl, $lididtestusers, $dtfmt;
 	
 	$i_lo = new cls_Lidond();
 	
@@ -160,7 +160,8 @@ function fnWieiswie($actie, $metfoto=1) {
 		// Kader of Verenigingskader
 		$lijst = $i_lo->lijst(0, "(O.Kader=True OR (F.Kader=True AND O.Type='F'))", "O.Type, O.Naam, F.Sorteringsvolgorde, F.Omschrijv");
 	}
-
+	
+	$dtfmt->setPattern("MMMM yyyy");
 	if (($metfoto == 1) and ($_SESSION['settings']['toonpasfotoindiennietingelogd'] == 1 or strlen($_SESSION['username']) > 5)) {
 		foreach ($lijst as $row) {
 			if ($vo != $row->OndNaam) {
@@ -194,9 +195,9 @@ function fnWieiswie($actie, $metfoto=1) {
 			
 			$fd = fotolid($row->Lid, 1);
 			if ($actie == "Onderscheidingen" and strlen($fd) > 3) {
-				$txt .= sprintf("<div class='kaartje'><img src='%1\$s' alt='Pasfoto %2\$s'><p class='naamkaderlid'>%2\$s</p>\n<p>vanaf %3\$s</p>\n</div>\n", $fd, $ln, strftime("%B %Y", strtotime($row->Vanaf)));
+				$txt .= sprintf("<div class='kaartje'><img src='%1\$s' alt='Pasfoto %2\$s'><p class='naamkaderlid'>%2\$s</p>\n<p>vanaf %3\$s</p>\n</div>\n", $fd, $ln, $dtfmt->format(strtotime($row->Vanaf)));
 			} elseif ($actie == "Onderscheidingen") {
-				$txt .= sprintf("<div class='kaartje'><p class='naamkaderlid'>%s</p>\n<p>vanaf %s</p>\n</div>\n", $ln, strftime("%B %Y", strtotime($row->Vanaf)));
+				$txt .= sprintf("<div class='kaartje'><p class='naamkaderlid'>%s</p>\n<p>vanaf %s</p>\n</div>\n", $ln, $dtfmt->format(strtotime($row->Vanaf)));
 			} elseif (strlen($fd) > 3) {
 				$txt .= sprintf("<div class='kaartje'><img src='%1\$s' alt='Pasfoto %2\$s'><p class='naamkaderlid'>%2\$s</p>\n<p class='functiekaderlid'>%3\$s</p>\n<p class='mailkaderlid'>%4\$s</p>\n</div>\n", $fd, $ln, $func, $email);
 			} else {
@@ -234,7 +235,7 @@ function fnWieiswie($actie, $metfoto=1) {
 			} else {
 				$func = $row->Opmerk;
 			}
-			$txt .= sprintf("<tr>\n<td>%s</td>\n<td>%s</td>\n<td>%s</td>\n<td>%s</td>\n</tr>\n", $ln, $func, $email, strftime("%B %Y", strtotime($row->Vanaf)));
+			$txt .= sprintf("<tr>\n<td>%s</td>\n<td>%s</td>\n<td>%s</td>\n<td>%s</td>\n</tr>\n", $ln, $func, $email, $dtfmt->format(strtotime($row->Vanaf)));
 		}
 		$txt .= "</table>\n";
 	}
@@ -274,7 +275,7 @@ function fnLedenlijst() {
 			printf("<form name='frmNieuwLid' action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
 			echo("<label>Achternaam</label><input type='text' name='achternaam' maxlength=40><p>(zonder tussenvoegsels)</p>\n");
 
-			echo("<label>Postcode</label><input type='text' class='postcode' name='postcode' maxlength=7>\n");
+			echo("<label>Postcode</label><input type='text' class='postcode w7' name='postcode' maxlength=7>\n");
 			
 			if (toegang("Ledenlijst/Wijzigen lid/Lidmaatschap", 0, 0) == true) {
 				echo("<label>Lid vanaf</label><input type='date' name='lidvanaf'>\n");
@@ -306,54 +307,56 @@ function fnLedenlijst() {
 		}
 		
 	} else {
-		
+				
 		if (toegang("Ledenlijst/Overzicht lid", 0, 0)) {
 			$kols[0]['link'] = "<a href='index.php?tp=Ledenlijst/Overzicht+lid&lidid=%d'>%s</a>";
 			$kols[0]['class'] = "details";
 			$kols[0]['columnname'] = "RecordID";
-			$kols[1]['headertext'] = "Naam";
-			$kols[1]['sortcolumn'] = "L.Achternaam";
-			$kols[2]['headertext'] = "Adres";
-			$kols[2]['columnname'] = "Adres";
-			$kols[3]['headertext'] = "Bereiken";
-			$kols[3]['columnname'] = "Bereiken";
-			$kols[3]['type'] = "combitext";
-			$kn = 4;
-			if ($currenttab2 == "Klosleden") {
-				$kols[$kn]['headertext'] = "Opmerking";
-				$kols[$kn]['columnname'] = "Opmerking";
-				$kn++;
-				$kols[$kn]['headertext'] = "Ond.";
-				$kols[$kn]['type'] = "subqry";
-				$kols[$kn]['subqry'] = sprintf("SELECT GROUP_CONCAT(DISTINCT O.Kode SEPARATOR '/') FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE LO.Lid=%%d AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()", TABLE_PREFIX);
-				$kols[$kn]['columnname'] = "RecordID";
-				$kn++;
-			} else {
-				$kols[$kn]['headertext'] = "Lidnummer";
-				$kols[$kn]['columnname'] = "Lidnr";
-				$kols[$kn]['sortcolumn'] = "LM.Lidnr";
-				$kols[$kn]['type'] = "integer";
-				$kn++;
-				$kols[$kn]['headertext'] = "Lid vanaf";
-				$kols[$kn]['columnname'] = "LIDDATUM";
-				$kols[$kn]['sortcolumn'] = "LM.LIDDATUM";
+		} else {
+			$kols[0]['skip'] == true;
+		}
+		$kols[1]['headertext'] = "Naam";
+		$kols[1]['sortcolumn'] = "L.Achternaam";
+		$kols[2]['headertext'] = "Adres";
+		$kols[2]['columnname'] = "Adres";
+		$kols[3]['headertext'] = "Bereiken";
+		$kols[3]['columnname'] = "Bereiken";
+		$kols[3]['type'] = "combitext";
+		$kn = 4;
+		if ($currenttab2 == "Klosleden") {
+			$kols[$kn]['headertext'] = "Opmerking";
+			$kols[$kn]['columnname'] = "Opmerking";
+			$kn++;
+			$kols[$kn]['headertext'] = "Ond.";
+			$kols[$kn]['type'] = "subqry";
+			$kols[$kn]['subqry'] = sprintf("SELECT GROUP_CONCAT(DISTINCT O.Kode SEPARATOR '/') FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE LO.Lid=%%d AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()", TABLE_PREFIX);
+			$kols[$kn]['columnname'] = "RecordID";
+			$kn++;
+		} else {
+			$kols[$kn]['headertext'] = "Lidnummer";
+			$kols[$kn]['columnname'] = "Lidnr";
+			$kols[$kn]['sortcolumn'] = "LM.Lidnr";
+			$kols[$kn]['type'] = "integer";
+			$kn++;
+			$kols[$kn]['headertext'] = "Lid vanaf";
+			$kols[$kn]['columnname'] = "LIDDATUM";
+			$kols[$kn]['sortcolumn'] = "LM.LIDDATUM";
+			$kols[$kn]['type'] = "date";
+			$kn++;
+			if ($currenttab2 != "Toekomstige leden") {
+				$kols[$kn]['headertext'] = "Opgezegd per";
+				$kols[$kn]['columnname'] = "Opgezegd";
+				$kols[$kn]['sortcolumn'] = "LM.Opgezegd";
 				$kols[$kn]['type'] = "date";
 				$kn++;
-				if ($currenttab2 != "Toekomstige leden") {
-					$kols[$kn]['headertext'] = "Opgezegd per";
-					$kols[$kn]['columnname'] = "Opgezegd";
-					$kols[$kn]['sortcolumn'] = "LM.Opgezegd";
-					$kols[$kn]['type'] = "date";
-					$kn++;
-				}
-				if ($currenttab2 == "Leden") {
-					$kols[$kn]['headertext'] = "Afd.";
-					$kols[$kn]['type'] = "subqry";
-					$kols[$kn]['subqry'] = sprintf("SELECT GROUP_CONCAT(DISTINCT O.Kode SEPARATOR '/') FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE O.Type='A' AND LO.Lid=%%d AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()", TABLE_PREFIX);
-					$kols[$kn]['columnname'] = "RecordID";
-				}
-				$kn++;
 			}
+			if ($currenttab2 == "Leden") {
+				$kols[$kn]['headertext'] = "Afd.";
+				$kols[$kn]['type'] = "subqry";
+				$kols[$kn]['subqry'] = sprintf("SELECT GROUP_CONCAT(DISTINCT O.Kode SEPARATOR '/') FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE O.Type='A' AND LO.Lid=%%d AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()", TABLE_PREFIX);
+				$kols[$kn]['columnname'] = "RecordID";
+			}
+			$kn++;
 		}
 		if (toegang("Ledenlijst/Wijzigen lid", 0, 0)) {
 			$kols[$kn]['link'] = "<a href='index.php?tp=Ledenlijst/Wijzigen+lid/Algemene+gegevens&lidid=%d'>&nbsp;&nbsp;&nbsp;></a>";
@@ -720,7 +723,7 @@ function fnOnderdelenmuteren($ondtype="G") {
 } # fnOnderdelenmuteren
 
 function fnEigenGegevens($lidid=0) {
-	global $currenttab, $currenttab2, $currenttab3;
+	global $currenttab, $currenttab2, $currenttab3, $dtfmt;
 	
 	$i_foto = new cls_Foto();
 	
@@ -748,6 +751,7 @@ function fnEigenGegevens($lidid=0) {
 	if ($lidid <= 0) {
 		echo("<p class='mededeling'>Er is geen lid geselecteerd.</p>\n");
 	} else {
+		$dtfmt->setPattern(DTTEXT);
 		$naamlid = htmlentities((new cls_Lid())->Naam($lidid));
 		$gs = (new cls_Lid())->Geslacht($lidid);
 		
@@ -757,9 +761,9 @@ function fnEigenGegevens($lidid=0) {
 			$nl = (new cls_Lid())->Roepnaam($lidid);
 			$fd = $i_foto->FotoLid($lidid);
 			if ($fd !== false) {
-				$xtra = sprintf("<div id='pasfoto'><img src='%s' title='Laatst gewijzigd op %s'></div>\n", $fd, strftime("%e %B %Y", strtotime($i_foto->laatstgewijzigd)));
+				$xtra = sprintf("<div id='pasfoto'><img src='%s' title='Laatst gewijzigd op %s'></div>\n", $fd, $dtfmt->format(strtotime($i_foto->laatstgewijzigd)));
 			} elseif (strlen($fn) > 3) {
-				$xtra = sprintf("<div id='pasfoto'><img src='%s' alt='Pasfoto %s' title='Laatst gewijzigd op %s'></div>\n", $fn, $nl, strftime("%e %B %Y", filectime(fotolid($lidid, 0))));
+				$xtra = sprintf("<div id='pasfoto'><img src='%s' alt='Pasfoto %s' title='Laatst gewijzigd op %s'></div>\n", $fn, $nl, $dtfmt->format(filectime(fotolid($lidid, 0))));
 			} else {
 				$xtra = "";
 			}
@@ -822,7 +826,7 @@ function fnEigenGegevens($lidid=0) {
 		if (toegang($ct . $tn, 0, 0)) {
 			$rows = (new cls_Lidond())->overzichtlid($lidid, "K");
 			if (count($rows) > 0) {
-				$tabblad[$tn] = fnDisplayTable($rows, null, $tn . " " . $naamlid, 0, "", "");
+				$tabblad[$tn] = fnDisplayTable($rows, $kols, $tn . " " . $naamlid, 0, "", "");
 			}
 		}
 
@@ -830,7 +834,7 @@ function fnEigenGegevens($lidid=0) {
 		if (toegang($ct . $tn, 0, 0)) {
 			$rows = (new cls_Lidond())->overzichtlid($lidid, "R");
 			if (count($rows) > 0) {
-				$tabblad[$tn] = fnDisplayTable($rows, null, $tn . " " . $naamlid, 0, "", "Rollen");
+				$tabblad[$tn] = fnDisplayTable($rows, $kols, $tn . " " . $naamlid, 0, "", "Rollen");
 			}
 		}
 		
@@ -845,10 +849,12 @@ function fnEigenGegevens($lidid=0) {
 		}
 		
 		$tn = "Toestemmingen";
+		$kols[0]['headertext'] = "Omschrijving";
+		$kols[1]['headertext'] = "Afgegeven / Laatst bevestigd";
 		if ($gs != "B" and (new cls_Onderdeel())->Aantal("Type='T'") > 0 and toegang($ct . $tn, 0, 0)) {
 			$rows = (new cls_Lidond())->overzichtlid($lidid, "T");
 			if (count($rows) > 0) {
-				$tabblad[$tn] = fnDisplayTable($rows, null, $tn . " " . $naamlid, 0, "", "toestemmingen");
+				$tabblad[$tn] = fnDisplayTable($rows, $kols, $tn . " " . $naamlid, 0, "", "toestemmingen");
 			} else {
 				$tabblad[$tn] = sprintf("<p class='mededeling'>%s heeft geen toestemmingen verleend.</p>\n", $naamlid);
 			}
@@ -884,7 +890,8 @@ function fnEigenGegevens($lidid=0) {
 					$o = $row->Functie . ": ";
 				}
 				$o .= ARRPRESENTIESTATUS[$row->Status];
-				$tabblad[$tn] .= sprintf("<tr><td>%s</td><td>%s</td></tr>\n", strftime("%A %e %B %Y", strtotime($row->Datum)), $o);
+				$dtfmt->setPattern(DTTEXTWD);
+				$tabblad[$tn] .= sprintf("<tr><td>%s</td><td>%s</td></tr>\n", $dtfmt->format(strtotime($row->Datum)), $o);
 			}
 			$tabblad[$tn] .= "</table>\n";
 		}
@@ -921,6 +928,7 @@ function fnEigenGegevens($lidid=0) {
 				$kols[0]['link'] = sprintf("<a href='%s?tp=%s&op=details&lidid=%d&rid=%%d' title='Details rekening'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
 				$kols[0]['class'] = "details";
 				$kols[1]['headertext'] = "Rekening";
+				$kols[1]['columnname'] = "Nummer";
 				$kols[2]['headertext'] = "Seizoen";
 				$kols[3]['headertext'] = "Datum";
 				$kols[3]['type'] = "date";
@@ -969,11 +977,16 @@ function fnEigenGegevens($lidid=0) {
 			$tabblad[$tn] = "<div id='evenementenperlid'>\n";
 			$tabblad[$tn] .= "<table>\n";
 			$tabblad[$tn] .= sprintf("<caption>Deelname evenementen %s</caption>\n", $naamlid);
-			$tabblad[$tn] .= "<tr><th>Wanneer</th><th>Omschrijving</th><th>Contact</th><th>Opmerking / Functie</th><th>Status</th><th>In agenda</th></tr>\n";
+			$tabblad[$tn] .= "<tr><th>Wanneer</th><th>Omschrijving</th><th>Contact</th><th>Opmerking / Functie</th><th>Status</th>";
+			if ($lidid == $_SESSION['lidid']) {
+				$tabblad[$tn] .= "<th>In agenda</th>";
+			}
+			$tabblad[$tn] .= "</tr>\n";
+			$dtfmt->setPattern("EEE d MMMM yyyy");
 			
 			foreach($rows as $row) {
 				$tabblad[$tn] .= "<tr>\n";
-				$tijden = strftime("%a %e %B %Y", strtotime($row->dteDatum));
+				$tijden = $dtfmt->format(strtotime($row->Datum));
 				
 				if ($row->Starttijd > "00:00" and $row->Eindtijd > "00:00" and $row->MeerdereStartMomenten == 0) {
 					$tijden .= sprintf("<br>\n%s tot %s uur", substr($row->Starttijd, 0, 5), substr($row->Eindtijd, 0, 5));
@@ -982,17 +995,17 @@ function fnEigenGegevens($lidid=0) {
 					$tijden .= sprintf("<br>\nom %s uur", substr($row->Starttijd, 0, 5));
 				}
 				$tijden = str_replace(" ", "&nbsp;", str_replace("  ", "&nbsp;", $tijden));
-				if (strlen($row->Verzameltijd) >= 5 and $row->dteDatum >= date("Y-m-d H:i")) {
+				if (strlen($row->Verzameltijd) >= 5 and $row->Datum >= date("Y-m-d H:i")) {
 					$tijden .= sprintf("<br>\nVerzamelen om %s&nbsp;uur", substr($row->Verzameltijd, 0, 5));
 				}
 					
 				$tabblad[$tn] .= sprintf("<td>%s</td>\n", $tijden);
 				$oms = $row->Omschrijving;
-				if (strlen($row->ndLocatie) > 1) {
-					$oms .= "<br>\n" . $row->ndLocatie;
+				if (strlen($row->Locatie) > 1) {
+					$oms .= "<br>\n" . $row->Locatie;
 				}
 				$tabblad[$tn] .= sprintf("<td>%s</td>\n", $oms);
-				$tabblad[$tn] .= sprintf("<td>%s</td>\n", $row->emlContact);
+				$tabblad[$tn] .= sprintf("<td>%s</td>\n", $row->Email);
 				if (strlen($row->Opmerking) > 0 and strlen($row->Functie) > 0) {
 					$of = sprintf("%s<br>%s", $row->Opmerking, $row->Functie);
 				} elseif (strlen($row->Opmerking) > 0) {
@@ -1002,10 +1015,12 @@ function fnEigenGegevens($lidid=0) {
 				}
 				$tabblad[$tn] .= sprintf("<td>%s</td>\n", $of);
 				$tabblad[$tn] .= sprintf("<td>%s</td>\n", $row->Status);
-				if (($row->Status == "Aangemeld" or $row->Status == "Bevestigd" or $row->Status == "Ingeschreven") and $row->dteDatum >= date("Y-m-d H:i")) {
-					$tabblad[$tn] .= sprintf("<td>%s</td>\n", fnAgendaKnop($row->dteDatum, $row->Eindtijd, $row->Verzameltijd, $row->Omschrijving, $row->ndLocatie));
-				} else {
-					$tabblad[$tn] .= "<td>&nbsp;</td>";
+				if ($lidid == $_SESSION['lidid']) {
+					if (($row->Status == "Aangemeld" or $row->Status == "Bevestigd" or $row->Status == "Ingeschreven") and $row->Datum >= date("Y-m-d H:i")) {
+						$tabblad[$tn] .= sprintf("<td>%s</td>\n", fnAgendaKnop($row->Datum, $row->Eindtijd, $row->Verzameltijd, $row->Omschrijving, $row->Locatie));
+					} else {
+						$tabblad[$tn] .= "<td>&nbsp;</td>";
+					}
 				}
 				$tabblad[$tn] .= "</tr>\n";
 			}
@@ -1015,13 +1030,9 @@ function fnEigenGegevens($lidid=0) {
 		}
 
 		$tn = "Logboek";
-		if ($lidid > 0 and toegang($ct . $tn, 0, 0)) {
-			$rows = (new cls_Logboek())->overzichtlid($lidid);
-			if (count($rows) > 0) {
-				$tabblad[$tn] = fnDisplayTable($rows, null, $tn . " " .  $naamlid);
-			} else {
-				$tabblad[$tn] = sprintf("<p class='mededeling'>Er is geen logging van %s aanwezig.</p>\n", $naamlid);
-			}
+		$rows = (new cls_Logboek())->overzichtlid($lidid);
+		if ($lidid > 0 and toegang($ct . $tn, 0, 0) and count($rows) > 0) {
+			$tabblad[$tn] = fnDisplayTable($rows, null, $tn . " " .  $naamlid);
 		}
 		
 		DisplayTabs($tabblad, $tabidx);
@@ -1052,6 +1063,7 @@ function fnEigenGegevens($lidid=0) {
 } # fnEigenGegevens
 
 function overzichtverjaardagen($metfoto=1) {
+	global $dtfmt;
 
 	if ($metfoto != 0 and $_SESSION['settings']['toonpasfotoindiennietingelogd'] == 0 and $_SESSION['lidid'] == 0) {
 		$metfoto = 0;
@@ -1077,7 +1089,8 @@ function overzichtverjaardagen($metfoto=1) {
 			} elseif ($i == 1) {
 				$t = sprintf("%s wordt morgen %d jaar", $nm, $row->Leeftijd);
 			} else {
-				$t = sprintf("Op %s is %s jarig", strftime("%A %e %B", $dteHV->getTimestamp()), $nm);
+				$dtfmt->setPattern("EEEE d MMMM");
+				$t = sprintf("Op %s is %s jarig", $dtfmt->format($dteHV), $nm);
 			}
 			$fn = fotolid($row->RecordID, 1);
 			if (strlen($t) > 3) {
@@ -1122,7 +1135,7 @@ function fotolid($lidid, $metversie=0) {
 			}
 		}
 		if (strlen($rv) > 3 and $metversie == 1) {
-			$rv .= "?v" . strftime("%Y%m%d%H%M", filectime($rv));
+			$rv .= "?v" . date("YmdHi", filectime($rv));
 		}
 		$rv = str_replace(BASEDIR, ".", $rv);
 	}
@@ -1389,7 +1402,7 @@ function algemeenlidmuteren($lidid) {
 } # algemeenlidmuteren
 
 function nieuwepasfoto($lidid, $filterlid="") {
-	global $actionurl;
+	global $actionurl, $dtfmt;;
 	
 	$i_foto = new cls_Foto();
 	
@@ -1447,7 +1460,7 @@ function nieuwepasfoto($lidid, $filterlid="") {
 
 					if (strlen($target) > 3 and file_exists($target) and file_exists($adv) and is_writable($adv) == true) {
 						$of_ext = substr(strrchr($target, "."), 1);
-						$bu_name = $adv . sprintf("Pasfoto%d_%d.%s", $lidid, strftime("%Y%m%d", filectime($target)), $of_ext);
+						$bu_name = $adv . sprintf("Pasfoto%d_%d.%s", $lidid, date("Ymd", filectime($target)), $of_ext);
 						if (rename($target, $bu_name)) {
 							$mess = sprintf("Pasfoto './%s' is hernoemd naar './%s'.", $target, $bu_name);
 							(new cls_Logboek())->add($mess, 6, $lidid, 0, 0, 21);
@@ -1480,14 +1493,15 @@ function nieuwepasfoto($lidid, $filterlid="") {
 	echo("<div id='nieuwepasfoto'>\n");
 	$fn = fotolid($lidid, 1);
 	$fd = $i_foto->fotolid($lidid);
+	$dtfmt->setPattern(DTTEXT);
 	if ($fd !== false) {
 		printf("<img src='%s' alt='Huidige pasfoto %s'>\n", $fd, $naamlid);
-		printf("<p>Deze foto is voor het laatst op %s gewijzigd.</p>", strftime("%e %B %Y", strtotime($i_foto->laatstgewijzigd)));
+		printf("<p>Deze foto is voor het laatst op %s gewijzigd.</p>", $dtfmt->format(strtotime($i_foto->laatstgewijzigd)));
 	} elseif (strlen($fn) > 4 and file_exists($fn)) {
 		echo("<p>\n");
 		printf("<img src='%s' alt='Huidige pasfoto %s'>\n", $fn, $naamlid);
 		$fn = fotolid($lidid, 0);
-		printf("Deze foto is voor het laatst op %s gewijzigd en is %dKB groot.", strftime("%e %B %Y", filectime($fn)), filesize($fn) / 1024);
+		printf("Deze foto is voor het laatst op %s gewijzigd en is %dKB groot.", $dtfmt->format(filectime($fn)), filesize($fn) / 1024);
 		echo("</p>\n");
 	} elseif ($lidid > 0) {
 		printf("<p class='mededeling'>Geen huidige pasfoto van %s beschikbaar.</p>\n", $naamlid);
@@ -1579,11 +1593,20 @@ function toestemmingenmuteren($lidid) {
 	}
 	
 	echo("<div id='opdrachtknoppen'>\n");
-	printf("<input class='knop' type='submit' value='%s' name='Bevestigen'>\n", $tb);
+	echo("<button type='button' onClick=\"AlleToestemming();\">Alle toestemmingen</button>");
+	printf("<button type='submit' name='Bevestigen'>%s</button>\n", $tb);
 	echo("</div> <!-- Einde opdrachtknoppen -->\n");
 
 	echo("</form>\n");
 	echo("</div> <!-- Einde toestemmingenmuteren -->\n");
+	
+	echo("<script>
+			function AlleToestemming() {
+				$('input[type=checkbox]').each(function () {
+					\$(this).prop('checked', true);
+				});
+			};
+	</script>\n");
 
 	$i_ond = null;
 	$i_lo = null;
@@ -1591,7 +1614,7 @@ function toestemmingenmuteren($lidid) {
 } # toestemmingenmuteren
 
 function opzegginglidmaatschap($lidid) {
-	global $actionurl;
+	global $actionurl, $dtfmt;
 	
 	$i_lid = new cls_Lid($lidid);
 	$naamlid = $i_lid->Naam();
@@ -1600,13 +1623,14 @@ function opzegginglidmaatschap($lidid) {
 	while ($eindeseizoen < $minopzeggenper) {
 		$eindeseizoen->modify("+1 year");
 	}
-	
+
+	$dtfmt->setPattern(DTTEXT);
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$opgezegdper = new DateTime($_POST["OpzeggingPer"]);
 		
 		if ($opgezegdper < $minopzeggenper) {
 			$opgezegdper = $minopzeggenper;
-			$mess = sprintf("Er geldt een opzegtermijn van %d maand(en), hierdoor wordt de datum van opzegging %s.", $_SESSION['settings']['zs_opzegtermijn'], strftime("%e %B %Y", $opgezegdper->getTimestamp()));
+			$mess = sprintf("Er geldt een opzegtermijn van %d maand(en), hierdoor wordt de datum van opzegging %s.", $_SESSION['settings']['zs_opzegtermijn'], $dtfmt->format($opgezegdper));
 			
 			(new cls_Logboek())->add($mess, 6, $lidid, 1, 0, 8);
 		}
@@ -1623,7 +1647,7 @@ function opzegginglidmaatschap($lidid) {
 		<p>Hierbij zeg ik mijn lidmaatschap van de %s per %s op. Mijn lidnummer is %d.</p>\n
 		%s
 		<p>Met vriendelijke groeten,<br>
-		<strong>%s</strong></p>\n", $_SESSION['settings']['naamvereniging'], strftime("%e %B %Y", $opgezegdper->getTimestamp()), $_SESSION['lidnr'], $opm, $naamlid);
+		<strong>%s</strong></p>\n", $_SESSION['settings']['naamvereniging'], $dtfmt->format($opgezegdper), $_SESSION['lidnr'], $opm, $naamlid);
 				
 		$body .= sprintf("\n<p>Dit formulier is verzonden vanaf IP-adres %s.</p>\n", $_SERVER['REMOTE_ADDR']);
 	
@@ -1803,6 +1827,7 @@ function htmlloperlid($p_lidid, $p_type) {
 	}
 	
 	return $rv;
+	
 }  # htmlloperlid
 
 function diplomaslidmuteren($lidid, $td, $eenv=1) {
@@ -2137,7 +2162,7 @@ function fnEigenlijstenmuteren() {
 		printf("<label>MySQL-code</label><textarea id='mysql' name='mysql' rows=16 cols=100>%s</textarea>\n", $row->MySQL);
 		printf("<label>Tonen in tabblad</label><input type='text' name='tabpage' class='w75' value='%s' maxlength=75>\n", $row->Tabpage);
 		printf("<label>Standaard waarden parameter(s)</label><input type='text' name='default_waarde_params' value='%s' maxlength=100><p>(bij meedere scheiden met een ;)</p>\n", $row->Default_value_params);
-		echo("<label>Beschikbare variabelen</label><p>[%LIDNAAM%], [%TELEFOON%], [%EMAIL%]</p>");
+		echo("<label>Beschikbare variabelen</label><p>[%LIDNAAM%], [%TELEFOON%], [%EMAIL%], [%LEEFTIJD%]</p>");
 		if (strlen($i_el->sqlerror) == 0) {
 			printf("<label>Aantal records</label><p>%d</p>\n", $row->AantalRecords);
 			printf("<label>Aantal kolommen</label><p>%d</p>\n", $row->AantalKolommen);
@@ -2176,10 +2201,11 @@ function fnEigenlijstenmuteren() {
 		if (count($rows) > 0) {
 			echo("<table>\n");
 			echo("<caption>Overzicht Eigen lijsten</caption>\n");
-			echo("<tr><th></th><th>Naam</th><th># records</th><th># kolommen</th><th>Tabblad</th><th></th></tr>\n");
+			echo("<tr><th></th><th>Naam</th><th># records</th><th># kolommen</th><th>Tabblad</th><th><th>Laatste controle</th></th></tr>\n");
 			foreach($rows as $row) {
 				$bl = sprintf("<a href='%s?tp=%s&paramID=%d&paramActie=%%d'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
-				printf("<tr><td>%s</td><td>%s</td><td class='number'>%d</td><td class='number'>%d</td><td>%s</td><td>%s</td></tr>\n", sprintf($bl, 2), $row->Naam, $row->AantalRecords, $row->AantalKolommen, $row->Tabpage, sprintf($bl, 3));
+				printf("<tr><td>%s</td><td>%s</td><td class='number'>%d</td><td class='number'>%d</td><td>%s</td><td>%s</td><td>%s</td>", sprintf($bl, 2), $row->Naam, $row->AantalRecords, $row->AantalKolommen, $row->Tabpage, date("d-m-Y H:i", strtotime($row->LaatsteControle)), sprintf($bl, 3));
+				echo("</tr>\n");
 			}
 			echo("</table>\n");
 		}
@@ -2194,6 +2220,7 @@ function fnEigenlijstenmuteren() {
 }  # fnEigenlijstenmuteren
 
 function fnPersoonlijkeAgenda() {
+	global $dtfmt;
 	
 	$i_ak = new cls_Afdelingskalender();
 	$kalitem = null;
@@ -2256,9 +2283,10 @@ function fnPersoonlijkeAgenda() {
 		usort($kalitem, function($a, $b) {
 			return $a['datum'] <=> $b['datum'];
 		});
+		$dtfmt->setPattern(DTPERSCAL);
 		for ($in=0;$in<=9;$in++) {
 			if (isset($kalitem[$in]['datum'])) {
-				$dat = strftime("%A %e %B", strtotime($kalitem[$in]['datum']));
+				$dat = $dtfmt->format(strtotime($kalitem[$in]['datum']));
 				$tijd = date("H:i", strtotime($kalitem[$in]['datum']));
 				if ($tijd > "00:00") {
 					$dat .= " (" . $tijd . ")";
