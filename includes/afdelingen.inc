@@ -131,7 +131,8 @@ function fnAfdelingskalenderMuteren($p_onderdeelid){
 		if ($aw == 0) {
 			$dat = sprintf("<input type='date' id='Datum_%d' value='%s'>", $row->RecordID, $row->Datum);
 		} else {
-			$dat = strftime("%A %e %B %Y", strtotime($row->Datum));
+			$dtfmt->setPattern(DTLONGWD);
+			$dat = $dtfmt->format(strtotime($row->Datum));
 		}
 		printf("<tr><td>%s</td><td><input type='text' id='Omschrijving_%d' value=\"%s\" maxlength=75 class='w75'></td>", $dat, $row->RecordID, str_replace("\"", "'", $row->Omschrijving));
 		
@@ -364,6 +365,9 @@ function fnGroepsindeling($afdid, $p_muteren=0, $p_toonleeftijd=2) {
 } # fnGroepsindeling
 
 function fnPresentieMuteren($p_onderdeelid){
+	global $dtfmt;
+	
+	$dtfmt->setPattern(DTTXTWD);
 	
 	$i_ak = new cls_Afdelingskalender($p_onderdeelid);
 	$i_aanw = new cls_Aanwezigheid();
@@ -399,7 +403,7 @@ function fnPresentieMuteren($p_onderdeelid){
 	$oms = "";
 	$act = false;
 	foreach ($i_ak->lijst($p_onderdeelid, "", "Activiteit=1") as $row) {
-		printf("<option value=%d %s>%s</option>\n", $row->RecordID, checked($row->RecordID, "option", $akid), strftime("%A %e %B %Y", strtotime($row->Datum)));
+		printf("<option value=%d %s>%s</option>\n", $row->RecordID, checked($row->RecordID, "option", $akid), $dtfmt->format(strtotime($row->Datum)));
 		if ($akid == $row->RecordID) {
 			$dat = $row->Datum;
 			$oms = $row->Omschrijving;
@@ -411,18 +415,13 @@ function fnPresentieMuteren($p_onderdeelid){
 	echo("</select></p>\n");
 	$row = null;
 	
-	echo("<label>Selecteer groep</label><p>");
-	echo("<select name='selecteergroep' OnChange='this.form.submit();'>\n");
-	echo("<option value=-1>...</option>\n");
-	foreach ($i_lo->groepeningebruik() as $row) {
-		printf("<option value=%d %s>%s</option>\n", $row->GroepID, checked($row->GroepID, "option", $grid), $row->Omschrijving);
-	}
-	echo("</select></p>\n");
-	$row = null;
-	
-	echo("<div class='clear'></div>\n");
-	
 	if ($akid > 0) {
+	
+		echo("<input type='text' placeholder='Naam of groep bevat' class='w30' OnKeyUp=\"fnFilter('presentiemuteren', this);\">\n");
+		$row = null;
+	
+		echo("<div class='clear'></div>\n");
+	
 		printf("<input type='hidden' name='akid' value=%d>\n", $akid);
 		$ro = "";
 		$f = sprintf("AfdelingskalenderID=%d", $akid);
@@ -430,21 +429,15 @@ function fnPresentieMuteren($p_onderdeelid){
 			$ro = "readonly";
 		}
 		
-		echo("<table>\n");
-		printf("<caption>Presentielijst %s</caption>\n", strftime("%A %e %B %Y", strtotime($dat)));
+		echo("<table id='presentiemuteren'>\n");
+		printf("<caption>Presentielijst %s</caption>\n", $dtfmt->format(strtotime($dat)));
 
 		$gh = "";
-		$f = "";
-		if ($grid >= 0) {
-			$f = sprintf("LO.GroepID=%d", $grid);
-		} else {
-			$gh = "<th>Groep</th>";
-		}
 		echo("<thead>\n");
-		printf("<tr><th>Naam</th>%s<th>Status presentie</th></tr>\n", $gh);
+		echo("<tr><th>Naam</th><th>Groep</th><th>Status presentie</th></tr>\n");
 		echo("</thead>\n");
 		
-		foreach ($i_lo->lijst($p_onderdeelid, $f, "L.Achternaam, L.Tussenv, L.Roepnaam", $dat) as $row) {
+		foreach ($i_lo->lijst($p_onderdeelid, "", "L.Achternaam, L.Tussenv, L.Roepnaam", $dat) as $row) {
 			$stat = $i_aanw->status($row->RecordID, $akid);
 			if (strlen($stat) > 0) {
 				$cl = sprintf("class='presstat_%s'", strtolower($stat));
@@ -480,20 +473,18 @@ function fnPresentieMuteren($p_onderdeelid){
 	echo("</div> <!-- Einde aanwezigheidmuteren -->\n");
 	
 	printf("<script>
-				$( document ).ready(function() {
-					$('select[id^=Status]').change(function() {
-						id = this.id;
-						var split_id = id.split('_');
-						var loid = split_id[1];
-						var value = this.value;
+				$('select[id^=Status]').change(function() {
+					id = this.id;
+					var split_id = id.split('_');
+					var loid = split_id[1];
+					var value = this.value;
 
-						$.ajax({
-							url: 'ajax_update.php?entiteit=lo_presentie',
-							type: 'post',
-							dataType: 'json',
-							data: { loid: loid, value: value, akid: %d },
-							success:function(response){}
-						});
+					$.ajax({
+						url: 'ajax_update.php?entiteit=lo_presentie',
+						type: 'post',
+						dataType: 'json',
+						data: { loid: loid, value: value, akid: %d },
+						success:function(response){}
 					});
 				});
 			</script>\n", $akid);
@@ -504,6 +495,9 @@ function fnPresentieMuteren($p_onderdeelid){
 }  # fnAanwezigheidMuteren
 
 function fnPresentiePerLid($p_ondid) {
+	global $dtfmt;
+	$dtfmt->setPattern(DTTEXT);
+	
 	$i_lo = new cls_Lidond($p_ondid);
 	$i_aw = new cls_Aanwezigheid();
 	
@@ -543,7 +537,7 @@ function fnPresentiePerLid($p_ondid) {
 	echo("<table>\n");
 	printf("<caption> Presentie per lid %s</caption>\n", $i_lo->ondnaam);
 	foreach ($seizrows as $seizrow) {
-		printf("<tr class='seizoentotaal'><th class='teken'>-</th><th>%d</th><th>%s t/m %s</th><th>Groep</th><th># act.</th>", $seizrow->Nummer, strftime('%e %B %Y', strtotime($seizrow->Begindatum)), strftime('%e %B %Y', strtotime($seizrow->Einddatum)));
+		printf("<tr class='seizoentotaal'><th class='teken'>-</th><th>%d</th><th>%s t/m %s</th><th>Groep</th><th># act.</th>", $seizrow->Nummer, $dtfmt->format(strtotime($seizrow->Begindatum)), $dtfmt(strtotime($seizrow->Einddatum)));
 		printf("%s<th>Afwezig</th><th>%% aanwezig</th><th>Ziek</th><th>Met reden</th><th>Zonder reden</th>%s</tr>\n", $kop_aangemeld, $kop_telaat);
 		$lorows = $i_lo->lijst($p_ondid, "", "", $seizrow->Einddatum);
 		foreach ($lorows as $lorow) {
