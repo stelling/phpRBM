@@ -151,6 +151,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	echo("<tbody>\n");
 	$ondrows = (new cls_Onderdeel())->lijst(0, "O.`Type`<>'T'");
 	$authrows = $i_auth->lijst();
+	$dtfmt->setPattern(DTTEXT);
 	foreach($authrows as $row) {
 		$del = sprintf("<a href='%s?tp=%s&op=deleteautorisatie&recid=%d'>&nbsp;&nbsp;&nbsp;</a>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
 		$selectopt = sprintf("<option value=-1%s>Alleen webmasters</option>\n", checked($row->Toegang, "option", -1));
@@ -162,7 +163,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 		if ($row->LaatstGebruikt <= date("Y-m-d", mktime(0, 0, 0, date("m")-6, date("d"), date("Y")))) {
 			$cllg = "class='attentie'";
 		}
-		printf("<tr>\n<td>%s</td>\n<td><select id='Toegang_%d'>\n%s</select></td>\n<td>%s</td><td %s>%s</td><td>%s</td>\n</tr>\n", $row->Tabpage, $row->RecordID, $selectopt, strftime("%e %B %Y", strtotime($row->Ingevoerd)), $cllg, strftime("%e %B %Y", strtotime($row->LaatstGebruikt)), $del);
+		printf("<tr>\n<td>%s</td>\n<td><select id='Toegang_%d'>\n%s</select></td>\n<td>%s</td><td %s>%s</td><td>%s</td>\n</tr>\n", $row->Tabpage, $row->RecordID, $selectopt, $dtfmt->format(strtotime($row->Ingevoerd)), $cllg, $dtfmt->format(strtotime($row->LaatstGebruikt)), $del);
 	}
 	$optionstab = "<option value=''>Selecteer ...</option>\n";
 	foreach ($i_auth->lijst("DISTINCT") as $row) {
@@ -372,7 +373,7 @@ function fnBeheerLogins() {
 	$kols[6]['headertext'] = "Laatste login";
 	$kols[6]['sortcolumn'] = "Login.LastLogin";
 	$kols[6]['columnname'] = "LastLogin";
-	$kols[6]['type'] = "datetime";
+	$kols[6]['type'] = "DTLONG";
 	
 	$kols[7]['headertext'] = "Status";
 	$kols[7]['sortcolumn'] = "Status";
@@ -382,6 +383,8 @@ function fnBeheerLogins() {
 		$kols[8]['columnname'] = "Unlock";
 		$kols[8]['class'] = "unlock";
 		$kols[8]['headertext'] = "&nbsp;";
+	} else {
+		$kols[8]['skip'] = true;
 	}
 	
 	$kols[9]['link'] = sprintf("<a href='%s?op=deletelogin&tp=Beheer logins&lidid=%%d'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF']);
