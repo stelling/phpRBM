@@ -90,8 +90,10 @@ function fnMailing() {
 		fnRekeningenMailen($op);
 		
 	} elseif ($currenttab2 == "Logboek" and toegang($_GET['tp'], 1, 1)) {
+		$kols = fnStandaardKols("logboek");
 		$lijst = (new cls_Logboek())->lijst(4, 1);
-		echo(fnDisplayTable($lijst));
+		
+		echo(fnDisplayTable($lijst, $kols));
 		
 	} elseif ($op == "historie" and $_GET['mid'] > 0) {
 		$rows = (new cls_Mailing_hist())->lijst($_GET['mid']);
@@ -395,10 +397,9 @@ class Mailing {
 					 WHERE %s AND `Type`='R' AND LO.Lid=%%d ORDER BY O.Naam;", TABLE_PREFIX, $i_ond->table, cls_db_base::$wherelidond);
 			$this->MergeField[]=array('Naam' => "Rollen", 'SQL' => $sql);
 		}
-			
+		
 		if (count($i_ond->lijst(1, "O.`Type`='T'")) > 0) {
-			$sql = sprintf("SELECT O.Naam FROM %sLidond AS LO INNER JOIN %s AS O ON O.RecordID = LO.OnderdeelID 
-					 WHERE %s AND `Type`='T' AND LO.Lid=%%d ORDER BY O.Naam;", TABLE_PREFIX, $i_ond->table, cls_db_base::$wherelidond);
+			$sql = sprintf("SELECT CONCAT(O.Naam, ': ', IF((SELECT COUNT(*) FROM %1\$sLidond AS LO WHERE LO.OnderdeelID=O.RecordID AND LO.Lid=%%d AND IFNULL(LO.Opgezegd, '9999-2-31') >= CURDATE()) > 0, 'Ja', 'Nee')) FROM %1\$sOnderdl AS O WHERE O.`Type`='T' ORDER BY O.Naam;", TABLE_PREFIX);
 			$this->MergeField[]=array('Naam' => "Toestemmingen", 'SQL' => $sql);
 			$this->MergeField[]=array('Naam' => "Toestemmingen_UL", 'SQL' => $sql);
 		}
@@ -530,7 +531,7 @@ class Mailing {
 	} # __construct
 	
 	public function edit() {
-		global $currenttab, $currenttab2, $navpad;
+		global $currenttab, $currenttab2, $navpad, $dtfmt;
 		
 		$i_m = new cls_Mailing();
 		$i_mr = new cls_Mailing_rcpt();
@@ -570,9 +571,7 @@ class Mailing {
 		}
 		
 		(new cls_Lidond())->autogroepenbijwerken();
-		foreach ($i_el->lijst("AantalRecords=0 AND KolomLidID >= 0") as $elrow) {
-			$i_el->controle($elrow->RecordID);
-		}
+		$i_el->controle();
 		
 		$f = sprintf("MailingID=%d", $this->mid);
 		$this->aant_rcpt = $i_mr->aantal($f);
@@ -728,15 +727,16 @@ class Mailing {
 		$this->controle();
 		if ($this->mid > 0) {
 			$i_lid = new cls_Lid();
+			$dtfmt->setPattern(DTLONG);
 			if ($this->Ingevoerd > '1901-01-01') {
-				printf("<label>Toegevoegd door/op</label><p>%s / %s</p>\n", $i_lid->naam($this->IngevoerdDoor), strftime("%e %B %Y (%H:%M)", strtotime($this->Ingevoerd)));
+				printf("<label>Toegevoegd door/op</label><p>%s / %s</p>\n", $i_lid->naam($this->IngevoerdDoor), $dtfmt->format(strtotime($this->Ingevoerd)));
 			}
 			if ($this->Gewijzigd > '1901-01-01' and $this->GewijzigdDoor > 0) {
-				printf("<label>Laatst gewijzigd door/op</label><p>%s / %s</p>\n", $i_lid->naam($this->GewijzigdDoor), strftime("%e %B %Y (%H:%M)", strtotime($this->Gewijzigd)));
+				printf("<label>Laatst gewijzigd door/op</label><p>%s / %s</p>\n", $i_lid->naam($this->GewijzigdDoor), $dtfmt->format(strtotime($this->Gewijzigd)));
 			}
 			
 			if ($this->deleted_on > '1901-01-01') {
-				printf("<label>Verwijderd door/op</label><p>%s / %s</p>\n", $i_lid->naam($this->DeletedBy), strftime("%e %B %Y (%H:%M)", strtotime($this->deleted_on)));
+				printf("<label>Verwijderd door/op</label><p>%s / %s</p>\n", $i_lid->naam($this->DeletedBy), $dtfmt->format(strtotime($this->deleted_on)));
 			}
 
 			echo("<label>Meldingen</label><p id='meldingen'>Meldingen</p>\n");
@@ -1090,7 +1090,6 @@ class Mailing {
 		$lidqry .= " AND (L.Overleden IS NULL) AND (L.Verwijderd IS NULL)";
 		
 //		debug("mid: " . $this->mid . " aantalonvangers: " . $this->aant_rcpt);
-//		debug($lidqry);
 		
 		$i_el = new cls_Eigen_lijst();
 		$i_base = new cls_db_base();
@@ -1110,9 +1109,6 @@ class Mailing {
 		$i_mr = new cls_Mailing_rcpt();
 		
 		$selrows = $i_base->execsql($lidqry)->fetchAll();
-		
-//	debug($lidqry, 0, 1);
-//	debug($lidqry . ": ". count($selrows), 0, 1);
 		
 		$this->sl_aantingroep = count($selrows);
 		$this->sl_aanttoevoegen = 0;
@@ -1289,8 +1285,9 @@ class Mailing {
 			}
 			$rows = $i_ib->overzichtlid(0, $this->xtranum);
 			$bevins = "<ul>\n";
+			$dtfmt->setPattern(DTTEXT);
 			foreach ($rows as $row) {		
-				$bevins .= sprintf("<li>%s - %s t/m %s", $row->Seizoen, strftime("%e %B %Y", strtotime($row->dteBegin)), strftime("%e %B %Y", strtotime($row->dteEinde)));
+				$bevins .= sprintf("<li>%s - %s t/m %s", $row->Seizoen, $dtfmt->format(strtotime($row->dteBegin)), $dtfmt->format(strtotime($row->dteEinde)));
 				if ($row->Keuze == 2) {
 					$bevins .= " (2de keuze)";
 				}
@@ -1426,7 +1423,7 @@ function lijstmailings($p_filter="") {
 		$kols[0]['columnname'] = "RecordID";
 		$kols[1]['headertext'] = "Verzonden";
 		$kols[1]['columnname'] = "send_on";
-		$kols[1]['type'] = "date";
+		$kols[1]['type'] = "DTLONG";
 		$kols[2]['headertext'] = "Van";
 		$kols[3]['headertext'] = "Aan";
 		$kols[3]['columnname'] = "Aan";
@@ -1544,19 +1541,24 @@ class email {
 	public $xtranum = 0;
 	
 	function __construct($mhid=0, $mid=0) {
-		$this->ingevoerd = strftime('%e %B %Y (%H:%M:%S)');
+		global $dtfmt;
+		
+		$dtfmt->setPattern(DTLONGSEC);
+		$this->ingevoerd = $dtfmt->format(time());
 		$this->ingevoerddoor = $_SESSION['naamingelogde'];
+		
+		
 		
 		if ($mhid > 0) {
 			$this->mhid = $mhid;
 			$mhrow = (new cls_Mailing_hist())->record($this->mhid);
 			if (isset($mhrow->MailingID)) {
 				$this->mailingid = $mhrow->MailingID;
-				$this->CCafdelingen = (new cls_Mailing())->min("CCafdelingen", sprintf("MailingID=%d", $this->mailingid));
-				$this->ingevoerd = strftime('%e %B %Y (%H:%M:%S)', strtotime($mhrow->Ingevoerd));
+				$dtfmt->setPattern(DTLONG);
+				$this->ingevoerd = $dtfmt->format(strtotime($mhrow->Ingevoerd));
 				$this->ingevoerddoor = (new cls_Lid())->Naam($mhrow->IngevoerdDoor);
 				if ($mhrow->send_on > "2010-01-01") {
-					$this->verstuurdop = strftime('%e %B %Y (%H:%M:%S)', strtotime($mhrow->send_on));
+					$this->verstuurdop = $dtfmt->format(strtotime($mhrow->send_on));
 				}
 				$this->lidid = $mhrow->LidID;
 				$this->vanafnaam = $mhrow->from_name;
@@ -1565,16 +1567,7 @@ class email {
 				$this->aannaam = htmlentities($mhrow->Aan);
 				$this->aanadres = $mhrow->to_addr;
 				$this->cc = $mhrow->cc_addr;
-				if ($this->CCafdelingen == 1 and $this->lidid > 0) {
-					foreach((new cls_Lidond())->lijstperlid($this->lidid, "A") as $afdrow) {
-						if (strlen($afdrow->CentraalEmail) > 4) {
-							if (strlen($this->cc) > 4) {
-								$this->cc .= ",";
-							}
-							$this->cc .= $afdrow->CentraalEmail;
-						}
-					}
-				}
+				$this->CCafdelingen = $mhrow->CCafdelingen;
 				$this->onderwerp = $mhrow->subject;
 				$this->bericht = $mhrow->message;
 				$this->zonderbriefpapier = $mhrow->ZonderBriefpapier;
@@ -1590,6 +1583,7 @@ class email {
 			$this->vanafadres = htmlentities($mrow->Vanaf_email);
 			$this->omsontvangers = htmlentities($mrow->to_name);
 			$this->cc = $mrow->cc_addr;
+			$this->CCafdelingen = $mrow->CCafdelingen;
 			$this->onderwerp = $mrow->subject;
 			$this->zichtbaarvoor = $mrow->ZichtbaarVoor;
 			$this->zonderbriefpapier = $mrow->ZonderBriefpapier;
@@ -1708,6 +1702,18 @@ class email {
 		if (strlen($this->aanadres) < 5) {
 			debug("geen aanadres aanwezig");
 		} elseif (strlen($this->vanafadres) > 5) {
+			
+			if ($this->CCafdelingen == 1 and $this->lidid > 0) {
+				foreach((new cls_Lidond())->lijstperlid($this->lidid, "A") as $afdrow) {
+					if (strlen($afdrow->CentraalEmail) > 4) {
+						if (strlen($this->cc) > 4) {
+							$this->cc .= ",";
+						}
+						$this->cc .= $afdrow->CentraalEmail;
+					}
+				}
+			}
+			
 			if ($p_direct == 1) {
 				$this->nietversturenvoor = date("Y-m-d H:i:s");
 			} else {
@@ -2083,6 +2089,7 @@ function fnMailingInstellingen() {
 	$kols[4]['readonly'] = true;
 	$kols[4]['type'] = "datetime";
 	$kols[5]['headertext'] = "&nbsp;";
+	
 	$kols[5]['link'] = sprintf("%s?tp=%s/%s&delete_vanaf=%%d", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
 	$kols[5]['columnname'] = "RecordID";
 	$kols[5]['columntitle'] = "Verwijder record";
