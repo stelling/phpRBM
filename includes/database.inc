@@ -119,9 +119,9 @@ class cls_db_base {
 	public $selectnaam = "CONCAT(IF(LENGTH(IFNULL(L.Roepnaam, ''))>1, L.Roepnaam, IFNULL(L.Voorletter, '')), ' ', IF(IFNULL(L.Tussenv, '')>'', CONCAT(L.Tussenv, ' '), ''), L.Achternaam)";
 	public $selectzoeknaam = "TRIM(CONCAT(L.Achternaam, ', ', IF(L.Tussenv>'', CONCAT(L.Tussenv, ' '), ''), IF(LENGTH(L.Roepnaam)>1, L.Roepnaam, L.Voorletter), ' '))";
 	public $selectgeslacht = "";
-	public $selectleeftijd = "IF(ISNULL(L.GEBDATUM) OR L.GEBDATUM < '1920-01-01' OR (NOT ISNULL(L.Overleden)), NULL, CONCAT(TIMESTAMPDIFF(YEAR, L.GEBDATUM, CURDATE()), ' jaar'))";
+	public $selectleeftijd = "IF(ISNULL(L.GEBDATUM) OR L.GEBDATUM < '1910-01-01' OR (NOT ISNULL(L.Overleden)), NULL, CONCAT(TIMESTAMPDIFF(YEAR, L.GEBDATUM, CURDATE()), ' jaar'))";
 	public $selectlidnr = "SELECT MAX(IFNULL(Lidnr, 0)) FROM " . TABLE_PREFIX . "Lidmaatschap AS LM WHERE LM.Lid=L.RecordID AND LM.LIDDATUM <= CURDATE() AND IFNULL(LM.Opgezegd, '9999-12-31') >= CURDATE()";
-	public $selecttelefoon = "IF(LENGTH(IFNULL(L.Mobiel, '')) < 10, L.Telefoon, L.Mobiel)";
+	public $selecttelefoon = "IF(LENGTH(IFNULL(L.Mobiel, '')) < 10, IFNULL(L.Telefoon, ''), L.Mobiel)";
 	public $selectemail = "IF(LENGTH(L.Email) > 5, L.Email, IF(LENGTH(L.EmailOuders) > 5, L.EmailOuders, L.EmailVereniging))";
 	public $selectgroep = "CASE 
 					WHEN IFNULL(LO.GroepID, 0)=0 AND LO.Functie=0 THEN 'Niet ingedeeld'
@@ -897,22 +897,37 @@ class cls_Lid extends cls_db_base {
 		if ($p_lidid > 0) {
 			$this->lidid = $p_lidid;
 		}
-		$query = sprintf("SELECT %s FROM %s WHERE L.RecordID=%d;", $this->selectnaam, $this->basefrom, $this->lidid);
-		$rv = $this->scalar($query);
-		if (strlen($rv) == 0) {
+		
+		if ($this->lidid <= 0) {
 			$rv = $p_riz;
+		} else {
+			$query = sprintf("SELECT %s FROM %s WHERE L.RecordID=%d;", $this->selectnaam, $this->basefrom, $this->lidid);
+			$rv = $this->scalar($query);
+			if (strlen($rv) == 0) {
+				$rv = "LidID " . $this->lidid;
+			}
 		}
 		return $rv;
-	}
+		
+	}  # Naam
 	
-	public function Roepnaam($p_lidid, $p_riz="gast") {
-		$query = sprintf("SELECT IF(LENGTH(IFNULL(L.Roepnaam, ''))=0, IFNULL(L.Voorletter, '%s'), L.Roepnaam) FROM %s AS L WHERE L.RecordID=%d;", $p_riz, $this->table, $p_lidid);
-		$rv = $this->scalar($query);
-		if (strlen($rv) == 0) {
-			$rv = $p_riz;
+	public function roepnaam($p_lidid, $p_riz="gast") {
+		if ($p_lidid > 0) {
+			$this->lidid = $p_lidid;
 		}
+		
+		if ($this->lidid <= 0) {
+			$rv = $p_riz;
+		} else {
+			$query = sprintf("SELECT IF(LENGTH(IFNULL(L.Roepnaam, ''))=0, IFNULL(L.Voorletter, ''), L.Roepnaam) FROM %s WHERE L.RecordID=%d;", $this->basefrom, $this->lidid);
+			$rv = $this->scalar($query);
+			if (strlen($rv) == 0) {
+				$rv = "LidID " . $this->lidid;
+			}
+		}
+		
 		return $rv;
-	}
+	}  # roepnaam
 	
 	public function Zoeknaam($p_lidid) {
 		$query = sprintf("SELECT %s FROM %s AS L WHERE L.RecordID=%d;", $this->selectzoeknaam, $this->table, $p_lidid);
@@ -4088,7 +4103,7 @@ class cls_Mailing_hist extends cls_db_base {
 		}
 		
 		$query = sprintf("SELECT MH.Ingevoerd, MH.send_on, MH.from_addr, MH.from_name, M.to_name, MH.to_addr, MH.cc_addr, MH.subject, MH.message, MH.send_by, MH.LidID, MH.to_name AS Aan, MH.LidID, 
-						  MH.MailingID, MH.Xtra_Char, MH.Xtra_Num, MH.ZichtbaarVoor, MH.ZonderBriefpapier, MH.IngevoerdDoor
+						  MH.MailingID, MH.Xtra_Char, MH.Xtra_Num, MH.ZichtbaarVoor, MH.ZonderBriefpapier, MH.IngevoerdDoor, M.CCafdelingen
 						  FROM (%1\$s LEFT JOIN %2\$sLid AS L ON MH.IngevoerdDoor=L.RecordID) LEFT JOIN %2\$sMailing AS M ON MH.MailingID=M.RecordID
 						  WHERE %3\$s
 						  ORDER BY Ingevoerd DESC LIMIT 1;", $this->basefrom, TABLE_PREFIX, $w, $this->selectnaam);
@@ -5418,18 +5433,18 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 			$order = "L.Achternaam, L.TUSSENV, L.Roepnaam";
 		}
 		
-		$query = sprintf("SELECT ED.RecordID, %1\$s AS NaamDeelnemer, IF(LENGTH(IFNULL(L.Mobiel, '')) >= 10, L.Mobiel, L.Telefoon) AS Telefoon, ED.StartMoment, IF(E.MeerdereStartMomenten=1, IFNULL(ED.StartMoment, ''), SUBSTRING(E.Datum, 12, 5)) AS Starttijd, E.MeerdereStartMomenten,
+		$query = sprintf("SELECT ED.RecordID, %1\$s AS NaamDeelnemer, %2\$s AS Telefoon, ED.StartMoment, IF(E.MeerdereStartMomenten=1, IFNULL(ED.StartMoment, ''), SUBSTRING(E.Datum, 12, 5)) AS Starttijd, E.MeerdereStartMomenten,
 							ED.Status, ED.Opmerking, ED.Functie, ED.LidID, ED.Aantal, L.Geslacht, ED.Ingevoerd, ED.LidID, ED.IngevoerdDoor
-							FROM (%2\$sEvenement_Deelnemer AS ED INNER JOIN %2\$sLid AS L ON ED.LidID=L.RecordID) INNER JOIN %2\$sEvenement AS E ON E.RecordID=ED.EvenementID
-							WHERE ED.EvenementID=%3\$d %4\$s
-							ORDER BY %5\$s;", $this->selectnaam, TABLE_PREFIX, $p_evid, $xw, $order);
+							FROM (%3\$s INNER JOIN %4\$sLid AS L ON ED.LidID=L.RecordID) INNER JOIN %4\$sEvenement AS E ON E.RecordID=ED.EvenementID
+							WHERE ED.EvenementID=%5\$d %6\$s
+							ORDER BY %7\$s;", $this->selectnaam, $this->selecttelefoon, $this->basefrom, TABLE_PREFIX, $p_evid, $xw, $order);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
 
 	public function overzichtlid($p_lidid) {
 		
-		$query = "SELECT E.Datum, E.Omschrijving, E.Verzameltijd, DATE_FORMAT(E.Datum, '%H:%i') AS Starttijd, Locatie AS ndLocatie, E.Eindtijd, E.Email AS emlContact, ED.Opmerking, ED.Functie,
+		$query = "SELECT E.Datum, E.Omschrijving, E.Verzameltijd, DATE_FORMAT(E.Datum, '%H:%i') AS Starttijd, E.Locatie, E.Eindtijd, E.Email, ED.Opmerking, ED.Functie,
 					IF(E.MeerdereStartMomenten=1, IFNULL(ED.StartMoment, ''), SUBSTRING(E.Datum, 12, 5)) AS Starttijd, E.MeerdereStartMomenten";
 		$query .= ", CASE ED.Status";
 		foreach (ARRDLNSTATUS as $s => $o) {
@@ -6113,24 +6128,25 @@ class cls_Rekeningregel extends cls_db_base {
 		if ($p_rkid > 0) {
 			$this->rkid = $p_rkid;
 		}
-		$query = sprintf("SELECT RR.*, %s AS NaamLid, L.GEBDATUM, L.EmailOuders FROM %s AS RR LEFT JOIN %sLid AS L ON RR.Lid=L.RecordID WHERE RR.Rekening=%d ORDER BY Regelnr;", $this->selectnaam, $this->table, TABLE_PREFIX, $this->rkid);
+		$query = sprintf("SELECT RR.*, %s AS NaamLid, L.GEBDATUM, L.EmailOuders FROM %s LEFT JOIN %sLid AS L ON RR.Lid=L.RecordID WHERE RR.Rekening=%d ORDER BY Regelnr;", $this->selectnaam, $this->basefrom, TABLE_PREFIX, $this->rkid);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
 	
 	public function overzichtlid($p_lidid) {
-		$query = sprintf("SELECT IF((SELECT COUNT(*) FROM %sRekreg AS RR WHERE RR.Rekening=RK.Nummer AND RR.ToonOpRekening=1) > 0, RK.Nummer, 0) AS lnkNummer,
-					CONCAT(RK.Nummer, '/', RR.Regelnr) AS Rekening,
+		$this->lidid = $p_lidid;
+		$query = sprintf("SELECT DISTINCT IF((SELECT COUNT(*) FROM %1\$sRekreg AS RR WHERE RR.Rekening=RK.Nummer AND RR.ToonOpRekening=1) > 0, RK.Nummer, 0) AS lnkNummer,
+					RK.Nummer,
 					RK.Seizoen,
-					RK.Datum AS dteDatum,
-					RR.OMSCHRIJV AS Omschrijving,
-					RR.Bedrag AS curBedrag
-					FROM %s INNER JOIN %sRekening AS RK ON RR.Rekening=RK.Nummer
-					WHERE RR.Lid=%d
-					ORDER BY RK.Nummer DESC, RR.Regelnr;", TABLE_PREFIX, $this->basefrom, TABLE_PREFIX, $p_lidid);
+					RK.Datum,
+					RK.OMSCHRIJV AS Omschrijving,
+					RK.Bedrag
+					FROM %2\$s INNER JOIN %1\$sRekening AS RK ON RR.Rekening=RK.Nummer
+					WHERE RR.Lid=%3\$d
+					ORDER BY RK.Nummer DESC;", TABLE_PREFIX, $this->basefrom, $this->lidid);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
-	}
+	}  # overzichtlid
 
 	public function standaardwaarde($p_rkid, $p_lidid) {
 		$this->rkid = $p_rkid;
@@ -6686,6 +6702,7 @@ class cls_Eigen_lijst extends cls_db_base {
 			$p_waarde = str_ireplace("[%LIDNAAM%]", $this->selectnaam, $p_waarde);
 			$p_waarde = str_ireplace("[%TELEFOON%]", $this->selecttelefoon, $p_waarde);
 			$p_waarde = str_ireplace("[%EMAIL%]", $this->selectemail, $p_waarde);
+			$p_waarde = str_ireplace("[%LEEFTIJD%]", $this->selectleeftijd, $p_waarde);
 			
 		} elseif ($p_kolom == "Tabpage" and strlen($p_waarde) > 0)	{
 			if (substr($p_waarde, -1) == "\\") {
