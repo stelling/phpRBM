@@ -119,6 +119,7 @@ function savedata(entity, rid, control) {
 		var split_id = id.split('_');
 		var field_name = split_id[0];
 		var rid = split_id[1];
+		
 	} else {
 		var field_name = control.id;
 	}
@@ -190,7 +191,24 @@ function lidalgwijzprops() {
 	if (gbd.val().length == 10 && gbd.val() > '1920-01-01') {
 		const options = { year: 'numeric', month: 'long', day: 'numeric' };
 		var dat = new Date(gbd.val());
-		$('#uitleg_gebdatum').text(' (' + dat.toLocaleDateString('nl-NL', options) + ')');
+		var today = new Date();
+		var t;
+		if (dat > today) {
+			t = 'De geboortedatum mag niet in de toekomst liggen.';
+			$('#uitleg_gebdatum').css({'color': 'red', 'weight': 'bolder'});
+		} else {
+			var lft = today.getYear() - dat.getYear();
+			if (dat.getMonth() == today.getMonth() && dat.getDate() > today.getDate()) {
+				lft--;
+			} else if (dat.getMonth() > today.getMonth()) {
+				lft--;
+			}
+			t = ' (' + dat.toLocaleDateString('nl-NL', options) + ')';
+			if (lft > 1) {
+				t = t.concat(' (', lft, ' jaar)');
+			}
+		}
+		$('#uitleg_gebdatum').text(t);
 	} else {
 		$('#uitleg_gebdatum').text('');
 	}
@@ -452,7 +470,7 @@ function rekeningprops() {
 	
 	var rkid = $('#reknr').text();
 	
-	days = $("#BETAALDAG").val() * $("#BET_TERM").val();
+	days = $("#BETAALDAG").val();
 	
 	var betaaldatum = new Date($('#Datum').val());
 	var bedragbetaald = $('#bedragbetaald').val();
@@ -472,7 +490,6 @@ function rekeningprops() {
 		$("#lblBETAALDAG").show();
 		$("#BETAALDAG").show();
 		$("#lblBET_TERM").show();
-		$("#BET_TERM").show();
 		$("#lbluitersteBetaling").show();
 		$("#uitersteBetaling").show();
 		const options = { year: 'numeric', month: 'long', day: 'numeric' };
