@@ -35,6 +35,7 @@ function fnEvenementen() {
 		$kols[0]['class'] = "muteren";
 		$kols[0]['columnname'] = "RecordID";
 		$kols[1]['headertext'] = "Datum";
+		$kols[1]['type'] = "date";
 		$kols[2]['headertext'] = "Starttijd";
 		$kols[3]['headertext'] = "Omschrijving";
 		$kols[4]['headertext'] = "Locatie";
@@ -68,6 +69,8 @@ function fnEvenementen() {
 
 function inschrijvenevenementen($lidid) {
 	// Onderdeel van de zelfservice
+	global $dtfmt;
+	
 	$i_ev = new cls_evenement();
 	$i_ed = new cls_Evenement_Deelnemer();
 
@@ -118,11 +121,12 @@ function inschrijvenevenementen($lidid) {
 	echo("<tr><th>Datum en tijden</th><th>Omschrijving</th><th>Reactie</th><th>Agenda</th></tr>\n");
 	foreach ($i_ev->lijst(3) as $row) {
 		if ($row->Eindtijd > "00:00") {
-			$tijden = sprintf("van %s tot %s uur", strftime("%R", strtotime($row->Datum)), $row->Eindtijd);
+			$tijden = sprintf("van %s tot %s uur", date("H:i", strtotime($row->Datum)), $row->Eindtijd);
 		} else {
-			$tijden = sprintf("vanaf %s uur", strftime("%R", strtotime($row->Datum)));
+			$tijden = sprintf("vanaf %s uur", date("H:i", strtotime($row->Datum)));
 		}
-		printf("<tr><td>%s<br>%s</td><td>%s</td>\n", strftime("%A %e %B %Y", strtotime($row->Datum)), $tijden, $row->Omschrijving);
+		$dtfmt->setPattern(DTTXTWD);
+		printf("<tr><td>%s<br>%s</td><td>%s</td>\n", $dtfmt->format(strtotime($row->Datum)), $tijden, $row->Omschrijving);
 		$ins = $i_ed->record(0, $lidid, $row->RecordID);
 		$v = "&nbsp;";
 		
@@ -168,6 +172,7 @@ function inschrijvenevenementen($lidid) {
 }  # inschrijvenevenementen
 
 function muteerevenement($eventid) {
+	global $dtfmt;
 
 	$i_ev = new cls_Evenement();
 	$i_ed = new cls_Evenement_Deelnemer();
@@ -348,7 +353,9 @@ function muteerevenement($eventid) {
 		printf("<label>Zichtbaar voor</label><select id='ZichtbaarVoor'>%s</select>\n", $optiongroepen);
 		echo("</span>\n");
 		echo("<span>\n");
-		printf("<label>Gewijzigd op / door</label><p>%s / %s</p>\n", strftime("%e %B %Y (%H:%M)", strtotime($row->Gewijzigd)), htmlentities($row->GewijzigdDoorNaam));
+		
+		$dtfmt->setPattern(DTLONG);
+		printf("<label>Gewijzigd op / door</label><p>%s / %s</p>\n", $dtfmt->format(strtotime($row->Gewijzigd)), htmlentities($row->GewijzigdDoorNaam));
 		printf("<label>Aantal deelnemers</label><p>%d</p>\n", $aantdln);
 		printf("<label>Aantal ingeschreven</label><p>%d</p>\n", $aantalingeschreven);
 		printf("<label>Aantal afgemeld</label><p>%d</p>\n", $aantafgemeld);
@@ -368,6 +375,7 @@ function muteerevenement($eventid) {
 			echo("<th>#</th>");
 		}
 		echo("<th>Status</th><th>Opmerking en functie</th><th>Ingevoerd</th><th></th></tr>\n</thead>\n");
+		$dtfmt->setPattern(DTLONG);
 		foreach ($i_ed->overzichtevenement($recordid) as $rd) {
 			$optstat = "";
 			foreach (ARRDLNSTATUS as $key => $val) {
@@ -394,7 +402,7 @@ function muteerevenement($eventid) {
 			echo("</td>\n");
 			printf("<td><input type='text' name='Opmerking_%d' value='%s' placeholder='Opmerking' class='w250' maxlength=250>\n", $rd->RecordID, $rd->Opmerking);
 			printf("<br><input type='text' name='Functie_%d' value='%s' placeholder='Functie' class='w30' maxlength=30></td>\n", $rd->RecordID, $rd->Functie);
-			printf("<td>%s<br>%s</td>\n", strftime("%e %b %Y (%R)", strtotime($rd->Ingevoerd)), (new cls_Lid())->Naam($rd->IngevoerdDoor));
+			printf("<td>%s<br>%s</td>\n", $dtfmt->format(strtotime($rd->Ingevoerd)), (new cls_Lid())->Naam($rd->IngevoerdDoor));
 			printf("<td><a href='%s?tp=%s&amp;op=delete&eid=%d&lidid=%d&edid=%d'>&nbsp;&nbsp;&nbsp;</a></td>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $eventid, $rd->LidID, $rd->RecordID);
 			echo("</tr>\n");
 		}
@@ -561,6 +569,7 @@ function muteertypeevenement() {
 }
 
 function overzichtevenementen() {
+	global $dtfmt;
 
 	$i_ev = new cls_Evenement();
 	$i_ed = new cls_Evenement_Deelnemer();
@@ -570,16 +579,17 @@ function overzichtevenementen() {
 	$vsrt = "Q";
 	$vn = "";
 	
+	$dtfmt->setPattern(DTTEXTWD);
 	$evlijst = $i_ev->lijst(1);
 	foreach ($evlijst as $row) {
 		$dlnlijst = $i_ed->overzichtevenement($row->RecordID, "'B','J'");
 		
 		if ($row->Soort == "W") {
-			printf("<tr><th>%s</th><th>Dames</th><th>Heren</th></tr>\n", strftime("%A %e %B %Y", strtotime($row->Datum)));
+			printf("<tr><th>%s</th><th>Dames</th><th>Heren</th></tr>\n", $dtfmt->format(strtotime($row->Datum)));
 		} elseif(count($dlnlijst) > 1) {
-			printf("<tr><th>%s</th><th colspan=2>%d deelnemers</th></tr>\n", strftime("%A %e %B %Y", strtotime($row->Datum)), count($dlnlijst));
+			printf("<tr><th>%s</th><th colspan=2>%d deelnemers</th></tr>\n", $dtfmt->format(strtotime($row->Datum)), count($dlnlijst));
 		} else {
-			printf("<tr><th colspan=3>%s</th></tr>\n", strftime("%A %e %B %Y", strtotime($row->Datum)));
+			printf("<tr><th colspan=3>%s</th></tr>\n", $dtfmt->format(strtotime($row->Datum)));
 		}
 		
 		$dames = "";
