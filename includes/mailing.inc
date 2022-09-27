@@ -536,6 +536,7 @@ class Mailing {
 		$i_m = new cls_Mailing();
 		$i_mr = new cls_Mailing_rcpt();
 		$i_el = new cls_Eigen_lijst();
+		$i_el->controle();
 		$i_ond = new cls_Onderdeel();
 		$ob = "OnBlur='this.form.submit();'";
 		if ($this->mid > 0) {
@@ -570,8 +571,7 @@ class Mailing {
 			$d->close();
 		}
 		
-		(new cls_Lidond())->autogroepenbijwerken();
-		$i_el->controle();
+		(new cls_Lidond())->autogroepenbijwerken(1);
 		
 		$f = sprintf("MailingID=%d", $this->mid);
 		$this->aant_rcpt = $i_mr->aantal($f);
@@ -1089,12 +1089,11 @@ class Mailing {
 		}
 		$lidqry .= " AND (L.Overleden IS NULL) AND (L.Verwijderd IS NULL)";
 		
-//		debug("mid: " . $this->mid . " aantalonvangers: " . $this->aant_rcpt);
-		
 		$i_el = new cls_Eigen_lijst();
 		$i_base = new cls_db_base();
 		if ($ondid > 0) {
-			$elid = $i_el->controle($ondid);
+			$f = sprintf("EL.RecordID=%d", $ondid);
+			$elid = $i_el->max("RecordID", $f);
 			if ($elid > 0) {
 				$subqry = $i_el->mysql($elid, 1);
 			} else {
