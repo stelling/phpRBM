@@ -70,7 +70,7 @@ $TypeActiviteit[20] = "Stamgegevens";
 $TypeActiviteit[21] = "Afdelingskalender";
 $TypeActiviteit[22] = "Stukken";
 $TypeActiviteit[23] = "Eigen lijsten";
-$TypeActiviteit[24] = "Aanwezigheid muteren";
+$TypeActiviteit[24] = "Afwezigheid/presentie";
 $TypeActiviteit[97] = "Foutieve login";
 $TypeActiviteit[98] = "Performance";
 $TypeActiviteit[99] = "Debug- en foutmeldingen";
@@ -118,6 +118,7 @@ class cls_db_base {
 	public static $wherelidond = "LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE()";
 	public $selectnaam = "CONCAT(IF(LENGTH(IFNULL(L.Roepnaam, ''))>1, L.Roepnaam, IFNULL(L.Voorletter, '')), ' ', IF(IFNULL(L.Tussenv, '')>'', CONCAT(L.Tussenv, ' '), ''), L.Achternaam)";
 	public $selectzoeknaam = "TRIM(CONCAT(L.Achternaam, ', ', IF(L.Tussenv>'', CONCAT(L.Tussenv, ' '), ''), IF(LENGTH(L.Roepnaam)>1, L.Roepnaam, L.Voorletter), ' '))";
+	public $selectavgnaam = "CONCAT(IFNULL(L.Roepnaam, ''), ' ', IF(IFNULL(L.Tussenv, '')>'', CONCAT(L.Tussenv, ' '), ''), SUBSTRING(L.Achternaam, 1, 1), '.')";
 	public $selectgeslacht = "";
 	public $selectleeftijd = "IF(ISNULL(L.GEBDATUM) OR L.GEBDATUM < '1910-01-01' OR (NOT ISNULL(L.Overleden)), NULL, CONCAT(TIMESTAMPDIFF(YEAR, L.GEBDATUM, CURDATE()), ' jaar'))";
 	public $selectlidnr = "SELECT MAX(IFNULL(Lidnr, 0)) FROM " . TABLE_PREFIX . "Lidmaatschap AS LM WHERE LM.Lid=L.RecordID AND LM.LIDDATUM <= CURDATE() AND IFNULL(LM.Opgezegd, '9999-12-31') >= CURDATE()";
@@ -1360,7 +1361,7 @@ class cls_Lidmaatschap extends cls_db_base {
 			$this->tm = 1;
 			
 		} elseif ($p_kolom == "Lidnr" and $this->scalar($query) > 0) {
-			$this->mess = "Dit lidnummer wordt al ergens anders gebruikt, wijziging wordt niet verwerkt.";
+			$this->mess = sprintf("Lidnummer %d is al in gebruik, wijziging wordt niet verwerkt.", $p_waarde);
 			$this->tm = 1;
 			
 		} else {
@@ -2762,11 +2763,12 @@ class cls_Lidond extends cls_db_base {
 		} else {
 			$where = sprintf("AND LO.OnderdeelID IN (SELECT OnderdeelID FROM %sGroep)", TABLE_PREFIX);
 		}
-		$this->query = sprintf("SELECT DISTINCT O.Naam AS AfdNaam, CONCAT(GR.Starttijd, IF(LENGTH(GR.Eindtijd) > 3, CONCAT(' - ', GR.Eindtijd), '')) AS Tijdsblok, GR.Kode, GR.Omschrijving, L.Roepnaam, %1\$s AS NaamLid, %5\$s AS GroepOms, GR.Zwemzaal,
+		$this->query = sprintf("SELECT DISTINCT O.Naam AS AfdNaam, CONCAT(GR.Starttijd, IF(LENGTH(GR.Eindtijd) > 3, CONCAT(' - ', GR.Eindtijd), '')) AS Tijdsblok, GR.Kode, GR.Omschrijving, L.Roepnaam,
+					%1\$s AS NaamLid, %6\$s AS AVGnaam, %5\$s AS GroepOms, GR.Zwemzaal,
 					LO.RecordID, LO.GroepID, LO.Lid, %2\$s AS Leeftijd, LO.Vanaf, IFNULL(LO.Opgezegd, '9999-12-31') AS Opgezegd
 					FROM %3\$s
 					WHERE IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE() AND (LO.Functie=0 OR LO.GroepID > 0) %4\$s
-					ORDER BY O.Naam, IF(LO.GroepID=0, '99:99', GR.Starttijd), GR.Volgnummer, GR.Omschrijving, GR.RecordID, L.Achternaam, L.Roepnaam;", $this->selectnaam, $this->selectleeftijd, $this->fromlidond, $where, $this->selectgroep);
+					ORDER BY O.Naam, IF(LO.GroepID=0, '99:99', GR.Starttijd), GR.Volgnummer, GR.Omschrijving, GR.RecordID, L.Achternaam, L.Roepnaam;", $this->selectnaam, $this->selectleeftijd, $this->fromlidond, $where, $this->selectgroep, $this->selectavgnaam);
 		$result = $this->execsql();
 		return $result->fetchAll();
 	}
@@ -3187,6 +3189,7 @@ class cls_Lidond extends cls_db_base {
 			}
 		}
 		return $rv;
+		
 	} # autogroepenbijwerken
 	
 	public function auto_einde($p_ondid=0) {
@@ -6232,25 +6235,21 @@ class cls_Rekeningregel extends cls_db_base {
 					$oms = $ondrow->Naam;
 					$kpl = $ondrow->Kode;
 					
-					if ($jl) {
+					
+					if ($lorow->Kader == 1) {
+						$cb = $ondrow->FUNCTCB;
+						if (strlen($lorow->FunctieOms) > 0) {
+							$oms .= " (" . $lorow->FunctieOms . ")";
+						}
+					} elseif ($jl) {
 						$cb = $ondrow->JEUGDCB;
 					} else {
 						$cb = $ondrow->LIDCB;
 					}
-					if ($ondrow->ContributiePerActiviteit == 1 and $lorow->GroepID > 0) {
-						if (isset($lorow->GrActiviteit) and strlen($lorow->GrActiviteit) > 0) {
-							$oms .= " (" . $lorow->GrActiviteit . ")";
-						}
-						if (isset($lorow->GrContributie)) {
-							$cb = $lorow->GrContributie;
-						}
-					} else {
-						if (strlen($lorow->FunctieOms) > 0) {
-							$oms .= " (" . $lorow->FunctieOms . ")";
-						}
-						if ($lorow->Kader == 1) {
-							$cb = $ondrow->FUNCTCB;
-						}
+				
+					if (isset($lorow->GrActiviteit) and strlen($lorow->GrActiviteit) > 0 and isset($lorow->GrContributie) and $lorow->GrContributie > 0) {
+						$oms .= " (" . $lorow->GrActiviteit . ")";
+						$cb += $lorow->GrContributie;
 					}
 					if ($lorow->Vanaf > $szrow->Begindatum) {
 						$oms .= " vanaf " . date("d-m-Y", strtotime($lorow->Vanaf));
@@ -6582,6 +6581,8 @@ class cls_Eigen_lijst extends cls_db_base {
 	
 	public function controle($p_elid=-1, $p_altijd=0) {
 		global $dbc;
+		
+		$rv = 0;
 
 		if ($p_elid > 0) {
 			$this->elid = $p_elid;
@@ -6635,11 +6636,12 @@ class cls_Eigen_lijst extends cls_db_base {
 			$this->update($row->RecordID, "KolomLidID", $kol_lidid);
 			$this->update($row->RecordID, "NaamEersteKolom", $naameerstekolom);
 			$this->update($row->RecordID, "LaatsteControle", date("Y-m-d H:i:s"));
+			$rv++;
 		}
-		if (count($elrows) == 1) {
+		if (count($elrows) == 1 and $rv > 0) {
 			return $this->elid;
 		} else {
-			return 0;
+			return $rv;
 		}
 	}  # controle
 	
@@ -6743,11 +6745,9 @@ class cls_Eigen_lijst extends cls_db_base {
 			$i_auth = null;
 		}
 
-		if ($_SESSION['webmaster'] == 1)  {
-			if ($this->pdoupdate($this->elid, $p_kolom, $p_waarde) > 0) {
-				$this->mess = sprintf("Eigen lijst %d (%s): kolom %s is in '%s' gewijzigd.", $this->elid, $this->elnaam, $p_kolom, $p_waarde);
-				$this->log($p_elid);
-			}
+		if ($this->pdoupdate($this->elid, $p_kolom, $p_waarde) > 0) {
+			$this->mess = sprintf("Eigen lijst %d (%s): kolom %s is in '%s' gewijzigd.", $this->elid, $this->elnaam, $p_kolom, $p_waarde);
+			$this->log($p_elid);
 		}
 	}
 	
@@ -7338,7 +7338,10 @@ function db_onderhoud($type=9) {
 		$query = sprintf("ALTER TABLE `%1\$s` CHANGE `%2\$s` `%2\$s` VARCHAR(75) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table, $col);
 		$i_base->execsql($query, 2);
 	}
-	
+		
+	// Deze code mag na 1 november 2023 worden verwijderd.
+	$query = sprintf("ALTER TABLE `%sEigen_lijst` CHANGE `Naam` `Naam` VARCHAR(40) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL; ", TABLE_PREFIX);
+	$i_base->execsql($query);
 	
 	/***** Velden die niet meer nodig zijn *****/
 	
