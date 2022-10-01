@@ -261,13 +261,13 @@ class Mailing {
 		$sql = sprintf("SELECT L.Adres FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Adres", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT L.Postcode FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
+		$sql = sprintf("SELECT UPPER(L.Postcode) FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Postcode", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT L.Woonplaats FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
+		$sql = sprintf("SELECT UPPER(L.Woonplaats) FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Woonplaats_HL", 'SQL' => $sql);
 		
-		$sql = sprintf("SELECT UPPER(L.Woonplaats) FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
+		$sql = sprintf("SELECT L.Woonplaats FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Woonplaats", 'SQL' => $sql);
 							 
 		$sql = sprintf("SELECT %s AS Lidnaam FROM %sLid AS L WHERE L.RecordID=%%d;", (new cls_db_base())->selectnaam, TABLE_PREFIX);
@@ -276,7 +276,7 @@ class Mailing {
 		$sql = sprintf("SELECT Login FROM %sAdmin_login WHERE LidID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Login", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT LM.Lidnr FROM %sLidmaatschap AS LM WHERE IFNULL(LM.Opgezegd, '9999-12-31') >= CURDATE() AND LM.Lid=%%d;", TABLE_PREFIX);
+		$sql = sprintf("SELECT IFNULL(LM.Lidnr, 0) FROM %sLidmaatschap AS LM WHERE IFNULL(LM.Opgezegd, '9999-12-31') >= CURDATE() AND LM.Lid=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Lidnummer", 'SQL' => $sql);
 		
 		$sql = sprintf("SELECT FLOOR(SUM(TIMESTAMPDIFF(MONTH, LM.LIDDATUM, IF(ISNULL(LM.Opgezegd), CURDATE(), LM.Opgezegd)))/12)
@@ -1335,7 +1335,7 @@ class Mailing {
 						if (substr($fld['Naam'], -3) == "_UL") {
 							$nv .= "<li>";
 						} elseif (strlen($nv) > 0) {
-							$nv .= ", ";
+							$nv .= " en ";
 						}
 						$nv .= htmlentities($val[0]);
 						if (substr($fld['Naam'], -3) == "_UL") {
