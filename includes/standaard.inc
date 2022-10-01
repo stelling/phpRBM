@@ -162,7 +162,6 @@ if ($bestandsversie != $_SESSION['settings']['versie']) {
 	$i_p->vulsessie();
 }
 $i_p = null;
-(new cls_Eigen_lijst())->controle();
 
 if ($_SESSION['lidid'] > 0) {
 	(new cls_Login())->setlastactivity();
@@ -1429,6 +1428,7 @@ function fnControleTelefoon($tn, $srt="telefoon") {
 	}
 	
 	return $rv;
+	
 }  # fnControleTelefoon
 
 function fnControleEmail($p_email) {
@@ -1478,5 +1478,22 @@ function DisplayTabs($tabblad, $inittab=0) {
 	echo("</div> <!-- Einde tabs -->\n");
 	
 }  # DisplayTabs
+
+function fnOptionsFromArray($p_array, $p_cv=-1, $p_geenwaarde="") {
+	
+	if (strlen($p_geenwaarde) > 0) {
+		$rv = sprintf("<option value=0%s>%s</option>\n", checked($p_cv, "option", 0), $p_geenwaarde);
+	} else {
+		$rv = "";
+	}
+	
+	foreach ($p_array as $k => $v) {
+		$rv .= sprintf("<option value='%s'%s>%s</option>\n", $k, checked($p_cv, "option", $k), $v);
+	}
+	
+	return $rv;
+	
+	
+}  # fnOptionsFromArray
 
 ?>
