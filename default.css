@@ -365,10 +365,10 @@ header a + a:visited + a:hover {
 	float: left;
 	margin-left: 0;
 	margin-right: 4px;
-	margin-top: 3px;
+	margin-top: 5px;
 	margin-bottom: 5px;
 	height: 21px;
-	width: 125px;
+	width: 150px;
 	border-width: 1px;
 	border-style: solid;
 }
@@ -378,24 +378,28 @@ header a + a:visited + a:hover {
 	margin-top: 6px;
 }
 
-#filter input[type='text'] {
+#filter input[type='text'], #filter input[type='checkbox'] {
 	clear: none;
 	float: left;
-	width: 200px;
 	height: 26px;
 	margin-left: 3px;
 	margin-top: 3px;
 	margin-bottom: 4px;
 }
 
+#filter input[type='text'] {
+	width: 200px;
+}
+
 #filter select {
 	clear: none;
 	float: left;
-	height: 32px;
-	margin-top: 8px;
+	height: 30px;
+	margin-top: 4px;
 	margin-left: 3px;
 	margin-top: 3px;
 	margin-bottom: 4px;
+	padding-top: 1px;
 }
 
 #filter span {
@@ -812,7 +816,7 @@ td.print {
 
 #groepsindeling h2 {
 	margin-bottom: 6px;
-	font-size: 200%;
+	font-size: 150%;
 	text-align: center;
 	width: 100%;
 	border-top-style: solid;
@@ -821,12 +825,18 @@ td.print {
 
 #groepsindeling h3 {
 	width: 100%;
+	font-size: 120%;
 	background-color: gainsboro;
 }
 
 #groepsindeling h3, #groepsindeling h4 {
 	margin-top: 1px;
 	margin-bottom: 1px;
+}
+
+#groepsindeling h4 {
+	margin-left: 5px;
+	font-size: 100%;
 }
 
 #groepsindeling table {
@@ -862,15 +872,15 @@ td.print {
 
 .groepsindelingkolom {
 	float: left;
-	width: 290px;
+	width: 24.6%;
 	min-height: 220px;
 	border-right-style: solid;
 	border-width: 1px;
 	margin-left: 0;
-	margin-right: 6px;
+	margin-right: 0;
 	margin-bottom: 12px;
-	padding-left: 2px;
-	padding-right: 2px;
+	padding-left: 0;
+	padding-right: 0;
 	padding-bottom: 1px;
 }
 
@@ -950,6 +960,15 @@ td.print {
 	height: 18px;
 	padding-top: 3px;
 	padding-bottom: 3px;
+}
+
+#diplomamuteren p {
+	padding-top: 6px;
+	padding-left: 6px;
+}
+
+#diplomamuteren label {
+	min-width: 125px;
 }
 
 #versies {
@@ -2480,6 +2499,26 @@ li.presstat_v, td.presstat_v {
 	
 	#wijzigenlidgegevens input, #wijzigenlidgegevens select {
 		width: 200px;
+	}
+}
+
+@media print {
+	body {
+		font-size: 10pt;
+	}
+	
+	#welkom, nav, #filter, footer {
+		display: none;
+   }
+  
+	#container, #contrainerbreed {
+		width: auto;
+		margin-left: 0;
+		margin-right: 0;
+	}
+	
+	.groepsindelingkolom {
+		width: 170px;
 	}
 }
 
