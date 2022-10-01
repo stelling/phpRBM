@@ -10,6 +10,7 @@ $newvalue = $_POST['value'] ?? 0;
 $lidid = $_POST['lidid'] ?? 0;
 $ondtype = $_POST['ondtype'] ?? "C";
 $ondid = $_POST['ondid'] ?? 0;
+
 	
 if ($_SESSION['lidid'] > 0) {
 
@@ -20,10 +21,6 @@ if ($_SESSION['lidid'] > 0) {
 	} elseif ($ent == "naamlid") {
 		$i_lid = new cls_Lid($rid);
 		echo(json_encode($i_lid->Naam()));
-		
-	} elseif ($ent === "liddipl") {
-		$i_ld = new cls_Liddipl();
-		$i_ld->update($rid, $kolom, $newvalue);
 		
 	} elseif ($ent == "woonplaats") {
 		$postcode = $_POST['postcode'] ?? "";
@@ -60,6 +57,7 @@ if ($_SESSION['lidid'] > 0) {
 		$i_lo->zeteigenschap($lidid, $ondid, $value);
 				
 	} elseif ($ent === "liddipl") {
+//		debug(sprintf("%s: %d / %s / %s", $ent, $rid, $kolom, $newvalue), 0, 1);
 		if ($rid > 0) {
 			$i_ld = new cls_Liddipl();
 			$i_ld->update($rid, $kolom, $newvalue);
@@ -111,7 +109,7 @@ if ($_SESSION['lidid'] > 0) {
 	} elseif ($ent == "mailingprops") {
 		$rid = $_POST['mailingid'] ?? 0;
 		$groep = $_POST['selectie_groep'] ?? 0;
-		$vangebdatum = $_POST['selectie_vangebdatum'] ?? "1900-01-01";
+		$vangebdatum = $_POST['selectie_vangebdatum'] ?? "1920-01-01";
 		$temgebdatum = $_POST['selectie_temgebdatum'] ?? date("Y-m-d");
 		$i_m = new Mailing($rid);
 		$rv = $i_m->add_del_selectie('aantal', $groep, $vangebdatum, $temgebdatum);
@@ -137,7 +135,7 @@ if ($_SESSION['lidid'] > 0) {
 		
 	} elseif ($ent == "mailing_html_ontvangers") {
 //		$rid = $_GET['mailingid'] ?? 0;
-		$mid = $_POST['mailingid'] ?? 0;
+		$mid = $_POST['mailingid'] ?? 4;
 		$i_m = new Mailing($rid);
 		$rv = $i_m->html_ontvangers($mid, false);
 		$i_m = null;
@@ -155,7 +153,7 @@ if ($_SESSION['lidid'] > 0) {
 		echo(true);
 		
 	} elseif ($ent == "mailing_add_selectie_ontvangers" and toegang("Mailing/Muteren")) {
-		$mid = $_POST['mid'] ?? 4778;
+		$mid = $_POST['mid'] ?? 4;
 		$selgroep = $_POST['selgroep'] ?? 0;
 		$vangebdatum = $_POST['vangebdatum'] ?? "1900-01-01";
 		$temgebdatum = $_POST['temgebdatum'] ?? "9999-12-31";
@@ -196,7 +194,7 @@ if ($_SESSION['lidid'] > 0) {
 		echo(json_encode($rv));
 		
 	} elseif ($ent == "options_mogelijke_ontvangers") {
-		$mid = $_POST['mailingid'] ?? 0;
+		$mid = $_POST['mailingid'] ?? 4;
 		$a = $_POST['alle'] ?? 0;
 		$i_m = new Mailing();
 		$rv = $i_m->options_mogelijke_ontvangers($mid, $a);
@@ -229,7 +227,7 @@ if ($_SESSION['lidid'] > 0) {
 		$i_aa->update($rid, $kolom, $newvalue);
 		
 	} else {
-		$mess = sprintf("%s: je roept deze procedure op een niet correcte manier aan.", $ent);
+		$mess = sprintf("Entiteit '%s' bestaat niet in ajax_update.php.", $ent);
 		(new cls_Logboek())->add($mess, 15, $_SESSION['lidid'], 1, 0, 9);
 	}
 	
