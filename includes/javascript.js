@@ -169,6 +169,18 @@ function savecb(entity, rid, control) {
 	});
 }
 
+function deleterecord(entity, rid) {
+	
+	$.ajax({
+		url: 'ajax_update.php?entiteit=' + entity,
+		type: 'post',
+		dataType: 'json',
+		data: { id:rid },
+		success:function(response){}
+	});
+	
+}
+
 /* Ledenadministratie specifiek */
 
 function lidalgwijzprops() {
@@ -265,6 +277,7 @@ function addlidond() {
 }
 
 /* Mailing specifiek */
+
 function mailingprops() {
 	var mid = $('#recordid').text();
 	

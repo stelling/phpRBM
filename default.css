@@ -181,7 +181,7 @@ input, button, textarea {
 }
 
 header {
-	overflow: auto;
+	overflow: visible;
 	margin-bottom: 0;
 	padding-top: 6px;
 	padding-left: 0;
@@ -967,7 +967,7 @@ td.print {
 	padding-left: 6px;
 }
 
-#diplomamuteren label {
+#diplomamuteren label, #examenresultaten label {
 	min-width: 125px;
 }
 
@@ -1878,6 +1878,10 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	color: red;
 }
 
+.deleted {
+	text-decoration: line-through;
+}
+
 .mededeling, .mededeling a {
 	margin-left: auto;
 	margin-right: auto;
@@ -1974,7 +1978,8 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 .kaartje, .bewaker {
 	float: left;
 	height: 82px;
-	width: 310px;
+	width: 32%;
+	max-width: 350px;
 	border-style: solid;
 	border-width: 1px;
 	margin-top: 2px;

@@ -119,6 +119,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if ($currenttab2 == "Basisgegevens") {
 			addtp($b . "/Onderdelen");
 			addtp($b . "/Functies");
+			addtp($b . "/Activiteiten");
 			addtp($b . "/Diploma's");
 			addtp($b . "/Seizoenen");
 			addtp($b . "/Organisaties");
@@ -190,6 +191,12 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 					
 					if (toegang("Mailing/Muteren", 0, 0)) {
 						$tp = trim($row->Naam) . "/Afdelingsmailing";
+						addtp($tp);
+					}
+					
+					$f = sprintf("DP.Afdelingsspecifiek=%d", $row->RecordID);
+					if ((new cls_Diploma())->aantal($f) > 0) {
+						$tp = trim($row->Naam) . "/Examenresultaten";
 						addtp($tp);
 					}
 				}
@@ -308,14 +315,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 //		addtp("DMS");   Voorlopig geen tijd voor, dus uitgezet.
 	}
 	
-	foreach((new cls_Eigen_lijst())->lijst("EL.AantalRecords > 0") as $row) {
-		if (($row->AantalKolommen > 1 or strlen($row->Tabpage) > 0)) {
-			if (strlen($row->Tabpage) > 0) {
-				addtp($row->Tabpage . "/" . $row->Naam);
-			} else {
-				addtp("Ledenlijst/Eigen lijsten/" . $row->Naam);
-			}
-		}
+	$f = "(EL.AantalKolommen > 0 OR LENGTH(EigenScript) > 4) AND LENGTH(EL.Tabpage) > 0";
+	foreach((new cls_Eigen_lijst())->basislijst($f) as $row) {
+		addtp($row->Tabpage . "/" . $row->Naam);
 	}
 
 }
