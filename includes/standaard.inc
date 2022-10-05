@@ -122,8 +122,12 @@ if (isset($_GET['tp']) and mb_substr_count($_GET['tp'], "/") == 2) {
 }
 
 /* Include maatwerk */
-$incl = BASEDIR . "/maatwerk/maatwerk.inc";
-require_once($incl);
+$incl = BASEDIR . "/maatwerk/maatwerk";
+if (file_exists($incl . ".inc")) {
+	require_once($incl . ".inc");
+} elseif (file_exists($incl . ".php")) {
+	require_once($incl . ".php");
+}
 /* Einde includen maatwerk*/
 
 /* Include Open source libaries */
@@ -134,12 +138,20 @@ require_once("simpleimage.php");
 /* Einde includen open source libs*/
 
 foreach (array("database", "authentication", "afdelingen", "leden", "bewaking", "evenement", "financieel", "mailing", "standaard", "webshop", "taken") as $incl) {
-	$incl .= ".inc";
-	if (file_exists(__DIR__ . "/" . $incl)) {
-		if ($bestandsversie < filectime(__DIR__ . "/" . $incl)) {
-			$bestandsversie = filectime(__DIR__ . "/" . $incl);
+	$inclpath = __DIR__ . "/" . $incl . ".inc";
+	if (file_exists($inclpath)) {
+		if ($bestandsversie < filectime($inclpath)) {
+			$bestandsversie = filectime($inclpath);
 		}
-		require_once($incl);
+		require_once($inclpath);
+	} else {
+		$inclpath = __DIR__ . "/" . $incl . ".php";
+		if (file_exists($inclpath)) {
+			if ($bestandsversie < filectime($inclpath)) {
+				$bestandsversie = filectime($inclpath);
+			}
+			require_once($inclpath);
+		}
 	}
 }
 
@@ -227,7 +239,6 @@ function HTMLheader($breed=0) {
 			echo("<div id='containerbreed'>\n");
 		}
 		echo("<header>\n");
-		printf("<h1>%s</h1>\n", $_SESSION['settings']['naamwebsite']);
 		
 		if (strlen($_SESSION['settings']['url_eigen_help']) < 10) {
 			$htmlhelp = "<a href='https://software.telling.nl/phpRBM/uitleg.php'><img src='images/question.png' title='Uitleg gebruik en installatie' alt='Question mark'></a>\n";
@@ -254,6 +265,8 @@ function HTMLheader($breed=0) {
 		}
 
 		echo("</div>  <!-- Einde welkom -->\n");
+		
+		printf("<h1>%s</h1>\n", $_SESSION['settings']['naamwebsite']);
 		echo("<div class='clear'></div>\n");
 		
 		$xtra = "";
@@ -1146,11 +1159,11 @@ function fnEditTable($res, $kols, $id, $th) {
 	
 	$ret .= sprintf("<script>
 	
-	$('select').change(function(){
+	$('select').change(function() {
 		savedata('%1\$s', 0, this);
 	});
 	
-	$('input').focusout(function(){
+	$('input').blur(function() {
 		savedata('%1\$s', 0, this);
 	});
 
