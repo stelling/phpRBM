@@ -10,7 +10,6 @@ $newvalue = $_POST['value'] ?? 0;
 $lidid = $_POST['lidid'] ?? 0;
 $ondtype = $_POST['ondtype'] ?? "C";
 $ondid = $_POST['ondid'] ?? 0;
-
 	
 if ($_SESSION['lidid'] > 0) {
 
@@ -21,6 +20,14 @@ if ($_SESSION['lidid'] > 0) {
 	} elseif ($ent == "naamlid") {
 		$i_lid = new cls_Lid($rid);
 		echo(json_encode($i_lid->Naam()));
+		
+	} elseif ($ent == "telefoonlid") {
+		$i_lid = new cls_Lid($rid);
+		echo(json_encode($i_lid->telefoon()));
+		
+	} elseif ($ent == "emaillid") {
+		$i_lid = new cls_Lid($rid);
+		echo(json_encode($i_lid->email()));
 		
 	} elseif ($ent == "woonplaats") {
 		$postcode = $_POST['postcode'] ?? "";
@@ -63,6 +70,13 @@ if ($_SESSION['lidid'] > 0) {
 			$i_ld->update($rid, $kolom, $newvalue);
 		}
 		
+	} elseif ($ent === "verw_liddipl") {
+//		debug(sprintf("%s: %d / %s / %s", $ent, $rid, $kolom, $newvalue), 0, 1);
+		if ($rid > 0) {
+			$i_ld = new cls_Liddipl();
+			$i_ld->delete($rid, $kolom, $newvalue);
+		}
+		
 	} elseif ($ent == "onderdeeledit" and toegang("Ledenlijst/Basisgegevens/Onderdelen")) {
 		
 		$i_ond = new cls_Onderdeel();
@@ -74,11 +88,11 @@ if ($_SESSION['lidid'] > 0) {
 			
 	} elseif ($ent == "functieedit" and toegang("Ledenlijst/Basisgegevens/Functies")) {
 		$i_fnk = new cls_Functie();
-		$i_fnk->update($rid, $kolom, $_POST['value']);
+		$i_fnk->update($rid, $kolom, $newvalue);
 		
 	} elseif ($ent == "activiteitedit" and toegang("Ledenlijst/Basisgegevens/Activiteiten")) {
 		$i_act = new cls_Activiteit();
-		$i_act->update($rid, $kolom, $_POST['value']);
+		$i_act->update($rid, $kolom, $newvalue);
 	
 	} elseif ($ent == "diplomaedit" and toegang("Ledenlijst/Basisgegevens/Diplomas")) {
 		$i_dp = new cls_Diploma();
@@ -218,16 +232,24 @@ if ($_SESSION['lidid'] > 0) {
 		$i_rr = new cls_Rekeningregel();
 		$i_rr->update($rid, $kolom, $newvalue);
 		
+	} elseif ($ent == "verw_rekregel" and toegang("Rekeningen/Muteren")) {
+		$i_rr = new cls_Rekeningregel();
+		$i_rr->delete($rid);	
+		
 	} elseif ($ent == "evenement" and toegang("Evenementen/Beheer")) {
 		$i_ev = new cls_Evenement();
 		$i_ev->update($rid, $kolom, $newvalue);
 		
-	} elseif ($ent == "autorisatieedit" and $_SESSION['webmaster'] == 1) {
+	} elseif ($ent == "update_autorisatie" and $_SESSION['webmaster'] == 1) {
 		$i_aa = new cls_Authorisation();
 		$i_aa->update($rid, $kolom, $newvalue);
 		
+	} elseif ($ent === "delete_autorisatie" and $_SESSION['webmaster'] == 1) {
+		$i_aa = new cls_Authorisation();
+		$i_aa->delete($rid);
+		
 	} else {
-		$mess = sprintf("Entiteit '%s' bestaat niet in ajax_update.php.", $ent);
+		$mess = sprintf("Entiteit '%s' bestaat niet in ajax_update.php of je hebt geen toegang.", $ent);
 		(new cls_Logboek())->add($mess, 15, $_SESSION['lidid'], 1, 0, 9);
 	}
 	
