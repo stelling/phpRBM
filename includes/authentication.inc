@@ -1,5 +1,5 @@
 <?php
-
+		
 $_SESSION['webmaster'] = 0;
 if ($_SESSION['lidid'] == 0 or strlen($_SESSION['username']) == 0) {
 	$_SESSION['lidid'] = 0;
@@ -16,6 +16,7 @@ $tabpages = null;
 if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	addtp("Beheer logins");
 	addtp("Autorisatie");
+	addtp("Eigen lijsten");
 	addtp("Instellingen");
 	addtp("Stamgegevens");
 	addtp("Uploaden data");
@@ -56,6 +57,10 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		$gs = (new cls_Lid())->Geslacht($_SESSION['lidid']);
 		addtp("Zelfservice/Algemene gegevens");
 		$f = "Zelfservice=1";
+		$_SESSION['aantaltoestemmingen'] = $_SESSION['aantaltoestemmingen'] ?? (new cls_Onderdeel())->aantal("`Type`='T' AND IFNULL(VervallenPer, '9999-12-31') >= CURDATE()");
+		if ($_SESSION['aantaltoestemmingen'] > 0 and $gs != "B") {
+			addtp("Zelfservice/Toestemmingen");
+		}
 		if ($gs != "B" and (new cls_diploma())->aantal($f) > 0) {
 			addtp("Zelfservice/Diploma's");
 		}
@@ -72,10 +77,6 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			addtp("Zelfservice/Evenementen");
 		}
 		
-		$_SESSION['aantaltoestemmingen'] = $_SESSION['aantaltoestemmingen'] ?? (new cls_Onderdeel())->aantal("`Type`='T' AND IFNULL(VervallenPer, '9999-12-31') >= CURDATE()");
-		if ($_SESSION['aantaltoestemmingen'] > 0 and $gs != "B") {
-			addtp("Zelfservice/Toestemmingen");
-		}
 		if (count((new cls_Artikel())->lijst("bestellijst")) > 0) {
 			addtp("Zelfservice/Bestellingen");
 		}
@@ -109,9 +110,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			addtp("Ledenlijst/Rollen");
 		}
 
-		addtp("Ledenlijst/Eigen lijsten");
-		if ($currenttab2 == "Eigen lijsten") {
-			addtp("Ledenlijst/Eigen lijsten/Muteren");
+		addtp("Ledenlijst/Rapporten");
+		if ($currenttab2 == "Rapporten") {
+			addtp("Ledenlijst/Rapporten/Presentielijst");
 		}
 		
 		$b = "Ledenlijst/Basisgegevens";
@@ -216,6 +217,10 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		addtp($b . "Algemene gegevens");
 		if ((new cls_Onderdeel())->aantal("Type='A'") > 0 and (new cls_Lidmaatschap())->soortlid($_GET['lidid']) != "Kloslid") {
 			addtp($b . "Afdelingen");
+		}		
+		$_SESSION['aantaltoestemmingen'] = $_SESSION['aantaltoestemmingen'] ?? (new cls_Onderdeel())->aantal("`Type`='T' AND IFNULL(VervallenPer, '9999-12-31') >= CURDATE()");
+		if ($gs != "B" and $_SESSION['aantaltoestemmingen'] > 0) {
+			addtp($b . "Toestemmingen");
 		}
 		if ($gs != "B") {
 			addtp($b . "B, C en F");
@@ -229,11 +234,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if ($gs != "B" and (new cls_Diploma())->aantal() > 0) {
 			addtp($b . "Diploma's");
 		}
-		
-		$_SESSION['aantaltoestemmingen'] = $_SESSION['aantaltoestemmingen'] ?? (new cls_Onderdeel())->aantal("`Type`='T' AND IFNULL(VervallenPer, '9999-12-31') >= CURDATE()");
-		if ($gs != "B" and $_SESSION['aantaltoestemmingen'] > 0) {
-			addtp($b . "Toestemmingen");
-		}
+
 		if (strlen($_SESSION['settings']['muteerbarememos']) > 0) {
 			addtp($b . "Bijzonderheden");
 		}
@@ -300,7 +301,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	addtp("Bestellingen");
 	if ($currenttab == "Bestellingen") {
 		if ((new cls_Artikel())->aantal() > 0) {
-			addtp("Bestellingen/Bestellingen muteren");
+			addtp("Bestellingen/Beheer");
 		}
 		addtp("Bestellingen/Artikelbeheer");
 		if ((new cls_Artikel())->aantal() > 0) {
@@ -316,10 +317,12 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	}
 	
 	$f = "(EL.AantalKolommen > 0 OR LENGTH(EigenScript) > 4) AND LENGTH(EL.Tabpage) > 0";
-	foreach((new cls_Eigen_lijst())->basislijst($f) as $row) {
-		addtp($row->Tabpage . "/" . $row->Naam);
+	foreach((new cls_Eigen_lijst())->basislijst($f, "EL.Naam") as $row) {
+		$s = BASEDIR . "/maatwerk/" . $row->EigenScript;
+		if ($row->AantalKolommen > 0 or file_exists($s)) {
+			addtp($row->Tabpage . "/" . $row->Naam);
+		}
 	}
-
 }
 
 function fnAuthenticatie($melding=1, $password="", $p_napost=0) {
@@ -411,7 +414,7 @@ function fnAuthenticatie($melding=1, $password="", $p_napost=0) {
 	
 } # fnAuthenticatie
 	
-function toegang($soort, $melding=1, $p_log=1) {
+function toegang($soort, $melding=1, $p_log=1, $p_alleenmenu=0) {
 	global $lididwebmasters, $tabpages, $currenttab, $currenttab2, $currenttab3;
 	
 	$i_aut = new cls_Authorisation();
@@ -446,7 +449,7 @@ function toegang($soort, $melding=1, $p_log=1) {
 		$rv = true;
 		
 	} else {
-		if ($i_aut->toegang($soort) == true) {
+		if ($i_aut->toegang($soort, -1, $p_alleenmenu) == true) {
 			$rv = true;
 		} else {
 			$mess = sprintf("Je hebt geen toegang tot '%s'.", $soort);
@@ -912,7 +915,7 @@ function addtp($tp, $afdnr=0) {
 	$i_acc = new cls_Authorisation();
 //	debug($tp . " in addtp");
 	
-	if ((strstr($tp, "/") === false or startwith($tp, $currenttab . "/")) and toegang($tp, 0, 0)) {
+	if ((strstr($tp, "/") === false or startwith($tp, $currenttab . "/")) and toegang($tp, 0, 0, 1)) {
 //	if (toegang($tp, 0, 0)) {
 //		debug($tp . " toegevoegd");
 		$tabpages[] = $tp;
