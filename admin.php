@@ -39,6 +39,7 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 	}
 } elseif ($_GET['op'] == "uploaddata") {
 	$i_lb = new cls_Logboek();
+	$i_base = new cls_db_base();
 	if (isset($_FILES['SQLupload']['tmp_name']) and strlen($_FILES['SQLupload']['tmp_name']) > 3) {
 		(new cls_db_base())->setcharset();
 		$queries = file_get_contents($_FILES['SQLupload']["tmp_name"]);
@@ -55,9 +56,7 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 			$mess = "Bestand is succesvol ge-upload.";
 			$i_lb->add($mess, 9, 0, 1);
 			$mess = "";
-			if (strpos($queries, TABLE_PREFIX) === false) {
-				$mess = sprintf("In het upload bestand komt de juiste table name prefix (%s) niet voor. Dit bestand wordt niet verwerkt.", TABLE_PREFIX);
-			} elseif (strpos($queries, TABLE_PREFIX . "Lid") === FALSE and (new cls_Lid())->aantal() < 5) {
+			if (strpos($queries, TABLE_PREFIX . "Lid") === FALSE and (new cls_Lid())->aantal() < 5) {
 				$mess = sprintf("De verplichte tabel '%sLid' zit niet in deze upload. Dit bestand wordt niet verwerkt.", TABLE_PREFIX);
 			} elseif (strpos($queries, TABLE_PREFIX . "Lidond") === FALSE and (new cls_Lidond())->aantal() < 5) {
 				$mess = sprintf("De verplichte tabel '%sLidond' zit niet in deze upload. Dit bestand wordt niet verwerkt.", TABLE_PREFIX);
@@ -73,7 +72,9 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 						$queries = substr($queries, $sp);
 					}
 //					debug($query . "<br><br>\n");
-					(new cls_db_base())->execsql($query);				
+					$i_base->execsql("SET GLOBAL MAX_ALLOWED_PACKET=1000000000;");
+					$i_base->execsql("SET SESSION WAIT_TIMEOUT=28800;");
+					$i_base->execsql($query);				
 				}
 				
 				$mess = "Bestand is in de database verwerkt.";
@@ -99,17 +100,23 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 	db_backup($_SESSION['settings']['db_backup_type']);
 } elseif ($_GET['op'] == "FreeBackupFiles") {
 	fnFreeBackupFiles();
-} elseif ($_GET['op'] == "automatischegroepenbijwerken") {
-	(new cls_Lidond())->autogroepenbijwerken(1, 1);
+} elseif ($_GET['op'] == "ledenonderdelenbijwerken") {
+	$i_lo = new cls_Lidond();
+	$i_lo->autogroepenbijwerken(1, 1);
+	$i_lo->auto_einde();
+	$i_lo->controle();
+	$i_lo->opschonen();
 } elseif ($_GET['op'] == "logboekopschonen") {
 	(new cls_Logboek())->opschonen();
 } elseif ($_GET['op'] == "loggingdebugopschonen") {
 	(new cls_logboek())->debugopschonen();
 } elseif ($_GET['op'] == "beheeronderdelen") {
 	(new cls_Onderdeel())->opschonen();
-	(new cls_Onderdeel())->datacontrole();
+	(new cls_Onderdeel())->controle();
 	(new cls_Groep())->opschonen();
-	(new cls_Groep())->datacontrole();
+	(new cls_Groep())->controle();
+	(new cls_Functie())->opschonen();
+	(new cls_Functie())->controle();
 	(new cls_Organisatie())->opschonen();
 } elseif ($_GET['op'] == "lidondopschonen") {
 	(new cls_Lidond())->opschonen();
@@ -138,22 +145,29 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	
 } elseif ($currenttab == "Autorisatie" and toegang($currenttab, 1, 1)) {
 	$i_auth = new cls_Authorisation();
+	$authrows = $i_auth->lijst();
+	
 	echo("<div id='filter'>\n");
-	echo("<label>Onderdeel bevat</label><input OnKeyUp=\"fnFilter('beheerautorisatie', this, 1);\">\n");
+	echo("<input type='text' title='filter tabel' placeholder='Tekstfilter' OnKeyUp=\"fnFilter('beheerautorisatie', this, 2);\">\n");
+	printf("<p class='aantrecords'>%d rijen</p>\n", count($authrows));
 	echo("</div> <!-- Einde filter -->\n\n");
 	
 	echo("<div id='beheerautorisatie'>\n");
 	printf("<form method='post' action='%s?tp=%s&op=changeaccess'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	echo("<table id='beheerautorisatie'>\n");
 	echo("<thead>\n");
-	echo("<tr><th>Onderdeel</th><th>Toegankelijk voor</th><th>Ingevoerd</th><th>Laatst gebruikt</th><th></th></tr>\n");
+	echo("<tr><th></th><th>Onderdeel</th><th>Toegankelijk voor</th><th>Ingevoerd</th><th>Laatst gebruikt</th><th></th></tr>\n");
 	echo("</thead>\n");
 	echo("<tbody>\n");
 	$ondrows = (new cls_Onderdeel())->lijst(0, "O.`Type`<>'T'");
-	$authrows = $i_auth->lijst();
 	$dtfmt->setPattern(DTTEXT);
 	foreach($authrows as $row) {
-		$del = sprintf("<a href='%s?tp=%s&op=deleteautorisatie&recid=%d'>&nbsp;&nbsp;&nbsp;</a>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
+		if ($row->Toegang > 0) {
+			$add = sprintf("<img src='%s' onClick=\"add_auth('%s');window.location.reload(true);\">", BASE64_TOEVOEGEN, $row->Tabpage);
+		} else {
+			$add = "";
+		}
+		$del = sprintf("<img src='%s' onClick='verw_auth(%d);'>", BASE64_VERWIJDER, $row->RecordID);
 		$selectopt = sprintf("<option value=-1%s>Alleen webmasters</option>\n", checked($row->Toegang, "option", -1));
 		$selectopt .= sprintf("<option value=0%s>Iedereen</option>\n", checked($row->Toegang, "option", 0));
 		foreach($ondrows as $ond) {
@@ -163,7 +177,8 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 		if ($row->LaatstGebruikt <= date("Y-m-d", mktime(0, 0, 0, date("m")-6, date("d"), date("Y")))) {
 			$cllg = "class='attentie'";
 		}
-		printf("<tr>\n<td>%s</td>\n<td><select id='Toegang_%d'>\n%s</select></td>\n<td>%s</td><td %s>%s</td><td>%s</td>\n</tr>\n", $row->Tabpage, $row->RecordID, $selectopt, $dtfmt->format(strtotime($row->Ingevoerd)), $cllg, $dtfmt->format(strtotime($row->LaatstGebruikt)), $del);
+		printf("<tr>\n<td>%s</td><td id='name_%d'>%s</td>", $add, $row->RecordID, $row->Tabpage);
+		printf("<td><select id='Toegang_%d'>\n%s</select></td>\n<td>%s</td><td %s>%s</td><td>%s</td>\n</tr>\n", $row->RecordID, $selectopt, $dtfmt->format(strtotime($row->Ingevoerd)), $cllg, $dtfmt->format(strtotime($row->LaatstGebruikt)), $del);
 	}
 	$optionstab = "<option value=''>Selecteer ...</option>\n";
 	foreach ($i_auth->lijst("DISTINCT") as $row) {
@@ -171,20 +186,42 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	}
 	echo("</tbody>\n");
 	echo("</table>\n");
-	printf("<label>Nieuw</label><select name='tabpage_nw' onBlur='this.form.submit();'>%s</select>\n", $optionstab);
+//	printf("<label>Nieuw</label><select name='tabpage_nw' onBlur='this.form.submit();'>%s</select>\n", $optionstab);
 	echo("</form>\n");
 	echo("</div> <!-- Einde beheerautorisatie -->\n\n");	
 	
 	echo("<div id='autorisatiesperonderdeel'>\n");
 	echo(fnDisplayTable($i_auth->autorisatiesperonderdeel(), null, "Autorisaties per onderdeel"));
 	echo("</div> <!-- Einde autorisatiesperonderdeel -->\n");
+?>
+<script>
+	$('select').change(function() {
+		savedata('update_autorisatie', 0, this);
+	});
 	
-	echo("<script>
-			$('select').change(function() {
-				savedata('autorisatieedit', 0, this);
-			});
-			</script>\n");
+	function verw_auth(rid) {
+		deleterecord('delete_autorisatie', rid);
+		$('#name_' + rid).addClass('deleted');
+	}
+	
+	function add_auth(tabpage) {
+		$.ajax({
+			url: 'ajax_update.php?entiteit=add_autorisatie',
+			type: 'post',
+			async: false,
+			dataType: 'json',
+			data: { tabpage:tabpage },
+			success:function(response) {
+				window.location.reload();
+			}
+		});
+	}
+</script>
+<?php
 	$i_auth = null;
+		
+} elseif ($currenttab == "Eigen lijsten" and toegang($currenttab, 1, 1)) {
+	fnEigenlijstenmuteren();
 	
 } elseif ($currenttab == "Instellingen" and toegang($currenttab, 1, 1)) {
 	fnInstellingen();
@@ -213,6 +250,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		if (isset($_POST['afmelden'])) {
 			(new cls_interface())->afmelden();
+			(new cls_interface())->opschonen();
 		}
 	}
 	
@@ -220,7 +258,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	$kols[0]['columnname'] = "betreftLid";
 	$kols[1]['headertext'] = "ingevoerd";
 	$kols[2]['headertext'] = "SQL-statement";
-	$kols[3]['link'] = sprintf("<a href='/admin.php?op=deleteint&amp;recid=%%d&amp;tp=%s'>&nbsp;&nbsp;&nbsp;</a>", urlencode($_GET['tp']));
+	$kols[3]['link'] = sprintf("<a href='/admin.php?op=deleteint&amp;recid=%%d&tp=%s'>&nbsp;&nbsp;&nbsp;</a>", urlencode($_GET['tp']));
 	$kols[3]['columnname'] = "RecordID";
 	$kols[3]['class'] = "delete";
 
@@ -255,6 +293,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	db_createtables();
 	db_onderhoud();
 	(new cls_Eigen_lijst())->controle();
+	(new cls_Lid())->controle();
 
 	echo("<div id='dbonderhoud'>\n");
 	
@@ -263,26 +302,26 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	
 	printf("<form method='post' name='frmOnderhoud' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 	
-	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=backup\"' value='Backup'><p>Maak een backup van de database. Laatste backup is op %s gemaakt.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $laatstebackup);
-	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=FreeBackupFiles\"' value='Vrijgeven backup-bestanden'><p>Geef de backup-bestanden vrij door middel van een chmod 0755.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=automatischegroepenbijwerken\"' value='Automatische groepen bijwerken'><p>Bijwerken van alle onderdelen die een MySQL code hebben.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=logboekopschonen\"' value='Logboek opschonen'><p>Verwijder alle records uit het logboek, die ouder dan <input type='number' name='logboek_bewaartijd' onChange='this.form.submit();' value=%d> maanden zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['logboek_bewaartijd']);
-	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=loggingdebugopschonen\"' value='Eigen logging voor debugging opschonen'><p>Verwijder alle records uit het logboek, die onder jouw account voor debugging zijn toegevoegd.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=backup\"' value='Backup'><p>Maak een backup van de database. Laatste backup is op %s gemaakt.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $laatstebackup);
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=FreeBackupFiles\"' value='Vrijgeven backup-bestanden'><p>Geef de backup-bestanden vrij door middel van een chmod 0755.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=ledenonderdelenbijwerken\"' value='Leden van onderdelen bijwerken'><p>Bijwerken van leden van onderdelen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=logboekopschonen\"' value='Logboek opschonen'><p>Verwijder alle records uit het logboek, die ouder dan <input type='number' name='logboek_bewaartijd' onChange='this.form.submit();' value=%d> maanden zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['logboek_bewaartijd']);
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=loggingdebugopschonen\"' value='Eigen logging voor debugging opschonen'><p>Verwijder alle records uit het logboek, die onder jouw account voor debugging zijn toegevoegd.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	
-	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=beheeronderdelen\"' value='Beheer onderdelen'><p>Opschonen en controle op data-integriteit van onderdelen, afdelingsgroepen en organisaties.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=lidondopschonen\"' value='Leden bij onderdelen opschonen'><p>Opschonen op basis van historie en 'Alleen leden'.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=beheeronderdelen\"' value='Beheer onderdelen'><p>Opschonen en controle op data-integriteit van onderdelen, afdelingsgroepen, functies en organisaties.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=lidondopschonen\"' value='Leden bij onderdelen opschonen'><p>Opschonen op basis van historie en 'Alleen leden'.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 
-	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=mailingsopschonen\"' value='Mailings opschonen'><p>Mailings, die langer dan %d maanden in de prullenbak zitten, verwijderen. En verzonden mails aan voormalig leden verwijderen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['mailing_bewaartijd']);
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=mailingsopschonen\"' value='Mailings opschonen'><p>Mailings, die langer dan %d maanden in de prullenbak zitten, verwijderen. En verzonden e-mails verwijderen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['mailing_bewaartijd']);
 	
-	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=evenementenopschonen\"' value='Evenementen opschonen'><p>Opschonen verwijderde evenementen, die geen deelnemers meer hebben.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=evenementenopschonen\"' value='Evenementen opschonen'><p>Opschonen verwijderde evenementen, die geen deelnemers meer hebben.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 
-	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=loginsopschonen\"' value='Logins opschonen'><p>Opschonen van logins die om diverse redenen niet meer nodig zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=autorisatieopschonen\"' value='Autorisatie opschonen'><p>Verwijderen toegang waar alleen de webmaster toegang toe heeft en die ouder dan 3 maanden zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=loginsopschonen\"' value='Logins opschonen'><p>Opschonen van logins die om diverse redenen niet meer nodig zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=autorisatieopschonen\"' value='Autorisatie opschonen'><p>Verwijderen toegang waar alleen de webmaster toegang toe heeft en die ouder dan 3 maanden zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	if ((new cls_Orderregel())->aantal() > 0) {
-		printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=orderregelsopschonen\"' value='Orderregels opschonen'><p>Opschonen van de orderregels van de bestellingen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+		printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=orderregelsopschonen\"' value='Orderregels opschonen'><p>Opschonen van de orderregels van de bestellingen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	}
 	if ((new cls_Artikel())->aantal() > 0) {
-		printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&amp;op=artikelenopschonen\"' value='Artikelen opschonen'><p>Opschonen van artikelen zonder bestellingen en zonder voorraadboekingen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+		printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=artikelenopschonen\"' value='Artikelen opschonen'><p>Opschonen van artikelen zonder bestellingen en zonder voorraadboekingen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	}
 	echo("</form>\n");
 	echo("</div>  <!-- Einde dbonderhoud -->\n");
@@ -310,7 +349,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	echo("<div id='filter'>\n");
 	printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 	
-	echo("<input type='text' id='tbTekstFilter' placeholder='Tekst filter' OnKeyUp=\"fnFilter('logboek', this);\">");
+	echo("<input type='text' id='tbTekstFilter' title='Filter tabel' placeholder='Tekst filter' OnKeyUp=\"fnFilter('logboek', this);\">");
 	
 	echo("<select name='typefilter' onchange='this.form.submit();'>\n");
 	echo("<option value=-1>Selecteer op type ....</option>\n");
@@ -397,9 +436,9 @@ function fnBeheerLogins() {
 	$ord = fnOrderBy($kols);
 	$rows = $i_login->lijst("", $ord);
 	echo("<div id='filter'>\n");
-	echo("<label>Naam/login bevat</label><input type='text' name='tbNaamFilter' id='tbNaamFilter' OnKeyUp=\"fnFilter('beheerlogins', this);\">\n");
+	echo("<input type='text' title='Filter tabel' placeholder='Filter op naam/login' OnKeyUp=\"fnFilter('beheerlogins', this);\">\n");
 	if (count($rows) > 2) {
-		printf("<p class='aantrecords'>%d logins</p>", count($rows));
+		printf("<p class='aantrecords'>%d logins</p>\n", count($rows));
 	}
 	echo("</div> <!-- Einde filter -->\n");
 	echo("<div class='clear'></div>\n");
@@ -572,6 +611,7 @@ function fnInstellingen() {
 	
 	echo("</form>\n");
 	echo("</div>  <!-- Einde instellingenmuteren -->\n");
+	
 } # fnInstellingen
 
 function fnStamgegevens() {
@@ -593,6 +633,136 @@ function fnStamgegevens() {
 	
 	
 } # fnStamgegevens
+
+function fnEigenlijstenmuteren() {
+	global $dtfmt;
+	
+	if (isset($_GET['tp'])) {
+		$tp = $_GET['tp'];
+	}
+	
+	if (isset($_GET['paramID']) and $_GET['paramID'] > 0) {
+		$elid = intval($_GET['paramID']);
+	} else {
+		$elid = 0;
+	}
+	$i_el = new cls_Eigen_lijst("", $elid);
+	$i_el->controle($elid, 1);
+	
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		
+		if (isset($_POST['Toevoegen']) and $_POST['Toevoegen'] == "lijst_toevoegen") {
+			$i_el->add();
+		}
+		
+		if (isset($_POST['naam'])) {
+			$i_el->update($elid, "Naam", $_POST['naam']);
+		}
+		
+		if (isset($_POST['tabpage'])) {
+			$_POST['tabpage'] = trim($_POST['tabpage']);
+			if (substr($_POST['tabpage'], -1) == "\\") {
+				$_POST['tabpage'] = substr($_POST['tabpage'], 0, -1);
+			}
+			$_POST['tabpage'] = str_replace("\\" . $_POST['naam'], "", $_POST['tabpage']);
+			$i_el->update($elid, "Tabpage", $_POST['tabpage']);
+		}
+		
+		if (isset($_POST['mysql'])) {
+			$i_el->update($elid, "MySQL", $_POST['mysql']);
+		}
+		
+		if (isset($_POST['EigenScript'])) {
+			$i_el->update($elid, "EigenScript", $_POST['EigenScript']);
+		}
+		
+		if (isset($_POST['default_waarde_params'])) {
+			$i_el->update($elid, "Default_value_params", $_POST['default_waarde_params']);
+		}
+
+		$i_el->controle($elid);
+		
+		if (isset($_POST['BewarenSluiten'])) {
+			printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $tp);
+		} else {
+			printf("<script>location.href='%s?tp=%s&paramActie=2&paramID=%d';</script>\n", $_SERVER['PHP_SELF'], $tp, $elid);
+		}
+		
+	} elseif (isset($_GET['paramActie']) and $_GET['paramActie'] == 3 and $elid > 0) {
+		
+		$i_el->delete($elid);
+		printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $tp);
+		
+	} elseif (isset($_GET['paramActie']) and $_GET['paramActie'] == 2 and $elid > 0) {
+		
+		$row = $i_el->record();
+		
+		echo("<div id='eigenlijstmuteren'>\n");
+		printf("<form method='post' action='%s?tp=%s&paramID=%d'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $elid);
+		
+		printf("<label>Naam eigen lijst</label><input type='text' name='naam' class='w40' value='%s' maxlength=40>\n", $row->Naam);
+		printf("<label>MySQL-code</label><textarea id='mysql' name='mysql' rows=16 cols=100>%s</textarea>\n", $row->MySQL);
+		printf("<label>Eigen script</label><p>%s/maatwerk/</p><input type='text' name='EigenScript' class='w30' value='%s' maxlength=30>\n", BASISURL, $row->EigenScript);
+		printf("<label>Tonen in tabblad</label><input type='text' name='tabpage' class='w75' value='%s' maxlength=75>\n", $row->Tabpage);
+		printf("<label>Standaard waarden parameter(s)</label><input type='text' name='default_waarde_params' value='%s' maxlength=100><p>(bij meedere scheiden met een ;)</p>\n", $row->Default_value_params);
+		echo("<label>Beschikbare variabelen</label><p>[%LIDNAAM%], [%TELEFOON%], [%EMAIL%], [%LEEFTIJD%]</p>");
+		if (strlen($i_el->sqlerror) == 0) {
+			printf("<label>Aantal records</label><p>%d</p>\n", $row->AantalRecords);
+			printf("<label>Aantal kolommen</label><p>%d</p>\n", $row->AantalKolommen);
+		} else {
+			$i_el->mess = sprintf("In Eigen_lijst %d is de MySQL-code niet correct. Foutmelding: %s", $elid, $i_el->sqlerror);
+			printf("<p>%s</p>\n", $i_el->mess);
+			$i_el->Log($elid);
+		}
+		$dtfmt->setPattern(DTLONGSEC);
+		printf("<label>Laatste controle</label><p>%s</p>\n", $dtfmt->format(strtotime($row->LaatsteControle)));
+		
+		echo("<div id='opdrachtknoppen'>\n");
+		echo("<input type='submit' value='Bewaren' name='Bewaren'>\n");
+		echo("<input type='submit' value='Bewaren & Sluiten' name='BewarenSluiten'>\n");
+		if ($row->AantalRecords > 0 and $row->AantalKolommen > 0) {
+			echo("<button type='button' onClick=\"$('#resultaatlijst').toggle();\">Toon/verberg resultaat</button>\n");
+		}
+		echo("</div>\n");
+		
+		echo("</form>\n");
+		echo("</div> <!-- Einde eigenlijstmuteren -->\n");
+		
+		if ($row->AantalRecords > 0 and $row->AantalKolommen > 0) {
+			echo("<div id='resultaatlijst'>\n");
+			$i_el = new cls_Eigen_lijst($row->Naam);
+			$rows = $i_el->rowset();
+			if ($rows !== false) {
+				printf("<p>%s</p>", fnDisplayTable($rows, null, "Resultaat"));
+				printf("<p>%d rijen</p>\n", count($rows));
+			}
+			echo("</div> <!-- Einde resultaatlijst -->\n");
+		}
+		
+	} else {
+		
+		echo("<div id='overzichteigenlijsten'>\n");
+		$rows = $i_el->lijst();
+		if (count($rows) > 0) {
+			echo("<table>\n");
+			echo("<caption>Overzicht Eigen lijsten</caption>\n");
+			echo("<tr><th></th><th>Naam</th><th># records</th><th># kolommen</th><th>Tabblad</th><th>Laatste controle</th><th></th></tr>\n");
+			foreach($rows as $row) {
+				$bl = sprintf("<a href='%s?tp=%s&paramID=%d&paramActie=%%d'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
+				printf("<tr><td>%s</td><td>%s</td><td class='number'>%d</td><td class='number'>%d</td><td>%s</td><td>%s</td><td>%s</td>", sprintf($bl, 2), $row->Naam, $row->AantalRecords, $row->AantalKolommen, $row->Tabpage, date("d-m-Y H:i", strtotime($row->LaatsteControle)), sprintf($bl, 3));
+				echo("</tr>\n");
+			}
+			echo("</table>\n");
+		}
+		echo("</div> <!-- Einde overzichteigenlijsten -->\n");
+		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+		echo("<div id='opdrachtknoppen'>\n");
+		echo("<button type='submit' name='Toevoegen' value='lijst_toevoegen'>Lijst toevoegen</button>\n");
+		echo("</div> <!-- Einde opdrachtknoppen -->\n");
+		echo("</form>\n");
+	}
+	
+}  # fnEigenlijstenmuteren
 
 ?>
 
