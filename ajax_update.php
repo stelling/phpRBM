@@ -1,4 +1,5 @@
 <?php
+header('Content-Type: application/json');
 
 require_once('./includes/standaard.inc');
 toegang("", 0, 0);
@@ -121,15 +122,20 @@ if ($_SESSION['lidid'] > 0) {
 		}
 		
 	} elseif ($ent == "mailingprops") {
-		$rid = $_POST['mailingid'] ?? 0;
-		$groep = $_POST['selectie_groep'] ?? 0;
+		$rid = $_POST['mailingid'] ?? 4;
+		$groep = $_POST['selectie_groep'] ?? 350;
 		$vangebdatum = $_POST['selectie_vangebdatum'] ?? "1920-01-01";
 		$temgebdatum = $_POST['selectie_temgebdatum'] ?? date("Y-m-d");
 		$i_m = new Mailing($rid);
 		$rv = $i_m->add_del_selectie('aantal', $groep, $vangebdatum, $temgebdatum);
 		$i_m = null;
 		
-		echo(json_encode($rv));
+		$rv = json_encode($rv);
+		
+//		debug("json_error: " . json_last_error_msg(), 0, 1);	
+//		debug(json_encode($rv), 0, 1);
+		
+		echo($rv);
 		
 	} elseif ($ent == "mailingcontrole") {
 		$mid = $_POST['mailingid'] ?? 0;
@@ -171,6 +177,11 @@ if ($_SESSION['lidid'] > 0) {
 		$selgroep = $_POST['selgroep'] ?? 0;
 		$vangebdatum = $_POST['vangebdatum'] ?? "1900-01-01";
 		$temgebdatum = $_POST['temgebdatum'] ?? "9999-12-31";
+		
+		$i_lo = new cls_lidond();
+		$i_lo->auto_einde(0, 1, $selgroep);
+		$i_lo->autogroepenbijwerken($selgroep);
+		$i_lo = null;
 		
 		$i_m = new Mailing($mid);
 		$rv = $i_m->add_del_selectie("add", $selgroep, $vangebdatum, $temgebdatum);
@@ -239,6 +250,10 @@ if ($_SESSION['lidid'] > 0) {
 	} elseif ($ent == "evenement" and toegang("Evenementen/Beheer")) {
 		$i_ev = new cls_Evenement();
 		$i_ev->update($rid, $kolom, $newvalue);
+		
+	} elseif ($ent == "add_autorisatie" and $_SESSION['webmaster'] == 1) {
+		$i_aa = new cls_Authorisation();
+		$i_aa->add($_POST['tabpage']);
 		
 	} elseif ($ent == "update_autorisatie" and $_SESSION['webmaster'] == 1) {
 		$i_aa = new cls_Authorisation();
