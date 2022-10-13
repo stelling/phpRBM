@@ -217,6 +217,8 @@ function HTMLheader($breed=0) {
 		if (file_exists("includes/javascript.js")) {
 			printf("<script src='includes/javascript.js?v%d'></script>\n", filectime("includes/javascript.js"));
 		}
+		echo("<meta charset='UTF-8'>\n");
+		echo("<meta http-equiv='Cache-control' content='public'>\n");
 		echo("<meta name='viewport' content='width=device-width, initial-scale=1.0'>\n");
 		printf("<title>%s</title>\n", $title);
 		echo("<link rel='stylesheet' href='//code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css'>\n");
@@ -333,11 +335,11 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 	}
 
 	if (strlen($xtra) > 0 and startwith($xtra, "&amp;") == false) {
-		$xtra = "&amp;" . $xtra;
+		$xtra = "&" . $xtra;
 	}
 	
 	$nivo = $toonnivo;
-	if ($_SESSION['settings']['typemenu'] == 1 or ($_SESSION['settings']['typemenu'] == 3 and $toonnivo == 2)) {
+	if ($_SESSION['settings']['typemenu'] == 1 or ($_SESSION['settings']['typemenu'] == 3 and $nivo == 2)) {
 		printf("<ul id='menu_l%d'>\n", $toonnivo);
 		$itp = 1;
 		foreach($tabpages as $tp) {
@@ -1148,7 +1150,7 @@ function fnEditTable($res, $kols, $id, $th) {
 					$ret .= sprintf("<td>%s</td>", htmlentities($value));
 				} else {
 					$xc = sprintf("w%d", $collen);
-					$ret .= sprintf("<td><input type='text' id='%s_%d' value=\"%s\" class='%s'></td>", $colname, $valpk, $value, $xc);
+					$ret .= sprintf("<td><input type='text' id='%s_%d' value=\"%s\" class='%s' maxlength=%d></td>", $colname, $valpk, $value, $xc, $collen);
 				}
 			}
 		}
