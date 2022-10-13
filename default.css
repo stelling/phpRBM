@@ -37,6 +37,10 @@ tr {
 	vertical-align: middle;
 }
 
+tr:first-child {
+	min-height: 36px;
+}
+
 caption {
 	font-size: 135%;
 	background-color: #00FFFF;
@@ -53,7 +57,6 @@ td, th {
 	padding: 3px;
 	border-style: solid;
 	border-width: 1px;
-	background-color: #FFFF99;
 	border-color: #000080;
 }
 
@@ -197,12 +200,99 @@ header h1 {
 	padding-left: 4px;
 }
 
+#filter {
+	overflow: auto;
+	margin-right: 0;
+	margin-top: 8px;
+	margin-bottom: 8px;
+	padding-left: 0px;
+	padding-right: 0px;
+	padding-top: 4px;
+	padding-bottom: 4px;
+	border-top-style: solid;
+	border-bottom-style: solid;
+	border-left-style: none;
+	border-right-style: none;
+	border-color: #000080;
+	border-width: 1px;
+}
+
+#filter label {
+	clear: none;
+	float: left;
+	margin-left: 0;
+	margin-right: 4px;
+	margin-top: 5px;
+	margin-bottom: 5px;
+	height: 21px;
+	border-width: 1px;
+	border-style: solid;
+}
+
+#filter p {
+	margin-right: 6px;
+	margin-top: 6px;
+}
+
+#filter input[type='text'], #filter input[type='checkbox'] {
+	clear: none;
+	float: left;
+	height: 26px;
+	margin-left: 3px;
+	margin-top: 3px;
+	margin-bottom: 4px;
+}
+
+#filter input[type='text'] {
+	width: 175px;
+}
+
+#filter input[type='checkbox'] {
+	margin-top: 2px;
+}
+
+#filter select {
+	clear: none;
+	float: left;
+	height: 30px;
+	margin-top: 4px;
+	margin-left: 3px;
+	margin-top: 3px;
+	margin-bottom: 4px;
+	padding-top: 1px;
+}
+
+#filter span {
+	background-color: transparent;
+}
+
+#filter .aantrecords {
+	float: right;
+}
+
+
+#filter .rb {
+	float: left;
+	margin-top: 8px;
+}
+
+#filter .waarde {
+	clear: none;
+	float: left;
+	margin-top: 5px;
+	height: 20px;
+	border-style: solid;
+	border-width: 1px;
+	padding-left: 2px;
+	padding-right: 2px;
+}
+
 input.w5 {
 	width: 60px;
 }
 
 input.w7 {
-	width: 66px;
+	width: 72px;
 }
 
 input.num2 {
@@ -210,7 +300,7 @@ input.num2 {
 }
 
 input.w8, input.d8 {
-	width: 70px;
+	width: 78px;
 }
 
 input.d8 {
@@ -347,93 +437,6 @@ header a + a:visited + a:hover {
 	clear: right;
 }
 
-#filter {
-	overflow: auto;
-	margin-right: 0;
-	margin-top: 8px;
-	margin-bottom: 8px;
-	padding-left: 0px;
-	padding-right: 0px;
-	padding-top: 4px;
-	padding-bottom: 4px;
-	border-top-style: solid;
-	border-bottom-style: solid;
-	border-left-style: none;
-	border-right-style: none;
-	border-color: #000080;
-	border-width: 1px;
-}
-
-#filter label {
-	clear: none;
-	float: left;
-	margin-left: 0;
-	margin-right: 4px;
-	margin-top: 5px;
-	margin-bottom: 5px;
-	height: 21px;
-	width: 150px;
-	border-width: 1px;
-	border-style: solid;
-}
-
-#filter p {
-	margin-right: 6px;
-	margin-top: 6px;
-}
-
-#filter input[type='text'], #filter input[type='checkbox'] {
-	clear: none;
-	float: left;
-	height: 26px;
-	margin-left: 3px;
-	margin-top: 3px;
-	margin-bottom: 4px;
-}
-
-#filter input[type='text'] {
-	width: 200px;
-}
-
-#filter select {
-	clear: none;
-	float: left;
-	height: 30px;
-	margin-top: 4px;
-	margin-left: 3px;
-	margin-top: 3px;
-	margin-bottom: 4px;
-	padding-top: 1px;
-}
-
-#filter span {
-	background-color: transparent;
-}
-
-#filter .aantrecords {
-	float: right;
-}
-
-#filter input[type='checkbox'] {
-	margin-top: 2px;
-}
-
-#filter .rb {
-	float: left;
-	margin-top: 8px;
-}
-
-#filter .waarde {
-	clear: none;
-	float: left;
-	margin-top: 5px;
-	height: 20px;
-	border-style: solid;
-	border-width: 1px;
-	padding-left: 2px;
-	padding-right: 2px;
-}
-
 #formulier {
 	text-align: left;
 	margin-bottom: 10px;
@@ -504,6 +507,14 @@ header a + a:visited + a:hover {
 
 .ledenlijst table {
 	width: 100%;
+}
+
+tr:nth-child(odd) {	
+	background-color: #FFFF99;
+}
+
+tr:nth-child(even) {
+	background-color: #FFFFFF;
 }
 
 td.details, td.muteren, td.detailregels, td.leden, td.sendmail, td.unlock, .lijstverzondenmails td:first-child, .lijstoutbox td:first-child, #overzichteigenlijsten td:first-child, #stukkenmuteren td:first-child, #overzichtrekeningen td:first-child {
@@ -2479,20 +2490,51 @@ li.presstat_v, td.presstat_v {
 	color: gainsboro;
 }
 
+#presentielijst h1 {
+	width: 98%;
+	margin-left: auto;
+	margin-right: auto;
+	text-align: center;
+	padding-bottom: 0;
+	margin-bottom: 0;
+}
+
+#presentielijst p {
+	clear: none;
+	float: left;
+	padding-top: 36px;
+	padding-bottom: 1px;
+	width: 48%;
+	margin-right: 2%;
+	border-bottom-style: solid;
+	border-width: 1px;
+}
+
+#presentielijst table {
+	width: 100%;
+	margin-left: auto;
+	margin-right: auto;
+	border-collapse: separate;
+	border-spacing: 20px;
+}
+
+#presentielijst tr {
+	border-style: none;
+}
 
 #presentielijst td {
-	text-align: center;
+	width: 48%;
+	padding-top: 50px;
+	padding-bottom: 1px;
+	border-style: none;
+	border-bottom-style: solid;
+	border-width: 1px;
+	background-color: transparent;
+	border-collapse: separate;
+	
 }
 
-#presentielijst td:first-child {
-	text-align: right;
-}
-
-#presentielijst td:last-child {
-	text-align: left;
-}
-
-@media only screen and (max-width: 750px) {
+@media screen and (max-width: 750px) {
 	h1 {
 		font-size: 125%;
 	}
@@ -2517,6 +2559,10 @@ li.presstat_v, td.presstat_v {
 @media print {
 	body {
 		font-size: 10pt;
+	}
+	
+	td {
+		background-color: transparent;
 	}
 	
 	#welkom, nav, #filter, footer {
