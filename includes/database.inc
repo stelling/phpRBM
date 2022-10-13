@@ -237,6 +237,19 @@ class cls_db_base {
 		return $rv;
 	}
 	
+	
+	public function uniekelijst($p_kols, $p_filter="") {
+		
+		if (strlen($p_filter) > 0) {
+			$p_filter = "WHERE " . $p_filter;
+		}
+		
+		$query = sprintf("SELECT DISTINCT %1\$s FROM %2\$s %3\$s ORDER BY %1\$s;", $p_kols, $this->basefrom, $p_filter);
+		$result = $this->execsql($query);
+		
+		return $result->fetchAll();
+	}
+	
 	public function alaanwezig() {
 	}
 	
@@ -567,35 +580,41 @@ class cls_db_base {
 				$effectedRows = $stmt->rowCount();
 				$t = str_replace(TABLE_PREFIX, "", $this->table);
 				if ($effectedRows > 0) {
+					$kt = $this->typekolom($p_kolom);
 					if (array_search($t, $arrTables) >= 30) {
 						
-						if ($this->typekolom($p_kolom) == "date" and $p_waarde !== "NULL") {
+						if ($kt == "date" and $p_waarde !== "NULL") {
 							$p_waarde = "#" . date("m/d/Y", strtotime($p_waarde)) . "#";
 							
-						} elseif ($this->typekolom($p_kolom) == "datetime" and $p_waarde !== "NULL") {
+						} elseif ($kt == "datetime" and $p_waarde !== "NULL") {
 							$p_waarde = "#" . date("m/d/Y H:i:s", strtotime($p_waarde)) . "#";
 							
 						} elseif ($p_kolom == "MySQL") {
 							$p_waarde = str_replace(";", "", $p_waarde);
 							$p_waarde = "\"" . $p_waarde . "\"";
-						} elseif ($this->is_kolom_tekst($p_kolom)) {
+							
+						} elseif ($this->is_kolom_tekst($p_kolom, $kt)) {
 							$p_waarde = "\"" . str_replace("\"", "'", $p_waarde) . "\"";
 						
-						} elseif ($this->typekolom($p_kolom) == "decimal" and (strlen($p_waarde) > 1)) {
+						} elseif ($kt == "decimal" and (strlen($p_waarde) > 1)) {
 							$p_waarde = str_replace(",", ".", $p_waarde);
 						
-						} elseif ($this->is_kolom_numeriek($p_kolom) == false and strpos($p_waarde, "'") !== false) {
+						} elseif ($this->is_kolom_numeriek($p_kolom, $kt) == false and strpos($p_waarde, "'") !== false) {
 							$p_waarde = "\"" . $p_waarde . "\"";
-						} elseif ($this->is_kolom_numeriek($p_kolom) == false) {
+							
+						} elseif ($this->is_kolom_numeriek($p_kolom, $kt) == false) {
 							$p_waarde = "'" . $p_waarde . "'";
 						}
 					
 						$sql = sprintf("UPDATE [%s] SET [%s]=%s, Gewijzigd=#%s# WHERE %s=%d;", $t, $p_kolom, $p_waarde, date("m/d/Y H:i:s"), $this->pkkol, $p_recid);
 						(new cls_Interface())->add($sql, $this->lidid);
 					} else {
-						if ($this->is_kolom_numeriek($p_kolom) == false) {
+						if ($this->is_kolom_numeriek($p_kolom, $kt) == false) {
 							$p_waarde = "'" . $p_waarde . "'";
 						}
+					}
+					if ($kt == "date" or $kt == "datetime") {
+						$p_waarde = str_replace("#", "'", $p_waarde);
 					}
 					$this->mess = sprintf("Tabel %s: van record %d is kolom '%s' in %s gewijzigd", str_replace(TABLE_PREFIX, "", $this->table), $p_recid, $p_kolom, $p_waarde);
 					$rv = true;
@@ -4952,8 +4971,8 @@ class cls_Logboek extends cls_db_base {
 			$this->tm = 0;
 		}
 		
-		$query = sprintf("INSERT INTO %s (RecordID, DatumTijd, LidID, IP_adres, USER_AGENT, Omschrijving, ReferID, ReferLidID, TypeActiviteit, Script, Getoond, RefFunction, TypeActiviteitSpecifiek, RefTable) VALUES 
-				(%d, SYSDATE(), %d, '%s', '%s', \"%s\",%d, %d, %d, \"%s\", %d, '%s', %d, '%s');", $this->table, $nrid, $_SESSION['lidid'], $_SERVER['REMOTE_ADDR'], $ua, $p_oms, $p_referid, $this->lidid, $this->ta, $this->script(), $this->tm, $f, $this->tas, $p_reftable);
+		$query = sprintf("INSERT INTO %s (RecordID, DatumTijd, LidID, IP_adres, USER_AGENT, Omschrijving, ReferID, ReferLidID, TypeActiviteit, Script, Getoond, RefFunction, TypeActiviteitSpecifiek, RefTable, refColumn) VALUES 
+				(%d, SYSDATE(), %d, '%s', '%s', \"%s\",%d, %d, %d, \"%s\", %d, '%s', %d, '%s', '%s');", $this->table, $nrid, $_SESSION['lidid'], $_SERVER['REMOTE_ADDR'], $ua, $p_oms, $p_referid, $this->lidid, $this->ta, $this->script(), $this->tm, $f, $this->tas, $p_reftable, $p_refcolumn);
 		$this->execsql($query);
 		if ($this->tm == 1 or ($this->tm == 2 and $_SESSION['webmaster'] == 1)) {
 			printf("<p class='mededeling'>%s</p>\n", $p_oms);
@@ -7659,8 +7678,6 @@ function db_onderhoud($type=9) {
 		$query = sprintf("ALTER TABLE `%s` ADD `%s` VARCHAR(30) NULL AFTER `RefTable`;", $tab, $col);
 		$i_base->execsql($query, 2);
 	}
-	
-	 
 	
 	/***** Velden die aangepast zijn *****/
 	
