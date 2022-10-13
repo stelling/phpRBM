@@ -1,6 +1,7 @@
 <?php
 
 $_GET['tp'] = $_GET['tp'] ?? "";
+$op = $_GET['op'] ?? "";
 
 require('./includes/standaard.inc');
 
@@ -18,10 +19,10 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 		(new cls_Logboek())->add($mess, 1, 0, 2);
 	} else {
 		$_SESSION['username'] = cleanlogin($_POST['username']);
-		if (isset($_POST['cookie']) and $_POST['cookie'] == 1) {                                    
-			setcookie("username", $_SESSION['username'], time()+(3600*24*30));
+		if (isset($_POST['cookie']) and $_POST['cookie'] == 1) {                           
+			setcookie("username", $_SESSION['username'], time()+(3600*24*90));
 			if (isset($_POST['password']) and strlen($_POST['password']) > 6) {
-				setcookie("password", $_POST['password'], time()+(3600*24*30));
+				setcookie("password", $_POST['password'], time()+(3600*24*90));
 			}
 		}
 		fnAuthenticatie(1, $_POST['password'], 1);
@@ -43,8 +44,11 @@ if ((new cls_Lid())->aantal() == 0) {
 		location.href='./admin.php?tp=Uploaden+data';</script>\n");
 }
 
-if ($currenttab != "Mailing") {
+if ($currenttab2 != "previewwindow" and $op != "preview_hist" and $op != "preview_rek") {
 	HTMLheader();
+	$kaal = 0;
+} else {
+	$kaal = 1;
 }
 
 $isafdelingstab = 0;
@@ -56,7 +60,7 @@ if (strlen($_SESSION['settings']['menu_met_afdelingen']) > 0 and (new cls_Onderd
 $eigenlijstid = 0;
 $f = "";
 if (strlen($currenttab2) > 0 and strlen($currenttab3) > 0) {
-	$f = sprintf("EL.Tabpage='%s\%s' AND EL.Naam='%s'", $currenttab, $currenttab2, $currenttab3);
+	$f = sprintf("EL.Tabpage='%s/%s' AND EL.Naam='%s'", $currenttab, $currenttab2, $currenttab3);
 } elseif (strlen($currenttab2) > 0) {
 	$f = sprintf("EL.Tabpage='%s' AND EL.Naam='%s'", $currenttab, $currenttab2);
 }
@@ -149,31 +153,35 @@ if (toegang($_GET['tp'], 1) == false) {
 	}
 	DisplayTabs($tabblad);
 	
-} elseif (($currenttab == "Ledenlijst" and $currenttab2 == "Eigen lijsten") or $eigenlijstid > 0) {
+} elseif ($eigenlijstid > 0) {
 	fnDispMenu(2);
 	fnDispMenu(3);
-	if ($currenttab3 == "Muteren") {
-		fnEigenlijstenmuteren();
+	if ($eigenlijstid > 0) {
+		$i_el = new cls_Eigen_lijst("", $eigenlijstid);
 	} else {
-		if ($eigenlijstid > 0) {
-			$i_el = new cls_Eigen_lijst("", $eigenlijstid);
-		} else {
-			$i_el = new cls_Eigen_lijst($currenttab3);
-		}
+		$i_el = new cls_Eigen_lijst($currenttab3);
+	}
+	if (strlen($i_el->mysql) >= 9) {
 		$rows = $i_el->rowset();
 		if ($rows !== false) {
-			printf("<p>%s</p>", fnDisplayTable($rows, null, $currenttab3));
+			echo(fnDisplayTable($rows, null, $i_el->elnaam));
 			if (count($rows) > 1) {
 				printf("<p>%d rijen</p>\n", count($rows));
 			}
 		}
-		$i_el->controle($i_el->elid);
-		$i_el = null;
+	} elseif (strlen($i_el->eigenscript) >= 5) {
+		$s = BASEDIR . "/maatwerk/" . $i_el->eigenscript;
+		if (file_exists($s)) {
+			$url = BASISURL . "/maatwerk/" . $i_el->eigenscript;
+			printf("<script>location.href='%s';</script>\n", $url);
+		} else {
+			debug($s . " betaat niet, vraag de webmaster om dit te verhelpen.");
+		}
 	}
+	$i_el->controle($i_el->elid);
+	$i_el = null;
 
 } elseif ($currenttab == "Ledenlijst") {
-	
-	(new cls_Eigen_lijst())->controle();
 	
 	if ($currenttab2 == "Afdelingen") {
 		fnOnderdelenmuteren("A");
@@ -187,9 +195,15 @@ if (toegang($_GET['tp'], 1) == false) {
 	} elseif ($currenttab2 == "Rollen") {
 		fnOnderdelenmuteren("R");
 		
+	} elseif ($currenttab2 == "Rapporten") {
+		fnDispMenu(2);
+		fnDispMenu(3);
+		if ($currenttab3 == "Presentielijst") {
+			presentielijst();
+		}
+		
 	} elseif ($currenttab2 == "Toestemmingen") {
 		fnOnderdelenmuteren("T");
-	
 		
 	} elseif ($currenttab2 == "Basisgegevens") {
 		fnDispMenu(2);
@@ -201,6 +215,7 @@ if (toegang($_GET['tp'], 1) == false) {
 	}
 } elseif ($isafdelingstab == 1) {
 	fnAfdeling();
+	
 } elseif ($currenttab == "Stukken" and toegang($currenttab, 1, 1)) {
 	fnStukken();
 } elseif ($currenttab == "Bewaking") {
@@ -225,7 +240,7 @@ if (toegang($_GET['tp'], 1) == false) {
 	debug("Geen voorblad");
 }
 
-if ($currenttab != "Mailing") {	
+if ($currenttab != "Mailing" and $kaal == 0) {	
 	HTMLfooter();
 }
 
