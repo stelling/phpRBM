@@ -177,8 +177,7 @@ function deleterecord(entity, rid) {
 		dataType: 'json',
 		data: { id:rid },
 		success:function(response){}
-	});
-	
+	});	
 }
 
 /* Ledenadministratie specifiek */
@@ -269,6 +268,7 @@ function addlidond() {
 		$.ajax({
 			url: 'ajax_update.php?entiteit=addlidond',
 			type: 'post',
+			async: false,
 			dataType: 'json',
 			data: { lidid: lidid, ondid: ondid }
 		});
@@ -285,6 +285,7 @@ function mailingprops() {
 		url: 'ajax_update.php?entiteit=mailingcontrole',
 		type: 'post',
 		dataType: 'json',
+		async: false,
 		data: { mailingid: mid },
 		success: function(response) {
 			$('#meldingen').html(response['meldingen']);
@@ -314,7 +315,7 @@ function mailingprops() {
 	$.ajax({
 		url: 'ajax_update.php?entiteit=mailingprops',
 		type: 'post',
-		dataType: 'json',
+		async: false,
 		data: { mailingid: mid, selectie_vangebdatum: $('#selectie_vangebdatum').val(), selectie_temgebdatum: $('#selectie_temgebdatum').val(), selectie_groep: $('#selectie_groep').val() },
 		success: function(response) {
 			if (response['aantalontvangers'] > 1) {
@@ -322,8 +323,10 @@ function mailingprops() {
 			} else {
 				$('#lblOntvangers').html('Ontvangers');
 			}
-			
 			document.getElementById('aantalpersoneningroep').innerHTML = response['aantalingroep'];
+		},
+		error: function(jqXHR, textStatus, errorThrown) {
+			alert('Ophalen mislukt: ' + errorThrown);
 		}
 	});
 	
@@ -331,6 +334,7 @@ function mailingprops() {
 		url: 'ajax_update.php?entiteit=mailing_html_ontvangers',
 		type: 'post',
 		dataType: 'json',
+		async: false,
 		data: { mailingid: mid },
 		success: function(response) {
 			if (response.length > 12) {
@@ -353,6 +357,7 @@ function mailingprops() {
 		url: 'ajax_update.php?entiteit=options_mogelijke_ontvangers',
 		type: 'post',
 		dataType: 'json',
+		async: false,
 		data: { mailingid: mid, alle: f },
 		success: function(response) {
 			document.getElementById('add_lid').innerHTML = response;
@@ -367,6 +372,7 @@ function mailing_add_ontvanger(p_mid, p_lidid, p_email) {
 		url: 'ajax_update.php?entiteit=mailing_add_ontvanger',
 		type: 'post',
 		dataType: 'json',
+		async: false,
 		data: { mid: mid, lidid: p_lidid, email: p_email }
 	});
 	document.getElementById('add_lid').value = 0;
@@ -383,6 +389,7 @@ function mailing_add_selectie_ontvangers() {
 		url: 'ajax_update.php?entiteit=mailing_add_selectie_ontvangers',
 		type: 'post',
 		dataType: 'json',
+		async: false,
 		data: { mid: mid, selgroep: groepid, vangebdatum: vangebdatum, temgebdatum: temgebdatum }
 	});
 	mailingprops();
@@ -394,6 +401,7 @@ function mailing_verw_ontvanger(p_mid, p_lidid, p_email) {
 		url: 'ajax_update.php?entiteit=mailing_verw_ontvanger',
 		type: 'post',
 		dataType: 'json',
+		async: false,
 		data: { mid: mid, lidid: p_lidid, email: p_email }
 	});
 	mailingprops();
@@ -409,6 +417,7 @@ function mailing_verw_selectie_ontvangers() {
 		url: 'ajax_update.php?entiteit=mailing_verw_selectie_ontvangers',
 		type: 'post',
 		dataType: 'json',
+		async: false,
 		data: { mid: mid, selgroep: groepid, vangebdatum: vangebdatum, temgebdatum: temgebdatum },
 		success: function(response){
 			if (response > 0) {
@@ -425,6 +434,7 @@ function mailing_verw_alle_ontvangers() {
 		url: 'ajax_update.php?entiteit=mailing_verw_alle_ontvangers',
 		type: 'post',
 		dataType: 'json',
+		async: false,
 		data: { mid: mid },
 		success: function(response){
 			if (response > 0) {
@@ -442,6 +452,7 @@ function mailing_savemessage() {
 		url: 'ajax_update.php?entiteit=mailing',
 		type: 'post',
 		dataType: 'json',
+		async: false,
 		data: { field:'message', value:value, id:mid },
 		success: function(response){}
 	});
@@ -468,26 +479,35 @@ function rekeningprops() {
 		maximumFractionDigits: 2
 	});
 	
+	var rkid = $('#reknr').text();
 	rkbedrag = 0;
 	table = document.getElementById("rekregels");
 	tr = table.getElementsByTagName("tr");
 	for (i = 0; i < tr.length; i++) {
 		td = tr[i].getElementsByTagName("td")[4];
+		 
 		if (td) {
 			cntr = td.getElementsByTagName("input")[0];
-			rkbedrag = rkbedrag + parseFloat(cntr.value.replace(",", "."));
+			if (cntr.disabled == false) {
+				rkbedrag = rkbedrag + parseFloat(cntr.value.replace(",", "."));
+			}
 		}
 	}
 	
+	$.ajax({
+		url: 'ajax_update.php?entiteit=rekeningedit',
+		type: 'post',
+		dataType: 'json',
+		data: { field: 'Bedrag', value: rkbedrag, id: rkid }
+	});
+	
 	$("#rekeningbedrag").html(euroformat.format(rkbedrag));
 	
-	var rkid = $('#reknr').text();
-	
-	days = $("#BETAALDAG").val();
-	
-	var betaaldatum = new Date($('#Datum').val());
+	var rekdatum = new Date($('#Datum').val());
 	var bedragbetaald = $('#bedragbetaald').val();
+	days = parseInt($("#BETAALDAG").val());
 	var today = new Date();
+	const betaaldatum = new Date(rekdatum.getFullYear(), rekdatum.getMonth(), rekdatum.getDate());
 	
 	if (rkbedrag == 0 && bedragbetaald == 0) {
 		$('#lblbedragbetaald').hide();
@@ -497,12 +517,9 @@ function rekeningprops() {
 		$('#bedragbetaald').show();
 	}
 	
-	betaaldatum.setDate(betaaldatum.getDate() + days);
-	
+	betaaldatum.setDate(rekdatum.getDate() + days);
+		
 	if (rkbedrag != 0) {
-		$("#lblBETAALDAG").show();
-		$("#BETAALDAG").show();
-		$("#lblBET_TERM").show();
 		$("#lbluitersteBetaling").show();
 		$("#uitersteBetaling").show();
 		const options = { year: 'numeric', month: 'long', day: 'numeric' };
@@ -513,10 +530,6 @@ function rekeningprops() {
 			$("#uitersteBetaling").removeClass("telaat");
 		}
 	} else {
-		$("#lblBETAALDAG").hide();
-		$("#BETAALDAG").hide();
-		$("#lblBET_TERM").hide();
-		$("#BET_TERM").hide();
 		$("#lbluitersteBetaling").hide();
 		$("#uitersteBetaling").hide();
 	}
@@ -536,6 +549,31 @@ function rekeningprops() {
 			
 		});
 	}
+	
+	var lid = $("#BetaaldDoor").val();
+	
+	$.ajax({
+		url: 'ajax_update.php?entiteit=telefoonlid',
+		type: 'post',
+		dataType: 'json',
+		data: { id:lid },
+		success: function(response){
+			$("#telefoondebiteur").text(response);
+		},
+		error: function( jqXHR, textStatus, errorThrown) {
+			alert("Ophalen telefoonnr mislukt: " + errorThrown);
+		}
+	});
+	
+	$.ajax({
+		url: 'ajax_update.php?entiteit=emaillid',
+		type: 'post',
+		dataType: 'json',
+		data: { id:lid },
+		success: function(response){
+			$("#emaildebiteur").text(response);
+		}
+	});
 	
 }
 
