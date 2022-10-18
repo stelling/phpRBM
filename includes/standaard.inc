@@ -137,7 +137,7 @@ require_once("phpmailer/Exception.php");
 require_once("simpleimage.php");
 /* Einde includen open source libs*/
 
-foreach (array("database", "authentication", "afdelingen", "leden", "bewaking", "evenement", "financieel", "mailing", "standaard", "webshop", "taken") as $incl) {
+foreach (array("database", "authentication", "afdelingen", "leden", "bewaking", "evenement", "financieel", "mailing", "diploma", "standaard", "webshop", "taken") as $incl) {
 	$inclpath = __DIR__ . "/" . $incl . ".inc";
 	if (file_exists($inclpath)) {
 		if ($bestandsversie < filectime($inclpath)) {
@@ -1114,7 +1114,17 @@ function fnEditTable($res, $kols, $id, $th) {
 				if ($ro) {
 					$ret .= sprintf("<td class='number'>%d</td>", $value);
 				} else {
-					$ret .= sprintf("<td><input type='number' id='%s_%d' value=%d class='w10'></td>", $colname, $valpk, $value);
+					if (isset($kol['max']) and $kol['max'] <= 99) {
+						$c = "num2";
+						$m = sprintf(" max=%d", $kol['max']);
+					} elseif (isset($kol['max']) and $kol['max'] <= 999) {
+						$c = "num3";
+						$m = sprintf(" max=%d", $kol['max']);
+					} else {
+						$c = "w10";
+						$m = "";
+					}
+					$ret .= sprintf("<td><input type='number' id='%s_%d' value=%d class='%s'%s></td>", $colname, $valpk, $value, $c, $m);
 				}
 									
 			} elseif ($tp == "leeftijd") {
@@ -1122,6 +1132,17 @@ function fnEditTable($res, $kols, $id, $th) {
 					$ret .= sprintf("<td class='number'>%d</td>", $value);
 				} else {
 					$ret .= sprintf("<td><input type='number' id='%s_%d' value=%d class='num2' min=0 max=99></td>", $colname, $valpk, $value);
+				}
+				
+			} elseif ($tp == "dagen") {
+				if ($ro) {
+					if ($value == 1) {
+						$ret .= "<td class='number'>1 dag</td>";
+					} else {
+						$ret .= sprintf("<td class='number'>%d dagen</td>", $value);
+					}
+				} else {
+					$ret .= sprintf("<td><input type='number' id='%s_%d' value=%d class='num2' min=0 max=999>dagen</td>", $colname, $valpk, $value);
 				}
 
 			} elseif ($tp == "bedrag") {
@@ -1166,6 +1187,10 @@ function fnEditTable($res, $kols, $id, $th) {
 	});
 	
 	$('input').blur(function() {
+		savedata('%1\$s', 0, this);
+	});
+	
+	$(\"input[type='number']\").change(function() {
 		savedata('%1\$s', 0, this);
 	});
 
@@ -1272,21 +1297,21 @@ function debug($tekst, $p_tm=2, $logact=0) {
 	$_SESSION['webmaster'] = $_SESSION['webmaster'] ?? 0;
 	$f = "";
 	if ($_SESSION['webmaster'] == 1) {
-		$bt = debug_backtrace(2, 3);
-		for ($t=count($bt)-1;$t >= 0;$t += -1) {
-			if (isset($bt[$t]['function']) and $bt[$t]['function'] <> "Log" and isset($bt[$t]['class']) and $bt[$t]['class'] <> "cls_Logboek") {
-				if (strlen($f) > 0) {
-					$f .= "=>";
-				}
-				if (strlen($bt[$t]['class']) > 0) {
-					$f .= $bt[$t]['class'];
-				}
-				if (strlen($bt[$t]['function']) > 0) {
-					$f .= $bt[$t]['type'] . $bt[$t]['function'];
+		$bt = debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT, 2);
+		for ($t=count($bt)-1;$t >= 0;$t--) {
+			if (strlen($f) > 0) {
+				$f .= "=>";
+			}
+			if (isset($bt[$t]['class']) and strlen($bt[$t]['class']) > 0) {
+				$f .= $bt[$t]['class'];
+			}
+			if (isset($bt[$t]['file']) and strlen($bt[$t]['file']) > 0) {
+				$f .= str_replace(BASEDIR, "", $bt[$t]['file']);
+				if (isset($bt[$t]['line'])) {
+					$f .= sprintf(" (%d)", $bt[$t]['line']);
 				}
 			}
 		}
-		$f = "/" . $f;
 	}
 	
 	if ($p_tm == 3) {
@@ -1297,12 +1322,13 @@ function debug($tekst, $p_tm=2, $logact=0) {
 		} else {
 			$et = "";
 		}
-		printf("<p class='debug'>Debug%s: %s%s</p>\n", $f, $tekst, $et);
+		printf("<p class='debug'>%s: %s%s</p>\n", $f, $tekst, $et);
 	}
 
 	if ($logact == 1) {
 		(new cls_Logboek())->add("Debug: " . $tekst, 99);
 	}
+	
 } # debug
 
 function accessdate($sqldate) {
