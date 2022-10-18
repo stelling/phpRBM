@@ -119,9 +119,11 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		addtp($b);
 		if ($currenttab2 == "Basisgegevens") {
 			addtp($b . "/Onderdelen");
+			if ((new cls_Onderdeel())->aantal("O.`Type`='A'") > 0) {
+				addtp($b . "/Afdelingen");
+			}
 			addtp($b . "/Functies");
 			addtp($b . "/Activiteiten");
-			addtp($b . "/Diploma's");
 			addtp($b . "/Seizoenen");
 			addtp($b . "/Organisaties");
 		}
@@ -151,6 +153,16 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		$i_M = null;
 		if ($currenttab2 == "Wijzigen mailing") {
 			addtp($currenttab . "/" . $currenttab2);
+		}
+	}
+	
+	$b = "Diplomazaken";
+	addtp($b);
+	if ($currenttab == $b) {
+		$i_dp = new cls_Diploma();
+		addtp($b . "/Basislijst");
+		if ($i_dp->aantal() > 0) {
+			addtp($b . "/Examenresultaten");
 		}
 	}
 	
@@ -290,12 +302,18 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		$i_ev = null;
 	}	
 	
-	addtp("Rekeningen");
-	if ($currenttab == "Rekeningen") {
-		$b = "Rekeningen/";
-		addtp($b . "Beheer");
-		addtp($b . "Nieuw");
-		addtp($b . "Logboek");
+	if ((new cls_Seizoen())->aantal() > 0) {
+		addtp("Rekeningen");
+		if ($currenttab == "Rekeningen") {
+			$b = "Rekeningen/";
+			addtp($b . "Beheer");
+			addtp($b . "Nieuw");
+			if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
+				addtp($b . "Aanmaken rekeningen");
+			}
+			addtp($b . "Instellingen");
+			addtp($b . "Logboek");
+		}
 	}
 	
 	addtp("Bestellingen");
