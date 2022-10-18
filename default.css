@@ -296,7 +296,11 @@ input.w7 {
 }
 
 input.num2 {
-	width: 40px;
+	width: 44px;
+}
+
+input.num3 {
+	width: 48px;
 }
 
 input.w8, input.d8 {
@@ -359,8 +363,12 @@ input.w60 {
 	width: 440px;
 }
 
+input.w70 {
+	width: 450px;
+}
+
 input.w75 {
-	width: 325px;
+	width: 450px;
 }
 
 input.w90, textarea.w90 {
@@ -380,7 +388,7 @@ input.w250 {
 }
 
 #container, #containerbreed {
-	width: 1250px;
+	width: 1275px;
 	margin-left: auto;
 	margin-right: auto;
 	padding-left: 0;
@@ -411,10 +419,11 @@ header a + a:visited + a:hover {
 }
 
 #welkomstekst ul {
-	padding-left: 12px;
+	padding-left: 18px;
 }
 
 #welkomstekst li {
+	padding-left: 3px;
 	margin-top: 6px;
 	margin-bottom: 6px;
 }
@@ -1024,10 +1033,6 @@ input.omschrijving {
 	padding-left: 6px;
 	padding-right: 6px;
 }
-	
-.logboek tr:nth-child(odd) {
-	background: #e5e7e9;
-}
 
 .datumtijd {
 	min-width: 125px;
@@ -1183,6 +1188,13 @@ input.omschrijving {
 	padding-bottom: 4px;
 	border-style: solid;
 	border-width: 1px;
+}
+
+#opzegformulier textarea {
+	width: 96%;
+	height: 130px;
+	margin-left: auto;
+	margin-right: auto;
 }
 
 #herstellenwachtwoord p {
@@ -2162,16 +2174,28 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	border-collapse: collapse;
 }
 
-#rekeningenmailen ul {
+#aanmakenrekeningen label {
+	width: 250px;
+}
+
+#aanmakenrekeningen label.k2 {
+	width: 200px;
+}
+
+#rekeningenmailen ul, #aanmakenrekeningen ul {
 	margin-left: 0;
 	padding-left: 0;
 }
 
-#rekeningenmailen li {
+#rekeningenmailen li, #aanmakenrekeningen li {
 	display: block;
 	width: 33%;
 	float: left;
 	padding-left: 2px;
+}
+
+#aanmakenrekeningen li {
+	width: 19%;
 }
 
 #rekeningenmailen label {
@@ -2264,6 +2288,10 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 
 #mailingselectieleden button, #mailingselectieleden p {
 	height: 33px;
+}
+
+#instellingenmuteren h2 {
+	clear: left;
 }
 
 #instellingenmuteren .invoerblok {
