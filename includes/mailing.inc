@@ -39,17 +39,12 @@ function fnMailing() {
 		$op = "add_selectie";
 	} elseif (isset($_POST['LedenVerwijderen'])) {
 		$op = "del_selectie";
-		
-	}
-	
-	if ($currenttab2 != "previewwindow") {
-		HTMLheader();
 	}
 	
 	if (($op == "historie" or $op == "histdetails") and $mailing->mid > 0) {
 		fnDispMenu(2, sprintf("mid=%d", $mailing->mid));
 		
-	} elseif ($currenttab2 != "previewwindow") {
+	} elseif ($currenttab2 != "previewwindow" and $op != "preview_hist") {
 		fnDispMenu(2);
 	}
 	
@@ -118,6 +113,10 @@ function fnMailing() {
 		$email->toon();
 		$mail = null;
 
+	} elseif ($op == "preview_hist" and $_GET['mhid'] > 0) {
+		
+		echo($mailing->preview_hist($_GET['mhid']));
+
 	} elseif ($op == "sentoutbox") {
 		sentoutbox(1);
 		lijstmailings($currenttab2);
@@ -149,7 +148,7 @@ function fnMailing() {
 		lijstmailings($currenttab2);
 	}
 		
-	if ($currenttab2 != "previewwindow") {
+	if ($currenttab2 != "previewwindow" and $op != "preview_hist") {
 		HTMLfooter();
 	}
 }
@@ -334,6 +333,9 @@ class Mailing {
 		$sql = sprintf("SELECT DISTINCT DP.Naam FROM %1\$sLiddipl AS LD INNER JOIN %1\$sDiploma AS DP ON LD.DiplomaID = DP.RecordID
 				 WHERE IFNULL(LD.LicentieVervallenPer, '9999-12-31') >= CURDATE() AND LD.Lid=%%d ORDER BY DP.Volgnr, LD.DatumBehaald, DP.Naam;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "DiplomaLang", 'SQL' => $sql);
+		
+		$sql = sprintf("SELECT IFNULL(DP.Naam, 'Geen') FROM %1\$sLiddipl AS LD INNER JOIN %1\$sDiploma AS DP ON LD.DiplomaID=DP.RecordID WHERE LD.Lid=%%d ORDER BY LD.DatumBehaald DESC LIMIT 1;", TABLE_PREFIX);
+		$this->MergeField[]=array('Naam' => "DiplomaLaatste", 'SQL' => $sql);
 		
 		if ((new cls_Diploma())->aantal("Zelfservice=1") > 0) {
 			$sql = sprintf("SELECT DISTINCT DP.Naam FROM %1\$sLiddipl AS LD INNER JOIN %1\$sDiploma AS DP ON LD.DiplomaID = DP.RecordID
@@ -571,8 +573,6 @@ class Mailing {
 			$d->close();
 		}
 		
-		(new cls_Lidond())->autogroepenbijwerken(1);
-		
 		$f = sprintf("MailingID=%d", $this->mid);
 		$this->aant_rcpt = $i_mr->aantal($f);
 		
@@ -639,7 +639,6 @@ class Mailing {
 				$selgr = sprintf("<option value=0>&nbsp;</option>\n%s<option disabled>-- Eigen lijsten --</option>\n%s</select>\n", $i_ond->htmloptions($this->sl_huidigegroep, 1), $i_el->htmloptions($this->sl_huidigegroep, 2));
 				printf("<label>Zit in groep</label><select name='selectie_groep' id='selectie_groep' OnChange='mailingprops(%d);'>%s</selectie>\n", $this->mid, $selgr);
 				
-				//$this->add_del_selectie("aantal");
 				echo("<label>Aantal personen in groep</label><p id='aantalpersoneningroep'></p>\n");
 				echo("<button type='button' id='LedenToevoegen' OnClick='mailing_add_selectie_ontvangers();'>Groepsleden toevoegen</button>\n");
 				echo("<button type='button' id='LedenVerwijderen' OnClick='mailing_verw_selectie_ontvangers();'>Groepsleden verwijderen</button>\n");
@@ -1139,8 +1138,8 @@ class Mailing {
 		} elseif ($actie == "delete") {
 			$rv = $this->sl_aantverwijderen;
 		} else {
-			$rv['aantalontvangers'] = $this->aant_rcpt;
 			$rv['aantalingroep'] = $this->sl_aantingroep;
+			$rv['aantalontvangers'] = $this->aant_rcpt;
 		}
 		
 		return $rv;
@@ -1237,7 +1236,30 @@ class Mailing {
 		}
 
 		return $aant_send;
+		
 	} # send_mailing
+	
+	public function preview_hist($p_mhid, $p_verwijderaanhef=1) {
+		$i_mh = new cls_mailing_hist($p_mhid);
+		$mhrow = $i_mh->record();
+		
+		$bestand_briefpapier = $_SESSION['settings']['path_templates'] . "briefpapier.html";
+		if (file_exists($bestand_briefpapier)) {
+			if ($p_verwijderaanhef == 1) {
+				$htmlmessage = removetextblock(file_get_contents($bestand_briefpapier), "<!-- Aanhef -->", "<!-- /Aanhef -->");
+			} else {
+				$htmlmessage = file_get_contents($bestand_briefpapier);
+			}
+			$htmlmessage = str_ireplace("[%MESSAGE%]", $mhrow->message, $htmlmessage);
+			$htmlmessage = str_ireplace("[%FROM%]", $mhrow->from_name, $htmlmessage);
+			$htmlmessage = str_ireplace("[%TO%]", $mhrow->to_name, $htmlmessage);
+			$htmlmessage = str_ireplace("[%SUBJECT%]", $mhrow->subject, $htmlmessage);
+			return $htmlmessage;
+		} else {
+			debug("Het bestand met het briefpapier bestaat niet.", 1, 1);
+			return false;
+		}
+	}
 	
 	public function merge($lidid=0) {
 		
@@ -1402,6 +1424,7 @@ class Mailing {
 		}
 
 	} # vuldbvars
+	
 } # class Mailing
 
 function lijstmailings($p_filter="") {
@@ -1602,6 +1625,8 @@ class email {
 		} else {
 			$txt .= sprintf("<label>Verzonden</label><p>Wacht in outbox</p>\n");
 		}
+		
+		$txt .= sprintf("<label class='k2'>Ga naar</label><p><a href='%s?tp=Mailing&op=preview_hist&mhid=%d'>preview</a></p>", $_SERVER['PHP_SELF'], $this->mhid);
 		
 		if (strlen($this->vanafnaam) > 0) {
 			$txt .= sprintf("<label>Van</label><p>%s</p><label class='k2'>E-mail</label><p>%s</p>\n", $this->vanafnaam, $this->vanafadres);
@@ -1826,12 +1851,13 @@ function fnRekeningenMailen($op) {
 			}
 		} elseif ($op == "selectieversturen" and isset($_POST['sure'])) {
 			$aant_ok = 0;
+			$_SESSION['settings']['mailing_rekening_stuurnaar'] = $_SESSION['settings']['mailing_rekening_stuurnaar'] ?? 1;
 				
 			foreach($i_rk->lijst($_POST['rekfilter']) as $rk) {
 				$email = new email(0, 0);
 				$email->xtrachar = "REK";
 				$email->xtranum = $rk->Nummer;
-				$email->toevoegenlid($rk->Lid);
+				$email->toevoegenlid($rk->BetaaldDoor);
 				$email->zichtbaarvoor = $_SESSION['settings']['mailing_rekening_zichtbaarvoor'];
 				$tm = 0;
 
@@ -1846,6 +1872,9 @@ function fnRekeningenMailen($op) {
 						} elseif ($_SESSION['settings']['mailing_rekening_stuurnaar'] == 3) {
 							$email->toevoegenlid($regel->Lid);
 						}
+					}
+					if ($_SESSION['settings']['mailing_rekening_stuurnaar'] == 4 and $rk->BetaaldDoor != $rk->Lid) {
+						$email->toevoegenlid($rk->Lid);
 					}
 				}
 				
@@ -1872,6 +1901,8 @@ function fnRekeningenMailen($op) {
 			$mess = "De rekeningen zijn niet verzonden, omdat het vinkje niet gezet was.";
 			(new cls_Logboek())->add($mess, 4, 0, 1);
 		}
+	} else {
+		$i_rk->controle();
 	}
 
 	if ($_SERVER['REQUEST_METHOD'] != "POST" or $op == "selectieversturen") {
@@ -1893,9 +1924,10 @@ function fnRekeningenMailen($op) {
 		
 		echo("<h2>Instellingen</h2>\n");
 		echo("<label>Rekening versturen aan</label><select name='rekverstuuraan'>\n");
-		$sn[1] = "Alleen gekoppeld lid";
-		$sn[2] = "Gekoppeld lid en alle volwassenen op de rekening";
-		$sn[3] = "Alle leden op de rekening";
+		$sn[1] = "Alleen betaald door";
+		$sn[2] = "Betaald door en alle volwassenen op de rekening";
+		$sn[3] = "Betaald door en alle leden op de rekening";
+		$sn[4] = "Betaald door en het gekoppelde lid, indien ongelijk.";
 		foreach($sn as $key => $val) {
 			printf("<option value=%d%s>%s</option>>\n", $key, checked($key, "option", $_SESSION['settings']['mailing_rekening_stuurnaar']), $val);
 		}
@@ -1955,6 +1987,7 @@ function fnMailingInstellingen() {
 		$i_p->update("mailing_alle_zien", $_POST['mailing_alle_zien']);
 		$i_p->update("mailing_mailopnieuw", $_POST['mailing_mailopnieuw']);
 		$i_p->update("mailing_bewaartijd", intval("0" . $_POST['mailing_bewaartijd']));
+		$i_p->update("mailing_verzonden_opschonen", intval("0" . $_POST['mailing_verzonden_opschonen']));
 		$i_p->update("mailing_hist_opschonen", intval("0" . $_POST['mailing_hist_opschonen']));
 		$i_p->update("maxmailsperminuut", intval("0" . $_POST['maxmailsperminuut']));
 		$i_p->update("maxmailsperuur", intval("0" . $_POST['maxmailsperuur']));
@@ -2036,8 +2069,9 @@ function fnMailingInstellingen() {
 	}
 	
 	echo("<h2>Opschonen</h2>\n");
-	printf("<label>Hoelang, in maanden, moeten mailings in de prullenbak bewaard blijven?</label><input type='number' name='mailing_bewaartijd' value=%d min=1 max=999>\n", $_SESSION['settings']['mailing_bewaartijd']);
-	printf("<label>Hoelang, in maanden, moeten verzonden mails van voormalig leden bewaard blijven?</label><input type='number' name='mailing_hist_opschonen' value=%d min=3 max=999>\n", $_SESSION['settings']['mailing_hist_opschonen']);
+	printf("<label>Hoe lang moeten mailings in de prullenbak bewaard blijven?</label><input type='number' name='mailing_bewaartijd' value=%d min=1 max=999><p>(maanden)</p>\n", $_SESSION['settings']['mailing_bewaartijd']);
+	printf("<label>Hoe lang moeten verzonden e-mails bewaard blijven?</label><input type='number' name='mailing_verzonden_opschonen' value=%d min=6 max=999><p>(maanden)</p>\n", $_SESSION['settings']['mailing_verzonden_opschonen']);
+	printf("<label>Hoe lang moeten verzonden e-mails na beïndiging lidmaatschap bewaard blijven?</label><input type='number' name='mailing_hist_opschonen' value=%d min=3 max=999><p>(maanden)</p>\n", $_SESSION['settings']['mailing_hist_opschonen']);
 	
 	echo("<h2>Mailings met een specifiek doel</h2>\n");
 	
