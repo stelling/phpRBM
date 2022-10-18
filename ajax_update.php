@@ -5,7 +5,7 @@ require_once('./includes/standaard.inc');
 toegang("", 0, 0);
 
 $ent = $_GET['entiteit'] ?? "";
-$rid = $_POST['id'] ?? 0;
+$rid = $_POST['id'] ?? 216;
 $kolom = $_POST['field'] ?? "";
 $newvalue = $_POST['value'] ?? 0;
 $lidid = $_POST['lidid'] ?? 0;
@@ -107,9 +107,10 @@ if ($_SESSION['lidid'] > 0) {
 		$i_org = new cls_Organisatie();
 		$i_org->update($rid, $kolom, $newvalue);	
 		
-	} elseif ($ent == "seizoenedit" and toegang("Ledenlijst/Basisgegevens/Seizoenen")) {
+	} elseif ($ent == "seizoenedit" and (toegang("Ledenlijst/Basisgegevens/Seizoenen") or toegang("Rekeningen/Aanmaken rekeningen"))) {
 		$i_sz = new cls_Seizoen();
 		$i_sz->update($rid, $kolom, $newvalue);
+		$i_sz = null;
 		
 	} elseif ($ent == "mailing" and toegang("Mailing/Muteren")) {
 //		$mess = sprintf("%d / %s / %s", $rid, $kolom, $newvalue);
@@ -237,6 +238,14 @@ if ($_SESSION['lidid'] > 0) {
 		$i_rk = new cls_Rekening();
 		$i_rk->update($rid, $kolom, $newvalue);
 		
+	} elseif ($ent == "rekeningmail") {	
+		$i_mh = new cls_Mailing_hist();
+		$f = sprintf("Xtra_Char='REK' AND Xtra_Num=%d", $rid);
+		$rv = $i_mh->laatste($f);
+		$i_mh = null;
+		
+		echo(json_encode($rv));
+		
 	} elseif ($ent == "rekregedit" and toegang("Rekeningen/Muteren")) {
 //		$mess = sprintf("%d / %s /%s", $rid, $kolom, $newvalue);
 //		debug($mess, 0, 1);
@@ -262,6 +271,15 @@ if ($_SESSION['lidid'] > 0) {
 	} elseif ($ent === "delete_autorisatie" and $_SESSION['webmaster'] == 1) {
 		$i_aa = new cls_Authorisation();
 		$i_aa->delete($rid);
+		
+	} elseif ($ent == "updateparam") {
+		$name = $_POST['name'] ?? "";
+		$val = $_POST['value'] ?? "";
+		if (strlen($name) > 1) {
+			$i_param = new cls_Parameter();
+			$i_param->update($name, $val);
+			$i_param = null;
+		}
 		
 	} else {
 		$mess = sprintf("Entiteit '%s' bestaat niet in ajax_update.php of je hebt geen toegang.", $ent);
