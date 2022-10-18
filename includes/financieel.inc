@@ -3,14 +3,16 @@
 function fnRekeningen() {
 	global $currenttab, $currenttab2;
 	
-	fnDispMenu(2);
 	
-	$reknr = 0;
-	if (isset($_GET['p_reknr']) and $_GET['p_reknr'] > 0) {
-		$reknr = $_GET['p_reknr'];
+	$reknr = $_GET['p_reknr'] ?? 0;
+	$op = $_GET['op'] ?? "";
+	if ($op != "preview_rek") {
+		fnDispMenu(2);
 	}
-		
-	if ($currenttab2 == "Muteren") {
+	
+	if ($op == "preview_rek") {
+		echo(RekeningDetail($reknr, 1));
+	} elseif ($currenttab2 == "Muteren") {
 		fnRekeningMuteren($reknr);
 	} elseif ($currenttab2 == "Beheer") {
 		fnRekeningbeheer();
@@ -25,7 +27,7 @@ function fnRekeningen() {
 			
 		} else {
 		
-			$nwreknr = (new cls_rekening())->max("Nummer") + 1;
+			$nwreknr = (new cls_rekening())->max("RK.Nummer") + 1;
 			if (($nwreknr / 2) == intval($nwreknr / 2)) {
 				$nwreknr++;
 			}
@@ -66,7 +68,7 @@ function fnRekeningbeheer() {
 	if (isset($_POST['filterseizoen'])) {
 		$filterseizoen = $_POST['filterseizoen'];
 	} else {
-		$filterseizoen = $i_rk->Max("Seizoen");
+		$filterseizoen = $i_rk->Max("RK.Seizoen");
 	}
 	
 	echo("<div id='filter'>\n");
@@ -98,7 +100,7 @@ function fnRekeningbeheer() {
 	$kols[4]['type'] = "currency";
 
 	$f = sprintf("RK.Seizoen=%d", $filterseizoen);
-	if ($i_rk->max("Betaald", $f) > 0) {
+	if ($i_rk->max("RK.Betaald", $f) > 0) {
 		debug($filterseizoen);
 		$kols[5]['headertext'] = "Betaald";
 		$kols[5]['columnname'] = "Betaald";
@@ -141,51 +143,21 @@ function fnRekeningMuteren($p_rkid=-1) {
 	$i_seiz = new cls_Seizoen();
 	$i_ond = new cls_Onderdeel();
 	
-	if (isset($_GET['op']) and $_GET['op'] == "deleteregel" and $_GET['rrid'] > 0) {
-		$i_rr->delete($_GET['rrid']);
-	}
-	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-
-		$arrcols = ["Regelnr", "KSTNPLTS", "OMSCHRIJV", "Bedrag"];
-		
-		foreach($i_rr->perrekening($reknr) as $rrrow) {
-			foreach ($arrcols as $col) {
-				$cn = sprintf("%s_%d", $col, $rrrow->RecordID);
-				if ($col == "Bedrag" and isset($_POST[$cn]) and strlen($_POST[$cn]) == 0) {
-					$_POST[$cn] = 0;
-					
-				} elseif ($col == "Bedrag" and isset($_POST[$cn]) and floatval($_POST[$cn]) != 0) {
-					$cnt = sprintf("ToonOpRekening_%d", $rrrow->RecordID);
-					$_POST[$cnt] = 1;
-				}
-				if (isset($_POST[$cn])) {
-					$i_rr->update($rrrow->RecordID, $col, $_POST[$cn]);
-				}
-			}
-		}
-
 		if (isset($_POST['RRnieuw']) and $_POST['RRnieuw'] >= 0) {
 			$at = $i_rr->standaardwaarde($reknr, $_POST['RRnieuw']);
 			if ($at == 0) {
 				$i_rr->add($reknr, $_POST['RRnieuw']);
 			}
 		}
-
-		if (isset($_POST['BewarenSluiten'])) {
-			printf("<script>location.href='%s?tp=%s/Beheer'</script>\n", $_SERVER['PHP_SELF'], $currenttab);
-		}
-	
 	}
-	$f = sprintf("Rekening=%d", $reknr);
-	$i_rk->update($reknr, "Bedrag", $i_rr->totaal("Bedrag", $f));
 	
 	if ($scherm == "M" and $reknr > 0)  {
 		$row = $i_rk->record($reknr);
 		if ($row->AantLid == 1) {
 			$i_rk->update($reknr, "Lid", $row->EersteLid);
 		}
-		$tb = $i_rr->totaal("Bedrag", sprintf("Rekening=%d", $reknr));
+		$tb = $i_rr->totaal("RR.Bedrag", sprintf("Rekening=%d", $reknr));
 		$i_rk->update($reknr, "Bedrag", $tb);
 		
 		echo("<div id='rekeningmuteren'>\n");
@@ -200,14 +172,8 @@ function fnRekeningMuteren($p_rkid=-1) {
 		echo("<label>Totaal bedrag &euro;</label><p id='rekeningbedrag'></p>\n");
 		printf("<label id='lblbedragbetaald'>Betaald &euro;</label><p id='bedragbetaald'>%03.2f</p>\n", $row->Betaald);
 		echo("<label id='lbluitersteBetaling'>Uiterste betaling op</label><p id='uitersteBetaling'></p>\n");
-		$t = $i_lid->telefoon($row->BetaaldDoor);
-		if (strlen($t) > 9) {
-			printf("<label>Telefoon debiteur</label><p>%s</p>\n", $t);
-		}
-		$e = $i_lid->email($row->BetaaldDoor);
-		if (strlen($e) > 5) {
-			printf("<label>E-mail debiteur</label><p>%s</p>\n", $e);
-		}
+		echo("<label>Telefoon debiteur</label><p id='telefoondebiteur'></p>\n");
+		echo("<label>E-mail debiteur</label><p id='emaildebiteur'></p>\n");
 		echo("</div> <!-- Einde rekeninginfo -->\n");
 		
 		printf("<label>Seizoen</label><select id='Seizoen'>%s</select>\n", $i_seiz->htmloptions($row->Seizoen));
@@ -215,17 +181,19 @@ function fnRekeningMuteren($p_rkid=-1) {
 		printf("<label>Omschrijving</label><input type='text' id='OMSCHRIJV' class='w30' value='%s' maxlength=30>\n", $row->OMSCHRIJV);
 		printf("<label>Tenaamstelling rekening</label><input type='text' id='DEBNAAM' class='w60' value='%s' maxlength=60>\n", $row->DEBNAAM);
 		if ($row->AantLid > 1) {
-			$f = sprintf("L.RecordID IN (SELECT RR.Lid FROM %sRekreg AS RR WHERE RR.Rekening=%d)", TABLE_PREFIX, $row->Nummer);
-			printf("<label>Gekoppeld lid</label><select id='Lid'><option value=-1></option>%s</select>\n", $i_lid->htmloptions($row->Lid, 0, $f, $row->Datum));
+			$d = "";
 		} else {
-			printf("<input type='hidden' id='Lid' value=%d>\n", $row->Lid);
+			$d = " disabled";
 		}
+		$f = sprintf("L.RecordID IN (SELECT RR.Lid FROM %sRekreg AS RR WHERE RR.Rekening=%d)", TABLE_PREFIX, $row->Nummer);
+		printf("<label>Gekoppeld aan lid</label><select id='Lid'%s><option value=-1></option>%s</select>\n", $d, $i_lid->htmloptions($row->Lid, 0, $f, $row->Datum));
+		
 		$f = sprintf("(L.RecordID IN (SELECT LO.Lid FROM %sLidond AS LO WHERE IFNULL(LO.Opgezegd, '9999-12-31') >= '%s' AND LO.OnderdeelID=%d)", TABLE_PREFIX, $row->Datum, $_SESSION['settings']['rekening_groep_betaalddoor']);
 		$f .= sprintf(" OR L.RecordID IN (SELECT RR.Lid FROM %sRekreg AS RR WHERE RR.Rekening=%d)", TABLE_PREFIX, $reknr);
 		$f .= sprintf(" OR L.RecordID=%d OR L.RecordID=%d)", $row->BetaaldDoor, $row->Lid);
 		printf("<label>Betaald door / debiteur</label><select id='BetaaldDoor'>\n%s</select>\n", $i_lid->htmloptions($row->BetaaldDoor, 7, $f, $row->Datum));
 		if ($row->BETAALDAG < 1) {
-			$bdt = $i_seiz->max("BetaaldagenTermijn", sprintf("Nummer=%d", $row->Seizoen));
+			$bdt = $i_seiz->max("SZ.BetaaldagenTermijn", sprintf("SZ.Nummer=%d", $row->Seizoen));
 		} else {
 			$bdt = $row->BETAALDAG;
 		}
@@ -246,7 +214,7 @@ function fnRekeningMuteren($p_rkid=-1) {
 			}
 			echo("<div id='rekeningregelsmuteren'>\n");
 			echo("<table id='rekregels'>\n");
-			echo("<tr><th>#</th><th>Kostenplaats</th><th>Lid</th><th>Omschrijving</th><th>Bedrag in &euro;</th><th>Zichtbaar</th><th>&nbsp;</th></tr>\n");
+			echo("<tr><th>#</th><th>Kostenplaats</th><th>Lid</th><th>Omschrijving</th><th>Bedrag in &euro;</th><th>&nbsp;</th></tr>\n");
 			foreach($i_rr->perrekening($reknr) as $rrrow) {
 				echo("<tr>\n");
 				printf("<td><input type='number' id='Regelnr_%d' step=1 value=%d min=1></td>\n", $rrrow->RecordID, $rrrow->Regelnr);
@@ -255,11 +223,10 @@ function fnRekeningMuteren($p_rkid=-1) {
 					$jsob = " onBlur='this.form.submit();'";
 				}
 				printf("<td><input type='text' id='KSTNPLTS_%d' value='%s' class='w7' maxlength=7%s></td>\n", $rrrow->RecordID, $rrrow->KSTNPLTS, $jsob);
-				printf("<td>%s</td>\n", $rrrow->NaamLid);
+				printf("<td id='Naam_%d'>%s</td>\n", $rrrow->RecordID, $rrrow->NaamLid);
 				printf("<td><input type='text' id='OMSCHRIJV_%d' class='w60' value=\"%s\" maxlength=60></td>\n", $rrrow->RecordID, $rrrow->OMSCHRIJV);
 				printf("<td><input type='text' id='Bedrag_%d' value='%s' class='d8'></td>\n", $rrrow->RecordID, number_format($rrrow->Bedrag, 2, ",", ""));
-				printf("<td><input type='checkbox' id='ToonOpRekening_%d' value=1%s></td>\n", $rrrow->RecordID, checked($rrrow->ToonOpRekening));
-				printf("<td class='trash'><a href='%s?tp=%s&op=deleteregel&rrid=%d&rkid=%d'>&nbsp;&nbsp;&nbsp;</a></td>", $_SERVER['PHP_SELF'], $_GET['tp'], $rrrow->RecordID, $rrrow->Rekening);
+				printf("<td><img src='%s' onClick='verw_rekeningregel(%d);'</td>", BASE64_VERWIJDER_KLEIN, $rrrow->RecordID);
 				echo("</tr>\n");
 			}
 			echo("</table>\n");
@@ -270,15 +237,33 @@ function fnRekeningMuteren($p_rkid=-1) {
 			printf("<select name='RRnieuw' onChange='this.form.submit();'>\n%s</select>\n", $opt);
 			echo("</div> <!-- Einde rekeningregelsmuteren -->\n");
 		}
+		echo("</form>\n");
 		
 		echo("<div id='opdrachtknoppen'>\n");
-		echo("<input type='submit' value='Bewaren' name='Bewaren'>\n");
-		echo("<button type='submit' name='BewarenSluiten'>Bewaren en sluiten</button>\n");
+		printf("<button type='button' name='Sluiten' onClick=\"location.href='%s?tp=%s/Beheer'\">Sluiten</button>\n", $_SERVER['PHP_SELF'], $currenttab);
+		
+		$f = sprintf("Nummer < %d", $reknr);
+		$prev_rek = $i_rk->max("RK.Nummer", $f);
+		$f = sprintf("Nummer > %d", $reknr);
+		$next_rek = $i_rk->min("RK.Nummer", $f);
+		
+		if ($prev_rek > 0) {
+			printf("<button type='button' name='VorigeRekening' onClick=\"location.href='%s?tp=%s/Muteren&p_reknr=%d'\">Vorige rekening</button>\n", $_SERVER['PHP_SELF'], $currenttab, $prev_rek);
+		}
+		if ($next_rek > 0) {
+			printf("<button type='button' name='VolgendeRekening' onClick=\"location.href='%s?tp=%s/Muteren&p_reknr=%d'\">Volgende rekening</button>\n", $_SERVER['PHP_SELF'], $currenttab, $next_rek);
+		}
+		
+		$f = sprintf("RR.Rekening=%d", $reknr);
+		if ($i_rr->aantal($f) > 0) {
+			printf("<button type='button' onClick=\"location.href='%s?tp=%s&op=preview_rek&p_reknr=%d'\">Bekijk rekening</button>\n", $_SERVER['PHP_SELF'], $currenttab, $reknr);
+		}
+		
+		
 		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 		
-		echo("</form>\n");
 		echo("</div> <!-- einde rekeningmuteren  -->\n");
-		
+
 		printf("<script>
 			$( document ).ready(function() {
 				rekeningprops();
@@ -299,12 +284,22 @@ function fnRekeningMuteren($p_rkid=-1) {
 				rekeningprops();
 			});
 			
+			function verw_rekeningregel(rrid) {
+				$('#Regelnr_' + rrid).prop('disabled', true);
+				$('#KSTNPLTS_' + rrid).prop('disabled', true);
+				$('#Naam_' + rrid).addClass('deleted');
+				$('#OMSCHRIJV_' + rrid).prop('disabled', true);
+				$('#Bedrag_' + rrid).prop('disabled', true);
+				deleterecord('verw_rekregel', rrid);
+				rekeningprops();
+			}
+			
 		</script>\n", $reknr);
 	}
 
 }  # fnRekeningMuteren
 
-function RekeningDetail($p_rkid) {
+function RekeningDetail($p_rkid, $p_metbriefpapier=0) {
 	global $dtfmt;
 	
 	$rk = (new cls_Rekening())->record($p_rkid);
@@ -327,6 +322,7 @@ function RekeningDetail($p_rkid) {
 <br>
 <div id='rekeningregels'>
 <!-- MetRegelnummers=0 -->
+<!-- MetNulRegels=1 -->
 <table>
 <tr><th>Regel</th><th>Omschrijving</th><th>Lid</th><th class='number'>Bedrag in &euro;</th></tr>
 [%REKENINGREGELS%]
@@ -363,6 +359,14 @@ function RekeningDetail($p_rkid) {
 		$metregelnr = intval(substr($content, $p, 1));
 	}
 	
+	$n = "<!-- MetNulRegels=";
+	$p = strpos($content, $n);
+	$metnulregels = 1;
+	if ($p > 1) {
+		$p += strlen($n);
+		$metnulregels = intval(substr($content, $p, 1));
+	}
+	
 	if ($rk->Machtiging == 1) {
 		$content = removetextblock($content, "<!-- Geen machtiging -->", "<!-- /Geen machtiging -->");
 	} else {
@@ -378,6 +382,10 @@ function RekeningDetail($p_rkid) {
 		if ($rk->Betaald == 0) {
 			$content = removetextblock($content, "<!-- NietOpNulBetaald -->", "<!-- /NietOpNulBetaald -->");
 		}
+	}
+	
+	if ($rk->Bedrag <= 0 or $rk->Lid == $rk->BetaaldDoor) {
+		$content = removetextblock($content, "<!-- AlleenOpBetaaldDoorAnder -->", "<!-- /AlleenOpBetaaldDoorAnder -->");
 	}
 	
 	if (($rk->Openstaand) < 0.50) {
@@ -398,6 +406,10 @@ function RekeningDetail($p_rkid) {
 	$content = str_ireplace("[%OPENSTAAND%]", fnBedrag($rk->Openstaand), $content);
 	$content = str_ireplace("[%BANKREKENING%]", $rk->Bankrekeningnummer, $content);
 	$content = str_ireplace("[%UITERSTEBETAALDATUM%]", $dtfmt->format(strtotime($rk->UitersteBetaaldatum)), $content);
+	
+	$content = str_ireplace("[%NAAMBETAALDDOOR%]", $rk->NaamBetaaldDoor, $content);
+	$content = str_ireplace("[%EMAILBETAALDDOOR%]", $rk->EmailBetaaldDoor, $content);
+	
 	$i_mv = new cls_Mailing_vanaf($_SESSION['settings']['mailing_rekening_vanafid']);
 	$content = str_ireplace("[%VANAFADRES%]", $i_mv->vanaf_email, $content);
 	$content = str_ireplace("[%VANAFNAAM%]", $i_mv->vanaf_naam, $content);
@@ -415,7 +427,7 @@ function RekeningDetail($p_rkid) {
 		} else {
 			$nl = "";
 		}
-		if ($regel->ToonOpRekening == 1) {
+		if ($regel->Bedrag > 0 or $metnulregels == 1) {
 			if ($metregelnr == 1) {
 				$rrtxt .= sprintf("<tr><td>%d</td><td>%s</td><td>%s</td><td class='number'>%s</td></tr>\n", $ireg, $regel->OMSCHRIJV, $nl, fnBedrag($regel->Bedrag));
 			} else {
@@ -426,7 +438,17 @@ function RekeningDetail($p_rkid) {
 	}
 	$content = str_ireplace("[%REKENINGREGELS%]", $rrtxt, $content);
 	
-	return $content;
+	$bestand_briefpapier = $_SESSION['settings']['path_templates'] . "briefpapier.html";
+	if ($p_metbriefpapier == 1 and file_exists($bestand_briefpapier)) {
+		$rv = removetextblock(file_get_contents($bestand_briefpapier), "<!-- Aanhef -->", "<!-- /Aanhef -->");
+		$rv = str_ireplace("[%SUBJECT%]", "Rekening " . $p_rkid, $rv);
+		$rv = str_ireplace("[%MESSAGE%]", $content, $rv);
+		
+	} else {
+		$rv = $content;
+	}
+	
+	return $rv;
 
 } # RekeningDetail
 
@@ -487,6 +509,7 @@ function fnKostenoverzicht() {
 
 	$lijst = (new cls_Mutatie())->lijst($val_jaarfilter, $val_gbrfilter, $val_kplfilter);
 	echo(fnDisplayTable($lijst, "", "", 1));
+	
 }  # fnKostenoverzicht
 
 function fnBedrag($bedrag) {
