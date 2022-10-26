@@ -54,7 +54,10 @@ caption {
 }
 
 td, th {
-	padding: 3px;
+	padding-left: 3px;
+	padding-right: 6px;
+	padding-top: 3px;
+	padding-bottom: 3px;
 	border-style: solid;
 	border-width: 1px;
 	border-color: #000080;
@@ -224,7 +227,9 @@ header h1 {
 	margin-right: 4px;
 	margin-top: 5px;
 	margin-bottom: 5px;
-	height: 21px;
+	padding-top: 4px;
+	padding-bottom: 4px;
+	height: 20px;
 	border-width: 1px;
 	border-style: solid;
 }
@@ -237,10 +242,12 @@ header h1 {
 #filter input[type='text'], #filter input[type='checkbox'] {
 	clear: none;
 	float: left;
-	height: 26px;
+	height: 24px;
 	margin-left: 3px;
-	margin-top: 3px;
-	margin-bottom: 4px;
+	margin-top: 5px;
+	margin-bottom: 5px;
+	padding-top: 1px;
+	padding-bottom: 1px;
 }
 
 #filter input[type='text'] {
@@ -248,18 +255,18 @@ header h1 {
 }
 
 #filter input[type='checkbox'] {
-	margin-top: 2px;
+	margin-top: 6px;
 }
 
 #filter select {
 	clear: none;
 	float: left;
 	height: 30px;
-	margin-top: 4px;
 	margin-left: 3px;
-	margin-top: 3px;
+	margin-right: 20px;
+	margin-top: 5px;
 	margin-bottom: 4px;
-	padding-top: 1px;
+	padding-top: 0;
 }
 
 #filter span {
@@ -912,10 +919,6 @@ td.print {
 	width: 60px;
 }
 
-#aanwezigheidmuteren label {
-	width: 110px;
-}
-
 #presentieperlid label {
 	width: 75px;
 }
@@ -989,10 +992,25 @@ td.print {
 #diplomamuteren p {
 	padding-top: 6px;
 	padding-left: 6px;
+	clear: none;
+	float: left;
 }
 
 #diplomamuteren label, #examenresultaten label {
 	min-width: 125px;
+}
+
+#diplomamuteren input#RecordID {
+	width: 115px;
+}
+
+#diplomamuteren select {
+	min-width: 115px;
+	height: 25px;
+}
+
+#examenresultaten td:first-child, #examenresultaten th:first-child {
+	min-width: 180px;
 }
 
 #versies {
@@ -1533,7 +1551,7 @@ fieldset h3 {
 	max-height: 24px;
 }
 
-td.number {
+td.number, input.number {
 	text-align: right;
 	padding-right: 8px;
 }
@@ -2185,6 +2203,37 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 #rekeningenmailen ul, #aanmakenrekeningen ul {
 	margin-left: 0;
 	padding-left: 0;
+}
+
+#rekeningbetalingen label {
+	width: 125px;
+}
+
+#rekeningbetalingen p {
+	margin-top: 3px;
+	padding-top: 4px;
+	padding-right: 6px;
+	display: inline;
+	float: left;
+}
+
+#rekeningbetalingen button {
+	float: left;
+	margin-left: 30px;
+	font-size: 110%;
+}
+
+#rekeningbetalingen td, #rekeningbetalingen th {
+	min-width: 100px;
+}
+
+#rekeningbetalingen td:nth-child(3) {
+	text-align: right;
+}
+
+#rekeningbetalingen td:last-child, #rekeningbetalingen th:last-child {
+	min-width: 25px;
+	text-align: center;
 }
 
 #rekeningenmailen li, #aanmakenrekeningen li {
