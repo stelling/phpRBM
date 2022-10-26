@@ -162,7 +162,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		$i_dp = new cls_Diploma();
 		addtp($b . "/Basislijst");
 		if ($i_dp->aantal() > 0) {
-			addtp($b . "/Examenresultaten");
+			addtp($b . "/Leden per diploma");
 		}
 	}
 	
@@ -308,9 +308,8 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			$b = "Rekeningen/";
 			addtp($b . "Beheer");
 			addtp($b . "Nieuw");
-			if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
-				addtp($b . "Aanmaken rekeningen");
-			}
+			addtp($b . "Aanmaken rekeningen");
+			addtp($b . "Betalingen");
 			addtp($b . "Instellingen");
 			addtp($b . "Logboek");
 		}
