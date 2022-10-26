@@ -7,17 +7,21 @@ function fnDiplomazaken() {
 	
 	if ($currenttab2 == "Basislijst") {
 		fnDiplomalijstmuteren();
-	} elseif ($currenttab2 == "Examenresultaten") {
-		fnExamenResultaten();
+	} elseif ($currenttab2 == "Leden per diploma") {
+		fnExamenResultaten(-1, 0);
 	}
-
-}
+}  # fnDiplomazaken
 
 function fnDiplomalijstmuteren() {
+	global $currenttab, $currenttab2, $dtfmt;
+	
 	$i_dp = new cls_Diploma();
-	$res = $i_dp->basislijst("", "", 0);
-		
-	echo("<p class='mededeling'>Dit gedeelte is nog niet klaar.</p>\n");
+	
+	if (isset($_POST['nieuwdiploma'])) {
+		$i_dp->add();
+	}
+	
+	$res = $i_dp->basislijst("", "DP.Kode", 0);
 		
 	$kols[0]['type'] = "pk";
 	$kols[0]['readonly'] = true;
@@ -57,8 +61,15 @@ function fnDiplomalijstmuteren() {
 	$kols[18]['bronselect'] = $arrAfd;
 	
 	echo("<div id='diplomasmuteren'>\n");
+	printf("<form method='post' action='%s?tp=%s/%s'>", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
 	echo(fnEditTable($res, $kols, "diplomaedit", "Muteren diploma's"));
-	echo("</div> <!-- Einde diplomasmuteren -->\n");		
+	echo("<div id='opdrachtknoppen'>\n");
+	echo("<button type='submit' name='nieuwdiploma'>Diploma toevoegen</buton>\n");
+	echo("</div> <!-- Einde opdrachtknoppen -->\n");
+	echo("</form>");
+	echo("</div> <!-- Einde diplomasmuteren -->\n");
+	
+	
 }
 
 ?>

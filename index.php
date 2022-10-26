@@ -226,6 +226,8 @@ if (toegang($_GET['tp'], 1) == false) {
 	fnKostenoverzicht();
 } elseif ($currenttab == "Mailing") {
 	fnMailing();
+} elseif ($currenttab == "Diplomazaken") {
+	fnDiplomazaken();
 } elseif ($currenttab == "Evenementen") {
 	fnEvenementen();
 } elseif ($currenttab == "Bestellingen") {
