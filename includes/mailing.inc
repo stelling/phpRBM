@@ -1447,6 +1447,7 @@ function lijstmailings($p_filter="") {
 		$kols[1]['columnname'] = "send_on";
 		$kols[1]['type'] = "DTLONG";
 		$kols[2]['headertext'] = "Van";
+		$kols[2]['columnname'] = "from_name";
 		$kols[3]['headertext'] = "Aan";
 		$kols[3]['columnname'] = "Aan";
 		$kols[3]['type'] = "combitext";
@@ -1461,10 +1462,12 @@ function lijstmailings($p_filter="") {
 			
 		} elseif ($p_filter == "Outbox") {
 			if ($_SESSION['settings']['mailing_direct_verzenden'] == 0) {
-				$kols[6]['link'] = sprintf("<a href='index.php?tp=%s&amp;op=sentmail&amp;MailingHistID=%%d'>&nbsp;&nbsp;&nbsp;</a>", urlencode($_GET['tp']));
+				$kols[6]['link'] = sprintf("<a href='index.php?tp=%s&op=sentmail&MailingHistID=%%d'>&nbsp;&nbsp;&nbsp;</a>", urlencode($_GET['tp']));
+				$kols[6]['columnname'] = "RecordID";
 				$kols[6]['class'] = "sendmail";
 			}
-			$kols[7]['link'] = sprintf("<a href='index.php?tp=%s&amp;op=deletehist&amp;MailingHistID=%%d'>&nbsp;&nbsp;&nbsp;</a>", urlencode($_GET['tp']));
+			$kols[7]['link'] = sprintf("<a href='index.php?tp=%s&op=deletehist&MailingHistID=%%d'>&nbsp;&nbsp;&nbsp;</a>", urlencode($_GET['tp']));
+			$kols[7]['columnname'] = "RecordID";
 		}
 		if ($p_filter == "Outbox") {
 			$kols[1]['headertext'] = "Wacht vanaf";
@@ -1763,7 +1766,7 @@ function fnRekeningenMailen($op) {
 	
 	$i_rk = new cls_Rekening();
 	$i_p = new cls_Parameter();
-
+ 
 	echo("<div id='rekeningenmailen'>\n");
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		if ($op == "selectierekeningen") {
@@ -1792,10 +1795,10 @@ function fnRekeningenMailen($op) {
 				$filter .= sprintf(" AND RK.Lid=%d", $_POST['reklid']);
 			}
 			if (isset($_POST['nulrekeningen'])) {
-				$i_p->update("mailing_rekening_nulrekversturen", 1);
+				$_POST['nulrekeningen'] = 1;
 			} else {
 				$filter .= " AND RK.Bedrag <> 0";
-				$i_p->update("mailing_rekening_nulrekversturen", 0);
+				$_POST['nulrekeningen'] = 0;
 			}
 			if (!isset($_POST['eerderverzonden'])) {
 				$filter .= sprintf(" AND (RK.Nummer NOT IN (SELECT Xtra_Num FROM %sMailing_hist WHERE Xtra_Char='REK'))", TABLE_PREFIX);
@@ -1817,16 +1820,6 @@ function fnRekeningenMailen($op) {
 				$filter .= "RK.Bedrag <= RK.Betaald";
 			}
 			$filter .= ")";
-			
-			if (isset($_POST['rekverstuuraan'])) {
-				$i_p->update("mailing_rekening_stuurnaar", $_POST['rekverstuuraan']);
-			}
-			
-			if (isset($_POST['vanafid'])) {
-				$i_p->update("mailing_rekening_vanafid", $_POST['vanafid']);
-			}
-			
-			$i_p->update("mailing_rekening_zichtbaarvoor", $_POST['zichtbaarvoor']);
 
 			$selrek = "";
 			$aantrek = 0;
@@ -1854,55 +1847,12 @@ function fnRekeningenMailen($op) {
 			$_SESSION['settings']['mailing_rekening_stuurnaar'] = $_SESSION['settings']['mailing_rekening_stuurnaar'] ?? 1;
 				
 			foreach($i_rk->lijst($_POST['rekfilter']) as $rk) {
-				$email = new email(0, 0);
-				$email->xtrachar = "REK";
-				$email->xtranum = $rk->Nummer;
-				$email->toevoegenlid($rk->BetaaldDoor);
-				$email->zichtbaarvoor = $_SESSION['settings']['mailing_rekening_zichtbaarvoor'];
-				$tm = 0;
-
-				if ($_SESSION['settings']['mailing_rekening_stuurnaar'] > 1) {
-					$hd = new DateTime($rk->Datum);
-					$hd->sub(new DateInterval('P18Y'));
-					foreach((new cls_Rekeningregel())->perrekening($rk->Nummer) as $regel) {
-						if ($regel->GEBDATUM > "1900-01-01" and $regel->GEBDATUM <= $hd->format("Y-m-d")) {
-							$email->toevoegenlid($regel->Lid);
-						} elseif ($_SESSION['settings']['mailing_rekening_stuurnaar'] == 2 and strlen($regel->EmailOuders) > 5) {
-							$email->toevoegenadres($regel->EmailOuders, "cc");
-						} elseif ($_SESSION['settings']['mailing_rekening_stuurnaar'] == 3) {
-							$email->toevoegenlid($regel->Lid);
-						}
-					}
-					if ($_SESSION['settings']['mailing_rekening_stuurnaar'] == 4 and $rk->BetaaldDoor != $rk->Lid) {
-						$email->toevoegenlid($rk->Lid);
-					}
-				}
-				
-				$email->bericht = RekeningDetail($rk->Nummer);
-				$email->aannaam = $rk->Tenaamstelling;
-				$email->onderwerp = $rk->OMSCHRIJV;
-				
-				if (strlen($email->aanadres) == 0) {
-					$mess = sprintf("Rekening %d kan niet worden verzonden, omdat er van %s geen geldig e-mailadres in de database bekend is.", $rk->Nummer, $email->aannaam);
-					$tm = 1;
-				} else {
-					if ($email->to_outbox(0)) {
-						$mess = sprintf("Rekening %d van %s (%s) is in de outbox geplaatst.", $rk->Nummer, $email->aannaam, $email->aanadres);
-						$aant_ok++;
-					} else {
-						$mess = sprintf("Rekening %d kon niet in de outbox worden geplaatst.", $rk->Nummer);
-						$tm = 1;
-					}
-				}
-				(new cls_Logboek())->add($mess, 4, 0, $tm, $rk->Nummer);
-				$email = null;
+				$aant_ok += fnVerstuurRekening($rk->Nummer);
 			}
 		} elseif ($op == "selectieversturen") {
 			$mess = "De rekeningen zijn niet verzonden, omdat het vinkje niet gezet was.";
 			(new cls_Logboek())->add($mess, 4, 0, 1);
 		}
-	} else {
-		$i_rk->controle();
 	}
 
 	if ($_SERVER['REQUEST_METHOD'] != "POST" or $op == "selectieversturen") {
@@ -1918,27 +1868,10 @@ function fnRekeningenMailen($op) {
 		echo("<tr><th>Volledig betaald</th><td><input type='checkbox' name='volbetaald' value=1 checked></td></tr>\n");
 		echo("<tr><th>Gedeeltelijk betaald</th><td><input type='checkbox' name='deelbetaald' value=1 checked></td></tr>\n");
 		echo("<tr><th>Niet betaald</th><td><input type='checkbox' name='nietbetaald' value=1 checked></td></tr>\n");
-		printf("<tr><th>Nul rekeningen</th><td><input type='checkbox' name='nulrekeningen' value=1 %s></td></tr>\n", checked($_SESSION['settings']['mailing_rekening_nulrekversturen']));
+		echo("<tr><th>Nul rekeningen</th><td><input type='checkbox' name='nulrekeningen' value=1></td></tr>\n");
 		echo("<tr><th>Eerder verzonden</th><td><input type='checkbox' name='eerderverzonden' value=1 checked></td></tr>\n");
 		echo("</table>\n");
-		
-		echo("<h2>Instellingen</h2>\n");
-		echo("<label>Rekening versturen aan</label><select name='rekverstuuraan'>\n");
-		$sn[1] = "Alleen betaald door";
-		$sn[2] = "Betaald door en alle volwassenen op de rekening";
-		$sn[3] = "Betaald door en alle leden op de rekening";
-		$sn[4] = "Betaald door en het gekoppelde lid, indien ongelijk.";
-		foreach($sn as $key => $val) {
-			printf("<option value=%d%s>%s</option>>\n", $key, checked($key, "option", $_SESSION['settings']['mailing_rekening_stuurnaar']), $val);
-		}
-		echo("</select>\n");
-		
-		$i_mv = new cls_Mailing_vanaf();
-		printf("<label>Vanaf e-mailadres</label><select name='vanafid'>%s</select>\n", $i_mv->htmloptions($_SESSION['settings']['mailing_rekening_vanafid']));
-		$i_mv = null;
-		
-		printf("<label>Alleen zichtbaar voor</label><select name='zichtbaarvoor'>\n<option value=-1>Alleen webmasters</option>\n%s</select>\n", (new cls_Onderdeel())->htmloptions($_SESSION['settings']['mailing_rekening_zichtbaarvoor'], 1));
-		
+
 		echo("<div id='opdrachtknoppen'>\n");
 		echo("<input type='submit' value='Verder'>\n");
 		echo("</div>  <!-- Einde opdrachtknoppen -->\n");
@@ -1949,6 +1882,59 @@ function fnRekeningenMailen($op) {
 	
 	$i_p = null;
 } # fnRekeningenMailen
+
+function fnVerstuurRekening($p_rkid, $p_toonmelding=0) {
+	
+	$i_rk = new cls_Rekening();
+	
+	$i_rk->controle($p_rkid);
+	$rkrow = $i_rk->record($p_rkid);
+	
+	$email = new email(0, 0);
+	$email->xtrachar = "REK";
+	$email->xtranum = $rkrow->Nummer;
+	$email->toevoegenlid($rkrow->BetaaldDoor);
+	$email->zichtbaarvoor = $_SESSION['settings']['mailing_rekening_zichtbaarvoor'];
+	$tm = $p_toonmelding;
+	$rv = 0;
+
+	if ($_SESSION['settings']['mailing_rekening_stuurnaar'] == 2 or $_SESSION['settings']['mailing_rekening_stuurnaar'] == 3) {
+		$hd = new DateTime($rkrow->Datum);
+		$hd->sub(new DateInterval('P18Y'));
+		foreach((new cls_Rekeningregel())->perrekening($rkrow->Nummer) as $regel) {
+			if ($regel->GEBDATUM > "1900-01-01" and $regel->GEBDATUM <= $hd->format("Y-m-d") and $_SESSION['settings']['mailing_rekening_stuurnaar'] == 2) {
+				$email->toevoegenlid($regel->Lid);
+			} elseif ($_SESSION['settings']['mailing_rekening_stuurnaar'] == 3) {
+				$email->toevoegenlid($regel->Lid);
+			}
+		}
+	}
+	if ($_SESSION['settings']['mailing_rekening_stuurnaar'] == 4 and $rkrow->BetaaldDoor != $rkrow->Lid) {
+		$email->toevoegenlid($rkrow->Lid);
+	}
+				
+	$email->bericht = RekeningDetail($rkrow->Nummer);
+	$email->aannaam = $rkrow->Tenaamstelling;
+	$email->onderwerp = $rkrow->OMSCHRIJV;
+				
+	if (strlen($email->aanadres) == 0) {
+		$mess = sprintf("Rekening %d kan niet worden verzonden, omdat er van %s geen geldig e-mailadres in de database bekend is.", $rkrow->Nummer, $email->aannaam);
+		$tm = 1;
+	} else {
+		if ($email->to_outbox(0)) {
+			$mess = sprintf("Rekening %d van %s (%s) is in de outbox geplaatst.", $rkrow->Nummer, $email->aannaam, $email->aanadres);
+			$rv = 1;
+		} else {
+			$mess = sprintf("Rekening %d kon niet in de outbox worden geplaatst.", $rkrow->Nummer);
+			$tm = 1;
+		}
+	}
+	(new cls_Logboek())->add($mess, 4, 0, $tm, $rkrow->Nummer);
+	$email = null;	
+	
+	return $rv;
+	
+}  # fnVerstuurRekening
 
 function fnMailingInstellingen() {
 	global $currenttab, $currenttab2;
