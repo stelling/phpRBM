@@ -246,6 +246,19 @@ if ($_SESSION['lidid'] > 0) {
 		
 		echo(json_encode($rv));
 		
+	} elseif ($ent == "rekeningdetails") {
+		
+		$i_rk = new cls_Rekening($rid);
+		
+		$rv['rkid'] = $i_rk->rkid;
+		$rv['debnaam'] = $i_rk->debnaam;
+		$rv['bedrag'] = number_format(round($i_rk->bedrag, 2), 2, ",", "");
+		$rv['open'] = number_format(round($i_rk->bedrag-$i_rk->betaald, 2), 2, ",", "");
+		
+		$i_rk = null;
+		
+		echo(json_encode($rv));
+		
 	} elseif ($ent == "rekregedit" and toegang("Rekeningen/Muteren")) {
 //		$mess = sprintf("%d / %s /%s", $rid, $kolom, $newvalue);
 //		debug($mess, 0, 1);
@@ -254,7 +267,25 @@ if ($_SESSION['lidid'] > 0) {
 		
 	} elseif ($ent == "verw_rekregel" and toegang("Rekeningen/Muteren")) {
 		$i_rr = new cls_Rekeningregel();
-		$i_rr->delete($rid);	
+		$i_rr->delete($rid);
+		$i_rr = null;
+
+	} elseif ($ent == "add_betaling") {
+		$datum = $_POST['datum'] ?? "";
+		$bedr = $_POST['bedr'] ?? 0;
+		
+		if ($rid > 0 and strlen($datum) == 10 and $bedr != 0) {
+			$i_rb = new cls_RekeningBetaling();
+			$i_rb->add($rid, $datum, $bedr);
+			$i_rb = null;
+		}
+		
+	} elseif ($ent == "del_betaling") {
+		if ($rid > 0) {
+			$i_rb = new cls_RekeningBetaling();
+			$i_rb->delete($rid);
+			$i_rb = null;
+		}
 		
 	} elseif ($ent == "evenement" and toegang("Evenementen/Beheer")) {
 		$i_ev = new cls_Evenement();
@@ -280,6 +311,11 @@ if ($_SESSION['lidid'] > 0) {
 			$i_param->update($name, $val);
 			$i_param = null;
 		}
+		
+	} elseif ($ent == "checkdnsrr") {
+		$email = $_POST['email'] ?? "";
+		$rv = fnControleEmail($email);
+		echo(json_encode($rv));
 		
 	} else {
 		$mess = sprintf("Entiteit '%s' bestaat niet in ajax_update.php of je hebt geen toegang.", $ent);
