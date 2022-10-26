@@ -130,10 +130,6 @@ function savedata(entity, rid, control) {
 		} else {
 			var value = 0;
 		}
-
-	} else if (field_name == "Bedrag") {
-		var value = control.value.replace(",", ".");
-		
 	} else {
 		var value = control.value;
 	}
@@ -144,6 +140,7 @@ function savedata(entity, rid, control) {
 		url: 'ajax_update.php?entiteit=' + entity,
 		type: 'post',
 		dataType: 'json',
+		async: false,
 		data: { field: field_name, value: value, id: rid },
 		success: function(response){},
 		fail: function( data, textStatus ) {
@@ -167,6 +164,31 @@ function savecb(entity, rid, control) {
 		data: { field:control.id, value:value, id:rid },
 		success:function(response){}
 	});
+}
+
+function saveparam(control) {
+	
+	var pn = control.id;
+	
+	if (control.type == "checkbox") {
+		if (control.checked == true) {
+			var value = 1;
+		} else {
+			var value = 0;
+		}
+	} else {
+		var value = control.value;
+	}
+	
+	$.ajax({
+		url: 'ajax_update.php?entiteit=updateparam',
+		type: 'post',
+		dataType: 'json',
+		async: false,
+		data: { name:pn, value:value },
+		success:function(response){}
+	});
+	
 }
 
 function deleterecord(entity, rid) {
@@ -231,14 +253,44 @@ function lidalgwijzprops() {
 	$('#uitleg_mobiel').text(fnControleTelefoon(tel, "mobiel"));
 	
 	var e = $('#Email').val();
-	$('#uitleg_email').text(fnControleEmail(e));
+	$.ajax({
+		url: 'ajax_update.php?entiteit=checkdnsrr',
+		type: 'post',
+		dataType: 'json',
+		data: { email: e },
+		success: function(response){
+			$('#uitleg_email').text(response);
+		}
+	});
 	
-	var e = $('#EmailOuders').val();
-	$('#uitleg_emailouders').text(fnControleEmail(e));
+	e = $('#EmailOuders').val();
+	if (e.length > 0) {
+		$.ajax({
+			url: 'ajax_update.php?entiteit=checkdnsrr',
+			type: 'post',
+			dataType: 'json',
+			data: { email: e },
+			success: function(response){
+				$('#uitleg_emailouders').text(response);
+			}
+		});
+	} else {
+		$('#uitleg_emailouders').text("");
+	}
 	
-	if($("#EmailVereniging").length > 0) {
-		var e = $('#EmailVereniging').val();
-		$('#uitleg_emailvereniging').text(fnControleEmail(e));
+	e = $('#EmailVereniging').val();
+	if (e.length > 0) {
+		$.ajax({
+			url: 'ajax_update.php?entiteit=checkdnsrr',
+			type: 'post',
+			dataType: 'json',
+			data: { email: e },
+			success: function(response){
+				$('#uitleg_emailvereniging').text(response);
+			}
+		});
+	} else {
+		$('#uitleg_emailvereniging').text("");
 	}
 }
 
@@ -498,6 +550,7 @@ function rekeningprops() {
 		url: 'ajax_update.php?entiteit=rekeningedit',
 		type: 'post',
 		dataType: 'json',
+		async: false,
 		data: { field: 'Bedrag', value: rkbedrag, id: rkid }
 	});
 	
@@ -542,6 +595,7 @@ function rekeningprops() {
 			url: 'ajax_update.php?entiteit=naamlid',
 			type: 'post',
 			dataType: 'json',
+			async: false,
 			data: { id:lid },
 			success: function(response){
 				dn.val(response);
@@ -556,6 +610,7 @@ function rekeningprops() {
 		url: 'ajax_update.php?entiteit=telefoonlid',
 		type: 'post',
 		dataType: 'json',
+		async: false,
 		data: { id:lid },
 		success: function(response){
 			$("#telefoondebiteur").text(response);
@@ -569,9 +624,21 @@ function rekeningprops() {
 		url: 'ajax_update.php?entiteit=emaillid',
 		type: 'post',
 		dataType: 'json',
+		async: false,
 		data: { id:lid },
 		success: function(response){
 			$("#emaildebiteur").text(response);
+		}
+	});
+	
+	$.ajax({
+		url: 'ajax_update.php?entiteit=rekeningmail',
+		type: 'post',
+		dataType: 'json',
+		async: false,
+		data: { id: rkid },
+		success: function(response){
+			$("#laatsteemail").text(response);
 		}
 	});
 	
@@ -622,6 +689,21 @@ function fnControleEmail(p_email, p_rvbijleeg="") {
 		rv = p_rvbijleeg;
 	} else if (p_email.match(emailReg)) {
 		rv = "";
+		
+		$.ajax({
+			url: 'ajax_update.php?entiteit=checkdnsrr',
+			type: 'post',
+			dataType: 'json',
+			async: false,
+			data: { id: rkid },
+			success: function(response){
+				if (response == 0) {
+					rv = "Domein bestaat niet of er mag niet naar gemailed worden.";
+					alert(rv);
+				}
+			}
+		});
+		
 	} else {
 		rv = "Formaat e-mailadres is niet correct.";
 	}
