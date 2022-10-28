@@ -294,6 +294,10 @@ header h1 {
 	padding-right: 2px;
 }
 
+input.w3 {
+	width: 35px;
+}
+
 input.w5 {
 	width: 60px;
 }
@@ -526,11 +530,11 @@ header a + a:visited + a:hover {
 }
 
 tr:nth-child(odd) {	
-	background-color: #FFFF99;
+	background-color: white;
 }
 
 tr:nth-child(even) {
-	background-color: #FFFFFF;
+	background-color: #E5E7E9;
 }
 
 td.details, td.muteren, td.detailregels, td.leden, td.sendmail, td.unlock, .lijstverzondenmails td:first-child, .lijstoutbox td:first-child, #overzichteigenlijsten td:first-child, #stukkenmuteren td:first-child, #overzichtrekeningen td:first-child {
@@ -2131,11 +2135,10 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	clear: none;
 	margin-top: 4px;
 	margin-right: 8px;
-	padding-left: 4px;
+	padding-left: 0;
 	padding-top: 3px;
 	padding-bottom: 3px;
-	background-color: #FFFF99;
-	border-style: solid;
+	border-style: none;
 	border-width: 1px;
 }
 
