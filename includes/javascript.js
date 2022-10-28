@@ -140,11 +140,15 @@ function savedata(entity, rid, control) {
 		url: 'ajax_update.php?entiteit=' + entity,
 		type: 'post',
 		dataType: 'json',
-		async: false,
 		data: { field: field_name, value: value, id: rid },
-		success: function(response){},
+		success: function(response){
+			if (response.length > 12) {
+				alert(response);
+				location.reload();
+			}
+		},
 		fail: function( data, textStatus ) {
-			alert(entity + 'update database is niet gelukt. ' + textStatus);
+			alert(entity + ': update database is niet gelukt. ' + textStatus);
 		}
 	});
 }
@@ -550,7 +554,6 @@ function rekeningprops() {
 		url: 'ajax_update.php?entiteit=rekeningedit',
 		type: 'post',
 		dataType: 'json',
-		async: false,
 		data: { field: 'Bedrag', value: rkbedrag, id: rkid }
 	});
 	
@@ -575,6 +578,8 @@ function rekeningprops() {
 	if (rkbedrag != 0) {
 		$("#lbluitersteBetaling").show();
 		$("#uitersteBetaling").show();
+		$("#lblBETAALDAG").show();
+		$("#BETAALDAG").show();
 		const options = { year: 'numeric', month: 'long', day: 'numeric' };
 		$("#uitersteBetaling").html(betaaldatum.toLocaleDateString('nl-NL', options));
 		if (betaaldatum.getTime() < today.getTime() && bedragbetaald < rkbedrag) {
@@ -585,6 +590,8 @@ function rekeningprops() {
 	} else {
 		$("#lbluitersteBetaling").hide();
 		$("#uitersteBetaling").hide();
+		$("#lblBETAALDAG").hide();
+		$("#BETAALDAG").hide();
 	}
 	
 	var dn = $("#DEBNAAM");
@@ -595,7 +602,6 @@ function rekeningprops() {
 			url: 'ajax_update.php?entiteit=naamlid',
 			type: 'post',
 			dataType: 'json',
-			async: false,
 			data: { id:lid },
 			success: function(response){
 				dn.val(response);
@@ -610,13 +616,9 @@ function rekeningprops() {
 		url: 'ajax_update.php?entiteit=telefoonlid',
 		type: 'post',
 		dataType: 'json',
-		async: false,
 		data: { id:lid },
 		success: function(response){
 			$("#telefoondebiteur").text(response);
-		},
-		error: function( jqXHR, textStatus, errorThrown) {
-			alert("Ophalen telefoonnr mislukt: " + errorThrown);
 		}
 	});
 	
@@ -624,7 +626,6 @@ function rekeningprops() {
 		url: 'ajax_update.php?entiteit=emaillid',
 		type: 'post',
 		dataType: 'json',
-		async: false,
 		data: { id:lid },
 		success: function(response){
 			$("#emaildebiteur").text(response);
@@ -635,7 +636,6 @@ function rekeningprops() {
 		url: 'ajax_update.php?entiteit=rekeningmail',
 		type: 'post',
 		dataType: 'json',
-		async: false,
 		data: { id: rkid },
 		success: function(response){
 			$("#laatsteemail").text(response);

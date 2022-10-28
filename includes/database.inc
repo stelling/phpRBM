@@ -2461,12 +2461,19 @@ class cls_Afdelingskalender extends cls_db_base {
 		$this->table = TABLE_PREFIX . "Afdelingskalender";
 		$this->basefrom = $this->table . " AS AK";
 		$this->ta = 21;
-		$this->vulvars($p_ondid);
+		$this->vulvars(-1, $p_ondid);
 	}
 	
-	private function vulvars($p_ondid=-1) {
+	private function vulvars($p_akid=-1, $p_ondid=-1) {
+		if ($p_akid >= 0) {
+			$this->akid = $p_akid;
+		}
 		if ($p_ondid >= 0) {
 			$this->ondid = $p_ondid;
+		}
+		if ($this->akid > 0) {
+			$query = sprintf("SELECT IFNULL(AK.OnderdeelID, 0) FROM %s WHERE AK.RecordID=%d;", $this->basefrom, $this->akid);
+			$this->ondid = $this->scalar($query);
 		}
 		if ($this->ondid > 0) {
 			$this->ondnaam = (new cls_Onderdeel())->Naam($this->ondid);
@@ -2520,7 +2527,7 @@ class cls_Afdelingskalender extends cls_db_base {
 	
 	public function add($p_ondid) {
 		$this->tas = 1;
-		$this->vulvars($p_ondid);
+		$this->vulvars(-1, $p_ondid);
 		$nrid = $this->nieuwrecordid();
 		
 		$query = sprintf("SELECT DATE_ADD(IFNULL(MAX(AK.Datum), CURDATE()), INTERVAL 7 DAY) FROM %s WHERE OnderdeelID=%d;", $this->basefrom, $p_ondid);
@@ -2537,14 +2544,25 @@ class cls_Afdelingskalender extends cls_db_base {
 	
 	public function update($p_akid, $p_kolom, $p_waarde) {
 		$this->tas = 2;
-		if ($this->pdoupdate($p_akid, $p_kolom, $p_waarde) > 0) {
-			$this->mess = sprintf("%s: kolom '%s' in record %d is in '%s' gewijzigd.", $this->table, $p_kolom, $p_akid, $p_waarde);
+		$this->vulvars($p_akid);
+		$rv = "";
+		
+		$query = sprintf("SELECT COUNT(*) FROM %s WHERE AK.OnderdeelID=%d AND AK.Datum='%s' AND AK.RecordID<>%d;", $this->basefrom, $this->ondid, $p_waarde, $this->akid);
+		if ($p_kolom == "Datum" and $this->scalar($query) > 0) {
+			$this->mess = sprintf("Datum '%s' staat al in de afdelingskalender van %s. De wijziging wordt niet verwerkt.", $p_waarde, $this->ondnaam);
+			$rv = $this->mess;
+			$this->log($this->akid);
+		} elseif ($this->pdoupdate($p_akid, $p_kolom, $p_waarde) > 0) {
 			$this->log($p_akid);
 		}
+		
+		return $rv;
 	}
 	
 	public function delete($p_akid) {
 		$this->tas = 3;
+		$this->vulvars($p_akid);
+		
 		if ((new cls_Aanwezigheid())->aantal(sprintf("AfdelingskalenderID=%d", $p_akid)) == 0) {
 			$this->pdodelete($p_akid);
 		} else {
@@ -6581,6 +6599,8 @@ class cls_Rekening extends cls_db_base {
 			$this->log($this->rkid);
 		} elseif ($p_kolom == "Datum" and strtotime($p_waarde) === false) {
 			$this->mess = sprintf("%s is geen geldige datum, deze wijziging wordt niet doorgevoerd", $p_waarde);
+		} elseif ($p_kolom == "BETAALDAG" and is_numeric($p_waarde) === false) {
+			$this->mess = sprintf("%s is geen geldige waarde voor betaaldagen, deze wijziging wordt niet doorgevoerd", $p_waarde);
 			$this->log($this->rkid);
 		} elseif ($this->pdoupdate($this->rkid, $p_kolom, $p_waarde) > 0) {
 			$this->log($this->rkid);

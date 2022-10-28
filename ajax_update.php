@@ -101,7 +101,9 @@ if ($_SESSION['lidid'] > 0) {
 		
 	} elseif ($ent == "afdelingskalenderedit") {
 		$i_ak = new cls_Afdelingskalender();
-		$i_ak->update($rid, $kolom, $newvalue);
+		$rv = $i_ak->update($rid, $kolom, $newvalue);
+		$i_ak = null;
+		echo(json_encode($rv));
 		
 	} elseif ($ent == "organisatieedit" and toegang("Ledenlijst/Basisgegevens/Organisaties")) {
 		$i_org = new cls_Organisatie();
@@ -132,10 +134,6 @@ if ($_SESSION['lidid'] > 0) {
 		$i_m = null;
 		
 		$rv = json_encode($rv);
-		
-//		debug("json_error: " . json_last_error_msg(), 0, 1);	
-//		debug(json_encode($rv), 0, 1);
-		
 		echo($rv);
 		
 	} elseif ($ent == "mailingcontrole") {
