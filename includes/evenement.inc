@@ -176,6 +176,7 @@ function muteerevenement($eventid) {
 
 	$i_ev = new cls_Evenement();
 	$i_ed = new cls_Evenement_Deelnemer();
+	$i_lo = new cls_Lidond();
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		if (strtotime($_POST['Datum']) === FALSE) {
@@ -318,7 +319,7 @@ function muteerevenement($eventid) {
 	
 		echo("<span>\n");
 		printf("<label>Type evenement</label><select name='TypeEvenement'>%s</select>\n", $optiontypes);
-		printf("<label>In agenda</label>%s\n", fnEvenementOmschrijving($row, 1, "p"));
+		printf("<label>Opmaak in agenda</label>%s\n", fnEvenementOmschrijving($row, 1, "p"));
 		echo("</span>\n");
 	
 		$ondrows = (new cls_Onderdeel())->lijst(1, "", $datum);
@@ -376,6 +377,7 @@ function muteerevenement($eventid) {
 		}
 		echo("<th>Status</th><th>Opmerking en functie</th><th>Ingevoerd</th><th></th></tr>\n</thead>\n");
 		$dtfmt->setPattern(DTLONG);
+		$uitleg = "";
 		foreach ($i_ed->overzichtevenement($recordid) as $rd) {
 			$optstat = "";
 			foreach (ARRDLNSTATUS as $key => $val) {
@@ -386,10 +388,14 @@ function muteerevenement($eventid) {
 				$optstat .= sprintf("<option value='%s' %s>%s</option>\n", $key, $s, $val);
 			}
 			echo("<tr>\n");
-			if (strlen($rd->Telefoon) >= 10) {
-				$t = "<br>\n" . $rd->Telefoon;
-			} else {
+			if ($i_lo->islid($rd->LidID, $beperktotgroep, $datum)) {
 				$t = "";
+			} else {
+				$t = " *";
+				$uitleg = "* = geen lid van 'Deelname beperken tot'";
+			}
+			if (strlen($rd->Telefoon) >= 10) {
+				$t .= "<br>\n" . $rd->Telefoon;
 			}
 			printf("<td class='ed_status_%s'>%s %s</td>\n", $rd->Status, htmlentities($rd->NaamDeelnemer), $t);
 			if ($meerderestartmomenten == 1) {
@@ -413,6 +419,9 @@ function muteerevenement($eventid) {
 			$optionsnieuw .= sprintf("<option value=%d>%s</option>\n", $lidrow->LidID, htmlentities($lidrow->Naam));
 		}
 		printf("<select name='nwdln' onChange='this.form.submit();'>%s</select>\n", $optionsnieuw);
+		if (strlen($uitleg) > 0) {
+			printf("<p>%s</p>\n", $uitleg);
+		}
 	}
 //	echo("</div> <!-- Einde deelnemersevenementmuteren -->\n");
 	$aantpotdln = count($rowpd);
