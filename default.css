@@ -294,6 +294,10 @@ header h1 {
 	padding-right: 2px;
 }
 
+input.w2 {
+	width: 30px;
+}
+
 input.w3 {
 	width: 35px;
 }
@@ -569,7 +573,7 @@ td.unlock {
 	background-image: url('data:image/jpg;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAAGXcA1uAAAACXBIWXMAAFxGAABcRgEUlENBAAAACXRFWHRDb21tZW50AACJKo0GAAAEZklEQVR4nI1WW2xUVRQdjV/6R0gs2opoZyqgVNAW1ApabYq0iMSa2IZgUPwp+KUkAqZWGoQWsJVSH4hKKZ2ZENHUQaGUD4nU+kGMUqPwoULRtMbHhxiYmftY7rXPPdfptIiT7M7knrP2c619GwEQiTQONqvxz5xdWdzznmuetp9wgeBKlA/098yOLB5LuljU4yEy/dU0MnKrbLej12KlXQ7ufttRJ7yx/KMgRPG2DBKnPCyQm+uOeiYKHVbIA7qJyoVZ4rsmfsEcCKopTK5xsEGfle36BXPfdFC+x0VFt4sH45JF4yAisR0Z/HER4w5LdpxH5JbWNEpey+COzizmveVg/rsuYtvkoGhzGre2peF40BruksPi1hFErl47hKLNGT28rT2DMjmQGCmb1dic9rN4+gjwTP9Ee/zgRVy15gsCpmkJMzsc3L4zi+FffWz93ENy2McD3aYBTJJdYhVTNw7/2ykmzEZvOe4h/0Pg/fs8lGw/bwA3SfdYJYHxbzwFVnc74DBf6Pd0Hqy6uM0A6kvkIqtn21kkW89C2X62qbQrq93QOoKiC9jla577Etc9f3KC6QQaB/v0Lv8EoIac+eUa5xoN77FVDMXWTdZStpotZ+stAA/v98I8yb4FUuC977tYKJ1ZJGeVCWGlkIWkjEzZcCos7vhZH60nPKRl5JOBNL2ilpGwI1V7HY009jcmjSSAlxUQ226GNvv17IShfTUK3Lc3UA0BN74yogOzoEOnfR3Yig9cHdifl8ykCVLADQK4eUs6BKUEwEgtn3m48w0DKH/HNcJSQPM5kBozthoQP+Q5LSu0Ov0bNBLVogDOoLDl0jgQZcX0yGCmR3lVmAj1nENqSe8FkVPmMiAH1b0eKKiQGuQJBzgZj8ivgEsF+VwqsEBLxGsF8H8sxykCHwWh38B5iinWJv5CQwqoPeCjStJ+aL8x/q4ShVYnjC1OenhE7tQEtvSgjzrh/spPoT7oiz4tV+vZ2EqROptICrKRTx5wkDrj49gPYj/6GJDvdQOesosjJMO4HpRlPYZpXBOVCR/LPvTtjtEhNBdu+knpyqbPCqbFZVjTY6jLqVEofLZcdjdHfqVA0bZzhhYMQHpHg8naQJ1DcnmPoxXVJWSry6rhLuX36j4Xqz928WzKU1soCy8/kO4vG6Bwk5GDZbddgLSkvDbO/A7USeaL9zlY0uOittfF0riLR8WS3/qhXKxkwgVpA1j52EWZG4jvJSsnVrMm5epcKCu+Mvi+svKaH7SNFm3LDdA8oiKg5QeKf+3h5M8i8E4n3BCWCLSOIROAclRJBoGKcwI0TVn/ncqTm5tBpgeK4waf3Z7F2j4HLx5xsb7fxYajxjYOuHjpmHyLcY9ZIjAId9n1Td+bhadrUgQyb+coZojjywViNflEsIyzFZFx5btdlHWNWtHFrNCmcYmTu6Wy0J+Qhb9KRLPyUGCfAE/9h606DMUQG/B/jD7HrYqclRENXkG5/0ZcyZoCTDTf3z9hwQPsF1ehhQAAAABJRU5ErkJggg==');
 }
 
-td.trash, .beheerwijzigingen td:last-child, #deelnemersevenementmuteren td:last-child, #lijstoutbox td:last-child, #muteertypeevenement td:last-child, #overzichteigenlijsten td:last-child, #stukkenmuteren td:last-child {
+td.trash, .beheerwijzigingen td:last-child, #lijstoutbox td:last-child, #muteertypeevenement td:last-child, #overzichteigenlijsten td:last-child, #stukkenmuteren td:last-child {
 	background-image: url("data:image/jpg;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAA7EAAAOxAGVKw4bAAABK0lEQVRIie3VMUoDURAG4C8hbCEiaCEiQaw8gQewFOyscoGUFhYWnsDKIljmEjaCpbXnkBAipBCrEILFzjMvISar6SQ/DPv4d97/z8xb9tWsxh4ecIBJcHX0cYVhBY2l6OASBRoRRXCdVZvrFQze8YgRxhGj4N5Xba5l63NcVDCsgic8U7ZLOedr3JjO+a+o4x6vGCaDAk3crimecBiaMyPaD3IbHxlfKOc+Me14HJU2lOeRsIPP4AapnYRBiLXRy6KlHGEPpxG94Fpzue3QGCTRhlkUUUWOXWxlFSZsxbscO6HxjSqf6VrYGGwMNgb/wWD+X7QI6RaTPdP613fHCbpLiqib7Xq+wG5o/JjQxxGO8bYkb5FJM/b288T8wkk4U95svz2fCe7wkpNfrmk0W0pz02cAAAAASUVORK5CYII=");
 	background-repeat: no-repeat;
 	background-position: center center;
@@ -974,6 +978,7 @@ td.print {
 	list-style: none;
 	position: relative;
 	float: left;
+	width: 250fpx;
 	margin-left: 0;
 	padding-left: 0;
 }
@@ -987,7 +992,6 @@ td.print {
 #afdelingsmailing p {
 	margin-right: 8px;
 	overflow: hidden;
-	width: 275px;
 	height: 18px;
 	padding-top: 3px;
 	padding-bottom: 3px;
@@ -1301,15 +1305,8 @@ input.omschrijving {
 	border-width: 1px;
 }
 
-#evenementenbeheer input[type='time'], #evenementenbeheer input[type='number'] {
+#evenementenbeheer input[type='time'] {
 	width: 75px;
-}
-
-#eve22nementenbeheer input[type='checkbox'] {
-	margin-left: 0;
-	margin-right: 75px;
-	padding-left: 2px;
-	background-color: green;
 }
 
 #evenementenbeheer select {
