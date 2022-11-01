@@ -5,9 +5,9 @@ require_once('./includes/standaard.inc');
 toegang("", 0, 0);
 
 $ent = $_GET['entiteit'] ?? "";
-$rid = $_POST['id'] ?? 216;
+$rid = $_POST['id'] ?? 0;
 $kolom = $_POST['field'] ?? "";
-$newvalue = $_POST['value'] ?? 0;
+$newvalue = $_POST['value'] ?? "";
 $lidid = $_POST['lidid'] ?? 0;
 $ondtype = $_POST['ondtype'] ?? "C";
 $ondid = $_POST['ondid'] ?? 0;
@@ -16,7 +16,9 @@ if ($_SESSION['lidid'] > 0) {
 
 	if ($ent === "lid") {
 		$i_lid = new cls_Lid();
-		$i_lid->update($rid, $kolom, $newvalue);
+		$rv = $i_lid->update($rid, $kolom, $newvalue);
+		$i_lid = null;
+		echo(json_encode($rv));
 		
 	} elseif ($ent == "naamlid") {
 		$i_lid = new cls_Lid($rid);
@@ -153,7 +155,6 @@ if ($_SESSION['lidid'] > 0) {
 		echo(json_encode($rv));
 		
 	} elseif ($ent == "mailing_html_ontvangers") {
-//		$rid = $_GET['mailingid'] ?? 0;
 		$mid = $_POST['mailingid'] ?? 4;
 		$i_m = new Mailing($rid);
 		$rv = $i_m->html_ontvangers($mid, false);
@@ -288,10 +289,22 @@ if ($_SESSION['lidid'] > 0) {
 	} elseif ($ent == "evenement" and toegang("Evenementen/Beheer")) {
 		$i_ev = new cls_Evenement();
 		$i_ev->update($rid, $kolom, $newvalue);
+		$i_ev = null;
+
+	} elseif ($ent == "evenementdln" and toegang("Evenementen/Beheer")) {
+		$i_ed = new cls_Evenement_Deelnemer();
+		$i_ed->update($rid, $kolom, $newvalue);
+		$i_ed = null;
+		
+	} elseif ($ent == "verw_dln" and toegang("Evenementen/Beheer")) {
+		$i_ed = new cls_Evenement_Deelnemer();
+		$i_ed->delete($rid);
+		$i_ed = null;
 		
 	} elseif ($ent == "add_autorisatie" and $_SESSION['webmaster'] == 1) {
 		$i_aa = new cls_Authorisation();
 		$i_aa->add($_POST['tabpage']);
+		$i_aa = null;
 		
 	} elseif ($ent == "update_autorisatie" and $_SESSION['webmaster'] == 1) {
 		$i_aa = new cls_Authorisation();
