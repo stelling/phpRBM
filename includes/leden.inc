@@ -481,24 +481,7 @@ function fnOnderdelenmuteren($ondtype="G") {
 
 	$ondrows = $i_ond->editlijst($ondtype);
 	if ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['formname'])) {
-		if ($_POST['formname'] == "muteren_onderdelen") {
-			$omz["Kode"] = "Code";
-			$omz["Naam"] = "Naam";
-			foreach ($ondrows as $row) {
-				foreach ($omz as $kolomnaam => $bascn) {
-					$contr_name = $bascn . "_" . $row->lnkRecordID;
-					if ($kolomnaam == "Alleen leden" and isset($_POST[$contr_name])) {
-						$val = 1;
-					} elseif ($kolomnaam == "Alleen leden") {
-						$val = 0;
-					} else {
-						$val = $_POST[$contr_name];
-					}
-					$i_ond->update($row->lnkRecordID, $kolomnaam, $val);
-				}
-			}
-			
-		} elseif ($_POST['formname'] == "muteren_leden_onderdeel") {
+		if ($_POST['formname'] == "muteren_leden_onderdeel") {
 			$omz["Functie"] = "Functie";
 			$omz["EmailFunctie"] = "Email";
 			$omz["Opmerk"] = "Opmerking";
@@ -534,7 +517,8 @@ function fnOnderdelenmuteren($ondtype="G") {
 			} else {
 				$scherm = "W";
 			}
-			$i_lo->opschonen();
+			$i_lo->autogroepenbijwerken(0, 3, $oid);
+			$i_lo->auto_einde($oid);
 		}
 	} else {
 		$i_ond->controle();
@@ -1407,7 +1391,6 @@ function algemeenlidmuteren($lidid) {
 				data: { lidid: %1\$d, ondid, value: value },
 				success:function(response){}
 			});
-			
 		});
 		
 		\$('input, #Geslacht').change(function(){
@@ -2567,21 +2550,32 @@ function IsIBANgoed($IBAN, $LeegIsGoed=1) {
 		$retval = true;
       
    } elseif (strlen($IBAN) == 18) {
-      $IBAN = strtoupper($IBAN);
-      $controle = intval(substr($IBAN, 2, 2));
-      $IBAN = substr($IBAN, 4, 14) . substr($IBAN, 0, 2) . "00";
-      $totaal = "";
-      for ($teller=0; $teller < strlen($IBAN); $teller++) {
-         if (ord(substr($IBAN, $teller, 1)) < 65) {
-            $totaal = $totaal . substr($IBAN, $teller, 1);
-         } else {
-            $totaal = $totaal . strval(ord(substr($IBAN, $teller, 1)) - 55);
-         }
-      }
-      $totaal = 98 - (int)bcmod($totaal, 97);
-      if ($controle == $totaal) {
-         $retval = true;
-      }
+		$IBAN = strtoupper(str_replace(" ", "", $IBAN));
+		$landcode = substr($IBAN, 0, 2);
+		$controlegetal = intval(substr($IBAN, 2, 2));
+		$reknr = substr($IBAN, 4);
+		
+		$tecontroleren = $reknr . $landcode . "00";
+		
+		$controlestring = "";
+		for ($t=0; $t < strlen($tecontroleren); $t++) {
+			$c = substr($tecontroleren, $t, 1); 
+			if ($c >= "A" and $c <= "Z") {
+				$o = ord($c) - 55;
+			} else {
+				$o = $c;
+			}
+			$controlestring .= "" . $o;
+		}
+		
+		$checksum = intval(substr($controlestring, 0, 1));
+		for ($pos = 1; $pos < strlen($controlestring); $pos++) {
+			$checksum *= 10;
+			$checksum += intval(substr($controlestring, $pos,1));
+			$checksum %= 97;
+		}
+
+		$retval = ((98-$checksum) == $controlegetal);
    }
    
    return $retval;
