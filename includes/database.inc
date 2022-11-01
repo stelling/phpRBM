@@ -63,7 +63,7 @@ $TypeActiviteit[10] = "Webshop";
 $TypeActiviteit[11] = "Bewaking";
 $TypeActiviteit[12] = "Diploma's per lid";
 $TypeActiviteit[13] = "Parameters";
-$TypeActiviteit[14] = "Rekeningen";
+$TypeActiviteit[14] = "Rekeningen en betalingen";
 $TypeActiviteit[15] = "Autorisatie";
 $TypeActiviteit[16] = "Toestemmingen per lid";
 $TypeActiviteit[18] = "Taken";
@@ -73,7 +73,6 @@ $TypeActiviteit[21] = "Afdelingskalender";
 $TypeActiviteit[22] = "Stukken";
 $TypeActiviteit[23] = "Eigen lijsten";
 $TypeActiviteit[24] = "Afwezigheid/presentie";
-$TypeActiviteit[25] = "Betalingen";
 $TypeActiviteit[97] = "Foutieve login";
 $TypeActiviteit[98] = "Performance";
 $TypeActiviteit[99] = "Debug- en foutmeldingen";
@@ -1283,6 +1282,10 @@ class cls_Lid extends cls_db_base {
 			$p_waarde = str_replace(";", ",", $p_waarde);
 		}
 		
+		if ($p_kolom == "Bankrekening") {
+			$p_waarde = strtoupper($p_waarde);
+		}
+		
 		if ($p_kolom == "Postcode" and strlen($p_waarde) != 0 and strlen($p_waarde) != 7 and substr($p_waarde, 0, 4) < "9999" and substr($p_waarde, 0, 4) >= "1000") {
 			$this->mess = "De postcode is niet correct, deze wijziging wordt niet verwerkt.";
 			$this->tm = 1;
@@ -1295,8 +1298,12 @@ class cls_Lid extends cls_db_base {
 			$this->mess = "De geboortedatum kan niet in de toekomst liggen, deze wijziging wordt niet verwerkt.";
 			$this->tm = 1;
 			
+		} elseif ($p_kolom == "Bankrekening" and strlen($p_waarde) > 0 and strlen($p_waarde) != 18) {
+			$this->mess = "Een bankrekening (IBAN) moet uit 18 karakters bestaan, deze wijziging wordt niet verwerkt.";
+			$this->tm = 1;
+			
 		} elseif ($p_kolom == "Bankrekening" and strlen($p_waarde) > 0 and $p_waarde != "NULL" and IsIBANgoed($p_waarde, 1) == false) {
-			$this->mess = "De bankrekening is niet correct, deze wijziging wordt niet verwerkt.";
+			$this->mess = "Het controlegetal van de bankrekening is niet correct, deze wijziging wordt niet verwerkt.";
 			$this->tm = 1;
 				
 		} elseif ($p_kolom == "Burgerservicenummer" and strlen($p_waarde) > 0 and $p_waarde != "NULL" and (!is_numeric($p_waarde) or $p_waarde < 100000000 or $p_waarde > 999999999)) {
@@ -1309,11 +1316,8 @@ class cls_Lid extends cls_db_base {
 			
 		} else {
 			
-			if ($p_kolom == "Adres") {
+			if ($p_kolom == "Adres" or $p_kolom == "Postcode") {
 				$this->tas = 1;
-			} elseif ($p_kolom == "Postcode") {
-				$this->tas = 1;
-				$p_waarde = strtoupper($p_waarde);
 			} elseif ($p_kolom == "Telefoon" or $p_kolom == "Mobiel") {
 				$this->tas = 2;
 			} elseif ($p_kolom == "Email" or $p_kolom == "EmailOuders" or $p_kolom == "EmailVereniging") {
@@ -1342,8 +1346,17 @@ class cls_Lid extends cls_db_base {
 			}
 		}
 		
+		if ($this->tm == 1) {
+			$rv = $this->mess;
+		} else {
+			$rv = "";
+		}
+		
 		$this->log($this->lidid);
-	}
+		
+		return $rv;
+
+	}  # update
 	
 	public function controle() {
 		$lrows = $this->basislijst();
@@ -2518,9 +2531,14 @@ class cls_Afdelingskalender extends cls_db_base {
 		global $dtfmt;
 		
 		$rv = "";
+		$dtfmt->setPattern(DTTEXT);
 		foreach ($this->lijst($p_onderdeelid, "", $p_filter) as $row) {
+			$o = $dtfmt->format(strtotime($row->Datum));
+			if (strlen($row->Omschrijving) > 0) {
+				$o .= " " . substr($row->Omschrijving, 0, 25);
+			}
 			$c = checked($row->RecordID, "option", $p_cv);
-			$rv .= sprintf("<option value=%d %s>%s</option>\n", $row->RecordID, $c, $dtfmt->format(strtotime($row->Datum)));
+			$rv .= sprintf("<option value=%d %s>%s</option>\n", $row->RecordID, $c, $o);
 		}
 		return $rv;
 	}
@@ -2803,11 +2821,11 @@ class cls_Lidond extends cls_db_base {
 	
 	public function lijst($p_ondid, $p_filter="", $p_ord="GR.Volgnummer, GR.Kode", $p_per="", $p_limiet=0) {
 		
-		if (strlen($p_per) >= 8) {
-			$w = sprintf("LO.Vanaf <= '%1\$s' AND IFNULL(LO.Opgezegd, '9999-12-31') >= '%1\$s'", $p_per);
-		} else {
-			$w = cls_db_base::$wherelidond;
+		if (strlen($p_per) < 10) {
+			$p_per = date("Y-m-d");
 		}
+		
+		$w = sprintf("LO.Vanaf <= '%1\$s' AND IFNULL(LO.Opgezegd, '9999-12-31') >= '%1\$s'", $p_per);
 		if ($p_ondid > 0) {
 			$w .= sprintf(" AND LO.OnderdeelID=%d", $p_ondid);
 		}
@@ -3429,7 +3447,7 @@ class cls_Lidond extends cls_db_base {
 			}
 		
 			if ($p_ondid <= 0) {
-				$this->mess = sprintf("cls_Lidond->auto_einde in %.3F seconden uitgevoerd.", (microtime(true) - $starttijd));
+				$this->mess = sprintf("cls_Lidond->auto_einde in %.3f seconden uitgevoerd.", (microtime(true) - $starttijd));
 				$this->Log();
 			}
 		}
@@ -4984,7 +5002,7 @@ class cls_Logboek extends cls_db_base {
 		}
 		
 		$s = "A.DatumTijd, Omschrijving";
-		if (in_array($p_type, array(-1, 1, 4, 5, 6, 7, 10, 12, 16, 19, 98, 99))) {
+		if (in_array($p_type, array(-1, 1, 4, 5, 6, 7, 10, 12, 14, 16, 19, 98, 99))) {
 			$s .= ", IF(A.ReferLidID > 0, A.ReferLidID, '') AS betreftLid";
 		}
 		$s .= ", CONCAT(TypeActiviteit, IF(TypeActiviteitSpecifiek > 0, CONCAT('-', TypeActiviteitSpecifiek), '')) AS `Type`";
@@ -7002,7 +7020,7 @@ class cls_RekeningBetaling extends cls_db_base {
 		$this->basefrom = $this->table . " AS RB";
 		$this->pkkol = "RecordID";
 		$this->vulvars($p_rbid);
-		$this->ta = 25;
+		$this->ta = 14;
 	}
 
 	private function vulvars($p_rbid=-1) {
@@ -7032,6 +7050,7 @@ class cls_RekeningBetaling extends cls_db_base {
 	public function add($p_rkid, $p_datum, $p_bedrag) {
 		$i_rk = new cls_Rekening($p_rkid);
 		$nrid = 0;
+		$this->tas = 21;
 		
 		if (strlen($p_bedrag) == 0) {
 			$bedrag = 0;
@@ -7062,10 +7081,12 @@ class cls_RekeningBetaling extends cls_db_base {
 		$this->log($nrid);
 		$i_rk = null;
 		return $nrid;
+
 	}  # add
 	
 	public function delete($p_rbid) {
 		$this->vulvars($p_rbid);
+		$this->tas = 23;
 		
 		if ($this->pdodelete($this->rbid) > 0) {
 			$this->log($this->rbid);
@@ -7833,6 +7854,7 @@ class cls_Parameter extends cls_db_base {
 		$this->arrParam['path_attachments'] = array("Type" => "T");
 		$this->arrParam['path_pasfoto'] = array("Type" => "T");
 		$this->arrParam['path_templates'] = array("Type" => "T");
+		$this->arrParam['title_head_html'] = array("Type" => "T", "");
 		$this->arrParam['urlvereniging'] = array("Type" => "T");
 		$this->arrParam['url_eigen_help'] = array("Type" => "T");	
 	}
@@ -7921,8 +7943,8 @@ class cls_Parameter extends cls_db_base {
 			$xw = sprintf("IFNULL(ValueNum, 0)<>%d", $p_waarde);
 		} elseif ($cur->ParamType == "F") {
 			$p_waarde = sprintf("%F", $p_waarde);
-			$set = sprintf("ValueNum=%s", $p_waarde);
-			$xw = sprintf("IFNULL(ValueNum, 0)<>%F", $p_waarde);
+			$set = sprintf("ValueNum=%.6F", $p_waarde);
+			$xw = sprintf("IFNULL(ValueNum, 0)<>%.6F", $p_waarde);
 		} elseif ($cur->ParamType == "T") {
 			if (strlen($p_waarde) == 0) {
 				$set = "ValueChar=NULL, ValueNum=NULL";
@@ -7946,7 +7968,7 @@ class cls_Parameter extends cls_db_base {
 				}
 				$this->log($cur->RecordID);
 			}
-			$_SESSION['settings'][$p_naam] = $p_waarde;
+			$_SESSION['settings'][$p_naam] = str_replace("\"", "", $p_waarde);
 		}
 	}
 	
