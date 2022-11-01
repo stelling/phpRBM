@@ -1394,31 +1394,35 @@ class Mailing {
 		if ($this->mid > 0) {
 			$ml = (new cls_Mailing())->record($this->mid);
 			
-			$this->mailingvanafid = $ml->MailingVanafID;
-			if (strlen($ml->to_name) > 0 and strlen(trim($ml->OmschrijvingOntvangers)) == 0) {
-				$this->OmschrijvingOntvangers = trim($ml->to_name);
+			if (isset($ml->RecordID) and $ml->RecordID > 0) {
+				$this->mailingvanafid = $ml->MailingVanafID;
+				if (strlen($ml->to_name) > 0 and strlen(trim($ml->OmschrijvingOntvangers)) == 0) {
+					$this->OmschrijvingOntvangers = trim($ml->to_name);
+				} else {
+					$this->OmschrijvingOntvangers = trim($ml->OmschrijvingOntvangers);
+				}
+				$this->cc_addr = trim($ml->cc_addr);
+				$this->subject = trim($ml->subject);
+				$this->Opmerking = trim($ml->Opmerking);
+				$this->message = $ml->message;
+				$this->NietVersturenVoor = $ml->NietVersturenVoor;
+				$this->CCafdelingen = $ml->CCafdelingen;
+				$this->template = $ml->template;
+				$this->zichtbaarvoor = $ml->ZichtbaarVoor;
+				$this->htmldirect = $ml->HTMLdirect;
+				$this->zonderbriefpapier = $ml->ZonderBriefpapier;
+				$this->Ingevoerd = $ml->Ingevoerd;
+				$this->IngevoerdDoor = $ml->IngevoerdDoor;
+				$this->Gewijzigd = $ml->Gewijzigd;
+				$this->GewijzigdDoor = $ml->GewijzigdDoor;
+				$this->SentBy = $ml->SentBy;
+				$this->deleted_on = $ml->deleted_on;
+				$this->DeletedBy = $ml->DeletedBy;
+				$this->evenementid = $ml->EvenementID;
+				$this->aant_rcpt = (new cls_Mailing_rcpt())->aantalontvangers($this->mid);
 			} else {
-				$this->OmschrijvingOntvangers = trim($ml->OmschrijvingOntvangers);
+				$this->mid = 0;
 			}
-			$this->cc_addr = trim($ml->cc_addr);
-			$this->subject = trim($ml->subject);
-			$this->Opmerking = trim($ml->Opmerking);
-			$this->message = $ml->message;
-			$this->NietVersturenVoor = $ml->NietVersturenVoor;
-			$this->CCafdelingen = $ml->CCafdelingen;
-			$this->template = $ml->template;
-			$this->zichtbaarvoor = $ml->ZichtbaarVoor;
-			$this->htmldirect = $ml->HTMLdirect;
-			$this->zonderbriefpapier = $ml->ZonderBriefpapier;
-			$this->Ingevoerd = $ml->Ingevoerd;
-			$this->IngevoerdDoor = $ml->IngevoerdDoor;
-			$this->Gewijzigd = $ml->Gewijzigd;
-			$this->GewijzigdDoor = $ml->GewijzigdDoor;
-			$this->SentBy = $ml->SentBy;
-			$this->deleted_on = $ml->deleted_on;
-			$this->DeletedBy = $ml->DeletedBy;
-			$this->evenementid = $ml->EvenementID;
-			$this->aant_rcpt = (new cls_Mailing_rcpt())->aantalontvangers($this->mid);
 		} else {
 			$this->Ingevoerd = date("Y-m-d");
 		}
@@ -1778,17 +1782,16 @@ function fnRekeningenMailen($op) {
 				$_POST['mindatum'] = $_POST['rekdatum'];
 				$_POST['maxdatum'] = $_POST['rekdatum'];
 			}
-			$mindat = change_month_to_uk($_POST['mindatum']);
-			$maxdat = change_month_to_uk($_POST['maxdatum']);
-			if (strtotime($mindat) !== FALSE) {
-				$mindat = date("Y-m-d", strtotime($mindat));
-			} else {
+			$mindat = $_POST['mindatum'];
+			$maxdat = $_POST['maxdatum'];
+			if (strtotime($mindat) == FALSE) {
 				$mindat = $i_rk->min("Datum");
 			}
-			if (strtotime($maxdat) !== FALSE) {
-				$maxdat = date("Y-m-d", strtotime($maxdat));
-			} else {
+			if (strtotime($maxdat) == FALSE) {
 				$maxdat = $i_rk->max("Datum");
+			}
+			if ($mindat > $maxdat) {
+				$maxdat = $mindat;
 			}
 			$filter = sprintf("RK.seizoen=%d AND RK.Nummer >= %d AND RK.Nummer <= %d AND RK.Datum >= '%s' AND RK.Datum <= '%s'", $_POST['rekseizoen'], $_POST['minreknr'], $_POST['maxreknr'], $mindat, $maxdat);
 			if (isset($_POST['reklid']) and is_numeric($_POST['reklid']) and $_POST['reklid'] > 0) {
@@ -1914,8 +1917,12 @@ function fnVerstuurRekening($p_rkid, $p_toonmelding=0) {
 	}
 				
 	$email->bericht = RekeningDetail($rkrow->Nummer);
-	$email->aannaam = $rkrow->Tenaamstelling;
-	$email->onderwerp = $rkrow->OMSCHRIJV;
+	if ($rkrow->BetaaldDoor != $rkrow->Lid) {
+		$email->aannaam = (new cls_Lid())->naam($rkrow->BetaaldDoor);
+	} else {
+		$email->aannaam = $rkrow->Tenaamstelling;
+	}
+	$email->onderwerp = $rkrow->Nummer . " ". $rkrow->OMSCHRIJV;
 				
 	if (strlen($email->aanadres) == 0) {
 		$mess = sprintf("Rekening %d kan niet worden verzonden, omdat er van %s geen geldig e-mailadres in de database bekend is.", $rkrow->Nummer, $email->aannaam);
