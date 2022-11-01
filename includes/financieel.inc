@@ -63,7 +63,12 @@ function fnRekeningen() {
 	} elseif ($currenttab2 == "Logboek") {
 		$rows = (new cls_Logboek())->lijst(14);
 		if (count($rows) > 0) {
-			echo(fnDisplayTable($rows, "logboek", "Logboek rekeningen", 0, "", "", "logboek"));
+			echo("<div id='filter'>\n");
+			echo("<input type='text' id='tbFilterNaam' placeholder='Tekstfilter' OnKeyUp=\"fnFilter('logboek', this);\">\n");
+			echo("</div> <!-- Einde filter -->\n");
+			
+			$kols = fnStandaardKols("logboek");
+			echo(fnDisplayTable($rows, $kols, "Logboek rekeningen", 0, "", "logboek"));
 		} else {
 			echo("<p>Er zijn geen mutaties bekend.</p>\n");
 		}
@@ -197,7 +202,7 @@ function fnRekeningMuteren($p_rkid=-1) {
 		
 		printf("<label>Seizoen</label><select id='Seizoen'>%s</select>\n", $i_seiz->htmloptions($row->Seizoen));
 		printf("<label>Rekeningdatum</label><input type='date' id='Datum' value='%s' required>\n", $row->Datum);
-		printf("<label>Omschrijving</label><input type='text' id='OMSCHRIJV' class='w30' value='%s' maxlength=30>\n", $row->OMSCHRIJV);
+		printf("<label>Omschrijving</label><input type='text' id='OMSCHRIJV' class='w35' value='%s' maxlength=35>\n", $row->OMSCHRIJV);
 		printf("<label>Tenaamstelling rekening</label><input type='text' id='DEBNAAM' class='w60' value='%s' maxlength=60>\n", $row->DEBNAAM);
 		if ($row->AantLid > 1) {
 			$d = "";
@@ -216,7 +221,15 @@ function fnRekeningMuteren($p_rkid=-1) {
 		} else {
 			$bdt = $row->BETAALDAG;
 		}
-		printf("<label id='lblBETAALDAG'>Betaaltermijn in dagen</label><input type='number' id='BETAALDAG' value=%d min=1>\n", $bdt);
+		printf("<label id='lblBETAALDAG'>Betaaltermijn in dagen</label><input type='text' id='BETAALDAG' value=%d class='w3' maxlength=3>\n", $bdt);
+		
+		if ($row->BET_TERM < 1) {
+			$bt = 1;
+		} else {
+			$bt = $row->BET_TERM;
+		}
+		printf("<label id='lblBET_TERM' class='k2'>Aantal betaaltermijnen</label><input type='text' id='BET_TERM' value=%d class='w2' maxlength=2>\n", $bt);
+		
 		echo("</div> <!-- einde rekeningkopmuteren  -->\n");
 		
 		echo("<div class='clear'></div>\n");
@@ -613,6 +626,7 @@ function RekeningDetail($p_rkid, $p_metbriefpapier=0) {
 	
 	$i_rk = new cls_Rekening($p_rkid);
 	
+	$i_rk->controle($p_rkid);
 	$rk = $i_rk->record($p_rkid);
 	
 	$rekening_template = $_SESSION['settings']['path_templates'] . sprintf("rekening %d.html", $i_rk->seizoen);
