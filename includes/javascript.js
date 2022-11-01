@@ -188,7 +188,6 @@ function saveparam(control) {
 		url: 'ajax_update.php?entiteit=updateparam',
 		type: 'post',
 		dataType: 'json',
-		async: false,
 		data: { name:pn, value:value },
 		success:function(response){}
 	});
@@ -341,7 +340,6 @@ function mailingprops() {
 		url: 'ajax_update.php?entiteit=mailingcontrole',
 		type: 'post',
 		dataType: 'json',
-		async: false,
 		data: { mailingid: mid },
 		success: function(response) {
 			$('#meldingen').html(response['meldingen']);
@@ -371,7 +369,6 @@ function mailingprops() {
 	$.ajax({
 		url: 'ajax_update.php?entiteit=mailingprops',
 		type: 'post',
-		async: false,
 		data: { mailingid: mid, selectie_vangebdatum: $('#selectie_vangebdatum').val(), selectie_temgebdatum: $('#selectie_temgebdatum').val(), selectie_groep: $('#selectie_groep').val() },
 		success: function(response) {
 			if (response['aantalontvangers'] > 1) {
@@ -390,7 +387,6 @@ function mailingprops() {
 		url: 'ajax_update.php?entiteit=mailing_html_ontvangers',
 		type: 'post',
 		dataType: 'json',
-		async: false,
 		data: { mailingid: mid },
 		success: function(response) {
 			if (response.length > 12) {
@@ -457,7 +453,6 @@ function mailing_verw_ontvanger(p_mid, p_lidid, p_email) {
 		url: 'ajax_update.php?entiteit=mailing_verw_ontvanger',
 		type: 'post',
 		dataType: 'json',
-		async: false,
 		data: { mid: mid, lidid: p_lidid, email: p_email }
 	});
 	mailingprops();
@@ -473,7 +468,6 @@ function mailing_verw_selectie_ontvangers() {
 		url: 'ajax_update.php?entiteit=mailing_verw_selectie_ontvangers',
 		type: 'post',
 		dataType: 'json',
-		async: false,
 		data: { mid: mid, selgroep: groepid, vangebdatum: vangebdatum, temgebdatum: temgebdatum },
 		success: function(response){
 			if (response > 0) {
@@ -490,7 +484,6 @@ function mailing_verw_alle_ontvangers() {
 		url: 'ajax_update.php?entiteit=mailing_verw_alle_ontvangers',
 		type: 'post',
 		dataType: 'json',
-		async: false,
 		data: { mid: mid },
 		success: function(response){
 			if (response > 0) {
@@ -508,7 +501,6 @@ function mailing_savemessage() {
 		url: 'ajax_update.php?entiteit=mailing',
 		type: 'post',
 		dataType: 'json',
-		async: false,
 		data: { field:'message', value:value, id:mid },
 		success: function(response){}
 	});
@@ -562,6 +554,7 @@ function rekeningprops() {
 	var rekdatum = new Date($('#Datum').val());
 	var bedragbetaald = $('#bedragbetaald').val();
 	days = parseInt($("#BETAALDAG").val());
+	bt = parseInt($("#BET_TERM").val());
 	var today = new Date();
 	const betaaldatum = new Date(rekdatum.getFullYear(), rekdatum.getMonth(), rekdatum.getDate());
 	
@@ -573,13 +566,15 @@ function rekeningprops() {
 		$('#bedragbetaald').show();
 	}
 	
-	betaaldatum.setDate(rekdatum.getDate() + days);
+	betaaldatum.setDate(rekdatum.getDate() + (days * bt));
 		
 	if (rkbedrag != 0) {
 		$("#lbluitersteBetaling").show();
 		$("#uitersteBetaling").show();
 		$("#lblBETAALDAG").show();
 		$("#BETAALDAG").show();
+		$("#lblBET_TERM").show();
+		$("#BET_TERM").show();
 		const options = { year: 'numeric', month: 'long', day: 'numeric' };
 		$("#uitersteBetaling").html(betaaldatum.toLocaleDateString('nl-NL', options));
 		if (betaaldatum.getTime() < today.getTime() && bedragbetaald < rkbedrag) {
@@ -592,6 +587,8 @@ function rekeningprops() {
 		$("#uitersteBetaling").hide();
 		$("#lblBETAALDAG").hide();
 		$("#BETAALDAG").hide();
+		$("#lblBET_TERM").hide();
+		$("#BET_TERM").hide();
 	}
 	
 	var dn = $("#DEBNAAM");
