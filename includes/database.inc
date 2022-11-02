@@ -296,7 +296,7 @@ class cls_db_base {
 		
 		$p = strpos($p_kolom, ".");
 		if ($p !== false and $p > 0) {
-			$p_kolom = substr($p_kolom, $p);
+			$p_kolom = substr($p_kolom, $p+1);
 		}
 		
 		$query = sprintf("SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%s' AND COLUMN_NAME LIKE '%s';", DB_NAME, $this->table, $p_kolom);
@@ -467,8 +467,9 @@ class cls_db_base {
 	}
 	
 	public function max($p_kolom, $p_filter="") {
+		$tk = $this->typekolom($p_kolom);
 		
-		if ($this->typekolom($p_kolom) == "date") {
+		if ($tk == "date") {
 			$query = sprintf("SELECT IFNULL(MAX(%s), '') FROM %s", $p_kolom, $this->basefrom);
 		} elseif ($this->is_kolom_numeriek($p_kolom) == true) {
 			$query = sprintf("SELECT IFNULL(MAX(%s), 0) FROM %s", $p_kolom, $this->basefrom);
@@ -6581,13 +6582,13 @@ class cls_Rekening extends cls_db_base {
 		
 			$nwreknr = $this->nieuwrecordid($p_rkid);
 
-			$this->query = sprintf("INSERT INTO %1\$s (%2\$s, Seizoen, Datum, Lid, BetaaldDoor, Betaald, Ingevoerd) VALUES (%3\$d, %4\$d, CURDATE(), %5\$d, %5\$d, 0, CURDATE());", $this->table, $this->pkkol, $nwreknr, $p_seiz, $this->lidid);
+			$this->query = sprintf("INSERT INTO %1\$s (%2\$s, Seizoen, Datum, Lid, BetaaldDoor, BET_TERM, Betaald, Ingevoerd) VALUES (%3\$d, %4\$d, CURDATE(), %5\$d, %5\$d, 1, 0, CURDATE());", $this->table, $this->pkkol, $nwreknr, $p_seiz, $this->lidid);
 		
 			if ($this->execsql() > 0) {
 				$this->mess = sprintf("Rekening %d voor lid %d is toegevoegd.", $nwreknr, $this->lidid);
 				$this->log($nwreknr);
 			
-				$sql = sprintf("INSERT INTO Rekening (%1\$s, Seizoen, Datum, Lid, BetaaldDoor, Betaald, Ingevoerd) VALUES (%2\$d, %3\$d, CURDATE(), %4\$d, %4\$d, 0, CURDATE());", $this->pkkol, $nwreknr, $p_seiz, $this->lidid);
+				$sql = sprintf("INSERT INTO Rekening (%1\$s, Seizoen, Datum, Lid, BetaaldDoor, BET_TERM, Betaald, Ingevoerd) VALUES (%2\$d, %3\$d, CURDATE(), %4\$d, %4\$d, 1, 0, CURDATE());", $this->pkkol, $nwreknr, $p_seiz, $this->lidid);
 				$this->Interface($sql);
 			
 				$this->update($nwreknr, "DEBNAAM", $i_lid->Naam());
