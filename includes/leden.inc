@@ -187,7 +187,7 @@ function fnWieiswie($actie, $metfoto=1) {
 			if (strlen($row->Functie) > 1) {
 				$func = $row->Functie;
 				if (strlen($row->Opmerk) > 0) {
-					$func .= " " .  $row->Opmerk;
+					$func .= " &amp; " .  $row->Opmerk;
 				}
 			} else {
 				$func = $row->Opmerk;
@@ -833,8 +833,20 @@ function fnEigenGegevens($lidid=0) {
 		$tn = "Diploma's";
 		$rows = (new cls_Liddipl())->overzichtlid($lidid);
 		if (count($rows) > 0 and toegang($ct . $tn, 0, 0)) {
+			$kols[0]['headertext'] = "Diploma";
+			$kols[0]['columnname'] = "Naam";
+			$kols[1]['headertext'] = "Uitgegeven door";
+			$kols[1]['columnname'] = "UitgegevenDoor";
+			$kols[2]['headertext'] = "Behaald op";
+			$kols[2]['columnname'] = "DatumBehaald";
+			$kols[2]['type'] = "DTTEXT";
+			$kols[3]['headertext'] = "Gegevens";
+			$kols[3]['columnname'] = "Diplomanummer";
+			$kols[4]['headertext'] = "Geldig tot";
+			$kols[4]['columnname'] = "GeldigTot";
+			$kols[4]['type'] = "DTTEXT";
 			if (count($rows) > 0) {
-				$tabblad[$tn] = fnDisplayTable($rows, null, "Diploma's " . $naamlid);
+				$tabblad[$tn] = fnDisplayTable($rows, $kols, "Diploma's " . $naamlid);
 			} else {
 				$tabblad[$tn] = sprintf("<p class='mededeling'>Bij %s zijn geen diploma's geregistreerd.</p>", $naamlid);
 			}
@@ -1024,7 +1036,9 @@ function fnEigenGegevens($lidid=0) {
 		$tn = "Logboek";
 		$rows = (new cls_Logboek())->overzichtlid($lidid);
 		if ($lidid > 0 and toegang($ct . $tn, 0, 0) and count($rows) > 0) {
-			$tabblad[$tn] = fnDisplayTable($rows, null, $tn . " " .  $naamlid);
+			$kols = fnStandaardKols("logboek", 0);
+			$kols[4]['headertext'] = "Uitgevoerd door";
+			$tabblad[$tn] = fnDisplayTable($rows, $kols, $tn . " " .  $naamlid);
 		}
 		
 		DisplayTabs($tabblad, $tabidx);
@@ -2029,7 +2043,7 @@ function lidmaatschapmuteren($lidid) {
 	echo("</table>\n");
 	
 	if ($toev) {
-		echo("<button name='NieuwLidmaatschap' value=1>Nieuw lidmaatschap</button>\n");
+		echo("<button type='submit' name='NieuwLidmaatschap' value=1>Nieuw lidmaatschap</button>\n");
 	}
 	
 	echo("</form>\n");
@@ -2542,6 +2556,59 @@ function presentielijst() {
 	}
 	
 }  # presentielijst
+
+function ncsopgave() {
+	$i_ond = new cls_Onderdeel();
+	
+	$opgaveper = $_POST['opgaveper'] ?? date("Y") . "-01-01";
+	if (isset($_POST['ncsafd']) and $_POST['ncsafd'] == "1") {
+		$ncsafd = 1;
+	} else {
+		$ncsafd = 0;
+	}
+	
+	$query = "SELECT DISTINCT L.Voorletter, L.Roepnaam, CONCAT(IF(Length(L.TUSSENV) > 0, CONCAT(L.TUSSENV,  ' '), ''), L.Achternaam) AS Achternm, L.Adres, L.Postcode, L.Woonplaats, L.GEBDATUM ";
+	if ($ncsafd == 0) {
+		$query .= sprintf("FROM %1\$sLid AS L INNER JOIN %1\$sLidmaatschap AS LM ON L.RecordID=LM.Lid WHERE LM.LIDDATUM <= '%2\$s' AND IFNULL(LM.Opgezegd, '9999-12-31') >= '%2\$s'", TABLE_PREFIX, $opgaveper);
+	} else {
+		$query .= sprintf("FROM %1\$sLid AS L INNER JOIN (%1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON LO.OnderdeelID=O.RecordID) ON LO.Lid=L.RecordID
+						   WHERE LO.Vanaf <= '%2\$s' AND IFNULL(LO.Opgezegd, '9999-12-31') >= '%2\$s' AND (O.ORGANIS=2 OR O.TYPE='B')", TABLE_PREFIX, $opgaveper);
+	}
+	$query .= " ORDER BY L.Achternaam, L.Voorletter;";
+   
+	$rows = $i_ond->execsql($query)->fetchAll();
+	
+	echo("<div id='filter'>\n");
+	
+	$actionurl = sprintf("%s?tp=%s", $_SERVER['PHP_SELF'], $_GET['tp']);
+	printf("<form method='post' action='%s'>\n", $actionurl);
+	printf("<label>Ledenopgave per</label><input type='date' name='opgaveper' value='%s' onBlur='this.form.submit();'>\n", $opgaveper);
+	if ($i_ond->aantal("O.ORGANIS=2") > 0) {
+		printf("<label>Alleen leden van NCS-afdelingen?</label><input type='checkbox' name='ncsafd' value='1'%s onClick='this.form.submit();'>\n", checked($ncsafd));
+	}
+	printf("<p class='aantrecords'>%d Leden</p>\n", count($rows));
+	echo("</form>\n");
+	echo("</div> <!-- Einde filter -->\n");
+
+	$kols[0]['columnname'] = "Voorletter";
+	$kols[0]['headertext'] = "Voorletters";
+	$kols[1]['columnname'] = "Roepnaam";
+	$kols[1]['headertext'] = "Voornaam";
+	$kols[2]['columnname'] = "Achternm";
+	$kols[2]['headertext'] = "Achternm";
+	$kols[3]['columnname'] = "Adres";
+	$kols[3]['headertext'] = "Adres";
+	$kols[4]['columnname'] = "Postcode";
+	$kols[4]['headertext'] = "Postcode";
+	$kols[5]['columnname'] = "Woonplaats";
+	$kols[5]['headertext'] = "Woonplaats";
+	$kols[6]['columnname'] = "GEBDATUM";
+	$kols[6]['headertext'] = "Geboortedatum";
+	$kols[6]['type'] = "dateshort";
+	
+	echo(fnDisplayTable($rows, $kols));
+	
+}  # ncsopgave
 
 function IsIBANgoed($IBAN, $LeegIsGoed=1) {
    $retval = false;

@@ -201,6 +201,9 @@ if (toegang($_GET['tp'], 1) == false) {
 		if ($currenttab3 == "Presentielijst") {
 			presentielijst();
 		}
+		if ($currenttab3 == "NCS opgave") {
+			ncsopgave();
+		}
 		
 	} elseif ($currenttab2 == "Toestemmingen") {
 		fnOnderdelenmuteren("T");

@@ -113,6 +113,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		addtp("Ledenlijst/Rapporten");
 		if ($currenttab2 == "Rapporten") {
 			addtp("Ledenlijst/Rapporten/Presentielijst");
+			addtp("Ledenlijst/Rapporten/NCS opgave");
 		}
 		
 		$b = "Ledenlijst/Basisgegevens";
