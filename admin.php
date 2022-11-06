@@ -371,10 +371,18 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	if (!isset($_POST['aantalrijen']) or $_POST['aantalrijen'] < 2) {
 		$_POST['aantalrijen'] = 1500;
 	}
+	$_POST['ingelogdeanderen'] = $_POST['ingelogdeanderen'] ?? 0;
+	$_POST['ingelogdeanderen'] = intval($_POST['ingelogdeanderen']);
 	
 	$f = "";
 	if (strlen($_POST['kolomfilter']) > 0) {
 		$f = sprintf("CONCAT(A.RefTable, '-', A.refColumn)='%s'", $_POST['kolomfilter']);
+	}
+	if ($_POST['ingelogdeanderen'] == 1) {
+		if (strlen($f) > 0) {
+			$f .= " AND ";
+		}
+		$f .= sprintf("A.LidID > 0 AND A.LidID<>%d", $_SESSION['lidid']);
 	}
 	$rows = $i_lb->lijst($_POST['typefilter'], 0, 0, $f, $ord, $_POST['aantalrijen']);
 	
@@ -404,6 +412,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 		$options .= sprintf("<option value=%d %s>%s</option>\n", $a, checked($a, "option", $_POST['aantalrijen']), number_format($a, 0, ",", "."));
 	}
 	printf("<label>Max. aantal rijen</label><select name='aantalrijen' OnChange='this.form.submit();'>%s</select>\n", $options);
+	printf("<label>Alleen ingelogde anderen</label><input type='checkbox' name='ingelogdeanderen'%s value=1 onClick='this.form.submit();'>\n", checked($_POST['ingelogdeanderen']));
 	echo("</form>\n");
 	
 	if (count($rows) > 1) {
@@ -515,6 +524,7 @@ function fnInstellingen() {
 	$arrParam['wachtwoord_minlengte'] = "De minimale lengte van een wachtwoord. Minimaal 7 en maximaal 15 invullen.";
 	$arrParam['wachtwoord_maxlengte'] = "De maximale lengte van een wachtwoord. Minimaal 7 en maximaal 15 invullen.";
 	$arrParam['naamwebsite'] = "Dit is de naam zoals deze in de titel en op elke pagina getoond wordt.";
+	$arrParam['title_head_html'] = "Hiermee start de HTML-titel van elke pagina.";
 	$arrParam['path_templates'] = "Waar staan de templates?";
 	$arrParam['path_pasfoto'] = "Waar staan de pasfotos?";
 	$arrParam['performance_trage_select'] = "Vanaf hoeveel seconden moet een select-statement in het logboek worden gezet. 0 = nooit.";
