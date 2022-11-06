@@ -195,20 +195,25 @@ foreach ($tabpages as $tp) {
 function HTMLheader($breed=0) {
 	global $currenttab, $currenttab2, $currenttab3;
 	
-	if (isset($_SESSION['settings']['naamvereniging_afkorting']) and strlen($_SESSION['settings']['naamvereniging_afkorting']) > 0) {
-		$title = $_SESSION['settings']['naamvereniging_afkorting'] . " | ";
+	if (isset($_SESSION['settings']['title_head_html']) and strlen($_SESSION['settings']['title_head_html']) > 0) {
+		$title = $_SESSION['settings']['title_head_html'];
 	} else {
-		$title = "";
-	}
-	
-	if (strlen($currenttab) > 0 and strlen($currenttab2) > 0 and strlen($currenttab3) > 0) {
-		$title .= $_SESSION['settings']['naamwebsite'] . " | " . $currenttab . " | " . $currenttab2 . " | " . $currenttab3;
-	} elseif (strlen($currenttab) > 0 and strlen($currenttab2) > 0) {
-		$title .= $_SESSION['settings']['naamwebsite'] . " | " . $currenttab . " | " . $currenttab2;
-	} elseif (strlen($currenttab) > 0) {
-		$title .= $_SESSION['settings']['naamwebsite'] . " | " . $currenttab;
-	} else {
+		if (isset($_SESSION['settings']['naamvereniging_afkorting']) and strlen($_SESSION['settings']['naamvereniging_afkorting']) > 0) {
+			$title = $_SESSION['settings']['naamvereniging_afkorting'] . " | ";
+		} else {
+			$title = "";
+		}
 		$title .= $_SESSION['settings']['naamwebsite'];
+	}
+
+	if (strlen($currenttab) > 0) {
+		$title .= " | " . $currenttab;
+	}
+	if (strlen($currenttab2) > 0) {
+		$title .= " | " . $currenttab2;
+	}
+	if (strlen($currenttab3) > 0) {
+		$title .= " | " . $currenttab3;
 	}
 
    if (!isset($_GET['header']) or $_GET['header'] != "no") {
@@ -590,6 +595,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 		}
 			
 		if ($kols == null) {
+//			debug("fnDisplayTable zonder kolommen", 2, 1);
 			$kn = 0;
 			$skn = 0;
 			$hv = "";
@@ -648,12 +654,12 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					$ktot[$kn] = 0.00;
 				} elseif (substr($key, 0, 3) == "int") {
 					$ktot[$kn] = 0;
-				} elseif ($key == "RecordID" or $key == "ndRecordID") {
+				} elseif ($key == "RecordID") {
 					$ktot[$kn] = 0;
 				} elseif (substr($key, 0, 2) != "nd" and substr($key, 0, 3) != "lnk" and substr($key, 0, 3) != "llk") {
 					$ktot[$kn] = "geen";
 				}
-				if (strlen($kol_pk) == 0 and ($key == "RecordID" or $key == "ndRecordID" or startwith($key, "lnk") or startwith($key, "llk"))) {
+				if (strlen($kol_pk) == 0 and ($key == "RecordID" or startwith($key, "lnk") or startwith($key, "llk"))) {
 					$kol_pk = $key;
 				}
 				$kn++;
@@ -934,7 +940,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 				} elseif ($kol_type == "subqry") {
 					$ret .= sprintf("<td>%s</td>", $value);
 					
-				} elseif (substr($key, 0, 2) != "nd") {
+				} else {
 					if ($kol_edit == 0 or $row->$kol_pk == 0) {
 						$ret .= sprintf("<td>%s</td>", htmlentities($value));
 					} else {
@@ -1208,24 +1214,32 @@ function fnEditTable($res, $kols, $id, $th) {
 	
 } # fnEditTable
 
-function fnStandaardKols($p_ent) {
+function fnStandaardKols($p_ent, $p_sort=1) {
 	
 	if ($p_ent == "logboek") {
 		$kols = null;
 		$kols[0]['headertext'] = "Datum en tijd";
 		$kols[0]['type'] = "DTLONGSEC";
-		$kols[0]['sortcolumn'] = "RecordID";
+		if ($p_sort == 1) {
+			$kols[0]['sortcolumn'] = "RecordID";
+		}
 		$kols[1]['headertext'] = "Omschrijving";
-		$kols[1]['sortcolumn'] = "Omschrijving";
+		if ($p_sort == 1) {
+			$kols[1]['sortcolumn'] = "Omschrijving";
+		}
 		$kols[2]['headertext'] = "Betreft lid";
 		$kols[2]['columnname'] = "betreftLid";
 		$kols[2]['type'] = "lidnaam";
 		$kols[3]['headertext'] = "Type";
 		$kols[3]['columnname'] = "Type";
-		$kols[3]['sortcolumn'] = "Type";
+		if ($p_sort == 1) {
+			$kols[3]['sortcolumn'] = "Type";
+		}
 		$kols[4]['headertext'] = "Ingelogd lid";
 		$kols[4]['columnname'] = "ingelogdLid";
-		$kols[4]['sortcolumn'] = "ingelogdLid";
+		if ($p_sort == 1) {
+			$kols[4]['sortcolumn'] = "ingelogdLid";
+		}
 		$kols[4]['type'] = "lidnaam";
 		$kols[5]['headertext'] = "Getoond?";
 		$kols[5]['columnname'] = "Getoond";
@@ -1233,10 +1247,14 @@ function fnStandaardKols($p_ent) {
 		if ($_SESSION['webmaster'] == 1) {
 			$kols[6]['headertext'] = "Script / functie";
 			$kols[6]['columnname'] = "scriptFunctie";
-			$kols[6]['sortcolumn'] = "scriptFunctie";
+			if ($p_sort == 1) {
+				$kols[6]['sortcolumn'] = "scriptFunctie";
+			}
 			$kols[7]['headertext'] = "IP adres";
 			$kols[7]['columnname'] = "IP_adres";
-			$kols[7]['sortcolumn'] = "A.IP_adres";
+			if ($p_sort == 1) {
+				$kols[7]['sortcolumn'] = "A.IP_adres";
+			}
 		}
 	}
 	
@@ -1305,7 +1323,7 @@ function debug($tekst, $p_tm=2, $logact=0) {
 	
 	$_SESSION['webmaster'] = $_SESSION['webmaster'] ?? 0;
 	$f = "";
-	if ($_SESSION['webmaster'] == 1) {
+	if ($_SESSION['webmaster'] == 1 or $_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 		$bt = debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT, 2);
 		for ($t=count($bt)-1;$t >= 0;$t--) {
 			if (strlen($f) > 0) {
@@ -1321,6 +1339,7 @@ function debug($tekst, $p_tm=2, $logact=0) {
 				}
 			}
 		}
+		$f .= ":";
 	}
 	
 	if ($p_tm == 3) {
@@ -1331,7 +1350,7 @@ function debug($tekst, $p_tm=2, $logact=0) {
 		} else {
 			$et = "";
 		}
-		printf("<p class='debug'>%s: %s%s</p>\n", $f, $tekst, $et);
+		printf("<p class='debug'>%s %s%s</p>\n", $f, $tekst, $et);
 	}
 
 	if ($logact == 1) {
