@@ -402,6 +402,10 @@ input.w250 {
 	width: 625px;
 }
 
+button:disabled, button[disabled=disabled], .disabled {
+	color: red;
+}
+
 #container, #containerbreed {
 	width: 1275px;
 	margin-left: auto;
@@ -978,7 +982,7 @@ td.print {
 	list-style: none;
 	position: relative;
 	float: left;
-	width: 250fpx;
+	width: 250px;
 	margin-left: 0;
 	padding-left: 0;
 }
@@ -1487,7 +1491,6 @@ fieldset h3 {
 	margin-bottom: 8px;
 	margin-left: 8px;
 	margin-right: 8px;
-	color: #000080;
 	font-weight: bold;
 	height: auto;
 	padding-left: 4px;
@@ -1954,7 +1957,7 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	min-height: 29px;
 }
 
-#lijstontvangers, #lijstvariabelen {
+#lijstontvangers, #lijstvariabelen, #meldingen {
 	float: left;
 	clear: right;
 	width: 1040px;
@@ -1964,7 +1967,7 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	border-style: solid;
 }
 
-#lijstontvangers ul, #lijstvariabelen ul {
+#lijstontvangers ul, ul#lijstvariabelen, ul#meldingen {
 	padding-left: 0;
 	padding-right: 0;
 }
@@ -1976,6 +1979,12 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	padding-left: 3px;
 	height: 28px;
 	min-width: 240px;
+}
+
+#meldingen li {
+	display: block;
+	margin-left: 3px;
+	padding-left: 0;
 }
 
 #lijstvariabelen {
@@ -2423,11 +2432,19 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	float: left;
 }
 
+#editmailingform textarea {
+	width: 1250px;
+	height: 350px;
+}
+
 #editmailingform .invoerblok {
-	width: 990px;
+	width: 1040px;
+	height: auto;
 	min-height: 24px;
+	max-height: 250px;
 	margin-right: 0;
 	padding-right: 0;
+	overflow: visible;
 }
 
 #editmailingform button {
