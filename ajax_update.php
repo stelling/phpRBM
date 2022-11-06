@@ -5,7 +5,11 @@ require_once('./includes/standaard.inc');
 toegang("", 0, 0);
 
 $ent = $_GET['entiteit'] ?? "";
-$rid = $_POST['id'] ?? 0;
+if (isset($_POST['id'])) {
+	$rid = $_POST['id'];
+} else {
+	$rid = $_GET['id'] ?? 0;
+}
 $kolom = $_POST['field'] ?? "";
 $newvalue = $_POST['value'] ?? "";
 $lidid = $_POST['lidid'] ?? 0;
@@ -190,14 +194,13 @@ if ($_SESSION['lidid'] > 0) {
 		echo($rv);
 		
 	} elseif ($ent == "mailing_verw_ontvanger" and toegang("Mailing/Muteren")) {
-		$mid = $_POST['mid'] ?? 0;
-		$lidid = $_POST['lidid'] ?? 0;
-		$email = $_POST['email'] ?? 0;
+		
+		$email = $_POST['email'] ?? "";
 		$i_mr = new cls_Mailing_rcpt();
-		$i_mr->delete($mid, $lidid, $email);
+		$rv = $i_mr->delete($rid, $email);
 		$i_mr = null;
 		
-		echo(true);
+		echo(json_encode($rv));
 		
 	} elseif ($ent == "mailing_verw_selectie_ontvangers" and toegang("Mailing/Muteren")) {
 		$mid = $_POST['mid'] ?? 0;
