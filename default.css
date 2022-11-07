@@ -770,6 +770,13 @@ td.print {
 	margin-bottom: 5px;
 }
 
+textarea#sportlinkdata {
+	width: 1000px;
+	height: 450px;
+	clear: right;
+	float: left;
+}
+
 #tab-agenda table {
 	width: 100%;
 }
