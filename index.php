@@ -208,6 +208,10 @@ if (toegang($_GET['tp'], 1) == false) {
 	} elseif ($currenttab2 == "Toestemmingen") {
 		fnOnderdelenmuteren("T");
 		
+		
+	} elseif ($currenttab2 == "Sportlink") {
+		sportlink();
+		
 	} elseif ($currenttab2 == "Basisgegevens") {
 		fnDispMenu(2);
 		fnDispMenu(3);
