@@ -128,7 +128,8 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			addtp($b . "/Seizoenen");
 			addtp($b . "/Organisaties");
 		}
-	
+		
+		addtp("Ledenlijst/Sportlink");
 		addtp("Ledenlijst/Instellingen");
 		addtp("Ledenlijst/Mutaties");
 	}

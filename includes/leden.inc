@@ -1230,6 +1230,7 @@ function algemeenlidmuteren($lidid) {
 	} elseif (isset($_POST['Undo_Verwijderen'])) {
 		$i_lid->update($lidid, "Verwijderd", "NULL");
 	} elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
+		$i_lid->controle($lidid);
 		if (isset($_POST['Sluiten'])) {
 			if ($sl == "K") {
 				printf("<script>location.href='%s?tp=Ledenlijst/Klosleden';</script>\n", $_SERVER['PHP_SELF']);
@@ -2579,7 +2580,6 @@ function ncsopgave() {
 	$rows = $i_ond->execsql($query)->fetchAll();
 	
 	echo("<div id='filter'>\n");
-	
 	$actionurl = sprintf("%s?tp=%s", $_SERVER['PHP_SELF'], $_GET['tp']);
 	printf("<form method='post' action='%s'>\n", $actionurl);
 	printf("<label>Ledenopgave per</label><input type='date' name='opgaveper' value='%s' onBlur='this.form.submit();'>\n", $opgaveper);
@@ -2609,6 +2609,99 @@ function ncsopgave() {
 	echo(fnDisplayTable($rows, $kols));
 	
 }  # ncsopgave
+
+function sportlink() {
+	$i_lid = new cls_Lid();
+	fnDispMenu(2);
+	
+	$Kolomhoofd = array("Relatiecode", "Tussenvoegsels", "Achternaam", "Roepnaam", "Voorletters", "Geslacht", "Geboortedatum", "Geboorteplaats", "Postcode", "Huisnummer", "Toevoeging");
+	
+	$actionurl = sprintf("%s?tp=%s", $_SERVER['PHP_SELF'], $_GET['tp']);
+	printf("<form method='post' action='%s'>\n", $actionurl);
+	echo("<label>Export uit Sportlink</label><textarea name='exportsl' id='sportlinkdata'></textarea><p>Plak hierboven de export uit Sportlink, puntkomma-gescheiden en met onderstaande kolommen.</p>\n");
+	
+	echo("<button type='submit'>Toon resultaat</button>\n");
+	echo("</form>\n");
+	
+	echo("<table>\n<tr>");
+	for ($knr=0;$knr < count($Kolomhoofd);$knr++) {
+		printf("<th>%s</th>", $Kolomhoofd[$knr]);
+	}
+	echo("<th>Verschil</th></tr>\n");
+	
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		$data = $_POST['exportsl'];
+		
+		$separator = "\r\n";
+		$line = strtok($data, $separator);
+		
+		while ($line !== false) {
+			$kolommen = explode(";", $line);
+			echo("<tr>");
+			for ($knr=0;$knr < count($Kolomhoofd);$knr++) {
+				printf("<td>%s</td>", $kolommen[$knr]);
+			}
+			
+			$lidrows = $i_lid->lidredned($kolommen[0]);
+			$verschil = "";
+			$arrSLID[] = $kolommen[0];
+			if (strlen(trim($kolommen[0])) == 7) {
+				if (count($lidrows) == 0) {
+					$verschil = "Lokaal onbekend";
+				} else {
+					$r = $lidrows[0];
+	//				debug($r->RecordID);
+					$i_lid->controle($r->RecordID);
+					if ($kolommen[1] !== $r->TUSSENV) {
+						$verschil = $Kolomhoofd[1] . " lokaal: " . $r->TUSSENV;
+					
+					} elseif ($kolommen[2] !== $r->Achternaam and $kolommen[2] !== trim($r->Anaam2)) {
+						$verschil = $Kolomhoofd[2] . " lokaal: " . $r->Achternaam;
+					
+					} elseif (trim($kolommen[3]) !== trim($r->Roepnaam)) {
+						$verschil = $Kolomhoofd[3] . " lokaal: " . $r->Roepnaam;
+					
+					} elseif (trim($kolommen[4]) !== trim($r->Voorletter)) {
+						$verschil = $Kolomhoofd[4] . " lokaal: " . $r->Voorletter;
+					
+					} elseif ($kolommen[5] !== $r->Geslacht) {
+						$verschil = $Kolomhoofd[5] . " is ongelijk";
+					
+					} elseif (trim($kolommen[6]) !== date("d-m-Y", strtotime($r->GEBDATUM))) {
+						$verschil = $Kolomhoofd[6] . " lokaal: " . $r->GEBDATUM;
+					
+					} elseif (strtoupper(trim($kolommen[7])) !== strtoupper(trim($r->GEBPLAATS))) {
+						$verschil = $Kolomhoofd[7] . " lokaal: " . $r->GEBPLAATS;
+					
+					} elseif (strtoupper(trim($kolommen[8])) !== strtoupper(trim($r->Postcode))) {
+						$verschil = $Kolomhoofd[8] . " lokaal: " . $r->Postcode;
+					
+					} elseif (intval($kolommen[9]) !== intval($r->Huisnr)) {
+						$verschil = $Kolomhoofd[9] . " lokaal: " . $r->Huisnr;
+					
+					} elseif (strtoupper(trim($kolommen[10])) !== strtoupper(trim($r->Toev))) {
+						$verschil = $Kolomhoofd[10] . " lokaal: " . $r->Toev;
+					}
+				}
+			}
+			printf("<td>%s</td>", $verschil);
+			echo("</tr>\n");
+			$line = strtok( $separator );
+		}
+		
+		$lidrows = $i_lid->lidredned();
+		foreach ($lidrows as $lidrow) {
+			if (in_array($lidrow->RelnrRedNed, $arrSLID) == false) {
+				$i_lid->controle($lidrow->RecordID);
+				printf("<tr><td></td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>Onbekend in Sportlink</td></tr>\n", 				
+				$lidrow->TUSSENV, $lidrow->Achternaam, $lidrow->Roepnaam, $lidrow->Voorletter, $lidrow->Geslacht, date("d-m-Y", strtotime($lidrow->GEBDATUM)), $lidrow->GEBPLAATS, $lidrow->Postcode, $lidrow->Huisnr, $lidrow->Toev);
+			}
+		}
+		
+	}
+	echo("</table>\n");
+	
+}  # Sportlink
 
 function IsIBANgoed($IBAN, $LeegIsGoed=1) {
    $retval = false;
