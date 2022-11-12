@@ -351,10 +351,10 @@ function mailingprops() {
 				document.getElementById('btnbekijkvoorbeeld').style.color = "";
 			} else {
 				document.getElementById('btnverstuurmailing').disabled = true;
-				document.getElementById('btnverstuurmailing').style.color = "red";
+				$('#btnverstuurmailing').addClass("disbabled");
 				
 				document.getElementById('btnbekijkvoorbeeld').disabled = true;
-				document.getElementById('btnbekijkvoorbeeld').style.color = "red";
+//				document.getElementById('btnbekijkvoorbeeld').style.color = "red";
 			}
 		}
 	});
@@ -409,7 +409,6 @@ function mailingprops() {
 		url: 'ajax_update.php?entiteit=options_mogelijke_ontvangers',
 		type: 'post',
 		dataType: 'json',
-		async: false,
 		data: { mailingid: mid, alle: f },
 		success: function(response) {
 			document.getElementById('add_lid').innerHTML = response;
@@ -424,11 +423,10 @@ function mailing_add_ontvanger(p_mid, p_lidid, p_email) {
 		url: 'ajax_update.php?entiteit=mailing_add_ontvanger',
 		type: 'post',
 		dataType: 'json',
-		async: false,
 		data: { mid: mid, lidid: p_lidid, email: p_email }
 	});
 	document.getElementById('add_lid').value = 0;
-	mailingprops(mid);
+	mailingprops();
 }
 
 function mailing_add_selectie_ontvangers() {
@@ -441,21 +439,25 @@ function mailing_add_selectie_ontvangers() {
 		url: 'ajax_update.php?entiteit=mailing_add_selectie_ontvangers',
 		type: 'post',
 		dataType: 'json',
-		async: false,
-		data: { mid: mid, selgroep: groepid, vangebdatum: vangebdatum, temgebdatum: temgebdatum }
+		data: { mid: mid, selgroep: groepid, vangebdatum: vangebdatum, temgebdatum: temgebdatum },
+		success: function(response){
+			mailingprops();
+		}
 	});
-	mailingprops();
 }
 
-function mailing_verw_ontvanger(p_mid, p_lidid, p_email) {
-	var mid = $('#recordid').text();
+function mailing_verw_ontvanger(p_rid, p_email) {
 	$.ajax({
 		url: 'ajax_update.php?entiteit=mailing_verw_ontvanger',
 		type: 'post',
 		dataType: 'json',
-		data: { mid: mid, lidid: p_lidid, email: p_email }
+		data: { id: p_rid, email: p_email },
+		success: function(response){
+			$("#ontvanger_" + p_rid + " > img").hide();
+			$("#ontvanger_" + p_rid).addClass("deleted");
+		}
 	});
-	mailingprops();
+	
 }
 
 function mailing_verw_selectie_ontvangers() {
@@ -470,9 +472,10 @@ function mailing_verw_selectie_ontvangers() {
 		dataType: 'json',
 		data: { mid: mid, selgroep: groepid, vangebdatum: vangebdatum, temgebdatum: temgebdatum },
 		success: function(response){
-			if (response > 0) {
-				mailingprops();
-			}
+			mailingprops();
+		},
+		error: function(jqXHR, textStatus, errorThrown) {
+			alert('Mislukt: ' + errorThrown);
 		}
 	});
 }

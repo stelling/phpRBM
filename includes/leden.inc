@@ -2147,8 +2147,9 @@ function fnPersoonlijkeAgenda() {
 	}
 	
 	foreach ((new cls_Evenement())->lijst(4) as $row) {
-		$edrow = (new cls_Evenement_Deelnemer())->record(0, $_SESSION['lidid'], $row->RecordID);
-		if ($row->Dln == 0 or (isset($edrow->RecordID) and strstr("BIJRT", $edrow->Status) !== false)) {
+		$i_ed = new cls_Evenement_Deelnemer();
+		$edrow = $i_ed->record(0, $_SESSION['lidid'], $row->RecordID);
+		if ($row->Dln == 0 or isset($edrow->RecordID)) {
 			if ($row->MeerdereStartMomenten == 0) {
 				$kalitem[$in]['datum'] = date("Y-m-d H:i", strtotime($row->Datum));
 			} else {
@@ -2157,10 +2158,19 @@ function fnPersoonlijkeAgenda() {
 					$kalitem[$in]['datum'] .= " " . $edrow->StartMoment;
 				}
 			}
-			$kalitem[$in]['oms'] = $row->Omschrijving;
-			if (isset($edrow->RecordID)) {
-				$kalitem[$in]['oms'] .= ": " . ARRDLNSTATUS[$edrow->Status];
+			$o = $row->Omschrijving;
+			
+			if (toegang("Evenementen", 0)) {
+				$o = sprintf("<a href='%s/index.php?tp=Evenementen'>%s</a>", BASISURL, $o);
 			}
+			
+			if ($row->Dln > 1) {
+				$o .= sprintf(" (%d deelnemers)", $row->Dln);
+			}
+			if (isset($edrow->RecordID)) {
+				$o .= ": " . ARRDLNSTATUS[$edrow->Status];
+			}
+			$kalitem[$in]['oms'] = $o;
 			$in++;
 		}
 	}
@@ -2637,22 +2647,22 @@ function sportlink() {
 		
 		while ($line !== false) {
 			$kolommen = explode(";", $line);
-			echo("<tr>");
-			for ($knr=0;$knr < count($Kolomhoofd);$knr++) {
-				printf("<td>%s</td>", $kolommen[$knr]);
-			}
-			
-			$lidrows = $i_lid->lidredned($kolommen[0]);
-			$verschil = "";
-			$arrSLID[] = $kolommen[0];
 			if (strlen(trim($kolommen[0])) == 7) {
+				echo("<tr>");
+				for ($knr=0;$knr < count($Kolomhoofd);$knr++) {
+					printf("<td>%s</td>", $kolommen[$knr]);
+				}
+			
+				$lidrows = $i_lid->lidredned($kolommen[0]);
+				$verschil = "";
+				$arrSLID[] = $kolommen[0];
 				if (count($lidrows) == 0) {
-					$verschil = "Lokaal onbekend";
+					$verschil = "Lokaal: geen lid RedNed";
 				} else {
 					$r = $lidrows[0];
 	//				debug($r->RecordID);
 					$i_lid->controle($r->RecordID);
-					if ($kolommen[1] !== $r->TUSSENV) {
+					if (trim($kolommen[1]) !== trim($r->TUSSENV)) {
 						$verschil = $Kolomhoofd[1] . " lokaal: " . $r->TUSSENV;
 					
 					} elseif ($kolommen[2] !== $r->Achternaam and $kolommen[2] !== trim($r->Anaam2)) {
@@ -2683,9 +2693,9 @@ function sportlink() {
 						$verschil = $Kolomhoofd[10] . " lokaal: " . $r->Toev;
 					}
 				}
+				printf("<td>%s</td>", $verschil);
+				echo("</tr>\n");
 			}
-			printf("<td>%s</td>", $verschil);
-			echo("</tr>\n");
 			$line = strtok( $separator );
 		}
 		

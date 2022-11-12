@@ -175,7 +175,7 @@ class Mailing {
 	private $OmschrijvingOntvangers = "";
 	private $vanafnaam = "";
 	private $vanafadres = "";
-	private $cc_addr = "";
+	public $cc_addr = "";
 	private $CCafdelingen = 0;
 	private $subject = "";
 	private $message = "";
@@ -317,6 +317,8 @@ class Mailing {
 		if ((new cls_Rekening())->aantal() > 0 and toegang('Ledenlijst/Overzicht lid/Rekeningen', 0, 0)) {
 			$sql = sprintf("SELECT RK.Nummer FROM %sRekening AS RK WHERE RK.Bedrag > 0 AND RK.Bedrag > RK.Betaald AND %s;", TABLE_PREFIX, "RK.Lid=%d");
 			$this->MergeField[]=array('Naam' => "OpenstaandeRekeningen", 'SQL' => $sql);
+			
+			$this->MergeField[]=array('Naam' => "OpenstaandeRekeningenTabel", 'SQL' => "");
 
 			$sql = sprintf("SELECT ROUND(SUM(RK.Bedrag-RK.Betaald), 2) AS OpenstaandBedrag FROM %sRekening AS RK WHERE RK.Lid=%%d;", TABLE_PREFIX);
 			$this->MergeField[]=array('Naam' => "OpenstaandBedrag", 'SQL' => $sql);
@@ -362,12 +364,6 @@ class Mailing {
 		
 		$sql = sprintf("SELECT IFNULL(L.EmailOuders, '') FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "EmailOuders", 'SQL' => $sql);
-
-		$query = sprintf("SELECT COUNT(*) FROM %1\$sLidRedNed AS RN JOIN %1\$sLidmaatschap AS LM ON LM.LIDNR = RN.Lidnr WHERE LENGTH(RN.Foutboodschap) > 0;", TABLE_PREFIX);
-		if ((new cls_db_base())->scalar($query) > 0) {
-			$sql = sprintf("SELECT RN.Foutboodschap FROM %1\$sLidRedNed AS RN JOIN %1\$sLidmaatschap AS LM ON LM.LIDNR = RN.Lidnr WHERE LM.LID=%%d;", TABLE_PREFIX);
-			$this->MergeField[]=array('Naam' => "VerschilSportlink", 'SQL' => $sql);
-		}
 		
 		$i_ond = new cls_Onderdeel();
 
@@ -493,6 +489,17 @@ class Mailing {
 			$this->MergeField[]=array('Naam' => "GELDIGHEIDACTIVATIE", 'SQL' => "");
 			$this->MergeField[]=array('Naam' => "URLRESETWW", 'SQL' => "");
 			
+		} elseif ($this->mid == $_SESSION['settings']['mailing_bevestigingdeelnameevenement'] and $this->mid > 0) {
+			$this->xtrachar = "EVD";
+			$this->speciaal = "Bevestiging inschrijving evenement";
+			$this->automontvanger = true;
+			$this->vertraging_tussen_verzenden = 5;
+			$this->MergeField[]=array('Naam' => "OmsEvenement", 'SQL' => "");
+			$this->MergeField[]=array('Naam' => "DatumEvenement", 'SQL' => "");
+			$this->MergeField[]=array('Naam' => "StatusEvenement", 'SQL' => "");
+			$this->MergeField[]=array('Naam' => "OpmEvenement", 'SQL' => "");
+			
+			
 		} elseif ($this->mid == $_SESSION['settings']['mailing_bewakinginschrijving'] and $this->mid > 0) {
 			$this->xtrachar = "BW_I";
 			$this->speciaal = "Bevestiging inschrijving bewaking";
@@ -524,7 +531,7 @@ class Mailing {
 		sort($this->MergeField);
 
 		foreach ($this->MergeField as $fld) {
-			$nm = "[%" . $fld['Naam'] . "%]";
+				$nm = "[%" . $fld['Naam'] . "%]";
 			if (strpos($this->message, $nm) !== false) {
 				$this->contains_mergefield = true;
 			}
@@ -676,9 +683,19 @@ class Mailing {
 			printf("<input type='checkbox' id='ZonderBriefpapier' value=1%s %s><p>Zonder briefpapier versturen</p>", checked($this->zonderbriefpapier), $jscb);
 
 			echo("<div class='clear'></div>\n");
+			
+			foreach($this->MergeField as $fld) {
+				$nm = "[%" . $fld['Naam'] . "%]";
+				if (stripos($this->message, $nm) !== false) {
+					$this->contains_mergefield = true;
+					$this->message = str_ireplace($fld['Naam'], $fld['Naam'], $this->message);
+				}
+			}
+			
 			if ($this->htmldirect == 1) {
-				printf("<textarea name='message' rows=15 cols=125 %s>%s</textarea>\n", $ob, $this->message);
+				printf("<textarea id='message' onBlur=\"savedata('mailing', %d, this);\">%s</textarea>\n", $this->mid, $this->message);
 			} else {
+				
 				if ($_SESSION['settings']['mailing_type_editor'] == 3) {
 				
 					printf("<textarea id='message' name='message'>%s</textarea>\n", $this->message);
@@ -702,14 +719,12 @@ class Mailing {
 			}
 
 			echo("<div class='clear'></div>\n");
-			echo("<label for='lblbeschikbarevariabelen' id='lblbeschikbarevariabelen' OnClick=\"togglevariabelen();\">Beschikbare variabelen <span>+</span></label>");
-			echo("<div id='lijstvariabelen'>\n");
-			echo("<ul class='lijstvariabelen'>\n");
+			echo("<label id='lblbeschikbarevariabelen' OnClick=\"togglevariabelen();\">Beschikbare variabelen <span>+</span></label>");
+			echo("<ul id='lijstvariabelen'>\n");
 			foreach ($this->MergeField as $v) {
 				echo("<li>[%" . $v['Naam'] . "%]</li>\n");
 			}
 			echo("</ul>");
-			echo("</div>  <!-- Einde lijstvariabelen -->\n");
 
 			echo("<label>Bijlagen</label>\n<div class='invoerblok'>\n");
 			if (strlen($tabbijlagefiles) > 0) {
@@ -738,27 +753,27 @@ class Mailing {
 				printf("<label>Verwijderd door/op</label><p>%s / %s</p>\n", $i_lid->naam($this->DeletedBy), $dtfmt->format(strtotime($this->deleted_on)));
 			}
 
-			echo("<label>Meldingen</label><p id='meldingen'>Meldingen</p>\n");
+			echo("<label>Meldingen</label><ul id='meldingen'></ul>\n");
 			$cls_lid = null;
 		}
 		
 		echo("<div id='opdrachtknoppen'>\n");
 		if ($this->mid > 0) {
-			echo("<input type='submit' name='action' value='Bewaren'>\n");
-			echo("<input type='submit' name='action' value='Bewaren & sluiten'>\n");
+			echo("<button type='submit' name='action' value='Bewaren'>Bewaren</button>\n");
+			echo("<button type='submit' name='action' value='Bewaren & sluiten'>Bewaren & sluiten</button>\n");
 		} else {
 			echo("<input type='submit' name='Toevoegen' value='Toevoegen'>\n");
 		}
 
-		echo("<input type='submit' name='action' value='Verstuur mailing' title='Verstuur mailing' id='btnverstuurmailing'>\n");
+		echo("<button type='submit' name='action' value='Verstuur mailing' title='Verstuur mailing' id='btnverstuurmailing'>Verstuur mailing</button>\n");
 		
 		$lnk = sprintf("%s?tp=%s&op=savepreview&mid=%d", $_SERVER['PHP_SELF'], $currenttab, $this->mid);
-		echo("<input type='submit' name='action' value='Bekijk voorbeeld' id='btnbekijkvoorbeeld'>\n");
-				
+		echo("<button type='submit' name='action' value='Bekijk voorbeeld' id='btnbekijkvoorbeeld'>Bekijk voorbeeld</button>\n");
+
 		if ($this->mid > 0 and $this->deleted_on > "1901-01-01" and $_SESSION['webmaster'] == 1) {
-			printf("<input type='submit' name='action' value='Verwijderen ongedaan maken' title='Verwijderen ongedaan maken'>\n");
+			printf("<button type='submit' name='action' value='Verwijderen ongedaan maken' title='Verwijderen ongedaan maken'>Verwijderen ongedaan maken</button>\n");
 		} elseif ($this->mid > 0 and $this->deleted_on < "1901-01-01" and ($_SESSION['webmaster'] == 1 or $_SESSION['lidid'] == $this->IngevoerdDoor)) {
-			printf("<input type='submit' name='action' value='Verwijderen'>\n");
+			printf("<button type='submit' name='action' value='Verwijderen'>Verwijderen</button>\n");
 		}
 		echo("</div>  <!-- Einde opdrachtknoppen -->\n");
 		
@@ -774,8 +789,9 @@ class Mailing {
 				mailingprops();
 			});
 		</script>\n");
-		
-		if ($_SESSION['settings']['mailing_type_editor'] == 3) {
+		if ($this->htmldirect == 1) {
+		// Geen editor
+		} elseif ($_SESSION['settings']['mailing_type_editor'] == 3) {
 				$src = "/includes/tinymce/js/tinymce/tinymce.min.js";
 				if (file_exists(BASEDIR . $src)) {
 					$src = BASISURL . $src;
@@ -862,7 +878,6 @@ class Mailing {
 		$i_mr = new cls_Mailing_rcpt();
 		
 		$rcpt_rows = $i_mr->lijst($this->mid);
-		$this->meldingen = "Er zijn nog geen ontvangers aan deze mailing toegevoegd.<br>\n";
 
 		if ($p_asarray) {
 			$rv = array();
@@ -870,7 +885,7 @@ class Mailing {
 			$rv = "<ul>\n";
 		}
 		foreach($rcpt_rows as $rcpt) {
-			$jsdo = sprintf("OnClick=\"mailing_verw_ontvanger(%d, %d, '%s');\"", $this->mid, $rcpt->LidID, $rcpt->to_address);
+			$jsdo = sprintf("OnClick=\"mailing_verw_ontvanger(%d, '%s');\"", $rcpt->RecordID, $rcpt->to_address);
 			if ($rcpt->LidID > 0) {
 				$item = sprintf("%s&nbsp;<img src='%s' alt='Verwijderen' title='Verwijderen' %s>", htmlentities($rcpt->Naam_lid), BASE64_VERWIJDER_KLEIN, $jsdo);
 			} else {
@@ -880,7 +895,7 @@ class Mailing {
 			if ($p_asarray) {
 				$rv[] = $item;
 			} else {
-				$rv .= sprintf("<li>%s</li>\n", $item);
+				$rv .= sprintf("<li id='ontvanger_%d'>%s</li>\n", $rcpt->RecordID, $item);
 			}
 		}
 		
@@ -896,7 +911,7 @@ class Mailing {
 		if ($this->mid > 0) {
 			
 			if ($this->deleted_on > "2000-01-01") {
-				$this->meldingen = "Deze mailing staat op verwijderen en mag daarom niet worden verzonden.<br>\n";
+				$this->meldingen = "<li>Deze mailing staat op verwijderen en mag daarom niet worden verzonden.</li>\n";
 				$this->verzendenmag = false;
 			} else {
 				$this->meldingen = "";
@@ -904,29 +919,30 @@ class Mailing {
 			}
 
 			if ($this->mailingvanafid == 0) {
-				$this->meldingen .= "De Van moet ingevuld zijn.<br>\n";
+				$this->meldingen .= "<li>De Van moet ingevuld zijn.</li>\n";
 				$this->verzendenmag = false;
 			}
 			
 			if ($this->aant_rcpt == 0 and $enkellid == 0) {
-				$this->meldingen .= "Er zijn geen ontvangers aan deze mailing toegevoegd.<br>\n";
+				$this->meldingen .= "<li>Er zijn geen ontvangers aan deze mailing toegevoegd.</li>\n";
 				$this->verzendenmag = false;
 			}
 
 			if (strlen($this->subject) == 0) {
-				$this->meldingen .= "Het onderwerp moet ingevuld zijn. \n";
-				$this->verzendenmag = false;
+				$this->meldingen .= "<li>Het onderwerp moet ingevuld zijn.</li>\n";
+				$this->verzendenmag = false;	
 			}
 			
 			if (strlen($this->message) == 0) {
-				$this->meldingen .= "Het bericht moet ingevuld zijn. \n";
+				$this->meldingen .= "<li>Het bericht moet ingevuld zijn.</li>\n";
 				$this->verzendenmag = false;
 			}
 			
 			foreach($this->MergeField as $fld) {
 				$nm = "[%" . $fld['Naam'] . "%]";
-				if (strpos($this->message, $nm) !== false) {
+				if (stripos($this->message, $nm) !== false) {
 					$this->contains_mergefield = true;
+					$this->message = str_ireplace($fld['Naam'], $fld['Naam'], $this->message);
 				}
 			}
 			
@@ -937,8 +953,10 @@ class Mailing {
 					$bp += 2;
 					$ep = strpos($this->message, "%]", $bp);
 					if ($ep !== false) {
-						if (array_search (substr($this->message, $bp, ($ep-$bp)), array_column($this->MergeField, 'Naam')) == false) {
-							$this->meldingen .= sprintf("%s is hier geen beschikbare variable.", substr($this->message, $bp-2, ($ep-$bp)+4));
+						$mm = substr($this->message, $bp, ($ep-$bp));
+						$as = array_search($mm, array_column($this->MergeField, 'Naam'));
+						if ($as === false) {
+							$this->meldingen .= sprintf("<li>%s is hier geen beschikbare variable.</li>\n", $mm);
 						}
 						$hv = $ep + 2;
 					} else {
@@ -950,21 +968,21 @@ class Mailing {
 			}
 			
 			if ($this->contains_mergefield == true and $this->bevat_losse_email == true) {
-				$this->meldingen .= "Er staan losse e-mailadressen en er wordt met mailmerge gewerkt. Bij de losse e-mailadressen werkt de mailmerge niet. \n";
+				$this->meldingen .= "<li>Er staan losse e-mailadressen en er wordt met mailmerge gewerkt. Bij de losse e-mailadressen werkt de mailmerge niet.</li>\n";
 			}
 			if ($this->deleted_on > '1901-01-01') {
-				$this->meldingen .= "Deze mailing is verwijderd. \n";
+				$this->meldingen .= "<li>Deze mailing is verwijderd.</li>";
 				$this->verzendenmag = false;
 			}
 		} else {
 			$this->verzendenmag = false;
-			$this->meldingen = "Er is geen mailing geselecteerd.<br>\n";
+			$this->meldingen = "<li>Er is geen mailing geselecteerd.</li>\n";
 		}
 		
 		if ($this->verzendenmag) {
-			$this->meldingen .= "Deze mailing kan verzonden worden.";
+			$this->meldingen .= "<li>Deze mailing kan verzonden worden.</li>";
 		} else {
-			$this->meldingen .= "Deze mailing mag nog niet verzonden worden.";
+			$this->meldingen .= "<li>Deze mailing mag niet verzonden worden.</li>\n";
 		}
 		
 		$rv['verzendenmag'] = $this->verzendenmag;
@@ -1114,8 +1132,12 @@ class Mailing {
 		if ($actie == "add" or $actie == "delete") {
 			foreach($selrows as $row) {
 				if ($actie == "delete") {
-					if ($i_mr->delete($this->mid, $row->RecordID, "", 0) > 0) {
-						$this->sl_aantverwijderen++;
+					$mrrow = $i_mr->record($this->mid, $row->RecordID);
+					if ($mrrow != false) {
+						$mrid = $mrrow->RecordID;
+						if ($i_mr->delete($mrid, "", 0) > 0) {
+							$this->sl_aantverwijderen++;
+						}
 					}
 				} elseif ($actie == "add" and $this->mid > 0) {
 					if ($i_mr->add($this->mid, $row->RecordID, "", 1) > 0) {
@@ -1191,10 +1213,10 @@ class Mailing {
 		$aant_send = 0;
 		foreach($rcpts as $rcpt) {
 			$email = new email(0, $this->mid);
-			if ($rcpt->$pk > 0) {
-				$this->merge($rcpt->$pk);
+			if ($rcpt->LidID > 0) {
+				$this->merge($rcpt->LidID);
 				$email->Subject = $this->merged_subject;
-				$email->toevoegenlid($rcpt->$pk);
+				$email->toevoegenlid($rcpt->LidID);
 			} elseif (strlen($rcpt->to_address) > 5) {
 				if ($this->mid != $_SESSION['settings']['mailingbijadreswijziging']) {
 					$this->merge(0);
@@ -1202,6 +1224,7 @@ class Mailing {
 				$email->toevoegenadres($rcpt->to_address);
 				$this->bevat_losse_email = true;
 			}
+			$email->cc = $this->cc_addr;
 			$email->bericht = $this->merged_message;
 			
 			if ($preview == 1) {
@@ -1262,6 +1285,7 @@ class Mailing {
 	}
 	
 	public function merge($lidid=0) {
+		global $dtfmt;
 		
 		$this->merged_subject = str_ireplace("[%Naamvereniging%]", $_SESSION['settings']['naamvereniging'], $this->subject);
 		$this->merged_subject = str_ireplace("[%Naamwebsite%]", $_SESSION['settings']['naamwebsite'], $this->merged_subject);
@@ -1299,6 +1323,19 @@ class Mailing {
 				$this->merged_message = str_ireplace("[%OpgezegdPer%]", stftime("%e %B %Y",strtotime($row->Opgezegd)), $this->merged_message);
 			}
 			
+		} elseif ($this->mid > 0 and $this->mid == $_SESSION['settings']['mailing_bevestigingdeelnameevenement'] and $this->xtranum > 0) {
+			$dtfmt->setPattern(DTTEXT);
+			$row = (new cls_Evenement_Deelnemer())->record($this->xtranum);
+			$this->merged_message = str_ireplace("[%OMSEVENEMENT%]", $row->OmsEvenement, $this->merged_message);
+			$this->merged_message = str_ireplace("[%DATUMEVENEMENT%]", $dtfmt->format(strtotime($row->DatumEvenement)), $this->merged_message);
+			$this->merged_message = str_ireplace("[%STATUSEVENEMENT%]", ARRDLNSTATUS[$row->Status], $this->merged_message);
+			$this->merged_message = str_ireplace("[%OPMEVENEMENT%]", $row->Opmerking, $this->merged_message);
+			if (isset($row->EmailEvenement) and isValidMailAddress($row->EmailEvenement)) {
+				$this->cc_addr = $row->EmailEvenement;
+			} else {
+				$this->cc_addr = "";
+			}
+
 		} elseif ($this->mid == $_SESSION['settings']['mailing_bewakinginschrijving']) {
 			$i_ib = new cls_InsBew();
 			if ($this->xtranum == 0 and $lidid > 0) {
@@ -1347,27 +1384,36 @@ class Mailing {
 		}
 		
 		if ($lidid > 0) {
+			$dtfmt->setPattern(DTTEXT);
 			foreach($this->MergeField as $fld) {
 				$nm = "[%" . $fld['Naam'] . "%]";
-				if (stripos($this->merged_message, $nm) !== false or stripos($this->merged_subject, $nm) !== false and isset($fld['SQL']) and strlen($fld['SQL']) > 0) {
-					$query  = str_replace("%d", $lidid, $fld['SQL']);
-					$result = (new cls_db_base())->execsql($query);
-					$nv = "";
-					foreach($result->fetchAll(PDO::FETCH_NUM) as $val) {
-						if (substr($fld['Naam'], -3) == "_UL") {
-							$nv .= "<li>";
-						} elseif (strlen($nv) > 0) {
-							$nv .= " en ";
+				if (stripos($this->merged_message, $nm) !== false or stripos($this->merged_subject, $nm) !== false and isset($fld['SQL'])) {
+					if ($fld['Naam'] == "OpenstaandeRekeningenTabel") {
+						$rkrows = (new cls_Rekening())->lijst("telaat", $lidid);
+						$nv = "";
+						foreach ($rkrows as $rkrow) {
+							$nv .= sprintf("<tr><td>%d</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n", $rkrow->Nummer, $dtfmt->format(strtotime($rkrow->Datum)), $dtfmt->format(strtotime($rkrow->Betaaldatum)), number_format($rkrow->Bedrag, 2, ",", "."), number_format($rkrow->Betaald, 2, ",", "."), number_format($rkrow->Openstaand, 2, ",", "."));
 						}
-						$nv .= htmlentities($val[0]);
-						if (substr($fld['Naam'], -3) == "_UL") {
-							$nv .= "</li>\n";
+					} else {
+						$query  = str_replace("%d", $lidid, $fld['SQL']);
+						$result = (new cls_db_base())->execsql($query);
+						$nv = "";
+						foreach($result->fetchAll(PDO::FETCH_NUM) as $val) {
+							if (substr($fld['Naam'], -3) == "_UL") {
+								$nv .= "<li>";
+							} elseif (strlen($nv) > 0) {
+								$nv .= " en ";
+							}
+							$nv .= htmlentities($val[0]);
+							if (substr($fld['Naam'], -3) == "_UL") {
+								$nv .= "</li>\n";
+							}
 						}
-					}
-					if (strlen($nv) == 0 and ($fld['Naam'] == "Afdelingen" or $fld['Naam'] == "Toestemmingen" or $fld['Naam'] == "Toestemmingen_UL")) {
-						$nv = "Geen";
-					} elseif (substr($fld['Naam'], -3) == "_UL") {
-						$nv = "<ul>\n" . $nv . "</ul>";
+						if (strlen($nv) == 0 and ($fld['Naam'] == "Afdelingen" or $fld['Naam'] == "Toestemmingen" or $fld['Naam'] == "Toestemmingen_UL")) {
+							$nv = "Geen";
+						} elseif (substr($fld['Naam'], -3) == "_UL") {
+							$nv = "<ul>\n" . $nv . "</ul>";
+						}
 					}
 					$this->merged_subject = str_ireplace($nm, $nv, $this->merged_subject);
 					$this->merged_message = str_ireplace($nm, $nv, $this->merged_message);
@@ -1521,11 +1567,13 @@ function lijstmailings($p_filter="") {
 		$kols[1]['type'] = "mrg";
 		
 		$kols[2]['headertext'] = "Van";
+		
 		$kols[3]['headertext'] = "Laatst gewijzigd";
 		$kols[3]['type'] = "mrg";
+		
 		$kols[4]['skip'] = true;
 		
-		$kols[5]['columnname'] = "RecordID";
+		$kols[5]['columnname'] = "llkHist";
 		$kols[5]['link'] = sprintf("%s?tp=Mailing/Historie&op=historie&mid=%%d", $_SERVER['PHP_SELF']);
 		$kols[5]['class'] = "detailregels";
 		$kols[5]['title'] = "Verstuurde e-mails";
@@ -1736,7 +1784,7 @@ class email {
 			
 			if ($this->CCafdelingen == 1 and $this->lidid > 0) {
 				foreach((new cls_Lidond())->lijstperlid($this->lidid, "A") as $afdrow) {
-					if (strlen($afdrow->CentraalEmail) > 4) {
+					if (isValidMailAddress($afdrow->CentraalEmail) and strpos($this->cc, $afdrow->CentraalEmail) === false) {
 						if (strlen($this->cc) > 4) {
 							$this->cc .= ",";
 						}
@@ -1940,7 +1988,7 @@ function fnVerstuurRekening($p_rkid, $p_toonmelding=0) {
 	$email = null;	
 	
 	return $rv;
-	
+
 }  # fnVerstuurRekening
 
 function fnMailingInstellingen() {
@@ -1980,6 +2028,7 @@ function fnMailingInstellingen() {
 		$i_p->update("mailing_alle_zien", $_POST['mailing_alle_zien']);
 		$i_p->update("mailing_mailopnieuw", $_POST['mailing_mailopnieuw']);
 		$i_p->update("mailing_bewaartijd", intval("0" . $_POST['mailing_bewaartijd']));
+		$i_p->update("mailing_bewaartijd_ontvangers", intval("0" . $_POST['mailing_bewaartijd_ontvangers']));
 		$i_p->update("mailing_verzonden_opschonen", intval("0" . $_POST['mailing_verzonden_opschonen']));
 		$i_p->update("mailing_hist_opschonen", intval("0" . $_POST['mailing_hist_opschonen']));
 		$i_p->update("maxmailsperminuut", intval("0" . $_POST['maxmailsperminuut']));
@@ -2000,6 +2049,7 @@ function fnMailingInstellingen() {
 		$i_p->update("mailing_validatielogin", $_POST['mailing_validatielogin']);
 		$i_p->update("mailing_herstellenwachtwoord", $_POST['mailing_herstellenwachtwoord']);
 		$i_p->update("mailing_bevestigingopzegging", $_POST['mailing_bevestigingopzegging']);
+		$i_p->update("mailing_bevestigingdeelnameevenement", $_POST['mailing_bevestigingdeelnameevenement']);
 	}
 		
 	if (isset($_GET['delete_vanaf']) and $_GET['delete_vanaf'] > 0) {
@@ -2064,6 +2114,7 @@ function fnMailingInstellingen() {
 	echo("<h2>Opschonen</h2>\n");
 	printf("<label>Hoe lang moeten mailings in de prullenbak bewaard blijven?</label><input type='number' name='mailing_bewaartijd' value=%d min=1 max=999><p>(maanden)</p>\n", $_SESSION['settings']['mailing_bewaartijd']);
 	printf("<label>Hoe lang moeten verzonden e-mails bewaard blijven?</label><input type='number' name='mailing_verzonden_opschonen' value=%d min=6 max=999><p>(maanden)</p>\n", $_SESSION['settings']['mailing_verzonden_opschonen']);
+	printf("<label>Hoe lang moeten ontvangers bij een mailing worden bewaard?</label><input type='number' name='mailing_bewaartijd_ontvangers' value=%d min=3 max=999><p>(maanden)</p>\n", $_SESSION['settings']['mailing_bewaartijd_ontvangers']);
 	printf("<label>Hoe lang moeten verzonden e-mails na beïndiging lidmaatschap bewaard blijven?</label><input type='number' name='mailing_hist_opschonen' value=%d min=3 max=999><p>(maanden)</p>\n", $_SESSION['settings']['mailing_hist_opschonen']);
 	
 	echo("<h2>Mailings met een specifiek doel</h2>\n");
@@ -2092,8 +2143,14 @@ function fnMailingInstellingen() {
 	foreach($rows as $row) {
 		$options .= sprintf("<Option%s value=%d>%s</option>", checked($row->RecordID, "option", $_SESSION['settings']['mailing_bevestigingopzegging']), $row->RecordID, $row->subject);
 	}
-	$rows = null;
 	printf("<label>Versturen bevestiging opzegging lidmaatschap</label><select name='mailing_bevestigingopzegging'>%s</select>\n", $options);
+	
+	$options = "<Option value=0>Geen</option>";
+	foreach($rows as $row) {
+		$options .= sprintf("<Option%s value=%d>%s</option>", checked($row->RecordID, "option", $_SESSION['settings']['mailing_bevestigingdeelnameevenement']), $row->RecordID, $row->subject);
+	}
+	$rows = null;
+	printf("<label>Versturen bevestiging inschrijven bij evenement</label><select name='mailing_bevestigingdeelnameevenement'>%s</select>\n", $options);
 	
 	echo("<div class='clear'></div>\n");
 	
