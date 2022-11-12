@@ -904,7 +904,7 @@ class cls_Lid extends cls_db_base {
 			$p_ord .= ", ";
 		}
 		
-		$query = sprintf("SELECT L.RecordID, %s AS `Naam_lid`%s, L.GEBDATUM, %s AS Zoeknaam, L.Postcode, L.RekeningBetaaldDoor, L.Achternaam, L.TUSSENV, L.Roepnaam
+		$query = sprintf("SELECT L.RecordID, %s AS `Naam_lid`%s, L.GEBDATUM, %s AS Zoeknaam, L.Postcode, L.RekeningBetaaldDoor, L.Achternaam, L.TUSSENV, L.Roepnaam, L.RecordID AS LidID
 					FROM %s
 					%s
 					ORDER BY %sL.Achternaam, L.TUSSENV, L.Roepnaam, LM.LIDDATUM;", $this->selectnaam, $xtraselect, $this->selectzoeknaam, $this->fromlid, $filter, $p_ord);
@@ -4603,9 +4603,8 @@ class cls_Mailing_hist extends cls_db_base {
 	
 	public function opschonen() {
 		$this->tas = 23;
-		$totaal = 0;
 		$mho = $_SESSION['settings']['mailing_hist_opschonen'] ?? 18;
-		if ($mho > 0) {
+		if ($mho >= 3) {
 			$query = sprintf("SELECT LM.Lid FROM %sLidmaatschap AS LM WHERE IFNULL(LM.Opgezegd, '9999-12-31') < DATE_SUB(CURDATE(), INTERVAL %d MONTH);", TABLE_PREFIX, $mho);
 			$result = $this->execsql($query);
 			foreach ($result->fetchAll() as $lmrow) {
@@ -4614,9 +4613,8 @@ class cls_Mailing_hist extends cls_db_base {
 					$this->query = sprintf("DELETE FROM %s WHERE LidID=%d AND send_on < DATE_SUB(CURDATE(), INTERVAL %d MONTH);", $this->table, $lmrow->Lid, $mho);
 					$aant = $this->execsql();
 					if ($aant > 0) {
-						$this->mess = sprintf("%d records van voormalig lid %d verwijderd.", $aant, $this->lidid);
-						$this->Log(0, 0, 1);
-						$totaal += $aant;
+						$this->mess = sprintf("%s: %d records van voormalig lid %d verwijderd.", $this->table, $aant, $this->lidid);
+						$this->Log(0, 1);
 					}
 				}
 			}
@@ -4626,7 +4624,6 @@ class cls_Mailing_hist extends cls_db_base {
 		$result = $this->execsql($query);
 		foreach ($result->fetchAll() as $mhrow) {
 			$this->delete($mhrow->RecordID, "het lid niet (meer) bestaat.");
-			$totaal++;
 		}
 		
 		
@@ -4643,7 +4640,6 @@ class cls_Mailing_hist extends cls_db_base {
 			$this->mess = sprintf("%d verzonden e-mails verwijderd, omdat deze langer dan %d maanden geleden verzonden zijn.", $aant, $mho);
 			$this->Log(0, 1);
 		}
-		$totaal += $aant;
 		
 		$aant = 0;
 		$query = sprintf("SELECT MH.RecordID FROM %s WHERE MH.Ingevoerd < DATE_SUB(CURDATE(), INTERVAL 15 DAY) AND (MH.send_on IS NULL);", $this->basefrom);
@@ -4655,13 +4651,6 @@ class cls_Mailing_hist extends cls_db_base {
 		$this->lidid = 0;
 		if ($aant > 0) {
 			$this->mess = sprintf("%d e-mails uit de outbox verwijderd, omdat deze langer dan 2 weken niet verzonden zijn.", $aant, $mho);
-			$this->Log(0, 1);
-		}
-		$totaal += $aant;
-		
-		
-		if ($totaal > 0) {
-			$this->mess = sprintf("In totaal %d records uit %s verwijderd.", $totaal, $this->table);
 			$this->Log(0, 1);
 		}
 	}
@@ -4719,6 +4708,20 @@ class cls_Mailing_rcpt extends cls_db_base {
 						  ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, MR.to_address, MR.Ingevoerd;", $this->selectnaam, $this->selectzoeknaam, $this->basefrom, TABLE_PREFIX, $w);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
+	}
+	
+	public function record($p_mid, $p_lidid) {
+		$this->mid = $p_mid;
+		$this->lidid = $p_lidid;
+		$query = sprintf("SELECT MR.* FROM %s WHERE MR.MailingID=%d AND MR.LidID=%d;", $this->basefrom, $this->mid, $this->lidid);
+		$result = $this->execsql($query);
+		$row = $result->fetch();
+		if (isset($row->RecordID)) {
+			$this->mrid = $row->RecordID;
+			return $row;
+		} else {
+			return false;
+		}
 	}
 	
 	public function aantalontvangers($p_mid=-1, $p_lidid=-1) {
@@ -4845,6 +4848,15 @@ class cls_Mailing_rcpt extends cls_db_base {
 		if ($rv > 0) {
 			$this->mess = sprintf("Er zijn %d records uit %s verwijderd, omdat de bijbehorende mailing niet (meer) bestaat.", $rv, $this->table);
 			$this->log(0, 2);
+		}
+		
+		if ($_SESSION['settings']['mailing_bewaartijd_ontvangers'] >= 3) {
+			$query = sprintf("DELETE FROM %s WHERE Ingevoerd < DATE_SUB(CURDATE(), INTERVAL %d MONTH);", $this->table, $_SESSION['settings']['mailing_bewaartijd_ontvangers']);
+			$rv = $this->execsql($query);
+			if ($rv > 0) {
+				$this->mess = sprintf("Er zijn %d records uit %s verwijderd, omdat ze langer dan %d maanden geleden zijn toegevoegd.", $rv, $this->table, $_SESSION['settings']['mailing_bewaartijd_ontvangers']);
+				$this->log(0, 2);
+			}
 		}
 		
 	}
@@ -5866,7 +5878,7 @@ class cls_Evenement extends cls_db_base {
 			
 		} elseif ($p_soort == 4) {
 			$select = sprintf("E.Datum, E.Omschrijving, E.Locatie, E.MeerdereStartMomenten, E.RecordID, (%s) AS Dln, E.BeperkTotGroep", $this->sqlaantdln);
-			$where = sprintf("E.Datum >= CURDATE() AND IFNULL(E.VerwijderdOp, '1900-01-01') < '2012-01-01' AND E.BeperkTotGroep IN (%s)", $_SESSION["lidgroepen"]);
+			$where = sprintf("E.Datum >= DATE_SUB(CURDATE(), INTERVAL 3 DAY) AND IFNULL(E.VerwijderdOp, '1900-01-01') < '2012-01-01' AND E.BeperkTotGroep IN (%s)", $_SESSION["lidgroepen"]);
 			$ord = "E.Datum;";
 			
 		} elseif ($p_soort == 5) {
@@ -5938,11 +5950,15 @@ class cls_Evenement extends cls_db_base {
 		return $this->standaardstatus;
 	}
 	
-	public function add() {
+	public function add($p_datum="") {
+		if (strlen($p_datum) < 10) {
+			$p_datum = date("Y-m-d");
+		}
+		
 		$nrid = $this->nieuwrecordid();
-		$this->query = sprintf("INSERT INTO %s (RecordID, Datum, Omschrijving, TypeEvenement, InschrijvingOpen, StandaardStatus, IngevoerdDoor) VALUES (%d, CURDATE(), '', 0, 0, 'B', %d);", $this->table, $nrid, $_SESSION['lidid']);
+		$this->query = sprintf("INSERT INTO %s (RecordID, Datum, Omschrijving, TypeEvenement, InschrijvingOpen, StandaardStatus, IngevoerdDoor) VALUES (%d, '%s', '', 0, 0, 'B', %d);", $this->table, $nrid, $p_datum, $_SESSION['lidid']);
 		if ($this->execsql() > 0) {
-			$this->mess = sprintf("Evenement %d is toegevoegd.", $nrid);
+			$this->mess = sprintf("Evenement %d op %s is toegevoegd.", $nrid, $p_datum);
 			$this->log($nrid);
 			return $nrid;
 		} else {
@@ -6020,7 +6036,7 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 		$this->edid = $p_edid;
 		$this->vulvars($p_evid, $p_lidid);
 		
-		$query = sprintf("SELECT ED.*, E.Omschrijving AS OmsEvenement FROM %s AS ED INNER JOIN %sEvenement AS E ON ED.EvenementID=E.RecordID WHERE ED.RecordID=%d;", $this->table, TABLE_PREFIX, $this->edid);
+		$query = sprintf("SELECT ED.*, E.Omschrijving AS OmsEvenement, E.Datum AS DatumEvenement, E.Email AS EmailEvenement FROM %s AS ED INNER JOIN %sEvenement AS E ON ED.EvenementID=E.RecordID WHERE ED.RecordID=%d;", $this->table, TABLE_PREFIX, $this->edid);
 		$result = $this->execsql($query);
 		return $result->fetch();
 	}
@@ -7887,7 +7903,9 @@ class cls_Parameter extends cls_db_base {
 		$this->arrParam['mailing_alle_zien'] = array("Type" => "I", "Default" => -1);
 		$this->arrParam['mailing_bevestigingbestelling'] = array("Type" => "I", "Default" => 0);
 		$this->arrParam['mailing_bevestigingopzegging'] = array("Type" => "I", "Default" => 0);
+		$this->arrParam['mailing_bevestigingdeelnameevenement'] = array("Type" => "I", "Default" => 0);
 		$this->arrParam['mailing_bewaartijd'] = array("Type" => "I", "Default" => 3);
+		$this->arrParam['mailing_bewaartijd_ontvangers'] = array("Type" => "I", "Default" => 18);
 		$this->arrParam['mailing_bewakinginschrijving'] = array("Type" => "I", "Default" => 0);
 		$this->arrParam['mailing_direct_verzenden'] = array("Type" => "B", "Default" => 0);
 		$this->arrParam['mailing_extensies_toegestaan'] = array("Type" => "T", "Default" => "bmp, gif, jpeg, jpg, pdf, png, pps, rar, txt, zip");
