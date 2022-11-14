@@ -1154,6 +1154,7 @@ function algemeenlidmuteren($lidid) {
 	global $actionurl, $currenttab, $currenttab2;
 	
 	$i_lid = new cls_Lid();
+	$i_lid->controle($lidid);
 	$row = $i_lid->record($lidid);
 	$i_lo = new cls_Lidond();
 	$i_ond = new cls_Onderdeel();
@@ -1181,7 +1182,23 @@ function algemeenlidmuteren($lidid) {
 	if ($sl == "K") {
 		$wijzvelden[] = array('label' => "Opmerking", 'naam' => "Opmerking", 'lengte' => 60);
 	}
-	$wijzvelden[] = array('label' => "Adres", 'naam' => "Adres", 'lengte' => 30);
+	
+	$u = "";
+	if (strlen($row->Adres) > 3 and $row->Huisnr == 0) {
+		$u = "Geen huisnummer ingevoerd";
+	} else {
+		$pdok = pdok($row->Postcode, $row->Huisnr, $row->Huisletter, $row->Toevoeging);
+		if (!isset($pdok->numFound) or $pdok->numFound == 0) {
+			$u = "Adres bestaat niet";
+		} elseif (isset($pdok->docs[0]->huis_nlt)) {
+			$adr = $pdok->docs[0]->straatnaam . " " . $pdok->docs[0]->huis_nlt;
+			if ($adr != trim($row->Adres)) {
+				$i_lid->update($lidid, "Adres", $adr);
+				$row = $i_lid->record($lidid);
+			}
+		}
+	}
+	$wijzvelden[] = array('label' => "Adres", 'naam' => "Adres", 'lengte' => 30, 'uitleg' => $u);
 	$wijzvelden[] = array('label' => "Postcode", 'naam' => "Postcode", 'lengte' => 7);
 	$wijzvelden[] = array('label' => "Woonplaats", 'naam' => "Woonplaats", 'lengte' => 22);
 	$wijzvelden[] = array('label' => "Vast telefoonnummer", 'naam' => "Telefoon", 'lengte' => 21, 'uitleg' => "");
@@ -1247,7 +1264,7 @@ function algemeenlidmuteren($lidid) {
 	printf("<form method='post' action='%s' name='frm_wijzigingen'>\n", $actionurl);
 	printf("<input type='hidden' name='lidid' value=%d>\n", $lidid);
 	echo("<div id='algemenegegevenslidmuteren'>\n");
-	printf("<label id='lblRecordID'>RecordID</label><p>%d</p>\n", $row->RecordID);
+	printf("<label id='lblRecordID'>RecordID/LidID</label><p>%d</p>\n", $row->RecordID);
 	$lidnr = $i_lm->lidnummer($row->RecordID);
 	if ($lidnr > 0) {
 		printf("<label id='lblLidnummer'>Lidnummer</label><p>%s</p>\n", $lidnr);
@@ -1260,23 +1277,16 @@ function algemeenlidmuteren($lidid) {
 		
 		if (($wijzvelden[$i]['naam'] == "Adres" or $wijzvelden[$i]['naam'] == "Woonplaats") and strlen($row->Postcode) >= 6) {
 			
-			$curl= curl_init();
-			curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-			$url = sprintf("https://geodata.nationaalgeoregister.nl/locatieserver/free?fq=postcode:%s", str_replace(" ", "", $row->Postcode));
-			curl_setopt($curl, CURLOPT_URL, $url);
-			$respdok = curl_exec($curl);
-			$pdok = json_decode($respdok)->response;
+			$pdok = pdok($row->Postcode);
 			
 			if ($wijzvelden[$i]['naam'] == "Woonplaats" and strlen($dv) == 0 and isset($pdok->docs[0]->woonplaatsnaam)) {
 				$dv = $pdok->docs[0]->woonplaatsnaam;
 				$i_lid->update($lidid, "Woonplaats", $dv);
 				
 			} elseif ($wijzvelden[$i]['naam'] == "Adres" and strlen($dv) == 0 and isset($pdok->docs[0]->straatnaam)) {
-				$dv = $pdok->docs[0]->straatnaam;
+				$dv = $pdok->docs[0]->straatnaam . " ";
 			}
-			curl_close($curl);
 		}
-			
 		
 		$ph = $wijzvelden[$i]['label'];
 		if ($wijzvelden[$i]['label'] == "Geslacht" or $wijzvelden[$i]['label'] == "Legitimatietype" or $wijzvelden[$i]['label'] == "Rekening betaald door") {
@@ -2122,6 +2132,7 @@ function fnPersoonlijkeAgenda() {
 	global $dtfmt;
 	
 	$i_ak = new cls_Afdelingskalender();
+	$i_lo = new cls_Lidond();
 	$kalitem = null;
 	$in = 0;
 	
@@ -2129,7 +2140,7 @@ function fnPersoonlijkeAgenda() {
 	foreach ($i_ak->lijst(-1, "", $f) as $row) {
 		$kalitem[$in]['datum'] = date("Y-m-d", strtotime($row->Datum));
 			
-		$lorow = (new cls_Lidond())->record($_SESSION['lidid'], $row->OnderdeelID);
+		$lorow = $i_lo->record($_SESSION['lidid'], $row->OnderdeelID);
 		if (isset($lorow->Starttijd) and strlen($lorow->Starttijd) > 3 and $row->Activiteit == 1) {
 			$kalitem[$in]['datum'] .= " " . $lorow->Starttijd;
 		}
@@ -2712,6 +2723,41 @@ function sportlink() {
 	echo("</table>\n");
 	
 }  # Sportlink
+
+function pdok($p_postcode, $p_huisnr=0, $p_letter="", $p_toev="") {
+	
+	$p_postcode = strtoupper(trim($p_postcode));
+	$p_postcode = str_replace(" ", "", $p_postcode);
+	$p_letter = strtoupper(trim($p_letter));
+
+	if (strlen($p_postcode) == 6) {
+		$curl= curl_init();
+		curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+		$url = sprintf("https://geodata.nationaalgeoregister.nl/locatieserver/free?fq=postcode:%s", $p_postcode);
+		if ($p_huisnr > 0) {
+			$url .= sprintf("&fq=huisnummer:%d", $p_huisnr);
+			if (strlen($p_letter) > 0) {
+				$url .= "&fq=huisletter:" . $p_letter;
+			}
+			if (strlen($p_toev) > 0) {
+				$url .= "&fq=huisnummertoevoeging:" . $p_toev;
+			}
+		}
+		curl_setopt($curl, CURLOPT_URL, $url);
+		$respdok = curl_exec($curl);
+		if (isset(json_decode($respdok)->response)) {
+			$pdok = json_decode($respdok)->response;
+		} else {
+			$pdok = false;
+		}
+		curl_close($curl);
+		
+		return $pdok;
+	} else {
+		return false;
+	}
+	
+}  # pdok
 
 function IsIBANgoed($IBAN, $LeegIsGoed=1) {
    $retval = false;
