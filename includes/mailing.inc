@@ -201,7 +201,6 @@ class Mailing {
 	private $aant_nok = 0;
 	public $aant_rcpt = 0;
 	private $verzendenmag = false;
-	private $emailsecretariaat = "";
 	private $automontvanger = false;
 	
 	private $sl_huidigegroep = 0;
@@ -227,7 +226,6 @@ class Mailing {
 			$this->allowed_ext = $_SESSION['settings']['mailing_extensies_toegestaan'];
 		}
 		$this->max_size_attachm = $_SESSION['settings']['max_grootte_bijlage'] * 1024;
-		$this->emailsecretariaat = $_SESSION['settings']['emailsecretariaat'];
 
 		$sql = sprintf("SELECT Roepnaam FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Roepnaam", 'SQL' => $sql);
