@@ -237,9 +237,10 @@ header h1 {
 #filter p {
 	margin-right: 6px;
 	margin-top: 6px;
+	margin-bottom: 0;
 }
 
-#filter input[type='text'], #filter input[type='checkbox'] {
+#filter input[type='text'], #filter input[type='date'], #filter input[type='checkbox'] {
 	clear: none;
 	float: left;
 	height: 24px;
@@ -256,6 +257,7 @@ header h1 {
 
 #filter input[type='checkbox'] {
 	margin-top: 6px;
+	margin-bottom: 0;
 }
 
 #filter select {
@@ -271,6 +273,8 @@ header h1 {
 
 #filter span {
 	background-color: transparent;
+	margin-top: 1px;
+	padding-top: 0;
 }
 
 #filter .aantrecords {
@@ -859,9 +863,13 @@ textarea#sportlinkdata {
 	border-style: none;
 }
 
-#groepsindeling label {
+#groepsindeling label, #evenementenbeheer label {
 	clear: none;
 	float: left;
+}
+
+#evenementenbeheer #form label {
+	width: 135px;
 }
 
 #groepsindeling h2 {
@@ -906,7 +914,7 @@ textarea#sportlinkdata {
 
 #groepsindeling ol {
 	margin-left: 1px;
-	padding-left: 22px;
+	padding-left: 28px;
 	padding-right: 2px;
 }
 
@@ -985,11 +993,15 @@ textarea#sportlinkdata {
 	float: left;
 }
 
+#afdelingsmailing ul {
+	width: 100%;
+}
+
 #afdelingsmailing li {
 	list-style: none;
 	position: relative;
 	float: left;
-	width: 250px;
+	width: 25%;
 	margin-left: 0;
 	padding-left: 0;
 }
