@@ -313,8 +313,44 @@ function fnLedenlijst() {
 		
 	} else {
 		
+		$arrCB = array("adres", "telefoon", "email", "lidnummer", "vanaf", "opgezegd");
 		
-				
+		foreach ($arrCB as $k) {
+			$vn = "toon" . $k;
+			$cn = "ledenlijst_" . $vn;
+			if ($_SERVER['REQUEST_METHOD'] == "POST") {
+				if (isset($_POST[$vn]) and $_POST[$vn] == "on") {
+					$$vn = 1;
+				} else {
+					$$vn = 0;
+				}
+				setcookie($cn, $$vn, time()+(3600*24*180));
+			} elseif (isset($_COOKIE[$cn])) {
+				$$vn = intval($_COOKIE[$cn]);
+			} else {
+				$$vn = 0;
+			}
+			$$vn = intval($$vn);
+		}
+		
+		echo("<div id='filter'>\n");
+		echo("<input type='text' name='tbTekstFilter' id='tbTekstFilter' placeholder='Tekstfilter' OnKeyUp=\"fnFilter('ledenlijst', this);\">\n");
+		printf("<form action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
+
+		if ($currenttab2 != "Klosleden") {
+			printf("<select name='lbGroepFilter' onchange='this.form.submit();'>\n<option value=0>Filter op onderdeel</option>\n%s</select>\n", (new cls_Onderdeel())->htmloptions($_SESSION['val_groep']));
+		}
+		if (toegang("Woonadres_tonen", 0, 0)) {
+			printf("<span><input type='checkbox' name='toonadres' title='Toon adres'%s onClick='this.form.submit();'><p>Adres</p></span>", checked($toonadres));
+		}
+		printf("<span><input type='checkbox' name='toontelefoon' title='Toon telefoon'%s onClick='this.form.submit();'><p>Telefoon</p></span>", checked($toontelefoon));
+		printf("<span><input type='checkbox' name='toonemail' title='Toon e-mail'%s onClick='this.form.submit();'><p>E-mail</p></span>", checked($toonemail));
+		printf("<span><input type='checkbox' name='toonlidnummer' title='Toon lidnummer'%s onClick='this.form.submit();'><p>Lidnr</p></span>", checked($toonlidnummer));
+		printf("<span><input type='checkbox' name='toonvanaf' title='Toon vanaf'%s onClick='this.form.submit();'><p>Vanaf</p></span>", checked($toonvanaf));
+		if ($currenttab2 != "Toekomstige leden") {
+			printf("<span><input type='checkbox' name='toonopgezegd' title='Toon opgezegd'%s onClick='this.form.submit();'><p>Opgezegd</p></span>", checked($toonopgezegd));
+		}
+		
 		if (toegang("Ledenlijst/Overzicht lid", 0, 0)) {
 			$kols[0]['link'] = "<a href='index.php?tp=Ledenlijst/Overzicht+lid&lidid=%d'>%s</a>";
 			$kols[0]['class'] = "details";
@@ -324,12 +360,31 @@ function fnLedenlijst() {
 		}
 		$kols[1]['headertext'] = "Naam";
 		$kols[1]['sortcolumn'] = "L.Achternaam";
-		$kols[2]['headertext'] = "Adres";
-		$kols[2]['columnname'] = "Adres";
-		$kols[3]['headertext'] = "Bereiken";
-		$kols[3]['columnname'] = "Bereiken";
-		$kols[3]['type'] = "combitext";
-		$kn = 4;
+		$kn = 2;
+		if ($toonadres == 1) {
+			$kols[$kn]['headertext'] = "Adres";
+			$kols[$kn]['columnname'] = "Adres";
+			$kn++;
+			
+			$kols[$kn]['headertext'] = "Postcode";
+			$kols[$kn]['columnname'] = "Postcode";
+			$kn++;
+			
+			$kols[$kn]['headertext'] = "Woonplaats";
+			$kols[$kn]['columnname'] = "Woonplaats";
+			$kn++;
+		}
+		
+		if ($toontelefoon == 1) {
+			$kols[$kn]['headertext'] = "Telefoon";
+			$kols[$kn]['columnname'] = "Telefoon";
+			$kn++;
+		}
+		if ($toonemail == 1) {
+			$kols[$kn]['headertext'] = "E-mail";
+			$kols[$kn]['columnname'] = "Email";
+			$kn++;
+		}
 		if ($currenttab2 == "Klosleden") {
 			$kols[$kn]['headertext'] = "Opmerking";
 			$kols[$kn]['columnname'] = "Opmerking";
@@ -340,17 +395,21 @@ function fnLedenlijst() {
 			$kols[$kn]['columnname'] = "RecordID";
 			$kn++;
 		} else {
-			$kols[$kn]['headertext'] = "Lidnummer";
-			$kols[$kn]['columnname'] = "Lidnr";
-			$kols[$kn]['sortcolumn'] = "LM.Lidnr";
-			$kols[$kn]['type'] = "integer";
-			$kn++;
-			$kols[$kn]['headertext'] = "Lid vanaf";
-			$kols[$kn]['columnname'] = "LIDDATUM";
-			$kols[$kn]['sortcolumn'] = "LM.LIDDATUM";
-			$kols[$kn]['type'] = "date";
-			$kn++;
-			if ($currenttab2 != "Toekomstige leden") {
+			if ($toonlidnummer == 1) {
+				$kols[$kn]['headertext'] = "Lidnummer";
+				$kols[$kn]['columnname'] = "Lidnr";
+				$kols[$kn]['sortcolumn'] = "LM.Lidnr";
+				$kols[$kn]['type'] = "integer";
+				$kn++;
+			}
+			if ($toonvanaf == 1) {
+				$kols[$kn]['headertext'] = "Lid vanaf";
+				$kols[$kn]['columnname'] = "LIDDATUM";
+				$kols[$kn]['sortcolumn'] = "LM.LIDDATUM";
+				$kols[$kn]['type'] = "date";
+				$kn++;
+			}
+			if ($currenttab2 != "Toekomstige leden" and $toonopgezegd == 1) {
 				$kols[$kn]['headertext'] = "Opgezegd per";
 				$kols[$kn]['columnname'] = "Opgezegd";
 				$kols[$kn]['sortcolumn'] = "LM.Opgezegd";
@@ -371,11 +430,9 @@ function fnLedenlijst() {
 			$kols[$kn]['class'] = 'muteren';
 			$kn++;
 		}
-	
-		$ord = fnOrderBy($kols);
 		
 		if ($currenttab2 == "Klosleden") {
-				$rows = $i_lid->klosledenlijst();
+			$rows = $i_lid->klosledenlijst();
 		
 		} else {
 			$sl = 0;
@@ -387,30 +444,25 @@ function fnLedenlijst() {
 				$sl = 2;
 			}
 			if ($sl > 0) {
-				$rows = $i_lid->ledenlijst($sl, $_SESSION['val_groep'], $ord);
+				$rows = $i_lid->ledenlijst($sl, $_SESSION['val_groep'], fnOrderBy($kols));
 			}
 		}
 		
-		echo("<div id='filter'>\n");
-		echo("<input type='text' name='tbTekstFilter' id='tbTekstFilter' placeholder='Tekstfilter' OnKeyUp=\"fnFilter('ledenlijst', this);\">\n");
-		printf("<form action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
-
-		if ($currenttab2 != "Klosleden") {
-			printf("<select name='lbGroepFilter' onchange='this.form.submit();'>\n<option value=0>Filter op onderdeel</option>\n%s</select>\n", (new cls_Onderdeel())->htmloptions($_SESSION['val_groep']));
-		}
-
-		if (count($rows) > 1) {
-			printf("<p class='aantrecords'>%d %s</p>\n", count($rows), $currenttab2);
-		}
-		echo("</form>\n");
-		echo("</div>  <!-- Einde filter -->\n");
-		
 		if (count($rows) > 0) {
+			if (count($rows) > 1) {
+				printf("<p class='aantrecords'>%d %s</p>\n", count($rows), $currenttab2);
+			}
+			echo("</form>\n");
+			echo("</div>  <!-- Einde filter -->\n");
+			
 			echo(fnDisplayTable($rows, $kols, "", 0, "", "ledenlijst"));
 			foreach ($rows as $row) {
 				$sel_leden[] = $row->RecordID;
 			}
 			$_SESSION['sel_leden'] = $sel_leden;
+		} else {
+			echo("</form>\n");
+			echo("</div>  <!-- Einde filter -->\n");
 		}
 	}
 
@@ -718,6 +770,8 @@ function fnEigenGegevens($lidid=0) {
 	global $currenttab, $currenttab2, $currenttab3, $dtfmt;
 	
 	$i_foto = new cls_Foto();
+	$i_ond = new cls_Onderdeel();
+	$i_lo = new cls_Lidond();
 	
 	if ($lidid == 0 and isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0) {
 		$lidid = (new cls_Mailing_hist())->lidbijemail($_GET['MailingHistID']);
@@ -771,10 +825,24 @@ function fnEigenGegevens($lidid=0) {
 		}
 		
 		$tn = "Lidmaatschappen";
+		$kols[0]['headertext'] = "Lidnummer";
+		$kols[0]['columnname'] = "Lidnr";
+		
+		$kols[1]['headertext'] = "Vanaf";
+		$kols[1]['columnname'] = "LIDDATUM";
+		$kols[1]['type'] = "DTTEXT";
+		
+		$kols[2]['headertext'] = "Opgezegd";
+		$kols[2]['columnname'] = "Opgezegd";
+		$kols[2]['type'] = "DTTEXT";
+		
+		$kols[3]['headertext'] = "Duur";
+		$kols[3]['columnname'] = "Duur";
+		
 		if (toegang($ct . $tn, 0, 0)) {
 			$rows = (new cls_Lidmaatschap())->overzichtlid($lidid);
 			if (count($rows) > 1) {
-				$tabblad[$tn] = fnDisplayTable($rows, null, $tn . " " . $naamlid, 0, "Lidmaatschappen");
+				$tabblad[$tn] = fnDisplayTable($rows, $kols, $tn . " " . $naamlid);
 			}
 		}
 		
@@ -797,14 +865,26 @@ function fnEigenGegevens($lidid=0) {
 		if (count($rows) > 0 and toegang($ct . $tn, 0, 0)) {
 			$rows = (new cls_Lidond())->overzichtlid($lidid, "A");
 			if (count($rows) > 0) {
-				$tabblad[$tn] = fnDisplayTable($rows, $kols, $tn . " " . $naamlid);
+				$tabblad[$tn] = fnDisplayTable($rows, $kols, $tn . " " . $naamlid, 0, "");
 			} else {
 				$tabblad[$tn] = sprintf("<p class='mededeling'>%s heeft geen %s.</p>\n", $naamlid, $tn);
 			}
 		}
 		
 		$kols[0]['headertext'] = "Groep";
-		$kols[5]['headertext'] = "Tot en met";
+		$kols[0]['columnname'] = "Naam";
+		
+		$kols[1]['headertext'] = "Vanaf";
+		$kols[1]['columnname'] = "Vanaf";
+		$kols[1]['type'] = "DTTEXT";
+		
+		$kols[2]['headertext'] = "Tot en met";
+		$kols[2]['columnname'] = "Opgezegd";
+		$kols[2]['type'] = "DTTEXT";
+		
+		$kols[3]['headertext'] = "Duur";
+		$kols[3]['columnname'] = "Duur";
+		
 		$tn = "Groepen";
 		if ((new cls_Onderdeel())->Aantal("Type='G'") > 0 and toegang($ct . $tn, 0, 0)) {
 			$rows = (new cls_Lidond())->overzichtlid($lidid, "G");
@@ -814,7 +894,7 @@ function fnEigenGegevens($lidid=0) {
 		}
 		
 		$tn = "Kader";
-		$kols[0]['headertext'] = "Naam";
+		$kols[0]['headertext'] = "Onderdeel";
 		if (toegang($ct . $tn, 0, 0)) {
 			$rows = (new cls_Lidond())->overzichtlid($lidid, "K");
 			if (count($rows) > 0) {
@@ -824,7 +904,7 @@ function fnEigenGegevens($lidid=0) {
 
 		$tn = "Rollen";
 		if (toegang($ct . $tn, 0, 0)) {
-			$rows = (new cls_Lidond())->overzichtlid($lidid, "R");
+			$rows = $i_lo->overzichtlid($lidid, "R");
 			if (count($rows) > 0) {
 				$tabblad[$tn] = fnDisplayTable($rows, $kols, $tn . " " . $naamlid, 0, "", "Rollen");
 			}
@@ -854,9 +934,12 @@ function fnEigenGegevens($lidid=0) {
 		
 		$tn = "Toestemmingen";
 		$kols[0]['headertext'] = "Omschrijving";
+		$kols[0]['columnname'] = "Naam";
+		
 		$kols[1]['headertext'] = "Afgegeven / Laatst bevestigd";
-		if ($gs != "B" and (new cls_Onderdeel())->Aantal("Type='T'") > 0 and toegang($ct . $tn, 0, 0)) {
-			$rows = (new cls_Lidond())->overzichtlid($lidid, "T");
+		$kols[1]['columnname'] = "Vanaf";
+		if ($gs != "B" and $i_ond->Aantal("Type='T'") > 0 and toegang($ct . $tn, 0, 0)) {
+			$rows = $i_lo->overzichtlid($lidid, "T");
 			if (count($rows) > 0) {
 				$tabblad[$tn] = fnDisplayTable($rows, $kols, $tn . " " . $naamlid, 0, "", "toestemmingen");
 			} else {
@@ -1203,8 +1286,10 @@ function algemeenlidmuteren($lidid) {
 	$wijzvelden[] = array('label' => "Woonplaats", 'naam' => "Woonplaats", 'lengte' => 22);
 	$wijzvelden[] = array('label' => "Vast telefoonnummer", 'naam' => "Telefoon", 'lengte' => 21, 'uitleg' => "");
 	$wijzvelden[] = array('label' => "Mobiel", 'naam' => "Mobiel", 'lengte' => 21, 'uitleg' => "");
-	$wijzvelden[] = array('label' => "E-mail", 'naam' => "Email", 'lengte' => 45, 'uitleg' => "");
-	if ($_SESSION['settings']['zs_incl_emailvereniging'] == 1 or $currenttab2 == "Wijzigen lid") {
+	if ($row->GEBDATUM < date("Y-m-d", strtotime("-8 year"))) {
+		$wijzvelden[] = array('label' => "E-mail", 'naam' => "Email", 'lengte' => 45, 'uitleg' => "");
+	}
+	if (($_SESSION['settings']['zs_incl_emailvereniging'] == 1 or $currenttab2 == "Wijzigen lid") and $row->GEBDATUM < date("Y-m-d", strtotime("-12 year")) and $sl != "K") {
 		$wijzvelden[] = array('label' => "E-mail vereniging", 'naam' => "EmailVereniging", 'lengte' => 45, 'uitleg' => "");
 	}
 	if (($_SESSION['settings']['zs_incl_emailouders'] == 1 or $currenttab2 == "Wijzigen lid") and $gs != "B") {
@@ -2091,8 +2176,6 @@ function instellingenledenmuteren() {
 	printf("<form method='post' action='%s?tp=%s/%s'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
 	
 	echo("<h2>Algemeen</h2>\n");
-	$opt = $i_ond->htmloptions($_SESSION['settings']['woonadres_anderen_tonen']);
-	printf("<label>Aan wie moet het woonadres aan andere leden worden getoond?</label><select name='woonadres_anderen_tonen' OnChange='this.form.submit();'><option value=-2>Niemand</option>\n%s</select>\n", $opt);
 	printf("<label>Opzegtermijn in maanden</label><input type='number' name='zs_opzegtermijn' value=%d OnChange='this.form.submit();'>\n", $_SESSION['settings']['zs_opzegtermijn']);
 	
 	$options = "";
@@ -2723,6 +2806,68 @@ function sportlink() {
 	echo("</table>\n");
 	
 }  # Sportlink
+
+function jubilarissen() {
+	
+	$i_lid = new cls_Lid();
+	$i_ond = new cls_Onderdeel();
+	
+	$datumper = $_POST['datumper'] ?? date("Y-m-d");
+	$maandenterug = $_POST['maandenterug'] ?? 12;
+	$jubileumjaren = $_SESSION['settings']['jubileumjaren'] ?? "12.5;25;50";
+	$kaderjubileumjaren = $_SESSION['settings']['kaderjubileumjaren'] ?? "5;12.5;25;50";
+	$jubileumjaren = str_replace(",", ".", $jubileumjaren);
+	$kaderjubileumjaren = str_replace(",", ".", $kaderjubileumjaren);
+
+	echo("<div id='jubilarisoverzicht'>\n");
+	echo("<div id='filter'>\n");
+	$actionurl = sprintf("%s?tp=%s", $_SERVER['PHP_SELF'], $_GET['tp']);
+	printf("<form method='post' action='%s'>\n", $actionurl);
+	printf("<label>Datum per</label><input type='date' value='%s' name='datumper'>", $datumper);
+	printf("<label>Maanden terug</label><input type='number' value='%s' name='maandenterug' min=3 max=99 class='num2'>", $maandenterug);
+	echo("<div class='clear'></div>\n");
+	printf("<label>Jubileumjaren</label><input type='text' name='jubileumjaren' id='jubileumjaren' value='%s' onBlur='saveparam(this);'><p>Puntkomma-gescheiden</p>\n", $jubileumjaren);
+	echo("<div class='clear'></div>\n");
+	printf("<label>Groep met kader</label><select id='kaderonderdeelid' onChange='saveparam(this);'><option value=-1>Geen</option>\n%s</select>\n", $i_ond->htmloptions($_SESSION['settings']['kaderonderdeelid'], 1, "G"));
+	printf("<label>Jubileumjaren voor kader</label><input type='text' name='jubileumjaren' id='kaderjubileumjaren' value='%s' onBlur='saveparam(this);'><p>Puntkomma-gescheiden</p>\n", $kaderjubileumjaren);
+	
+	echo("<div class='clear'></div>\n");
+	
+	echo("<button type='submit'>Toon resultaat</button>\n");
+	echo("</form>\n");
+	echo("</div> <!-- Einde filter -->\n");
+	
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+	
+		$rows = $i_lid->jubilarissen($datumper);
+		echo("<table>\n");
+		echo("<thead><tr><th>Naam lid</th><th>Lidmaatschap</th><th>Kaderlidmaatschap</th></tr></thead>\n");
+		foreach($rows as $row) {
+			$jub = "";
+			$kadjub = "";
+			foreach (explode(";", $jubileumjaren) as $j) {
+				$m = floatval($j) * 12;
+				if ($row->LengteLidmaatschap >= $m and $row->LengteLidmaatschap < ($m+$maandenterug)) {
+					$jub = $j;
+				}
+			}
+			if ($row->EindeKaderlidmaatschap > date("Y-m-d", strtotime("-12 month"))) {
+				foreach (explode(";", $kaderjubileumjaren) as $j) {
+					$m = floatval($j) * 12;
+					if ($row->LengteKaderlidmaatschap >= $m and $row->LengteKaderlidmaatschap < ($m+$maandenterug)) {
+						$kadjub = $j;
+					}
+				}
+			}
+			if (strlen($jub) > 0 or strlen($kadjub) > 0) {
+				printf("<tr><td>%s</td><td>%s</td><td>%s</td></tr>\n", $row->Naam, $jub, $kadjub);
+			}
+		}
+		echo("</table>\n");
+	}
+	echo("</div> <!-- jubilarisoverzicht -->\n");
+
+}  # jubilarissen
 
 function pdok($p_postcode, $p_huisnr=0, $p_letter="", $p_toev="") {
 	
