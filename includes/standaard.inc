@@ -160,11 +160,6 @@ $i_p = new cls_Parameter();
 
 if (!isset($_SESSION['settings']['naamvereniging'])) {
 	$i_p->vulsessie();
-	$row = (new cls_Vereniging())->basislijst()[0];
-	$_SESSION['settings']['naamvereniging'] = $row->Naam;
-	$_SESSION['settings']['naamvereniging_afkorting'] = $row->AfkortingNaam;
-	$_SESSION['settings']['emailsecretariaat'] = $row->EmailSecretariaat;
-	$_SESSION['settings']['emailledenadministratie'] = $row->EmailLedenadministratie;
 }
 if ($bestandsversie != $_SESSION['settings']['versie']) {
 	debug(sprintf("Nieuwe versie: %s", $dtfmt->format(time())));
