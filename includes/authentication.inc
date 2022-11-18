@@ -112,6 +112,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 
 		addtp("Ledenlijst/Rapporten");
 		if ($currenttab2 == "Rapporten") {
+			addtp("Ledenlijst/Rapporten/Jubilarissen");
 			addtp("Ledenlijst/Rapporten/Presentielijst");
 			addtp("Ledenlijst/Rapporten/NCS opgave");
 		}
@@ -528,6 +529,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 			(new cls_Parameter())->update("mailing_herstellenwachtwoord", $mid);
 			$i_M = null;
 		}
+		
 		$row = $i_login->record($lidid);
 		if ($_SESSION['settings']['login_maxinlogpogingen'] > 0 and $row->FouteLogin > $_SESSION['settings']['login_maxinlogpogingen']) {
 			$mess = "Er is teveel foutief met deze login proberen in te loggen. Hierdoor is dit account geblokkeerd. ";
@@ -929,14 +931,9 @@ function fneisenwachtwoord() {
 function addtp($tp, $afdnr=0) {
 	global $tabpages, $currenttab;
 	
-//	debug($tp, 1);
-	
 	$i_acc = new cls_Authorisation();
-//	debug($tp . " in addtp");
 	
 	if ((strstr($tp, "/") === false or startwith($tp, $currenttab . "/")) and toegang($tp, 0, 0, 1)) {
-//	if (toegang($tp, 0, 0)) {
-//		debug($tp . " toegevoegd");
 		$tabpages[] = $tp;
 		$aid = $i_acc->recordid($tp);
 		
