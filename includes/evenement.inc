@@ -4,6 +4,7 @@ function fnEvenementen() {
 	global $currenttab2;
 	
 	$i_ev = new cls_Evenement();
+	$i_et = new cls_Evenement_Type();
 	
 	if (isset($_GET['op']) and strlen($_GET['op']) > 0) {
 		$op = $_GET['op'];
@@ -33,12 +34,42 @@ function fnEvenementen() {
 
 	} elseif ($currenttab2 == "Beheer") {
 		
+		echo("<div id='evenementenbeheer'>\n");
+		
 		echo("<div id='form'>\n");
+		printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 		echo("<input type='text' name='tbTekstFilter' id='tbTekstFilter' placeholder='Tekstfilter' OnKeyUp=\"fnFilter('evenementlijst', this);\">\n");
+		foreach(ARRSOORTEVENEMENT as $k => $v) {
+			$f = sprintf("ET.Soort='%s'", $k);
+			if ($i_et->aantal($f) > 0) {
+				$cn = sprintf("chk_%s", $k);
+				if ($_SERVER['REQUEST_METHOD'] == "POST") {
+					$chk = $_POST[$cn] ?? 0;
+				} else {
+					$chk = 1;
+				}
+				printf("<label>%s</label><input type='checkbox' value=1 name='chk_%s' onClick='this.form.submit();'%s>\n", $v, $k, checked($chk));
+			}
+		}
+		echo("</form>\n");
 		echo("</div> <!-- Einde form -->\n");
 		echo("<div class='clear'></div>\n");
 		
-		$lijst = $i_ev->lijst(2);
+		$in = "";
+		foreach(ARRSOORTEVENEMENT as $k => $v) {
+			$cn = sprintf("chk_%s", $k);
+			if (isset($_POST[$cn]) and $_POST[$cn] == "1") {
+				if (strlen($in) > 0) {
+					$in .= ", ";
+				}
+				$in .= sprintf("'%s'", $k);
+			}
+		}
+		if (strlen($in) > 2) {
+			$in = sprintf("ET.Soort IN (%s)", $in);
+		}
+		$lijst = $i_ev->lijst(2, "", $in);
+		
 		$kols[0]['link'] = sprintf("<a href='%s?tp=%s&amp;op=edit&amp;eid=%%d' title='Muteer evenement'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 		$kols[0]['class'] = "muteren";
 		$kols[0]['columnname'] = "RecordID";
@@ -60,6 +91,8 @@ function fnEvenementen() {
 			$er = "";
 		}
 		echo(fnDisplayTable($lijst, $kols, "", 0, "", "evenementlijst"));
+		
+		echo("</div> <!--  Einde evenementenbeheer -->\n");
 		
 	} elseif ($currenttab2 == "Logboek") {
 		$rows = (new cls_Logboek())->lijst(7, 1);
