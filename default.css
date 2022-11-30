@@ -1190,11 +1190,9 @@ input.omschrijving {
 #loginaanvraag, #opvragenlidnr, #profielwijzigen, #opzegformulier, #herstellenwachtwoord {
 	margin-left: auto;
 	margin-right: auto;
-}
-
-#loginaanvraag, #opvragenlidnr, #profielwijzigen, #opzegformulier, #herstellenwachtwoord {
 	width: 455px;
-	background-color: #00FFFF;
+	overflow: visible;
+	display: flex;
 	margin-bottom: 6px;
 	padding-top: 8px;
 	padding-left: 5px;
@@ -1204,7 +1202,6 @@ input.omschrijving {
 
 #opvragenlidnr input[type='email']{
 	width: 225px;
-	clear: none;
 }
 
 @media screen and (max-width: 1000px) {
@@ -1234,10 +1231,6 @@ input.omschrijving {
 	float: left;
 	clear: right;
 	height: 22px;
-	width: 185px;
-	display: inline;
-	color: #000080;
-	font-weight: bold;
 	margin-left: 2px;
 	margin-top: 4px;
 	margin-bottom: 4px;
@@ -1245,6 +1238,11 @@ input.omschrijving {
 	padding-bottom: 4px;
 	border-style: solid;
 	border-width: 1px;
+}
+
+#loginaanvraag ul {
+	float: left;
+	clear: left;
 }
 
 #opzegformulier textarea {
