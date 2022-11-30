@@ -847,18 +847,27 @@ function fnEigenGegevens($lidid=0) {
 		}
 		
 		$tn = "Afdelingen";
+		$kols = null;
 		$kols[0]['headertext'] = "Afdeling";
-		$kols[1]['headertext'] = "Vanaf";
-		$kols[1]['type'] = "date";
-		$kols[2]['headertext'] = "Functie";
-		$kols[2]['columnname'] = "Functie";
+		$kols[0]['columnname'] = "Naam";
+		
+		$kols[1]['headertext'] = "Functie";
+		$kols[1]['columnname'] = "Functie";
+		
+		$kols[2]['headertext'] = "Vanaf";
+		$kols[2]['headertext'] = "Vanaf";
+		$kols[2]['type'] = "DTTEXT";
+		
 		$kols[3]['headertext'] = "Opmerking";
 		$kols[3]['columnname'] = "Opmerking";
+		
 		$kols[4]['headertext'] = "Groep";
 		$kols[4]['columnname'] = "Groep";
-		$kols[5]['headertext'] = "Opgezegd";
+		
+		$kols[5]['headertext'] = "Tot en met";
 		$kols[5]['columnname'] = "Opgezegd";
-		$kols[5]['type'] = "date";
+		$kols[5]['type'] = "DTTEXT";
+		
 		$kols[6]['headertext'] = "Duur";
 		$kols[6]['columnname'] = "Duur";
 		$rows = (new cls_Lidond())->overzichtlid($lidid, "A");
@@ -871,6 +880,8 @@ function fnEigenGegevens($lidid=0) {
 			}
 		}
 		
+		$tn = "Groepen";
+		$kols = null;
 		$kols[0]['headertext'] = "Groep";
 		$kols[0]['columnname'] = "Naam";
 		
@@ -884,8 +895,6 @@ function fnEigenGegevens($lidid=0) {
 		
 		$kols[3]['headertext'] = "Duur";
 		$kols[3]['columnname'] = "Duur";
-		
-		$tn = "Groepen";
 		if ((new cls_Onderdeel())->Aantal("Type='G'") > 0 and toegang($ct . $tn, 0, 0)) {
 			$rows = (new cls_Lidond())->overzichtlid($lidid, "G");
 			if (count($rows) > 0) {
@@ -894,8 +903,28 @@ function fnEigenGegevens($lidid=0) {
 		}
 		
 		$tn = "Kader";
+		$kols = null;
 		$kols[0]['headertext'] = "Onderdeel";
+		$kols[0]['columnname'] = "Naam";
+		
+		$kols[1]['headertext'] = "Functie";
+		$kols[1]['columnname'] = "Functie";
+		
+		$kols[2]['headertext'] = "Vanaf";
+		$kols[2]['columnname'] = "Vanaf";
+		$kols[2]['type'] = "DTTEXT";
+		
+		$kols[3]['headertext'] = "Tot en met";
+		$kols[3]['columnname'] = "Opgezegd";
+		$kols[3]['type'] = "DTTEXT";
+		
+		$kols[4]['headertext'] = "Duur";
+		$kols[4]['columnname'] = "Duur";
+		
 		if (toegang($ct . $tn, 0, 0)) {
+			if ($tn == $currenttab3) {
+				$tabidx = count($tabblad);
+			}	
 			$rows = (new cls_Lidond())->overzichtlid($lidid, "K");
 			if (count($rows) > 0) {
 				$tabblad[$tn] = fnDisplayTable($rows, $kols, $tn . " " . $naamlid, 0, "", "");
@@ -903,6 +932,20 @@ function fnEigenGegevens($lidid=0) {
 		}
 
 		$tn = "Rollen";
+		$kols = null;
+		$kols[0]['headertext'] = "Rol";
+		$kols[0]['columnname'] = "Naam";
+		
+		$kols[1]['headertext'] = "Vanaf";
+		$kols[1]['columnname'] = "Vanaf";
+		$kols[1]['type'] = "DTTEXT";
+		
+		$kols[2]['headertext'] = "Tot en met";
+		$kols[3]['columnname'] = "Opgezegd";
+		$kols[2]['type'] = "DTTEXT";
+		
+		$kols[3]['headertext'] = "Duur";
+		$kols[3]['columnname'] = "Duur";
 		if (toegang($ct . $tn, 0, 0)) {
 			$rows = $i_lo->overzichtlid($lidid, "R");
 			if (count($rows) > 0) {
@@ -2812,7 +2855,9 @@ function jubilarissen() {
 	$i_lid = new cls_Lid();
 	$i_ond = new cls_Onderdeel();
 	
-	$datumper = $_POST['datumper'] ?? date("Y-m-d");
+	$datumvanaf = $_POST['datumvanaf'] ?? date("Y-m-d");
+	$datumtot = $_POST['datumtot'] ?? date("Y-m-d");
+	
 	$maandenterug = $_POST['maandenterug'] ?? 12;
 	$jubileumjaren = $_SESSION['settings']['jubileumjaren'] ?? "12.5;25;50";
 	$kaderjubileumjaren = $_SESSION['settings']['kaderjubileumjaren'] ?? "5;12.5;25;50";
@@ -2823,13 +2868,14 @@ function jubilarissen() {
 	echo("<div id='filter'>\n");
 	$actionurl = sprintf("%s?tp=%s", $_SERVER['PHP_SELF'], $_GET['tp']);
 	printf("<form method='post' action='%s'>\n", $actionurl);
-	printf("<label>Datum per</label><input type='date' value='%s' name='datumper'>", $datumper);
-	printf("<label>Maanden terug</label><input type='number' value='%s' name='maandenterug' min=3 max=99 class='num2'>", $maandenterug);
+	printf("<label>Periode vanaf</label><input type='date' value='%s' name='datumvanaf'>", $datumvanaf);
+	printf("<label>tot en met</label><input type='date' value='%s' name='datumtot'>", $datumtot);
+//	printf("<label>Maanden terug</label><input type='number' value='%s' name='maandenterug' min=3 max=99 class='num2'>", $maandenterug);
 	echo("<div class='clear'></div>\n");
-	printf("<label>Jubileumjaren</label><input type='text' name='jubileumjaren' id='jubileumjaren' value='%s' onBlur='saveparam(this);'><p>Puntkomma-gescheiden</p>\n", $jubileumjaren);
+	printf("<label>Jubileumjaren</label><input type='text' name='jubileumjaren' id='jubileumjaren' value='%s' class='w60' onBlur='saveparam(this);'><p>Puntkomma-gescheiden</p>\n", $jubileumjaren);
 	echo("<div class='clear'></div>\n");
 	printf("<label>Groep met kader</label><select id='kaderonderdeelid' onChange='saveparam(this);'><option value=-1>Geen</option>\n%s</select>\n", $i_ond->htmloptions($_SESSION['settings']['kaderonderdeelid'], 1, "G"));
-	printf("<label>Jubileumjaren voor kader</label><input type='text' name='jubileumjaren' id='kaderjubileumjaren' value='%s' onBlur='saveparam(this);'><p>Puntkomma-gescheiden</p>\n", $kaderjubileumjaren);
+	printf("<label>Jubileumjaren voor kader</label><input type='text' name='jubileumjaren' id='kaderjubileumjaren' value='%s' class='w60' onBlur='saveparam(this);'><p>Puntkomma-gescheiden</p>\n", $kaderjubileumjaren);
 	
 	echo("<div class='clear'></div>\n");
 	
@@ -2839,28 +2885,38 @@ function jubilarissen() {
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 	
-		$rows = $i_lid->jubilarissen($datumper);
+		$dagenterug = (strtotime($datumtot) - strtotime($datumvanaf)) / (60 * 60 *24);
+		$rows = $i_lid->jubilarissen($datumtot);
+		
 		echo("<table>\n");
 		echo("<thead><tr><th>Naam lid</th><th>Lidmaatschap</th><th>Kaderlidmaatschap</th></tr></thead>\n");
 		foreach($rows as $row) {
 			$jub = "";
 			$kadjub = "";
 			foreach (explode(";", $jubileumjaren) as $j) {
-				$m = floatval($j) * 12;
-				if ($row->LengteLidmaatschap >= $m and $row->LengteLidmaatschap < ($m+$maandenterug)) {
+				$ad = floatval($j) * 365.25;
+				if ($row->LengteLidmaatschap >= $ad and $row->LengteLidmaatschap < ($ad+$dagenterug)) {
 					$jub = $j;
 				}
 			}
 			if ($row->EindeKaderlidmaatschap > date("Y-m-d", strtotime("-12 month"))) {
 				foreach (explode(";", $kaderjubileumjaren) as $j) {
-					$m = floatval($j) * 12;
-					if ($row->LengteKaderlidmaatschap >= $m and $row->LengteKaderlidmaatschap < ($m+$maandenterug)) {
+					$ad = floatval($j) * 365.25;
+					if ($row->LengteKaderlidmaatschap >= $ad and $row->LengteKaderlidmaatschap < ($ad+$dagenterug)) {
 						$kadjub = $j;
 					}
 				}
 			}
 			if (strlen($jub) > 0 or strlen($kadjub) > 0) {
-				printf("<tr><td>%s</td><td>%s</td><td>%s</td></tr>\n", $row->Naam, $jub, $kadjub);
+				$nm = $row->Naam;
+				$tab = "Ledenlijst/Overzicht lid";
+				if (strlen($kadjub) > 0 and toegang($tab . "/Kader", 0, 0)) {
+					$tab .= "/Kader";
+				}
+				if (toegang($tab, 0, 0)) {
+					$nm = sprintf("<a href='/index.php?tp=%s&lidid=%d'>%s</a>", $tab, $row->RecordID, $row->Naam);
+				}
+				printf("<tr><td>%s</td><td>%s</td><td>%s</td></tr>\n", $nm, $jub, $kadjub);
 			}
 		}
 		echo("</table>\n");
