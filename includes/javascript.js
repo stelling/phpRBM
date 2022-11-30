@@ -188,8 +188,7 @@ function saveparam(control) {
 		url: 'ajax_update.php?entiteit=updateparam',
 		type: 'post',
 		dataType: 'json',
-		data: { name:pn, value:value },
-		success:function(response){}
+		data: { name:pn, value:value }
 	});
 	
 }
@@ -710,4 +709,22 @@ function fnControleEmail(p_email, p_rvbijleeg="") {
 	
 	return rv;
 	
+}
+
+function verw_auth(rid) {
+	deleterecord('delete_autorisatie', rid);
+	$('#name_' + rid).addClass('deleted');
+}
+	
+function add_auth(tabpage) {
+	$.ajax({
+		url: 'ajax_update.php?entiteit=add_autorisatie',
+		type: 'post',
+		async: false,
+		dataType: 'json',
+		data: { tabpage:tabpage },
+		success:function(response) {
+			window.location.reload();
+		}
+	});
 }
