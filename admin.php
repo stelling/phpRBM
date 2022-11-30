@@ -41,8 +41,6 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 } elseif ($_GET['op'] == "uploaddata") {
 	$i_lb = new cls_Logboek();
 	$i_base = new cls_db_base();
-//	$i_base->execsql("SET GLOBAL MAX_ALLOWED_PACKET=1000000000;");
-//	$i_base->execsql("SET SESSION WAIT_TIMEOUT=28800;");
 	if (isset($_FILES['SQLupload']['tmp_name']) and strlen($_FILES['SQLupload']['tmp_name']) > 3) {
 		(new cls_db_base())->setcharset();
 		$queries = file_get_contents($_FILES['SQLupload']["tmp_name"]);
@@ -73,7 +71,6 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 						$query = substr($queries, 0, $sp);
 						$queries = substr($queries, $sp);
 					}
-//					debug($query . "<br>\n", 1, 0);
 					$i_base->execsql($query);
 				}
 				$mess = "Bestand is in de database verwerkt.";
@@ -112,6 +109,7 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 	(new cls_Functie())->opschonen();
 	(new cls_Functie())->controle();
 	(new cls_Organisatie())->opschonen();
+	(new cls_Organisatie())->controle();
 	
 } elseif ($_GET['op'] == "logboekopschonen") {
 	(new cls_Logboek())->opschonen();
@@ -215,24 +213,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	$('select').change(function() {
 		savedata('update_autorisatie', 0, this);
 	});
-	
-	function verw_auth(rid) {
-		deleterecord('delete_autorisatie', rid);
-		$('#name_' + rid).addClass('deleted');
-	}
-	
-	function add_auth(tabpage) {
-		$.ajax({
-			url: 'ajax_update.php?entiteit=add_autorisatie',
-			type: 'post',
-			async: false,
-			dataType: 'json',
-			data: { tabpage:tabpage },
-			success:function(response) {
-				window.location.reload();
-			}
-		});
-	}
+
 </script>
 <?php
 	$i_auth = null;
@@ -267,7 +248,6 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		if (isset($_POST['afmelden'])) {
 			(new cls_interface())->afmelden();
-			(new cls_interface())->opschonen();
 		}
 	}
 	
@@ -317,7 +297,6 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	db_createtables();
 	db_onderhoud();
 	(new cls_Eigen_lijst())->controle();
-	(new cls_Lid())->controle();
 
 	echo("<div id='dbonderhoud'>\n");
 	
@@ -332,7 +311,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=beheeronderdelen\"' value='Beheer onderdelen'><p>Opschonen en controle op data-integriteit van onderdelen, afdelingsgroepen, functies en organisaties.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));	
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=logboekopschonen\"' value='Logboek opschonen'><p>Verwijder alle records uit het logboek, die ouder dan <input type='number' name='logboek_bewaartijd' onChange='this.form.submit();' value=%d> maanden zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['logboek_bewaartijd']);
 
-	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=ledenopschonen\"' value='Leden en lidmaatschappen opschonen'><p>Controleren en opschonen leden, lidmaatschappen en foto's.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=ledenopschonen\"' value='Leden en lidmaatschappen'><p>Controleren en opschonen leden, lidmaatschappen en foto's.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=beheerdiplomas\"' value=\"Diploma's beheren\"><p>Opschonen en controleren van diploma's en leden per diploma.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 
@@ -504,6 +483,8 @@ function fnInstellingen() {
 	$i_p->vulsessie();
 	$i_p = null;
 
+	$arrParam['naamvereniging'] = "Naam van de vereniging";
+	$arrParam['naamvereniging_afkorting'] = "Verkorte naam van de vereniging";
 	$arrParam['db_backup_type'] = "Welke tabellen moeten worden gebackuped?";
 	$arrParam['db_backupsopschonen'] = "Na hoeveel dagen moeten back-ups automatisch verwijderd worden? 0 = nooit.";
 	$arrParam['db_folderbackup'] = "In welke folder moet de backup worden geplaatst?";
@@ -814,6 +795,13 @@ function fnEigenlijstenmuteren() {
 	}
 	
 }  # fnEigenlijstenmuteren
+
+function fnExportSQL() {
+	global $arrTables;
+	
+	
+	
+}
 
 ?>
 
