@@ -925,9 +925,9 @@ class cls_Lid extends cls_db_base {
 		
 		$ondidkader = $_SESSION['settings']['kaderonderdeelid'] ?? 0;
 		
-		$sqlm = sprintf("SELECT SUM(TIMESTAMPDIFF(MONTH, LM2.LIDDATUM, IFNULL(LM2.Opgezegd, '%1\$s'))) FROM %2\$sLidmaatschap AS LM2 WHERE LM2.Lid=L.RecordID AND LM2.LIDDATUM < '%1\$s' GROUP BY LM2.Lid", $p_per, TABLE_PREFIX);
+		$sqlm = sprintf("SELECT SUM(TIMESTAMPDIFF(DAY, LM2.LIDDATUM, IFNULL(LM2.Opgezegd, '%1\$s'))) FROM %2\$sLidmaatschap AS LM2 WHERE LM2.Lid=L.RecordID AND LM2.LIDDATUM < '%1\$s' GROUP BY LM2.Lid", $p_per, TABLE_PREFIX);
 		if ($ondidkader > 0) {
-			$sqkad = sprintf("SELECT IFNULL(SUM(TIMESTAMPDIFF(MONTH, LO.Vanaf, IFNULL(LO.Opgezegd, '%1\$s'))), 0) FROM %2\$sLidond AS LO WHERE LO.Lid=L.RecordID AND LO.OnderdeelID=%3\$d", $p_per, TABLE_PREFIX, $ondidkader);
+			$sqkad = sprintf("SELECT IFNULL(SUM(TIMESTAMPDIFF(DAY, LO.Vanaf, IFNULL(LO.Opgezegd, '%1\$s'))), 0) FROM %2\$sLidond AS LO WHERE LO.Lid=L.RecordID AND LO.OnderdeelID=%3\$d", $p_per, TABLE_PREFIX, $ondidkader);
 			$sqek = sprintf("SELECT MAX(IFNULL(LO.Opgezegd, '9999-12-31')) FROM %2\$sLidond AS LO WHERE LO.Lid=L.RecordID AND LO.OnderdeelID=%3\$d", $p_per, TABLE_PREFIX, $ondidkader);
 		} else {
 			$sqkad = "0";
@@ -1364,6 +1364,12 @@ class cls_Lid extends cls_db_base {
 				if ($_SESSION['settings']['mailingbijadreswijziging'] > 0 and $p_kolom == "Postcode" and (new cls_Lidmaatschap())->islid($this->lidid)) {
 					$mailing = new mailing($_SESSION['settings']['mailingbijadreswijziging']);
 					$mailing->Merge($this->lidid);
+					$e = $this->email($this->lidid);
+					if (isValidMailAddress($e)) {
+						$mailing->cc_addr = $e;
+					} else {
+						$mailing->cc_addr = "";
+					}
 					if ($mailing->Send()) {
 						$this->mess .= " En er is een e-mail in de outbox klaargezet.";
 					}
@@ -1400,6 +1406,7 @@ class cls_Lid extends cls_db_base {
 			} elseif (array_key_exists($lrow->Legitimatietype, ARRLEGITIMATIE) == false) {
 				$this->update($lrow->RecordID, "Legitimatietype", "G", "legitimatietype een ongeldige waarde had.");
 			}
+			/*
 			$t = substr($lrow->Adres, strrpos(trim($lrow->Adres), " "));
 			$hn = 0;
 			$hl = "";
@@ -1418,7 +1425,7 @@ class cls_Lid extends cls_db_base {
 			$this->update($lrow->RecordID, "Huisnr", $hn);
 			$this->update($lrow->RecordID, "Huisletter", trim(strtoupper($hl)));
 			$this->update($lrow->RecordID, "Toevoeging", trim($tv));
-			
+			*/
 		}
 	}
 	
@@ -2393,12 +2400,28 @@ class cls_Onderdeel extends cls_db_base {
 		
 		$a['BST'] = "Bestuur";
 		$a['FNK'] = "Functionarissen";
+		$a['Kad'] = "Kader";
 		foreach ($a as $c => $o) {
 			$f = sprintf("O.Kode='%s'", $c);
-			if ($this->aantal($f) == 0) {
-				$oid = $this->add(substr($c, 0, 1), $c);
+			$oid = $this->max("RecordID", $f);
+			if ($oid == 0) {
+				if ($c == "Kader") {
+					$t = "G";
+				} else {
+					$t = substr($c, 0, 1);
+				}
+				$oid = $this->add($t, $c);
 				$this->update($oid, "Naam", $o);
 			}
+			if ($c == "Kad") {
+				$this->update($oid, "Kader", 0);
+				$this->update($oid, "HistorieOpschonen", 0);
+				$s = sprintf("SELECT DISTINCT LO.Lid AS LidID FROM %1\$sLid AS L INNER JOIN ((%1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID=LO.OnderdeelID) INNER JOIN %1\$sFunctie AS F ON F.Nummer=LO.Functie) ON LO.Lid=L.RecordID WHERE LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE() AND (F.Kader=1 OR O.Kader=1);", TABLE_PREFIX);
+				$this->update($oid, "MySQL", $s);
+			} else {
+				$this->update($oid, "Kader", 1);
+			}
+				
 		}
 		
 		foreach ($this->basislijst() as $row) {
@@ -3118,6 +3141,7 @@ class cls_Lidond extends cls_db_base {
 			}
 			
 			$query = sprintf("SELECT O.Naam,
+							  F.OMSCHRIJV AS Functie,
 							  LO.Vanaf,
 							  %s
 							  LO.Opgezegd,
@@ -6189,10 +6213,14 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 		$this->edid = $p_edid;
 		$this->vulvars();
 		$this->tas = 2;
+		$rv = 0;
 		
 		if ($this->pdoupdate($p_edid, $p_kolom, $p_waarde) > 0) {
 			$this->log($p_edid);
+			$rv = 1;
 		}
+		
+		return $rv;
 	}
 	
 	public function delete($p_edid) {
@@ -6796,8 +6824,10 @@ class cls_Rekening extends cls_db_base {
 			$query = sprintf("DELETE FROM %sRekreg WHERE Rekening=%d;", TABLE_PREFIX, $this->rkid);
 			$this->execsql($query);
 			
-			$sql = sprintf("DELETE FROM Rekreg WHERE Rekening=%d;", $this->rkid);
-			(new cls_Interface())->add($sql);
+			if ($_SESSION['settings']['interface_access_db'] == 1) {
+				$sql = sprintf("DELETE FROM Rekreg WHERE Rekening=%d;", $this->rkid);
+				(new cls_Interface())->add($sql);
+			}
 		}
 		
 		$query = sprintf("SELECT COUNT(*) FROM %sRekreg AS RR WHERE RR.Rekening=%d;", TABLE_PREFIX, $this->rkid);
@@ -6885,7 +6915,7 @@ class cls_Rekening extends cls_db_base {
 		$this->tas = 18;
 		
 		if ($_SESSION['settings']['rekening_bewaartermijn'] > 3) {
-			$query = sprintf("SELECT RK.Nummer FROM %s WHERE RK.Datum < DATE_SUB(CURDATE(), INTERVAL %d MONTH);", $this->basefrom, $_SESSION['settings']['rekening_bewaartermijn']);
+			$query = sprintf("SELECT RK.Nummer FROM %s WHERE RK.Datum < DATE_SUB(CURDATE(), INTERVAL %d MONTH) LIMIT 50;", $this->basefrom, $_SESSION['settings']['rekening_bewaartermijn']);
 			$result = $this->execsql($query);
 			$reden = sprintf("de rekening meer dan %d maanden oud is.", $_SESSION['settings']['rekening_bewaartermijn']);
 			$aantrek = 0;
@@ -8183,7 +8213,6 @@ function db_onderhoud($type=9) {
 	$i_base->execsql(sprintf("ALTER TABLE %sLidmaatschap CHANGE `Opgezegd` `Opgezegd` DATE;", TABLE_PREFIX));
 	$i_base->execsql(sprintf("ALTER TABLE %sLidond CHANGE `Vanaf` `Vanaf` DATE;", TABLE_PREFIX));
 	$i_base->execsql(sprintf("ALTER TABLE %sLidond CHANGE `Opgezegd` `Opgezegd` DATE;", TABLE_PREFIX));
-//	$i_base->execsql(sprintf("ALTER TABLE %sLidRedNed CHANGE Geboortedatum Geboortedatum DATE;", TABLE_PREFIX));
 	$i_base->execsql(sprintf("ALTER TABLE %sMutatie CHANGE `Datum` `Datum` DATE;", TABLE_PREFIX));
 	$i_base->execsql(sprintf("ALTER TABLE %sOnderdl CHANGE `VervallenPer` `VervallenPer` DATE;", TABLE_PREFIX));
 	$i_base->execsql(sprintf("ALTER TABLE %sRekening CHANGE `Datum` `Datum` DATE;", TABLE_PREFIX));
@@ -8196,15 +8225,17 @@ function db_onderhoud($type=9) {
 			$i_base->execsql(sprintf("ALTER TABLE %s%s CHANGE Ingevoerd Ingevoerd DATE;", TABLE_PREFIX, $tn));
 		}
 	}
+	
+	$i_base->execsql(sprintf("ALTER TABLE `%sLid` CHANGE `Geslacht` `Geslacht` CHAR(1) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT 'O';", TABLE_PREFIX));
+	$i_base->execsql(sprintf("ALTER TABLE `%sLid` CHANGE `Huisletter` `Huisletter` VARCHAR(2) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT '';", TABLE_PREFIX));
+	$i_base->execsql(sprintf("ALTER TABLE `%sLid` CHANGE `Toevoeging` `Toevoeging` VARCHAR(5) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT '';", TABLE_PREFIX));
+	$i_base->execsql(sprintf("ALTER TABLE `%sLid` CHANGE `Buitenland` `Buitenland` TINYINT(4) NULL DEFAULT '0';", TABLE_PREFIX));
+	$i_base->execsql(sprintf("ALTER TABLE `%sLid` CHANGE `Legitimatietype` `Legitimatietype` CHAR(1) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT 'G';", TABLE_PREFIX));
 
 	$query = sprintf("ALTER TABLE `%sMemo` CHANGE `Vertrouwelijk` `Vertrouwelijk` TINYINT(4) NULL DEFAULT '0'", TABLE_PREFIX);
 	(new cls_db_base())->execsql($query);
 	
-	$query = sprintf("ALTER TABLE `%sLid` CHANGE `Huisletter` `Huisletter` VARCHAR(2) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT ''; ", TABLE_PREFIX);
-	(new cls_db_base())->execsql($query);
-	
-	$query = sprintf("ALTER TABLE `%sLid` CHANGE `Toevoeging` `Toevoeging` VARCHAR(5) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT ''; ", TABLE_PREFIX);
-	(new cls_db_base())->execsql($query);
+
 
 	/***** Aanpassen lengte login in de database als deze kleiner is dan login_maxlengte  *****/
 	$table = TABLE_PREFIX . "Admin_login";
@@ -8223,33 +8254,6 @@ function db_onderhoud($type=9) {
 	}
 	
 	/***** Kolommen/indexen die later zijn toegevoegd. *****/
-	
-	// Deze code kan na 1 november 2022 worden verwijderd.
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "EvenementID";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '0' AFTER `ZichtbaarVoor`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	$tab = TABLE_PREFIX . "Evenement";
-	$col = "MeerdereStartMomenten";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` TINYINT NOT NULL DEFAULT '0' AFTER `ZichtbaarVoor`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Evenement_Deelnemer";
-	$col = "StartMoment";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` TIME NULL AFTER `Status`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$query = sprintf("SELECT COUNT(1) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema='%s' AND table_name='%sAanwezigheid' AND index_name='PRIMARY';", DB_NAME, TABLE_PREFIX);
-	if ($i_base->scalar($query) == 0) {
-		$query = sprintf("ALTER TABLE `%sAanwezigheid` ADD PRIMARY KEY (`RecordID`);", TABLE_PREFIX);
-		$i_base->execsql($query, 2);
-	}
 	
 	// Deze code kan na 1 december 2022 worden verwijderd.
 	$tab = TABLE_PREFIX . "Mailing";
@@ -8393,21 +8397,6 @@ function db_onderhoud($type=9) {
 	
 	/***** Velden die aangepast zijn *****/
 	
-	// Deze code mag na 1 november 2022 worden verwijderd.
-	$query = sprintf("ALTER TABLE `%sAfdelingskalender` CHANGE `Datum` `Datum` DATE NOT NULL DEFAULT '0000-00-00';", TABLE_PREFIX);
-	$i_base->execsql($query);
-	
-	$table = TABLE_PREFIX . "Admin_access";
-	$col = "Tabpage";
-	$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%s' AND COLUMN_NAME LIKE '%s';", DB_NAME, $table, $col);
-	if ($i_base->scalar($query) < 75) {
-		$query = sprintf("ALTER TABLE `%1\$s` CHANGE `%2\$s` `%2\$s` VARCHAR(75) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $table, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$query = sprintf("ALTER TABLE `%sRekreg` CHANGE `OMSCHRIJV` `OMSCHRIJV` VARCHAR(70) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL;", TABLE_PREFIX);
-	$i_base->execsql($query);
-		
 	// Deze code mag na 1 november 2023 worden verwijderd.
 	$query = sprintf("ALTER TABLE `%sEigen_lijst` CHANGE `Naam` `Naam` VARCHAR(40) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", TABLE_PREFIX);
 	$i_base->execsql($query);
@@ -8425,6 +8414,14 @@ function db_onderhoud($type=9) {
 	$i_base->execsql($query);
 	
 	/***** Velden die niet meer nodig zijn *****/
+	
+	// Deze code kan pas verwijderd worden als de kolom ook uit de Access-database is verwijderd.
+	$tab = TABLE_PREFIX . "Lid";
+	$col = "Nummer";
+	if ($i_base->bestaat_kolom($col, $tab) == true) {
+		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
+		$i_base->execsql($query, 2);	
+	}
 	
 	// Deze code mag na 1 december 2022 worden verwijderd.
 	$tab = TABLE_PREFIX . "Mailing";
