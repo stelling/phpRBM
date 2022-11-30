@@ -162,7 +162,7 @@ if (!isset($_SESSION['settings']['naamvereniging'])) {
 	$i_p->vulsessie();
 }
 if ($bestandsversie != $_SESSION['settings']['versie']) {
-	debug(sprintf("Nieuwe versie: %s", $dtfmt->format(time())));
+	debug(sprintf("Nieuwe versie: %s", $dtfmt->format(time())), 0);
 	$i_p->controle();
 	db_createtables();
 	db_onderhoud(2);
@@ -1556,7 +1556,6 @@ function fnOptionsFromArray($p_array, $p_cv=-1, $p_geenwaarde="") {
 	}
 	
 	return $rv;
-	
 	
 }  # fnOptionsFromArray
 
