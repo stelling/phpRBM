@@ -255,6 +255,10 @@ header h1 {
 	width: 175px;
 }
 
+#jubilarisoverzicht > #filter input[type='text'] {
+	width: 275px;
+}
+
 #filter input[type='checkbox'] {
 	margin-top: 6px;
 	margin-bottom: 0;
@@ -304,6 +308,10 @@ input.w2 {
 
 input.w3 {
 	width: 35px;
+}
+
+input.w4 {
+	width: 45px;
 }
 
 input.w5 {
@@ -371,11 +379,11 @@ input.w45 {
 }
 
 input.w50 {
-	width: 300px;
+	width: 304px;
 }
 
 input.w55 {
-	width: 300px;
+	width: 325px;
 }
 
 input.w60 {
@@ -836,7 +844,7 @@ textarea#sportlinkdata {
 }
 
 #toestemmingenmuteren label {
-	width: 300px;
+	width: 320px;
 	padding-right: 4px;
 }
 
@@ -1295,10 +1303,6 @@ input.omschrijving {
 	width: 100%;
 }
 
-#evenementenbeheer label {
-	clear: none;
-}
-
 #evenementenbeheer span {
 	display: inline-block;
 	width: 100%;
@@ -1314,6 +1318,15 @@ input.omschrijving {
 #evenementenbeheer select, #evenementenbeheer label {
 	width: 195px;
 	margin-right: 5px;
+}
+
+label#lblStarttijd, label#lblEindtijd, label#lblVerzameltijd, #evenementenbeheer label#lblLocatie {
+	clear: none;
+	width: 90px;
+}
+
+#evenementenbeheer label#lblDatum, #evenementenbeheer label#lblOmschrijving, #evenementenbeheer label#lblEmail {
+	clear: left;
 }
 
 #evenementenbeheer p, #evenementenbeheer input[type='checkbox'], #evenementenbeheer input[type='number'], #evenementenbeheer input[type='time'], #evenementenbeheer input[type='checkbox'] {
@@ -2539,6 +2552,12 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 
 #wijzigenlidgegevens .invoerblok, #nieuwlid .invoerblok {
 	border-style: none;
+}
+
+label#lblHuisletter, label#lblToevoeging {
+	clear: none;
+	width: 75px;
+	margin-left: 6px;
 }
 
 #nieuwlid label {	
