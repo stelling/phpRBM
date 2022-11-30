@@ -495,6 +495,7 @@ class Mailing {
 			$this->MergeField[]=array('Naam' => "OmsEvenement", 'SQL' => "");
 			$this->MergeField[]=array('Naam' => "DatumEvenement", 'SQL' => "");
 			$this->MergeField[]=array('Naam' => "StatusEvenement", 'SQL' => "");
+			$this->MergeField[]=array('Naam' => "AantalPersonenEvenement", 'SQL' => "");
 			$this->MergeField[]=array('Naam' => "OpmEvenement", 'SQL' => "");
 			
 			
@@ -686,7 +687,7 @@ class Mailing {
 				$nm = "[%" . $fld['Naam'] . "%]";
 				if (stripos($this->message, $nm) !== false) {
 					$this->contains_mergefield = true;
-					$this->message = str_ireplace($fld['Naam'], $fld['Naam'], $this->message);
+					$this->message = str_ireplace($nm, $nm, $this->message);
 				}
 			}
 			
@@ -1170,18 +1171,18 @@ class Mailing {
 		$this->send_mailing(1);
 	}	
 	
-	public function send($lidid=0) {
+	public function send($lidid=0, $p_melding=1) {
 		
 		$this->controle($lidid);
 		if ($this->verzendenmag == false) {
-			(new cls_Logboek())->add($this->meldingen, 4, 0, 1, $this->mid);
+			(new cls_Logboek())->add($this->meldingen, 4, 0, $p_melding, $this->mid);
 			return false;
 		} else {
 			if ($_SESSION['settings']['mailing_sentoutbox_auto'] == 0 and $_SESSION['settings']['mailing_direct_verzenden'] == 0) {
 				$mess = "Het automatisch versturen staat uit, neem contact op met een beheeder om dit aan te laten zetten.";
-				(new cls_Logboek())->add($mess, 4, 0, 1, $this->mid);
+				(new cls_Logboek())->add($mess, 4, 0, $p_melding, $this->mid);
 			}
-			return $this->send_mailing(0, $lidid);
+			return $this->send_mailing(0, $lidid, $p_melding);
 		}
 	}  # send
 	
@@ -1196,7 +1197,7 @@ class Mailing {
 		}
 	}
 	
-	private function send_mailing($preview=0, $p_lidid=0) {
+	private function send_mailing($preview=0, $p_lidid=0, $p_melding=1) {
 		
 		if ($p_lidid == 0) {
 			$rcpts = (new cls_Mailing_rcpt())->lijst($this->mid);
@@ -1250,7 +1251,7 @@ class Mailing {
 			} else {
 				$mess = sprintf("Via mailing %d (%s) zijn %d e-mails in de outbox geplaatst.", $this->mid, $this->subject, $aant_send);
 			}
-			(new cls_Logboek())->add($mess, 4, 0, 1, $this->mid);
+			(new cls_Logboek())->add($mess, 4, 0, $p_melding, $this->mid);
 			if (strlen($this->speciaal) > 1) {
 				sentoutbox(4);
 			}
@@ -1327,7 +1328,13 @@ class Mailing {
 			$this->merged_message = str_ireplace("[%OMSEVENEMENT%]", $row->OmsEvenement, $this->merged_message);
 			$this->merged_message = str_ireplace("[%DATUMEVENEMENT%]", $dtfmt->format(strtotime($row->DatumEvenement)), $this->merged_message);
 			$this->merged_message = str_ireplace("[%STATUSEVENEMENT%]", ARRDLNSTATUS[$row->Status], $this->merged_message);
-			$this->merged_message = str_ireplace("[%OPMEVENEMENT%]", $row->Opmerking, $this->merged_message);
+			$this->merged_message = str_ireplace("[%AANTALPERSONENEVENEMENT%]", $row->Aantal, $this->merged_message);
+			if (strlen($row->Opmerking) > 0) {
+				$opm = $row->Opmerking;
+			} else {
+				$opm = 'Geen';
+			}
+			$this->merged_message = str_ireplace("[%OPMEVENEMENT%]", $opm, $this->merged_message);
 			if (isset($row->EmailEvenement) and isValidMailAddress($row->EmailEvenement)) {
 				$this->cc_addr = $row->EmailEvenement;
 			} else {
