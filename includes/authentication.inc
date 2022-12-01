@@ -18,7 +18,6 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	addtp("Autorisatie");
 	addtp("Eigen lijsten");
 	addtp("Instellingen");
-	addtp("Stamgegevens");
 	addtp("Uploaden data");
 	$f = "IFNULL(Afgemeld, '2000-01-01') < '2010-01-01'";
 	if ((new cls_Interface())->aantal($f) > 0) {
@@ -602,14 +601,16 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		echo("<p><a href='/'>Klik hier om verder te gaan.</a></p>\n");
 	} else {
 		echo("<div id='herstellenwachtwoord'>\n");
-		printf("<form name='HerstellenWachtwoord' action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER['QUERY_STRING']);
-		echo("<fieldset>
-		<h3>Herstellen wachtwoord</h3>
+		printf("<form action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER['QUERY_STRING']);
+		echo("<h3>Herstellen wachtwoord</h3>
 		<label>E-mailadres</label><input type='email' name='email'>
-		<label>Lidnummer</label><input type='number' min=0 name='lidnummer' value=0>
-		<label>Login</label><input type='text' name='login'>
-		<input type='hidden' value='mail' name='stap'>
-		</fieldset>
+		<label>Lidnummer</label><input type='number' min=0 name='lidnummer' value=0>\n");
+		
+		printf("<label>Login</label><input type='text' name='login' class='w%d'>\n", $_SESSION['settings']['login_maxlengte']);
+		
+		echo("<input type='hidden' value='mail' name='stap'>
+		<p>Vul twee van de drie bovenstaande velden in.</p>
+		<p>Je lidnummer kan je <a href='index.php?tp=Opvragen+lidnr'>hier</a> opvragen.</p>
 		<p>Na het versturen van deze link is je oude wachtwoord niet meer geldig.</p>
 		<div id='opdrachtknoppen'>\n
 		<input type='submit' value='Stuur herstellink'>\n
@@ -750,19 +751,15 @@ function fnLoginAanvragen($stap="") {
 		echo("<h3>Login aanvraag</h3>\n");
 		
 		echo("<label>E-mailadres</label><input type='email' name='emailadres' value='' autocomplete='off'>\n");
-		echo("<label>Lidnummer</label><input type='number' name='lidnummer'>\n");
-		printf("<label>Gewenste login</label><input type='text' name='gewenstelogin' maxlength=%d>\n", $_SESSION['settings']['login_maxlengte']);
-		echo("<label>Gewenst wachtwoord</label><input type='password' name='gewenstwachtwoord' value=''>\n");
+		echo("<label>Lidnummer</label><input type='number' name='lidnummer' value=0>\n");
+		printf("<label>Gewenste login</label><input type='text' name='gewenstelogin' maxlength=%1\$d class='w%1\$d'>\n", $_SESSION['settings']['login_maxlengte']);
+		printf("<label>Gewenst wachtwoord</label><input type='password' name='gewenstwachtwoord' value='' maxlength=%1\$d class='w%1\$d'>\n", $_SESSION['settings']['wachtwoord_maxlengte']);
 
-//		echo("</fieldset>\n");
-
-		echo("<div class='clear'></div>\n");
-
-		echo("<p>Je lidnummer kan je <a href='\?tp=Opvragen+lidnr'>opvragen</a>.</p>\n");
+		echo("<p>Je lidnummer kan je <a href='index.php?tp=Opvragen+lidnr'>hier</a> opvragen.</p>\n");
 		echo("<p>Je ontvangt een e-mail met daarin een link om deze aanmelding te bevestigen. Pas na het bevestigen is de login bruikbaar om in te loggen.</p>\n");
 		
 		echo("<p>Voorwaarden aan een login:</p>\n<ul>\n");
-		printf("<li>Minimaal 7 karakters en maximaal %d karakters lang</li>\n", $_SESSION['settings']['login_maxlengte']);
+		printf("<li>Minimaal 7 karakters en maximaal %1\$d karakters lang</li>\n", $_SESSION['settings']['login_maxlengte']);
 		echo("<li>Er mogen geen aanhalingstekens en geen spaties in zitten</li>\n");
 		printf("<li>De karakters '%s' mogen er niet in zitten</li>\n", htmlent($login_verbodenkarakters));
 		echo("</ul>\n");
