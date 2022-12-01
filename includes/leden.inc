@@ -941,7 +941,7 @@ function fnEigenGegevens($lidid=0) {
 		$kols[1]['type'] = "DTTEXT";
 		
 		$kols[2]['headertext'] = "Tot en met";
-		$kols[3]['columnname'] = "Opgezegd";
+		$kols[2]['columnname'] = "Opgezegd";
 		$kols[2]['type'] = "DTTEXT";
 		
 		$kols[3]['headertext'] = "Duur";
@@ -1310,12 +1310,15 @@ function algemeenlidmuteren($lidid) {
 	}
 	
 	$u = "";
-	if (strlen($row->Adres) > 3 and $row->Huisnr == 0) {
+	if (strlen($row->Postcode) < 6) {
+		$u = "Geen (juiste) postcode ingevoerd";
+	} elseif (strlen($row->Huisnr) == 0 or $row->Huisnr == 0) {
 		$u = "Geen huisnummer ingevoerd";
 	} else {
 		$pdok = pdok($row->Postcode, $row->Huisnr, $row->Huisletter, $row->Toevoeging);
 		if (!isset($pdok->numFound) or $pdok->numFound == 0) {
 			$u = "Adres bestaat niet";
+			$i_lid->update($lidid, "Adres", "");
 		} elseif (isset($pdok->docs[0]->huis_nlt)) {
 			$adr = $pdok->docs[0]->straatnaam . " " . $pdok->docs[0]->huis_nlt;
 			if ($adr != trim($row->Adres)) {
@@ -1324,9 +1327,12 @@ function algemeenlidmuteren($lidid) {
 			}
 		}
 	}
-	$wijzvelden[] = array('label' => "Adres", 'naam' => "Adres", 'lengte' => 30, 'uitleg' => $u);
 	$wijzvelden[] = array('label' => "Postcode", 'naam' => "Postcode", 'lengte' => 7);
-	$wijzvelden[] = array('label' => "Woonplaats", 'naam' => "Woonplaats", 'lengte' => 22);
+	$wijzvelden[] = array('label' => "Huisnummer", 'naam' => "Huisnr", 'lengte' => 4);
+	$wijzvelden[] = array('label' => "Letter", 'naam' => "Huisletter", 'lengte' => 2);
+	$wijzvelden[] = array('label' => "Toevoeging", 'naam' => "Toevoeging", 'lengte' => 5);
+	$wijzvelden[] = array('label' => "Adres", 'naam' => "Adres", 'lengte' => 30, 'uitleg' => $u, 'readonly' => 1);
+	$wijzvelden[] = array('label' => "Woonplaats", 'naam' => "Woonplaats", 'lengte' => 22, 'readonly' => 1);
 	$wijzvelden[] = array('label' => "Vast telefoonnummer", 'naam' => "Telefoon", 'lengte' => 21, 'uitleg' => "");
 	$wijzvelden[] = array('label' => "Mobiel", 'naam' => "Mobiel", 'lengte' => 21, 'uitleg' => "");
 	if ($row->GEBDATUM < date("Y-m-d", strtotime("-8 year"))) {
@@ -1402,6 +1408,11 @@ function algemeenlidmuteren($lidid) {
 		
 		$jsoc = sprintf("OnBlur=\"savedata('lid', %d, this);\"", $row->RecordID, $wijzvelden[$i]['naam']);
 		$dv = str_replace("\n", "<br>\n", $row->{$wijzvelden[$i]['naam']});
+		if (isset($wijzvelden[$i]['readonly']) and $wijzvelden[$i]['readonly'] == 1) {
+			$ro = " readonly";
+		} else {
+			$ro = "";
+		}
 		
 		if (($wijzvelden[$i]['naam'] == "Adres" or $wijzvelden[$i]['naam'] == "Woonplaats") and strlen($row->Postcode) >= 6) {
 			
@@ -1466,9 +1477,9 @@ function algemeenlidmuteren($lidid) {
 			if ($t == "text" and $wijzvelden[$i]['lengte'] > 100) {
 				$inp = sprintf("<textarea id='%s' class='w90' placeholder='%s' rows=4>%s</textarea>", $wijzvelden[$i]['naam'], $ph, $dv);
 			} elseif ($t == "date") {
-				$inp = sprintf("<input type='date' id='%s' value='%s'>", $wijzvelden[$i]['naam'], $dv);
+				$inp = sprintf("<input type='date' id='%s' value='%s'%s>", $wijzvelden[$i]['naam'], $dv, $ro);
 			} else {
-				$inp = sprintf("<input type='%s' %sid='%s' value='%s' maxlength=%d>", $t, $c, $wijzvelden[$i]['naam'], $dv, $wijzvelden[$i]['lengte']);
+				$inp = sprintf("<input type='%s' %sid='%s' value='%s' maxlength=%d%s>", $t, $c, $wijzvelden[$i]['naam'], $dv, $wijzvelden[$i]['lengte'], $ro);
 			}
 		}
 		printf("<label id='lbl%s'>%s</label>%s", $wijzvelden[$i]['naam'], $wijzvelden[$i]['label'], $inp);
@@ -1521,9 +1532,13 @@ function algemeenlidmuteren($lidid) {
 		\$( document ).ready(function() {
 			lidalgwijzprops();
 		});
-		
+
 		\$('input, select, textarea').blur(function(){
 			savedata('lid', %1\$d, this);
+			if (this.id == 'Huisnr' || this.id == 'Huisletter' || this.id == 'Toevoeging') {
+				$('#Adres').trigger('blur');
+				$('#Woonplaats').trigger('blur');
+			}
 		});
 		
 		$(\"[id^='eigenschap_']\").click(function(){
