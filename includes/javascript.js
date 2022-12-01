@@ -248,6 +248,8 @@ function lidalgwijzprops() {
 		$('#uitleg_gebdatum').text('');
 	}
 	
+	adresvullen();
+	
 	var tel = $('#Telefoon').val();
 	$('#uitleg_telefoon').text(fnControleTelefoon(tel));
 	
@@ -709,6 +711,55 @@ function fnControleEmail(p_email, p_rvbijleeg="") {
 	
 	return rv;
 	
+}
+
+function adresvullen() {
+
+	var pc = $('#Postcode').val();
+	var	zpc = pc.replace(' ', '');
+	var hn = $('#Huisnr').val();
+	var hl = $('#Huisletter').val();
+	var tv = $('#Toevoeging').val();
+	var ad = $('#Adres');
+	var wp = $('#Woonplaats');
+			
+	if (zpc.length >= 6 && hn.length > 0) {
+			
+		var url = 'https://geodata.nationaalgeoregister.nl/locatieserver/free?fq=postcode:' + zpc + '&fq=huisnummer:' + hn;
+		if (hl.length > 0) {
+			url = url + '&fq=huisletter:' + hl;
+		}
+		if (tv.length > 0) {
+			url = url + '&fq=huisnummertoevoeging:' + tv;
+		}
+		$.ajax({
+			url: url,
+			dataType: 'json',
+			type: 'get',
+			success: (data) => {
+				if (data.response.numFound > 1) {
+					$("#uitleg_adres").html('Adres is niet uniek');
+					ad.val('');
+					wp.val(data.response.docs[0].woonplaatsnaam);
+				} else if (data.response.numFound == 0) {
+					$('#uitleg_adres').html('Adres bestaat niet');
+					ad.val('');
+				} else if (data.response.numFound == 1) {
+					var nad = data.response.docs[0].straatnaam + ' ' + data.response.docs[0].huis_nlt;
+					ad.val(nad);
+					wp.val(data.response.docs[0].woonplaatsnaam);
+					$("#uitleg_adres").html('');
+				}
+			},
+			error: function (xhr, ajaxOptions, thrownError) {
+				alert(xhr.status);
+				alert(thrownError);
+			}
+		});
+	} else {
+		ad.val('');
+		wp.val('');
+	}
 }
 
 function verw_auth(rid) {
