@@ -270,7 +270,7 @@ class Mailing {
 		$sql = sprintf("SELECT %s AS Lidnaam FROM %sLid AS L WHERE L.RecordID=%%d;", (new cls_db_base())->selectnaam, TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Lidnaam", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT Login FROM %sAdmin_login WHERE LidID=%%d;", TABLE_PREFIX);
+		$sql = sprintf("SELECT IFNULL(`Login`, 'Geen') FROM %sAdmin_login WHERE LidID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Login", 'SQL' => $sql);
 
 		$sql = sprintf("SELECT IFNULL(LM.Lidnr, 0) FROM %sLidmaatschap AS LM WHERE IFNULL(LM.Opgezegd, '9999-12-31') >= CURDATE() AND LM.Lid=%%d;", TABLE_PREFIX);
@@ -1225,6 +1225,7 @@ class Mailing {
 			}
 			$email->cc = $this->cc_addr;
 			$email->bericht = $this->merged_message;
+			$email->onderwerp = $this->merged_subject;
 			
 			if ($preview == 1) {
 				$mail = new RBMmailer();
@@ -1326,8 +1327,14 @@ class Mailing {
 			$dtfmt->setPattern(DTTEXT);
 			$row = (new cls_Evenement_Deelnemer())->record($this->xtranum);
 			$this->merged_message = str_ireplace("[%OMSEVENEMENT%]", $row->OmsEvenement, $this->merged_message);
+			$this->merged_subject = str_ireplace("[%OMSEVENEMENT%]", $row->OmsEvenement, $this->merged_subject);
+			
 			$this->merged_message = str_ireplace("[%DATUMEVENEMENT%]", $dtfmt->format(strtotime($row->DatumEvenement)), $this->merged_message);
+			$this->merged_subject = str_ireplace("[%DATUMEVENEMENT%]", $dtfmt->format(strtotime($row->DatumEvenement)), $this->merged_subject);
+			
 			$this->merged_message = str_ireplace("[%STATUSEVENEMENT%]", ARRDLNSTATUS[$row->Status], $this->merged_message);
+			$this->merged_subject = str_ireplace("[%STATUSEVENEMENT%]", ARRDLNSTATUS[$row->Status], $this->merged_subject);
+			
 			$this->merged_message = str_ireplace("[%AANTALPERSONENEVENEMENT%]", $row->Aantal, $this->merged_message);
 			if (strlen($row->Opmerking) > 0) {
 				$opm = $row->Opmerking;
@@ -1392,7 +1399,7 @@ class Mailing {
 			$dtfmt->setPattern(DTTEXT);
 			foreach($this->MergeField as $fld) {
 				$nm = "[%" . $fld['Naam'] . "%]";
-				if (stripos($this->merged_message, $nm) !== false or stripos($this->merged_subject, $nm) !== false and isset($fld['SQL'])) {
+				if (stripos($this->merged_message, $nm) !== false or stripos($this->merged_subject, $nm) !== false and isset($fld['SQL']) and strlen($fld['SQL']) > 5) {
 					if ($fld['Naam'] == "OpenstaandeRekeningenTabel") {
 						$rkrows = (new cls_Rekening())->lijst("telaat", $lidid);
 						$nv = "";
@@ -1628,8 +1635,6 @@ class email {
 		$dtfmt->setPattern(DTLONGSEC);
 		$this->ingevoerd = $dtfmt->format(time());
 		$this->ingevoerddoor = $_SESSION['naamingelogde'];
-		
-		
 		
 		if ($mhid > 0) {
 			$this->mhid = $mhid;
