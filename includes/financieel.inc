@@ -658,6 +658,15 @@ function RekeningDetail($p_rkid, $p_metbriefpapier=0) {
 <!-- NietOpCredit -->
 <!-- NietOpNulRekening -->
 <p>Deze rekening dient op [%UITERSTEBETAALDATUM%], onder vermelding van rekeningnummer [%REKENINGNUMMER%], volledig betaald te zijn.</p>
+
+<!-- AlleenOpMeerdereTermijnen -->
+<p>U mag deze rekening in meerdere termijnen betalen volgens onderstaand scherm.</p>
+<table id='betaaltermijnen'>
+<tr><th>#</th><th>Betalen voor</th><th>Bedrag in &euro;</th></tr>
+[%BETAALTERMIJNEN%]
+</table>
+<!-- /AlleenOpMeerdereTermijnen -->
+
 <p>Indien u een andere betalingsregeling wenst of een vraag over deze rekening heeft kunt u contact met de <a href='mailto:[%VANAFADRES%]'>[%VANAFNAAM%]</a> opnemen.</p>
 <!-- /NietOpNulRekening -->
 <!-- /NietOpCredit -->
@@ -713,9 +722,18 @@ function RekeningDetail($p_rkid, $p_metbriefpapier=0) {
 		$content = removetextblock($content, "<!-- AlleenOpBetaaldDoorAnder -->", "<!-- /AlleenOpBetaaldDoorAnder -->");
 	}
 	
-	if (($rk->Openstaand) < 0.50) {
+	if ($rk->Openstaand < 0.20) {
 		$content = removetextblock($content, "<!-- NietOpVolledigBetaald -->", "<!-- /NietOpVolledigBetaald -->");
 	}
+	
+	if ($rk->BET_TERM > 1) {
+		$content = removetextblock($content, "<!-- NietOpMeerdereTermijnen -->", "<!-- /NietOpMeerdereTermijnen -->");
+	}
+	
+	if ($rk->BET_TERM < 2) {
+		$content = removetextblock($content, "<!-- AlleenOpMeerdereTermijnen -->", "<!-- /AlleenOpMeerdereTermijnen -->");
+	}
+	
 	$dtfmt->setPattern(DTTEXT);
 	$content = str_ireplace("[%NAAMDEBITEUR%]", $rk->Tenaamstelling, $content);
 	$content = str_ireplace("[%ADRES%]", $rk->Adres, $content);
@@ -732,6 +750,7 @@ function RekeningDetail($p_rkid, $p_metbriefpapier=0) {
 	$content = str_ireplace("[%OPENSTAAND%]", fnBedrag($rk->Openstaand), $content);
 	$content = str_ireplace("[%BANKREKENING%]", $rk->Bankrekeningnummer, $content);
 	$content = str_ireplace("[%UITERSTEBETAALDATUM%]", $dtfmt->format(strtotime($rk->UitersteBetaaldatum)), $content);
+	$content = str_ireplace("[%EINDEEERSTETERMIJN%]", $dtfmt->format(strtotime($rk->EindeEersteTermijn)), $content);
 	
 	$content = str_ireplace("[%NAAMBETAALDDOOR%]", $rk->NaamBetaaldDoor, $content);
 	$content = str_ireplace("[%EMAILBETAALDDOOR%]", $rk->EmailBetaaldDoor, $content);
@@ -753,16 +772,33 @@ function RekeningDetail($p_rkid, $p_metbriefpapier=0) {
 		} else {
 			$nl = "";
 		}
-		if ($regel->Bedrag > 0 or $metnulregels == 1) {
+		if ($regel->Bedrag <> 0 or $metnulregels == 1) {
+			$rrtxt .= "<tr>";
 			if ($metregelnr == 1) {
-				$rrtxt .= sprintf("<tr><td>%d</td><td>%s</td><td>%s</td><td class='number'>%s</td></tr>\n", $ireg, $regel->OMSCHRIJV, $nl, fnBedrag($regel->Bedrag));
-			} else {
-				$rrtxt .= sprintf("<tr><td>%s</td><td>%s</td><td class='number'>%s</td></tr>\n", $regel->OMSCHRIJV, $nl, fnBedrag($regel->Bedrag));
+				$rrtxt .= sprintf("<td>%d</td>", $ireg);
 			}
+			$rrtxt .= sprintf("<td>%s</td><td>%s</td><td class='number'>%s</td></tr>\n", $regel->OMSCHRIJV, $nl, fnBedrag($regel->Bedrag));
 			$ireg += 1;
 		}
 	}
 	$content = str_ireplace("[%REKENINGREGELS%]", $rrtxt, $content);
+	
+	$bttxt = "";
+	$tb = 0;
+	$bv = new DateTime($rk->Datum);
+	
+	for ($bt=1;$bt<=$rk->BET_TERM;$bt++) {
+		if ($bt < $rk->BET_TERM) {
+			$bedr = round(($rk->Bedrag / $rk->BET_TERM), 2);
+			$tb += $bedr;
+		} else {
+			$bedr = round(($rk->Bedrag - $tb), 2);
+		}
+		$bv->modify(sprintf("+%d day", $rk->BETAALDAG));
+		
+		$bttxt .= sprintf("<tr><td>%d</td><td>%s</td><td class='number'>%s</td></tr>\n", $bt, $dtfmt->format($bv), fnBedrag($bedr));
+	}
+	$content = str_ireplace("[%BETAALTERMIJNEN%]", $bttxt, $content);
 	
 	$bestand_briefpapier = $_SESSION['settings']['path_templates'] . "briefpapier.html";
 	if ($p_metbriefpapier == 1 and file_exists($bestand_briefpapier)) {
