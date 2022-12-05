@@ -448,8 +448,17 @@ class cls_db_base {
 		if (strlen($p_filter) > 0) {
 			$p_filter = "WHERE " . $p_filter;
 		}
-		$query = sprintf("SELECT COUNT(*) FROM %s %s;", $this->basefrom, $p_filter);
-		return $this->scalar($query);
+		if (strlen($this->basefrom) == 0) {
+			$this->basefrom = $this->table;
+		}
+		
+		if (strlen($this->basefrom) > 0) {
+			$query = sprintf("SELECT COUNT(*) FROM %s %s;", $this->basefrom, $p_filter);
+			return $this->scalar($query);
+		} else {
+			debug("Geen tabel bekend.", 2, 1);
+			return false;
+		}
 	}
 	
 	public function min($p_kolom, $p_filter="") {
@@ -736,6 +745,7 @@ class cls_db_base {
 		}
 		
 		return $rv;
+		
 	}  # exporttosql
 	
 }  # cls_db_base
@@ -4528,17 +4538,13 @@ class cls_Mailing_hist extends cls_db_base {
 		
 		if ($p_mhid > 0) {
 			$xw = sprintf("AND MH.RecordID=%d", $p_mhid);
-		} elseif ($p_srt == 2) {
-			$xw = sprintf("AND MH.Ingevoerd < DATE_SUB(SYSDATE(), INTERVAL %d MINUTE)", $_SESSION['settings']['mailing_wachttijdinoutbox']);
-		} elseif ($p_srt == 3) {
-			$xw = "";
-		} elseif ($p_srt == 4) {
-			$xw = sprintf("AND MH.MailingID > 0 AND MH.MailingID IN (%d, %d, %d)", $_SESSION['settings']['mailing_lidnr'], $_SESSION['settings']['mailing_validatielogin'], $_SESSION['settings']['mailing_herstellenwachtwoord']);
+		} elseif ($p_srt == 2 or $p_srt == 3 or $p_srt == 4) {
+			$xw = "AND MH.NietVersturenVoor < SYSDATE()";
 		} else {
 			$xw = $this->zichtbaarwhere;
 		}
 		$query = sprintf("SELECT MH.RecordID, MH.Ingevoerd, MH.subject, MH.to_name AS Aan, MH.from_name,
-						MH.to_addr AS `E-mail`, MH.cc_addr AS `CC`, IFNULL(M.NietVersturenVoor, '1900-01-01') AS NietVersturenVoor
+						MH.to_addr, MH.cc_addr, MH.NietVersturenVoor
 						FROM (%1\$sMailing_hist AS MH LEFT OUTER JOIN %1\$sLid AS L ON MH.LidID=L.RecordID) LEFT JOIN %1\$sMailing AS M ON M.RecordID=MH.MailingID
 						WHERE IFNULL(MH.send_on, '1970-01-01') <= '2000-01-01' %2\$s
 						ORDER BY MH.Ingevoerd, MH.LidID, MH.RecordID LIMIT %3\$d;", TABLE_PREFIX, $xw, $lm);
@@ -5282,6 +5288,12 @@ class cls_Logboek extends cls_db_base {
 		$this->execsql($query, 2);
 		
 		$query = sprintf("DELETE FROM %s WHERE DatumTijd < DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND TypeActiviteit IN (13, 98);", $this->table);
+		$this->execsql($query, 2);
+			
+		$query = sprintf("DELETE FROM %s WHERE DatumTijd < DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND TypeActiviteit=6 AND TypeActiviteitSpecifiek >= 30 AND TypeActiviteitSpecifiek <= 39;", $this->table);
+		$this->execsql($query, 2);
+					
+		$query = sprintf("DELETE FROM %s WHERE DatumTijd < DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND TypeActiviteit=3 AND TypeActiviteitSpecifiek > 1;", $this->table);
 		$this->execsql($query, 2);
 	}
 	
@@ -8479,7 +8491,7 @@ function db_onderhoud($type=9) {
 	}
 }  # db_onderhoud
 
-function db_backup($p_typebackup=1) {
+function db_backup($p_typebackup=3) {
 	global $dbc, $db_name, $arrTables;
 	
 	$rv = false;
@@ -8506,23 +8518,32 @@ function db_backup($p_typebackup=1) {
 	$laatstebackup = (new cls_Logboek())->max("DatumTijd", "TypeActiviteit=3 AND TypeActiviteitSpecifiek=1");
 	if (strtotime($laatstebackup) < mktime(date("H")-1, date("m"), 0, date("m"), date("d"), date("Y")) or $_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 		
-		(new cls_Logboek())->add("Backup is gestart.", 3, 0, 1, 0, 4);
+		
 		$FileName = $db_folderbackup . $buname . ".sql";
 		
+		echo("<p class='mededeling'>Backup is gestart</p>");
+		$buf = fopen($FileName, 'w');
+				
 		$aanttab = 0;
-		$buf = fopen($FileName, 'w+');
 		$i_base = new cls_db_base();
 		foreach ($arrTables as $tnr => $tnm) {
 			set_time_limit(60);
 			$table = TABLE_PREFIX . $tnm;
 			$i_base->table = $table;
-			if ($i_base->aantal() > 0 and ($p_typebackup == 3 or ($p_typebackup == 1 and $tnr < 30) or ($p_typebackup == 2 and $tnr >= 30))) {
-//				$mess = sprintf("Start backup tabel '%s'", $table);
-//				(new cls_Logboek())->add($mess, 3, 0, 0, 0, 4);
-				
-				fwrite($buf, $i_base->exporttosql(2));
+			$query = sprintf("SELECT COUNT(*) FROM %s;", $table);
+			$a = $i_base->scalar($query);
+//			debug($table . ": " . $a);
+			
+			if ($a > 0 and ($p_typebackup == 3 or ($p_typebackup == 1 and $tnr < 30) or ($p_typebackup == 2 and $tnr >= 30))) {
+			
+				$data = $i_base->exporttosql(2);
+				fwrite($buf, $data);
 
-				$query = sprintf("SELECT * FROM `%s`;", $table);
+				if ($a > 50000) {
+					$query = sprintf("SELECT * FROM `%s` ORDER BY RecordID DESC LIMIT 50000;", $table);
+				} else {
+					$query = sprintf("SELECT * FROM `%s`;", $table);
+				}
 				$result = $dbc->prepare($query);
 				$result->execute();
 				$num_fields = $result->columnCount();
@@ -8566,17 +8587,19 @@ function db_backup($p_typebackup=1) {
 						}
 					}
 					$data .= ");\n";
+					
 					fwrite($buf, $data);
 				}
 				$aanttab++;
+				
 				fwrite($buf, "\n\n");
 
 				$resultcount = null;
 				$result = null;
 			}
 		}
-		$i_base = null;
 		fclose($buf);
+		$i_base = null;
 
 		if ($aanttab > 0) {
 		
@@ -8589,7 +8612,7 @@ function db_backup($p_typebackup=1) {
 					sleep(2);
 					if ($file != "." and $file != "..") {
 						$vbn = $db_folderbackup . $file;
-						if ($_SESSION['settings']['db_backupsopschonen'] > 1 and filectime($db_folderbackup . $file) < mktime(0, 0, 0, date("m"), date("d")-$_SESSION['settings']['db_backupsopschonen'], date("Y")) or filesize($db_folderbackup . $file) < 500 ) {
+						if ($_SESSION['settings']['db_backupsopschonen'] > 1 and filemtime($vbn) < strtotime(sprintf("-%d days", $_SESSION['settings']['db_backupsopschonen'])) or filesize($db_folderbackup . $file) < 500 ) {
 							unlink($vbn);
 							$mess = sprintf("Backup-bestand %s is verwijderd. ", $file);
 							(new cls_Logboek())->add($mess, 2, 0, 1);
