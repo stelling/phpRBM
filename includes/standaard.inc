@@ -42,6 +42,7 @@ define("DTLONG", "d MMMM yyyy (HH:mm)");
 define("DTLONGWD", "EEEE d MMMM yyyy (HH:mm)");
 define("DTLONGSEC", "d MMMM yyyy (HH:mm:ss)");
 define("DTLONGWDSEC", "EEEE d MMMM yyyy (HH:mm:ss)");
+define("DTHMS", "HH:mm:ss");
 
 require(BASEDIR . '/config.php');
 define("LIDIDWEBMASTERS", $lididwebmasters);
@@ -139,14 +140,14 @@ require_once("simpleimage.php");
 /* Einde includen open source libs*/
 
 foreach (array("database", "authentication", "afdelingen", "leden", "bewaking", "evenement", "financieel", "mailing", "diploma", "standaard", "webshop", "taken") as $incl) {
-	$inclpath = __DIR__ . "/" . $incl . ".inc";
+	$inclpath = __DIR__ . "/" . $incl . ".php";
 	if (file_exists($inclpath)) {
 		if ($bestandsversie < filectime($inclpath)) {
 			$bestandsversie = filectime($inclpath);
 		}
 		require_once($inclpath);
 	} else {
-		$inclpath = __DIR__ . "/" . $incl . ".php";
+		$inclpath = __DIR__ . "/" . $incl . ".inc";
 		if (file_exists($inclpath)) {
 			if ($bestandsversie < filectime($inclpath)) {
 				$bestandsversie = filectime($inclpath);
@@ -843,6 +844,17 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					} else {
 						$ret .= "<td>&nbsp;</td>";
 					}
+					
+				} elseif ($kol_type == "DTHMS")	{
+					if ((!is_null($value)) and $value > '1900-01-01' and strtotime($value) !== false) {
+						$dtfmt->setPattern(DTHMS);
+						$ret .= sprintf("<td>%s</td>", $dtfmt->format(strtotime($value)));
+					} elseif (strlen($value) > 0) {
+						$ret .= sprintf("<td>%s</td>", $value);
+					} else {
+						$ret .= "<td>&nbsp;</td>";
+					}				
+					
 				} elseif ($kol_type == "int" or $kol_type == "integer") {
 					if ($kol_edit == 0) {
 						$ret .= sprintf("<td class='number'>%d</td>", $value);
