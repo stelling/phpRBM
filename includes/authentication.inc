@@ -799,8 +799,8 @@ function fnOpvragenLidnr($stap) {
 					(new cls_Logboek())->add($mess, 5, $row->LidID, 1, $row->LidID, 11);
 					$mess = "";
 					$mail = null;
-					
 				}
+				sentoutbox(4);
 			} else {
 				$mess = "Er is geen lid met dit e-mailadres in onze database bekend.";
 			}
