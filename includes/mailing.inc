@@ -489,7 +489,7 @@ class Mailing {
 			
 		} elseif ($this->mid == $_SESSION['settings']['mailing_bevestigingdeelnameevenement'] and $this->mid > 0) {
 			$this->xtrachar = "EVD";
-			$this->speciaal = "Bevestiging inschrijving evenement";
+			$this->speciaal = "Bevestiging evenement";
 			$this->automontvanger = true;
 			$this->vertraging_tussen_verzenden = 5;
 			$this->MergeField[]=array('Naam' => "OmsEvenement", 'SQL' => "");
@@ -497,7 +497,6 @@ class Mailing {
 			$this->MergeField[]=array('Naam' => "StatusEvenement", 'SQL' => "");
 			$this->MergeField[]=array('Naam' => "AantalPersonenEvenement", 'SQL' => "");
 			$this->MergeField[]=array('Naam' => "OpmEvenement", 'SQL' => "");
-			
 			
 		} elseif ($this->mid == $_SESSION['settings']['mailing_bewakinginschrijving'] and $this->mid > 0) {
 			$this->xtrachar = "BW_I";
@@ -1179,7 +1178,7 @@ class Mailing {
 			return false;
 		} else {
 			if ($_SESSION['settings']['mailing_sentoutbox_auto'] == 0 and $_SESSION['settings']['mailing_direct_verzenden'] == 0) {
-				$mess = "Het automatisch versturen staat uit, neem contact op met een beheeder om dit aan te laten zetten.";
+				$mess = "Het automatisch versturen staat uit, neem contact op met een beheerder om dit aan te laten zetten.";
 				(new cls_Logboek())->add($mess, 4, 0, $p_melding, $this->mid);
 			}
 			return $this->send_mailing(0, $lidid, $p_melding);
@@ -1522,21 +1521,25 @@ function lijstmailings($p_filter="") {
 			
 		} elseif ($p_filter == "Verzonden mails" or $p_filter == "Verzonden e-mails") {
 			
-		} elseif ($p_filter == "Outbox") {
-			if ($_SESSION['settings']['mailing_direct_verzenden'] == 0) {
-				$kols[6]['link'] = sprintf("<a href='index.php?tp=%s&op=sentmail&MailingHistID=%%d'>&nbsp;&nbsp;&nbsp;</a>", urlencode($_GET['tp']));
-				$kols[6]['columnname'] = "RecordID";
-				$kols[6]['class'] = "sendmail";
-			}
-			$kols[7]['link'] = sprintf("<a href='index.php?tp=%s&op=deletehist&MailingHistID=%%d'>&nbsp;&nbsp;&nbsp;</a>", urlencode($_GET['tp']));
-			$kols[7]['columnname'] = "RecordID";
 		}
 		if ($p_filter == "Outbox") {
 			$kols[1]['headertext'] = "Wacht vanaf";
 			$kols[1]['columnname'] = "Ingevoerd";
-			$kols[1]['type'] = "datetime";
+						
+			$kols[5]['link'] = sprintf("<a href='index.php?tp=%s&op=sentmail&MailingHistID=%%d'>&nbsp;&nbsp;&nbsp;</a>", urlencode($_GET['tp']));
+			$kols[5]['columnname'] = "RecordID";
+			$kols[5]['class'] = "sendmail";
+			
+			$kols[6]['headertext'] = "Versturen na";
+			$kols[6]['columnname'] = "NietVersturenVoor";
+			$kols[6]['type'] = "DTHMS";
+			
+			$kols[7]['link'] = sprintf("<a href='index.php?tp=%s&op=deletehist&MailingHistID=%%d'>&nbsp;&nbsp;&nbsp;</a>", urlencode($_GET['tp']));
+			$kols[7]['columnname'] = "RecordID";
+			$kols[7]['class'] = "trash";
+			
 			if ($_SESSION['settings']['mailing_sentoutbox_auto'] == 0 and $_SESSION['settings']['mailing_direct_verzenden'] == 0) {
-				$mess = "Het automatisch versturen staat uit, neem contact op met een beheeder om dit aan te laten zetten.";
+				$mess = "Het automatisch versturen staat uit, neem contact op met een beheerder om dit aan te laten zetten.";
 				(new cls_Logboek())->add($mess, 4, 0, 1);
 			}
 			
@@ -1790,6 +1793,7 @@ class email {
 		
 		if (strlen($this->aanadres) < 5) {
 			debug("geen aanadres aanwezig");
+			
 		} elseif (strlen($this->vanafadres) > 5) {
 			
 			if ($this->CCafdelingen == 1 and $this->lidid > 0) {
@@ -1803,10 +1807,10 @@ class email {
 				}
 			}
 			
-			if ($p_direct == 1) {
-				$this->nietversturenvoor = date("Y-m-d H:i:s");
+			if ($p_direct == 1 or $_SESSION['settings']['mailing_direct_verzenden'] == 1) {
+				$this->nietversturenvoor = date("Y-m-d H:i:s", strtotime("-1 minute"));
 			} else {
-				$this->nietversturenvoor = date("Y-m-d H:i:s", strtotime(sprintf("+ %d minute", $_SESSION['settings']['mailing_wachttijdinoutbox'])));
+				$this->nietversturenvoor = date("Y-m-d H:i:s", strtotime(sprintf("+%d minute", $_SESSION['settings']['mailing_wachttijdinoutbox'])));
 			}
 			$this->mhid = (new cls_Mailing_hist())->add($this);
 			if ($this->mhid > 0) {
@@ -2314,7 +2318,7 @@ function sentoutbox($p_mode, $p_mhid=-1) {
 		
 	} else {
 		foreach($i_mh->outbox($p_mode)->fetchAll() as $mhrow) {
-			if ($mhrow->NietVersturenVoor < date("Y-m-d h:i:s") and $i_mh->aantalverzonden(1) < $_SESSION['settings']['maxmailsperminuut']) {
+			if ($i_mh->aantalverzonden(1) < $_SESSION['settings']['maxmailsperminuut']) {
 				if (sentfromhist($mhrow->RecordID)) {
 					$aantverzonden++;
 				}
