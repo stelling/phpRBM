@@ -39,11 +39,6 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 	(new cls_Login())->setingelogd($_SESSION['lidid']);
 }
 
-if ((new cls_Lid())->aantal() == 0) {
-	echo("<script>alert('Voordat deze website gebruikt kan worden moeten er eerst gegevens uit de Access-database ge-upload worden.');
-		location.href='./admin.php?tp=Uploaden+data';</script>\n");
-}
-
 if ($currenttab2 != "previewwindow" and $op != "preview_hist" and $op != "preview_rek") {
 	HTMLheader();
 	$kaal = 0;
@@ -69,7 +64,24 @@ if (strlen($f) > 0) {
 	$eigenlijstid = (new cls_Eigen_lijst())->recordid($f);
 }
 
-if (toegang($_GET['tp'], 1) == false) {
+
+$i_lid = new cls_Lid();
+
+if ($i_lid->aantal() == 0) {
+	$lidid = $i_lid->add("Webmaster");
+	if ($lidid > 0) {
+		$ww = "Webm" . rand(10000, 99999);
+		$i_login = new cls_login();
+		$id = $i_login->add($lidid, "webmaster", $ww);
+		$query = sprintf("UPDATE %sAdmin_login SET Gewijzigd=SYSDATE(), Wachtwoord='%s', LaatsteWachtwoordWijziging=SYSDATE(), ActivatieKey='' WHERE LidID=%d;", TABLE_PREFIX, password_hash($ww, PASSWORD_DEFAULT), $lidid);
+		$i_login->execsql($query);
+		$i_login = null;
+	}
+	printf("<p class='mededeling'>Er zitten nog geen leden in de database.</p>\n");
+	printf("<p class='mededeling'>Om te starten is er één lid aangemaakt met LidID %d. Vul dit LidID in bij de 'lididwebmasters' in config.php.</p>\n", $lidid);
+	printf("<p class='mededeling'>Er is ook een login aangemaakt, te weten 'webmaster' met '%s' als wachtwoord.</p>\n", $ww);
+	echo("<p class='mededeling'>Om te starten log hiermee in, dit lid en login kunnen later worden verwijderd.</p>\n");
+} elseif (toegang($_GET['tp'], 1) == false) {
 	if ($_SESSION['lidid'] == 0) {
 		fnLoginAanvragen();
 	}
@@ -198,6 +210,9 @@ if (toegang($_GET['tp'], 1) == false) {
 	} elseif ($currenttab2 == "Rapporten") {
 		fnDispMenu(2);
 		fnDispMenu(3);
+		if ($currenttab3 == "Jubilarissen") {
+			Jubilarissen();
+		}
 		if ($currenttab3 == "Presentielijst") {
 			presentielijst();
 		}
@@ -222,7 +237,7 @@ if (toegang($_GET['tp'], 1) == false) {
 	}
 } elseif ($isafdelingstab == 1) {
 	fnAfdeling();
-	
+
 } elseif ($currenttab == "Stukken" and toegang($currenttab, 1, 1)) {
 	fnStukken();
 } elseif ($currenttab == "Bewaking") {
@@ -418,9 +433,10 @@ function fnAgenda($p_lidid=0) {
 				$txt .= sprintf("<td%s><ul><li>%s</li>", $c, $dtfmt->format($td));
 			}
 			
+			$ikal = null;
 			// Evenementen
 			foreach ((new cls_Evenement())->lijst(5, date("Y-m-d", $td)) as $evrow) {
-				$txt .= fnEvenementOmschrijving($evrow, 1, "li") . "\n";
+				$ikal[strtotime($evrow->Datum)] = fnEvenementOmschrijving($evrow, 1, "li");
 			}
 			
 			// Afdelingskalender
@@ -437,8 +453,16 @@ function fnAgenda($p_lidid=0) {
 					} else {
 						$oms = "Geen " . $akrow->Naam;
 					}
+				}			
+				$ikal[strtotime($akrow->Datum . " " . $akrow->Begintijd)] = sprintf("<li class='%s'>%s</li>", strtolower($akrow->Kode), $oms);
+			}
+			
+			if (isset($ikal)) {
+				ksort($ikal);
+//				print_r($ikal);
+				foreach ($ikal as $k => $v) {
+					$txt .= $v . "\n";
 				}
-				$txt .= sprintf("<li class='%s'>%s</li>\n", strtolower($akrow->Kode), $oms);
 			}
 			
 			// Verjaardagen
