@@ -261,8 +261,6 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if ((new cls_Mutatie())->aantal() > 0) {
 		addtp("Kostenoverzicht");
 	}
-	
-	addtp("Stukken");
 
 	if ((new cls_Bewakingsseizoen())->aantal() > 0) {
 		addtp("Bewaking");
@@ -330,6 +328,8 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			addtp("Bestellingen/Logboek");
 		}
 	}
+	
+	addtp("Stukken");
 	
 	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 //		addtp("DMS");   Voorlopig geen tijd voor, dus uitgezet.
@@ -541,7 +541,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		} elseif ($_SESSION['settings']['mailing_herstellenwachtwoord'] > 0) {
 			
 			$mailing = new Mailing($_SESSION['settings']['mailing_herstellenwachtwoord']);
-			if ($mailing->send($row->LidID) > 0) {
+			if ($mailing->send($row->LidID, 1, 1) > 0) {
 				$mess = sprintf("De e-mail naar %s met de link om het wachtwoord te herstellen is verzonden.", $row->Naam);
 			} else {
 				$mess = "Fout bij het versturen van de e-mail. Probeer het later nogmaals of neem contact op met de webmaster.";
