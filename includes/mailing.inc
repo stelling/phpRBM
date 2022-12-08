@@ -173,8 +173,8 @@ class Mailing {
 	
 	private $mailingvanafid = 0;
 	private $OmschrijvingOntvangers = "";
-	private $vanafnaam = "";
-	private $vanafadres = "";
+	public $vanafnaam = "";
+	public $vanafadres = "";
 	public $cc_addr = "";
 	private $CCafdelingen = 0;
 	private $subject = "";
@@ -457,6 +457,7 @@ class Mailing {
 		$this->MergeField[]=array('Naam' => "Naamvereniging", 'SQL' => "");
 		$this->MergeField[]=array('Naam' => "Naamwebsite", 'SQL' => "");
 		$this->MergeField[]=array('Naam' => "URLwebsite", 'SQL' => "");
+		$this->MergeField[]=array('Naam' => "FROMNAME", 'SQL' => "");
 		
 		// Velden die bij specifieke mailings horen.
 		if ($this->mid == $_SESSION['settings']['mailing_lidnr'] and $this->mid > 0) {
@@ -1170,7 +1171,7 @@ class Mailing {
 		$this->send_mailing(1);
 	}	
 	
-	public function send($lidid=0, $p_melding=1) {
+	public function send($lidid=0, $p_melding=1, $p_direct=0) {
 		
 		$this->controle($lidid);
 		if ($this->verzendenmag == false) {
@@ -1181,11 +1182,11 @@ class Mailing {
 				$mess = "Het automatisch versturen staat uit, neem contact op met een beheerder om dit aan te laten zetten.";
 				(new cls_Logboek())->add($mess, 4, 0, $p_melding, $this->mid);
 			}
-			return $this->send_mailing(0, $lidid, $p_melding);
+			return $this->send_mailing(0, $lidid, $p_melding, $p_direct);
 		}
 	}  # send
 	
-	public function folder() {
+	public function f22older() {
 
 		if ($this->deleted_on > '2001-01-01') {
 			return "Prullenbak";
@@ -1196,7 +1197,7 @@ class Mailing {
 		}
 	}
 	
-	private function send_mailing($preview=0, $p_lidid=0, $p_melding=1) {
+	private function send_mailing($preview=0, $p_lidid=0, $p_melding=1, $p_direct=0) {
 		
 		if ($p_lidid == 0) {
 			$rcpts = (new cls_Mailing_rcpt())->lijst($this->mid);
@@ -1222,6 +1223,12 @@ class Mailing {
 				$email->toevoegenadres($rcpt->to_address);
 				$this->bevat_losse_email = true;
 			}
+			if (isValidMailAddress($this->vanafadres)) {
+				$email->vanafadres = $this->vanafadres;
+			}
+			if (strlen($this->vanafnaam) > 0) {
+				$email->vanafnaam = $this->vanafnaam;
+			}
 			$email->cc = $this->cc_addr;
 			$email->bericht = $this->merged_message;
 			$email->onderwerp = $this->merged_subject;
@@ -1238,7 +1245,7 @@ class Mailing {
 				}
 				echo($mail->Body);
 				$mail = null;
-			} elseif ($email->to_outbox() == true) {
+			} elseif ($email->to_outbox($p_direct) == true) {
 				$aant_send++;
 			}
 			$aant_rcpts++;
@@ -1398,7 +1405,7 @@ class Mailing {
 			$dtfmt->setPattern(DTTEXT);
 			foreach($this->MergeField as $fld) {
 				$nm = "[%" . $fld['Naam'] . "%]";
-				if (stripos($this->merged_message, $nm) !== false or stripos($this->merged_subject, $nm) !== false and isset($fld['SQL']) and strlen($fld['SQL']) > 5) {
+				if ((stripos($this->merged_message, $nm) !== false or stripos($this->merged_subject, $nm)) !== false and isset($fld['SQL']) and strlen($fld['SQL']) > 5) {
 					if ($fld['Naam'] == "OpenstaandeRekeningenTabel") {
 						$rkrows = (new cls_Rekening())->lijst("telaat", $lidid);
 						$nv = "";
@@ -1675,6 +1682,7 @@ class email {
 			$this->cc = $mrow->cc_addr;
 			$this->CCafdelingen = $mrow->CCafdelingen;
 			$this->onderwerp = $mrow->subject;
+			$this->bericht = $mrow->message;
 			$this->zichtbaarvoor = $mrow->ZichtbaarVoor;
 			$this->zonderbriefpapier = $mrow->ZonderBriefpapier;
 		} else {
@@ -1791,10 +1799,20 @@ class email {
 			$i_mv = null;
 		}
 		
-		if (strlen($this->aanadres) < 5) {
-			debug("geen aanadres aanwezig");
+		$this->bericht = str_ireplace("[%FROMNAME%]", $this->vanafnaam, $this->bericht);
+		
+		if (strlen($this->aanadres) == 0) {
+			debug("geen aanadres aanwezig", 1, 1);
 			
-		} elseif (strlen($this->vanafadres) > 5) {
+		} elseif(isValidMailAddress($this->aanadres) == false) {
+			$mess = sprintf("Aanadres '%s' is geen geldig e-mailadres.", $this->aanadres);
+			debug($mess, 1, 1);
+			
+		} elseif(isValidMailAddress($this->vanafadres) == false) {
+			$mess = sprintf("Vanafadres '%s' is geen geldig e-mailadres.", $this->vanafadres);
+			debug($mess, 1, 1);
+			
+		} else {
 			
 			if ($this->CCafdelingen == 1 and $this->lidid > 0) {
 				foreach((new cls_Lidond())->lijstperlid($this->lidid, "A") as $afdrow) {
@@ -1808,17 +1826,17 @@ class email {
 			}
 			
 			if ($p_direct == 1 or $_SESSION['settings']['mailing_direct_verzenden'] == 1) {
-				$this->nietversturenvoor = date("Y-m-d H:i:s", strtotime("-1 minute"));
+				$this->nietversturenvoor = date("Y-m-d H:i:s", strtotime("-30 minute"));
 			} else {
 				$this->nietversturenvoor = date("Y-m-d H:i:s", strtotime(sprintf("+%d minute", $_SESSION['settings']['mailing_wachttijdinoutbox'])));
 			}
 			$this->mhid = (new cls_Mailing_hist())->add($this);
 			if ($this->mhid > 0) {
 				$rv = $this->mhid;
-				if ($p_direct == 1) {
-					sentoutbox(0, $this->mhid);
-				}
 			}
+		}
+		if ($p_direct == 1) {
+			sentoutbox(3);
 		}
 		
 		return $rv;
@@ -2287,7 +2305,7 @@ function sentfromhist($p_mhid, $p_handm=0) {
 	
 } # sentfromhist
 
-function sentoutbox($p_mode, $p_mhid=-1) {
+function sentoutbox($p_mode) {
 	
 	/*
 	Uitleg p_mode:

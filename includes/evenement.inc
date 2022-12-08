@@ -115,6 +115,7 @@ function inschrijvenevenementen($lidid) {
 	
 	$i_ev = new cls_evenement();
 	$i_ed = new cls_Evenement_Deelnemer();
+	$i_mv = new cls_Mailing_vanaf();
 
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		foreach ($i_ev->lijst(3) as $row) {
@@ -164,6 +165,12 @@ function inschrijvenevenementen($lidid) {
 				$mailing = new Mailing($_SESSION['settings']['mailing_bevestigingdeelnameevenement']);
 				$mailing->xtrachar = "EVD";
 				$mailing->xtranum = $edid;
+				
+				$mvid = $i_mv->zoekid($row->Email);
+				if ($mvid > 0) {
+					$mailing->vanafadres = $row->Email;
+					$mailing->vanafnaam = $i_mv->vanafnaam();
+				}
 			
 				if ($mailing->send($lidid, 0) > 0) {
 					$mess = sprintf("Bevestiging deelname evenement (%d) is aan %s verzonden.", $edid, (new cls_Lid())->Naam($lidid));
@@ -680,8 +687,12 @@ function overzichtevenementen() {
 		
 		if ($row->Soort == "W") {
 			printf("<tr><th>%s</th><th>Dames</th><th>Heren</th></tr>\n", $dtfmt->format(strtotime($row->Datum)));
-		} elseif(count($dlnlijst) > 1) {
-			printf("<tr><th>%s</th><th colspan=2>%d deelnemers</th></tr>\n", $dtfmt->format(strtotime($row->Datum)), count($dlnlijst));
+		} elseif($row->AantalDln > 2) {
+			printf("<tr><th>%s</th><th colspan=2>%d deelnemers", $dtfmt->format(strtotime($row->Datum)), $row->AantalDln);
+			if ($row->AantAfgemeld > 1) {
+				printf(" / %d afmeldingen", $row->AantAfgemeld);
+			}
+			echo("</th></tr>\n");
 		} else {
 			printf("<tr><th colspan=3>%s</th></tr>\n", $dtfmt->format(strtotime($row->Datum)));
 		}
