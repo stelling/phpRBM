@@ -850,6 +850,7 @@ class cls_Lid extends cls_db_base {
 			1 = Lid
 			2 = Toekomstig lid
 			3 = Voormalig lid
+			4 = Kloslid
 		*/
 		
 		$xtraselect = "";
@@ -877,13 +878,21 @@ class cls_Lid extends cls_db_base {
 		}
 		*/
 		
+		if ($p_soortlid >= 1 and $p_soortlid <= 3 and $p_ondfilter == 0) {
+			$from = $this->fromlid;
+		} else {
+			$from = sprintf("%s LEFT JOIN %sLidmaatschap AS LM ON L.RecordID=LM.Lid", $this->basefrom, TABLE_PREFIX);
+		}
+		
 		$filter = "WHERE (L.Verwijderd IS NULL)";
-		if ($p_soortlid == 1) {
+		if ($p_soortlid == 1 and $p_ondfilter == 0) {
 			$filter .= " AND " . $this->wherelid;
 		} elseif ($p_soortlid == 2) {
 			$filter .= " AND LM.LIDDATUM > CURDATE()";
 		} elseif ($p_soortlid == 3) {
 			$filter .= " AND IFNULL(LM.Opgezegd, '9999-12-31') < CURDATE()";
+		} elseif ($p_soortlid == 4) {
+			$filter .= " AND (LM.Lid IS NULL)";
 		}
 		
 		if ($p_ondfilter > 0) {
@@ -905,15 +914,15 @@ class cls_Lid extends cls_db_base {
 			$p_ord .= ", ";
 		}
 		
-		$query = sprintf("SELECT L.RecordID, %s AS `Naam_lid`%s, L.GEBDATUM, %s AS Zoeknaam, L.Postcode, L.RekeningBetaaldDoor, L.Achternaam, L.TUSSENV, L.Roepnaam, L.RecordID AS LidID
+		$query = sprintf("SELECT L.RecordID, %s AS `Naam_lid`%s, L.GEBDATUM, %s AS Zoeknaam, L.Postcode, L.RekeningBetaaldDoor, L.Achternaam, L.TUSSENV, L.Roepnaam, L.RecordID AS LidID, L.Opmerking
 					FROM %s
 					%s
-					ORDER BY %sL.Achternaam, L.TUSSENV, L.Roepnaam, LM.LIDDATUM;", $this->selectnaam, $xtraselect, $this->selectzoeknaam, $this->fromlid, $filter, $p_ord);
+					ORDER BY %sL.Achternaam, L.TUSSENV, L.Roepnaam, LM.LIDDATUM;", $this->selectnaam, $xtraselect, $this->selectzoeknaam, $from, $filter, $p_ord);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
 	
-	public function klosledenlijst($p_filter="", $p_xtraselect="", $p_ord="") {
+	public function kl22osledenlijst($p_filter="", $p_xtraselect="", $p_ord="") {
 		
 		$opg = "";
 		$k3 = sprintf(", CONCAT(%s, ' & ', %s) AS Bereiken", $this->selecttelefoon, $this->selectemail);

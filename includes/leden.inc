@@ -432,22 +432,18 @@ function fnLedenlijst() {
 		}
 		
 		if ($currenttab2 == "Klosleden") {
-			$rows = $i_lid->klosledenlijst();
-		
+			$sl = 4;
+		} elseif ($currenttab2 == "Leden") {
+			$sl = 1;
+		} elseif ($currenttab2 == "Voormalig leden") {
+			$sl = 3;
+		} elseif ($currenttab2 == "Toekomstige leden") {
+			$sl = 2;
 		} else {
 			$sl = 0;
-			if ($currenttab2 == "Leden") {
-				$sl = 1;
-			} elseif ($currenttab2 == "Voormalig leden") {
-				$sl = 3;
-			} elseif ($currenttab2 == "Toekomstige leden") {
-				$sl = 2;
-			}
-			if ($sl > 0) {
-				$rows = $i_lid->ledenlijst($sl, $_SESSION['val_groep'], fnOrderBy($kols));
-			}
 		}
-		
+		$rows = $i_lid->ledenlijst($sl, $_SESSION['val_groep'], fnOrderBy($kols));
+				
 		if (count($rows) > 0) {
 			if (count($rows) > 1) {
 				printf("<p class='aantrecords'>%d %s</p>\n", count($rows), $currenttab2);
@@ -1312,18 +1308,23 @@ function algemeenlidmuteren($lidid) {
 	$u = "";
 	if (strlen($row->Postcode) < 6) {
 		$u = "Geen (juiste) postcode ingevoerd";
-	} elseif (strlen($row->Huisnr) == 0 or $row->Huisnr == 0) {
-		$u = "Geen huisnummer ingevoerd";
 	} else {
 		$pdok = pdok($row->Postcode, $row->Huisnr, $row->Huisletter, $row->Toevoeging);
 		if (!isset($pdok->numFound) or $pdok->numFound == 0) {
-			$u = "Adres bestaat niet";
-			$i_lid->update($lidid, "Adres", "");
+			if (substr($row->Adres, 0, 7) != "Postbus") {
+				$u = "Adres bestaat niet";
+			}
 		} elseif (isset($pdok->docs[0]->huis_nlt)) {
 			$adr = $pdok->docs[0]->straatnaam . " " . $pdok->docs[0]->huis_nlt;
-			if ($adr != trim($row->Adres)) {
+			if ($adr != trim($row->Adres) and $pdok->numFound == 1) {
 				$i_lid->update($lidid, "Adres", $adr);
 				$row = $i_lid->record($lidid);
+			}
+			if (isset($pdok->docs[0]->huisletter) and $pdok->numFound == 1) {
+				$i_lid->update($lidid, "Huisletter", $pdok->docs[0]->huisletter);
+			}
+			if (isset($pdok->docs[0]->huisnummertoevoeging) and $pdok->numFound == 1) {
+				$i_lid->update($lidid, "Toevoeging", $pdok->docs[0]->huisnummertoevoeging);
 			}
 		}
 	}
@@ -1331,8 +1332,8 @@ function algemeenlidmuteren($lidid) {
 	$wijzvelden[] = array('label' => "Huisnummer", 'naam' => "Huisnr", 'lengte' => 4);
 	$wijzvelden[] = array('label' => "Letter", 'naam' => "Huisletter", 'lengte' => 2);
 	$wijzvelden[] = array('label' => "Toevoeging", 'naam' => "Toevoeging", 'lengte' => 5);
-	$wijzvelden[] = array('label' => "Adres", 'naam' => "Adres", 'lengte' => 30, 'uitleg' => $u, 'readonly' => 1);
-	$wijzvelden[] = array('label' => "Woonplaats", 'naam' => "Woonplaats", 'lengte' => 22, 'readonly' => 1);
+	$wijzvelden[] = array('label' => "Adres", 'naam' => "Adres", 'lengte' => 30, 'uitleg' => $u, 'readonly' => 0);
+	$wijzvelden[] = array('label' => "Woonplaats", 'naam' => "Woonplaats", 'lengte' => 22, 'readonly' => 0);
 	$wijzvelden[] = array('label' => "Vast telefoonnummer", 'naam' => "Telefoon", 'lengte' => 21, 'uitleg' => "");
 	$wijzvelden[] = array('label' => "Mobiel", 'naam' => "Mobiel", 'lengte' => 21, 'uitleg' => "");
 	if ($row->GEBDATUM < date("Y-m-d", strtotime("-8 year"))) {
@@ -2321,6 +2322,9 @@ function fnPersoonlijkeAgenda() {
 			}
 			if (isset($edrow->RecordID)) {
 				$o .= ": " . ARRDLNSTATUS[$edrow->Status];
+				if ($edrow->Aantal > 1) {
+					$o .= sprintf(" met %d personen", $edrow->Aantal);
+				}
 			}
 			$kalitem[$in]['oms'] = $o;
 			$in++;
@@ -2944,7 +2948,8 @@ function pdok($p_postcode, $p_huisnr=0, $p_letter="", $p_toev="") {
 	
 	$p_postcode = strtoupper(trim($p_postcode));
 	$p_postcode = str_replace(" ", "", $p_postcode);
-	$p_letter = strtoupper(trim($p_letter));
+	$p_letter = trim($p_letter);
+	$p_toev = trim($p_toev);
 
 	if (strlen($p_postcode) == 6) {
 		$curl= curl_init();
