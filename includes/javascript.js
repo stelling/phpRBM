@@ -1,7 +1,11 @@
 function fnFilter(p_table, p_filtercontrol, p_skipkolom=-1) {
 	var filter, table, tr, td, i, j, txtValue;
 	
-	filter = p_filtercontrol.value.toUpperCase();
+	if (p_filtercontrol.value == undefined) {
+		filter = p_filtercontrol.toUpperCase();
+	} else {
+		filter = p_filtercontrol.value.toUpperCase();
+	}
 	table = document.getElementById(p_table);
 	tr = table.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
 	
@@ -639,7 +643,7 @@ function rekeningprops() {
 		dataType: 'json',
 		data: { id: rkid },
 		success: function(response){
-			$("#laatsteemail").text(response);
+			$("#laatsteemail").html(response);
 		}
 	});
 	
@@ -722,7 +726,7 @@ function adresvullen() {
 	var tv = $('#Toevoeging').val();
 	var ad = $('#Adres');
 	var wp = $('#Woonplaats');
-			
+	
 	if (zpc.length >= 6 && hn.length > 0) {
 			
 		var url = 'https://geodata.nationaalgeoregister.nl/locatieserver/free?fq=postcode:' + zpc + '&fq=huisnummer:' + hn;
@@ -752,13 +756,14 @@ function adresvullen() {
 				}
 			},
 			error: function (xhr, ajaxOptions, thrownError) {
-				alert(xhr.status);
-				alert(thrownError);
+				alert("Foutstatus: " + xhr.status + " / " + thrownError);
 			}
 		});
 	} else {
-		ad.val('');
-		wp.val('');
+		if (hn.length > 0 && hn > "0") {
+			ad.val('');
+			wp.val('');
+		}
 	}
 }
 
