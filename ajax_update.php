@@ -48,10 +48,9 @@ if ($_SESSION['lidid'] > 0) {
 		}
 				
 	} elseif ($ent === "addlidond") {
-//		$mess = sprintf("%d / %d", $ondid, $lidid);
-//		debug($mess, 0, 1);
 		$i_lo = new cls_Lidond();
 		$i_lo->add($ondid, $lidid);
+		$i_lo = null;
 		
 	} elseif ($ent === "lo_presentie") {
 		$loid = $_POST['loid'] ?? 0;
@@ -71,14 +70,12 @@ if ($_SESSION['lidid'] > 0) {
 		$i_lo->zeteigenschap($lidid, $ondid, $value);
 				
 	} elseif ($ent === "liddipl") {
-//		debug(sprintf("%s: %d / %s / %s", $ent, $rid, $kolom, $newvalue), 0, 1);
 		if ($rid > 0) {
 			$i_ld = new cls_Liddipl();
 			$i_ld->update($rid, $kolom, $newvalue);
 		}
 		
 	} elseif ($ent === "verw_liddipl") {
-//		debug(sprintf("%s: %d / %s / %s", $ent, $rid, $kolom, $newvalue), 0, 1);
 		if ($rid > 0) {
 			$i_ld = new cls_Liddipl();
 			$i_ld->delete($rid, $kolom, $newvalue);
@@ -121,8 +118,6 @@ if ($_SESSION['lidid'] > 0) {
 		$i_sz = null;
 		
 	} elseif ($ent == "mailing" and toegang("Mailing/Muteren")) {
-//		$mess = sprintf("%d / %s / %s", $rid, $kolom, $newvalue);
-//		debug($mess, 0, 1);
 
 		if ($rid > 0 and strlen($kolom) > 0) {
 			$i_m = new cls_Mailing();
@@ -214,7 +209,7 @@ if ($_SESSION['lidid'] > 0) {
 		echo(json_encode($rv));
 				
 	} elseif ($ent == "mailing_verw_alle_ontvangers" and toegang("Mailing/Muteren")) {
-		$mid = $_POST['mid'] ?? 4778;
+		$mid = $_POST['mid'] ?? 0;
 		$i_mr = new cls_Mailing_rcpt();
 		$rv = $i_mr->delete_all($mid);
 		$i_mr = null;
@@ -235,15 +230,13 @@ if ($_SESSION['lidid'] > 0) {
 		$i_mv->update($rid, $kolom, $newvalue);
 		
 	} elseif ($ent == "rekeningedit" and toegang("Rekeningen/Muteren")) {
-//		$mess = sprintf("%d / %s /%s", $rid, $kolom, $newvalue);
-//		debug($mess, 0, 1);
 		$i_rk = new cls_Rekening();
 		$i_rk->update($rid, $kolom, $newvalue);
 		
 	} elseif ($ent == "rekeningmail") {	
 		$i_mh = new cls_Mailing_hist();
 		$f = sprintf("Xtra_Char='REK' AND Xtra_Num=%d", $rid);
-		$rv = $i_mh->laatste($f);
+		$rv = $i_mh->laatste($f, 3);
 		$i_mh = null;
 		
 		echo(json_encode($rv));
@@ -262,8 +255,6 @@ if ($_SESSION['lidid'] > 0) {
 		echo(json_encode($rv));
 		
 	} elseif ($ent == "rekregedit" and toegang("Rekeningen/Muteren")) {
-//		$mess = sprintf("%d / %s /%s", $rid, $kolom, $newvalue);
-//		debug($mess, 0, 1);
 		$i_rr = new cls_Rekeningregel();
 		$i_rr->update($rid, $kolom, $newvalue);
 		
