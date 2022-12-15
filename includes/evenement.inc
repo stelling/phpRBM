@@ -178,7 +178,7 @@ function inschrijvenevenementen($lidid) {
 					$mess = sprintf("Fout bij het versturen van de e-mail. Probeer het later nogmaals of neem contact op met de webmaster.");
 				}
 				$mailing = null;
-				(new cls_Logboek())->add($mess, 7, $lidid, 2);
+				(new cls_Logboek())->add($mess, 7, $lidid, 2, $edid, 14);
 			}
 		}
 	}
@@ -423,7 +423,7 @@ function muteerevenement($eventid) {
 			}
 			$optiongroepen .= sprintf("<option value=%d %s>%s</option>\n", $t->RecordID, $s, htmlentities($t->Naam));
 		}
-		printf("<label>Zichtbaar voor</label><select id='ZichtbaarVoor'>%s</select>\n", $optiongroepen);
+		printf("<label>Deelnemers zichtbaar voor</label><select id='ZichtbaarVoor'>%s</select>\n", $optiongroepen);
 		echo("</span>\n");
 		echo("<span>\n");
 		
