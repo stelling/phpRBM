@@ -86,16 +86,24 @@ function fnRekeningbeheer() {
 	}
 
 	if (isset($_POST['filterseizoen'])) {
-		$filterseizoen = $_POST['filterseizoen'];
+		$filterseizoen = intval($_POST['filterseizoen']);
 	} else {
 		$filterseizoen = $i_rk->Max("RK.Seizoen");
 	}
-	$rows = $i_rk->overzichtbeheer($filterseizoen);
+	$filternaam = $_POST['tbFilterNaam'] ?? "";
+	
+	$rows = $i_rk->overzichtbeheer($filterseizoen, $filternaam);
+	
+	if ($filterseizoen > 0 and strlen($filternaam) == 0) {
+		$js = "OnKeyUp=\"fnFilter('overzichtrekeningen', this);\"";
+	} else {
+		$js = "Onblur=\"this.form.submit();\"";
+	}
 	
 	echo("<div id='filter'>\n");
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	printf("<label>Filter op seizoen</label><select name='filterseizoen' onChange='this.form.submit();'>\n<option value=-1>Alle seizoenen</option>\n%s</select>\n", $i_sz->htmloptions($filterseizoen));
-	echo("<input type='text' id='tbFilterNaam' placeholder='Tekstfilter' OnKeyUp=\"fnFilter('overzichtrekeningen', this);\">\n");
+	printf("<input type='text' id='tbFilterNaam' name='tbFilterNaam' placeholder='Tekstfilter' value='%s' %s>\n", $filternaam, $js);
 	printf("<p class='aantrecords'>%d rekeningen</p>", count($rows));
 	echo("</form>\n");
 	echo("</div> <!-- Einde filter -->\n");
