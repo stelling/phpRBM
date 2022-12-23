@@ -334,7 +334,7 @@ input.w8, input.d8 {
 	width: 78px;
 }
 
-input.d8 {
+input.d8, input.num2, input.num3 {
 	text-align: right;
 }
 
@@ -371,7 +371,7 @@ input.w35 {
 }
 
 input.w40 {
-	width: 180px;
+	width: 250px;
 }
 
 input.w45 {
@@ -876,10 +876,6 @@ textarea#sportlinkdata {
 	float: left;
 }
 
-#evenementenbeheer #form label {
-	width: 135px;
-}
-
 #groepsindeling h2 {
 	margin-bottom: 6px;
 	font-size: 150%;
@@ -1033,6 +1029,7 @@ textarea#sportlinkdata {
 	padding-left: 6px;
 	clear: none;
 	float: left;
+	margin-right: 6px;
 }
 
 #diplomamuteren label, #examenresultaten label {
@@ -1323,7 +1320,7 @@ label#lblStarttijd, label#lblEindtijd, label#lblVerzameltijd, #evenementenbeheer
 	width: 90px;
 }
 
-#evenementenbeheer label#lblDatum, #evenementenbeheer label#lblOmschrijving, #evenementenbeheer label#lblEmail {
+#evenementenbeheer label#lblDatum, #evenementenbeheer label#lblOmschrijving, #evenementenbeheer label#lblEmail, #evenementenbeheer label#lblTypeEvenement, #evenementenbeheer label#lblInschrijvingOpen, #evenementenbeheer label#lblGewijzigd {
 	clear: left;
 }
 
@@ -1340,7 +1337,7 @@ label#lblStarttijd, label#lblEindtijd, label#lblVerzameltijd, #evenementenbeheer
 }
 
 #evenementenbeheer input[type='time'] {
-	width: 75px;
+	width: 95px;
 }
 
 #evenementenbeheer select {
@@ -2191,13 +2188,13 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 }
 
 #rekeninginfo label {
-	width: 150px;
+	width: 130px;
 	height: 20px;
 	margin-left: 3px;
 }
 
 #rekeninginfo p {
-	width: 300px;
+	width: 380px;
 	height: 20px;
 	margin-right: 3px;
 }
