@@ -2,6 +2,7 @@
 
 date_default_timezone_set('Europe/Amsterdam');
 setlocale(LC_ALL,'nl_NL.utf8');
+header("Cache-Control: max-age=3600");
 $dtfmt = new IntlDateFormatter(
     'nl_NL',
     IntlDateFormatter::LONG,
@@ -14,7 +15,7 @@ define("ARRGESLACHT", ["O" => "Onbekend", "V" => "Vrouwelijk", "M" => "Mannelijk
 define("ARRTL", ["Alle", "Leden", "Klosleden", "Voormalig leden"]);
 define("ARRLEGITIMATIE", ["G" => "Geen", "I" => "Identiteitskaart", "P" => "Paspoort", "R" => "Rijbewijs"]);
 define("ARRSOORTMEMO", ["A" => "Algemeen", "B" => "Bewaking", "D" => "Dieet", "E" => "Examen", "F" => "Financiën", "G" => "Gezondheid/medisch", "I" => "Inschrijving bewaking"]);
-define("ARRTYPEONDERDEEL", ["A" => "Afdeling", "B" => "Bestuur", "C" => "Commissie", "E" => "Eigenschap", "F" => "Functionarissen", "G" => "Groep", "O" => "Onderscheiding", "R" => "Rol", "T" => "Toestemming"]);
+define("ARRTYPEONDERDEEL", ["A" => "Afdeling", "B" => "Bestuur", "C" => "Commissie", "E" => "Eigenschap", "F" => "Functionarissen", "G" => "Groep", "O" => "Onderscheiding", "R" => "Rol", "S" => "Selectie", "T" => "Toestemming"]);
 define("ARRTYPEDIPLOMA", ["B" => "Brevet", "C" => "Competentie", "D" => "Diploma", "I" => "Insigne", "L" => "Licentie", "M" => "Module", "P" => "PvB"]);
 define("PASFOTOEXTENTIES", ["gif", "jpg", "jpeg", "png"]);
 define("ARRTYPEEDITOR", [1 => "CKEditor 5 Classic editor", 2 => "CKEditor 4", 3 => "TinyMCE"]);
@@ -226,7 +227,9 @@ function HTMLheader($breed=0) {
 		echo("<link rel='stylesheet' href='//code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css'>\n");
 //		echo("<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css'>\n");
 		echo("<script src='https://code.jquery.com/jquery-3.6.0.js'></script>\n");
-		echo("<script src='https://code.jquery.com/ui/1.13.1/jquery-ui.js'></script>\n");
+		if ($currenttab == "Vereniging" or $currenttab == "Eigen gegevens"  or $currenttab == "Ledenlijst") {
+			echo("<script src='https://code.jquery.com/ui/1.13.1/jquery-ui.js'></script>\n");
+		}
 		
 		if (file_exists("default.css")) {
 			printf("<link rel='stylesheet' href='default.css?v%d'>\n", filectime("default.css"));
@@ -396,18 +399,37 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 	}
 }  # fnDispMenu
 
-function isValidMailAddress($address, $LeegIsGoed=0){
+function isValidMailAddress($address, $p_LeegIsGoed=0){
 
-  	if ($LeegIsGoed == 1 and strlen($address) == 0) {
+  	if ($p_LeegIsGoed == 1 and strlen($address) == 0) {
 		return true;
 	} elseif (strlen(trim($address)) < 5) {
 		return false;
    } else {
-		return filter_var($address, FILTER_VALIDATE_EMAIL);
+   	$address = str_replace(";", ",", $address);
+   	if (strpos($address, ",") === false) {
+			return filter_var($address, FILTER_VALIDATE_EMAIL);
+   	} else {
+   		$rv = true;
+   		foreach (explode(",", $address) as $e) {
+   			if (filter_var($e, FILTER_VALIDATE_EMAIL) == false) {
+   				$rv = false;
+   			}
+   		}
+   		return $rv;
+   	}
 	}
 } # isValidMailAddress
 
 function fnDispEmail($strEmail, $strNaam="", $booInclLink=1) {
+	
+	/*
+	booInclLink
+	0 = zonder link
+	1 = met gecodeerde link, indien gebruiker niet is ingelogd.
+	2 = met HTML-link
+	*/
+	
 	if (strpos($strEmail, "<") > 2 and strlen($strnaam) < 3) {
    	$strNaam = trim(substr(trim($strEmail), 0, strpos($strEmail, "<")));
 		$strEmail = substr(trim($strEmail), strpos($strEmail, "<")+1, -1);
@@ -416,12 +438,10 @@ function fnDispEmail($strEmail, $strNaam="", $booInclLink=1) {
 	if (isValidMailAddress($strEmail, 0)) {
 		if ($_SESSION['lidid'] > 0) {
 			$strNaam = str_replace(" ", "%20", htmlentities($strNaam));
-			if (strlen($strNaam) > 3 and $booInclLink == 1) {
+			if (strlen($strNaam) > 3 and $booInclLink >= 1) {
 				$strRet = sprintf('<a href="mailto:%1$s%%20<%2$s>">%2$s</a>', $strNaam, $strEmail);
-			} elseif ($booInclLink == 1) {
+			} elseif ($booInclLink >= 1) {
 				$strRet = sprintf('<a href="mailto:%1$s">%1$s</a>', $strEmail);
-			} elseif (strlen($strNaam) > 3 and $booInclLink == 2) {
-				$strRet = sprintf('<a href="mailto:%1$s%%20<%2$s>">%1$s</a>', $strNaam, $strEmail);
 			} else {
 				$strRet = $strEmail;
 			}
@@ -455,7 +475,7 @@ function fnDispEmail($strEmail, $strNaam="", $booInclLink=1) {
    	$strRet = "Geen (geldig) e-mailadres";
    }
 	return $strRet;
-}
+}  # fnDispEmail
 
 function getvar($nm, $riz="") {
 	if (isset($_GET[$nm])) {
@@ -514,7 +534,7 @@ function fnDisplayForm($row, $xtra_eind="", $id="formulier") {
 		$ret .= sprintf("</div>  <!-- Einde %s -->\n", $id);
 	}
 	return $ret;
-}
+}  # fnDisplayForm
 
 function fnDisplayFormLabels($row, $xtra_eind="", $id="") {
 	global $dtfmt;
@@ -591,7 +611,6 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 		}
 			
 		if ($kols == null) {
-//			debug("fnDisplayTable zonder kolommen", 2, 1);
 			$kn = 0;
 			$skn = 0;
 			$hv = "";
@@ -874,7 +893,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 						$ret .= "<td>Ja</td>";
 					}
 
-				} elseif ($kol_type == "boo" or $kol_type == "boolean") {
+				} elseif ($kol_type == "boo" or $kol_type == "boolean" or $kol_type == "checkbox") {
 					if ($value == 1) {
 						$ret .= "<td>Ja</td>";
 					} elseif ($value == 0 or $value == -1) {
@@ -1026,6 +1045,8 @@ function fnEditTable($res, $kols, $id, $th) {
 		
 		if (isset($kol['headertext']) and strlen($kol['headertext']) > 0) {
 			$ret .= sprintf("<th>%s</th>", $kol['headertext']);
+		} elseif (!isset($kol['headertext']) and isset($kol['columnname'])) {
+			$ret .= sprintf("<th>%s</th>", $kol['columnname']);
 		}
 		if (isset($kol['type']) and $kol['type'] == "pk") {
 			$colpk = $kn;
@@ -1129,6 +1150,13 @@ function fnEditTable($res, $kols, $id, $th) {
 					$ret .= sprintf("<td>%s</td>", $dtfmt->format(strtotime($value)));
 				} else {
 					$ret .= "<td>&nbsp;</td>";
+				}
+								
+			} elseif ($tp == "tijd") {
+				if ($ro) {
+					$ret .= sprintf("<td>%s</td>", $value);
+				} else {
+					$ret .= sprintf("<td><input type='time' id='%s_%d' value='%s'></td>", $colname, $valpk, $value);
 				}
 
 			} elseif ($tp == "integer" or ($tp == "pk" and isset($kols[$colpk]['headertext']))) {
