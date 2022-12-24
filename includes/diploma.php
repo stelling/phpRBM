@@ -6,13 +6,15 @@ function fnDiplomazaken() {
 	fnDispMenu(2);
 	
 	if ($currenttab2 == "Basislijst") {
-		fnDiplomalijstmuteren();
+		Diplomalijstmuteren();
 	} elseif ($currenttab2 == "Leden per diploma") {
 		fnExamenResultaten(-1, 0);
+	} elseif ($currenttab2 == "Examens muteren") {
+		examensMuteren();
 	}
 }  # fnDiplomazaken
 
-function fnDiplomalijstmuteren() {
+function Diplomalijstmuteren() {
 	global $currenttab, $currenttab2, $dtfmt;
 	
 	$i_dp = new cls_Diploma();
@@ -68,8 +70,51 @@ function fnDiplomalijstmuteren() {
 	echo("</div> <!-- Einde opdrachtknoppen -->\n");
 	echo("</form>");
 	echo("</div> <!-- Einde diplomasmuteren -->\n");
+}  # Diplomalijstmuteren
+
+function examensMuteren() {
+	global $currenttab, $currenttab2;
+	
+	$i_ex = new cls_Examen();
+	
+	if (isset($_POST['nieuwExamen'])) {
+		$i_ex->add();
+	}
+	
+	$res = $i_ex->lijst(0);
+	
+	$kols[0]['columnname'] = "Nummer";
+	$kols[0]['headertext'] = "Nummer";
+	$kols[0]['type'] = "pk";
+	$kols[0]['readonly'] = true;
+	
+	$kols[1]['columnname'] = "Datum";
+	$kols[1]['type'] = "date";
+	$kols[1]['cond_ro'] = "AantalBehaald";
+	
+	$kols[2]['columnname'] = "Omschrijving";
+	$kols[2]['headertext'] = "Omschrijving";
+	
+	$kols[3]['columnname'] = "Plaats";
+	$kols[3]['headertext'] = "Plaats";
+	
+	$kols[4]['columnname'] = "Begintijd";
+	$kols[4]['type'] = "tijd";
+	
+	$kols[5]['columnname'] = "Eindtijd";
+	$kols[5]['type'] = "tijd";
+	
+	$kols[6]['columnname'] = "AantalBehaald";
+	$kols[6]['headertext'] = "Aantal";
+	$kols[6]['type'] = "integer";
+	$kols[6]['readonly'] = true;
 	
 	
-}
+	printf("<form method='post' action='%s?tp=%s/%s'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
+	echo("<button name='nieuwExamen' type='submit'>Nieuw examen</button>\n");
+	echo("</form>\n");
+	echo(fnEditTable($res, $kols, "examensmuteren", "Muteren examens"));
+	
+}  # examensMuteren
 
 ?>
