@@ -81,6 +81,13 @@ if ($_SESSION['lidid'] > 0) {
 			$i_ld->delete($rid, $kolom, $newvalue);
 		}
 		
+	} elseif ($ent === "examensmuteren") {
+		if ($rid > 0) {
+			$i_ex = new cls_Examen();
+			$i_ex->update($rid, $kolom, $newvalue);
+			$i_ex = null;
+		}
+		
 	} elseif ($ent == "onderdeeledit" and toegang("Ledenlijst/Basisgegevens/Onderdelen")) {
 		
 		$i_ond = new cls_Onderdeel();
@@ -236,7 +243,7 @@ if ($_SESSION['lidid'] > 0) {
 	} elseif ($ent == "rekeningmail") {	
 		$i_mh = new cls_Mailing_hist();
 		$f = sprintf("Xtra_Char='REK' AND Xtra_Num=%d", $rid);
-		$rv = $i_mh->laatste($f, 3);
+		$rv = $i_mh->laatste($f, 5);
 		$i_mh = null;
 		
 		echo(json_encode($rv));
