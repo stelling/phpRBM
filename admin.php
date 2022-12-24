@@ -133,6 +133,10 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 	$i_ld->controle();
 	$i_ld->opschonen();
 	$i_ld = null;
+	
+	$i_ex = new cls_Examen();
+	$i_ex->opschonen();
+	$i_ex = null;
 } elseif ($_GET['op'] == "mailingsopschonen") {
 	(new cls_Mailing())->opschonen();
 	(new cls_Mailing_hist())->opschonen();
@@ -313,7 +317,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=ledenopschonen\"' value='Leden en lidmaatschappen'><p>Controleren en opschonen leden, lidmaatschappen en foto's.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	
-	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=beheerdiplomas\"' value=\"Diploma's beheren\"><p>Opschonen en controleren van diploma's en leden per diploma.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=beheerdiplomas\"' value=\"Diploma's beheren\"><p>Opschonen en controleren van diploma's en leden per diploma en examens.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=mailingsopschonen\"' value='Mailings opschonen'><p>Mailings en verzonden e-mails, op basis van bewaarinstellingen, opschonen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	
@@ -404,6 +408,8 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	$i_lb = null;
 	
 } elseif ($currenttab == "Info" and toegang($currenttab, 1, 1)) {
+	
+//    echo memory_get_usage()/1024.0 . " kb \n";
 	phpinfo();
 }
 
