@@ -207,6 +207,9 @@ if ($i_lid->aantal() == 0) {
 	} elseif ($currenttab2 == "Rollen") {
 		fnOnderdelenmuteren("R");
 		
+	} elseif ($currenttab2 == "Selecties") {
+		fnOnderdelenmuteren("S");
+		
 	} elseif ($currenttab2 == "Rapporten") {
 		fnDispMenu(2);
 		fnDispMenu(3);
@@ -599,7 +602,7 @@ function fnGewijzigdeStukken() {
 		$rows = (new cls_Stukken())->gewijzigdestukken();
 		if (count($rows) > 0) {
 			$rv = "<h3>Gewijzigde stukken</h3>\n";
-			$rv .= sprintf("<p>Er zijn %d stukken gewijzigd sinds je laatste login of korter dan een week geleden.</p>\n<ul>\n", count($rows));
+			$rv .= sprintf("<p>Onderstaande stukken gewijzigd sinds je laatste login of korter dan een week geleden.</p>\n<ul>\n", count($rows));
 			foreach($rows as $row) {
 				$rv .= sprintf("<li>%s</li>\n", $row->Titel);
 			}
