@@ -1338,10 +1338,6 @@ class cls_Lid extends cls_db_base {
 		if ($p_kolom == "Postcode" and strlen($p_waarde) != 0 and strlen($p_waarde) != 7 and substr($p_waarde, 0, 4) < "9999" and substr($p_waarde, 0, 4) >= "1000") {
 			$this->mess = "De postcode is niet correct, deze wijziging wordt niet verwerkt.";
 			$this->tm = 1;
-
-		} elseif ($kolom == "EmailOuders" and strlen($p_waarde) > 0 and (isValidMailAddress($p_waarde, 0) == false or strpos($p_waarde, ",") !== false)) {
-			$this->mess = sprintf("%s is niet correct, deze wijziging wordt niet verwerkt.", $p_kolom);
-			$this->tm = 1;
 			
 		} elseif (($p_kolom == "Email" or $p_kolom == "EmailVereniging") and strlen($p_waarde) > 0 and isValidMailAddress($p_waarde, 0) == false) {
 			$this->mess = sprintf("%s is niet correct, deze wijziging wordt niet verwerkt.", $p_kolom);
@@ -2232,8 +2228,14 @@ class cls_InsBew extends cls_db_base {
 }  # cls_InsBew
 
 class cls_Onderdeel extends cls_db_base {
-	private $oid = 0;
+	public $oid = 0;
 	public $naam = "";
+	public $ondtype = "";
+	public $ondtypeoms = "";
+	public $alleenleden = 0;			// Mogen van dit onderdeel alleen mensen lid zijn, die ook lid van de vereniging zijn?
+	public $iskader = false;			// Zijn de leden van dit onderdeel kaderlid?
+	public $isautogroep = false;		// Wordt deze groep automatisch bijgewerkt op basis van MySQL-code of een Eigen query in de Access-database.
+	public $magledenmuteren = false;	// Mag de huidige gebruiker de leden van dit onderdeel muteren, op basis van een persooonlijke groep
 	private $mogelijketypes = "";
 	
 	function __construct($p_oid=-1) {
@@ -2241,36 +2243,67 @@ class cls_Onderdeel extends cls_db_base {
 		$this->basefrom = $this->table . " AS O";
 		$this->ta = 20;
 		if ($p_oid > 0) {
-			$this->oid = $p_oid;
+			$this->vulvars($p_oid);
 		}
 		foreach (ARRTYPEONDERDEEL as $k => $v) {
 			$this->mogelijketypes .= $k;
 		}
 	}
 	
-	public function naam($p_oid, $p_riz="") {
+	private function vulvars($p_oid) {
 		$this->oid = $p_oid;
-		$query = sprintf("SELECT IFNULL(MAX(O.Naam), '%s') FROM %s AS O WHERE O.RecordID=%d;", $p_riz, $this->table, $this->oid);
-		$this->naam = $this->scalar($query);
-		return $this->naam;
+		
+		$query = sprintf("SELECT O.* FROM %s WHERE O.RecordID=%d;", $this->basefrom, $this->oid);
+		$result = $this->execsql($query);
+		$row = $result->fetch();
+		
+		if (isset($row->RecordID)) {
+			$this->naam = $row->Naam;
+			$this->ondtype = $row->Type;
+			$this->ondtypeoms = ARRTYPEONDERDEEL[$row->Type];
+			$this->alleenleden = $row->{'Alleen leden'};
+			if ($row->Kader == 1) {
+				$this->iskader = true;
+			} else {
+				$this->iskader = false;
+			}
+
+			if ($row->GekoppeldAanQuery == 1 or strlen($row->MySQL) > 10) {
+				$this->isautogroep = true;
+			} else {
+				$this->isautogroep = false;
+			}
+			
+			if ($row->LedenMuterenDoor > 0 and in_array($row->LedenMuterenDoor, explode(",", $_SESSION['lidgroepen'])) == true) {
+				$this->magledenmuteren = true;
+			} else {
+				$this->magledenmuteren = false;
+			}
+		
+		} else {
+			$this->oid = 0;
+		}
+	}
+	
+	public function naam($p_oid, $p_riz="") {
+		$this->vulvars($p_oid);
+		if (strlen($this->naam) > 0) {
+			return $this->naam;
+		} else {
+			return $p_riz;
+		}
 	}
 	
 	public function autogroep($p_oid) {
-		$query = sprintf("SELECT O.GekoppeldAanQuery, O.MySQL FROM %s AS O WHERE O.RecordID=%d;", $this->table, $p_oid);
-		$result = $this->execsql($query);
-		$row = $result->fetch();
-		if ($row->GekoppeldAanQuery == 1 or strlen($row->MySQL) > 10) {
-			return true;
-		} else {
-			return false;
-		}
+		$this->vulvars($p_oid);
+		return $this->isautogroep;
 	}
 	
 	public function record($p_oid, $p_kode="") {
 		if ($p_oid > 0) {
-			$query = sprintf("SELECT O.*, O.`Alleen leden` AS AlleenLeden FROM %s AS O WHERE O.RecordID=%d;", $this->table, $p_oid);
+			$query = sprintf("SELECT O.* FROM %s AS O WHERE O.RecordID=%d;", $this->table, $p_oid);
 		} else {
-			$query = sprintf("SELECT O.*, O.`Alleen leden` AS AlleenLeden FROM %s AS O WHERE UPPER(O.Kode)='%s';", $this->table, strtoupper($p_kode));
+			$query = sprintf("SELECT O.* FROM %s AS O WHERE UPPER(O.Kode)='%s';", $this->table, strtoupper($p_kode));
 		}
 		$result = $this->execsql($query);
 		return $result->fetch();
@@ -2325,9 +2358,24 @@ class cls_Onderdeel extends cls_db_base {
 	
 	public function editlijst($p_ondtype, $p_fetched=1) {
 		
+		if ($p_ondtype == "P") {
+			$w = sprintf("O.LedenMuterenDoor > 0 AND O.LedenMuterenDoor IN (%s)", $_SESSION['lidgroepen']);
+		} elseif (strlen($p_ondtype) > 1) {
+			$t = "";
+			for ($i=0;$i<strlen($p_ondtype);$i++) {
+				if (strlen($t) > 1) {
+					$t .= ",";
+				}
+				$t .= sprintf("'%s'", substr($p_ondtype, $i, 1));
+			}
+			$w = sprintf("O.`Type` IN (%s)", $t);
+		} else {
+			$w = sprintf("O.`Type`='%s'", $p_ondtype);
+		}
+		
 		$xsel = sprintf("(SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.OnderdeelID=O.RecordID AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()) AS `aantalLeden`", TABLE_PREFIX);
 		
-		$query = sprintf("SELECT O.RecordID, O.Kode, O.Naam, O.Kader, %s FROM %s WHERE O.`Type`='%s' ORDER BY O.Naam;", $xsel, $this->basefrom, $p_ondtype);
+		$query = sprintf("SELECT O.RecordID, O.Kode, O.Naam, O.Kader, %s FROM %s WHERE %s ORDER BY IF(IFNULL(O.VervallenPer, '9999-12-31') > CURDATE(), 0, 1), O.Naam;", $xsel, $this->basefrom, $w);
 		$result = $this->execsql($query);
 		
 		if ($p_fetched == 1) {
@@ -2337,10 +2385,17 @@ class cls_Onderdeel extends cls_db_base {
 		}
 	}
 	
-	public function htmloptions($p_cv=0, $p_ingebruik=1, $p_type="") {
+	public function htmloptions($p_cv=0, $p_ingebruik=1, $p_ondtype="") {
 		
-		if (strlen($p_type) > 0) {
-			$f = sprintf("O.`Type`='%s'", $p_type);
+		if (strlen($p_ondtype) > 0) {
+			$t = "";
+			for ($i=0;$i<strlen($p_ondtype);$i++) {
+				if (strlen($t) > 1) {
+					$t .= ",";
+				}
+				$t .= sprintf("'%s'", substr($p_ondtype, $i, 1));
+			}
+			$f = sprintf("O.`Type` IN (%s)", $t);
 		} else {
 			$f = "";
 		}
@@ -2387,9 +2442,8 @@ class cls_Onderdeel extends cls_db_base {
 	}
 
 	public function update($p_oid, $p_kolom, $p_waarde, $p_reden="") {
-		$this->oid = $p_oid;
+		$this->vulvars($p_oid);
 		$this->tas = 2;
-		
 		
 		if ($p_kolom == "VervallenPer" and strlen($p_waarde) < 8) {
 			$p_waarde = "";
@@ -2409,6 +2463,7 @@ class cls_Onderdeel extends cls_db_base {
 
 		if ($p_kolom == "Type" and (strlen($p_waarde) == 0 or strpos($this->mogelijketypes, $p_waarde) === false)) {
 			$this->mess = sprintf("Type wordt niet bijgewerkt, omdat de waarde (%s) niet juist is.", $p_waarde);
+			
 		} elseif ($this->pdoupdate($p_oid, $p_kolom, $p_waarde)) {
 			if (strlen($p_reden) > 0) {
 				$this->mess .= ", omdat " . $p_reden;
@@ -2419,9 +2474,11 @@ class cls_Onderdeel extends cls_db_base {
 	}
 	
 	public function delete($p_oid, $p_reden="") {
-		$this->oid = $p_oid;
+		$this->vulvars($p_oid);
 		$this->tas = 3;
+		
 		if ($this->pdodelete($this->oid) > 0) {
+			$this->mess = sprintf("%s (%d) is verwijderd", $this->naam, $this->oid);
 			if (strlen($p_reden) > 0) {
 				$this->mess .= ", omdat " . $p_reden;
 			}

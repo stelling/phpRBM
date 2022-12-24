@@ -94,6 +94,13 @@ function fnEvenementen() {
 		
 		echo("</div> <!--  Einde evenementenbeheer -->\n");
 		
+	} elseif ($currenttab2 == "Groepen muteren") {
+		if (isset($_GET['OnderdeelID']) and $_GET['OnderdeelID'] > 0) {
+			LedenOnderdeelMuteren($_GET['OnderdeelID'], 1);
+		} else {
+			persoonlijkeGroepMuteren();
+		}
+		
 	} elseif ($currenttab2 == "Logboek") {
 		$rows = (new cls_Logboek())->lijst(7, 1);
 		
@@ -131,6 +138,8 @@ function inschrijvenevenementen($lidid) {
 			
 			if ($_POST[$react] == "Inschrijven") {
 				$stat = "I";
+			} elseif ($_POST[$react] == "Aanmelden" and $row->StandaardStatus == "B") {
+				$stat = $row->StandaardStatus;
 			} elseif ($_POST[$react] == "Aanmelden") {
 				$stat = "J";
 			} elseif ($_POST[$react] == "Afmelden") {
@@ -259,6 +268,7 @@ function muteerevenement($eventid) {
 	$i_ev = new cls_Evenement();
 	$i_ed = new cls_Evenement_Deelnemer();
 	$i_lo = new cls_Lidond();
+	$i_et = new cls_Evenement_Type();
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 
@@ -330,13 +340,12 @@ function muteerevenement($eventid) {
 	$starttijd = "";
 	$eindtijd = "";
 	$verzameltijd = "";
-	$typeevenement = 1;
+	$typeevenement = $i_et->min("RecordID");
 	$insopen = 0;
 	$standaardstatus = "I";
 	$maxpersonenperdeelname = 1;
 	$meerderestartmomenten = 0;
 	$beperktotgroep = 0;
-	$zichtbaarvoor = 0;
 	$aantdln = 0;
 	$aantalingeschreven = 0;
 	$aantafgemeld = 0;
@@ -358,14 +367,11 @@ function muteerevenement($eventid) {
 			$maxpersonenperdeelname = $row->MaxPersonenPerDeelname;
 			$meerderestartmomenten = $row->MeerdereStartMomenten;
 			$beperktotgroep = $row->BeperkTotGroep;
-			$zichtbaarvoor = $row->ZichtbaarVoor;
 			$aantdln = $row->AantDln;
 			$aantalingeschreven = $row->AantInschr;
 			$aantafgemeld = $row->AantAfgemeld;
 		}
 	}
-	
-	$optiontypes = (new cls_Evenement_Type())->htmloptions($typeevenement);
 	
 	$optionstandstatus = "";
 	foreach (ARRDLNSTATUS as $ds => $o) {
@@ -389,18 +395,14 @@ function muteerevenement($eventid) {
 	if ($eventid > 0) {
 		printf("<label id='lblEmail'>E-mail</label><input type='email' id='Email' value='%s' class='w50' maxlength=45>\n", $email);
 	
-		echo("<span>\n");
-		printf("<label>Type evenement</label><select name='TypeEvenement'>%s</select>\n", $optiontypes);
-		printf("<label>Opmaak in agenda</label>%s\n", fnEvenementOmschrijving($row, 1, "p"));
-		echo("</span>\n");
+		printf("<label id='lblTypeEvenement'>Type evenement</label><select id='TypeEvenement'>\n%s</select>\n", $i_et->htmloptions($typeevenement));
+		printf("<label class='k2'>Opmaak in agenda</label>%s\n", fnEvenementOmschrijving($row, 1, "p"));
 	
 		$ondrows = (new cls_Onderdeel())->lijst(1, "", $datum);
-		echo("<span>\n");
-		printf("<label>Online inschrijving open</label><input type='checkbox' id='InschrijvingOpen' value=1 %s>\n", checked($insopen));
+		printf("<label id='lblInschrijvingOpen'>Online inschrijving open</label><input type='checkbox' id='InschrijvingOpen' value=1 %s>\n", checked($insopen));
 		printf("<label>Standaard status</label><select id='StandaardStatus'>%s</select>\n", $optionstandstatus);
 		printf("<label>Max. pers. per deelname</label><input type='number' id='MaxPersonenPerDeelname' class='num2' value=%d min=1 max=99>\n", $maxpersonenperdeelname);
 		printf("<label>Meerdere startmomenten</label><input type='checkbox' id='MeerdereStartMomenten' value=1 %s>\n", checked($meerderestartmomenten));
-		echo("</span>\n");
 		
 		$optiongroepen = "<option value=0>Niemand</option>\n";
 		foreach ($ondrows as $t) {
@@ -411,28 +413,13 @@ function muteerevenement($eventid) {
 			}
 			$optiongroepen .= sprintf("<option value=%d%s>%s</option>\n", $t->RecordID, $s, htmlentities($t->Naam));
 		}
-		echo("<span>\n");
-		printf("<label>Deelname beperken tot</label><select name='BeperkTotGroep' onChange='this.form.submit();'>\n%s</select>\n", $optiongroepen);
-		
-		$optiongroepen = "<option value=0>Iedereen</option>\n";
-		foreach ($ondrows as $t) {
-			if ($t->RecordID == $zichtbaarvoor) {
-				$s = "selected";
-			} else {
-				$s = "";
-			}
-			$optiongroepen .= sprintf("<option value=%d %s>%s</option>\n", $t->RecordID, $s, htmlentities($t->Naam));
-		}
-		printf("<label>Deelnemers zichtbaar voor</label><select id='ZichtbaarVoor'>%s</select>\n", $optiongroepen);
-		echo("</span>\n");
-		echo("<span>\n");
+		printf("<label>Doelgroep</label><select name='BeperkTotGroep' onChange='this.form.submit();'>\n%s</select>\n", $optiongroepen);
 		
 		$dtfmt->setPattern(DTLONG);
-		printf("<label>Gewijzigd op / door</label><p>%s / %s</p>\n", $dtfmt->format(strtotime($row->Gewijzigd)), htmlentities($row->GewijzigdDoorNaam));
-		printf("<label>Aantal deelnemers</label><p>%d</p>\n", $aantdln);
-		printf("<label>Aantal ingeschreven</label><p>%d</p>\n", $aantalingeschreven);
-		printf("<label>Aantal afgemeld</label><p>%d</p>\n", $aantafgemeld);
-		echo("</span>\n");
+		printf("<label id='lblGewijzigd'>Gewijzigd op / door</label><p>%s / %s</p>\n", $dtfmt->format(strtotime($row->Gewijzigd)), htmlentities($row->GewijzigdDoorNaam));
+		printf("<label id='lblDeelnemers'>Aantal deelnemers</label><p>%d</p>\n", $aantdln);
+		printf("<label id='lblInschreven'>Aantal ingeschreven</label><p>%d</p>\n", $aantalingeschreven);
+		printf("<label id='lblAfgemeld'>Aantal afgemeld</label><p>%d</p>\n", $aantafgemeld);
 	}
 	
 //	echo("<div id='deelnemersevenementmuteren'>\n");
@@ -542,11 +529,11 @@ function muteerevenement($eventid) {
 				}
 			});
 			
-			\$('#ZichtbaarVoor').change(function(){
+			\$('#StandaardStatus').change(function(){
 				savedata('evenement', %1\$d, this);
 			});
 			
-			\$('#StandaardStatus').change(function(){
+			\$('#TypeEvenement').change(function(){
 				savedata('evenement', %1\$d, this);
 			});
 			

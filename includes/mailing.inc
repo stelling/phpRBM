@@ -66,6 +66,13 @@ function fnMailing() {
 		$mailing->send();
 		$mailing->edit();
 		
+	} elseif ($currenttab2 == "Groepen muteren") {
+		if (isset($_GET['OnderdeelID']) and $_GET['OnderdeelID'] > 0) {
+			LedenOnderdeelMuteren($_GET['OnderdeelID'], 1);
+		} else {
+			persoonlijkeGroepMuteren();
+		}
+		
 	} elseif ($currenttab2 == "Instellingen" and toegang($_GET['tp'], 1, 1)) {
 		fnMailingInstellingen();
 		
@@ -1804,7 +1811,7 @@ class email {
 		if (strlen($this->aanadres) == 0) {
 			debug("geen aanadres aanwezig", 1, 1);
 			
-		} elseif(isValidMailAddress($this->aanadres) == false) {
+		} elseif(isValidMailAddress($this->aanadres) == false and strpos($this->aanadres, ",") == false) {
 			$mess = sprintf("Aanadres '%s' is geen geldig e-mailadres.", $this->aanadres);
 			debug($mess, 1, 1);
 			
@@ -1912,7 +1919,7 @@ function fnRekeningenMailen($op) {
 			}
 			
 			if (strlen($selrek) > 0) {
-				printf("<form method='post' action='%s?tp=%s/%s&amp;op=selectieversturen' name='mailrek'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
+				printf("<form method='post' action='%s?tp=%s/%s&op=selectieversturen' name='mailrek'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
 				echo("De volgende rekeningen zijn geselecteerd.\n");
 				printf("<ul>\n%s</ul>\n<div class='clear'></div>\n", $selrek);
 				printf("<input type='hidden' name='rekfilter' value=\"%s\">\n", $filter);

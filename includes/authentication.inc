@@ -108,6 +108,10 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if ((new cls_Onderdeel())->aantal("`Type`='R' AND IFNULL(VervallenPer, '9999-12-31') >= CURDATE()") > 0) {
 			addtp("Ledenlijst/Rollen");
 		}
+		
+		if ((new cls_Onderdeel())->aantal("`Type`='S' AND IFNULL(VervallenPer, '9999-12-31') >= CURDATE()") > 0) {
+			addtp("Ledenlijst/Selecties");
+		}
 
 		addtp("Ledenlijst/Rapporten");
 		if ($currenttab2 == "Rapporten") {
@@ -137,6 +141,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	addtp("Mailing");
 	if ($currenttab == "Mailing") {
 		$i_M = new cls_Mailing();
+		$i_ond = new cls_Onderdeel();
 		addtp("Mailing/Muteren");
 		addtp("Mailing/Nieuw");
 		$_SESSION['aantalrekeningen'] = $_SESSION['aantalrekeningen'] ?? (new cls_Rekening())->aantal();
@@ -150,9 +155,16 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		}
 		addtp("Mailing/Outbox");
 		addtp("Mailing/Verzonden mails");
+		
+		$f = sprintf("O.LedenMuterenDoor > 0 AND O.LedenMuterenDoor IN (%s)", $_SESSION['lidgroepen']);
+		if ($i_ond->aantal($f) > 0) {
+			addtp("Mailing/Groepen muteren");
+		}
+		
 		addtp("Mailing/Instellingen");
 		addtp("Mailing/Logboek");
 		$i_M = null;
+		$i_ond = null;
 		if ($currenttab2 == "Wijzigen mailing") {
 			addtp($currenttab . "/" . $currenttab2);
 		}
@@ -166,6 +178,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if ($i_dp->aantal() > 0) {
 			addtp($b . "/Leden per diploma");
 		}
+		addtp($b . "/Examens muteren");
 	}
 	
 	if (isset($_SESSION['settings']['menu_met_afdelingen']) and strlen($_SESSION['settings']['menu_met_afdelingen']) > 0) {
@@ -287,6 +300,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	addtp("Evenementen");
 	if ($currenttab == "Evenementen") {
 		$i_ev = new cls_Evenement();
+		$i_ond = new cls_Onderdeel();
 		$f = "IFNULL(VerwijderdOp, '1900-01-01') < '2012-01-01'";
 		if ($i_ev->aantal($f) > 0) {
 			if (count($i_ev->lijst(1)) > 0) {
@@ -297,9 +311,16 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		if ((new cls_Evenement_Type())->aantal() > 0) {
 			addtp("Evenementen/Nieuw");
 		}
+		
+		$f = sprintf("O.LedenMuterenDoor > 0 AND O.LedenMuterenDoor IN (%s)", $_SESSION['lidgroepen']);
+		if ($i_ond->aantal($f) > 0) {
+			addtp("Evenementen/Groepen muteren");
+		}
+		
 		addtp("Evenementen/Types muteren");
 		addtp("Evenementen/Logboek");
 		$i_ev = null;
+		$i_ond= null;
 	}	
 	
 	if ((new cls_Seizoen())->aantal() > 0) {
