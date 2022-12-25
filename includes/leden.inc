@@ -696,9 +696,14 @@ function LedenOnderdeelMuteren($p_ondid, $p_bop) {
 	$i_lo = new cls_Lidond();
 	$i_lid = new cls_Lid();
 	
-	if ($p_bop != 0 and $i_ond->magledenmuteren == false) {
+	if ($i_ond->oid <= 0) {
+		$mess = sprintf("Onderdeel %d bestaat niet.", $p_ondid);
+		(new cls_Logboek())->add($mess, 15, -1, 1, 0, 9);
+		
+	} elseif ($i_ond->magledenmuteren == false) {
 		$mess = sprintf("Je hebt geen rechten om de leden van %s te muteren.", $i_ond->naam);
-		(new cls_Logboek())->add($mess, 15, -1, $p_tm=1, 0, 9);
+		(new cls_Logboek())->add($mess, 15, -1, 1, 0, 9);
+		
 	} else {
 	
 		if (isset($_POST['add_lid']) and $_POST['add_lid'] > 0) {
@@ -1948,7 +1953,6 @@ function onderdelenlidmuteren($lidid, $p_type="G") {
 }  # onderdelenlidmuteren
 
 function htmlloperlid($p_lidid, $p_type) {
-	
 	$i_lo = new cls_Lidond();
 	$i_gr = new cls_Groep();
 	
