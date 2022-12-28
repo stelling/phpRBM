@@ -227,7 +227,7 @@ function HTMLheader($breed=0) {
 		echo("<link rel='stylesheet' href='//code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css'>\n");
 //		echo("<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css'>\n");
 		echo("<script src='https://code.jquery.com/jquery-3.6.0.js'></script>\n");
-		if ($currenttab == "Vereniging" or $currenttab == "Eigen gegevens"  or $currenttab == "Ledenlijst") {
+		if ($currenttab == "Vereniging" or $currenttab == "Eigen gegevens"  or $currenttab == "Ledenlijst" or $currenttab2 = "Overzicht lid") {
 			echo("<script src='https://code.jquery.com/ui/1.13.1/jquery-ui.js'></script>\n");
 		}
 		
@@ -1198,7 +1198,7 @@ function fnEditTable($res, $kols, $id, $th) {
 				if ($ro) {
 					$ret .= sprintf("<td class='number'>%.2F</td>", $value);
 				} else {
-					$ret .= sprintf("<td><input type='text' id='%s_%d' value=%.2F class='d8'></td>", $colname, $valpk, $value);
+					$ret .= sprintf("<td><input type='text' id='%s_%d' value='%.2F' class='d8'></td>", $colname, $valpk, $value);
 				}				
 				
 			} elseif ($tp == "email") {
