@@ -2299,14 +2299,28 @@ class cls_Onderdeel extends cls_db_base {
 		return $this->isautogroep;
 	}
 	
-	public function record($p_oid, $p_kode="") {
+	public function record($p_oid=-1, $p_kode="") {
 		if ($p_oid > 0) {
-			$query = sprintf("SELECT O.* FROM %s AS O WHERE O.RecordID=%d;", $this->table, $p_oid);
-		} else {
-			$query = sprintf("SELECT O.* FROM %s AS O WHERE UPPER(O.Kode)='%s';", $this->table, strtoupper($p_kode));
+			$this->oid = $p_oid;
+			
+		} elseif (strlen($p_kode) > 0) {
+			$query = sprintf("SELECT IFNULL(MIN(O.RecordID), 0) FROM %s WHERE UPPER(O.Kode)='%s';", $this->basefrom, strtoupper($p_kode));
+			$id = $this->scalar($query);
+			if ($id > 0) {
+				$this->oid = $id;
+			}
 		}
+		
+		$query = sprintf("SELECT O.* FROM %s WHERE O.RecordID=%d;", $this->basefrom, $this->oid);
+		
 		$result = $this->execsql($query);
-		return $result->fetch();
+		$row = $result->fetch();
+		if (isset($row->RecordID)) {
+			$this->vulvars($this->oid);
+			return $row;
+		} else {
+			return false;
+		}
 	}
 	
 	public function lijst($p_ingebruik=1, $p_filter="", $p_per="", $p_lidid=0, $p_orderby="", $p_fetched=1) {
@@ -2417,6 +2431,9 @@ class cls_Onderdeel extends cls_db_base {
 		$this->tas = 1;
 		$this->tm = 1;
 		$nrid = $this->nieuwrecordid();
+		if (strlen($p_type) == 0 or $p_type == "*") {
+			$p_type = "G";
+		}
 		if (strlen($p_code) < 3) {
 			$p_code = sprintf("%s_%d", $p_type, $nrid);
 		}
@@ -2425,7 +2442,7 @@ class cls_Onderdeel extends cls_db_base {
 			$this->mess = sprintf("De code '%s' is al in gebruik. Deze %s wordt niet toegevoegd.", $p_code, strtolower(ARRTYPEONDERDEEL[$p_type]));
 			$nrid = 0;
 			
-		} elseif (strlen($p_type) == 0 or strpos($this->mogelijketypes, $p_type) === false) {
+		} elseif (strpos($this->mogelijketypes, $p_type) === false) {
 			$this->mess = sprintf("Type '%s' is niet correct. Deze %s wordt niet toegevoegd.", $p_type, strtolower(ARRTYPEONDERDEEL[$p_type]));
 			$nrid = 0;
 			
@@ -2487,13 +2504,15 @@ class cls_Onderdeel extends cls_db_base {
 	}
 	
 	public function opschonen() {
-		$query = sprintf("SELECT O.RecordID FROM %s WHERE IFNULL(O.VervallenPer, CURDATE()) < DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND IFNULL(O.Gewijzigd, CURDATE()) < DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND
+		$query = sprintf("SELECT O.RecordID FROM %s WHERE IFNULL(O.VervallenPer, '9999-12-31') < CURDATE() AND IFNULL(O.Gewijzigd, CURDATE()) < DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND
 								 O.RecordID NOT IN (SELECT LO.OnderdeelID FROM %2\$sLidond AS LO) AND
+								 O.RecordID NOT IN (SELECT O2.LedenMuterenDoor FROM %2\$sOnderdl AS O2) AND
 								 O.RecordID NOT IN (SELECT GR.OnderdeelID FROM %2\$sGroep AS GR) AND
+								 O.RecordID NOT IN (SELECT AA.Toegang FROM %2\$sAdmin_access AS AA) AND
 								 O.RecordID NOT IN (SELECT AK.OnderdeelID FROM %2\$sAfdelingskalender AS AK);", $this->basefrom, TABLE_PREFIX);
 		$result = $this->execsql($query);
 		foreach ($result->fetchAll() as $row) {
-			$reden = "deze vervallen is en er geen leden en afdelingsgroepen meer aan zijn gekoppeld.";
+			$reden = "deze vervallen is en nergens meer aan gekoppeld is.";
 			$this->delete($row->RecordID, $reden);
 		}
 	}
@@ -3800,7 +3819,7 @@ class cls_Groep extends cls_db_base {
 		$query = sprintf("SELECT GR.RecordID FROM %s WHERE DATE_ADD(GR.Ingevoerd, INTERVAL %d DAY) < CURDATE() AND (SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.GroepiD=GR.RecordID)=0;", $this->basefrom, BEWAARTIJDNIEUWERECORDS, TABLE_PREFIX);
 		$result = $this->execsql($query);
 		foreach($result->fetchAll() as $row) {
-			$this->delete($row->RecordID, "deze groep niet meer wordt gebruikt.");
+			$this->delete($row->RecordID, "deze groep niet meer wordt gebruikt");
 		}
 	}
 	
@@ -6350,6 +6369,7 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 	private $omsEvenement = "";
 	private $stdstatus = "";
 	private $meerderestartmomenten = 0;
+	private $casestatus = "";
 	
 	function __construct($p_evid=-1) {
 		parent::__construct();
@@ -6383,13 +6403,27 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 			$this->stdstatus = $row->StandaardStatus;
 			$this->meerderestartmomenten = $row->MeerdereStartMomenten;
 		}
+		$this->casestatus = "CASE ED.Status ";
+		foreach (ARRDLNSTATUS as $c => $o) {
+			$this->casestatus .= sprintf("WHEN '%s' THEN '%s' ", $c, $o);
+		}
+		$this->casestatus .= "END";
+	}
+	
+	public function lijst($p_evid) {
+		$this->evidid = $p_evid;
+		
+		$query = sprintf("SELECT ED.*, (%s) AS Naam_lid, (%s) AS Lidnr, %s AS StatusDln FROM %s INNER JOIN %sLid AS L ON ED.LidID=L.RecordID WHERE ED.EvenementID=%d;", $this->selectnaam, $this->selectlidnr, $this->casestatus, $this->basefrom, TABLE_PREFIX, $this->evid);
+		$result = $this->execsql($query);
+		
+		return $result->fetchAll();
 	}
 	
 	public function record($p_edid, $p_lidid=-1, $p_evid=-1) {
 		$this->edid = $p_edid;
 		$this->vulvars($p_evid, $p_lidid);
 		
-		$query = sprintf("SELECT ED.*, E.Omschrijving AS OmsEvenement, E.Datum AS DatumEvenement, E.Email AS EmailEvenement FROM %s AS ED INNER JOIN %sEvenement AS E ON ED.EvenementID=E.RecordID WHERE ED.RecordID=%d;", $this->table, TABLE_PREFIX, $this->edid);
+		$query = sprintf("SELECT ED.*, (%s) AS StatusDln, E.Omschrijving AS OmsEvenement, E.Datum AS DatumEvenement, E.Email AS EmailEvenement FROM %s AS ED INNER JOIN %sEvenement AS E ON ED.EvenementID=E.RecordID WHERE ED.RecordID=%d;", $this->casestatus, $this->table, TABLE_PREFIX, $this->edid);
 		$result = $this->execsql($query);
 		return $result->fetch();
 	}
@@ -8653,6 +8687,12 @@ function db_onderhoud($type=9) {
 		$i_base->execsql($query, 2);
 	}
 	
+	$tab = TABLE_PREFIX . "Onderdl";
+	$col = "BeschikbaarVoor";
+	if ($i_base->bestaat_kolom($col, $tab) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NULL AFTER `ORGANIS`;", $tab, $col);
+		$i_base->execsql($query, 2);
+	}
 	
 	/***** Velden die aangepast zijn *****/
 	

@@ -395,7 +395,7 @@ function muteerevenement($eventid) {
 	if ($eventid > 0) {
 		printf("<label id='lblEmail'>E-mail</label><input type='email' id='Email' value='%s' class='w50' maxlength=45>\n", $email);
 	
-		printf("<label id='lblTypeEvenement'>Type evenement</label><select id='TypeEvenement'>\n%s</select>\n", $i_et->htmloptions($typeevenement));
+		printf("<label id='lblTypeEvenement'>Type evenement</label><select id='TypeEvenement'>\n<option value=0>Geen/onbekend</option>\n%s</select>\n", $i_et->htmloptions($typeevenement));
 		printf("<label class='k2'>Opmaak in agenda</label>%s\n", fnEvenementOmschrijving($row, 1, "p"));
 	
 		$ondrows = (new cls_Onderdeel())->lijst(1, "", $datum);

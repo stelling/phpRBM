@@ -330,6 +330,11 @@ input.num3 {
 	width: 48px;
 }
 
+input.bedrag {
+	width: 55px;
+	text-align: right;
+}
+
 input.w8, input.d8 {
 	width: 78px;
 }
@@ -398,7 +403,7 @@ input.w75 {
 	width: 450px;
 }
 
-input.w90, textarea.w90 {
+input.w90, #filter input#titellijst, textarea.w90 {
 	width: 350px;
 }
 
@@ -482,7 +487,7 @@ header a + a:visited + a:hover {
 	margin-bottom: 10px;
 }
 
-#formulier label, #eigenlijstmuteren label {
+#formulier label, #eigenlijstmuteren label, #detailsonderdeelmuteren label {
 	clear: left;
 	float: left;
 	width: 250px;
@@ -491,13 +496,13 @@ header a + a:visited + a:hover {
 	padding-right: 6px;
 }
 
-#formulier textarea, #eigenlijstmuteren textarea {
+#formulier textarea, #eigenlijstmuteren textarea, #detailsonderdeelmuteren textarea {
 	float: left;
 	margin-top: 6px;
 	margin-bottom: 6px;
 }
 
-#eigenlijstmuteren textarea {
+#eigenlijstmuteren textarea, #detailsonderdeelmuteren textarea {
 	width: 965px;
 }
 
@@ -519,7 +524,7 @@ header a + a:visited + a:hover {
 	margin-right: 6px;
 }
 
-#formulier p, #eigenlijstmuteren p {
+#formulier p, #eigenlijstmuteren p, #detailsonderdeelmuteren p {
 	float: left;
 	margin-right: 6px;
 	margin-top: 6px;
