@@ -6222,10 +6222,17 @@ class cls_Evenement extends cls_db_base {
 			3=inschrijving open
 			4=persoonlijke agenda
 			5=voor op de agenda
+			6=htmloptions select
 		*/
 
 		$st = "DATE_FORMAT(E.Datum, '%H:%i', 'nl_NL')";
+		
+		$select = sprintf("E.RecordID, E.Datum, %s AS Starttijd, E.Omschrijving, E.Locatie, E.MeerdereStartMomenten,
+							E.Email, E.Verzameltijd, E.Eindtijd, ET.Omschrijving AS OmsType, ET.Soort, ET.Tekstkleur, ET.Achtergrondkleur, ET.Vet, ET.Cursief,
+							CASE E.InschrijvingOpen WHEN 0 THEN 'Nee' ELSE 'Ja' END AS `Ins. open?`,
+							(%s) AS AantalDln, (%s) AS AantAfgemeld", $st, $this->sqlaantdln, $this->sqlaantafgemeld);
 		$where = sprintf("E.Datum >= DATE_SUB(CURDATE(), INTERVAL 4 DAY) AND IFNULL(E.VerwijderdOp, '2000-01-01') < '2012-01-01' AND E.BeperkTotGroep IN (%1\$s)", $_SESSION["lidgroepen"]);
+		$ord = "E.Datum";
 
 		$ord = "E.Datum DESC";
 		if ($p_soort == 2) {
@@ -6250,12 +6257,8 @@ class cls_Evenement extends cls_db_base {
 			$where = sprintf("LEFT(E.Datum, 10)='%s' AND IFNULL(E.VerwijderdOp, '1900-01-01') < '2012-01-01'", $p_datum);
 			$ord = "E.Datum";
 			
-		} else {
-			$select = sprintf("E.RecordID, E.Datum, %s AS Starttijd, E.Omschrijving, E.Locatie, E.MeerdereStartMomenten,
-								E.Email, E.Verzameltijd, E.Eindtijd, ET.Omschrijving AS OmsType, ET.Soort, ET.Tekstkleur, ET.Achtergrondkleur, ET.Vet, ET.Cursief,
-								CASE E.InschrijvingOpen WHEN 0 THEN 'Nee' ELSE 'Ja' END AS `Ins. open?`,
-								(%s) AS AantalDln, (%s) AS AantAfgemeld", $st, $this->sqlaantdln, $this->sqlaantafgemeld);
-			$ord = "E.Datum";
+		} elseif ($p_soort == 6) {
+			$where = "E.Datum >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) AND IFNULL(E.VerwijderdOp, '2000-01-01') < '2012-01-01'";
 		}
 		$query = sprintf("SELECT %s
 							FROM %s LEFT OUTER JOIN %sEvenement_Type AS ET ON E.TypeEvenement=ET.RecordID
@@ -6277,7 +6280,7 @@ class cls_Evenement extends cls_db_base {
 	public function htmloptions($p_cv=-1, $p_filter="") {
 		global $dtfmt;
 		
-		$evrows = $this->lijst(1, "". $p_filter);
+		$evrows = $this->lijst(6, "". $p_filter);
 		$rv = "";
 		foreach ($evrows as $evrow) {
 			$oms = $evrow->Omschrijving;
