@@ -404,7 +404,7 @@ function muteerevenement($eventid) {
 		printf("<label>Max. pers. per deelname</label><input type='number' id='MaxPersonenPerDeelname' class='num2' value=%d min=1 max=99>\n", $maxpersonenperdeelname);
 		printf("<label>Meerdere startmomenten</label><input type='checkbox' id='MeerdereStartMomenten' value=1 %s>\n", checked($meerderestartmomenten));
 		
-		$optiongroepen = "<option value=0>Niemand</option>\n";
+		$optiongroepen = "<option value=0>Iedereen</option>\n";
 		foreach ($ondrows as $t) {
 			if ($t->RecordID == $beperktotgroep) {
 				$s = " selected";
