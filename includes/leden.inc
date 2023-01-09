@@ -689,7 +689,7 @@ function LedenOnderdeelMuteren($p_ondid, $p_bop) {
 	} else {
 	
 		if (isset($_POST['add_lid']) and $_POST['add_lid'] > 0) {
-			$i_lo->add($i_lo->oid, $_POST['add_lid']);
+			$i_lo->add($i_ond->oid, $_POST['add_lid']);
 		}
 
 		$th = sprintf("Leden %s '%s' muteren", strtolower($i_ond->ondtypeoms), $i_ond->naam);
@@ -721,6 +721,10 @@ function LedenOnderdeelMuteren($p_ondid, $p_bop) {
 		$kols[0]['readonly'] = true;
 		$kols[1]['headertext'] = "Vanaf";
 		$kols[1]['type'] = "date";
+		if ($i_ond->ondtype == "E" or $i_ond->ondtype == "T") {
+			$kols[1]['readonly'] = true;
+		}
+		
 		if ($i_ond->iskader or $i_ond->ondtype == "A" or $i_ond->ondtype == "C" or $i_ond->ondtype == "G") {
 			$kols[2]['headertext'] = "Functie";
 			$kols[2]['bronselect'] = $rowsfunc;
@@ -2679,7 +2683,7 @@ function fnBasisgegevens($p_type) {
 	}
 }  # fnBasisgegevens
 
-function presentielijst() {
+function presentielijst($p_evenement=0) {
 	
 	$ondid = $_POST['onderdeelid'] ?? 0;
 	$titellijst = $_POST['titellijst'] ?? "";
@@ -2695,9 +2699,11 @@ function presentielijst() {
 	echo("<div id='filter'>\n");
 	$actionurl = sprintf("%s?tp=%s", $_SERVER['PHP_SELF'], $_GET['tp']);
 	printf("<form method='post' action='%s'>\n", $actionurl);
-	printf("<select name='onderdeelid' onChange='this.form.submit();'><option value=0>Selecteer groep ...</option>\n%s</select>\n", $i_ond->htmloptions($ondid, 1));
+	if ($p_evenement == 0) {
+		printf("<select name='onderdeelid' onChange='this.form.submit();'><option value=0>Selecteer groep ...</option>\n%s</select>\n", $i_ond->htmloptions($ondid, 1));
+	}
+	printf("<select name='eventid' onChange='this.form.submit();'><option value=0>Selecteer evenement ...</option>\n%s</select>\n", $i_ev->htmloptions($eventid));
 	printf("<input type='text' name='titellijst' id='titellijst' placeholder='Titel presentielijst' value='%s' onBlur='this.form.submit();'>", $titellijst);
-	printf("<select name='eventid' onChange='this.form.submit();'><option value=0>Gekoppeld aan ...</option>\n%s</select>\n", $i_ev->htmloptions($eventid));
 	echo("</form>\n");
 	echo("</div> <!-- Einde filter -->\n");
 	
