@@ -4,13 +4,12 @@ $_SESSION['webmaster'] = 0;
 if ($_SESSION['lidid'] == 0 or strlen($_SESSION['username']) == 0) {
 	$_SESSION['lidid'] = 0;
 	$_SESSION['username'] = "";
-	$_SESSION['lidgroepen'] = "0";
 } else {
 	if (in_array($_SESSION['lidid'], $lididwebmasters)) {
 		$_SESSION['webmaster'] = 1;
 	}
-	$_SESSION['lidgroepen'] = (new cls_Lidond())->lidgroepen();
 }
+$_SESSION['lidgroepen'] = (new cls_Lidond())->lidgroepen();
 
 $tabpages = null;
 if ($_SERVER['PHP_SELF'] == "/admin.php") {
@@ -312,6 +311,10 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			addtp("Evenementen/Nieuw");
 		}
 		
+		if (count($i_ev->lijst(6)) > 0) {
+			addtp("Evenementen/Presentielijst");
+		}
+		
 		$f = sprintf("O.LedenMuterenDoor > 0 AND O.LedenMuterenDoor IN (%s)", $_SESSION['lidgroepen']);
 		if ($i_ond->aantal($f) > 0) {
 			addtp("Evenementen/Groepen muteren");
@@ -494,7 +497,7 @@ function toegang($soort, $melding=1, $p_log=1, $p_alleenmenu=0) {
 		} else {
 			$mess = sprintf("Je hebt geen toegang tot '%s'.", $soort);
 			if ($p_log == 1) {
-				(new cls_Logboek())->add($mess, 15, 0, $melding);
+				(new cls_Logboek())->add($mess, 15, 0, $melding, 0, 9);
 				
 			} elseif ($melding > 0) {
 				printf("<p class='mededeling'>%s</p>\n", $mess);
