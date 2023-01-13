@@ -2235,7 +2235,6 @@ class cls_Onderdeel extends cls_db_base {
 	public $alleenleden = 0;			// Mogen van dit onderdeel alleen mensen lid zijn, die ook lid van de vereniging zijn?
 	public $iskader = false;			// Zijn de leden van dit onderdeel kaderlid?
 	public $isautogroep = false;		// Wordt deze groep automatisch bijgewerkt op basis van MySQL-code of een Eigen query in de Access-database.
-	public $magledenmuteren = false;	// Mag de huidige gebruiker de leden van dit onderdeel muteren, op basis van een persooonlijke groep
 	private $mogelijketypes = "";
 	
 	function __construct($p_oid=-1) {
@@ -2273,13 +2272,6 @@ class cls_Onderdeel extends cls_db_base {
 			} else {
 				$this->isautogroep = false;
 			}
-			
-			if ($row->LedenMuterenDoor > 0 and in_array($row->LedenMuterenDoor, explode(",", $_SESSION['lidgroepen'])) == true) {
-				$this->magledenmuteren = true;
-			} else {
-				$this->magledenmuteren = false;
-			}
-		
 		} else {
 			$this->oid = 0;
 		}
@@ -2948,23 +2940,14 @@ class cls_Lidond extends cls_db_base {
 	private $lidnaam = "";  // De naam van het lid
 	private $alleenleden = 0; // Mogen bij dit onderdeel alleen leden worden ingedeeld?
 	public $organisatie = 0;  // Bij welke organisatie is dit onderdeel aangesloten?
+	public $magmuteren = false;  // Mag het ingelogde lid deze mutaties doen?
 	
-	function __construct($p_ondid=-1, $p_lidid=-1) {
+	function __construct($p_ondid=-1, $p_lidid=-1, $p_loid=-1) {
 		parent::__construct();
 		$this->table = TABLE_PREFIX . "Lidond";
 		$this->basefrom = $this->table . " AS LO";
-		if ($p_ondid > 0) {
-			$this->ondid = $p_ondid;
-			$ondrow = (new cls_Onderdeel())->record($this->ondid);
-			if (isset($ondrow)) {
-				$this->ondnaam = $ondrow->Naam;
-				$this->organisatie = $ondrow->ORGANIS;
-			}
-		}
-		if ($p_lidid >= 0) {
-			$this->lidid = $p_lidid;
-		}
 		$this->ta = 6;
+		$this->vulvars($p_loid, $p_lidid, $p_ondid);
 	}
 	
 	private function vulvars($p_loid=-1, $p_lidid=-1, $p_ondid=-1, $p_per="") {
@@ -2990,19 +2973,50 @@ class cls_Lidond extends cls_db_base {
 				$this->mess = sprintf("Record in lidond met ID %d bestaat niet.", $this->loid);
 				$this->tm = 1;
 			}
+			
 		} elseif ($this->lidid > 0 and $this->ondid > 0) {
 			$query = sprintf("SELECT IFNULL(MAX(LO.RecordID), 0) FROM %s AS LO WHERE LO.Lid=%d AND LO.OnderdeelID=%d AND LO.Vanaf <= '%4\$s' AND IFNULL(LO.Opgezegd, '9999-12-31') >= '%4\$s';", $this->table, $this->lidid, $this->ondid, $p_per);
 			$this->loid = $this->scalar($query);
 		}
 		
 		if ($this->ondid > 0) {
-			$query = sprintf("SELECT O.Naam, O.Type, O.Kader, O.`Alleen leden` AS AlleenLeden FROM %sOnderdl AS O WHERE O.RecordID=%d;", TABLE_PREFIX, $this->ondid);
+			$query = sprintf("SELECT O.* FROM %sOnderdl AS O WHERE O.RecordID=%d;", TABLE_PREFIX, $this->ondid);
 			$row = $this->execsql($query)->fetch();
 			if (isset($row)) {
 				$this->ondnaam = $row->Naam;
 				$this->ondtype = $row->Type;
 				$this->ondkader = $row->Kader;
-				$this->alleenleden = $row->AlleenLeden;
+				$this->alleenleden = $row->{'Alleen leden'};
+				$this->organisatie = $row->ORGANIS;
+
+				if ($row->LedenMuterenDoor > 0 and in_array($row->LedenMuterenDoor, explode(",", $_SESSION['lidgroepen'])) == true) {
+					$this->magmuteren = true;
+				} elseif ($_SESSION['lidid'] == $this->lidid and $this->ondtype == "T") {
+					$this->magmuteren = true;
+				} else {
+					$this->magmuteren = false;
+					if ($this->ondtype == "A" and toegang("Ledenlijst/Wijzigen lid/Afdelingen", 0, 0)) {
+						$this->magmuteren = true;
+					} elseif ($this->ondtype == "B" and toegang("Ledenlijst/Wijzigen lid/B, C en F", 0, 0)) {
+						$this->magmuteren = true;
+					} elseif ($this->ondtype == "C" and toegang("Ledenlijst/Commissies", 0, 0)) {
+						$this->magmuteren = true;
+					} elseif ($this->ondtype == "E" and toegang("Ledenlijst/Wijzigen lid/Eigenschappen", 0, 0)) {
+						$this->magmuteren = true;
+					} elseif ($this->ondtype == "F" and toegang("Ledenlijst/Wijzigen lid/B, C en F", 0, 0)) {
+						$this->magmuteren = true;
+					} elseif ($this->ondtype == "G" and toegang("Ledenlijst/Wijzigen lid/Groepen", 0, 0)) {
+						$this->magmuteren = true;
+					} elseif ($this->ondtype == "O" and toegang("Ledenlijst/Wijzigen lid/Onderscheidingen", 0, 0)) {
+						$this->magmuteren = true;
+					} elseif ($this->ondtype == "R" and toegang("Ledenlijst/Rollen", 0, 0)) {
+						$this->magmuteren = true;
+					} elseif ($this->ondtype == "S" and toegang("Ledenlijst/Selecties", 0, 0)) {
+						$this->magmuteren = true;
+					} elseif ($this->ondtype == "T" and toegang("Ledenlijst/Wijzigen lid/Toestemmingen", 0, 0)) {
+						$this->magmuteren = true;
+					}
+				}
 			}
 		}
 		if ($this->lidid > 0) {
@@ -3069,10 +3083,15 @@ class cls_Lidond extends cls_db_base {
 		$this->ondid = $p_ondid;
 		$this->vulvars();
 		
+		$xw = "";
+		if ($this->ondtype == "E" or $this->ondtype == "T") {
+			$xw = " AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE()";
+		}
+		
 		$this->query = sprintf("SELECT %s AS `Naam_lid`, LO.Vanaf, LO.Functie, LO.EmailFunctie, LO.Opmerk, LO.Opgezegd, LO.RecordID, L.GEBDATUM
 								FROM %s
-								WHERE LO.OnderdeelID=%d AND IFNULL(LO.Opgezegd, CURDATE()) >= LO.Vanaf
-								ORDER BY IF(IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE(), 0, 1), L.Achternaam, L.TUSSENV, L.Roepnaam, LO.Vanaf DESC;", $this->selectnaam, $this->fromlidond, $p_ondid);
+								WHERE LO.OnderdeelID=%d AND IFNULL(LO.Opgezegd, '9999-12-31') >= LO.Vanaf%s
+								ORDER BY IF(IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE(), 0, 1), L.Achternaam, L.TUSSENV, L.Roepnaam, LO.Vanaf DESC;", $this->selectnaam, $this->fromlidond, $this->ondid, $xw);
 		$result = $this->execsql();
 		
 		if ($p_fetched == 1) {
@@ -3194,17 +3213,23 @@ class cls_Lidond extends cls_db_base {
 	}
 	
 	public function lidgroepen() {
-		$query = sprintf("SELECT GROUP_CONCAT(DISTINCT LO.OnderdeelID SEPARATOR ',') AS LG FROM %s WHERE Lid=%d AND %s;", $this->basefrom, $_SESSION['lidid'], cls_db_base::$wherelidond);
-		$result = $this->execsql($query);
-		$row = $result->fetch();
-		if (strlen($row->LG) > 0) {
-			$rv = "0," . $row->LG;
-		} else {
+		
+		if ($_SESSION['lidid'] <= 0) {
 			$rv = "0";
+		} else {
+			$query = sprintf("SELECT GROUP_CONCAT(DISTINCT LO.OnderdeelID SEPARATOR ',') AS LG FROM %s WHERE Lid=%d AND %s;", $this->basefrom, $_SESSION['lidid'], cls_db_base::$wherelidond);
+			$result = $this->execsql($query);
+			$row = $result->fetch();
+			if (strlen($row->LG) > 0) {
+				$rv = "0," . $row->LG;
+			} else {
+				$rv = "0";
+			}
+			if ($_SESSION['webmaster'] == 1) {
+				$rv = "-1," . $rv;
+			}
 		}
-		if ($_SESSION['webmaster'] == 1) {
-			$rv = "-1," .$rv;
-		}
+		
 		return $rv;
 	}
 	
@@ -3292,6 +3317,11 @@ class cls_Lidond extends cls_db_base {
 		return $this->loid;
 	}
 	
+	public function ondid($p_loid=-1) {
+		$this->vulvars($p_loid);
+		return $this->ondid;
+	}
+	
 	public function bewaking($p_lidid) {
 		$query  = sprintf("SELECT DISTINCT O.Kode FROM %s WHERE O.`Tonen in bewakingsadministratie`=1 AND LO.Lid=%d AND %s ORDER BY O.Kode;", $this->fromlidond, $p_lidid, cls_db_base::$wherelidond);
 		$result = $this->execsql($query);
@@ -3332,6 +3362,9 @@ class cls_Lidond extends cls_db_base {
 		
 		if (strlen($this->ondnaam) == 0) {
 			$this->mess = sprintf("OnderdeelID %d bestaat niet. Record wordt niet toegevoegd.", $this->ondid);
+			
+		} elseif ($this->magmuteren == false and debug_backtrace()[1]['function'] != "autogroepenbijwerken") {
+			$this->mess = sprintf("Je bent niet bevoegd om van onderdeel '%s' de leden te muteren.", $this->ondnaam);
 			
 		} elseif (strlen($this->lidnaam) == 0) {
 			$this->mess = sprintf("Lid %d bestaat niet. Dit record wordt niet toegevoegd.", $this->lidid);
@@ -3393,13 +3426,21 @@ class cls_Lidond extends cls_db_base {
 		} elseif ($p_kolom == "Vanaf" and strlen($p_waarde) < 6) {
 			$this->mess = sprintf("%s: 'Vanaf' mag niet leeg zijn, deze aanpassing wordt niet verwerkt.", $this->table);
 			$this->tm = 1;
+
+		} elseif ($this->magmuteren == false and $p_kolom != "GroepID" and debug_backtrace()[1]['function'] != "autogroepenbijwerken" and debug_backtrace()[1]['function'] != "auto_einde") {
+			$this->mess = sprintf("Je bent niet bevoegd om van onderdeel '%s' de leden te muteren.", $this->ondnaam);
+			$this->tm = 1;
+			
 		} elseif ($p_kolom == "Vanaf" and $this->alleenleden == 1 and (new cls_Lidmaatschap())->soortlid($this->lidid, $p_waarde) !== "Lid") {
 			$this->mess = sprintf("De persoon is geen lid op %s, de aanpassing van vanaf wordt niet doorgevoerd.", $p_waarde);
 		} elseif ($this->typekolom($p_kolom) == "date" and strlen($p_waarde) > 5 and $p_waarde <= '1970-01-01') {
 			$this->mess = sprintf("De waarde '%s' voor kolom '%s' is ongeldig, deze aanpassing wordt niet verwerkt.", $p_waarde, $p_kolom);
 			$this->tm = 1;
 		} else {
-			if ($this->pdoupdate($this->loid, $p_kolom, $p_waarde, $p_reden) > 0) {
+			if ($this->pdoupdate($this->loid, $p_kolom, $p_waarde) > 0) {
+				if (strlen($p_reden) > 0) {
+					$this->mess .= ", omdat " . $p_reden;
+				}
 				$rv = true;
 			}
 		}
@@ -3407,28 +3448,27 @@ class cls_Lidond extends cls_db_base {
 		return $rv;
 	}
 	
-	public function delete($p_loid, $p_lidid=-1, $p_ondid=-1, $p_reden="") {
+	private function delete($p_loid, $p_reden="") {
 		if ($this->tas != 33 and $this->tas != 39) {
 			$this->tas = 13;
 		}
+		$this->vulvars($p_loid);
+		$rv = 0;
 		
-		if ($p_loid > 0) {
+		if ($this->muterenmag == true) {
 			$this->loid = $p_loid;
 			$query = sprintf("DELETE FROM %s WHERE RecordID=%d;", $this->table, $this->loid);
-		} else {
-			$this->lidid = $p_lidid;
-			$this->ondid = $p_ondid;
-			$query = sprintf("DELETE FROM %s WHERE Lid=%d AND OnderdeelID=%d;", $this->table, $this->lidid, $this->ondid);
-		}
-		$this->vulvars($this->loid, $this->lidid, $this->ondid);
-		$rv = $this->execsql($query);
-		if ($rv > 0) {
-			$this->mess = sprintf("%s: %s '%s' is bij %s verwijderd", $this->table, ARRTYPEONDERDEEL[$this->ondtype], $this->ondnaam, $this->lidnaam);
-			if (strlen($p_reden) > 0) {
-				$this->mess .= ", omdat " . $p_reden;
-			}
+			$rv = $this->execsql($query);
+			if ($rv > 0) {
+				$this->mess = sprintf("%s: %s '%s' is bij %s verwijderd", $this->table, ARRTYPEONDERDEEL[$this->ondtype], $this->ondnaam, $this->lidnaam);
+				if (strlen($p_reden) > 0) {
+					$this->mess .= ", omdat " . $p_reden;
+				}
 			
-			(new cls_Interface())->add($query, $this->lidid);
+				(new cls_Interface())->add($query, $this->lidid);
+			}
+		} else {
+			$this->mess = sprintf("Je bent niet bevoegd om leden bij onderdeel '%s' te verwijderen", $this->ondnaam);
 		}
 		$this->log($this->loid, 0);
 		return $rv;
@@ -3451,10 +3491,10 @@ class cls_Lidond extends cls_db_base {
 				}
 			}
 		} else {
-			$query = sprintf("SELECT LO.RecordID FROM %s WHERE LO.Lid=%d AND LO.OnderdeelID=%d;", $this->basefrom, $p_lidid, $p_ondid);
+			$query = sprintf("SELECT LO.RecordID FROM %s WHERE LO.Lid=%d AND LO.OnderdeelID=%d AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE();", $this->basefrom, $p_lidid, $p_ondid);
 			$result = $this->execsql($query);
 			foreach ($result->fetchAll() as $row) {
-				$this->delete($row->RecordID);
+				$this->update($row->RecordID, "Opgezegd", date("Y-m-d"), strtotime("-1 day"));
 				$rv = true;
 			}
 		}
@@ -3478,19 +3518,19 @@ class cls_Lidond extends cls_db_base {
 		$result = $this->execsql($query);
 		foreach ($result->fetchAll() as $row) {
 			$reden = sprintf("op basis van HistorieOpschonen (%d dagen)", $row->HistorieOpschonen);
-			$this->delete($row->RecordID, 0, 0, $reden);
+			$this->delete($row->RecordID, $reden);
 		}
 		
 		$query = sprintf('SELECT LO.RecordID FROM %s WHERE LO.OnderdeelID NOT IN (SELECT O.RecordID FROM %sOnderdl AS O);', $this->basefrom, TABLE_PREFIX);
 		$result = $this->execsql($query);
 		foreach ($result->fetchAll() as $row) {
-			$i_ond->delete($row->RecordID, 0, 0, "het onderdeel niet (meer) bestaat");
+			$i_ond->delete($row->RecordID, "het onderdeel niet (meer) bestaat");
 		}
 		
 		$query = sprintf("SELECT LO.RecordID FROM %s WHERE LO.Vanaf > IFNULL(LO.Opgezegd, '9999-12-31')%s;", $this->basefrom, $wl);
 		$result = $this->execsql($query);
 		foreach ($result->fetchAll() as $row) {
-			$this->delete($row->RecordID, 0, 0, "de datum vanaf na de datum opgezegd ligt");
+			$this->delete($row->RecordID, "de datum vanaf na de datum opgezegd ligt");
 		}
 		
 		$query = sprintf("SELECT LO.RecordID, IFNULL(LO.Opgezegd, '9999-12-31') AS Opgezegd, IFNULL(L.RecordID, 0) AS LidID, IFNULL(L.Overleden, '9999-12-31') AS Overleden
@@ -3623,8 +3663,13 @@ class cls_Lidond extends cls_db_base {
 			}
 		
 			if ($rv > 0 or $p_altijdlog == 1) {
+				if ($rv == 0) {
+					$this->ta = 98;
+					$this->tas = 0;
+				} else {
+					$this->tas = 30;
+				}
 				$this->mess = sprintf("autogroepenbijwerken uitgevoerd, %d aanpassingen, in %.3f seconden, gedaan.", $rv, (microtime(true) - $starttijd));
-				$this->tas = 30;
 				$this->lidid = 0;
 				$this->log();
 			}
@@ -3664,6 +3709,8 @@ class cls_Lidond extends cls_db_base {
 			
 			$exec_tijd = (microtime(true) - $starttijd);
 			if (isset($_SESSION['settings']['performance_trage_select']) and $_SESSION['settings']['performance_trage_select'] > 0 and $exec_tijd >= $_SESSION['settings']['performance_trage_select']) {
+				$this->ta = 98;
+				$this->tas = 0;
 				$this->mess = sprintf("cls_Lidond->auto_einde in %.3f seconden uitgevoerd.", $exec_tijd);
 				$this->Log();
 			}
@@ -3849,8 +3896,8 @@ class cls_Login extends cls_db_base {
 		}
 	}
 	
-	private function vulvars($p_lidid=0, $p_email="") {
-		if ($p_lidid > 0) {
+	private function vulvars($p_lidid=-1, $p_email="") {
+		if ($p_lidid >= 0) {
 			$this->lidid = $p_lidid;
 		}
 		
@@ -4208,6 +4255,8 @@ class cls_Login extends cls_db_base {
 				if ($_SESSION['settings']['mailing_meldingnieuwip'] > 0) {
 				}
 			}
+			$_SESSION['lidid'] = $this->lidid;
+			$_SESSION['lidgroepen'] = (new cls_Lidond())->lidgroepen();
 			$this->log();
 		} elseif ($_SESSION['lidid'] > 0) {
 			$this->query = sprintf("UPDATE %s SET LastActivity=SYSDATE() WHERE LidID=%d;", $this->table, $_SESSION['lidid']);
@@ -5428,9 +5477,10 @@ class cls_Logboek extends cls_db_base {
 		$query = sprintf("DELETE FROM %s WHERE DatumTijd < DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND LENGTH(Omschrijving)=0;", $this->table);
 		$this->execsql($query, 2);
 
-		$query = sprintf("DELETE FROM %s WHERE DatumTijd < DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND TypeActiviteit IN (13, 98);", $this->table);
+// Performance
+		$query = sprintf("DELETE FROM %s WHERE DatumTijd < DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND TypeActiviteit=98;", $this->table);
 		$this->execsql($query, 2);
-
+		
 		$query = sprintf("DELETE FROM %s WHERE DatumTijd < DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND TypeActiviteit=6 AND TypeActiviteitSpecifiek >= 30 AND TypeActiviteitSpecifiek <= 39;", $this->table);
 		$this->execsql($query, 2);
 
@@ -5445,10 +5495,13 @@ class cls_Logboek extends cls_db_base {
 // Uitloggen
 		$query = sprintf("DELETE FROM %s WHERE DatumTijd < DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND TypeActiviteit=1 AND TypeActiviteitSpecifiek=2;", $this->table);
 		$this->execsql($query, 2);
-	}
 	
-	public function debugopschonen() {
+// Eigen debugging
 		$query = sprintf("DELETE FROM %s WHERE TypeActiviteit=99 AND LidID=%d;", $this->table, $_SESSION['lidid']);
+		$this->execsql($query, 2);
+		
+// Authenticatie
+		$query = sprintf("DELETE FROM %s WHERE DatumTijd < DATE_SUB(CURDATE(), INTERVAL 2 WEEK) AND TypeActiviteit=15;", $this->table);
 		$this->execsql($query, 2);
 	}
 
@@ -8372,11 +8425,7 @@ class cls_Parameter extends cls_db_base {
 	public function controle() {
 		foreach ($this->lijst() as $row) {
 			if (isset($this->arrParam[$row->Naam]) == false) {
-				$delqry = sprintf("DELETE FROM %s WHERE Naam='%s';", $this->table, $row->Naam);
-				if ($this->execsql($delqry) > 0) {
-					$this->mess = sprintf("Parameter '%s' is verwijderd.", $row->Naam);
-					$this->log($row->RecordID);
-				}
+				$this->delete($row->Naam);
 			}
 		}
 		
@@ -8390,9 +8439,9 @@ class cls_Parameter extends cls_db_base {
 			}
 			$query = sprintf("SELECT * FROM %s WHERE Naam='%s' AND IFNULL(ParamType, '')<>'%s';", $this->table, $naam, $val['Type']);
 			foreach ($this->execsql($query) as $row) {
-				$updqry = sprintf("UPDATE %s SET ParamType='%s' WHERE RecordID=%d;", $this->table, $val['Type'], $row->RecordID);
-				if ($this->execsql($updqry) > 0) {
+				if ($this->update($naam, "ParamType", $val['Type']) > 0) {
 					$this->mess = sprintf("Van parameter '%s' is het type in '%s' gewijzigd.", $naam, $val['Type']);
+					$this->tas = 12;
 					$this->log($row->RecordID);
 				}
 			}
@@ -8417,6 +8466,7 @@ class cls_Parameter extends cls_db_base {
 	
 	public function add($p_naam, $p_type) {
 		$nrid = $this->nieuwrecordid();
+		$this->tas = 1;
 		
 		$query = sprintf("INSERT INTO %s (RecordID, Naam, ParamType, IngevoerdDoor) VALUES (%d, '%s', '%s', %d);", $this->table, $nrid, $p_naam, $p_type, $_SESSION['lidid']);
 		if ($this->execsql($query) > 0) {
@@ -8426,6 +8476,7 @@ class cls_Parameter extends cls_db_base {
 	}
 	
 	public function update($p_naam, $p_waarde, $p_reden="") {
+		$this->tas = 2;
 		if (in_array($p_naam, array("db_folderbackup", "login_beperkttotgroep", "muteerbarememos", "menu_met_afdelingen", "path_attachments", "path_pasfoto", "path_templates", "urlvereniging", "url_eigen_help", "zs_muteerbarememos"))) {
 			$p_waarde = str_replace(" ", "", $p_waarde);
 		}
@@ -8469,9 +8520,22 @@ class cls_Parameter extends cls_db_base {
 				} else {
 					$this->mess = sprintf("Parameter '%s' is in '%s' gewijzigd.", $p_naam, $p_waarde);
 				}
+				if ($p_naam == "versie") {
+					$this->tas = 9;
+				}
 				$this->log($cur->RecordID);
 			}
 			$_SESSION['settings'][$p_naam] = str_replace("\"", "", $p_waarde);
+		}
+	}
+	
+	private function delete($p_naam) {
+		$this->tas = 3;
+		
+		$delqry = sprintf("DELETE FROM %s WHERE Naam='%s';", $this->table, $p_naam);
+		if ($this->execsql($delqry) > 0) {
+			$this->mess = sprintf("Parameter '%s' is verwijderd.", $p_naam);
+			$this->log($row->RecordID);
 		}
 	}
 	
