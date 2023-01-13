@@ -41,10 +41,23 @@ if ($_SESSION['lidid'] > 0) {
 		$i_lid = new cls_Lid();
 		echo(json_encode($i_lid->woonplaats($postcode)));
 		
-	} elseif ($ent === "lidond" or $ent === "logroep" or $ent === "ledenperonderdeelmuteren") {
+	} elseif ($ent == "lidond") {
+		if ($rid > 0) {
+			$i_lo = new cls_Lidond();
+			if ($i_lo->magmuteren) {
+				$i_lo->update($rid, $kolom, $newvalue);
+			} else {
+				debug("Je bent niet bevoegd om leden bij dit onderdeel muteren", 0, 1);
+			}
+			$i_lo = null;
+			$i_ond = null;
+		}
+
+	} elseif ($ent === "logroep" or $ent === "ledenperonderdeelmuteren") {
 		if ($rid > 0) {
 			$i_lo = new cls_Lidond();
 			$i_lo->update($rid, $kolom, $newvalue);
+			$i_lo = null;
 		}
 				
 	} elseif ($ent === "addlidond") {
@@ -88,7 +101,7 @@ if ($_SESSION['lidid'] > 0) {
 			$i_ex = null;
 		}
 		
-	} elseif ($ent == "onderdeeledit" and toegang("Ledenlijst/Basisgegevens/Onderdelen")) {
+	} elseif ($ent == "onderdeeledit") {
 		
 		$i_ond = new cls_Onderdeel();
 		$i_ond->update($rid, $kolom, $newvalue);
