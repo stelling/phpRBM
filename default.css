@@ -1959,6 +1959,10 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	color: red;
 }
 
+.nieuw {
+	color: limegreen;
+}
+
 .deleted {
 	text-decoration: line-through;
 }
