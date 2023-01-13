@@ -1159,7 +1159,7 @@ function fnEditTable($res, $kols, $id, $th) {
 					$ret .= sprintf("<td><input type='time' id='%s_%d' value='%s'></td>", $colname, $valpk, $value);
 				}
 
-			} elseif ($tp == "integer" or ($tp == "pk" and isset($kols[$colpk]['headertext']))) {
+			} elseif ($tp == "integer" or ($tp == "pk" and isset($kols[$colpk]['headertext']) and strlen($kols[$colpk]['headertext']) > 0)) {
 				if ($ro) {
 					$ret .= sprintf("<td class='number'>%d</td>", $value);
 				} else {
@@ -1215,7 +1215,7 @@ function fnEditTable($res, $kols, $id, $th) {
 					$ret .= sprintf("<td><input type='password' name='%s_%d'></td>", $colname, $valpk);
 				}
 
-			} elseif (isset($kol['headertext'])) {
+			} elseif (isset($kol['headertext']) and strlen($kol['headertext']) > 0) {
 				if ($ro) {
 					$ret .= sprintf("<td>%s</td>", htmlentities($value));
 				} else {
