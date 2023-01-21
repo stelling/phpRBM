@@ -3455,7 +3455,7 @@ class cls_Lidond extends cls_db_base {
 		$this->vulvars($p_loid);
 		$rv = 0;
 		
-		if ($this->muterenmag == true) {
+		if ($this->magmuteren == true) {
 			$this->loid = $p_loid;
 			$query = sprintf("DELETE FROM %s WHERE RecordID=%d;", $this->table, $this->loid);
 			$rv = $this->execsql($query);
@@ -3575,13 +3575,13 @@ class cls_Lidond extends cls_db_base {
 		$starttijd = microtime(true);
 		$rv = 0;
 		
-		$f = sprintf("TypeActiviteit=%d AND TypeActiviteitSpecifiek=30", $this->ta);
+		$f = "A.RefFunction LIKE '%cls_Lidond->autogroepenbijwerken%'";
 		$lagb = (new cls_Logboek())->max("A.DatumTijd", $f);
 		if ($p_interval < 1) {
 			$p_interval = 45;
 		}
 		$t = sprintf("-%d minutes", $p_interval);
-		if ($lagb < date("Y-m-d H:i:s", strtotime($t))) {
+		if (strlen($lagb) < 10 or $lagb < date("Y-m-d H:i:s", strtotime($t))) {
 		
 			$f = "LENGTH(O.MySQL) > 10 AND IFNULL(O.VervallenPer, '9999-12-31') >= CURDATE()";
 			if ($p_ondid > 0) {
@@ -3678,18 +3678,21 @@ class cls_Lidond extends cls_db_base {
 		
 	} # autogroepenbijwerken
 	
-	public function auto_einde($p_ondid=-1) {
+	public function auto_einde($p_ondid=-1, $p_interval=90) {
 		$starttijd = microtime(true);
 		
 		$rv = 0;
 		$i_ond = new cls_Onderdeel();
 		$i_lm = new cls_Lidmaatschap();
 		$this->tas = 38;
+		if ($p_interval < 1) {
+			$p_interval = 45;
+		}
 		
-		$f = sprintf("TypeActiviteit=%d AND TypeActiviteitSpecifiek=%d", $this->ta, $this->tas);
+		$f = "A.RefFunction LIKE '%cls_Lidond->auto_einde%'";
 		$lagb = (new cls_Logboek())->max("A.DatumTijd", $f);
 		
-		if (($lagb < date("Y-m-d H:i:s", strtotime("-90 minutes"))) or $p_ondid > 0) {
+		if (strlen($lagb) < 10 or $lagb < date("Y-m-d H:i:s", strtotime(sprintf("-%d minutes", $p_interval))) or $p_ondid > 0) {
 		
 			$f = "`Alleen leden`=1";
 			if ($p_ondid > 0) {
@@ -5414,7 +5417,7 @@ class cls_Logboek extends cls_db_base {
 			* 3: aan iedereen als alert tonen
 		*/
 
-		$bt = debug_backtrace(2, 4);
+		$bt = debug_backtrace(0, 4);
 		$f = "";
 		for ($t=count($bt)-1;$t >= 0;$t += -1) {
 			if (isset($bt[$t]['function']) and strtolower($bt[$t]['function']) <> "log" and isset($bt[$t]['class']) and $bt[$t]['class'] <> "cls_Logboek") {
@@ -5426,6 +5429,16 @@ class cls_Logboek extends cls_db_base {
 				}
 				if (strlen($bt[$t]['function']) > 0) {
 					$f .= $bt[$t]['type'] . $bt[$t]['function'];
+					if (isset($bt[$t]['args']) and count($bt[$t]['args']) > 0) {
+						$a = "";
+						for ($at=0; $at < count($bt[$t]['args']);$at++) {
+							if ($at > 0) {
+								$a .= ", ";
+							}
+							$a .= $bt[$t]['args'][$at];
+						}
+						$f .= " (" . $a . ")";
+					}
 				}
 			}
 		}
@@ -5502,6 +5515,14 @@ class cls_Logboek extends cls_db_base {
 		
 // Authenticatie
 		$query = sprintf("DELETE FROM %s WHERE DatumTijd < DATE_SUB(CURDATE(), INTERVAL 2 WEEK) AND TypeActiviteit=15;", $this->table);
+		$this->execsql($query, 2);
+		
+// Outbox versturen
+		$query = sprintf("DELETE FROM %s WHERE DatumTijd < DATE_SUB(CURDATE(), INTERVAL 2 WEEK) AND TypeActiviteit=4 AND TypeActiviteitSpecifiek=50;", $this->table);
+		$this->execsql($query, 2);
+		
+// Onderhoud/Jobs
+		$query = sprintf("DELETE FROM %s WHERE DatumTijd < DATE_SUB(CURDATE(), INTERVAL 2 WEEK) AND TypeActiviteit=2;", $this->table);
 		$this->execsql($query, 2);
 	}
 
@@ -7965,6 +7986,7 @@ class cls_Eigen_lijst extends cls_db_base {
 	
 	public function controle($p_elid=-1, $p_altijd=0, $p_maxaantal=3) {
 		global $dbc;
+		$starttijd = microtime(true);
 		
 		$rv = 0;
 
@@ -8025,6 +8047,12 @@ class cls_Eigen_lijst extends cls_db_base {
 			$this->update($row->RecordID, "NaamEersteKolom", $naameerstekolom);
 			$this->update($row->RecordID, "LaatsteControle", date("Y-m-d H:i:s"));
 			$rv++;
+		}
+		
+		if ($rv > 0 or ((microtime(true) - $starttijd) > $_SESSION['settings']['performance_trage_select'] and $_SESSION['settings']['performance_trage_select'] > 0)) {
+			$this->mess = sprintf("Er zijn in %.2f seconden %d lijsten gecontroleerd.", (microtime(true) - $starttijd), $rv);
+			$this->tas = 10;
+			$this->Log();
 		}
 
 		return $rv;
@@ -8793,6 +8821,11 @@ function db_onderhoud($type=9) {
 			$i_base->execsql(sprintf("ALTER TABLE %s%s CHANGE `Ingevoerd` `Ingevoerd` DATETIME NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX, $tn));
 		}
 	}
+		
+	// Deze code mag na 1 februari 2024 worden verwijderd.
+	$query = sprintf("ALTER TABLE `%sAdmin_activiteit` CHANGE `RefFunction` `RefFunction` VARCHAR(125) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL;", TABLE_PREFIX);
+	$i_base->execsql($query);	
+	
 	
 	/***** Velden die niet meer nodig zijn *****/
 	
@@ -9235,7 +9268,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_activiteit` (
   `IP_adres` varchar(45) NOT NULL,
   `USER_AGENT` varchar(125) DEFAULT NULL,
   `Getoond` tinyint(4) DEFAULT NULL COMMENT 'Is deze melding aan de gebruiker getoond?',
-  `RefFunction` varchar(75) DEFAULT NULL,
+  `RefFunction` varchar(125) DEFAULT NULL,
   `RefTable` varchar(30) DEFAULT NULL,
   `refColumn` varchar(40) DEFAULT NULL,
   PRIMARY KEY (`RecordID`),
