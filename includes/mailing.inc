@@ -1057,12 +1057,12 @@ class Mailing {
 			
 			if (!file_exists($ad)) {
 				if (mkdir($ad, 0755, true) == true) {
-					$mess = sprintf("Directory '%s' is aangemaakt.", $ad);
+					$mess = sprintf("Folder '%s' is aangemaakt.", $ad);
 				} else {
-					$mess = sprintf("Directory '%s' bestaat niet en kan niet aangemaakt worden. Probeer het later opnieuw of neem contact op met de webmaster.", $ad);
+					$mess = sprintf("Folder '%s' bestaat niet en kan niet aangemaakt worden. Probeer het later opnieuw of neem contact op met de webmaster.", $ad);
 					$ad = "";
 				}
-				(new cls_Logboek())->add($mess, 4, 0, 2, $this->mid);
+				(new cls_Logboek())->add($mess, 4, 0, 2, $this->mid, 44);
 			} else {
 				chmod($ad, 0755);
 			}
@@ -1260,12 +1260,10 @@ class Mailing {
 		}
 		
 		if ($aant_send > 0) {
-			if ($aant_send == 1) {
-				$mess = sprintf("Via mailing %d (%s) is een e-mail in de outbox geplaatst.", $this->mid, $this->subject);
-			} else {
+			if ($aant_send > 1) {
 				$mess = sprintf("Via mailing %d (%s) zijn %d e-mails in de outbox geplaatst.", $this->mid, $this->subject, $aant_send);
+				(new cls_Logboek())->add($mess, 4, 0, $p_melding, $this->mid, 24);
 			}
-			(new cls_Logboek())->add($mess, 4, 0, $p_melding, $this->mid);
 			if (strlen($this->speciaal) > 1) {
 				sentoutbox(4);
 			}
@@ -2023,7 +2021,7 @@ function fnVerstuurRekening($p_rkid, $p_toonmelding=0) {
 			$tm = 1;
 		}
 	}
-	(new cls_Logboek())->add($mess, 4, 0, $tm, $rkrow->Nummer);
+	(new cls_Logboek())->add($mess, 4, $rkrow->Lid, $tm, $rkrow->Nummer, 21);
 	$email = null;	
 	
 	return $rv;
@@ -2362,7 +2360,7 @@ function sentoutbox($p_mode) {
 	}
 	
 	if (strlen($mess) > 0) {
-		(new cls_Logboek())->add($mess, 4);
+		(new cls_Logboek())->add($mess, 4, 0, 0, 0, 50);
 	}
 	
 	return $aantverzonden;
@@ -2370,6 +2368,7 @@ function sentoutbox($p_mode) {
 }  # sentoutbox
 
 class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
+	// Regelt het feitelijk versturen van de e-mail
 
 	private $bestand_briefpapier;
 	public $omsontvangers = "";
@@ -2482,5 +2481,57 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 		}
 	}
 } # RBM_mailer
+
+function eigennotificatie($p_ondid, $p_aanadres, $p_tas=-1, $p_interval=12, $p_cc="") {
+	
+	if ($p_tas < 0) {
+		$p_tas = $p_ondid;
+	}
+	
+	$ar = 0;
+	$ng = "";
+	$res = "";
+	
+	$i_ond = new cls_Onderdeel($p_ondid);
+	$i_el = new cls_Eigen_lijst("", $p_ondid);
+	$i_lb = new cls_Logboek();
+	$i_email = new email();
+	
+	$f = sprintf("TypeActiviteit=4 AND TypeActiviteitSpecifiek=%d", $p_tas);
+	if ($i_lb->max("DatumTijd", $f) < date("Y-m-d H:i:s", strtotime(sprintf("-%d hour", $p_interval)))) {
+		if ($i_ond->oid > 0) {
+			$ar = $i_ond->aantalrijen;
+			$ng = $i_ond->naam;
+		} elseif ($i_el->elid > 0) {
+			$ar = $i_el->aantalrijen;
+			if ($ar > 0) {
+				$i_el->controle();
+				$ar = $i_el->aantalrijen;
+			}
+			$ng = $i_el->elnaam;
+			
+			if ($ar > 0) {
+				$rows = $i_el->rowset();
+				if ($rows !== false) {
+					$res = fnDisplayTable($rows);
+				}
+			}
+		}
+		if ($ar > 0 and isValidMailAddress($p_aanadres, 0)) {	
+			$i_email->aanadres = $p_aanadres;
+			if (isValidMailAddress($p_cc, 0)) {
+				$i_email->cc = $p_cc;
+			}
+			$i_email->onderwerp = sprintf("Notificatie %s (%d rijen)", $ng, $ar);
+			$i_email->bericht = $res;
+			$i_email->zonderbriefpapier = 1;
+			if ($i_email->to_outbox() > 0) {
+				$mess = sprintf("Notificatie %s verzonden", $ng);
+				$i_lb->add($mess, 4, 0, 0, 0, $p_tas);
+			}
+		}
+	}
+	
+}  # eigennotificatie
 
 ?>
