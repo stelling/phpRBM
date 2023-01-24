@@ -584,17 +584,14 @@ function fnDisplayFormLabels($row, $xtra_eind="", $id="") {
 	return $ret;
 }  # fnDisplayFormLabels
 
-function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $class="lijst", $xtra_kolom="") {
+function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $p_id="lijst", $xtra_kolom="") {
 	global $currenttab, $currenttab2, $dtfmt;
 	
 	$ret = "";
-	if (strlen($class) > 0) {
-		$ret = sprintf("<div class='%s'>\n", $class);
-	}
 	$kol_pk = "";
 	if (isset($rows) and (count($rows) > 0 or strlen($xtra_regel) > 0)) {
-		if (strlen($class) > 0) {
-			$ret .= sprintf("<table id='%1\$s' name='%1\$s'>\n", $class);
+		if (strlen($p_id) > 0) {
+			$ret .= sprintf("<table id='%1\$s' name='%1\$s'>\n", $p_id);
 		} else {
 			$ret .= "<table>\n";
 		}
@@ -1002,9 +999,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 	} else {
 		$ret .= "<p class='mededeling'>Er zijn geen records beschikbaar.</p>\n";
 	}
-	if (strlen($class) > 0) {
-		$ret .= sprintf("</div>  <!-- Einde %s -->\n", $class);
-	}
+	
 	return $ret;
 	
 } # fnDisplayTable
@@ -1310,14 +1305,8 @@ function fnOrderBy($p_arrSort) {
 	
 	$sw = "";
 	if ($sk >= 0 and isset($p_arrSort[$sk])) {
-		//$sw = $p_arrSort[$sk];
 		if (isset($p_arrSort[$sk]['sortcolumn'])) {
 			$sw = $p_arrSort[$sk]['sortcolumn'];
-		} else {
-			$sw = $p_arrSort[$sk];
-			if (strpos($sw, ";") > 0) {
-				$sw = explode(";", $sw)[1];
-			}
 		}
 	}
 	
