@@ -43,7 +43,7 @@ if ($_SESSION['lidid'] > 0) {
 		
 	} elseif ($ent == "lidond") {
 		if ($rid > 0) {
-			$i_lo = new cls_Lidond();
+			$i_lo = new cls_Lidond(-1, -1, $rid);
 			if ($i_lo->magmuteren) {
 				$i_lo->update($rid, $kolom, $newvalue);
 			} else {
