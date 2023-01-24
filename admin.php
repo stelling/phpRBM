@@ -99,8 +99,8 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 	
 } elseif ($_GET['op'] == "ledenonderdelenbijwerken") {
 	$i_lo = new cls_Lidond();
-	$i_lo->autogroepenbijwerken(0, 1);
-	$i_lo->auto_einde();
+	$i_lo->autogroepenbijwerken(0, 5);
+	$i_lo->auto_einde(0, 5);
 	$i_lo->controle();
 	$i_lo->opschonen();
 	
@@ -776,25 +776,22 @@ function fnEigenlijstenmuteren() {
 		echo("</div>\n");
 		
 		echo("</form>\n");
-		echo("</div> <!-- Einde eigenlijstmuteren -->\n");
 		
 		if ($row->AantalRecords > 0 and $row->AantalKolommen > 0) {
 			echo("<div id='resultaatlijst'>\n");
-			$i_el = new cls_Eigen_lijst($row->Naam);
 			$rows = $i_el->rowset();
 			if ($rows !== false) {
-				printf("<p>%s</p>", fnDisplayTable($rows, null, "Resultaat"));
+				echo(fnDisplayTable($rows));
 				printf("<p>%d rijen</p>\n", count($rows));
 			}
-			echo("</div> <!-- Einde resultaatlijst -->\n");
+			echo("</div>  <!-- Einde resultaatlijst -->\n");			
 		}
 		
 	} else {
 		
-		echo("<div id='overzichteigenlijsten'>\n");
 		$rows = $i_el->lijst();
 		if (count($rows) > 0) {
-			echo("<table>\n");
+			echo("<table id='overzichteigenlijsten'>\n");
 			echo("<caption>Overzicht Eigen lijsten</caption>\n");
 			echo("<tr><th></th><th>Naam</th><th># records</th><th># kolommen</th><th>Tabblad</th><th>Laatste controle</th><th></th></tr>\n");
 			foreach($rows as $row) {
@@ -804,7 +801,6 @@ function fnEigenlijstenmuteren() {
 			}
 			echo("</table>\n");
 		}
-		echo("</div> <!-- Einde overzichteigenlijsten -->\n");
 		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 		echo("<div id='opdrachtknoppen'>\n");
 		echo("<button type='submit' name='Toevoegen' value='lijst_toevoegen'>Lijst toevoegen</button>\n");
