@@ -562,7 +562,7 @@ tr:nth-child(even) {
 	background-color: #E5E7E9;
 }
 
-td.details, td.muteren, td.detailregels, td.leden, td.sendmail, td.unlock, .lijstverzondenmails td:first-child, .lijstoutbox td:first-child, #overzichteigenlijsten td:first-child, #stukkenmuteren td:first-child, #overzichtrekeningen td:first-child {
+td.details, td.muteren, td.detailregels, td.leden, td.sendmail, td.unlock, #lijstverzondenmails td:first-child, #lijstoutbox td:first-child, #overzichteigenlijsten td:first-child, #stukkenmuteren td:first-child, #overzichtrekeningen td:first-child {
 	background-repeat: no-repeat;
 	background-position: center center;
 	text-align: center;
@@ -570,7 +570,7 @@ td.details, td.muteren, td.detailregels, td.leden, td.sendmail, td.unlock, .lijs
 	height: 45px;
 }
 
-td.details, .lijstverzondenmails td:first-child, .lijstoutbox td:first-child {
+td.details, #lijstverzondenmails td:first-child, #lijstoutbox td:first-child {
 	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAA5UlEQVR42u3XMQsBYRjA8TuTwUAGBgOTsiA+AIPJ6AM4G5+IzfkQJgOrIiZlsyiLlAwGyV/33iLFXb09Xb1P/ZZ38PzLHb225U0KE7QRs/TOE1N0cbHV4RB9zYs/Z4SBH7BCDQe4mhc7yGONuh+wQQULNDUHzNHAFlUTYAJ+BbRQwhVjddZBLsDCHWZhA95LHct7PQsfH/DvuOhFNiCNBB44qrMM4gECbjiHDdAx0QooIos7luqsjGSAhSfswwaIP4TiAeJfgY6JVoD4D5H4QygeIP53rGNMgAn4GiB+NRO/nIpdz1/cVqwhhT3ieQAAAABJRU5ErkJggg==");
 }
 
@@ -608,7 +608,7 @@ td.print {
 	background-repeat: no-repeat;
 	background-position: center center;
 	text-align: center;
-	width: 45px;
+	width: 60px;
 	height: 45px;
 }
 
@@ -949,10 +949,6 @@ textarea#sportlinkdata {
 	padding-left: 0;
 	padding-right: 0;
 	padding-bottom: 1px;
-}
-
-#groepenmuteren input[type='number'] {
-	width: 60px;
 }
 
 #presentieperlid label {
@@ -2197,7 +2193,7 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 }
 
 #rekeninginfo label {
-	width: 130px;
+	width: 140px;
 	height: 20px;
 	margin-left: 3px;
 }
