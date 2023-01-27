@@ -172,6 +172,7 @@ class cls_db_base {
 			try {
 				if (startwith($this->query, "SELECT ")) {
 //					debug($this->query);
+					$dbc->query("SET lc_time_names='nl_NL';");
 					$rv = $dbc->query($this->query);
 					$exec_tijd = microtime(true) - $starttijd;
 					if (isset($_SESSION['settings']['performance_trage_select']) and $_SESSION['settings']['performance_trage_select'] > 0 and $exec_tijd >= $_SESSION['settings']['performance_trage_select']) {
@@ -212,7 +213,7 @@ class cls_db_base {
 		
 			} catch (Exception $e) {					
 				$mess = sprintf("Error in SQL '%s': %s", $this->query, $e->getMessage());
-				debug($mess, 2, 0);
+				debug($mess, 2, 1);
 				return false;
 			}
 				
@@ -4272,7 +4273,7 @@ class cls_Login extends cls_db_base {
 			$this->query = sprintf("UPDATE %s SET LastActivity=SYSDATE() WHERE LidID=%d;", $this->table, $_SESSION['lidid']);
 			$this->execsql();
 		}
-	}
+	}  # setingelogd
 	
 	public function uitloggen($p_lidid=0) {
 		$this->ta = 1;
@@ -5458,10 +5459,10 @@ class cls_Logboek extends cls_db_base {
 							if (is_object($bt[$t]['args'][$at])) {
 								$a .= "object";
 							} else {
-								$a .= $bt[$t]['args'][$at];
+								$a .= substr($bt[$t]['args'][$at], 0, 30);
 							}
 						}
-						$f .= " (" . $a . ")";
+						$f .= " (" . str_replace("\"", "'", $a) . ")";
 					}
 				}
 			}
@@ -5496,7 +5497,7 @@ class cls_Logboek extends cls_db_base {
 		}
 		
 		$query = sprintf("INSERT INTO %s (RecordID, DatumTijd, LidID, IP_adres, USER_AGENT, Omschrijving, ReferID, ReferLidID, TypeActiviteit, Script, Getoond, RefFunction, TypeActiviteitSpecifiek, RefTable, refColumn) VALUES 
-				(%d, SYSDATE(), %d, '%s', '%s', \"%s\",%d, %d, %d, \"%s\", %d, '%s', %d, '%s', '%s');", $this->table, $nrid, $il, $_SERVER['REMOTE_ADDR'], $ua, $p_oms, $p_referid, $this->lidid, $this->ta, $this->script(), $this->tm, $f, $this->tas, $p_reftable, $p_refcolumn);
+				(%d, SYSDATE(), %d, '%s', '%s', \"%s\",%d, %d, %d, \"%s\", %d, \"%s\", %d, '%s', '%s');", $this->table, $nrid, $il, $_SERVER['REMOTE_ADDR'], $ua, $p_oms, $p_referid, $this->lidid, $this->ta, $this->script(), $this->tm, $f, $this->tas, $p_reftable, $p_refcolumn);
 		$this->execsql($query);
 		if ($this->tm == 1 or ($this->tm == 2 and $_SESSION['webmaster'] == 1)) {
 			printf("<p class='mededeling'>%s</p>\n", $p_oms);
@@ -7485,7 +7486,7 @@ class cls_Rekeningregel extends cls_db_base {
 		$cb = 0;
 		
 		$kpl = strtoupper($szrow->{'Verenigingscontributie kostenplaats'});
-		$query = sprintf("SELECT COUNT(*) FROM %s WHERE RK.Seizoen=%d AND RR.KSTNPLTS='%s' AND RR.Lid=%d;", $this->basefrom, TABLE_PREFIX, $i_sz->szid, $kpl, $this->lidid);
+		$query = sprintf("SELECT COUNT(*) FROM %s WHERE RK.Seizoen=%d AND RR.KSTNPLTS='%s' AND RR.Lid=%d;", $this->basefrom, $i_sz->szid, $kpl, $this->lidid);
 		if ($this->scalar($query) == 0 and $is_lid) {
 			$oms = $szrow->{'Verenigingscontributie omschrijving'};
 			$onderscheiding = (new cls_lid())->onderscheiding($this->lidid);
@@ -7516,7 +7517,7 @@ class cls_Rekeningregel extends cls_db_base {
 
 		foreach ($i_lo->lijstperlid($this->lidid, "A", $this->rekeningdatum) as $lorow) {
 				
-			$query = sprintf("SELECT COUNT(*) FROM %s WHERE RK.Seizoen=%d AND RR.LidondID=%d;", $this->basefrom, TABLE_PREFIX, $i_sz->szid, $lorow->RecordID);
+			$query = sprintf("SELECT COUNT(*) FROM %s WHERE RK.Seizoen=%d AND RR.LidondID=%d;", $this->basefrom, $i_sz->szid, $lorow->RecordID);
 			if ($this->scalar($query) == 0) {
 				$oms = $lorow->OndNaam;
 				$kpl = $lorow->OndCode;
