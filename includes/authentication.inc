@@ -362,7 +362,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	$f = "(EL.AantalKolommen > 0 OR LENGTH(EigenScript) > 4) AND LENGTH(EL.Tabpage) > 0";
 	foreach((new cls_Eigen_lijst())->basislijst($f, "EL.Naam") as $row) {
 		$s = BASEDIR . "/maatwerk/" . $row->EigenScript;
-		if ($row->AantalKolommen > 0 or file_exists($s)) {
+		if (($row->AantalKolommen > 0 and $row->AantalRecords > 0) or (file_exists($s) and strlen($row->EigenScript) > 0)) {
 			addtp($row->Tabpage . "/" . $row->Naam);
 		}
 	}
