@@ -2,6 +2,8 @@
 
 function fnMailing() {
 	global $ldl, $currenttab, $currenttab2;
+	
+//	eigennotificatie(5, "simon@telling.nl", -1, 1);
 
 	if (!isset($_GET['mid'])) {
 		$_GET['mid'] = 0;
@@ -1278,7 +1280,9 @@ class Mailing {
 		$mhrow = $i_mh->record();
 		
 		$bestand_briefpapier = $_SESSION['settings']['path_templates'] . "briefpapier.html";
-		if (file_exists($bestand_briefpapier)) {
+		if ($mhrow->ZonderBriefpapier == 1) {
+			return $mhrow->message;
+		} elseif (file_exists($bestand_briefpapier)) {
 			if ($p_verwijderaanhef == 1) {
 				$htmlmessage = removetextblock(file_get_contents($bestand_briefpapier), "<!-- Aanhef -->", "<!-- /Aanhef -->");
 			} else {
@@ -2482,7 +2486,7 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 	}
 } # RBM_mailer
 
-function eigennotificatie($p_ondid, $p_aanadres, $p_tas=-1, $p_interval=12, $p_cc="") {
+function eigennotificatie($p_ondid, $p_aanadres, $p_tas=-1, $p_interval=24, $p_cc="", $p_onderwerp="") {
 	
 	if ($p_tas < 0) {
 		$p_tas = $p_ondid;
@@ -2500,8 +2504,15 @@ function eigennotificatie($p_ondid, $p_aanadres, $p_tas=-1, $p_interval=12, $p_c
 	$f = sprintf("TypeActiviteit=4 AND TypeActiviteitSpecifiek=%d", $p_tas);
 	if ($i_lb->max("DatumTijd", $f) < date("Y-m-d H:i:s", strtotime(sprintf("-%d hour", $p_interval)))) {
 		if ($i_ond->oid > 0) {
-			$ar = $i_ond->aantalrijen;
 			$ng = $i_ond->naam;
+			$query = sprintf("SELECT DISTINCT L.RecordID AS LidID, %1\$s AS Naam
+							  FROM %2\$sLidond AS LO INNER JOIN %2\$sLid AS L ON LO.Lid=L.RecordID
+							  WHERE LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE() AND LO.OnderdeelID=%3\$d;", $i_ond->selectnaam, TABLE_PREFIX, $i_ond->oid);
+			$rows = $i_ond->execsql($query)->fetchAll();
+			if ($rows !== false) {
+				$ar = count($rows);
+				$res = fnDisplayTable($rows);
+			}
 		} elseif ($i_el->elid > 0) {
 			$ar = $i_el->aantalrijen;
 			if ($ar > 0) {
@@ -2522,8 +2533,24 @@ function eigennotificatie($p_ondid, $p_aanadres, $p_tas=-1, $p_interval=12, $p_c
 			if (isValidMailAddress($p_cc, 0)) {
 				$i_email->cc = $p_cc;
 			}
-			$i_email->onderwerp = sprintf("Notificatie %s (%d rijen)", $ng, $ar);
-			$i_email->bericht = $res;
+			if (strlen($p_onderwerp) > 0) {
+				$i_email->onderwerp = $p_onderwerp;
+			} else {
+				$i_email->onderwerp = sprintf("%s (%d rijen)", $ng, $ar);
+			}
+			$i_email->bericht = "<!DOCTYPE html>
+										<html lang='nl'>
+										<head>\n";
+			$i_email->bericht .= sprintf("<title>%s</title>\n", $i_email->onderwerp);
+			if (file_exists(BASEDIR . "/maatwerk/email.css")) {
+				$i_email->bericht .= "<link rel='stylesheet' href='" . BASISURL . "/maatwerk/email.css'>\n";
+			}
+			$i_email->bericht .= "</head>
+										 <body>\n";
+										
+			$i_email->bericht .= $res;
+			$i_email->bericht .= "</body>
+										 </html>\n";
 			$i_email->zonderbriefpapier = 1;
 			if ($i_email->to_outbox() > 0) {
 				$mess = sprintf("Notificatie %s verzonden", $ng);
