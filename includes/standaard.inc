@@ -226,6 +226,7 @@ function HTMLheader($breed=0) {
 		printf("<title>%s</title>\n", $title);
 		echo("<link rel='stylesheet' href='//code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css'>\n");
 //		echo("<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css'>\n");
+		echo("<link rel='stylesheet' href='//cdnjs.cloudflare.com/ajax/libs/timepicker/1.3.5/jquery.timepicker.min.css'>");
 		echo("<script src='https://code.jquery.com/jquery-3.6.0.js'></script>\n");
 		if ($currenttab == "Vereniging" or $currenttab == "Eigen gegevens"  or $currenttab == "Ledenlijst" or $currenttab2 == "Overzicht lid") {
 			echo("<script src='https://code.jquery.com/ui/1.13.1/jquery-ui.js'></script>\n");
@@ -591,7 +592,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 	$kol_pk = "";
 	if (isset($rows) and (count($rows) > 0 or strlen($xtra_regel) > 0)) {
 		if (strlen($p_id) > 0) {
-			$ret .= sprintf("<table id='%1\$s' name='%1\$s'>\n", $p_id);
+			$ret .= sprintf("<table id='%s'>\n", $p_id);
 		} else {
 			$ret .= "<table>\n";
 		}
