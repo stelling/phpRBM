@@ -254,8 +254,8 @@ function fnLedenlijst() {
 	$i_lid = new cls_Lid();
 	$i_lo = new cls_Lidond();
 
-	$i_lo->auto_einde();
-	$i_lo->autogroepenbijwerken(1);
+	$i_lo->auto_einde(-1, 480);
+	$i_lo->autogroepenbijwerken(1, 480);
 	(new cls_Eigen_lijst())->controle();
 	
 	fnDispMenu(2);
@@ -675,14 +675,14 @@ function DetailsOnderdeelMuteren($p_ondid) {
 
 function LedenOnderdeelMuteren($p_ondid, $p_bop) {
 	$i_ond = new cls_Onderdeel($p_ondid);
-	$i_lo = new cls_Lidond();
+	$i_lo = new cls_Lidond($p_ondid);
 	$i_lid = new cls_Lid();
 	
 	if ($i_ond->oid <= 0) {
 		$mess = sprintf("Onderdeel %d bestaat niet.", $p_ondid);
 		(new cls_Logboek())->add($mess, 15, -1, 1, 0, 9);
 		
-	} elseif ($i_ond->magledenmuteren == false) {
+	} elseif ($i_lo->magmuteren == false) {
 		$mess = sprintf("Je hebt geen rechten om de leden van %s te muteren.", $i_ond->naam);
 		(new cls_Logboek())->add($mess, 15, -1, 1, 0, 9);
 		
