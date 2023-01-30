@@ -308,7 +308,6 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	
 	db_createtables();
 	db_onderhoud();
-	(new cls_Eigen_lijst())->controle();
 
 	echo("<div id='dbonderhoud'>\n");
 	
@@ -754,7 +753,7 @@ function fnEigenlijstenmuteren() {
 		printf("<label>MySQL-code</label><textarea id='mysql' name='mysql' rows=16 cols=100>%s</textarea>\n", $row->MySQL);
 		printf("<label>Eigen script</label><p>%s/maatwerk/</p><input type='text' name='EigenScript' class='w30' value='%s' maxlength=30>\n", BASISURL, $row->EigenScript);
 		printf("<label>Tonen in tabblad</label><input type='text' name='tabpage' class='w75' value='%s' maxlength=75>\n", $row->Tabpage);
-		printf("<label>Standaard waarden parameter(s)</label><input type='text' name='default_waarde_params' value='%s' maxlength=100><p>(bij meedere scheiden met een ;)</p>\n", $row->Default_value_params);
+		printf("<label>Standaard waarden parameter(s)</label><input type='text' name='default_waarde_params' value=\"%s\" maxlength=100><p>(bij meedere scheiden met een ;)</p>\n", str_replace("\"", "'", $row->Default_value_params));
 		echo("<label>Beschikbare variabelen</label><p>[%LIDNAAM%], [%TELEFOON%], [%EMAIL%], [%LEEFTIJD%]</p>");
 		if (strlen($i_el->sqlerror) == 0) {
 			printf("<label>Aantal records</label><p>%d</p>\n", $row->AantalRecords);
@@ -776,10 +775,10 @@ function fnEigenlijstenmuteren() {
 		echo("</div>\n");
 		
 		echo("</form>\n");
-		
-		if ($row->AantalRecords > 0 and $row->AantalKolommen > 0) {
+
+		if ($row->AantalKolommen > 0) {
 			echo("<div id='resultaatlijst'>\n");
-			$rows = $i_el->rowset();
+			$rows = $i_el->rowset($row->RecordID, $row->Default_value_params);
 			if ($rows !== false) {
 				echo(fnDisplayTable($rows));
 				printf("<p>%d rijen</p>\n", count($rows));
