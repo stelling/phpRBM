@@ -4302,6 +4302,9 @@ class cls_Login extends cls_db_base {
 			}
 		}
 		if ($rv > 0) {
+			(new cls_Lidond())->autogroepenbijwerken(1);
+			(new cls_Lidond())->auto_einde();
+			(new cls_Eigen_lijst())->controle(-1, 0);
 			fnMaatwerkNaUitloggen();
 		}
 		return $rv;
@@ -6462,13 +6465,13 @@ class cls_Evenement extends cls_db_base {
 		
 		if ($this->pdodelete($this->evid) > 0) {
 			$this->mess = sprintf("Evenement %d (%s) is definitief verwijderd.", $this->evid, $this->evoms);
-			$this->log($row->RecordID);		
+			$this->log($this->evid);
 		}
 	}
 	
 	public function opschonen() {
 		
-		$this->query = sprintf("SELECT E.* FROM %s WHERE IFNULL(E.VerwijderdOp, '1900-01-01') > '2000-01-01';", $this->baasefrom);
+		$this->query = sprintf("SELECT E.* FROM %s WHERE IFNULL(E.VerwijderdOp, '1900-01-01') > '2000-01-01';", $this->basefrom);
 		foreach($this->execsql()->fetchAll() as $row) {
 			$contrqry = sprintf("SELECT COUNT(*) FROM %sEvenement_Deelnemer AS ED WHERE ED.EvenementID=%d;", TABLE_PREFIX, $row->RecordID);
 			if ((new cls_db_base())->scalar($contrqry) ==  0) {
@@ -8029,7 +8032,7 @@ class cls_Eigen_lijst extends cls_db_base {
 		return $rv;
 	}
 	
-	public function rowset($p_elid=-1, $p_waarde="") {
+	public function rowset($p_elid=-1, $p_waarde="", $p_fetched=1) {
 		global $dbc;
 		
 		if ($p_elid > 0) {
@@ -8066,11 +8069,14 @@ class cls_Eigen_lijst extends cls_db_base {
 			}
 		
 			if (strlen($this->sqlerror) == 0) {
-				$rows = $result->fetchAll();
-				if (strlen($p_waarde) == 0) {
+				if ($p_fetched == 1) {
+					$rows = $result->fetchAll();
 					$this->update($this->elid, "AantalRecords", count($rows));
+
+					return $rows;
+				} else {
+					return $this->query;
 				}
-				return $rows;
 			
 			} else {
 				debug($this->sqlerror . ". Vraag de webmaster dit te verhelpen.", 1, 1);
@@ -8180,7 +8186,7 @@ class cls_Eigen_lijst extends cls_db_base {
 			$kol_lidid = -1;
 			$naameerstekolom = "";
 			if (strlen($this->mysql) > 7) {
-				$elres = $dbc->prepare($this->mysql);
+				$elres = $dbc->prepare($this->rowset($row->RecordID, "", 0));
 				try {
 					$elres->execute();
 					$cc = $elres->ColumnCount();
@@ -8193,7 +8199,7 @@ class cls_Eigen_lijst extends cls_db_base {
 			
 				if (strlen($this->sqlerror) == 0) {
 					for ($i=0;$i<$cc;$i++) {
-						if ($elres->getColumnMeta($i)['name'] == "LidID" or $elres->getColumnMeta($i)['name'] == "ndLidID") {
+						if ($elres->getColumnMeta($i)['name'] == "LidID") {
 							$kol_lidid = $i;
 						}
 						if ($i == 0) {
@@ -8920,8 +8926,6 @@ function db_onderhoud($type=9) {
 		$i_base->execsql($query, 2);
 		$query = sprintf('DELETE FROM %1$sMutatie WHERE GBR NOT IN (SELECT Kode FROM %1$sGBR);', TABLE_PREFIX);
 		$i_base->execsql($query, 2);
-	} else {
-		(new cls_Eigen_lijst())->controle();
 	}
 	
 	if ($type != 2) {
