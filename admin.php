@@ -269,7 +269,6 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	$kols[2]['headertext'] = "SQL-statement";
 	$kols[3]['link'] = sprintf("<a href='/admin.php?op=deleteint&amp;recid=%%d&tp=%s'>&nbsp;&nbsp;&nbsp;</a>", urlencode($_GET['tp']));
 	$kols[3]['columnname'] = "RecordID";
-	$kols[3]['class'] = "delete";
 
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	$i_int = new cls_Interface();
@@ -725,8 +724,8 @@ function fnEigenlijstenmuteren() {
 			$i_el->update($elid, "EigenScript", $_POST['EigenScript']);
 		}
 		
-		if (isset($_POST['default_waarde_params'])) {
-			$i_el->update($elid, "Default_value_params", $_POST['default_waarde_params']);
+		if (isset($_POST['waarde_params'])) {
+			$i_el->update($elid, "Default_value_params", $_POST['waarde_params']);
 		}
 
 		$i_el->controle($elid);
@@ -746,17 +745,25 @@ function fnEigenlijstenmuteren() {
 		
 		$row = $i_el->record();
 		
-		echo("<div id='eigenlijstmuteren'>\n");
-		printf("<form method='post' action='%s?tp=%s&paramID=%d'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $elid);
+		printf("<form method='post' id='eigenlijstmuteren' action='%s?tp=%s&paramID=%d'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $elid);
 		
 		printf("<label>Naam eigen lijst</label><input type='text' name='naam' class='w40' value='%s' maxlength=40>\n", $row->Naam);
 		printf("<label>MySQL-code</label><textarea id='mysql' name='mysql' rows=16 cols=100>%s</textarea>\n", $row->MySQL);
+		echo("<p>Parameters kunnen worden gebruikt. Een parameter start met '@P', gevolgd door 0 t/m 9. De nummering moet met 0 starten en een ondoorbroken reeks zijn.</p>\n");
 		printf("<label>Eigen script</label><p>%s/maatwerk/</p><input type='text' name='EigenScript' class='w30' value='%s' maxlength=30>\n", BASISURL, $row->EigenScript);
 		printf("<label>Tonen in tabblad</label><input type='text' name='tabpage' class='w75' value='%s' maxlength=75>\n", $row->Tabpage);
-		printf("<label>Standaard waarden parameter(s)</label><input type='text' name='default_waarde_params' value=\"%s\" maxlength=100><p>(bij meedere scheiden met een ;)</p>\n", str_replace("\"", "'", $row->Default_value_params));
+		if ($i_el->aantal_params > 0) {
+			printf("<label>Waarde parameter(s)</label><input type='text' name='waarde_params' class='w100' value=\"%s\" maxlength=100>", str_replace("\"", "'", $row->Default_value_params));
+			if (count(explode(";", $row->Default_value_params)) < $i_el->aantal_params) {
+				printf("<p>Te weinig parameters, %d nodig, gescheiden door een ;).</p>", $i_el->aantal_params);
+			} elseif ($i_el->aantal_params > 1) {
+				echo("<p>scheiden met een ;)</p>");
+			}
+			echo("\n");
+		}
 		echo("<label>Beschikbare variabelen</label><p>[%LIDNAAM%], [%TELEFOON%], [%EMAIL%], [%LEEFTIJD%]</p>");
 		if (strlen($i_el->sqlerror) == 0) {
-			printf("<label>Aantal records</label><p>%d</p>\n", $row->AantalRecords);
+			printf("<label>Aantal rijen</label><p>%d</p>\n", $row->AantalRecords);
 			printf("<label>Aantal kolommen</label><p>%d</p>\n", $row->AantalKolommen);
 		} else {
 			$i_el->mess = sprintf("In Eigen_lijst %d is de MySQL-code niet correct. Foutmelding: %s", $elid, $i_el->sqlerror);
@@ -772,8 +779,7 @@ function fnEigenlijstenmuteren() {
 		if ($row->AantalRecords > 0 and $row->AantalKolommen > 0) {
 			echo("<button type='button' onClick=\"$('#resultaatlijst').toggle();\">Toon/verberg resultaat</button>\n");
 		}
-		echo("</div>\n");
-		
+		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 		echo("</form>\n");
 
 		if ($row->AantalKolommen > 0) {
@@ -781,7 +787,6 @@ function fnEigenlijstenmuteren() {
 			$rows = $i_el->rowset($row->RecordID, $row->Default_value_params);
 			if ($rows !== false) {
 				echo(fnDisplayTable($rows));
-				printf("<p>%d rijen</p>\n", count($rows));
 			}
 			echo("</div>  <!-- Einde resultaatlijst -->\n");			
 		}
