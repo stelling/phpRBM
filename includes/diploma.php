@@ -27,6 +27,8 @@ function Diplomalijstmuteren() {
 		
 	$kols[0]['type'] = "pk";
 	$kols[0]['readonly'] = true;
+	$kols[0]['headertext'] = "#";
+	
 	$kols[1]['headertext'] = "Code";
 		
 	$kols[2]['headertext'] = "Naam";
@@ -107,9 +109,8 @@ function examensMuteren() {
 	$kols[6]['columnname'] = "AantalBehaald";
 	$kols[6]['headertext'] = "Aantal";
 	$kols[6]['type'] = "integer";
-	$kols[6]['readonly'] = true;
-	
-	
+	$kols[6]['readonly'] = true;	
+
 	printf("<form method='post' action='%s?tp=%s/%s'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
 	echo("<button name='nieuwExamen' type='submit'>Nieuw examen</button>\n");
 	echo("</form>\n");
@@ -123,6 +124,8 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 	$i_org = new cls_Organisatie();
 	$i_ld = new cls_Liddipl();
 	$i_lid = new cls_Lid();
+	$i_gr = new cls_Groep($p_afdid);
+	$i_lo = new cls_Lidond();
 	
 	if ($p_afdid > 0) {
 		$f = sprintf("DP.Afdelingsspecifiek=%d", $p_afdid);
@@ -174,6 +177,8 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 	
 		printf("<label>Type</label><select id='Type'>%s</select>\n", fnOptionsFromArray(ARRTYPEDIPLOMA, $dprow->Type));
 		printf("<label class='k2'>Uitgegeven door</label><select id='ORGANIS'>%s</select>\n", $i_org->htmloptions(1, $dprow->ORGANIS));
+		$f = sprintf("DP.RecordID<>%d AND DP.Afdelingsspecifiek=%d AND IFNULL(DP.Vervallen, '9999-12-31') > CURDATE()", $dpid, $dprow->Afdelingsspecifiek);
+		printf("<label id='lblVoorganger'>Voorganger</label><select id='VoorgangerID'><Option value=0>Geen</option>\n%s</select>\n", $i_dp->htmloptions($dprow->VoorgangerID, 0, 0, 0, $f, 1));
 	
 		printf("<label>Einde uitgifte</label><input type='date' id='EindeUitgifte' name='EindeUitgifte' value='%s'>\n", $dprow->EindeUitgifte);
 		printf("<label class='k2'>Geldigheid</label><input type='number' id='GELDIGH' value=%d class='num2' max=99><p>maanden (0 = onbeperkt)</p>\n", $dprow->GELDIGH);
@@ -194,23 +199,61 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 		printf("<label>Examenplaats</label><input type='text' name='explaats' value='%s' class='w22' onBlur='this.form.submit();'>\n", $explaats);
 	
 		echo("<div class='clear'></div>\n");
-	
-		echo("<table>\n");
-	
-		echo("<tr><th>Lid</th>");
+		
 		if ($p_perexamen == 0) {
-			echo("<th>Behaald op</th>");
 			$ldrows = $i_ld->overzichtperexamen("", $dpid);
 		} else {
 			$ldrows = $i_ld->overzichtperexamen($exdatum, $dpid);
 		}
+
+		if (isset($_POST['nwe_groep']) and $_POST['nwe_groep'] > 0 and $p_afdid > 0) {
+			$namen = "";
+			foreach ($ldrows as $ldrow) {
+				$f2 = sprintf("LO.OnderdeelID=%d AND LO.Lid=%d AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE() AND LO.Functie=0", $p_afdid, $ldrow->Lid);
+				$loid = $i_lo->max("RecordID", $f2);
+				if ($loid > 0) {
+					if ($i_lo->update($loid, "GroepID", $_POST['nwe_groep']) == true) {
+						if (strlen($namen) > 0) {
+							$namen .= ", ";
+						}
+						$namen .= $i_lo->lidnaam;
+					}
+				}
+			}
+			if (strlen($namen) > 0) {
+				$i_gr->vulvars($p_afdid, $_POST['nwe_groep']);
+				$mess = sprintf("%s zijn naar groep %s verplaatst", $namen, $i_gr->groms);
+			} else {
+				$mess = "Geen leden verplaatst.";
+			}
+			(new cls_Logboek())->add($mess, 19, 0, 1);
+		}
+		
+		$vg = 0; // Volgende groep
+		if ($p_afdid > 0) {
+			$f = sprintf("DP.VoorgangerID=%d", $dpid);
+			$vd = $i_dp->max("RecordID", $f);
+			if ($vd > 0) {
+				$f = sprintf("GR.OnderdeelID=%d AND GR.DiplomaID=%d", $p_afdid, $vd);
+				$vg = $i_gr->max("RecordID", $f);
+			}
+		}
+			
+		echo("<table>\n");
+		echo("<tr><th>Lid</th>");
+		if ($p_perexamen == 0) {
+			echo("<th>Behaald op</th>");
+		}
+		
 		echo("<th>Examenplaats</th>");
 		if ($p_perexamen == 0) {
 			echo("<th>Diplomanr</th>");
 			echo("<th>Geldig tot</th>");
 		}
 		echo("<th></th></tr>\n");
-	
+		
+		$aant_vg = 0; // Aantal leden dat van groep verplaatst kan worden
+		$naam_vg = "";
 		foreach ($ldrows as $ldrow) {
 			printf("<tr><td id='naam_%2\$d'>%1\$s</td>", $ldrow->NaamLid, $ldrow->RecordID);
 			if ($p_perexamen == 0) {
@@ -226,6 +269,13 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 			printf("<td><img src='%s' alt='Verwijderen' title='Verwijderen %s' %s></td>", BASE64_VERWIJDER_KLEIN, htmlentities($ldrow->NaamLid), $jsdo);
 		
 			$dd = "";
+			if ($dprow->VoorgangerID > 0) {
+				$f = sprintf("LD.Lid=%d AND LD.DiplomaID=%d", $ldrow->Lid, $dprow->VoorgangerID);
+				if ($i_ld->aantal($f) == 0) {
+					$dd = sprintf("%s ontbreekt", $i_dp->naam($dprow->VoorgangerID));
+				}
+			}
+
 			foreach ($i_ld->dubbelediplomas($ldrow->Lid, $ldrow->DiplomaID, $ldrow->RecordID) as $ddrow) {
 				if (strlen($dd) > 0) {
 					$dd .= ", ";
@@ -238,11 +288,25 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 				printf("<td>%s</td>", $dd);
 			}
 			echo("</tr>\n");
+			$f = sprintf("LO.Lid=%d AND LO.OnderdeelID=%d AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE() AND Functie=0", $ldrow->Lid, $p_afdid);
+			if ($p_afdid > 0 and $vg > 0 and $vg <> $i_lo->max("GroepID", $f)) {
+				$aant_vg++;
+				$naam_vg = $ldrow->NaamLid;
+			}
 		}
 		echo("</table>\n");
 	
 		if ($eindeuitgifte >= $exdatum and $exdatum <= date("Y-m-d")) {
 			printf("<select name='ldtoevoegen' onChange='this.form.submit();'><option value=0>Lid toevoegen ....</option>\n%s</select>\n", $i_lid->htmloptions(-1, 1, "", $exdatum, $p_afdid));
+		}
+		if ($aant_vg > 0 and $vg > 0) {
+			$i_gr->vulvars($p_afdid, $vg);
+			if ($aant_vg == 1) {
+				$ol = $naam_vg;
+			} else {
+				$ol = sprintf("%d leden", $aant_vg);
+			}
+			printf("<button type='submit' name='nwe_groep' value=%d>%s verplaatsen naar groep %s</button>\n", $vg, $ol, $i_gr->groms);
 		}
 	}
 	echo("</form>\n");
@@ -250,11 +314,11 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 ?>
 <script>
 
-	$("#Naam, #Kode, #Volgnr, #GELDIGH, #HistorieOpschonen").blur(function(){
+	$("#Naam, #Kode, #Volgnr, #GELDIGH, #HistorieOpschonen").blur(function() {
 		savedata("diplomaedit", $("#RecordID").val(), this);
 	});
 	
-	$("#ORGANIS, #Type").blur(function(){
+	$("#ORGANIS, #VoorgangerID, #Type").blur(function(){
 		savedata("diplomaedit", $("#RecordID").val(), this);
 	});
 	
