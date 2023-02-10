@@ -2945,7 +2945,7 @@ class cls_Lidond extends cls_db_base {
 	public $ondnaam = ""; // Naam van het onderdeel
 	private $ondtype = ""; // Type van het onderdeel
 	private $ondkader = 0; // Is dit kader?
-	private $lidnaam = "";  // De naam van het lid
+	public $lidnaam = "";  // De naam van het lid
 	private $alleenleden = 0; // Mogen bij dit onderdeel alleen leden worden ingedeeld?
 	public $organisatie = 0;  // Bij welke organisatie is dit onderdeel aangesloten?
 	public $magmuteren = false;  // Mag het ingelogde lid deze mutaties doen?
@@ -3797,35 +3797,62 @@ class cls_Groep extends cls_db_base {
 	
 	private $afdid = 0;
 	private $grid = -1;
+	public $grnaam = "";
+	public $groms = "";
+	public $diplomaid = 0;
 	
 	function __construct($p_afdid=-1, $p_grid=-1) {
 		$this->table = TABLE_PREFIX . "Groep";
 		$this->basefrom = $this->table . " AS GR";
 		$this->ta = 19;
+		$this->vulvars($p_afdid, $p_grid);
+	}
+	
+	public function vulvars($p_afdid=-1, $p_grid=-1) {
+		
 		if ($p_afdid >= 0) {
 			$this->afdid = $p_afdid;
 		}
 		if ($p_grid >= 0) {
 			$this->grid = $p_grid;
 		}
+		
+		if ($this->grid > 0) {
+			$query = sprintf("SELECT GR.* FROM %s WHERE GR.RecordID=%d;", $this->basefrom, $this->grid);
+			$result = $this->execsql($query);
+			$row = $result->fetch();
+			if (isset($row->RecordID) and $row->RecordID > 0) {
+				$this->grnaam = $row->Omschrijving;
+				$this->groms = $row->Omschrijving;
+				if (strlen($row->Instructeurs) > 0) {
+					$this->groms .= " | " . $row->Instructeurs;
+				}
+				
+				$this->afdid = $row->OnderdeelID;
+				$this->diplomaid = $row->DiplomaID;
+			} else {
+				$this->grid = 0;
+			}
+		} else {
+			$this->groms = "Niet ingedeeld";
+		}
+		
 	}
 	
 	public function record($p_grid=-1) {
+		$this->vulvars(-1, $p_grid);
 		
-		if ($p_grid >= 0) {
-			$this->grid = $p_grid;
+		if ($this->grid > 0) {
+			$query = sprintf("SELECT GR.* FROM %s WHERE GR.RecordID=%d;", $this->basefrom, $this->grid);
+			$result = $this->execsql($query);
+			return $result->fetch();
+		} else {
+			return false;
 		}
-		
-		$query = sprintf("SELECT GR.* FROM %s WHERE GR.RecordID=%d;", $this->basefrom, $this->grid);
-		$result = $this->execsql($query);
-		
-		return $result->fetch();
 	}
 	
 	public function selectlijst($p_afdid=-1, $p_order="") {
-		if ($p_afdid >= 0) {
-			$this->afdid = $p_afdid;
-		}
+		$this->vulvars($p_afdid, 0);
 		if (strlen($p_order) > 0) {
 			$p_order .= ", ";
 		}
@@ -3868,7 +3895,8 @@ class cls_Groep extends cls_db_base {
 	}
 	
 	private function delete($p_grid, $p_reden="") {
-		$this->grid = $p_grid;
+		$this->vulvars(-1, $p_grid);
+		
 		$cntrqry = sprintf("SELECT COUNT(*) FROM %sLidond AS LO WHERE GroepID=%d", TABLE_PREFIX, $this->grid);
 		if ($this->scalar($cntrqry) > 0) {
 			$this->mess = sprintf("Groep %d wordt niet verwijderd, omdat deze nog in gebruik is.", $p_grid);
@@ -5703,7 +5731,7 @@ class cls_Diploma extends cls_db_base {
 	public function record($p_dpid) {
 		$this->dpid = $p_dpid;
 		
-		$query = sprintf("SELECT DP.* FROM %s WHERE DP.RecordID=%d;", $this->basefrom, $p_dpid);
+		$query = sprintf("SELECT DP.* FROM %s WHERE DP.RecordID=%d;", $this->basefrom, $this->dpid);
 		$result = $this->execsql($query);
 		$row = $result->fetch();
 		if (isset($row->RecordID)) {
@@ -5712,12 +5740,20 @@ class cls_Diploma extends cls_db_base {
 			return false;
 		}
 	}
+	
+	public function naam($p_dpid) {
+		// Bewust p_dpid niet in this->dpid gezet.
+		
+		$query = sprintf("SELECT IFNULL(MAX(DP.Naam), '') FROM %s WHERE DP.RecordID=%d;", $this->basefrom, $p_dpid);
+		return $this->scalar($query);
+	}
 		
 	public function lidmuteerlijst($p_lidid) {
+		$this->lidid = $p_lidid;
 		
 		$query = sprintf("SELECT DP.*, LD.Lid, LD.DatumBehaald, LD.LicentieVervallenPer, LD.Diplomanummer, LD.RecordID AS LDID
 						  FROM %s LEFT JOIN %sLiddipl AS LD ON LD.DiplomaID=DP.RecordID
-						  WHERE ((LD.RecordID IS NULL) OR LD.Lid=%d);", $this->basefrom, TABLE_PREFIX, $p_lidid);
+						  WHERE ((LD.RecordID IS NULL) OR LD.Lid=%d);", $this->basefrom, TABLE_PREFIX, $this->lidid);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
