@@ -175,8 +175,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	printf("<p class='aantrecords'>%d rijen</p>\n", count($authrows));
 	echo("</div> <!-- Einde filter -->\n\n");
 	
-	echo("<div id='beheerautorisatie'>\n");
-	printf("<form method='post' action='%s?tp=%s&op=changeaccess'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+	printf("<form method='post' id='beheerautorisatie' action='%s?tp=%s&op=changeaccess'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	echo("<table id='beheerautorisatie'>\n");
 	echo("<thead>\n");
 	echo("<tr><th></th><th>Onderdeel</th><th>Toegankelijk voor</th><th>Ingevoerd</th><th>Laatst gebruikt</th><th></th></tr>\n");
@@ -215,7 +214,6 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	echo("</table>\n");
 //	printf("<label>Nieuw</label><select name='tabpage_nw' onBlur='this.form.submit();'>%s</select>\n", $optionstab);
 	echo("</form>\n");
-	echo("</div> <!-- Einde beheerautorisatie -->\n\n");	
 	
 	echo("<div id='autorisatiesperonderdeel'>\n");
 	echo(fnDisplayTable($i_auth->autorisatiesperonderdeel(), null, "Autorisaties per onderdeel"));
@@ -375,22 +373,28 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	}
 	$rows = $i_lb->lijst($_POST['typefilter'], 0, 0, $f, $ord, $_POST['aantalrijen']);
 	
-	echo("<div id='filter'>\n");
-	printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+	printf("<form method='post' id='filter' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 	
 	echo("<input type='text' id='tbTekstFilter' title='Filter tabel' placeholder='Tekst filter' OnKeyUp=\"fnFilter('logboek', this);\">");
 	
 	echo("<select name='typefilter' onchange='this.form.submit();'>\n");
 	echo("<option value=-1>Filter op type ....</option>\n");
 	foreach ($TypeActiviteit as $key => $val) {
-		printf("<option value=%d %s>%s</option>\n", $key, checked($key, "option", $_POST['typefilter']), htmlentities($val));
+		$f = sprintf("TypeActiviteit=%d", $key);
+		if ($i_lb->aantal($f) > 0) {
+			printf("<option value=%d %s>%s</option>\n", $key, checked($key, "option", $_POST['typefilter']), htmlentities($val));
+		}
 	}
 	echo("</select>\n");
 			
 	echo("<select name='kolomfilter' onchange='this.form.submit();'>\n");
 	echo("<option value=''>Filter op tabel/kolom ....</option>\n");
-	foreach ($i_lb->uniekelijst("A.RefTable, A.refColumn", "IFNULL(A.refColumn, '') > ''") as $row) {
-		printf("<option value='%1\$s-%2\$s' %s>%1\$s->%2\$s</option>\n", $row->RefTable, $row->refColumn, checked($row->RefTable . "-" . $row->refColumn, "option", $_POST['kolomfilter']), htmlentities($val));
+	$f = "IFNULL(A.refColumn, '') > ''";
+	if ($_POST['typefilter'] > 0) {
+		$f .= sprintf(" AND TypeActiviteit=%d", $_POST['typefilter']);
+	}
+	foreach ($i_lb->uniekelijst("A.RefTable, A.refColumn", $f) as $row) {
+		printf("<option value='%1\$s-%2\$s' %3\$s>%1\$s->%2\$s</option>\n", $row->RefTable, $row->refColumn, checked($row->RefTable . "-" . $row->refColumn, "option", $_POST['kolomfilter']));
 	}
 	echo("</select>\n");
 	
@@ -398,7 +402,7 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	$options = "";
 	$ta = $i_lb->aantal();
 	$va = 0;
-	foreach (array(25, 100, 250, 750, 1500, 3000, 10000, 25000) as $a) {
+	foreach (array(25, 100, 250, 750, 1500, 3000, 10000, 25000, 50000) as $a) {
 		if ($ta > $va) {
 			$options .= sprintf("<option value=%d %s>%s</option>\n", $a, checked($a, "option", $_POST['aantalrijen']), number_format($a, 0, ",", "."));
 		}
@@ -406,12 +410,11 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	}
 	printf("<label>Max. aantal rijen</label><select name='aantalrijen' OnChange='this.form.submit();'>%s</select>\n", $options);
 	printf("<label>Alleen ingelogde anderen</label><input type='checkbox' name='ingelogdeanderen'%s value=1 onClick='this.form.submit();'>\n", checked($_POST['ingelogdeanderen']));
-	echo("</form>\n");
 	
 	if (count($rows) > 1) {
 		printf("<p class='aantrecords'>%s van %s rijen</p>\n", number_format(count($rows), 0, ",", "."), number_format($i_lb->aantal(), 0, ",", "."));
 	}
-	echo("</div>  <!-- Einde filter -->\n");
+	echo("</form>\n");
 	
 	echo(fnDisplayTable($rows, $kols, "", 0, "", "logboek"));
 	
