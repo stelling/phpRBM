@@ -1711,7 +1711,9 @@ class email {
 			$txt .= sprintf("<label>Verzonden</label><p>Wacht in outbox</p>\n");
 		}
 		
-		$txt .= sprintf("<label class='k2'>Ga naar</label><p><a href='%s?tp=Mailing&op=preview_hist&mhid=%d'>preview</a></p>", $_SERVER['PHP_SELF'], $this->mhid);
+		if ($this->zonderbriefpapier == 0) {
+			$txt .= sprintf("<label class='k2'>Ga naar</label><p><a href='%s?tp=Mailing&op=preview_hist&mhid=%d'>preview</a></p>", $_SERVER['PHP_SELF'], $this->mhid);
+		}
 		
 		if (strlen($this->vanafnaam) > 0) {
 			$txt .= sprintf("<label>Van</label><p>%s</p><label class='k2'>E-mail</label><p>%s</p>\n", $this->vanafnaam, $this->vanafadres);
@@ -1758,11 +1760,11 @@ class email {
 		if ($this->lidid == 0) {
 			$this->lidid = $p_lidid;
 		}
-		if (isValidMailAddress($row->Email)) {
+		if (isValidMailAddress($row->Email, 0)) {
 			$this->toevoegenadres($row->Email, $p_tp);
 		} elseif (strlen($row->EmailOuders) > 5) {
 			$this->toevoegenadres($row->EmailOuders, $p_tp);
-		} elseif (isValidMailAddress($row->EmailVereniging)) {
+		} elseif (isValidMailAddress($row->EmailVereniging, 0)) {
 			$this->toevoegenadres($row->EmailVereniging, $p_tp);
 		}
 		
@@ -1774,28 +1776,32 @@ class email {
 			$this->toevoegenadres($row->EmailOuders, "cc");
 		}
 		$this->aantalontvangers++;
+		
 	}  # toevoegenlid
 	
-	public function toevoegenadres($adres, $tp="aan", $p_naam="") {
+	public function toevoegenadres($p_adres, $tp="aan", $p_naam="") {
 		
-		foreach(explode(",", str_replace(" ", "", str_replace(";", ",", $adres))) as $e) {
+		$adres = str_replace(" ", "", str_replace(";", ",", $p_adres));
+		foreach(explode(",", $adres) as $e) {
 			if ($tp == "aan" or $tp == "to") {
-				if (isValidMailAddress($e) and strpos($this->aanadres, $e) === false) {
+				if (isValidMailAddress($e, 0) and strpos($this->aanadres, $e) === false) {
 					if (strlen($this->aanadres) > 0) {
-						$this->aanadres .= ", ";
+						$this->aanadres .= ",";
 					}
 					$this->aanadres .= trim($e);
 					$this->aannaam = $p_naam;
 				}
 			} elseif ($tp == "cc") {
-				if (isValidMailAddress($e) and strpos($this->aanadres, $e) === false and strpos($this->cc, $e) === false) {
+				if (isValidMailAddress($e, 0) and strpos($this->aanadres, $e) === false and strpos($this->cc, $e) === false) {
 					if (strlen($this->cc) > 0) {
-						$this->cc .= ", ";
+						$this->cc .= ",";
 					}
 					$this->cc .= trim($e);
 				}
 			}
 		}
+//		debug($this->aanadres);
+		
 	}  # toevoegenadres
 	
 	public function to_outbox($p_direct=0) {
@@ -1915,14 +1921,15 @@ function fnRekeningenMailen($op) {
 
 			$selrek = "";
 			$aantrek = 0;
-			foreach($i_rk->lijst($filter) as $rk) {
+			$rkrows = $i_rk->lijst($filter);
+			foreach($rkrows as $rk) {
 				$selrek .= sprintf("<li>%d - %s - &euro;&nbsp;%03.2f</li>\n", $rk->Nummer, $rk->DEBNAAM, $rk->Bedrag);
 				$aantrek += 1;
 			}
 			
 			if (strlen($selrek) > 0) {
 				printf("<form method='post' action='%s?tp=%s/%s&op=selectieversturen' name='mailrek'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
-				echo("De volgende rekeningen zijn geselecteerd.\n");
+				printf("De volgende %d rekeningen zijn geselecteerd.\n", count($rkrows));
 				printf("<ul>\n%s</ul>\n<div class='clear'></div>\n", $selrek);
 				printf("<input type='hidden' name='rekfilter' value=\"%s\">\n", $filter);
 				echo("<div id='opdrachtknoppen'>\n");
