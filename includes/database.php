@@ -71,6 +71,7 @@ $TypeActiviteit[21] = "Afdelingskalender";
 $TypeActiviteit[22] = "Stukken";
 $TypeActiviteit[23] = "Eigen lijsten";
 $TypeActiviteit[24] = "Afwezigheid/presentie";
+$TypeActiviteit[25] = "Inschrijvingen";
 $TypeActiviteit[97] = "Foutieve login";
 $TypeActiviteit[98] = "Performance";
 $TypeActiviteit[99] = "Debug- en foutmeldingen";
@@ -8571,7 +8572,7 @@ class cls_Inschrijving extends cls_db_base {
 			$w = "";
 		}
 		
-		$query = sprintf("SELECT * FROM %s%s ORDER BY IF(Ins.Verwerkt IS NULL, 0, 1), Ins.Naam, Ins.Ingevoerd;", $this->basefrom, $w);
+		$query = sprintf("SELECT Ins.*, O.Naam AS Afdeling FROM %s LEFT OUTER JOIN %sOnderdl AS O ON Ins.OnderdeelID=O.RecordID%s ORDER BY IF(Ins.Verwerkt IS NULL, 0, 1), Ins.Naam, Ins.Ingevoerd;", $this->basefrom, TABLE_PREFIX, $w);
 		$res = $this->execsql($query);
 		return $res->fetchAll();
 	}
@@ -9097,6 +9098,13 @@ function db_onderhoud($type=9) {
 	$idx = "LidOnderdeel";
 	if ($i_base->bestaat_index($tab, $idx) == false) {
 		$query = sprintf("ALTER TABLE `%s` ADD INDEX `%s` (`Lid`, `OnderdeelID`);", $tab, $idx);
+		$i_base->execsql($query, 2);
+	}
+	
+	$tab = TABLE_PREFIX . "Inschrijving";
+	$col = "OnderdeelID";
+	if ($i_base->bestaat_kolom($col, $tab) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NULL AFTER `XML`;", $tab, $col);
 		$i_base->execsql($query, 2);
 	}
 	
