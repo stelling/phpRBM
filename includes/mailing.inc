@@ -1195,17 +1195,6 @@ class Mailing {
 		}
 	}  # send
 	
-	public function f22older() {
-
-		if ($this->deleted_on > '2001-01-01') {
-			return "Prullenbak";
-		} elseif ($this->template == 1) {
-			return "Templates";
-		} else {
-			return "Verzonden";
-		}
-	}
-	
 	private function send_mailing($preview=0, $p_lidid=0, $p_melding=1, $p_direct=0) {
 		
 		if ($p_lidid == 0) {
@@ -1238,9 +1227,16 @@ class Mailing {
 			if (strlen($this->vanafnaam) > 0) {
 				$email->vanafnaam = $this->vanafnaam;
 			}
-			$email->cc = $this->cc_addr;
+
+			if (isValidMailAddress($this->cc_addr, 0)) {
+				if (strlen($email->cc) > 0) {
+					$email->cc .= ",";
+				}
+				$email->cc .= $this->cc_addr;
+			}
 			$email->bericht = $this->merged_message;
 			$email->onderwerp = $this->merged_subject;
+			
 			
 			if ($preview == 1) {
 				$mail = new RBMmailer();
@@ -1800,7 +1796,6 @@ class email {
 				}
 			}
 		}
-//		debug($this->aanadres);
 		
 	}  # toevoegenadres
 	
@@ -2312,7 +2307,7 @@ function sentfromhist($p_mhid, $p_handm=0) {
 	}
 	
 	if (strlen($mess) > 0) {
-		(new cls_Logboek())->add($mess, 4, $row->LidID, 1);
+		(new cls_Logboek())->add($mess, 4, $row->LidID, 1, $p_mhid, 25);
 	}
 
 	$mail = null;
@@ -2366,14 +2361,14 @@ function sentoutbox($p_mode) {
 			} else {
 				$mess = sprintf("Versturen vanuit de outbox (mode: %d) is gereed", $p_mode);
 			}
-			$mess .= sprintf(", er zijn %d mails verzonden. Er staan nog %d mails te wachten in de outbox.", $aantverzonden, $aob);
+			$mess .= sprintf(", er zijn %d e-mails verzonden. Er staan nog %d e-mails te wachten in de outbox.", $aantverzonden, $aob);
 		}
 	}
 	
 	if (strlen($mess) > 0) {
 		(new cls_Logboek())->add($mess, 4, 0, 0, 0, 50);
 	}
-	
+
 	return $aantverzonden;
 	
 }  # sentoutbox
@@ -2499,14 +2494,14 @@ function eigennotificatie($p_ondid, $p_aanadres, $p_tas=-1, $p_interval=24, $p_c
 		$p_tas = $p_ondid;
 	}
 	
-	$ar = 0;
-	$ng = "";
-	$res = "";
-	
 	$i_ond = new cls_Onderdeel($p_ondid);
 	$i_el = new cls_Eigen_lijst("", $p_ondid);
 	$i_lb = new cls_Logboek();
 	$i_email = new email();
+	
+	$ar = 0;
+	$ng = "";
+	$res = "";
 	
 	$f = sprintf("TypeActiviteit=4 AND TypeActiviteitSpecifiek=%d", $p_tas);
 	if ($i_lb->max("DatumTijd", $f) < date("Y-m-d H:i:s", strtotime(sprintf("-%d hour", $p_interval)))) {
@@ -2559,6 +2554,8 @@ function eigennotificatie($p_ondid, $p_aanadres, $p_tas=-1, $p_interval=24, $p_c
 			$i_email->bericht .= "</body>
 										 </html>\n";
 			$i_email->zonderbriefpapier = 1;
+			$i_email->xtrachar = "NOTIF";
+			$i_email->xtranum = $p_ondid;
 			if ($i_email->to_outbox() > 0) {
 				$mess = sprintf("Notificatie %s verzonden", $ng);
 				$i_lb->add($mess, 4, 0, 0, 0, $p_tas);
