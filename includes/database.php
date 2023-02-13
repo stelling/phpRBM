@@ -3874,6 +3874,7 @@ class cls_Groep extends cls_db_base {
 				if (strlen($row->Instructeurs) > 0) {
 					$this->groms .= " | " . $row->Instructeurs;
 				}
+				$this->naamlogging = $row->Omschrijving;
 				
 				$this->afdid = $row->OnderdeelID;
 				$this->diplomaid = $row->DiplomaID;
@@ -3929,7 +3930,7 @@ class cls_Groep extends cls_db_base {
 		}
 	}
 	
-	public function update($p_grid, $p_kolom, $p_waarde) {
+	public function update($p_grid, $p_kolom, $p_waarde, $p_reden="") {
 		if (($p_kolom == "Volgnummer" or $p_kolom == "Aanwezigheidsnorm") and (intval($p_waarde) <= 0 or strlen($p_waarde) == 0)) {
 			$p_waarde = 0;
 		} elseif ($p_kolom == "Aanwezigheidsnorm" and intval($p_waarde) > 100) {
@@ -3937,8 +3938,12 @@ class cls_Groep extends cls_db_base {
 		} elseif (($p_kolom == "Starttijd" or $p_kolom == "Eindtijd") and strlen($p_waarde) == 4 and substr($p_waarde, 0, 1) != "0") {
 			$p_waarde = "0" . $p_waarde;
 		}
-		$this->pdoupdate($p_grid, $p_kolom, $p_waarde);
-		$this->log($p_grid);
+		if ($this->pdoupdate($p_grid, $p_kolom, $p_waarde)) {
+			if (strlen($p_reden) > 0) {
+				$this->mess .= ", omdat " . $p_reden;
+			}
+			$this->log($p_grid);
+		}
 	}
 	
 	private function delete($p_grid, $p_reden="") {
@@ -3961,12 +3966,27 @@ class cls_Groep extends cls_db_base {
 		$query = sprintf("SELECT GR.RecordID FROM %s WHERE DATE_ADD(GR.Ingevoerd, INTERVAL %d DAY) < CURDATE() AND (SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.GroepiD=GR.RecordID)=0;", $this->basefrom, BEWAARTIJDNIEUWERECORDS, TABLE_PREFIX);
 		$result = $this->execsql($query);
 		foreach($result->fetchAll() as $row) {
-			$this->delete($row->RecordID, "deze groep niet meer wordt gebruikt");
+			$this->delete($row->RecordID, "deze groep niet meer gebruikt wordt");
 		}
 	}
 	
 	public function controle() {
+		$i_dp = new cls_Diploma();
 		
+		$query = sprintf("SELECT GR.* FROM %s;", $this->basefrom);
+		$result = $this->execsql($query);
+		foreach($result->fetchAll() as $row) {
+			if (strlen($row->Omschrijving) == 0 and $row->DiplomaID > 0) {
+				$i_dp->vulvars($row->DiplomaID);
+				$this->update($row->RecordID, "Omschrijving", $i_dp->dpnaam);
+			} elseif (strlen($row->Starttijd) > 0 and validTime($row->Starttijd) == false) {
+				$this->update($row->RecordID, "Starttijd", "", "de starttijd geen geldige tijd is.");
+			} elseif (strlen($row->Eindtijd) > 0 and validTime($row->Eindtijd) == false) {
+				$this->update($row->RecordID, "Eindtijd", "", "de eindtijd geen geldige tijd is.");
+			} elseif (strlen($row->Eindtijd) > 0 and $row->Eindtijd < $row->Starttijd) {
+				$this->update($row->RecordID, "Eindtijd", "", "de eindtijd voor de starttijd ligt.");
+			}
+		}
 	}
 	
 }  # cls_Groep
@@ -5752,7 +5772,7 @@ class cls_interface extends cls_db_base {
 
 class cls_Diploma extends cls_db_base {
 	
-	private $dpnaam = "";
+	public $dpnaam = "";
 	private $dpcode = "";
 	public $dpvoorganger = 0;
 	
@@ -5768,8 +5788,9 @@ class cls_Diploma extends cls_db_base {
 			$this->dpid = $p_dpid;
 		}
 		if ($this->dpid > 0) {
-			$row = $this->record($this->dpid);
-			if ($row != false) {
+			$query = sprintf("SELECT DP.* FROM %s WHERE DP.RecordID=%d;", $this->basefrom, $this->dpid);
+			$row = $this->execsql($query)->fetch();
+			if (isset($row)) {
 				$this->dpnaam = $row->Naam;
 				if (strlen($row->Naam) > 20) {
 					$this->naamlogging = $row->Kode;
@@ -5788,13 +5809,13 @@ class cls_Diploma extends cls_db_base {
 		$query = sprintf("SELECT DP.* FROM %s ORDER BY DP.Kode;", $this->basefrom);
 		$result = $this->execsql($query);
 		
-		debug("lijst in cls_diploma: vervangen door basislijst");
+		debug("lijst in cls_diploma: vervangen door basislijst");  //20230201
 		
 		return $result;
 	}
 	
 	public function record($p_dpid) {
-		$this->dpid = $p_dpid;
+		$this->vulvars($p_dpid);
 		
 		$query = sprintf("SELECT DP.* FROM %s WHERE DP.RecordID=%d;", $this->basefrom, $this->dpid);
 		$result = $this->execsql($query);
@@ -5933,7 +5954,9 @@ class cls_Diploma extends cls_db_base {
 		$query = sprintf("SELECT DP.* FROM %s;", $this->basefrom);
 		$result = $this->execsql($query);
 		foreach ($result->fetchAll() as $row) {
-			if (strlen($row->Vervallen) >= 10 and $row->EindeUitgifte > $row->Vervallen) {
+			if (strlen($row->Volgnr) == 0) {
+				$this->update($row->RecordID, "Volgnr", 0);
+			} elseif (strlen($row->Vervallen) >= 10 and $row->EindeUitgifte > $row->Vervallen) {
 				$this->update($row->RecordID, "EindeUitgifte", $row->Vervallen, "einde uitgifte niet na vervallen mag liggen.");
 			} elseif (strlen($row->Vervallen) >= 10 and $row->Vervallen < date("Y-m-d") and $row->Zelfservice == 1) {
 				$this->update($row->RecordID, "Zelfservice", 0, "het diploma is vervallen.");
@@ -5996,7 +6019,7 @@ class cls_Liddipl extends cls_db_base {
 			}	
 		} 
 		if ($this->dpid > 0) {
-			$query = sprintf("SELECT DP.Naam FROM %sDiploma AS DP WHERE DP.RecordID=%d;", TABLE_PREFIX, $this->dpid);
+			$query = sprintf("SELECT DP.Naam, DP.Kode FROM %sDiploma AS DP WHERE DP.RecordID=%d;", TABLE_PREFIX, $this->dpid);
 			$row = $this->execsql($query)->fetch();
 			$this->dpnaam = $row->Naam;
 			if (strlen($row->Naam) > 20) {
@@ -6007,7 +6030,7 @@ class cls_Liddipl extends cls_db_base {
 		}
 		if ($this->lidid > 0) {
 			$query = sprintf("SELECT %s AS Naam, L.GEBDATUM FROM %sLid AS L WHERE L.RecordID=%d;", $this->selectnaam, TABLE_PREFIX, $this->lidid);
-			$row = $this->execsql($query);
+			$row = $this->execsql($query)->fetch();
 			if (isset($row)) {
 				$this->lidnaam = $row->Naam;
 				$this->lidgeboortedatum = $row->GEBDATUM;
@@ -8564,12 +8587,20 @@ class cls_Inschrijving extends cls_db_base {
 		}
 	}
 	
-	public function lijst($p_filter=1) {
+	public function lijst($p_filter=1, $p_afd=-1) {
 		
 		if ($p_filter == 1) {
 			$w = " WHERE (Ins.Verwerkt IS NULL)";
 		} else {
 			$w = "";
+		}
+		if ($p_afd > 0) {
+			if (strlen($w) > 0) {
+				$w .= " AND ";
+			} else {
+				$w = " WHERE ";
+			}
+			$w .= sprintf("OnderdeelID=%d", $p_afd);
 		}
 		
 		$query = sprintf("SELECT Ins.*, O.Naam AS Afdeling FROM %s LEFT OUTER JOIN %sOnderdl AS O ON Ins.OnderdeelID=O.RecordID%s ORDER BY IF(Ins.Verwerkt IS NULL, 0, 1), Ins.Naam, Ins.Ingevoerd;", $this->basefrom, TABLE_PREFIX, $w);
