@@ -1266,12 +1266,14 @@ function fnStandaardKols($p_ent, $p_sort=1) {
 		if ($p_sort == 1) {
 			$kols[3]['sortcolumn'] = "Type";
 		}
-		$kols[4]['headertext'] = "Ingelogd lid";
-		$kols[4]['columnname'] = "ingelogdLid";
-		if ($p_sort == 1) {
-			$kols[4]['sortcolumn'] = "ingelogdLid";
+		if ($_SESSION['webmaster'] == 1) {
+			$kols[4]['headertext'] = "Ingelogd lid";
+			$kols[4]['columnname'] = "ingelogdLid";
+			if ($p_sort == 1) {
+				$kols[4]['sortcolumn'] = "ingelogdLid";
+			}
+			$kols[4]['type'] = "lidnaam";
 		}
-		$kols[4]['type'] = "lidnaam";
 		$kols[5]['headertext'] = "Getoond?";
 		$kols[5]['columnname'] = "Getoond";
 		$kols[5]['type'] = "boolean";
@@ -1329,7 +1331,7 @@ function fnOrderBy($p_arrSort) {
 
 }  # fnOrderBy
 
-function debug($tekst, $p_tm=2, $logact=0) {
+function debug($tekst, $p_tm=2, $logact=0, $p_lengte=0) {
 	
 	/*
 	$p_tm
@@ -1341,7 +1343,10 @@ function debug($tekst, $p_tm=2, $logact=0) {
 	
 	if (is_array($tekst) or is_object($tekst) and $p_tm > 0) {
 		$tekst = print_r($tekst, true);
+	} elseif ($p_lengte == 1) {
+		$tekst .= sprintf(" (%d)", strlen($tekst));
 	}
+	
 	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl" and $p_tm == 2) {
 		$p_tm = 1;
 	}
@@ -1378,8 +1383,12 @@ function debug($tekst, $p_tm=2, $logact=0) {
 		printf("<p class='debug'>%s %s%s</p>\n", $f, $tekst, $et);
 	}
 
-	if ($logact == 1) {
-		(new cls_Logboek())->add("Debug: " . $tekst, 99);
+	if ($logact >= 1) {
+		if ($logact == 1) {
+			(new cls_Logboek())->add("Debug: " . $tekst, 99);
+		} else {
+			(new cls_Logboek())->add("Debug: " . $tekst, $logact);
+		}
 	}
 	
 } # debug
@@ -1439,6 +1448,9 @@ function change_month_to_uk($strdate) {
 			$strdate = str_ireplace(" " . $value["From"], " " . $value["To"], $strdate);
 		}
 	}
+	
+	debug("change_month_to_uk", 1, 1);
+	
 	return $strdate;
 } # change_month_to_uk
 
@@ -1588,5 +1600,10 @@ function fnOptionsFromArray($p_array, $p_cv=-1, $p_geenwaarde="") {
 	return $rv;
 	
 }  # fnOptionsFromArray
+
+function validTime($time, $format='H:i') {
+    $d = DateTime::createFromFormat("Y-m-d " . $format, "2022-12-01 " . $time);
+    return $d && $d->format($format) == $time;
+}  # validTime
 
 ?>
