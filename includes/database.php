@@ -581,7 +581,7 @@ class cls_db_base {
 				$xw = sprintf("(`%s` IS NOT NULL)", $p_kolom);
 			
 			} elseif ($this->is_kolom_numeriek($p_kolom) == true) {
-				$xw = sprintf("IFNULL(`%s`, 0)<>:nw", $p_kolom);
+				$xw = sprintf("(IFNULL(`%1\$s`, 0)<>:nw OR (%1\$s IS NULL))", $p_kolom);
 
 			} elseif ($this->typekolom($p_kolom) == "date") {
 				$xw = sprintf("IFNULL(`%s`, '')<>:nw", $p_kolom);
