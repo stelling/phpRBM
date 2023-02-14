@@ -396,7 +396,7 @@ input.w70 {
 }
 
 input.w75 {
-	width: 450px;
+	width: 475px;
 }
 
 input.w90, #filter input#titellijst, textarea.w90 {
@@ -853,14 +853,9 @@ textarea#sportlinkdata {
 	padding-right: 4px;
 }
 
-#afdelingskalendermuteren label {
-	width: 200px;
-	padding-left: 4px;
-	padding-right: 4px;
-}
-
-#afdelingskalendermuteren input[type="text"] {
-	width: 500px;
+table#afdelingskalendermuteren {
+	clear: both;
+	margin-top: 8px;
 }
 
 #afdelingskalendermuteren select {
@@ -1060,6 +1055,10 @@ label#lblVoorganger {
 
 #examenresultaten td:first-child, #examenresultaten th:first-child {
 	min-width: 180px;
+}
+
+#examenresultaten button {
+	clear: left;
 }
 
 #versies {
@@ -1598,6 +1597,10 @@ fieldset h3 {
 td.number, input.number {
 	text-align: right;
 	padding-right: 8px;
+}
+
+.gewijzigd {
+	font-style: italic;
 }
 
 /* Menu */
@@ -2530,10 +2533,26 @@ p#laatsteemail {
 	border-width: 1px;
 }
 
-#wijzigenlidgegevens label, #nieuwlid label {
+#wijzigenlidgegevens label {
 	width: 150px;
 	margin-right: 8px;
 	padding-right: 3px;
+}
+
+#nieuwlid label {
+	width: 155px;
+	margin-right: 8px;
+	padding-right: 3px;
+}
+
+#nieuwlid label#lblselecteerinschrijving {
+	float: left;
+	clear: none;
+}
+
+#nieuwlid p {
+	margin-top: 6px;
+	clear: none;
 }
 
 #wijzigenlidgegevens input, #wijzigenlidgegevens select {
