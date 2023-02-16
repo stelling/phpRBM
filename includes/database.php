@@ -538,7 +538,7 @@ class cls_db_base {
 		$this->execsql("SET CHARACTER SET utf8;");
 	}
 	
-	public function pdoupdate($p_recid, $p_kolom, $p_waarde, $p_log=0) {
+	public function pdoupdate($p_recid, $p_kolom, $p_waarde, $p_reden="") {
 		global $dbc, $arrTables;
 		
 		$this->refcolumn = $p_kolom;
@@ -655,10 +655,11 @@ class cls_db_base {
 						$nm = "";
 					}
 					$this->mess = sprintf("Tabel %s: van record %d%s is kolom '%s' in %s gewijzigd", str_replace(TABLE_PREFIX, "", $this->table), $p_recid, $nm, $p_kolom, $p_waarde);
+					if (strlen($p_reden) > 0) {
+						$this->mess .= ", omdat " . $p_reden;
+					}
 					$rv = true;
 				}
-			} else {
-				
 			}
 		}
 		
@@ -2831,15 +2832,20 @@ class cls_Aanwezigheid extends cls_db_base {
 	}
 	
 	private function vulvars($p_loid, $p_akid=-1) {
-		$this->loid = $p_loid;
-		if ($p_akid > 0) {
+		if ($p_loid >= 0) {	
+			$this->loid = $p_loid;
+		}
+		if ($p_akid >= 0) {
 			$this->akid = $p_akid;
 		}
+		
 		$query = sprintf("SELECT IFNULL(LO.Lid, 0) AS LidID, LO.Vanaf, IFNULL(LO.Opgezegd, '9999-12-31') AS TM FROM %sLidond AS LO WHERE LO.RecordID=%d;", TABLE_PREFIX, $this->loid);
 		$row = $this->execsql($query)->fetch();
-		$this->lidid  = $row->LidID;
-		$this->lidvanaf = $row->Vanaf;
-		$this->lidtm = $row->TM;
+		if (isset($row)) {
+			$this->lidid  = $row->LidID;
+			$this->lidvanaf = $row->Vanaf;
+			$this->lidtm = $row->TM;
+		}
 		
 		$query = sprintf("SELECT IFNULL(RecordID, 0) FROM %s WHERE AW.LidondID=%d AND AW.AfdelingskalenderID=%d;", $this->basefrom, $this->loid, $this->akid);
 		$this->aanwid = $this->scalar($query);
@@ -2911,7 +2917,7 @@ class cls_Aanwezigheid extends cls_db_base {
 			$nrid = $this->nieuwrecordid();
 			$query = sprintf("INSERT INTO %s (RecordID, LidondID, AfdelingskalenderID, Status, IngevoerdDoor) VALUES (%d, %d, %d, '%s', %d);", $this->table, $nrid, $p_loid, $p_akid, $p_waarde, $_SESSION['lidid']);
 			if ($this->execsql($query) > 0) {
-				$this->mess = sprintf("Record %d (%s) met status '%s' is aan tabel '%s' toegevoegd.", $nrid, $this->akdatum, $p_waarde, $this->table);
+				$this->mess = sprintf("Record %d (%s) met status '%s' is aan tabel '%s' toegevoegd.", $nrid, $this->naamlogging, $p_waarde, $this->table);
 			} else {
 				$this->mess = "Toevoegen record aanwezigheid is mislukt.";
 				$nrid = 0;
@@ -3475,10 +3481,7 @@ class cls_Lidond extends cls_db_base {
 			$this->tm = 1;
 			
 		} else {
-			if ($this->pdoupdate($this->loid, $p_kolom, $p_waarde) > 0) {
-				if (strlen($p_reden) > 0) {
-					$this->mess .= ", omdat " . $p_reden;
-				}
+			if ($this->pdoupdate($this->loid, $p_kolom, $p_waarde, $p_reden) > 0) {
 				$rv = true;
 			}
 		}
@@ -3938,10 +3941,7 @@ class cls_Groep extends cls_db_base {
 		} elseif (($p_kolom == "Starttijd" or $p_kolom == "Eindtijd") and strlen($p_waarde) == 4 and substr($p_waarde, 0, 1) != "0") {
 			$p_waarde = "0" . $p_waarde;
 		}
-		if ($this->pdoupdate($p_grid, $p_kolom, $p_waarde)) {
-			if (strlen($p_reden) > 0) {
-				$this->mess .= ", omdat " . $p_reden;
-			}
+		if ($this->pdoupdate($p_grid, $p_kolom, $p_waarde, $p_reden)) {
 			$this->log($p_grid);
 		}
 	}
@@ -6155,11 +6155,8 @@ class cls_Liddipl extends cls_db_base {
 		} elseif ($p_kolom == "DatumBehaald" and $p_waarde > date("Y-m-d")) {
 			$this->mess = "'Behaald op' mag niet in de toekomst liggen, deze wijziging wordt niet verwerkt.";
 		} else {
-			if ($this->pdoupdate($p_ldid, $p_kolom, $p_waarde) > 0) {
+			if ($this->pdoupdate($p_ldid, $p_kolom, $p_waarde, $p_reden) > 0) {
 				$this->tm = 0;
-				if (strlen($p_reden) > 0) {
-					$this->mess .= ", omdat " . $p_reden;
-				}
 			}
 		}
 		$this->log($p_ldid);
@@ -6291,10 +6288,9 @@ class cls_Examen extends cls_db_base {
 		$this->tm = 0;
 		$this->tas = 12;
 		
-		if ($this->pdoupdate($p_exid, $p_kolom, $p_waarde) and strlen($p_reden) > 0) {
-			$this->mess .= ", omdat " . $p_reden;
+		if ($this->pdoupdate($p_exid, $p_kolom, $p_waarde, $p_reden) > 0) {
+			$this->log($p_exid);
 		}
-		$this->log($p_exid);
 	}
 	
 	private function delete($p_exid, $p_reden="") {
@@ -6416,9 +6412,7 @@ class cls_Organisatie extends cls_db_base {
 		} elseif ($p_kolom == "Naam" and strlen($p_waarde) == 0 and $p_orgid > 0) {
 			$this->mess = "De afkoring mag niet leeg zijn. Deze wijziging wordt niet verwerkt.";
 		} else {
-			if ($this->pdoupdate($p_orgid, $p_kolom, $p_waarde) > 0) {
-				$this->mess = sprintf("%s is bij organisatie %d in %s gewijzigd", $p_kolom, $p_orgid, $p_waarde);
-			}
+			$this->pdoupdate($p_orgid, $p_kolom, $p_waarde);
 		}
 		$this->log($p_orgid);
 	}
@@ -6426,10 +6420,7 @@ class cls_Organisatie extends cls_db_base {
 	public function delete($p_orgid, $p_reden="") {
 		$this->tas = 3;
 		
-		if ($this->pdodelete($p_orgid) > 0) {
-			if (strlen($p_reden) > 0) {
-				$this->mess .= ", omdat " . $p_reden;
-			}
+		if ($this->pdodelete($p_orgid, $p_reden) > 0) {
 			$this->log($p_orgid);
 		}
 	}
@@ -7242,7 +7233,8 @@ class cls_Rekening extends cls_db_base {
 								 DATE_ADD(RK.Datum, INTERVAL (RK.BETAALDAG*BET_TERM) DAY) AS UitersteBetaaldatum, DATE_ADD(RK.Datum, INTERVAL RK.BETAALDAG DAY) AS EindeEersteTermijn, RK.DEBNAAM AS Tenaamstelling", $this->selectnaam, $this->selectlidnr, TABLE_PREFIX);
 		
 		if ($this->rkid > 0) {
-			$rkrow = $this->record($this->rkid);
+			$query = sprintf("SELECT RK.* FROM %s WHERE RK.Nummer=%d;", $this->basefrom, $this->rkid);
+			$rkrow = $this->execsql($query)->fetch();
 			if (isset($rkrow->Nummer) and $rkrow->Nummer > 0) {
 				$this->lidid = $rkrow->Lid;
 				$this->datum = $rkrow->Datum;
@@ -7287,7 +7279,9 @@ class cls_Rekening extends cls_db_base {
 	}
 	
 	public function record($p_rkid=-1) {
-		$this->vulvars($p_rkid);
+		if ($p_rkid > 0) {
+			$this->rkid = $p_rkid;
+		}
 		
 		$selbd = sprintf("(SELECT IFNULL(%s, 'lid zelf') FROM %sLid AS L WHERE L.RecordID=RK.BetaaldDoor) AS NaamBetaaldDoor, ", $this->selectnaam, TABLE_PREFIX);
 		$selbd .= sprintf("(SELECT IFNULL(%s, '') FROM %sLid AS L WHERE L.RecordID=RK.BetaaldDoor) AS EmailBetaaldDoor", $this->selectemail, TABLE_PREFIX);
@@ -7563,6 +7557,7 @@ class cls_Rekeningregel extends cls_db_base {
 				$this->regelnr = $row->Regelnr;
 				$this->seizoen = $row->Seizoen;
 				$this->rekeningdatum = $row->Datum;
+				$this->naamlogging = sprintf("%d/%d", $row->Rekening, $row->Regelnr);
 			}
 
 		} elseif ($p_rkid >= 0) {
@@ -7754,11 +7749,7 @@ class cls_Rekeningregel extends cls_db_base {
 		$this->vulvars($p_rrid);
 		$this->tas = 12;
 		
-		if ($this->pdoupdate($this->rrid, $p_kolom, $p_waarde)) {
-			$this->mess = sprintf("Op regel %d van rekening %d is kolom '%s' in '%s' gewijzigd", $this->regelnr, $this->rkid, $p_kolom, $p_waarde);
-			if (strlen($p_reden) > 0) {
-				$this->mess .= ", omdat " . $p_reden;
-			}
+		if ($this->pdoupdate($this->rrid, $p_kolom, $p_waarde, $p_reden)) {
 			$this->log($this->rrid);
 		}
 	}
@@ -7768,10 +7759,6 @@ class cls_Rekeningregel extends cls_db_base {
 		$this->tas = 13;
 		
 		if ($this->pdodelete($this->rrid, $p_reden)) {
-			$this->mess = sprintf("Tabel Rekreg: record %d (%d-%d) is verwijderd", $this->rrid, $this->rkid, $this->regelnr);
-			if (strlen($p_reden) > 0) {
-				$this->mess .= ", omdat " . $p_reden;
-			}
 			$this->log($this->rrid);
 		}
 	}  # delete
@@ -8316,10 +8303,7 @@ class cls_Eigen_lijst extends cls_db_base {
 			$i_auth = null;
 		}
 
-		if ($this->pdoupdate($this->elid, $p_kolom, $p_waarde) > 0) {
-			if (strlen($p_reden) > 0) {
-				$this->mess .= ", omdat " . $p_reden;
-			}
+		if ($this->pdoupdate($this->elid, $p_kolom, $p_waarde, $p_reden) > 0) {
 			if ($p_kolom != "LaatsteControle") {
 				$this->log($p_elid);
 			}
@@ -8625,11 +8609,19 @@ class cls_Inschrijving extends cls_db_base {
 	public function add() {
 		$this->tas = 1;
 		$query = sprintf("INSERT INTO %s (Naam, `XML`) VALUES ('', '');", $this->table);
-		debug($query);
 		$this->insid = $this->execsql($query);
 		
+		if ($this->insid > 0) {
+			$this->mess = sprintf("Inschrijving %d is toegevoegd.", $this->insid);
+			$this->log($this->insid);
+		}
+		
 		return $this->insid;
-	}
+	}  # add
+	
+	public function addpdf($p_insid, $p_waarde) {
+		
+	}  # addpdf
 	
 	public function update($p_insid, $p_kolom, $p_waarde) {
 		$this->vulvars($p_insid);
@@ -8914,12 +8906,9 @@ function db_onderhoud($type=9) {
 	*/
 	global $arrTables, $db_name, $wherelid, $wherelidond, $lididwebmasters;
 	
-	(new cls_interface())->opschonen();
-	(new cls_Onderdeel())->controle();
-	
 	$i_base = new cls_db_base();
 	
-	// Vaste aanpassingen aan de database na een upload.
+	// Vaste aanpassingen
 	$i_base->execsql(sprintf("ALTER TABLE %sBewseiz CHANGE Begindatum Begindatum DATE;", TABLE_PREFIX));
 	$i_base->execsql(sprintf("ALTER TABLE %sBewseiz CHANGE `Einde` `Einde` DATE;", TABLE_PREFIX));
 	$i_base->execsql(sprintf("ALTER TABLE %sBewseiz CHANGE `Geboren` `Geboren` DATE;", TABLE_PREFIX));
@@ -8951,6 +8940,20 @@ function db_onderhoud($type=9) {
 
 	$query = sprintf("ALTER TABLE `%sMemo` CHANGE `Vertrouwelijk` `Vertrouwelijk` TINYINT(4) NULL DEFAULT '0'", TABLE_PREFIX);
 	(new cls_db_base())->execsql($query);
+	
+	$tab = TABLE_PREFIX . "Lidond";
+	$idx = "LidOnderdeel";
+	if ($i_base->bestaat_index($tab, $idx) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD INDEX `%s` (`Lid`, `OnderdeelID`);", $tab, $idx);
+		$i_base->execsql($query, 2);
+	}
+	
+	$tab = TABLE_PREFIX . "Rekreg";
+	$idx = "Rekening";
+	if ($i_base->bestaat_index($tab, $idx) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD INDEX `%s` (`Rekening`);", $tab, $idx);
+		$i_base->execsql($query, 2);
+	}
 
 	/***** Aanpassen lengte login in de database als deze kleiner is dan login_maxlengte  *****/
 	$table = TABLE_PREFIX . "Admin_login";
@@ -9124,18 +9127,26 @@ function db_onderhoud($type=9) {
 		$query = sprintf("ALTER TABLE `%s` ADD INDEX `%s` (`RefTable`, `refColumn`);", $tab, $idx);
 		$i_base->execsql($query, 2);
 	}
-	
-	$tab = TABLE_PREFIX . "Lidond";
-	$idx = "LidOnderdeel";
-	if ($i_base->bestaat_index($tab, $idx) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD INDEX `%s` (`Lid`, `OnderdeelID`);", $tab, $idx);
-		$i_base->execsql($query, 2);
-	}
-	
+
 	$tab = TABLE_PREFIX . "Inschrijving";
 	$col = "OnderdeelID";
 	if ($i_base->bestaat_kolom($col, $tab) == false) {
 		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NULL AFTER `XML`;", $tab, $col);
+		$i_base->execsql($query, 2);
+	}
+	
+	$tab = TABLE_PREFIX . "Inschrijving";
+	$col = "PDF";
+	if ($i_base->bestaat_kolom($col, $tab) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` LONGBLOB AFTER `XML`;", $tab, $col);
+		$i_base->execsql($query, 2);
+	}
+	
+	
+	$tab = TABLE_PREFIX . "Inschrijving";
+	$col = "LidID";
+	if ($i_base->bestaat_kolom($col, $tab) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NULL AFTER `Verwerkt`;", $tab, $col);
 		$i_base->execsql($query, 2);
 	}
 	
@@ -9187,35 +9198,6 @@ function db_onderhoud($type=9) {
 		$i_base->execsql($query, 2);	
 	}
 	
-	// Deze code mag na 1 december 2022 worden verwijderd.
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "confidential";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);	
-	}
-	
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "verzamelen";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);	
-	}
-		
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "sent_on";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Mailing_hist";
-	$col = "send_mt";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);	
-	}
-
 	/***** Opschonen database na een upload uit de Access-database.  *****/
 
 	if ($type == 1) {		
