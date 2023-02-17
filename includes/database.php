@@ -374,6 +374,12 @@ class cls_db_base {
 		if ($r > $rid) {$rid = $r; }
 		$r = $this->scalar(sprintf("SELECT IFNULL(MAX(EL.RecordID), 0) FROM %sEigen_lijst AS EL;", TABLE_PREFIX));
 		if ($r > $rid) {$rid = $r; }
+		$r = $this->scalar(sprintf("SELECT IFNULL(MAX(Act.RecordID), 0) FROM %sActiviteit AS Act;", TABLE_PREFIX));
+		if ($r > $rid) {$rid = $r; }
+		$r = $this->scalar(sprintf("SELECT IFNULL(MAX(F.Nummer), 0) FROM %sFunctie AS F;", TABLE_PREFIX));
+		if ($r > $rid) {$rid = $r; }
+		$r = $this->scalar(sprintf("SELECT IFNULL(MAX(DP.RecordID), 0) FROM %sDiploma AS DP;", TABLE_PREFIX));
+		if ($r > $rid) {$rid = $r; }
 		
 		if ($tabel == "Organisatie") {
 			$rid = 1;
@@ -882,6 +888,10 @@ class cls_Lid extends cls_db_base {
 			4 = Kloslid
 		*/
 		
+		$i_ond = new cls_Onderdeel();
+		$i_act = new cls_Activiteit();
+		$i_el = new cls_Eigen_lijst();
+		
 		$xtraselect = "";
 		
 		if (toegang("Woonadres_tonen", 0, 0) or $p_metadres == 1) {
@@ -921,14 +931,23 @@ class cls_Lid extends cls_db_base {
 		}
 		
 		if ($p_ondfilter > 0) {
-			$filter .= sprintf(" AND L.RecordID IN (SELECT LO.Lid FROM %sLidond AS LO WHERE ", TABLE_PREFIX);
-			$filter .= sprintf("LO.OnderdeelID=%d", $p_ondfilter);
-			if ($p_soortlid == 1) {
-				$filter .= " AND " . $this::$wherelidond . ")";
-			} elseif ($p_soortlid == 3) {
-				$filter .= " AND IFNULL(LO.Opgezegd, CURDATE()) < CURDATE())";
+			$f = sprintf("O.RecordID=%d", $p_ondfilter);
+			$f2 = sprintf("Act.RecordID=%d", $p_ondfilter);
+			if ($i_ond->aantal($f) > 0) {
+				$filter .= sprintf(" AND L.RecordID IN (SELECT LO.Lid FROM %sLidond AS LO WHERE ", TABLE_PREFIX);
+				$filter .= sprintf("LO.OnderdeelID=%d", $p_ondfilter);
+				if ($p_soortlid == 1) {
+					$filter .= " AND " . $this::$wherelidond . ")";
+				} elseif ($p_soortlid == 3) {
+					$filter .= " AND IFNULL(LO.Opgezegd, CURDATE()) < CURDATE())";
+				} else {
+					$filter .= ")";
+				}
+			} elseif ($i_act->aantal($f2) > 0) {
+				$filter .= sprintf(" AND L.RecordID IN (SELECT LO.Lid FROM %1\$sLidond AS LO INNER JOIN %1\$sGroep AS GR ON LO.GroepID=GR.RecordID WHERE ", TABLE_PREFIX);
+				$filter .= sprintf("GR.ActiviteitID=%d AND %s)", $p_ondfilter, $this::$wherelidond);
 			} else {
-				$filter .= ")";
+				$filter .= sprintf(" AND L.RecordID IN (%s)", $i_el->mysql($p_ondfilter, 1));
 			}
 		}
 		if (strlen($p_filter) > 0) {
@@ -3804,17 +3823,17 @@ class cls_Activiteit extends cls_db_base {
 	
 	public function htmloptions($p_cv=-1) {
 		
-		$ret = "<option value=0>Geen</option>\n";
+		$ret = "";
 		$rows = $this->basislijst("", "Act.Code");
 		foreach ($rows as $row) {
-			$ret .= sprintf("<option%s value=%d>%s</option>\n", checked($row->RecordID, "option", $p_cv), $row->RecordID, $row->Code);
+			$ret .= sprintf("<option%s value=%d>%s</option>\n", checked($row->RecordID, "option", $p_cv), $row->RecordID, $row->Omschrijving);
 		}
 		return $ret;
 	}
 	
 	public function add() {
 		$nrid = $this->nieuwrecordid();
-		$this->tas = 1;
+		$this->tas = 51;
 		
 		$this->query = sprintf("INSERT INTO %1\$s (RecordID, Omschrijving, Contributie, Ingevoerd) VALUES (%2\$d, 'Activiteit %2\$d', 0, NOW());", $this->table, $nrid);
 		if ($this->execsql() > 0) {
@@ -3827,7 +3846,7 @@ class cls_Activiteit extends cls_db_base {
 	
 	public function update($p_actid, $p_kolom, $p_waarde) {
 		$this->vulvars($p_actid);
-		$this->tas = 2;
+		$this->tas = 52;
 		
 		if ($p_kolom == "Contributie") {
 			if (intval($p_waarde) <= 0 or strlen($p_waarde) == 0) {
@@ -3838,6 +3857,27 @@ class cls_Activiteit extends cls_db_base {
 		}
 		$this->pdoupdate($p_actid, $p_kolom, $p_waarde);
 		$this->log($p_actid);
+	}
+	
+	private function delete ($p_actid, $p_reden="") {
+		$this->vulvars($p_actid);
+		$this->tas = 53;
+		
+		if ($this->pdodelete($p_actid, $p_reden)) {
+			$this->log($this->actid);
+		}
+	}
+	
+	public function opschonen() {
+		$query = sprintf("SELECT Act.RecordID FROM %s WHERE DATE_ADD(Act.Ingevoerd, INTERVAL %d DAY) < CURDATE() AND (SELECT COUNT(*) FROM %sGroep AS GR WHERE GR.ActiviteitID=Act.RecordID)=0;", $this->basefrom, BEWAARTIJDNIEUWERECORDS, TABLE_PREFIX);
+		$result = $this->execsql($query);
+		foreach($result->fetchAll() as $row) {
+			$this->delete($row->RecordID, "deze activiteit niet meer gebruikt wordt");
+		}
+	}
+	
+	public function controle() {
+		
 	}
 	
 }  # cls_Activiteit
@@ -8137,7 +8177,16 @@ class cls_Eigen_lijst extends cls_db_base {
 	public function lijst($p_filter="") {
 		
 		$w = "";
-		if (strlen($p_filter) > 0) {
+		if ($p_filter === 1) {
+			// Alleen eigen lijsten met records
+			$w = "WHERE EL.AantalRecords > 0";
+		} elseif ($p_filter === 2) {
+			// Alleen eigen lijsten die geschikt zijn voor selecties/filters/mailingen
+			$w = "WHERE EL.KolomLidID >= 0 AND EL.Aantal_params=0";
+		} elseif ($p_filter === 3) {
+			// Alleen eigen lijsten die records hebben en geschikt zijn voor selecties/filters/mailingen
+			$w = "WHERE EL.AantalRecords > 0 AND EL.KolomLidID >= 0 AND EL.Aantal_params=0";
+		} elseif (strlen($p_filter) > 0) {
 			$w = "WHERE " . $p_filter;
 		}
 		$query = sprintf("SELECT * FROM %s %s ORDER BY EL.Naam;", $this->basefrom, $w);
@@ -8146,22 +8195,9 @@ class cls_Eigen_lijst extends cls_db_base {
 	}
 	
 	public function htmloptions($p_cv=-1, $p_filter=0) {
-		
-		$xw = "";
-		if ($p_filter == 1) {
-			// Alleen eigen lijsten met records
-			$w = "WHERE AantalRecords > 0 ";
-		} elseif ($p_filter == 2) {
-			// Alleen eigen lijsten geschikt kunnen worden in een mailing
-			$w = "WHERE KolomLidID >= 0 ";
-		}
-		
-		$query = sprintf("SELECT * FROM %s WHERE KolomLidID >= 0 %sORDER BY Naam;", $this->table, $xw);
-		$result = $this->execsql($query);
-		
+	
 		$rv = "";
-		foreach ($result->fetchAll() as $row) {
-			$s = checked($row->RecordID, "option", $p_cv);
+		foreach ($this->lijst($p_filter) as $row) {
 			$o = $row->Naam;
 			if ($row->AantalRecords > 1) {
 				$o .= sprintf(" (%d leden)", $row->AantalRecords);
@@ -8170,7 +8206,7 @@ class cls_Eigen_lijst extends cls_db_base {
 			} else {
 				$o .= " (1 lid)";
 			}
-			$rv .= sprintf("<option%s value=%d>%s</option>\n", $s, $row->RecordID, $o);
+			$rv .= sprintf("<option%s value=%d>%s</option>\n", checked($row->RecordID, "option", $p_cv), $row->RecordID, $o);
 		}
 		return $rv;
 	}
@@ -8543,8 +8579,8 @@ class cls_Foto extends cls_db_base {
 
 class cls_Inschrijving extends cls_db_base {
 	
-	private $insid = 0;
-	public $laatstgewijzigd = "";
+	public $insid = 0;
+	public $naam = "";
 	
 	function __construct($p_insid=-1) {
 		$this->table = TABLE_PREFIX . "Inschrijving";
@@ -8559,12 +8595,12 @@ class cls_Inschrijving extends cls_db_base {
 			$this->insid = $p_insid;
 		}
 		if ($this->insid > 0) {
-			$query = sprintf("SELECT * FROM %s WHERE Ins.RecordID=%d;", $this->basefrom, $this->insid);
+			$query = sprintf("SELECT Ins.* FROM %s WHERE Ins.RecordID=%d;", $this->basefrom, $this->insid);
 			$result = $this->execsql($query);
-			$frow = $result->fetch();
+			$row = $result->fetch();
 			if (isset($row)) {
+				$this->naam = $row->Naam;
 				$this->naamlogging = $row->Naam;
-				$this->laatstgewijzigd = $row->Gewijzigd;
 			} else {
 				$this->insid = 0;
 			}
@@ -8606,9 +8642,21 @@ class cls_Inschrijving extends cls_db_base {
 		return $rv;
 	}
 	
+	public function pdf($p_insid=-1) {
+		
+		if ($p_insid > 0) {
+			$this->insid = $p_insid;
+		}
+		
+		$query = sprintf("SELECT PDF FROM %s WHERE Ins.RecordID=%d;", $this->basefrom, $this->insid);
+		return $this->scalar($query);
+	}
+	
 	public function add() {
 		$this->tas = 1;
-		$query = sprintf("INSERT INTO %s (Naam, `XML`) VALUES ('', '');", $this->table);
+		$nrid = $this->nieuwrecordid();
+		
+		$query = sprintf("INSERT INTO %s (RecordID, Naam, `XML`) VALUES ('', '');", $this->table, $nrid);
 		$this->insid = $this->execsql($query);
 		
 		if ($this->insid > 0) {
@@ -8620,6 +8668,12 @@ class cls_Inschrijving extends cls_db_base {
 	}  # add
 	
 	public function addpdf($p_insid, $p_waarde) {
+		$this->tas = 2;
+		
+		if ($this->pdoupdate($this->insid, "PDF", $p_waarde)) {
+			$this->mess = sprintf("Aan inschrijving %d is een PDF toegevoegd.", $this->insid);
+			$this->log($this->insid);
+		}
 		
 	}  # addpdf
 	
@@ -8640,9 +8694,9 @@ class cls_Inschrijving extends cls_db_base {
 	}
 	
 	public function opschonen() {
-		$query = sprintf("SELECT Ins.RecordID FROM %s WHERE IFNULL(Ins.Verwerkt, '9999-12-31') < DATE_SUB(NOW(), INTERVAL 18 MONTH);", $this->basefrom);
+		$query = sprintf("SELECT Ins.RecordID FROM %s WHERE IFNULL(Ins.Verwerkt, '9999-12-31') < DATE_SUB(NOW(), INTERVAL 84 MONTH);", $this->basefrom);
 		$res = $this->execsql($query);
-		$reden = "de inschrijving langer dan 18 maanden geleden is verwerkt.";
+		$reden = "de inschrijving langer dan 7 jaar geleden is verwerkt.";
 		foreach ($res->fetchAll() as $row) {
 			$this->delete($row->RecordID, $reden);
 		}
