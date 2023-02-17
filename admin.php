@@ -113,6 +113,8 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 	(new cls_Functie())->controle();
 	(new cls_Organisatie())->opschonen();
 	(new cls_Organisatie())->controle();
+	(new cls_Activiteit())->opschonen();
+	(new cls_Activiteit())->controle();
 	
 } elseif ($_GET['op'] == "logboekopschonen") {
 	(new cls_Logboek())->opschonen();
@@ -125,6 +127,8 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 	(new cls_Lidmaatschap())->opschonen();
 	
 	(new cls_Foto())->opschonen();
+	
+	(new cls_Inschrijving())->opschonen();
 	
 } elseif ($_GET['op'] == "beheerdiplomas") {
 	$i_dp = new cls_Diploma();
@@ -764,6 +768,7 @@ function fnEigenlijstenmuteren() {
 			}
 			echo("\n");
 		}
+		$i_el->update($elid, "Aantal_params", $i_el->aantal_params);
 		echo("<label>Beschikbare variabelen</label><p>[%LIDNAAM%], [%TELEFOON%], [%EMAIL%], [%LEEFTIJD%]</p>");
 		if (strlen($i_el->sqlerror) == 0) {
 			printf("<label>Aantal rijen</label><p>%d</p>\n", $row->AantalRecords);
