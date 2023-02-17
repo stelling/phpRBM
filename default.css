@@ -612,6 +612,15 @@ td.print {
 	height: 45px;
 }
 
+td.pdf {
+	background-image: url(	"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAACXBIWXMAAAsTAAALEwEAmpwYAAACBklEQVR4nO2asU7DMBCGv6lD9yAGOla8BN0p79SV8iwIMcLe0pUBhnam7YhEGbsYRTJSiNzGTm3HCfdLXk4n3/1/7xznGhAIBIJ66AMTYAXsAdXA2gJ3QI/IOANeGyJtWtPY5N914FUhiSZwVaiEKMiANx10CZw3LAAx42cG8lETOIAo8bMD5KMlcATB42dHyEdJoAJB42cV5IMnYIFg8TML8kETsESQ+Jkl+WAJOMB7/H7hkvOun/tRE3CE9/iTwiWnivxI+27okADLGlfRWzokwN6B+EaTj/4yElIA1XBPu0IEQCoAaQEa6KkbYJ3AMMR25bmOfQqwToCU6/rwKYDq6tNCiQBIBSifJfXfW2BhOc8v+30Dj8ClxX75eklVAGU5zz/k8wlcWPjNUhegap5f9stJP2nb/RE/WyQlgMlu8hto267Cr7MCuPi1SoCRYZLUeQFUxSTJVQCXJ0ByAmwMk6RTBJi18Qwo49gh+FXhRxcFGADP2vZQY7/WCqAMF6Fhjf3q5oFvYnPLHp2XiO/0Lz+suV8yAqQCEQCpAKQF8Ngr64pbXueHomO9YZvIX/sUIBV4z1eJAEgFKNoDaQHkDCDoIbgwTFxSsgWvAGUIkLrtJCgRgD+Kmt6/U7LJIYjnFtjqDfO/r1JHkC9Vpwm8uDT6pWpPi/BbCSmvFL5UFQgEtBc/KSE+QHrJE5EAAAAASUVORK5CYII=");
+	background-repeat: no-repeat;
+	background-position: center center;
+	text-align: center;
+	width: 55px;
+}
+
+
 .beheerlogins a, #beheerautorisatie a, .beheerwijzigingen a, #deelnemersevenementmuteren a, #afdelingskalendermuteren a, #deelnemersevenementmuteren a, #lijstoutbox a, td.details a, td.muteren a, td.detailregels a, td.leden a, td.trash a {
   text-decoration: none;
 }
