@@ -20,6 +20,8 @@ function fnAfdeling() {
 		fnPresentieMuteren($afdid);
 	} elseif ($currenttab2 == "Presentie per lid") {
 		fnPresentiePerLid($afdid);
+	} elseif ($currenttab2 == "Wachtlijst") {
+		fnAfdelingswachtlijst($afdid);
 	} elseif ($currenttab2 == "Afdelingsmailing") {
 		fnAfdelingsmailing($afdid);
 	} elseif ($currenttab2 == "Examenresultaten") {
@@ -285,6 +287,8 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 		
 		if (isset($_POST['NieuweGroep'])) {
 			$i_gr->add($afdid);
+		} else {
+			$i_gr->controle();
 		}
 		
 		$kols[0]['headertext'] = "Naam lid";
@@ -363,7 +367,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 				printf("<td><input type='text' class='w45' id='Omschrijving_%d' title='Omschrijving groep' placeholder='Omschrijving' maxlength=45 value=\"%s\">", $row->RecordID, $row->Omschrijving);
 				printf("<br><input type='text' class='w60' id='Instructeurs_%d' title='Instructeurs groep' placeholder='Instructeurs' maxlength=60 value=\"%s\"></td>\n", $row->RecordID, $row->Instructeurs);
 				
-				printf("<td><select id='ActiviteitID_%d'>%s</select>", $row->RecordID, $i_act->htmloptions($row->ActiviteitID));
+				printf("<td><select id='ActiviteitID_%d'><option value=0>Geen</option>\n%s</select>", $row->RecordID, $i_act->htmloptions($row->ActiviteitID));
 				$f = sprintf("DP.Afdelingsspecifiek=%d AND IFNULL(DP.EindeUitgifte, '9999-12-31') >= CURDATE()", $afdid);
 				printf("<br><select id='DiplomaID_%d'><option value=0>Geen/Combinatie</option>\n%s</select></td>\n", $row->RecordID, $i_dp->htmloptions($row->DiplomaID, 0, 0, 0, $f, 1));
 				
@@ -665,6 +669,33 @@ function fnPresentiePerLid($p_ondid) {
 		});
 	</script>\n");
 }  # fnPresentiePerLid
+
+function fnAfdelingswachtlijst($p_afdid) {
+	
+	$i_ins = new cls_Inschrijving();
+	
+	$rows = $i_ins->lijst(1, $p_afdid);
+	
+	$kols[0]['headertext'] = "#";
+	$kols[0]['columnname'] = "RecordID";
+	
+	$kols[1]['headertext'] = "Vanaf";
+	$kols[1]['columnname'] = "Ingevoerd";
+	$kols[1]['type'] = "date";
+	
+	$kols[2]['headertext'] = "Naam";
+	$kols[2]['columnname'] = "Naam";
+	
+	$kols[3]['headertext'] = "Opmerking";
+	$kols[3]['columnname'] = "Opmerking";
+			
+	$kols[4]['headertext'] = "&nbsp;";
+	$kols[4]['columnname'] = "RecordID";
+	$kols[4]['link'] = sprintf("%s/pdf.php?insid=%%d", BASISURL);
+	$kols[4]['class'] = "pdf";
+	
+	echo(fnDisplayTable($rows, $kols, "Wachtlijst", 0, "", "wachtlijst"));
+}
 
 function fnAfdelingsmailing($p_afdid) {
 	$i_gr = new cls_Groep($p_afdid);
