@@ -20,9 +20,9 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 	} else {
 		$_SESSION['username'] = cleanlogin($_POST['username']);
 		if (isset($_POST['cookie']) and $_POST['cookie'] == 1) {                           
-			setcookie("username", $_SESSION['username'], time()+(3600*24*90));
+			setcookie("username", $_SESSION['username'], time()+(3600*24*120));
 			if (isset($_POST['password']) and strlen($_POST['password']) > 6) {
-				setcookie("password", $_POST['password'], time()+(3600*24*90));
+				setcookie("password", $_POST['password'], time()+(3600*24*120));
 			}
 		}
 		fnAuthenticatie(1, $_POST['password'], 1);
@@ -226,9 +226,13 @@ if ($i_lid->aantal() == 0) {
 	} elseif ($currenttab2 == "Toestemmingen") {
 		fnOnderdelenmuteren("T");
 		
-		
 	} elseif ($currenttab2 == "Sportlink") {
 		sportlink();
+		
+	} elseif ($currenttab2 == "Basisgegevens" and isset($_GET['Scherm']) and $_GET['Scherm'] == "W" and isset($_GET['OnderdeelID'])) {
+		fnDispMenu(2);
+		fnDispMenu(3);
+		DetailsOnderdeelMuteren($_GET['OnderdeelID']);
 		
 	} elseif ($currenttab2 == "Basisgegevens") {
 		fnDispMenu(2);
@@ -273,6 +277,8 @@ if ($currenttab != "Mailing" and $kaal == 0) {
 
 function fnVoorblad() {
 	global $fileverinfo, $dtfmt;
+	
+	(new cls_login())->uitloggen();
 
 	if (file_exists($fileverinfo)) {
 		$content = file_get_contents($fileverinfo);
@@ -300,9 +306,7 @@ function fnVoorblad() {
 				$pos = $p;
 			}
 			$pos++;
-		}
-		
-		(new cls_login())->uitloggen();
+		}		
 	
 		// Algemene statistieken
 		$stats = db_stats();
