@@ -166,7 +166,7 @@ class cls_db_base {
 		}
 		
 		if (strlen($this->query) > 5) {
-			$f = microtime(true);
+			$starttijd = microtime(true);
 			$mess = "";
 
 			try {
