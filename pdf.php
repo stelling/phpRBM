@@ -19,6 +19,7 @@ if ($_SESSION['lidid'] > 0) {
 
 		header("Content-type: application/pdf");
 		header("Content-Disposition: inline; filename=Inschrijfformulier $i_ins->naam $insid.pdf");
+		header('Pragma: public');
 	
 		echo($i_ins->pdf());
 	}
