@@ -166,7 +166,7 @@ class cls_db_base {
 		}
 		
 		if (strlen($this->query) > 5) {
-			$starttijd = microtime(true);
+			$f = microtime(true);
 			$mess = "";
 
 			try {
@@ -5789,6 +5789,7 @@ class cls_interface extends cls_db_base {
 	}
 	
 	public function afmelden() {
+		$this->tas = 2;
 		
 		$query = sprintf("UPDATE %s SET Afgemeld=SYSDATE() WHERE IFNULL(Afgemeld, '1900-01-01') < '2011-01-01' ORDER BY Ingevoerd, RecordID LIMIT %d;", $this->table, $this->maxrecords);
 		$result = $this->execsql($query);
@@ -5800,6 +5801,8 @@ class cls_interface extends cls_db_base {
 	}
 	
 	public function opschonen() {
+		$this->tas = 3;
+		
 		$query = sprintf("DELETE FROM %s WHERE Afgemeld < DATE_SUB(CURDATE(), INTERVAL 6 MONTH);", $this->table);
 		$res = $this->execsql($query);
 		if ($res > 0) {
