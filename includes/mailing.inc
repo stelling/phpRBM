@@ -553,7 +553,6 @@ class Mailing {
 		$i_m = new cls_Mailing();
 		$i_mr = new cls_Mailing_rcpt();
 		$i_el = new cls_Eigen_lijst();
-		$i_el->controle();
 		$i_ond = new cls_Onderdeel();
 		$ob = "OnBlur='this.form.submit();'";
 		if ($this->mid > 0) {
