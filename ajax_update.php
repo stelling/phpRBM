@@ -86,6 +86,7 @@ if ($_SESSION['lidid'] > 0) {
 		if ($rid > 0) {
 			$i_ld = new cls_Liddipl();
 			$i_ld->update($rid, $kolom, $newvalue);
+			$i_ld = null;
 		}
 		
 	} elseif ($ent === "verw_liddipl") {
@@ -103,8 +104,10 @@ if ($_SESSION['lidid'] > 0) {
 		
 	} elseif ($ent == "onderdeeledit") {
 		
+//		debug($rid . " / " . $kolom . " / " . $newvalue, 0, 1);
 		$i_ond = new cls_Onderdeel();
 		$i_ond->update($rid, $kolom, $newvalue);
+		$i_ond = null;
 		
 	} elseif ($ent == "groepedit") {
 		$i_gr = new cls_Groep();
@@ -113,6 +116,7 @@ if ($_SESSION['lidid'] > 0) {
 	} elseif ($ent == "functieedit" and toegang("Ledenlijst/Basisgegevens/Functies")) {
 		$i_fnk = new cls_Functie();
 		$i_fnk->update($rid, $kolom, $newvalue);
+		$i_fnk = null;
 		
 	} elseif ($ent == "activiteitedit" and toegang("Ledenlijst/Basisgegevens/Activiteiten")) {
 		$i_act = new cls_Activiteit();
