@@ -984,11 +984,11 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 			$ret .= "<tfoot>\n<tr>";
 			for ($kn=0; $kn < count($ktot); $kn++) {
 				if ($kn+1 == $disptot and $totaantal > 1) {
-					$ret .= sprintf("<th colspan=2>%s records</th>", number_format($totaantal, 0, ",", "."));
+					$ret .= sprintf("<th colspan=2>%s rijen</th>", number_format($totaantal, 0, ",", "."));
 					$kn++;
-				} elseif (gettype($ktot[$kn]) == "double") {
+				} elseif (gettype($ktot[$kn]) == "double" and $ktot[$kn] <> 0) {
 					$ret .= sprintf("<th class='number'>%s</th>", number_format($ktot[$kn], 2, ",", "."));
-				} elseif (gettype($ktot[$kn]) == "integer") {
+				} elseif (gettype($ktot[$kn]) == "integer" and $ktot[$kn] <> 0) {
 					$ret .= sprintf("<th class='number'>%s</th>", number_format($ktot[$kn], 0, ",", "."));
 				} else {
 					$ret .= "<th></th>";
