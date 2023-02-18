@@ -122,9 +122,10 @@ if ($_SESSION['lidid'] > 0) {
 		$i_act = new cls_Activiteit();
 		$i_act->update($rid, $kolom, $newvalue);
 	
-	} elseif ($ent == "diplomaedit" and toegang("Ledenlijst/Basisgegevens/Diplomas")) {
+	} elseif ($ent == "diplomaedit") {
 		$i_dp = new cls_Diploma();
 		$i_dp->update($rid, $kolom, $newvalue);
+		$i_dp = null;
 		
 	} elseif ($ent == "afdelingskalenderedit") {
 		$i_ak = new cls_Afdelingskalender();
