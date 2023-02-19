@@ -5526,7 +5526,7 @@ class cls_Logboek extends cls_db_base {
 		
 		$query = sprintf("SELECT A.DatumTijd, Omschrijving, CONCAT(TypeActiviteit, IF(TypeActiviteitSpecifiek > 0, CONCAT('-', TypeActiviteitSpecifiek), '')) AS `Type`, %s AS ingelogdLid
 								FROM %s LEFT OUTER JOIN %sLid AS L ON A.LidID=L.RecordID
-								WHERE TypeActiviteit IN (1, 5, 6, 7, 12, 14, 15, 16, 24) AND TypeActiviteitSpecifiek <> 31 AND ReferLidID=%d
+								WHERE TypeActiviteit IN (1, 5, 6, 7, 12, 14, 15, 16) AND TypeActiviteitSpecifiek <> 31 AND ReferLidID=%d
 								ORDER BY A.RecordID DESC LIMIT 1500;", $this->selectnaam, $this->basefrom, TABLE_PREFIX, $p_lidid);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
@@ -9252,7 +9252,15 @@ function db_onderhoud($type=9) {
 	$col = "Nummer";
 	if ($i_base->bestaat_kolom($col, $tab) == true) {
 		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);	
+		$i_base->execsql($query, 2);
+	}
+	
+	// Deze code kan na 1 maart 2024 worden verwijderd.
+	$tab = TABLE_PREFIX . "Functie";
+	$col = "Oms_Vrouw";
+	if ($i_base->bestaat_kolom($col, $tab) == true) {
+		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
+		$i_base->execsql($query, 2);
 	}
 	
 	/***** Opschonen database na een upload uit de Access-database.  *****/
@@ -9931,7 +9939,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sFoto` (
 CREATE TABLE IF NOT EXISTS `%1\$sFunctie` (
   `Nummer` smallint(6) NOT NULL,
   `Omschrijv` varchar(35) DEFAULT NULL,
-  `Oms_Vrouw` varchar(35) DEFAULT NULL,
   `Afkorting` varchar(10) DEFAULT NULL,
   `Sorteringsvolgorde` smallint(6) DEFAULT NULL,
   `Afdelingsfunctie` tinyint(4) DEFAULT NULL,
