@@ -41,6 +41,10 @@ tr:first-child {
 	min-height: 36px;
 }
 
+tr.selected {
+	font-weight: bolder;
+}
+
 caption {
 	font-size: 135%;
 	background-color: #00FFFF;
@@ -504,6 +508,31 @@ header a + a:visited + a:hover {
 
 #eigenlijstmuteren textarea, #detailsonderdeelmuteren textarea {
 	width: 965px;
+}
+
+table#templatesmuteren {
+	float: left;
+	clear: left;
+}
+
+form#templateedit {
+	margin-top: 4px;
+	margin-left: 6px;
+	float: left;
+}
+
+#templateedit p {
+	margin-top: 6px;
+}
+
+#templateedit textarea {
+	clear: left;
+	width: 1025px;
+	height: 900px;
+}
+
+#templateedit input {
+	clear: left;
 }
 
 #formulier input[type='text'] {
