@@ -8901,6 +8901,7 @@ class cls_dms extends cls_db_base {
 class cls_Template extends cls_db_base {
 	
 	private $tpid = 0;
+	public $naam = "";
 	public $inhoud = "";
 	
 	function __construct($p_tpid=-1) {
@@ -8928,6 +8929,7 @@ class cls_Template extends cls_db_base {
 			$query = sprintf("SELECT TP.* FROM %s WHERE TP.RecordID=%d;", $this->basefrom, $this->tpid);
 			$row = $this->execsql($query)->fetch();
 			if (isset($row->RecordID)) {
+				$this->naam = $row->Naam;
 				$this->naamlogging = $row->Naam;
 				$this->inhoud = $row->Inhoud;
 			} else {
@@ -8952,7 +8954,7 @@ class cls_Template extends cls_db_base {
 			$this->log($this->tpid);
 		}
 	}
-	
+
 	public function controle() {
 		
 		$i_rk = new cls_Rekening();
@@ -8963,7 +8965,7 @@ class cls_Template extends cls_db_base {
 		if ($i_rk->aantal() > 0) {
 			$arrTP[] = "rekening";
 			foreach ($i_rk->uniekelijst("Seizoen") as $row) {
-				$arrTP[] = sprintf("rekening %s", $row->Seizoen);
+				$arrTP[] = sprintf("rekening %d", $row->Seizoen);
 			}
 		}
 		
@@ -8974,9 +8976,10 @@ class cls_Template extends cls_db_base {
 			}
 		}
 		
+		// Deze code kan na 1 maart 2024 worden verwijderd, is alleen voor het omzetten van bestanden naar tabel.
 		if (isset($_SESSION['settings']['path_templates']) and is_dir($_SESSION['settings']['path_templates'])) {
-			$f = "(TP.Inhoud IS NULL)";
-			foreach ($this->basislijst() as $row) {
+			$f = "(TP.Inhoud IS NULL) OR LENGTH(TP.Inhoud)=0";
+			foreach ($this->basislijst($f) as $row) {
 				$fn = $_SESSION['settings']['path_templates'] . $row->Naam . ".html";
 				if (file_exists($fn)) {
 					$content = file_get_contents($fn);
