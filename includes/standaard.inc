@@ -585,7 +585,7 @@ function fnDisplayFormLabels($row, $xtra_eind="", $id="") {
 	return $ret;
 }  # fnDisplayFormLabels
 
-function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $p_id="lijst", $xtra_kolom="") {
+function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $p_id="lijst", $xtra_kolom="", $p_selected=-1) {
 	global $currenttab, $currenttab2, $dtfmt;
 	
 	$ret = "";
@@ -725,6 +725,9 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					} else {
 						$ret .= sprintf("<th>%s</th>", $kols[$k]['headertext']);
 					}
+					if (isset($kol['type']) and $kol['type'] == "pk") {
+						$kol_pk = $kol['columnname'];
+					}
 //					debug($k . ": " . $kols[$k]['headertext'] . ": " . $kols[$k]['columnname']);
 				} else {
 					$kols[$k]['skip'] = true;
@@ -736,8 +739,11 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 		
 		foreach($rows as $row) {
 			$kn = 0;
-			$ret .= "<tr>";
-//			foreach($row as $key => $value) {
+			if ($p_selected > 0 and $p_selected == $row->$kol_pk) {
+				$ret .= "<tr class='selected'>";
+			} else {
+				$ret .= "<tr>";
+			}
 			foreach ($kols as $kn => $kol) {
 				if (isset($kol['columnname'])) {
 					$key = $kol['columnname'];
