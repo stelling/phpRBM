@@ -1463,8 +1463,18 @@ class cls_Lid extends cls_db_base {
 				$this->update($lrow->RecordID, "Voorletter", $vl . ".", "de voorletters leeg waren.");
 			} elseif (array_key_exists($lrow->Legitimatietype, ARRLEGITIMATIE) == false) {
 				$this->update($lrow->RecordID, "Legitimatietype", "G", "legitimatietype een ongeldige waarde had.");
+			} elseif (strlen($lrow->Postcode) < 4 and strlen($lrow->Adres) > 0) {
+				$this->update($lrow->RecordID, "Adres", "", "de postcode leeg is");
 			} elseif (strlen($lrow->Toevoeging) > 1 and substr($lrow->Toevoeging, 0, 1) == "-") {
 				$this->update($lrow->RecordID, "Toevoeging", substr($lrow->Toevoeging, 1, 4), "de toevoeging hoort niet met een streepje hoort te beginnen.");
+			} elseif ($lrow->Overleden > "1900-01-01" and strlen($lrow->Postcode) > 0) {
+				$this->update($lrow->RecordID, "Postcode", "", "de persoon overleden is");
+				$this->update($lrow->RecordID, "Huisnr", 0, "de persoon overleden is");
+				$this->update($lrow->RecordID, "Woonplaats", "", "de persoon overleden is");
+			} elseif ($lrow->Overleden > "1900-01-01" and strlen($lrow->Email) > 0) {
+				$this->update($lrow->RecordID, "Email", "", "de persoon overleden is");
+				$this->update($lrow->RecordID, "EmailVereniging", "", "de persoon overleden is");
+				$this->update($lrow->RecordID, "EmailOuders", "", "de persoon overleden is");
 			}			
 		}
 	}
@@ -8126,7 +8136,7 @@ class cls_Seizoen extends cls_db_base {
 		}
 		return $rv;
 	}
-	
+
 	function lijst($p_fetched=1, $p_filter=0) {
 		/*
 			$p_filter
@@ -8372,7 +8382,7 @@ class cls_Eigen_lijst extends cls_db_base {
 		} elseif ($p_filter === 3) {
 			// Alleen eigen lijsten die records hebben en geschikt zijn voor selecties/filters/mailingen
 			$w = "WHERE EL.AantalRecords > 0 AND EL.KolomLidID >= 0 AND EL.Aantal_params=0";
-		} elseif (strlen($p_filter) > 0) {
+		} elseif (strlen($p_filter) > 1) {
 			$w = "WHERE " . $p_filter;
 		}
 		$query = sprintf("SELECT * FROM %s %s ORDER BY EL.Naam;", $this->basefrom, $w);
@@ -8904,12 +8914,11 @@ class cls_Template extends cls_db_base {
 	public $naam = "";
 	public $inhoud = "";
 	
-	function __construct($p_tpid=-1) {
+	function __construct($p_tpid=-1, $p_naam="") {
 		$this->table = TABLE_PREFIX . "Admin_template";
 		$this->basefrom = $this->table . " AS TP";
 		$this->ta = 20;
-		$this->vulvars($p_tpid);
-		$this->controle();
+		$this->vulvars($p_tpid, $p_naam);
 	}
 	
 	public function vulvars($p_tpid=-1, $p_naam="") {
@@ -8943,7 +8952,10 @@ class cls_Template extends cls_db_base {
 		$nrid = $this->nieuwrecordid();
 		
 		$query = sprintf("INSERT INTO %s (RecordID, Naam, Inhoud) VALUES (%d, '%s', '');", $this->table, $nrid, $p_naam);
-		$this->execsql($query);
+		if ($this->execsql($query) > 0) {
+			$this->mess = sprintf("Template %d (%s) is toegevoegd.", $nrid, $p_naam);
+			$this->log($nrid);
+		}
 	}
 	
 	public function update($p_tpid, $p_kolom, $p_waarde, $p_reden="") {
