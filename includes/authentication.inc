@@ -16,6 +16,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	addtp("Beheer logins");
 	addtp("Autorisatie");
 	addtp("Eigen lijsten");
+	addtp("Templates");
 	addtp("Instellingen");
 	addtp("Uploaden data");
 	$f = "IFNULL(Afgemeld, '2000-01-01') < '2010-01-01'";
@@ -214,6 +215,11 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 						if ((new cls_Aanwezigheid())->aantalstatus("*", $row->RecordID) > 0) {
 							addtp(trim($row->Naam) . "/Presentie per lid");
 						}
+					}
+					
+					$f = sprintf("Ins.OnderdeelID=%d AND (Ins.Verwerkt IS NULL)", $row->RecordID);
+					if ((new cls_Inschrijving())->aantal($f) > 0) {
+						addtp(trim($row->Naam) . "/Wachtlijst");
 					}
 					
 					if (toegang("Mailing/Muteren", 0, 0)) {
@@ -697,7 +703,7 @@ function fnLoginAanvragen($stap="") {
 	global $lididwebmasters, $lididtestusers;
 	
 	$i_login = new cls_Login();
-	$login_verbodenkarakters = "@#$^&;*%ιλθφτό'\"";
+	$login_verbodenkarakters = "@#$^&;*%ιλθφτό'\"?!";
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['loginaanvragen'])) {
 

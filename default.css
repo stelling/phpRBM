@@ -2249,6 +2249,11 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	border-width: 1px;
 }
 
+label#lblBET_TERM {
+	clear: none;
+	width: 150px;
+}
+
 #rekeninginfo label {
 	width: 140px;
 	height: 20px;

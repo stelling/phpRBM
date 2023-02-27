@@ -15,7 +15,7 @@ if (!isset($_GET['op']) or ((new cls_lid())->aantal() == 0 and toegang($_GET['tp
 	$_GET['op'] = "";
 }
 
-if ($currenttab == "Logboek" or $currenttab == "Stamgegevens") {
+if ($currenttab == "Logboek") {
 	HTMLheader(1);
 } else {
 	HTMLheader(0);
@@ -147,6 +147,7 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 	
 } elseif ($_GET['op'] == "mailingsopschonen") {
 	(new cls_Mailing())->opschonen();
+	(new cls_Mailing_hist())->controle();
 	(new cls_Mailing_hist())->opschonen();
 	(new cls_Mailing_rcpt())->opschonen();
 } elseif ($_GET['op'] == "evenementenopschonen") {
@@ -164,11 +165,13 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 	(new cls_Artikel())->opschonen();
 }
 
-if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
-	if ($_GET['op'] == "validatielink" and isset($_GET['lidid'])) {
-		fnHerstellenWachtwoord("mail", $_GET['lidid']);
+if ($currenttab == "Beheer logins") {
+	if (toegang($currenttab, 1, 1)) {
+		if ($_GET['op'] == "validatielink" and isset($_GET['lidid'])) {
+			fnHerstellenWachtwoord("mail", $_GET['lidid']);
+		}
+		fnBeheerLogins();
 	}
-	fnBeheerLogins();
 	
 } elseif ($currenttab == "Autorisatie" and toegang($currenttab, 1, 1)) {
 	$i_auth = new cls_Authorisation();
@@ -232,29 +235,40 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 <?php
 	$i_auth = null;
 		
-} elseif ($currenttab == "Eigen lijsten" and toegang($currenttab, 1, 1)) {
-	fnEigenlijstenmuteren();
+} elseif ($currenttab == "Eigen lijsten") {
+	if (toegang($currenttab, 1, 1)) {
+		fnEigenlijstenmuteren();
+	}
 	
-} elseif ($currenttab == "Instellingen" and toegang($currenttab, 1, 1)) {
-	fnInstellingen();
+} elseif ($currenttab == "Templates") {
+	if (toegang($currenttab, 1, 1)) {
+		fnTemplatesmuteren();
+	}
+	
+} elseif ($currenttab == "Instellingen") {
+	if (toegang($currenttab, 1, 1)) {
+		fnInstellingen();
+	}
 	
 } elseif ($currenttab == "Stamgegevens" and toegang($currenttab, 1, 1)) {
 	fnStamgegevens();
 	
-} elseif ($currenttab == "Uploaden data" and ((new cls_Lid())->aantal() == 0 or toegang($currenttab, 1, 1))) {
-	$aantal = (new cls_Interface())->aantal("IFNULL(Afgemeld, '1900-01-01') < '2011-01-01'");
-	if ($aantal > 0) {
-		printf("<p class='mededeling'>Er staan %d wijzigingen te wachten om verwerkt te worden. Het is niet verstandig om een upload te doen.</p>", $aantal);
+} elseif ($currenttab == "Uploaden data") {
+	if ((new cls_Lid())->aantal() == 0 or toegang($currenttab, 1, 1)) {
+		$aantal = (new cls_Interface())->aantal("IFNULL(Afgemeld, '1900-01-01') < '2011-01-01'");
+		if ($aantal > 0) {
+			printf("<p class='mededeling'>Er staan %d wijzigingen te wachten om verwerkt te worden. Het is niet verstandig om een upload te doen.</p>", $aantal);
+		}
+		$aantal = (new cls_Login())->aantal("Ingelogd=1");
+		if ($aantal > 1) {
+			printf("<p class='mededeling'>Er staan zijn momenteel %d gebruikers ingelogd. Het is niet verstandig om een upload te doen.</p>", $aantal);
+		}
+		echo("<div id='formulier'>\n");
+		printf("<form name='formupload' method='post' action='%s?tp=%s&amp;op=uploaddata' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+		echo("<label>Bestand</label><input type='file' name='SQLupload'><input type='submit' value='Verwerk'>\n");
+		echo("</form>\n");
+		echo("</div>  <!-- Einde formulier -->\n");
 	}
-	$aantal = (new cls_Login())->aantal("Ingelogd=1");
-	if ($aantal > 1) {
-		printf("<p class='mededeling'>Er staan zijn momenteel %d gebruikers ingelogd. Het is niet verstandig om een upload te doen.</p>", $aantal);
-	}
-	echo("<div id='formulier'>\n");
-	printf("<form name='formupload' method='post' action='%s?tp=%s&amp;op=uploaddata' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	echo("<label>Bestand</label><input type='file' name='SQLupload'><input type='submit' value='Verwerk'>\n");
-	echo("</form>\n");
-	echo("</div>  <!-- Einde formulier -->\n");
 
 } elseif ($currenttab == "Downloaden wijzigingen" and toegang($currenttab, 1, 1)) {
 	$copytext = "";
@@ -267,9 +281,11 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	
 	$kols[0]['headertext'] = "Betreft lid";
 	$kols[0]['columnname'] = "betreftLid";
+	
 	$kols[1]['headertext'] = "ingevoerd";
 	$kols[2]['headertext'] = "SQL-statement";
-	$kols[3]['link'] = sprintf("<a href='/admin.php?op=deleteint&amp;recid=%%d&tp=%s'>&nbsp;&nbsp;&nbsp;</a>", urlencode($_GET['tp']));
+	
+	$kols[3]['link'] = sprintf("<a href='/admin.php?op=deleteint&recid=%%d&tp=%s'>&nbsp;&nbsp;&nbsp;</a>", urlencode($_GET['tp']));
 	$kols[3]['columnname'] = "RecordID";
 
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
@@ -428,6 +444,8 @@ if ($currenttab == "Beheer logins" and toegang($currenttab, 1, 1)) {
 	
 //    echo memory_get_usage()/1024.0 . " kb \n";
 	phpinfo();
+} else {
+	debug($currenttab, 1, 1);
 }
 
 HTMLfooter();
@@ -530,7 +548,7 @@ function fnInstellingen() {
 	$arrParam['naamwebsite'] = "Dit is de naam zoals deze in de titel en op elke pagina getoond wordt.";
 	$arrParam['title_head_html'] = "Hiermee start de HTML-titel van elke pagina.";
 	$arrParam['path_templates'] = "Waar staan de templates?";
-	$arrParam['path_pasfoto'] = "Waar staan de pasfotos?";
+//	$arrParam['path_pasfoto'] = "Waar staan de pasfotos?";
 	$arrParam['performance_trage_select'] = "Vanaf hoeveel seconden moet een select-statement in het logboek worden gezet. 0 = nooit.";
 	$arrParam['termijnvervallendiplomasmailen'] = "Hoeveel maanden vooruit moeten leden een herinnering krijgen als een diploma gaat vervallen. 0 = geen herinnering sturen.";
 	$arrParam['termijnvervallendiplomasmelden'] = "Hoeveel maanden vooruit en achteraf moeten vervallen diploma op het voorblad getoond worden.";
@@ -822,10 +840,44 @@ function fnEigenlijstenmuteren() {
 	
 }  # fnEigenlijstenmuteren
 
+function fnTemplatesmuteren() {
+	
+	$i_tp = new cls_Template();
+	
+	$seltp = $_GET['tpid'] ?? -1;
+	
+	if (isset($_POST['inhoud']) and $seltp > 0) {
+		$i_tp->update($seltp, "Inhoud", $_POST['inhoud']);
+	}
+	
+	$kols[0]['columnname'] = "RecordID";
+	$kols[0]['headertext'] = "#";
+	$kols[0]['type'] = "pk";
+	
+	$kols[1]['columnname'] = "Naam";
+	$kols[1]['headertext'] = "Naam";
+	
+	$kols[2]['columnname'] = "RecordID";
+	$kols[2]['headertext'] = "&nbsp;";
+	$kols[2]['class'] = "muteren";
+	$kols[2]['link'] = sprintf("%s?tp=%s&op=edittemplate&tpid=%%d", $_SERVER['PHP_SELF'], $_GET['tp']);
+	
+	$rows = $i_tp->basislijst();
+	
+	echo(fnDisplayTable($rows, $kols, "", 0, "", "templatesmuteren", "", $seltp));
+	
+	if (isset($_GET['op']) and $_GET['op'] == "edittemplate" and $seltp > 0) {
+		$i_tp->vulvars($seltp);
+		printf("<form method='post' id='templateedit' action='%s?tp=%s&op=edittemplate&tpid=%d'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $seltp);
+		printf("<textarea name='inhoud'>%s</textarea>\n", $i_tp->inhoud);
+		echo("<input type='submit' value='Bewaren'>");
+		echo("</form>\n");
+	}
+	
+}  # fnTemplatesmuteren
+
 function fnExportSQL() {
 	global $arrTables;
-	
-	
 	
 }
 
