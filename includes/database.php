@@ -9526,7 +9526,7 @@ function db_onderhoud($type=9) {
 	$tab = TABLE_PREFIX . "GBR";
 	$col = "StandaardBTW";
 	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NULL AFTER `Standaard kostenplaats`;", $tab, $col);
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` VARCHAR(1) NULL AFTER `Standaard kostenplaats`;", $tab, $col);
 		$i_base->execsql($query, 2);
 	}
 	
