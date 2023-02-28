@@ -1467,14 +1467,15 @@ class cls_Lid extends cls_db_base {
 				$this->update($lrow->RecordID, "Adres", "", "de postcode leeg is");
 			} elseif (strlen($lrow->Toevoeging) > 1 and substr($lrow->Toevoeging, 0, 1) == "-") {
 				$this->update($lrow->RecordID, "Toevoeging", substr($lrow->Toevoeging, 1, 4), "de toevoeging hoort niet met een streepje hoort te beginnen.");
-			} elseif ($lrow->Overleden > "1900-01-01" and strlen($lrow->Postcode) > 0) {
-				$this->update($lrow->RecordID, "Postcode", "", "de persoon overleden is");
-				$this->update($lrow->RecordID, "Huisnr", 0, "de persoon overleden is");
-				$this->update($lrow->RecordID, "Woonplaats", "", "de persoon overleden is");
-			} elseif ($lrow->Overleden > "1900-01-01" and strlen($lrow->Email) > 0) {
-				$this->update($lrow->RecordID, "Email", "", "de persoon overleden is");
-				$this->update($lrow->RecordID, "EmailVereniging", "", "de persoon overleden is");
-				$this->update($lrow->RecordID, "EmailOuders", "", "de persoon overleden is");
+			} elseif ($lrow->Overleden > "1900-01-01" and $lrow->Overleden < date("Y-m-d", strtotime("-3 month")) and (strlen($lrow->Postcode) > 0 or strlen($lrow->Email) > 0 or strlen($lrow->Mobiel) > 0)) {
+				$reden = "de persoon langer dan 3 maanden geleden is overleden";
+				$this->update($lrow->RecordID, "Postcode", "", $reden);
+				$this->update($lrow->RecordID, "Huisnr", 0, $reden);
+				$this->update($lrow->RecordID, "Woonplaats", "", $reden);
+				$this->update($lrow->RecordID, "Email", "", $reden);
+				$this->update($lrow->RecordID, "EmailVereniging", "", $reden);
+				$this->update($lrow->RecordID, "EmailOuders", "", $reden);
+				$this->update($lrow->RecordID, "Mobiel", "", $reden);
 			}			
 		}
 	}
@@ -9521,6 +9522,13 @@ function db_onderhoud($type=9) {
 		$query = sprintf("ALTER TABLE `%s` ADD INDEX `%s` (`OnderdeelID`);", $tab, $idx);
 		$i_base->execsql($query, 2);
 	}
+
+	$tab = TABLE_PREFIX . "GBR";
+	$col = "StandaardBTW";
+	if ($i_base->bestaat_kolom($col, $tab) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NULL AFTER `Standaard kostenplaats`;", $tab, $col);
+		$i_base->execsql($query, 2);
+	}
 	
 	/***** Velden die aangepast zijn *****/
 	
@@ -9557,8 +9565,18 @@ function db_onderhoud($type=9) {
 		
 	// Deze code mag na 1 februari 2024 worden verwijderd.
 	$query = sprintf("ALTER TABLE `%sAdmin_activiteit` CHANGE `RefFunction` `RefFunction` VARCHAR(125) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL;", TABLE_PREFIX);
-	$i_base->execsql($query);	
+	$i_base->execsql($query);
 	
+	// Deze code mag na 1 maart 2024 worden verwijderd.
+	$tab = TABLE_PREFIX . "Eigen_lijst";
+	$col = "Naam";
+	$query = sprintf("ALTER TABLE `%1\$s` CHANGE `%2\$s` `%2\$s` VARCHAR(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $tab, $col);
+	$i_base->execsql($query);
+	
+	$tab = TABLE_PREFIX . "GBR";
+	$col = "Standaard kostenplaats";
+	$query = sprintf("ALTER TABLE `%1\$s` CHANGE `%2\$s` `%2\$s` INT(11) NULL DEFAULT NULL AFTER `VerdichtingID`;", $tab, $col);
+	$i_base->execsql($query);
 	
 	/***** Velden die niet meer nodig zijn *****/
 	
@@ -9573,6 +9591,13 @@ function db_onderhoud($type=9) {
 	// Deze code kan na 1 maart 2024 worden verwijderd.
 	$tab = TABLE_PREFIX . "Functie";
 	$col = "Oms_Vrouw";
+	if ($i_base->bestaat_kolom($col, $tab) == true) {
+		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
+		$i_base->execsql($query, 2);
+	}
+	
+	$tab = TABLE_PREFIX . "Mailing";
+	$col = "GebruikPlaatjeAlsBericht";
 	if ($i_base->bestaat_kolom($col, $tab) == true) {
 		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
 		$i_base->execsql($query, 2);
@@ -9599,6 +9624,14 @@ function db_onderhoud($type=9) {
 function db_backup($p_typebackup=3) {
 	global $dbc, $db_name, $arrTables;
 	
+	/*
+	$p_typebackup
+		1 = alleen bestanden niet uit Access-db naar bestand
+		2 = alleen bestanden uit Access-db naar bestand
+		3 = alle tabellen naar bestand
+		4 = alle data naar scherm, zonder logins en logging
+	*/
+	
 	$rv = false;
 	
 	$db_folderbackup = $_SESSION['settings']['db_folderbackup'];
@@ -9623,11 +9656,12 @@ function db_backup($p_typebackup=3) {
 	$laatstebackup = (new cls_Logboek())->max("DatumTijd", "TypeActiviteit=3 AND TypeActiviteitSpecifiek=1");
 	if (strtotime($laatstebackup) < mktime(date("H")-1, date("m"), 0, date("m"), date("d"), date("Y")) or $_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 		
-		
-		$FileName = $db_folderbackup . $buname . ".sql";
-		
-		echo("<p class='mededeling'>Backup is gestart</p>");
-		$buf = fopen($FileName, 'w');
+		if ($p_typebackup != 4) {
+			$FileName = $db_folderbackup . $buname . ".sql";
+			echo("<p class='mededeling'>Backup is gestart</p>");
+			$buf = fopen($FileName, 'w');
+		}
+		$data = "";
 				
 		$aanttab = 0;
 		$i_base = new cls_db_base();
@@ -9639,10 +9673,12 @@ function db_backup($p_typebackup=3) {
 			$a = $i_base->scalar($query);
 //			debug($table . ": " . $a);
 			
-			if ($a > 0 and ($p_typebackup == 3 or ($p_typebackup == 1 and $tnr < 30) or ($p_typebackup == 2 and $tnr >= 30))) {
+			if ($a > 0 and ($p_typebackup == 3 or ($p_typebackup == 1 and $tnr < 30) or ($p_typebackup == 2 and $tnr >= 30) or ($p_typebackup == 4 and substr($tnm, 0, 6) != "Admin_" and $tnm != "Mailing_hist"))) {
 			
-				$data = $i_base->exporttosql(2);
-				fwrite($buf, $data);
+				if ($p_typebackup != 4) {
+					$data = $i_base->exporttosql(2);
+					fwrite($buf, $data);
+				}
 
 				if ($a > 50000) {
 					$query = sprintf("SELECT * FROM `%s` ORDER BY RecordID DESC LIMIT 50000;", $table);
@@ -9651,14 +9687,19 @@ function db_backup($p_typebackup=3) {
 				}
 				$result = $dbc->prepare($query);
 				$result->execute();
-				$num_fields = $result->columnCount();
+				$num_fields = $result->columnCount();		
+				if ($p_typebackup == 4) {
+					$data .= sprintf("TRUNCATE `%s`;\n", $table);
+				}
 		
 				while($row = $result->fetch(PDO::FETCH_NUM)) { 
 					
-					$data = sprintf("INSERT INTO `%s` VALUES(", $table);
+	
+					
+					$data .= sprintf("INSERT INTO `%s` VALUES(", $table);
 					for($j=0; $j<$num_fields; $j++) {
 						$meta = $result->GetColumnMeta($j);
-						$row[$j] = addslashes($row[$j]); 
+						$row[$j] = addslashes($row[$j]);
 						$row[$j] = str_replace("\n","\\n",$row[$j]);
 						if ($meta['native_type'] == "LONG" or $meta['native_type'] == "TINY"  or $meta['native_type'] == "SHORT") {
 							if (isset($row[$j]) and strlen($row[$j]) > 0) {
@@ -9667,7 +9708,7 @@ function db_backup($p_typebackup=3) {
 								$data .= "0";
 							}
 							
-						} elseif ($meta['native_type'] == "DATE" or $meta['native_type'] == "DATETIME"  or $meta['native_type'] == "TIMESTAMP") {
+						} elseif ($meta['native_type'] == "DATE" or $meta['native_type'] == "DATETIME" or $meta['native_type'] == "TIMESTAMP" or $meta['native_type'] == "TIME") {
 							if (isset($row[$j]) and strlen($row[$j]) > 0) {
 								$data .= "'" . $row[$j] . "'";
 							} else {
@@ -9693,20 +9734,33 @@ function db_backup($p_typebackup=3) {
 					}
 					$data .= ");\n";
 					
-					fwrite($buf, $data);
+					if ($p_typebackup != 4) {
+						fwrite($buf, $data);
+						$data = "";
+					}
 				}
 				$aanttab++;
 				
-				fwrite($buf, "\n\n");
+				if ($p_typebackup != 4) {
+					fwrite($buf, "\n\n");
+				}
 
 				$resultcount = null;
 				$result = null;
 			}
 		}
-		fclose($buf);
+		if ($p_typebackup != 4) {
+			fclose($buf);
+		}
 		$i_base = null;
+		
+		if ($p_typebackup == 4) {
 
-		if ($aanttab > 0) {
+			echo("<p class='sql'>" . $data . "</p>\n");
+			
+			echo("<p class='mededeling'>Deze export bevat geen Admin-tabellen en ook geen verzonden e-mails.</p>\n");
+
+		} elseif ($aanttab > 0) {
 		
 			$mess = sprintf("Backup %s (%d tabellen) is, in '%s', gemaakt.", ARRTYPEBACKUP[$p_typebackup], $aanttab, str_replace($db_folderbackup, "", $FileName));
 			(new cls_Logboek())->add($mess, 3, 0, 1, 0, 1);
