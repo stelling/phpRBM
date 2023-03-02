@@ -579,6 +579,12 @@ form#templateedit {
 	padding-right: 2px;
 }
 
+p.sql {
+	border-style: solid;
+	border-width: 1px;
+	padding: 4px;
+}
+
 .ledenlijst table {
 	width: 100%;
 }
@@ -2020,7 +2026,7 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	text-decoration: line-through;
 }
 
-.mededeling, .mededeling a {
+.mededeling, .mededeling a, .waarschuwing, .waarschuwing a {
 	margin-left: auto;
 	margin-right: auto;
 	width: 90%;
@@ -2028,8 +2034,11 @@ ul#menu_l1 li:hover > ul, ul#menu_l2 li:hover > ul, ul#menu_l3 li:hover > ul, li
 	border-style: solid;
 	border-width: 1px;
 	font-size: 125%;
-	color: red;
 	text-align: center;
+}
+
+.waarschuwing, .waarschuwing a {
+	color: red;
 }
 
 .debug {
