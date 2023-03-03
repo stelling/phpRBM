@@ -57,7 +57,7 @@ function fnMailing() {
 	$lg = explode(",", $_SESSION['lidgroepen']);
 	if ($_SESSION['webmaster'] == 0 and $zv != 0 and in_array($zv, $lg) === false and in_array($_SESSION['settings']['mailing_alle_zien'], $lg) === false) {
 		$mess = "Je hebt geen rechten om deze mailing te bekijken of te bewerken.";
-		printf("<p class='mededeling'>%s</p>", $mess);
+		printf("<p class='waarschuwing'>%s</p>", $mess);
 		
 	} elseif ($currenttab2 == "Nieuw" and toegang($_GET['tp'], 1, 1)) {
 		$mailing->mid = 0;
@@ -87,7 +87,9 @@ function fnMailing() {
 		lijstmailings($currenttab2);
 				
 	} elseif ($op == "deletehist" and isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0) {
-		(new cls_Mailing_hist())->delete($_GET['MailingHistID']);
+		$i_mh = new cls_Mailing_hist();
+		$i_mh->delete($_GET['MailingHistID']);
+		$i_mh = null;
 		echo("<script>window.history.back();</script>\n");
 		
 	} elseif ($currenttab2 == "Rekeningen" and toegang($_GET['tp'], 1, 1)) {
@@ -198,9 +200,7 @@ class Mailing {
 	private $IngevoerdDoor = 0;
 	private $Ingevoerd = "0000-00-00";
 	private $GewijzigdDoor = 0;
-	private $SentBy = 0;
 	private $deleted_on = "0000-00-00";
-	private $DeletedBy = 0;
 	private $evenementid = 0;
 	
 	private $ok_send = "";
@@ -757,7 +757,7 @@ class Mailing {
 			}
 			
 			if ($this->deleted_on > '1901-01-01') {
-				printf("<label>Verwijderd door/op</label><p>%s / %s</p>\n", $i_lid->naam($this->DeletedBy), $dtfmt->format(strtotime($this->deleted_on)));
+				printf("<label>Verwijderd op</label><p>%s</p>\n", $dtfmt->format(strtotime($this->deleted_on)));
 			}
 
 			echo("<label>Meldingen</label><ul id='meldingen'></ul>\n");
@@ -769,7 +769,7 @@ class Mailing {
 			echo("<button type='submit' name='action' value='Bewaren'>Bewaren</button>\n");
 			echo("<button type='submit' name='action' value='Bewaren & sluiten'>Bewaren & sluiten</button>\n");
 		} else {
-			echo("<input type='submit' name='Toevoegen' value='Toevoegen'>\n");
+			echo("<button type='submit' name='Toevoegen'>Toevoegen</button>\n");
 		}
 
 		echo("<button type='submit' name='action' value='Verstuur mailing' title='Verstuur mailing' id='btnverstuurmailing'>Verstuur mailing</button>\n");
@@ -799,6 +799,7 @@ class Mailing {
 		if ($this->htmldirect == 1) {
 		// Geen editor
 		} elseif ($_SESSION['settings']['mailing_type_editor'] == 3) {
+/*
 				$src = "/includes/tinymce/js/tinymce/tinymce.min.js";
 				if (file_exists(BASEDIR . $src)) {
 					$src = BASISURL . $src;
@@ -806,6 +807,7 @@ class Mailing {
 					$src = sprintf("https://cdn.tiny.cloud/1/%s/tinymce/6/tinymce.min.js", $_SESSION['settings']['mailing_tinymce_apikey']);
 				}
 				printf("<script src='%s' referrerpolicy='origin'></script>\n", $src);
+*/
 				printf("<script>
 		tinymce.init({
 			selector: '#message',
@@ -1107,11 +1109,10 @@ class Mailing {
 		$vangebdatum = $_POST['selectie_vangebdatum'] ?? $p_vangebdatum;
 		$temgebdatum = $_POST['selectie_temgebdatum'] ?? $p_temgebdatum;
 		
-		$lidqry = sprintf("SELECT L.RecordID FROM %sLid AS L WHERE L.GEBDATUM >= '%s'", TABLE_PREFIX, $vangebdatum);
+		$lidqry = sprintf("SELECT L.RecordID FROM %sLid AS L WHERE (L.Overleden IS NULL) AND (L.Verwijderd IS NULL) AND L.GEBDATUM >= '%s'", TABLE_PREFIX, $vangebdatum);
 		if ($temgebdatum >= $vangebdatum and strlen($temgebdatum) == 10) {
 			$lidqry .= sprintf(" AND L.GEBDATUM <= '%s'", $temgebdatum);
 		}
-		$lidqry .= " AND (L.Overleden IS NULL) AND (L.Verwijderd IS NULL)";
 		
 		$i_el = new cls_Eigen_lijst();
 		$i_base = new cls_db_base();
@@ -1152,6 +1153,7 @@ class Mailing {
 					}
 				}
 			}
+			
 		}
 		$mess = "";
 		if ($actie == "add" and $this->sl_aanttoevoegen > 0) {
@@ -1273,15 +1275,15 @@ class Mailing {
 	public function preview_hist($p_mhid, $p_verwijderaanhef=1) {
 		$i_mh = new cls_mailing_hist($p_mhid);
 		$mhrow = $i_mh->record();
-		
-		$bestand_briefpapier = $_SESSION['settings']['path_templates'] . "briefpapier.html";
+		$i_tp = new cls_Template(-1, "briefpapier");
+
 		if ($mhrow->ZonderBriefpapier == 1) {
 			return $mhrow->message;
-		} elseif (file_exists($bestand_briefpapier)) {
+		} elseif (strlen($i_tp->inhoud) > 0) {
 			if ($p_verwijderaanhef == 1) {
-				$htmlmessage = removetextblock(file_get_contents($bestand_briefpapier), "<!-- Aanhef -->", "<!-- /Aanhef -->");
+				$htmlmessage = removetextblock($i_tp->inhoud, "<!-- Aanhef -->", "<!-- /Aanhef -->");
 			} else {
-				$htmlmessage = file_get_contents($bestand_briefpapier);
+				$htmlmessage = $i_tp->inhoud;
 			}
 			$htmlmessage = str_ireplace("[%MESSAGE%]", $mhrow->message, $htmlmessage);
 			$htmlmessage = str_ireplace("[%FROM%]", $mhrow->from_name, $htmlmessage);
@@ -1289,7 +1291,7 @@ class Mailing {
 			$htmlmessage = str_ireplace("[%SUBJECT%]", $mhrow->subject, $htmlmessage);
 			return $htmlmessage;
 		} else {
-			debug("Het bestand met het briefpapier bestaat niet.", 1, 1);
+			debug("De template briefpapier is niet ingevuld.", 1, 1);
 			return false;
 		}
 	}
@@ -1464,11 +1466,7 @@ class Mailing {
 			
 			if (isset($ml->RecordID) and $ml->RecordID > 0) {
 				$this->mailingvanafid = $ml->MailingVanafID;
-				if (strlen($ml->to_name) > 0 and strlen(trim($ml->OmschrijvingOntvangers)) == 0) {
-					$this->OmschrijvingOntvangers = trim($ml->to_name);
-				} else {
-					$this->OmschrijvingOntvangers = trim($ml->OmschrijvingOntvangers);
-				}
+				$this->OmschrijvingOntvangers = trim($ml->OmschrijvingOntvangers);
 				$this->cc_addr = trim($ml->cc_addr);
 				$this->subject = trim($ml->subject);
 				$this->Opmerking = trim($ml->Opmerking);
@@ -1483,9 +1481,7 @@ class Mailing {
 				$this->IngevoerdDoor = $ml->IngevoerdDoor;
 				$this->Gewijzigd = $ml->Gewijzigd;
 				$this->GewijzigdDoor = $ml->GewijzigdDoor;
-				$this->SentBy = $ml->SentBy;
 				$this->deleted_on = $ml->deleted_on;
-				$this->DeletedBy = $ml->DeletedBy;
 				$this->evenementid = $ml->EvenementID;
 				$this->aant_rcpt = (new cls_Mailing_rcpt())->aantalontvangers($this->mid);
 			} else {
@@ -1588,18 +1584,26 @@ function lijstmailings($p_filter="") {
 			$kols[0]['link'] = sprintf("%s?tp=%s/Wijzigen+mailing&mid=%%d", $_SERVER['PHP_SELF'], $currenttab);
 			$kols[0]['class'] = "muteren";
 			$kols[0]['title'] = "Wijzigen mailing";
+			$kols[0]['columnname'] = "RecordID";
 		}
+		
 		$kols[1]['headertext'] = "Onderwerp / Opmerking";
+		$kols[1]['columnname'] = "Onderwerp_Opmerking";
 		$kols[1]['type'] = "mrg";
 		
-		$kols[2]['headertext'] = "Van";
+		$kols[2]['headertext'] = "Van / Aan";
+		$kols[2]['columnname'] = "Van_Aan";
+		$kols[2]['type'] = "mrg";
 		
 		$kols[3]['headertext'] = "Laatst gewijzigd";
+		$kols[3]['columnname'] = "laatstGewijzigd";
 		$kols[3]['type'] = "mrg";
 		
-		$kols[4]['skip'] = true;
+		$kols[4]['headertext'] = "Verwijderd op";
+		$kols[4]['columnname'] = "deleted_on";
+		$kols[4]['type'] = "date";
 		
-		$kols[5]['columnname'] = "llkHist";
+		$kols[5]['columnname'] = "linkHist";
 		$kols[5]['link'] = sprintf("%s?tp=Mailing/Historie&op=historie&mid=%%d", $_SERVER['PHP_SELF']);
 		$kols[5]['class'] = "detailregels";
 		$kols[5]['title'] = "Verstuurde e-mails";
@@ -1682,7 +1686,7 @@ class email {
 			$mrow = (new cls_Mailing())->record($this->mailingid);
 			$this->vanafnaam = $mrow->Vanaf_naam;
 			$this->vanafadres = htmlentities($mrow->Vanaf_email);
-			$this->omsontvangers = htmlentities($mrow->to_name);
+			$this->omsontvangers = htmlentities($mrow->OmschrijvingOntvangers);
 			$this->cc = $mrow->cc_addr;
 			$this->CCafdelingen = $mrow->CCafdelingen;
 			$this->onderwerp = $mrow->subject;
@@ -2375,7 +2379,6 @@ function sentoutbox($p_mode) {
 class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 	// Regelt het feitelijk versturen van de e-mail
 
-	private $bestand_briefpapier;
 	public $omsontvangers = "";
 	public $zonderbriefpapier = 0;
 
@@ -2414,11 +2417,11 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 		$this->FromName = $_SESSION['settings']['naamvereniging'];
 		$this->IsHTML(true);
 		$this->WordWrap = 110;
-		$this->bestand_briefpapier = $_SESSION['settings']['path_templates'] . "briefpapier.html";
 	}
 	
 	public function addstationary($to="", $from="", $verwijderaanhef=0, $p_zb=-1) {
-		
+		$i_tp = new cls_Template(-1, "briefpapier");
+
 		if ($p_zb >= 0) {
 			$this->zonderbriefpapier = $p_zb;
 		}
@@ -2429,12 +2432,12 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 			}
 			return true;
 			
-		} elseif (file_exists($this->bestand_briefpapier)) {
+		} elseif (strlen($i_tp->inhoud) > 0) {
 //			debug($this->bestand_briefpapier, 0, 1);
 			if ($verwijderaanhef == 1) {
-				$htmlmessage = removetextblock(file_get_contents($this->bestand_briefpapier), "<!-- Aanhef -->", "<!-- /Aanhef -->");
+				$htmlmessage = removetextblock($i_tp->inhoud, "<!-- Aanhef -->", "<!-- /Aanhef -->");
 			} else {
-				$htmlmessage = file_get_contents($this->bestand_briefpapier);
+				$htmlmessage = $i_tp->inhoud;
 			}
 			$htmlmessage = str_ireplace("[%MESSAGE%]", $this->Body, $htmlmessage);
 			$htmlmessage = str_ireplace("[%FROM%]", $this->FromName, $htmlmessage);
@@ -2444,7 +2447,7 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 			return true;
 			
 		} else {
-			$mess = sprintf("Het bestand '%s' bestaat niet.", $this->bestand_briefpapier);
+			$mess = "De template 'briefpapier' is niet ingevuld.";
 			(new cls_Logboek())->add($mess, 4, 0, 1);
 			return false;
 		}
