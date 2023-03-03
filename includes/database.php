@@ -4689,8 +4689,8 @@ class cls_Mailing extends cls_db_base {
 			$orderby = "M.template DESC, M.RecordID DESC";
 		}
 		
-		$query = sprintf("SELECT M.RecordID, CONCAT(M.subject, ' & ', IFNULL(M.Opmerking, '')) AS Onderwerp_Opmerking, MV.Vanaf_naam,
-					CONCAT(%1\$s, ' & ', DATE_FORMAT(M.Gewijzigd, %6\$s, 'nl_NL')) AS laatstGewijzigd, M.subject, M.Opmerking, M.OmschrijvingOntvangers
+		$query = sprintf("SELECT M.RecordID, CONCAT(M.subject, ' & ', IFNULL(M.Opmerking, '')) AS Onderwerp_Opmerking, MV.Vanaf_naam, M.subject, M.Opmerking, M.OmschrijvingOntvangers,
+					CONCAT(MV.Vanaf_naam, ' & ', M.OmschrijvingOntvangers) AS Van_Aan, CONCAT(%1\$s, ' & ', DATE_FORMAT(M.Gewijzigd, %6\$s, 'nl_NL')) AS laatstGewijzigd
 					%2\$s,
 					IF((SELECT COUNT(*) FROM %3\$sMailing_hist AS MH WHERE MH.MailingID=M.RecordID) > 0, M.RecordID, 0) AS linkHist
 					FROM (%3\$sMailing AS M LEFT JOIN %3\$sMailing_vanaf AS MV ON M.MailingVanafID=MV.RecordID) LEFT JOIN %3\$sLid AS L ON M.GewijzigdDoor=L.RecordID
@@ -4773,7 +4773,7 @@ class cls_Mailing extends cls_db_base {
 		return $nrid;
 	}
 	
-	public function update($p_mid, $p_kolom, $p_waarde) {
+	public function update($p_mid, $p_kolom, $p_waarde, $p_reden="") {
 		$this->vulvars($p_mid);
 		$this->tas = 2;
 		
@@ -4781,7 +4781,7 @@ class cls_Mailing extends cls_db_base {
 			$this->mess = "Het onderwerp moeten minimaal uit vier karakters bestaan. Deze aanpassing wordt niet verwerkt.";
 
 		} elseif (toegang("Mailing/Muteren")) {
-			$this->pdoupdate($this->mid, $p_kolom, $p_waarde);
+			$this->pdoupdate($this->mid, $p_kolom, $p_waarde, $p_reden);
 
 		}
 		$this->log($this->mid);
@@ -4817,6 +4817,19 @@ class cls_Mailing extends cls_db_base {
 		
 		$this->log($p_mid);
 	}
+	
+	public function controle() {
+		
+		foreach($this->basislijst() as $mrow) {
+			if (strlen($mrow->OmschrijvingOntvangers) == 0 and strlen($mrow->to_name) > 0) {
+				$this->update($mrow->RecordID, "OmschrijvingOntvangers", $mrow->to_name, "de inhoud is overgezet");
+				$this->log($mrow->RecordID);
+				$this->update($mrow->RecordID, "to_name", "", "de inhoud is overgezet");
+				$this->log($mrow->RecordID);
+			}
+		}
+		
+	}  # controle
 	
 	public function opschonen() {
 		if ($_SESSION['settings']['mailing_bewaartijd'] > 0) {
@@ -4887,7 +4900,7 @@ class cls_Mailing_hist extends cls_db_base {
 			$w = sprintf("MH.RecordID=%d", $this->mhid);
 		}
 		
-		$query = sprintf("SELECT MH.Ingevoerd, MH.send_on, MH.from_addr, MH.from_name, M.to_name, MH.to_addr, MH.cc_addr, MH.subject, MH.message, MH.send_by, MH.LidID, MH.to_name AS Aan, MH.LidID, 
+		$query = sprintf("SELECT MH.Ingevoerd, MH.send_on, MH.from_addr, MH.from_name, MH.to_addr, MH.cc_addr, MH.subject, MH.message, MH.send_by, MH.LidID, MH.to_name AS Aan, MH.LidID, 
 						  MH.MailingID, MH.Xtra_Char, MH.Xtra_Num, MH.ZichtbaarVoor, MH.ZonderBriefpapier, MH.IngevoerdDoor, M.CCafdelingen
 						  FROM (%1\$s LEFT JOIN %2\$sLid AS L ON MH.IngevoerdDoor=L.RecordID) LEFT JOIN %2\$sMailing AS M ON MH.MailingID=M.RecordID
 						  WHERE %3\$s
@@ -5041,7 +5054,7 @@ class cls_Mailing_hist extends cls_db_base {
 		}
 		
 		if (strlen($p_email->aannaam) == 0 and $p_email->mailingid > 0) {
-			$p_email->aannaam = (new cls_mailing())->max("to_name", sprintf("RecordID=%d", $p_email->mailingid));
+			$p_email->aannaam = (new cls_mailing())->max("OmschrijvingOntvangers", sprintf("RecordID=%d", $p_email->mailingid));
 		}
 		
 		if (strlen($p_email->xtrachar) > $this->lengtekolom("Xtra_Char")) {
@@ -5320,6 +5333,9 @@ class cls_Mailing_rcpt extends cls_db_base {
 		return $rv;
 	}  # delete_all
 	
+	public function controle() {
+	}  # controle
+	
 	public function opschonen() {
 		
 		$query = sprintf("DELETE FROM %s WHERE IFNULL(MailingID, 0)=0;", $this->table);
@@ -5347,7 +5363,7 @@ class cls_Mailing_rcpt extends cls_db_base {
 		
 		$this->optimize();
 		
-	}
+	}  # opschonen
 	
 }  # cls_Mailing_rcpt
 
@@ -9327,21 +9343,7 @@ function db_onderhoud($type=9) {
 	$i_base->execsql(sprintf("ALTER TABLE `%sLid` CHANGE `Legitimatietype` `Legitimatietype` CHAR(1) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT 'G';", TABLE_PREFIX));
 
 	$query = sprintf("ALTER TABLE `%sMemo` CHANGE `Vertrouwelijk` `Vertrouwelijk` TINYINT(4) NULL DEFAULT '0'", TABLE_PREFIX);
-	(new cls_db_base())->execsql($query);
-	
-	$tab = TABLE_PREFIX . "Lidond";
-	$idx = "LidOnderdeel";
-	if ($i_base->bestaat_index($tab, $idx) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD INDEX `%s` (`Lid`, `OnderdeelID`);", $tab, $idx);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Rekreg";
-	$idx = "Rekening";
-	if ($i_base->bestaat_index($tab, $idx) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD INDEX `%s` (`Rekening`);", $tab, $idx);
-		$i_base->execsql($query, 2);
-	}
+	$i_base->execsql($query);
 
 	/***** Aanpassen lengte login in de database als deze kleiner is dan login_maxlengte  *****/
 	$table = TABLE_PREFIX . "Admin_login";
@@ -9558,6 +9560,27 @@ function db_onderhoud($type=9) {
 		$query = sprintf("ALTER TABLE `%s` ADD `%s` VARCHAR(1) NULL AFTER `Standaard kostenplaats`;", $tab, $col);
 		$i_base->execsql($query, 2);
 	}
+
+	$tab = TABLE_PREFIX . "Lidond";
+	$idx = "LidOnderdeel";
+	if ($i_base->bestaat_index($tab, $idx) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD INDEX `%s` (`Lid`, `OnderdeelID`);", $tab, $idx);
+		$i_base->execsql($query, 2);
+	}
+	
+	$tab = TABLE_PREFIX . "Rekreg";
+	$idx = "Rekening";
+	if ($i_base->bestaat_index($tab, $idx) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD INDEX `%s` (`Rekening`);", $tab, $idx);
+		$i_base->execsql($query, 2);
+	}
+	
+	$tab = TABLE_PREFIX . "Mailing";
+	$idx = "PRIMARY";
+	if ($i_base->bestaat_index($tab, $idx) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD PRIMARY KEY(`RecordID`);", $tab, $idx);
+		$i_base->execsql($query, 2);
+	}
 	
 	$tab = TABLE_PREFIX . "Mailing_rcpt";
 	$idx = "MailingLid";
@@ -9706,6 +9729,20 @@ function db_onderhoud($type=9) {
 	
 	$tab = TABLE_PREFIX . "Mailing";
 	$col = "MailingID";
+	if ($i_base->bestaat_kolom($col, $tab) == true) {
+		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
+		$i_base->execsql($query, 2);
+	}
+	
+	$tab = TABLE_PREFIX . "Mailing";
+	$col = "from_name";
+	if ($i_base->bestaat_kolom($col, $tab) == true) {
+		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
+		$i_base->execsql($query, 2);
+	}
+		
+	$tab = TABLE_PREFIX . "Mailing";
+	$col = "from_addr";
 	if ($i_base->bestaat_kolom($col, $tab) == true) {
 		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
 		$i_base->execsql($query, 2);
@@ -10587,7 +10624,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sMailing` (
   `from_name` varchar(50) DEFAULT '',
   `from_addr` varchar(50) DEFAULT '',
   `MailingVanafID` int(11) DEFAULT NULL,
-  `to_name` varchar(50) DEFAULT '' COMMENT 'Omschrijving van de groep personen aan wie deze mailing gericht is',
   `OmschrijvingOntvangers` varchar(50) DEFAULT NULL COMMENT 'Omschrijving van de groep personen aan wie deze mailing gericht is',
   `cc_addr` varchar(50) DEFAULT '',
   `subject` varchar(75) DEFAULT '',
