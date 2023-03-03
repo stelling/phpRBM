@@ -146,7 +146,9 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 	$i_ex = null;
 	
 } elseif ($_GET['op'] == "mailingsopschonen") {
+	(new cls_Mailing())->controle();
 	(new cls_Mailing())->opschonen();
+	
 	(new cls_Mailing_hist())->controle();
 	(new cls_Mailing_hist())->opschonen();
 	(new cls_Mailing_rcpt())->opschonen();
@@ -257,15 +259,15 @@ if ($currenttab == "Beheer logins") {
 	if ((new cls_Lid())->aantal() == 0 or toegang($currenttab, 1, 1)) {
 		$aantal = (new cls_Interface())->aantal("IFNULL(Afgemeld, '1900-01-01') < '2011-01-01'");
 		if ($aantal > 0) {
-			printf("<p class='mededeling'>Er staan %d wijzigingen te wachten om verwerkt te worden. Het is niet verstandig om een upload te doen.</p>", $aantal);
+			printf("<p class='waarschuwing'>Er staan %d wijzigingen te wachten om verwerkt te worden. Het is niet verstandig om een upload te doen.</p>", $aantal);
 		}
 		$aantal = (new cls_Login())->aantal("Ingelogd=1");
 		if ($aantal > 1) {
-			printf("<p class='mededeling'>Er staan zijn momenteel %d gebruikers ingelogd. Het is niet verstandig om een upload te doen.</p>", $aantal);
+			printf("<p class='waarschuwing'>Er staan zijn momenteel %d gebruikers ingelogd. Het is niet verstandig om een upload te doen.</p>", $aantal);
 		}
 		echo("<div id='formulier'>\n");
 		printf("<form name='formupload' method='post' action='%s?tp=%s&amp;op=uploaddata' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-		echo("<label>Bestand</label><input type='file' name='SQLupload'><input type='submit' value='Verwerk'>\n");
+		echo("<label>Bestand</label><input tytemplpe='file' name='SQLupload'><input type='submit' value='Verwerk'>\n");
 		echo("</form>\n");
 		echo("</div>  <!-- Einde formulier -->\n");
 	}
@@ -314,6 +316,9 @@ if ($currenttab == "Beheer logins") {
 		echo("<button name='afmelden' type='submit'>Wijzigingen afmelden</button>\n");
 	}
 	
+} elseif ($currenttab == "Export data" and toegang($currenttab, 1, 1)) {
+	db_backup(4);
+	
 } elseif ($currenttab == "Onderhoud" and toegang($currenttab, 1, 1)) {
 	
 	if (isset($_POST['logboek_bewaartijd']) and $_POST['logboek_bewaartijd'] > 0) {
@@ -340,7 +345,7 @@ if ($currenttab == "Beheer logins") {
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=logboekopschonen\"' value='Logboek opschonen'><p>Verwijder alle records uit het logboek, die ouder dan <input type='number' id='logboek_bewaartijd'' value=%d> maanden zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['logboek_bewaartijd']);
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=ledenopschonen\"' value='Leden en lidmaatschappen'><p>Controleren en opschonen leden, lidmaatschappen en foto's.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=beheerdiplomas\"' value=\"Diploma's beheren\"><p>Opschonen en controleren van diploma's en leden per diploma en examens.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=mailingsopschonen\"' value='Mailings opschonen'><p>Mailings en verzonden e-mails, op basis van bewaarinstellingen, opschonen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=mailingsopschonen\"' value='Mailings controleren en opschonen'><p>Controleren en opschonen van mailings en verzonden e-mails.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=evenementenopschonen\"' value='Evenementen opschonen'><p>Opschonen verwijderde evenementen, die geen deelnemers meer hebben.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=rekeningenopschonen\"' value='Rekeningen opschonen'><p>Rekeningen en rekeningregels opschonen op basis van instellingen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=loginsopschonen\"' value='Logins opschonen'><p>Opschonen van logins die om diverse redenen niet meer nodig zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
@@ -529,6 +534,7 @@ function fnInstellingen() {
 	$arrParam['db_backup_type'] = "Welke tabellen moeten worden gebackuped?";
 	$arrParam['db_backupsopschonen'] = "Na hoeveel dagen moeten back-ups automatisch verwijderd worden? 0 = nooit.";
 	$arrParam['db_folderbackup'] = "In welke folder moet de backup worden geplaatst?";
+	$arrParam['interface_access_db'] = "Moet de tabel voor de interface naar MS-Access worden gevuld?";
 	$arrParam['emailwebmaster'] = "Het e-mailadres van de webmaster.";
 	$arrParam['kaderoverzichtmetfoto'] = "Moeten op het kaderoverzicht pasfoto's getoond worden?";
 	$arrParam['toonpasfotoindiennietingelogd'] = "Mogen pasfoto's zichtbaar voor bezoekers (niet ingelogd) zijn?";
@@ -771,8 +777,7 @@ function fnEigenlijstenmuteren() {
 		$row = $i_el->record();
 		
 		printf("<form method='post' id='eigenlijstmuteren' action='%s?tp=%s&paramID=%d'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $elid);
-		
-		printf("<label>Naam eigen lijst</label><input type='text' name='naam' class='w40' value='%s' maxlength=40>\n", $row->Naam);
+		printf("<label>Naam eigen lijst</label><input type='text' name='naam' class='w50' value='%s' maxlength=50>\n", $row->Naam);
 		printf("<label>MySQL-code</label><textarea id='mysql' name='mysql' rows=16 cols=100>%s</textarea>\n", $row->MySQL);
 		echo("<p>Parameters kunnen worden gebruikt. Een parameter start met '@P', gevolgd door 0 t/m 9. De nummering moet met 0 starten en een ondoorbroken reeks zijn.</p>\n");
 		printf("<label>Eigen script</label><p>%s/maatwerk/</p><input type='text' name='EigenScript' class='w30' value='%s' maxlength=30>\n", BASISURL, $row->EigenScript);
@@ -843,6 +848,7 @@ function fnEigenlijstenmuteren() {
 function fnTemplatesmuteren() {
 	
 	$i_tp = new cls_Template();
+	$i_tp->controle();
 	
 	$seltp = $_GET['tpid'] ?? -1;
 	
