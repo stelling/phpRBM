@@ -71,18 +71,16 @@ if (isset($_SESSION['lidid'])) {
 	(new cls_Logboek())->add($mess, 1, 0, 1);
 }
 
-if ($_SERVER['PHP_SELF'] == "/index.php") {
-	if (isset($_COOKIE["pagbreedte"]) and $_COOKIE["pagbreedte"] > 0) {
-		$_SESSION['pagbreedte'] = $_COOKIE["pagbreedte"];
-	} elseif ($_SESSION['pagbreedte'] == 0) {
-		$_SESSION['pagbreedte'] = $_GET['p_pagbreedte'] ?? 0;
-		if ($_SESSION['pagbreedte'] > 0) {
-			setcookie("pagbreedte", $_SESSION['pagbreedte'], time()+(3600*24*90));
-		}
+if (isset($_COOKIE["pagbreedte"]) and $_COOKIE["pagbreedte"] > 0) {
+	$_SESSION['pagbreedte'] = $_COOKIE["pagbreedte"];
+} elseif ($_SESSION['pagbreedte'] == 0) {
+	$_SESSION['pagbreedte'] = $_GET['p_pagbreedte'] ?? 0;
+	if ($_SESSION['pagbreedte'] > 0) {
+		setcookie("pagbreedte", $_SESSION['pagbreedte'], time()+(3600*24*90));
 	}
-	if ($_SESSION['pagbreedte'] == 0) {
-		printf("<script>location.href=\"%s?p_pagbreedte=\" + screen.width + \"\"</script>\n", BASISURL);
-	}
+}
+if ($_SESSION['pagbreedte'] == 0 and $_SERVER['PHP_SELF'] == "/index.php") {
+	printf("<script>location.href=\"%s?p_pagbreedte=\" + screen.width + \"\"</script>\n", BASISURL);
 }
 
 if ((isset($_SESSION['webmaster']) and $_SESSION['webmaster'] == 1) or strpos(BASISURL, "telling.nl") > 0) {
@@ -179,14 +177,20 @@ if ($_SESSION['lidid'] > 0) {
 $dtfmt->setPattern(DTTEXT);
 $fileverinfo = 'templates/verenigingsinfo.html';
 
-foreach ($tabpages as $tp) {
-	$arrTP = explode("/", $tp);
-	if (strlen($currenttab2) == 0 and count($arrTP) > 1 and $arrTP[0] == $currenttab and toegang($tp, 0)) {
-		$currenttab2 = $arrTP[1];
+if (isset($tabpages)) {
+	foreach ($tabpages as $tp) {
+		$arrTP = explode("/", $tp);
+		if (strlen($currenttab2) == 0 and count($arrTP) > 1 and $arrTP[0] == $currenttab and toegang($tp, 0)) {
+			$currenttab2 = $arrTP[1];
+		}
+		if (strlen($currenttab3) == 0 and count($arrTP) > 2 and $arrTP[0] == $currenttab and $arrTP[1] == $currenttab2 and toegang($tp, 0)) {
+			$currenttab3 = $arrTP[2];
+		}
 	}
-	if (strlen($currenttab3) == 0 and count($arrTP) > 2 and $arrTP[0] == $currenttab and $arrTP[1] == $currenttab2 and toegang($tp, 0)) {
-		$currenttab3 = $arrTP[2];
-	}
+} else {
+	$currenttab2 = "";
+	$currenttab3 = "";
+	$tabpages = array();
 }
 
 function HTMLheader($breed=0) {
@@ -230,6 +234,17 @@ function HTMLheader($breed=0) {
 		echo("<script src='https://code.jquery.com/jquery-3.6.0.js'></script>\n");
 		if ($currenttab == "Vereniging" or $currenttab == "Eigen gegevens"  or $currenttab == "Ledenlijst" or $currenttab2 == "Overzicht lid") {
 			echo("<script src='https://code.jquery.com/ui/1.13.1/jquery-ui.js'></script>\n");
+		}
+		if ($currenttab == "Mailing") {
+			if ($_SESSION['settings']['mailing_type_editor'] == 3) {
+				$src = "/includes/tinymce/js/tinymce/tinymce.min.js";
+				if (file_exists(BASEDIR . $src)) {
+					$src = BASISURL . $src;
+				} else {
+					$src = sprintf("https://cdn.tiny.cloud/1/%s/tinymce/6/tinymce.min.js", $_SESSION['settings']['mailing_tinymce_apikey']);
+				}
+				printf("<script src='%s' referrerpolicy='origin'></script>\n", $src);
+			}
 		}
 		
 		if (file_exists("default.css")) {
