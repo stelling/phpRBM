@@ -762,6 +762,7 @@ class cls_db_base {
 	}
 	
 	public function optimize() {
+		$this->tas = 21;
 		
 		$this->execsql(sprintf("OPTIMIZE TABLE %s;", $this->table), 2);
 		
@@ -1602,7 +1603,7 @@ class cls_Lidmaatschap extends cls_db_base {
 	}
 	
 	public function eindelidmaatschap($p_lidid=-1) {
-		if ($p_lidid >= 0) {
+		if ($p_lidid > 0) {
 			$this->lidid = $p_lidid;
 		}
 		$query = sprintf("SELECT MAX(IFNULL(LM.Opgezegd, '9999-12-31')) FROM %s WHERE LM.Lid=%d;", $this->basefrom, $this->lidid);
@@ -4791,8 +4792,8 @@ class cls_Mailing extends cls_db_base {
 		$this->vulvars($p_mid);
 		$this->tas = 3;
 		
-		if ($this->pdodelete($p_mid, $p_reden) > 0) {
-			$this->log($p_mid);
+		if ($this->pdodelete($this->mid, $p_reden) > 0) {
+			$this->log($this->mid);
 			$query = sprintf("DELETE FROM %sMailing_rcpt WHERE MailingID=%d;", TABLE_PREFIX, $this->mid);
 			$this->execsql($query);
 		}
@@ -4824,8 +4825,6 @@ class cls_Mailing extends cls_db_base {
 			if (strlen($mrow->OmschrijvingOntvangers) == 0 and strlen($mrow->to_name) > 0) {
 				$this->update($mrow->RecordID, "OmschrijvingOntvangers", $mrow->to_name, "de inhoud is overgezet");
 				$this->log($mrow->RecordID);
-				$this->update($mrow->RecordID, "to_name", "", "de inhoud is overgezet");
-				$this->log($mrow->RecordID);
 			}
 		}
 		
@@ -4833,10 +4832,10 @@ class cls_Mailing extends cls_db_base {
 	
 	public function opschonen() {
 		if ($_SESSION['settings']['mailing_bewaartijd'] > 0) {
-			$query = sprintf("SELECT M.RecordID FROM %s AS M WHERE (deleted_on IS NOT NULL) AND deleted_on < ADDDATE(CURDATE(), INTERVAL -%d MONTH);", $this->table, $_SESSION['settings']['mailing_bewaartijd']);
-			$result = $this->execsql($query);
-			foreach ($result->fetchAll() as $row) {
-				$this->delete($row->RecordID);
+			$reden = sprintf("de mailing langer dan %d maanden geleden in de prullenbak is geplaatst", $_SESSION['settings']['mailing_bewaartijd']);
+			$f = sprintf("IFNULL(M.deleted_on, '9999-12-31') < DATE_SUB(CURDATE(), INTERVAL %d MONTH)", $this->basefrom, $_SESSION['settings']['mailing_bewaartijd']);
+			foreach ($this->basislijst($f) as $mrow) {
+				$this->delete($mrow->RecordID, $reden);
 			}
 		}
 		
@@ -5112,13 +5111,14 @@ class cls_Mailing_hist extends cls_db_base {
 	
 	public function opschonen() {
 		$this->tas = 23;
+		
 		$mho = $_SESSION['settings']['mailing_hist_opschonen'] ?? 84;
-		if ($mho >= 3) {
+		if ($mho > 3) {
 			$query = sprintf("SELECT LM.Lid FROM %sLidmaatschap AS LM WHERE IFNULL(LM.Opgezegd, '9999-12-31') < DATE_SUB(CURDATE(), INTERVAL %d MONTH);", TABLE_PREFIX, $mho);
 			$result = $this->execsql($query);
 			foreach ($result->fetchAll() as $lmrow) {
 				$this->lidid = $lmrow->Lid;
-				if ((new cls_Lidmaatschap())->soortlid($lmrow->Lid) == "Voormalig lid") {
+				if ((new cls_Lidmaatschap())->eindelidmaatschap($lmrow->Lid) < date("Y-m-d", strtotime(sprintf("-%d month", $mho)))) {
 					$this->query = sprintf("DELETE FROM %s WHERE LidID=%d AND send_on < DATE_SUB(CURDATE(), INTERVAL %d MONTH);", $this->table, $lmrow->Lid, $mho);
 					$aant = $this->execsql();
 					if ($aant > 0) {
@@ -5136,18 +5136,20 @@ class cls_Mailing_hist extends cls_db_base {
 		}
 		
 		$mho = $_SESSION['settings']['mailing_verzonden_opschonen'] ?? 84;
-		$aant = 0;
-		$query = sprintf("SELECT MH.RecordID FROM %s WHERE MH.send_on < DATE_SUB(CURDATE(), INTERVAL %d MONTH) AND (MH.send_on IS NOT NULL);", $this->basefrom, $mho);
-		$result = $this->execsql($query);
-		$reden = sprintf("deze langer dan %d maanden geleden verzonden is.", $mho);
-		foreach ($result->fetchAll() as $mhrow) {
-			$this->delete($mhrow->RecordID, $reden);
+		if ($mho > 3) {
+			$aant = 0;
+			$query = sprintf("SELECT MH.RecordID FROM %s WHERE MH.send_on < DATE_SUB(CURDATE(), INTERVAL %d MONTH) AND (MH.send_on IS NOT NULL);", $this->basefrom, $mho);
+			$result = $this->execsql($query);
+			$reden = sprintf("deze langer dan %d maanden geleden verzonden is.", $mho);
+			foreach ($result->fetchAll() as $mhrow) {
+				$this->delete($mhrow->RecordID, $reden);
+			}
 		}
 		
 		$query = sprintf("SELECT MH.RecordID FROM %s WHERE MH.Ingevoerd < DATE_SUB(CURDATE(), INTERVAL 15 DAY) AND (MH.send_on IS NULL);", $this->basefrom);
 		$result = $this->execsql($query);
 		foreach ($result->fetchAll() as $mhrow) {
-			$this->delete($mhrow->RecordID, "deze na 2 weken nog niet verznden is");
+			$this->delete($mhrow->RecordID, "deze na 2 weken nog niet verzonden is");
 		}
 		
 		$this->optimize();
@@ -9748,6 +9750,16 @@ function db_onderhoud($type=9) {
 		$i_base->execsql($query, 2);
 	}
 	
+	/*
+		Deze code na 1 april 2023 activeren, eerst controle in cls_Mailing aanpassen.
+	$tab = TABLE_PREFIX . "Mailing";
+	$col = "to_namer";
+	if ($i_base->bestaat_kolom($col, $tab) == true) {
+		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
+		$i_base->execsql($query, 2);
+	}
+	*/
+	
 	/***** Opschonen database na een upload uit de Access-database.  *****/
 
 	if ($type == 1) {		
@@ -9837,15 +9849,11 @@ function db_backup($p_typebackup=3) {
 					$data .= sprintf("TRUNCATE `%s`;\n", $table);
 				}
 		
-				while($row = $result->fetch(PDO::FETCH_NUM)) { 
-					
-	
-					
+				while($row = $result->fetch(PDO::FETCH_NUM)) {
 					$data .= sprintf("INSERT INTO `%s` VALUES(", $table);
 					for($j=0; $j<$num_fields; $j++) {
 						$meta = $result->GetColumnMeta($j);
 						$row[$j] = addslashes($row[$j]);
-						$row[$j] = str_replace("\n","\\n",$row[$j]);
 						if ($meta['native_type'] == "LONG" or $meta['native_type'] == "TINY"  or $meta['native_type'] == "SHORT") {
 							if (isset($row[$j]) and strlen($row[$j]) > 0) {
 								$data .= $row[$j];
@@ -9868,7 +9876,7 @@ function db_backup($p_typebackup=3) {
 							}
 							
 						} elseif (isset($row[$j])) {
-							$data .= '"' . $row[$j] . '"' ;
+							$data .= '"' . htmlentities($row[$j]) . '"' ;
 //							debug($meta['name'] . ": " . $meta['native_type']);
 						} else {
 							$data .= '""';
@@ -9901,7 +9909,7 @@ function db_backup($p_typebackup=3) {
 		
 		if ($p_typebackup == 4) {
 
-			echo("<p class='sql'>" . $data . "</p>\n");
+			echo("<p class='sql' id='exportdata'>" . $data . "</p>\n");
 			
 			echo("<p class='mededeling'>Deze export bevat geen Admin-tabellen en ook geen verzonden e-mails.</p>\n");
 
