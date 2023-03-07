@@ -73,7 +73,7 @@ if (isset($_SESSION['lidid'])) {
 
 if (isset($_COOKIE["pagbreedte"]) and $_COOKIE["pagbreedte"] > 0) {
 	$_SESSION['pagbreedte'] = $_COOKIE["pagbreedte"];
-} elseif ($_SESSION['pagbreedte'] == 0) {
+} elseif (!isset($_SESSION['pagbreedte']) or $_SESSION['pagbreedte'] == 0) {
 	$_SESSION['pagbreedte'] = $_GET['p_pagbreedte'] ?? 0;
 	if ($_SESSION['pagbreedte'] > 0) {
 		setcookie("pagbreedte", $_SESSION['pagbreedte'], time()+(3600*24*90));
