@@ -1668,8 +1668,8 @@ class email {
 				$this->lidid = $mhrow->LidID;
 				$this->vanafnaam = $mhrow->from_name;
 				$this->vanafadres = htmlentities($mhrow->from_addr);
-				$this->omsontvangers = htmlentities($mhrow->to_name);
-				$this->aannaam = htmlentities($mhrow->Aan);
+				$this->omsontvangers = htmlentities($mhrow->OmschrijvingOntvangers);
+				$this->aannaam = htmlentities($mhrow->to_name);
 				$this->aanadres = $mhrow->to_addr;
 				$this->cc = $mhrow->cc_addr;
 				$this->CCafdelingen = $mhrow->CCafdelingen;
