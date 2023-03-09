@@ -2,8 +2,6 @@
 
 function fnMailing() {
 	global $ldl, $currenttab, $currenttab2;
-	
-//	eigennotificatie(5, "simon@telling.nl", -1, 1);
 
 	if (!isset($_GET['mid'])) {
 		$_GET['mid'] = 0;
@@ -1214,11 +1212,10 @@ class Mailing {
 			if ($rcpt->LidID > 0) {
 				$this->merge($rcpt->LidID);
 				$email->Subject = $this->merged_subject;
+				$email->lidid = $rcpt->LidID;
 				$email->toevoegenlid($rcpt->LidID);
 			} elseif (strlen($rcpt->to_address) > 5) {
-				if ($this->mid != $_SESSION['settings']['mailingbijadreswijziging']) {
-					$this->merge(0);
-				}
+				$email->lidid = 0;
 				$email->toevoegenadres($rcpt->to_address);
 				$this->bevat_losse_email = true;
 			}
@@ -1287,7 +1284,7 @@ class Mailing {
 			}
 			$htmlmessage = str_ireplace("[%MESSAGE%]", $mhrow->message, $htmlmessage);
 			$htmlmessage = str_ireplace("[%FROM%]", $mhrow->from_name, $htmlmessage);
-			$htmlmessage = str_ireplace("[%TO%]", $mhrow->to_name, $htmlmessage);
+			$htmlmessage = str_ireplace("[%TO%]", $mhrow->AanNaam, $htmlmessage);
 			$htmlmessage = str_ireplace("[%SUBJECT%]", $mhrow->subject, $htmlmessage);
 			return $htmlmessage;
 		} else {
@@ -1515,7 +1512,7 @@ function lijstmailings($p_filter="") {
 		$kols[1]['columnname'] = "send_on";
 		$kols[1]['type'] = "DTLONG";
 		$kols[2]['headertext'] = "Van";
-		$kols[2]['columnname'] = "from_name";
+		$kols[2]['columnname'] = "Vanaf";
 		$kols[3]['headertext'] = "Aan";
 		$kols[3]['columnname'] = "Aan";
 		$kols[3]['type'] = "combitext";
@@ -1623,7 +1620,6 @@ function lijstmailings($p_filter="") {
 } # lijstmailings
 
 class email {
-
 	private $mhid = 0;
 	public $mailingid = 0;
 	public $lidid = 0;
@@ -1632,8 +1628,8 @@ class email {
 	private $verstuurdop = "";
 	public $vanafnaam = "";
 	public $vanafadres = "";
+	public $vanafid = 0;
 	public $omsontvangers = "";
-	private $aantalontvangers = 0;
 	public $aannaam = "";
 	public $aanadres = "";
 	public $cc = "";
@@ -1668,8 +1664,9 @@ class email {
 				$this->lidid = $mhrow->LidID;
 				$this->vanafnaam = $mhrow->from_name;
 				$this->vanafadres = htmlentities($mhrow->from_addr);
+				$this->vanafid = $mhrow->VanafID;
 				$this->omsontvangers = htmlentities($mhrow->OmschrijvingOntvangers);
-				$this->aannaam = htmlentities($mhrow->to_name);
+				$this->aannaam = htmlentities($mhrow->AanNaam);
 				$this->aanadres = $mhrow->to_addr;
 				$this->cc = $mhrow->cc_addr;
 				$this->CCafdelingen = $mhrow->CCafdelingen;
@@ -1686,6 +1683,7 @@ class email {
 			$mrow = (new cls_Mailing())->record($this->mailingid);
 			$this->vanafnaam = $mrow->Vanaf_naam;
 			$this->vanafadres = htmlentities($mrow->Vanaf_email);
+			$this->vanafid = $mrow->MailingVanafID;
 			$this->omsontvangers = htmlentities($mrow->OmschrijvingOntvangers);
 			$this->cc = $mrow->cc_addr;
 			$this->CCafdelingen = $mrow->CCafdelingen;
@@ -1696,6 +1694,16 @@ class email {
 		} else {
 			$this->vanafadres = $_SESSION['settings']['emailwebmaster'];
 		}
+		
+		if ($this->vanafid > 0) {
+			
+			$i_mv = new cls_Mailing_vanaf($this->vanafid);
+			$this->vanafnaam = $i_mv->vanaf_naam;
+			$this->vanafadres = $i_mv->vanaf_email;
+			$i_mv = null;
+			
+		}
+		
 	}  # __construct
 	
 	public function toon($p_direct=1) {
@@ -1753,28 +1761,31 @@ class email {
 		
 	} # toon
 	
+	public function edit($p_mhid=-1, $p_lidid=-1) {
+		
+		
+	}  # edit
+	
 	public function toevoegenlid($p_lidid, $p_tp="aan") {
 	
-		$row = (new cls_Lid())->record($p_lidid);
-		if ($this->lidid == 0) {
-			$this->lidid = $p_lidid;
-		}
+		$this->lidid = $p_lidid;
+		$row = (new cls_Lid())->record($this->lidid);
+		
 		if (isValidMailAddress($row->Email, 0)) {
-			$this->toevoegenadres($row->Email, $p_tp);
+			$this->toevoegenadres($row->Email, $p_tp, $row->NaamLid);
 		} elseif (strlen($row->EmailOuders) > 5) {
 			$this->toevoegenadres($row->EmailOuders, $p_tp);
 		} elseif (isValidMailAddress($row->EmailVereniging, 0)) {
-			$this->toevoegenadres($row->EmailVereniging, $p_tp);
+			$this->toevoegenadres($row->EmailVereniging, $p_tp, $row->NaamLid);
 		}
 		
 		if ($this->xtrachar != "REK" and $p_tp == "aan") {
 			$this->aannaam = $row->NaamLid;
 		}
 		
-		if ($row->GEBDATUM > date("Y-m-d", mktime(0, 0, 0, date("m"), date("d"), date("Y")-18)) and strlen($row->EmailOuders) > 5) {
+		if ($row->GEBDATUM > date("Y-m-d", strtotime("-18 year")) and strlen($row->EmailOuders) > 5) {
 			$this->toevoegenadres($row->EmailOuders, "cc");
 		}
-		$this->aantalontvangers++;
 		
 	}  # toevoegenlid
 	
@@ -1810,6 +1821,20 @@ class email {
 			$this->vanafadres = $i_mv->vanaf_email;
 			$this->vanafnaam = $i_mv->vanaf_naam;
 			$i_mv = null;
+			
+		} elseif ($this->vanafid > 0) {
+			$i_mv = new cls_Mailing_vanaf($this->vanafid);
+			$this->vanafadres = $i_mv->vanaf_email;
+			$this->vanafnaam = $i_mv->vanaf_naam;
+			$i_mv = null;
+			
+		} elseif (strlen($this->vanafadres) > 5) {
+			$i_mv = new cls_Mailing_vanaf();
+			$i_mv->vulvars(-1, $this->vanafadres);
+			if ($i_mv->mvid > 0) {
+				$this->vanafid = $i_mv->mvid;
+				$this->vanafnaam = $i_mv->vanaf_naam;
+			}
 		}
 		
 		$this->bericht = str_ireplace("[%FROMNAME%]", $this->vanafnaam, $this->bericht);
@@ -2250,7 +2275,7 @@ function sentfromhist($p_mhid, $p_handm=0) {
 	foreach (explode(",", $row->to_addr) as $e) {
 		$e = trim($e);
 		if (isValidMailAddress($e)) {
-			$mail->AddAddress($e, $row->Aan);
+			$mail->AddAddress($e, $row->AanNaam);
 		}
 	}
 	foreach (explode(",", $row->cc_addr) as $e) {
@@ -2259,8 +2284,17 @@ function sentfromhist($p_mhid, $p_handm=0) {
 			$mail->AddCC($e);
 		}
 	}
-	$mail->From = $row->from_addr;
-	$mail->FromName = $row->from_name;
+	
+	if ($row->VanafID > 0) {
+		$i_mv = new cls_Mailing_vanaf($row->VanafID);
+		$mail->From = $i_mv->vanaf_email;
+		$mail->FromName = $i_mv->vanaf_naam;
+		$i_mv = null;
+	} else {
+		$mail->From = $row->from_addr;
+		$mail->FromName = $row->from_name;
+	}
+	
 	if ($row->send_on > "2000-01-01" and strpos($row->subject, "opnieuw verzonden") == false) {
 		$mail->Subject = $row->subject . " (opnieuw verzonden)";
 	} else {
@@ -2268,12 +2302,7 @@ function sentfromhist($p_mhid, $p_handm=0) {
 	}
 	$mail->Body = $row->message;
 	
-	if (strlen($row->to_name) > 0) {
-		$a = $row->to_name;
-	} else {
-		$a = $row->Aan;
-	}
-	if ($mail->addstationary($a, "", 0, $row->ZonderBriefpapier)) {
+	if ($mail->addstationary($row->AanNaam, "", 0, $row->ZonderBriefpapier)) {
 
 		$ad = $_SESSION['settings']['path_attachments'] . $row->MailingID;
 		if (is_dir($ad)) {
@@ -2476,30 +2505,36 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 		} else {
 			try {
 				if(!$this->PreSend()) return false;
-				return $this->PostSend();
-			} catch (phpmailerException $e) {
-				$this->SentMIMEMessage = '';
-				$this->SetError($e->getMessage());
-				if ($this->exceptions) {
-					$i_lb->add($e->getMessage(), 4, 0, 1);
-					throw $e;
+					return $this->PostSend();
+				} catch (phpmailerException $e) {
+					$this->SentMIMEMessage = '';
+					$this->SetError($e->getMessage());
+					if ($this->exceptions) {
+						$i_lb->add($e->getMessage(), 4, 0, 1);
+						throw $e;
+					}
+					return false;
 				}
-				return false;
-			}
 		}
 	}
 } # RBM_mailer
 
-function eigennotificatie($p_ondid, $p_aanadres, $p_tas=-1, $p_interval=24, $p_cc="", $p_onderwerp="") {
+function eigennotificatie($p_ondid, $p_aanadres, $p_tas=-1, $p_interval=24, $p_cc="", $p_onderwerp="", $p_vanafid=-1) {
 	
 	if ($p_tas < 0) {
 		$p_tas = $p_ondid;
 	}
 	
 	$i_ond = new cls_Onderdeel($p_ondid);
+	(new cls_Lidond())->autogroepenbijwerken(0, 10, $p_ondid);
 	$i_el = new cls_Eigen_lijst("", $p_ondid);
+	$i_el->controle();
 	$i_lb = new cls_Logboek();
 	$i_email = new email();
+	
+	if ($p_vanafid > 0) {
+		$i_email->vanafid = $p_vanafid;
+	}
 	
 	$ar = 0;
 	$ng = "";
@@ -2520,7 +2555,6 @@ function eigennotificatie($p_ondid, $p_aanadres, $p_tas=-1, $p_interval=24, $p_c
 		} elseif ($i_el->elid > 0) {
 			$ar = $i_el->aantalrijen;
 			if ($ar > 0) {
-				$i_el->controle();
 				$ar = $i_el->aantalrijen;
 			}
 			$ng = $i_el->elnaam;
