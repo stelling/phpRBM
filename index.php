@@ -276,15 +276,14 @@ if ($currenttab != "Mailing" and $kaal == 0) {
 }
 
 function fnVoorblad() {
-	global $fileverinfo, $dtfmt;
+	global $dtfmt;
+	
+	$i_tp = new cls_Template();
 	
 	(new cls_login())->uitloggen();
 
-	if (file_exists($fileverinfo)) {
-		$content = file_get_contents($fileverinfo);
-	} else {
-		$content = "";
-	}
+	$i_tp->vulvars(-1, "verenigingsinfo");
+	$content = $i_tp->inhoud;
 	
 	if ($content !== false and strlen($content) > 0) {
 		if ($_SESSION['lidid'] == 0) {
