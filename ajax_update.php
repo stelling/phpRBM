@@ -72,6 +72,7 @@ if ($_SESSION['lidid'] > 0) {
 		if ($loid > 0 and $akid > 0) {
 			$i_aanw = new cls_Aanwezigheid();
 			$i_aanw->update($loid, $akid, "Status", $newvalue);
+			$i_aanw = null;
 		}
 		
 	} elseif ($ent == "htmlloperlid") {
@@ -104,7 +105,6 @@ if ($_SESSION['lidid'] > 0) {
 		
 	} elseif ($ent == "onderdeeledit") {
 		
-//		debug($rid . " / " . $kolom . " / " . $newvalue, 0, 1);
 		$i_ond = new cls_Onderdeel();
 		$i_ond->update($rid, $kolom, $newvalue);
 		$i_ond = null;
@@ -112,15 +112,17 @@ if ($_SESSION['lidid'] > 0) {
 	} elseif ($ent == "groepedit") {
 		$i_gr = new cls_Groep();
 		$i_gr->update($rid, $kolom, $newvalue);
+		$i_gr = null;
 			
-	} elseif ($ent == "functieedit" and toegang("Ledenlijst/Basisgegevens/Functies")) {
+	} elseif ($ent == "functieedit") {
 		$i_fnk = new cls_Functie();
 		$i_fnk->update($rid, $kolom, $newvalue);
 		$i_fnk = null;
 		
-	} elseif ($ent == "activiteitedit" and toegang("Ledenlijst/Basisgegevens/Activiteiten")) {
+	} elseif ($ent == "activiteitedit") {
 		$i_act = new cls_Activiteit();
 		$i_act->update($rid, $kolom, $newvalue);
+		$i_act = null;
 	
 	} elseif ($ent == "diplomaedit") {
 		$i_dp = new cls_Diploma();
@@ -133,16 +135,17 @@ if ($_SESSION['lidid'] > 0) {
 		$i_ak = null;
 		echo(json_encode($rv));
 		
-	} elseif ($ent == "organisatieedit" and toegang("Ledenlijst/Basisgegevens/Organisaties")) {
+	} elseif ($ent == "organisatieedit") {
 		$i_org = new cls_Organisatie();
-		$i_org->update($rid, $kolom, $newvalue);	
+		$i_org->update($rid, $kolom, $newvalue);
+		$i_org = null;
 		
-	} elseif ($ent == "seizoenedit" and (toegang("Ledenlijst/Basisgegevens/Seizoenen") or toegang("Rekeningen/Aanmaken rekeningen"))) {
+	} elseif ($ent == "seizoenedit") {
 		$i_sz = new cls_Seizoen();
 		$i_sz->update($rid, $kolom, $newvalue);
 		$i_sz = null;
 		
-	} elseif ($ent == "mailing" and toegang("Mailing/Muteren")) {
+	} elseif ($ent == "mailing") {
 
 		if ($rid > 0 and strlen($kolom) > 0) {
 			$i_m = new cls_Mailing();
@@ -186,26 +189,25 @@ if ($_SESSION['lidid'] > 0) {
 		
 		echo(json_encode($rv));
 				
-	} elseif ($ent == "mailing_add_ontvanger" and toegang("Mailing/Muteren")) {
-		$mid = $_POST['mid'] ?? 0;
-		$lidid = $_POST['lidid'] ?? 0;
+	} elseif ($ent == "mailing_add_ontvanger") {
+		$i_mr = new cls_Mailing_rcpt();	
+		$rv = false;
+		
+		$mid = $_POST['mid'] ?? 4;
+		$lidid = $_POST['lidid'] ?? 216;
 		$email = $_POST['email'] ?? "";
-		$i_mr = new cls_Mailing_rcpt();
-		$rv = $i_mr->add($mid, $lidid, $email);
+		if ($mid > 0 and ($lidid > 0 or strlen($email) > 5)) {
+			$rv = $i_mr->add($mid, $lidid, $email);
+		}
+		
 		$i_mr = null;
+		echo($rv);
 		
-		echo(true);
-		
-	} elseif ($ent == "mailing_add_selectie_ontvangers" and toegang("Mailing/Muteren")) {
+	} elseif ($ent == "mailing_add_selectie_ontvangers") {
 		$mid = $_POST['mid'] ?? 4;
 		$selgroep = $_POST['selgroep'] ?? 0;
 		$vangebdatum = $_POST['vangebdatum'] ?? "1900-01-01";
 		$temgebdatum = $_POST['temgebdatum'] ?? "9999-12-31";
-		
-		$i_lo = new cls_lidond();
-		$i_lo->auto_einde(0, 1, $selgroep);
-		$i_lo->autogroepenbijwerken($selgroep);
-		$i_lo = null;
 		
 		$i_m = new Mailing($mid);
 		$rv = $i_m->add_del_selectie("add", $selgroep, $vangebdatum, $temgebdatum);
@@ -213,7 +215,7 @@ if ($_SESSION['lidid'] > 0) {
 		
 		echo($rv);
 		
-	} elseif ($ent == "mailing_verw_ontvanger" and toegang("Mailing/Muteren")) {
+	} elseif ($ent == "mailing_verw_ontvanger") {
 		
 		$email = $_POST['email'] ?? "";
 		$i_mr = new cls_Mailing_rcpt();
@@ -222,7 +224,7 @@ if ($_SESSION['lidid'] > 0) {
 		
 		echo(json_encode($rv));
 		
-	} elseif ($ent == "mailing_verw_selectie_ontvangers" and toegang("Mailing/Muteren")) {
+	} elseif ($ent == "mailing_verw_selectie_ontvangers") {
 		$mid = $_POST['mid'] ?? 0;
 		$selgroep = $_POST['selgroep'] ?? 0;
 		$vangebdatum = $_POST['vangebdatum'] ?? "1900-01-01";
@@ -233,7 +235,7 @@ if ($_SESSION['lidid'] > 0) {
 		
 		echo(json_encode($rv));
 				
-	} elseif ($ent == "mailing_verw_alle_ontvangers" and toegang("Mailing/Muteren")) {
+	} elseif ($ent == "mailing_verw_alle_ontvangers") {
 		$mid = $_POST['mid'] ?? 0;
 		$i_mr = new cls_Mailing_rcpt();
 		$rv = $i_mr->delete_all($mid);
@@ -253,10 +255,12 @@ if ($_SESSION['lidid'] > 0) {
 	} elseif ($ent == "editmailingvanaf") {
 		$i_mv = new cls_Mailing_vanaf();
 		$i_mv->update($rid, $kolom, $newvalue);
+		$i_mv = null;
 		
-	} elseif ($ent == "rekeningedit" and toegang("Rekeningen/Muteren")) {
+	} elseif ($ent == "rekeningedit") {
 		$i_rk = new cls_Rekening();
 		$i_rk->update($rid, $kolom, $newvalue);
+		$rk = null;
 		
 	} elseif ($ent == "rekeningmail") {	
 		$i_mh = new cls_Mailing_hist();
@@ -279,11 +283,12 @@ if ($_SESSION['lidid'] > 0) {
 		
 		echo(json_encode($rv));
 		
-	} elseif ($ent == "rekregedit" and toegang("Rekeningen/Muteren")) {
+	} elseif ($ent == "rekregedit") {
 		$i_rr = new cls_Rekeningregel();
 		$i_rr->update($rid, $kolom, $newvalue);
+		$i_rr = null;
 		
-	} elseif ($ent == "verw_rekregel" and toegang("Rekeningen/Muteren")) {
+	} elseif ($ent == "verw_rekregel") {
 		$i_rr = new cls_Rekeningregel();
 		$i_rr->delete($rid);
 		$i_rr = null;
@@ -305,33 +310,35 @@ if ($_SESSION['lidid'] > 0) {
 			$i_rb = null;
 		}
 		
-	} elseif ($ent == "evenement" and toegang("Evenementen/Beheer")) {
+	} elseif ($ent == "evenement") {
 		$i_ev = new cls_Evenement();
 		$i_ev->update($rid, $kolom, $newvalue);
 		$i_ev = null;
 
-	} elseif ($ent == "evenementdln" and toegang("Evenementen/Beheer")) {
+	} elseif ($ent == "evenementdln") {
 		$i_ed = new cls_Evenement_Deelnemer();
 		$i_ed->update($rid, $kolom, $newvalue);
 		$i_ed = null;
 		
-	} elseif ($ent == "verw_dln" and toegang("Evenementen/Beheer")) {
+	} elseif ($ent == "verw_dln") {
 		$i_ed = new cls_Evenement_Deelnemer();
 		$i_ed->delete($rid);
 		$i_ed = null;
 		
-	} elseif ($ent == "add_autorisatie" and $_SESSION['webmaster'] == 1) {
+	} elseif ($ent == "add_autorisatie") {
 		$i_aa = new cls_Authorisation();
 		$i_aa->add($_POST['tabpage']);
 		$i_aa = null;
 		
-	} elseif ($ent == "update_autorisatie" and $_SESSION['webmaster'] == 1) {
+	} elseif ($ent == "update_autorisatie") {
 		$i_aa = new cls_Authorisation();
 		$i_aa->update($rid, $kolom, $newvalue);
+		$i_aa = null;
 		
-	} elseif ($ent === "delete_autorisatie" and $_SESSION['webmaster'] == 1) {
+	} elseif ($ent === "delete_autorisatie") {
 		$i_aa = new cls_Authorisation();
 		$i_aa->delete($rid);
+		$i_aa = null;
 		
 	} elseif ($ent == "updateparam") {
 		$name = $_POST['name'] ?? "";
