@@ -103,11 +103,11 @@ function fnFilterDiplomaLid() {
 	}
 }
 
-function CopyFunction() {
-	let textarea = document.getElementById("copywijzigingen");
-	textarea.select();
+function CopyFunction(p_id="copywijzigingen") {
+	let el = document.getElementById(p_id);
+	el.select();
 	document.execCommand('copy');
-	alert("De wijzigingen zijn naar het klembord gekopieerd.");
+	alert("De inhoud is naar het klembord gekopieerd.");
 }
 
 function savedata(entity, rid, control) {
@@ -127,6 +127,7 @@ function savedata(entity, rid, control) {
 	} else {
 		var field_name = control.id;
 	}
+	
 	
 	if (control.type == "checkbox") {
 		if (control.checked == true) {
@@ -501,15 +502,21 @@ function mailing_verw_alle_ontvangers() {
 	});
 }
 			
-function mailing_savemessage() {
-	var mid = $('#recordid').text();
+function mailing_savemessage(p_hist=0) {
+	var rid = $('#recordid').text();
+	
+	if (p_hist == 1) {
+		var e = "email";
+	} else {
+		var e = "mailing";
+	}
 	
 	var value = tinymce.get('message').getContent();
 	$.ajax({
-		url: 'ajax_update.php?entiteit=mailing',
+		url: 'ajax_update.php?entiteit=' + e,
 		type: 'post',
 		dataType: 'json',
-		data: { field:'message', value:value, id:mid },
+		data: { field:'message', value:value, id:rid },
 		success: function(response){}
 	});
 }
