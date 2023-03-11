@@ -23,6 +23,7 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if ((new cls_Interface())->aantal($f) > 0) {
 		addtp("Downloaden wijzigingen");
 	}
+	addtp("Export data");
 	addtp("Onderhoud");
 	addtp("Logboek");
 } else {
