@@ -255,24 +255,13 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 		$aant_vg = 0; // Aantal leden dat van groep verplaatst kan worden
 		$naam_vg = "";
 		foreach ($ldrows as $ldrow) {
-			printf("<tr><td id='naam_%2\$d'>%1\$s</td>", $ldrow->NaamLid, $ldrow->RecordID);
-			if ($p_perexamen == 0) {
-				printf("<td><input type='date' id='DatumBehaald_%d' value='%s'></td>", $ldrow->RecordID, $ldrow->DatumBehaald);
-			}
-			printf("<td><input type='text' id='EXPLAATS_%d' value='%s'></td>", $ldrow->RecordID, $ldrow->EXPLAATS);
-			if ($p_perexamen == 0) {
-				printf("<td><input type='text' id='Diplomanummer_%d' value='%s'></td>", $ldrow->RecordID, $ldrow->Diplomanummer);
-				printf("<td><input type='date' id='LicentieVervallenPer_%d' value='%s'></td>", $ldrow->RecordID, $ldrow->LicentieVervallenPer);
-			}
-
-			$jsdo = sprintf("OnClick=\"liddipl_verw(%d);\"", $ldrow->RecordID);
-			printf("<td><img src='%s' alt='Verwijderen' title='Verwijderen %s' %s></td>", BASE64_VERWIJDER_KLEIN, htmlentities($ldrow->NaamLid), $jsdo);
-		
+			$cl = "";
 			$dd = "";
 			if ($dprow->VoorgangerID > 0) {
 				$f = sprintf("LD.Lid=%d AND LD.DiplomaID=%d", $ldrow->Lid, $dprow->VoorgangerID);
 				if ($i_ld->aantal($f) == 0) {
 					$dd = sprintf("%s ontbreekt", $i_dp->naam($dprow->VoorgangerID));
+					$cl = " voorgangerontbreekt";
 				}
 			}
 
@@ -283,7 +272,25 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 					$dd = "ook op ";
 				}
 				$dd .= date("d-m-Y", strtotime($ddrow->DatumBehaald));
+				$cl .= " dubbeldiploma";
 			}
+			
+			if (strlen($cl) > 0) {
+				$cl = sprintf(" class='%s'", trim($cl));
+			}
+			printf("<tr><td id='naam_%2\$d'>%1\$s</td>", $ldrow->NaamLid, $ldrow->RecordID);
+			if ($p_perexamen == 0) {
+				printf("<td%s><input type='date' id='DatumBehaald_%d' value='%s'></td>", $cl, $ldrow->RecordID, $ldrow->DatumBehaald);
+			}
+			printf("<td><input type='text' id='EXPLAATS_%d' value='%s'></td>", $ldrow->RecordID, $ldrow->EXPLAATS);
+			if ($p_perexamen == 0) {
+				printf("<td><input type='text' id='Diplomanummer_%d' value='%s'></td>", $ldrow->RecordID, $ldrow->Diplomanummer);
+				printf("<td><input type='date' id='LicentieVervallenPer_%d' value='%s'></td>", $ldrow->RecordID, $ldrow->LicentieVervallenPer);
+			}
+
+			$jsdo = sprintf("OnClick=\"liddipl_verw(%d);\"", $ldrow->RecordID);
+			printf("<td><img src='%s' alt='Verwijderen' title='Verwijderen %s' %s></td>", BASE64_VERWIJDER_KLEIN, htmlentities($ldrow->NaamLid), $jsdo);
+		
 			if (strlen($dd) > 0) {
 				printf("<td>%s</td>", $dd);
 			}
