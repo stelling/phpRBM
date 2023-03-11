@@ -102,7 +102,7 @@ function fnRekeningbeheer() {
 	
 	echo("<div id='filter'>\n");
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-	printf("<label>Filter op seizoen</label><select name='filterseizoen' onChange='this.form.submit();'>\n<option value=-1>Alle seizoenen</option>\n%s</select>\n", $i_sz->htmloptions($filterseizoen));
+	printf("<label>Filter op seizoen</label><select name='filterseizoen' onChange='this.form.submit();'>\n<option value=-1>Alle seizoenen</option>\n%s</select>\n", $i_sz->htmloptions($filterseizoen, 1));
 	printf("<input type='text' id='tbFilterNaam' name='tbFilterNaam' placeholder='Tekstfilter' value='%s' %s>\n", $filternaam, $js);
 	printf("<p class='aantrecords'>%d rekeningen</p>", count($rows));
 	echo("</form>\n");
@@ -236,7 +236,7 @@ function fnRekeningMuteren($p_rkid=-1) {
 		} else {
 			$bt = $row->BET_TERM;
 		}
-		printf("<label id='lblBET_TERM' class='k2'>Aantal betaaltermijnen</label><input type='text' id='BET_TERM' value=%d class='w2' maxlength=2>\n", $bt);
+		printf("<label id='lblBET_TERM'>Aantal betaaltermijnen</label><input type='text' id='BET_TERM' value=%d class='w2' maxlength=2>\n", $bt);
 		
 		echo("</div> <!-- einde rekeningkopmuteren  -->\n");
 		
@@ -633,19 +633,21 @@ function RekeningDetail($p_rkid, $p_metbriefpapier=0) {
 	global $dtfmt;
 	
 	$i_rk = new cls_Rekening($p_rkid);
+	$i_tp = new cls_Template();
 	
 	$i_rk->controle($p_rkid);
 	$rk = $i_rk->record($p_rkid);
 	
 	$rekening_template = $_SESSION['settings']['path_templates'] . sprintf("rekening %d.html", $i_rk->seizoen);
-	if (file_exists($rekening_template)) {
-		$content = file_get_contents($rekening_template);
+	$i_tp->vulvars(-1, sprintf("rekening %d.html", $i_rk->seizoen));
+	if (strlen($i_tp->inhoud) == 0) {
+		$i_tp->vulvars(-1, "rekening");
+	}
+	
+	if (strlen($i_tp->inhoud) >  0) {
+		$content = $i_tp->inhoud;
 	} else {
-		$rekening_template = $_SESSION['settings']['path_templates'] . "rekening.html";
-		if (file_exists($rekening_template)) {
-			$content = file_get_contents($rekening_template);	
-		} else {
-			$content = "<p>[%NAAMDEBITEUR%]<br>
+		$content = "<p>[%NAAMDEBITEUR%]<br>
 [%ADRES%]<br>
 [%POSTCODE%]  [%WOONPLAATS%]</p>
 <br>
@@ -690,7 +692,6 @@ function RekeningDetail($p_rkid, $p_metbriefpapier=0) {
 <!-- /NietOpDebet -->
 
 <p><strong>Het bestuur van [%NAAMVERENIGING%]</strong></p>\n";
-		}
 	}
 	
 	$n = "<!-- MetRegelnummers=";
