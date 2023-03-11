@@ -117,6 +117,7 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 	(new cls_Activiteit())->controle();
 	
 } elseif ($_GET['op'] == "logboekopschonen") {
+	(new cls_Logboek())->controle();
 	(new cls_Logboek())->opschonen();
 	
 } elseif ($_GET['op'] == "ledenopschonen") {
@@ -394,7 +395,7 @@ if ($currenttab == "Beheer logins") {
 		if (strlen($f) > 0) {
 			$f .= " AND ";
 		}
-		$f .= sprintf("A.LidID > 0 AND A.LidID<>%d", $_SESSION['lidid']);
+		$f .= "A.LidID > 0";
 	}
 	$rows = $i_lb->lijst($_POST['typefilter'], 0, 0, $f, $ord, $_POST['aantalrijen']);
 	
@@ -434,7 +435,7 @@ if ($currenttab == "Beheer logins") {
 		$va = $a;
 	}
 	printf("<label>Max. aantal rijen</label><select name='aantalrijen' OnChange='this.form.submit();'>%s</select>\n", $options);
-	printf("<label>Alleen ingelogde anderen</label><input type='checkbox' name='ingelogdeanderen'%s value=1 onClick='this.form.submit();'>\n", checked($_POST['ingelogdeanderen']));
+	printf("<label>Alleen ingelogde</label><input type='checkbox' name='ingelogdeanderen'%s value=1 onClick='this.form.submit();'>\n", checked($_POST['ingelogdeanderen']));
 	
 	if (count($rows) > 1) {
 		printf("<p class='aantrecords'>%s van %s rijen</p>\n", number_format(count($rows), 0, ",", "."), number_format($i_lb->aantal(), 0, ",", "."));
@@ -532,10 +533,10 @@ function fnInstellingen() {
 	$arrParam['naamvereniging'] = "Naam van de vereniging";
 	$arrParam['naamvereniging_afkorting'] = "Verkorte naam van de vereniging";
 	$arrParam['db_backup_type'] = "Welke tabellen moeten worden gebackuped?";
-	$arrParam['db_backupsopschonen'] = "Na hoeveel dagen moeten back-ups automatisch verwijderd worden? 0 = nooit.";
+	$arrParam['db_backupsopschonen'] = "Na hoeveel dagen moeten back-ups verwijderd worden? 0 = nooit.";
 	$arrParam['db_folderbackup'] = "In welke folder moet de backup worden geplaatst?";
 	$arrParam['interface_access_db'] = "Moet de tabel voor de interface naar MS-Access worden gevuld?";
-	$arrParam['emailwebmaster'] = "Het e-mailadres van de webmaster.";
+//	$arrParam['emailwebmaster'] = "Het e-mailadres van de webmaster.";
 	$arrParam['kaderoverzichtmetfoto'] = "Moeten op het kaderoverzicht pasfoto's getoond worden?";
 	$arrParam['toonpasfotoindiennietingelogd'] = "Mogen pasfoto's zichtbaar voor bezoekers (niet ingelogd) zijn?";
 	$arrParam['muteerbarememos'] = "Welke soorten memo's zijn in gebruik? Bij meerdere scheiden door een komma.";
@@ -545,7 +546,7 @@ function fnInstellingen() {
 	$arrParam['login_geldigheidactivatie'] = "Hoelang in uren is een activatielink geldig? 0 = altijd.";
 	$arrParam['login_bewaartijdnietgebruikt'] = "Het aantal dagen dat logins wordt bewaard, nadat het is aangevraagd en nog niet gebruikt is.";
 	$arrParam['mailing_bevestigingbestelling'] = "Het nummer van de mailing die bij een bestelling verstuurd moet worden. 0 = geen.";
-	$arrParam['mailing_bewakinginschrijving'] = "Het nummer van de mailing die als bevestiging van een inschrijving voor de bewaking verstuurd moet worden. 0 = geen.";
+//	$arrParam['mailing_bewakinginschrijving'] = "Het nummer van de mailing die als bevestiging van een inschrijving voor de bewaking verstuurd moet worden. 0 = geen.";
 	$arrParam['menu_met_afdelingen'] = "Voor welke afdelingen moeten een tabblad worden gemaakt? (bij meerdere scheiden met een komma)";
 	$arrParam['login_maxinlogpogingen'] = "Na hoeveel foutieve inlogpogingen moet het account geblokkeerd worden? 0 = nooit.";
 	$arrParam['login_maxlengte'] = "De maximale lengte die een login mag zijn. Minimaal 7 en maximaal 20 invullen.";
@@ -559,8 +560,8 @@ function fnInstellingen() {
 	$arrParam['termijnvervallendiplomasmailen'] = "Hoeveel maanden vooruit moeten leden een herinnering krijgen als een diploma gaat vervallen. 0 = geen herinnering sturen.";
 	$arrParam['termijnvervallendiplomasmelden'] = "Hoeveel maanden vooruit en achteraf moeten vervallen diploma op het voorblad getoond worden.";
 	$arrParam['liddipl_bewaartermijn'] = "Na Hoeveel maanden diploma's bij een lid worden verwijderd? Zowel na einde lidmaatschap als na einde geldigheid.";
-	$arrParam['toneninschrijvingenbewakingen'] = "Moeten bij de gegevens van een lid ook inschrijvingen voor bewakingen getoond worden?";
-	$arrParam['tonentoekomstigebewakingen'] = "Moeten bij de gegevens van een lid ook toekomstige bewakingen getoond worden?";
+//	$arrParam['toneninschrijvingenbewakingen'] = "Moeten bij de gegevens van een lid ook inschrijvingen voor bewakingen getoond worden?";
+//	$arrParam['tonentoekomstigebewakingen'] = "Moeten bij de gegevens van een lid ook toekomstige bewakingen getoond worden?";
 	$arrParam['urlvereniging'] = "De URL van de website van de vereniging.";
 	$arrParam['url_eigen_help'] = "Als een gebruiker op de help klikt wordt hier naar verwezen in plaats van de standaard help.";
 	$arrParam['verjaardagenaantal'] = "Aantal verjaardagen dat maximaal in de verenigingsinfo wordt getoond. Als er meerdere leden op dezelfde dag jarig zijn, wordt dit aantal overschreden.";
@@ -568,7 +569,7 @@ function fnInstellingen() {
 	
 	$arrParam['zs_opzegtermijn'] = "De opzegtermijn van de vereniging in maanden.";
 	$arrParam['zs_voorwaardenbestelling'] = "Deze regel wordt bij de online-bestellingen in de zelfservice vermeld.";
-	$arrParam['zs_voorwaardeninschrijving'] = "Deze regel wordt bij de inschrijving als voorwaarde voor de inschrijving voor de bewaking vemeld.";
+//	$arrParam['zs_voorwaardeninschrijving'] = "Deze regel wordt bij de inschrijving als voorwaarde voor de inschrijving voor de bewaking vemeld.";
 	
 	$specmailing = array("mailing_bewakinginschrijving", "mailing_bevestigingbestelling");
 	$i_p = new cls_Parameter();
