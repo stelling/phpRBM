@@ -1438,8 +1438,9 @@ fieldset h3 {
 	float: left;
 }
 
-#verstuurdemail .bericht {
+#verstuurdemail textarea, #verstuurdemail .bericht {
 	clear: left;
+	float: left;
 	margin-top: 3px;
 	margin-bottom: 3px;
 	padding-top: 3px;
@@ -1537,7 +1538,7 @@ fieldset h3 {
 
 .ck-editor__editable {
    min-height: 500px;
-}
+} 	
 
 #footerleft {
 	float: left;
