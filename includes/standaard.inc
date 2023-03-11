@@ -18,7 +18,6 @@ define("ARRSOORTMEMO", ["A" => "Algemeen", "B" => "Bewaking", "D" => "Dieet", "E
 define("ARRTYPEONDERDEEL", ["A" => "Afdeling", "B" => "Bestuur", "C" => "Commissie", "E" => "Eigenschap", "F" => "Functionarissen", "G" => "Groep", "O" => "Onderscheiding", "R" => "Rol", "S" => "Selectie", "T" => "Toestemming"]);
 define("ARRTYPEDIPLOMA", ["B" => "Brevet", "C" => "Competentie", "D" => "Diploma", "I" => "Insigne", "L" => "Licentie", "M" => "Module", "P" => "PvB"]);
 define("PASFOTOEXTENTIES", ["gif", "jpg", "jpeg", "png"]);
-define("ARRTYPEEDITOR", [1 => "CKEditor 5 Classic editor", 2 => "CKEditor 4", 3 => "TinyMCE"]);
 define("ARRSOORTEVENEMENT", ["B" => "Brigade-activiteit", "G" => "Gezellig/sociaal", "O" => "Opleiding", "V" => "Vergadering/overleg", "W" => "Wedstrijd"]);
 define("ARRDLNSTATUS", ["A" => "Afgewezen", "B" => "Bevestigd", "I" => "Ingeschreven", "J" => "Aangemeld", "N" => "Niet geweest", "R" => "Reserve", "T" => "Onder voorbehoud", "X" => "Afgemeld/Afgezegd"]);
 define("ARRPRESENTIESTATUS", ["A" => "Aangemeld/Aanwezig", "L" => "Aanwezig, maar te laat", "H" => "Aangemeld, door vereniging afgezegd", "N" => "Niet aanwezig (onafgemeld)", "R" => "Afwezig met bekende reden", "T" => "Onder voorbehoud", "V" => "Les is vervallen", "X" => "Afgemeld zonder bekende reden", "Z" => "Ziek"]);
@@ -230,21 +229,19 @@ function HTMLheader($breed=0) {
 		printf("<title>%s</title>\n", $title);
 		echo("<link rel='stylesheet' href='//code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css'>\n");
 //		echo("<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css'>\n");
-		echo("<link rel='stylesheet' href='//cdnjs.cloudflare.com/ajax/libs/timepicker/1.3.5/jquery.timepicker.min.css'>");
+//		echo("<link rel='stylesheet' href='//cdnjs.cloudflare.com/ajax/libs/timepicker/1.3.5/jquery.timepicker.min.css'>\n");
 		echo("<script src='https://code.jquery.com/jquery-3.6.0.js'></script>\n");
 		if ($currenttab == "Vereniging" or $currenttab == "Eigen gegevens"  or $currenttab == "Ledenlijst" or $currenttab2 == "Overzicht lid") {
 			echo("<script src='https://code.jquery.com/ui/1.13.1/jquery-ui.js'></script>\n");
 		}
 		if ($currenttab == "Mailing") {
-			if ($_SESSION['settings']['mailing_type_editor'] == 3) {
-				$src = "/includes/tinymce/js/tinymce/tinymce.min.js";
-				if (file_exists(BASEDIR . $src)) {
-					$src = BASISURL . $src;
-				} else {
-					$src = sprintf("https://cdn.tiny.cloud/1/%s/tinymce/6/tinymce.min.js", $_SESSION['settings']['mailing_tinymce_apikey']);
-				}
-				printf("<script src='%s' referrerpolicy='origin'></script>\n", $src);
+			$src = "/includes/tinymce/js/tinymce/tinymce.min.js";
+			if (file_exists(BASEDIR . $src)) {
+				$src = BASISURL . $src;
+			} else {
+			$src = sprintf("https://cdn.tiny.cloud/1/%s/tinymce/6/tinymce.min.js", $_SESSION['settings']['mailing_tinymce_apikey']);
 			}
+			printf("<script src='%s' referrerpolicy='origin'></script>\n", $src);
 		}
 		
 		if (file_exists("default.css")) {
@@ -963,12 +960,13 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 						$ret .= "<td></td>\n";
 					}
 					
-				} elseif (startwith($key, "eml")) {
+				} elseif ($kol_type == "eml" or $kol_type == "email") {
 					if ($kol_edit == 0) {
 						$ret .= sprintf("<td>%s</td>", fnDispEmail($value, "", 1));
 					} else {
 						$ret .= sprintf("<td><input type='email' name='%s_%d' value='%s' class='email' %s></td>", str_replace(" ", "_", substr($key, 3)), $row->$kol_pk, $value, $js);
 					}
+					
 				} elseif (startwith($key, "pwd")) {
 					if ($kol_edit == 0) {
 						$ret .= "<td></td>";
@@ -1282,12 +1280,12 @@ function fnStandaardKols($p_ent, $p_sort=1) {
 		$kols[2]['headertext'] = "Betreft lid";
 		$kols[2]['columnname'] = "betreftLid";
 		$kols[2]['type'] = "lidnaam";
-		$kols[3]['headertext'] = "Type";
-		$kols[3]['columnname'] = "Type";
-		if ($p_sort == 1) {
-			$kols[3]['sortcolumn'] = "Type";
-		}
 		if ($_SESSION['webmaster'] == 1) {
+			$kols[3]['headertext'] = "Type";
+			$kols[3]['columnname'] = "Type";
+			if ($p_sort == 1) {
+				$kols[3]['sortcolumn'] = "Type";
+			}
 			$kols[4]['headertext'] = "Ingelogd lid";
 			$kols[4]['columnname'] = "ingelogdLid";
 			if ($p_sort == 1) {
