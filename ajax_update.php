@@ -152,10 +152,19 @@ if ($_SESSION['lidid'] > 0) {
 			$i_m->update($rid, $kolom, $newvalue);
 			$i_m = null;
 		}
+				
+	} elseif ($ent == "email") {
+		
+
+		if ($rid > 0 and strlen($kolom) > 0) {
+			$i_mh = new cls_Mailing_hist();
+			$i_mh->update($rid, $kolom, $newvalue);
+			$i_mh = null;
+		}
 		
 	} elseif ($ent == "mailingprops") {
-		$rid = $_POST['mailingid'] ?? 4;
-		$groep = $_POST['selectie_groep'] ?? 350;
+		$rid = $_POST['mailingid'] ?? 0;
+		$groep = $_POST['selectie_groep'] ?? 0;
 		$vangebdatum = $_POST['selectie_vangebdatum'] ?? "1920-01-01";
 		$temgebdatum = $_POST['selectie_temgebdatum'] ?? date("Y-m-d");
 		$i_m = new Mailing($rid);
