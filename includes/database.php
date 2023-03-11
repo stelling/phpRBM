@@ -80,6 +80,8 @@ $TypeActiviteit[98] = "Performance";
 $TypeActiviteit[99] = "Debug- en foutmeldingen";
 asort($TypeActiviteit);
 
+// error_reporting(E_ALL);
+
 define("DB_NAME", $db_name);
 $db_conn_pdo = sprintf("mysql:host=%s;dbname=%s", $db_host, DB_NAME);
 try {
@@ -561,7 +563,7 @@ class cls_db_base {
 		$this->mess = "";
 		
 //		$mess = sprintf("%d / %s / %s / %s", $p_recid, $p_kolom, $p_waarde, $p_reden);
-//		debug($mess, 1, 1);
+//		debug($mess, 0, 1);
 
 		if ($p_recid > 0 and strlen($p_kolom) > 0 and strlen($this->table) > 0) {
 		
@@ -608,8 +610,11 @@ class cls_db_base {
 
 			} elseif ($tk == "date") {
 				$xw = sprintf("IFNULL(`%s`, '')<>:nw", $p_kolom);
+				
+			} elseif($tk == "text") {
+				$xw = sprintf("BINARY (IFNULL(`%s`, '')<>:nw)", $p_kolom);
 
-			} elseif($tk == "text" or $tk == "longtext" or $tk == "longblob") {
+			} elseif($tk == "longtext" or $tk == "longblob") {
 				$xw = sprintf("(IFNULL(`%s`, '') NOT LIKE :nw)", $p_kolom);
 
 			} else {
@@ -737,7 +742,7 @@ class cls_db_base {
 		return true;
 	}
 	
-	public function basislijst($p_filter="", $p_orderby="", $p_fetched=1) {
+	public function basislijst($p_filter="", $p_orderby="", $p_fetched=1, $p_limiet=-1) {
 		if (strlen($p_filter) > 0) {
 			$p_filter = "WHERE " . $p_filter;
 		}
@@ -750,8 +755,12 @@ class cls_db_base {
 		} else {
 			$fr = $this->table;
 		}
+		$lm = "";
+		if ($p_limiet > 0) {
+			$lm = sprintf(" LIMIT %d", $p_limiet);
+		}
 
-		$query = sprintf("SELECT * FROM %s %s %s;", $fr, $p_filter, $p_orderby);
+		$query = sprintf("SELECT * FROM %s %s %s %s;", $fr, $p_filter, $p_orderby, $lm);
 		$result = $this->execsql($query);
 		
 		if ($p_fetched == 1) {
@@ -815,6 +824,7 @@ class cls_Lid extends cls_db_base {
 	public $geslacht = "O";
 	public $geboortedatum = "1900-01-01";
 	public $telefoon = "";
+	public $email = "";
 	public $iskader = false;
 	public $islid = false;
 	public $lidvanaf = "";
@@ -840,6 +850,7 @@ class cls_Lid extends cls_db_base {
 			$this->geslacht = "O";
 			$this->geboortedatum = "1900-01-01";
 			$this->telefoon = "";
+			$this->email = "";
 			$this->lidvanaf = "";
 		
 			if ($this->lidid > 0) {
@@ -856,7 +867,21 @@ class cls_Lid extends cls_db_base {
 					}
 					$this->geslacht = $row->Geslacht;
 					$this->geboortedatum = $row->GEBDATUM;
-					$this->telefoon = $row->Telefoon;
+					
+					if (strlen($row->Mobiel) >= 10) {
+						$this->telefoon = $row->Mobiel;
+					} else {
+						$this->telefoon = $row->Telefoon;
+					}
+					
+					if (isValidMailAddress($row->Email, 0)) {
+						$this->email = $row->Email;
+					} elseif (isValidMailAddress($row->EmailVereniging, 0)) {
+						$this->email = $row->EmailVereniging;
+					} elseif (isValidMailAddress($row->EmailOuders, 0) and $this->geboortedatum > date("Y-m_d", strtotime("-18 year"))) {
+						$this->email = $row->EmailOuders;
+					}
+					
 					$lmqry = sprintf("SELECT LM.RecordID, LM.LIDDATUM FROM %sLidmaatschap AS LM WHERE LM.Lid=%d AND LM.LIDDATUM <= CURDATE() AND IFNULL(LM.Opgezegd, '9999-12-31') >= CURDATE();", TABLE_PREFIX, $this->lidid);
 					$lmres = $this->execsql($lmqry);
 					$lmrow = $lmres->fetch();
@@ -4661,7 +4686,7 @@ class cls_Mailing extends cls_db_base {
 		$this->ta = 4;
 		$this->vulvars($p_mid);
 		if ($_SESSION['webmaster'] == 0 and in_array($_SESSION['settings']['mailing_alle_zien'], explode(",", $_SESSION['lidgroepen'])) == false) {
-			$this->zichtbaarwhere = sprintf("M.ZichtbaarVoor IN (%s)", $_SESSION['lidgroepen'], $_SESSION['lidid']);
+			$this->zichtbaarwhere = sprintf("M.ZichtbaarVoor IN (%s)", $_SESSION['lidgroepen']);
 		}
 	}
 	
@@ -5098,12 +5123,12 @@ class cls_Mailing_hist extends cls_db_base {
 		}
 	}
 	
-	public function update($p_mhid, $p_kolom, $p_waarde, $p_reden="", $p_geenlog=0) {
+	public function update($p_mhid, $p_kolom, $p_waarde, $p_reden="") {
 		$this->vulvars($p_mhid);
 		$this->tas = 22;
 		
 		if ($this->pdoupdate($this->mhid, $p_kolom, $p_waarde, $p_reden) > 0) {
-			if ($p_kolom != "send_on" and $p_geenlog=0) {
+			if ($p_kolom != "send_on") {
 				$this->log($this->mhid);
 			}
 		}
@@ -5128,7 +5153,7 @@ class cls_Mailing_hist extends cls_db_base {
 		}
 		
 		$f = "IFNULL(MH.VanafID, 0)=0";
-		foreach ($this->basislijst($f) as $mhrow) {
+		foreach ($this->basislijst($f, "", 1, 2500) as $mhrow) {
 			if (strlen($mhrow->from_addr) > 5) {
 				$f2 = sprintf("LOWER(MV.Vanaf_email)='%s'", strtolower($mhrow->from_addr));
 				$mvid = $i_mv->min("RecordID", $f2);
@@ -5462,6 +5487,13 @@ class cls_Mailing_vanaf extends cls_db_base {
 		}
 		$this->naamlogging = $this->vanaf_email;
 	}
+	
+	public function default_vanaf() {
+		$f = "LENGTH(Vanaf_email) > 5";
+		$this->mvid = $this->min($f);
+		$this->vulvars();
+		return $this->vanaf_email;
+	}  # default_vanaf
 	
 	public function lijst($p_fetched=1) {
 		$query = sprintf("SELECT MV.RecordID, MV.Vanaf_email, MV.Vanaf_naam, MV.Ingevoerd, MV.Gewijzigd FROM %s ORDER BY MV.Vanaf_email;", $this->basefrom);
@@ -9220,7 +9252,6 @@ class cls_Parameter extends cls_db_base {
 		$this->arrParam['mailing_rekening_zichtbaarvoor'] = array("Type" => "I", "Default" => 0);
 		$this->arrParam['mailing_sentoutbox_auto'] = array("Type" => "B", "Default" => 1);
 		$this->arrParam['mailing_tinymce_apikey'] = array("Type" => "T", "Default" => "");
-		$this->arrParam['mailing_type_editor'] = array("Type" => "I", "Default" => 1);
 		$this->arrParam['mailing_validatielogin'] = array("Type" => "I", "Default" => 0);
 		$this->arrParam['mailing_wachttijdinoutbox'] = array("Type" => "I", "Default" => 15);
 		$this->arrParam['max_grootte_bijlage'] = array("Type" => "I", "Default" => 2048);
@@ -9236,11 +9267,12 @@ class cls_Parameter extends cls_db_base {
 		$this->arrParam['login_maxinlogpogingen'] = array("Type" => "I", "Default" => 4);
 		$this->arrParam['termijnvervallendiplomasmailen'] = array("Type" => "I", "Default" => 3);
 		$this->arrParam['termijnvervallendiplomasmelden'] = array("Type" => "I", "Default" => 6);
+//		$this->arrParam['vanafid_webmaster'] = array("Type" => "I");
 		$this->arrParam['verjaardagenaantal'] = array("Type" => "I", "Default" => 7);
 		$this->arrParam['versie'] = array("Type" => "I");
 		
 		$this->arrParam['db_folderbackup'] = array("Type" => "T");
-		$this->arrParam['emailwebmaster'] = array("Type" => "T");
+//		$this->arrParam['emailwebmaster'] = array("Type" => "T");
 		$this->arrParam['login_beperkttotgroep'] = array("Type" => "T");
 		$this->arrParam['naamwebsite'] = array("Type" => "T", "Default" => "Naam website");
 		$this->arrParam['path_attachments'] = array("Type" => "T");
@@ -9933,7 +9965,10 @@ function db_backup($p_typebackup=3) {
 	$laatstebackup = (new cls_Logboek())->max("DatumTijd", "TypeActiviteit=3 AND TypeActiviteitSpecifiek=1");
 	if (strtotime($laatstebackup) < mktime(date("H")-1, date("m"), 0, date("m"), date("d"), date("Y")) or $_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 		
-		if ($p_typebackup != 4) {
+		if ($p_typebackup == 4) {
+			echo("<p>Wacht met scrollen/kopiëren totdat het volledige scherm is geladen.</p>\n");
+			echo("<p class='sql' id='exportdata'>");
+		} else {
 			$FileName = $db_folderbackup . $buname . ".sql";
 			echo("<p class='mededeling'>Backup is gestart</p>");
 			$buf = fopen($FileName, 'w');
@@ -9950,7 +9985,7 @@ function db_backup($p_typebackup=3) {
 			$a = $i_base->scalar($query);
 //			debug($table . ": " . $a);
 			
-			if ($a > 0 and ($p_typebackup == 3 or ($p_typebackup == 1 and $tnr < 30) or ($p_typebackup == 2 and $tnr >= 30) or ($p_typebackup == 4 and substr($tnm, 0, 6) != "Admin_" and $tnm != "Mailing_hist"))) {
+			if ($a > 0 and ($p_typebackup == 3 or ($p_typebackup == 1 and $tnr < 30) or ($p_typebackup == 2 and $tnr >= 30) or ($p_typebackup == 4 and substr($tnm, 0, 6) != "Admin_"))) {
 			
 				if ($p_typebackup != 4) {
 					$data = $i_base->exporttosql(2);
@@ -10007,10 +10042,12 @@ function db_backup($p_typebackup=3) {
 					}
 					$data .= ");\n";
 					
-					if ($p_typebackup != 4) {
+					if ($p_typebackup == 4) {
+						echo($data . "\n");
+					} else {
 						fwrite($buf, $data);
-						$data = "";
 					}
+					$data = "";
 				}
 				$aanttab++;
 				
@@ -10029,9 +10066,9 @@ function db_backup($p_typebackup=3) {
 		
 		if ($p_typebackup == 4) {
 
-			echo("<p class='sql' id='exportdata'>" . $data . "</p>\n");
+			echo($data . "</p>\n");
 			
-			echo("<p class='mededeling'>Deze export bevat geen Admin-tabellen en ook geen verzonden e-mails.</p>\n");
+			echo("<p class='mededeling'>Deze export bevat geen Admin-tabellen.</p>\n");
 
 		} elseif ($aanttab > 0) {
 		
