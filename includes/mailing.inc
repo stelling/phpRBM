@@ -3,18 +3,10 @@
 function fnMailing() {
 	global $ldl, $currenttab, $currenttab2;
 
-	if (!isset($_GET['mid'])) {
-		$_GET['mid'] = 0;
-	}
-	if (!isset($_GET['mhid'])) {
-		$_GET['mhid'] = 0;
-	}
-	if (isset($_GET['op'])) {
-		$op = $_GET['op'];
-	} else {
-		$op = "";
-	}
-	
+	$_GET['mid'] = $_GET['mid'] ?? 0;
+	$_GET['mhid'] = $_GET['mhid'] ?? 0;
+	$op = $_GET['op'] ?? "";
+		
 	if ($_SESSION['settings']['mailing_direct_verzenden'] > 0) {
 		sentoutbox(3);
 	}
@@ -120,6 +112,11 @@ function fnMailing() {
 	} elseif ($op == "histdetails" and $_GET['mhid'] > 0) {
 		$email = new email($_GET['mhid']);
 		$email->toon();
+		$mail = null;
+		
+	} elseif ($op == "edit_email" and $_GET['mhid'] > 0) {
+		$email = new email($_GET['mhid']);
+		$email->edit();
 		$mail = null;
 
 	} elseif ($op == "preview_hist" and $_GET['mhid'] > 0) {
@@ -563,11 +560,6 @@ class Mailing {
 			$jsoc = "";
 		}
 		
-		if (file_exists(BASEDIR . '/maatwerk/email.css')) {
-			$ss = "content_css: 'maatwerk/email.css',";
-		} else {
-			$ss = "";
-		}
 		$bnr = 1;
 		$tabbijlagefiles = "";
 		if (is_dir($this->dir_attachm)) {
@@ -670,11 +662,6 @@ class Mailing {
 			} else {
 				$select = "<option value=0>Iedereen</option>\n";
 			}
-			if ($this->zichtbaarvoor == -1) {
-				$select .= "<option value=-1 selected>Alleen webmasters</option>\n";
-			} elseif ($_SESSION['webmaster'] == 1) {
-				$select .= "<option value=-1>Alleen webmasters</option>\n";
-			}
 			foreach($ondrows as $ondrow) {
 				if ($this->zichtbaarvoor == $ondrow->RecordID) {
 					$select .= sprintf("<option value=%d selected>%s</option>\n", $ondrow->RecordID, $ondrow->Naam);
@@ -700,27 +687,7 @@ class Mailing {
 			if ($this->htmldirect == 1) {
 				printf("<textarea id='message' onBlur=\"savedata('mailing', %d, this);\">%s</textarea>\n", $this->mid, $this->message);
 			} else {
-				
-				if ($_SESSION['settings']['mailing_type_editor'] == 3) {
-				
-					printf("<textarea id='message' name='message'>%s</textarea>\n", $this->message);
-				
-				} elseif ($_SESSION['settings']['mailing_type_editor'] == 2) {
-					printf("<textarea name='message' %s>%s</textarea>
-					<script>
-					CKEDITOR.replace( 'message' );
-					</script>\n", $this->message, $ob);
-			
-				} else {
-					printf("<textarea name='message' id='message' %s);\">%s</textarea>\n", $jstb, $this->message);
-					echo("<script>\n
-						ClassicEditor
-							.create( document.querySelector( '#message' )	)
-							.catch( error => {
-						console.error( error );
-						} );n
-						</script>\n");
-				}
+				printf("<textarea id='message' name='message'>%s</textarea>\n", $this->message);
 			}
 
 			echo("<div class='clear'></div>\n");
@@ -794,51 +761,8 @@ class Mailing {
 				mailingprops();
 			});
 		</script>\n");
-		if ($this->htmldirect == 1) {
-		// Geen editor
-		} elseif ($_SESSION['settings']['mailing_type_editor'] == 3) {
-/*
-				$src = "/includes/tinymce/js/tinymce/tinymce.min.js";
-				if (file_exists(BASEDIR . $src)) {
-					$src = BASISURL . $src;
-				} else {
-					$src = sprintf("https://cdn.tiny.cloud/1/%s/tinymce/6/tinymce.min.js", $_SESSION['settings']['mailing_tinymce_apikey']);
-				}
-				printf("<script src='%s' referrerpolicy='origin'></script>\n", $src);
-*/
-				printf("<script>
-		tinymce.init({
-			selector: '#message',
-			placeholder: 'Bericht hier ...',
-			mobile: {
-				theme: 'mobile',
-				menubar: true
-			},
-			height: 650,
-			relative_urls: false,
-			convert_urls: false,
-			remove_script_host : false,
-			plugins: 'link lists table image importcss',
-			paste_as_text: true,
-			%s
-			importcss_append: true,
-			menu: {
-				table: { title: 'Table', items: 'inserttable | cell row column | tableprops deletetable' }
-			},
-			toolbar: 'undo redo | styleselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist | link image | removeformat',
-			menubar: 'edit insert format tools table',
-			
-			setup: function(editor) {
-				editor.on('blur', function(e) {
-					mailing_savemessage();
-				});
-			}
-		});
-  </script>\n", $ss);
-  		} elseif ($_SESSION['settings']['mailing_type_editor'] == 2) {
-			echo("<script src='https://cdn.ckeditor.com/4.13.0/standard/ckeditor.js'></script>\n");
-		} else {
-			echo("<script src='https://cdn.ckeditor.com/ckeditor5/12.4.0/classic/ckeditor.js'></script>\n");
+		if ($this->htmldirect == 0) {
+			js_editor(0);
 		}
 	} # edit
 	
@@ -1019,6 +943,11 @@ class Mailing {
 				$i_M->update($this->mid, "OmschrijvingOntvangers", $_POST['OmschrijvingOntvangers']);
 			}
 		} else {
+			
+			if (isset($_POST['message'])) {
+				$i_M->update($this->mid, "message", $_POST['message']);
+			}
+			
 			// ** Bijlagen bijwerken.
 			$this->upload();
 		
@@ -1502,10 +1431,16 @@ function lijstmailings($p_filter="") {
 		$email = new email($_GET['MailingHistID']);
 		$email->toon();
 		$mail = null;
+		
+	} elseif (isset($_GET['MailingHistID']) and $_GET['MailingHistID'] > 0 and $_GET['op'] == "edit_email") {
+		$xtra = "<p class='mededeling'><input type='button' value='Terug' onclick='history.go(-1);'></p>\n";
+		$email = new email($_GET['MailingHistID']);
+		$email->edit();
+		$mail = null;
 			
 	} elseif ($p_filter == "Verzonden mails" or $p_filter == "Verzonden e-mails" or $p_filter == "Outbox") {
 		$i_mh = new cls_Mailing_hist();
-		$kols[0]['link'] = sprintf("<a href='index.php?tp=%s&op=bekijkmail&amp;MailingHistID=%%d'>%%s</a>", urlencode($_GET['tp']));
+		$kols[0]['link'] = sprintf("<a href='index.php?tp=%s&op=bekijkmail&MailingHistID=%%d'>%%s</a>", urlencode($_GET['tp']));
 		$kols[0]['headertext'] = "&nbsp;";
 		$kols[0]['columnname'] = "RecordID";
 		$kols[1]['headertext'] = "Verzonden";
@@ -1529,18 +1464,22 @@ function lijstmailings($p_filter="") {
 		if ($p_filter == "Outbox") {
 			$kols[1]['headertext'] = "Wacht vanaf";
 			$kols[1]['columnname'] = "Ingevoerd";
-						
-			$kols[5]['link'] = sprintf("<a href='index.php?tp=%s&op=sentmail&MailingHistID=%%d'>&nbsp;&nbsp;&nbsp;</a>", urlencode($_GET['tp']));
+			
+			$kols[5]['link'] = sprintf("index.php?tp=%s&op=edit_email&MailingHistID=%%d", urlencode($_GET['tp']));
 			$kols[5]['columnname'] = "RecordID";
-			$kols[5]['class'] = "sendmail";
+			$kols[5]['class'] = "muteren";
+						
+			$kols[6]['link'] = sprintf("<a href='index.php?tp=%s&op=sentmail&MailingHistID=%%d'>&nbsp;&nbsp;&nbsp;</a>", urlencode($_GET['tp']));
+			$kols[6]['columnname'] = "RecordID";
+			$kols[6]['class'] = "sendmail";
 			
-			$kols[6]['headertext'] = "Versturen na";
-			$kols[6]['columnname'] = "NietVersturenVoor";
-			$kols[6]['type'] = "DTHMS";
+			$kols[7]['headertext'] = "Versturen na";
+			$kols[7]['columnname'] = "NietVersturenVoor";
+			$kols[7]['type'] = "DTHMS";
 			
-			$kols[7]['link'] = sprintf("<a href='index.php?tp=%s&op=deletehist&MailingHistID=%%d'>&nbsp;&nbsp;&nbsp;</a>", urlencode($_GET['tp']));
-			$kols[7]['columnname'] = "RecordID";
-			$kols[7]['class'] = "trash";
+			$kols[8]['link'] = sprintf("<a href='index.php?tp=%s&op=deletehist&MailingHistID=%%d'>&nbsp;&nbsp;&nbsp;</a>", urlencode($_GET['tp']));
+			$kols[8]['columnname'] = "RecordID";
+			$kols[8]['class'] = "trash";
 			
 			if ($_SESSION['settings']['mailing_sentoutbox_auto'] == 0 and $_SESSION['settings']['mailing_direct_verzenden'] == 0) {
 				$mess = "Het automatisch versturen staat uit, neem contact op met een beheerder om dit aan te laten zetten.";
@@ -1634,7 +1573,8 @@ class email {
 	public $aanadres = "";
 	public $cc = "";
 	private $CCafdelingen = 0;
-	public $zichtbaarvoor = 0;
+	public $zichtbaarvoor = -1;
+	private $zichtbaar = false;
 	
 	public $onderwerp = "";
 	public $bericht = "";
@@ -1662,8 +1602,6 @@ class email {
 					$this->verstuurdop = $dtfmt->format(strtotime($mhrow->send_on));
 				}
 				$this->lidid = $mhrow->LidID;
-				$this->vanafnaam = $mhrow->from_name;
-				$this->vanafadres = htmlentities($mhrow->from_addr);
 				$this->vanafid = $mhrow->VanafID;
 				$this->omsontvangers = htmlentities($mhrow->OmschrijvingOntvangers);
 				$this->aannaam = htmlentities($mhrow->AanNaam);
@@ -1681,8 +1619,6 @@ class email {
 		} elseif ($mid > 0) {	
 			$this->mailingid = $mid;
 			$mrow = (new cls_Mailing())->record($this->mailingid);
-			$this->vanafnaam = $mrow->Vanaf_naam;
-			$this->vanafadres = htmlentities($mrow->Vanaf_email);
 			$this->vanafid = $mrow->MailingVanafID;
 			$this->omsontvangers = htmlentities($mrow->OmschrijvingOntvangers);
 			$this->cc = $mrow->cc_addr;
@@ -1696,62 +1632,79 @@ class email {
 		}
 		
 		if ($this->vanafid > 0) {
-			
 			$i_mv = new cls_Mailing_vanaf($this->vanafid);
 			$this->vanafnaam = $i_mv->vanaf_naam;
 			$this->vanafadres = $i_mv->vanaf_email;
 			$i_mv = null;
-			
+		}
+		
+		if ($_SESSION['webmaster'] == 1) {
+			$this->zichtbaar = true;
+		} elseif ($this->zichtbaarvoor == 0) {
+			$this->zichtbaar = true;
+		} elseif (in_array($_SESSION['settings']['mailing_alle_zien'], explode(",", $_SESSION['lidgroepen'])) == true) {
+			$this->zichtbaar = true;
+		} elseif ($this->zichtbaarvoor > 0 and in_array($this->zichtbaarvoor, explode(",", $_SESSION['lidgroepen'])) == true) {
+			$this->zichtbaar = true;
+		} else {
+			$this->zichtbaar = false;
 		}
 		
 	}  # __construct
 	
 	public function toon($p_direct=1) {
 		
-		$txt = "<div id='verstuurdemail'>\n";
+		
+		if ($this->zichtbaar) {
 
-		$txt .= sprintf("<label>Klaar gezet op</label><p>%s</p><label class='k2'>door</label><p>%s</p>\n", $this->ingevoerd, $this->ingevoerddoor);
+			$txt = "<div id='verstuurdemail'>\n";
+			$txt .= sprintf("<label>Klaar gezet op</label><p>%s</p><label class='k2'>door</label><p>%s</p>\n", $this->ingevoerd, $this->ingevoerddoor);
 		
-		if (strlen($this->verstuurdop) > 0) {
-			$txt .= sprintf("<label>Verzonden</label><p>%s</p>\n", $this->verstuurdop);
+			if (strlen($this->verstuurdop) > 0) {
+				$txt .= sprintf("<label>Verzonden</label><p>%s</p>\n", $this->verstuurdop);
+			} else {
+				$txt .= sprintf("<label>Verzonden</label><p>Wacht in outbox</p>\n");
+			}
+		
+			if ($this->zonderbriefpapier == 0) {
+				$txt .= sprintf("<label class='k2'>Ga naar</label><p><a href='%s?tp=Mailing&op=preview_hist&mhid=%d'>preview</a></p>", $_SERVER['PHP_SELF'], $this->mhid);
+			}
+		
+			if (strlen($this->vanafnaam) > 0) {
+				$txt .= sprintf("<label>Van</label><p>%s</p><label class='k2'>E-mail</label><p>%s</p>\n", $this->vanafnaam, $this->vanafadres);
+			} else {
+				$txt .= sprintf("<label>Van</label><p>%s</p>\n", $this->vanafadres);
+			}
+		
+			if (strlen($this->omsontvangers) > 0) {
+				$txt .= sprintf("<label>Aan</label><p>%s</p>\n", $this->omsontvangers);
+			}
+		
+			if (strlen($this->aannaam) > 0 and $this->aannaam != $this->aanadres) {
+				$txt .= sprintf("<label>Ontvanger</label><p>%s</p>", $this->aannaam);
+				$txt .= sprintf("<label class='k2'>E-mail</label><p>%s</p>\n", $this->aanadres);
+			} else {
+				$txt .= sprintf("<label>Aan e-mail</label><p>%s</p>\n", $this->aanadres);
+			}
+			if (strlen($this->cc) > 0) {
+				$txt .= sprintf("<label>CC</label><p>%s</p>\n", $this->cc);
+			}
+		
+			$txt .= sprintf("<label>Onderwerp</label><p>%s</p>\n", $this->onderwerp);
+		
+			$txt .= "</div>  <!-- Einde verstuurdemail -->\n";
+		
+			$b = str_replace("<!DOCTYPE html>", "", $this->bericht);
+			$b = str_replace("<html>", "", str_replace("</html>", "", $b));
+			$b = str_replace("<body>", "", str_replace("</body>", "", $b));
+			$b = removetextblock($b, "<head>", "</head>");
+
+			$txt .= sprintf("<div class='bericht'>\n%s\n</div> <!-- Einde bericht -->\n", $b);
 		} else {
-			$txt .= sprintf("<label>Verzonden</label><p>Wacht in outbox</p>\n");
+			$mess = sprintf("Je bent niet bevoegd om e-mail %d te bekijken.", $this->mhid);
+			$txt = sprintf("<p class='mededeling'>%s</p>\n", $mess);
+			(new cls_Logboek())->add($mess, 4, -1, -1, $this->mhid, 26);
 		}
-		
-		if ($this->zonderbriefpapier == 0) {
-			$txt .= sprintf("<label class='k2'>Ga naar</label><p><a href='%s?tp=Mailing&op=preview_hist&mhid=%d'>preview</a></p>", $_SERVER['PHP_SELF'], $this->mhid);
-		}
-		
-		if (strlen($this->vanafnaam) > 0) {
-			$txt .= sprintf("<label>Van</label><p>%s</p><label class='k2'>E-mail</label><p>%s</p>\n", $this->vanafnaam, $this->vanafadres);
-		} else {
-			$txt .= sprintf("<label>Van</label><p>%s</p>\n", $this->vanafadres);
-		}
-		
-		if (strlen($this->omsontvangers) > 0) {
-			$txt .= sprintf("<label>Aan</label><p>%s</p>\n", $this->omsontvangers);
-		}
-		
-		if (strlen($this->aannaam) > 0 and $this->aannaam != $this->aanadres) {
-			$txt .= sprintf("<label>Ontvanger</label><p>%s</p>", $this->aannaam);
-			$txt .= sprintf("<label class='k2'>E-mail</label><p>%s</p>\n", $this->aanadres);
-		} else {
-			$txt .= sprintf("<label>Aan e-mail</label><p>%s</p>\n", $this->aanadres);
-		}
-		if (strlen($this->cc) > 0) {
-			$txt .= sprintf("<label>CC</label><p>%s</p>\n", $this->cc);
-		}
-		
-		$txt .= sprintf("<label>Onderwerp</label><p>%s</p>\n", $this->onderwerp);
-		
-		$txt .= "</div>  <!-- Einde verstuurdemail -->\n";
-		
-		$b = str_replace("<!DOCTYPE html>", "", $this->bericht);
-		$b = str_replace("<html>", "", str_replace("</html>", "", $b));
-		$b = str_replace("<body>", "", str_replace("</body>", "", $b));
-		$b = removetextblock($b, "<head>", "</head>");
-		
-		$txt .= sprintf("<div class='bericht'>\n%s\n</div> <!-- Einde bericht -->\n", $b);
 		
 		if ($p_direct == 1) {
 			echo($txt);
@@ -1762,7 +1715,56 @@ class email {
 	} # toon
 	
 	public function edit($p_mhid=-1, $p_lidid=-1) {
+		global $currenttab, $currenttab2;
 		
+		if ($this->verstuurdop > "2000-01-01") {
+			
+			$mess = sprintf("Email %d is al verzonden en mag niet meer bewerkt worden.", $this->mhid);
+			$txt = sprintf("<p class='mededeling'>%s</p>\n", $mess);
+			(new cls_Logboek())->add($mess, 4, -1, -1, $this->mhid, 22);
+				
+		} elseif ($this->zichtbaar) {
+
+			$txt = sprintf("<form method='post' id='verstuurdemail' action='%s?tp=%s/%s&op=edit_email'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
+			$txt .= sprintf("<label>RecordID</label><p id='recordid'>%d</p>\n", $this->mhid);
+			$txt .= sprintf("<label>Klaar gezet op</label><p>%s</p><label class='k2'>door</label><p>%s</p>\n", $this->ingevoerd, $this->ingevoerddoor);
+		
+			if (strlen($this->vanafnaam) > 0) {
+				$txt .= sprintf("<label>Van</label><p>%s</p><label class='k2'>E-mail</label><p>%s</p>\n", $this->vanafnaam, $this->vanafadres);
+			} else {
+				$txt .= sprintf("<label>Van</label><p>%s</p>\n", $this->vanafadres);
+			}
+		
+			if (strlen($this->aannaam) > 0 and $this->aannaam != $this->aanadres) {
+				$txt .= sprintf("<label>Ontvanger</label><p>%s</p>", $this->aannaam);
+				$txt .= sprintf("<label class='k2'>E-mail</label><p>%s</p>\n", $this->aanadres);
+			} else {
+				$txt .= sprintf("<label>Aan e-mail</label><p>%s</p>\n", $this->aanadres);
+			}
+			if (strlen($this->cc) > 0) {
+				$txt .= sprintf("<label>CC</label><p>%s</p>\n", $this->cc);
+			}
+		
+			$txt .= sprintf("<label>Onderwerp</label><input type='text' class='w75' maxlength=75 id='subject' value='%s'>\n", $this->onderwerp);
+		
+			$txt .= "<div class='clear'></div>\n";
+			$txt .= sprintf("<textarea id='message'>%s</textarea>\n", $this->bericht);
+			
+			$txt .= "</form>\n";
+			
+		} else {
+			$mess = sprintf("Je bent niet bevoegd om e-mail %d te bewerken.", $this->mhid);
+			$txt = sprintf("<p class='mededeling'>%s</p>\n", $mess);
+			(new cls_Logboek())->add($mess, 4, -1, -1, $this->mhid, 22);
+		}
+		
+		echo($txt);
+		js_editor(1);
+		printf("<script>
+		\$('#subject').blur(function(){
+			savedata('email', %1\$d, this);
+		});
+		</script>", $this->mhid);
 		
 	}  # edit
 	
@@ -1816,38 +1818,36 @@ class email {
 	public function to_outbox($p_direct=0) {
 		
 		$rv = 0;
-		if ($this->xtrachar == "REK" and $_SESSION['settings']['mailing_rekening_vanafid'] > 0) {
-			$i_mv = new cls_Mailing_vanaf($_SESSION['settings']['mailing_rekening_vanafid']);
-			$this->vanafadres = $i_mv->vanaf_email;
-			$this->vanafnaam = $i_mv->vanaf_naam;
-			$i_mv = null;
-			
-		} elseif ($this->vanafid > 0) {
-			$i_mv = new cls_Mailing_vanaf($this->vanafid);
-			$this->vanafadres = $i_mv->vanaf_email;
-			$this->vanafnaam = $i_mv->vanaf_naam;
-			$i_mv = null;
-			
-		} elseif (strlen($this->vanafadres) > 5) {
+		
+		if ($this->vanafid <= 0 and strlen($this->vanafadres) > 5) {
 			$i_mv = new cls_Mailing_vanaf();
 			$i_mv->vulvars(-1, $this->vanafadres);
-			if ($i_mv->mvid > 0) {
-				$this->vanafid = $i_mv->mvid;
-				$this->vanafnaam = $i_mv->vanaf_naam;
-			}
+			$this->vanafid = $i_mv->vanafid;
+			$i_mv = null;
 		}
 		
+		if (strlen($this->aanadres) <= 5 and $this->lidid > 0) {
+			$i_lid = new cls_Lid($this->lidid);
+			$this->aanadres = $i_lid->email;
+			$i_lid = null;
+		}
+		
+		$i_mv = new cls_Mailing_vanaf($this->vanafid);
+		$this->vanafadres = $i_mv->vanaf_email;
+		$this->vanafnaam = $i_mv->vanaf_naam;
+		$i_mv = null;
+			
 		$this->bericht = str_ireplace("[%FROMNAME%]", $this->vanafnaam, $this->bericht);
 		
-		if (strlen($this->aanadres) == 0) {
+		if ($this->vanafid <= 0) {
+			$mess = "Er is geen Van ingevuld.";
+			debug($mess, 1, 1);
+			
+		} elseif (strlen($this->aanadres) == 0) {
 			debug("geen aanadres aanwezig", 1, 1);
 			
 		} elseif(isValidMailAddress($this->aanadres) == false and strpos($this->aanadres, ",") == false) {
 			$mess = sprintf("Aanadres '%s' is geen geldig e-mailadres.", $this->aanadres);
-			debug($mess, 1, 1);
-			
-		} elseif(isValidMailAddress($this->vanafadres) == false) {
-			$mess = sprintf("Vanafadres '%s' is geen geldig e-mailadres.", $this->vanafadres);
 			debug($mess, 1, 1);
 			
 		} else {
@@ -2017,6 +2017,7 @@ function fnVerstuurRekening($p_rkid, $p_toonmelding=0) {
 	$email->xtranum = $rkrow->Nummer;
 	$email->toevoegenlid($rkrow->BetaaldDoor);
 	$email->zichtbaarvoor = $_SESSION['settings']['mailing_rekening_zichtbaarvoor'];
+	$email->vanafid = $_SESSION['settings']['mailing_rekening_vanafid'];
 	$tm = $p_toonmelding;
 	$rv = 0;
 
@@ -2109,7 +2110,6 @@ function fnMailingInstellingen() {
 		$i_p->update("mailing_extensies_toegestaan", $_POST['mailing_extensies_toegestaan']);
 		$i_p->update("max_grootte_bijlage", $_POST['max_grootte_bijlage']);
 		
-		$i_p->update("mailing_type_editor", $_POST['mailing_type_editor']);
 		if (isset($_POST['mailing_tinymce_apikey'])) {
 			if (strlen($_POST['mailing_tinymce_apikey']) < 8) {
 				$_POST['mailing_tinymce_apikey'] = "no-api-key";
@@ -2173,15 +2173,8 @@ function fnMailingInstellingen() {
 	printf("<label>Welke extensies zijn als attachment toegestaan: (leeg = standaard lijst)</label><input type='text' name='mailing_extensies_toegestaan' value='%s'>\n", $_SESSION['settings']['mailing_extensies_toegestaan']);
 	printf("<label>Wat is de maximale groootte van één attachment?</label><input type='number' name='max_grootte_bijlage' value=%d><p>KB (nul = 2MB)</p>\n", $_SESSION['settings']['max_grootte_bijlage']);
 	
-	$options = "";
-	foreach(ARRTYPEEDITOR as $key => $oms) {
-		$options .= sprintf("<option%s value=%d>%s</option>\n", checked($key, "option", $_SESSION['settings']['mailing_type_editor']), $key, $oms);
-	}
-	printf("<label>Welke editor wil je gebruiken?</label><select name='mailing_type_editor'>%s</select>\n", $options);
-	if ($_SESSION['settings']['mailing_type_editor'] == 3) {
-		printf("<label>Wat is de API-key voor TinyMCE?</label><input type='text' name='mailing_tinymce_apikey' value='%s'>\n", $_SESSION['settings']['mailing_tinymce_apikey']);
-	}
-	
+	printf("<label>Wat is de API-key voor TinyMCE?</label><input type='text' name='mailing_tinymce_apikey' value='%s'>\n", $_SESSION['settings']['mailing_tinymce_apikey']);
+		
 	echo("<h2>Opschonen</h2>\n");
 	printf("<label>Hoe lang moeten mailings in de prullenbak bewaard blijven?</label><input type='number' name='mailing_bewaartijd' value=%d min=1 max=999><p>(maanden)</p>\n", $_SESSION['settings']['mailing_bewaartijd']);
 	printf("<label>Hoe lang moeten verzonden e-mails bewaard blijven?</label><input type='number' name='mailing_verzonden_opschonen' value=%d min=6 max=999><p>(maanden)</p>\n", $_SESSION['settings']['mailing_verzonden_opschonen']);
@@ -2442,7 +2435,7 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 			$this->IsMail(true);
 		}
 		$this->CharSet = "UTF-8";
-		$this->From = $_SESSION['settings']['emailwebmaster'];
+		$this->From = (new cls_Mailing_vanaf())->default_vanaf();
 		$this->FromName = $_SESSION['settings']['naamvereniging'];
 		$this->IsHTML(true);
 		$this->WordWrap = 110;
@@ -2600,5 +2593,43 @@ function eigennotificatie($p_ondid, $p_aanadres, $p_tas=-1, $p_interval=24, $p_c
 	}
 	
 }  # eigennotificatie
+
+function js_editor($p_hist=0) {
+	
+	if (file_exists(BASEDIR . '/maatwerk/email.css')) {
+		$stylesheet = "content_css: 'maatwerk/email.css',";
+	} else {
+		$stylesheet = "";
+	}
+	printf("<script>
+		tinymce.init({
+			selector: '#message',
+			placeholder: 'Bericht hier ...',
+			mobile: {
+				theme: 'mobile',
+				menubar: true
+			},
+			height: 650,
+			relative_urls: false,
+			convert_urls: false,
+			remove_script_host : false,
+			plugins: 'link lists table image importcss',
+			paste_as_text: true,
+			%s
+			importcss_append: true,
+			menu: {
+				table: { title: 'Table', items: 'inserttable | cell row column | tableprops deletetable' }
+			},
+			toolbar: 'undo redo | styleselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist | link image | removeformat',
+			menubar: 'edit insert format tools table',
+			
+			setup: function(editor) {
+				editor.on('blur', function(e) {
+					mailing_savemessage(%d);
+				});
+			}
+		});
+  </script>\n", $stylesheet, $p_hist);
+}  # js_editor
 
 ?>
