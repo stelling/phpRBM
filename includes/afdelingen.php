@@ -35,7 +35,6 @@ function fnAfdelingslijst($afdid) {
 	$i_dp = new cls_Diploma();
 	$i_lo = new cls_Lidond($afdid);
 	$afdnm = $i_lo->ondnaam;
-	$i_lo->auto_einde($afdid, 30);
 	
 	if (toegang($afdnm . "/Overzicht lid", 0, 0)) {
 		$kols[0]['headertext'] = "&nbsp;";
@@ -686,13 +685,20 @@ function fnAfdelingswachtlijst($p_afdid) {
 	$kols[2]['headertext'] = "Naam";
 	$kols[2]['columnname'] = "Naam";
 	
-	$kols[3]['headertext'] = "Opmerking";
-	$kols[3]['columnname'] = "Opmerking";
-			
-	$kols[4]['headertext'] = "&nbsp;";
-	$kols[4]['columnname'] = "RecordID";
-	$kols[4]['link'] = sprintf("%s/pdf.php?insid=%%d", BASISURL);
-	$kols[4]['class'] = "pdf";
+	$kols[3]['headertext'] = "Geboortedatum";
+	$kols[3]['columnname'] = "Geboortedatum";
+	$kols[3]['type'] = "date";
+	
+	$kols[4]['headertext'] = "E-mail";
+	$kols[4]['columnname'] = "Email";
+	
+	$kols[5]['headertext'] = "Opmerking";
+	$kols[5]['columnname'] = "Opmerking";
+
+	$kols[6]['headertext'] = "&nbsp;";
+	$kols[6]['columnname'] = "RecordID";
+	$kols[6]['link'] = sprintf("%s/pdf.php?insid=%%d", BASISURL);
+	$kols[6]['class'] = "pdf";
 	
 	echo(fnDisplayTable($rows, $kols, "Wachtlijst", 0, "", "wachtlijst"));
 }
@@ -707,7 +713,7 @@ function fnAfdelingsmailing($p_afdid) {
 	$selmailing = $_POST['SelecteerMailing'] ?? 0;
 	$_POST['groepgewijzigdna'] = $_POST['groepgewijzigdna'] ?? "1900-01-01";
 	if ($_POST['groepgewijzigdna'] < "2000-01-01") {
-		$_POST['groepgewijzigdna'] = substr((new cls_Logboek())->min("DatumTijd", "refTable='Lidond' AND refColumn='GroepID'"), 0, 10);
+		$_POST['groepgewijzigdna'] = substr((new cls_Logboek())->min("DatumTijd", "refColumn='GroepID'"), 0, 10);
 	}
 	$selontv = "";
 	
