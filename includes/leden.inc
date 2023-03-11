@@ -153,6 +153,7 @@ function fnLedenlijst() {
 		if ($toonemail == 1) {
 			$kols[$kn]['headertext'] = "E-mail";
 			$kols[$kn]['columnname'] = "Email";
+			$kols[$kn]['type'] = "email";
 			$kn++;
 		}
 		if ($toonopmerking == 1) {
@@ -572,30 +573,37 @@ function fnNieuwLid() {
 			$kols[1]['headertext'] = "Naam";
 			$kols[1]['columnname'] = "Naam";
 			
-			$kols[2]['headertext'] = "Afdeling";
-			$kols[2]['columnname'] = "Afdeling";
+			$kols[2]['headertext'] = "Geboortedatum";
+			$kols[2]['columnname'] = "Geboortedatum";
+			$kols[2]['type'] = "date";
 			
-			$kols[3]['headertext'] = "Opmerking";
-			$kols[3]['columnname'] = "Opmerking";
+			$kols[3]['headertext'] = "E-mail";
+			$kols[3]['columnname'] = "Email";
 			
-			$kols[4]['headertext'] = "Vanaf";
-			$kols[4]['columnname'] = "Ingevoerd";
-			$kols[4]['type'] = "date";
+			$kols[4]['headertext'] = "Afdeling";
+			$kols[4]['columnname'] = "Afdeling";
 			
-			$kols[5]['headertext'] = "Verwerkt";
-			$kols[5]['columnname'] = "Verwerkt";
-			$kols[5]['type'] = "date";
+			$kols[5]['headertext'] = "Opmerking";
+			$kols[5]['columnname'] = "Opmerking";
 			
-			$kols[6]['headertext'] = "&nbsp;";
-			$kols[6]['columnname'] = "RecordID";
-			$kols[6]['link'] = sprintf("%s/pdf.php?insid=%%d", BASISURL);
-			$kols[6]['class'] = "pdf";
+			$kols[6]['headertext'] = "Vanaf";
+			$kols[6]['columnname'] = "Ingevoerd";
+			$kols[6]['type'] = "date";
+			
+			$kols[7]['headertext'] = "Verwerkt";
+			$kols[7]['columnname'] = "Verwerkt";
+			$kols[7]['type'] = "date";
+			
+			$kols[8]['headertext'] = "&nbsp;";
+			$kols[8]['columnname'] = "RecordID";
+			$kols[8]['link'] = sprintf("%s/pdf.php?insid=%%d", BASISURL);
+			$kols[8]['class'] = "pdf";
 			
 			if (toegang("deleteinschrijving", 0, 0)) {
-				$kols[7]['headertext'] = "&nbsp;";
-				$kols[7]['columnname'] = "RecordID";
-				$kols[7]['link'] = sprintf("%s?tp=%s&op=delete&RecordID=%%d", $_SERVER['PHP_SELF'], $_GET['tp']);
-				$kols[7]['class'] = "trash";
+				$kols[9]['headertext'] = "&nbsp;";
+				$kols[9]['columnname'] = "RecordID";
+				$kols[9]['link'] = sprintf("%s?tp=%s&op=delete&RecordID=%%d", $_SERVER['PHP_SELF'], $_GET['tp']);
+				$kols[9]['class'] = "trash";
 			}
 			
 			echo("<div class='clear'></div>\n");
@@ -763,7 +771,7 @@ function DetailsOnderdeelMuteren($p_ondid) {
 	if (($i_ond->ondtype == "G" or $i_ond->ondtype == "R" or $i_ond->ondtype == "S") and $_SESSION['webmaster'] == 1) {
 		printf("<label>MySQL-code automatisch bijwerken</label><textarea id='mysql' name='mysql' rows=5 cols=100>%s</textarea>\n", $row->MySQL);
 		if (strlen($row->MySQL) > 10 and $i_ond->controleersql($row->MySQL, 1) == false) {
-			echo("<p class='mededeling'>Deze code kan niet worden uitgevoerd.</p>");
+			echo("<p class='waarschuwing'>Deze code kan niet worden uitgevoerd.</p>");
 		} elseif (strlen($row->MySQL) > 10) {
 			$st = microtime(true);
 			$result = (new cls_db_base())->execsql($row->MySQL);
@@ -1761,56 +1769,8 @@ function nieuwepasfoto($lidid, $filterlid="") {
 		} elseif ($_FILES['UploadFoto']['size'] < $min_size_attachm) {
 			$mess = sprintf("De foto kan niet worden ge-upload, omdat het bestand kleiner dan %d bytes is.", $min_size_attachm);
 
-		} else {
-		
+		} else {		
 			$i_foto->add($_FILES['UploadFoto']['tmp_name'], $lidid, $ext);
-/*
-
-			$target = $ad . sprintf("Pasfoto%d.%s", $lidid, $ext);
-			if (strlen($ad) > 0 and file_exists($ad)) {
-				if (is_writable($ad) == false) {
-					$mess = sprintf("Directory '%s' bestaat, maar de website heeft geen schrijfrechten.", $ad);
-					(new cls_Logboek())->add($mess, 6, 0, 0, 0, 20);
-					$mess = "";
-					
-				} else {
-					$adv = $ad . "vervangen/";
-					if (file_exists($adv) and is_writable($adv) == false) {
-						$mess = sprintf("Directory '%s' bestaat, maar de website heeft geen schrijfrechten.", $adv);
-						(new cls_Logboek())->add($mess, 6, 0, 0, 0, 20);
-						$mess = "";
-					}
-
-					if (strlen($target) > 3 and file_exists($target) and file_exists($adv) and is_writable($adv) == true) {
-						$of_ext = substr(strrchr($target, "."), 1);
-						$bu_name = $adv . sprintf("Pasfoto%d_%d.%s", $lidid, date("Ymd", filectime($target)), $of_ext);
-						if (rename($target, $bu_name)) {
-							$mess = sprintf("Pasfoto './%s' is hernoemd naar './%s'.", $target, $bu_name);
-							(new cls_Logboek())->add($mess, 6, $lidid, 0, 0, 21);
-						}
-					}
-
-					if (move_uploaded_file($_FILES['UploadFoto']["tmp_name"], $target)) {
-						$image = new SimpleImage();
-						$image->load($target);
-						if ($image->GetWidth() > 390) {
-							$image->resizeToWidth(390);
-							$image->save($target);
-						}
-						if ($image->GetHeight() > 500) {
-							$image->resizeToHeight(500);
-							$image->save($target);
-						}
-						$image = null;
-						$mess = "Er is een nieuwe pasfoto ge-upload.";
-					
-					} else {
-						$mess = "Het is fout gegaan bij het uploaden van het bestand. Probeer het nog een keer of neem contact op met de webmaster.";
-					}
-				}
-				(new cls_Logboek())->add($mess, 6, $lidid, 1, 0, 21);
-			}
-			*/
 		}
 	}
 
@@ -1942,6 +1902,8 @@ function opzegginglidmaatschap($lidid) {
 	
 	$i_lid = new cls_Lid($lidid);
 	$i_sz = new cls_Seizoen();
+	$i_tp = new cls_Template();
+	
 	$naamlid = $i_lid->Naam();
 	$minopzeggenper = new DateTime(sprintf("+%d month", $_SESSION['settings']['zs_opzegtermijn']));
 	$i_sz->zethuidige(date("Y-m-d", strtotime("+4 week")));
@@ -2001,9 +1963,10 @@ function opzegginglidmaatschap($lidid) {
 <div id='opdrachtknoppen'>\n
 <button type='submit' name='VerstuurOpzegging'>Verstuur opzegging</button>\n
 </div> <!-- Einde opdrachtknoppen -->\n";
-		$myFile = 'templates/opzegging.html';
-		if (file_exists($myFile)) {
-			$content = file_get_contents($myFile);
+		
+		$i_tp->vulvars(-1, "opzegging");
+		if (strlen($i_tp->inhoud) > 0) {
+			$content = $i_tp->inhoud;
 			$content = str_replace("[%FORMOPZEGGING%]", $form_opzegging, $content);
 		} else {
 			$content = $form_opzegging;
@@ -2018,7 +1981,7 @@ function opzegginglidmaatschap($lidid) {
 		$content = str_replace("[%URLWEBSITE%]", $_SERVER["HTTP_HOST"], $content);
 		
 		echo("<div id='opzegformulier'>\n");
-		printf("<form method='post' name='Opzegging' action='%s'>\n", $actionurl);
+		printf("<form method='post' action='%s'>\n", $actionurl);
 		echo($content);
 		echo("</form>\n");
 		echo("</div>  <!-- Einde opzegformulier -->\n");
@@ -2400,7 +2363,7 @@ function instellingenledenmuteren() {
 	foreach((new cls_Mailing())->lijst("Templates") as $row) {
 		$options .= sprintf("<option%s value=%d>%s</option>", checked($row->RecordID, "option", $_SESSION['settings']['mailingbijadreswijziging']), $row->RecordID, $row->subject);
 	}
-	printf("<label>Mailing voor versturen e-mail naar ledenadministratie bij wijzigen postcode</label><select name='mailingbijadreswijziging' OnChange='this.form.submit();'>\n<Option value=0>Geen</option>%s</select>\n", $options);
+//	printf("<label>Mailing voor versturen e-mail naar ledenadministratie bij wijzigen postcode</label><select name='mailingbijadreswijziging' OnChange='this.form.submit();'>\n<Option value=0>Geen</option>%s</select>\n", $options);
 	printf("<label>Moet een opzegging door een lid automatisch worden verwerkt?</label><input type='checkbox' name='zs_opzeggingautomatischverwerken' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_opzeggingautomatischverwerken']));
 	
 	echo("<h2>Rekeningen</h2>\n");
