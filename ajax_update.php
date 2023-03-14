@@ -155,7 +155,6 @@ if ($_SESSION['lidid'] > 0) {
 				
 	} elseif ($ent == "email") {
 		
-
 		if ($rid > 0 and strlen($kolom) > 0) {
 			$i_mh = new cls_Mailing_hist();
 			$i_mh->update($rid, $kolom, $newvalue);
@@ -333,6 +332,11 @@ if ($_SESSION['lidid'] > 0) {
 		$i_ed = new cls_Evenement_Deelnemer();
 		$i_ed->delete($rid);
 		$i_ed = null;
+		
+	} elseif ($ent == "wachtlijst") {
+		$i_ins = new cls_Inschrijving();
+		$i_ins->update($rid, $kolom, $newvalue);
+		$i_ins = null;
 		
 	} elseif ($ent == "add_autorisatie") {
 		$i_aa = new cls_Authorisation();
