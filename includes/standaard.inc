@@ -1026,45 +1026,43 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 
 function fnEditTable($res, $kols, $id, $th) {
 	global $dtfmt;
-	
-	$rows = $res->fetchAll(PDO::FETCH_NUM);
-	
+
+	$rows = $res->fetchAll();
+
 	$ret = sprintf("<table id='%s'>\n", $id);
 	if (strlen($th) > 0) {
 		$ret .= sprintf("<caption>%s</caption>\n", $th);
 	}
 	$ret .= "<thead>\n";
 	$ret .= "<tr>";
-	$colpk = -1;
+	$colpk = "";
 	foreach ($kols as $kn => $kol) {
-		$kols[$kn]['colnum'] = $kn;
-		$kols[$kn]['col_cond_ro'] = -1;
 		if (count($rows) > 0) {
-			foreach ($rows[0] as $k => $v) {
-				if ($kn == $k and !isset($kol['columnname'])) {
-					$kols[$kn]['columnname'] = $res->getColumnMeta($k)['name'];
-					$kols[$kn]['colnum'] = $k;
-				} elseif (isset($kol['columnname']) and $res->getColumnMeta($k)['name'] == $kol['columnname']) {
-					$kols[$kn]['colnum'] = $k;
+			if (!isset($kol['columnname'])) {
+				$kols[$kn]['columnname'] = $res->getColumnMeta($kn)['name'];
+			}
+
+			if (!isset($kols[$kn]['type']) or strlen($kols[$kn]['type']) == 0) {
+				$kols[$kn]['type'] = "text";
+			}
+			if (isset($kol['link']) and strlen($kol['link']) > 1) {
+				$kols[$kn]['type'] = "link";
+			}
+
+			if ($kols[$kn]['type'] == "text") {
+				for ($cn=0;$cn<$res->ColumnCount();$cn++) {
+					if ($kols[$kn]['columnname'] ==  $res->getColumnMeta($cn)['name']) {
+						$kols[$kn]['collen'] = intval($res->getColumnMeta($cn)['len'] / 3);		
+					}
 				}
-				if (isset($kol['link']) and strlen($kol['link']) > 1) {
-					$kols[$kn]['type'] = "link";
-				} elseif (!isset($kol['type'])) {
-					$kols[$kn]['type'] = strtolower($res->getColumnMeta($kn)['native_type']);
-				}
-				if (isset($kol['cond_ro']) and strlen($kol['cond_ro']) > 0 and $res->getColumnMeta($k)['name'] == $kol['cond_ro']) {
-					$kols[$kn]['col_cond_ro'] = $k;
-				}
+			}
+			if (isset($kol['type']) and $kol['type'] == "pk") {
+				$colpk = $kols[$kn]['columnname'];
 			}
 		}
 		
 		if (isset($kol['headertext']) and strlen($kol['headertext']) > 0) {
 			$ret .= sprintf("<th>%s</th>", $kol['headertext']);
-		} elseif (!isset($kol['headertext']) and isset($kol['columnname'])) {
-			$ret .= sprintf("<th>%s</th>", $kol['columnname']);
-		}
-		if (isset($kol['type']) and $kol['type'] == "pk") {
-			$colpk = $kn;
 		}
 	}
 	
@@ -1077,8 +1075,7 @@ function fnEditTable($res, $kols, $id, $th) {
 	$totaantal = 0;
 	foreach($rows as $row) {
 		$ret .= "<tr>";
-		$kn = 0;
-		$valpk = $row[$colpk];
+		$valpk = $row->$colpk;
 		foreach ($kols as $key => $kol) {
 			$tp = $kol['type'] ?? "text";
 			$kol_class = "";
@@ -1101,19 +1098,21 @@ function fnEditTable($res, $kols, $id, $th) {
 					}
 					$kol_link .= ">&nbsp;&nbsp;&nbsp;</a>";
 				}
-				
 			}
-			$colnum = $kol['colnum'];
-			$col_cond_ro = $kol['col_cond_ro'];
 			$ro = $kol['readonly'] ?? false;
-			if ($col_cond_ro >= 0 and $row[$col_cond_ro] > 0) {
-				$ro = true;
+			if (isset($kol['cond_ro']) and strlen($kol['cond_ro']) > 0) {
+				$v = $kol['cond_ro'];
+				if ($row->$v > 0) {
+					$ro = true;
+				}
 			}
-			$value = $row[$colnum];
-			$colname = $res->getColumnMeta($colnum)['name'];
-			$collen = intval($res->getColumnMeta($colnum)['len'] / 3);
+			$colname = $kol['columnname'];
+			$value = $row->$colname;
 			
-			if ($tp == "link") {
+			if (!isset($kol['headertext']) or strlen($kol['headertext']) == 0) {
+				// Kolom wordt niet getoond.
+			
+			} elseif ($tp == "link") {
 				if ($value > 0 and $ro == false) {
 					$href = str_replace("%d", $value, $kol_link);
 					$href = str_replace("%s", "&nbsp;&nbsp;&nbsp;", $href);
@@ -1174,9 +1173,10 @@ function fnEditTable($res, $kols, $id, $th) {
 					$ret .= sprintf("<td><input type='time' id='%s_%d' value='%s'></td>", $colname, $valpk, $value);
 				}
 
-			} elseif ($tp == "integer" or ($tp == "pk" and isset($kols[$colpk]['headertext']) and strlen($kols[$colpk]['headertext']) > 0)) {
+			} elseif ($tp == "integer" or $tp == "pk") {
 				if ($ro) {
 					$ret .= sprintf("<td class='number'>%d</td>", $value);
+					
 				} else {
 					if (isset($kol['max']) and $kol['max'] <= 99) {
 						$c = "num2";
@@ -1230,12 +1230,12 @@ function fnEditTable($res, $kols, $id, $th) {
 					$ret .= sprintf("<td><input type='password' name='%s_%d'></td>", $colname, $valpk);
 				}
 
-			} elseif (isset($kol['headertext']) and strlen($kol['headertext']) > 0) {
+			} else {
 				if ($ro) {
 					$ret .= sprintf("<td>%s</td>", htmlentities($value));
 				} else {
-					$xc = sprintf("w%d", $collen);
-					$ret .= sprintf("<td><input type='text' id='%s_%d' value=\"%s\" class='%s' maxlength=%d></td>", $colname, $valpk, $value, $xc, $collen);
+					$xc = sprintf("w%d", $kol['collen']);
+					$ret .= sprintf("<td><input type='text' id='%s_%d' value=\"%s\" class='%s' maxlength=%d></td>", $colname, $valpk, $value, $xc, $kol['collen']);
 				}
 			}
 		}
