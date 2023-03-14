@@ -11,6 +11,7 @@ $arrTables[] = "Bewaking_Inschrijving";
 $arrTables[] = "Evenement";
 $arrTables[] = "Evenement_Deelnemer";
 $arrTables[] = "Evenement_Type";
+$arrTables[] = "Foto";
 $arrTables[] = "Mailing";
 $arrTables[] = "Mailing_hist";
 $arrTables[] = "Mailing_rcpt";
@@ -4883,7 +4884,8 @@ class cls_Mailing extends cls_db_base {
 	public function opschonen() {
 		if ($_SESSION['settings']['mailing_bewaartijd'] > 0) {
 			$reden = sprintf("de mailing langer dan %d maanden geleden in de prullenbak is geplaatst", $_SESSION['settings']['mailing_bewaartijd']);
-			$f = sprintf("IFNULL(M.deleted_on, '9999-12-31') < DATE_SUB(CURDATE(), INTERVAL %d MONTH)", $this->basefrom, $_SESSION['settings']['mailing_bewaartijd']);
+			$f = sprintf("IFNULL(M.deleted_on, '9999-12-31') < DATE_SUB(CURDATE(), INTERVAL %d MONTH)", $_SESSION['settings']['mailing_bewaartijd']);
+			$f .= sprintf(" AND (M.RecordID NOT IN (SELECT MH.MailingID FROM %sMailing_hist AS MH))", TABLE_PREFIX);
 			foreach ($this->basislijst($f) as $mrow) {
 				$this->delete($mrow->RecordID, $reden);
 			}
@@ -5850,7 +5852,13 @@ class cls_Logboek extends cls_db_base {
 	
 	private function update($p_aid, $p_kolom, $p_waarde) {
 		$this->pdoupdate($p_aid, $p_kolom, $p_waarde);
+		// Bewust zonder logging
 	}  # update
+	
+	private function delete($p_aid) {
+		$this->pdodelete($p_aid);
+		// Bewust zonder logging
+	}  # delete
 	
 	public function controle() {
 		
@@ -5892,11 +5900,27 @@ class cls_Logboek extends cls_db_base {
 		$this->execsql($query, 2);
 		
 // Inloggen
-		$query = sprintf("DELETE FROM %s WHERE DatumTijd < DATE_SUB(CURDATE(), INTERVAL 12 MONTH) AND TypeActiviteit=1 AND TypeActiviteitSpecifiek IN (1, 4);", $this->table);
-		$this->execsql($query, 2);
+		$f = "A.TypeActiviteit=1 AND A.TypeActiviteitSpecifiek=1";
+		$aant = 0;
+		foreach ($this->basislijst($f) as $row) {
+			$query = sprintf("SELECT COUNT(*) FROM %s WHERE A.LidID=%d AND A.RecordID >= %d AND %s;", $this->basefrom, $row->LidID, $row->RecordID, $f);
+			if ($this->scalar($query) > 10) {
+				$this->delete($row->RecordID);
+				$aant++;
+			}
+		}
+		if ($aant > 0) {
+			$this->mess = sprintf("Er zijn %d rijen uit de logging verwijderen van inloggen, omdat er meer dan 10 in de tabel, van het betreffende lid, stonden.", $aant);
+			$this->ta = 2;
+			$this->log(0);
+		}
 
 // Uitloggen
 		$query = sprintf("DELETE FROM %s WHERE DatumTijd < DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND TypeActiviteit=1 AND TypeActiviteitSpecifiek=2;", $this->table);
+		$this->execsql($query, 2);
+		
+// Mislukte logins
+		$query = sprintf("DELETE FROM %s WHERE DatumTijd < DATE_SUB(CURDATE(), INTERVAL 6 MONTH) AND TypeActiviteit=1 AND TypeActiviteitSpecifiek=4;", $this->table);
 		$this->execsql($query, 2);
 	
 // Eigen debugging
@@ -6461,7 +6485,7 @@ class cls_Liddipl extends cls_db_base {
 	}
 	
 	public function controle() {
-		$query = sprintf("SELECT LD.*, L.RecordID AS LidID, L.Overleden, DP.Vervallen, IF(DP.GELDIGH=0, '9999-12-31', DATE_ADD(LD.DatumBehaald, INTERVAL DP.GELDIGH MONTH)) AS GeldigTot, DP.AantalBeoordelingen
+		$query = sprintf("SELECT LD.*, L.RecordID AS LidID, L.Overleden, DP.GELDIGH, DP.Vervallen, IF(DP.GELDIGH=0, '9999-12-31', DATE_ADD(LD.DatumBehaald, INTERVAL DP.GELDIGH MONTH)) AS GeldigTot, DP.AantalBeoordelingen
 						  FROM (%1\$s INNER JOIN %2\$sDiploma AS DP ON LD.DiplomaID=DP.RecordID) INNER JOIN %2\$sLid AS L ON L.RecordID=LD.Lid;", $this->basefrom, TABLE_PREFIX);
 		$result = $this->execsql($query);
 		foreach ($result->fetchAll() as $row) {
@@ -6469,8 +6493,8 @@ class cls_Liddipl extends cls_db_base {
 				$this->update($row->RecordID, "LicentieVervallenPer", $row->Overleden, "het lid overleden is.");
 			}  elseif (strlen($row->Vervallen) >= 10 and $row->Vervallen > $row->LicentieVervallenPer) {
 				$this->update($row->RecordID, "LicentieVervallenPer", $row->Vervallen, "het diploma vervallen is.");
-			}  elseif (strlen($row->LicentieVervallenPer) == 0 and $row->GeldigTot < date("Y-m-d")) {
-				$this->update($row->RecordID, "LicentieVervallenPer", $row->GeldigTot, "de geldigheid is verlopen.");
+			}  elseif (strlen($row->LicentieVervallenPer) == 0 and $row->GELDIGH > 0) {
+				$this->update($row->RecordID, "LicentieVervallenPer", $row->GeldigTot, "de geldigheid van dit diploma beperkt is.");
 			} elseif ($row->LaatsteBeoordeling == 0 and $row->AantalBeoordelingen <= 1) {
 				$this->update($row->RecordID, "LaatsteBeoordeling", 1, "er maar één beoordeling nodig is.");
 			}
@@ -8966,7 +8990,7 @@ class cls_Inschrijving extends cls_db_base {
 		}
 	}
 	
-	public function lijst($p_filter=1, $p_afd=-1) {
+	public function lijst($p_filter=1, $p_afd=-1, $p_fetched=1) {
 		
 		if ($p_filter == 1) {
 			$w = " WHERE (Ins.Verwerkt IS NULL)";
@@ -8982,9 +9006,15 @@ class cls_Inschrijving extends cls_db_base {
 			$w .= sprintf("OnderdeelID=%d", $p_afd);
 		}
 		
-		$query = sprintf("SELECT Ins.*, O.Naam AS Afdeling FROM %s LEFT OUTER JOIN %sOnderdl AS O ON Ins.OnderdeelID=O.RecordID%s ORDER BY IF(Ins.Verwerkt IS NULL, 0, 1), Ins.Naam, Ins.Ingevoerd;", $this->basefrom, TABLE_PREFIX, $w);
+		$query = sprintf("SELECT Ins.*, O.Naam AS Afdeling, IF(LENGTH(Ins.PDF) > 10, Ins.RecordID, 0) AS LnkPDF
+						  FROM %s LEFT OUTER JOIN %sOnderdl AS O ON Ins.OnderdeelID=O.RecordID%s
+						  ORDER BY IF(Ins.Verwerkt IS NULL, 0, 1), Ins.Ingevoerd, Ins.Naam;", $this->basefrom, TABLE_PREFIX, $w);
 		$res = $this->execsql($query);
-		return $res->fetchAll();
+		if ($p_fetched == 1) {
+			return $res->fetchAll();
+		} else {
+			return $res;
+		}
 	}
 	
 	public function htmloptions($p_cv=-1) {
@@ -9792,6 +9822,9 @@ function db_onderhoud($type=9) {
 	$query = sprintf("ALTER TABLE `%sMailing_hist` CHANGE `cc_addr` `cc_addr` VARCHAR(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL;", TABLE_PREFIX);
 	$i_base->execsql($query);
 	
+	$query = sprintf("ALTER TABLE `%sInschrijving` CHANGE `Opmerking` `Opmerking` VARCHAR(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL;", TABLE_PREFIX);
+	$i_base->execsql($query);
+	
 	/***** Velden die niet meer nodig zijn *****/
 	$i_base->tas = 13;
 	
@@ -9905,7 +9938,7 @@ function db_onderhoud($type=9) {
 	/*
 		Deze code na 1 april 2023 activeren, eerst controle in cls_Mailing aanpassen.
 	$tab = TABLE_PREFIX . "Mailing";
-	$col = "to_namer";
+	$col = "to_name";
 	if ($i_base->bestaat_kolom($col, $tab) == true) {
 		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
 		$i_base->execsql($query, 2);
@@ -9963,16 +9996,10 @@ function db_backup($p_typebackup=3) {
 	$mess = "";
 	
 	$laatstebackup = (new cls_Logboek())->max("DatumTijd", "TypeActiviteit=3 AND TypeActiviteitSpecifiek=1");
-	if (strtotime($laatstebackup) < mktime(date("H")-1, date("m"), 0, date("m"), date("d"), date("Y")) or $_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
+	if (strtotime($laatstebackup) < mktime(date("H")-1, date("m"), 0, date("m"), date("d"), date("Y")) or $p_typebackup >= 4 or $_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 		
-		if ($p_typebackup == 4) {
-			echo("<p>Wacht met scrollen/kopiëren totdat het volledige scherm is geladen.</p>\n");
-			echo("<p class='sql' id='exportdata'>");
-		} else {
-			$FileName = $db_folderbackup . $buname . ".sql";
-			echo("<p class='mededeling'>Backup is gestart</p>");
-			$buf = fopen($FileName, 'w');
-		}
+		$FileName = $db_folderbackup . $buname . ".sql";
+		$buf = fopen($FileName, 'w');
 		$data = "";
 				
 		$aanttab = 0;
@@ -10030,9 +10057,12 @@ function db_backup($p_typebackup=3) {
 								$data .= "0";
 							}
 							
+						} elseif ($meta['native_type'] == "BLOB" or $meta['native_type'] == "LONGBLOB") {
+							$data .= base64_encode($row[$j]);
+							
 						} elseif (isset($row[$j])) {
 							$data .= '"' . htmlentities($row[$j]) . '"' ;
-//							debug($meta['name'] . ": " . $meta['native_type']);
+
 						} else {
 							$data .= '""';
 						}
@@ -10042,31 +10072,22 @@ function db_backup($p_typebackup=3) {
 					}
 					$data .= ");\n";
 					
-					if ($p_typebackup == 4) {
-						echo($data . "\n");
-					} else {
-						fwrite($buf, $data);
-					}
+					fwrite($buf, $data);
 					$data = "";
 				}
 				$aanttab++;
 				
-				if ($p_typebackup != 4) {
-					fwrite($buf, "\n\n");
-				}
-
+				fwrite($buf, "\n");
+				
 				$resultcount = null;
 				$result = null;
 			}
 		}
-		if ($p_typebackup != 4) {
-			fclose($buf);
-		}
+		fclose($buf);
 		$i_base = null;
 		
 		if ($p_typebackup == 4) {
-
-			echo($data . "</p>\n");
+			printf("<p class='mededeling'>Het bestand staat <a href='%s%s%s.sql'>hier</a>.</p>\n", BASISURL, str_replace(BASEDIR, "", $db_folderbackup), $buname);
 			
 			echo("<p class='mededeling'>Deze export bevat geen Admin-tabellen.</p>\n");
 
