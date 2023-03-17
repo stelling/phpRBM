@@ -224,7 +224,6 @@ function HTMLheader($breed=0) {
 			printf("<script src='includes/javascript.js?v%d'></script>\n", filectime("includes/javascript.js"));
 		}
 		echo("<meta charset='UTF-8'>\n");
-		echo("<meta http-equiv='Cache-control' content='public'>\n");
 		echo("<meta name='viewport' content='width=device-width, initial-scale=1.0'>\n");
 		printf("<title>%s</title>\n", $title);
 		echo("<link rel='stylesheet' href='//code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css'>\n");
@@ -287,16 +286,16 @@ function HTMLheader($breed=0) {
 		echo("</div>  <!-- Einde welkom -->\n");
 		
 		printf("<h1>%s</h1>\n", $_SESSION['settings']['naamwebsite']);
-		echo("<div class='clear'></div>\n");
+//		echo("<div class='clear'></div>\n");
 		
 		$xtra = "";
 		if ($currenttab == "Overzicht lid" and isset($_GET['lidid']) and $_GET['lidid'] > 0) {
 			$xtra = sprintf("lidid=%d", $_GET['lidid']);
 		}
-		fnDispMenu(1, $xtra);
 		
 		echo("</header>\n");
-		echo("<div class='clear'></div>\n");
+		
+		fnDispMenu(1, $xtra);
 	}
 } # HTMLheader
 
@@ -336,10 +335,83 @@ function HTMLfooter() {
 	}
 } # HTMLfooter
 
+function fnDispMenu_nw($toonnivo=1, $xtra="") {
+	global $tabpages, $currenttab, $currenttab2, $currenttab3, $navpad;
+	
+	if ($toonnivo == 1) {
+		echo("<nav>\n");
+	}
+	$tpd = ""; // Dit wordt getoond in het menu.
+	$ulopen = false;
+
+	if (strlen($xtra) > 0 and startwith($xtra, "&amp;") == false) {
+		$xtra = "&" . $xtra;
+	}
+	
+	$nivo = $toonnivo;
+	printf("<ul id='menu_l%d'>\n", $toonnivo);
+	$itp = 1;
+	foreach($tabpages as $tp) {
+		if ($nivo == 1 and strstr($tp, "/") === false) {
+			$tpd = $tp;
+		} elseif ($nivo == 2 and mb_substr_count($tp, "/") == 1 and startwith($tp, $currenttab . "/")) {
+			$tpd = str_replace($currenttab . "/", "", $tp);
+		
+		} elseif ($nivo == 3 and mb_substr_count($tp, "/") == 2 and startwith($tp, $currenttab . "/") and strpos($tp, $currenttab2) > 1) {
+			$tpd = str_replace($currenttab2 . "/", "", str_replace($currenttab . "/", "", $tp));
+			
+//		} elseif ($currenttab2 == "Overzicht lid") {
+			
+		} else {
+			$tpd = "";
+		}
+		if (strlen($tpd) > 1) {
+			$cl = "";
+			if ($nivo == 1 and $currenttab == str_replace("'", "", $tp)) {
+				$cl = " class='current'";
+				$navpad[$nivo]['naam'] = $tpd;
+				$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
+			} elseif ($nivo == 2 and ($currenttab2 == str_replace("'", "", $tpd) or strlen($currenttab2) == 0)) {
+				$cl = " class='current'";
+				if (toegang($currenttab . "/" . str_replace("'", "", $tpd), 0)) {
+					$currenttab2 = $tpd;
+				}
+				$navpad[$nivo]['naam'] = $tpd;
+				$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
+			} elseif ($nivo == 3 and ($currenttab3 == str_replace("'", "", $tpd) or strlen($currenttab3) == 0)) {
+				$cl = " class='current'";
+				$navpad[$nivo]['naam'] = $tpd;
+				$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
+			}
+			if ($itp == 5) {
+				echo("<li class='dropdown'>&nbsp;\n");
+				echo("<ul>\n");
+			}
+			printf("<li%s><a href=\"%s?tp=%s%s\">%s</a></li>\n", $cl, $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra, $tpd);
+			$itp++;
+		}
+	}
+	if ($itp > 5) {
+		echo("</ul> <!-- Einde dropdown -->\n");
+		echo("</li>\n");
+	}
+	echo("</ul>\n");
+	
+	if ($toonnivo == 1 and strlen($currenttab2) == 0) {
+		echo("</nav>\n");
+	} elseif ($toonnivo == 2 and strlen($currenttab3) == 0) {
+		echo("</nav>\n");
+	} elseif ($toonnivo == 3) {
+		echo("</nav>\n");
+	}
+}  # fnDispMenu
+
 function fnDispMenu($toonnivo=1, $xtra="") {
 	global $tabpages, $currenttab, $currenttab2, $currenttab3, $navpad;
 	
-	echo("<nav>\n");
+	if ($toonnivo == 1) {
+		echo("<nav>\n");
+	}
 	$tpd = ""; // Dit wordt getoond in het menu.
 	$ulopen = false;
 	$_SESSION['settings']['typemenu'] = 1;
@@ -406,10 +478,15 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 		}
 		echo("</ul>\n");
 	}
-	echo("</nav>\n");
-	if ($nivo > 1) {
-		echo("<div class='clear'></div>\n");
+	
+	if ($toonnivo == 1 and strlen($currenttab2) == 0) {
+		echo("</nav>\n");
+	} elseif ($toonnivo == 2 and strlen($currenttab3) == 0) {
+		echo("</nav>\n");
+	} elseif ($toonnivo == 3) {
+		echo("</nav>\n");
 	}
+
 }  # fnDispMenu
 
 function isValidMailAddress($address, $p_LeegIsGoed=0){
@@ -451,9 +528,7 @@ function fnDispEmail($strEmail, $strNaam="", $booInclLink=1) {
 	if (isValidMailAddress($strEmail, 0)) {
 		if ($_SESSION['lidid'] > 0) {
 			$strNaam = str_replace(" ", "%20", htmlentities($strNaam));
-			if (strlen($strNaam) > 3 and $booInclLink >= 1) {
-				$strRet = sprintf('<a href="mailto:%1$s%%20<%2$s>">%2$s</a>', $strNaam, $strEmail);
-			} elseif ($booInclLink >= 1) {
+			if ($booInclLink >= 1) {
 				$strRet = sprintf('<a href="mailto:%1$s">%1$s</a>', $strEmail);
 			} else {
 				$strRet = $strEmail;
@@ -1154,6 +1229,10 @@ function fnEditTable($res, $kols, $id, $th) {
 					$ret .= "<td>&nbsp;</td>";
 				}
 				
+			} elseif ($tp == "geboren_leeftijd") {
+					$dtfmt->setPattern(DTTEXT);
+					$ret .= sprintf("<td>%s (%s)</td>", $dtfmt->format(strtotime($value)), fnLeeftijd($value));
+				
 			} elseif ($tp == "datetime" or $tp == "DTLONG") {
 				$dtfmt->setPattern(DTLONG); // 1 januari 2020 (14:12)
 				if ($ro == false) {
@@ -1576,14 +1655,6 @@ function fnControleEmail($p_email) {
 }  # fnControleEmail
 
 function DisplayTabs($tabblad, $inittab=0) {
-	
-	printf("<script>
-		$( function() {
-			$('#tabs').tabs({
-				active: %d
-			});
-		} );
-	</script>\n", $inittab);	
 		
 	echo("<div id='tabs'>\n");
 	echo("<ul>\n");
@@ -1601,6 +1672,16 @@ function DisplayTabs($tabblad, $inittab=0) {
 	}
 	
 	echo("</div> <!-- Einde tabs -->\n");
+	
+	printf("<script>
+		$(document).ready(function() {
+			$( function() {
+				$('#tabs').tabs({
+					active: %d
+				});
+			});
+		});
+	</script>\n", $inittab);	
 	
 }  # DisplayTabs
 
@@ -1624,5 +1705,24 @@ function validTime($time, $format='H:i') {
     $d = DateTime::createFromFormat("Y-m-d " . $format, "2022-12-01 " . $time);
     return $d && $d->format($format) == $time;
 }  # validTime
+
+function fnLeeftijd($p_gd, $p_per="", $p_incl_jr=1) {
+	if (strlen($p_per) < 10) {
+		$p_per = date("Y-m-d");
+	}
+	
+	$rv = intval(substr($p_per, 0, 4) - substr($p_gd, 0, 4));
+	if (substr($p_per, 5, 2) < substr($p_gd, 5, 2)) {
+		$rv--;
+	} elseif (substr($p_per, 5, 2) == substr($p_gd, 5, 2) and substr($p_per, 8, 2) < substr($p_gd, 8, 2)) {
+		$rv--;
+	}
+	
+	if ($p_incl_jr == 1) {
+		$rv = sprintf("%d&nbsp;jaar", $rv);
+	}
+	
+	return $rv;
+}  # fnLeeftijd
 
 ?>
