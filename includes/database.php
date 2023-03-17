@@ -621,13 +621,14 @@ class cls_db_base {
 			} else {
 				$p_waarde = str_replace("\"", "'", $p_waarde);
 				$xw = sprintf("BINARY IFNULL(`%s`, '')<>:nw", $p_kolom, $p_waarde);
+				
 			}
 			$query = sprintf("UPDATE %s SET `%s`=:nw %s WHERE `%s`=:id AND %s;", $this->table, $p_kolom, $gw, $this->pkkol, $xw);
 			$stmt = $dbc->prepare($query);
 			if ($p_waarde === "NULL") {
 				$n = null;
 				$stmt->bindValue(":nw", $n, PDO::PARAM_NULL);
-			
+
 			} elseif ($this->is_kolom_numeriek($p_kolom)) {
 				$stmt->bindValue(":nw", $p_waarde);
 			
@@ -4556,9 +4557,6 @@ class cls_Login extends cls_db_base {
 			foreach($result->fetchAll() as $row) {
 				$updqry = sprintf("UPDATE %s SET Ingelogd=0 WHERE LidID=%d;", $this->table, $row->LidID);
 				if ($this->execsql($updqry) > 0) {
-					$this->lidid = $row->LidID;
-					$this->mess = "Is automatisch uitgelogd.";
-					$this->log(0, 0, 1);
 					$rv++;
 				}
 			}
@@ -6913,16 +6911,13 @@ class cls_Evenement extends cls_db_base {
 		return $this->standaardstatus;
 	}
 	
-	public function add($p_datum="") {
-		if (strlen($p_datum) < 10) {
-			$p_datum = date("Y-m-d");
-		}
+	public function add() {
 		$this->tas = 1;
 		
 		$nrid = $this->nieuwrecordid();
-		$this->query = sprintf("INSERT INTO %s (RecordID, Datum, Omschrijving, TypeEvenement, InschrijvingOpen, StandaardStatus, IngevoerdDoor) VALUES (%d, '%s', '', 0, 0, 'B', %d);", $this->table, $nrid, $p_datum, $_SESSION['lidid']);
+		$this->query = sprintf("INSERT INTO %s (RecordID, Omschrijving, TypeEvenement, InschrijvingOpen, StandaardStatus, IngevoerdDoor) VALUES (%d, '', 0, 0, 'B', %d);", $this->table, $nrid, $_SESSION['lidid']);
 		if ($this->execsql() > 0) {
-			$this->mess = sprintf("Evenement %d op %s is toegevoegd.", $nrid, $p_datum);
+			$this->mess = sprintf("Evenement %d is toegevoegd.", $nrid);
 			$this->log($nrid);
 			return $nrid;
 		} else {
@@ -9823,6 +9818,9 @@ function db_onderhoud($type=9) {
 	$i_base->execsql($query);
 	
 	$query = sprintf("ALTER TABLE `%sInschrijving` CHANGE `Opmerking` `Opmerking` VARCHAR(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL;", TABLE_PREFIX);
+	$i_base->execsql($query);
+	
+	$query = sprintf("ALTER TABLE `%sEvenement` CHANGE `Datum` `Datum` DATETIME NULL;", TABLE_PREFIX);
 	$i_base->execsql($query);
 	
 	/***** Velden die niet meer nodig zijn *****/
