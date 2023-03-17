@@ -176,7 +176,8 @@ if ($i_lid->aantal() == 0) {
 	if (strlen($i_el->mysql) >= 9) {
 		$rows = $i_el->rowset();
 		if ($rows !== false) {
-			echo(fnDisplayTable($rows, null, $i_el->elnaam));
+			$id = str_replace(" ", "_", strtolower($i_el->elnaam));
+			echo(fnDisplayTable($rows, null, $i_el->elnaam, 0, "", $id));
 			if (count($rows) > 1) {
 				printf("<p>%d rijen</p>\n", count($rows));
 			}
@@ -497,7 +498,7 @@ function fnAgenda($p_lidid=0) {
 		$txt .= "</tr>\n";
 	}
 	
-	$txt .= "</tr>\n";
+//	$txt .= "</tr>\n";
 	$txt .= "</table>\n";
 	
 	return $txt;
