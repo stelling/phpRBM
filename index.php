@@ -11,6 +11,8 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 	setcookie("password", "", time()-60);
 	$_SESSION['lidid'] = 0;
 	$_SESSION['webmaster'] = 0;
+	$_SESSION['lidgroepen'] = null;
+	$_SESSION['lidauth'] = null;
 	echo("<script>location.href='/index.php';</script>\n");
 	
 } elseif ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['Inloggen']) and $_POST['Inloggen'] == "Inloggen") {
