@@ -24,9 +24,14 @@ function fnAfdeling() {
 		fnAfdelingswachtlijst($afdid);
 	} elseif ($currenttab2 == "Afdelingsmailing") {
 		fnAfdelingsmailing($afdid);
-	} elseif ($currenttab2 == "Examenresultaten") {
+	} elseif ($currenttab2 == "Diploma's") {
+		fnDiplomasMuteren($afdid);
+	} elseif ($currenttab2 == "Examens") {
 		fnExamenResultaten($afdid);
+	} else {
+		debug($currenttab2);
 	}
+	
 	
 }  # fnAfdeling
 
@@ -673,34 +678,53 @@ function fnAfdelingswachtlijst($p_afdid) {
 	
 	$i_ins = new cls_Inschrijving();
 	
-	$rows = $i_ins->lijst(1, $p_afdid);
+	if (isset($_GET['op']) and $_GET['op'] == "delete" and $_GET['RecordID'] > 0 and toegang("deleteinschrijving", 1, 1)) {
+		$i_ins->delete($_GET['RecordID']);
+	}
+	
+	$rows = $i_ins->lijst(1, $p_afdid, 0);
 	
 	$kols[0]['headertext'] = "#";
 	$kols[0]['columnname'] = "RecordID";
+	$kols[0]['type'] = "pk";
+	$kols[0]['readonly'] = true;
 	
 	$kols[1]['headertext'] = "Vanaf";
 	$kols[1]['columnname'] = "Ingevoerd";
 	$kols[1]['type'] = "date";
+	$kols[1]['readonly'] = true;
 	
 	$kols[2]['headertext'] = "Naam";
 	$kols[2]['columnname'] = "Naam";
+	$kols[2]['readonly'] = true;
 	
 	$kols[3]['headertext'] = "Geboortedatum";
 	$kols[3]['columnname'] = "Geboortedatum";
-	$kols[3]['type'] = "date";
+	$kols[3]['type'] = "geboren_leeftijd";
+	$kols[3]['readonly'] = true;
 	
 	$kols[4]['headertext'] = "E-mail";
 	$kols[4]['columnname'] = "Email";
+	$kols[4]['type'] = "email";
+	$kols[4]['readonly'] = true;
 	
 	$kols[5]['headertext'] = "Opmerking";
 	$kols[5]['columnname'] = "Opmerking";
 
 	$kols[6]['headertext'] = "&nbsp;";
-	$kols[6]['columnname'] = "RecordID";
+	$kols[6]['columnname'] = "LnkPDF";
 	$kols[6]['link'] = sprintf("%s/pdf.php?insid=%%d", BASISURL);
 	$kols[6]['class'] = "pdf";
 	
-	echo(fnDisplayTable($rows, $kols, "Wachtlijst", 0, "", "wachtlijst"));
+	if (toegang("deleteinschrijving", 0, 0)) {
+		$kols[7]['headertext'] = "&nbsp;";
+		$kols[7]['columnname'] = "RecordID";
+		$kols[7]['link'] = sprintf("%s?tp=%s&op=delete&RecordID=%%d", $_SERVER['PHP_SELF'], $_GET['tp']);
+		$kols[7]['class'] = "trash";
+	}
+	
+//	echo(fnDisplayTable($rows, $kols, "Wachtlijst", 0, "", "wachtlijst"));
+	echo(fnEditTable($rows, $kols, "wachtlijst", "Wachtlijst"));
 }
 
 function fnAfdelingsmailing($p_afdid) {
