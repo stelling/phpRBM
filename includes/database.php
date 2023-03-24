@@ -1,30 +1,31 @@
 <?php
 
-$arrTables[0] = "Admin_access";
+$arrTables[0] = "Aanwezigheid";
+$arrTables[] = "Admin_access";
 $arrTables[] = "Admin_activiteit";
 $arrTables[] = "Admin_interface";
 $arrTables[] = "Admin_login";
 $arrTables[] = "Admin_param";
 $arrTables[] = "Admin_template";
+$arrTables[] = "Afdelingskalender";
 $arrTables[] = "Bewaking_Blok";
 $arrTables[] = "Bewaking_Inschrijving";
+$arrTables[] = "Eigen_lijst";
 $arrTables[] = "Evenement";
 $arrTables[] = "Evenement_Deelnemer";
 $arrTables[] = "Evenement_Type";
+$arrTables[] = "Examen";
 $arrTables[] = "Foto";
+$arrTables[] = "Inschrijving";
 $arrTables[] = "Mailing";
 $arrTables[] = "Mailing_hist";
 $arrTables[] = "Mailing_rcpt";
 $arrTables[] = "Mailing_vanaf";
+$arrTables[] = "RekeningBetaling";
 $arrTables[] = "Stukken";
 $arrTables[] = "WS_Artikel";
 $arrTables[] = "WS_Orderregel";
-$arrTables[] = "Afdelingskalender";
-$arrTables[] = "Aanwezigheid";
 $arrTables[] = "WS_Voorraadboeking";
-$arrTables[] = "RekeningBetaling";
-$arrTables[] = "Eigen_lijst";
-$arrTables[] = "Inschrijving";
 // $arrTables[] = "DMS_Document";
 // $arrTables[] = "DMS_Folder";
 
@@ -42,8 +43,6 @@ $arrTables[] = "Lid";
 $arrTables[] = "Liddipl";
 $arrTables[] = "Lidmaatschap";
 $arrTables[] = "Lidond";
-$arrTables[] = "Activiteit";
-//$arrTables[] = "LidRedNed";
 $arrTables[] = "Memo";
 $arrTables[] = "Mutatie";
 $arrTables[] = "Onderdl";
@@ -175,7 +174,11 @@ class cls_db_base {
 			debug($this->query, 0, 1);
 		}
 		
-		if (strlen($this->query) > 5) {
+		if (strlen($this->query) <= 5 and isset($dbc)) {
+			debug("Het uit te voeren SQL-statement is leeg.", 2, 1);
+			return false;
+
+		} elseif (isset($dbc)) {
 
 			try {
 				if (startwith($this->query, "SELECT ")) {
@@ -225,9 +228,9 @@ class cls_db_base {
 				debug($mess, 2, 1);
 				return false;
 			}
-				
+			
 		} else {
-			debug("Het uit te voeren SQL-statement is leeg.", 2, 1);
+			debug("Er is geen verbinding met de database-server.", 2, 0);
 			return false;
 		}
 	}
@@ -319,11 +322,15 @@ class cls_db_base {
 		}
 	}
 	
-	public function typekolom($p_kolom) {
+	public function typekolom($p_kolom, $p_table="") {
 		
 		$p = strpos($p_kolom, ".");
 		if ($p !== false and $p > 0) {
 			$p_kolom = substr($p_kolom, $p+1);
+		}
+		
+		if (strlen($p_table) > 0) {
+			$this->table = TABLE_PREFIX . $p_table;
 		}
 		
 		$query = sprintf("SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%s' AND COLUMN_NAME LIKE '%s';", DB_NAME, $this->table, $p_kolom);
@@ -1086,7 +1093,7 @@ class cls_Lid extends cls_db_base {
 					CONCAT(%s, IF(LENGTH(L.GEBPLAATS) > 1, CONCAT(' te ', L.GEBPLAATS), '')) AS Geboren, 
 					L.Overleden AS `dteOverleden op`,
 					%s AS Leeftijd,
-					L.Burgerservicenummer,
+					IF(L.Burgerservicenummer > 1000, L.Burgerservicenummer, NULL) AS Burgerservicenummer,
 					%s
 					'Contactgegevens' AS Kop3, 
 					L.Telefoon AS `Vast telefoonnummer`, 
@@ -1854,14 +1861,34 @@ class cls_Authorisation extends cls_db_base {
 			$p_tabpage = $this->naamtp;
 		}
 		
+		if (!isset($_SESSION['lidgroepen']) or strlen($_SESSION['lidgroepen']) <= 2) {
+			$_SESSION['lidgroepen'] = (new cls_Lidond())->lidgroepen();
+		}
+		
+		if (!isset($_SESSION['lidauth']) or !is_array($_SESSION['lidauth']) or count($_SESSION['lidauth']) < 5) {
+			$query = sprintf("SELECT DISTINCT AA.Tabpage FROM %s WHERE AA.Toegang IN (%s);", $this->basefrom, $_SESSION['lidgroepen']);
+			foreach ($this->execsql($query)->fetchAll() as $row) {
+				$_SESSION['lidauth'][] = $row->Tabpage;
+			}
+		}
+		
 		if ($_SESSION['webmaster'] == 1) {
-			$query = sprintf("SELECT IFNULL(MIN(AA.RecordID), 0) FROM %s WHERE AA.Tabpage='%s';", $this->basefrom, $p_tabpage);
-			$aid = $this->scalar($query);
-			if (strlen($p_tabpage) > 0 and $aid == 0) {
-				$aid = $this->add($p_tabpage);
+			if (in_array($p_tabpage, $_SESSION['lidauth']) == false) {
+				$query = sprintf("SELECT IFNULL(MIN(AA.RecordID), 0) FROM %s WHERE AA.Tabpage='%s';", $this->basefrom, $p_tabpage);
+				$aid = $this->scalar($query);
+				if (strlen($p_tabpage) > 0 and $aid == 0) {
+					$this->aid = $this->add($p_tabpage);
+				}
+				$_SESSION['lidauth'][] = $p_tabpage;
 			}
 			$rv = true;
 		} else {
+			/*
+			if (in_array($p_tabpage, $_SESSION['lidauth'])) {
+				$rv = true;
+			}
+			*/
+
 			$query = sprintf("SELECT IFNULL(MIN(AA.RecordID), 0) FROM %s WHERE AA.Tabpage='%s' AND AA.Toegang IN (%s);", $this->basefrom, $p_tabpage, $_SESSION['lidgroepen']);
 			$aid = $this->scalar($query);
 			if ($aid > 0) {
@@ -1869,8 +1896,8 @@ class cls_Authorisation extends cls_db_base {
 			}
 		}
 		
-		if ($rv and $aid > 0 and $p_alleenmenu == 0) {
-			$this->update($aid, "LaatstGebruikt", date("Y-m-d"));
+		if ($rv and $this->aid > 0 and $p_alleenmenu == 0) {
+			$this->update($this->aid, "LaatstGebruikt", date("Y-m-d"));
 		}
 		
 		return $rv;
@@ -1929,6 +1956,10 @@ class cls_Authorisation extends cls_db_base {
 			$this->mess = "Je bent niet bevoegd om autorisaties te verwijderen.";
 		}
 		$this->log($p_aid);
+	}
+	
+	public function controle() {
+		
 	}
 	
 	public function opschonen() {
@@ -3980,8 +4011,8 @@ class cls_Activiteit extends cls_db_base {
 class cls_Groep extends cls_db_base {
 	// Afdelingsgroepen
 	
-	private $afdid = 0;
-	private $grid = -1;
+	public $afdid = 0;
+	public $grid = -1;
 	public $grnaam = "";
 	public $groms = "";
 	public $diplomaid = 0;
@@ -4009,7 +4040,7 @@ class cls_Groep extends cls_db_base {
 			if (isset($row->RecordID) and $row->RecordID > 0) {
 				$this->grnaam = $row->Omschrijving;
 				$this->groms = $row->Omschrijving;
-				if (strlen($row->Instructeurs) > 0) {
+				if (strlen($row->Instructeurs) > 1) {
 					$this->groms .= " | " . $row->Instructeurs;
 				}
 				$this->naamlogging = $row->Omschrijving;
@@ -4018,6 +4049,7 @@ class cls_Groep extends cls_db_base {
 				$this->diplomaid = $row->DiplomaID;
 			} else {
 				$this->grid = 0;
+				$this->diplomaid = 0;
 			}
 		} else {
 			$this->groms = "Niet ingedeeld";
@@ -4549,6 +4581,8 @@ class cls_Login extends cls_db_base {
 				$this->mess = "Heeft uitgelogd.";
 				$this->log();
 				$_SESSION['lidid'] = 0;
+				$_SESSION['lidgroepen'] = null;
+				$_SESSION['lidauth'] = null;
 				$rv++;
 			}
 		} else {
@@ -5769,7 +5803,6 @@ class cls_Logboek extends cls_db_base {
 			* 2: alleen tonen aan webmasters
 			* 3: aan iedereen via alert tonen
 		*/
-		$nrid = $this->nieuwrecordid();
 		
 		$bt = debug_backtrace(0, 4);
 		$f = "";
@@ -5836,9 +5869,9 @@ class cls_Logboek extends cls_db_base {
 		} else {
 			$il = 0;
 		}
-		$query = sprintf("INSERT INTO %s (RecordID, DatumTijd, LidID, IP_adres, USER_AGENT, Omschrijving, ReferID, ReferLidID, TypeActiviteit, Script, Getoond, RefFunction, TypeActiviteitSpecifiek, RefTable, refColumn) VALUES 
-				(%d, SYSDATE(), %d, '%s', '%s', \"%s\",%d, %d, %d, \"%s\", %d, \"%s\", %d, '%s', '%s');", $this->table, $nrid, $il, $_SERVER['REMOTE_ADDR'], $ua, $p_oms, $p_referid, $this->lidid, $p_ta, $this->script(), $this->tm, $f, $this->tas, $p_reftable, $p_refcolumn);
-		$this->execsql($query);
+		$query = sprintf("INSERT INTO %s (DatumTijd, LidID, IP_adres, USER_AGENT, Omschrijving, ReferID, ReferLidID, TypeActiviteit, Script, Getoond, RefFunction, TypeActiviteitSpecifiek, RefTable, refColumn) VALUES 
+				(SYSDATE(), %d, '%s', '%s', \"%s\",%d, %d, %d, \"%s\", %d, \"%s\", %d, '%s', '%s');", $this->table, $il, $_SERVER['REMOTE_ADDR'], $ua, $p_oms, $p_referid, $this->lidid, $p_ta, $this->script(), $this->tm, $f, $this->tas, $p_reftable, $p_refcolumn);
+		$nrid = $this->execsql($query);
 		if ($this->tm == 1 or ($this->tm == 2 and $_SESSION['webmaster'] == 1)) {
 			printf("<p class='mededeling'>%s</p>\n", $p_oms);
 		} elseif ($this->tm == 3) {
@@ -6059,10 +6092,12 @@ class cls_interface extends cls_db_base {
 
 class cls_Diploma extends cls_db_base {
 	
-	private $dpid = 0;
+	public $dpid = 0;
 	public $dpnaam = "";
 	private $dpcode = "";
 	public $dpvoorganger = 0;
+	public $dpvolgende = 0;
+	public $eindeuitgifte = "9999-12-31";
 	
 	function __construct($p_dpid=-1) {
 		parent::__construct();
@@ -6079,7 +6114,7 @@ class cls_Diploma extends cls_db_base {
 		if ($this->dpid > 0) {
 			$query = sprintf("SELECT DP.* FROM %s WHERE DP.RecordID=%d;", $this->basefrom, $this->dpid);
 			$row = $this->execsql($query)->fetch();
-			if (isset($row)) {
+			if (isset($row->RecordID)) {
 				$this->dpnaam = $row->Naam;
 				if (strlen($row->Naam) > 20) {
 					$this->naamlogging = $row->Kode;
@@ -6088,22 +6123,22 @@ class cls_Diploma extends cls_db_base {
 				}
 				$this->dpcode = $row->Kode;
 				$this->dpvoorganger = $row->VoorgangerID;
+				if (strlen($row->EindeUitgifte) == 0) {
+					$this->eindeuitgifte = "9999-12-31";
+				} else {
+					$this->eindeuitgifte = $row->EindeUitgifte;
+				}
+				$query = sprintf("SELECT IFNULL(MIN(DP.RecordID), 0) FROM %s WHERE DP.VoorgangerID=%d AND IFNULL(DP.Vervallen, '9999-12-31') > CURDATE() AND IFNULL(DP.EindeUitgifte, '9999-12-31') > CURDATE();", $this->basefrom, $this->dpid);
+				$this->dpvolgende = $this->scalar($query);
 			} else {
 				$this->dpid = 0;
+				$this->dpvoorganger = 0;
+				$this->dpvolgende = 0;
 			}
 		}
 	}
 	
-	public function lijst() {
-		$query = sprintf("SELECT DP.* FROM %s ORDER BY DP.Kode;", $this->basefrom);
-		$result = $this->execsql($query);
-		
-		debug("lijst in cls_diploma: vervangen door basislijst");  //20230201
-		
-		return $result;
-	}
-	
-	public function record($p_dpid) {
+	public function record($p_dpid=-1) {
 		$this->vulvars($p_dpid);
 		
 		$query = sprintf("SELECT DP.* FROM %s WHERE DP.RecordID=%d;", $this->basefrom, $this->dpid);
@@ -6133,7 +6168,7 @@ class cls_Diploma extends cls_db_base {
 		return $result->fetchAll();
 	}
 	
-	public function htmloptions($p_cv=0, $p_afdfilter=-1, $p_zs=0, $p_inclvervallen=0, $p_filter="", $p_kort=0) {
+	public function htmloptions($p_cv=0, $p_afdfilter=-1, $p_zs=0, $p_inclvervallen=0, $p_filter="", $p_kort=0, $p_opexamen=-1) {
 		/*
 			$p_afdfilter = door leden van deze afdeling gehaald.
 			$p_kort = alleen de naam wordt weergegeven
@@ -6141,37 +6176,50 @@ class cls_Diploma extends cls_db_base {
 		
 		$rv = "";
 		if ($p_afdfilter > 0) {
-			$this->where = sprintf("WHERE DP.RecordID IN (SELECT DiplomaID FROM %1\$sLiddipl AS LD WHERE LD.Lid IN (SELECT Lid FROM %1\$sLidond AS LO WHERE LO.OnderdeelID=%2\$d AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()))", TABLE_PREFIX, $p_afdfilter);
+			$w = sprintf("WHERE DP.RecordID IN (SELECT DiplomaID FROM %1\$sLiddipl AS LD WHERE LD.Lid IN (SELECT Lid FROM %1\$sLidond AS LO WHERE LO.OnderdeelID=%2\$d AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()))", TABLE_PREFIX, $p_afdfilter);
+		} else {
+			$w = "";
 		}
 		if ($p_zs == 1) {
-			if (strlen($this->where) > 0) {
-				$this->where .= " AND ";
+			if (strlen($w) > 0) {
+				$w .= " AND ";
 			} else {
-				$this->where = "WHERE ";
+				$w = "WHERE ";
 			}
-			$this->where .= "DP.Zelfservice=1";
+			$w .= "DP.Zelfservice=1";
 		}
 		
 		if ($p_inclvervallen == 0) {
-			if (strlen($this->where) > 0) {
-				$this->where .= " AND ";
+			if (strlen($w) > 0) {
+				$w .= " AND ";
 			} else {
-				$this->where = "WHERE ";
+				$w = "WHERE ";
 			}
-			$this->where .= "IFNULL(DP.Vervallen, '9999-12-31') >= CURDATE()";
+			$w .= "IFNULL(DP.Vervallen, '9999-12-31') >= CURDATE()";
 		}
 		
 		if (strlen($p_filter) > 0) {
-			if (strlen($this->where) > 0) {
-				$this->where .= " AND ";
+			if (strlen($w) > 0) {
+				$w .= " AND ";
 			} else {
-				$this->where = "WHERE ";
+				$w = "WHERE ";
 			}
-			$this->where .= $p_filter;
+			$w .= $p_filter;
 		}
 		
 		$sep = 0;
-		$query = sprintf("SELECT DP.*, CONCAT(DP.Kode, ' - ', DP.Naam) AS ToonWaarde FROM %s %s ORDER BY IF(DP.EindeUitgifte IS NULL, IF(DP.Vervallen IS NULL, 0, 1), 1), ", $this->basefrom, $this->where);
+		
+		if ($p_opexamen > 0) {
+			$query = sprintf("SELECT DP.*, (SELECT COUNT(*) FROM %sLiddipl AS LD WHERE LD.Examen=%d AND LD.DiplomaID=DP.RecordID) AS aantal", TABLE_PREFIX, $p_opexamen);
+		} else {
+			$query = "SELECT DP.*";
+		}
+		$query .= sprintf(" FROM %s %s ORDER BY ", $this->basefrom, $w);
+		
+		if ($p_opexamen > 0) {
+			$query .= sprintf("IF((SELECT COUNT(*) FROM %sLiddipl AS LD WHERE LD.Examen=%d AND LD.DiplomaID=DP.RecordID) > 0, 0, 1), ", TABLE_PREFIX, $p_opexamen);
+		}
+		$query .= "IF(DP.EindeUitgifte IS NULL, IF(DP.Vervallen IS NULL, 0, 1), 1), ";
 		if ($p_kort == 1) {
 			$query .= "DP.Naam;";
 		} else {
@@ -6185,6 +6233,8 @@ class cls_Diploma extends cls_db_base {
 			$s = checked($row->RecordID, "option", $p_cv);
 			if ($p_kort == 1) {
 				$rv .= sprintf("<option value=%d %s>%s</option>\n", $row->RecordID, $s, $row->Naam);
+			} elseif ($p_opexamen > 0 and $row->aantal > 1) {
+				$rv .= sprintf("<option value=%d %s>%s (%d kandidaten)</option>\n", $row->RecordID, $s, $row->Naam, $row->aantal);
 			} else {
 				$rv .= sprintf("<option value=%d %s>%s - %s</option>\n", $row->RecordID, $s, $row->Kode, $row->Naam);
 			}
@@ -6339,15 +6389,21 @@ class cls_Liddipl extends cls_db_base {
 		}
 	}
 	
-	public function overzichtlid($p_lidid) {
+	public function overzichtlid($p_lidid, $p_per="") {
+		
+		if (strlen($p_per) < 10) {
+			$p_per = date("Y-m-d");
+		}
+		
 		$query = sprintf("SELECT D.Naam,
-						  O.Naam AS UitgegevenDoor,
-						  LD.DatumBehaald,
-						  LD.Diplomanummer,
-						  IFNULL(LD.LicentieVervallenPer, IF(D.GELDIGH>0, DATE_ADD(LD.DatumBehaald, INTERVAL D.GELDIGH MONTH), IF((NOT D.Vervallen IS NULL), D.Vervallen, null))) AS GeldigTot
-						  FROM %1\$sLiddipl AS LD INNER JOIN (%1\$sDiploma AS D INNER JOIN %1\$sOrganisatie AS O ON D.ORGANIS=O.Nummer) ON LD.DiplomaID=D.RecordID
-						  WHERE LD.DatumBehaald <= CURDATE() AND LD.LaatsteBeoordeling=1 AND IFNULL(D.Vervallen, '9999-12-31') >= CURDATE() AND LD.Lid=%2\$d
-						  ORDER BY LD.DatumBehaald;", TABLE_PREFIX, $p_lidid);
+								O.Naam AS UitgegevenDoor,
+								LD.DatumBehaald,
+								LD.Diplomanummer,
+								LD.LicentieVervallenPer,
+								IFNULL(LD.LicentieVervallenPer, IF(D.GELDIGH>0, DATE_ADD(LD.DatumBehaald, INTERVAL D.GELDIGH MONTH), IF((NOT D.Vervallen IS NULL), D.Vervallen, null))) AS GeldigTot
+								FROM %1\$sLiddipl AS LD INNER JOIN (%1\$sDiploma AS D INNER JOIN %1\$sOrganisatie AS O ON D.ORGANIS=O.Nummer) ON LD.DiplomaID=D.RecordID
+								WHERE LD.DatumBehaald < '%3\$s' AND LD.LaatsteBeoordeling=1 AND IFNULL(D.Vervallen, '9999-12-31') >= '%3\$s' AND LD.Lid=%2\$d
+								ORDER BY LD.DatumBehaald;", TABLE_PREFIX, $p_lidid, $p_per);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
@@ -6364,26 +6420,38 @@ class cls_Liddipl extends cls_db_base {
 		return $result->fetchAll();
 	}
 	
-	public function overzichtperexamen($p_exdatum, $p_dpid) {
+	public function overzichtperdiploma($p_dpid) {
 		
-		$xw = "";
-		if (strlen($p_exdatum) == 10) {
-			$xw = sprintf("AND LD.DatumBehaald='%s'", $p_exdatum);
-		}
+		$query = sprintf("SELECT LD.*, %s AS NaamLid, L.GEBDATUM FROM %s INNER JOIN %sLid AS L ON LD.Lid=L.RecordID
+							   WHERE LD.DiplomaID=%d ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, LD.DatumBehaald;", $this->selectnaam, $this->basefrom, TABLE_PREFIX, $p_dpid);
+		$result = $this->execsql($query);
+
+		return $result->fetchAll();
+	}
+	
+	public function overzichtperexamen($p_examen) {
 		
-		$query = sprintf("SELECT LD.*, %s AS NaamLid FROM %s INNER JOIN %sLid AS L ON LD.Lid=L.RecordID
-							   WHERE LD.DiplomaID=%d %s ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, LD.DatumBehaald;", $this->selectnaam, $this->basefrom, TABLE_PREFIX, $p_dpid, $xw);
+		$query = sprintf("SELECT LD.*, %s AS NaamLid, L.GEBDATUM FROM %s INNER JOIN %sLid AS L ON LD.Lid=L.RecordID
+							   WHERE LD.Examen=%d ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, LD.DatumBehaald;", $this->selectnaam, $this->basefrom, TABLE_PREFIX, $p_examen);
 		$result = $this->execsql($query);
 		
 		return $result->fetchAll();
+	}
+	
+	public function perexamendiploma($p_examen, $p_dpid) {
 		
+		$query = sprintf("SELECT LD.*, %s AS NaamLid, L.GEBDATUM FROM %s INNER JOIN %sLid AS L ON LD.Lid=L.RecordID
+							   WHERE LD.Examen=%d AND LD.DiplomaID=%d ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, LD.DatumBehaald;", $this->selectnaam, $this->basefrom, TABLE_PREFIX, $p_examen, $p_dpid);
+		$result = $this->execsql($query);
+		
+		return $result->fetchAll();
 	}
 	
 	public function lidlaatstediplomas($p_lidid, $p_aant=2) {
 		$rv = "";
 		$a = 0;
 		$query = sprintf("SELECT DP.Naam FROM %s AS LD INNER JOIN %sDiploma AS DP ON LD.DiplomaID=DP.RecordID
-					WHERE LD.Lid=%d AND IFNULL(DP.Vervallen, '9999-12-31') >= CURDATE() AND IFNULL(LD.LicentieVervallenPer, '9999-12-31') >= CURDATE() AND DP.OpleidingInVereniging=1
+					WHERE LD.Lid=%d AND IFNULL(DP.Vervallen, '9999-12-31') >= CURDATE() AND IFNULL(LD.LicentieVervallenPer, '9999-12-31') >= CURDATE() AND DP.OpleidingInVereniging=1 AND LD.DatumBehaald <= CURDATE()
 					ORDER BY LD.DatumBehaald DESC, DP.Volgnr;", $this->table, TABLE_PREFIX, $p_lidid);
 		$rows = $this->execsql($query)->fetchAll();
 		
@@ -6399,14 +6467,23 @@ class cls_Liddipl extends cls_db_base {
 		return $rv;
 	}
 	
-	public function dubbelediplomas($p_lidid, $p_dpid, $p_orgldid) {
+	public function dubbelediplomas($p_orgldid) {
 		
-		$query = sprintf("SELECT LD.DatumBehaald FROM %s WHERE LD.Lid=%d AND LD.DiplomaID=%d AND LD.RecordID<>%d ORDER BY LD.DatumBehaald;", $this->basefrom, $p_lidid, $p_dpid, $p_orgldid);
-		$result = $this->execsql($query);
+		$query = sprintf("SELECT LD.* FROM %s WHERE LD.RecordID=%d;", $this->basefrom, $p_orgldid);
+		$row = $this->execsql($query)->fetch();
+		if (isset($row->RecordID)) {
+			$lidid = $row->Lid;
+			$dpid = $row->DiplomaID;
+			$behaaldvoor = $row->DatumBehaald;
+
+			$query = sprintf("SELECT LD.DatumBehaald FROM %s WHERE LD.DatumBehaald < '%s' AND LD.Lid=%d AND LD.DiplomaID=%d ORDER BY LD.DatumBehaald;", $this->basefrom, $behaaldvoor, $lidid, $dpid);
+			$result = $this->execsql($query);
 		
-		return $result->fetchAll();
-		
-	}
+			return $result->fetchAll();
+		} else {
+			return false;
+		}
+	} # dubbelediplomas
 	
 	public function vervallenbinnenkort($p_lidid=0) {
 		$query = sprintf("SELECT D.Kode AS Code,
@@ -6423,18 +6500,26 @@ class cls_Liddipl extends cls_db_base {
 		return $result->fetchAll();
 	}
 	
-	public function add($p_lidid, $p_dpid, $p_exdatum="", $p_explaats="") {
+	public function add($p_lidid, $p_dpid, $p_exdatum="", $p_examen=-1) {
 		$this->vulvars(-1, $p_lidid, $p_dpid);
+		
 		if (strlen($p_exdatum) < 10) {
 			$p_exdatum = date("Y-m-d");
+		}
+		if ($p_examen > 0) {
+			$i_ex = new cls_Examen($p_examen);
+			$p_exdatum = $i_ex->exdatum;
+			$i_ex = null;
+		} else {
+			$p_examen = 0;
 		}
 		
 		$this->tas = 1;
 		if ($this->lidid > 0 and $this->dpid > 0 and strlen($p_exdatum) == 10) {
 			$nrid = $this->nieuwrecordid();
-			$query = sprintf("INSERT INTO %s (RecordID, Lid, DiplomaID, DatumBehaald, EXPLAATS, LaatsteBeoordeling, Ingevoerd) VALUES (%d, %d, %d, '%s', '%s', 1, SYSDATE());", $this->table, $nrid, $this->lidid, $this->dpid, $p_exdatum, $p_explaats);
+			$query = sprintf("INSERT INTO %s (RecordID, Lid, DiplomaID, Examen, DatumBehaald, LaatsteBeoordeling, Ingevoerd) VALUES (%d, %d, %d, %d, '%s', 1, SYSDATE());", $this->table, $nrid, $this->lidid, $this->dpid, $p_examen, $p_exdatum);
 			if ($this->execsql($query) > 0) {
-				$query = sprintf("INSERT INTO Liddipl (RecordID, Lid, DiplomaID, DatumBehaald, EXPLAATS, LaatsteBeoordeling, Ingevoerd) VALUES (%d, %d, %d, '%s', '%s', 1, SYSDATE());", $nrid, $this->lidid, $this->dpid, $p_exdatum, $p_explaats);
+				$query = sprintf("INSERT INTO Liddipl (RecordID, Lid, DiplomaID, DatumBehaald, LaatsteBeoordeling, Ingevoerd) VALUES (%d, %d, %d, '%s', 1, SYSDATE());", $nrid, $this->lidid, $this->dpid, $p_exdatum);
 				(new cls_Interface())->add($query, $this->lidid);
 				$this->mess = sprintf("Liddipl: Record %d (%s/%s) is toegevoegd.", $nrid, $this->dpnaam, $p_exdatum);
 			} else {
@@ -6458,8 +6543,6 @@ class cls_Liddipl extends cls_db_base {
 			$this->mess = "'Behaald op' mag niet voor de geboortedatum liggen, deze wijziging wordt niet verwerkt.";
 		} elseif (($p_kolom == "DatumBehaald" or $p_kolom == "LicentieVervallenPer") and strtotime($p_waarde) == false and strlen($p_waarde) > 0) {
 			$this->mess = sprintf("%s: %s is geen geldige datum, deze wijziging wordt niet verwerkt.", $p_kolom, $p_waarde);
-		} elseif ($p_kolom == "DatumBehaald" and $p_waarde > date("Y-m-d")) {
-			$this->mess = "'Behaald op' mag niet in de toekomst liggen, deze wijziging wordt niet verwerkt.";
 		} else {
 			if ($this->pdoupdate($p_ldid, $p_kolom, $p_waarde, $p_reden) > 0) {
 				$this->tm = 0;
@@ -6474,10 +6557,6 @@ class cls_Liddipl extends cls_db_base {
 		$this->tas = 3;
 		
 		if ($this->pdodelete($this->ldid, $p_reden) > 0) {
-			$this->mess = sprintf("Liddipl: record %d (%s) is bij %s verwijderd", $this->ldid, $this->dpnaam, $this->lidnaam);
-			if (strlen($p_reden) > 0) {
-				$this->mess .= ", omdat " . $p_reden;
-			}
 			$this->log($this->ldid);
 		}
 	}
@@ -6495,6 +6574,17 @@ class cls_Liddipl extends cls_db_base {
 				$this->update($row->RecordID, "LicentieVervallenPer", $row->GeldigTot, "de geldigheid van dit diploma beperkt is.");
 			} elseif ($row->LaatsteBeoordeling == 0 and $row->AantalBeoordelingen <= 1) {
 				$this->update($row->RecordID, "LaatsteBeoordeling", 1, "er maar één beoordeling nodig is.");
+			} elseif ($row->Examen == 0) {
+				// Tijdelijke code, kan na 1 maart 2024 weg
+				$exqry = sprintf("SELECT IFNULL(MAX(EX.Nummer), 0) FROM %sExamen AS EX WHERE EX.Datum='%s' AND Plaats='%s';", TABLE_PREFIX, $row->DatumBehaald, $row->EXPLAATS);
+				$exid = $this->scalar($exqry);
+				if ($exid == 0) {
+					$exqry = sprintf("SELECT IFNULL(MAX(EX.Nummer), 0) FROM %sExamen AS EX WHERE EX.Datum='%s';", TABLE_PREFIX, $row->DatumBehaald);
+					$exid = $this->scalar($exqry);
+				}
+				if ($exid > 0) {
+					$this->update($row->RecordID, "Examen", $exid);
+				}
 			}
 		}
 	}
@@ -6514,13 +6604,6 @@ class cls_Liddipl extends cls_db_base {
 			$this->delete($row->RecordID, $reden);
 		}
 		
-		$query = sprintf("SELECT LD.RecordID FROM %s WHERE DatumBehaald > CURDATE();", $this->basefrom);
-		$reden = " de datum van behalen in de toekomst ligt";
-		$result = $this->execsql($query);
-		foreach ($result->fetchAll() as $row) {
-			$this->delete($row->RecordID, $reden);
-		}
-		
 		$query = sprintf("SELECT LD.RecordID FROM %s AS LD WHERE DatumBehaald > LicentieVervallenPer;", $this->table);
 		$reden = " Vervallen per ligt voor datum behaald";
 		$result = $this->execsql($query);
@@ -6528,15 +6611,37 @@ class cls_Liddipl extends cls_db_base {
 			$this->delete($row->RecordID, $reden);
 		}
 		
+		$query = sprintf("SELECT LD.RecordID, DP.HistorieOpschonen FROM %s INNER JOIN %sDiploma AS DP ON LD.DiplomaID=DP.RecordID
+								WHERE IFNULL(LD.LicentieVervallenPer, '9999-12-31') < DATE_SUB(CURDATE(), INTERVAL DP.HistorieOpschonen MONTH);", $this->basefrom, TABLE_PREFIX);
+		$result = $this->execsql($query);
+		foreach ($result->fetchAll() as $row) {
+			$reden = sprintf("de geldigheid langer dan %d maanden is verlopen.", $row->HistorieOpschonen);
+			$this->delete($row->RecordID, $reden);
+		}
+		
+		$this->tm = 0;
+		$i_lm = new cls_Lidmaatschap();
 		$bt = $_SESSION['settings']['liddipl_bewaartermijn'] ?? 0;
-		if ($bt > 3) {
-			$reden = sprintf("de geldigheid langer dan %d maanden geleden is verlopen.", $bt);
-			$query = sprintf("SELECT LD.RecordID FROM %s WHERE IFNULL(LD.LicentieVervallenPer, '9999-12-31') < DATE_SUB(CURDATE(), INTERVAL %d MONTH);", $this->basefrom, $bt);
-			$result = $this->execsql($query);
-			foreach ($result->fetchAll() as $row) {
-				$this->delete($row->RecordID, $reden);
+		$a = 0;
+		if ($bt > 0) {
+			$f = sprintf("IFNULL(LM.Opgezegd, '9999-12-31') < DATE_SUB(CURDATE(), INTERVAL %d MONTH)", $bt);
+			foreach ($i_lm->basislijst($f, "LM.Opgezegd") as $lmrow) {
+				$this->lidid = $lmrow->Lid;
+				if ($i_lm->eindelidmaatschap($lmrow->Lid) < date("Y-m-d", strtotime(sprintf("-%d month", $bt)))) {
+					$query = sprintf("SELECT LD.* FROM %s WHERE LD.Lid=%d;", $this->basefrom, $lmrow->Lid);
+					foreach ($this->execsql($query)->fetchAll() as $ldrow) {
+						$reden = sprintf("omdat het lidmaatschap langer dan %d maanden geleden is beëindigd.", $bt);
+						if ($a < 250) {
+							if ($this->delete($ldrow->RecordID, $reden) > 0) {
+								$this->log($ldrow->RecordID);
+								$a++;
+							}
+						}
+					}
+				}
 			}
 		}
+		$i_lm = null;
 		
 		$this->optimize();
 		
@@ -6545,9 +6650,10 @@ class cls_Liddipl extends cls_db_base {
 }  #  cls_Liddipl
 
 class cls_Examen extends cls_db_base {
-	private $exid = 0;
-	private $exdatum = "";
-	private $explaats = "";
+	public $exid = 0;
+	public $exdatum = "";
+	public $explaats = "";
+	public $aantalkandidaten = 0;
 	
 	function __construct($p_exid=-1) {
 		parent::__construct();
@@ -6555,34 +6661,72 @@ class cls_Examen extends cls_db_base {
 		$this->basefrom = $this->table . " AS EX";
 		$this->ta = 12;
 		$this->pkkol = "Nummer";
-		if ($p_exid >= 0) {
-			$this->vulvars($p_exid);
-		}
+		$this->vulvars($p_exid);
 	}
 	
-	private function vulvars($p_exid) {
-		$this->exid = $p_exid;
+	public function vulvars($p_exid) {
+		if ($p_exid >= 0) {
+			$this->exid = $p_exid;
+		}
 		if ($this->exid > 0) {
 			$query = sprintf("SELECT EX.* FROM %s WHERE EX.Nummer=%d;", $this->basefrom, $this->exid);
 			$row = $this->execsql($query)->fetch();
-			$this->exdatum = $row->Datum;
-			$this->explaats = $row->Plaats;
+			if (isset($row->Datum)) {
+				$this->exdatum = $row->Datum;
+				$this->explaats = $row->Plaats;
+			} else {
+				$this->exid = 0;
+			}
+			$query = sprintf("SELECT COUNT(*) FROM %sLiddipl AS LD WHERE LD.Examen=%d;", TABLE_PREFIX, $this->exid);
+			$this->aantalkandidaten = $this->scalar($query);
+		} else {
+			$this->exdatum = "";
+			$this->aantalkandidaten = 0;
 		}
 	}
 	
-	public function lijst() {
-		$query = sprintf("SELECT EX.*, (SELECT COUNT(*) FROM %sLiddipl AS LD WHERE LD.Examen=EX.Nummer) AS AantalBehaald FROM %s ORDER BY EX.Datum DESC;", $this->basefrom, TABLE_PREFIX);
-		$result = $thsis->execsql($query);
-		return $result->fetchAll();
+	public function lijst($p_fetched=1) {
+		$query = sprintf("SELECT EX.*, (SELECT COUNT(*) FROM %sLiddipl AS LD WHERE LD.Examen=EX.Nummer) AS AantalBehaald FROM %s ORDER BY EX.Datum DESC;", TABLE_PREFIX, $this->basefrom);
+		$result = $this->execsql($query);
+		
+		if ($p_fetched == 1) {
+			return $result->fetchAll();
+		} else {
+			return $result;
+		}
+	}
+	
+	public function eerstediploma() {
+		if ($this->aantalkandidaten > 0 and $this->exid > 0) {
+			$query = sprintf("SELECT IFNULL(MIN(LD.DiplomaID), 0) FROM %sLiddipl AS LD WHERE LD.Examen=%d;", TABLE_PREFIX, $this->exid);
+			return $this->scalar($query);
+		} else {
+			return 0;
+		}
+	}
+	
+	public function htmloptions($p_cv=-1) {
+		global $dtfmt;
+		
+		$rv = "";
+		$dtfmt->setPattern(DTTEXT);
+		
+		foreach ($this->lijst() as $row) {
+			$s = "";
+			if ($p_cv == $row->Nummer) {
+				$s = " selected";
+			}
+			$rv .= sprintf("<option%s value=%d>%s | %s | %d kandidaten</option>\n", $s, $row->Nummer, $dtfmt->format(strtotime($row->Datum)), $row->Plaats, $row->AantalBehaald);
+		}
+		
+		return $rv;
 	}
 	
 	public function add() {
 		$this->tas = 11;
 		$nrid = $this->nieuwrecordid();
-		$query = sprintf("INSERT INTO %s (Nummer, Datum, Ingevoerd) VALUES (%d CURDATE(), SYSDATE());", $this->table, $nrid);
+		$query = sprintf("INSERT INTO %s (Nummer, Datum, Ingevoerd) VALUES (%d, CURDATE(), SYSDATE());", $this->table, $nrid);
 		if ($this->execsql($query) > 0) {
-			$query = sprintf("INSERT INTO Examen (Nummer, Datum, Ingevoerd) VALUES (%d, %s, Now());", $nrid, date("m/d/Y"));
-			(new cls_Interface())->add($query);
 			$this->mess = sprintf("Examen %d is toegevoegd.", $nrid);
 			$this->Log($nrid);
 		} else {
@@ -6597,8 +6741,8 @@ class cls_Examen extends cls_db_base {
 		$this->tm = 0;
 		$this->tas = 12;
 		
-		if ($this->pdoupdate($p_exid, $p_kolom, $p_waarde, $p_reden) > 0) {
-			$this->log($p_exid);
+		if ($this->pdoupdate($this->exid, $p_kolom, $p_waarde, $p_reden) > 0) {
+			$this->log($this->exid);
 		}
 	}
 	
@@ -6606,23 +6750,29 @@ class cls_Examen extends cls_db_base {
 		$this->vulvars($p_exid);
 		$this->tas = 13;
 		
-		$contrqry = sprintf("SELECT COUNT(*) FROM %sLiddipl AS LD WHERE LD.Examen=%d;", TABLE_PREFIX, $p_exid);
+		$contrqry = sprintf("SELECT COUNT(*) FROM %sLiddipl AS LD WHERE LD.Examen=%d;", TABLE_PREFIX, $this->exid);
 		if ($this->scalar($contrqry) > 0) {
-			$this->mess = sprintf("Examen %d wordt niet verwijderd, omdat er nog gerelateerde records in Liddipl zijn.", $p_exid);
-			$this->log($p_exid);
+			$this->mess = sprintf("Examen %d wordt niet verwijderd, omdat er nog gerelateerde records in Liddipl zijn.", $this->exid);
+			$this->log($this->exid);
 		} else {
 			if ($this->pdodelete($this->exid, $p_reden)) {
-				$this->log($p_exid);
+				$this->log($this->exid);
 			}
 		}
 	}
 	
+	public function controle() {
+		
+	}
+	
 	public function opschonen() {
-		$query = sprintf("SELECT EX.Nummer FROM %s WHERE EX.Datum < CURDATE() AND EX.Ingevoerd < DATE_SUB(CURDATE(), INTERVAL 3 MONTH) AND (SELECT COUNT(*) FROM %sLiddipl AS LD WHERE LD.Examen=EX.Nummer)=0;", $this->basefrom, TABLE_PREFIX);
+		$query = sprintf("SELECT EX.Nummer FROM %s WHERE EX.Ingevoerd < DATE_SUB(CURDATE(), INTERVAL %d DAY) AND (SELECT COUNT(*) FROM %sLiddipl AS LD WHERE LD.Examen=EX.Nummer)=0;", $this->basefrom, BEWAARTIJDNIEUWERECORDS, TABLE_PREFIX);
 		$result = $this->execsql($query);
 		$reden = "het examen in het verleden ligt en er een gekoppelde records (meer) zijn.";
 		foreach ($result->fetchAll() as $exrow) {
-			$this->delete($exrow->Nummer, $reden);
+			if ($exrow->Datum < date("Y-m-d")) {
+				$this->delete($exrow->Nummer, $reden);
+			}
 		}
 		
 		$this->optimize();
@@ -6946,6 +7096,10 @@ class cls_Evenement extends cls_db_base {
 		}
 	}
 	
+	public function controle() {
+		
+	}
+	
 	public function opschonen() {
 		
 		$this->query = sprintf("SELECT E.* FROM %s WHERE IFNULL(E.VerwijderdOp, '1900-01-01') > '2000-01-01';", $this->basefrom);
@@ -7136,6 +7290,9 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 		$this->log($this->edid);
 	}
 	
+	public function controle() {
+	}
+	
 	public function opschonen() {
 		
 		$query = sprintf("SELECT ED.RecordID FROM %s WHERE ED.EvenementID NOT IN (SELECT E.RecordID FROM %sEvenement AS E);", $this->basefrom, TABLE_PREFIX);
@@ -7211,6 +7368,9 @@ class cls_Evenement_Type extends cls_db_base {
 		}
 		$this->tm = 1;
 		$this->log($p_etid);
+	}
+	
+	public function controle() {
 	}
 	
 	public function opschonen() {
@@ -9749,12 +9909,18 @@ function db_onderhoud($type=9) {
 		$query = sprintf("ALTER TABLE `%s` ADD `%s` VARCHAR(45) NULL AFTER `Geboortedatum`;", $tab, $col);
 		$i_base->execsql($query, 2);
 	}
-	
 		
 	$tab = TABLE_PREFIX . "Mailing_hist";
 	$col = "VanafID";
 	if ($i_base->bestaat_kolom($col, $tab) == false) {
 		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NULL AFTER `MailingID`;", $tab, $col);
+		$i_base->execsql($query, 2);
+	}
+	
+	$tab = TABLE_PREFIX . "Afdelingskalender";
+	$col = "Opmerking";
+	if ($i_base->bestaat_kolom($col, $tab) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s`  VARCHAR(6) NULL AFTER `Activiteit`;", $tab, $col);
 		$i_base->execsql($query, 2);
 	}
 	
@@ -9821,6 +9987,12 @@ function db_onderhoud($type=9) {
 	$i_base->execsql($query);
 	
 	$query = sprintf("ALTER TABLE `%sEvenement` CHANGE `Datum` `Datum` DATETIME NULL;", TABLE_PREFIX);
+	$i_base->execsql($query);
+	
+	$query = sprintf("ALTER TABLE `%sExamen` CHANGE `Datum` `Datum` DATE NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
+	$i_base->execsql($query);
+	
+	$query = sprintf("ALTER TABLE `%sLiddipl` CHANGE `Examen` `Examen` INT(11) NOT NULL DEFAULT '0';", TABLE_PREFIX);
 	$i_base->execsql($query);
 	
 	/***** Velden die niet meer nodig zijn *****/
@@ -10041,6 +10213,7 @@ function db_backup($p_typebackup=3) {
 								$data .= "0";
 							}
 							
+							
 						} elseif ($meta['native_type'] == "DATE" or $meta['native_type'] == "DATETIME" or $meta['native_type'] == "TIMESTAMP" or $meta['native_type'] == "TIME") {
 							if (isset($row[$j]) and strlen($row[$j]) > 0) {
 								$data .= "'" . $row[$j] . "'";
@@ -10056,10 +10229,14 @@ function db_backup($p_typebackup=3) {
 							}
 							
 						} elseif ($meta['native_type'] == "BLOB" or $meta['native_type'] == "LONGBLOB") {
-							$data .= base64_encode($row[$j]);
+							if ($i_base->typekolom($meta['name'], $tnm) == "text") {
+								$data .= '"' . $row[$j] . '"' ;
+							} else {
+								$data .= "'" . base64_encode($row[$j] . "'");
+							}
 							
 						} elseif (isset($row[$j])) {
-							$data .= '"' . htmlentities($row[$j]) . '"' ;
+							$data .= '"' . $row[$j] . '"' ;
 
 						} else {
 							$data .= '""';
