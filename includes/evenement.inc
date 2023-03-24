@@ -94,6 +94,9 @@ function fnEvenementen() {
 		
 		echo("</div> <!--  Einde evenementenbeheer -->\n");
 		
+	} elseif ($currenttab2 == "Presentielijst") {
+		presentielijst(1);
+		
 	} elseif ($currenttab2 == "Groepen muteren") {
 		if (isset($_GET['OnderdeelID']) and $_GET['OnderdeelID'] > 0) {
 			LedenOnderdeelMuteren($_GET['OnderdeelID'], 1);
@@ -274,11 +277,15 @@ function muteerevenement($eventid) {
 
 		if ($eventid == 0 and isset($_POST['btnToevoegen'])) {
 			
-			$d = $_POST['Datum'];
-			if (isset($_POST['Starttijd']) and strlen($_POST['Starttijd']) > 4) {
-				$d .= " " . $_POST['Starttijd'];
+			$eventid = $i_ev->add();
+			
+			if (isset($_POST['Datum']) and strlen($_POST['Datum']) >= 10) {
+				$d = $_POST['Datum'];
+				if (isset($_POST['Starttijd']) and strlen($_POST['Starttijd']) > 4) {
+					$d .= " " . $_POST['Starttijd'];
+				}
+				$i_ev->update($eventid, "Datum", $d);
 			}
-			$eventid = $i_ev->add($d);
 			
 			if (isset($_POST['Omschrijving']) and strlen($_POST['Omschrijving']) > 0) {
 				$i_ev->update($eventid, "Omschrijving", $_POST['Omschrijving']);
@@ -606,10 +613,12 @@ function muteertypeevenement() {
 		}
 	}
 		
-	echo("<div id='muteertypeevenement'>\n");
-	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<form method='post' id='muteertypeevenement' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	echo("<table>\n");
+	echo("<thead>\n");
 	echo("<tr><th>Omschrijving</th><th>Soort</th><th>Tekstkleur</th><th>Vet</th><th>Cursief</th><th>Achtergrondkleur</th><th>Voorbeeld</th><th></th></tr>\n");
+	echo("</thead>\n");
+	echo("<tbody>\n");
 	foreach ($i_et->lijst() as $row) {
 		echo("<tr>");
 		printf("<td><input type='text' name='oms_%d' value='%s' class='w30' max-length=30 onBlur='this.form.submit();'></td>\n", $row->RecordID, $row->Omschrijving);
@@ -648,10 +657,10 @@ function muteertypeevenement() {
 		printf("<td><a href='%s?tp=%s&amp;op=delete&amp;tid=%d' title='Verwijder type evenement'>&nbsp;&nbsp;&nbsp;</a></td>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $row->RecordID);
 		echo("</tr>\n");
 	}
+	echo("</tbody>\n");
 	echo("</table>\n");
 	echo("<input type='text' name='oms_nw' placeholder='Nieuw type' onBlur='this.form.submit();'>");
 	echo("</form>\n");
-	echo("</div> <!-- Einde muteertypeevenement -->\n");
 	
 	$i_et = null;
 }
