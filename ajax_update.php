@@ -96,7 +96,7 @@ if ($_SESSION['lidid'] > 0) {
 			$i_ld->delete($rid, $kolom, $newvalue);
 		}
 		
-	} elseif ($ent === "examensmuteren") {
+	} elseif ($ent === "examenmuteren") {
 		if ($rid > 0) {
 			$i_ex = new cls_Examen();
 			$i_ex->update($rid, $kolom, $newvalue);
@@ -201,8 +201,8 @@ if ($_SESSION['lidid'] > 0) {
 		$i_mr = new cls_Mailing_rcpt();	
 		$rv = false;
 		
-		$mid = $_POST['mid'] ?? 4;
-		$lidid = $_POST['lidid'] ?? 216;
+		$mid = $_POST['mid'] ?? 0;
+		$lidid = $_POST['lidid'] ?? 0;
 		$email = $_POST['email'] ?? "";
 		if ($mid > 0 and ($lidid > 0 or strlen($email) > 5)) {
 			$rv = $i_mr->add($mid, $lidid, $email);
