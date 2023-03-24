@@ -687,7 +687,12 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 		$totaantal = 0;
 		
 		if (strlen($th) > 1) {
-			$ret .= sprintf("<caption>%s</caption>\n", $th);
+			if (count($rows) > 3) {
+				$t = sprintf(" title='%d rijen'", count($rows));
+			} else {
+				$t = "";
+			}
+			$ret .= sprintf("<caption%s>%s</caption>\n", $t, $th);
 		}
 		$ret .= "<thead>\n<tr>";
 		
@@ -912,7 +917,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 						$ret.= "</select>";
 					}
 					$ret .= "</td>\n";
-					
+
 				} elseif ($kol_type == "dte" or $kol_type == "rodte" or $kol_type == "date" or $kol_type == "DTTEXT") {
 					// 1 januari 2020
 					if ((!is_null($value)) and $value > '1900-01-01' and strtotime($value) !== false) {
@@ -1106,7 +1111,12 @@ function fnEditTable($res, $kols, $id, $th) {
 
 	$ret = sprintf("<table id='%s'>\n", $id);
 	if (strlen($th) > 0) {
-		$ret .= sprintf("<caption>%s</caption>\n", $th);
+		if (count($rows) > 3) {
+			$t = sprintf(" title='%d rijen'", count($rows));
+		} else {
+			$t = "";
+		}
+		$ret .= sprintf("<caption%s>%s</caption>\n", $t, $th);
 	}
 	$ret .= "<thead>\n";
 	$ret .= "<tr>";
