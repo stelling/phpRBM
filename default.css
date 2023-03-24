@@ -1070,6 +1070,53 @@ table#afdelingskalendermuteren {
 	padding-bottom: 3px;
 }
 
+#diplomamuteren, #examenresultaten {
+	clear: both;
+	height: auto;
+}
+
+#examenmuteren label, #examenmuteren p {
+	width: 110px;
+	margin-right: 6px;
+	float: left;
+	clear: none;
+}
+
+#examenmuteren p {
+	margin-top: 1px;
+	padding-top: 6px;
+}
+
+.kandidatengroep {
+	float: left;
+	clear: none;
+	padding-left: 0;
+	padding-right: 6px;
+	padding-bottom: 6px;
+	margin-bottom: 4px;
+	margin-right: 6px;
+	min-height: 400px;
+	background-colr: #D0D0D0;
+}
+
+#groepenaanexamentoevoegen {
+	float: left;
+	clear: left;
+	border-style: solid;
+	border-width: 1px;
+	padding: 3px;
+}
+
+#groepenaanexamentoevoegen label {
+	margin-top: 6px;
+	padding-top: 12px;
+	padding-bottom: 12px;
+}
+
+#diplomamuteren {
+	height: 150px;
+}
+
 #diplomamuteren p {
 	padding-top: 6px;
 	padding-left: 6px;
@@ -1091,8 +1138,16 @@ table#afdelingskalendermuteren {
 	height: 25px;
 }
 
-label#lblVoorganger {
+#diplomamuteren label {
+	width: 200px;
+}
+
+#diplomamuteren label#lblhistorie, #diplomamuteren label#lblvolgnr {
 	clear: none;
+}
+
+#diplomamuteren label#lblvolgnr, #diplomamuteren label#lblhistorie {
+	width: auto;
 }
 
 .voorgangerontbreekt {
@@ -1103,12 +1158,29 @@ label#lblVoorganger {
 	background-color: yellow;
 }
 
-#examenresultaten td:first-child, #examenresultaten th:first-child {
-	min-width: 180px;
+#examenresultaten {
+	margin-top: 8px;
+}
+
+#examenresultaten label, #examenresultaten input {
+	clear: none;
+	float: left;
+}
+
+#examenresultaten table {
+	float: left;
+	clear: both;
+	margin-top: 6px;
+}
+
+#examenresultaten select {
+	float: left;
+	clear: both;
 }
 
 #examenresultaten button {
-	clear: left;
+	clear: none;
+	float: left;
 }
 
 #versies {
@@ -1764,7 +1836,6 @@ ul#menu_l2 li {
 
 ul#menu_l3 li {
 	font-size: 90%;
-	transition-duration: 0.8s;
 }
 
 @media screen and (max-width: 190px) {
@@ -1877,6 +1948,11 @@ ul#menu_l3 li {
 
 .deleted {
 	text-decoration: line-through;
+	font-weight: bolder;
+}
+
+.vervallen {
+	font-color: red;
 }
 
 .mededeling, .mededeling a, .waarschuwing, .waarschuwing a {
