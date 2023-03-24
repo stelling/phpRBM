@@ -143,6 +143,7 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 	$i_ld = null;
 	
 	$i_ex = new cls_Examen();
+	$i_ex->controle();
 	$i_ex->opschonen();
 	$i_ex = null;
 	
@@ -152,20 +153,42 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 	
 	(new cls_Mailing_hist())->controle();
 	(new cls_Mailing_hist())->opschonen();
+	
+	(new cls_Mailing_rcpt())->controle();
 	(new cls_Mailing_rcpt())->opschonen();
 } elseif ($_GET['op'] == "evenementenopschonen") {
+	(new cls_Evenement())->controle();
 	(new cls_Evenement())->opschonen();
+	
+	(new cls_Evenement_Deelnemer())->controle();
+	(new cls_Evenement_Deelnemer())->opschonen();
+	
+	(new cls_Evenement_Type())->controle();
+	(new cls_Evenement_Type())->opschonen();
+	
 } elseif ($_GET['op'] == "rekeningenopschonen") {
+	
 	(new cls_Rekeningregel())->opschonen();
+	
+	
 	(new cls_Rekening())->opschonen();
+	
 } elseif ($_GET['op'] == "loginsopschonen") {
 	(new cls_Login())->opschonen();
+	
 } elseif ($_GET['op'] == "autorisatieopschonen") {
+	(new cls_Authorisation())->controle();
 	(new cls_Authorisation())->opschonen();
-} elseif ($_GET['op'] == "orderregelsopschonen") {
+	
+} elseif ($_GET['op'] == "webshopopschonen") {
+	(new cls_Orderregel())->controle();
 	(new cls_Orderregel())->opschonen();
-} elseif ($_GET['op'] == "artikelenopschonen") {
+	
+	(new cls_Artikel())->controle();
 	(new cls_Artikel())->opschonen();
+	
+	(new cls_Voorraadboeking())->controle();
+	(new cls_Voorraadboeking())->opschonen();
 }
 
 if ($currenttab == "Beheer logins") {
@@ -351,11 +374,8 @@ if ($currenttab == "Beheer logins") {
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=rekeningenopschonen\"' value='Rekeningen opschonen'><p>Rekeningen en rekeningregels opschonen op basis van instellingen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=loginsopschonen\"' value='Logins opschonen'><p>Opschonen van logins die om diverse redenen niet meer nodig zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=autorisatieopschonen\"' value='Autorisatie opschonen'><p>Verwijderen toegang waar alleen de webmaster toegang toe heeft en die ouder dan 3 maanden zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	if ((new cls_Orderregel())->aantal() > 0) {
-		printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=orderregelsopschonen\"' value='Orderregels opschonen'><p>Opschonen van de orderregels van de bestellingen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	}
-	if ((new cls_Artikel())->aantal() > 0) {
-		printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=artikelenopschonen\"' value='Artikelen opschonen'><p>Opschonen van artikelen zonder bestellingen en zonder voorraadboekingen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	if ((new cls_Orderregel())->aantal() > 0 or (new cls_Artikel())->aantal() > 0) {
+		printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=webshopopschonen\"' value='Webshop opschonen'><p>Opschonen van de artikelen, bestellingen en voorraadboekingen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	}
 	echo("</form>\n");
 	echo("</div>  <!-- Einde dbonderhoud -->\n");
@@ -818,7 +838,8 @@ function fnEigenlijstenmuteren() {
 			echo("<div id='resultaatlijst'>\n");
 			$rows = $i_el->rowset($row->RecordID, $row->Default_value_params);
 			if ($rows !== false) {
-				echo(fnDisplayTable($rows));
+				$id = str_replace(" ", "_", strtolower($i_el->elnaam));
+				echo(fnDisplayTable($rows, null, "", 0, "", $id));
 			}
 			echo("</div>  <!-- Einde resultaatlijst -->\n");			
 		}
