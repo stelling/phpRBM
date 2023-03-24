@@ -9,7 +9,6 @@ if ($_SESSION['lidid'] == 0 or strlen($_SESSION['username']) == 0) {
 		$_SESSION['webmaster'] = 1;
 	}
 }
-$_SESSION['lidgroepen'] = (new cls_Lidond())->lidgroepen();
 
 $tabpages = null;
 if ($_SERVER['PHP_SELF'] == "/admin.php") {
@@ -32,6 +31,8 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 		addtp("Eigen gegevens");
 	} elseif ((new cls_Login())->aantal() > 0) {
 		addtp("Inloggen");
+	} else {
+		debug("Er zijn geen logins aanwezig.");
 	}
 	$i_lo = new cls_Lidond();
 	
@@ -134,9 +135,11 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 			addtp($b . "/Organisaties");
 		}
 		
-		addtp("Ledenlijst/Sportlink");
+		if ((new cls_Onderdeel())->aantal("O.`ORGANIS`=1") > 0) {
+			addtp("Ledenlijst/Sportlink");
+		}
 		addtp("Ledenlijst/Instellingen");
-		addtp("Ledenlijst/Mutaties");
+//		addtp("Ledenlijst/Mutaties");
 	}
 	
 	addtp("Mailing");
@@ -176,10 +179,11 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	if ($currenttab == $b) {
 		$i_dp = new cls_Diploma();
 		addtp($b . "/Basislijst");
+		addtp($b . "/Details");
 		if ($i_dp->aantal() > 0) {
 			addtp($b . "/Leden per diploma");
 		}
-		addtp($b . "/Examens muteren");
+//		addtp($b . "/Examens muteren");
 	}
 	
 	if (isset($_SESSION['settings']['menu_met_afdelingen']) and strlen($_SESSION['settings']['menu_met_afdelingen']) > 0) {
@@ -230,7 +234,9 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 					
 					$f = sprintf("DP.Afdelingsspecifiek=%d", $row->RecordID);
 					if ((new cls_Diploma())->aantal($f) > 0) {
-						$tp = trim($row->Naam) . "/Examenresultaten";
+						$tp = trim($row->Naam) . "/Diploma's";
+						addtp($tp);
+						$tp = trim($row->Naam) . "/Examens";
 						addtp($tp);
 					}
 				}
@@ -460,6 +466,7 @@ function fnAuthenticatie($melding=1, $password="", $p_napost=0) {
 	if ($_SESSION['lidid'] == 0 or strlen($_SESSION['username']) == 0) {
 		$_SESSION['lidid'] = 0;
 		$_SESSION['username'] = "";
+		unset($_SESSION['lidgroepen']);
 	}
 	
 } # fnAuthenticatie
