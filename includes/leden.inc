@@ -385,7 +385,7 @@ function fnWieiswie($actie, $metfoto=1) {
 	
 	$i_lo = new cls_Lidond();
 	
-	$txt = "<div id='wieiswie'>\n";
+	$txt = "<div class='wieiswie'>\n";
 	$vo = "";
 	if (strlen(implode(",", $lididtestusers)) > 1) {
 		$geentest = sprintf(" AND (LO.Lid NOT IN (%s))", implode(",", $lididtestusers));
@@ -595,7 +595,7 @@ function fnNieuwLid() {
 			$kols[7]['type'] = "date";
 			
 			$kols[8]['headertext'] = "&nbsp;";
-			$kols[8]['columnname'] = "RecordID";
+			$kols[8]['columnname'] = "LnkPDF";
 			$kols[8]['link'] = sprintf("%s/pdf.php?insid=%%d", BASISURL);
 			$kols[8]['class'] = "pdf";
 			
@@ -2197,7 +2197,7 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 			printf("<td>%s</td><td>%s</td><td>%s</td>", $dtfmt->format(strtotime($ldrow->DatumBehaald)), $ldrow->Diplomanummer, $dtfmt->format(strtotime($ldrow->LicentieVervallenPer)));
 		} else {
 			$id = sprintf("DatumBehaald_%d", $ldrow->RecordID);
-			printf("<td><input type='date' id='%s' value='%s' required></td>\n", $id, $ldrow->DatumBehaald);
+			printf("<td><input type='date' id='%s' value='%s' max='%s' required></td>\n", $id, $ldrow->DatumBehaald, date("Y-m-d"));
 			$script .= sprintf("$('#%1\$s').datepicker();\n$('#%1\$s').datepicker('dateFormat', 'yy-mm-dd').datepicker('maxDate', new Date());\n$('#%1\$s').datepicker('setDate', '%3\$s').datepicker('option', 'gotoCurrent', true);\n", $id, $minbehaald, $ldrow->DatumBehaald);
 			printf("<td><input type='text' id='Diplomanummer_%d' value='%s' maxlength=30></td>\n", $ldrow->RecordID, $ldrow->Diplomanummer);
 			printf("<td><input type='date' id='LicentieVervallenPer_%d' value='%s'></td>\n", $ldrow->RecordID, $ldrow->LicentieVervallenPer);
@@ -2597,12 +2597,7 @@ function fnBasisgegevens($p_type) {
 		$kols[7]['type'] = "email";
 		$kols[7]['columnname'] = "CentraalEmail";
 		
-		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 		echo(fnEditTable($ondrows, $kols, "onderdeeledit", "Muteren onderdelen"));
-		echo("<div id='opdrachtknoppen'>\n");
-		echo("<input type='submit' value='Bewaren'>\n");
-		echo("</div> <! =-- Einde opdrachtknoppen -->\n");
-		echo("</form>\n");
 		
 		$i_ond = null;
 		
@@ -2670,7 +2665,6 @@ function fnBasisgegevens($p_type) {
 		echo("</form>\n");
 		
 		$i_ond = null;
-		
 		
 	} elseif ($p_type == "Activiteiten") {
 		$i_act = new cls_Activiteit();
