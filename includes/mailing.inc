@@ -1666,7 +1666,7 @@ class email {
 				$txt .= sprintf("<label>Verzonden</label><p>Wacht in outbox</p>\n");
 			}
 		
-			if ($this->zonderbriefpapier == 0) {
+			if ($this->zonderbriefpapier == 0 and strlen($this->bericht) > 10) {
 				$txt .= sprintf("<label class='k2'>Ga naar</label><p><a href='%s?tp=Mailing&op=preview_hist&mhid=%d'>preview</a></p>", $_SERVER['PHP_SELF'], $this->mhid);
 			}
 		
@@ -1693,11 +1693,16 @@ class email {
 			$txt .= sprintf("<label>Onderwerp</label><p>%s</p>\n", $this->onderwerp);
 		
 			$txt .= "</div>  <!-- Einde verstuurdemail -->\n";
+			
+			if (strlen($this->bericht) < 10 and $this->mailingid > 0) {
+				$b = (new Mailing($this->mailingid))->merge($this->lidid);
+			} else {
 		
-			$b = str_replace("<!DOCTYPE html>", "", $this->bericht);
-			$b = str_replace("<html>", "", str_replace("</html>", "", $b));
-			$b = str_replace("<body>", "", str_replace("</body>", "", $b));
-			$b = removetextblock($b, "<head>", "</head>");
+				$b = str_replace("<!DOCTYPE html>", "", $this->bericht);
+				$b = str_replace("<html>", "", str_replace("</html>", "", $b));
+				$b = str_replace("<body>", "", str_replace("</body>", "", $b));
+				$b = removetextblock($b, "<head>", "</head>");
+			}
 
 			$txt .= sprintf("<div class='bericht'>\n%s\n</div> <!-- Einde bericht -->\n", $b);
 		} else {
@@ -1822,7 +1827,7 @@ class email {
 		if ($this->vanafid <= 0 and strlen($this->vanafadres) > 5) {
 			$i_mv = new cls_Mailing_vanaf();
 			$i_mv->vulvars(-1, $this->vanafadres);
-			$this->vanafid = $i_mv->vanafid;
+			$this->vanafid = $i_mv->mvid;
 			$i_mv = null;
 		}
 		
