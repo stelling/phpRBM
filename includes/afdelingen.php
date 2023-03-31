@@ -6,7 +6,9 @@ function fnAfdeling() {
 	$f = sprintf("`Type`='A' AND Naam='%s'", $currenttab);
 	$afdid = (new cls_Onderdeel())->max("RecordID", $f);
 	
-	fnDispMenu(2);
+	if ($currenttab2 != "DL-lijst") {
+		fnDispMenu(2);
+	}
 	
 	if ($currenttab2 == "Afdelingslijst") {
 		fnAfdelingslijst($afdid);
@@ -26,12 +28,13 @@ function fnAfdeling() {
 		fnAfdelingsmailing($afdid);
 	} elseif ($currenttab2 == "Diploma's") {
 		fnDiplomasMuteren($afdid);
+	} elseif ($currenttab2 == "DL-lijst") {
+		DL_lijst($_GET['p_examen'], $_GET['p_diploma']);
 	} elseif ($currenttab2 == "Examens") {
 		fnExamenResultaten($afdid);
 	} else {
 		debug($currenttab2);
 	}
-	
 	
 }  # fnAfdeling
 
@@ -141,7 +144,7 @@ function fnAfdelingskalenderMuteren($p_onderdeelid){
 	$oms = "";
 	$act = false;
 	
-	echo("<tr><th>Datum</th><th>Opmerking</th><th>Activiteit?</th><th></th></tr>\n");
+	echo("<tr><th>Datum</th><th>Omschrijving</th><th>Opmerking</th><th>Activiteit?</th><th></th></tr>\n");
 	$dtfmt->setPattern(DTTEXTWD);
 	foreach ($i_ak->lijst($p_onderdeelid) as $row) {
 		$aw = $i_aanw->aantal(sprintf("AfdelingskalenderID=%d", $row->RecordID));
@@ -151,7 +154,8 @@ function fnAfdelingskalenderMuteren($p_onderdeelid){
 		} else {
 			$dat = $dtfmt->format(strtotime($row->Datum));
 		}
-		printf("<tr><td>%s</td><td><input type='text' id='Omschrijving_%d' title='Opmerking' value=\"%s\" maxlength=75 class='w75'></td>", $dat, $row->RecordID, str_replace("\"", "'", $row->Omschrijving));
+		printf("<tr><td>%s</td><td><input type='text' id='Omschrijving_%d' title='Omschrijving' value=\"%s\" maxlength=75 class='w75'></td>", $dat, $row->RecordID, str_replace("\"", "'", $row->Omschrijving));
+		printf("<td><input type='text' id='Opmerking_%d' title='Opmerking' value='%s' maxlength=6 class='w6'></td>", $row->RecordID, $row->Opmerking);
 		
 		printf("<td><input type='checkbox' id='Activiteit_%d' title='Is er zwemmen?' value=1 %s></td>", $row->RecordID, checked($row->Activiteit));
 		if ($aw == 0) {
@@ -289,6 +293,8 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 		
 	} elseif ($afdid > 0) {
 		
+		$inclkader = $_POST['inclkader'] ?? 0;
+		
 		if (isset($_POST['NieuweGroep'])) {
 			$i_gr->add($afdid);
 		} else {
@@ -302,32 +308,51 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 		
 		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 		
+		echo("<div id='filter'>\n");
+		printf("<label>Inclusief kader?</label><input type='checkbox' name='inclkader' value=1%s>\n", checked($inclkader));
+		echo("<button type='submit'>Ververs scherm</button>\n");
+		echo("</div> <!-- Einde filter -->\n");
+		
 		$grrows = $i_gr->selectlijst($afdid);
 		if (count($grrows) > 0) {
 			echo("<table id='groepsindelingmuteren'>\n");
 			echo("<tr><th>Naam</th><th>Leeftijd</th><th>Laatst behaalde diploma's</th><th>Groep</th></tr>\n\n");
-			foreach ($i_lo->onderdeellijst($afdid, 2, "", "GR.Volgnummer, GR.Starttijd, GR.Omschrijving, F.Sorteringsvolgorde, F.Afkorting") as $row) {
+			
+			if ($inclkader == 1) {
+				$f = 2;
+			} else {
+				$f = 4;
+			}
+			foreach ($i_lo->onderdeellijst($afdid, $f, "", "GR.Volgnummer, GR.Starttijd, GR.Omschrijving, F.Sorteringsvolgorde, F.Afkorting") as $row) {
 				$i_dp->vulvars($row->DiplomaID);
 				$cl = "";
+				$t = "";
 				if ($row->Vanaf > date("Y-m-d")) {
 					$cl = "wordtlid";
 				} elseif (isset($row->Opgezegd) and $row->Opgezegd > "1900-01-01" and $row->Opgezegd < date("Y-m-d", strtotime("+3 MONTH"))) {
 					$cl = "opgezegd";
+					$t = sprintf("heeft per %s opgezegd", $row->opgezegd);
 				}
 				if ($row->GroepID > 0 and $row->DiplomaID > 0) {
 					if ($i_dp->dpvoorganger > 0) {
-						$f = sprintf("LD.Lid=%d AND LD.DiplomaID=%d", $row->LidID, $i_dp->dpvoorganger);
+						$f = sprintf("LD.Lid=%d AND LD.DiplomaID=%d AND LD.DatumBehaald < CURDATE()", $row->LidID, $i_dp->dpvoorganger);
 						if ($i_ld->aantal($f) == 0) {
 							$cl .= " voorgangerontbreekt";
+							$t = sprintf("%s ontbreekt", $i_dp->naam($i_dp->dpvoorganger));
 						}
 					}
 					$f = sprintf("LD.Lid=%d AND LD.DiplomaID=%d", $row->LidID, $row->DiplomaID);
-					if ($i_ld->aantal($f) > 0) {
+					$dh = $i_ld->max("DatumBehaald", $f);
+					if (strlen($dh) > 0 and $dh < date("Y-m-d")) {
 						$cl .= " dubbeldiploma";
+						$t = sprintf("%s is al op %s behaald", $i_dp->naam($row->DiplomaID), $dh);
 					}
 				}
 				if (strlen($cl) > 0) {
 					$cl = sprintf(" class='%s'", trim($cl));
+				}
+				if (strlen($t) > 0) {
+					$t = sprintf(" title='%s'", $t);
 				}
 				$options = "\n";
 				foreach ($grrows as $grrow) {
@@ -341,7 +366,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 				if (strlen($ld) > 60) {
 					$ld = substr($ld, 0, 56) . " ...";
 				}
-				printf("<tr><td%s>%s</td><td>%s</td><td>%s</td><td><select id='GroepID_%d'>%s</select></td></tr>\n", $cl, $nm, $row->Leeftijd, $ld, $row->RecordID, $options);
+				printf("<tr><td%s%s>%s</td><td>%s</td><td>%s</td><td><select id='GroepID_%d'>%s</select></td></tr>\n", $cl, $t, $nm, $row->Leeftijd, $ld, $row->RecordID, $options);
 			}
 			echo("</table>\n");
 		}
