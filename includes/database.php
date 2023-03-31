@@ -128,7 +128,7 @@ class cls_db_base {
 	public $wherelid = "LM.LIDDATUM <= CURDATE() AND IFNULL(LM.Opgezegd, '9999-12-31') >= CURDATE()";
 	public static $wherelidond = "LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE()";
 	public $selectnaam = "CONCAT(IF(LENGTH(IFNULL(L.Roepnaam, ''))>1, L.Roepnaam, IFNULL(L.Voorletter, '')), ' ', IF(IFNULL(L.Tussenv, '')>'', CONCAT(L.Tussenv, ' '), ''), L.Achternaam)";
-	public $selectzoeknaam = "TRIM(CONCAT(L.Achternaam, ', ', IF(L.Tussenv>'', CONCAT(L.Tussenv, ' '), ''), IF(LENGTH(L.Roepnaam)>1, L.Roepnaam, L.Voorletter), ' '))";
+	public $selectzoeknaam = "TRIM(CONCAT(L.Achternaam, ', ', IF(LENGTH(L.Roepnaam)>1, L.Roepnaam, L.Voorletter), IF(L.Tussenv>'', CONCAT(' ', L.Tussenv), '')))";	
 	public $selectavgnaam = "CONCAT(IFNULL(L.Roepnaam, ''), ' ', IF(IFNULL(L.Tussenv, '')>'', CONCAT(L.Tussenv, ' '), ''), SUBSTRING(L.Achternaam, 1, 1), '.')";
 	public $selectgeslacht = "";
 	public $selectleeftijd = "IF(IFNULL(L.GEBDATUM, '1900-01-01') < '1910-01-01' OR (NOT ISNULL(L.Overleden)), NULL, CONCAT(TIMESTAMPDIFF(YEAR, L.GEBDATUM, CURDATE()), ' jaar'))";
@@ -6470,7 +6470,7 @@ class cls_Liddipl extends cls_db_base {
 	public function overzichtperexamen($p_examen) {
 		
 		$query = sprintf("SELECT LD.*, %s AS NaamLid, L.GEBDATUM FROM %s INNER JOIN %sLid AS L ON LD.Lid=L.RecordID
-							   WHERE LD.Examen=%d ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, LD.DatumBehaald;", $this->selectnaam, $this->basefrom, TABLE_PREFIX, $p_examen);
+						  WHERE LD.Examen=%d ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, LD.DatumBehaald;", $this->selectnaam, $this->basefrom, TABLE_PREFIX, $p_examen);
 		$result = $this->execsql($query);
 		
 		return $result->fetchAll();
@@ -6478,8 +6478,8 @@ class cls_Liddipl extends cls_db_base {
 	
 	public function perexamendiploma($p_examen, $p_dpid) {
 		
-		$query = sprintf("SELECT LD.*, %s AS NaamLid, L.GEBDATUM, L.GEBPLAATS, L.RelnrRedNed FROM %s INNER JOIN %sLid AS L ON LD.Lid=L.RecordID
-							   WHERE LD.Examen=%d AND LD.DiplomaID=%d ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, LD.DatumBehaald;", $this->selectnaam, $this->basefrom, TABLE_PREFIX, $p_examen, $p_dpid);
+		$query = sprintf("SELECT LD.*, %s AS NaamLid, %s AS Zoeknaam, L.GEBDATUM, L.GEBPLAATS, L.RelnrRedNed FROM %s INNER JOIN %sLid AS L ON LD.Lid=L.RecordID
+							   WHERE LD.Examen=%d AND LD.DiplomaID=%d ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, LD.DatumBehaald;", $this->selectnaam, $this->selectzoeknaam, $this->basefrom, TABLE_PREFIX, $p_examen, $p_dpid);
 		$result = $this->execsql($query);
 		
 		return $result->fetchAll();
@@ -6701,6 +6701,7 @@ class cls_Examen extends cls_db_base {
 	public $exid = 0;
 	public $exdatum = "";
 	public $explaats = "";
+	public $begintijd = "";
 	public $onderdeelid = 0;
 	public $aantalkandidaten = 0;
 	
@@ -6724,6 +6725,7 @@ class cls_Examen extends cls_db_base {
 				$this->onderdeelid = $row->OnderdeelID;
 				$this->exdatum = $row->Datum;
 				$this->explaats = $row->Plaats;
+				$this->begintijd = $row->Begintijd;
 			} else {
 				$this->exid = 0;
 			}
@@ -9458,8 +9460,10 @@ class cls_Parameter extends cls_db_base {
 		$this->arrParam['muteerbarememos'] = array("Type" => "T", "Default" => "D,G");
 		$this->arrParam['naamvereniging'] = array("Type" => "T");
 		$this->arrParam['naamvereniging_afkorting'] = array("Type" => "T");
+		$this->arrParam['naamvereniging_reddingsbrigade'] = array("Type" => "T");
 		$this->arrParam['rekening_groep_betaalddoor'] = array("Type" => "I", "Default" => 0);
 		$this->arrParam['rekening_bewaartermijn'] = array("Type" => "I", "Default" => 84);
+		$this->arrParam['sportlink_vereniging_relcode'] = array("Type" => "T");
 		$this->arrParam['toonpasfotoindiennietingelogd'] = array("Type" => "B", "Default" => 0);
 		$this->arrParam['uitleg_toestemmingen'] = array("Type" => "T");
 		$this->arrParam['verjaardagenvooruit'] = array("Type" => "I", "Default" => 5);
@@ -9621,6 +9625,7 @@ class cls_Parameter extends cls_db_base {
 		}
 		if (strlen($set) > 0) {
 			$query = sprintf("UPDATE %s SET %s, GewijzigdDoor=%d WHERE RecordID=%d AND %s;", $this->table, $set, $_SESSION['lidid'], $cur->RecordID, $xw);
+//			debug($query);
 			if ($this->execsql($query) > 0) {
 				if (strlen($p_reden) > 0) {
 					$this->mess = sprintf("Parameter '%s' is in '%s' gewijzigd, omdat %s.", $p_naam, $p_waarde, $p_reden);
