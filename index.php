@@ -41,7 +41,7 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 	(new cls_Login())->setingelogd($_SESSION['lidid']);
 }
 
-if ($currenttab2 != "previewwindow" and $op != "preview_hist" and $op != "preview_rek") {
+if ($currenttab2 != "previewwindow" and $op != "preview_hist" and $op != "preview_rek" and $currenttab2 != "DL-lijst") {
 	HTMLheader();
 	$kaal = 0;
 } else {
