@@ -344,6 +344,10 @@ input.d8, input.num2, input.num3 {
 	text-align: right;
 }
 
+input.w6 {
+	width: 55px;
+}
+
 input.w9, input.w10 {
 	width: 90px;
 }
@@ -840,6 +844,10 @@ textarea#sportlinkdata {
 	float: left;
 }
 
+#sportlink button {
+	float: left;
+}
+
 #tab-agenda table {
 	width: 100%;
 }
@@ -1076,13 +1084,13 @@ table#afdelingskalendermuteren {
 }
 
 #examenmuteren label, #examenmuteren p {
-	width: 110px;
 	margin-right: 6px;
 	float: left;
 	clear: none;
 }
 
 #examenmuteren p {
+	margin-right: 15px;
 	margin-top: 1px;
 	padding-top: 6px;
 }
@@ -1090,18 +1098,32 @@ table#afdelingskalendermuteren {
 .kandidatengroep {
 	float: left;
 	clear: none;
+	
+	padding-top: 0;
 	padding-left: 0;
-	padding-right: 6px;
+	padding-right: 0;
 	padding-bottom: 6px;
+	
+	margin-top: 10px;
 	margin-bottom: 4px;
-	margin-right: 6px;
+	margin-right: 20px;
 	min-height: 400px;
-	background-colr: #D0D0D0;
+	background-color: #D0D0D0;
+}
+
+.kandidatengroep table {
+	margin-top: 0;
+}
+
+.kandidatengroep button {
+	float: left;
+	clear: left;
 }
 
 #groepenaanexamentoevoegen {
 	float: left;
 	clear: left;
+	width: 100%;
 	border-style: solid;
 	border-width: 1px;
 	padding: 3px;
@@ -1111,6 +1133,123 @@ table#afdelingskalendermuteren {
 	margin-top: 6px;
 	padding-top: 12px;
 	padding-bottom: 12px;
+}
+
+#dl_lijst {
+	width: 780px;
+	height: auto;
+}
+
+#dl_lijst img {
+	float: left;
+	clear: left;
+	width: 350px;
+}
+
+#dl_lijst p#naamformulier, #dl_lijst p#naamdiploma {
+	float: right;
+	clear: right;
+	font-size: 130%;
+	font-weight: bolder;
+	margin-top: 20px;
+	margin-bottom: 0;
+}
+
+#dl_lijst label {
+	float: left;
+	clear: left;
+	color: black;
+	background-color: white;
+	width: 125px;
+	border-style: none;
+	text-align: left;
+}
+
+#dl_lijst p {
+	color: black;
+	background-color: white;
+	margin-top: 9px;
+	float: left;
+}
+
+#dl_lijst table {
+	margin-top: 25px;
+	float: left;
+	clear: left;
+	width: 100%;
+}
+
+#dl_lijst th {
+	font-weight: bolder;
+	color: black;
+	background-color: #80FFFF;
+}
+
+#dl_lijst td {
+	color: black;
+	background-color: white;
+}
+
+#dl_lijst td:first-child {
+	width: 37px;
+}
+
+#dl_lijst td:nth-child(3) {
+	width: 285px;
+}
+
+#dl_lijst td:nth-child(6), #dl_lijst td:nth-child(7) {
+	width: 32px;
+}
+
+#dl_lijst div.onderblok {
+	width: 240px;
+	height: 155px;
+	color: black;
+	border-width: 1px;
+	border-style: solid;
+	margin-top: 30px;
+	padding-left: 0;
+	padding-right: 0;
+	margin-right: 18px;
+	float: left;
+}
+
+
+#dl_lijst div.stempel {
+	margin-right: 0;
+	float: right;
+	clear: right;
+}
+
+#dl_lijst div.onderblok > p {
+	text-align: center;
+	color: black;
+	background-color: #80FFFF;
+	height: 62px;
+	width: 100%;
+	padding-top: 0;
+	padding-left: 0;
+	padding-right: 0;
+	margin-top: 0;
+	border-width: 1px;
+	border-bottom-style: solid;
+}
+
+#dl_lijst p#voetregel1 {
+	border-bottom-style: solid;
+	border-width: 1px;
+	border-color: black;
+	width: 100%;
+	margin-bottom: 0;
+	padding-bottom: 0;
+}
+
+#dl_lijst p#voetregel2 {
+	font-weight: bolder;
+	margin-top: 0;
+	padding-top: 0;
+	font-size: 10pt;
 }
 
 #diplomamuteren {
@@ -1167,19 +1306,12 @@ table#afdelingskalendermuteren {
 	float: left;
 }
 
-#examenresultaten table {
-	float: left;
-	clear: both;
-	margin-top: 6px;
-}
-
 #examenresultaten select {
 	float: left;
 	clear: both;
 }
 
 #examenresultaten button {
-	clear: none;
 	float: left;
 }
 
@@ -1551,12 +1683,12 @@ fieldset h3 {
 	padding-bottom: 3px;
 }
 
-#wieiswie {
+.wieiswie {
 	display: inline-block;
 	width: 100%;
 }
 
-#wieiswie h2.onderdeelnaam, #wieiswie h2.onderdeelemail, #bewakingsrooster h2, #bewakingsrooster h3 {
+.wieiswie h2.onderdeelnaam, .wieiswie h2.onderdeelemail, #bewakingsrooster h2, #bewakingsrooster h3 {
 	margin-top: 15px;
 	padding-top: 3px;
 	padding-bottom: 1px;
@@ -1565,17 +1697,17 @@ fieldset h3 {
 	font-size: 150%;
 }
 
-#wieiswie h2 {
+.wieiswie h2 {
 	padding-left: 4px;
 	padding-bottom: 2px;
 }
 
-#wieiswie h2.onderdeelnaam {
+.wieiswie h2.onderdeelnaam {
 	float: left;
 	clear: right;
 }
 
-#wieiswie h2.onderdeelemail {
+.wieiswie h2.onderdeelemail {
 	float: right;
 	clear: right;
 }
