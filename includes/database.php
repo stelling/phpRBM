@@ -385,7 +385,7 @@ class cls_db_base {
 	
 		$tabel = str_replace(TABLE_PREFIX, "", $this->table);
 	
-		$rid = $this->scalar(sprintf("SELECT IFNULL(MAX(O.RecordID), 1) FROM %sOnderdl AS O;", TABLE_PREFIX));
+		$rid = $this->scalar(sprintf("SELECT IFNULL(MAX(O.RecordID), 0) FROM %sOnderdl AS O;", TABLE_PREFIX));
 		$r = $this->scalar(sprintf("SELECT IFNULL(MAX(DP.RecordID), 0) FROM %sDiploma AS DP;", TABLE_PREFIX));
 		if ($r > $rid) {$rid = $r; }
 		$r = $this->scalar(sprintf("SELECT IFNULL(MAX(EL.RecordID), 0) FROM %sEigen_lijst AS EL;", TABLE_PREFIX));
@@ -470,7 +470,6 @@ class cls_db_base {
 			$rid++;
 		}
 		return $rid;
-		
 	}
 	
 	public function waarde($p_recid, $p_kolom) {
@@ -1366,16 +1365,12 @@ class cls_Lid extends cls_db_base {
 		$this->tas = 1;
 		
 		$this->lidid = $this->nieuwrecordid();
-		$p_postcode = trim(strtoupper($p_postcode));
-		if (strlen($p_postcode) == 6) {
-			$p_postcode = substr($p_postcode, 0, 4) . " " . substr($p_postcode, -2);
-		}
 		$query = sprintf("INSERT INTO %s (RecordID, Achternaam, Ingevoerd) VALUES (%d, \"%s\", NOW());", $this->table, $this->lidid, $p_achternaam);
 		if ($this->execsql($query) > 0) {
 			$this->mess = sprintf("Kloslid %d (%s) is toegevoegd", $this->lidid, $p_achternaam);
 			$this->log($this->lidid);
 			(new cls_Interface())->add($query, $this->lidid);
-			if (strlen($p_postcode) >= 4) {
+			if (strlen($p_postcode) >= 6) {
 				$this->update($this->lidid, "Postcode", $p_postcode);
 			}
 		} else {
@@ -1873,7 +1868,7 @@ class cls_Authorisation extends cls_db_base {
 		}
 		
 		if ($_SESSION['webmaster'] == 1) {
-			if (in_array($p_tabpage, $_SESSION['lidauth']) == false) {
+			if (isset($_SESSION['lidauth']) and in_array($p_tabpage, $_SESSION['lidauth']) == false) {
 				$query = sprintf("SELECT IFNULL(MIN(AA.RecordID), 0) FROM %s WHERE AA.Tabpage='%s';", $this->basefrom, $p_tabpage);
 				$aid = $this->scalar($query);
 				if (strlen($p_tabpage) > 0 and $aid == 0) {
