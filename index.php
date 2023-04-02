@@ -3,7 +3,7 @@
 $_GET['tp'] = $_GET['tp'] ?? "";
 $op = $_GET['op'] ?? "";
 
-require('./includes/standaard.inc');
+require("./includes/standaard.inc");
 
 if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 	(new cls_login())->uitloggen($_SESSION['lidid']);
@@ -13,7 +13,7 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 	$_SESSION['webmaster'] = 0;
 	$_SESSION['lidgroepen'] = null;
 	$_SESSION['lidauth'] = null;
-	echo("<script>location.href='/index.php';</script>\n");
+	printf("<script>location.href='%s';</script>\n", BASISURL);
 	
 } elseif ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['Inloggen']) and $_POST['Inloggen'] == "Inloggen") {
 	if (strlen($_POST['password']) < 5) {
@@ -29,13 +29,13 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 		}
 		fnAuthenticatie(1, $_POST['password'], 1);
 	}
-	echo("<script>location.href='/'; </script>\n");
+	printf("<script>location.href='%s'; </script>\n", BASISURL);
 } elseif ((!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) and isset($_COOKIE['password']) and strlen($_COOKIE['password']) > 5) {
 	fnAuthenticatie(0);
 	if (isset($_GET['tp']) and strlen($_GET['tp']) > 0) {
-		printf("<script>location.href='/?tp=%s'; </script>\n", $_GET['tp']);
+		printf("<script>location.href='%s?tp=%s'; </script>\n", BASISURL, $_GET['tp']);
 	} else {
-		echo("<script>location.href='/'; </script>\n");
+		printf("<script>location.href='%s'; </script>\n", BASISURL);
 	}
 } elseif ($_SESSION['lidid'] > 0) {
 	(new cls_Login())->setingelogd($_SESSION['lidid']);
@@ -66,7 +66,6 @@ if (strlen($f) > 0) {
 	$eigenlijstid = (new cls_Eigen_lijst())->recordid($f);
 }
 
-
 $i_lid = new cls_Lid();
 
 if ($i_lid->aantal() == 0) {
@@ -75,7 +74,7 @@ if ($i_lid->aantal() == 0) {
 		$ww = "Webm" . rand(10000, 99999);
 		$i_login = new cls_login();
 		$id = $i_login->add($lidid, "webmaster", $ww);
-		$query = sprintf("UPDATE %sAdmin_login SET Gewijzigd=SYSDATE(), Wachtwoord='%s', LaatsteWachtwoordWijziging=SYSDATE(), ActivatieKey='' WHERE LidID=%d;", TABLE_PREFIX, password_hash($ww, PASSWORD_DEFAULT), $lidid);
+		$query = sprintf("UPDATE %sAdmin_login SET Gewijzigd=SYSDATE(), ActivatieKey='' WHERE LidID=%d;", TABLE_PREFIX, $lidid);
 		$i_login->execsql($query);
 		$i_login = null;
 	}
