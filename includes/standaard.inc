@@ -10,7 +10,20 @@ $dtfmt = new IntlDateFormatter(
     'Europe/Amsterdam'
 );
 
-define("BASEDIR", $_SERVER['DOCUMENT_ROOT']);
+define("BASEDIR", str_replace("/includes", "", dirname(__FILE__)));
+
+if (isset($_SERVER['HTTPS'])){
+	$basisurl = "https://" . $_SERVER['HTTP_HOST'];
+} else {
+	$basisurl = "http://" . $_SERVER['HTTP_HOST'];
+}
+$file = str_replace(dirname(__FILE__), "", __FILE__);
+$sub = str_replace($file, "", $_SERVER['PHP_SELF']);
+if (strlen($sub) > 1) {
+	$basisurl .= $sub;
+}
+define("BASISURL", str_replace("/includes", "", $basisurl));
+
 define("ARRGESLACHT", ["O" => "Onbekend", "V" => "Vrouwelijk", "M" => "Mannelijk", "N" => "Neutraal", "B" => "Bedrijf/Vereniging/Stichting"]);
 define("ARRTL", ["Alle", "Leden", "Klosleden", "Voormalig leden"]);
 define("ARRLEGITIMATIE", ["G" => "Geen", "I" => "Identiteitskaart", "P" => "Paspoort", "R" => "Rijbewijs"]);
@@ -21,7 +34,7 @@ define("PASFOTOEXTENTIES", ["gif", "jpg", "jpeg", "png"]);
 define("ARRSOORTEVENEMENT", ["B" => "Brigade-activiteit", "G" => "Gezellig/sociaal", "O" => "Opleiding", "V" => "Vergadering/overleg", "W" => "Wedstrijd"]);
 define("ARRDLNSTATUS", ["A" => "Afgewezen", "B" => "Bevestigd", "I" => "Ingeschreven", "J" => "Aangemeld", "N" => "Niet geweest", "R" => "Reserve", "T" => "Onder voorbehoud", "X" => "Afgemeld/Afgezegd"]);
 define("ARRPRESENTIESTATUS", ["A" => "Aangemeld/Aanwezig", "L" => "Aanwezig, maar te laat", "H" => "Aangemeld, door vereniging afgezegd", "N" => "Niet aanwezig (onafgemeld)", "R" => "Afwezig met bekende reden", "T" => "Onder voorbehoud", "V" => "Les is vervallen", "X" => "Afgemeld zonder bekende reden", "Z" => "Ziek"]);
-define("ARRTYPEBACKUP", [1 => "phpRBM-tabellen", 2 => "Tabellen uit MS-Access", 3 => "Beide"]);
+define("ARRTYPEBACKUP", [1 => "phpRBM-tabellen", 2 => "Tabellen uit MS-Access", 3 => "Alle tabellen"]);
 define("ARRTYPESTUK", ["A" => "Algemene Vergadering", "B" => "Beleidsstuk", "F" => "Formulier", "H" => "Handleiding", "P" => "Promotiemateriaal", "R" => "Regeling", "V" => "Verklaring"]);
 define("ARRTYPEMENU", [1 => "per niveau een aparte regel", 2 => "&eacute;&eacute;n menu met dropdown", 3 => "&eacute;&eacute;n menu met dropdown en extra menu voor niveau 2"]);
 define("BEWAARTIJDNIEUWERECORDS", 120);
@@ -54,12 +67,6 @@ define("TABLE_PREFIX", $table_prefix);
 
 if (isset($httpsverplicht) and $httpsverplicht == 1 and !isset($_SERVER['HTTPS'])) {
 	header(sprintf("location: https:%s", $_SERVER['HTTP_HOST']));
-}
-
-if (isset($_SERVER['HTTPS'])){
-	define("BASISURL", "https://" . $_SERVER['HTTP_HOST']);
-} else {
-	define("BASISURL", "http://" . $_SERVER['HTTP_HOST']);
 }
 
 session_cache_expire(25);
