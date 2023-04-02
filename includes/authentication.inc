@@ -452,7 +452,7 @@ function fnAuthenticatie($melding=1, $password="", $p_napost=0) {
 			if ($pwfromcookie == 0) {
 				$mess = sprintf("De combinatie van login '%s' en het ingevoerde wachtwoord is niet correct! Je bent niet ingelogd.", $_SESSION['username']);
 			}
-			setcookie("password", "", time()-60);	
+			setcookie("password", "", time()-60);
 			$_SESSION['lidid'] = 0;
 		}
 	} else {
@@ -467,6 +467,7 @@ function fnAuthenticatie($melding=1, $password="", $p_napost=0) {
 		$_SESSION['lidid'] = 0;
 		$_SESSION['username'] = "";
 		unset($_SESSION['lidgroepen']);
+		unset($_SESSION['lidauth']);
 	}
 	
 } # fnAuthenticatie
@@ -529,7 +530,7 @@ function toegang($soort, $melding=1, $p_log=1, $p_alleenmenu=0) {
 function fnInloggen() {
 	echo("<div id='login'>\n");
 	echo("<h2>Inloggen</h2>\n");
-	echo("<form action='/index.php' method='post'>\n");
+	printf("<form action='%s/index.php' method='post'>\n", BASISURL);
 	echo("<label>Login</label><input type='text' name='username' class='w15'>\n");
 	printf("<label>Wachtwoord</label><input type='password' name='password' class='w%d'>\n", $_SESSION['settings']['wachtwoord_maxlengte']);
 	echo("<label>Ingelogd blijven?</label><input type='checkbox' name='cookie' value=1 title='Ingelogd blijven'><p>(werkt met cookies)</p>\n");
@@ -683,7 +684,10 @@ function fnValidatieLogin($lidid, $key, $stap) {
 			$inst_M = null;
 		}
 	
-		if ($row->LidID > 0 and strlen($row->Wachtwoord) >= 5) {
+	
+		if ($_SESSION['settings']['mailing_validatielogin'] <= 0) {
+			$mess = "Er is geen mailing voor het versturen van de validatiemail beschikbaar. Neem contact op met de webmaster.";
+		} elseif ($row->LidID > 0 and strlen($row->Wachtwoord) >= 5) {
 			$mailing = new Mailing($_SESSION['settings']['mailing_validatielogin']);
 			if ($mailing->send($row->LidID) == 0) {
 				$mess = "Fout bij het versturen van de e-mail met de validatielink. Probeer het later nogmaals of neem contact op met de webmaster.";
