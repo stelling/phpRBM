@@ -638,8 +638,7 @@ function RekeningDetail($p_rkid, $p_metbriefpapier=0) {
 	$i_rk->controle($p_rkid);
 	$rk = $i_rk->record($p_rkid);
 	
-	$rekening_template = $_SESSION['settings']['path_templates'] . sprintf("rekening %d.html", $i_rk->seizoen);
-	$i_tp->vulvars(-1, sprintf("rekening %d.html", $i_rk->seizoen));
+	$i_tp->vulvars(-1, sprintf("rekening %d", $i_rk->seizoen));
 	if (strlen($i_tp->inhoud) == 0) {
 		$i_tp->vulvars(-1, "rekening");
 	}
@@ -810,8 +809,10 @@ function RekeningDetail($p_rkid, $p_metbriefpapier=0) {
 	$content = str_ireplace("[%BETAALTERMIJNEN%]", $bttxt, $content);
 	
 	$bestand_briefpapier = $_SESSION['settings']['path_templates'] . "briefpapier.html";
-	if ($p_metbriefpapier == 1 and file_exists($bestand_briefpapier)) {
-		$rv = removetextblock(file_get_contents($bestand_briefpapier), "<!-- Aanhef -->", "<!-- /Aanhef -->");
+	$i_tp->vulvars(-1, "briefpapier");
+	if ($p_metbriefpapier == 1 and strlen($i_tp->inhoud) > 0) {
+		
+		$rv = removetextblock($i_tp->inhoud, "<!-- Aanhef -->", "<!-- /Aanhef -->");
 		$rv = str_ireplace("[%SUBJECT%]", "Rekening " . $p_rkid, $rv);
 		$rv = str_ireplace("[%MESSAGE%]", $content, $rv);
 		
