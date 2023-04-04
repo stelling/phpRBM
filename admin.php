@@ -42,7 +42,7 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 	$i_lb = new cls_Logboek();
 	$i_base = new cls_db_base();
 	if (isset($_FILES['SQLupload']['tmp_name']) and strlen($_FILES['SQLupload']['tmp_name']) > 3) {
-		(new cls_db_base())->setcharset();
+		$i_base->setcharset();
 		$queries = file_get_contents($_FILES['SQLupload']["tmp_name"]);
 		if ($queries !== false) {
 			$sp = strpos($queries, "DROP");
@@ -83,7 +83,8 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 			}
 		}
 	} else {
-		$mess = sprintf("Er is iets mis gegaan tijdens het uploaden. Error: %s. Klik <a href='http://nl3.php.net/manual/en/features.file-upload.errors.php'>hier</a> voor uitleg van de code.", $_FILES['SQLupload']['error']);
+//		$mess = sprintf("Er is iets mis gegaan tijdens het uploaden. Error: %s. Klik <a href='http://nl3.php.net/manual/en/features.file-upload.errors.php'>hier</a> voor uitleg van de code.", $_FILES['SQLupload']['error']);
+		$mess = "Het upload bestand bestaat niet, de upload wordt niet uitgevoerd.";
 		$i_lb->add($mess, 2, 0, 1);
 	}
 	$i_lb = null;
@@ -289,11 +290,10 @@ if ($currenttab == "Beheer logins") {
 		if ($aantal > 1) {
 			printf("<p class='waarschuwing'>Er staan zijn momenteel %d gebruikers ingelogd. Het is niet verstandig om een upload te doen.</p>", $aantal);
 		}
-		echo("<div id='formulier'>\n");
-		printf("<form name='formupload' method='post' action='%s?tp=%s&amp;op=uploaddata' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-		echo("<label>Bestand</label><input tytemplpe='file' name='SQLupload'><input type='submit' value='Verwerk'>\n");
+		echo("<div class='clear' {style height: 50px }></div>\n");
+		printf("<form method='post' action='%s?tp=%s&op=uploaddata' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+		printf("<label>Bestand</label><input type='file' name='SQLupload'> (Max %s)<input type='submit' value='Verwerk'>\n", ini_get('upload_max_filesize'));
 		echo("</form>\n");
-		echo("</div>  <!-- Einde formulier -->\n");
 	}
 
 } elseif ($currenttab == "Downloaden wijzigingen" and toegang($currenttab, 1, 1)) {
