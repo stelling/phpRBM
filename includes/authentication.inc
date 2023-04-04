@@ -11,7 +11,7 @@ if ($_SESSION['lidid'] == 0 or strlen($_SESSION['username']) == 0) {
 }
 
 $tabpages = null;
-if ($_SERVER['PHP_SELF'] == "/admin.php") {
+if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 	addtp("Beheer logins");
 	addtp("Autorisatie");
 	addtp("Eigen lijsten");
@@ -26,7 +26,6 @@ if ($_SERVER['PHP_SELF'] == "/admin.php") {
 	addtp("Onderhoud");
 	addtp("Logboek");
 } else {
-	$tabpages[] = "Vereniging";
 	if ($_SESSION['lidid'] > 0) {
 		addtp("Eigen gegevens");
 	} elseif ((new cls_Login())->aantal() > 0) {
