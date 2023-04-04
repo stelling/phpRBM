@@ -17,12 +17,12 @@ if (isset($_SERVER['HTTPS'])){
 } else {
 	$basisurl = "http://" . $_SERVER['HTTP_HOST'];
 }
-$file = str_replace(dirname(__FILE__), "", __FILE__);
-$sub = str_replace($file, "", $_SERVER['PHP_SELF']);
+
+$sub = substr($_SERVER['PHP_SELF'], 0, strripos($_SERVER['PHP_SELF'], "/"));
 if (strlen($sub) > 1) {
 	$basisurl .= $sub;
 }
-define("BASISURL", str_replace("/includes", "", $basisurl));
+define("BASISURL", $basisurl);
 
 define("ARRGESLACHT", ["O" => "Onbekend", "V" => "Vrouwelijk", "M" => "Mannelijk", "N" => "Neutraal", "B" => "Bedrijf/Vereniging/Stichting"]);
 define("ARRTL", ["Alle", "Leden", "Klosleden", "Voormalig leden"]);
@@ -121,7 +121,7 @@ if (isset($_GET['tp']) and mb_substr_count($_GET['tp'], "/") == 2) {
 	$currenttab = $_GET['tp'];
 	
 } else {
-	if ($_SERVER['PHP_SELF'] == "/admin.php") {
+	if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 		$currenttab = "Beheer logins";
 	} else {
 		$currenttab = "Vereniging";
@@ -144,7 +144,7 @@ require_once("phpmailer/Exception.php");
 require_once("simpleimage.php");
 /* Einde includen open source libs*/
 
-foreach (array("database", "authentication", "afdelingen", "leden", "bewaking", "evenement", "financieel", "mailing", "diploma", "standaard", "webshop", "taken") as $incl) {
+foreach (array("database", "authentication", "afdelingen", "leden", "evenement", "financieel", "mailing", "diploma", "standaard", "webshop", "taken") as $incl) {
 	$inclpath = __DIR__ . "/" . $incl . ".php";
 	if (file_exists($inclpath)) {
 		if ($bestandsversie < filectime($inclpath)) {
@@ -279,9 +279,9 @@ function HTMLheader($breed=0) {
 			echo("<a href='/?tp=Zelfservice/Wijzigen+wachtwoord'><img src='images/user.png' title='Wijzigen wachtwoord' alt='Wijzigen wachtwoord'></a>\n");
 			echo("<a href='index.php?actie=uitloggen'><img src='images/power.png' title='Uitloggen' alt='Uitloggen'></a>\n");
 			if ($_SESSION['webmaster'] == 1) {
-				if ($_SERVER['PHP_SELF'] != "/admin.php") {
+				if (substr($_SERVER['PHP_SELF'], -9) == "index.php") {
 					echo("<a href='admin.php'><img src='images/tool.png' title='Beheerdersmenu' alt='Tool'></a>\n");
-				} elseif ($_SERVER['PHP_SELF'] == "/admin.php") {
+				} else {
 					echo("<a href='index.php'><img src='images/home.png' title='Beginpagina' alt='Home'></a>\n");
 				}
 			}
@@ -1328,10 +1328,30 @@ function fnEditTable($res, $kols, $id, $th) {
 
 			} else {
 				if ($ro) {
-					$ret .= sprintf("<td>%s</td>", htmlentities($value));
+					if (isset($kol['secondcolumn']) and strlen($kol['secondcolumn']) > 0) {
+						$col2 = $kol['secondcolumn'];
+						if (isset($kol['secondcolumntype']) and $kol['secondcolumntype'] == "geboren_leeftijd") {	
+							$dtfmt->setPattern(DTTEXT);
+							$value2 = sprintf("%s (%s)", $dtfmt->format(strtotime($row->$col2)), fnLeeftijd($row->$col2));
+						} else {
+							$value2 = htmlentities($row->$col2);
+						}
+						$ret .= sprintf("<td>%s<br>%s</td>", htmlentities($value), $value2);
+					} else {
+						$ret .= sprintf("<td>%s</td>", htmlentities($value));
+					}
 				} else {
 					$xc = sprintf("w%d", $kol['collen']);
-					$ret .= sprintf("<td><input type='text' id='%s_%d' value=\"%s\" class='%s' maxlength=%d></td>", $colname, $valpk, $value, $xc, $kol['collen']);
+					$value2 = $row->$col2;
+					$ret .= sprintf("<td><input type='text' id='%s_%d' value=\"%s\" class='%s' maxlength=%d>", $colname, $valpk, $value, $xc, $kol['collen']);
+					if (isset($kol['secondcolumn']) and strlen($kol['secondcolumn']) > 0) {
+						$col2 = $kol['secondcolumn'];
+						$value2 = $row->$col2;
+						if (isset($kol['secondcolumntype']) and $kol['secondcolumntype'] == "date") {
+							$ret .= sprintf("<br><input type='date' id='%s_%d' value=\"%s\">", $col2, $valpk, $value2);
+						}
+					}
+					$ret .= "</td>";
 				}
 			}
 		}
