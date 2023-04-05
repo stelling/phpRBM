@@ -502,11 +502,13 @@ function fnNieuwLid() {
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$lidid = 0;
+		$eersteles = "";
 		if (isset($_POST['addkloslid'])) {
 			$anm = "";
 			if (isset($_POST['inschrijving']) and $_POST['inschrijving'] > 0) {
 				$insid = $_POST['inschrijving'];
 				$f = sprintf("Ins.RecordID=%d", $insid);
+				$eersteles = $i_ins->max("EersteLes", $f);
 				$xmldata = $i_ins->max("XML", $f);
 				$xml = simplexml_load_string($xmldata);
 				if (strlen($xml->Achternaam) > 1) {
@@ -529,9 +531,12 @@ function fnNieuwLid() {
 			} else if (isset($_POST['achternaam']) and strlen($_POST['achternaam']) > 1) {
 				$lidid = $i_lid->add($_POST['achternaam']);
 			}
-			if ($lidid > 0 and isset($_POST['lidvanaf']) and $_POST['lidvanaf'] >= "1950-01-01" and strtotime($_POST['lidvanaf']) !== false) {
+			if ($lidid > 0 and isset($_POST['lidvanaf']) and $_POST['lidvanaf'] > "1970-01-01" and strtotime($_POST['lidvanaf']) !== false) {
 				(new cls_Lidmaatschap())->add($lidid, $_POST['lidvanaf']);
+			} elseif($lidid > 0 and $eersteles > "1970-01-01") {
+				(new cls_Lidmaatschap())->add($lidid, $eersteles);
 			}
+			
 			if (isset($nieuwlo) and count($nieuwlo) > 0) {
 				foreach ($nieuwlo as $lo => $ondid) {
 					$i_lo->add($ondid, $lidid, "opgegeven via inschrijfformulier");
@@ -570,40 +575,37 @@ function fnNieuwLid() {
 			$kols[0]['headertext'] = "#";
 			$kols[0]['columnname'] = "RecordID";
 			
-			$kols[1]['headertext'] = "Naam";
-			$kols[1]['columnname'] = "Naam";
+			$kols[1]['headertext'] = "Vanaf";
+			$kols[1]['columnname'] = "Ingevoerd";
+			$kols[1]['type'] = "date";
 			
-			$kols[2]['headertext'] = "Geboortedatum";
-			$kols[2]['columnname'] = "Geboortedatum";
-			$kols[2]['type'] = "date";
+			$kols[2]['headertext'] = "Naam";
+			$kols[2]['columnname'] = "Naam";
 			
-			$kols[3]['headertext'] = "E-mail";
-			$kols[3]['columnname'] = "Email";
+			$kols[3]['headertext'] = "Afdeling";
+			$kols[3]['columnname'] = "Afdeling";
 			
-			$kols[4]['headertext'] = "Afdeling";
-			$kols[4]['columnname'] = "Afdeling";
+			$kols[4]['headertext'] = "Opmerking";
+			$kols[4]['columnname'] = "Opmerking";
 			
-			$kols[5]['headertext'] = "Opmerking";
-			$kols[5]['columnname'] = "Opmerking";
+			$kols[5]['headertext'] = "Eerste les";
+			$kols[5]['columnname'] = "EersteLes";
+			$kols[5]['type'] = "date";
 			
-			$kols[6]['headertext'] = "Vanaf";
-			$kols[6]['columnname'] = "Ingevoerd";
+			$kols[6]['headertext'] = "Verwerkt";
+			$kols[6]['columnname'] = "Verwerkt";
 			$kols[6]['type'] = "date";
 			
-			$kols[7]['headertext'] = "Verwerkt";
-			$kols[7]['columnname'] = "Verwerkt";
-			$kols[7]['type'] = "date";
-			
-			$kols[8]['headertext'] = "&nbsp;";
-			$kols[8]['columnname'] = "LnkPDF";
-			$kols[8]['link'] = sprintf("%s/pdf.php?insid=%%d", BASISURL);
-			$kols[8]['class'] = "pdf";
+			$kols[7]['headertext'] = "&nbsp;";
+			$kols[7]['columnname'] = "LnkPDF";
+			$kols[7]['link'] = sprintf("%s/pdf.php?insid=%%d", BASISURL);
+			$kols[7]['class'] = "pdf";
 			
 			if (toegang("deleteinschrijving", 0, 0)) {
-				$kols[9]['headertext'] = "&nbsp;";
-				$kols[9]['columnname'] = "RecordID";
-				$kols[9]['link'] = sprintf("%s?tp=%s&op=delete&RecordID=%%d", $_SERVER['PHP_SELF'], $_GET['tp']);
-				$kols[9]['class'] = "trash";
+				$kols[8]['headertext'] = "&nbsp;";
+				$kols[8]['columnname'] = "RecordID";
+				$kols[8]['link'] = sprintf("%s?tp=%s&op=delete&RecordID=%%d", $_SERVER['PHP_SELF'], $_GET['tp']);
+				$kols[8]['class'] = "trash";
 			}
 			
 			echo("<div class='clear'></div>\n");
@@ -817,6 +819,7 @@ function LedenOnderdeelMuteren($p_ondid, $p_bop) {
 	$i_ond = new cls_Onderdeel($p_ondid);
 	$i_lo = new cls_Lidond($p_ondid);
 	$i_lid = new cls_Lid();
+	$i_fnk = new cls_Functie();
 	
 	if ($i_ond->oid <= 0) {
 		$mess = sprintf("Onderdeel %d bestaat niet.", $p_ondid);
@@ -830,6 +833,7 @@ function LedenOnderdeelMuteren($p_ondid, $p_bop) {
 	
 		if (isset($_POST['add_lid']) and $_POST['add_lid'] > 0) {
 			$i_lo->add($i_ond->oid, $_POST['add_lid']);
+
 		} elseif (isset($_GET['op']) and $_GET['op'] == "delete" and isset($_GET['RecordID']) and $_GET['RecordID'] > 0) {
 			if ($i_lo->ondid($_GET['RecordID']) == $i_ond->oid) {
 				$i_lo->update($_GET['RecordID'], "Opgezegd", date("Y-m-d", strtotime("-1 day")));
@@ -858,15 +862,16 @@ function LedenOnderdeelMuteren($p_ondid, $p_bop) {
 				$_POST['selectie_status'] = "L";
 			}
 		} else {
+			$i_lo->autogroepenbijwerken(0, 3, $p_ondid);
 			$nl = "";
 		}
 
 		$rows = $i_lo->selectielijst($i_ond->oid, 0);
 		$f = sprintf("OnderdeelID=%d", $i_ond->oid);
 		if ($i_ond->ondtype == "A") {
-			$rowsfunc = (new cls_Functie())->selectlijst($i_ond->ondtype, $i_lo->min("Vanaf", $f), 1);
+			$rowsfunc = $i_fnk->selectlijst($i_ond->ondtype, $i_lo->min("Vanaf", $f), 1);
 		} else {
-			$rowsfunc = (new cls_Functie())->selectlijst("L", $i_lo->min("Vanaf", $f), 1);
+			$rowsfunc = $i_fnk->selectlijst("L", $i_lo->min("Vanaf", $f), 1);
 		}
 		$kols = null;
 		$kols[0]['headertext'] = "Naam lid";
@@ -874,7 +879,7 @@ function LedenOnderdeelMuteren($p_ondid, $p_bop) {
 		$kols[1]['headertext'] = "Vanaf";
 		$kols[1]['type'] = "date";
 		
-		if ($i_ond->iskader or $i_ond->ondtype == "A" or $i_ond->ondtype == "C" or $i_ond->ondtype == "G") {
+		if (count($rowsfunc) > 1 and ($i_ond->iskader or $i_ond->ondtype == "A" or $i_ond->ondtype == "C" or $i_ond->ondtype == "G")) {
 			$kols[2]['headertext'] = "Functie";
 			$kols[2]['bronselect'] = $rowsfunc;
 		}
@@ -902,7 +907,7 @@ function LedenOnderdeelMuteren($p_ondid, $p_bop) {
 		echo($nl);
 	
 		if ($i_ond->isautogroep) {
-			echo("<p>Deze groep wordt ook automatisch aangepast.</p>\n");
+			echo("<p>Deze groep wordt automatisch bijgewerkt.</p>\n");
 		}
 	}
 	
@@ -1189,29 +1194,6 @@ function fnEigenGegevens($lidid=0) {
 			$tabblad[$tn] .= "</table>\n";
 		}
 			
-		$tn = "Bewaking";
-		if (toegang($ct . $tn, 0, 0)) {
-			$rows = (new cls_Bewaking())->overzichtlid($lidid);
-			if (count($rows) > 0) {
-				$txt = fnDisplayTable($rows, null, "Bewaking " . $naamlid);
-			} else {
-				$txt = "";
-			}
-			
-			$row = (new cls_Bewaking())->lidbew($lidid);
-			if (isset($row->{'Totale bewaking'})) {
-				$txt .= fnDisplayForm($row);
-				debug("formulier");
-			}
-			$rows = (new cls_insbew())->overzichtlid($lidid);
-			if ($_SESSION['settings']['toneninschrijvingenbewakingen'] == 1 and count($rows) > 0) {
-				$txt .= fnDisplayTable($rows, null, "Ingeschreven voor bewakingen");
-			}
-			if (strlen($txt) > 0) {
-				$tabblad[$tn] = $txt;
-			}
-		}
-		
 		$tn = "Rekeningen";
 		$kols = null;
 		$rows = (new cls_Rekeningregel())->overzichtlid($lidid);
@@ -2364,6 +2346,10 @@ function instellingenledenmuteren() {
 		$options .= sprintf("<option%s value=%d>%s</option>", checked($row->RecordID, "option", $_SESSION['settings']['mailingbijadreswijziging']), $row->RecordID, $row->subject);
 	}
 //	printf("<label>Mailing voor versturen e-mail naar ledenadministratie bij wijzigen postcode</label><select name='mailingbijadreswijziging' OnChange='this.form.submit();'>\n<Option value=0>Geen</option>%s</select>\n", $options);
+
+	printf("<label>Naam reddingsbrigade</label><input type='text' name='naamvereniging_reddingsbrigade' value=\"%s\" OnChange='this.form.submit();'>\n", $_SESSION['settings']['naamvereniging_reddingsbrigade']);
+	printf("<label>Sportlink relatienummer</label><input type='text' name='sportlink_vereniging_relcode' value=\"%s\" class='w7' maxlength=7 OnChange='this.form.submit();'>\n", $_SESSION['settings']['sportlink_vereniging_relcode']);
+	
 	printf("<label>Moet een opzegging door een lid automatisch worden verwerkt?</label><input type='checkbox' name='zs_opzeggingautomatischverwerken' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_opzeggingautomatischverwerken']));
 	
 	echo("<h2>Rekeningen</h2>\n");
@@ -2523,7 +2509,7 @@ function fnBasisgegevens($p_type) {
 			$opt .= sprintf("<option value='%s'%s>%s</option>\n", $k, $s, $v);
 		}
 		printf("<select name='filtertypeonderdeel' onChange='this.form.submit();'>\n%s</select>\n", $opt);
-		printf("<input type='checkbox' name='inclvervallen' value=1%s onClick='this.form.submit();'><p>Inclusief vervallen?</p>", checked($inclvervallen));
+		printf("<input type='checkbox' name='inclvervallen' value=1%s onClick='this.form.submit();'><p>Inclusief vervallen?</p>\n", checked($inclvervallen));
 		echo("</form>\n");
 		
 		$ondrows = $i_ond->lijst(0, $f, "", 0, "IF(O.VervallenPer IS NULL, 0, 1), O.`Type`, O.Naam", 0);
@@ -2558,9 +2544,11 @@ function fnBasisgegevens($p_type) {
 		
 		echo(fnEditTable($ondrows, $kols, "onderdeeledit", "Muteren onderdelen"));
 		echo("<div id='opdrachtknoppen'>\n");
+		printf("<form method='post' action='%s?%s'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
 		echo("<button name='NieuwOnderdeel' onClick='this.form.submit();'>Nieuw onderdeel</button>\n");
-		echo("</div> <! =-- Einde opdrachtknoppen -->\n");
 		echo("</form>\n");
+		echo("</div> <! =-- Einde opdrachtknoppen -->\n");
+		
 		
 		$i_ond = null;
 		
@@ -2668,6 +2656,7 @@ function fnBasisgegevens($p_type) {
 		
 	} elseif ($p_type == "Activiteiten") {
 		$i_act = new cls_Activiteit();
+		$i_act->controle();
 
 		if (isset($_POST['NieuweActiviteit'])) {
 			$i_act->add();
@@ -2699,6 +2688,7 @@ function fnBasisgegevens($p_type) {
 
 	} elseif ($p_type == "Organisaties") {
 		$i_org = new cls_Organisatie();
+		$i_org->controle();
 		
 		if (isset($_POST['NieuweOrganisatie'])) {
 			$i_org->add();
@@ -2727,11 +2717,12 @@ function fnBasisgegevens($p_type) {
 		
 		echo("<div id='opdrachtknoppen'>\n");
 		echo("<button name='NieuweOrganisatie' onClick='this.form.submit();'>Nieuwe organisatie</button>\n");
-		echo("</div> <! =-- Einde opdrachtknoppen -->\n");
+		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 		echo("</form>\n");
 		
 	} elseif ($p_type == "Seizoenen") {
 		$i_sz = new cls_Seizoen();
+		$i_sz->controle();
 		
 		if (isset($_POST['NieuwSeizoen'])) {
 			$i_sz->add();
@@ -2923,10 +2914,10 @@ function sportlink() {
 	$Kolomhoofd = array("Relatiecode", "Tussenvoegsels", "Achternaam", "Roepnaam", "Voorletters", "Geslacht", "Geboortedatum", "Geboorteplaats", "Postcode", "Huisnummer", "Toevoeging");
 	
 	$actionurl = sprintf("%s?tp=%s", $_SERVER['PHP_SELF'], $_GET['tp']);
-	printf("<form method='post' action='%s'>\n", $actionurl);
-	echo("<label>Export uit Sportlink</label><textarea name='exportsl' id='sportlinkdata'></textarea><p>Plak hierboven de export uit Sportlink, puntkomma-gescheiden en met onderstaande kolommen.</p>\n");
-	
+	printf("<form method='post' id='sportlink' action='%s'>\n", $actionurl);
+	echo("<label>Export uit Sportlink</label><textarea name='exportsl' id='sportlinkdata'></textarea>\n");
 	echo("<button type='submit'>Toon resultaat</button>\n");
+	echo("<p>Plak hierboven de export uit Sportlink, puntkomma-gescheiden en met onderstaande kolommen.</p>\n");
 	echo("</form>\n");
 	
 	echo("<table>\n<tr>");
