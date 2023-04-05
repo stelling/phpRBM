@@ -218,9 +218,8 @@ class Mailing {
 	function __construct($p_mid=0) {
 		
 		$i_base = new cls_db_base();
-
-		$this->mid = $p_mid;
-		$this->vuldbvars();
+		
+		$this->vuldbvars($p_mid);
 		
 		if ($this->mid > 0) {
 			$this->dir_attachm = $_SESSION['settings']['path_attachments'] . $this->mid . "/";
@@ -296,19 +295,6 @@ class Mailing {
 		$sql = sprintf('SELECT O.Naam FROM %1$sLidond AS LO INNER JOIN %1$sOnderdl AS O ON O.RecordID = LO.OnderdeelID
 				 WHERE %2$s AND O.GekoppeldAanQuery=0 AND LO.Lid=%%d ORDER BY O.Naam;', TABLE_PREFIX, cls_db_base::$wherelidond);
 		$this->MergeField[]=array('Naam' => "Onderdelen", 'SQL' => $sql);
-	
-		if ((new cls_Bewakingsseizoen())->aantal() > 0) {
-			$sql = sprintf('SELECT CONCAT(DATE_FORMAT(BEGIN_PER, %1$s, \'nl_NL\'), \' t/m \', DATE_FORMAT(EINDE_PER, %1$s, \'nl_NL\')) AS Per'
-				  . ' FROM %2$sBewaking AS BW INNER JOIN %2$sBewseiz AS BS ON BS.RecordID = BW.SeizoenID'
-				  . ' WHERE EINDE_PER >= CURDATE() AND %3$s ORDER BY BEGIN_PER;', $i_base->fdlang, TABLE_PREFIX, "Lid=%d");
-			$this->MergeField[]=array('Naam' => "BewakingToekomst", 'SQL' => $sql);
-							 
-			$Funct = "(CASE BW.Functie WHEN 0 THEN '' ELSE CONCAT(' (', F.Afkorting, ')') END)";
-			$sql = sprintf('SELECT CONCAT(DATE_FORMAT(BEGIN_PER, %1$s, \'nl_NL\'), \' t/m \', DATE_FORMAT(EINDE_PER, %1$s, \'nl_NL\'), %2$s) AS Per
-					 FROM (%3$sBewaking AS BW INNER JOIN %3$sBewseiz AS BS ON BS.RecordID = BW.SeizoenID) INNER JOIN %3$sFunctie AS F ON BW.Functie = F.Nummer
-					 WHERE BW.EINDE_PER < CURDATE() AND %4$s ORDER BY BW.BEGIN_PER;', $i_base->fdkort, $Funct, TABLE_PREFIX, "BW.Lid=%d");
-			$this->MergeField[]=array('Naam' => "BewakingHistorie", 'SQL' => $sql);
-		}
 							  
 		$sql = sprintf("SELECT L.Bankrekening FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "Bankrekening", 'SQL' => $sql);
@@ -541,6 +527,46 @@ class Mailing {
 		}
 
 	} # __construct
+	
+			
+	private function vuldbvars($p_mid=-1) {
+		if ($p_mid > 0) {
+			$this->mid = $p_mid;
+		}
+		
+		$this->mailingvanafid = (new cls_Mailing_vanaf())->min();
+			
+		if ($this->mid > 0) {
+			$ml = (new cls_Mailing())->record($this->mid);
+			
+			if (isset($ml->RecordID)) {
+				$this->mailingvanafid = $ml->MailingVanafID;
+				$this->OmschrijvingOntvangers = trim($ml->OmschrijvingOntvangers);
+				$this->cc_addr = trim($ml->cc_addr);
+				$this->subject = trim($ml->subject);
+				$this->Opmerking = trim($ml->Opmerking);
+				$this->message = $ml->message;
+				$this->NietVersturenVoor = $ml->NietVersturenVoor;
+				$this->CCafdelingen = $ml->CCafdelingen;
+				$this->template = $ml->template;
+				$this->zichtbaarvoor = $ml->ZichtbaarVoor;
+				$this->htmldirect = $ml->HTMLdirect;
+				$this->zonderbriefpapier = $ml->ZonderBriefpapier;
+				$this->Ingevoerd = $ml->Ingevoerd;
+				$this->IngevoerdDoor = $ml->IngevoerdDoor;
+				$this->Gewijzigd = $ml->Gewijzigd;
+				$this->GewijzigdDoor = $ml->GewijzigdDoor;
+				$this->deleted_on = $ml->deleted_on;
+				$this->evenementid = $ml->EvenementID;
+				$this->aant_rcpt = (new cls_Mailing_rcpt())->aantalontvangers($this->mid);
+			} else {
+				$this->mid = 0;
+			}
+		} else {
+			$this->Ingevoerd = date("Y-m-d");
+		}
+
+	} # vuldbvars
 	
 	public function edit() {
 		global $currenttab, $currenttab2, $navpad, $dtfmt;
@@ -1106,20 +1132,26 @@ class Mailing {
 	
 	public function preview() {
 		$this->send_mailing(1);
-	}	
+	}
 	
 	public function send($lidid=0, $p_melding=1, $p_direct=0) {
 		
-		$this->controle($lidid);
-		if ($this->verzendenmag == false) {
-			(new cls_Logboek())->add($this->meldingen, 4, 0, $p_melding, $this->mid);
-			return false;
-		} else {
-			if ($_SESSION['settings']['mailing_sentoutbox_auto'] == 0 and $_SESSION['settings']['mailing_direct_verzenden'] == 0) {
-				$mess = "Het automatisch versturen staat uit, neem contact op met een beheerder om dit aan te laten zetten.";
-				(new cls_Logboek())->add($mess, 4, 0, $p_melding, $this->mid);
+		if ($this->mid > 0) {
+			$this->controle($lidid);
+			if ($this->verzendenmag == false) {
+				(new cls_Logboek())->add($this->meldingen, 4, 0, $p_melding, $this->mid);
+				return false;
+			} else {
+				if ($_SESSION['settings']['mailing_sentoutbox_auto'] == 0 and $_SESSION['settings']['mailing_direct_verzenden'] == 0) {
+					$mess = "Het automatisch versturen staat uit, neem contact op met een beheerder om dit aan te laten zetten.";
+					(new cls_Logboek())->add($mess, 4, 0, $p_melding, $this->mid);
+				}
+				return $this->send_mailing(0, $lidid, $p_melding, $p_direct);
 			}
-			return $this->send_mailing(0, $lidid, $p_melding, $p_direct);
+		}  else {
+			$this->meldingen = "Er is geen mailing geselecteerd.";
+			(new cls_Logboek())->add($this->meldingen, 4, 0, $p_melding);
+			return false;
 		}
 	}  # send
 	
@@ -1245,12 +1277,12 @@ class Mailing {
 				
 		if ($this->mid == $_SESSION['settings']['mailing_validatielogin'] and $lidid > 0) {
 			$nak = (new cls_Login())->nieuweactivitiekey($lidid);
-			$urlactivatie = sprintf("%s/index.php?tp=Validatie+login&lidid=%d&key=%s", $_SERVER["HTTP_HOST"], $lidid, $nak);
+			$urlactivatie = sprintf("%s/index.php?tp=Validatie+login&lidid=%d&key=%s", BASISURL, $lidid, $nak);
 			$this->merged_message = str_replace("[%URLACTIVATIE%]", $urlactivatie, $this->merged_message);
 		
 		} elseif ($this->mid == $_SESSION['settings']['mailing_herstellenwachtwoord'] and $lidid > 0) {
 			$nk = (new cls_Login())->wachtwoordreset($lidid);
-			$urlresetww = sprintf("%s/index.php?tp=Herstel+wachtwoord&lidid=%d&key=%s", $_SERVER["HTTP_HOST"], $lidid, $nk);
+			$urlresetww = sprintf("%s/index.php?tp=Herstel+wachtwoord&lidid=%d&key=%s", BASISURL, $lidid, $nk);
 			$this->merged_message = str_replace("[%URLRESETWW%]", $urlresetww, $this->merged_message);
 			
 		} elseif ($this->mid == $_SESSION['settings']['mailing_bevestigingopzegging'] and $this->xtranum > 0) {
@@ -1384,40 +1416,6 @@ class Mailing {
 	public function undelete() {
 		(new cls_Mailing())->trash($this->mid, "out");
 	}
-		
-	private function vuldbvars() {
-			
-		if ($this->mid > 0) {
-			$ml = (new cls_Mailing())->record($this->mid);
-			
-			if (isset($ml->RecordID) and $ml->RecordID > 0) {
-				$this->mailingvanafid = $ml->MailingVanafID;
-				$this->OmschrijvingOntvangers = trim($ml->OmschrijvingOntvangers);
-				$this->cc_addr = trim($ml->cc_addr);
-				$this->subject = trim($ml->subject);
-				$this->Opmerking = trim($ml->Opmerking);
-				$this->message = $ml->message;
-				$this->NietVersturenVoor = $ml->NietVersturenVoor;
-				$this->CCafdelingen = $ml->CCafdelingen;
-				$this->template = $ml->template;
-				$this->zichtbaarvoor = $ml->ZichtbaarVoor;
-				$this->htmldirect = $ml->HTMLdirect;
-				$this->zonderbriefpapier = $ml->ZonderBriefpapier;
-				$this->Ingevoerd = $ml->Ingevoerd;
-				$this->IngevoerdDoor = $ml->IngevoerdDoor;
-				$this->Gewijzigd = $ml->Gewijzigd;
-				$this->GewijzigdDoor = $ml->GewijzigdDoor;
-				$this->deleted_on = $ml->deleted_on;
-				$this->evenementid = $ml->EvenementID;
-				$this->aant_rcpt = (new cls_Mailing_rcpt())->aantalontvangers($this->mid);
-			} else {
-				$this->mid = 0;
-			}
-		} else {
-			$this->Ingevoerd = date("Y-m-d");
-		}
-
-	} # vuldbvars
 	
 } # class Mailing
 
@@ -1583,15 +1581,26 @@ class email {
 	public $xtrachar = "";
 	public $xtranum = 0;
 	
-	function __construct($mhid=0, $mid=0) {
+	function __construct($p_mhid=0, $p_mid=-1) {
 		global $dtfmt;
 		
 		$dtfmt->setPattern(DTLONGSEC);
 		$this->ingevoerd = $dtfmt->format(time());
 		$this->ingevoerddoor = $_SESSION['naamingelogde'];
+
+		$this->vulvars($p_mhid, $p_mid);
 		
-		if ($mhid > 0) {
-			$this->mhid = $mhid;
+	}  # __construct
+	
+	public function vulvars($p_mhid, $p_mid=-1) {
+		global $dtfmt;
+		
+		$this->mhid = $p_mhid;
+		if ($p_mid > 0) {
+			$this->mailingid = $p_mid;
+		}
+		
+		if ($this->mhid > 0) {
 			$mhrow = (new cls_Mailing_hist())->record($this->mhid);
 			if (isset($mhrow->MailingID)) {
 				$this->mailingid = $mhrow->MailingID;
@@ -1616,8 +1625,7 @@ class email {
 				$this->xtranum = $mhrow->Xtra_Num;
 			}
 			
-		} elseif ($mid > 0) {	
-			$this->mailingid = $mid;
+		} elseif ($this->mailingid > 0) {	
 			$mrow = (new cls_Mailing())->record($this->mailingid);
 			$this->vanafid = $mrow->MailingVanafID;
 			$this->omsontvangers = htmlentities($mrow->OmschrijvingOntvangers);
@@ -1628,7 +1636,9 @@ class email {
 			$this->zichtbaarvoor = $mrow->ZichtbaarVoor;
 			$this->zonderbriefpapier = $mrow->ZonderBriefpapier;
 		} else {
-			$this->vanafadres = $_SESSION['settings']['emailwebmaster'];
+			$i_mv = new cls_Mailing_vanaf($this->vanafid);
+			$this->vanafid = $i_mv->min();
+			$i_mv = null;			
 		}
 		
 		if ($this->vanafid > 0) {
@@ -1649,11 +1659,9 @@ class email {
 		} else {
 			$this->zichtbaar = false;
 		}
-		
-	}  # __construct
+	}
 	
 	public function toon($p_direct=1) {
-		
 		
 		if ($this->zichtbaar) {
 
