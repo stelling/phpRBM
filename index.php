@@ -157,8 +157,13 @@ if ($i_lid->aantal() == 0) {
 	} else {
 		$atn = array("Kader");
 	}
-	$atn[] = "Overig";
-	$atn[] = "Onderscheidingen";
+	
+	if ((new cls_Onderdeel())->aantal("((O.TYPE='C' AND O.Kader=0) OR O.TYPE='F')") > 0) {
+		$atn[] = "Overig";
+	}
+	if ((new cls_Onderdeel())->aantal("O.`Type`='O'") > 0) {
+		$atn[] = "Onderscheidingen";
+	}
 	foreach ($atn as $tn) {
 		if (toegang($currenttab . "/" . $tn, 0, 0)) {
 			$tabblad[$tn] = fnWieiswie($tn, $_SESSION['settings']['kaderoverzichtmetfoto']);
@@ -253,8 +258,6 @@ if ($i_lid->aantal() == 0) {
 	fnBewaking();
 } elseif ($currenttab == "Rekeningen") {
 	fnRekeningen();
-} elseif ($currenttab == "Kostenoverzicht") {
-	fnKostenoverzicht();
 } elseif ($currenttab == "Mailing") {
 	fnMailing();
 } elseif ($currenttab == "Diplomazaken") {
@@ -380,7 +383,7 @@ function fnVoorblad() {
 		}
 		
 	} else {
-		$content = "Er is geen introductie beschikbaar.";
+		$content = "<p class='mededeling'>Er is geen introductie beschikbaar.</p>\n";
 	}
 	
 	return sprintf("<div id='welkomstekst'>\n%s</div>  <!-- Einde welkomstekst -->\n", $content);
@@ -492,8 +495,8 @@ function fnAgenda($p_lidid=0) {
 				} elseif ($aant > 1) {
 					$txt .= sprintf("<li class='jarigen'>%s zijn jarig</li>", $vj);
 				}
-				$txt .= "</ul>";
 			}
+			$txt .= "</ul>";
 			$txt .= "</td>\n";
 		}
 		$txt .= "</tr>\n";
