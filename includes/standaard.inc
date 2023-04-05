@@ -1200,6 +1200,8 @@ function fnEditTable($res, $kols, $id, $th) {
 			}
 			$colname = $kol['columnname'];
 			$value = $row->$colname;
+			$col2 = $kol['secondcolumn'] ?? "";
+			$value2 = $row->$col2 ?? "";
 			
 			if (!isset($kol['headertext']) or strlen($kol['headertext']) == 0) {
 				// Kolom wordt niet getoond.
@@ -1328,8 +1330,7 @@ function fnEditTable($res, $kols, $id, $th) {
 
 			} else {
 				if ($ro) {
-					if (isset($kol['secondcolumn']) and strlen($kol['secondcolumn']) > 0) {
-						$col2 = $kol['secondcolumn'];
+					if (strlen($col2) > 0) {
 						if (isset($kol['secondcolumntype']) and $kol['secondcolumntype'] == "geboren_leeftijd") {	
 							$dtfmt->setPattern(DTTEXT);
 							$value2 = sprintf("%s (%s)", $dtfmt->format(strtotime($row->$col2)), fnLeeftijd($row->$col2));
@@ -1342,13 +1343,12 @@ function fnEditTable($res, $kols, $id, $th) {
 					}
 				} else {
 					$xc = sprintf("w%d", $kol['collen']);
-					$value2 = $row->$col2;
 					$ret .= sprintf("<td><input type='text' id='%s_%d' value=\"%s\" class='%s' maxlength=%d>", $colname, $valpk, $value, $xc, $kol['collen']);
-					if (isset($kol['secondcolumn']) and strlen($kol['secondcolumn']) > 0) {
-						$col2 = $kol['secondcolumn'];
-						$value2 = $row->$col2;
+					if (strlen($col2) > 0) {
 						if (isset($kol['secondcolumntype']) and $kol['secondcolumntype'] == "date") {
 							$ret .= sprintf("<br><input type='date' id='%s_%d' value=\"%s\">", $col2, $valpk, $value2);
+						} else {
+							$ret .= sprintf("<br><input type='text' id='%s_%d' value=\"%s\">", $col2, $valpk, $value2);
 						}
 					}
 					$ret .= "</td>";
