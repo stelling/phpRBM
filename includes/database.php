@@ -2224,6 +2224,9 @@ class cls_Onderdeel extends cls_db_base {
 		} elseif ($p_kolom == "MySQL" and strlen($p_waarde) > 10) {
 			if (startwith($p_waarde, "SELECT")) {
 				$p_waarde = str_replace("\"", "'", $p_waarde);
+				if ($this->pdoupdate($this->oid, "Alleen leden", 0, "de MySQL is ingevuld.")) {
+					$this->log($this->oid);
+				}
 			} else {
 				$this->mess = sprintf("De MySQL-code moet met SELECT beginnen. Kolom '%s' is leeg gemaakt.", $p_kolom);
 				$this->log($this->oid);
@@ -2234,10 +2237,8 @@ class cls_Onderdeel extends cls_db_base {
 		if ($p_kolom == "Type" and (strlen($p_waarde) == 0 or strpos($this->mogelijketypes, $p_waarde) === false)) {
 			$this->mess = sprintf("Type wordt niet bijgewerkt, omdat de waarde (%s) niet juist is.", $p_waarde);
 			
-		} elseif ($this->pdoupdate($p_oid, $p_kolom, $p_waarde)) {
-			if (strlen($p_reden) > 0) {
-				$this->mess .= ", omdat " . $p_reden;
-			}
+		} else {
+			$this->pdoupdate($this->oid, $p_kolom, $p_waarde, $p_reden);
 		}
 
 		$this->log($this->oid);
