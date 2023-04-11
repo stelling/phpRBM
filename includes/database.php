@@ -2533,7 +2533,7 @@ class cls_Afdelingskalender extends cls_db_base {
 		foreach ($this->lijst($p_onderdeelid, "", $p_filter) as $row) {
 			$o = $dtfmt->format(strtotime($row->Datum));
 			if (strlen($row->Omschrijving) > 0) {
-				$o .= " " . substr($row->Omschrijving, 0, 25);
+				$o .= " " . substr($row->Omschrijving, 0, 35);
 			}
 			$c = checked($row->RecordID, "option", $p_cv);
 			$rv .= sprintf("<option value=%d %s>%s</option>\n", $row->RecordID, $c, $o);
@@ -3039,8 +3039,9 @@ class cls_Lidond extends cls_db_base {
 			$where .= " AND (LO.Functie=0 OR LO.GroepID > 0)";
 		}
 		
-		$this->query = sprintf("SELECT DISTINCT O.Naam AS AfdNaam, CONCAT(GR.Starttijd, IF(LENGTH(GR.Eindtijd) > 3, CONCAT(' - ', GR.Eindtijd), '')) AS Tijdsblok, GR.Kode, GR.Omschrijving, L.Roepnaam,
-					%1\$s AS NaamLid, %6\$s AS AVGnaam, %5\$s AS GroepOms, GR.Zwemzaal, GR.DiplomaID, LO.Functie,
+		$this->query = sprintf("SELECT DISTINCT O.Naam AS AfdNaam, CONCAT(GR.Starttijd, IF(LENGTH(GR.Eindtijd) > 3, CONCAT(' - ', GR.Eindtijd), '')) AS Tijdsblok, GR.Kode, GR.Omschrijving,
+					L.RecordID AS LidID, L.Roepnaam, %1\$s AS NaamLid, %6\$s AS AVGnaam,
+					%5\$s AS GroepOms, GR.Zwemzaal, GR.DiplomaID, LO.Functie,
 					LO.RecordID, LO.GroepID, LO.Lid, %2\$s AS Leeftijd, LO.Vanaf, IFNULL(LO.Opgezegd, '9999-12-31') AS Opgezegd, %7\$s AS LaatsteGroepMutatie
 					FROM %3\$s
 					WHERE %4\$s
@@ -4426,7 +4427,8 @@ class cls_Mailing extends cls_db_base {
 		}
 		
 		$query = sprintf("SELECT M.RecordID, CONCAT(M.subject, ' & ', IFNULL(M.Opmerking, '')) AS Onderwerp_Opmerking, MV.Vanaf_naam, M.subject, M.Opmerking, M.OmschrijvingOntvangers,
-					CONCAT(MV.Vanaf_naam, ' & ', M.OmschrijvingOntvangers) AS Van_Aan, CONCAT(%1\$s, ' & ', DATE_FORMAT(M.Gewijzigd, %6\$s, 'nl_NL')) AS laatstGewijzigd
+					CONCAT(MV.Vanaf_naam, ' & ', M.OmschrijvingOntvangers) AS Van_Aan, CONCAT(%1\$s, ' & ', DATE_FORMAT(M.Gewijzigd, %6\$s, 'nl_NL')) AS laatstGewijzigd,
+					(SELECT IFNULL(COUNT(*), 0) FROM %3\$sMailing_rcpt AS MR WHERE MR.MailingID=M.RecordID) AS aantalOntvangers
 					%2\$s,
 					IF((SELECT COUNT(*) FROM %3\$sMailing_hist AS MH WHERE MH.MailingID=M.RecordID) > 0, M.RecordID, 0) AS linkHist
 					FROM (%3\$sMailing AS M LEFT JOIN %3\$sMailing_vanaf AS MV ON M.MailingVanafID=MV.RecordID) LEFT JOIN %3\$sLid AS L ON M.GewijzigdDoor=L.RecordID
@@ -4447,6 +4449,9 @@ class cls_Mailing extends cls_db_base {
 			}
 			if (strlen($row->OmschrijvingOntvangers) > 0) {
 				$o .= " - " . $row->OmschrijvingOntvangers;
+			}
+			if ($row->aantalOntvangers > 1) {
+				$o .= sprintf(" (%d ontvangers)", $row->aantalOntvangers);
 			}
 			$s = "";
 			if ($p_cv == $row->RecordID) {
@@ -8626,35 +8631,47 @@ class cls_Eigen_lijst extends cls_db_base {
 class cls_Foto extends cls_db_base {
 	
 	private $ftid = 0;
+	public $fotodata = "";
 	public $laatstgewijzigd = "";
 	
 	function __construct($p_ftid=-1) {
 		$this->table = TABLE_PREFIX . "Foto";
 		$this->basefrom = $this->table . " AS Foto";
 		$this->ta = 6;
-		$this->vulvars($p_ftid);
 		$laatstgewijzigd = date("Y-m-d H:i:s");
+		$this->vulvars($p_ftid);
 	}
 	
-	private function vulvars($p_ftid) {
-		if ($p_ftid >= 0) {
+	private function vulvars($p_ftid=-1, $p_lidid=-1) {
+		if ($p_ftid > 0) {
 			$this->ftid = $p_ftid;
+		} elseif ($p_lidid > 0) {
+			$this->lidid = $p_lidid;
 		}
+		if ($this->lidid > 0) {
+			$query = sprintf("SELECT IFNULL(MAX(Foto.RecordID), 0) FROM %s WHERE Foto.LidID=%d;", $this->basefrom, $p_lidid);
+			$this->ftid = $this->scalar($query);
+		}
+		
 		if ($this->ftid > 0) {
 			$query = sprintf("SELECT Foto.* FROM %s WHERE Foto.RecordID=%d;", $this->basefrom, $this->ftid);
 			$result = $this->execsql($query);
 			$frow = $result->fetch();
-			$this->lidid = $frow->LidID;
+			if (isset($frow->RecordID)) {
+				$this->lidid = $frow->LidID;
+				$this->fotodata = "data:image/jpg;charset=utf8;base64," . base64_encode($frow->FotoData);
+				$this->laatstgewijzigd = $frow->FotoGewijzigd;
+			} else {
+				$this->ftid = 0;
+			}
 		}
 	}
 	
 	public function fotolid($p_lidid) {
-		$query = sprintf("SELECT Foto.* FROM %s WHERE Foto.LidID=%d ORDER BY Ingevoerd DESC;", $this->basefrom, $p_lidid);
-		$fr = $this->execsql($query)->fetch();
+		$this->vulvars(-1, $p_lidid);
 		
-		if (isset($fr->RecordID)) {
-			$this->laatstgewijzigd = $fr->FotoGewijzigd;
-			return "data:image/jpg;charset=utf8;base64," . base64_encode($fr->FotoData);
+		if ($this->ftid > 0) {
+			return $this->fotodata;
 		} else {
 			return false;
 		}
@@ -9585,6 +9602,13 @@ function db_onderhoud($type=9) {
 		$query = sprintf("ALTER TABLE `%s` ADD `%s` DATE NULL AFTER `Opmerking`;", $tab, $col);
 		$i_base->execsql($query, 2);
 	}
+		
+	$tab = TABLE_PREFIX . "Liddipl";
+	$col = "Examengroep";
+	if ($i_base->bestaat_kolom($col, $tab) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NULL AFTER `Examen`;", $tab, $col);
+		$i_base->execsql($query, 2);
+	}
 	
 	/***** Velden die aangepast zijn *****/
 	$i_base->tas = 12;
@@ -9858,8 +9882,8 @@ function db_backup($p_typebackup=3) {
 			$query = sprintf("SELECT COUNT(*) FROM %s;", $table);
 			$a = $i_base->scalar($query);
 //			debug($table . ": " . $a);
-			
-			if ($a > 0 and ($p_typebackup == 3 or ($p_typebackup == 1 and $tnr < 30) or ($p_typebackup == 2 and $tnr >= 30) or ($p_typebackup == 4 and substr($tnm, 0, 6) != "Admin_"))) {
+
+			if ($a > 0 and ($p_typebackup == 3 or ($p_typebackup == 1 and $tnr < 30) or ($p_typebackup == 2 and $tnr >= 30) or ($p_typebackup == 4 and $tnm != "Foto"  and $tnm != "Inschrijving" and substr($tnm, 0, 6) != "Admin_"))) {
 			
 				if ($p_typebackup != 4) {
 					$data = $i_base->exporttosql(2);
@@ -9879,7 +9903,7 @@ function db_backup($p_typebackup=3) {
 				}
 		
 				while($row = $result->fetch(PDO::FETCH_NUM)) {
-					$data .= sprintf("INSERT INTO `%s` VALUES(", $table);
+					$data .= sprintf("INSERT INTO `%s` VALUES (", $table);
 					for($j=0; $j<$num_fields; $j++) {
 						$meta = $result->GetColumnMeta($j);
 						$row[$j] = addslashes($row[$j]);
@@ -9909,7 +9933,8 @@ function db_backup($p_typebackup=3) {
 							if ($i_base->typekolom($meta['name'], $tnm) == "text") {
 								$data .= '"' . $row[$j] . '"' ;
 							} else {
-								$data .= '"' . base64_encode($row[$j] . '"');
+								$data .= base64_encode($row[$j]);
+//								$data .= $row[$j];
 							}
 							
 						} elseif (isset($row[$j])) {
@@ -9928,7 +9953,7 @@ function db_backup($p_typebackup=3) {
 					$data = "";
 					
 					$stat = fstat($buf);
-					if (($stat['size']/1024) > (15 * 1024)) {
+					if (($stat['size']/1024) > (12 * 1024)) {
 						fclose($buf);
 						$mess = sprintf("Backup-bestand %s is bewaard.", str_replace($db_folderbackup, "", $FileName));
 						$arrbufiles[] = str_replace($db_folderbackup, "", $FileName);
@@ -9945,7 +9970,7 @@ function db_backup($p_typebackup=3) {
 				fwrite($buf, "\n");
 				
 				$stat = fstat($buf);
-				if (($stat['size']/1024) > (12 * 1024)) {
+				if (($stat['size']/1024) > (9 * 1024)) {
 					fclose($buf);
 					$mess = sprintf("Backup-bestand %s is bewaard.", str_replace($db_folderbackup, "", $FileName));
 					$arrbufiles[] = str_replace($db_folderbackup, "", $FileName);
