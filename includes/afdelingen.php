@@ -580,7 +580,7 @@ function fnPresentiePerLid($p_ondid) {
 	$seizrows = $i_aw->seizoenen($p_ondid);
 	
 	if ($i_aw->aantalstatus('A', $p_ondid) > 0) {
-		$kop_aangemeld = "<th>Aangemeld</th>";
+		$kop_aangemeld = "<th># Aangemeld</th>";
 	} else {
 		$kop_aangemeld = "";
 	}
@@ -613,8 +613,8 @@ function fnPresentiePerLid($p_ondid) {
 	echo("<table>\n");
 	printf("<caption> Presentie per lid %s</caption>\n", $i_lo->ondnaam);
 	foreach ($seizrows as $seizrow) {
-		printf("<tr class='seizoentotaal'><th class='teken'>-</th><th>%d</th><th>%s t/m %s</th><th>Groep</th><th># act.</th>", $seizrow->Nummer, $dtfmt->format(strtotime($seizrow->Begindatum)), $dtfmt->format(strtotime($seizrow->Einddatum)));
-		printf("%s<th>Afwezig</th><th>%% aanwezig</th><th>Ziek</th><th>Met reden</th><th>Zonder reden</th>%s</tr>\n", $kop_aangemeld, $kop_telaat);
+		printf("<tr class='seizoentotaal'><th class='teken'>-</th><th>%d</th><th>%s t/m %s</th><th>Groep</th><th># Act.</th>", $seizrow->Nummer, $dtfmt->format(strtotime($seizrow->Begindatum)), $dtfmt->format(strtotime($seizrow->Einddatum)));
+		printf("%s<th># Afwezig</th><th>%% Aanwezig</th><th>Ziek</th><th>Met reden</th><th>Zonder reden</th>%s</tr>\n", $kop_aangemeld, $kop_telaat);
 		$lorows = $i_lo->lijst($p_ondid, "", "", $seizrow->Einddatum);
 		foreach ($lorows as $lorow) {
 			$aanwtotrow = $i_aw->perlidperperiode($lorow->RecordID, $seizrow->Begindatum, $seizrow->Einddatum);
@@ -709,7 +709,7 @@ function fnAfdelingswachtlijst($p_afdid) {
 	
 	$rows = $i_ins->lijst(1, $p_afdid, 0);
 	
-	$kols[0]['headertext'] = "#";
+	$kols[0]['headertext'] = "";
 	$kols[0]['columnname'] = "RecordID";
 	$kols[0]['type'] = "pk";
 	$kols[0]['readonly'] = true;
@@ -719,22 +719,21 @@ function fnAfdelingswachtlijst($p_afdid) {
 	$kols[1]['type'] = "date";
 	$kols[1]['readonly'] = true;
 	
-	$kols[2]['headertext'] = "Naam";
+	$kols[2]['headertext'] = "Naam & geboren";
 	$kols[2]['columnname'] = "Naam";
+	$kols[2]['secondcolumn'] = "Geboortedatum";
+	$kols[2]['secondcolumntype'] = "geboren_leeftijd";
 	$kols[2]['readonly'] = true;
 	
-	$kols[3]['headertext'] = "Geboortedatum";
-	$kols[3]['columnname'] = "Geboortedatum";
-	$kols[3]['type'] = "geboren_leeftijd";
+	$kols[3]['headertext'] = "E-mail";
+	$kols[3]['columnname'] = "Email";
+	$kols[3]['type'] = "email";
 	$kols[3]['readonly'] = true;
 	
-	$kols[4]['headertext'] = "E-mail";
-	$kols[4]['columnname'] = "Email";
-	$kols[4]['type'] = "email";
-	$kols[4]['readonly'] = true;
-	
-	$kols[5]['headertext'] = "Opmerking";
-	$kols[5]['columnname'] = "Opmerking";
+	$kols[4]['headertext'] = "Opmerking & eerste les";
+	$kols[4]['columnname'] = "Opmerking";
+	$kols[4]['secondcolumn'] = "EersteLes";
+	$kols[4]['secondcolumntype'] = "date";
 
 	$kols[6]['headertext'] = "&nbsp;";
 	$kols[6]['columnname'] = "LnkPDF";
@@ -753,18 +752,24 @@ function fnAfdelingswachtlijst($p_afdid) {
 }
 
 function fnAfdelingsmailing($p_afdid) {
+	global $selaant, $mingroepgewijzigd;
+	
 	$i_gr = new cls_Groep($p_afdid);
 	$i_m = new cls_Mailing();
 	$i_mr = new cls_Mailing_rcpt();
 	$i_lo = new cls_Lidond($p_afdid);
 	$i_f = new cls_Functie();
+	$i_ex = new cls_examen();
 	
 	$selmailing = $_POST['SelecteerMailing'] ?? 0;
 	$_POST['groepgewijzigdna'] = $_POST['groepgewijzigdna'] ?? "1900-01-01";
+	$_POST['kandidaatopexamen'] = $_POST['kandidaatopexamen'] ?? -1;
+	$mingroepgewijzigd = substr((new cls_Logboek())->min("DatumTijd", "refColumn='GroepID'"), 0, 10);
 	if ($_POST['groepgewijzigdna'] < "2000-01-01") {
-		$_POST['groepgewijzigdna'] = substr((new cls_Logboek())->min("DatumTijd", "refColumn='GroepID'"), 0, 10);
+		$_POST['groepgewijzigdna'] = $mingroepgewijzigd;
 	}
 	$selontv = "";
+	$selaant = 0;
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		
@@ -802,6 +807,11 @@ function fnAfdelingsmailing($p_afdid) {
 		echo("<li><button type='button' onClick='fnAlleGroepen();'>Alle groepen</button></li>\n");
 		echo("</ul>\n");
 		printf("<label for='groepgewijzigdna'>Groep gewijzigd op of na</label><input type='date' name='groepgewijzigdna' value='%s'>\n", $_POST['groepgewijzigdna']);
+		// examen
+		$f = sprintf("EX.OnderdeelID=%d", $p_afdid);
+		if ($i_ex->aantal($f) > 0) {
+			printf("<label>Kandidaat op examen</label><select name='kandidaatopexamen'><option value=-1>Niet van toepassing</option>\n%s</select>", $i_ex->htmloptions($_POST['kandidaatopexamen'], $f));
+		}
 	}
 
 	echo("<h2>Selecteer functies</h2>");
@@ -817,24 +827,17 @@ function fnAfdelingsmailing($p_afdid) {
 	echo("</ul>\n");
 	
 	if (strlen($selontv) > 0) {
-		echo("<h2>Geselecteerde leden</h2>\n");
+		if ($selaant > 3) {
+			printf("<h2>Geselecteerde leden (%d)</h2>\n", $selaant);
+		} else {
+			echo("<h2>Geselecteerde leden</h2>\n");
+		}
 		printf("<ul>\n%s\n</ul>\n", $selontv);
 	}
 	
 	echo("<h2>Selecteer mailing</h2>\n");
 		
-	$txtao = "";
-	if ($selmailing > 0) {
-		$ao = $i_mr->aantalontvangers($selmailing);
-		if ($ao == 1) {
-			$txtao = " (1 ontvanger)";
-		} elseif ($ao == 0) {
-			$txtao = " (geen ontvangers)";
-		} else {
-			$txtao = sprintf(" (%d ontvangers)", $ao);
-		}
-	}
-	printf("<select name='SelecteerMailing' title='Selecteer mailing' OnChange='this.form.submit();'>\n<option value=0>Selecteer ...</option>\n<option value=-1>*** Nieuwe mailing</option>\n%s</select><p>%s</p>\n", $i_m->htmloptions($selmailing), $txtao);
+	printf("<select name='SelecteerMailing' title='Selecteer mailing' OnChange='this.form.submit();'>\n<option value=0>Selecteer ...</option>\n<option value=-1>*** Nieuwe mailing</option>\n%s</select>\n", $i_m->htmloptions($selmailing));
 	
 	echo("<div id='opdrachtknoppen'>\n");
 	echo("<button type='submit' name='btnOntvangersBijwerken'>Ontvangers op scherm bijwerken</button>");
@@ -845,7 +848,7 @@ function fnAfdelingsmailing($p_afdid) {
 			$d = " disabled";
 		}
 		printf("<button type='submit' name='btnOntvangersAanpassen'%s>Ontvangers in mailing aanpassen</button>", $d);
-		printf("<button type='button' OnClick=\"location.href='%s?tp=Mailing/Wijzigen mailing&mid=%d'\"%s>Ga naar mailing</button>", $_SERVER['PHP_SELF'], $selmailing, $d);
+		printf("<button type='button' onClick=\"location.href='%s?tp=Mailing/Wijzigen mailing&mid=%d'\"%s>Ga naar mailing</button>", $_SERVER['PHP_SELF'], $selmailing, $d);
 	}
 	
 	echo("</div> <!-- Einde opdrachtknoppen -->\n");
@@ -875,16 +878,19 @@ function fnAfdelingsmailing($p_afdid) {
 }  # fnAfdelingsmailing
 
 function fnOntvangersAfdelingsmailing($p_afdid, $p_uitvoeren=0, $p_mailing=-1) {
+	global $selaant, $mingroepgewijzigd;
 	
 	$i_mr = new cls_Mailing_rcpt();
 	$i_lid = new cls_Lid();
 	$i_lo = new cls_Lidond();
+	$i_ld = new cls_Liddipl();
 	
 	if ($p_mailing <= 0) {
 		$p_uitvoeren = 0	;
 	}
 	
 	$rv = "";
+	$selaant = 0;
 	
 	if ($p_uitvoeren == 1) {
 		$i_mr->delete_all($p_mailing);
@@ -893,14 +899,23 @@ function fnOntvangersAfdelingsmailing($p_afdid, $p_uitvoeren=0, $p_mailing=-1) {
 		$cn = sprintf("chkGroep_%d", $lorow->GroepID);
 		$cnf = sprintf("chkFunctie_%d", $lorow->Functie);
 		if (isset($_POST[$cn])) {
-			if ($lorow->LaatsteGroepMutatie >= $_POST['groepgewijzigdna']) {
+			$toev = true;
+			if ($_POST['kandidaatopexamen'] > 0) {
+				$f = sprintf("LD.Examen=%d AND LD.Lid=%d", $_POST['kandidaatopexamen'], $lorow->LidID);
+				if ($i_ld->aantal($f) == 0) {
+					$toev = false;
+				}
+			}
+			if ($toev and ($mingroepgewijzigd >= $_POST['groepgewijzigdna'] or $lorow->LaatsteGroepMutatie >= $_POST['groepgewijzigdna'])) {
 				$rv .= sprintf("<li>%s</li>", $i_lid->naam($lorow->Lid));
+				$selaant++;
 				if ($p_uitvoeren == 1) {
 					$i_mr->add($p_mailing, $lorow->Lid, "", 0, "AfdGr", $lorow->GroepID);
 				}
 			}
 		} elseif (isset($_POST[$cnf])) {
 			$rv .= sprintf("<li>%s</li>", $i_lid->naam($lorow->Lid));
+			$selaant++;
 			if ($p_uitvoeren == 1) {
 				$i_mr->add($p_mailing, $lorow->Lid, "", 0);
 			}
