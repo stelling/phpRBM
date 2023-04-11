@@ -18,8 +18,9 @@ function fnDiplomazaken() {
 
 function Diplomalijstmuteren() {
 	global $currenttab, $currenttab2, $dtfmt;
-	
+
 	$i_dp = new cls_Diploma();
+	$i_ond = new cls_Onderdeel();
 	
 	if (isset($_POST['nieuwdiploma'])) {
 		$i_dp->add();
@@ -42,14 +43,17 @@ function Diplomalijstmuteren() {
 	$kols[6]['columnname'] = "Volgnr";
 	$kols[6]['type'] = "integer";
 	$kols[6]['max'] = 999;
-		
-	$kols[18]['headertext'] = "Afdelingsspec.";
-	$kols[18]['columnname'] = "Afdelingsspecifiek";
-	$arrAfd[0] = "Geen";
-	foreach ((new cls_Onderdeel())->lijst(1, "O.`Type`='A'", "", 0, "O.Kode") as $row) {
-		$arrAfd[$row->RecordID] = $row->Kode;
+	
+	$f = "O.`Type`='A'";
+	if ($i_ond->aantal($f) > 0) {
+		$kols[18]['headertext'] = "Afdelingsspec.";
+		$kols[18]['columnname'] = "Afdelingsspecifiek";
+		$arrAfd[0] = "Geen";
+		foreach ($i_ond->lijst(1, $f, "", 0, "O.Kode") as $row) {
+			$arrAfd[$row->RecordID] = $row->Kode;
+		}
+		$kols[18]['bronselect'] = $arrAfd;
 	}
-	$kols[18]['bronselect'] = $arrAfd;
 	
 	echo("<div id='diplomasmuteren'>\n");
 	printf("<form method='post' action='%s?tp=%s/%s'>", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
@@ -188,7 +192,7 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 		echo("<div id='examenmuteren'>\n");
 		printf("<label id='lblexamennummer'>Nummer</label><p id='examennummer'>%d</p>\n", $i_ex->exid);
 		echo("<label>Examendatum</label>");
-		if ($i_ex->aantalkandidaten > 0) {
+		if ($i_ex->aantalkandidaten > 0 and 1 == 2) {
 			$dtfmt->setPattern(DTTEXTWD);
 			printf("<p>%s</p>\n", $dtfmt->format(strtotime($i_ex->exdatum)));
 		} else {
@@ -199,6 +203,7 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 			printf("<label>Starttijd</label><input type='text' id='Begintijd' value='%s' onBlur=\"savedata('examenmuteren', %d, this);\" class='w5' maxlength=5>\n", $i_ex->begintijd, $i_ex->exid);
 		}
 		echo("</div> <!-- einde examenmuteren -->\n");
+		$i_ld->controle($exid);
 	}
 
 	$dtfmt->setPattern(DTTEXT);
@@ -338,7 +343,7 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 				$huid_gr = $i_lo->max("GroepID", $f);
 				$f = sprintf("GR.RecordID=%d", $huid_gr);
 				$huid_gr_dipl = $i_gr->max("DiplomaID", $f);
-				if ($p_afdid > 0 and $huid_gr_dipl <> $i_dp->dpvolgende and $i_dp->dpvolgende > 0) {
+				if ($p_afdid > 0 and $huid_gr_dipl == $i_dp->dpid and $i_dp->dpvolgende > 0) {
 					if ($aant_vg > 0) {
 						$naam_vg .= ", ";
 					}
@@ -364,7 +369,13 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 					$t = sprintf(" title='%s'", $naam_vg);
 				}
 				echo("<div class='clear'></div>\n");
-				$f = sprintf("GR.OnderdeelID=%d AND GR.DiplomaID=%d", $p_afdid, $i_dp->dpvolgende);
+				
+				$vdps = "-1";
+				$f = sprintf("VoorgangerID=%d", $i_dp->dpid);
+				foreach ($i_dp->basislijst($f) as $dprow) {
+					$vdps .= "," . $dprow->RecordID;
+				}
+				$f = sprintf("GR.OnderdeelID=%d AND GR.DiplomaID IN (%s)", $p_afdid, $vdps);
 				foreach ($i_gr->basislijst($f) as $vgrow) {
 					printf("<button type='submit' name='nwe_groep' value='%d-%d'%s>%s naar groep %s</button>\n", $vgrow->RecordID, $i_dp->dpid, $t, $ol, $vgrow->Omschrijving);
 				}
@@ -411,6 +422,7 @@ function fnDiplomasMuteren($p_afdid=-1) {
 	$i_dp = new cls_Diploma();
 	$i_org = new cls_Organisatie();
 	$i_ld = new cls_Liddipl();
+	$i_ond = new cls_Onderdeel();
 	
 	if ($p_afdid > 0) {
 		$f = sprintf("DP.Afdelingsspecifiek=%d", $p_afdid);
@@ -436,7 +448,6 @@ function fnDiplomasMuteren($p_afdid=-1) {
 		printf("<label>Naam</label><input type='text' id='Naam' class='w75' maxlength=75 value=\"%s\">\n", str_replace("\"", "'", $dprow->Naam));
 		printf("<label>Code</label><input type='text' id='Kode' class='w10' maxlength=10 value=\"%s\">\n", $dprow->Kode);
 		printf("<label id='lblvolgnr'>Volgnummer</label><input type='number' id='Volgnr' value=%d class='num3'>\n", $dprow->Volgnr);
-	
 		printf("<label>Type</label><select id='Type'>%s</select>\n", fnOptionsFromArray(ARRTYPEDIPLOMA, $dprow->Type));
 		printf("<label id='lbluitgegevendoor'>Uitgegeven door</label><select id='ORGANIS'>%s</select>\n", $i_org->htmloptions(1, $dprow->ORGANIS));
 		$f = sprintf("DP.RecordID<>%d AND DP.Afdelingsspecifiek=%d AND IFNULL(DP.Vervallen, '9999-12-31') > CURDATE()", $dpid, $dprow->Afdelingsspecifiek);
