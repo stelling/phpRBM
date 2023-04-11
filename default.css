@@ -1040,12 +1040,21 @@ table#afdelingskalendermuteren {
 }
 
 #afdelingsmailing h2 {
+	width: 100%;
 	font-size: 110%;
 	clear: both;
 	float: left;
+	border-top-style: solid;
+	border-width: 1px;
+	margin-top: 8px;
 }
 
-#afdelingsmailing ul, #afdelingsmailing select {
+#afdelingsmailing label {
+	clear: none;
+	float: left;
+}
+
+#afdelingsmailing ul {
 	padding-left: 0;
 	clear: left;
 	float: left;
