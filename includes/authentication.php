@@ -26,6 +26,7 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 	addtp("Onderhoud");
 	addtp("Logboek");
 } else {
+	addtp("Vereniging");
 	if ($_SESSION['lidid'] > 0) {
 		addtp("Eigen gegevens");
 	} elseif ((new cls_Login())->aantal() > 0) {
@@ -69,9 +70,6 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 		if (strlen($_SESSION['settings']['zs_muteerbarememos']) > 0) {
 			addtp("Zelfservice/Bijzonderheden");
 		}
-		if ($gs != "B" and (new cls_Bewaking_blok())->aantal("InschrijvingOpen=1 AND Eind >= CURDATE()") > 0) {
-			addtp("Zelfservice/Inschrijven bewaking");
-		}
 		$f = sprintf("Datum >= CURDATE() AND IFNULL(VerwijderdOp, '1900-01-01') < '2012-01-01' AND InschrijvingOpen=1 AND BeperkTotGroep IN (%s)", $_SESSION["lidgroepen"]);
 		if ((new cls_Evenement())->aantal($f) > 0) {
 			addtp("Zelfservice/Evenementen");
@@ -91,7 +89,9 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 	addtp("Ledenlijst");
 	if ($currenttab == "Ledenlijst") {
 		addtp("Ledenlijst/Leden");
-		addtp("Ledenlijst/Voormalig leden");
+		if ((new cls_Lidmaatschap())->aantal("IFNULL(LM.Opgezegd, '9999-12-31') < CURDATE()") > 0) {
+			addtp("Ledenlijst/Voormalig leden");
+		}
 		if ((new cls_Lidmaatschap())->aantal("LIDDATUM > CURDATE()")) {
 			addtp("Ledenlijst/Toekomstige leden");
 		}
@@ -144,9 +144,17 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 	addtp("Mailing");
 	if ($currenttab == "Mailing") {
 		$i_M = new cls_Mailing();
+		$i_mv = new cls_Mailing_vanaf();
+		$i_mh = new cls_Mailing_hist();
 		$i_ond = new cls_Onderdeel();
-		addtp("Mailing/Muteren");
-		addtp("Mailing/Nieuw");
+		
+		if ($i_M->aantal() > 0) {
+			addtp("Mailing/Muteren");
+		}
+		
+		if ($i_mv->aantal() > 0) {
+			addtp("Mailing/Nieuw");
+		}
 		$_SESSION['aantalrekeningen'] = $_SESSION['aantalrekeningen'] ?? (new cls_Rekening())->aantal();
 		if ($_SESSION['aantalrekeningen'] > 0) {
 			addtp("Mailing/Rekeningen");
@@ -156,8 +164,11 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 		if ($i_M->aantal($f) > 0) {
 			addtp("Mailing/Prullenbak");
 		}
-		addtp("Mailing/Outbox");
-		addtp("Mailing/Verzonden mails");
+		
+		if ($i_mh->aantal() > 0) {
+			addtp("Mailing/Outbox");
+			addtp("Mailing/Verzonden mails");
+		}
 		
 		$f = sprintf("O.LedenMuterenDoor > 0 AND O.LedenMuterenDoor IN (%s)", $_SESSION['lidgroepen']);
 		if ($i_ond->aantal($f) > 0) {
@@ -167,6 +178,8 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 		addtp("Mailing/Instellingen");
 		addtp("Mailing/Logboek");
 		$i_M = null;
+		$i_mv = null;
+		$i_mh = null;
 		$i_ond = null;
 		if ($currenttab2 == "Wijzigen mailing") {
 			addtp($currenttab . "/" . $currenttab2);
@@ -178,8 +191,8 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 	if ($currenttab == $b) {
 		$i_dp = new cls_Diploma();
 		addtp($b . "/Basislijst");
-		addtp($b . "/Details");
 		if ($i_dp->aantal() > 0) {
+			addtp($b . "/Details");
 			addtp($b . "/Leden per diploma");
 		}
 //		addtp($b . "/Examens muteren");
@@ -279,32 +292,6 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 		if ($gs != "B") {
 			addtp($b . "Lidmaatschap");
 			addtp($b . "Pasfoto");
-		}
-	}
-	
-	if ((new cls_Mutatie())->aantal() > 0) {
-		addtp("Kostenoverzicht");
-	}
-
-	if ((new cls_Bewakingsseizoen())->aantal() > 0) {
-		addtp("Bewaking");
-		if ($currenttab == "Bewaking") {
-			addtp("Bewaking/Bewakingsrooster");
-			addtp("Bewaking/Postindeling");
-			addtp("Bewaking/Aantallen");
-			addtp("Bewaking/Nieuwe pasfoto");
-			$f = "Zelfservice=1";
-			if ((new cls_diploma())->aantal($f) > 0) {
-				addtp("Bewaking/Diploma's muteren");
-			}
-			if ((new cls_Bewaking_blok())->aantal() > 0) {
-				addtp("Bewaking/Overzicht inschrijvingen");
-			}
-			addtp("Bewaking/Blokken muteren");
-			if (count((new cls_InsBew())->export()) > 0) {
-				addtp("Bewaking/Downloaden inschrijvingen");
-			}
-			addtp("Bewaking/Logboek");
 		}
 	}
 	
@@ -533,7 +520,7 @@ function fnInloggen() {
 	echo("<label>Login</label><input type='text' name='username' class='w15'>\n");
 	printf("<label>Wachtwoord</label><input type='password' name='password' class='w%d'>\n", $_SESSION['settings']['wachtwoord_maxlengte']);
 	echo("<label>Ingelogd blijven?</label><input type='checkbox' name='cookie' value=1 title='Ingelogd blijven'><p>(werkt met cookies)</p>\n");
-	echo("<p>Heb je nog geen login, dan kan je die <a href='\?tp=Login+aanvragen'>aanvragen</a>.</p>");
+	echo("<p>Heb je nog geen login, dan kan je die <a href='index.php?tp=Login+aanvragen'>aanvragen</a>.</p>");
 	echo("<p>Ben je je wachtwoord vergeten, dan kan je deze <a href='\?tp=Herstel+wachtwoord'>opnieuw instellen</a>.</p>\n");
 
 	echo("<div id='opdrachtknoppen'>\n");
@@ -556,16 +543,6 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 	}
 
 	if ($stap == "mail" and $lidid > 0) {
-
-		if ($_SESSION['settings']['mailing_herstellenwachtwoord'] == 0) {
-			$i_M = new cls_Mailing();
-			$mid = $inst_M->add("Herstellen wachtwoord");
-			$i_M->update($mid, "from_addr", $_SESSION['settings']['emailwebmaster']);
-			$i_M->update($mid, "message", "<p>Herstellen wachtwoord [%NAAMWEBSITE%]: https://[%URLRESETWW%]</p>\n");
-			$i_M->update($mid, "template", 1);
-			(new cls_Parameter())->update("mailing_herstellenwachtwoord", $mid);
-			$i_M = null;
-		}
 		
 		$row = $i_login->record($lidid);
 		if ($_SESSION['settings']['login_maxinlogpogingen'] > 0 and $row->FouteLogin > $_SESSION['settings']['login_maxinlogpogingen']) {
@@ -576,18 +553,28 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 				$mess .= sprintf("Vraag aan de <a href='mailto:%s'>webmaster</a> om deze vrij te geven.", $_SESSION['settings']['emailwebmaster']);
 			}
 			
-		} elseif ($_SESSION['settings']['mailing_herstellenwachtwoord'] > 0) {
+		} elseif ((new cls_Mailing_vanaf())->min() > 0) {
 			
 			$mailing = new Mailing($_SESSION['settings']['mailing_herstellenwachtwoord']);
-			if ($mailing->send($row->LidID, 1, 1) > 0) {
-				$mess = sprintf("De e-mail naar %s met de link om het wachtwoord te herstellen is verzonden.", $row->Naam);
+			
+			if ($mailing->mid > 0) {
+				if ($mailing->send($row->LidID, 1, 1) > 0) {
+					$mess = sprintf("De e-mail naar %s met de link om het wachtwoord te herstellen is verzonden.", $row->Naam);
+				} else {
+					$mess = "Fout bij het versturen van de e-mail. Probeer het later nogmaals of neem contact op met de webmaster.";
+				}
 			} else {
-				$mess = "Fout bij het versturen van de e-mail. Probeer het later nogmaals of neem contact op met de webmaster.";
+				$nk = (new cls_Login())->wachtwoordreset($lidid);
+				$urlresetww = sprintf("%s/index.php?tp=Herstel+wachtwoord&lidid=%d&key=%s", BASISURL, $lidid, $nk);
+				$email = new email();
+				$email->onderwerp = $_SESSION['settings']['naamwebsite'] . " | Herstellen wachtwoord";
+				$email->bericht = sprintf("<p>Link voor het opnieuw instellen van het wachtwoord: </p>\n", $urlresetww);
+				$email->to_outbox(1);
 			}
 			$mailing = null;
 
 		} else {
-			$mess = "Er is geen mailing voor het herstellen van het wachtwoord beschikbaar.";
+			$mess = "Er is geen vanaf e-mailadres beschikbaar, neem contact op met de webmaster.";
 		}
 		
 	} elseif ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['nieuwwachtwoord']) and strlen($_POST['nieuwwachtwoord']) > 0 and $_POST['lidid'] > 0) {
@@ -667,31 +654,38 @@ function fnValidatieLogin($lidid, $key, $stap) {
 	
 	$mess = "";
 	$i_login = new cls_Login();
+	$i_m = new cls_Mailing();
+	
 	if ($stap == "mail") {
 	
 		$row = $i_login->record($lidid);
 		
-		if ($_SESSION['settings']['mailing_validatielogin'] == 0) {
-			$inst_M = new cls_Mailing();
-			$content = "<p>Naam lid: [%Lidnaam%]</p>
-						<p>Activatie url [%NAAMWEBSITE%]: https://[%URLACTIVATIE%]</p>\n";
-			$mid = $inst_M->add("Validatielink nieuwe login");
-			$inst_M->update($mid, "from_addr", $_SESSION['settings']['emailwebmaster']);
-			$inst_M->update($mid, "template", 1);
-			$inst_M->update($mid, "message", $content);
-			(new cls_Parameter())->update("mailing_validatielogin", $mid);
-			$inst_M = null;
-		}
-	
-	
-		if ($_SESSION['settings']['mailing_validatielogin'] <= 0) {
-			$mess = "Er is geen mailing voor het versturen van de validatiemail beschikbaar. Neem contact op met de webmaster.";
-		} elseif ($row->LidID > 0 and strlen($row->Wachtwoord) >= 5) {
-			$mailing = new Mailing($_SESSION['settings']['mailing_validatielogin']);
-			if ($mailing->send($row->LidID) == 0) {
-				$mess = "Fout bij het versturen van de e-mail met de validatielink. Probeer het later nogmaals of neem contact op met de webmaster.";
+		if ($row->LidID > 0 and strlen($row->Wachtwoord) >= 5) {
+			
+			if ((new cls_Mailing_vanaf())->min() == 0) {
+				$mess = "Er is geen adres bekend om vanaf te e-mailen. Neem contact op met de webmaster.";
+			
+			} elseif ($_SESSION['settings']['mailing_validatielogin'] > 0 and $i_m->bestaat($_SESSION['settings']['mailing_validatielogin'])) {
+				$mailing = new Mailing($_SESSION['settings']['mailing_validatielogin']);
+				if ($mailing->send($row->LidID) == 0) {
+					$mess = "Fout bij het versturen van de e-mail met de validatielink. Probeer het later nogmaals of neem contact op met de webmaster.";
+				}
+				$mailing = null;
+				
+			} else {
+				$nak = (new cls_Login())->nieuweactivitiekey($lidid);
+				$urlactivatie = sprintf("%s/index.php?tp=Validatie+login&lidid=%d&key=%s", BASISURL, $lidid, $nak);
+
+				$email = new email();
+				$email->toevoegenlid($row->LidID);
+				$email->onderwerp = sprintf("%s | Activatie login", $_SESSION['settings']['naamwebsite']);
+				$email->bericht = sprintf("<p>Naam lid: %s</p>
+							<p>Activatie url %s: %s</p>\n
+							<p>Deze link is %d uur geldig</p>", $row->Naam, $_SESSION['settings']['naamwebsite'], $urlactivatie, $_SESSION['settings']['login_geldigheidactivatie']);
+				$email->to_outbox(0);
+				debug($email->bericht, 1);
+				$email = null;
 			}
-			$mailing = null;
 		} else {
 			$mess = sprintf("Login voor lidid %d bestaat niet, neem onctact op met de webmaster.", $lidid);
 		}
@@ -706,6 +700,7 @@ function fnValidatieLogin($lidid, $key, $stap) {
 	}
 	
 	$i_login = null;
+	$i_m = null;
 	
 	return $mess;
 }  # fnValidatieLogin
@@ -819,19 +814,36 @@ function fnLoginAanvragen($stap="") {
 function fnOpvragenLidnr($stap) {
 	
 	$mess = "";
+	$mailing = new mailing($_SESSION['settings']['mailing_lidnr']);
+	
 			
 	if ($stap == "mail") {
 		$lidid = 0;
 		if (!isValidMailAddress($_POST['emailvoorlidnr'], 0)) {
 			$mess = "Je hebt geen geldig e-mailadres opgegeven.";
-		} elseif ($_SESSION['settings']['mailing_lidnr'] > 0) {
+			
+		} elseif ((new cls_Mailing_vanaf())->min() == 0) {
+			$mess = "Er is geen adres bekend om vanaf te e-mailen. Neem contact op met de webmaster.";
+			
+		} else {
 			$rows = (new cls_Lid())->lidbijemail($_POST['emailvoorlidnr']);
 			if (count($rows) > 0) {
 				foreach ($rows as $row) {
-					$mail = new email(0, $_SESSION['settings']['mailing_lidnr']);
-					$mail->xtranum = $row->Lidnr;
-					$mail->toevoegenlid($row->LidID);
-					$mail->bericht = (new Mailing($_SESSION['settings']['mailing_lidnr']))->merge($row->LidID);
+					if ($mailing->mid > 0 ) {
+						$mail = new email(0, $mailing->mid);
+						$mail->xtranum = $row->Lidnr;
+						$mail->toevoegenlid($row->LidID);
+						$mail->bericht = $mailing->merge($row->LidID);
+					} else {
+						$mail = new email();
+						$mail->xtrachar = "LNR";
+						$mail->xtranum = $row->Lidnr;
+						$mail->toevoegenlid($row->LidID);
+						$mail->onderwerp = "Lidnummer " . $_SESSION['settings']['naamvereniging_afkorting'];
+						$mail->bericht = sprintf("<p>Je hebt je lidnummer bij de %s opgevraagd. Je lidnummer is %d.</p>
+												  <p>Met dit lidnummer en e-mailadres '%s' kun je een login aanvragen.</p>\n", $_SESSION['settings']['naamvereniging_afkorting'], $row->Lidnr, $_POST['emailvoorlidnr']);
+					}
+					
 					if ($mail->to_outbox(1) > 0) {
 						$mess = sprintf("Een e-mail aan %s met lidnummer %d is in de outbox geplaatst en wordt zo spoedig mogelijk verzonden. ", $row->NaamLid, $row->Lidnr);
 					} else {
@@ -841,34 +853,29 @@ function fnOpvragenLidnr($stap) {
 					$mess = "";
 					$mail = null;
 				}
-				sentoutbox(4);
+				
 			} else {
 				$mess = "Er is geen lid met dit e-mailadres in onze database bekend.";
 			}
-		} else {
-			$mess = "Er is geen mailing beschikbaar voor het versturen van het lidnummer. Neem contact op met de webmaster.";
-		}
+		} 
 		if (strlen($mess) > 0) {
 			(new cls_Logboek())->add($mess, 5, 0, 1);
 		}
 		printf("<p><a href='%s' target='_top'>Klik hier om verder te gaan.</a></p>\n", BASISURL);
 		
-	} elseif ($_SESSION['settings']['mailing_lidnr'] > 0) {
+	} else {
 		
 		echo("<div id='opvragenlidnr'>\n");
-
 		printf("<form action='%s?tp=Opvragen+lidnr' method='post'>\n", $_SERVER["PHP_SELF"]);
 		
 		echo("<h3>Opvragen Lidnummer</h3>\n");
-		echo("<fieldset>\n");
 		echo("<label>E-mailadres</label><input type='email' name='emailvoorlidnr'>\n");
-		echo("</fieldset>\n");
 		echo("<div id='opdrachtknoppen'>\n");
 		echo("<input type='submit' name='opvragenlidnr' value='Opvragen'>\n");
 		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 		
 		echo("</form>\n");
-		echo("</div>  <!-- Einde opvragenlidnr -->\n");
+		echo("</div>\n");
 	}
 	
 } # fnOpvragenLidnr
