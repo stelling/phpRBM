@@ -585,27 +585,24 @@ function fnNieuwLid() {
 			$kols[3]['headertext'] = "Afdeling";
 			$kols[3]['columnname'] = "Afdeling";
 			
-			$kols[4]['headertext'] = "Opmerking";
-			$kols[4]['columnname'] = "Opmerking";
+			$kols[4]['headertext'] = "Eerste les";
+			$kols[4]['columnname'] = "EersteLes";
+			$kols[4]['type'] = "date";
 			
-			$kols[5]['headertext'] = "Eerste les";
-			$kols[5]['columnname'] = "EersteLes";
+			$kols[5]['headertext'] = "Verwerkt";
+			$kols[5]['columnname'] = "Verwerkt";
 			$kols[5]['type'] = "date";
 			
-			$kols[6]['headertext'] = "Verwerkt";
-			$kols[6]['columnname'] = "Verwerkt";
-			$kols[6]['type'] = "date";
-			
-			$kols[7]['headertext'] = "&nbsp;";
-			$kols[7]['columnname'] = "LnkPDF";
-			$kols[7]['link'] = sprintf("%s/pdf.php?insid=%%d", BASISURL);
-			$kols[7]['class'] = "pdf";
+			$kols[6]['headertext'] = "&nbsp;";
+			$kols[6]['columnname'] = "LnkPDF";
+			$kols[6]['link'] = sprintf("%s/pdf.php?insid=%%d", BASISURL);
+			$kols[6]['class'] = "pdf";
 			
 			if (toegang("deleteinschrijving", 0, 0)) {
-				$kols[8]['headertext'] = "&nbsp;";
-				$kols[8]['columnname'] = "RecordID";
-				$kols[8]['link'] = sprintf("%s?tp=%s&op=delete&RecordID=%%d", $_SERVER['PHP_SELF'], $_GET['tp']);
-				$kols[8]['class'] = "trash";
+				$kols[7]['headertext'] = "&nbsp;";
+				$kols[7]['columnname'] = "RecordID";
+				$kols[7]['link'] = sprintf("%s?tp=%s&op=delete&RecordID=%%d", $_SERVER['PHP_SELF'], $_GET['tp']);
+				$kols[7]['class'] = "trash";
 			}
 			
 			echo("<div class='clear'></div>\n");
@@ -973,7 +970,7 @@ function fnEigenGegevens($lidid=0) {
 		if (toegang($ct . $tn, 0, 0)) {
 			$fn = fotolid($lidid, 1);
 			$nl = (new cls_Lid())->Roepnaam($lidid);
-			$fd = $i_foto->FotoLid($lidid);
+			$fd = $i_foto->fotolid($lidid);
 			if ($fd !== false) {
 				$xtra = sprintf("<div id='pasfoto'><img src='%s' title='Laatst gewijzigd op %s'></div>\n", $fd, $dtfmt->format(strtotime($i_foto->laatstgewijzigd)));
 			} elseif (strlen($fn) > 3) {
@@ -1181,15 +1178,29 @@ function fnEigenGegevens($lidid=0) {
 			}			
 			$tabblad[$tn] = "<table>\n";
 			$tabblad[$tn] .= sprintf("<caption>Presentie %s</caption>\n", $naamlid);
-			$tabblad[$tn] .= "<tr><th>Datum</th><th>Status</th></tr>\n";
+			if ($currenttab == "Eigen gegevens") {
+				$opmheader = "";
+			} else {
+				$opmheader = "<th>Opmerking</th>";
+			}
+			$tabblad[$tn] .= sprintf("<tr><th>Datum</th><th>Status</th>%s</tr>\n", $opmheader);
 			foreach ($rows as $row) {
 				$o = "";
 				if (strlen($row->Functie) > 0) {
-					$o = $row->Functie . ": ";
+					$o = $row->Functie;
 				}
-				$o .= ARRPRESENTIESTATUS[$row->Status];
+				if (strlen($row->Status) > 0) {
+					if (strlen($o) > 0) {
+						$o .= ": ";
+					}
+					$o .= ARRPRESENTIESTATUS[$row->Status];
+				}
 				$dtfmt->setPattern(DTTEXTWD);
-				$tabblad[$tn] .= sprintf("<tr><td>%s</td><td>%s</td></tr>\n", $dtfmt->format(strtotime($row->Datum)), $o);
+				$tabblad[$tn] .= sprintf("<tr><td>%s</td><td>%s</td>", $dtfmt->format(strtotime($row->Datum)), $o);
+				if (strlen($opmheader) > 0) {
+					$tabblad[$tn] .= sprintf("<td>%s</td>", $row->Opmerking);
+				}
+				$tabblad[$tn] .= "</tr>\n";
 			}
 			$tabblad[$tn] .= "</table>\n";
 		}
@@ -2329,6 +2340,9 @@ function instellingenledenmuteren() {
 		foreach ($i_p->lijst() as $row) {
 			if (isset($_POST[$row->Naam])) {
 //				debug($row->Naam . ": " . $_POST[$row->Naam]);
+				if ($row->Naam == "muteerbarememos") {
+					$_POST[$row->Naam] = strtoupper($_POST[$row->Naam]);
+				}
 				$i_p->update($row->Naam, $_POST[$row->Naam]);
 			}
 		}
@@ -2351,6 +2365,8 @@ function instellingenledenmuteren() {
 	printf("<label>Sportlink relatienummer</label><input type='text' name='sportlink_vereniging_relcode' value=\"%s\" class='w7' maxlength=7 OnChange='this.form.submit();'>\n", $_SESSION['settings']['sportlink_vereniging_relcode']);
 	
 	printf("<label>Moet een opzegging door een lid automatisch worden verwerkt?</label><input type='checkbox' name='zs_opzeggingautomatischverwerken' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_opzeggingautomatischverwerken']));
+	
+	printf("<label>Welke soorten memo's zijn in gebruik? Bij meerdere scheiden door een komma.</label><input type='text' name='muteerbarememos' value='%s' onChange='this.form.submit();'>", $_SESSION['settings']['muteerbarememos']);
 	
 	echo("<h2>Rekeningen</h2>\n");
 	printf("<label>Groep voor betaald door</label><select name='rekening_groep_betaalddoor' OnChange='this.form.submit();'><option value=0>Geen</option>%s</select>\n", $i_ond->htmloptions($_SESSION['settings']['rekening_groep_betaalddoor']));

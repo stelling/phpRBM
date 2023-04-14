@@ -198,6 +198,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 	$i_act = new cls_Activiteit();
 	$i_dp = new cls_Diploma();
 	$i_ld = new cls_Liddipl();
+	$i_aanw = new cls_Aanwezigheid();
 
 	$arrToonLft[0] = "Nee";
 	$arrToonLft[1] = "Ja";
@@ -219,14 +220,15 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 		
 		$toonleeftijd = $_POST['toonleeftijd'] ?? 2;
 		$avg_naam = $_POST['avg_naam'] ?? 0;
+		$toonopmerking = $_POST['toonopmerking'] ?? 0;
 		
 		printf("<form method='post' id='filter' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 		
 		$toonpresentie = 0;
 		$f = sprintf("AK.OnderdeelID=%d AND (SELECT COUNT(*) FROM %sAanwezigheid AS AW WHERE AW.AfdelingskalenderID=AK.RecordID) > 0", $afdid, TABLE_PREFIX);
 		if ($i_ak->aantal($f) > 0) {
-			$toonpresentie = $_POST['toonpresentie'] ?? $i_ak->min("RecordID", "Datum >= CURDATE() AND " . $f);
-			printf("<label>Inclusief afwezigheid</label><select name='toonpresentie' OnChange='this.form.submit();'>\n<option value=0>Geen</option>\n%s</select>", $i_ak->htmloptions($afdid, $toonpresentie, $f));
+			$toonpresentie = $_POST['toonpresentie'] ?? $i_ak->komendeles();
+			printf("<label>Inclusief presentie</label><select name='toonpresentie' OnChange='this.form.submit();'>\n<option value=0>Geen</option>\n%s</select>", $i_ak->htmloptions($afdid, $toonpresentie, $f));
 		}
 		printf("<label>Toon leeftijden</label><select name='toonleeftijd' onChange='this.form.submit();'>");
 		foreach ($arrToonLft as $k => $val) {
@@ -234,6 +236,10 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 		}
 		echo("</select>\n");
 		printf("<label>Zonder achternaam</label><input type='checkbox' name='avg_naam' title='Toon alleen de eerste letter van de achternaam' value=1 onClick='this.form.submit();' %s>", checked($avg_naam));
+		$f = sprintf("AW.AfdelingskalenderID=%d AND AW.Status='A' AND LENGTH(AW.Opmerking) > 0", $toonpresentie);
+		if ($i_aanw->aantal($f) > 0) {
+			printf("<label>Toon opmerkingen</label><input type='checkbox' name='toonopmerking' title='Toon de opmerking voor deze dag' value=1 onClick='this.form.submit();' %s>", checked($toonopmerking));
+		}
 		echo("</form>\n");
 		echo("<div class='clear'></div>\n");
 	
@@ -258,9 +264,10 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 			}
 			$cl = "";
 			if ($toonpresentie > 0) {
-				$stat = (new cls_Aanwezigheid())->status($row->RecordID, $toonpresentie);
-				if (strlen($stat) > 0) {
-					$cl = sprintf("presstat_%s ", strtolower($stat));
+//				$stat = (new cls_Aanwezigheid())->status($row->RecordID, $toonpresentie);
+				$i_aanw->vulvars($row->RecordID, $toonpresentie);
+				if (strlen($i_aanw->status) > 0) {
+					$cl = sprintf("presstat_%s ", strtolower($i_aanw->status));
 				}
 			}
 			if ($row->Vanaf > date("Y-m-d")) {
@@ -278,6 +285,9 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 			}
 			if (strlen($row->Leeftijd) > 5 and ($toonleeftijd == 1 or ($toonleeftijd == 2 and intval(substr($row->Leeftijd, 0, 2)) < 18))) {
 				$nm .= " (" .  $row->Leeftijd . ")";
+			}
+			if ($toonopmerking == 1 and strlen($i_aanw->opmerking) > 0 and $i_aanw->status == "A") {
+				$nm .= " (" .  $i_aanw->opmerking . ")";
 			}
 			if (strlen($cl) > 0) {
 				$cl = sprintf(" class='%s'", $cl);
@@ -467,7 +477,7 @@ function fnPresentieMuteren($p_onderdeelid){
 	$grid = -1;
 	
 	$f = sprintf("AK.OnderdeelID=%d AND AK.Datum >= CURDATE() AND AK.Activiteit=1", $p_onderdeelid); 
-	$akid = $_POST['selecteerdatum'] ?? $i_ak->min("RecordID", $f);
+	$akid = $_POST['selecteerdatum'] ?? $i_ak->komendeles();
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		
 		foreach ($_POST as $k => $v) {
@@ -491,6 +501,7 @@ function fnPresentieMuteren($p_onderdeelid){
 	$dat = "";
 	
 	echo("<input type='text' placeholder='Naam of groep bevat' OnKeyUp=\"fnFilter('presentiemuteren', this);\">\n");
+	echo("<button type='submit'>Ververs scherm</button>\n");
 	
 	echo("</div> <!-- Einde filter -->\n");
 	echo("<div class='clear'></div>\n");
@@ -507,13 +518,13 @@ function fnPresentieMuteren($p_onderdeelid){
 
 		$gh = "";
 		echo("<thead>\n");
-		echo("<tr><th>Naam</th><th>Groep</th><th>Status presentie</th></tr>\n");
+		echo("<tr><th>Naam</th><th>Groep</th><th>Status presentie</th><th>Opmerking</th></tr>\n");
 		echo("</thead>\n");
 		
 		foreach ($i_lo->lijst($p_onderdeelid, "", "GR.Volgnummer, GR.Kode", $dat) as $row) {
-			$stat = $i_aanw->status($row->RecordID, $akid);
-			if (strlen($stat) > 0) {
-				$cl = sprintf("class='presstat_%s'", strtolower($stat));
+			$i_aanw->vulvars($row->RecordID, $akid);
+			if (strlen($i_aanw->status) > 0) {
+				$cl = sprintf("class='presstat_%s'", strtolower($i_aanw->status));
 			} else {
 				$cl = "";
 			}
@@ -527,16 +538,17 @@ function fnPresentieMuteren($p_onderdeelid){
 			}
 			printf("<tr><td %s>%s</td>%s\n", $cl, $nm, $gr);
 			
-			$options = "<option value=''>Aanwezig verondersteld</option>\n";
+			$options = "<option value=''>Geen - Aanwezig verondersteld</option>\n";
 			foreach (ARRPRESENTIESTATUS as $k => $o) {
 				$s = "";
-				if ($k == $stat) {
+				if ($k == $i_aanw->status) {
 					$s = "selected";
 				}				
 				$options .= sprintf("<option value='%1\$s' %2\$s>%1\$s - %3\$s</option>\n", $k, $s, $o);
 			}
 			
-			printf("<td><select id='Status_%d'>%s</select></td>", $row->RecordID, $options);
+			printf("<td><select id='status_%d'>%s</select></td>", $row->RecordID, $options);
+			printf("<td><input type='text' id='opmerk_%d' class='w75' value=\"%s\" maxlength=75></td>\n", $row->RecordID, $i_aanw->opmerking);
 			echo("</tr>\n");
 		}
 		echo("</table>\n");
@@ -547,7 +559,7 @@ function fnPresentieMuteren($p_onderdeelid){
 	echo("</div> <!-- Einde aanwezigheidmuteren -->\n");
 	
 	printf("<script>
-				$('select[id^=Status]').change(function() {
+				$('select[id^=status]').change(function() {
 					id = this.id;
 					var split_id = id.split('_');
 					var loid = split_id[1];
@@ -557,7 +569,22 @@ function fnPresentieMuteren($p_onderdeelid){
 						url: 'ajax_update.php?entiteit=lo_presentie',
 						type: 'post',
 						dataType: 'json',
-						data: { loid: loid, value: value, akid: %d },
+						data: { loid: loid, field: 'Status', value: value, akid: %1\$d },
+						success:function(response){}
+					});
+				});
+				
+				$('input[id^=opmerk]').blur(function() {
+					id = this.id;
+					var split_id = id.split('_');
+					var loid = split_id[1];
+					var value = this.value;
+
+					$.ajax({
+						url: 'ajax_update.php?entiteit=lo_presentie',
+						type: 'post',
+						dataType: 'json',
+						data: { loid: loid, field: 'Opmerking', value: value, akid: %1\$d },
 						success:function(response){}
 					});
 				});

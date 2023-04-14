@@ -71,7 +71,7 @@ if ($_SESSION['lidid'] > 0) {
 		
 		if ($loid > 0 and $akid > 0) {
 			$i_aanw = new cls_Aanwezigheid();
-			$i_aanw->update($loid, $akid, "Status", $newvalue);
+			$i_aanw->update($loid, $akid, $kolom, $newvalue);
 			$i_aanw = null;
 		}
 		
