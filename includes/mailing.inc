@@ -295,9 +295,12 @@ class Mailing {
 		$sql = sprintf('SELECT O.Naam FROM %1$sLidond AS LO INNER JOIN %1$sOnderdl AS O ON O.RecordID = LO.OnderdeelID
 				 WHERE %2$s AND O.GekoppeldAanQuery=0 AND LO.Lid=%%d ORDER BY O.Naam;', TABLE_PREFIX, cls_db_base::$wherelidond);
 		$this->MergeField[]=array('Naam' => "Onderdelen", 'SQL' => $sql);
-							  
-		$sql = sprintf("SELECT L.Bankrekening FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
-		$this->MergeField[]=array('Naam' => "Bankrekening", 'SQL' => $sql);
+		
+		$query = sprintf("SELECT MAX(L.Bankrekening) FROM %sLid AS L;", TABLE_PREFIX);
+		if (strlen($i_base->scalar($query)) >= 18) {
+			$sql = sprintf("SELECT L.Bankrekening FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
+			$this->MergeField[]=array('Naam' => "Bankrekening", 'SQL' => $sql);
+		}
 		
 		$sql = sprintf("SELECT L.Burgerservicenummer FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "BSN", 'SQL' => $sql);
@@ -324,7 +327,7 @@ class Mailing {
 				 WHERE IFNULL(LD.LicentieVervallenPer, '9999-12-31') >= CURDATE() AND LD.Lid=%%d ORDER BY DP.Volgnr, LD.DatumBehaald, DP.Naam;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "DiplomaLang", 'SQL' => $sql);
 		
-		$sql = sprintf("SELECT IFNULL(DP.Naam, 'Geen') FROM %1\$sLiddipl AS LD INNER JOIN %1\$sDiploma AS DP ON LD.DiplomaID=DP.RecordID WHERE LD.Lid=%%d ORDER BY LD.DatumBehaald DESC LIMIT 1;", TABLE_PREFIX);
+		$sql = sprintf("SELECT IFNULL(DP.Naam, 'Geen') FROM %1\$sLiddipl AS LD INNER JOIN %1\$sDiploma AS DP ON LD.DiplomaID=DP.RecordID WHERE LD.Lid=%%d AND LD.DatumBehaald > '2000-01-01' AND LD.DatumBehaald <= CURDATE() ORDER BY LD.DatumBehaald DESC LIMIT 1;", TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "DiplomaLaatste", 'SQL' => $sql);
 		
 		if ((new cls_Diploma())->aantal("Zelfservice=1") > 0) {
@@ -437,9 +440,15 @@ class Mailing {
 			
 			$sql = sprintf("SELECT (SELECT IFNULL(GR.Starttijd, '') FROM %1\$sGroep AS GR WHERE GR.RecordID=Xtra_Num) FROM %1\$sMailing_rcpt AS MR WHERE MR.LidID=%%d AND MR.MailingID=%2\$d;", TABLE_PREFIX, $this->mid);
 			$this->MergeField[]=array('Naam' => "AfdelingsgroepStarttijd", 'SQL' => $sql);
+
+			$sql = sprintf("SELECT (SELECT CONCAT(IFNULL(GR.Starttijd, ''), ' - ', GR.Eindtijd) FROM %1\$sGroep AS GR WHERE GR.RecordID=Xtra_Num) FROM %1\$sMailing_rcpt AS MR WHERE MR.LidID=%%d AND MR.MailingID=%2\$d;", TABLE_PREFIX, $this->mid);
+			$this->MergeField[]=array('Naam' => "AfdelingsgroepTijden", 'SQL' => $sql);
 			
 			$sql = sprintf("SELECT (SELECT IFNULL(GR.Instructeurs, '') FROM %1\$sGroep AS GR WHERE GR.RecordID=Xtra_Num) FROM %1\$sMailing_rcpt AS MR WHERE MR.LidID=%%d AND MR.MailingID=%2\$d;", TABLE_PREFIX, $this->mid);
 			$this->MergeField[]=array('Naam' => "AfdelingsgroepInstructeurs", 'SQL' => $sql);
+			
+			$sql = sprintf("SELECT (SELECT IFNULL(DP.Naam, '') FROM %1\$sGroep AS GR INNER JOIN %1\$sDiploma AS DP ON DP.RecordID=GR.DiplomaID WHERE GR.RecordID=Xtra_Num) FROM %1\$sMailing_rcpt AS MR WHERE MR.LidID=%%d AND MR.MailingID=%2\$d;", TABLE_PREFIX, $this->mid);
+			$this->MergeField[]=array('Naam' => "AfdelingsgroepDiploma", 'SQL' => $sql);
 			
 		}
 		$i_mr = null;
