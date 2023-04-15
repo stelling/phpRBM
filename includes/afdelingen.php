@@ -236,7 +236,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 		}
 		echo("</select>\n");
 		printf("<label>Zonder achternaam</label><input type='checkbox' name='avg_naam' title='Toon alleen de eerste letter van de achternaam' value=1 onClick='this.form.submit();' %s>", checked($avg_naam));
-		$f = sprintf("AW.AfdelingskalenderID=%d AND AW.Status='A' AND LENGTH(AW.Opmerking) > 0", $toonpresentie);
+		$f = sprintf("AW.AfdelingskalenderID=%d AND (AW.Status IN ('A', 'L') AND LENGTH(AW.Opmerking) > 0", $toonpresentie);
 		if ($i_aanw->aantal($f) > 0) {
 			printf("<label>Toon opmerkingen</label><input type='checkbox' name='toonopmerking' title='Toon de opmerking voor deze dag' value=1 onClick='this.form.submit();' %s>", checked($toonopmerking));
 		}
@@ -286,7 +286,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 			if (strlen($row->Leeftijd) > 5 and ($toonleeftijd == 1 or ($toonleeftijd == 2 and intval(substr($row->Leeftijd, 0, 2)) < 18))) {
 				$nm .= " (" .  $row->Leeftijd . ")";
 			}
-			if ($toonopmerking == 1 and strlen($i_aanw->opmerking) > 0 and $i_aanw->status == "A") {
+			if ($toonopmerking == 1 and strlen($i_aanw->opmerking) > 0 and $i_aanw->isaanwezig) {
 				$nm .= " (" .  $i_aanw->opmerking . ")";
 			}
 			if (strlen($cl) > 0) {
@@ -606,7 +606,7 @@ function fnPresentiePerLid($p_ondid) {
 	
 	$seizrows = $i_aw->seizoenen($p_ondid);
 	
-	if ($i_aw->aantalstatus('A', $p_ondid) > 0) {
+	if ($i_aw->aantalstatus('J', $p_ondid) > 0) {
 		$kop_aangemeld = "<th># Aangemeld</th>";
 	} else {
 		$kop_aangemeld = "";
@@ -647,7 +647,7 @@ function fnPresentiePerLid($p_ondid) {
 			$aanwtotrow = $i_aw->perlidperperiode($lorow->RecordID, $seizrow->Begindatum, $seizrow->Einddatum);
 			$lnklid = "";
 			if ($lorow->Invalfunctie == 1) {
-				$aa = $aanwtotrow->aantAangemeld + $aanwtotrow->aantLaat;
+				$aa = $aanwtotrow->aantAanwezig + $aanwtotrow->aantAangemeld + $aanwtotrow->aantLaat;
 			} else {
 				if ($lorow->Vanaf > $seizrow->Begindatum) {
 					$f = sprintf("AK.Datum >= '%s'", $lorow->Vanaf);
@@ -665,7 +665,7 @@ function fnPresentiePerLid($p_ondid) {
 				$aa = $i_ak->aantal($f);
 				$aa -= $aanwtotrow->aantVervallen;
 			}
-			if ($aa > 0 and (($aanwtotrow->aantAangemeld + $aanwtotrow->aantAfwezig) > 0 or $_POST['100aanwezigTonen'] == 1)) {
+			if ($aa > 0 and (($aanwtotrow->aantAanwezig + $aanwtotrow->aantAangemeld + $aanwtotrow->aantAfwezig) > 0 or $_POST['100aanwezigTonen'] == 1)) {
 				$awperc = (($aa-$aanwtotrow->aantAfwezig)/$aa)*100;
 				$toon = false;
 				if ($_POST['filterAanwezigheidsnormBoven'] == 1 and $awperc >= $lorow->Aanwezigheidsnorm) {
