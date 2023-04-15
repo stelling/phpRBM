@@ -104,6 +104,12 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 	$i_lo->auto_einde(0, 5);
 	$i_lo->controle();
 	$i_lo->opschonen();
+	$i_lo = null;
+	
+	$i_aanw = new cls_Aanwezigheid();
+	$i_aanw->controle();
+	$i_aanw->opschonen();
+	$i_aanw = null;
 	
 } elseif ($_GET['op'] == "beheeronderdelen") {
 	(new cls_Onderdeel())->opschonen();
@@ -556,10 +562,8 @@ function fnInstellingen() {
 	$arrParam['db_backupsopschonen'] = "Na hoeveel dagen moeten back-ups verwijderd worden? 0 = nooit.";
 	$arrParam['db_folderbackup'] = "In welke folder moet de backup worden geplaatst?";
 	$arrParam['interface_access_db'] = "Moet de tabel voor de interface naar MS-Access worden gevuld?";
-//	$arrParam['emailwebmaster'] = "Het e-mailadres van de webmaster.";
 	$arrParam['kaderoverzichtmetfoto'] = "Moeten op het kaderoverzicht pasfoto's getoond worden?";
 	$arrParam['toonpasfotoindiennietingelogd'] = "Mogen pasfoto's zichtbaar voor bezoekers (niet ingelogd) zijn?";
-	$arrParam['muteerbarememos'] = "Welke soorten memo's zijn in gebruik? Bij meerdere scheiden door een komma.";
 	$arrParam['login_autounlock'] = "Na hoeveel minuten moet een gelockede login automatisch geunlocked worden? 0 = alleen handmatig unlocken.";
 	$arrParam['login_beperkttotgroep'] = "Vul hier de RecordID's, gescheiden door een komma, van de groepen (zie tabel ONDERDL) in die toegang hebben. Leeg = alleen webmasters hebben toegang.";
 	$arrParam['login_bewaartijd'] = "Het aantal maanden dat logins na het laatste gebruik bewaard blijven. 0 = altijd bewaren.";
@@ -579,7 +583,7 @@ function fnInstellingen() {
 	$arrParam['performance_trage_select'] = "Vanaf hoeveel seconden moet een select-statement in het logboek worden gezet. 0 = nooit.";
 	$arrParam['termijnvervallendiplomasmailen'] = "Hoeveel maanden vooruit moeten leden een herinnering krijgen als een diploma gaat vervallen. 0 = geen herinnering sturen.";
 	$arrParam['termijnvervallendiplomasmelden'] = "Hoeveel maanden vooruit en achteraf moeten vervallen diploma op het voorblad getoond worden.";
-	$arrParam['liddipl_bewaartermijn'] = "Na Hoeveel maanden diploma's bij een lid worden verwijderd? Zowel na einde lidmaatschap als na einde geldigheid.";
+	$arrParam['liddipl_bewaartermijn'] = "Na hoeveel maanden diploma's bij een lid worden verwijderd? Zowel na einde lidmaatschap als na einde geldigheid.";
 //	$arrParam['toneninschrijvingenbewakingen'] = "Moeten bij de gegevens van een lid ook inschrijvingen voor bewakingen getoond worden?";
 //	$arrParam['tonentoekomstigebewakingen'] = "Moeten bij de gegevens van een lid ook toekomstige bewakingen getoond worden?";
 	$arrParam['urlvereniging'] = "De URL van de website van de vereniging.";
