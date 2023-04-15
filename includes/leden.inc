@@ -1013,58 +1013,64 @@ function fnEigenGegevens($lidid=0) {
 		
 		$tn = "Afdelingen";
 		$kols = null;
-		$kols[0]['headertext'] = "Afdeling";
-		$kols[0]['columnname'] = "Naam";
-		
-		$kols[1]['headertext'] = "Functie";
-		$kols[1]['columnname'] = "Functie";
-		
-		$kols[2]['headertext'] = "Vanaf";
-		$kols[2]['headertext'] = "Vanaf";
-		$kols[2]['type'] = "DTTEXT";
-		
-		$kols[3]['headertext'] = "Opmerking";
-		$kols[3]['columnname'] = "Opmerking";
-		
-		$kols[4]['headertext'] = "Groep";
-		$kols[4]['columnname'] = "Groep";
-		
-		$kols[5]['headertext'] = "Tot en met";
-		$kols[5]['columnname'] = "Opgezegd";
-		$kols[5]['type'] = "DTTEXT";
-		
-		$kols[6]['headertext'] = "Duur";
-		$kols[6]['columnname'] = "Duur";
 		$rows = (new cls_Lidond())->overzichtlid($lidid, "A");
+		
 		if (count($rows) > 0 and toegang($ct . $tn, 0, 0)) {
-			$rows = (new cls_Lidond())->overzichtlid($lidid, "A");
-			if (count($rows) > 0) {
-				$tabblad[$tn] = fnDisplayTable($rows, $kols, $tn . " " . $naamlid, 0, "");
-			} else {
-				$tabblad[$tn] = sprintf("<p class='mededeling'>%s heeft geen %s.</p>\n", $naamlid, $tn);
+			$kols[0]['headertext'] = "Afdeling";
+			$kols[0]['columnname'] = "Naam";
+		
+			if (strlen(max(array_column($rows, "Functie"))) > 0) {
+				$kols[1]['headertext'] = "Functie";
+				$kols[1]['columnname'] = "Functie";
 			}
+		
+			$kols[2]['headertext'] = "Vanaf";
+			$kols[2]['headertext'] = "Vanaf";
+			$kols[2]['type'] = "DTTEXT";
+		
+			if (strlen(max(array_column($rows, "Opmerking"))) > 0) {
+				$kols[3]['headertext'] = "Opmerking";
+				$kols[3]['columnname'] = "Opmerking";
+			}
+		
+			if (strlen(max(array_column($rows, "Groep"))) > 0) {
+				$kols[4]['headertext'] = "Groep";
+				$kols[4]['columnname'] = "Groep";
+			}
+		
+			if (strlen(max(array_column($rows, "Opgezegd"))) > 0) {
+				$kols[5]['headertext'] = "Tot en met";
+				$kols[5]['columnname'] = "Opgezegd";
+				$kols[5]['type'] = "DTTEXT";
+			}
+		
+			$kols[6]['headertext'] = "Duur";
+			$kols[6]['columnname'] = "Duur";
+			
+			$tabblad[$tn] = fnDisplayTable($rows, $kols, $naamlid, 0, "");
 		}
 		
 		$tn = "Groepen";
+		$rows = (new cls_Lidond())->overzichtlid($lidid, "G");
 		$kols = null;
-		$kols[0]['headertext'] = "Groep";
-		$kols[0]['columnname'] = "Naam";
+		if (count($rows) > 0 and toegang($ct . $tn, 0, 0)) {
+			$kols[0]['headertext'] = "Groep";
+			$kols[0]['columnname'] = "Naam";
 		
-		$kols[1]['headertext'] = "Vanaf";
-		$kols[1]['columnname'] = "Vanaf";
-		$kols[1]['type'] = "DTTEXT";
+			$kols[1]['headertext'] = "Vanaf";
+			$kols[1]['columnname'] = "Vanaf";
+			$kols[1]['type'] = "DTTEXT";
 		
-		$kols[2]['headertext'] = "Tot en met";
-		$kols[2]['columnname'] = "Opgezegd";
-		$kols[2]['type'] = "DTTEXT";
-		
-		$kols[3]['headertext'] = "Duur";
-		$kols[3]['columnname'] = "Duur";
-		if ((new cls_Onderdeel())->Aantal("Type='G'") > 0 and toegang($ct . $tn, 0, 0)) {
-			$rows = (new cls_Lidond())->overzichtlid($lidid, "G");
-			if (count($rows) > 0) {
-				$tabblad[$tn] = fnDisplayTable($rows, $kols, $tn . " " . $naamlid);
+			if (strlen(max(array_column($rows, "Opgezegd"))) > 0) {
+				$kols[2]['headertext'] = "Tot en met";
+				$kols[2]['columnname'] = "Opgezegd";
+				$kols[2]['type'] = "DTTEXT";
 			}
+		
+			$kols[3]['headertext'] = "Duur";
+			$kols[3]['columnname'] = "Duur";
+		
+			$tabblad[$tn] = fnDisplayTable($rows, $kols, $naamlid);
 		}
 		
 		$tn = "Kader";
@@ -1092,64 +1098,67 @@ function fnEigenGegevens($lidid=0) {
 			}	
 			$rows = (new cls_Lidond())->overzichtlid($lidid, "K");
 			if (count($rows) > 0) {
-				$tabblad[$tn] = fnDisplayTable($rows, $kols, $tn . " " . $naamlid, 0, "", "");
+				$tabblad[$tn] = fnDisplayTable($rows, $kols, $naamlid, 0, "", "");
 			}
 		}
 
 		$tn = "Rollen";
+		$rows = $i_lo->overzichtlid($lidid, "R");
 		$kols = null;
-		$kols[0]['headertext'] = "Rol";
-		$kols[0]['columnname'] = "Naam";
+		if (count($rows) > 0 and toegang($ct . $tn, 0, 0)) {
+			$kols[0]['headertext'] = "Rol";
+			$kols[0]['columnname'] = "Naam";
 		
-		$kols[1]['headertext'] = "Vanaf";
-		$kols[1]['columnname'] = "Vanaf";
-		$kols[1]['type'] = "DTTEXT";
+			$kols[1]['headertext'] = "Vanaf";
+			$kols[1]['columnname'] = "Vanaf";
+			$kols[1]['type'] = "DTTEXT";
 		
-		$kols[2]['headertext'] = "Tot en met";
-		$kols[2]['columnname'] = "Opgezegd";
-		$kols[2]['type'] = "DTTEXT";
-		
-		$kols[3]['headertext'] = "Duur";
-		$kols[3]['columnname'] = "Duur";
-		if (toegang($ct . $tn, 0, 0)) {
-			$rows = $i_lo->overzichtlid($lidid, "R");
-			if (count($rows) > 0) {
-				$tabblad[$tn] = fnDisplayTable($rows, $kols, $tn . " " . $naamlid, 0, "", "Rollen");
+			if (strlen(max(array_column($rows, "Opgezegd"))) > 0) {
+				$kols[2]['headertext'] = "Tot en met";
+				$kols[2]['columnname'] = "Opgezegd";
+				$kols[2]['type'] = "DTTEXT";
 			}
+
+			$kols[3]['headertext'] = "Duur";
+			$kols[3]['columnname'] = "Duur";
+			
+			$tabblad[$tn] = fnDisplayTable($rows, $kols, $naamlid, 0, "", $tn);
 		}
 		
 		$tn = "Diploma's";
 		$rows = (new cls_Liddipl())->overzichtlid($lidid);
 		if (count($rows) > 0 and toegang($ct . $tn, 0, 0)) {
 			$kols[0]['headertext'] = "Diploma";
-			$kols[0]['columnname'] = "Naam";
-			$kols[1]['headertext'] = "Uitgegeven door";
-			$kols[1]['columnname'] = "UitgegevenDoor";
-			$kols[2]['headertext'] = "Behaald op";
-			$kols[2]['columnname'] = "DatumBehaald";
-			$kols[2]['type'] = "DTTEXT";
-			$kols[3]['headertext'] = "Gegevens";
-			$kols[3]['columnname'] = "Diplomanummer";
-			$kols[4]['headertext'] = "Geldig tot";
-			$kols[4]['columnname'] = "GeldigTot";
-			$kols[4]['type'] = "DTTEXT";
+			$kols[0]['columnname'] = "NaamLang";
+			$kols[1]['headertext'] = "Behaald op";
+			$kols[1]['columnname'] = "DatumBehaald";
+			$kols[1]['type'] = "DTTEXT";
+			if (strlen(max(array_column($rows, "Diplomanummer"))) > 0) {
+				$kols[3]['headertext'] = "Gegevens";
+				$kols[3]['columnname'] = "Diplomanummer";
+			}
+			if (max(array_column($rows, "GeldigTot")) > "1900-01-01") {
+				$kols[4]['headertext'] = "Geldig tot";
+				$kols[4]['columnname'] = "GeldigTot";
+				$kols[4]['type'] = "DTTEXT";
+			}
 			if (count($rows) > 0) {
-				$tabblad[$tn] = fnDisplayTable($rows, $kols, "Diploma's " . $naamlid);
+				$tabblad[$tn] = fnDisplayTable($rows, $kols, $naamlid);
 			} else {
 				$tabblad[$tn] = sprintf("<p class='mededeling'>Bij %s zijn geen diploma's geregistreerd.</p>", $naamlid);
 			}
 		}
 		
 		$tn = "Toestemmingen";
-		$kols[0]['headertext'] = "Omschrijving";
+		$kols[0]['headertext'] = "Toestemming";
 		$kols[0]['columnname'] = "Naam";
 		
-		$kols[1]['headertext'] = "Afgegeven / Laatst bevestigd";
+		$kols[1]['headertext'] = "Afgegeven";
 		$kols[1]['columnname'] = "Vanaf";
 		if ($gs != "B" and $i_ond->Aantal("Type='T'") > 0 and toegang($ct . $tn, 0, 0)) {
 			$rows = $i_lo->overzichtlid($lidid, "T");
 			if (count($rows) > 0) {
-				$tabblad[$tn] = fnDisplayTable($rows, $kols, $tn . " " . $naamlid, 0, "", "toestemmingen");
+				$tabblad[$tn] = fnDisplayTable($rows, $kols, $naamlid, 0, "", "toestemmingen");
 			} else {
 				$tabblad[$tn] = sprintf("<p class='mededeling'>%s heeft geen toestemmingen verleend.</p>\n", $naamlid);
 			}
@@ -1171,58 +1180,51 @@ function fnEigenGegevens($lidid=0) {
 		}
 			
 		$tn = "Presentie";
+		$kols = null;
 		$rows = (new cls_Aanwezigheid())->overzichtlid($lidid);
 		if (count($rows) > 0 and toegang($ct . $tn, 0, 0)) {	
+			$kols[0]['headertext'] = "Datum";
+			$kols[0]['columnname'] = "Datum";
+		
+			$kols[1]['headertext'] = "Omschrijving";
+			$kols[1]['columnname'] = "Omschrijving";
+		
+			if (strlen(max(array_column($rows, "Functie"))) > 0) {
+				$kols[2]['headertext'] = "Functie";
+				$kols[2]['columnname'] = "Functie";
+			}
+		
+			$kols[3]['headertext'] = "Status";
+			$kols[3]['columnname'] = "Status";
+		
+			if (strlen(max(array_column($rows, "Opmerking"))) > 0) {
+				$kols[4]['headertext'] = "Opmerking`";
+				$kols[4]['columnname'] = "Opmerking";
+			}
+		
 			if ($tn == $currenttab3) {
 				$tabidx = count($tabblad);
 			}			
-			$tabblad[$tn] = "<table>\n";
-			$tabblad[$tn] .= sprintf("<caption>Presentie %s</caption>\n", $naamlid);
-			if ($currenttab == "Eigen gegevens") {
-				$opmheader = "";
-			} else {
-				$opmheader = "<th>Opmerking</th>";
-			}
-			$tabblad[$tn] .= sprintf("<tr><th>Datum</th><th>Status</th>%s</tr>\n", $opmheader);
-			foreach ($rows as $row) {
-				$o = "";
-				if (strlen($row->Functie) > 0) {
-					$o = $row->Functie;
-				}
-				if (strlen($row->Status) > 0) {
-					if (strlen($o) > 0) {
-						$o .= ": ";
-					}
-					$o .= ARRPRESENTIESTATUS[$row->Status];
-				}
-				$dtfmt->setPattern(DTTEXTWD);
-				$tabblad[$tn] .= sprintf("<tr><td>%s</td><td>%s</td>", $dtfmt->format(strtotime($row->Datum)), $o);
-				if (strlen($opmheader) > 0) {
-					$tabblad[$tn] .= sprintf("<td>%s</td>", $row->Opmerking);
-				}
-				$tabblad[$tn] .= "</tr>\n";
-			}
-			$tabblad[$tn] .= "</table>\n";
+			
+			$tabblad[$tn] = fnDisplayTable($rows, $kols, $naamlid);
 		}
 			
 		$tn = "Rekeningen";
 		$kols = null;
 		$rows = (new cls_Rekeningregel())->overzichtlid($lidid);
 		if (count($rows) > 0 and toegang($ct . $tn, 0, 0)) {
-			if (count($rows) > 0) {
-				$kols[0]['headertext'] = "&nbsp;";
-				$kols[0]['link'] = sprintf("<a href='%s?tp=%s&op=details&lidid=%d&rid=%%d' title='Details rekening'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
-				$kols[0]['class'] = "details";
-				$kols[1]['headertext'] = "Rekening";
-				$kols[1]['columnname'] = "Nummer";
-				$kols[2]['headertext'] = "Seizoen";
-				$kols[3]['headertext'] = "Datum";
-				$kols[3]['type'] = "date";
-				$kols[4]['headertext'] = "Omschrijving";
-				$kols[5]['headertext'] = "Bedrag";
-				$kols[5]['type'] = "bedrag";
-				$tabblad[$tn] = fnDisplayTable($rows, $kols, "Rekeningen " . $naamlid);
-			}
+			$kols[0]['headertext'] = "&nbsp;";
+			$kols[0]['link'] = sprintf("<a href='%s?tp=%s&op=details&lidid=%d&rid=%%d' title='Details rekening'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
+			$kols[0]['class'] = "details";
+			$kols[1]['headertext'] = "Rekening";
+			$kols[1]['columnname'] = "Nummer";
+			$kols[2]['headertext'] = "Seizoen";
+			$kols[3]['headertext'] = "Datum";
+			$kols[3]['type'] = "date";
+			$kols[4]['headertext'] = "Omschrijving";
+			$kols[5]['headertext'] = "Bedrag";
+			$kols[5]['type'] = "bedrag";
+			$tabblad[$tn] = fnDisplayTable($rows, $kols, "Rekeningen " . $naamlid);
 			
 			$rid = $_GET['rid'] ?? 0;
 			if ($op == "details" and $rid > 0) {

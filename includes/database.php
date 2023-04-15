@@ -2627,11 +2627,19 @@ class cls_Aanwezigheid extends cls_db_base {
 	private $lidtm = "";
 	public $status = "";
 	public $opmerking = "";
+	public $isaanwezig = true;
+	private $selstat = "";
 	
 	function __construct() {
 		$this->table = TABLE_PREFIX . "Aanwezigheid";
 		$this->basefrom = $this->table . " AS AW";
 		$this->ta = 24;
+		
+		$this->selstat = "CASE AW.Status WHEN '' THEN 'Aanwezig' ";
+		foreach	(ARRPRESENTIESTATUS as $s => $v) {
+			$this->selstat .= sprintf(" WHEN '%s' THEN '%s'", $s, $v);
+		}
+		$this->selstat .= " ELSE 'Onbekend' END";
 	}
 	
 	public function vulvars($p_loid, $p_akid=-1) {
@@ -2643,10 +2651,10 @@ class cls_Aanwezigheid extends cls_db_base {
 		}
 		
 		if ($this->loid > 0) {
-			$query = sprintf("SELECT IFNULL(LO.Lid, 0) AS LidID, LO.Vanaf, IFNULL(LO.Opgezegd, '9999-12-31') AS TM FROM %sLidond AS LO WHERE LO.RecordID=%d;", TABLE_PREFIX, $this->loid);
+			$query = sprintf("SELECT LO.Lid, LO.Vanaf, IFNULL(LO.Opgezegd, '9999-12-31') AS TM FROM %sLidond AS LO WHERE LO.RecordID=%d;", TABLE_PREFIX, $this->loid);
 			$row = $this->execsql($query)->fetch();
-			if (isset($row->LidID)) {
-				$this->lidid  = $row->LidID;
+			if (isset($row->Lid)) {
+				$this->lidid  = $row->Lid;
 				$this->lidvanaf = $row->Vanaf;
 				$this->lidtm = $row->TM;
 			}
@@ -2663,6 +2671,11 @@ class cls_Aanwezigheid extends cls_db_base {
 				} else {
 					$this->aanwid = 0;
 				}
+			}
+			if ($this->status == "A" or $this->status == "J" or $this->status == "L" or strlen($this->status) == 0) {
+				$this->isaanwezig = true;
+			} else {
+				$this->isaanwezig = false;
 			}
 		}
 		
@@ -2687,10 +2700,10 @@ class cls_Aanwezigheid extends cls_db_base {
 	
 	public function overzichtlid($p_lidid) {
 		
-		$query = sprintf("SELECT AK.Datum, AK.Omschrijving, AW.Status, AW.Opmerking, F.OMSCHRIJV AS Functie
-						  FROM %2\$sAfdelingskalender AS AK INNER JOIN (%1\$s INNER JOIN (%2\$sLidond AS LO INNER JOIN %2\$sFunctie AS F ON LO.Functie=F.Nummer) ON AW.LidondID=LO.RecordID) ON AW.AfdelingskalenderID=AK.RecordID
-						  WHERE LO.Lid=%3\$d AND AK.Datum <= CURDATE()
-						  ORDER BY AK.Datum DESC;", $this->basefrom, TABLE_PREFIX, $p_lidid);
+		$query = sprintf("SELECT AK.Datum, AK.Omschrijving, F.OMSCHRIJV AS Functie, %1\$s AS Status, AW.Opmerking
+						  FROM %3\$sAfdelingskalender AS AK INNER JOIN (%2\$s INNER JOIN (%3\$sLidond AS LO INNER JOIN %3\$sFunctie AS F ON LO.Functie=F.Nummer) ON AW.LidondID=LO.RecordID) ON AW.AfdelingskalenderID=AK.RecordID
+						  WHERE LO.Lid=%4\$d AND AK.Datum > DATE_SUB(CURDATE(), INTERVAL 12 MONTH) AND AK.Datum <= CURDATE()
+						  ORDER BY AK.Datum DESC;", $this->selstat, $this->basefrom, TABLE_PREFIX, $p_lidid);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
@@ -2713,11 +2726,15 @@ class cls_Aanwezigheid extends cls_db_base {
 			$p_tm = $this->lidtm;
 		}
 		
-		$query = sprintf("SELECT MAX(LO.Lid) AS LidID, SUM(IF(AW.Status='A', 1, 0)) AS aantAangemeld, IFNULL(SUM(IF(AW.Status IN ('A', 'L', 'V'), 0, 1)), 0) AS aantAfwezig,
+		$query = sprintf("SELECT MAX(LO.Lid) AS LidID,
+						  SUM(IF(AW.Status IN ('A'), 1, 0)) AS aantAanwezig,
+						  SUM(IF(AW.Status IN ('J'), 1, 0)) AS aantAangemeld,
+						  IFNULL(SUM(IF(AW.Status IN ('A', 'L', 'V'), 0, 1)), 0) AS aantAfwezig,
 						  IFNULL(SUM(IF(AW.Status='V', 1, 0)), 0) AS aantVervallen,
 						  SUM(IF(AW.Status IN ('N', 'X'), 1, 0)) AS aantZonderReden,
 						  SUM(IF(AW.Status='R', 1, 0)) AS aantMetReden,
-						  SUM(IF(AW.Status='Z', 1, 0)) AS aantZiek, SUM(IF(AW.Status='L', 1, 0)) AS aantLaat
+						  SUM(IF(AW.Status='Z', 1, 0)) AS aantZiek,
+						  SUM(IF(AW.Status='L', 1, 0)) AS aantLaat
 						  FROM (%1\$s INNER JOIN %2\$sLidond AS LO ON LO.RecordID=AW.LidondID) INNER JOIN %2\$sAfdelingskalender AS AK ON AW.AfdelingskalenderID=AK.RecordID
 						  WHERE AK.Datum >= '%3\$s' AND AK.Datum <= '%4\$s' AND AK.Datum <= CURDATE() AND AW.LidondID=%5\$d;", $this->basefrom, TABLE_PREFIX, $p_vanaf, $p_tm, $p_loid);
 		$result = $this->execsql($query);
@@ -2795,23 +2812,27 @@ class cls_Aanwezigheid extends cls_db_base {
 	
 	public function opschonen() {
 		$i_lo = new cls_Lidond();
+		$this->tas = 4;
 		
-		$begindat = (new cls_Afdelingskalender())->min("Datum");
-		$aant = 0;
-		$f = sprintf("LO.Vanaf >= '%s' AND IFNULL(LO.Opgezegd, '9999-12-31') < DATE_SUB(CURDATE(), INTERVAL 3 MONTH)", $begindat);
+		$tot = 0;
+		$f = "IFNULL(LO.Opgezegd, '9999-12-31') < DATE_SUB(CURDATE(), INTERVAL 3 MONTH)";
 		foreach ($i_lo->basislijst($f) as $lorow) {
+			$this->lidid = $lorow->Lid;
 			$delqry = sprintf("DELETE FROM %s WHERE LidondID=%d;", $this->table, $lorow->RecordID);
-			$aant += $this->execsql($delqry);
-		}
-		if ($aant > 0) {
-			$this->mess = sprintf("%s: %d records verwijderd, omdat de personen geen lid van het onderdeel meer zijn.", $this->table, $aant);
-			$this->tas = 4;
-			$this->log(0);
+			$aant = $this->execsql($delqry);
+			if ($aant > 0) {
+				$this->mess = sprintf("Tabel %s: %d records verwijderd, omdat het lid geen lid van het onderdeel meer is.", $this->table, $aant);
+				$this->log(0);
+			}
+			$tot += $aant;
 		}
 		
 		$i_lo = null;
 		
 		$this->optimize();
+		
+		return $tot;
+		
 	}  # opschonen
 	
 }  # cls_Aanwezigheid
@@ -3167,6 +3188,7 @@ class cls_Lidond extends cls_db_base {
 							  %3\$s
 							  FROM %4\$sOnderdl AS O
 							  WHERE IFNULL(O.VervallenPer, CURDATE()) >= CURDATE() AND O.Type='T';", $sq, $sg, $sq2, TABLE_PREFIX);
+							  
 		} else {
 			if ($p_soort == "K") {
 				$xw = "(O.Kader=1 OR F.Kader=1)";
@@ -3174,35 +3196,18 @@ class cls_Lidond extends cls_db_base {
 				$xw = sprintf("O.`Type`='%s'", $p_soort);
 			}
 			$xw .= " AND IFNULL(LO.Opgezegd, '9999-12-31') >= LO.Vanaf";
-		
-			$query = sprintf("SELECT MAX(LO.Functie) FROM %s WHERE %s AND LO.Lid=%d;", $this->fromlidond, $xw, $p_lidid);
-			if ($this->scalar($query) > 0) {
-				$xtr_sel = "F.Omschrijv AS Functie, ";
-			} else {
-				$xtr_sel = "";
-			}
-		
-			$query = sprintf("SELECT MAX(LO.OPMERK) FROM %s WHERE %2\$s AND LO.Lid=%3\$d;", $this->fromlidond, $xw, $p_lidid);
-			if (strlen($this->scalar($query)) > 0) {
-				$xtr_sel .= "LO.OPMERK AS Opmerking, ";
-			}
-		
-			if ($p_soort != "K") {
-				$query = sprintf("SELECT MAX(LO.GroepID) FROM %s WHERE %s AND LO.Lid=%d;", $this->fromlidond, $xw, $p_lidid);
-				if ($this->scalar($query) > 0) {
-					$xtr_sel .= sprintf("(SELECT CONCAT(IF(LENGTH(GR.Starttijd)=5, CONCAT(GR.Starttijd, ' - '), ''), IF(LENGTH(GR.Omschrijving) > 0, GR.Omschrijving, GR.Kode)) FROM %sGroep AS GR WHERE GR.RecordID=LO.GroepID) AS Groep,", TABLE_PREFIX);
-				}
-			}
 			
 			$query = sprintf("SELECT O.Naam,
 							  F.OMSCHRIJV AS Functie,
 							  LO.Vanaf,
-							  %s
+							  F.Omschrijv AS Functie, 
+							  LO.OPMERK AS Opmerking,
+							  (SELECT CONCAT(IF(LENGTH(GR.Starttijd)=5, CONCAT(GR.Starttijd, ' - '), ''), IF(LENGTH(GR.Omschrijving) > 0, GR.Omschrijving, GR.Kode)) FROM %sGroep AS GR WHERE GR.RecordID=LO.GroepID) AS Groep,
 							  LO.Opgezegd,
 							  IF(LO.Vanaf > DATE_SUB(CURDATE(), INTERVAL 6 MONTH), '', CONCAT(FORMAT(DATEDIFF(IF(LO.Opgezegd IS NULL, CURDATE(), LO.Opgezegd), LO.Vanaf)/365.25, 1, 'nl_NL'), ' jaar')) AS Duur
 							  FROM %s
 							  WHERE %s AND LO.Lid=%d
-							  ORDER BY LO.Vanaf DESC, O.Naam;", $xtr_sel, $this->fromlidond, $xw, $p_lidid);
+							  ORDER BY LO.Vanaf DESC, O.Naam;", TABLE_PREFIX, $this->fromlidond, $xw, $p_lidid);
 		}
 		$result = $this->execsql($query);
 		
@@ -3399,7 +3404,7 @@ class cls_Lidond extends cls_db_base {
 		
 		$query = sprintf("SELECT LO.RecordID, O.HistorieOpschonen FROM %s AS LO INNER JOIN %sOnderdl AS O ON LO.OnderdeelID=O.RecordID
 						  WHERE O.HistorieOpschonen > 1 AND IFNULL(LO.Opgezegd, '9999-12-31') < DATE_SUB(CURDATE(), INTERVAL O.HistorieOpschonen DAY)%s
-						  ORDER BY LO.OnderdeelID;", $this->table, TABLE_PREFIX, $wl);
+						  ORDER BY LO.Lid, LO.OnderdeelID;", $this->table, TABLE_PREFIX, $wl);
 		$result = $this->execsql($query);
 		foreach ($result->fetchAll() as $row) {
 			$reden = sprintf("op basis van HistorieOpschonen (%d dagen)", $row->HistorieOpschonen);
@@ -6067,14 +6072,15 @@ class cls_Liddipl extends cls_db_base {
 			$p_per = date("Y-m-d");
 		}
 		
-		$query = sprintf("SELECT D.Naam,
+		$query = sprintf("SELECT DP.Naam,
 								O.Naam AS UitgegevenDoor,
+								CONCAT(IF(LENGTH(O.Naam) > 0, CONCAT(O.Naam, ' - ') , ''), DP.Naam) AS NaamLang,
 								LD.DatumBehaald,
 								LD.Diplomanummer,
 								LD.LicentieVervallenPer,
-								IFNULL(LD.LicentieVervallenPer, IF(D.GELDIGH>0, DATE_ADD(LD.DatumBehaald, INTERVAL D.GELDIGH MONTH), IF((NOT D.Vervallen IS NULL), D.Vervallen, null))) AS GeldigTot
-								FROM %1\$sLiddipl AS LD INNER JOIN (%1\$sDiploma AS D INNER JOIN %1\$sOrganisatie AS O ON D.ORGANIS=O.Nummer) ON LD.DiplomaID=D.RecordID
-								WHERE LD.DatumBehaald > '1900-01-01' AND LD.DatumBehaald < '%3\$s' AND LD.LaatsteBeoordeling=1 AND IFNULL(D.Vervallen, '9999-12-31') >= '%3\$s' AND LD.Lid=%2\$d
+								IFNULL(LD.LicentieVervallenPer, IF(DP.GELDIGH>0, DATE_ADD(LD.DatumBehaald, INTERVAL DP.GELDIGH MONTH), IF((NOT DP.Vervallen IS NULL), DP.Vervallen, null))) AS GeldigTot
+								FROM %1\$sLiddipl AS LD INNER JOIN (%1\$sDiploma AS DP INNER JOIN %1\$sOrganisatie AS O ON DP.ORGANIS=O.Nummer) ON LD.DiplomaID=DP.RecordID
+								WHERE LD.DatumBehaald > '1900-01-01' AND LD.DatumBehaald < '%3\$s' AND LD.LaatsteBeoordeling=1 AND IFNULL(DP.Vervallen, '9999-12-31') >= '%3\$s' AND LD.Lid=%2\$d
 								ORDER BY LD.DatumBehaald;", TABLE_PREFIX, $p_lidid, $p_per);
 		$result = $this->execsql($query);
 		return $result->fetchAll();

@@ -53,6 +53,8 @@ caption {
 	border-width: 1px;
 	margin-left: 0;
 	margin-right: 0;
+	padding-left: 3px;
+	padding-right: 3px;
 	padding-top: 5px;
 	padding-bottom: 5px;
 }
@@ -739,7 +741,11 @@ td.pdf {
 	background-color: #FFFF99;
 }
 
-#tab-presentie table {
+#tab-diplomas table > caption {
+	white-space: nowrap;
+}
+
+#tab-groepen table, #tab-diplomas table, #tab-presentie table {
 	min-width: 400px;
 }
 
