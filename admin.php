@@ -595,7 +595,7 @@ function fnInstellingen() {
 	$arrParam['zs_voorwaardenbestelling'] = "Deze regel wordt bij de online-bestellingen in de zelfservice vermeld.";
 //	$arrParam['zs_voorwaardeninschrijving'] = "Deze regel wordt bij de inschrijving als voorwaarde voor de inschrijving voor de bewaking vemeld.";
 	
-	$specmailing = array("mailing_bewakinginschrijving", "mailing_bevestigingbestelling");
+	$specmailing = array("mailing_bevestigingbestelling");
 	$i_p = new cls_Parameter();
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		foreach ($i_p->lijst() as $row) {

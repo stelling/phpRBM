@@ -125,9 +125,7 @@ if ($i_lid->aantal() == 0) {
 	}
 	
 } elseif ($currenttab == "Zelfservice") {
-	if ($currenttab2 == "Inschrijven bewaking") {
-		inschrijvenbewaking($_SESSION['lidid']);
-	} elseif ($currenttab2 == "Evenementen") {
+	if ($currenttab2 == "Evenementen") {
 		inschrijvenevenementen($_SESSION['lidid']);
 	} elseif ($currenttab2 == "Bestellingen") {
 		fnWinkelwagen($_SESSION['lidid']);
@@ -254,8 +252,6 @@ if ($i_lid->aantal() == 0) {
 
 } elseif ($currenttab == "Stukken" and toegang($currenttab, 1, 1)) {
 	fnStukken();
-} elseif ($currenttab == "Bewaking") {
-	fnBewaking();
 } elseif ($currenttab == "Rekeningen") {
 	fnRekeningen();
 } elseif ($currenttab == "Mailing") {

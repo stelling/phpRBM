@@ -405,11 +405,6 @@ class Mailing {
 			$sql = sprintf("SELECT IF((Memo IS NULL), 'Geen', Memo) FROM %sMemo WHERE Lid=%%d AND Soort='G';", TABLE_PREFIX);
 			$this->MergeField[]=array('Naam' => "MemoGezondheid", 'SQL' => $sql);
 		}
-		
-		if ($i_memo->aantal("Soort = 'I'") > 0) {
-			$sql = sprintf("SELECT IF(Memo IS NULL, 'Geen', Memo) FROM %sMemo WHERE Lid=%%d AND Soort='I';", TABLE_PREFIX);
-			$this->MergeField[]=array('Naam' => "OpmInschrijvingBewaking", 'SQL' => $sql);
-		}
 		$i_memo = null;
 		
 		if ($this->evenementid > 0) {
@@ -497,14 +492,6 @@ class Mailing {
 			$this->MergeField[]=array('Naam' => "StatusEvenement", 'SQL' => "");
 			$this->MergeField[]=array('Naam' => "AantalPersonenEvenement", 'SQL' => "");
 			$this->MergeField[]=array('Naam' => "OpmEvenement", 'SQL' => "");
-			
-		} elseif ($this->mid == $_SESSION['settings']['mailing_bewakinginschrijving'] and $this->mid > 0) {
-			$this->xtrachar = "BW_I";
-			$this->speciaal = "Bevestiging inschrijving bewaking";
-			$this->automontvanger = true;
-			$this->vertraging_tussen_verzenden = 5;
-			$this->MergeField[]=array('Naam' => "VoorwaardenInschrijving", 'SQL' => "");
-			$this->MergeField[]=array('Naam' => "InschrijvingBewaking", 'SQL' => "");
 			
 		} elseif ($this->mid == $_SESSION['settings']['mailing_bevestigingbestelling'] and $this->mid > 0) {
 			$this->xtrachar = "BEST";
@@ -1327,30 +1314,6 @@ class Mailing {
 				$this->cc_addr = "";
 			}
 
-		} elseif ($this->mid == $_SESSION['settings']['mailing_bewakinginschrijving']) {
-			$i_ib = new cls_InsBew();
-			if ($this->xtranum == 0 and $lidid > 0) {
-				$this->xtranum = $i_ib->laatstevanlid($lidid);
-			}
-			$rows = $i_ib->overzichtlid(0, $this->xtranum);
-			$bevins = "<ul>\n";
-			$dtfmt->setPattern(DTTEXT);
-			foreach ($rows as $row) {		
-				$bevins .= sprintf("<li>%s - %s t/m %s", $row->Seizoen, $dtfmt->format(strtotime($row->dteBegin)), $dtfmt->format(strtotime($row->dteEinde)));
-				if ($row->Keuze == 2) {
-					$bevins .= " (2de keuze)";
-				}
-				if (strlen($row->Opmerking) > 1) {
-					$bevins .= sprintf(" (%s)", $row->Opmerking);
-				}
-				$bevins .= "</li>\n";
-			}
-			$bevins .= "</ul>\n";
-			$this->merged_message = str_ireplace("[%VoorwaardenInschrijving%]", $_SESSION['settings']['zs_voorwaardeninschrijving'], $this->merged_message);
-			$this->merged_message = str_ireplace("[%InschrijvingBewaking%]", $bevins, $this->merged_message);
-			
-			$i_ib = null;
-			
 		} elseif ($this->mid == $_SESSION['settings']['mailing_bevestigingbestelling']) {
 			if ($this->xtranum > 0) {
 				$filter = sprintf("ORD.Ordernr=%d", $this->xtranum);

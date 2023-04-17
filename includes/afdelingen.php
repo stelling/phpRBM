@@ -44,16 +44,26 @@ function fnAfdelingslijst($afdid) {
 	$i_lo = new cls_Lidond($afdid);
 	$afdnm = $i_lo->ondnaam;
 	
+	$diplfilter = $_POST['bezitdiploma'] ?? -1;
+	$xf = "";
+	if ($diplfilter > 0) {
+		$xf = sprintf("L.RecordID IN (SELECT LD.Lid FROM %sLiddipl AS LD WHERE LD.DiplomaID=%d AND IFNULL(LD.LicentieVervallenPer, CURDATE()) >= CURDATE())", TABLE_PREFIX, $diplfilter);
+	}
+	
+	$kols[1]['sortcolumn'] = "L.Achternaam";
+	$kols[4]['sortcolumn'] = "LO.Vanaf";
+	$kols[6]['sortcolumn'] = "LO.Opgezegd";
+	
+	$rows = $i_lo->lijst($afdid, 1, fnOrderBy($kols), "", $xf);
+	
 	if (toegang($afdnm . "/Overzicht lid", 0, 0)) {
 		$kols[0]['headertext'] = "&nbsp;";
 		$kols[0]['link'] = "<a href='index.php?tp=" . $afdnm . "/Overzicht+lid&lidid=%d'>%s</a>";
 		$kols[0]['class'] = "details";
 	}
 	$kols[1]['headertext'] = "Naam lid";
-	$kols[1]['columnname'] = "Naam_lid";
-	$kols[1]['sortcolumn'] = "L.Achternaam";
+	$kols[1]['columnname'] = "NaamLid";
 
-//	$kols[2]['headertext'] = "Bereiken";
 	$kols[2]['headertext'] = "Email";
 	$kols[2]['columnname'] = "Email";
 
@@ -63,32 +73,25 @@ function fnAfdelingslijst($afdid) {
 	} else {
 		$kols[3]['headertext'] = "Functie / groep";
 	}
-	$kols[3]['columnname'] = "Functie / Groep";
+	$kols[3]['columnname'] = "FunctieGroep";
 
 	$kols[4]['headertext'] = "Vanaf";
-	$kols[4]['sortcolumn'] = "LO.Vanaf";
 	$kols[4]['columnname'] = "Vanaf";
-
-	$kols[5]['headertext'] = "Tot en met";
-	$kols[5]['columnname'] = "Opgezegd";
-	$kols[5]['sortcolumn'] = "LO.Opgezegd";
+	
+	if (strlen(max(array_column($rows, "Opmerk"))) > 0) {
+		$kols[4]['headertext'] = "Opmerking";
+		$kols[4]['columnname'] = "Opmerk";
+	}
+	
+	if (strlen(max(array_column($rows, "Opgezegd"))) > 0) {
+		$kols[6]['headertext'] = "Tot en met";
+		$kols[6]['columnname'] = "Opgezegd";
+	}
+	
 	if ($i_lo->organisatie == 1) {
-		$kols[6]['headertext'] = "Sportlink ID";
-		$kols[6]['columnname'] = "SportlinkID";
+		$kols[7]['headertext'] = "Sportlink ID";
+		$kols[7]['columnname'] = "SportlinkID";
 	}
-	
-	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		$diplfilter = $_POST['bezitdiploma'];
-	} else {
-		$diplfilter = -1;
-	}
-	
-	$xf = "";
-	if ($diplfilter > 0) {
-		$xf = sprintf("L.RecordID IN (SELECT LD.Lid FROM %sLiddipl AS LD WHERE LD.DiplomaID=%d AND IFNULL(LD.LicentieVervallenPer, CURDATE()) >= CURDATE())", TABLE_PREFIX, $diplfilter);
-	}
-	
-	$rows = $i_lo->onderdeellijst($afdid, 1, $xf, fnOrderBy($kols));
 	
 	printf("<form method='post' id='filter' action='%s?%s'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
 
@@ -236,9 +239,9 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 		}
 		echo("</select>\n");
 		printf("<label>Zonder achternaam</label><input type='checkbox' name='avg_naam' title='Toon alleen de eerste letter van de achternaam' value=1 onClick='this.form.submit();' %s>", checked($avg_naam));
-		$f = sprintf("AW.AfdelingskalenderID=%d AND (AW.Status IN ('A', 'L') AND LENGTH(AW.Opmerking) > 0", $toonpresentie);
+		$f = sprintf("AW.AfdelingskalenderID=%d AND AW.Status IN ('A', 'L') AND LENGTH(AW.Opmerking) > 0", $toonpresentie);
 		if ($i_aanw->aantal($f) > 0) {
-			printf("<label>Toon opmerkingen</label><input type='checkbox' name='toonopmerking' title='Toon de opmerking voor deze dag' value=1 onClick='this.form.submit();' %s>", checked($toonopmerking));
+			printf("<label>Toon opmerkingen</label><input type='checkbox' name='toonopmerking' title='Toon de opmerking bij aanwezigen' value=1 onClick='this.form.submit();' %s>", checked($toonopmerking));
 		}
 		echo("</form>\n");
 		echo("<div class='clear'></div>\n");
@@ -286,7 +289,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 			if (strlen($row->Leeftijd) > 5 and ($toonleeftijd == 1 or ($toonleeftijd == 2 and intval(substr($row->Leeftijd, 0, 2)) < 18))) {
 				$nm .= " (" .  $row->Leeftijd . ")";
 			}
-			if ($toonopmerking == 1 and strlen($i_aanw->opmerking) > 0 and $i_aanw->isaanwezig) {
+			if ($toonopmerking == 1 and strlen($i_aanw->opmerking) > 0 and ($i_aanw->status == "A" or $i_aanw->status == "L")) {
 				$nm .= " (" .  $i_aanw->opmerking . ")";
 			}
 			if (strlen($cl) > 0) {
@@ -333,7 +336,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 			} else {
 				$f = 4;
 			}
-			foreach ($i_lo->onderdeellijst($afdid, $f, "", "GR.Volgnummer, GR.Starttijd, GR.Omschrijving, F.Sorteringsvolgorde, F.Afkorting") as $row) {
+			foreach ($i_lo->lijst($afdid, $f, "GR.Volgnummer, GR.Starttijd, GR.Omschrijving, F.Sorteringsvolgorde, F.Afkorting") as $row) {
 				$i_dp->vulvars($row->DiplomaID);
 				$cl = "";
 				$t = "";
@@ -368,9 +371,9 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 				foreach ($grrows as $grrow) {
 					$options .= sprintf("<option value=%d%s>%s</option>\n", $grrow->RecordID, checked($row->GroepID, "option", $grrow->RecordID), $grrow->GroepOms);
 				}
-				$nm = $row->Naam_lid;
-				if (strlen($row->AfkFunc) > 0) {
-					$nm .= " (" . $row->AfkFunc . ")";
+				$nm = $row->NaamLid;
+				if (strlen($row->FunctAfk) > 0) {
+					$nm .= " (" . $row->FunctAfk . ")";
 				}
 				$ld = $i_ld->lidlaatstediplomas($row->LidID, 5);
 				if (strlen($ld) > 60) {
