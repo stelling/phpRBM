@@ -58,6 +58,7 @@ function fnAfdelingslijst($afdid) {
 	
 	if (toegang($afdnm . "/Overzicht lid", 0, 0)) {
 		$kols[0]['headertext'] = "&nbsp;";
+		$kols[0]['columnname']= "LidID";
 		$kols[0]['link'] = "<a href='index.php?tp=" . $afdnm . "/Overzicht+lid&lidid=%d'>%s</a>";
 		$kols[0]['class'] = "details";
 	}

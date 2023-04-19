@@ -307,7 +307,7 @@ function HTMLheader($breed=0) {
 } # HTMLheader
 
 function HTMLfooter() {
-	global $navpad, $bestandsversie, $currenttab, $currenttab2, $currenttab3;
+	global $navpad, $bestandsversie, $currenttab, $currenttab2, $currenttab3, $dtfmt;
 
 	if (!isset($_GET['header']) or $_GET['header'] != "no") {
 		if (isset($_SESSION['settings']['naamvereniging']) and strlen($_SESSION['settings']['naamvereniging']) > 2) {
@@ -335,6 +335,8 @@ function HTMLfooter() {
 		}
 		echo("<footer>\n");
 		printf("<a href='%s'>%s</a> %s\n", BASISURL, $_SESSION['settings']['naamwebsite'], $np);
+		$dtfmt->setPattern(DTTEXT);
+		printf("<div id='footerright'>%s</div>\n", $dtfmt->format($bestandsversie));
 		echo("</footer>\n");
 		echo("</div>  <!-- Einde container of containerbreed -->\n");
 		echo("</body>\n");
@@ -780,6 +782,8 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 			$ret .= $hv;
 			
 		} else {
+			
+			ksort($kols);
 		
 			foreach ($kols as $k => $kol) {
 				$iq = false;
@@ -1438,7 +1442,7 @@ function fnOrderBy($p_arrSort) {
 	if ($_SESSION['huidsort'] >= 50) {
 		$sk = $_SESSION['huidsort'] - 50;
 	} else {
-		$sk= $_SESSION['huidsort'];
+		$sk = $_SESSION['huidsort'];
 	}
 	
 	$sw = "";

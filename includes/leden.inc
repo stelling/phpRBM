@@ -44,6 +44,26 @@ function fnLedenlijst() {
 		
 	} else {
 		
+		if ($currenttab2 == "Klosleden") {
+			$sl = 4;
+		} elseif ($currenttab2 == "Leden") {
+			$sl = 1;
+		} elseif ($currenttab2 == "Voormalig leden") {
+			$sl = 3;
+		} elseif ($currenttab2 == "Toekomstige leden") {
+			$sl = 2;
+		} else {
+			$sl = 0;
+		}
+		
+		$kols[1]['sortcolumn'] = "L.Achternaam";
+		$kols[3]['sortcolumn'] = "L.Postcode";
+		$kols[8]['sortcolumn'] = "LM.Lidnr";
+		$kols[9]['sortcolumn'] = "LM.LIDDATUM";
+		$kols[10]['sortcolumn'] = "LM.Opgezegd";
+		
+		$rows = $i_lid->ledenlijst($sl, $_SESSION['val_groep'], fnOrderBy($kols));
+		
 		$arrCB = array("telefoon", "email");
 		if (toegang("Woonadres_tonen", 0, 0)) {
 			$arrCB[] = "adres";
@@ -52,10 +72,10 @@ function fnLedenlijst() {
 			$arrCB[] = "lidnummer";
 			$arrCB[] = "vanaf";
 		}
-		if ($currenttab2 == "Leden" or $currenttab2 == "Voormalig leden") {
+		if (($currenttab2 == "Leden" or $currenttab2 == "Voormalig leden") and strlen(max(array_column($rows, "Opgezegd"))) > 0) {
 			$arrCB[] = "opgezegd";
 		}
-		if ($currenttab2 == "Klosleden") {
+		if (strlen(max(array_column($rows, "Opmerking"))) > 0) {
 			$arrCB[] = "opmerking";
 		}
 		
@@ -129,93 +149,64 @@ function fnLedenlijst() {
 			$kols[0]['skip'] == true;
 		}
 		$kols[1]['headertext'] = "Naam";
-		$kols[1]['sortcolumn'] = "L.Achternaam";
 		$kn = 2;
 		if ($toonadres == 1) {
-			$kols[$kn]['headertext'] = "Adres";
-			$kols[$kn]['columnname'] = "Adres";
-			$kn++;
+			$kols[2]['headertext'] = "Adres";
+			$kols[2]['columnname'] = "Adres";
 			
-			$kols[$kn]['headertext'] = "Postcode";
-			$kols[$kn]['columnname'] = "Postcode";
-			$kn++;
+			$kols[3]['headertext'] = "Postcode";
+			$kols[3]['columnname'] = "Postcode";
 			
-			$kols[$kn]['headertext'] = "Woonplaats";
-			$kols[$kn]['columnname'] = "Woonplaats";
-			$kn++;
+			$kols[4]['headertext'] = "Woonplaats";
+			$kols[4]['columnname'] = "Woonplaats";
 		}
 		
 		if ($toontelefoon == 1) {
-			$kols[$kn]['headertext'] = "Telefoon";
-			$kols[$kn]['columnname'] = "Telefoon";
-			$kn++;
+			$kols[5]['headertext'] = "Telefoon";
+			$kols[5]['columnname'] = "Telefoon";
 		}
 		if ($toonemail == 1) {
-			$kols[$kn]['headertext'] = "E-mail";
-			$kols[$kn]['columnname'] = "Email";
-			$kols[$kn]['type'] = "email";
-			$kn++;
+			$kols[6]['headertext'] = "E-mail";
+			$kols[6]['columnname'] = "Email";
+			$kols[6]['type'] = "email";
 		}
 		if ($toonopmerking == 1) {
-			$kols[$kn]['headertext'] = "Opmerking";
-			$kols[$kn]['columnname'] = "Opmerking";
-			$kn++;
+			$kols[7]['headertext'] = "Opmerking";
+			$kols[7]['columnname'] = "Opmerking";
 		}
 		if ($currenttab2 == "Klosleden") {
-			$kols[$kn]['headertext'] = "Ond.";
-			$kols[$kn]['type'] = "subqry";
-			$kols[$kn]['subqry'] = sprintf("SELECT GROUP_CONCAT(DISTINCT O.Kode SEPARATOR '/') FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE LO.Lid=%%d AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()", TABLE_PREFIX);
-			$kols[$kn]['columnname'] = "RecordID";
-			$kn++;
+			$kols[8]['headertext'] = "Ond.";
+			$kols[8]['type'] = "subqry";
+			$kols[8]['subqry'] = sprintf("SELECT GROUP_CONCAT(DISTINCT O.Kode SEPARATOR '/') FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE LO.Lid=%%d AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()", TABLE_PREFIX);
+			$kols[8]['columnname'] = "RecordID";
 		} else {
 			if ($toonlidnummer == 1) {
-				$kols[$kn]['headertext'] = "Lidnummer";
-				$kols[$kn]['columnname'] = "Lidnr";
-				$kols[$kn]['sortcolumn'] = "LM.Lidnr";
-				$kols[$kn]['type'] = "integer";
-				$kn++;
+				$kols[8]['headertext'] = "Lidnummer";
+				$kols[8]['columnname'] = "Lidnr";
+				$kols[8]['type'] = "integer";
 			}
 			if ($toonvanaf == 1) {
-				$kols[$kn]['headertext'] = "Lid vanaf";
-				$kols[$kn]['columnname'] = "LIDDATUM";
-				$kols[$kn]['sortcolumn'] = "LM.LIDDATUM";
-				$kols[$kn]['type'] = "date";
-				$kn++;
+				$kols[9]['headertext'] = "Lid vanaf";
+				$kols[9]['columnname'] = "LIDDATUM";
+				$kols[9]['type'] = "date";
 			}
-			if ($currenttab2 != "Toekomstige leden" and $toonopgezegd == 1) {
-				$kols[$kn]['headertext'] = "Opgezegd per";
-				$kols[$kn]['columnname'] = "Opgezegd";
-				$kols[$kn]['sortcolumn'] = "LM.Opgezegd";
-				$kols[$kn]['type'] = "date";
-				$kn++;
+			if ($toonopgezegd == 1) {
+				$kols[10]['headertext'] = "Opgezegd per";
+				$kols[10]['columnname'] = "Opgezegd";
+				$kols[10]['type'] = "date";
 			}
 			if ($currenttab2 == "Leden") {
-				$kols[$kn]['headertext'] = "Afd./Kader";
-				$kols[$kn]['type'] = "subqry";
-				$kols[$kn]['subqry'] = sprintf("SELECT GROUP_CONCAT(DISTINCT O.Kode SEPARATOR '/') FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE (O.Type='A' OR O.Kader=1) AND LO.Lid=%%d AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()", TABLE_PREFIX);
-				$kols[$kn]['columnname'] = "RecordID";
+				$kols[11]['headertext'] = "Afd./Kader";
+				$kols[11]['type'] = "subqry";
+				$kols[11]['subqry'] = sprintf("SELECT GROUP_CONCAT(DISTINCT O.Kode SEPARATOR '/') FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE (O.Type='A' OR O.Kader=1) AND LO.Lid=%%d AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()", TABLE_PREFIX);
+				$kols[11]['columnname'] = "RecordID";
 			}
-			$kn++;
 		}
 		if (toegang("Ledenlijst/Wijzigen lid", 0, 0)) {
-			$kols[$kn]['link'] = "<a href='index.php?tp=Ledenlijst/Wijzigen+lid/Algemene+gegevens&lidid=%d'>&nbsp;&nbsp;&nbsp;></a>";
-			$kols[$kn]['columnname'] = "RecordID";
-			$kols[$kn]['class'] = 'muteren';
-			$kn++;
+			$kols[12]['link'] = "<a href='index.php?tp=Ledenlijst/Wijzigen+lid/Algemene+gegevens&lidid=%d'>&nbsp;&nbsp;&nbsp;></a>";
+			$kols[12]['columnname'] = "RecordID";
+			$kols[12]['class'] = 'muteren';
 		}
-		
-		if ($currenttab2 == "Klosleden") {
-			$sl = 4;
-		} elseif ($currenttab2 == "Leden") {
-			$sl = 1;
-		} elseif ($currenttab2 == "Voormalig leden") {
-			$sl = 3;
-		} elseif ($currenttab2 == "Toekomstige leden") {
-			$sl = 2;
-		} else {
-			$sl = 0;
-		}
-		$rows = $i_lid->ledenlijst($sl, $_SESSION['val_groep'], fnOrderBy($kols));
 				
 		if (count($rows) > 0) {
 			if (count($rows) > 1) {
@@ -387,23 +378,18 @@ function fnWieiswie($actie, $metfoto=1) {
 	
 	$txt = "<div class='wieiswie'>\n";
 	$vo = "";
-	if (strlen(implode(",", $lididtestusers)) > 1) {
-		$geentest = sprintf(" AND (LO.Lid NOT IN (%s))", implode(",", $lididtestusers));
-	} else {
-		$geentest = "";
-	}
 	if ($actie == "Onderscheidingen") {
-		$lijst = $i_lo->lijst(0, "O.TYPE='O'", "O.Naam, LO.Vanaf, LO.Lid");
+		$lijst = $i_lo->lijst(0, 1, "O.Naam, LO.Vanaf", "", "O.TYPE='O'");
 		
 	} elseif ($actie == "Afdelingskader") {
-		$lijst = $i_lo->lijst(0, "O.TYPE='A' AND F.Kader=1", "O.Naam, F.Sorteringsvolgorde, F.Omschrijv");
+		$lijst = $i_lo->lijst(0, 6, "O.Naam, F.Sorteringsvolgorde, F.Omschrijv");
 		
 	} elseif ($actie == "Overig") {
-		$lijst = $i_lo->lijst(0, "((O.TYPE='C' AND O.Kader=False) OR (O.TYPE='F' AND F.Kader=False))", "O.Type, O.Naam");
+		$lijst = $i_lo->lijst(0, 7, "O.Type, O.Naam");
 		
 	} else {
 		// Kader of Verenigingskader
-		$lijst = $i_lo->lijst(0, "(O.Kader=True OR (F.Kader=True AND O.Type='F'))", "O.Type, O.Naam, F.Sorteringsvolgorde, F.Omschrijv");
+		$lijst = $i_lo->lijst(-1, 5, "O.Type, O.Naam, F.Sorteringsvolgorde, F.Omschrijv");
 	}
 	
 	$dtfmt->setPattern("MMMM yyyy");
@@ -651,7 +637,6 @@ function fnOnderdelenmuteren($ondtype="G") {
 	$i_ond = new cls_Onderdeel($onderdeelid);
 	
 	$ondrows = $i_ond->editlijst($ondtype);
-	$i_ond->controle();
 	
 	if ($scherm == "L") {
 		LedenOnderdeelMuteren($onderdeelid, 0);
@@ -863,7 +848,7 @@ function LedenOnderdeelMuteren($p_ondid, $p_bop) {
 			$nl = "";
 		}
 
-		$rows = $i_lo->selectielijst($i_ond->oid, 0);
+		$rows = $i_lo->lijst($i_ond->oid);
 		$f = sprintf("OnderdeelID=%d", $i_ond->oid);
 		if ($i_ond->ondtype == "A") {
 			$rowsfunc = $i_fnk->selectlijst($i_ond->ondtype, $i_lo->min("Vanaf", $f), 1);
@@ -1132,7 +1117,13 @@ function fnEigenGegevens($lidid=0) {
 			$kols[0]['columnname'] = "NaamLang";
 			$kols[1]['headertext'] = "Behaald op";
 			$kols[1]['columnname'] = "DatumBehaald";
-			$kols[1]['type'] = "DTTEXT";
+			$kols[1]['type'] = "DTTEXT";	
+			
+			if (strlen(max(array_column($rows, "Plaats"))) > 0) {
+				$kols[3]['headertext'] = "Plaats";
+				$kols[3]['columnname'] = "Plaats";
+			}
+			
 			if (strlen(max(array_column($rows, "Diplomanummer"))) > 0) {
 				$kols[3]['headertext'] = "Gegevens";
 				$kols[3]['columnname'] = "Diplomanummer";
@@ -1372,7 +1363,7 @@ function overzichtverjaardagen($metfoto=1) {
 			} else {
 				$nm = "";
 			}
-			$nm .= htmlentities($row->Naam_lid);
+			$nm .= htmlentities($row->NaamLid);
 			if ($i == 0) {
 				$t = sprintf("%s is vandaag %d jaar geworden", $nm, $row->Leeftijd);
 			} elseif ($i == 1) {
@@ -1385,7 +1376,7 @@ function overzichtverjaardagen($metfoto=1) {
 			if (strlen($t) > 3) {
 				$verj .= sprintf("%s. ", $t);
 				if (strlen($fn) > 3) {
-					$verjfoto .= sprintf("<div class='jarige'><img src='%s' alt='Pasfoto %s'><div class='tekstbijfoto'>%s.</div></div>\n", $fn, htmlentities($row->Naam_lid), $t);
+					$verjfoto .= sprintf("<div class='jarige'><img src='%s' alt='Pasfoto %s'><div class='tekstbijfoto'>%s.</div></div>\n", $fn, htmlentities($row->NaamLid), $t);
 				} elseif (strlen($t) > 3) {
 					$verjfoto .= sprintf("<p>%s.</p>\n", $t);
 				}
@@ -1561,9 +1552,9 @@ function algemeenlidmuteren($lidid) {
 	printf("<input type='hidden' name='lidid' value=%d>\n", $lidid);
 	echo("<div id='algemenegegevenslidmuteren'>\n");
 	printf("<label id='lblRecordID'>RecordID/LidID</label><p>%d</p>\n", $row->RecordID);
-	$lidnr = $i_lm->lidnummer($row->RecordID);
-	if ($lidnr > 0) {
-		printf("<label id='lblLidnummer'>Lidnummer</label><p>%s</p>\n", $lidnr);
+	$i_lm->vulvars(-1, $row->RecordID);
+	if ($i_lm->lidnr > 0) {
+		printf("<label id='lblLidnummer'>Lidnummer</label><p>%s</p>\n", $i_lm->lidnr);
 	}
 	
 	for ($i=0; $i < count($wijzvelden); $i++) {
@@ -1657,7 +1648,7 @@ function algemeenlidmuteren($lidid) {
 	
 	$i_lo = new cls_Lidond(-1, $lidid);
 	$f = "`Type`='E' AND IFNULL(VervallenPer, '9999-12-31') >= CURDATE()";
-	$ondrows = $i_ond->lijst(0, $f);
+	$ondrows = $i_ond->lijst(-1, $f);
 	if (count($ondrows) > 0 and $currenttab != "Zelfservice" and toegang("Ledenlijst/Wijzigen lid/Eigenschappen", 0, 0)) {
 		echo("<div id='eigenschappenlidmuteren'>\n");
 		echo("<h2>Eigenschappen</h2>\n");
@@ -1821,7 +1812,7 @@ function toestemmingenmuteren($lidid) {
 	$actionurl = sprintf("%s?tp=%s&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$mess = "";
-		foreach ($i_ond->lijst(0, "`Type`='T'") as $ondrow) {
+		foreach ($i_ond->lijst(-1, "`Type`='T'") as $ondrow) {
 			if (isset($_POST['T_' . $ondrow->Kode])) {
 				if ($i_lo->zeteigenschap($lidid, $ondrow->RecordID, 1) == true) {
 					$mess .= sprintf("%s is toegevoegd of opnieuw bevestigd. ", $ondrow->Naam);
@@ -2029,7 +2020,7 @@ function onderdelenlidmuteren($lidid, $p_type="G") {
 	echo("</thead>\n");
 	
 	echo("<tbody>\n");
-//	echo(htmlloperlid($lidid, $p_type));
+	echo(htmlloperlid($lidid, $p_type));
 	echo("</tbody>\n");
 
 	echo("</table>\n");
@@ -2061,24 +2052,25 @@ function htmlloperlid($p_lidid, $p_type) {
 	}
 	
 	if ($p_type == "BCF") {
-		$f = "(O.Type IN ('B', 'C', 'F') OR O.Kader=1)";
+		$ond_f = "(O.Type IN ('B', 'C', 'F') OR O.Kader=1)";
 	} elseif ($p_type == "G") {
-		$f = sprintf("O.Type='G' AND IFNULL(O.Kader, 0)=0");
+		$ond_f = sprintf("O.Type='G' AND IFNULL(O.Kader, 0)=0");
 	} else {
-		$f = sprintf("O.Type='%s'", $p_type);
+		$ond_f = sprintf("O.Type='%s'", $p_type);
 	}
+	$f = $ond_f . sprintf(" AND LO.Lid=%d", $p_lidid);
 	
 	$frows = (new cls_functie())->selectlijst($tf);
 	$jsoc = sprintf("OnChange=\"savedata('lidond', 0, this)\"");
 	$jsob = sprintf("OnBlur=\"savedata('lidond', 0, this)\"");
 	
-	foreach ($i_lo->editlijst($f, $p_lidid) as $row) {
-		$rv .= sprintf("<tr>\n<td>%s - %s</td>\n", $row->Kode, $row->Naam);
+	foreach ($i_lo->lijst(-1, $f) as $row) {
+		$rv .= sprintf("<tr>\n<td>%s - %s</td>\n", $row->Kode, $row->OndNaam);
 		$rv .= sprintf("<td><input type='date' id='Vanaf_%d' value='%s' required %s></td>\n", $row->RecordID, $row->Vanaf, $jsob);
 		if ($p_type == "BCF" or $p_type == "A") {
 			$options = "";
 			foreach ($frows as $frow) {
-				$options .= sprintf("<option value=%d %s>%s</option>\n", $frow->Nummer, checked($frow->Nummer, "option", $row->Functie), $frow->Omschrijv);
+				$options .= sprintf("<option value=%d %s>%s</option>\n", $frow->Nummer, checked($frow->Nummer, "option", $row->FunctieID), $frow->Omschrijv);
 			}
 			$rv .= sprintf("<td><select id='Functie_%d' %s>%s</select></td>\n", $row->RecordID, $jsoc, $options);
 			$rv .= sprintf("<td><input type='email' id='EmailFunctie_%d' value='%s' class='w45' maxlength=45 %s></td>\n", $row->RecordID, $row->EmailFunctie, $jsob);
@@ -2095,15 +2087,15 @@ function htmlloperlid($p_lidid, $p_type) {
 				$rv .= "<td></td>\n";
 			}
 		}
-		$rv .= sprintf("<td><input type='text' id='Opmerk_%d' class='w30' value='%s' maxlength=30 %s></td>\n", $row->RecordID, $row->OPMERK, $jsob);
+		$rv .= sprintf("<td><input type='text' id='Opmerk_%d' class='w30' value='%s' maxlength=30 %s></td>\n", $row->RecordID, $row->Opmerk, $jsob);
 		$rv .= sprintf("<td><input type='date' id='Opgezegd_%d' value='%s' %s></td>\n", $row->RecordID, $row->Opgezegd, $jsob);
 		$rv .= "</tr>\n";
 	}
 	
 	if ($p_lidid > 0) {
 		$options = "<option value=0>Nieuw ....</option>\n";
-		$f .= " AND IFNULL(O.VervallenPer, CURDATE()) >= CURDATE() AND IFNULL(O.GekoppeldAanQuery, 0)=0 AND LENGTH(IFNULL(O.MySQL, '')) < 10";
-		foreach((new cls_Onderdeel())->lijst(0, $f) as $row) {
+		$ond_f .= " AND IFNULL(O.VervallenPer, CURDATE()) >= CURDATE() AND IFNULL(O.GekoppeldAanQuery, 0)=0 AND LENGTH(IFNULL(O.MySQL, '')) < 10";
+		foreach((new cls_Onderdeel())->lijst(0, $ond_f) as $row) {
 			$options .= sprintf("<option value=%d>%s - %s</option>\n", $row->RecordID, $row->Kode, $row->Naam);
 		}
 		$rv .= sprintf("<tr><td><select id='NieuwOnderdeel' OnChange='addlidond();'>%s</select>\n</td></tr>\n", $options);
@@ -2848,7 +2840,7 @@ function presentielijst($p_evenement=0) {
 			} elseif ($aant/2 == intval($aant/2)) {
 				echo("</tr>\n<tr>");
 			}
-			$nm = $row->Naam_lid;
+			$nm = $row->NaamLid;
 			$stat = "";
 			if ($eventid > 0) {
 				$edrow = $row;

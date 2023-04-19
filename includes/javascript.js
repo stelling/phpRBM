@@ -259,6 +259,9 @@ function lidalgwijzprops() {
 	$('#uitleg_telefoon').text(fnControleTelefoon(tel));
 	
 	var tel = $('#Mobiel').val();
+	if (tel.length == 10 && tel.substr(0, 2) == "06") {
+		tel = tel.substr(0, 2) + "-" + tel.substr(2);
+	}
 	$('#uitleg_mobiel').text(fnControleTelefoon(tel, "mobiel"));
 	
 	var e = $('#Email').val();
