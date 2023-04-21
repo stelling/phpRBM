@@ -362,8 +362,8 @@ function muteerevenement($eventid) {
 		if (isset($row->RecordID)) {
 			$recordid = $row->RecordID;
 			$datum = date("Y-m-d", strtotime($row->Datum));
-			$oms = $row->Omschrijving;
-			$loc = $row->Locatie;
+			$oms = str_replace("\"", "'", $row->Omschrijving);
+			$loc = str_replace("\"", "'", $row->Locatie);
 			$email = $row->Email;
 			$starttijd = date("H:i", strtotime($row->Datum));
 			$eindtijd = $row->Eindtijd;
@@ -397,13 +397,13 @@ function muteerevenement($eventid) {
 		printf("<label id='lblVerzameltijd'>Verzamelen</label><input type='time' id='Verzameltijd' value='%s'>\n", $verzameltijd);
 	}
 
-	printf("<label id='lblOmschrijving'>Omschrijving</label><input type='text' id='Omschrijving' name='Omschrijving' class='w50' value='%s' maxlength=50>\n", $oms);
-	printf("<label id='lblLocatie'>Locatie</label><input type='text' id='Locatie' name='Locatie' value='%s' class='w75' maxlength=75>\n", $loc);
+	printf("<label id='lblOmschrijving'>Omschrijving</label><input type='text' id='Omschrijving' name='Omschrijving' class='w50' value=\"%s\" maxlength=50>\n", $oms);
+	printf("<label id='lblLocatie'>Locatie</label><input type='text' id='Locatie' name='Locatie' value=\"%s\" class='w75' maxlength=75>\n", $loc);
 	if ($eventid > 0) {
 		printf("<label id='lblEmail'>E-mail</label><input type='email' id='Email' value='%s' class='w50' maxlength=45>\n", $email);
 	
 		printf("<label id='lblTypeEvenement'>Type evenement</label><select id='TypeEvenement'>\n<option value=0>Geen/onbekend</option>\n%s</select>\n", $i_et->htmloptions($typeevenement));
-		printf("<label class='k2'>Opmaak in agenda</label>%s\n", fnEvenementOmschrijving($row, 1, "p"));
+		printf("<label id='lblOpmaak'>Opmaak in agenda</label>%s\n", fnEvenementOmschrijving($row, 1, "p"));
 	
 		$ondrows = (new cls_Onderdeel())->lijst(1, "", $datum);
 		printf("<label id='lblInschrijvingOpen'>Online inschrijving open</label><input type='checkbox' id='InschrijvingOpen' value=1 %s>\n", checked($insopen));
@@ -663,7 +663,7 @@ function muteertypeevenement() {
 	echo("</form>\n");
 	
 	$i_et = null;
-}
+}  # muteertypeevenement
 
 function overzichtevenementen() {
 	global $dtfmt;
@@ -818,6 +818,11 @@ function fnEvenementOmschrijving($p_row, $p_mettijd=0, $p_element="") {
 		}
 	}
 	
+	$cl = str_replace("'", "", str_replace(" ", "_", trim(strtolower($p_row->OmsType))));
+	if (strlen($p_row->Locatie) > 1) {
+		$cl .= " " . str_replace("'", "", str_replace(" ", "_", trim(strtolower($p_row->Locatie))));
+	}
+	
 	$s = "";
 	if (strlen($p_row->Tekstkleur) > 2 or strlen($p_row->Achtergrondkleur) > 2 or $p_row->Vet == 1 or $p_row->Cursief == 1) {
 		$s = " style='";
@@ -837,11 +842,11 @@ function fnEvenementOmschrijving($p_row, $p_mettijd=0, $p_element="") {
 	}
 	
 	if ($p_element === "td") {
-		return sprintf("<td class='%s'%s>%s</td>", str_replace("'", "", str_replace(" ", "_", strtolower($p_row->OmsType))), $s, $eo);
+		return sprintf("<td class='%s'%s>%s</td>", $cl, $s, $eo);
 	} elseif ($p_element === "li") {
-		return sprintf("<li class='%s'%s>%s</li>", str_replace("'", "", str_replace(" ", "_", strtolower($p_row->OmsType))), $s, $eo);
+		return sprintf("<li class='%s'%s>%s</li>", $cl, $s, $eo);
 	} elseif ($p_element === "p") {
-		return sprintf("<p class='%s'%s>%s</p>", str_replace("'", "", str_replace(" ", "_", strtolower($p_row->OmsType))), $s, $eo);
+		return sprintf("<p class='%s'%s>%s</p>", $cl, $s, $eo);
 	} else {
 		return $eo;
 	}
