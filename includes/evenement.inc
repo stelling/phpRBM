@@ -268,10 +268,12 @@ function inschrijvenevenementen($lidid) {
 function muteerevenement($eventid) {
 	global $dtfmt;
 
-	$i_ev = new cls_Evenement();
+	$i_ev = new cls_Evenement($eventid);
 	$i_ed = new cls_Evenement_Deelnemer();
 	$i_lo = new cls_Lidond();
 	$i_et = new cls_Evenement_Type();
+	
+	$rowspd = $i_ev->potdeelnemers($eventid, $i_ev->evdatum);
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 
@@ -305,8 +307,13 @@ function muteerevenement($eventid) {
 			$i_ev->update($eventid, "VerwijderdOp", "0000-00-00");
 		}
 		
+		
 		if (isset($_POST['nwdln']) and $_POST['nwdln'] > 0 and is_numeric($_POST['nwdln'])) {
-			$i_ed->add($eventid, $_POST['nwdln'], $i_ev->standaardstatus($eventid));
+			$i_ed->add($eventid, $_POST['nwdln']);
+		} elseif (isset($_POST['nwdln']) and $_POST['nwdln'] == -10) {
+			foreach ($rowspd as $rowpd) {
+				$i_ed->add($eventid, $rowpd->LidID);
+			}
 		}
 		
 		if (isset($_POST['Bewaren_Sluiten'])) {
@@ -429,8 +436,6 @@ function muteerevenement($eventid) {
 		printf("<label id='lblAfgemeld'>Aantal afgemeld</label><p>%d</p>\n", $aantafgemeld);
 	}
 	
-//	echo("<div id='deelnemersevenementmuteren'>\n");
-	$rowpd = $i_ev->potdeelnemers($recordid, $datum);
 	if ($eventid > 0) {
 		echo("<table id='deelnemersevenementmuteren'>\n");
 		echo("<caption>Deelnemers</caption>\n");
@@ -458,7 +463,7 @@ function muteerevenement($eventid) {
 				$t = "";
 			} else {
 				$t = " *";
-				$uitleg = "* = geen lid van 'Deelname beperken tot'";
+				$uitleg = "* = geen lid van de doelgroep";
 			}
 			if (strlen($rd->Telefoon) >= 10) {
 				$t .= "<br>\n" . $rd->Telefoon;
@@ -481,17 +486,19 @@ function muteerevenement($eventid) {
 		}
 		echo("</table>\n");
 		
-		$optionsnieuw = "<option value=0>Deelnemer toevoegen ...</option>\n";
-		foreach ($rowpd as $lidrow) {
-			$optionsnieuw .= sprintf("<option value=%d>%s</option>\n", $lidrow->LidID, htmlentities($lidrow->Naam));
+		if (count($rowspd) > 0) {
+			$optionsnieuw = "<option value=0>Deelnemer toevoegen ...</option>\n<option value=-10>Alle leden van de doelgroep</option>\n";
+			foreach ($rowspd as $lidrow) {
+				$optionsnieuw .= sprintf("<option value=%d>%s</option>\n", $lidrow->LidID, htmlentities($lidrow->Naam));
+			}
+			printf("<select name='nwdln' onChange='this.form.submit();'>%s</select>\n", $optionsnieuw);
 		}
-		printf("<select name='nwdln' onChange='this.form.submit();'>%s</select>\n", $optionsnieuw);
 		if (strlen($uitleg) > 0) {
 			printf("<p>%s</p>\n", $uitleg);
 		}
 	}
 //	echo("</div> <!-- Einde deelnemersevenementmuteren -->\n");
-	$aantpotdln = count($rowpd);
+	$aantpotdln = count($rowspd);
 	echo("<div id='opdrachtknoppen'>\n");
 	if ($eventid == 0) {
 		echo("<button type='submit' name='btnToevoegen'>Toevoegen</button>\n");
@@ -577,8 +584,8 @@ function muteertypeevenement() {
 	if (isset($_GET['op']) and $_GET['op'] == "delete" and $_GET['tid'] > 0) {
 		$i_et->delete($_GET['tid']);
 	} elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
-		if (isset($_POST['oms_nw']) and strlen($_POST['oms_nw']) > 0) {
-			$i_et->add($_POST['oms_nw']);
+		if (isset($_POST['oms_nw'])) {
+			$i_et->add();
 		} else {
 			foreach ($i_et->lijst() as $row) {
 				$oms = sprintf("oms_%d", $row->RecordID);
@@ -614,7 +621,7 @@ function muteertypeevenement() {
 	}
 		
 	printf("<form method='post' id='muteertypeevenement' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	echo("<table>\n");
+	echo("<table class='table table-hover'>\n");
 	echo("<thead>\n");
 	echo("<tr><th>Omschrijving</th><th>Soort</th><th>Tekstkleur</th><th>Vet</th><th>Cursief</th><th>Achtergrondkleur</th><th>Voorbeeld</th><th></th></tr>\n");
 	echo("</thead>\n");
@@ -654,12 +661,13 @@ function muteertypeevenement() {
 		
 		echo(fnEvenementOmschrijving($row, 0, "td"));
 		
-		printf("<td><a href='%s?tp=%s&amp;op=delete&amp;tid=%d' title='Verwijder type evenement'>&nbsp;&nbsp;&nbsp;</a></td>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $row->RecordID);
+		printf("<td><a href='%s?tp=%s&amp;op=delete&tid=%d' title='Verwijder type evenement'>&nbsp;&nbsp;&nbsp;</a></td>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $row->RecordID);
 		echo("</tr>\n");
 	}
 	echo("</tbody>\n");
 	echo("</table>\n");
-	echo("<input type='text' name='oms_nw' placeholder='Nieuw type' onBlur='this.form.submit();'>");
+//	echo("<input type='text' name='oms_nw' placeholder='Nieuw type' onBlur='this.form.submit();'>");
+	echo("<button type='submit' name='oms_nw' class='btn btn-default'>Nieuw type</button>");
 	echo("</form>\n");
 	
 	$i_et = null;
@@ -819,7 +827,7 @@ function fnEvenementOmschrijving($p_row, $p_mettijd=0, $p_element="") {
 	}
 	
 	$cl = str_replace("'", "", str_replace(" ", "_", trim(strtolower($p_row->OmsType))));
-	if (strlen($p_row->Locatie) > 1) {
+	if (isset($p_row->Locatie) and strlen($p_row->Locatie) > 1) {
 		$cl .= " " . str_replace("'", "", str_replace(" ", "_", trim(strtolower($p_row->Locatie))));
 	}
 	
