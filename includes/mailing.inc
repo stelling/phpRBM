@@ -840,7 +840,7 @@ class Mailing {
 		foreach($rcpt_rows as $rcpt) {
 			$jsdo = sprintf("OnClick=\"mailing_verw_ontvanger(%d, '%s');\"", $rcpt->RecordID, $rcpt->to_address);
 			if ($rcpt->LidID > 0) {
-				$item = sprintf("%s&nbsp;<img src='%s' alt='Verwijderen' title='Verwijderen' %s>", htmlentities($rcpt->Naam_lid), BASE64_VERWIJDER_KLEIN, $jsdo);
+				$item = sprintf("%s&nbsp;<img src='%s' alt='Verwijderen' title='Verwijderen' %s>", htmlentities($rcpt->NaamLid), BASE64_VERWIJDER_KLEIN, $jsdo);
 			} else {
 				$item = sprintf("%s&nbsp;<img src='%s' alt='Verwijderen' title='Verwijderen' %s>", $rcpt->to_address, BASE64_VERWIJDER_KLEIN, $jsdo);
 				$this->bevat_losse_email = true;
@@ -1200,8 +1200,8 @@ class Mailing {
 				$mail->Body = $this->merged_message;
 				if (strlen($this->OmschrijvingOntvangers) > 0) {
 					$mail->addstationary($this->OmschrijvingOntvangers, "", 0, $this->zonderbriefpapier);
-				} elseif (isset($rcpt->Naam_lid)) {
-					$mail->addstationary($rcpt->Naam_lid, "", 0, $this->zonderbriefpapier);
+				} elseif (isset($rcpt->NaamLid)) {
+					$mail->addstationary($rcpt->NaamLid, "", 0, $this->zonderbriefpapier);
 				}
 				echo($mail->Body);
 				$mail = null;
@@ -2312,7 +2312,7 @@ function sentfromhist($p_mhid, $p_handm=0) {
 				$mess = sprintf("E-mail %d (%s) is naar %s verstuurd.", $p_mhid, $mail->Subject, $row->to_addr);
 			}
 		} else {
-			$mess = sprintf("Versturen van e-mail %d (%s) aan %s is mislukt. Foutboodschap: %s", $p_mhid, $mail->Subject, $a, $error);
+			$mess = sprintf("Versturen van e-mail %d (%s) aan %s is mislukt. Foutboodschap: %s", $p_mhid, $mail->Subject, $row->to_addr, $error);
 		}
 	}
 	
