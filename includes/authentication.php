@@ -413,25 +413,14 @@ function fnAuthenticatie($melding=1, $password="", $p_napost=0) {
 			$_SESSION['lidid'] = 0;
 			
 		} elseif (isset($row->LidID) and $row->LidID > 0) {
+			$i_lid = new cls_Lid($row->LidID);
+			
 			$_SESSION['lidid'] = $row->LidID;
-			$_SESSION['lidnr'] = $row->Lidnr;
-			$_SESSION['naamingelogde'] = $row->NaamLid;
-			if (strlen($row->Roepnaam) == 0) {
-				$_SESSION['roepnaamingelogde'] = $_SESSION['naamingelogde'];
-			} else {
-				$_SESSION['roepnaamingelogde'] = trim($row->Roepnaam);
-			}
-			if (isValidMailAddress($row->EmailVereniging, 0)) {
-				$_SESSION['emailingelogde'] = strtolower($row->EmailVereniging);
-			} elseif (isValidMailAddress($row->Email, 0)) {
-				$_SESSION['emailingelogde'] = strtolower($row->Email);
-			} elseif (isValidMailAddress($row->EmailOuders, 0)) {
-				$_SESSION['emailingelogde'] = strtolower($row->EmailOuders);
-			} elseif (strlen($row->EmailOuders) > 5 and strpos($row->EmailOuders, ",") > 0) {
-				$_SESSION['emailingelogde'] = strstr(strtolower($row->EmailOuders), ",", true);
-			} else {
-				$_SESSION['emailingelogde'] = "";
-			}
+			$_SESSION['lidnr'] = $i_lid->lidnr;
+			$_SESSION['naamingelogde'] = $i_lid->naamlid;
+			$_SESSION['roepnaamingelogde'] = $i_lid->roepnaam;
+			$_SESSION['emailingelogde'] = $i_lid->email;
+			
 			$i_login->setingelogd($row->LidID, $p_napost);
 			(new cls_Parameter())->vulsessie();
 		} else {
@@ -587,10 +576,9 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		
 		$login = $row->Login;
 		
-		echo("<div id='herstellenwachtwoord'>\n");
-		if (strlen($login) > 5) {
+				if (strlen($login) > 5) {
 			
-			printf("<form name='HerstellenWachtwoord' action='%s?tp=Herstel+wachtwoord' method='post'>\n", $_SERVER["PHP_SELF"]);
+			printf("<form id='herstellenwachtwoord' action='%s?tp=Herstel+wachtwoord' method='post'>\n", $_SERVER["PHP_SELF"]);
 			printf("<input type='hidden' name='key' value='%s'><input type='hidden' name='lidid' value=%d>\n
 			<h3>Herstel wachtwoord</h3>
 			<label>Login</label><input type=text value='%s' name='login' readonly>
@@ -604,7 +592,6 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		} else {
 			echo("<h3>Deze link is niet correct, vraag een nieuwe aan.</h3>\n");
 		}
-		echo("</div>  <!-- Einde herstellenwachtwoord -->");
 	
 	} elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
 		if (strlen($_POST['email']) > 0 and isValidMailAddress($_POST['email'], 0) == false) {
