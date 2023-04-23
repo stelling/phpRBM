@@ -12,7 +12,7 @@ function fnLedenlijst() {
 	$i_el = new cls_Eigen_lijst();
 
 	$i_lo->auto_einde(-1, 480);
-	$i_lo->autogroepenbijwerken(0, 480);
+	$i_lo->autogroepenbijwerken(-1, 480);
 	
 	fnDispMenu(2);
 	
@@ -848,21 +848,27 @@ function LedenOnderdeelMuteren($p_ondid, $p_bop) {
 			$nl = "";
 		}
 
-		$rows = $i_lo->lijst($i_ond->oid);
+		$res = $i_lo->lijst($i_ond->oid, "", "", "", "", 0, 0);
+//		lijst($p_ondid, $p_filter="", $p_ord="GR.Volgnummer, GR.Kode", $p_per="", $p_extrafilter="", $p_limiet=0, $p_fetched=1) {
+		
 		$f = sprintf("OnderdeelID=%d", $i_ond->oid);
 		if ($i_ond->ondtype == "A") {
 			$rowsfunc = $i_fnk->selectlijst($i_ond->ondtype, $i_lo->min("Vanaf", $f), 1);
 		} else {
 			$rowsfunc = $i_fnk->selectlijst("L", $i_lo->min("Vanaf", $f), 1);
 		}
+		asort($rowsfunc);
 		$kols = null;
 		$kols[0]['headertext'] = "Naam lid";
+		$kols[0]['columnname'] = "NaamLid";
 		$kols[0]['readonly'] = true;
 		$kols[1]['headertext'] = "Vanaf";
+		$kols[1]['columnname'] = "Vanaf";
 		$kols[1]['type'] = "date";
 		
-		if (count($rowsfunc) > 1 and ($i_ond->iskader or $i_ond->ondtype == "A" or $i_ond->ondtype == "C" or $i_ond->ondtype == "G")) {
+		if (count($rowsfunc) > 1 and ($i_ond->iskader or $i_ond->ondtype == "A" or $i_ond->ondtype == "C")) {
 			$kols[2]['headertext'] = "Functie";
+			$kols[2]['columnname'] = "FunctieID";
 			$kols[2]['bronselect'] = $rowsfunc;
 		}
 		if ($i_ond->iskader) {
@@ -870,6 +876,7 @@ function LedenOnderdeelMuteren($p_ondid, $p_bop) {
 			$kols[3]['type']= "email";
 		}
 		$kols[4]['headertext'] = "Opmerking";
+		$kols[4]['columnname'] = "Opmerk";
 		
 		if ($i_ond->ondtype == "E" or $i_ond->ondtype == "T") {
 			$kols[1]['readonly'] = true;
@@ -885,7 +892,7 @@ function LedenOnderdeelMuteren($p_ondid, $p_bop) {
 		$kols[6]['columnname'] = "RecordID";
 		$kols[6]['type'] = "pk";
 
-		echo(fnEditTable($rows, $kols, "ledenperonderdeelmuteren", $th));
+		echo(fnEditTable($res, $kols, "ledenperonderdeelmuteren", $th));
 		echo($nl);
 	
 		if ($i_ond->isautogroep) {
@@ -2067,6 +2074,7 @@ function htmlloperlid($p_lidid, $p_type) {
 	foreach ($i_lo->lijst(-1, $f) as $row) {
 		$rv .= sprintf("<tr>\n<td>%s - %s</td>\n", $row->Kode, $row->OndNaam);
 		$rv .= sprintf("<td><input type='date' id='Vanaf_%d' value='%s' required %s></td>\n", $row->RecordID, $row->Vanaf, $jsob);
+		debug("$row->RecordID, $row->Vanaf");
 		if ($p_type == "BCF" or $p_type == "A") {
 			$options = "";
 			foreach ($frows as $frow) {
@@ -2420,7 +2428,7 @@ function fnPersoonlijkeAgenda() {
 	foreach ((new cls_Evenement())->lijst(4) as $row) {
 		$i_ed = new cls_Evenement_Deelnemer();
 		$edrow = $i_ed->record(0, $_SESSION['lidid'], $row->RecordID);
-		if ($row->Dln == 0 or isset($edrow->RecordID)) {
+		if (isset($edrow->RecordID)) {
 			if ($row->MeerdereStartMomenten == 0) {
 				$kalitem[$in]['datum'] = date("Y-m-d H:i", strtotime($row->Datum));
 			} else {
@@ -2431,7 +2439,7 @@ function fnPersoonlijkeAgenda() {
 			}
 			$o = $row->Omschrijving;
 			
-			if (toegang("Evenementen", 0)) {
+			if (toegang("Evenementen", 0) and $row->Dln > 0) {
 				$o = sprintf("<a href='%s/index.php?tp=Evenementen'>%s</a>", BASISURL, $o);
 			}
 			
