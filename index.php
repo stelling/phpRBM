@@ -309,36 +309,46 @@ function fnVoorblad() {
 		}		
 	
 		// Algemene statistieken
-		$stats = db_stats();
-		foreach (array('aantalleden', 'aantalvrouwen', 'aantalmannen', 'gemiddeldeleeftijd', 'aantalkaderleden', 'nieuwstelogin', 'aantallogins', 'nuingelogd') as $v) {
-			if (strpos($content, strtoupper($v)) !== false) {
-				$content = str_replace("[%" . strtoupper($v) . "%]", htmlentities($stats[$v]), $content);
-			}
-		}
+		$i_lid = new cls_Lid();
+		$i_login = new cls_Login();
+		$i_lb = new cls_Logboek();
 		
-		if (strpos($content, "[%LAATSTGEWIJZIGD%]") !== false) {
-			$dtfmt->setPattern(DTLONG);
-			$content = str_replace("[%LAATSTGEWIJZIGD%]", $dtfmt->format(strtotime($stats['laatstgewijzigd'])), $content);
-		}
+		$content = str_ireplace("[%AANTALLEDEN%]", $i_lid->aantallid("L", "*") , $content);
+		$content = str_ireplace("[%AANTALMANNEN%]", $i_lid->aantallid("L", "M") , $content);
+		$content = str_ireplace("[%AANTALVROUWEN%]", $i_lid->aantallid("L", "V") , $content);
+		$content = str_ireplace("[%AANTALKADERLEDEN%]", $i_lid->aantallid("M") , $content);
+		$content = str_ireplace("[%AANTALLOGINS%]", $i_login->aantal() , $content);
+		$contect = str_ireplace("[%GEMIDDELDELEEFTIJD%]", $i_lid->gemiddeldeleeftijd(), $content);
+		$content = str_ireplace("[%NUINGELOGD%]", $i_login->nuingelogd(), $content);
 		
 		if (strpos($content, "[%LAATSTEUPLOAD%]") !== false) {
-			$lu = (new cls_Logboek())->max("DatumTijd", "TypeActiviteit=9");
+			$lu = $i_lb->max("DatumTijd", "A.TypeActiviteit=9");
 			$dtfmt->setPattern(DTTEXT);
 			$content = str_replace("[%LAATSTEUPLOAD%]", $dtfmt->format(strtotime($lu)), $content);
 		}
-			
-		if (strpos($content, "[%BEWAARTIJDLOGGING%]") !== false) {
-			$lu = (new cls_Logboek())->max("DatumTijd", "TypeActiviteit=9");
-			$content = str_replace("[%BEWAARTIJDLOGGING%]", $_SESSION['settings']['logboek_bewaartijd'], $content);
+		$content = str_replace("[%BEWAARTIJDLOGGING%]", $_SESSION['settings']['logboek_bewaartijd'], $content);
+
+		// Gebruiker-specifieke statistieken
+		
+		if (strpos($content, "[%LAATSTGEWIJZIGD%]") !== false) {
+			$dtfmt->setPattern(DTLONG);
+			if ($_SESSION['lidid'] > 0) {
+				$f = sprintf("A.TypeActiviteit=6 AND A
+				.LidID=%d", $_SESSION['lidid']);
+				$lgw = $i_lb->max("DatumTijd", $f);
+				if (strlen($lgw) >= 10) {
+					$lgw = $dtfmt->format(strtotime($lgw));
+				}
+			} else {
+				$lgw = "";
+			}
+			$content = str_replace("[%LAATSTGEWIJZIGD%]", $lgw, $content);
 		}
 		
-		// Gebruiker-specifieke statistieken
 		if ($_SESSION['lidid'] > 0) {
-			$stats = db_stats($_SESSION['lidid']);
 			$dtfmt->setPattern(DTLONG);
 			$content = str_replace("[%NAAMLID%]", $_SESSION['naamingelogde'], $content);
 			$content = str_replace("[%LIDNR%]", $_SESSION['lidnr'], $content);
-			$content = str_replace("[%INGELOGDEGEWIJZIGD%]", $dtfmt->format(strtotime($stats['laatstgewijzigd'])), $content);
 		} else {
 			$content = str_replace("[%INGELOGDEGEWIJZIGD%]", "", $content);
 		}
@@ -479,11 +489,11 @@ function fnAgenda($p_lidid=0) {
 				foreach ($rows as $row) {
 					$aant++;
 					if ($aant == 1) {
-						$vj = $row->Naam_lid;
+						$vj = $row->NaamLid;
 					} elseif ($aant == 2) {
-						$vj = $row->Naam_lid . " en " . $vj;
+						$vj = $row->NaamLid . " en " . $vj;
 					} else {
-						$vj = $row->Naam_lid . ", " . $vj;
+						$vj = $row->NaamLid . ", " . $vj;
 					}
 				}
 				if ($aant == 1) {
