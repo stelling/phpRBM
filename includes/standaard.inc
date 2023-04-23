@@ -77,6 +77,7 @@ if (isset($_SESSION['lidid'])) {
 	(new cls_Logboek())->add($mess, 1, 0, 1);
 }
 
+/*
 if (isset($_COOKIE["pagbreedte"]) and $_COOKIE["pagbreedte"] > 0) {
 	$_SESSION['pagbreedte'] = $_COOKIE["pagbreedte"];
 } elseif (!isset($_SESSION['pagbreedte']) or $_SESSION['pagbreedte'] == 0) {
@@ -88,6 +89,7 @@ if (isset($_COOKIE["pagbreedte"]) and $_COOKIE["pagbreedte"] > 0) {
 if ($_SESSION['pagbreedte'] == 0 and $_SERVER['PHP_SELF'] == "/index.php") {
 	printf("<script>location.href=\"%s?p_pagbreedte=\" + screen.width + \"\"</script>\n", BASISURL);
 }
+*/
 
 if ((isset($_SESSION['webmaster']) and $_SESSION['webmaster'] == 1) or strpos(BASISURL, "telling.nl") > 0) {
 	error_reporting(E_ALL);
@@ -234,6 +236,9 @@ function HTMLheader($breed=0) {
 		echo("<meta name='viewport' content='width=device-width, initial-scale=1.0'>\n");
 		printf("<title>%s</title>\n", $title);
 		echo("<link rel='stylesheet' href='//code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css'>\n");
+		
+		echo("<link href='https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css' rel='stylesheet'>\n");
+		
 //		echo("<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css'>\n");
 //		echo("<link rel='stylesheet' href='//cdnjs.cloudflare.com/ajax/libs/timepicker/1.3.5/jquery.timepicker.min.css'>\n");
 		echo("<script src='https://code.jquery.com/jquery-3.6.0.js'></script>\n");
@@ -1119,7 +1124,7 @@ function fnEditTable($res, $kols, $id, $th) {
 	global $dtfmt;
 
 	$rows = $res->fetchAll();
-
+	
 	$ret = sprintf("<table id='%s'>\n", $id);
 	if (strlen($th) > 0) {
 		if (count($rows) > 3) {
@@ -1137,14 +1142,12 @@ function fnEditTable($res, $kols, $id, $th) {
 			if (!isset($kol['columnname'])) {
 				$kols[$kn]['columnname'] = $res->getColumnMeta($kn)['name'];
 			}
-
 			if (!isset($kols[$kn]['type']) or strlen($kols[$kn]['type']) == 0) {
 				$kols[$kn]['type'] = "text";
 			}
 			if (isset($kol['link']) and strlen($kol['link']) > 1) {
 				$kols[$kn]['type'] = "link";
 			}
-
 			if ($kols[$kn]['type'] == "text") {
 				for ($cn=0;$cn<$res->ColumnCount();$cn++) {
 					if ($kols[$kn]['columnname'] ==  $res->getColumnMeta($cn)['name']) {
@@ -1156,7 +1159,6 @@ function fnEditTable($res, $kols, $id, $th) {
 				$colpk = $kols[$kn]['columnname'];
 			}
 		}
-		
 		if (isset($kol['headertext']) and strlen($kol['headertext']) > 0) {
 			$ret .= sprintf("<th>%s</th>", $kol['headertext']);
 		}
