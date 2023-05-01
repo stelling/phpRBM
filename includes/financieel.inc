@@ -37,18 +37,16 @@ function fnRekeningen() {
 			if (($nwreknr / 2) == intval($nwreknr / 2)) {
 				$nwreknr++;
 			}
-		
-			echo("<div id='rekeningmuteren'>\n");
+
 			$actionurl = sprintf("%s?tp=%s", $_SERVER['PHP_SELF'], $_GET['tp']);
-			printf("<form method='post' action='%s'>\n", $actionurl);
+			printf("<form method='post' id='rekeningmuteren' action='%s'>\n", $actionurl);
 		
-			printf("<label>Rekeningnummer</label><input type='number' name='nwrekening' value=%d>\n", $nwreknr);
+			printf("<label>Rekeningnummer</label><input type='number' name='nwrekening' value=%d class='d8'>\n", $nwreknr);
 			printf("<label>Seizoen</label><select name='nwseizoen'>%s</select>\n", (new cls_Seizoen())->htmloptions());
 			printf("<label>Lid</label><select name='nwlid'><option value=0>Selecteer lid ...</option>\n%s</select>\n", (new cls_Lid())->htmloptions(-1, 2));
 			echo("<div class='clear'></div>\n");
-			echo("<input type='submit' value='Toevoegen' name='RekToevoegen'>\n");
+			echo("<button type='submit' name='RekToevoegen'><i class='bi bi-plus-circle'></i> Toevoegen</button>\n");
 			echo("</form>\n");
-			echo("</div> <!-- Einde rekeningregelsmuteren -->\n");
 		}
 		
 	} elseif ($currenttab2 == "Aanmaken rekeningen") {
@@ -100,16 +98,15 @@ function fnRekeningbeheer() {
 		$js = "Onblur=\"this.form.submit();\"";
 	}
 	
-	echo("<div id='filter'>\n");
-	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+	printf("<form method='post' id='filter' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	printf("<label>Filter op seizoen</label><select name='filterseizoen' onChange='this.form.submit();'>\n<option value=-1>Alle seizoenen</option>\n%s</select>\n", $i_sz->htmloptions($filterseizoen, 1));
 	printf("<input type='text' id='tbFilterNaam' name='tbFilterNaam' placeholder='Tekstfilter' value='%s' %s>\n", $filternaam, $js);
 	printf("<p class='aantrecords'>%d rekeningen</p>", count($rows));
 	echo("</form>\n");
-	echo("</div> <!-- Einde filter -->\n");
 	
 	$kols[0]['link'] = sprintf("%s?tp=%s/Muteren&p_reknr=%%d", $_SERVER['PHP_SELF'], $currenttab);
 	$kols[0]['columnname'] = "Nummer";
+	$kols[0]['class'] = "muteren";
 	
 	$kols[1]['headertext'] = "Nummer";
 	$kols[1]['columnname'] = "Nummer";
@@ -266,7 +263,7 @@ function fnRekeningMuteren($p_rkid=-1) {
 				printf("<td id='Naam_%d'>%s</td>\n", $rrrow->RecordID, $rrrow->NaamLid);
 				printf("<td><input type='text' id='OMSCHRIJV_%d' class='w70' value=\"%s\" maxlength=70></td>\n", $rrrow->RecordID, $rrrow->OMSCHRIJV);
 				printf("<td><input type='text' id='Bedrag_%d' value='%s' class='d8'></td>\n", $rrrow->RecordID, number_format($rrrow->Bedrag, 2, ",", ""));
-				printf("<td id='Delete_%2\$d'><img src='%1\$s' onClick='verw_rekeningregel(%2\$d);'</td>", BASE64_VERWIJDER_KLEIN, $rrrow->RecordID);
+				printf("<td id='Delete_%1\$d'><i class='bi bi-trash' onClick='verw_rekeningregel(%1\$d);'</td>", $rrrow->RecordID);
 				echo("</tr>\n");
 			}
 			echo("</table>\n");
@@ -280,7 +277,7 @@ function fnRekeningMuteren($p_rkid=-1) {
 		echo("</form>\n");
 		
 		echo("<div id='opdrachtknoppen'>\n");
-		printf("<button type='button' name='Sluiten' onClick=\"location.href='%s?tp=%s/Beheer'\">Sluiten</button>\n", $_SERVER['PHP_SELF'], $currenttab);
+		printf("<button type='button' name='Sluiten' onClick=\"location.href='%s?tp=%s/Beheer'\"><i class='bi bi-door-closed'></i> Sluiten</button>\n", $_SERVER['PHP_SELF'], $currenttab);
 		
 		$f = sprintf("Nummer < %d", $reknr);
 		$prev_rek = $i_rk->max("RK.Nummer", $f);
@@ -288,16 +285,16 @@ function fnRekeningMuteren($p_rkid=-1) {
 		$next_rek = $i_rk->min("RK.Nummer", $f);
 		
 		if ($prev_rek > 0) {
-			printf("<button type='button' name='VorigeRekening' onClick=\"location.href='%s?tp=%s/Muteren&p_reknr=%d'\">Vorige rekening</button>\n", $_SERVER['PHP_SELF'], $currenttab, $prev_rek);
+			printf("<button type='button' name='VorigeRekening' onClick=\"location.href='%s?tp=%s/Muteren&p_reknr=%d'\"><i class='bi bi-skip-backward-circle'></i> Vorige rekening</button>\n", $_SERVER['PHP_SELF'], $currenttab, $prev_rek);
 		}
 		if ($next_rek > 0) {
-			printf("<button type='button' name='VolgendeRekening' onClick=\"location.href='%s?tp=%s/Muteren&p_reknr=%d'\">Volgende rekening</button>\n", $_SERVER['PHP_SELF'], $currenttab, $next_rek);
+			printf("<button type='button' name='VolgendeRekening' onClick=\"location.href='%s?tp=%s/Muteren&p_reknr=%d'\"><i class='bi bi-skip-forward-circle'></i> Volgende rekening</button>\n", $_SERVER['PHP_SELF'], $currenttab, $next_rek);
 		}
 		
 		$f = sprintf("RR.Rekening=%d", $reknr);
 		if ($i_rr->aantal($f) > 0) {
-			printf("<button type='button' onClick=\"location.href='%s?tp=%s&op=preview_rek&p_reknr=%d'\">Bekijk rekening</button>\n", $_SERVER['PHP_SELF'], $currenttab, $reknr);
-			printf("<button type='button' onClick=\"location.href='%s?tp=%s&op=send_rek&p_reknr=%d'\">Verstuur rekening</button>\n", $_SERVER['PHP_SELF'], $currenttab, $reknr);
+			printf("<button type='button' onClick=\"location.href='%s?tp=%s&op=preview_rek&p_reknr=%d'\"><i class='bi bi-eye'></i> Bekijk rekening</button>\n", $_SERVER['PHP_SELF'], $currenttab, $reknr);
+			printf("<button type='button' onClick=\"location.href='%s?tp=%s&op=send_rek&p_reknr=%d'\"><i class='bi bi-envelope-at'></i> Verstuur rekening</button>\n", $_SERVER['PHP_SELF'], $currenttab, $reknr);
 		}
 		
 		
@@ -411,7 +408,7 @@ function RekeningenAanmaken() {
 					if ($vnm == $lidrow->Achternaam . ", " . $lidrow->TUSSENV) {
 						$debnaam = $lidrow->Roepnaam . $debnaam;
 					} else {
-						$debnaam = $lidrow->Naam_lid . $debnaam;
+						$debnaam = $lidrow->NaaLid . $debnaam;
 					}
 					$agl++;
 				}
@@ -432,7 +429,7 @@ function RekeningenAanmaken() {
 				
 			echo("<ul>\n");
 			foreach($lidrows as $lidrow) {
-				printf("<li>%s</li>\n", $lidrow->Naam_lid);
+				printf("<li>%s</li>\n", $lidrow->NaamLid);
 			}
 			echo("</ul>\n<div class='clear'></div>\n");
 			echo("<div id='opdrachtknoppen'>\n");
@@ -452,13 +449,13 @@ function RekeningenAanmaken() {
 	
 		printf("<label>Seizoen</label><select name='seizoen' onChange='this.form.submit();'>%s</select>\n", $i_sz->htmloptions($seizoen));
 
-		printf("<label>Omschrijving rekening</label><input type='text' id='Rekeningomschrijving' maxlength=30 class='w30' value='%s'>\n", $szrow->Rekeningomschrijving);
+		printf("<label>Omschrijving rekening</label><input type='text' id='Rekeningomschrijving' maxlength=35 class='w35' value='%s'>\n", $szrow->Rekeningomschrijving);
 	
 		printf("<label>Datum rekening</label><input type='date' name='Rekeningdatum' value='%s'>\n", date("Y-m-d"));
 		printf("<label class='k2'>Eerste nummer rekening</label><input type='number' name='eerstenummer' value=%d>\n", $eerstenummer);
 		printf("<label class='k2'>Verzamelen per gezin?</label><input type='checkbox' id='RekeningenVerzamelen' %s>\n", checked($szrow->RekeningenVerzamelen));
 		
-		printf("<label>Lidmaatschap ingevoerd na</label><input type='date' name='lmingevoerdna' value='%s'>\n", $i_lm->min("Ingevoerd"));
+		printf("<label>Lidmaatschap ingevoerd na</label><input type='date' name='lmingevoerdna' value='%s'>\n", substr($i_lm->min("Ingevoerd"), 0, 10));
 	
 		printf("<label>Omschrijving verenigingscontributie</label><input type='text' id='Verenigingscontributie omschrijving' maxlength=50 class='w50' value='%s'>\n", $szrow->{'Verenigingscontributie omschrijving'});
 		printf("<label class='k2'>Kostenplaats</label><input type='text' id='Verenigingscontributie kostenplaats' maxlength=12 class='w12' value='%s'>\n", $szrow->{'Verenigingscontributie kostenplaats'});
@@ -823,66 +820,6 @@ function RekeningDetail($p_rkid, $p_metbriefpapier=0) {
 	return $rv;
 
 } # RekeningDetail
-
-function fnKostenoverzicht() {
-	
-	$i_mut = new cls_Mutatie();
-	$i_gbr = new cls_GBR();
-
-	$val_jaarfilter = "";
-	$val_gbrfilter = "";
-	$val_kplfilter = "";
-	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		if (isset($_POST['lbJaarFilter'])) {
-			$val_jaarfilter = $_POST['lbJaarFilter'];
-		}
-		if (isset($_POST['lbGBRFilter'])) {
-			$val_gbrfilter = $_POST['lbGBRFilter'];
-		}
-		if (isset($_POST['lbKPLFilter'])) {
-			$val_kplfilter = $_POST['lbKPLFilter'];
-		}
-	}
-	
-	echo("<div id='filter'>\n");
-	printf("<form name='Filter' action='%s?%s' method='post'>", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
-	echo("<table>\n");
-	echo("<tr>\n");
-	$ret = "";
-	foreach ((new cls_Boekjaar())-basislijst("", "Begindatum") as $row) {
-		if ($val_jaarfilter == $row->RecordID or strlen($val_jaarfilter) == 0) {
-			$s = " selected";
-			$val_jaarfilter = $row->RecordID;
-		} else {
-			$s = "";
-		}
-		$ret .= sprintf('<option%s value="%2$s">%3$s</option>\n', $s, $row->RecordID, $row->Jaar);
-	}
-	printf("<td class='label'>Boekjaar</td><td><select name='lbJaarFilter' onchange='form.submit();'>%s</select></td>\n", $ret);
-	
-	$ret = "<option value='*'>Alle</option>\n" . $i_gbr->htmloptions($val_gbrfilter);
-	printf("<td class='label'>Grootboekrekening</td><td><select name='lbGBRFilter' onchange='form.submit();'>%s</select></td>\n", $ret);
-	
-	$ret = "<option value='*'>Alle</option>\n";
-	foreach ((new cls_Kostenplaats())->basislijst("", "Kode") as $row) {
-		if ($val_kplfilter == $row->Kode) {
-			$s = " selected";
-		} else {
-			$s = "";
-		}
-		$ret .= sprintf('<option%s value="%s">%s</option>\n', $s, $row->Kode, $row->Kode);
-	}
-	printf("<td class='label'>Kostenplaats</td><td><select name='lbKPLFilter' onchange='form.submit();'>%s</select></td>\n", $ret);
-	
-	echo("</tr>\n");
-	echo("</table>\n");
-	echo("</form>\n");
-	echo("</div>  <!-- Einde filter -->\n");
-
-	$lijst = (new cls_Mutatie())->lijst($val_jaarfilter, $val_gbrfilter, $val_kplfilter);
-	echo(fnDisplayTable($lijst, "", "", 1));
-	
-}  # fnKostenoverzicht
 
 function fnBedrag($bedrag) {
 	if (strlen($_SESSION['settings']['mailing_rekening_valuta']) == 0) {

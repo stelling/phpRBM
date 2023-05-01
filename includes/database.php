@@ -388,6 +388,8 @@ class cls_db_base {
 		if ($r > $rid) {$rid = $r; }
 		$r = $this->scalar(sprintf("SELECT IFNULL(MAX(DP.RecordID), 0) FROM %sDiploma AS DP;", TABLE_PREFIX));
 		if ($r > $rid) {$rid = $r; }
+		$r = $this->scalar(sprintf("SELECT IFNULL(MAX(ST.RecordID), 0) FROM %sStukken AS ST;", TABLE_PREFIX));
+		if ($r > $rid) {$rid = $r; }
 		
 		if ($tabel == "Organisatie") {
 			$rid = 1;
@@ -2896,11 +2898,13 @@ class cls_Lidond extends cls_db_base {
 	private $ondtype = "";				// Type van het onderdeel
 	private $ondkader = 0;				// Is dit kader?
 	public $lidnaam = "";				// De naam van het lid
+	private $idgroep = 0;				// RecordID van de afdelingsgroep
+	private $omsgroep = "";				// Omschrijving van de afdelingsgroep
 	private $alleenleden = 0;			// Mogen bij dit onderdeel alleen leden worden ingedeeld?
-	private $ledenmuterendoor = 0;	// Welke groep mag de leden van dit onderdeel muteren.
+	private $ledenmuterendoor = 0;		// Welke groep mag de leden van dit onderdeel muteren.
 	public $organisatie = 0;			// Bij welke organisatie is dit onderdeel aangesloten?
-	public $magmuteren = false;		// Mag het ingelogde lid deze mutaties doen?
-	private $sqlmgr = "";
+	public $magmuteren = false;			// Mag het ingelogde lid deze mutaties doen?
+	private $sqlmgr = "";				// SQL-code om de laatste mutatie van afdelingsgroep te bepalen.
 	
 	function __construct($p_ondid=-1, $p_lidid=-1, $p_loid=-1) {
 		parent::__construct();
@@ -2926,11 +2930,12 @@ class cls_Lidond extends cls_db_base {
 		}
 
 		if ($this->loid > 0) {
-			$this->query = sprintf("SELECT LO.Lid, LO.OnderdeelID FROM %s WHERE LO.RecordID=%d;", $this->basefrom, $this->loid);
+			$this->query = sprintf("SELECT LO.Lid, LO.OnderdeelID, LO.GroepID FROM %s WHERE LO.RecordID=%d;", $this->basefrom, $this->loid);
 			$row = $this->execsql()->fetch();
 			if (isset($row->Lid)) {
 				$this->lidid = $row->Lid;
 				$this->ondid = $row->OnderdeelID;
+				$this->idgroep = $row->GroepID;
 			} else {
 				$this->mess = sprintf("Record in lidond met RecordID %d bestaat niet.", $this->loid);
 				$this->tm = 1;
@@ -3000,6 +3005,13 @@ class cls_Lidond extends cls_db_base {
 		} else {
 			$this->lidnaam = "";
 		}
+		
+		if ($this->idgroep > 0) {
+			$query = sprintf("SELECT MAX(GR.Omschrijving) FROM %sGroep AS GR WHERE GR.RecordID=%d;", TABLE_PREFIX, $this->idgroep);
+			$this->omsgroep = $this->scalar($query);
+		} else {
+			$this->omsgroep = "";
+		}
 	}  # vulvars
 	
 	public function record($p_lidid, $p_ondid=-1, $p_per="", $p_loid=0) {
@@ -3047,8 +3059,13 @@ class cls_Lidond extends cls_db_base {
 			// Commissieleden en functionarissen die niet onder het kader vallen, meestal aangesteld door de AV
 			$w = cls_db_base::$wherelidond . " AND ((O.TYPE='C' AND O.Kader=False) OR (O.TYPE='F' AND F.Kader=False))";
 			
+		} elseif ($p_filter === 8) {
+			// Geen filter
+			$w = "(1 = 1)";
+			
 		} elseif (strlen($p_filter) > 1) {
 			$w = $p_filter;
+			
 		} else {	
 			// Leden op per datum
 			$w = sprintf("LO.Vanaf <= '%1\$s' AND IFNULL(LO.Opgezegd, '9999-12-31') >= '%1\$s'", $p_per);
@@ -3070,7 +3087,7 @@ class cls_Lidond extends cls_db_base {
 		}
 		
 		$query = sprintf("SELECT LO.RecordID, LO.Lid AS LidID, LO.OnderdeelID, LO.Opmerk, LO.Vanaf, LO.Opgezegd, LO.EmailFunctie, LO.GroepID, LO.Functie AS FunctieID, LO.Lid,
-						  %s AS NaamLid, L.Roepnaam, L.Achternaam, L.Tussenv, L.GEBDATUM, %s AS Leeftijd, L.Email, L.EmailVereniging, 
+						  %s AS NaamLid, L.Roepnaam, L.Achternaam, L.Tussenv, L.GEBDATUM, %s AS Leeftijd, %s AS Email, L.EmailVereniging, 
 						  F.Omschrijv AS Functie, F.Afkorting AS FunctAfk, F.Inval AS Invalfunctie, %s AS Groep, GR.DiplomaID,
 						  O.Kode, O.Naam AS OndNaam, O.CentraalEmail,
 						  GR.Kode AS GrCode, GR.Omschrijving AS GrNaam, GR.Aanwezigheidsnorm, L.RelnrRedNed AS SportlinkID,
@@ -3080,8 +3097,7 @@ class cls_Lidond extends cls_db_base {
 							ELSE '' END AS `FunctieGroep`
 						  FROM %s
 						  WHERE %s
-						  ORDER BY %sL.Achternaam, L.Tussenv, L.Roepnaam%s;", $this->selectnaam, $this->selectleeftijd, $this->selectgroep, $this->fromlidond, $w, $p_ord, $lm);
-						  debug($query, 0, 1);
+						  ORDER BY %sL.Achternaam, L.Tussenv, L.Roepnaam%s;", $this->selectnaam, $this->selectleeftijd, $this->selectemail, $this->selectgroep, $this->fromlidond, $w, $p_ord, $lm);
 		$result = $this->execsql($query);
 		if ($p_fetched == 1) {
 			return $result->fetchAll();
@@ -3352,7 +3368,7 @@ class cls_Lidond extends cls_db_base {
 	
 	public function update($p_loid, $p_kolom, $p_waarde, $p_reden="") {
 		$this->vulvars($p_loid);
-			$this->tas = 12;
+		$this->tas = 12;
 		$rv = false;
 		$this->tm = 0;
 		$this->ta = 6;
@@ -3392,6 +3408,10 @@ class cls_Lidond extends cls_db_base {
 		} else {
 			if ($this->pdoupdate($this->loid, $p_kolom, $p_waarde, $p_reden) > 0) {
 				$rv = true;
+				if ($p_waarde > 0 and $p_kolom == "GroepID") {
+					$this->omsgroep = (new cls_Groep(-1, $p_waarde))->groms;
+					$this->mess = sprintf("Tabel Lidond: van record %d (%s) is kolom 'GroepID' in %d (%s) gewijzigd.", $this->loid, $this->naamlogging, $p_waarde, $this->omsgroep);
+				}
 			}
 		}
 		$this->log($this->loid, 0);
@@ -6264,7 +6284,7 @@ class cls_Liddipl extends cls_db_base {
 		}
 		
 		if ($this->lidid > 0 and $this->dpid > 0) {
-			$dubqry_ex = sprintf("SELECT COUNT(*) FROM %s WHERE LD.Lid=%d AND LD.Examen=%d AND LD.DiplomaID;", $this->basefrom, $this->lidid, $p_examen, $this->dpid);
+			$dubqry_ex = sprintf("SELECT COUNT(*) FROM %s WHERE LD.Lid=%d AND LD.Examen=%d AND LD.DiplomaID=%d;", $this->basefrom, $this->lidid, $p_examen, $this->dpid);
 			if ($p_examen > 0 and $this->scalar($dubqry_ex) > 0)  {
 				$this->mess = sprintf("%s wordt niet toegevoegd, omdat dit record voor dit lid bij dit examen al bestaat.", $this->dpnaam);
 			} else {
@@ -6893,8 +6913,8 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 	
 	private $edid = 0;
 	private $evid = 0;
-	private $omsEvenement = "";
-	private $stdstatus = "";
+	private $evoms = "";
+	private $standaardstatus = "";
 	private $meerderestartmomenten = 0;
 	private $casestatus = "";
 	
@@ -6932,16 +6952,17 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 		}
 		
 		if ($this->evid > 0) {
-			$query = sprintf("SELECT E.Omschrijving, E.StandaardStatus, E.MeerdereStartMomenten FROM %sEvenement AS E WHERE E.RecordID=%d;", TABLE_PREFIX, $this->evid);
+			$query = sprintf("SELECT E.* FROM %sEvenement AS E WHERE E.RecordID=%d;", TABLE_PREFIX, $this->evid);
 			$row = $this->execsql($query)->fetch();
-			if (isset($row)) {
-				$this->OmsEvenement = $row->Omschrijving;
+			if (isset($row->RecordID)) {
+				$this->evoms = $row->Omschrijving;
 				$this->naamlogging = $row->Omschrijving;
-				$this->stdstatus = $row->StandaardStatus;
+				$this->standaardstatus = $row->StandaardStatus;
 				$this->meerderestartmomenten = $row->MeerdereStartMomenten;
+			} else {
+				$this->evid = 0;
 			}
 		}
-		
 	}
 	
 	public function lijst($p_evid) {
@@ -7010,7 +7031,7 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 		$this->tas = 11;
 		
 		if (strlen($p_status) == 0){
-			$p_status = $this->stdstatus;
+			$p_status = $this->standaardstatus;
 		}
 		
 		$query = sprintf("SELECT COUNT(*) FROM %s AS ED WHERE ED.LidID=%d AND ED.EvenementID=%d;", $this->table, $this->lidid, $this->evid);
@@ -7019,14 +7040,14 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 			if ($this->execsql($query) > 0) {
 				$this->edid = $nrid;
 				$this->vulvars();
-				$this->mess = sprintf("Is bij evenement %d (%s) met status '%s' toegevoegd.", $p_evid, $this->OmsEvenement, $p_status);
+				$this->mess = sprintf("Is bij evenement %d (%s) met status '%s' toegevoegd.", $p_evid, $this->naamlogging, $p_status);
 				$this->log($nrid);
 				return $nrid;
 			} else {
 				return 0;
 			}
 		} else {
-			$this->mess = sprintf("Lid %d is al deelnemer aan evenement %d (%s) en wordt niet toegevoegd.", $this->lidid, $this->evid, $this->omsEvenement);
+			$this->mess = sprintf("Lid %d is al deelnemer aan evenement %d (%s) en wordt niet toegevoegd.", $this->lidid, $this->evid, $this->evoms);
 			$this->log(0, 1);
 			return 0;
 		}

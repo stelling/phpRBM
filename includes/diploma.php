@@ -59,7 +59,7 @@ function Diplomalijstmuteren() {
 	printf("<form method='post' action='%s?tp=%s/%s'>", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
 	echo(fnEditTable($res, $kols, "diplomaedit", "Muteren diploma's"));
 	echo("<div id='opdrachtknoppen'>\n");
-	echo("<button type='submit' name='nieuwdiploma'>Diploma toevoegen</buton>\n");
+	echo("<button type='submit' name='nieuwdiploma'><i class='bi bi-plus-circle'></i> Diploma toevoegen</buton>\n");
 	echo("</div> <!-- Einde opdrachtknoppen -->\n");
 	echo("</form>");
 	echo("</div> <!-- Einde diplomasmuteren -->\n");
@@ -112,7 +112,6 @@ function ExamensMuteren() {
 function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 	global $dtfmt, $currenttab;
 	
-	$i_dp = new cls_Diploma();
 	$i_ld = new cls_Liddipl();
 	$i_lid = new cls_Lid();
 	$i_gr = new cls_Groep($p_afdid);
@@ -133,6 +132,7 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 	
 	$exid = $_POST['selecteerexamen'] ?? 0;
 	$dpid = $_POST['selecteerdiploma'] ?? 0;
+	$i_dp = new cls_Diploma($dpid);
 	
 	if ($exid == -1) {
 		$exid = $i_ex->add();
@@ -180,10 +180,10 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 	
 	echo("<label>Diploma</label>");
 	printf("<select name='selecteerdiploma' onChange='this.form.submit();'>\n<option value=-1>Selecteer diploma ...</option>\n%s</select>\n", $i_dp->htmloptions($dpid, -1, 0, 0, $f, 0, $i_ex->exid));
-	if ($isrn or $exid > 0) {
-		echo("<button type='submit' name='dl_lijst'>Ververs scherm</button>\n");
+	if ($exid > 0) {
+		echo("<button type='submit'><i class='bi bi-arrow-clockwise'></i> Ververs scherm</button>\n");
 	}
-	if ($exid > 0 and $dpid > 0 and $dpid > 0) {
+	if ($exid > 0 and $dpid > 0 and $i_dp->organisatie == 1) {
 		printf("<button type='button' onClick=\"location.href='%s?tp=%s/DL-lijst&p_examen=%d&p_diploma=%d'\">DL-lijst</button>\n", $_SERVER['PHP_SELF'], $currenttab, $exid, $dpid);
 	}
 	echo("</div> <!-- Einde filter -->\n");
@@ -255,7 +255,9 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 				$vg = $i_gr->max("RecordID", $f);
 			}
 	
-			echo("<div class='kandidatengroep'>\n");
+			if ($p_perexamen == 1) {
+				echo("<div class='kandidatengroep'>\n");
+			}
 			echo("<table>\n");
 			$t = "";
 			if ($p_perexamen == 1) {
@@ -318,14 +320,14 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 				if ($isrn == 1 and strlen($ldrow->GEBPLAATS) > 1) {
 					$gb .= " te " . $ldrow->GEBPLAATS;
 				}
-				printf("<tr><td id='naam_%2\$d'>%1\$s</td><td>%3\$s</td>", $ldrow->NaamLid, $ldrow->RecordID, $gb);
+				printf("<tr%1\$s><td id='naam_%3\$d'>%2\$s</td><td>%4\$s</td>", $cl, $ldrow->NaamLid, $ldrow->RecordID, $gb);
 				
 				if ($isrn) {
 					printf("<td>%s</td>", $ldrow->RelnrRedNed);
 				}
 				
 				if ($p_perexamen == 0) {
-					printf("<td%s><input type='date' id='DatumBehaald_%d' value='%s'></td>", $cl, $ldrow->RecordID, $ldrow->DatumBehaald);
+					printf("<td><input type='date' id='DatumBehaald_%d' value='%s'></td>", $ldrow->RecordID, $ldrow->DatumBehaald);
 				}
 				if ($p_perexamen == 0) {
 					printf("<td><input type='text' id='Diplomanummer_%d' class='w25' value='%s' maxlength=25></td>", $ldrow->RecordID, $ldrow->Diplomanummer);
@@ -333,10 +335,12 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 				}
 
 				$jsdo = sprintf("OnClick=\"liddipl_verw(%d);\"", $ldrow->RecordID);
-				printf("<td><img src='%s' alt='Verwijderen' title='Verwijderen %s' %s></td>", BASE64_VERWIJDER_KLEIN, htmlentities($ldrow->NaamLid), $jsdo);
+				printf("<td><i class='bi bi-trash' alt='Verwijderen' title='Verwijderen %s' %s></i></td>", htmlentities($ldrow->NaamLid), $jsdo);
 		
 				if (strlen($dd) > 0) {
 					printf("<td>%s</td>", $dd);
+				} else {
+					echo("<td></td>");
 				}
 				echo("</tr>\n");
 				$f = sprintf("LO.Lid=%d AND LO.OnderdeelID=%d AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE() AND LO.Functie=0", $ldrow->Lid, $p_afdid);
@@ -380,7 +384,9 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 					printf("<button type='submit' name='nwe_groep' value='%d-%d'%s>%s naar groep %s</button>\n", $vgrow->RecordID, $i_dp->dpid, $t, $ol, $vgrow->Omschrijving);
 				}
 			}
-			echo("</div> <!-- Einde kandidatengroep -->\n");
+			if ($p_perexamen == 1) {
+				echo("</div> <!-- Einde kandidatengroep -->\n");
+			}
 		}
 	}
 	echo("</div> <!-- Einde examenresultaten -->\n");

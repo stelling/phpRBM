@@ -392,7 +392,7 @@ function fnVoorblad() {
 		$content = "<p class='mededeling'>Er is geen introductie beschikbaar.</p>\n";
 	}
 	
-	return sprintf("<div id='welkomstekst'>\n%s</div>  <!-- Einde welkomstekst -->\n", $content);
+	return sprintf("<div id='welkomsttekst'>\n%s</div>  <!-- Einde welkomsttekst -->\n", $content);
 	
 }  # fnVoorblad
 
@@ -421,14 +421,14 @@ function fnAgenda($p_lidid=0) {
 		}
 	}
 	
-	$dtStart = mktime(0, 0, 0, date("m"), 1, date("Y"));
-	
+	$dtStart = strtotime("-1 week");
 	while (date("N", $dtStart) > 1) {
 		$dtStart = strtotime("-1 day", $dtStart);
 	}
 	
 	//	$txt .= "<p class='mededeling'>De agenda is nog in ontwikkeling</p>\n";
-	$txt = "<table>\n<tr>\n";
+	$txt = "<table class='table table-hover'>\n";
+	$txt .= "<tr>\n";
 	$dtfmt->setPattern("EEE");
 	for ($dn=1;$dn<=7;$dn++) {
 		$txt .= sprintf("<th>%s</th>", $dtfmt->format(strtotime(sprintf("+%d day", $dn-1), $dtStart)));
@@ -441,7 +441,8 @@ function fnAgenda($p_lidid=0) {
 			$td = strtotime(sprintf("+%d day", $dn-1), $sw);
 			$c = "";
 			if (date("Ymd", $td) == date("Ymd")) {
-				$c = " class='vandaag'";
+//				$c = " class='vandaag'";
+				$c = " class='table-active'";
 			}
 			if (array_key_exists(date("Ymd", $td), $fds)) {
 				$txt .= sprintf("<td%s><ul><li>%s</li>", $c, $fds[date("Ymd", $td)]);
@@ -582,8 +583,11 @@ function fnStukken() {
 	} else {
 	
 		$rows = $i_stuk->editlijst();
+		
 		$kols[0]['link'] = sprintf("%s?tp=%s&p_scherm=F&p_stid=%%d", BASISURL, $_GET['tp']);
 		$kols[0]['columnname'] = "RecordID";
+		$kols[0]['class'] = "muteren";
+		
 		$kols[1]['headertext'] = "Titel";
 		$kols[2]['headertext'] = "Type";
 		$kols[3]['headertext'] = "Bestemd voor";
@@ -596,11 +600,13 @@ function fnStukken() {
 		
 		$kols[7]['link'] = sprintf("%s?tp=%s&op=delete&p_stid=%%d", BASISURL, $_GET['tp']);
 		$kols[7]['columnname'] = "RecordID";
+		$kols[7]['class'] = "trash";
+		
 		echo(fnDisplayTable($rows, $kols));
 		
 		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 		echo("<div id='opdrachtknoppen'>\n");
-		echo("<input type='submit' name='Toevoegen' value='Stuk toevoegen'>\n");
+		echo("<button type='submit' name='Toevoegen' title='Stuk toevoegen'><i class='bi bi-plus-circle'></i> Stuk toevoegen</button>\n");
 		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 		echo("</form>\n");
 		

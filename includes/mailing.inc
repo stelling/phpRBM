@@ -94,12 +94,14 @@ function fnMailing() {
 	} elseif ($op == "historie" and $_GET['mid'] > 0) {
 		$rows = (new cls_Mailing_hist())->lijst($_GET['mid']);
 		if (count($rows) > 0) {
-			$kols[0]['link'] = sprintf("<a href='index.php?tp=%s&amp;op=histdetails&mhid=%%d'>%%s</a>", $_GET['tp']);
+			$kols[0]['link'] = sprintf("index.php?tp=%s&amp;op=histdetails&mhid=%%d", $_GET['tp']);
 			$kols[0]['class'] = "details";
 			$kols[0]['columnname'] = "RecordID";
+			
 			$kols[1]['headertext'] = "Verzonden";
 			$kols[1]['columnname'] = "Verzonden";
 			$kols[1]['type'] = "datetime";
+			
 			$kols[2]['headertext'] = "Aan";
 			$kols[2]['columnname'] = "Aan";
 			$kols[2]['type'] = "combitext";
@@ -720,7 +722,7 @@ class Mailing {
 			}
 			echo("</ul>");
 
-			echo("<label>Bijlagen</label>\n<div class='invoerblok'>\n");
+			echo("<label>Bijlagen</label>\n<div id='bijlagen'>\n");
 			if (strlen($tabbijlagefiles) > 0) {
 				echo("<table>\n");
 				echo($tabbijlagefiles);
@@ -729,7 +731,7 @@ class Mailing {
 			echo("<input type='file' name='UploadFile'>\n");
 			echo("<input type='submit' name='UploadBijlage' value='Upload bijlage'>");
 			printf("<p>(Extensies '%s' zijn toegestaan)</p>\n", $this->allowed_ext);
-			echo("</div>  <!-- Einde invoerblok -->\n");
+			echo("</div>  <!-- Einde bijlagen -->\n");
 		}
 		
 		$this->controle();
@@ -753,21 +755,21 @@ class Mailing {
 		
 		echo("<div id='opdrachtknoppen'>\n");
 		if ($this->mid > 0) {
-			echo("<button type='submit' name='action' value='Bewaren'>Bewaren</button>\n");
+			echo("<button type='submit' name='action' value='Bewaren'><i class='bi bi-save'></i> Bewaren</button>\n");
 			echo("<button type='submit' name='action' value='Bewaren & sluiten'>Bewaren & sluiten</button>\n");
 		} else {
 			echo("<button type='submit' name='Toevoegen'>Toevoegen</button>\n");
 		}
 
-		echo("<button type='submit' name='action' value='Verstuur mailing' title='Verstuur mailing' id='btnverstuurmailing'>Verstuur mailing</button>\n");
+		echo("<button type='submit' name='action' value='Verstuur mailing' title='Verstuur mailing' id='btnverstuurmailing'><i class='bi bi-envelope-at'></i> Verstuur mailing</button>\n");
 		
 		$lnk = sprintf("%s?tp=%s&op=savepreview&mid=%d", $_SERVER['PHP_SELF'], $currenttab, $this->mid);
-		echo("<button type='submit' name='action' value='Bekijk voorbeeld' id='btnbekijkvoorbeeld'>Bekijk voorbeeld</button>\n");
+		echo("<button type='submit' name='action' value='Bekijk voorbeeld' id='btnbekijkvoorbeeld'><i class='bi bi-eye'></i> Bekijk voorbeeld</button>\n");
 
 		if ($this->mid > 0 and $this->deleted_on > "1901-01-01" and $_SESSION['webmaster'] == 1) {
 			printf("<button type='submit' name='action' value='Verwijderen ongedaan maken' title='Verwijderen ongedaan maken'>Verwijderen ongedaan maken</button>\n");
 		} elseif ($this->mid > 0 and $this->deleted_on < "1901-01-01" and ($_SESSION['webmaster'] == 1 or $_SESSION['lidid'] == $this->IngevoerdDoor)) {
-			printf("<button type='submit' name='action' value='Verwijderen'>Verwijderen</button>\n");
+			printf("<button type='submit' name='action' value='Verwijderen'><i class='bi bi-trash'></i> Verwijderen</button>\n");
 		}
 		echo("</div>  <!-- Einde opdrachtknoppen -->\n");
 		
@@ -840,9 +842,9 @@ class Mailing {
 		foreach($rcpt_rows as $rcpt) {
 			$jsdo = sprintf("OnClick=\"mailing_verw_ontvanger(%d, '%s');\"", $rcpt->RecordID, $rcpt->to_address);
 			if ($rcpt->LidID > 0) {
-				$item = sprintf("%s&nbsp;<img src='%s' alt='Verwijderen' title='Verwijderen' %s>", htmlentities($rcpt->NaamLid), BASE64_VERWIJDER_KLEIN, $jsdo);
+				$item = sprintf("%s&nbsp;<i class='bi bi-trash' %s alt='Verwijderen' title='Verwijderen'></i>", htmlentities($rcpt->NaamLid), $jsdo);
 			} else {
-				$item = sprintf("%s&nbsp;<img src='%s' alt='Verwijderen' title='Verwijderen' %s>", $rcpt->to_address, BASE64_VERWIJDER_KLEIN, $jsdo);
+				$item = sprintf("%s&nbsp;<i class='bi bi-trash' %s alt='Verwijderen' title='Verwijderen'></i>", $rcpt->to_address, $jsdo);
 				$this->bevat_losse_email = true;
 			}
 			if ($p_asarray) {
@@ -1410,9 +1412,11 @@ function lijstmailings($p_filter="") {
 			
 	} elseif ($p_filter == "Verzonden mails" or $p_filter == "Verzonden e-mails" or $p_filter == "Outbox") {
 		$i_mh = new cls_Mailing_hist();
-		$kols[0]['link'] = sprintf("<a href='index.php?tp=%s&op=bekijkmail&MailingHistID=%%d'>%%s</a>", urlencode($_GET['tp']));
+		$kols[0]['link'] = sprintf("index.php?tp=%s&op=bekijkmail&MailingHistID=%%d", urlencode($_GET['tp']));
 		$kols[0]['headertext'] = "&nbsp;";
 		$kols[0]['columnname'] = "RecordID";
+		$kols[0]['class'] = "viewmail";
+		
 		$kols[1]['headertext'] = "Verzonden";
 		$kols[1]['columnname'] = "send_on";
 		$kols[1]['type'] = "DTLONG";
@@ -1447,7 +1451,7 @@ function lijstmailings($p_filter="") {
 			$kols[7]['columnname'] = "NietVersturenVoor";
 			$kols[7]['type'] = "DTHMS";
 			
-			$kols[8]['link'] = sprintf("<a href='index.php?tp=%s&op=deletehist&MailingHistID=%%d'>&nbsp;&nbsp;&nbsp;</a>", urlencode($_GET['tp']));
+			$kols[8]['link'] = sprintf("index.php?tp=%s&op=deletehist&MailingHistID=%%d", urlencode($_GET['tp']));
 			$kols[8]['columnname'] = "RecordID";
 			$kols[8]['class'] = "trash";
 			

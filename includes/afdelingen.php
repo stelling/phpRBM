@@ -43,6 +43,7 @@ function fnAfdelingslijst($afdid) {
 	$i_dp = new cls_Diploma();
 	$i_lo = new cls_Lidond($afdid);
 	$afdnm = $i_lo->ondnaam;
+	$i_lo->auto_einde($afdid, 480);
 	
 	$diplfilter = $_POST['bezitdiploma'] ?? -1;
 	$xf = "";
@@ -59,8 +60,8 @@ function fnAfdelingslijst($afdid) {
 	if (toegang($afdnm . "/Overzicht lid", 0, 0)) {
 		$kols[0]['headertext'] = "&nbsp;";
 		$kols[0]['columnname']= "LidID";
-		$kols[0]['link'] = "<a href='index.php?tp=" . $afdnm . "/Overzicht+lid&lidid=%d'>%s</a>";
-		$kols[0]['class'] = "details";
+		$kols[0]['link'] = "index.php?tp=" . $afdnm . "/Overzicht+lid&lidid=%d";
+		$kols[0]['class'] = "detailslid";
 	}
 	$kols[1]['headertext'] = "Naam lid";
 	$kols[1]['columnname'] = "NaamLid";
@@ -141,9 +142,9 @@ function fnAfdelingskalenderMuteren($p_onderdeelid){
 	
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	
-	echo("<button type='submit' name='nieuw'>Nieuw item</button>\n");
-	echo("<button type='submit' name='nieuw7'>7 nieuwe items</button>\n");
-	echo("<table id='afdelingskalendermuteren'>\n");
+	echo("<button type='submit' name='nieuw'><i class='bi bi-plus-circle'></i> Nieuw item</button>\n");
+	echo("<button type='submit' name='nieuw7'><i class='bi bi-7-circle'></i> nieuwe items</button>\n");
+	echo("<table id='afdelingskalendermuteren' class='table table-hover'>\n");
 	$dat = "";
 	$oms = "";
 	$act = false;
@@ -163,7 +164,7 @@ function fnAfdelingskalenderMuteren($p_onderdeelid){
 		
 		printf("<td><input type='checkbox' id='Activiteit_%d' title='Is er zwemmen?' value=1 %s></td>", $row->RecordID, checked($row->Activiteit));
 		if ($aw == 0) {
-			printf("<td class='trash'><a href='%s?tp=%s&KalID=%d&op=delete'>&nbsp;&nbsp;&nbsp;</a></td>", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
+			printf("<td><a href='%s?tp=%s&KalID=%d&op=delete'><i class='bi bi-trash'></i></a></td>", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
 		} else {
 			echo("<td></td>");
 		}
@@ -324,7 +325,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 		
 		echo("<div id='filter'>\n");
 		printf("<label>Inclusief kader?</label><input type='checkbox' name='inclkader' value=1%s>\n", checked($inclkader));
-		echo("<button type='submit'>Ververs scherm</button>\n");
+		echo("<button type='submit'><i class='bi bi-arrow-clockwise'></i> Ververs scherm</button>\n");
 		echo("</div> <!-- Einde filter -->\n");
 		
 		$grrows = $i_gr->selectlijst($afdid);
@@ -420,7 +421,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 				printf("<td><input type='number' class='num3' id='Aanwezigheidsnorm_%d'  title='Aanwezigheidsnorm' value=%d></td>\n", $row->RecordID, $row->Aanwezigheidsnorm);
 				if ($plmog) {
 					if ($row->aantalInGroep > 0) {
-						printf("<td class='print'><a href='./maatwerk/Presentielijst.php?p_groep=%d' title='Presentielijst %d leden'>&nbsp;</a></td>", $row->RecordID, $row->aantalInGroep);
+						printf("<td><a href='./maatwerk/Presentielijst.php?p_groep=%d' title='Presentielijst %d leden'><i class='bi bi-printer'></i></a></td>", $row->RecordID, $row->aantalInGroep);
 					} else {
 						echo("<td></td>");
 					}
@@ -432,8 +433,8 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 		echo("</table>\n");
 		
 		echo("<div id='opdrachtknoppen'>\n");
-		echo("<input type='submit' value='Ververs scherm'>\n");
-		echo("<button type='submit' name='NieuweGroep' value='NieuweGroep'>Nieuwe groep</button>\n");
+		echo("<button type='submit'><i class='bi bi-arrow-clockwise'></i> Ververs scherm</button>\n");
+		echo("<button type='submit' name='NieuweGroep' value='NieuweGroep'><i class='bi bi-plus-circle'></i> Nieuwe groep</button>\n");
 		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 		
 		echo("</form>\n");
@@ -497,50 +498,49 @@ function fnPresentieMuteren($p_onderdeelid){
 	}
 	
 	echo("<div id='aanwezigheidmuteren'>\n");
-	echo("<div id='filter'>\n");
-	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+	printf("<form method='post' id='filter' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	
 	echo("<label>Selecteer datum</label>");
 	printf("<select name='selecteerdatum' OnChange='this.form.submit();'>%s</select>\n", $i_ak->htmloptions($p_onderdeelid, $akid, "Activiteit=1"));
 	$dat = "";
 	
 	echo("<input type='text' placeholder='Naam of groep bevat' OnKeyUp=\"fnFilter('presentiemuteren', this);\">\n");
-	echo("<button type='submit'>Ververs scherm</button>\n");
+	echo("<button type='submit'><i class='bi bi-arrow-clockwise'></i> Ververs scherm</button>\n");
 	
-	echo("</div> <!-- Einde filter -->\n");
-	echo("<div class='clear'></div>\n");
+	echo("</form>\n");
 	
 	if ($akid > 0) {
+		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 		$ro = "";
 		$f = sprintf("AfdelingskalenderID=%d", $akid);
 		if ($i_aanw->aantal($f) > 0) {
 			$ro = "readonly";
 		}
 		
-		echo("<table id='presentiemuteren'>\n");
+		echo("<table id='presentiemuteren' class='table table-hover'>\n");
 		printf("<caption>Presentielijst %s</caption>\n", $dtfmt->format(strtotime($dat)));
 
 		$gh = "";
 		echo("<thead>\n");
-		echo("<tr><th>Naam</th><th>Groep</th><th>Status presentie</th><th>Opmerking</th></tr>\n");
+		echo("<tr><th>Naam</th><th>Groep/Functie</th><th>Status presentie</th><th>Opmerking</th></tr>\n");
 		echo("</thead>\n");
 		
-		foreach ($i_lo->lijst($p_onderdeelid, "", "GR.Volgnummer, GR.Kode", $dat) as $row) {
+		foreach ($i_lo->lijst($p_onderdeelid, "", "F.Sorteringsvolgorde, F.Omschrijv, GR.Volgnummer, GR.Kode", $dat) as $row) {
 			$i_aanw->vulvars($row->RecordID, $akid);
 			if (strlen($i_aanw->status) > 0) {
 				$cl = sprintf("class='presstat_%s'", strtolower($i_aanw->status));
 			} else {
 				$cl = "";
 			}
-			$nm = $row->NaamLid;
-			if (strlen($row->FunctAfk) > 0) {
-				$nm .= sprintf(" (%s)", $row->FunctAfk);
-			}
 			$gr = "";
 			if ($grid == -1) {
-				$gr = sprintf("<td>%s</td>", $row->GrNaam);
+				if (strlen($row->Functie) > 0) {
+					$gr = sprintf("<td>%s</td>", $row->Functie);
+				} else {
+					$gr = sprintf("<td>%s</td>", $row->GrNaam);
+				}
 			}
-			printf("<tr><td %s>%s</td>%s\n", $cl, $nm, $gr);
+			printf("<tr><td %s>%s</td>%s\n", $cl, $row->NaamLid, $gr);
 			
 			$options = "<option value=''>Geen - Aanwezig verondersteld</option>\n";
 			foreach (ARRPRESENTIESTATUS as $k => $o) {
@@ -556,9 +556,8 @@ function fnPresentieMuteren($p_onderdeelid){
 			echo("</tr>\n");
 		}
 		echo("</table>\n");
+		echo("</form>\n");
 	}
-	echo("</form>\n");
-	
 	
 	echo("</div> <!-- Einde aanwezigheidmuteren -->\n");
 	
@@ -778,7 +777,6 @@ function fnAfdelingswachtlijst($p_afdid) {
 		$kols[7]['class'] = "trash";
 	}
 	
-//	echo(fnDisplayTable($rows, $kols, "Wachtlijst", 0, "", "wachtlijst"));
 	echo(fnEditTable($rows, $kols, "wachtlijst", "Wachtlijst"));
 }
 
@@ -871,15 +869,17 @@ function fnAfdelingsmailing($p_afdid) {
 	printf("<select name='SelecteerMailing' title='Selecteer mailing' OnChange='this.form.submit();'>\n<option value=0>Selecteer ...</option>\n<option value=-1>*** Nieuwe mailing</option>\n%s</select>\n", $i_m->htmloptions($selmailing));
 	
 	echo("<div id='opdrachtknoppen'>\n");
-	echo("<button type='submit' name='btnOntvangersBijwerken'>Ontvangers op scherm bijwerken</button>");
+	echo("<button type='submit' name='btnOntvangersBijwerken'><i class='bi bi-arrow-clockwise'></i> Ververs scherm</button>");
 	if ($selmailing > 0) {
 		if (toegang("Mailing/Muteren", 0)) {
 			$d = "";
 		} else {
 			$d = " disabled";
 		}
-		printf("<button type='submit' name='btnOntvangersAanpassen'%s>Ontvangers in mailing aanpassen</button>", $d);
-		printf("<button type='button' onClick=\"location.href='%s?tp=Mailing/Wijzigen mailing&mid=%d'\"%s>Ga naar mailing</button>", $_SERVER['PHP_SELF'], $selmailing, $d);
+		if (strlen($selontv) > 0) {
+			printf("<button type='submit' name='btnOntvangersAanpassen'%s>Ontvangers in mailing aanpassen</button>", $d);
+		}
+		printf("<button type='button' onClick=\"location.href='%s?tp=Mailing/Wijzigen mailing&mid=%d'\"%s><i class='bi bi-arrow-right-circle'></i> Ga naar mailing</button>", $_SERVER['PHP_SELF'], $selmailing, $d);
 	}
 	
 	echo("</div> <!-- Einde opdrachtknoppen -->\n");

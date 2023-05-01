@@ -225,11 +225,11 @@ if ($currenttab == "Beheer logins") {
 	$dtfmt->setPattern(DTTEXT);
 	foreach($authrows as $row) {
 		if ($row->Toegang > 0) {
-			$add = sprintf("<img src='%s' onClick=\"add_auth('%s');window.location.reload(true);\">", BASE64_TOEVOEGEN, $row->Tabpage);
+			$add = sprintf("<i class='bi bi-plus-circle' onClick=\"add_auth('%s');window.location.reload(true);\"></i>", $row->Tabpage);
 		} else {
 			$add = "";
 		}
-		$del = sprintf("<img src='%s' onClick='verw_auth(%d);'>", BASE64_VERWIJDER, $row->RecordID);
+		$del = sprintf("<i class='bi bi-trash' style='font-size: 14pt;' onClick='verw_auth(%d);'></i>", $row->RecordID);
 		$selectopt = sprintf("<option value=-1%s>Alleen webmasters</option>\n", checked($row->Toegang, "option", -1));
 		$selectopt .= sprintf("<option value=0%s>Iedereen</option>\n", checked($row->Toegang, "option", 0));
 		foreach($ondrows as $ond) {
@@ -317,8 +317,9 @@ if ($currenttab == "Beheer logins") {
 	$kols[1]['headertext'] = "ingevoerd";
 	$kols[2]['headertext'] = "SQL-statement";
 	
-	$kols[3]['link'] = sprintf("<a href='/admin.php?op=deleteint&recid=%%d&tp=%s'>&nbsp;&nbsp;&nbsp;</a>", urlencode($_GET['tp']));
+	$kols[3]['link'] = sprintf("/admin.php?op=deleteint&recid=%%d&tp=%s", urlencode($_GET['tp']));
 	$kols[3]['columnname'] = "RecordID";
+	$kols[3]['class'] = "trash";
 
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	$i_int = new cls_Interface();
@@ -483,6 +484,7 @@ if ($currenttab == "Beheer logins") {
 HTMLfooter();
 
 function fnBeheerLogins() {
+	global $currenttab;
 	
 	$i_login = new cls_Login();
 	$i_login->uitloggen();
@@ -517,25 +519,26 @@ function fnBeheerLogins() {
 	
 	$kols[7]['headertext'] = "Status";
 	$kols[7]['sortcolumn'] = "Status";
-
-	if ($_SESSION['settings']['login_maxinlogpogingen'] > 0) {
-		$kols[8]['link'] = sprintf("<a href='%s?op=unlocklogin&tp=Beheer logins&lidid=%%d' title='Reset foutieve logins'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF']);
-		$kols[8]['columnname'] = "Unlock";
-		$kols[8]['class'] = "unlock";
-		$kols[8]['headertext'] = "&nbsp;";
-	} else {
-		$kols[8]['skip'] = true;
-	}
-	
-	$kols[9]['link'] = sprintf("<a href='%s?op=deletelogin&tp=Beheer logins&lidid=%%d'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF']);
-	$kols[9]['class'] = "trash";
-	
-	$kols[10]['columnname'] = "ValLink";
-	$kols[10]['link'] = sprintf("<a href='%s?op=validatielink&tp=Beheer logins&lidid=%%d'>Stuur validatielink</a>", $_SERVER['PHP_SELF']);
-	$kols[10]['headertext'] = "&nbsp;";
 	
 	$ord = fnOrderBy($kols);
 	$rows = $i_login->lijst("", $ord);
+
+	if (max(array_column($rows, "Unlock")) > 0) {
+		$kols[8]['headertext'] = "&nbsp;";
+		$kols[8]['link'] = sprintf("%s?tp=%s&op=unlocklogin&lidid=%%d", $_SERVER['PHP_SELF'], $currenttab);
+		$kols[8]['columnname'] = "Unlock";
+		$kols[8]['class'] = "unlock";
+	}
+	
+	$kols[9]['link'] = sprintf("%s?op=deletelogin&tp=Beheer logins&lidid=%%d'", $_SERVER['PHP_SELF']);
+	$kols[9]['class'] = "trash";
+	
+	if (max(array_column($rows, "ValLink")) > 0) {
+		$kols[10]['headertext'] = "&nbsp;";
+		$kols[10]['columnname'] = "ValLink";
+		$kols[10]['link'] = sprintf("<a href='%s?op=validatielink&tp=Beheer logins&lidid=%%d'>Stuur validatielink</a>", $_SERVER['PHP_SELF']);
+	}
+	
 	echo("<div id='filter'>\n");
 	echo("<input type='text' title='Filter tabel' placeholder='Filter op naam/login' OnKeyUp=\"fnFilter('beheerlogins', this);\">\n");
 	if (count($rows) > 2) {
@@ -853,11 +856,11 @@ function fnEigenlijstenmuteren() {
 		$rows = $i_el->lijst();
 		if (count($rows) > 0) {
 			echo("<table id='overzichteigenlijsten'>\n");
-			echo("<caption>Overzicht Eigen lijsten</caption>\n");
 			echo("<tr><th></th><th>Naam</th><th># records</th><th># kolommen</th><th>Tabblad</th><th>Laatste controle</th><th></th></tr>\n");
 			foreach($rows as $row) {
-				$bl = sprintf("<a href='%s?tp=%s&paramID=%d&paramActie=%%d'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
-				printf("<tr><td>%s</td><td>%s</td><td class='number'>%d</td><td class='number'>%d</td><td>%s</td><td>%s</td><td>%s</td>", sprintf($bl, 2), $row->Naam, $row->AantalRecords, $row->AantalKolommen, $row->Tabpage, date("d-m-Y H:i", strtotime($row->LaatsteControle)), sprintf($bl, 3));
+				$bl1 = sprintf("<a href='%s?tp=%s&paramID=%d&paramActie=2'><i class='bi bi-pencil-square' style='font-size: 14pt;'></i></a>", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
+				$bl2 = sprintf("<a href='%s?tp=%s&paramID=%d&paramActie=3'><i class='bi bi-trash' style='font-size: 14pt;'></i></a>", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
+				printf("<tr><td>%s</td><td>%s</td><td class='number'>%d</td><td class='number'>%d</td><td>%s</td><td>%s</td><td>%s</td>", $bl1, $row->Naam, $row->AantalRecords, $row->AantalKolommen, $row->Tabpage, date("d-m-Y H:i", strtotime($row->LaatsteControle)), $bl2);
 				echo("</tr>\n");
 			}
 			echo("</table>\n");

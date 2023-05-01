@@ -2,9 +2,26 @@
 	--default-text-color: #000080;
 }
 
-/* Bootstrap defaults */
+/* Bootstrap */
 
-/* Einde Bootstrap defaults */
+.table {	
+	width: auto;
+}
+
+.table > :not(caption) > * > * {
+	padding-top: 4px;
+	padding-bottom: 4px;
+}
+
+i {
+	font-size: 125%;
+	padding-top: 0;
+	margin-top: 0;
+	padding-bottom: 0;
+	margin-bottom: 0;
+}
+
+/* Einde Bootstrap */
 
 body {
 	font-family: Tahoma, Arial, Verdana, Helvetica;
@@ -46,14 +63,6 @@ table {
 	caption-side: top;
 }
 
-tr {
-	vertical-align: middle;
-}
-
-tr:first-child {
-	min-height: 36px;
-}
-
 tr.selected {
 	font-weight: bolder;
 }
@@ -74,6 +83,10 @@ caption {
 	padding-bottom: 5px;
 }
 
+tr {
+	vertical-align: middle;
+}
+
 td, th {
 	color: var(--default-text-color);
 	padding-left: 3px;
@@ -83,12 +96,6 @@ td, th {
 	border-style: solid;
 	border-width: 1px;
 	border-color: #000080;
-}
-
-td input[type='checkbox'] {
-    float: left;
-    margin: 0 auto;
-    width: 100%;
 }
 
 th {
@@ -106,9 +113,17 @@ li {
 	padding-left: 3px;
 }
 
-p {
-	margin-top: 1px;
-	margin-bottom: 6px;
+button, input, select, textarea {
+	float: left;
+	color: var(--default-text-color);
+	margin-top: 4px;
+	margin-bottom: 4px;
+	margin-right: 4px;
+}
+
+p {	
+	color: var(--default-text-color);
+	margin-bottom: 3px;
 }
 
 p.uitleg {
@@ -155,11 +170,12 @@ span {
 footer {
 	clear: both;
 	background-color: #f0f0f0;
-	height: 22px;
+	height: auto;
 	text-align: center;
 	margin-top: 15px;
 	margin-bottom: 10px;
 	padding-top: 8px;
+	padding-bottom: 8px;
 	padding-left: 2px;
 	padding-right: 2px;
 	font-style: italic;
@@ -180,16 +196,17 @@ form p {
 	margin-left: 4px;
 }
 
-input, button, textarea {
-	float: left;
-	color: var(--default-text-color);
+button {
 	margin-right: 6px;
 	margin-top: 6px;
+	border-width: 1px;
+	padding-left: 6px;
+	padding-right: 6px;
+	padding-top: 4px;
+	padding-bottom: 4px;
 }
 
 select {
-	float: left;
-	color: var(--default-text-color);
 	margin-right: 6px;
 	margin-top: 5px;
 	margin-bottom: 5px;
@@ -257,6 +274,7 @@ header h1 {
 	margin-right: 6px;
 	margin-top: 6px;
 	margin-bottom: 0;
+	clear: none;
 }
 
 #filter input[type='text'], #filter input[type='date'], #filter input[type='checkbox'] {
@@ -266,12 +284,15 @@ header h1 {
 	margin-left: 3px;
 	margin-top: 5px;
 	margin-bottom: 5px;
+	margin-right: 6px;
 	padding-top: 1px;
 	padding-bottom: 1px;
 }
 
 #filter input[type='text'] {
 	width: 175px;
+	height: auto;
+	min-height: 30px;
 }
 
 #jubilarisoverzicht > #filter input[type='text'] {
@@ -354,8 +375,8 @@ input.bedrag {
 	text-align: right;
 }
 
-input.w8, input.d8 {
-	width: 78px;
+input.d8 {
+	width: 92px;
 }
 
 input.d8, input.num2, input.num3 {
@@ -364,6 +385,10 @@ input.d8, input.num2, input.num3 {
 
 input.w6 {
 	width: 55px;
+}
+
+input.w8 {
+	width: 78px;
 }
 
 input.w9, input.w10 {
@@ -395,7 +420,7 @@ input.w30 {
 }
 
 input.w35 {
-	width: 250px;
+	width: 260px;
 }
 
 input.w40 {
@@ -419,7 +444,7 @@ input.w60 {
 }
 
 input.w70 {
-	width: 450px;
+	width: 475px;
 }
 
 input.w75 {
@@ -470,7 +495,7 @@ header a + a:visited + a:hover {
 	color: inherit;
 }
 
-#welkomstekst {
+#welkomsttekst {
 	float: right;
 	display: inline-block;
 	padding-top: 8px;
@@ -478,15 +503,22 @@ header a + a:visited + a:hover {
 	color: inherit;
 }
 
-#welkomstekst a, #welkomstekst a:visited {
+#welkomsttekst a, #welkomsttekst a:visited {
 	color: inherit;
 }
 
-#welkomstekst ul {
-	padding-left: 18px;
+#welkomsttekst p, #welkomsttekst h3 {
+	clear: left;
+	float: left;
 }
 
-#welkomstekst li {
+#welkomsttekst ul {
+	padding-left: 18px;
+	clear: left;
+	float: left;
+}
+
+#welkomsttekst li {
 	padding-left: 3px;
 	margin-top: 6px;
 	margin-bottom: 6px;
@@ -609,19 +641,7 @@ p.sql {
 	padding: 4px;
 }
 
-.ledenlijst table {
-	width: 100%;
-}
-
-tr:nth-child(odd) {	
-	background-color: white;
-}
-
-tr:nth-child(even) {
-	background-color: #E5E7E9;
-}
-
-td.details, td.muteren, td.detailregels, td.leden, td.sendmail, td.unlock, #lijstverzondenmails td:first-child, #lijstoutbox td:first-child, #overzichteigenlijsten td:first-child, #stukkenmuteren td:first-child, #overzichtrekeningen td:first-child {
+td.details, td.muteren, td.detailregels, td.leden, td.sendmail, td.unlock {
 	background-repeat: no-repeat;
 	background-position: center center;
 	text-align: center;
@@ -629,57 +649,7 @@ td.details, td.muteren, td.detailregels, td.leden, td.sendmail, td.unlock, #lijs
 	height: 45px;
 }
 
-td.details, #lijstverzondenmails td:first-child, #lijstoutbox td:first-child {
-	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAA5UlEQVR42u3XMQsBYRjA8TuTwUAGBgOTsiA+AIPJ6AM4G5+IzfkQJgOrIiZlsyiLlAwGyV/33iLFXb09Xb1P/ZZ38PzLHb225U0KE7QRs/TOE1N0cbHV4RB9zYs/Z4SBH7BCDQe4mhc7yGONuh+wQQULNDUHzNHAFlUTYAJ+BbRQwhVjddZBLsDCHWZhA95LHct7PQsfH/DvuOhFNiCNBB44qrMM4gECbjiHDdAx0QooIos7luqsjGSAhSfswwaIP4TiAeJfgY6JVoD4D5H4QygeIP53rGNMgAn4GiB+NRO/nIpdz1/cVqwhhT3ieQAAAABJRU5ErkJggg==");
-}
-
-td.muteren, #overzichteigenlijsten td:first-child, #stukkenmuteren td:first-child, #overzichtrekeningen td:first-child {
-	background-image: url("data:image/jpg;base64,AAABAAEAICAAAAEAIACoEAAAFgAAACgAAAAgAAAAQAAAAAEAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAfICAgOiAgIDugICA7oCAgO6AgIDugICA7oCAgO6AgIDugICA7oCAgO6AgIDugICA7oCAgO6AgIDugICA7oCAgO6AgIDugICA7oCAgO6AgIDugICA6oCAgIqAgIACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgEiAgID/gICA7oCAgNKAgIDSgICA0oCAgNKAgIDSgICAwoCAgHKAgICSgICAzoCAgNKAgIDSgICA0oCAgNKAgIDSgICA0oCAgNKAgIDSgICA0oCAgNKAgIDqgICA/4CAgFgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICADoCAgAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgEaAgID/gICAigAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgICEgICA7oCAgKKAgIBQgICACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAPoCAgP+AgICKAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgHqAgID/gICAUgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgDqAgID/gICA/4CAgNyAgIDsgICArICAgFyAgIAOAAAAAAAAAAAAAAAAAAAAAAAAAACAgIA+gICA/4CAgIoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAAoCAgOaAgIC6gICACoCAgAyAgIBmgICA/ICAgOCAgIAiAAAAAAAAAAAAAAAAAAAAAICAgD6AgID/gICAigAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAloCAgGwAAAAAgICAEICAgMyAgID/gICA/4CAgOCAgIAiAAAAAAAAAAAAAAAAgICAPoCAgP+AgICKAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgHqAgID/gICAUgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIBGgICAvICAgBCAgIDMgICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAAAAAACAgIA+gICA/4CAgIoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgAaAgIDqgICAzoCAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAICAgD6AgID/gICAigAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgKCAgID/gICA/ICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAigICAHICAgOaAgICKAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgHqAgID/gICAUgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgNKAgIB4gICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAigICAKICAgHQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAigICAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAICAgA6AgICqgICAroCAgK6AgICugICAroCAgK6AgICugICAxICAgPaAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgHqAgID/gICAUgAAAAAAAAAAgICABICAgGSAgIBqgICAaoCAgGqAgIBqgICAaoCAgGqAgIBqgICAaoCAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAAAAAAAAAAAAAAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAAAAAAAAAAAAAAAAAICAgHqAgID/gICAUgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOCAgIAiAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBSAAAAAAAAAACAgIAQgICAxICAgMqAgIDKgICAyoCAgMqAgIDKgICAyoCAgMqAgIDKgICAyoCAgMqAgIDKgICAiICAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgP+AgID/gICA0oCAgBaAgIAOAAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAICAgAKAgIBIgICAToCAgE6AgIBOgICAToCAgE6AgIBOgICAToCAgE6AgIBOgICAToCAgE6AgIAkgICAFoCAgMqAgIBIgICAgICAgP+AgID/gICA/4CAgNKAgIAWgICAdoCAgOCAgIAiAAAAAICAgHqAgID/gICAUgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgMqAgIBIgICAsICAgP+AgIDSgICAFoCAgHaAgID/gICA/4CAgOCAgIAcgICAeoCAgP+AgIBSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFoCAgNCAgID8gICA0oCAgBaAgIB2gICA/4CAgP+AgID/gICA/4CAgHqAgIB6gICA/4CAgFIAAAAAAAAAAICAgASAgIBegICAYoCAgGKAgIBigICAYoCAgGKAgIBigICAYoCAgGKAgIBigICAYoCAgGKAgIAwAAAAAAAAAAAAAAAAgICAFoCAgKiAgIAWgICAdoCAgP+AgID/gICA/4CAgP+AgIDugICALoCAgHqAgID/gICAUgAAAAAAAAAAgICADoCAgLCAgIC2gICAtoCAgLaAgIC2gICAtoCAgLaAgIC2gICAtoCAgLaAgIC2gICAtoCAgGYAAAAAAAAAAAAAAAAAAAAAAAAAAICAgGKAgID/gICA/4CAgP+AgID/gICA7oCAgDYAAAAAgICAeoCAgP+AgIBSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgCKAgIAYgICAFoCAgNKAgID/gICA/4CAgO6AgIA2AAAAAAAAAACAgIB6gICA/4CAgFIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAPoCAgNSAgIAYgICAFoCAgMSAgIDmgICANgAAAAAAAAAAAAAAAICAgHqAgID/gICAUgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIA+gICA/4CAgIoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAeoCAgP+AgIBSAAAAAAAAAACAgIBUgICAGAAAAAAAAAAAgICADICAgGAAAAAAAAAAAICAgACAgIBkgICABgAAAAAAAAAAgICAMoCAgDgAAAAAAAAAAICAgD6AgID/gICAigAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIB4gICA/4CAgGAAAAAAAAAAAICAgNqAgIBaAAAAAAAAAACAgIA6gICA+gAAAAAAAAAAgICADICAgP+AgIAoAAAAAAAAAACAgICSgICAngAAAAAAAAAAgICATICAgP+AgICIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgDqAgID/gICA+oCAgO6AgIDugICA/ICAgPSAgIDugICA7oCAgPKAgID/gICA7oCAgO6AgIDugICA/4CAgPCAgIDugICA7oCAgPiAgID4gICA7oCAgO6AgID4gICA/4CAgEwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgGCAgIDQgICA3oCAgN6AgID6gICA6oCAgN6AgIDegICA5oCAgP+AgIDegICA3oCAgOCAgID/gICA4oCAgN6AgIDegICA8ICAgPKAgIDegICA3oCAgNKAgIBsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgNqAgIBaAAAAAAAAAACAgIA6gICA+gAAAAAAAAAAgICAEICAgP+AgIAoAAAAAAAAAACAgICSgICAngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAsoCAgEAAAAAAAAAAAICAgCaAgIDKAAAAAAAAAACAgIAGgICA0oCAgBgAAAAAAAAAAICAgHKAgIB8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwAAA/4BAAP+///5/v4/+f7/B/n+/zn5/v9w+f7/oHn+/4A5/v+AGf7/0A/+/+gH/vAEA/7/+gH+//0A/v/+gH7//0A+8AAgPv//0G7//+jG///xhv//+wbwAP4O///+Hv//+z7///n+///5/u93Of4AAAP/AAAH/+93P//vd//8=");
-}
-
-td.detailregels {
-	background-image: url("data:image/jpg;base64,AAABAAEAICAAAAEAIACoEAAAFgAAACgAAAAgAAAAQAAAAAEAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICACoCAgFCAgICUgICAxoCAgOSAgIDugICA7oCAgOSAgIDKgICAnICAgFqAgIAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAHICAgJCAgIDwgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgPaAgICegICAKAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICABICAgHyAgID0gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID6gICAkICAgAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgBiAgIDEgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA1oCAgCgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIAigICA3oCAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgPCAgIDqgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA7ICAgDYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAGICAgN6AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIDugICAKoCAgBKAgIDUgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA7ICAgCoAAAAAAAAAAAAAAAAAAAAAAAAAAICAgASAgIDAgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA+ICAgEIAAAAAAAAAAICAgCCAgIDogICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA2ICAgAwAAAAAAAAAAAAAAAAAAAAAgICAdICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIBiAAAAAAAAAAAAAAAAAAAAAICAgDiAgID2gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICAlgAAAAAAAAAAAAAAAICAgBaAgIDwgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICAhgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgFiAgID8gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID6gICALgAAAAAAAAAAgICAhICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgKyAgIACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgIKAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgICmAAAAAICAgASAgIDogICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIDMgICACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAAoCAgKqAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgPiAgIAUgICAQoCAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA5oCAgBwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICACoCAgM6AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgGSAgICEgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgPyAgIA6AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAIICAgO6AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICApoCAgLSAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgJ6AgICMgICAioCAgIqAgIAeAAAAAAAAAAAAAAAAAAAAAICAgAyAgICKgICAioCAgIyAgICUgICA8oCAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIDWgICA0ICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgDYAAAAAAAAAAAAAAAAAAAAAgICAFICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOyAgIDagICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICANgAAAAAAAAAAAAAAAAAAAACAgIAUgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA7oCAgNqAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIBkgICAMoCAgDCAgIAwgICAMICAgECAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIDugICA0ICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgO6AgIC0gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA9oCAgPSAgID0gICA9ICAgPSAgID2gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA1oCAgISAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIA2AAAAAAAAAAAAAAAAAAAAAICAgBSAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgICkgICAQICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgDYAAAAAAAAAAAAAAAAAAAAAgICAFICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgGKAgIACgICA5oCAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICApoCAgI6AgICOgICAjoCAgI6AgICWgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID4gICAFAAAAACAgICAgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgKQAAAAAAAAAAICAgBKAgIDugICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgLSAgICcgICAmoCAgJiAgICWgICAoICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID6gICAKgAAAAAAAAAAAAAAAICAgGyAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICAOgAAAAAAAAAAAAAAAAAAAACAgIAUgICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgJAAAAAAAAAAAAAAAAAAAAAAgICAAoCAgLqAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIBQAAAAAAAAAAAAAAAAAAAAAICAgCiAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIDUgICACgAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFICAgNiAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOaAgICKgICAhICAgIKAgICEgICA0oCAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA6oCAgCYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAHoCAgNqAgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgOqAgIAyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAFICAgL6AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIDSgICAJAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgICAAoCAgHSAgIDygICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID4gICAioCAgAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgBiAgICKgICA7ICAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgID/gICA/4CAgP+AgIDygICAmICAgCIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgIAIgICASoCAgIyAgIC8gICA3oCAgOyAgIDogICA3oCAgMKAgICSgICAUoCAgAoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//AP//+AAf//AAB//AAAP/gAAB/wAYAP4APAB+AH4APAB/ADgA/wAYAf+AGAP/wBAH/+AAAH4AAAB+AAAAfgAAAH4AAAAAAAAAAAAAAH4ACAB+ABgAAAAYAAAAHAAAAD4AfgA+AH4AfwAAAP+AAAH/wAAD//AAB//4AB///wD/8=");
-}
-
-td.leden {
-	background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAACXBIWXMAAA3WAAAN1gGQb3mcAAAAB3RJTUUH4gwVDR0w5AKVZgAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMS40E0BoxAAAAtVJREFUWEfV12mITlEYwPGXSAglUULIF8mSLEn2RJaypywjRAofKEuSklKyplBEtlCEkiIpa3wgFEpESPGBUvb1/5/eW8d5z/uamWZGnvo1M88999xz7znnuXdy/1M0xAIcwG5MQB3USrTGQ/yKnEZ91HicRXzxzCrUaHj3P5G6uJ6gRqM3UhfOfEGx8NyjuI1TGI5KRwt8R+riuo9UjMVXhG19kvNR6TiEsKOQOyOOeniJVPsPaI6/Rt38T6MpLiLsyLvZhnArZud0Qdg2NgbJsINleA4v8AhzYHTEcjiXxzALLdEA6/EannMX47ESqYtrJJKxFakTlmBnlNMMnIhyciBTcDzIZd6hCQqiHYottvcYkv/dNt/gXA7M51Keon+U8zwHloxxCBvHBmEYfOyt0Bk+gVTbTBtsx3lYvnuiaAxGqhMdRldcgo/X3D34BNbm/465BR1AmPMJWBNcVwXvEWu6jy08Qa/gAnSRxcc+oQduBrmMC3VilAsdRMEgeiG+0CYUu0sdgcUlzHmXbeGOCPOx2fgjGsGpcL6cN+fPxXkSqQ70ALbxNX0OG9ANHbAfP5A6T7dQHm6LHfiIuJFvu11RLmSBmhzl9AZuX4tOql+5Tso/NFJzmLmBvih2J9Pg3aeOyfpRFuVCudVRIsUOnOfPQc4BWQEHoNTLSm7fO1EuU15uUwcybkFru3vYQbgezmAp+sEdsgWlBrEPa6JcpuQiWYgReBzkYu4a3wvOdfz6zVxGqmi9RUEysxejYPFIHY852BVRLnMVk/AC1+GiduE2RvIEq10n+FZMHU9xpbeHL5v4mAMoGnFj+ZVj7U8dK2UuUjWj5ACuIF5AFzA9ylWEFdN6EuacQhdpyWgGPxKcwz2wo5kIO6qIdVgEvwOsiFPhN2WVoqoDqLb45wPog2uo6DZ8htGo9vCLeCgWYzOs+/6z4ZtuI+ahO2rtH9VqjFzuNzLZGFCEevNwAAAAAElFTkSuQmCC');
-}
-
-td.sendmail {
-	background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACUAAAAYCAYAAAB9ejRwAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAT2SURBVEhLtZZtSGRVGMfvvXNHHVc3DBstXAqNJGhEc4WVZIoip3a2fJkJ/CC46wv1IQi22CiCKLYvvbKw1X4R+lDEtmIqkSu77Lq6RmJlmvi2GUKKL4majjg649z+/+uc4ezsjC8rPfDMPOfl/ud3nnOec0dNTk7O9Pv99YqiGGHX4CG4GnYz1jRFDYWULcQWxIqI4fJzO2rIMfU0Tb9YVlb2F0zLzs4Ozc/Pqz6fT1WtVmthMBj8BRP3ZCpkDf7sAUxoaJrmzs/PvyIDMY4FtQK/Dr9jhRBTw0D8ZB9NZIbfsWJZ4xg07GJRgHqhsrKyXQZiTKgCQP22PS1iH3q93rdFWtmRlpamLS0tmXF0ukXMMbvdbnA8JSXFkOPu7u7XwPkRgMx5zJaqaidKSko6ZA3GmmEYPBe0IPz8dqicaWpqurC+vm4KHBSoq6vrPQB9HAb6Ft6J+A9VVVeigRjL2xdwOp3JEHgH8btw2iWHw34qN9fpZ2O/QFzUyMjIOWTllfCWfeFyuU6npqYGozXk2ALLDIVCL+OBUFFR0dmkpKSbs7OzC2i7IPbY3Nxa4czMTCvaW/sBmpub0/H9FTROhoHO8kgkJiayahUsPm1qauqZ5eXlyYSEBEPWk7cvkgmPx/O5rqu1EAug24Wt6xgbG7snGohxLKDJycmk6enpZgBVQcPANp1uaGh4H1omEOesra19gGS0YN53XIC8QA0PmGeFxh/jN89Qebnna1THS2iuw49B5Fpvb+/9MhDjaKDx8fHDi4uL7QB6DkBB6NfW19efjz6T0L6CJiFPAOzS6OhootBgyd5m8qHGHfIj7xKE/8IdGxsb11tbW7PjAQ0PD9+HsWuY+wSA/FwUgL6JVSTQbgXwSXSzwNzou9jZ2Wmjnqrr+tGtra0+DASQ4kNCQMBRoKenpwBzfkC3HT6DZ57Py8sbloGGhoaObG5udmD8YfgqgMpxB91saWl5FEfkMPq4PcyMSAR/xwJd7sarZo+itGdmZnpZfY+j+n5FugMej9fGERlIZAUZyg0EApcxfAS+iAJ5saKi4mcCDQ4O5kKDQA/AFzB2vLa29vfGxkY3zs336NuPfWJSAyjy6ogFxNjhcNxClTgxZQx+L1Z4ubm5+dmBgQEuqhN9BJrGIp8kEDWQrb/RNwVf2sF5NISxKEZVm00/6vffvn3RQHLc19eXjvuHW1kI3+Bz8BT4n4AurampmaIG2rvea/39/frExMSXaJ6CE+hNVP6nWjCommXKbAmxeEAcc7vd/+DyK0V4A54IJ9CAzWZz3gXQBTQF0BkCcae4fWhvbx8f2k2M4wUFBSuIWZXM2E+AfLq6unphNyDGQgNAb2Eqq49AbwDoM3F0NF03cIFSaucMCTFRcVlZWZs5OTne9PR0V1VV1epegBgLDYBw63mPvQ6gcwKIGvK/hABeA7a9AIkf5pgstlcgocGbvLi4eDNaj9sXuUAPAsQ4GiIeUFtb20O41x7EZWyJpcd3n/njtIMAMY4HxFjWwCV7A34Lr6OnYunx3WdWH+3/AuI8WY/tsJmxrMc50X+H+R7a0eSLVo73aTo/cLker6uruyoDcSGR8xQ2To7rgNABcUd8F26axaJYooGYWTUjI+MQ9vYR9DPNnCBAY8XMi2G1KpZAwOxjm//HeAT4POeIOJ5eRMNqTZ4oLS1dlYF8Pp/6H1ogutvk38RvAAAAAElFTkSuQmCC');
-}
-
-td.unlock {
-	background-image: url('data:image/jpg;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAAGXcA1uAAAACXBIWXMAAFxGAABcRgEUlENBAAAACXRFWHRDb21tZW50AACJKo0GAAAEZklEQVR4nI1WW2xUVRQdjV/6R0gs2opoZyqgVNAW1ApabYq0iMSa2IZgUPwp+KUkAqZWGoQWsJVSH4hKKZ2ZENHUQaGUD4nU+kGMUqPwoULRtMbHhxiYmftY7rXPPdfptIiT7M7knrP2c619GwEQiTQONqvxz5xdWdzznmuetp9wgeBKlA/098yOLB5LuljU4yEy/dU0MnKrbLej12KlXQ7ufttRJ7yx/KMgRPG2DBKnPCyQm+uOeiYKHVbIA7qJyoVZ4rsmfsEcCKopTK5xsEGfle36BXPfdFC+x0VFt4sH45JF4yAisR0Z/HER4w5LdpxH5JbWNEpey+COzizmveVg/rsuYtvkoGhzGre2peF40BruksPi1hFErl47hKLNGT28rT2DMjmQGCmb1dic9rN4+gjwTP9Ee/zgRVy15gsCpmkJMzsc3L4zi+FffWz93ENy2McD3aYBTJJdYhVTNw7/2ykmzEZvOe4h/0Pg/fs8lGw/bwA3SfdYJYHxbzwFVnc74DBf6Pd0Hqy6uM0A6kvkIqtn21kkW89C2X62qbQrq93QOoKiC9jla577Etc9f3KC6QQaB/v0Lv8EoIac+eUa5xoN77FVDMXWTdZStpotZ+stAA/v98I8yb4FUuC977tYKJ1ZJGeVCWGlkIWkjEzZcCos7vhZH60nPKRl5JOBNL2ilpGwI1V7HY009jcmjSSAlxUQ226GNvv17IShfTUK3Lc3UA0BN74yogOzoEOnfR3Yig9cHdifl8ykCVLADQK4eUs6BKUEwEgtn3m48w0DKH/HNcJSQPM5kBozthoQP+Q5LSu0Ov0bNBLVogDOoLDl0jgQZcX0yGCmR3lVmAj1nENqSe8FkVPmMiAH1b0eKKiQGuQJBzgZj8ivgEsF+VwqsEBLxGsF8H8sxykCHwWh38B5iinWJv5CQwqoPeCjStJ+aL8x/q4ShVYnjC1OenhE7tQEtvSgjzrh/spPoT7oiz4tV+vZ2EqROptICrKRTx5wkDrj49gPYj/6GJDvdQOesosjJMO4HpRlPYZpXBOVCR/LPvTtjtEhNBdu+knpyqbPCqbFZVjTY6jLqVEofLZcdjdHfqVA0bZzhhYMQHpHg8naQJ1DcnmPoxXVJWSry6rhLuX36j4Xqz928WzKU1soCy8/kO4vG6Bwk5GDZbddgLSkvDbO/A7USeaL9zlY0uOittfF0riLR8WS3/qhXKxkwgVpA1j52EWZG4jvJSsnVrMm5epcKCu+Mvi+svKaH7SNFm3LDdA8oiKg5QeKf+3h5M8i8E4n3BCWCLSOIROAclRJBoGKcwI0TVn/ncqTm5tBpgeK4waf3Z7F2j4HLx5xsb7fxYajxjYOuHjpmHyLcY9ZIjAId9n1Td+bhadrUgQyb+coZojjywViNflEsIyzFZFx5btdlHWNWtHFrNCmcYmTu6Wy0J+Qhb9KRLPyUGCfAE/9h606DMUQG/B/jD7HrYqclRENXkG5/0ZcyZoCTDTf3z9hwQPsF1ehhQAAAABJRU5ErkJggg==');
-}
-
-td.trash, #beheerwijzigingen td:last-child, #muteertypeevenement td:last-child, #overzichteigenlijsten td:last-child, #stukkenmuteren td:last-child {
-	background-image: url("data:image/jpg;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAA7EAAAOxAGVKw4bAAABK0lEQVRIie3VMUoDURAG4C8hbCEiaCEiQaw8gQewFOyscoGUFhYWnsDKIljmEjaCpbXnkBAipBCrEILFzjMvISar6SQ/DPv4d97/z8xb9tWsxh4ecIBJcHX0cYVhBY2l6OASBRoRRXCdVZvrFQze8YgRxhGj4N5Xba5l63NcVDCsgic8U7ZLOedr3JjO+a+o4x6vGCaDAk3crimecBiaMyPaD3IbHxlfKOc+Me14HJU2lOeRsIPP4AapnYRBiLXRy6KlHGEPpxG94Fpzue3QGCTRhlkUUUWOXWxlFSZsxbscO6HxjSqf6VrYGGwMNgb/wWD+X7QI6RaTPdP613fHCbpLiqib7Xq+wG5o/JjQxxGO8bYkb5FJM/b288T8wkk4U95svz2fCe7wkpNfrmk0W0pz02cAAAAASUVORK5CYII=");
-	background-repeat: no-repeat;
-	background-position: center center;
-	text-align: center;
-	width: 45px;
-	height: 45px;
-}
-
-td.print {
-	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAADeElEQVR42tWXXUiTURjH9+7DOd0cUSNhJciEfaBOcahQhsOrkJrRbURYRl1VKAWlqX1cCEl1VaR2EV1L9nEpDSxosdDhnE6y0XJgrQZbc27uq//JdzLnO/aubVkHHs5zzvtwzu+c85znPC/F2eFCZWOs1WpPUhR1HeruNCY/4vH4DYvF8iTvAEqlsl4kEpmhcjOYxtbX13U2m206rwA1NTUXeDzePZbmF2dmZu7nG6AbAHdYmvcAYPj/A1CpVDqBQKCDKkw15HK5ejiggSXARDQafc3QH4pEIub5+XnzFgC1Wl0hFAqfQm1huyM5lik46gk4qpOqqqraJRaLP6Cz8i9NniiOtbW1Bqquro6cazfdObq6ujrk9/vduM95nQ3HxykpKZFJJJIraJ6hu4cJwGcoFZC3cJyDcLYWOJvS7XaPuVyu/FLQBXO+QXUA4iQAMc6GL9wGQC/a36DLsD16u91uLBDALVTXIHECkFjlAAAG0e6F3uD1ek85HA5vIQCwy/3Y5QGibwMoxIQ5A+AdqMQ7cByqnOUcrlAoNI77/ilnAHy/jIqcmSDLhYYhfRhz6I8B8Px24vqMJXX9hEQzTMyDSBINXOfTeJ4fZw0gl8v5MpnsC9RyyNdwOGyYm5szsVm6RqNpKioqmoC6F7Li8Xj2O53OSFYACoWiEUHDRK/iLFYxAl8ohy+QIJI2IQkGg6MLCwsrtbW1XXg/HpHOQCDQvLi4aMoKACH6KEI0WQUH0bERj8tSWVmZBc19GTZgGfZa2Ctg/550IKYYEFOeJwwA1w+4TYAAahHkIQDOJwEYAPCM6AjNuuLi4no+nz/C5giwY10+n29aKpWaaYAOAEwkvmPOB6jOkU8EgDybrRAvnsomq9VqZwLA1rfS+QCJnFa6Ti4kmmo4G7elB4HMyAQA/1DBP95BlUKMFM7jMAZ+RQ/gh5BJvxM3gBxhAJjCTh1iWjkWM47qWCoAygvIEmQPpAMiJhsVi8Xaf+cDuG59uG6DnDQZUgrAMs73KmTLDuBMKRwRie8qBoBtpwTpx0Jubk5YXV3dhgEuQd2WEQFAD4C2bFIyAEwCIDUrCkHMgL87Ozs7mTg3VuVfSko/wqk6kVJtOQLsHlVaWkrS9oZCA5gweDOTDZzwJar2QgEk/5iQPIEpW5LSY+b/x2THf81I2dGf00KVX5S1t/EwsnsPAAAAAElFTkSuQmCC");
-	background-repeat: no-repeat;
-	background-position: center center;
-	text-align: center;
-	width: 60px;
-	height: 45px;
-}
-
-td.pdf {
-	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAACLUlEQVR4nO2YzUsVURjGf+JXcqWsBBVBiggFbxAkrQR34kJcKAaCu4jai+3a+A+ItFJCQldt2gRqC3UT4RcIhSJoiAqRLlrUIjJ14tArHC6D4T0fc89lHjicOzPnfZ73mTMz59wXUoSFyFF7B1QWg5EImAGu+DZiE7qZRaDaKnsCRr5JvwBkLGt4NdIMHMjvD8BVyzqxoq44bwFf5HgNuGlZK1bUFWcTsC3n1oFay3qxoq4464ENOb8JNIRqRKEO+CTXtoBGH6KuOG8Aq3J9F7jtQ9QVZw2wJGP2gDs+RF1xXgM+yrh94K4PUVecGWBeWzyzPkTz4bxsO7QhahMmG82CMpJIHlFq5B/URrCcgGekDHgDnMhL+iBUI50S90f6t6EaeSxxO9J/DtVIu8SdSa/2T0nkYUxQAfzQ4icJ+PP7UovvC9nIfS0+G7KRR1q8Ki6UJpSHMcFriT2VfjihPIwIVDn0u3y1+oFfsjgOeM7DmOCpxC3L8aCYOgaeAM9kxuZksXzxn7pWlISRCvmLquK6gYfAkFZZvKgWXFBGnkuMuvtHMQmfb1ty21fLeRgRZHMWwvPSzhjQI/UqVcMaF6P6uJFCMNIBvNe2JOquTwFtF8So0k8X0Au0WMojb4IqYDrnzv4G7mEXkWsjr2Ke9VETwaSM/MwxsSKzFJyRCW3MLHDdRCxJIyXyQreaiFjIwz2BJUSpEUE6I5YRpY9WsT5aUYG0vFE0RlLgGX8BLOq9fheWgQQAAAAASUVORK5CYII=");
-	background-repeat: no-repeat;
-	background-position: center center;
-	text-align: center;
-	width: 55px;
-}
-
-.beheerlogins a, #beheerautorisatie a, .beheerwijzigingen a, #deelnemersevenementmuteren a, #afdelingskalendermuteren a, #deelnemersevenementmuteren a, #lijstoutbox a, td.details a, td.muteren a, td.detailregels a, td.leden a, td.trash a {
+.beheerlogins a, #beheerautorisatie a, .beheerwijzigingen a, #deelnemersevenementmuteren a, #afdelingskalendermuteren a, #deelnemersevenementmuteren a, #lijstoutbox a {
   text-decoration: none;
 }
 
@@ -818,24 +788,12 @@ td.pdf {
 	height: 10px;
 }
 
-#stukkenmuteren table {
-	width: 100%;
-}
-
 #stukkenmuteren label {
 	width: 175px;
 }
 
 #stukkenmuteren p {
 	padding-top: 6px;
-}
-
-#stukkenmuteren input[type='text'] {
-	width: 300px;
-}
-
-#stukkenmuteren input[type='url'] {
-	width: 700px;
 }
 
 #stukkenmuteren select {
@@ -914,7 +872,6 @@ textarea#sportlinkdata {
 
 #nieuwepasfoto label {
 	width: auto;
-	height: 20px;
 }
 
 #nieuwepasfoto input {
@@ -1098,7 +1055,6 @@ table#afdelingskalendermuteren {
 #afdelingsmailing p {
 	margin-right: 8px;
 	overflow: hidden;
-	height: 18px;
 	padding-top: 3px;
 	padding-bottom: 3px;
 }
@@ -1133,7 +1089,7 @@ table#afdelingskalendermuteren {
 	margin-bottom: 4px;
 	margin-right: 20px;
 	min-height: 400px;
-	background-color: #D0D0D0;
+	background-color: #f0f0f0;
 }
 
 .kandidatengroep table {
@@ -1426,24 +1382,17 @@ input.omschrijving {
 	border-bottom-left-radius: 9px;
 }
 
-#welkom img {
-	float: left;
-	height: 22px;
-	width: 22px;
-	border: 0;
-	margin-left: 6px;
-}
-
-#welkom input, #welkom label {
-	float: left;
-	clear: none;
-	font-size: 90%;
-	border-style: none;
-}
-
 #welkom p {
 	clear: none;
 	float: left;
+	margin-top: 6px;
+	margin-bottom: 0;
+	margin-right: 8px;
+}
+
+#welkom i {
+	margin-left: 4px;
+	margin-right: 4px;
 }
 
 #login {
@@ -1491,7 +1440,7 @@ input.omschrijving {
 	width: 225px;
 }
 
-@media screen and (max-width: 1000px) {
+@media screen and (max-width: 750px) {
 	#container, #containerbreed {
 		width: 98%;
 	}
@@ -1500,14 +1449,14 @@ input.omschrijving {
 		width: 96%;
 	}
 	
-	#pasfoto {
+	#pasfoto, #welkomuser {
 		display: none;
 	}
 }
 
 #loginaanvraag label, #opvragenlidnr label, #herstellenwachtwoord label, #profielwijzigen label, #opzegformulier label, #bijzonderhedenwijzigen label {
 	width: 150px;
-	height: 20px;
+	margin-top: 3px;
 	margin-left: 0;
 	margin-right: 8px;
 	padding-bottom: 2px;
@@ -1608,6 +1557,7 @@ input.omschrijving {
 label#lblStarttijd, label#lblEindtijd, label#lblVerzameltijd, #evenementenbeheer label#lblLocatie {
 	clear: none;
 	width: 90px;
+	margin-left: 4px;
 }
 
 #evenementenbeheer label#lblDatum, #evenementenbeheer label#lblOmschrijving, #evenementenbeheer label#lblEmail, #evenementenbeheer label#lblTypeEvenement, #evenementenbeheer label#lblInschrijvingOpen, #evenementenbeheer label#lblGewijzigd {
@@ -1800,18 +1750,17 @@ fieldset h3 {
 	margin-bottom: 8px;
 	margin-left: 8px;
 	margin-right: 8px;
-	font-weight: bold;
-	height: auto;
-	padding-left: 4px;
-	padding-right: 4px;
-	padding-top: 4px;
-	padding-bottom: 4px;
+	height: 48px;
 	cursor: pointer;
 	font-size: 90%;
 }
 
 #opdrachtknoppen input[type='checkbox'] {
 	margin-top: 9px;
+}
+
+#opdrachtknoppen i {
+	font-size: 175%;
 }
 
 #opdrachtknoppen p {
@@ -2131,17 +2080,22 @@ ul#menu_l3 li {
 	min-height: 29px;
 }
 
-#lijstontvangers, #lijstvariabelen, #meldingen {
+#lijstontvangers, #lijstvariabelen, #bijlagen, #meldingen {
 	float: left;
 	clear: right;
-	width: 1040px;
+	max-width: 1050px;
 	margin-top: 3px;
 	padding-top: 4px;
+	padding-left: 4px;
+	padding-right: 4px;
+}
+
+#lijstontvangers, #lijstvariabelen {
 	border-width: 1px;
 	border-style: solid;
 }
 
-#lijstontvangers ul, ul#lijstvariabelen, ul#meldingen {
+#lijstontvangers ul, ul#lijstvariabelen {
 	padding-left: 0;
 	padding-right: 0;
 }
@@ -2165,7 +2119,7 @@ ul#menu_l3 li {
 	overflow: hidden;
 	padding-top: 6px;
 	padding-bottom: 0;
-	height: 24px;
+	height: 40px;
 }
 
 #lblbeschikbarevariabelen span {
@@ -2195,7 +2149,10 @@ ul#menu_l3 li {
 .jarige {
 	margin-top: 10px;
 	height: 83px;
+	width: 98%;
 	line-height: 83px;
+	float: left;
+	clear: left;
 }
 
 .jarige img, .kaartje img, .bewaker img {
@@ -2204,7 +2161,7 @@ ul#menu_l3 li {
 	margin-right: 4px;
 }
 
-.kaartje, .bewaker {
+.kaartje {
 	float: left;
 	height: 82px;
 	width: 32%;
@@ -2300,10 +2257,6 @@ ul#menu_l3 li {
 	float: left;
 }
 
-#rekeningmuteren input[type='number'] {
-	width: 75px;
-}
-
 #rekeningkopmuteren select {
 	margin-top: 6px;
 	width: 250px;
@@ -2336,7 +2289,8 @@ ul#menu_l3 li {
 
 label#lblBET_TERM {
 	clear: none;
-	width: 150px;
+	width: 160px;
+	margin-left: 4px;
 }
 
 #rekeninginfo label {
@@ -2375,8 +2329,10 @@ p#laatsteemail {
 	margin-bottom: 15px;
 }
 
-#rekeningregels table {
+table#rekeningregels {
 	width: 100%;
+	float: left;
+	clear: left;
 }
 
 #rekeningregels table, #rekeningregels th, #rekeningregels td {
@@ -2557,8 +2513,8 @@ p#laatsteemail {
 }
 
 #instellingenmuteren label {
-	width: 525px;
-	height: 40px;
+	width: 550px;
+	height: auto;
 }
 
 #instellingenmuteren h2 {
@@ -2576,7 +2532,8 @@ p#laatsteemail {
 #instellingenmuteren textarea, #bijzonderhedenwijzigen textarea {
 	float: left;
 	margin-left: 8px;
-	margin-top: 6px;
+	margin-top: 3px;
+	padding-top: 0;
 }
 
 #instellingenmuteren p {
@@ -2588,24 +2545,29 @@ p#laatsteemail {
 	float: right;
 }
 
-#editmailingform input[type='text'], #editmailingform input[type='email'] {
-	width: 440px;
+#editmailingform label#lblrecordid {
+	width: auto;
 }
+
 #editmailingform input[type='checkbox'] {
 	padding-top: 12px;
+}
+
+#editmailingform input[type='file'], #editmailingform input[type='submit'] {
+	margin-top: 3px;
+	margin-bottom: 3px;
 }
 
 #editmailingform label {
 	clear: left;
 	float: left;
-	width: 180px;
-	height: 24px;
+	width: 190px;
 	padding-top: 6px;
 }
 
 #editmailingform p {
 	float: left;
-	margin-top: 10px;
+	margin-top: 3px;
 	margin-right: 8px;
 	border-style: none;
 	border-width: 1px;
@@ -2622,7 +2584,6 @@ p#laatsteemail {
 }
 
 #editmailingform .invoerblok {
-	width: 1040px;
 	height: auto;
 	min-height: 24px;
 	max-height: 250px;
@@ -2648,7 +2609,7 @@ p#laatsteemail {
 	float: left;
 }
 
-#instellingenmuteren p, #editmailingform p {
+#instellingenmuteren p {
 	height: 30px;
 	margin-top: 3px;
 	margin-bottom: 2px;
@@ -2657,7 +2618,6 @@ p#laatsteemail {
 .invoerblok {
 	float: left;
 	clear: right;
-	width: 975px;
 	min-height: 28px;
 	margin-bottom: 6px;
 	margin-top: 3px;
@@ -2680,6 +2640,8 @@ p#laatsteemail {
 #nieuwlid label#lblselecteerinschrijving {
 	float: left;
 	clear: none;
+	width: auto;
+	margin-left: 6px;
 }
 
 #nieuwlid p {
@@ -2694,10 +2656,6 @@ p#laatsteemail {
 
 #wijzigenlidgegevens select {
 	width: 225px;
-}
-
-#wijzigenlidgegevens input[type='date'] {
-	width: 110px;
 }
 
 #wijzigenlidgegevens textarea {
@@ -2724,7 +2682,7 @@ p#laatsteemail {
 
 label#lblHuisletter, label#lblToevoeging {
 	clear: none;
-	width: 75px;
+	width: auto;
 	margin-left: 6px;
 }
 

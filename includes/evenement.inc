@@ -70,11 +70,13 @@ function fnEvenementen() {
 		}
 		$lijst = $i_ev->lijst(2, "", $in);
 		
-		$kols[0]['link'] = sprintf("<a href='%s?tp=%s&amp;op=edit&amp;eid=%%d' title='Muteer evenement'>&nbsp;&nbsp;&nbsp;</a>", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+		$kols[0]['link'] = sprintf("%s?tp=%s&amp;op=edit&amp;eid=%%d' title='Muteer evenement'", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 		$kols[0]['class'] = "muteren";
 		$kols[0]['columnname'] = "RecordID";
+		
 		$kols[1]['headertext'] = "Datum";
 		$kols[1]['type'] = "date";
+		
 		$kols[2]['headertext'] = "Starttijd";
 		$kols[3]['headertext'] = "Omschrijving";
 		$kols[4]['headertext'] = "Locatie";
@@ -481,7 +483,7 @@ function muteerevenement($eventid) {
 			printf("<br><input type='text' id='Functie_%d' value=\"%s\" placeholder='Functie' class='w30' maxlength=30></td>\n", $rd->RecordID, str_replace("\"", "'", $rd->Functie));
 			printf("<td>%s<br>%s</td>\n", $dtfmt->format(strtotime($rd->Ingevoerd)), (new cls_Lid())->Naam($rd->IngevoerdDoor));
 			
-			printf("<td id='Delete_%2\$d'><img src='%1\$s' onClick='verw_dln(%2\$d);'</td>", BASE64_VERWIJDER_KLEIN, $rd->RecordID);
+			printf("<td id='Delete_%1\$d'><i class='bi bi-trash' onClick='verw_dln(%1\$d);'</i></td>", $rd->RecordID);
 			echo("</tr>\n");
 		}
 		echo("</table>\n");
@@ -503,8 +505,8 @@ function muteerevenement($eventid) {
 	if ($eventid == 0) {
 		echo("<button type='submit' name='btnToevoegen'>Toevoegen</button>\n");
 	} elseif ($row->VerwijderdOp < '2012-01-01') {
-		echo("<input type='submit' name='Bewaren' value='Bewaren'>\n");
-		echo("<input type='submit' name='Bewaren_Sluiten' value='Bewaren & Sluiten'>\n");
+		echo("<button type='submit' name='Bewaren'><i class='bi bi-save'></i> Bewaren</button>\n");
+		echo("<button type='submit' name='Bewaren_Sluiten'><i class='bi bi-door-closed'></i> Bewaren & Sluiten</button>\n");
 	}
 	
 	if ($eventid > 0 and $row->VerwijderdOp < '2012-01-01' and $aantdln > 0 and toegang("Mailing/Nieuw", 0, 0)) {
@@ -517,7 +519,7 @@ function muteerevenement($eventid) {
 		if ($row->VerwijderdOp > '2012-01-01') {
 			echo("<input type='submit' name='undoverwijderen' value='Verwijderen terugdraaien'>\n");
 		} else {
-			echo("<input type='submit' name='verwijderen' value='Verwijderen'>\n");
+			echo("<button type='submit' name='verwijderen'><i class='bi bi-trash'></i> Verwijderen</button>\n");
 		}
 	}
 	echo("</div>  <!-- Einde opdrachtknoppen -->\n");
@@ -661,7 +663,7 @@ function muteertypeevenement() {
 		
 		echo(fnEvenementOmschrijving($row, 0, "td"));
 		
-		printf("<td><a href='%s?tp=%s&amp;op=delete&tid=%d' title='Verwijder type evenement'>&nbsp;&nbsp;&nbsp;</a></td>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $row->RecordID);
+		printf("<td><a href='%s?tp=%s&op=delete&tid=%d' title='Verwijder type evenement'><i class='bi bi-trash'></i></a></td>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $row->RecordID);
 		echo("</tr>\n");
 	}
 	echo("</tbody>\n");

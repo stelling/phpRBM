@@ -238,6 +238,7 @@ function HTMLheader($breed=0) {
 		echo("<link rel='stylesheet' href='//code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css'>\n");
 		
 		echo("<link href='https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css' rel='stylesheet'>\n");
+		echo("<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.4/font/bootstrap-icons.css'>\n");
 		
 //		echo("<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css'>\n");
 //		echo("<link rel='stylesheet' href='//cdnjs.cloudflare.com/ajax/libs/timepicker/1.3.5/jquery.timepicker.min.css'>\n");
@@ -245,6 +246,7 @@ function HTMLheader($breed=0) {
 		if ($currenttab == "Vereniging" or $currenttab == "Eigen gegevens"  or $currenttab == "Ledenlijst" or $currenttab2 == "Overzicht lid") {
 			echo("<script src='https://code.jquery.com/ui/1.13.1/jquery-ui.js'></script>\n");
 		}
+
 		if ($currenttab == "Mailing") {
 			$src = "/includes/tinymce/js/tinymce/tinymce.min.js";
 			if (file_exists(BASEDIR . $src)) {
@@ -265,29 +267,32 @@ function HTMLheader($breed=0) {
 		echo("</head>\n");
 		echo("<body>\n");
 		if ($breed == 0) {
-			echo("<div id='container'>\n");
+//			echo("<div id='container'>\n");
+			echo("<div class='container'>\n");
 		} else {
-			echo("<div id='containerbreed'>\n");
+//			echo("<div id='containerbreed'>\n");
+			echo("<div class='container-fluid'>\n");
 		}
 		echo("<header>\n");
 		
 		if (strlen($_SESSION['settings']['url_eigen_help']) < 10) {
-			$htmlhelp = "<a href='https://software.telling.nl/phpRBM/uitleg.php'><img src='images/question.png' title='Uitleg gebruik en installatie' alt='Question mark'></a>\n";
+			$l = "https://software.telling.nl/phpRBM/uitleg.php";
 		} else {
-			$htmlhelp = sprintf("<a href='%s'><img src='images/question.png' title='Helpfunctie' alt='Question mark'></a>\n", $_SESSION['settings']['url_eigen_help']);
+			$l = $_SESSION['settings']['url_eigen_help'];
 		}
+		$htmlhelp = sprintf("<a href='%s'> <i class='bi bi-question-circle' style='font-size: 16pt;' title='Helpfunctie' alt='Question mark'></i></a>\n", $l);
 	
 		echo("<div id='welkom'>\n");
 		
 		if ($_SESSION['lidid'] > 0) {
 			printf("<p>Welkom %s</p>\n", htmlentities($_SESSION['roepnaamingelogde']));
-			echo("<a href='/?tp=Zelfservice/Wijzigen+wachtwoord'><img src='images/user.png' title='Wijzigen wachtwoord' alt='Wijzigen wachtwoord'></a>\n");
-			echo("<a href='index.php?actie=uitloggen'><img src='images/power.png' title='Uitloggen' alt='Uitloggen'></a>\n");
+			echo("<a href='/?tp=Zelfservice/Wijzigen+wachtwoord'> <i class='bi bi-person-circle' style='font-size: 16pt;' title='Wijzigen wachtwoord' alt='Wijzigen wachtwoord'></i></a>\n");
+			echo("<a href='index.php?actie=uitloggen'> <i class='bi bi-box-arrow-left' style='font-size: 16pt;' title='Uitloggen' alt='Uitloggen'></i></a>\n");
 			if ($_SESSION['webmaster'] == 1) {
 				if (substr($_SERVER['PHP_SELF'], -9) == "index.php") {
-					echo("<a href='admin.php'><img src='images/tool.png' title='Beheerdersmenu' alt='Tool'></a>\n");
+					echo("<a href='admin.php'> <i class='bi bi-gear' style='font-size: 16pt;' title='Beheerdersmenu' alt='gear'></i></a>\n");
 				} else {
-					echo("<a href='index.php'><img src='images/home.png' title='Beginpagina' alt='Home'></a>\n");
+					echo("<a href='index.php'> <i class='bi bi-house' style='font-size: 16pt;' title='Beginpagina' alt='huis'></i></a>\n");
 				}
 			}
 			echo($htmlhelp);
@@ -593,6 +598,8 @@ function getvar($nm, $riz="") {
 
 function fnDisplayForm($row, $xtra_eind="", $id="formulier") {
 	global $dtfmt;
+	
+	debug("fnDisplayForm", 1, 1);
 
 	if (strlen($id) > 0) {
 		$ret = sprintf("<div id='%s'>\n", $id);
@@ -686,16 +693,16 @@ function fnDisplayFormLabels($row, $xtra_eind="", $id="") {
 	return $ret;
 }  # fnDisplayFormLabels
 
-function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $p_id="lijst", $xtra_kolom="", $p_selected=-1) {
+function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $p_id="", $xtra_kolom="", $p_selected=-1) {
 	global $currenttab, $currenttab2, $dtfmt;
 	
 	$ret = "";
 	$kol_pk = "";
 	if (isset($rows) and (count($rows) > 0 or strlen($xtra_regel) > 0)) {
 		if (strlen($p_id) > 0) {
-			$ret .= sprintf("<table id='%s'>\n", $p_id);
+			$ret .= sprintf("<table id='%s' class='table table-hover'>\n", $p_id);
 		} else {
-			$ret .= "<table>\n";
+			$ret .= "<table class='table table-hover'>\n";
 		}
 		$dispkop = 1;
 		$totaantal = 0;
@@ -898,11 +905,42 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 						if (isset($kols[$kn]['title'])) {
 							$kol_link .= sprintf(" title='%s'", $kols[$kn]['title']);
 						}
-						$kol_link .= ">&nbsp;&nbsp;&nbsp;</a>";
+						$kol_link .= ">";
+						if (isset($kols[$kn]['class']) and $kols[$kn]['class'] === "details") {
+							$kol_link .= "<i class='bi bi-file-text'></i></a>";
+							
+						} elseif (isset($kols[$kn]['class']) and $kols[$kn]['class'] === "detailregels") {
+							$kol_link .= "<i class='bi bi-chevron-double-down'></i></a>";
+							
+						} elseif (isset($kols[$kn]['class']) and $kols[$kn]['class'] === "detailslid") {
+							$kol_link .= "<i class='bi bi-person-lines-fill'></i></a>";
+							
+						} elseif (isset($kols[$kn]['class']) and $kols[$kn]['class'] === "pdf") {
+							$kol_link .= "<i class='bi bi-file-earmark-pdf'></i></a>";
+							
+						} elseif (isset($kols[$kn]['class']) and $kols[$kn]['class'] == "leden") {
+							$kol_link .= "<i class='bi bi-people'></i></a>";
+							
+						} elseif (isset($kols[$kn]['class']) and $kols[$kn]['class'] == "muteren") {
+							$kol_link .= "<i class='bi bi-pencil-square' alt='Muteren'></i></a>";
+							
+						} elseif (isset($kols[$kn]['class']) and $kols[$kn]['class'] == "viewmail") {
+							$kol_link .= "<i class='bi bi-file-text' alt='Bekijk e-mail'></i></a>";
+							
+						} elseif (isset($kols[$kn]['class']) and $kols[$kn]['class'] == "trash") {
+							$kol_link .= "<i class='bi bi-trash' als='Verwijderen'></i></a>";
+							
+						} elseif (isset($kols[$kn]['class']) and $kols[$kn]['class'] == "unlock") {
+							$kol_link .= "<i class='bi bi-unlock' alt='Account vrijgeven'></i></a>";
+							
+						} else {
+							$kol_link .= "&nbsp;&nbsp;&nbsp;</a>";
+							if (isset($kols[$kn]['class']) and strlen($kols[$kn]['class']) > 0) {
+								$kol_class = sprintf("class='%s'", $kols[$kn]['class']);
+							}
+						}
 					}
-				}
-				
-				if (isset($kols[$kn]['class'])) {
+				} elseif (isset($kols[$kn]['class']) and strlen($kols[$kn]['class']) > 0) {
 					$kol_class = sprintf("class='%s'", $kols[$kn]['class']);
 				}
 				
@@ -1030,7 +1068,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 						$ret .= "<td>&nbsp;</td>";
 					}
 						
-				} elseif ($kol_type == "llk" or $kol_type == "link") {
+				} elseif ($kol_type == "link") {
 					if ($value > 0 and isset($kols[-1]['link'])) {
 						if (startwith($kols[-1]['link'], "<a href") == true) {
 							$kol_link = $kols[-1]['link'];
@@ -1045,15 +1083,6 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 						$ret .= sprintf("<td %s>%s</td>", $kol_class, $href);
 					} elseif (isset($kols[-1]['link'])) {
 						$ret .= "<td>&nbsp;</td>\n";
-					}
-					
-				} elseif (startwith($key, "lek")) {
-					if ($value > 0 and strlen($xtra_kolom) > 1) {
-						$href = str_replace("%d", $value, $xtra_kolom);
-						$href = str_replace("%s", "<img src='images/zoom.png' alt='Details'>", $href);
-						$ret .= "<td class='details'>" . $href . "</td>";
-					} elseif (strlen($xtra_kolom) > 1) {
-						$ret .= "<td></td>\n";
 					}
 					
 				} elseif ($kol_type == "eml" or $kol_type == "email") {
@@ -1125,7 +1154,7 @@ function fnEditTable($res, $kols, $id, $th) {
 
 	$rows = $res->fetchAll();
 	
-	$ret = sprintf("<table id='%s'>\n", $id);
+	$ret = sprintf("<table id='%s' class='table table-hover'>\n", $id);
 	if (strlen($th) > 0) {
 		if (count($rows) > 3) {
 			$t = sprintf(" title='%d rijen'", count($rows));
@@ -1136,7 +1165,7 @@ function fnEditTable($res, $kols, $id, $th) {
 	}
 	$ret .= "<thead>\n";
 	$ret .= "<tr>";
-	$colpk = "";
+	$colpk = $res->getColumnMeta(0)['name'];
 	foreach ($kols as $kn => $kol) {
 		if (count($rows) > 0) {
 			if (!isset($kol['columnname'])) {
@@ -1180,7 +1209,7 @@ function fnEditTable($res, $kols, $id, $th) {
 			if (isset($kol['class'])) {
 				$kol_class = sprintf("class='%s'", $kol['class']);
 			}
-			if (isset($kol['link'])) {
+			if (isset($kol['link']) and strlen($kol['link']) > 0) {
 				$tp = "link";
 				if (substr($kol['link'], 0, 7) == "<a href") {
 					$kol_link = $kol['link'];
@@ -1194,7 +1223,13 @@ function fnEditTable($res, $kols, $id, $th) {
 						}
 						$kol_link .= sprintf(" title='%s'", $t);
 					}
-					$kol_link .= ">&nbsp;&nbsp;&nbsp;</a>";
+					if (isset($kol['class']) and $kol['class'] == "muteren") {
+						$kol_link .= "><i class='bi bi-pencil-square' alt='Muteren'></i></a>";
+					} elseif (isset($kol['class']) and $kol['class'] == "trash") {
+						$kol_link .= "><i class='bi bi-trash' alt='Verwijderen'></i></a>";
+					} else {
+						$kol_link .= ">&nbsp;&nbsp;&nbsp;</a>";
+					}
 				}
 			}
 			$ro = $kol['readonly'] ?? false;
@@ -1213,10 +1248,9 @@ function fnEditTable($res, $kols, $id, $th) {
 				// Kolom wordt niet getoond.
 			
 			} elseif ($tp == "link") {
-				if ($value > 0 and $ro == false) {
+				if ($value > 0) {
 					$href = str_replace("%d", $value, $kol_link);
-					$href = str_replace("%s", "&nbsp;&nbsp;&nbsp;", $href);
-					$ret .= sprintf("<td %s>%s</td>", $kol_class, $href);
+					$ret .= sprintf("<td>%s</td>", $href);
 				} else {
 					$ret .= "<td>&nbsp;</td>";
 				}	
