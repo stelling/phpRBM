@@ -192,7 +192,7 @@ if ($i_lid->aantal() == 0) {
 			$url = BASISURL . "/maatwerk/" . $i_el->eigenscript;
 			printf("<script>location.href='%s';</script>\n", $url);
 		} else {
-			debug($s . " betaat niet, vraag de webmaster om dit te verhelpen.");
+			debug($s . " bestaat niet, vraag de webmaster om dit te verhelpen.");
 		}
 	}
 	$i_el->controle($i_el->elid);
@@ -429,7 +429,7 @@ function fnAgenda($p_lidid=0) {
 	//	$txt .= "<p class='mededeling'>De agenda is nog in ontwikkeling</p>\n";
 	$txt = "<table class='table table-hover'>\n";
 	$txt .= "<tr>\n";
-	$dtfmt->setPattern("EEE");
+	$dtfmt->setPattern("EEEE");
 	for ($dn=1;$dn<=7;$dn++) {
 		$txt .= sprintf("<th>%s</th>", $dtfmt->format(strtotime(sprintf("+%d day", $dn-1), $dtStart)));
 	}
@@ -441,7 +441,6 @@ function fnAgenda($p_lidid=0) {
 			$td = strtotime(sprintf("+%d day", $dn-1), $sw);
 			$c = "";
 			if (date("Ymd", $td) == date("Ymd")) {
-//				$c = " class='vandaag'";
 				$c = " class='table-active'";
 			}
 			if (array_key_exists(date("Ymd", $td), $fds)) {
