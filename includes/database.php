@@ -2368,7 +2368,9 @@ class cls_Onderdeel extends cls_db_base {
 								 O.RecordID NOT IN (SELECT O2.LedenMuterenDoor FROM %2\$sOnderdl AS O2) AND
 								 O.RecordID NOT IN (SELECT GR.OnderdeelID FROM %2\$sGroep AS GR) AND
 								 O.RecordID NOT IN (SELECT AA.Toegang FROM %2\$sAdmin_access AS AA) AND
-								 O.RecordID NOT IN (SELECT AK.OnderdeelID FROM %2\$sAfdelingskalender AS AK);", $this->basefrom, TABLE_PREFIX);
+								 O.RecordID NOT IN (SELECT AK.OnderdeelID FROM %2\$sAfdelingskalender AS AK) AND 
+								 O.RecordID NOT IN (SELECT EX.OnderdeelID FROM %2\$sExamen AS EX) AND
+								 O.RecordID NOT IN (SELECT DP.Afdelingsspecifiek FROM %2\$sDiploma AS DP);", $this->basefrom, TABLE_PREFIX);
 		$result = $this->execsql($query);
 		foreach ($result->fetchAll() as $row) {
 			$reden = "deze vervallen is en nergens meer aan gekoppeld is.";
@@ -5537,9 +5539,14 @@ class cls_Logboek extends cls_db_base {
 		/*
 		$p_tm
 			* 0: niet tonen
-			* 1: aan iedereen tonen
-			* 2: alleen tonen aan webmasters
+			
+			* 1: aan iedereen tonen (alert-info)
+			* 2: alleen tonen aan webmasters (alert-info)
 			* 3: aan iedereen via alert tonen
+			
+			* 11: aan iedereen tonen (warning-info)
+			* 12: alleen tonen aan webmasters (warning-info)
+			
 		*/
 		
 		$data['ipaddress'] = $_SERVER['REMOTE_ADDR'];
@@ -5626,7 +5633,9 @@ class cls_Logboek extends cls_db_base {
 		$nrid = $dbc->prepare($query)->execute($data);
 		
 		if ($this->tm == 1 or ($this->tm == 2 and $_SESSION['webmaster'] == 1)) {
-			printf("<p class='mededeling'>%s</p>\n", $p_oms);
+			printf("<p class='alert-info'>%s</p>\n", $p_oms);
+		} elseif ($this->tm == 11 or ($this->tm == 12 and $_SESSION['webmaster'] == 1)) {
+			printf("<p class='warning-info'>%s</p>\n", $p_oms);
 		} elseif ($this->tm == 3) {
 			printf("<script>alert(\"%s\");</script>\n", $p_oms);
 		}
@@ -5841,6 +5850,7 @@ class cls_Diploma extends cls_db_base {
 	public $dpid = 0;
 	public $dpnaam = "";
 	private $dpcode = "";
+	public $organisatie = 0;
 	public $dpvoorganger = 0;
 	public $dpvolgende = 0;
 	public $naamvolgende = "";
@@ -5870,13 +5880,13 @@ class cls_Diploma extends cls_db_base {
 					$this->naamlogging = $row->Naam;
 				}
 				$this->dpcode = $row->Kode;
+				$this->organisatie = $row->ORGANIS;
 				$this->dpvoorganger = $row->VoorgangerID;
 				if (strlen($row->EindeUitgifte) == 0) {
 					$this->eindeuitgifte = "9999-12-31";
 				} else {
 					$this->eindeuitgifte = $row->EindeUitgifte;
 				}
-				
 				
 				$query = sprintf("SELECT DP.RecordID, DP.Naam FROM %s WHERE DP.VoorgangerID=%d AND IFNULL(DP.Vervallen, '9999-12-31') > CURDATE() AND IFNULL(DP.EindeUitgifte, '9999-12-31') > CURDATE();", $this->basefrom, $this->dpid);
 				
@@ -6287,6 +6297,7 @@ class cls_Liddipl extends cls_db_base {
 			$dubqry_ex = sprintf("SELECT COUNT(*) FROM %s WHERE LD.Lid=%d AND LD.Examen=%d AND LD.DiplomaID=%d;", $this->basefrom, $this->lidid, $p_examen, $this->dpid);
 			if ($p_examen > 0 and $this->scalar($dubqry_ex) > 0)  {
 				$this->mess = sprintf("%s wordt niet toegevoegd, omdat dit record voor dit lid bij dit examen al bestaat.", $this->dpnaam);
+				$this->tm = 11;
 			} else {
 				$nrid = $this->nieuwrecordid();
 				$query = sprintf("INSERT INTO %s (RecordID, Lid, DiplomaID, Examen, DatumBehaald, LaatsteBeoordeling, Ingevoerd) VALUES (%d, %d, %d, %d, '%s', 1, SYSDATE());", $this->table, $nrid, $this->lidid, $this->dpid, $p_examen, $p_exdatum);
@@ -6296,11 +6307,13 @@ class cls_Liddipl extends cls_db_base {
 					$this->mess = sprintf("Liddipl: Record %d (%s) is toegevoegd.", $nrid, $this->dpnaam);
 				} else {
 					$nrid = 0;
-					$this->mess = "Liddipl: record niet toegevoegd.";
+					$this->mess = "Tabel Liddipl: record niet toegevoegd.";
+					$this->tm = 11;
 				}
 			}
 		} else {
-			$this->mess = "Liddipl: record niet toegevoegd.";
+			$this->mess = "Tabel Liddipl: record niet toegevoegd, omdat niet zowel het lid als het diploma bekend waren.";
+			$this->tm = 12;
 		}
 		$this->log($nrid);
 		
