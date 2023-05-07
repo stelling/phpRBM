@@ -21,6 +21,10 @@ i {
 	margin-bottom: 0;
 }
 
+.row {
+	margin-left: 2px;
+}
+
 /* Einde Bootstrap */
 
 body {
@@ -136,6 +140,10 @@ p.uitleg {
 
 p.aantrecords {
 	clear: right;
+}
+
+span {
+	white-space: nowrap;
 }
 
 label {
@@ -475,7 +483,7 @@ button:disabled, button[disabled=disabled], .disabled {
 	color: red;
 }
 
-#container, #containerbreed {
+#container {
 	width: 1275px;
 	margin-left: auto;
 	margin-right: auto;
@@ -484,10 +492,6 @@ button:disabled, button[disabled=disabled], .disabled {
 	border-style: none;
 	border-width: 1px;
 	color: inherit;
-}
-
-#containerbreed {
-	width: 1850px;
 }
 
 header a + a:visited + a:hover {
@@ -836,16 +840,12 @@ textarea#sportlinkdata {
 	height: 80px;
 }
 
+#tab-agenda td {
+	padding-left: 1px;
+}
+
 #tab-agenda tr:first-child {
 	height: 40px;
-}
-
-#tab-agenda th, #tab-agenda td {
-	width: 14%;
-}
-
-#tab-agenda td.vandaag {
-	border-width: 3px;
 }
 
 #tab-agenda ul {
@@ -921,11 +921,17 @@ table#afdelingskalendermuteren {
 #groepsindeling h3, #groepsindeling h4 {
 	margin-top: 1px;
 	margin-bottom: 1px;
+	white-space: nowrap;
 }
 
 #groepsindeling h4 {
 	margin-left: 5px;
 	font-size: 100%;
+}
+
+#groepsindeling .col {
+	border-width: 1px;
+	border-right-style: solid;
 }
 
 #groepsindeling table {
@@ -1671,19 +1677,16 @@ fieldset h3 {
 	font-size: 150%;
 }
 
-.wieiswie h2 {
-	padding-left: 4px;
-	padding-bottom: 2px;
-}
-
 .wieiswie h2.onderdeelnaam {
 	float: left;
-	clear: right;
+	width: 50%;
 }
 
 .wieiswie h2.onderdeelemail {
 	float: right;
 	clear: right;
+	width: 49%;
+	text-align: right;
 }
 
 #wieiswie a, #wieiswie a:visited {
@@ -2155,17 +2158,17 @@ ul#menu_l3 li {
 	clear: left;
 }
 
-.jarige img, .kaartje img, .bewaker img {
+.jarige img, .kaartje img {
 	float: left;
 	height: 82px;
+	max-width: 100px;
 	margin-right: 4px;
 }
 
-.kaartje {
+.kaartje, .wieiswie .col {
 	float: left;
-	height: 82px;
-	width: 32%;
-	max-width: 350px;
+	height: auto;
+	width: 24%;
 	border-style: solid;
 	border-width: 1px;
 	margin-top: 2px;
@@ -2183,50 +2186,20 @@ ul#menu_l3 li {
 	margin-right: 3px;
 }
 
-.bewaker {
-	width: 303px;
-	margin-left: 6px;
-	margin-right: 6px;
-	padding-right: 3px;
-}
-
-.kaderlid p, .bewaker p {
+.kaderlid p {
 	margin-top: 6px;
 	margin-bottom: 6px;
 }
 
-.naamkaderlid, .bewnaam {
-	font-size: 10pt;
-	font-weight: bolder;
-	text-align: center;
-}
-
 .naamkaderlid {
 	font-size: 11pt;
+	font-weight: bolder;
+	text-align: center;
+	white-space: nowrap;
 }
 
 .functiekaderlid, .mailkaderlid {
 	margin-left: 4px;
-}
-
-.bewfunctie {
-	text-align: center;
-}
-
-.bewleeftijd {
-	float: left;
-	margin-top: 3px;
-	margin-left: 4px;
-}
-
-.bewervaring {
-	float: right;
-	margin-top: 3px;
-	text-align: right;
-}
-
-.chk {
-	text-align: center;
 }
 
 .fotoinschrijving img {
@@ -2452,7 +2425,7 @@ table#rekeningregels {
 	overflow: visible;
 	float: left;
 	clear: right;
-	height: 175px;
+	height: auto;
 	border-style: solid;
 	border-width: 1px;
 	padding-left: 5px;
@@ -2462,14 +2435,6 @@ table#rekeningregels {
 	float: left;
 	clear: left;
 	width: 175px;
-}
-
-#mailingselectieleden input, #mailingselectieleden p {
-	min-width: 115px;
-}
-
-#mailingselectieleden p {
-	margin-top: 7px;
 }
 
 #mailingselectieleden label.kop {
@@ -2792,7 +2757,7 @@ li.presstat_v, td.presstat_v {
 	
 }
 
-@media screen and (max-width: 750px) {
+@media screen and (max-width: 700px) {
 	h1 {
 		font-size: 125%;
 	}
@@ -2811,6 +2776,10 @@ li.presstat_v, td.presstat_v {
 	
 	#wijzigenlidgegevens input, #wijzigenlidgegevens select {
 		width: 200px;
+	}
+	
+	.functiekaderlid, .mailkaderlid {
+		display: none;
 	}
 }
 
