@@ -334,17 +334,18 @@ function fnWijzigen($lidid, $actie="") {
 					$mess = "Het nieuwe wachtwoord is een verplicht veld.";
 				} elseif (strlen($_POST['pw_herhaal']) < 5) {
 					$mess = "Herhalen van het wachtwoord is verplicht.";
+				} elseif ($_POST['pw_nieuw'] != $_POST['pw_herhaal']) {
+					$mess = "De nieuwe wachtwoorden zijn niet aan elkaar gelijk.";
 				} else {
 					(new cls_Login())->wijzigenwachtwoord($_POST['pw_nieuw'], $_POST['pw_oud'],$_POST['pw_herhaal'], $lidid);
 				}
 				if (strlen($mess) > 0) {
-					printf("<p class=mededeling>%s</p>\n", $mess);
+					printf("<p class='mededeling'>%s</p>\n", $mess);
 				}
-				echo("<p class='mededeling'><a href='/'>Klik hier om verder te gaan.</a></p>\n");
+				echo("<p><a href='/'>Klik hier om verder te gaan.</a></p>\n");
 				
 			} else {
-				echo("<div id='profielwijzigen'>\n");
-				printf("<form action='%s' method='post'>\n", $actionurl);
+				printf("<form method='post' id='profielwijzigen' action='%s'>\n", $actionurl);
 				printf("<fieldset>
 				<h3>Wijzigen wachtwoord</h3>
 				<label>Login:</label><input type='text' title='Login' name='ingelogdlogin' value='%s' readonly='readonly'>
@@ -354,10 +355,9 @@ function fnWijzigen($lidid, $actie="") {
 				printf("</fieldset>
 				%s
 				<div id='opdrachtknoppen'>\n
-				<input type='submit' value='Wijzigen'>\n
+				<button type='submit'>Wijzigen</button>\n
 				</div> <!-- Einde opdrachtknoppen -->\n
-				</form>\n
-				</div>  <!-- Einde profielwijzigen -->\n", fneisenwachtwoord());
+				</form>\n", fneisenwachtwoord());
 			}	
 		} else {
 			$mess = sprintf("fnWijzigen: actie '%s' bestaat niet", $actie);
@@ -395,14 +395,14 @@ function fnWieiswie($actie, $metfoto=1) {
 		foreach ($lijst as $row) {
 			if ($vo != $row->OndNaam) {
 				if (strlen($vo) > 0) {
-					$txt .= "<div class='clear'></div>\n";
+					$txt .= "</div> <!-- Einde row onderdeel -->\n";
 				}
+				$txt .= "<div class='row'>\n";
 				if (isValidMailAddress($row->CentraalEmail, 0)) {
-					$txt .= sprintf('<h2 class="onderdeelnaam">%s </h2><h2 class="onderdeelemail">%s</h2>', $row->OndNaam, fnDispEmail($row->CentraalEmail, $row->OndNaam, 1));
+					$txt .= sprintf("<h2 class='onderdeelnaam'>%s </h2><h2 class='onderdeelemail'>%s</h2>\n", $row->OndNaam, fnDispEmail($row->CentraalEmail, $row->OndNaam, 1));
 				} else {
-					$txt .= sprintf("<h2 class='onderdeelnaam'>%s</h2>\n", $row->OndNaam);
+					$txt .= sprintf("<h2 class='onderdeelnaam'>%s</h2><h2 class='onderdeelemail'></h2>\n", $row->OndNaam);
 				}
-				$txt .= "<div class='clear'></div>\n";
 				$vo = $row->OndNaam; 
 			} 
 			$ln = htmlentities($row->NaamLid);
@@ -424,15 +424,17 @@ function fnWieiswie($actie, $metfoto=1) {
 			
 			$fd = fotolid($row->Lid, 1);
 			if ($actie == "Onderscheidingen" and strlen($fd) > 3) {
-				$txt .= sprintf("<div class='kaartje'><img class='rounded-circle' src='%1\$s' alt='Pasfoto %2\$s'><p class='naamkaderlid'>%2\$s</p>\n<p>vanaf %3\$s</p>\n</div>\n", $fd, $ln, $dtfmt->format(strtotime($row->Vanaf)));
+				$txt .= sprintf("<div class='kaartje'><img class='rounded-circle' src='%1\$s' alt='Pasfoto %2\$s'>\n<p class='naamkaderlid'>%2\$s</p>\n<p>vanaf %3\$s</p>\n", $fd, $ln, $dtfmt->format(strtotime($row->Vanaf)));
 			} elseif ($actie == "Onderscheidingen") {
-				$txt .= sprintf("<div class='kaartje'><p class='naamkaderlid'>%s</p>\n<p>vanaf %s</p>\n</div>\n", $ln, $dtfmt->format(strtotime($row->Vanaf)));
+				$txt .= sprintf("<div class='kaartje'><p class='naamkaderlid'>%s</p>\n<p>vanaf %s</p>\n", $ln, $dtfmt->format(strtotime($row->Vanaf)));
 			} elseif (strlen($fd) > 3) {
-				$txt .= sprintf("<div class='kaartje'><img class='rounded-circle' src='%1\$s' alt='Pasfoto %2\$s'><p class='naamkaderlid'>%2\$s</p>\n<p class='functiekaderlid'>%3\$s</p>\n<p class='mailkaderlid'>%4\$s</p>\n</div>\n", $fd, $ln, $func, $email);
+				$txt .= sprintf("<div class='kaartje col-md-auto'><img class='rounded-circle' src='%1\$s' alt='Pasfoto %2\$s'><p class='naamkaderlid'>%2\$s</p>\n<p class='functiekaderlid'>%3\$s</p>\n<p class='mailkaderlid'>%4\$s</p>\n", $fd, $ln, $func, $email);
 			} else {
-				$txt .= sprintf("<div class='kaartje'><p class='naamkaderlid'>%s</p>\n<p class='functiekaderlid'>%s</p>\n<p class='mailkaderlid'>%s</p>\n</div>\n", $ln, $func, $email);	
+				$txt .= sprintf("<div class='kaartje col-md-auto'><p class='naamkaderlid'>%s</p>\n<p class='functiekaderlid'>%s</p>\n<p class='mailkaderlid'>%s</p>\n", $ln, $func, $email);	
 			}
+			$txt .= "</div> <!-- Einde kaartje -->\n";
 		}
+		$txt .= "</div> <!-- Einde row onderdeel -->\n";
 	} else {	
 		$txt .= "<table class='table table-hover'>\n";
 		foreach ($lijst as $row) {
@@ -468,7 +470,8 @@ function fnWieiswie($actie, $metfoto=1) {
 		}
 		$txt .= "</table>\n";
 	}
-	$txt .= "</div>  <!-- Einde kaderoverzicht -->\n";
+	
+	$txt .= "</div> <!-- Einde wieiswie -->\n";
 	
 	return $txt;
 	
@@ -1194,12 +1197,11 @@ function fnEigenGegevens($lidid=0) {
 				$kols[4]['headertext'] = "Opmerking`";
 				$kols[4]['columnname'] = "Opmerking";
 			}
+			$tabblad[$tn] = fnDisplayTable($rows, $kols, $naamlid);
 		
 			if ($tn == $currenttab3) {
-				$tabidx = count($tabblad);
-			}			
-			
-			$tabblad[$tn] = fnDisplayTable($rows, $kols, $naamlid);
+				$tabidx = count($tabblad)-1;
+			}
 		}
 			
 		$tn = "Rekeningen";
@@ -1328,18 +1330,20 @@ function fnEigenGegevens($lidid=0) {
 			}
 		}
 		
-		$lnk = sprintf("<button type='button' OnClick=\"location.href='%s?tp=%%s&lidid=%%d';\">%%s lid</button>\n", $_SERVER['PHP_SELF']);
-		echo("<div id='opdrachtknoppen'>\n");
-		if ($current_key > 0) {
-			printf($lnk, $_GET['tp'], $_SESSION['sel_leden'][0], "<i class='bi bi-skip-start-circle'></i> Eerste");
-			printf($lnk, $_GET['tp'], $_SESSION['sel_leden'][$current_key-1], "<i class='bi bi-skip-backward-circle'></i> Vorige");
+		if (toegang("Ledenlijst", 0, 0)) {
+			$lnk = sprintf("<button type='button' OnClick=\"location.href='%s?tp=%%s&lidid=%%d';\">%%s lid</button>\n", $_SERVER['PHP_SELF']);
+			echo("<div id='opdrachtknoppen'>\n");
+			if ($current_key > 0) {
+				printf($lnk, $_GET['tp'], $_SESSION['sel_leden'][0], "<i class='bi bi-skip-start-circle'></i> Eerste");
+				printf($lnk, $_GET['tp'], $_SESSION['sel_leden'][$current_key-1], "<i class='bi bi-skip-backward-circle'></i> Vorige");
+			}
+			if ($_SESSION['sel_leden'][count($_SESSION['sel_leden'])-1] != $lidid) {
+				printf($lnk, $_GET['tp'], $_SESSION['sel_leden'][$current_key+1], "<i class='bi bi-skip-forward-circle'></i> Volgende");
+				printf($lnk, $_GET['tp'], $_SESSION['sel_leden'][count($_SESSION['sel_leden'])-1], "<i class='bi bi-skip-end-circle'></i> Laatste");
+			}
+			printf("<p>Lid %d van de %d</p>\n", $current_key+1, count($_SESSION['sel_leden']));
+			echo("</div>  <!-- Einde opdrachtknoppen -->\n");
 		}
-		if ($_SESSION['sel_leden'][count($_SESSION['sel_leden'])-1] != $lidid) {
-			printf($lnk, $_GET['tp'], $_SESSION['sel_leden'][$current_key+1], "<i class='bi bi-skip-forward-circle'></i> Volgende");
-			printf($lnk, $_GET['tp'], $_SESSION['sel_leden'][count($_SESSION['sel_leden'])-1], "<i class='bi bi-skip-end-circle'></i> Laatste");
-		}
-		printf("<p>Lid %d van de %d</p>\n", $current_key+1, count($_SESSION['sel_leden']));
-		echo("</div>  <!-- Einde opdrachtknoppen -->\n");
 	}
 	
 } # fnEigenGegevens
@@ -2149,8 +2153,6 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 			}
 		}		
 	}
-			
-	echo("<div id='wijzigendiplomas'>\n");
 
 //	echo("<p class='mededeling'>Werk in uitvoering, werkt dus niet zoals het zou moeten.</p>\n");
 	$actionurl = sprintf("%s?tp=%s&lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
@@ -2164,7 +2166,7 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 		echo("</div> <!-- Einde filter -->\n");
 	}
 	
-	echo("<table id='diplomaslidmuteren'>\n");
+	echo("<table id='diplomaslidmuteren' class='table table-hover'>\n");
 	printf("<caption>Diploma's %s muteren</caption>\n", (new cls_Lid())->Naam($lidid));
 	$minbehaald = date("d-m-Y", strtotime((new cls_Lid())->Geboortedatum($lidid)));
 	echo("<thead>\n");
@@ -2212,8 +2214,6 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 		echo("<div class='clear'></div>\n");
 		echo("<p>Een diploma kan worden verwijderd door bij 'Geldig tot' een datum in te vullen die voor 'Behaald op' ligt.</p>\n");
 	}
-	
-	echo("</div>  <!-- Einde wijzigendiplomas -->\n");
 
 	$i_dp = null;
 	$i_ld = null;

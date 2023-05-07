@@ -593,7 +593,7 @@ class Mailing {
 					$tabbijlagefiles .= sprintf("<tr>\n<td>%s</td>\n", $entry);
 					$stat = stat($this->dir_attachm . $entry);
 					$tabbijlagefiles .= sprintf("<td>%s KB</td>\n", number_format(($stat['size'] / 1024), 0, ',', '.'));
-					$tabbijlagefiles .= sprintf("<td><input type='image' src='%s' name='del_attach_%d' alt='Verwijderen' title='Verwijder %s'></td>\n", BASE64_VERWIJDER_KLEIN, $bnr, $entry);
+					$tabbijlagefiles .= sprintf("<td><button type='submit' name='del_attach_%d' alt='Verwijderen' title='Verwijder %s'><i class='bi bi-trash'></i></button></td>\n", $bnr, $entry);
 					$tabbijlagefiles .= sprintf("<input type='hidden' name='name_attach_%d' value='%s'>\n", $bnr, str_replace(".", "!", $entry));
 					$bnr++;
 				}
@@ -639,12 +639,15 @@ class Mailing {
 				$this->meldingen = "";
 
 				echo("<label>Ontvanger toevoegen</label>\n");
-				printf("<select id='add_lid' onChange=\"mailing_add_ontvanger(%d, $(this).val(), '');\"></select>\n", $this->mid);
-				printf("<input type='checkbox' id='cb_alle_personen' OnClick=\"options_mogelijke_ontvangers(%d);\"><p>Alle</p>", $this->mid);
+				printf("<select id='add_lid' onChange=\"mailing_add_ontvanger(%d, $(this).val(), '');\">%s</select>\n", $this->mid, $this->options_mogelijke_ontvangers());
 			
 				$_POST['selecteer_groep'] = $_POST['selecteer_groep'] ?? 0;
 				
 				printf("<input type='email' maxlength=50 placeholder='Toevoegen e-mailadres' onBlur=\"mailing_add_ontvanger(%d, 0, $(this).val());\">", $this->mid);
+				if ($this->aant_rcpt > 0) {
+					echo("<button type='button' id='OntvangersVerwijderen' OnClick='mailing_verw_alle_ontvangers();'><i class='bi bi-trash'></i> Ontvangers</button>\n");
+				}
+				
 				echo("<div class='clear'></div>\n");
 				
 				if (!isset($_POST['selectie_status'])) {
@@ -668,13 +671,14 @@ class Mailing {
 				printf("<label>Zit in groep</label><select name='selectie_groep' id='selectie_groep' OnChange='mailingprops(%d);'>%s</selectie>\n", $this->mid, $selgr);
 				
 				echo("<label>Aantal personen in groep</label><p id='aantalpersoneningroep'></p>\n");
-				echo("<button type='button' id='LedenToevoegen' OnClick='mailing_add_selectie_ontvangers();'>Groepsleden toevoegen</button>\n");
-				echo("<button type='button' id='LedenVerwijderen' OnClick='mailing_verw_selectie_ontvangers();'>Groepsleden verwijderen</button>\n");
-				echo("<button type='button' id='OntvangersVerwijderen' OnClick='mailing_verw_alle_ontvangers();'>Alle ontvangers verwijderen</button>\n");
+				echo("<button type='button' id='LedenToevoegen' OnClick='mailing_add_selectie_ontvangers();'><i class='bi bi-plus-circle'></i> Groepsleden</button>\n");
+				if ($this->aant_rcpt > 0) {
+					echo("<button type='button' id='LedenVerwijderen' OnClick='mailing_verw_selectie_ontvangers();'><i class='bi bi-trash'></i> Groepsleden</button>\n");
+				}
 				echo("</div> <!-- Einde mailingselectieleden -->\n");
 				echo("<div class='clear'></div>\n");
 			}
-			printf("<label>Cc</label><input type='text' id='cc_addr' value='%s' %s>\n", $this->cc_addr, $jstb);
+			printf("<label>Cc</label><input type='text' id='cc_addr' class='w50' value='%s' %s>\n", $this->cc_addr, $jstb);
 		
 			if ((new cls_Onderdeel())->aantal("`Type`='A' AND LENGTH(CentraalEmail) > 4 AND IFNULL(VervallenPer, CURDATE()) >= CURDATE()") > 0) {
 				printf("<label>Cc aan afdelingen</label><input type='checkbox' id='CCafdelingen' value=1 %s %s>\n", checked($this->CCafdelingen), $jscb);
@@ -758,7 +762,7 @@ class Mailing {
 			echo("<button type='submit' name='action' value='Bewaren'><i class='bi bi-save'></i> Bewaren</button>\n");
 			echo("<button type='submit' name='action' value='Bewaren & sluiten'>Bewaren & sluiten</button>\n");
 		} else {
-			echo("<button type='submit' name='Toevoegen'>Toevoegen</button>\n");
+			echo("<button type='submit' name='Toevoegen'><i class='bi bi-plus-circle'></i> Toevoegen</button>\n");
 		}
 
 		echo("<button type='submit' name='action' value='Verstuur mailing' title='Verstuur mailing' id='btnverstuurmailing'><i class='bi bi-envelope-at'></i> Verstuur mailing</button>\n");
@@ -790,38 +794,31 @@ class Mailing {
 		}
 	} # edit
 	
-	public function options_mogelijke_ontvangers($p_mid, $p_alle=0) {
+	public function options_mogelijke_ontvangers($p_mid=-1) {
 		$i_m = new cls_Mailing();
 		
 		if ($p_mid > 0) {
 			$this->mid = $p_mid;
 		}
-
-		if ($p_alle == 0) {
-			$f = 1;
-		} else {
-			$f = 0;
+		
+		$rv = sprintf("<option value=0>Toevoegen lid ...</option>\n");
+		$rcpt_rows = $i_m->mogelijkeontvangers($this->mid, 1);
+		foreach($rcpt_rows as $rcpt) {
+			$rv .= sprintf("<option value='%d'>%s</option>\n", $rcpt->LidID, $rcpt->Zoeknaam_lid);
+		}
+		$rv .= sprintf("<option value=0 disabled>Toevoegen kloslid ...</option>\n");
+		$rcpt_rows = $i_m->mogelijkeontvangers($this->mid, 2);
+		foreach($rcpt_rows as $rcpt) {
+			$rv .= sprintf("<option value='%d'>%s</option>\n", $rcpt->LidID, $rcpt->Zoeknaam_lid);
 		}
 		
-		if ($p_alle == 1) {
-			$rv = sprintf("<option value=0>Toevoegen ontvanger ...</option>\n");
-		} else {
-			$rv = sprintf("<option value=0>Toevoegen lid ...</option>\n");
-		}
-		$rcpt_rows = $i_m->mogelijkeontvangers($this->mid, $f);
+		$rv .= sprintf("<option value=0 disabled>Toevoegen voormalig lid ...</option>\n");
+		$rcpt_rows = $i_m->mogelijkeontvangers($this->mid, 3);
 		foreach($rcpt_rows as $rcpt) {
-			$rnm = $rcpt->Zoeknaam_lid;
-			if ($f == 0) {
-				$sl = substr((new cls_Lidmaatschap())->soortlid($rcpt->LidID), 0, 1);
-				if ($sl != "L") {
-					$rnm .= sprintf(" (%s)", $sl);
-				}
-			}
-			$rv .= sprintf("<option value='%d'>%s</option>\n", $rcpt->LidID, $rnm);
+			$rv .= sprintf("<option value='%d'>%s</option>\n", $rcpt->LidID, $rcpt->Zoeknaam_lid);
 		}
 		
 		$i_m = null;
-		
 		
 		return $rv;
 	}
@@ -857,6 +854,7 @@ class Mailing {
 		if (!$p_asarray) {
 			$rv .= "</ul>\n";
 		}
+		$this->aant_rcpt = count($rcpt_rows);
 
 		return $rv;		
 	}
@@ -2559,8 +2557,8 @@ function eigennotificatie($p_ondid, $p_aanadres, $p_tas=-1, $p_interval=24, $p_c
 				$i_email->onderwerp = sprintf("%s (%d rijen)", $ng, $ar);
 			}
 			$i_email->bericht = "<!DOCTYPE html>
-										<html lang='nl'>
-										<head>\n";
+									<html lang='nl'>
+									<head>\n";
 			$i_email->bericht .= sprintf("<title>%s</title>\n", $i_email->onderwerp);
 			if (file_exists(BASEDIR . "/maatwerk/email.css")) {
 				$i_email->bericht .= "<link rel='stylesheet' href='" . BASISURL . "/maatwerk/email.css'>\n";
@@ -2594,10 +2592,9 @@ function js_editor($p_hist=0) {
 		tinymce.init({
 			selector: '#message',
 			placeholder: 'Bericht hier ...',
-			mobile: {
-				theme: 'mobile',
-				menubar: true
-			},
+			theme: 'silver',
+			mobile: { theme: 'silver' },
+			menubar: true,
 			height: 650,
 			relative_urls: false,
 			convert_urls: false,
