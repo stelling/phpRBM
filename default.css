@@ -738,7 +738,7 @@ td.details, td.muteren, td.detailregels, td.leden, td.sendmail, td.unlock {
 	min-width: 400px;
 }
 
-#wijzigenlidgegevens, #nieuwlid, #wijzigendiplomas, #nieuwepasfoto, #bijzonderhedenwijzigen, #lidmaatschapmuteren, #inschrijvingevenementen, #webshop, #opzegformulier, #profielwijzigen {
+#wijzigenlidgegevens, #nieuwlid, #nieuwepasfoto, #bijzonderhedenwijzigen, #lidmaatschapmuteren, #inschrijvingevenementen, #webshop, #opzegformulier, #profielwijzigen {
 	padding-top: 8px;
 }
 
@@ -842,6 +842,7 @@ textarea#sportlinkdata {
 
 #tab-agenda td {
 	padding-left: 1px;
+	max-width: 16%;
 }
 
 #tab-agenda tr:first-child {
@@ -921,17 +922,23 @@ table#afdelingskalendermuteren {
 #groepsindeling h3, #groepsindeling h4 {
 	margin-top: 1px;
 	margin-bottom: 1px;
-	white-space: nowrap;
+	padding-left: 0;
 }
 
 #groepsindeling h4 {
-	margin-left: 5px;
+	margin-left: 2px;
 	font-size: 100%;
+	text-decoration: underline;
+}
+
+#groepsindeling .row {
+	padding-left: 0;
 }
 
 #groepsindeling .col {
 	border-width: 1px;
 	border-right-style: solid;
+	padding-left: 1px;
 }
 
 #groepsindeling table {
@@ -950,7 +957,7 @@ table#afdelingskalendermuteren {
 }
 
 #groepsindeling ol {
-	margin-left: 1px;
+	margin-left: 0;
 	padding-left: 28px;
 	padding-right: 2px;
 }
@@ -1866,7 +1873,7 @@ nav li {
 	font-style: normal;
 }
 
-nav li.current {
+nav p.current {
 	font-weight: bolder;
 }
 
@@ -1925,11 +1932,32 @@ nav ul li ul li {
 	border-bottom-style: solid;
 }
 
-#menu_l1 {
+nav a {
+	text-decoration: none;
+}
+
+nav p {
+	float: left;
+	clear: none;
+	padding-left: 2px;	
+	padding-right: 4px;
+	border-width: 1px;
+	border-right-style: solid;
+}
+
+#menu_l1, #menu_l2, #menu_l3 {
+	overflow: auto;
+	white-space: nowrap;
+	margin-bottom: 0;
+	padding-top: 4px;
+	padding-bottom: 4px;;
+}
+
+menu_l1 {
 	font-size: 105%;
 }
 
-ul#menu_l2 li {
+menu_l2 {
 	font-size: 100%;
 }
 
@@ -2014,7 +2042,7 @@ ul#menu_l3 li {
 }
 
 .tablist1 li.current {
-   background-color: white;
+	background-color: white;
 	border-color: white;
 }
 

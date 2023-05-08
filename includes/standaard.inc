@@ -417,7 +417,7 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 	
 	$nivo = $toonnivo;
 	if ($_SESSION['settings']['typemenu'] == 1 or ($_SESSION['settings']['typemenu'] == 3 and $nivo == 2)) {
-		printf("<ul id='menu_l%d'>\n", $toonnivo);
+		printf("<div id='menu_l%d'>\n", $toonnivo);
 		$itp = 1;
 		foreach($tabpages as $tp) {
 			if ($nivo == 1 and strstr($tp, "/") === false) {
@@ -451,11 +451,11 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 					$navpad[$nivo]['naam'] = $tpd;
 					$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
 				}
-				printf("<li%s><a href=\"%s?tp=%s%s\">%s</a></li>\n", $cl, $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra, $tpd);
+				printf("<a href=\"%s?tp=%s%s\"><p%s>%s</p></a>\n", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra, $cl, $tpd);
 				$itp++;
 			}
 		}
-		echo("</ul>\n");
+		echo("</div>\n");
 	}
 	
 	if ($toonnivo == 1 and strlen($currenttab2) == 0) {
@@ -1718,7 +1718,7 @@ function DisplayTabs($tabblad, $inittab=0) {
 				});
 			});
 		});
-	</script>\n", $inittab-1);	
+	</script>\n", $inittab);	
 	
 }  # DisplayTabs
 
