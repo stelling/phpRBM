@@ -178,7 +178,6 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 	}
 	$i_ex->vulvars($exid);
 	
-	echo("<label>Diploma</label>");
 	printf("<select name='selecteerdiploma' onChange='this.form.submit();'>\n<option value=-1>Selecteer diploma ...</option>\n%s</select>\n", $i_dp->htmloptions($dpid, -1, 0, 0, $f, 0, $i_ex->exid));
 	if ($exid > 0) {
 		echo("<button type='submit'><i class='bi bi-arrow-clockwise'></i> Ververs scherm</button>\n");
@@ -440,7 +439,6 @@ function fnDiplomasMuteren($p_afdid=-1) {
 	$dpid = $_POST['selecteerdiploma'] ?? 0;
 	
 	printf("<form action='%s?%s' id=filter method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
-	echo("<label>Selecteer diploma</label>");
 	printf("<select name='selecteerdiploma' onChange='this.form.submit();'>\n<option value=-1>Selecteer diploma ...</option>\n%s</select>\n", $i_dp->htmloptions($dpid, -1, 0, 1, $f));
 	echo("</form>\n");
 	

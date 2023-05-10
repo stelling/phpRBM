@@ -21,7 +21,7 @@ function fnAfdeling() {
 	} elseif ($currenttab2 == "Presentie muteren") {
 		fnPresentieMuteren($afdid);
 	} elseif ($currenttab2 == "Presentie per lid") {
-		fnPresentiePerLid($afdid);
+		fnPresentieoverzicht($afdid);
 	} elseif ($currenttab2 == "Wachtlijst") {
 		fnAfdelingswachtlijst($afdid);
 	} elseif ($currenttab2 == "Afdelingsmailing") {
@@ -438,17 +438,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 		
 		echo("</form>\n");
-/*		
-		echo("<script src='//cdnjs.cloudflare.com/ajax/libs/timepicker/1.3.5/jquery.timepicker.min.js'>
-		\$(document).ready(function() {
-			\$(\"input[type='time']\").timepicker({
-				timeFormat: 'HH:mm',
-				dropdown: false,
-				interval: 5
-			});
-		});
-		</script>\n");
-*/
+		
 		echo("<script>
 		\$('select').change(function(){
 			if (this.id.substring(0, 5) == 'Groep') {
@@ -598,7 +588,7 @@ function fnPresentieMuteren($p_onderdeelid){
 	
 }  # fnAanwezigheidMuteren
 
-function fnPresentiePerLid($p_ondid) {
+function fnPresentieoverzicht($p_ondid) {
 	global $dtfmt;
 	
 	$dtfmt->setPattern(DTTEXT);
@@ -640,7 +630,7 @@ function fnPresentiePerLid($p_ondid) {
 	printf("<input type='checkbox' name='100aanwezigTonen'%s value=1 OnClick='this.form.submit();'><p>100%% aanwezig</p>\n", checked($_POST['100aanwezigTonen']));
 	echo("</form>\n");
 	
-	echo("<table>\n");
+	echo("<table class='table table-hover'>\n");
 	printf("<caption> Presentie per lid %s</caption>\n", $i_lo->ondnaam);
 	foreach ($seizrows as $seizrow) {
 		printf("<tr class='seizoentotaal'><th class='teken'>-</th><th>%d</th><th>%s t/m %s</th><th>Groep</th><th># Act.</th>", $seizrow->Nummer, $dtfmt->format(strtotime($seizrow->Begindatum)), $dtfmt->format(strtotime($seizrow->Einddatum)));

@@ -39,6 +39,7 @@ function fnEvenementen() {
 		echo("<div id='form'>\n");
 		printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 		echo("<input type='text' name='tbTekstFilter' id='tbTekstFilter' placeholder='Tekstfilter' OnKeyUp=\"fnFilter('evenementlijst', this);\">\n");
+		echo("<div class='form-check form-switch'>\n");
 		foreach(ARRSOORTEVENEMENT as $k => $v) {
 			$f = sprintf("ET.Soort='%s'", $k);
 			if ($i_et->aantal($f) > 0) {
@@ -48,9 +49,10 @@ function fnEvenementen() {
 				} else {
 					$chk = 1;
 				}
-				printf("<label>%s</label><input type='checkbox' value=1 name='chk_%s' onClick='this.form.submit();'%s>\n", $v, $k, checked($chk));
+				printf("<input type='checkbox' class='form-check-input' value=1 name='chk_%s' onClick='this.form.submit();'%s><p>%s</p>\n", $k, checked($chk), $v);
 			}
 		}
+		echo("</div>  <!-- Einde form-check form-switch -->\n");
 		echo("</form>\n");
 		echo("</div> <!-- Einde form -->\n");
 		echo("<div class='clear'></div>\n");

@@ -216,7 +216,7 @@ if ($currenttab == "Beheer logins") {
 	echo("</div> <!-- Einde filter -->\n\n");
 	
 	printf("<form method='post' id='beheerautorisatie' action='%s?tp=%s&op=changeaccess'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-	echo("<table id='beheerautorisatie'>\n");
+	echo("<table id='beheerautorisatie' class='table table-hover'>\n");
 	echo("<thead>\n");
 	echo("<tr><th></th><th>Onderdeel</th><th>Toegankelijk voor</th><th>Ingevoerd</th><th>Laatst gebruikt</th><th></th></tr>\n");
 	echo("</thead>\n");
@@ -478,7 +478,7 @@ if ($currenttab == "Beheer logins") {
 //    echo memory_get_usage()/1024.0 . " kb \n";
 	phpinfo();
 } else {
-	debug($currenttab, 1, 1);
+	debug("Optie bestaat niet: " . $currenttab, 1, 1);
 }
 
 HTMLfooter();
@@ -855,7 +855,7 @@ function fnEigenlijstenmuteren() {
 		
 		$rows = $i_el->lijst();
 		if (count($rows) > 0) {
-			echo("<table id='overzichteigenlijsten'>\n");
+			echo("<table id='overzichteigenlijsten' class='table table-hover'>\n");
 			echo("<tr><th></th><th>Naam</th><th># records</th><th># kolommen</th><th>Tabblad</th><th>Laatste controle</th><th></th></tr>\n");
 			foreach($rows as $row) {
 				$bl1 = sprintf("<a href='%s?tp=%s&paramID=%d&paramActie=2'><i class='bi bi-pencil-square' style='font-size: 14pt;'></i></a>", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);

@@ -99,7 +99,7 @@ function fnRekeningbeheer() {
 	}
 	
 	printf("<form method='post' id='filter' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-	printf("<label>Filter op seizoen</label><select name='filterseizoen' onChange='this.form.submit();'>\n<option value=-1>Alle seizoenen</option>\n%s</select>\n", $i_sz->htmloptions($filterseizoen, 1));
+	printf("<label>Seizoen</label><select name='filterseizoen' onChange='this.form.submit();'>\n<option value=-1>Alle seizoenen</option>\n%s</select>\n", $i_sz->htmloptions($filterseizoen, 1));
 	printf("<input type='text' id='tbFilterNaam' name='tbFilterNaam' placeholder='Tekstfilter' value='%s' %s>\n", $filternaam, $js);
 	printf("<p class='aantrecords'>%d rekeningen</p>", count($rows));
 	echo("</form>\n");
@@ -254,7 +254,7 @@ function fnRekeningMuteren($p_rkid=-1) {
 			echo("<tr><th>#</th><th>Kostenplaats</th><th>Lid</th><th>Omschrijving</th><th>Bedrag in &euro;</th><th>&nbsp;</th></tr>\n");
 			foreach($i_rr->perrekening($reknr) as $rrrow) {
 				echo("<tr>\n");
-				printf("<td><input type='number' id='Regelnr_%d' step=1 value=%d min=1></td>\n", $rrrow->RecordID, $rrrow->Regelnr);
+				printf("<td><input type='number' id='Regelnr_%d' class='num2' step=1 value=%d min=1></td>\n", $rrrow->RecordID, $rrrow->Regelnr);
 				$jsob = "";
 				if (strlen($rrrow->OMSCHRIJV) == 0) {
 					$jsob = " onBlur='this.form.submit();'";
@@ -501,7 +501,7 @@ function RekeningBetalingen() {
 	echo("<tbody>\n");
 	foreach ($i_rb->laatste() as $row) {
 		
-		$del = sprintf("<img src='%s' onClick='verw_betaling(%d);'>", BASE64_VERWIJDER_KLEIN, $row->RecordID);
+		$del = sprintf("<i class='bi bi-trash' onClick='verw_betaling(%d);'></i>", $row->RecordID);
 		
 		printf("<tr><td class='number'>%1\$d</td><td>%2\$s</td><td id='bedrag_%3\$d'>%4\$.2f</td><td id='trash_%3\$d'>%5\$s</td></tr>\n", $row->Rekening, $row->Datum, $row->RecordID, $row->Bedrag, $del);
 	}

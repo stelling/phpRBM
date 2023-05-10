@@ -1,5 +1,6 @@
 :root {
 	--default-text-color: #000080;
+	--label-background-color: #cfe2ff;
 }
 
 /* Bootstrap */
@@ -74,10 +75,8 @@ tr.selected {
 caption {
 	text-align: center;
 	color: var(--default-text-color);
-	background-color: #00FFFF;
+	background-color: var(--label-background-color);
 	font-size: 130%;
-	font-weight: bolder;
-	border-style: solid;
 	border-width: 1px;
 	margin-left: 0;
 	margin-right: 0;
@@ -99,11 +98,10 @@ td, th {
 	padding-bottom: 3px;
 	border-style: solid;
 	border-width: 1px;
-	border-color: #000080;
 }
 
 th {
-	background-color: #00FFFF;
+	background-color: var(--label-background-color);
 	vertical-align: middle;
 }
 
@@ -158,8 +156,7 @@ label {
 	padding-right: 5px;
 	padding-bottom: 4px;
 	text-align: right;
-	background-color: #00FFFF;
-	border-style: solid;
+	background-color: var(--label-background-color);
 	border-width: 1px;
 }
 
@@ -225,8 +222,8 @@ input[type='email'] {
 }
 
 input[type='checkbox'] {
-	width: 20px;
-	margin-top: 8px;
+/*	width: 20px;
+	margin-top: 8px; */
 }
 
 header {
@@ -283,6 +280,7 @@ header h1 {
 	margin-top: 6px;
 	margin-bottom: 0;
 	clear: none;
+	vertical-align: middle;
 }
 
 #filter input[type='text'], #filter input[type='date'], #filter input[type='checkbox'] {
@@ -348,6 +346,10 @@ header h1 {
 	border-width: 1px;
 	padding-left: 2px;
 	padding-right: 2px;
+}
+
+tr.subkop {
+	background-color: var(--label-background-color);
 }
 
 input.w2 {
@@ -668,7 +670,6 @@ td.details, td.muteren, td.detailregels, td.leden, td.sendmail, td.unlock {
 	display: inline-block;
 	width: 100%;
 	margin-top: 6px;
-	color: inherit;
 }
 
 #formulier table {
@@ -683,7 +684,6 @@ td.details, td.muteren, td.detailregels, td.leden, td.sendmail, td.unlock {
 	padding: 12px;
 	border-style: dashed;
 	border-width: 1px;
-	border-color: inherit;
 	max-width: 325px;
 	text-align: center;
 	border-top-right-radius: 12px;
@@ -727,7 +727,6 @@ td.details, td.muteren, td.detailregels, td.leden, td.sendmail, td.unlock {
 	min-height: 22px;
 	min-width: 225px;
 	margin-top: 8px;
-	background-color: #FFFF99;
 }
 
 #tab-diplomas table > caption {
@@ -800,8 +799,8 @@ td.details, td.muteren, td.detailregels, td.leden, td.sendmail, td.unlock {
 	padding-top: 6px;
 }
 
-#stukkenmuteren select {
-	width: 300px;
+#stukkenmuteren input[type='url'] {
+	width: 750px;
 }
 
 #wijzigenlidgegevens img {
@@ -1602,7 +1601,6 @@ fieldset {
 	margin-right: auto;
 	margin-left: auto;
 	padding-top: 5px;
-	border-color: #00FFFF;
 	border-width: 0;
 }
 
@@ -1640,7 +1638,6 @@ fieldset h3 {
 	padding-left: 4px;
 	padding-right: 4px;
 	border-width: 1px;
-	border-color: inherit;
 }
 
 #verstuurdemail .bericht p, #verstuurdemail .bericht ul {
@@ -2193,20 +2190,21 @@ ul#menu_l3 li {
 	margin-right: 4px;
 }
 
-.kaartje, .wieiswie .col {
+.kaartje {
 	float: left;
 	height: auto;
+	min-height: 85px;
 	width: 24%;
-	border-style: solid;
 	border-width: 1px;
 	margin-top: 2px;
 	margin-bottom: 8px;
 	margin-left: 3px;
 	margin-right: 3px;
-	padding-right: 1px;
-	background-color: #FFFF99;
-   border-top-right-radius: 9px;
-   border-bottom-right-radius: 9px;
+	padding-left: 2px;
+	padding-right: 2px;
+	background-color: var(--label-background-color);
+	border-top-right-radius: 9px;
+	border-bottom-right-radius: 9px;
 }
 
 .kaartje p {
@@ -2214,28 +2212,16 @@ ul#menu_l3 li {
 	margin-right: 3px;
 }
 
-.kaderlid p {
-	margin-top: 6px;
-	margin-bottom: 6px;
-}
-
-.naamkaderlid {
+p.naamkaderlid {
+	margin-top: 8px;
 	font-size: 11pt;
 	font-weight: bolder;
 	text-align: center;
 	white-space: nowrap;
 }
 
-.functiekaderlid, .mailkaderlid {
-	margin-left: 4px;
-}
-
-.fotoinschrijving img {
-	width: 40px;
-}
-
-.opmerkinginschrijving, .opmerkingweek {
-	max-width: 200px;
+p.functiekaderlid, p.mailkaderlid {
+	text-align: center;
 }
 
 .ed_status_B, .ed_status_J {

@@ -13,7 +13,7 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 	$_SESSION['webmaster'] = 0;
 	$_SESSION['lidgroepen'] = null;
 	$_SESSION['lidauth'] = null;
-	printf("<script>location.href='%s';</script>\n", BASISURL);
+	printf("<script>setTimeout('', 5000);location.href='%s';</script>\n", BASISURL);
 	
 } elseif ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['Inloggen']) and $_POST['Inloggen'] == "Inloggen") {
 	if (strlen($_POST['password']) < 5) {
@@ -167,6 +167,13 @@ if ($i_lid->aantal() == 0) {
 			$tabblad[$tn] = fnWieiswie($tn, $_SESSION['settings']['kaderoverzichtmetfoto']);
 		}
 	}
+	
+	$tn = "Stukken";
+	$i_stuk = new cls_Stukken();
+	if ($i_stuk->aantal() > 0 and toegang($currenttab . "/" . $tn, 0, 0)) {
+		$tabblad[$tn] = fnStukken("O");
+	}
+	
 	DisplayTabs($tabblad);
 	
 } elseif ($eigenlijstid > 0) {
@@ -427,7 +434,7 @@ function fnAgenda($p_lidid=0) {
 	}
 	
 	//	$txt .= "<p class='mededeling'>De agenda is nog in ontwikkeling</p>\n";
-	$txt = "<table class='table table-hover'>\n";
+	$txt = "<table class='table table-hover border-primary'>\n";
 	$txt .= "<tr>\n";
 	$dtfmt->setPattern("EEEE");
 	for ($dn=1;$dn<=7;$dn++) {
@@ -515,14 +522,17 @@ function fnAgenda($p_lidid=0) {
 	
 }  # fnAgenda
 
-function fnStukken() {
+function fnStukken($p_scherm="") {
+	global $dtfmt;
+	
+	$scherm = $p_scherm;
 	
 	$i_stuk = new cls_Stukken();
-	if (isset($_GET['p_scherm']) and $_GET['p_scherm'] == "F") {
+	$i_lb = new cls_Logboek();
+	if (isset($_GET['p_scherm']) and strlen($_GET['p_scherm']) > 0) {
 		$scherm = $_GET['p_scherm'];
-	} else {
-		$scherm = "";
 	}
+	
 	if (isset($_POST['stid']) and $_POST['stid'] > 0) {
 		$stid = $_POST['stid'];
 	} elseif (isset($_GET['p_stid']) and $_GET['p_stid'] > 0) {
@@ -535,7 +545,6 @@ function fnStukken() {
 		$i_stuk->delete($stid);
 	}
 	
-	echo("<div id='stukkenmuteren'>\n");
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		if (isset($_POST['Toevoegen'])) {
@@ -556,11 +565,11 @@ function fnStukken() {
 		
 		$row = $i_stuk->record($stid);
 		
-		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+		printf("<form method='post' id='stukkenmuteren' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 		printf("<label>RecordID</label><p>%d</p>\n", $row->RecordID);
 		printf("<input type='hidden' name='stid' value=%d>\n", $row->RecordID);
-		printf("<label>Titel</label><input type='text' name='Titel' value=\"%s\">\n", str_replace("\"", "'", $row->Titel));
-		printf("<label>Bestemd voor</label><input type='text' name='BestemdVoor' value=\"%s\">\n", str_replace("\"", "'", $row->BestemdVoor));
+		printf("<label>Titel</label><input type='text' name='Titel' value=\"%s\" class='w50'>\n", str_replace("\"", "'", $row->Titel));
+		printf("<label>Bestemd voor</label><input type='text' name='BestemdVoor' value=\"%s\" class='w30'>\n", str_replace("\"", "'", $row->BestemdVoor));
 		printf("<label>Vastgesteld op</label><input type='date' name='VastgesteldOp' value='%s'>\n", $row->VastgesteldOp);
 		printf("<label>Ingangsdatum</label><input type='date' name='Ingangsdatum' value='%s'>\n", $row->Ingangsdatum);
 		printf("<label>Revisiedatum</label><input type='date' name='Revisiedatum' value='%s'>\n", $row->Revisiedatum);
@@ -572,12 +581,42 @@ function fnStukken() {
 		}
 		printf("<label>Type</label><select name='Type'>%s</select>\n", $options);
 		printf("<label>Link naar document</label><input type='url' name='Link' value='%1\$s'><p id='ganaarurl'><a href='%1\$s'>Ga naar</a></p>\n", $row->Link);
+		printf("<label>Ingevoerd op</label><p>%s</p>\n", $dtfmt->format(strtotime($row->Ingevoerd)));
+		echo("<div class='clear'></div>\n");
+		
+		$f = sprintf("ReferID=%d", $row->RecordID);
+		$lbrows = $i_lb->lijst(22, 0, 0, $f, "DatumTijd DESC", 5);
+		if (count($lbrows) > 0) {
+			echo(fnDisplayTable($lbrows, fnStandaardKols("logboek"), "Laatste mutaties"));
+		}
 		
 		echo("<div id='opdrachtknoppen'>\n");
 		echo("<input type='submit' value='Bewaren'>\n");
 		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 		
-		echo("</form>");
+		echo("</form>\n");
+		
+	} elseif ($scherm == "O") {
+		
+		$rv = "<table class='table table-hover'>\n";
+		$rv .= "<thead>\n";
+		$rv .= "<tr><th>Titel</th><th>Bestemd voor</th><th>Ingangsdatum/versie</th><th>Revisiedatum</th></tr>\n";
+		$rv .= "</thead>\n";
+		
+		$vc = "ZZ";
+		$dtfmt->setPattern(DTTEXT);
+		
+		foreach ($i_stuk->lijst() as $row) {
+			if ($vc != $row->Type) {
+				$rv .= sprintf("<tr class='subkop'><td colspan=4>%s</td></tr>\n", ARRTYPESTUK[$row->Type]);
+			}
+			$rv .= sprintf("<tr><td><a href='%s'>%s</a></td><td>%s</td><td>%s</td><td>%s</td></tr>", $row->Link, $row->Titel, $row->BestemdVoor, $dtfmt->format(strtotime($row->Ingangsdatum)), $dtfmt->format(strtotime($row->Revisiedatum)));
+			$vc = $row->Type;
+		}
+		
+		$rv .= "</table>\n";
+		
+		return $rv;
 		
 	} else {
 	
@@ -611,7 +650,6 @@ function fnStukken() {
 		
 	}
 	$i_stuk = null;
-	echo("</div> <!-- Einde stukkenmuteren -->\n");
 }  # fnStukken
 
 function fnGewijzigdeStukken() {

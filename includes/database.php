@@ -4623,14 +4623,20 @@ class cls_Mailing extends cls_db_base {
 		/*
 			p_filter
 				0 = alle personen in de tabel lid
-				1 = alleen leden
+				1 = leden en toekomstige leden
+				2 = alleen klosleden
+				3 = alleen voormarig leden
 		*/
 		
 		$query = sprintf("SELECT L.RecordID AS LidID, %1\$s AS Zoeknaam_lid FROM %2\$sLid AS L
 					WHERE (L.Verwijderd IS NULL) AND (L.Overleden IS NULL) AND (LENGTH(L.Email) > 5 OR LENGTH(L.EmailVereniging) > 5 OR LENGTH(L.EmailOuders) > 5)
 					AND (L.RecordID NOT IN (SELECT R.LidID FROM %2\$sMailing_rcpt AS R WHERE R.MailingID=%3\$d))", $this->selectzoeknaam, TABLE_PREFIX, $p_mid);
 		if ($p_filter == 1) {
-			$query .= sprintf(" AND L.RecordID IN (SELECT LM.Lid FROM %sLidmaatschap AS LM WHERE %s)", TABLE_PREFIX, $this->wherelid);
+			$query .= sprintf(" AND L.RecordID IN (SELECT LM.Lid FROM %sLidmaatschap AS LM WHERE IFNULL(LM.Opgezegd, '9999-12-31')  >= CURDATE())", TABLE_PREFIX);
+		} elseif ($p_filter == 2) {
+			$query .= sprintf(" AND L.RecordID NOT IN (SELECT LM.Lid FROM %sLidmaatschap AS LM)", TABLE_PREFIX);
+		} elseif ($p_filter == 1) {
+			$query .= sprintf(" AND L.RecordID IN (SELECT LM.Lid FROM %sLidmaatschap AS LM WHERE IFNULL(LM.Opgezegd, '9999-12-31') < CURDATE())", TABLE_PREFIX, $this->wherelid);
 		}
 		$query .= " ORDER BY L.Achternaam, L.Roepnaam;";
 		$result = $this->execsql($query);
@@ -8416,6 +8422,19 @@ class cls_Stukken extends cls_db_base {
 		return $this->execsql()->fetch();
 	}
 	
+	public function lijst () {
+		$query = sprintf("SELECT S.*, IF(Ingangsdatum > DATE_SUB(CURDATE(), INTERVAL 1 MONTH), 'Gewijzigd',
+				IF(GewijzigdOp > DATE_SUB(CURDATE(), INTERVAL 1 MONTH), 'Gewijzigd',
+				IF(Revisiedatum < CURDATE(), 'Overdue', ''))) AS Status
+				FROM %s
+				WHERE IFNULL(S.VervallenPer, CURDATE()) >= CURDATE()
+				ORDER BY S.Type, S.Titel;", $this->basefrom);
+		
+		$result = $this->execsql($query);
+		return $result->fetchAll();
+		
+	}
+	
 	public function editlijst() {
 		
 		$query = sprintf("SELECT S.RecordID, S.Titel, S.`Type`, BestemdVoor, VastgesteldOp, Revisiedatum, VervallenPer FROM %s ORDER BY S.VervallenPer, S.Titel;", $this->basefrom);
@@ -8425,13 +8444,13 @@ class cls_Stukken extends cls_db_base {
 	
 	public function gewijzigdestukken() {
 		$vl = (new cls_Logboek())->vorigelogin(0);
-		if ($vl > date("Y-m-d H:i:s", mktime(date("h"), date("i"), 0, date("m")  , date("d")-7, date("Y")))) {
-			$vl = date("Y-m-d H:i:s", mktime(date("h"), date("i"), 0, date("m")  , date("d")-7, date("Y")));
+		if ($vl > date("Y-m-d H:i:s", strtotime("-7 day"))) {
+			$vl = date("Y-m-d H:i:s", strtotime("-7 day"));
 		}
 		
 		$query = sprintf("SELECT S.Titel FROM %s WHERE IFNULL(S.VervallenPer, CURDATE()) >= CURDATE()", $this->basefrom);
 		if (strlen($vl) >= 10) {
-			$query .= sprintf(" AND (S.VastgesteldOp >= '%1\$s' OR S.Ingangsdatum >= '%1\$s')", $vl);
+			$query .= sprintf(" AND (S.Ingevoerd >= '%1\$s' OR S.VastgesteldOp >= '%1\$s' OR S.Ingangsdatum >= '%1\$s')", $vl);
 		}
 		$query .= " ORDER BY S.GewijzigdOp DESC;";
 		
@@ -10126,7 +10145,7 @@ function db_backup($p_typebackup=3) {
 							if ($i_base->typekolom($meta['name'], $tnm) == "text") {
 								$data .= '"' . $row[$j] . '"' ;
 							} else {
-								$data .= base64_encode($row[$j]);
+								$data .= "0x" . bin2hex($row[$j]);
 //								$data .= $row[$j];
 							}
 							

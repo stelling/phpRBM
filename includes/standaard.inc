@@ -660,9 +660,9 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 	$kol_pk = "";
 	if (isset($rows) and (count($rows) > 0 or strlen($xtra_regel) > 0)) {
 		if (strlen($p_id) > 0) {
-			$ret .= sprintf("<table id='%s' class='table table-hover'>\n", $p_id);
+			$ret .= sprintf("<table id='%s' class='table table-hover border-primary'>\n", $p_id);
 		} else {
-			$ret .= "<table class='table table-hover'>\n";
+			$ret .= "<table class='table table-hover table-hover border-primary'>\n";
 		}
 		$dispkop = 1;
 		$totaantal = 0;
@@ -1114,7 +1114,7 @@ function fnEditTable($res, $kols, $id, $th) {
 
 	$rows = $res->fetchAll();
 	
-	$ret = sprintf("<table id='%s' class='table table-hover'>\n", $id);
+	$ret = sprintf("<table id='%s' class='table table-hover border-primary'>\n", $id);
 	if (strlen($th) > 0) {
 		if (count($rows) > 3) {
 			$t = sprintf(" title='%d rijen'", count($rows));
