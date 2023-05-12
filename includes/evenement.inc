@@ -36,8 +36,7 @@ function fnEvenementen() {
 		
 		echo("<div id='evenementenbeheer'>\n");
 		
-		echo("<div id='form'>\n");
-		printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+		printf("<form method='post' id='filter' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 		echo("<input type='text' name='tbTekstFilter' id='tbTekstFilter' placeholder='Tekstfilter' OnKeyUp=\"fnFilter('evenementlijst', this);\">\n");
 		echo("<div class='form-check form-switch'>\n");
 		foreach(ARRSOORTEVENEMENT as $k => $v) {
@@ -49,12 +48,11 @@ function fnEvenementen() {
 				} else {
 					$chk = 1;
 				}
-				printf("<input type='checkbox' class='form-check-input' value=1 name='chk_%s' onClick='this.form.submit();'%s><p>%s</p>\n", $k, checked($chk), $v);
+				printf("<span><input type='checkbox' class='form-check-input' value=1 name='chk_%s' onClick='this.form.submit();'%s><p>%s</p></span>\n", $k, checked($chk), $v);
 			}
 		}
 		echo("</div>  <!-- Einde form-check form-switch -->\n");
 		echo("</form>\n");
-		echo("</div> <!-- Einde form -->\n");
 		echo("<div class='clear'></div>\n");
 		
 		$in = "";
@@ -401,11 +399,11 @@ function muteerevenement($eventid) {
 	printf("<form method='post' action='%s?tp=Evenementen/Beheer&op=edit&eid=%d'>\n", $_SERVER['PHP_SELF'], $eventid);
 	printf("<input type='hidden' name='eventid' value=%d>\n", $eventid);
 
-	printf("<label id='lblDatum'>Datum</label><input type='date' id='Datum' name='Datum' value='%s'>\n", $datum);
-	printf("<label id='lblStarttijd'>Starttijd</label><input type='time' id='Starttijd' name='Starttijd' value='%s'>\n", $starttijd);
+	printf("<label id='lblDatum'>Datum</label><input type='date' id='Datum' name='Datum' value='%s' title='Datum evenement'>\n", $datum);
+	printf("<label id='lblStarttijd'>Starttijd</label><input type='time' id='Starttijd' name='Starttijd' value='%s' title='Starttijd evenement'>\n", $starttijd);
 	if ($eventid > 0) {
-		printf("<label id='lblEindtijd'>Eindtijd</label><input type='time' id='Eindtijd' value='%s'>\n", $eindtijd);
-		printf("<label id='lblVerzameltijd'>Verzamelen</label><input type='time' id='Verzameltijd' value='%s'>\n", $verzameltijd);
+		printf("<label id='lblEindtijd'>Eindtijd</label><input type='time' id='Eindtijd' value='%s' title='Eindtijd evenement'>\n", $eindtijd);
+		printf("<label id='lblVerzameltijd'>Verzamelen</label><input type='time' id='Verzameltijd' value='%s' title='Verzameltijd evenement'>\n", $verzameltijd);
 	}
 
 	printf("<label id='lblOmschrijving'>Omschrijving</label><input type='text' id='Omschrijving' name='Omschrijving' class='w50' value=\"%s\" maxlength=50>\n", $oms);
@@ -417,10 +415,10 @@ function muteerevenement($eventid) {
 		printf("<label id='lblOpmaak'>Opmaak in agenda</label>%s\n", fnEvenementOmschrijving($row, 1, "p"));
 	
 		$ondrows = (new cls_Onderdeel())->lijst(1, "", $datum);
-		printf("<label id='lblInschrijvingOpen'>Online inschrijving open</label><input type='checkbox' id='InschrijvingOpen' value=1 %s>\n", checked($insopen));
+		printf("<label id='lblInschrijvingOpen'>Inschrijving online</label><input type='checkbox' id='InschrijvingOpen' value=1 %s title='Is de online-inschrijving open?'>\n", checked($insopen));
 		printf("<label>Standaard status</label><select id='StandaardStatus'>%s</select>\n", $optionstandstatus);
-		printf("<label>Max. pers. per deelname</label><input type='number' id='MaxPersonenPerDeelname' class='num2' value=%d min=1 max=99>\n", $maxpersonenperdeelname);
-		printf("<label>Meerdere startmomenten</label><input type='checkbox' id='MeerdereStartMomenten' value=1 %s>\n", checked($meerderestartmomenten));
+		printf("<label id='lblMaxPersonenPerDeelname'>Max. per deelname</label><input type='number' id='MaxPersonenPerDeelname' class='num2' value=%d min=1 max=99 title='Met hoeveel personen mag je maximaal komen?'>\n", $maxpersonenperdeelname);
+		printf("<label id='lblMeerdereStartmomenten'>Meerdere startmomenten</label><input type='checkbox' id='MeerdereStartMomenten' value=1 %s title='Kunnen deelnemers verschillende starttijden hebben?'>\n", checked($meerderestartmomenten));
 		
 		$optiongroepen = "<option value=0>Iedereen</option>\n";
 		foreach ($ondrows as $t) {
@@ -431,13 +429,17 @@ function muteerevenement($eventid) {
 			}
 			$optiongroepen .= sprintf("<option value=%d%s>%s</option>\n", $t->RecordID, $s, htmlentities($t->Naam));
 		}
-		printf("<label>Doelgroep</label><select name='BeperkTotGroep' onChange='this.form.submit();'>\n%s</select>\n", $optiongroepen);
+		printf("<label id='lblDoelgroep'>Doelgroep</label><select name='BeperkTotGroep' onChange='this.form.submit();'>\n%s</select>\n", $optiongroepen);
 		
 		$dtfmt->setPattern(DTLONG);
 		printf("<label id='lblGewijzigd'>Gewijzigd op / door</label><p>%s / %s</p>\n", $dtfmt->format(strtotime($row->Gewijzigd)), htmlentities($row->GewijzigdDoorNaam));
 		printf("<label id='lblDeelnemers'>Aantal deelnemers</label><p>%d</p>\n", $aantdln);
-		printf("<label id='lblInschreven'>Aantal ingeschreven</label><p>%d</p>\n", $aantalingeschreven);
-		printf("<label id='lblAfgemeld'>Aantal afgemeld</label><p>%d</p>\n", $aantafgemeld);
+		if ($aantalingeschreven > 0) {
+			printf("<label id='lblInschreven'>Aantal ingeschreven</label><p>%d</p>\n", $aantalingeschreven);
+		}
+		if ($aantafgemeld > 0) {
+			printf("<label id='lblAfgemeld'>Aantal afgemeld</label><p>%d</p>\n", $aantafgemeld);
+		}
 	}
 	
 	if ($eventid > 0) {
@@ -512,10 +514,10 @@ function muteerevenement($eventid) {
 	}
 	
 	if ($eventid > 0 and $row->VerwijderdOp < '2012-01-01' and $aantdln > 0 and toegang("Mailing/Nieuw", 0, 0)) {
-		printf("<input type='submit' name='maildeeln' value='Mailing deelnemers (%d)'>\n", $aantdln);
+		printf("<button type='submit' name='maildeeln'><i class='bi bi-envelope-at'></i> Mailing deelnemers (%d)</button>\n", $aantdln);
 	}
 	if ($eventid > 0 and $row->VerwijderdOp < '2012-01-01' and $aantpotdln > 1 and toegang("Mailing/Nieuw", 0, 0)) {
-		printf("<input type='submit' name='mailpotdeeln' value='Mailing potenti&euml;le deelnemers (%d)'>\n", $aantpotdln);
+		printf("<button type='submit' name='mailpotdeeln'><i class='bi bi-envelope-at'></i> Mailing potenti&euml;le deelnemers (%d)</button>\n", $aantpotdln);
 	}
 	if ($eventid > 0 and ($_SESSION['webmaster'] == 1 or $row->IngevoerdDoor == $_SESSION['lidid'])) {
 		if ($row->VerwijderdOp > '2012-01-01') {

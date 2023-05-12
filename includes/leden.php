@@ -112,31 +112,32 @@ function fnLedenlijst() {
 			}
 			printf("<select name='lbGroepFilter' onchange='this.form.submit();'>\n<option value=0>Filter op onderdeel</option>\n%s</select>\n", $options);
 		}
+		echo("<div class='form-check form-switch'>\n");
 		if (in_array("adres", $arrCB)) {
-			printf("<input type='checkbox' name='toonadres' title='Toon adres'%s onClick='this.form.submit();'><p>Adres</p>\n", checked($toonadres));
+			printf("<input type='checkbox' class='form-check-input'  name='toonadres' title='Toon adres'%s onClick='this.form.submit();'><p>Adres</p>\n", checked($toonadres));
 		} else {
 			$toonadres = 0;
 		}
-		printf("<input type='checkbox' name='toontelefoon' title='Toon telefoon'%s onClick='this.form.submit();'><p>Telefoon</p>\n", checked($toontelefoon));
-		printf("<input type='checkbox' name='toonemail' title='Toon e-mail'%s onClick='this.form.submit();'><p>E-mail</p>\n", checked($toonemail));
+		printf("<input type='checkbox' class='form-check-input' name='toontelefoon' title='Toon telefoon'%s onClick='this.form.submit();'><p>Telefoon</p>\n", checked($toontelefoon));
+		printf("<input type='checkbox' class='form-check-input' name='toonemail' title='Toon e-mail'%s onClick='this.form.submit();'><p>E-mail</p>\n", checked($toonemail));
 		if (in_array("lidnummer", $arrCB)) {
-			printf("<input type='checkbox' name='toonlidnummer' title='Toon lidnummer'%s onClick='this.form.submit();'><p>Lidnr</p>\n", checked($toonlidnummer));
+			printf("<input type='checkbox' class='form-check-input' name='toonlidnummer' title='Toon lidnummer'%s onClick='this.form.submit();'><p>Lidnr</p>\n", checked($toonlidnummer));
 		} else {
 			$toonlidnummer = 0;
 		}
 		if (in_array("vanaf", $arrCB)) {
-			printf("<input type='checkbox' name='toonvanaf' title='Toon vanaf'%s onClick='this.form.submit();'><p>Vanaf</p>\n", checked($toonvanaf));
+			printf("<input type='checkbox' class='form-check-input' name='toonvanaf' title='Toon vanaf'%s onClick='this.form.submit();'><p>Vanaf</p>\n", checked($toonvanaf));
 		} else {
 			$toonvanaf = 0;
 		}
 		if (in_array("opgezegd", $arrCB)) {
-			printf("<span><input type='checkbox' name='toonopgezegd' title='Toon opgezegd'%s onClick='this.form.submit();'><p>Opgezegd</p></span>\n", checked($toonopgezegd));
+			printf("<span><input type='checkbox' class='form-check-input' name='toonopgezegd' title='Toon opgezegd'%s onClick='this.form.submit();'><p>Opgezegd</p></span>\n", checked($toonopgezegd));
 		} else {
 			$toonopgezegd = 0;
 		}
 		
 		if (in_array("opmerking", $arrCB)) {
-			printf("<input type='checkbox' name='toonopmerking' title='Toon opmerking'%s onClick='this.form.submit();'><p>Opmerking</p>\n", checked($toonopmerking));
+			printf("<input type='checkbox' class='form-check-input' name='toonopmerking' title='Toon opmerking'%s onClick='this.form.submit();'><p>Opmerking</p>\n", checked($toonopmerking));
 		} else {
 			$toonopmerking = 0;
 		}
@@ -208,12 +209,13 @@ function fnLedenlijst() {
 			$kols[12]['class'] = 'muteren';
 		}
 				
-		if (count($rows) > 0) {
-			if (count($rows) > 1) {
-				printf("<p class='aantrecords'>%d %s</p>\n", count($rows), $currenttab2);
-			}
-			echo("</form>\n");
-			
+		if (count($rows) > 1) {
+			printf("<p class='aantrecords'>%d %s</p>\n", count($rows), $currenttab2);
+		}
+		echo("</div>  <!-- Einde form-check form-switch -->\n");
+		echo("</form>\n");
+		
+		if (count($rows) > 0) {		
 			echo(fnDisplayTable($rows, $kols, "", 0, "", "ledenlijst"));
 			foreach ($rows as $row) {
 				$sel_leden[] = $row->RecordID;
@@ -956,6 +958,12 @@ function fnEigenGegevens($lidid=0) {
 		$naamlid = htmlentities((new cls_Lid())->Naam($lidid));
 		$gs = (new cls_Lid())->Geslacht($lidid);
 		
+		if ($currenttab == "Eigen gegevens") {
+			$th = "";
+		} else {
+			$th = $naamlid;
+		}
+		
 		$tn = "Algemeen";
 		if (toegang($ct . $tn, 0, 0)) {
 			$fn = fotolid($lidid, 1);
@@ -997,7 +1005,7 @@ function fnEigenGegevens($lidid=0) {
 		if (toegang($ct . $tn, 0, 0)) {
 			$rows = (new cls_Lidmaatschap())->overzichtlid($lidid);
 			if (count($rows) > 1) {
-				$tabblad[$tn] = fnDisplayTable($rows, $kols, $tn . " " . $naamlid);
+				$tabblad[$tn] = fnDisplayTable($rows, $kols, $tn . " " . $th);
 			}
 		}
 		
@@ -1037,7 +1045,7 @@ function fnEigenGegevens($lidid=0) {
 			$kols[6]['headertext'] = "Duur";
 			$kols[6]['columnname'] = "Duur";
 			
-			$tabblad[$tn] = fnDisplayTable($rows, $kols, $naamlid, 0, "");
+			$tabblad[$tn] = fnDisplayTable($rows, $kols, $th, 0, "");
 		}
 		
 		$tn = "Groepen";
@@ -1060,7 +1068,7 @@ function fnEigenGegevens($lidid=0) {
 			$kols[3]['headertext'] = "Duur";
 			$kols[3]['columnname'] = "Duur";
 		
-			$tabblad[$tn] = fnDisplayTable($rows, $kols, $naamlid);
+			$tabblad[$tn] = fnDisplayTable($rows, $kols, $th);
 		}
 		
 		$tn = "Kader";
@@ -1088,7 +1096,7 @@ function fnEigenGegevens($lidid=0) {
 			}	
 			$rows = (new cls_Lidond())->overzichtlid($lidid, "K");
 			if (count($rows) > 0) {
-				$tabblad[$tn] = fnDisplayTable($rows, $kols, $naamlid, 0, "", "");
+				$tabblad[$tn] = fnDisplayTable($rows, $kols, $th, 0, "", "");
 			}
 		}
 
@@ -1112,7 +1120,7 @@ function fnEigenGegevens($lidid=0) {
 			$kols[3]['headertext'] = "Duur";
 			$kols[3]['columnname'] = "Duur";
 			
-			$tabblad[$tn] = fnDisplayTable($rows, $kols, $naamlid, 0, "", $tn);
+			$tabblad[$tn] = fnDisplayTable($rows, $kols, $th, 0, "", $tn);
 		}
 		
 		$tn = "Diploma's";
@@ -1139,7 +1147,7 @@ function fnEigenGegevens($lidid=0) {
 				$kols[4]['type'] = "DTTEXT";
 			}
 			if (count($rows) > 0) {
-				$tabblad[$tn] = fnDisplayTable($rows, $kols, $naamlid);
+				$tabblad[$tn] = fnDisplayTable($rows, $kols, $th);
 			} else {
 				$tabblad[$tn] = sprintf("<p class='mededeling'>Bij %s zijn geen diploma's geregistreerd.</p>", $naamlid);
 			}
@@ -1154,7 +1162,7 @@ function fnEigenGegevens($lidid=0) {
 		if ($gs != "B" and $i_ond->Aantal("Type='T'") > 0 and toegang($ct . $tn, 0, 0)) {
 			$rows = $i_lo->overzichtlid($lidid, "T");
 			if (count($rows) > 0) {
-				$tabblad[$tn] = fnDisplayTable($rows, $kols, $naamlid, 0, "", "toestemmingen");
+				$tabblad[$tn] = fnDisplayTable($rows, $kols, $th, 0, "", "toestemmingen");
 			} else {
 				$tabblad[$tn] = sprintf("<p class='mededeling'>%s heeft geen toestemmingen verleend.</p>\n", $naamlid);
 			}
@@ -1197,7 +1205,7 @@ function fnEigenGegevens($lidid=0) {
 				$kols[4]['headertext'] = "Opmerking`";
 				$kols[4]['columnname'] = "Opmerking";
 			}
-			$tabblad[$tn] = fnDisplayTable($rows, $kols, $naamlid);
+			$tabblad[$tn] = fnDisplayTable($rows, $kols, $th);
 		
 			if ($tn == $currenttab3) {
 				$tabidx = count($tabblad)-1;
@@ -1219,7 +1227,7 @@ function fnEigenGegevens($lidid=0) {
 			$kols[4]['headertext'] = "Omschrijving";
 			$kols[5]['headertext'] = "Bedrag";
 			$kols[5]['type'] = "bedrag";
-			$tabblad[$tn] = fnDisplayTable($rows, $kols, "Rekeningen " . $naamlid);
+			$tabblad[$tn] = fnDisplayTable($rows, $kols, $th);
 			
 			$rid = $_GET['rid'] ?? 0;
 			if ($op == "details" and $rid > 0) {
@@ -1258,10 +1266,12 @@ function fnEigenGegevens($lidid=0) {
 		$rows = (new cls_Evenement_Deelnemer())->overzichtlid($lidid);
 		if (count($rows) > 0 and toegang($ct . $tn, 0, 0)) {
 			$tabblad[$tn] = "<div id='evenementenperlid'>\n";
-			$tabblad[$tn] .= "<table>\n";
-			$tabblad[$tn] .= sprintf("<caption>Deelname evenementen %s</caption>\n", $naamlid);
+			$tabblad[$tn] .= "<table class='table table-hover border-primary'>\n";
+			if ($currenttab != "Eigen gegevens") {
+				$tabblad[$tn] .= sprintf("<caption>Deelname evenementen %s</caption>\n", $naamlid);
+			}
 			$tabblad[$tn] .= "<tr><th>Wanneer</th><th>Omschrijving</th><th>Contact</th><th>Opmerking / Functie</th><th>Status</th>";
-			if ($lidid == $_SESSION['lidid']) {
+			if ($lidid == $_SESSION['lidid'] and max(array_column($rows, "inAgenda")) > 0) {
 				$tabblad[$tn] .= "<th>In agenda</th>";
 			}
 			$tabblad[$tn] .= "</tr>\n";
@@ -1298,8 +1308,8 @@ function fnEigenGegevens($lidid=0) {
 				}
 				$tabblad[$tn] .= sprintf("<td>%s</td>\n", $of);
 				$tabblad[$tn] .= sprintf("<td>%s</td>\n", $row->Status);
-				if ($lidid == $_SESSION['lidid']) {
-					if (($row->Status == "Aangemeld" or $row->Status == "Bevestigd" or $row->Status == "Ingeschreven") and $row->Datum >= date("Y-m-d H:i")) {
+				if ($lidid == $_SESSION['lidid'] and max(array_column($rows, "inAgenda")) > 0) {
+					if ($row->inAgenda == 1) {
 						$tabblad[$tn] .= sprintf("<td>%s</td>\n", fnAgendaKnop($row->Datum, $row->Eindtijd, $row->Verzameltijd, $row->Omschrijving, $row->Locatie));
 					} else {
 						$tabblad[$tn] .= "<td>&nbsp;</td>";
@@ -1316,7 +1326,7 @@ function fnEigenGegevens($lidid=0) {
 		$rows = (new cls_Logboek())->overzichtlid($lidid);
 		if ($lidid > 0 and toegang($ct . $tn, 0, 0) and count($rows) > 0) {
 			$kols = fnStandaardKols("logboek", 0);
-			$tabblad[$tn] = fnDisplayTable($rows, $kols, $tn . " " .  $naamlid);
+			$tabblad[$tn] = fnDisplayTable($rows, $kols, $th);
 		}
 		
 		DisplayTabs($tabblad, $tabidx);
