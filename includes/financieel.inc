@@ -250,7 +250,7 @@ function fnRekeningMuteren($p_rkid=-1) {
 				}
 			}
 			echo("<div id='rekeningregelsmuteren'>\n");
-			echo("<table id='rekregels'>\n");
+			printf("<table id='rekregels' class='%s'>\n", TABLECLASSES);
 			echo("<tr><th>#</th><th>Kostenplaats</th><th>Lid</th><th>Omschrijving</th><th>Bedrag in &euro;</th><th>&nbsp;</th></tr>\n");
 			foreach($i_rr->perrekening($reknr) as $rrrow) {
 				echo("<tr>\n");
@@ -263,7 +263,7 @@ function fnRekeningMuteren($p_rkid=-1) {
 				printf("<td id='Naam_%d'>%s</td>\n", $rrrow->RecordID, $rrrow->NaamLid);
 				printf("<td><input type='text' id='OMSCHRIJV_%d' class='w70' value=\"%s\" maxlength=70></td>\n", $rrrow->RecordID, $rrrow->OMSCHRIJV);
 				printf("<td><input type='text' id='Bedrag_%d' value='%s' class='d8'></td>\n", $rrrow->RecordID, number_format($rrrow->Bedrag, 2, ",", ""));
-				printf("<td id='Delete_%1\$d'><i class='bi bi-trash' onClick='verw_rekeningregel(%1\$d);'</td>", $rrrow->RecordID);
+				printf("<td id='Delete_%1\$d'><i class='bi bi-trash' onClick='verw_rekeningregel(%1\$d);'></i></td>", $rrrow->RecordID);
 				echo("</tr>\n");
 			}
 			echo("</table>\n");
@@ -495,7 +495,7 @@ function RekeningBetalingen() {
 
 	echo("<div class='clear'></div>\n");
 
-	echo("<table id='betalingen'>\n");
+	printf("<table id='betalingen' class='%s'>\n", TABLECLASSES);
 	echo("<caption>Laatste betalingen</caption>\n");
 	echo("<thead><tr><th>Rekening</th><th>Datum</th><th>Bedrag</th><th></th></tr></thead>\n");
 	echo("<tbody>\n");
