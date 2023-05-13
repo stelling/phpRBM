@@ -2544,6 +2544,7 @@ class cls_Functie extends cls_db_base {
 class cls_Afdelingskalender extends cls_db_base {
 	private $ondid = 0;
 	private $akid = 0;
+	public $akdatum = "";
 	private $ondnaam = "";
 	
 	function __construct($p_ondid=-1, $p_akid=-1) {
@@ -2552,7 +2553,7 @@ class cls_Afdelingskalender extends cls_db_base {
 		$this->vulvars($p_akid, $p_ondid);
 	}
 	
-	private function vulvars($p_akid=-1, $p_ondid=-1) {
+	public function vulvars($p_akid=-1, $p_ondid=-1) {
 		$this->ta = 21;
 		if ($p_akid >= 0) {
 			$this->akid = $p_akid;
@@ -2561,10 +2562,11 @@ class cls_Afdelingskalender extends cls_db_base {
 			$this->ondid = $p_ondid;
 		}
 		if ($this->akid > 0) {
-			$query = sprintf("SELECT * FROM %s WHERE AK.RecordID=%d;", $this->basefrom, $this->akid);
+			$query = sprintf("SELECT AK.* FROM %s WHERE AK.RecordID=%d;", $this->basefrom, $this->akid);
 			$row = $this->execsql($query)->fetch();
 			if (isset($row->RecordID)) {
 				$this->ondid = $row->OnderdeelID;
+				$this->akdatum = $row->Datum;
 				$this->naamlogging = $row->Datum;
 			}
 		}
@@ -7218,7 +7220,7 @@ class cls_Artikel extends cls_db_base{
 	}
 	
 	public function lijst($p_type="bestellijst") {
-		$query = sprintf("SELECT Art.*, CONCAT(Art.Omschrijving, IF(LENGTH(Art.Maat)>0, CONCAT(' (', Art.Maat, ')'), '')) AS OmsMaat, CONCAT(Art.Code, ' - ', Art.Omschrijving, ' ', IFNULL(Art.Maat, '')) AS CodeOmsMaat,
+		$query = sprintf("SELECT Art.*, CONCAT(IFNULL(Art.Omschrijving, ''), IF(LENGTH(Art.Maat)>0, CONCAT(' (', Art.Maat, ')'), '')) AS OmsMaat, CONCAT(Art.Code, ' - ', IFNULL(Art.Omschrijving, ''), ' ', IFNULL(Art.Maat, '')) AS CodeOmsMaat,
 		IF((SELECT COUNT(*) FROM %1\$sWS_Orderregel AS Ord WHERE Ord.Artikel=Art.RecordID)+(SELECT COUNT(*) FROM %1\$sWS_Voorraadboeking AS VB WHERE VB.ArtikelID=Art.RecordID) > 0, 1, 0) AS InGebruik,
 		(SELECT IFNULL(SUM(V.Aantal), 0) FROM %1\$sWS_Voorraadboeking AS V WHERE V.ArtikelID=Art.RecordID) AS Voorraad
 		FROM %2\$s", TABLE_PREFIX, $this->basefrom);
@@ -7226,7 +7228,6 @@ class cls_Artikel extends cls_db_base{
 			$query .= sprintf(" WHERE IFNULL(Art.BeschikbaarTot, CURDATE()) >= CURDATE() AND IFNULL(Art.VervallenPer, CURDATE()) >= CURDATE() AND (Art.BeperkTotGroep IN (%s))", $_SESSION["lidgroepen"]);
 		}
 		$query .= " ORDER BY Art.Code, Art.Omschrijving, Art.RecordID;";
-		
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
@@ -7242,7 +7243,7 @@ class cls_Artikel extends cls_db_base{
 	
 	public function htmloptions($p_cv=-1, $p_filter="") {
 		
-		$query = sprintf("SELECT Art.RecordID, CONCAT(Art.Code, ' - ' , Art.Omschrijving, ' ', IFNULL(Art.Maat, '')) AS CodeOmsMaat FROM %s AS Art", $this->table);
+		$query = sprintf("SELECT Art.RecordID, CONCAT(Art.Code, ' - ' , IFNULL(Art.Omschrijving, ''), ' ', IFNULL(Art.Maat, '')) AS CodeOmsMaat FROM %s AS Art", $this->table);
 		if ($p_filter == "bestelbaar") {
 			$query .= sprintf(" WHERE IFNULL(Art.BeschikbaarTot, CURDATE()) >= CURDATE() AND IFNULL(Art.VervallenPer, CURDATE()) >= CURDATE() AND (Art.BeperkTotGroep IN (%s))", $_SESSION["lidgroepen"]);
 			$query .= sprintf(" AND (IFNULL(Art.MaxAantalPerLid, 0)=0 OR Art.MaxAantalPerLid > (SELECT SUM(AantalBesteld) FROM %sWS_Orderregel WHERE Lid=%d))", TABLE_PREFIX, $_SESSION['lidid']);
@@ -7257,9 +7258,12 @@ class cls_Artikel extends cls_db_base{
 		return $rv;
 	}
 	
-	public function add($p_code) {
+	public function add($p_code="") {
 		$this->tas = 11;
 		$nrid = $this->nieuwrecordid();
+		if (strlen($p_code) == 0) {
+			$p_code = "Nw" . $nrid;
+		}
 		
 		$query = sprintf("INSERT INTO %s (RecordID, Code, IngevoerdDoor) VALUES  (%d, '%s', %d);", $this->table, $nrid, $p_code, $_SESSION['lidid']);
 		if ($this->execsql($query) > 0) {
@@ -7352,7 +7356,7 @@ class cls_Orderregel extends cls_db_base {
 		$query = sprintf("SELECT Ord.RecordID, Ord.Ordernr, Ord.Lid, Ord.Artikel, Ord.AantalBesteld, Ord.PrijsPerStuk, Ord.Opmerking,
 					Ord.PrijsPerStuk * Ord.AantalBesteld AS Bedrag, Ord.Ingevoerd, Ord.BestellingDefinitief,
 					%1\$s AS NaamLid, L.Roepnaam, L.Adres, L.Postcode, L.Woonplaats, L.Email, L.Email,
-					Art.Code, Art.Omschrijving, Art.Maat, CONCAT(Art.Omschrijving, ' ', IFNULL(Art.Maat, '')) as ArtOms, CONCAT(Art.Code, ' - ', Art.Omschrijving, ' ', IFNULL(Art.Maat, '')) as CodeOmsMaat,
+					Art.Code, Art.Omschrijving, Art.Maat, CONCAT(Art.Omschrijving, ' ', IFNULL(Art.Maat, '')) as ArtOms, CONCAT(Art.Code, ' - ', Art.Omschrijving, ' ', IFNULL(Art.Maat, '')) AS CodeOmsMaat,
 					(SELECT IFNULL(SUM(VB.Aantal), 0) * -1 FROM %3\$sWS_Voorraadboeking AS VB WHERE VB.OrderregelID=Ord.RecordID) AS AantalGeleverd,
 					(SELECT IFNULL(SUM(Aantal), 0) * -1 FROM %3\$sWS_Voorraadboeking AS VB WHERE VB.ArtikelID=Art.RecordID) AS Voorraad, Art.MaxAantalPerLid
 					FROM (%2\$s LEFT OUTER JOIN %3\$sWS_Artikel AS Art ON Art.RecordID=Ord.Artikel) INNER JOIN %3\$sLid AS L ON Ord.Lid=L.RecordID
@@ -9818,6 +9822,13 @@ function db_onderhoud($type=9) {
 	$idx = "LidDiploma";
 	if ($i_base->bestaat_index($tab, $idx) == false) {
 		$query = sprintf("ALTER TABLE `%s` ADD INDEX `%s` (`Lid`, `DiplomaID`);", $tab, $idx);
+		$i_base->execsql($query, 2);
+	}
+	
+	$tab = TABLE_PREFIX . "WS_Artikel";
+	$idx = "Code";
+	if ($i_base->bestaat_index($tab, $idx) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD UNIQUE INDEX `%s` (`Code`);", $tab, $idx);
 		$i_base->execsql($query, 2);
 	}
 	
