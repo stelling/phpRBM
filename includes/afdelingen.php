@@ -144,7 +144,7 @@ function fnAfdelingskalenderMuteren($p_onderdeelid){
 	
 	echo("<button type='submit' name='nieuw'><i class='bi bi-plus-circle'></i> Nieuw item</button>\n");
 	echo("<button type='submit' name='nieuw7'><i class='bi bi-7-circle'></i> nieuwe items</button>\n");
-	echo("<table id='afdelingskalendermuteren' class='table table-hover'>\n");
+	printf("<table id='afdelingskalendermuteren' class='%s'>\n", TABLECLASSES);
 	$dat = "";
 	$oms = "";
 	$act = false;
@@ -330,7 +330,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 		
 		$grrows = $i_gr->selectlijst($afdid);
 		if (count($grrows) > 0) {
-			echo("<table id='groepsindelingmuteren'>\n");
+			printf("<table id='groepsindelingmuteren' class='s'>\n", TABLECLASSES);
 			echo("<tr><th>Naam</th><th>Leeftijd</th><th>Laatst behaalde diploma's</th><th>Groep</th></tr>\n\n");
 			
 			if ($inclkader == 1) {
@@ -388,7 +388,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 		
 		echo("<div class='clear' style='height: 25px;'></div>\n");
 		
-		echo("<table id='groepenmuteren'>\n");
+		printf("<table id='groepenmuteren' class='%s'>\n", TABLECLASSES);
 		echo("<caption>Muteren groepen</caption>\n");
 		echo("<tr><th>#</th><th>Volgnr<br>Code</th><th>Omschrijving<br>Instructeurs</th><th>Activiteit<br>Diploma</th><th>Starttijd<br>Eindtijd</th><th>Norm<br>aanw.</th>");
 		
@@ -507,8 +507,8 @@ function fnPresentieMuteren($p_onderdeelid){
 			$ro = "readonly";
 		}
 		
-		echo("<table id='presentiemuteren' class='table table-hover'>\n");
-		printf("<caption>Presentielijst %s</caption>\n", $dtfmt->format(strtotime($dat)));
+		printf("<table id='presentiemuteren' class='%s'>\n", TABLECLASSES);
+		printf("<caption>Presentie %s</caption>\n", $dtfmt->format(strtotime($dat)));
 
 		$gh = "";
 		echo("<thead>\n");
