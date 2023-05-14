@@ -225,7 +225,7 @@ input[type='checkbox'] {
 }
 
 header {
-	height: 40px;
+	height: 45px;
 	margin-bottom: 0;
 	padding-bottom: 0;
 	padding-top: 6px;
@@ -375,7 +375,7 @@ input.num2 {
 }
 
 input.num3 {
-	width: 48px;
+	width: 58px;
 }
 
 input.bedrag {
@@ -1098,12 +1098,15 @@ table#afdelingskalendermuteren {
 	margin-top: 10px;
 	margin-bottom: 4px;
 	margin-right: 20px;
-	min-height: 400px;
 	background-color: #f0f0f0;
 }
 
 .kandidatengroep table {
 	margin-top: 0;
+}
+
+.kandidatengroep td {
+	white-space: nowrap;
 }
 
 .kandidatengroep button {
@@ -1280,11 +1283,11 @@ table#afdelingskalendermuteren {
 	width: auto;
 }
 
-.voorgangerontbreekt {
+td.voorgangerontbreekt {
 	background-color: orange;
 }
 
-.dubbeldiploma {
+td.dubbeldiploma {
 	background-color: yellow;
 }
 
@@ -1758,19 +1761,15 @@ fieldset h3 {
 	font-size: 175%;
 }
 
+#opdrachtknoppen select {
+	margin-left: 6px;
+	margin-top: 12px;
+}
+
 #opdrachtknoppen p {
 	float: right;
 	margin-top: 6px;
 	padding-top: 0;
-}
-
-#webshop table {
-	width: 100%;
-}
-
-#webshop input[type='number'] {
-	width: 50px;
-	text-align: right;
 }
 
 #voorraadbeheer {
@@ -1808,117 +1807,21 @@ fieldset h3 {
 	max-height: 24px;
 }
 
-td.number, input.number {
+th.number, td.number, input.number {
 	text-align: right;
 	padding-right: 8px;
 }
 
-.gewijzigd {
+tr.gewijzigd, td.gewijzigd, li.gewijzigd {
 	font-style: italic;
 }
 
-/* Menu */
-
 nav {
 	width: 100%;
-	clear: both;
-	list-style: none;
-	margin-top: 2px;
-	border: none;
-	border-top-style: solid;
-	height: auto;
-	overflow: auto;
-	border-width: 1px;
-}
-
-nav ul {
-	padding-inline-start: 0;
-	clear: both;
-	border-width: 1px;
-	margin-top: 0;
-	margin-bottom: 0;
-	padding-top: 4px;
-	padding-bottom: 4px;
-}
-
-nav li {
-	display: block;
-	list-style: none;
-	float: left;
-		
-	padding-top: 2px;
-	padding-bottom: 2px;
-	
-	padding-left: 3px;
-	padding-right: 3px;
-	
-	border-width: 1px;
-	border-right-style: solid;
-	
-	font-style: normal;
 }
 
 nav p.current {
 	font-weight: bolder;
-}
-
-nav li:last-child {
-	border-right-style: none;
-}
-
-nav li.dropdown {
-	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAAOw0AADsNAWEPgO4AAAJ/SURBVFhHvdfHaxRhHIfxjcabBQy22ECIYkPEWMCLKKJgQxDUs9hv4klEvSiI9eZNxfIPiAWJB0+C3YCCLRbQHGJB0FMi6vO8Ouw47GZnsjvzhQ/Zd5O8M/O+77zzm6ZS+ozGMqxCO1owBKYPX3AfN3ALPaiZNCcwC3uxFI/hAR7gE37gN4ZhFBZgJeaiAyfwDAPKCJzCW+zDOKTNeOzHO5yEfWXKDDzBeWQ5cDKtuIxHsM9UcRi96u0Y5Bd1ZjB2wT7n+0V/8Sz9w/Wh1dhshH1PD60KcZ4cdq88r+yG0zE8tBI5Dee8EcNeLfbtmjgWWrF4qzk89Sy4tPEOeY8wFdE+4JW/xJHQKsffe49n2bDicY/4/u9nPAcxCVvseAzcWBaiG/HMxhU0h1b2uEOuwKvQKmcC7qDdE9iMTViHZPIaAXMdjnzpEnb6oeC4N1zww3P4cCk6i9HpbTESPliKzge0OrffMAVfkcxYbIPb6UDyE2fwObT+j4/zrlqbTqXFkzU1+3D4J//9WGg8Zo8jYCVjtVN0JqLbuXUD+gXLqSKzBs3RRqS1SCbvjeicHTv8D7EIHxFPXluxw+9WPC+6srPowuHQKievETgEn4pbQ4vMhI9ja7i8Ez2Op4VWLFavF5FnQeKityA5GlqJWJJZLu0IrXxiSXYPTmvFREXphtBqbCxKX6MttPqJpfMb+IhuxHTYh1fuwX1jShXrNW9N10Q9C9MF55zfxVS/yBJLZ6tXX68OwDIqbbzPrfv8Xxdc1TlPc3+7LvZgOZ7iGjrh89yXUzMUHnQOfHu2yr6J43iBqsmywbhjLsFqeCCnJno974UFrSd2FbeRosgplf4A8LF9Vvt1J9YAAAAASUVORK5CYII=");
-	background-repeat: no-repeat;
-	background-position: center;
-	width: 50px;
-}
-
-nav ul li {
-	position: relative;
-}
-
-nav li:hover {
-	cursor: pointer;
-}
-
-nav ul li a {
-	display: inline-block;
-	text-decoration: none;
-}
-
-nav ul li:hover ul {
-	display: block;
-}
-
-nav ul li:hover > ul {
-  visibility: visible;
-  opacity: 1;
-  display: block;
-}
-
-nav ul li ul {
-	display: none;
-}
-
-nav ul li ul {
-	visibility: hidden;
-	position: absolute;
-	transition: all 0.8s ease;
-	display: none;
-	clear: both;
-	text-align: left;
-	opacity: 1;
-	background-color: #f0f0f0;
-	padding-left: 2px;
-}
-
-nav ul li ul li {
-	text-align: left;
-	border-bottom-style: solid;
-}
-
-nav a {
-	text-decoration: none;
 }
 
 nav p {
@@ -1935,54 +1838,20 @@ nav p {
 	white-space: nowrap;
 	margin-bottom: 0;
 	padding-top: 4px;
-	padding-bottom: 4px;;
+	padding-bottom: 4px;
 }
 
-menu_l1 {
+#menu_l1 {
 	font-size: 105%;
 }
 
-menu_l2 {
+#menu_l2 {
 	font-size: 100%;
 }
 
-ul#menu_l3 li {
+#menu_l3 {
 	font-size: 90%;
 }
-
-@media screen and (max-width: 190px) {
-	
-	ul#menu_l1 li:hover {
-		display: block;
-		background-color: red;
-	}
-
-	ul#menu_l1 li {
-		visibility: visible;
-		position: absolute;
-		transition: all 0.8s ease;
-		display: none;
-		clear: both;
-		text-align: left;
-		background-color: #f0f0f0;
-		border-width: 1px;
-		border-style: solid;
-		padding-left: 2px;
-	}
-	
-	ul#menu_l1 li:first-child {
-		visibility: visible;
-		display: block;
-	}
-
-	ul#menu_l1 li {
-		font-size: 100%;
-		padding-top: 2px;
-		padding-bottom: 2px;
-	}
-}
-
-/* Einde menu */
 
 #tabs {
 	float: left;
@@ -2024,11 +1893,6 @@ ul#menu_l3 li {
 
 .tablist2 li:first-child, .tablist3 li:first-child {
 	border-left-style: none;
-}
-
-.tablist1 li.current {
-	background-color: white;
-	border-color: white;
 }
 
 .tablist2 li.current, .tablist3 li.current {
@@ -2736,6 +2600,7 @@ li.presstat_v, td.presstat_v {
 }
 
 #presentielijst table {
+	clear: both;
 	width: 100%;
 	margin-left: auto;
 	margin-right: auto;
@@ -2747,6 +2612,10 @@ li.presstat_v, td.presstat_v {
 	border-style: none;
 }
 
+#presentielijst th {
+	text-align: center;
+}
+
 #presentielijst td {
 	width: 48%;
 	padding-top: 50px;
@@ -2756,7 +2625,6 @@ li.presstat_v, td.presstat_v {
 	border-width: 1px;
 	background-color: transparent;
 	border-collapse: separate;
-	
 }
 
 @media screen and (max-width: 700px) {
@@ -2847,7 +2715,6 @@ li.presstat_v, td.presstat_v {
 
 .handCursor {
     cursor: pointer;
-    cursor: hand;
 }
 
 .ui-tabs .ui-tabs-panel {
