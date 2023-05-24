@@ -118,6 +118,8 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 	(new cls_Groep())->controle();
 	(new cls_Functie())->opschonen();
 	(new cls_Functie())->controle();
+	(new cls_Stukken())->controle();
+	(new cls_Stukken())->opschonen();
 	(new cls_Organisatie())->opschonen();
 	(new cls_Organisatie())->controle();
 	(new cls_Activiteit())->opschonen();
@@ -174,11 +176,14 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 	(new cls_Evenement_Type())->opschonen();
 	
 } elseif ($_GET['op'] == "rekeningenopschonen") {
-	
+	(new cls_Rekeningregel())->controle();
 	(new cls_Rekeningregel())->opschonen();
 	
-	
+	(new cls_Rekening())->controle();
 	(new cls_Rekening())->opschonen();
+		
+	(new cls_RekeningBetaling())->controle();
+	(new cls_RekeningBetaling())->opschonen();
 	
 } elseif ($_GET['op'] == "loginsopschonen") {
 	(new cls_Login())->opschonen();
@@ -216,7 +221,7 @@ if ($currenttab == "Beheer logins") {
 	echo("</div> <!-- Einde filter -->\n\n");
 	
 	printf("<form method='post' id='beheerautorisatie' action='%s?tp=%s&op=changeaccess'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-	echo("<table id='beheerautorisatie' class='table table-hover'>\n");
+	echo("<table id='beheerautorisatie' class='table table-hover border-primary'>\n");
 	echo("<thead>\n");
 	echo("<tr><th></th><th>Onderdeel</th><th>Toegankelijk voor</th><th>Ingevoerd</th><th>Laatst gebruikt</th><th></th></tr>\n");
 	echo("</thead>\n");
@@ -358,9 +363,6 @@ if ($currenttab == "Beheer logins") {
 	if (isset($_POST['mailing_bewaartijd']) and $_POST['mailing_bewaartijd'] > 0) {
 		(new cls_Parameter())->update("mailing_bewaartijd", $_POST['mailing_bewaartijd']);
 	}
-	
-	db_createtables();
-	db_onderhoud();
 
 	echo("<div id='dbonderhoud'>\n");
 	
@@ -371,14 +373,14 @@ if ($currenttab == "Beheer logins") {
 	
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=backup\"' value='Backup'><p>Maak een backup van de database. Laatste backup is op %s gemaakt.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $laatstebackup);
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=FreeBackupFiles\"' value='Vrijgeven backup-bestanden'><p>Geef de backup-bestanden vrij door middel van een chmod 0755.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=ledenonderdelenbijwerken\"' value='Beheer leden van onderdelen'><p>Bijwerken van leden van onderdelen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=beheeronderdelen\"' value='Beheer onderdelen'><p>Opschonen en controle op data-integriteit van onderdelen, afdelingsgroepen, functies en organisaties.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));	
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=ledenonderdelenbijwerken\"' value='Beheer leden van onderdelen'><p>Beheer van leden van onderdelen en presentie.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=beheeronderdelen\"' value='Beheer onderdelen'><p>Controle en opschonen van onderdelen, activiteiten, afdelingsgroepen, functies, stukken en organisaties.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));	
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=logboekopschonen\"' value='Logboek opschonen'><p>Verwijder alle records uit het logboek, die ouder dan <input type='number' id='logboek_bewaartijd'' value=%d> maanden zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['logboek_bewaartijd']);
-	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=ledenopschonen\"' value='Leden en lidmaatschappen'><p>Controleren en opschonen leden, lidmaatschappen en foto's.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=beheerdiplomas\"' value=\"Diploma's beheren\"><p>Opschonen en controleren van diploma's en leden per diploma en examens.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=mailingsopschonen\"' value='Mailings controleren en opschonen'><p>Controleren en opschonen van mailings en verzonden e-mails.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=evenementenopschonen\"' value='Evenementen opschonen'><p>Opschonen verwijderde evenementen, die geen deelnemers meer hebben.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=rekeningenopschonen\"' value='Rekeningen opschonen'><p>Rekeningen en rekeningregels opschonen op basis van instellingen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=ledenopschonen\"' value='Leden en lidmaatschappen'><p>Controle en opschonen leden, lidmaatschappen en foto's.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=beheerdiplomas\"' value=\"Onderhoud diploma's\"><p>Controle en opschonen van diploma's en leden per diploma en examens.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=mailingsopschonen\"' value='Onderhoud mailings'><p>Controle en opschonen van mailings en verzonden e-mails.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=evenementenopschonen\"' value='Onderhoud evenementen'><p>Controle en opschonen evenementen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=rekeningenopschonen\"' value='Onderhoud rekeningen en betalingen'><p>Controle en opschonen van rekeningen, rekeningregels en betalingen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=loginsopschonen\"' value='Logins opschonen'><p>Opschonen van logins die om diverse redenen niet meer nodig zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=autorisatieopschonen\"' value='Autorisatie opschonen'><p>Verwijderen toegang waar alleen de webmaster toegang toe heeft en die ouder dan 3 maanden zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	if ((new cls_Orderregel())->aantal() > 0 or (new cls_Artikel())->aantal() > 0) {
@@ -503,37 +505,25 @@ function fnBeheerLogins() {
 	$kols[1]['headertext'] = "Naam lid";
 	$kols[1]['sortcolumn'] = "L.Achternaam";
 	$kols[2]['headertext'] = "Woonplaats";
-	$kols[3]['headertext'] = "Lidnr";
-	$kols[3]['sortcolumn'] = "Lidnr";
+	$kols[3] = ['headertext' => "Lidnr", 'sortcolumn' => "Lidnr"];
 	$kols[4]['headertext'] = "E-mail";
 	
-	$kols[5]['headertext'] = "Ingevoerd";
-	$kols[5]['columnname'] = "Ingevoerd";
-	$kols[5]['type'] = "date";
-	$kols[5]['sortcolumn'] = "Login.Ingevoerd";
-	
-	$kols[6]['headertext'] = "Laatste login";
-	$kols[6]['sortcolumn'] = "Login.LastLogin";
-	$kols[6]['columnname'] = "LastLogin";
-	$kols[6]['type'] = "DTLONG";
-	
-	$kols[7]['headertext'] = "Status";
-	$kols[7]['sortcolumn'] = "Status";
+	$kols[5] = ['headertext' => "Ingevoerd", 'columnname' => "Ingevoerd", 'type' => "date", 'sortcolumn' => "Login.Ingevoerd"];
+	$kols[6] = ['headertext' => "Laatste login", 'sortcolumn' => "Login.LastLogin", 'columnname' => "LastLogin", 'type' => "DTLONG"];
+	$kols[7] = ['headertext' => "Status", 'sortcolumn' => "Status"];
 	
 	$ord = fnOrderBy($kols);
 	$rows = $i_login->lijst("", $ord);
 
-	if (max(array_column($rows, "Unlock")) > 0) {
-		$kols[8]['headertext'] = "&nbsp;";
-		$kols[8]['link'] = sprintf("%s?tp=%s&op=unlocklogin&lidid=%%d", $_SERVER['PHP_SELF'], $currenttab);
-		$kols[8]['columnname'] = "Unlock";
-		$kols[8]['class'] = "unlock";
+	if (count($rows) > 0 and max(array_column($rows, "Unlock")) > 0) {
+		$l = sprintf("%s?tp=%s&op=unlocklogin&lidid=%%d", $_SERVER['PHP_SELF'], $currenttab);
+		$kols[8] = ['headertext' => "&nbsp;", 'link' => $l, 'columnname' => "Unlock", 'class' => "unlock"];
 	}
 	
 	$kols[9]['link'] = sprintf("%s?op=deletelogin&tp=Beheer logins&lidid=%%d'", $_SERVER['PHP_SELF']);
 	$kols[9]['class'] = "trash";
 	
-	if (max(array_column($rows, "ValLink")) > 0) {
+	if (count($rows) > 0 and max(array_column($rows, "ValLink")) > 0) {
 		$kols[10]['headertext'] = "&nbsp;";
 		$kols[10]['columnname'] = "ValLink";
 		$kols[10]['link'] = sprintf("<a href='%s?op=validatielink&tp=Beheer logins&lidid=%%d'>Stuur validatielink</a>", $_SERVER['PHP_SELF']);
@@ -573,7 +563,6 @@ function fnInstellingen() {
 	$arrParam['login_geldigheidactivatie'] = "Hoelang in uren is een activatielink geldig? 0 = altijd.";
 	$arrParam['login_bewaartijdnietgebruikt'] = "Het aantal dagen dat logins wordt bewaard, nadat het is aangevraagd en nog niet gebruikt is.";
 	$arrParam['mailing_bevestigingbestelling'] = "Het nummer van de mailing die bij een bestelling verstuurd moet worden. 0 = geen.";
-//	$arrParam['mailing_bewakinginschrijving'] = "Het nummer van de mailing die als bevestiging van een inschrijving voor de bewaking verstuurd moet worden. 0 = geen.";
 	$arrParam['menu_met_afdelingen'] = "Voor welke afdelingen moeten een tabblad worden gemaakt? (bij meerdere scheiden met een komma)";
 	$arrParam['login_maxinlogpogingen'] = "Na hoeveel foutieve inlogpogingen moet het account geblokkeerd worden? 0 = nooit.";
 	$arrParam['login_maxlengte'] = "De maximale lengte die een login mag zijn. Minimaal 7 en maximaal 20 invullen.";
@@ -582,15 +571,11 @@ function fnInstellingen() {
 	$arrParam['naamwebsite'] = "Dit is de naam zoals deze in de titel en op elke pagina getoond wordt.";
 	$arrParam['title_head_html'] = "Hiermee start de HTML-titel van elke pagina.";
 	$arrParam['path_templates'] = "Waar staan de templates?";
-//	$arrParam['path_pasfoto'] = "Waar staan de pasfotos?";
 	$arrParam['performance_trage_select'] = "Vanaf hoeveel seconden moet een select-statement in het logboek worden gezet. 0 = nooit.";
 	$arrParam['termijnvervallendiplomasmailen'] = "Hoeveel maanden vooruit moeten leden een herinnering krijgen als een diploma gaat vervallen. 0 = geen herinnering sturen.";
 	$arrParam['termijnvervallendiplomasmelden'] = "Hoeveel maanden vooruit en achteraf moeten vervallen diploma op het voorblad getoond worden.";
 	$arrParam['liddipl_bewaartermijn'] = "Na hoeveel maanden diploma's bij een lid worden verwijderd? Zowel na einde lidmaatschap als na einde geldigheid.";
-//	$arrParam['toneninschrijvingenbewakingen'] = "Moeten bij de gegevens van een lid ook inschrijvingen voor bewakingen getoond worden?";
-//	$arrParam['tonentoekomstigebewakingen'] = "Moeten bij de gegevens van een lid ook toekomstige bewakingen getoond worden?";
 	$arrParam['urlvereniging'] = "De URL van de website van de vereniging.";
-	$arrParam['url_eigen_help'] = "Als een gebruiker op de help klikt wordt hier naar verwezen in plaats van de standaard help.";
 	$arrParam['verjaardagenaantal'] = "Aantal verjaardagen dat maximaal in de verenigingsinfo wordt getoond. Als er meerdere leden op dezelfde dag jarig zijn, wordt dit aantal overschreden.";
 	$arrParam['verjaardagenvooruit'] = "Hoeveel dagen vooruit moeten de verjaardagen in de verenigingsinfo getoond worden?";
 	
@@ -855,7 +840,7 @@ function fnEigenlijstenmuteren() {
 		
 		$rows = $i_el->lijst();
 		if (count($rows) > 0) {
-			echo("<table id='overzichteigenlijsten' class='table table-hover'>\n");
+			echo("<table id='overzichteigenlijsten' class='table table-hover border-primary'>\n");
 			echo("<tr><th></th><th>Naam</th><th># records</th><th># kolommen</th><th>Tabblad</th><th>Laatste controle</th><th></th></tr>\n");
 			foreach($rows as $row) {
 				$bl1 = sprintf("<a href='%s?tp=%s&paramID=%d&paramActie=2'><i class='bi bi-pencil-square' style='font-size: 14pt;'></i></a>", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
