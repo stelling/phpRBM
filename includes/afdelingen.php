@@ -159,7 +159,12 @@ function fnAfdelingskalenderMuteren($p_onderdeelid){
 		} else {
 			$dat = $dtfmt->format(strtotime($row->Datum));
 		}
-		printf("<tr><td>%s</td><td><input type='text' id='Omschrijving_%d' title='Omschrijving' value=\"%s\" maxlength=75 class='w75'></td>", $dat, $row->RecordID, str_replace("\"", "'", $row->Omschrijving));
+		if ($row->Datum == date("Y-m-d")) {
+			$cl = " class='table-active'";
+		} else {
+			$cl = "";
+		}
+		printf("<tr%s><td>%s</td><td><input type='text' id='Omschrijving_%d' title='Omschrijving' value=\"%s\" maxlength=75 class='w75'></td>", $cl, $dat, $row->RecordID, str_replace("\"", "'", $row->Omschrijving));
 		printf("<td><input type='text' id='Opmerking_%d' title='Opmerking' value='%s' maxlength=6 class='w6'></td>", $row->RecordID, $row->Opmerking);
 		
 		printf("<td><input type='checkbox' id='Activiteit_%d' title='Is er zwemmen?' value=1 %s></td>", $row->RecordID, checked($row->Activiteit));
@@ -195,6 +200,7 @@ function fnAfdelingskalenderMuteren($p_onderdeelid){
 }  # fnAfdelingskalenderMuteren
 
 function fnGroepsindeling($afdid, $p_muteren=0) {
+	global $currenttab;
 	
 	$i_lo = new cls_Lidond($afdid);
 	$i_ond = new cls_Onderdeel($afdid);
@@ -205,8 +211,8 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 	$i_ld = new cls_Liddipl();
 	$i_aanw = new cls_Aanwezigheid();
 
-	$arrToonLft[0] = "Nee";
-	$arrToonLft[1] = "Ja";
+	$arrToonLft[0] = "Toon geen leeftijd";
+	$arrToonLft[1] = "Toon leeftijd";
 	$arrToonLft[2] = "Tot 18 jaar";
 	
 	$hvtijd = "";
@@ -223,7 +229,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 		echo("<div id='groepsindeling'>\n");
 		printf("<h2>%s</h2>\n", $afdnaam);
 		
-		$toonleeftijd = $_POST['toonleeftijd'] ?? 2;
+		$toonleeftijd = $_POST['toonleeftijd'] ?? 0;
 		$avg_naam = $_POST['avg_naam'] ?? 0;
 		$toonopmerking = $_POST['toonopmerking'] ?? 0;
 		
@@ -231,22 +237,25 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 		
 		$toonpresentie = 0;
 		$f = sprintf("AK.OnderdeelID=%d AND (SELECT COUNT(*) FROM %sAanwezigheid AS AW WHERE AW.AfdelingskalenderID=AK.RecordID) > 0", $afdid, TABLE_PREFIX);
-		if ($i_ak->aantal($f) > 0) {
+		if (toegang($currenttab . "/Presentie per lid", 0, 0) and $i_ak->aantal($f) > 0) {
 			$toonpresentie = $_POST['toonpresentie'] ?? $i_ak->komendeles();
-			printf("<label>Inclusief presentie</label><select name='toonpresentie' OnChange='this.form.submit();'>\n<option value=0>Geen</option>\n%s</select>", $i_ak->htmloptions($afdid, $toonpresentie, $f));
+			printf("<select name='toonpresentie' OnChange='this.form.submit();'>\n<option value=0>Geen presentie</option>\n%s</select>", $i_ak->htmloptions($afdid, $toonpresentie, $f));
 		}
-		printf("<label>Toon leeftijden</label><select name='toonleeftijd' onChange='this.form.submit();'>");
+		
+		printf("<select name='toonleeftijd' onChange='this.form.submit();'>\n");
 		foreach ($arrToonLft as $k => $val) {
 			printf("<option value=%d%s>%s</option>", $k, checked($k, "option", $toonleeftijd), $val);
 		}
 		echo("</select>\n");
-		printf("<label>Zonder achternaam</label><input type='checkbox' name='avg_naam' title='Toon alleen de eerste letter van de achternaam' value=1 onClick='this.form.submit();' %s>", checked($avg_naam));
-		$f = sprintf("AW.AfdelingskalenderID=%d AND AW.Status IN ('A', 'L') AND LENGTH(AW.Opmerking) > 0", $toonpresentie);
-		if ($i_aanw->aantal($f) > 0) {
-			printf("<label>Toon opmerkingen</label><input type='checkbox' name='toonopmerking' title='Toon de opmerking bij aanwezigen' value=1 onClick='this.form.submit();' %s>", checked($toonopmerking));
+		printf("<span><label>Zonder achternaam</label><input type='checkbox' name='avg_naam' title='Toon alleen de eerste letter van de achternaam' value=1 onClick='this.form.submit();' %s></span>", checked($avg_naam));
+		
+		if ($toonpresentie > 0 and toegang($currenttab . "/Presentie muteren", 0, 0)) {
+			$f = sprintf("AW.AfdelingskalenderID=%d AND AW.Status IN ('A', 'L') AND LENGTH(AW.Opmerking) > 0", $toonpresentie);
+			if ($i_aanw->aantal($f) > 0) {
+				printf("<label>Toon opmerkingen</label><input type='checkbox' name='toonopmerking' title='Toon de opmerking bij aanwezigen' value=1 onClick='this.form.submit();' %s>", checked($toonopmerking));
+			}
 		}
 		echo("</form>\n");
-		echo("<div class='clear'></div>\n");
 	
 		foreach ($i_lo->groepsindeling($afdid) as $row) {		
 			if ($hvgroep != $row->GroepID) {
@@ -254,16 +263,18 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 					echo("</ol>\n");
 					echo("</div>  <!-- einde groepsindelingkolom -->\n");
 					if ($hvtijd !== $row->Tijdsblok and strlen($hvtijd) > 0) {
-						echo("<div class='clear'></div>\n");
+//						echo("<div class='clear'></div>\n");
+						echo("</div>  <!-- Einde tijdsblok -->\n");
 					}
 				}
 			
 				if (strlen($row->Tijdsblok) > 3 and $hvtijd !== $row->Tijdsblok) {
+					echo("<div class='row'>\n");
 					printf("<h3>%s</h3>\n", $row->Tijdsblok);
 				}
 				$hvtijd = $row->Tijdsblok;
 			
-				echo("<div class='groepsindelingkolom'>\n");
+				echo("<div class='col col-lg-3'>\n");
 				printf("<h4>%s</h4>\n", $row->GroepOms);
 				echo("<ol>\n");
 			}
@@ -330,7 +341,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 		
 		$grrows = $i_gr->selectlijst($afdid);
 		if (count($grrows) > 0) {
-			printf("<table id='groepsindelingmuteren' class='s'>\n", TABLECLASSES);
+			printf("<table id='groepsindelingmuteren' class='%s'>\n", TABLECLASSES);
 			echo("<tr><th>Naam</th><th>Leeftijd</th><th>Laatst behaalde diploma's</th><th>Groep</th></tr>\n\n");
 			
 			if ($inclkader == 1) {
@@ -346,7 +357,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 					$cl = "wordtlid";
 				} elseif (isset($row->Opgezegd) and $row->Opgezegd > "1900-01-01" and $row->Opgezegd < date("Y-m-d", strtotime("+3 MONTH"))) {
 					$cl = "opgezegd";
-					$t = sprintf("heeft per %s opgezegd", $row->opgezegd);
+					$t = sprintf("heeft per %s opgezegd", $row->Opgezegd);
 				}
 				if ($row->GroepID > 0 and $row->DiplomaID > 0) {
 					if ($i_dp->dpvoorganger > 0) {
@@ -500,6 +511,7 @@ function fnPresentieMuteren($p_onderdeelid){
 	echo("</form>\n");
 	
 	if ($akid > 0) {
+		$i_ak->vulvars($akid);
 		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 		$ro = "";
 		$f = sprintf("AfdelingskalenderID=%d", $akid);
@@ -508,14 +520,14 @@ function fnPresentieMuteren($p_onderdeelid){
 		}
 		
 		printf("<table id='presentiemuteren' class='%s'>\n", TABLECLASSES);
-		printf("<caption>Presentie %s</caption>\n", $dtfmt->format(strtotime($dat)));
+		printf("<caption>Presentie %s</caption>\n", $dtfmt->format(strtotime($i_ak->akdatum)));
 
 		$gh = "";
 		echo("<thead>\n");
 		echo("<tr><th>Naam</th><th>Groep/Functie</th><th>Status presentie</th><th>Opmerking</th></tr>\n");
 		echo("</thead>\n");
 		
-		foreach ($i_lo->lijst($p_onderdeelid, "", "F.Sorteringsvolgorde, F.Omschrijv, GR.Volgnummer, GR.Kode", $dat) as $row) {
+		foreach ($i_lo->lijst($p_onderdeelid, "", "F.Sorteringsvolgorde, F.Omschrijv, GR.Volgnummer, GR.Kode", $i_ak->akdatum) as $row) {
 			$i_aanw->vulvars($row->RecordID, $akid);
 			if (strlen($i_aanw->status) > 0) {
 				$cl = sprintf("class='presstat_%s'", strtolower($i_aanw->status));
@@ -532,7 +544,7 @@ function fnPresentieMuteren($p_onderdeelid){
 			}
 			printf("<tr><td %s>%s</td>%s\n", $cl, $row->NaamLid, $gr);
 			
-			$options = "<option value=''>Geen - Aanwezig verondersteld</option>\n";
+			$options = "<option value=''>Geen</option>\n";
 			foreach (ARRPRESENTIESTATUS as $k => $o) {
 				$s = "";
 				if ($k == $i_aanw->status) {
@@ -630,8 +642,8 @@ function fnPresentieoverzicht($p_ondid) {
 	printf("<input type='checkbox' name='100aanwezigTonen'%s value=1 OnClick='this.form.submit();'><p>100%% aanwezig</p>\n", checked($_POST['100aanwezigTonen']));
 	echo("</form>\n");
 	
-	echo("<table class='table table-hover'>\n");
-	printf("<caption> Presentie per lid %s</caption>\n", $i_lo->ondnaam);
+	printf("<table class='%s'>\n", TABLECLASSES);
+	printf("<caption> Presentieoverzicht | %s</caption>\n", $i_lo->ondnaam);
 	foreach ($seizrows as $seizrow) {
 		printf("<tr class='seizoentotaal'><th class='teken'>-</th><th>%d</th><th>%s t/m %s</th><th>Groep</th><th># Act.</th>", $seizrow->Nummer, $dtfmt->format(strtotime($seizrow->Begindatum)), $dtfmt->format(strtotime($seizrow->Einddatum)));
 		printf("%s<th># Afwezig</th><th>%% Aanwezig</th><th>Ziek</th><th>Met reden</th><th>Zonder reden</th>%s</tr>\n", $kop_aangemeld, $kop_telaat);
@@ -916,9 +928,9 @@ function fnOntvangersAfdelingsmailing($p_afdid, $p_uitvoeren=0, $p_mailing=-1) {
 	if ($p_uitvoeren == 1) {
 		$i_mr->delete_all($p_mailing);
 	}
-	foreach ($i_lo->groepsindeling($p_afdid, "", 1) as $lorow) {
+	foreach ($i_lo->lijst($p_afdid, 2) as $lorow) {
 		$cn = sprintf("chkGroep_%d", $lorow->GroepID);
-		$cnf = sprintf("chkFunctie_%d", $lorow->Functie);
+		$cnf = sprintf("chkFunctie_%d", $lorow->FunctieID);
 		if (isset($_POST[$cn])) {
 			$toev = true;
 			if ($_POST['kandidaatopexamen'] > 0) {
