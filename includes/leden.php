@@ -71,11 +71,11 @@ function fnLedenlijst() {
 		if ($currenttab2 != "Klosleden") {
 			$arrCB[] = "lidnummer";
 			$arrCB[] = "vanaf";
+			if (count($rows) > 0 and strlen(max(array_column($rows, "Opgezegd"))) > 0) {
+				$arrCB[] = "opgezegd";
+			}
 		}
-		if (($currenttab2 == "Leden" or $currenttab2 == "Voormalig leden") and strlen(max(array_column($rows, "Opgezegd"))) > 0) {
-			$arrCB[] = "opgezegd";
-		}
-		if (strlen(max(array_column($rows, "Opmerking"))) > 0) {
+		if (count($rows) > 0 and strlen(max(array_column($rows, "Opmerking"))) > 0) {
 			$arrCB[] = "opmerking";
 		}
 		
@@ -100,7 +100,7 @@ function fnLedenlijst() {
 		printf("<form method='post' id='filter' action='%s?%s'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
 		echo("<input type='text' name='tbTekstFilter' id='tbTekstFilter' placeholder='Tekstfilter' OnKeyUp=\"fnFilter('ledenlijst', this);\">\n");
 
-		if ($currenttab2 != "Klosleden") {
+		if ($currenttab2 == "Leden") {
 			$options = $i_ond->htmloptions($_SESSION['val_groep']);
 			if ($i_act->aantal() > 0) {
 				$options .= "<option value=0 disabled>--- Activiteiten --</option>\n";
@@ -182,19 +182,13 @@ function fnLedenlijst() {
 			$kols[8]['columnname'] = "RecordID";
 		} else {
 			if ($toonlidnummer == 1) {
-				$kols[8]['headertext'] = "Lidnummer";
-				$kols[8]['columnname'] = "Lidnr";
-				$kols[8]['type'] = "integer";
+				$kols[8] = ['headertext' => "Lidnummer", 'columnname' => "Lidnr", 'type' => "integer"];
 			}
 			if ($toonvanaf == 1) {
-				$kols[9]['headertext'] = "Lid vanaf";
-				$kols[9]['columnname'] = "LIDDATUM";
-				$kols[9]['type'] = "date";
+				$kols[9] = ['headertext' => "Lid vanaf", 'columnname' => "LIDDATUM", 'type' => "date"];
 			}
 			if ($toonopgezegd == 1) {
-				$kols[10]['headertext'] = "Opgezegd per";
-				$kols[10]['columnname'] = "Opgezegd";
-				$kols[10]['type'] = "date";
+				$kols[10] = ['headertext' => "Opgezegd per", 'columnname' => "Opgezegd", 'type' => "date"];
 			}
 			if ($currenttab2 == "Leden") {
 				$kols[11]['headertext'] = "Afd./Kader";
@@ -438,7 +432,7 @@ function fnWieiswie($actie, $metfoto=1) {
 		}
 		$txt .= "</div> <!-- Einde row onderdeel -->\n";
 	} else {	
-		$txt .= "<table class='table table-hover'>\n";
+		$txt .= sprintf("<table class='%s'>\n", TABLECLASSES);
 		foreach ($lijst as $row) {
 			if ($vo != $row->OndNaam) {
 				$txt .= sprintf("<th colspan=5>%s</th>\n", $row->OndNaam);
@@ -658,12 +652,12 @@ function fnOnderdelenmuteren($ondtype="G") {
 			}
 		}
 		if ($vor > 0) {
-			printf("<input type='button' onclick=\"location.href='%s?tp=%s&Scherm=L&OnderdeelID=%d';\" value='Vorige %s'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $vor, ARRTYPEONDERDEEL[$ondtype]);
+			printf("<button type='button' onclick=\"location.href='%s?tp=%s&Scherm=L&OnderdeelID=%d';\"><i class='bi bi-skip-backward-circle'></i> Vorige %s</button>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $vor, ARRTYPEONDERDEEL[$ondtype]);
 		}
 		printf("<input type='button' onclick=\"location.href='%s?tp=%s&Scherm=S';\" value='Overzicht %s'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $ondnaammv);
 	
 		if ($vol > 0) {
-			printf("<input type='button' onclick=\"location.href='%s?tp=%s&Scherm=L&OnderdeelID=%d';\" value='Volgende %s'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $vol, ARRTYPEONDERDEEL[$ondtype]);
+			printf("<button type='button' onclick=\"location.href='%s?tp=%s&Scherm=L&OnderdeelID=%d';\"><i class='bi bi-skip-forward-circle'></i> Volgende %s</button>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $vol, ARRTYPEONDERDEEL[$ondtype]);
 		}
 		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 		echo("<div class='clear'></div>\n");
@@ -827,9 +821,9 @@ function LedenOnderdeelMuteren($p_ondid, $p_bop) {
 				$mess = "Dit record bestaat niet bij dit onderdeel. Het wordt niet verwijderd.";
 				debug($mess, 1, 1);
 			}
+		} elseif ($_SESSION['webmaster'] == 1) {
+			$i_lo->auto_einde($p_ondid, 15);
 		}
-
-		$th = sprintf("Deelnemers %s", $i_ond->naam);
 		
 		printf("<form method='post' action='%s?tp=%s&OnderdeelID=%d&Scherm=L'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $i_ond->oid);
 		echo("<input type='hidden' name='formname' value='muteren_leden_onderdeel'>\n");
@@ -873,6 +867,7 @@ function LedenOnderdeelMuteren($p_ondid, $p_bop) {
 		}
 		if ($i_ond->iskader) {
 			$kols[3]['headertext'] = "Email bij functie";
+			$kols[3]['columnname'] = "EmailFunctie";
 			$kols[3]['type']= "email";
 		}
 		$kols[4]['headertext'] = "Opmerking";
@@ -892,7 +887,7 @@ function LedenOnderdeelMuteren($p_ondid, $p_bop) {
 		$kols[6]['columnname'] = "RecordID";
 		$kols[6]['type'] = "pk";
 
-		echo(fnEditTable($res, $kols, "ledenperonderdeelmuteren", $th));
+		echo(fnEditTable($res, $kols, "ledenperonderdeelmuteren", $i_ond->naam));
 		echo($nl);
 	
 		if ($i_ond->isautogroep) {
@@ -1266,7 +1261,7 @@ function fnEigenGegevens($lidid=0) {
 		$rows = (new cls_Evenement_Deelnemer())->overzichtlid($lidid);
 		if (count($rows) > 0 and toegang($ct . $tn, 0, 0)) {
 			$tabblad[$tn] = "<div id='evenementenperlid'>\n";
-			$tabblad[$tn] .= "<table class='table table-hover border-primary'>\n";
+			$tabblad[$tn] .= sprintf("<table class='%s'>\n", TABLECLASSES);
 			if ($currenttab != "Eigen gegevens") {
 				$tabblad[$tn] .= sprintf("<caption>Deelname evenementen %s</caption>\n", $naamlid);
 			}
@@ -1326,7 +1321,7 @@ function fnEigenGegevens($lidid=0) {
 		$rows = (new cls_Logboek())->overzichtlid($lidid);
 		if ($lidid > 0 and toegang($ct . $tn, 0, 0) and count($rows) > 0) {
 			$kols = fnStandaardKols("logboek", 0);
-			$tabblad[$tn] = fnDisplayTable($rows, $kols, $th);
+			$tabblad[$tn] = fnDisplayTable($rows, $kols, $i_ond->naam);
 		}
 		
 		DisplayTabs($tabblad, $tabidx);
@@ -1815,6 +1810,7 @@ function nieuwepasfoto($lidid, $filterlid="") {
 } # nieuwepasfoto
 
 function toestemmingenmuteren($lidid) {
+	global $currenttab;
 	
 	$i_ond = new cls_Onderdeel();
 	$i_lo = new cls_Lidond();
@@ -1825,7 +1821,7 @@ function toestemmingenmuteren($lidid) {
 		$js = "";
 	}
 	
-	$actionurl = sprintf("%s?tp=%s&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
+	$actionurl = sprintf("%s?tp=%s&lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$mess = "";
 		foreach ($i_ond->lijst(-1, "`Type`='T'") as $ondrow) {
@@ -1852,24 +1848,25 @@ function toestemmingenmuteren($lidid) {
 		$islid = false;
 	}
 	
-	echo("<div id='toestemmingenmuteren'>\n");
 	printf("<h3>Toestemmingen %s muteren</h3>\n", (new cls_Lid())->Naam($lidid));
 	$rows = $i_ond->lijst(0, $f, "", 0, "O.Kode");
 	if (count($rows) > 0) {
-		printf("<form method='post' action='%s'>\n", $actionurl);
+		echo("<div class='form-check'>\n");
+		printf("<form method='post' id='toestemmingenmuteren' action='%s'>\n", $actionurl);
 		foreach ($rows as $row) {
 			$d = "";
 			if ($islid == false) {
 				$d = " disabled";
 			}
-			printf("<label>%s</label><p><input type='checkbox' name='T_%s' value='1' %s%s></p>\n", $row->Naam, $row->Kode, checked($i_lo->islid($lidid, $row->RecordID)), $d);
+			printf("<input class='form-check-input' type='checkbox' id='T_%1\$s' name='T_%1\$s' value=1 %2\$s%3\$s>", $row->Kode, checked($i_lo->islid($lidid, $row->RecordID)), $d);
+			printf("<label class='form-check-label' for='T_%s'>%s</label>\n", $row->Kode, $row->Naam);
 		}
-		echo("<div class='clear'></div>\n");
+		if (strlen($_SESSION['settings']['uitleg_toestemmingen']) > 0) {
+			printf("<p>%s</p>\n", $_SESSION['settings']['uitleg_toestemmingen']);
+		}
+		echo("</div> <!-- Einde form-check -->\n");
 	} else {
 		echo("<p>Er zijn geen toestemmingen die gegeven kunnen worden.</p>\n");
-	}
-	if (strlen($_SESSION['settings']['uitleg_toestemmingen']) > 0) {
-		printf("<p>%s</p>\n", $_SESSION['settings']['uitleg_toestemmingen']);
 	}
 	
 	if ($lidid == $_SESSION['lidid']) {
@@ -1879,12 +1876,14 @@ function toestemmingenmuteren($lidid) {
 	}
 	
 	echo("<div id='opdrachtknoppen'>\n");
-	echo("<button type='button' onClick=\"AlleToestemming();\">Alle toestemmingen</button>");
+	if ($currenttab != "Zelfservice") {
+		echo("<button type='button' onClick=\"AlleToestemming();\">Alle toestemmingen</button>");
+	}
 	printf("<button type='submit' name='Bevestigen'>%s</button>\n", $tb);
 	echo("</div> <!-- Einde opdrachtknoppen -->\n");
 
 	echo("</form>\n");
-	echo("</div> <!-- Einde toestemmingenmuteren -->\n");
+//	echo("</div> <!-- Einde toestemmingenmuteren -->\n");
 	
 	echo("<script>
 			function AlleToestemming() {
@@ -1956,7 +1955,7 @@ function opzegginglidmaatschap($lidid) {
 		
 	} else {
 		$form_opzegging = "<fieldset>
-<h3>Opzegging lidmaatschap</h3>
+<h2>Opzegging lidmaatschap</h2>
 <p><label for='NaamLid'>Naam lid</label><input type='text' name='NaamLid' value='[%NAAMLID%]' readonly='readonly'>
 <label>Lidnummer</label><input type='number' name='Lidnr' value='[%LIDNR%]' readonly='readonly'>
 <label>Opzegging per</label><input type='date' name='OpzeggingPer' value='[%OPZEGGENVANAF%]'>
@@ -2007,7 +2006,7 @@ function onderdelenlidmuteren($lidid, $p_type="G") {
 	printf("<input type='hidden' id='lidid' value=%d>\n", $lidid);
 	printf("<input type='hidden' id='ondtype' value='%s'>\n", $p_type);
 	printf("<form method='post' action='%s'>\n", $actionurl);
-	echo("<table id='tablelidond'>\n");
+	printf("<table id='tablelidond' class='%s'>\n", TABLECLASSES);
 	$kf = "";
 	if ($p_type == "A") {
 		$typeoms = "Afdelingen";
@@ -2176,7 +2175,7 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 		echo("</div> <!-- Einde filter -->\n");
 	}
 	
-	echo("<table id='diplomaslidmuteren' class='table table-hover'>\n");
+	printf("<table id='diplomaslidmuteren' class='%s'>\n", TABLECLASSES);
 	printf("<caption>Diploma's %s muteren</caption>\n", (new cls_Lid())->Naam($lidid));
 	$minbehaald = date("d-m-Y", strtotime((new cls_Lid())->Geboortedatum($lidid)));
 	echo("<thead>\n");
@@ -2278,7 +2277,7 @@ function lidmaatschapmuteren($lidid) {
 	
 	$actionurl = sprintf("%s?tp=%s&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
 	printf("<form method='post' action='%s'>\n", $actionurl);
-	echo("<table id='lidmaatschapmuteren'>\n");
+	printf("<table id='lidmaatschapmuteren' class='%s'>\n", TABLECLASSES);
 	printf("<caption>Lidmaatschappen %s muteren</caption>\n", (new cls_Lid())->Naam($lidid));
 	echo("<tr><th>RecordID</th><th>Lidnummer</th><th>Lid vanaf</th><th>Opgezegd per</th><th>Door vereniging?</th><th></th></tr>\n");
 	$toev = true;
@@ -2444,14 +2443,13 @@ function fnPersoonlijkeAgenda() {
 			if (toegang("Evenementen", 0) and $row->Dln > 0) {
 				$o = sprintf("<a href='%s/index.php?tp=Evenementen'>%s</a>", BASISURL, $o);
 			}
-			
-			if ($row->Dln > 1) {
-				$o .= sprintf(" (%d deelnemers)", $row->Dln);
-			}
+
 			if (isset($edrow->RecordID)) {
 				$o .= ": " . ARRDLNSTATUS[$edrow->Status];
 				if ($edrow->Aantal > 1) {
 					$o .= sprintf(" met %d personen", $edrow->Aantal);
+				} elseif (strlen($edrow->Functie) > 0) {
+					$o .= sprintf(" als %s", $edrow->Functie);
 				}
 			}
 			$kalitem[$in]['oms'] = $o;
@@ -2813,23 +2811,21 @@ function presentielijst($p_evenement=0) {
 	
 	echo("<div id='filter'>\n");
 	$actionurl = sprintf("%s?tp=%s", $_SERVER['PHP_SELF'], $_GET['tp']);
-	printf("<form method='post' action='%s'>\n", $actionurl);
+	printf("<form method='post' id-'filter' action='%s'>\n", $actionurl);
 	if ($p_evenement == 0) {
 		printf("<select name='onderdeelid' onChange='this.form.submit();'><option value=0>Selecteer groep ...</option>\n%s</select>\n", $i_ond->htmloptions($ondid, 1));
 	}
 	printf("<select name='eventid' onChange='this.form.submit();'><option value=0>Selecteer evenement ...</option>\n%s</select>\n", $i_ev->htmloptions($eventid));
 	printf("<input type='text' name='titellijst' id='titellijst' placeholder='Titel presentielijst' value='%s' onBlur='this.form.submit();'>", $titellijst);
 	echo("</form>\n");
-	echo("</div> <!-- Einde filter -->\n");
-	
-	echo("<div id='presentielijst'>\n");
+	echo("</div>\n");
 	
 	if ($ondid > 0 or $eventid > 0) {
 		$i_lid = new cls_Lid();
 		$i_ed = new cls_Evenement_Deelnemer($eventid);
 		
 		$aant = 0;
-		echo("<table>\n");
+		printf("<table id='presentielijst' class='%s'>\n", TABLECLASSES);
 		if (strlen($titellijst) > 1)  {
 			printf("<thead>\n<tr><th colspan=2>%s</th></tr></thead>\n", $titellijst);
 		}
@@ -2866,7 +2862,6 @@ function presentielijst($p_evenement=0) {
 		echo("</tbody>\n");
 		echo("</table>\n");	
 	}
-	echo("</div> <!-- Einde presentielijst -->\n");
 	
 }  # presentielijst
 
@@ -2935,7 +2930,7 @@ function sportlink() {
 	echo("<p>Plak hierboven de export uit Sportlink, puntkomma-gescheiden en met onderstaande kolommen.</p>\n");
 	echo("</form>\n");
 	
-	echo("<table>\n<tr>");
+	printf("<table class='%s'>\n<tr>", TABLECLASSES);
 	for ($knr=0;$knr < count($Kolomhoofd);$knr++) {
 		printf("<th>%s</th>", $Kolomhoofd[$knr]);
 	}
@@ -3052,7 +3047,7 @@ function jubilarissen() {
 		$dagenterug = (strtotime($datumtot) - strtotime($datumvanaf)) / (60 * 60 *24);
 		$rows = $i_lid->jubilarissen($datumtot);
 		
-		echo("<table>\n");
+		printf("<table class='%s'>\n", TABLECLASSES);
 		echo("<thead><tr><th>Naam lid</th><th>Lidmaatschap</th><th>Kaderlidmaatschap</th></tr></thead>\n");
 		foreach($rows as $row) {
 			$jub = "";
