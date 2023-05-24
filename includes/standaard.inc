@@ -38,6 +38,7 @@ define("ARRTYPEBACKUP", [1 => "phpRBM-tabellen", 2 => "Tabellen uit MS-Access", 
 define("ARRTYPESTUK", ["A" => "Algemene Vergadering", "B" => "Beleidsstuk", "F" => "Formulier", "H" => "Handleiding", "P" => "Promotiemateriaal", "R" => "Regeling", "V" => "Verklaring"]);
 define("ARRTYPEMENU", [1 => "per niveau een aparte regel", 2 => "&eacute;&eacute;n menu met dropdown", 3 => "&eacute;&eacute;n menu met dropdown en extra menu voor niveau 2"]);
 define("BEWAARTIJDNIEUWERECORDS", 120);
+define("TABLECLASSES", "table table-hover border-primary");
 
 define("DTSHORT", "dd-MM-yyyy");
 define("DTDAYMONTH", "d MMMM");
@@ -556,55 +557,6 @@ function getvar($nm, $riz="") {
 	}
 }
 
-function fnDisplayForm($row, $xtra_eind="", $id="formulier") {
-	global $dtfmt;
-	
-	debug("fnDisplayForm", 1, 1);
-
-	if (strlen($id) > 0) {
-		$ret = sprintf("<div id='%s'>\n", $id);
-	}
-	if (isset($row) and $row != null) {
-		$ret .= "<table>\n";
-		foreach($row as $key => $value) {
-			if (substr($key, 0, 3) == "Kop") {
-				$ret .= sprintf("<tr><th colspan=2>%s</th></tr>\n", $value);
-			} elseif (substr($key, 0, 3) == "dte" and (!is_null($value))) {
-				if (strtotime($value) == false) {
-					$dv = $value;
-				} else {
-					$dtfmt->setPattern(DTTEXT);
-					$dv = $dtfmt->format(strtotime($value));
-				}
-				$ret .= sprintf("<tr><td class='label'>%s</td><td class='datum'>%s</td></tr>\n", substr($key, 3), $dv);
-			} elseif (substr($key, 0, 3) == "dtt" and (!is_null($value))) {
-				$dtfmt->setPattern(DTLONG);
-				$ret .= sprintf("<tr><td class='label'>%s</td><td class='datumtijd'>%s</td></tr>\n", substr($key, 3), $dtfmt->format(strtotime($value)));
-			} elseif (substr($key, 0, 3) == "boo" and $value == 1) {
-				$ret .= sprintf("<tr><td class='label'>%s</td><td>Ja</td></tr>\n", substr($key, 3));
-			} elseif (substr($key, 0, 3) == "boo" and $value != 1) {
-				$ret .= sprintf("<tr><td class='label'>%s</td><td>Nee</td></tr>\n", substr($key, 3));
-			} elseif (substr($key, 0, 3) == "mem" and strlen($value) > 1) {
-				$ret .= sprintf("<tr><td colspan=2>%s</td></tr\n>", htmlentities($value));
-			} elseif (substr($key, 0, 3) == "eml" and strlen($value) > 1) {
-				$ret .= sprintf("<tr><td class='label'>%s</td><td>%s</td></tr>\n", substr($key, 3), fnDispEmail($value, "", 1));
-			} elseif (substr($key, 0, 2) != "nd" and strlen($value) > 0) {
-				$ret .= sprintf("<tr><td class='label'>%s</td><td>%s</td></tr>\n", $key, str_replace("\n", "<br>\n", htmlentities($value)));
-			}
-		}
-		$ret .= "</table>\n";
-	} else {
-		$ret .= "Er is geen record beschikbaar.";
-	}
-	if (strlen($xtra_eind) > 0) {
-		$ret .= $xtra_eind;
-	}
-	if (strlen($id) > 0) {
-		$ret .= sprintf("</div>  <!-- Einde %s -->\n", $id);
-	}
-	return $ret;
-}  # fnDisplayForm
-
 function fnDisplayFormLabels($row, $xtra_eind="", $id="") {
 	global $dtfmt;
 	
@@ -660,9 +612,9 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 	$kol_pk = "";
 	if (isset($rows) and (count($rows) > 0 or strlen($xtra_regel) > 0)) {
 		if (strlen($p_id) > 0) {
-			$ret .= sprintf("<table id='%s' class='table table-hover border-primary'>\n", $p_id);
+			$ret .= sprintf("<table id='%s' class='%s'>\n", $p_id, TABLECLASSES);
 		} else {
-			$ret .= "<table class='table table-hover table-hover border-primary'>\n";
+			$ret .= sprintf("<table class='%s'>\n", TABLECLASSES);
 		}
 		$dispkop = 1;
 		$totaantal = 0;
@@ -932,15 +884,20 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					}
 					$ret .= "</td>\n";
 
-				} elseif ($kol_type == "dte" or $kol_type == "rodte" or $kol_type == "date" or $kol_type == "DTTEXT") {
+				} elseif ($kol_type == "dte" or $kol_type == "date" or $kol_type == "DTTEXT") {
 					// 1 januari 2020
 					if ((!is_null($value)) and $value > '1900-01-01' and strtotime($value) !== false) {
 						$dtfmt->setPattern(DTTEXT);
-						$ret .= sprintf("<td>%s</td>", $dtfmt->format(strtotime($value)));
+						if ($value >= date("Y-m-d", strtotime("-7 day"))) {
+							$ret .= "<td class='gewijzigd'>";
+						} else {
+							$ret .= "<td>";
+						}
+						$ret .= sprintf("%s</td>", $dtfmt->format(strtotime($value)));
 					} elseif ((!is_null($value)) and strlen($value) > 0) {
 						$ret .= sprintf("<td>%s</td>", $value);
 					} else {
-						$ret .= "<td>&nbsp;</td>";
+						$ret .= "<td></td>";
 					}
 					
 				} elseif ($kol_type == "dtk" or $kol_type == "dateshort") {
@@ -1114,7 +1071,7 @@ function fnEditTable($res, $kols, $id, $th) {
 
 	$rows = $res->fetchAll();
 	
-	$ret = sprintf("<table id='%s' class='table table-hover border-primary'>\n", $id);
+	$ret = sprintf("<table id='%s' class='%s'>\n", $id, TABLECLASSES);
 	if (strlen($th) > 0) {
 		if (count($rows) > 3) {
 			$t = sprintf(" title='%d rijen'", count($rows));
