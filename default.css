@@ -40,7 +40,7 @@ a, a:visited {
 }
 
 h1 {
-	font-size: 164%;
+	font-size: 155%;
 	font-weight: bold;
 	margin-top: 2px;
 	margin-bottom: 2px;
@@ -153,8 +153,6 @@ label {
 	clear: left;
 	display: block;
 	margin-right: 5px;
-	margin-top: 3px;
-	margin-bottom: 3px;
 	padding-top: 4px;
 	padding-left: 5px;
 	padding-right: 5px;
@@ -203,25 +201,21 @@ footer a, footer a:visited {
 form p {
 	float: left;
 	margin-left: 4px;
+	margin-top: 6px;
 }
 
 button {
 	margin-right: 6px;
 	margin-top: 6px;
+	padding-bottom: 6px;
 	border-width: 1px;
 	padding-left: 6px;
 	padding-right: 6px;
 	padding-top: 4px;
-	padding-bottom: 4px;
 }
 
 input[type='email'] {
 	width: 250px;
-}
-
-input[type='checkbox'] {
-/*	width: 20px;
-	margin-top: 8px; */
 }
 
 header {
@@ -240,6 +234,7 @@ header h1 {
 	float: left;
 	margin-top: 3px;
 	padding-left: 4px;
+	overflow: hidden;
 }
 
 #filter {
@@ -270,7 +265,6 @@ header h1 {
 	padding-bottom: 4px;
 	height: auto;
 	border-width: 1px;
-	border-style: solid;
 }
 
 #filter p {
@@ -325,14 +319,8 @@ header h1 {
 	padding-top: 0;
 }
 
-#filter .aantrecords {
+#filter p.aantrecords {
 	float: right;
-}
-
-
-#filter .rb {
-	float: left;
-	margin-top: 8px;
 }
 
 #filter .waarde {
@@ -440,7 +428,7 @@ input.w45 {
 }
 
 input.w50 {
-	width: 304px;
+	width: 325px;
 }
 
 input.w55 {
@@ -459,20 +447,24 @@ input.w75 {
 	width: 475px;
 }
 
-input.w90, #filter input#titellijst, textarea.w90 {
-	width: 350px;
+input.w80 {
+	width: 575px;
+}
+
+input.w90, textarea.w90 {
+	width: 600px;
 }
 
 input.w100 {
-	width: 450px;
+	width: 650px;
 }
 
 input.w110 {
-	width: 450px;
+	width: 650px;
 }
 
 input.w150 {
-	width: 585px;
+	width: 800px;
 }
 
 input.w250 {
@@ -481,17 +473,6 @@ input.w250 {
 
 button:disabled, button[disabled=disabled], .disabled {
 	color: red;
-}
-
-#container {
-	width: 1275px;
-	margin-left: auto;
-	margin-right: auto;
-	padding-left: 0;
-	padding-right: 0;
-	border-style: none;
-	border-width: 1px;
-	color: inherit;
 }
 
 header a + a:visited + a:hover {
@@ -744,28 +725,6 @@ td.details, td.muteren, td.detailregels, td.leden, td.sendmail, td.unlock {
 	clear: left;
 }
 
-#eigenschappenlidmuteren {
-	border-style: solid;
-	border-width: 1px;
-	border-bottom-right-radius: 9px;
-	border-bottom-left-radius: 9px;
-	float: right;
-	clear: right;
-	padding-left: 5px;
-	padding-right: 5px;
-}
-
-#eigenschappenlidmuteren h2, #eigenschappenlidmuteren input {
-	float: left;
-	clear: left;
-}
-
-#eigenschappenlidmuteren h2 {
-	font-size: 110%;
-	border-bottom-style: solid;
-	border-width: 1px;
-}
-
 .ledenperonderdeelmuteren select {
 	width: 150px;
 }
@@ -789,7 +748,7 @@ td.details, td.muteren, td.detailregels, td.leden, td.sendmail, td.unlock {
 	height: 10px;
 }
 
-#stukkenmuteren label {
+#stukkenmuteren label, #website_inhoud label {
 	width: 175px;
 }
 
@@ -799,6 +758,12 @@ td.details, td.muteren, td.detailregels, td.leden, td.sendmail, td.unlock {
 
 #stukkenmuteren input[type='url'] {
 	width: 750px;
+}
+
+#website_inhoud textarea {
+	height: 500px;
+	width: 100%;
+	float: left;
 }
 
 #wijzigenlidgegevens img {
@@ -879,8 +844,21 @@ textarea#sportlinkdata {
 }
 
 #toestemmingenmuteren label {
-	width: 320px;
-	padding-right: 4px;
+	width: 330px;
+	clear: none;
+	height: auto;
+	text-align: left;
+}
+
+#toestemmingenmuteren input {
+	clear: left;
+	margin-top: 10px;
+}
+
+#toestemmingenmuteren p {
+	float: left;
+	clear: both;
+	margin-top: 8px;
 }
 
 table#afdelingskalendermuteren {
@@ -1209,7 +1187,6 @@ table#afdelingskalendermuteren {
 	float: left;
 }
 
-
 #dl_lijst div.stempel {
 	margin-right: 0;
 	float: right;
@@ -1321,14 +1298,6 @@ td.dubbeldiploma {
 	text-align: center;
 }
 
-input.code, .code {
-	width: 75px;
-}
-
-input.omschrijving {
-	width: 250px;
-}
-
 .nietdefinitief {
 	background-color: red;
 	color: white;
@@ -1348,10 +1317,6 @@ input.omschrijving {
 	padding-right: 6px;
 }
 
-.datumtijd {
-	min-width: 125px;
-}
-
 .logboek {
 	clear: both;
 	margin-top: 6px;
@@ -1369,10 +1334,6 @@ input.omschrijving {
 .gewijzigdestukken p {
 	margin-left: 2px;
 	margin-top: 12px;
-}
-
-.postcode {
-	width: 65px;
 }
 
 #webshop select {
@@ -1451,20 +1412,6 @@ input.omschrijving {
 
 #opvragenlidnr input[type='email']{
 	width: 225px;
-}
-
-@media screen and (max-width: 750px) {
-	#container, #containerbreed {
-		width: 98%;
-	}
-	
-	#loginaanvraag, #login, #opvragenlidnr, #profielwijzigen, #opzegformulier {
-		width: 96%;
-	}
-	
-	#pasfoto, #welkomuser {
-		display: none;
-	}
 }
 
 #loginaanvraag label, #opvragenlidnr label, #herstellenwachtwoord label, #profielwijzigen label, #opzegformulier label, #bijzonderhedenwijzigen label {
@@ -1637,15 +1584,10 @@ fieldset h3 {
 }
 
 #verstuurdemail label {
-	background-color: transparent;
 	width: 150px;
 	margin-left: 5px;
 	margin-right: 5px;
 	float: left;
-	border-top-style: solid;
-	border-bottom-style: solid;
-	border-top-width: 1px;
-	border-bottom-width: 1px;
 }
 
 #verstuurdemail p {
@@ -1744,7 +1686,6 @@ fieldset h3 {
 }
 
 #opdrachtknoppen button, #opdrachtknoppen input {
-	margin-top: 2px;
 	margin-bottom: 8px;
 	margin-left: 8px;
 	margin-right: 8px;
@@ -1794,11 +1735,6 @@ fieldset h3 {
 	height: 1px;
 }
 
-.label {
-	text-align: right;
-	background-color: #00FFFF;
-}
-
 .details {
 	text-align: center;
 }
@@ -1818,6 +1754,7 @@ tr.gewijzigd, td.gewijzigd, li.gewijzigd {
 
 nav {
 	width: 100%;
+	padding-left: 3px;
 }
 
 nav p.current {
@@ -1931,19 +1868,14 @@ nav p {
 	font-color: red;
 }
 
-.mededeling, .mededeling a, .waarschuwing, .waarschuwing a {
+.mededeling, .mededeling a {
 	margin-left: auto;
 	margin-right: auto;
 	width: 90%;
-	border-color: black;
 	border-style: solid;
 	border-width: 1px;
 	font-size: 125%;
 	text-align: center;
-}
-
-.waarschuwing, .waarschuwing a {
-	color: red;
 }
 
 .debug {
@@ -2288,35 +2220,14 @@ table#rekeningregels {
 }
 
 #mailingselectieleden {
-	overflow: visible;
 	float: left;
 	clear: right;
 	height: auto;
 	border-style: solid;
 	border-width: 1px;
 	padding-left: 5px;
-}
-
-#mailingselectieleden label {
-	float: left;
-	clear: left;
-	width: 175px;
-}
-
-#mailingselectieleden label.kop {
-	clear: none;
-	float: left;
-	text-align: left;
-	background: transparent;
-	border-style: none;
-}
-
-#mailingselectieleden select {
-	width: auto;
-}
-
-#mailingselectieleden button, #mailingselectieleden p {
-	height: 33px;
+	padding-top: 5px;
+	padding-bottom: 5px;
 }
 
 #instellingenmuteren h2 {
@@ -2390,23 +2301,15 @@ table#rekeningregels {
 }
 
 #editmailingform label {
-	clear: left;
-	float: left;
 	width: 190px;
-	padding-top: 6px;
 }
 
 #editmailingform p {
-	float: left;
 	margin-top: 3px;
 	margin-right: 8px;
 	border-style: none;
 	border-width: 1px;
 	padding-top: 4px;
-}
-
-#editmailingform input {
-	float: left;
 }
 
 #editmailingform textarea {
@@ -2431,7 +2334,7 @@ table#rekeningregels {
 	height: 28px;
 }
 
-#instellingenmuteren input, #editmailingform input, #editmailingform select, #toestemmingenmuteren input, #afdelingskalendermuteren input, #afdelingskalendermuteren select {
+#instellingenmuteren input, #afdelingskalendermuteren input, #afdelingskalendermuteren select {
 	margin-top: 9px;
 	margin-bottom: 8px;
 }
@@ -2478,6 +2381,32 @@ table#rekeningregels {
 #nieuwlid p {
 	margin-top: 6px;
 	clear: none;
+}
+
+#eigenschappenlidmuteren {
+	border-style: solid;
+	border-width: 1px;
+	border-bottom-right-radius: 9px;
+	border-bottom-left-radius: 9px;
+	float: right;
+	clear: right;
+	padding-left: 5px;
+	padding-right: 5px;
+}
+
+#eigenschappenlidmuteren h2, #eigenschappenlidmuteren input {
+	float: left;
+	clear: left;
+}
+
+#eigenschappenlidmuteren h2 {
+	font-size: 110%;
+	border-bottom-style: solid;
+	border-width: 1px;
+}
+
+#eigenschappenlidmuteren p {
+	padding-top: 1px;
 }
 
 #wijzigenlidgegevens input, #wijzigenlidgegevens select {
@@ -2651,6 +2580,31 @@ li.presstat_v, td.presstat_v {
 	.functiekaderlid, .mailkaderlid {
 		display: none;
 	}
+	
+	#loginaanvraag, #login, #opvragenlidnr, #profielwijzigen, #opzegformulier {
+		width: 96%;
+	}
+	
+	#pasfoto, #welkomuser {
+		display: none;
+	}
+	
+	h1#naamwebsite {
+/*		display: none; */
+		max-width: 50px;
+		height: 26px;
+	}
+	
+}
+
+@media screen and (max-width: 1000px) {
+	h1#naamwebsite {
+		max-width: 300px;
+	}
+	
+	label#lblMaxPersonenPerDeelname {
+		clear: left;
+	}
 }
 
 @media print {
@@ -2683,6 +2637,10 @@ li.presstat_v, td.presstat_v {
 	height: inherit;
 	line-height: inherit;
 	font-style: italic;
+}
+
+#tab-agenda li.teams, #tab-agenda li.via_teams, p.teams, p.via_teams, td.teams, td.via_teams {
+	color: #464EB8;
 }
 
 /* jQuery specifiek */
