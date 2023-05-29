@@ -202,7 +202,7 @@ function inschrijvenevenementen($lidid) {
 	echo("<div id='inschrijvingevenementen'>\n");
 	printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 	$geldig = false;
-	echo("<table>\n");
+	printf("<table class='%s'>\n", TABLECLASSES);
 	echo("<tr><th>Datum en tijden</th><th>Omschrijving</th><th>Reactie</th><th>Agenda</th></tr>\n");
 	foreach ($i_ev->lijst(3) as $row) {
 		$oms = $row->Omschrijving;
@@ -296,6 +296,22 @@ function muteerevenement($eventid) {
 			}
 			if (isset($_POST['Locatie']) and strlen($_POST['Locatie']) > 0) {
 				$i_ev->update($eventid, "Locatie", $_POST['Locatie']);
+			}
+			
+			if (isset($_POST['TypeEvenement']) and $_POST['TypeEvenement'] > 0) {
+				$i_ev->update($eventid, "TypeEvenement", $_POST['TypeEvenement']);
+				
+				$f = sprintf("E.TypeEvenement=%d AND IFNULL(E.VerwijderdOp, '0000-00-00')='0000-00-00' AND LENGTH(E.Email) > 5", $_POST['TypeEvenement']);
+				$eml = $i_ev->laatste("Email", $f, "E.Datum DESC");
+				if (strlen($eml) > 5) {
+					$i_ev->update($eventid, "Email", $eml);
+				}
+				
+				$f = sprintf("E.TypeEvenement=%d AND IFNULL(E.VerwijderdOp, '0000-00-00')='0000-00-00'", $_POST['TypeEvenement']);
+				$dg = $i_ev->laatste("BeperkTotGroep", $f, "E.Datum DESC");
+				if ($dg > 0) {
+					$i_ev->update($eventid, "BeperkTotGroep", $dg);
+				}
 			}
 		}
 		
@@ -408,10 +424,11 @@ function muteerevenement($eventid) {
 
 	printf("<label id='lblOmschrijving'>Omschrijving</label><input type='text' id='Omschrijving' name='Omschrijving' class='w50' value=\"%s\" maxlength=50>\n", $oms);
 	printf("<label id='lblLocatie'>Locatie</label><input type='text' id='Locatie' name='Locatie' value=\"%s\" class='w75' maxlength=75>\n", $loc);
+	printf("<label id='lblTypeEvenement'>Type evenement</label><select id='TypeEvenement' name='TypeEvenement'>\n<option value=0>Geen/onbekend</option>\n%s</select>\n", $i_et->htmloptions($typeevenement));
+	
 	if ($eventid > 0) {
 		printf("<label id='lblEmail'>E-mail</label><input type='email' id='Email' value='%s' class='w50' maxlength=45>\n", $email);
 	
-		printf("<label id='lblTypeEvenement'>Type evenement</label><select id='TypeEvenement'>\n<option value=0>Geen/onbekend</option>\n%s</select>\n", $i_et->htmloptions($typeevenement));
 		printf("<label id='lblOpmaak'>Opmaak in agenda</label>%s\n", fnEvenementOmschrijving($row, 1, "p"));
 	
 		$ondrows = (new cls_Onderdeel())->lijst(1, "", $datum);
@@ -443,7 +460,7 @@ function muteerevenement($eventid) {
 	}
 	
 	if ($eventid > 0) {
-		echo("<table id='deelnemersevenementmuteren'>\n");
+		printf("<table id='deelnemersevenementmuteren' class='%s'>\n", TABLECLASSES);
 		echo("<caption>Deelnemers</caption>\n");
 		echo("<thead>\n<tr><th>Deelnemer</th>");
 		if ($meerderestartmomenten == 1) {
@@ -493,7 +510,10 @@ function muteerevenement($eventid) {
 		echo("</table>\n");
 		
 		if (count($rowspd) > 0) {
-			$optionsnieuw = "<option value=0>Deelnemer toevoegen ...</option>\n<option value=-10>Alle leden van de doelgroep</option>\n";
+			$optionsnieuw = "<option value=0>Deelnemer toevoegen ...</option>\n<";
+			if ($i_ev->doelgroep > 0) {
+				$optionsnieuw .= "option value=-10>Alle leden van de doelgroep</option>\n";
+			}
 			foreach ($rowspd as $lidrow) {
 				$optionsnieuw .= sprintf("<option value=%d>%s</option>\n", $lidrow->LidID, htmlentities($lidrow->Naam));
 			}
@@ -627,7 +647,7 @@ function muteertypeevenement() {
 	}
 		
 	printf("<form method='post' id='muteertypeevenement' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	echo("<table class='table table-hover'>\n");
+	printf("<table class='%s'>\n", TABLECLASSES);
 	echo("<thead>\n");
 	echo("<tr><th>Omschrijving</th><th>Soort</th><th>Tekstkleur</th><th>Vet</th><th>Cursief</th><th>Achtergrondkleur</th><th>Voorbeeld</th><th></th></tr>\n");
 	echo("</thead>\n");
@@ -686,7 +706,7 @@ function overzichtevenementen() {
 	$i_ed = new cls_Evenement_Deelnemer();
 
 	echo("<div id='overzichtevenementen'>\n");
-	echo("<table>\n");
+	printf("<table class='%s'>\n", TABLECLASSES);
 	$vsrt = "Q";
 	$vn = "";
 	
@@ -697,7 +717,7 @@ function overzichtevenementen() {
 		
 		if ($row->Soort == "W") {
 			printf("<tr><th>%s</th><th>Dames</th><th>Heren</th></tr>\n", $dtfmt->format(strtotime($row->Datum)));
-		} elseif($row->AantalDln > 2) {
+		} elseif($row->AantalDln > 1) {
 			printf("<tr><th>%s</th><th colspan=2>%d deelnemers", $dtfmt->format(strtotime($row->Datum)), $row->AantalDln);
 			if ($row->AantAfgemeld > 1) {
 				printf(" / %d afmeldingen", $row->AantAfgemeld);
