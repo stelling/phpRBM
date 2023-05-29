@@ -162,39 +162,25 @@ function fnStukken($p_scherm="") {
 	
 		$rows = $i_stuk->lijst();
 		
-		$kols[0]['link'] = sprintf("%s?tp=%s&p_scherm=F&p_stid=%%d", BASISURL, $_GET['tp']);
-		$kols[0]['columnname'] = "RecordID";
-		$kols[0]['class'] = "muteren";
+		$l = sprintf("%s?tp=%s&p_scherm=F&p_stid=%%d", BASISURL, $_GET['tp']);
+		$kols[0] = ['columnname' => "RecordID", 'headertext' => "&nbsp;", 'class' => "muteren", 'link' => $l];
 		
 		$kols[1]['headertext'] = "Titel";
 		$kols[2]['headertext'] = "Type";
 		$kols[3]['headertext'] = "Bestemd voor";
 		
-		$kols[4]['headertext'] = "Zichtbaar voor";
-		$kols[4]['columnname'] = "Zichtbaar";
+		$kols[4] = ['columnname' => "Zichtbaar", 'headertext' => "Zichtbaar voor"];
+		$kols[5] = ['columnname' => "VastgesteldOp", 'headertext' => "Vastgesteld op", 'type' => "dateshort"];
+		$kols[6] = ['columnname' => "Revisiedatum", 'headertext' => "Revisiedatum", 'type' => "dateshort"];
+		$kols[7] = ['columnname' => "VervallenPer", 'headertext' => "Vervallen per", 'type' => "dateshort"];
 		
-		$kols[5]['headertext'] = "Vastgesteld op";
-		$kols[5]['columnname'] = "VastgesteldOp";
-		$kols[5]['type'] = "dateshort";
-		
-		$kols[6]['headertext'] = "Revisiedatum";
-		$kols[6]['columnname'] = "Revisiedatum";
-		$kols[6]['type'] = "dateshort";
-		
-		$kols[7]['headertext'] = "Vervallen per";
-		$kols[7]['columnname'] = "VervallenPer";
-		$kols[7]['type'] = "dateshort";
-		
-		$kols[8]['link'] = sprintf("%s?tp=%s&op=delete&p_stid=%%d", BASISURL, $_GET['tp']);
-		$kols[8]['columnname'] = "RecordID";
-		$kols[8]['class'] = "trash";
+		$l = sprintf("%s?tp=%s&op=delete&p_stid=%%d", BASISURL, $_GET['tp']);
+		$kols[8] = ['columnname' => "RecordID", 'headertext' => "&nbsp;", 'class' => "trash", 'link' => $l];
 		
 		echo(fnDisplayTable($rows, $kols));
 		
-		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-		echo("<div id='opdrachtknoppen'>\n");
+		printf("<form method='post' id='opdrachtknoppen' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 		echo("<button type='submit' name='Toevoegen' title='Stuk toevoegen'><i class='bi bi-plus-circle'></i> Stuk toevoegen</button>\n");
-		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 		echo("</form>\n");
 		
 	}
@@ -220,16 +206,278 @@ function fnGewijzigdeStukken() {
 
 }  # fnGewijzigdeStukken
 
-public function fnWebsiteMenu() {
+function fnWebsiteMenu() {
 	
 	fnDispMenu(2);
 	
+	$scherm = $_GET['p_scherm'] ?? "B";
+	$wmid = $_GET['p_wmid'] ?? 0;
+	
+	$i_wm = new cls_Website_menu($wmid);
+	$i_wi = new cls_website_inhoud();
+	
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		if (isset($_POST['Toevoegen'])) {
+			$i_wm->add();
+		}
+		
+		$i_wm->titel = $_POST['Titel'] ?? "";
+		$i_wm->update($i_wm->wmid, "Titel", $i_wm->titel);
+		
+		$i_wm->vorigelaag = $_POST['VorigeLaag'] ?? 0;
+		$i_wm->update($i_wm->wmid, "VorigeLaag", $i_wm->vorigelaag);
+		
+		$i_wm->volgnr = $_POST['Volgnummer'] ?? 1;
+		$i_wm->update($i_wm->wmid, "Volgnummer", $i_wm->volgnr);
+		
+		$i_wm->inhoudid = $_POST['InhoudID'] ?? 0;
+		$i_wm->update($i_wm->wmid, "InhoudID", $i_wm->inhoudid);
+		
+		$i_wm->externelink = $_POST['ExterneLink'] ?? "";
+		$i_wm->update($i_wm->wmid, "ExterneLink", $i_wm->externelink);
+		
+		$i_wm->gepubliceerd = $_POST['Gepubliceerd'] ?? "";
+		$i_wm->update($i_wm->wmid, "Gepubliceerd", $i_wm->gepubliceerd);
+		
+		if (isset($_POST['BewaarSluit'])) {
+			$scherm = "B";
+		}
+	}
+	
+	if ($scherm == "B") {
+		$l = sprintf("%s?tp=%s&p_scherm=F&p_wmid=%%d", BASISURL, $_GET['tp']);
+		$kols[] = ['columnname' => "RecordID", 'class' => "muteren", 'link' => $l];
+		$kols[] = ['columnname' => "VorigMenu", 'headertext' => "Vorige laag"];
+		$kols[] = ['columnname' => "Volgnummer", 'headertext' => "Volgnr", 'type' => "integer"];
+		$kols[] = ['columnname' => "Titel", 'headertext' => "Titel"];
+		$kols[] = ['columnname' => "TitelInhoudKort", 'headertext' => "Inhoud"];
+		$kols[] = ['columnname' => "Gepubliceerd", 'headertext' => "Gepubliceerd", 'type' => "date"];
+		
+		$rows = $i_wm->lijst();
+		echo(fnDisplayTable($rows, $kols));
+		
+		printf("<form method='post' id='opdrachtknoppen' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+		echo("<button type='submit' name='Toevoegen' title='Menu-item toevoegen'><i class='bi bi-plus-circle'></i> Menu-item toevoegen</button>\n");
+		echo("</form>\n");
+		
+	} elseif ($scherm == "F") {
+		
+		printf("<form method='post' id='website_menu' action='%s?tp=%s&p_scherm=F&p_wmid=%d'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $wmid);
+		
+		printf("<label>RecordID</label><p>%d</p>\n", $i_wm->wmid);
+		printf("<label>Titel</label><input type='text' name='Titel' value=\"%s\" class='w20' maxlength=20>\n", $i_wm->titel);
+		
+		$f = sprintf("WM.VorigeLaag=0 AND WM.RecordID<>%d", $i_wm->wmid);
+		printf("<label>Vorige laag</label><select name='VorigeLaag'><option value=0>Geen</option>\n%s</select>\n", $i_wm->htmloptions($i_wm->vorigelaag, $f));
+		
+		printf("<label>Volgnummer</label><input type='number' name='Volgnummer' value=\"%s\" class='num2'>\n", $i_wm->volgnr);
+		
+		printf("<label>Inhoud</label><select name='InhoudID'><option value=0>Geen</option>\n%s</select>\n", $i_wi->htmloptions($i_wm->inhoudid));
+		
+		printf("<label>Directe link</label><input type='url' name='ExterneLink' value=\"%s\" title='Directe link naar een andere website'>\n", $i_wm->externelink);
+		
+		printf("<label>Gepubliceerd</label><input type='date' name='Gepubliceerd' value=\"%s\" title='Zichtbaar vanaf'>\n", $i_wm->gepubliceerd);
+		
+		echo("<div id='opdrachtknoppen'>\n");
+		echo("<button type='submit' name=Bewaar'' title='Bewaar menu-item'><i class='bi bi-save'></i> Bewaren</button>\n");
+		echo("<button type='submit' name='BewaarSluit' title='Bewaar menu-item'><i class='bi bi-save'></i><i class='bi bi-door-closed'></i> Bewaren en sluiten</button>\n");
+		echo("</div> <!-- Einde opdrachtknoppen -->\n");
+		
+		echo("</form>\n");
+	}
 	
 }
 
-public function fnWebsiteInhoud() {
+function fnWebsiteInhoud() {
 	
 	fnDispMenu(2);
+	
+	$scherm = $_GET['p_scherm'] ?? "B";
+	$wiid = $_GET['p_wiid'] ?? 0;
+	$i_wi = new cls_Website_inhoud($wiid);
+	$ext_toegestaan = "pdf, gif, jpg, jpeg, png";
+	if ($i_wi->wiid > 0) {
+		$ad = $_SESSION['settings']['website_mediabestanden'] . $i_wi->wiid . "/";
+	} else {
+		$ad = "";
+	}
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		
+		if (isset($_POST['Toevoegen'])) {
+			$wiid = $i_wi->add();
+			$scherm = "F";
+		}
+		
+		$i_wi->titel = $_POST['Titel'] ?? "";
+		$i_wi->update($i_wi->wiid, "Titel", $i_wi->titel);
+		if (isset($_POST['HTMLdirect'])) {
+			$i_wi->htmldirect = 1;
+		} else {
+			$i_wi->htmldirect = 0;
+		}
+		$i_wi->update($i_wi->wiid, "HTMLdirect", $i_wi->htmldirect);
+		
+		if (isset($_POST['tekst'])) {
+			$i_wi->setTekst($_POST['tekst']);
+		}
+		
+		if (isset($_FILES['UploadFile']['name']) and strlen($_FILES['UploadFile']['name']) > 3) {
+			$max_size_attachm = $_SESSION['settings']['max_size_attachm'] ?? 2048;
+			$target = $ad . $_FILES['UploadFile']['name'];
+			
+			if (!file_exists($ad)) {
+				if (mkdir($ad, 0755, true) == true) {
+					$mess = sprintf("Folder '%s' is aangemaakt.", $ad);
+				} else {
+					$mess = sprintf("Folder '%s' bestaat niet en kan niet worden aangemaakt. Probeer het later opnieuw of neem contact op met de webmaster.", $ad);
+					$ad = "";
+				}
+				(new cls_Logboek())->add($mess, 22, 0, 2, $i_wi->wiid, 29);
+			} else {
+				chmod($ad, 0755);
+			}
+
+			$ext = explode(".", $target);
+			$ext = strtolower($ext[count($ext) - 1]);
+			if (strpos($ext_toegestaan, $ext) === false) {
+				$mess = sprintf("Bestand '%s' niet worden ge-upload, omdat de extensie niet is toegestaan.", $_FILES['UploadFile']['name']);
+			} elseif (isset($_POST['UploadFile']) and $_FILES['UploadFile']['size'] > $max_size_attachm) {
+				$mess = sprintf("Bestand '%s' niet worden bijgesloten, omdat het te groot is.", $_FILES['UploadFile']['name']);
+			} elseif (strlen($ad) > 0) {
+				if (move_uploaded_file($_FILES['UploadFile']['tmp_name'], $target) == false) {
+					$mess = sprintf("Fout %d is opgetreden bij het uploaden van bestand '%s'. Probeer het later opnieuw of neem contact op met de webmaster.", $_FILES['UploadFile']['error'], $_FILES['UploadFile']['name']);
+				} else {
+					$mess = sprintf("Aan Website_inhoud %d is bestand '%s' toegevoegd.", $i_wi->wiid, $_FILES['UploadFile']['name']);
+				}
+			}
+			(new cls_Logboek())->add($mess, 22, 0, 1, $i_wi->wiid, 25);
+		}
+		
+		if (isset($_POST['BewaarSluit'])) {
+			$scherm = "B";
+		}
+	}
+	
+	if ($scherm == "B") {
+		
+		$l = sprintf("%s?tp=%s&p_scherm=F&p_wiid=%%d", BASISURL, $_GET['tp']);
+		$kols[] = ['columnname' => "RecordID", 'class' => "muteren", 'link' => $l];
+		$kols[] = ['columnname' => "Titel", 'headertext' => "Titel"];
+		
+		$rows = $i_wi->basislijst("", "WI.Titel, WI.RecordID");
+		echo(fnDisplayTable($rows, $kols));
+		
+		printf("<form method='post' id='opdrachtknoppen' action='%s?tp=%s&p_scherm=B'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+		echo("<button type='submit' name='Toevoegen' title='Inhoud toevoegen'><i class='bi bi-plus-circle'></i> Inhoud toevoegen</button>\n");
+		
+		echo("</form>\n");
+		
+	} elseif ($scherm == "F" and $wiid > 0) {
+		$tabbijlagefiles = "";
+		$imglist = "";
+		if (strlen($ad) > 0 and is_dir($ad)) {
+			$d = dir($ad);
+			while (false !== ($entry = $d->read())) {
+				if ($entry != "." and $entry != "..") {
+					$tabbijlagefiles .= sprintf("<tr><td><a href='%s%s'>%s</a></td>", $ad, $entry, $entry);
+					$stat = stat($ad . $entry);
+					$tabbijlagefiles .= sprintf("<td>%s KB</td>", number_format(($stat['size'] / 1024), 0, ',', '.'));
+//					$tabbijlagefiles .= sprintf("<td><button type='submit' name='del_attach_%d' alt='Verwijderen' title='Verwijder %s'><i class='bi bi-trash'></i></button></td>\n", $bnr, $entry);
+//					$tabbijlagefiles .= sprintf("<input type='hidden' name='name_attach_%d' value='%s'>\n", $bnr, str_replace(".", "!", $entry));
+					$tabbijlagefiles .= "</tr>\n";
+					if (strlen($imglist) > 0) {
+						$imglist .= ",\n";
+					}
+					if (in_array(substr($entry, -4), array(".gif", ".jpg", ".jpeg", ".png"))) {
+						$imglist .= sprintf("{ title: '%s', value: '%s' }", $entry, $ad . $entry);
+					}
+				}
+			}
+			$d->close();
+		}
+		
+		printf("<form method='post' id='website_inhoud' action='%s?tp=%s&p_scherm=F&p_wiid=%d' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $wiid);
+		
+		printf("<label>RecordID</label><p>%d</p>\n", $i_wi->wiid);
+		printf("<label>Titel</label><input type='text' name='Titel' value=\"%s\" class='w80' maxlength=80>\n", $i_wi->titel);
+		printf("<label>HTML direct</label><input type='checkbox' name='HTMLdirect'%s title='Zonder editor' onClick='this.form.submit();'>\n", checked($i_wi->htmldirect));
+		
+		$stylesheettekst = "";
+		if ($i_wi->htmldirect == 0) {
+			if (file_exists(BASEDIR . '/www/default.css')) {
+				$stylesheet = "www/default.css";
+			} else {
+				$stylesheet = "";
+			}
+			if (file_exists(BASEDIR . '/www/kleur.css')) {
+				if (strlen($stylesheet) > 0) {
+					$stylesheet .= ", ";
+				}
+				$stylesheet .= "www/kleur.css";
+			}
+			if (strlen($stylesheet) > 0) {
+				$stylesheettekst = sprintf("Stylesheet(s) %s is/zijn aan de editor gekoppeld.", $stylesheet);
+				$stylesheet = sprintf("content_css: '%s',", $stylesheet);
+			} else {
+				$stylesheettekst = "Er is geen stylesheet aan de editor gekoppeld.";
+			}
+			if (strlen($imglist) > 0) {
+				$imglist = sprintf("image_list: [\n%s\n],", $imglist);
+			}			
+			printf("<script>
+			tinymce.init({
+				selector: '#tekst',
+				placeholder: 'Tekst hier ...',
+				theme: 'silver',
+				mobile: { theme: 'silver' },
+				menubar: true,
+				height: 500,
+				relative_urls: false,
+				remove_script_host: false,
+				convert_urls: true,
+				remove_script_host: false,
+				plugins: 'link lists table paste image importcss',
+				paste_data_images: false,
+				paste_as_text: true,
+				%s
+				%s
+				importcss_append: true,
+				menu: {
+					table: { title: 'Table', items: 'inserttable | cell row column | tableprops deletetable' }
+				},
+				toolbar: 'undo redo | styles | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist | link image ',
+				menubar: 'edit insert format tools table',
+			});
+			</script>\n", $stylesheet, $imglist);
+		}
+		
+		echo("<div class='clear'></div>\n");
+		printf("<textarea name='tekst' id='tekst'>%s</textarea>\n", $i_wi->tekst);	
+		if (strlen($stylesheettekst) > 0) {
+			printf("<p>%s</p>\n", $stylesheettekst);
+		}
+		
+		echo("<label>Bijbehorende bestanden</label>");
+		echo("<div id='website_bestanden'>\n");
+		
+			if (strlen($tabbijlagefiles) > 0) {
+				printf("<table>%s</table>\n", $tabbijlagefiles);
+			}
+		
+			echo("<input type='file' name='UploadFile'>\n");
+			echo("<input type='submit' name='UploadBijlage' value='Upload bijlage'>");
+			printf("<p>(Extensies '%s' zijn toegestaan)</p>\n", $ext_toegestaan);
+		
+		echo("</div> <!-- Einde website_bestanden -->\n");
+
+		echo("<div id='opdrachtknoppen'>\n");
+		echo("<button type='submit' name='Bewaar' title='Bewaar inhoud'><i class='bi bi-save'></i> Bewaren</button>\n");
+		echo("<button type='submit' name='BewaarSluit' title='Bewaar menu-item'><i class='bi bi-save'></i><i class='bi bi-door-closed'></i> Bewaren en sluiten</button>\n");
+		echo("</div> <!-- Einde opdrachtknoppen -->\n");
+		
+		echo("</form>\n");
+		
+	}
 }
 
 ?>

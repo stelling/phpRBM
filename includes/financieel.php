@@ -499,10 +499,8 @@ function RekeningBetalingen() {
 	echo("<caption>Laatste betalingen</caption>\n");
 	echo("<thead><tr><th>Rekening</th><th>Datum</th><th>Bedrag</th><th></th></tr></thead>\n");
 	echo("<tbody>\n");
-	foreach ($i_rb->laatste() as $row) {
-		
+	foreach ($i_rb->laatstebetalingen() as $row) {
 		$del = sprintf("<i class='bi bi-trash' onClick='verw_betaling(%d);'></i>", $row->RecordID);
-		
 		printf("<tr><td class='number'>%1\$d</td><td>%2\$s</td><td id='bedrag_%3\$d'>%4\$.2f</td><td id='trash_%3\$d'>%5\$s</td></tr>\n", $row->Rekening, $row->Datum, $row->RecordID, $row->Bedrag, $del);
 	}
 	echo("</tbody>\n");	
