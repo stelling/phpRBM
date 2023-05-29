@@ -144,8 +144,12 @@ if ($i_lid->aantal() == 0) {
 	fnWijzigen($_GET['lidid'], $currenttab3);
 	
 } elseif ($currenttab == "Vereniging") {
+	$tabidx = 0;
 	$tabblad["Introductie"] = fnVoorblad();
 	$tn = "Agenda";
+	if ($tn == $currenttab2) {
+		$tabidx = count($tabblad);
+	}	
 	if (toegang($currenttab . "/" . $tn, 0, 0)) {
 		$tabblad["Agenda"] = fnAgenda($_SESSION['lidid']);
 	}
@@ -174,7 +178,7 @@ if ($i_lid->aantal() == 0) {
 		$tabblad[$tn] = fnStukken("O");
 	}
 	
-	DisplayTabs($tabblad);
+	DisplayTabs($tabblad, $tabidx);
 	
 } elseif ($eigenlijstid > 0) {
 	fnDispMenu(2);
@@ -189,9 +193,6 @@ if ($i_lid->aantal() == 0) {
 		if ($rows !== false) {
 			$id = str_replace(" ", "_", strtolower($i_el->elnaam));
 			echo(fnDisplayTable($rows, null, $i_el->elnaam, 0, "", $id));
-			if (count($rows) > 1) {
-				printf("<p>%d rijen</p>\n", count($rows));
-			}
 		}
 	} elseif (strlen($i_el->eigenscript) >= 5) {
 		$s = BASEDIR . "/maatwerk/" . $i_el->eigenscript;
@@ -257,8 +258,27 @@ if ($i_lid->aantal() == 0) {
 } elseif ($isafdelingstab == 1) {
 	fnAfdeling();
 
-} elseif ($currenttab == "Stukken" and toegang($currenttab, 1, 1)) {
-	fnStukken();
+} elseif ($currenttab == "Website" and toegang($currenttab, 1, 1)) {
+	if ($currenttab2 == "Stukken" and toegang($currenttab2, 1, 1)) {
+		fnStukken();
+		
+	} elseif ($currenttab2 == "Menu" and toegang($currenttab2, 1, 1)) {
+		fnWebsiteMenu();
+		
+	} elseif ($currenttab2 == "Inhoud" and toegang($currenttab2, 1, 1)) {
+		fnWebsiteInhoud();
+		
+	} elseif ($currenttab2 == "Logboek" and toegang($currenttab2, 1, 1)) {
+		fnDispMenu(2);
+		
+		$i_lb = new cls_Logboek();
+		$f = "A.TypeActiviteit IN (22, 26)";
+		$rows = $i_lb->lijst(-1, 1, -1, $f);
+		$kols = fnStandaardKols("logboek", 1, $rows);
+		echo(fnDisplayTable($rows, $kols));
+		$i_lb = null;
+	}
+	
 } elseif ($currenttab == "Rekeningen") {
 	fnRekeningen();
 } elseif ($currenttab == "Mailing") {
@@ -421,7 +441,6 @@ function fnAgenda($p_lidid=0) {
 		foreach ($icslines as $line) {
 			if (substr($line, 0, 7) == "DTSTART") {
 				$d = substr(trim($line), -8);
-			//} elseif (substr($line, 0, 7) == "SUMMARY" and intval($d) >= intval(date("Ymd", $Hulpdatum)) and intval($d) <= intval(date("Ymd", $Einddatum))) {
 			} elseif (substr($line, 0, 7) == "SUMMARY") {
 				$fds[$d] = substr($line, 8);
 			}
@@ -434,7 +453,7 @@ function fnAgenda($p_lidid=0) {
 	}
 	
 	//	$txt .= "<p class='mededeling'>De agenda is nog in ontwikkeling</p>\n";
-	$txt = "<table class='table table-hover border-primary'>\n";
+	$txt = sprintf("<table class='%s'>\n", TABLECLASSES);
 	$txt .= "<tr>\n";
 	$dtfmt->setPattern("EEEE");
 	for ($dn=1;$dn<=7;$dn++) {
@@ -483,14 +502,13 @@ function fnAgenda($p_lidid=0) {
 			
 			if (isset($ikal)) {
 				ksort($ikal);
-//				print_r($ikal);
 				foreach ($ikal as $k => $v) {
 					$txt .= $v . "\n";
 				}
 			}
 			
 			// Verjaardagen
-			if ($_SESSION['settings']['agenda_verjaardagen'] > 0) {
+			if ($_SESSION['settings']['agenda_verjaardagen'] > 0 and $_SESSION['lidid'] > 0) {
 				$aant = 0;
 				$rows = $i_lid->verjaardagen($td);
 				foreach ($rows as $row) {
@@ -515,160 +533,10 @@ function fnAgenda($p_lidid=0) {
 		$txt .= "</tr>\n";
 	}
 	
-//	$txt .= "</tr>\n";
 	$txt .= "</table>\n";
 	
 	return $txt;
 	
 }  # fnAgenda
-
-function fnStukken($p_scherm="") {
-	global $dtfmt;
-	
-	$scherm = $p_scherm;
-	
-	$i_stuk = new cls_Stukken();
-	$i_lb = new cls_Logboek();
-	if (isset($_GET['p_scherm']) and strlen($_GET['p_scherm']) > 0) {
-		$scherm = $_GET['p_scherm'];
-	}
-	
-	if (isset($_POST['stid']) and $_POST['stid'] > 0) {
-		$stid = $_POST['stid'];
-	} elseif (isset($_GET['p_stid']) and $_GET['p_stid'] > 0) {
-		$stid = $_GET['p_stid'];
-	} else {
-		$stid = 0;
-	}
-	
-	if (isset($_GET['op']) and $_GET['op'] == "delete" and $stid > 0) {
-		$i_stuk->delete($stid);
-	}
-	
-	
-	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		if (isset($_POST['Toevoegen'])) {
-			$i_stuk->add();
-		}
-		
-		if ($stid > 0) {
-			$row = $i_stuk->record($stid);
-			foreach ($row as $col => $val){
-				if (isset($_POST[$col])) {
-					$i_stuk->update($row->RecordID, $col, $_POST[$col]);
-				}
-			}
-		}
-	}
-	
-	if ($scherm == "F" and $stid > 0) {
-		
-		$row = $i_stuk->record($stid);
-		
-		printf("<form method='post' id='stukkenmuteren' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-		printf("<label>RecordID</label><p>%d</p>\n", $row->RecordID);
-		printf("<input type='hidden' name='stid' value=%d>\n", $row->RecordID);
-		printf("<label>Titel</label><input type='text' name='Titel' value=\"%s\" class='w50'>\n", str_replace("\"", "'", $row->Titel));
-		printf("<label>Bestemd voor</label><input type='text' name='BestemdVoor' value=\"%s\" class='w30'>\n", str_replace("\"", "'", $row->BestemdVoor));
-		printf("<label>Vastgesteld op</label><input type='date' name='VastgesteldOp' value='%s'>\n", $row->VastgesteldOp);
-		printf("<label>Ingangsdatum</label><input type='date' name='Ingangsdatum' value='%s'>\n", $row->Ingangsdatum);
-		printf("<label>Revisiedatum</label><input type='date' name='Revisiedatum' value='%s'>\n", $row->Revisiedatum);
-		printf("<label>Vervallen per</label><input type='date' name='VervallenPer' value='%s'>\n", $row->VervallenPer);
-			
-		$options = "";
-		foreach (ARRTYPESTUK as $k => $v) {
-			$options .= sprintf("<option value='%s' %s>%s</option>\n", $k, checked($k, "option", $row->Type), $v);
-		}
-		printf("<label>Type</label><select name='Type'>%s</select>\n", $options);
-		printf("<label>Link naar document</label><input type='url' name='Link' value='%1\$s'><p id='ganaarurl'><a href='%1\$s'>Ga naar</a></p>\n", $row->Link);
-		printf("<label>Ingevoerd op</label><p>%s</p>\n", $dtfmt->format(strtotime($row->Ingevoerd)));
-		echo("<div class='clear'></div>\n");
-		
-		$f = sprintf("ReferID=%d", $row->RecordID);
-		$lbrows = $i_lb->lijst(22, 0, 0, $f, "DatumTijd DESC", 5);
-		if (count($lbrows) > 0) {
-			echo(fnDisplayTable($lbrows, fnStandaardKols("logboek"), "Laatste mutaties"));
-		}
-		
-		echo("<div id='opdrachtknoppen'>\n");
-		echo("<input type='submit' value='Bewaren'>\n");
-		echo("</div> <!-- Einde opdrachtknoppen -->\n");
-		
-		echo("</form>\n");
-		
-	} elseif ($scherm == "O") {
-		
-		$rv = "<table class='table table-hover'>\n";
-		$rv .= "<thead>\n";
-		$rv .= "<tr><th>Titel</th><th>Bestemd voor</th><th>Ingangsdatum/versie</th><th>Revisiedatum</th></tr>\n";
-		$rv .= "</thead>\n";
-		
-		$vc = "ZZ";
-		$dtfmt->setPattern(DTTEXT);
-		
-		foreach ($i_stuk->lijst() as $row) {
-			if ($vc != $row->Type) {
-				$rv .= sprintf("<tr class='subkop'><td colspan=4>%s</td></tr>\n", ARRTYPESTUK[$row->Type]);
-			}
-			$rv .= sprintf("<tr><td><a href='%s'>%s</a></td><td>%s</td><td>%s</td><td>%s</td></tr>", $row->Link, $row->Titel, $row->BestemdVoor, $dtfmt->format(strtotime($row->Ingangsdatum)), $dtfmt->format(strtotime($row->Revisiedatum)));
-			$vc = $row->Type;
-		}
-		
-		$rv .= "</table>\n";
-		
-		return $rv;
-		
-	} else {
-	
-		$rows = $i_stuk->editlijst();
-		
-		$kols[0]['link'] = sprintf("%s?tp=%s&p_scherm=F&p_stid=%%d", BASISURL, $_GET['tp']);
-		$kols[0]['columnname'] = "RecordID";
-		$kols[0]['class'] = "muteren";
-		
-		$kols[1]['headertext'] = "Titel";
-		$kols[2]['headertext'] = "Type";
-		$kols[3]['headertext'] = "Bestemd voor";
-		$kols[4]['headertext'] = "Vastgesteld op";
-		$kols[4]['type'] = "dateshort";
-		$kols[5]['headertext'] = "Revisiedatum";
-		$kols[5]['type'] = "dateshort";
-		$kols[6]['headertext'] = "Vervallen per";
-		$kols[6]['type'] = "dateshort";
-		
-		$kols[7]['link'] = sprintf("%s?tp=%s&op=delete&p_stid=%%d", BASISURL, $_GET['tp']);
-		$kols[7]['columnname'] = "RecordID";
-		$kols[7]['class'] = "trash";
-		
-		echo(fnDisplayTable($rows, $kols));
-		
-		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-		echo("<div id='opdrachtknoppen'>\n");
-		echo("<button type='submit' name='Toevoegen' title='Stuk toevoegen'><i class='bi bi-plus-circle'></i> Stuk toevoegen</button>\n");
-		echo("</div> <!-- Einde opdrachtknoppen -->\n");
-		echo("</form>\n");
-		
-	}
-	$i_stuk = null;
-}  # fnStukken
-
-function fnGewijzigdeStukken() {
-
-	$rv = "";
-	if ($_SESSION['lidid'] > 0) {
-		$rows = (new cls_Stukken())->gewijzigdestukken();
-		if (count($rows) > 0) {
-			$rv = "<h3>Gewijzigde stukken</h3>\n";
-			$rv .= sprintf("<p>Onderstaande stukken gewijzigd sinds je laatste login of korter dan een week geleden.</p>\n<ul>\n", count($rows));
-			foreach($rows as $row) {
-				$rv .= sprintf("<li>%s</li>\n", $row->Titel);
-			}
-			$rv .= "</ul>\n";
-		}
-	}
-	
-	return $rv;
-
-}  # fnGewijzigdeStukken
 
 ?>
