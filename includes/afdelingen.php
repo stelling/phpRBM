@@ -51,23 +51,18 @@ function fnAfdelingslijst($afdid) {
 		$xf = sprintf("L.RecordID IN (SELECT LD.Lid FROM %sLiddipl AS LD WHERE LD.DiplomaID=%d AND IFNULL(LD.LicentieVervallenPer, CURDATE()) >= CURDATE())", TABLE_PREFIX, $diplfilter);
 	}
 	
-	$kols[1]['sortcolumn'] = "L.Achternaam";
-	$kols[4]['sortcolumn'] = "LO.Vanaf";
+	
+	if (toegang($afdnm . "/Overzicht lid", 0, 0)) {
+		$l = "index.php?tp=" . $afdnm . "/Overzicht+lid&lidid=%d";
+		$kols[0] = ['headertext' => "&nbsp;", 'columnname' => "LidID", 'link' => $l, 'class' => "detailslid"];
+	}
+	$kols[1] = ['headertext' => "Naam lid", 'columnname' => "NaamLid", 'sortcolumn' => "L.Achternaam"];
+	$kols[2] = ['headertext' => "Email", 'columnname' => "Email"];
+	$kols[4] = ['headertext' => "Vanaf", 'columnname' => "Vanaf", 'sortcolumn' => "LO.Vanaf"];
+	
 	$kols[6]['sortcolumn'] = "LO.Opgezegd";
 	
 	$rows = $i_lo->lijst($afdid, 1, fnOrderBy($kols), "", $xf);
-	
-	if (toegang($afdnm . "/Overzicht lid", 0, 0)) {
-		$kols[0]['headertext'] = "&nbsp;";
-		$kols[0]['columnname']= "LidID";
-		$kols[0]['link'] = "index.php?tp=" . $afdnm . "/Overzicht+lid&lidid=%d";
-		$kols[0]['class'] = "detailslid";
-	}
-	$kols[1]['headertext'] = "Naam lid";
-	$kols[1]['columnname'] = "NaamLid";
-
-	$kols[2]['headertext'] = "Email";
-	$kols[2]['columnname'] = "Email";
 
 	$f = sprintf("GR.OnderdeelID=%d", $afdid);
 	if ((new cls_Groep())->aantal($f) == 0) {
@@ -77,22 +72,13 @@ function fnAfdelingslijst($afdid) {
 	}
 	$kols[3]['columnname'] = "FunctieGroep";
 
-	$kols[4]['headertext'] = "Vanaf";
-	$kols[4]['columnname'] = "Vanaf";
 	
-	if (strlen(max(array_column($rows, "Opmerk"))) > 0) {
-		$kols[4]['headertext'] = "Opmerking";
-		$kols[4]['columnname'] = "Opmerk";
-	}
-	
-	if (strlen(max(array_column($rows, "Opgezegd"))) > 0) {
-		$kols[6]['headertext'] = "Tot en met";
-		$kols[6]['columnname'] = "Opgezegd";
+	if (count($rows) > 0 and strlen(max(array_column($rows, "Opgezegd"))) > 0) {
+		$kols[6] = ['headertext' => "Tot en met", 'columnname' => "Opgezegd", 'sortcolumn' => "LO.Opgezegd"];
 	}
 	
 	if ($i_lo->organisatie == 1) {
-		$kols[7]['headertext'] = "Sportlink ID";
-		$kols[7]['columnname'] = "SportlinkID";
+		$kols[7] = ['headertext' => "Sportlink ID", 'columnname' => "SportlinkID"];
 	}
 	
 	printf("<form method='post' id='filter' action='%s?%s'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
