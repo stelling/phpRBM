@@ -191,16 +191,12 @@ function fnLedenlijst() {
 				$kols[10] = ['headertext' => "Opgezegd per", 'columnname' => "Opgezegd", 'type' => "date"];
 			}
 			if ($currenttab2 == "Leden") {
-				$kols[11]['headertext'] = "Afd./Kader";
-				$kols[11]['type'] = "subqry";
-				$kols[11]['subqry'] = sprintf("SELECT GROUP_CONCAT(DISTINCT O.Kode SEPARATOR '/') FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE (O.Type='A' OR O.Kader=1) AND LO.Lid=%%d AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()", TABLE_PREFIX);
-				$kols[11]['columnname'] = "RecordID";
+				$sq = sprintf("SELECT GROUP_CONCAT(DISTINCT O.Kode SEPARATOR '/') FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE (O.Type='A' OR O.Kader=1) AND LO.Lid=%%d AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE()", TABLE_PREFIX);
+				$kols[11] = ['headertext' => "Afd./Kader", 'columnname' => "RecordID", 'type' => "subqry", 'subqry' => $sq];
 			}
 		}
 		if (toegang("Ledenlijst/Wijzigen lid", 0, 0)) {
-			$kols[12]['link'] = "index.php?tp=Ledenlijst/Wijzigen+lid/Algemene+gegevens&lidid=%d";
-			$kols[12]['columnname'] = "RecordID";
-			$kols[12]['class'] = 'muteren';
+			$kols[12] = ['columnname' => "RecordID", 'link' => "index.php?tp=Ledenlijst/Wijzigen+lid/Algemene+gegevens&lidid=%d", 'class' => 'muteren'];
 		}
 				
 		if (count($rows) > 1) {
@@ -607,6 +603,8 @@ function fnOnderdelenmuteren($ondtype="G") {
 		$ondnaammv = "Commissies";
 	} else	if ($ondtype == "R") {
 		$ondnaammv = "Rollen";
+	} else	if ($ondtype == "S") {
+		$ondnaammv = "Selecties";
 	} else {
 		$ondnaammv = ARRTYPEONDERDEEL[$ondtype] . "en";
 	}
@@ -617,11 +615,7 @@ function fnOnderdelenmuteren($ondtype="G") {
 	
 //	echo("<h2>Werk in uitvoering, er mag getest worden.</h2>\n");
 	
-	if (isset($_GET['Scherm'])) {
-		$scherm = $_GET['Scherm'];
-	} else {
-		$scherm = "O";
-	}
+	$scherm = $_GET['Scherm'] ?? "O";
 	$onderdeelid = 0;
 	if (isset($_GET['OnderdeelID']) and $_GET['OnderdeelID'] > 0) {
 		$onderdeelid = intval($_GET['OnderdeelID']);
@@ -713,9 +707,8 @@ function DetailsOnderdeelMuteren($p_ondid) {
 	$i_lo->auto_einde($i_ond->oid);
 
 	$row = $i_ond->record();
-		
-	echo("<div id='detailsonderdeelmuteren'>\n");
-	printf("<form method='post' action='%s?tp=%s&amp;OnderdeelID=%d&Scherm=W'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $i_ond->oid);
+
+	printf("<form method='post' id='detailsonderdeelmuteren' action='%s?tp=%s&OnderdeelID=%d&Scherm=W'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $i_ond->oid);
 	echo("<input type='hidden' name='formname' value='muteren_detail_onderdeel'>\n");
 		
 	printf("<label>RecordID</label><p>%s</p>\n", $row->RecordID);
@@ -771,11 +764,10 @@ function DetailsOnderdeelMuteren($p_ondid) {
 	}
 
 	echo("<div id='opdrachtknoppen'>\n");
-	echo("<button type='button' onClick='history.back();'><i class='bi bi-door-closed'></i> Sluiten</button>\n");
+	printf("<button type='button' onClick=\"location.href='%s?tp=%s&Scherm=W';\"><i class='bi bi-door-closed'></i> Sluiten</button>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	echo("</div>\n");
 		
 	echo("</form>\n");
-	echo("</div> <!-- Einde detailsonderdeelmuteren -->\n");
 		
 	printf("<script>
 				
@@ -1519,7 +1511,7 @@ function algemeenlidmuteren($lidid) {
 		$wijzvelden[] = array('label' => "Rekening betaald door", 'naam' => "RekeningBetaaldDoor", 'lengte' => 18);
 	}
 	if ($_SESSION['settings']['zs_incl_machtiging'] == 1 or $currenttab2 == "Wijzigen lid") {
-		$wijzvelden[] = array('label' => "Machtiging incasso afgegeven", 'naam' => "Machtiging afgegeven", 'lengte' => 1, 'type' => 'cb');
+		$wijzvelden[] = array('label' => "Machtiging incasso", 'naam' => "Machtiging afgegeven", 'lengte' => 1, 'type' => 'cb');
 	}
 	if ($gs != "B") {
 		if ($_SESSION['settings']['zs_incl_vogafgegeven'] == 1 or $currenttab2 == "Wijzigen lid") {
