@@ -31,12 +31,11 @@ define("ARRSOORTMEMO", ["A" => "Algemeen", "B" => "Bewaking", "D" => "Dieet", "E
 define("ARRTYPEONDERDEEL", ["A" => "Afdeling", "B" => "Bestuur", "C" => "Commissie", "E" => "Eigenschap", "F" => "Functionarissen", "G" => "Groep", "O" => "Onderscheiding", "R" => "Rol", "S" => "Selectie", "T" => "Toestemming"]);
 define("ARRTYPEDIPLOMA", ["B" => "Brevet", "C" => "Competentie", "D" => "Diploma", "I" => "Insigne", "L" => "Licentie", "M" => "Module", "P" => "PvB"]);
 define("PASFOTOEXTENTIES", ["gif", "jpg", "jpeg", "png"]);
-define("ARRSOORTEVENEMENT", ["B" => "Brigade-activiteit", "G" => "Gezellig/sociaal", "O" => "Opleiding", "V" => "Vergadering/overleg", "W" => "Wedstrijd"]);
+define("ARRSOORTEVENEMENT", ["B" => "Bewaking", "G" => "Gezellig/sociaal", "O" => "Opleiding", "R" => "Reddingsbrigade-activiteit", "V" => "Vergadering/overleg", "W" => "Wedstrijd"]);
 define("ARRDLNSTATUS", ["A" => "Afgewezen", "B" => "Bevestigd", "I" => "Ingeschreven", "J" => "Aangemeld", "N" => "Niet geweest zonder afmelding", "R" => "Reserve", "T" => "Onder voorbehoud", "X" => "Afgemeld/Afgezegd"]);
 define("ARRPRESENTIESTATUS", ["A" => "Aanwezig", "H" => "Aangemeld, door vereniging afgezegd", "J" => "Aangemeld", "L" => "Te laat aanwezig", "N" => "Niet aanwezig (onafgemeld)", "R" => "Afwezig met bekende reden", "T" => "Onder voorbehoud", "V" => "Les is vervallen", "X" => "Afgemeld zonder bekende reden", "Z" => "Ziek"]);
 define("ARRTYPEBACKUP", [1 => "phpRBM-tabellen", 2 => "Tabellen uit MS-Access", 3 => "Alle tabellen"]);
-define("ARRTYPESTUK", ["A" => "Algemene Vergadering", "B" => "Beleidsstuk", "F" => "Formulier", "H" => "Handleiding", "P" => "Promotiemateriaal", "R" => "Regeling", "V" => "Verklaring"]);
-define("ARRTYPEMENU", [1 => "per niveau een aparte regel", 2 => "&eacute;&eacute;n menu met dropdown", 3 => "&eacute;&eacute;n menu met dropdown en extra menu voor niveau 2"]);
+define("ARRTYPESTUK", ["A" => "Algemene Vergadering", "B" => "Beleidsstuk", "F" => "Formulier", "H" => "Handleiding", "P" => "Promotiemateriaal", "R" => "Regeling"]);
 define("BEWAARTIJDNIEUWERECORDS", 120);
 define("TABLECLASSES", "table table-hover border-primary");
 
@@ -125,7 +124,7 @@ require_once("phpmailer/SMTP.php");
 require_once("phpmailer/Exception.php");
 /* Einde includen open source libs*/
 
-foreach (array("database", "authentication", "afdelingen", "leden", "evenement", "financieel", "mailing", "diploma", "standaard", "webshop", "taken") as $incl) {
+foreach (array("database", "authentication", "afdelingen", "leden", "evenement", "financieel", "mailing", "diploma", "standaard", "webshop", "website") as $incl) {
 	$inclpath = __DIR__ . "/" . $incl . ".php";
 	if (file_exists($inclpath)) {
 		if ($bestandsversie < filectime($inclpath)) {
@@ -226,7 +225,7 @@ function HTMLheader($breed=0) {
 			echo("<script src='https://code.jquery.com/ui/1.13.1/jquery-ui.js'></script>\n");
 		}
 
-		if ($currenttab == "Mailing") {
+		if ($currenttab == "Mailing" or $currenttab == "Website") {
 			$src = "/includes/tinymce/js/tinymce/tinymce.min.js";
 			if (file_exists(BASEDIR . $src)) {
 				$src = BASISURL . $src;
@@ -252,10 +251,10 @@ function HTMLheader($breed=0) {
 		}
 		echo("<header>\n");
 		
-		if (strlen($_SESSION['settings']['url_eigen_help']) < 10) {
-			$l = "https://software.telling.nl/phpRBM/uitleg.php";
+		if (file_exists("maatwerk/help.html")) {
+			$l = BASISURL . "/maatwerk/help.html";
 		} else {
-			$l = $_SESSION['settings']['url_eigen_help'];
+			$l = "https://software.telling.nl/phpRBM/uitleg.php";
 		}
 		$htmlhelp = sprintf("<a href='%s'> <i class='bi bi-question-circle' style='font-size: 16pt;' title='Helpfunctie'></i></a>\n", $l);
 	
@@ -279,8 +278,7 @@ function HTMLheader($breed=0) {
 
 		echo("</div>  <!-- Einde welkom -->\n");
 		
-		printf("<h1>%s</h1>\n", $_SESSION['settings']['naamwebsite']);
-//		echo("<div class='clear'></div>\n");
+		printf("<h1 id='naamwebsite'>%s</h1>\n", $_SESSION['settings']['naamwebsite']);
 		
 		$xtra = "";
 		if ($currenttab == "Overzicht lid" and isset($_GET['lidid']) and $_GET['lidid'] > 0) {
@@ -802,14 +800,15 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 				
 				if (isset($kols[$kn]['type'])) {
 					$kol_type = $kols[$kn]['type'];
+				} elseif (isset($kols[$kn]['link'])) {
+					$kol_type = "link";
 				} elseif (strlen($key) >= 3 and strstr("cbo, chk, dte, dtk, dtt, dtl, dts, boo, int, cur, eml, num, mrg, pwd, lnm", substr($key, 0, 3)) !== false) {
 					$kol_type = substr($key, 0, 3);
 				} else {
 					$kol_type = "text";
 				}
 				
-				if (isset($kols[$kn]['link'])) {
-					$kol_type = "link";
+				if ($kol_type == "link") {
 					if (startwith($kols[$kn]['link'], "<a href") == true) {
 						$kol_link = $kols[$kn]['link'];
 					} else {
@@ -1144,6 +1143,8 @@ function fnEditTable($res, $kols, $id, $th) {
 						$kol_link .= "><i class='bi bi-pencil-square' alt='Muteren'></i></a>";
 					} elseif (isset($kol['class']) and $kol['class'] == "trash") {
 						$kol_link .= "><i class='bi bi-trash' alt='Verwijderen'></i></a>";
+					} elseif (isset($kol['class']) and $kol['class'] == "pdf") {
+						$kol_link .= "><i class='bi bi-file-earmark-pdf'></i></a>";
 					} else {
 						$kol_link .= ">&nbsp;&nbsp;&nbsp;</a>";
 					}
@@ -1337,7 +1338,7 @@ function fnEditTable($res, $kols, $id, $th) {
 	
 } # fnEditTable
 
-function fnStandaardKols($p_ent, $p_sort=1) {
+function fnStandaardKols($p_ent, $p_sort=1, $rows=null) {
 	
 	if ($p_ent == "logboek") {
 		$kols = null;
@@ -1350,8 +1351,11 @@ function fnStandaardKols($p_ent, $p_sort=1) {
 		if ($p_sort == 1) {
 			$kols[1]['sortcolumn'] = "Omschrijving";
 		}
-		$kols[2]['headertext'] = "Betreft lid";
-		$kols[2]['columnname'] = "betreftLid";
+		
+		if ($rows != null and count($rows) > 0 and strlen(max(array_column($rows, "betreftLid"))) > 0) {
+			$kols[2] = ['headertext' => "Betreft lid", 'columnname' => "betreftLid"];
+		}
+		
 		$kols[2]['type'] = "lidnaam";
 		if ($_SESSION['webmaster'] == 1) {
 			$kols[3]['headertext'] = "Type";

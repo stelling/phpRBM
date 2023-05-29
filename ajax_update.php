@@ -273,7 +273,7 @@ if ($_SESSION['lidid'] > 0) {
 	} elseif ($ent == "rekeningmail") {	
 		$i_mh = new cls_Mailing_hist();
 		$f = sprintf("Xtra_Char='REK' AND Xtra_Num=%d", $rid);
-		$rv = $i_mh->laatste($f, 5);
+		$rv = $i_mh->laatstemails($f, 5);
 		$i_mh = null;
 		
 		echo(json_encode($rv));

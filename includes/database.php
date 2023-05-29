@@ -100,7 +100,7 @@ class cls_db_base {
 	private $refcolumn = "";			// Naam van de kolom bij een update
 	private $typecolumn = "";			// Type van de kolom
 	private $nullablecolumn = false;	// Is de kolom nullable?
-	public $pkkol = "RecordID";		// Naam van de kolom met de primary key
+	public $pkkol = "RecordID";			// Naam van de kolom met de primary key
 	public $naamlogging = "";			// De naam die, in de logging, wordt gebruikt om aan te geven welk record het betreft
 	private $aantalkolommen = -1;		// Het aantal kolommen in het SQL-statement
 	private $aantalrijen = -1;			// Het aantal rijen in het SQL-statement
@@ -540,7 +540,12 @@ class cls_db_base {
 		}
 		$query .= ";";
 		$result = $this->execsql($query);
-		return $result->fetchColumn();
+		$rv = $result->fetchColumn();
+		if (strlen($rv) == 0 and $this->is_kolom_numeriek($p_kolom) == true) {
+			return 0;
+		} else {
+			return $rv;
+		}
 	}
 	
 	public function max($p_kolom="", $p_filter="") {
@@ -564,6 +569,20 @@ class cls_db_base {
 		$query .= ";";
 		$result = $this->execsql($query);
 		return $result->fetchColumn();
+	}
+	
+	public function laatste($p_kolom, $p_filter="", $p_sort="") {
+		$query = sprintf("SELECT %s FROM %s", $p_kolom, $this->basefrom);
+		if (strlen($p_filter) > 0) {
+			$query .= sprintf(" WHERE %s", $p_filter);
+		}
+		$query .= " ORDER BY ";
+		if (strlen($p_sort) > 0) {
+			$query .= sprintf("%s, ", $p_sort);
+		}			
+		$query .= sprintf("%s DESC LIMIT 1;", $this->pkkol);
+		
+		return $this->scalar($query);
 	}
 		
 	public function totaal($p_kolom, $p_filter="") {
@@ -1015,7 +1034,7 @@ class cls_Lid extends cls_db_base {
 		}
 		
 		$filter = "WHERE (L.Verwijderd IS NULL)";
-		if ($p_soortlid == 1 and $p_ondfilter == 0) {
+		if ($p_soortlid == 1) {
 			$filter .= " AND " . $this->wherelid;
 		} elseif ($p_soortlid == 2) {
 			$filter .= " AND LM.LIDDATUM > CURDATE()";
@@ -4782,7 +4801,7 @@ class cls_Mailing_hist extends cls_db_base {
 		return $result->fetch();
 	}
 	
-	public function laatste($p_filter="", $p_aantal=1) {
+	public function laatstemails($p_filter="", $p_aantal=1) {
 		
 		if (strlen($p_filter) > 0) {
 			$p_filter = "WHERE " . $p_filter;
@@ -6715,10 +6734,10 @@ class cls_Evenement extends cls_db_base {
 	public $evid = 0;
 	private $standaardstatus;
 	public $evdatum = "";
-	public $evoms = "";
-	public $beperktotgroep = 0;
-	private $sqlaantdln;
-	private $sqlaantafgemeld;
+	public string $evoms = "";
+	public int $doelgroep = 0;
+	private $sqlaantdln = 0;
+	private $sqlaantafgemeld = 0;
 	
 	function  __construct($p_evid=-1) {
 		parent::__construct();
@@ -6745,7 +6764,7 @@ class cls_Evenement extends cls_db_base {
 				$this->evdatum = substr($evrow->Datum, 0, 10);
 				$this->evoms = $evrow->Omschrijving;
 				$this->evoms .= " " . $dtfmt->format(strtotime($evrow->Datum));
-				$this->beperktotgroep = $evrow->BeperkTotGroep;
+				$this->doelgroep = $evrow->BeperkTotGroep;
 				$this->standaardstatus = $evrow->StandaardStatus;
 			} else {
 				$this->evid = 0;
@@ -6769,7 +6788,10 @@ class cls_Evenement extends cls_db_base {
 							E.Email, E.Verzameltijd, E.Eindtijd, ET.Omschrijving AS OmsType, ET.Soort, ET.Tekstkleur, ET.Achtergrondkleur, ET.Vet, ET.Cursief,
 							CASE E.InschrijvingOpen WHEN 0 THEN 'Nee' ELSE 'Ja' END AS `Ins. open?`,
 							(%s) AS AantalDln, (%s) AS AantAfgemeld", $st, $this->sqlaantdln, $this->sqlaantafgemeld);
-		$where = sprintf("E.Datum >= DATE_SUB(CURDATE(), INTERVAL 4 DAY) AND IFNULL(E.VerwijderdOp, '2000-01-01') < '2012-01-01' AND E.BeperkTotGroep IN (%s) AND (%s) > 0", $_SESSION["lidgroepen"], $this->sqlaantdln);
+		$where = sprintf("E.Datum >= DATE_SUB(CURDATE(), INTERVAL 4 DAY) AND IFNULL(E.VerwijderdOp, '2000-01-01') < '2012-01-01' AND (%s) > 0", $this->sqlaantdln);
+		if ($_SESSION['webmaster'] == 0) {
+			$where .= sprintf(" AND E.BeperkTotGroep IN (%s)", $_SESSION["lidgroepen"]);
+		}
 		$ord = "E.Datum";
 
 		$ord = "E.Datum DESC";
@@ -6835,8 +6857,8 @@ class cls_Evenement extends cls_db_base {
 		}
 		
 		$where = "";		
-		if ($this->beperktotgroep > 0) {
-			$where = sprintf("AND LO.OnderdeelID=%d", $this->beperktotgroep);
+		if ($this->doelgroep > 0) {
+			$where = sprintf("AND LO.OnderdeelID=%d", $this->doelgroep);
 		}
 		$query = sprintf("SELECT DISTINCT L.RecordID AS LidID, %1\$s AS Naam
 							FROM %2\$sLid AS L LEFT OUTER JOIN %2\$sLidond AS LO ON L.RecordID=LO.Lid
@@ -8191,7 +8213,7 @@ class cls_RekeningBetaling extends cls_db_base {
 		}
 	}
 	
-	public function laatste($p_aantal=50) {
+	public function laatstebetalingen($p_aantal=50) {
 		$query = sprintf("SELECT RB.*, (RK.Bedrag-RK.Betaald) AS Openstaand FROM %s LEFT JOIN %sRekening AS RK ON RB.Rekening=RK.Nummer ORDER BY RB.Datum DESC, RB.RecordID DESC LIMIT %d;", $this->basefrom, TABLE_PREFIX, $p_aantal);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
@@ -8571,14 +8593,16 @@ class cls_Website_menu extends cls_db_base {
 	public ?string $titel = "";
 	public int $vorigelaag = 0;
 	public int $volgnr = 0;
-	public ?int $inhoudid = 0;
+	public int $inhoudid = 0;
+	public ?string $externelink = "";
 	public $gepubliceerd = "";
+	private int $activelaag1 = -2;
 	
 	function __construct($p_wmid=-1) {
 		parent::__construct();
 		$this->table = TABLE_PREFIX . "Website_menu";
 		$this->basefrom = $this->table . " AS WM";
-		$this->ta = 26;
+		$this->ta = 22;
 		$this->vulvars($p_wmid);
 	}
 	
@@ -8594,7 +8618,12 @@ class cls_Website_menu extends cls_db_base {
 				$this->titel = $row->Titel;
 				$this->vorigelaag = $row->VorigeLaag;
 				$this->volgnr = $row->Volgnummer;
-				$this->inhoudid = $row->InhoudID;
+				if (strlen($row->InhoudID) > 0) {
+					$this->inhoudid = $row->InhoudID;
+				} else {
+					$this->inhoudid = 0;
+				}
+				$this->externelink = $row->ExterneLink;
 				$this->gepubliceerd = $row->Gepubliceerd;
 				$this->naamlogging = $row->Titel;
 			} else {
@@ -8604,7 +8633,7 @@ class cls_Website_menu extends cls_db_base {
 	}
 	
 	public function lijst($p_filter="") {
-		$query = sprintf("SELECT WM.*, IF(WM.VorigeLaag > 0, (SELECT WM2.Titel FROM %s AS WM2 WHERE WM2.RecordID=WM.VorigeLaag), '') AS VorigMenu, LEFT(WI.Titel, 30) AS TitelInhoudKort", $this->table);
+		$query = sprintf("SELECT WM.*, IF(WM.VorigeLaag > 0, (SELECT WM2.Titel FROM %s AS WM2 WHERE WM2.RecordID=WM.VorigeLaag), '') AS VorigMenu, IF(WM.InhoudID > 0, LEFT(WI.Titel, 40), LEFT(WM.ExterneLink, 40)) AS TitelInhoudKort", $this->table);
 		$query .= sprintf(" FROM %s LEFT OUTER JOIN %sWebsite_inhoud AS WI ON WM.InhoudID=WI.RecordID", $this->basefrom, TABLE_PREFIX);
 		if (strlen($p_filter) > 0) {
 			$query .= sprintf(" WHERE %s", $p_filter);
@@ -8620,6 +8649,65 @@ class cls_Website_menu extends cls_db_base {
 			$rv .= sprintf("<option value=%d%s>%s</option>\n", $row->RecordID, checked($row->RecordID, "option", $p_cv), $row->Titel);
 		}
 		
+		return $rv;
+	}
+	
+	public function htmlmenu($p_cv=-1, $p_ul=1) {
+		$rv = "";
+		$this->activelaag1 = $this->min("VorigeLaag", sprintf("WM.RecordID=%d", $p_cv));
+		if ($p_ul == 1) {
+			$ul_el = "<ul class='nav'>";
+		} else {
+			$ul_el = "";
+		}
+		
+		$f_bas = "(WM.Gepubliceerd IS NOT NULL) AND WM.Gepubliceerd <= CURDATE() AND (IFNULL(WM.InhoudID, 0) > 0 OR LENGTH(IFNULL(WM.ExterneLink, '')) > 8) AND ";
+		
+		$f = $f_bas . "WM.VorigeLaag=0";
+		foreach ($this->lijst($f) as $row_l1) {
+
+			$rv .= $this->menuentry($row_l1, $p_cv, $p_ul);
+			$f = sprintf("%sWM.VorigeLaag=%d", $f_bas, $row_l1->RecordID);
+			$rows_l2 = $this->lijst($f);
+			if (count($rows_l2) > 0) {
+				$rv .= $ul_el; 
+				foreach ($rows_l2 as $row_l2) {
+					if ($row_l1->RecordID == $p_cv or ($row_l2->VorigeLaag == $this->activelaag1)) {
+						$rv .= $this->menuentry($row_l2, $p_cv, $p_ul);
+					}
+				}
+				if ($p_ul == 1) {
+					$rv .= "</ul>\n";
+				}
+			}
+			if ($p_ul == 1) {
+				$rv .= "</li>\n";
+			}
+		}
+		
+		return $rv;
+	}
+	
+	private function menuentry($p_row, $p_cv=-1, $p_li=1) {
+		$rv = "";
+		if ($p_cv == $p_row->RecordID) {
+			$a_cl = "nav-link active";
+		} else {
+			$a_cl = "nav-link";
+		}
+		if ($p_li == 1) {
+			$li_el = "<li class='nav-item'>";
+		} else {
+			$li_el = "";
+		}
+
+		if ($p_row->InhoudID > 0) {
+			$rv .= sprintf("%s<a class='%s' href='%s?p_menu=%d'>%s</a>", $li_el, $a_cl, $_SERVER['PHP_SELF'], $p_row->RecordID, $p_row->Titel);
+		} elseif (strlen($p_row->ExterneLink) > 8) {
+			$rv .= sprintf("%s<a class='%s' href='%s'>%s</a>", $li_el, $a_cl, $p_row->ExterneLink, $p_row->Titel);
+		} else {
+			$rv .= sprintf("%s%s", $li_el, $p_row->Titel);
+		}
 		return $rv;
 	}
 	
@@ -8651,12 +8739,13 @@ class cls_Website_inhoud extends cls_db_base {
 	public ?string $titel = "";
 	public ?string $tekst = "";
 	public int $htmldirect = 0;
+	public ?string $inlinestyle = "";
 	
 	function __construct($p_wiid=-1) {
 		parent::__construct();
 		$this->table = TABLE_PREFIX . "Website_inhoud";
 		$this->basefrom = $this->table . " AS WI";
-		$this->ta = 26;
+		$this->ta = 22;
 		$this->vulvars($p_wiid);
 	}
 	
@@ -8672,9 +8761,10 @@ class cls_Website_inhoud extends cls_db_base {
 				$this->titel = str_replace("\"", "'", $row->Titel);
 				$this->tekst = $row->Tekst;
 				$this->htmldirect = $row->HTMLdirect;
+				$this->inlinestyle = str_replace("<style>", "", str_replace("</style>", "", $row->InlineStyle));
 				$this->naamlogging = $row->Titel;
 			} else {
-				$this->mnid = 0;
+				$this->wiid = 0;
 			}
 		}
 	}
@@ -8685,7 +8775,6 @@ class cls_Website_inhoud extends cls_db_base {
 			$this->tekst = $p_tekst;
 			$this->update($this->wiid, "Tekst", $this->tekst);
 		}
-		
 	}
 	
 	public function htmloptions($p_cv) {
@@ -8707,6 +8796,9 @@ class cls_Website_inhoud extends cls_db_base {
 		$this->mess = sprintf("Website_inhoud: Record %d is toegevoegd.", $nrid);
 		
 		$this->log($nrid);
+		$this->wiid = $nrid;
+		
+		return $nrid;
 	}
 	
 	public function update($p_wiid, $p_kolom, $p_waarde, $p_reden="") {
@@ -9557,6 +9649,8 @@ class cls_Parameter extends cls_db_base {
 		$this->arrParam['title_head_html'] = array("Type" => "T", "");
 		$this->arrParam['urlvereniging'] = array("Type" => "T");
 		$this->arrParam['url_eigen_help'] = array("Type" => "T");	// na 1 juli 2023 verwijderen
+		
+		$this->arrParam['website_mediabestanden'] = ['Type' => "T", 'Default' => "./www/media/"];  // Gebruik relatief pad tov root website
 	}
 	
 	public function lijst() {
@@ -10057,6 +10151,20 @@ function db_onderhoud($type=9) {
 	$col = "HTMLdirect";
 	if ($i_base->bestaat_kolom($col, $tab) == false) {
 		$query = sprintf("ALTER TABLE `%s` ADD `%s` TINYINT NOT NULL DEFAULT '0' AFTER `Tekst`;", $tab, $col);
+		$i_base->execsql($query, 2);
+	}
+	
+	$tab = TABLE_PREFIX . "Website_menu";
+	$col = "ExterneLink";
+	if ($i_base->bestaat_kolom($col, $tab) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` VARCHAR(150) NULL AFTER `InhoudID`;", $tab, $col);
+		$i_base->execsql($query, 2);
+	}
+	
+	$tab = TABLE_PREFIX . "Website_inhoud";
+	$col = "InlineStyle";
+	if ($i_base->bestaat_kolom($col, $tab) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` TEXT NULL AFTER `HTMLdirect`;", $tab, $col);
 		$i_base->execsql($query, 2);
 	}
 	
