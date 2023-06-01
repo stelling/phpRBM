@@ -146,6 +146,9 @@ p.aantrecords {
 
 span {
 	white-space: nowrap;
+	display: inline;
+	margin-top: 0;
+	padding-top: 0;
 }
 
 label {
@@ -165,13 +168,6 @@ label {
 label.k2 {
 	clear: none;
 	float: left;
-}
-
-span {
-	float: left;
-	clear: right;
-	height: 22px;
-	margin-top: 8px;
 }
 
 footer {
@@ -207,11 +203,19 @@ form p {
 button {
 	margin-right: 6px;
 	margin-top: 6px;
-	padding-bottom: 6px;
+	margin-bottom: 6px;
+	
 	border-width: 1px;
+	
 	padding-left: 6px;
 	padding-right: 6px;
 	padding-top: 4px;
+	padding-bottom: 4px;
+}
+
+button.btn-fixed-top-right {
+	float: right;
+	clear: none;
 }
 
 input[type='email'] {
@@ -280,7 +284,7 @@ header h1 {
 	float: left;
 	height: 24px;
 	margin-left: 3px;
-	margin-top: 5px;
+	margin-top: 9px;
 	margin-bottom: 5px;
 	margin-right: 6px;
 	padding-top: 1px;
@@ -308,7 +312,7 @@ header h1 {
 	height: 30px;
 	margin-left: 3px;
 	margin-right: 20px;
-	margin-top: 5px;
+	margin-top: 9px;
 	margin-bottom: 4px;
 	padding-top: 0;
 }
@@ -317,6 +321,10 @@ header h1 {
 	background-color: transparent;
 	margin-top: 1px;
 	padding-top: 0;
+}
+
+#filter button {
+	float: right;
 }
 
 #filter p.aantrecords {
@@ -976,9 +984,6 @@ table#afdelingskalendermuteren {
 	padding-bottom: 1px;
 }
 
-#presentieperlid label {
-	width: 75px;
-}
 
 #presentieperlid > #filter p {
 	float: left;
@@ -1002,11 +1007,6 @@ table#afdelingskalendermuteren {
 	min-width: 60px;
 }
 
-#presentieperlid td:nth-child(1) {
-	min-width: 25px;
-	width: 25px;
-}
-
 #presentieperlid td.NOK {
 	font-weight: bolder;
 }
@@ -1023,6 +1023,10 @@ table#afdelingskalendermuteren {
 	border-top-style: solid;
 	border-width: 1px;
 	margin-top: 8px;
+}
+
+#afdelingsmailing span {
+	margin-bottom: 8px;
 }
 
 #afdelingsmailing label {
@@ -1103,7 +1107,6 @@ table#afdelingskalendermuteren {
 }
 
 .kandidatengroep button {
-	float: left;
 	clear: left;
 }
 
@@ -1116,10 +1119,11 @@ table#afdelingskalendermuteren {
 	padding: 3px;
 }
 
-#groepenaanexamentoevoegen label {
+#groepenaa22nexamentoevoegen label {
 	margin-top: 6px;
-	padding-top: 12px;
-	padding-bottom: 12px;
+	margin-bottom: 6px;
+	padding-top: 6px;
+	padding-bottom: 6px;
 }
 
 #dl_lijst {
@@ -1508,15 +1512,6 @@ td.dubbeldiploma {
 	border-style: none;
 }
 
-#evenementenbeheer table {
-	width: 100%;
-}
-
-#evenementenbeheer span {
-	display: inline;
-	white-space: nowrap;
-}
-
 #evenementenbeheer label {
 	clear: none;
 	float: left;
@@ -1530,7 +1525,7 @@ label#lblStarttijd, label#lblEindtijd, label#lblVerzameltijd {
 	margin-left: 4px;
 }
 
-#evenementenbeheer label#lblDatum, #evenementenbeheer label#lblOmschrijving, #evenementenbeheer label#lblLocatie, #evenementenbeheer label#lblEmail, #evenementenbeheer label#lblTypeEvenement, #evenementenbeheer label#lblOpmaak, #evenementenbeheer label#lblInschrijvingOpen, #evenementenbeheer label#lblGewijzigd, #evenementenbeheer label#lblDoelgroep {
+#evenementenbeheer label#lblDatum, #evenementenbeheer label#lblOmschrijving, #evenementenbeheer label#lblLocatie, #evenementenbeheer label#lblOrganisatie, #evenementenbeheer label#lblTypeEvenement, #evenementenbeheer label#lblOpmaak, #evenementenbeheer label#lblInschrijvingOpen, #evenementenbeheer label#lblStandaardStatus, #evenementenbeheer label#lblGewijzigd, #evenementenbeheer label#lblDoelgroep {
 	clear: left;
 }
 
@@ -2619,6 +2614,10 @@ li.presstat_v, td.presstat_v {
 	
 	label#lblMaxPersonenPerDeelname {
 		clear: left;
+	}
+	
+	input.w250 {
+		width: 275px;
 	}
 }
 
