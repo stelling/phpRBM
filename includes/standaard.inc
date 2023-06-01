@@ -32,8 +32,8 @@ define("ARRTYPEONDERDEEL", ["A" => "Afdeling", "B" => "Bestuur", "C" => "Commiss
 define("ARRTYPEDIPLOMA", ["B" => "Brevet", "C" => "Competentie", "D" => "Diploma", "I" => "Insigne", "L" => "Licentie", "M" => "Module", "P" => "PvB"]);
 define("PASFOTOEXTENTIES", ["gif", "jpg", "jpeg", "png"]);
 define("ARRSOORTEVENEMENT", ["B" => "Bewaking", "G" => "Gezellig/sociaal", "O" => "Opleiding", "R" => "Reddingsbrigade-activiteit", "V" => "Vergadering/overleg", "W" => "Wedstrijd"]);
-define("ARRDLNSTATUS", ["A" => "Afgewezen", "B" => "Bevestigd", "I" => "Ingeschreven", "J" => "Aangemeld", "N" => "Niet geweest zonder afmelding", "R" => "Reserve", "T" => "Onder voorbehoud", "X" => "Afgemeld/Afgezegd"]);
-define("ARRPRESENTIESTATUS", ["A" => "Aanwezig", "H" => "Aangemeld, door vereniging afgezegd", "J" => "Aangemeld", "L" => "Te laat aanwezig", "N" => "Niet aanwezig (onafgemeld)", "R" => "Afwezig met bekende reden", "T" => "Onder voorbehoud", "V" => "Les is vervallen", "X" => "Afgemeld zonder bekende reden", "Z" => "Ziek"]);
+define("ARRDLNSTATUS", ["A" => "Afgewezen", "B" => "Bevestigd", "I" => "Ingeschreven", "J" => "Aangemeld", "N" => "Onafgemeld afwezig", "R" => "Reserve", "T" => "Onder voorbehoud", "X" => "Afgemeld/Afgezegd"]);
+define("ARRPRESENTIESTATUS", ["A" => "Aanwezig", "H" => "Afgezegd door vereniging", "J" => "Aangemeld", "L" => "Te laat aanwezig", "R" => "Afwezig met bekende reden", "T" => "Onder voorbehoud", "V" => "Les is vervallen", "X" => "Niet aanwezig", "Z" => "Ziek"]);
 define("ARRTYPEBACKUP", [1 => "phpRBM-tabellen", 2 => "Tabellen uit MS-Access", 3 => "Alle tabellen"]);
 define("ARRTYPESTUK", ["A" => "Algemene Vergadering", "B" => "Beleidsstuk", "F" => "Formulier", "H" => "Handleiding", "P" => "Promotiemateriaal", "R" => "Regeling"]);
 define("BEWAARTIJDNIEUWERECORDS", 120);
@@ -1125,6 +1125,10 @@ function fnEditTable($res, $kols, $id, $th) {
 			if (isset($kol['class'])) {
 				$kol_class = sprintf("class='%s'", $kol['class']);
 			}
+			$kol_title = "";
+			if (isset($kol['title']) and strlen($kol['title']) > 0) {
+				$kol_title = sprintf(" title=\"%s\"", str_replace("\"", "'", $kol['title']));
+			}
 			if (isset($kol['link']) and strlen($kol['link']) > 0) {
 				$tp = "link";
 				if (substr($kol['link'], 0, 7) == "<a href") {
@@ -1244,7 +1248,7 @@ function fnEditTable($res, $kols, $id, $th) {
 						$c = "w10";
 						$m = "";
 					}
-					$ret .= sprintf("<td><input type='number' id='%s_%d' value=%d class='%s'%s></td>", $colname, $valpk, $value, $c, $m);
+					$ret .= sprintf("<td><input type='number' id='%s_%d' value=%d class='%s'%s%s></td>", $colname, $valpk, $value, $c, $m, $kol_title);
 				}
 
 			} elseif ($tp == "leeftijd") {
@@ -1269,7 +1273,7 @@ function fnEditTable($res, $kols, $id, $th) {
 				if ($ro) {
 					$ret .= sprintf("<td class='number'>%.2F</td>", $value);
 				} else {
-					$ret .= sprintf("<td><input type='text' id='%s_%d' value='%.2F' class='d8'></td>", $colname, $valpk, $value);
+					$ret .= sprintf("<td><input type='text' id='%s_%d' value='%.2F' class='d8'%s></td>", $colname, $valpk, $value, $kol_title);
 				}				
 				
 			} elseif ($tp == "email") {
@@ -1301,7 +1305,7 @@ function fnEditTable($res, $kols, $id, $th) {
 					}
 				} else {
 					$xc = sprintf("w%d", $kol['collen']);
-					$ret .= sprintf("<td><input type='text' id='%s_%d' value=\"%s\" class='%s' maxlength=%d>", $colname, $valpk, $value, $xc, $kol['collen']);
+					$ret .= sprintf("<td><input type='text' id='%s_%d' value=\"%s\" class='%s' maxlength=%d%s>", $colname, $valpk, $value, $xc, $kol['collen'], $kol_title);
 					if (strlen($col2) > 0) {
 						if (isset($kol['secondcolumntype']) and $kol['secondcolumntype'] == "date") {
 							$ret .= sprintf("<br><input type='date' id='%s_%d' value=\"%s\">", $col2, $valpk, $value2);
@@ -1358,13 +1362,11 @@ function fnStandaardKols($p_ent, $p_sort=1, $rows=null) {
 		
 		$kols[2]['type'] = "lidnaam";
 		if ($_SESSION['webmaster'] == 1) {
-			$kols[3]['headertext'] = "Type";
-			$kols[3]['columnname'] = "Type";
+			$kols[3] = ['headertext' => "Type", 'columnname' => "Type"];
 			if ($p_sort == 1) {
 				$kols[3]['sortcolumn'] = "Type";
 			}
-			$kols[4]['headertext'] = "Ingelogd lid";
-			$kols[4]['columnname'] = "ingelogdLid";
+			$kols[4] = ['headertext' => "Ingelogd lid", 'columnname' => "ingelogdLid"];
 			if ($p_sort == 1) {
 				$kols[4]['sortcolumn'] = "ingelogdLid";
 			}
@@ -1598,7 +1600,8 @@ function aantaluniekeleden($rows, $veldnm) {
 	$aant = 0;
 	$vw = -1;
 	
-	asort($rows);
+	$columns = array_column($rows, $veldnm);
+	array_multisort($columns, SORT_ASC, $rows);
 	
 	foreach ($rows as $row) {
 		if ($vw != $row->$veldnm) {
