@@ -2247,7 +2247,12 @@ class cls_Onderdeel extends cls_db_base {
 		}
 	}
 	
-	public function htmloptions($p_cv=0, $p_ingebruik=1, $p_ondtype="") {
+	public function htmloptions($p_cv=0, $p_ingebruik=1, $p_ondtype="", $p_filter="", $p_aant=1) {
+		
+		/*
+			$p_ingebruik: 1 = toon alleen onderdelen die op dit moment leden heeft
+			$p_aant: 1 toon het aantal leden in het onderdeel
+		*/
 		
 		if (strlen($p_ondtype) > 0) {
 			$t = "";
@@ -2261,12 +2266,18 @@ class cls_Onderdeel extends cls_db_base {
 		} else {
 			$f = "";
 		}
+		if (strlen($p_filter) > 0) {
+			if (strlen($f) > 0) {
+				$f .= " AND ";
+			}
+			$f .= $p_filter;
+		}
 		
 		$ret = "";
 		$rows = $this->lijst($p_ingebruik, $f);
 		foreach ($rows as $row) {
 			$o = htmlentities($row->Naam);
-			if ($row->AantalLeden > 1) {
+			if ($row->AantalLeden > 1 and $p_aant == 1) {
 				$o .= sprintf(" (%d leden)", $row->AantalLeden);
 			}
 			$ret .= sprintf("<option%s value=%d>%s</option>\n", checked($row->RecordID, "option", $p_cv), $row->RecordID, $o);
@@ -2746,6 +2757,8 @@ class cls_Aanwezigheid extends cls_db_base {
 				$this->lidid  = $row->Lid;
 				$this->lidvanaf = $row->Vanaf;
 				$this->lidtm = $row->TM;
+			} else {
+				$this->loid = 0;
 			}
 			
 			$this->status = "";
@@ -2759,6 +2772,7 @@ class cls_Aanwezigheid extends cls_db_base {
 					$this->opmerking = $awrow->Opmerking;
 				} else {
 					$this->aanwid = 0;
+					$this->akid = 0;
 				}
 			}
 			if ($this->status == "A" or $this->status == "J" or $this->status == "L" or strlen($this->status) == 0) {
@@ -2818,7 +2832,7 @@ class cls_Aanwezigheid extends cls_db_base {
 		$query = sprintf("SELECT MAX(LO.Lid) AS LidID,
 						  SUM(IF(AW.Status IN ('A'), 1, 0)) AS aantAanwezig,
 						  SUM(IF(AW.Status IN ('J'), 1, 0)) AS aantAangemeld,
-						  IFNULL(SUM(IF(AW.Status IN ('A', 'L', 'V'), 0, 1)), 0) AS aantAfwezig,
+						  IFNULL(SUM(IF(AW.Status IN ('H', 'N', 'R', 'X', 'Z'), 1, 0)), 0) AS aantAfwezig,
 						  IFNULL(SUM(IF(AW.Status='V', 1, 0)), 0) AS aantVervallen,
 						  SUM(IF(AW.Status IN ('N', 'X'), 1, 0)) AS aantZonderReden,
 						  SUM(IF(AW.Status='R', 1, 0)) AS aantMetReden,
@@ -2835,7 +2849,7 @@ class cls_Aanwezigheid extends cls_db_base {
 		
 		$afdid = (new cls_Lidond(-1, -1, $p_loid))->ondid;
 		
-		$f = sprintf("AK.Activiteit=1 AND AK.OnderdeelID=%d AND AK.Datum >= '%s' AND AK.Datum < CURDATE()", $afdid, $p_vanaf);
+		$f = sprintf("AK.Activiteit=1 AND AK.OnderdeelID=%d AND AK.Datum >= '%s' AND AK.Datum <= CURDATE()", $afdid, $p_vanaf);
 		$rv = (new cls_Afdelingskalender())->aantal($f);
 		$f = sprintf("AW.Status='V' AND AW.LidondID=%d", $p_loid);
 		$rv = $rv - $this->aantal($f);
@@ -2879,7 +2893,7 @@ class cls_Aanwezigheid extends cls_db_base {
 		$this->vulvars($p_loid, $p_akid);
 		$this->tas = 2;
 		
-		if ($this->aanwid == 0 and strlen($p_waarde) > 0) {
+		if ($this->loid > 0 and $this->akid > 0 and $this->aanwid == 0 and strlen($p_waarde) > 0) {
 			$this->add($this->loid, $this->akid);
 		}
 		
@@ -2897,6 +2911,17 @@ class cls_Aanwezigheid extends cls_db_base {
 	}
 	
 	public function controle() {
+		
+/*		
+		foreach($this->basislijst() as $row) {
+			if ($row->Status == "N") {
+				// Deze if mag na 1 januari 2024 weg
+				$this->pdoupdate($row->RecordID, "Status", "X", "de reden N is komen te vervallen.");
+			} elseif (strlen($row->Status) > 0 and array_key_exists($row->Status, ARRPRESENTIESTATUS) == false) {
+				$this->pdoupdate($row->RecordID, "Status", "", "het een onbekende status is");
+			}
+		}
+*/
 	}
 	
 	public function opschonen() {
@@ -3064,7 +3089,7 @@ class cls_Lidond extends cls_db_base {
 		}
 		$this->vulvars($p_loid, $p_lidid, $p_ondid, $p_per);
 		
-		$this->query = sprintf("SELECT LO.*, GR.Starttijd, O.Naam AS AfdNaam, Act.Omschrijving AS GrActiviteit, Act.Contributie AS GrContributie, F.Omschrijv AS Functie, LO.Functie AS FunctieID, F.Kader
+		$this->query = sprintf("SELECT LO.*, GR.Starttijd, O.Naam AS AfdNaam, Act.Omschrijving AS GrActiviteit, Act.Contributie AS GrContributie, F.Omschrijv AS Functie, LO.Functie AS FunctieID, F.Kader, GR.Aanwezigheidsnorm
 								FROM ((%s INNER JOIN (%2\$sGroep AS GR LEFT OUTER JOIN %2\$sActiviteit AS Act ON Act.RecordID=GR.ActiviteitID) ON LO.GroepID=GR.RecordID) INNER JOIN %2\$sFunctie AS F ON F.Nummer=LO.Functie) INNER JOIN %2\$sOnderdl AS O ON LO.OnderdeelID=O.RecordID WHERE LO.RecordID=%3\$d;", $this->basefrom, TABLE_PREFIX, $this->loid);
 		$result = $this->execsql();
 		return $result->fetch();
@@ -3133,7 +3158,7 @@ class cls_Lidond extends cls_db_base {
 						  %s AS NaamLid, L.Roepnaam, L.Achternaam, L.Tussenv, L.GEBDATUM, %s AS Leeftijd, %s AS Email, L.EmailVereniging, 
 						  F.Omschrijv AS Functie, F.Afkorting AS FunctAfk, F.Inval AS Invalfunctie, %s AS Groep, GR.DiplomaID,
 						  O.Kode, O.Naam AS OndNaam, O.CentraalEmail,
-						  GR.Kode AS GrCode, GR.Omschrijving AS GrNaam, GR.Aanwezigheidsnorm, L.RelnrRedNed AS SportlinkID,
+						  GR.Kode AS GrCode, GR.Omschrijving AS GrNaam, GR.Aanwezigheidsnorm, IFNULL(Act.BeperkingAantal, 0) AS BeperkingAantal, L.RelnrRedNed AS SportlinkID,
 						  CASE WHEN LO.GroepID > 0 AND LO.Functie > 0 THEN CONCAT(F.OMSCHRIJV, '/', IF(LENGTH(GR.Kode)=0, GR.RecordID, GR.Kode))
 							WHEN LO.Functie > 0 THEN F.OMSCHRIJV
 							WHEN LO.GroepID > 0 THEN IF(LENGTH(GR.Omschrijving)=0, IF(LENGTH(GR.Kode)=0, GR.RecordID, GR.Kode), GR.Omschrijving)
@@ -5751,6 +5776,10 @@ class cls_Logboek extends cls_db_base {
 		$query = sprintf("DELETE FROM %s WHERE DatumTijd < DATE_SUB(CURDATE(), INTERVAL 2 WEEK) AND TypeActiviteit=23 AND TypeActiviteitSpecifiek=10;", $this->table);
 		$this->execsql($query, 2);
 		
+// Opschonen presentie
+		$query = sprintf("DELETE FROM %s WHERE DatumTijd < DATE_SUB(CURDATE(), INTERVAL 7 MONTH) AND TypeActiviteit=24;", $this->table);
+		$this->execsql($query, 2);
+		
 // Toevoegen / Wijzigen / verwijderen parameter
 		$query = sprintf("DELETE FROM %s WHERE DatumTijd < DATE_SUB(CURDATE(), INTERVAL 2 YEAR) AND TypeActiviteit=13;", $this->table);
 		$this->execsql($query, 2);
@@ -6735,7 +6764,7 @@ class cls_Evenement extends cls_db_base {
 	private $standaardstatus;
 	public $evdatum = "";
 	public string $evoms = "";
-	public int $doelgroep = 0;
+	public int $doelgroep = 0;  // Kolom in de tabel heet 'BeperkTotGroep'
 	private $sqlaantdln = 0;
 	private $sqlaantafgemeld = 0;
 	
@@ -6762,8 +6791,7 @@ class cls_Evenement extends cls_db_base {
 			$evrow = $this->execsql($query)->fetch();
 			if (isset($evrow->RecordID)) {
 				$this->evdatum = substr($evrow->Datum, 0, 10);
-				$this->evoms = $evrow->Omschrijving;
-				$this->evoms .= " " . $dtfmt->format(strtotime($evrow->Datum));
+				$this->evoms = $evrow->Omschrijving . " " . $dtfmt->format(strtotime($evrow->Datum));
 				$this->doelgroep = $evrow->BeperkTotGroep;
 				$this->standaardstatus = $evrow->StandaardStatus;
 			} else {
@@ -6785,26 +6813,28 @@ class cls_Evenement extends cls_db_base {
 		$st = "DATE_FORMAT(E.Datum, '%H:%i', 'nl_NL')";
 		
 		$select = sprintf("E.RecordID, E.Datum, %s AS Starttijd, E.Omschrijving, E.Locatie, E.MeerdereStartMomenten,
-							E.Email, E.Verzameltijd, E.Eindtijd, ET.Omschrijving AS OmsType, ET.Soort, ET.Tekstkleur, ET.Achtergrondkleur, ET.Vet, ET.Cursief,
+							O.CentraalEmail AS Email, E.Verzameltijd, E.Eindtijd, ET.Omschrijving AS OmsType, ET.Soort, ET.Tekstkleur, ET.Achtergrondkleur, ET.Vet, ET.Cursief,
 							CASE E.InschrijvingOpen WHEN 0 THEN 'Nee' ELSE 'Ja' END AS `Ins. open?`,
 							(%s) AS AantalDln, (%s) AS AantAfgemeld", $st, $this->sqlaantdln, $this->sqlaantafgemeld);
 		$where = sprintf("E.Datum >= DATE_SUB(CURDATE(), INTERVAL 4 DAY) AND IFNULL(E.VerwijderdOp, '2000-01-01') < '2012-01-01' AND (%s) > 0", $this->sqlaantdln);
 		if ($_SESSION['webmaster'] == 0) {
-			$where .= sprintf(" AND E.BeperkTotGroep IN (%s)", $_SESSION["lidgroepen"]);
+			$where .= sprintf(" AND (E.BeperkTotGroep IN (%1\$s) OR E.Organisatie IN (%1\$s))", $_SESSION["lidgroepen"]);
 		}
 		$ord = "E.Datum";
-
-		$ord = "E.Datum DESC";
 		if ($p_soort == 2) {
-			$select = sprintf("E.RecordID, E.Datum, IF(RIGHT(E.Datum, 8)='00:00:00', '', %s) AS Starttijd, E.Omschrijving, E.Locatie, (" . $this->sqlaantdln . ") AS Dln, E.Email, E.Eindtijd,
+			$select = sprintf("E.RecordID, E.Datum, IF(RIGHT(E.Datum, 8)='00:00:00', '', %s) AS Starttijd, E.Omschrijving, E.Locatie, (" . $this->sqlaantdln . ") AS Dln, O.CentraalEmail AS Email, E.Eindtijd,
 					   CASE E.InschrijvingOpen WHEN 0 THEN 'Nee' ELSE 'Ja' END AS insOpen, ET.Omschrijving AS typeOms, ET.Soort", $st);
-			$where = "IFNULL(E.VerwijderdOp, '1900-01-01') < '2012-01-01'";
+			$where = "IFNULL(E.VerwijderdOp, '1900-01-01') < '2012-01-01'";		
+			if ($_SESSION['webmaster'] == 0) {
+				$where .= sprintf(" AND E.Organisatie IN (%s)", $_SESSION["lidgroepen"]);
+			}
 			if (strlen($p_filter) > 0) {
 				$where .= " AND " . $p_filter;
 			}
+			$ord = "E.Datum DESC";
 			
 		} elseif ($p_soort == 3) {
-			$select = "E.*, ET.Omschrijving AS TypeEvenement";
+			$select = "E.*, ET.Omschrijving AS TypeEvenement, O.CentraalEmail AS EmailOrganisatie";
 			$where = sprintf("E.Datum > NOW() AND IFNULL(E.VerwijderdOp, '1900-01-01') < '2012-01-01' AND E.InschrijvingOpen=1 AND E.BeperkTotGroep IN (%s)", $_SESSION["lidgroepen"]);
 			
 		} elseif ($p_soort == 4) {
@@ -6820,10 +6850,10 @@ class cls_Evenement extends cls_db_base {
 		} elseif ($p_soort == 6) {
 			$where = "E.Datum >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) AND IFNULL(E.VerwijderdOp, '2000-01-01') < '2012-01-01'";
 		}
-		$query = sprintf("SELECT %s
-							FROM %s LEFT OUTER JOIN %sEvenement_Type AS ET ON E.TypeEvenement=ET.RecordID
-							WHERE %s
-							ORDER BY %s;", $select, $this->basefrom, TABLE_PREFIX, $where, $ord);
+		$query = sprintf("SELECT %1\$s
+							FROM (%2\$s LEFT OUTER JOIN %3\$sOnderdl AS O ON E.Organisatie=O.RecordID) LEFT OUTER JOIN %3\$sEvenement_Type AS ET ON E.TypeEvenement=ET.RecordID
+							WHERE %4\$s
+							ORDER BY %5\$s;", $select, $this->basefrom, TABLE_PREFIX, $where, $ord);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
@@ -10165,6 +10195,21 @@ function db_onderhoud($type=9) {
 	$col = "InlineStyle";
 	if ($i_base->bestaat_kolom($col, $tab) == false) {
 		$query = sprintf("ALTER TABLE `%s` ADD `%s` TEXT NULL AFTER `HTMLdirect`;", $tab, $col);
+		$i_base->execsql($query, 2);
+	}
+	
+	$tab = TABLE_PREFIX . "Evenement";
+	$col = "Organisatie";
+	if ($i_base->bestaat_kolom($col, $tab) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NULL AFTER `Locatie`;", $tab, $col);
+		$i_base->execsql($query, 2);
+	}
+	
+		
+	$tab = TABLE_PREFIX . "Activiteit";
+	$col = "BeperkingAantal";
+	if ($i_base->bestaat_kolom($col, $tab) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` SMALLINT NULL AFTER `Contributie`;", $tab, $col);
 		$i_base->execsql($query, 2);
 	}
 	
