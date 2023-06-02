@@ -8497,7 +8497,7 @@ class cls_Stukken extends cls_db_base {
 				if ($this->zichtbaarvoor == 0 or $_SESSION['webmaster'] == 1) {
 					$this->magdownload = true;
 				} else {
-					if (in_array($this->zichtbaarvoor, $_SESSION['lidgroepen'])) {
+					if (in_array($this->zichtbaarvoor, array($_SESSION['lidgroepen']))) {
 						$this->magdownload = true;
 					} else {
 						$this->magdownload = false;
