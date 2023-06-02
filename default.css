@@ -939,10 +939,6 @@ table#afdelingskalendermuteren {
 	padding-left: 1px;
 }
 
-#groepsindeling table {
-	width: 100%;
-}
-
 #groepsindeling p {
 	margin-top: 2px;
 	margin-bottom: 1px;
@@ -983,7 +979,6 @@ table#afdelingskalendermuteren {
 	padding-right: 0;
 	padding-bottom: 1px;
 }
-
 
 #presentieperlid > #filter p {
 	float: left;
@@ -2571,17 +2566,31 @@ li.presstat_v, td.presstat_v {
 		font-size: 125%;
 	}
 	
-	#container {
-		width: 98%;
-	}
-	
 	#overzichtlid label {
-		width: 135px;
+		text-align: left;
+		margin-top: 3px;
+		margin-bottom: 0;
 	}
 	
-	#overzichtlid span {
-		width: 225px;
+	#overzichtlid h2 {
+		display: none;
 	}
+	
+	#overzichtlid p {
+		clear: left;
+		margin-top: 0;
+		padding-top: 0;
+		margin-bottom: 6px;
+	}
+/*	
+	#overzichtlid label {
+		width: 150px;
+	}
+
+	#overzichtlid span {
+		width: 230px;
+	}
+	*/
 	
 	#wijzigenlidgegevens input, #wijzigenlidgegevens select {
 		width: 200px;
@@ -2605,6 +2614,17 @@ li.presstat_v, td.presstat_v {
 		height: 26px;
 	}
 	
+	table#afdelingslijst th:nth-child(3), table#afdelingslijst td:nth-child(3), table#afdelingslijst th:nth-child(5), table#afdelingslijst td:nth-child(5), table#afdelingslijst th:last-child, table#afdelingslijst td:last-child {
+		display: none;
+	}
+	
+	table#groepsindelingmuteren th:nth-child(2), table#groepsindelingmuteren th:nth-child(3), table#groepsindelingmuteren td:nth-child(2), table#groepsindelingmuteren td:nth-child(3) {
+		display: none;
+	}
+	
+	table#groepenmuteren th:nth-child(1), table#groepenmuteren td:nth-child(1) {
+		display: none;
+	}
 }
 
 @media screen and (max-width: 1000px) {
@@ -2616,9 +2636,15 @@ li.presstat_v, td.presstat_v {
 		clear: left;
 	}
 	
+	
 	input.w250 {
 		width: 275px;
 	}
+
+	input.w60 {
+		width: 260px;
+	}
+	
 }
 
 @media print {
