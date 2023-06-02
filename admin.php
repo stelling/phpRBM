@@ -400,7 +400,13 @@ if ($currenttab == "Beheer logins") {
 } elseif ($currenttab == "Logboek" and toegang($currenttab, 1, 1)) {
 	$i_lb = new cls_logboek();
 	
-	$kols = fnStandaardKols("logboek");
+	$kols[0]['sortcolumn'] = "RecordID";
+	$kols[1]['sortcolumn'] = "Omschrijving";
+	$kols[3]['sortcolumn'] = "Type";
+	$kols[4]['sortcolumn'] = "ingelogdLid";
+	$kols[6]['sortcolumn'] = "scriptFunctie";
+	$kols[7]['sortcolumn'] = "A.IP_adres";
+	
 	$ord = fnOrderBy($kols);
 	
 	if (!isset($_POST['tbTekstFilter']) or strlen($_POST['tbTekstFilter']) == 0) {
@@ -470,6 +476,8 @@ if ($currenttab == "Beheer logins") {
 		printf("<p class='aantrecords'>%s van %s rijen</p>\n", number_format(count($rows), 0, ",", "."), number_format($i_lb->aantal(), 0, ",", "."));
 	}
 	echo("</form>\n");
+	
+	$kols = fnStandaardKols("logboek", 1, $rows);
 	
 	echo(fnDisplayTable($rows, $kols, "", 0, "", "logboek"));
 	
