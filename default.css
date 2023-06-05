@@ -68,22 +68,11 @@ table {
 	caption-side: top;
 }
 
-tr.selected {
-	font-weight: bolder;
-}
-
 caption {
 	text-align: center;
 	color: var(--default-text-color);
 	background-color: var(--label-background-color);
 	font-size: 130%;
-	border-width: 1px;
-	margin-left: 0;
-	margin-right: 0;
-	padding-left: 3px;
-	padding-right: 3px;
-	padding-top: 5px;
-	padding-bottom: 5px;
 }
 
 tr {
@@ -92,12 +81,6 @@ tr {
 
 td, th {
 	color: var(--default-text-color);
-	padding-left: 3px;
-	padding-right: 6px;
-	padding-top: 3px;
-	padding-bottom: 3px;
-	border-style: solid;
-	border-width: 1px;
 }
 
 th {
@@ -168,6 +151,7 @@ label {
 label.k2 {
 	clear: none;
 	float: left;
+	background-color: green;
 }
 
 footer {
@@ -263,8 +247,8 @@ header h1 {
 	float: left;
 	margin-left: 0;
 	margin-right: 4px;
-	margin-top: 5px;
-	margin-bottom: 5px;
+	margin-top: 10px;
+	margin-bottom: 6px;
 	padding-top: 4px;
 	padding-bottom: 4px;
 	height: auto;
@@ -313,7 +297,7 @@ header h1 {
 	margin-left: 3px;
 	margin-right: 20px;
 	margin-top: 9px;
-	margin-bottom: 4px;
+	margin-bottom: 8px;
 	padding-top: 0;
 }
 
@@ -325,6 +309,9 @@ header h1 {
 
 #filter button {
 	float: right;
+	margin-right: 0;
+	padding-left: 4px;
+	padding-right: 4px;
 }
 
 #filter p.aantrecords {
@@ -642,6 +629,11 @@ td.details, td.muteren, td.detailregels, td.leden, td.sendmail, td.unlock {
 	height: 45px;
 }
 
+table#deelnemersevenementmuteren {
+	clear: left;
+	width: 100%;
+}
+
 .beheerlogins a, #beheerautorisatie a, .beheerwijzigingen a, #deelnemersevenementmuteren a, #afdelingskalendermuteren a, #deelnemersevenementmuteren a, #lijstoutbox a {
   text-decoration: none;
 }
@@ -657,10 +649,6 @@ td.details, td.muteren, td.detailregels, td.leden, td.sendmail, td.unlock {
 	display: inline-block;
 	width: 100%;
 	margin-top: 6px;
-}
-
-#formulier table {
-	min-width: 300px;
 }
 
 #pasfoto {
@@ -726,11 +714,6 @@ td.details, td.muteren, td.detailregels, td.leden, td.sendmail, td.unlock {
 
 #wijzigenlidgegevens, #nieuwlid, #nieuwepasfoto, #bijzonderhedenwijzigen, #lidmaatschapmuteren, #inschrijvingevenementen, #webshop, #opzegformulier, #profielwijzigen {
 	padding-top: 8px;
-}
-
-#algemenegegevenslidmuteren {
-	float: left;
-	clear: left;
 }
 
 .ledenperonderdeelmuteren select {
@@ -825,9 +808,13 @@ textarea#sportlinkdata {
 	height: 80px;
 }
 
+#tab-agenda th {
+	text-align: center;
+}
+
 #tab-agenda td {
 	padding-left: 1px;
-	max-width: 16%;
+	width: 14%;
 }
 
 #tab-agenda tr:first-child {
@@ -837,6 +824,7 @@ textarea#sportlinkdata {
 #tab-agenda ul {
 	list-style-type: none;
 	border-style: none;
+	width: 100%;
 	margin-top: 0;
 	margin-bottom: 0;
 	margin-left: 0;
@@ -849,6 +837,9 @@ textarea#sportlinkdata {
 
 #tab-agenda li {
 	font-size: 85%;
+	width: 100%;
+	padding-left: 1px;
+	padding-right: 1px;
 }
 
 #tab-agenda li:first-child {
@@ -961,7 +952,7 @@ table#afdelingskalendermuteren {
 	font-style: italic;
 }
 
-#groepsindeling li.opgezegd, td.opgezegd {
+#groepsindeling li.heeftopgezegd, td.heeftopgezegd {
 	font-weight: bolder;
 	font-style: italic;
 }
@@ -1672,7 +1663,7 @@ fieldset h3 {
 	clear: both;
 	float: left;
 	height: auto;
-	width: 98%;
+	width: 100%;
 	
 	margin-top: 18px;
 	margin-bottom: 2px;
@@ -1690,13 +1681,11 @@ fieldset h3 {
 	border-bottom-left-radius: 12px;
 }
 
-#opdrachtknoppen button, #opdrachtknoppen input {
+#opdrachtknoppen button {
 	margin-bottom: 8px;
 	margin-left: 8px;
 	margin-right: 8px;
-	height: 48px;
 	cursor: pointer;
-	font-size: 90%;
 }
 
 #opdrachtknoppen input[type='checkbox'] {
@@ -1748,9 +1737,8 @@ div.clear {
 	max-height: 24px;
 }
 
-th.number, td.number, input.number {
+th.number, td.number, input.number, th.nummer, td.nummer, input.nummer, th.bedrag, td.bedrag, input.bedrag, th.recordid, td.recordid {
 	text-align: right;
-	padding-right: 8px;
 }
 
 tr.gewijzigd, td.gewijzigd, li.gewijzigd {
@@ -1980,17 +1968,11 @@ nav p {
 }
 
 .kaartje {
-	float: left;
-	height: auto;
-	min-height: 85px;
-	width: 24%;
+	width: 310px;
+	min-height: 90px;
 	border-width: 1px;
-	margin-top: 2px;
-	margin-bottom: 8px;
-	margin-left: 3px;
 	margin-right: 3px;
-	padding-left: 2px;
-	padding-right: 2px;
+	margin-bottom: 3px;
 	background-color: var(--label-background-color);
 	border-top-right-radius: 9px;
 	border-bottom-right-radius: 9px;
@@ -2561,7 +2543,7 @@ li.presstat_v, td.presstat_v {
 	border-collapse: separate;
 }
 
-@media screen and (max-width: 700px) {
+@media screen and (max-width: 750px) {
 	h1 {
 		font-size: 125%;
 	}
@@ -2582,21 +2564,16 @@ li.presstat_v, td.presstat_v {
 		padding-top: 0;
 		margin-bottom: 6px;
 	}
-/*	
-	#overzichtlid label {
-		width: 150px;
-	}
-
-	#overzichtlid span {
-		width: 230px;
-	}
-	*/
 	
 	#wijzigenlidgegevens input, #wijzigenlidgegevens select {
 		width: 200px;
 	}
 	
-	.functiekaderlid, .mailkaderlid {
+	.kaartje {
+		width: 100%;
+	}
+	
+	.mailkaderlid {
 		display: none;
 	}
 	
@@ -2614,7 +2591,31 @@ li.presstat_v, td.presstat_v {
 		height: 26px;
 	}
 	
-	table#afdelingslijst th:nth-child(3), table#afdelingslijst td:nth-child(3), table#afdelingslijst th:nth-child(5), table#afdelingslijst td:nth-child(5), table#afdelingslijst th:last-child, table#afdelingslijst td:last-child {
+	#tab-groepen table, #tab-diplomas table, #tab-presentie table {
+		min-width: 250px;
+	}
+	
+	table.onderdelenlid th.opmerking, table.onderdelenlid td.opmerking, table.onderdelenlid th.opgezegd, table.onderdelenlid td.opgezegd {
+		display: none;
+	}
+	
+	#tab-diplomas th.diplomanummer, #tab-diplomas td.diplomanummer {
+		display: none;
+	}
+	
+	#tab-rekeningen th.seizoen, #tab-rekeningen td.seizoen {
+		display: none;
+	}
+	
+	#tab-mailing th.van, #tab-mailing td.van {
+		display: none;
+	}
+	
+	#tab-evenementen th.contact, #tab-evenementen td.contact, #tab-evenementen th.opmerking, #tab-evenementen td.opmerking, #tab-evenementen th.inagenda, #tab-evenementen td.inagenda {
+		display: none;
+	}
+	
+	table#afdelingslijst th.email, table#afdelingslijst td.email, table#afdelingslijst th.vanaf, table#afdelingslijst td.vanaf, table#afdelingslijst td.sportlinkid, table#afdelingslijst th.sportlinkid, table#afdelingslijst th.muteren, table#afdelingslijst td.muteren {
 		display: none;
 	}
 	
@@ -2622,7 +2623,16 @@ li.presstat_v, td.presstat_v {
 		display: none;
 	}
 	
-	table#groepenmuteren th:nth-child(1), table#groepenmuteren td:nth-child(1) {
+	table#groepenmuteren th.nummer, table#groepenmuteren td.nummer, table#groepenmuteren th.aanwezigheidsnorm, table#groepenmuteren td.aanwezigheidsnorm, table#groepenmuteren th.codevolgnr, table#groepenmuteren td.codevolgnr, table#groepenmuteren th.activiteitdiploma, table#groepenmuteren td.activiteitdiploma {
+		display: none;
+	}
+	
+	#presentiemuteren select {
+		max-width: calc(100% - 85px);
+		margin-right: 0;
+	}
+	
+	table#presentiemuteren th.opmerking, table#presentiemuteren td.opmerking {
 		display: none;
 	}
 }
@@ -2641,10 +2651,14 @@ li.presstat_v, td.presstat_v {
 		width: 275px;
 	}
 
-	input.w60 {
+	input.w60, input.w75 {
 		width: 260px;
 	}
 	
+	#tab-agenda li {
+		overflow: hidden;
+		height: 22px;
+	}
 }
 
 @media print {
@@ -2672,10 +2686,7 @@ li.presstat_v, td.presstat_v {
 }
 
 #tab-agenda li.jarigen {
-	font-size: 85%;
 	margin-top: inherit;
-	height: inherit;
-	line-height: inherit;
 	font-style: italic;
 }
 
