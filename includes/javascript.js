@@ -290,19 +290,22 @@ function lidalgwijzprops() {
 		$('#uitleg_emailouders').text("");
 	}
 	
+	
 	e = $('#EmailVereniging').val();
-	if (e.length > 0) {
-		$.ajax({
-			url: 'ajax_update.php?entiteit=checkdnsrr',
-			type: 'post',
-			dataType: 'json',
-			data: { email: e },
-			success: function(response){
-				$('#uitleg_emailvereniging').text(response);
-			}
-		});
-	} else {
-		$('#uitleg_emailvereniging').text("");
+	if (typeof e !== 'undefined') {
+		if (e.length > 0) {
+			$.ajax({
+				url: 'ajax_update.php?entiteit=checkdnsrr',
+				type: 'post',
+				dataType: 'json',
+				data: { email: e },
+				success: function(response){
+					$('#uitleg_emailvereniging').text(response);
+				}
+			});
+		} else {
+			$('#uitleg_emailvereniging').text("");
+		}
 	}
 }
 
@@ -409,6 +412,8 @@ function mailingprops() {
 		}
 	});
 	
+	/*
+	
 	if (document.getElementById('cb_alle_personen').checked == true) {
 		f = 1;
 	} else {
@@ -423,6 +428,7 @@ function mailingprops() {
 			document.getElementById('add_lid').innerHTML = response;
 		}
 	});
+	*/
 }
 
 function mailing_add_ontvanger(p_mid, p_lidid, p_email) {
