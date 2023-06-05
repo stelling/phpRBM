@@ -34,7 +34,7 @@ function fnLedenlijst() {
 		
 		if (count($rows) > 0) {
 			echo("<div id='filter'>\n");
-			echo("<input id='tbOmsFilter' OnKeyUp=\"fnFilter('logboek', this);\">");
+			echo("<input id='tbOmsFilter' OnKeyUp=\"fnFilter('logboek', this);\" title='Tekstfilter'>");
 			printf("<p class='aantrecords'>%d rijen</p>\n", count($rows));
 			echo("</div> <!-- Einde filter -->\n");
 			echo(fnDisplayTable($rows, 'logboek', "Mutaties in lidgegevens", 0, "", "logboek"));
@@ -98,7 +98,7 @@ function fnLedenlijst() {
 		}
 		
 		printf("<form method='post' id='filter' action='%s?%s'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
-		echo("<input type='text' name='tbTekstFilter' id='tbTekstFilter' placeholder='Tekstfilter' OnKeyUp=\"fnFilter('ledenlijst', this);\">\n");
+		echo("<input type='text' name='tbTekstFilter' id='tbTekstFilter' placeholder='Tekstfilter' OnKeyUp=\"fnFilter('ledenlijst', this);\" title='Tekstfilter'>\n");
 
 		if ($currenttab2 == "Leden") {
 			$options = $i_ond->htmloptions($_SESSION['val_groep']);
@@ -182,13 +182,13 @@ function fnLedenlijst() {
 			$kols[8]['columnname'] = "RecordID";
 		} else {
 			if ($toonlidnummer == 1) {
-				$kols[8] = ['headertext' => "Lidnummer", 'columnname' => "Lidnr", 'type' => "integer"];
+				$kols[8] = ['headertext' => "Lidnummer", 'columnname' => "Lidnr", 'type' => "integer", 'sortcolumn' => "LM.Lidnr"];
 			}
 			if ($toonvanaf == 1) {
-				$kols[9] = ['headertext' => "Lid vanaf", 'columnname' => "LIDDATUM", 'type' => "date"];
+				$kols[9] = ['headertext' => "Lid vanaf", 'columnname' => "LIDDATUM", 'type' => "date", 'sortcolumn' => "LM.LIDDATUM"];
 			}
 			if ($toonopgezegd == 1) {
-				$kols[10] = ['headertext' => "Opgezegd per", 'columnname' => "Opgezegd", 'type' => "date"];
+				$kols[10] = ['headertext' => "Opgezegd per", 'columnname' => "Opgezegd", 'type' => "date", 'sortcolumn' => "LM.Opgezegd"];
 			}
 			if ($currenttab2 == "Leden") {
 				$sq = sprintf("SELECT GROUP_CONCAT(DISTINCT O.Kode SEPARATOR '/') FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE (O.Type='A' OR O.Kader=1) AND LO.Lid=%%d AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE()", TABLE_PREFIX);
@@ -395,7 +395,7 @@ function fnWieiswie($actie, $metfoto=1) {
 				} else {
 					$txt .= sprintf("<h2 class='onderdeelnaam'>%s</h2><h2 class='onderdeelemail'></h2>\n", $row->OndNaam);
 				}
-				$vo = $row->OndNaam; 
+				$vo = $row->OndNaam;
 			} 
 			$ln = htmlentities($row->NaamLid);
 			if (isset($row->EmailFunctie) and isValidMailAddress($row->EmailFunctie, 0)) {
@@ -1009,9 +1009,7 @@ function fnEigenGegevens($lidid=0) {
 				$kols[1]['columnname'] = "Functie";
 			}
 		
-			$kols[2]['headertext'] = "Vanaf";
-			$kols[2]['headertext'] = "Vanaf";
-			$kols[2]['type'] = "DTTEXT";
+			$kols[2] = ['columnname' => "Vanaf", 'headertext' => "Vanaf", 'type' => "DTTEXT"];
 		
 			if (strlen(max(array_column($rows, "Opmerking"))) > 0) {
 				$kols[3]['headertext'] = "Opmerking";
@@ -1032,7 +1030,7 @@ function fnEigenGegevens($lidid=0) {
 			$kols[6]['headertext'] = "Duur";
 			$kols[6]['columnname'] = "Duur";
 			
-			$tabblad[$tn] = fnDisplayTable($rows, $kols, $th, 0, "");
+			$tabblad[$tn] = fnDisplayTable($rows, $kols, $th, 0, "", "", "onderdelenlid");
 		}
 		
 		$tn = "Groepen";
@@ -1055,7 +1053,7 @@ function fnEigenGegevens($lidid=0) {
 			$kols[3]['headertext'] = "Duur";
 			$kols[3]['columnname'] = "Duur";
 		
-			$tabblad[$tn] = fnDisplayTable($rows, $kols, $th);
+			$tabblad[$tn] = fnDisplayTable($rows, $kols, $th, 0, "", "", "onderdelenlid");
 		}
 		
 		$tn = "Kader";
@@ -1083,7 +1081,7 @@ function fnEigenGegevens($lidid=0) {
 			}	
 			$rows = (new cls_Lidond())->overzichtlid($lidid, "K");
 			if (count($rows) > 0) {
-				$tabblad[$tn] = fnDisplayTable($rows, $kols, $th, 0, "", "");
+				$tabblad[$tn] = fnDisplayTable($rows, $kols, $th, 0, "", "", "onderdelenlid");
 			}
 		}
 
@@ -1192,7 +1190,7 @@ function fnEigenGegevens($lidid=0) {
 				$kols[4]['headertext'] = "Opmerking`";
 				$kols[4]['columnname'] = "Opmerking";
 			}
-			$tabblad[$tn] = fnDisplayTable($rows, $kols, $th);
+			$tabblad[$tn] = fnDisplayTable($rows, $kols, $th, 0, "", "", "table-sm");
 		
 			if ($tn == $currenttab3) {
 				$tabidx = count($tabblad)-1;
@@ -1206,7 +1204,7 @@ function fnEigenGegevens($lidid=0) {
 			$kols[0]['headertext'] = "&nbsp;";
 			$kols[0]['link'] = sprintf("%s?tp=%s&op=details&lidid=%d&rid=%%d' title='Details rekening", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
 			$kols[0]['class'] = "details";
-			$kols[1]['headertext'] = "Rekening";
+			$kols[1]['headertext'] = "Nummer";
 			$kols[1]['columnname'] = "Nummer";
 			$kols[2]['headertext'] = "Seizoen";
 			$kols[3]['headertext'] = "Datum";
@@ -1257,9 +1255,9 @@ function fnEigenGegevens($lidid=0) {
 			if ($currenttab != "Eigen gegevens") {
 				$tabblad[$tn] .= sprintf("<caption>Deelname evenementen %s</caption>\n", $naamlid);
 			}
-			$tabblad[$tn] .= "<tr><th>Wanneer</th><th>Omschrijving</th><th>Contact</th><th>Opmerking / Functie</th><th>Status</th>";
+			$tabblad[$tn] .= "<tr><th>Wanneer</th><th>Omschrijving</th><th class='contact'>Contact</th><th class='opmerking'>Opmerking / Functie</th><th>Status</th>";
 			if ($lidid == $_SESSION['lidid'] and max(array_column($rows, "inAgenda")) > 0) {
-				$tabblad[$tn] .= "<th>In agenda</th>";
+				$tabblad[$tn] .= "<th class='inagenda'>In agenda</th>";
 			}
 			$tabblad[$tn] .= "</tr>\n";
 			$dtfmt->setPattern("EEE d MMMM yyyy");
@@ -1285,7 +1283,7 @@ function fnEigenGegevens($lidid=0) {
 					$oms .= "<br>\n" . $row->Locatie;
 				}
 				$tabblad[$tn] .= sprintf("<td>%s</td>\n", $oms);
-				$tabblad[$tn] .= sprintf("<td>%s</td>\n", $row->Email);
+				$tabblad[$tn] .= sprintf("<td class='contact'>%s</td>\n", $row->Email);
 				if (strlen($row->Opmerking) > 0 and strlen($row->Functie) > 0) {
 					$of = sprintf("%s<br>%s", $row->Opmerking, $row->Functie);
 				} elseif (strlen($row->Opmerking) > 0) {
@@ -1293,13 +1291,13 @@ function fnEigenGegevens($lidid=0) {
 				} else {
 					$of = $row->Functie;
 				}
-				$tabblad[$tn] .= sprintf("<td>%s</td>\n", $of);
+				$tabblad[$tn] .= sprintf("<td class='opmerking'>%s</td>\n", $of);
 				$tabblad[$tn] .= sprintf("<td>%s</td>\n", $row->Status);
 				if ($lidid == $_SESSION['lidid'] and max(array_column($rows, "inAgenda")) > 0) {
 					if ($row->inAgenda == 1) {
-						$tabblad[$tn] .= sprintf("<td>%s</td>\n", fnAgendaKnop($row->Datum, $row->Eindtijd, $row->Verzameltijd, $row->Omschrijving, $row->Locatie));
+						$tabblad[$tn] .= sprintf("<td class='inagenda'>%s</td>\n", fnAgendaKnop($row->Datum, $row->Eindtijd, $row->Verzameltijd, $row->Omschrijving, $row->Locatie));
 					} else {
-						$tabblad[$tn] .= "<td>&nbsp;</td>";
+						$tabblad[$tn] .= "<td class='inagenda'></td>";
 					}
 				}
 				$tabblad[$tn] .= "</tr>\n";
@@ -1327,7 +1325,7 @@ function fnEigenGegevens($lidid=0) {
 			}
 		}
 		
-		if (toegang("Ledenlijst", 0, 0)) {
+		if ($currenttab == "Ledenlijst") {
 			$lnk = sprintf("<button type='button' OnClick=\"location.href='%s?tp=%%s&lidid=%%d';\">%%s lid</button>\n", $_SERVER['PHP_SELF']);
 			echo("<div id='opdrachtknoppen'>\n");
 			if ($current_key > 0) {
@@ -1550,10 +1548,8 @@ function algemeenlidmuteren($lidid) {
 	}
 
 	$row = $i_lid->record($lidid);
-	echo("<div id='wijzigenlidgegevens'>\n");
-	printf("<form method='post' action='%s' name='frm_wijzigingen'>\n", $actionurl);
+	printf("<form method='post' id='wijzigenlidgegevens' action='%s'>\n", $actionurl);
 	printf("<input type='hidden' name='lidid' value=%d>\n", $lidid);
-	echo("<div id='algemenegegevenslidmuteren'>\n");
 	printf("<label id='lblRecordID'>RecordID/LidID</label><p>%d</p>\n", $row->RecordID);
 	$i_lm->vulvars(-1, $row->RecordID);
 	if ($i_lm->lidnr > 0) {
@@ -1606,7 +1602,7 @@ function algemeenlidmuteren($lidid) {
 				}
 				$opt .= sprintf("<option value='%s'%s>%s</option>\n", $key, $sel, $val);
 			}
-			$inp = sprintf("<select id='%s'>%s</select>", $wijzvelden[$i]['naam'], $opt);
+			$inp = sprintf("<select id='%s' title='Geslacht van het lid'>%s</select>", $wijzvelden[$i]['naam'], $opt);
 			
 		} elseif (isset($wijzvelden[$i]['type']) and $wijzvelden[$i]['type'] == "cb") {
 			if ($row->{$wijzvelden[$i]['naam']} == 1) {
@@ -1633,9 +1629,9 @@ function algemeenlidmuteren($lidid) {
 			if ($t == "text" and $wijzvelden[$i]['lengte'] > 100) {
 				$inp = sprintf("<textarea id='%s' class='w90' placeholder='%s' rows=4>%s</textarea>", $wijzvelden[$i]['naam'], $ph, $dv);
 			} elseif ($t == "date") {
-				$inp = sprintf("<input type='date' id='%s' value='%s'%s>", $wijzvelden[$i]['naam'], $dv, $ro);
+				$inp = sprintf("<input type='date' id='%1\$s' value='%2\$s'%3\$s title=\"%1\$s\">", $wijzvelden[$i]['naam'], $dv, $ro);
 			} else {
-				$inp = sprintf("<input type='%s' %sid='%s' value='%s' maxlength=%d%s>", $t, $c, $wijzvelden[$i]['naam'], $dv, $wijzvelden[$i]['lengte'], $ro);
+				$inp = sprintf("<input type='%1\$s' %2\$sid='%3\$s' value='%4\$s' maxlength=%5\$d%6\$s title=\"%3\$s\">", $t, $c, $wijzvelden[$i]['naam'], $dv, $wijzvelden[$i]['lengte'], $ro);
 			}
 		}
 		printf("<label id='lbl%s'>%s</label>%s", $wijzvelden[$i]['naam'], $wijzvelden[$i]['label'], $inp);
@@ -1646,8 +1642,6 @@ function algemeenlidmuteren($lidid) {
 		
 		echo("\n");
 	}
-	
-	echo("</div> <!-- Einde algemenegegevenslidmuteren -->");
 	
 	$i_lo = new cls_Lidond(-1, $lidid);
 	$f = "`Type`='E' AND IFNULL(VervallenPer, '9999-12-31') >= CURDATE()";
@@ -1671,9 +1665,8 @@ function algemeenlidmuteren($lidid) {
 		echo("</div> <!-- eigenschappenlidmuteren -->\n");
 	}
 	
-	echo("</div>  <!-- Einde wijzigenlidgegevens -->\n");
 	echo("<div id='opdrachtknoppen'>\n");
-	echo("<input type='submit' value='Controleer gegevens'>\n");
+	echo("<button type='submit'>Controleer gegevens</button>\n");
 	if ($sl == "K") {
 		if ($row->Verwijderd > "1900-01-01") {
 			echo("<button type='submit' name='Undo_Verwijderen'>Verwijderen ongedaan maken</button>\n");
@@ -2679,6 +2672,8 @@ function fnBasisgegevens($p_type) {
 		
 		$kols[3]['headertext'] = "Contributie";
 		$kols[3]['type'] = "bedrag";
+		
+		$kols[4] = ['headertext' => "Max aantal", 'columnname' => "BeperkingAantal", 'type' => "integer", 'title' => "Hoeveel mag er per seizoen worden gezwommen. 0=alle keren."];
 				
 		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']); 
 		
