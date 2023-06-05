@@ -457,7 +457,7 @@ function fnAgenda($p_lidid=0) {
 	$txt .= "<tr>\n";
 	$dtfmt->setPattern("EEEE");
 	for ($dn=1;$dn<=7;$dn++) {
-		$txt .= sprintf("<th>%s</th>", $dtfmt->format(strtotime(sprintf("+%d day", $dn-1), $dtStart)));
+		$txt .= sprintf("<th>%s</th>", substr($dtfmt->format(strtotime(sprintf("+%d day", $dn-1), $dtStart)), 0, 3));
 	}
 	for ($sw=$dtStart;$sw <= strtotime("+370 day");$sw=strtotime("+7 day", $sw)) {
 		$txt .= "<tr>\n";
@@ -470,10 +470,10 @@ function fnAgenda($p_lidid=0) {
 				$c = " class='table-active'";
 			}
 			if (array_key_exists(date("Ymd", $td), $fds)) {
-				$txt .= sprintf("<td%s><ul><li>%s</li>", $c, $fds[date("Ymd", $td)]);
+				$txt .= sprintf("<td%s><ul><li title=\"%s\">%d</li>", $c, $fds[date("Ymd", $td)], date("d", $td));
 			} else {
 				$dtfmt->setPattern(DTDAYMONTH);
-				$txt .= sprintf("<td%s><ul><li>%s</li>", $c, $dtfmt->format($td));
+				$txt .= sprintf("<td%s><ul><li title=\"%s\">%d</li>", $c, $dtfmt->format($td), date("d", $td));
 			}
 			
 			$ikal = null;
@@ -497,7 +497,7 @@ function fnAgenda($p_lidid=0) {
 						$oms = "Geen " . $akrow->Naam;
 					}
 				}			
-				$ikal[strtotime($akrow->Datum . " " . $akrow->Begintijd)] = sprintf("<li class='%s'>%s</li>", strtolower($akrow->Kode), $oms);
+				$ikal[strtotime($akrow->Datum . " " . $akrow->Begintijd)] = sprintf("<li class='%1\$s' title=\"%2\$s\">%2\$s</li>", strtolower($akrow->Kode), $oms);
 			}
 			
 			if (isset($ikal)) {
@@ -511,6 +511,7 @@ function fnAgenda($p_lidid=0) {
 			if ($_SESSION['settings']['agenda_verjaardagen'] > 0 and $_SESSION['lidid'] > 0) {
 				$aant = 0;
 				$rows = $i_lid->verjaardagen($td);
+				$vj = "";
 				foreach ($rows as $row) {
 					$aant++;
 					if ($aant == 1) {
@@ -521,11 +522,13 @@ function fnAgenda($p_lidid=0) {
 						$vj = $row->NaamLid . ", " . $vj;
 					}
 				}
+				
 				if ($aant == 1) {
-					$txt .= sprintf("<li class='jarigen'>%s is jarig</li>", $vj);
+					$vj .= " is jarig";
 				} elseif ($aant > 1) {
-					$txt .= sprintf("<li class='jarigen'>%s zijn jarig</li>", $vj);
+					$vj .= " zijn jarig";
 				}
+				$txt .= sprintf("<li class='jarigen' title=\"%1\$s\">%1\$s</li>", $vj);
 			}
 			$txt .= "</ul>";
 			$txt .= "</td>\n";
