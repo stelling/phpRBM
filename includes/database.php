@@ -6880,11 +6880,8 @@ class cls_Evenement extends cls_db_base {
 		return $rv;
 	}
 			
-	public function potdeelnemers($p_evid, $p_per="") {
+	public function potdeelnemers($p_evid) {
 		$this->vulvars($p_evid);
-		if (strlen($p_per) < 10) {
-			$p_per = date("Y-m-d");
-		}
 		
 		$where = "";		
 		if ($this->doelgroep > 0) {
@@ -6894,7 +6891,7 @@ class cls_Evenement extends cls_db_base {
 							FROM %2\$sLid AS L LEFT OUTER JOIN %2\$sLidond AS LO ON L.RecordID=LO.Lid
 							WHERE (SELECT COUNT(*) FROM %2\$sEvenement_Deelnemer AS ED WHERE L.RecordID=ED.LidID AND ED.EvenementID=%3\$d)=0
 							AND LO.Vanaf <= '%5\$s' AND IFNULL(LO.Opgezegd, '9999-12-31') >= '%5\$s' %4\$s
-							ORDER BY %1\$s;", $this->selectzoeknaam, TABLE_PREFIX, $this->evid, $where, $p_per);
+							ORDER BY %1\$s;", $this->selectzoeknaam, TABLE_PREFIX, $this->evid, $where, $this->evdatum);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
@@ -6980,6 +6977,8 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 	private $standaardstatus = "";
 	private $meerderestartmomenten = 0;
 	private $casestatus = "";
+	private $magmuteren = false;
+	private $organisatie = 0;
 	
 	function __construct($p_evid=-1) {
 		parent::__construct();
@@ -7022,9 +7021,17 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 				$this->naamlogging = $row->Omschrijving;
 				$this->standaardstatus = $row->StandaardStatus;
 				$this->meerderestartmomenten = $row->MeerdereStartMomenten;
+				$this->organisatie = $row->Organisatie;
+				if ($_SESSION['webmaster'] == 1 or in_array($this->organisatie, array($_SESSION['lidgroepen']))) {
+					$this->magmuteren = true;
+				}	
 			} else {
 				$this->evid = 0;
 			}
+		}
+		
+		if ($this->lidid > 0 and $this->lidid == $_SESSION['lidid']) {
+			$this->magmuteren = true;
 		}
 	}
 	
@@ -7064,7 +7071,7 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 		
 		$query = sprintf("SELECT ED.RecordID, %1\$s AS NaamDeelnemer, %2\$s AS Telefoon, ED.StartMoment, IF(E.MeerdereStartMomenten=1, IFNULL(ED.StartMoment, ''), SUBSTRING(E.Datum, 12, 5)) AS Starttijd, E.MeerdereStartMomenten,
 							ED.Status, ED.Opmerking, ED.Functie, ED.LidID, ED.Aantal, L.Geslacht, ED.Ingevoerd, ED.LidID, ED.IngevoerdDoor
-							FROM (%3\$s INNER JOIN %4\$sLid AS L ON ED.LidID=L.RecordID) INNER JOIN %4\$sEvenement AS E ON E.RecordID=ED.EvenementID
+							FROM (%3\$s LEFT OUTER JOIN %4\$sLid AS L ON ED.LidID=L.RecordID) INNER JOIN %4\$sEvenement AS E ON E.RecordID=ED.EvenementID
 							WHERE ED.EvenementID=%5\$d %6\$s
 							ORDER BY %7\$s;", $this->selectnaam, $this->selecttelefoon, $this->basefrom, TABLE_PREFIX, $p_evid, $xw, $order);
 		$result = $this->execsql($query);
@@ -7123,12 +7130,12 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 		$this->tas = 12;
 		$rv = 0;
 		
-		if (toegang("Evenementen/Beheer", 0, 0)) {
+		if ($this->magmuteren) {
 			if ($this->pdoupdate($p_edid, $p_kolom, $p_waarde, $p_reden)) {
 				$rv = 1;
 			}
 		} else {
-			$this->mess = "Je bent niet bevoegd om deelnemers bij evenementen te muteren.";
+			$this->mess = "Je bent niet bevoegd om deelnemers bij dit evenement te muteren.";
 		}
 		$this->log($p_edid);
 		
@@ -7140,10 +7147,10 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 		$this->vulvars();
 		$this->tas = 13;
 		
-		if (toegang("Evenementen/Beheer", 0, 0)) {
+		if (toegang("Evenementen/Beheer", 0, 0) and $this->magmuteren) {
 			$this->pdodelete($this->edid, $p_reden);
 		} else {
-			$this->mess = "Je bent niet bevoegd om deelnemers bij evenementen te verwijderen.";
+			$this->mess = "Je bent niet bevoegd om deelnemers bij dit evenement te verwijderen.";
 		}
 		$this->log($this->edid);
 	}
@@ -7740,18 +7747,11 @@ class cls_Rekening extends cls_db_base {
 								IF((SELECT COUNT(*) FROM %2\$sRekreg AS RR WHERE RR.Rekening=RK.Nummer)=0, RK.Nummer, 0) AS linkDelete
 								FROM %1\$s LEFT OUTER JOIN %2\$sLid AS L ON L.RecordID=RK.Lid %3\$s ORDER BY RK.Nummer;", $this->basefrom, TABLE_PREFIX, $w);
 		
-		try {
-			
-			$result = $this->execsql();
-			$rv = $result->fetchAll();
-			
-		} catch (Exception $e) {
-			debug("Probleem met SQL/database: " . $e->getMessage() . "\n", 1, 1);
-		}
+		$result = $this->execsql();
+		$rv = $result->fetchAll();
 		
 		return $rv;
-		
-	}
+	}  # overzichtbeheer
 	
 	public function overzichtlid($p_lidid) {
 		$query = sprintf("SELECT IF ((SELECT COUNT(*) FROM %sRekreg AS RR WHERE RR.Rekening=RK.Nummer) > 0, RK.Nummer, 0) AS lnkNummer,
