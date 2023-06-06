@@ -100,14 +100,17 @@ li {
 
 label, input, select {
 	height: 30px;
-	margin-top: 3px;
-	margin-bottom: 3px;
 }
 
 button, input, select, textarea {
 	float: left;
 	color: var(--default-text-color);
 	margin-right: 4px;
+}
+
+label, input, select, textarea {
+	margin-top: 3px;
+	margin-bottom: 3px;
 }
 
 p {	
@@ -193,8 +196,6 @@ button {
 	
 	padding-left: 6px;
 	padding-right: 6px;
-	padding-top: 4px;
-	padding-bottom: 4px;
 }
 
 button.btn-fixed-top-right {
@@ -257,7 +258,7 @@ header h1 {
 
 #filter p {
 	margin-right: 6px;
-	margin-top: 6px;
+	margin-top: 12px;
 	margin-bottom: 0;
 	clear: none;
 	vertical-align: middle;
@@ -286,7 +287,7 @@ header h1 {
 }
 
 #filter input[type='checkbox'] {
-	margin-top: 6px;
+	margin-top: 12px;
 	margin-bottom: 0;
 }
 
@@ -716,6 +717,10 @@ table#deelnemersevenementmuteren {
 	padding-top: 8px;
 }
 
+#wijzigenlidgegevens select {
+	max-width: calc(100% - 170px);
+}
+
 .ledenperonderdeelmuteren select {
 	width: 150px;
 }
@@ -928,17 +933,6 @@ table#afdelingskalendermuteren {
 	border-width: 1px;
 	border-right-style: solid;
 	padding-left: 1px;
-}
-
-#groepsindeling p {
-	margin-top: 2px;
-	margin-bottom: 1px;
-}
-
-#groepsindeling select {
-	margin-top: 5px;
-	margin-bottom: 8px;
-	margin-left: 3px;
 }
 
 #groepsindeling ol {
@@ -1583,7 +1577,10 @@ fieldset h3 {
 	width: 150px;
 	margin-left: 5px;
 	margin-right: 5px;
-	float: left;
+}
+
+#verstuurdemail label#lblIngevoerdDoor, #verstuurdemail label#lblGaNaar, #verstuurdemail label#lblEmail, #verstuurdemail label#lblEmailOntvanger {
+	clear: none;
 }
 
 #verstuurdemail p {
@@ -2401,16 +2398,11 @@ table#rekeningregels {
 	padding-right: 0;
 }
 
-#wijzigenlidgegevens select {
-	width: 225px;
-}
-
 #wijzigenlidgegevens textarea {
 	float: left;
 }
 
 #wijzigenlidgegevens select, #nieuwlid select {
-	margin-top: 4pt;
 	margin-right: 0;
 	padding-right: 0;
 }
@@ -2420,7 +2412,7 @@ table#rekeningregels {
 	float: left;
 	margin-left: 5px;
 	margin-right: 8px;
-	padding-top: 7px;
+	padding-top: 2px;
 }
 
 #wijzigenlidgegevens .invoerblok, #nieuwlid .invoerblok {
@@ -2565,10 +2557,6 @@ li.presstat_v, td.presstat_v {
 		margin-bottom: 6px;
 	}
 	
-	#wijzigenlidgegevens input, #wijzigenlidgegevens select {
-		width: 200px;
-	}
-	
 	.kaartje {
 		width: 100%;
 	}
@@ -2586,9 +2574,12 @@ li.presstat_v, td.presstat_v {
 	}
 	
 	h1#naamwebsite {
-/*		display: none; */
 		max-width: 50px;
 		height: 26px;
+	}
+	
+	#stukkenlijst th.zichtbaarvoor, #stukkenlijst td.zichtbaarvoor, #stukkenlijst th.ingangsdatum, #stukkenlijst td.ingangsdatum {
+		display: none;
 	}
 	
 	#tab-groepen table, #tab-diplomas table, #tab-presentie table {
@@ -2612,6 +2603,16 @@ li.presstat_v, td.presstat_v {
 	}
 	
 	#tab-evenementen th.contact, #tab-evenementen td.contact, #tab-evenementen th.opmerking, #tab-evenementen td.opmerking, #tab-evenementen th.inagenda, #tab-evenementen td.inagenda {
+		display: none;
+	}
+	
+	#wijzigenlidgegevens label#lblHuisletter, #wijzigenlidgegevens label#lblToevoeging {
+		clear: left;
+		width: 160px;
+		margin-left: 0;
+	}
+	
+	#wijzigenlidgegevens p#uitleg_gebdatum {
 		display: none;
 	}
 	
@@ -2646,6 +2647,9 @@ li.presstat_v, td.presstat_v {
 		clear: left;
 	}
 	
+	input.w30, input.w40 {
+		width: 165px;
+	}
 	
 	input.w250 {
 		width: 275px;
@@ -2655,9 +2659,17 @@ li.presstat_v, td.presstat_v {
 		width: 260px;
 	}
 	
+	input.w90, textarea.w90 {
+		width: 450px;
+	}
+	
 	#tab-agenda li {
 		overflow: hidden;
 		height: 22px;
+	}
+		
+	#stukkenlijst th.revisiedatum, #stukkenlijst td.revisiedatum {
+		display: none;
 	}
 }
 
