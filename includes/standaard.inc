@@ -633,7 +633,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 		$ret .= "<thead>\n<tr>";
 		
 		if ($kols == "logboek") {
-			$kols = fnStandaardKols($kols);
+			$kols = fnStandaardKols($kols, 1, $rows);
 		}
 			
 		if ($kols == null) {
