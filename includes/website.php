@@ -4,7 +4,7 @@ function fnStukken($p_scherm="") {
 	global $dtfmt;
 	
 	$scherm = $p_scherm;
-	
+
 	if ($scherm != "O") {
 		fnDispMenu(2);
 	}
@@ -27,21 +27,20 @@ function fnStukken($p_scherm="") {
 	
 	if (isset($_GET['op']) and $_GET['op'] == "delete" and $stid > 0) {
 		$i_stuk->delete($stid);
-	}
-	
-	
+	}	
+
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		if (isset($_POST['Toevoegen'])) {
 			$i_stuk->add();
 		}
 		
-		if ($_POST['naamdoc'] == "extlink") {
+		if (isset($_POST['naamdoc']) and $_POST['naamdoc'] == "extlink") {
 			if (isset($_POST['extlink'])) {
 				$_POST['Link'] = $_POST['extlink'];
 			} else {
 				$_POST['Link'] = "";
 			}
-		} else {
+		} elseif (isset($_POST['naamdoc'])) {
 			$_POST['Link'] = $_POST['naamdoc'];
 		}
 		
@@ -127,9 +126,9 @@ function fnStukken($p_scherm="") {
 		
 	} elseif ($scherm == "O") {
 		
-		$rv = sprintf("<table class='%s'>\n", TABLECLASSES);
+		$rv = sprintf("<table class='%s' id='stukkenlijst'>\n", TABLECLASSES);
 		$rv .= "<thead>\n";
-		$rv .= "<tr><th>Titel</th><th>Bestemd voor</th><th>Zichtbaar voor</th><th>Ingangsdatum/versie</th><th>Revisiedatum</th></tr>\n";
+		$rv .= "<tr><th>Titel</th><th>Bestemd voor</th><th class='zichtbaarvoor'>Zichtbaar voor</th><th class='ingangsdatum'>Ingangsdatum/versie</th><th class='revisiedatum'>Revisiedatum</th></tr>\n";
 		$rv .= "</thead>\n";
 		
 		$vc = "ZZ";
@@ -150,7 +149,7 @@ function fnStukken($p_scherm="") {
 			} else {
 				$t = $row->Titel;
 			}
-			$rv .= sprintf("<td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n", $t, $row->BestemdVoor, $row->Zichtbaar, $dtfmt->format(strtotime($row->Ingangsdatum)), $dtfmt->format(strtotime($row->Revisiedatum)));
+			$rv .= sprintf("<td>%s</td><td>%s</td><td class='zichtbaarvoor'>%s</td><td class='ingangsdatum'>%s</td><td class='revisiedatum'>%s</td></tr>\n", $t, $row->BestemdVoor, $row->Zichtbaar, $dtfmt->format(strtotime($row->Ingangsdatum)), $dtfmt->format(strtotime($row->Revisiedatum)));
 			$vc = $row->Type;
 		}
 		
@@ -164,10 +163,10 @@ function fnStukken($p_scherm="") {
 		
 		$l = sprintf("%s?tp=%s&p_scherm=F&p_stid=%%d", BASISURL, $_GET['tp']);
 		$kols[0] = ['columnname' => "RecordID", 'headertext' => "&nbsp;", 'class' => "muteren", 'link' => $l];
-		
+
 		$kols[1]['headertext'] = "Titel";
 		$kols[2]['headertext'] = "Type";
-		$kols[3]['headertext'] = "Bestemd voor";
+		$kols[3] = ['columnname' => "BestemdVoor", 'headertext' => "Bestemd voor"];
 		
 		$kols[4] = ['columnname' => "Zichtbaar", 'headertext' => "Zichtbaar voor"];
 		$kols[5] = ['columnname' => "VastgesteldOp", 'headertext' => "Vastgesteld op", 'type' => "dateshort"];
