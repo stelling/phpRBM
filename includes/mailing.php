@@ -6,7 +6,7 @@ function fnMailing() {
 	$_GET['mid'] = $_GET['mid'] ?? 0;
 	$_GET['mhid'] = $_GET['mhid'] ?? 0;
 	$op = $_GET['op'] ?? "";
-		
+
 	if ($_SESSION['settings']['mailing_direct_verzenden'] > 0) {
 		sentoutbox(3);
 	}
@@ -532,8 +532,6 @@ class Mailing {
 			$this->mid = $p_mid;
 		}
 		
-		$this->mailingvanafid = (new cls_Mailing_vanaf())->min();
-			
 		if ($this->mid > 0) {
 			$ml = (new cls_Mailing())->record($this->mid);
 			
@@ -645,7 +643,7 @@ class Mailing {
 				
 				printf("<input type='email' maxlength=50 placeholder='Toevoegen e-mailadres' onBlur=\"mailing_add_ontvanger(%d, 0, $(this).val());\">", $this->mid);
 				if ($this->aant_rcpt > 0) {
-					echo("<button type='button' id='OntvangersVerwijderen' OnClick='mailing_verw_alle_ontvangers();'><i class='bi bi-trash'></i> Ontvangers</button>\n");
+					echo("<button type='button' id='OntvangersVerwijderen' class='btn btn-light' OnClick='mailing_verw_alle_ontvangers();'><i class='bi bi-trash'></i> Ontvangers</button>\n");
 				}
 				
 				echo("<div class='clear'></div>\n");
@@ -671,9 +669,9 @@ class Mailing {
 				printf("<label>Zit in groep</label><select name='selectie_groep' id='selectie_groep' OnChange='mailingprops(%d);'>%s</selectie>\n", $this->mid, $selgr);
 				
 				echo("<label>Aantal personen in groep</label><p id='aantalpersoneningroep'></p>\n");
-				echo("<button type='button' id='LedenToevoegen' OnClick='mailing_add_selectie_ontvangers();'><i class='bi bi-plus-circle'></i> Groepsleden</button>\n");
+				echo("<button type='button' id='LedenToevoegen' class='btn btn-light btn-sm' OnClick='mailing_add_selectie_ontvangers();'><i class='bi bi-plus-circle'></i> Groepsleden</button>\n");
 				if ($this->aant_rcpt > 0) {
-					echo("<button type='button' id='LedenVerwijderen' OnClick='mailing_verw_selectie_ontvangers();'><i class='bi bi-trash'></i> Groepsleden</button>\n");
+					echo("<button type='button' class='btn btn-light btn-sm' id='LedenVerwijderen' OnClick='mailing_verw_selectie_ontvangers();'><i class='bi bi-trash'></i> Groepsleden</button>\n");
 				}
 				echo("</div> <!-- Einde mailingselectieleden -->\n");
 				echo("<div class='clear'></div>\n");
@@ -760,7 +758,7 @@ class Mailing {
 		echo("<div id='opdrachtknoppen'>\n");
 		if ($this->mid > 0) {
 			echo("<button type='submit' name='action' value='Bewaren'><i class='bi bi-save'></i> Bewaren</button>\n");
-			echo("<button type='submit' name='action' value='Bewaren & sluiten'>Bewaren & sluiten</button>\n");
+			echo("<button type='submit' name='action' value='Bewaren & sluiten'><i class='bi bi-door-closed'></i> Bewaren & sluiten</button>\n");
 		} else {
 			echo("<button type='submit' name='Toevoegen'><i class='bi bi-plus-circle'></i> Toevoegen</button>\n");
 		}
@@ -1640,7 +1638,7 @@ class email {
 		if ($this->zichtbaar) {
 
 			$txt = "<div id='verstuurdemail'>\n";
-			$txt .= sprintf("<label>Klaar gezet op</label><p>%s</p><label class='k2'>door</label><p>%s</p>\n", $this->ingevoerd, $this->ingevoerddoor);
+			$txt .= sprintf("<label>Klaar gezet op</label><p>%s</p><label id='lblIngevoerdDoor'>door</label><p>%s</p>\n", $this->ingevoerd, $this->ingevoerddoor);
 		
 			if (strlen($this->verstuurdop) > 0) {
 				$txt .= sprintf("<label>Verzonden</label><p>%s</p>\n", $this->verstuurdop);
@@ -1649,11 +1647,11 @@ class email {
 			}
 		
 			if ($this->zonderbriefpapier == 0 and strlen($this->bericht) > 10) {
-				$txt .= sprintf("<label class='k2'>Ga naar</label><p><a href='%s?tp=Mailing&op=preview_hist&mhid=%d'>preview</a></p>", $_SERVER['PHP_SELF'], $this->mhid);
+				$txt .= sprintf("<label id='lblGaNaar'>Ga naar</label><p><a href='%s?tp=Mailing&op=preview_hist&mhid=%d'>preview</a></p>", $_SERVER['PHP_SELF'], $this->mhid);
 			}
 		
 			if (strlen($this->vanafnaam) > 0) {
-				$txt .= sprintf("<label>Van</label><p>%s</p><label class='k2'>E-mail</label><p>%s</p>\n", $this->vanafnaam, $this->vanafadres);
+				$txt .= sprintf("<label>Van</label><p>%s</p><label id='lblEmail'>E-mail</label><p>%s</p>\n", $this->vanafnaam, $this->vanafadres);
 			} else {
 				$txt .= sprintf("<label>Van</label><p>%s</p>\n", $this->vanafadres);
 			}
@@ -1664,7 +1662,7 @@ class email {
 		
 			if (strlen($this->aannaam) > 0 and $this->aannaam != $this->aanadres) {
 				$txt .= sprintf("<label>Ontvanger</label><p>%s</p>", $this->aannaam);
-				$txt .= sprintf("<label class='k2'>E-mail</label><p>%s</p>\n", $this->aanadres);
+				$txt .= sprintf("<label id='lblEmailOntvanger'>E-mail</label><p>%s</p>\n", $this->aanadres);
 			} else {
 				$txt .= sprintf("<label>Aan e-mail</label><p>%s</p>\n", $this->aanadres);
 			}
@@ -1714,17 +1712,17 @@ class email {
 
 			$txt = sprintf("<form method='post' id='verstuurdemail' action='%s?tp=%s/%s&op=edit_email'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
 			$txt .= sprintf("<label>RecordID</label><p id='recordid'>%d</p>\n", $this->mhid);
-			$txt .= sprintf("<label>Klaar gezet op</label><p>%s</p><label class='k2'>door</label><p>%s</p>\n", $this->ingevoerd, $this->ingevoerddoor);
+			$txt .= sprintf("<label>Klaar gezet op</label><p>%s</p><label id='lblIngevoerdDoor'>door</label><p>%s</p>\n", $this->ingevoerd, $this->ingevoerddoor);
 		
 			if (strlen($this->vanafnaam) > 0) {
-				$txt .= sprintf("<label>Van</label><p>%s</p><label class='k2'>E-mail</label><p>%s</p>\n", $this->vanafnaam, $this->vanafadres);
+				$txt .= sprintf("<label>Van</label><p>%s</p><label id='lblEmail'>E-mail</label><p>%s</p>\n", $this->vanafnaam, $this->vanafadres);
 			} else {
 				$txt .= sprintf("<label>Van</label><p>%s</p>\n", $this->vanafadres);
 			}
 		
 			if (strlen($this->aannaam) > 0 and $this->aannaam != $this->aanadres) {
 				$txt .= sprintf("<label>Ontvanger</label><p>%s</p>", $this->aannaam);
-				$txt .= sprintf("<label class='k2'>E-mail</label><p>%s</p>\n", $this->aanadres);
+				$txt .= sprintf("<label id='lblEmailOntvanger'>E-mail</label><p>%s</p>\n", $this->aanadres);
 			} else {
 				$txt .= sprintf("<label>Aan e-mail</label><p>%s</p>\n", $this->aanadres);
 			}
@@ -1968,7 +1966,7 @@ function fnRekeningenMailen($op) {
 		$i_p->vulsessie();
 		printf("<form method='post' action='%s?tp=%s/%s&amp;op=selectierekeningen' name='mailrek'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
 		echo("<h2>Filters</h2>\n");
-		echo("<table>\n");
+		printf("<table class='%s'>\n", TABLECLASSES);
 		echo("<tr><th></th><th>Gelijk aan</th><th>Vanaf</th><th>Totenmet</th></tr>");
 		printf("<tr><th>Seizoen</th><td><select name='rekseizoen'>\n%s</select></td><td></td><td></td></tr>\n", (new cls_Seizoen())->htmloptions(-1, 1));
 		printf("<tr><th>Rekeningnummer</th><td><input type='number' name='reknr'></td><td><input type='number' value=%d name='minreknr'></td><td><input type='number' value=%d name='maxreknr'></td></tr>\n", $i_rk->min("Nummer"), $i_rk->max("Nummer"));
@@ -2418,7 +2416,7 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 			}
 		} elseif ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 			// Op het testsysteem alleen mails sturen als de smtp server is ingevuld. Dit om bij een storing te voorkomen dat er onnodige e-mails worden verstuurd.
-		} else {
+		} elseif ( function_exists("mail") ) {
 			$this->IsMail(true);
 		}
 		$this->CharSet = "UTF-8";
