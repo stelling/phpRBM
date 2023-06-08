@@ -1071,7 +1071,8 @@ class cls_Lid extends cls_db_base {
 					ORDER BY %sL.Achternaam, L.TUSSENV, L.Roepnaam, LM.LIDDATUM;", $this->selectnaam, $xtraselect, $this->selectzoeknaam, $from, $filter, $p_ord);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
-	}
+		
+	}  # ledenlijst
 	
 	public function aantallid($p_soort="L", $p_geslacht="*") {
 		
@@ -2577,7 +2578,7 @@ class cls_Afdelingskalender extends cls_db_base {
 	
 	function __construct($p_ondid=-1, $p_akid=-1) {
 		$this->table = TABLE_PREFIX . "Afdelingskalender";
-		$this->basefrom = $this->table . " AS AK";
+		$this->basefrom = sprintf("%s AS AK", $this->table);
 		$this->vulvars($p_akid, $p_ondid);
 	}
 	
@@ -2660,6 +2661,21 @@ class cls_Afdelingskalender extends cls_db_base {
 		return $this->scalar($query);
 	}
 	
+	public function datumeerstelesperiode($p_afdid, $p_aantal=13) {
+		$query = sprintf("SELECT AK.Datum FROM %s WHERE AK.OnderdeelID=%d AND AK.Activiteit=1 AND AK.Datum <= CURDATE() ORDER BY AK.Datum DESC;", $this->basefrom, $p_afdid);
+		$res = $this->execsql($query);
+		$i = 0;
+		$rv = "2000-01-01";
+		foreach ($res->fetchAll() as $row) {
+			if ($i < $p_aantal) {
+				$rv = $row->Datum;
+			}
+			$i++;
+		}
+		
+		return $rv;
+	}
+	
 	public function add($p_ondid) {
 		$this->tas = 1;
 		$this->vulvars(-1, $p_ondid);
@@ -2732,7 +2748,7 @@ class cls_Aanwezigheid extends cls_db_base {
 	
 	function __construct() {
 		$this->table = TABLE_PREFIX . "Aanwezigheid";
-		$this->basefrom = $this->table . " AS AW";
+		$this->basefrom = sprintf("%s AS AW", $this->table);
 		$this->ta = 24;
 		
 		$this->selstat = "CASE AW.Status WHEN '' THEN 'Aanwezig' ";
@@ -2911,18 +2927,19 @@ class cls_Aanwezigheid extends cls_db_base {
 	}
 	
 	public function controle() {
+		$this->tas = 2;
 		
-/*		
 		foreach($this->basislijst() as $row) {
 			if ($row->Status == "N") {
 				// Deze if mag na 1 januari 2024 weg
-				$this->pdoupdate($row->RecordID, "Status", "X", "de reden N is komen te vervallen.");
+				if ($this->pdoupdate($row->RecordID, "Status", "X", "de status N is komen te vervallen.")) {
+					$this->log($row->RecordID);
+				}
 			} elseif (strlen($row->Status) > 0 and array_key_exists($row->Status, ARRPRESENTIESTATUS) == false) {
 				$this->pdoupdate($row->RecordID, "Status", "", "het een onbekende status is");
 			}
 		}
-*/
-	}
+	}  # controle
 	
 	public function opschonen() {
 		$i_lo = new cls_Lidond();
@@ -3155,14 +3172,15 @@ class cls_Lidond extends cls_db_base {
 		}
 		
 		$query = sprintf("SELECT LO.RecordID, LO.Lid AS LidID, LO.OnderdeelID, LO.Opmerk, LO.Vanaf, LO.Opgezegd, LO.EmailFunctie, LO.GroepID, LO.Functie AS FunctieID, LO.Lid,
-						  %s AS NaamLid, L.Roepnaam, L.Achternaam, L.Tussenv, L.GEBDATUM, %s AS Leeftijd, %s AS Email, L.EmailVereniging, 
-						  F.Omschrijv AS Functie, F.Afkorting AS FunctAfk, F.Inval AS Invalfunctie, %s AS Groep, GR.DiplomaID,
-						  O.Kode, O.Naam AS OndNaam, O.CentraalEmail,
-						  GR.Kode AS GrCode, GR.Omschrijving AS GrNaam, GR.Aanwezigheidsnorm, IFNULL(Act.BeperkingAantal, 0) AS BeperkingAantal, L.RelnrRedNed AS SportlinkID,
-						  CASE WHEN LO.GroepID > 0 AND LO.Functie > 0 THEN CONCAT(F.OMSCHRIJV, '/', IF(LENGTH(GR.Kode)=0, GR.RecordID, GR.Kode))
-							WHEN LO.Functie > 0 THEN F.OMSCHRIJV
-							WHEN LO.GroepID > 0 THEN IF(LENGTH(GR.Omschrijving)=0, IF(LENGTH(GR.Kode)=0, GR.RecordID, GR.Kode), GR.Omschrijving)
-							ELSE '' END AS `FunctieGroep`
+								%s AS NaamLid, L.Roepnaam, L.Achternaam, L.Tussenv, L.GEBDATUM, %s AS Leeftijd, %s AS Email, L.EmailVereniging, 
+								F.Omschrijv AS Functie, F.Afkorting AS FunctAfk, F.Inval AS Invalfunctie, %s AS Groep, GR.DiplomaID,
+								O.Kode, O.Naam AS OndNaam, O.CentraalEmail,
+								GR.Kode AS GrCode, GR.Omschrijving AS GrNaam, GR.Aanwezigheidsnorm, IFNULL(Act.BeperkingAantal, 0) AS BeperkingAantal, L.RelnrRedNed AS SportlinkID,
+								CASE WHEN LO.GroepID > 0 AND LO.Functie > 0 THEN CONCAT(F.OMSCHRIJV, '/', IF(LENGTH(GR.Kode)=0, GR.RecordID, GR.Kode))
+									WHEN LO.Functie > 0 THEN F.OMSCHRIJV
+									WHEN LO.GroepID > 0 THEN IF(LENGTH(GR.Omschrijving)=0, IF(LENGTH(GR.Kode)=0, GR.RecordID, GR.Kode), GR.Omschrijving)
+									ELSE '' END AS `FunctieGroep`,
+								IF(IFNULL(LO.Opgezegd, '9999-12-31') > CURDATE(), LO.RecordID, 0) AS ridDelete
 						  FROM %s
 						  WHERE %s
 						  ORDER BY %sL.Achternaam, L.Tussenv, L.Roepnaam%s;", $this->selectnaam, $this->selectleeftijd, $this->selectemail, $this->selectgroep, $this->fromlidond, $w, $p_ord, $lm);
@@ -5018,24 +5036,13 @@ class cls_Mailing_hist extends cls_db_base {
 		$query = sprintf("SELECT MH.RecordID FROM %s WHERE MH.MailingID > 0 AND MH.MailingID NOT IN (SELECT M.RecordID FROM %sMailing AS M);", $this->basefrom, TABLE_PREFIX);
 		$res = $this->execsql($query);
 		foreach ($res->fetchAll() as $mhrow) {
-			$this->update($mhrow->RecordID, "MailingID", 0, "de mailing niet (meer) bestaat.");
+			$this->update($mhrow->RecordID, "MailingID", 0, "de mailing niet (meer) bestaat");
 		}
 		
 		$f = "IFNULL(MH.VanafID, 0)=0";
 		foreach ($this->basislijst($f, "", 1, 2500) as $mhrow) {
-			if (strlen($mhrow->from_addr) > 5) {
-				$f2 = sprintf("LOWER(MV.Vanaf_email)='%s'", strtolower($mhrow->from_addr));
-				$mvid = $i_mv->min("RecordID", $f2);
-				if ($mvid > 0) {
-					$this->update($mhrow->RecordID, "VanafID", $mvid, "", 1);
-				} else {
-					$mvid = $i_mv->min("RecordID");
-					$this->update($mhrow->RecordID, "VanafID", $mvid, "", 1);
-				}
-			} else {
-				$mvid = $i_mv->min("RecordID");
-				$this->update($mhrow->RecordID, "VanafID", $mvid, "", 1);
-			}
+			$mvid = $i_mv->min("RecordID");
+			$this->update($mhrow->RecordID, "VanafID", $mvid, "", 1);
 		}
 		
 		$i_mv = null;
@@ -6540,7 +6547,7 @@ class cls_Examen extends cls_db_base {
 		}
 	}
 	
-	public function htmloptions($p_cv=-1, $p_filter="") {
+	public function htmloptions($p_cv=-1, $p_filter="", $p_aantkand=1) {
 		global $dtfmt;
 		
 		$rv = "";
@@ -6551,7 +6558,11 @@ class cls_Examen extends cls_db_base {
 			if ($p_cv == $row->Nummer) {
 				$s = " selected";
 			}
-			$rv .= sprintf("<option%s value=%d>%s | %s | %d kandidaten</option>\n", $s, $row->Nummer, $dtfmt->format(strtotime($row->Datum)), $row->Plaats, $row->AantalBehaald);
+			$rv .= sprintf("<option%s value=%d>%s | %s", $s, $row->Nummer, $dtfmt->format(strtotime($row->Datum)), $row->Plaats);
+			if ($p_aantkand == 1) {
+				$rv .= sprintf(" | %d kandidaten", $row->AantalBehaald);
+			}
+			$rv .= "</option>\n";
 		}
 		
 		return $rv;
