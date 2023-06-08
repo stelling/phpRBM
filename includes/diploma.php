@@ -103,7 +103,7 @@ function ExamensMuteren() {
 	$kols[6]['readonly'] = true;	
 
 	printf("<form method='post' action='%s?tp=%s/%s'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
-	echo("<button name='nieuwExamen' type='submit'>Nieuw examen</button>\n");
+	echo("<button name='nieuwExamen' type='submit' class='btn btn-light'>Nieuw examen</button>\n");
 	echo("</form>\n");
 	echo(fnEditTable($res, $kols, "examensmuteren", "Muteren examens"));
 	
@@ -133,14 +133,16 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 	$exid = $_POST['selecteerexamen'] ?? 0;
 	$dpid = $_POST['selecteerdiploma'] ?? 0;
 	$i_dp = new cls_Diploma($dpid);
-	
-	if ($exid == -1) {
-		$exid = $i_ex->add();
-		$i_ex->update($exid, "OnderdeelID", $p_afdid);
-	}
+
 	$i_ex->vulvars($exid);
-		
+
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		if (isset($_POST['btnExamenToevoegen'])) {
+			$exid = $i_ex->add();
+			$f = sprintf("AK.OnderdeelID=%d AND AK.Datum >= CURDATE() AND AK.Activiteit=1", $p_afdid);
+			$i_ex->update($exid, "Datum", (new cls_Afdelingskalender())->min("Datum", $f));
+			$i_ex->update($exid, "OnderdeelID", $p_afdid);
+		}
 		$i_ex->vulvars($exid);
 		foreach ($_POST as $k => $v) {
 			if (substr($k, 0, 12) == "ldtoevoegen_") {
@@ -171,21 +173,22 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 	if ($p_perexamen == 1) {
 		echo("<label>Examen</label>");
 		$fex = sprintf("(EX.OnderdeelID=0 OR EX.OnderdeelID=%d)", $p_afdid);
-		printf("<select name='selecteerexamen' onChange='this.form.submit();'>\n<option value=0>Selecteer examen ...</option>\n<option value=-1>*** Nieuw examen</option>\n%s</select>\n", $i_ex->htmloptions($exid, $fex));
+		printf("<select name='selecteerexamen' onChange='this.form.submit();'>\n<option value=0>Selecteer examen ...</option>\n%s</select>\n", $i_ex->htmloptions($exid, $fex));
 	} else {
 		$exid = 0;
 		$i_ld->controle();
 	}
 	$i_ex->vulvars($exid);
 	
-	printf("<select name='selecteerdiploma' onChange='this.form.submit();'>\n<option value=-1>Selecteer diploma ...</option>\n%s</select>\n", $i_dp->htmloptions($dpid, -1, 0, 0, $f, 0, $i_ex->exid));
+	printf("<select name='selecteerdiploma' onChange='this.form.submit();'>\n<option value=-1>Selecteer diploma ...</option>\n%s</select>\n", $i_dp->htmloptions($dpid, -1, 0, 0, "", 0, $i_ex->exid));
 	if ($exid > 0) {
-		echo("<button type='submit'><i class='bi bi-arrow-clockwise'></i> Ververs scherm</button>\n");
+		echo("<button type='submit' class='btn btn-light'><i class='bi bi-arrow-clockwise'></i> Ververs scherm</button>\n");
 	}
 	if ($exid > 0 and $dpid > 0 and $i_dp->organisatie == 1) {
-		printf("<button type='button' onClick=\"window.open('%s?tp=%s/DL-lijst&p_examen=%d&p_diploma=%d', '_blank')\"><i class='bi bi-printer'></i> DL-lijst</button>\n", $_SERVER['PHP_SELF'], $currenttab, $exid, $dpid);
+		printf("<button type='button' class='btn btn-light' onClick=\"window.open('%s?tp=%s/DL-lijst&p_examen=%d&p_diploma=%d', '_blank')\"><i class='bi bi-printer'></i> DL-lijst</button>\n", $_SERVER['PHP_SELF'], $currenttab, $exid, $dpid);
 	}
 	echo("</div> <!-- Einde filter -->\n");
+	$dtfmt->setPattern(DTTEXT);
 	
 	if ($exid > 0) {
 		echo("<div id='examenmuteren'>\n");
@@ -205,7 +208,6 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 		$i_ld->controle($exid);
 	}
 
-	$dtfmt->setPattern(DTTEXT);
 	if ($exid > 0) {
 		if (isset($_POST['nwe_groep']) and strlen($_POST['nwe_groep']) > 0 and $p_afdid > 0) {
 			$grid = intval(explode("-", $_POST['nwe_groep'])[0]);
@@ -230,11 +232,15 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 				}
 			}
 		}
+	} else {
+		echo("<div id='opdrachtknoppen'>\n");
+		echo("<button type='submit' name='btnExamenToevoegen'><i class='bi bi-plus-circle'></i> Examen</button>\n");
+		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 	}
 	
 	if (($exid > 0 or $p_perexamen == 0)) {
 
-		echo("<div id='examenresultaten'>\n");
+		echo("<div id='examenresultaten' class='row'>\n");
 		
 		$query = sprintf("SELECT DISTINCT LD.DiplomaID AS DiplomaID FROM %1\$sLiddipl AS LD INNER JOIN %1\$sDiploma AS DP ON LD.DiplomaID=DP.RecordID WHERE ", TABLE_PREFIX);
 		if ($p_perexamen == 1 and $dpid <= 0) {
@@ -255,9 +261,9 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 			}
 	
 			if ($p_perexamen == 1) {
-				echo("<div class='kandidatengroep'>\n");
+				echo("<div class='kandidatengroep col'>\n");
 			}
-			echo("<table>\n");
+			printf("<table class='%s'>\n", TABLECLASSES);
 			$t = "";
 			if ($p_perexamen == 1) {
 				$ldrows = $i_ld->perexamendiploma($exid, $i_dp->dpid);
@@ -380,15 +386,16 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 				}
 				$f = sprintf("GR.OnderdeelID=%d AND GR.DiplomaID IN (%s)", $p_afdid, $vdps);
 				foreach ($i_gr->basislijst($f) as $vgrow) {
-					printf("<button type='submit' name='nwe_groep' value='%d-%d'%s>%s naar groep %s</button>\n", $vgrow->RecordID, $i_dp->dpid, $t, $ol, $vgrow->Omschrijving);
+					printf("<button type='submit' class='btn btn-light' name='nwe_groep' value='%d-%d'%s>%s naar groep %s</button>\n", $vgrow->RecordID, $i_dp->dpid, $t, $ol, $vgrow->Omschrijving);
 				}
 			}
 			if ($p_perexamen == 1) {
-				echo("</div> <!-- Einde kandidatengroep -->\n");
+				echo("</div> <!-- Einde kandidatengroep col -->\n");
+//				echo("</div> <!-- Einde col -->\n");
 			}
 		}
+		echo("</div> <!-- Einde examenresultaten -->\n");
 	}
-	echo("</div> <!-- Einde examenresultaten -->\n");
 	
 	if ($p_afdid > 0 and $exid > 0) {
 		$f = sprintf("GR.OnderdeelID=%d AND GR.DiplomaID > 0", $p_afdid);
@@ -398,7 +405,7 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 			$f_toev_groep = sprintf("LO.OnderdeelID=%1\$d AND LO.GroepID=%2\$d AND IFNULL(LO.Opgezegd, '9999-12-31') >= '%3\$s' AND LO.Lid NOT IN (SELECT LD.Lid FROM %4\$sLiddipl AS LD WHERE LD.Examen=%3\$d AND LD.DiplomaID=%5\$d)", $p_afdid, $grrow->RecordID, $exid, TABLE_PREFIX, $grrow->DiplomaID);
 			$al = $i_lo->aantal($f_toev_groep);
 			if ($al > 0) {
-				printf("<button name='ledengroep_%d'>%s</button>", $grrow->RecordID, $grrow->Omschrijving);
+				printf("<button type='submit' name='ledengroep_%d'>%s</button>", $grrow->RecordID, $grrow->Omschrijving);
 			}
 		}
 		echo("</div> <!-- Einde groepenaanexamentoevoegen -->\n");
