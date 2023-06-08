@@ -366,7 +366,7 @@ class Mailing {
 					WHERE LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE() AND O.`Type`='A' AND LO.Lid=%%d ORDER BY LO.Vanaf;", $i_base->fdlang, $i_ond->fromlidond);
 			$this->MergeField[]=array('Naam' => "Afdelingen", 'SQL' => $sql);
 			
-			$sql = sprintf("SELECT CONCAT(O.Naam, IF(LO.GroepID > 0, IF(LENGTH(GR.Activiteit)>0, CONCAT(' (', GR.Activiteit, ')'), ''), IF(LO.Functie > 0, CONCAT(' (', F.Omschrijv , ')'), '')))
+			$sql = sprintf("SELECT CONCAT(O.Naam, IF(LO.GroepID > 0, IF(GR.ActiviteitID>0, CONCAT(' (', Act.Omschrijving, ')'), ''), IF(LO.Functie > 0, CONCAT(' (', F.Omschrijv , ')'), '')))
 					FROM %s
 					WHERE IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE() AND O.`Type`='A' AND LO.Lid=%%d ORDER BY O.Naam;", $i_ond->fromlidond);
 			$this->MergeField[]=array('Naam' => "AfdelingenMetActiviteit", 'SQL' => $sql);
