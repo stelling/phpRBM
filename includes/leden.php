@@ -10,6 +10,7 @@ function fnLedenlijst() {
 	$i_ond = new cls_Onderdeel();
 	$i_act = new cls_Activiteit();
 	$i_el = new cls_Eigen_lijst();
+	$i_gr = new cls_Groep();
 
 	$i_lo->auto_einde(-1, 480);
 	$i_lo->autogroepenbijwerken(-1, 480);
@@ -118,7 +119,7 @@ function fnLedenlijst() {
 		} else {
 			$toonadres = 0;
 		}
-		printf("<input type='checkbox' class='form-check-input' name='toontelefoon' title='Toon telefoon'%s onClick='this.form.submit();'><p>Telefoon</p>\n", checked($toontelefoon));
+		printf("<span><input type='checkbox' class='form-check-input' name='toontelefoon' title='Toon telefoon'%s onClick='this.form.submit();'><p>Telefoon</p></span>\n", checked($toontelefoon));
 		printf("<input type='checkbox' class='form-check-input' name='toonemail' title='Toon e-mail'%s onClick='this.form.submit();'><p>E-mail</p>\n", checked($toonemail));
 		if (in_array("lidnummer", $arrCB)) {
 			printf("<input type='checkbox' class='form-check-input' name='toonlidnummer' title='Toon lidnummer'%s onClick='this.form.submit();'><p>Lidnr</p>\n", checked($toonlidnummer));
@@ -131,7 +132,7 @@ function fnLedenlijst() {
 			$toonvanaf = 0;
 		}
 		if (in_array("opgezegd", $arrCB)) {
-			printf("<span><input type='checkbox' class='form-check-input' name='toonopgezegd' title='Toon opgezegd'%s onClick='this.form.submit();'><p>Opgezegd</p></span>\n", checked($toonopgezegd));
+			printf("<input type='checkbox' class='form-check-input' name='toonopgezegd' title='Toon opgezegd'%s onClick='this.form.submit();'><p>Opgezegd</p>\n", checked($toonopgezegd));
 		} else {
 			$toonopgezegd = 0;
 		}
@@ -167,36 +168,33 @@ function fnLedenlijst() {
 			$kols[5]['columnname'] = "Telefoon";
 		}
 		if ($toonemail == 1) {
-			$kols[6]['headertext'] = "E-mail";
-			$kols[6]['columnname'] = "Email";
-			$kols[6]['type'] = "email";
+			$kols[6] = ['headertext' => "E-mail", 'columnname' => "Email", 'type' => "email"];
 		}
 		if ($toonopmerking == 1) {
 			$kols[7]['headertext'] = "Opmerking";
 			$kols[7]['columnname'] = "Opmerking";
 		}
 		if ($currenttab2 == "Klosleden") {
-			$kols[8]['headertext'] = "Ond.";
-			$kols[8]['type'] = "subqry";
-			$kols[8]['subqry'] = sprintf("SELECT GROUP_CONCAT(DISTINCT O.Kode SEPARATOR '/') FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE LO.Lid=%%d AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()", TABLE_PREFIX);
-			$kols[8]['columnname'] = "RecordID";
+			$sq = sprintf("SELECT GROUP_CONCAT(DISTINCT O.Kode SEPARATOR '/') FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE LO.Lid=%%d AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()", TABLE_PREFIX);
+			$kols[] = ['headertext' => "Ond.", 'type' => "subqry", 'columnname' => "RecordID", 'class' => "onderdelen", 'subqry' => $sq];			
+			
 		} else {
 			if ($toonlidnummer == 1) {
-				$kols[8] = ['headertext' => "Lidnummer", 'columnname' => "Lidnr", 'type' => "integer", 'sortcolumn' => "LM.Lidnr"];
+				$kols[] = ['headertext' => "Lidnummer", 'columnname' => "Lidnr", 'type' => "integer", 'sortcolumn' => "LM.Lidnr"];
 			}
 			if ($toonvanaf == 1) {
-				$kols[9] = ['headertext' => "Lid vanaf", 'columnname' => "LIDDATUM", 'type' => "date", 'sortcolumn' => "LM.LIDDATUM"];
+				$kols[] = ['headertext' => "Lid vanaf", 'columnname' => "LIDDATUM", 'type' => "date", 'sortcolumn' => "LM.LIDDATUM"];
 			}
 			if ($toonopgezegd == 1) {
-				$kols[10] = ['headertext' => "Opgezegd per", 'columnname' => "Opgezegd", 'type' => "date", 'sortcolumn' => "LM.Opgezegd"];
+				$kols[] = ['headertext' => "Opgezegd per", 'columnname' => "Opgezegd", 'type' => "date", 'sortcolumn' => "LM.Opgezegd"];
 			}
 			if ($currenttab2 == "Leden") {
 				$sq = sprintf("SELECT GROUP_CONCAT(DISTINCT O.Kode SEPARATOR '/') FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE (O.Type='A' OR O.Kader=1) AND LO.Lid=%%d AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE()", TABLE_PREFIX);
-				$kols[11] = ['headertext' => "Afd./Kader", 'columnname' => "RecordID", 'type' => "subqry", 'subqry' => $sq];
+				$kols[] = ['headertext' => "Afd./Kader", 'columnname' => "RecordID", 'type' => "subqry", 'subqry' => $sq, 'class' => "afdkader"];
 			}
 		}
 		if (toegang("Ledenlijst/Wijzigen lid", 0, 0)) {
-			$kols[12] = ['columnname' => "RecordID", 'link' => "index.php?tp=Ledenlijst/Wijzigen+lid/Algemene+gegevens&lidid=%d", 'class' => 'muteren'];
+			$kols[] = ['columnname' => "RecordID", 'link' => "index.php?tp=Ledenlijst/Wijzigen+lid/Algemene+gegevens&lidid=%d", 'class' => 'muteren'];
 		}
 				
 		if (count($rows) > 1) {
@@ -783,7 +781,7 @@ function DetailsOnderdeelMuteren($p_ondid) {
 	
 }  # DetailsOnderdeelMuteren
 
-function LedenOnderdeelMuteren($p_ondid, $p_bop) {
+function LedenOnderdeelMuteren($p_ondid) {
 	$i_ond = new cls_Onderdeel($p_ondid);
 	$i_lo = new cls_Lidond($p_ondid);
 	$i_lid = new cls_Lid();
@@ -835,7 +833,6 @@ function LedenOnderdeelMuteren($p_ondid, $p_bop) {
 		}
 
 		$res = $i_lo->lijst($i_ond->oid, 8, "", "", "", 0, 0);
-//		lijst($p_ondid, $p_filter="", $p_ord="GR.Volgnummer, GR.Kode", $p_per="", $p_extrafilter="", $p_limiet=0, $p_fetched=1) {
 		
 		$f = sprintf("OnderdeelID=%d", $i_ond->oid);
 		if ($i_ond->ondtype == "A") {
@@ -862,22 +859,19 @@ function LedenOnderdeelMuteren($p_ondid, $p_bop) {
 			$kols[3]['columnname'] = "EmailFunctie";
 			$kols[3]['type']= "email";
 		}
-		$kols[4]['headertext'] = "Opmerking";
-		$kols[4]['columnname'] = "Opmerk";
+		$kols[4] = ['headertext' => "Opmerking", 'columnname' => "Opmerk"];
 		
-		if ($i_ond->ondtype == "E" or $i_ond->ondtype == "T") {
-			$kols[1]['readonly'] = true;
-			$kols[5]['headertext'] = "&nbsp;";
-			$kols[5]['columnname'] = "RecordID";
-			$kols[5]['link'] = sprintf("%s?tp=%s&op=delete&OnderdeelID=%d&RecordID=%%d", $_SERVER['PHP_SELF'], $_GET['tp'], $i_ond->oid);
-			$kols[5]['class'] = "trash";
-		} else {
+		if ($i_ond->ondtype != "E" and $i_ond->ondtype != "T") {
 			$kols[5]['headertext'] = "Tot en met";
 			$kols[5]['type'] = "date";
+		} else {
+			$kols[1]['readonly'] = true;
 		}
-		$kols[6]['headertext'] = "";
-		$kols[6]['columnname'] = "RecordID";
-		$kols[6]['type'] = "pk";
+		
+		if (($i_ond->ondtype == "E" or $i_ond->ondtype == "G"  or $i_ond->ondtype == "R" or $i_ond->ondtype == "S" or $i_ond->ondtype == "T") and $i_ond->isautogroep == false) {
+			$l = sprintf("%s?tp=%s&op=delete&OnderdeelID=%d&RecordID=%%d", $_SERVER['PHP_SELF'], $_GET['tp'], $i_ond->oid);
+			$kols[6] = ['headertext' => "&nbsp;", 'columnname' => "ridDelete", 'link' => $l, 'class' => "trash"];
+		}
 
 		echo(fnEditTable($res, $kols, "ledenperonderdeelmuteren", $i_ond->naam));
 		echo($nl);
@@ -1448,7 +1442,9 @@ function algemeenlidmuteren($lidid) {
 	$wijzvelden[] = array('label' => "Voorletters", 'naam' => "Voorletter", 'lengte' => 10, 'nietverw' => true, 'uitleg' => '');
 	$wijzvelden[] = array('label' => "Tussenvoegsels", 'naam' => "Tussenv", 'lengte' => 7);
 	$wijzvelden[] = array('label' => "Achternaam", 'naam' => "Achternaam", 'lengte' => 30, 'nietverw' => true, 'uitleg' => '');
-	$wijzvelden[] = array('label' => "Meisjesnaam", 'naam' => "Meisjesnm", 'lengte' => 25, 'uitleg' => 'Wordt niet in de achternaam getoond.');
+	if ($currenttab != "Zelfservice") {
+		$wijzvelden[] = array('label' => "Meisjesnaam", 'naam' => "Meisjesnm", 'lengte' => 25, 'uitleg' => 'Wordt niet in de achternaam getoond.');
+	}
 	$wijzvelden[] = array('label' => "Geslacht", 'naam' => "Geslacht", 'nietverw' => true);
 	if ($gs != "B") {
 		$wijzvelden[] = array('label' => "Geboortedatum", 'naam' => "GEBDATUM", 'type' => 'date', 'uitleg' => '');
@@ -2164,7 +2160,7 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 	printf("<caption>Diploma's %s muteren</caption>\n", (new cls_Lid())->Naam($lidid));
 	$minbehaald = date("d-m-Y", strtotime((new cls_Lid())->Geboortedatum($lidid)));
 	echo("<thead>\n");
-	printf("<tr><th>Code</th><th>Naam</th><th>Behaald op</th><th>Diplomanummer</th><th>Geldig tot</th></tr>\n");
+	printf("<tr><th>Code</th><th>Naam</th><th>Behaald op</th><th class='diplomanummer'>Diplomanummer</th><th class='geldigtot'>Geldig tot</th></tr>\n");
 	echo("</thead>\n");
 	echo("<tbody>\n");
 	$script = "";
@@ -2179,13 +2175,13 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 		}
 		printf("<tr>\n<td>%s</td>\n<td>%s</td>\n\n", $ldrow->Kode, $dpnm);
 		if ($ldrow->Zelfservice == 0 and $td == "ZS") {
-			printf("<td>%s</td><td>%s</td><td>%s</td>", $dtfmt->format(strtotime($ldrow->DatumBehaald)), $ldrow->Diplomanummer, $dtfmt->format(strtotime($ldrow->LicentieVervallenPer)));
+			printf("<td>%s</td><td class='diplomanummer'>%s</td><td class='geldigtot'>%s</td>", $dtfmt->format(strtotime($ldrow->DatumBehaald)), $ldrow->Diplomanummer, $dtfmt->format(strtotime($ldrow->LicentieVervallenPer)));
 		} else {
 			$id = sprintf("DatumBehaald_%d", $ldrow->RecordID);
 			printf("<td><input type='date' id='%s' value='%s' max='%s' required></td>\n", $id, $ldrow->DatumBehaald, date("Y-m-d"));
 			$script .= sprintf("$('#%1\$s').datepicker();\n$('#%1\$s').datepicker('dateFormat', 'yy-mm-dd').datepicker('maxDate', new Date());\n$('#%1\$s').datepicker('setDate', '%3\$s').datepicker('option', 'gotoCurrent', true);\n", $id, $minbehaald, $ldrow->DatumBehaald);
-			printf("<td><input type='text' id='Diplomanummer_%d' value='%s' maxlength=30></td>\n", $ldrow->RecordID, $ldrow->Diplomanummer);
-			printf("<td><input type='date' id='LicentieVervallenPer_%d' value='%s'></td>\n", $ldrow->RecordID, $ldrow->LicentieVervallenPer);
+			printf("<td class='diplomanummer'><input type='text' id='Diplomanummer_%d' value='%s' maxlength=30></td>\n", $ldrow->RecordID, $ldrow->Diplomanummer);
+			printf("<td class='geldigtot'><input type='date' id='LicentieVervallenPer_%d' value='%s'></td>\n", $ldrow->RecordID, $ldrow->LicentieVervallenPer);
 		}
 		echo("</tr>\n");
 	}
@@ -2302,7 +2298,7 @@ function lidmaatschapmuteren($lidid) {
 	echo("</table>\n");
 	
 	if ($toev) {
-		echo("<button type='submit' name='NieuwLidmaatschap' value=1><i class='bi bi-plus-circle'></i> Nieuw lidmaatschap</button>\n");
+		echo("<button type='submit' name='NieuwLidmaatschap' value=1><i class='bi bi-plus-circle'></i> Lidmaatschap</button>\n");
 	}
 	
 	echo("</form>\n");
@@ -2549,7 +2545,7 @@ function fnBasisgegevens($p_type) {
 		
 		echo("<div id='opdrachtknoppen'>\n");
 		printf("<form method='post' action='%s?%s'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
-		echo("<button name='NieuwOnderdeel' onClick='this.form.submit();'><i class='bi bi-plus-circle'></i> Nieuw onderdeel</button>\n");
+		echo("<button name='NieuwOnderdeel' onClick='this.form.submit();'><i class='bi bi-plus-circle'></i> Onderdeel</button>\n");
 		echo("</form>\n");
 		echo("</div> <! =-- Einde opdrachtknoppen -->\n");
 		
@@ -2646,7 +2642,7 @@ function fnBasisgegevens($p_type) {
 		echo(fnEditTable($fnkres, $kols, "functieedit", "Muteren functies"));
 		
 		echo("<div id='opdrachtknoppen'>\n");
-		echo("<button name='NieuweFunctie' onClick='this.form.submit();'><i class='bi bi-plus-circle'></i> Nieuwe functie</button>\n");
+		echo("<button name='NieuweFunctie' onClick='this.form.submit();'><i class='bi bi-plus-circle'></i> Functie</button>\n");
 		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 		echo("</form>\n");
 		
@@ -2680,7 +2676,7 @@ function fnBasisgegevens($p_type) {
 		echo(fnEditTable($res, $kols, "activiteitedit", "Muteren activiteiten"));
 		
 		echo("<div id='opdrachtknoppen'>\n");
-		echo("<button name='NieuweActiviteit' onClick='this.form.submit();'><i class='bi bi-plus-circle'></i> Nieuwe activiteit</button>\n");
+		echo("<button name='NieuweActiviteit' onClick='this.form.submit();'><i class='bi bi-plus-circle'></i> Activiteit</button>\n");
 		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 		echo("</form>\n");
 		
@@ -2716,7 +2712,7 @@ function fnBasisgegevens($p_type) {
 		echo(fnEditTable($orgres, $kols, "organisatieedit", "Muteren organisaties"));
 		
 		echo("<div id='opdrachtknoppen'>\n");
-		echo("<button name='NieuweOrganisatie' onClick='this.form.submit();'><i class='bi bi-plus-circle'></i> Nieuwe organisatie</button>\n");
+		echo("<button name='NieuweOrganisatie' onClick='this.form.submit();'><i class='bi bi-plus-circle'></i> Organisatie</button>\n");
 		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 		echo("</form>\n");
 		
@@ -2774,7 +2770,7 @@ function fnBasisgegevens($p_type) {
 		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 		echo(fnEditTable($seizres, $kols, "seizoenedit", "Muteren seizoenen"));
 		echo("<div id='opdrachtknoppen'>\n");
-		echo("<button name='NieuwSeizoen' onClick='this.form.submit();'><i class='bi bi-plus-circle'></i> Nieuw seizoen</button>\n");
+		echo("<button name='NieuwSeizoen' onClick='this.form.submit();'><i class='bi bi-plus-circle'></i> Seizoen</button>\n");
 		echo("</div> <! =-- Einde opdrachtknoppen -->\n");
 		echo("</form>\n");
 		
