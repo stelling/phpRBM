@@ -34,11 +34,10 @@ function fnEvenementen() {
 
 	} elseif ($currenttab2 == "Beheer") {
 		
-		echo("<div id='evenementenbeheer'>\n");
-		
 		printf("<form method='post' id='filter' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 		echo("<input type='text' name='tbTekstFilter' id='tbTekstFilter' title='Tekstfilter op de tabel' placeholder='Tekstfilter' OnKeyUp=\"fnFilter('evenementlijst', this);\">\n");
 		echo("<div class='form-check form-switch'>\n");
+		$in = "";
 		foreach(ARRSOORTEVENEMENT as $k => $v) {
 			$f = sprintf("ET.Soort='%s'", $k);
 			if ($i_et->aantal($f) > 0) {
@@ -52,41 +51,33 @@ function fnEvenementen() {
 						$chk = 0;
 					}
 				}
-				printf("<span><input type='checkbox' class='form-check-input' value=1 name='%s' onClick='this.form.submit();'%s><p>%s</p></span>\n", $cn, checked($chk), $v);
+				printf("<input type='checkbox' class='form-check-input' value=1 name='%s' onClick='this.form.submit();'%s><p>%s</p>\n", $cn, checked($chk), $v);
+				if ($chk == 1) {
+					if (strlen($in) > 0) {
+						$in .= ", ";
+					}
+					$in .= sprintf("'%s'", $k);
+				}
 			}
 		}
 		echo("</div>  <!-- Einde form-check form-switch -->\n");
 		
 		echo("</form>\n");
 		echo("<div class='clear'></div>\n");
-		
-		$in = "";
-		foreach(ARRSOORTEVENEMENT as $k => $v) {
-			$cn = sprintf("chk_%s", $k); 	
-			if (isset($_POST[$cn]) and $_POST[$cn] == "1") {
-				if (strlen($in) > 0) {
-					$in .= ", ";
-				}
-				$in .= sprintf("'%s'", $k);
-			}
-		}
 		if (strlen($in) > 2) {
 			$in = sprintf("ET.Soort IN (%s)", $in);
 		}
 		$lijst = $i_ev->lijst(2, "", $in);
 		
-		$kols[0]['link'] = sprintf("%s?tp=%s&amp;op=edit&amp;eid=%%d' title='Muteer evenement'", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-		$kols[0]['class'] = "muteren";
-		$kols[0]['columnname'] = "RecordID";
+		$l = sprintf("%s?tp=%s&op=edit&eid=%%d' title='Muteer evenement'", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+		$kols[0] = ['class' => "muteren", 'columnname' => "RecordID", 'link' => $l];
 		
-		$kols[1]['headertext'] = "Datum";
-		$kols[1]['type'] = "date";
+		$kols[1] = ['headertext' => "Datum", 'type' => "date"];
 		
 		$kols[2]['headertext'] = "Starttijd";
 		$kols[3]['headertext'] = "Omschrijving";
 		$kols[4]['headertext'] = "Locatie";
-		$kols[5]['headertext'] = "Dln";
-		$kols[5]['type'] = "integer";
+		$kols[5] = ['headertext' => "Dln", 'type' => "integer"];
 		$kols[6]['headertext'] = "Email";
 		$kols[7]['headertext'] = "Einddtijd";
 		$kols[8]['headertext'] = "Ins open?";
@@ -97,9 +88,7 @@ function fnEvenementen() {
 		} else {
 			$er = "";
 		}
-		echo(fnDisplayTable($lijst, $kols, "", 0, "", "evenementlijst"));
-		
-		echo("</div> <!--  Einde evenementenbeheer -->\n");
+		echo(fnDisplayTable($lijst, $kols, "", 0, "", "evenementenbeheer"));
 		
 	} elseif ($currenttab2 == "Presentielijst") {
 		presentielijst(1);
@@ -113,8 +102,8 @@ function fnEvenementen() {
 		
 	} elseif ($currenttab2 == "Logboek") {
 		$rows = (new cls_Logboek())->lijst(7, 1);
-		
 		echo(fnDisplayTable($rows, "logboek", "", 0, "", "", "logboek"));
+		
 	} elseif ($currenttab2 == "Types muteren") {
 		muteertypeevenement();
 	} else {
@@ -725,7 +714,9 @@ function muteertypeevenement() {
 	}
 	echo("</tbody>\n");
 	echo("</table>\n");
-	echo("<button type='submit' name='oms_nw' class='btn btn-default'>Nieuw type</button>");
+	echo("<div id='opdrachtknoppen'>\n");
+	echo("<button type='submit' name='oms_nw'><i class='bi bi-plus-circle'></i> Type</button>");
+	echo("</div> <!-- Einde opdrachtknoppen -->\n");
 	echo("</form>\n");
 	
 	$i_et = null;
