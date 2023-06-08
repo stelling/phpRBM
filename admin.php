@@ -221,7 +221,7 @@ if ($currenttab == "Beheer logins") {
 	echo("</div> <!-- Einde filter -->\n\n");
 	
 	printf("<form method='post' id='beheerautorisatie' action='%s?tp=%s&op=changeaccess'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-	echo("<table id='beheerautorisatie' class='table table-hover border-primary'>\n");
+	printf("<table id='beheerautorisatie' class='%s'>\n", TABLECLASSES);
 	echo("<thead>\n");
 	echo("<tr><th></th><th>Onderdeel</th><th>Toegankelijk voor</th><th>Ingevoerd</th><th>Laatst gebruikt</th><th></th></tr>\n");
 	echo("</thead>\n");
@@ -348,9 +348,12 @@ if ($currenttab == "Beheer logins") {
 	if (strlen($copytext) > 0) {
 		echo("<h2>SQL-code, te gebruiken in MS-Access:</h2>\n");
 		printf("<textarea id='copywijzigingen' class='copypaste' rows=%d readonly>%s</textarea>\n", count($rows)+1, $copytext);
+		echo("<div id='opdrachtknoppen'>\n");
 		echo("<button name='kopieer' onClick='CopyFunction()'>Kopieer naar klembord</button>\n");
 		echo("<button name='afmelden' type='submit'>Wijzigingen afmelden</button>\n");
+		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 	}
+	echo("</form>\n");
 	
 } elseif ($currenttab == "Export data" and toegang($currenttab, 1, 1)) {
 	db_backup(4);
@@ -826,10 +829,10 @@ function fnEigenlijstenmuteren() {
 		printf("<label>Laatste controle</label><p>%s</p>\n", $dtfmt->format(strtotime($row->LaatsteControle)));
 		
 		echo("<div id='opdrachtknoppen'>\n");
-		echo("<input type='submit' value='Bewaren' name='Bewaren'>\n");
-		echo("<input type='submit' value='Bewaren & Sluiten' name='BewarenSluiten'>\n");
+		echo("<button type='submit' name='Bewaren'><i class='bi bi-save'></i> Bewaren</button>\n");
+		echo("<button type='submit' name='BewarenSluiten'><i class='bi bi-door-closed'></i> Bewaren & Sluiten</button>\n");
 		if ($row->AantalRecords > 0 and $row->AantalKolommen > 0) {
-			echo("<button type='button' onClick=\"$('#resultaatlijst').toggle();\">Toon/verberg resultaat</button>\n");
+			echo("<button type='button' onClick=\"$('#resultaatlijst').toggle();\"><i class='bi bi-file-earmark-spreadsheet'></i> Toon/verberg resultaat</button>\n");
 		}
 		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 		echo("</form>\n");
@@ -848,7 +851,7 @@ function fnEigenlijstenmuteren() {
 		
 		$rows = $i_el->lijst();
 		if (count($rows) > 0) {
-			echo("<table id='overzichteigenlijsten' class='table table-hover border-primary'>\n");
+			printf("<table id='overzichteigenlijsten' class='%s'>\n", TABLECLASSES);
 			echo("<tr><th></th><th>Naam</th><th># records</th><th># kolommen</th><th>Tabblad</th><th>Laatste controle</th><th></th></tr>\n");
 			foreach($rows as $row) {
 				$bl1 = sprintf("<a href='%s?tp=%s&paramID=%d&paramActie=2'><i class='bi bi-pencil-square' style='font-size: 14pt;'></i></a>", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
@@ -860,7 +863,7 @@ function fnEigenlijstenmuteren() {
 		}
 		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 		echo("<div id='opdrachtknoppen'>\n");
-		echo("<button type='submit' name='Toevoegen' value='lijst_toevoegen'>Lijst toevoegen</button>\n");
+		echo("<button type='submit' name='Toevoegen' value='lijst_toevoegen'><i class='bi bi-plus-circle'></i> Eigen lijst</button>\n");
 		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 		echo("</form>\n");
 	}
