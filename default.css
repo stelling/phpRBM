@@ -259,7 +259,7 @@ header h1 {
 #filter p {
 	margin-right: 6px;
 	margin-top: 12px;
-	margin-bottom: 0;
+	margin-bottom: 3px;
 	clear: none;
 	vertical-align: middle;
 }
@@ -1845,10 +1845,6 @@ nav p {
 	color: red;
 }
 
-.nieuw {
-	color: limegreen;
-}
-
 .deleted {
 	text-decoration: line-through;
 	font-weight: bolder;
@@ -2606,6 +2602,10 @@ li.presstat_v, td.presstat_v {
 		display: none;
 	}
 	
+	#tab-logboek th.ingelogdlid, #tab-logboek td.ingelogdlid {
+		display: none;
+	}
+	
 	#wijzigenlidgegevens label#lblHuisletter, #wijzigenlidgegevens label#lblToevoeging {
 		clear: left;
 		width: 160px;
@@ -2616,6 +2616,10 @@ li.presstat_v, td.presstat_v {
 		display: none;
 	}
 	
+	table#diplomaslidmuteren th.diplomanummer, table#diplomaslidmuteren td.diplomanummer, table#diplomaslidmuteren th.geldigtot, table#diplomaslidmuteren td.geldigtot {
+		display: none;
+	}
+
 	table#afdelingslijst th.email, table#afdelingslijst td.email, table#afdelingslijst th.vanaf, table#afdelingslijst td.vanaf, table#afdelingslijst td.sportlinkid, table#afdelingslijst th.sportlinkid, table#afdelingslijst th.muteren, table#afdelingslijst td.muteren {
 		display: none;
 	}
