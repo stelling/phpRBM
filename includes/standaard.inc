@@ -635,7 +635,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 		if ($kols == "logboek") {
 			$kols = fnStandaardKols($kols, 1, $rows);
 		}
-			
+
 		if ($kols == null) {
 			$kn = 0;
 			foreach($rows[0] as $key => $value) {
@@ -889,9 +889,9 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					
 				} elseif (($kol_type == "lnm" or $kol_type == "lidnaam") and strlen($value) > 0) {
 					if (is_numeric($value)) {
-						$ret .= sprintf("<td>%s</td>", (new cls_lid())->Naam($value, "onbekend"));
+						$ret .= sprintf("<td$s>%s</td>", $kol_class, (new cls_lid())->Naam($value, "onbekend"));
 					} else {
-						$ret .= sprintf("<td>%s</td>", $value);
+						$ret .= sprintf("<td%s>%s</td>", $kol_class, $value);
 					}
 					
 				} elseif (strlen($kol_link) > 1) {
