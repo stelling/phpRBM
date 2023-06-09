@@ -1545,6 +1545,7 @@ function algemeenlidmuteren($lidid) {
 
 	$row = $i_lid->record($lidid);
 	printf("<form method='post' id='wijzigenlidgegevens' action='%s'>\n", $actionurl);
+	echo("<div id='wijzigenlidgegevensalgemeen'>\n");
 	printf("<input type='hidden' name='lidid' value=%d>\n", $lidid);
 	printf("<label id='lblRecordID'>RecordID/LidID</label><p>%d</p>\n", $row->RecordID);
 	$i_lm->vulvars(-1, $row->RecordID);
@@ -1639,6 +1640,8 @@ function algemeenlidmuteren($lidid) {
 		echo("\n");
 	}
 	
+	echo("</div> <!-- Einde wijzigenlidgegevensalgemeen -->\n");
+	
 	$i_lo = new cls_Lidond(-1, $lidid);
 	$f = "`Type`='E' AND IFNULL(VervallenPer, '9999-12-31') >= CURDATE()";
 	$ondrows = $i_ond->lijst(-1, $f);
@@ -1667,7 +1670,7 @@ function algemeenlidmuteren($lidid) {
 		if ($row->Verwijderd > "1900-01-01") {
 			echo("<button type='submit' name='Undo_Verwijderen'>Verwijderen ongedaan maken</button>\n");
 		} else {
-			echo("<button type='submit' name='Kloslid_Verwijderen'>Verwijderen</button>\n");
+			echo("<button type='submit' name='Kloslid_Verwijderen'><i class='bi bi-trash'></i> Kloslid</button>\n");
 		}
 	}
 	echo("</div> <!-- Einde opdrachtknoppen -->\n");

@@ -713,8 +713,13 @@ table#deelnemersevenementmuteren {
 	min-width: 400px;
 }
 
-#wijzigenlidgegevens, #nieuwlid, #nieuwepasfoto, #bijzonderhedenwijzigen, #lidmaatschapmuteren, #inschrijvingevenementen, #webshop, #opzegformulier, #profielwijzigen {
+#nieuwlid, #nieuwepasfoto, #bijzonderhedenwijzigen, #lidmaatschapmuteren, #inschrijvingevenementen, #webshop, #opzegformulier, #profielwijzigen {
 	padding-top: 8px;
+}
+
+#wijzigenlidgegevensalgemeen {
+	clear: left;
+	float: left;
 }
 
 #wijzigenlidgegevens select {
@@ -2411,7 +2416,7 @@ table#rekeningregels {
 	padding-top: 2px;
 }
 
-#wijzigenlidgegevens .invoerblok, #nieuwlid .invoerblok {
+#nieuwlid .invoerblok {
 	border-style: none;
 }
 
