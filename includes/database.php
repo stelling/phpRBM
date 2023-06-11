@@ -2788,7 +2788,6 @@ class cls_Aanwezigheid extends cls_db_base {
 					$this->opmerking = $awrow->Opmerking;
 				} else {
 					$this->aanwid = 0;
-					$this->akid = 0;
 				}
 			}
 			if ($this->status == "A" or $this->status == "J" or $this->status == "L" or strlen($this->status) == 0) {
@@ -2909,7 +2908,7 @@ class cls_Aanwezigheid extends cls_db_base {
 		$this->vulvars($p_loid, $p_akid);
 		$this->tas = 2;
 		
-		if ($this->loid > 0 and $this->akid > 0 and $this->aanwid == 0 and strlen($p_waarde) > 0) {
+		if ($this->loid > 0 and $this->aanwid == 0 and strlen($p_waarde) > 0) {
 			$this->add($this->loid, $this->akid);
 		}
 		
