@@ -151,7 +151,7 @@ if ($i_lid->aantal() == 0) {
 		$tabidx = count($tabblad);
 	}	
 	if (toegang($currenttab . "/" . $tn, 0, 0)) {
-		$tabblad["Agenda"] = fnAgenda($_SESSION['lidid']);
+		$tabblad["Agenda"] = fnAgendaTable($_SESSION['lidid']);
 	}
 	
 	if ((new cls_Onderdeel())->aantal("`Type`='A'") > 0) {
@@ -180,6 +180,9 @@ if ($i_lid->aantal() == 0) {
 	
 	DisplayTabs($tabblad, $tabidx);
 	
+} elseif ($currenttab == "Agenda") {
+	echo(fnAgenda());
+		
 } elseif ($eigenlijstid > 0) {
 	fnDispMenu(2);
 	fnDispMenu(3);
@@ -447,6 +450,126 @@ function fnAgenda($p_lidid=0) {
 		}
 	}
 	
+	$dtStart = strtotime("-1 day");
+	while (date("N", $dtStart) > 1) {
+		$dtStart = strtotime("-1 day", $dtStart);
+	}
+	
+	//	$txt .= "<p class='mededeling'>De agenda is nog in ontwikkeling</p>\n";
+	$txt = "<div id='agenda'>\n";
+	for ($sw=$dtStart;$sw <= strtotime("+370 day");$sw=strtotime("+7 day", $sw)) {
+		$txt .= "<div class='row'>\n";
+		
+		for ($dn=1;$dn<=7;$dn++) {
+			
+			$td = strtotime(sprintf("+%d day", $dn-1), $sw);
+			$txt .= "<div class='col'>";
+			if (date("Ymd", $td) == date("Ymd")) {
+				$txt .= "<ul class='active'>";
+			} else {
+				$txt .= "<ul>";
+			}
+			
+			if (array_key_exists(date("Ymd", $td), $fds)) {
+				$dtfmt->setPattern("EEE d");
+				$txt .= sprintf("<li title=\"%s\">%s</li>", $fds[date("Ymd", $td)], str_replace(" ", "&nbsp;", $dtfmt->format($td)));
+			} else {
+				$dtfmt->setPattern(DTTEXTWD);
+				$t = sprintf("title='%s'", $dtfmt->format($td), $td);
+				$dtfmt->setPattern("EEE d");
+				$txt .= sprintf("<li %s>%s</li>", $t, str_replace(" ", "&nbsp;", $dtfmt->format($td)));
+			}
+			
+			$ikal = null;
+			// Evenementen
+			foreach ((new cls_Evenement())->lijst(5, date("Y-m-d", $td)) as $evrow) {
+				$ikal[strtotime($evrow->Datum)] = fnEvenementOmschrijving($evrow, 1, "li");
+			}
+			
+			// Afdelingskalender
+			foreach ((new cls_Afdelingskalender())->lijst(-1, date("Y-m-d", $td)) as $akrow) {
+				if (strlen($akrow->Omschrijving) > 1) {
+					if ($akrow->Activiteit == 1) {
+						$oms = $akrow->Kode . ": " . $akrow->Omschrijving;
+					} else {
+						$oms = "Geen " . $akrow->Kode . " (" . $akrow->Omschrijving . ")";
+					}
+				} else {
+					if (strlen($akrow->Activiteit) == 1) {
+						$oms = $akrow->Naam;
+					} else {
+						$oms = "Geen " . $akrow->Naam;
+					}
+				}			
+				$ikal[strtotime($akrow->Datum . " " . $akrow->Begintijd)] = sprintf("<li class='%1\$s' title=\"%2\$s\">%2\$s</li>", strtolower($akrow->Kode), $oms);
+			}
+			
+			if (isset($ikal)) {
+				ksort($ikal);
+				foreach ($ikal as $k => $v) {
+					$txt .= $v . "\n";
+				}
+			}
+			
+			// Verjaardagen
+			if ($_SESSION['settings']['agenda_verjaardagen'] > 0 and $_SESSION['lidid'] > 0) {
+				$aant = 0;
+				$rows = $i_lid->verjaardagen($td);
+				$vj = "";
+				foreach ($rows as $row) {
+					$aant++;
+					if ($aant == 1) {
+						$vj = $row->NaamLid;
+					} elseif ($aant == 2) {
+						$vj = $row->NaamLid . " en " . $vj;
+					} else {
+						$vj = $row->NaamLid . ", " . $vj;
+					}
+				}
+				
+				if ($aant == 1) {
+					$vj .= " is jarig";
+				} elseif ($aant > 1) {
+					$vj .= " zijn jarig";
+				}
+				$txt .= sprintf("<li class='jarigen' title=\"%1\$s\">%1\$s</li>", $vj);
+			}
+			$txt .= "</ul>";
+			$txt .= "</div> <!-- Einde col  -->\n";
+		}
+		$txt .= "</div> <!-- Einde row -->\n";
+	}
+	
+	$txt .= "</div> <!-- Einde agenda -->\n";
+	
+	return $txt;
+	
+}  # fnAgenda
+
+function fnAgendaTable($p_lidid=0) {
+	global $dtfmt;
+	
+	$i_lid = new cls_Lid();
+	
+	if (strlen($_SESSION['settings']['agenda_url_feestdagen']) > 4) {
+		$ics = file_get_contents($_SESSION['settings']['agenda_url_feestdagen']);
+	} else {
+		$ics = false;
+	}
+	
+	if ($ics === FALSE) {
+		$fds["99991231"] = "geen";
+	} else {
+		$icslines = explode("\n", $ics);
+		foreach ($icslines as $line) {
+			if (substr($line, 0, 7) == "DTSTART") {
+				$d = substr(trim($line), -8);
+			} elseif (substr($line, 0, 7) == "SUMMARY") {
+				$fds[$d] = substr($line, 8);
+			}
+		}
+	}
+	
 	$dtStart = strtotime("-1 week");
 	while (date("N", $dtStart) > 1) {
 		$dtStart = strtotime("-1 day", $dtStart);
@@ -540,6 +663,6 @@ function fnAgenda($p_lidid=0) {
 	
 	return $txt;
 	
-}  # fnAgenda
+}  # fnAgendaTable
 
 ?>

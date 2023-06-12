@@ -221,16 +221,17 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 				if ($currenttab == $row->Naam) {
 					addtp($row->Naam . "/Afdelingslijst", $row->RecordID);
 					addtp(trim($row->Naam) . "/Kalender");
-					$f = sprintf("GroepID > 0 AND IFNULL(Opgezegd, CURDATE()) >= CURDATE() AND OnderdeelID=%d", $row->RecordID);
+					$f = sprintf("LO.GroepID > 0 AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE() AND LO.OnderdeelID=%d", $row->RecordID);
 					if ((new cls_Lidond())->aantal($f) > 0) {
 						addtp(trim($row->Naam) . "/Groepsindeling", $row->RecordID);
 					}
 					addtp(trim($row->Naam) . "/Groepsindeling muteren");
-					$f = sprintf("OnderdeelID=%d AND Datum > DATE_SUB(CURDATE(), INTERVAL 9 MONTH) AND Activiteit=1", $row->RecordID);
+					$f = sprintf("AK.OnderdeelID=%d AND AK.Datum > DATE_SUB(CURDATE(), INTERVAL 9 MONTH) AND AK.Activiteit=1", $row->RecordID);
 					if ((new cls_Afdelingskalender())->aantal($f) > 0) {
 						addtp(trim($row->Naam) . "/Presentie muteren");
 						if ((new cls_Aanwezigheid())->aantalstatus("*", $row->RecordID) > 0) {
 							addtp(trim($row->Naam) . "/Presentie per lid");
+							addtp(trim($row->Naam) . "/Presentieoverzicht");
 						}
 					}
 					
@@ -266,6 +267,9 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 		addtp($b);
 		$b .= "/";
 		addtp($b . "Algemene gegevens");
+		if ($gs != "B") {
+			addtp($b . "Lidmaatschap");
+		}
 		if ((new cls_Onderdeel())->aantal("Type='A'") > 0 and (new cls_Lidmaatschap())->soortlid($_GET['lidid']) != "Kloslid") {
 			addtp($b . "Afdelingen");
 		}		
@@ -290,7 +294,6 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 			addtp($b . "Bijzonderheden");
 		}
 		if ($gs != "B") {
-			addtp($b . "Lidmaatschap");
 			addtp($b . "Pasfoto");
 		}
 	}
@@ -352,7 +355,13 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 		}
 	}
 	
-	addtp("Stukken");
+	addtp("Website");
+	if ($currenttab == "Website") {
+		addtp("Website/Stukken");
+		addtp("Website/Menu");
+		addtp("Website/Inhoud");
+		addtp("Website/Logboek");
+	}
 	
 	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 //		addtp("DMS");   Voorlopig geen tijd voor, dus uitgezet.

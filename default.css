@@ -22,10 +22,6 @@ i {
 	margin-bottom: 0;
 }
 
-.row {
-	margin-left: 2px;
-}
-
 /* Einde Bootstrap */
 
 body {
@@ -209,11 +205,16 @@ input[type='email'] {
 
 header {
 	height: 45px;
+	
 	margin-bottom: 0;
+	margin-left: 0;
+	margin-right: 0;
+	
 	padding-bottom: 0;
 	padding-top: 6px;
 	padding-left: 0;
 	padding-right: 0;
+	
 	background-color: #00FFFF;
 	border-top-right-radius: 12px;
 	border-top-left-radius: 12px;
@@ -440,7 +441,7 @@ input.w70 {
 }
 
 input.w75 {
-	width: 475px;
+	width: 550px;
 }
 
 input.w80 {
@@ -723,7 +724,7 @@ table#deelnemersevenementmuteren {
 }
 
 #wijzigenlidgegevens select {
-	max-width: calc(100% - 170px);
+	max-width: calc(100% - 180px);
 }
 
 .ledenperonderdeelmuteren select {
@@ -809,6 +810,35 @@ textarea#sportlinkdata {
 	float: left;
 }
 
+#agenda {
+	margin-top: 16px;
+}
+
+#agenda .row {
+	border-top-style: solid;
+	border-right-style: solid;
+	border-width: 1px;
+	
+	margin-left: 2px;
+	margin-right: 2px;
+}
+
+#agenda .col {
+	border-width: 1px;
+	border-left-style: solid;
+	padding-left: 1px;
+	padding-right: 1px;
+}
+
+#agenda ul {
+	margin-left: 0;
+	min-height: 120px;
+}
+
+#agenda ul.active {
+	background-color: var(--label-background-color);
+}
+
 #tab-agenda table {
 	width: 100%;
 }
@@ -831,7 +861,7 @@ textarea#sportlinkdata {
 	height: 40px;
 }
 
-#tab-agenda ul {
+#tab-agenda ul, #agenda ul {
 	list-style-type: none;
 	border-style: none;
 	width: 100%;
@@ -845,14 +875,14 @@ textarea#sportlinkdata {
 	padding-right: 0;
 }
 
-#tab-agenda li {
+#tab-agenda li, #agenda li {
 	font-size: 85%;
 	width: 100%;
 	padding-left: 1px;
 	padding-right: 1px;
 }
 
-#tab-agenda li:first-child {
+#tab-agenda li:first-child, #agenda li:first-child {
 	text-align: right;
 	font-weight: bolder;
 }
@@ -970,16 +1000,16 @@ table#afdelingskalendermuteren {
 	padding-bottom: 1px;
 }
 
-#presentieperlid > #filter p {
+#presentieoverzicht > #filter p {
 	float: left;
 	clear: none;
 }
 
-#presentieperlid > #filter p, #presentieperlid > #filter input[type='checkbox'] {
+#presentieoverzicht > #filter p, #presentieoverzicht > #filter input[type='checkbox'] {
 	margin-top: 10px;
 }
 
-#presentieperlid table {
+#presentieoverzicht table {
 	min-width: 350px;
 }
 
@@ -988,11 +1018,11 @@ table#afdelingskalendermuteren {
 	cursor: pointer;
 }
 
-#presentieperlid td {
+#presentieoverzicht td {
 	min-width: 60px;
 }
 
-#presentieperlid td.NOK {
+#presentieoverzicht td.NOK {
 	font-weight: bolder;
 }
 
@@ -1752,17 +1782,18 @@ nav {
 	padding-left: 3px;
 }
 
-nav p.current {
+nav a.active {
 	font-weight: bolder;
 }
 
-nav p {
-	float: left;
-	clear: none;
+nav a {
+	display: inline;
 	padding-left: 2px;	
 	padding-right: 4px;
 	border-width: 1px;
 	border-right-style: solid;
+	text-decoration: none;
+	
 }
 
 #menu_l1, #menu_l2, #menu_l3 {
@@ -2656,7 +2687,7 @@ li.presstat_v, td.presstat_v {
 		clear: left;
 	}
 	
-	input.w30, input.w40 {
+	input.w25, input.w30, input.w40, input.w45 {
 		width: 165px;
 	}
 	
@@ -2664,12 +2695,16 @@ li.presstat_v, td.presstat_v {
 		width: 275px;
 	}
 
-	input.w60, input.w75 {
+	input.w60 {
 		width: 260px;
 	}
 	
-	input.w90, textarea.w90 {
-		width: 450px;
+	input.w75, input.w90, textarea.w90 {
+		width: 100%;
+	}
+	
+	#afdelingskalendermuteren input.w75 {
+		width: 350px;
 	}
 	
 	#tab-agenda li {
@@ -2679,6 +2714,10 @@ li.presstat_v, td.presstat_v {
 		
 	#stukkenlijst th.revisiedatum, #stukkenlijst td.revisiedatum {
 		display: none;
+	}
+	
+	#eigenschappenlidmuteren {
+		float: left;
 	}
 }
 
