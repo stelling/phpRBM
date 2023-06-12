@@ -15,7 +15,7 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 	$_SESSION['lidauth'] = null;
 	printf("<script>setTimeout('', 5000);location.href='%s';</script>\n", BASISURL);
 	
-} elseif ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['Inloggen']) and $_POST['Inloggen'] == "Inloggen") {
+} elseif ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['Inloggen'])) {
 	if (strlen($_POST['password']) < 5) {
 		$mess = "Om in te loggen is het invullen van een wachtwoord van minimaal 5 karakters vereist.";
 		(new cls_Logboek())->add($mess, 1, 0, 2);
@@ -457,7 +457,7 @@ function fnAgenda($p_lidid=0) {
 	
 	//	$txt .= "<p class='mededeling'>De agenda is nog in ontwikkeling</p>\n";
 	$txt = "<div id='agenda'>\n";
-	for ($sw=$dtStart;$sw <= strtotime("+370 day");$sw=strtotime("+7 day", $sw)) {
+	for ($sw=$dtStart;$sw <= strtotime("+240 day");$sw=strtotime("+7 day", $sw)) {
 		$txt .= "<div class='row'>\n";
 		
 		for ($dn=1;$dn<=7;$dn++) {
