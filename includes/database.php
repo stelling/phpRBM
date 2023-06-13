@@ -1909,6 +1909,7 @@ class cls_Authorisation extends cls_db_base {
 	public $aid = 0;
 	public $naamtp = "";
 	public $ondnaam = "";
+	public $toegang = -1;
 	
 	function __construct() {
 		$this->table = TABLE_PREFIX . "Admin_access";
@@ -1924,7 +1925,10 @@ class cls_Authorisation extends cls_db_base {
 			$row = $this->execsql($query)->fetch();
 			$this->naamtp = $row->Tabpage;
 			$this->naamlogging = $row->Tabpage;
-			if ($row->Toegang == -1) {
+			$this->toegang = $row->Toegang;
+			if ($row->Toegang == -2) {
+				$this->ondnaam = "Niemand";
+			} elseif ($row->Toegang == -1) {
 				$this->ondnaam = "Alleen webmasters";
 			} elseif ($row->Toegang == 0) {
 				$this->ondnaam = "Iedereen";
@@ -1980,7 +1984,12 @@ class cls_Authorisation extends cls_db_base {
 				}
 				$_SESSION['lidauth'][] = $p_tabpage;
 			}
-			$rv = true;
+			$query = sprintf("SELECT MAX(AA.Toegang) FROM %s WHERE AA.Tabpage='%s';", $this->basefrom, $p_tabpage, $_SESSION['lidgroepen']);
+			if ($this->scalar($query) == -2) {
+				$rv= false;
+			} else {
+				$rv = true;
+			}
 		} else {
 			/*
 			if (in_array($p_tabpage, $_SESSION['lidauth'])) {
@@ -2078,6 +2087,7 @@ class cls_Authorisation extends cls_db_base {
 class cls_Onderdeel extends cls_db_base {
 	public $oid = 0;
 	public $naam = "";
+	private $ondcode = "";
 	public $ondtype = "";
 	public $ondtypeoms = "";
 	public $alleenleden = 0;			// Mogen van dit onderdeel alleen mensen lid zijn, die ook lid van de vereniging zijn?
@@ -2109,7 +2119,7 @@ class cls_Onderdeel extends cls_db_base {
 		
 			if (isset($row->RecordID)) {
 				$this->naam = $row->Naam;
-				$this->naamlogging = $row->Naam;
+				$this->ondcode = $row->Kode;
 				$this->ondtype = $row->Type;
 				$this->ondtypeoms = ARRTYPEONDERDEEL[$row->Type];
 				$this->organisatie = $row->ORGANIS;
@@ -2134,13 +2144,22 @@ class cls_Onderdeel extends cls_db_base {
 		}
 	}
 	
-	public function naam($p_oid, $p_riz="") {
+	public function naam($p_oid, $p_riz="", $p_maxlen=99) {
 		$this->vulvars($p_oid);
 		if (strlen($this->naam) > 0) {
-			return $this->naam;
+			$rv = $this->naam;
+			if (strlen($rv) > $p_maxlen) {
+				$rv = $this->ondcode;
+			}
 		} else {
-			return $p_riz;
+			$rv = $p_riz;
 		}
+		
+		if (strlen($rv) > $p_maxlen) {
+			$rv = substr($rv, 0, $p_maxlen-4) . " ...";
+		}
+		
+		return $rv;
 	}
 	
 	public function autogroep($p_oid) {
@@ -3035,7 +3054,7 @@ class cls_Lidond extends cls_db_base {
 			$row = $this->execsql($query)->fetch();
 			if (isset($row)) {
 				$this->ondnaam = $row->Naam;
-				if (strlen($row->Naam) > 20) {
+				if (strlen($row->Naam) > 15) {
 					$this->naamlogging = $row->Kode;
 				} else {
 					$this->naamlogging = $row->Naam;
@@ -3189,7 +3208,7 @@ class cls_Lidond extends cls_db_base {
 		} else {
 			return $result;
 		}
-	}
+	}  # lijst
 	
 	public function aantallid($p_ondid, $p_filter="") {
 		
@@ -5482,12 +5501,11 @@ class cls_Logboek extends cls_db_base {
 		}
 		
 		$s = "A.DatumTijd, Omschrijving";
-		if (in_array($p_type, array(-1, 1, 4, 5, 6, 7, 10, 12, 14, 16, 19, 98, 99))) {
-			$s .= ", IF(A.ReferLidID > 0, A.ReferLidID, '') AS betreftLid";
-		}
+		$s .= ", IF(A.ReferLidID > 0, A.ReferLidID, '') AS betreftLid";
+		$s .= ", IF(IFNULL(A.ReferOnderdeelID, 0) > 0, A.ReferOnderdeelID, '') AS betreftOnderdeel";
 		$s .= ", CONCAT(TypeActiviteit, IF(TypeActiviteitSpecifiek > 0, CONCAT('-', TypeActiviteitSpecifiek), '')) AS `Type`";
 		$s .= ", IF(A.LidID > 0, A.LidID, '') AS ingelogdLid";
-		$s .= ", A.Getoond";
+		$s .= ", IF(A.Getoond=1, 'Ja', '') AS Getoond";
 		
 		if ($_SESSION['webmaster'] == 1 and $p_smal == 0) {
 			$s .= ", CONCAT(Script, ' / ', RefFunction) AS scriptFunctie, `IP_adres`";
@@ -5573,7 +5591,34 @@ class cls_Logboek extends cls_db_base {
 		}
 		
 		$p_reftable = str_replace(TABLE_PREFIX, "", $p_reftable);
+		$refondid = 0;
 		
+		if ($p_reftable == "Onderdl") {
+			$refondid = $p_referid;
+			
+		} elseif ($p_reftable == "Lidond") {
+			$f = sprintf("LO.RecordID=%d", $p_referid);
+			$refondid = (new cls_Lidond())->max("OnderdeelID", $f);
+			
+		} elseif ($p_reftable == "Groep") {
+			$f = sprintf("GR.Nummer=%d", $p_referid);
+			$refondid = (new cls_Groep())->max("OnderdeelID", $f);
+			
+		} elseif ($p_reftable == "Diploma") {
+			$f = sprintf("DP.Nummer=%d", $p_referid);
+			$refondid = (new cls_Diploma())->max("Afdelingsspecifiek", $f);
+			
+		} elseif ($p_reftable == "Afdelingskalender") {
+			$f = sprintf("AK.RecordID=%d", $p_referid);
+			$refondid = (new cls_Afdelingskalender())->max("OnderdeelID", $f);
+			
+		} elseif ($p_reftable == "Aanwezigheid") {
+			$f = sprintf("AW.RecordID=%d", $p_referid);
+			$lo = (new cls_Aanwezigheid())->max("LidondID", $f);
+			$f = sprintf("LO.RecordID=%d", $lo);
+			$refondid = (new cls_Lidond())->max("OnderdeelID", $f);
+		}
+
 		/*
 		$this->tm:
 			* 0: niet tonen
@@ -5646,6 +5691,7 @@ class cls_Logboek extends cls_db_base {
 		$data['referlidid'] = $this->lidid;
 		$data['ta'] = $p_ta;
 		$data['tas'] = $this->tas;
+		$data['referonderdeelid'] = $refondid;
 
 		if (strlen($_SERVER['HTTP_USER_AGENT']) > 125) {
 			$data['useragent'] = substr($_SERVER['HTTP_USER_AGENT'], 0, 125);
@@ -5666,8 +5712,8 @@ class cls_Logboek extends cls_db_base {
 		$data['reftable'] = $p_reftable;
 		$data['refcolumn'] = $p_refcolumn;
 
-		$query = sprintf("INSERT INTO %s (DatumTijd, LidID, IP_adres, USER_AGENT, Omschrijving, ReferID, ReferLidID, TypeActiviteit, Script, Getoond, RefFunction, TypeActiviteitSpecifiek, RefTable, refColumn) VALUES 
-				(SYSDATE(), :ingelogdlid, :ipaddress, :useragent, :omschrijving, :referid, :referlidid, :ta, :script, :getoond, :reffunction, :tas, :reftable, :refcolumn);", $this->table);
+		$query = sprintf("INSERT INTO %s (DatumTijd, LidID, IP_adres, USER_AGENT, Omschrijving, ReferID, ReferLidID, ReferOnderdeelID, TypeActiviteit, Script, Getoond, RefFunction, TypeActiviteitSpecifiek, RefTable, refColumn) VALUES 
+				(SYSDATE(), :ingelogdlid, :ipaddress, :useragent, :omschrijving, :referid, :referlidid, :referonderdeelid, :ta, :script, :getoond, :reffunction, :tas, :reftable, :refcolumn);", $this->table);
 		$nrid = $dbc->prepare($query)->execute($data);
 		
 		if ($this->tm == 1 or ($this->tm == 2 and $_SESSION['webmaster'] == 1)) {
@@ -6774,6 +6820,8 @@ class cls_Evenement extends cls_db_base {
 	private $standaardstatus;
 	public $evdatum = "";
 	public string $evoms = "";
+	public string $starttijd = "";
+	public int $meerderestartmomenten = 0;
 	public int $doelgroep = 0;  // Kolom in de tabel heet 'BeperkTotGroep'
 	private $sqlaantdln = 0;
 	private $sqlaantafgemeld = 0;
@@ -6804,6 +6852,8 @@ class cls_Evenement extends cls_db_base {
 				$this->evoms = $evrow->Omschrijving . " " . $dtfmt->format(strtotime($evrow->Datum));
 				$this->doelgroep = $evrow->BeperkTotGroep;
 				$this->standaardstatus = $evrow->StandaardStatus;
+				$this->starttijd = substr($evrow->Datum, 11, 5);
+				$this->meerderestartmomenten = $evrow->MeerdereStartMomenten;
 			} else {
 				$this->evid = 0;
 			}
@@ -6981,14 +7031,20 @@ class cls_Evenement extends cls_db_base {
 
 class cls_Evenement_Deelnemer extends cls_db_base {
 	
-	private $edid = 0;
-	private $evid = 0;
-	private $evoms = "";
+	public int $edid = 0;
+	private int $evid = 0;
+	private string $evoms = "";
+	public string $status = "";
+	public int $aantal= 1;
+	public string $functie = "";
 	private $standaardstatus = "";
-	private $meerderestartmomenten = 0;
+	public string $starttijd = "";
+	private int $meerderestartmomenten = 0;
+	public int $onlineinschrijving = 0;
 	private $casestatus = "";
 	private $magmuteren = false;
-	private $organisatie = 0;
+	private int $organisatie = 0;
+	private int $doelgroep = 0;
 	
 	function __construct($p_evid=-1) {
 		parent::__construct();
@@ -7004,7 +7060,7 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 		$this->casestatus .= "END";
 	}
 	
-	private function vulvars($p_evid=-1, $p_lidid=-1) {
+	public function vulvars($p_evid=-1, $p_lidid=-1) {
 		if ($p_evid >= 0) {
 			$this->evid = $p_evid;
 		}
@@ -7012,17 +7068,33 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 			$this->lidid = $p_lidid;
 		}
 		
-		if ($this->edid > 0) {
-			$this->query = sprintf("SELECT ED.LidID, ED.EvenementID FROM %s WHERE ED.RecordID=%d;", $this->basefrom, $this->edid);
-			$row = $this->execsql()->fetch();
-			$this->evid = $row->EvenementID;
-			$this->lidid = $row->LidID;
-			
-		} elseif ($this->evid > 0 and $this->lidid > 0) {
-			$query = sprintf("SELECT ED.RecordID FROM %s WHERE ED.LidID=%d AND ED.EvenementID=%d;", $this->basefrom, $this->lidid, $this->evid);
+		if ($this->evid > 0 and $this->lidid > 0) {
+			$query = sprintf("SELECT IFNULL(ED.RecordID, 0) FROM %s WHERE ED.LidID=%d AND ED.EvenementID=%d;", $this->basefrom, $this->lidid, $this->evid);
 			$this->edid = $this->scalar($query);
 		}
 		
+		$this->status = "";
+		$this->aantal =1;
+		$this->functie = "";
+		if ($this->edid > 0) {
+			$this->query = sprintf("SELECT ED.* FROM %s WHERE ED.RecordID=%d;", $this->basefrom, $this->edid);
+			$row = $this->execsql()->fetch();
+			if (isset($row->RecordID)) {
+				$this->evid = $row->EvenementID;
+				$this->lidid = $row->LidID;
+				$this->functie = $row->Functie;
+				$this->aantal = $row->Aantal;
+				if (strlen($row->StartMoment) > 3) {
+					$this->starttijd = $row->StartMoment;
+				}
+				$this->status = ARRDLNSTATUS[$row->Status];
+			} else {
+				$this->edid = 0;
+			}
+			
+		}
+		
+		$this->onlineinschrijving = 0;
 		if ($this->evid > 0) {
 			$query = sprintf("SELECT E.* FROM %sEvenement AS E WHERE E.RecordID=%d;", TABLE_PREFIX, $this->evid);
 			$row = $this->execsql($query)->fetch();
@@ -7031,10 +7103,17 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 				$this->naamlogging = $row->Omschrijving;
 				$this->standaardstatus = $row->StandaardStatus;
 				$this->meerderestartmomenten = $row->MeerdereStartMomenten;
+				if ($this->meerderestartmomenten == 0 and strlen($row->Datum) > 11) {
+					$this->starttijd = substr($row->Datum, 11, 5);
+				}
 				$this->organisatie = $row->Organisatie;
-				if ($_SESSION['webmaster'] == 1 or in_array($this->organisatie, array($_SESSION['lidgroepen']))) {
+				if ($_SESSION['webmaster'] == 1 or in_array($this->organisatie, explode(",", $_SESSION['lidgroepen']))) {
 					$this->magmuteren = true;
-				}	
+				}
+				$this->doelgroep = $row->BeperkTotGroep;
+				if ($row->InschrijvingOpen == 1 and $row->Datum >= date("Y-m-d H:i") and in_array($this->doelgroep, explode(",", $_SESSION['lidgroepen']))) {
+					$this->onlineinschrijving = 1;
+				}
 			} else {
 				$this->evid = 0;
 			}
@@ -7055,7 +7134,9 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 	}
 	
 	public function record($p_edid, $p_lidid=-1, $p_evid=-1) {
-		$this->edid = $p_edid;
+		if ($p_edid >= 0) {
+			$this->edid = $p_edid;
+		}
 		$this->vulvars($p_evid, $p_lidid);
 		
 		$query = sprintf("SELECT ED.*, (%s) AS StatusDln, E.Omschrijving AS OmsEvenement, E.Datum AS DatumEvenement, E.Email AS EmailEvenement FROM %s AS ED INNER JOIN %sEvenement AS E ON ED.EvenementID=E.RecordID WHERE ED.RecordID=%d;", $this->casestatus, $this->table, TABLE_PREFIX, $this->edid);
@@ -8392,19 +8473,6 @@ class cls_Seizoen extends cls_db_base {
 		} else {
 			return $result;
 		}
-	}
-	
-	public function eindehuidige($p_per="") {
-		
-		if (strlen($p_per) < 8) {
-			$p_per = date("Y-m-d");
-		}
-		
-		debug("Functie vervangen");
-		
-		$query = sprintf("SELECT SZ.Nummer FROM %1\$s WHERE SZ.Begindatum <= '%2\$s' AND SZ.Einddatum >= '%2\$s';", $this->basefrom, $p_per);
-		$this->vulvars($this->scalar($query));
-		return $this->einddatum;
 	}
 	
 	public function zethuidige($p_per="", $p_szid=0) {
@@ -10214,12 +10282,19 @@ function db_onderhoud($type=9) {
 		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NULL AFTER `Locatie`;", $tab, $col);
 		$i_base->execsql($query, 2);
 	}
-	
 		
 	$tab = TABLE_PREFIX . "Activiteit";
 	$col = "BeperkingAantal";
 	if ($i_base->bestaat_kolom($col, $tab) == false) {
 		$query = sprintf("ALTER TABLE `%s` ADD `%s` SMALLINT NULL AFTER `Contributie`;", $tab, $col);
+		$i_base->execsql($query, 2);
+	}
+	
+	// Deze code kan na 1 juli 2024 worden verwijderd.
+	$tab = TABLE_PREFIX . "Admin_activiteit";
+	$col = "ReferOnderdeelID";
+	if ($i_base->bestaat_kolom($col, $tab) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NULL AFTER `ReferLidID`;", $tab, $col);
 		$i_base->execsql($query, 2);
 	}
 	
