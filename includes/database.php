@@ -8070,29 +8070,33 @@ class cls_Rekeningregel extends cls_db_base {
 		}
 		
 		if ($this->rrid > 0) {
-			$query = sprintf("SELECT RR.Rekening, RR.Regelnr, RR.Lid, RK.Seizoen, RK.Datum, RK.Seizoen FROM %s WHERE RR.RecordID=%d;", $this->basefrom, $this->rrid);
+			$query = sprintf("SELECT RR.RecordID, RR.Rekening, RR.Regelnr, RR.Lid, RK.Seizoen, RK.Datum, RK.Seizoen FROM %s WHERE RR.RecordID=%d;", $this->basefrom, $this->rrid);
 			$result = $this->execsql($query);
 			$row = $result->fetch();
-			if (isset($row->Rekening)) {
+			if (isset($row->RecordID)) {
 				$this->rkid = $row->Rekening;
 				$this->lidid = $row->Lid;
 				$this->regelnr = $row->Regelnr;
 				$this->seizoen = $row->Seizoen;
 				$this->rekeningdatum = $row->Datum;
 				$this->naamlogging = sprintf("%d/%d", $row->Rekening, $row->Regelnr);
+			} else {
+				$this->rrid = 0;
 			}
 
 		} elseif ($p_rkid >= 0) {
 			$this->rkid = $p_rkid;
-			$query = sprintf("SELECT RK.Seizoen, RK.Datum FROM %sRekening AS RK WHERE RK.Nummer=%d;", TABLE_PREFIX, $this->rkid);
+			$query = sprintf("SELECT RK.Nummer, RK.Seizoen, RK.Datum FROM %sRekening AS RK WHERE RK.Nummer=%d;", TABLE_PREFIX, $this->rkid);
 			$result = $this->execsql($query);
 			$row = $result->fetch();
-			if (isset($row->Seizoen)) {
+			if (isset($row->Nummer)) {
 				$this->seizoen = $row->Seizoen;
 				$this->rekeningdatum = $row->Datum;
+			} else {
+				$this->rkid = 0;
 			}
 		}
-		
+
 		if ($this->seizoen > 0) {
 			$query = sprintf("SELECT MIN(SZ.Begindatum) FROM %sSeizoen AS SZ WHERE SZ.Nummer=%d;", TABLE_PREFIX, $this->seizoen);
 			$this->begindatumseizoen = $this->scalar($query);
@@ -8254,13 +8258,27 @@ class cls_Rekeningregel extends cls_db_base {
 		$nrid = $this->nieuwrecordid();
 		$rnr = $this->max("Regelnr", sprintf("Rekening=%d", $this->rkid)) + 1;
 		
-		$query = sprintf("INSERT INTO %s (RecordID, Rekening, Lid, Regelnr, KSTNPLTS) VALUES (%d, %d, %d, %d, '%s');", $this->table, $nrid, $this->rkid, $this->lidid, $rnr, $p_kpl);
-		if ($this->execsql($query) > 0) {
-			$this->mess = sprintf("Regel %d aan rekening %d toegevoegd", $rnr, $this->rkid);
-			$this->log($nrid);
-			$this->add($query);
+		if ($rnr < 1) {
+			$this->mess = "Het regelnummer mag niet kleiner dan 1 zijn, de regel wordt niet toegevoegd.";
+			$this->log();
+		} elseif ($rnr > 99) {
+			$this->mess = "Het regelnummer mag niet groter dan 99 zijn, de regel wordt niet toegevoegd.";
+			$this->log();
+		} elseif ($this->rkid < 1) {
+			$this->mess = "Het rekeningnummer mag niet kleiner dan 1 zijn, de regel wordt niet toegevoegd.";
+			$this->log();
+		} elseif (toegang("Rekeningen/Muteren", 0, 0)) {
+			$query = sprintf("INSERT INTO %s (RecordID, Rekening, Lid, Regelnr, KSTNPLTS) VALUES (%d, %d, %d, %d, '%s');", $this->table, $nrid, $this->rkid, $this->lidid, $rnr, $p_kpl);
+			if ($this->execsql($query) > 0) {
+				$this->mess = sprintf("Regel %d aan rekening %d toegevoegd", $rnr, $this->rkid);
+				$this->log($nrid);
+				$this->add($query);
+			} else {
+				$nrid = 0;
+			}
 		} else {
-			$nrid = 0;
+			$this->mess = "Je bent niet bevoegd om rekeningregels te muteren.";
+			$this->log();
 		}
 		
 		return $nrid;
@@ -8530,6 +8548,13 @@ class cls_Seizoen extends cls_db_base {
 	}
 	
 	public function controle() {
+		$aa = (new cls_Groep())->aantal("ActiviteitID > 0");
+		
+		foreach($this->basislijst() as $row) {
+			if ($row->{'Omschrijving afdelingscontributie'} > 1 and $aa == 0) {
+				$this->update($row->Nummer, "Omschrijving afdelingscontributie", 1);
+			}
+		}
 	}
 	
 	public function opschonen() {
@@ -10298,6 +10323,13 @@ function db_onderhoud($type=9) {
 		$i_base->execsql($query, 2);
 	}
 	
+	$tab = TABLE_PREFIX . "Seizoen";
+	$col = "Afdelingscontributie omschrijving";
+	if ($i_base->bestaat_kolom($col, $tab) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` TINYINT NOT NULL DEFAULT '1' AFTER `Verenigingscontributie kostenplaats`;", $tab, $col);
+		$i_base->execsql($query, 2);
+	}
+	
 	/***** Velden die aangepast zijn *****/
 	$i_base->tas = 12;
 	
@@ -10390,6 +10422,9 @@ function db_onderhoud($type=9) {
 	$i_base->execsql($query);
 	
 	$query = sprintf("ALTER TABLE `%sWS_Voorraadboeking` CHANGE `RecordID` `RecordID` INT(11) NOT NULL AUTO_INCREMENT;", TABLE_PREFIX);
+	$i_base->execsql($query);
+	
+	$query = sprintf("ALTER TABLE `%sEvenement` CHANGE `Organisatie` `Organisatie` INT(11) NOT NULL DEFAULT '0'; ", TABLE_PREFIX);
 	$i_base->execsql($query);
 	
 	/***** Velden die niet meer nodig zijn *****/
