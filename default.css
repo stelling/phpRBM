@@ -3,6 +3,11 @@
 	--label-background-color: #cfe2ff;
 }
 
+.row {
+	margin-left: 2px;
+	margin-right: 2px;
+}
+
 /* Bootstrap */
 
 .table {	
@@ -21,6 +26,8 @@ i {
 	padding-bottom: 0;
 	margin-bottom: 0;
 }
+
+
 
 /* Einde Bootstrap */
 
@@ -818,9 +825,6 @@ textarea#sportlinkdata {
 	border-top-style: solid;
 	border-right-style: solid;
 	border-width: 1px;
-	
-	margin-left: 2px;
-	margin-right: 2px;
 }
 
 #agenda .col {
@@ -1717,6 +1721,7 @@ fieldset h3 {
 	margin-bottom: 8px;
 	margin-left: 8px;
 	margin-right: 8px;
+	
 	cursor: pointer;
 }
 
@@ -1797,8 +1802,6 @@ nav a {
 }
 
 #menu_l1, #menu_l2, #menu_l3 {
-	overflow: auto;
-	white-space: nowrap;
 	margin-bottom: 0;
 	padding-top: 4px;
 	padding-bottom: 4px;
@@ -1806,6 +1809,8 @@ nav a {
 
 #menu_l1 {
 	font-size: 105%;
+	overflow: auto;
+	white-space: nowrap;
 }
 
 #menu_l2 {
@@ -2078,6 +2083,10 @@ label#lblBET_TERM {
 	clear: none;
 	width: 160px;
 	margin-left: 4px;
+}
+
+label#lblEersteRekeningNummer, label#lblVerzamelenPerGezin, label#lblKostenplaats, label#lblKostenplaatsGezinskorting, label#lblBedragGezinskorting {
+	clear: none;
 }
 
 #rekeninginfo label {
@@ -2718,6 +2727,10 @@ li.presstat_v, td.presstat_v {
 	
 	#eigenschappenlidmuteren {
 		float: left;
+	}
+	
+	label#lblEersteRekeningNummer, label#lblVerzamelenPerGezin, label#lblKostenplaats, label#lblKostenplaatsGezinskorting, label#lblBedragGezinskorting {
+		clear: left;
 	}
 }
 
