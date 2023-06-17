@@ -420,7 +420,7 @@ function RekeningenAanmaken() {
 		} else {
 			echo("<p class='mededeling'>Vink de checkbox voor 'Rekeningen aanmaken' aan, om de rekeningen aan te maken.</p>\n");
 		}
-	} elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
+	} elseif ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['Verder'])) {
 		$f = sprintf("LM.Ingevoerd >= '%s'", $_POST['lmingevoerdna']);
 		$lidrows = $i_lid->ledenlijst(1, -1, $orderby, $f);
 		if (count($lidrows) > 0) {
@@ -452,26 +452,38 @@ function RekeningenAanmaken() {
 		printf("<label>Omschrijving rekening</label><input type='text' id='Rekeningomschrijving' maxlength=35 class='w35' value='%s'>\n", $szrow->Rekeningomschrijving);
 	
 		printf("<label>Datum rekening</label><input type='date' name='Rekeningdatum' value='%s'>\n", date("Y-m-d"));
-		printf("<label class='k2'>Eerste nummer rekening</label><input type='number' name='eerstenummer' value=%d>\n", $eerstenummer);
-		printf("<label class='k2'>Verzamelen per gezin?</label><input type='checkbox' id='RekeningenVerzamelen' %s>\n", checked($szrow->RekeningenVerzamelen));
+		printf("<label id='lblEersteRekeningNummer'>Eerste nummer rekening</label><input type='number' name='eerstenummer' value=%d>\n", $eerstenummer);
+		printf("<label id='lblVerzamelenPerGezin'>Verzamelen per gezin?</label><input type='checkbox' id='RekeningenVerzamelen' %s>\n", checked($szrow->RekeningenVerzamelen));
 		
 		printf("<label>Lidmaatschap ingevoerd na</label><input type='date' name='lmingevoerdna' value='%s'>\n", substr($i_lm->min("Ingevoerd"), 0, 10));
 	
 		printf("<label>Omschrijving verenigingscontributie</label><input type='text' id='Verenigingscontributie omschrijving' maxlength=50 class='w50' value='%s'>\n", $szrow->{'Verenigingscontributie omschrijving'});
-		printf("<label class='k2'>Kostenplaats</label><input type='text' id='Verenigingscontributie kostenplaats' maxlength=12 class='w12' value='%s'>\n", $szrow->{'Verenigingscontributie kostenplaats'});
+		printf("<label id='lblKostenplaats'>Kostenplaats</label><input type='text' id='Verenigingscontributie kostenplaats' maxlength=12 class='w12' value='%s'>\n", $szrow->{'Verenigingscontributie kostenplaats'});
+		
+		$arrAO = [1 => "Alleen naam afdeling", 2 => "Alleen naam activiteit", 3 => "Beide namen"];
+		$options = "";
+		foreach ($arrAO as $k => $o) {
+			$options .= sprintf("<option value=%d%s>%s</option>\n", $k, checked($k, "option", $szrow->{'Afdelingscontributie omschrijving'}), $o);
+		}
+		printf("<label>Omschrijving afdelingscontributie</label><select id='Afdelingscontributie omschrijving'>%s</select>", $options);
 		
 		printf("<label>Omschrijving gezinskorting</label><input type='text' id='Gezinskorting omschrijving' maxlength=50 class='w50' value='%s'>\n", $szrow->{'Gezinskorting omschrijving'});
-		printf("<label class='k2'>Kostenplaats gezinskorting</label><input type='text' id='Gezinskorting kostenplaats' maxlength=12 class='w12' value='%s'>\n", $szrow->{'Gezinskorting kostenplaats'});
-		printf("<label class='k2'>Bedrag gezinskorting</label><input type='text' id='Gezinskorting bedrag' class='d8' value='%s'>\n", $szrow->{'Gezinskorting bedrag'});
+		printf("<label id='lblKostenplaatsGezinskorting'>Kostenplaats gezinskorting</label><input type='text' id='Gezinskorting kostenplaats' maxlength=12 class='w12' value='%s'>\n", $szrow->{'Gezinskorting kostenplaats'});
+		printf("<label id='lblBedragGezinskorting'>Bedrag gezinskorting</label><input type='text' id='Gezinskorting bedrag' class='d8' value='%s'>\n", $szrow->{'Gezinskorting bedrag'});
 	
 		echo("<div id='opdrachtknoppen'>\n");
-		echo("<button type='submit'>Verder</button>\n");
+		echo("<button type='submit' name='Verder'><i class='bi bi-skip-forward-circle'></i> Verder</button>\n");
 		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 	
 		echo("</form>\n");
 	
 		printf("<script>
 			$('input').blur(function() {
+				if (this.id != null && this.id.length > 1) {
+					savedata('seizoenedit', %1\$d, this);
+				}
+			});
+			$('select').change(function() {
 				savedata('seizoenedit', %1\$d, this);
 			});
 		</script>\n", $seizoen);
