@@ -185,6 +185,9 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 	(new cls_RekeningBetaling())->controle();
 	(new cls_RekeningBetaling())->opschonen();
 	
+	(new cls_Seizoen())->controle();
+	(new cls_Seizoen())->opschonen();
+	
 } elseif ($_GET['op'] == "loginsopschonen") {
 	(new cls_Login())->opschonen();
 	
@@ -236,6 +239,7 @@ if ($currenttab == "Beheer logins") {
 		}
 		$del = sprintf("<i class='bi bi-trash' style='font-size: 14pt;' onClick='verw_auth(%d);'></i>", $row->RecordID);
 		$selectopt = sprintf("<option value=-1%s>Alleen webmasters</option>\n", checked($row->Toegang, "option", -1));
+		$selectopt .= sprintf("<option value=-2%s>Niemand</option>\n", checked($row->Toegang, "option", -2));
 		$selectopt .= sprintf("<option value=0%s>Iedereen</option>\n", checked($row->Toegang, "option", 0));
 		foreach($ondrows as $ond) {
 			$selectopt .= sprintf("<option value=%d%s>%s</option>\n", $ond->RecordID, checked($row->Toegang, "option", $ond->RecordID), htmlentities($ond->Naam));
@@ -383,7 +387,7 @@ if ($currenttab == "Beheer logins") {
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=beheerdiplomas\"' value=\"Onderhoud diploma's\"><p>Controle en opschonen van diploma's en leden per diploma en examens.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=mailingsopschonen\"' value='Onderhoud mailings'><p>Controle en opschonen van mailings en verzonden e-mails.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=evenementenopschonen\"' value='Onderhoud evenementen'><p>Controle en opschonen evenementen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=rekeningenopschonen\"' value='Onderhoud rekeningen en betalingen'><p>Controle en opschonen van rekeningen, rekeningregels en betalingen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=rekeningenopschonen\"' value='Onderhoud rekeningen en betalingen'><p>Controle en opschonen van rekeningen, rekeningregels, betalingen en seizoenen.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=loginsopschonen\"' value='Logins opschonen'><p>Opschonen van logins die om diverse redenen niet meer nodig zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<fieldset><input type='button' onClick='location.href=\"%s?tp=%s&op=autorisatieopschonen\"' value='Autorisatie opschonen'><p>Verwijderen toegang waar alleen de webmaster toegang toe heeft en die ouder dan 3 maanden zijn.</p></fieldset>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	if ((new cls_Orderregel())->aantal() > 0 or (new cls_Artikel())->aantal() > 0) {
