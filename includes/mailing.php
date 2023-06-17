@@ -366,16 +366,24 @@ class Mailing {
 					WHERE LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE() AND O.`Type`='A' AND LO.Lid=%%d ORDER BY LO.Vanaf;", $i_base->fdlang, $i_ond->fromlidond);
 			$this->MergeField[]=array('Naam' => "Afdelingen", 'SQL' => $sql);
 			
-			$sql = sprintf("SELECT CONCAT(O.Naam, IF(LO.GroepID > 0, IF(GR.ActiviteitID>0, CONCAT(' (', Act.Omschrijving, ')'), ''), IF(LO.Functie > 0, CONCAT(' (', F.Omschrijv , ')'), '')))
-					FROM %s
-					WHERE IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE() AND O.`Type`='A' AND LO.Lid=%%d ORDER BY O.Naam;", $i_ond->fromlidond);
-			$this->MergeField[]=array('Naam' => "AfdelingenMetActiviteit", 'SQL' => $sql);
-						
 			if ((new cls_Groep())->aantal() > 1) {
+						
 				$sql = sprintf("SELECT CONCAT(O.Naam, IF(LO.GroepID > 0, CONCAT(' (', GR.Starttijd, ' ', GR.Omschrijving, ')'), IF(LO.Functie > 0, CONCAT(' (', F.Omschrijv , ')'), '')))
 						FROM %s
 						WHERE IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE() AND O.`Type`='A' AND LO.Lid=%%d ORDER BY O.Naam;", $i_ond->fromlidond);
 				$this->MergeField[]=array('Naam' => "AfdelingenMetGroep", 'SQL' => $sql);
+				
+				if ((new cls_Activiteit())->aantal() > 1) {
+					$sql = sprintf("SELECT CONCAT(O.Naam, IF(LO.GroepID > 0, IF(GR.ActiviteitID>0, CONCAT(' (', Act.Omschrijving, ')'), ''), IF(LO.Functie > 0, CONCAT(' (', F.Omschrijv , ')'), '')))
+							FROM %s
+							WHERE IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE() AND O.`Type`='A' AND LO.Lid=%%d ORDER BY O.Naam;", $i_ond->fromlidond);
+					$this->MergeField[]=array('Naam' => "AfdelingenMetActiviteit", 'SQL' => $sql);
+					
+					$sql = sprintf("SELECT Act.Omschrijving
+							FROM %s
+							WHERE IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE() AND O.`Type`='A' AND LO.GroepID > 0 AND GR.ActiviteitID > 0 AND LO.Lid=%%d ORDER BY Act.Omschrijving;", $i_ond->fromlidond);
+					$this->MergeField[]=array('Naam' => "Activiteiten", 'SQL' => $sql);
+				}
 			}
 		}
 		
@@ -1439,7 +1447,7 @@ function lijstmailings($p_filter="") {
 			$kols[5]['columnname'] = "RecordID";
 			$kols[5]['class'] = "muteren";
 						
-			$kols[6]['link'] = sprintf("<a href='index.php?tp=%s&op=sentmail&MailingHistID=%%d'>&nbsp;&nbsp;&nbsp;</a>", urlencode($_GET['tp']));
+			$kols[6]['link'] = sprintf("index.php?tp=%s&op=sentmail&MailingHistID=%%d'", urlencode($_GET['tp']));
 			$kols[6]['columnname'] = "RecordID";
 			$kols[6]['class'] = "sendmail";
 			
