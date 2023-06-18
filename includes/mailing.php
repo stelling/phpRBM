@@ -344,7 +344,7 @@ class Mailing {
 		$sql = sprintf("SELECT DATE_FORMAT(LIDDATUM, %s, 'nl_NL') FROM %sLidmaatschap AS LM WHERE IFNULL(LM.Opgezegd, '9999-12-31') >= CURDATE() AND LM.Lid=%%d;", $i_base->fdlang, TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "LidVanaf", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT IF(LM.OPGEZEGD IS NULL, 'Niet', DATE_FORMAT(LM.Opgezegd, %s, 'nl_NL')) FROM %sLidmaatschap AS LM
+		$sql = sprintf("SELECT IF(LM.OPGEZEGD IS NULL, '', DATE_FORMAT(LM.Opgezegd, %s, 'nl_NL')) FROM %sLidmaatschap AS LM
 							 WHERE LM.LIDDATUM < CURDATE() AND LM.Lid=%%d
 							 ORDER BY LM.LIDDATUM DESC LIMIT 1;", $i_base->fdlang, TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "OpgezegdPer", 'SQL' => $sql);
@@ -910,7 +910,10 @@ class Mailing {
 				$bp = strpos($this->message, "[%", $hv);
 				if ($bp !== false) {
 					$bp += 2;
-					$ep = strpos($this->message, "%]", $bp);
+					$ep = strpos($this->message, "#", $bp);
+					if ($ep === false) {
+						$ep = strpos($this->message, "%]", $bp);
+					}
 					if ($ep !== false) {
 						$mm = substr($this->message, $bp, ($ep-$bp));
 						$as = array_search($mm, array_column($this->MergeField, 'Naam'));
@@ -1347,7 +1350,9 @@ class Mailing {
 			$dtfmt->setPattern(DTTEXT);
 			foreach($this->MergeField as $fld) {
 				$nm = "[%" . $fld['Naam'] . "%]";
-				if ((stripos($this->merged_message, $nm) !== false or stripos($this->merged_subject, $nm)) !== false and isset($fld['SQL']) and strlen($fld['SQL']) > 5) {
+				$znm = trim("[%" . $fld['Naam']);
+				$nmml = "";
+				if ((stripos($this->merged_message, $znm) !== false or stripos($this->merged_subject, $nm)) !== false and isset($fld['SQL']) and strlen($fld['SQL']) > 5) {
 					if ($fld['Naam'] == "OpenstaandeRekeningenTabel") {
 						$rkrows = (new cls_Rekening())->lijst("telaat", $lidid);
 						$nv = "";
@@ -1369,7 +1374,21 @@ class Mailing {
 								$nv .= "</li>\n";
 							}
 						}
-						if (strlen($nv) == 0 and ($fld['Naam'] == "Afdelingen" or $fld['Naam'] == "Toestemmingen" or $fld['Naam'] == "Toestemmingen_UL")) {
+						$ml = stripos($this->merged_message, $znm . "#");
+						if ($ml !== false) {
+							$bpl = $ml + strlen($znm) + 1;
+							$epl = strpos($this->merged_message, "%]", $bpl);
+							$lab = trim(substr($this->merged_message, $bpl, ($epl-$bpl)));
+							$lab = str_replace("</li>", "", $lab);
+							if (strlen($nv) > 0 and substr($lab, 0, 4) == "[li]") {
+								$nv = str_replace("[li]", "<li>", $lab) . " " . $nv . "</li>";
+							} elseif (strlen($nv) > 0) {
+								$nv = $lab . " " . $nv;
+							}
+							$nmml = $znm . "#". $lab . "%]";
+						} elseif ((strlen($nv) == 0 or $nv == "9999-12-31") and $fld['Naam'] == "OpgezegdPer") {
+							$nv = "Niet";
+						} elseif (strlen($nv) == 0 and ($fld['Naam'] == "Afdelingen" or $fld['Naam'] == "Toestemmingen" or $fld['Naam'] == "Toestemmingen_UL")) {
 							$nv = "Geen";
 						} elseif (substr($fld['Naam'], -3) == "_UL") {
 							$nv = "<ul>\n" . $nv . "</ul>";
@@ -1377,6 +1396,7 @@ class Mailing {
 					}
 					$this->merged_subject = str_ireplace($nm, $nv, $this->merged_subject);
 					$this->merged_message = str_ireplace($nm, $nv, $this->merged_message);
+					$this->merged_message = str_ireplace($nmml, $nv, $this->merged_message);
 					$this->contains_mergefield = true;
 					if ($this->xtrachar == "LNR" and $nm == "[%Lidnummer%]" and $this->xtranum == 0) {
 						$this->xtranum = $nv;
