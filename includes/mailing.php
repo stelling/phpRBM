@@ -910,15 +910,16 @@ class Mailing {
 				$bp = strpos($this->message, "[%", $hv);
 				if ($bp !== false) {
 					$bp += 2;
-					$ep = strpos($this->message, "#", $bp);
-					if ($ep === false) {
-						$ep = strpos($this->message, "%]", $bp);
-					}
+					$ep = strpos($this->message, "%]", $bp);
 					if ($ep !== false) {
 						$mm = substr($this->message, $bp, ($ep-$bp));
+						$lp = strpos($mm, "#");
+						if ($lp !== false) {
+							$mm = substr($mm, 0, $lp);
+						}
 						$as = array_search($mm, array_column($this->MergeField, 'Naam'));
 						if ($as === false) {
-							$this->meldingen .= sprintf("<li>%s is hier geen beschikbare variable.</li>\n", $mm);
+							$this->meldingen .= sprintf("<li>%s is geen beschikbare variable.</li>\n", $mm);
 						}
 						$hv = $ep + 2;
 					} else {
@@ -1382,6 +1383,8 @@ class Mailing {
 							$lab = str_replace("</li>", "", $lab);
 							if (strlen($nv) > 0 and substr($lab, 0, 4) == "[li]") {
 								$nv = str_replace("[li]", "<li>", $lab) . " " . $nv . "</li>";
+							} elseif (strlen($nv) > 0 and substr($lab, 0, 4) == "[p]") {
+								$nv = str_replace("[p]", "<p>", $lab) . " " . $nv . ".</p>";
 							} elseif (strlen($nv) > 0) {
 								$nv = $lab . " " . $nv;
 							}
