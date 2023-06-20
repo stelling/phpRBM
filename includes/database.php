@@ -4106,7 +4106,7 @@ class cls_Login extends cls_db_base {
 		$query = sprintf("SELECT Login.*, %s AS Naam, L.Roepnaam, L.Email, Login.LidID, ", $this->selectnaam);
 		
 		$query .= sprintf("(SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.Lid=L.RecordID AND LO.OnderdeelID IN (%s) AND LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()) AS AanvragenMag", TABLE_PREFIX, implode(", ", $this->beperkttotgroep));
-		$query .= sprintf(" FROM %sLid AS L LEFT JOIN %sAdmin_login AS Login ON L.RecordID=Login.LidID WHERE ", TABLE_PREFIX, $this->basefrom);
+		$query .= sprintf(" FROM %sLid AS L LEFT JOIN %s ON L.RecordID=Login.LidID WHERE ", TABLE_PREFIX, $this->basefrom);
 		
 		if (strlen($this->filteremail) > 0) {
 			$query .= $this->filteremail;
@@ -8557,14 +8557,10 @@ class cls_Seizoen extends cls_db_base {
 	public function update($p_szid, $p_kolom, $p_waarde) {
 		$this->vulvars($p_szid);
 		$this->tas = 22;
-
-//		debug("$p_szid, $p_kolom, $p_waarde", 0, 1);
 				
 		if ($this->pdoupdate($this->szid, $p_kolom, $p_waarde)) {
 			$this->Log($this->szid);
 		}
-		
-		
 	}
 
 	public function delete($p_seiznr) {
