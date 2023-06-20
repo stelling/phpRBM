@@ -208,8 +208,8 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 
 if ($currenttab == "Beheer logins") {
 	if (toegang($currenttab, 1, 1)) {
-		if ($_GET['op'] == "validatielink" and isset($_GET['lidid'])) {
-			fnHerstellenWachtwoord("mail", $_GET['lidid']);
+		if ($_GET['op'] == "validatielink" and isset($_GET['lidid']) and $_GET['lidid'] > 0) {
+			fnValidatieLogin($_GET['lidid'], "", "mail");
 		}
 		fnBeheerLogins();
 	}
