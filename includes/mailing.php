@@ -344,7 +344,7 @@ class Mailing {
 		$sql = sprintf("SELECT DATE_FORMAT(LIDDATUM, %s, 'nl_NL') FROM %sLidmaatschap AS LM WHERE IFNULL(LM.Opgezegd, '9999-12-31') >= CURDATE() AND LM.Lid=%%d;", $i_base->fdlang, TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "LidVanaf", 'SQL' => $sql);
 
-		$sql = sprintf("SELECT IF(LM.OPGEZEGD IS NULL, '', DATE_FORMAT(LM.Opgezegd, %s, 'nl_NL')) FROM %sLidmaatschap AS LM
+		$sql = sprintf("SELECT IF(LM.OPGEZEGD IS NULL, '', DATE_FORMAT(DATE_ADD(LM.Opgezegd, INTERVAL 1 DAY), %s, 'nl_NL')) FROM %sLidmaatschap AS LM
 							 WHERE LM.LIDDATUM < CURDATE() AND LM.Lid=%%d
 							 ORDER BY LM.LIDDATUM DESC LIMIT 1;", $i_base->fdlang, TABLE_PREFIX);
 		$this->MergeField[]=array('Naam' => "OpgezegdPer", 'SQL' => $sql);
