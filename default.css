@@ -8,6 +8,10 @@
 	margin-right: 2px;
 }
 
+.form-check {
+	padding-left: 0;
+}
+
 /* Bootstrap */
 
 .table {	
@@ -186,8 +190,9 @@ footer a, footer a:visited {
 
 form p {
 	float: left;
-	margin-left: 4px;
 	margin-top: 6px;
+	margin-left: 4px;
+	margin-right: 4px;
 }
 
 button {
@@ -2141,13 +2146,24 @@ table#rekeningregels {
 	width: 250px;
 }
 
-#aanmakenrekeningen label.k2 {
-	width: 200px;
-}
-
 #rekeningenmailen ul, #aanmakenrekeningen ul {
 	margin-left: 0;
 	padding-left: 0;
+}
+
+#rekeningenmailen label {
+	width: 200px;
+}
+
+#rekeningenmailen label.totenmet {
+	clear: none;
+	text-align: center;
+	width: 90px;
+}
+
+#rekeningenmailen .form-check-input {
+	margin-left: 3px;
+	margin-top: 8px;
 }
 
 #rekeningbetalingen label {
@@ -2190,16 +2206,6 @@ table#rekeningregels {
 
 #aanmakenrekeningen li {
 	width: 19%;
-}
-
-#rekeningenmailen label {
-	height: 22px;
-	width: 225px;
-}
-
-#rekeningenmailen p {
-	margin-top: 7px;
-	margin-bottom: 3px;	
 }
 
 #dbonderhoud p {
