@@ -27,6 +27,7 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 	addtp("Logboek");
 } else {
 	addtp("Vereniging");
+	addtp("Agenda");
 	if ($_SESSION['lidid'] > 0) {
 		addtp("Eigen gegevens");
 	} elseif ((new cls_Login())->aantal() > 0) {
@@ -35,6 +36,7 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 		debug("Er zijn geen logins aanwezig.");
 	}
 	$i_lo = new cls_Lidond();
+	
 	
 	if ($currenttab == "Eigen gegevens" or ($currenttab2 == "Overzicht lid")) {
 		if ($currenttab == "Eigen gegevens") {
@@ -230,7 +232,7 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 					if ((new cls_Afdelingskalender())->aantal($f) > 0) {
 						addtp(trim($row->Naam) . "/Presentie muteren");
 						if ((new cls_Aanwezigheid())->aantalstatus("*", $row->RecordID) > 0) {
-							addtp(trim($row->Naam) . "/Presentie per lid");
+							addtp(trim($row->Naam) . "/Presentie per seizoen");
 							addtp(trim($row->Naam) . "/Presentieoverzicht");
 						}
 					}
@@ -252,6 +254,7 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 						$tp = trim($row->Naam) . "/Examens";
 						addtp($tp);
 					}
+					addtp(trim($row->Naam) . "/Logboek");
 				}
 			}
 		}
@@ -522,7 +525,7 @@ function fnInloggen() {
 	echo("<p>Ben je je wachtwoord vergeten, dan kan je deze <a href='\?tp=Herstel+wachtwoord'>opnieuw instellen</a>.</p>\n");
 
 	echo("<div id='opdrachtknoppen'>\n");
-	echo("<input type='submit' value='Inloggen' name='Inloggen'>\n");
+	echo("<button type='submit' name='Inloggen'><i class='bi bi-arrow-right-circle'></i> Inloggen</button>\n");
 	echo("</div> <!-- Einde opdrachtknoppen -->\n");
 
 	echo("</form>\n");
@@ -679,7 +682,6 @@ function fnValidatieLogin($lidid, $key, $stap) {
 							<p>Activatie url %s: %s</p>\n
 							<p>Deze link is %d uur geldig</p>", $row->Naam, $_SESSION['settings']['naamwebsite'], $urlactivatie, $_SESSION['settings']['login_geldigheidactivatie']);
 				$email->to_outbox(0);
-				debug($email->bericht, 1);
 				$email = null;
 			}
 		} else {
