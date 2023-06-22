@@ -128,7 +128,6 @@ function savedata(entity, rid, control) {
 		var field_name = control.id;
 	}
 	
-	
 	if (control.type == "checkbox") {
 		if (control.checked == true) {
 			var value = 1;
@@ -146,12 +145,6 @@ function savedata(entity, rid, control) {
 		type: 'post',
 		dataType: 'json',
 		data: { field: field_name, value: value, id: rid },
-		success: function(response){
-			if (response.length > 12) {
-				alert(response);
-				location.reload();
-			}
-		},
 		fail: function( data, textStatus ) {
 			alert(entity + ': update database is niet gelukt. ' + textStatus);
 		}
@@ -757,14 +750,10 @@ function adresvullen() {
 			dataType: 'json',
 			type: 'get',
 			success: (data) => {
-				if (data.response.numFound > 1) {
-					$("#uitleg_adres").html('Adres is niet uniek');
-					ad.val('');
-					wp.val(data.response.docs[0].woonplaatsnaam);
-				} else if (data.response.numFound == 0) {
+				if (data.response.numFound == 0) {
 					$('#uitleg_adres').html('Adres bestaat niet');
 					ad.val('');
-				} else if (data.response.numFound == 1) {
+				} else {
 					var nad = data.response.docs[0].straatnaam + ' ' + data.response.docs[0].huis_nlt;
 					ad.val(nad);
 					wp.val(data.response.docs[0].woonplaatsnaam);
