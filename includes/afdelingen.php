@@ -20,8 +20,8 @@ function fnAfdeling() {
 		fnGroepsindeling($afdid, 1);
 	} elseif ($currenttab2 == "Presentie muteren") {
 		fnPresentieMuteren($afdid);
-	} elseif ($currenttab2 == "Presentie per lid") {
-		fnPresentiePerLid($afdid);
+	} elseif ($currenttab2 == "Presentie per seizoen") {
+		fnPresentiePerSeizoen($afdid);
 	} elseif ($currenttab2 == "Presentieoverzicht") {
 		fnPresentieOverzicht($afdid);
 	} elseif ($currenttab2 == "Wachtlijst") {
@@ -34,6 +34,10 @@ function fnAfdeling() {
 		DL_lijst($_GET['p_examen'], $_GET['p_diploma']);
 	} elseif ($currenttab2 == "Examens") {
 		fnExamenResultaten($afdid);
+	} elseif ($currenttab2 == "Logboek") {
+		$f = sprintf("ReferOnderdeelID=%d", $afdid);
+		$rows = (new cls_Logboek())->lijst(-1, 0, 0, $f);
+		echo(fnDisplayTable($rows, fnStandaardKols("logboek", 1, $rows), "", 0, "", "logboek"));
 	} else {
 		debug($currenttab2);
 	}
@@ -143,7 +147,7 @@ function fnAfdelingskalenderMuteren($p_onderdeelid){
 	$act = false;
 	
 	echo("<tr><th>Datum</th><th>Omschrijving</th><th>Opmerking</th><th>Activiteit?</th><th></th></tr>\n");
-	$dtfmt->setPattern(DTTEXTWD);
+	$dtfmt->setPattern(DTTEXT);
 	foreach ($i_ak->lijst($p_onderdeelid) as $row) {
 		$aw = $i_aanw->aantal(sprintf("AfdelingskalenderID=%d", $row->RecordID));
 		
@@ -581,8 +585,7 @@ function fnPresentieMuteren($p_onderdeelid){
 						url: 'ajax_update.php?entiteit=lo_presentie',
 						type: 'post',
 						dataType: 'json',
-						data: { loid: loid, field: 'Status', value: value, akid: %1\$d },
-						success:function(response){}
+						data: { loid: loid, field: 'Status', value: value, akid: %1\$d }
 					});
 				});
 				
@@ -628,17 +631,20 @@ function fnPresentieoverzicht($p_ondid) {
 		$kop_telaat = "";
 	}
 	
-	echo("<div id='presentieperlid'>\n");
+	echo("<div id='presentieoverzicht'>\n");
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$_POST['filterAanwezigheidsnormOnder'] = $_POST['filterAanwezigheidsnormOnder'] ?? 0;
 		$_POST['filterAanwezigheidsnormBoven'] = $_POST['filterAanwezigheidsnormBoven'] ?? 0;
 		$_POST['100aanwezigTonen'] = $_POST['100aanwezigTonen'] ?? 0;
 	} else {
-		$_POST['filterDatumVanaf'] = date("Y-m-d", strtotime("-13 week"));
+		$i_sz = new cls_Seizoen();
+		$i_sz->zethuidige(date("Y-m-d"));
+		$_POST['filterDatumVanaf'] = $i_sz->begindatum;
 		$_POST['filterAanwezigheidsnormOnder'] = 1;
 		$_POST['filterAanwezigheidsnormBoven'] = 1;
 		$_POST['100aanwezigTonen'] = 0;
+		$i_sz = null;
 	}
 	
 	printf("<form method='post' id='filter' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
@@ -722,8 +728,8 @@ function fnPresentieoverzicht($p_ondid) {
 	
 }  # fnPresentieoverzicht
 
-function fnPresentiePerLid($p_ondid) {
-	// Dit is het oude overzicht, wat waarschijnlijk binnenkort kan vervallen.
+function fnPresentiePerSeizoen($p_ondid) {
+	// Dit is het overzicht per seizoen
 	
 	global $dtfmt;
 	
@@ -747,7 +753,7 @@ function fnPresentiePerLid($p_ondid) {
 		$kop_telaat = "";
 	}
 	
-	echo("<div id='presentieperlid'>\n");
+	echo("<div id='Presentieoverzicht'>\n");
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$_POST['filterAanwezigheidsnormOnder'] = $_POST['filterAanwezigheidsnormOnder'] ?? 0;
@@ -767,7 +773,7 @@ function fnPresentiePerLid($p_ondid) {
 	echo("</form>\n");
 	
 	printf("<table class='%s'>\n", TABLECLASSES);
-	printf("<caption> Presentieoverzicht | %s</caption>\n", $i_lo->ondnaam);
+	printf("<caption> Presentieoverzicht per seizoen | %s</caption>\n", $i_lo->ondnaam);
 	foreach ($seizrows as $seizrow) {
 		printf("<tr class='seizoentotaal'><th class='teken'>-</th><th>%d</th><th>%s t/m %s</th><th>Groep</th><th># Act.</th>", $seizrow->Nummer, $dtfmt->format(strtotime($seizrow->Begindatum)), $dtfmt->format(strtotime($seizrow->Einddatum)));
 		printf("%s<th># Afwezig</th><th>%% Aanwezig</th><th>Ziek</th><th>Met reden</th><th>Zonder reden</th>%s</tr>\n", $kop_aangemeld, $kop_telaat);
@@ -841,7 +847,7 @@ function fnPresentiePerLid($p_ondid) {
 	}
 	echo("</table>\n");
 	
-	echo("</div> <!-- Einde presentieperlid -->\n");
+	echo("</div> <!-- Einde presentieoverzicht -->\n");
 	
 	echo("<script>
 		$('tr.seizoentotaal').click(function(){
@@ -854,7 +860,7 @@ function fnPresentiePerLid($p_ondid) {
 		});
 	</script>\n");
 	
-}  # fnPresentiePerLid_BU
+}  # fnPresentiePerSeizoen
 
 function fnAfdelingswachtlijst($p_afdid) {
 	
