@@ -1908,22 +1908,8 @@ function fnRekeningenMailen($op) {
 	echo("<div id='rekeningenmailen'>\n");
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		if ($op == "selectierekeningen") {
-			if (isset($_POST['reknr']) and is_numeric($_POST['reknr'])) {
-				$_POST['minreknr'] = $_POST['reknr'];
-				$_POST['maxreknr'] = $_POST['reknr'];
-			}
-			if (isset($_POST['rekdatum']) and strlen($_POST['rekdatum']) > 3) {
-				$_POST['mindatum'] = $_POST['rekdatum'];
-				$_POST['maxdatum'] = $_POST['rekdatum'];
-			}
-			$mindat = $_POST['mindatum'];
-			$maxdat = $_POST['maxdatum'];
-			if (strtotime($mindat) == FALSE) {
-				$mindat = $i_rk->min("Datum");
-			}
-			if (strtotime($maxdat) == FALSE) {
-				$maxdat = $i_rk->max("Datum");
-			}
+			$mindat = $_POST['mindatum'] ?? "1970-01-01";
+			$maxdat = $_POST['maxdatum'] ?? "9999-12-31";
 			if ($mindat > $maxdat) {
 				$maxdat = $mindat;
 			}
@@ -1939,6 +1925,7 @@ function fnRekeningenMailen($op) {
 			}
 			if (!isset($_POST['eerderverzonden'])) {
 				$filter .= sprintf(" AND (RK.Nummer NOT IN (SELECT Xtra_Num FROM %sMailing_hist WHERE Xtra_Char='REK'))", TABLE_PREFIX);
+				$_POST['eerderverzonden'] = 0;
 			}
 			$filter .= " AND (";
 			if (isset($_POST['nietbetaald'])) {
@@ -1995,23 +1982,27 @@ function fnRekeningenMailen($op) {
 
 	if ($_SERVER['REQUEST_METHOD'] != "POST" or $op == "selectieversturen") {
 		$i_p->vulsessie();
-		printf("<form method='post' action='%s?tp=%s/%s&amp;op=selectierekeningen' name='mailrek'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
-		echo("<h2>Filters</h2>\n");
-		printf("<table class='%s'>\n", TABLECLASSES);
-		echo("<tr><th></th><th>Gelijk aan</th><th>Vanaf</th><th>Totenmet</th></tr>");
-		printf("<tr><th>Seizoen</th><td><select name='rekseizoen'>\n%s</select></td><td></td><td></td></tr>\n", (new cls_Seizoen())->htmloptions(-1, 1));
-		printf("<tr><th>Rekeningnummer</th><td><input type='number' name='reknr'></td><td><input type='number' value=%d name='minreknr'></td><td><input type='number' value=%d name='maxreknr'></td></tr>\n", $i_rk->min("Nummer"), $i_rk->max("Nummer"));
-		printf("<tr><th>Rekeningdatum</th><td><input type='date' name='rekdatum'></td><td><input type='date' value='%s' name='mindatum'></td><td><input type='date' value='%s' name='maxdatum'></td></tr>\n", $i_rk->min("Datum"), $i_rk->max("Datum"));			
-		printf("<tr><th>Betaald door (debiteur)</th><td><select name='reklid'>\n<option value=-1>*** Iedereen ***</option>\n%s</select></td><td></td><td></td></tr>\n", (new cls_lid())->htmloptions(-1, 3));
-		echo("<tr><th>Volledig betaald</th><td><input type='checkbox' name='volbetaald' value=1 checked></td></tr>\n");
-		echo("<tr><th>Gedeeltelijk betaald</th><td><input type='checkbox' name='deelbetaald' value=1 checked></td></tr>\n");
-		echo("<tr><th>Niet betaald</th><td><input type='checkbox' name='nietbetaald' value=1 checked></td></tr>\n");
-		echo("<tr><th>Nul rekeningen</th><td><input type='checkbox' name='nulrekeningen' value=1></td></tr>\n");
-		echo("<tr><th>Eerder verzonden</th><td><input type='checkbox' name='eerderverzonden' value=1 checked></td></tr>\n");
-		echo("</table>\n");
+		printf("<form method='post' action='%s?tp=%s/%s&op=selectierekeningen'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
+		$rekseizoen = (new cls_Seizoen())->max("Nummer");
+		printf("<label>Seizoen</label><select name='rekseizoen'>\n%s</select>\n", (new cls_Seizoen())->htmloptions($rekseizoen, 1));
+		printf("<label>Rekeningnummer</label><input type='number' class='d8' value=%d name='minreknr'><label class='totenmet'>tot en met</label><input type='number' class='d8' value=%d name='maxreknr'>\n", $i_rk->min("Nummer"), $i_rk->max("Nummer"));
+
+		$f = sprintf("RK.Seizoen=%d", $rekseizoen);
+		printf("<label>Rekeningdatum</label><input type='date' value='%s' name='mindatum'><label class='totenmet'>tot en met</label><input type='date' value='%s' name='maxdatum'>\n", $i_rk->min("Datum", $f), $i_rk->max("Datum", $f));
+		printf("<label>Betaald door (debiteur)</label><select name='reklid'>\n<option value=-1>*** Iedereen ***</option>\n%s</select>\n", (new cls_lid())->htmloptions(-1, 3));
+		
+		echo("<div class='form-check form-switch'>\n");
+		echo("<label>Volledig betaald</label><input type='checkbox' class='form-check-input' name='volbetaald' value=1>\n");
+		echo("<label>Gedeeltelijk betaald</label><input type='checkbox' name='deelbetaald' class='form-check-input' value=1 checked>\n");
+	
+		echo("<label>Niet betaald</label><input type='checkbox' name='nietbetaald' class='form-check-input' value=1 checked>\n");
+		echo("<label>Nul rekeningen</label><input type='checkbox' name='nulrekeningen' class='form-check-input' value=1>\n");
+		echo("<label>Eerder verzonden</label><input type='checkbox' name='eerderverzonden' class='form-check-input' value=1 checked>\n");
+
+		echo("</div>\n");
 
 		echo("<div id='opdrachtknoppen'>\n");
-		echo("<input type='submit' value='Verder'>\n");
+		echo("<button type='submit'><i class='bi bi-skip-forward-circle'></i> Verder</button>\n");
 		echo("</div>  <!-- Einde opdrachtknoppen -->\n");
 		
 		echo("</form>\n");
