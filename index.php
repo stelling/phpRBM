@@ -235,6 +235,9 @@ if ($i_lid->aantal() == 0) {
 		if ($currenttab3 == "Presentielijst") {
 			presentielijst();
 		}
+		if ($currenttab3 == "Toestemmingen") {
+			overzichttoestemmingen();
+		}
 		if ($currenttab3 == "NCS opgave") {
 			ncsopgave();
 		}

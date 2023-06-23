@@ -34,6 +34,8 @@ function fnAfdeling() {
 		DL_lijst($_GET['p_examen'], $_GET['p_diploma']);
 	} elseif ($currenttab2 == "Examens") {
 		fnExamenResultaten($afdid);
+	} elseif ($currenttab2 == "Toestemmingen") {
+		overzichttoestemmingen($afdid);
 	} elseif ($currenttab2 == "Logboek") {
 		$f = sprintf("ReferOnderdeelID=%d", $afdid);
 		$rows = (new cls_Logboek())->lijst(-1, 0, 0, $f);
@@ -222,6 +224,8 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 	printf("<div id='%s'>\n", strtolower(str_replace(" ", "", $afdnaam)));
 	
 	if ($p_muteren == 0) {
+		
+		$i_lo->auto_einde($afdid, 30);
 		
 		echo("<div id='groepsindeling'>\n");
 		printf("<h2>%s</h2>\n", $afdnaam);

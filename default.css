@@ -1723,6 +1723,8 @@ fieldset h3 {
 }
 
 #opdrachtknoppen button {
+	float: left;
+	
 	margin-bottom: 8px;
 	margin-left: 8px;
 	margin-right: 8px;
@@ -2580,6 +2582,15 @@ li.presstat_v, td.presstat_v {
 	border-width: 1px;
 	background-color: transparent;
 	border-collapse: separate;
+}
+
+#overzichttoestemmingen td {
+	text-align: center;
+}
+
+
+#overzichttoestemmingen td:first-child {
+	text-align: left;
 }
 
 @media screen and (max-width: 750px) {
