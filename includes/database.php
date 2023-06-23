@@ -3055,9 +3055,9 @@ class cls_Lidond extends cls_db_base {
 			if (isset($row)) {
 				$this->ondnaam = $row->Naam;
 				if (strlen($row->Naam) > 15) {
-					$this->naamlogging = $row->Kode;
+//					$this->naamlogging = $row->Kode;
 				} else {
-					$this->naamlogging = $row->Naam;
+//					$this->naamlogging = $row->Naam;
 				}
 				$this->ondtype = $row->Type;
 				$this->ondkader = $row->Kader;
@@ -8490,7 +8490,7 @@ class cls_Seizoen extends cls_db_base {
 		$rv = "";
 		foreach ($this->lijst(1, $p_filter) as $row) {
 			$s = checked($row->Nummer, "option", $p_cv);
-			$rv .= sprintf("<option value=%d %s>%s: %s t/m %s</option>\n", $row->Nummer, $s, $row->Nummer, $dtfmt->format(strtotime($row->Begindatum)), $dtfmt->format(strtotime($row->Einddatum)));
+			$rv .= sprintf("<option value=%d%s>%s: %s t/m %s</option>\n", $row->Nummer, $s, $row->Nummer, $dtfmt->format(strtotime($row->Begindatum)), $dtfmt->format(strtotime($row->Einddatum)));
 		}
 		return $rv;
 	}
@@ -8611,6 +8611,7 @@ class cls_Stukken extends cls_db_base {
 			$this->stid = $this->scalar($query);
 		}
 		$this->folder = BASEDIR . "/stukken/";
+		$this->magdownload = false;
 		
 		if ($this->stid > 0) {
 			$this->query = sprintf("SELECT S.* FROM %s WHERE S.RecordID=%d;", $this->basefrom, $this->stid);
@@ -8622,15 +8623,12 @@ class cls_Stukken extends cls_db_base {
 				if ($this->zichtbaarvoor == 0 or $_SESSION['webmaster'] == 1) {
 					$this->magdownload = true;
 				} else {
-					if (in_array($this->zichtbaarvoor, array($_SESSION['lidgroepen']))) {
+					if (in_array($this->zichtbaarvoor, explode(",", $_SESSION['lidgroepen']))) {
 						$this->magdownload = true;
-					} else {
-						$this->magdownload = false;
 					}
 				}
 			} else {
 				$this->stid = 0;
-				$this->magdownload = false;
 			}
 		}
 		
