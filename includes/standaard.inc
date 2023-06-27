@@ -410,7 +410,7 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 	$ulopen = false;
 	$_SESSION['settings']['typemenu'] = 1;
 
-	if (strlen($xtra) > 0 and startwith($xtra, "&amp;") == false) {
+	if (strlen($xtra) > 0 and startwith($xtra, "&") == false) {
 		$xtra = "&" . $xtra;
 	}
 	
@@ -435,22 +435,22 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 			if (strlen($tpd) > 1) {
 				$cl = "";
 				if ($nivo == 1 and $currenttab == str_replace("'", "", $tp)) {
-					$cl = " class='current'";
+					$cl = " class='active'";
 					$navpad[$nivo]['naam'] = $tpd;
 					$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
 				} elseif ($nivo == 2 and ($currenttab2 == str_replace("'", "", $tpd) or strlen($currenttab2) == 0)) {
-					$cl = " class='current'";
+					$cl = " class='active'";
 					if (toegang($currenttab . "/" . str_replace("'", "", $tpd), 0)) {
 						$currenttab2 = $tpd;
 					}
 					$navpad[$nivo]['naam'] = $tpd;
 					$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
 				} elseif ($nivo == 3 and ($currenttab3 == str_replace("'", "", $tpd) or strlen($currenttab3) == 0)) {
-					$cl = " class='current'";
+					$cl = " class='active'";
 					$navpad[$nivo]['naam'] = $tpd;
 					$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
 				}
-				printf("<a href=\"%s?tp=%s%s\"><p%s>%s</p></a>\n", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra, $cl, $tpd);
+				printf("<a href=\"%s?tp=%s%s\"%s>%s</a>\n", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra, $cl, $tpd);
 				$itp++;
 			}
 		}
@@ -634,9 +634,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 		
 		if ($kols == "logboek") {
 			$kols = fnStandaardKols($kols, 1, $rows);
-		}
-
-		if ($kols == null) {
+		} elseif ($kols == null) {
 			$kn = 0;
 			foreach($rows[0] as $key => $value) {
 				$kols[$kn]['columnname'] = $key;
@@ -649,6 +647,8 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 		}
 			
 		ksort($kols);
+
+//		debug($kols);
 		
 		foreach ($kols as $k => $kol) {
 			$iq = false;
@@ -684,7 +684,19 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 				
 			if ($iq) {
 				if (!isset($kol['headertext'])) {
-					$kol['headertext'] = "&nbsp;";
+					$kol['headertext'] = "";
+				} elseif (substr($kol['headertext'], 0, 3) == "boo") {
+					$kol['headertext'] = substr($kol['headertext'], 3);
+					$kols[$k]['type'] = "boolean";
+				} elseif (substr($kol['headertext'], 0, 3) == "int") {
+					$kol['headertext'] = substr($kol['headertext'], 3);
+					$kols[$k]['type'] = "integer";
+				} elseif (substr($kol['headertext'], 0, 3) == "cur") {
+					$kol['headertext'] = substr($kol['headertext'], 3);
+					$kols[$k]['type'] = "currency";
+				} elseif (substr($kol['headertext'], 0, 3) == "dte") {
+					$kol['headertext'] = substr($kol['headertext'], 3);
+					$kols[$k]['type'] = "date";
 				}
 				if (isset($kol['sortcolumn'])) {
 					if (isset($_SESSION['huidsort']) and $_SESSION['huidsort'] < 50 and $_SESSION['huidsort'] == $k and $k >= 0) {
@@ -738,10 +750,13 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					$value = null;
 				}
 				$kol_edit = 0;
-				$kol_link = "";
-				$kol_class = "";
 				if (isset($kols[$kn]['edit'])) {
 					$kol_edit = $kols[$kn]['edit'];
+				}
+				$kol_link = "";
+				$kol_class = "";
+				if (isset($kols[$kn]['class'])) {
+					$kol_class = $kols[$kn]['class'];
 				}
 				
 				if (isset($kols[$kn]['type'])) {
@@ -767,25 +782,28 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 						} elseif (isset($kols[$kn]['class']) and $kols[$kn]['class'] === "detailregels") {
 							$kol_link .= "<i class='bi bi-chevron-double-down'></i></a>";
 							
-						} elseif (isset($kols[$kn]['class']) and $kols[$kn]['class'] === "detailslid") {
-							$kol_link .= "<i class='bi bi-person-lines-fill'></i></a>";
+						} elseif ($kol_class === "detailslid") {
+							$kol_link .= "<i class='bi bi-person-lines-fill' alt='Details lid' title='Gegevens van het lid'></i></a>";
 							
-						} elseif (isset($kols[$kn]['class']) and $kols[$kn]['class'] === "pdf") {
-							$kol_link .= "<i class='bi bi-file-earmark-pdf'></i></a>";
+						} elseif ($kol_class === "pdf") {
+							$kol_link .= "<i class='bi bi-file-earmark-pdf' alt='PDF' title='Bekijk PDF'></i></a>";
 							
 						} elseif (isset($kols[$kn]['class']) and $kols[$kn]['class'] == "leden") {
-							$kol_link .= "<i class='bi bi-people'></i></a>";
+							$kol_link .= "<i class='bi bi-people' alt='Leden' title='Leden'></i></a>";
 							
 						} elseif (isset($kols[$kn]['class']) and $kols[$kn]['class'] == "muteren") {
-							$kol_link .= "<i class='bi bi-pencil-square' alt='Muteren'></i></a>";
+							$kol_link .= "<i class='bi bi-pencil-square' alt='Muteren' title='Muteren'></i></a>";
 							
-						} elseif (isset($kols[$kn]['class']) and $kols[$kn]['class'] == "viewmail") {
-							$kol_link .= "<i class='bi bi-file-text' alt='Bekijk e-mail'></i></a>";
+						} elseif ($kol_class == "sendmail") {
+							$kol_link .= "<i class='bi bi-envelope-at' alt='Verstuur e-mail' title='Verstuur e-mail'></i></a>";
+							
+						} elseif ($kol_class == "viewmail") {
+							$kol_link .= "<i class='bi bi-file-text' alt='Bekijk e-mail' title='Bekijk e-mail'></i></a>";
 							
 						} elseif (isset($kols[$kn]['class']) and $kols[$kn]['class'] == "trash") {
 							$kol_link .= "<i class='bi bi-trash' als='Verwijderen'></i></a>";
 							
-						} elseif (isset($kols[$kn]['class']) and $kols[$kn]['class'] == "unlock") {
+						} elseif ($kol_class == "unlock") {
 							$kol_link .= "<i class='bi bi-unlock' alt='Account vrijgeven'></i></a>";
 							
 						} else {
@@ -793,8 +811,8 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 						}
 					}
 				}
-				if (isset($kols[$kn]['class']) and strlen($kols[$kn]['class']) > 0) {
-					$kol_class = sprintf(" class='%s'", $kols[$kn]['class']);
+				if (strlen($kol_class) > 0) {
+					$kol_class = sprintf(" class='%s'", $kol_class);
 				}
 				
 				if ($kol['skip'] == true) {
@@ -807,7 +825,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 						$ret .= sprintf("<td%s>Nee</td>", kol_class);
 					}
 
-				} elseif ($kol_type == "dte" or $kol_type == "date" or $kol_type == "DTTEXT") {
+				} elseif ($kol_type == "date" or $kol_type == "DTTEXT") {
 					// 1 januari 2020
 					if ((!is_null($value)) and $value > '1900-01-01' and strtotime($value) !== false) {
 						$dtfmt->setPattern(DTTEXT);
@@ -860,25 +878,14 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					}				
 					
 				} elseif ($kol_type == "int" or $kol_type == "integer") {
-					if ($kol_edit == 0) {
-						$ret .= sprintf("<td class='number'>%d</td>", $value);
-					} else {
-						$ret .= sprintf("<td><input type='number' name='%s_%d' value='%s'></td>", substr($key, 3), $row->$kol_pk, $value);
-					}
+					$ret .= sprintf("<td class='number'>%d</td>", $value);
 					$ktot[$kn] += intval($value);
 					
-				} elseif ($kol_type == "cur" or $kol_type == "currency" or $kol_type == "bedrag") {
+				} elseif ($kol_type == "currency" or $kol_type == "bedrag") {
 					$ret .= sprintf("<td class='number'>%s</td>", number_format($value, 2, ",", "."));
 					$ktot[$kn] += $value;
 
-				} elseif ($key == "Getoond") {
-					if ($value == 0) {
-						$ret .= "<td>Nee</td>";
-					} else {
-						$ret .= "<td>Ja</td>";
-					}
-
-				} elseif ($kol_type == "boo" or $kol_type == "boolean" or $kol_type == "checkbox") {
+				} elseif ($kol_type == "boolean" or $kol_type == "checkbox") {
 					if ($value == 1) {
 						$ret .= "<td>Ja</td>";
 					} elseif ($value == 0 or $value == -1) {
@@ -889,7 +896,14 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					
 				} elseif (($kol_type == "lnm" or $kol_type == "lidnaam") and strlen($value) > 0) {
 					if (is_numeric($value)) {
-						$ret .= sprintf("<td$s>%s</td>", $kol_class, (new cls_lid())->Naam($value, "onbekend"));
+						$ret .= sprintf("<td%s>%s</td>", $kol_class, (new cls_lid())->Naam($value, "onbekend"));
+					} else {
+						$ret .= sprintf("<td%s>%s</td>", $kol_class, $value);
+					}
+					
+				} elseif ($kol_type == "onderdeelnaam" and strlen($value) > 0) {
+					if (is_numeric($value)) {
+						$ret .= sprintf("<td%s>%s</td>", $kol_class, (new cls_Onderdeel())->naam($value, "onbekend", 25));
 					} else {
 						$ret .= sprintf("<td%s>%s</td>", $kol_class, $value);
 					}
@@ -1269,34 +1283,35 @@ function fnStandaardKols($p_ent, $p_sort=1, $rows=null) {
 		}
 		
 		if ($rows != null and count($rows) > 0 and strlen(max(array_column($rows, "betreftLid"))) > 0) {
-			$kols[2] = ['headertext' => "Betreft lid", 'columnname' => "betreftLid"];
+			$kols[2] = ['headertext' => "Betreft lid", 'columnname' => "betreftLid", 'type' => "lidnaam"];
 		}
 		
-		$kols[2]['type'] = "lidnaam";
-		if ($_SESSION['webmaster'] == 1) {
-			$kols[3] = ['headertext' => "Type", 'columnname' => "Type"];
-			if ($p_sort == 1) {
-				$kols[3]['sortcolumn'] = "Type";
-			}
-			$kols[4] = ['headertext' => "Ingelogd lid", 'columnname' => "ingelogdLid"];
-			if ($p_sort == 1) {
-				$kols[4]['sortcolumn'] = "ingelogdLid";
-			}
-			$kols[4]['type'] = "lidnaam";
+		if ($rows != null and count($rows) > 0 and strlen(max(array_column($rows, "betreftOnderdeel"))) > 0) {
+			$kols[3] = ['headertext' => "Betreft onderdeel", 'columnname' => "betreftOnderdeel", 'type' => "onderdeelnaam"];
 		}
-		$kols[5]['headertext'] = "Getoond?";
-		$kols[5]['columnname'] = "Getoond";
-		$kols[5]['type'] = "boolean";
+		
 		if ($_SESSION['webmaster'] == 1) {
-			$kols[6]['headertext'] = "Script / functie";
-			$kols[6]['columnname'] = "scriptFunctie";
+			$kols[4] = ['headertext' => "Type", 'columnname' => "Type"];
 			if ($p_sort == 1) {
-				$kols[6]['sortcolumn'] = "scriptFunctie";
+				$kols[4]['sortcolumn'] = "Type";
 			}
-			$kols[7]['headertext'] = "IP adres";
-			$kols[7]['columnname'] = "IP_adres";
+			$kols[5] = ['headertext' => "Ingelogd lid", 'columnname' => "ingelogdLid"];
 			if ($p_sort == 1) {
-				$kols[7]['sortcolumn'] = "A.IP_adres";
+				$kols[5]['sortcolumn'] = "ingelogdLid";
+			}
+			$kols[5]['type'] = "lidnaam";
+		}
+		if ($rows != null and count($rows) > 0 and strlen(max(array_column($rows, "Getoond"))) > 0) {
+			$kols[6] = ['headertext' => "Getoond?", 'columnname' => "Getoond", 'type' => "text"];
+		}
+		if ($_SESSION['webmaster'] == 1) {
+			$kols[7] = ['headertext' => "Script / functie", 'columnname' => "scriptFunctie"];
+			if ($p_sort == 1) {
+				$kols[7]['sortcolumn'] = "scriptFunctie";
+			}
+			$kols[8] = ['headertext' => "IP adres", 'columnname' => "IP_adres"];
+			if ($p_sort == 1) {
+				$kols[8]['sortcolumn'] = "A.IP_adres";
 			}
 		}
 	}
