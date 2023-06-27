@@ -168,8 +168,6 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 		}
 	}
 	
-	debug("perexamen: $p_perexamen");
-	
 	echo("<div id='filter'>\n");
 	printf("<form action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
 	if ($p_perexamen == 1) {
@@ -450,7 +448,7 @@ function fnDiplomasMuteren($p_afdid=-1) {
 	printf("<form action='%s?%s' id=filter method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
 	printf("<select name='selecteerdiploma' onChange='this.form.submit();'>\n<option value=-1>Selecteer diploma ...</option>\n%s</select>\n", $i_dp->htmloptions($dpid, -1, 0, 1, $f));
 	echo("</form>\n");
-
+	
 	if ($dpid > 0) {
 		$dprow = $i_dp->record($dpid);
 		
