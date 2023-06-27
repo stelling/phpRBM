@@ -120,7 +120,14 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 		if ($currenttab2 == "Rapporten") {
 			addtp("Ledenlijst/Rapporten/Jubilarissen");
 			addtp("Ledenlijst/Rapporten/Presentielijst");
-			addtp("Ledenlijst/Rapporten/NCS opgave");
+			$f = "O.`Type`='T'";
+			if ((new cls_Onderdeel())->aantal($f) > 0) {
+				addtp("Ledenlijst/Rapporten/Toestemmingen");
+			}
+			$f = "O.`ORGANIS`=2";
+			if ((new cls_Onderdeel())->aantal($f) > 0) {
+				addtp("Ledenlijst/Rapporten/NCS opgave");
+			}
 		}
 		
 		$b = "Ledenlijst/Basisgegevens";
@@ -253,6 +260,10 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 						addtp($tp);
 						$tp = trim($row->Naam) . "/Examens";
 						addtp($tp);
+					}
+					$f = "O.`Type`='T'";
+					if ((new cls_Onderdeel())->aantal($f) > 0) {
+						addtp(trim($row->Naam) . "/Toestemmingen");
 					}
 					addtp(trim($row->Naam) . "/Logboek");
 				}
