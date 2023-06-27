@@ -135,6 +135,7 @@ function fnStukken($p_scherm="") {
 		$dtfmt->setPattern(DTTEXT);
 		
 		foreach ($i_stuk->lijst() as $row) {
+			$i_stuk->vulvars($row->RecordID);
 			if ($vc != $row->Type) {
 				$rv .= sprintf("<tr class='subkop'><td colspan=5>%s</td></tr>\n", ARRTYPESTUK[$row->Type]);
 			}
@@ -143,7 +144,6 @@ function fnStukken($p_scherm="") {
 			} else {
 				$rv .= "<tr>";
 			}
-			$i_stuk->vulvars($row->RecordID);
 			if (strlen($i_stuk->url) > 0) {
 				$t = sprintf("<a href='%s'>%s</a>", $i_stuk->url, $row->Titel);
 			} else {
