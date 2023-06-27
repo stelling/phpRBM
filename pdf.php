@@ -16,12 +16,16 @@ if ($_SESSION['lidid'] > 0) {
 		printf("<p class='mededeling'>Aan inschrijving %d is geen PDF gekoppeld.</p>\n", $i_ins->insid);
 		
 	} else {
+		$blob = $i_ins->pdf();
 
 		header("Content-type: application/pdf");
 		header("Content-Disposition: inline; filename=Inschrijfformulier $i_ins->naam $insid.pdf");
 		header('Pragma: public');
 	
-		echo($i_ins->pdf());
+		echo($blob);
+
+//		printf("<frame src=\"data:application/pdf;base64,%s\"></frame>\n", base64_encode($i_ins->pdf()));
+//		echo(base64_encode($i_ins->pdf()));
 	}
 	
 } else {
