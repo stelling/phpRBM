@@ -190,7 +190,7 @@ if ($_SESSION['lidid'] > 0) {
 		echo(json_encode($rv));
 		
 	} elseif ($ent == "mailing_html_ontvangers") {
-		$mid = $_POST['mailingid'] ?? 4;
+		$mid = $_POST['mailingid'] ?? 0;
 		$i_m = new Mailing($rid);
 		$rv = $i_m->html_ontvangers($mid, false);
 		$i_m = null;
@@ -368,11 +368,15 @@ if ($_SESSION['lidid'] > 0) {
 		echo(json_encode($rv));
 		
 	} else {
-		$mess = sprintf("Entiteit '%s' bestaat niet in ajax_update.php of je hebt geen toegang.", $ent);
+		$mess = sprintf("Entiteit '%s' bestaat niet in ajax_update.php of je hebt geen toegang", $ent);
 		(new cls_Logboek())->add($mess, 15, $_SESSION['lidid'], 1, 0, 9);
 	}
 	
-	return true;
+} else {
+	$mess = "Je bent niet ingelogd en hebt dus geen toegang";
+	(new cls_Logboek())->add($mess, 15, $_SESSION['lidid'], 1, 0, 9);
 }
+	
+return true;
 
 ?>
