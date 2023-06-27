@@ -298,7 +298,7 @@ function muteerevenement($eventid) {
 				
 				$f = sprintf("E.TypeEvenement=%d AND IFNULL(E.VerwijderdOp, '0000-00-00') < '1970-01-01'", $_POST['TypeEvenement']);
 				$org = $i_ev->laatste("Organisatie", $f, "E.Datum DESC");
-				if (strlen($eml) > 5) {
+				if ($org > 0) {
 					$i_ev->update($eventid, "Organisatie", $org);
 				}
 				
