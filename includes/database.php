@@ -840,7 +840,7 @@ class cls_db_base {
 		if ($p_toonmess >= 0) {
 			$this->tm = $p_toonmess;
 		}
-
+		
 		if (strlen($this->mess) > 0) {
 			$lbid = (new cls_Logboek())->add($this->mess, $this->ta, $this->lidid, $this->tm, $p_refID, $this->tas, $this->table, $this->refcolumn);
 			$this->mess = "";
@@ -3518,7 +3518,7 @@ class cls_Lidond extends cls_db_base {
 			$query = sprintf("SELECT LO.RecordID FROM %s WHERE LO.Lid=%d AND LO.OnderdeelID=%d AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE();", $this->basefrom, $p_lidid, $p_ondid);
 			$result = $this->execsql($query);
 			foreach ($result->fetchAll() as $row) {
-				$this->update($row->RecordID, "Opgezegd", date("Y-m-d"), strtotime("-1 day"));
+				$this->update($row->RecordID, "Opgezegd", date("Y-m-d", strtotime("-1 day")));
 				$rv = true;
 			}
 		}
@@ -5747,7 +5747,8 @@ class cls_Logboek extends cls_db_base {
 	
 	public function controle() {
 		
-		foreach ($this->basislijst() as $row) {
+		$f = "A.TypeActiviteit=19";
+		foreach ($this->basislijst($f) as $row) {
 			if ($row->TypeActiviteit == 19) {  // Deze code kan weg na 1 april 2025
 				$this->update($row->RecordID, "refColumn", "GroepID");
 				$this->update($row->RecordID, "TypeActiviteit", 6);
@@ -7068,7 +7069,7 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 		$this->casestatus .= "END";
 	}
 	
-	public function vulvars($p_evid=-1, $p_lidid=-1) {
+	public function vulvars($p_evid=-1, $p_lidid=-1, $p_edid=-1) {
 		if ($p_evid >= 0) {
 			$this->evid = $p_evid;
 		}
@@ -7076,7 +7077,11 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 			$this->lidid = $p_lidid;
 		}
 		
-		if ($this->evid > 0 and $this->lidid > 0) {
+		if ($p_edid > 0) {
+			$this->edid = $p_edid;
+		}
+		
+		if ($this->evid > 0 and $this->lidid > 0 and $this->edid <= 0) {
 			$query = sprintf("SELECT IFNULL(ED.RecordID, 0) FROM %s WHERE ED.LidID=%d AND ED.EvenementID=%d;", $this->basefrom, $this->lidid, $this->evid);
 			$this->edid = $this->scalar($query);
 		}
@@ -7224,14 +7229,14 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 	}
 	
 	public function update($p_edid, $p_kolom, $p_waarde, $p_reden="") {
-		$this->edid = $p_edid;
-		$this->vulvars();
+		$this->vulvars(-1, -1, $p_edid);
 		$this->tas = 12;
 		$rv = 0;
 		
 		if ($this->magmuteren) {
-			if ($this->pdoupdate($p_edid, $p_kolom, $p_waarde, $p_reden)) {
+			if ($this->pdoupdate($this->edid, $p_kolom, $p_waarde, $p_reden)) {
 				$rv = 1;
+				$this->vulvars();
 			}
 		} else {
 			$this->mess = "Je bent niet bevoegd om deelnemers bij dit evenement te muteren.";
