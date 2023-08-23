@@ -469,7 +469,7 @@ input.w100 {
 }
 
 input.w110 {
-	width: 650px;
+	width: 750px;
 }
 
 input.w150 {
@@ -837,6 +837,13 @@ textarea#sportlinkdata {
 	border-left-style: solid;
 	padding-left: 1px;
 	padding-right: 1px;
+}
+
+#agenda .dagnaam {
+	text-align: center;
+	font-weight: bolder;
+	padding-top: 6px;
+	padding-bottom: 6px;
 }
 
 #agenda ul {
@@ -2275,20 +2282,11 @@ table#rekeningregels {
 #instellingenmuteren input {
 	float: left;
 	margin-left: 8px;
-	margin-top: 8px;
-}
-
-#instellingenmuteren input[type="text"], #instellingenmuteren input[type="email"] {
-	width: 400px;
-}
-
-#instellingenmuteren input[type="number"] {
-	width: 125px;
-	text-align: right;
+	margin-top: 4px;
 }
 
 #instellingenmuteren label {
-	width: 550px;
+	width: 500px;
 	height: auto;
 }
 
@@ -2367,7 +2365,7 @@ table#rekeningregels {
 	height: 28px;
 }
 
-#instellingenmuteren input, #afdelingskalendermuteren input, #afdelingskalendermuteren select {
+#afdelingskalendermuteren input, #afdelingskalendermuteren select {
 	margin-top: 9px;
 	margin-bottom: 8px;
 }
