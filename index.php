@@ -29,13 +29,14 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 		}
 		fnAuthenticatie(1, $_POST['password'], 1);
 	}
-	printf("<script>location.href='%s'; </script>\n", BASISURL);
+	printf("<script>location.href='%s';</script>\n", BASISURL);
+	
 } elseif ((!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) and isset($_COOKIE['password']) and strlen($_COOKIE['password']) > 5) {
 	fnAuthenticatie(0);
 	if (isset($_GET['tp']) and strlen($_GET['tp']) > 0) {
-		printf("<script>location.href='%s?tp=%s'; </script>\n", BASISURL, $_GET['tp']);
+		printf("<script>location.href='%s?tp=%s';</script>\n", BASISURL, $_GET['tp']);
 	} else {
-		printf("<script>location.href='%s'; </script>\n", BASISURL);
+		printf("<script>location.href='%s';</script>\n", BASISURL);
 	}
 } elseif ($_SESSION['lidid'] > 0) {
 	(new cls_Login())->setingelogd($_SESSION['lidid']);
@@ -195,7 +196,7 @@ if ($i_lid->aantal() == 0) {
 		$rows = $i_el->rowset();
 		if ($rows !== false) {
 			$id = str_replace(" ", "_", strtolower($i_el->elnaam));
-			echo(fnDisplayTable($rows, null, $i_el->elnaam, 0, "", $id));
+			echo(fnDisplayTable($rows, null, $i_el->elnaam, 0, $i_el->uitleg, $id));
 		}
 	} elseif (strlen($i_el->eigenscript) >= 5) {
 		$s = BASEDIR . "/maatwerk/" . $i_el->eigenscript;
@@ -460,6 +461,14 @@ function fnAgenda($p_lidid=0) {
 	
 	//	$txt .= "<p class='mededeling'>De agenda is nog in ontwikkeling</p>\n";
 	$txt = "<div id='agenda'>\n";
+	
+	$dtfmt->setPattern("EEEE");
+	$txt .= "<div class='row'>\n";
+	for ($dn=1;$dn<=7;$dn++) {
+		$txt .= sprintf("<div class='col dagnaam'>%s</div>", substr($dtfmt->format(strtotime(sprintf("+%d day", $dn-1), $dtStart)), 0, 3));
+	}
+	$txt .= "</div> <!-- Einde row -->\n";
+	
 	for ($sw=$dtStart;$sw <= strtotime("+240 day");$sw=strtotime("+7 day", $sw)) {
 		$txt .= "<div class='row'>\n";
 		
@@ -474,13 +483,13 @@ function fnAgenda($p_lidid=0) {
 			}
 			
 			if (array_key_exists(date("Ymd", $td), $fds)) {
-				$dtfmt->setPattern("EEE d");
-				$txt .= sprintf("<li title=\"%s\">%s</li>", $fds[date("Ymd", $td)], str_replace(" ", "&nbsp;", $dtfmt->format($td)));
+				$dtfmt->setPattern("d MMM");
+				$txt .= sprintf("<li title=\"%s\">%s</li>", $fds[date("Ymd", $td)], substr(str_replace(" ", "&nbsp;", $dtfmt->format($td)), 0, -1));
 			} else {
 				$dtfmt->setPattern(DTTEXTWD);
 				$t = sprintf("title='%s'", $dtfmt->format($td), $td);
-				$dtfmt->setPattern("EEE d");
-				$txt .= sprintf("<li %s>%s</li>", $t, str_replace(" ", "&nbsp;", $dtfmt->format($td)));
+				$dtfmt->setPattern("d MMM");
+				$txt .= sprintf("<li %s>%s</li>", $t, substr(str_replace(" ", "&nbsp;", $dtfmt->format($td)), 0, -1));
 			}
 			
 			$ikal = null;
