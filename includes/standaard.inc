@@ -962,9 +962,6 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 			$ret .= "</tr>\n";
 			$totaantal++;
 		}
-		if (strlen($xtra_regel) > 0) {
-			$ret .= sprintf("<tr><td colspan=%d>%s</td></tr>\n", count($kols), $xtra_regel);
-		}
 		$ret .= "</tbody>\n";
 		if ($disptot > 0 and $totaantal > 1) {
 			$ret .= "<tfoot>\n<tr>";
@@ -983,6 +980,9 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 			$ret .= "</tr>\n</tfoot>\n";
 		}
 		$ret .= "</table>\n";
+		if (strlen($xtra_regel) > 0) {
+			$ret .= sprintf("<p>%s</p>\n", $xtra_regel);
+		}
 	} else {
 		$ret .= "<p class='mededeling'>Er zijn geen records beschikbaar.</p>\n";
 	}
