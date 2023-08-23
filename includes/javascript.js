@@ -328,7 +328,6 @@ function addlidond() {
 		$.ajax({
 			url: 'ajax_update.php?entiteit=addlidond',
 			type: 'post',
-			async: false,
 			dataType: 'json',
 			data: { lidid: lidid, ondid: ondid }
 		});
@@ -723,7 +722,6 @@ function fnControleEmail(p_email, p_rvbijleeg="") {
 	}
 	
 	return rv;
-	
 }
 
 function adresvullen() {
@@ -738,7 +736,7 @@ function adresvullen() {
 	
 	if (zpc.length >= 6 && hn.length > 0) {
 			
-		var url = 'https://geodata.nationaalgeoregister.nl/locatieserver/free?fq=postcode:' + zpc + '&fq=huisnummer:' + hn;
+		var url = 'https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?fq=postcode:' + zpc + '&fq=huisnummer:' + hn;
 		if (hl.length > 0) {
 			url = url + '&fq=huisletter:' + hl;
 		}
