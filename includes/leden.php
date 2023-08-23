@@ -1459,7 +1459,7 @@ function algemeenlidmuteren($lidid) {
 	} else {
 		$pdok = pdok($row->Postcode, $row->Huisnr, $row->Huisletter, $row->Toevoeging);
 		if (!isset($pdok->numFound) or $pdok->numFound == 0) {
-			if (substr($row->Adres, 0, 7) != "Postbus" and $row->Huisnummer > 0) {
+			if (substr($row->Adres, 0, 7) != "Postbus" and $row->Huisnr > 0) {
 				$u = "Adres bestaat niet";
 			}
 		} elseif (isset($pdok->docs[0]->huis_nlt)) {
@@ -1980,8 +1980,8 @@ function onderdelenlidmuteren($lidid, $p_type="G") {
 	$i_gr = new cls_Groep();
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		if (isset($_POST['Nieuw']) and $_POST['Nieuw'] > 0) {
-			$i_lo->add($_POST['Nieuw'], $lidid);
+		if (isset($_POST['btnToevoegenOnderdeel']) and isset($_POST['NieuwOnderdeel']) and $_POST['NieuwOnderdeel'] > 0) {
+			$i_lo->add($_POST['NieuwOnderdeel'], $lidid);
 		}
 	}
 
@@ -2006,7 +2006,15 @@ function onderdelenlidmuteren($lidid, $p_type="G") {
 		$typeoms = "Groepen";
 	}
 	
-	printf("<caption>%s %s muteren</caption>\n", $typeoms, (new cls_Lid())->Naam($lidid));
+	if ($p_type == "BCF") {
+		$ond_f = "(O.Type IN ('B', 'C', 'F') OR O.Kader=1)";
+	} elseif ($p_type == "G") {
+		$ond_f = sprintf("O.Type='G' AND IFNULL(O.Kader, 0)=0");
+	} else {
+		$ond_f = sprintf("O.Type='%s'", $p_type);
+	}
+	
+	printf("<caption>%s %s</caption>\n", $typeoms, (new cls_Lid())->Naam($lidid));
 	echo("<thead>\n");
 	if ($p_type == "A") {
 		printf("<tr><th>Afdeling</th><th>Vanaf</th>%s<th>Opmerking</th><th>Tot en met</th></tr>\n", $kf);
@@ -2017,29 +2025,29 @@ function onderdelenlidmuteren($lidid, $p_type="G") {
 	}
 	echo("</thead>\n");
 	
-	echo("<tbody>\n");
-	echo(htmlloperlid($lidid, $p_type));
-	echo("</tbody>\n");
+	echo(htmlloperlid($lidid, $p_type, $ond_f));
 
 	echo("</table>\n");
+	if ($lidid > 0) {
+		$options = "<option value=0>Nieuw ....</option>\n";
+		$ond_f .= " AND IFNULL(O.VervallenPer, CURDATE()) >= CURDATE() AND IFNULL(O.GekoppeldAanQuery, 0)=0 AND LENGTH(IFNULL(O.MySQL, '')) < 10";
+		foreach((new cls_Onderdeel())->lijst(0, $ond_f) as $row) {
+			$options .= sprintf("<option value=%d>%s - %s</option>\n", $row->RecordID, $row->Kode, $row->Naam);
+		}
+		printf("<select name='NieuwOnderdeel'>%s</select>\n", $options);
+		echo("<button type='submit' name='btnToevoegenOnderdeel'>Toevoegen</button>\n");
+	}
 	echo("</form>\n");
 	echo("</div>\n <!-- Einde onderdelenperlidmuteren -->\n");
 	$i_lo = null;
-	
-	echo("<script>
-			$( document ).ready(function() {
-				loperlidprops();
-			});
-			
-		</script>\n");
 
 }  # onderdelenlidmuteren
 
-function htmlloperlid($p_lidid, $p_type) {
+function htmlloperlid($p_lidid, $p_type, $p_ond_f) {
 	$i_lo = new cls_Lidond();
 	$i_gr = new cls_Groep();
 	
-	$rv = "";
+	$rv = "<tbody>\n";
 	
 	$kf = "";
 	$tf = "";
@@ -2048,15 +2056,7 @@ function htmlloperlid($p_lidid, $p_type) {
 	} elseif ($p_type == "BCF") {
 		$tf = "L";
 	}
-	
-	if ($p_type == "BCF") {
-		$ond_f = "(O.Type IN ('B', 'C', 'F') OR O.Kader=1)";
-	} elseif ($p_type == "G") {
-		$ond_f = sprintf("O.Type='G' AND IFNULL(O.Kader, 0)=0");
-	} else {
-		$ond_f = sprintf("O.Type='%s'", $p_type);
-	}
-	$f = $ond_f . sprintf(" AND LO.Lid=%d", $p_lidid);
+	$f = $p_ond_f . sprintf(" AND LO.Lid=%d", $p_lidid);
 	
 	$frows = (new cls_functie())->selectlijst($tf);
 	$jsoc = sprintf("OnChange=\"savedata('lidond', 0, this)\"");
@@ -2090,14 +2090,7 @@ function htmlloperlid($p_lidid, $p_type) {
 		$rv .= "</tr>\n";
 	}
 	
-	if ($p_lidid > 0) {
-		$options = "<option value=0>Nieuw ....</option>\n";
-		$ond_f .= " AND IFNULL(O.VervallenPer, CURDATE()) >= CURDATE() AND IFNULL(O.GekoppeldAanQuery, 0)=0 AND LENGTH(IFNULL(O.MySQL, '')) < 10";
-		foreach((new cls_Onderdeel())->lijst(0, $ond_f) as $row) {
-			$options .= sprintf("<option value=%d>%s - %s</option>\n", $row->RecordID, $row->Kode, $row->Naam);
-		}
-		$rv .= sprintf("<tr><td><select id='NieuwOnderdeel' OnChange='addlidond();'>%s</select>\n</td></tr>\n", $options);
-	}
+	$rv .= "</tbody>\n";
 	
 	return $rv;
 	
@@ -2335,11 +2328,19 @@ function instellingenledenmuteren() {
 	}	
 	$i_p->vulsessie();
 	
+	$sm = "";
+	foreach(ARRSOORTMEMO as $k => $v) {
+		if (strlen($sm) > 0) {
+			$sm .= ", ";
+		}
+		$sm .= $k;
+	}
+	
 	echo("<div id='instellingenmuteren'>\n");
 	printf("<form method='post' action='%s?tp=%s/%s'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
 	
 	echo("<h2>Algemeen</h2>\n");
-	printf("<label>Opzegtermijn in maanden</label><input type='number' name='zs_opzegtermijn' value=%d OnChange='this.form.submit();'>\n", $_SESSION['settings']['zs_opzegtermijn']);
+	printf("<label>Opzegtermijn in maanden</label><input type='number' class='num2' name='zs_opzegtermijn' value=%d OnChange='this.form.submit();'>\n", $_SESSION['settings']['zs_opzegtermijn']);
 	
 	$options = "";
 	foreach((new cls_Mailing())->lijst("Templates") as $row) {
@@ -2347,19 +2348,19 @@ function instellingenledenmuteren() {
 	}
 //	printf("<label>Mailing voor versturen e-mail naar ledenadministratie bij wijzigen postcode</label><select name='mailingbijadreswijziging' OnChange='this.form.submit();'>\n<Option value=0>Geen</option>%s</select>\n", $options);
 
-	printf("<label>Naam reddingsbrigade</label><input type='text' name='naamvereniging_reddingsbrigade' value=\"%s\" OnChange='this.form.submit();'>\n", $_SESSION['settings']['naamvereniging_reddingsbrigade']);
+	printf("<label>Naam reddingsbrigade</label><input type='text' name='naamvereniging_reddingsbrigade' class='w50' value=\"%s\" OnChange='this.form.submit();'>\n", $_SESSION['settings']['naamvereniging_reddingsbrigade']);
 	printf("<label>Sportlink relatienummer</label><input type='text' name='sportlink_vereniging_relcode' value=\"%s\" class='w7' maxlength=7 OnChange='this.form.submit();'>\n", $_SESSION['settings']['sportlink_vereniging_relcode']);
 	
 	printf("<label>Moet een opzegging door een lid automatisch worden verwerkt?</label><input type='checkbox' name='zs_opzeggingautomatischverwerken' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_opzeggingautomatischverwerken']));
 	
-	printf("<label>Welke soorten memo's zijn in gebruik? Bij meerdere scheiden door een komma.</label><input type='text' name='muteerbarememos' value='%s' onChange='this.form.submit();'>", $_SESSION['settings']['muteerbarememos']);
+	printf("<label>Welke soorten memo's zijn in gebruik?</label><input type='text' name='muteerbarememos' value='%s' class='w21' onChange='this.form.submit();'><p>(scheiden met een komma) (%s)</p>", $_SESSION['settings']['muteerbarememos'], $sm);
 	
 	echo("<h2>Rekeningen</h2>\n");
 	printf("<label>Groep voor betaald door</label><select name='rekening_groep_betaalddoor' OnChange='this.form.submit();'><option value=0>Geen</option>%s</select>\n", $i_ond->htmloptions($_SESSION['settings']['rekening_groep_betaalddoor']));
 		  
 	echo("<h2>Agenda</h2>\n");
 	printf("<label>Van wie moeten de verjaardagen op de agenda worden vermeld?</label><select name='agenda_verjaardagen' OnChange='this.form.submit();'>\n<option value=-1>Niemand</option>\n%s</select>\n", (new cls_eigen_lijst())->htmloptions($_SESSION['settings']['agenda_verjaardagen']));
-	printf("<label>URL van de ICS voor feestdagen</label><input name='agenda_url_feestdagen' class='w150' value='%s'>\n", $_SESSION['settings']['agenda_url_feestdagen']);
+	printf("<label>URL van de ICS voor feestdagen</label><input name='agenda_url_feestdagen' class='w110' value='%s'>\n", $_SESSION['settings']['agenda_url_feestdagen']);
 	
 	echo("<h2>Beschikbaar in de zelfservice</h2>\n");
 	printf("<label>Beroep?</label><input type='checkbox' name='zs_incl_beroep' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_beroep']));
@@ -2372,7 +2373,7 @@ function instellingenledenmuteren() {
 	printf("<label>Sportlink ID?</label><input type='checkbox' name='zs_incl_slid' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_slid']));
 	
 	echo("<h2>Overig in de zelfservice</h2>\n");
-	printf("<label>Welke soorten memo's mogen leden zelf muteren?</label><input type='text' name='zs_muteerbarememos' value=\"%s\" OnChange='this.form.submit();'><p>(Scheiden met een komma)</p>\n", $_SESSION['settings']['zs_muteerbarememos']);
+	printf("<label>Welke soorten memo's mogen leden zelf muteren?</label><input type='text' name='zs_muteerbarememos' class='w21' value=\"%s\" OnChange='this.form.submit();'><p>(Scheiden met een komma) (%s)</p>\n", $_SESSION['settings']['zs_muteerbarememos'], $sm);
 	printf("<label>Welke tekst moet er als uitleg bij de toestemmingen worden vermeld?</label><textarea name='uitleg_toestemmingen' rows=2 cols=68 OnChange='this.form.submit();'>%s</textarea>\n", $_SESSION['settings']['uitleg_toestemmingen']);
 	
 	echo("</form>\n");
@@ -2892,7 +2893,6 @@ function overzichttoestemmingen($p_ondid=8) {
 	
 }  # overzichttoestemmingen
 
-
 function ncsopgave() {
 	$i_ond = new cls_Onderdeel();
 	
@@ -3122,7 +3122,7 @@ function pdok($p_postcode, $p_huisnr=0, $p_letter="", $p_toev="") {
 	if (strlen($p_postcode) == 6) {
 		$curl= curl_init();
 		curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-		$url = sprintf("https://geodata.nationaalgeoregister.nl/locatieserver/free?fq=postcode:%s", $p_postcode);
+		$url = sprintf("https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?fq=postcode:%s", $p_postcode);
 		if ($p_huisnr > 0) {
 			$url .= sprintf("&fq=huisnummer:%d", $p_huisnr);
 			if (strlen($p_letter) > 0) {
@@ -3132,6 +3132,7 @@ function pdok($p_postcode, $p_huisnr=0, $p_letter="", $p_toev="") {
 				$url .= "&fq=huisnummertoevoeging:" . $p_toev;
 			}
 		}
+//		debug($url);
 		curl_setopt($curl, CURLOPT_URL, $url);
 		$respdok = curl_exec($curl);
 		if (isset(json_decode($respdok)->response)) {
