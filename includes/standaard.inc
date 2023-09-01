@@ -12,10 +12,12 @@ $dtfmt = new IntlDateFormatter(
 
 define("BASEDIR", str_replace("/includes", "", dirname(__FILE__)));
 
-if (isset($_SERVER['HTTPS'])){
+if (isset($_SERVER['HTTPS'])) {
 	$basisurl = "https://" . $_SERVER['HTTP_HOST'];
-} else {
+} elseif (isset($_SERVER['HTTP'])) {
 	$basisurl = "http://" . $_SERVER['HTTP_HOST'];
+} else {
+	$basisurl = "";
 }
 
 $sub = substr($_SERVER['PHP_SELF'], 0, strripos($_SERVER['PHP_SELF'], "/"));
@@ -27,7 +29,7 @@ define("BASISURL", $basisurl);
 define("ARRGESLACHT", ["O" => "Onbekend", "V" => "Vrouwelijk", "M" => "Mannelijk", "N" => "Neutraal", "B" => "Bedrijf/Vereniging/Stichting"]);
 define("ARRTL", ["Alle", "Leden", "Klosleden", "Voormalig leden"]);
 define("ARRLEGITIMATIE", ["G" => "Geen", "I" => "Identiteitskaart", "P" => "Paspoort", "R" => "Rijbewijs"]);
-define("ARRSOORTMEMO", ["A" => "Algemeen", "B" => "Bewaking", "D" => "Dieet", "E" => "Examen", "F" => "Financiën", "G" => "Gezondheid/medisch", "I" => "Inschrijving bewaking", "Z" => "Zwemervaring"]);
+define("ARRSOORTMEMO", ["A" => "Algemeen", "B" => "Bewaking", "D" => "Dieet", "E" => "Examen", "F" => "Financiën", "G" => "Gezondheid/medisch", "Z" => "Zwemervaring"]);
 define("ARRTYPEONDERDEEL", ["A" => "Afdeling", "B" => "Bestuur", "C" => "Commissie", "E" => "Eigenschap", "F" => "Functionarissen", "G" => "Groep", "O" => "Onderscheiding", "R" => "Rol", "S" => "Selectie", "T" => "Toestemming"]);
 define("ARRTYPEDIPLOMA", ["B" => "Brevet", "C" => "Competentie", "D" => "Diploma", "I" => "Insigne", "L" => "Licentie", "M" => "Module", "P" => "PvB"]);
 define("PASFOTOEXTENTIES", ["gif", "jpg", "jpeg", "png"]);
@@ -58,7 +60,7 @@ if (strlen($table_prefix) > 0 and substr($table_prefix, -1) != "_") {
 }
 define("TABLE_PREFIX", $table_prefix);
 
-if (isset($httpsverplicht) and $httpsverplicht == 1 and !isset($_SERVER['HTTPS'])) {
+if (isset($httpsverplicht) and $httpsverplicht == 1 and !isset($_SERVER['HTTPS']) and isset($_SERVER['HTTP'])) {
 	header(sprintf("location: https:%s", $_SERVER['HTTP_HOST']));
 }
 
@@ -67,7 +69,7 @@ if (isset($_SESSION['lidid'])) {
 	// Sessie bestaat al
 } elseif (session_start() === FALSE or strlen(session_id()) == 0) {
 	$mess = "De sessie kan niet gestart worden, hierdoor kan er op dit moment niet ingelogd worden.";
-	(new cls_Logboek())->add($mess, 1, 0, 1);
+	debug($mess, 1);
 }
 
 if ((isset($_SESSION['webmaster']) and $_SESSION['webmaster'] == 1) or strpos(BASISURL, "telling.nl") > 0) {
@@ -640,7 +642,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 				$kols[$kn]['columnname'] = $key;
 				$kols[$kn]['headertext'] = str_replace("_", " ", $key);
 				if ($key == "RecordID") {
-					$kols[$tn]['type'] == "pk";
+					$kols[$kn]['type'] == "pk";
 				}
 				$kn++;
 			}
@@ -1019,7 +1021,7 @@ function fnEditTable($res, $kols, $id, $th) {
 			if (isset($kol['link']) and strlen($kol['link']) > 1) {
 				$kols[$kn]['type'] = "link";
 			}
-			if ($kols[$kn]['type'] == "text") {
+			if ($kols[$kn]['type'] == "text" or $kols[$kn]['type'] == "email") {
 				for ($cn=0;$cn<$res->ColumnCount();$cn++) {
 					if ($kols[$kn]['columnname'] ==  $res->getColumnMeta($cn)['name']) {
 						$kols[$kn]['collen'] = intval($res->getColumnMeta($cn)['len'] / 3);		
@@ -1089,6 +1091,9 @@ function fnEditTable($res, $kols, $id, $th) {
 			}
 			$colname = $kol['columnname'];
 			$value = $row->$colname;
+		
+// debug($colname . ": " . $value);
+			
 			$col2 = $kol['secondcolumn'] ?? "";
 			$value2 = $row->$col2 ?? "";
 			
@@ -1206,7 +1211,7 @@ function fnEditTable($res, $kols, $id, $th) {
 				if ($ro) {
 					$ret .= sprintf("<td>%s</td>", fnDispEmail($value, "", 1));
 				} else {
-					$ret .= sprintf("<td><input type='email' id='%s_%d' value='%s'></td>", $colname, $valpk, $value);
+					$ret .= sprintf("<td><input type='email' class='w%1\$d' id='%2\$s_%3\$d' value='%4\$s' maxlength=%1\$d></td>", $kol['collen'], $colname, $valpk, $value);
 				}
 				
 			} elseif ($tp == "pwd") {
