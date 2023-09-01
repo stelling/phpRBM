@@ -177,9 +177,13 @@ class cls_db_base {
 		} elseif (isset($dbc)) {
 
 			try {
+				$dbc->query("SET lc_time_names='nl_NL';");
+				$h = date("Z")/(60*60);
+				$i = 60*($h-floor($h));
+				$tzqry = sprintf("SET time_zone='%+d:%02d';", $h, $i);
+				$dbc->query($tzqry);
 				if (startwith($this->query, "SELECT ")) {
 //					debug($this->query);
-					$dbc->query("SET lc_time_names='nl_NL';");
 					$rv = $dbc->query($this->query);
 					$exec_tijd = microtime(true) - $starttijd;
 					if (isset($_SESSION['settings']['performance_trage_select']) and $_SESSION['settings']['performance_trage_select'] > 0 and $exec_tijd >= $_SESSION['settings']['performance_trage_select']) {
@@ -211,7 +215,7 @@ class cls_db_base {
 						}
 					} else {
 						$exec_tijd = microtime(true) - $starttijd;
-						$mess = sprintf("Uitgevoerd: %s in %.2f seconden", $this->query, $exec_tijd);
+						$mess = sprintf("Uitgevoerd: %s in %.1f seconden", $this->query, $exec_tijd);
 					}
 					$result = null;
 				}
@@ -225,7 +229,7 @@ class cls_db_base {
 				if ($e->getCode() == 2006) {
 					debug($mess, 2, 0);
 				} else {
-					debug($mess, 2, 1);
+					debug($mess, 2, 99);
 				}
 				return false;
 			}
@@ -3396,7 +3400,7 @@ class cls_Lidond extends cls_db_base {
 		return $this->scalar($query);
 	}
 	
-	public function add($p_ondid, $p_lidid, $p_reden="", $p_log=1, $p_vanaf="") {
+	public function add($p_ondid, $p_lidid, $p_reden="", $p_log=1, $p_vanaf="", $p_toonlog=1) {
 		$this->vulvars(-1, $p_lidid, $p_ondid);
 		$this->tas = 11;
 		
@@ -3453,7 +3457,7 @@ class cls_Lidond extends cls_db_base {
 				$this->mess = sprintf("Geen record toegevoegd: %s", $query);
 			}
 		}
-		$this->log($nrid, 1, $this->ondid);
+		$this->log($nrid, $p_toonlog, $this->ondid);
 		return $rv;
 	} # add
 	
@@ -3685,7 +3689,7 @@ class cls_Lidond extends cls_db_base {
 							if ($rec > 0) {
 								$this->update($rec, "Opgezegd", '', $reden);
 							} else {
-								$this->add($ondrow->RecordID, $lidid, $reden);
+								$this->add($ondrow->RecordID, $lidid, $reden, 1, '', 0);
 							}
 							$rv++;
 						}
@@ -3705,8 +3709,8 @@ class cls_Lidond extends cls_db_base {
 					$this->ta = 2;
 					$this->tas = 61;
 				}
-				$this->mess = sprintf("cls_Lidond->autogroepenbijwerken uitgevoerd, %d aanpassingen, in %.2f seconden, gedaan", $rv, $exec_tijd);
-				$this->log();
+				$this->mess = sprintf("cls_Lidond->autogroepenbijwerken in %.1f seconden uitgevoerd", $exec_tijd);
+				$this->log(0, 0);
 			}
 		}
 
@@ -5429,10 +5433,12 @@ class cls_Mailing_vanaf extends cls_db_base {
 		$query = sprintf("SELECT MV.RecordID, MV.Vanaf_email, MV.Vanaf_naam, MV.Ingevoerd, MV.Gewijzigd FROM %s ORDER BY MV.Vanaf_email;", $this->basefrom);
 		$result = $this->execsql($query);
 		if ($p_fetched == 1) {
-			return $result->fetchAll();
-		} else {
-			return $result;
+			$result = $result->fetchAll();
 		}
+		
+//		debug($result[5]->Vanaf_email);
+
+		return $result;
 	}
 	
 	public function htmloptions($p_cv="") {
@@ -5500,7 +5506,7 @@ class cls_Logboek extends cls_db_base {
 	
 	private function script() {
 		$script = $_SERVER['PHP_SELF'];
-		if (strlen($_SERVER['QUERY_STRING']) > 0) {
+		if (isset($_SERVER['QUERY_STRING']) and strlen($_SERVER['QUERY_STRING']) > 0) {
 			$script .= "?" . $_SERVER['QUERY_STRING'];
 		}
 		$ml = $this->lengtekolom("Script");
@@ -5653,6 +5659,11 @@ class cls_Logboek extends cls_db_base {
 			
 			$f = sprintf("LO.RecordID=%d", $lo);
 			$refondid = (new cls_Lidond())->max("OnderdeelID", $f);
+			
+		} elseif ($p_reftable == "Admin_access" and $p_referid > 0) {
+			$f = sprintf("AA.RecordID=%d", $p_referid);
+			$refondid = (new cls_Authorisation())->max("Toegang", $f);
+			
 		} else {
 			$refondid = $p_refondid;
 		}
@@ -5670,8 +5681,12 @@ class cls_Logboek extends cls_db_base {
 			
 		*/
 		
-		$data['ipaddress'] = $_SERVER['REMOTE_ADDR'];
-		
+		if (isset($_SERVER['REMOTE_ADDR'])) {
+			$data['ipaddress'] = $_SERVER['REMOTE_ADDR'];
+		} else {
+			$data['ipaddress'] = "";
+		}
+
 		$bt = debug_backtrace(0, 4);
 		$f = "";
 		for ($t=count($bt)-1;$t >= 0;$t += -1) {
@@ -5731,7 +5746,9 @@ class cls_Logboek extends cls_db_base {
 		$data['tas'] = $this->tas;
 		$data['referonderdeelid'] = $refondid;
 
-		if (strlen($_SERVER['HTTP_USER_AGENT']) > 125) {
+		if (!isset($_SERVER['HTTP_USER_AGENT'])) {
+			$data['useragent'] = "";
+		} elseif (strlen($_SERVER['HTTP_USER_AGENT']) > 125) {
 			$data['useragent'] = substr($_SERVER['HTTP_USER_AGENT'], 0, 125);
 		} else {
 			$data['useragent'] = $_SERVER['HTTP_USER_AGENT'];
@@ -8042,9 +8059,9 @@ class cls_Rekening extends cls_db_base {
 		
 		if ($p_rkid <= 0) {
 			if ($p_seizoen > 0) {
-				$this->mess = sprintf("De controle van de rekeningen van seizoen %d is in %.2f seconden uitgevoerd.", $p_seizoen, (microtime(true) - $starttijd));
+				$this->mess = sprintf("De controle van de rekeningen van seizoen %d is in %.1f seconden uitgevoerd.", $p_seizoen, (microtime(true) - $starttijd));
 			} else {
-				$this->mess = sprintf("De controle van %d rekeningen is in %.2f seconden uitgevoerd.", count($rkrows), (microtime(true) - $starttijd));
+				$this->mess = sprintf("De controle van %d rekeningen is in %.1f seconden uitgevoerd.", count($rkrows), (microtime(true) - $starttijd));
 			}
 			$this->rkid = 0;
 			$this->tas = 19;
@@ -9310,7 +9327,7 @@ class cls_Eigen_lijst extends cls_db_base {
 		}
 		
 		if ($rv > 1 or ((microtime(true) - $starttijd) > $_SESSION['settings']['performance_trage_select'] and $_SESSION['settings']['performance_trage_select'] > 0)) {
-			$this->mess = sprintf("Er zijn in %.2f seconden %d lijsten gecontroleerd.", (microtime(true) - $starttijd), $rv);
+			$this->mess = sprintf("cls_Eigen_lijst->controle: er zijn in %.1f seconden %d lijsten gecontroleerd.", (microtime(true) - $starttijd), $rv);
 			$this->tas = 10;
 			$this->Log();
 		}
@@ -9838,7 +9855,6 @@ class cls_Parameter extends cls_db_base {
 		$this->arrParam['path_templates'] = array("Type" => "T");
 		$this->arrParam['title_head_html'] = array("Type" => "T", "");
 		$this->arrParam['urlvereniging'] = array("Type" => "T");
-		$this->arrParam['url_eigen_help'] = array("Type" => "T");	// na 1 juli 2023 verwijderen
 		
 		$this->arrParam['website_mediabestanden'] = ['Type' => "T", 'Default' => "./www/media/"];  // Gebruik relatief pad tov root website
 	}
@@ -10501,8 +10517,13 @@ function db_onderhoud($type=9) {
 	
 	$query = sprintf("ALTER TABLE `%sMemo` CHANGE `RecordID` `RecordID` INT(11) NOT NULL;", TABLE_PREFIX);
 	$i_base->execsql($query);
-
 	
+	$query = sprintf("ALTER TABLE `%sMailing_vanaf` CHANGE `Vanaf_email` `Vanaf_email` VARCHAR(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL;", TABLE_PREFIX);
+	$i_base->execsql($query);
+	
+	$query = sprintf("ALTER TABLE `%sAdmin_activiteit` CHANGE `IP_adres` `IP_adres` VARCHAR(45) CHARACTER SET utf8 COLLATE utf8_general_ci NULL;", TABLE_PREFIX);
+	$i_base->execsql($query);
+
 	/***** Velden die niet meer nodig zijn *****/
 	$i_base->tas = 13;
 	
@@ -10674,6 +10695,7 @@ function db_backup($p_typebackup=3) {
 		3 = alle tabellen naar bestand
 		4 = alle data naar scherm, zonder logins en logging
 	*/
+	$starttijd = microtime(true);
 	
 	$rv = false;
 	
@@ -10869,6 +10891,11 @@ function db_backup($p_typebackup=3) {
 	} else {
 //		(new cls_Logboek())->add("Het backupscript heeft korter dan 1 uur geleden met succes gedraaid. Het wordt niet nogmaals uitgevoerd.", 2, 0, 1, 0, 2);
 	}
+	
+	$exec_tijd = (microtime(true) - $starttijd);
+	$mess = sprintf("Backup is in %.f seconden uitgevoerd.", $exec_tijd);
+	(new cls_Logboek())->add($mess, 3, 0, 0, 0, 4);
+	
 	return $rv;
 }
 
