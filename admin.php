@@ -775,6 +775,10 @@ function fnEigenlijstenmuteren() {
 			$i_el->update($elid, "Tabpage", $_POST['tabpage']);
 		}
 		
+		if (isset($_POST['uitleg'])) {
+			$i_el->update($elid, "Uitleg", $_POST['uitleg']);
+		}
+		
 		if (isset($_POST['mysql'])) {
 			$i_el->update($elid, "MySQL", $_POST['mysql']);
 		}
@@ -806,7 +810,8 @@ function fnEigenlijstenmuteren() {
 		
 		printf("<form method='post' id='eigenlijstmuteren' action='%s?tp=%s&paramID=%d'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $elid);
 		printf("<label>Naam eigen lijst</label><input type='text' name='naam' class='w50' value='%s' maxlength=50>\n", $row->Naam);
-		printf("<label>MySQL-code</label><textarea id='mysql' name='mysql' rows=16 cols=100>%s</textarea>\n", $row->MySQL);
+		printf("<label>Uitleg</label><textarea id='uitleg' name='uitleg' rows=3>%s</textarea>\n", $row->Uitleg);
+		printf("<label>MySQL-code</label><textarea id='mysql' name='mysql' rows=16>%s</textarea>\n", $row->MySQL);
 		echo("<p>Parameters kunnen worden gebruikt. Een parameter start met '@P', gevolgd door 0 t/m 9. De nummering moet met 0 starten en een ondoorbroken reeks zijn.</p>\n");
 		printf("<label>Eigen script</label><p>%s/maatwerk/</p><input type='text' name='EigenScript' class='w30' value='%s' maxlength=30>\n", BASISURL, $row->EigenScript);
 		printf("<label>Tonen in tabblad</label><input type='text' name='tabpage' class='w75' value='%s' maxlength=75>\n", $row->Tabpage);
