@@ -64,6 +64,10 @@ function fnStukken($p_scherm="") {
 		}
 		$optlocalfiles = sprintf("<option value='extlink'%s>Externe link</option>\n", $s);
 		
+		if (substr($i_stuk->link, 0, 4) != "http" and file_exists(BASEDIR . "/stukken/" . $i_stuk->link) == false) {
+			$optlocalfiles .= sprintf("<option value='%1\$s' selected>%1\$s (bestaat niet)", $i_stuk->link);
+		}
+		
 		if (is_dir(BASEDIR . "/stukken/")) {
 			$d = dir(BASEDIR . "/stukken/");
 			while (false !== ($entry = $d->read())) {
@@ -97,13 +101,13 @@ function fnStukken($p_scherm="") {
 			$options .= sprintf("<option value='%s' %s>%s</option>\n", $k, checked($k, "option", $row->Type), $v);
 		}
 		printf("<label>Type</label><select name='Type'>%s</select>\n", $options);
-		printf("<label>Naam document</label><select name='naamdoc' onChange='this.form.submit();'>%s</select>", $optlocalfiles);
-		if (substr($row->Link, 0, 4) != "http") {
+		printf("<label>Naam document</label><select name='naamdoc' onChange='this.form.submit();'>\n%s</select>", $optlocalfiles);
+		if (substr($row->Link, 0, 4) != "http" and file_exists(BASEDIR . "/stukken/" . $i_stuk->link)) {
 			$u = BASISURL . sprintf("/get_stuk.php?p_stukid=%d", $row->RecordID);
 			printf("<p id='ganaarurl'><a href='%1\$s'>Ga naar</a></p>\n", $u);
 		}
 		
-		if (substr($i_stuk->link, 0, 4) == "http" or (isset($_POST['naamdoc']) and $_POST['naamdoc'] == "extlink")) {
+		if (substr($i_stuk->link, 0, 4) == "http" or (isset($_POST['naamdoc']) and ($_POST['naamdoc'] == "extlink") or substr($row->Link, 0, 4) == "http")) {
 			printf("<label>Externe link</label><input type='url' name='extlink' value='%s'>\n", $row->Link);
 			if (substr($i_stuk->link, 0, 4) == "http") {
 				printf("<p id='ganaarurl'><a href='%1\$s'>Ga naar</a></p>\n", $row->Link);
