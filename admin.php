@@ -585,7 +585,6 @@ function fnInstellingen() {
 	$arrParam['wachtwoord_maxlengte'] = "De maximale lengte van een wachtwoord. Minimaal 7 en maximaal 15 invullen.";
 	$arrParam['naamwebsite'] = "Dit is de naam zoals deze in de titel en op elke pagina getoond wordt.";
 	$arrParam['title_head_html'] = "Hiermee start de HTML-titel van elke pagina.";
-	$arrParam['path_templates'] = "Waar staan de templates?";
 	$arrParam['performance_trage_select'] = "Vanaf hoeveel seconden moet een select-statement in het logboek worden gezet. 0 = nooit.";
 	$arrParam['termijnvervallendiplomasmailen'] = "Hoeveel maanden vooruit moeten leden een herinnering krijgen als een diploma gaat vervallen. 0 = geen herinnering sturen.";
 	$arrParam['termijnvervallendiplomasmelden'] = "Hoeveel maanden vooruit en achteraf moeten vervallen diploma op het voorblad getoond worden.";
@@ -674,13 +673,6 @@ function fnInstellingen() {
 		} elseif (strlen($p) > 0 and substr($p, -1) != "/") {
 			$i_p->update("path_pasfoto", $p . "/");
 		}
-		
-		$p = $_SESSION['settings']['path_templates'];
-		if (strlen($p) < 5 or !is_dir($p)) {
-			$i_p->update("path_templates", BASEDIR . "/templates/");
-		} elseif (substr($p, -1) != "/") {
-			$i_p->update("path_templates", $p . "/");
-		}
 	}
 
 	echo("<div id='instellingenmuteren'>\n");
@@ -690,15 +682,15 @@ function fnInstellingen() {
 		if (isset($arrParam[$row->Naam])) {
 			$uitleg = htmlent($arrParam[$row->Naam]);
 			if (strlen($row->ValueChar) > 60 and $row->ParamType="T") {
-				printf("<label>%s</label><textarea cols=68 rows=2 name='%s'>%s</textarea>\n", $uitleg, $row->Naam, $row->ValueChar);
+				printf("<label>%s</label><textarea name='%s'>%s</textarea>\n", $uitleg, $row->Naam, $row->ValueChar);
 			} elseif ($row->Naam == "db_backup_type") {
-				printf("<label>%s</label><select name='%s'>", $uitleg, $row->Naam);
+				printf("<label>%s</label><select name='%s' id='%s'>", $uitleg, $row->Naam, str_replace(" ", "_", strtolower($row->Naam)));
 				foreach (ARRTYPEBACKUP as $key => $val) {
 					printf("<option value=%d %s>%s</option>\n", $key, checked($row->ValueNum, "option", $key), $val);
 				}
 				echo("</select>\n");
 			} else {
-				printf("<label>%s</label><input name='%s' ", $uitleg, $row->Naam);
+				printf("<label>%s</label><input name='%s' id='%s' ", $uitleg, $row->Naam, str_replace(" ", "_", strtolower($row->Naam)));
 				if ($row->ParamType == "B") {
 					printf("type='checkbox' value='1' %s>\n", checked(intval($row->ValueNum)));
 				} elseif ($row->ParamType == "I") {
