@@ -599,7 +599,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		
 		$login = $row->Login;
 		
-				if (strlen($login) > 5) {
+		if (strlen($login) > 5) {
 			
 			printf("<form id='herstellenwachtwoord' action='%s?tp=Herstel+wachtwoord' method='post'>\n", $_SERVER["PHP_SELF"]);
 			printf("<input type='hidden' name='key' value='%s'><input type='hidden' name='lidid' value=%d>\n
@@ -609,7 +609,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 			<label>Herhaal wachtwoord</label><input type='password' name='herhaalwachtwoord'>
 			%s
 			<div id='opdrachtknoppen'>\n
-			<input type='submit' value='Bevestig'>\n
+			<button type='submit'>Bevestig</button>\n
 			</div> <!-- Einde opdrachtknoppen -->\n
 			</form>", $_GET["key"], $_GET['lidid'], $login, fneisenwachtwoord());
 		} else {
@@ -629,7 +629,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 			if ($lidid > 0) {
 				$mess = fnHerstellenWachtwoord("mail", $lidid);
 			} else {
-				$mess = "Er is geen uniek lid gevonden. Er wordt geen e-mail verstuurd om het wachtwoord te herstellen.";
+				$mess = $i_login->mess . " Er wordt geen e-mail, om het wachtwoord te herstellen, verstuurd.";
 			}
 		}
 		printf("<p class='mededeling'>%s</p>", htmlentities($mess));
@@ -639,7 +639,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		printf("<form action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER['QUERY_STRING']);
 		echo("<h3>Herstellen wachtwoord</h3>
 		<label>E-mailadres</label><input type='email' name='email'>
-		<label>Lidnummer</label><input type='number' min=0 name='lidnummer' value=0>\n");
+		<label>Lidnummer</label><input type='number' class='d8' min=0 name='lidnummer' value=0>\n");
 		
 		printf("<label>Login</label><input type='text' name='login' class='w%d'>\n", $_SESSION['settings']['login_maxlengte']);
 		
@@ -648,7 +648,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		<p>Je lidnummer kan je <a href='index.php?tp=Opvragen+lidnr'>hier</a> opvragen.</p>
 		<p>Na het versturen van deze link is je oude wachtwoord niet meer geldig.</p>
 		<div id='opdrachtknoppen'>\n
-		<input type='submit' value='Stuur herstellink'>\n
+		<button type='submit'><i class='bi bi-arrow-right-circle'></i> Stuur herstellink</button>\n
 		</div> <!-- Einde opdrachtknoppen -->\n
 		</form>
 		</div>  <!-- Einde herstellenwachtwoord -->");
@@ -791,12 +791,11 @@ function fnLoginAanvragen($stap="") {
 		
 	} else {
 
-		echo("<div id='loginaanvraag'>\n");
-		printf("<form action='%s?tp=Bevestiging+login' method='post'>\n", $_SERVER["PHP_SELF"]);
-		echo("<h3>Login aanvraag</h3>\n");
+		printf("<form action='%s?tp=Bevestiging+login' id='loginaanvraag' method='post'>\n", $_SERVER["PHP_SELF"]);
+		echo("<h2>Login aanvraag</h2>\n");
 		
 		echo("<label>E-mailadres</label><input type='email' name='emailadres' value='' autocomplete='off'>\n");
-		echo("<label>Lidnummer</label><input type='number' name='lidnummer' value=0>\n");
+		echo("<label>Lidnummer</label><input type='number' class='d8' name='lidnummer' value=0>\n");
 		printf("<label>Gewenste login</label><input type='text' name='gewenstelogin' maxlength=%1\$d class='w%1\$d'>\n", $_SESSION['settings']['login_maxlengte']);
 		printf("<label>Gewenst wachtwoord</label><input type='password' name='gewenstwachtwoord' value='' maxlength=%1\$d class='w%1\$d'>\n", $_SESSION['settings']['wachtwoord_maxlengte']);
 
@@ -812,11 +811,10 @@ function fnLoginAanvragen($stap="") {
 		printf(fneisenwachtwoord());
 		
 		echo("<div id='opdrachtknoppen'>\n");
-		echo("<input type='submit' name='loginaanvragen' value='Aanvragen'>\n");
+		echo("<button type='submit' name='loginaanvragen'><i class='bi bi-arrow-right-circle'></i> Aanvragen</button>\n");
 		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 		
 		echo("</form>\n");
-		echo("</div>  <!-- Einde loginaanvraag -->\n");
 	}
 } # fnLoginAanvragen
 
@@ -939,8 +937,8 @@ function checknewpassword($ww, $login="", $p_wwh="ghc") {
 		$mess = "Er mogen geen aanhalingstekens in een wachtwoord zitten.";
 	} elseif (strpos($ww, " ") !== false) {
 		$mess = "Het wachtwoord mag geen spatie bevatten.";
-	} elseif (strlen($login) > 0 and strpos(strtolower($ww), strtolower($login)) !== false) {
-		$mess = "Het wachtwoord mag niet je login bevatten.";
+	} elseif (strlen($login) > 0 and strpos($ww, $login) !== false) {
+		$mess = sprintf("Je login (%s) mag geen onderdeel van je wachtwoord zijn.", $login);
 	} elseif (strlen($_SESSION['roepnaamingelogde']) > 0 and strpos(strtolower($ww), strtolower($_SESSION['roepnaamingelogde'])) !== false) {
 		$mess = "Het wachtwoord mag niet je roepnaam bevatten.";
 	} elseif ($p_wwh !== "ghc" and (strlen($p_wwh) == 0 or $ww !== $p_wwh)) {
