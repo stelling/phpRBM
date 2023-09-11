@@ -2314,6 +2314,14 @@ table#rekeningregels {
 	margin-left: 6px;
 }
 
+#db_folderbackup, #urlvereniging {
+	width: 350px;
+}
+
+#zs_voorwaardenbestelling {
+	width: 500px;
+}
+
 #editmailingform label#lblrecordid, #editmailingform p#recordid {
 	float: right;
 }
@@ -2368,10 +2376,6 @@ table#rekeningregels {
 #afdelingskalendermuteren input, #afdelingskalendermuteren select {
 	margin-top: 9px;
 	margin-bottom: 8px;
-}
-
-#instellingenmuteren p {
-	float: left;
 }
 
 #instellingenmuteren p {
