@@ -1152,13 +1152,11 @@ function fnEigenGegevens($lidid=0) {
 		$tn = "Bijzonderheden";
 		$rows = (new cls_Memo())->overzichtlid($lidid);
 		if (count($rows) > 0 and toegang($ct . $tn, 0, 0)) {
-			$tabblad[$tn] = "<div id='bijzonderheden'>\n";
-			$tabblad[$tn] .= sprintf("<h2>%s %s</h2>\n", $tn, $naamlid);
+			$tabblad[$tn] = sprintf("<h2>%s %s</h2>\n", $tn, $naamlid);
 			foreach ($rows as $row) {
 				$tabblad[$tn] .= sprintf("<h3>%s</h3>\n", ARRSOORTMEMO[$row->Soort]);
 				$tabblad[$tn] .= sprintf("<p>%s</p>\n", $row->Memo);
 			}
-			echo("</div> <!-- Einde bijzonderheden -->\n");
 		}
 			
 		$tn = "Presentie";
@@ -2340,7 +2338,6 @@ function instellingenledenmuteren() {
 	printf("<form method='post' action='%s?tp=%s/%s'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
 	
 	echo("<h2>Algemeen</h2>\n");
-	printf("<label>Opzegtermijn in maanden</label><input type='number' class='num2' name='zs_opzegtermijn' value=%d OnChange='this.form.submit();'>\n", $_SESSION['settings']['zs_opzegtermijn']);
 	
 	$options = "";
 	foreach((new cls_Mailing())->lijst("Templates") as $row) {
@@ -2351,6 +2348,7 @@ function instellingenledenmuteren() {
 	printf("<label>Naam reddingsbrigade</label><input type='text' name='naamvereniging_reddingsbrigade' class='w50' value=\"%s\" OnChange='this.form.submit();'>\n", $_SESSION['settings']['naamvereniging_reddingsbrigade']);
 	printf("<label>Sportlink relatienummer</label><input type='text' name='sportlink_vereniging_relcode' value=\"%s\" class='w7' maxlength=7 OnChange='this.form.submit();'>\n", $_SESSION['settings']['sportlink_vereniging_relcode']);
 	
+	printf("<label>Opzegtermijn in maanden</label><input type='number' class='num2' name='zs_opzegtermijn' value=%d OnChange='this.form.submit();'>\n", $_SESSION['settings']['zs_opzegtermijn']);
 	printf("<label>Moet een opzegging door een lid automatisch worden verwerkt?</label><input type='checkbox' name='zs_opzeggingautomatischverwerken' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_opzeggingautomatischverwerken']));
 	
 	printf("<label>Welke soorten memo's zijn in gebruik?</label><input type='text' name='muteerbarememos' value='%s' class='w21' onChange='this.form.submit();'><p>(scheiden met een komma) (%s)</p>", $_SESSION['settings']['muteerbarememos'], $sm);
@@ -2363,17 +2361,21 @@ function instellingenledenmuteren() {
 	printf("<label>URL van de ICS voor feestdagen</label><input name='agenda_url_feestdagen' class='w110' value='%s'>\n", $_SESSION['settings']['agenda_url_feestdagen']);
 	
 	echo("<h2>Beschikbaar in de zelfservice</h2>\n");
-	printf("<label>Beroep?</label><input type='checkbox' name='zs_incl_beroep' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_beroep']));
-	printf("<label>Burgerservicenummer (BSN)?</label><input type='checkbox' name='zs_incl_bsn' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_bsn']));
-	printf("<label>E-mail ouders?</label><input type='checkbox' name='zs_incl_emailouders' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_emailouders']));
-	printf("<label>E-mail vereniging?</label><input type='checkbox' name='zs_incl_emailvereniging' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_emailvereniging']));
-	printf("<label>Bankrekening / IBAN?</label><input type='checkbox' name='zs_incl_iban' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_iban']));
-	printf("<label>Machtiging automatische incasso afgegeven?</label><input type='checkbox' name='zs_incl_machtiging' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_machtiging']));
-	printf("<label>Legitimatie?</label><input type='checkbox' name='zs_incl_legitimatie' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_legitimatie']));
-	printf("<label>Sportlink ID?</label><input type='checkbox' name='zs_incl_slid' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_slid']));
+	printf("<label>Beroep</label><input type='checkbox' name='zs_incl_beroep' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_beroep']));
+	printf("<label>Burgerservicenummer (BSN)</label><input type='checkbox' name='zs_incl_bsn' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_bsn']));
+	printf("<label>E-mail ouders</label><input type='checkbox' name='zs_incl_emailouders' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_emailouders']));
+	printf("<label>E-mail vereniging</label><input type='checkbox' name='zs_incl_emailvereniging' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_emailvereniging']));
+	printf("<label>Bankrekening / IBAN</label><input type='checkbox' name='zs_incl_iban' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_iban']));
+	printf("<label>Machtiging automatische incasso afgegeven</label><input type='checkbox' name='zs_incl_machtiging' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_machtiging']));
+	printf("<label>Legitimatie</label><input type='checkbox' name='zs_incl_legitimatie' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_legitimatie']));
+	printf("<label>Sportlink ID</label><input type='checkbox' name='zs_incl_slid' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_slid']));
+	if (strlen($_SESSION['settings']['muteerbarememos']) > 0) {
+		printf("<label>Soorten memo's</label><input type='text' name='zs_muteerbarememos' class='w21' value=\"%s\" OnChange='this.form.submit();'><p>(Scheiden met een komma) (%s)</p>\n", $_SESSION['settings']['zs_muteerbarememos'], $_SESSION['settings']['muteerbarememos']);
+	} else {
+		echo("<input type='hidden' name=zs_muteerbarememos' value=''>\n");
+	}
 	
 	echo("<h2>Overig in de zelfservice</h2>\n");
-	printf("<label>Welke soorten memo's mogen leden zelf muteren?</label><input type='text' name='zs_muteerbarememos' class='w21' value=\"%s\" OnChange='this.form.submit();'><p>(Scheiden met een komma) (%s)</p>\n", $_SESSION['settings']['zs_muteerbarememos'], $sm);
 	printf("<label>Welke tekst moet er als uitleg bij de toestemmingen worden vermeld?</label><textarea name='uitleg_toestemmingen' rows=2 cols=68 OnChange='this.form.submit();'>%s</textarea>\n", $_SESSION['settings']['uitleg_toestemmingen']);
 	
 	echo("</form>\n");
