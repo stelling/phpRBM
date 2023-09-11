@@ -3086,11 +3086,6 @@ class cls_Lidond extends cls_db_base {
 			$row = $this->execsql($query)->fetch();
 			if (isset($row)) {
 				$this->ondnaam = $row->Naam;
-				if (strlen($row->Naam) > 15) {
-//					$this->naamlogging = $row->Kode;
-				} else {
-//					$this->naamlogging = $row->Naam;
-				}
 				$this->ondtype = $row->Type;
 				$this->ondkader = $row->Kader;
 				$this->alleenleden = $row->{'Alleen leden'};
@@ -3505,7 +3500,7 @@ class cls_Lidond extends cls_db_base {
 				$rv = true;
 				if ($p_waarde > 0 and $p_kolom == "GroepID") {
 					$this->omsgroep = (new cls_Groep(-1, $p_waarde))->groms;
-					$this->mess = sprintf("Tabel Lidond: van record %d (%s) is kolom 'GroepID' in %d (%s) gewijzigd.", $this->loid, $this->naamlogging, $p_waarde, $this->omsgroep);
+					$this->mess = sprintf("Tabel Lidond: van record %d is kolom 'GroepID' in %d (%s) gewijzigd.", $this->loid, $p_waarde, $this->omsgroep);
 				}
 			}
 		}
@@ -4068,6 +4063,7 @@ class cls_Login extends cls_db_base {
 	private $login = "";
 	public $loginid = 0;
 	public $beperkttotgroep;
+	private $inloggentoegestaan = false;
 	private $filteremail = "";
 	
 	function __construct() {
@@ -4083,9 +4079,38 @@ class cls_Login extends cls_db_base {
 		}
 	}
 	
-	private function vulvars($p_lidid=-1, $p_email="") {
+	private function vulvars($p_lidid=-1, $p_email="", $p_lidnr=0) {
 		if ($p_lidid >= 0) {
 			$this->lidid = $p_lidid;
+		}
+		
+		$p_email = trim(strtolower($p_email));
+		if (isValidMailAddress($p_email, 0)) {
+			$this->filteremail = sprintf("(LOWER(L.Email)='%1\$s' OR LOWER(L.EmailVereniging)='%1\$s' OR LOWER(L.EmailOuders)='%1\$s')", $p_email);
+		} else {
+			$this->filteremail = "";
+		}
+		
+		if ($this->lidid <= 0 && strlen($this->filteremail) > 5) {
+			$query = sprintf("SELECT L.RecordID FROM %sLid AS L WHERE %s;", TABLE_PREFIX, $this->filteremail);
+			$rows = $this->execsql($query)->fetchAll();		
+			if (count($rows) == 0) {
+				$this->mess = sprintf("E-mailadres '%s' is onbekend in onze database.", $p_email);
+				$this->lidid = 0;
+			} elseif (count($rows) > 1) {
+				$this->mess = sprintf("E-mailadres '%s' is aan meedere leden gekoppeld.", $p_email);
+				$this->lidid = 0;
+			} else {
+				$this->lidid = $rows[0]->RecordID;
+			}
+		}
+		
+		if ($p_lidnr > 0 && $this->lidid <= 0) {
+			$query = sprintf("SELECT IFNULL(MAX(LM.Lid), 0) FROM %sLidmaatschap AS LM WHERE LM.Lidnr=%d AND IFNULL(LM.Opgezegd, '9999-12-31') >= CURDATE();", TABLE_PREFIX, $p_lidnr);
+			$this->lidid = $this->scalar($query);
+			if ($this->lidid == 0) {
+				$this->mess = sprintf("Lidnummer %d is onbekend in onze database.", $p_lidnr);
+			}
 		}
 		
 		if ($this->lidid > 0) {
@@ -4095,16 +4120,24 @@ class cls_Login extends cls_db_base {
 				$this->loginid = $row->RecordID;
 				$this->login = $row->Login;
 			}
-		}
-		
-		$p_email = trim(strtolower($p_email));
-		if (isValidMailAddress($p_email, 0)) {
-			$this->filteremail = sprintf("(LOWER(L.Email)='%1\$s' OR LOWER(L.EmailVereniging)='%1\$s' OR LOWER(L.EmailOuders)='%1\$s')", $p_email);
+			
+			if (in_array($this->lidid, LIDIDWEBMASTERS) == true) {
+				$this->inloggentoegestaan = true;
+			} else {
+				$query = sprintf("SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE() AND LO.Lid=%d AND LO.OnderdeelID IN (%s);", TABLE_PREFIX, $this->lidid, implode(",", $this->beperkttotgroep));
+				if ($this->scalar($query) > 0) {
+					$this->inloggentoegestaan =  true;
+				} else {
+					$this->mess = "Dit lid mag niet inloggen.";
+					$this->inloggentoegestaan = false;
+				}
+			}
 		} else {
-			$this->filteremail = "";
+			$this->inloggentoegestaan = false;
 		}
-	}
 		
+	}  # vulvars
+
 	public function lijst($p_filter="", $p_orderby="", $p_email="") {
 		$this->vulvars(0, $p_email);
 		$filter = "";
@@ -4152,49 +4185,31 @@ class cls_Login extends cls_db_base {
 	}
 	
 	public function lididherstel($p_login, $p_lidnr, $p_email) {
-		$this->vulvars(0, $p_email);
+		$this->vulvars(0, $p_email, $p_lidnr);
+		$rv = false;
 		
-		$query = sprintf("SELECT Login.LidID FROM (%1\$sAdmin_login AS Login INNER JOIN %1\$sLid AS L ON L.RecordID=Login.LidID) INNER JOIN %1\$sLidmaatschap AS LM ON LM.Lid=L.RecordID WHERE IFNULL(LM.Opgezegd, '9999-12-31') >= CURDATE() AND ", TABLE_PREFIX);
-	
-		if (strlen($p_login) > 5 or $p_lidnr > 0) {
-			$query .= sprintf("(Login.Login='%s' OR LM.Lidnr=%d);", $p_login, $p_lidnr);
-		} elseif (IsValidMailAddress($p_email, 0)) {
-			$query .= $this->filteremail . ";";
-		} else {
-			$query .= "1=2;";
+		if ($this->lidid <= 0 && strlen($p_login) >= 5) {
+			$query = sprintf("SELECT IFNULL(MAX(Login.LidID), 0) FROM %s WHERE Login.Login='%s';", $this->basefrom, $p_login);
+			$this->lidid = $this->scalar($query);
+			if ($this->lidid == 0) {
+				$this->mess = sprintf("Login '%s' is onbekend in onze database.", $p_login);
+			}
 		}
 		
-		$result = $this->execsql($query);
-		$rows = $result->fetchAll();
-		if (count($rows) == 1) {
-			return $rows[0]->LidID;
-		} else {
-			return 0;
+		if ($this->lidid > 0 && $this->inloggentoegestaan == true) {
+			$rv = $this->lidid;
+		} elseif ($this->lidid == 0 && strlen($this->filteremail) == 0 && strlen($p_login) == 0) {
+			$this->mess = "Er is geen (geldig) e-mailadres ingevoerd.";
+		} elseif ($this->lidid > 0 && strlen($p_login) == 0) {
+			$this->mess = "Dit lid mag niet inloggen.";
 		}
-	}
+		
+		return $rv;
+	}  # lididherstel
 	
 	public function lidid($p_email, $p_lidnr=0) {
-		$this->vulvars(0, $p_email);
-		
-		if (strlen($this->filteremail) > 0) {
-			$w = $this->filteremail;
-			if ($p_lidnr > 0) {
-				$w .= sprintf(" AND LM.Lidnr=%d", $p_lidnr);
-			}
-		} else {
-			$w = "1=2";
-		}
-		$query = sprintf("SELECT DISTINCT L.RecordID FROM %s WHERE %s;", $this->fromlid, $w);
-		
-		$result = $this->execsql($query);
-		$rows = $result->fetchAll();
-		if (count($rows) == 1) {
-			return $rows[0]->RecordID;
-		} elseif (count($rows) > 1) {
-			return -1;
-		} else {
-			return 0;
-		}
+		$this->vulvars(0, $p_email, $p_lidnr);
+		return $this->lidid;
 	}
 	
 	public function nuingelogd() {
@@ -4213,23 +4228,14 @@ class cls_Login extends cls_db_base {
 	}
 	
 	public function aanvragenmag($p_lidid) {
-		global $lididtestusers;
-		
-		if (in_array($p_lidid, LIDIDWEBMASTERS) == true or in_array($p_lidid, $lididtestusers) == true) {
-			return true;
-		} else {
-			$query = sprintf("SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE() AND LO.Lid=%d AND LO.OnderdeelID IN (%s);", TABLE_PREFIX, $p_lidid, implode(",", $this->beperkttotgroep));
-			if ($this->scalar($query) > 0) {
-				return true;
-			} else {
-				return false;
-			}
-		}
+		$this->vulvars($p_lidid);
+		return $this->inloggentoegestaan;
 	}
 
 	public function lididbijlogin($p_login) {
-		$query = sprintf("SELECT IFNULL(MAX(LidID), 0) FROM %s WHERE Login='%s';", $this->table, $p_login);
-		return $this->scalar($query);
+		$query = sprintf("SELECT IFNULL(MAX(LidID), 0) FROM %s WHERE Login='%s';", $this->basefrom, $p_login);
+		$this->lidid = $this->scalar($query);
+		return $this->lidid;
 	}
 
 	public function controle($p_wachtwoord, $p_fromcookie=0) {
@@ -5741,7 +5747,11 @@ class cls_Logboek extends cls_db_base {
 		$data['omschrijving'] = $p_oms;
 		$data['script'] = $this->script();
 		$data['referid'] = $p_referid;
-		$data['referlidid'] = $this->lidid;
+		if ($this->lidid == null) {
+			$data['referlidid'] = 0;
+		} else {
+			$data['referlidid'] = $this->lidid;
+		}
 		$data['ta'] = $p_ta;
 		$data['tas'] = $this->tas;
 		$data['referonderdeelid'] = $refondid;
@@ -5767,8 +5777,8 @@ class cls_Logboek extends cls_db_base {
 		$data['reftable'] = $p_reftable;
 		$data['refcolumn'] = $p_refcolumn;
 
-		$query = sprintf("INSERT INTO %s (DatumTijd, LidID, IP_adres, USER_AGENT, Omschrijving, ReferID, ReferLidID, ReferOnderdeelID, TypeActiviteit, Script, Getoond, RefFunction, TypeActiviteitSpecifiek, RefTable, refColumn) VALUES 
-				(SYSDATE(), :ingelogdlid, :ipaddress, :useragent, :omschrijving, :referid, :referlidid, :referonderdeelid, :ta, :script, :getoond, :reffunction, :tas, :reftable, :refcolumn);", $this->table);
+		$query = sprintf("INSERT INTO %s (LidID, IP_adres, USER_AGENT, Omschrijving, ReferID, ReferLidID, ReferOnderdeelID, TypeActiviteit, Script, Getoond, RefFunction, TypeActiviteitSpecifiek, RefTable, refColumn) VALUES 
+				(:ingelogdlid, :ipaddress, :useragent, :omschrijving, :referid, :referlidid, :referonderdeelid, :ta, :script, :getoond, :reffunction, :tas, :reftable, :refcolumn);", $this->table);
 		$nrid = $dbc->prepare($query)->execute($data);
 		
 		if ($this->tm == 1 or ($this->tm == 2 and $_SESSION['webmaster'] == 1)) {
@@ -9727,18 +9737,6 @@ class cls_Template extends cls_db_base {
 				$this->add($tp);
 			}
 		}
-		
-		// Deze code kan na 1 maart 2024 worden verwijderd, is alleen voor het omzetten van bestanden naar tabel.
-		if (isset($_SESSION['settings']['path_templates']) and is_dir($_SESSION['settings']['path_templates'])) {
-			$f = "(TP.Inhoud IS NULL) OR LENGTH(TP.Inhoud)=0";
-			foreach ($this->basislijst($f) as $row) {
-				$fn = $_SESSION['settings']['path_templates'] . $row->Naam . ".html";
-				if (file_exists($fn)) {
-					$content = file_get_contents($fn);
-					$this->update($row->RecordID, "Inhoud", $content, "dit is de waarde uit het bestand");
-				}
-			}
-		}
 	}
 	
 	public function opschonen() {
@@ -9852,7 +9850,6 @@ class cls_Parameter extends cls_db_base {
 		$this->arrParam['naamwebsite'] = array("Type" => "T", "Default" => "Naam website");
 		$this->arrParam['path_attachments'] = array("Type" => "T");
 		$this->arrParam['path_pasfoto'] = array("Type" => "T");
-		$this->arrParam['path_templates'] = array("Type" => "T");
 		$this->arrParam['title_head_html'] = array("Type" => "T", "");
 		$this->arrParam['urlvereniging'] = array("Type" => "T");
 		
@@ -9898,7 +9895,7 @@ class cls_Parameter extends cls_db_base {
 			$this->tas = 9;
 		}
 
-		if (in_array($p_naam, array("db_folderbackup", "login_beperkttotgroep", "muteerbarememos", "menu_met_afdelingen", "path_attachments", "path_pasfoto", "path_templates", "urlvereniging", "url_eigen_help", "zs_muteerbarememos"))) {
+		if (in_array($p_naam, array("db_folderbackup", "login_beperkttotgroep", "muteerbarememos", "menu_met_afdelingen", "path_attachments", "path_pasfoto", "urlvereniging", "url_eigen_help", "zs_muteerbarememos"))) {
 			$p_waarde = str_replace(" ", "", $p_waarde);
 		}
 		if (in_array($p_naam, array("login_beperkttotgroep", "muteerbarememos", "menu_met_afdelingen", "zs_muteerbarememos"))) {
@@ -10742,6 +10739,7 @@ function db_backup($p_typebackup=3) {
 				if ($p_typebackup != 4) {
 					$data = $i_base->exporttosql(2);
 					fwrite($buf, $data);
+					$data = "";
 				}
 
 				if ($p_typebackup == 4 and $a > 25000) {
