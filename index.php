@@ -482,14 +482,13 @@ function fnAgenda($p_lidid=0) {
 				$txt .= "<ul>";
 			}
 			
+			$dtfmt->setPattern(DTTEXTWD);
+			$t = sprintf("title='%s'", $dtfmt->format($td), $td);
+			$dtfmt->setPattern("d MMM");
 			if (array_key_exists(date("Ymd", $td), $fds)) {
-				$dtfmt->setPattern("d MMM");
-				$txt .= sprintf("<li title=\"%s\">%s</li>", $fds[date("Ymd", $td)], substr(str_replace(" ", "&nbsp;", $dtfmt->format($td)), 0, -1));
+				$txt .= sprintf("<li %s>%s</li>", $t, $fds[date("Ymd", $td)]);
 			} else {
-				$dtfmt->setPattern(DTTEXTWD);
-				$t = sprintf("title='%s'", $dtfmt->format($td), $td);
-				$dtfmt->setPattern("d MMM");
-				$txt .= sprintf("<li %s>%s</li>", $t, substr(str_replace(" ", "&nbsp;", $dtfmt->format($td)), 0, -1));
+				$txt .= sprintf("<li %s>%s</li>", $t, str_replace(".", "", str_replace(" ", "&nbsp;", $dtfmt->format($td))));
 			}
 			
 			$ikal = null;
