@@ -2701,7 +2701,7 @@ li.presstat_v, td.presstat_v {
 		margin-right: 0;
 	}
 	
-	table#presentiemuteren th.opmerking, table#presentiemuteren td.opmerking {
+	table#presentiemuteren th.opmerking, table#presentiemuteren td.opmerking, table#presentiemuteren th.aanwezigperc, table#presentiemuteren td.aanwezigperc {
 		display: none;
 	}
 }
