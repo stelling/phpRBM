@@ -493,9 +493,9 @@ function fnPresentieMuteren($p_onderdeelid){
 	$i_ak = new cls_Afdelingskalender($p_onderdeelid);
 	$i_aanw = new cls_Aanwezigheid();
 	$i_lo = new cls_Lidond($p_onderdeelid);
+	$i_seiz = new cls_Seizoen();
 	
 	$akid = 0;
-	$grid = -1;
 	
 	$f = sprintf("AK.OnderdeelID=%d AND AK.Datum >= CURDATE() AND AK.Activiteit=1", $p_onderdeelid); 
 	$akid = $_POST['selecteerdatum'] ?? $i_ak->komendeles();
@@ -506,10 +506,6 @@ function fnPresentieMuteren($p_onderdeelid){
 				$loid = intval(str_replace("aanw_", "", $k));
 				$i_aanw->update($loid, $_POST['akid'], "Status", $v);
 			}
-		}
-		
-		if (isset($_POST['selecteergroep']) and $_POST['selecteergroep'] >= 0) {
-			$grid = intval($_POST['selecteergroep']);
 		}
 	}
 	
@@ -527,6 +523,13 @@ function fnPresentieMuteren($p_onderdeelid){
 	
 	if ($akid > 0) {
 		$i_ak->vulvars($akid);
+		$vanafaanwezigheid = new datetime($i_ak->akdatum);
+		$vanafaanwezigheid->modify("-3 month");
+		$i_seiz->zethuidige($i_ak->akdatum);
+		if ($i_seiz->begindatum > $vanafaanwezigheid->format("Y-m-d")) {
+			$vanafaanwezigheid = new datetime($i_seiz->begindatum);
+		}
+		
 		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 		$ro = "";
 		$f = sprintf("AfdelingskalenderID=%d", $akid);
@@ -538,8 +541,9 @@ function fnPresentieMuteren($p_onderdeelid){
 		printf("<caption>Presentie %s</caption>\n", $dtfmt->format(strtotime($i_ak->akdatum)));
 
 		$gh = "";
+		$grid = -1;
 		echo("<thead>\n");
-		echo("<tr><th>Naam</th><th>Groep/Functie</th><th>Status presentie</th><th class='opmerking'>Opmerking</th></tr>\n");
+		printf("<tr><th>Naam</th><th>Groep/Functie</th><th class='aanwezigperc' title='Aanwezigheid vanaf %s'>Aanwezig</th><th>Status presentie</th><th class='opmerking'>Opmerking</th></tr>\n", $vanafaanwezigheid->format("d/m/Y"));
 		echo("</thead>\n");
 		
 		foreach ($i_lo->lijst($p_onderdeelid, "", "F.Sorteringsvolgorde, F.Omschrijv, GR.Volgnummer, GR.Kode", $i_ak->akdatum) as $row) {
@@ -558,6 +562,15 @@ function fnPresentieMuteren($p_onderdeelid){
 				}
 			}
 			printf("<tr><td %s>%s</td>%s\n", $cl, $row->NaamLid, $gr);
+			
+			$al = $i_aanw->beschikbarelessen($row->RecordID, $vanafaanwezigheid->format("Y-m-d"), $i_ak->akdatum);
+			$awrow = $i_aanw->perlidperperiode($row->RecordID, $vanafaanwezigheid->format("Y-m-d"), $i_ak->akdatum);
+			$awp = (($al-($awrow->aantAfwezig+$awrow->aantVervallen))/($al-$awrow->aantVervallen))*100;
+			$xc = "";
+			if ($row->Aanwezigheidsnorm > 0 and $row->Aanwezigheidsnorm > $awp) {
+				$xc = " attentie";
+			}
+			printf("<td class='aanwezigperc number%s'>%d%%</td>", $xc, $awp);
 			
 			$options = "<option value=''>Geen registratie</option>\n";
 			foreach (ARRPRESENTIESTATUS as $k => $o) {
