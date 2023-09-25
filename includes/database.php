@@ -3279,7 +3279,8 @@ class cls_Lidond extends cls_db_base {
 			$w .= sprintf(" AND O.`Type`='%s'", $p_type);
 		}
 		
-		$query = sprintf("SELECT LO.*, O.Naam AS NaamOnderdeel, O.CentraalEmail, F.OMSCHRIJV AS FunctieOms, F.Kader, Act.Omschrijving AS GrActiviteit, Act.Code AS ActCode, Act.Contributie AS GrContributie, IFNULL(Act.GBR, '') AS ActGBR
+		$query = sprintf("SELECT LO.*, O.Naam AS NaamOnderdeel, O.CentraalEmail, F.OMSCHRIJV AS FunctieOms, F.Kader,
+						  Act.Omschrijving AS GrActiviteit, GR.ActiviteitID, Act.Code AS ActCode, Act.Contributie AS GrContributie, IFNULL(Act.GBR, '') AS ActGBR,
 						  O.LIDCB, O.JEUGDCB, O.FUNCTCB, O.Naam AS OndNaam, O.Kode AS OndCode
 						  FROM %s WHERE %s ORDER BY LO.Vanaf;", $this->fromlidond, $w);
 		$result = $this->execsql($query);
@@ -3460,11 +3461,11 @@ class cls_Lidond extends cls_db_base {
 			$nrid = $this->nieuwrecordid();
 			$query = sprintf("INSERT INTO %s (RecordID, Lid, OnderdeelID, Vanaf, Functie, GroepID, Ingevoerd) VALUES (%d, %d, %d, '%s', 0, 0, NOW());", $this->table, $nrid, $this->lidid, $this->ondid, $vanaf);
 			if ($this->execsql($query) > 0) {
-				$this->mess = sprintf("Lidond: %s is per '%s' toegevoegd", $this->ondnaam, $vanaf);
+				$this->loid = $nrid;
+				$this->mess = sprintf("Lidond: record %d is per '%s' toegevoegd", $this->loid, $vanaf);
 				if (strlen($p_reden) > 0) {
 					$this->mess .= ", omdat " . $p_reden;
 				}
-				$this->loid = $nrid;
 				$this->interface($query);
 				$rv = true;
 			} else {
@@ -3613,13 +3614,16 @@ class cls_Lidond extends cls_db_base {
 			}
 		}
 		
-		$query = sprintf("SELECT LO.RecordID FROM %s WHERE LO.GroepID > 0 AND IFNULL(LO.Opgezegd, '9999-12-31') < DATE_SUB(CURDATE(), INTERVAL 3 MONTH);", $this->basefrom);
+		/*
+		-- Ik wil hier nog even over nadenken, dus maar even uitgezet.
+		$query = sprintf("SELECT LO.RecordID FROM %s INNER JOIN %sGroep AS GR ON LO.GroepID=GR.RecordID WHERE LO.GroepID > 0 AND GR.ActiviteitID=0 AND IFNULL(LO.Opgezegd, '9999-12-31') < DATE_SUB(CURDATE(), INTERVAL 3 MONTH);", $this->basefrom, TABLE_PREFIX);
 		$result = $this->execsql($query);
 		foreach ($result->fetchAll() as $lorow) {
 			if ($this->update($lorow->RecordID, "GroepID", 0, "de activiteit is beëindigd.")) {
 				$this->log($lorow->RecordID, 0);
 			}
 		}
+		*/
 		
 		$this->optimize();
 		
@@ -8192,7 +8196,6 @@ class cls_Rekeningregel extends cls_db_base {
 				$this->rkid = 0;
 			}
 		}
-		
 
 		if ($this->seizoen > 0) {
 			$query = sprintf("SELECT MIN(SZ.Begindatum) FROM %sSeizoen AS SZ WHERE SZ.Nummer=%d;", TABLE_PREFIX, $this->seizoen);
@@ -8308,17 +8311,17 @@ class cls_Rekeningregel extends cls_db_base {
 				} else {
 					$oms = $lorow->OndNaam;
 				}
-				if (strlen($lorow->ActGBR) > 0) {
-					$kpl = $lorow->ActGBR;
-				} else {
-					$kpl = $lorow->OndCode;
-				}
+				$kpl = $lorow->OndCode;
 
 				if (isset($lorow->GrActiviteit) and strlen($lorow->GrActiviteit) > 0 and isset($lorow->GrContributie) and $lorow->GrContributie > 0) {
 					if ($szrow->{'Afdelingscontributie omschrijving'} == 3) {
 						$oms .= " (" . $lorow->GrActiviteit . ")";
 					}
-					$kpl .= "-" . $lorow->ActCode;
+					if (strlen($lorow->ActGBR) > 0) {
+						$kpl = $lorow->ActGBR;
+					} else {
+						$kpl .= "-" . $lorow->ActCode;
+					}
 					$cb = $lorow->GrContributie;
 				}
 								
@@ -8340,6 +8343,7 @@ class cls_Rekeningregel extends cls_db_base {
 				$rrid = $this->add($p_rkid, $lorow->Lid, $kpl);
 				if ($rrid > 0) {
 					$this->update($rrid, "LidondID", $lorow->RecordID);
+					$this->update($rrid, "ActiviteitID", $lorow->ActiviteitID);
 					$this->update($rrid, "OMSCHRIJV", $oms);
 					$this->update($rrid, "Bedrag", $cb);
 					$aantToegevoegd++;
@@ -9557,8 +9561,8 @@ class cls_Inschrijving extends cls_db_base {
 			$result = $this->execsql($query);
 			$row = $result->fetch();
 			if (isset($row)) {
-				$this->naam = $row->Naam;
-				$this->naamlogging = $row->Naam;
+				$this->naam = trim($row->Naam);
+				$this->naamlogging = trim($row->Naam);
 			} else {
 				$this->insid = 0;
 			}
@@ -10070,115 +10074,6 @@ function db_onderhoud($type=9) {
 	/***** Kolommen/indexen die later zijn toegevoegd. *****/
 	$i_base->tas = 11;
 	
-	// Deze code kan na 1 mei 2023 worden verwijderd.
-	$tab = TABLE_PREFIX . "Eigen_lijst";
-	$col = "Default_value_params";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` VARCHAR(100) NULL AFTER `MySQL`;", $tab, $col);
-		$i_base->execsql($query, 2);	
-	}
-	
-	$tab = TABLE_PREFIX . "Eigen_lijst";
-	$col = "Aantal_params";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` TINYINT NOT NULL DEFAULT '0' AFTER `MySQL`;", $tab, $col);
-		$i_base->execsql($query, 2);	
-	}
-	
-	$tab = TABLE_PREFIX . "Mailing_rcpt";
-	$col = "Rcpt_Type";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` CHAR(1) NOT NULL DEFAULT 'T' AFTER `to_address`;", $tab, $col);
-		$i_base->execsql($query, 2);	
-	}
-	
-	// Deze code kan na 1 juni 2023 worden verwijderd.
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "GroepOntvangers";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '0' AFTER `NietVersturenVoor`;", $tab, $col);
-		$i_base->execsql($query, 2);	
-	}
-	
-	$tab = TABLE_PREFIX . "Foto";
-	$col = "FotoGewijzigd";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `Type`;", $tab, $col);
-		$i_base->execsql($query, 2);	
-	}
-
-	$tab = TABLE_PREFIX . "Eigen_lijst";
-	$col = "NaamEersteKolom";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` VARCHAR(25) NULL AFTER `KolomLidID`;", $tab, $col);
-		$i_base->execsql($query, 2);	
-	}
-	
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "Opmerking";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` VARCHAR(75) NULL AFTER `message`;", $tab, $col);
-		$i_base->execsql($query, 2);	
-	}
-	
-	// Deze code kan na 1 juli 2023 worden verwijderd.
-	$tab = TABLE_PREFIX . "Mailing_rcpt";
-	$col = "Xtra_Char";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` CHAR(5) NULL DEFAULT NULL after `Rcpt_Type`;", $tab, $col);
-		$i_base->execsql($query, 2);	
-	}
-	
-	$tab = TABLE_PREFIX . "Mailing_rcpt";
-	$col = "Xtra_Num";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT(11) NOT NULL DEFAULT 0 after `Xtra_Char`;", $tab, $col);
-		$i_base->execsql($query, 2);	
-	}
-
-	$tab = TABLE_PREFIX . "Mailing_hist";
-	$col = "NietVersturenVoor";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` DATETIME NULL DEFAULT NULL after `send_on`;", $tab, $col);
-		$i_base->execsql($query, 2);	
-	}
-	
-	// Deze code kan na 1 september 2023 worden verwijderd.
-	$tab = TABLE_PREFIX . "Eigen_lijst";
-	$col = "Tabpage";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` VARCHAR(75) NULL AFTER `AantalRecords`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Evenement_Type";
-	$col = "Achtergrondkleur";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` VARCHAR(12) NULL AFTER `Soort`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Evenement_Type";
-	$col = "Tekstkleur";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` VARCHAR(12) NULL AFTER `Soort`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Evenement_Type";
-	$col = "Vet";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` TINYINT NOT NULL DEFAULT '0' AFTER `Tekstkleur`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Evenement_Type";
-	$col = "Cursief";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` TINYINT NOT NULL DEFAULT '0' AFTER `Vet`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
 	// Deze code kan na 1 oktober 2023 worden verwijderd.
 	$tab = TABLE_PREFIX . "Eigen_lijst";
 	$col = "LaatsteControle";
@@ -10438,6 +10333,13 @@ function db_onderhoud($type=9) {
 	$col = "GBR";
 	if ($i_base->bestaat_kolom($col, $tab) == false) {
 		$query = sprintf("ALTER TABLE `%s` ADD `%s` VARCHAR(4) NULL AFTER `Contributie`;", $tab, $col);
+		$i_base->execsql($query, 2);
+	}
+	
+	$tab = TABLE_PREFIX . "Rekreg";
+	$col = "ActiviteitID";
+	if ($i_base->bestaat_kolom($col, $tab) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NULL AFTER `LidondID`;", $tab, $col);
 		$i_base->execsql($query, 2);
 	}
 	
