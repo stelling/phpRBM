@@ -802,8 +802,11 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 						} elseif ($kol_class == "viewmail") {
 							$kol_link .= "<i class='bi bi-file-text' alt='Bekijk e-mail' title='Bekijk e-mail'></i></a>";
 							
+						} elseif (isset($kols[$kn]['class']) and $kols[$kn]['class'] == "verwerk") {
+							$kol_link .= "<i class='bi bi-check2-square' alt='Verwerken' title='Markeren als verwerkt'></i></a>";
+							
 						} elseif (isset($kols[$kn]['class']) and $kols[$kn]['class'] == "trash") {
-							$kol_link .= "<i class='bi bi-trash' als='Verwijderen'></i></a>";
+							$kol_link .= "<i class='bi bi-trash' alt='Verwijderen' title='Verwijderen'></i></a>";
 							
 						} elseif ($kol_class == "unlock") {
 							$kol_link .= "<i class='bi bi-unlock' alt='Account vrijgeven'></i></a>";
@@ -1287,12 +1290,12 @@ function fnStandaardKols($p_ent, $p_sort=1, $rows=null) {
 			$kols[1]['sortcolumn'] = "Omschrijving";
 		}
 		
-		if ($rows != null and count($rows) > 0 and strlen(max(array_column($rows, "betreftLid"))) > 0) {
+		if ($rows != null and count($rows) > 0 and isset($rows[0]->betreftLid) and strlen(max(array_column($rows, "betreftLid"))) > 0) {
 			$kols[2] = ['headertext' => "Betreft lid", 'columnname' => "betreftLid", 'type' => "lidnaam"];
 		}
 		
-		if ($rows != null and count($rows) > 0 and strlen(max(array_column($rows, "betreftOnderdeel"))) > 0) {
-			$kols[3] = ['headertext' => "Betreft onderdeel", 'columnname' => "betreftOnderdeel", 'type' => "onderdeelnaam"];
+		if ($rows != null and count($rows) > 0 and isset($rows[0]->betreftOnderdeel) and strlen(max(array_column($rows, "betreftOnderdeel"))) > 0) {
+			$kols[3] = ['headertext' => "Onderdeel", 'columnname' => "betreftOnderdeel", 'type' => "onderdeelnaam"];
 		}
 		
 		if ($_SESSION['webmaster'] == 1) {
@@ -1306,7 +1309,7 @@ function fnStandaardKols($p_ent, $p_sort=1, $rows=null) {
 			}
 			$kols[5]['type'] = "lidnaam";
 		}
-		if ($rows != null and count($rows) > 0 and strlen(max(array_column($rows, "Getoond"))) > 0) {
+		if ($rows != null and count($rows) > 0 and isset($rows[0]->Getoond) and strlen(max(array_column($rows, "Getoond"))) > 0) {
 			$kols[6] = ['headertext' => "Getoond?", 'columnname' => "Getoond", 'type' => "text"];
 		}
 		if ($_SESSION['webmaster'] == 1) {
