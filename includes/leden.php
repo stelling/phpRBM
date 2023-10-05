@@ -474,6 +474,8 @@ function fnNieuwLid() {
 	
 	if (isset($_GET['op']) and $_GET['op'] == "delete" and $_GET['RecordID'] > 0 and toegang("deleteinschrijving", 1, 1)) {
 		$i_ins->delete($_GET['RecordID']);
+	} elseif (isset($_GET['op']) and $_GET['op'] == "verwerk" and $_GET['RecordID'] > 0) {
+		$i_ins->update($_GET['RecordID'], "Verwerkt", date("Y-m-d H:i:s"));
 	}
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
@@ -511,11 +513,13 @@ function fnNieuwLid() {
 				(new cls_Lidmaatschap())->add($lidid, $_POST['lidvanaf']);
 			} elseif($lidid > 0 and $eersteles > "1970-01-01") {
 				(new cls_Lidmaatschap())->add($lidid, $eersteles);
+			} elseif ($lidid > 0 and isset($_POST['inschrijving']) and $_POST['inschrijving'] > 0) {
+				(new cls_Lidmaatschap())->add($lidid, date("Y-m-d"));
 			}
 			
 			if (isset($nieuwlo) and count($nieuwlo) > 0) {
 				foreach ($nieuwlo as $lo => $ondid) {
-					$i_lo->add($ondid, $lidid, "opgegeven via inschrijfformulier");
+					$i_lo->add($ondid, $lidid, "opgegeven via inschrijfformulier", 0);
 				}
 			}
 		}
@@ -545,7 +549,7 @@ function fnNieuwLid() {
 			
 		echo("</form>\n");
 		
-		$insrows = $i_ins->lijst(0);
+		$insrows = $i_ins->lijst(1);
 		if (count($insrows) > 0) {
 			
 			$kols[0]['headertext'] = "#";
@@ -561,28 +565,47 @@ function fnNieuwLid() {
 			$kols[3]['headertext'] = "Afdeling";
 			$kols[3]['columnname'] = "Afdeling";
 			
-			$kols[4]['headertext'] = "Eerste les";
-			$kols[4]['columnname'] = "EersteLes";
-			$kols[4]['type'] = "date";
+			$kols[4] = array('headertext' => "Eerste les", 'columnname' => "EersteLes", 'type' => "date");
+			$kols[5] = array('headertext' => "Opmerking", 'columnname' => "Opmerking");
+			$kols[6] = array('headertext' => "Verwerkt", 'columnname' => "Verwerkt", 'type' => "date");
+			$kols[7] = array('headertext' => "&nbsp;", 'columnname' => "LnkPDF", 'link' => sprintf("%s/pdf.php?insid=%%d", BASISURL), 'class' => "pdf");
 			
-			$kols[5]['headertext'] = "Verwerkt";
-			$kols[5]['columnname'] = "Verwerkt";
-			$kols[5]['type'] = "date";
-			
-			$kols[6]['headertext'] = "&nbsp;";
-			$kols[6]['columnname'] = "LnkPDF";
-			$kols[6]['link'] = sprintf("%s/pdf.php?insid=%%d", BASISURL);
-			$kols[6]['class'] = "pdf";
+			$kols[8] = array('headertext' => "&nbsp;", 'columnname' => "RecordID", 'link' => sprintf("%s?tp=%s&op=verwerk&RecordID=%%d", $_SERVER['PHP_SELF'], $_GET['tp']), 'class' => "verwerk", 'title' => 'Markeer als verwerkt');
 			
 			if (toegang("deleteinschrijving", 0, 0)) {
-				$kols[7]['headertext'] = "&nbsp;";
-				$kols[7]['columnname'] = "RecordID";
-				$kols[7]['link'] = sprintf("%s?tp=%s&op=delete&RecordID=%%d", $_SERVER['PHP_SELF'], $_GET['tp']);
-				$kols[7]['class'] = "trash";
+				$kols[9] = array('headertext' => "&nbsp;", 'columnname' => "RecordID", 'link' => sprintf("%s?tp=%s&op=delete&RecordID=%%d", $_SERVER['PHP_SELF'], $_GET['tp']), 'class' => "trash");
 			}
 			
 			echo("<div class='clear'></div>\n");
 			echo(fnDisplayTable($insrows, $kols, "Inschrijvingen", 0, "", "inschrijvingen"));
+		}
+		
+		$insrows = $i_ins->lijst(2, 0, 1, 3);
+		if (count($insrows) > 0) {
+			
+			$kols = null;
+			
+			$kols[0]['headertext'] = "#";
+			$kols[0]['columnname'] = "RecordID";
+			
+			$kols[1]['headertext'] = "Ingevoerd";
+			$kols[1]['columnname'] = "Ingevoerd";
+			$kols[1]['type'] = "date";
+			
+			$kols[2]['headertext'] = "Naam op formulier";
+			$kols[2]['columnname'] = "Naam";
+						
+			$kols[3] = array('headertext' => "Verwerkt", 'columnname' => "Verwerkt", 'type' => "date");
+			$kols[4] = array('headertext' => "&nbsp;", 'columnname' => "LnkPDF", 'link' => sprintf("%s/pdf.php?insid=%%d", BASISURL), 'class' => "pdf");
+			
+			$kols[5] = array('headertext' => "Gekoppeld lid", 'columnname' => "GekoppeldLid");
+			
+			if (toegang("deleteinschrijving", 0, 0)) {
+				$kols[6] = array('headertext' => "&nbsp;", 'columnname' => "RecordID", 'link' => sprintf("%s?tp=%s&op=delete&RecordID=%%d", $_SERVER['PHP_SELF'], $_GET['tp']), 'class' => "trash");
+			}
+			
+			echo("<div class='clear'></div>\n");
+			echo(fnDisplayTable($insrows, $kols, "Verwerkte inschrijvingen", 0, "", "inschrijvingen"));
 		}
 		
 	}
@@ -1301,7 +1324,7 @@ function fnEigenGegevens($lidid=0) {
 		$tn = "Logboek";
 		$rows = (new cls_Logboek())->overzichtlid($lidid);
 		if ($lidid > 0 and toegang($ct . $tn, 0, 0) and count($rows) > 0) {
-			$kols = fnStandaardKols("logboek", 0);
+			$kols = fnStandaardKols("logboek", 0, $rows);
 			$tabblad[$tn] = fnDisplayTable($rows, $kols, $i_ond->naam);
 		}
 		
@@ -1478,7 +1501,7 @@ function algemeenlidmuteren($lidid) {
 	$wijzvelden[] = array('label' => "Huisnummer", 'naam' => "Huisnr", 'lengte' => 4);
 	$wijzvelden[] = array('label' => "Letter", 'naam' => "Huisletter", 'lengte' => 2);
 	$wijzvelden[] = array('label' => "Toevoeging", 'naam' => "Toevoeging", 'lengte' => 5);
-	$wijzvelden[] = array('label' => "Adres", 'naam' => "Adres", 'lengte' => 30, 'uitleg' => $u, 'readonly' => 0);
+	$wijzvelden[] = array('label' => "Adres", 'naam' => "Adres", 'lengte' => 35, 'uitleg' => $u, 'readonly' => 0);
 	$wijzvelden[] = array('label' => "Woonplaats", 'naam' => "Woonplaats", 'lengte' => 22, 'readonly' => 0);
 	$wijzvelden[] = array('label' => "Vast telefoonnummer", 'naam' => "Telefoon", 'lengte' => 21, 'uitleg' => "");
 	$wijzvelden[] = array('label' => "Mobiel", 'naam' => "Mobiel", 'lengte' => 21, 'uitleg' => "");
@@ -1823,11 +1846,7 @@ function toestemmingenmuteren($lidid) {
 	}
 	
 	$f = "`Type`='T'";
-	if ((new cls_Lidmaatschap())->soortlid($lidid) === "Lid") {
-		$islid = true;
-	} else {
-		$islid = false;
-	}
+	$sl = (new cls_Lidmaatschap())->soortlid($lidid);
 	
 	printf("<h3>Toestemmingen %s muteren</h3>\n", (new cls_Lid())->Naam($lidid));
 	$rows = $i_ond->lijst(0, $f, "", 0, "O.Kode");
@@ -1836,7 +1855,7 @@ function toestemmingenmuteren($lidid) {
 		printf("<form method='post' id='toestemmingenmuteren' action='%s'>\n", $actionurl);
 		foreach ($rows as $row) {
 			$d = "";
-			if ($islid == false) {
+			if ($sl !== "Lid" and $sl !== "Toekomstig lid") {
 				$d = " disabled";
 			}
 			printf("<input class='form-check-input' type='checkbox' id='T_%1\$s' name='T_%1\$s' value=1 %2\$s%3\$s>", $row->Kode, checked($i_lo->islid($lidid, $row->RecordID)), $d);
@@ -2677,7 +2696,11 @@ function fnBasisgegevens($p_type) {
 		$kols[3]['headertext'] = "Contributie";
 		$kols[3]['type'] = "bedrag";
 		
-		$kols[4] = ['headertext' => "Max aantal", 'columnname' => "BeperkingAantal", 'type' => "integer", 'title' => "Hoeveel mag er per seizoen worden gezwommen. 0=alle keren."];
+		$kols[4]['headertext'] = "GBR";
+		$kols[4]['columnname'] = "GBR";
+		$kols[4]['type'] = "text";
+		
+		$kols[5] = ['headertext' => "Max aantal", 'columnname' => "BeperkingAantal", 'type' => "integer", 'title' => "Hoeveel mag er per seizoen worden gezwommen. 0=alle keren."];
 				
 		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']); 
 		
