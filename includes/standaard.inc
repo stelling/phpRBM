@@ -776,12 +776,14 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 						$kol_link = "<a href='" . $kols[$kn]['link'] . "'";
 						if (isset($kols[$kn]['title'])) {
 							$kol_link .= sprintf(" title='%s'", $kols[$kn]['title']);
+						} elseif ($kol_class == "trash") {
+							$kol_link .= " title='Verwijderen'";
 						}
 						$kol_link .= ">";
-						if (isset($kols[$kn]['class']) and $kols[$kn]['class'] === "details") {
+						if ($kol_class === "details") {
 							$kol_link .= "<i class='bi bi-file-text'></i></a>";
 							
-						} elseif (isset($kols[$kn]['class']) and $kols[$kn]['class'] === "detailregels") {
+						} elseif ($kol_class === "detailregels") {
 							$kol_link .= "<i class='bi bi-chevron-double-down'></i></a>";
 							
 						} elseif ($kol_class === "detailslid") {
@@ -790,10 +792,10 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 						} elseif ($kol_class === "pdf") {
 							$kol_link .= "<i class='bi bi-file-earmark-pdf' alt='PDF' title='Bekijk PDF'></i></a>";
 							
-						} elseif (isset($kols[$kn]['class']) and $kols[$kn]['class'] == "leden") {
+						} elseif ($kol_class == "leden") {
 							$kol_link .= "<i class='bi bi-people' alt='Leden' title='Leden'></i></a>";
 							
-						} elseif (isset($kols[$kn]['class']) and $kols[$kn]['class'] == "muteren") {
+						} elseif ($kol_class == "muteren") {
 							$kol_link .= "<i class='bi bi-pencil-square' alt='Muteren' title='Muteren'></i></a>";
 							
 						} elseif ($kol_class == "sendmail") {
@@ -802,11 +804,11 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 						} elseif ($kol_class == "viewmail") {
 							$kol_link .= "<i class='bi bi-file-text' alt='Bekijk e-mail' title='Bekijk e-mail'></i></a>";
 							
-						} elseif (isset($kols[$kn]['class']) and $kols[$kn]['class'] == "verwerk") {
-							$kol_link .= "<i class='bi bi-check2-square' alt='Verwerken' title='Markeren als verwerkt'></i></a>";
+						} elseif ($kol_class == "verwerk") {
+							$kol_link .= "<i class='bi bi-check2-square' alt='Verwerken'></i></a>";
 							
-						} elseif (isset($kols[$kn]['class']) and $kols[$kn]['class'] == "trash") {
-							$kol_link .= "<i class='bi bi-trash' alt='Verwijderen' title='Verwijderen'></i></a>";
+						} elseif ($kol_class == "trash") {
+							$kol_link .= "<i class='bi bi-trash' alt='Verwijderen'></i></a>";
 							
 						} elseif ($kol_class == "unlock") {
 							$kol_link .= "<i class='bi bi-unlock' alt='Account vrijgeven'></i></a>";
@@ -1317,10 +1319,12 @@ function fnStandaardKols($p_ent, $p_sort=1, $rows=null) {
 			if ($p_sort == 1) {
 				$kols[7]['sortcolumn'] = "scriptFunctie";
 			}
+			/*
 			$kols[8] = ['headertext' => "IP adres", 'columnname' => "IP_adres"];
 			if ($p_sort == 1) {
 				$kols[8]['sortcolumn'] = "A.IP_adres";
 			}
+			*/
 		}
 	}
 	
