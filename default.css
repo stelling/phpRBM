@@ -1029,6 +1029,10 @@ table#afdelingskalendermuteren {
 	min-width: 350px;
 }
 
+table#presentiemuteren td.aanwezig {
+	text-align: center;
+}
+
 #presentieperlid th.teken {
 	font-weight: bolder;
 	cursor: pointer;
@@ -1788,7 +1792,7 @@ div.clear {
 	max-height: 24px;
 }
 
-th.number, td.number, input.number, th.nummer, td.nummer, input.nummer, th.bedrag, td.bedrag, input.bedrag, th.recordid, td.recordid {
+th.number, td.number, input.number, th.nummer, td.nummer, input.nummer, th.bedrag, td.bedrag, input.bedrag, th.recordid, td.recordid, th.lidnr, td.lidnr {
 	text-align: right;
 }
 
@@ -2314,7 +2318,16 @@ table#rekeningregels {
 	margin-left: 6px;
 }
 
-#db_folderbackup, #urlvereniging {
+#instellingenmuteren input[type=number] {
+	width: 45px;
+}
+
+#instellingenmuteren select {
+	margin-left: 6px;
+	margin-top: 2px;	
+}
+
+input#db_folderbackup, input#naamwebsite, input#naamvereniging, input#urlvereniging {
 	width: 350px;
 }
 
@@ -2701,7 +2714,7 @@ li.presstat_v, td.presstat_v {
 		margin-right: 0;
 	}
 	
-	table#presentiemuteren th.opmerking, table#presentiemuteren td.opmerking, table#presentiemuteren th.aanwezigperc, table#presentiemuteren td.aanwezigperc {
+	table#presentiemuteren th.opmerking, table#presentiemuteren td.opmerking, table#presentiemuteren th.aanwezig, table#presentiemuteren td.aanwezig {
 		display: none;
 	}
 }
