@@ -345,12 +345,17 @@ class cls_db_base {
 			$this->refcolumn = $p_kolom;
 			$this->nullablecolumn = false;
 			
+		} elseif ($p_kolom == "Status") {
+			$this->typecolumn = "text";
+			$this->refcolumn = $p_kolom;
+			$this->nullablecolumn = true;
+			
 		} elseif ($p_kolom == "LIDDATUM" or $p_kolom == "Opgezegd" or $p_kolom == "Vanaf" or $p_kolom == "DatumBehaald") {
 			$this->typecolumn = "date";
 			$this->refcolumn = $p_kolom;
 			$this->nullablecolumn = true;
 			
-		} elseif ($p_kolom == "Ingevoerd") {
+		} elseif ($p_kolom == "Ingevoerd" or $p_kolom == "Gewijzigd" or $p_kolom == "DatumTijd") {
 			$this->typecolumn = "datetime";
 			$this->refcolumn = $p_kolom;
 			$this->nullablecolumn = true;
@@ -2898,7 +2903,7 @@ class cls_Aanwezigheid extends cls_db_base {
 		if ($this->lidvanaf > $p_vanaf) {
 			$p_vanaf = $this->lidvanaf;
 		}
-		if ($this->lidtm < $p_tm) {
+		if (strlen($this->lidtm) == 10 and $this->lidtm < $p_tm) {
 			$p_tm = $this->lidtm;
 		}
 		
@@ -2919,11 +2924,12 @@ class cls_Aanwezigheid extends cls_db_base {
 	}
 	
 	public function beschikbarelessen($p_loid, $p_vanaf="1970-01-01", $p_tm="") {
+		$this->vulvars($p_loid);
 		
 		if (strlen($p_tm) < 10) {
 			$p_tm = date("Y-m-d");
 		}
-				
+
 		if ($p_vanaf < $this->lidvanaf) {
 			$p_vanaf = $this->lidvanaf;
 		}
@@ -2933,7 +2939,9 @@ class cls_Aanwezigheid extends cls_db_base {
 		}
 		
 		$f = sprintf("AK.Activiteit=1 AND AK.OnderdeelID=%d AND AK.Datum >= '%s' AND AK.Datum <= '%s'", $this->ondid, $p_vanaf, $p_tm);
+		
 		$rv = (new cls_Afdelingskalender())->aantal($f);
+		
 		$query = sprintf("SELECT COUNT(*) FROM %s INNER JOIN %sAfdelingskalender AS AK ON AW.AfdelingskalenderID=AK.RecordID WHERE AW.Status='V' AND AW.LidondID=%d", $this->basefrom, TABLE_PREFIX, $p_loid);
 		$query .= sprintf(" AND AK.Datum >= '%s' AND AK.Datum <= '%s';", $p_vanaf, $p_tm);
 		$rv = $rv - $this->scalar($query);
@@ -3910,6 +3918,7 @@ class cls_Groep extends cls_db_base {
 	public $dpvoorganger = 0;
 	public $tijden = "";
 	public $instructeurs = "";
+	public $aantalingroep = 0;
 	
 	function __construct($p_afdid=-1, $p_grid=-1) {
 		$this->table = TABLE_PREFIX . "Groep";
@@ -3948,9 +3957,13 @@ class cls_Groep extends cls_db_base {
 					$this->tijden .= " - " . trim($row->Eindtijd) . " uur";
 				}
 				
+				$alqry = sprintf("SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.GroepID=%d AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE();", TABLE_PREFIX, $this->grid);
+				$this->aantalingroep = $this->scalar($alqry);
+				
 			} else {
 				$this->grid = 0;
 				$this->diplomaid = 0;
+				$this->aantalingroep = 0;
 			}
 		} else {
 			$this->groms = "Niet ingedeeld";
@@ -4002,7 +4015,8 @@ class cls_Groep extends cls_db_base {
 							WHEN LENGTH(Instructeurs) > 1 THEN CONCAT(GR.Kode, ' - ', GR.Omschrijving, ' | ', GR.Instructeurs)
 							ELSE CONCAT(GR.Kode, ' - ', GR.Omschrijving)
 						  END AS GroepOmsIns,
-						  (SELECT COUNT(*) FROM %1\$sLidond AS LO WHERE LO.GroepID=GR.RecordID AND LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE() AND LO.OnderdeelID=%3\$d) AS aantalInGroep
+						  CONCAT(GR.Starttijd, IF(LENGTH(GR.Eindtijd) > 3, CONCAT(' - ', GR.Eindtijd, ' uur'), '')) as Tijden,
+						  (SELECT COUNT(*) FROM %1\$sLidond AS LO WHERE LO.GroepID=GR.RecordID AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE() AND LO.OnderdeelID=%3\$d) AS aantalInGroep
 						  FROM %2\$s
 						  WHERE (GR.OnderdeelID=%3\$d OR GR.RecordID=0)
 						  ORDER BY GR.Starttijd, GR.Volgnummer, GR.Omschrijving;", TABLE_PREFIX, $this->basefrom, $this->afdid);
@@ -9574,7 +9588,7 @@ class cls_Inschrijving extends cls_db_base {
 			$query = sprintf("SELECT Ins.* FROM %s WHERE Ins.RecordID=%d;", $this->basefrom, $this->insid);
 			$result = $this->execsql($query);
 			$row = $result->fetch();
-			if (isset($row)) {
+			if (isset($row->Naam)) {
 				$this->naam = trim($row->Naam);
 				$this->naamlogging = trim($row->Naam);
 			} else {
@@ -9605,15 +9619,18 @@ class cls_Inschrijving extends cls_db_base {
 		
 		if ($p_order == 2) {
 			// select
-			$ord = "Ins.Naam";
+			$ord = "IFNULL(Ins.EersteLes, '9999-12-31'), Ins.Naam";
+		} elseif ($p_order == 3) {
+			// Verwerkte inschrijvingen
+			$ord = "Ins.Verwerkt, Ins.Naam";
 		} else {
 			// lijst / overzicht
-			$ord = "Ins.Ingevoerd, Ins.Naam";
+			$ord = "IFNULL(Ins.EersteLes, '9999-12-31'), Ins.Ingevoerd, Ins.Naam";
 		}
 
 		$query = sprintf("SELECT Ins.*, O.Naam AS Afdeling, IF(LENGTH(Ins.PDF) > 10, Ins.RecordID, 0) AS LnkPDF, CONCAT(%1\$s, ' (', L.RecordID, ')') AS GekoppeldLid
 						  FROM (%2\$s LEFT OUTER JOIN %3\$sLid AS L ON Ins.LidID=L.RecordID) LEFT OUTER JOIN %3\$sOnderdl AS O ON Ins.OnderdeelID=O.RecordID%4\$s
-						  ORDER BY IF(Ins.Verwerkt IS NULL, 0, 1), IFNULL(Ins.EersteLes, '9999-12-31'), %5\$s;", $this->selectnaam, $this->basefrom, TABLE_PREFIX, $w, $ord);
+						  ORDER BY IF(Ins.Verwerkt IS NULL, 0, 1), %5\$s;", $this->selectnaam, $this->basefrom, TABLE_PREFIX, $w, $ord);
 		$res = $this->execsql($query);
 		if ($p_fetched == 1) {
 			return $res->fetchAll();
