@@ -543,7 +543,7 @@ function fnPresentieMuteren($p_onderdeelid){
 		$gh = "";
 		$grid = -1;
 		echo("<thead>\n");
-		printf("<tr><th>Naam</th><th>Groep/Functie</th><th class='aanwezigperc' title='Aanwezigheid vanaf %s'>Aanwezig</th><th>Status presentie</th><th class='opmerking'>Opmerking</th></tr>\n", $vanafaanwezigheid->format("d/m/Y"));
+		printf("<tr><th>Naam</th><th>Groep/Functie</th><th class='aanwezig' title='Aanwezigheid vanaf %s toten met $s'>Aanwezig</th><th>Status presentie</th><th class='opmerking'>Opmerking</th></tr>\n", $vanafaanwezigheid->format("d/m/Y"), date("d/m/Y", strtotime($i_ak->akdatum)));
 		echo("</thead>\n");
 		
 		foreach ($i_lo->lijst($p_onderdeelid, "", "F.Sorteringsvolgorde, F.Omschrijv, GR.Volgnummer, GR.Kode", $i_ak->akdatum) as $row) {
@@ -565,12 +565,12 @@ function fnPresentieMuteren($p_onderdeelid){
 			
 			$al = $i_aanw->beschikbarelessen($row->RecordID, $vanafaanwezigheid->format("Y-m-d"), $i_ak->akdatum);
 			$awrow = $i_aanw->perlidperperiode($row->RecordID, $vanafaanwezigheid->format("Y-m-d"), $i_ak->akdatum);
-			$awp = (($al-($awrow->aantAfwezig+$awrow->aantVervallen))/($al-$awrow->aantVervallen))*100;
+			$awp = (($al-$awrow->aantAfwezig)/$al)*100;
 			$xc = "";
 			if ($row->Aanwezigheidsnorm > 0 and $row->Aanwezigheidsnorm > $awp) {
 				$xc = " attentie";
 			}
-			printf("<td class='aanwezigperc number%s'>%d%%</td>", $xc, $awp);
+			printf("<td class='aanwezig %s'>%d / %d</td>", $xc, $al, ($al-$awrow->aantAfwezig));
 			
 			$options = "<option value=''>Geen registratie</option>\n";
 			foreach (ARRPRESENTIESTATUS as $k => $o) {
@@ -682,19 +682,7 @@ function fnPresentieoverzicht($p_ondid) {
 		if ($lorow->Invalfunctie == 1 or $lorow->BeperkingAantal > 0) {
 			$aa = $aanwtotrow->aantAanwezig + $aanwtotrow->aantAangemeld + $aanwtotrow->aantLaat;
 		} else {
-			if ($lorow->Vanaf > $_POST['filterDatumVanaf']) {
-				$f = sprintf("AK.Datum >= '%s'", $lorow->Vanaf);
-			} else {
-				$f = sprintf("AK.Datum >= '%s'", $_POST['filterDatumVanaf']);
-			}
-			if ($lorow->Opgezegd > "1900-01-01" and $lorow->Opgezegd < date("Y-m-d")) {
-				$f .= sprintf(" AND AK.Datum <= '%s'", $lorow->Opgezegd);
-			} else {
-				$f .= sprintf(" AND AK.Datum <= '%s'", date("Y-m-d"));
-			}
-			$f .= sprintf(" AND AK.OnderdeelID=%s AND AK.Activiteit=1", $p_ondid);
-			$aa = $i_ak->aantal($f);
-			$aa -= $aanwtotrow->aantVervallen;
+			$aa = $i_aw->beschikbarelessen($lorow->RecordID, $_POST['filterDatumVanaf']);
 		}
 		if ($aa > 0 and (($aanwtotrow->aantAanwezig + $aanwtotrow->aantAangemeld + $aanwtotrow->aantAfwezig) > 0 or $_POST['100aanwezigTonen'] == 1)) {
 			$awperc = (($aa-$aanwtotrow->aantAfwezig)/$aa)*100;
