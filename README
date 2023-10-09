@@ -1,4 +1,4 @@
-phpRBM is een website die gekoppeld is aan de MS-Access database ST-RBM. Bij phpRBM worden de gegevens in de Access-database bijgehouden. Vervolgens worden deze gegevens naar de MySQL-database achter de website ge-upload.
+phpRBM is een website waar de meeste administratieve zaken van een vereniging op kan worden bijgehouden. Een koppeling naar de MS-Access database ST-RBM is mogenlijk. phpRBM is voornamelijk op zwemverenigingen en reddingsbrigades gericht.
 
 Voor meer uitleg bezoek: https://software.telling.nl/phpRBM/uitleg.php
 
