@@ -746,7 +746,9 @@ class cls_db_base {
 							$p_waarde = "\"" . $p_waarde . "\"";
 							
 						} elseif ($this->is_kolom_tekst($p_kolom, $kt)) {
+							$p_waarde = str_replace("\n", " ", $p_waarde);
 							$p_waarde = "\"" . str_replace("\"", "'", $p_waarde) . "\"";
+							
 						} elseif ($kt == "decimal" and (strlen($p_waarde) > 1)) {
 							$p_waarde = str_replace(",", ".", $p_waarde);
 						
@@ -3235,7 +3237,7 @@ class cls_Lidond extends cls_db_base {
 			if (strlen($p_ord) > 0) {
 				$p_ord = ", " . $p_ord;
 			}
-			$p_ord = "IF(IFNULL(LO.Opgezegd, '9999-12-31') >+ CURDATE(), 0, 1)" . $p_ord;
+			$p_ord = "IF(IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE(), 0, 1)" . $p_ord;
 		}
 		if (strlen($p_extrafilter) > 0) {
 			$w .= " AND " . $p_extrafilter;
@@ -5699,6 +5701,10 @@ class cls_Logboek extends cls_db_base {
 			$f = sprintf("DP.Nummer=%d", $p_referid);
 			$refondid = (new cls_Diploma())->max("Afdelingsspecifiek", $f);
 			
+		} elseif ($p_reftable == "Mailing" and $p_refcolumn == "ZichtbaarVoor") {
+			$f = sprintf("M.RecordID=%d", $p_referid);
+			$refondid = (new cls_Mailing())->max("ZichtbaarVoor", $f);
+			
 		} elseif ($p_reftable == "Afdelingskalender" and $p_referid > 0) {
 			$f = sprintf("AK.RecordID=%d", $p_referid);
 			$refondid = (new cls_Afdelingskalender())->max("OnderdeelID", $f);
@@ -7263,7 +7269,8 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 		}
 		$this->vulvars($p_evid, $p_lidid);
 		
-		$query = sprintf("SELECT ED.*, (%s) AS StatusDln, E.Omschrijving AS OmsEvenement, E.Datum AS DatumEvenement, E.Email AS EmailEvenement FROM %s AS ED INNER JOIN %sEvenement AS E ON ED.EvenementID=E.RecordID WHERE ED.RecordID=%d;", $this->casestatus, $this->table, TABLE_PREFIX, $this->edid);
+		$query = sprintf("SELECT ED.*, (%s) AS StatusDln, E.Omschrijving AS OmsEvenement, E.Datum AS DatumEvenement, E.Locatie, E.Email AS EmailEvenement
+						  FROM %s AS ED INNER JOIN %sEvenement AS E ON ED.EvenementID=E.RecordID WHERE ED.RecordID=%d;", $this->casestatus, $this->table, TABLE_PREFIX, $this->edid);
 		$result = $this->execsql($query);
 		return $result->fetch();
 	}
