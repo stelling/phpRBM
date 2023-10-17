@@ -499,6 +499,7 @@ class Mailing {
 			$this->vertraging_tussen_verzenden = 5;
 			$this->MergeField[]=array('Naam' => "OmsEvenement", 'SQL' => "");
 			$this->MergeField[]=array('Naam' => "DatumEvenement", 'SQL' => "");
+			$this->MergeField[]=array('Naam' => "LocatieEvenement", 'SQL' => "");
 			$this->MergeField[]=array('Naam' => "StatusEvenement", 'SQL' => "");
 			$this->MergeField[]=array('Naam' => "AantalPersonenEvenement", 'SQL' => "");
 			$this->MergeField[]=array('Naam' => "OpmEvenement", 'SQL' => "");
@@ -732,9 +733,9 @@ class Mailing {
 			}
 			echo("</ul>");
 
-			echo("<label>Bijlagen</label>\n<div id='bijlagen'>\n");
+			echo("<label id='lblbijlagen'>Bijlagen</label>\n<div id='bijlagen'>\n");
 			if (strlen($tabbijlagefiles) > 0) {
-				echo("<table>\n");
+				echo("<table class='table table-bordered'>\n");
 				echo($tabbijlagefiles);
 				echo("</table>\n");
 			}
@@ -759,7 +760,7 @@ class Mailing {
 				printf("<label>Verwijderd op</label><p>%s</p>\n", $dtfmt->format(strtotime($this->deleted_on)));
 			}
 
-			echo("<label>Meldingen</label><ul id='meldingen'></ul>\n");
+			echo("<label id='lblmeldingen'>Meldingen</label><ul id='meldingen'></ul>\n");
 			$cls_lid = null;
 		}
 		
@@ -1307,6 +1308,9 @@ class Mailing {
 			
 			$this->merged_message = str_ireplace("[%DATUMEVENEMENT%]", $dtfmt->format(strtotime($row->DatumEvenement)), $this->merged_message);
 			$this->merged_subject = str_ireplace("[%DATUMEVENEMENT%]", $dtfmt->format(strtotime($row->DatumEvenement)), $this->merged_subject);
+			
+			$this->merged_message = str_ireplace("[%LOCATIEEVENEMENT%]", $row->Locatie, $this->merged_message);
+			$this->merged_subject = str_ireplace("[%LOCATIEEVENEMENT%]", $row->Locatie, $this->merged_subject);
 			
 			$this->merged_message = str_ireplace("[%STATUSEVENEMENT%]", ARRDLNSTATUS[$row->Status], $this->merged_message);
 			$this->merged_subject = str_ireplace("[%STATUSEVENEMENT%]", ARRDLNSTATUS[$row->Status], $this->merged_subject);
@@ -2176,11 +2180,11 @@ function fnMailingInstellingen() {
 	$i_mh = new cls_Mailing_hist();
 	printf("<label>Aantal verstuurde mails in de afgelopen uur / 24 uur:</label><p>%d / %d</p>\n", $i_mh->aantalverzonden(2), $i_mh->aantalverzonden(3));
 	$i_mh = null;
-	printf("<label>Waar worden de attachments bewaard?</label><input type='text' name='path_attachments' value='%s'>\n", $_SESSION['settings']['path_attachments']);
-	printf("<label>Welke extensies zijn als attachment toegestaan: (leeg = standaard lijst)</label><input type='text' name='mailing_extensies_toegestaan' value='%s'>\n", $_SESSION['settings']['mailing_extensies_toegestaan']);
-	printf("<label>Wat is de maximale groootte van één attachment?</label><input type='number' name='max_grootte_bijlage' value=%d><p>KB (nul = 2MB)</p>\n", $_SESSION['settings']['max_grootte_bijlage']);
+	printf("<label>Waar worden de bijlagen bewaard?</label><input type='text' class='w90' name='path_attachments' value='%s'>\n", $_SESSION['settings']['path_attachments']);
+	printf("<label>Welke extensies zijn als bijlage toegestaan: (leeg = standaard lijst)</label><input type='text' class='w60' name='mailing_extensies_toegestaan' value='%s'>\n", $_SESSION['settings']['mailing_extensies_toegestaan']);
+	printf("<label>Wat is de maximale groootte van één bijlage?</label><input type='number' name='max_grootte_bijlage' value=%d><p>KB (nul = 2MB)</p>\n", $_SESSION['settings']['max_grootte_bijlage']);
 	
-	printf("<label>Wat is de API-key voor TinyMCE?</label><input type='text' name='mailing_tinymce_apikey' value='%s'>\n", $_SESSION['settings']['mailing_tinymce_apikey']);
+	printf("<label>Wat is de API-key voor TinyMCE?</label><input type='text' class='w90' name='mailing_tinymce_apikey' value='%s'>\n", $_SESSION['settings']['mailing_tinymce_apikey']);
 		
 	echo("<h2>Opschonen</h2>\n");
 	printf("<label>Hoe lang moeten mailings in de prullenbak bewaard blijven?</label><input type='number' name='mailing_bewaartijd' value=%d min=1 max=999><p>(maanden)</p>\n", $_SESSION['settings']['mailing_bewaartijd']);
@@ -2228,11 +2232,14 @@ function fnMailingInstellingen() {
 	$kols[0]['headertext'] = "#";
 	$kols[0]['type'] = "pk";
 	$kols[0]['readonly'] = true;
+	
 	$kols[1]['headertext'] = "Vanaf e-mail";
 	$kols[1]['columnname'] = "Vanaf_email";
 	$kols[1]['type'] = "email";
+	
 	$kols[2]['headertext'] = "Vanaf naam";
 	$kols[2]['columnname'] = "Vanaf_naam";
+	
 	$kols[3]['headertext'] = "Ingevoerd";
 	$kols[3]['columnname'] = "Ingevoerd";
 	$kols[3]['type'] = "date";
@@ -2251,7 +2258,7 @@ function fnMailingInstellingen() {
 	
 	$xr = "<td colspan=6><button type='submit' name='vanaf_adres_toevoegen' title='Vanaf adres toevoegen' value='Vanaf adres toevoegen'><img src='./images/star.png'></button></td>";
 	
-	$rows = (new cls_Mailing_vanaf())->lijst(0); 
+	$rows = $i_mv->lijst(0);
 	echo(fnEditTable($rows, $kols, "editmailingvanaf", "Vanaf adressen"));
 	
 	echo("<div id='opdrachtknoppen'>\n");
@@ -2573,8 +2580,10 @@ function eigennotificatie($p_ondid, $p_aanadres, $p_tas=-1, $p_interval=24, $p_c
 			}
 			if (strlen($p_onderwerp) > 0) {
 				$i_email->onderwerp = $p_onderwerp;
-			} else {
+			} elseif ($ar > 1) {
 				$i_email->onderwerp = sprintf("%s (%d rijen)", $ng, $ar);
+			} else {
+				$i_email->onderwerp = $ng;
 			}
 			$i_email->bericht = "<!DOCTYPE html>
 									<html lang='nl'>
@@ -2584,16 +2593,16 @@ function eigennotificatie($p_ondid, $p_aanadres, $p_tas=-1, $p_interval=24, $p_c
 				$i_email->bericht .= "<link rel='stylesheet' href='" . BASISURL . "/maatwerk/email.css'>\n";
 			}
 			$i_email->bericht .= "</head>
-										 <body>\n";
+									<body>\n";
 										
 			$i_email->bericht .= $res;
 			$i_email->bericht .= "</body>
-										 </html>\n";
+									</html>\n";
 			$i_email->zonderbriefpapier = 1;
 			$i_email->xtrachar = "NOTIF";
 			$i_email->xtranum = $p_ondid;
 			if ($i_email->to_outbox() > 0) {
-				$mess = sprintf("Notificatie %s verzonden", $ng);
+				$mess = sprintf("Notificatie %s in de outbox geplaatst", $ng);
 				$i_lb->add($mess, 4, 0, 0, 0, $p_tas);
 			}
 		}
