@@ -854,7 +854,7 @@ function LedenOnderdeelMuteren($p_ondid) {
 			$nl = "";
 		}
 
-		$res = $i_lo->lijst($i_ond->oid, 8, "", "", "", 0, 0);
+		$res = $i_lo->lijst($i_ond->oid, 8, "IF(IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE(), 0, 1)", "", "", 0, 0);
 		
 		$f = sprintf("OnderdeelID=%d", $i_ond->oid);
 		if ($i_ond->ondtype == "A") {
@@ -2844,10 +2844,10 @@ function presentielijst($p_evenement=0) {
 			printf("<thead>\n<tr><th colspan=2>%s</th></tr></thead>\n", $titellijst);
 		}
 		echo("<tbody>\n");
-		if ($eventid > 0) {
-			$rows = $i_ed->lijst($eventid);
-		} else {
+		if ($ondid > 0) {
 			$rows = $i_lid->ledenlijst(1, $ondid);
+		} else {
+			$rows = $i_ed->lijst($eventid);
 		}
 		foreach ($rows as $row) {
 			if ($aant == 0) {
@@ -2857,11 +2857,7 @@ function presentielijst($p_evenement=0) {
 			}
 			$nm = $row->NaamLid;
 			$stat = "";
-			if ($eventid > 0) {
-				$edrow = $row;
-			} else {
-				$edrow = $i_ed->record(-1, $row->RecordID, $eventid);
-			}
+			$edrow = $i_ed->record(0, $row->RecordID, $eventid);
 			if (isset($edrow->Functie) and strlen($edrow->Functie) > 0) {
 				$nm .= " (" . $edrow->Functie . ")";
 			}
@@ -2879,12 +2875,11 @@ function presentielijst($p_evenement=0) {
 	
 }  # presentielijst
 
-function overzichttoestemmingen($p_ondid=8) {
-		
+function overzichttoestemmingen($p_ondid=0) {		
 	$i_ond = new cls_Onderdeel();
 	$i_lid = new cls_Lid();
 	$i_lo = new cls_Lidond();
-	
+
 	$aant = 0;
 	printf("<table id='overzichttoestemmingen' class='%s'>\n", TABLECLASSES);
 	echo("<thead>\n<tr><th>Naam lid</th>");
