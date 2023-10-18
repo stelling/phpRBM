@@ -4021,9 +4021,33 @@ class cls_Groep extends cls_db_base {
 						  (SELECT COUNT(*) FROM %1\$sLidond AS LO WHERE LO.GroepID=GR.RecordID AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE() AND LO.OnderdeelID=%3\$d) AS aantalInGroep
 						  FROM %2\$s
 						  WHERE (GR.OnderdeelID=%3\$d OR GR.RecordID=0)
-						  ORDER BY GR.Starttijd, GR.Volgnummer, GR.Omschrijving;", TABLE_PREFIX, $this->basefrom, $this->afdid);
+						  ORDER BY GR.Starttijd, GR.Volgnummer, GR.Omschrijving, GR.RecordID;", TABLE_PREFIX, $this->basefrom, $this->afdid);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
+	}
+	
+	public function htmloptions($p_cv=-1, $p_ondid=-1) {
+		$rv = "";
+		
+		if ($p_ondid > 0) {
+			$w = sprintf("(GR.OnderdeelID=%d OR GR.RecordID=0)", $p_ondid);
+		} else {
+			$w = "";
+		}
+		
+		$grrows = $this->basislijst($w, "GR.Kode, GR.RecordID");
+		foreach ($grrows as $grrow) {
+			if (strlen($grrow->Kode) > 0) {
+				$toon = $grrow->Kode;
+			} elseif ($grrow->RecordID > 0) {
+				$toon = $grrow->RecordID;
+			} else {
+				$toon = "Geen";
+			}
+			$rv .= sprintf("<option value=%d %s>%s</option>\n", $grrow->RecordID, checked($p_cv, "option", $grrow->RecordID), $toon);
+		}
+		
+		return $rv;
 	}
 	
 	public function add($p_afdid, $p_kode="") {
@@ -5589,10 +5613,6 @@ class cls_Logboek extends cls_db_base {
 		} else {
 			$w = "TypeActiviteit >= 0";
 		}
-
-		if ($p_type < 0 and $_SERVER["HTTP_HOST"] !== "phprbm.telling.nl") {
-			$w .= " AND TypeActiviteit < 99";
-		}
 		
 		$s = "A.DatumTijd, Omschrijving";
 		$s .= ", IF(A.ReferLidID > 0, A.ReferLidID, '') AS betreftLid";
@@ -5694,7 +5714,7 @@ class cls_Logboek extends cls_db_base {
 			$refondid = (new cls_Lidond())->max("OnderdeelID", $f);
 			
 		} elseif ($p_reftable == "Groep" and $p_referid > 0) {
-			$f = sprintf("GR.Nummer=%d", $p_referid);
+			$f = sprintf("GR.RecordID=%d", $p_referid);
 			$refondid = (new cls_Groep())->max("OnderdeelID", $f);
 			
 		} elseif ($p_reftable == "Diploma") {
