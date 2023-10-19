@@ -4,9 +4,13 @@ $_SESSION['webmaster'] = 0;
 if ($_SESSION['lidid'] == 0 or strlen($_SESSION['username']) == 0) {
 	$_SESSION['lidid'] = 0;
 	$_SESSION['username'] = "";
+	define("WEBMASTER", false);
 } else {
 	if (in_array($_SESSION['lidid'], $lididwebmasters)) {
 		$_SESSION['webmaster'] = 1;
+		define("WEBMASTER", true);
+	} else {
+		define("WEBMASTER", false);
 	}
 }
 
@@ -22,7 +26,6 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 	if ((new cls_Interface())->aantal($f) > 0) {
 		addtp("Downloaden wijzigingen");
 	}
-	addtp("Export data");
 	addtp("Onderhoud");
 	addtp("Logboek");
 } else {
@@ -492,11 +495,6 @@ function toegang($soort, $melding=1, $p_log=1, $p_alleenmenu=0) {
 		if (strlen($currenttab3) > 0) {
 			$soort .= "/" . $currenttab3;
 		}
-	}
-	
-	$_SESSION['webmaster'] = 0;
-	if ($_SESSION['lidid'] > 0 and in_array($_SESSION['lidid'], $lididwebmasters)) {
-		$_SESSION['webmaster'] = 1;
 	}
 	
 	$soort = str_replace("'", "", $soort);
