@@ -364,7 +364,7 @@ input.w5 {
 }
 
 input.w7 {
-	width: 72px;
+	width: 74px;
 }
 
 input.num2 {
@@ -938,6 +938,16 @@ table#afdelingskalendermuteren {
 
 #afdelingskalendermuteren select {
 	width: 300px;
+}
+
+#afdelingskalendermuteren td:nth-child(4) {
+	text-align: center;
+}
+
+#afdelingskalendermuteren input, #afdelingskalendermuteren select {
+	margin-top: 9px;
+	margin-bottom: 8px;
+	float: none;
 }
 
 #groepsindeling {
@@ -1987,6 +1997,11 @@ nav a {
 	background-color: inherit;
 }
 
+label#lblbeschikbarevariabelen, label#lblbijlagen, label#lblmeldingen {
+	height: 42px;
+	margin-bottom: 8px;
+}
+
 #overzichtevenementen ul {
 	list-style: none;
 	padding-left: 0;
@@ -2319,7 +2334,7 @@ table#rekeningregels {
 }
 
 #instellingenmuteren input[type=number] {
-	width: 45px;
+	width: 60px;
 }
 
 #instellingenmuteren select {
@@ -2384,11 +2399,6 @@ input#db_folderbackup, input#naamwebsite, input#naamvereniging, input#urlverenig
 
 #editmailingform li, #editmailingform li {
 	height: 28px;
-}
-
-#afdelingskalendermuteren input, #afdelingskalendermuteren select {
-	margin-top: 9px;
-	margin-bottom: 8px;
 }
 
 #instellingenmuteren p {
@@ -2603,6 +2613,9 @@ li.presstat_v, td.presstat_v {
 	text-align: center;
 }
 
+input#titellijst[type='text'] {
+	width: 400px;
+}
 
 #overzichttoestemmingen td:first-child {
 	text-align: left;
