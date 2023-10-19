@@ -148,7 +148,7 @@ function fnRekeningbeheer() {
 	if (count($rows) > 0) {
 		echo(fnDisplayTable($rows, $kols, "", 0, "", "overzichtrekeningen"));
 	}
-}
+}  # fnRekeningbeheer
 
 function fnRekeningMuteren($p_rkid=-1) {
 	global $currenttab;
@@ -268,7 +268,8 @@ function fnRekeningMuteren($p_rkid=-1) {
 			}
 			echo("</table>\n");
 			$opt = "<option value=-1>Regel(s) toevoegen ...</option><option value=0>Zonder lid</option>\n";
-			$opt .= sprintf("<option value=-1 disabled>-- Gezin --</option>\n%s", $i_lid->htmloptions(0, 5, sprintf("L.Postcode='%s' AND L.Adres='%s'", $i_rk->postcode, $i_rk->adres)));
+			$f = sprintf("L.Postcode='%s' AND L.Adres='%s'", $i_rk->postcode, $i_rk->adres);
+			$opt .= sprintf("<option value=-1 disabled>-- Gezin --</option>\n%s", $i_lid->htmloptions(0, 5, $f));
 			$opt .= "<option value=-1 disabled>-- Alle leden --</option>\n";
 			$opt .= $i_lid->htmloptions(0, 5);
 			printf("<select name='RRnieuw' onChange='this.form.submit();'>\n%s</select>\n", $opt);
@@ -385,10 +386,12 @@ function RekeningenAanmaken() {
 			foreach ($lidrows as $lidrow) {
 				$gezin = sprintf("%s %s %d", $lidrow->Postcode, $lidrow->Adres, $lidrow->RekeningBetaaldDoor);
 				if ($gezin != $vgezin and $agl > 1) {
-					if ($szrow->{'Gezinskorting bedrag'} > 0) {
+					$f = sprintf("RR.Rekening=%d AND RR.KSTNPLTS='%s' AND RR.Bedrag > 0", $reknr, $szrow->{'Verenigingscontributie kostenplaats'});
+					$aantal_gezinskorting = $i_rr->aantal($f, "RR.Lid");
+					if ($szrow->{'Gezinskorting bedrag'} > 0 and $aantal_gezinskorting > 1) {
 						$rrid = $i_rr->add($reknr, 0, $szrow->{'Gezinskorting kostenplaats'});
 						$i_rr->update($rrid, "OMSCHRIJV", $szrow->{'Gezinskorting omschrijving'});
-						$i_rr->update($rrid, "Bedrag", $szrow->{'Gezinskorting bedrag'} * ($agl-1));
+						$i_rr->update($rrid, "Bedrag", $szrow->{'Gezinskorting bedrag'} * ($aantal_gezinskorting-1));
 						$aantregels++;
 					}
 					$i_rk->update($reknr, "DEBNAAM", $debnaam);
@@ -408,11 +411,12 @@ function RekeningenAanmaken() {
 					if ($vnm == $lidrow->Achternaam . ", " . $lidrow->TUSSENV) {
 						$debnaam = $lidrow->Roepnaam . $debnaam;
 					} else {
-						$debnaam = $lidrow->NaaLid . $debnaam;
+						$debnaam = $lidrow->NaamLid . $debnaam;
 					}
 					$agl++;
 				}
 				$aantregels += $i_rr->standaardwaarde($reknr, $lidrow->RecordID);
+				
 				$vgezin = $gezin;
 			}
 			$i_rk->controle(-1, $seizoen);
@@ -452,15 +456,16 @@ function RekeningenAanmaken() {
 		printf("<label>Omschrijving rekening</label><input type='text' id='Rekeningomschrijving' maxlength=35 class='w35' value='%s'>\n", $szrow->Rekeningomschrijving);
 	
 		printf("<label>Datum rekening</label><input type='date' name='Rekeningdatum' value='%s'>\n", date("Y-m-d"));
-		printf("<label id='lblEersteRekeningNummer'>Eerste nummer rekening</label><input type='number' name='eerstenummer' value=%d>\n", $eerstenummer);
+		printf("<label id='lblEersteRekeningNummer'>Eerste rekeningnummer</label><input type='number' name='eerstenummer' value=%d>\n", $eerstenummer);
 		printf("<label id='lblVerzamelenPerGezin'>Verzamelen per gezin?</label><input type='checkbox' id='RekeningenVerzamelen' %s>\n", checked($szrow->RekeningenVerzamelen));
+		printf("<label id='lblBetalingstermijn'>Betalingstermijn</label><input type='number' id='BetaaldagenTermijn' value=%d class='num2' min=0 max=999>", $szrow->BetaaldagenTermijn);
 		
 		printf("<label>Lidmaatschap ingevoerd na</label><input type='date' name='lmingevoerdna' value='%s'>\n", substr($i_lm->min("Ingevoerd"), 0, 10));
 	
 		printf("<label>Omschrijving verenigingscontributie</label><input type='text' id='Verenigingscontributie omschrijving' maxlength=50 class='w50' value='%s'>\n", $szrow->{'Verenigingscontributie omschrijving'});
 		printf("<label id='lblKostenplaats'>Kostenplaats</label><input type='text' id='Verenigingscontributie kostenplaats' maxlength=12 class='w12' value='%s'>\n", $szrow->{'Verenigingscontributie kostenplaats'});
 		
-		$arrAO = [1 => "Alleen naam afdeling", 2 => "Alleen naam activiteit", 3 => "Beide namen"];
+		$arrAO = [1 => "Alleen naam afdeling", 2 => "Alleen naam activiteit", 3 => "Combinatie namen afdeling en activiteit"];
 		$options = "";
 		foreach ($arrAO as $k => $o) {
 			$options .= sprintf("<option value=%d%s>%s</option>\n", $k, checked($k, "option", $szrow->{'Afdelingscontributie omschrijving'}), $o);
