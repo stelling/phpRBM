@@ -72,13 +72,6 @@ if (isset($_SESSION['lidid'])) {
 	debug($mess, 1);
 }
 
-if ((isset($_SESSION['webmaster']) and $_SESSION['webmaster'] == 1) or strpos(BASISURL, "telling.nl") > 0) {
-	error_reporting(E_ALL);
-} else {
-	error_reporting(0);
-//	error_reporting(E_ALL);
-}
-
 if (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
 	$_SESSION['lidid'] = 0;
 	$_SESSION['lidnr'] = 0;
@@ -144,6 +137,13 @@ foreach (array("database", "authentication", "afdelingen", "leden", "evenement",
 	}
 }
 
+if (WEBMASTER or strpos(BASISURL, "telling.nl") > 0) {
+	error_reporting(E_ALL);
+} else {
+	error_reporting(0);
+//	error_reporting(E_ALL);
+}
+
 $i_p = new cls_Parameter();
 
 if (!isset($_SESSION['settings']['naamvereniging'])) {
@@ -163,7 +163,7 @@ if ($_SESSION['lidid'] > 0) {
 	(new cls_Login())->setlastactivity();
 }
 $dtfmt->setPattern(DTTEXT);
-$fileverinfo = 'templates/verenigingsinfo.html';
+// $fileverinfo = 'templates/verenigingsinfo.html';
 
 if (isset($tabpages)) {
 	foreach ($tabpages as $tp) {
@@ -266,7 +266,7 @@ function HTMLheader($breed=0) {
 			printf("<p id='welkomuser'>Welkom %s</p>\n", htmlentities($_SESSION['roepnaamingelogde']));
 			echo("<a href='/?tp=Zelfservice/Wijzigen+wachtwoord'> <i class='bi bi-person-circle' style='font-size: 16pt;' title='Wijzigen wachtwoord'></i></a>\n");
 			echo("<a href='index.php?actie=uitloggen'> <i class='bi bi-box-arrow-left' style='font-size: 16pt;' title='Uitloggen'></i></a>\n");
-			if ($_SESSION['webmaster'] == 1) {
+			if (WEBMASTER) {
 				if (substr($_SERVER['PHP_SELF'], -9) == "index.php") {
 					echo("<a href='admin.php'> <i class='bi bi-gear' style='font-size: 16pt;' title='Beheerdersmenu'></i></a>\n");
 				} else {
@@ -465,6 +465,10 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 		echo("</nav>\n");
 	} elseif ($toonnivo == 3) {
 		echo("</nav>\n");
+	}
+	
+	if (WEBMASTER and $_SESSION['settings']['versie'] < strtotime("-6 month") and $_SERVER['PHP_SELF'] == "/admin.php") {
+		(new cls_Logboek())->add("Deze versie is ouder dan 6 maanden, update naar de nieuwste versie.", 99, -1, 2);
 	}
 
 }  # fnDispMenu
@@ -1280,7 +1284,7 @@ function fnEditTable($res, $kols, $id, $th) {
 
 function fnStandaardKols($p_ent, $p_sort=1, $rows=null) {
 	
-	if ($p_ent == "logboek") {
+	if ($p_ent == "logboek" or $p_ent == "logboekafd") {
 		$kols = null;
 		$kols[0]['headertext'] = "Datum en tijd";
 		$kols[0]['type'] = "DTLONGSEC";
@@ -1296,7 +1300,7 @@ function fnStandaardKols($p_ent, $p_sort=1, $rows=null) {
 			$kols[2] = ['headertext' => "Betreft lid", 'columnname' => "betreftLid", 'type' => "lidnaam"];
 		}
 		
-		if ($rows != null and count($rows) > 0 and isset($rows[0]->betreftOnderdeel) and strlen(max(array_column($rows, "betreftOnderdeel"))) > 0) {
+		if ($p_ent != "logboekafd" and $rows != null and count($rows) > 0 and isset($rows[0]->betreftOnderdeel) and strlen(max(array_column($rows, "betreftOnderdeel"))) > 0) {
 			$kols[3] = ['headertext' => "Onderdeel", 'columnname' => "betreftOnderdeel", 'type' => "onderdeelnaam"];
 		}
 		
@@ -1390,7 +1394,7 @@ function debug($tekst, $p_tm=2, $logact=0, $p_lengte=0) {
 	
 	$_SESSION['webmaster'] = $_SESSION['webmaster'] ?? 0;
 	$f = "";
-	if ($_SESSION['webmaster'] == 1 or $_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
+	if (WEBMASTER or $_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 		$bt = debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT, 2);
 		for ($t=count($bt)-1;$t >= 0;$t--) {
 			if (strlen($f) > 0) {
@@ -1411,8 +1415,8 @@ function debug($tekst, $p_tm=2, $logact=0, $p_lengte=0) {
 	
 	if ($p_tm == 3) {
 		printf("<script>alert('Debug: %s');</script>\n", $tekst);
-	} elseif ($p_tm == 1 or ($p_tm == 2 and $_SESSION['webmaster'] == 1)) {
-		if ($_SESSION['webmaster'] == 0) {
+	} elseif ($p_tm == 1 or ($p_tm == 2 and WEBMASTER)) {
+		if (WEBMASTER == false) {
 			$et = ". Neem contact op met de webmaster om dit op te laten lossen.";
 		} else {
 			$et = "";
