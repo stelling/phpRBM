@@ -33,7 +33,7 @@ function fnRekeningen() {
 			
 		} else {
 		
-			$nwreknr = (new cls_rekening())->max("RK.Nummer") + 1;
+			$nwreknr = (new cls_rekening())->max("Nummer") + 1;
 			if (($nwreknr / 2) == intval($nwreknr / 2)) {
 				$nwreknr++;
 			}
@@ -280,10 +280,10 @@ function fnRekeningMuteren($p_rkid=-1) {
 		echo("<div id='opdrachtknoppen'>\n");
 		printf("<button type='button' name='Sluiten' onClick=\"location.href='%s?tp=%s/Beheer'\"><i class='bi bi-door-closed'></i> Sluiten</button>\n", $_SERVER['PHP_SELF'], $currenttab);
 		
-		$f = sprintf("Nummer < %d", $reknr);
-		$prev_rek = $i_rk->max("RK.Nummer", $f);
-		$f = sprintf("Nummer > %d", $reknr);
-		$next_rek = $i_rk->min("RK.Nummer", $f);
+		$f = sprintf("RK.Nummer < %d", $reknr);
+		$prev_rek = $i_rk->max("Nummer", $f);
+		$f = sprintf("RK.Nummer > %d", $reknr);
+		$next_rek = $i_rk->min("Nummer", $f);
 		
 		if ($prev_rek > 0) {
 			printf("<button type='button' name='VorigeRekening' onClick=\"location.href='%s?tp=%s/Muteren&p_reknr=%d'\"><i class='bi bi-skip-backward-circle'></i> Vorige rekening</button>\n", $_SERVER['PHP_SELF'], $currenttab, $prev_rek);
@@ -360,6 +360,13 @@ function RekeningenAanmaken() {
 			$eerstenummer = ($seizoen * 1000) + 1;
 		}
 	}
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		$ontbrekende = $_POST['ontbrekende'] ?? 0;
+	} else {
+		$ontbrekende = 1;
+	}
+	
+	
 	
 	echo("<div id='aanmakenrekeningen'>\n");
 	$szrow = $i_sz->record($seizoen);
@@ -368,10 +375,15 @@ function RekeningenAanmaken() {
 	} else {
 		$orderby = "L.RecordID";
 	}
+	if ($ontbrekende == 1) {
+		$f = sprintf("(L.RecordID NOT IN (SELECT RR.Lid FROM %1\$sRekening AS RK INNER JOIN %1\$sRekreg AS RR ON RK.Nummer=RR.Rekening", TABLE_PREFIX);;
+		$f .= sprintf(" WHERE RK.Seizoen=%d))", $seizoen);
+	} else {
+		$f = "";
+	}
+	$lidrows = $i_lid->ledenlijst(1, -1, $orderby, $f, 1);
 	if ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['RekAanmaken'])) {
 		if (isset($_POST['sure']) and $_POST['sure'] == "1") {
-			$f = sprintf("LM.Ingevoerd >= '%s'", $_POST['lmingevoerdna']);
-			$lidrows = $i_lid->ledenlijst(1, -1, $orderby, $f, 1);
 			$vgezin = "0000 ZZ";
 			$agl = 0;
 			$reknr = intval($_POST['eerstenummer']);
@@ -416,7 +428,6 @@ function RekeningenAanmaken() {
 					$agl++;
 				}
 				$aantregels += $i_rr->standaardwaarde($reknr, $lidrow->RecordID);
-				
 				$vgezin = $gezin;
 			}
 			$i_rk->controle(-1, $seizoen);
@@ -425,23 +436,25 @@ function RekeningenAanmaken() {
 			echo("<p class='mededeling'>Vink de checkbox voor 'Rekeningen aanmaken' aan, om de rekeningen aan te maken.</p>\n");
 		}
 	} elseif ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['Verder'])) {
-		$f = sprintf("LM.Ingevoerd >= '%s'", $_POST['lmingevoerdna']);
-		$lidrows = $i_lid->ledenlijst(1, -1, $orderby, $f);
 		if (count($lidrows) > 0) {
 			printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-			printf("Voor de volgende %d leden zal een rekening worden aangemaakt:\n", count($lidrows));
 				
-			echo("<ul>\n");
+			$toonleden = "";
+			$aantleden = 0;
 			foreach($lidrows as $lidrow) {
-				printf("<li>%s</li>\n", $lidrow->NaamLid);
+				$toonleden .= sprintf("<li>%s</li>\n", $lidrow->NaamLid);
+				$aantleden++;
 			}
-			echo("</ul>\n<div class='clear'></div>\n");
+			printf("Voor de volgende %d leden zal een rekening worden aangemaakt:\n<ul>\n%s</ul>\n", $aantleden, $toonleden);
+			echo("<div class='clear'></div>\n");
 			echo("<div id='opdrachtknoppen'>\n");
 			echo("<input type='checkbox' value='1' name='sure'>\n");
 			echo("<input type='submit' value='Rekeningen aanmaken' name='RekAanmaken'>\n");
-			printf("<input type='hidden' name='lmingevoerdna' value='%s'>\n", $_POST['lmingevoerdna']);
+			if ($ontbrekende == 1) {
+				echo("<input type='hidden' name='ontbrekende' value=1>\n");
+			}
 			printf("<input type='hidden' name='eerstenummer' value='%s'>\n", $_POST['eerstenummer']);
-			echo("<input type='button' value='Terug' onClick='history.go(-1);'>\n");
+			echo("<button type='button' onClick='history.go(-1);'>Terug</button>\n");
 			echo("</div>  <!-- Einde opdrachtknoppen -->\n");
 			echo("</form>\n");
 		} else {
@@ -458,9 +471,9 @@ function RekeningenAanmaken() {
 		printf("<label>Datum rekening</label><input type='date' name='Rekeningdatum' value='%s'>\n", date("Y-m-d"));
 		printf("<label id='lblEersteRekeningNummer'>Eerste rekeningnummer</label><input type='number' name='eerstenummer' value=%d>\n", $eerstenummer);
 		printf("<label id='lblVerzamelenPerGezin'>Verzamelen per gezin?</label><input type='checkbox' id='RekeningenVerzamelen' %s>\n", checked($szrow->RekeningenVerzamelen));
-		printf("<label id='lblBetalingstermijn'>Betalingstermijn</label><input type='number' id='BetaaldagenTermijn' value=%d class='num2' min=0 max=999>", $szrow->BetaaldagenTermijn);
+		printf("<label id='lblBetalingstermijn'>Betalingstermijn</label><input type='number' id='BetaaldagenTermijn' value=%d class='num2' min=0 max=999>\n", $szrow->BetaaldagenTermijn);
 		
-		printf("<label>Lidmaatschap ingevoerd na</label><input type='date' name='lmingevoerdna' value='%s'>\n", substr($i_lm->min("Ingevoerd"), 0, 10));
+		printf("<label>Alleen ontbrekende rekeningen</label><input type='checkbox' %s name='ontbrekende' value=1 onChange='this.form.submit();'>\n", checked($ontbrekende));
 	
 		printf("<label>Omschrijving verenigingscontributie</label><input type='text' id='Verenigingscontributie omschrijving' maxlength=50 class='w50' value='%s'>\n", $szrow->{'Verenigingscontributie omschrijving'});
 		printf("<label id='lblKostenplaats'>Kostenplaats</label><input type='text' id='Verenigingscontributie kostenplaats' maxlength=12 class='w12' value='%s'>\n", $szrow->{'Verenigingscontributie kostenplaats'});
@@ -477,7 +490,11 @@ function RekeningenAanmaken() {
 		printf("<label id='lblBedragGezinskorting'>Bedrag gezinskorting</label><input type='text' id='Gezinskorting bedrag' class='d8' value='%s'>\n", $szrow->{'Gezinskorting bedrag'});
 	
 		echo("<div id='opdrachtknoppen'>\n");
-		echo("<button type='submit' name='Verder'><i class='bi bi-skip-forward-circle'></i> Verder</button>\n");
+		if (count($lidrows) > 0) {
+			printf("<button type='submit' name='Verder'><i class='bi bi-skip-forward-circle'></i> Verder (%d rekeningen)</button>\n", count($lidrows));
+		} else {
+			echo("<button type='button'>Geen rekeningen beschikbaar</button>\n");
+		}
 		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 	
 		echo("</form>\n");
