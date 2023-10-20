@@ -9,6 +9,8 @@ function fnMailing() {
 
 	if ($_SESSION['settings']['mailing_direct_verzenden'] > 0) {
 		sentoutbox(3);
+	} elseif (isset($_POST['outboxlegen']) and WEBMASTER) {
+		(new cls_mailing_hist())->outboxlegen();
 	}
 	
 	$mailing = new Mailing($_GET['mid']);
@@ -1443,10 +1445,8 @@ function lijstmailings($p_filter="") {
 			
 	} elseif ($p_filter == "Verzonden mails" or $p_filter == "Verzonden e-mails" or $p_filter == "Outbox") {
 		$i_mh = new cls_Mailing_hist();
-		$kols[0]['link'] = sprintf("index.php?tp=%s&op=bekijkmail&MailingHistID=%%d", urlencode($_GET['tp']));
-		$kols[0]['headertext'] = "&nbsp;";
-		$kols[0]['columnname'] = "RecordID";
-		$kols[0]['class'] = "viewmail";
+		$l = sprintf("index.php?tp=%s&op=bekijkmail&MailingHistID=%%d", urlencode($_GET['tp']));
+		$kols[0] = array('link' => $l, 'headertext' => "&nbsp;", 'columnname' => "RecordID", 'class' => "viewmail");
 		
 		$kols[1]['headertext'] = "Verzonden";
 		$kols[1]['columnname'] = "send_on";
@@ -1493,9 +1493,14 @@ function lijstmailings($p_filter="") {
 			
 			$rows = $i_mh->outbox(1)->fetchAll();
 			if (count($rows) > 0) {
-				if (count($rows) > 2) {
+				if (count($rows) > 1) {
 					echo("<div id='filter'>\n");
+					printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+					if (WEBMASTER) {
+						echo("<button name='outboxlegen'><i class='bi bi-trash'></i> Outbox leeg maken</button>\n");
+					}
 					printf("<p class='aantrecords'>%d e-mails</p>\n", count($rows));
+					echo("</form>\n");
 					echo("</div> <!-- Einde filter -->\n");
 				}
 				echo(fnDisplayTable($rows, $kols, "", 0, "", "lijstoutbox"));
