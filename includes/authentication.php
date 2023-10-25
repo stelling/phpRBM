@@ -987,7 +987,7 @@ function addtp($tp, $afdnr=0) {
 		$tabpages[] = $tp;
 		$aid = $i_acc->recordid($tp);
 		
-		if ($_SESSION['webmaster'] == 1 and $aid == 0) {
+		if (WEBMASTER and $aid == 0) {
 			$i_acc->add($tp);
 		}
 	}
