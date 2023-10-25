@@ -47,7 +47,7 @@ function fnMailing() {
 	$f = sprintf("RecordID=%d", $_GET['mid']);
 	$zv = (new cls_Mailing())->max("ZichtbaarVoor", $f);
 	$lg = explode(",", $_SESSION['lidgroepen']);
-	if ($_SESSION['webmaster'] == 0 and $zv != 0 and in_array($zv, $lg) === false and in_array($_SESSION['settings']['mailing_alle_zien'], $lg) === false) {
+	if (WEBMASTER == false and $zv != 0 and in_array($zv, $lg) === false and in_array($_SESSION['settings']['mailing_alle_zien'], $lg) === false) {
 		$mess = "Je hebt geen rechten om deze mailing te bekijken of te bewerken.";
 		printf("<p class='waarschuwing'>%s</p>", $mess);
 		
@@ -161,7 +161,7 @@ function fnMailing() {
 	if ($currenttab2 != "previewwindow" and $op != "preview_hist") {
 		HTMLfooter();
 	}
-}
+}  # fnMailing
 
 class Mailing {
 	public $mid;
@@ -535,9 +535,8 @@ class Mailing {
 			}
 		}
 
-	} # __construct
-	
-			
+	}  # Mailing->__construct
+
 	private function vuldbvars($p_mid=-1) {
 		if ($p_mid > 0) {
 			$this->mid = $p_mid;
@@ -573,7 +572,7 @@ class Mailing {
 			$this->Ingevoerd = date("Y-m-d");
 		}
 
-	} # vuldbvars
+	}  # Mailing->vuldbvars
 	
 	public function edit() {
 		global $currenttab, $currenttab2, $navpad, $dtfmt;
@@ -779,9 +778,9 @@ class Mailing {
 		$lnk = sprintf("%s?tp=%s&op=savepreview&mid=%d", $_SERVER['PHP_SELF'], $currenttab, $this->mid);
 		echo("<button type='submit' name='action' value='Bekijk voorbeeld' id='btnbekijkvoorbeeld'><i class='bi bi-eye'></i> Bekijk voorbeeld</button>\n");
 
-		if ($this->mid > 0 and $this->deleted_on > "1901-01-01" and $_SESSION['webmaster'] == 1) {
+		if ($this->mid > 0 and $this->deleted_on > "1901-01-01" and WEBMASTER) {
 			printf("<button type='submit' name='action' value='Verwijderen ongedaan maken' title='Verwijderen ongedaan maken'>Verwijderen ongedaan maken</button>\n");
-		} elseif ($this->mid > 0 and $this->deleted_on < "1901-01-01" and ($_SESSION['webmaster'] == 1 or $_SESSION['lidid'] == $this->IngevoerdDoor)) {
+		} elseif ($this->mid > 0 and $this->deleted_on < "1901-01-01" and (WEBMASTER or $_SESSION['lidid'] == $this->IngevoerdDoor)) {
 			printf("<button type='submit' name='action' value='Verwijderen'><i class='bi bi-trash'></i> Verwijderen</button>\n");
 		}
 		echo("</div>  <!-- Einde opdrachtknoppen -->\n");
@@ -801,7 +800,7 @@ class Mailing {
 		if ($this->htmldirect == 0) {
 			js_editor(0);
 		}
-	} # edit
+	}  # Mailing->edit
 	
 	public function options_mogelijke_ontvangers($p_mid=-1) {
 		$i_m = new cls_Mailing();
@@ -866,7 +865,7 @@ class Mailing {
 		$this->aant_rcpt = count($rcpt_rows);
 
 		return $rv;		
-	}
+	}  # Mailing->html_ontvangers
 	
 	public function controle($enkellid=0) {
 	
@@ -956,7 +955,7 @@ class Mailing {
 		
 		return $rv;
 		
-	} # controle
+	}  # Mailing->controle
 	
 	public function post_form($p_actie="save") {
 		
@@ -1011,7 +1010,7 @@ class Mailing {
 		$i_M = null;
 		$i_mr = null;
 		
-	} # post_form
+	}  # Mailing->post_form
 	
 	public function upload() {
 		
@@ -1047,7 +1046,7 @@ class Mailing {
 			}
 			(new cls_Logboek())->add($mess, 4, 0, 1, $this->mid, 41);
 		}
-	}
+	}  # Mailing->upload
 	
 	public function attach_delete($p_bestand) {
 		
@@ -1063,7 +1062,7 @@ class Mailing {
 			$mess = sprintf("Het bestand '%s' is niet aanwezig in directory '%s'.", $p_bestand, $ad);
 		}
 		(new cls_Logboek())->add($mess, 4, 0, 1, $this->mid, 43);
-	}
+	}  # Mailing->attach_delete
 	
 	public function add_del_selectie($actie="aantal", $p_ondid=0, $p_vangebdatum="", $p_temgebdatum="") {
 		
@@ -1137,7 +1136,7 @@ class Mailing {
 		
 		return $rv;
 		
-	} # add_del_selectie
+	}   # Mailing->add_del_selectie
 	
 	public function preview() {
 		$this->send_mailing(1);
@@ -1162,7 +1161,7 @@ class Mailing {
 			(new cls_Logboek())->add($this->meldingen, 4, 0, $p_melding);
 			return false;
 		}
-	}  # send
+	}  # Mailing->send
 	
 	private function send_mailing($preview=0, $p_lidid=0, $p_melding=1, $p_direct=0) {
 		
@@ -1197,14 +1196,10 @@ class Mailing {
 			}
 
 			if (isValidMailAddress($this->cc_addr, 0)) {
-				if (strlen($email->cc) > 0) {
-					$email->cc .= ",";
-				}
-				$email->cc .= $this->cc_addr;
+				$email->toevoegenadres($this->cc_addr, "cc");
 			}
 			$email->bericht = $this->merged_message;
 			$email->onderwerp = $this->merged_subject;
-			
 			
 			if ($preview == 1) {
 				$mail = new RBMmailer();
@@ -1237,7 +1232,7 @@ class Mailing {
 
 		return $aant_send;
 		
-	} # send_mailing
+	}   # Mailing->send_mailing
 	
 	public function preview_hist($p_mhid, $p_verwijderaanhef=1) {
 		$i_mh = new cls_mailing_hist($p_mhid);
@@ -1261,7 +1256,7 @@ class Mailing {
 			debug("De template briefpapier is niet ingevuld.", 1, 1);
 			return false;
 		}
-	}
+	}  # Mailing->preview_hist
 	
 	public function merge($lidid=0) {
 		global $dtfmt;
@@ -1414,15 +1409,15 @@ class Mailing {
 			}
 		}
 		return $this->merged_message;
-	}
+	}  # Mailing->merge
 	
 	public function delete() {
 		(new cls_Mailing())->trash($this->mid, "in");
-	}
+	}  # Mailing->delete
 	
 	public function undelete() {
 		(new cls_Mailing())->trash($this->mid, "out");
-	}
+	}  # Mailing->undelete
 	
 } # class Mailing
 
@@ -1660,7 +1655,7 @@ class email {
 			$i_mv = null;
 		}
 		
-		if ($_SESSION['webmaster'] == 1) {
+		if (WEBMASTER) {
 			$this->zichtbaar = true;
 		} elseif ($this->zichtbaarvoor == 0) {
 			$this->zichtbaar = true;
@@ -1671,7 +1666,7 @@ class email {
 		} else {
 			$this->zichtbaar = false;
 		}
-	}
+	}  # email->vulvars
 	
 	public function toon($p_direct=1) {
 		
@@ -1791,7 +1786,7 @@ class email {
 		});
 		</script>", $this->mhid);
 		
-	}  # edit
+	}  # email->edit
 	
 	public function toevoegenlid($p_lidid, $p_tp="aan") {
 	
@@ -1814,7 +1809,7 @@ class email {
 			$this->toevoegenadres($row->EmailOuders, "cc");
 		}
 		
-	}  # toevoegenlid
+	}  # email->toevoegenlid
 	
 	public function toevoegenadres($p_adres, $tp="aan", $p_naam="") {
 		
@@ -1838,7 +1833,7 @@ class email {
 			}
 		}
 		
-	}  # toevoegenadres
+	}  # email->toevoegenadres
 	
 	public function to_outbox($p_direct=0) {
 		
@@ -1904,7 +1899,7 @@ class email {
 		
 		return $rv;
 		
-	}  # to_outbox
+	}  # email->to_outbox
 
 }  # class email
 
@@ -2006,7 +2001,7 @@ function fnRekeningenMailen($op) {
 	
 		echo("<label>Niet betaald</label><input type='checkbox' name='nietbetaald' class='form-check-input' value=1 checked>\n");
 		echo("<label>Nul rekeningen</label><input type='checkbox' name='nulrekeningen' class='form-check-input' value=1>\n");
-		echo("<label>Eerder verzonden</label><input type='checkbox' name='eerderverzonden' class='form-check-input' value=1 checked>\n");
+		echo("<label>Eerder verzonden</label><input type='checkbox' name='eerderverzonden' class='form-check-input' value=1>\n");
 
 		echo("</div>\n");
 
@@ -2027,11 +2022,16 @@ function fnVerstuurRekening($p_rkid, $p_toonmelding=0) {
 	
 	$i_rk->controle($p_rkid);
 	$rkrow = $i_rk->record($p_rkid);
+	$stuurnaar = $_SESSION['settings']['mailing_rekening_stuurnaar'];
 	
 	$email = new email(0, 0);
 	$email->xtrachar = "REK";
 	$email->xtranum = $rkrow->Nummer;
-	$email->toevoegenlid($rkrow->BetaaldDoor);
+	if ($stuurnaar == 5 or $stuurnaar == 6) {
+		$email->toevoegenlid($rkrow->Lid);
+	} else {
+		$email->toevoegenlid($rkrow->BetaaldDoor);
+	}
 	$email->zichtbaarvoor = $_SESSION['settings']['mailing_rekening_zichtbaarvoor'];
 	$email->vanafid = $_SESSION['settings']['mailing_rekening_vanafid'];
 	$tm = $p_toonmelding;
@@ -2041,9 +2041,9 @@ function fnVerstuurRekening($p_rkid, $p_toonmelding=0) {
 		$hd = new DateTime($rkrow->Datum);
 		$hd->sub(new DateInterval('P18Y'));
 		foreach((new cls_Rekeningregel())->perrekening($rkrow->Nummer) as $regel) {
-			if ($regel->GEBDATUM > "1900-01-01" and $regel->GEBDATUM <= $hd->format("Y-m-d") and $_SESSION['settings']['mailing_rekening_stuurnaar'] == 2) {
+			if ($regel->GEBDATUM > "1900-01-01" and $regel->GEBDATUM <= $hd->format("Y-m-d") and ($stuurnaar == 2 or $stuurnaar == 6)) {
 				$email->toevoegenlid($regel->Lid);
-			} elseif ($_SESSION['settings']['mailing_rekening_stuurnaar'] == 3) {
+			} elseif ($stuurnaar == 3 or $stuurnaar == 7) {
 				$email->toevoegenlid($regel->Lid);
 			}
 		}
