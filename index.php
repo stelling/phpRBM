@@ -10,7 +10,6 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 	setcookie("username", "", time()-60);
 	setcookie("password", "", time()-60);
 	$_SESSION['lidid'] = 0;
-	$_SESSION['webmaster'] = 0;
 	$_SESSION['lidgroepen'] = null;
 	$_SESSION['lidauth'] = null;
 	printf("<script>setTimeout('', 5000);location.href='%s';</script>\n", BASISURL);
@@ -324,7 +323,7 @@ function fnVoorblad() {
 		if ($_SESSION['lidid'] == 0) {
 			$content = removetextblock($content, "<!-- Ingelogd -->", "<!-- /Ingelogd -->");
 		}
-		if ($_SESSION['webmaster'] == 0) {
+		if (WEBMASTER == false) {
 			$content = removetextblock($content, "<!-- Webmaster -->", "<!-- /Webmaster -->");
 		}
 		
