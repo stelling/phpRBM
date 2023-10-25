@@ -367,16 +367,12 @@ input.w7 {
 	width: 74px;
 }
 
-input.num2 {
-	width: 44px;
-}
-
-input.num3 {
-	width: 58px;
-}
-
 input.bedrag {
 	width: 55px;
+	text-align: right;
+}
+
+input.d8, input.num2, input.num3 {
 	text-align: right;
 }
 
@@ -384,8 +380,12 @@ input.d8 {
 	width: 92px;
 }
 
-input.d8, input.num2, input.num3 {
-	text-align: right;
+input.num2 {
+	width: 44px;
+}
+
+input.num3 {
+	width: 58px;
 }
 
 input.w6 {
@@ -1802,7 +1802,7 @@ div.clear {
 	max-height: 24px;
 }
 
-th.number, td.number, input.number, th.nummer, td.nummer, input.nummer, th.bedrag, td.bedrag, input.bedrag, th.recordid, td.recordid, th.lidnr, td.lidnr {
+th.number, td.number, input.number, input[type='number'], th.nummer, td.nummer, input.nummer, th.bedrag, td.bedrag, input.bedrag, th.recordid, td.recordid, th.lidnr, td.lidnr {
 	text-align: right;
 }
 
@@ -2082,6 +2082,11 @@ p.functiekaderlid, p.mailkaderlid {
 	float: left;
 }
 
+#rekeningmuteren textarea {
+	width: 100%;
+	height: 52px;
+}
+
 #rekeningkopmuteren select {
 	margin-top: 6px;
 	width: 250px;
@@ -2141,7 +2146,7 @@ p#laatsteemail {
 #rekeningregelsmuteren {
 	overflow: visible;
 	clear: left;
-	min-height: 350px;
+	min-height: 340px;
 	margin-top: 10px;
 }
 
@@ -2331,6 +2336,9 @@ table#rekeningregels {
 #instellingenmuteren p {
 	padding-top: 12px;
 	margin-left: 6px;
+	height: 30px;
+	margin-top: 3px;
+	margin-bottom: 2px;
 }
 
 #instellingenmuteren input[type=number] {
@@ -2399,12 +2407,6 @@ input#db_folderbackup, input#naamwebsite, input#naamvereniging, input#urlverenig
 
 #editmailingform li, #editmailingform li {
 	height: 28px;
-}
-
-#instellingenmuteren p {
-	height: 30px;
-	margin-top: 3px;
-	margin-bottom: 2px;
 }
 
 .invoerblok {
