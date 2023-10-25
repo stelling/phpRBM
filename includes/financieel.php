@@ -21,28 +21,29 @@ function fnRekeningen() {
 		
 	} elseif ($currenttab2 == "Nieuw") {
 		
+		$seizoen = $_POST['nwseizoen'] ?? -1;
+		if ($seizoen <= 0) {
+			$seizoen = (new cls_Seizoen())->zethuidige(date("Y-m-d"));
+		}
+		
 		if ($_SERVER['REQUEST_METHOD'] == "POST") {
 			if (isset($_POST['RekToevoegen'])) {
 				if ($_POST['nwlid'] <= 0) {
 					echo("<p class='mededeling'>Selecteer eerst een (Klos)lid.</p>\n");
 				} else {
-					$reknr = (new cls_Rekening())->add($_POST['nwrekening'], $_POST['nwseizoen'], $_POST['nwlid']);
+					$reknr = (new cls_Rekening())->add($_POST['nwrekening'], $seizoen, $_POST['nwlid']);
 					printf("<script>location.href='%s?tp=%s/Muteren&p_reknr=%d'</script>\n", $_SERVER['PHP_SELF'], $currenttab, $reknr);
 				}
 			}
 			
 		} else {
-		
-			$nwreknr = (new cls_rekening())->max("Nummer") + 1;
-			if (($nwreknr / 2) == intval($nwreknr / 2)) {
-				$nwreknr++;
-			}
+			$nwreknr=(new cls_Rekening())->nieuwrekeningnr($seizoen);
 
 			$actionurl = sprintf("%s?tp=%s", $_SERVER['PHP_SELF'], $_GET['tp']);
 			printf("<form method='post' id='rekeningmuteren' action='%s'>\n", $actionurl);
 		
+			printf("<label>Seizoen</label><select name='nwseizoen'>\n%s</select>\n", (new cls_Seizoen())->htmloptions($seizoen));
 			printf("<label>Rekeningnummer</label><input type='number' name='nwrekening' value=%d class='d8'>\n", $nwreknr);
-			printf("<label>Seizoen</label><select name='nwseizoen'>%s</select>\n", (new cls_Seizoen())->htmloptions());
 			printf("<label>Lid</label><select name='nwlid'><option value=0>Selecteer lid ...</option>\n%s</select>\n", (new cls_Lid())->htmloptions(-1, 2));
 			echo("<div class='clear'></div>\n");
 			echo("<button type='submit' name='RekToevoegen'><i class='bi bi-plus-circle'></i> Toevoegen</button>\n");
@@ -108,28 +109,15 @@ function fnRekeningbeheer() {
 	$kols[0]['columnname'] = "Nummer";
 	$kols[0]['class'] = "muteren";
 	
-	$kols[1]['headertext'] = "Nummer";
 	$kols[1]['columnname'] = "Nummer";
-	
-	$kols[2]['headertext'] = "Datum";
-	$kols[2]['columnname'] = "Datum";
-	$kols[2]['type'] = "date";
-	
-	$kols[3]['headertext'] = "Omschrijving";
-	$kols[3]['columnname'] = "OMSCHRIJV";
-	
-	$kols[3]['headertext'] = "Tenaamstelling";
-	$kols[3]['columnname'] = "DEBNAAM";
-	
-	$kols[4]['headertext'] = "Bedrag";
-	$kols[4]['columnname'] = "Bedrag";
-	$kols[4]['type'] = "bedrag";
+	$kols[2] = array('columnname' => "Datum", 'type' => "date");
+	$kols[3] = array('columnname' => "Omschrijving", 'columntitle' => "OpmerkingIntern");
+	$kols[4] = array('columnname' => "Tenaamstelling");
+	$kols[5] = array('columnname' => "Bedrag", 'type' => "bedrag");
 
 	$f = sprintf("RK.Seizoen=%d", $filterseizoen);
 	if ($i_rk->max("RK.Betaald", $f) > 0) {
-		$kols[5]['headertext'] = "Betaald";
-		$kols[5]['columnname'] = "Betaald";
-		$kols[5]['type'] = "bedrag";
+		$kols[6] = array('columnname' => "Betaald", 'type' => "bedrag");
 	}
 	
 	$adl = 0;
@@ -140,9 +128,8 @@ function fnRekeningbeheer() {
 	}
 	
 	if ($adl > 0) {
-		$kols[7]['link'] = sprintf("%s?tp=%s/Beheer&op=deleterekening&p_reknr=%%d", $_SERVER['PHP_SELF'], $currenttab);
-		$kols[7]['class'] = 'trash';
-		$kols[7]['columnname'] = "linkDelete";
+		$l = sprintf("%s?tp=%s/Beheer&op=deleterekening&p_reknr=%%d", $_SERVER['PHP_SELF'], $currenttab);
+		$kols[7] = array('link' => $l, 'class' => 'trash', 'columnname' => "linkDelete");
 	}
 	
 	if (count($rows) > 0) {
@@ -275,6 +262,9 @@ function fnRekeningMuteren($p_rkid=-1) {
 			printf("<select name='RRnieuw' onChange='this.form.submit();'>\n%s</select>\n", $opt);
 			echo("</div> <!-- Einde rekeningregelsmuteren -->\n");
 		}
+		
+		printf("<textarea id='OpmerkingIntern' title='Interne opmerking' placeholder='interne opmerking'>%s</textarea>\n", $row->OpmerkingIntern);
+		
 		echo("</form>\n");
 		
 		echo("<div id='opdrachtknoppen'>\n");
@@ -308,7 +298,7 @@ function fnRekeningMuteren($p_rkid=-1) {
 				rekeningprops();
 			});
 
-			\$(\"#rekeningkopmuteren > input, #rekeningkopmuteren > select\").blur(function(){
+			\$(\"#rekeningkopmuteren > input, #rekeningkopmuteren > select, textarea\").blur(function(){
 				savedata('rekeningedit', %1\$d, this);
 				rekeningprops();
 			});
@@ -348,25 +338,22 @@ function RekeningenAanmaken() {
 	$i_rk = new cls_Rekening();
 	$i_rr = new cls_Rekeningregel();
 	
-	$seizoen = $_POST['seizoen'] ?? $i_sz->max("Nummer");
-	if (isset($_POST['eerstenummer']) and strlen($_POST['eerstenummer']) > 3) {
-		$eerstenummer = $_POST['eerstenummer'];
-		if ($eerstenummer <= $i_rk->max("Nummer")) {
-			$eerstenummer = $i_rk->max("Nummer")+2;
-		}
-	} else {
-		$eerstenummer = $i_rk->max("Nummer")+2;
-		if ($eerstenummer < ($seizoen * 1000) + 1) {
-			$eerstenummer = ($seizoen * 1000) + 1;
-		}
+	$seizoen = $_POST['nwseizoen'] ?? -1;
+	if ($seizoen <= 0) {
+		$seizoen = (new cls_Seizoen())->zethuidige(date("Y-m-d"));
 	}
+	
+	if (isset($_POST['eerstenummer']) and strlen($_POST['eerstenummer']) > 3) {
+		$eerstenummer = intval($_POST['eerstenummer']);
+	} else {
+		$eerstenummer = $i_rk->nieuwrekeningnr($seizoen);
+	}
+	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$ontbrekende = $_POST['ontbrekende'] ?? 0;
 	} else {
 		$ontbrekende = 1;
 	}
-	
-	
 	
 	echo("<div id='aanmakenrekeningen'>\n");
 	$szrow = $i_sz->record($seizoen);
@@ -387,12 +374,6 @@ function RekeningenAanmaken() {
 			$vgezin = "0000 ZZ";
 			$agl = 0;
 			$reknr = intval($_POST['eerstenummer']);
-			if ($reknr <= $i_rk->max("Nummer")) {
-				$i_rk->max("Nummer") + 1;
-			}
-			if (($reknr / 2) == intval($reknr / 2)) {
-				$reknr++;
-			}
 			$aantrek = 0;
 			$aantregels = 0;
 			foreach ($lidrows as $lidrow) {
@@ -403,7 +384,7 @@ function RekeningenAanmaken() {
 					if ($szrow->{'Gezinskorting bedrag'} > 0 and $aantal_gezinskorting > 1) {
 						$rrid = $i_rr->add($reknr, 0, $szrow->{'Gezinskorting kostenplaats'});
 						$i_rr->update($rrid, "OMSCHRIJV", $szrow->{'Gezinskorting omschrijving'});
-						$i_rr->update($rrid, "Bedrag", $szrow->{'Gezinskorting bedrag'} * ($aantal_gezinskorting-1));
+						$i_rr->update($rrid, "Bedrag", $szrow->{'Gezinskorting bedrag'} * ($aantal_gezinskorting-1) * -1);
 						$aantregels++;
 					}
 					$i_rk->update($reknr, "DEBNAAM", $debnaam);
@@ -625,15 +606,17 @@ function RekeningInstellingen() {
 	
 	echo("<h2>Algemene instellingen</h2>\n");
 	printf("<label>Groep rekening betaald door</label><select id='rekening_groep_betaalddoor'>\n<option value=-1>Alleen webmasters</option>\n%s</select>\n", $i_ond->htmloptions($_SESSION['settings']['rekening_groep_betaalddoor'], 1));
-	printf("<label>Bewaartermijn (na rekeningdatum)</label><input type='number' id='rekening_bewaartermijn' value=%d class='num2'><p>(maanden)</p>", $_SESSION['settings']['rekening_bewaartermijn']);
+	printf("<label>Bewaartermijn in maanden na rekeningdatum</label><input type='number' id='rekening_bewaartermijn' value=%d class='num2'>", $_SESSION['settings']['rekening_bewaartermijn']);
 	
-
 	echo("<h2>Instellingen voor mailen</h2>\n");
 	echo("<label>Rekening versturen aan</label><select id='mailing_rekening_stuurnaar'>\n");
 	$sn[1] = "Alleen betaald door";
 	$sn[2] = "Betaald door en alle volwassenen op de rekening";
 	$sn[3] = "Betaald door en alle leden op de rekening";
 	$sn[4] = "Betaald door en het gekoppelde lid, indien ongelijk.";
+	$sn[5] = "Alleen gekoppeld lid";
+	$sn[6] = "Gekoppeld lid en alle volwassenen op de rekening";
+	$sn[7] = "Alle leden op de rekening";
 	foreach($sn as $key => $val) {
 		printf("<option value=%d%s>%s</option>>\n", $key, checked($key, "option", $_SESSION['settings']['mailing_rekening_stuurnaar']), $val);
 	}
