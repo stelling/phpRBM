@@ -36,7 +36,7 @@ if (isset($_GET['p_stukid']) and $_GET['p_stukid'] > 0) {
 	}
 	
 } else {
-	$mess = "Het stuk is niet gespecificeerd.";
+	$mess = "Er is geen stuk gespecificeerd.";
 	$i_lb->add($mess, 22, 0, 1, $i_st->stid, 8, "Stukken");
 }
 
