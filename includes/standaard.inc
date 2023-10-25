@@ -657,25 +657,41 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 //		debug($kols);
 		
 		foreach ($kols as $k => $kol) {
-			$iq = false;
-			if (isset($kol['headertext']) or isset($kol['link'])) {
-				if (isset($kol['subqry']) and strlen($kol['subqry']) > 6) {
-					$iq = true;
-				} elseif (isset($kol['columnname']) and strlen($kol['columnname']) > 0) {
+			
+			if (!isset($kol['columnname']) and !isset($kol['headertext']) and !isset($kol['subqry'])) {
+				$kol['skip'] = true;
+				$iq = false;
+				
+			} else {
+				if (!isset($kol['headertext']) or strlen($kol['headertext']) == 0) {
+					if (isset($kol['link'])) {
+						$kol['headertext'] = "&nbsp;";
+					} else {
+						$kol['headertext'] = str_replace("_", " ", $kol['columnname']);
+					}
+				} elseif (!isset($kol['columnname']) or strlen($kol['columnname']) == 0) {
+					$kol['columnname'] = $kol['headertext'];
+					$kols[$k]['columnname'] = $kol['headertext'];
+				}
+			
+				if (!isset($kol['columnname']) or strlen($kol['columnname']) == 0) {
+debug($k . ": geen columnname");
+				}
+				
+				$iq = false;
+				if (count($rows) > 0) {
 					foreach($rows[0] as $key => $val) {
 						if ($key == $kol['columnname']) {
 							$iq = true;
 						}
 					}
-				} else {
+				}
+
+				if (isset($kol['subqry']) and strlen($kol['subqry']) > 6) {
 					$iq = true;
-					$kn = 0;
-					foreach($rows[0] as $key => $val) {
-						if ($k == $kn) {
-							$kols[$k]['columnname'] = $key;
-						}
-						$kn++;
-					}
+				 
+				} elseif ($iq and strlen($kol['columnname']) > 0 and strlen(max(array_column($rows, $kol['columnname']))) == 0) {
+					$iq = false;
 				}
 			}
 			
@@ -725,6 +741,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 				}
 			} else {
 				$kols[$k]['skip'] = true;
+				$kol['skip'] = true;
 			}
 			$ktot[$k] = 0;
 		}
@@ -771,6 +788,11 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					$kol_type = "link";
 				} else {
 					$kol_type = "text";
+				}
+				
+				$row_title = "";
+				if (isset($kols[$kn]['columntitle']) and strlen($kols[$kn]['columntitle']) > 0 and isset($row->{$kols[$kn]['columntitle']}) and strlen($row->{$kols[$kn]['columntitle']}) > 0) {
+					$row_title = sprintf(" title=\"%s\"", str_replace("\"", "'", $row->{$kols[$kn]['columntitle']}));
 				}
 				
 				if ($kol_type == "link") {
@@ -966,7 +988,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					
 				} else {
 					// tekstkolom
-					$ret .= sprintf("<td%s>%s</td>", $kol_class, htmlentities($value));
+					$ret .= sprintf("<td%s%s>%s</td>", $kol_class, $row_title, htmlentities($value));
 				}
 				$kn++;
 			}
@@ -1286,12 +1308,11 @@ function fnStandaardKols($p_ent, $p_sort=1, $rows=null) {
 	
 	if ($p_ent == "logboek" or $p_ent == "logboekafd") {
 		$kols = null;
-		$kols[0]['headertext'] = "Datum en tijd";
-		$kols[0]['type'] = "DTLONGSEC";
+		$kols[0] = array('columnname' => "DatumTijd", 'headertext' => "Datum en tijd", 'type' => "DTLONGSEC");
 		if ($p_sort == 1) {
 			$kols[0]['sortcolumn'] = "RecordID";
 		}
-		$kols[1]['headertext'] = "Omschrijving";
+		$kols[1]['columnname'] = "Omschrijving";
 		if ($p_sort == 1) {
 			$kols[1]['sortcolumn'] = "Omschrijving";
 		}
@@ -1304,7 +1325,7 @@ function fnStandaardKols($p_ent, $p_sort=1, $rows=null) {
 			$kols[3] = ['headertext' => "Onderdeel", 'columnname' => "betreftOnderdeel", 'type' => "onderdeelnaam"];
 		}
 		
-		if ($_SESSION['webmaster'] == 1) {
+		if (WEBMASTER) {
 			$kols[4] = ['headertext' => "Type", 'columnname' => "Type"];
 			if ($p_sort == 1) {
 				$kols[4]['sortcolumn'] = "Type";
@@ -1318,7 +1339,7 @@ function fnStandaardKols($p_ent, $p_sort=1, $rows=null) {
 		if ($rows != null and count($rows) > 0 and isset($rows[0]->Getoond) and strlen(max(array_column($rows, "Getoond"))) > 0) {
 			$kols[6] = ['headertext' => "Getoond?", 'columnname' => "Getoond", 'type' => "text"];
 		}
-		if ($_SESSION['webmaster'] == 1) {
+		if (WEBMASTER) {
 			$kols[7] = ['headertext' => "Script / functie", 'columnname' => "scriptFunctie"];
 			if ($p_sort == 1) {
 				$kols[7]['sortcolumn'] = "scriptFunctie";
@@ -1355,7 +1376,9 @@ function fnOrderBy($p_arrSort) {
 	}
 	
 	if (strlen($sw) > 0 and (strpos($sw, " ") !== false or strpos($sw, "-") !== false)) {
-		if (strpos($sw, ".") !== false) {
+		if (strpos($sw, ",") !== false) {
+			$ord = $sw;
+		} elseif (strpos($sw, ".") !== false) {
 			$ord = explode(".", $sw)[0] . ".`" . explode(".", $sw)[1] . "`";
 		} else {
 			$ord = "`" . $sw . "`";
@@ -1392,7 +1415,6 @@ function debug($tekst, $p_tm=2, $logact=0, $p_lengte=0) {
 		$p_tm = 1;
 	}
 	
-	$_SESSION['webmaster'] = $_SESSION['webmaster'] ?? 0;
 	$f = "";
 	if (WEBMASTER or $_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 		$bt = debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT, 2);
