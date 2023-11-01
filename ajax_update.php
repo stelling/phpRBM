@@ -102,6 +102,13 @@ if ($_SESSION['lidid'] > 0) {
 			$i_ex->update($rid, $kolom, $newvalue);
 			$i_ex = null;
 		}
+				
+	} elseif ($ent === "examenonderdeel") {
+		if ($rid > 0) {
+			$i_eo = new cls_Examenonderdeel();
+			$i_eo->update($rid, $kolom, $newvalue);
+			$i_eo = null;
+		}
 		
 	} elseif ($ent == "onderdeeledit") {
 		
