@@ -3,6 +3,8 @@
 	--label-background-color: #cfe2ff;
 }
 
+/* Bootstrap */
+
 .row {
 	margin-left: 2px;
 	margin-right: 2px;
@@ -11,8 +13,6 @@
 .form-check {
 	padding-left: 0;
 }
-
-/* Bootstrap */
 
 .table {	
 	width: auto;
@@ -30,8 +30,6 @@ i {
 	padding-bottom: 0;
 	margin-bottom: 0;
 }
-
-
 
 /* Einde Bootstrap */
 
@@ -227,7 +225,7 @@ header {
 	padding-left: 0;
 	padding-right: 0;
 	
-	background-color: #00FFFF;
+	background-color: #0dcaf0;
 	border-top-right-radius: 12px;
 	border-top-left-radius: 12px;
 }
@@ -433,15 +431,15 @@ input.w40 {
 }
 
 input.w45 {
-	width: 260px;
+	width: 322px;
 }
 
 input.w50 {
-	width: 325px;
+	width: 345px;
 }
 
 input.w55 {
-	width: 325px;
+	width: 365px;
 }
 
 input.w60 {
@@ -487,6 +485,32 @@ button:disabled, button[disabled=disabled], .disabled {
 header a + a:visited + a:hover {
 	text-decoration: none;
 	color: inherit;
+}
+
+th.rotate {
+	height: 125px;
+	padding-top: 1px;
+	padding-bottom: 1px;
+	padding-left: 1px;
+	padding-right: 1px;
+	text-align: left;
+	white-space: nowrap;
+	background-color: white;
+}
+				
+th.rotate > div {
+	translate: 0 40px;
+	transform: rotate(270deg);
+	width: 42px;
+	margin-left: 0;
+	margin-right: 0;
+	padding-left: 0;
+	padding-left: 2px;
+	padding-right: 2px;
+	padding-top: 7px;
+	border-width: 1px;
+	border-style: none;
+	background-color: transparent;
 }
 
 #welkomsttekst {
@@ -1070,10 +1094,6 @@ table#presentiemuteren td.aanwezig {
 	margin-top: 8px;
 }
 
-#afdelingsmailing span {
-	margin-bottom: 8px;
-}
-
 #afdelingsmailing label {
 	clear: none;
 	float: left;
@@ -1149,10 +1169,6 @@ table#presentiemuteren td.aanwezig {
 
 .kandidatengroep td {
 	white-space: nowrap;
-}
-
-.kandidatengroep button {
-	clear: left;
 }
 
 #groepenaanexamentoevoegen {
@@ -1287,6 +1303,36 @@ table#presentiemuteren td.aanwezig {
 	font-size: 10pt;
 }
 
+.aftekenlijst table {
+	border-style: solid;
+	border-width: 1px;
+	border-collapse: collapse;
+}
+
+.aftekenlijst th {
+	border-style: solid;
+	border-width: 1px;
+	width: 50px;
+}
+
+.aftekenlijst th:first-child {
+	font-size: 160%;
+	text-align: center;
+	background-color: transparent;
+}
+
+.aftekenlijst td {
+	border-style: solid;
+	border-width: 1px;
+	padding-left: 3px;
+	padding-right: 3px;
+	min-height: 50px;
+}
+
+.aftekenlijst td:nth-child(2) {
+	max-width: 260px;
+}
+
 #diplomamuteren {
 	height: 150px;
 }
@@ -1343,7 +1389,7 @@ td.dubbeldiploma {
 
 #examenresultaten select {
 	float: left;
-	clear: both;
+	clear: left;
 }
 
 #examenresultaten button {
@@ -1808,6 +1854,9 @@ th.number, td.number, input.number, input[type='number'], th.nummer, td.nummer, 
 
 tr.gewijzigd, td.gewijzigd, li.gewijzigd {
 	font-style: italic;
+}
+tr.vet {
+	font-weight: bolder;
 }
 
 nav {
@@ -2274,7 +2323,6 @@ table#rekeningregels {
 }
 
 #onderdelenmuteren select {
-	height: 22px;
 	margin-top: 5px;
 	margin-bottom: 5px;
 }
@@ -2790,7 +2838,7 @@ input#titellijst[type='text'] {
 		background-color: transparent;
 	}
 	
-	#welkom, nav, #filter, footer {
+	#welkom, nav, #filter, footer, #opdrachtknoppen {
 		display: none;
    }
   
