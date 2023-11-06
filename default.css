@@ -204,7 +204,7 @@ button {
 	padding-right: 6px;
 }
 
-button.btn-fixed-top-right {
+div.btn-fixed-top-right {
 	float: right;
 	clear: none;
 }
@@ -367,10 +367,6 @@ input.w7 {
 
 input.bedrag {
 	width: 55px;
-	text-align: right;
-}
-
-input.d8, input.num2, input.num3 {
 	text-align: right;
 }
 
@@ -622,12 +618,7 @@ form#templateedit {
 	display: none;
 }
 
-#formulier input[type='number'] {
-	margin-top: 6px;
-	margin-right: 6px;
-}
-
-#formulier p, #eigenlijstmuteren p, #detailsonderdeelmuteren p {
+#eigenlijstmuteren p, #detailsonderdeelmuteren p {
 	float: left;
 	margin-right: 6px;
 	margin-top: 6px;
@@ -1848,7 +1839,7 @@ div.clear {
 	max-height: 24px;
 }
 
-th.number, td.number, input.number, input[type='number'], th.nummer, td.nummer, input.nummer, th.bedrag, td.bedrag, input.bedrag, th.recordid, td.recordid, th.lidnr, td.lidnr {
+th.number, td.number, input.number, th.nummer, td.nummer, input.nummer, th.bedrag, td.bedrag, input.bedrag, th.recordid, td.recordid, th.lidnr, td.lidnr {
 	text-align: right;
 }
 
@@ -2204,10 +2195,6 @@ p#laatsteemail {
 	margin-bottom: 2px;
 }
 
-#rekeningregelsmuteren input[type='number'] {
-	text-align: right;
-}
-
 #rekeningregels {
 	margin-bottom: 15px;
 }
@@ -2226,6 +2213,10 @@ table#rekeningregels {
 
 #aanmakenrekeningen label {
 	width: 250px;
+}
+
+label#lblVerzamelenPerGezin, label#lblBedragGezinskorting {
+	width: auto;
 }
 
 #rekeningenmailen ul, #aanmakenrekeningen ul {
@@ -2314,7 +2305,6 @@ table#rekeningregels {
 	height: 18px;
 	width: 40px;
 	margin-top: 1px;
-	text-align: right;
 }
 
 #onderdelenmuteren h1 {
