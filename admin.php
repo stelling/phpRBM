@@ -515,14 +515,11 @@ function fnBeheerLogins() {
 	$arrSort[6] = "Laatste login;LastLogin";
 	$arrSort[7] = "Status;Status";
 	
-	$kols[0]['headertext'] = "Login";
-	$kols[0]['sortcolumn'] = "Login";
-	$kols[1]['headertext'] = "Naam lid";
-	$kols[1]['sortcolumn'] = "L.Achternaam";
+	$kols[0] = array('columnname' => "Login", 'sortcolumn' => "Login");
+	$kols[1] = array('columnname' => "NaamLid", 'headertext' => "Naam lid", 'sortcolumn' => "L.Achternaam");	
 	$kols[2]['headertext'] = "Woonplaats";
 	$kols[3] = ['headertext' => "Lidnr", 'sortcolumn' => "Lidnr"];
 	$kols[4]['headertext'] = "E-mail";
-	
 	$kols[5] = ['headertext' => "Ingevoerd", 'columnname' => "Ingevoerd", 'type' => "date", 'sortcolumn' => "Login.Ingevoerd"];
 	$kols[6] = ['headertext' => "Laatste login", 'sortcolumn' => "Login.LastLogin", 'columnname' => "LastLogin", 'type' => "DTLONG"];
 	$kols[7] = ['headertext' => "Status", 'sortcolumn' => "Status"];
