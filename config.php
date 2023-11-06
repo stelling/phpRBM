@@ -23,4 +23,7 @@ $smtpport = 465;
 $smtpuser = "";
 $smtppw = "";
 
+// Aangepaste classes
+$classbutton = "";
+
 ?>
