@@ -319,22 +319,6 @@ function loperlidprops() {
 	});
 }
 
-function addlidond() {
-	
-	var lidid = $('#lidid').val();
-	var ondid = $('#NieuwOnderdeel').val();
-	
-	if (ondid > 0) {
-		$.ajax({
-			url: 'ajax_update.php?entiteit=addlidond',
-			type: 'post',
-			dataType: 'json',
-			data: { lidid: lidid, ondid: ondid }
-		});
-		loperlidprops();
-	}
-}
-
 /* Mailing specifiek */
 
 function mailingprops() {
