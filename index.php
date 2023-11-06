@@ -433,6 +433,7 @@ function fnAgenda($p_lidid=0) {
 	global $dtfmt;
 	
 	$i_lid = new cls_Lid();
+	$i_ex = new cls_Examen();
 	
 	if (strlen($_SESSION['settings']['agenda_url_feestdagen']) > 4) {
 		$ics = file_get_contents($_SESSION['settings']['agenda_url_feestdagen']);
@@ -519,6 +520,11 @@ function fnAgenda($p_lidid=0) {
 				foreach ($ikal as $k => $v) {
 					$txt .= $v . "\n";
 				}
+			}
+			
+			$f_ex = sprintf("EX.Datum='%s'", date("Y-m-d", $td));
+			foreach ($i_ex->lijst(1, $f_ex) as $exrow) {
+				$txt .= sprintf("<li class='examen' title=\"%1\$s\">%1\$s</li>", $exrow->ExamenOms);
 			}
 			
 			// Verjaardagen
