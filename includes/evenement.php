@@ -72,12 +72,12 @@ function fnEvenementen() {
 		$l = sprintf("%s?tp=%s&op=edit&eid=%%d' title='Muteer evenement'", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 		$kols[0] = ['class' => "muteren", 'columnname' => "RecordID", 'link' => $l];
 		
-		$kols[1] = ['headertext' => "Datum", 'type' => "date"];
+		$kols[1] = ['columnname' => "Datum", 'type' => "date"];
 		
-		$kols[2]['headertext'] = "Starttijd";
+		$kols[2]['columnname'] = "Starttijd";
 		$kols[3]['headertext'] = "Omschrijving";
 		$kols[4]['headertext'] = "Locatie";
-		$kols[5] = ['headertext' => "Dln", 'type' => "integer"];
+		$kols[5] = array(['headertext' => "Dln", 'type' => "integer"]);
 		$kols[6]['headertext'] = "Email";
 		$kols[7]['headertext'] = "Einddtijd";
 		$kols[8]['headertext'] = "Ins open?";
@@ -127,6 +127,7 @@ function inschrijvenevenementen($lidid) {
 		foreach ($i_ev->lijst(3) as $row) {
 			$rv = 0;
 			$react = sprintf("reactie_%d", $row->RecordID);
+			$cn_aantal = sprintf("aantal_%d", $row->RecordID);
 			$opm = sprintf("opm_%d", $row->RecordID);
 			$insrow = $i_ed->record(0, $lidid, $row->RecordID);
 			if (isset($insrow->RecordID)) {
@@ -139,6 +140,8 @@ function inschrijvenevenementen($lidid) {
 				$stat = "I";
 			} elseif ($_POST[$react] == "Aanmelden" and $row->StandaardStatus == "B") {
 				$stat = $row->StandaardStatus;
+			} elseif ($_POST[$react] == "Geen") {
+				$stat = "G";
 			} elseif ($_POST[$react] == "Aanmelden") {
 				$stat = "J";
 			} elseif ($_POST[$react] == "Afmelden") {
@@ -146,11 +149,8 @@ function inschrijvenevenementen($lidid) {
 			} else {
 				$stat = "";
 			}
-			if ($_POST[$react] == "Geen") {
-				if ($edid > 0) {
-					$i_ed->delete($edid);
-				}
-			} else {
+			$aantal = $_POST[$cn_aantal] ?? 1;
+			if ($stat != "G" or strlen($_POST[$opm]) > 0 or $edid > 0) {
 				if ($edid == 0) {
 					$edid = $i_ed->add($row->RecordID, $lidid, $stat);
 					$rv += $edid;
@@ -159,25 +159,21 @@ function inschrijvenevenementen($lidid) {
 					$rv += $i_ed->update($edid, "Status", $stat);
 				}
 				
-				$aantal = sprintf("aantal_%d", $row->RecordID);
-				if (isset($_POST[$aantal]) and strlen($_POST[$aantal]) > 0) {
-					$rv += $i_ed->update($edid, "Aantal", $_POST[$aantal]);
-				}
-				
+				$rv += $i_ed->update($edid, "Aantal", $aantal);
+								
 				if (isset($_POST[$opm])) {
 					$rv += $i_ed->update($edid, "Opmerking", $_POST[$opm]);
 				}
 			}
 		
-			if ($_SESSION['settings']['mailing_bevestigingdeelnameevenement'] > 0 and $rv > 0) {
+			if ($_SESSION['settings']['mailing_bevestigingdeelnameevenement'] > 0 and $rv > 0 and $stat != "G") {
 				$mailing = new Mailing($_SESSION['settings']['mailing_bevestigingdeelnameevenement']);
 				$mailing->xtrachar = "EVD";
 				$mailing->xtranum = $edid;
 				
 				$i_mv->vulvars(-1, $row->EmailOrganisatie);
 				if ($i_mv->mvid > 0) {
-					$mailing->vanafadres = $i_mv->vanaf_email;
-					$mailing->vanafnaam = $i_mv->vanaf_naam;
+					$mailing->mailingvanafid = $i_mv->mvid;
 				}
 			
 				if ($mailing->send($lidid, 0) > 0) {
@@ -214,9 +210,7 @@ function inschrijvenevenementen($lidid) {
 		$v = "&nbsp;";
 		
 		echo("<td>");
-		if (!isset($ins->Status)) {
-			printf("<input type='radio' name='reactie_%d' value='Geen' title='Geen reactie' checked>Geen&nbsp;", $row->RecordID);
-		}
+		printf("<input type='radio' name='reactie_%d' value='Geen' title='Geen reactie' checked>Geen&nbsp;", $row->RecordID);
 		
 		if (isset($ins->Status) and ($ins->Status == "B" or $ins->Status == "I" or $ins->Status == "J")) {
 			$c = "checked";
@@ -240,9 +234,8 @@ function inschrijvenevenementen($lidid) {
 		if ($row->MaxPersonenPerDeelname > 1) {
 			printf("<br>\n<label>Aantal personen (%2\$d max)</label><input type='number' name='aantal_%1\$d' min=1 max=%2\$d value=%3\$d class='num2' title='Met hoeveel personen kom je?'>", $row->RecordID, $row->MaxPersonenPerDeelname, $ins->Aantal);
 		}
-		if (isset($ins->Opmerking)) {
-			printf("<br>\n<input type='text' placeholder='Opmerking' name='opm_%d' class='w250' maxlength=250 value=\"%s\" title='Opmerking bij inschrijving'>", $row->RecordID, str_replace("\"", "'", $ins->Opmerking));
-		}
+		$opm = $ins->Opmerking ?? "";
+		printf("<br>\n<input type='text' placeholder='Opmerking' name='opm_%d' class='w250' maxlength=250 value=\"%s\" title='Opmerking bij inschrijving'>", $row->RecordID, str_replace("\"", "'", $opm));
 		echo("</td>\n");
 		
 		if (isset($ins->Status) and ($ins->Status == "B" or $ins->Status == "I" or $ins->Status == "J")) {
@@ -433,7 +426,7 @@ function muteerevenement($eventid) {
 	
 	if ($eventid > 0) {
 		$f = sprintf("(O.RecordID=%d OR ((O.Kader=1 OR O.`Type`IN ('A', 'G', 'R')) AND IFNULL(O.VervallenPer, '9999-12-31') >= '%s'", $org, $datum);
-		if ($_SESSION['webmaster'] == 0) {
+		if (WEBMASTER == false) {
 			$f .= sprintf(" AND O.RecordID IN (%s)", $_SESSION['lidgroepen']);
 		}
 		$f .= "))";
@@ -524,7 +517,7 @@ function muteerevenement($eventid) {
 			}
 			printf("<td class='ingevoerd'>%s<br>%s</td>\n", $dtfmt->format(strtotime($rd->Ingevoerd)), (new cls_Lid())->Naam($rd->IngevoerdDoor));
 			$l = sprintf("%s?tp=%s&eid=%d&op=delete&edid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $eventid, $rd->RecordID);
-			printf("<td><a href='%s'><i class='bi bi-trash'></i></a></td>", $l);
+			printf("<td><a href='%s'>%s</a></td>", $l, ICONVERWIJDER);
 			echo("</tr>\n");
 		}
 		echo("</table>\n");
@@ -542,30 +535,30 @@ function muteerevenement($eventid) {
 	}
 	echo("<div id='opdrachtknoppen'>\n");
 	if ($eventid == 0) {
-		echo("<button type='submit' name='btnToevoegen'><i class='bi bi-plus-circle'></i> Toevoegen</button>\n");
+		printf("<button type='submit' class='%s' name='btnToevoegen'>%s Toevoegen</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
 	} elseif ($row->VerwijderdOp < '2012-01-01') {
 		$f = sprintf("LidID=0 AND EvenementID=%d", $eventid);
 		if ($i_ed->aantal($f) == 0 and count($rowspd) > 0) {
-			echo("<button type='submit' name='btnDlnToevoegen'><i class='bi bi-plus-circle'></i> Deelnemer</button>\n");
+			printf("<button type='submit' class='%s' name='btnDlnToevoegen'>%s Deelnemer</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
 		}
 		if ($i_ev->doelgroep > 0 and count($rowspd) > 0) {
-			echo("<button type='submit' name='btnDoelgroepToevoegen'><i class='bi bi-plus-circle'></i> Doelgroep</button>\n");
+			printf("<button type='submit' class='%s' name='btnDoelgroepToevoegen'>%s Doelgroep</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
 		}
-		echo("<button type='submit' name='Bewaren'><i class='bi bi-save'></i> Bewaren</button>\n");
-		echo("<button type='submit' name='Bewaren_Sluiten'><i class='bi bi-door-closed'></i> Bewaren & Sluiten</button>\n");
+		printf("<button type='submit' class='%s' name='Bewaren'>%s Bewaren</button>\n", CLASSBUTTON, ICONBEWAAR);
+		printf("<button type='submit' class='%s' name='Bewaren_Sluiten'>%s Bewaren & Sluiten</button>\n", CLASSBUTTON, ICONSLUIT);
 	}
 	
 	if ($eventid > 0 and $row->VerwijderdOp < '2012-01-01' and $aantdln > 0 and toegang("Mailing/Nieuw", 0, 0)) {
-		printf("<button type='submit' name='maildeeln'><i class='bi bi-envelope-at'></i> Mailing deelnemers (%d)</button>\n", $aantdln);
+		printf("<button type='submit' class='%s' name='maildeeln'>%s</i> Mailing deelnemers (%d)</button>\n", CLASSBUTTON, ICONVERSTUUR, $aantdln);
 	}
 	if ($eventid > 0 and $row->VerwijderdOp < '2012-01-01' and count($rowspd) > 1 and toegang("Mailing/Nieuw", 0, 0)) {
-		printf("<button type='submit' name='mailpotdeeln'><i class='bi bi-envelope-at'></i> Mailing potenti&euml;le deelnemers (%d)</button>\n", count($rowspd));
+		printf("<button type='submit' class='%s' name='mailpotdeeln'>%s Mailing potenti&euml;le deelnemers (%d)</button>\n", CLASSBUTTON, ICONVERSTUUR, count($rowspd));
 	}
-	if ($eventid > 0 and ($_SESSION['webmaster'] == 1 or $row->IngevoerdDoor == $_SESSION['lidid'])) {
+	if ($eventid > 0 and (WEBMASTER or $row->IngevoerdDoor == $_SESSION['lidid'])) {
 		if ($row->VerwijderdOp > '2012-01-01') {
 			echo("<input type='submit' name='undoverwijderen' value='Verwijderen terugdraaien'>\n");
 		} else {
-			echo("<button type='submit' name='verwijderen'><i class='bi bi-trash'></i> Verwijderen</button>\n");
+			printf("<button type='submit' class='%s' name='verwijderen'>%s Verwijderen</button>\n", CLASSBUTTON, ICONVERWIJDER);
 		}
 	}
 	echo("</div>  <!-- Einde opdrachtknoppen -->\n");
@@ -709,13 +702,13 @@ function muteertypeevenement() {
 		
 		echo(fnEvenementOmschrijving($row, 0, "td"));
 		
-		printf("<td><a href='%s?tp=%s&op=delete&tid=%d' title='Verwijder type evenement'><i class='bi bi-trash'></i></a></td>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $row->RecordID);
+		printf("<td><a href='%s?tp=%s&op=delete&tid=%d' title='Verwijder type evenement'>%s</i></a></td>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $row->RecordID, ICONVERWIJDER);
 		echo("</tr>\n");
 	}
 	echo("</tbody>\n");
 	echo("</table>\n");
 	echo("<div id='opdrachtknoppen'>\n");
-	echo("<button type='submit' name='oms_nw'><i class='bi bi-plus-circle'></i> Type</button>");
+	printf("<button type='submit' class='%s' name='oms_nw'>%s Type</button>", CLASSBUTTON, ICONTOEVOEGEN);
 	echo("</div> <!-- Einde opdrachtknoppen -->\n");
 	echo("</form>\n");
 	
