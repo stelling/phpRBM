@@ -363,14 +363,14 @@ if ($currenttab == "Beheer logins") {
 	db_backup(4);
 	
 } elseif ($currenttab == "Onderhoud" and toegang($currenttab, 1, 1)) {
-	
+
 	if (isset($_POST['logboek_bewaartijd']) and $_POST['logboek_bewaartijd'] > 0) {
 		(new cls_Parameter())->update("logboek_bewaartijd", $_POST['logboek_bewaartijd']);
+	} else {
+		db_createtables();
+		db_onderhoud(2);
 	}
-	if (isset($_POST['mailing_bewaartijd']) and $_POST['mailing_bewaartijd'] > 0) {
-		(new cls_Parameter())->update("mailing_bewaartijd", $_POST['mailing_bewaartijd']);
-	}
-
+	
 	echo("<div id='dbonderhoud'>\n");
 	
 	$f = "TypeActiviteit=3";
