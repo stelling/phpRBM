@@ -652,8 +652,8 @@ class Mailing {
 				$_POST['selecteer_groep'] = $_POST['selecteer_groep'] ?? 0;
 				
 				printf("<input type='email' maxlength=50 placeholder='Toevoegen e-mailadres' onBlur=\"mailing_add_ontvanger(%d, 0, $(this).val());\">", $this->mid);
-				if ($this->aant_rcpt > 0) {
-					echo("<button type='button' id='OntvangersVerwijderen' class='btn btn-light' OnClick='mailing_verw_alle_ontvangers();'><i class='bi bi-trash'></i> Ontvangers</button>\n");
+				if ($this->aant_rcpt > 1) {
+					printf("<button type='button' id='OntvangersVerwijderen' class='%s' OnClick='mailing_verw_alle_ontvangers();'>%s Ontvangers</button>\n", CLASSBUTTON, ICONVERWIJDER);
 				}
 				
 				echo("<div class='clear'></div>\n");
@@ -679,9 +679,9 @@ class Mailing {
 				printf("<label>Zit in groep</label><select name='selectie_groep' id='selectie_groep' OnChange='mailingprops(%d);'>%s</selectie>\n", $this->mid, $selgr);
 				
 				echo("<label>Aantal personen in groep</label><p id='aantalpersoneningroep'></p>\n");
-				echo("<button type='button' id='LedenToevoegen' class='btn btn-light btn-sm' OnClick='mailing_add_selectie_ontvangers();'><i class='bi bi-plus-circle'></i> Groepsleden</button>\n");
+				printf("<button type='button' id='LedenToevoegen' class='%s' OnClick='mailing_add_selectie_ontvangers();'>%s Groepsleden</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
 				if ($this->aant_rcpt > 0) {
-					echo("<button type='button' class='btn btn-light btn-sm' id='LedenVerwijderen' OnClick='mailing_verw_selectie_ontvangers();'><i class='bi bi-trash'></i> Groepsleden</button>\n");
+					printf("<button type='button' class='%s' id='LedenVerwijderen' OnClick='mailing_verw_selectie_ontvangers();'>%s Groepsleden</button>\n", CLASSBUTTON, ICONVERWIJDER);
 				}
 				echo("</div> <!-- Einde mailingselectieleden -->\n");
 				echo("<div class='clear'></div>\n");
@@ -767,21 +767,21 @@ class Mailing {
 		
 		echo("<div id='opdrachtknoppen'>\n");
 		if ($this->mid > 0) {
-			echo("<button type='submit' name='action' value='Bewaren'><i class='bi bi-save'></i> Bewaren</button>\n");
-			echo("<button type='submit' name='action' value='Bewaren & sluiten'><i class='bi bi-door-closed'></i> Bewaren & sluiten</button>\n");
+			printf("<button type='submit' class='%s' name='action' value='Bewaren'>%s Bewaren</button>\n", CLASSBUTTON, ICONBEWAAR);
+			printf("<button type='submit' class='%s' name='action' value='Bewaren & sluiten'>%s Bewaren & sluiten</button>\n", CLASSBUTTON, ICONSLUIT);
 		} else {
-			echo("<button type='submit' name='Toevoegen'><i class='bi bi-plus-circle'></i> Toevoegen</button>\n");
+			printf("<button type='submit' class='%s' name='Toevoegen'>%s Toevoegen</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
 		}
 
-		echo("<button type='submit' name='action' value='Verstuur mailing' title='Verstuur mailing' id='btnverstuurmailing'><i class='bi bi-envelope-at'></i> Verstuur mailing</button>\n");
+		printf("<button type='submit' class='%s' name='action' value='Verstuur mailing' title='Verstuur mailing' id='btnverstuurmailing'>%s Verstuur mailing</button>\n", CLASSBUTTON, ICONVERSTUUR);
 		
 		$lnk = sprintf("%s?tp=%s&op=savepreview&mid=%d", $_SERVER['PHP_SELF'], $currenttab, $this->mid);
-		echo("<button type='submit' name='action' value='Bekijk voorbeeld' id='btnbekijkvoorbeeld'><i class='bi bi-eye'></i> Bekijk voorbeeld</button>\n");
+		printf("<button type='submit' class='%s' name='action' value='Bekijk voorbeeld' id='btnbekijkvoorbeeld'>%s Bekijk voorbeeld</button>\n", CLASSBUTTON, ICONVOORBEELD);
 
 		if ($this->mid > 0 and $this->deleted_on > "1901-01-01" and WEBMASTER) {
 			printf("<button type='submit' name='action' value='Verwijderen ongedaan maken' title='Verwijderen ongedaan maken'>Verwijderen ongedaan maken</button>\n");
 		} elseif ($this->mid > 0 and $this->deleted_on < "1901-01-01" and (WEBMASTER or $_SESSION['lidid'] == $this->IngevoerdDoor)) {
-			printf("<button type='submit' name='action' value='Verwijderen'><i class='bi bi-trash'></i> Verwijderen</button>\n");
+			printf("<button type='submit' class='%s' name='action' value='Verwijderen'>%s Verwijderen</button>\n", CLASSBUTTON, ICONVERWIJDER);
 		}
 		echo("</div>  <!-- Einde opdrachtknoppen -->\n");
 		

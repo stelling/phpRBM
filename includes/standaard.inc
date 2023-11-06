@@ -24,7 +24,9 @@ $sub = substr($_SERVER['PHP_SELF'], 0, strripos($_SERVER['PHP_SELF'], "/"));
 if (strlen($sub) > 1) {
 	$basisurl .= $sub;
 }
+
 define("BASISURL", $basisurl);
+require(BASEDIR . '/config.php');
 
 define("ARRGESLACHT", ["O" => "Onbekend", "V" => "Vrouwelijk", "M" => "Mannelijk", "N" => "Neutraal", "B" => "Bedrijf/Vereniging/Stichting"]);
 define("ARRTL", ["Alle", "Leden", "Klosleden", "Voormalig leden"]);
@@ -34,7 +36,7 @@ define("ARRTYPEONDERDEEL", ["A" => "Afdeling", "B" => "Bestuur", "C" => "Commiss
 define("ARRTYPEDIPLOMA", ["B" => "Brevet", "C" => "Competentie", "D" => "Diploma", "I" => "Insigne", "L" => "Licentie", "M" => "Module", "P" => "PvB"]);
 define("PASFOTOEXTENTIES", ["gif", "jpg", "jpeg", "png"]);
 define("ARRSOORTEVENEMENT", ["B" => "Bewaking", "G" => "Gezellig/sociaal", "O" => "Opleiding", "R" => "Reddingsbrigade-activiteit", "V" => "Vergadering/overleg", "W" => "Wedstrijd"]);
-define("ARRDLNSTATUS", ["A" => "Afgewezen", "B" => "Bevestigd", "I" => "Ingeschreven", "J" => "Aangemeld", "N" => "Onafgemeld afwezig", "R" => "Reserve", "T" => "Onder voorbehoud", "X" => "Afgemeld/Afgezegd"]);
+define("ARRDLNSTATUS", ["A" => "Afgewezen", "B" => "Bevestigd", "G" => "Geen", "I" => "Ingeschreven", "J" => "Aangemeld", "N" => "Onafgemeld afwezig", "R" => "Reserve", "T" => "Onder voorbehoud", "X" => "Afgemeld/Afgezegd"]);
 define("ARRPRESENTIESTATUS", ["A" => "Aanwezig", "H" => "Afgezegd door vereniging", "J" => "Aangemeld", "L" => "Te laat aanwezig", "R" => "Afwezig met bekende reden", "T" => "Onder voorbehoud", "V" => "Les is vervallen", "X" => "Niet aanwezig", "Z" => "Ziek"]);
 define("ARRTYPEBACKUP", [1 => "phpRBM-tabellen", 2 => "Tabellen uit MS-Access", 3 => "Alle tabellen"]);
 define("ARRTYPESTUK", ["A" => "Algemene Vergadering", "B" => "Beleidsstuk", "F" => "Formulier", "H" => "Handleiding", "P" => "Promotiemateriaal", "R" => "Regeling"]);
@@ -52,7 +54,28 @@ define("DTLONGSEC", "d MMMM yyyy (HH:mm:ss)");
 define("DTLONGWDSEC", "EEEE d MMMM yyyy (HH:mm:ss)");
 define("DTHMS", "HH:mm:ss");
 
-require(BASEDIR . '/config.php');
+define("ICONBEWAAR", "<i class='bi bi-floppy'></i>");
+define("ICONCHECK", "<i class='bi bi-check'></i>");
+define("ICONLIJST", "<i class='bi bi-file-earmark-spreadsheet'></i>");
+define("ICONLOGIN", "<i class='bi bi-arrow-right-circle'></i>");
+define("ICONOVERZICHT", "<i class='bi bi-card-text'></i>");
+define("ICONPRINT", "<i class='bi bi-printer'></i>");
+define("ICONSLUIT", "<i class='bi bi-door-closed'></i>");
+define("ICONSUBMIT", "<i class='bi bi-arrow-right-circle-fill'></i>");
+define("ICONTOEVOEGEN", "<i class='bi bi-plus-circle'></i>");
+define("ICONVERSTUUR", "<i class='bi bi-envelope-at' alt='Versturen'></i>");
+define("ICONVERVERS", "<i class='bi bi-arrow-clockwise'></i>");
+define("ICONVERWIJDER", "<i class='bi bi-trash' alt='Verwijderen'></i>");
+define("ICONVOLGENDE", "<i class='bi bi-skip-forward-circle' alt='Volgende'></i>");
+define("ICONVOORBEELD", "<i class='bi bi-eye' alt='Voorbeeld'></i>");
+define("ICONVORIGE", "<i class='bi bi-skip-backward-circle' alt='Vorige'></i>");
+
+if (isset($classbutton) and strlen($classbutton) > 0) {
+	define("CLASSBUTTON", $classbutton);
+} else {
+	define("CLASSBUTTON", "btn btn-light");
+}
+
 define("LIDIDWEBMASTERS", $lididwebmasters);
 $bestandsversie = filectime(BASEDIR . "/index.php");
 if (strlen($table_prefix) > 0 and substr($table_prefix, -1) != "_") {
@@ -117,7 +140,7 @@ if (file_exists($incl . ".inc")) {
 require_once("phpmailer/PHPMailer.php");
 require_once("phpmailer/SMTP.php");
 require_once("phpmailer/Exception.php");
-/* Einde includen open source libs*/
+/* Einde includen open source libs */
 
 foreach (array("database", "authentication", "afdelingen", "leden", "evenement", "financieel", "mailing", "diploma", "standaard", "webshop", "website") as $incl) {
 	$inclpath = __DIR__ . "/" . $incl . ".php";
@@ -152,8 +175,6 @@ if (!isset($_SESSION['settings']['naamvereniging'])) {
 if ($bestandsversie != $_SESSION['settings']['versie']) {
 	debug(sprintf("Nieuwe versie: %s", $dtfmt->format(time())), 0);
 	$i_p->controle();
-	db_createtables();
-	db_onderhoud(2);
 	$i_p->update("versie", $bestandsversie);
 	$i_p->vulsessie();
 }
@@ -204,8 +225,13 @@ function HTMLheader($breed=0) {
 	if (strlen($currenttab3) > 0) {
 		$title .= " | " . $currenttab3;
 	}
+	
+	$printform = false;
+	if ($currenttab2 == "Aftekenlijst" or $currenttab2 == "DL-lijst") {
+		$printform = true;
+	}
 
-   if (!isset($_GET['header']) or $_GET['header'] != "no") {
+	if (!isset($_GET['header']) or $_GET['header'] != "no") {
 		echo("<!DOCTYPE HTML>\n");
 		echo("<html lang='nl'>\n");
 		echo("<head>\n");
@@ -218,10 +244,7 @@ function HTMLheader($breed=0) {
 		echo("<link rel='stylesheet' href='//code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css'>\n");
 		
 		echo("<link href='https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css' rel='stylesheet'>\n");
-		echo("<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.4/font/bootstrap-icons.css'>\n");
-		
-//		echo("<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css'>\n");
-//		echo("<link rel='stylesheet' href='//cdnjs.cloudflare.com/ajax/libs/timepicker/1.3.5/jquery.timepicker.min.css'>\n");
+		echo("<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css'>\n");
 		echo("<script src='https://code.jquery.com/jquery-3.6.0.js'></script>\n");
 		if ($currenttab == "Vereniging" or $currenttab == "Eigen gegevens"  or $currenttab == "Ledenlijst" or $currenttab2 == "Overzicht lid") {
 			echo("<script src='https://code.jquery.com/ui/1.13.1/jquery-ui.js'></script>\n");
@@ -251,45 +274,49 @@ function HTMLheader($breed=0) {
 		} else {
 			echo("<div class='container-fluid'>\n");
 		}
-		echo("<header>\n");
 		
-		if (file_exists("maatwerk/help.html")) {
-			$l = BASISURL . "/maatwerk/help.html";
-		} else {
-			$l = "https://software.telling.nl/phpRBM/uitleg.php";
-		}
-		$htmlhelp = sprintf("<a href='%s'> <i class='bi bi-question-circle' style='font-size: 16pt;' title='Helpfunctie'></i></a>\n", $l);
-	
-		echo("<div id='welkom'>\n");
+		if ($printform == false) {
 		
-		if ($_SESSION['lidid'] > 0) {
-			printf("<p id='welkomuser'>Welkom %s</p>\n", htmlentities($_SESSION['roepnaamingelogde']));
-			echo("<a href='/?tp=Zelfservice/Wijzigen+wachtwoord'> <i class='bi bi-person-circle' style='font-size: 16pt;' title='Wijzigen wachtwoord'></i></a>\n");
-			echo("<a href='index.php?actie=uitloggen'> <i class='bi bi-box-arrow-left' style='font-size: 16pt;' title='Uitloggen'></i></a>\n");
-			if (WEBMASTER) {
-				if (substr($_SERVER['PHP_SELF'], -9) == "index.php") {
-					echo("<a href='admin.php'> <i class='bi bi-gear' style='font-size: 16pt;' title='Beheerdersmenu'></i></a>\n");
-				} else {
-					echo("<a href='index.php'> <i class='bi bi-house' style='font-size: 16pt;' title='Beginpagina'></i></a>\n");
-				}
+			echo("<header>\n");
+		
+			if (file_exists("maatwerk/help.html")) {
+				$l = BASISURL . "/maatwerk/help.html";
+			} else {
+				$l = "https://software.telling.nl/phpRBM/uitleg.php";
 			}
-			echo($htmlhelp);
-		} else {
-			echo($htmlhelp);
-		}
+			$htmlhelp = sprintf("<a href='%s'> <i class='bi bi-question-circle' style='font-size: 16pt;' title='Helpfunctie'></i></a>\n", $l);
+	
+			echo("<div id='welkom'>\n");
+		
+			if ($_SESSION['lidid'] > 0) {
+				printf("<p id='welkomuser'>Welkom %s</p>\n", htmlentities($_SESSION['roepnaamingelogde']));
+				echo("<a href='/?tp=Zelfservice/Wijzigen+wachtwoord'> <i class='bi bi-person-circle' style='font-size: 16pt;' title='Wijzigen wachtwoord'></i></a>\n");
+				echo("<a href='index.php?actie=uitloggen'> <i class='bi bi-box-arrow-left' style='font-size: 16pt;' title='Uitloggen'></i></a>\n");
+				if (WEBMASTER) {
+					if (substr($_SERVER['PHP_SELF'], -9) == "index.php") {
+						echo("<a href='admin.php'> <i class='bi bi-gear' style='font-size: 16pt;' title='Beheerdersmenu'></i></a>\n");
+					} else {
+						echo("<a href='index.php'> <i class='bi bi-house' style='font-size: 16pt;' title='Beginpagina'></i></a>\n");
+					}
+				}
+				echo($htmlhelp);
+			} else {
+				echo($htmlhelp);
+			}
 
-		echo("</div>  <!-- Einde welkom -->\n");
+			echo("</div>  <!-- Einde welkom -->\n");
 		
-		printf("<h1 id='naamwebsite'>%s</h1>\n", $_SESSION['settings']['naamwebsite']);
+			printf("<h1 id='naamwebsite'>%s</h1>\n", $_SESSION['settings']['naamwebsite']);
 		
-		$xtra = "";
-		if ($currenttab == "Overzicht lid" and isset($_GET['lidid']) and $_GET['lidid'] > 0) {
-			$xtra = sprintf("lidid=%d", $_GET['lidid']);
+			$xtra = "";
+			if ($currenttab == "Overzicht lid" and isset($_GET['lidid']) and $_GET['lidid'] > 0) {
+				$xtra = sprintf("lidid=%d", $_GET['lidid']);
+			}
+		
+			echo("</header>\n");
+		
+			fnDispMenu(1, $xtra);
 		}
-		
-		echo("</header>\n");
-		
-		fnDispMenu(1, $xtra);
 	}
 } # HTMLheader
 
@@ -1024,281 +1051,299 @@ debug($k . ": geen columnname");
 	
 } # fnDisplayTable
 
-function fnEditTable($res, $kols, $id, $th) {
+function fnEditTable($res, $kols, $id="", $th="") {
 	global $dtfmt;
 
 	$rows = $res->fetchAll();
-	
-	$ret = sprintf("<table id='%s' class='%s'>\n", $id, TABLECLASSES);
-	if (strlen($th) > 0) {
-		if (count($rows) > 3) {
-			$t = sprintf(" title='%d rijen'", count($rows));
-		} else {
-			$t = "";
-		}
-		$ret .= sprintf("<caption%s>%s</caption>\n", $t, $th);
-	}
-	$ret .= "<thead>\n";
-	$ret .= "<tr>";
-	$colpk = $res->getColumnMeta(0)['name'];
-	foreach ($kols as $kn => $kol) {
-		if (count($rows) > 0) {
-			if (!isset($kol['columnname'])) {
-				$kols[$kn]['columnname'] = $res->getColumnMeta($kn)['name'];
-			}
-			if (!isset($kols[$kn]['type']) or strlen($kols[$kn]['type']) == 0) {
-				$kols[$kn]['type'] = "text";
-			}
-			if (isset($kol['link']) and strlen($kol['link']) > 1) {
-				$kols[$kn]['type'] = "link";
-			}
-			if ($kols[$kn]['type'] == "text" or $kols[$kn]['type'] == "email") {
-				for ($cn=0;$cn<$res->ColumnCount();$cn++) {
-					if ($kols[$kn]['columnname'] ==  $res->getColumnMeta($cn)['name']) {
-						$kols[$kn]['collen'] = intval($res->getColumnMeta($cn)['len'] / 3);		
-					}
-				}
-			}
-			if (isset($kol['type']) and $kol['type'] == "pk") {
-				$colpk = $kols[$kn]['columnname'];
-			}
-		}
-		if (isset($kol['headertext']) and strlen($kol['headertext']) > 0) {
-			$ret .= sprintf("<th>%s</th>", $kol['headertext']);
-		}
-	}
-	
+	$ret = "";
+//	print_r($rows);
 //	debug($kols);
-	$ret .= "</tr>\n";
-	$ret .= "</thead>\n";
 	
-	$ret .= "<tbody>\n";
-	$dispkop = 1;
-	$totaantal = 0;
-	foreach($rows as $row) {
-		$ret .= "<tr>";
-		$valpk = $row->$colpk;
-		foreach ($kols as $key => $kol) {
-			$tp = $kol['type'] ?? "text";
-			$kol_class = "";
-			if (isset($kol['class'])) {
-				$kol_class = sprintf("class='%s'", $kol['class']);
-			}
-			$kol_title = "";
-			if (isset($kol['title']) and strlen($kol['title']) > 0) {
-				$kol_title = sprintf(" title=\"%s\"", str_replace("\"", "'", $kol['title']));
-			}
-			if (isset($kol['link']) and strlen($kol['link']) > 0) {
-				$tp = "link";
-				if (substr($kol['link'], 0, 7) == "<a href") {
-					$kol_link = $kol['link'];
-				} else {
-					$kol_link = "<a href='" . $kol['link'] . "'";
-					if (isset($kol['title'])) {
-						if (isset($kol['columntitle']) and strpos($kol['title'], "%") !== false) {
-							$t = sprintf($kol['title'], $row[$kol['columntitle']]);
-						} else {
-							$t = $kol['title'];
-						}
-						$kol_link .= sprintf(" title='%s'", $t);
-					}
-					if (isset($kol['class']) and $kol['class'] == "muteren") {
-						$kol_link .= "><i class='bi bi-pencil-square' alt='Muteren'></i></a>";
-					} elseif (isset($kol['class']) and $kol['class'] == "trash") {
-						$kol_link .= "><i class='bi bi-trash' alt='Verwijderen'></i></a>";
-					} elseif (isset($kol['class']) and $kol['class'] == "pdf") {
-						$kol_link .= "><i class='bi bi-file-earmark-pdf'></i></a>";
-					} else {
-						$kol_link .= ">&nbsp;&nbsp;&nbsp;</a>";
-					}
-				}
-			}
-			$ro = $kol['readonly'] ?? false;
-			if (isset($kol['cond_ro']) and strlen($kol['cond_ro']) > 0) {
-				$v = $kol['cond_ro'];
-				if ($row->$v > 0) {
-					$ro = true;
-				}
-			}
-			$colname = $kol['columnname'];
-			$value = $row->$colname;
-		
-// debug($colname . ": " . $value);
-			
-			$col2 = $kol['secondcolumn'] ?? "";
-			$value2 = $row->$col2 ?? "";
-			
-			if (!isset($kol['headertext']) or strlen($kol['headertext']) == 0) {
-				// Kolom wordt niet getoond.
-			
-			} elseif ($tp == "link") {
-				if ($value > 0) {
-					$href = str_replace("%d", $value, $kol_link);
-					$ret .= sprintf("<td>%s</td>", $href);
-				} else {
-					$ret .= "<td>&nbsp;</td>";
-				}	
-			
-			} elseif ($tp == "checkbox") {
-				$ret .= "<td class='checkbox'>";
-				if ($ro) {
-					if ($value == 1) {
-						$ret .= "Ja</td>";
-					} else {
-						$ret .= "Nee</td>";
-					}
-				} else {
-					$ret .= sprintf("<input type='checkbox' id='%s_%d' value=1%s></td>", $colname, $valpk, checked($value));
-				}
-				
-			} elseif (isset($kol['bronselect']) and count($kol['bronselect']) > 0) {
-				$opt = "";
-				foreach ($kol['bronselect'] as $k => $v) {
-					$opt .= sprintf("<option%s value=%s>%s</option>\n", checked($k, "option", $value), $k, $v);
-				}
-				$ret .= sprintf("<td><select id='%s_%d'>\n%s</select></td>\n", $colname, $valpk, $opt);
-
-			} elseif ($tp == "date" or $tp == "rqdate" or $tp == "DTTEXT") {
-				if ($ro == false) {
-					$rq = "";
-					if ($tp == "rqdate") {
-						$rq = " required";
-					}
-					$ret .= sprintf("<td><input type='date' id='%s_%d' value='%s'%s></td>", $colname, $valpk, $value, $rq);
-				} elseif ((!is_null($value)) and $value > '1900-01-01') {
-					$dtfmt->setPattern(DTTEXT);
-					$ret .= sprintf("<td>%s</td>", $dtfmt->format(strtotime($value)));
-				} else {
-					$ret .= "<td>&nbsp;</td>";
-				}
-				
-			} elseif ($tp == "geboren_leeftijd") {
-					$dtfmt->setPattern(DTTEXT);
-					$ret .= sprintf("<td>%s (%s)</td>", $dtfmt->format(strtotime($value)), fnLeeftijd($value));
-				
-			} elseif ($tp == "datetime" or $tp == "DTLONG") {
-				$dtfmt->setPattern(DTLONG); // 1 januari 2020 (14:12)
-				if ($ro == false) {
-					// Nog aanpassen, klopt niet
-					$ret .= sprintf("<td><input type='date' id='%s_%d' value='%s'></td>", $colname, $valpk, $value);
-					
-				} elseif ((!is_null($value)) and $value > '1900-01-01') {
-					$ret .= sprintf("<td>%s</td>", $dtfmt->format(strtotime($value)));
-				} else {
-					$ret .= "<td>&nbsp;</td>";
-				}
-								
-			} elseif ($tp == "tijd") {
-				if ($ro) {
-					$ret .= sprintf("<td>%s</td>", $value);
-				} else {
-					$ret .= sprintf("<td><input type='time' id='%s_%d' value='%s'></td>", $colname, $valpk, $value);
-				}
-
-			} elseif ($tp == "integer" or $tp == "pk") {
-				if ($ro) {
-					$ret .= sprintf("<td class='number'>%d</td>", $value);
-					
-				} else {
-					if (isset($kol['max']) and $kol['max'] <= 99) {
-						$c = "num2";
-						$m = sprintf(" max=%d", $kol['max']);
-					} elseif (isset($kol['max']) and $kol['max'] <= 999) {
-						$c = "num3";
-						$m = sprintf(" max=%d", $kol['max']);
-					} else {
-						$c = "w10";
-						$m = "";
-					}
-					$ret .= sprintf("<td><input type='number' id='%s_%d' value=%d class='%s'%s%s></td>", $colname, $valpk, $value, $c, $m, $kol_title);
-				}
-
-			} elseif ($tp == "leeftijd") {
-				if ($ro) {
-					$ret .= sprintf("<td class='number'>%d</td>", $value);
-				} else {
-					$ret .= sprintf("<td><input type='number' id='%s_%d' value=%d class='num2' min=0 max=99></td>", $colname, $valpk, $value);
-				}
-				
-			} elseif ($tp == "dagen") {
-				if ($ro) {
-					if ($value == 1) {
-						$ret .= "<td class='number'>1 dag</td>";
-					} else {
-						$ret .= sprintf("<td class='number'>%d dagen</td>", $value);
-					}
-				} else {
-					$ret .= sprintf("<td><input type='number' id='%s_%d' value=%d class='num2' min=0 max=999>dagen</td>", $colname, $valpk, $value);
-				}
-
-			} elseif ($tp == "bedrag") {
-				if ($ro) {
-					$ret .= sprintf("<td class='number'>%.2F</td>", $value);
-				} else {
-					$ret .= sprintf("<td><input type='text' id='%s_%d' value='%.2F' class='d8'%s></td>", $colname, $valpk, $value, $kol_title);
-				}				
-				
-			} elseif ($tp == "email") {
-				if ($ro) {
-					$ret .= sprintf("<td>%s</td>", fnDispEmail($value, "", 1));
-				} else {
-					$ret .= sprintf("<td><input type='email' class='w%1\$d' id='%2\$s_%3\$d' value='%4\$s' maxlength=%1\$d></td>", $kol['collen'], $colname, $valpk, $value);
-				}
-				
-			} elseif ($tp == "pwd") {
-				if ($kol_edit == 0) {
-					$ret .= "<td></td>";
-				} else {
-					$ret .= sprintf("<td><input type='password' name='%s_%d'></td>", $colname, $valpk);
-				}
-
+	if (count($rows) > 0) {
+		$ret = sprintf("<table id='%s' class='%s'>\n", $id, TABLECLASSES);
+		if (strlen($th) > 0) {
+			if (count($rows) > 3) {
+				$t = sprintf(" title='%d rijen'", count($rows));
 			} else {
-				if ($ro) {
-					if (strlen($col2) > 0) {
-						if (isset($kol['secondcolumntype']) and $kol['secondcolumntype'] == "geboren_leeftijd") {	
-							$dtfmt->setPattern(DTTEXT);
-							$value2 = sprintf("%s (%s)", $dtfmt->format(strtotime($row->$col2)), fnLeeftijd($row->$col2));
-						} else {
-							$value2 = htmlentities($row->$col2);
-						}
-						$ret .= sprintf("<td>%s<br>%s</td>", htmlentities($value), $value2);
-					} else {
-						$ret .= sprintf("<td>%s</td>", htmlentities($value));
-					}
-				} else {
-					$xc = sprintf("w%d", $kol['collen']);
-					$ret .= sprintf("<td><input type='text' id='%s_%d' value=\"%s\" class='%s' maxlength=%d%s>", $colname, $valpk, $value, $xc, $kol['collen'], $kol_title);
-					if (strlen($col2) > 0) {
-						if (isset($kol['secondcolumntype']) and $kol['secondcolumntype'] == "date") {
-							$ret .= sprintf("<br><input type='date' id='%s_%d' value=\"%s\">", $col2, $valpk, $value2);
-						} else {
-							$ret .= sprintf("<br><input type='text' id='%s_%d' value=\"%s\">", $col2, $valpk, $value2);
-						}
-					}
-					$ret .= "</td>";
+				$t = "";
+			}
+			$ret .= sprintf("<caption%s>%s</caption>\n", $t, $th);
+		}
+		$ret .= "<thead>\n";
+		$ret .= "<tr>";
+		$colpk = $res->getColumnMeta(0)['name'];
+		foreach ($kols as $kn => $kol) {
+			if (count($rows) > 0) {
+				if (!isset($kol['columnname'])) {
+					$kols[$kn]['columnname'] = $res->getColumnMeta($kn)['name'];
 				}
+				if (!isset($kols[$kn]['headertext'])) {
+					$kols[$kn]['headertext'] = $kols[$kn]['columnname'];
+				}
+				if (!isset($kols[$kn]['type']) or strlen($kols[$kn]['type']) == 0) {
+					$kols[$kn]['type'] = "text";
+				}
+				if (isset($kol['link']) and strlen($kol['link']) > 1) {
+					$kols[$kn]['type'] = "link";
+				}
+				
+				if ($kols[$kn]['type'] == "text" or $kols[$kn]['type'] == "email") {
+					for ($cn=0;$cn<$res->ColumnCount();$cn++) {
+						if ($kols[$kn]['columnname'] ==  $res->getColumnMeta($cn)['name']) {
+							$kols[$kn]['collen'] = intval($res->getColumnMeta($cn)['len'] / 3);		
+						}
+					}
+				}
+				if (isset($kol['type']) and $kol['type'] == "pk") {
+					$colpk = $kols[$kn]['columnname'];
+				}
+			}
+			if (isset($kols[$kn]['headertext']) and strlen($kols[$kn]['headertext']) > 0) {
+				$ret .= sprintf("<th>%s</th>", $kols[$kn]['headertext']);
 			}
 		}
+		
+	//	debug($kols);
 		$ret .= "</tr>\n";
-	}
-	$ret .= "</tbody>\n";
-	$ret .= "</table>\n";
-	
-	$ret .= sprintf("<script>
-	
-	$('select').change(function() {
-		savedata('%1\$s', 0, this);
-	});
-	
-	$('input').blur(function() {
-		savedata('%1\$s', 0, this);
-	});
-	
-	$(\"input[type='number']\").change(function() {
-		savedata('%1\$s', 0, this);
-	});
+		$ret .= "</thead>\n";
+		
+		$ret .= "<tbody>\n";
+		$dispkop = 1;
+		$totaantal = 0;
+		foreach($rows as $row) {
+			$ret .= "<tr>";
+			$valpk = $row->$colpk;
+			foreach ($kols as $key => $kol) {
+				$tp = $kol['type'] ?? "text";
+				$kol_class = "";
+				if (isset($kol['class'])) {
+					$kol_class = sprintf("class='%s'", $kol['class']);
+				}
+				$kol_title = "";
+				if (isset($kol['title']) and strlen($kol['title']) > 0) {
+					$kol_title = sprintf(" title=\"%s\"", str_replace("\"", "'", $kol['title']));
+				}
+				$ro = $kol['readonly'] ?? false;
+				if (isset($kol['cond_ro']) and strlen($kol['cond_ro']) > 0) {
+					$v = $kol['cond_ro'];
+					if ($row->$v > 0) {
+						$ro = true;
+					}
+				}
+				if (isset($kol['link']) and strlen($kol['link']) > 0) {
+					$tp = "link";
+					if ($ro and $kol['class'] == "trash") {
+						$kol_link = "";
+					} elseif (substr($kol['link'], 0, 7) == "<a href") {
+						$kol_link = $kol['link'];
+					} else {
+						$kol_link = "<a href='" . $kol['link'] . "'";
+						if (isset($kol['title'])) {
+							if (isset($kol['columntitle']) and strpos($kol['title'], "%") !== false) {
+								$t = sprintf($kol['title'], $row[$kol['columntitle']]);
+							} else {
+								$t = $kol['title'];
+							}
+							$kol_link .= sprintf(" title='%s'", $t);
+						}
+						if (isset($kol['class']) and $kol['class'] == "muteren") {
+							$kol_link .= "><i class='bi bi-pencil-square' alt='Muteren'></i></a>";
+						} elseif (isset($kol['class']) and $kol['class'] == "trash") {
+							$kol_link .= sprintf(">%s</a>", ICONVERWIJDER);
+						} elseif (isset($kol['class']) and $kol['class'] == "pdf") {
+							$kol_link .= "><i class='bi bi-file-earmark-pdf'></i></a>";
+						} else {
+							$kol_link .= ">&nbsp;&nbsp;&nbsp;</a>";
+						}
+					}
+				}
+				$colname = $kol['columnname'];
+				$value = $row->$colname;
+				
+				$col2 = $kol['secondcolumn'] ?? "";
+				$value2 = $row->$col2 ?? "";
+				
+				if (!isset($kol['headertext']) or strlen($kol['headertext']) == 0) {
+					// Kolom wordt niet getoond.
+				
+				} elseif ($tp == "link") {
+					if ($value > 0 and strlen($kol_link) > 0) {
+						$href = str_replace("%d", $value, $kol_link);
+						$ret .= sprintf("<td>%s</td>", $href);
+					} else {
+						$ret .= "<td>&nbsp;</td>";
+					}	
+				
+				} elseif ($tp == "checkbox") {
+					$ret .= "<td class='checkbox'>";
+					if ($ro) {
+						if ($value == 1) {
+							$ret .= "Ja</td>";
+						} else {
+							$ret .= "Nee</td>";
+						}
+					} else {
+						$ret .= sprintf("<input type='checkbox' id='%s_%d' value=1%s></td>", $colname, $valpk, checked($value));
+					}
+					
+				} elseif (isset($kol['bronselect']) and count($kol['bronselect']) > 0) {
+					$opt = "";
+					foreach ($kol['bronselect'] as $k => $v) {
+						$opt .= sprintf("<option%s value=%s>%s</option>\n", checked($k, "option", $value), $k, $v);
+					}
+					$ret .= sprintf("<td><select id='%s_%d'>\n%s</select></td>\n", $colname, $valpk, $opt);
+					
+				} elseif ($tp == "groep" and isset($kol['columnfilter'])) {
+					$o = $row->{$kol['columnfilter']};
+					if ((new cls_Groep())->aantal(sprintf("OnderdeelID=%d", $o)) > 1) {
+						$opt = (new cls_Groep())->htmloptions($value, $o);
+						$ret .= sprintf("<td><select id='%s_%d'>\n%s</select></td>\n", $colname, $valpk, $opt);
+					} else {
+						$ret .= "<td></td>";
+					}
+					
+				} elseif ($tp == "date" or $tp == "rqdate" or $tp == "DTTEXT") {
+					if ($ro == false) {
+						$rq = "";
+						if ($tp == "rqdate") {
+							$rq = " required";
+						}
+						$ret .= sprintf("<td><input type='date' id='%s_%d' value='%s'%s></td>", $colname, $valpk, $value, $rq);
+					} elseif ((!is_null($value)) and $value > '1900-01-01') {
+						$dtfmt->setPattern(DTTEXT);
+						$ret .= sprintf("<td>%s</td>", $dtfmt->format(strtotime($value)));
+					} else {
+						$ret .= "<td>&nbsp;</td>";
+					}
+					
+				} elseif ($tp == "geboren_leeftijd") {
+						$dtfmt->setPattern(DTTEXT);
+						$ret .= sprintf("<td>%s (%s)</td>", $dtfmt->format(strtotime($value)), fnLeeftijd($value));
+					
+				} elseif ($tp == "datetime" or $tp == "DTLONG") {
+					$dtfmt->setPattern(DTLONG); // 1 januari 2020 (14:12)
+					if ($ro == false) {
+						// Nog aanpassen, klopt niet
+						$ret .= sprintf("<td><input type='date' id='%s_%d' value='%s'></td>", $colname, $valpk, $value);
+						
+					} elseif ((!is_null($value)) and $value > '1900-01-01') {
+						$ret .= sprintf("<td>%s</td>", $dtfmt->format(strtotime($value)));
+					} else {
+						$ret .= "<td>&nbsp;</td>";
+					}
+									
+				} elseif ($tp == "tijd") {
+					if ($ro) {
+						$ret .= sprintf("<td>%s</td>", $value);
+					} else {
+						$ret .= sprintf("<td><input type='time' id='%s_%d' value='%s'></td>", $colname, $valpk, $value);
+					}
 
-</script>\n", $id);
+				} elseif ($tp == "integer" or $tp == "pk") {
+					if ($ro) {
+						$ret .= sprintf("<td class='number'>%d</td>", $value);
+						
+					} else {
+						if (isset($kol['max']) and $kol['max'] <= 99) {
+							$c = "num2";
+							$m = sprintf(" max=%d", $kol['max']);
+						} elseif (isset($kol['max']) and $kol['max'] <= 999) {
+							$c = "num3";
+							$m = sprintf(" max=%d", $kol['max']);
+						} else {
+							$c = "w10";
+							$m = "";
+						}
+						$ret .= sprintf("<td><input type='number' id='%s_%d' value=%d class='%s'%s%s></td>", $colname, $valpk, $value, $c, $m, $kol_title);
+					}
+
+				} elseif ($tp == "leeftijd") {
+					if ($ro) {
+						$ret .= sprintf("<td class='number'>%d</td>", $value);
+					} else {
+						$ret .= sprintf("<td><input type='number' id='%s_%d' value=%d class='num2' min=0 max=99></td>", $colname, $valpk, $value);
+					}
+					
+				} elseif ($tp == "dagen") {
+					if ($ro) {
+						if ($value == 1) {
+							$ret .= "<td class='number'>1 dag</td>";
+						} else {
+							$ret .= sprintf("<td class='number'>%d dagen</td>", $value);
+						}
+					} else {
+						$ret .= sprintf("<td><input type='number' id='%s_%d' value=%d class='num2' min=0 max=999>dagen</td>", $colname, $valpk, $value);
+					}
+
+				} elseif ($tp == "bedrag") {
+					if ($ro) {
+						$ret .= sprintf("<td class='number'>%.2F</td>", $value);
+					} else {
+						$ret .= sprintf("<td><input type='text' id='%s_%d' value='%.2F' class='d8'%s></td>", $colname, $valpk, $value, $kol_title);
+					}				
+					
+				} elseif ($tp == "email") {
+					if ($ro) {
+						$ret .= sprintf("<td>%s</td>", fnDispEmail($value, "", 1));
+					} else {
+						$ret .= sprintf("<td><input type='email' class='w%1\$d' id='%2\$s_%3\$d' value='%4\$s' maxlength=%1\$d></td>", $kol['collen'], $colname, $valpk, $value);
+					}
+					
+				} elseif ($tp == "pwd") {
+					if ($kol_edit == 0) {
+						$ret .= "<td></td>";
+					} else {
+						$ret .= sprintf("<td><input type='password' name='%s_%d'></td>", $colname, $valpk);
+					}
+
+				} else {
+					if ($ro) {
+						if (strlen($col2) > 0) {
+							if (isset($kol['secondcolumntype']) and $kol['secondcolumntype'] == "geboren_leeftijd") {	
+								$dtfmt->setPattern(DTTEXT);
+								$value2 = sprintf("%s (%s)", $dtfmt->format(strtotime($row->$col2)), fnLeeftijd($row->$col2));
+							} else {
+								$value2 = htmlentities($row->$col2);
+							}
+							$ret .= sprintf("<td>%s<br>%s</td>", htmlentities($value), $value2);
+						} else {
+							$ret .= sprintf("<td>%s</td>", htmlentities($value));
+						}
+					} else {
+						$xc = sprintf("w%d", $kol['collen']);
+						$ret .= sprintf("<td><input type='text' id='%s_%d' value=\"%s\" class='%s' maxlength=%d%s>", $colname, $valpk, $value, $xc, $kol['collen'], $kol_title);
+						if (strlen($col2) > 0) {
+							if (isset($kol['secondcolumntype']) and $kol['secondcolumntype'] == "date") {
+								$ret .= sprintf("<br><input type='date' id='%s_%d' value=\"%s\">", $col2, $valpk, $value2);
+							} else {
+								$ret .= sprintf("<br><input type='text' id='%s_%d' value=\"%s\">", $col2, $valpk, $value2);
+							}
+						}
+						$ret .= "</td>";
+					}
+				}
+			}
+			$ret .= "</tr>\n";
+		}
+		$ret .= "</tbody>\n";
+		$ret .= "</table>\n";
+		
+		$ret .= sprintf("<script>
+	
+		$('select').change(function() {
+			savedata('%1\$s', 0, this);
+		});
+
+		$('input').blur(function() {
+			savedata('%1\$s', 0, this);
+		});
+	
+		$(\"input[type='number']\").change(function() {
+			savedata('%1\$s', 0, this);
+		});
+
+		</script>\n", $id);
+	}
 
 	return $ret;
 	
@@ -1416,7 +1461,7 @@ function debug($tekst, $p_tm=2, $logact=0, $p_lengte=0) {
 	}
 	
 	$f = "";
-	if (WEBMASTER or $_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
+	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl" or WEBMASTER) {
 		$bt = debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT, 2);
 		for ($t=count($bt)-1;$t >= 0;$t--) {
 			if (strlen($f) > 0) {

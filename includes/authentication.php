@@ -206,6 +206,7 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 		if ($i_dp->aantal() > 0) {
 			addtp($b . "/Details");
 			addtp($b . "/Leden per diploma");
+			addtp($b . "/Examenonderdelen");
 		}
 //		addtp($b . "/Examens muteren");
 	}
@@ -380,9 +381,7 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 		addtp("Website/Logboek");
 	}
 	
-	if ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
 //		addtp("DMS");   Voorlopig geen tijd voor, dus uitgezet.
-	}
 	
 	$f = "(EL.AantalKolommen > 0 OR LENGTH(EigenScript) > 4) AND LENGTH(EL.Tabpage) > 0";
 	foreach((new cls_Eigen_lijst())->basislijst($f, "EL.Naam") as $row) {
@@ -534,7 +533,7 @@ function fnInloggen() {
 	echo("<p>Ben je je wachtwoord vergeten, dan kan je deze <a href='\?tp=Herstel+wachtwoord'>opnieuw instellen</a>.</p>\n");
 
 	echo("<div id='opdrachtknoppen'>\n");
-	echo("<button type='submit' name='Inloggen'><i class='bi bi-arrow-right-circle'></i> Inloggen</button>\n");
+	printf("<button type='submit' name='Inloggen'>%s Inloggen</button>\n", ICONLOGIN);
 	echo("</div> <!-- Einde opdrachtknoppen -->\n");
 
 	echo("</form>\n");
@@ -641,15 +640,15 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		
 		printf("<label>Login</label><input type='text' name='login' class='w%d'>\n", $_SESSION['settings']['login_maxlengte']);
 		
-		echo("<input type='hidden' value='mail' name='stap'>
+		printf("<input type='hidden' value='mail' name='stap'>
 		<p>Vul twee van de drie bovenstaande velden in.</p>
 		<p>Je lidnummer kan je <a href='index.php?tp=Opvragen+lidnr'>hier</a> opvragen.</p>
 		<p>Na het versturen van deze link is je oude wachtwoord niet meer geldig.</p>
 		<div id='opdrachtknoppen'>\n
-		<button type='submit'><i class='bi bi-arrow-right-circle'></i> Stuur herstellink</button>\n
+		<button type='submit'>%s Stuur herstellink</button>\n
 		</div> <!-- Einde opdrachtknoppen -->\n
 		</form>
-		</div>  <!-- Einde herstellenwachtwoord -->");
+		</div>  <!-- Einde herstellenwachtwoord -->", ICONSUBMIT);
 	}
 	if (strlen($mess) > 0) {
 		(new cls_Logboek())->add($mess, 5, $lidid, 0, 0, 8);
@@ -809,7 +808,7 @@ function fnLoginAanvragen($stap="") {
 		printf(fneisenwachtwoord());
 		
 		echo("<div id='opdrachtknoppen'>\n");
-		echo("<button type='submit' name='loginaanvragen'><i class='bi bi-arrow-right-circle'></i> Aanvragen</button>\n");
+		printf("<button type='submit' class='%s' name='loginaanvragen'>%s Aanvragen</button>\n", CLASSBUTTON, ICONSUBMIT);
 		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 		
 		echo("</form>\n");

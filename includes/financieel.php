@@ -46,7 +46,7 @@ function fnRekeningen() {
 			printf("<label>Rekeningnummer</label><input type='number' name='nwrekening' value=%d class='d8'>\n", $nwreknr);
 			printf("<label>Lid</label><select name='nwlid'><option value=0>Selecteer lid ...</option>\n%s</select>\n", (new cls_Lid())->htmloptions(-1, 2));
 			echo("<div class='clear'></div>\n");
-			echo("<button type='submit' name='RekToevoegen'><i class='bi bi-plus-circle'></i> Toevoegen</button>\n");
+			printf("<button type='submit' class='%s' name='RekToevoegen'>%s Toevoegen</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
 			echo("</form>\n");
 		}
 		
@@ -268,7 +268,7 @@ function fnRekeningMuteren($p_rkid=-1) {
 		echo("</form>\n");
 		
 		echo("<div id='opdrachtknoppen'>\n");
-		printf("<button type='button' name='Sluiten' onClick=\"location.href='%s?tp=%s/Beheer'\"><i class='bi bi-door-closed'></i> Sluiten</button>\n", $_SERVER['PHP_SELF'], $currenttab);
+		printf("<button type='button' class='%s' name='Sluiten' onClick=\"location.href='%s?tp=%s/Beheer'\">%s Sluiten</button>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], $currenttab, ICONSLUIT);
 		
 		$f = sprintf("RK.Nummer < %d", $reknr);
 		$prev_rek = $i_rk->max("Nummer", $f);
@@ -276,16 +276,16 @@ function fnRekeningMuteren($p_rkid=-1) {
 		$next_rek = $i_rk->min("Nummer", $f);
 		
 		if ($prev_rek > 0) {
-			printf("<button type='button' name='VorigeRekening' onClick=\"location.href='%s?tp=%s/Muteren&p_reknr=%d'\"><i class='bi bi-skip-backward-circle'></i> Vorige rekening</button>\n", $_SERVER['PHP_SELF'], $currenttab, $prev_rek);
+			printf("<button type='button' class='%s' name='VorigeRekening' onClick=\"location.href='%s?tp=%s/Muteren&p_reknr=%d'\">%s Vorige rekening</button>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], $currenttab, $prev_rek, ICONVORIGE);
 		}
 		if ($next_rek > 0) {
-			printf("<button type='button' name='VolgendeRekening' onClick=\"location.href='%s?tp=%s/Muteren&p_reknr=%d'\"><i class='bi bi-skip-forward-circle'></i> Volgende rekening</button>\n", $_SERVER['PHP_SELF'], $currenttab, $next_rek);
+			printf("<button type='button' class='%s' name='VolgendeRekening' onClick=\"location.href='%s?tp=%s/Muteren&p_reknr=%d'\">%s Volgende rekening</button>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], $currenttab, $next_rek, ICONVOLGENDE);
 		}
 		
 		$f = sprintf("RR.Rekening=%d", $reknr);
 		if ($i_rr->aantal($f) > 0) {
-			printf("<button type='button' onClick=\"location.href='%s?tp=%s&op=preview_rek&p_reknr=%d'\"><i class='bi bi-eye'></i> Bekijk rekening</button>\n", $_SERVER['PHP_SELF'], $currenttab, $reknr);
-			printf("<button type='button' onClick=\"location.href='%s?tp=%s&op=send_rek&p_reknr=%d'\"><i class='bi bi-envelope-at'></i> Verstuur rekening</button>\n", $_SERVER['PHP_SELF'], $currenttab, $reknr);
+			printf("<button type='button' class='%s' onClick=\"location.href='%s?tp=%s&op=preview_rek&p_reknr=%d'\">%s Bekijk rekening</button>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], $currenttab, $reknr, ICONVOORBEELD);
+			printf("<button type='button' class='%s' onClick=\"location.href='%s?tp=%s&op=send_rek&p_reknr=%d'\">%s Verstuur rekening</button>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], $currenttab, $reknr, ICONVERSTUUR);
 		}
 		
 		
@@ -430,12 +430,12 @@ function RekeningenAanmaken() {
 			echo("<div class='clear'></div>\n");
 			echo("<div id='opdrachtknoppen'>\n");
 			echo("<input type='checkbox' value='1' name='sure'>\n");
-			echo("<input type='submit' value='Rekeningen aanmaken' name='RekAanmaken'>\n");
+			printf("<input type='submit' class='%s' value='Rekeningen aanmaken' name='RekAanmaken'>\n", CLASSBUTTON);
 			if ($ontbrekende == 1) {
 				echo("<input type='hidden' name='ontbrekende' value=1>\n");
 			}
 			printf("<input type='hidden' name='eerstenummer' value='%s'>\n", $_POST['eerstenummer']);
-			echo("<button type='button' onClick='history.go(-1);'>Terug</button>\n");
+			printf("<button type='button' class='%s' onClick='history.go(-1);'>Terug</button>\n", CLASSBUTTON);
 			echo("</div>  <!-- Einde opdrachtknoppen -->\n");
 			echo("</form>\n");
 		} else {
@@ -472,9 +472,9 @@ function RekeningenAanmaken() {
 	
 		echo("<div id='opdrachtknoppen'>\n");
 		if (count($lidrows) > 0) {
-			printf("<button type='submit' name='Verder'><i class='bi bi-skip-forward-circle'></i> Verder (%d rekeningen)</button>\n", count($lidrows));
+			printf("<button type='submit' class='%s' name='Verder'><i class='bi bi-skip-forward-circle'></i> Verder (%d rekeningen)</button>\n", CLASSBUTTON, count($lidrows));
 		} else {
-			echo("<button type='button'>Geen rekeningen beschikbaar</button>\n");
+			printf("<button type='button' class='%s'>Geen rekeningen beschikbaar</button>\n", CLASSBUTTON);
 		}
 		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 	
