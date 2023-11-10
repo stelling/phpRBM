@@ -558,7 +558,10 @@ class cls_db_base {
 		
 		if (strlen($p_filter) > 0) {
 			$p_filter = "WHERE " . $p_filter;
+		} elseif (strlen($this->where) > 0) {
+			$p_filter = "WHERE " . $this->where;
 		}
+	
 		if (strlen($this->basefrom) == 0) {
 			$this->basefrom = $this->table;
 		}
@@ -593,6 +596,8 @@ class cls_db_base {
 		}
 		if (strlen($p_filter) > 0) {
 			$query .= " AND " . $p_filter;
+		} elseif (strlen($this->where) > 0) {
+			$query .= " AND " . $this->where;
 		}
 		$query .= ";";
 		$result = $this->execsql($query);
@@ -621,7 +626,9 @@ class cls_db_base {
 		}
 		if (strlen($p_filter) > 0) {
 			$query .= " WHERE " . $p_filter;
-		}
+		} elseif (strlen($this->where) > 0) {
+			$query .= " WHERE " . $this->where;
+		}			
 		$query .= ";";
 		$result = $this->execsql($query);
 		return $result->fetchColumn();
@@ -861,7 +868,10 @@ class cls_db_base {
 	public function basislijst($p_filter="", $p_orderby="", $p_fetched=1, $p_limiet=-1) {
 		if (strlen($p_filter) > 0) {
 			$p_filter = "WHERE " . $p_filter;
+		} elseif (strlen($this->where) > 0) {
+			$p_filter = "WHERE " . $this->where;
 		}
+		
 		if (strlen($p_orderby) > 0) {
 			$p_orderby = "ORDER BY " . $p_orderby;
 		}
@@ -1311,7 +1321,7 @@ class cls_Lid extends cls_db_base {
 		
 		return $rv;
 		
-	}  # Naam
+	}  # cls_Lid->Naam
 	
 	public function roepnaam($p_lidid, $p_riz="gast") {
 		$this->vulvars($p_lidid);
@@ -2228,7 +2238,7 @@ class cls_Onderdeel extends cls_db_base {
 				$this->oid = 0;
 			}
 		}
-	}
+	}  # cls_Onderdeel->vulvars
 	
 	public function naam($p_oid, $p_riz="", $p_maxlen=99) {
 		$this->vulvars($p_oid);
@@ -2389,6 +2399,15 @@ class cls_Onderdeel extends cls_db_base {
 			$ret .= sprintf("<option%s value=%d>%s</option>\n", checked($row->RecordID, "option", $p_cv), $row->RecordID, $o);
 		}
 		return $ret;
+	}
+	
+	public function islid($p_ondid, $p_lidid) {
+		$query = sprintf("SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.Lid=%d AND LO.OnderdeelID=%d AND LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE();", TABLE_PREFIX, $p_lidid, $p_ondid);
+		if ($this->scalar($query) > 0) {
+			return true;
+		} else {
+			return false;
+		}
 	}
 	
 	public function add($p_type="G", $p_code="") {
@@ -6371,7 +6390,7 @@ class cls_Diploma extends cls_db_base {
 		if ($this->pdodelete($this->dpid, $p_reden)) {
 			$this->log($p_dpid);
 		}
-	}
+	}  # cls_Diploma->delete
 	
 	public function controle() {
 		
@@ -6395,6 +6414,13 @@ class cls_Diploma extends cls_db_base {
 		$query = sprintf("SELECT DP.RecordID FROM %s WHERE IFNULL(DP.Vervallen, '9999-12-31') < CURDATE() AND (SELECT COUNT(*) FROM %sLiddipl AS LD WHERE LD.DiplomaID=DP.RecordID)=0;", $this->basefrom, TABLE_PREFIX);
 		$result = $this->execsql($query);
 		$reden = "het diploma vervallen is en niemand dit diploma (meer) heeft.";
+		foreach ($result->fetchAll() as $row) {
+			$this->delete($row->RecordID, $reden);
+		}		
+		
+		$query = sprintf("SELECT DP.RecordID FROM %s WHERE IFNULL(DP.EindeUitgifte, '9999-12-31') < DATE_SUB(CURDATE(), INTERVAL 1 YEAR) AND (SELECT COUNT(*) FROM %sLiddipl AS LD WHERE LD.DiplomaID=DP.RecordID)=0;", $this->basefrom, TABLE_PREFIX);
+		$result = $this->execsql($query);
+		$reden = "het diploma het niet meer wordt uitgegeven en niemand dit diploma (meer) heeft.";
 		foreach ($result->fetchAll() as $row) {
 			$this->delete($row->RecordID, $reden);
 		}
@@ -9886,9 +9912,9 @@ class cls_Foto extends cls_db_base {
 }  # cls_Foto
 
 class cls_Inschrijving extends cls_db_base {
-	
 	public $insid = 0;
 	public $naam = "";
+	public $inschrijfdatum = "";
 	
 	function __construct($p_insid=-1) {
 		$this->table = TABLE_PREFIX . "Inschrijving";
@@ -9909,6 +9935,11 @@ class cls_Inschrijving extends cls_db_base {
 			if (isset($row->Naam)) {
 				$this->naam = trim($row->Naam);
 				$this->naamlogging = trim($row->Naam);
+				if (isset($row->Datum) and strlen($row->Datum) == 10) {
+					$this->inschrijfdatum = $row->Datum;
+				} else {
+					$this->inschrijfdatum = substr($row->Ingevoerd, 0, 10);
+				}
 			} else {
 				$this->insid = 0;
 			}
@@ -10723,9 +10754,17 @@ function db_onderhoud($type=9) {
 	$tab = TABLE_PREFIX . "Liddipl";
 	$col = "Geslaagd";
 	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` TINYINT NOT NULL DEFAULT '1' AFTER `DatumBehaald`; ", $tab, $col);
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` TINYINT NOT NULL DEFAULT '1' AFTER `DatumBehaald`;", $tab, $col);
 		$i_base->execsql($query, 2);
 	}
+	
+	$tab = TABLE_PREFIX . "Inschrijving";
+	$col = "Datum";
+	if ($i_base->bestaat_kolom($col, $tab) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` DATE NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `RecordID`; ", $tab, $col);
+		$i_base->execsql($query, 2);
+	}
+
 	
 	/***** Velden die aangepast zijn *****/
 	$i_base->tas = 12;
@@ -10833,7 +10872,7 @@ function db_onderhoud($type=9) {
 	
 	$query = sprintf("ALTER TABLE `%sAdmin_activiteit` CHANGE `IP_adres` `IP_adres` VARCHAR(45) CHARACTER SET utf8 COLLATE utf8_general_ci NULL;", TABLE_PREFIX);
 	$i_base->execsql($query);
-
+	
 	/***** Velden die niet meer nodig zijn *****/
 	$i_base->tas = 13;
 	
