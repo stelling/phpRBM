@@ -31,6 +31,11 @@ i {
 	margin-bottom: 0;
 }
 
+.form-select {
+	width: auto;
+	color: var(--default-text-color);
+}
+
 /* Einde Bootstrap */
 
 body {
@@ -103,7 +108,7 @@ li {
 	padding-left: 3px;
 }
 
-label, input, select {
+label, input {
 	height: 30px;
 }
 
@@ -113,7 +118,7 @@ button, input, select, textarea {
 	margin-right: 4px;
 }
 
-label, input, select, textarea {
+label, input, textarea {
 	margin-top: 3px;
 	margin-bottom: 3px;
 }
@@ -305,9 +310,8 @@ header h1 {
 #filter select {
 	clear: none;
 	float: left;
-	height: 30px;
 	margin-left: 3px;
-	margin-right: 20px;
+	margin-right: 10px;
 	margin-top: 9px;
 	margin-bottom: 8px;
 	padding-top: 0;
@@ -1346,7 +1350,6 @@ table#presentiemuteren td.aanwezig {
 
 #diplomamuteren select {
 	min-width: 115px;
-	height: 25px;
 }
 
 #diplomamuteren label {
@@ -1758,7 +1761,7 @@ fieldset h3 {
 	padding-right: 4px;
 }
 
-#opdrachtknoppen {
+#opdrachtknoppen, #knoppenbalk {
 	clear: both;
 	float: left;
 	height: auto;
@@ -1780,30 +1783,26 @@ fieldset h3 {
 	border-bottom-left-radius: 12px;
 }
 
-#opdrachtknoppen button {
+#opdrachtknoppen button, #knoppenbalk button {
 	float: left;
-	
-	margin-bottom: 8px;
 	margin-left: 8px;
-	margin-right: 8px;
-	
 	cursor: pointer;
 }
 
-#opdrachtknoppen input[type='checkbox'] {
+#opdrachtknoppen input[type='checkbox'], #knoppenbalk input[type='checkbox'] {
 	margin-top: 9px;
 }
 
-#opdrachtknoppen i {
+#opdrachtknoppen i, #knoppenbalk i {
 	font-size: 175%;
 }
 
-#opdrachtknoppen select {
+#opdrachtknoppen select, #knoppenbalk select {
 	margin-left: 6px;
 	margin-top: 12px;
 }
 
-#opdrachtknoppen p {
+#opdrachtknoppen p, #knoppenbalk p {
 	float: right;
 	margin-top: 6px;
 	padding-top: 0;
@@ -2531,6 +2530,10 @@ input#db_folderbackup, input#naamwebsite, input#naamvereniging, input#urlverenig
 
 #nieuwlid .invoerblok {
 	border-style: none;
+}
+
+#inschrijvingmuteren label {
+	width: 200px;
 }
 
 label#lblHuisletter, label#lblToevoeging {
