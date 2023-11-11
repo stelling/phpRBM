@@ -1453,7 +1453,10 @@ class cls_Lid extends cls_db_base {
 
 		if (strlen($p_xf) > 0) {
 			$query .= " AND " . $p_xf;
+		} elseif (strlen($this->where) > 0) {
+			$query .= " AND " . $this->where;
 		}
+		
 		$query .= "	ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam;";
 
 		$result = $this->execsql($query);
@@ -2012,11 +2015,19 @@ class cls_Authorisation extends cls_db_base {
 		$this->ta = 15;
 	}
 	
-	private function vulvars($p_aid=-1) {
+	private function vulvars($p_aid=-1, $p_tabpage="") {
 		$this->aid = $p_aid;
+		
+		if ($this->aid <= 0 and strlen($p_tabpage) > 0) {
+			$query = sprintf("SELECT AA.RecordID FROM %s WHERE AA.Tabpage='%s';", $this->basefrom, $p_tabpage);
+			$rows = $this->execsql($query)->fetchAll();
+			if (count($rows) == 1) {
+				$this->aid = $rows[0]->RecordID;
+			}
+		}
 
 		if ($this->aid > 0) {	
-			$query = sprintf("SELECT Tabpage, Toegang FROM %s WHERE RecordID=%d;", $this->table, $this->aid);
+			$query = sprintf("SELECT Tabpage, Toegang FROM %s WHERE AA.RecordID=%d;", $this->basefrom, $this->aid);
 			$row = $this->execsql($query)->fetch();
 			$this->naamtp = $row->Tabpage;
 			$this->naamlogging = $row->Tabpage;
@@ -2032,7 +2043,7 @@ class cls_Authorisation extends cls_db_base {
 				$this->ondnaam = (new cls_Onderdeel())->Naam($row->Toegang);
 			}
 		}
-	}
+	}  # cls_Authorisation->vulvars
 	
 	public function Naam($p_aid) {
 		$this->vulvars($p_aid);
@@ -2052,12 +2063,13 @@ class cls_Authorisation extends cls_db_base {
 	}
 	
 	public function toegang($p_tabpage, $p_aid=-1, $p_alleenmenu=0) {
-		
 		$rv = false;
 		
 		if ($p_aid > 0) {
 			$this->vulvars($p_aid);
 			$p_tabpage = $this->naamtp;
+		} elseif (strlen($p_tabpage) > 0) {
+			$this->vulvars(-1, $p_tabpage);
 		}
 		
 		if (!isset($_SESSION['lidgroepen']) or strlen($_SESSION['lidgroepen']) <= 2) {
@@ -2066,6 +2078,7 @@ class cls_Authorisation extends cls_db_base {
 		
 		if (!isset($_SESSION['lidauth']) or !is_array($_SESSION['lidauth']) or count($_SESSION['lidauth']) < 5) {
 			$query = sprintf("SELECT DISTINCT AA.Tabpage FROM %s WHERE AA.Toegang IN (%s);", $this->basefrom, $_SESSION['lidgroepen']);
+			$_SESSION['lidauth'] = null;
 			foreach ($this->execsql($query)->fetchAll() as $row) {
 				$_SESSION['lidauth'][] = $row->Tabpage;
 			}
@@ -2087,16 +2100,14 @@ class cls_Authorisation extends cls_db_base {
 				$rv = true;
 			}
 		} else {
-			/*
 			if (in_array($p_tabpage, $_SESSION['lidauth'])) {
 				$rv = true;
-			}
-			*/
-
-			$query = sprintf("SELECT IFNULL(MIN(AA.RecordID), 0) FROM %s WHERE AA.Tabpage='%s' AND AA.Toegang IN (%s);", $this->basefrom, $p_tabpage, $_SESSION['lidgroepen']);
-			$aid = $this->scalar($query);
-			if ($aid > 0) {
-				$rv = true;
+			} else {
+				$query = sprintf("SELECT IFNULL(MIN(AA.RecordID), 0) FROM %s WHERE AA.Tabpage='%s' AND AA.Toegang IN (%s);", $this->basefrom, $p_tabpage, $_SESSION['lidgroepen']);
+				$aid = $this->scalar($query);
+				if ($aid > 0) {
+					$rv = true;
+				}
 			}
 		}
 		
@@ -2105,7 +2116,8 @@ class cls_Authorisation extends cls_db_base {
 		}
 		
 		return $rv;
-	}  # toegang
+		
+	}  # cls_Authorisation->toegang
 	
 	public function autorisatiesperonderdeel() {
 		$query = sprintf("SELECT O.Naam AS Onderdeel, A.Tabpage as `Toegang tot` FROM %sAdmin_access AS A INNER JOIN %1\$sOnderdl AS O ON A.Toegang=O.RecordID ORDER BY O.Naam, A.Tabpage;", TABLE_PREFIX);
@@ -9915,6 +9927,8 @@ class cls_Inschrijving extends cls_db_base {
 	public $insid = 0;
 	public $naam = "";
 	public $inschrijfdatum = "";
+	public $opmerking = "";
+	public $eersteles = "";
 	
 	function __construct($p_insid=-1) {
 		$this->table = TABLE_PREFIX . "Inschrijving";
@@ -9935,14 +9949,16 @@ class cls_Inschrijving extends cls_db_base {
 			if (isset($row->Naam)) {
 				$this->naam = trim($row->Naam);
 				$this->naamlogging = trim($row->Naam);
-				if (isset($row->Datum) and strlen($row->Datum) == 10) {
-					$this->inschrijfdatum = $row->Datum;
-				} else {
-					$this->inschrijfdatum = substr($row->Ingevoerd, 0, 10);
-				}
+				$this->inschrijfdatum = $row->Datum;
+				$this->lidid = $row->LidID;
+				$this->opmerking = $row->Opmerking;
+				$this->eersteles = $row->EersteLes;
 			} else {
 				$this->insid = 0;
+				$this->lidid = 0;
 			}
+		} else {
+			$this->lidid = 0;
 		}
 	}
 	
@@ -10061,6 +10077,17 @@ class cls_Inschrijving extends cls_db_base {
 			$this->log($this->insid);
 		}
 	}
+	
+	public function controle() {
+		
+		foreach ($this->basislijst() as $row) {
+			// Tijdelijke controle mag na 1/1/2024 weg
+			if (strlen($row->Datum) < 10 or $row->Datum > substr($row->Ingevoerd, 0, 10)) {
+				$this->update($row->RecordID, "Datum", substr($row->Ingevoerd, 0, 10));
+			}
+		}
+		
+	}  # cls_Inschrijving->controle
 	
 	public function opschonen() {
 		$query = sprintf("SELECT Ins.RecordID FROM %s WHERE IFNULL(Ins.Verwerkt, '9999-12-31') < DATE_SUB(NOW(), INTERVAL 84 MONTH);", $this->basefrom);
@@ -10749,8 +10776,7 @@ function db_onderhoud($type=9) {
 		$query = sprintf("ALTER TABLE `%s` ADD `%s` TINYINT NOT NULL DEFAULT '0' AFTER `Plaats`; ", $tab, $col);
 		$i_base->execsql($query, 2);
 	}
-	
-	
+
 	$tab = TABLE_PREFIX . "Liddipl";
 	$col = "Geslaagd";
 	if ($i_base->bestaat_kolom($col, $tab) == false) {
@@ -10765,7 +10791,6 @@ function db_onderhoud($type=9) {
 		$i_base->execsql($query, 2);
 	}
 
-	
 	/***** Velden die aangepast zijn *****/
 	$i_base->tas = 12;
 	
