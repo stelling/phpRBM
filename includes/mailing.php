@@ -14,7 +14,6 @@ function fnMailing() {
 	}
 	
 	$mailing = new Mailing($_GET['mid']);
-	
 	if ($_GET['tp'] == "Mailing/Historie" and $op != "histdetails" and $op != "opnieuw") {
 		$op = "historie";
 	} elseif (isset($_POST['action']) and $_POST['action'] == "Bewaren") {
@@ -628,7 +627,7 @@ class Mailing {
 			printf("<p id='recordid'>%d</p><label id='lblrecordid'>RecordID</label>\n", $this->mid);
 		}
 		printf("<input type='hidden' name='mailingid' value=%d>\n", $this->mid);
-		printf("<label>Van</label><select name='MailingVanafID' id='MailingVanafID' %s>\n<option value=''>Selecteer ...</option>%s</select>\n", $jsoc, (new cls_Mailing_vanaf())->htmloptions($this->mailingvanafid));
+		printf("<label>Van</label><select name='MailingVanafID' id='MailingVanafID' class='form-select' %s>\n<option value=''>Selecteer ...</option>%s</select>\n", $jsoc, (new cls_Mailing_vanaf())->htmloptions($this->mailingvanafid));
 		printf("<label>Aan</label><input type='text' name='OmschrijvingOntvangers' id='OmschrijvingOntvangers' class='w50' value=\"%s\" maxlength=50 placeholder='Omschrijving groep personen aan wie de mailing is gericht' %s>\n", $this->OmschrijvingOntvangers, $jstb);
 		printf("<label>Onderwerp</label><input type='text' name='subject' id='subject' class='w75' value=\"%s\" maxlength=75 placeholder='Onderwerp' %s>\n", $this->subject, $jstb);
 
@@ -647,7 +646,7 @@ class Mailing {
 				$this->meldingen = "";
 
 				echo("<label>Ontvanger toevoegen</label>\n");
-				printf("<select id='add_lid' onChange=\"mailing_add_ontvanger(%d, $(this).val(), '');\">%s</select>\n", $this->mid, $this->options_mogelijke_ontvangers());
+				printf("<select id='add_lid' class='form-select' onChange=\"mailing_add_ontvanger(%d, $(this).val(), '');\">%s</select>\n", $this->mid, $this->options_mogelijke_ontvangers());
 			
 				$_POST['selecteer_groep'] = $_POST['selecteer_groep'] ?? 0;
 				
@@ -676,7 +675,7 @@ class Mailing {
 
 				$this->sl_huidigegroep = $_POST['selectie_groep'] ?? 0;
 				$selgr = sprintf("<option value=0>&nbsp;</option>\n%s<option disabled>-- Eigen lijsten --</option>\n%s</select>\n", $i_ond->htmloptions($this->sl_huidigegroep, 1), $i_el->htmloptions($this->sl_huidigegroep, 2));
-				printf("<label>Zit in groep</label><select name='selectie_groep' id='selectie_groep' OnChange='mailingprops(%d);'>%s</selectie>\n", $this->mid, $selgr);
+				printf("<label>Zit in groep</label><select name='selectie_groep' id='selectie_groep' class='form-select' OnChange='mailingprops(%d);'>%s</selectie>\n", $this->mid, $selgr);
 				
 				echo("<label>Aantal personen in groep</label><p id='aantalpersoneningroep'></p>\n");
 				printf("<button type='button' id='LedenToevoegen' class='%s' OnClick='mailing_add_selectie_ontvangers();'>%s Groepsleden</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
@@ -705,7 +704,7 @@ class Mailing {
 					$select .= sprintf("<option value=%d>%s</option>\n", $ondrow->RecordID, $ondrow->Naam);
 				}
 			}
-			printf("<label>Zichtbaar voor</label><select id='ZichtbaarVoor' %s>\n%s</select>\n", $jsoc, $select);
+			printf("<label>Zichtbaar voor</label><select id='ZichtbaarVoor' class='form-select' %s>\n%s</select>\n", $jsoc, $select);
 			printf("<label>Opties</label><input type='checkbox' id='template' value=1%s %s><p>Template</p>", checked($this->template), $jscb);
 			printf("<input type='checkbox' name='HTMLdirect' value=1%s onChange='this.form.submit();'><p>HTML direct (zonder editor)</p>", checked($this->htmldirect));
 			printf("<input type='checkbox' id='ZonderBriefpapier' value=1%s %s><p>Zonder briefpapier versturen</p>", checked($this->zonderbriefpapier), $jscb);
@@ -1988,12 +1987,12 @@ function fnRekeningenMailen($op) {
 		$i_p->vulsessie();
 		printf("<form method='post' action='%s?tp=%s/%s&op=selectierekeningen'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
 		$rekseizoen = (new cls_Seizoen())->max("Nummer");
-		printf("<label>Seizoen</label><select name='rekseizoen'>\n%s</select>\n", (new cls_Seizoen())->htmloptions($rekseizoen, 1));
+		printf("<label>Seizoen</label><select name='rekseizoen' class='form-select'>\n%s</select>\n", (new cls_Seizoen())->htmloptions($rekseizoen, 1));
 		printf("<label>Rekeningnummer</label><input type='number' class='d8' value=%d name='minreknr'><label class='totenmet'>tot en met</label><input type='number' class='d8' value=%d name='maxreknr'>\n", $i_rk->min("Nummer"), $i_rk->max("Nummer"));
 
 		$f = sprintf("RK.Seizoen=%d", $rekseizoen);
 		printf("<label>Rekeningdatum</label><input type='date' value='%s' name='mindatum'><label class='totenmet'>tot en met</label><input type='date' value='%s' name='maxdatum'>\n", $i_rk->min("Datum", $f), $i_rk->max("Datum", $f));
-		printf("<label>Betaald door (debiteur)</label><select name='reklid'>\n<option value=-1>*** Iedereen ***</option>\n%s</select>\n", (new cls_lid())->htmloptions(-1, 3));
+		printf("<label>Betaald door (debiteur)</label><select name='reklid' class='form-select'>\n<option value=-1>*** Iedereen ***</option>\n%s</select>\n", (new cls_lid())->htmloptions(-1, 3));
 		
 		echo("<div class='form-check form-switch'>\n");
 		echo("<label>Volledig betaald</label><input type='checkbox' class='form-check-input' name='volbetaald' value=1>\n");
@@ -2170,14 +2169,14 @@ function fnMailingInstellingen() {
 	printf("<label>E-mails uit de outbox automatisch in de achtergrond versturen?</label><input type='checkbox' name='mailing_sentoutbox_auto' value='1'%s>\n", checked($_SESSION['settings']['mailing_sentoutbox_auto']));
 	printf("<label>Hoeveel minuten moeten mails minimaal wachten totdat ze automatisch worden verstuurd?</label><input type='number' name='mailing_wachttijdinoutbox' value=%d>\n", $_SESSION['settings']['mailing_wachttijdinoutbox']);
 	
-	printf("<label>Mag een verzonden e-mail opnieuw worden verstuurd?</label><select name='mailing_mailopnieuw'>%s</select></p>\n", $options);
+	printf("<label>Mag een verzonden e-mail opnieuw worden verstuurd?</label><select name='mailing_mailopnieuw' class='form-select'>%s</select></p>\n", $options);
 	
 	$options = sprintf("<option value=-1%s>Webmasters</option>\n", checked($_SESSION['settings']['mailing_alle_zien'], "option", -1));
 	
 	foreach ((new cls_Onderdeel())->lijst(1) as $row) {
 		$options .= sprintf("<option value=%d%s>%s</option>\n", $row->RecordID, checked($_SESSION['settings']['mailing_alle_zien'], "option", $row->RecordID), $row->Naam);
 	}
-	printf("<label>Wie mogen alle mailings zien en muteren?</label>\n<select name='mailing_alle_zien'>%s</select>\n", $options);
+	printf("<label>Wie mogen alle mailings zien en muteren?</label>\n<select name='mailing_alle_zien' class='form-select'>%s</select>\n", $options);
 
 	printf("<label>Hoeveel mails mogen er per minuut verstuurd worden</label><input type='number' name='maxmailsperminuut' value=%d min=1 max=9999>\n", $_SESSION['settings']['maxmailsperminuut']);
 	printf("<label>Hoeveel mails mogen er per uur verstuurd worden</label><input type='number' name='maxmailsperuur' value=%d min=1 max=9999>\n", $_SESSION['settings']['maxmailsperuur']);
@@ -2205,32 +2204,32 @@ function fnMailingInstellingen() {
 	foreach($rows as $row) {
 		$options .= sprintf("<option%s value=%d>%s</option>", checked($row->RecordID, "option", $_SESSION['settings']['mailing_lidnr']), $row->RecordID, $row->subject);
 	}
-	printf("<label>Versturen lidnummer</label><select name='mailing_lidnr'>\n<Option value=0>Geen</option>\n%s</select>\n", $options);
+	printf("<label>Versturen lidnummer</label><select name='mailing_lidnr' class='form-select'>\n<Option value=0>Geen</option>\n%s</select>\n", $options);
 	
 	$options = "";
 	foreach($rows as $row) {
 		$options .= sprintf("<Option%s value=%d>%s</option>", checked($row->RecordID, "option", $_SESSION['settings']['mailing_validatielogin']), $row->RecordID, $row->subject);
 	}
-	printf("<label>Versturen validatie e-mail login</label><select name='mailing_validatielogin'><Option value=0>Geen</option>\n%s</select>\n", $options);
+	printf("<label>Versturen validatie e-mail login</label><select name='mailing_validatielogin' class='form-select'><Option value=0>Geen</option>\n%s</select>\n", $options);
 	
 	$options = "";
 	foreach($rows as $row) {
 		$options .= sprintf("<Option%s value=%d>%s</option>", checked($row->RecordID, "option", $_SESSION['settings']['mailing_herstellenwachtwoord']), $row->RecordID, $row->subject);
 	}
-	printf("<label>Versturen link herstellen wachtwoord</label><select name='mailing_herstellenwachtwoord'><Option value=0>Geen</option>\n%s</select>\n", $options);
+	printf("<label>Versturen link herstellen wachtwoord</label><select name='mailing_herstellenwachtwoord' class='form-select'><Option value=0>Geen</option>\n%s</select>\n", $options);
 
 	$options = "<Option value=0>Geen</option>";
 	foreach($rows as $row) {
 		$options .= sprintf("<Option%s value=%d>%s</option>", checked($row->RecordID, "option", $_SESSION['settings']['mailing_bevestigingopzegging']), $row->RecordID, $row->subject);
 	}
-	printf("<label>Versturen bevestiging opzegging lidmaatschap</label><select name='mailing_bevestigingopzegging'>%s</select>\n", $options);
+	printf("<label>Versturen bevestiging opzegging lidmaatschap</label><select name='mailing_bevestigingopzegging' class='form-select'>%s</select>\n", $options);
 	
 	$options = "<Option value=0>Geen</option>";
 	foreach($rows as $row) {
 		$options .= sprintf("<Option%s value=%d>%s</option>", checked($row->RecordID, "option", $_SESSION['settings']['mailing_bevestigingdeelnameevenement']), $row->RecordID, $row->subject);
 	}
 	$rows = null;
-	printf("<label>Versturen bevestiging inschrijven bij evenement</label><select name='mailing_bevestigingdeelnameevenement'>%s</select>\n", $options);
+	printf("<label>Versturen bevestiging inschrijven bij evenement</label><select name='mailing_bevestigingdeelnameevenement' class='form-select'>%s</select>\n", $options);
 	
 	echo("<div class='clear'></div>\n");
 	
