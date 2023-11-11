@@ -422,7 +422,7 @@ function muteerevenement($eventid) {
 
 	printf("<label id='lblOmschrijving'>Omschrijving</label><input type='text' id='Omschrijving' name='Omschrijving' class='w50' value=\"%s\" maxlength=50 title='Omschrijving evenement'>\n", $oms);
 	printf("<label id='lblLocatie'>Locatie</label><input type='text' id='Locatie' name='Locatie' value=\"%s\" class='w75' maxlength=75 title='Locatie evenement'>\n", $loc);
-	printf("<label id='lblTypeEvenement'>Type evenement</label><select id='TypeEvenement' name='TypeEvenement'>\n<option value=0>Geen/onbekend</option>\n%s</select>\n", $i_et->htmloptions($typeevenement));
+	printf("<label id='lblTypeEvenement'>Type evenement</label><select id='TypeEvenement' class='form-select' name='TypeEvenement'>\n<option value=0>Geen/onbekend</option>\n%s</select>\n", $i_et->htmloptions($typeevenement));
 	
 	if ($eventid > 0) {
 		$f = sprintf("(O.RecordID=%d OR ((O.Kader=1 OR O.`Type`IN ('A', 'G', 'R')) AND IFNULL(O.VervallenPer, '9999-12-31') >= '%s'", $org, $datum);
@@ -430,13 +430,13 @@ function muteerevenement($eventid) {
 			$f .= sprintf(" AND O.RecordID IN (%s)", $_SESSION['lidgroepen']);
 		}
 		$f .= "))";
-		printf("<span><label id='lblOrganisatie'>Organisatie</label><select id='Organisatie'><option value=0>Onbekend</option>\n%s</select></span>\n", $i_ond->htmloptions($org, 0, "", $f, 0));
+		printf("<span><label id='lblOrganisatie'>Organisatie</label><select id='Organisatie' class='form-select'><option value=0>Onbekend</option>\n%s</select></span>\n", $i_ond->htmloptions($org, 0, "", $f, 0));
 	
 		printf("<label id='lblOpmaak'>Opmaak in agenda</label>%s\n", fnEvenementOmschrijving($row, 1, "p"));
 	
 		$ondrows = (new cls_Onderdeel())->lijst(1, "", $datum);
 		printf("<label id='lblInschrijvingOpen'>Inschrijving online</label><input type='checkbox' id='InschrijvingOpen' value=1 %s title='Is de online-inschrijving open?'>\n", checked($insopen));
-		printf("<label id='lblStandaardStatus'>Standaard status</label><select id='StandaardStatus'>%s</select>\n", $optionstandstatus);
+		printf("<label id='lblStandaardStatus'>Standaard status</label><select id='StandaardStatus' class='form-select'>%s</select>\n", $optionstandstatus);
 		printf("<span><label id='lblMaxPersonenPerDeelname'>Max. per deelname</label><input type='number' id='MaxPersonenPerDeelname' class='num2' value=%d min=1 max=99 title='Met hoeveel personen mag je maximaal komen?'></span>\n", $maxpersonenperdeelname);
 		printf("<span><label id='lblMeerdereStartmomenten'>Meerdere startmomenten</label><input type='checkbox' id='MeerdereStartMomenten' value=1 %s title='Kunnen deelnemers verschillende starttijden hebben?'></span>\n", checked($meerderestartmomenten));
 		
@@ -449,7 +449,7 @@ function muteerevenement($eventid) {
 			}
 			$optiongroepen .= sprintf("<option value=%d%s>%s</option>\n", $t->RecordID, $s, htmlentities($t->Naam));
 		}
-		printf("<span><label id='lblDoelgroep'>Doelgroep</label><select name='BeperkTotGroep' onChange='this.form.submit();'>\n%s</select></span>\n", $optiongroepen);
+		printf("<span><label id='lblDoelgroep'>Doelgroep</label><select name='BeperkTotGroep' class='form-select' onChange='this.form.submit();'>\n%s</select></span>\n", $optiongroepen);
 		
 		$dtfmt->setPattern(DTLONG);
 		printf("<label id='lblGewijzigd'>Gewijzigd op / door</label><p>%s / %s</p>\n", $dtfmt->format(strtotime($row->Gewijzigd)), htmlentities($row->GewijzigdDoorNaam));
@@ -500,7 +500,7 @@ function muteerevenement($eventid) {
 					$optionsnieuw .= sprintf("<option value=%d>%s</option>\n", $lidrow->LidID, htmlentities($lidrow->Naam));
 				}
 				
-				printf("<td id='naamdln_%1\$d'><select name='lidid_nwdln' onChange='this.form.submit();'><option value=0>Selecteer lid ...</option>\n%2\$s</select></td>\n", $rd->RecordID, $optionsnieuw);
+				printf("<td id='naamdln_%1\$d'><select name='lidid_nwdln' class='form-select' onChange='this.form.submit();'><option value=0>Selecteer lid ...</option>\n%2\$s</select></td>\n", $rd->RecordID, $optionsnieuw);
 				echo("<td></td><td></td>");
 			} else {
 				printf("<td id='naamdln_%d' class='ed_status_%s'>%s %s</td>\n", $rd->RecordID, $rd->Status, htmlentities($rd->NaamDeelnemer), $t);
@@ -510,7 +510,7 @@ function muteerevenement($eventid) {
 				if ($maxpersonenperdeelname > 1) {
 					printf("<td><input type='number' id='Aantal_%d' value=%d class='num2' min=1 max=%d></td>\n", $rd->RecordID, $rd->Aantal, $maxpersonenperdeelname);
 				}
-				printf("<td><select id='Status_%d'>%s</select>", $rd->RecordID, $optstat);
+				printf("<td><select id='Status_%d' class='form-select'>%s</select>", $rd->RecordID, $optstat);
 				echo("</td>\n");
 				printf("<td><input type='text' id='Opmerking_%d' value=\"%s\" placeholder='Opmerking' class='w250' maxlength=250>\n", $rd->RecordID, str_replace("\"", "'", $rd->Opmerking));
 				printf("<br><input type='text' id='Functie_%d' value=\"%s\" placeholder='Functie' class='w30' maxlength=30></td>\n", $rd->RecordID, str_replace("\"", "'", $rd->Functie));
@@ -527,7 +527,7 @@ function muteerevenement($eventid) {
 			foreach ($rowspd as $lidrow) {
 				$optionsnieuw .= sprintf("<option value=%d>%s</option>\n", $lidrow->LidID, htmlentities($lidrow->Naam));
 			}
-			printf("<select name='nwdln' onChange='this.form.submit();'>%s</select>\n", $optionsnieuw);
+			printf("<select name='nwdln' class='form-select' onChange='this.form.submit();'>%s</select>\n", $optionsnieuw);
 		}
 		if (strlen($uitleg) > 0) {
 			printf("<p>%s</p>\n", $uitleg);
@@ -679,7 +679,7 @@ function muteertypeevenement() {
 			}	
 			$options .= sprintf("<option value='%s' %s>%s</option>\n", $key, $s, $val);
 		}
-		printf("<td><select name='soort_%d' onChange='this.form.submit();'>%s</select></td>", $row->RecordID, $options);
+		printf("<td><select name='soort_%d' class='form-select' onChange='this.form.submit();'>%s</select></td>", $row->RecordID, $options);
 		
 		printf("<td><input type='text' name='tekstkleur_%d' value='%s' class='w12' onBlur='this.form.submit();'></td>\n", $row->RecordID, $row->Tekstkleur);
 		
