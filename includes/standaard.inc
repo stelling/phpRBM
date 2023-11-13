@@ -168,14 +168,7 @@ if (WEBMASTER or strpos(BASISURL, "telling.nl") > 0) {
 }
 
 $i_p = new cls_Parameter();
-
 if (!isset($_SESSION['settings']['naamvereniging'])) {
-	$i_p->vulsessie();
-}
-if ($bestandsversie != $_SESSION['settings']['versie']) {
-	debug(sprintf("Nieuwe versie: %s", $dtfmt->format(time())), 0);
-	$i_p->controle();
-	$i_p->update("versie", $bestandsversie);
 	$i_p->vulsessie();
 }
 $i_p = null;
@@ -1191,13 +1184,13 @@ function fnEditTable($res, $kols, $id="", $th="") {
 					foreach ($kol['bronselect'] as $k => $v) {
 						$opt .= sprintf("<option%s value=%s>%s</option>\n", checked($k, "option", $value), $k, $v);
 					}
-					$ret .= sprintf("<td><select id='%s_%d'>\n%s</select></td>\n", $colname, $valpk, $opt);
+					$ret .= sprintf("<td><select id='%s_%d' class='form-select'>\n%s</select></td>\n", $colname, $valpk, $opt);
 					
 				} elseif ($tp == "groep" and isset($kol['columnfilter'])) {
 					$o = $row->{$kol['columnfilter']};
 					if ((new cls_Groep())->aantal(sprintf("OnderdeelID=%d", $o)) > 1) {
 						$opt = (new cls_Groep())->htmloptions($value, $o);
-						$ret .= sprintf("<td><select id='%s_%d'>\n%s</select></td>\n", $colname, $valpk, $opt);
+						$ret .= sprintf("<td><select id='%s_%d' class='form-select'>\n%s</select></td>\n", $colname, $valpk, $opt);
 					} else {
 						$ret .= "<td></td>";
 					}
