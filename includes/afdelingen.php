@@ -98,7 +98,7 @@ function fnAfdelingslijst($afdid) {
 	printf("<form method='post' id='filter' action='%s?%s'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
 
 	print("<input type='text' name='tbTekstFilter' id='tbTekstFilter' placeholder='Tekstfilter' OnKeyUp=\"fnFilter('afdelingslijst', this);\">\n");
-	printf("<select name='bezitdiploma' id='bezitdiploma' onchange='this.form.submit();'>\n<option value=-1>Filter op diploma</option>\n%s</select>\n", $i_dp->htmloptions($diplfilter, $afdid));
+	printf("<select name='bezitdiploma' id='bezitdiploma' class='form-select' onchange='this.form.submit();'>\n<option value=-1>Filter op diploma</option>\n%s</select>\n", $i_dp->htmloptions($diplfilter, $afdid));
 	if (count($rows) > 1) {
 		printf("<p class='aantrecords'>%d rijen / %d leden</p>\n", count($rows), aantaluniekeleden($rows, "LidID"));
 	}
@@ -106,7 +106,6 @@ function fnAfdelingslijst($afdid) {
 
 	if (count($rows) > 0) {
 		echo(fnDisplayTable($rows, $kols, "", 0, "", "afdelingslijst"));
-		echo("<script>fnFilterTwee('afdelingslijst', 'tbNaamFilter', 'tbFuncFilter', 1, 5);</script>\n");
 		foreach ($rows as $row) {
 			$sel_leden[] = $row->LidID;
 		}
@@ -192,7 +191,7 @@ function fnAfdelingskalenderMuteren($p_onderdeelid){
 	
 	echo("<script>
 			$( document ).ready(function() {
-				\$('input').blur(function(){
+				\$('input').on('blur', function(){
 					savedata('afdelingskalenderedit', 0, this);
 				});
 			});
@@ -241,10 +240,10 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 		$f = sprintf("AK.OnderdeelID=%d AND (SELECT COUNT(*) FROM %sAanwezigheid AS AW WHERE AW.AfdelingskalenderID=AK.RecordID) > 0", $afdid, TABLE_PREFIX);
 		if (toegang($currenttab . "/Presentie per lid", 0, 0) and $i_ak->aantal($f) > 0) {
 			$toonpresentie = $_POST['toonpresentie'] ?? $i_ak->komendeles();
-			printf("<select name='toonpresentie' OnChange='this.form.submit();'>\n<option value=0>Geen presentie</option>\n%s</select>", $i_ak->htmloptions($afdid, $toonpresentie, $f));
+			printf("<select name='toonpresentie' class='form-select' OnChange='this.form.submit();'>\n<option value=0>Geen presentie</option>\n%s</select>", $i_ak->htmloptions($afdid, $toonpresentie, $f));
 		}
 		
-		printf("<select name='toonleeftijd' onChange='this.form.submit();'>\n");
+		printf("<select name='toonleeftijd' class='form-select' onChange='this.form.submit();'>\n");
 		foreach ($arrToonLft as $k => $val) {
 			printf("<option value=%d%s>%s</option>", $k, checked($k, "option", $toonleeftijd), $val);
 		}
@@ -257,7 +256,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 		if ($toonpresentie > 0 and toegang($currenttab . "/Presentie muteren", 0, 0)) {
 			$f = sprintf("AW.AfdelingskalenderID=%d AND AW.Status IN ('A', 'L') AND LENGTH(AW.Opmerking) > 0", $toonpresentie);
 			if ($i_aanw->aantal($f) > 0) {
-				printf("<label>Toon opmerkingen</label><input type='checkbox' name='toonopmerking' title='Toon de opmerking bij aanwezigen' value=1 onClick='this.form.submit();' %s>", checked($toonopmerking));
+				printf("<label class='form-label'>Toon opmerkingen</label><input type='checkbox' name='toonopmerking' title='Toon de opmerking bij aanwezigen' value=1 onClick='this.form.submit();' %s>", checked($toonopmerking));
 			}
 		}
 		echo("</form>\n");
@@ -399,7 +398,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 				if (strlen($ld) > 60) {
 					$ld = substr($ld, 0, 56) . " ...";
 				}
-				printf("<tr><td%s%s>%s</td><td>%s</td><td>%s</td><td><select id='GroepID_%d'>%s</select></td></tr>\n", $cl, $t, $nm, $row->Leeftijd, $ld, $row->RecordID, $options);
+				printf("<tr><td%s%s>%s</td><td>%s</td><td>%s</td><td><select id='GroepID_%d' class='form-select'>%s</select></td></tr>\n", $cl, $t, $nm, $row->Leeftijd, $ld, $row->RecordID, $options);
 			}
 			echo("</table>\n");
 		}
@@ -436,11 +435,11 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 				
 				echo("<td class='activiteitdiploma'>");
 				if ($i_act->aantal() > 0) {
-					printf("<select id='ActiviteitID_%d'><option value=0>Geen</option>\n%s</select>", $row->RecordID, $i_act->htmloptions($row->ActiviteitID));
+					printf("<select id='ActiviteitID_%d' class='form-select'><option value=0>Geen</option>\n%s</select>", $row->RecordID, $i_act->htmloptions($row->ActiviteitID));
 				}
 				
 				$f = sprintf("DP.Afdelingsspecifiek=%d AND IFNULL(DP.EindeUitgifte, '9999-12-31') >= CURDATE()", $afdid);
-				printf("<br><select id='DiplomaID_%d'><option value=0>Geen/Combinatie</option>\n%s</select></td>\n", $row->RecordID, $i_dp->htmloptions($row->DiplomaID, 0, 0, 0, $f, 1));
+				printf("<br><select id='DiplomaID_%d' class='form-select'><option value=0>Geen/Combinatie</option>\n%s</select></td>\n", $row->RecordID, $i_dp->htmloptions($row->DiplomaID, 0, 0, 0, $f, 1));
 				
 				printf("<td><input type='time' id='Starttijd_%d' title='Starttijd' value='%s'>", $row->RecordID, $row->Starttijd);
 				printf("<br><input type='time' id='Eindtijd_%d' title='Eindtijd' value='%s'></td>\n", $row->RecordID, $row->Eindtijd);
@@ -467,7 +466,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 		echo("</form>\n");
 		
 		echo("<script>
-		\$('select').change(function(){
+		\$('select').on('change', function(){
 			if (this.id.substring(0, 5) == 'Groep') {
 				savedata('logroep', 0, this);
 			} else {
@@ -475,7 +474,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 			}
 		});
 		
-		\$('input').change(function(){
+		\$('input').on('change', function(){
 			savedata('groepedit', 0, this);
 
 		});
@@ -513,8 +512,8 @@ function fnPresentieMuteren($p_onderdeelid){
 	echo("<div id='presentiemuteren'>\n");
 	printf("<form method='post' id='filter' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	
-	echo("<label>Datum</label>");
-	printf("<select name='selecteerdatum' OnChange='this.form.submit();'>%s</select>\n", $i_ak->htmloptions($p_onderdeelid, $akid, "Activiteit=1"));
+	echo("<label class='form-label'>Datum</label>");
+	printf("<select name='selecteerdatum' class='form-select' OnChange='this.form.submit();'>%s</select>\n", $i_ak->htmloptions($p_onderdeelid, $akid, "Activiteit=1"));
 	$dat = "";
 	
 	echo("<input type='text' placeholder='Naam of groep bevat' OnKeyUp=\"fnFilter('presentiemuteren', this);\">\n");
@@ -556,8 +555,8 @@ function fnPresentieMuteren($p_onderdeelid){
 			}
 			$gr = "";
 			if ($grid == -1) {
-				if (strlen($row->Functie) > 0) {
-					$gr = sprintf("<td>%s</td>", $row->Functie);
+				if (strlen($row->FunctieOms) > 0) {
+					$gr = sprintf("<td>%s</td>", $row->FunctieOms);
 				} else {
 					$gr = sprintf("<td>%s</td>", $row->GrNaam);
 				}
@@ -582,7 +581,7 @@ function fnPresentieMuteren($p_onderdeelid){
 				$options .= sprintf("<option value='%1\$s' %2\$s>%1\$s-%3\$s</option>\n", $k, $s, $o);
 			}
 			
-			printf("<td><select id='status_%d'>%s</select></td>", $row->RecordID, $options);
+			printf("<td><select id='status_%d' class='form-select'>%s</select></td>", $row->RecordID, $options);
 			printf("<td class='opmerking'><input type='text' id='opmerk_%d' class='w75' value=\"%s\" maxlength=75></td>\n", $row->RecordID, $i_aanw->opmerking);
 			echo("</tr>\n");
 		}
@@ -593,7 +592,7 @@ function fnPresentieMuteren($p_onderdeelid){
 	echo("</div> <!-- Einde presentiemuteren -->\n");
 	
 	printf("<script>
-				$('select[id^=status]').change(function() {
+				$('select[id^=status]').on('change', function() {
 					id = this.id;
 					var split_id = id.split('_');
 					var loid = split_id[1];
@@ -607,7 +606,7 @@ function fnPresentieMuteren($p_onderdeelid){
 					});
 				});
 				
-				$('input[id^=opmerk]').blur(function() {
+				$('input[id^=opmerk]').on('blur', function() {
 					id = this.id;
 					var split_id = id.split('_');
 					var loid = split_id[1];
@@ -666,7 +665,7 @@ function fnPresentieoverzicht($p_ondid) {
 	}
 	
 	printf("<form method='post' id='filter' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-	printf("<label>Vanaf</label>\n<input type='date' name='filterDatumVanaf' value='%s'>", $_POST['filterDatumVanaf']);
+	printf("<label class='form-label'>Vanaf</label>\n<input type='date' name='filterDatumVanaf' value='%s'>", $_POST['filterDatumVanaf']);
 	printf("<input type='checkbox' name='filterAanwezigheidsnormOnder'%s value=1><p>Onder norm</p>\n", checked($_POST['filterAanwezigheidsnormOnder']));
 	printf("<input type='checkbox' name='filterAanwezigheidsnormBoven'%s value=1><p>Boven norm</p>\n", checked($_POST['filterAanwezigheidsnormBoven']));
 	printf("<input type='checkbox' name='100aanwezigTonen'%s value=1><p>100%% aanwezig</p>\n", checked($_POST['100aanwezigTonen']));
@@ -772,7 +771,7 @@ function fnPresentiePerSeizoen($p_ondid) {
 	}
 	
 	printf("<form method='post' id='filter' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-	echo("<label>Filter</label>\n");
+	echo("<label class='form-label'>Filter</label>\n");
 	printf("<input type='checkbox' name='filterAanwezigheidsnormOnder'%s value=1 OnClick='this.form.submit();'><p>Onder norm</p>\n", checked($_POST['filterAanwezigheidsnormOnder']));
 	printf("<input type='checkbox' name='filterAanwezigheidsnormBoven'%s value=1 OnClick='this.form.submit();'><p>Boven norm</p>\n", checked($_POST['filterAanwezigheidsnormBoven']));
 	printf("<input type='checkbox' name='100aanwezigTonen'%s value=1 OnClick='this.form.submit();'><p>100%% aanwezig</p>\n", checked($_POST['100aanwezigTonen']));
@@ -993,7 +992,7 @@ function fnAfdelingsmailing($p_afdid) {
 		$cn = "chkGroepAlle";
 		echo("<li><button type='button' class='btn btn-light' onClick='fnAlleGroepen();'>Alle groepen</button></li>\n");
 		echo("</ul>\n");
-		printf("<label for='groepgewijzigdna'>Groep gewijzigd op of na</label><input type='date' name='groepgewijzigdna' value='%s'>\n", $_POST['groepgewijzigdna']);
+		printf("<label class='form-label' for='groepgewijzigdna'>Groep gewijzigd op of na</label><input type='date' name='groepgewijzigdna' value='%s'>\n", $_POST['groepgewijzigdna']);
 		
 		// examen
 		echo("<div class='clear'></div>\n");
@@ -1002,7 +1001,7 @@ function fnAfdelingsmailing($p_afdid) {
 		$i_ex->vulvars($koe);
 		$f = sprintf("EX.OnderdeelID=%d AND (SELECT COUNT(*) FROM %sLiddipl AS LD WHERE LD.Examen=EX.Nummer) > 0", $p_afdid, TABLE_PREFIX);
 		if ($i_ex->aantal($f)) {
-			printf("<label>Examen</label><select name='kandidaatopexamen' onChange='this.form.submit();'><option value=0>Niet van toepassing</option>\n%s</select>\n", $i_ex->htmloptions($koe, $f, 0));
+			printf("<label class='form-label'>Examen</label><select name='kandidaatopexamen' class='form-select' onChange='this.form.submit();'><option value=0>Niet van toepassing</option>\n%s</select>\n", $i_ex->htmloptions($koe, $f, 0));
 			
 			if ($koe > 0 and $i_ex->exdatum <= date("Y-m-d")) {
 				foreach ($exres as $k => $er) {
@@ -1028,7 +1027,7 @@ function fnAfdelingsmailing($p_afdid) {
 				}
 				$opt .= sprintf("<option value=%d%s>%s</option>\n", $aw, checked($aw, "option", $pwt), $t);
 			}
-			printf("<label>Presentie (# lessen)</label><select name='wekenterug' onChange='this.form.submit();'>%s</select>\n", $opt);
+			printf("<label class='form-label'>Presentie (# lessen)</label><select name='wekenterug' class='form-select' onChange='this.form.submit();'>%s</select>\n", $opt);
 			$opt = "";
 
 			$ptf = $_POST['typefilter'] ?? 0;
@@ -1068,7 +1067,7 @@ function fnAfdelingsmailing($p_afdid) {
 	
 	if ($selaant > 0) {
 		echo("<h2>Selecteer mailing</h2>\n");	
-		printf("<select name='SelecteerMailing' title='Selecteer mailing' OnChange='this.form.submit();'>\n<option value=0>Selecteer ...</option>\n<option value=-1>*** Nieuwe mailing</option>\n%s</select>\n", $i_m->htmloptions($selmailing));
+		printf("<select name='SelecteerMailing' class='form-select' title='Selecteer mailing' OnChange='this.form.submit();'>\n<option value=0>Selecteer ...</option>\n<option value=-1>*** Nieuwe mailing</option>\n%s</select>\n", $i_m->htmloptions($selmailing));
 	}
 	
 	echo("<div id='opdrachtknoppen'>\n");
