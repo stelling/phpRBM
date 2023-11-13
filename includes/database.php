@@ -56,7 +56,6 @@ $TypeActiviteit[7] = "Evenementen";
 $TypeActiviteit[8] = "Interface";
 $TypeActiviteit[9] = "Upload data";
 $TypeActiviteit[10] = "Webshop";
-// $TypeActiviteit[11] = "Bewaking";
 $TypeActiviteit[12] = "Diploma's per lid";
 $TypeActiviteit[13] = "Parameters";
 $TypeActiviteit[14] = "Rekeningen en betalingen";
@@ -5681,7 +5680,7 @@ class cls_Logboek extends cls_db_base {
 	}
 	
 	private function script() {
-		$script = $_SERVER['PHP_SELF'];
+		$script = $_SERVER['SCRIPT_NAME'];
 		if (isset($_SERVER['QUERY_STRING']) and strlen($_SERVER['QUERY_STRING']) > 0) {
 			$script .= "?" . str_replace("%20", " ", $_SERVER['QUERY_STRING']);
 		}
@@ -5976,7 +5975,7 @@ class cls_Logboek extends cls_db_base {
 		}
 		usleep(15);
 		return $nrid;
-	}  # add
+	}  # cls_Logboek->add
 	
 	private function update($p_aid, $p_kolom, $p_waarde) {
 		$this->pdoupdate($p_aid, $p_kolom, $p_waarde);
@@ -9929,6 +9928,7 @@ class cls_Inschrijving extends cls_db_base {
 	public $inschrijfdatum = "";
 	public $opmerking = "";
 	public $eersteles = "";
+	public $verwerkt = "";
 	
 	function __construct($p_insid=-1) {
 		$this->table = TABLE_PREFIX . "Inschrijving";
@@ -9953,6 +9953,7 @@ class cls_Inschrijving extends cls_db_base {
 				$this->lidid = $row->LidID;
 				$this->opmerking = $row->Opmerking;
 				$this->eersteles = $row->EersteLes;
+				$this->verwerkt = substr($row->Verwerkt, 0, 10);
 			} else {
 				$this->insid = 0;
 				$this->lidid = 0;
