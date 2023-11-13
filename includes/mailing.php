@@ -786,8 +786,6 @@ class Mailing {
 		
 		printf("</form>\n");
 		echo("</div> <!-- Einde editmailingform -->\n");
-
-		echo("</div>  <!-- Einde mailing -->\n");
 		
 		$i_el = null;
 		
@@ -1780,7 +1778,7 @@ class email {
 		echo($txt);
 		js_editor(1);
 		printf("<script>
-		\$('#subject').blur(function(){
+		\$('#subject').on('blur', function(){
 			savedata('email', %1\$d, this);
 		});
 		</script>", $this->mhid);
@@ -2005,7 +2003,7 @@ function fnRekeningenMailen($op) {
 		echo("</div>\n");
 
 		echo("<div id='opdrachtknoppen'>\n");
-		echo("<button type='submit'><i class='bi bi-skip-forward-circle'></i> Verder</button>\n");
+		printf("<button type='submit' class='%s'>%s Verder</button>\n", CLASSBUTTON, ICONSUBMIT);
 		echo("</div>  <!-- Einde opdrachtknoppen -->\n");
 		
 		echo("</form>\n");
@@ -2081,7 +2079,6 @@ function fnVerstuurRekening($p_rkid, $p_toonmelding=0) {
 function fnMailingInstellingen() {
 	global $currenttab, $currenttab2;
 	
-	echo("<div id='instellingenmuteren'>\n");
 	$i_p = new cls_Parameter();
 	$i_m = new cls_Mailing();
 	$i_mv = new cls_Mailing_vanaf();
@@ -2158,6 +2155,7 @@ function fnMailingInstellingen() {
 
 	$i_p = null;
 
+	echo("<div id='instellingenmuteren'>\n");
 	printf("<form method='post' action='%s?tp=%s/%s'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
 	
 	$options = sprintf("<option value=0%s>Nee</option>\n", checked($_SESSION['settings']['mailing_mailopnieuw'], "option", 0));
@@ -2260,14 +2258,13 @@ function fnMailingInstellingen() {
 	$kols[5]['columntitle'] = "Verwijder record";
 	$kols[5]['class'] = "trash";
 	
-	$xr = "<td colspan=6><button type='submit' name='vanaf_adres_toevoegen' title='Vanaf adres toevoegen' value='Vanaf adres toevoegen'><img src='./images/star.png'></button></td>";
-	
 	$rows = $i_mv->lijst(0);
 	echo(fnEditTable($rows, $kols, "editmailingvanaf", "Vanaf adressen"));
 	
 	echo("<div id='opdrachtknoppen'>\n");
-	echo("<button type='submit' name='vanaf_adres_toevoegen' value='Vanaf adres toevoegen'>Vanaf adres toevoegen</button>");
-	echo("<button type='submit' name='InstellingenBewaren'>Bewaren</button>\n");
+	printf("<button type='submit' name='vanaf_adres_toevoegen' class='%s'>%s Vanaf adres toevoegen</button>", CLASSBUTTON, ICONTOEVOEGEN);
+	
+	printf("<button type='submit' name='InstellingenBewaren' class='%s'>%s Bewaren</button>\n", CLASSBUTTON, ICONBEWAAR);
 	echo("</div> <!-- Einde opdrachtknoppen -->\n");
 	echo("</form>");
 	echo("</div> <!-- Einde instellingenmuteren -->\n");
