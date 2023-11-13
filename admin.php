@@ -138,6 +138,7 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 	
 	(new cls_Foto())->opschonen();
 	
+	(new cls_Inschrijving())->controle();
 	(new cls_Inschrijving())->opschonen();
 	
 } elseif ($_GET['op'] == "beheerdiplomas") {
@@ -253,7 +254,7 @@ if ($currenttab == "Beheer logins") {
 			$cllg = " class='attentie'";
 		}
 		printf("<tr>\n<td>%s</td><td id='name_%d'>%s</td>", $add, $row->RecordID, $row->Tabpage);
-		printf("<td><select id='Toegang_%d'>\n%s</select></td>\n<td%s>%s</td><td%s>%s</td><td>%s</td>\n</tr>\n", $row->RecordID, $selectopt, $clnw, $dtfmt->format(strtotime($row->Ingevoerd)), $cllg, $dtfmt->format(strtotime($row->LaatstGebruikt)), $del);
+		printf("<td><select id='Toegang_%d' class='form-select'>\n%s</select></td>\n<td%s>%s</td><td%s>%s</td><td>%s</td>\n</tr>\n", $row->RecordID, $selectopt, $clnw, $dtfmt->format(strtotime($row->Ingevoerd)), $cllg, $dtfmt->format(strtotime($row->LaatstGebruikt)), $del);
 	}
 	$optionstab = "<option value=''>Selecteer ...</option>\n";
 	foreach ($i_auth->lijst("DISTINCT") as $row) {
@@ -363,12 +364,20 @@ if ($currenttab == "Beheer logins") {
 	db_backup(4);
 	
 } elseif ($currenttab == "Onderhoud" and toegang($currenttab, 1, 1)) {
+	
+	$i_p = new cls_Parameter();
+	if ($bestandsversie != $_SESSION['settings']['versie']) {
+		debug(sprintf("Nieuwe versie: %s", $dtfmt->format(time())), 0);
+		$i_p->controle();
+		$i_p->update("versie", $bestandsversie);
+		$i_p->vulsessie();
+		db_createtables();
+		db_onderhoud(2);
+	}
+	$i_p = null;
 
 	if (isset($_POST['logboek_bewaartijd']) and $_POST['logboek_bewaartijd'] > 0) {
 		(new cls_Parameter())->update("logboek_bewaartijd", $_POST['logboek_bewaartijd']);
-	} else {
-		db_createtables();
-		db_onderhoud(2);
 	}
 	
 	echo("<div id='dbonderhoud'>\n");
@@ -445,7 +454,7 @@ if ($currenttab == "Beheer logins") {
 	
 	echo("<input type='text' id='tbTekstFilter' title='Filter tabel' placeholder='Tekst filter' OnKeyUp=\"fnFilter('logboek', this);\">");
 	
-	echo("<select name='typefilter' onchange='this.form.submit();'>\n");
+	echo("<select name='typefilter' class='form-select' onchange='this.form.submit();'>\n");
 	echo("<option value=-1>Filter op type ....</option>\n");
 	foreach ($TypeActiviteit as $key => $val) {
 		$f = sprintf("TypeActiviteit=%d", $key);
@@ -455,7 +464,7 @@ if ($currenttab == "Beheer logins") {
 	}
 	echo("</select>\n");
 			
-	echo("<select name='kolomfilter' onchange='this.form.submit();'>\n");
+	echo("<select name='kolomfilter' class='form-select' onchange='this.form.submit();'>\n");
 	echo("<option value=''>Filter op tabel/kolom ....</option>\n");
 	$f = "IFNULL(A.refColumn, '') > ''";
 	if ($_POST['typefilter'] > 0) {
@@ -476,7 +485,7 @@ if ($currenttab == "Beheer logins") {
 		}
 		$va = $a;
 	}
-	printf("<label>Max. aantal rijen</label><select name='aantalrijen' OnChange='this.form.submit();'>%s</select>\n", $options);
+	printf("<label>Max. aantal rijen</label><select name='aantalrijen' class='form-select' OnChange='this.form.submit();'>%s</select>\n", $options);
 	printf("<label>Alleen ingelogde</label><input type='checkbox' name='ingelogdeanderen'%s value=1 onClick='this.form.submit();'>\n", checked($_POST['ingelogdeanderen']));
 	
 	if (count($rows) > 1) {
@@ -681,7 +690,7 @@ function fnInstellingen() {
 			if (strlen($row->ValueChar) > 60 and $row->ParamType="T") {
 				printf("<label>%s</label><textarea name='%s'>%s</textarea>\n", $uitleg, $row->Naam, $row->ValueChar);
 			} elseif ($row->Naam == "db_backup_type") {
-				printf("<label>%s</label><select name='%s' id='%s'>", $uitleg, $row->Naam, str_replace(" ", "_", strtolower($row->Naam)));
+				printf("<label>%s</label><select name='%s' id='%s' class='form-select'>", $uitleg, $row->Naam, str_replace(" ", "_", strtolower($row->Naam)));
 				foreach (ARRTYPEBACKUP as $key => $val) {
 					printf("<option value=%d %s>%s</option>\n", $key, checked($row->ValueNum, "option", $key), $val);
 				}
