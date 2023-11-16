@@ -11,6 +11,17 @@ if ($_SESSION['lidid'] == 0) {
 	header("location: index.php");
 }
 
+$i_p = new cls_Parameter();
+if ($bestandsversie != $_SESSION['settings']['versie']) {
+	debug(sprintf("Nieuwe versie: %s", $dtfmt->format(time())), 0);
+	$i_p->controle();
+	$i_p->update("versie", $bestandsversie);
+	$i_p->vulsessie();
+	db_createtables();
+	db_onderhoud(2);
+}
+$i_p = null;
+
 if (!isset($_GET['op']) or ((new cls_lid())->aantal() == 0 and toegang($_GET['tp'], 0, 1) === false)) {
 	$_GET['op'] = "";
 }
@@ -364,17 +375,6 @@ if ($currenttab == "Beheer logins") {
 	db_backup(4);
 	
 } elseif ($currenttab == "Onderhoud" and toegang($currenttab, 1, 1)) {
-	
-	$i_p = new cls_Parameter();
-	if ($bestandsversie != $_SESSION['settings']['versie']) {
-		debug(sprintf("Nieuwe versie: %s", $dtfmt->format(time())), 0);
-		$i_p->controle();
-		$i_p->update("versie", $bestandsversie);
-		$i_p->vulsessie();
-		db_createtables();
-		db_onderhoud(2);
-	}
-	$i_p = null;
 
 	if (isset($_POST['logboek_bewaartijd']) and $_POST['logboek_bewaartijd'] > 0) {
 		(new cls_Parameter())->update("logboek_bewaartijd", $_POST['logboek_bewaartijd']);
