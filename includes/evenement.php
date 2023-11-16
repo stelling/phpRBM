@@ -567,7 +567,7 @@ function muteerevenement($eventid) {
 	
 	printf("<script>
 		\$( document ).ready(function() {
-			\$(\"input\").blur(function(){
+			\$(\"input\").on('blur', function(){
 				if (this.id == 'Datum' || this.id == 'Starttijd') {
 					value = \$('#Datum').val() + ' ' + \$('#Starttijd').val();
 					$.ajax({
@@ -584,19 +584,19 @@ function muteerevenement($eventid) {
 				}
 			});
 			
-			\$('#StandaardStatus').change(function(){
+			\$('#StandaardStatus').on('change', function(){
 				savedata('evenement', %1\$d, this);
 			});
 			
-			\$('#Organisatie, #TypeEvenement').change(function(){
+			\$('#Organisatie, #TypeEvenement').on('change', function(){
 				savedata('evenement', %1\$d, this);
 			});
 			
-			\$('#MaxPersonenPerDeelname').change(function(){
+			\$('#MaxPersonenPerDeelname').on('change', function(){
 				savedata('evenement', %1\$d, this);
 			});		
 			
-			\$(\"select[id^='Status_'], input[id^='Functie_']\").change(function() {
+			\$(\"select[id^='Status_'], input[id^='Functie_']\").on('change', function() {
 				savedata('evenementdln', 0, this);
 				
 				var rid = this.id.split('_')[1];
@@ -604,11 +604,11 @@ function muteerevenement($eventid) {
 				\$('#naamdln_' + rid).addClass('ed_status_' + this.value)
 			});
 			
-			\$(\"input[id^='StartMoment_'], input[id^='Opmerking_'], input[id^='Functie_']\").blur(function() {
+			\$(\"input[id^='StartMoment_'], input[id^='Opmerking_'], input[id^='Functie_']\").on('blur', function() {
 				savedata('evenementdln', 0, this);
 			});
 			
-			\$(\"input[id^='Aantal_']\").change(function() {
+			\$(\"input[id^='Aantal_']\").on('change', function() {
 				savedata('evenementdln', 0, this);
 			});
 		});
@@ -722,78 +722,38 @@ function overzichtevenementen() {
 	$i_ed = new cls_Evenement_Deelnemer();
 
 	echo("<div id='overzichtevenementen'>\n");
-	printf("<table class='%s'>\n", TABLECLASSES);
 	$vsrt = "Q";
 	$vn = "";
-	
 	$dtfmt->setPattern(DTTEXTWD);
 	$evlijst = $i_ev->lijst(1);
 	foreach ($evlijst as $row) {
+		echo("<div class='row'>\n");
+		
+		printf("<div class='col col-sm-4'>%s</div>\n", fnEvenementOmschrijving($row, 3));
 		$dlnlijst = $i_ed->overzichtevenement($row->RecordID, "'B','J'");
 		
-		if ($row->Soort == "W") {
-			printf("<tr><th>%s</th><th>Dames</th><th>Heren</th></tr>\n", $dtfmt->format(strtotime($row->Datum)));
-		} elseif($row->Soort == "B" and $row->AantalDln > 1) {
-			printf("<tr><th>%s</th><th colspan=2>%d bewakers", $dtfmt->format(strtotime($row->Datum)), $row->AantalDln);
-		} elseif($row->AantalDln > 1) {
-			printf("<tr><th>%s</th><th colspan=2>%d deelnemers", $dtfmt->format(strtotime($row->Datum)), $row->AantalDln);
-			if ($row->AantAfgemeld > 1) {
-				printf(" / %d afmeldingen", $row->AantAfgemeld);
-			}
-			echo("</th></tr>\n");
-		} else {
-			printf("<tr><th colspan=3>%s</th></tr>\n", $dtfmt->format(strtotime($row->Datum)));
+		echo("<div class='col'>\n");
+		
+		if ($row->Soort == "B" and count($dlnlijst) > 1) {
+			printf("<p><strong>%d bewakers</strong></p>\n", count($dlnlijst));
+		} elseif (count($dlnlijst) > 1) {
+			printf("<p><strong>%d deelnemers</strong></p>\n", count($dlnlijst));
 		}
-		
-		$dames = "";
-		$heren = "";
-		$deelnemers = "";
-		$ad = 0;
-		$vsm = "";
-		$vn = "deelnemers";
-		
+		echo("<ul>\n");
 		foreach($dlnlijst as $deeln) {
-			if ($row->Soort != "W") {
-				$vn = "deelnemers";
-				$ad++;
-			} elseif ($deeln->Geslacht == "V") {
-				$vn = "dames";
-			} else {
-				$vn = "heren";
-			}
-			if (strlen($$vn) > 0 and $row->Soort == "W") {
-				$$vn .= "<br>\n";
-			}
-			if ($vsm != $deeln->Starttijd and $deeln->MeerdereStartMomenten == 1) {
-				if (empty($vsm) == false) {
-					$$vn .= "</ul><br>\n";
-				}
-				$$vn .= sprintf("<strong>%s</strong>\n<ul>\n", substr($deeln->Starttijd, 0, 5));
-				$vsm = $deeln->Starttijd;
-			}
-			
 			$nd = htmlentities($deeln->NaamDeelnemer);
 			if ($deeln->Aantal > 1) {
 				$nd .= sprintf(" (%dp)", $deeln->Aantal);
 			} elseif (strlen($deeln->Functie) > 0) {
 				$nd .= sprintf(" (%s)", htmlentities($deeln->Functie));
 			}
-			if ($row->Soort == "W") {
-				$$vn .= $nd;
-			} else {
-				$$vn .= sprintf("<li>%s</li>\n", $nd);
-			}
+			printf("<li>%s</li>\n", $nd);
 		}
-		$$vn .= "</ul>\n";
-		if ($row->Soort == "W") {
-			printf("<tr>%s<td>%s</td><td>%s</td>", fnEvenementOmschrijving($row, 3, "td"), $dames, $heren);
-		} else {
-			printf("<tr>%s<td colpspan=2>%s</td>", fnEvenementOmschrijving($row, 3, "td"), $deelnemers);
-		}
-		printf("</tr>\n");
+		echo("</ul>\n");
+		echo("</div> <!-- Einde col -->\n");
+		echo("</div> <!-- Einde row -->\n");
 	}
 	
-	echo("</table>\n");
 	echo("</div>  <!-- Einde overzichtevenementen -->\n");
 	
 	$i_ev = null;
@@ -822,6 +782,7 @@ function fnAgendaKnop($datum, $eindtijd, $verzameltijd, $omschrijving, $locatie)
 }  # fbAgendaKnop
 
 function fnEvenementOmschrijving($p_row, $p_mettijd=0, $p_element="") {
+	global $dtfmt;
 	
 	/*
 		$p_mettijd
@@ -833,24 +794,30 @@ function fnEvenementOmschrijving($p_row, $p_mettijd=0, $p_element="") {
 	
 	if ($p_mettijd == 3) {
 	
-		$eo = sprintf("<strong>%s</strong>", $p_row->Omschrijving);
+		$eo = sprintf("<p><strong>%s</strong></p>\n", $p_row->Omschrijving);
+		$eo .= "<p>" . $dtfmt->format(strtotime($p_row->Datum));
 		if ($p_row->Starttijd > "00:00" and $p_row->Eindtijd > "00:00") {
-			$eo .= sprintf("<br>\nvan %s tot %s uur", $p_row->Starttijd, $p_row->Eindtijd);
+			$eo .= sprintf(" van %s tot %s uur", $p_row->Starttijd, $p_row->Eindtijd);
 		} elseif ($p_row->Starttijd > "00:00") {
-			$eo .= "<br>\nStart:&nbsp;" . $p_row->Starttijd;
+			$eo .= " vanaf&nbsp;" . $p_row->Starttijd . "&nbsp;uur";
 		} elseif ($p_row->Eindtijd > "00:00") {
-			$eo .= "<br>\nEinde:&nbsp;" . $p_row->Eindtijd;
+			$eo .= " tot&nbsp;" . $p_row->Eindtijd . "&nbsp;uur";
 		}
+		$eo .= "</p>\n";
 		
-		if (strlen($p_row->Locatie) > 3) {
-			$eo .= "<br>\nLocatie: " . $p_row->Locatie;
+		if (strlen($p_row->Locatie) > 4) {
+			$eo .= "<p>Locatie: " . $p_row->Locatie . "</p>\n";
 		}
-		if (IsValidMailAddress($p_row->Email, 0)) {
-			$eo .= sprintf("<br>\nContact: %s", fnDispEmail($p_row->Email, "", 1));
+		if (strlen($p_row->OrgNaam) > 0) {
+			$eo .= sprintf("<p>Contact: %s", $p_row->OrgNaam);
+			if (IsValidMailAddress($p_row->Email, 0)) {
+				$eo .= sprintf(" (%s)", fnDispEmail($p_row->Email, "", 1));
+			}
+			$eo .= "</p>\n";
 		}
 		
 		if (strlen($p_row->Verzameltijd) > 3) {
-			$eo .= sprintf("<br>\nVerzamelen:&nbsp;%s uur", $p_row->Verzameltijd);
+			$eo .= sprintf("<p>Verzamelen:&nbsp;%s uur</p>\n", $p_row->Verzameltijd);
 		}
 
 	} else {
