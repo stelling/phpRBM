@@ -42,9 +42,9 @@ function fnRekeningen() {
 			$actionurl = sprintf("%s?tp=%s", $_SERVER['PHP_SELF'], $_GET['tp']);
 			printf("<form method='post' id='rekeningmuteren' action='%s'>\n", $actionurl);
 		
-			printf("<label>Seizoen</label><select name='nwseizoen'>\n%s</select>\n", (new cls_Seizoen())->htmloptions($seizoen));
-			printf("<label>Rekeningnummer</label><input type='number' name='nwrekening' value=%d class='d8'>\n", $nwreknr);
-			printf("<label>Lid</label><select name='nwlid'><option value=0>Selecteer lid ...</option>\n%s</select>\n", (new cls_Lid())->htmloptions(-1, 2));
+			printf("<label class='form-label'>Seizoen</label><select name='nwseizoen' class='form-select'>\n%s</select>\n", (new cls_Seizoen())->htmloptions($seizoen));
+			printf("<label class='form-label'>Rekeningnummer</label><input type='number' name='nwrekening' value=%d class='d8'>\n", $nwreknr);
+			printf("<label class='form-label'>Lid</label><select name='nwlid' class='form-select'><option value=0>Selecteer lid ...</option>\n%s</select>\n", (new cls_Lid())->htmloptions(-1, 2));
 			echo("<div class='clear'></div>\n");
 			printf("<button type='submit' class='%s' name='RekToevoegen'>%s Toevoegen</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
 			echo("</form>\n");
@@ -100,7 +100,7 @@ function fnRekeningbeheer() {
 	}
 	
 	printf("<form method='post' id='filter' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-	printf("<label>Seizoen</label><select name='filterseizoen' onChange='this.form.submit();'>\n<option value=-1>Alle seizoenen</option>\n%s</select>\n", $i_sz->htmloptions($filterseizoen, 1));
+	printf("<label class='form-label'>Seizoen</label><select name='filterseizoen' class='form-select' onChange='this.form.submit();'>\n<option value=-1>Alle seizoenen</option>\n%s</select>\n", $i_sz->htmloptions($filterseizoen, 1));
 	printf("<input type='text' id='tbFilterNaam' name='tbFilterNaam' placeholder='Tekstfilter' value='%s' %s>\n", $filternaam, $js);
 	printf("<p class='aantrecords'>%d rekeningen</p>", count($rows));
 	echo("</form>\n");
@@ -179,48 +179,48 @@ function fnRekeningMuteren($p_rkid=-1) {
 		printf("<form method='post' action='%s'>\n", $actionurl);
 		echo("<div id='rekeningkopmuteren'>\n");
 		
-		printf("<label>Rekeningnummer</label><p id='reknr'>%d</p>\n", $row->Nummer);
+		printf("<label class='form-label'>Rekeningnummer</label><p id='reknr'>%d</p>\n", $row->Nummer);
 		printf("<input type='hidden' name='rkid' value=%d>\n", $row->Nummer);
 		
 		echo("<div id='rekeninginfo'>\n");
-		echo("<label>Totaal bedrag &euro;</label><p id='rekeningbedrag'></p>\n");
-		printf("<label id='lblbedragbetaald'>Betaald &euro;</label><p id='bedragbetaald'>%03.2f</p>\n", $row->Betaald);
-		echo("<label id='lbluitersteBetaling'>Uiterste betaling op</label><p id='uitersteBetaling'></p>\n");
-		echo("<label>Telefoon debiteur</label><p id='telefoondebiteur'></p>\n");
-		echo("<label>E-mail debiteur</label><p id='emaildebiteur'></p>\n");
+		echo("<label class='form-label'>Totaal bedrag &euro;</label><p id='rekeningbedrag'></p>\n");
+		printf("<label class='form-label' id='lblbedragbetaald'>Betaald &euro;</label><p id='bedragbetaald'>%03.2f</p>\n", $row->Betaald);
+		echo("<label class='form-label' id='lbluitersteBetaling'>Uiterste betaling op</label><p id='uitersteBetaling'></p>\n");
+		echo("<label class='form-label'>Telefoon debiteur</label><p id='telefoondebiteur'></p>\n");
+		echo("<label class='form-label'>E-mail debiteur</label><p id='emaildebiteur'></p>\n");
 		
-		echo("<label>Per E-mail verstuurd</label><p id='laatsteemail'></p>\n");
+		echo("<label class='form-label'>Per E-mail verstuurd</label><p id='laatsteemail'></p>\n");
 		echo("</div> <!-- Einde rekeninginfo -->\n");
 		
-		printf("<label>Seizoen</label><select id='Seizoen'>%s</select>\n", $i_seiz->htmloptions($row->Seizoen));
-		printf("<label>Rekeningdatum</label><input type='date' id='Datum' value='%s' required>\n", $row->Datum);
-		printf("<label>Omschrijving</label><input type='text' id='OMSCHRIJV' class='w35' value='%s' maxlength=35>\n", $row->OMSCHRIJV);
-		printf("<label>Tenaamstelling rekening</label><input type='text' id='DEBNAAM' class='w60' value='%s' maxlength=60>\n", $row->DEBNAAM);
+		printf("<label class='form-label'>Seizoen</label><select id='Seizoen' class='form-select'>%s</select>\n", $i_seiz->htmloptions($row->Seizoen));
+		printf("<label class='form-label'>Rekeningdatum</label><input type='date' id='Datum' value='%s' required>\n", $row->Datum);
+		printf("<label class='form-label'>Omschrijving</label><input type='text' id='OMSCHRIJV' class='w35' value='%s' maxlength=35>\n", $row->OMSCHRIJV);
+		printf("<label class='form-label'>Tenaamstelling rekening</label><input type='text' id='DEBNAAM' class='w60' value='%s' maxlength=60>\n", $row->DEBNAAM);
 		if ($row->AantLid > 1) {
 			$d = "";
 		} else {
 			$d = " disabled";
 		}
 		$f = sprintf("L.RecordID IN (SELECT RR.Lid FROM %sRekreg AS RR WHERE RR.Rekening=%d)", TABLE_PREFIX, $row->Nummer);
-		printf("<label>Gekoppeld aan lid</label><select id='Lid'%s><option value=-1></option>%s</select>\n", $d, $i_lid->htmloptions($row->Lid, 0, $f, $row->Datum));
+		printf("<label class='form-label'>Gekoppeld aan lid</label><select id='Lid' class='form-select'%s><option value=-1></option>%s</select>\n", $d, $i_lid->htmloptions($row->Lid, 0, $f, $row->Datum));
 		
 		$f = sprintf("(L.RecordID IN (SELECT LO.Lid FROM %sLidond AS LO WHERE IFNULL(LO.Opgezegd, '9999-12-31') >= '%s' AND LO.OnderdeelID=%d)", TABLE_PREFIX, $row->Datum, $_SESSION['settings']['rekening_groep_betaalddoor']);
 		$f .= sprintf(" OR L.RecordID IN (SELECT RR.Lid FROM %sRekreg AS RR WHERE RR.Rekening=%d)", TABLE_PREFIX, $reknr);
 		$f .= sprintf(" OR L.RecordID=%d OR L.RecordID=%d)", $row->BetaaldDoor, $row->Lid);
-		printf("<label>Betaald door / debiteur</label><select id='BetaaldDoor'>\n%s</select>\n", $i_lid->htmloptions($row->BetaaldDoor, 7, $f, $row->Datum));
+		printf("<label class='form-label'>Betaald door / debiteur</label><select id='BetaaldDoor' class='form-select'>\n%s</select>\n", $i_lid->htmloptions($row->BetaaldDoor, 7, $f, $row->Datum));
 		if ($row->BETAALDAG < 1) {
 			$bdt = $i_seiz->max("SZ.BetaaldagenTermijn", sprintf("SZ.Nummer=%d", $row->Seizoen));
 		} else {
 			$bdt = $row->BETAALDAG;
 		}
-		printf("<label id='lblBETAALDAG'>Betaaltermijn in dagen</label><input type='text' id='BETAALDAG' value=%d class='w3' maxlength=3>\n", $bdt);
+		printf("<label class='form-label' id='lblBETAALDAG'>Betaaltermijn in dagen</label><input type='text' id='BETAALDAG' value=%d class='w3' maxlength=3>\n", $bdt);
 		
 		if ($row->BET_TERM < 1) {
 			$bt = 1;
 		} else {
 			$bt = $row->BET_TERM;
 		}
-		printf("<label id='lblBET_TERM'>Aantal betaaltermijnen</label><input type='text' id='BET_TERM' value=%d class='w2' maxlength=2>\n", $bt);
+		printf("<label class='form-label' id='lblBET_TERM'>Aantal betaaltermijnen</label><input type='text' id='BET_TERM' value=%d class='w2' maxlength=2>\n", $bt);
 		
 		echo("</div> <!-- einde rekeningkopmuteren  -->\n");
 		
@@ -259,7 +259,7 @@ function fnRekeningMuteren($p_rkid=-1) {
 			$opt .= sprintf("<option value=-1 disabled>-- Gezin --</option>\n%s", $i_lid->htmloptions(0, 5, $f));
 			$opt .= "<option value=-1 disabled>-- Alle leden --</option>\n";
 			$opt .= $i_lid->htmloptions(0, 5);
-			printf("<select name='RRnieuw' onChange='this.form.submit();'>\n%s</select>\n", $opt);
+			printf("<select name='RRnieuw' class='form-select' onChange='this.form.submit();'>\n%s</select>\n", $opt);
 			echo("</div> <!-- Einde rekeningregelsmuteren -->\n");
 		}
 		
@@ -298,12 +298,12 @@ function fnRekeningMuteren($p_rkid=-1) {
 				rekeningprops();
 			});
 
-			\$(\"#rekeningkopmuteren > input, #rekeningkopmuteren > select, textarea\").blur(function(){
+			\$(\"#rekeningkopmuteren > input, #rekeningkopmuteren > select, textarea\").on('blur', function(){
 				savedata('rekeningedit', %1\$d, this);
 				rekeningprops();
 			});
 			
-			\$(\"#rekeningregelsmuteren tr td input\").blur(function(){
+			\$(\"#rekeningregelsmuteren tr td input\").on('blur', function(){
 				savedata('rekregedit', 0, this);
 				rekeningprops();
 			});
@@ -444,31 +444,28 @@ function RekeningenAanmaken() {
 	
 	} else {
 		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-	
-		printf("<label>Seizoen</label><select name='seizoen' onChange='this.form.submit();'>%s</select>\n", $i_sz->htmloptions($seizoen));
-
-		printf("<label>Omschrijving rekening</label><input type='text' id='Rekeningomschrijving' maxlength=35 class='w35' value='%s'>\n", $szrow->Rekeningomschrijving);
-	
-		printf("<label>Datum rekening</label><input type='date' name='Rekeningdatum' value='%s'>\n", date("Y-m-d"));
-		printf("<label id='lblEersteRekeningNummer'>Eerste rekeningnummer</label><input type='number' name='eerstenummer' value=%d>\n", $eerstenummer);
-		printf("<label id='lblVerzamelenPerGezin'>Verzamelen per gezin?</label><input type='checkbox' id='RekeningenVerzamelen' %s>\n", checked($szrow->RekeningenVerzamelen));
-		printf("<label id='lblBetalingstermijn'>Betalingstermijn</label><input type='number' id='BetaaldagenTermijn' value=%d class='num2' min=0 max=999>\n", $szrow->BetaaldagenTermijn);
+		printf("<label class='form-label'>Seizoen</label><select name='seizoen' class='form-select' onChange='this.form.submit();'>%s</select>\n", $i_sz->htmloptions($seizoen));
+		printf("<label class='form-label'>Omschrijving rekening</label><input type='text' id='Rekeningomschrijving' maxlength=35 class='w35' value='%s'>\n", $szrow->Rekeningomschrijving);
+		printf("<label class='form-label'>Datum rekening</label><input type='date' name='Rekeningdatum' value='%s'>\n", date("Y-m-d"));
+		printf("<label id='lblEersteRekeningNummer' class='form-label'>Eerste rekeningnummer</label><input type='number' name='eerstenummer' value=%d>\n", $eerstenummer);
+		printf("<label id='lblVerzamelenPerGezin' class='form-label'>Verzamelen per gezin?</label><input type='checkbox' id='RekeningenVerzamelen' %s>\n", checked($szrow->RekeningenVerzamelen));
+		printf("<label id='lblBetalingstermijn' class='form-label'>Betalingstermijn</label><input type='number' id='BetaaldagenTermijn' value=%d class='num2' min=0 max=999>\n", $szrow->BetaaldagenTermijn);
 		
-		printf("<label>Alleen ontbrekende rekeningen</label><input type='checkbox' %s name='ontbrekende' value=1 onChange='this.form.submit();'>\n", checked($ontbrekende));
+		printf("<label class='form-label'>Alleen ontbrekende rekeningen</label><input type='checkbox' %s name='ontbrekende' value=1 onChange='this.form.submit();'>\n", checked($ontbrekende));
 	
-		printf("<label>Omschrijving verenigingscontributie</label><input type='text' id='Verenigingscontributie omschrijving' maxlength=50 class='w50' value='%s'>\n", $szrow->{'Verenigingscontributie omschrijving'});
-		printf("<label id='lblKostenplaats'>Kostenplaats</label><input type='text' id='Verenigingscontributie kostenplaats' maxlength=12 class='w12' value='%s'>\n", $szrow->{'Verenigingscontributie kostenplaats'});
+		printf("<label class='form-label'>Omschrijving verenigingscontributie</label><input type='text' id='Verenigingscontributie omschrijving' maxlength=50 class='w50' value='%s'>\n", $szrow->{'Verenigingscontributie omschrijving'});
+		printf("<label id='lblKostenplaats' class='form-label'>Kostenplaats</label><input type='text' id='Verenigingscontributie kostenplaats' maxlength=12 class='w12' value='%s'>\n", $szrow->{'Verenigingscontributie kostenplaats'});
 		
 		$arrAO = [1 => "Alleen naam afdeling", 2 => "Alleen naam activiteit", 3 => "Combinatie namen afdeling en activiteit"];
 		$options = "";
 		foreach ($arrAO as $k => $o) {
 			$options .= sprintf("<option value=%d%s>%s</option>\n", $k, checked($k, "option", $szrow->{'Afdelingscontributie omschrijving'}), $o);
 		}
-		printf("<label>Omschrijving afdelingscontributie</label><select id='Afdelingscontributie omschrijving'>%s</select>", $options);
+		printf("<label class='form-label'>Omschrijving afdelingscontributie</label><select id='Afdelingscontributie omschrijving' class='form-select'>%s</select>", $options);
 		
-		printf("<label>Omschrijving gezinskorting</label><input type='text' id='Gezinskorting omschrijving' maxlength=50 class='w50' value='%s'>\n", $szrow->{'Gezinskorting omschrijving'});
-		printf("<label id='lblKostenplaatsGezinskorting'>Kostenplaats gezinskorting</label><input type='text' id='Gezinskorting kostenplaats' maxlength=12 class='w12' value='%s'>\n", $szrow->{'Gezinskorting kostenplaats'});
-		printf("<label id='lblBedragGezinskorting'>Bedrag gezinskorting</label><input type='text' id='Gezinskorting bedrag' class='d8' value='%s'>\n", $szrow->{'Gezinskorting bedrag'});
+		printf("<label class='form-label'>Omschrijving gezinskorting</label><input type='text' id='Gezinskorting omschrijving' maxlength=50 class='w50' value='%s'>\n", $szrow->{'Gezinskorting omschrijving'});
+		printf("<label id='lblKostenplaatsGezinskorting' class='form-label'>Kostenplaats gezinskorting</label><input type='text' id='Gezinskorting kostenplaats' maxlength=12 class='w12' value='%s'>\n", $szrow->{'Gezinskorting kostenplaats'});
+		printf("<label id='lblBedragGezinskorting' class='form-label'>Bedrag gezinskorting</label><input type='text' id='Gezinskorting bedrag' class='d8' value='%s'>\n", $szrow->{'Gezinskorting bedrag'});
 	
 		echo("<div id='opdrachtknoppen'>\n");
 		if (count($lidrows) > 0) {
@@ -481,12 +478,12 @@ function RekeningenAanmaken() {
 		echo("</form>\n");
 	
 		printf("<script>
-			$('input').blur(function() {
+			$('input').on('blur', function() {
 				if (this.id != null && this.id.length > 1) {
 					savedata('seizoenedit', %1\$d, this);
 				}
 			});
-			$('select').change(function() {
+			$('select').on('change', function() {
 				savedata('seizoenedit', %1\$d, this);
 			});
 		</script>\n", $seizoen);
@@ -505,8 +502,8 @@ function RekeningBetalingen() {
 	echo("<p id='opmerking'></p>\n");
 	printf("<label>Datum betaling</label><input type='date' id='nieuw_datum' value='%s'>\n", $i_rb->max("Datum"));
 	echo("<label>Bedrag</label><input type='text' id='nieuw_bedrag' value='0,00' class='d8'>\n");
-	echo("<button type='button' id='btnBetalingToevoegen' onClick='fnBetalingToevoegen();' disabled>Betaling toevoegen</button>\n");
-	echo("<button type='button' onClick='location.reload();'>Ververs scherm</button>\n");
+	printf("<button type='button' class='%s' id='btnBetalingToevoegen' onClick='fnBetalingToevoegen();' disabled>%s Betaling toevoegen</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
+	printf("<button type='button' class='%s' onClick='location.reload();'>%s Ververs scherm</button>\n", CLASSBUTTON, ICONVERVERS);
 
 	echo("<div class='clear'></div>\n");
 
@@ -525,7 +522,7 @@ function RekeningBetalingen() {
 	?>
 	<script>
 	
-	$("#nieuw_rekening").blur(function() {
+	$("#nieuw_rekening").on('blur', function() {
 		var rkid = $("#nieuw_rekening").val();
 		if (rkid > 0) {
 			$.ajax({
@@ -605,11 +602,11 @@ function RekeningInstellingen() {
 	echo("<div id='instellingenmuteren'>\n");
 	
 	echo("<h2>Algemene instellingen</h2>\n");
-	printf("<label>Groep rekening betaald door</label><select id='rekening_groep_betaalddoor'>\n<option value=-1>Alleen webmasters</option>\n%s</select>\n", $i_ond->htmloptions($_SESSION['settings']['rekening_groep_betaalddoor'], 1));
-	printf("<label>Bewaartermijn in maanden na rekeningdatum</label><input type='number' id='rekening_bewaartermijn' value=%d class='num2'>", $_SESSION['settings']['rekening_bewaartermijn']);
+	printf("<label class='form-label'>Groep rekening betaald door</label><select id='rekening_groep_betaalddoor' class='form-select'>\n<option value=-1>Alleen webmasters</option>\n%s</select>\n", $i_ond->htmloptions($_SESSION['settings']['rekening_groep_betaalddoor'], 1));
+	printf("<label class='form-label'>Bewaartermijn in maanden na rekeningdatum</label><input type='number' id='rekening_bewaartermijn' value=%d class='num2'>", $_SESSION['settings']['rekening_bewaartermijn']);
 	
 	echo("<h2>Instellingen voor mailen</h2>\n");
-	echo("<label>Rekening versturen aan</label><select id='mailing_rekening_stuurnaar'>\n");
+	echo("<label class='form-label'>Rekening versturen aan</label><select id='mailing_rekening_stuurnaar' class='form-select'>\n");
 	$sn[1] = "Alleen betaald door";
 	$sn[2] = "Betaald door en alle volwassenen op de rekening";
 	$sn[3] = "Betaald door en alle leden op de rekening";
@@ -622,17 +619,17 @@ function RekeningInstellingen() {
 	}
 	echo("</select>\n");
 		
-	printf("<label>Vanaf e-mailadres</label><select id='mailing_rekening_vanafid'>%s</select>\n", $i_mv->htmloptions($_SESSION['settings']['mailing_rekening_vanafid']));
+	printf("<label class='form-label'>Vanaf e-mailadres</label><select id='mailing_rekening_vanafid' class='form-select'>%s</select>\n", $i_mv->htmloptions($_SESSION['settings']['mailing_rekening_vanafid']));
 
-	printf("<label>Verstuurde e-mails alleen zichtbaar voor</label><select id='mailing_rekening_zichtbaarvoor'>\n<option value=-1>Alleen webmasters</option>\n%s</select>\n", $i_ond->htmloptions($_SESSION['settings']['mailing_rekening_zichtbaarvoor'], 1));
+	printf("<label class='form-label'>Verstuurde e-mails alleen zichtbaar voor</label><select id='mailing_rekening_zichtbaarvoor' class='form-select'>\n<option value=-1>Alleen webmasters</option>\n%s</select>\n", $i_ond->htmloptions($_SESSION['settings']['mailing_rekening_zichtbaarvoor'], 1));
 	echo("</div> <!-- Einde instellingenmuteren -->\n");
 ?>
 <script>
-	$("select").change(function() {
+	$("select").on('change', function() {
 		saveparam(this);
 	});
 	
-	$("input").focusout(function() {
+	$("input").on('blur', function() {
 		saveparam(this);
 	});
 	
