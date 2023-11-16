@@ -2300,7 +2300,7 @@ class cls_Onderdeel extends cls_db_base {
 	
 	public function lijst($p_ingebruik=1, $p_filter="", $p_per="", $p_lidid=0, $p_orderby="", $p_fetched=1) {
 		
-		if (strlen($p_per) < 8) {
+		if (strlen($p_per) < 10) {
 			$p_per = date("Y-m-d");
 		}
 		$sqal = sprintf("SELECT COUNT(*) FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID=O.RecordID", TABLE_PREFIX, str_replace("CURDATE()", "'" . $p_per . "'", cls_db_base::$wherelidond));
@@ -2313,7 +2313,7 @@ class cls_Onderdeel extends cls_db_base {
 				$filter = sprintf(" WHERE (%s) > 0", $sqal);
 			}
 		}
-		
+
 		if (strlen($p_filter) > 0) {
 			if (strlen($filter) > 0) {
 				$filter .= " AND ";
@@ -2321,6 +2321,14 @@ class cls_Onderdeel extends cls_db_base {
 				$filter = " WHERE ";
 			}
 			$filter .= $p_filter;
+			
+		} elseif (strlen($this->where) > 0) {
+			if (strlen($filter) > 0) {
+				$filter .= " AND ";
+			} else {
+				$filter = " WHERE ";
+			}
+			$filter .= $this->where;
 		}
 		
 		if (strlen($p_orderby) > 0) {
@@ -3323,6 +3331,8 @@ class cls_Lidond extends cls_db_base {
 		}
 		if (strlen($p_extrafilter) > 0) {
 			$w .= " AND " . $p_extrafilter;
+		} elseif (strlen($this->where) > 0) {
+			$w .= " AND " . $this->where;
 		}
 		
 		if (strlen($p_ord) > 0) {
@@ -4000,6 +4010,7 @@ class cls_Groep extends cls_db_base {
 	public $groms = "";
 	public $diplomaid = 0;
 	public $dpvoorganger = 0;
+	public $starttijd = "";
 	public $tijden = "";
 	public $instructeurs = "";
 	public $aantalingroep = 0;
@@ -4036,6 +4047,7 @@ class cls_Groep extends cls_db_base {
 				$this->diplomaid = $row->DiplomaID;
 				$this->instructeurs = $row->Instructeurs;
 				
+				$this->starttijd = $row->Starttijd;
 				$this->tijden = $row->Starttijd;
 				if (strlen($row->Eindtijd) > 3) {
 					$this->tijden .= " - " . trim($row->Eindtijd) . " uur";
@@ -4150,7 +4162,7 @@ class cls_Groep extends cls_db_base {
 			$this->mess = "De groep is niet toegevoegd, omdat er geen (bestaande) afdeling is opgegeven.";
 		}
 		
-		$this->log($nrid, 0, $afdid);
+		$this->log($nrid, 0, $this->afdid);
 	}  # cls_Groep->add
 	
 	public function update($p_grid, $p_kolom, $p_waarde, $p_reden="") {
@@ -6194,6 +6206,7 @@ class cls_Diploma extends cls_db_base {
 	public $naamvolgende = "";
 	public $eindeuitgifte = "9999-12-31";
 	public $aantalhouders = 0;
+	public $afdelingsspecifiek = 0;
 	
 	function __construct($p_dpid=-1) {
 		parent::__construct();
@@ -6218,6 +6231,7 @@ class cls_Diploma extends cls_db_base {
 					$this->naamlogging = $row->Naam;
 				}
 				$this->dpcode = $row->Kode;
+				$this->afdelingsspecifiek = $row->Afdelingsspecifiek;
 				$this->organisatie = $row->ORGANIS;
 				$this->dpvoorganger = $row->VoorgangerID;
 				if (strlen($row->EindeUitgifte) == 0) {
@@ -6661,7 +6675,7 @@ class cls_Liddipl extends cls_db_base {
 		
 		if ($p_examen == 0) {
 			$gs = 1;
-		} elseif (strlen($p_exdatum) == 10 and $p_datum <= date("Y-m-d")) {
+		} elseif (strlen($p_exdatum) == 10 and $p_exdatum <= date("Y-m-d")) {
 			$gs = 1;
 		} else {
 			$gs = 0;
@@ -6755,7 +6769,7 @@ class cls_Liddipl extends cls_db_base {
 				$this->update($row->RecordID, "LicentieVervallenPer", $row->Overleden, "het lid overleden is.");
 			}  elseif (strlen($row->Vervallen) >= 10 and $row->Vervallen > $row->LicentieVervallenPer) {
 				$this->update($row->RecordID, "LicentieVervallenPer", $row->Vervallen, "het diploma vervallen is.");
-			}  elseif (strlen($row->LicentieVervallenPer) == 0 and $row->GELDIGH > 0) {
+			}  elseif (strlen($row->LicentieVervallenPer) == 0 and $row->GELDIGH > 0 and $row->DatumBehaald < date("Y-m-d", strtotime("-1 month"))) {
 				$this->update($row->RecordID, "LicentieVervallenPer", $row->GeldigTot, "de geldigheid van dit diploma beperkt is.");
 			} elseif ($row->Examen > 0 and $i_ex->exid == 0) {
 				$this->update($row->RecordID, "Examen", 0, "het examen niet (meer) bestaat.");
@@ -6903,6 +6917,8 @@ class cls_Examen extends cls_db_base {
 		$w = "1=1";
 		if (strlen($p_filter) > 0) {
 			$w .= " AND " . $p_filter;
+		} elseif (strlen($this->where) > 0) {
+			$w .= " AND " . $this->where;
 		}
 		
 		$vn = "CONCAT(IF(O.ORGANIS=2, IF(EX.Proefexamen=1, 'Proefzwemmen', 'Áfzwemmen'), IF(EX.Proefexamen=1, 'Proefexamen', 'Examen')), IF(EX.OnderdeelID > 0, CONCAT(' ', O.Kode), ''))";
@@ -6915,7 +6931,7 @@ class cls_Examen extends cls_db_base {
 		} else {
 			return $result;
 		}
-	}
+	}  # cls_Examen->lijst
 	
 	public function eerstediploma() {
 		if ($this->aantalkandidaten > 0 and $this->exid > 0) {
@@ -7288,7 +7304,7 @@ class cls_Evenement extends cls_db_base {
 
 		$st = "DATE_FORMAT(E.Datum, '%H:%i', 'nl_NL')";
 		
-		$select = sprintf("E.RecordID, E.Datum, %s AS Starttijd, E.Omschrijving, E.Locatie, E.MeerdereStartMomenten,
+		$select = sprintf("E.RecordID, E.Datum, %s AS Starttijd, E.Omschrijving, E.Locatie, E.MeerdereStartMomenten, O.Naam AS OrgNaam,
 							O.CentraalEmail AS Email, E.Verzameltijd, E.Eindtijd, ET.Omschrijving AS OmsType, ET.Soort, ET.Tekstkleur, ET.Achtergrondkleur, ET.Vet, ET.Cursief,
 							CASE E.InschrijvingOpen WHEN 0 THEN 'Nee' ELSE 'Ja' END AS `Ins. open?`,
 							(%s) AS AantalDln, (%s) AS AantAfgemeld", $st, $this->sqlaantdln, $this->sqlaantafgemeld);
