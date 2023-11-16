@@ -238,7 +238,7 @@ function HTMLheader($breed=0) {
 		
 		echo("<link href='https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css' rel='stylesheet'>\n");
 		echo("<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css'>\n");
-		echo("<script src='https://code.jquery.com/jquery-3.6.0.js'></script>\n");
+		echo("<script src='https://code.jquery.com/jquery-3.7.1.js'></script>\n");
 		if ($currenttab == "Vereniging" or $currenttab == "Eigen gegevens"  or $currenttab == "Ledenlijst" or $currenttab2 == "Overzicht lid") {
 			echo("<script src='https://code.jquery.com/ui/1.13.1/jquery-ui.js'></script>\n");
 		}
@@ -567,6 +567,7 @@ function fnDispEmail($strEmail, $strNaam="", $booInclLink=1) {
    	$strRet = "Geen (geldig) e-mailadres";
    }
 	return $strRet;
+	
 }  # fnDispEmail
 
 function getvar($nm, $riz="") {
@@ -1323,15 +1324,15 @@ function fnEditTable($res, $kols, $id="", $th="") {
 		
 		$ret .= sprintf("<script>
 	
-		$('select').change(function() {
+		$('select').on('change', function() {
 			savedata('%1\$s', 0, this);
 		});
 
-		$('input').blur(function() {
+		$('input').on('blur', function() {
 			savedata('%1\$s', 0, this);
 		});
 	
-		$(\"input[type='number']\").change(function() {
+		$(\"input[type='number']\").on('change', function() {
 			savedata('%1\$s', 0, this);
 		});
 
