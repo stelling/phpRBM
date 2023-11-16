@@ -458,7 +458,7 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 ?>
 <script>
 		
-	$("input[id^=Diplomanummer_], input[id^=LicentieVervallenPer_]").blur(function() { 
+	$("input[id^=DatumBehaald_], input[id^=Diplomanummer_], input[id^=LicentieVervallenPer_]").on('blur', function() { 
 		savedata("liddipl", 0, this);
 	});
 	
@@ -533,6 +533,8 @@ function fnDiplomasMuteren($p_afdid=-1) {
 	}
 	$dprows = $i_dp->basislijst($f, "DP.Kode");
 	
+	$i_ond->where = sprintf("O.`Type`='A' AND (IFNULL(O.VervallenPer, '9999-12-31') >= CURDATE() OR O.RecordID IN (SELECT DP.Afdelingsspecifiek FROM %sDiploma AS DP))", TABLE_PREFIX);
+	
 	$dpid = $_POST['selecteerdiploma'] ?? 0;
 	
 	printf("<form action='%s?%s' id=filter method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
@@ -550,6 +552,11 @@ function fnDiplomasMuteren($p_afdid=-1) {
 		printf("<label class='form-label'>Code</label><input type='text' id='Kode' class='w10' maxlength=10 value=\"%s\">\n", $dprow->Kode);
 		printf("<label class='form-label' id='lblvolgnr'>Volgnummer</label><input type='number' id='Volgnr' value=%d class='num3'>\n", $dprow->Volgnr);
 		printf("<label class='form-label'>Type</label><select id='Type' class='form-select'>%s</select>\n", fnOptionsFromArray(ARRTYPEDIPLOMA, $dprow->Type));
+		
+		if ($p_afdid <= 0) {
+			printf("<label class='form-label'>Afdelingsspecifiek</label><select name='Afdelingsspecifiek' class='form-select'>\n<option value=0>Geen</option>\n%s</select>\n", $i_ond->htmloptions($dprow->Afdelingsspecifiek, 0, "", "", 0));
+		}
+		
 		printf("<label class='form-label' id='lbluitgegevendoor'>Uitgegeven door</label><select id='ORGANIS' class='form-select'>%s</select>\n", $i_org->htmloptions(1, $dprow->ORGANIS));
 		$f = sprintf("DP.RecordID<>%d AND DP.Afdelingsspecifiek=%d AND IFNULL(DP.Vervallen, '9999-12-31') > CURDATE()", $dpid, $dprow->Afdelingsspecifiek);
 		printf("<label id='lblvoorganger'>Voorganger</label><select id='VoorgangerID' class='form-select'><Option value=0>Geen</option>\n%s</select>\n", $i_dp->htmloptions($dprow->VoorgangerID, 0, 0, 0, $f, 1));
@@ -571,19 +578,19 @@ function fnDiplomasMuteren($p_afdid=-1) {
 		
 		echo("</div> <!-- Einde diplomamuteren -->\n");
 		printf("<script>
-	$('#Naam, #Kode, #Volgnr, #GELDIGH, #HistorieOpschonen').blur(function() {
+	$('#Naam, #Kode, #Volgnr, #GELDIGH, #HistorieOpschonen').on('blur', function() {
 		savedata('diplomaedit', %1\$d, this);
 	});
 	
-	$('#ORGANIS, #VoorgangerID, #Type').blur(function() {
+	$('#ORGANIS, #VoorgangerID, #Type').on('blur', function() {
 		savedata('diplomaedit', %1\$d, this);
 	});
 		
-	$('#Zelfservice').change(function() {
+	$('#Zelfservice').on('change', function() {
 		savedata('diplomaedit', %1\$d, this);
 	});
 	
-	$('#EindeUitgifte, #Vervallen').blur(function(){
+	$('#EindeUitgifte, #Vervallen').on('blur', function(){
 		savedata('diplomaedit', %1\$d, this);
 		this.form.submit();
 	});
