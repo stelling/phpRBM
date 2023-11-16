@@ -146,6 +146,7 @@ if ($i_lid->aantal() == 0) {
 } elseif ($currenttab == "Vereniging") {
 	$tabidx = 0;
 	$tabblad["Introductie"] = fnVoorblad();
+	/*
 	$tn = "Agenda";
 	if ($tn == $currenttab2) {
 		$tabidx = count($tabblad);
@@ -153,6 +154,7 @@ if ($i_lid->aantal() == 0) {
 	if (toegang($currenttab . "/" . $tn, 0, 0)) {
 		$tabblad["Agenda"] = fnAgendaTable($_SESSION['lidid']);
 	}
+	*/
 	
 	if ((new cls_Onderdeel())->aantal("`Type`='A'") > 0) {
 		$atn = array("Verenigingskader", "Afdelingskader");
@@ -425,7 +427,7 @@ function fnVoorblad() {
 		$content = "<p class='mededeling'>Er is geen introductie beschikbaar.</p>\n";
 	}
 	
-	return sprintf("<div id='welkomsttekst'>\n%s</div>  <!-- Einde welkomsttekst -->\n", $content);
+	return $content;
 	
 }  # fnVoorblad
 
@@ -459,11 +461,10 @@ function fnAgenda($p_lidid=0) {
 		$dtStart = strtotime("-1 day", $dtStart);
 	}
 	
-	//	$txt .= "<p class='mededeling'>De agenda is nog in ontwikkeling</p>\n";
 	$txt = "<div id='agenda'>\n";
 	
 	$dtfmt->setPattern("EEEE");
-	$txt .= "<div class='row'>\n";
+	$txt .= "<div class='row rijdagnaam'>\n";
 	for ($dn=1;$dn<=7;$dn++) {
 		$txt .= sprintf("<div class='col dagnaam'>%s</div>", substr($dtfmt->format(strtotime(sprintf("+%d day", $dn-1), $dtStart)), 0, 3));
 	}
@@ -508,6 +509,10 @@ function fnAgenda($p_lidid=0) {
 				} else {
 					if (strlen($akrow->Activiteit) == 1) {
 						$oms = $akrow->Naam;
+						$i_ex->vulvars(-1, $akrow->Datum, $akrow->OnderdeelID);
+						if ($i_ex->exid > 0) {
+							$oms .= " (" . $i_ex->examenomskort	. ")";
+						}
 					} else {
 						$oms = "Geen " . $akrow->Naam;
 					}
@@ -522,7 +527,7 @@ function fnAgenda($p_lidid=0) {
 				}
 			}
 			
-			$f_ex = sprintf("EX.Datum='%s'", date("Y-m-d", $td));
+			$f_ex = sprintf("EX.Datum='%s' AND EX.OnderdeelID=0", date("Y-m-d", $td));
 			foreach ($i_ex->lijst(1, $f_ex) as $exrow) {
 				$txt .= sprintf("<li class='examen' title=\"%1\$s\">%1\$s</li>", $exrow->ExamenOms);
 			}
@@ -565,6 +570,8 @@ function fnAgenda($p_lidid=0) {
 function fnAgendaTable($p_lidid=0) {
 	global $dtfmt;
 	
+	debug("fnAgendaTable");
+	
 	$i_lid = new cls_Lid();
 	
 	if (strlen($_SESSION['settings']['agenda_url_feestdagen']) > 4) {
@@ -590,8 +597,7 @@ function fnAgendaTable($p_lidid=0) {
 	while (date("N", $dtStart) > 1) {
 		$dtStart = strtotime("-1 day", $dtStart);
 	}
-	
-	//	$txt .= "<p class='mededeling'>De agenda is nog in ontwikkeling</p>\n";
+
 	$txt = sprintf("<table class='%s'>\n", TABLECLASSES);
 	$txt .= "<tr>\n";
 	$dtfmt->setPattern("EEEE");
