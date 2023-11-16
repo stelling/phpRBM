@@ -987,7 +987,7 @@ table#afdelingskalendermuteren {
 	border-bottom-style: solid;
 }
 
-#groepsindeling h3 {
+#groepsindeling h3, #groepsindelingmuteren h3 {
 	width: 100%;
 	font-size: 120%;
 	background-color: gainsboro;
@@ -1143,9 +1143,8 @@ table#presentiemuteren td.aanwezig {
 	padding-top: 6px;
 }
 
-.kandidatengroep {
-	float: left;
-	clear: none;
+.kandidatengroep, .groepindelen {
+	min-width: 275px;
 	
 	padding-top: 0;
 	padding-left: 0;
@@ -1173,13 +1172,6 @@ table#presentiemuteren td.aanwezig {
 	border-style: solid;
 	border-width: 1px;
 	padding: 3px;
-}
-
-#groepenaa22nexamentoevoegen label {
-	margin-top: 6px;
-	margin-bottom: 6px;
-	padding-top: 6px;
-	padding-bottom: 6px;
 }
 
 #dl_lijst {
@@ -1328,10 +1320,6 @@ table#presentiemuteren td.aanwezig {
 	max-width: 260px;
 }
 
-#diplomamuteren {
-	height: 150px;
-}
-
 #diplomamuteren p {
 	padding-top: 6px;
 	padding-left: 6px;
@@ -1346,10 +1334,6 @@ table#presentiemuteren td.aanwezig {
 
 #diplomamuteren input#RecordID {
 	width: 115px;
-}
-
-#diplomamuteren select {
-	min-width: 115px;
 }
 
 #diplomamuteren label {
@@ -1556,40 +1540,27 @@ td.dubbeldiploma {
 	float: none;
 }
 
-#overzichtevenementen {
-	clear: both;
-	margin-top: 8px;
+#overzichtevenementen .row {
+	margin-top: 6px;
+	margin-bottom: 6px;
 }
 
-#overzichtevenementen table {
-	width: 100%;
+#overzichtevenementen .col {
 	border-style: none;
-}
-
-#overzichtevenementen tr, #overzichtevenementen td, #overzichtevenementen th {
-	border-style: none;
-	text-align: left;
 	border-width: 1px;
-	border-right-style: solid;
-	border-bottom-style: solid;
+	margin-right: 8px;
+	background-color: #f0f0f0;
 }
-
-#overzichtevenementen tr, #overzichtevenementen td {
-	background-color: transparent;
-}
-
-#overzichtevenementen td:first-child {
-	min-width: 22%;
-}
-
 
 #overzichtevenementen ul {
-	float: left;
-	clear: left;
+	list-style-type: none;
+	padding-left: 9px;
 }
 
-#overzichtevenementen td:last-child {
-	width: 75%;
+#overzichtevenementen li {
+	float: left;
+	min-width: 275px;
+	margin-left: -12px;
 }
 
 #evenementenbeheer {
@@ -2041,22 +2012,6 @@ label#lblbeschikbarevariabelen, label#lblbijlagen, label#lblmeldingen {
 	margin-bottom: 8px;
 }
 
-#overzichtevenementen ul {
-	list-style: none;
-	padding-left: 0;
-	padding-right: 0;
-	text-align: left;
-	margin-top: 0;
-}
-
-#overzichtevenementen li {
-	float: left;
-	width: 210px;
-	list-style-type: none;
-	margin-left: 3px;
-	margin-right: 3px;
-}
-
 .jarige {
 	margin-top: 10px;
 	height: 83px;
@@ -2124,11 +2079,6 @@ p.functiekaderlid, p.mailkaderlid {
 #rekeningmuteren textarea {
 	width: 100%;
 	height: 52px;
-}
-
-#rekeningkopmuteren select {
-	margin-top: 6px;
-	width: 250px;
 }
 
 #rekeningkopmuteren p {
@@ -2333,6 +2283,9 @@ label#lblVerzamelenPerGezin, label#lblBedragGezinskorting {
 
 #instellingenmuteren h2 {
 	clear: left;
+	float: left;
+	width: 100%;
+	margin-top: 8px;
 }
 
 #instellingenmuteren .invoerblok {
@@ -2344,23 +2297,6 @@ label#lblVerzamelenPerGezin, label#lblBedragGezinskorting {
 	float: left;
 	margin-left: 8px;
 	margin-top: 4px;
-}
-
-#instellingenmuteren label {
-	width: 500px;
-	height: auto;
-}
-
-#instellingenmuteren h2 {
-	float: left;
-	clear: left;
-	width: 100%;
-	margin-top: 8px;
-}
-
-#instellingenmuteren select {
-	margin-left: 4px;
-	margin-top: 8px;
 }
 
 #instellingenmuteren textarea, #bijzonderhedenwijzigen textarea {
@@ -2380,11 +2316,6 @@ label#lblVerzamelenPerGezin, label#lblBedragGezinskorting {
 
 #instellingenmuteren input[type=number] {
 	width: 60px;
-}
-
-#instellingenmuteren select {
-	margin-left: 6px;
-	margin-top: 2px;	
 }
 
 input#db_folderbackup, input#naamwebsite, input#naamvereniging, input#urlvereniging {
@@ -2664,9 +2595,29 @@ input#titellijst[type='text'] {
 	text-align: left;
 }
 
+div.groepindelen {
+	float: left;
+	clear: none;
+	border-width: 1px;
+	margin-right: 8px;
+	margin-bottom: 8px;
+	min-height: 550px;
+}
+
+button.volgendegroep {
+	clear: both;
+	margin-left: 8px;
+}
+
 @media screen and (max-width: 750px) {
+	/* Telefoon portrait */
+	
 	h1 {
 		font-size: 125%;
+	}
+	
+	.rijdagnaam {
+		display: none;
 	}
 	
 	#overzichtlid label {
@@ -2754,10 +2705,6 @@ input#titellijst[type='text'] {
 	}
 
 	table#afdelingslijst th.email, table#afdelingslijst td.email, table#afdelingslijst th.vanaf, table#afdelingslijst td.vanaf, table#afdelingslijst td.sportlinkid, table#afdelingslijst th.sportlinkid, table#afdelingslijst th.muteren, table#afdelingslijst td.muteren {
-		display: none;
-	}
-	
-	table#groepsindelingmuteren th:nth-child(2), table#groepsindelingmuteren th:nth-child(3), table#groepsindelingmuteren td:nth-child(2), table#groepsindelingmuteren td:nth-child(3) {
 		display: none;
 	}
 	
