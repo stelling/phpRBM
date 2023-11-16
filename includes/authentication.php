@@ -237,8 +237,9 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 					$f = sprintf("LO.GroepID > 0 AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE() AND LO.OnderdeelID=%d", $row->RecordID);
 					if ((new cls_Lidond())->aantal($f) > 0) {
 						addtp(trim($row->Naam) . "/Groepsindeling", $row->RecordID);
+						addtp(trim($row->Naam) . "/Groepsindeling muteren");
 					}
-					addtp(trim($row->Naam) . "/Groepsindeling muteren");
+					addtp(trim($row->Naam) . "/Groepen muteren");
 					$f = sprintf("AK.OnderdeelID=%d AND AK.Datum > DATE_SUB(CURDATE(), INTERVAL 9 MONTH) AND AK.Activiteit=1", $row->RecordID);
 					if ((new cls_Afdelingskalender())->aantal($f) > 0) {
 						addtp(trim($row->Naam) . "/Presentie muteren");
