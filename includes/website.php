@@ -86,34 +86,34 @@ function fnStukken($p_scherm="") {
 		}
 		
 		printf("<form method='post' id='stukkenmuteren' action='%s?tp=%s&p_scherm=F&p_stid=%d'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
-		printf("<label>RecordID</label><p>%d</p>\n", $row->RecordID);
+		printf("<label class='form-label'>RecordID</label><p>%d</p>\n", $row->RecordID);
 		printf("<input type='hidden' name='stid' value=%d>\n", $row->RecordID);
-		printf("<label>Titel</label><input type='text' name='Titel' value=\"%s\" class='w50' maxlength=50>\n", str_replace("\"", "'", $row->Titel));
-		printf("<label>Bestemd voor</label><input type='text' name='BestemdVoor' value=\"%s\" class='w30'>\n", str_replace("\"", "'", $row->BestemdVoor));
-		printf("<label>Zichtbaar voor</label><select name='ZichtbaarVoor'><option value=0>Iedereen</option>%s</select>\n", $i_ond->htmloptions($row->ZichtbaarVoor));
-		printf("<label>Vastgesteld op</label><input type='date' name='VastgesteldOp' value='%s'>\n", $row->VastgesteldOp);
-		printf("<label>Ingangsdatum</label><input type='date' name='Ingangsdatum' value='%s'>\n", $row->Ingangsdatum);
-		printf("<label>Revisiedatum</label><input type='date' name='Revisiedatum' value='%s'>\n", $row->Revisiedatum);
-		printf("<label>Vervallen per</label><input type='date' name='VervallenPer' value='%s'>\n", $row->VervallenPer);
+		printf("<label class='form-label'>Titel</label><input type='text' name='Titel' value=\"%s\" class='w50' maxlength=50>\n", str_replace("\"", "'", $row->Titel));
+		printf("<label class='form-label'>Bestemd voor</label><input type='text' name='BestemdVoor' value=\"%s\" class='w30'>\n", str_replace("\"", "'", $row->BestemdVoor));
+		printf("<label class='form-label'>Zichtbaar voor</label><select name='ZichtbaarVoor' class='form-select'><option value=0>Iedereen</option>%s</select>\n", $i_ond->htmloptions($row->ZichtbaarVoor));
+		printf("<label class='form-label'>Vastgesteld op</label><input type='date' name='VastgesteldOp' value='%s'>\n", $row->VastgesteldOp);
+		printf("<label class='form-label'>Ingangsdatum</label><input type='date' name='Ingangsdatum' value='%s'>\n", $row->Ingangsdatum);
+		printf("<label class='form-label'>Revisiedatum</label><input type='date' name='Revisiedatum' value='%s'>\n", $row->Revisiedatum);
+		printf("<label class='form-label'>Vervallen per</label><input type='date' name='VervallenPer' value='%s'>\n", $row->VervallenPer);
 			
 		$options = "";
 		foreach (ARRTYPESTUK as $k => $v) {
 			$options .= sprintf("<option value='%s' %s>%s</option>\n", $k, checked($k, "option", $row->Type), $v);
 		}
-		printf("<label>Type</label><select name='Type'>%s</select>\n", $options);
-		printf("<label>Naam document</label><select name='naamdoc' onChange='this.form.submit();'>\n%s</select>", $optlocalfiles);
+		printf("<label class='form-label'>Type</label><select name='Type' class='form-select'>%s</select>\n", $options);
+		printf("<label class='form-label'>Naam document</label><select name='naamdoc' class='form-select' onChange='this.form.submit();'>\n%s</select>", $optlocalfiles);
 		if (substr($row->Link, 0, 4) != "http" and file_exists(BASEDIR . "/stukken/" . $i_stuk->link)) {
 			$u = BASISURL . sprintf("/get_stuk.php?p_stukid=%d", $row->RecordID);
 			printf("<p id='ganaarurl'><a href='%1\$s'>Ga naar</a></p>\n", $u);
 		}
 		
 		if (substr($i_stuk->link, 0, 4) == "http" or (isset($_POST['naamdoc']) and ($_POST['naamdoc'] == "extlink") or substr($row->Link, 0, 4) == "http")) {
-			printf("<label>Externe link</label><input type='url' name='extlink' value='%s'>\n", $row->Link);
+			printf("<label class='form-label'>Externe link</label><input type='url' name='extlink' value='%s'>\n", $row->Link);
 			if (substr($i_stuk->link, 0, 4) == "http") {
 				printf("<p id='ganaarurl'><a href='%1\$s'>Ga naar</a></p>\n", $row->Link);
 			}
 		}
-		printf("<label>Ingevoerd op</label><p>%s</p>\n", $dtfmt->format(strtotime($row->Ingevoerd)));
+		printf("<label class='form-label'>Ingevoerd op</label><p>%s</p>\n", $dtfmt->format(strtotime($row->Ingevoerd)));
 		echo("<div class='clear'></div>\n");
 		
 		$f = sprintf("ReferID=%d", $row->RecordID);
@@ -267,19 +267,19 @@ function fnWebsiteMenu() {
 		
 		printf("<form method='post' id='website_menu' action='%s?tp=%s&p_scherm=F&p_wmid=%d'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $wmid);
 		
-		printf("<label>RecordID</label><p>%d</p>\n", $i_wm->wmid);
-		printf("<label>Titel</label><input type='text' name='Titel' value=\"%s\" class='w20' maxlength=20>\n", $i_wm->titel);
+		printf("<label class='form-label'>RecordID</label><p>%d</p>\n", $i_wm->wmid);
+		printf("<label class='form-label'>Titel</label><input type='text' name='Titel' value=\"%s\" class='w20' maxlength=20>\n", $i_wm->titel);
 		
 		$f = sprintf("WM.VorigeLaag=0 AND WM.RecordID<>%d", $i_wm->wmid);
-		printf("<label>Vorige laag</label><select name='VorigeLaag'><option value=0>Geen</option>\n%s</select>\n", $i_wm->htmloptions($i_wm->vorigelaag, $f));
+		printf("<label class='form-label'>Vorige laag</label><select name='VorigeLaag' class='form-select'><option value=0>Geen</option>\n%s</select>\n", $i_wm->htmloptions($i_wm->vorigelaag, $f));
 		
-		printf("<label>Volgnummer</label><input type='number' name='Volgnummer' value=\"%s\" class='num2'>\n", $i_wm->volgnr);
+		printf("<label class='form-label'>Volgnummer</label><input type='number' name='Volgnummer' value=\"%s\" class='num2'>\n", $i_wm->volgnr);
 		
-		printf("<label>Inhoud</label><select name='InhoudID'><option value=0>Geen</option>\n%s</select>\n", $i_wi->htmloptions($i_wm->inhoudid));
+		printf("<label class='form-label'>Inhoud</label><select name='InhoudID' class='form-select'><option value=0>Geen</option>\n%s</select>\n", $i_wi->htmloptions($i_wm->inhoudid));
 		
-		printf("<label>Directe link</label><input type='url' name='ExterneLink' value=\"%s\" title='Directe link naar een andere website'>\n", $i_wm->externelink);
+		printf("<label class='form-label'>Directe link</label><input type='url' name='ExterneLink' value=\"%s\" title='Directe link naar een andere website'>\n", $i_wm->externelink);
 		
-		printf("<label>Gepubliceerd</label><input type='date' name='Gepubliceerd' value=\"%s\" title='Zichtbaar vanaf'>\n", $i_wm->gepubliceerd);
+		printf("<label class='form-label'>Gepubliceerd</label><input type='date' name='Gepubliceerd' value=\"%s\" title='Zichtbaar vanaf'>\n", $i_wm->gepubliceerd);
 		
 		echo("<div id='opdrachtknoppen'>\n");
 		echo("<button type='submit' name=Bewaar'' title='Bewaar menu-item'><i class='bi bi-save'></i> Bewaren</button>\n");
@@ -401,9 +401,9 @@ function fnWebsiteInhoud() {
 		
 		printf("<form method='post' id='website_inhoud' action='%s?tp=%s&p_scherm=F&p_wiid=%d' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $wiid);
 		
-		printf("<label>RecordID</label><p>%d</p>\n", $i_wi->wiid);
-		printf("<label>Titel</label><input type='text' name='Titel' value=\"%s\" class='w80' maxlength=80>\n", $i_wi->titel);
-		printf("<label>HTML direct</label><input type='checkbox' name='HTMLdirect'%s title='Zonder editor' onClick='this.form.submit();'>\n", checked($i_wi->htmldirect));
+		printf("<label class='form-label'>RecordID</label><p>%d</p>\n", $i_wi->wiid);
+		printf("<label class='form-label'>Titel</label><input type='text' name='Titel' value=\"%s\" class='w80' maxlength=80>\n", $i_wi->titel);
+		printf("<label class='form-label'>HTML direct</label><input type='checkbox' name='HTMLdirect'%s title='Zonder editor' onClick='this.form.submit();'>\n", checked($i_wi->htmldirect));
 		
 		$stylesheettekst = "";
 		if ($i_wi->htmldirect == 0) {
@@ -460,7 +460,7 @@ function fnWebsiteInhoud() {
 			printf("<p>%s</p>\n", $stylesheettekst);
 		}
 		
-		echo("<label>Bijbehorende bestanden</label>");
+		echo("<label class='form-label'>Bijbehorende bestanden</label>");
 		echo("<div id='website_bestanden'>\n");
 		
 			if (strlen($tabbijlagefiles) > 0) {
