@@ -221,6 +221,8 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 	}
 
 	if ($exid > 0) {
+		/*
+		-- Verplaatsen geslaagden naar een nieuwe groep is naar 'Groepsindeling muteren' verplaatst
 		if (isset($_POST['nwe_groep']) and strlen($_POST['nwe_groep']) > 0 and $p_afdid > 0) {
 			$grid = intval(explode("-", $_POST['nwe_groep'])[0]);
 			$vdpid = intval(explode("-", $_POST['nwe_groep'])[1]);
@@ -244,6 +246,7 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 				}
 			}
 		}
+		*/
 	} elseif ($p_perexamen == 1) {
 		echo("<div id='opdrachtknoppen'>\n");
 		printf("<button type='submit' class='%s' name='btnExamenToevoegen'>%s Examen</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
@@ -411,6 +414,9 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 					$ol = sprintf("%d leden", $aant_vg);
 					$t = sprintf(" title='%s'", $naam_vg);
 				}
+				
+				/*
+				-- Verplaatsen geslaagden naar een nieuwe groep is naar 'Groepsindeling muteren' verplaatst
 				echo("<div class='clear'></div>\n");
 				
 				$vdps = "-1";
@@ -422,6 +428,7 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 				foreach ($i_gr->basislijst($f) as $vgrow) {
 					printf("<button type='submit' class='%s' name='nwe_groep' value='%d-%d'%s>%s naar groep %s</button>\n", CLASSBUTTON, $vgrow->RecordID, $i_dp->dpid, $t, $ol, $vgrow->Omschrijving);
 				}
+				*/
 			}
 			if ($p_perexamen == 1) {
 				echo("</div> <!-- Einde kandidatengroep col -->\n");
@@ -433,7 +440,7 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 	
 	if ($p_afdid > 0 and $exid > 0) {
 		$f = sprintf("GR.OnderdeelID=%d AND GR.DiplomaID > 0", $p_afdid);
-		echo("<div id='groepenaanexamentoevoegen'>\n");
+		echo("<div id='knoppenbalk'>\n");
 		echo("<label class='form-label'>Groep toevoegen</label>\n");
 		foreach ($i_gr->basislijst($f, "GR.Omschrijving") as $grrow) {
 			$f_toev_groep = sprintf("LO.OnderdeelID=%1\$d AND LO.GroepID=%2\$d AND IFNULL(LO.Opgezegd, '9999-12-31') >= '%3\$s' AND LO.Lid NOT IN (SELECT LD.Lid FROM %4\$sLiddipl AS LD WHERE LD.Examen=%3\$d AND LD.DiplomaID=%5\$d)", $p_afdid, $grrow->RecordID, $exid, TABLE_PREFIX, $grrow->DiplomaID);
@@ -451,7 +458,7 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 			}
 		}
 		
-		echo("</div> <!-- Einde groepenaanexamentoevoegen -->\n");
+		echo("</div> <!-- Einde knoppenbalk -->\n");
 	}
 	echo("</form>\n");
 	

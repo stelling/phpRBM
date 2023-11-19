@@ -108,19 +108,10 @@ li {
 	padding-left: 3px;
 }
 
-label, input {
-	height: 30px;
-}
-
 button, input, select, textarea {
 	float: left;
 	color: var(--default-text-color);
 	margin-right: 4px;
-}
-
-label, input, textarea {
-	margin-top: 3px;
-	margin-bottom: 3px;
 }
 
 p {	
@@ -142,7 +133,7 @@ p.aantrecords {
 
 span {
 	white-space: nowrap;
-	display: inline;
+	display:inline-block;
 	margin-top: 0;
 	padding-top: 0;
 }
@@ -152,11 +143,10 @@ label {
 	clear: left;
 	display: block;
 	margin-right: 5px;
-	padding-top: 4px;
-	padding-left: 5px;
-	padding-right: 5px;
-	padding-bottom: 4px;
 	text-align: right;
+	padding-top: 4px;
+	padding-bottom: 4px;
+	padding-right: 2px;
 	background-color: var(--label-background-color);
 	border-width: 1px;
 }
@@ -193,7 +183,6 @@ footer a, footer a:visited {
 
 form p {
 	float: left;
-	margin-top: 6px;
 	margin-left: 4px;
 	margin-right: 4px;
 }
@@ -710,10 +699,6 @@ table#deelnemersevenementmuteren {
 	margin-top: 10px;
 }
 
-#overzichtlid {
-	margin-left: 1px;
-}
-
 #overzichtlid h2 {
 	float: left;
 	clear: both;
@@ -726,15 +711,12 @@ table#deelnemersevenementmuteren {
 	width: 175px;
 	float: left;
 	clear: left;
-	margin-left: 0;
 }
 
 #overzichtlid p {
 	float: left;
 	overflow: visible;
-	min-height: 22px;
 	min-width: 225px;
-	margin-top: 8px;
 }
 
 #tab-diplomas table > caption {
@@ -1144,8 +1126,6 @@ table#presentiemuteren td.aanwezig {
 }
 
 .kandidatengroep, .groepindelen {
-	min-width: 275px;
-	
 	padding-top: 0;
 	padding-left: 0;
 	padding-right: 0;
@@ -1165,13 +1145,8 @@ table#presentiemuteren td.aanwezig {
 	white-space: nowrap;
 }
 
-#groepenaanexamentoevoegen {
-	float: left;
-	clear: left;
-	width: 100%;
-	border-style: solid;
-	border-width: 1px;
-	padding: 3px;
+.groepindelen {
+	min-width: 275px;
 }
 
 #dl_lijst {
@@ -1768,9 +1743,9 @@ fieldset h3 {
 	font-size: 175%;
 }
 
-#opdrachtknoppen select, #knoppenbalk select {
+#opdrachtknoppen select, #knoppenbalk select, #knoppenbalk label {
 	margin-left: 6px;
-	margin-top: 12px;
+	margin-top: 6px;
 }
 
 #opdrachtknoppen p, #knoppenbalk p {
@@ -2389,8 +2364,6 @@ input#db_folderbackup, input#naamwebsite, input#naamvereniging, input#urlverenig
 
 #wijzigenlidgegevens label {
 	width: 160px;
-	margin-right: 8px;
-	padding-right: 3px;
 }
 
 #nieuwlid label {
@@ -2417,9 +2390,6 @@ input#db_folderbackup, input#naamwebsite, input#naamvereniging, input#urlverenig
 	border-bottom-right-radius: 9px;
 	border-bottom-left-radius: 9px;
 	float: right;
-	clear: right;
-	padding-left: 5px;
-	padding-right: 5px;
 }
 
 #eigenschappenlidmuteren h2, #eigenschappenlidmuteren input {
@@ -2431,10 +2401,16 @@ input#db_folderbackup, input#naamwebsite, input#naamvereniging, input#urlverenig
 	font-size: 110%;
 	border-bottom-style: solid;
 	border-width: 1px;
+	margin-left: 4px;
 }
 
-#eigenschappenlidmuteren p {
-	padding-top: 1px;
+#eigenschappenlidmuteren label {
+	width: auto;
+	clear: right;
+}
+
+#eigenschappenlidmuteren .form-check-input {
+	margin-left: 4px;
 }
 
 #wijzigenlidgegevens input, #wijzigenlidgegevens select {
@@ -2444,6 +2420,7 @@ input#db_folderbackup, input#naamwebsite, input#naamvereniging, input#urlverenig
 
 #wijzigenlidgegevens textarea {
 	float: left;
+	margin-bottom: 6px;
 }
 
 #wijzigenlidgegevens select, #nieuwlid select {
