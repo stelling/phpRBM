@@ -1687,14 +1687,16 @@ class cls_Lid extends cls_db_base {
 				$this->update($lrow->RecordID, "Voorletter", $vl, "de voorletters leeg waren.");
 			} elseif (array_key_exists($lrow->Legitimatietype, ARRLEGITIMATIE) == false) {
 				$this->update($lrow->RecordID, "Legitimatietype", "G", "legitimatietype een ongeldige waarde had.");
-			} elseif (strlen($lrow->Postcode) < 4 and strlen($lrow->Adres) > 0) {
+			} elseif (strlen($lrow->Postcode) < 4 and (strlen($lrow->Adres) > 0 or strlen($lrow->Huisnr) > 0)) {
 				$this->update($lrow->RecordID, "Adres", "", "de postcode leeg is");
+				$this->update($lrow->RecordID, "Huisnr", "NULL", "de postcode leeg is");
+			} elseif (strlen($lrow->Postcode) < 4 and strlen($lrow->Telefoon) > 0) {
+				$this->update($lrow->RecordID, "Telefoon", "", "de postcode leeg is");
 			} elseif (strlen($lrow->Toevoeging) > 1 and substr($lrow->Toevoeging, 0, 1) == "-") {
 				$this->update($lrow->RecordID, "Toevoeging", substr($lrow->Toevoeging, 1, 4), "de toevoeging hoort niet met een streepje hoort te beginnen.");
 			} elseif ($lrow->Overleden > "1900-01-01" and $lrow->Overleden < date("Y-m-d", strtotime("-3 month")) and (strlen($lrow->Postcode) > 0 or strlen($lrow->Email) > 0 or strlen($lrow->Mobiel) > 0)) {
 				$reden = "de persoon langer dan 3 maanden geleden is overleden";
 				$this->update($lrow->RecordID, "Postcode", "", $reden);
-				$this->update($lrow->RecordID, "Huisnr", 0, $reden);
 				$this->update($lrow->RecordID, "Woonplaats", "", $reden);
 				$this->update($lrow->RecordID, "Email", "", $reden);
 				$this->update($lrow->RecordID, "EmailVereniging", "", $reden);
@@ -3148,6 +3150,7 @@ class cls_Lidond extends cls_db_base {
 	private $loid = 0;					// RecordID van het record in Lidond
 	public $ondid = 0;					// RecordID van het onderdeel
 	public $ondnaam = "";				// Naam van het onderdeel
+	public $ondcode = "";				// Code van het onderdeel
 	private $ondtype = "";				// Type van het onderdeel
 	private $ondkader = 0;				// Is dit kader?
 	public $vanaf = "";					// Wanneer startte dit lidmaatschap
@@ -3207,6 +3210,7 @@ class cls_Lidond extends cls_db_base {
 			$row = $this->execsql($query)->fetch();
 			if (isset($row)) {
 				$this->ondnaam = $row->Naam;
+				$this->ondcode = $row->Kode;
 				$this->ondtype = $row->Type;
 				$this->ondkader = $row->Kader;
 				$this->alleenleden = $row->{'Alleen leden'};
@@ -3345,7 +3349,7 @@ class cls_Lidond extends cls_db_base {
 		}
 		
 		$query = sprintf("SELECT LO.RecordID, LO.Lid AS LidID, LO.OnderdeelID, LO.Opmerk, LO.Vanaf, LO.Opgezegd, LO.EmailFunctie, LO.GroepID, LO.Functie, LO.Lid,
-								%s AS NaamLid, L.Roepnaam, L.Achternaam, L.Tussenv, L.GEBDATUM, %s AS Leeftijd, %s AS Email, L.EmailVereniging, 
+								%s AS NaamLid, L.Roepnaam, L.Achternaam, L.Tussenv, %s AS AVGnaam, L.GEBDATUM, %s AS Leeftijd, %s AS Email, L.EmailVereniging, 
 								F.Omschrijv AS FunctieOms, F.Afkorting AS FunctAfk, F.Inval AS Invalfunctie, %s AS Groep, GR.DiplomaID,
 								O.Kode, O.Naam AS OndNaam, O.CentraalEmail, LO.EmailFunctie,
 								GR.Kode AS GrCode, GR.Omschrijving AS GrNaam, GR.Aanwezigheidsnorm, IFNULL(Act.BeperkingAantal, 0) AS BeperkingAantal, L.RelnrRedNed AS SportlinkID,
@@ -3356,7 +3360,7 @@ class cls_Lidond extends cls_db_base {
 								IF(IFNULL(LO.Opgezegd, '9999-12-31') > CURDATE(), LO.RecordID, 0) AS ridDelete
 						  FROM %s
 						  WHERE %s
-						  ORDER BY %sL.Achternaam, L.Tussenv, L.Roepnaam%s;", $this->selectnaam, $this->selectleeftijd, $this->selectemail, $this->selectgroep, $this->fromlidond, $w, $p_ord, $lm);
+						  ORDER BY %sL.Achternaam, L.Tussenv, L.Roepnaam%s;", $this->selectnaam, $this->selectavgnaam, $this->selectleeftijd, $this->selectemail, $this->selectgroep, $this->fromlidond, $w, $p_ord, $lm);
 		$result = $this->execsql($query);
 		if ($p_fetched == 1) {
 			return $result->fetchAll();
@@ -6760,7 +6764,7 @@ class cls_Liddipl extends cls_db_base {
 		if ($p_exid > 0) {
 			$w = sprintf(" WHERE LD.Examen=%d", $p_exid);
 		}
-		$query = sprintf("SELECT LD.*, L.RecordID AS LidID, L.Overleden, DP.GELDIGH, DP.Vervallen, IF(DP.GELDIGH=0, '9999-12-31', DATE_ADD(LD.DatumBehaald, INTERVAL DP.GELDIGH MONTH)) AS GeldigTot, DP.AantalBeoordelingen
+		$query = sprintf("SELECT LD.*, L.RecordID AS LidID, L.Overleden, DP.GELDIGH, DP.Vervallen, IF(DP.GELDIGH=0, '9999-12-31', DATE_SUB(DATE_ADD(LD.DatumBehaald, INTERVAL DP.GELDIGH MONTH), INTERVAL 1 DAY)) AS GeldigTot, DP.AantalBeoordelingen
 						  FROM (%1\$s INNER JOIN %2\$sDiploma AS DP ON LD.DiplomaID=DP.RecordID) INNER JOIN %2\$sLid AS L ON L.RecordID=LD.Lid%3\$s;", $this->basefrom, TABLE_PREFIX, $w);
 		$result = $this->execsql($query);
 		foreach ($result->fetchAll() as $row) {
@@ -6785,7 +6789,7 @@ class cls_Liddipl extends cls_db_base {
 		}
 		
 		$i_ex = null;
-	}
+	}  # cls_Liddipl->controle
 	
 	public function opschonen() {
 		$query = sprintf("SELECT LD.RecordID FROM %s WHERE LD.DiplomaID NOT IN (SELECT DP.RecordID FROM %sDiploma AS DP);", $this->basefrom, TABLE_PREFIX);
@@ -7060,7 +7064,6 @@ class cls_Examenonderdeel extends cls_db_base {
 			$this->ondid = 0;
 			$this->naamlogging = "";
 		}
-		
 	}
 	
 	function add($p_dpid) {
