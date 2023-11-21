@@ -343,7 +343,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 		
 		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 		$i_ex->where = sprintf("EX.OnderdeelID=%s AND EX.Proefexamen=0 AND (SELECT COUNT(*) FROM %sLiddipl AS LD WHERE LD.Examen=EX.Nummer AND LD.Geslaagd=1) > 0", $afdid, TABLE_PREFIX);
-		echo("<div id='filter'>\n");
+		echo("<div id='filter' class='form-check form-switch'>\n");
 		printf("<input type='checkbox' class='form-check-input' name='inclkader' title='Inclusief kader' value=1%s onClick='this.form.submit();'><p>Inclusief kader</p>\n", checked($inclkader));
 		if ($i_ex->aantal() > 0) {
 			printf("<select name='exfilter' class='form-select' onChange='this.form.submit();'>\n<option value=0>Filter op examen ....</option>\n%s</select>\n", $i_ex->htmloptions($exfilter));
@@ -362,6 +362,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 			$i_dp->vulvars($i_gr->diplomaid);
 			if ($exfilter > 0) {
 				$i_lo->where = sprintf("LO.Lid IN (SELECT LD.Lid FROM %sLiddipl AS LD WHERE LD.Examen=%d) AND LO.GroepID=%d", TABLE_PREFIX, $exfilter, $grrow->RecordID);
+				$i_ld->controle($exfilter);
 			} elseif ($inclkader == 0) {
 				$i_lo->where = sprintf("LO.Functie=0 AND LO.GroepID=%d", $grrow->RecordID);
 			} else {
@@ -399,6 +400,27 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 							if ($i_ld->aantal($f) == 0) {
 								$cl .= " voorgangerontbreekt";
 								$t = sprintf("%s ontbreekt", $i_dp->naam($i_dp->dpvoorganger));
+							}
+							$f = sprintf("LD.Lid=%d AND LD.DiplomaID=%d AND LD.DatumBehaald <= CURDATE() AND LD.Geslaagd=1 AND LD.LaatsteBeoordeling=1", $row->LidID, $i_dp->dpvoorganger);
+							$dvd = $i_ld->max("DatumBehaald", $f);
+							if (strlen($dvd) >= 10) {
+								if ($i_dp->doorlooptijd > 0 and $dvd < date("Y-m-d", strtotime(sprintf("-%d month", $i_dp->doorlooptijd)))) {
+									$cl .= " voortgangsprobleem";
+								}
+								if (strlen($t) > 0) {
+									$t .= ", ";
+								}
+								$t .= sprintf("%s behaald op %s", $i_dp->naam($i_dp->dpvoorganger), date("d-m-Y", strtotime($dvd)));
+							}
+						} else {
+							$f = sprintf("LO.Lid=%d AND LO.OnderdeelID=%d", $row->Lid, $afdid);
+							$lv = $i_lo->min("Vanaf", $f);
+							if (strlen($t) > 0) {
+								$t .= ", ";
+							}
+							$t .= sprintf("lid vanaf %s", date("d-m-Y", strtotime($lv)));
+							if ($i_dp->doorlooptijd > 0 and $lv < date("Y-m-d", strtotime(sprintf("-%d month", $i_dp->doorlooptijd)))) {
+								$cl .= " voortgangsprobleem";
 							}
 						}
 						$f = sprintf("LD.Lid=%d AND LD.DiplomaID=%d AND LD.DatumBehaald <= CURDATE() AND LD.Geslaagd=1 AND LD.LaatsteBeoordeling=1", $row->LidID, $row->DiplomaID);
@@ -466,6 +488,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 			p_alo.forEach(function(item, index, arr) {
 				savedata('logroep', arr[item] , p_ng);
 			});
+		}
 			
 	</script>\n");
 	
@@ -959,42 +982,15 @@ function fnAfdelingswachtlijst($p_afdid) {
 	
 	$rows = $i_ins->lijst(1, $p_afdid, 0);
 	
-	$kols[0]['headertext'] = "";
-	$kols[0]['columnname'] = "RecordID";
-	$kols[0]['type'] = "pk";
-	$kols[0]['readonly'] = true;
-	
-	$kols[1]['headertext'] = "Vanaf";
-	$kols[1]['columnname'] = "Ingevoerd";
-	$kols[1]['type'] = "date";
-	$kols[1]['readonly'] = true;
-	
-	$kols[2]['headertext'] = "Naam & geboren";
-	$kols[2]['columnname'] = "Naam";
-	$kols[2]['secondcolumn'] = "Geboortedatum";
-	$kols[2]['secondcolumntype'] = "geboren_leeftijd";
-	$kols[2]['readonly'] = true;
-	
-	$kols[3]['headertext'] = "E-mail";
-	$kols[3]['columnname'] = "Email";
-	$kols[3]['type'] = "email";
-	$kols[3]['readonly'] = true;
-	
-	$kols[4]['headertext'] = "Opmerking & eerste les";
-	$kols[4]['columnname'] = "Opmerking";
-	$kols[4]['secondcolumn'] = "EersteLes";
-	$kols[4]['secondcolumntype'] = "date";
-
-	$kols[6]['headertext'] = "&nbsp;";
-	$kols[6]['columnname'] = "LnkPDF";
-	$kols[6]['link'] = sprintf("%s/pdf.php?insid=%%d", BASISURL);
-	$kols[6]['class'] = "pdf";
+	$kols = null;
+	$kols[] = array('headertext' => "Vanaf", 'columnname' => "Datum", 'type' => "date", 'readonly' => true);
+	$kols[] = array('headertext' => "Naam & geboren", 'columnname' => "Naam", 'secondcolumn' => "Geboortedatum", 'secondcolumntype' => "geboren_leeftijd", 'readonly' => true);
+	$kols[] = array('headertext' => "E-mail", 'columnname' => "Email", 'type' => "email", 'readonly' => true);
+	$kols[] = array('headertext' => "Opmerking & eerste les", 'columnname' => "Opmerking", 'secondcolumn' => "EersteLes", 'secondcolumntype' => "date");
+	$kols[] = array('headertext' => "&nbsp;", 'columnname' => "LnkPDF", 'link' => sprintf("%s/pdf.php?insid=%%d", BASISURL), 'class' => "pdf");
 	
 	if (toegang("deleteinschrijving", 0, 0)) {
-		$kols[7]['headertext'] = "&nbsp;";
-		$kols[7]['columnname'] = "RecordID";
-		$kols[7]['link'] = sprintf("%s?tp=%s&op=delete&RecordID=%%d", $_SERVER['PHP_SELF'], $_GET['tp']);
-		$kols[7]['class'] = "trash";
+		$kols[] = array('headertext' => "&nbsp;", 'columnname' => "RecordID", 'link' => sprintf("%s?tp=%s&op=delete&RecordID=%%d", $_SERVER['PHP_SELF'], $_GET['tp']), 'class' => "trash");
 	}
 	
 	echo(fnEditTable($rows, $kols, "wachtlijst", "Wachtlijst"));
@@ -1054,12 +1050,11 @@ function fnAfdelingsmailing($p_afdid) {
 	
 	$grrows = $i_gr->selectlijst();
 
-	echo("<div id='afdelingsmailing'>\n");
-	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+	printf("<form method='post' id='afdelingsmailing' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	
 	if (count($grrows) > 1) {
 		echo("<h2>Selecteer groepen</h2>\n");
-		echo("<ul>\n");
+		echo("<ul class='form-switch'>\n");
 		foreach ($grrows as $grrow) {
 			if ($grrow->aantalInGroep > 0) {
 				$cn = sprintf("chkGroep_%d", $grrow->RecordID);
@@ -1068,7 +1063,7 @@ function fnAfdelingsmailing($p_afdid) {
 				} else {
 					$o = "Niet ingedeeld";
 				}
-				printf("<li><input type='checkbox' value=1 name='%s'%s title='%3\$s'><p>%3\$s (%4\$d)</p></li>\n", $cn, checked(getvar($cn)), $o, $grrow->aantalInGroep);
+				printf("<li><input type='checkbox' class='form-check-input' value=1 name='%s'%s title='%3\$s'><p>%3\$s (%4\$d)</p></li>\n", $cn, checked(getvar($cn)), $o, $grrow->aantalInGroep);
 			}
 		}
 		$cn = "chkGroepAlle";
@@ -1119,7 +1114,7 @@ function fnAfdelingsmailing($p_afdid) {
 					if ($k == $ptf) {
 						$c = " checked";
 					}
-					printf("<input type='radio' class='btn-check' id='typefilter_%1\$d' name='typefilter' value=%1\$d %2\$s>", $k, $c);
+					printf("<input type='radio' class='btn btn-check' id='typefilter_%1\$d' name='typefilter' value=%1\$d %2\$s>", $k, $c);
 					printf("<label class='btn btn-light' for='typefilter_%d'>%s</label>", $k, $tfo);
 				}
 			}
@@ -1127,11 +1122,11 @@ function fnAfdelingsmailing($p_afdid) {
 	}
 
 	echo("<h2>Selecteer functies</h2>");
-	echo("<ul>\n");
+	echo("<ul class='form-switch'>\n");
 	foreach ($i_f->selectlijst("A", "", 0, $p_afdid) as $frow) {
 		$cn = sprintf("chkFunctie_%d", $frow->Nummer);
 		if ($frow->Nummer > 0 and $frow->aantalMetFunctie > 0) {
-			printf("<li><input type='checkbox' value=1 name='%s'%s><p>%s (%d)</p></li>\n", $cn, checked(getvar($cn)), $frow->Omschrijv, $frow->aantalMetFunctie);
+			printf("<li><input type='checkbox' class='form-check-input' value=1 name='%s'%s><p>%s (%d)</p></li>\n", $cn, checked(getvar($cn)), $frow->Omschrijv, $frow->aantalMetFunctie);
 		}
 	}
 	$cn = "chkFunctiesAlle";
@@ -1168,9 +1163,7 @@ function fnAfdelingsmailing($p_afdid) {
 	
 	echo("</div> <!-- Einde opdrachtknoppen -->\n");
 	echo("</form>\n");
-	
-	echo("</div> <!-- Einde afdelingsmailing -->\n");
-	
+		
 ?>
 
 <script>
@@ -1279,11 +1272,14 @@ function fnOntvangersAfdelingsmailing($p_afdid, $p_uitvoeren=0, $p_mailing=-1) {
 function aftekenlijst($p_examen=0, $p_diploma=0) {
 	global $dtfmt;
 	
-	$i_eo = new cls_Examenonderdeel();
+	$i_eo = new cls_Examenonderdeel($p_diploma);
 	$i_ld = new cls_Liddipl();
 	$i_dp = new cls_Diploma($p_diploma);
 	$i_ex = new cls_Examen($p_examen);
 	$i_ak = new cls_Afdelingskalender();
+	
+	$i_eo->where = sprintf("EO.DiplomaID=%d", $p_diploma);
+	$eorows = $i_eo->basislijst("", "EO.Regelnr, EO.Code");
 	
 	echo("<table class='aftekenlijst'>\n");
 	echo("<thead>\n");
@@ -1341,10 +1337,8 @@ function aftekenlijst($p_examen=0, $p_diploma=0) {
 	echo("</thead>\n");
 	echo("<tbody>\n");
 	
-	$f = sprintf("EO.DiplomaID=%d", $p_diploma);
-	$rows = $i_eo->basislijst($f, "EO.Regelnr, EO.Code");
 	
-	foreach ($rows as $row) {
+	foreach ($eorows as $row) {
 		if ($row->VetGedrukt == 1) {
 			$c = " class='vet'";
 		} else {
