@@ -19,8 +19,8 @@
 }
 
 .table > :not(caption) > * > * {
-	padding-top: 4px;
-	padding-bottom: 4px;
+	padding-top: 3px;
+	padding-bottom: 3px;
 }
 
 i {
@@ -34,6 +34,15 @@ i {
 .form-select {
 	width: auto;
 	color: var(--default-text-color);
+}
+
+.form-check-label {
+	color: var(--default-text-color);
+	background-color: transparent;
+	float: left;
+	clear: none;
+	width: auto;
+	text-align: left;
 }
 
 /* Einde Bootstrap */
@@ -146,7 +155,8 @@ label {
 	text-align: right;
 	padding-top: 4px;
 	padding-bottom: 4px;
-	padding-right: 2px;
+	padding-left: 4px;
+	padding-right: 4px;
 	background-color: var(--label-background-color);
 	border-width: 1px;
 }
@@ -263,10 +273,7 @@ header h1 {
 
 #filter p {
 	margin-right: 6px;
-	margin-top: 12px;
-	margin-bottom: 3px;
-	clear: none;
-	vertical-align: middle;
+	margin-top: 10px;
 }
 
 #filter input[type='text'], #filter input[type='date'], #filter input[type='checkbox'] {
@@ -289,11 +296,6 @@ header h1 {
 
 #jubilarisoverzicht > #filter input[type='text'] {
 	width: 275px;
-}
-
-#filter input[type='checkbox'] {
-	margin-top: 12px;
-	margin-bottom: 0;
 }
 
 #filter select {
@@ -554,6 +556,14 @@ th.rotate > div {
 	margin-bottom: 10px;
 }
 
+#ledenlijst_instellingen label {
+	width: 450px;
+}
+
+#ledenlijst_instellingen h2 {
+	clear: both;
+}
+
 #eigenlijstmuteren label, #detailsonderdeelmuteren label {
 	clear: left;
 	float: left;
@@ -670,7 +680,6 @@ table#deelnemersevenementmuteren {
 	position: relative;
 	display: inline-block;
 	width: 100%;
-	margin-top: 6px;
 }
 
 #pasfoto {
@@ -714,9 +723,9 @@ table#deelnemersevenementmuteren {
 }
 
 #overzichtlid p {
+	margin-top: 4px;
 	float: left;
 	overflow: visible;
-	min-width: 225px;
 }
 
 #tab-diplomas table > caption {
@@ -1098,14 +1107,16 @@ table#presentiemuteren td.aanwezig {
 #afdelingsmailing input[type='checkbox'] {
 	margin-left: 0;
 	padding-left: 0;
-	margin-right: 1px;
 }
 
 #afdelingsmailing p {
 	margin-right: 8px;
 	overflow: hidden;
-	padding-top: 3px;
 	padding-bottom: 3px;
+}
+
+#afdelingsmailing label.form-label {
+	width: 175px;
 }
 
 #diplomamuteren, #examenresultaten {
@@ -1329,6 +1340,10 @@ td.voorgangerontbreekt {
 
 td.dubbeldiploma {
 	background-color: yellow;
+}
+
+td.voortgangsprobleem {
+	color: red;
 }
 
 #examenresultaten {
@@ -1639,7 +1654,6 @@ fieldset h3 {
 	height: 20px;
 	min-width: 300px;
 	margin-right: 6px;
-	margin-top: 6px;
 	padding-top: 3px;
 	padding-bottom: 3px;
 }
@@ -1685,10 +1699,6 @@ fieldset h3 {
 
 .lijstmailingen td:last-child {
 	text-align: center;
-}
-
-.editmailingvanaf input {
-	width: 300px;
 }
 
 .ck-editor__editable {
@@ -1936,7 +1946,6 @@ nav a {
 	float: left;
 	clear: right;
 	max-width: 1050px;
-	margin-top: 3px;
 	padding-top: 4px;
 	padding-left: 4px;
 	padding-right: 4px;
@@ -2254,6 +2263,7 @@ label#lblVerzamelenPerGezin, label#lblBedragGezinskorting {
 	padding-left: 5px;
 	padding-top: 5px;
 	padding-bottom: 5px;
+	margin-bottom: 5px;
 }
 
 #instellingenmuteren h2 {
@@ -2319,7 +2329,7 @@ input#db_folderbackup, input#naamwebsite, input#naamvereniging, input#urlverenig
 }
 
 #editmailingform label {
-	width: 190px;
+	min-width: 190px;
 }
 
 #editmailingform p {
@@ -2327,7 +2337,6 @@ input#db_folderbackup, input#naamwebsite, input#naamvereniging, input#urlverenig
 	margin-right: 8px;
 	border-style: none;
 	border-width: 1px;
-	padding-top: 4px;
 }
 
 #editmailingform textarea {
@@ -2350,6 +2359,14 @@ input#db_folderbackup, input#naamwebsite, input#naamvereniging, input#urlverenig
 
 #editmailingform li, #editmailingform li {
 	height: 28px;
+}
+
+#mailing_instellingen label {
+	width: 475px;
+}
+
+#mailing_instellingen h2 {
+	clear: both;
 }
 
 .invoerblok {
