@@ -56,7 +56,7 @@ $TypeActiviteit[7] = "Evenementen";
 $TypeActiviteit[8] = "Interface";
 $TypeActiviteit[9] = "Upload data";
 $TypeActiviteit[10] = "Webshop";
-$TypeActiviteit[12] = "Diploma's per lid";
+$TypeActiviteit[12] = "Diploma's en examens";
 $TypeActiviteit[13] = "Parameters";
 $TypeActiviteit[14] = "Rekeningen en betalingen";
 $TypeActiviteit[15] = "Autorisatie";
@@ -1714,26 +1714,27 @@ class cls_Lid extends cls_db_base {
 
 class cls_Lidmaatschap extends cls_db_base {
 	
-	private $lmid = 0;
+	public $lmid = 0;
 	public $lidnr = 0;
 	public $lidvanaf = "";
 	public $lidtm = "";
+	public $opgezegdper = "";
 	
-	function __construct($p_lmid=-1, $p_lidid=-1) {
+	function __construct($p_lmid=-1, $p_lidid=-1, $p_lidnr=-1) {
 		parent::__construct();
 		$this->table = TABLE_PREFIX . "Lidmaatschap";
 		$this->basefrom = $this->table . " AS LM";
-		$this->vulvars($p_lmid, $p_lidid);
+		$this->vulvars($p_lmid, $p_lidid, $p_lidnr);
 		$this->ta = 6;
 		$this->tas = 8;
 	}
 	
-	public function vulvars($p_lmid, $p_lidid=-1) {
+	public function vulvars($p_lmid, $p_lidid=-1, $p_lidnr=-1) {
+		global $dtfmt;
+		
 		if ($p_lmid >= 0) {
 			$this->lmid = $p_lmid;
 		}
-		
-//		debug("lm->vulvars");
 		
 		if ($this->lmid > 0) {
 			$f = sprintf("RecordID=%d", $this->lmid);
@@ -1745,6 +1746,14 @@ class cls_Lidmaatschap extends cls_db_base {
 			if ($this->lmid <= 0) {
 				$f = sprintf("LM.Lid=%d", $this->lidid);
 				$this->lmid = $this->max("RecordID", $f);
+			}
+		} elseif ($p_lidnr > 0) {
+			$this->lidnr = $p_lidnr;
+			$query = sprintf("SELECT LM.* FROM %s WHERE LM.Lidnr=%d;", $this->basefrom, $this->lidnr);
+			$lmrow = $this->execsql($query)->fetch();
+			if (isset($lmrow->RecordID)) {
+				$this->lmid = $lmrow->RecordID;
+				$this->lidid = $lmrow->Lid;
 			}
 		}
 		if ($this->lmid > 0) {
@@ -1763,12 +1772,23 @@ class cls_Lidmaatschap extends cls_db_base {
 			$this->lidnr = 0;
 			$this->lidvanaf = "";
 		}
-	}
+		
+		if ($this->lidtm > "2000-01-01") {
+			$dtfmt->setPattern(DTTEXT);
+			$op = new datetime($this->lidtm);
+			$op->modify("+1 day");
+			$this->opgezegdper = $dtfmt->format($op);
+		} else {
+			$this->opgezegdper = "";
+		}
+		
+	}  # cls_Lidmaatschap->vulvars
 	
 	public function lidid($p_lmid, $p_lidnr=0) {
 		if ($p_lidnr > 0) {
 			$query = sprintf("SELECT IFNULL(LM.Lid, 0) FROM %s WHERE LM.Lidnr=%d;", $this->basefrom, $p_lidnr);
 			$this->lidid = $this->scalar($query);
+			$this->vulvars(-1, $this->lidid);
 		} elseIF ($p_lmid > 0) {
 			$this->vulvars($p_lmid);
 		} else {
@@ -2096,7 +2116,7 @@ class cls_Authorisation extends cls_db_base {
 			}
 			$query = sprintf("SELECT MAX(AA.Toegang) FROM %s WHERE AA.Tabpage='%s';", $this->basefrom, $p_tabpage, $_SESSION['lidgroepen']);
 			if ($this->scalar($query) == -2) {
-				$rv= false;
+				$rv = false;
 			} else {
 				$rv = true;
 			}
@@ -5243,7 +5263,8 @@ class cls_Mailing_hist extends cls_db_base {
 		} else {
 			return 0;
 		}
-	}
+		
+	}  # cls_Mailing_hist->add
 	
 	public function update($p_mhid, $p_kolom, $p_waarde, $p_reden="") {
 		$this->vulvars($p_mhid);
@@ -6204,8 +6225,9 @@ class cls_Diploma extends cls_db_base {
 	public $dpid = 0;
 	public $dpnaam = "";
 	private $dpcode = "";
-	public $organisatie = 0;
-	public $dpvoorganger = 0;
+	public $organisatie = 0;	// Door welke organisatie wordt dit diploma uitgegeven?
+	public $dpvoorganger = 0;	// Wat is de logische voorganger van dit diploma?
+	public $doorlooptijd = 0;	// in maanden, hoelang doet een leerling normaal over dit diploma?
 	public $dpvolgende = 0;
 	public $naamvolgende = "";
 	public $eindeuitgifte = "9999-12-31";
@@ -6217,7 +6239,7 @@ class cls_Diploma extends cls_db_base {
 		$this->table = TABLE_PREFIX . "Diploma";
 		$this->basefrom = $this->table . " AS DP";
 		$this->vulvars($p_dpid);
-		$this->ta = 20;
+		$this->ta = 12;
 	}
 	
 	public function vulvars($p_dpid=-1) {
@@ -6238,6 +6260,7 @@ class cls_Diploma extends cls_db_base {
 				$this->afdelingsspecifiek = $row->Afdelingsspecifiek;
 				$this->organisatie = $row->ORGANIS;
 				$this->dpvoorganger = $row->VoorgangerID;
+				$this->doorlooptijd = $row->Doorlooptijd;
 				if (strlen($row->EindeUitgifte) == 0) {
 					$this->eindeuitgifte = "9999-12-31";
 				} else {
@@ -10807,7 +10830,14 @@ function db_onderhoud($type=9) {
 	$tab = TABLE_PREFIX . "Inschrijving";
 	$col = "Datum";
 	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` DATE NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `RecordID`; ", $tab, $col);
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` DATE NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `RecordID`;", $tab, $col);
+		$i_base->execsql($query, 2);
+	}
+	
+	$tab = TABLE_PREFIX . "Diploma";
+	$col = "Doorlooptijd";
+	if ($i_base->bestaat_kolom($col, $tab) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` TINYINT NULL AFTER `Volgnr`;", $tab, $col);
 		$i_base->execsql($query, 2);
 	}
 
