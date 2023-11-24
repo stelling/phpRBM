@@ -123,7 +123,7 @@ function fnStukken($p_scherm="") {
 		}
 		
 		echo("<div id='opdrachtknoppen'>\n");
-		echo("<button type='submit'><i class='bi bi-save'></i> Bewaren</button>\n");
+		printf("<button type='submit' class='%s'>%s Bewaren</button>\n", CLASSBUTTON, ICONBEWAAR);
 		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 		
 		echo("</form>\n");
@@ -282,8 +282,8 @@ function fnWebsiteMenu() {
 		printf("<label class='form-label'>Gepubliceerd</label><input type='date' name='Gepubliceerd' value=\"%s\" title='Zichtbaar vanaf'>\n", $i_wm->gepubliceerd);
 		
 		echo("<div id='opdrachtknoppen'>\n");
-		echo("<button type='submit' name=Bewaar'' title='Bewaar menu-item'><i class='bi bi-save'></i> Bewaren</button>\n");
-		echo("<button type='submit' name='BewaarSluit' title='Bewaar menu-item'><i class='bi bi-save'></i><i class='bi bi-door-closed'></i> Bewaren en sluiten</button>\n");
+		printf("<button type='submit' class='%s' name='Bewaar' title='Bewaar menu-item'>%s Bewaren</button>\n", CLASSBUTTON, ICONBEWAAR);
+		printf("<button type='submit' class='%s' name='BewaarSluit' title='Bewaar menu-item'>%s Bewaren en sluiten</button>\n", CLASSBUTTON, ICONSLUIT);
 		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 		
 		echo("</form>\n");
@@ -371,7 +371,7 @@ function fnWebsiteInhoud() {
 		echo(fnDisplayTable($rows, $kols));
 		
 		printf("<form method='post' id='opdrachtknoppen' action='%s?tp=%s&p_scherm=B'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-		echo("<button type='submit' name='Toevoegen' title='Inhoud toevoegen'><i class='bi bi-plus-circle'></i> Inhoud toevoegen</button>\n");
+		printf("<button type='submit' class='%s' name='Toevoegen' title='Inhoud toevoegen'>%s Inhoud</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
 		
 		echo("</form>\n");
 		
@@ -403,7 +403,9 @@ function fnWebsiteInhoud() {
 		
 		printf("<label class='form-label'>RecordID</label><p>%d</p>\n", $i_wi->wiid);
 		printf("<label class='form-label'>Titel</label><input type='text' name='Titel' value=\"%s\" class='w80' maxlength=80>\n", $i_wi->titel);
-		printf("<label class='form-label'>HTML direct</label><input type='checkbox' name='HTMLdirect'%s title='Zonder editor' onClick='this.form.submit();'>\n", checked($i_wi->htmldirect));
+		echo("<div class='form-switch'>");
+		printf("<label class='form-label'>HTML direct</label><input type='checkbox' class='form-check-input' name='HTMLdirect'%s title='Zonder editor' onClick='this.form.submit();'>\n", checked($i_wi->htmldirect));
+		echo("</div>\n");
 		
 		$stylesheettekst = "";
 		if ($i_wi->htmldirect == 0) {
@@ -474,8 +476,8 @@ function fnWebsiteInhoud() {
 		echo("</div> <!-- Einde website_bestanden -->\n");
 
 		echo("<div id='opdrachtknoppen'>\n");
-		echo("<button type='submit' name='Bewaar' title='Bewaar inhoud'><i class='bi bi-save'></i> Bewaren</button>\n");
-		echo("<button type='submit' name='BewaarSluit' title='Bewaar menu-item'><i class='bi bi-save'></i><i class='bi bi-door-closed'></i> Bewaren en sluiten</button>\n");
+		printf("<button type='submit' class='%s' name='Bewaar' title='Bewaar inhoud'>%s Bewaren</button>\n", CLASSBUTTON, ICONBEWAAR);
+		printf("<button type='submit' class='%s' name='BewaarSluit' title='Bewaar menu-item'>%s Bewaren en sluiten</button>\n", CLASSBUTTON, ICONSLUIT);
 		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 		
 		echo("</form>\n");
