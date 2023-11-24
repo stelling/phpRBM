@@ -117,10 +117,9 @@ li {
 	padding-left: 3px;
 }
 
-button, input, select, textarea {
+input, select, textarea {
 	float: left;
 	color: var(--default-text-color);
-	margin-right: 4px;
 }
 
 p {	
@@ -150,7 +149,6 @@ span {
 label {
 	float: left;
 	clear: left;
-	display: block;
 	margin-right: 5px;
 	text-align: right;
 	padding-top: 4px;
@@ -159,12 +157,6 @@ label {
 	padding-right: 4px;
 	background-color: var(--label-background-color);
 	border-width: 1px;
-}
-
-label.k2 {
-	clear: none;
-	float: left;
-	background-color: green;
 }
 
 footer {
@@ -263,35 +255,28 @@ header h1 {
 	float: left;
 	margin-left: 0;
 	margin-right: 4px;
-	margin-top: 10px;
-	margin-bottom: 6px;
+	margin-top: 4px;
+	margin-bottom: 4px;
 	padding-top: 4px;
 	padding-bottom: 4px;
-	height: auto;
 	border-width: 1px;
 }
 
 #filter p {
 	margin-right: 6px;
-	margin-top: 10px;
 }
 
 #filter input[type='text'], #filter input[type='date'], #filter input[type='checkbox'] {
 	clear: none;
 	float: left;
-	height: 24px;
 	margin-left: 3px;
-	margin-top: 9px;
-	margin-bottom: 5px;
 	margin-right: 6px;
-	padding-top: 1px;
-	padding-bottom: 1px;
+	margin-top: 4px;
+	margin-bottom: 4px;
 }
 
 #filter input[type='text'] {
 	width: 175px;
-	height: auto;
-	min-height: 30px;
 }
 
 #jubilarisoverzicht > #filter input[type='text'] {
@@ -303,9 +288,6 @@ header h1 {
 	float: left;
 	margin-left: 3px;
 	margin-right: 10px;
-	margin-top: 9px;
-	margin-bottom: 8px;
-	padding-top: 0;
 }
 
 #filter span {
@@ -316,6 +298,8 @@ header h1 {
 
 #filter button {
 	float: right;
+	margin-top: 0;
+	margin-bottom: 0;
 	margin-right: 0;
 	padding-left: 4px;
 	padding-right: 4px;
@@ -556,6 +540,10 @@ th.rotate > div {
 	margin-bottom: 10px;
 }
 
+#algemeen_instellingen label {
+	width: 525px;
+}
+
 #ledenlijst_instellingen label {
 	width: 450px;
 }
@@ -664,6 +652,7 @@ td.details, td.muteren, td.detailregels, td.leden, td.sendmail, td.unlock {
 table#deelnemersevenementmuteren {
 	clear: left;
 	width: 100%;
+	margin-top: 12px;
 }
 
 .beheerlogins a, #beheerautorisatie a, .beheerwijzigingen a, #deelnemersevenementmuteren a, #afdelingskalendermuteren a, #deelnemersevenementmuteren a, #lijstoutbox a {
@@ -749,6 +738,10 @@ table#deelnemersevenementmuteren {
 	max-width: calc(100% - 180px);
 }
 
+#lidmaatschapmuteren td:nth-child(5) {
+	text-align: center;
+}
+
 .ledenperonderdeelmuteren select {
 	width: 150px;
 }
@@ -763,13 +756,9 @@ table#deelnemersevenementmuteren {
 	margin-bottom: 0;
 }
 
-#inschrijvingevenementen input {
+#inschrijvingevenementen input, #lidmaatschapmuteren input {
 	clear: none;
 	float: none;
-}
-
-#lidmaatschapmuteren img {
-	height: 10px;
 }
 
 #stukkenmuteren label, #website_inhoud label, #website_menu label {
@@ -784,10 +773,21 @@ table#deelnemersevenementmuteren {
 	width: 750px;
 }
 
+#website_inhoud input.form-check-input, #website_inhoud div.form-switch {
+	margin-left: 0;
+	padding-left: 0;
+}
+
 #website_inhoud textarea {
 	height: 600px;
 	width: calc(100% - 20px);
 	float: left;
+	margin-bottom: 8px;
+}
+
+#website_inhoud textarea#tastyle {
+	height: 350px;
+	width: calc(100% - 220px);
 }
 
 div#website_bestanden {
@@ -796,14 +796,8 @@ div#website_bestanden {
 	border-style: solid;
 	width: calc(100% - 210px);
 	height: auto;
-	margin-top: 4px;
-	padding-top: 4px;
 }
 
-#website_inhoud textarea#tastyle {
-	height: 350px;
-	width: calc(100% - 220px);
-}
 
 #wijzigenlidgegevens img {
 	max-width: 250px;
@@ -1039,10 +1033,6 @@ table#afdelingskalendermuteren {
 #presentieoverzicht > #filter p {
 	float: left;
 	clear: none;
-}
-
-#presentieoverzicht > #filter p, #presentieoverzicht > #filter input[type='checkbox'] {
-	margin-top: 10px;
 }
 
 #presentieoverzicht table {
@@ -1576,7 +1566,7 @@ label#lblStarttijd, label#lblEindtijd, label#lblVerzameltijd {
 }
 
 #evenementenbeheer label#lblMeerdereStartmomenten {
-	width: 190px;
+	width: auto;
 }
 
 #evenementenbeheer p {
@@ -1588,6 +1578,22 @@ label#lblStarttijd, label#lblEindtijd, label#lblVerzameltijd {
 	height: 22px;
 	margin-top: 6px;
 	border-width: 1px;
+}
+
+@media screen and (max-width: 1050px) {
+	#evenementenbeheer label#lblStarttijd, #evenementenbeheer label#lblDeelnemers {
+		clear: left;
+	}
+	
+	#evenementenbeheer th.ingevoerd, #evenementenbeheer td.ingevoerd {
+		display: none;
+	}
+}
+
+@media screen and (max-width: 650px) {
+	#evenementenbeheer label#lblEindtijd, #evenementenbeheer label#lblVerzameltijd {
+		clear: left;
+	}
 }
 
 fieldset {
@@ -2214,6 +2220,14 @@ label#lblVerzamelenPerGezin, label#lblBedragGezinskorting {
 	width: 19%;
 }
 
+#rekening_instellingen h2 {
+	clear: both;
+}
+
+#rekening_instellingen label {
+	width: 325px;
+}
+
 #dbonderhoud p {
 	height: 12px;
 	margin-top: 12px;
@@ -2716,13 +2730,9 @@ button.volgendegroep {
 	}
 }
 
-@media screen and (max-width: 1000px) {
+@media screen and (max-width: 1050px) {
 	h1#naamwebsite {
 		max-width: 300px;
-	}
-	
-	label#lblMaxPersonenPerDeelname {
-		clear: left;
 	}
 	
 	input.w25, input.w30, input.w40, input.w45 {
@@ -2737,7 +2747,11 @@ button.volgendegroep {
 		width: 260px;
 	}
 	
-	input.w75, input.w90, textarea.w90 {
+	input.w75 {
+		width: 425px;
+	}
+	
+	input.w90, textarea.w90 {
 		width: 100%;
 	}
 	
