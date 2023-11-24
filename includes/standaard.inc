@@ -248,7 +248,7 @@ function HTMLheader($breed=0) {
 			if (file_exists(BASEDIR . $src)) {
 				$src = BASISURL . $src;
 			} else {
-			$src = sprintf("https://cdn.tiny.cloud/1/%s/tinymce/6/tinymce.min.js", $_SESSION['settings']['mailing_tinymce_apikey']);
+				$src = sprintf("https://cdn.tiny.cloud/1/%s/tinymce/6/tinymce.min.js", $_SESSION['settings']['mailing_tinymce_apikey']);
 			}
 			printf("<script src='%s' referrerpolicy='origin'></script>\n", $src);
 		}
@@ -602,20 +602,20 @@ function fnDisplayFormLabels($row, $xtra_eind="", $id="") {
 				} else {
 					$dv = $dtfmt->format(strtotime($value));
 				}
-				$ret .= sprintf("<label>%s</label><p>%s</p>\n", substr($key, 3), $dv);
+				$ret .= sprintf("<label class='form-label'>%s</label><p>%s</p>\n", substr($key, 3), $dv);
 			} elseif (substr($key, 0, 3) == "dtt" and (!is_null($value))) {
 				$dtfmt->setPattern(DTLONG);
-				$ret .= sprintf("<label>%s<p>%s</p>\n", substr($key, 3), $dtfmt->format(strtotime($value)));
+				$ret .= sprintf("<label class='form-label'>%s<p>%s</p>\n", substr($key, 3), $dtfmt->format(strtotime($value)));
 			} elseif (substr($key, 0, 3) == "boo" and $value == 1) {
-				$ret .= sprintf("<label>%s</label><p>Ja</p>\n", substr($key, 3));
+				$ret .= sprintf("<label class='form-label'>%s</label><p>Ja</p>\n", substr($key, 3));
 			} elseif (substr($key, 0, 3) == "boo" and $value != 1) {
-				$ret .= sprintf("<label>%s</label><p>Nee</p>\n", substr($key, 3));
+				$ret .= sprintf("<label class='form-label'>%s</label><p>Nee</p>\n", substr($key, 3));
 			} elseif (substr($key, 0, 3) == "mem" and strlen($value) > 1) {
 				$ret .= sprintf("<value>%s</value>\n", htmlentities($value));
 			} elseif (substr($key, 0, 3) == "eml" and strlen($value) > 1) {
-				$ret .= sprintf("<label>%s</label><p>%s</p>\n", substr($key, 3), fnDispEmail($value, "", 1));
+				$ret .= sprintf("<label class='form-label'>%s</label><p>%s</p>\n", substr($key, 3), fnDispEmail($value, "", 1));
 			} elseif (substr($key, 0, 2) != "nd" and strlen($value) > 0) {
-				$ret .= sprintf("<label>%s</label><p>%s</p>\n", $key, htmlentities($value));
+				$ret .= sprintf("<label class='form-label'>%s</label><p>%s</p>\n", $key, htmlentities($value));
 			}
 		}
 	} else {
