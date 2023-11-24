@@ -119,7 +119,7 @@ function fnLedenlijst() {
 		} else {
 			$toonadres = 0;
 		}
-		printf("<span><input type='checkbox' class='form-check-input' name='toontelefoon' title='Toon telefoon'%s onClick='this.form.submit();'><p>Telefoon</p></span>\n", checked($toontelefoon));
+		printf("<input type='checkbox' class='form-check-input' name='toontelefoon' title='Toon telefoon'%s onClick='this.form.submit();'><p>Telefoon</p>\n", checked($toontelefoon));
 		printf("<input type='checkbox' class='form-check-input' name='toonemail' title='Toon e-mail'%s onClick='this.form.submit();'><p>E-mail</p>\n", checked($toonemail));
 		if (in_array("lidnummer", $arrCB)) {
 			printf("<input type='checkbox' class='form-check-input' name='toonlidnummer' title='Toon lidnummer'%s onClick='this.form.submit();'><p>Lidnr</p>\n", checked($toonlidnummer));
@@ -515,6 +515,10 @@ function fnNieuwLid() {
 					$i_lo->add($ondid, $lidid, "opgegeven via inschrijfformulier", 0);
 				}
 			}
+			
+			printf("<script>
+					location.href='%s?tp=Ledenlijst/Wijzigen+lid/Algemene+gegevens&lidid=%d';
+					</script>\n", $_SERVER['PHP_SELF'], $lidid);
 		}
 		
 		if (isset($_POST['insid']) and $_POST['insid'] > 0) {
@@ -1573,11 +1577,10 @@ function algemeenlidmuteren($lidid) {
 		}
 	}
 
-	$row = $i_lid->record($lidid);
+	$i_lm->vulvars(-1, $lidid);
 	printf("<form method='post' id='wijzigenlidgegevens' action='%s'>\n", $actionurl);
 	echo("<div id='wijzigenlidgegevensalgemeen'>\n");
-	printf("<label id='lblRecordID' class='form-label'>RecordID/LidID</label><input name='lidid' class='w10' value=%d readonly>\n", $row->RecordID);
-	$i_lm->vulvars(-1, $row->RecordID);
+	printf("<label id='lblRecordID' class='form-label'>RecordID/LidID</label><input name='lidid' class='w10' value=%d readonly>\n", $i_lm->lmid);
 	if ($i_lm->lidnr > 0) {
 		printf("<label id='lblLidnummer' class='form-label'>Lidnummer</label><input name='lidnr' class='w10' value=%d readonly></p>\n", $i_lm->lidnr);
 	}
@@ -1675,8 +1678,7 @@ function algemeenlidmuteren($lidid) {
 	$f = "`Type`='E' AND IFNULL(VervallenPer, '9999-12-31') >= CURDATE()";
 	$ondrows = $i_ond->lijst(-1, $f);
 	if (count($ondrows) > 0 and $currenttab != "Zelfservice" and toegang("Ledenlijst/Wijzigen lid/Eigenschappen", 0, 0)) {
-		echo("<div id='eigenschappenlidmuteren'>\n");
-		echo("<div class='form-check form-switch'>\n");
+		echo("<div id='eigenschappenlidmuteren' class='form-check form-switch'>\n");
 		echo("<h2>Eigenschappen</h2>\n");
 		
 		foreach($ondrows as $ondrow) {
@@ -1691,7 +1693,6 @@ function algemeenlidmuteren($lidid) {
 			printf("<input type='checkbox' class='form-check-input' id='eigenschap_%d'%s%s>", $ondrow->RecordID, $c, $ro);
 			printf("<p>%s</p>\n", $ondrow->Naam);
 		}
-		echo("</div> <!-- Einde form-check -->\n");
 		echo("</div> <!-- Einde eigenschappenlidmuteren -->\n");
 	}
 	
@@ -2080,7 +2081,7 @@ function onderdelenlidmuteren($lidid, $p_type="G") {
 			$options .= sprintf("<option value=%d>%s - %s</option>\n", $row->RecordID, $row->Kode, $row->Naam);
 		}
 		printf("<select name='NieuwOnderdeel' class='form-select'>%s</select>\n", $options);
-		printf("<button type='submit' class='%s' name='btnToevoegenOnderdeel'>%s</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
+		printf("<button type='submit' class='%s btn-sm' name='btnToevoegenOnderdeel'>%s</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
 	}
 	echo("</form>\n");
 	echo("</div>\n <!-- Einde onderdelenperlidmuteren -->\n");
@@ -2209,6 +2210,7 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 function lidmaatschapmuteren($lidid) {
 	
 	$i_lm = new cls_Lidmaatschap();
+	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$omz['Lidnr'] = "Lidnr";
 		$omz['LIDDATUM'] = "Vanaf";
@@ -2225,15 +2227,14 @@ function lidmaatschapmuteren($lidid) {
 					$i_lm->update($row->RecordID, $kolomnaam, $_POST[$contr_name]);
 				}
 			}
-			
-			$nm = sprintf("BO_%d_x", $row->Lidnr);
-			if (isset($_POST[$nm]) and $_POST[$opgezegd] > "2010-01-01" and $_SESSION['settings']['mailing_bevestigingopzegging'] > 0) {
-				$mailing = new Mailing($_SESSION['settings']['mailing_bevestigingopzegging']);
-				$mailing->xtrachar = "BO_LM";
-				$mailing->xtranum = $row->Lidnr;
-				$mailing->send($row->Lid);
-				$mailing = null;
-			}
+		}
+		
+		if (isset($_POST['verstuurbevestiging']) and $_POST['verstuurbevestiging'] > 0 and $_SESSION['settings']['mailing_bevestigingopzegging'] > 0) {
+
+			$mailing = new Mailing($_SESSION['settings']['mailing_bevestigingopzegging']);
+			$mailing->xtranum = $_POST['verstuurbevestiging'];
+			$mailing->send($i_lm->lidid(-1, $_POST['verstuurbevestiging']));
+			$mailing = null;
 		}
 			
 		if (isset($_POST['NieuwLidmaatschap'])) {
@@ -2244,7 +2245,7 @@ function lidmaatschapmuteren($lidid) {
 	$actionurl = sprintf("%s?tp=%s&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
 	printf("<form method='post' action='%s'>\n", $actionurl);
 	printf("<table id='lidmaatschapmuteren' class='%s'>\n", TABLECLASSES);
-	printf("<caption>Lidmaatschappen %s muteren</caption>\n", (new cls_Lid())->Naam($lidid));
+	printf("<caption>Lidmaatschappen %s</caption>\n", (new cls_Lid())->Naam($lidid));
 	echo("<tr><th>RecordID</th><th>Lidnummer</th><th>Lid vanaf</th><th>Opgezegd per</th><th>Door vereniging?</th><th></th></tr>\n");
 	$toev = true;
 	$aant = 0;
@@ -2257,7 +2258,7 @@ function lidmaatschapmuteren($lidid) {
 		printf("<td><input type='date' name='Opgezegd_%d' value='%s' onblur='this.form.submit();'></td>\n", $row->RecordID, $row->Opgezegd);
 		
 		if ($row->Opgezegd > "1900-01-01") {
-			printf("<td><input type='checkbox' name='OpgezegdDoorVereniging_%d' value=1 %s onClick='this.form.submit();'></td>\n", $row->RecordID, checked($row->OpgezegdDoorVereniging));
+			printf("<td><input type='checkbox' class='form-check-input' name='OpgezegdDoorVereniging_%d' title='Heeft de vereniging het lidmaatschap opgezegd?' value=1 %s onClick='this.form.submit();'></td>\n", $row->RecordID, checked($row->OpgezegdDoorVereniging));
 		} else {
 			echo("<td></td>");
 			printf("<input type='hidden' name='OpgezegdDoorVereniging_%d' value=0>\n", $row->RecordID);
@@ -2272,8 +2273,16 @@ function lidmaatschapmuteren($lidid) {
 		} else {
 			$toev = false;
 		}
-		if ($row->Opgezegd >= date("Y-m-d") and $_SESSION['settings']['mailing_bevestigingopzegging'] > 0) {
-			printf("<td><input type='image' name='BO_%d' src='images/email.png' alt='Verstuur bevestiging' title='Verstuur bevestiging'></td>\n", $row->Lidnr);
+		
+		if ($row->Opgezegd >= date("Y-m-d", strtotime("-18 month")) and $_SESSION['settings']['mailing_bevestigingopzegging'] > 0) {
+			$i_mh = new cls_Mailing_hist();
+			$i_mh->where = sprintf("MH.MailingID=%d AND MH.Xtra_Num=%d", $_SESSION['settings']['mailing_bevestigingopzegging'], $row->Lidnr);
+			if ($i_mh->aantal() == 0) {
+				printf("<td><button type='submit' class='%s btn-sm' name='verstuurbevestiging' value=%d alt='Verstuur bevestiging' title='Verstuur bevestiging'>%s bevestiging</td>\n", CLASSBUTTON, $row->Lidnr, ICONVERSTUUR);
+			} else {
+				echo("<td></td>\n");
+			}
+			$i_mh = null;
 		} else {
 			echo("<td></td>\n");
 		}
@@ -2283,7 +2292,7 @@ function lidmaatschapmuteren($lidid) {
 	echo("</table>\n");
 	
 	if ($toev) {
-		echo("<button type='submit' name='NieuwLidmaatschap' value=1><i class='bi bi-plus-circle'></i> Lidmaatschap</button>\n");
+		printf("<button type='submit' class='%s' name='NieuwLidmaatschap' value=1>%s Lidmaatschap</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
 	}
 	
 	echo("</form>\n");
@@ -2326,8 +2335,7 @@ function instellingenledenmuteren() {
 		$sm .= $k;
 	}
 	
-	echo("<div id='instellingenmuteren'>\n");
-	printf("<form method='post' action='%s?tp=%s/%s'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
+	printf("<form method='post' id='ledenlijst_instellingen' action='%s?tp=%s/%s'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
 	
 	echo("<h2>Algemeen</h2>\n");
 	
@@ -2335,7 +2343,6 @@ function instellingenledenmuteren() {
 	foreach((new cls_Mailing())->lijst("Templates") as $row) {
 		$options .= sprintf("<option%s value=%d>%s</option>", checked($row->RecordID, "option", $_SESSION['settings']['mailingbijadreswijziging']), $row->RecordID, $row->subject);
 	}
-//	printf("<label>Mailing voor versturen e-mail naar ledenadministratie bij wijzigen postcode</label><select name='mailingbijadreswijziging' OnChange='this.form.submit();'>\n<Option value=0>Geen</option>%s</select>\n", $options);
 
 	printf("<label class='form-label'>Naam reddingsbrigade</label><input type='text' name='naamvereniging_reddingsbrigade' class='w50' value=\"%s\" OnChange='this.form.submit();'>\n", $_SESSION['settings']['naamvereniging_reddingsbrigade']);
 	printf("<label class='form-label'>Sportlink relatienummer</label><input type='text' name='sportlink_vereniging_relcode' value=\"%s\" class='w7' maxlength=7 OnChange='this.form.submit();'>\n", $_SESSION['settings']['sportlink_vereniging_relcode']);
@@ -2353,14 +2360,14 @@ function instellingenledenmuteren() {
 	printf("<label class='form-label'>URL van de ICS voor feestdagen</label><input name='agenda_url_feestdagen' class='w110' value='%s'>\n", $_SESSION['settings']['agenda_url_feestdagen']);
 	
 	echo("<h2>Beschikbaar in de zelfservice</h2>\n");
-	printf("<label class='form-label'>Beroep</label><input type='checkbox' name='zs_incl_beroep' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_beroep']));
-	printf("<label class='form-label'>Burgerservicenummer (BSN)</label><input type='checkbox' name='zs_incl_bsn' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_bsn']));
-	printf("<label class='form-label'>E-mail ouders</label><input type='checkbox' name='zs_incl_emailouders' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_emailouders']));
-	printf("<label class='form-label'>E-mail vereniging</label><input type='checkbox' name='zs_incl_emailvereniging' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_emailvereniging']));
-	printf("<label class='form-label'>Bankrekening / IBAN</label><input type='checkbox' name='zs_incl_iban' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_iban']));
-	printf("<label class='form-label'>Machtiging automatische incasso afgegeven</label><input type='checkbox' name='zs_incl_machtiging' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_machtiging']));
-	printf("<label class='form-label'>Legitimatie</label><input type='checkbox' name='zs_incl_legitimatie' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_legitimatie']));
-	printf("<label class='form-label'>Sportlink ID</label><input type='checkbox' name='zs_incl_slid' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_slid']));
+	printf("<label class='form-label'>Beroep</label><input type='checkbox' class='form-check-input' name='zs_incl_beroep' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_beroep']));
+	printf("<label class='form-label'>Burgerservicenummer (BSN)</label><input type='checkbox' class='form-check-input' name='zs_incl_bsn' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_bsn']));
+	printf("<label class='form-label'>E-mail ouders</label><input type='checkbox' class='form-check-input' name='zs_incl_emailouders' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_emailouders']));
+	printf("<label class='form-label'>E-mail vereniging</label><input type='checkbox' class='form-check-input' name='zs_incl_emailvereniging' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_emailvereniging']));
+	printf("<label class='form-label'>Bankrekening / IBAN</label><input type='checkbox' class='form-check-input' name='zs_incl_iban' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_iban']));
+	printf("<label class='form-label'>Machtiging automatische incasso afgegeven</label><input type='checkbox' class='form-check-input' name='zs_incl_machtiging' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_machtiging']));
+	printf("<label class='form-label'>Legitimatie</label><input type='checkbox' class='form-check-input' name='zs_incl_legitimatie' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_legitimatie']));
+	printf("<label class='form-label'>Sportlink ID</label><input type='checkbox' class='form-check-input' name='zs_incl_slid' OnChange='this.form.submit();'%s>\n", checked($_SESSION['settings']['zs_incl_slid']));
 	if (strlen($_SESSION['settings']['muteerbarememos']) > 0) {
 		printf("<label class='form-label'>Soorten memo's</label><input type='text' name='zs_muteerbarememos' class='w21' value=\"%s\" OnChange='this.form.submit();'><p>(Scheiden met een komma) (%s)</p>\n", $_SESSION['settings']['zs_muteerbarememos'], $_SESSION['settings']['muteerbarememos']);
 	} else {
@@ -2371,7 +2378,6 @@ function instellingenledenmuteren() {
 	printf("<label class='form-label'>Welke tekst moet er als uitleg bij de toestemmingen worden vermeld?</label><textarea name='uitleg_toestemmingen' rows=2 cols=68 OnChange='this.form.submit();'>%s</textarea>\n", $_SESSION['settings']['uitleg_toestemmingen']);
 	
 	echo("</form>\n");
-	echo("</div> <!-- Einde instellingenmuteren -->\n");
 	
 }  # instellingenledenmuteren
 
