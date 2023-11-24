@@ -171,7 +171,7 @@ function fnAfdelingskalenderMuteren($p_onderdeelid){
 		printf("<tr%s><td>%s</td><td><input type='text' id='Omschrijving_%d' title='Omschrijving' value=\"%s\" maxlength=75 class='w75'></td>", $cl, $dat, $row->RecordID, str_replace("\"", "'", $row->Omschrijving));
 		printf("<td><input type='text' id='Opmerking_%d' title='Opmerking' value='%s' maxlength=6 class='w6'></td>", $row->RecordID, $row->Opmerking);
 		
-		printf("<td><input type='checkbox' id='Activiteit_%d' title='Is er zwemmen?' value=1 %s></td>", $row->RecordID, checked($row->Activiteit));
+		printf("<td><input type='checkbox' class='form-check-input' id='Activiteit_%d' title='Is er zwemmen?' value=1 %s></td>", $row->RecordID, checked($row->Activiteit));
 		if ($aw == 0) {
 			printf("<td><a href='%s?tp=%s&KalID=%d&op=delete'><i class='bi bi-trash'></i></a></td>", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
 		} else {
@@ -263,30 +263,31 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 		if ($toonpresentie > 0 and toegang($currenttab . "/Presentie muteren", 0, 0)) {
 			$f = sprintf("AW.AfdelingskalenderID=%d AND AW.Status IN ('A', 'L') AND LENGTH(AW.Opmerking) > 0", $toonpresentie);
 			if ($i_aanw->aantal($f) > 0) {
-				printf("<label class='form-label'>Toon opmerkingen</label><input type='checkbox' name='toonopmerking' title='Toon de opmerking bij aanwezigen' value=1 onClick='this.form.submit();' %s>", checked($toonopmerking));
+				printf("<label class='form-label'>Toon opmerkingen</label><input type='checkbox' class='form-check-input' name='toonopmerking' title='Toon de opmerking bij aanwezigen' value=1 onClick='this.form.submit();' %s>", checked($toonopmerking));
 			}
 		}
 		echo("</form>\n");
 	
 		foreach ($i_lo->groepsindeling($afdid) as $row) {		
 			if ($hvgroep != $row->GroepID) {
+				$i_gr->vulvars($afdid, $row->GroepID);
 				if ($hvgroep > -1) {
 					echo("</ol>\n");
 					echo("</div>  <!-- einde groepsindelingkolom -->\n");
-					if ($hvtijd !== $row->Tijdsblok and strlen($hvtijd) > 0) {
+					if ($hvtijd !== $i_gr->tijden and strlen($hvtijd) > 0) {
 //						echo("<div class='clear'></div>\n");
 						echo("</div>  <!-- Einde tijdsblok -->\n");
 					}
 				}
 			
-				if (strlen($row->Tijdsblok) > 3 and $hvtijd !== $row->Tijdsblok) {
+				if (strlen($i_gr->tijden) > 3 and $hvtijd !== $i_gr->tijden) {
 					echo("<div class='row'>\n");
-					printf("<h3>%s</h3>\n", $row->Tijdsblok);
+					printf("<h3>%s</h3>\n", $i_gr->tijden);
 				}
-				$hvtijd = $row->Tijdsblok;
+				$hvtijd = $i_gr->tijden;
 			
 				echo("<div class='col col-lg-3'>\n");
-				printf("<h4>%s</h4>\n", $row->GroepOms);
+				printf("<h4>%s</h4>\n", $i_gr->groms);
 				echo("<ol>\n");
 			}
 			$cl = "";
@@ -348,7 +349,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 		if ($i_ex->aantal() > 0) {
 			printf("<select name='exfilter' class='form-select' onChange='this.form.submit();'>\n<option value=0>Filter op examen ....</option>\n%s</select>\n", $i_ex->htmloptions($exfilter));
 		}
-		printf("<div class='btn-fixed-top-right'><button type='submit' class='%s'>%s Ververs scherm</button></div>\n", CLASSBUTTON, ICONVERVERS);
+		printf("<div class='btn-fixed-top-right'><button type='submit' class='%s btn-sm'>%s Ververs scherm</button></div>\n", CLASSBUTTON, ICONVERVERS);
 		echo("</div> <!-- Einde filter -->\n");
 		
 		echo("<div id='groepsindelingmuteren'>\n");
@@ -442,12 +443,6 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 					if (strlen($row->FunctAfk) > 0) {
 						$nm .= " (" . $row->FunctAfk . ")";
 					}
-				/*
-				$ld = $i_ld->lidlaatstediplomas($row->LidID, 5);
-				if (strlen($ld) > 60) {
-					$ld = substr($ld, 0, 56) . " ...";
-				}
-				*/
 					printf("<tr><td%s%s>%s (%s)</td><td><select id='GroepID_%d' class='form-select form-select-sm'>%s</select></td></tr>\n", $cl, $t, $nm, $row->Leeftijd, $row->RecordID, $i_gr->htmloptions($row->GroepID, $afdid));
 				}
 				echo("</table>\n");
@@ -509,6 +504,11 @@ function fnGroepenMuteren($p_onderdeelid) {
 		$i_gr->controle();
 	}
 	
+	if (isset($_GET['op']) and $_GET['op'] == "verwijder" and $_GET['p_groep'] > 0) {
+		$i_gr->delete($_GET['p_groep']);
+	}
+	
+	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	printf("<table id='groepenmuteren' class='%s'>\n", TABLECLASSES);
 	echo("<caption>Muteren groepen</caption>\n");
 	if ($i_act->aantal() > 0) {
@@ -516,12 +516,12 @@ function fnGroepenMuteren($p_onderdeelid) {
 	} else {
 		$th_act = "";
 	}
-	printf("<tr><th class='nummer'>#</th><th class='codevolgnr'>Volgnr<br>Code</th><th>Omschrijving<br>Instructeurs</th><th class='activiteitdiploma'>%sDiploma</th><th>Starttijd<br>Eindtijd</th><th class='aanwezigheidsnorm'>Norm<br>aanw.</th>", $th_act);
-		
+	printf("<tr><th class='nummer'>#</th><th class='codevolgnr'>Volgnr<br>Code</th><th>Omschrijving<br>Instructeurs</th><th class='activiteitdiploma'>%sDiploma</th><th>Starttijd<br>Eindtijd</th>", $th_act);
+	echo("<th class='aanwezigheidsnorm'>Norm<br>aanw.</th><th></th><th></th>");
+
 	$i_ak->where = sprintf("AK.OnderdeelID=%d AND AK.Datum >= CURDATE()", $p_onderdeelid);
 	if (file_exists("maatwerk/Presentielijst.php") and $i_ak->aantal() > 0) {
 		$plmog = true;
-		echo("<th></th><th></th>");
 	} else {
 		$plmog = false;
 	}
@@ -529,6 +529,7 @@ function fnGroepenMuteren($p_onderdeelid) {
 
 	foreach ($i_gr->selectlijst($p_onderdeelid) as $row) {
 		if ($row->RecordID > 0) {
+			$i_gr->vulvars($p_onderdeelid, $row->RecordID);
 			echo("<tr>\n");
 			printf("<td class='nummer'>%d</td>\n", $row->RecordID);
 			printf("<td class='codevolgnr'><input type='number' class='num3' id='Volgnummer_%d' title='Volgnummer groep' value='%s'>", $row->RecordID, $row->Volgnummer);
@@ -550,25 +551,23 @@ function fnGroepenMuteren($p_onderdeelid) {
 				
 			printf("<td class='aanwezigheidsnorm'><input type='number' class='num3' id='Aanwezigheidsnorm_%d'  title='Aanwezigheidsnorm' value=%d></td>\n", $row->RecordID, $row->Aanwezigheidsnorm);
 			$i_eo->where = sprintf("EO.DiplomaID=%d", $row->DiplomaID);
-			if ($plmog) {
-				if ($row->aantalInGroep > 0) {
-					printf("<td><a href='./maatwerk/Presentielijst.php?p_groep=%d' title='Presentielijst %d leden'><i class='bi bi-printer'></i></a></td>", $row->RecordID, $row->aantalInGroep);
-				} else {
-					echo("<td></td>");
-				}
-				if ($i_eo->aantal() > 5) {
-					printf("<td><a href='%s?tp=%s/Aftekenlijst&p_diploma=%d' title='Aftekenlijst'><i class='bi bi-printer'></i></a></td>", $_SERVER['PHP_SELF'], $currenttab, $row->DiplomaID);
-				} else {
-					echo("<td></td>");
-				}
-				echo("</tr>\n");
+				
+			if ($plmog and $i_gr->aantalingroep > 0) {
+				printf("<td><a href='./maatwerk/Presentielijst.php?p_groep=%d' title='Presentielijst %d leden'>%s</a></td>", $row->RecordID, $row->aantalInGroep, ICONPRINT);
+			} elseif ($i_gr->aantalmetgroep == 0) {
+				printf("<td><a href='%s?%s&op=verwijder&p_groep=%d' title='Verwijder groep'>%s</a></td>", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING'], $row->RecordID, ICONVERWIJDER);
+			} else {
+				echo("<td></td>");
 			}
+			if ($i_eo->aantal() > 5 and $i_gr->aantalingroep > 0) {
+				printf("<td><a href='%s?tp=%s/Aftekenlijst&p_diploma=%d' title='Aftekenlijst'><i class='bi bi-printer'></i></a></td>", $_SERVER['PHP_SELF'], $currenttab, $row->DiplomaID);
+			} else {
+				echo("<td></td>");
+			}
+			echo("</tr>\n");
 		}	
 	}
-		
 	echo("</table>\n");
-	
-	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 		
 	echo("<div id='opdrachtknoppen'>\n");
 	printf("<button type='submit' class='%s'>%s Ververs scherm</button>\n", CLASSBUTTON, ICONVERVERS);
@@ -622,7 +621,7 @@ function fnPresentieMuteren($p_onderdeelid){
 	$dat = "";
 	
 	echo("<input type='text' placeholder='Naam of groep bevat' OnKeyUp=\"fnFilter('presentiemuteren', this);\">\n");
-	echo("<button type='submit' class='btn btn-light'><i class='bi bi-arrow-clockwise'></i> Ververs scherm</button>\n");
+	printf("<button type='submit' class='%s btn-sm'>%s Ververs scherm</button>\n", CLASSBUTTON, ICONVERVERS);
 	
 	echo("</form>\n");
 	
@@ -686,7 +685,7 @@ function fnPresentieMuteren($p_onderdeelid){
 				$options .= sprintf("<option value='%1\$s' %2\$s>%1\$s-%3\$s</option>\n", $k, $s, $o);
 			}
 			
-			printf("<td><select id='status_%d' class='form-select'>%s</select></td>", $row->RecordID, $options);
+			printf("<td><select id='status_%d' class='form-select form-select-sm'>%s</select></td>", $row->RecordID, $options);
 			printf("<td class='opmerking'><input type='text' id='opmerk_%d' class='w75' value=\"%s\" maxlength=75></td>\n", $row->RecordID, $i_aanw->opmerking);
 			echo("</tr>\n");
 		}
@@ -771,10 +770,10 @@ function fnPresentieoverzicht($p_ondid) {
 	
 	printf("<form method='post' id='filter' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	printf("<label class='form-label'>Vanaf</label>\n<input type='date' name='filterDatumVanaf' value='%s'>", $_POST['filterDatumVanaf']);
-	printf("<input type='checkbox' name='filterAanwezigheidsnormOnder'%s value=1><p>Onder norm</p>\n", checked($_POST['filterAanwezigheidsnormOnder']));
-	printf("<input type='checkbox' name='filterAanwezigheidsnormBoven'%s value=1><p>Boven norm</p>\n", checked($_POST['filterAanwezigheidsnormBoven']));
-	printf("<input type='checkbox' name='100aanwezigTonen'%s value=1><p>100%% aanwezig</p>\n", checked($_POST['100aanwezigTonen']));
-	printf("<button type='submit' class='%s'>%s Ververs scherm</button>\n", CLASSBUTTON, ICONVERVERS);
+	printf("<input type='checkbox' class='form-check-input' name='filterAanwezigheidsnormOnder'%s value=1><p>Onder norm</p>\n", checked($_POST['filterAanwezigheidsnormOnder']));
+	printf("<input type='checkbox' class='form-check-input' name='filterAanwezigheidsnormBoven'%s value=1><p>Boven norm</p>\n", checked($_POST['filterAanwezigheidsnormBoven']));
+	printf("<input type='checkbox' class='form-check-input' name='100aanwezigTonen'%s value=1><p>100%% aanwezig</p>\n", checked($_POST['100aanwezigTonen']));
+	printf("<button type='submit' class='%s btn-sm'>%s Ververs scherm</button>\n", CLASSBUTTON, ICONVERVERS);
 	echo("</form>\n");
 	
 	printf("<table class='%s'>\n", TABLECLASSES);
@@ -1361,6 +1360,8 @@ function aftekenlijst($p_examen=0, $p_diploma=0) {
 	
 	echo("</tbody>\n");
 	echo("</table>\n");
+	
+	echo("<p style='page-break-after: always; clear: both;'>&nbsp;</p>\n");
 	
 } # aftekenlijst
 
