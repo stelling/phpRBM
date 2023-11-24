@@ -485,8 +485,8 @@ if ($currenttab == "Beheer logins") {
 		}
 		$va = $a;
 	}
-	printf("<label>Max. aantal rijen</label><select name='aantalrijen' class='form-select' OnChange='this.form.submit();'>%s</select>\n", $options);
-	printf("<label>Alleen ingelogde</label><input type='checkbox' name='ingelogdeanderen'%s value=1 onClick='this.form.submit();'>\n", checked($_POST['ingelogdeanderen']));
+	printf("<label class='form-label'>Max. aantal rijen</label><select name='aantalrijen' class='form-select' OnChange='this.form.submit();'>%s</select>\n", $options);
+	printf("<label class='form-label'>Alleen ingelogde</label><input type='checkbox' class='form-check-input' name='ingelogdeanderen'%s value=1 onClick='this.form.submit();'>\n", checked($_POST['ingelogdeanderen']));
 	
 	if (count($rows) > 1) {
 		printf("<p class='aantrecords'>%s van %s rijen</p>\n", number_format(count($rows), 0, ",", "."), number_format($i_lb->aantal(), 0, ",", "."));
@@ -681,24 +681,23 @@ function fnInstellingen() {
 		}
 	}
 
-	echo("<div id='instellingenmuteren'>\n");
-	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+	printf("<form method='post' id='algemeen_instellingen' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	
 	foreach ($i_p->lijst() as $row) {
 		if (isset($arrParam[$row->Naam])) {
 			$uitleg = htmlent($arrParam[$row->Naam]);
 			if (strlen($row->ValueChar) > 60 and $row->ParamType="T") {
-				printf("<label>%s</label><textarea name='%s'>%s</textarea>\n", $uitleg, $row->Naam, $row->ValueChar);
+				printf("<label class='form-label'>%s</label><textarea name='%s'>%s</textarea>\n", $uitleg, $row->Naam, $row->ValueChar);
 			} elseif ($row->Naam == "db_backup_type") {
-				printf("<label>%s</label><select name='%s' id='%s' class='form-select'>", $uitleg, $row->Naam, str_replace(" ", "_", strtolower($row->Naam)));
+				printf("<label class='form-label'>%s</label><select name='%s' id='%s' class='form-select'>", $uitleg, $row->Naam, str_replace(" ", "_", strtolower($row->Naam)));
 				foreach (ARRTYPEBACKUP as $key => $val) {
 					printf("<option value=%d %s>%s</option>\n", $key, checked($row->ValueNum, "option", $key), $val);
 				}
 				echo("</select>\n");
 			} else {
-				printf("<label>%s</label><input name='%s' id='%s' ", $uitleg, $row->Naam, str_replace(" ", "_", strtolower($row->Naam)));
+				printf("<label class='form-label'>%s</label><input name='%s' id='%s' ", $uitleg, $row->Naam, str_replace(" ", "_", strtolower($row->Naam)));
 				if ($row->ParamType == "B") {
-					printf("type='checkbox' value='1' %s>\n", checked(intval($row->ValueNum)));
+					printf("type='checkbox' class='form-check-input' value='1' %s>\n", checked(intval($row->ValueNum)));
 				} elseif ($row->ParamType == "I") {
 					printf("type='number' value=%d>\n", $row->ValueNum);
 				} elseif ($row->ParamType == "F") {
@@ -711,11 +710,10 @@ function fnInstellingen() {
 	}
 	$i_p = null;
 	echo("<div id='opdrachtknoppen'>\n");
-	echo("<input class='knop' type='submit' value='Bewaren'>\n");
+	printf("<button type='submit' class='%s' type='submit' value='Bewaren'>%s Bewaren</button>\n", CLASSBUTTON, ICONBEWAAR);
 	echo("</div>  <!-- Einde opdrachtknoppen -->\n");
 	
 	echo("</form>\n");
-	echo("</div>  <!-- Einde instellingenmuteren -->\n");
 	
 } # fnInstellingen
 
