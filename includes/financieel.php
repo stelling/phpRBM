@@ -429,7 +429,7 @@ function RekeningenAanmaken() {
 			printf("Voor de volgende %d leden zal een rekening worden aangemaakt:\n<ul>\n%s</ul>\n", $aantleden, $toonleden);
 			echo("<div class='clear'></div>\n");
 			echo("<div id='opdrachtknoppen'>\n");
-			echo("<input type='checkbox' value='1' name='sure'>\n");
+			echo("<input type='checkbox' value='1' class='form-check-input' name='sure'>\n");
 			printf("<input type='submit' class='%s' value='Rekeningen aanmaken' name='RekAanmaken'>\n", CLASSBUTTON);
 			if ($ontbrekende == 1) {
 				echo("<input type='hidden' name='ontbrekende' value=1>\n");
@@ -448,10 +448,10 @@ function RekeningenAanmaken() {
 		printf("<label class='form-label'>Omschrijving rekening</label><input type='text' id='Rekeningomschrijving' maxlength=35 class='w35' value='%s'>\n", $szrow->Rekeningomschrijving);
 		printf("<label class='form-label'>Datum rekening</label><input type='date' name='Rekeningdatum' value='%s'>\n", date("Y-m-d"));
 		printf("<label id='lblEersteRekeningNummer' class='form-label'>Eerste rekeningnummer</label><input type='number' name='eerstenummer' value=%d>\n", $eerstenummer);
-		printf("<label id='lblVerzamelenPerGezin' class='form-label'>Verzamelen per gezin?</label><input type='checkbox' id='RekeningenVerzamelen' %s>\n", checked($szrow->RekeningenVerzamelen));
+		printf("<label id='lblVerzamelenPerGezin' class='form-label'>Verzamelen per gezin?</label><input type='checkbox' class='form-check-input' id='RekeningenVerzamelen' %s>\n", checked($szrow->RekeningenVerzamelen));
 		printf("<label id='lblBetalingstermijn' class='form-label'>Betalingstermijn</label><input type='number' id='BetaaldagenTermijn' value=%d class='num2' min=0 max=999>\n", $szrow->BetaaldagenTermijn);
 		
-		printf("<label class='form-label'>Alleen ontbrekende rekeningen</label><input type='checkbox' %s name='ontbrekende' value=1 onChange='this.form.submit();'>\n", checked($ontbrekende));
+		printf("<label class='form-label'>Alleen ontbrekende rekeningen</label><input type='checkbox' class='form-check-input' %s name='ontbrekende' value=1 onChange='this.form.submit();'>\n", checked($ontbrekende));
 	
 		printf("<label class='form-label'>Omschrijving verenigingscontributie</label><input type='text' id='Verenigingscontributie omschrijving' maxlength=50 class='w50' value='%s'>\n", $szrow->{'Verenigingscontributie omschrijving'});
 		printf("<label id='lblKostenplaats' class='form-label'>Kostenplaats</label><input type='text' id='Verenigingscontributie kostenplaats' maxlength=12 class='w12' value='%s'>\n", $szrow->{'Verenigingscontributie kostenplaats'});
@@ -498,10 +498,10 @@ function RekeningBetalingen() {
 	
 	echo("<div id='rekeningbetalingen'>\n");
 	
-	printf("<label>Rekeningnummer</label><input type='number' value=0 id='nieuw_rekening'>");
+	printf("<label class='form-label'>Rekeningnummer</label><input type='number' value=0 id='nieuw_rekening'>");
 	echo("<p id='opmerking'></p>\n");
-	printf("<label>Datum betaling</label><input type='date' id='nieuw_datum' value='%s'>\n", $i_rb->max("Datum"));
-	echo("<label>Bedrag</label><input type='text' id='nieuw_bedrag' value='0,00' class='d8'>\n");
+	printf("<label class='form-label'>Datum betaling</label><input type='date' id='nieuw_datum' value='%s'>\n", $i_rb->max("Datum"));
+	echo("<label class='form-label'>Bedrag</label><input type='text' id='nieuw_bedrag' value='0,00' class='d8'>\n");
 	printf("<button type='button' class='%s' id='btnBetalingToevoegen' onClick='fnBetalingToevoegen();' disabled>%s Betaling toevoegen</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
 	printf("<button type='button' class='%s' onClick='location.reload();'>%s Ververs scherm</button>\n", CLASSBUTTON, ICONVERVERS);
 
@@ -599,7 +599,7 @@ function RekeningInstellingen() {
 	$i_ond = new cls_Onderdeel();
 	$i_mv = new cls_Mailing_vanaf();
 	
-	echo("<div id='instellingenmuteren'>\n");
+	echo("<div id='rekening_instellingen'>\n");
 	
 	echo("<h2>Algemene instellingen</h2>\n");
 	printf("<label class='form-label'>Groep rekening betaald door</label><select id='rekening_groep_betaalddoor' class='form-select'>\n<option value=-1>Alleen webmasters</option>\n%s</select>\n", $i_ond->htmloptions($_SESSION['settings']['rekening_groep_betaalddoor'], 1));
@@ -622,7 +622,7 @@ function RekeningInstellingen() {
 	printf("<label class='form-label'>Vanaf e-mailadres</label><select id='mailing_rekening_vanafid' class='form-select'>%s</select>\n", $i_mv->htmloptions($_SESSION['settings']['mailing_rekening_vanafid']));
 
 	printf("<label class='form-label'>Verstuurde e-mails alleen zichtbaar voor</label><select id='mailing_rekening_zichtbaarvoor' class='form-select'>\n<option value=-1>Alleen webmasters</option>\n%s</select>\n", $i_ond->htmloptions($_SESSION['settings']['mailing_rekening_zichtbaarvoor'], 1));
-	echo("</div> <!-- Einde instellingenmuteren -->\n");
+	echo("</div> <!-- Einde rekening_instellingen -->\n");
 ?>
 <script>
 	$("select").on('change', function() {
