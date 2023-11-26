@@ -49,7 +49,7 @@ if ($currenttab2 != "previewwindow" and $op != "preview_hist" and $op != "previe
 }
 
 $isafdelingstab = 0;
-$f = sprintf("Type='A' AND Naam='%s'", $currenttab);
+$f = sprintf("Naam='%s'", $currenttab);
 if (strlen($_SESSION['settings']['menu_met_afdelingen']) > 0 and (new cls_Onderdeel())->aantal($f) == 1) {
 	$isafdelingstab = 1;
 }
