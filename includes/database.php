@@ -11033,6 +11033,13 @@ function db_onderhoud($type=9) {
 		$query = sprintf("ALTER TABLE `%s` ADD `%s` TINYINT NULL AFTER `Volgnr`;", $tab, $col);
 		$i_base->execsql($query, 2);
 	}
+	
+	$tab = TABLE_PREFIX . "Lid";
+	$col = "NietOpschonen";
+	if ($i_base->bestaat_kolom($col, $tab) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` TINYINT NOT NULL DEFAULT '0' AFTER `Opmerking`;", $tab, $col);
+		$i_base->execsql($query, 2);
+	}
 
 	/***** Velden die aangepast zijn *****/
 	$i_base->tas = 12;
