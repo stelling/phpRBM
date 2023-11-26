@@ -1580,7 +1580,7 @@ function algemeenlidmuteren($lidid) {
 	$i_lm->vulvars(-1, $lidid);
 	printf("<form method='post' id='wijzigenlidgegevens' action='%s'>\n", $actionurl);
 	echo("<div id='wijzigenlidgegevensalgemeen'>\n");
-	printf("<label id='lblRecordID' class='form-label'>RecordID/LidID</label><input name='lidid' class='w10' value=%d readonly>\n", $i_lm->lmid);
+	printf("<label id='lblRecordID' class='form-label'>RecordID/LidID</label><input name='lidid' class='w10' value=%d readonly>\n", $i_lid->lidid);
 	if ($i_lm->lidnr > 0) {
 		printf("<label id='lblLidnummer' class='form-label'>Lidnummer</label><input name='lidnr' class='w10' value=%d readonly></p>\n", $i_lm->lidnr);
 	}
