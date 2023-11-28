@@ -1689,6 +1689,15 @@ class cls_Lid extends cls_db_base {
 
 	}  # update
 	
+	private function delete($p_lidid, $p_reden="") {
+		$this->vulvars($p_lidid);
+		
+		if ($this->pdodelete($p_lidid, $p_reden)) {
+			$this->log();
+		}
+		
+	}  # cls_Lid->delete
+	
 	public function controle($p_lidid=-1) {
 		if ($p_lidid > 0) {
 			$f = sprintf("L.RecordID=%d", $p_lidid);
@@ -1723,11 +1732,35 @@ class cls_Lid extends cls_db_base {
 				$this->update($lrow->RecordID, "Mobiel", "", $reden);
 			}
 		}
-	}
+		
+	}  # cls_Lid->controle
 	
 	public function opschonen() {
+		
+		// Definitief verwijderen leden met verwijder-markering
+		$bt = $_SESSION['settings']['liddefinitiefverwijderen'] ?? 0;
+		if ($bt > 0) {
+			$reden = sprintf("de verwijdermarkering voor %s is gezet.", date("d-m-Y", strtotime(sprintf("-%d month", $bt))));
+			$query = sprintf("SELECT L.RecordID FROM %s WHERE IFNULL(L.Verwijderd, '9999-12-31') < DATE_SUB(CURDATE(), INTERVAL %d MONTH)", $this->basefrom, $bt);
+			foreach ($this->execsql($query)->fetchAll() as $lrow) {
+				$delqry = sprintf("DELETE FROM %sLidmaatschap WHERE Lid=%d;", TABLE_PREFIX, $lrow->RecordID);
+				$this->execsql($delqry, 6);
+				
+				$delqry = sprintf("DELETE FROM %sLidond WHERE Lid=%d;", TABLE_PREFIX, $lrow->RecordID);
+				$this->execsql($delqry, 6);
+				
+				$delqry = sprintf("DELETE FROM %sFoto WHERE LidID=%d;", TABLE_PREFIX, $lrow->RecordID);
+				$this->execsql($delqry, 6);
+				
+				$delqry = sprintf("DELETE FROM %sEvenement_Deelnemer WHERE LidID=%d;", TABLE_PREFIX, $lrow->RecordID);
+				$this->execsql($delqry, 7);
+				
+				$this->delete($lrow->RecordID, $reden);
+			}
+		}
+		
 		$this->optimize();
-	}  # Opschonen
+	}  # cls_Lid->Opschonen
 	
 }  # cls_Lid
 
@@ -1949,22 +1982,20 @@ class cls_Lidmaatschap extends cls_db_base {
 	}
 	
 	public function controle() {
-	}
+	}  # cls_Lidmaatschap->controle
 	
 	public function opschonen() {
 		
-		$query = sprintf("SELECT LM.RecordID FROM %s LEFT JOIN %sLid AS L ON LM.Lid=L.RecordID WHERE (L.RecordID IS NULL);", $this->basefrom, TABLE_PREFIX);
+		$query = sprintf("SELECT LM.RecordID FROM %s WHERE (LM.Lid NOT IN (SELECT L.RecordID FROM %sLid AS L WHERE (L.Verwijderd IS NULL)));", $this->basefrom, TABLE_PREFIX);
 		$result = $this->execsql($query);
-		
 		foreach ($result->fetchAll() as $row) {
 			$this->lidid = $row->Lid;
-			$this->pdodelete($row->RecordID, "het gerelateerde record in de tabel Lid niet bestaat.");
+			$this->pdodelete($row->RecordID, "het gerelateerde record in de tabel Lid niet (meer) bestaat.");
 			$this->Log($row->RecordID);
 		}
 		
 		$query = sprintf("SELECT LM.RecordID, LM.Lid FROM %s WHERE LM.LIDDATUM > IFNULL(LM.Opgezegd, '9999-12-31');", $this->basefrom);
 		$result = $this->execsql($query);
-		
 		foreach ($result->fetchAll() as $row) {
 			$this->lidid = $row->Lid;
 			$this->pdodelete($row->RecordID, "de datum van lid worden na de datum van opzeggen ligt");
@@ -1973,7 +2004,7 @@ class cls_Lidmaatschap extends cls_db_base {
 		
 		$this->optimize();
 		
-	}  # opschonen
+	}  # cls_Lidmaatschap->opschonen
 	
 }  # cls_Lidmaatschap
 
@@ -1989,11 +2020,23 @@ class cls_Memo extends cls_db_base {
 		$this->per = date("Y-m-d");
 	}
 	
-	private function vulvars($p_lidid, $p_soort) {
+	private function vulvars($p_lidid, $p_soort, $p_mmid=-1) {
+		
 		$this->lidid = $p_lidid;
 		$this->soort = $p_soort;
 		
-		if ($this->lidid > 0 and strlen($this->soort) > 0) {
+		if ($p_mmid > 0) {
+			$this->mmid = $p_mmid;
+			$query = sprintf("SELECT M.* FROM %s WHERE M.RecordID=%d;", $this->basefrom, $this->mmid);
+			$mrow = $this->execsql($query)->fetch();
+			if (isset($mrow->Lid)) {
+				$this->lidid = $mrow->Lid;
+				$this->soort = $mrow->soort;
+			} else {
+				$this->mmid = 0;
+			}
+		
+		} elseif ($this->lidid > 0 and strlen($this->soort) > 0) {
 			$f = sprintf("Lid=%d AND Soort='%s'", $this->lidid, $this->soort);
 			$this->mmid = $this->max("M.RecordID", $f);
 		}
@@ -2035,12 +2078,33 @@ class cls_Memo extends cls_db_base {
 		}
 	}
 	
-	public function delete($p_lidid, $p_soort) {
-		$this->vulvars($p_lidid, $p_soort);
+	public function delete($p_lidid, $p_soort, $p_mmid=-1, $p_reden="") {
+		$this->vulvars($p_lidid, $p_soort, $p_mmid);
 		
-		$this->pdodelete($this->mmid);
-		$this->log($this->mmid);
+		if ($this->pdodelete($this->mmid, $p_reden)) {
+			$this->log($this->mmid);
+		}
 	}
+	
+	public function controle() {
+	}
+	
+	public function opschonen() {
+		
+		$query = sprintf("SELECT M.RecordID FROM %s WHERE M.Ingevoerd < DATE_SUB(CURDATE(), INTERVAL %d DAY) AND LENGTH(M.Memo)=0;", $this->basefrom, BEWAARTIJDNIEUWERECORDS);
+		foreach ($this->execsql($query)->fetchAll() as $mrow) {
+			$this->delete(-1, -1, $mrow->RecordID, "het memo leeg is.");
+		}
+		
+		$query = sprintf("SELECT M.RecordID FROM %s WHERE (M.Lid NOT IN (SELECT L.RecordID FROM %sLid AS L WHERE (L.Verwijderd IS NULL)));", $this->basefrom, TABLE_PREFIX);
+		foreach ($this->execsql($query)->fetchAll() as $mrow) {
+			$this->delete(-1, -1, $mrow->RecordID, "het lid niet (meer) bestaat.");
+		}
+		
+		$this->optimize();
+		
+	}  # cls_Memo->opschonen
+	
 }  # cls_Memo
 
 class cls_Authorisation extends cls_db_base {
@@ -2221,7 +2285,7 @@ class cls_Authorisation extends cls_db_base {
 	}
 	
 	public function opschonen() {
-		$query = sprintf("SELECT RecordID FROM %s WHERE AA.LaatstGebruikt < DATE_ADD(CURDATE(), INTERVAL -3 MONTH) AND Toegang < 0;", $this->basefrom);
+		$query = sprintf("SELECT RecordID FROM %s WHERE AA.Ingevoerd < DATE_SUB(CURDATE(), INTERVAL %d DAY) AND Toegang=-1 AND AA.LaatstGebruikt < DATE_SUB(CURDATE(), INTERVAL 3 MONTH);", $this->basefrom, BEWAARTIJDNIEUWERECORDS);
 		$result = $this->execsql($query);
 		$reden = "hij 3 maanden lang niet is gebruikt en toegang is alleen voor webmasters.";
 		foreach ($result->fetchAll() as $row) {
@@ -2507,7 +2571,7 @@ class cls_Onderdeel extends cls_db_base {
 		$this->log($nrid, 1);
 		
 		return $nrid;
-	}
+	}  # cls_Onderdeel->add
 
 	public function update($p_oid, $p_kolom, $p_waarde, $p_reden="") {
 		$this->vulvars($p_oid);
@@ -2594,21 +2658,30 @@ class cls_Onderdeel extends cls_db_base {
 				$this->update($row->RecordID, "Alleen leden", 0, $reden);
 			}
 		}
-	}  # controle
+	}  # cls_Onderdeel->controle
 	
 	public function opschonen() {
-		$query = sprintf("SELECT O.RecordID FROM %s WHERE IFNULL(O.VervallenPer, '9999-12-31') < CURDATE() AND IFNULL(O.Gewijzigd, CURDATE()) < DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND
-								 O.RecordID NOT IN (SELECT LO.OnderdeelID FROM %2\$sLidond AS LO) AND
-								 O.RecordID NOT IN (SELECT O2.LedenMuterenDoor FROM %2\$sOnderdl AS O2) AND
-								 O.RecordID NOT IN (SELECT GR.OnderdeelID FROM %2\$sGroep AS GR) AND
-								 O.RecordID NOT IN (SELECT AA.Toegang FROM %2\$sAdmin_access AS AA) AND
-								 O.RecordID NOT IN (SELECT AK.OnderdeelID FROM %2\$sAfdelingskalender AS AK) AND 
-								 O.RecordID NOT IN (SELECT EX.OnderdeelID FROM %2\$sExamen AS EX) AND
-								 O.RecordID NOT IN (SELECT DP.Afdelingsspecifiek FROM %2\$sDiploma AS DP);", $this->basefrom, TABLE_PREFIX);
+		$query = sprintf("SELECT O.RecordID FROM %1\$s WHERE IFNULL(O.VervallenPer, '9999-12-31') < CURDATE() AND IFNULL(O.Gewijzigd, CURDATE()) < DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND
+						  (O.RecordID NOT IN (SELECT LO.OnderdeelID FROM %2\$sLidond AS LO));", $this->basefrom, TABLE_PREFIX);
 		$result = $this->execsql($query);
+		$reden = "deze vervallen is en nergens meer aan gekoppeld is.";
 		foreach ($result->fetchAll() as $row) {
-			$reden = "deze vervallen is en nergens meer aan gekoppeld is.";
-			$this->delete($row->RecordID, $reden);
+			$f = sprintf("DP.Afdelingsspecifiek=%d", $row->RecordID);
+			if ((new cls_Diploma())->aantal($f) == 0) {
+				$f = sprintf("EX.OnderdeelID=%d", $row->RecordID);
+				if ((new cls_Examen())->aantal($f) == 0) {
+					$f = sprintf("AK.OnderdeelID=%d", $row->RecordID);
+					if ((new cls_Afdelingskalender())->aantal($f) == 0) {
+						$f = sprintf("AA.Toegang=%d", $row->RecordID);
+						if ((new cls_Authorisation())->aantal($f) == 0) {
+							$f = sprintf("GR.OnderdeelID=%d", $row->RecordID);
+							if ((new cls_Groep())->aantal($f) == 0) {
+								$this->delete($row->RecordID, $reden);
+							}
+						}
+					}
+				}
+			}
 		}
 		
 		$this->optimize();
@@ -3352,7 +3425,7 @@ class cls_Lidond extends cls_db_base {
 			$this->loclass = "wordtlid";
 		} elseif ($this->opgezegd > "1970-01-01" and $this->opgezegd < date("Y-m-d", strtotime("+3 month"))) {
 			$this->loclass = "heeftopgezegd";
-			$this->lotitle = sprintf("heeft per %s opgezegd", $row->Opgezegd);
+			$this->lotitle = sprintf("heeft per %s opgezegd", $this->opgezegd);
 		}
 		
 		if ($this->groepid > 0 and $this->dpid > 0) {
@@ -3848,20 +3921,22 @@ class cls_Lidond extends cls_db_base {
 			$i_ond->delete($row->RecordID, "het onderdeel niet (meer) bestaat");
 		}
 		
-		$query = sprintf("SELECT LO.RecordID FROM %s WHERE LO.Vanaf > IFNULL(LO.Opgezegd, '9999-12-31')%s;", $this->basefrom, $wl);
+		$query = sprintf("SELECT LO.RecordID FROM %s WHERE LO.Vanaf > IFNULL(LO.Opgezegd, '9999-12-31');", $this->basefrom);
 		$result = $this->execsql($query);
 		foreach ($result->fetchAll() as $row) {
 			$this->delete($row->RecordID, "de datum vanaf na de datum opgezegd ligt");
 		}
 		
-		$query = sprintf("SELECT LO.RecordID, IFNULL(LO.Opgezegd, '9999-12-31') AS Opgezegd, IFNULL(L.RecordID, 0) AS LidID, IFNULL(L.Overleden, '9999-12-31') AS Overleden
-						  FROM %s AS LO LEFT OUTER JOIN %sLid AS L ON LO.Lid=L.RecordID WHERE 1=1%s", $this->table, TABLE_PREFIX, $wl);
+		$query = sprintf("SELECT LO.RecordID, IFNULL(LO.Opgezegd, '9999-12-31') AS Opgezegd, IFNULL(L.RecordID, 0) AS LidID, IFNULL(L.Overleden, '9999-12-31') AS Overleden, IFNULL(L.Verwijderd, '9999-12-31') AS Verwijderd
+								FROM %s AS LO LEFT OUTER JOIN %sLid AS L ON LO.Lid=L.RecordID WHERE 1=1%s", $this->table, TABLE_PREFIX, $wl);
 		$result = $this->execsql($query);
 		foreach ($result->fetchAll() as $row) {
 			if ($row->LidID == 0) {
 				$this->delete($row->RecordID, "het record in de tabel Lid niet (meer) bestaat.");
 			} elseif ($row->Overleden < $row->Opgezegd and $row->Overleden < date("Y-m-d")) {
 				$this->update($row->RecordID, "Opgezegd", $row->Overleden, "het lid overleden is.");
+			} elseif ($row->Verwijderd < date("Y-m-d")) {
+				$this->delete($row->RecordID, "het lid verwijderd is.");
 			}
 		}
 		
@@ -5712,7 +5787,7 @@ class cls_Mailing_rcpt extends cls_db_base {
 		
 		$this->optimize();
 		
-	}  # opschonen
+	}  # cls_Mailing_rcpt->opschonen
 	
 }  # cls_Mailing_rcpt
 
@@ -5727,6 +5802,7 @@ class cls_Mailing_vanaf extends cls_db_base {
 		$this->basefrom = $this->table . " AS MV";
 		$this->ta = 4;
 		$this->tas = 30;
+		$this->per = date("Y-m-d");
 		$this->vulvars($p_mvid, $p_email);
 	}
 	
@@ -5863,6 +5939,8 @@ class cls_Logboek extends cls_db_base {
 			$w = sprintf("TypeActiviteit=%d", $p_type);
 		} elseif (strlen($p_filter) > 5) {
 			$w = $p_filter;
+		} elseif (strlen($this->where) > 0) {
+			$w = $this->where;
 		} else {
 			$w = "TypeActiviteit >= 0";
 		}
@@ -6168,8 +6246,8 @@ class cls_Logboek extends cls_db_base {
 			$this->execsql($query, 2);
 		}
 		
-// Logging, waar geen lid aan is gekoppeld.
-		$query = sprintf("DELETE FROM %s WHERE DatumTijd < DATE_SUB(CURDATE(), INTERVAL 18 MONTH) AND ReferLidID=0;", $this->table);
+// Logging, waar een lid aan is gekoppeld.
+		$query = sprintf("DELETE FROM %s WHERE DatumTijd < DATE_SUB(CURDATE(), INTERVAL %d MONTH) AND ReferLidID > 0;", $this->table, $_SESSION['settings']['logboek_lid_bewaartijd']);
 		$this->execsql($query, 2);
 
 // Logging zonder tekst
@@ -6258,7 +6336,7 @@ class cls_Logboek extends cls_db_base {
 		
 		$this->optimize();
 		
-	}  #  opschonen
+	}  #  cls_Logboek->opschonen
 
 }  # cls_Logboek
 
@@ -6997,9 +7075,9 @@ class cls_Liddipl extends cls_db_base {
 		$result = $this->execsql($query);
 		foreach ($result->fetchAll() as $row) {
 			$this->delete($row->RecordID, $reden);
-		}		
+		}
 		
-		$query = sprintf("SELECT LD.RecordID FROM %s WHERE LD.Lid NOT IN (SELECT L.RecordID FROM %sLid AS L);", $this->basefrom, TABLE_PREFIX);
+		$query = sprintf("SELECT LD.RecordID FROM %s WHERE LD.Lid NOT IN (SELECT L.RecordID FROM %sLid AS L WHERE (L.Verwijderd IS NULL));", $this->basefrom, TABLE_PREFIX);
 		$reden = "het lid niet (meer) bestaat";
 		$result = $this->execsql($query);
 		foreach ($result->fetchAll() as $row) {
@@ -7510,7 +7588,7 @@ class cls_Evenement extends cls_db_base {
 				$this->evid = 0;
 			}
 		}
-	}
+	}  # cls_Evenement->vulvars
 	
 	public function lijst($p_soort=1, $p_datum="", $p_filter="") {
 		/* p_soort:
@@ -7534,8 +7612,8 @@ class cls_Evenement extends cls_db_base {
 		}
 		$ord = "E.Datum";
 		if ($p_soort == 2) {
-			$select = sprintf("E.RecordID, E.Datum, IF(RIGHT(E.Datum, 8)='00:00:00', '', %s) AS Starttijd, E.Omschrijving, E.Locatie, (" . $this->sqlaantdln . ") AS Dln, O.CentraalEmail AS Email, E.Eindtijd,
-					   CASE E.InschrijvingOpen WHEN 0 THEN 'Nee' ELSE 'Ja' END AS insOpen, ET.Omschrijving AS typeOms, ET.Soort", $st);
+			$select = sprintf("E.RecordID, E.Datum, IF(RIGHT(E.Datum, 8)='00:00:00', '', %s) AS Starttijd, E.Omschrijving, E.Locatie, (%s) AS Dln, O.Naam AS OrgNaam, O.CentraalEmail AS Email, E.Eindtijd,
+					   E.InschrijvingOpen, ET.Omschrijving AS typeOms, ET.Soort", $st, $this->sqlaantdln);
 			$where = "IFNULL(E.VerwijderdOp, '1900-01-01') < '2012-01-01'";		
 			if (WEBMASTER == false) {
 				$where .= sprintf(" AND E.Organisatie IN (%s)", $_SESSION["lidgroepen"]);
@@ -7825,7 +7903,7 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 							ORDER BY %7\$s;", $this->selectnaam, $this->selecttelefoon, $this->basefrom, TABLE_PREFIX, $p_evid, $xw, $order);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
-	}
+	}  #cls_Evenement_Deelnemer->overzichtevenement
 
 	public function overzichtlid($p_lidid) {
 		
@@ -7889,7 +7967,7 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 		$this->log($p_edid);
 		
 		return $rv;
-	}
+	}  # cls_Evenement_Deelnemer->update
 	
 	public function delete($p_edid, $p_reden="") {
 		$this->edid = $p_edid;
@@ -7915,7 +7993,7 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 			$this->delete($row->RecordID, "het evenement niet (meer) bestaat.");
 		}
 
-		$query = sprintf("SELECT ED.RecordID FROM %s WHERE ED.LidID NOT IN (SELECT L.RecordID FROM %sLid AS L);", $this->basefrom, TABLE_PREFIX);
+		$query = sprintf("SELECT ED.RecordID FROM %s WHERE ED.LidID NOT IN (SELECT L.RecordID FROM %sLid AS L WHERE (L.Verwijderd IS NULL));", $this->basefrom, TABLE_PREFIX);
 		$result = $this->execsql($query);
 		foreach ($result->fetchAll() as $row) {
 			$this->delete($row->RecordID, "het lid niet (meer) bestaat.");
@@ -7924,7 +8002,7 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 		$query = sprintf("SELECT ED.RecordID FROM %s WHERE (ED.Status='G' OR LENGTH(ED.Status)=0) AND LENGTH(IFNULL(ED.Opmerking, ''))=0;", $this->basefrom);
 		$result = $this->execsql($query);
 		foreach ($result->fetchAll() as $row) {
-			$this->delete($row->RecordID, "de status geen is en er geen opmerking is ingevuld.");
+			$this->delete($row->RecordID, "de status geen is en er geen opmerking ingevuld is.");
 		}
 		
 		$this->optimize();
@@ -8012,6 +8090,12 @@ class cls_Evenement_Type extends cls_db_base {
 	}
 	
 	public function opschonen() {
+		
+		$query = sprintf("SELECT ET.RecordID FROM %s WHERE ET.Ingevoerd < DATE_SUB(CURDATE(), INTERVAL %d DAY) AND (ET.RecordID NOT IN (SELECT E.TypeEvenement FROM %sEvenement AS E))", $this->basefrom, BEWAARTIJDNIEUWERECORDS, TABLE_PREFIX);
+		
+		foreach ($this->execsql($query)->fetchAll() as $etrow) {
+			$this->delete($etrow->RecordID, "het type niet (meer) in gebruik is.");
+		}
 		
 		$this->optimize();
 		
@@ -10481,6 +10565,8 @@ class cls_Parameter extends cls_db_base {
 		$this->arrParam['performance_trage_select'] = array("Type" => "F", "Default" => 0.5);
 		
 		$this->arrParam['logboek_bewaartijd'] = array("Type" => "I", "Default" => 48);
+		$this->arrParam['logboek_lid_bewaartijd'] = array("Type" => "I", "Default" => 84);
+		
 		$this->arrParam['login_geldigheidactivatie'] = array("Type" => "I", "Default" => 36);
 		$this->arrParam['db_backup_type'] = array("Type" => "I", "Default" => 3);
 		$this->arrParam['db_backupsopschonen'] = array("Type" => "I", "Default" => 11);
