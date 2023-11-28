@@ -42,9 +42,9 @@ function fnRekeningen() {
 			$actionurl = sprintf("%s?tp=%s", $_SERVER['PHP_SELF'], $_GET['tp']);
 			printf("<form method='post' id='rekeningmuteren' action='%s'>\n", $actionurl);
 		
-			printf("<label class='form-label'>Seizoen</label><select name='nwseizoen' class='form-select'>\n%s</select>\n", (new cls_Seizoen())->htmloptions($seizoen));
+			printf("<label class='form-label'>Seizoen</label><select name='nwseizoen' class='form-select form-select-sm'>\n%s</select>\n", (new cls_Seizoen())->htmloptions($seizoen));
 			printf("<label class='form-label'>Rekeningnummer</label><input type='number' name='nwrekening' value=%d class='d8'>\n", $nwreknr);
-			printf("<label class='form-label'>Lid</label><select name='nwlid' class='form-select'><option value=0>Selecteer lid ...</option>\n%s</select>\n", (new cls_Lid())->htmloptions(-1, 2));
+			printf("<label class='form-label'>Lid</label><select name='nwlid' class='form-select form-select-sm'><option value=0>Selecteer lid ...</option>\n%s</select>\n", (new cls_Lid())->htmloptions(-1, 2));
 			echo("<div class='clear'></div>\n");
 			printf("<button type='submit' class='%s' name='RekToevoegen'>%s Toevoegen</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
 			echo("</form>\n");
@@ -192,7 +192,7 @@ function fnRekeningMuteren($p_rkid=-1) {
 		echo("<label class='form-label'>Per E-mail verstuurd</label><p id='laatsteemail'></p>\n");
 		echo("</div> <!-- Einde rekeninginfo -->\n");
 		
-		printf("<label class='form-label'>Seizoen</label><select id='Seizoen' class='form-select'>%s</select>\n", $i_seiz->htmloptions($row->Seizoen));
+		printf("<label class='form-label'>Seizoen</label><select id='Seizoen' class='form-select form-select-sm'>%s</select>\n", $i_seiz->htmloptions($row->Seizoen));
 		printf("<label class='form-label'>Rekeningdatum</label><input type='date' id='Datum' value='%s' required>\n", $row->Datum);
 		printf("<label class='form-label'>Omschrijving</label><input type='text' id='OMSCHRIJV' class='w35' value='%s' maxlength=35>\n", $row->OMSCHRIJV);
 		printf("<label class='form-label'>Tenaamstelling rekening</label><input type='text' id='DEBNAAM' class='w60' value='%s' maxlength=60>\n", $row->DEBNAAM);
@@ -202,12 +202,12 @@ function fnRekeningMuteren($p_rkid=-1) {
 			$d = " disabled";
 		}
 		$f = sprintf("L.RecordID IN (SELECT RR.Lid FROM %sRekreg AS RR WHERE RR.Rekening=%d)", TABLE_PREFIX, $row->Nummer);
-		printf("<label class='form-label'>Gekoppeld aan lid</label><select id='Lid' class='form-select'%s><option value=-1></option>%s</select>\n", $d, $i_lid->htmloptions($row->Lid, 0, $f, $row->Datum));
+		printf("<label class='form-label'>Gekoppeld aan lid</label><select id='Lid' class='form-select form-select-sm'%s><option value=-1></option>%s</select>\n", $d, $i_lid->htmloptions($row->Lid, 0, $f, $row->Datum));
 		
 		$f = sprintf("(L.RecordID IN (SELECT LO.Lid FROM %sLidond AS LO WHERE IFNULL(LO.Opgezegd, '9999-12-31') >= '%s' AND LO.OnderdeelID=%d)", TABLE_PREFIX, $row->Datum, $_SESSION['settings']['rekening_groep_betaalddoor']);
 		$f .= sprintf(" OR L.RecordID IN (SELECT RR.Lid FROM %sRekreg AS RR WHERE RR.Rekening=%d)", TABLE_PREFIX, $reknr);
 		$f .= sprintf(" OR L.RecordID=%d OR L.RecordID=%d)", $row->BetaaldDoor, $row->Lid);
-		printf("<label class='form-label'>Betaald door / debiteur</label><select id='BetaaldDoor' class='form-select'>\n%s</select>\n", $i_lid->htmloptions($row->BetaaldDoor, 7, $f, $row->Datum));
+		printf("<label class='form-label'>Betaald door / debiteur</label><select id='BetaaldDoor' class='form-select form-select-sm'>\n%s</select>\n", $i_lid->htmloptions($row->BetaaldDoor, 7, $f, $row->Datum));
 		if ($row->BETAALDAG < 1) {
 			$bdt = $i_seiz->max("SZ.BetaaldagenTermijn", sprintf("SZ.Nummer=%d", $row->Seizoen));
 		} else {
@@ -263,7 +263,10 @@ function fnRekeningMuteren($p_rkid=-1) {
 			echo("</div> <!-- Einde rekeningregelsmuteren -->\n");
 		}
 		
-		printf("<textarea id='OpmerkingIntern' title='Interne opmerking' placeholder='interne opmerking'>%s</textarea>\n", $row->OpmerkingIntern);
+		echo("<div class='form-floating'>\n");
+		printf("<textarea id='OpmerkingIntern' class='form-control' title='Interne opmerking' placeholder='Ruimte voor een interne opmerking'>%s</textarea>\n", $row->OpmerkingIntern);
+		echo("<label for='OpmerkingIntern'>Interne opmerking</label>");
+		echo("</div>\n");
 		
 		echo("</form>\n");
 		
@@ -602,11 +605,11 @@ function RekeningInstellingen() {
 	echo("<div id='rekening_instellingen'>\n");
 	
 	echo("<h2>Algemene instellingen</h2>\n");
-	printf("<label class='form-label'>Groep rekening betaald door</label><select id='rekening_groep_betaalddoor' class='form-select'>\n<option value=-1>Alleen webmasters</option>\n%s</select>\n", $i_ond->htmloptions($_SESSION['settings']['rekening_groep_betaalddoor'], 1));
+	printf("<label class='form-label'>Groep rekening betaald door</label><select id='rekening_groep_betaalddoor' class='form-select form-select-sm'>\n<option value=-1>Alleen webmasters</option>\n%s</select>\n", $i_ond->htmloptions($_SESSION['settings']['rekening_groep_betaalddoor'], 1));
 	printf("<label class='form-label'>Bewaartermijn in maanden na rekeningdatum</label><input type='number' id='rekening_bewaartermijn' value=%d class='num2'>", $_SESSION['settings']['rekening_bewaartermijn']);
 	
 	echo("<h2>Instellingen voor mailen</h2>\n");
-	echo("<label class='form-label'>Rekening versturen aan</label><select id='mailing_rekening_stuurnaar' class='form-select'>\n");
+	echo("<label class='form-label'>Rekening versturen aan</label><select id='mailing_rekening_stuurnaar' class='form-select form-select-sm'>\n");
 	$sn[1] = "Alleen betaald door";
 	$sn[2] = "Betaald door en alle volwassenen op de rekening";
 	$sn[3] = "Betaald door en alle leden op de rekening";
@@ -618,10 +621,8 @@ function RekeningInstellingen() {
 		printf("<option value=%d%s>%s</option>>\n", $key, checked($key, "option", $_SESSION['settings']['mailing_rekening_stuurnaar']), $val);
 	}
 	echo("</select>\n");
-		
-	printf("<label class='form-label'>Vanaf e-mailadres</label><select id='mailing_rekening_vanafid' class='form-select'>%s</select>\n", $i_mv->htmloptions($_SESSION['settings']['mailing_rekening_vanafid']));
-
-	printf("<label class='form-label'>Verstuurde e-mails alleen zichtbaar voor</label><select id='mailing_rekening_zichtbaarvoor' class='form-select'>\n<option value=-1>Alleen webmasters</option>\n%s</select>\n", $i_ond->htmloptions($_SESSION['settings']['mailing_rekening_zichtbaarvoor'], 1));
+	printf("<label class='form-label'>Vanaf e-mailadres</label><select id='mailing_rekening_vanafid' class='form-select form-select-sm'>%s</select>\n", $i_mv->htmloptions($_SESSION['settings']['mailing_rekening_vanafid']));
+	printf("<label class='form-label'>Verstuurde e-mails alleen zichtbaar voor</label><select id='mailing_rekening_zichtbaarvoor' class='form-select form-select-sm'>\n<option value=-1>Alleen webmasters</option>\n%s</select>\n", $i_ond->htmloptions($_SESSION['settings']['mailing_rekening_zichtbaarvoor'], 1));
 	echo("</div> <!-- Einde rekening_instellingen -->\n");
 ?>
 <script>
