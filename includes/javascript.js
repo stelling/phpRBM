@@ -1,4 +1,3 @@
-
 function fnFilter(p_table, p_filtercontrol, p_skipkolom=-1) {
 	var filter, table, tr, td, i, j, txtValue;
 	
@@ -140,6 +139,7 @@ function lidalgwijzprops() {
 	var rn = $('#Roepnaam');
 	var vl = $('#Voorletter');
 	var gs = $('#Geslacht');
+	var ov = $('#Overleden')
 	
 	if (vl.val().length == 0 && rn.val().length > 1 && gs.val() != "B") {
 		vl.val(rn.val().substring(0, 1) + '.');
@@ -168,7 +168,7 @@ function lidalgwijzprops() {
 				lft--;
 			}
 			t = ' (' + dat.toLocaleDateString('nl-NL', options) + ')';
-			if (lft > 1) {
+			if (lft > 1 && ov.val() == "") {
 				t = t.concat(' (', lft, ' jaar)');
 			}
 		}
@@ -213,8 +213,7 @@ function lidalgwijzprops() {
 	} else {
 		$('#uitleg_emailouders').text("");
 	}
-	
-	
+
 	e = $('#EmailVereniging').val();
 	if (typeof e !== 'undefined') {
 		if (e.length > 0) {
