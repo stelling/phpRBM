@@ -59,6 +59,8 @@ define("ICONCHECK", "<i class='bi bi-check'></i>");
 define("ICONLIJST", "<i class='bi bi-file-earmark-spreadsheet'></i>");
 define("ICONLOGIN", "<i class='bi bi-arrow-right-circle'></i>");
 define("ICONOVERZICHT", "<i class='bi bi-card-text'></i>");
+define("ICONMUTEER", "<i class='bi bi-pencil-square' alt='Muteren'></i>");
+define("ICONPDF", "<i class='bi bi-file-earmark-pdf' alt='PDF'></i>");
 define("ICONPRINT", "<i class='bi bi-printer'></i>");
 define("ICONSLUIT", "<i class='bi bi-door-closed'></i>");
 define("ICONSUBMIT", "<i class='bi bi-arrow-right-circle-fill'></i>");
@@ -941,9 +943,9 @@ debug($k . ": geen columnname");
 
 				} elseif ($kol_type == "boolean" or $kol_type == "checkbox") {
 					if ($value == 1) {
-						$ret .= "<td>Ja</td>";
+						$ret .= "<td class='boolean'>Ja</td>";
 					} elseif ($value == 0 or $value == -1) {
-						$ret .= "<td>Nee</td>";
+						$ret .= "<td class='boolean'>Nee</td>";
 					} else {
 						$ret .= "<td>Onbekend</td>";
 					}
@@ -1141,11 +1143,11 @@ function fnEditTable($res, $kols, $id="", $th="") {
 							$kol_link .= sprintf(" title='%s'", $t);
 						}
 						if (isset($kol['class']) and $kol['class'] == "muteren") {
-							$kol_link .= "><i class='bi bi-pencil-square' alt='Muteren'></i></a>";
+							$kol_link .= sprintf(">%s</a>", ICONMUTEER);
 						} elseif (isset($kol['class']) and $kol['class'] == "trash") {
 							$kol_link .= sprintf(">%s</a>", ICONVERWIJDER);
 						} elseif (isset($kol['class']) and $kol['class'] == "pdf") {
-							$kol_link .= "><i class='bi bi-file-earmark-pdf'></i></a>";
+							$kol_link .= sprintf(">%s</a>", ICONPDF);
 						} else {
 							$kol_link .= ">&nbsp;&nbsp;&nbsp;</a>";
 						}
@@ -1177,7 +1179,7 @@ function fnEditTable($res, $kols, $id="", $th="") {
 							$ret .= "Nee</td>";
 						}
 					} else {
-						$ret .= sprintf("<input type='checkbox' id='%s_%d' value=1%s></td>", $colname, $valpk, checked($value));
+						$ret .= sprintf("<input type='checkbox' class='form-check-input' id='%s_%d' value=1%s></td>", $colname, $valpk, checked($value));
 					}
 					
 				} elseif (isset($kol['bronselect']) and count($kol['bronselect']) > 0) {
@@ -1185,13 +1187,13 @@ function fnEditTable($res, $kols, $id="", $th="") {
 					foreach ($kol['bronselect'] as $k => $v) {
 						$opt .= sprintf("<option%s value=%s>%s</option>\n", checked($k, "option", $value), $k, $v);
 					}
-					$ret .= sprintf("<td><select id='%s_%d' class='form-select'>\n%s</select></td>\n", $colname, $valpk, $opt);
+					$ret .= sprintf("<td><select id='%s_%d' class='form-select form-select-sm'>\n%s</select></td>\n", $colname, $valpk, $opt);
 					
 				} elseif ($tp == "groep" and isset($kol['columnfilter'])) {
 					$o = $row->{$kol['columnfilter']};
 					if ((new cls_Groep())->aantal(sprintf("OnderdeelID=%d", $o)) > 1) {
 						$opt = (new cls_Groep())->htmloptions($value, $o);
-						$ret .= sprintf("<td><select id='%s_%d' class='form-select'>\n%s</select></td>\n", $colname, $valpk, $opt);
+						$ret .= sprintf("<td><select id='%s_%d' class='form-select form-select-sm'>\n%s</select></td>\n", $colname, $valpk, $opt);
 					} else {
 						$ret .= "<td></td>";
 					}
