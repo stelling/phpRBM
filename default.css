@@ -129,8 +129,13 @@ input, select, textarea {
 	margin-right: 4px;
 }
 
+input[type='text'], input[type='email'], input[type='url'] {
+	padding-left: 4px;
+}
+
 p {	
 	color: var(--default-text-color);
+	padding-top: 2px;
 	margin-bottom: 3px;
 }
 
@@ -262,8 +267,8 @@ header h1 {
 	float: left;
 	margin-left: 0;
 	margin-right: 4px;
-	margin-top: 4px;
-	margin-bottom: 4px;
+	margin-top: 0;
+	margin-bottom: 0;
 	padding-top: 4px;
 	padding-bottom: 4px;
 	border-width: 1px;
@@ -278,8 +283,8 @@ header h1 {
 	float: left;
 	margin-left: 3px;
 	margin-right: 6px;
-	margin-top: 4px;
-	margin-bottom: 4px;
+	margin-top: 2px;
+	margin-bottom: 2px;
 }
 
 #filter input[type='text'] {
@@ -553,6 +558,10 @@ th.rotate > div {
 	width: 525px;
 }
 
+#algemeen_instellingen .form-check-input {
+	margin-left: 0;
+}
+
 #ledenlijst_instellingen label {
 	width: 325px;
 }
@@ -575,9 +584,13 @@ th.rotate > div {
 	width: 225px;
 }
 
-#formulier textarea, #eigenlijstmuteren textarea, #detailsonderdeelmuteren textarea {
-	float: left;
+#eigenlijstmuteren textarea, #detailsonderdeelmuteren textarea {
 	margin-bottom: 6px;
+}
+
+#eigenlijstmuteren textarea#mysql {
+	height: 200px;
+	width: 100%;
 }
 
 #detailsonderdeelmuteren .form-check-input {
@@ -658,11 +671,7 @@ p.sql {
 }
 
 td.details, td.muteren, td.detailregels, td.leden, td.sendmail, td.unlock {
-	background-repeat: no-repeat;
-	background-position: center center;
 	text-align: center;
-	width: 45px;
-	height: 45px;
 }
 
 table#deelnemersevenementmuteren {
@@ -779,10 +788,6 @@ table#deelnemersevenementmuteren {
 
 #stukkenmuteren label, #website_inhoud label, #website_menu label {
 	width: 175px;
-}
-
-#stukkenmuteren p {
-	padding-top: 6px;
 }
 
 #stukkenmuteren input[type='url'], #website_menu input[type='url'] {
@@ -1549,11 +1554,6 @@ td.voortgangsprobleem {
 	margin-left: -12px;
 }
 
-#evenementenbeheer {
-	border-width: 1px;
-	border-style: none;
-}
-
 #evenementenbeheer label {
 	clear: none;
 	float: left;
@@ -1569,19 +1569,13 @@ label#lblStarttijd, label#lblEindtijd, label#lblVerzameltijd {
 	clear: left;
 }
 
-#evenementenbeheer label#lblMeerdereStartmomenten {
+#evenementenbeheer label#lblMaxPersonenPerDeelname, #evenementenbeheer label#lblMeerdereStartmomenten, #evenementenbeheer label#lblDeelnemers {
 	width: auto;
+	margin-left: 12px;
 }
 
-#evenementenbeheer p {
-	float: left;
+#evenementenbeheer .form-check-input {
 	margin-left: 0;
-	margin-right: 5px;
-	padding-left: 3px;
-	padding-right: 3px;
-	height: 22px;
-	margin-top: 6px;
-	border-width: 1px;
 }
 
 @media screen and (max-width: 1050px) {
