@@ -225,53 +225,54 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 			}
 		}
 		*/
-		
-		
-		foreach ((new cls_Onderdeel())->lijst(1, "`Type`='A'") as $row) {
-			if (in_array($row->RecordID, explode(",", $_SESSION['settings']['menu_met_afdelingen']))) {
-//				debug($row->Naam);
-				addtp($row->Naam, $row->RecordID);
-				if ($currenttab == $row->Naam) {
-					addtp($row->Naam . "/Afdelingslijst", $row->RecordID);
-					addtp(trim($row->Naam) . "/Kalender");
-					$f = sprintf("LO.GroepID > 0 AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE() AND LO.OnderdeelID=%d", $row->RecordID);
+
+		$i_ond = new cls_Onderdeel();
+		foreach (explode(",", $_SESSION['settings']['menu_met_afdelingen']) as $ondid) {
+			$i_ond->vulvars($ondid);
+			addtp($i_ond->naam, $ondid);
+			if ($currenttab == $i_ond->naam) {
+				addtp($i_ond->naam . "/Afdelingslijst", $ondid);
+				addtp(trim($i_ond->naam) . "/Kalender");
+				if ($i_ond->ondtype == "A") {
+					$f = sprintf("LO.GroepID > 0 AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE() AND LO.OnderdeelID=%d", $ondid);
 					if ((new cls_Lidond())->aantal($f) > 0) {
-						addtp(trim($row->Naam) . "/Groepsindeling", $row->RecordID);
-						addtp(trim($row->Naam) . "/Groepsindeling muteren");
+						addtp($i_ond->naam . "/Groepsindeling", $ondid);
+						addtp($i_ond->naam . "/Groepsindeling muteren", $ondid);
 					}
-					addtp(trim($row->Naam) . "/Groepen muteren");
-					$f = sprintf("AK.OnderdeelID=%d AND AK.Datum > DATE_SUB(CURDATE(), INTERVAL 9 MONTH) AND AK.Activiteit=1", $row->RecordID);
-					if ((new cls_Afdelingskalender())->aantal($f) > 0) {
-						addtp(trim($row->Naam) . "/Presentie muteren");
-						if ((new cls_Aanwezigheid())->aantalstatus("*", $row->RecordID) > 0) {
-							addtp(trim($row->Naam) . "/Presentie per seizoen");
-							addtp(trim($row->Naam) . "/Presentieoverzicht");
-						}
-					}
-					
-					$f = sprintf("Ins.OnderdeelID=%d AND (Ins.Verwerkt IS NULL)", $row->RecordID);
-					if ((new cls_Inschrijving())->aantal($f) > 0) {
-						addtp(trim($row->Naam) . "/Wachtlijst");
-					}
-					
-					if (toegang("Mailing/Muteren", 0, 0)) {
-						$tp = trim($row->Naam) . "/Afdelingsmailing";
-						addtp($tp);
-					}
-					
-					$f = sprintf("DP.Afdelingsspecifiek=%d", $row->RecordID);
-					if ((new cls_Diploma())->aantal($f) > 0) {
-						$tp = trim($row->Naam) . "/Diploma's";
-						addtp($tp);
-						$tp = trim($row->Naam) . "/Examens";
-						addtp($tp);
-					}
-					$f = "O.`Type`='T'";
-					if ((new cls_Onderdeel())->aantal($f) > 0) {
-						addtp(trim($row->Naam) . "/Toestemmingen");
-					}
-					addtp(trim($row->Naam) . "/Logboek");
+					addtp($i_ond->naam . "/Groepen muteren");
 				}
+				$f = sprintf("AK.OnderdeelID=%d AND AK.Datum > DATE_SUB(CURDATE(), INTERVAL 9 MONTH) AND AK.Activiteit=1", $ondid);
+				if ((new cls_Afdelingskalender())->aantal($f) > 0) {
+					addtp($i_ond->naam . "/Presentie muteren");
+					if ((new cls_Aanwezigheid())->aantalstatus("*", $ondid) > 0) {
+						addtp($i_ond->naam . "/Presentie per seizoen");
+						addtp($i_ond->naam . "/Presentieoverzicht");
+					}
+				}
+					
+				$f = sprintf("DP.Afdelingsspecifiek=%d", $ondid);
+				if ((new cls_Diploma())->aantal($f) > 0) {
+					$tp = $i_ond->naam . "/Examens";
+					addtp($tp);
+					$tp = $i_ond->naam . "/Diploma's";
+					addtp($tp);
+				}
+										
+				$f = sprintf("Ins.OnderdeelID=%d AND (Ins.Verwerkt IS NULL)", $ondid);
+				if ((new cls_Inschrijving())->aantal($f) > 0) {
+					addtp($i_ond->naam . "/Wachtlijst");
+				}
+				
+				if (toegang("Mailing/Muteren", 0, 0)) {
+					$tp = $i_ond->naam . "/Afdelingsmailing";
+					addtp($tp);
+				}
+				
+				$f = "O.`Type`='T'";
+				if ((new cls_Onderdeel())->aantal($f) > 0) {
+					addtp($i_ond->naam . "/Toestemmingen");
+				}
+				addtp($i_ond->naam . "/Logboek");
 			}
 		}
 	}
@@ -474,7 +475,7 @@ function fnAuthenticatie($melding=1, $password="", $p_napost=0) {
 } # fnAuthenticatie
 	
 function toegang($soort, $melding=1, $p_log=1, $p_alleenmenu=0) {
-	global $lididwebmasters, $tabpages, $currenttab, $currenttab2, $currenttab3;
+	global $tabpages, $currenttab, $currenttab2, $currenttab3;
 	
 	$i_aut = new cls_Authorisation();
 	$rv = false;
