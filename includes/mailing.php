@@ -300,13 +300,16 @@ class Mailing {
 		$this->MergeField[]=array('Naam' => "Onderdelen", 'SQL' => $sql);
 		
 		$query = sprintf("SELECT MAX(L.Bankrekening) FROM %sLid AS L;", TABLE_PREFIX);
-		if (strlen($i_base->scalar($query)) >= 18) {
+		if (strlen($i_base->scalar($query)) >= 15) {
 			$sql = sprintf("SELECT L.Bankrekening FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
 			$this->MergeField[]=array('Naam' => "Bankrekening", 'SQL' => $sql);
 		}
 		
-		$sql = sprintf("SELECT L.Burgerservicenummer FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
-		$this->MergeField[]=array('Naam' => "BSN", 'SQL' => $sql);
+		$query = sprintf("SELECT MAX(L.Burgerservicenummer) FROM %sLid AS L;", TABLE_PREFIX);
+		if (strlen($i_base->scalar($query)) >= 9) {
+			$sql = sprintf("SELECT L.Burgerservicenummer FROM %sLid AS L WHERE L.RecordID=%%d;", TABLE_PREFIX);
+			$this->MergeField[]=array('Naam' => "BSN", 'SQL' => $sql);
+		}
 
 		if ((new cls_Rekening())->aantal() > 0 and toegang('Ledenlijst/Overzicht lid/Rekeningen', 0, 0)) {
 			$sql = sprintf("SELECT RK.Nummer FROM %sRekening AS RK WHERE RK.Bedrag > 0 AND RK.Bedrag > RK.Betaald AND %s;", TABLE_PREFIX, "RK.Lid=%d");
@@ -362,10 +365,15 @@ class Mailing {
 		$i_ond = new cls_Onderdeel();
 
 		if (count($i_ond->lijst(1, "O.`Type`='A'")) > 0) {
+			$sql = sprintf("SELECT CONCAT(O.Naam, IF(LO.Functie > 0, CONCAT(' (', F.Omschrijv , ')'), ''), IF(LO.Opgezegd >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH), CONCAT(' (eindigt per ', DATE_FORMAT(DATE_ADD(LO.Opgezegd, INTERVAL 1 DAY), %s, 'nl_NL'), ')'), ''))
+								 FROM %s
+								 WHERE LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, '9999-12-31') >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) AND O.`Type`='A' AND LO.Lid=%%d ORDER BY LO.Vanaf;", $i_base->fdlang, $i_ond->fromlidond);
+			$this->MergeField[]=array('Naam' => "Afdelingen", 'SQL' => $sql);
+			
 			$sql = sprintf("SELECT CONCAT(O.Naam, IF(LO.Functie > 0, CONCAT(' (', F.Omschrijv , ')'), ''), IF(LO.Opgezegd >= CURDATE(), CONCAT(' (eindigt per ', DATE_FORMAT(LO.Opgezegd, %s, 'nl_NL'), ')'), ''))
 					FROM %s
-					WHERE LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE() AND O.`Type`='A' AND LO.Lid=%%d ORDER BY LO.Vanaf;", $i_base->fdlang, $i_ond->fromlidond);
-			$this->MergeField[]=array('Naam' => "Afdelingen", 'SQL' => $sql);
+					WHERE IFNULL(LO.Opgezegd, '9999-12-31') >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) AND O.`Type`='A' AND LO.Lid=%%d ORDER BY LO.Vanaf;", $i_base->fdlang, $i_ond->fromlidond);
+//			$this->MergeField[]=array('Naam' => "AfdelingenOpgezegd", 'SQL' => $sql);
 			
 			if ((new cls_Groep())->aantal() > 1) {
 						
@@ -375,9 +383,10 @@ class Mailing {
 				$this->MergeField[]=array('Naam' => "AfdelingenMetGroep", 'SQL' => $sql);
 				
 				if ((new cls_Activiteit())->aantal() > 1) {
-					$sql = sprintf("SELECT CONCAT(O.Naam, IF(LO.GroepID > 0, IF(GR.ActiviteitID>0, CONCAT(' (', Act.Omschrijving, ')'), ''), IF(LO.Functie > 0, CONCAT(' (', F.Omschrijv , ')'), '')))
-							FROM %s
-							WHERE IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE() AND O.`Type`='A' AND LO.Lid=%%d ORDER BY O.Naam;", $i_ond->fromlidond);
+
+					$sql = sprintf("SELECT CONCAT(O.Naam, IF(LO.GroepID > 0, IF(GR.ActiviteitID>0, CONCAT(' (', Act.Omschrijving, ')'), ''), IF(LO.Functie > 0, CONCAT(' (', F.Omschrijv , ')'), '')), IF(LO.Opgezegd >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH), CONCAT(' (eindigt per ', DATE_FORMAT(DATE_ADD(LO.Opgezegd, INTERVAL 1 DAY), %s, 'nl_NL'), ')'), ''))
+										 FROM %s
+										 WHERE IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE() AND O.`Type`='A' AND LO.Lid=%%d ORDER BY O.Naam;", $i_base->fdlang, $i_ond->fromlidond);
 					$this->MergeField[]=array('Naam' => "AfdelingenMetActiviteit", 'SQL' => $sql);
 					
 					$sql = sprintf("SELECT Act.Omschrijving
@@ -646,7 +655,7 @@ class Mailing {
 				$this->meldingen = "";
 
 				echo("<label class='form-label'>Ontvanger toevoegen</label>\n");
-				printf("<select id='add_lid' class='form-select' onChange=\"mailing_add_ontvanger(%d, $(this).val(), '');\">%s</select>\n", $this->mid, $this->options_mogelijke_ontvangers());
+				printf("<select id='add_lid' class='form-select form-select-sm' onChange=\"mailing_add_ontvanger(%d, $(this).val(), '');\">%s</select>\n", $this->mid, $this->options_mogelijke_ontvangers());
 			
 				$_POST['selecteer_groep'] = $_POST['selecteer_groep'] ?? 0;
 				
@@ -675,7 +684,7 @@ class Mailing {
 
 				$this->sl_huidigegroep = $_POST['selectie_groep'] ?? 0;
 				$selgr = sprintf("<option value=0>&nbsp;</option>\n%s<option disabled>-- Eigen lijsten --</option>\n%s</select>\n", $i_ond->htmloptions($this->sl_huidigegroep, 1), $i_el->htmloptions($this->sl_huidigegroep, 2));
-				printf("<label class='form-label'>Zit in groep</label><select name='selectie_groep' id='selectie_groep' class='form-select' OnChange='mailingprops(%d);'>%s</selectie>\n", $this->mid, $selgr);
+				printf("<label class='form-label'>Zit in groep</label><select name='selectie_groep' id='selectie_groep' class='form-select form-select-sm' OnChange='mailingprops(%d);'>%s</selectie>\n", $this->mid, $selgr);
 				
 				echo("<label class='form-label'>Aantal personen in groep</label><p id='aantalpersoneningroep'></p>\n");
 				printf("<button type='button' id='LedenToevoegen' class='%s btn-sm' OnClick='mailing_add_selectie_ontvangers();'>%s Groepsleden</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
@@ -704,7 +713,7 @@ class Mailing {
 					$select .= sprintf("<option value=%d>%s</option>\n", $ondrow->RecordID, $ondrow->Naam);
 				}
 			}
-			printf("<label class='form-label'>Zichtbaar voor</label><select id='ZichtbaarVoor' class='form-select' %s>\n%s</select>\n", $jsoc, $select);
+			printf("<label class='form-label'>Zichtbaar voor</label><select id='ZichtbaarVoor' class='form-select form-select-sm' %s>\n%s</select>\n", $jsoc, $select);
 			printf("<label class='form-label'>Opties</label><input type='checkbox' id='template' class='form-check-input' value=1%s %s><label for='template' class='form-check-label'>Template</label>", checked($this->template), $jscb);
 			printf("<input type='checkbox' id='HTMLdirect' name='HTMLdirect' class='form-check-input' value=1%s onChange='this.form.submit();'><label for='HTMLdirect' class='form-check-label'>HTML direct (zonder editor)</label>", checked($this->htmldirect));
 			printf("<input type='checkbox' id='ZonderBriefpapier' class='form-check-input' value=1%s %s><label for='ZonderBriefpapier' class='form-check-label'>Zonder briefpapier versturen</label>", checked($this->zonderbriefpapier), $jscb);
@@ -2187,7 +2196,7 @@ function fnMailingInstellingen() {
 	
 	printf("<label class='form-label'>Wat is de API-key voor TinyMCE?</label><input type='text' class='w90' name='mailing_tinymce_apikey' value='%s'>\n", $_SESSION['settings']['mailing_tinymce_apikey']);
 		
-	echo("<h2>Opschonen</h2>\n");
+	echo("<h2>Retentie / Opschonen</h2>\n");
 	printf("<label class='form-label'>Hoe lang moeten mailings in de prullenbak bewaard blijven?</label><input type='number' name='mailing_bewaartijd' value=%d min=1 max=999><p>(maanden)</p>\n", $_SESSION['settings']['mailing_bewaartijd']);
 	printf("<label class='form-label'>Hoe lang moeten verzonden e-mails bewaard blijven?</label><input type='number' name='mailing_verzonden_opschonen' value=%d min=6 max=999><p>(maanden)</p>\n", $_SESSION['settings']['mailing_verzonden_opschonen']);
 	printf("<label class='form-label'>Hoe lang moeten ontvangers bij een mailing worden bewaard?</label><input type='number' name='mailing_bewaartijd_ontvangers' value=%d min=3 max=999><p>(maanden)</p>\n", $_SESSION['settings']['mailing_bewaartijd_ontvangers']);
@@ -2571,6 +2580,7 @@ function eigennotificatie($p_ondid, $p_aanadres, $p_tas=-1, $p_interval=24, $p_c
 					$res = fnDisplayTable($rows);
 				}
 			}
+			$res .= sprintf("<p>%s</p>\n", $i_el->uitleg);
 		}
 		if ($ar > 0 and isValidMailAddress($p_aanadres, 0)) {	
 			$i_email->aanadres = $p_aanadres;
