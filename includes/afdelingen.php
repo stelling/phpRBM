@@ -3,7 +3,7 @@
 function fnAfdeling() {
 	global $currenttab, $currenttab2;
 	
-	$f = sprintf("`Type`='A' AND Naam='%s'", $currenttab);
+	$f = sprintf("Naam='%s'", $currenttab);
 	$afdid = (new cls_Onderdeel())->max("RecordID", $f);
 	
 	$_GET['p_examen'] = $_GET['p_examen'] ?? 0;
@@ -44,7 +44,7 @@ function fnAfdeling() {
 	} elseif ($currenttab2 == "Toestemmingen") {
 		overzichttoestemmingen($afdid);
 	} elseif ($currenttab2 == "Logboek") {
-		$f = sprintf("ReferOnderdeelID=%d", $afdid);
+		$f = sprintf("A.ReferOnderdeelID=%d AND A.TypeActiviteit <> 14", $afdid);
 		$rows = (new cls_Logboek())->lijst(-1, 0, 0, $f);
 		echo(fnDisplayTable($rows, fnStandaardKols("logboekafd", 1, $rows), "", 0, "", "logboek"));
 	} else {
@@ -386,64 +386,26 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 				$avg = 0;
 				$lovg = "0";
 				foreach ($lorows as $row) {
-					$i_dp->vulvars($row->DiplomaID);
+					$i_lo->vulvars($row->RecordID);
+//					$i_dp->vulvars($row->DiplomaID);
+					
 					$cl = "";
 					$t = "";
-					if ($row->Vanaf > date("Y-m-d")) {
-						$cl = "wordtlid";
-					} elseif (isset($row->Opgezegd) and $row->Opgezegd > "1970-01-01" and $row->Opgezegd < date("Y-m-d", strtotime("+3 month"))) {
-						$cl = "heeftopgezegd";
-						$t = sprintf("heeft per %s opgezegd", $row->Opgezegd);
+					if (strlen($i_lo->loclass) > 0) {
+						$cl = sprintf(" class='%s'", trim($i_lo->loclass));
 					}
-					if ($row->GroepID > 0 and $row->DiplomaID > 0) {
-						if ($i_dp->dpvoorganger > 0) {
-							$f = sprintf("LD.Lid=%d AND LD.DiplomaID=%d AND LD.DatumBehaald <= CURDATE() AND LD.Geslaagd=1 AND LD.LaatsteBeoordeling=1", $row->LidID, $i_dp->dpvoorganger);
-							if ($i_ld->aantal($f) == 0) {
-								$cl .= " voorgangerontbreekt";
-								$t = sprintf("%s ontbreekt", $i_dp->naam($i_dp->dpvoorganger));
-							}
-							$f = sprintf("LD.Lid=%d AND LD.DiplomaID=%d AND LD.DatumBehaald <= CURDATE() AND LD.Geslaagd=1 AND LD.LaatsteBeoordeling=1", $row->LidID, $i_dp->dpvoorganger);
-							$dvd = $i_ld->max("DatumBehaald", $f);
-							if (strlen($dvd) >= 10) {
-								if ($i_dp->doorlooptijd > 0 and $dvd < date("Y-m-d", strtotime(sprintf("-%d month", $i_dp->doorlooptijd)))) {
-									$cl .= " voortgangsprobleem";
-								}
-								if (strlen($t) > 0) {
-									$t .= ", ";
-								}
-								$t .= sprintf("%s behaald op %s", $i_dp->naam($i_dp->dpvoorganger), date("d-m-Y", strtotime($dvd)));
-							}
-						} else {
-							$f = sprintf("LO.Lid=%d AND LO.OnderdeelID=%d", $row->Lid, $afdid);
-							$lv = $i_lo->min("Vanaf", $f);
-							if (strlen($t) > 0) {
-								$t .= ", ";
-							}
-							$t .= sprintf("lid vanaf %s", date("d-m-Y", strtotime($lv)));
-							if ($i_dp->doorlooptijd > 0 and $lv < date("Y-m-d", strtotime(sprintf("-%d month", $i_dp->doorlooptijd)))) {
-								$cl .= " voortgangsprobleem";
-							}
-						}
-						$f = sprintf("LD.Lid=%d AND LD.DiplomaID=%d AND LD.DatumBehaald <= CURDATE() AND LD.Geslaagd=1 AND LD.LaatsteBeoordeling=1", $row->LidID, $row->DiplomaID);
-						$dh = $i_ld->max("DatumBehaald", $f);
-						if (strlen($dh) > 0) {
-							$cl .= " dubbeldiploma";
-							$t = sprintf("%s is op %s behaald", $i_dp->naam($row->DiplomaID), $dh);
-							$avg++;
-							$lovg .= ", " . $row->RecordID;
-						}
-					}
-					if (strlen($cl) > 0) {
-						$cl = sprintf(" class='%s'", trim($cl));
-					}
-					if (strlen($t) > 0) {
-						$t = sprintf(" title='%s'", $t);
+					if (strlen($i_lo->lotitle) > 0) {
+						$t = sprintf(" title='%s'", trim($i_lo->lotitle));
 					}
 					$nm = $row->NaamLid;
 					if (strlen($row->FunctAfk) > 0) {
 						$nm .= " (" . $row->FunctAfk . ")";
 					}
 					printf("<tr><td%s%s>%s (%s)</td><td><select id='GroepID_%d' class='form-select form-select-sm'>%s</select></td></tr>\n", $cl, $t, $nm, $row->Leeftijd, $row->RecordID, $i_gr->htmloptions($row->GroepID, $afdid));
+					if ($i_lo->suggestievolgendegroep == 1) {
+						$avg++;
+						$lovg .= ", " . $row->RecordID;
+					}
 				}
 				echo("</table>\n");
 				if ($avg > 0) {
@@ -768,7 +730,7 @@ function fnPresentieoverzicht($p_ondid) {
 		$i_sz = null;
 	}
 	
-	printf("<form method='post' id='filter' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+	printf("<form method='post' id='filter' class='form-check form-switch' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	printf("<label class='form-label'>Vanaf</label>\n<input type='date' name='filterDatumVanaf' value='%s'>", $_POST['filterDatumVanaf']);
 	printf("<input type='checkbox' class='form-check-input' name='filterAanwezigheidsnormOnder'%s value=1><p>Onder norm</p>\n", checked($_POST['filterAanwezigheidsnormOnder']));
 	printf("<input type='checkbox' class='form-check-input' name='filterAanwezigheidsnormBoven'%s value=1><p>Boven norm</p>\n", checked($_POST['filterAanwezigheidsnormBoven']));
@@ -874,8 +836,7 @@ function fnPresentiePerSeizoen($p_ondid) {
 		$_POST['100aanwezigTonen'] = 0;
 	}
 	
-	printf("<form method='post' id='filter' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-	echo("<label class='form-label'>Filter</label>\n");
+	printf("<form method='post' id='filter' class='form-check form-switch' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	printf("<input type='checkbox' name='filterAanwezigheidsnormOnder'%s value=1 OnClick='this.form.submit();'><p>Onder norm</p>\n", checked($_POST['filterAanwezigheidsnormOnder']));
 	printf("<input type='checkbox' name='filterAanwezigheidsnormBoven'%s value=1 OnClick='this.form.submit();'><p>Boven norm</p>\n", checked($_POST['filterAanwezigheidsnormBoven']));
 	printf("<input type='checkbox' name='100aanwezigTonen'%s value=1 OnClick='this.form.submit();'><p>100%% aanwezig</p>\n", checked($_POST['100aanwezigTonen']));

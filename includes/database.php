@@ -1387,7 +1387,7 @@ class cls_Lid extends cls_db_base {
 		$this->vulvars($p_lidid);
 		debug("functie vervangen");
 		return (new cls_lidmaatschap())->islid($this->lidid, $p_per);
-	}
+	}  # cls_Lid->islid
 	
 	public function iskader($p_lidid=-1, $p_per="") {
 		$this->vulvars($p_lidid);
@@ -1595,32 +1595,25 @@ class cls_Lid extends cls_db_base {
 			if (strlen($p_waarde) > 2) {
 				$p_waarde = str_replace(" ", "", $p_waarde);
 			}
-		}
-		
-		if ($p_kolom == "Postcode" and $p_waarde != "NULL") {
+		} elseif ($p_kolom == "Postcode" and $p_waarde != "NULL") {
 			$p_waarde = trim(strtoupper($p_waarde));
 			if (strlen($p_waarde) == 6) {
 				$p_waarde = substr($p_waarde, 0, 4) . " " . substr($p_waarde, -2);
 			}
-		}
-		
-		if ($p_kolom == "Toevoeging" and strlen($p_waarde) > 1 and substr($p_waarde, 0, 1) == "-") {
+		} elseif ($p_kolom == "Toevoeging" and strlen($p_waarde) > 1 and substr($p_waarde, 0, 1) == "-") {
 			$p_waarde = substr($p_waarde, 1, 4);
-		}
-		
-		if ($p_kolom == "Mobiel" and strlen($p_waarde) == 10) {
-			$p_waarde = "06-" . substr($p_waarde, -8);
-		}
-		
-		if ($p_kolom == "EmailOuders" and strlen($p_waarde) > 5) {
+		} elseif ($p_kolom == "Telefoon") {
+			$p_waarde = str_replace(" ", "", $p_waarde);
+		} elseif ($p_kolom == "Mobiel") {
+			$p_waarde = str_replace(" ", "", $p_waarde);
+			if (strlen($p_waarde) == 10 and substr($p_waarde, 0, 2) == "06") {
+				$p_waarde = "06-" . substr($p_waarde, -8);
+			}
+		} elseif ($p_kolom == "EmailOuders" and strlen($p_waarde) > 5) {
 			$p_waarde = str_replace(";", ",", $p_waarde);
-		}
-		
-		if ($p_kolom == "Bankrekening") {
+		} elseif ($p_kolom == "Bankrekening") {
 			$p_waarde = strtoupper($p_waarde);
-		}
-		
-		if ($p_kolom == "Burgerservicenummer" and strlen($p_waarde) < 2) {
+		} elseif ($p_kolom == "Burgerservicenummer" and strlen($p_waarde) < 2) {
 			$p_waarde = "NULL";
 		}
 		
@@ -1864,7 +1857,7 @@ class cls_Lidmaatschap extends cls_db_base {
 		} else {
 			return false;
 		}
-	}
+	}  # cls_Lidmaatschap->islid
 	
 	public function soortlid($p_lidid, $p_per="") {
 		if (strlen($p_per) < 10) {
@@ -2278,11 +2271,11 @@ class cls_Authorisation extends cls_db_base {
 			$this->mess = "Je bent niet bevoegd om autorisaties te verwijderen.";
 		}
 		$this->log($p_aid, 0, $this->ondid);
-	}
+	}  # cls_Authorisation->delete
 	
 	public function controle() {
 		
-	}
+	}  # cls_Authorisation->controle
 	
 	public function opschonen() {
 		$query = sprintf("SELECT RecordID FROM %s WHERE AA.Ingevoerd < DATE_SUB(CURDATE(), INTERVAL %d DAY) AND Toegang=-1 AND AA.LaatstGebruikt < DATE_SUB(CURDATE(), INTERVAL 3 MONTH);", $this->basefrom, BEWAARTIJDNIEUWERECORDS);
@@ -2294,7 +2287,7 @@ class cls_Authorisation extends cls_db_base {
 		
 		$this->optimize();
 		
-	}  # opschonen
+	}  # cls_Authorisation->opschonen
 	
 }  # cls_Authorisation
 
@@ -2661,8 +2654,8 @@ class cls_Onderdeel extends cls_db_base {
 	}  # cls_Onderdeel->controle
 	
 	public function opschonen() {
-		$query = sprintf("SELECT O.RecordID FROM %1\$s WHERE IFNULL(O.VervallenPer, '9999-12-31') < CURDATE() AND IFNULL(O.Gewijzigd, CURDATE()) < DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND
-						  (O.RecordID NOT IN (SELECT LO.OnderdeelID FROM %2\$sLidond AS LO));", $this->basefrom, TABLE_PREFIX);
+		$query = sprintf("SELECT O.RecordID FROM %1\$s WHERE IFNULL(O.VervallenPer, '9999-12-31') < CURDATE() AND IFNULL(O.Ingevoerd, CURDATE()) < DATE_SUB(CURDATE(), INTERVAL %d DAY) AND
+								(O.RecordID NOT IN (SELECT LO.OnderdeelID FROM %2\$sLidond AS LO));", $this->basefrom, BEWAARTIJDNIEUWERECORDS, TABLE_PREFIX);
 		$result = $this->execsql($query);
 		$reden = "deze vervallen is en nergens meer aan gekoppeld is.";
 		foreach ($result->fetchAll() as $row) {
@@ -2686,7 +2679,7 @@ class cls_Onderdeel extends cls_db_base {
 		
 		$this->optimize();
 		
-	}  # opschonen
+	}  # cls_Onderdeel->opschonen
 	
 }  # cls_Onderdeel
 
@@ -2829,9 +2822,10 @@ class cls_Functie extends cls_db_base {
 				$this->delete($row->Nummer, "de functie vervallen is en wordt nergens meer gebruikt.");
 			}
 		}
+		
 		$this->optimize();
 		
-	}  # opschonen
+	}  # cls_Functie->opschonen
 	
 }  # cls_Functie
 
@@ -2995,7 +2989,7 @@ class cls_Afdelingskalender extends cls_db_base {
 		
 		$this->optimize();
 	
-	}
+	}  # cls_Afdelingskalender->opschonen
 	
 }  # cls_Afdelingskalender
 
@@ -3217,7 +3211,8 @@ class cls_Aanwezigheid extends cls_db_base {
 		$this->tas = 13;
 		$this->pdodelete($this->aanwid, $p_reden);
 		$this->log($this->aanwid, 0, $this->ondid);
-	}
+		
+	}  # cls_Aanwezigheid->delete
 	
 	public function controle() {
 		$this->tas = 2;
@@ -3232,14 +3227,14 @@ class cls_Aanwezigheid extends cls_db_base {
 				$this->pdoupdate($row->RecordID, "Status", "", "het een onbekende status is");
 			}
 		}
-	}  # controle
+	}  # cls_Aanwezigheid->controle
 	
 	public function opschonen() {
 		$i_lo = new cls_Lidond();
 		$this->tas = 4;
 		
 		$tot = 0;
-		$query = sprintf("SELECT O.RecordID, O.BewaartermijnPresentie FROM %sOnderdl AS O WHERE IFNULL(O.VervallenPer, '9999-12-31') >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) AND IFNULL(O.BewaartermijnPresentie, 0) > 0;", TABLE_PREFIX);
+		$query = sprintf("SELECT O.RecordID, O.BewaartermijnPresentie FROM %sOnderdl AS O WHERE IFNULL(O.BewaartermijnPresentie, 0) > 0;", TABLE_PREFIX);
 		foreach ($i_lo->execsql($query)->fetchAll() as $ondrow) {
 			$f = sprintf("LO.OnderdeelID=%d AND IFNULL(LO.Opgezegd, '9999-12-31') < DATE_SUB(CURDATE(), INTERVAL %d MONTH)", $ondrow->RecordID, $ondrow->BewaartermijnPresentie);
 			foreach ($i_lo->basislijst($f) as $lorow) {
@@ -3261,15 +3256,17 @@ class cls_Aanwezigheid extends cls_db_base {
 		$reden = "de activiteit langer dan 7 jaar geleden was";
 		
 		foreach ($rows as $row) {
-			$this->delete($row->LidondID, $row->AfdelingskalenderID);
+			$this->delete($row->LidondID, $row->AfdelingskalenderID, $reden);
 			$tot++;
 		}
+		
+		
 		
 		$this->optimize();
 		
 		return $tot;
 		
-	}  # opschonen
+	}  # cls_Aanwezigheid->opschonen
 	
 }  # cls_Aanwezigheid
 
@@ -3489,7 +3486,7 @@ class cls_Lidond extends cls_db_base {
 	public function lijst($p_ondid, $p_filter=1, $p_ord="GR.Volgnummer, GR.Kode", $p_per="", $p_extrafilter="", $p_limiet=0, $p_fetched=1) {
 		
 		if (strlen($p_per) < 10) {
-			$p_per = date("Y-m-d");
+			$p_per = $this->per;
 		}
 				
 		if ($p_filter === 1) {
@@ -3555,7 +3552,7 @@ class cls_Lidond extends cls_db_base {
 		$query = sprintf("SELECT LO.RecordID, LO.Lid AS LidID, LO.OnderdeelID, LO.Opmerk, LO.Vanaf, LO.Opgezegd, LO.EmailFunctie, LO.GroepID, LO.Functie, LO.Lid,
 								%s AS NaamLid, L.Roepnaam, L.Achternaam, L.Tussenv, %s AS AVGnaam, L.GEBDATUM, %s AS Leeftijd, %s AS Email, L.EmailVereniging, 
 								F.Omschrijv AS FunctieOms, F.Afkorting AS FunctAfk, F.Inval AS Invalfunctie, %s AS Groep, GR.DiplomaID,
-								O.Kode, O.Naam AS OndNaam, O.CentraalEmail, LO.EmailFunctie,
+								O.Kode, O.Naam AS OndNaam, O.CentraalEmail, LO.EmailFunctie, IF(LO.Functie > 0, 0, 1) AS RO_Email,
 								GR.Kode AS GrCode, GR.Omschrijving AS GrNaam, GR.Aanwezigheidsnorm, IFNULL(Act.BeperkingAantal, 0) AS BeperkingAantal, L.RelnrRedNed AS SportlinkID,
 								CASE WHEN LO.GroepID > 0 AND LO.Functie > 0 THEN CONCAT(F.OMSCHRIJV, '/', IF(LENGTH(GR.Kode)=0, GR.RecordID, GR.Kode))
 									WHEN LO.Functie > 0 THEN F.OMSCHRIJV
@@ -3850,7 +3847,7 @@ class cls_Lidond extends cls_db_base {
 		}
 		$this->log($this->loid, 0, $this->ondid);
 		return $rv;
-	}  # update
+	}  # cls_Lidond->update
 	
 	private function delete($p_loid, $p_reden="") {
 		if ($this->tas != 33 and $this->tas != 39) {
@@ -3861,10 +3858,16 @@ class cls_Lidond extends cls_db_base {
 		
 		if ($this->magmuteren == true) {
 			$rv = $this->pdodelete($this->loid, $p_reden);
+			$delqry = sprintf("DELETE FROM %sAanwezigheid WHERE LidondID=%d;", TABLE_PREFIX, $this->loid);
+			$a = $this->execsql($delqry);
+			if ($a > 0) {
+				$this->mess .= sprintf(". Er zijn van dit lid ook %d presentie-records verwijderd.", $a);
+			}
 		} else {
-			$this->mess = sprintf("Je bent niet bevoegd om leden bij onderdeel '%s' te verwijderen", $this->ondnaam);
+			$this->mess = sprintf("Je bent niet bevoegd om leden bij onderdeel %s te verwijderen", $this->ondnaam);
 		}
 		$this->log($this->loid, 0, $this->ondid);
+		
 		return $rv;
 		
 	}  # cls_Lidond->delete
@@ -5917,7 +5920,7 @@ class cls_Logboek extends cls_db_base {
 	}
 	
 	private function script() {
-		$script = $_SERVER['SCRIPT_NAME'];
+		$script = $_SERVER['PHP_SELF'];
 		if (isset($_SERVER['QUERY_STRING']) and strlen($_SERVER['QUERY_STRING']) > 0) {
 			$script .= "?" . str_replace("%20", " ", $_SERVER['QUERY_STRING']);
 		}
@@ -10113,7 +10116,7 @@ class cls_Foto extends cls_db_base {
 				$this->ftid = 0;
 			}
 		}
-	}
+	}  # cls_Foto->vulvars
 	
 	public function fotolid($p_lidid) {
 		$this->vulvars(-1, $p_lidid);
@@ -10220,21 +10223,35 @@ class cls_Foto extends cls_db_base {
 		}
 	}
 	
+	public function controle() {
+		
+	}
+	
 	public function opschonen() {
 		$i_lm = new cls_Lidmaatschap();
-		$hd = date("Y-m-d", strtotime("-3 month"));
-		$reden = "de persoon langer dan 3 maanden geen lid meer is.";
 		
-		$frows = $this->basislijst();
-		foreach ($frows as $frow) {
-			if ($i_lm->islid($frow->LidID) and $i_lm->eindelidmaatschap($frow->LidID) < $hd and $i_lm->soortlid($frow->LidID) != "Kloslid") {
-				$this->delete($this->ftid);
+		$bt = $_SESSION['settings']['fotosledenverwijderen'] ?? 0;
+		
+		if ($bt > 0) {
+			$hd = date("Y-m-d", strtotime(sprintf("-%d month", $bt)));
+			$reden = sprintf("de persoon langer dan %d maanden geen lid meer is.", $bt);
+
+			$frows = $this->basislijst();
+			foreach ($frows as $frow) {
+				if ($i_lm->islid($frow->LidID) == false and $i_lm->eindelidmaatschap($frow->LidID) < $hd and $i_lm->soortlid($frow->LidID) != "Kloslid") {
+					$this->delete($frow->RecordID, $reden);
+				}
 			}
+		}
+		
+		$query = sprintf("SELECT Foto.RecordID FROM %s WHERE Foto.LidID NOT IN (SELECT L.RecordID FROM %sLid AS L WHERE (L.Verwijderd IS NULL));", $this->basefrom, TABLE_PREFIX);
+		foreach ($this->execsql($query)->fetchAll() as $frow) {
+			$this->delete($frow->RecordID, "het lid niet (meer) bestaat.");
 		}
 		
 		$this->optimize();
 		
-	}  # opschonen
+	}  # cls_Foto->opschonen
 	
 }  # cls_Foto
 
@@ -10624,6 +10641,7 @@ class cls_Parameter extends cls_db_base {
 		
 		// Retentie
 		$this->arrParam['liddefinitiefverwijderen'] = array("Type" => "I", "Default" => 84); // Op basis van de datum van de verwijdermarkering
+		$this->arrParam['fotosledenverwijderen'] = array("Type" => "I", "Default" => 6); // maanden na einde lidmaatschap
 	}
 	
 	public function lijst() {

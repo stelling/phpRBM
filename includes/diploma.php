@@ -192,8 +192,12 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 	$i_ex->vulvars($exid);
 	
 	printf("<select name='selecteerdiploma' class='form-select' onChange='this.form.submit();'>\n<option value=-1>Selecteer diploma ...</option>\n%s</select>\n", $i_dp->htmloptions($dpid, -1, 0, 0, "", 0, $i_ex->exid));
+
+	if ($p_perexamen == 1) {
+		printf("<button type='submit' class='%s btn-sm' name='btnExamenToevoegen'>%s Examen</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
+	}
 	if ($exid > 0) {
-		printf("<button type='submit' class='%s'>%s Ververs scherm</button>\n", CLASSBUTTON, ICONVERVERS);
+		printf("<button type='submit' class='%s btn-sm'>%s Ververs scherm</button>\n", CLASSBUTTON, ICONVERVERS);
 	}
 	echo("</div> <!-- Einde filter -->\n");
 	$dtfmt->setPattern(DTTEXT);
@@ -223,39 +227,6 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 		echo("</div> <!-- einde examenmuteren -->\n");
 		$i_ld->controle($exid);
 	}
-
-	if ($exid > 0) {
-		/*
-		-- Verplaatsen geslaagden naar een nieuwe groep is naar 'Groepsindeling muteren' verplaatst
-		if (isset($_POST['nwe_groep']) and strlen($_POST['nwe_groep']) > 0 and $p_afdid > 0) {
-			$grid = intval(explode("-", $_POST['nwe_groep'])[0]);
-			$vdpid = intval(explode("-", $_POST['nwe_groep'])[1]);
-			$namen = "";
-			$i_gr->vulvars($p_afdid, $grid);
-			$i_dp->vulvars($vdpid);
-			$ldrows = $i_ld->perexamendiploma($exid, $vdpid, 1);
-			foreach ($ldrows as $ldrow) {
-				$f = sprintf("LO.Lid=%d AND LO.OnderdeelID=%d AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE() AND LO.Functie=0", $ldrow->Lid, $p_afdid);
-				$loid = $i_lo->max("RecordID", $f);
-				$huid_gr = $i_lo->max("GroepID", $f);
-				$f = sprintf("GR.RecordID=%d", $huid_gr);
-				$huid_gr_dipl = $i_gr->max("DiplomaID", $f);
-				if ($huid_gr_dipl <> $i_dp->dpvolgende and $i_dp->dpvolgende > 0) {
-					if ($i_lo->update($loid, "GroepID", $grid) == true) {
-						if (strlen($namen) > 0) {
-							$namen .= ", ";
-						}
-						$namen .= $i_lo->lidnaam;
-					}
-				}
-			}
-		}
-		*/
-	} elseif ($p_perexamen == 1) {
-		echo("<div id='opdrachtknoppen'>\n");
-		printf("<button type='submit' class='%s' name='btnExamenToevoegen'>%s Examen</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
-		echo("</div> <!-- Einde opdrachtknoppen -->\n");
-	}
 	
 	if (($exid > 0 or $p_perexamen == 0)) {
 
@@ -270,9 +241,6 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 		}
 		foreach ($i_ld->execsql($query)->fetchAll() as $dipl) {
 			$i_dp->vulvars($dipl->DiplomaID);
-					
-			$vg = 0; // Volgende groep
-			$aant_vg = 0; // Aantal leden dat van groep verplaatst kan worden
 			if ($i_dp->dpvolgende > 0) {
 				$f = sprintf("GR.OnderdeelID=%d AND GR.DiplomaID=%d", $p_afdid, $i_dp->dpvolgende);
 				$vg = $i_gr->max("RecordID", $f);
@@ -316,40 +284,22 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 			}
 			echo("<th></th></tr>\n");
 
-			$naam_vg = "";
-			$aant_vg = 0; // Aantal kandidaten dat van groep verplaatst kan worden
 			$aant_ng = 0; // Aantal kandidaten die (nog) niet op geslaagd staan.
 			foreach ($ldrows as $ldrow) {
+				$i_ld->vulvars($ldrow->RecordID);
 				$cl = "";
-				$dd = "";
-				if ($i_dp->dpvoorganger > 0) {
-					$f = sprintf("LD.Lid=%d AND LD.DiplomaID=%d", $ldrow->Lid, $i_dp->dpvoorganger);
-					if ($i_ld->aantal($f) == 0) {
-						$dd = sprintf("%s ontbreekt", $i_dp->naam($i_dp->dpvoorganger));
-						$cl = " voorgangerontbreekt";
-					}
+				if (strlen($i_ld->ldclass) > 0) {
+					$cl = sprintf(" class='%s'", trim($i_ld->ldclass));
 				}
-
-				foreach ($i_ld->dubbelediplomas($ldrow->RecordID) as $ddrow) {
-					if (strlen($dd) > 0) {
-						$dd .= ", ";
-					} else {
-						$dd = "ook op ";
-					}
-					$dd .= date("d-m-Y", strtotime($ddrow->DatumBehaald));
-					$cl .= " dubbeldiploma";
+				
+				$t = "";
+				if (strlen($i_ld->ldtitle) > 0) {
+					$t = sprintf(" title='%s'", trim($i_ld->ldtitle));
 				}
-			
-				if (strlen($cl) > 0) {
-					$cl = sprintf(" class='%s'", trim($cl));
-				}
+				
 				$gb = $dtfmt->format(strtotime($ldrow->GEBDATUM));
 				if ($isrn == 1 and strlen($ldrow->GEBPLAATS) > 1) {
 					$gb .= " te " . $ldrow->GEBPLAATS;
-				}
-				$t = "";
-				if (strlen($dd) > 0) {
-					$t = sprintf(" title='%s'", $dd);
 				}
 				printf("<tr><td%1\$s id='naam_%3\$d'%5\$s>%2\$s</td><td>%4\$s</td>", $cl, $ldrow->NaamLid, $ldrow->RecordID, $gb, $t);
 				
@@ -371,19 +321,6 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 				printf("<td title='Verwijderen %s' %s>%s</td>", htmlentities($ldrow->NaamLid), $jsdo, ICONVERWIJDER);
 				
 				echo("</tr>\n");
-				$f = sprintf("LO.Lid=%d AND LO.OnderdeelID=%d AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE() AND LO.Functie=0", $ldrow->Lid, $p_afdid);
-				$huid_gr = $i_lo->max("GroepID", $f);
-				$f = sprintf("GR.RecordID=%d", $huid_gr);
-				$huid_gr_dipl = $i_gr->max("DiplomaID", $f);
-				if ($p_afdid > 0 and $huid_gr_dipl == $i_dp->dpid and $i_dp->dpvolgende > 0) {
-					if ($ldrow->Geslaagd == 1) {
-						if ($aant_vg > 0) {
-							$naam_vg .= ", ";
-						}
-						$naam_vg .= $ldrow->NaamLid;
-						$aant_vg++;
-					}
-				}
 				if ($ldrow->Geslaagd == 0) {
 					$aant_ng++;
 				}
@@ -406,32 +343,6 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 			}
 			if ($i_dp->organisatie == 1 and count($ldrows) > 0) {
 				printf("<button type='button' class='%s' title='Print DL-lijst' onClick=\"window.open('%s?tp=%s/DL-lijst&p_examen=%d&p_diploma=%d', '_blank')\">%s DL\n", CLASSBUTTON, $_SERVER['PHP_SELF'], $currenttab, $exid, $i_dp->dpid, ICONPRINT);
-			}
-
-			if ($aant_vg > 0 and $i_ex->exdatum <= date("Y-m-d") and $i_ex->proef == 0) {
-				$i_gr->vulvars($p_afdid, $vg);
-				$t = "";
-				if ($aant_vg == 1) {
-					$ol = $naam_vg;
-				} else {
-					$ol = sprintf("%d leden", $aant_vg);
-					$t = sprintf(" title='%s'", $naam_vg);
-				}
-				
-				/*
-				-- Verplaatsen geslaagden naar een nieuwe groep is naar 'Groepsindeling muteren' verplaatst
-				echo("<div class='clear'></div>\n");
-				
-				$vdps = "-1";
-				$f = sprintf("VoorgangerID=%d", $i_dp->dpid);
-				foreach ($i_dp->basislijst($f) as $dprow) {
-					$vdps .= "," . $dprow->RecordID;
-				}
-				$f = sprintf("GR.OnderdeelID=%d AND GR.DiplomaID IN (%s)", $p_afdid, $vdps);
-				foreach ($i_gr->basislijst($f) as $vgrow) {
-					printf("<button type='submit' class='%s' name='nwe_groep' value='%d-%d'%s>%s naar groep %s</button>\n", CLASSBUTTON, $vgrow->RecordID, $i_dp->dpid, $t, $ol, $vgrow->Omschrijving);
-				}
-				*/
 			}
 			if ($p_perexamen == 1) {
 				echo("</div> <!-- Einde kandidatengroep col -->\n");
@@ -464,25 +375,22 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 		echo("</div> <!-- Einde knoppenbalk -->\n");
 	}
 	echo("</form>\n");
-	
-?>
-<script>
+
+	echo("<script>
 		
-	$("input[id^=DatumBehaald_], input[id^=Diplomanummer_], input[id^=LicentieVervallenPer_]").on('blur', function() { 
-		savedata("liddipl", 0, this);
+	$(\"input[id^=DatumBehaald_], input[id^=Diplomanummer_], input[id^=LicentieVervallenPer_]\").on('blur', function() { 
+		savedata('liddipl', 0, this);
 	});
 	
-	$("input[type='checkbox'").click(function() {
-		savedata("liddipl", 0, this);
+	$(\"input[type='checkbox'\").click(function() {
+		savedata('liddipl', 0, this);
 	});
 	
 	function liddipl_verw(p_ldid) {
-		$("#naam_" + p_ldid).addClass("deleted");
-		deleterecord("verw_liddipl", p_ldid);
+		$('#naam_' + p_ldid).addClass('deleted');
+		deleterecord('verw_liddipl', p_ldid);
 	}
-
-</script>
-<?php
+	</script>");
 }  # fnExamenResultaten
 
 function fnExamenonderdelen() {
@@ -561,29 +469,29 @@ function fnDiplomasMuteren($p_afdid=-1) {
 		printf("<label class='form-label'>Naam</label><input type='text' id='Naam' class='w75' maxlength=75 value=\"%s\">\n", str_replace("\"", "'", $dprow->Naam));
 		printf("<label class='form-label'>Code</label><input type='text' id='Kode' class='w10' maxlength=10 value=\"%s\">\n", $dprow->Kode);
 		printf("<label class='form-label' id='lblvolgnr'>Volgnummer</label><input type='number' id='Volgnr' value=%d class='num3'>\n", $dprow->Volgnr);
-		printf("<label class='form-label'>Type</label><select id='Type' class='form-select'>%s</select>\n", fnOptionsFromArray(ARRTYPEDIPLOMA, $dprow->Type));
+		printf("<label class='form-label'>Type</label><select id='Type' class='form-select form-select-sm'>%s</select>\n", fnOptionsFromArray(ARRTYPEDIPLOMA, $dprow->Type));
 		
 		if ($p_afdid <= 0) {
-			printf("<label class='form-label'>Afdelingsspecifiek</label><select name='Afdelingsspecifiek' class='form-select'>\n<option value=0>Geen</option>\n%s</select>\n", $i_ond->htmloptions($dprow->Afdelingsspecifiek, 0, "", "", 0));
+			printf("<label class='form-label'>Afdelingsspecifiek</label><select name='Afdelingsspecifiek' class='form-select form-select-sm'>\n<option value=0>Geen</option>\n%s</select>\n", $i_ond->htmloptions($dprow->Afdelingsspecifiek, 0, "", "", 0));
 		}
 		
-		printf("<label class='form-label' id='lbluitgegevendoor'>Uitgegeven door</label><select id='ORGANIS' class='form-select'>%s</select>\n", $i_org->htmloptions(1, $dprow->ORGANIS));
+		printf("<label class='form-label' id='lbluitgegevendoor'>Uitgegeven door</label><select id='ORGANIS' class='form-select form-select-sm'>%s</select>\n", $i_org->htmloptions(1, $dprow->ORGANIS));
 		$f = sprintf("DP.RecordID<>%d AND DP.Afdelingsspecifiek=%d AND IFNULL(DP.Vervallen, '9999-12-31') > CURDATE()", $dpid, $dprow->Afdelingsspecifiek);
-		printf("<label id='lblvoorganger' class='form-label'>Voorganger</label><select id='VoorgangerID' class='form-select'><Option value=0>Geen</option>\n%s</select>\n", $i_dp->htmloptions($dprow->VoorgangerID, 0, 0, 0, $f, 1));
+		printf("<label id='lblvoorganger' class='form-label'>Voorganger</label><select id='VoorgangerID' class='form-select form-select-sm'><Option value=0>Geen</option>\n%s</select>\n", $i_dp->htmloptions($dprow->VoorgangerID, 0, 0, 0, $f, 1));
 		
 		printf("<label id='lbldoorlooptijd' class='form-label'>Doorlooptijd</label><input type='number' class='num3' id='Doorlooptijd' value=%d><p>in maanden</p>\n", $dprow->Doorlooptijd);
 		
 		if (strlen($i_dp->naamvolgende) > 0) {
 			printf("<label class='form-label' id='lblvolgende'>Volgende diploma('s)</label><p>%s</p>\n", $i_dp->naamvolgende);
 		}
-	
+
 		printf("<label class='form-label' id='lbleindeuitgifte'>Einde uitgifte</label><input type='date' id='EindeUitgifte' value='%s'>\n", $dprow->EindeUitgifte);
 		
 		if ($p_afdid <= 0) {
 			printf("<label class='form-label' id='lblgeldigheid'>Geldigheid</label><input type='number' id='GELDIGH' value=%d class='num2' max=99><p>maanden (0 = onbeperkt)</p>\n", $dprow->GELDIGH);
-			printf("<label class='form-label' id='lblhistorie'>Bewaren na verlopen geldigheid</label><input type='number' id='HistorieOpschonen' value=%d class='num3' max=999><p>maanden (0 = onbeperkt)</p>\n", $dprow->HistorieOpschonen);
+			printf("<label class='form-label' id='lblhistorie'>Bewaartermijn</label><input type='number' id='HistorieOpschonen' value=%d class='num3' max=999><p>na verlopen geldigheid in maanden (0 = onbeperkt)</p>\n", $dprow->HistorieOpschonen);
 			printf("<label class='form-label' id='lblvervallenper'>Vervallen per</label><input type='date' id='Vervallen' value='%s'>\n", $dprow->Vervallen);
-			printf("<label class='form-label' id='lblzelfservice'>Zelfservice?</label><input type='checkbox' id='Zelfservice' value=1 %s title='Is dit diploma beschikbaar in de zelfservice?'>\n", checked($dprow->Zelfservice));
+			printf("<label class='form-label' id='lblzelfservice'>Zelfservice?</label><input type='checkbox' class='form-check-input' id='Zelfservice' value=1 %s title='Is dit diploma beschikbaar in de zelfservice?'>\n", checked($dprow->Zelfservice));
 		}
 		printf("<label class='form-label'>Aantal leden</label><p>%d</p>\n", $i_dp->aantalhouders);
 		$f_eo = sprintf("EO.DiplomaID=%d AND LENGTH(EO.Code) > 0", $i_dp->dpid);
