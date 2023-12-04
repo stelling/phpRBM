@@ -180,7 +180,7 @@ class Mailing {
 	private $speciaal = "";
 	private $opmerking = "";
 	
-	private $mailingvanafid = 0;
+	public $mailingvanafid = 0;
 	private $OmschrijvingOntvangers = "";
 	public $vanafnaam = "";
 	public $vanafadres = "";
@@ -636,7 +636,7 @@ class Mailing {
 			printf("<p id='recordid'>%d</p><label id='lblrecordid'>RecordID</label>\n", $this->mid);
 		}
 		printf("<input type='hidden' name='mailingid' value=%d>\n", $this->mid);
-		printf("<label class='form-label'>Van</label><select name='MailingVanafID' id='MailingVanafID' class='form-select' %s>\n<option value=''>Selecteer ...</option>%s</select>\n", $jsoc, (new cls_Mailing_vanaf())->htmloptions($this->mailingvanafid));
+		printf("<label class='form-label'>Van</label><select name='MailingVanafID' id='MailingVanafID' class='form-select form-select-sm' %s>\n<option value=''>Selecteer ...</option>%s</select>\n", $jsoc, (new cls_Mailing_vanaf())->htmloptions($this->mailingvanafid));
 		printf("<label class='form-label'>Aan</label><input type='text' name='OmschrijvingOntvangers' id='OmschrijvingOntvangers' class='w50' value=\"%s\" maxlength=50 placeholder='Omschrijving groep personen aan wie de mailing is gericht' %s>\n", $this->OmschrijvingOntvangers, $jstb);
 		printf("<label class='form-label'>Onderwerp</label><input type='text' name='subject' id='subject' class='w75' value=\"%s\" maxlength=75 placeholder='Onderwerp' %s>\n", $this->subject, $jstb);
 
@@ -1144,6 +1144,20 @@ class Mailing {
 		
 	}   # Mailing->add_del_selectie
 	
+	public function setVanaf($p_mvid, $p_incc=0) {
+		
+		$i_mv = new cls_Mailing_vanaf($p_mvid);
+		if ($i_mv->mvid > 0) {
+			$this->mailingvanafid = $i_mv->mvid;
+			$this->vanafadres = $i_mv->vanaf_email;
+			$this->vanafnaam = $i_mv->vanaf_naam;
+			if ($p_incc == 1) {
+				$this->cc_addr = $i_mv->vanaf_email;
+			}
+		}
+		$i_mv = null;
+	}  # mailing->setVanaf
+	
 	public function preview() {
 		$this->send_mailing(1);
 	}
@@ -1194,13 +1208,7 @@ class Mailing {
 				$email->toevoegenadres($rcpt->to_address);
 				$this->bevat_losse_email = true;
 			}
-			if (isValidMailAddress($this->vanafadres)) {
-				$email->vanafadres = $this->vanafadres;
-			}
-			if (strlen($this->vanafnaam) > 0) {
-				$email->vanafnaam = $this->vanafnaam;
-			}
-
+			$email->vanafid = $this->mailingvanafid;
 			if (isValidMailAddress($this->cc_addr, 0)) {
 				$email->toevoegenadres($this->cc_addr, "cc");
 			}
@@ -1325,11 +1333,6 @@ class Mailing {
 				$opm = 'Geen';
 			}
 			$this->merged_message = str_ireplace("[%OPMEVENEMENT%]", $opm, $this->merged_message);
-			if (isset($row->EmailEvenement) and isValidMailAddress($row->EmailEvenement)) {
-				$this->cc_addr = $row->EmailEvenement;
-			} else {
-				$this->cc_addr = "";
-			}
 
 		} elseif ($this->mid == $_SESSION['settings']['mailing_bevestigingbestelling']) {
 			if ($this->xtranum > 0) {
