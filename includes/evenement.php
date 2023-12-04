@@ -164,9 +164,11 @@ function inschrijvenevenementen($lidid) {
 				$mailing->xtrachar = "EVD";
 				$mailing->xtranum = $edid;
 				
-				$i_mv->vulvars(-1, $row->EmailOrganisatie);
-				if ($i_mv->mvid > 0) {
-					$mailing->mailingvanafid = $i_mv->mvid;
+				if (IsValidMailAddress($row->EmailOrganisatie, 0)) {
+					$i_mv->vulvars(-1, $row->EmailOrganisatie);
+					if ($i_mv->mvid > 0) {
+						$mailing->setVanaf($i_mv->mvid, 1);
+					}
 				}
 			
 				if ($mailing->send($lidid, 0) > 0) {
@@ -182,8 +184,7 @@ function inschrijvenevenementen($lidid) {
 
 	fnDispMenu(2);
 
-	echo("<div id='inschrijvingevenementen'>\n");
-	printf("<form method='post' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+	printf("<form method='post' id='inschrijvingevenementen' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 	$geldig = false;
 	printf("<table class='%s'>\n", TABLECLASSES);
 	echo("<tr><th>Datum en tijden</th><th>Omschrijving</th><th>Reactie</th><th>Agenda</th></tr>\n");
@@ -223,9 +224,9 @@ function inschrijvenevenementen($lidid) {
 			$c = "";
 		}
 		printf("<input type='radio' name='reactie_%d' value='Afmelden' title='Afmeldingen voor evenement' %s>Afmelden&nbsp;\n", $row->RecordID, $c);
-		
+		$ap = $ins->Aantal ?? 1;
 		if ($row->MaxPersonenPerDeelname > 1) {
-			printf("<br>\n<label class='form-label'>Aantal personen (%2\$d max)</label><input type='number' name='aantal_%1\$d' min=1 max=%2\$d value=%3\$d class='num2' title='Met hoeveel personen kom je?'>", $row->RecordID, $row->MaxPersonenPerDeelname, $ins->Aantal);
+			printf("<br>\n<label class='form-label'>Aantal personen (%2\$d max)</label><input type='number' name='aantal_%1\$d' min=1 max=%2\$d value=%3\$d class='num2' title='Met hoeveel personen kom je?'>", $row->RecordID, $row->MaxPersonenPerDeelname, $ap);
 		}
 		$opm = $ins->Opmerking ?? "";
 		printf("<br>\n<input type='text' placeholder='Opmerking' name='opm_%d' class='w250' maxlength=250 value=\"%s\" title='Opmerking bij inschrijving'>", $row->RecordID, str_replace("\"", "'", $opm));
@@ -240,10 +241,9 @@ function inschrijvenevenementen($lidid) {
 	}
 	echo("</table>\n");
 	echo("<div id='opdrachtknoppen'>\n");
-	echo("<button type='submit'>Bevestigen</button>\n");
+	printf("<button type='submit' class='%s'>%s Bevestigen</button>\n", CLASSBUTTON, ICONVERSTUUR);
 	echo("</div> <!-- Einde opdrachtknoppen -->\n");
 	echo("</form>\n");
-	echo("</div>  <!-- Einde inschrijvingevenementen -->\n");
 	
 }  # inschrijvenevenementen
 
