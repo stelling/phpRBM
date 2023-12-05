@@ -525,22 +525,19 @@ function toegang($soort, $melding=1, $p_log=1, $p_alleenmenu=0) {
 }  # toegang
 
 function fnInloggen() {
-	echo("<div id='login'>\n");
+	printf("<form action='%s/index.php' id='login' class='form-check form-switch' method='post'>\n", BASISURL);
 	echo("<h2>Inloggen</h2>\n");
-	printf("<form action='%s/index.php' method='post'>\n", BASISURL);
-	echo("<label>Login</label><input type='text' name='username' class='w15'>\n");
-	printf("<label>Wachtwoord</label><input type='password' name='password' class='w%d'>\n", $_SESSION['settings']['wachtwoord_maxlengte']);
-	echo("<label>Ingelogd blijven?</label><input type='checkbox' name='cookie' value=1 title='Ingelogd blijven'><p>(werkt met cookies)</p>\n");
+	echo("<label class='form-label'>Login</label><input type='text' name='username' class='w15'>\n");
+	printf("<label class='form-label'>Wachtwoord</label><input type='password' name='password' class='w%d'>\n", $_SESSION['settings']['wachtwoord_maxlengte']);
+	echo("<label class='form-label'>Ingelogd blijven?</label><input type='checkbox' class='form-check-input' name='cookie' value=1 title='Ingelogd blijven'><p>(werkt met cookies)</p>\n");
 	echo("<p>Heb je nog geen login, dan kan je die <a href='index.php?tp=Login+aanvragen'>aanvragen</a>.</p>");
 	echo("<p>Ben je je wachtwoord vergeten, dan kan je deze <a href='\?tp=Herstel+wachtwoord'>opnieuw instellen</a>.</p>\n");
 
 	echo("<div id='opdrachtknoppen'>\n");
-	printf("<button type='submit' name='Inloggen'>%s Inloggen</button>\n", ICONLOGIN);
+	printf("<button type='submit' class='%s' name='Inloggen'>%s Inloggen</button>\n", CLASSBUTTON, ICONLOGIN);
 	echo("</div> <!-- Einde opdrachtknoppen -->\n");
 
 	echo("</form>\n");
-
-	echo("</div>  <!-- Einde login -->\n");
 
 }  # fnInloggen
 
