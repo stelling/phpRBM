@@ -88,7 +88,7 @@ function fnEvenementen() {
 		
 	} elseif ($currenttab2 == "Groepen muteren") {
 		if (isset($_GET['OnderdeelID']) and $_GET['OnderdeelID'] > 0) {
-			LedenOnderdeelMuteren($_GET['OnderdeelID'], 1);
+			LedenOnderdeelMuteren($_GET['OnderdeelID']);
 		} else {
 			persoonlijkeGroepMuteren();
 		}
@@ -394,30 +394,23 @@ function muteerevenement($eventid) {
 	if ($eventid > 0) {
 		$f = sprintf("(O.RecordID=%d OR ((O.Kader=1 OR O.`Type`IN ('A', 'G', 'R')) AND IFNULL(O.VervallenPer, '9999-12-31') >= '%s'", $i_ev->organisatie, $i_ev->evdatum);
 		if (WEBMASTER == false) {
-			$f .= sprintf(" AND O.RecordID IN (%s)", $_SESSION['lidgroepen']);
+			$i_lo->per = $i_ev->evdatum;
+			$f .= sprintf(" AND O.RecordID IN (%s)", $i_lo->lidgroepen());
 		}
 		$f .= "))";
 		printf("<label id='lblOrganisatie' class='form-label'>Organisatie</label><select id='Organisatie' class='form-select form-select-sm'><option value=0>Onbekend</option>\n%s</select>\n", $i_ond->htmloptions($i_ev->organisatie, 0, "", $f, 0));
 		if (strlen($i_ev->omschrijving) > 0) {
 			printf("<label id='lblOpmaak' class='form-label'>Opmaak in agenda</label>%s\n", fnEvenementOmschrijving($row, 1, "p"));
 		}
-	
-		$ondrows = (new cls_Onderdeel())->lijst(1, "", $i_ev->evdatum);
+
 		printf("<label id='lblInschrijvingOpen' class='form-label'>Inschrijving online</label><input type='checkbox' class='form-check-input' id='InschrijvingOpen' value=1 %s title='Is de online-inschrijving open?'>\n", checked($i_ev->inschrijvingopen));
 		printf("<label id='lblStandaardStatus' class='form-label'>Standaard status</label><select id='StandaardStatus' class='form-select form-select-sm'>%s</select>\n", $optionstandstatus);
 		printf("<label id='lblMaxPersonenPerDeelname' class='form-label'>Max. per deelname</label><input type='number' id='MaxPersonenPerDeelname' class='num2' value=%d min=1 max=99 title='Met hoeveel personen mag je maximaal komen?'>\n", $i_ev->maxpersonenperdeelname);
 		printf("<label id='lblMeerdereStartmomenten' class='form-label'>Meerdere startmomenten</label><input type='checkbox' class='form-check-input' id='MeerdereStartMomenten' value=1 %s title='Kunnen deelnemers verschillende starttijden hebben?'>\n", checked($i_ev->meerderestartmomenten));
 		
-		$optiongroepen = "<option value=0>Iedereen</option>\n";
-		foreach ($ondrows as $t) {
-			if ($t->RecordID == $i_ev->doelgroep) {
-				$s = " selected";
-			} else {
-				$s = "";
-			}
-			$optiongroepen .= sprintf("<option value=%d%s>%s</option>\n", $t->RecordID, $s, htmlentities($t->Naam));
-		}
-		printf("<label id='lblDoelgroep' class='form-label'>Doelgroep</label><select name='BeperkTotGroep' class='form-select form-select-sm' onChange='this.form.submit();'>\n%s</select>\n", $optiongroepen);
+		$f = sprintf("IFNULL(O.VervallenPer, '9999-12-31') >= '%s'", $i_ev->evdatum);
+		$i_ond->per = $i_ev->evdatum;
+		printf("<label id='lblDoelgroep' class='form-label'>Doelgroep</label><select name='BeperkTotGroep' class='form-select form-select-sm' onChange='this.form.submit();'>\n<option value=0>Iedereen</option>\n%s</select>\n", $i_ond->htmloptions($i_ev->doelgroep, 0, "", $f, 1));
 		
 		$dtfmt->setPattern(DTLONG);
 		printf("<label id='lblGewijzigd'>Gewijzigd op / door</label><p>%s / %s</p>\n", $dtfmt->format(strtotime($row->Gewijzigd)), htmlentities($row->GewijzigdDoorNaam));
@@ -701,8 +694,13 @@ function overzichtevenementen() {
 		
 		echo("<div class='col'>\n");
 		
+		$f = sprintf("ED.Status IN ('B','J') AND ED.EvenementID=%d", $row->RecordID);
+		$ap = $i_ed->totaal("Aantal", $f);
+		
 		if ($row->Soort == "B" and count($dlnlijst) > 1) {
 			printf("<p><strong>%d bewakers</strong></p>\n", count($dlnlijst));
+		} elseif (count($dlnlijst) > 1 and $ap > count($dlnlijst)) {
+			printf("<p><strong>%d deelnemers met %d personen</strong></p>\n", count($dlnlijst), $ap);
 		} elseif (count($dlnlijst) > 1) {
 			printf("<p><strong>%d deelnemers</strong></p>\n", count($dlnlijst));
 		}
