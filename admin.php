@@ -336,15 +336,12 @@ if ($currenttab == "Beheer logins") {
 		}
 	}
 	
-	$kols[0]['headertext'] = "Betreft lid";
-	$kols[0]['columnname'] = "betreftLid";
+	$kols[] = array('headertext' => "Betreft lid", 'columnname' => "betreftLid");
+	$kols[]['headertext'] = "ingevoerd";
+	$kols[]['headertext'] = "SQL-statement";
 	
-	$kols[1]['headertext'] = "ingevoerd";
-	$kols[2]['headertext'] = "SQL-statement";
-	
-	$kols[3]['link'] = sprintf("/admin.php?op=deleteint&recid=%%d&tp=%s", urlencode($_GET['tp']));
-	$kols[3]['columnname'] = "RecordID";
-	$kols[3]['class'] = "trash";
+	$l = sprintf("/admin.php?op=deleteint&recid=%%d&tp=%s", urlencode($_GET['tp']));
+	$kols[] = array('columnname' => "RecordID", 'link' => $l, 'class' => "trash");
 
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	$i_int = new cls_Interface();
@@ -801,12 +798,9 @@ function fnEigenlijstenmuteren() {
 		printf("<form method='post' id='eigenlijstmuteren' action='%s?tp=%s&paramID=%d'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $elid);
 		printf("<label class='form-label'>Naam eigen lijst</label><input type='text' name='naam' class='w50' value='%s' maxlength=50>\n", $row->Naam);
 		printf("<label class='form-label'>Uitleg</label><textarea id='uitleg' name='uitleg' rows=3>%s</textarea>\n", $row->Uitleg);
-		
-		
+			
 		echo("<label for='mysql'>MySQL-code</label>\n");
-		printf("<textarea class='form-control' id='mysql' name='mysql' title='MySQL code' placeholder='MySQL code ...'>%s</textarea>\n", $row->MySQL);
-		
-				
+		printf("<textarea id='mysql' name='mysql' title='MySQL code' placeholder='MySQL code ...'>%s</textarea>\n", $row->MySQL);
 		echo("<p>Parameters kunnen worden gebruikt. Een parameter start met '@P', gevolgd door 0 t/m 9. De nummering moet met 0 starten en een ondoorbroken reeks zijn.</p>\n");
 		
 		printf("<label class='form-label'>Eigen script</label><p>%s/maatwerk/</p><input type='text' name='EigenScript' class='w30' value='%s' maxlength=30>\n", BASISURL, $row->EigenScript);
