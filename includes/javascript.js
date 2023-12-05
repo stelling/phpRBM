@@ -507,7 +507,7 @@ function rekeningprops() {
 		$("#BET_TERM").show();
 		const options = { year: 'numeric', month: 'long', day: 'numeric' };
 		$("#uitersteBetaling").html(betaaldatum.toLocaleDateString('nl-NL', options));
-		if (betaaldatum.getTime() < today.getTime() && bedragbetaald < rkbedrag) {
+		if (betaaldatum.getTime() < today.getTime() && bedragbetaald < rkbedrag && bedragbetaald !== 'undefined') {
 			$("#uitersteBetaling").addClass("telaat");
 		} else {
 			$("#uitersteBetaling").removeClass("telaat");
