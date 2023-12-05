@@ -558,7 +558,7 @@ th.rotate > div {
 	width: 525px;
 }
 
-#algemeen_instellingen .form-check-input {
+#login .form-check-input, #algemeen_instellingen .form-check-input {
 	margin-left: 0;
 }
 
@@ -587,7 +587,7 @@ th.rotate > div {
 #eigenlijstmuteren textarea, #detailsonderdeelmuteren textarea {
 	margin-bottom: 6px;
 	height: 100px;
-	width: calc(100%-235px);
+	width: calc(100% - 235px);
 }
 
 #eigenlijstmuteren textarea#mysql {
@@ -1475,8 +1475,6 @@ td.voortgangsprobleem {
 #login p {
 	float: left;
 	clear: right;
-	margin-top: 8px;
-	padding-top: 2px;
 }
 
 #loginaanvraag, #opvragenlidnr, #profielwijzigen, #opzegformulier, #herstellenwachtwoord {
@@ -2063,7 +2061,7 @@ p.functiekaderlid, p.mailkaderlid {
 }
 
 #rekeningmuteren label {
-	width: 200px;
+	width: 210px;
 }
 
 #rekeningmuteren input[type='text'] {
