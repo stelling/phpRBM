@@ -90,7 +90,7 @@ function fnStukken($p_scherm="") {
 		printf("<input type='hidden' name='stid' value=%d>\n", $row->RecordID);
 		printf("<label class='form-label'>Titel</label><input type='text' name='Titel' value=\"%s\" class='w50' maxlength=50>\n", str_replace("\"", "'", $row->Titel));
 		printf("<label class='form-label'>Bestemd voor</label><input type='text' name='BestemdVoor' value=\"%s\" class='w30'>\n", str_replace("\"", "'", $row->BestemdVoor));
-		printf("<label class='form-label'>Zichtbaar voor</label><select name='ZichtbaarVoor' class='form-select'><option value=0>Iedereen</option>%s</select>\n", $i_ond->htmloptions($row->ZichtbaarVoor));
+		printf("<label class='form-label'>Zichtbaar voor</label><select name='ZichtbaarVoor' class='form-select form-select-sm'><option value=0>Iedereen</option>%s</select>\n", $i_ond->htmloptions($row->ZichtbaarVoor));
 		printf("<label class='form-label'>Vastgesteld op</label><input type='date' name='VastgesteldOp' value='%s'>\n", $row->VastgesteldOp);
 		printf("<label class='form-label'>Ingangsdatum</label><input type='date' name='Ingangsdatum' value='%s'>\n", $row->Ingangsdatum);
 		printf("<label class='form-label'>Revisiedatum</label><input type='date' name='Revisiedatum' value='%s'>\n", $row->Revisiedatum);
@@ -100,8 +100,8 @@ function fnStukken($p_scherm="") {
 		foreach (ARRTYPESTUK as $k => $v) {
 			$options .= sprintf("<option value='%s' %s>%s</option>\n", $k, checked($k, "option", $row->Type), $v);
 		}
-		printf("<label class='form-label'>Type</label><select name='Type' class='form-select'>%s</select>\n", $options);
-		printf("<label class='form-label'>Naam document</label><select name='naamdoc' class='form-select' onChange='this.form.submit();'>\n%s</select>", $optlocalfiles);
+		printf("<label class='form-label'>Type</label><select name='Type' class='form-select form-select-sm'>%s</select>\n", $options);
+		printf("<label class='form-label'>Naam document</label><select name='naamdoc' class='form-select form-select-sm' onChange='this.form.submit();'>\n%s</select>", $optlocalfiles);
 		if (substr($row->Link, 0, 4) != "http" and file_exists(BASEDIR . "/stukken/" . $i_stuk->link)) {
 			$u = BASISURL . sprintf("/get_stuk.php?p_stukid=%d", $row->RecordID);
 			printf("<p id='ganaarurl'><a href='%1\$s'>Ga naar</a></p>\n", $u);
