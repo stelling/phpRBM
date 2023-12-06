@@ -690,11 +690,11 @@ function overzichtevenementen() {
 		echo("<div class='row'>\n");
 		
 		printf("<div class='col col-sm-4'>%s</div>\n", fnEvenementOmschrijving($row, 3));
-		$dlnlijst = $i_ed->overzichtevenement($row->RecordID, "'B','J'");
+		$dlnlijst = $i_ed->overzichtevenement($row->RecordID, "'B','J'", 1);
 		
 		echo("<div class='col'>\n");
 		
-		$f = sprintf("ED.Status IN ('B','J') AND ED.EvenementID=%d", $row->RecordID);
+		$f = sprintf("ED.Status IN ('B','J') AND ED.EvenementID=%d AND ED.LidID > 0", $row->RecordID);
 		$ap = $i_ed->totaal("Aantal", $f);
 		
 		if ($row->Soort == "B" and count($dlnlijst) > 1) {
