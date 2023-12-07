@@ -1,6 +1,7 @@
 :root {
 	--default-text-color: #000080;
 	--label-background-color: #cfe2ff;
+	--label-text-color: #000080;
 }
 
 /* Bootstrap */
@@ -37,7 +38,7 @@ i {
 }
 
 .form-check-label {
-	color: var(--default-text-color);
+	color: var(--label-text-color);
 	background-color: transparent;
 	float: left;
 	clear: none;
@@ -95,7 +96,7 @@ table {
 
 caption {
 	text-align: center;
-	color: var(--default-text-color);
+	color: var(--label-text-color);
 	background-color: var(--label-background-color);
 	font-size: 130%;
 }
@@ -109,6 +110,7 @@ td, th {
 }
 
 th {
+	color: var(--label-text-color);
 	background-color: var(--label-background-color);
 	vertical-align: middle;
 }
@@ -120,17 +122,11 @@ ul {
 
 li {
 	margin-left: 0;
-	padding-left: 3px;
 }
 
 input, select, textarea {
-	float: left;
 	color: var(--default-text-color);
-	margin-right: 4px;
-}
-
-input[type='text'], input[type='email'], input[type='url'] {
-	padding-left: 4px;
+	float: left;
 }
 
 p {	
@@ -168,6 +164,7 @@ label {
 	padding-left: 4px;
 	padding-right: 4px;
 	background-color: var(--label-background-color);
+	color: var(--label-text-color);
 	border-width: 1px;
 }
 
@@ -332,6 +329,7 @@ header h1 {
 }
 
 tr.subkop {
+	color: var(--label-text-color);
 	background-color: var(--label-background-color);
 }
 
@@ -549,16 +547,7 @@ th.rotate > div {
 	clear: right;
 }
 
-#formulier {
-	text-align: left;
-	margin-bottom: 10px;
-}
-
-#algemeen_instellingen label {
-	width: 525px;
-}
-
-#login .form-check-input, #algemeen_instellingen .form-check-input {
+#login .form-check-input {
 	margin-left: 0;
 }
 
@@ -578,13 +567,53 @@ th.rotate > div {
 	width: calc(100% - 370px);
 }
 
-#eigenlijstmuteren label, #detailsonderdeelmuteren label {
+#detailsonderdeelmuteren label {
 	clear: left;
 	float: left;
 	width: 225px;
 }
 
-#eigenlijstmuteren textarea, #detailsonderdeelmuteren textarea {
+#detailsonderdeelmuteren .form-check-input {
+	margin-left: 0;
+}
+
+#detailsonderdeelmuteren textarea {
+	margin-bottom: 6px;
+	height: 100px;
+	width: calc(100% - 235px);
+}
+
+#detailsonderdeelmuteren p {
+	float: left;
+}
+
+/* admin.php */
+
+table#beheerlogins {
+	width: 100%;
+}
+
+table#beheerautorisatie {
+	width: 100%;
+}
+
+#autorisatiesperonderdeel {
+	clear: left;
+	margin-top: 75px;
+	border-width: 1px;
+}
+
+.beheerlogins a, #beheerautorisatie a {
+  text-decoration: none;
+}
+
+#eigenlijstmuteren label {
+	clear: left;
+	float: left;
+	width: 225px;
+}
+
+#eigenlijstmuteren textarea {
 	margin-bottom: 6px;
 	height: 100px;
 	width: calc(100% - 235px);
@@ -593,14 +622,6 @@ th.rotate > div {
 #eigenlijstmuteren textarea#mysql {
 	height: 200px;
 	width: 100%;
-}
-
-#detailsonderdeelmuteren .form-check-input {
-	margin-left: 0;
-}
-
-#eigenlijstmuteren textarea, #detailsonderdeelmuteren textarea {
-	width: calc(100% - 235px);
 }
 
 table#templatesmuteren {
@@ -628,6 +649,20 @@ form#templateedit {
 	clear: left;
 }
 
+#algemeen_instellingen label {
+	width: 525px;
+}
+
+#algemeen_instellingen .form-check-input {
+	margin-left: 0;
+}
+
+#algemeen_instellingen input[type='number'] {
+	width: 60px;
+}
+
+/* Einde admin.php */
+
 #formulier input[type='text'] {
 	margin-right: 6px;
 	margin-top: 6px;
@@ -639,31 +674,6 @@ form#templateedit {
 	margin-right: auto;
 	margin-top: 12px;
 	display: none;
-}
-
-#eigenlijstmuteren p, #detailsonderdeelmuteren p {
-	float: left;
-	margin-top: 4px;
-}
-
-#beheerlogins label {
-	float: left;
-	margin-left: 2px;
-	margin-right: 3px;
-	padding-right: 1px;
-	height: 22px;
-	width: 90px;
-}
-
-#beheerlogins .waarde {
-	clear: none;
-	float: left;
-	margin-top: 5px;
-	height: 22px;
-	border-style: solid;
-	border-width: 1px;
-	padding-left: 2px;
-	padding-right: 2px;
 }
 
 p.sql {
@@ -682,17 +692,11 @@ table#deelnemersevenementmuteren {
 	margin-top: 12px;
 }
 
-.beheerlogins a, #beheerautorisatie a, .beheerwijzigingen a, #deelnemersevenementmuteren a, #deelnemersevenementmuteren a, #lijstoutbox a {
+.beheerwijzigingen a, #deelnemersevenementmuteren a, #deelnemersevenementmuteren a, #lijstoutbox a {
   text-decoration: none;
 }
 
-#autorisatiesperonderdeel {
-	clear: left;
-	margin-top: 75px;
-	border-width: 1px;
-}
-
-#formulier, #overzichtlid {
+#overzichtlid {
 	position: relative;
 	display: inline-block;
 	width: 100%;
@@ -718,12 +722,6 @@ table#deelnemersevenementmuteren {
 	max-width: 300px;
 }
 
-#invulformulier table {
-	margin-left: auto;
-	margin-right: auto;
-	margin-top: 10px;
-}
-
 #overzichtlid h2 {
 	float: left;
 	clear: both;
@@ -742,6 +740,19 @@ table#deelnemersevenementmuteren {
 	margin-top: 4px;
 	float: left;
 	overflow: visible;
+}
+
+#tab-introductie h3 {
+	margin-bottom: 0;	
+}
+
+#tab-introductie ul {
+	margin-top: 0;
+}
+
+#tab-introductie li {
+	margin-top: 2px;
+	margin-bottom: 2px;
 }
 
 #tab-diplomas table > caption {
@@ -1318,14 +1329,16 @@ table#presentiemuteren td.aanwezig {
 }
 
 #diplomamuteren p {
-	padding-top: 6px;
-	padding-left: 6px;
-	clear: none;
 	float: left;
-	margin-right: 6px;
+	margin-left: 4px;
 }
 
-#diplomamuteren label, #examenresultaten label {
+#diplomamuteren .form-check-input, #diplomamuteren .form-switch {
+	margin-left: 0;
+	padding-left: 0;
+}
+
+#examenresultaten label {
 	min-width: 125px;
 }
 
@@ -1539,7 +1552,9 @@ td.voortgangsprobleem {
 #overzichtevenementen .col {
 	border-style: none;
 	border-width: 1px;
-	margin-right: 8px;
+	margin-right: 4px;
+	padding-left: 5px;
+	padding-right: 5px;
 	background-color: #f0f0f0;
 }
 
@@ -1550,8 +1565,8 @@ td.voortgangsprobleem {
 
 #overzichtevenementen li {
 	float: left;
-	min-width: 275px;
-	margin-left: -12px;
+	min-width: 205px;
+	margin-left: -9px;
 }
 
 #evenementenbeheer label {
@@ -2427,11 +2442,6 @@ input#db_folderbackup, input#naamwebsite, input#naamvereniging, input#urlverenig
 	margin-bottom: 6px;
 }
 
-#wijzigenlidgegevens select, #nieuwlid select {
-	margin-right: 0;
-	padding-right: 0;
-}
-
 #wijzigenlidgegevens p {
 	clear: none;
 	float: left;
@@ -2768,7 +2778,7 @@ button.volgendegroep {
 		display: none;
    }
   
-	#container, #contrainerbreed {
+	#container, #contrainerbreed, .container-xl {
 		width: auto;
 		margin-left: 0;
 		margin-right: 0;
