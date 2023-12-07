@@ -6467,17 +6467,24 @@ class cls_interface extends cls_db_base {
 }  # cls_interface
 
 class cls_Diploma extends cls_db_base {
-	public $dpid = 0;
-	public $dpnaam = "";
-	private $dpcode = "";
-	public $organisatie = 0;	// Door welke organisatie wordt dit diploma uitgegeven?
-	public $dpvoorganger = 0;	// Wat is de logische voorganger van dit diploma?
-	public $doorlooptijd = 0;	// in maanden, hoelang doet een leerling normaal over dit diploma?
+	public int $dpid = 0;
+	public string $dpnaam = "";
+	public string $dpcode = "";
+	public int $volgnr = 0;
+	public string $dptype = "";
+	public $organisatie = 0;					// Door welke organisatie wordt dit diploma uitgegeven?
+	public $dpvoorganger = 0;					// Wat is de logische voorganger van dit diploma?
+	public $doorlooptijd = 0;					// in maanden, hoelang doet een leerling normaal over dit diploma?
 	public $dpvolgende = 0;
-	public $naamvolgende = "";
+	public $naamvolgende = "";					// Naam van het opvolgende diploma
 	public $eindeuitgifte = "9999-12-31";
-	public $aantalhouders = 0;
-	public $afdelingsspecifiek = 0;
+	public $geldigheid = 0;						// Hoelang is dit diploma na behalen geldig. In maanden.
+	public $historieopschonen = 0;
+	public $vervallen = "";
+	public $zelfservice = 0;					// Is dit diploma muteerbaar in de zelfservice?
+	public $afdelingsspecifiek = 0;			// Optie: de afdeling waar dit diploma bij hoort.
+	public $aantalhouders = 0;					// Het aantal leden dat dit diploma nu nog heeft en waarvan het geldig is.
+	public $aantalonderdelen = 0;				// Het aantal examenonderdelen
 	
 	function __construct($p_dpid=-1) {
 		parent::__construct();
@@ -6495,13 +6502,16 @@ class cls_Diploma extends cls_db_base {
 			$query = sprintf("SELECT DP.* FROM %s WHERE DP.RecordID=%d;", $this->basefrom, $this->dpid);
 			$row = $this->execsql($query)->fetch();
 			if (isset($row->RecordID)) {
-				$this->dpnaam = $row->Naam;
-				if (strlen($row->Naam) > 20) {
-					$this->naamlogging = $row->Kode;
-				} else {
-					$this->naamlogging = $row->Naam;
-				}
+				$this->dpnaam = trim(str_replace("\"", "'", $row->Naam));
 				$this->dpcode = $row->Kode;
+				$this->volgnr = $row->Volgnr;
+				$this->dptype = $row->Type;
+				if (strlen($this->dpnaam) > 20) {
+					$this->naamlogging = $this->dpcode;
+				} else {
+					$this->naamlogging = $this->dpnaam;
+				}
+				
 				$this->afdelingsspecifiek = $row->Afdelingsspecifiek;
 				$this->organisatie = $row->ORGANIS;
 				$this->dpvoorganger = $row->VoorgangerID;
@@ -6511,9 +6521,12 @@ class cls_Diploma extends cls_db_base {
 				} else {
 					$this->eindeuitgifte = $row->EindeUitgifte;
 				}
+				$this->geldigheid = $row->GELDIGH;
+				$this->historieopschonen = $row->HistorieOpschonen;
+				$this->vervallen = $row->Vervallen;
+				$this->zelfservice = $row->Zelfservice;
 				
 				$query = sprintf("SELECT DP.RecordID, DP.Naam FROM %s WHERE DP.VoorgangerID=%d AND IFNULL(DP.Vervallen, '9999-12-31') > CURDATE() AND IFNULL(DP.EindeUitgifte, '9999-12-31') > CURDATE();", $this->basefrom, $this->dpid);
-				
 				$this->dpvolgende = 0;
 				$this->naamvolgende = "";
 				foreach ($this->execsql($query)->fetchAll() as $volgrow) {
@@ -6528,6 +6541,9 @@ class cls_Diploma extends cls_db_base {
 				$query = sprintf("SELECT COUNT(*) FROM %sLiddipl AS LD WHERE LD.DatumBehaald <= CURDATE() AND IFNULL(LD.LicentieVervallenPer, '9999-12-31') > CURDATE() AND LD.DiplomaID=%d;", TABLE_PREFIX, $this->dpid);
 				$this->aantalhouders = $this->scalar($query);
 				
+				$query = sprintf("SELECT COUNT(*) FROM %sExamenonderdeel AS EO WHERE EO.DiplomaID=%d AND LENGTH(EO.Code) > 0;", TABLE_PREFIX, $this->dpid);
+				$this->aantalonderdelen = $this->scalar($query);
+				
 			} else {
 				$this->dpid = 0;
 				$this->dpvoorganger = 0;
@@ -6535,9 +6551,9 @@ class cls_Diploma extends cls_db_base {
 				$this->naamvolgende = "";
 			}
 		}
-	}
+	}  # cls_Diploma->vulvars
 	
-	public function record($p_dpid=-1) {
+	public function re22cord($p_dpid=-1) {
 		$this->vulvars($p_dpid);
 		
 		$query = sprintf("SELECT DP.* FROM %s WHERE DP.RecordID=%d;", $this->basefrom, $this->dpid);
@@ -6695,16 +6711,16 @@ class cls_Diploma extends cls_db_base {
 		$result = $this->execsql($query);
 		foreach ($result->fetchAll() as $row) {
 			if (strlen($row->Volgnr) == 0) {
-				$this->update($row->RecordID, "Volgnr", 0);
+				$this->update($row->RecordID, "Volgnr", 0, "het volgnummer leeg was");
 			} elseif (strlen($row->Vervallen) >= 10 and $row->EindeUitgifte > $row->Vervallen) {
-				$this->update($row->RecordID, "EindeUitgifte", $row->Vervallen, "einde uitgifte niet na vervallen mag liggen.");
+				$this->update($row->RecordID, "EindeUitgifte", $row->Vervallen, "einde uitgifte niet na vervallen mag liggen");
 			} elseif (strlen($row->Vervallen) >= 10 and $row->Vervallen < date("Y-m-d") and $row->Zelfservice == 1) {
-				$this->update($row->RecordID, "Zelfservice", 0, "het diploma is vervallen.");
+				$this->update($row->RecordID, "Zelfservice", 0, "het diploma is vervallen");
 			} elseif (array_key_exists($row->Type, ARRTYPEDIPLOMA) == false) {
-				$this->update($row->RecordID, "Type", "D", "het diploma geen geldig type had.");
+				$this->update($row->RecordID, "Type", "D", "het diploma geen geldig type had");
 			}
 		}
-	}
+	}  # cls_Diploma->controle
 	
 	public function opschonen() {
 		
@@ -6724,7 +6740,7 @@ class cls_Diploma extends cls_db_base {
 		
 		$this->optimize();
 		
-	}  # opschonen
+	}  # cls_Diploma->opschonen
 	
 }  # cls_Diploma
 
@@ -7806,7 +7822,8 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 	
 	public int $edid = 0;
 	private int $evid = 0;
-	private string $evoms = "";
+	public string $evoms = "";
+	public string $evdatum = "";
 	public string $status = "";
 	public int $aantal= 1;
 	public string $functie = "";
@@ -7878,10 +7895,11 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 			$row = $this->execsql($query)->fetch();
 			if (isset($row->RecordID)) {
 				$this->evoms = $row->Omschrijving;
+				$this->evdatum = substr($row->Datum, 0, 10);
 				$this->naamlogging = $row->Omschrijving;
 				$this->standaardstatus = $row->StandaardStatus;
 				$this->meerderestartmomenten = $row->MeerdereStartMomenten;
-				if ($this->meerderestartmomenten == 0 and strlen($row->Datum) > 11) {
+				if ($this->meerderestartmomenten == 0 and strlen($row->Datum) > 11 and substr($row->Datum, 11, 5) > "00:00") {
 					$this->starttijd = substr($row->Datum, 11, 5);
 				}
 				$this->organisatie = $row->Organisatie;
@@ -9859,6 +9877,7 @@ class cls_Eigen_lijst extends cls_db_base {
 	public $uitleg = "";
 	public $mysql = "";
 	public $eigenscript = "";
+	public $groepmelding = 0;
 	private $aantalkolommen = 0;
 	public $aantalrijen = 0;
 	public $tabpage = "";
@@ -9885,7 +9904,7 @@ class cls_Eigen_lijst extends cls_db_base {
 		}
 		
 		if ($this->elid > 0) {
-			$query = sprintf("SELECT EL.RecordID, IFNULL(EL.Naam, '') AS Naam, EL.Uitleg, EL.Tabpage, MySQL, IFNULL(Default_value_params, '') AS Default_value_params, IFNULL(EigenScript, '') AS EigenScript, EL.AantalKolommen, EL.KolomLidID, EL.AantalRecords
+			$query = sprintf("SELECT EL.RecordID, IFNULL(EL.Naam, '') AS Naam, EL.Uitleg, EL.Tabpage, MySQL, IFNULL(Default_value_params, '') AS Default_value_params, IFNULL(EigenScript, '') AS EigenScript, EL.GroepMelding, EL.AantalKolommen, EL.KolomLidID, EL.AantalRecords
 							  FROM %s WHERE EL.RecordID=%d;", $this->basefrom, $this->elid);
 			$elrow = $this->execsql($query)->fetch();
 
@@ -9896,6 +9915,7 @@ class cls_Eigen_lijst extends cls_db_base {
 				$this->mysql = $elrow->MySQL;
 				$this->waarde_params = $elrow->Default_value_params;
 				$this->eigenscript = $elrow->EigenScript;
+				$this->groepmelding = $elrow->GroepMelding;
 				$this->aantalkolommen = $elrow->AantalKolommen;
 				$this->aantalrijen = $elrow->AantalRecords;
 				$this->tabpage = $elrow->Tabpage;
