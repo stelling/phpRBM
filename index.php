@@ -361,7 +361,7 @@ function fnVoorblad() {
 			$dtfmt->setPattern(DTTEXT);
 			$content = str_replace("[%LAATSTEUPLOAD%]", $dtfmt->format(strtotime($lu)), $content);
 		}
-		$content = str_replace("[%BEWAARTIJDLOGGING%]", $_SESSION['settings']['logboek_bewaartijd'], $content);
+		$content = str_replace("[%BEWAARTIJDLOGGING%]", $_SESSION['settings']['logboek_lid_bewaartijd'], $content);
 
 		// Gebruiker-specifieke statistieken
 		
@@ -421,6 +421,9 @@ function fnVoorblad() {
 		}
 		if (strpos($content, "[%VERJAARDAGEN%]") !== false) {
 			$content = str_replace("[%VERJAARDAGEN%]", overzichtverjaardagen(0), $content);
+		}
+		if (strpos($content, "[%MELDINGEN%]") !== false) {
+			$content = str_replace("[%MELDINGEN%]", fnMeldingen(), $content);
 		}
 		
 	} else {
@@ -686,5 +689,32 @@ function fnAgendaTable($p_lidid=0) {
 	return $txt;
 	
 }  # fnAgendaTable
+
+function fnMeldingen() {
+	$rv = "";
+	$i_el = new cls_Eigen_lijst();
+	
+	foreach($i_el->lijst(4) as $row) {
+		$i_el->controle($row->RecordID);
+		$i_el->vulvars($row->RecordID);
+		$nm = $row->Naam;
+		if ($i_el->aantalrijen > 1) {
+			$nm .= sprintf(": %d rijen", $i_el->aantalrijen);
+		}
+		if (strlen($i_el->tabpage) > 0 and toegang($i_el->tabpage)) {
+			$rv .= sprintf("<li><a href='%s?tp=%s/%s'>%s</a></li>\n", $_SERVER['PHP_SELF'], $i_el->tabpage, $i_el->elnaam, $nm);
+		} else {
+			$rv .= sprintf("<li>%s</li>\n", $nm, $i_el->aantalrijen);
+		}
+	}
+	
+	if (strlen($rv) > 0) {
+		$rv = "<h3>Persoonlijke meldingen</h3>\n<ul>\n" . $rv . "</ul>\n";
+	}
+	
+	$i_el = null;
+	return $rv;
+	
+}  # fnMeldingen
 
 ?>
