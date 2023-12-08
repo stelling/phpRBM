@@ -565,34 +565,32 @@ function fnInstellingen() {
 	$arrParam['naamvereniging'] = "Naam van de vereniging";
 	$arrParam['naamvereniging_afkorting'] = "Verkorte naam van de vereniging";
 	$arrParam['db_backup_type'] = "Welke tabellen moeten worden gebackuped?";
-	$arrParam['db_backupsopschonen'] = "Na hoeveel dagen moeten back-ups verwijderd worden? 0 = nooit.";
-	$arrParam['logboek_bewaartijd'] = "Hoelang moet logging worden bewaard (in maanden)?";
+	$arrParam['db_backupsopschonen'] = array('label' => "Na hoeveel dagen moeten back-ups verwijderd worden?", 'uitleg' => "0 = nooit");
+	$arrParam['logboek_bewaartijd'] = array('label' => "Hoelang moet logging worden bewaard?", 'uitleg' => "maanden");
 	$arrParam['db_folderbackup'] = "In welke folder moet de backup worden geplaatst?";
 	$arrParam['interface_access_db'] = "Moet de tabel voor de interface naar MS-Access worden gevuld?";
 	$arrParam['kaderoverzichtmetfoto'] = "Moeten op het kaderoverzicht pasfoto's getoond worden?";
 	$arrParam['toonpasfotoindiennietingelogd'] = "Mogen pasfoto's zichtbaar voor bezoekers (niet ingelogd) zijn?";
-	$arrParam['login_autounlock'] = "Na hoeveel minuten moet een gelockede login automatisch geunlocked worden? 0 = alleen handmatig unlocken.";
-	$arrParam['login_beperkttotgroep'] = "Vul hier de RecordID's, gescheiden door een komma, van de groepen (zie tabel ONDERDL) in die toegang hebben. Leeg = alleen webmasters hebben toegang.";
-	$arrParam['login_bewaartijd'] = "Het aantal maanden dat logins na het laatste gebruik bewaard blijven. 0 = altijd bewaren.";
-	$arrParam['login_geldigheidactivatie'] = "Hoelang in uren is een activatielink geldig? 0 = altijd.";
-	$arrParam['login_bewaartijdnietgebruikt'] = "Het aantal dagen dat logins wordt bewaard, nadat het is aangevraagd en nog niet gebruikt is.";
-	$arrParam['mailing_bevestigingbestelling'] = "Het nummer van de mailing die bij een bestelling verstuurd moet worden. 0 = geen.";
-	$arrParam['menu_met_afdelingen'] = "Voor welke afdelingen/onderdelen moeten een tabblad worden gemaakt? (bij meerdere scheiden met een komma)";
-	$arrParam['login_maxinlogpogingen'] = "Na hoeveel foutieve inlogpogingen moet het account geblokkeerd worden? 0 = nooit.";
-	$arrParam['login_maxlengte'] = "De maximale lengte die een login mag zijn. Minimaal 7 en maximaal 20 invullen.";
-	$arrParam['wachtwoord_minlengte'] = "De minimale lengte van een wachtwoord. Minimaal 7 en maximaal 15 invullen.";
-	$arrParam['wachtwoord_maxlengte'] = "De maximale lengte van een wachtwoord. Minimaal 7 en maximaal 15 invullen.";
+	$arrParam['login_autounlock'] = array('label' => "Wachttijd automatisch unlocken logins", 'uitleg' => "minuten / 0 = alleen handmatig unlocken");
+	$arrParam['login_beperkttotgroep'] = array('label' => "De onderdelen (zie tabel ONDERDL) die toegang hebben", 'uitleg' => "Bij meerdere: de RecordID's scheiden door een komma / Leeg: alleen webmasters");
+	$arrParam['login_bewaartijd'] = array('label' => "Het aantal maanden dat logins na het laatste gebruik bewaard blijven", 'uitleg' => "0 = altijd");
+	$arrParam['login_geldigheidactivatie'] = array('label' => "Hoelang in uren is een activatielink geldig?", 'uitleg' => "0 = altijd");
+	$arrParam['login_bewaartijdnietgebruikt'] = array('label' => "Hoelang moeten logins worden bewaard, na aangevragen en zonder gebruik", 'uitleg' => "dagen");
+	$arrParam['menu_met_afdelingen'] = array('label' => "Voor welke afdelingen/onderdelen moeten een tabblad worden gemaakt?", 'uitleg' => "bij meerdere: RecordID's scheiden met een komma");
+	$arrParam['login_maxinlogpogingen'] = array('label' => "Na hoeveel foutieve inlogpogingen moet het account geblokkeerd worden?", 'uitleg' => "0 = nooit");
+	$arrParam['login_maxlengte'] = array('label' => "Maximale lengte van een login", 'uitleg' => "Minimaal 7 en maximaal 20");
+	$arrParam['wachtwoord_minlengte'] = array('label' => "De minimale lengte van een wachtwoord", 'uitleg' => "Minimaal 7 en maximaal 15");
+	$arrParam['wachtwoord_maxlengte'] = array('label' => "De maximale lengte van een wachtwoord", 'uitleg' => "Minimaal 7 en maximaal 15");
 	$arrParam['naamwebsite'] = "Dit is de naam zoals deze in de titel en op elke pagina getoond wordt.";
-	$arrParam['title_head_html'] = "Hiermee start de HTML-titel van elke pagina.";
-	$arrParam['performance_trage_select'] = "Vanaf hoeveel seconden moet een select-statement in het logboek worden gezet. 0 = nooit.";
-	$arrParam['termijnvervallendiplomasmailen'] = "Hoeveel maanden vooruit moeten leden een herinnering krijgen als een diploma gaat vervallen. 0 = geen herinnering sturen.";
-	$arrParam['termijnvervallendiplomasmelden'] = "Hoeveel maanden vooruit en achteraf moeten vervallen diploma op het voorblad getoond worden.";
+	$arrParam['title_head_html'] = "Hiermee start de HTML-titel van elke pagina";
+	$arrParam['performance_trage_select'] = array('label' => "Vanaf hoeveel seconden moet een SQL-statement worden gelogd", 'uitleg' => "0 = nooit");
+	$arrParam['termijnvervallendiplomasmailen'] = array('label' => "Hoelang vooruit moeten leden een herinnering krijgen van vervallen diploma's?", 'uitleg' => "maanden / 0 = geen herinnering sturen");
+	$arrParam['termijnvervallendiplomasmelden'] = array('label' => "Hoelang vooruit en achteraf vervallen diploma op het voorblad tonen", 'uitleg' => "maanden / 0 = geen tonen");
 	$arrParam['urlvereniging'] = "De URL van de website van de vereniging.";
-	$arrParam['verjaardagenaantal'] = "Aantal verjaardagen dat maximaal in de verenigingsinfo wordt getoond. Als er meerdere leden op dezelfde dag jarig zijn, wordt dit aantal overschreden.";
-	$arrParam['verjaardagenvooruit'] = "Hoeveel dagen vooruit moeten de verjaardagen in de verenigingsinfo getoond worden?";
+	$arrParam['verjaardagenaantal'] = array('label' => "Aantal verjaardagen dat maximaal in de verenigingsinfo wordt getoond", 'uitleg' => "Als er meerdere leden op dezelfde dag jarig zijn, wordt dit aantal overschreden");
+	$arrParam['verjaardagenvooruit'] = "Aantal dagen vooruit verjaardagen in de verenigingsinfo tonen?";
 	
 	$arrParam['zs_voorwaardenbestelling'] = "Deze regel wordt bij de online-bestellingen in de zelfservice vermeld.";
-//	$arrParam['zs_voorwaardeninschrijving'] = "Deze regel wordt bij de inschrijving als voorwaarde voor de inschrijving voor de bewaking vemeld.";
 	
 	$specmailing = array("mailing_bevestigingbestelling");
 	$i_p = new cls_Parameter();
@@ -672,29 +670,36 @@ function fnInstellingen() {
 		}
 	}
 
-	printf("<form method='post' class='form-check form-switch' id='algemeen_instellingen' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+	printf("<form method='post' id='algemeen_instellingen' class='form-check form-switch' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	
 	foreach ($i_p->lijst() as $row) {
 		if (isset($arrParam[$row->Naam])) {
-			$uitleg = htmlent($arrParam[$row->Naam]);
+			
+			if (is_array($arrParam[$row->Naam])) {
+				$label = htmlent($arrParam[$row->Naam]['label']);
+				$uitleg = "<p>" . htmlent($arrParam[$row->Naam]['uitleg']) . "</p>";
+			} else {
+				$label = htmlent($arrParam[$row->Naam]);
+				$uitleg = "";
+			}
 			if (strlen($row->ValueChar) > 60 and $row->ParamType="T") {
-				printf("<label class='form-label'>%s</label><textarea name='%s'>%s</textarea>\n", $uitleg, $row->Naam, $row->ValueChar);
+				printf("<label class='form-label'>%s</label><textarea name='%s'>%s</textarea>\n", $label, $row->Naam, $row->ValueChar);
 			} elseif ($row->Naam == "db_backup_type") {
-				printf("<label class='form-label'>%s</label><select name='%s' id='%s' class='form-select'>", $uitleg, $row->Naam, str_replace(" ", "_", strtolower($row->Naam)));
+				printf("<label class='form-label'>%s</label><select name='%s' id='%s' class='form-select form-select-sm'>", $label, $row->Naam, str_replace(" ", "_", strtolower($row->Naam)));
 				foreach (ARRTYPEBACKUP as $key => $val) {
 					printf("<option value=%d %s>%s</option>\n", $key, checked($row->ValueNum, "option", $key), $val);
 				}
 				echo("</select>\n");
 			} else {
-				printf("<label class='form-label'>%s</label><input name='%s' id='%s' ", $uitleg, $row->Naam, str_replace(" ", "_", strtolower($row->Naam)));
+				printf("<label class='form-label'>%s</label><input name='%s' id='%s' ", $label, $row->Naam, str_replace(" ", "_", strtolower($row->Naam)));
 				if ($row->ParamType == "B") {
 					printf("type='checkbox' class='form-check-input' value='1' %s>\n", checked(intval($row->ValueNum)));
 				} elseif ($row->ParamType == "I") {
-					printf("type='number' value=%d>\n", $row->ValueNum);
+					printf("type='number' value=%d>%s\n", $row->ValueNum, $uitleg);
 				} elseif ($row->ParamType == "F") {
-					printf("value=%F size=8>\n", $row->ValueNum);
+					printf("value=%F size=8>%s\n", $row->ValueNum, $uitleg);
 				} else {
-					printf("type='text' value=\"%s\">\n", $row->ValueChar);
+					printf("type='text' value=\"%s\">%s\n", $row->ValueChar, $uitleg);
 				}
 			}
 		}
@@ -741,6 +746,7 @@ function fnEigenlijstenmuteren() {
 		$elid = 0;
 	}
 	$i_el = new cls_Eigen_lijst("", $elid);
+	$i_ond = new cls_Onderdeel();
 	$i_el->controle($elid, 1);
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
@@ -774,6 +780,10 @@ function fnEigenlijstenmuteren() {
 			$i_el->update($elid, "EigenScript", $_POST['EigenScript']);
 		}
 		
+		if (isset($_POST['groepmelding'])) {
+			$i_el->update($elid, "GroepMelding", $_POST['groepmelding']);
+		}
+		
 		if (isset($_POST['waarde_params'])) {
 			$i_el->update($elid, "Default_value_params", $_POST['waarde_params']);
 		}
@@ -805,8 +815,9 @@ function fnEigenlijstenmuteren() {
 		
 		printf("<label class='form-label'>Eigen script</label><p>%s/maatwerk/</p><input type='text' name='EigenScript' class='w30' value='%s' maxlength=30>\n", BASISURL, $row->EigenScript);
 		printf("<label class='form-label'>Tonen in tabblad</label><input type='text' name='tabpage' class='w75' value='%s' maxlength=75>\n", $row->Tabpage);
+		printf("<label class='form-label'>Groep voor melding op voorblad</label><select name='groepmelding' class='form-select form-select-sm'><option value=0>Geen</option>\n%s</select>\n", $i_ond->htmloptions($i_el->groepmelding));
 		if ($i_el->aantal_params > 0) {
-			printf("<label>Waarde parameter(s)</label><input type='text' name='waarde_params' class='w100' value=\"%s\" maxlength=100>", str_replace("\"", "'", $row->Default_value_params));
+			printf("<label class='form-label'>Waarde parameter(s)</label><input type='text' name='waarde_params' class='w100' value=\"%s\" maxlength=100>", str_replace("\"", "'", $row->Default_value_params));
 			if (count(explode(";", $row->Default_value_params)) < $i_el->aantal_params) {
 				printf("<p>Te weinig parameters, %d nodig, gescheiden door een ;).</p>", $i_el->aantal_params);
 			} elseif ($i_el->aantal_params > 1) {
