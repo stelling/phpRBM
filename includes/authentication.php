@@ -202,10 +202,8 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 	addtp($b);
 	if ($currenttab == $b) {
 		$i_dp = new cls_Diploma();
-		addtp($b . "/Basislijst");
+		addtp($b . "/Beheer");
 		if ($i_dp->aantal() > 0) {
-			addtp($b . "/Details");
-			addtp($b . "/Leden per diploma");
 			addtp($b . "/Examenonderdelen");
 		}
 //		addtp($b . "/Examens muteren");
@@ -214,18 +212,6 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 	if (isset($_SESSION['settings']['menu_met_afdelingen']) and strlen($_SESSION['settings']['menu_met_afdelingen']) > 0) {
 		// Tabblad per afdeling
 		
-		/* Voor later
-		$arrafdinmenu = array();
-		
-		foreach ((new cls_Onderdeel())->lijst(1, "`Type`='A'") as $row) {
-			if (in_array($row->RecordID, explode(",", $_SESSION['settings']['menu_met_afdelingen']))) {
-				if (toegang($row->Naam, 0, 0)) {
-					$arrafdinmenu[] = $row->Naam;
-				}
-			}
-		}
-		*/
-
 		$i_ond = new cls_Onderdeel();
 		foreach (explode(",", $_SESSION['settings']['menu_met_afdelingen']) as $ondid) {
 			$i_ond->vulvars($ondid);
