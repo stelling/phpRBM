@@ -182,8 +182,6 @@ class Mailing {
 	
 	public $mailingvanafid = 0;
 	private $OmschrijvingOntvangers = "";
-	public $vanafnaam = "";
-	public $vanafadres = "";
 	public $cc_addr = "";
 	private $CCafdelingen = 0;
 	private $subject = "";
@@ -630,7 +628,7 @@ class Mailing {
 			$m = "";
 		}	
 		printf("<div id='editmailingform'>\n");
-		printf("<form method='post' action='%s?tp=Mailing/Wijzigen+mailing%s' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], $m);
+		printf("<form method='post' id='editmailingform' class='form-check form-switch' action='%s?tp=Mailing/Wijzigen+mailing%s' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], $m);
 		
 		if ($this->mid > 0) {
 			printf("<p id='recordid'>%d</p><label id='lblrecordid'>RecordID</label>\n", $this->mid);
@@ -697,7 +695,7 @@ class Mailing {
 			printf("<label class='form-label'>Cc</label><input type='text' id='cc_addr' class='w50' value='%s' %s>\n", $this->cc_addr, $jstb);
 		
 			if ((new cls_Onderdeel())->aantal("`Type`='A' AND LENGTH(CentraalEmail) > 4 AND IFNULL(VervallenPer, CURDATE()) >= CURDATE()") > 0) {
-				printf("<label class='form-label' for='CCafdelingen'>Cc aan afdelingen</label><input type='checkbox' id='CCafdelingen' class='form-check-input' value=1 %s %s>\n", checked($this->CCafdelingen), $jscb);
+				printf("<label class='form-label' for='CCafdelingen' id='ccafdelingen'>Cc aan afdelingen</label><input type='checkbox' id='CCafdelingen' class='form-check-input' value=1 %s %s>\n", checked($this->CCafdelingen), $jscb);
 			}
 
 			$ondrows = (new cls_Onderdeel())->lijst(1, "`Type`<>'T'", "", $_SESSION['lidid']);
@@ -714,9 +712,9 @@ class Mailing {
 				}
 			}
 			printf("<label class='form-label'>Zichtbaar voor</label><select id='ZichtbaarVoor' class='form-select form-select-sm' %s>\n%s</select>\n", $jsoc, $select);
-			printf("<label class='form-label'>Opties</label><input type='checkbox' id='template' class='form-check-input' value=1%s %s><label for='template' class='form-check-label'>Template</label>", checked($this->template), $jscb);
-			printf("<input type='checkbox' id='HTMLdirect' name='HTMLdirect' class='form-check-input' value=1%s onChange='this.form.submit();'><label for='HTMLdirect' class='form-check-label'>HTML direct (zonder editor)</label>", checked($this->htmldirect));
-			printf("<input type='checkbox' id='ZonderBriefpapier' class='form-check-input' value=1%s %s><label for='ZonderBriefpapier' class='form-check-label'>Zonder briefpapier versturen</label>", checked($this->zonderbriefpapier), $jscb);
+			printf("<label for='template' class='form-check'>Template</label><input type='checkbox' id='template' class='form-check-input' value=1%s %s>", checked($this->template), $jscb);
+			printf("<label for='HTMLdirect' id='htmldirect' class='form-check'>HTML direct</label><input type='checkbox' id='HTMLdirect' name='HTMLdirect' class='form-check-input' title='Zonder editor'value=1%s onChange='this.form.submit();'>", checked($this->htmldirect));
+			printf("<label for='ZonderBriefpapier' id='zonderbriefpapier' class='form-check'>Zonder briefpapier</label><input type='checkbox' id='ZonderBriefpapier' class='form-check-input' value=1%s %s>", checked($this->zonderbriefpapier), $jscb);
 
 			echo("<div class='clear'></div>\n");
 			
@@ -1149,8 +1147,6 @@ class Mailing {
 		$i_mv = new cls_Mailing_vanaf($p_mvid);
 		if ($i_mv->mvid > 0) {
 			$this->mailingvanafid = $i_mv->mvid;
-			$this->vanafadres = $i_mv->vanaf_email;
-			$this->vanafnaam = $i_mv->vanaf_naam;
 			if ($p_incc == 1) {
 				$this->cc_addr = $i_mv->vanaf_email;
 			}
@@ -1450,18 +1446,12 @@ function lijstmailings($p_filter="") {
 	} elseif ($p_filter == "Verzonden mails" or $p_filter == "Verzonden e-mails" or $p_filter == "Outbox") {
 		$i_mh = new cls_Mailing_hist();
 		$l = sprintf("index.php?tp=%s&op=bekijkmail&MailingHistID=%%d", urlencode($_GET['tp']));
-		$kols[0] = array('link' => $l, 'headertext' => "&nbsp;", 'columnname' => "RecordID", 'class' => "viewmail");
+		$kols[] = array('link' => $l, 'headertext' => "&nbsp;", 'columnname' => "RecordID", 'class' => "viewmail");
 		
-		$kols[1]['headertext'] = "Verzonden";
-		$kols[1]['columnname'] = "send_on";
-		$kols[1]['type'] = "DTLONG";
-		$kols[2]['headertext'] = "Van";
-		$kols[2]['columnname'] = "Vanaf";
-		$kols[3]['headertext'] = "Aan";
-		$kols[3]['columnname'] = "Aan";
-		$kols[3]['type'] = "combitext";
-		$kols[4]['headertext'] = "Onderwerp";
-		$kols[4]['columnname'] = "subject";
+		$kols[] = array('headertext' => "Verzonden", 'columnname' => "send_on", 'type' => "DTLONG");
+		$kols[] = array('headertext' => "Van", 'columnname' => "Vanaf", 'headertext' => "Aan");
+		$kols[] = array('columnname' => "Aan", 'type' => "combitext");
+		$kols[] = array('headertext' => "Onderwerp", 'columnname' => "subject");
 		
 		if ($_SESSION['settings']['maxmailsperdag'] > 0 and $i_mh->aantalverzonden(1) >= $_SESSION['settings']['maxmailsperdag']) {
 			
@@ -1531,32 +1521,16 @@ function lijstmailings($p_filter="") {
 			
 	} else {
 		if (toegang("Mailing/Wijzigen mailing")) {
-			$kols[0]['link'] = sprintf("%s?tp=%s/Wijzigen+mailing&mid=%%d", $_SERVER['PHP_SELF'], $currenttab);
-			$kols[0]['class'] = "muteren";
-			$kols[0]['title'] = "Wijzigen mailing";
-			$kols[0]['columnname'] = "RecordID";
+			$l = sprintf("%s?tp=%s/Wijzigen+mailing&mid=%%d", $_SERVER['PHP_SELF'], $currenttab);
+			$kols[] = array('columnname' => "RecordID", 'link' => $l, 'class' => "muteren", 'title' => "Wijzigen mailing");
 		}
-		
-		$kols[1]['headertext'] = "Onderwerp / Opmerking";
-		$kols[1]['columnname'] = "Onderwerp_Opmerking";
-		$kols[1]['type'] = "mrg";
-		
-		$kols[2]['headertext'] = "Van / Aan";
-		$kols[2]['columnname'] = "Van_Aan";
-		$kols[2]['type'] = "mrg";
-		
-		$kols[3]['headertext'] = "Laatst gewijzigd";
-		$kols[3]['columnname'] = "laatstGewijzigd";
-		$kols[3]['type'] = "mrg";
-		
-		$kols[4]['headertext'] = "Verwijderd op";
-		$kols[4]['columnname'] = "deleted_on";
-		$kols[4]['type'] = "date";
-		
-		$kols[5]['columnname'] = "linkHist";
-		$kols[5]['link'] = sprintf("%s?tp=Mailing/Historie&op=historie&mid=%%d", $_SERVER['PHP_SELF']);
-		$kols[5]['class'] = "detailregels";
-		$kols[5]['title'] = "Verstuurde e-mails";
+		$kols[] = array('headertext' => "Onderwerp / Opmerking", 'columnname' => "Onderwerp_Opmerking", 'type' => "mrg");
+		$kols[] = array('headertext' => "Van / Aan", 'columnname' => "Van_Aan", 'type' => "mrg");
+		$kols[] = array('headertext' => "Laatst gewijzigd", 'columnname' => "laatstGewijzigd", 'type' => "mrg");
+		$kols[] = array('headertext' => "Verwijderd op", 'columnname' => "deleted_on", 'type' => "date");
+
+		$l = sprintf("%s?tp=Mailing/Historie&op=historie&mid=%%d", $_SERVER['PHP_SELF']);
+		$kols[] = array('columnname' => "linkHist", 'link' => $l, 'class' => "detailregels", 'title' => "Verstuurde e-mails");
 		
 		$rows = $i_m->lijst($p_filter);
 		echo("<div id='filter'>\n");
@@ -1741,7 +1715,7 @@ class email {
 
 		return $txt;
 		
-	} # toon
+	} # email->toon
 	
 	public function edit($p_mhid=-1, $p_lidid=-1) {
 		global $currenttab, $currenttab2;
@@ -2145,6 +2119,7 @@ function fnMailingInstellingen() {
 		$i_p->update("mailing_herstellenwachtwoord", $_POST['mailing_herstellenwachtwoord']);
 		$i_p->update("mailing_bevestigingopzegging", $_POST['mailing_bevestigingopzegging']);
 		$i_p->update("mailing_bevestigingdeelnameevenement", $_POST['mailing_bevestigingdeelnameevenement']);
+		$i_p->update("mailing_bevestigingbestelling", $_POST['mailing_bevestigingbestelling']);
 	}
 		
 	if (isset($_GET['delete_vanaf']) and $_GET['delete_vanaf'] > 0) {
@@ -2200,10 +2175,10 @@ function fnMailingInstellingen() {
 	printf("<label class='form-label'>Wat is de API-key voor TinyMCE?</label><input type='text' class='w90' name='mailing_tinymce_apikey' value='%s'>\n", $_SESSION['settings']['mailing_tinymce_apikey']);
 		
 	echo("<h2>Retentie / Opschonen</h2>\n");
-	printf("<label class='form-label'>Hoe lang moeten mailings in de prullenbak bewaard blijven?</label><input type='number' name='mailing_bewaartijd' value=%d min=1 max=999><p>(maanden)</p>\n", $_SESSION['settings']['mailing_bewaartijd']);
-	printf("<label class='form-label'>Hoe lang moeten verzonden e-mails bewaard blijven?</label><input type='number' name='mailing_verzonden_opschonen' value=%d min=6 max=999><p>(maanden)</p>\n", $_SESSION['settings']['mailing_verzonden_opschonen']);
-	printf("<label class='form-label'>Hoe lang moeten ontvangers bij een mailing worden bewaard?</label><input type='number' name='mailing_bewaartijd_ontvangers' value=%d min=3 max=999><p>(maanden)</p>\n", $_SESSION['settings']['mailing_bewaartijd_ontvangers']);
-	printf("<label class='form-label'>Hoe lang moeten verzonden e-mails na beïndiging lidmaatschap bewaard blijven?</label><input type='number' name='mailing_hist_opschonen' value=%d min=3 max=999><p>(maanden)</p>\n", $_SESSION['settings']['mailing_hist_opschonen']);
+	printf("<label class='form-label'>Hoe lang moeten mailings in de prullenbak bewaard blijven?</label><input type='number' name='mailing_bewaartijd' value=%d min=1 max=999><p>maanden</p>\n", $_SESSION['settings']['mailing_bewaartijd']);
+	printf("<label class='form-label'>Hoe lang moeten verzonden e-mails bewaard blijven?</label><input type='number' name='mailing_verzonden_opschonen' value=%d min=6 max=999><p>maanden</p>\n", $_SESSION['settings']['mailing_verzonden_opschonen']);
+	printf("<label class='form-label'>Hoe lang moeten ontvangers bij een mailing worden bewaard?</label><input type='number' name='mailing_bewaartijd_ontvangers' value=%d min=3 max=999><p>maanden</p>\n", $_SESSION['settings']['mailing_bewaartijd_ontvangers']);
+	printf("<label class='form-label'>Bewaartermijn verzonden e-mails na beïndiging lidmaatschap</label><input type='number' name='mailing_hist_opschonen' value=%d min=3 max=999><p>maanden</p>\n", $_SESSION['settings']['mailing_hist_opschonen']);
 	
 	echo("<h2>Mailings met een specifiek doel</h2>\n");
 	
@@ -2211,35 +2186,43 @@ function fnMailingInstellingen() {
 
 	$options = "";
 	foreach($rows as $row) {
-		$options .= sprintf("<option%s value=%d>%s</option>", checked($row->RecordID, "option", $_SESSION['settings']['mailing_lidnr']), $row->RecordID, $row->subject);
+		$options .= sprintf("<option%s value=%d>%s</option>\n", checked($row->RecordID, "option", $_SESSION['settings']['mailing_lidnr']), $row->RecordID, $row->subject);
 	}
-	printf("<label class='form-label'>Versturen lidnummer</label><select name='mailing_lidnr' class='form-select'>\n<Option value=0>Geen</option>\n%s</select>\n", $options);
+	printf("<label class='form-label'>Versturen lidnummer</label><select name='mailing_lidnr' class='form-select form-select-sm'>\n<Option value=0>Geen</option>\n%s</select>\n", $options);
 	
 	$options = "";
 	foreach($rows as $row) {
-		$options .= sprintf("<Option%s value=%d>%s</option>", checked($row->RecordID, "option", $_SESSION['settings']['mailing_validatielogin']), $row->RecordID, $row->subject);
+		$options .= sprintf("<Option%s value=%d>%s</option>\n", checked($row->RecordID, "option", $_SESSION['settings']['mailing_validatielogin']), $row->RecordID, $row->subject);
 	}
-	printf("<label class='form-label'>Versturen validatie e-mail login</label><select name='mailing_validatielogin' class='form-select'><Option value=0>Geen</option>\n%s</select>\n", $options);
+	printf("<label class='form-label'>Versturen validatie e-mail login</label><select name='mailing_validatielogin' class='form-select form-select-sm'><Option value=0>Geen</option>\n%s</select>\n", $options);
 	
 	$options = "";
 	foreach($rows as $row) {
 		$options .= sprintf("<Option%s value=%d>%s</option>", checked($row->RecordID, "option", $_SESSION['settings']['mailing_herstellenwachtwoord']), $row->RecordID, $row->subject);
 	}
-	printf("<label>Versturen link herstellen wachtwoord</label><select name='mailing_herstellenwachtwoord' class='form-select'><Option value=0>Geen</option>\n%s</select>\n", $options);
+	printf("<label class='form-label'>Versturen link herstellen wachtwoord</label><select name='mailing_herstellenwachtwoord' class='form-select form-select-sm'><Option value=0>Geen</option>\n%s</select>\n", $options);
 
-	$options = "<Option value=0>Geen</option>";
+	$options = "<Option value=0>Geen</option>\n";
 	foreach($rows as $row) {
-		$options .= sprintf("<Option%s value=%d>%s</option>", checked($row->RecordID, "option", $_SESSION['settings']['mailing_bevestigingopzegging']), $row->RecordID, $row->subject);
+		$options .= sprintf("<Option%s value=%d>%s</option>\n", checked($row->RecordID, "option", $_SESSION['settings']['mailing_bevestigingopzegging']), $row->RecordID, $row->subject);
 	}
-	printf("<label>Versturen bevestiging opzegging lidmaatschap</label><select name='mailing_bevestigingopzegging' class='form-select'>%s</select>\n", $options);
+	printf("<label class='form-label'>Versturen bevestiging opzegging lidmaatschap</label><select name='mailing_bevestigingopzegging' class='form-select form-select-sm'>%s</select>\n", $options);
 	
 	$options = "<Option value=0>Geen</option>";
 	foreach($rows as $row) {
 		$options .= sprintf("<Option%s value=%d>%s</option>", checked($row->RecordID, "option", $_SESSION['settings']['mailing_bevestigingdeelnameevenement']), $row->RecordID, $row->subject);
 	}
-	$rows = null;
-	printf("<label>Versturen bevestiging inschrijven bij evenement</label><select name='mailing_bevestigingdeelnameevenement' class='form-select'>%s</select>\n", $options);
+	printf("<label class='form-label'>Versturen bevestiging inschrijven bij evenement</label><select name='mailing_bevestigingdeelnameevenement' class='form-select form-select-sm'>%s</select>\n", $options);
 	
+	
+	$options = "<Option value=0>Geen</option>\n";
+	foreach($rows as $row) {
+		$options .= sprintf("<Option%s value=%d>%s</option>\n", checked($row->RecordID, "option", $_SESSION['settings']['mailing_bevestigingbestelling']), $row->RecordID, $row->subject);
+	}
+	$rows = null;
+	printf("<label class='form-label'>Versturen bevestiging bestelling</label><select name='mailing_bevestigingbestelling' class='form-select form-select-sm'>%s</select>\n", $options);
+	
+	$rows = null;
 	echo("<div class='clear'></div>\n");
 	
 	$kols[0]['headertext'] = "#";
@@ -2537,16 +2520,16 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 	}
 } # RBM_mailer
 
-function eigennotificatie($p_ondid, $p_aanadres, $p_tas=-1, $p_interval=24, $p_cc="", $p_onderwerp="", $p_vanafid=-1) {
+function eigennotificatie($p_ondid, $p_aanadres, $p_tas=-1, $p_interval=48, $p_cc="", $p_onderwerp="", $p_vanafid=-1) {
 	
 	if ($p_tas < 0) {
 		$p_tas = $p_ondid;
 	}
 	
 	$i_ond = new cls_Onderdeel($p_ondid);
-	(new cls_Lidond())->autogroepenbijwerken(0, 10, $p_ondid);
+	$i_lo = new cls_Lidond(-1, -1, $p_ondid);
+	$i_lo->autogroepenbijwerken(0, 10, $p_ondid);
 	$i_el = new cls_Eigen_lijst("", $p_ondid);
-	$i_el->controle();
 	$i_lb = new cls_Logboek();
 	$i_email = new email();
 	
@@ -2563,32 +2546,37 @@ function eigennotificatie($p_ondid, $p_aanadres, $p_tas=-1, $p_interval=24, $p_c
 		if ($i_ond->oid > 0) {
 			$ng = $i_ond->naam;
 			$query = sprintf("SELECT DISTINCT L.RecordID AS LidID, %1\$s AS Naam
-							  FROM %2\$sLidond AS LO INNER JOIN %2\$sLid AS L ON LO.Lid=L.RecordID
-							  WHERE LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE() AND LO.OnderdeelID=%3\$d;", $i_ond->selectnaam, TABLE_PREFIX, $i_ond->oid);
+									FROM %2\$sLidond AS LO INNER JOIN %2\$sLid AS L ON LO.Lid=L.RecordID
+									WHERE LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE() AND LO.OnderdeelID=%3\$d;", $i_ond->selectnaam, TABLE_PREFIX, $i_ond->oid);
 			$rows = $i_ond->execsql($query)->fetchAll();
 			if ($rows !== false) {
 				$ar = count($rows);
 				$res = fnDisplayTable($rows);
 			}
 		} elseif ($i_el->elid > 0) {
-			$ar = $i_el->aantalrijen;
-			if ($ar > 0) {
-				$ar = $i_el->aantalrijen;
+			if ($i_el->aantalrijen > 0) {
+				$i_el->controle($i_el->elid);
 			}
 			$ng = $i_el->elnaam;
+			$ar = $i_el->aantalrijen;
 			
-			if ($ar > 0) {
+			if ($i_el->aantalrijen > 0) {
 				$rows = $i_el->rowset();
 				if ($rows !== false) {
 					$res = fnDisplayTable($rows);
 				}
+				$res .= sprintf("<p>%s</p>\n", $i_el->uitleg);
 			}
-			$res .= sprintf("<p>%s</p>\n", $i_el->uitleg);
 		}
 		if ($ar > 0 and isValidMailAddress($p_aanadres, 0)) {	
 			$i_email->aanadres = $p_aanadres;
 			if (isValidMailAddress($p_cc, 0)) {
 				$i_email->cc = $p_cc;
+			} elseif (strlen($p_cc) > 10) {
+				$p_cc = str_replace(";", ",", $p_cc);
+				if (strpos($p_cc, ",") !== false) {
+					$i_email->cc = $p_cc;	
+				}
 			}
 			if (strlen($p_onderwerp) > 0) {
 				$i_email->onderwerp = $p_onderwerp;
@@ -2619,6 +2607,11 @@ function eigennotificatie($p_ondid, $p_aanadres, $p_tas=-1, $p_interval=24, $p_c
 			}
 		}
 	}
+	
+	$i_ond = null;
+	$i_lo = null;
+	$i_el = null;
+	$i_lb = null;
 	
 }  # eigennotificatie
 
