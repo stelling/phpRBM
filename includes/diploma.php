@@ -5,10 +5,18 @@ function fnDiplomazaken() {
 	
 	fnDispMenu(2);
 	
-	if ($currenttab2 == "Basislijst") {
-		Diplomalijstmuteren();
-	} elseif ($currenttab2 == "Details") {
-		fnDiplomasMuteren();
+	if (isset($_GET['op']) and $_GET['op'] == "dpedit" and isset($_GET['p_dpid']) and $_GET['p_dpid'] > 0) {
+		fnDiplomaMuteren($_GET['p_dpid'], 0);
+
+	} elseif (isset($_GET['op']) and $_GET['op'] == "ldedit") {
+		if (isset($_GET['p_dpid']) and $_GET['p_dpid'] > 0) {
+			fnExamenResultaten(-1, 0, $_GET['p_dpid']);
+		} else {
+			fnExamenResultaten(-1, 0);
+		}
+		
+	} elseif ($currenttab2 == "Basislijst" or $currenttab2 == "Beheer") {
+		fnDiplomabeheer();
 	} elseif ($currenttab2 == "Leden per diploma") {
 		fnExamenResultaten(-1, 0);
 	} elseif ($currenttab2 == "Examens muteren") {
@@ -18,31 +26,59 @@ function fnDiplomazaken() {
 	}
 }  # fnDiplomazaken
 
-function Diplomalijstmuteren() {
+function fnDiplomabeheer() {
 	global $currenttab, $currenttab2, $dtfmt;
 
 	$i_dp = new cls_Diploma();
 	$i_ond = new cls_Onderdeel();
+	$i_org = new cls_Organisatie();
 	
 	if (isset($_POST['nieuwdiploma'])) {
 		$i_dp->add();
 	}
 	
-	$res = $i_dp->basislijst("", "DP.Kode", 0);
-		
-	$kols[] = array ('type' => "pk", 'columnname' => "RecordID", 'readonly' => true, 'headertext' => "#");
+	$orgfilter = $_POST['orgfilter'] ?? -1;
+	$vervfilter = $_POST['vervfilter'] ?? 0;
+	
+	printf("<form method='post' id='filter' class='form-check form-switch' action='%s?tp=%s/%s'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
+	
+	printf("<select name='orgfilter' class='form-select form-select-sm' onChange='this.form.submit();'>\n<option value=-1>Filter op organisatie  ...</option>\n%s</select>\n", $i_org->htmloptions(1, $orgfilter));
+	
+	printf("<input type='checkbox' class='form-check-input' name='vervfilter' value=1 title=\"Inclusief vervallen diploma's\" onClick='this.form.submit();'%s><label class='form-check-filter'>Inclusief vervallen diploma's</label>", checked($vervfilter));
+	
+	echo("</form>\n");
+	
+	$f = "";
+	if ($orgfilter >= 0) {
+		$f = sprintf("DP.ORGANIS=%d", $orgfilter);
+	}
+	if ($vervfilter == 0) {
+		if (strlen($f) > 0) {
+			$f .= " AND ";
+		}
+		$f .= "IFNULL(DP.Vervallen, '9999-12-31') > CURDATE() AND IFNULL(DP.eindeuitgifte, '9999-12-31') > CURDATE()";
+	}
+
+	$res = $i_dp->basislijst($f, "DP.Kode", 0);
+	
+	$l = sprintf("%s?tp=%s&op=dpedit&p_dpid=%%d", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	$kols[] = array ('type' => "link", 'columnname' => "RecordID", 'readonly' => true, 'headertext' => "&nbsp;", 'link' => $l, 'class' => "muteren");
+	
 	$kols[]['columnname'] = "Kode";
 	$kols[]['columnname'] = "Naam";
 	$kols[] = array('columnname' => "Volgnr", 'type' => "integer", 'max' => 999);
 	
-	$f = "O.`Type`='A'";
-	if ($i_ond->aantal($f) > 0) {
+	$i_ond->where = "O.`Type`='A'";
+	if ($i_ond->aantal() > 0) {
 		$arrAfd[0] = "Geen";
-		foreach ($i_ond->lijst(1, $f, "", 0, "O.Kode") as $row) {
+		foreach ($i_ond->lijst(1, "", "", 0, "O.Kode") as $row) {
 			$arrAfd[$row->RecordID] = $row->Kode;
 		}
-		$kols[] = array('headertext' => "Afdelingsspec.", 'columnname' => "Afdelingsspecifiek", 'bronselect' => $arrAfd);
+		$kols[] = array('headertext' => "Afdeling", 'columnname' => "Afdelingsspecifiek", 'bronselect' => $arrAfd);
 	}
+	
+	$l = sprintf("%s?tp=%s&op=ldedit&p_dpid=%%d", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	$kols[] = array ('type' => "link", 'columnname' => "RecordID", 'readonly' => true, 'headertext' => "&nbsp;", 'link' => $l, 'class' => "leden");
 	
 	echo("<div id='diplomasmuteren'>\n");
 	printf("<form method='post' action='%s?tp=%s/%s'>", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
@@ -52,7 +88,8 @@ function Diplomalijstmuteren() {
 	echo("</div> <!-- Einde opdrachtknoppen -->\n");
 	echo("</form>");
 	echo("</div> <!-- Einde diplomasmuteren -->\n");
-}  # Diplomalijstmuteren
+	
+}  # fnDiplomabeheer
 
 function ExamensMuteren() {
 	global $currenttab, $currenttab2;
@@ -98,8 +135,8 @@ function ExamensMuteren() {
 	
 }  # examensMuteren
 
-function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
-	global $dtfmt, $currenttab;
+function fnExamenResultaten($p_afdid=-1, $p_perexamen=1, $p_dpid=-1) {
+	global $dtfmt, $currenttab, $currenttab2;
 	
 	$i_ld = new cls_Liddipl();
 	$i_lid = new cls_Lid();
@@ -121,7 +158,11 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 	}
 	
 	$exid = $_POST['selecteerexamen'] ?? 0;
-	$dpid = $_POST['selecteerdiploma'] ?? 0;
+	if ($p_dpid > 0) {
+		$dpid = $p_dpid;
+	} else {
+		$dpid = $_POST['selecteerdiploma'] ?? 0;
+	}
 	$i_dp = new cls_Diploma($dpid);
 
 	$i_ex->vulvars($exid);
@@ -180,18 +221,19 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 	}
 	
 	echo("<div id='filter'>\n");
-	printf("<form action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
 	if ($p_perexamen == 1) {
+		printf("<form action='%s?tp=%s/%s' method='post'>\n", $_SERVER["PHP_SELF"], $currenttab, $currenttab2);
 		echo("<label class='form-label'>Examen</label>");
 		$fex = sprintf("(EX.OnderdeelID=0 OR EX.OnderdeelID=%d)", $p_afdid);
-		printf("<select name='selecteerexamen' class='form-select' onChange='this.form.submit();'>\n<option value=0>Selecteer examen ...</option>\n%s</select>\n", $i_ex->htmloptions($exid, $fex));
+		printf("<select name='selecteerexamen' class='form-select form-select-sm' onChange='this.form.submit();'>\n<option value=0>Selecteer examen ...</option>\n%s</select>\n", $i_ex->htmloptions($exid, $fex));
 	} else {
+		printf("<form action='%s?tp=%s/%s&op=ldedit' method='post'>\n", $_SERVER["PHP_SELF"], $currenttab, $currenttab2);
 		$exid = 0;
 		$i_ld->controle();
 	}
 	$i_ex->vulvars($exid);
 	
-	printf("<select name='selecteerdiploma' class='form-select' onChange='this.form.submit();'>\n<option value=-1>Selecteer diploma ...</option>\n%s</select>\n", $i_dp->htmloptions($dpid, -1, 0, 0, "", 0, $i_ex->exid));
+	printf("<select name='selecteerdiploma' class='form-select form-select-sm' onChange='this.form.submit();'>\n<option value=-1>Selecteer diploma ...</option>\n%s</select>\n", $i_dp->htmloptions($dpid, -1, 0, 0, "", 0, $i_ex->exid));
 
 	if ($p_perexamen == 1) {
 		printf("<button type='submit' class='%s btn-sm' name='btnExamenToevoegen'>%s Examen</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
@@ -330,7 +372,7 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1) {
 			if ($i_dp->eindeuitgifte >= $i_ex->exdatum) {
 				echo("<div class='clear'></div>\n");
 				$xf = sprintf("(L.RecordID NOT IN (SELECT LD.Lid FROM %sLiddipl AS LD WHERE LD.DiplomaID=%d AND LD.Examen=%d))", TABLE_PREFIX, $i_dp->dpid, $i_ex->exid);
-				printf("<select name='ldtoevoegen_%d' class='form-select' onChange='this.form.submit();'><option value=0>Lid toevoegen ....</option>\n%s</select>\n", $i_dp->dpid, $i_lid->htmloptions(-1, 1, $xf, "", $p_afdid));
+				printf("<select name='ldtoevoegen_%d' class='form-select form-select-sm' onChange='this.form.submit();'><option value=0>Lid toevoegen ....</option>\n%s</select>\n", $i_dp->dpid, $i_lid->htmloptions(-1, 1, $xf, "", $p_afdid));
 			}
 			
 			if ($aant_ng > 1 and $i_ex->exdatum <= date("Y-m-d")) {
@@ -409,7 +451,7 @@ function fnExamenonderdelen() {
 	
 	printf("<form action='%s?tp=%s/%s' method='post'>\n", $_SERVER["PHP_SELF"], $currenttab, $currenttab2);
 	echo("<div id='filter'>\n");
-	printf("<select name='selecteerdiploma' class='form-select' onChange='this.form.submit();'>\n<option value=0>Selecteer diploma ...</option>\n%s</select>\n", $i_dp->htmloptions($dpid, -1, 0, 1));
+	printf("<select name='selecteerdiploma' class='form-select form-select-sm' onChange='this.form.submit();'>\n<option value=0>Selecteer diploma ...</option>\n%s</select>\n", $i_dp->htmloptions($dpid, -1, 0, 1));
 	echo("</div> <!-- Einde filter -->\n");
 	
 	$f = sprintf("EO.DiplomaID=%d", $dpid);
@@ -439,63 +481,77 @@ function fnDiplomasMuteren($p_afdid=-1) {
 	global $dtfmt;
 	
 	$i_dp = new cls_Diploma();
-	$i_org = new cls_Organisatie();
-	$i_ld = new cls_Liddipl();
 	$i_ond = new cls_Onderdeel();
-	$i_eo = new cls_Examenonderdeel();
 	
 	if ($p_afdid > 0) {
 		$f = sprintf("DP.Afdelingsspecifiek=%d", $p_afdid);
+		$beperkt = 1;
 	} else {
 		$f = "";
+		$beperkt = 0;
 	}
 	$dprows = $i_dp->basislijst($f, "DP.Kode");
 	
 	$i_ond->where = sprintf("O.`Type`='A' AND (IFNULL(O.VervallenPer, '9999-12-31') >= CURDATE() OR O.RecordID IN (SELECT DP.Afdelingsspecifiek FROM %sDiploma AS DP))", TABLE_PREFIX);
 	
-	$dpid = $_POST['selecteerdiploma'] ?? 0;
+	if (isset($_GET['p_dpid']) and $_GET['p_dpid'] > 0) {
+		$dpid = $_GET['p_dpid'];
+	} else {
+		$dpid = $_POST['selecteerdiploma'] ?? 0;
+	}
 	
-	printf("<form action='%s?%s' id=filter method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
-	printf("<select name='selecteerdiploma' class='form-select' onChange='this.form.submit();'>\n<option value=-1>Selecteer diploma ...</option>\n%s</select>\n", $i_dp->htmloptions($dpid, -1, 0, 1, $f));
+	printf("<form action='%s?%s' id='filter' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
+	printf("<select name='selecteerdiploma' class='form-select form-select-sm' onChange='this.form.submit();'>\n<option value=-1>Selecteer diploma ...</option>\n%s</select>\n", $i_dp->htmloptions($dpid, -1, 0, 1, $f));
 	echo("</form>\n");
 	
 	if ($dpid > 0) {
-		$dprow = $i_dp->record($dpid);
+		fnDiplomaMuteren($dpid, $beperkt);
+	}
+}  # fnDiplomasMuteren
+
+function fnDiplomaMuteren($p_dpid, $p_beperkt=0) {
+	global $dtfmt;
+	
+	$i_dp = new cls_Diploma($p_dpid);
+	$i_org = new cls_Organisatie($i_dp->organisatie);
+	$i_ond = new cls_Onderdeel($i_dp->afdelingsspecifiek);
 		
+	if ($i_dp->dpid > 0) {
 		echo("<div id='diplomamuteren'>\n");
 	
-		printf("<label class='form-label'>RecordID</label><p id='RecordID'>%d</p>\n", $dprow->RecordID);
-	
-		printf("<label class='form-label'>Naam</label><input type='text' id='Naam' class='w75' maxlength=75 value=\"%s\">\n", str_replace("\"", "'", $dprow->Naam));
-		printf("<label class='form-label'>Code</label><input type='text' id='Kode' class='w10' maxlength=10 value=\"%s\">\n", $dprow->Kode);
-		printf("<label class='form-label' id='lblvolgnr'>Volgnummer</label><input type='number' id='Volgnr' value=%d class='num3'>\n", $dprow->Volgnr);
-		printf("<label class='form-label'>Type</label><select id='Type' class='form-select form-select-sm'>%s</select>\n", fnOptionsFromArray(ARRTYPEDIPLOMA, $dprow->Type));
+		printf("<label class='form-label'>RecordID</label><p id='RecordID'>%d</p>\n", $i_dp->dpid);
+		printf("<label class='form-label'>Naam</label><input type='text' id='Naam' class='w75' maxlength=75 value=\"%s\">\n", $i_dp->dpnaam);
+		printf("<label class='form-label'>Code</label><input type='text' id='Kode' class='w10' maxlength=10 value=\"%s\">\n", $i_dp->dpcode);
+		printf("<label class='form-label' id='lblvolgnr'>Volgnummer</label><input type='number' id='Volgnr' value=%d class='num3'>\n", $i_dp->volgnr);
+		printf("<label class='form-label'>Type</label><select id='Type' class='form-select form-select-sm'>%s</select>\n", fnOptionsFromArray(ARRTYPEDIPLOMA, $i_dp->dptype));
 		
-		if ($p_afdid <= 0) {
-			printf("<label class='form-label'>Afdelingsspecifiek</label><select name='Afdelingsspecifiek' class='form-select form-select-sm'>\n<option value=0>Geen</option>\n%s</select>\n", $i_ond->htmloptions($dprow->Afdelingsspecifiek, 0, "", "", 0));
+		if ($p_beperkt == 0) {
+			$i_ond->where = sprintf("(O.`Type`='A' AND IFNULL(O.VervallenPer, '9999-12-31') > CURDATE()) OR O.RecordID=%d", $i_dp->afdelingsspecifiek);
+			printf("<label class='form-label'>Afdelingsspecifiek</label><select id='Afdelingsspecifiek' class='form-select form-select-sm'>\n<option value=0>Geen</option>\n%s</select>\n", $i_ond->htmloptions($i_dp->afdelingsspecifiek, 0, "", "", 0));
 		}
 		
-		printf("<label class='form-label' id='lbluitgegevendoor'>Uitgegeven door</label><select id='ORGANIS' class='form-select form-select-sm'>%s</select>\n", $i_org->htmloptions(1, $dprow->ORGANIS));
-		$f = sprintf("DP.RecordID<>%d AND DP.Afdelingsspecifiek=%d AND IFNULL(DP.Vervallen, '9999-12-31') > CURDATE()", $dpid, $dprow->Afdelingsspecifiek);
-		printf("<label id='lblvoorganger' class='form-label'>Voorganger</label><select id='VoorgangerID' class='form-select form-select-sm'><Option value=0>Geen</option>\n%s</select>\n", $i_dp->htmloptions($dprow->VoorgangerID, 0, 0, 0, $f, 1));
+		printf("<label class='form-label' id='lbluitgegevendoor'>Uitgegeven door</label><select id='ORGANIS' class='form-select form-select-sm'>%s</select>\n", $i_org->htmloptions(1, $i_dp->organisatie));
+		$f = sprintf("DP.RecordID<>%d AND DP.Afdelingsspecifiek=%d AND IFNULL(DP.Vervallen, '9999-12-31') > CURDATE()", $i_dp->dpid, $i_dp->afdelingsspecifiek);
+		printf("<label id='lblvoorganger' class='form-label'>Voorganger</label><select id='VoorgangerID' class='form-select form-select-sm'><Option value=0>Geen</option>\n%s</select>\n", $i_dp->htmloptions($i_dp->dpvoorganger, 0, 0, 0, $f, 1));
 		
-		printf("<label id='lbldoorlooptijd' class='form-label'>Doorlooptijd</label><input type='number' class='num3' id='Doorlooptijd' value=%d><p>in maanden</p>\n", $dprow->Doorlooptijd);
+		printf("<label id='lbldoorlooptijd' class='form-label'>Doorlooptijd</label><input type='number' class='num2' max=99 id='Doorlooptijd' value=%d><p>in maanden</p>\n", $i_dp->doorlooptijd);
 		
 		if (strlen($i_dp->naamvolgende) > 0) {
 			printf("<label class='form-label' id='lblvolgende'>Volgende diploma('s)</label><p>%s</p>\n", $i_dp->naamvolgende);
 		}
 
-		printf("<label class='form-label' id='lbleindeuitgifte'>Einde uitgifte</label><input type='date' id='EindeUitgifte' value='%s'>\n", $dprow->EindeUitgifte);
+		printf("<label class='form-label' id='lbleindeuitgifte'>Einde uitgifte</label><input type='date' id='EindeUitgifte' value='%s'>\n", $i_dp->eindeuitgifte);
 		
-		if ($p_afdid <= 0) {
-			printf("<label class='form-label' id='lblgeldigheid'>Geldigheid</label><input type='number' id='GELDIGH' value=%d class='num2' max=99><p>maanden (0 = onbeperkt)</p>\n", $dprow->GELDIGH);
-			printf("<label class='form-label' id='lblhistorie'>Bewaartermijn</label><input type='number' id='HistorieOpschonen' value=%d class='num3' max=999><p>na verlopen geldigheid in maanden (0 = onbeperkt)</p>\n", $dprow->HistorieOpschonen);
-			printf("<label class='form-label' id='lblvervallenper'>Vervallen per</label><input type='date' id='Vervallen' value='%s'>\n", $dprow->Vervallen);
-			printf("<label class='form-label' id='lblzelfservice'>Zelfservice?</label><input type='checkbox' class='form-check-input' id='Zelfservice' value=1 %s title='Is dit diploma beschikbaar in de zelfservice?'>\n", checked($dprow->Zelfservice));
+		if ($p_beperkt == 0) {
+			printf("<label class='form-label' id='lblgeldigheid'>Geldigheid</label><input type='number' id='GELDIGH' value=%d class='num2' max=99><p>maanden (0 = onbeperkt)</p>\n", $i_dp->geldigheid);
+			printf("<label class='form-label' id='lblhistorie'>Bewaartermijn</label><input type='number' id='HistorieOpschonen' value=%d class='num2' max=99><p>na verlopen geldigheid in maanden (0 = onbeperkt)</p>\n", $i_dp->historieopschonen);
+			printf("<label class='form-label' id='lblvervallenper'>Vervallen per</label><input type='date' id='Vervallen' value='%s'>\n", $i_dp->vervallen);
+			echo("<div class='form-input form-switch'>\n");
+			printf("<label class='form-label' id='lblzelfservice'>Zelfservice?</label><input type='checkbox' class='form-check-input' id='Zelfservice' value=1 %s title='Is dit diploma beschikbaar in de zelfservice?'>\n", checked($i_dp->zelfservice));
+			echo("</div>\n");
 		}
 		printf("<label class='form-label'>Aantal leden</label><p>%d</p>\n", $i_dp->aantalhouders);
-		$f_eo = sprintf("EO.DiplomaID=%d AND LENGTH(EO.Code) > 0", $i_dp->dpid);
-		printf("<label>Aantal examenonderdelen</label><p>%d</p>\n", $i_eo->aantal($f_eo));
+		printf("<label>Aantal examenonderdelen</label><p>%d</p>\n", $i_dp->aantalonderdelen);
 		
 		echo("</div> <!-- Einde diplomamuteren -->\n");
 		printf("<script>
@@ -503,7 +559,7 @@ function fnDiplomasMuteren($p_afdid=-1) {
 		savedata('diplomaedit', %1\$d, this);
 	});
 	
-	$('#ORGANIS, #VoorgangerID, #Type').on('blur', function() {
+	$('select').on('blur', function() {
 		savedata('diplomaedit', %1\$d, this);
 	});
 		
@@ -515,9 +571,9 @@ function fnDiplomasMuteren($p_afdid=-1) {
 		savedata('diplomaedit', %1\$d, this);
 		this.form.submit();
 	});
-</script>\n", $i_dp->dpid);
+	</script>\n", $i_dp->dpid);
 	}
-}  # fnDiplomasMuteren
+}  # fnDiplomaMuteren
 
 function DL_lijst($p_exid, $p_dpid) {
 	global $dtfmt;
