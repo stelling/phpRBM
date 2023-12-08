@@ -56,10 +56,11 @@ define("DTHMS", "HH:mm:ss");
 
 define("ICONBEWAAR", "<i class='bi bi-floppy'></i>");
 define("ICONCHECK", "<i class='bi bi-check'></i>");
+define("ICONLEDEN", "<i class='bi bi-people' alt='Leden' title='Leden'></i></i>");
 define("ICONLIJST", "<i class='bi bi-file-earmark-spreadsheet'></i>");
 define("ICONLOGIN", "<i class='bi bi-arrow-right-circle'></i>");
-define("ICONOVERZICHT", "<i class='bi bi-card-text'></i>");
 define("ICONMUTEER", "<i class='bi bi-pencil-square' alt='Muteren'></i>");
+define("ICONOVERZICHT", "<i class='bi bi-card-text'></i>");
 define("ICONPDF", "<i class='bi bi-file-earmark-pdf' alt='PDF'></i>");
 define("ICONPRINT", "<i class='bi bi-printer'></i>");
 define("ICONSLUIT", "<i class='bi bi-door-closed'></i>");
@@ -669,7 +670,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 				$kols[$kn]['columnname'] = $key;
 				$kols[$kn]['headertext'] = str_replace("_", " ", $key);
 				if ($key == "RecordID") {
-					$kols[$kn]['type'] == "pk";
+					$kols[$kn]['type'] = "pk";
 				}
 				$kn++;
 			}
@@ -839,10 +840,10 @@ debug($k . ": geen columnname");
 							$kol_link .= "<i class='bi bi-person-lines-fill' alt='Details lid' title='Gegevens van het lid'></i></a>";
 							
 						} elseif ($kol_class === "pdf") {
-							$kol_link .= "<i class='bi bi-file-earmark-pdf' alt='PDF' title='Bekijk PDF'></i></a>";
+							$kol_link .= sprintf("%s</a>", ICONPDF);
 							
 						} elseif ($kol_class == "leden") {
-							$kol_link .= "<i class='bi bi-people' alt='Leden' title='Leden'></i></a>";
+							$kol_link .= sprintf("%s</a>", ICONLEDEN);
 							
 						} elseif ($kol_class == "muteren") {
 							$kol_link .= "<i class='bi bi-pencil-square' alt='Muteren' title='Muteren'></i></a>";
@@ -857,7 +858,7 @@ debug($k . ": geen columnname");
 							$kol_link .= "<i class='bi bi-check2-square' alt='Verwerken'></i></a>";
 							
 						} elseif ($kol_class == "trash") {
-							$kol_link .= "<i class='bi bi-trash' alt='Verwijderen'></i></a>";
+							$kol_link .= sprintf("%s</a>", ICONTRASH);
 							
 						} elseif ($kol_class == "unlock") {
 							$kol_link .= "<i class='bi bi-unlock' alt='Account vrijgeven'></i></a>";
@@ -1148,6 +1149,8 @@ function fnEditTable($res, $kols, $id="", $th="") {
 							$kol_link .= sprintf(">%s</a>", ICONVERWIJDER);
 						} elseif (isset($kol['class']) and $kol['class'] == "pdf") {
 							$kol_link .= sprintf(">%s</a>", ICONPDF);
+						} elseif (isset($kol['class']) and $kol['class'] == "leden") {
+							$kol_link .= sprintf(">%s</a>", ICONLEDEN);
 						} else {
 							$kol_link .= ">&nbsp;&nbsp;&nbsp;</a>";
 						}
