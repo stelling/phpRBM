@@ -858,7 +858,7 @@ debug($k . ": geen columnname");
 							$kol_link .= "<i class='bi bi-check2-square' alt='Verwerken'></i></a>";
 							
 						} elseif ($kol_class == "trash") {
-							$kol_link .= sprintf("%s</a>", ICONTRASH);
+							$kol_link .= sprintf("%s</a>", ICONVERWIJDER);
 							
 						} elseif ($kol_class == "unlock") {
 							$kol_link .= "<i class='bi bi-unlock' alt='Account vrijgeven'></i></a>";
