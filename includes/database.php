@@ -554,21 +554,20 @@ class cls_db_base {
 		$this->aantalkolommen = $this->execsql($p_sql)->ColumnCount();
 		return $this->aantalkolommen;
 	}
-		
+
 	public function aantal($p_filter="", $p_distinct="") {
 		
-		if (strlen($p_filter) > 0) {
+		if (strlen($p_filter) > 0 and strlen($this->where) > 0) {
+			$p_filter = "WHERE " . $p_filter . " AND " . $this->where;
+		} elseif (strlen($p_filter) > 0) {
 			$p_filter = "WHERE " . $p_filter;
 		} elseif (strlen($this->where) > 0) {
 			$p_filter = "WHERE " . $this->where;
 		}
 	
-		if (strlen($this->basefrom) == 0) {
-			$this->basefrom = $this->table;
-		}
-		
 		if ($this->bestaat_tabel($this->table) == false) {
-			return 0;
+			debug(sprintf("Tabel '%s' bestaat niet", $this->table), 2, 1);
+			return false;
 			
 		} elseif (strlen($this->basefrom) > 0) {
 			if (strlen($p_distinct) > 0) {
@@ -2437,11 +2436,7 @@ class cls_Onderdeel extends cls_db_base {
 	public function lijst($p_ingebruik=1, $p_filter="", $p_per="", $p_lidid=0, $p_orderby="", $p_fetched=1) {
 		
 		if (strlen($p_per) < 10) {
-			if (strlen($this->per) == 10) {
-				$p_per = $this->per;
-			} else {
-				$p_per = date("Y-m-d");
-			}
+			$p_per = $this->per;
 		}
 		$sqal = sprintf("SELECT COUNT(*) FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID=O.RecordID", TABLE_PREFIX, str_replace("CURDATE()", "'" . $p_per . "'", cls_db_base::$wherelidond));
 		
@@ -2523,7 +2518,6 @@ class cls_Onderdeel extends cls_db_base {
 	}  # cls_Onderdeel->editlijst
 	
 	public function htmloptions($p_cv=0, $p_ingebruik=1, $p_ondtype="", $p_filter="", $p_aant=1) {
-		
 		/*
 			$p_ingebruik: 1 = toon alleen onderdelen die op dit moment leden heeft
 			$p_aant: 1 toon het aantal leden in het onderdeel
@@ -6477,7 +6471,7 @@ class cls_Diploma extends cls_db_base {
 	public $doorlooptijd = 0;					// in maanden, hoelang doet een leerling normaal over dit diploma?
 	public $dpvolgende = 0;
 	public $naamvolgende = "";					// Naam van het opvolgende diploma
-	public $eindeuitgifte = "9999-12-31";
+	public $eindeuitgifte = "";
 	public $geldigheid = 0;						// Hoelang is dit diploma na behalen geldig. In maanden.
 	public $historieopschonen = 0;
 	public $vervallen = "";
@@ -6516,11 +6510,7 @@ class cls_Diploma extends cls_db_base {
 				$this->organisatie = $row->ORGANIS;
 				$this->dpvoorganger = $row->VoorgangerID;
 				$this->doorlooptijd = $row->Doorlooptijd;
-				if (strlen($row->EindeUitgifte) == 0) {
-					$this->eindeuitgifte = "9999-12-31";
-				} else {
-					$this->eindeuitgifte = $row->EindeUitgifte;
-				}
+				$this->eindeuitgifte = $row->EindeUitgifte;
 				$this->geldigheid = $row->GELDIGH;
 				$this->historieopschonen = $row->HistorieOpschonen;
 				$this->vervallen = $row->Vervallen;
@@ -6824,7 +6814,7 @@ class cls_Liddipl extends cls_db_base {
 		$this->ldclass = "";
 		$this->ldtitle = "";
 		if ($this->dpid > 0 and $this->lidid > 0) {
-			$f = sprintf("LD.Lid=%d AND LD.DiplomaID=%d AND LD.Geslaagd=1 AND LD.LaatsteBeoordeling=1 AND LD.DatumBehaald < '%s'", $this->lidid, $this->dpid, $this->datbehaald);
+			$f = sprintf("LD.Lid=%d AND LD.DiplomaID=%d AND LD.Geslaagd=1 AND LD.LaatsteBeoordeling=1 AND LD.DatumBehaald < '%s' AND IFNULL(LD.LicentieVervallenPer, '9999-12-31') >= CURDATE()", $this->lidid, $this->dpid, $this->datbehaald);
 			$dat = $this->max("DatumBehaald", $f);
 			if (strlen($dat) == 10) {
 				$this->ldclass = "dubbeldiploma";
