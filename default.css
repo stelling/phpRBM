@@ -1,7 +1,10 @@
 :root {
-	--default-text-color: #000080;
 	--label-background-color: #cfe2ff;
 	--label-text-color: #000080;
+	
+	--bs-body-font-family: Tahoma, Arial, Verdana, Helvetica;
+	--bs-body-font-size: 11pt;
+	--bs-body-color: #000080;
 }
 
 /* Bootstrap */
@@ -34,7 +37,7 @@ i {
 
 .form-select {
 	width: auto;
-	color: var(--default-text-color);
+	color: var(--bs-body-color);
 }
 
 .form-check-label {
@@ -46,20 +49,7 @@ i {
 	text-align: left;
 }
 
-.form-floating label {
-	background-color: transparent;
-	width: auto;
-	height: auto;
-}
-
 /* Einde Bootstrap */
-
-body {
-	font-family: Tahoma, Arial, Verdana, Helvetica;
-	font-size: 11pt;
-	color: var(--default-text-color);
-	border-width: 1px;
-}
 
 a, a:visited {
 	color: inherit;
@@ -106,11 +96,11 @@ tr {
 }
 
 td, th {
-	color: var(--default-text-color);
+/*	color: var(--default-text-color); */
 }
 
 th {
-	color: var(--label-text-color);
+/*	color: var(--label-text-color); */
 	background-color: var(--label-background-color);
 	vertical-align: middle;
 }
@@ -125,12 +115,12 @@ li {
 }
 
 input, select, textarea {
-	color: var(--default-text-color);
+	color: var(--bs-body-color);
 	float: left;
 }
 
-p {	
-	color: var(--default-text-color);
+p {
+/*	color: var(--default-text-color); */
 	padding-top: 2px;
 	margin-bottom: 3px;
 }
@@ -275,7 +265,7 @@ header h1 {
 	margin-right: 6px;
 }
 
-#filter input[type='text'], #filter input[type='date'], #filter input[type='checkbox'] {
+#filter input[type='text'], #filter input[type='date'] {
 	clear: none;
 	float: left;
 	margin-left: 3px;
@@ -311,6 +301,11 @@ header h1 {
 	margin-bottom: 0;
 	margin-left: 6px;
 	margin-right: 0;
+}
+
+#filter .form-check-input {
+	margin-left: 0;
+	margin-top: 8px;
 }
 
 #filter p.aantrecords {
@@ -1578,6 +1573,7 @@ td.voortgangsprobleem {
 label#lblStarttijd, label#lblEindtijd, label#lblVerzameltijd {
 	clear: none;
 	width: 90px;
+	margin-left: 6px;
 }
 
 #evenementenbeheer label#lblDatum, #evenementenbeheer label#lblOmschrijving, #evenementenbeheer label#lblLocatie, #evenementenbeheer label#lblOrganisatie, #evenementenbeheer label#lblTypeEvenement, #evenementenbeheer label#lblOpmaak, #evenementenbeheer label#lblInschrijvingOpen, #evenementenbeheer label#lblStandaardStatus, #evenementenbeheer label#lblGewijzigd, #evenementenbeheer label#lblDoelgroep {
@@ -2268,6 +2264,7 @@ label#lblVerzamelenPerGezin, label#lblBedragGezinskorting {
 	border-style: solid;
 	border-width: 1px;
 	padding-left: 5px;
+	padding-right: 5px;	
 	padding-top: 5px;
 	padding-bottom: 5px;
 	margin-bottom: 5px;
@@ -2326,17 +2323,13 @@ input#db_folderbackup, input#naamwebsite, input#naamvereniging, input#urlverenig
 	width: auto;
 }
 
-#editmailingform input[type='checkbox'] {
-	padding-top: 12px;
-}
-
-#editmailingform input[type='file'], #editmailingform input[type='submit'] {
+#editmailingform input[type='file'] {
 	margin-top: 3px;
 	margin-bottom: 3px;
 }
 
 #editmailingform label {
-	min-width: 190px;
+	width: 190px;
 }
 
 #editmailingform p {
@@ -2344,6 +2337,15 @@ input#db_folderbackup, input#naamwebsite, input#naamvereniging, input#urlverenig
 	margin-right: 8px;
 	border-style: none;
 	border-width: 1px;
+}
+
+#editmailingform .form-check-label {
+	background-color: var(--label-background-color);
+}
+
+#editmailingform .form-check-input {
+	margin-left: 0;
+	margin-right: 8px;
 }
 
 #editmailingform textarea {
@@ -2362,6 +2364,13 @@ input#db_folderbackup, input#naamwebsite, input#naamvereniging, input#urlverenig
 
 #editmailingform button {
 	float: left;
+}
+
+#editmailingform label#ccafdelingen, #editmailingform label#htmldirect, #editmailingform label#zonderbriefpapier {
+	clear: none;
+	margin-left: 6px;
+	padding-left: 6px;
+	width: auto;
 }
 
 #editmailingform li, #editmailingform li {
@@ -2445,8 +2454,6 @@ input#db_folderbackup, input#naamwebsite, input#naamvereniging, input#urlverenig
 #wijzigenlidgegevens p {
 	clear: none;
 	float: left;
-	margin-left: 5px;
-	margin-right: 8px;
 	padding-top: 2px;
 }
 
@@ -2814,13 +2821,13 @@ button.volgendegroep {
 }
 
 .ui-tabs .ui-tabs-nav .ui-tabs-anchor {
-	color: var(--default-text-color);
+	color: var(--bs-body-color);
 	padding-left: 4px;
 	padding-right: 4px;
 }
 
 .ui-state-active, .ui-widget-content .ui-state-active, .ui-widget-header, .ui-state-active, a.ui-button:active, .ui-button:active, .ui-button.ui-state-active:hover {
-	color: var(--default-text-color);
+	color: var(--bs-body-color);
 	font-size: inherit;
 	background-color: inherit;
 	font-weight: bolder;
