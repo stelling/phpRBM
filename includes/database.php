@@ -5486,8 +5486,8 @@ class cls_Mailing_hist extends cls_db_base {
 		$p_email->aannaam = html_entity_decode(str_replace("\"", "'", $p_email->aannaam));
 		$p_email->bericht = html_entity_decode(str_replace("\"", "'", $p_email->bericht));
 	
-		$query = sprintf("INSERT INTO %s SET RecordID=%d, LidID=%d, MailingID=%d, VanafID=%d, subject=\"%s\", to_name=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", ZonderBriefpapier=%d, ZichtbaarVoor=%d, Xtra_Char='%s', Xtra_Num=%d, NietVersturenVoor='%s', IngevoerdDoor=%d;",
-						$this->table, $nrid, $p_email->lidid, $p_email->mailingid, $p_email->vanafid, $p_email->onderwerp, $p_email->aannaam, $p_email->aanadres, $p_email->cc, $p_email->bericht, $p_email->zonderbriefpapier, $p_email->zichtbaarvoor, $p_email->xtrachar, $p_email->xtranum, $p_email->nietversturenvoor, $_SESSION['lidid']);
+		$query = sprintf("INSERT INTO %s SET RecordID=%d, LidID=%d, MailingID=%d, VanafID=%d, subject=\"%s\", to_name=\"%s\", to_addr=\"%s\", cc_addr=\"%s\", message=\"%s\", ZonderBriefpapier=%d, ZichtbaarVoor=%d, ReplyID=%d, Xtra_Char='%s', Xtra_Num=%d, NietVersturenVoor='%s', IngevoerdDoor=%d;",
+						$this->table, $nrid, $p_email->lidid, $p_email->mailingid, $p_email->vanafid, $p_email->onderwerp, $p_email->aannaam, $p_email->aanadres, $p_email->cc, $p_email->bericht, $p_email->zonderbriefpapier, $p_email->zichtbaarvoor, $p_email->replyid, $p_email->xtrachar, $p_email->xtranum, $p_email->nietversturenvoor, $_SESSION['lidid']);
 		if ($this->execsql($query) > 0) {
 			$t = str_ireplace(TABLE_PREFIX, "", $this->table);
 			if ($this->mid > 0) {
@@ -10726,6 +10726,7 @@ class cls_Parameter extends cls_db_base {
 		$this->arrParam['mailing_rekening_stuurnaar'] = array("Type" => "I", "Default" => 1);
 		$this->arrParam['mailing_rekening_valuta'] = array("Type" => "T", "Default" => "&euro&nbsp;");
 		$this->arrParam['mailing_rekening_vanafid'] = array("Type" => "I", "Default" => 0);
+		$this->arrParam['mailing_rekening_replyid'] = array("Type" => "I", "Default" => 0);
 		$this->arrParam['mailing_rekening_zichtbaarvoor'] = array("Type" => "I", "Default" => 0);
 		$this->arrParam['mailing_sentoutbox_auto'] = array("Type" => "B", "Default" => 1);
 		$this->arrParam['mailing_tinymce_apikey'] = array("Type" => "T", "Default" => "");
@@ -10954,21 +10955,6 @@ function db_onderhoud($type=9) {
 	
 	/***** Kolommen/indexen die later zijn toegevoegd. *****/
 	$i_base->tas = 11;
-	
-	// Deze code kan na 1 november 2023 worden verwijderd.
-	$tab = TABLE_PREFIX . "Eigen_lijst";
-	$col = "EigenScript";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` VARCHAR(30) NULL AFTER `MySQL`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Admin_activiteit";
-	$col = "refColumn";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` VARCHAR(40) NULL AFTER `RefTable`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
 	
 	// Deze code kan na 1 januari 2024 worden verwijderd.
 	$tab = TABLE_PREFIX . "Onderdl";
@@ -11269,6 +11255,13 @@ function db_onderhoud($type=9) {
 	$col = "GroepMelding";
 	if ($i_base->bestaat_kolom($col, $tab) == false) {
 		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '0' AFTER `EigenScript`;", $tab, $col);
+		$i_base->execsql($query, 2);
+	}
+		
+	$tab = TABLE_PREFIX . "Mailing_hist";
+	$col = "ReplyID";
+	if ($i_base->bestaat_kolom($col, $tab) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NOT NULL DEFAULT '0' AFTER `ZichtbaarVoor`;", $tab, $col);
 		$i_base->execsql($query, 2);
 	}
 
