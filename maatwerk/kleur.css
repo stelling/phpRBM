@@ -1,4 +1,12 @@
-body {
+:root {
+	/*
+	--label-background-color: #cfe2ff;
+	--label-text-color: #000080;
+	
+	--bs-body-font-family: Tahoma, Arial, Verdana, Helvetica;
+	--bs-body-font-size: 11pt;
+	--bs-body-color: #000080;
+	*/
 }
 
 td, th {
