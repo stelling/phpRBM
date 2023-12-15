@@ -807,10 +807,10 @@ function fnEigenlijstenmuteren() {
 		
 		printf("<form method='post' id='eigenlijstmuteren' action='%s?tp=%s&paramID=%d'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $elid);
 		printf("<label class='form-label'>Naam eigen lijst</label><input type='text' name='naam' class='w50' value='%s' maxlength=50>\n", $row->Naam);
-		printf("<label class='form-label'>Uitleg</label><textarea id='uitleg' name='uitleg' rows=3>%s</textarea>\n", $row->Uitleg);
+		printf("<label for='uitleg'>Uitleg</label><textarea id='uitleg' name='uitleg' placeholder='Uitleg over de eigen lijst'>%s</textarea>\n", $row->Uitleg);
 			
-		echo("<label for='mysql'>MySQL-code</label>\n");
-		printf("<textarea id='mysql' name='mysql' title='MySQL code' placeholder='MySQL code ...'>%s</textarea>\n", $row->MySQL);
+		echo("<label for='mysql'>MySQL code</label>\n");
+		printf("<textarea id='mysql' name='mysql' title='MySQL code' placeholder='MySQL code'>%s</textarea>\n", $row->MySQL);
 		echo("<p>Parameters kunnen worden gebruikt. Een parameter start met '@P', gevolgd door 0 t/m 9. De nummering moet met 0 starten en een ondoorbroken reeks zijn.</p>\n");
 		
 		printf("<label class='form-label'>Eigen script</label><p>%s/maatwerk/</p><input type='text' name='EigenScript' class='w30' value='%s' maxlength=30>\n", BASISURL, $row->EigenScript);
@@ -840,7 +840,7 @@ function fnEigenlijstenmuteren() {
 		
 		echo("<div id='opdrachtknoppen'>\n");
 		printf("<button type='submit' class='%s' name='Bewaren'>%s Bewaren</button>\n", CLASSBUTTON, ICONBEWAAR);
-		printf("<button type='submit' class='%s' name='BewarenSluiten'>%s Bewaren & Sluiten</button>\n", CLASSBUTTON, ICONBEWAAR);
+		printf("<button type='submit' class='%s' name='BewarenSluiten'>%s Bewaren & Sluiten</button>\n", CLASSBUTTON, ICONSLUIT);
 		if ($row->AantalRecords > 0 and $row->AantalKolommen > 0) {
 			printf("<button type='button' class='%s' onClick=\"$('#resultaatlijst').toggle();\">%s Toon/verberg resultaat</button>\n", CLASSBUTTON, ICONLIJST);
 		}
@@ -861,6 +861,14 @@ function fnEigenlijstenmuteren() {
 		
 		$rows = $i_el->lijst();
 		if (count($rows) > 0) {
+			
+			echo("<div id='filter'>\n");
+			echo("<input type='text' title='Filter naam eigen lijst' placeholder='Filter op naam' OnKeyUp=\"fnFilter('overzichteigenlijsten', this);\">\n");
+			if (count($rows) > 2) {
+				printf("<p class='aantrecords'>%d logins</p>\n", count($rows));
+			}
+			echo("</div> <!-- Einde filter -->\n");
+			
 			printf("<table id='overzichteigenlijsten' class='%s'>\n", TABLECLASSES);
 			echo("<tr><th></th><th>Naam</th><th># records</th><th># kolommen</th><th>Tabblad</th><th>Laatste controle</th><th></th></tr>\n");
 			foreach($rows as $row) {
@@ -911,7 +919,9 @@ function fnTemplatesmuteren() {
 		$i_tp->vulvars($seltp);
 		printf("<form method='post' id='templateedit' action='%s?tp=%s&op=edittemplate&tpid=%d'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $seltp);
 		printf("<textarea name='inhoud'>%s</textarea>\n", $i_tp->inhoud);
-		echo("<input type='submit' value='Bewaren'>");
+		echo("<div id='opdrachtknoppen'>\n");
+		printf("<button type='submit' class='%s' value='Bewaren'>%s Bewaren</button>\n", CLASSBUTTON, ICONBEWAAR);
+		echo("</div>\n");
 		echo("</form>\n");
 	}
 	
