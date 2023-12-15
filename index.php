@@ -263,6 +263,7 @@ if ($i_lid->aantal() == 0) {
 	} else {
 		fnLedenlijst();
 	}
+	
 } elseif ($isafdelingstab == 1) {
 	fnAfdeling();
 
@@ -343,11 +344,12 @@ function fnVoorblad() {
 			$pos++;
 		}		
 	
-		// Algemene statistieken
 		$i_lid = new cls_Lid();
 		$i_login = new cls_Login();
 		$i_lb = new cls_Logboek();
+		$i_ld = new cls_Liddipl();
 		
+		// Algemene statistieken
 		$content = str_ireplace("[%AANTALLEDEN%]", $i_lid->aantallid("L", "*") , $content);
 		$content = str_ireplace("[%AANTALMANNEN%]", $i_lid->aantallid("L", "M") , $content);
 		$content = str_ireplace("[%AANTALVROUWEN%]", $i_lid->aantallid("L", "V") , $content);
@@ -387,25 +389,29 @@ function fnVoorblad() {
 		} else {
 			$content = str_replace("[%INGELOGDEGEWIJZIGD%]", "", $content);
 		}
-		if (strpos($content, "[%KOMENDEEVENEMENTEN%]") !== false) {
-			$content = str_replace("[%KOMENDEEVENEMENTEN%]", fnPersoonlijkeAgenda(), $content);
+		if (strpos($content, "[%PERSOONLIJKEAGENDA%]") !== false) {
+			$content = str_replace("[%PERSOONLIJKEAGENDA%]", fnPersoonlijkeAgenda(), $content);
 		}
 		$content = str_replace("[%ROEPNAAM%]", $_SESSION['roepnaamingelogde'], $content);
-		if (strpos($content, "[%VERVALLENDIPLOMAS%]") !== false and $_SESSION['lidid'] > 0) {
+		
+		if (strpos($content, "[%VERVALLENDIPLOMAS%]") !== false and $_SESSION['lidid'] > 0 and $_SESSION['settings']['termijnvervallendiplomasmelden'] > 0) {
 			$strHV = "";
-			$rows = (new cls_Liddipl())->vervallenbinnenkort();
-			if (count($rows) > 0){
-				$strHV = "<p>Je volgende diploma's zijn recent vervallen of komen binnenkort te vervallen.</p>\n<ul>";
-				$dtfmt->setPattern(DTTEXT);
-				foreach ($rows as $row) {
-					if ($row->VervaltPer <= date("Y-m-d")) {
-						$strHV .= sprintf("<li>%s is per %s vervallen.</li>\n", $row->DiplOms, $dtfmt->format(strtotime($row->VervaltPer)));
-					} else {
-						$strHV .= sprintf("<li>%s vervalt op %s.</li>\n", $row->DiplOms, $dtfmt->format(strtotime($row->VervaltPer)));
-					}
+			$i_ld->where = sprintf("LD.Lid=%d",$_SESSION['lidid']);
+			$dtfmt->setPattern(DTTEXT);
+			$mdt = date("Y-m-d", strtotime(sprintf("+%d month", $_SESSION['settings']['termijnvervallendiplomasmelden'])));
+			$mdv = date("Y-m-d", strtotime(sprintf("-%d month", $_SESSION['settings']['termijnvervallendiplomasmelden'])));
+			foreach ($i_ld->basislijst() as $row) {
+				$i_ld->vulvars($row->RecordID);
+				if ($i_ld->vervaltper >= date("Y-m-d") and $i_ld->vervaltper <= $mdt) {
+					$strHV .= sprintf("<li>%s vervalt op %s</li>\n", $i_ld->dpnaam, $dtfmt->format(strtotime($i_ld->vervaltper)));
+				} elseif ($i_ld->vervaltper < date("Y-m-d") and $i_ld->vervaltper > $mdv) {
+					$strHV .= sprintf("<li>%s is vervallen op %s</li>\n", $i_ld->dpnaam, $dtfmt->format(strtotime($i_ld->vervaltper)));
 				}
-				$strHV .= "</ul>\n";
 			}
+			if (strlen($strHV) > 0) {
+				$strHV = "<div id='vervallendiplomas'>\n<p>Je volgende diploma's zijn recent vervallen of komen binnenkort te vervallen.</p>\n<ul>" . $strHV . "</ul>\n</div>  <!-- Einde vervallendiplomas -->\n";
+			}
+			
 			$content = str_replace("[%VERVALLENDIPLOMAS%]", $strHV, $content);
 		}
 	
@@ -697,19 +703,23 @@ function fnMeldingen() {
 	foreach($i_el->lijst(4) as $row) {
 		$i_el->controle($row->RecordID);
 		$i_el->vulvars($row->RecordID);
-		$nm = $row->Naam;
-		if ($i_el->aantalrijen > 1) {
-			$nm .= sprintf(": %d rijen", $i_el->aantalrijen);
-		}
-		if (strlen($i_el->tabpage) > 0 and toegang($i_el->tabpage)) {
-			$rv .= sprintf("<li><a href='%s?tp=%s/%s'>%s</a></li>\n", $_SERVER['PHP_SELF'], $i_el->tabpage, $i_el->elnaam, $nm);
-		} else {
-			$rv .= sprintf("<li>%s</li>\n", $nm, $i_el->aantalrijen);
+		if ($i_el->aantalrijen > 0) {
+			$nm = $row->Naam;
+			if ($i_el->aantalrijen > 1) {
+				$nm .= sprintf(": %d rijen", $i_el->aantalrijen);
+			} else {
+				$nm .= ": 1 rij";
+			}
+			if (strlen($i_el->tabpage) > 0 and toegang($i_el->tabpage)) {
+				$rv .= sprintf("<li><a href='%s?tp=%s/%s'>%s</a></li>\n", $_SERVER['PHP_SELF'], $i_el->tabpage, $i_el->elnaam, $nm);
+			} else {
+				$rv .= sprintf("<li>%s</li>\n", $nm, $i_el->aantalrijen);
+			}
 		}
 	}
 	
 	if (strlen($rv) > 0) {
-		$rv = "<h3>Persoonlijke meldingen</h3>\n<ul>\n" . $rv . "</ul>\n";
+		$rv = "<div id='persoonlijkemeldingen'><h3>Persoonlijke meldingen</h3>\n<ul>\n" . $rv . "</ul></div>\n";
 	}
 	
 	$i_el = null;
