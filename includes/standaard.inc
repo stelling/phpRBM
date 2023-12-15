@@ -67,6 +67,7 @@ define("ICONSLUIT", "<i class='bi bi-door-closed'></i>");
 define("ICONSUBMIT", "<i class='bi bi-arrow-right-circle-fill'></i>");
 define("ICONTOEVOEGEN", "<i class='bi bi-plus-circle'></i>");
 define("ICONVERSTUUR", "<i class='bi bi-envelope-at' alt='Versturen'></i>");
+define("ICONUNLOCK", "<i class='bi bi-unlock' alt='Vrijgeven'></i>");
 define("ICONVERVERS", "<i class='bi bi-arrow-clockwise'></i>");
 define("ICONVERWIJDER", "<i class='bi bi-trash' alt='Verwijderen'></i>");
 define("ICONVOLGENDE", "<i class='bi bi-skip-forward-circle' alt='Volgende'></i>");
@@ -240,7 +241,7 @@ function HTMLheader($breed=0) {
 		echo("<link rel='stylesheet' href='//code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css'>\n");
 		
 		echo("<link href='https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css' rel='stylesheet'>\n");
-		echo("<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css'>\n");
+		echo("<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.css'>\n");
 		echo("<script src='https://code.jquery.com/jquery-3.7.1.js'></script>\n");
 		if ($currenttab == "Vereniging" or $currenttab == "Eigen gegevens"  or $currenttab == "Ledenlijst" or $currenttab2 == "Overzicht lid") {
 			echo("<script src='https://code.jquery.com/ui/1.13.1/jquery-ui.js'></script>\n");
