@@ -50,7 +50,7 @@ function fnEvenementen() {
 						$chk = 0;
 					}
 				}
-				printf("<input type='checkbox' class='form-check-input' value=1 name='%s' onClick='this.form.submit();'%s><p>%s</p>\n", $cn, checked($chk), $v);
+				printf("<input type='checkbox' class='form-check-input' value=1 name='%s' onClick='this.form.submit();'%s><label class='form-check-label'>%s</label>\n", $cn, checked($chk), $v);
 				if ($chk == 1) {
 					if (strlen($in) > 0) {
 						$in .= ", ";
@@ -321,6 +321,9 @@ function muteerevenement($eventid) {
 				$i_ed->add($eventid, $rowpd->LidID);
 			}
 
+		} elseif (isset($_POST['btnOpschonen']) and $eventid > 0) {
+			$i_ed->opschonen($eventid);
+
 		} elseif (isset($_POST['nwdln']) and $_POST['nwdln'] > 0 and is_numeric($_POST['nwdln'])) {
 			$i_ed->add($eventid, $_POST['nwdln']);
 		}
@@ -424,6 +427,7 @@ function muteerevenement($eventid) {
 	}
 	
 	if ($eventid > 0) {
+		$opschoonknop = false;
 		printf("<table id='deelnemersevenementmuteren' class='%s'>\n", TABLECLASSES);
 		echo("<caption>Deelnemers</caption>\n");
 		echo("<thead>\n<tr><th>Deelnemer</th>");
@@ -437,6 +441,10 @@ function muteerevenement($eventid) {
 		$dtfmt->setPattern(DTTEXT);
 		$uitleg = "";
 		foreach ($i_ed->overzichtevenement($i_ev->evid) as $rd) {
+			$i_ed->vulvars(-1, -1, $rd->RecordID);
+			if ($i_ed->status == "G" and strlen($i_ed->opmerking) == 0 and strlen($i_ed->functie) == 0) {
+				$opschoonknop = true;
+			}
 			$optstat = "";
 			foreach (ARRDLNSTATUS as $key => $val) {
 				$s = "";
@@ -462,7 +470,14 @@ function muteerevenement($eventid) {
 				}
 				
 				printf("<td id='naamdln_%1\$d'><select name='lidid_nwdln' class='form-select form-select-sm' onChange='this.form.submit();'><option value=0>Selecteer lid ...</option>\n%2\$s</select></td>\n", $rd->RecordID, $optionsnieuw);
-				echo("<td></td><td></td>");
+				echo("<td></td><td></td>");;
+				if ($i_ev->meerderestartmomenten == 1) {
+					echo("<td></td>");
+				}
+				if ($i_ev->maxpersonenperdeelname > 1) {
+					echo("<td></td>");
+				}
+				
 			} else {
 				printf("<td id='naamdln_%d' class='ed_status_%s'>%s %s</td>\n", $rd->RecordID, $rd->Status, htmlentities($rd->NaamDeelnemer), $t);
 				if ($i_ev->meerderestartmomenten == 1) {
@@ -507,12 +522,15 @@ function muteerevenement($eventid) {
 		}
 		printf("<button type='submit' class='%s' name='Bewaren'>%s Bewaren</button>\n", CLASSBUTTON, ICONBEWAAR);
 		printf("<button type='submit' class='%s' name='Bewaren_Sluiten'>%s Bewaren & Sluiten</button>\n", CLASSBUTTON, ICONSLUIT);
+		if ($opschoonknop) {
+			printf("<button type='submit' class='%s' name='btnOpschonen'>Deelnemers opschonen</button>\n", CLASSBUTTON);
+		}
 	}
 	
 	if ($eventid > 0 and $row->VerwijderdOp < '2012-01-01' and $aantdln > 0 and toegang("Mailing/Nieuw", 0, 0)) {
 		printf("<button type='submit' class='%s' name='maildeeln'>%s</i> Mailing deelnemers (%d)</button>\n", CLASSBUTTON, ICONVERSTUUR, $aantdln);
 	}
-	if ($eventid > 0 and $row->VerwijderdOp < '2012-01-01' and count($rowspd) > 1 and toegang("Mailing/Nieuw", 0, 0)) {
+	if ($eventid > 0 and $i_ev->doelgroep > 0 and $row->VerwijderdOp < '2012-01-01' and count($rowspd) > 1 and toegang("Mailing/Nieuw", 0, 0)) {
 		printf("<button type='submit' class='%s' name='mailpotdeeln'>%s Mailing potenti&euml;le deelnemers (%d)</button>\n", CLASSBUTTON, ICONVERSTUUR, count($rowspd));
 	}
 	if ($eventid > 0 and (WEBMASTER or $row->IngevoerdDoor == $_SESSION['lidid'])) {
