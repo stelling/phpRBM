@@ -7,7 +7,7 @@ function fnMailing() {
 	$_GET['mhid'] = $_GET['mhid'] ?? 0;
 	$op = $_GET['op'] ?? "";
 
-	if ($_SESSION['settings']['mailing_direct_verzenden'] > 0) {
+	if ($_SESSION['settings']['mailing_direct_verzenden'] == 1) {
 		sentoutbox(3);
 	} elseif (isset($_POST['outboxlegen']) and WEBMASTER) {
 		(new cls_mailing_hist())->outboxlegen();
@@ -1556,6 +1556,7 @@ class email {
 	public $vanafnaam = "";
 	public $vanafadres = "";
 	public $vanafid = 0;
+	public $replyid = 0;
 	public $omsontvangers = "";
 	public $aannaam = "";
 	public $aanadres = "";
@@ -1971,20 +1972,20 @@ function fnRekeningenMailen($op) {
 		$i_p->vulsessie();
 		printf("<form method='post' action='%s?tp=%s/%s&op=selectierekeningen'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
 		$rekseizoen = (new cls_Seizoen())->max("Nummer");
-		printf("<label>Seizoen</label><select name='rekseizoen' class='form-select'>\n%s</select>\n", (new cls_Seizoen())->htmloptions($rekseizoen, 1));
-		printf("<label>Rekeningnummer</label><input type='number' class='d8' value=%d name='minreknr'><label class='totenmet'>tot en met</label><input type='number' class='d8' value=%d name='maxreknr'>\n", $i_rk->min("Nummer"), $i_rk->max("Nummer"));
+		printf("<label class='form-label'>Seizoen</label><select name='rekseizoen' class='form-select form-select-sm'>\n%s</select>\n", (new cls_Seizoen())->htmloptions($rekseizoen, 1));
+		printf("<label class='form-label'>Rekeningnummer</label><input type='number' class='d8' value=%d name='minreknr'><label class='form-label totenmet'>tot en met</label><input type='number' class='d8' value=%d name='maxreknr'>\n", $i_rk->min("Nummer"), $i_rk->max("Nummer"));
 
 		$f = sprintf("RK.Seizoen=%d", $rekseizoen);
-		printf("<label>Rekeningdatum</label><input type='date' value='%s' name='mindatum'><label class='totenmet'>tot en met</label><input type='date' value='%s' name='maxdatum'>\n", $i_rk->min("Datum", $f), $i_rk->max("Datum", $f));
-		printf("<label>Betaald door (debiteur)</label><select name='reklid' class='form-select'>\n<option value=-1>*** Iedereen ***</option>\n%s</select>\n", (new cls_lid())->htmloptions(-1, 3));
+		printf("<label class='form-label'>Rekeningdatum</label><input type='date' value='%s' name='mindatum'><label class='totenmet'>tot en met</label><input type='date' value='%s' name='maxdatum'>\n", $i_rk->min("Datum", $f), $i_rk->max("Datum", $f));
+		printf("<label class='form-label'>Betaald door (debiteur)</label><select name='reklid' class='form-select form-select-sm'>\n<option value=-1>*** Iedereen ***</option>\n%s</select>\n", (new cls_lid())->htmloptions(-1, 3));
 		
 		echo("<div class='form-check form-switch'>\n");
-		echo("<label>Volledig betaald</label><input type='checkbox' class='form-check-input' name='volbetaald' value=1>\n");
-		echo("<label>Gedeeltelijk betaald</label><input type='checkbox' name='deelbetaald' class='form-check-input' value=1 checked>\n");
+		echo("<label class='form-label'>Volledig betaald</label><input type='checkbox' class='form-check-input' name='volbetaald' value=1>\n");
+		echo("<label class='form-label'>Gedeeltelijk betaald</label><input type='checkbox' name='deelbetaald' class='form-check-input' value=1 checked>\n");
 	
-		echo("<label>Niet betaald</label><input type='checkbox' name='nietbetaald' class='form-check-input' value=1 checked>\n");
-		echo("<label>Nul rekeningen</label><input type='checkbox' name='nulrekeningen' class='form-check-input' value=1>\n");
-		echo("<label>Eerder verzonden</label><input type='checkbox' name='eerderverzonden' class='form-check-input' value=1>\n");
+		echo("<label class='form-label'>Niet betaald</label><input type='checkbox' name='nietbetaald' class='form-check-input' value=1 checked>\n");
+		echo("<label class='form-label'>Nul rekeningen</label><input type='checkbox' name='nulrekeningen' class='form-check-input' value=1>\n");
+		echo("<label class='form-label'>Eerder verzonden</label><input type='checkbox' name='eerderverzonden' class='form-check-input' value=1>\n");
 
 		echo("</div>\n");
 
@@ -2017,10 +2018,13 @@ function fnVerstuurRekening($p_rkid, $p_toonmelding=0) {
 	}
 	$email->zichtbaarvoor = $_SESSION['settings']['mailing_rekening_zichtbaarvoor'];
 	$email->vanafid = $_SESSION['settings']['mailing_rekening_vanafid'];
+	if ($_SESSION['settings']['mailing_rekening_replyid'] > 0 and $_SESSION['settings']['mailing_rekening_replyid'] != $email->vanafid) {
+		$email->replyid = $_SESSION['settings']['mailing_rekening_replyid'];
+	}
 	$tm = $p_toonmelding;
 	$rv = 0;
 
-	if ($_SESSION['settings']['mailing_rekening_stuurnaar'] == 2 or $_SESSION['settings']['mailing_rekening_stuurnaar'] == 3) {
+	if ($stuurnaar == 2 or $stuurnaar == 3) {
 		$hd = new DateTime($rkrow->Datum);
 		$hd->sub(new DateInterval('P18Y'));
 		foreach((new cls_Rekeningregel())->perrekening($rkrow->Nummer) as $regel) {
@@ -2153,14 +2157,14 @@ function fnMailingInstellingen() {
 	printf("<label class='form-label'>E-mails uit de outbox automatisch in de achtergrond versturen?</label><input type='checkbox' name='mailing_sentoutbox_auto' value='1'%s>\n", checked($_SESSION['settings']['mailing_sentoutbox_auto']));
 	printf("<label class='form-label'>Hoeveel minuten moeten mails minimaal wachten totdat ze automatisch worden verstuurd?</label><input type='number' class='num3' name='mailing_wachttijdinoutbox' value=%d>\n", $_SESSION['settings']['mailing_wachttijdinoutbox']);
 	
-	printf("<label class='form-label'>Mag een verzonden e-mail opnieuw worden verstuurd?</label><select name='mailing_mailopnieuw' class='form-select'>%s</select></p>\n", $options);
+	printf("<label class='form-label'>Mag een verzonden e-mail opnieuw worden verstuurd?</label><select name='mailing_mailopnieuw' class='form-select form-select-sm'>%s</select></p>\n", $options);
 	
 	$options = sprintf("<option value=-1%s>Webmasters</option>\n", checked($_SESSION['settings']['mailing_alle_zien'], "option", -1));
 	
 	foreach ((new cls_Onderdeel())->lijst(1) as $row) {
 		$options .= sprintf("<option value=%d%s>%s</option>\n", $row->RecordID, checked($_SESSION['settings']['mailing_alle_zien'], "option", $row->RecordID), $row->Naam);
 	}
-	printf("<label class='form-label'>Wie mogen alle mailings zien en muteren?</label>\n<select name='mailing_alle_zien' class='form-select'>%s</select>\n", $options);
+	printf("<label class='form-label'>Wie mogen alle mailings zien en muteren?</label>\n<select name='mailing_alle_zien' class='form-select form-select-sm'>%s</select>\n", $options);
 
 	printf("<label class='form-label'>Hoeveel mails mogen er per minuut verstuurd worden</label><input type='number' name='maxmailsperminuut' value=%d min=1 max=9999>\n", $_SESSION['settings']['maxmailsperminuut']);
 	printf("<label class='form-label'>Hoeveel mails mogen er per uur verstuurd worden</label><input type='number' name='maxmailsperuur' value=%d min=1 max=9999>\n", $_SESSION['settings']['maxmailsperuur']);
@@ -2296,6 +2300,12 @@ function sentfromhist($p_mhid, $p_handm=0) {
 		$mail->FromName = $row->from_name;
 	}
 	
+	if ($row->ReplyID > 0 and $row->ReplyID != $row->VanafID) {
+		$i_mv = new cls_Mailing_vanaf($row->ReplyID);
+		$mail->addReplyTo($i_mv->vanaf_email, $i_mv->vanaf_naam);
+		$i_mv = null;
+	}
+	
 	if ($row->send_on > "2000-01-01" and strpos($row->subject, "opnieuw verzonden") == false) {
 		$mail->Subject = $row->subject . " (opnieuw verzonden)";
 	} else {
@@ -2390,7 +2400,7 @@ function sentoutbox($p_mode) {
 		$aob = $i_mh->aantaloutbox();
 		if ($aantverzonden > 0 or $aob > 0) {
 			if ($p_mode == 2) {
-				$mess = sprintf("sentoutbox (mode: %d) is gestart door de batchjob", $p_mode);
+				$mess = "sentoutbox is gestart door de batchjob";
 			} else {
 				$mess = sprintf("Versturen vanuit de outbox (mode: %d) is gereed", $p_mode);
 			}
@@ -2481,7 +2491,7 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 			(new cls_Logboek())->add($mess, 4, 0, 1);
 			return false;
 		}
-	}
+	}  # RBMmailer->addstationary
 	
 	public function Send() {
 		
@@ -2517,7 +2527,8 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 					return false;
 				}
 		}
-	}
+	}  # RBMmailer->Send
+	
 } # RBM_mailer
 
 function eigennotificatie($p_ondid, $p_aanadres, $p_tas=-1, $p_interval=48, $p_cc="", $p_onderwerp="", $p_vanafid=-1) {
