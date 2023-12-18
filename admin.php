@@ -530,11 +530,11 @@ function fnBeheerLogins() {
 
 	if (count($rows) > 0 and max(array_column($rows, "Unlock")) > 0) {
 		$l = sprintf("%s?tp=%s&op=unlocklogin&lidid=%%d", $_SERVER['PHP_SELF'], $currenttab);
-		$kols[8] = ['headertext' => "&nbsp;", 'link' => $l, 'columnname' => "Unlock", 'class' => "unlock"];
+		$kols[] = array('headertext' => "&nbsp;", 'link' => $l, 'columnname' => "Unlock", 'class' => "unlock");
 	}
 	
-	$kols[9]['link'] = sprintf("%s?op=deletelogin&tp=Beheer logins&lidid=%%d'", $_SERVER['PHP_SELF']);
-	$kols[9]['class'] = "trash";
+	$l = sprintf("%s?op=deletelogin&tp=Beheer logins&lidid=%%d'", $_SERVER['PHP_SELF']);
+	$kols[] = array('columnname' => "LidID", 'link' => $l, 'class' => "trash");
 	
 	if (count($rows) > 0 and max(array_column($rows, "ValLink")) > 0) {
 		$kols[10]['headertext'] = "&nbsp;";
