@@ -116,10 +116,12 @@ li {
 
 input, select {
 	color: var(--bs-body-color);
+	float: left;
 }
 
-input, select {
-	float: left;
+input {
+	padding-top: 2px;
+	padding-bottom: 2px;
 }
 
 p {
@@ -187,17 +189,6 @@ form p {
 	float: left;
 	margin-left: 4px;
 	margin-right: 4px;
-}
-
-button {
-	margin-right: 6px;
-	margin-top: 6px;
-	margin-bottom: 6px;
-	
-	border-width: 1px;
-	
-	padding-left: 6px;
-	padding-right: 6px;
 }
 
 div.btn-fixed-top-right {
@@ -370,9 +361,6 @@ input.num2 {
 input.num3 {
 	width: 58px;
 }
-
-
-
 
 input.w12 {
 	width: 95px;
@@ -764,14 +752,13 @@ table#deelnemersevenementmuteren {
 	min-width: 400px;
 }
 
-#nieuwlid, #nieuwepasfoto, #inschrijvingevenementen, #webshop {
+#nieuwepasfoto, #inschrijvingevenementen, #webshop {
 	padding-top: 8px;
 }
 
 #algemeenlidmuteren {
 	clear: left;
 	float: left;
-	width: 100%;
 	border-style: none;
 }
 
@@ -1019,6 +1006,10 @@ table#afdelingskalendermuteren {
 	width: 100%;
 	font-size: 120%;
 	background-color: gainsboro;
+}
+
+#groepsindelingmuteren h3 {
+	font-size: 150%;
 }
 
 #groepsindeling h3, #groepsindeling h4 {
@@ -2412,21 +2403,12 @@ input#db_folderbackup, input#naamwebsite, input#naamvereniging, input#urlverenig
 }
 
 #nieuwlid label {
-	width: 155px;
-	margin-right: 8px;
-	padding-right: 3px;
+	width: 100px;
+	clear: none;
 }
 
-#nieuwlid label#lblselecteerinschrijving {
-	float: left;
-	clear: none;
-	width: auto;
-	margin-left: 6px;
-}
-
-#nieuwlid p {
-	margin-top: 6px;
-	clear: none;
+#nieuwlid input {
+	margin-right: 6px;
 }
 
 #eigenschappenlidmuteren {
@@ -2455,8 +2437,10 @@ input#db_folderbackup, input#naamwebsite, input#naamvereniging, input#urlverenig
 }
 
 #eigenschappenlidmuteren label {
-	width: auto;
 	clear: right;
+	color: var(--bs-body-color);
+	background-color: transparent;
+	padding-top: 0;
 }
 
 #eigenschappenlidmuteren .form-check-input {
@@ -2478,11 +2462,7 @@ input#db_folderbackup, input#naamwebsite, input#naamvereniging, input#urlverenig
 	margin-left: 0;
 }
 
-#nieuwlid .invoerblok {
-	border-style: none;
-}
-
-#inschrijvingmuteren label {
+#editinschrijving label {
 	width: 200px;
 }
 
@@ -2490,11 +2470,6 @@ label#lblHuisletter, label#lblToevoeging {
 	clear: none;
 	width: auto;
 	margin-left: 6px;
-}
-
-#nieuwlid label {	
-	float: left;
-	clear: left;
 }
 
 .attentie {
@@ -2737,9 +2712,10 @@ button.volgendegroep {
 		margin-right: 0;
 	}
 	
-	table#presentiemuteren th.opmerking, table#presentiemuteren td.opmerking, table#presentiemuteren th.aanwezig, table#presentiemuteren td.aanwezig {
+	table#presentiemuteren th.aanwezig, table#presentiemuteren td.aanwezig {
 		display: none;
 	}
+	
 }
 
 @media screen and (max-width: 1050px) {
@@ -2776,6 +2752,14 @@ button.volgendegroep {
 		height: 22px;
 	}
 		
+	table#presentiemuteren th.opmerking, table#presentiemuteren td.opmerking {
+		display: none;
+	}
+	
+	table#presentiemuteren {
+		width: 100%;
+	}
+		
 	#stukkenlijst th.revisiedatum, #stukkenlijst td.revisiedatum {
 		display: none;
 	}
@@ -2787,7 +2771,7 @@ button.volgendegroep {
 	label#lblEersteRekeningNummer, label#lblVerzamelenPerGezin, label#lblKostenplaats, label#lblKostenplaatsGezinskorting, label#lblBedragGezinskorting {
 		clear: left;
 	}
-}
+}  /* media screen and (max-width: 1050px) */
 
 @media print {
 	body {
@@ -2811,7 +2795,7 @@ button.volgendegroep {
 	.groepsindelingkolom {
 		width: 170px;
 	}
-}
+}  /* media print */
 
 #tab-agenda li.jarigen {
 	margin-top: inherit;
