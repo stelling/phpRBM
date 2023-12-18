@@ -61,15 +61,16 @@ define("ICONLIJST", "<i class='bi bi-file-earmark-spreadsheet'></i>");
 define("ICONLOGIN", "<i class='bi bi-arrow-right-circle'></i>");
 define("ICONMUTEER", "<i class='bi bi-pencil-square' alt='Muteren'></i>");
 define("ICONOVERZICHT", "<i class='bi bi-card-text'></i>");
-define("ICONPDF", "<i class='bi bi-file-earmark-pdf' alt='PDF'></i>");
+define("ICONPDF", "<i class='bi bi-file-earmark-pdf' alt='PDF' title='Toon PDF'></i>");
 define("ICONPRINT", "<i class='bi bi-printer'></i>");
-define("ICONSLUIT", "<i class='bi bi-door-closed'></i>");
+define("ICONSLUIT", "<i class='bi bi-door-closed' alt='Sluiten' title='Bewaren en sluiten'></i>");
 define("ICONSUBMIT", "<i class='bi bi-arrow-right-circle-fill'></i>");
-define("ICONTOEVOEGEN", "<i class='bi bi-plus-circle'></i>");
+define("ICONTOEVOEGEN", "<i class='bi bi-plus-circle' alt='Toevoegen' title='Toevoegen'></i>");
 define("ICONVERSTUUR", "<i class='bi bi-envelope-at' alt='Versturen'></i>");
 define("ICONUNLOCK", "<i class='bi bi-unlock' alt='Vrijgeven'></i>");
 define("ICONVERVERS", "<i class='bi bi-arrow-clockwise'></i>");
-define("ICONVERWIJDER", "<i class='bi bi-trash' alt='Verwijderen'></i>");
+define("ICONVERWERK", "<i class='bi bi-check2-square' alt='Verwerk'></i>");
+define("ICONVERWIJDER", "<i class='bi bi-trash' alt='Verwijderen' title='Verwijderen'></i>");
 define("ICONVOLGENDE", "<i class='bi bi-skip-forward-circle' alt='Volgende'></i>");
 define("ICONVOORBEELD", "<i class='bi bi-eye' alt='Voorbeeld'></i>");
 define("ICONVORIGE", "<i class='bi bi-skip-backward-circle' alt='Vorige'></i>");
@@ -700,7 +701,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 				}
 			
 				if (!isset($kol['columnname']) or strlen($kol['columnname']) == 0) {
-debug($k . ": geen columnname");
+//	debug($k . ": geen columnname");
 				}
 				
 				$iq = false;
@@ -856,7 +857,7 @@ debug($k . ": geen columnname");
 							$kol_link .= "<i class='bi bi-file-text' alt='Bekijk e-mail' title='Bekijk e-mail'></i></a>";
 							
 						} elseif ($kol_class == "verwerk") {
-							$kol_link .= "<i class='bi bi-check2-square' alt='Verwerken'></i></a>";
+							$kol_link .= sprintf("%s</a>", ICONVERWERK);
 							
 						} elseif ($kol_class == "trash") {
 							$kol_link .= sprintf("%s</a>", ICONVERWIJDER);
@@ -885,9 +886,15 @@ debug($k . ": geen columnname");
 
 				} elseif ($kol_type == "date" or $kol_type == "DTTEXT") {
 					// 1 januari 2020
+					if (strlen($value) > 15 and substr($value, 11, 5) > "00:00") {
+						$dtfmt->setPattern(DTLONG);
+						$t = sprintf(" title='%s'", $dtfmt->format(strtotime($value)));
+					} else {
+						$t = "";
+					}
 					if ((!is_null($value)) and $value > '1900-01-01' and strtotime($value) !== false) {
 						$dtfmt->setPattern(DTTEXT);
-						$ret .= sprintf("<td%s>%s</td>", $kol_class, $dtfmt->format(strtotime($value)));
+						$ret .= sprintf("<td%s%s>%s</td>", $kol_class, $t, $dtfmt->format(strtotime($value)));
 					} elseif ((!is_null($value)) and strlen($value) > 0) {
 						$ret .= sprintf("<td%a>%s</td>", $kol_class, $value);
 					} else {
@@ -895,6 +902,7 @@ debug($k . ": geen columnname");
 					}
 					
 				} elseif ($kol_type == "dtk" or $kol_type == "dateshort") {
+					
 					if ((!is_null($value)) and $value > '1900-01-01') {
 						$ret .= sprintf("<td%s>%s</td>", $kol_class, date('d/m/Y', strtotime($value)));
 					} else {
@@ -1013,7 +1021,11 @@ debug($k . ": geen columnname");
 					
 				} else {
 					// tekstkolom
-					$ret .= sprintf("<td%s%s>%s</td>", $kol_class, $row_title, htmlentities($value));
+					if (strlen($value) > 100) {
+						$ret .= sprintf("<td%s%s>%s</td>", $kol_class, $row_title, htmlentities(substr($value, 0, 96) . " ..."));
+					} else {
+						$ret .= sprintf("<td%s%s>%s</td>", $kol_class, $row_title, htmlentities($value));
+					}
 				}
 				$kn++;
 			}
@@ -1051,9 +1063,14 @@ debug($k . ": geen columnname");
 
 function fnEditTable($res, $kols, $id="", $th="") {
 	global $dtfmt;
-
+	
 	$rows = $res->fetchAll();
+	
 	$ret = "";
+	
+	if (strlen($id) == 0 and strlen($th) > 0) {
+		$id = str_replace("'", "", str_replace(" ", "_", strtolower($th)));
+	}
 //	print_r($rows);
 //	debug($kols);
 	
@@ -1085,7 +1102,7 @@ function fnEditTable($res, $kols, $id="", $th="") {
 					$kols[$kn]['type'] = "link";
 				}
 				
-				if ($kols[$kn]['type'] == "text" or $kols[$kn]['type'] == "email") {
+				if (($kols[$kn]['type'] == "text" or $kols[$kn]['type'] == "email") and !isset($kols[$kn]['collen'])) {
 					for ($cn=0;$cn<$res->ColumnCount();$cn++) {
 						if ($kols[$kn]['columnname'] ==  $res->getColumnMeta($cn)['name']) {
 							$kols[$kn]['collen'] = intval($res->getColumnMeta($cn)['len'] / 3);		
@@ -1100,8 +1117,6 @@ function fnEditTable($res, $kols, $id="", $th="") {
 				$ret .= sprintf("<th>%s</th>", $kols[$kn]['headertext']);
 			}
 		}
-		
-	//	debug($kols);
 		$ret .= "</tr>\n";
 		$ret .= "</thead>\n";
 		
@@ -1144,7 +1159,9 @@ function fnEditTable($res, $kols, $id="", $th="") {
 							}
 							$kol_link .= sprintf(" title='%s'", $t);
 						}
-						if (isset($kol['class']) and $kol['class'] == "muteren") {
+						if (isset($kol['class']) and $kol['class'] == "toevoegen") {
+							$kol_link .= sprintf(">%s</a>", ICONTOEVOEGEN);
+						} elseif (isset($kol['class']) and $kol['class'] == "muteren") {
 							$kol_link .= sprintf(">%s</a>", ICONMUTEER);
 						} elseif (isset($kol['class']) and $kol['class'] == "trash") {
 							$kol_link .= sprintf(">%s</a>", ICONVERWIJDER);
@@ -1152,6 +1169,8 @@ function fnEditTable($res, $kols, $id="", $th="") {
 							$kol_link .= sprintf(">%s</a>", ICONPDF);
 						} elseif (isset($kol['class']) and $kol['class'] == "leden") {
 							$kol_link .= sprintf(">%s</a>", ICONLEDEN);
+						} elseif (isset($kol['class']) and $kol['class'] == "verwerk") {
+							$kol_link .= sprintf(">%s</a>", ICONVERWERK);
 						} else {
 							$kol_link .= ">&nbsp;&nbsp;&nbsp;</a>";
 						}
