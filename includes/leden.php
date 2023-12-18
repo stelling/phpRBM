@@ -22,9 +22,15 @@ function fnLedenlijst() {
 		$_SESSION['val_groep'] = $_POST['lbGroepFilter'];
 	}
 	
+	if (isset($_GET['p_lidid']) and $_GET['p_lidid'] > 0 and isset($_GET['op']) and $_GET['op'] == "verwijder") {
+		$i_lid->update($_GET['p_lidid'], "Verwijderd", date("Y-m-d"));
+	}
+	
 	if ($currenttab2 == "Nieuw (klos)lid") {
-		
 		fnNieuwLid();
+		
+	} elseif ($currenttab2 == "Wachtlijst") {
+		wachtlijst();
 		
 	} elseif ($currenttab2 == "Instellingen") {
 		instellingenledenmuteren();
@@ -49,7 +55,7 @@ function fnLedenlijst() {
 			$sl = 4;
 		} elseif ($currenttab2 == "Leden") {
 			$sl = 1;
-		} elseif ($currenttab2 == "Voormalig leden") {
+		} elseif ($currenttab2 == "Voormalig leden" or $currenttab2 == "Oud-leden") {
 			$sl = 3;
 		} elseif ($currenttab2 == "Toekomstige leden") {
 			$sl = 2;
@@ -167,7 +173,10 @@ function fnLedenlijst() {
 		}
 		if ($currenttab2 == "Klosleden") {
 			$sq = sprintf("SELECT GROUP_CONCAT(DISTINCT O.Kode SEPARATOR '/') FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE LO.Lid=%%d AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()", TABLE_PREFIX);
-			$kols[8] = ['columnname' => "RecordID", 'headertext' => "Ond.", 'type' => "subqry", 'class' => "onderdelen", 'subqry' => $sq];			
+			$kols[] = array('columnname' => "RecordID", 'headertext' => "Ond.", 'type' => "subqry", 'class' => "onderdelen", 'subqry' => $sq);
+			
+			$l = sprintf("%s?tp=%s&op=verwijder&p_lidid=%%d", $_SERVER['PHP_SELF'], $_GET['tp']);
+			$kols[] = array('columnname' => "RecordID", 'headertext' => "&nbsp;", 'link' => $l, 'class' => "trash");
 			
 		} else {
 			if ($toonlidnummer == 1) {
@@ -472,9 +481,7 @@ function fnNieuwLid() {
 	$i_lo = new cls_Lidond();
 
 	if (isset($_GET['op']) and $_GET['op'] == "delete" and $_GET['RecordID'] > 0 and toegang("deleteinschrijving", 1, 1)) {
-		$i_ins->delete($_GET['RecordID']);
-	} elseif (isset($_GET['op']) and $_GET['op'] == "verwerk" and $_GET['RecordID'] > 0) {
-		$i_ins->update($_GET['RecordID'], "Verwerkt", date("Y-m-d H:i:s"));
+		$i_ins->update($_GET['RecordID'], "Verwijderd", date("Y-m-d"));
 	}
 
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
@@ -482,57 +489,12 @@ function fnNieuwLid() {
 		$eersteles = "";
 		if (isset($_POST['addkloslid'])) {
 			$anm = "";
-			if (isset($_POST['inschrijving']) and $_POST['inschrijving'] > 0) {
-				$insid = $_POST['inschrijving'];
-				$f = sprintf("Ins.RecordID=%d", $insid);
-				$eersteles = $i_ins->max("EersteLes", $f);
-				$xmldata = $i_ins->max("XML", $f);
-				$xml = simplexml_load_string($xmldata);
-				if (strlen($xml->Achternaam) > 1) {
-					$lidid = $i_lid->add($xml->Achternaam);
-				}
-				if ($lidid > 0) {
-					foreach ($xml as $col => $val) {
-						if ($col == "Telefoon" and substr($val, 0, 2) == "06") {
-							$i_lid->update($lidid, "Mobiel", $val);
-						} elseif ($i_lid->bestaat_kolom($col)) {
-							$i_lid->update($lidid, $col, $val);
-						} elseif ($col = "Lidond") {
-							$nieuwlo = $val;
-						}
-					}
-					$i_ins->update($_POST['inschrijving'], "Verwerkt", date("Y-m-d H:i:s"));
-					$i_ins->update($_POST['inschrijving'], "LidID", $lidid);
-				}
-				
-			} else if (isset($_POST['achternaam']) and strlen($_POST['achternaam']) > 1) {
-				$lidid = $i_lid->add($_POST['achternaam']);
-			}
+			$lidid = $i_lid->add($_POST['achternaam']);
 			if ($lidid > 0 and isset($_POST['lidvanaf']) and $_POST['lidvanaf'] > "1970-01-01" and strtotime($_POST['lidvanaf']) !== false) {
 				(new cls_Lidmaatschap())->add($lidid, $_POST['lidvanaf']);
-			} elseif($lidid > 0 and $eersteles > "1970-01-01") {
-				(new cls_Lidmaatschap())->add($lidid, $eersteles);
-			} elseif ($lidid > 0 and isset($_POST['inschrijving']) and $_POST['inschrijving'] > 0) {
-				(new cls_Lidmaatschap())->add($lidid, date("Y-m-d"));
 			}
 			
-			if (isset($nieuwlo) and count($nieuwlo) > 0) {
-				foreach ($nieuwlo as $lo => $ondid) {
-					$i_lo->add($ondid, $lidid, "opgegeven via inschrijfformulier", 0);
-				}
-			}
-			
-			printf("<script>
-					location.href='%s?tp=Ledenlijst/Wijzigen+lid/Algemene+gegevens&lidid=%d';
-					</script>\n", $_SERVER['PHP_SELF'], $lidid);
-		}
-		
-		if (isset($_POST['insid']) and $_POST['insid'] > 0) {
-			foreach (array("Datum", "Naam", "Opmerking", "EersteLes", "Verwerkt", "LidID") as $cntr) {
-				if (isset($_POST[$cntr])) {
-					$i_ins->update($_POST['insid'], $cntr, $_POST[$cntr]);
-				}
-			}
+			printf("<script>\nlocation.href='%s?tp=Ledenlijst/Wijzigen+lid/Algemene+gegevens&lidid=%d';\n</script>\n", $_SERVER['PHP_SELF'], $lidid);
 		}
 	}
 		
@@ -543,41 +505,14 @@ function fnNieuwLid() {
 		printf("<form method='post' id='nieuwlid' action='%s?%s'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
 		echo("<label class='form-label'>Achternaam</label><input type='text' name='achternaam' title='Achternaam, zonder tussenvoegsels' maxlength=40>\n");
 			
-		$ops = $i_ins->htmloptions();
-		if (strlen($ops) > 0) {
-			printf("<label id='lblselecteerinschrijving' class='form-label'>of selecteer inschrijving</label><select name='inschrijving' class='form-select form-select-sm' title='Selecteer inschrijving'><option value=0>Geen</option>\n%s</select>\n", $ops);
-		}
-
 		if (toegang("Ledenlijst/Wijzigen lid/Lidmaatschap", 0, 0) == true) {
-			echo("<label class='form-label'>Lid vanaf</label><input type='date' name='lidvanaf' title='Lid vanaf'><p>(Indien ingevuld, dan wordt het lidmaatschap toegevoegd)</p>\n");
+			echo("<label class='form-label'>Lid vanaf</label><input type='date' name='lidvanaf' title='Indien ingevuld, dan wordt het lidmaatschap toegevoegd'>\n");
 		}
 			
-		echo("<div id='opdrachtknoppen'>\n");
 		printf("<button type='submit' class='%s' name='addkloslid' value='Toevoegen'>%s (Klos)lid</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
-		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 			
 		echo("</form>\n");
-		
-		$insrows = $i_ins->lijst(1);
-		if (count($insrows) > 0) {
-			$kols[0] = array('columnname' => "RecordID", 'headertext' => "#");
-			$kols[1] = array('columnname' => "Datum", 'headertext' => "Inschrijfdatum", 'type' => "date");
-			$kols[2]['columnname'] = "Naam";
-			$kols[3]['columnname'] = "Afdeling";
-			$kols[4] = array('headertext' => "Eerste les", 'columnname' => "EersteLes", 'type' => "date");
-			$kols[5] = array('headertext' => "Opmerking", 'columnname' => "Opmerking");
-			$kols[6] = array('headertext' => "Verwerkt", 'columnname' => "Verwerkt", 'type' => "date");
-			$kols[7] = array('headertext' => "&nbsp;", 'columnname' => "LnkPDF", 'link' => sprintf("%s/pdf.php?insid=%%d", BASISURL), 'class' => "pdf");
-			$kols[8] = array('headertext' => "&nbsp;", 'columnname' => "RecordID", 'link' => sprintf("%s?tp=%s&op=verwerk&RecordID=%%d", $_SERVER['PHP_SELF'], $_GET['tp']), 'class' => "verwerk", 'title' => 'Markeer als verwerkt');
-			
-			if (toegang("deleteinschrijving", 0, 0)) {
-				$kols[9] = array('headertext' => "&nbsp;", 'columnname' => "RecordID", 'link' => sprintf("%s?tp=%s&op=delete&RecordID=%%d", $_SERVER['PHP_SELF'], $_GET['tp']), 'class' => "trash");
-			}
-			
-			echo("<div class='clear'></div>\n");
-			echo(fnDisplayTable($insrows, $kols, "Inschrijvingen", 0, "", "inschrijvingen"));
-		}
-		
+				
 		$insrows = $i_ins->lijst(2, 0, 1, 3);
 		if (count($insrows) > 0) {
 			
@@ -618,7 +553,7 @@ function editinschrijving($p_insid) {
 	$i_ins = new cls_Inschrijving($p_insid);
 	$i_lid = new cls_Lid();
 
-	printf("<form method='post' action='%s?tp=%s' id='inschrijvingmuteren'>\n", $_SERVER["PHP_SELF"], $_GET['tp']);
+	printf("<form method='post' action='%s?tp=%s' id='%s'>\n", $_SERVER["PHP_SELF"], $_GET['tp'], __FUNCTION__);
 
 	printf("<label class='form-label'>RecordID</label><input type='number' name='insid' value=%d readonly>\n", $i_ins->insid);
 	printf("<label class='form-label'>Datum inschrijving</label><input type='date' name='Datum' value='%s'>\n", $i_ins->inschrijfdatum);
@@ -637,6 +572,77 @@ function editinschrijving($p_insid) {
 	echo("</form>\n");
 	
 }  # editinschrijving
+
+function wachtlijst() {
+	$i_lid = new cls_Lid();
+	$i_ins = new cls_Inschrijving();
+	$i_lo = new cls_Lidond();
+
+	if (isset($_GET['op']) and $_GET['op'] == "add" and $_GET['RecordID'] > 0) {
+		$i_ins->vulvars($_GET['RecordID']);
+		$xml = simplexml_load_string($i_ins->xml);
+		if (strlen($xml->Achternaam) > 1) {
+			$lidid = $i_lid->add($xml->Achternaam);
+		}
+		if ($lidid > 0) {
+			foreach ($xml as $col => $val) {
+				if ($col == "Telefoon" and substr($val, 0, 2) == "06") {
+					$i_lid->update($lidid, "Mobiel", $val);
+				} elseif ($i_lid->bestaat_kolom($col)) {
+					$i_lid->update($lidid, $col, $val);
+				} elseif ($col == "Lidond") {
+					$nieuwlo = $val;
+				}
+			}
+			$i_ins->update($i_ins->insid, "Verwerkt", date("Y-m-d H:i:s"));
+			$i_ins->update($i_ins->insid, "LidID", $lidid);
+		}
+		if($lidid > 0 and $i_ins->eersteles > "1970-01-01") {
+			(new cls_Lidmaatschap())->add($lidid, $i_ins->eersteles);
+		} elseif ($lidid > 0) {
+			(new cls_Lidmaatschap())->add($lidid, date("Y-m-d"));
+		}
+			
+		if (isset($nieuwlo) and count($nieuwlo) > 0) {
+			foreach ($nieuwlo as $lo => $ondid) {
+				$i_lo->add($ondid, $lidid, "opgegeven via inschrijfformulier", 0);
+			}
+		}
+
+		printf("<script>\nlocation.href='%s?tp=Ledenlijst/Wijzigen+lid/Algemene+gegevens&lidid=%d';\n</script>\n", $_SERVER['PHP_SELF'], $lidid);
+				
+	} elseif (isset($_GET['op']) and $_GET['op'] == "delete" and $_GET['RecordID'] > 0 and toegang("deleteinschrijving", 1, 1)) {
+		$i_ins->update($_GET['RecordID'], "Verwijderd", date("Y-m-d"));
+	} elseif (isset($_GET['op']) and $_GET['op'] == "verwerk" and $_GET['RecordID'] > 0) {
+		$i_ins->update($_GET['RecordID'], "Verwerkt", date("Y-m-d H:i:s"));
+	}
+
+	$insres = $i_ins->lijst(1, -1, 0);
+
+//	$kols[] = array('columnname' => "RecordID", 'headertext' => "#", 'readonly' => true);
+	$kols[] = array('columnname' => "Datum", 'headertext' => "Inschrijfdatum", 'type' => "date", 'readonly' => true);
+	$kols[] = array('columnname' => "Naam", 'readonly' => true);
+	$kols[] = array('columnname' => "Afdeling", 'readonly' => true);
+	$kols[] = array('headertext' => "Eerste les", 'columnname' => "EersteLes", 'type' => "date");
+	$kols[] = array('headertext' => "Opmerking", 'columnname' => "Opmerking", 'collen' => 40);
+	$kols[] = array('headertext' => "&nbsp;", 'columnname' => "LnkPDF", 'link' => sprintf("%s/pdf.php?insid=%%d", BASISURL), 'class' => "pdf");
+	$kols[] = array('headertext' => "&nbsp;", 'columnname' => "RecordID", 'link' => sprintf("%s?tp=%s&op=verwerk&RecordID=%%d", $_SERVER['PHP_SELF'], $_GET['tp']), 'class' => "verwerk", 'title' => 'Markeer als verwerkt');
+		
+	if (toegang("Ledenlijst/Nieuw (klos)lid", 0, 0)) {
+		$l = sprintf("%s?tp=%s&op=add&RecordID=%%d", $_SERVER['PHP_SELF'], $_GET['tp']);
+		$kols[] = array('headertext' => "&nbsp;", 'columnname' => "RecordID", 'link' => $l, 'class' => "toevoegen");
+	}
+		
+	if (toegang("deleteinschrijving", 0, 0)) {
+		$l = sprintf("%s?tp=%s&op=delete&RecordID=%%d", $_SERVER['PHP_SELF'], $_GET['tp']);
+		$kols[] = array('headertext' => "&nbsp;", 'columnname' => "RecordID", 'link' => $l, 'class' => "trash");
+	}
+	$kols[] = array('columnname' => "MogelijkAlInTabel", 'headertext' => "Aanwezig?", 'readonly' => true);
+			
+	echo("<div class='clear'></div>\n");
+	echo(fnEditTable($insres, $kols, "", "Inschrijvingen"));
+				
+}  # wachtlijst
 
 function fnOnderdelenmuteren($ondtype="G") {
 	global $currenttab, $currenttab2;
@@ -1547,11 +1553,7 @@ function algemeenlidmuteren($lidid) {
 		}
 	}
 		
-	if (isset($_POST['Kloslid_Verwijderen'])) {
-		$i_lid->update($lidid, "Verwijderd", date("Y-m-d"));
-	} elseif (isset($_POST['Undo_Verwijderen'])) {
-		$i_lid->update($lidid, "Verwijderd", "NULL");
-	} elseif ($_SERVER['REQUEST_METHOD'] == "POST") {
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$i_lid->controle($lidid);
 		if (isset($_POST['Sluiten'])) {
 			if ($sl == "K") {
@@ -1565,11 +1567,9 @@ function algemeenlidmuteren($lidid) {
 	}
 
 	$i_lm->vulvars(-1, $lidid);
-	printf("<form method='post' id='%s' class='form-check form-switch' action='%s'>\n", __FUNCTION__, $actionurl);
+//	printf("<form method='post' id='%s' class='form-check form-switch' action='%s'>\n", __FUNCTION__, $actionurl);
+	printf("<div id='%s' class='form-check form-switch'>\n", __FUNCTION__);
 	printf("<label id='lblRecordID' class='form-label'>RecordID/LidID</label><input name='lidid' class='w10' value=%d readonly>\n", $i_lid->lidid);
-	if ($currenttab != "Zelfservice" and toegang("Ledenlijst/Wijzigen lid/Eigenschappen", 0, 0)) {
-		eigenschappenlidmuteren($lidid);
-	}
 	if ($i_lm->lidnr > 0) {
 		printf("<label id='lblLidnummer' class='form-label'>Lidnummer</label><input name='lidnr' class='w10' value=%d readonly></p>\n", $i_lm->lidnr);
 	}
@@ -1654,17 +1654,12 @@ function algemeenlidmuteren($lidid) {
 		echo("\n");
 	}
 	
-	echo("<div id='opdrachtknoppen'>\n");
-	printf("<button type='submit' class='%s'>%s Controleer gegevens</button>\n", CLASSBUTTON, ICONCHECK);
-	if ($sl == "K") {
-		if ($row->Verwijderd > "1900-01-01") {
-			echo("<button type='submit' name='Undo_Verwijderen'>Verwijderen ongedaan maken</button>\n");
-		} else {
-			printf("<button type='submit' class='%s' name='Kloslid_Verwijderen'>%s Kloslid</button>\n", CLASSBUTTON, ICONVERWIJDER);
-		}
+	printf("</div> <!-- Einde %s -->\n", __FUNCTION__);
+	
+	
+	if ($currenttab != "Zelfservice" and toegang("Ledenlijst/Wijzigen lid/Eigenschappen", 0, 0)) {
+		eigenschappenlidmuteren($lidid);
 	}
-	echo("</div> <!-- Einde opdrachtknoppen -->\n");
-	echo("</form>\n");
 
 	printf("<script>
 		\$( document ).ready(function() {
@@ -1679,25 +1674,7 @@ function algemeenlidmuteren($lidid) {
 			}
 		});
 		
-		$(\"[id^='eigenschap_']\").click(function(){
-			
-			var split_id = this.id.split('_');
-			var ondid = split_id[1];
-			
-			if (this.checked == true) {
-				var value = 1;
-			} else {
-				var value = 0;
-			}
 
-			$.ajax({
-				url: 'ajax_update.php?entiteit=zeteigenschap',
-				type: 'post',
-				dataType: 'json',
-				data: { lidid: %1\$d, ondid, value: value },
-				success:function(response){}
-			});
-		});
 		
 		\$('input, #Geslacht').on('change', function(){
 			lidalgwijzprops();
@@ -1727,10 +1704,31 @@ function eigenschappenlidmuteren($lidid) {
 				$ro = " disabled readonly";
 			}
 			printf("<input type='checkbox' class='form-check-input' id='eigenschap_%d'%s%s>", $ondrow->RecordID, $c, $ro);
-			printf("<p>%s</p>\n", $ondrow->Naam);
+			printf("<label for='eigenschap_%d'>%s</label>\n", $ondrow->RecordID, $ondrow->Naam);
 		}
 		echo("</div> <!-- Einde eigenschappenlidmuteren -->\n");
 	}
+	
+	printf("<script>
+		$(\"[id^='eigenschap_']\").click(function(){	
+			var split_id = this.id.split('_');
+			var ondid = split_id[1];
+			
+			if (this.checked == true) {
+				var value = 1;
+			} else {
+				var value = 0;
+			}
+
+			$.ajax({
+				url: 'ajax_update.php?entiteit=zeteigenschap',
+				type: 'post',
+				dataType: 'json',
+				data: { lidid: %1\$d, ondid, value: value },
+				success:function(response){}
+			});
+		});
+		</script>\n", $lidid);
 	
 	$i_lo = null;
 	$i_ond = null;
@@ -2035,7 +2033,7 @@ function opzegginglidmaatschap($lidid) {
 } # opzegginglidmaatschap
 
 function onderdelenlidmuteren($lidid, $p_type="G") {
-	//Dit is onderdelen per li
+	//Dit is onderdelen per lid
 	
 	$i_f = new cls_functie();;
 	
@@ -2088,7 +2086,7 @@ function onderdelenlidmuteren($lidid, $p_type="G") {
 		$frows = (new cls_functie())->selectlijst($p_type, "", 1);
 		$kols[] = array('columnname' => "Functie", 'headertext' => "Functie", 'bronselect' => $frows);
 
-		if (max(array_column($lorows, "Functie")) > 0) {
+		if (count($lorows) > 0 and max(array_column($lorows, "Functie")) > 0) {
 			$kols[] = array('columnname' => "EmailFunctie", 'headertext' => "E-mail bij functie", 'type' => "email", 'cond_ro' => "RO_Email");
 		}
 		if ($p_type == "A" and (new cls_Groep())->aantal() > 0) {
@@ -2107,7 +2105,7 @@ function onderdelenlidmuteren($lidid, $p_type="G") {
 
 	if ($lidid > 0) {
 		$options = "<option value=0>Nieuw ....</option>\n";
-		$ond_f .= " AND IFNULL(O.VervallenPer, CURDATE()) >= CURDATE() AND IFNULL(O.GekoppeldAanQuery, 0)=0 AND LENGTH(IFNULL(O.MySQL, '')) < 10";
+		$ond_f .= " AND IFNULL(O.VervallenPer, CURDATE()) >= CURDATE() AND LENGTH(IFNULL(O.MySQL, '')) < 10";
 		foreach((new cls_Onderdeel())->lijst(0, $ond_f) as $row) {
 			$options .= sprintf("<option value=%d>%s - %s</option>\n", $row->RecordID, $row->Kode, $row->Naam);
 		}
@@ -2270,14 +2268,16 @@ function lidmaatschapmuteren($lidid) {
 			
 		if (isset($_POST['NieuwLidmaatschap'])) {
 			$i_lm->add($lidid);
+		} elseif (isset($_POST['verwijderlidmaatschap']) and $_POST['verwijderlidmaatschap'] > 0) {
+			$i_lm->delete($_POST['verwijderlidmaatschap']);
 		}
 	}
 	
-	$actionurl = sprintf("%s?tp=%s&amp;lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
+	$actionurl = sprintf("%s?tp=%s&lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
 	printf("<form method='post' action='%s'>\n", $actionurl);
-	printf("<table id='lidmaatschapmuteren' class='%s'>\n", TABLECLASSES);
+	printf("<table id='%s' class='%s'>\n", __FUNCTION__, TABLECLASSES);
 	printf("<caption>Lidmaatschappen %s</caption>\n", (new cls_Lid())->Naam($lidid));
-	echo("<tr><th>RecordID</th><th>Lidnummer</th><th>Lid vanaf</th><th>Opgezegd per</th><th>Door vereniging?</th><th></th></tr>\n");
+	echo("<tr><th>RecordID</th><th>Lidnummer</th><th>Lid vanaf</th><th>Opgezegd per</th><th>Door vereniging?</th><th></th><th></th></tr>\n");
 	$toev = true;
 	$aant = 0;
 	$f = sprintf("Lid=%d", $lidid);
@@ -2309,7 +2309,7 @@ function lidmaatschapmuteren($lidid) {
 			$i_mh = new cls_Mailing_hist();
 			$i_mh->where = sprintf("MH.MailingID=%d AND MH.Xtra_Num=%d", $_SESSION['settings']['mailing_bevestigingopzegging'], $row->Lidnr);
 			if ($i_mh->aantal() == 0) {
-				printf("<td><button type='submit' class='%s btn-sm' name='verstuurbevestiging' value=%d alt='Verstuur bevestiging' title='Verstuur bevestiging'>%s bevestiging</td>\n", CLASSBUTTON, $row->Lidnr, ICONVERSTUUR);
+				printf("<td><button type='submit' class='%s btn-sm' name='verstuurbevestiging' value=%d title='Verstuur bevestiging'>%s bevestiging</td>\n", CLASSBUTTON, $row->Lidnr, ICONVERSTUUR);
 			} else {
 				echo("<td></td>\n");
 			}
@@ -2317,6 +2317,13 @@ function lidmaatschapmuteren($lidid) {
 		} else {
 			echo("<td></td>\n");
 		}
+		
+		if ($row->Opgezegd > "1970-01-01" and $row->Opgezegd < date("Y-m-d")) {
+			printf("<td><button type='submit' class='%s btn-sm' name='verwijderlidmaatschap' value=%d title='Verwijder lidmaatschap'>%s</td>\n", CLASSBUTTON, $row->RecordID, ICONVERWIJDER);
+		} else {
+			echo("<td></td>\n");
+		}
+		
 		echo("</tr>\n");
 		$aant++;
 	}
@@ -2434,6 +2441,7 @@ function fnPersoonlijkeAgenda() {
 	$i_ld = new cls_Liddipl();
 	$i_ond = new cls_Onderdeel();
 	$i_ex = new cls_Examen();
+	$i_ed = new cls_Evenement_Deelnemer();
 	$kalitem = null;
 	$in = 0;
 	
@@ -2475,11 +2483,10 @@ function fnPersoonlijkeAgenda() {
 		}
 	
 		// Evenementen
-		$i_ed = new cls_Evenement_Deelnemer();
 		foreach ((new cls_Evenement())->lijst(4, $hd) as $evrow) {
-			$i_ed->vulvars($evrow->RecordID, $_SESSION['lidid']);
+			$i_ed->vulvars($evrow->RecordID, $_SESSION['lidid'], 0);
 			$o = $i_ed->evoms;
-			if ($i_ed->status == "Bevestigd" or $i_ed->status == "Aangemeld" or $i_ed->status == "Ingeschreven") {
+			if ($i_ed->status == "B" or $i_ed->status == "J" or $i_ed->status == "I") {
 				if ($i_ed->onlineinschrijving == 1 and $i_ed->evdatum >= date("Y-m-d") and toegang("Zelfservice/Evenementen", 0, 0)) { 
 					$o = sprintf("<a href='%s/index.php?tp=Zelfservice/Evenementen'>%s</a>", BASISURL, $o);
 				} elseif (toegang("Evenementen/Overzicht", 0) and $evrow->Dln > 0) {
@@ -2488,8 +2495,8 @@ function fnPersoonlijkeAgenda() {
 				$kalitem[$in]['datum'] = $i_ed->evdatum . " " . trim($i_ed->starttijd);
 					
 				if ($i_ed->edid > 0) {
-					if ($i_ed->status != "Bevestigd") {
-						$o .= ": " . $i_ed->status;
+					if ($i_ed->status != "B") {
+						$o .= ": " . $i_ed->statusoms;
 					}
 					if (strlen($i_ed->functie) > 0) {
 						$o .= sprintf(" als %s", $i_ed->functie);
@@ -2521,7 +2528,7 @@ function fnPersoonlijkeAgenda() {
 	
 	$rv = "";
 	if (isset($kalitem) and count($kalitem) > 0) {
-		$rv = "<div id='persoonlijkeagenda'><h3>Persoonlijke agenda</h3>\n<ul>\n";
+		$rv = "<div id='persoonlijkeagenda'>\n<h3>Persoonlijke agenda</h3>\n<ul>\n";
 		usort($kalitem, function($a, $b) {
 			return $a['datum'] <=> $b['datum'];
 		});
@@ -3096,7 +3103,7 @@ function jubilarissen() {
 	echo("<div class='clear'></div>\n");
 	printf("<label class='form-label'>Jubileumjaren</label><input type='text' name='jubileumjaren' id='jubileumjaren' value='%s' class='w60' onBlur='saveparam(this);'><p>Puntkomma-gescheiden</p>\n", $jubileumjaren);
 	echo("<div class='clear'></div>\n");
-	printf("<label class='form-label'>Groep met kader</label><select id='kaderonderdeelid' class='form-select' onChange='saveparam(this);'><option value=-1>Geen</option>\n%s</select>\n", $i_ond->htmloptions($_SESSION['settings']['kaderonderdeelid'], 1, "G"));
+	printf("<label class='form-label'>Groep met kader</label><select id='kaderonderdeelid' class='form-select form-select-sm' onChange='saveparam(this);'><option value=-1>Geen</option>\n%s</select>\n", $i_ond->htmloptions($_SESSION['settings']['kaderonderdeelid'], 1, "G"));
 	printf("<label class='form-label'>Jubileumjaren voor kader</label><input type='text' name='jubileumjaren' id='kaderjubileumjaren' value='%s' class='w60' onBlur='saveparam(this);'><p>Puntkomma-gescheiden</p>\n", $kaderjubileumjaren);
 	
 	echo("<div class='clear'></div>\n");
