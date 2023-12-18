@@ -340,7 +340,7 @@ if ($_SESSION['lidid'] > 0) {
 		$i_ed->delete($rid);
 		$i_ed = null;
 		
-	} elseif ($ent == "wachtlijst") {
+	} elseif ($ent == "wachtlijst" or $ent == "inschrijvingen") {
 		$i_ins = new cls_Inschrijving();
 		$i_ins->update($rid, $kolom, $newvalue);
 		$i_ins = null;
