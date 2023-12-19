@@ -1158,7 +1158,7 @@ class cls_Lid extends cls_db_base {
 			$filter .= " AND (LM.Lid IS NULL)";
 		}
 		
-		if ($p_ondfilter > 0) {
+		if ($p_ondfilter > 0 and $p_soortlid == 1) {
 			$f = sprintf("O.RecordID=%d", $p_ondfilter);
 			$f2 = sprintf("Act.RecordID=%d", $p_ondfilter);
 			if ($i_ond->aantal($f) > 0) {
@@ -2160,6 +2160,7 @@ class cls_Authorisation extends cls_db_base {
 	function __construct() {
 		$this->table = TABLE_PREFIX . "Admin_access";
 		$this->basefrom = $this->table . " AS AA";
+		$this->per = date("Y-m-d");
 		$this->ta = 15;
 	}
 	
@@ -2205,7 +2206,13 @@ class cls_Authorisation extends cls_db_base {
 	}
 	
 	public function lijst($p_distinct="") {
-		$query = sprintf("SELECT %s RecordID, Toegang, Tabpage, Ingevoerd, LaatstGebruikt FROM %s ORDER BY Tabpage;", $p_distinct, $this->basefrom);
+		
+		$w = "";
+		if (strlen($this->where) > 0) {
+			$w = sprintf(" WHERE %s", $this->where);
+		}
+		
+		$query = sprintf("SELECT %s RecordID, Toegang, Tabpage, Ingevoerd, LaatstGebruikt FROM %s%s ORDER BY Tabpage;", $p_distinct, $this->basefrom, $w);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}
@@ -2233,7 +2240,7 @@ class cls_Authorisation extends cls_db_base {
 		}
 		
 		if (WEBMASTER) {
-			if (isset($_SESSION['lidauth']) and in_array($p_tabpage, $_SESSION['lidauth']) == false) {
+			if (isset($_SESSION['lidauth']) and in_array($p_tabpage, $_SESSION['lidauth']) == false and $_SERVER['PHP_SELF'] == "/index.php") {
 				$query = sprintf("SELECT IFNULL(MIN(AA.RecordID), 0) FROM %s WHERE AA.Tabpage='%s';", $this->basefrom, $p_tabpage);
 				$aid = $this->scalar($query);
 				if (strlen($p_tabpage) > 0 and $aid == 0) {
@@ -6606,33 +6613,20 @@ class cls_Diploma extends cls_db_base {
 		if ($p_afdfilter > 0) {
 			$w = sprintf("WHERE DP.RecordID IN (SELECT DiplomaID FROM %1\$sLiddipl AS LD WHERE LD.Lid IN (SELECT Lid FROM %1\$sLidond AS LO WHERE LO.OnderdeelID=%2\$d AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()))", TABLE_PREFIX, $p_afdfilter);
 		} else {
-			$w = "";
+			$w = "WHERE 1=1";
 		}
 		if ($p_zs == 1) {
-			if (strlen($w) > 0) {
-				$w .= " AND ";
-			} else {
-				$w = "WHERE ";
-			}
-			$w .= "DP.Zelfservice=1";
+			$w .= " AND DP.Zelfservice=1";
 		}
 		
 		if ($p_inclvervallen == 0) {
-			if (strlen($w) > 0) {
-				$w .= " AND ";
-			} else {
-				$w = "WHERE ";
-			}
-			$w .= "IFNULL(DP.Vervallen, '9999-12-31') >= CURDATE()";
+			$w .= " AND IFNULL(DP.Vervallen, '9999-12-31') >= CURDATE()";
 		}
 		
 		if (strlen($p_filter) > 0) {
-			if (strlen($w) > 0) {
-				$w .= " AND ";
-			} else {
-				$w = "WHERE ";
-			}
-			$w .= $p_filter;
+			$w .= " AND " . $p_filter;
+		} elseif (strlen($this->where) > 0) {
+			$w .= " AND " . $this->where;
 		}
 		
 		$sep = 0;
@@ -10515,7 +10509,7 @@ class cls_Inschrijving extends cls_db_base {
 			$ord = "IFNULL(Ins.EersteLes, '9999-12-31'), Ins.Ingevoerd, Ins.Naam";
 		}
 
-		$query = sprintf("SELECT Ins.*, O.Naam AS Afdeling, IF(LENGTH(Ins.PDF) > 10, Ins.RecordID, 0) AS LnkPDF, CONCAT(%1\$s, ' (', L.RecordID, ')') AS GekoppeldLid,
+		$query = sprintf("SELECT Ins.*, O.Naam AS Afdeling, IF(LENGTH(Ins.PDF) > 10, Ins.RecordID, 0) AS LnkPDF, CONCAT(%1\$s, ' (', L.RecordID, ')') AS GekoppeldLid, IF(Ins.EersteLes IS NULL, 0, Ins.RecordID) AS KanLidWorden,
 						  (SELECT MAX(L2.Achternaam) FROM %3\$sLid AS L2 WHERE L2.GEBDATUM=Ins.Geboortedatum AND (LOWER(L2.Email)=LOWER(Ins.Email) OR LOWER(L2.EmailOuders)=LOWER(Ins.Email))) AS MogelijkAlInTabel
 						  FROM (%2\$s LEFT OUTER JOIN %3\$sLid AS L ON Ins.LidID=L.RecordID) LEFT OUTER JOIN %3\$sOnderdl AS O ON Ins.OnderdeelID=O.RecordID
 						  WHERE %4\$s
