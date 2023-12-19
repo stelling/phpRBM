@@ -106,11 +106,16 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 			addtp("Ledenlijst/Klosleden");
 		}
 		addtp("Ledenlijst/Nieuw (klos)lid");
+		if ((new cls_Inschrijving())->aantal("(Ins.Verwerkt IS NULL) AND (Ins.Verwijderd IS NULL)") > 0) {
+			addtp("Ledenlijst/Wachtlijst");
+		}
 		if ((new cls_Onderdeel())->aantal("`Type`='A' AND IFNULL(VervallenPer, '9999-12-31') >= CURDATE()") > 0) {
 			addtp("Ledenlijst/Afdelingen");
 		}
 		addtp("Ledenlijst/Commissies");
-		addtp("Ledenlijst/Groepen");
+		if ((new cls_Onderdeel())->aantal("`Type`='G' AND IFNULL(VervallenPer, '9999-12-31') >= CURDATE()") > 0) {
+			addtp("Ledenlijst/Groepen");
+		}
 		if ((new cls_Onderdeel())->aantal("`Type`='R' AND IFNULL(VervallenPer, '9999-12-31') >= CURDATE()") > 0) {
 			addtp("Ledenlijst/Rollen");
 		}
@@ -244,7 +249,7 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 					addtp($tp);
 				}
 										
-				$f = sprintf("Ins.OnderdeelID=%d AND (Ins.Verwerkt IS NULL)", $ondid);
+				$f = sprintf("Ins.OnderdeelID=%d AND (Ins.Verwerkt IS NULL) AND (Ins.Verwijderd IS NULL)", $ondid);
 				if ((new cls_Inschrijving())->aantal($f) > 0) {
 					addtp($i_ond->naam . "/Wachtlijst");
 				}
@@ -273,6 +278,7 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 		addtp($b);
 		$b .= "/";
 		addtp($b . "Algemene gegevens");
+		addtp($b . "Financieel");
 		if ($gs != "B") {
 			addtp($b . "Lidmaatschap");
 		}
@@ -785,8 +791,8 @@ function fnLoginAanvragen($stap="") {
 		echo("<p>Je ontvangt een e-mail met daarin een link om deze aanmelding te bevestigen. Pas na het bevestigen is de login bruikbaar om in te loggen.</p>\n");
 		
 		echo("<p>Voorwaarden aan een login:</p>\n<ul>\n");
-		printf("<li>Minimaal 7 karakters en maximaal %1\$d karakters lang</li>\n", $_SESSION['settings']['login_maxlengte']);
-		echo("<li>Er mogen geen aanhalingstekens en geen spaties in zitten</li>\n");
+		printf("<li>Minimaal 7 en maximaal %1\$d karakters</li>\n", $_SESSION['settings']['login_maxlengte']);
+		echo("<li>Er mogen geen aanhalingstekens en spaties in zitten</li>\n");
 		printf("<li>De karakters '%s' mogen er niet in zitten</li>\n", htmlent($login_verbodenkarakters));
 		echo("</ul>\n");
 		
@@ -969,11 +975,6 @@ function addtp($tp, $afdnr=0) {
 	
 	if ((strstr($tp, "/") === false or startwith($tp, $currenttab . "/")) and toegang($tp, 0, 0, 1)) {
 		$tabpages[] = $tp;
-		$aid = $i_acc->recordid($tp);
-		
-		if (WEBMASTER and $aid == 0) {
-			$i_acc->add($tp);
-		}
 	}
 	
 	$i_acc = null;
