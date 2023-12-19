@@ -42,9 +42,9 @@ function fnDiplomabeheer() {
 	
 	printf("<form method='post' id='filter' class='form-check form-switch' action='%s?tp=%s/%s'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
 	
-	printf("<select name='orgfilter' class='form-select form-select-sm' onChange='this.form.submit();'>\n<option value=-1>Filter op organisatie  ...</option>\n%s</select>\n", $i_org->htmloptions(1, $orgfilter));
+	printf("<select name='orgfilter' class='form-select form-select-sm' title='Filter op organisatie' onChange='this.form.submit();'>\n<option value=-1>Filter op organisatie  ...</option>\n%s</select>\n", $i_org->htmloptions(1, $orgfilter));
 	
-	printf("<input type='checkbox' class='form-check-input' name='vervfilter' value=1 title=\"Inclusief vervallen diploma's\" onClick='this.form.submit();'%s><label class='form-check-filter'>Inclusief vervallen diploma's</label>", checked($vervfilter));
+	printf("<input type='checkbox' class='form-check-input' name='vervfilter' value=1 title=\"Inclusief vervallen diploma's\" onClick='this.form.submit();'%s><label class='form-check-label'>Inclusief vervallen diploma's</label>", checked($vervfilter));
 	
 	echo("</form>\n");
 	
@@ -152,9 +152,6 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1, $p_dpid=-1) {
 			$isrn = true;
 		}
 		$i_o = null;
-		$f = sprintf("DP.Afdelingsspecifiek=%d", $p_afdid);
-	} else {
-		$f = "";
 	}
 	
 	$exid = $_POST['selecteerexamen'] ?? 0;
@@ -164,6 +161,9 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1, $p_dpid=-1) {
 		$dpid = $_POST['selecteerdiploma'] ?? 0;
 	}
 	$i_dp = new cls_Diploma($dpid);
+	if ($p_afdid > 0) {
+		$i_dp->where = sprintf("DP.Afdelingsspecifiek=%d", $p_afdid);
+	}	
 
 	$i_ex->vulvars($exid);
 	if ($i_ex->exid > 0) {
@@ -246,7 +246,7 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1, $p_dpid=-1) {
 	
 	if ($exid > 0) {
 		$i_ld->controle($exid);
-		echo("<div id='examenmuteren'>\n");
+		echo("<div id='examenmuteren' class='form-check form-switch'>\n");
 		printf("<label id='lblexamennummer' class='form-label'>Nummer</label><p id='examennummer'>%d</p>\n", $i_ex->exid);
 		echo("<label class='form-label'>Examendatum</label>");
 		if ($i_ex->aantalkandidaten > 0 and 1 == 2) {
@@ -262,10 +262,10 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1, $p_dpid=-1) {
 		} else {
 			$d = "";
 		}
-		printf("<label class='form-check-label'>Proefexamen</label><input type='checkbox' class='form-check-input' id='Proefexamen' value=1%s%s title='Proefexamen?' onBlur=\"savedata('examenmuteren', %d, this);\">\n", checked($i_ex->proef), $d, $i_ex->exid);
 		if ($isrn) {
 			printf("<label class='form-label'>Starttijd</label><input type='text' id='Begintijd' value='%s' onBlur=\"savedata('examenmuteren', %d, this);\" class='w5' maxlength=5>\n", $i_ex->begintijd, $i_ex->exid);
-		}
+		}		
+		printf("<label class='form-label' for='Proefexamen'>Proefexamen</label><input type='checkbox' class='form-check-input' id='Proefexamen' value=1%s%s title='Proefexamen?' onBlur=\"savedata('examenmuteren', %d, this);\">\n", checked($i_ex->proef), $d, $i_ex->exid);
 		echo("</div> <!-- einde examenmuteren -->\n");
 		$i_ld->controle($exid);
 	}
@@ -369,26 +369,25 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1, $p_dpid=-1) {
 			}
 			echo("</table>\n");
 
-			if ($i_dp->eindeuitgifte >= $i_ex->exdatum) {
+			if (strlen($i_dp->eindeuitgifte) < 10 or $i_dp->eindeuitgifte >= $i_ex->exdatum) {
 				echo("<div class='clear'></div>\n");
 				$xf = sprintf("(L.RecordID NOT IN (SELECT LD.Lid FROM %sLiddipl AS LD WHERE LD.DiplomaID=%d AND LD.Examen=%d))", TABLE_PREFIX, $i_dp->dpid, $i_ex->exid);
 				printf("<select name='ldtoevoegen_%d' class='form-select form-select-sm' onChange='this.form.submit();'><option value=0>Lid toevoegen ....</option>\n%s</select>\n", $i_dp->dpid, $i_lid->htmloptions(-1, 1, $xf, "", $p_afdid));
 			}
 			
 			if ($aant_ng > 1 and $i_ex->exdatum <= date("Y-m-d")) {
-				printf("<button type='submit' class='%s' name='btnAllenGeslaagd' value='%d-%d' title='Allemaal geslaagd'>%s</button>\n", CLASSBUTTON, $exid, $dipl->DiplomaID, ICONCHECK);
+				printf("<button type='submit' class='%s btn-sm' name='btnAllenGeslaagd' value='%d-%d' title='Allemaal geslaagd'>%s</button>\n", CLASSBUTTON, $exid, $dipl->DiplomaID, ICONCHECK);
 			}
 			
-			$f = sprintf("EO.DiplomaID=%d", $i_dp->dpid);
-			if ($i_eo->aantal($f) > 1 and count($ldrows) > 0) {
-				printf("<button type='button' class='%s' title='Print aftekenlijst' onClick=\"window.open('%s?tp=%s/Aftekenlijst&p_examen=%d&p_diploma=%d', '_blank')\">%s Afteken\n", CLASSBUTTON, $_SERVER['PHP_SELF'], $currenttab, $exid, $i_dp->dpid, ICONPRINT);
-			}
-			if ($i_dp->organisatie == 1 and count($ldrows) > 0) {
-				printf("<button type='button' class='%s' title='Print DL-lijst' onClick=\"window.open('%s?tp=%s/DL-lijst&p_examen=%d&p_diploma=%d', '_blank')\">%s DL\n", CLASSBUTTON, $_SERVER['PHP_SELF'], $currenttab, $exid, $i_dp->dpid, ICONPRINT);
-			}
 			if ($p_perexamen == 1) {
+				$f = sprintf("EO.DiplomaID=%d", $i_dp->dpid);
+				if ($i_eo->aantal($f) > 1 and count($ldrows) > 0) {
+					printf("<button type='button' class='%s btn-sm' title='Print aftekenlijst' onClick=\"window.open('%s?tp=%s/Aftekenlijst&p_examen=%d&p_diploma=%d', '_blank')\">%s Afteken\n", CLASSBUTTON, $_SERVER['PHP_SELF'], $currenttab, $exid, $i_dp->dpid, ICONPRINT);
+				}
+				if ($i_dp->organisatie == 1 and count($ldrows) > 0 and $i_ex->exdatum >= date("Y-m-d", strtotime("-7 day"))) {
+					printf("<button type='button' class='%s btn-sm' title='Print DL-lijst' onClick=\"window.open('%s?tp=%s/DL-lijst&p_examen=%d&p_diploma=%d', '_blank')\">%s DL\n", CLASSBUTTON, $_SERVER['PHP_SELF'], $currenttab, $exid, $i_dp->dpid, ICONPRINT);
+				}
 				echo("</div> <!-- Einde kandidatengroep col -->\n");
-//				echo("</div> <!-- Einde col -->\n");
 			}
 		}
 		echo("</div> <!-- Einde examenresultaten -->\n");
@@ -402,7 +401,7 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1, $p_dpid=-1) {
 			$f_toev_groep = sprintf("LO.OnderdeelID=%1\$d AND LO.GroepID=%2\$d AND IFNULL(LO.Opgezegd, '9999-12-31') >= '%3\$s' AND LO.Lid NOT IN (SELECT LD.Lid FROM %4\$sLiddipl AS LD WHERE LD.Examen=%3\$d AND LD.DiplomaID=%5\$d)", $p_afdid, $grrow->RecordID, $exid, TABLE_PREFIX, $grrow->DiplomaID);
 			$al = $i_lo->aantal($f_toev_groep);
 			if ($al > 0) {
-				printf("<button type='submit' class='%s' name='ledengroep_%d'>%s</button>", CLASSBUTTON, $grrow->RecordID, $grrow->Omschrijving);
+				printf("<button type='submit' class='%s btn-sm' name='ledengroep_%d'>%s</button>", CLASSBUTTON, $grrow->RecordID, $grrow->Omschrijving);
 			}
 		}
 		$f = sprintf("EX.Proefexamen=1 AND EX.OnderdeelID=%d AND EX.Datum < '%s' AND EX.Nummer IN (SELECT LD.Examen FROM %sLiddipl AS LD WHERE LD.Geslaagd=1)", $p_afdid, $i_ex->exdatum, TABLE_PREFIX);
@@ -410,7 +409,7 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1, $p_dpid=-1) {
 		if (count($potexrows) > 0 and $i_ex->proef == 0) {
 			echo("<label class='form-label'>Proefexamen toevoegen</label>\n");
 			foreach ($potexrows as $potexrow) {
-				printf("<button type='submit' class='%s' name='proefexamen_%d'>Proefexamen %s</button>", CLASSBUTTON, $potexrow->Nummer, date("d-m-Y", strtotime($potexrow->Datum)));
+				printf("<button type='submit' class='%s btn-sm' name='proefexamen_%d'>Proefexamen %s</button>", CLASSBUTTON, $potexrow->Nummer, date("d-m-Y", strtotime($potexrow->Datum)));
 			}
 		}
 		
@@ -451,7 +450,7 @@ function fnExamenonderdelen() {
 	
 	printf("<form action='%s?tp=%s/%s' method='post'>\n", $_SERVER["PHP_SELF"], $currenttab, $currenttab2);
 	echo("<div id='filter'>\n");
-	printf("<select name='selecteerdiploma' class='form-select form-select-sm' onChange='this.form.submit();'>\n<option value=0>Selecteer diploma ...</option>\n%s</select>\n", $i_dp->htmloptions($dpid, -1, 0, 1));
+	printf("<select name='selecteerdiploma' class='form-select form-select-sm' title='Selecteer diploma' onChange='this.form.submit();'>\n<option value=0>Selecteer diploma ...</option>\n%s</select>\n", $i_dp->htmloptions($dpid, -1, 0, 1));
 	echo("</div> <!-- Einde filter -->\n");
 	
 	$f = sprintf("EO.DiplomaID=%d", $dpid);
