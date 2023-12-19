@@ -1067,6 +1067,7 @@ function fnEditTable($res, $kols, $id="", $th="") {
 	$rows = $res->fetchAll();
 	
 	$ret = "";
+	$xtra_script = "";
 	
 	if (strlen($id) == 0 and strlen($th) > 0) {
 		$id = str_replace("'", "", str_replace(" ", "_", strtolower($th)));
@@ -1111,6 +1112,12 @@ function fnEditTable($res, $kols, $id="", $th="") {
 				}
 				if (isset($kol['type']) and $kol['type'] == "pk") {
 					$colpk = $kols[$kn]['columnname'];
+				}
+				
+				if (isset($kol['autosubmit']) and $kol['autosubmit'] == true and isset($kols[$kn]['columnname'])) {
+					$xtra_script = sprintf("$(\"[id^=%s]\").on('blur', function() {
+				location.reload(true);
+			});\n", $kols[$kn]['columnname']);
 				}
 			}
 			if (isset($kols[$kn]['headertext']) and strlen($kols[$kn]['headertext']) > 0) {
@@ -1360,8 +1367,10 @@ function fnEditTable($res, $kols, $id="", $th="") {
 		$(\"input[type='number']\").on('change', function() {
 			savedata('%1\$s', 0, this);
 		});
+		
+		%2\$s
 
-		</script>\n", $id);
+		</script>\n", $id, $xtra_script);
 	}
 
 	return $ret;
