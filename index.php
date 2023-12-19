@@ -268,16 +268,17 @@ if ($i_lid->aantal() == 0) {
 	fnAfdeling();
 
 } elseif ($currenttab == "Website" and toegang($currenttab, 1, 1)) {
-	if ($currenttab2 == "Stukken" and toegang($currenttab2, 1, 1)) {
+	$tn = $currenttab . "/" . $currenttab2;
+	if ($currenttab2 == "Stukken" and toegang($tn, 1, 1)) {
 		fnStukken();
 		
-	} elseif ($currenttab2 == "Menu" and toegang($currenttab2, 1, 1)) {
+	} elseif ($currenttab2 == "Menu" and toegang($tn, 1, 1)) {
 		fnWebsiteMenu();
-		
-	} elseif ($currenttab2 == "Inhoud" and toegang($currenttab2, 1, 1)) {
+
+	} elseif ($currenttab2 == "Inhoud" and toegang($tn, 1, 1)) {
 		fnWebsiteInhoud();
-		
-	} elseif ($currenttab2 == "Logboek" and toegang($currenttab2, 1, 1)) {
+
+	} elseif ($currenttab2 == "Logboek" and toegang($tn, 1, 1)) {
 		fnDispMenu(2);
 		
 		$i_lb = new cls_Logboek();
