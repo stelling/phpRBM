@@ -109,117 +109,6 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 } elseif ($_GET['op'] == "FreeBackupFiles") {
 	fnFreeBackupFiles();
 	
-} elseif ($_GET['op'] == "ledenonderdelenbijwerken") {
-	$i_lo = new cls_Lidond();
-	$i_lo->autogroepenbijwerken(0, 5);
-	$i_lo->auto_einde(0, 5);
-	$i_lo->controle();
-	$i_lo->opschonen();
-	$i_lo = null;
-	
-	$i_aanw = new cls_Aanwezigheid();
-	$i_aanw->controle();
-	$i_aanw->opschonen();
-	$i_aanw = null;
-	
-} elseif ($_GET['op'] == "beheeronderdelen") {
-	(new cls_Onderdeel())->opschonen();
-	(new cls_Onderdeel())->controle();
-	(new cls_Groep())->opschonen();
-	(new cls_Groep())->controle();
-	(new cls_Functie())->opschonen();
-	(new cls_Functie())->controle();
-	(new cls_Stukken())->controle();
-	(new cls_Stukken())->opschonen();
-	(new cls_Organisatie())->opschonen();
-	(new cls_Organisatie())->controle();
-	(new cls_Activiteit())->opschonen();
-	(new cls_Activiteit())->controle();
-	
-} elseif ($_GET['op'] == "logboekopschonen") {
-	(new cls_Logboek())->controle();
-	(new cls_Logboek())->opschonen();
-	
-} elseif ($_GET['op'] == "ledenopschonen") {
-	(new cls_Lid())->controle();
-	(new cls_Lid())->opschonen();
-
-	(new cls_Lidmaatschap())->controle();
-	(new cls_Lidmaatschap())->opschonen();
-	
-	(new cls_Memo())->controle();
-	(new cls_Memo())->opschonen();
-
-	(new cls_Foto())->controle();
-	(new cls_Foto())->opschonen();
-
-	(new cls_Inschrijving())->controle();
-	(new cls_Inschrijving())->opschonen();
-	
-} elseif ($_GET['op'] == "beheerdiplomas") {
-	$i_dp = new cls_Diploma();
-	$i_dp->controle();
-	$i_dp->opschonen();
-	$i_dp = null;
-
-	$i_ld = new cls_Liddipl();
-	$i_ld->controle();
-	$i_ld->opschonen();
-	$i_ld = null;
-	
-	$i_ex = new cls_Examen();
-	$i_ex->controle();
-	$i_ex->opschonen();
-	$i_ex = null;
-	
-} elseif ($_GET['op'] == "mailingsopschonen") {
-	(new cls_Mailing())->controle();
-	(new cls_Mailing())->opschonen();
-	
-	(new cls_Mailing_hist())->controle();
-	(new cls_Mailing_hist())->opschonen();
-	
-	(new cls_Mailing_rcpt())->controle();
-	(new cls_Mailing_rcpt())->opschonen();
-} elseif ($_GET['op'] == "evenementenopschonen") {
-	(new cls_Evenement())->controle();
-	(new cls_Evenement())->opschonen();
-	
-	(new cls_Evenement_Deelnemer())->controle();
-	(new cls_Evenement_Deelnemer())->opschonen();
-	
-	(new cls_Evenement_Type())->controle();
-	(new cls_Evenement_Type())->opschonen();
-	
-} elseif ($_GET['op'] == "rekeningenopschonen") {
-	(new cls_Rekeningregel())->controle();
-	(new cls_Rekeningregel())->opschonen();
-	
-	(new cls_Rekening())->controle();
-	(new cls_Rekening())->opschonen();
-		
-	(new cls_RekeningBetaling())->controle();
-	(new cls_RekeningBetaling())->opschonen();
-	
-	(new cls_Seizoen())->controle();
-	(new cls_Seizoen())->opschonen();
-	
-} elseif ($_GET['op'] == "loginsopschonen") {
-	(new cls_Login())->opschonen();
-	
-} elseif ($_GET['op'] == "autorisatieopschonen") {
-	(new cls_Authorisation())->controle();
-	(new cls_Authorisation())->opschonen();
-	
-} elseif ($_GET['op'] == "webshopopschonen") {
-	(new cls_Orderregel())->controle();
-	(new cls_Orderregel())->opschonen();
-	
-	(new cls_Artikel())->controle();
-	(new cls_Artikel())->opschonen();
-	
-	(new cls_Voorraadboeking())->controle();
-	(new cls_Voorraadboeking())->opschonen();
 }
 
 if ($currenttab == "Beheer logins") {
@@ -230,69 +119,11 @@ if ($currenttab == "Beheer logins") {
 		fnBeheerLogins();
 	}
 	
-} elseif ($currenttab == "Autorisatie" and toegang($currenttab, 1, 1)) {
-	$i_auth = new cls_Authorisation();
-	$authrows = $i_auth->lijst();
-	
-	echo("<div id='filter'>\n");
-	echo("<input type='text' title='filter tabel' placeholder='Tekstfilter' OnKeyUp=\"fnFilter('beheerautorisatie', this, 2);\">\n");
-	printf("<p class='aantrecords'>%d rijen</p>\n", count($authrows));
-	echo("</div> <!-- Einde filter -->\n\n");
-	
-	printf("<form method='post' id='beheerautorisatie' action='%s?tp=%s&op=changeaccess'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-	printf("<table id='beheerautorisatie' class='%s'>\n", TABLECLASSES);
-	echo("<thead>\n");
-	echo("<tr><th></th><th>Onderdeel</th><th>Toegankelijk voor</th><th>Ingevoerd</th><th>Laatst gebruikt</th><th></th></tr>\n");
-	echo("</thead>\n");
-	echo("<tbody>\n");
-	$ondrows = (new cls_Onderdeel())->lijst(0, "O.`Type`<>'T'");
-	$dtfmt->setPattern(DTTEXT);
-	foreach($authrows as $row) {
-		if ($row->Toegang > 0) {
-			$add = sprintf("<i class='bi bi-plus-circle' alt='Regel toevoegen' onClick=\"add_auth('%s');window.location.reload(true);\"></i>", $row->Tabpage);
-		} else {
-			$add = "";
-		}
-		$del = sprintf("<i class='bi bi-trash' alt='Verwijderen' onClick='verw_auth(%d);'></i>", $row->RecordID);
-		$selectopt = sprintf("<option value=-1%s>Alleen webmasters</option>\n", checked($row->Toegang, "option", -1));
-		$selectopt .= sprintf("<option value=-2%s>Niemand</option>\n", checked($row->Toegang, "option", -2));
-		$selectopt .= sprintf("<option value=0%s>Iedereen</option>\n", checked($row->Toegang, "option", 0));
-		foreach($ondrows as $ond) {
-			$selectopt .= sprintf("<option value=%d%s>%s</option>\n", $ond->RecordID, checked($row->Toegang, "option", $ond->RecordID), htmlentities($ond->Naam));
-		}
-		$clnw = "";
-		if ($row->Ingevoerd >= date("Y-dm-d", strtotime("-7 day"))) {
-			$clnw = " class='nieuw'";
-		}
-		$cllg = "";
-		if ($row->LaatstGebruikt <= date("Y-m-d", mktime(0, 0, 0, date("m")-6, date("d"), date("Y")))) {
-			$cllg = " class='attentie'";
-		}
-		printf("<tr>\n<td>%s</td><td id='name_%d'>%s</td>", $add, $row->RecordID, $row->Tabpage);
-		printf("<td><select id='Toegang_%d' class='form-select'>\n%s</select></td>\n<td%s>%s</td><td%s>%s</td><td>%s</td>\n</tr>\n", $row->RecordID, $selectopt, $clnw, $dtfmt->format(strtotime($row->Ingevoerd)), $cllg, $dtfmt->format(strtotime($row->LaatstGebruikt)), $del);
+} elseif ($currenttab == "Autorisatie") {
+	if (toegang($currenttab, 1, 1)) {
+		beheerautorisatie();
 	}
-	$optionstab = "<option value=''>Selecteer ...</option>\n";
-	foreach ($i_auth->lijst("DISTINCT") as $row) {
-		$optionstab .= sprintf("<option value='%1\$s'>%1\$s</option>\n", $row->Tabpage);
-	}
-	echo("</tbody>\n");
-	echo("</table>\n");
-//	printf("<label>Nieuw</label><select name='tabpage_nw' onBlur='this.form.submit();'>%s</select>\n", $optionstab);
-	echo("</form>\n");
-	
-	echo("<div id='autorisatiesperonderdeel'>\n");
-	echo(fnDisplayTable($i_auth->autorisatiesperonderdeel(), null, "Autorisaties per onderdeel"));
-	echo("</div> <!-- Einde autorisatiesperonderdeel -->\n");
-?>
-<script>
-	$('select').change(function() {
-		savedata('update_autorisatie', 0, this);
-	});
 
-</script>
-<?php
-	$i_auth = null;
-		
 } elseif ($currenttab == "Eigen lijsten") {
 	if (toegang($currenttab, 1, 1)) {
 		fnEigenlijstenmuteren();
@@ -308,8 +139,10 @@ if ($currenttab == "Beheer logins") {
 		fnInstellingen();
 	}
 	
-} elseif ($currenttab == "Stamgegevens" and toegang($currenttab, 1, 1)) {
-	fnStamgegevens();
+} elseif ($currenttab == "Stamgegevens") {
+	if (toegang($currenttab, 1, 1)) {
+		fnStamgegevens();
+	}
 	
 } elseif ($currenttab == "Uploaden data") {
 	if ((new cls_Lid())->aantal() == 0 or toegang($currenttab, 1, 1)) {
@@ -327,169 +160,25 @@ if ($currenttab == "Beheer logins") {
 		echo("</form>\n");
 	}
 
-} elseif ($currenttab == "Downloaden wijzigingen" and toegang($currenttab, 1, 1)) {
-	$copytext = "";
-	
-	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		if (isset($_POST['afmelden'])) {
-			(new cls_interface())->afmelden();
-		}
+} elseif ($currenttab == "Downloaden wijzigingen") {
+	if (toegang($currenttab, 1, 1)) {
+		downloadwijzigingen();
 	}
 	
-	$kols[] = array('headertext' => "Betreft lid", 'columnname' => "betreftLid");
-	$kols[]['headertext'] = "ingevoerd";
-	$kols[]['headertext'] = "SQL-statement";
-	
-	$l = sprintf("/admin.php?op=deleteint&recid=%%d&tp=%s", urlencode($_GET['tp']));
-	$kols[] = array('columnname' => "RecordID", 'link' => $l, 'class' => "trash");
-
-	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	$i_int = new cls_Interface();
-	$rows = $i_int->lijst();
-	if (count($rows) > 0) {
-		$t = $i_int->aantal("(Afgemeld IS NULL)");
-		if (count($rows) > $t) {
-			$th = sprintf("%d wijzigingen", count($rows));
-		} else {
-			$th = sprintf("%d van %d wijzigingen", count($rows), $t);
-		}
-		$th .= ", te verwerken in de Access database";
-		echo(fnDisplayTable($rows, $kols, $th, 0, "", "beheerwijzigingen"));
-		foreach ($rows as $row) {
-			$copytext .= $row->SQL . "\n";
-		}
-	} else {
-		echo("<p class='mededeling'>Er zijn geen wijzigingen die nog verwerkt moeten worden</p>\n");
-	}
-		
-	if (strlen($copytext) > 0) {
-		echo("<h2>SQL-code, te gebruiken in MS-Access:</h2>\n");
-		printf("<textarea id='copywijzigingen' class='copypaste' rows=%d readonly>%s</textarea>\n", count($rows)+1, $copytext);
-		echo("<div id='opdrachtknoppen'>\n");
-		echo("<button name='kopieer' onClick='CopyFunction()'>Kopieer naar klembord</button>\n");
-		echo("<button name='afmelden' type='submit'>Wijzigingen afmelden</button>\n");
-		echo("</div> <!-- Einde opdrachtknoppen -->\n");
-	}
-	echo("</form>\n");
-	
-} elseif ($currenttab == "Export data" and toegang($currenttab, 1, 1)) {
-	db_backup(4);
-	
-} elseif ($currenttab == "Onderhoud" and toegang($currenttab, 1, 1)) {
-
-	if (isset($_POST['logboek_bewaartijd']) and $_POST['logboek_bewaartijd'] > 0) {
-		(new cls_Parameter())->update("logboek_bewaartijd", $_POST['logboek_bewaartijd']);
+} elseif ($currenttab == "Export data") {
+	if (toegang($currenttab, 1, 1)) {
+		db_backup(4);
 	}
 	
-	$f = "TypeActiviteit=3";
-	$laatstebackup = (new cls_Logboek())->max("DatumTijd", $f);
-	
-	printf("<form method='post' id='dbonderhoud' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
-	
-	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=backup\"'>Backup</button><p>Maak een backup van de database. Laatste backup is op %s gemaakt.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $laatstebackup);
-	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=FreeBackupFiles\"'>Vrijgeven backup-bestanden</button><p>Geef de backup-bestanden vrij door middel van een chmod 0755.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=ledenonderdelenbijwerken\"'>Beheer leden van onderdelen</button><p>Beheer van leden van onderdelen en presentie.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=beheeronderdelen\"'>Beheer onderdelen</button><p>Controle en opschonen van onderdelen, activiteiten, afdelingsgroepen, functies, stukken en organisaties.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));	
-	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=logboekopschonen\"'>Logboek opschonen</button><p>Opschonen van het logboek, op basis van diverse regels.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['logboek_bewaartijd']);
-	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=ledenopschonen\"'>Leden en lidmaatschappen</button><p>Controle en opschonen leden, lidmaatschappen, memo's en foto's.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=beheerdiplomas\"'>Onderhoud diploma's</button><p>Controle en opschonen van diploma's en leden per diploma en examens.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=mailingsopschonen\"'>Onderhoud mailings</button><p>Controle en opschonen van mailings en verzonden e-mails.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=evenementenopschonen\"'>Onderhoud evenementen</button><p>Controle en opschonen evenementen.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=rekeningenopschonen\"'>Onderhoud rekeningen en betalingen</button><p>Controle en opschonen van rekeningen, rekeningregels, betalingen en seizoenen.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=loginsopschonen\"'>Logins opschonen</button><p>Opschonen van logins die om diverse redenen niet meer nodig zijn.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=autorisatieopschonen\"'>Autorisatie opschonen</button><p>Verwijderen toegang waar alleen de webmaster toegang toe heeft en die ouder dan 3 maanden zijn.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	if ((new cls_Orderregel())->aantal() > 0 or (new cls_Artikel())->aantal() > 0) {
-		printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=webshopopschonen\"'>Webshop opschonen</button><p>Opschonen van de artikelen, bestellingen en voorraadboekingen.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+} elseif ($currenttab == "Onderhoud") {
+	if (toegang($currenttab, 1, 1)) {
+		onderhoud();
 	}
-	echo("</form>\n");
 	
-	printf("<div id='versies'>PHP: %s / Database: %s</div>  <!-- Einde versies -->\n", substr(phpversion(), 0, 6), (new cls_db_base())->versiedb());
-	
-} elseif ($currenttab == "Logboek" and toegang($currenttab, 1, 1)) {
-	$i_lb = new cls_logboek();
-	
-	$kols[0]['sortcolumn'] = "RecordID";
-	$kols[1]['sortcolumn'] = "Omschrijving";
-	$kols[3]['sortcolumn'] = "Type";
-	$kols[4]['sortcolumn'] = "ingelogdLid";
-	$kols[6]['sortcolumn'] = "scriptFunctie";
-	$kols[7]['sortcolumn'] = "A.IP_adres";
-	
-	$ord = fnOrderBy($kols);
-	
-	if (!isset($_POST['tbTekstFilter']) or strlen($_POST['tbTekstFilter']) == 0) {
-		$_POST['tbTekstFilter'] = "";
+} elseif ($currenttab == "Logboek") {
+	if (toegang($currenttab, 1, 1)) {
+		logboek();
 	}
-	if (!isset($_POST['typefilter']) or strlen($_POST['typefilter']) == 0) {
-		$_POST['typefilter'] = -1;
-	}
-	$_POST['kolomfilter'] = $_POST['kolomfilter'] ?? "";
-	if (!isset($_POST['aantalrijen']) or $_POST['aantalrijen'] < 2) {
-		$_POST['aantalrijen'] = 1500;
-	}
-	$_POST['ingelogdeanderen'] = $_POST['ingelogdeanderen'] ?? 0;
-	$_POST['ingelogdeanderen'] = intval($_POST['ingelogdeanderen']);
-	
-	$f = "";
-	if (strlen($_POST['kolomfilter']) > 0) {
-		$f = sprintf("CONCAT(A.RefTable, '-', A.refColumn)='%s'", $_POST['kolomfilter']);
-	}
-	if ($_POST['ingelogdeanderen'] == 1) {
-		if (strlen($f) > 0) {
-			$f .= " AND ";
-		}
-		$f .= "A.LidID > 0";
-	}
-	$rows = $i_lb->lijst($_POST['typefilter'], 0, 0, $f, $ord, $_POST['aantalrijen']);
-	
-	printf("<form class='form-check form-switch' method='post' id='filter' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
-	
-	echo("<input type='text' id='tbTekstFilter' title='Filter tabel' placeholder='Tekst filter' OnKeyUp=\"fnFilter('logboek', this);\">");
-	
-	echo("<select name='typefilter' class='form-select form-select-sm' onchange='this.form.submit();'>\n");
-	echo("<option value=-1>Filter op type ....</option>\n");
-	foreach ($TypeActiviteit as $key => $val) {
-		$f = sprintf("TypeActiviteit=%d", $key);
-		if ($i_lb->aantal($f) > 0) {
-			printf("<option value=%d %s>%s</option>\n", $key, checked($key, "option", $_POST['typefilter']), htmlentities($val));
-		}
-	}
-	echo("</select>\n");
-			
-	echo("<select name='kolomfilter' class='form-select form-select-sm' onchange='this.form.submit();'>\n");
-	echo("<option value=''>Filter op tabel/kolom ....</option>\n");
-	$f = "IFNULL(A.refColumn, '') > ''";
-	if ($_POST['typefilter'] > 0) {
-		$f .= sprintf(" AND TypeActiviteit=%d", $_POST['typefilter']);
-	}
-	foreach ($i_lb->uniekelijst("A.RefTable, A.refColumn", $f) as $row) {
-		printf("<option value='%1\$s-%2\$s' %3\$s>%1\$s->%2\$s</option>\n", $row->RefTable, $row->refColumn, checked($row->RefTable . "-" . $row->refColumn, "option", $_POST['kolomfilter']));
-	}
-	echo("</select>\n");
-	
-
-	$options = "";
-	$ta = $i_lb->aantal();
-	$va = 0;
-	foreach (array(25, 100, 250, 750, 1500, 3000, 10000, 25000, 50000) as $a) {
-		if ($ta > $va) {
-			$options .= sprintf("<option value=%d %s>%s</option>\n", $a, checked($a, "option", $_POST['aantalrijen']), number_format($a, 0, ",", "."));
-		}
-		$va = $a;
-	}
-	printf("<label class='form-label'>Aantal rijen</label><select name='aantalrijen' class='form-select form-select-sm' OnChange='this.form.submit();'>%s</select>\n", $options);
-	printf("<label class='form-label'>Alleen ingelogde</label><input type='checkbox' class='form-check-input' name='ingelogdeanderen'%s value=1 onClick='this.form.submit();'>\n", checked($_POST['ingelogdeanderen']));
-	
-	if (count($rows) > 1) {
-		printf("<p class='aantrecords'>%s van %s rijen</p>\n", number_format(count($rows), 0, ",", "."), number_format($i_lb->aantal(), 0, ",", "."));
-	}
-	echo("</form>\n");
-	
-	$kols = fnStandaardKols("logboek", 1, $rows);
-	
-	echo(fnDisplayTable($rows, $kols, "", 0, "", "logboek"));
-	
-	$i_lb = null;
 	
 } elseif ($currenttab == "Info" and toegang($currenttab, 1, 1)) {
 	
@@ -554,6 +243,80 @@ function fnBeheerLogins() {
 	$i_login = null;
 	
 }  # fnBeheerLogins
+
+function beheerautorisatie() {
+	global $dtfmt, $currenttab;
+	
+	$i_auth = new cls_Authorisation();
+	
+	$tf = $_POST['tekstfilter'] ?? "";
+	$if = $_POST['ingevoerdfilter'] ?? substr($i_auth->min("Ingevoerd"), 0, 10);
+	
+	$i_auth->where = sprintf("Ingevoerd >= '%s'", $if);
+	if (strlen($tf) > 0) {
+		$i_auth->where .= " AND Tabpage LIKE '%" . $tf . "%'"; 
+	}
+	$authrows = $i_auth->lijst();
+	
+	printf("<form method='post' id='filter' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $currenttab);
+	printf("<input type='text' name='tekstfilter' value='%s' title='Filter op tekst' placeholder='Tekstfilter' onBlur='this.form.submit();'>\n", $tf, __FUNCTION__);
+	printf("<label class='form-label'>Ingevoerd na</label><input type='date' name='ingevoerdfilter' value='%s' title='Filter op datum ingevoerd' onBlur='this.form.submit();'>\n", $if);
+	printf("<p class='aantrecords'>%d rijen</p>\n", count($authrows));
+	echo("</form>\n");
+	
+	printf("<table id='%s' class='%s'>\n", __FUNCTION__, TABLECLASSES);
+	echo("<thead>\n");
+	echo("<tr><th></th><th>Onderdeel</th><th>Toegankelijk voor</th><th>Ingevoerd</th><th>Laatst gebruikt</th><th></th></tr>\n");
+	echo("</thead>\n");
+	echo("<tbody>\n");
+	$ondrows = (new cls_Onderdeel())->lijst(0, "O.`Type`<>'T'");
+	$dtfmt->setPattern(DTTEXT);
+	foreach($authrows as $row) {
+		if ($row->Toegang > 0) {
+			$add = sprintf("<i class='bi bi-plus-circle' alt='Regel toevoegen' title='Regel toevoegen' onClick=\"add_auth('%s');window.location.reload(true);\"></i>", $row->Tabpage);
+		} else {
+			$add = "";
+		}
+		$del = sprintf("<i id='delete_%1\$d' class='bi bi-trash' alt='Verwijderen' onClick='verw_auth(%1\$d);'></i>", $row->RecordID);
+		$selectopt = sprintf("<option value=-1%s>Alleen webmasters</option>\n", checked($row->Toegang, "option", -1));
+		$selectopt .= sprintf("<option value=-2%s>Niemand</option>\n", checked($row->Toegang, "option", -2));
+		$selectopt .= sprintf("<option value=0%s>Iedereen</option>\n", checked($row->Toegang, "option", 0));
+		foreach($ondrows as $ond) {
+			$selectopt .= sprintf("<option value=%d%s>%s</option>\n", $ond->RecordID, checked($row->Toegang, "option", $ond->RecordID), htmlentities($ond->Naam));
+		}
+		$clnw = "";
+		if ($row->Ingevoerd >= date("Y-dm-d", strtotime("-7 day"))) {
+			$clnw = " class='nieuw'";
+		}
+		$cllg = "";
+		if ($row->LaatstGebruikt <= date("Y-m-d", mktime(0, 0, 0, date("m")-6, date("d"), date("Y")))) {
+			$cllg = " class='attentie'";
+		}
+		printf("<tr>\n<td>%s</td><td id='name_%d'>%s</td>\n", $add, $row->RecordID, $row->Tabpage);
+		printf("<td><select id='Toegang_%d' class='form-select form-select-sm'>\n%s</select></td>\n<td%s>%s</td><td%s>%s</td><td>%s</td>\n</tr>\n", $row->RecordID, $selectopt, $clnw, $dtfmt->format(strtotime($row->Ingevoerd)), $cllg, $dtfmt->format(strtotime($row->LaatstGebruikt)), $del);
+	}
+	echo("</tbody>\n");
+	echo("</table>\n");
+/*
+	$optionstab = "<option value=''>Selecteer ...</option>\n";
+	foreach ($i_auth->lijst("DISTINCT") as $row) {
+		$optionstab .= sprintf("<option value='%1\$s'>%1\$s</option>\n", $row->Tabpage);
+	}
+	printf("<label>Nieuw</label><select name='tabpage_nw' onBlur='this.form.submit();'>%s</select>\n", $optionstab);
+*/
+	
+	echo("<div id='autorisatiesperonderdeel'>\n");
+	echo(fnDisplayTable($i_auth->autorisatiesperonderdeel(), null, "Autorisaties per onderdeel"));
+	echo("</div> <!-- Einde autorisatiesperonderdeel -->\n");
+
+	echo("<script>
+	$('select').change(function() {
+		savedata('update_autorisatie', 0, this);
+	});
+	</script>\n");
+	$i_auth = null;
+	
+}  # beheerautorisatie
 
 function fnInstellingen() {
 	
@@ -888,6 +651,53 @@ function fnEigenlijstenmuteren() {
 	
 }  # fnEigenlijstenmuteren
 
+function downloadwijzigingen() {
+	$copytext = "";
+	
+	if ($_SERVER['REQUEST_METHOD'] == "POST") {
+		if (isset($_POST['afmelden'])) {
+			(new cls_interface())->afmelden();
+		}
+	}
+	
+	$kols[] = array('headertext' => "Betreft lid", 'columnname' => "betreftLid");
+	$kols[]['headertext'] = "ingevoerd";
+	$kols[]['headertext'] = "SQL-statement";
+	
+	$l = sprintf("/admin.php?op=deleteint&recid=%%d&tp=%s", urlencode($_GET['tp']));
+	$kols[] = array('columnname' => "RecordID", 'link' => $l, 'class' => "trash");
+
+	printf("<form method='post' id='%s' action='%s?tp=%s'>\n", __FUNCTION__, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	$i_int = new cls_Interface();
+	$rows = $i_int->lijst();
+	if (count($rows) > 0) {
+		$t = $i_int->aantal("(Afgemeld IS NULL)");
+		if (count($rows) > $t) {
+			$th = sprintf("%d wijzigingen", count($rows));
+		} else {
+			$th = sprintf("%d van %d wijzigingen", count($rows), $t);
+		}
+		$th .= ", te verwerken in de Access database";
+		echo(fnDisplayTable($rows, $kols, $th, 0, "", "beheerwijzigingen"));
+		foreach ($rows as $row) {
+			$copytext .= $row->SQL . "\n";
+		}
+	} else {
+		echo("<p class='mededeling'>Er zijn geen wijzigingen die nog verwerkt moeten worden</p>\n");
+	}
+		
+	if (strlen($copytext) > 0) {
+		echo("<h2>SQL-code, te gebruiken in MS-Access:</h2>\n");
+		printf("<textarea id='copywijzigingen' class='copypaste' rows=%d readonly>%s</textarea>\n", count($rows)+1, $copytext);
+		echo("<div id='opdrachtknoppen'>\n");
+		echo("<button name='kopieer' onClick='CopyFunction()'>Kopieer naar klembord</button>\n");
+		echo("<button name='afmelden' type='submit'>Wijzigingen afmelden</button>\n");
+		echo("</div> <!-- Einde opdrachtknoppen -->\n");
+	}
+	echo("</form>\n");
+	
+}  # downloadwijzigingen
+
 function fnTemplatesmuteren() {
 	
 	$i_tp = new cls_Template();
@@ -927,10 +737,240 @@ function fnTemplatesmuteren() {
 	
 }  # fnTemplatesmuteren
 
-function fnExportSQL() {
-	global $arrTables;
+function onderhoud() {
 	
-}
+	$op = $_GET['op'] ?? "";
+	
+	if ($op == "ledenonderdelenbijwerken") {
+		$i_lo = new cls_Lidond();
+		$i_lo->autogroepenbijwerken(0, 5);
+		$i_lo->auto_einde(0, 5);
+		$i_lo->controle();
+		$i_lo->opschonen();
+		$i_lo = null;
+	
+		$i_aanw = new cls_Aanwezigheid();
+		$i_aanw->controle();
+		$i_aanw->opschonen();
+		$i_aanw = null;
+	
+	} elseif ($op == "beheeronderdelen") {
+		(new cls_Onderdeel())->opschonen();
+		(new cls_Onderdeel())->controle();
+		(new cls_Groep())->opschonen();
+		(new cls_Groep())->controle();
+		(new cls_Functie())->opschonen();
+		(new cls_Functie())->controle();
+		(new cls_Stukken())->controle();
+		(new cls_Stukken())->opschonen();
+		(new cls_Organisatie())->opschonen();
+		(new cls_Organisatie())->controle();
+		(new cls_Activiteit())->opschonen();
+		(new cls_Activiteit())->controle();
+
+	} elseif ($op == "logboekopschonen") {
+		(new cls_Logboek())->controle();
+		(new cls_Logboek())->opschonen();
+
+	} elseif ($op == "ledenopschonen") {
+		(new cls_Lid())->controle();
+		(new cls_Lid())->opschonen();
+
+		(new cls_Lidmaatschap())->controle();
+		(new cls_Lidmaatschap())->opschonen();
+	
+		(new cls_Memo())->controle();
+		(new cls_Memo())->opschonen();
+
+		(new cls_Foto())->controle();
+		(new cls_Foto())->opschonen();
+
+		(new cls_Inschrijving())->controle();
+		(new cls_Inschrijving())->opschonen();
+	
+	} elseif ($op == "beheerdiplomas") {
+		$i_dp = new cls_Diploma();
+		$i_dp->controle();
+		$i_dp->opschonen();
+		$i_dp = null;
+
+		$i_ld = new cls_Liddipl();
+		$i_ld->controle();
+		$i_ld->opschonen();
+		$i_ld = null;
+
+		$i_ex = new cls_Examen();
+		$i_ex->controle();
+		$i_ex->opschonen();
+		$i_ex = null;
+
+	} elseif ($op == "mailingsopschonen") {
+		(new cls_Mailing())->controle();
+		(new cls_Mailing())->opschonen();
+
+		(new cls_Mailing_hist())->controle();
+		(new cls_Mailing_hist())->opschonen();
+
+		(new cls_Mailing_rcpt())->controle();
+		(new cls_Mailing_rcpt())->opschonen();
+	} elseif ($op == "evenementenopschonen") {
+		(new cls_Evenement())->controle();
+		(new cls_Evenement())->opschonen();
+
+		(new cls_Evenement_Deelnemer())->controle();
+		(new cls_Evenement_Deelnemer())->opschonen();
+
+		(new cls_Evenement_Type())->controle();
+		(new cls_Evenement_Type())->opschonen();
+
+	} elseif ($op == "rekeningenopschonen") {
+		(new cls_Rekeningregel())->controle();
+		(new cls_Rekeningregel())->opschonen();
+
+		(new cls_Rekening())->controle();
+		(new cls_Rekening())->opschonen();
+
+		(new cls_RekeningBetaling())->controle();
+		(new cls_RekeningBetaling())->opschonen();
+
+		(new cls_Seizoen())->controle();
+		(new cls_Seizoen())->opschonen();
+
+	} elseif ($op == "loginsopschonen") {
+		(new cls_Login())->opschonen();
+
+	} elseif ($op == "autorisatieopschonen") {
+		(new cls_Authorisation())->controle();
+		(new cls_Authorisation())->opschonen();
+	
+	} elseif ($op == "webshopopschonen") {
+		(new cls_Orderregel())->controle();
+		(new cls_Orderregel())->opschonen();
+	
+		(new cls_Artikel())->controle();
+		(new cls_Artikel())->opschonen();
+	
+		(new cls_Voorraadboeking())->controle();
+		(new cls_Voorraadboeking())->opschonen();
+	}
+	
+	if (isset($_POST['logboek_bewaartijd']) and $_POST['logboek_bewaartijd'] > 0) {
+		(new cls_Parameter())->update("logboek_bewaartijd", $_POST['logboek_bewaartijd']);
+	}
+	
+	$f = "TypeActiviteit=3";
+	$laatstebackup = (new cls_Logboek())->max("DatumTijd", $f);
+	
+	printf("<form method='post' id='%s' action='%s?%s'>\n", __FUNCTION__, $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+	
+	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=backup\"'>Backup</button><p>Maak een backup van de database. Laatste backup is op %s gemaakt.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $laatstebackup);
+	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=FreeBackupFiles\"'>Vrijgeven backup-bestanden</button><p>Geef de backup-bestanden vrij door middel van een chmod 0755.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=ledenonderdelenbijwerken\"'>Beheer leden van onderdelen</button><p>Beheer van leden van onderdelen en presentie.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=beheeronderdelen\"'>Beheer onderdelen</button><p>Controle en opschonen van onderdelen, activiteiten, afdelingsgroepen, functies, stukken en organisaties.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));	
+	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=logboekopschonen\"'>Logboek opschonen</button><p>Opschonen van het logboek, op basis van diverse regels.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['logboek_bewaartijd']);
+	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=ledenopschonen\"'>Leden en lidmaatschappen</button><p>Controle en opschonen leden, lidmaatschappen, memo's en foto's.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=beheerdiplomas\"'>Onderhoud diploma's</button><p>Controle en opschonen van diploma's en leden per diploma en examens.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=mailingsopschonen\"'>Onderhoud mailings</button><p>Controle en opschonen van mailings en verzonden e-mails.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=evenementenopschonen\"'>Onderhoud evenementen</button><p>Controle en opschonen evenementen.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=rekeningenopschonen\"'>Onderhoud rekeningen en betalingen</button><p>Controle en opschonen van rekeningen, rekeningregels, betalingen en seizoenen.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=loginsopschonen\"'>Logins opschonen</button><p>Opschonen van logins die om diverse redenen niet meer nodig zijn.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=autorisatieopschonen\"'>Autorisatie opschonen</button><p>Verwijderen toegang waar alleen de webmaster toegang toe heeft en die ouder dan 3 maanden zijn.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	if ((new cls_Orderregel())->aantal() > 0 or (new cls_Artikel())->aantal() > 0) {
+		printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=webshopopschonen\"'>Webshop opschonen</button><p>Opschonen van de artikelen, bestellingen en voorraadboekingen.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	}
+	echo("</form>\n");
+	
+	printf("<div id='versies'>PHP: %s / Database: %s</div>  <!-- Einde versies -->\n", substr(phpversion(), 0, 6), (new cls_db_base())->versiedb());
+	
+}  # onderhoud
+
+function logboek() {
+	$i_lb = new cls_logboek();
+	
+	$kols[0]['sortcolumn'] = "RecordID";
+	$kols[1]['sortcolumn'] = "Omschrijving";
+	$kols[3]['sortcolumn'] = "Type";
+	$kols[4]['sortcolumn'] = "ingelogdLid";
+	$kols[6]['sortcolumn'] = "scriptFunctie";
+	$kols[7]['sortcolumn'] = "A.IP_adres";
+	
+	$ord = fnOrderBy($kols);
+	
+	if (!isset($_POST['tbTekstFilter']) or strlen($_POST['tbTekstFilter']) == 0) {
+		$_POST['tbTekstFilter'] = "";
+	}
+	if (!isset($_POST['typefilter']) or strlen($_POST['typefilter']) == 0) {
+		$_POST['typefilter'] = -1;
+	}
+	$_POST['kolomfilter'] = $_POST['kolomfilter'] ?? "";
+	if (!isset($_POST['aantalrijen']) or $_POST['aantalrijen'] < 2) {
+		$_POST['aantalrijen'] = 1500;
+	}
+	$_POST['ingelogdeanderen'] = $_POST['ingelogdeanderen'] ?? 0;
+	$_POST['ingelogdeanderen'] = intval($_POST['ingelogdeanderen']);
+	
+	$f = "";
+	if (strlen($_POST['kolomfilter']) > 0) {
+		$f = sprintf("CONCAT(A.RefTable, '-', A.refColumn)='%s'", $_POST['kolomfilter']);
+	}
+	if ($_POST['ingelogdeanderen'] == 1) {
+		if (strlen($f) > 0) {
+			$f .= " AND ";
+		}
+		$f .= "A.LidID > 0";
+	}
+	$rows = $i_lb->lijst($_POST['typefilter'], 0, 0, $f, $ord, $_POST['aantalrijen']);
+	
+	printf("<form class='form-check form-switch' method='post' id='filter' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+	
+	printf("<input type='text' id='tbTekstFilter' title='Filter tabel' placeholder='Tekst filter' OnKeyUp=\"fnFilter('%s', this);\">", __FUNCTION__);
+	
+	echo("<select name='typefilter' class='form-select form-select-sm' onchange='this.form.submit();'>\n");
+	echo("<option value=-1>Filter op type ....</option>\n");
+	foreach ($TypeActiviteit as $key => $val) {
+		$f = sprintf("TypeActiviteit=%d", $key);
+		if ($i_lb->aantal($f) > 0) {
+			printf("<option value=%d %s>%s</option>\n", $key, checked($key, "option", $_POST['typefilter']), htmlentities($val));
+		}
+	}
+	echo("</select>\n");
+			
+	echo("<select name='kolomfilter' class='form-select form-select-sm' onchange='this.form.submit();'>\n");
+	echo("<option value=''>Filter op tabel/kolom ....</option>\n");
+	$f = "IFNULL(A.refColumn, '') > ''";
+	if ($_POST['typefilter'] > 0) {
+		$f .= sprintf(" AND TypeActiviteit=%d", $_POST['typefilter']);
+	}
+	foreach ($i_lb->uniekelijst("A.RefTable, A.refColumn", $f) as $row) {
+		printf("<option value='%1\$s-%2\$s' %3\$s>%1\$s->%2\$s</option>\n", $row->RefTable, $row->refColumn, checked($row->RefTable . "-" . $row->refColumn, "option", $_POST['kolomfilter']));
+	}
+	echo("</select>\n");
+	
+
+	$options = "";
+	$ta = $i_lb->aantal();
+	$va = 0;
+	foreach (array(25, 100, 250, 750, 1500, 3000, 10000, 25000, 50000) as $a) {
+		if ($ta > $va) {
+			$options .= sprintf("<option value=%d %s>%s</option>\n", $a, checked($a, "option", $_POST['aantalrijen']), number_format($a, 0, ",", "."));
+		}
+		$va = $a;
+	}
+	printf("<label class='form-label'>Aantal rijen</label><select name='aantalrijen' class='form-select form-select-sm' OnChange='this.form.submit();'>%s</select>\n", $options);
+	printf("<label class='form-label'>Alleen ingelogde</label><input type='checkbox' class='form-check-input' name='ingelogdeanderen'%s value=1 onClick='this.form.submit();'>\n", checked($_POST['ingelogdeanderen']));
+	
+	if (count($rows) > 1) {
+		printf("<p class='aantrecords'>%s van %s rijen</p>\n", number_format(count($rows), 0, ",", "."), number_format($i_lb->aantal(), 0, ",", "."));
+	}
+	echo("</form>\n");
+	
+	$kols = fnStandaardKols("logboek", 1, $rows);
+	
+	echo(fnDisplayTable($rows, $kols, "", 0, "", __FUNCTION__));
+	
+	$i_lb = null;
+	
+}  # logboek
 
 ?>
 
