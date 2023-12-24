@@ -73,8 +73,14 @@ function savedata(entity, rid, control) {
 	$.ajax({
 		url: 'ajax_update.php?entiteit=' + entity,
 		type: 'post',
-		dataType: 'json',
 		data: { field: field_name, value: value, id: rid },
+        dataType: "json",
+        success: function(data) {
+			if (data.length > 4) {
+				alert(data);
+			}
+			return data;
+        },
 		fail: function( data, textStatus ) {
 			alert(entity + ': update database is niet gelukt. ' + textStatus);
 		}
@@ -118,7 +124,25 @@ function saveparam(control) {
 		dataType: 'json',
 		data: { name:pn, value:value }
 	});
+}
+
+function savecheckasdate(entity, rid, control) {
 	
+	if (entity == "editinschrijving" && control.id == "chkverwerkt") {
+		field_name = "Verwerkt";
+	} else if (entity == "editinschrijving" && control.id == "chkverwijderd") {
+		field_name = "Verwijderd";
+	}
+		
+	$.ajax({
+		url: 'ajax_update.php?entiteit=' + entity,
+		type: 'post',
+		dataType: 'json',
+		data: {field: field_name, id: rid },
+		fail: function( data, textStatus ) {
+			alert(entity + ': update database is niet gelukt. ' + textStatus);
+		}
+	});	
 }
 
 function deleterecord(entity, rid) {
@@ -139,10 +163,12 @@ function lidalgwijzprops() {
 	var rn = $('#Roepnaam');
 	var vl = $('#Voorletter');
 	var gs = $('#Geslacht');
-	var ov = $('#Overleden')
+	var ov = $('#Overleden');
 	
-	if (vl.val().length == 0 && rn.val().length > 1 && gs.val() != "B") {
-		vl.val(rn.val().substring(0, 1) + '.');
+	if (typeof vl !== 'undefined' && typeof rn !== 'undefined') {
+		if (vl.val().length == 0 && rn.val().length > 1 && gs.val() != "B") {
+			vl.val(rn.val().substring(0, 1) + '.');
+		}
 	}
 	
 	if (gs.val() == "V") {
@@ -152,6 +178,7 @@ function lidalgwijzprops() {
 	}
 	
 	var gbd = $('#GEBDATUM');
+	var t = "";
 	if (gbd.val().length == 10 && gbd.val() > '1920-01-01') {
 		const options = { year: 'numeric', month: 'long', day: 'numeric' };
 		var dat = new Date(gbd.val());
@@ -159,7 +186,7 @@ function lidalgwijzprops() {
 		var t;
 		if (dat > today) {
 			t = 'De geboortedatum mag niet in de toekomst liggen.';
-			$('#uitleg_gebdatum').css({'color': 'red', 'weight': 'bolder'});
+			$('#uitleg_gebdatum').addClass('error');
 		} else {
 			var lft = today.getYear() - dat.getYear();
 			if (dat.getMonth() == today.getMonth() && dat.getDate() > today.getDate()) {
@@ -167,26 +194,28 @@ function lidalgwijzprops() {
 			} else if (dat.getMonth() > today.getMonth()) {
 				lft--;
 			}
-			t = ' (' + dat.toLocaleDateString('nl-NL', options) + ')';
+			t = dat.toLocaleDateString('nl-NL', options);
 			if (lft > 1 && ov.val() == "") {
 				t = t.concat(' (', lft, ' jaar)');
 			}
 		}
-		$('#uitleg_gebdatum').text(t);
-	} else {
-		$('#uitleg_gebdatum').text('');
 	}
+	$('#uitleg_gebdatum').text(t);
 	
 	adresvullen();
 	
 	var tel = $('#Telefoon').val();
-	$('#uitleg_telefoon').text(fnControleTelefoon(tel));
+	if (typeof tel !== 'undefined') {
+		$('#uitleg_telefoon').text(fnControleTelefoon(tel));
+	}
 	
 	var tel = $('#Mobiel').val();
-	if (tel.length == 10 && tel.substr(0, 2) == "06") {
-		tel = tel.substr(0, 2) + "-" + tel.substr(2);
+	if (typeof tel !== 'undefined') {
+		if (tel.length == 10 && tel.substr(0, 2) == "06") {
+			tel = tel.substr(0, 2) + "-" + tel.substr(2);
+		}
+		$('#uitleg_mobiel').text(fnControleTelefoon(tel, "mobiel"));
 	}
-	$('#uitleg_mobiel').text(fnControleTelefoon(tel, "mobiel"));
 	
 	var e = $('#Email').val();
 	$.ajax({
@@ -200,18 +229,20 @@ function lidalgwijzprops() {
 	});
 	
 	e = $('#EmailOuders').val();
-	if (e.length > 0) {
-		$.ajax({
-			url: 'ajax_update.php?entiteit=checkdnsrr',
-			type: 'post',
-			dataType: 'json',
-			data: { email: e },
-			success: function(response){
-				$('#uitleg_emailouders').text(response);
-			}
-		});
-	} else {
-		$('#uitleg_emailouders').text("");
+	if (typeof e !== 'undefined') {
+		if (e.length > 0) {
+			$.ajax({
+				url: 'ajax_update.php?entiteit=checkdnsrr',
+				type: 'post',
+				dataType: 'json',
+				data: { email: e },
+				success: function(response){
+					$('#uitleg_emailouders').text(response);
+				}
+			});
+		} else {
+			$('#uitleg_emailouders').text("");
+		}
 	}
 
 	e = $('#EmailVereniging').val();
@@ -228,6 +259,40 @@ function lidalgwijzprops() {
 			});
 		} else {
 			$('#uitleg_emailvereniging').text("");
+		}
+	}
+	
+	lidfinwijzprops();
+	
+	s = $('#Burgerservicenummer').val();
+	if (typeof s !== 'undefined') {
+		$('#uitleg_burgerservicenummer').text("");
+		if (s.length > 0) {
+			if (isNaN(s)) {
+				$('#uitleg_burgerservicenummer').text("Dit is geen nummer, deze wijziging wordt neit verwerkt.");
+			} else if (s < 100000000) {
+				$('#uitleg_burgerservicenummer').text("Deze BSN is te klein, deze wijziging wordt neit verwerkt.");
+			}
+		}
+	}
+}
+
+function lidfinwijzprops() {
+	b = $('#Bankrekening').val();
+	if (typeof b !== 'undefined') {
+		$('#uitleg_bankrekening').text("IBAN");
+		if (b.length > 0) {
+			$.ajax({
+				url: 'ajax_update.php?entiteit=checkiban',
+				type: 'post',
+				dataType: 'json',
+				data: { iban: b },
+				success: function(response){
+					if (response == false) {
+						$('#uitleg_bankrekening').text('Het formaat/controlegetal van deze bankrekening is niet correct. De Bankrekening wordt niet gewijzigd.');
+					}
+				}
+			});
 		}
 	}
 }
@@ -247,6 +312,23 @@ function loperlidprops() {
 			$('#tablelidond > tbody').append(reshtml);
 		}
 	});
+}
+
+function verwijderkloslid(p_lidid, p_undo=0) {
+	
+	if (p_undo == 0) {
+		const date = new Date();
+
+		$.ajax({
+			url: 'ajax_update.php?entiteit=lid',
+			type: 'post',
+			dataType: 'json',
+			data: { field: 'Verwijderd', value: date, id: p_lidid },
+			fail: function( data, textStatus ) {
+				alert(entity + ': update database is niet gelukt. ' + textStatus);
+			}	
+		});
+	}
 }
 
 /* Mailing specifiek */
@@ -671,9 +753,6 @@ function adresvullen() {
 					wp.val(data.response.docs[0].woonplaatsnaam);
 					$("#uitleg_adres").html('');
 				}
-			},
-			error: function (xhr, ajaxOptions, thrownError) {
-				alert("Foutstatus: " + xhr.status + " / " + thrownError);
 			}
 		});
 	} else {
@@ -687,6 +766,7 @@ function adresvullen() {
 function verw_auth(rid) {
 	deleterecord('delete_autorisatie', rid);
 	$('#name_' + rid).addClass('deleted');
+	$('#delete_' + rid).hide();
 }
 	
 function add_auth(tabpage) {
