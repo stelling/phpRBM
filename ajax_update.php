@@ -15,6 +15,7 @@ $newvalue = $_POST['value'] ?? "";
 $lidid = $_POST['lidid'] ?? 0;
 $ondtype = $_POST['ondtype'] ?? "C";
 $ondid = $_POST['ondid'] ?? 0;
+$loid = $_POST['loid'] ?? 0;
 	
 if ($_SESSION['lidid'] > 0) {
 
@@ -60,9 +61,14 @@ if ($_SESSION['lidid'] > 0) {
 			$i_lo = null;
 		}
 				
-	} elseif ($ent === "addlidond") {
+	} elseif ($ent == "addlidond") {
 		$i_lo = new cls_Lidond();
 		$i_lo->add($ondid, $lidid);
+		$i_lo = null;
+		
+	} elseif ($ent == "deletelidond") {
+		$i_lo = new cls_Lidond();
+		$i_lo->delete($loid);
 		$i_lo = null;
 		
 	} elseif ($ent === "lo_presentie") {
@@ -340,9 +346,14 @@ if ($_SESSION['lidid'] > 0) {
 		$i_ed->delete($rid);
 		$i_ed = null;
 		
-	} elseif ($ent == "wachtlijst" or $ent == "inschrijvingen") {
+	} elseif ($ent == "wachtlijst" or $ent == "inschrijvingen" or $ent == "editinschrijving") {
 		$i_ins = new cls_Inschrijving();
-		$i_ins->update($rid, $kolom, $newvalue);
+		
+		if ($kolom == "Verwijderd" or $kolom == "Verwerkt") {
+			$i_ins->toggle($rid, $kolom);
+		} else {
+			$i_ins->update($rid, $kolom, $newvalue);
+		}
 		$i_ins = null;
 		
 	} elseif ($ent == "add_autorisatie") {
@@ -374,8 +385,13 @@ if ($_SESSION['lidid'] > 0) {
 		$rv = fnControleEmail($email);
 		echo(json_encode($rv));
 		
+	} elseif ($ent == "checkiban") {
+		$iban = $_POST['iban'] ?? "";
+		$rv = IsIBANgoed($iban);
+		echo(json_encode($rv));
+		
 	} else {
-		$mess = sprintf("Entiteit '%s' bestaat niet in ajax_update.php of je hebt geen toegang", $ent);
+		$mess = sprintf("Entiteit '%s' bestaat niet in ajax_update.php", $ent);
 		(new cls_Logboek())->add($mess, 15, $_SESSION['lidid'], 1, 0, 9);
 	}
 	
