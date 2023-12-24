@@ -1,10 +1,11 @@
 :root {
-	--label-background-color: #cfe2ff;
+	--label-background-color: #CFE2FF;
 	--label-text-color: #000080;
 	
 	--bs-body-font-family: Tahoma, Arial, Verdana, Helvetica;
 	--bs-body-font-size: 11pt;
 	--bs-body-color: #000080;
+	--bs-button-border-color: #CFE2FF;
 }
 
 /* Bootstrap */
@@ -1149,15 +1150,22 @@ table#presentiemuteren td.aanwezig {
 }
 
 #examenmuteren label, #examenmuteren p {
-	margin-right: 6px;
 	float: left;
 	clear: none;
 }
 
-#examenmuteren p {
+#examenmuteren input, #examenmuteren p {
 	margin-right: 15px;
 	margin-top: 1px;
-	padding-top: 6px;
+}
+
+#examenmuteren p {
+	padding-top: 4px;
+}
+
+#examenmuteren .form-check-input {
+	margin-left: 0;
+	margin-top: 6px;
 }
 
 .kandidatengroep, .groepindelen {
@@ -2235,16 +2243,19 @@ label#lblVerzamelenPerGezin, label#lblBedragGezinskorting {
 	width: 325px;
 }
 
-#dbonderhoud p {
-	margin-top: 9px;
+#onderhoud p {
+	margin-top: 4px;
+	margin-bottom: 8px;
 	clear: right;
 	float: left;
 }
 
-#dbonderhoud button {
+#onderhoud button {
 	float: left;
 	clear: left;
 	width: 300px;
+	margin-bottom: 6px;
+	margin-right: 6px;
 }
 
 #onderdelenmuteren h1 {
