@@ -10492,6 +10492,31 @@ class cls_Inschrijving extends cls_db_base {
 			$this->lidid = 0;
 		}
 		
+		if ($this->lidid > 0) {
+			$query = sprintf("SELECT L.*, %s AS NaamLid FROM %sLid AS L WHERE L.RecordID=%d;", $this->selectnaam, TABLE_PREFIX, $this->lidid);
+			$lrow = $this->execsql($query)->fetch();
+			if (isset($lrow->RecordID)) {
+				if (strlen($this->naam) <= 4) {
+					$this->naam = $lrow->NaamLid;
+				}
+				if (strlen($this->achternaam) == 0) {
+					$this->achternaam = $lrow->Achternaam;
+				}
+				if ($lrow->GEBDATUM > "1900-01-01" and strlen($this->geboortedatum) < 10) {
+					$this->geboortedatum = $lrow->GEBDATUM;
+				}
+				
+				if (strlen($this->email) < 5) {
+					if (strlen($lrow->EmailOuders) > 5) {
+						$this->email = $lrow->EmailOuders;
+					} elseif (strlen($lrow->Email) > 5) {
+						$this->email = $lrow->Email;
+					}
+				}
+				
+			}
+		}
+		
 		if (strlen($this->achternaam) == 0 and strlen($this->naam) > 5 and $this->insid > 0) {
 			$p = strrpos($this->naam, " ");
 			if ($p > 1) {
@@ -10514,11 +10539,15 @@ class cls_Inschrijving extends cls_db_base {
 		if ($p_afd > 0) {
 			$w .= sprintf(" AND OnderdeelID=%d", $p_afd);
 		}
+		if (strlen($this->where) > 0) {
+			$w .= " AND " . $this->where;
+		}
 		
 		if ($p_order === 2) {
 			$ord = "IFNULL(Ins.EersteLes, '9999-12-31'), Ins.Naam";
 		} elseif ($p_order === 3) {
-			$ord = "Ins.Verwerkt, Ins.Naam";
+			// Verwerkte inschrijvingen
+			$ord = "Ins.Achternaam, Ins.Naam, Ins.RecordID";
 		} elseif (strlen($p_order) > 0) {
 			$ord = $p_order;
 		} else {
