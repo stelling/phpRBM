@@ -529,6 +529,36 @@ function togglevariabelen() {
 	}
 }
 
+function mailtooutbox (p_rid) {
+	
+	$.ajax({
+		url: 'ajax_update.php?entiteit=email',
+		type: 'post',
+		dataType: 'json',
+		data: {field: 'send_on', id: p_rid, value: ''},
+		fail: function( data, textStatus ) {
+			alert(entity + ': update database is niet gelukt. ' + textStatus);
+		}
+	});
+	
+	var nvv = new Date();
+	nvv.setMinutes(nvv.getMinutes() + 20);
+	nvv = nvv.toISOString().slice(0, 19).replace('T', ' ');
+	
+	$.ajax({
+		url: 'ajax_update.php?entiteit=email',
+		type: 'post',
+		dataType: 'json',
+		data: {field: 'NietVersturenVoor', id: p_rid, value: '+20 minute'},
+		fail: function( data, textStatus ) {
+			alert(entity + ': update database is niet gelukt. ' + textStatus);
+		}
+	});
+	
+	$('#send_on_' + p_rid).addClass('deleted');
+	$('#mislukt_' + p_rid).hide();
+}
+
 /* Rekening-specifiek */
 
 function rekeningprops() {
@@ -768,7 +798,7 @@ function verw_auth(rid) {
 	$('#name_' + rid).addClass('deleted');
 	$('#delete_' + rid).hide();
 }
-	
+
 function add_auth(tabpage) {
 	$.ajax({
 		url: 'ajax_update.php?entiteit=add_autorisatie',

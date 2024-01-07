@@ -19,6 +19,8 @@ $loid = $_POST['loid'] ?? 0;
 	
 if ($_SESSION['lidid'] > 0) {
 
+//	debug("$ent / $rid / $kolom / $newvalue", 0, 1);
+
 	if ($ent === "lid") {
 		$i_lid = new cls_Lid();
 		$rv = $i_lid->update($rid, $kolom, $newvalue);
@@ -167,6 +169,10 @@ if ($_SESSION['lidid'] > 0) {
 		}
 				
 	} elseif ($ent == "email") {
+		
+		if ($kolom == "NietVersturenVoor" and substr($newvalue, 0, 1) == "+") {
+			$newvalue = date("Y-m-d H:i:s", strtotime($newvalue)); 
+		}
 		
 		if ($rid > 0 and strlen($kolom) > 0) {
 			$i_mh = new cls_Mailing_hist();
@@ -391,7 +397,7 @@ if ($_SESSION['lidid'] > 0) {
 		echo(json_encode($rv));
 		
 	} else {
-		$mess = sprintf("Entiteit '%s' bestaat niet in ajax_update.php", $ent);
+		$mess = sprintf("Entiteit '%s' bestaat niet in ajax_update.php.", $ent);
 		(new cls_Logboek())->add($mess, 15, $_SESSION['lidid'], 1, 0, 9);
 	}
 	
