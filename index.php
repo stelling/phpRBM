@@ -314,7 +314,7 @@ if ($currenttab != "Mailing" and $kaal == 0) {
 }
 
 function fnVoorblad() {
-	global $dtfmt;
+	global $dtfmt, $lididwebmasters;
 	
 	$i_tp = new cls_Template();
 	
@@ -358,6 +358,9 @@ function fnVoorblad() {
 		$content = str_ireplace("[%AANTALLOGINS%]", $i_login->aantal() , $content);
 		$contect = str_ireplace("[%GEMIDDELDELEEFTIJD%]", $i_lid->gemiddeldeleeftijd(), $content);
 		$content = str_ireplace("[%NUINGELOGD%]", $i_login->nuingelogd(), $content);
+		$i_lid->where = sprintf("L.RecordID IN (%s)", implode(",", $lididwebmasters));
+		$content = str_ireplace("[%NAMENWEBMASTERS%]", $i_lid->stringnamen(1), $content);
+		$i_lid->where = "";
 		
 		if (strpos($content, "[%LAATSTEUPLOAD%]") !== false) {
 			$lu = $i_lb->max("DatumTijd", "A.TypeActiviteit=9");
@@ -420,7 +423,7 @@ function fnVoorblad() {
 			$content = str_replace("[%VORIGELOGIN%]", (new cls_Logboek())->vorigelogin(1), $content);
 		}
 		if (strpos($content, "[%GEWIJZIGDESTUKKEN%]") !== false) {
-			$content = str_replace("[%GEWIJZIGDESTUKKEN%]", fnGewijzigdeStukken(), $content);
+			$content = str_replace("[%GEWIJZIGDESTUKKEN%]", gewijzigdestukken(), $content);
 		}
 		
 		if (strpos($content, "[%VERJAARFOTO%]") !== false) {
@@ -505,7 +508,7 @@ function fnAgenda($p_lidid=0) {
 			$ikal = null;
 			// Evenementen
 			foreach ((new cls_Evenement())->lijst(5, date("Y-m-d", $td)) as $evrow) {
-				$ikal[strtotime($evrow->Datum)] = fnEvenementOmschrijving($evrow, 1, "li");
+				$ikal[strtotime($evrow->Datum)] = fnEvenementOmschrijving($evrow->RecordID, 1, "li");
 			}
 			
 			// Afdelingskalender
@@ -634,7 +637,7 @@ function fnAgendaTable($p_lidid=0) {
 			$ikal = null;
 			// Evenementen
 			foreach ((new cls_Evenement())->lijst(5, date("Y-m-d", $td)) as $evrow) {
-				$ikal[strtotime($evrow->Datum)] = fnEvenementOmschrijving($evrow, 1, "li");
+				$ikal[strtotime($evrow->Datum)] = fnEvenementOmschrijving($evrow->RecordID, 1, "li");
 			}
 			
 			// Afdelingskalender
