@@ -134,8 +134,14 @@ p.uitleg {
 	clear: none;
 	float: left;
 	margin-left: 5px;
-	padding-top: 7px;
+	margin-top: 0;
+	padding-top: 6px;
 	font-style: italic;
+}
+
+p.error {
+	color: red;
+	font-weight: bold;
 }
 
 p.aantrecords {
@@ -190,6 +196,7 @@ form p {
 	float: left;
 	margin-left: 4px;
 	margin-right: 4px;
+	margin-top: 3px;
 }
 
 div.btn-fixed-top-right {
@@ -249,6 +256,7 @@ header h1 {
 
 #filter p {
 	margin-right: 6px;
+	margin-top: 2px;
 }
 
 #filter input[type='text'], #filter input[type='date'] {
@@ -258,14 +266,16 @@ header h1 {
 	margin-right: 6px;
 	margin-top: 2px;
 	margin-bottom: 2px;
+	padding-top: 1px;
+	padding-bottom: 1px;
 }
 
 #filter input[type='text'] {
 	width: 175px;
 }
 
-#jubilarisoverzicht > #filter input[type='text'] {
-	width: 275px;
+#filter select {
+	margin-bottom: 2px;
 }
 
 #filter select {
@@ -291,7 +301,7 @@ header h1 {
 
 #filter .form-check-input {
 	margin-left: 0;
-	margin-top: 8px;
+	margin-top: 6px;
 }
 
 #filter p.aantrecords {
@@ -360,7 +370,11 @@ input.num2 {
 }
 
 input.num3 {
-	width: 58px;
+	width: 60px;
+}
+
+input.num5 {
+	width: 90px;
 }
 
 input.w12 {
@@ -753,7 +767,7 @@ table#deelnemersevenementmuteren {
 	min-width: 400px;
 }
 
-#nieuwepasfoto, #inschrijvingevenementen, #webshop {
+#nieuwepasfoto, #webshop {
 	padding-top: 8px;
 }
 
@@ -783,19 +797,35 @@ table#deelnemersevenementmuteren {
 	width: 150px;
 }
 
-#inschrijvingevenementen td {
-	height: 75px;
+#inschrijvenevenementen .row {
+	border-width: 1px;
+	border-top-style: solid;
+	border-bottom-style: none;
+	margin-top: 6px;
 }
 
-#inschrijvingevenementen img, #evenementenperlid img {
+#inschrijvenevenementen .col, #inschrijvenevenementen .col-md-auto {
+	border-width: 1px;
+	border-right-style: solid;
+	border-top-style: none;
+	border-bottom-style: none;
+	padding-left: 3px;
+	padding-right: 3px;
+}
+
+#inschrijvenevenementen p {
+	margin-left: 0;
+}
+
+#inschrijvenevenementen .form-check-input {
+	margin-left: 0;
+	margin-right: 4px;
+}
+
+#inschrijvenevenementen img, #evenementenperlid img {
 	height: 40px;
 	margin-top: 0;
 	margin-bottom: 0;
-}
-
-#inschrijvingevenementen input, #lidmaatschapmuteren input {
-	clear: none;
-	float: none;
 }
 
 #stukkenmuteren label, #website_inhoud label, #website_menu label {
@@ -1065,6 +1095,10 @@ table#afdelingskalendermuteren {
 	padding-bottom: 1px;
 }
 
+#jubilarissen > #filter input[type='text'] {
+	width: 275px;
+}
+
 #presentieoverzicht > #filter p {
 	float: left;
 	clear: none;
@@ -1091,7 +1125,7 @@ table#presentiemuteren td.aanwezig {
 	font-weight: bolder;
 }
 
-#wachtlijst td {
+#wachtlijst td, #afdelingswachtlijst td {
 	height: 50px;
 }
 
@@ -1600,16 +1634,6 @@ label#lblStarttijd, label#lblEindtijd, label#lblVerzameltijd {
 	margin-left: 0;
 }
 
-@media screen and (max-width: 1050px) {
-	#evenementenbeheer label#lblStarttijd, #evenementenbeheer label#lblDeelnemers {
-		clear: left;
-	}
-	
-	#evenementenbeheer th.ingevoerd, #evenementenbeheer td.ingevoerd {
-		display: none;
-	}
-}
-
 @media screen and (max-width: 650px) {
 	#evenementenbeheer label#lblEindtijd, #evenementenbeheer label#lblVerzameltijd {
 		clear: left;
@@ -1824,7 +1848,6 @@ tr.vet {
 
 nav {
 	width: 100%;
-	padding-left: 3px;
 }
 
 nav a.active {
@@ -1842,15 +1865,21 @@ nav a {
 }
 
 #menu_l1, #menu_l2, #menu_l3 {
-	margin-bottom: 0;
 	padding-top: 4px;
-	padding-bottom: 4px;
+	margin-left: 0;
 }
 
 #menu_l1 {
-	font-size: 105%;
 	overflow: auto;
 	white-space: nowrap;
+	min-height: 35px;
+	border-width: 1px;
+	border-style: none;
+}
+
+#menu_l1 > a {
+	padding-top: 12px;
+	padding-bottom: 6px;
 }
 
 #menu_l2 {
@@ -2395,9 +2424,23 @@ input#db_folderbackup, input#naamwebsite, input#naamvereniging, input#urlverenig
 	width: 475px;
 }
 
+#mailing_instellingen input[type='text'] {
+	width: calc(100% - 485px);
+}
+
+#editmailingvanaf input[type='text'] {
+	width: 345px;
+}
+
+#mailing_instellingen .form-check-input {
+	margin-left: 0;
+}
+
 #mailing_instellingen h2 {
 	clear: both;
 }
+
+
 
 .invoerblok {
 	float: left;
@@ -2473,8 +2516,21 @@ input#db_folderbackup, input#naamwebsite, input#naamvereniging, input#urlverenig
 	margin-left: 0;
 }
 
+#editinschrijving h2 {
+	width: 100%;
+	text-align: center;
+	border-width: 1px;
+	border-top-style: solid;
+	border-bottom-style: solid;
+	margin-bottom: 9px;
+}
+
 #editinschrijving label {
 	width: 200px;
+}
+
+#editinschrijving .form-check-input {
+	margin-left: 0;
 }
 
 label#lblHuisletter, label#lblToevoeging {
@@ -2615,15 +2671,83 @@ button.volgendegroep {
 	margin-left: 8px;
 }
 
+@media screen and (max-width: 1050px) {
+	h1#naamwebsite {
+		max-width: 300px;
+	}
+	
+	input.w25, input.w30, input.w40, input.w45 {
+		width: 165px;
+	}
+	
+	input.w250 {
+		width: 275px;
+	}
+
+	input.w60 {
+		width: 260px;
+	}
+	
+	input.w75 {
+		width: 425px;
+	}
+	
+	input.w90, textarea.w90 {
+		width: 100%;
+	}
+	
+	#afdelingskalendermuteren input.w75 {
+		width: 350px;
+	}
+	
+	#tab-agenda li {
+		overflow: hidden;
+		height: 22px;
+	}
+	
+	#agenda .rijdagnaam {
+		display: none;
+	}
+		
+	table#presentiemuteren th.opmerking, table#presentiemuteren td.opmerking {
+		display: none;
+	}
+	
+	table#presentiemuteren {
+		width: 100%;
+	}
+		
+	#stukkenlijst th.revisiedatum, #stukkenlijst td.revisiedatum {
+		display: none;
+	}
+	
+	#eigenschappenlidmuteren {
+		float: left;
+	}
+	
+	label#lblEersteRekeningNummer, label#lblVerzamelenPerGezin, label#lblKostenplaats, label#lblKostenplaatsGezinskorting, label#lblBedragGezinskorting {
+		clear: left;
+	}
+	
+	#evenementenbeheer label#lblStarttijd, #evenementenbeheer label#lblDeelnemers {
+		clear: left;
+	}
+	
+	#evenementenbeheer th.ingevoerd, #evenementenbeheer td.ingevoerd {
+		display: none;
+	}
+	
+	#inschrijvenevenementen input.w250 {
+		width: 350px;
+	}
+	
+}  /* media screen and (max-width: 1050px) */
+
 @media screen and (max-width: 750px) {
 	/* Telefoon portrait */
 	
 	h1 {
 		font-size: 125%;
-	}
-	
-	.rijdagnaam {
-		display: none;
 	}
 	
 	#overzichtlid label {
@@ -2727,62 +2851,11 @@ button.volgendegroep {
 		display: none;
 	}
 	
-}
-
-@media screen and (max-width: 1050px) {
-	h1#naamwebsite {
-		max-width: 300px;
-	}
-	
-	input.w25, input.w30, input.w40, input.w45 {
-		width: 165px;
-	}
-	
-	input.w250 {
+	#inschrijvenevenementen input.w250 {
 		width: 275px;
 	}
-
-	input.w60 {
-		width: 260px;
-	}
 	
-	input.w75 {
-		width: 425px;
-	}
-	
-	input.w90, textarea.w90 {
-		width: 100%;
-	}
-	
-	#afdelingskalendermuteren input.w75 {
-		width: 350px;
-	}
-	
-	#tab-agenda li {
-		overflow: hidden;
-		height: 22px;
-	}
-		
-	table#presentiemuteren th.opmerking, table#presentiemuteren td.opmerking {
-		display: none;
-	}
-	
-	table#presentiemuteren {
-		width: 100%;
-	}
-		
-	#stukkenlijst th.revisiedatum, #stukkenlijst td.revisiedatum {
-		display: none;
-	}
-	
-	#eigenschappenlidmuteren {
-		float: left;
-	}
-	
-	label#lblEersteRekeningNummer, label#lblVerzamelenPerGezin, label#lblKostenplaats, label#lblKostenplaatsGezinskorting, label#lblBedragGezinskorting {
-		clear: left;
-	}
-}  /* media screen and (max-width: 1050px) */
+}  /* media screen and (max-width: 750px) */
 
 @media print {
 	body {
