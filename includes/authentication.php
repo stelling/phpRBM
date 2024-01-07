@@ -155,7 +155,7 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 			addtp("Ledenlijst/Sportlink");
 		}
 		addtp("Ledenlijst/Instellingen");
-//		addtp("Ledenlijst/Mutaties");
+		addtp("Ledenlijst/Logboek");
 	}
 	
 	addtp("Mailing");
@@ -215,55 +215,60 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 	}
 	
 	if (isset($_SESSION['settings']['menu_met_afdelingen']) and strlen($_SESSION['settings']['menu_met_afdelingen']) > 0) {
-		// Tabblad per afdeling
+		// Tabblad per afdeling/onderdeel
 		
 		$i_ond = new cls_Onderdeel();
 		foreach (explode(",", $_SESSION['settings']['menu_met_afdelingen']) as $ondid) {
 			$i_ond->vulvars($ondid);
-			addtp($i_ond->naam, $ondid);
-			if ($currenttab == $i_ond->naam) {
-				addtp($i_ond->naam . "/Afdelingslijst", $ondid);
-				addtp(trim($i_ond->naam) . "/Kalender");
+			if (strlen($i_ond->naam) > 12 and 1 == 2) {
+				$menukop = trim($i_ond->ondcode);
+			} else {
+				$menukop = trim($i_ond->naam);
+			}
+			addtp($menukop, $ondid);
+			if ($currenttab == $menukop) {
 				if ($i_ond->ondtype == "A") {
-					$f = sprintf("LO.GroepID > 0 AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE() AND LO.OnderdeelID=%d", $ondid);
+					addtp($menukop . "/Afdelingslijst", $ondid);
+					addtp($menukop . "/Kalender");
+					$f = sprintf("LO.GroepID > 0 AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE() AND LO.OnderdeelID=%d", $ondid);
 					if ((new cls_Lidond())->aantal($f) > 0) {
-						addtp($i_ond->naam . "/Groepsindeling", $ondid);
-						addtp($i_ond->naam . "/Groepsindeling muteren", $ondid);
+						addtp($menukop . "/Groepsindeling", $ondid);
+						addtp($menukop . "/Groepsindeling muteren", $ondid);
 					}
-					addtp($i_ond->naam . "/Groepen muteren");
+					addtp($menukop . "/Groepen muteren");
 				}
 				$f = sprintf("AK.OnderdeelID=%d AND AK.Datum > DATE_SUB(CURDATE(), INTERVAL 9 MONTH) AND AK.Activiteit=1", $ondid);
 				if ((new cls_Afdelingskalender())->aantal($f) > 0) {
-					addtp($i_ond->naam . "/Presentie muteren");
+					addtp($menukop . "/Presentie muteren");
 					if ((new cls_Aanwezigheid())->aantalstatus("*", $ondid) > 0) {
-						addtp($i_ond->naam . "/Presentie per seizoen");
-						addtp($i_ond->naam . "/Presentieoverzicht");
+						addtp($menukop . "/Presentie per seizoen");
+						addtp($menukop . "/Presentieoverzicht");
 					}
 				}
 					
 				$f = sprintf("DP.Afdelingsspecifiek=%d", $ondid);
 				if ((new cls_Diploma())->aantal($f) > 0) {
-					$tp = $i_ond->naam . "/Examens";
+					$tp = $menukop . "/Examens";
 					addtp($tp);
-					$tp = $i_ond->naam . "/Diploma's";
+					$tp = $menukop . "/Diploma's";
 					addtp($tp);
 				}
 										
 				$f = sprintf("Ins.OnderdeelID=%d AND (Ins.Verwerkt IS NULL) AND (Ins.Verwijderd IS NULL)", $ondid);
 				if ((new cls_Inschrijving())->aantal($f) > 0) {
-					addtp($i_ond->naam . "/Wachtlijst");
+					addtp($menukop . "/Wachtlijst");
 				}
 				
-				if (toegang("Mailing/Muteren", 0, 0)) {
-					$tp = $i_ond->naam . "/Afdelingsmailing";
+				if ($i_ond->ondtype == "A" and toegang("Mailing/Muteren", 0, 0)) {
+					$tp = $menukop. "/Afdelingsmailing";
 					addtp($tp);
 				}
 				
 				$f = "O.`Type`='T'";
 				if ((new cls_Onderdeel())->aantal($f) > 0) {
-					addtp($i_ond->naam . "/Toestemmingen");
+					addtp($menukop . "/Toestemmingen");
 				}
-				addtp($i_ond->naam . "/Logboek");
+				addtp($menukop . "/Logboek");
 			}
 		}
 	}
