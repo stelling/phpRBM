@@ -183,27 +183,40 @@ function fnStukken($p_scherm="") {
 		echo(fnDisplayTable($rows, $kols));
 		
 		printf("<form method='post' id='opdrachtknoppen' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-		echo("<button type='submit' name='Toevoegen' title='Stuk toevoegen'><i class='bi bi-plus-circle'></i> Stuk toevoegen</button>\n");
+		printf("<button type='submit' class='%s' name='Toevoegen' title='Stuk toevoegen'>%s Stuk</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
 		echo("</form>\n");
 		
 	}
 	$i_stuk = null;
 }  # fnStukken
 
-function fnGewijzigdeStukken() {
+function gewijzigdestukken($p_koptekst=1) {
+	
+	$i_stuk = new cls_Stukken();
 
 	$rv = "";
 	if ($_SESSION['lidid'] > 0) {
-		$rows = (new cls_Stukken())->gewijzigdestukken(date("Y-m-d", strtotime("-7 day")));
+		$rows = $i_stuk->gewijzigdestukken(date("Y-m-d", strtotime("-7 day")));
 		if (count($rows) > 0) {
-			$rv = "<h3>Gewijzigde stukken</h3>\n";
-			$rv .= sprintf("<p>Onderstaande stukken gewijzigd sinds je laatste login of korter dan een week geleden.</p>\n<ul>\n", count($rows));
-			foreach($rows as $row) {
-				$rv .= sprintf("<li>%s</li>\n", $row->Titel);
+			if ($p_koptekst == 1) {
+				$rv = sprintf("<div id='%s'><h3>Gewijzigde stukken</h3>\n", __FUNCTION__);
+				$rv .= "<p>Onderstaande stukken gewijzigd sinds je laatste login of korter dan een week geleden.</p>\n<ul>\n";
 			}
-			$rv .= "</ul>\n";
+			foreach($rows as $row) {
+				$i_stuk->vulvars($row->RecordID);
+				if ($i_stuk->magdownload and strlen($i_stuk->url) > 10) {
+					$rv .= sprintf("<li><a href='%s'>%s</a></li>\n", $i_stuk->url, $i_stuk->titel);
+				} else {
+					$rv .= sprintf("<li>%s</li>\n", $i_stuk->titel);
+				}
+			}
+			if ($p_koptekst == 1) {
+				$rv .= "</ul>\n</div> <!-- Einde gewijzigdestukken -->\n";
+			}
 		}
 	}
+	
+	$i_stuk = null;
 	
 	return $rv;
 
@@ -260,7 +273,7 @@ function fnWebsiteMenu() {
 		echo(fnDisplayTable($rows, $kols));
 		
 		printf("<form method='post' id='opdrachtknoppen' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-		echo("<button type='submit' name='Toevoegen' title='Menu-item toevoegen'><i class='bi bi-plus-circle'></i> Menu-item toevoegen</button>\n");
+		printf("<button type='submit' class='%s' name='Toevoegen' title='Menu-item toevoegen'>%s Menu-item</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
 		echo("</form>\n");
 		
 	} elseif ($scherm == "F") {
