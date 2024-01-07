@@ -2,9 +2,13 @@
 
 require('./includes/standaard.inc');
 
-$insid = $_GET['insid'] ?? 18;
+$insid = $_GET['insid'] ?? 0;
 
-if ($_SESSION['lidid'] > 0) {
+if ($insid <= 0) {
+	HTMLheader();
+	echo("<p class='mededeling'>Er is geen inschrijving geselecteerd.</p>\n");
+
+} elseif ($_SESSION['lidid'] > 0) {
 	$i_ins = new cls_Inschrijving($insid);
 	
 	if ($i_ins->insid == 0) {
