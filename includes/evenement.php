@@ -50,7 +50,7 @@ function fnEvenementen() {
 						$chk = 0;
 					}
 				}
-				printf("<input type='checkbox' class='form-check-input' value=1 name='%s' onClick='this.form.submit();'%s><label class='form-check-label'>%s</label>\n", $cn, checked($chk), $v);
+				printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' value=1 name='%s' onClick='this.form.submit();'%s><p>%s</p></label>\n", $cn, checked($chk), $v);
 				if ($chk == 1) {
 					if (strlen($in) > 0) {
 						$in .= ", ";
@@ -171,7 +171,7 @@ function inschrijvenevenementen($lidid) {
 					}
 				}
 			
-				if ($mailing->send($lidid, 0) > 0) {
+				if ($mailing->send($lidid, 0, 1) > 0) {
 					$mess = sprintf("Bevestiging deelname evenement (%d) is aan %s verzonden.", $edid, (new cls_Lid())->Naam($lidid));
 				} else {
 					$mess = sprintf("Fout bij het versturen van de e-mail. Probeer het later nogmaals of neem contact op met de webmaster.");
@@ -184,62 +184,54 @@ function inschrijvenevenementen($lidid) {
 
 	fnDispMenu(2);
 
-	printf("<form method='post' id='inschrijvingevenementen' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+	printf("<form method='post' id='%s' action='%s?%s'>\n", __FUNCTION__, $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 	$geldig = false;
-	printf("<table class='%s'>\n", TABLECLASSES);
-	echo("<tr><th>Datum en tijden</th><th>Omschrijving</th><th>Reactie</th><th>Agenda</th></tr>\n");
 	foreach ($i_ev->lijst(3) as $row) {
-		$oms = $row->Omschrijving;
-		if (strlen($row->Locatie) > 1) {
-			$oms .= "<br>\n" . $row->Locatie;
-		}
-		if ($row->Eindtijd > "00:00") {
-			$tijden = sprintf("van %s tot %s uur", date("H:i", strtotime($row->Datum)), $row->Eindtijd);
-		} else {
-			$tijden = sprintf("vanaf %s uur", date("H:i", strtotime($row->Datum)));
+		$i_ev->vulvars($row->RecordID);
+		$i_ed->vulvars($i_ev->evid, $lidid);
+		echo("<div class='row'>\n");
+		$oms = $i_ev->omschrijving;
+		if (strlen($i_ev->locatie) > 1) {
+			$oms .= "<br>\n" . $i_ev->locatie;
 		}
 		$dtfmt->setPattern(DTTEXTWD);
-		printf("<tr><td>%s<br>%s</td><td>%s</td>\n", $dtfmt->format(strtotime($row->Datum)), $tijden, $oms);
-		$ins = $i_ed->record(0, $lidid, $row->RecordID);
+		printf("<div class='col-md-auto'>%s<br>%s</div><div class='col-md-auto'>%s</div>\n", $i_ev->datumtekst, $i_ev->tijden, $oms);
 		$v = "&nbsp;";
 		
-		echo("<td>");
-		printf("<input type='radio' name='reactie_%d' value='Geen' title='Geen reactie' checked>Geen&nbsp;", $row->RecordID);
-		
-		if (isset($ins->Status) and ($ins->Status == "B" or $ins->Status == "I" or $ins->Status == "J")) {
-			$c = "checked";
+		echo("<div class='col'><p>Reactie: </p>");
+		echo("<div class='form-check'>");
+		printf("<label class='form-check-label'><input type='radio' class='form-check-input' id='reactie_%1\$d' name='reactie_%1\$d' value='Geen' title='Geen reactie' checked>Geen</label>", $i_ev->evid);
+
+		echo("<label class='form-check-label'>");
+		if ($i_ev->standaardstatus == "B" or $i_ev->standaardstatus == "J") {
+			printf("<input type='radio' class='form-check-input' name='reactie_%d' value='Aanmelden' title='Aanmelden voor evenement' %s>Aanmelden\n", $i_ev->evid, checked($i_ed->aanwezig));
 		} else {
-			$c = "";
+			printf("<input type='radio' class='form-check-input' name='reactie_%d' value='Inschrijven' title='Inschrijven voor evenement' %s>Inschrijven\n", $i_ev->evid, checked($i_ed->aanwezig));
 		}
-		
-		if ($row->StandaardStatus == "B" or $row->StandaardStatus == "J") {
-			printf("<input type='radio' name='reactie_%d' value='Aanmelden' title='Aanmelding voor evenement' %s>Aanmelden&nbsp;\n", $row->RecordID, $c);
-		} else {
-			printf("<input type='radio' name='reactie_%d' value='Inschrijven' title='Inschrijven voor evenement' %s>Inschrijven&nbsp;\n", $row->RecordID, $c);
-		}
-		
+		echo("</label>");
+
 		if (isset($ins->Status) and $ins->Status == "X") {
 			$c = "checked";
 		} else {
 			$c = "";
 		}
-		printf("<input type='radio' name='reactie_%d' value='Afmelden' title='Afmeldingen voor evenement' %s>Afmelden&nbsp;\n", $row->RecordID, $c);
-		$ap = $ins->Aantal ?? 1;
-		if ($row->MaxPersonenPerDeelname > 1) {
-			printf("<br>\n<label class='form-label'>Aantal personen (%2\$d max)</label><input type='number' name='aantal_%1\$d' min=1 max=%2\$d value=%3\$d class='num2' title='Met hoeveel personen kom je?'>", $row->RecordID, $row->MaxPersonenPerDeelname, $ap);
-		}
-		$opm = $ins->Opmerking ?? "";
-		printf("<br>\n<input type='text' placeholder='Opmerking' name='opm_%d' class='w250' maxlength=250 value=\"%s\" title='Opmerking bij inschrijving'>", $row->RecordID, str_replace("\"", "'", $opm));
-		echo("</td>\n");
+		printf("<label class='form-check-label'><input type='radio' class='form-check-input' name='reactie_%d' value='Afmelden' title='Afmelding voor evenement' %s>Afmelden</label>\n", $i_ev->evid, $c);
+		echo("</div>  <!-- Einde form-check -->\n");
 		
-		if (isset($ins->Status) and ($ins->Status == "B" or $ins->Status == "I" or $ins->Status == "J")) {
-			printf("<td>%s</td>\n", fnAgendaKnop($row->Datum, $row->Eindtijd, $row->Verzameltijd, $row->Omschrijving, $row->Locatie));
-		} else {
-			echo("<td>&nbsp;</td>\n");
+		$ap = $ins->Aantal ?? 1;
+		if ($i_ev->maxpersonenperdeelname > 1) {
+			printf("<br>\n<label class='form-label'>Aantal personen (%2\$d max)</label><input type='number' name='aantal_%1\$d' min=1 max=%2\$d value=%3\$d class='num2' title='Met hoeveel personen kom je?'>", $i_ev->evid, $i_ev->maxpersonenperdeelname, $ap);
 		}
-		echo("</tr>\n");
+		printf("<input type='text' placeholder='Opmerking' name='opm_%d' class='w250' maxlength=250 value=\"%s\" title='Opmerking bij inschrijving'>", $i_ev->evid, $i_ed->opmerking);
+		echo("</div> <!-- Einde col -->\n");
+		
+		if ($i_ed->aanwezig == 1) {
+			echo("<div class='col-md-auto'>");
+			echo($i_ed->agendaknop());
+			echo("</div> <!-- Einde col -->\n");
+		}
+		echo("</div> <!-- Einde row -->\n");
 	}
-	echo("</table>\n");
 	echo("<div id='opdrachtknoppen'>\n");
 	printf("<button type='submit' class='%s'>%s Bevestigen</button>\n", CLASSBUTTON, ICONVERSTUUR);
 	echo("</div> <!-- Einde opdrachtknoppen -->\n");
@@ -403,7 +395,7 @@ function muteerevenement($eventid) {
 		$f .= "))";
 		printf("<label id='lblOrganisatie' class='form-label'>Organisatie</label><select id='Organisatie' class='form-select form-select-sm'><option value=0>Onbekend</option>\n%s</select>\n", $i_ond->htmloptions($i_ev->organisatie, 0, "", $f, 0));
 		if (strlen($i_ev->omschrijving) > 0) {
-			printf("<label id='lblOpmaak' class='form-label'>Opmaak in agenda</label>%s\n", fnEvenementOmschrijving($row, 1, "p"));
+			printf("<label id='lblOpmaak' class='form-label'>Opmaak in agenda</label>%s\n", fnEvenementOmschrijving($i_ev->evid, 1, "p"));
 		}
 
 		printf("<label id='lblInschrijvingOpen' class='form-label'>Inschrijving online</label><input type='checkbox' class='form-check-input' id='InschrijvingOpen' value=1 %s title='Is de online-inschrijving open?'>\n", checked($i_ev->inschrijvingopen));
@@ -646,6 +638,7 @@ function muteertypeevenement() {
 	echo("</thead>\n");
 	echo("<tbody>\n");
 	foreach ($i_et->lijst() as $row) {
+		$i_et->vulvars($row->RecordID);
 		echo("<tr>");
 		printf("<td><input type='text' name='oms_%d' value='%s' class='w30' max-length=30 onBlur='this.form.submit();'></td>\n", $row->RecordID, $row->Omschrijving);
 		$options = "\n";
@@ -678,9 +671,9 @@ function muteertypeevenement() {
 			$s .= "'";
 		}
 		
-		echo(fnEvenementOmschrijving($row, 0, "td"));
+		printf("<td class='%s'%s>%s</td>", $i_et->evclass, $i_et->style, $i_et->omschrijving);
 		
-		printf("<td><a href='%s?tp=%s&op=delete&tid=%d' title='Verwijder type evenement'>%s</i></a></td>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $row->RecordID, ICONVERWIJDER);
+		printf("<td><a href='%s?tp=%s&op=delete&tid=%d' title='Verwijder type evenement'>%s</a></td>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $row->RecordID, ICONVERWIJDER);
 		echo("</tr>\n");
 	}
 	echo("</tbody>\n");
@@ -707,7 +700,7 @@ function overzichtevenementen() {
 	foreach ($evlijst as $row) {
 		echo("<div class='row'>\n");
 		
-		printf("<div class='col col-sm-4'>%s</div>\n", fnEvenementOmschrijving($row, 3));
+		printf("<div class='col col-sm-4'>%s</div>\n", fnEvenementOmschrijving($row->RecordID, 3));
 		$dlnlijst = $i_ed->overzichtevenement($row->RecordID, "'B','J'", 1);
 		
 		echo("<div class='col'>\n");
@@ -742,30 +735,10 @@ function overzichtevenementen() {
 	$i_ev = null;
 	$i_ed = null;
 
-}  # overzichtevenementen 
+}  # overzichtevenementen
 
-function fnAgendaKnop($datum, $eindtijd, $verzameltijd, $omschrijving, $locatie) {
-	
-	$t = date("Ymd\THis", strtotime($datum)) . "/" . date("Ymd\THis", strtotime(substr($datum, 0, 10) . " " . $eindtijd));
-	if (strlen($verzameltijd) > 3) {
-		$d = sprintf("Om %s verzamelen/inloop", $verzameltijd);
-	} else {
-		$d = "";
-	}
-	$gu = sprintf("https://calendar.google.com/event?action=TEMPLATE&text=%s", urlencode($omschrijving));
-	$gu .= sprintf("&#038;dates=%s", $t);
-	$gu .= sprintf("&#038;details=%s", urlencode($d));
-	$gu .= sprintf("&#038;location=%s", urldecode($locatie));
-	$gu .= "&#038;trp=false";
-	$gu .= sprintf("&#038;sprop=website:%s", BASISURL);
-//			$gu .= "&#038;ctz=Europe%2FAmsterdam";
-			
-	return sprintf("<a href='%s' target='_blank' rel='nofollow'><img border='0' src='https://img.icons8.com/plasticine/100/000000/google-logo.png'></a>", $gu);
-	
-}  # fbAgendaKnop
-
-function fnEvenementOmschrijving($p_row, $p_mettijd=0, $p_element="") {
-	global $dtfmt;
+function fnEvenementOmschrijving($p_evid, $p_mettijd=0, $p_element="") {
+	$i_ev = new cls_Evenement($p_evid);
 	
 	/*
 		$p_mettijd
@@ -777,78 +750,48 @@ function fnEvenementOmschrijving($p_row, $p_mettijd=0, $p_element="") {
 	
 	if ($p_mettijd == 3) {
 	
-		$eo = sprintf("<p><strong>%s</strong></p>\n", $p_row->Omschrijving);
-		$eo .= "<p>" . $dtfmt->format(strtotime($p_row->Datum));
-		if ($p_row->Starttijd > "00:00" and $p_row->Eindtijd > "00:00") {
-			$eo .= sprintf(" van %s tot %s uur", $p_row->Starttijd, $p_row->Eindtijd);
-		} elseif ($p_row->Starttijd > "00:00") {
-			$eo .= " vanaf&nbsp;" . $p_row->Starttijd . "&nbsp;uur";
-		} elseif ($p_row->Eindtijd > "00:00") {
-			$eo .= " tot&nbsp;" . $p_row->Eindtijd . "&nbsp;uur";
+		$eo = sprintf("<p><strong>%s</strong></p>\n", $i_ev->omschrijving);
+		$eo .= "<p>" . $i_ev->datumtekst;
+		if (strlen($i_ev->tijden) > 4) {
+			$eo .= " " . $i_ev->tijden;
 		}
 		$eo .= "</p>\n";
 		
-		if (strlen($p_row->Locatie) > 4) {
-			$eo .= "<p>Locatie: " . $p_row->Locatie . "</p>\n";
+		if (strlen($i_ev->locatie) > 4) {
+			$eo .= "<p>Locatie: " . $i_ev->locatie . "</p>\n";
 		}
-		if (strlen($p_row->OrgNaam) > 0) {
-			$eo .= sprintf("<p>Contact: %s", $p_row->OrgNaam);
-			if (IsValidMailAddress($p_row->Email, 0)) {
-				$eo .= sprintf(" (%s)", fnDispEmail($p_row->Email, "", 1));
+		if ($i_ev->organisatie > 0) {
+			$eo .= sprintf("<p>Contact: %s", $i_ev->naamorganisatie);
+			if (strlen($i_ev->emailcontact) > 0) {
+				$eo .= sprintf(" (%s)", fnDispEmail($i_ev->emailcontact, "", 1));
 			}
 			$eo .= "</p>\n";
 		}
 		
-		if (strlen($p_row->Verzameltijd) > 3) {
-			$eo .= sprintf("<p>Verzamelen:&nbsp;%s uur</p>\n", $p_row->Verzameltijd);
+		if (strlen($i_ev->verzameltijd) > 3) {
+			$eo .= sprintf("<p>Verzamelen:&nbsp;%s uur</p>\n", $i_ev->verzameltijd);
 		}
 
 	} else {
-		$eo = $p_row->Omschrijving;
-		if (isset($p_row->Datum)) {
-			$st = date("H:i", strtotime($p_row->Datum));
-			if ($p_mettijd > 0 and $st > "00:00") {
-				if ($p_mettijd == 1) {
-					$eo = $st . "&nbsp;" . $eo;
-				} elseif ($p_mettijd == 2) {
-					$eo .= " (" . $st . ")";
-				}
+		$eo = $i_ev->omschrijving;
+		if ($p_mettijd > 0 and $i_ev->starttijd > "00:00") {
+			if ($p_mettijd == 1) {
+				$eo = $i_ev->starttijd . "&nbsp;" . $eo;
+			} elseif ($p_mettijd == 2) {
+				$eo .= " (" . $i_ev->starttijd . ")";
 			}
 		}
-		if ($p_mettijd == 1 and strlen($p_row->Locatie) > 1) {
-			$eo .= sprintf(" (%s)", $p_row->Locatie);
+		if ($p_mettijd == 1 and strlen($i_ev->locatie) > 1) {
+			$eo .= sprintf(" (%s)", $i_ev->locatie);
 		}
-	}
-	
-	$cl = str_replace("'", "", str_replace(" ", "_", trim(strtolower($p_row->OmsType))));
-	if (isset($p_row->Locatie) and strlen($p_row->Locatie) > 1) {
-		$cl .= " " . str_replace("'", "", str_replace(" ", "_", trim(strtolower($p_row->Locatie))));
-	}
-	
-	$s = "";
-	if (strlen($p_row->Tekstkleur) > 2 or strlen($p_row->Achtergrondkleur) > 2 or $p_row->Vet == 1 or $p_row->Cursief == 1) {
-		$s = " style='";
-		if (strlen($p_row->Tekstkleur) > 2) {
-			$s .= "color: " . $p_row->Tekstkleur . ";";
-		}
-		if (strlen($p_row->Achtergrondkleur) > 2) {
-			$s .= "background-color: " . $p_row->Achtergrondkleur . ";";
-		}
-		if ($p_row->Vet == 1) {
-			$s .= "font-weight: bold;";
-		}
-		if ($p_row->Cursief == 1) {
-			$s .= "font-style: italic;";
-		}
-		$s .= "'";
 	}
 	
 	if ($p_element === "td") {
-		return sprintf("<td class='%s'%s>%s</td>", $cl, $s, $eo);
+		return sprintf("<td class='%s'%s>%s</td>", $i_ev->evclass, $i_ev->evstyle, $eo);
 	} elseif ($p_element === "li") {
-		return sprintf("<li class='%1\$s'%2\$s title=\"%3\$s\">%3\$s</li>", $cl, $s, $eo);
+		return sprintf("<li class='%1\$s'%2\$s title=\"%3\$s\">%3\$s</li>", $i_ev->evclass, $i_ev->evstyle, $eo);
 	} elseif ($p_element === "p") {
-		return sprintf("<p class='%s'%s>%s</p>", $cl, $s, $eo);
+		return sprintf("<p class='%s'%s>%s</p>", $i_ev->evclass, $i_ev->evstyle, $eo);
 	} else {
 		return $eo;
 	}
