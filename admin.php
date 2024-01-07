@@ -86,7 +86,9 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 				}
 				$mess = "Bestand is in de database verwerkt.";
 				db_onderhoud(1);
-				fnMaatwerkNaUpload();
+				if (function_exists("fnMaatwerkNaUpload")) {	
+					fnMaatwerkNaUpload();
+				}
 				printf("<script>setTimeout(\"location.href='%s';\", 90000);</script>\n", $_SERVER['PHP_SELF']);
 			}
 			if (strlen($mess) > 0) {
@@ -469,7 +471,7 @@ function fnInstellingen() {
 	}
 	$i_p = null;
 	echo("<div id='opdrachtknoppen'>\n");
-	printf("<button type='submit' class='%s' type='submit' value='Bewaren'>%s Bewaren</button>\n", CLASSBUTTON, ICONBEWAAR);
+	printf("<button type='submit' class='%s' value='Bewaren'>%s Bewaren</button>\n", CLASSBUTTON, ICONBEWAAR);
 	echo("</div>  <!-- Einde opdrachtknoppen -->\n");
 	
 	echo("</form>\n");
@@ -868,7 +870,7 @@ function onderhoud() {
 	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=ledenonderdelenbijwerken\"'>Beheer leden van onderdelen</button><p>Beheer van leden van onderdelen en presentie.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=beheeronderdelen\"'>Beheer onderdelen</button><p>Controle en opschonen van onderdelen, activiteiten, afdelingsgroepen, functies, stukken en organisaties.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));	
 	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=logboekopschonen\"'>Logboek opschonen</button><p>Opschonen van het logboek, op basis van diverse regels.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['logboek_bewaartijd']);
-	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=ledenopschonen\"'>Leden en lidmaatschappen</button><p>Controle en opschonen leden, lidmaatschappen, memo's en foto's.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=ledenopschonen\"'>Leden en lidmaatschappen</button><p>Controle en opschonen leden, lidmaatschappen, memo's, foto's en inschrijvingen.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=beheerdiplomas\"'>Onderhoud diploma's</button><p>Controle en opschonen van diploma's en leden per diploma en examens.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=mailingsopschonen\"'>Onderhoud mailings</button><p>Controle en opschonen van mailings en verzonden e-mails.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
 	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=evenementenopschonen\"'>Onderhoud evenementen</button><p>Controle en opschonen evenementen.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
@@ -885,6 +887,8 @@ function onderhoud() {
 }  # onderhoud
 
 function logboek() {
+	global $TypeActiviteit;
+	
 	$i_lb = new cls_logboek();
 	
 	$kols[0]['sortcolumn'] = "RecordID";
@@ -923,14 +927,14 @@ function logboek() {
 	
 	printf("<form class='form-check form-switch' method='post' id='filter' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 	
-	printf("<input type='text' id='tbTekstFilter' title='Filter tabel' placeholder='Tekst filter' OnKeyUp=\"fnFilter('%s', this);\">", __FUNCTION__);
+	printf("<input type='text' id='tbTekstFilter' title='Filter tabel' placeholder='Tekst filter' OnKeyUp=\"fnFilter('%s', this);\">\n", __FUNCTION__);
 	
 	echo("<select name='typefilter' class='form-select form-select-sm' onchange='this.form.submit();'>\n");
 	echo("<option value=-1>Filter op type ....</option>\n");
 	foreach ($TypeActiviteit as $key => $val) {
 		$f = sprintf("TypeActiviteit=%d", $key);
 		if ($i_lb->aantal($f) > 0) {
-			printf("<option value=%d %s>%s</option>\n", $key, checked($key, "option", $_POST['typefilter']), htmlentities($val));
+			printf("<option value=%d %s>%s</option>\n", $key, checked($key, "option", $_POST['typefilter']), $val);
 		}
 	}
 	echo("</select>\n");
@@ -957,14 +961,14 @@ function logboek() {
 		$va = $a;
 	}
 	printf("<label class='form-label'>Aantal rijen</label><select name='aantalrijen' class='form-select form-select-sm' OnChange='this.form.submit();'>%s</select>\n", $options);
-	printf("<label class='form-label'>Alleen ingelogde</label><input type='checkbox' class='form-check-input' name='ingelogdeanderen'%s value=1 onClick='this.form.submit();'>\n", checked($_POST['ingelogdeanderen']));
+	printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' name='ingelogdeanderen'%s value=1 onClick='this.form.submit();'><p>Alleen ingelogde</p></label>\n", checked($_POST['ingelogdeanderen']));
 	
 	if (count($rows) > 1) {
 		printf("<p class='aantrecords'>%s van %s rijen</p>\n", number_format(count($rows), 0, ",", "."), number_format($i_lb->aantal(), 0, ",", "."));
 	}
 	echo("</form>\n");
 	
-	$kols = fnStandaardKols("logboek", 1, $rows);
+	$kols = fnStandaardKols(__FUNCTION__, 1, $rows);
 	
 	echo(fnDisplayTable($rows, $kols, "", 0, "", __FUNCTION__));
 	
