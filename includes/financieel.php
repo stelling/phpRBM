@@ -40,7 +40,7 @@ function fnRekeningen() {
 			$nwreknr=(new cls_Rekening())->nieuwrekeningnr($seizoen);
 
 			$actionurl = sprintf("%s?tp=%s", $_SERVER['PHP_SELF'], $_GET['tp']);
-			printf("<form method='post' id='rekeningmuteren' action='%s'>\n", $actionurl);
+			printf("<form method='post' id='rekeningkopmuteren' action='%s'>\n", $actionurl);
 		
 			printf("<label class='form-label'>Seizoen</label><select name='nwseizoen' class='form-select form-select-sm'>\n%s</select>\n", (new cls_Seizoen())->htmloptions($seizoen));
 			printf("<label class='form-label'>Rekeningnummer</label><input type='number' name='nwrekening' value=%d class='d8'>\n", $nwreknr);
@@ -72,7 +72,7 @@ function fnRekeningen() {
 			echo("<p>Er zijn geen mutaties bekend.</p>\n");
 		}
 	}
-}
+}  # fnRekeningen
 
 function fnRekeningbeheer() {
 	global $currenttab;
@@ -100,7 +100,7 @@ function fnRekeningbeheer() {
 	}
 	
 	printf("<form method='post' id='filter' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-	printf("<label class='form-label'>Seizoen</label><select name='filterseizoen' class='form-select form-select-sm' onChange='this.form.submit();'>\n<option value=-1>Alle seizoenen</option>\n%s</select>\n", $i_sz->htmloptions($filterseizoen, 1));
+	printf("<select name='filterseizoen' class='form-select form-select-sm' title='Selecteer seizoen' onChange='this.form.submit();'>\n<option value=-1>Alle seizoenen</option>\n%s</select>\n", $i_sz->htmloptions($filterseizoen, 1));
 	printf("<input type='text' id='tbFilterNaam' name='tbFilterNaam' placeholder='Tekstfilter' value='%s' %s>\n", $filternaam, $js);
 	printf("<p class='aantrecords'>%d rekeningen</p>", count($rows));
 	echo("</form>\n");
@@ -152,16 +152,17 @@ function fnRekeningMuteren($p_rkid=-1) {
 	$i_rk = new cls_Rekening($reknr);
 	$i_rr = new cls_Rekeningregel($reknr);
 	$i_rb = new cls_RekeningBetaling();
-	$i_lid = new cls_Lid();
+	$i_lid = new cls_Lid($i_rk->lidid, $i_rk->datum);
 	$i_seiz = new cls_Seizoen();
 	$i_ond = new cls_Onderdeel();
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		if (isset($_POST['RRnieuw']) and $_POST['RRnieuw'] >= 0) {
-			$at = $i_rr->standaardwaarde($reknr, $_POST['RRnieuw']);
-			if ($at == 0) {
-				$i_rr->add($reknr, $_POST['RRnieuw']);
-			}
+		if (isset($_POST['btnStandaardRegels']) and $_POST['btnStandaardRegels'] > 0) {
+			$at = $i_rr->toevoegenstandaardregels($reknr, $_POST['btnStandaardRegels']);
+		} elseif (isset($_POST['NieuweRegelAnderLid']) and $_POST['NieuweRegelAnderLid'] > 0) {
+			$i_rr->add($reknr, $_POST['NieuweRegelAnderLid']);
+		} elseif (isset($_POST['NieuweRegel']) and $_POST['NieuweRegel'] >= 0) {
+			$i_rr->add($reknr, $_POST['NieuweRegel']);
 		}
 	}
 	
@@ -179,11 +180,11 @@ function fnRekeningMuteren($p_rkid=-1) {
 		printf("<form method='post' action='%s'>\n", $actionurl);
 		echo("<div id='rekeningkopmuteren'>\n");
 		
-		printf("<label class='form-label'>Rekeningnummer</label><p id='reknr'>%d</p>\n", $row->Nummer);
-		printf("<input type='hidden' name='rkid' value=%d>\n", $row->Nummer);
+		printf("<label class='form-label'>Rekeningnummer</label><p id='reknr'>%d</p>\n", $i_rk->rkid);
+		printf("<input type='hidden' name='rkid' value=%d>\n", $i_rk->rkid);
 		
 		echo("<div id='rekeninginfo'>\n");
-		echo("<label class='form-label'>Totaal bedrag &euro;</label><p id='rekeningbedrag'></p>\n");
+		printf("<label class='form-label'>Totaal bedrag &euro;</label><p id='rekeningbedrag'>%03.2f</p>\n", $i_rk->bedrag);
 		if ($i_rb->aantal() > 0) {
 			printf("<label class='form-label' id='lblbedragbetaald'>Betaald &euro;</label><p id='bedragbetaald'>%03.2f</p>\n", $i_rk->betaald);
 		}
@@ -194,33 +195,33 @@ function fnRekeningMuteren($p_rkid=-1) {
 		echo("<label class='form-label'>Per E-mail verstuurd</label><p id='laatsteemail'></p>\n");
 		echo("</div> <!-- Einde rekeninginfo -->\n");
 		
-		printf("<label class='form-label'>Seizoen</label><select id='Seizoen' class='form-select form-select-sm'>%s</select>\n", $i_seiz->htmloptions($row->Seizoen));
-		printf("<label class='form-label'>Rekeningdatum</label><input type='date' id='Datum' value='%s' required>\n", $row->Datum);
-		printf("<label class='form-label'>Omschrijving</label><input type='text' id='OMSCHRIJV' class='w35' value='%s' maxlength=35>\n", $row->OMSCHRIJV);
-		printf("<label class='form-label'>Tenaamstelling rekening</label><input type='text' id='DEBNAAM' class='w60' value='%s' maxlength=60>\n", $row->DEBNAAM);
+		printf("<label class='form-label'>Seizoen</label><select id='Seizoen' class='form-select form-select-sm'>%s</select>\n", $i_seiz->htmloptions($i_rk->seizoen));
+		printf("<label class='form-label'>Rekeningdatum</label><input type='date' id='Datum' value='%s' required>\n", $i_rk->datum);
+		printf("<label class='form-label'>Omschrijving</label><input type='text' id='OMSCHRIJV' class='w35' value='%s' maxlength=35>\n", $i_rk->omschrijving);
+		printf("<label class='form-label'>Tenaamstelling rekening</label><input type='text' id='DEBNAAM' class='w60' value='%s' maxlength=60>\n", $i_rk->debnaam);
 		if ($row->AantLid > 1) {
 			$d = "";
 		} else {
 			$d = " disabled";
 		}
-		$f = sprintf("(L.RecordID IN (SELECT RR.Lid FROM %sRekreg AS RR WHERE RR.Rekening=%d) OR L.RecordID=%d)", TABLE_PREFIX, $row->Nummer, $row->Lid);
-		printf("<label class='form-label'>Gekoppeld aan lid</label><select id='Lid' class='form-select form-select-sm'%s>\n%s</select>\n", $d, $i_lid->htmloptions($row->Lid, 0, $f, $row->Datum));
+		$f = sprintf("(L.RecordID IN (SELECT RR.Lid FROM %sRekreg AS RR WHERE RR.Rekening=%d) OR L.RecordID=%d)", TABLE_PREFIX, $i_rk->rkid, $i_rk->lidid);
+		printf("<label class='form-label'>Gekoppeld aan lid</label><select id='Lid' class='form-select form-select-sm'%s>\n%s</select>\n", $d, $i_lid->htmloptions($i_rk->lidid, 0, $f, $i_rk->datum));
 		
 		$f = sprintf("(L.RecordID IN (SELECT LO.Lid FROM %sLidond AS LO WHERE IFNULL(LO.Opgezegd, '9999-12-31') >= '%s' AND LO.OnderdeelID=%d)", TABLE_PREFIX, $row->Datum, $_SESSION['settings']['rekening_groep_betaalddoor']);
 		$f .= sprintf(" OR L.RecordID IN (SELECT RR.Lid FROM %sRekreg AS RR WHERE RR.Rekening=%d)", TABLE_PREFIX, $reknr);
 		$f .= sprintf(" OR L.RecordID=%d OR L.RecordID=%d)", $row->BetaaldDoor, $row->Lid);
-		printf("<label class='form-label'>Betaald door / debiteur</label><select id='BetaaldDoor' class='form-select form-select-sm'>\n%s</select>\n", $i_lid->htmloptions($row->BetaaldDoor, 7, $f, $row->Datum));
-		if ($row->BETAALDAG < 1) {
-			$bdt = $i_seiz->max("SZ.BetaaldagenTermijn", sprintf("SZ.Nummer=%d", $row->Seizoen));
+		printf("<label class='form-label'>Betaald door / debiteur</label><select id='BetaaldDoor' class='form-select form-select-sm'>\n%s</select>\n", $i_lid->htmloptions($row->BetaaldDoor, 7, $f, $i_rk->datum));
+		if ($i_rk->dagenperbetaaltermijn < 1) {
+			$bdt = $i_seiz->max("SZ.BetaaldagenTermijn", sprintf("SZ.Nummer=%d", $i_rk->seizoen));
 		} else {
-			$bdt = $row->BETAALDAG;
+			$bdt = $i_rk->dagenperbetaaltermijn;
 		}
 		printf("<label class='form-label' id='lblBETAALDAG'>Aantal dagen per betaaltermijn</label><input type='text' id='BETAALDAG' value=%d class='w3' maxlength=3>\n", $bdt);
 		
-		if ($row->BET_TERM < 1) {
+		if ($i_rk->aantalbetaaltermijnen < 1) {
 			$bt = 1;
 		} else {
-			$bt = $row->BET_TERM;
+			$bt = $i_rk->aantalbetaaltermijnen;
 		}
 		printf("<label class='form-label' id='lblBET_TERM'>Aantal betaaltermijnen</label><input type='text' id='BET_TERM' value=%d class='w2' maxlength=2>\n", $bt);
 		
@@ -256,17 +257,27 @@ function fnRekeningMuteren($p_rkid=-1) {
 				echo("</tr>\n");
 			}
 			echo("</table>\n");
-			$opt = "<option value=-1>Regel(s) toevoegen ...</option><option value=0>Zonder lid</option>\n";
-			$f = sprintf("L.Postcode='%s' AND L.Adres='%s'", $i_rk->postcode, $i_rk->adres);
-			$opt .= sprintf("<option value=-1 disabled>-- Gezin --</option>\n%s", $i_lid->htmloptions(0, 5, $f));
-			$opt .= "<option value=-1 disabled>-- Alle leden --</option>\n";
-			$opt .= $i_lid->htmloptions(0, 5);
-			printf("<select name='RRnieuw' class='form-select' onChange='this.form.submit();'>\n%s</select>\n", $opt);
+			$i_lid->per = $i_rk->datum;
+			$i_lid->where = sprintf("L.Postcode='%s' AND L.Adres='%s'", $i_rk->postcode, $i_rk->adres);
+			foreach ($i_lid->ledenlijst(1) as $lrow) {
+				$i_rr->where = sprintf("RR.Rekening=%d AND RR.Lid=%d", $i_rk->rkid, $lrow->RecordID);
+				if ($i_rr->toevoegenstandaardregels($i_rk->rkid, $lrow->RecordID, 0) == 0) {
+					printf("<button type='submit' class='%s' name='NieuweRegel' value='%d'>%s Regel %s</button>\n", CLASSBUTTON, $lrow->RecordID, ICONTOEVOEGEN, $lrow->Roepnaam);
+				} else {
+					printf("<button type='submit' class='%s' name='btnStandaardRegels' value=%d>%s Standaardregels %s</button>\n", CLASSBUTTON, $lrow->RecordID, ICONTOEVOEGEN, $lrow->Roepnaam);
+				}
+			}
+			printf("<button type='submit' class='%s' name='NieuweRegel' value=0 title='Regel, zonder lid, toevoegen'>%s Regel</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
+			
+			$i_lid->where = sprintf("L.Postcode<>'%s' AND L.Adres<>'%s'", $i_rk->postcode, $i_rk->adres);
+			$opt = "<option value=0>Regel met lid toevoegen ...</option>\n" . $i_lid->htmloptions(0, 5);
+			printf("<select name='NieuweRegelAnderLid' class='form-select' onChange='this.form.submit();'>\n%s</select>\n", $opt);
+			
 			echo("</div> <!-- Einde rekeningregelsmuteren -->\n");
 		}
 		
 		echo("<div class='form-floating'>\n");
-		printf("<textarea id='OpmerkingIntern' class='form-control' title='Interne opmerking' placeholder='Ruimte voor een interne opmerking'>%s</textarea>\n", $row->OpmerkingIntern);
+		printf("<textarea id='OpmerkingIntern' class='form-control' title='Interne opmerking' placeholder='Interne opmerking'>%s</textarea>\n", $row->OpmerkingIntern);
 		echo("<label for='OpmerkingIntern'>Interne opmerking</label>");
 		echo("</div>\n");
 		
@@ -287,8 +298,8 @@ function fnRekeningMuteren($p_rkid=-1) {
 			printf("<button type='button' class='%s' name='VolgendeRekening' onClick=\"location.href='%s?tp=%s/Muteren&p_reknr=%d'\">%s Volgende rekening</button>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], $currenttab, $next_rek, ICONVOLGENDE);
 		}
 		
-		$f = sprintf("RR.Rekening=%d", $reknr);
-		if ($i_rr->aantal($f) > 0) {
+		$i_rr->where = sprintf("RR.Rekening=%d", $reknr);
+		if ($i_rr->aantal() > 0) {
 			printf("<button type='button' class='%s' onClick=\"location.href='%s?tp=%s&op=preview_rek&p_reknr=%d'\">%s Bekijk rekening</button>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], $currenttab, $reknr, ICONVOORBEELD);
 			printf("<button type='button' class='%s' onClick=\"location.href='%s?tp=%s&op=send_rek&p_reknr=%d'\">%s Verstuur rekening</button>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], $currenttab, $reknr, ICONVERSTUUR);
 		}
@@ -412,7 +423,7 @@ function RekeningenAanmaken() {
 					}
 					$agl++;
 				}
-				$aantregels += $i_rr->standaardwaarde($reknr, $lidrow->RecordID);
+				$aantregels += $i_rr->toevoegenstandaardregels($reknr, $lidrow->RecordID);
 				$vgezin = $gezin;
 			}
 			$i_rk->controle(-1, $seizoen);
@@ -465,7 +476,7 @@ function RekeningenAanmaken() {
 		foreach ($arrAO as $k => $o) {
 			$options .= sprintf("<option value=%d%s>%s</option>\n", $k, checked($k, "option", $szrow->{'Afdelingscontributie omschrijving'}), $o);
 		}
-		printf("<label class='form-label'>Omschrijving afdelingscontributie</label><select id='Afdelingscontributie omschrijving' class='form-select'>%s</select>", $options);
+		printf("<label class='form-label'>Omschrijving afdelingscontributie</label><select id='Afdelingscontributie omschrijving' class='form-select form-select-sm'>%s</select>", $options);
 		
 		printf("<label class='form-label'>Omschrijving gezinskorting</label><input type='text' id='Gezinskorting omschrijving' maxlength=50 class='w50' value='%s'>\n", $szrow->{'Gezinskorting omschrijving'});
 		printf("<label id='lblKostenplaatsGezinskorting' class='form-label'>Kostenplaats gezinskorting</label><input type='text' id='Gezinskorting kostenplaats' maxlength=12 class='w12' value='%s'>\n", $szrow->{'Gezinskorting kostenplaats'});
@@ -622,7 +633,10 @@ function RekeningInstellingen() {
 		printf("<option value=%d%s>%s</option>>\n", $key, checked($key, "option", $_SESSION['settings']['mailing_rekening_stuurnaar']), $val);
 	}
 	echo("</select>\n");
-	printf("<label class='form-label'>Vanaf e-mailadres</label><select id='mailing_rekening_vanafid' class='form-select form-select-sm'>%s</select>\n", $i_mv->htmloptions($_SESSION['settings']['mailing_rekening_vanafid']));
+	printf("<label class='form-label'>Vanaf e-mailadres</label><select id='mailing_rekening_vanafid' class='form-select form-select-sm'>\n%s</select>\n", $i_mv->htmloptions($_SESSION['settings']['mailing_rekening_vanafid']));
+	
+	printf("<label class='form-label'>E-mailadres voor antwoorden</label><select id='mailing_rekening_replyid' class='form-select form-select-sm'>\n<option value=0>Gelijk aan vanaf</option>\n%s</select>\n", $i_mv->htmloptions($_SESSION['settings']['mailing_rekening_replyid']));
+	
 	printf("<label class='form-label'>Verstuurde e-mails alleen zichtbaar voor</label><select id='mailing_rekening_zichtbaarvoor' class='form-select form-select-sm'>\n<option value=-1>Alleen webmasters</option>\n%s</select>\n", $i_ond->htmloptions($_SESSION['settings']['mailing_rekening_zichtbaarvoor'], 1));
 	echo("</div> <!-- Einde rekening_instellingen -->\n");
 	
