@@ -224,21 +224,33 @@ function fnLedenlijst() {
 	
 } # fnLedenlijst
 
-function fnWijzigen($lidid, $actie="") {
+function fnWijzigen($p_lidid, $actie="") {
 	global $currenttab, $currenttab2, $currenttab3, $actionurl;
+	
+	$i_lid = new cls_Lid($p_lidid);
+	
+	if ($currenttab == "Zelfservice") {
+		$lidid = $_SESSION['lidid'];
+	} elseif ($p_lidid <= 0) {
+		$mess = "Er is geen lid geselecteerd.";		
+		$lidid = 0;
+	} elseif ($i_lid->lidid == 0) {
+		$mess = sprintf("LidID %d bestaat niet.", $p_lidid);		
+		$lidid = 0;
+	} else {
+		$lidid = $i_lid->lidid;
+	}
 	
 	if ($currenttab == "Zelfservice") {
 		$xtra_param = "";
-		$lidid = $_SESSION['lidid'];
 		$actionurl = sprintf("%s?tp=%s", $_SERVER['PHP_SELF'], $_GET['tp']);
-		
 	} else {
 		$xtra_param = sprintf("lidid=%d", $lidid);
 		$actionurl = sprintf("%s?tp=%s&lidid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $lidid);
 	}
 	
 	if ($lidid > 0) {
-		$naamlid = (new cls_Lid())->Naam($lidid);
+		$naamlid = $i_lid->naam();
 		fnDispMenu(2, $xtra_param);
 		if ($currenttab != "Zelfservice") {
 			fnDispMenu(3, $xtra_param);
@@ -362,8 +374,7 @@ function fnWijzigen($lidid, $actie="") {
 			debug($mess);
 		}
 	} else {
-		$mess = "Er is geen lid geselecteerd";
-		debug($mess);
+		printf("<p class='mededeling'>%s</p>\n", $mess);
 	}
 } # fnWijzigen
 
@@ -529,7 +540,6 @@ function fnNieuwLid() {
 			$kols[] = array('columnname' => "Datum", 'headertext' => "Inschrijfdatum", 'type' => "date");
 			$kols[] = array('headertext' => "Verwerkt", 'columnname' => "Verwerkt", 'type' => "date");
 			$kols[] = array('headertext' => "&nbsp;", 'columnname' => "LnkPDF", 'link' => sprintf("%s/pdf.php?insid=%%d", BASISURL), 'class' => "pdf");
-			
 			$kols[] = array('headertext' => "Gekoppeld lid", 'columnname' => "GekoppeldLid");
 			
 			if (toegang("deleteinschrijving", 0, 0)) {
@@ -541,7 +551,7 @@ function fnNieuwLid() {
 			echo("<h2>Archief</h2>\n");
 			echo("<div id='filter'>\n");
 			
-			echo("<input OnKeyUp=\"fnFilter('inschrijvingen', this);\" title='Filter op tekst'>");
+			echo("<input placeholder='Tekstfilter' OnKeyUp=\"fnFilter('inschrijvingen', this);\" title='Filter op tekst'>");
 			printf("<p class='aantrecords'>%d rijen</p>\n", count($insrows));
 			
 			echo("</div> <!-- Einde filter -->\n");
@@ -552,7 +562,7 @@ function fnNieuwLid() {
 }  # fnNieuwLid
 
 function editinschrijving($p_insid) {
-	global $dtfmt;
+	global $dtfmt, $currenttab;
 	
 	$i_ins = new cls_Inschrijving($p_insid);
 	$i_lid = new cls_Lid();
@@ -576,7 +586,7 @@ function editinschrijving($p_insid) {
 				$fp = fopen($_FILES['UploadFile']['tmp_name'], 'r');
 				$content = fread($fp, filesize($_FILES['UploadFile']['tmp_name']));
 				fclose($fp);
-				$i_ins->addpdf(-1, $content);
+				$i_ins->addpdf(-1, $content, 1);
 			}
 		}
 	}
@@ -587,11 +597,11 @@ function editinschrijving($p_insid) {
 	printf("<label class='form-label'>RecordID</label><p>%d</p>\n", $i_ins->insid);
 	printf("<label class='form-label'>Datum inschrijving</label><input type='date' id='Datum' name='Datum' value='%s'>\n", $i_ins->inschrijfdatum);
 	printf("<label class='form-label'>Volledige naam</label><input type='text' id='Naam' name='Naam' value='%s' class='w50' maxlength=50>", $i_ins->naam);
-	printf("<label class='form-label'>Achternaam</label><input type='text' id='Achternaam' value='%s' class='w45' maxlength=45>", $i_ins->achternaam);
+	printf("<label class='form-label'>Achternaam</label><input type='text' id='Achternaam' value='%s' title='Achternaam, zonder tussenvoegels' class='w45' maxlength=45>", $i_ins->achternaam);
 	printf("<label class='form-label'>Geboortedatum</label><input type='date' id='Geboortedatum' value='%s'>", $i_ins->geboortedatum);
 	printf("<label class='form-label'>E-mail</label><input type='email' id='Email' value='%s' class='w45'>", $i_ins->email);
 
-	if (toegang("Ledenlijst/Wachtlijst", 0, 0)) {
+	if ($currenttab == "Ledenlijst") {
 		$i_ond->where = "O.`Type`='A' AND IFNULL(O.VervallenPer, '9999-12-31') > CURDATE()";
 		printf("<label class='form-label'>Afdeling</label><select id='OnderdeelID' class='form-select form-select-sm'>\n<option value=0>Geen</option>\n%s</select>\n", $i_ond->htmloptions($i_ins->afdeling, 0, "", 0));
 	}
@@ -610,7 +620,7 @@ function editinschrijving($p_insid) {
 	
 	printf("<label class='form-label'>Eerste les</label><input type='date' id='EersteLes' name='EersteLes' value='%s'>\n", $i_ins->eersteles);
 
-	if (toegang("Ledenlijst/Wachtlijst", 0, 0)) {
+	if ($currenttab == "Ledenlijst") {
 		printf("<label class='form-label'>Gekoppeld aan lid</label><select id='LidID' name='LidID' class='form-select form-select-sm' onChange='this.form.submit();'>\n<option value=0>Geen</option>\n%s</select>\n", $i_lid->htmloptions($i_ins->lidid, 7));
 		printf("<label class='form-label'>Verwerkt</label><input type='checkbox' class='form-check-input' id='chkverwerkt' value=1%s>\n", checked($i_ins->verwerkt));
 	}
@@ -1499,8 +1509,8 @@ function overzichtverjaardagen($metfoto=1) {
 			if (strlen($t) > 3) {
 				$fd = $i_foto->fotolid($row->RecordID);
 				$verj .= sprintf("<li>%s</li> ", $t);
-				if ($fd != false) {
-					$verjfoto .= sprintf("<div class='jarige'><img src='%s' class='rounded-circle' alt='Pasfoto %s'><div class='tekstbijfoto'>%s</div></div>\n", $fn, htmlentities($row->NaamLid), $t);
+				if (strlen($fd) > 0) {
+					$verjfoto .= sprintf("<div class='jarige'><img src='%s' class='rounded-circle' alt='Pasfoto %s'><div class='tekstbijfoto'>%s</div></div>\n", $fd, htmlentities($row->NaamLid), $t);
 				} elseif (strlen($t) > 3) {
 					$verjfoto .= sprintf("<p>%s</p>\n", $t);
 				}
@@ -1815,7 +1825,7 @@ function eigenschappenlidmuteren($lidid) {
 	}
 	
 	printf("<script>
-		$(\"[id^='eigenschap_']\").click(function(){	
+		$(\"[id^='eigenschap_']\").click(function(){
 			var split_id = this.id.split('_');
 			var ondid = split_id[1];
 			
