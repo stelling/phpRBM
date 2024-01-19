@@ -196,8 +196,8 @@ if ($i_lid->aantal() == 0) {
 	if (strlen($i_el->mysql) >= 9) {
 		$rows = $i_el->rowset();
 		if ($rows !== false) {
-			$id = str_replace(" ", "_", strtolower($i_el->elnaam));
-			echo(fnDisplayTable($rows, null, $i_el->elnaam, 0, $i_el->uitleg, $id));
+			$id = str_replace(" ", "_", strtolower($i_el->naam));
+			echo(fnDisplayTable($rows, null, $i_el->naam, 0, $i_el->uitleg, $id));
 		}
 	} elseif (strlen($i_el->eigenscript) >= 5) {
 		$s = BASEDIR . "/maatwerk/" . $i_el->eigenscript;
@@ -576,6 +576,9 @@ function fnAgenda($p_lidid=0) {
 	
 	$txt .= "</div> <!-- Einde agenda -->\n";
 	
+	$i_lid = null;
+	$i_ex = null;
+	
 	return $txt;
 	
 }  # fnAgenda
@@ -583,7 +586,7 @@ function fnAgenda($p_lidid=0) {
 function fnAgendaTable($p_lidid=0) {
 	global $dtfmt;
 	
-	debug("fnAgendaTable");
+	debug("fnAgendaTable is vervallen");
 	
 	$i_lid = new cls_Lid();
 	
@@ -708,16 +711,16 @@ function fnMeldingen() {
 		$i_el->controle($row->RecordID);
 		$i_el->vulvars($row->RecordID);
 		if ($i_el->aantalrijen > 0) {
-			$nm = $row->Naam;
+			$nm = $i_el->naam;
 			if ($i_el->aantalrijen > 1) {
 				$nm .= sprintf(": %d rijen", $i_el->aantalrijen);
 			} else {
 				$nm .= ": 1 rij";
 			}
-			if (strlen($i_el->tabpage) > 0 and toegang($i_el->tabpage)) {
-				$rv .= sprintf("<li><a href='%s?tp=%s/%s'>%s</a></li>\n", $_SERVER['PHP_SELF'], $i_el->tabpage, $i_el->elnaam, $nm);
+			if (strlen($i_el->tabpage) > 0 and toegang($i_el->tabpage . "/" . $i_el->naam)) {
+				$rv .= sprintf("<li><a href='%s?tp=%s/%s'>%s</a></li>\n", $_SERVER['PHP_SELF'], $i_el->tabpage, $i_el->naam, $nm);
 			} else {
-				$rv .= sprintf("<li>%s</li>\n", $nm, $i_el->aantalrijen);
+				$rv .= sprintf("<li>%s</li>\n", $nm);
 			}
 		}
 	}

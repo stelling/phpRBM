@@ -1036,6 +1036,10 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 				} elseif ($kol_type == "mrg" or $kol_type == "combitext") {
 					$ret .= sprintf("<td>%s</td>", str_replace(" &amp; ", "<br>", htmlentities($value, ENT_HTML5)));
 					
+				} elseif ($kol_type == "laatsteMutatie_Naam" and isset($kol['table']) and $value > 0) {
+					$tas = $kol['tas'] ?? -1;
+					$ret .= sprintf("<td>%s</td>", laatstemutatie($kol['table'], $value, $tas, "<br>"));
+										
 				} elseif ($kol_type == "subqry") {
 					$ret .= sprintf("<td>%s</td>", $value);
 					
@@ -1134,7 +1138,7 @@ function fnEditTable($res, $kols, $id="", $th="") {
 					$colpk = $kols[$kn]['columnname'];
 				}
 				
-				if (isset($kol['autosubmit']) and $kol['autosubmit'] == true and isset($kols[$kn]['columnname'])) {
+				if (isset($kol['autosubmit']) and $kol['autosubmit'] == true and isset($kols[$kn]['columnname']) and 1 == 2) {
 					$xtra_script = sprintf("$(\"[id^=%s]\").on('blur', function() {
 					location.reload(true);
 					});\n", $kols[$kn]['columnname']);
@@ -1816,5 +1820,25 @@ function fnLeeftijd($p_gd, $p_per="", $p_incl_jr=1) {
 	
 	return $rv;
 }  # fnLeeftijd
+
+function laatstemutatie($p_table, $p_rid, $p_tas=-1, $p_glue="<br>") {
+	global $dtfmt;
+	
+	$rv = "";
+	$i_lb = new cls_logboek();
+	$i_lb->where = sprintf("A.LidID > 0 AND A.RefTable='%s' AND ReferID=%d", $p_table, $p_rid);
+	if ($p_tas > 0) {
+		$i_lb->where .= sprintf(" AND A.TypeActiviteitSpecifiek=%d", $p_tas);
+	}
+//	debug($i_lb->where);
+	$lbrow = $i_lb->lijst(-1, 0, 0, "", "A.DatumTijd DESC", 1, 0)->fetch();
+	if (isset($lbrow->DatumTijd)) {
+		$dtfmt->setPattern(DTLONG);
+		$rv = sprintf("%s%s%s", (new cls_Lid())->naam($lbrow->ingelogdLid), $p_glue, $dtfmt->format(strtotime($lbrow->DatumTijd)));
+	}
+	$i_lb = null;
+	
+	return $rv;
+}  # laatstemutatie
 
 ?>

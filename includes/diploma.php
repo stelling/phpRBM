@@ -195,13 +195,13 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1, $p_dpid=-1) {
 			if (substr($k, 0, 11) == "ledengroep_" and $exid > 0) {
 				$gid = intval(str_replace("ledengroep_", "", $k));
 				$i_gr->vulvars($p_afdid, $gid);
-				if ($i_gr->diplomaid > 0) {
-					$f_toev_groep = sprintf("LO.OnderdeelID=%1\$d AND LO.GroepID=%2\$d AND IFNULL(LO.Opgezegd, '9999-12-31') >= '%3\$s' AND LO.Lid NOT IN (SELECT LD.Lid FROM %4\$sLiddipl AS LD WHERE LD.Examen=%3\$d AND LD.DiplomaID=%5\$d)", $i_gr->afdid, $i_gr->grid, $i_ex->exid, TABLE_PREFIX, $i_gr->diplomaid);
+				if ($i_gr->dpid > 0) {
+					$f_toev_groep = sprintf("LO.OnderdeelID=%1\$d AND LO.GroepID=%2\$d AND IFNULL(LO.Opgezegd, '9999-12-31') >= '%3\$s' AND LO.Lid NOT IN (SELECT LD.Lid FROM %4\$sLiddipl AS LD WHERE LD.Examen=%3\$d AND LD.DiplomaID=%5\$d)", $i_gr->afdid, $i_gr->grid, $i_ex->exid, TABLE_PREFIX, $i_gr->dpid);
 					foreach ($i_lo->basislijst($f_toev_groep) as $lorow) {
-						$i_ld->add($lorow->Lid, $i_gr->diplomaid, "", $i_ex->exid);
+						$i_ld->add($lorow->Lid, $i_gr->dpid, "", $i_ex->exid);
 					}
 					if ($dpid > 0) {
-						$dpid = $i_gr->diplomaid;
+						$dpid = $i_gr->dpid;
 					}
 				}
 			}
@@ -298,13 +298,13 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1, $p_dpid=-1) {
 				if (count($ldrows) > 1) {
 					$t = sprintf(" title='%d rijen'", count($ldrows));
 				}
-				printf("<caption%s>%s</caption>\n", $t, $i_dp->dpnaam);
+				printf("<caption%s>%s</caption>\n", $t, $i_dp->naam);
 			} else {
 				$ldrows = $i_ld->overzichtperdiploma($i_dp->dpid);
 				if (count($ldrows) > 1) {
 					$t = sprintf(" title='%d rijen'", count($ldrows));
 				}
-				printf("<caption%s>%s</caption>\n", $t, $i_dp->dpnaam);
+				printf("<caption%s>%s</caption>\n", $t, $i_dp->naam);
 				$exdatum = date("Y-m-d");
 			}
 			
@@ -519,8 +519,8 @@ function fnDiplomaMuteren($p_dpid, $p_beperkt=0) {
 		echo("<div id='diplomamuteren'>\n");
 	
 		printf("<label class='form-label'>RecordID</label><p id='RecordID'>%d</p>\n", $i_dp->dpid);
-		printf("<label class='form-label'>Naam</label><input type='text' id='Naam' class='w75' maxlength=75 value=\"%s\">\n", $i_dp->dpnaam);
-		printf("<label class='form-label'>Code</label><input type='text' id='Kode' class='w10' maxlength=10 value=\"%s\">\n", $i_dp->dpcode);
+		printf("<label class='form-label'>Naam</label><input type='text' id='Naam' class='w75' maxlength=75 value=\"%s\">\n", $i_dp->naam);
+		printf("<label class='form-label'>Code</label><input type='text' id='Kode' class='w10' maxlength=10 value=\"%s\">\n", $i_dp->code);
 		printf("<label class='form-label' id='lblvolgnr'>Volgnummer</label><input type='number' id='Volgnr' value=%d class='num3'>\n", $i_dp->volgnr);
 		printf("<label class='form-label'>Type</label><select id='Type' class='form-select form-select-sm'>%s</select>\n", fnOptionsFromArray(ARRTYPEDIPLOMA, $i_dp->dptype));
 		
@@ -531,7 +531,7 @@ function fnDiplomaMuteren($p_dpid, $p_beperkt=0) {
 		
 		printf("<label class='form-label' id='lbluitgegevendoor'>Uitgegeven door</label><select id='ORGANIS' class='form-select form-select-sm'>%s</select>\n", $i_org->htmloptions(1, $i_dp->organisatie));
 		$f = sprintf("DP.RecordID<>%d AND DP.Afdelingsspecifiek=%d AND IFNULL(DP.Vervallen, '9999-12-31') > CURDATE()", $i_dp->dpid, $i_dp->afdelingsspecifiek);
-		printf("<label id='lblvoorganger' class='form-label'>Voorganger</label><select id='VoorgangerID' class='form-select form-select-sm'><Option value=0>Geen</option>\n%s</select>\n", $i_dp->htmloptions($i_dp->dpvoorganger, 0, 0, 0, $f, 1));
+		printf("<label id='lblvoorganger' class='form-label'>Voorganger</label><select id='VoorgangerID' class='form-select form-select-sm'><Option value=0>Geen</option>\n%s</select>\n", $i_dp->htmloptions($i_dp->voorgangerid, 0, 0, 0, $f, 1));
 		
 		printf("<label id='lbldoorlooptijd' class='form-label'>Doorlooptijd</label><input type='number' class='num2' max=99 id='Doorlooptijd' value=%d><p>in maanden</p>\n", $i_dp->doorlooptijd);
 		

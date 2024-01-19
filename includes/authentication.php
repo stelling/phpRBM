@@ -220,14 +220,14 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 		$i_ond = new cls_Onderdeel();
 		foreach (explode(",", $_SESSION['settings']['menu_met_afdelingen']) as $ondid) {
 			$i_ond->vulvars($ondid);
-			if (strlen($i_ond->naam) > 12 and 1 == 2) {
-				$menukop = trim($i_ond->ondcode);
+			if (strlen($i_ond->naam) > 15) {
+				$menukop = trim($i_ond->code);
 			} else {
 				$menukop = trim($i_ond->naam);
 			}
 			addtp($menukop, $ondid);
 			if ($currenttab == $menukop) {
-				if ($i_ond->ondtype == "A") {
+				if ($i_ond->type == "A") {
 					addtp($menukop . "/Afdelingslijst", $ondid);
 					addtp($menukop . "/Kalender");
 					$f = sprintf("LO.GroepID > 0 AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE() AND LO.OnderdeelID=%d", $ondid);
@@ -259,7 +259,7 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 					addtp($menukop . "/Wachtlijst");
 				}
 				
-				if ($i_ond->ondtype == "A" and toegang("Mailing/Muteren", 0, 0)) {
+				if ($i_ond->type == "A" and toegang("Mailing/Muteren", 0, 0)) {
 					$tp = $menukop. "/Afdelingsmailing";
 					addtp($tp);
 				}
@@ -382,10 +382,13 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 	
 //		addtp("DMS");   Voorlopig geen tijd voor, dus uitgezet.
 	
-	$f = "(EL.AantalKolommen > 0 OR LENGTH(EigenScript) > 4) AND LENGTH(EL.Tabpage) > 0";
-	foreach((new cls_Eigen_lijst())->basislijst($f, "EL.Naam") as $row) {
+	$i_el = new cls_Eigen_lijst();
+	$i_el->where = "(EL.AantalKolommen > 0 OR LENGTH(EL.EigenScript) > 4) AND LENGTH(EL.Tabpage) > 0";
+	foreach($i_el->basislijst("", "EL.Naam") as $row) {
+		$i_el->controle($row->RecordID);
+		$i_el->vulvars($row->RecordID);
 		$s = BASEDIR . "/maatwerk/" . $row->EigenScript;
-		if (($row->AantalKolommen > 0 and $row->AantalRecords > 0) or (file_exists($s) and strlen($row->EigenScript) > 0)) {
+		if (($row->AantalKolommen > 0 and $i_el->aantalrijen > 0) or (file_exists($s) and strlen($row->EigenScript) > 0)) {
 			addtp($row->Tabpage . "/" . $row->Naam);
 		}
 	}

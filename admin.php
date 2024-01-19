@@ -128,7 +128,7 @@ if ($currenttab == "Beheer logins") {
 
 } elseif ($currenttab == "Eigen lijsten") {
 	if (toegang($currenttab, 1, 1)) {
-		fnEigenlijstenmuteren();
+		eigenlijstenmuteren();
 	}
 	
 } elseif ($currenttab == "Templates") {
@@ -498,7 +498,7 @@ function fnStamgegevens() {
 	
 } # fnStamgegevens
 
-function fnEigenlijstenmuteren() {
+function eigenlijstenmuteren() {
 	global $dtfmt;
 	
 	if (isset($_GET['tp'])) {
@@ -513,6 +513,7 @@ function fnEigenlijstenmuteren() {
 	$i_el = new cls_Eigen_lijst("", $elid);
 	$i_ond = new cls_Onderdeel();
 	$i_el->controle($elid, 1);
+	$i_mh = new cls_Mailing_hist();
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		
@@ -566,24 +567,22 @@ function fnEigenlijstenmuteren() {
 		$i_el->delete($elid);
 		printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $tp);
 		
-	} elseif (isset($_GET['paramActie']) and $_GET['paramActie'] == 2 and $elid > 0) {
+	} elseif (isset($_GET['paramActie']) and $_GET['paramActie'] == 2 and $i_el->elid > 0) {
 		
-		$row = $i_el->record();
-		
-		printf("<form method='post' id='eigenlijstmuteren' action='%s?tp=%s&paramID=%d'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $elid);
-		printf("<label class='form-label'>Naam eigen lijst</label><input type='text' name='naam' class='w50' value='%s' maxlength=50>\n", $row->Naam);
-		printf("<label for='uitleg'>Uitleg</label><textarea id='uitleg' name='uitleg' placeholder='Uitleg over de eigen lijst'>%s</textarea>\n", $row->Uitleg);
+		printf("<form method='post' id='eigenlijstmuteren' action='%s?tp=%s&paramID=%d'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $i_el->elid);
+		printf("<label class='form-label'>Naam eigen lijst</label><input type='text' name='naam' class='w50' value='%s' maxlength=50>\n", $i_el->naam);
+		printf("<label for='uitleg'>Uitleg</label><textarea id='uitleg' name='uitleg' placeholder='Uitleg over de eigen lijst'>%s</textarea>\n", $i_el->uitleg);
 			
 		echo("<label for='mysql'>MySQL code</label>\n");
-		printf("<textarea id='mysql' name='mysql' title='MySQL code' placeholder='MySQL code'>%s</textarea>\n", $row->MySQL);
+		printf("<textarea id='mysql' name='mysql' title='MySQL code' placeholder='MySQL code'>%s</textarea>\n", $i_el->mysql);
 		echo("<p>Parameters kunnen worden gebruikt. Een parameter start met '@P', gevolgd door 0 t/m 9. De nummering moet met 0 starten en een ondoorbroken reeks zijn.</p>\n");
 		
-		printf("<label class='form-label'>Eigen script</label><p>%s/maatwerk/</p><input type='text' name='EigenScript' class='w30' value='%s' maxlength=30>\n", BASISURL, $row->EigenScript);
-		printf("<label class='form-label'>Tonen in tabblad</label><input type='text' name='tabpage' class='w75' value='%s' maxlength=75>\n", $row->Tabpage);
+		printf("<label class='form-label'>Eigen script</label><p>%s/maatwerk/</p><input type='text' name='EigenScript' class='w30' value='%s' maxlength=30>\n", BASISURL, $i_el->eigenscript);
+		printf("<label class='form-label'>Tonen in tabblad</label><input type='text' name='tabpage' class='w75' value='%s' maxlength=75>\n", $i_el->tabpage);
 		printf("<label class='form-label'>Groep voor melding op voorblad</label><select name='groepmelding' class='form-select form-select-sm'><option value=0>Geen</option>\n%s</select>\n", $i_ond->htmloptions($i_el->groepmelding));
 		if ($i_el->aantal_params > 0) {
-			printf("<label class='form-label'>Waarde parameter(s)</label><input type='text' name='waarde_params' class='w100' value=\"%s\" maxlength=100>", str_replace("\"", "'", $row->Default_value_params));
-			if (count(explode(";", $row->Default_value_params)) < $i_el->aantal_params) {
+			printf("<label class='form-label'>Waarde parameter(s)</label><input type='text' name='waarde_params' class='w100' value=\"%s\" maxlength=100>", $i_el->waarde_params);
+			if (count(explode(";", $i_el->waarde_params)) < $i_el->aantal_params) {
 				printf("<p>Te weinig parameters, %d nodig, gescheiden door een ;).</p>", $i_el->aantal_params);
 			} elseif ($i_el->aantal_params > 1) {
 				echo("<p>scheiden met een ;)</p>");
@@ -593,28 +592,36 @@ function fnEigenlijstenmuteren() {
 		$i_el->update($elid, "Aantal_params", $i_el->aantal_params);
 		echo("<label class='form-label'>Beschikbare variabelen</label><p>[%LIDNAAM%], [%TELEFOON%], [%EMAIL%], [%LEEFTIJD%]</p>");
 		if (strlen($i_el->sqlerror) == 0) {
-			printf("<label class='form-label'>Aantal rijen</label><p>%d</p>\n", $row->AantalRecords);
-			printf("<label class='form-label'>Aantal kolommen</label><p>%d</p>\n", $row->AantalKolommen);
+			printf("<label class='form-label'>Aantal rijen</label><p>%d</p>\n", $i_el->aantalrijen);
+			printf("<label class='form-label'>Aantal kolommen</label><p>%d</p>\n", $i_el->aantalkolommen);
 		} else {
 			$i_el->mess = sprintf("In Eigen_lijst %d is de MySQL-code niet correct. Foutmelding: %s", $elid, $i_el->sqlerror);
 			printf("<p>%s</p>\n", $i_el->mess);
 			$i_el->Log($elid);
 		}
 		$dtfmt->setPattern(DTLONGSEC);
-		printf("<label class='form-label'>Laatste controle</label><p>%s</p>\n", $dtfmt->format(strtotime($row->LaatsteControle)));
+		
+		printf("<label class='form-label'>Laatste controle</label><p>%s</p>\n", $dtfmt->format(strtotime($i_el->laatstecontrole)));
+		printf("<label class='form-label'>Ingevoerd op</label><p>%s</p>\n", $i_el->ingevoerdtekst());
+		
+		$i_mh->where = sprintf("Xtra_Char='NOTIF' AND Xtra_Num=%d", $i_el->elid);
+		$lm = $i_mh->max("send_on");
+		if (strlen($lm) >= 10) {
+			printf("<label class='form-label'>Laatste notificatie-mail</label><p>%s</p>\n", $dtfmt->format(strtotime($lm)));
+		}
 		
 		echo("<div id='opdrachtknoppen'>\n");
 		printf("<button type='submit' class='%s' name='Bewaren'>%s Bewaren</button>\n", CLASSBUTTON, ICONBEWAAR);
 		printf("<button type='submit' class='%s' name='BewarenSluiten'>%s Bewaren & Sluiten</button>\n", CLASSBUTTON, ICONSLUIT);
-		if ($row->AantalRecords > 0 and $row->AantalKolommen > 0) {
+		if ($i_el->aantalrijen > 0 and $i_el->aantalkolommen > 0) {
 			printf("<button type='button' class='%s' onClick=\"$('#resultaatlijst').toggle();\">%s Toon/verberg resultaat</button>\n", CLASSBUTTON, ICONLIJST);
 		}
 		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 		echo("</form>\n");
 
-		if ($row->AantalKolommen > 0) {
+		if ($i_el->aantalkolommen > 0) {
 			echo("<div id='resultaatlijst'>\n");
-			$rows = $i_el->rowset($row->RecordID, $row->Default_value_params);
+			$rows = $i_el->rowset($i_el->elid, $i_el->waarde_params);
 			if ($rows !== false) {
 				$id = str_replace(" ", "_", strtolower($i_el->elnaam));
 				echo(fnDisplayTable($rows, null, "", 0, "", $id));
@@ -651,7 +658,9 @@ function fnEigenlijstenmuteren() {
 		echo("</form>\n");
 	}
 	
-}  # fnEigenlijstenmuteren
+	$i_mh = null;
+	
+}  # eigenlijstenmuteren
 
 function downloadwijzigingen() {
 	$copytext = "";

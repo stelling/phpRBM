@@ -241,7 +241,7 @@ function fnRekeningMuteren($p_rkid=-1) {
 			}
 			echo("<div id='rekeningregelsmuteren'>\n");
 			printf("<table id='rekregels' class='%s'>\n", TABLECLASSES);
-			echo("<tr><th>#</th><th>Kostenplaats</th><th>Lid</th><th>Omschrijving</th><th>Bedrag in &euro;</th><th>&nbsp;</th></tr>\n");
+			echo("<tr><th>Regel</th><th>Kostenplaats</th><th>Lid</th><th>Omschrijving</th><th>Bedrag in &euro;</th><th>&nbsp;</th></tr>\n");
 			foreach($i_rr->perrekening($reknr) as $rrrow) {
 				echo("<tr>\n");
 				printf("<td><input type='number' id='Regelnr_%d' class='num2' step=1 value=%d min=1></td>\n", $rrrow->RecordID, $rrrow->Regelnr);
@@ -253,13 +253,13 @@ function fnRekeningMuteren($p_rkid=-1) {
 				printf("<td id='Naam_%d'>%s</td>\n", $rrrow->RecordID, $rrrow->NaamLid);
 				printf("<td><input type='text' id='OMSCHRIJV_%d' class='w70' value=\"%s\" maxlength=70></td>\n", $rrrow->RecordID, $rrrow->OMSCHRIJV);
 				printf("<td><input type='text' id='Bedrag_%d' value='%s' class='d8'></td>\n", $rrrow->RecordID, number_format($rrrow->Bedrag, 2, ",", ""));
-				printf("<td id='Delete_%1\$d'><i class='bi bi-trash' onClick='verw_rekeningregel(%1\$d);'></i></td>", $rrrow->RecordID);
+				printf("<td id='Delete_%1\$d' class='trash'><i class='bi bi-trash' onClick='verw_rekeningregel(%1\$d);'></i></td>", $rrrow->RecordID);
 				echo("</tr>\n");
 			}
 			echo("</table>\n");
 			$i_lid->per = $i_rk->datum;
 			$i_lid->where = sprintf("L.Postcode='%s' AND L.Adres='%s'", $i_rk->postcode, $i_rk->adres);
-			foreach ($i_lid->ledenlijst(1) as $lrow) {
+			foreach ($i_lid->ledenlijst(5) as $lrow) {
 				$i_rr->where = sprintf("RR.Rekening=%d AND RR.Lid=%d", $i_rk->rkid, $lrow->RecordID);
 				if ($i_rr->toevoegenstandaardregels($i_rk->rkid, $lrow->RecordID, 0) == 0) {
 					printf("<button type='submit' class='%s' name='NieuweRegel' value='%d'>%s Regel %s</button>\n", CLASSBUTTON, $lrow->RecordID, ICONTOEVOEGEN, $lrow->Roepnaam);

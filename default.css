@@ -55,6 +55,10 @@ i {
 	background-color: inherit;
 }
 
+label.btn {
+	clear: none;
+}
+
 /* Einde Bootstrap */
 
 a, a:visited {
@@ -262,7 +266,7 @@ header h1 {
 #filter input[type='text'], #filter input[type='date'] {
 	clear: none;
 	float: left;
-	margin-left: 3px;
+	margin-left: 0;
 	margin-right: 6px;
 	margin-top: 2px;
 	margin-bottom: 2px;
@@ -271,18 +275,16 @@ header h1 {
 }
 
 #filter input[type='text'] {
-	width: 175px;
+	width: 185px;
 }
 
 #filter select {
 	margin-bottom: 2px;
-}
-
-#filter select {
 	clear: none;
 	float: left;
 	margin-left: 3px;
 	margin-right: 10px;
+	width: 185px;
 }
 
 #filter span {
@@ -301,7 +303,8 @@ header h1 {
 
 #filter .form-check-input {
 	margin-left: 0;
-	margin-top: 6px;
+	margin-right: 4px;
+	margin-top: 4px;
 }
 
 #filter p.aantrecords {
@@ -686,6 +689,10 @@ td.details, td.muteren, td.detailregels, td.leden, td.sendmail, td.unlock {
 	text-align: center;
 }
 
+td.trash {
+	text-align: center;
+}
+
 table#deelnemersevenementmuteren {
 	clear: left;
 	width: 100%;
@@ -694,6 +701,10 @@ table#deelnemersevenementmuteren {
 
 .beheerwijzigingen a, #deelnemersevenementmuteren a, #deelnemersevenementmuteren a, #lijstoutbox a {
   text-decoration: none;
+}
+
+td.inagenda {
+	text-align: center;
 }
 
 #overzichtlid {
@@ -822,7 +833,7 @@ table#deelnemersevenementmuteren {
 	margin-right: 4px;
 }
 
-#inschrijvenevenementen img, #evenementenperlid img {
+#inschrijvenevenementen img, .inagenda img {
 	height: 40px;
 	margin-top: 0;
 	margin-bottom: 0;
@@ -980,22 +991,14 @@ textarea#sportlinkdata {
 	padding-right: 3px;
 }
 
-#toestemmingenmuteren label {
-	width: 330px;
+#toestemmingenmuteren .form-check-label {
+	width: 400px;
 	clear: none;
-	height: auto;
 	text-align: left;
 }
 
 #toestemmingenmuteren input {
 	clear: left;
-	margin-top: 10px;
-}
-
-#toestemmingenmuteren p {
-	float: left;
-	clear: both;
-	margin-top: 8px;
 }
 
 table#afdelingskalendermuteren {
@@ -1839,6 +1842,11 @@ td.boolean, td.checkbox {
 	text-align: center;
 }
 
+td > input {
+	margin: auto;
+	float: none;
+}
+
 tr.gewijzigd, td.gewijzigd, li.gewijzigd {
 	font-style: italic;
 }
@@ -2092,10 +2100,11 @@ p.functiekaderlid, p.mailkaderlid {
 
 .ed_status_N {
 	text-decoration: line-through;
+	color: grey;
 }
 
 .ed_status_X {
-	color: red;
+	color: grey;
 }
 
 #rekeningmuteren input[type='text'] {
@@ -2157,34 +2166,28 @@ p#laatsteemail {
 }
 
 #rekeningregelsmuteren {
-	overflow: visible;
-	clear: left;
-	min-height: 340px;
-	margin-top: 10px;
+	float: none;
+	height: auto;
+	width: 100%;
+	min-height: 320px;
+	margin-top: 6px;
+	margin-bottom: 6px;
 }
 
-#rekeningregelsmuteren input {
-	margin-top: 2px;
-	margin-bottom: 2px;
-}
-
-#rekeningregelsmuteren button {
-	float: left;
-}
-
-#rekeningregels {
-	margin-bottom: 15px;
+#rekeningregelsmuteren select {
+	float: none;
+	clear: none;
+	display: inline;
 }
 
 table#rekeningregels {
 	width: 100%;
 	float: left;
-	clear: left;
+	clear: both;
 }
 
 #rekeningregels table, #rekeningregels th, #rekeningregels td {
 	border-width: 1px;
-	border-style: none;
 	border-collapse: collapse;
 }
 
@@ -2439,8 +2442,6 @@ input#db_folderbackup, input#naamwebsite, input#naamvereniging, input#urlverenig
 #mailing_instellingen h2 {
 	clear: both;
 }
-
-
 
 .invoerblok {
 	float: left;

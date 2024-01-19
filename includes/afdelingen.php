@@ -57,7 +57,7 @@ function afdelingslijst($afdid) {
 	
 	$i_dp = new cls_Diploma();
 	$i_lo = new cls_Lidond($afdid);
-	$afdnm = $i_lo->ondnaam;
+	$afdnm = $i_lo->i_ond->naam;
 	$i_lo->auto_einde($afdid, 480);
 	
 	$diplfilter = $_POST['bezitdiploma'] ?? -1;
@@ -76,7 +76,7 @@ function afdelingslijst($afdid) {
 	
 	$kols[6]['sortcolumn'] = "LO.Opgezegd";
 	
-	$rows = $i_lo->lijst($afdid, 1, fnOrderBy($kols), "", $xf);
+	$rows = $i_lo->lijst($afdid, 2, fnOrderBy($kols), "", $xf);
 
 	$f = sprintf("GR.OnderdeelID=%d", $afdid);
 	if ((new cls_Groep())->aantal($f) == 0) {
@@ -91,7 +91,7 @@ function afdelingslijst($afdid) {
 		$kols[6] = ['headertext' => "Tot en met", 'columnname' => "Opgezegd", 'sortcolumn' => "LO.Opgezegd"];
 	}
 	
-	if ($i_lo->organisatie == 1) {
+	if ($i_lo->i_ond->organisatie == 1) {
 		$kols[7] = ['headertext' => "Sportlink ID", 'columnname' => "SportlinkID"];
 	}
 	
@@ -207,11 +207,10 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 	global $currenttab;
 	
 	$i_lo = new cls_Lidond($afdid);
-	$i_ond = new cls_Onderdeel($afdid);
 	$i_ak = new cls_afdelingskalender($afdid);
 	$i_gr = new cls_Groep($afdid);
 	$i_act = new cls_Activiteit();
-	$i_dp = new cls_Diploma();
+//	$i_dp = new cls_Diploma();
 	$i_ld = new cls_Liddipl();
 	$i_aanw = new cls_Aanwezigheid();
 	$i_eo = new cls_Examenonderdeel();
@@ -227,7 +226,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 	
 	$filter = sprintf("O.RecordID=%d", $afdid);
 	
-	$afdnaam = $i_ond->naam($afdid);
+	$afdnaam = $i_lo->i_ond->naam($afdid);
 	printf("<div id='%s'>\n", strtolower(str_replace(" ", "", $afdnaam)));
 	
 	if ($p_muteren == 0) {
@@ -363,7 +362,6 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 		
 		foreach ($grrows as $grrow) {
 			$i_gr->vulvars($afdid, $grrow->RecordID);
-			$i_dp->vulvars($i_gr->diplomaid);
 			if ($exfilter > 0) {
 				$i_lo->where = sprintf("LO.Lid IN (SELECT LD.Lid FROM %sLiddipl AS LD WHERE LD.Examen=%d) AND LO.GroepID=%d", TABLE_PREFIX, $exfilter, $grrow->RecordID);
 				$i_ld->controle($exfilter);
@@ -390,7 +388,6 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 				$lovg = "0";
 				foreach ($lorows as $row) {
 					$i_lo->vulvars($row->RecordID);
-//					$i_dp->vulvars($row->DiplomaID);
 					
 					$cl = "";
 					$t = "";
@@ -404,7 +401,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 					if (strlen($row->FunctAfk) > 0) {
 						$nm .= " (" . $row->FunctAfk . ")";
 					}
-					printf("<tr><td%s%s>%s (%s)</td><td><select id='GroepID_%d' class='form-select form-select-sm'>%s</select></td></tr>\n", $cl, $t, $nm, $row->Leeftijd, $row->RecordID, $i_gr->htmloptions($row->GroepID, $afdid));
+					printf("<tr><td%s%s>%s (%s)</td><td><select id='GroepID_%d' class='form-select form-select-sm'>\n<option value=0>Geen</option>\n%s</select></td></tr>\n", $cl, $t, $nm, $row->Leeftijd, $row->RecordID, $i_gr->htmloptions($row->GroepID, $afdid));
 					if ($i_lo->suggestievolgendegroep == 1) {
 						$avg++;
 						$lovg .= ", " . $row->RecordID;
@@ -413,18 +410,13 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 				echo("</table>\n");
 				if ($avg > 0) {
 					$vg = 0; // Volgende groep
-					if ($i_dp->dpvolgende > 0) {
-						$f = sprintf("GR.OnderdeelID=%d AND GR.DiplomaID=%d", $afdid, $i_dp->dpvolgende);
+					if ($i_gr->i_dp->dpvolgende > 0) {
+						$f = sprintf("GR.OnderdeelID=%d AND GR.DiplomaID=%d", $afdid, $i_gr->i_dp->dpvolgende);
 						$vg = $i_gr->max("RecordID", $f);
 					}
 					
-					$f = sprintf("VoorgangerID=%d", $i_dp->dpid);
-					$vdps = "-1";
-					foreach ($i_dp->basislijst($f) as $dprow) {
-						$vdps .= "," . $dprow->RecordID;
-					}
-					$f = sprintf("GR.OnderdeelID=%d AND GR.DiplomaID IN (%s)", $afdid, $vdps);
-					foreach ($i_gr->basislijst($f) as $vgrow) {
+					$i_gr->where = sprintf("GR.OnderdeelID=%d AND GR.DiplomaID IN (-1, (SELECT GROUP_CONCAT(DP.RecordID) FROM %sDiploma AS DP WHERE DP.VoorgangerID=%d))", $afdid, TABLE_PREFIX, $i_gr->dpid);
+					foreach ($i_gr->basislijst() as $vgrow) {
 						printf("<button type='submit' class='volgendegroep %s' name='nwe_groep' value='%d-%s'>%s leden naar groep %s</button>\n", CLASSBUTTON, $vgrow->RecordID, $lovg, $avg, $vgrow->Omschrijving);
 					}
 					
@@ -592,9 +584,9 @@ function fnPresentieMuteren($p_onderdeelid){
 	
 	if ($akid > 0) {
 		$i_ak->vulvars($akid);
-		$vanafaanwezigheid = new datetime($i_ak->akdatum);
+		$vanafaanwezigheid = new datetime($i_ak->datum);
 		$vanafaanwezigheid->modify("-3 month");
-		$i_seiz->zethuidige($i_ak->akdatum);
+		$i_seiz->zethuidige($i_ak->datum);
 		if ($i_seiz->begindatum > $vanafaanwezigheid->format("Y-m-d")) {
 			$vanafaanwezigheid = new datetime($i_seiz->begindatum);
 		}
@@ -607,15 +599,15 @@ function fnPresentieMuteren($p_onderdeelid){
 		}
 		
 		printf("<table id='presentiemuteren' class='%s table-sm'>\n", TABLECLASSES);
-		printf("<caption>Presentie %s</caption>\n", $dtfmt->format(strtotime($i_ak->akdatum)));
+		printf("<caption>Presentie %s</caption>\n", $dtfmt->format(strtotime($i_ak->datum)));
 
 		$gh = "";
 		$grid = -1;
 		echo("<thead>\n");
-		printf("<tr><th>Naam</th><th>Groep/Functie</th><th class='aanwezig' title='Aanwezigheid vanaf %s toten met %s'>Aanwezig</th><th>Status presentie</th><th class='opmerking'>Opmerking</th></tr>\n", $vanafaanwezigheid->format("d/m/Y"), date("d/m/Y", strtotime($i_ak->akdatum)));
+		printf("<tr><th>Naam</th><th>Groep/Functie</th><th class='aanwezig' title='Aanwezigheid vanaf %s toten met %s'>Aanwezig</th><th>Status presentie</th><th class='opmerking'>Opmerking</th></tr>\n", $vanafaanwezigheid->format("d/m/Y"), date("d/m/Y", strtotime($i_ak->datum)));
 		echo("</thead>\n");
 		
-		foreach ($i_lo->lijst($p_onderdeelid, "", "F.Sorteringsvolgorde, F.Omschrijv, GR.Volgnummer, GR.Kode", $i_ak->akdatum) as $row) {
+		foreach ($i_lo->lijst($p_onderdeelid, "", "F.Sorteringsvolgorde, F.Omschrijv, GR.Volgnummer, GR.Kode, LO.GroepID", $i_ak->datum) as $row) {
 			$i_aanw->vulvars($row->RecordID, $akid);
 			if (strlen($i_aanw->status) > 0) {
 				$cl = sprintf("class='presstat_%s'", strtolower($i_aanw->status));
@@ -627,14 +619,18 @@ function fnPresentieMuteren($p_onderdeelid){
 				if (strlen($row->FunctieOms) > 0) {
 					$gr = sprintf("<td>%s</td>", $row->FunctieOms);
 				} else {
-					$gr = sprintf("<td>%s</td>", $row->GrNaam);
+					$gr = sprintf("<td>%s</td>", $row->Groep);
 				}
 			}
 			printf("<tr><td %s>%s</td>%s\n", $cl, $row->NaamLid, $gr);
 			
-			$al = $i_aanw->beschikbarelessen($row->RecordID, $vanafaanwezigheid->format("Y-m-d"), $i_ak->akdatum);
-			$awrow = $i_aanw->perlidperperiode($row->RecordID, $vanafaanwezigheid->format("Y-m-d"), $i_ak->akdatum);
-			$awp = (($al-$awrow->aantAfwezig)/$al)*100;
+			$al = $i_aanw->beschikbarelessen($row->RecordID, $vanafaanwezigheid->format("Y-m-d"), $i_ak->datum);
+			$awrow = $i_aanw->perlidperperiode($row->RecordID, $vanafaanwezigheid->format("Y-m-d"), $i_ak->datum);
+			if ($al <= 0) {
+				$awp = 100;
+			} else {
+				$awp = (($al-$awrow->aantAfwezig)/$al)*100;
+			}
 			$xc = "";
 			if ($row->Aanwezigheidsnorm > 0 and $row->Aanwezigheidsnorm > $awp) {
 				$xc = " attentie";
@@ -742,7 +738,7 @@ function fnPresentieoverzicht($p_ondid) {
 	echo("</form>\n");
 	
 	printf("<table class='%s'>\n", TABLECLASSES);
-	printf("<caption> Presentieoverzicht | %s</caption>\n", $i_lo->ondnaam);
+	printf("<caption> Presentieoverzicht | %s</caption>\n", $i_lo->i_ond->naam);
 	printf("<th>Naam</th><th>Groep</th><th># Act.</th>%s<th># Afwezig</th><th>%% Aanwezig</th><th>Ziek</th><th>Met reden</th><th>Zonder reden</th>%s</tr>\n", $kop_aangemeld, $kop_telaat);
 	$lorows = $i_lo->lijst($p_ondid, "", "");
 	foreach ($lorows as $lorow) {
@@ -762,7 +758,7 @@ function fnPresentieoverzicht($p_ondid) {
 				$toon = true;
 			}
 			if ($toon) {
-				$tab = sprintf("%s/Overzicht lid/Presentie", $i_lo->ondnaam);
+				$tab = sprintf("%s/Overzicht lid/Presentie", $i_lo->i_ond->naam);
 				if (toegang($tab, 0, 0)) {
 					$lnklid = sprintf("%s?tp=%s&lidid=%d", $_SERVER['PHP_SELF'], $tab, $lorow->Lid);
 					$kollid = sprintf("<a href='%s'>%s</a>", $lnklid, $lorow->NaamLid);
@@ -847,7 +843,7 @@ function fnPresentiePerSeizoen($p_ondid) {
 	echo("</form>\n");
 	
 	printf("<table class='%s'>\n", TABLECLASSES);
-	printf("<caption> Presentieoverzicht per seizoen | %s</caption>\n", $i_lo->ondnaam);
+	printf("<caption> Presentieoverzicht per seizoen | %s</caption>\n", $i_lo->i_ond->naam);
 	foreach ($seizrows as $seizrow) {
 		if ($seizrow->Einddatum >= date("Y-m-d")) {
 			$einddatum = $i_ak->max("Datum", "AK.Datum <= CURDATE() AND AK.Activiteit=1");
@@ -886,7 +882,7 @@ function fnPresentiePerSeizoen($p_ondid) {
 					$toon = true;
 				}
 				if ($toon) {
-					$tab = sprintf("%s/Overzicht lid/Presentie", $i_lo->ondnaam);
+					$tab = sprintf("%s/Overzicht lid/Presentie", $i_lo->i_ond->naam);
 					if (toegang($tab, 0, 0)) {
 						$lnklid = sprintf("%s?tp=%s&lidid=%d", $_SERVER['PHP_SELF'], $tab, $lorow->Lid);
 						$kollid = sprintf("<a href='%s'>%s</a>", $lnklid, $lorow->NaamLid);
@@ -1237,7 +1233,9 @@ function fnOntvangersAfdelingsmailing($p_afdid, $p_uitvoeren=0, $p_mailing=-1) {
 				$aantafwezig = $i_aw->perlidperperiode($lorow->RecordID, $vanafdatum, date("Y-m-d"))->aantAfwezig;
 				$aantlessen = $i_aw->beschikbarelessen($lorow->RecordID, $vanafdatum);
 				
-				if (($aantafwezig / $aantlessen) <= ((100 - $lorow->Aanwezigheidsnorm)/100)) {
+				if ($aantlessen == 0) {
+					$toev = false;
+				} elseif (($aantafwezig / $aantlessen) <= ((100 - $lorow->Aanwezigheidsnorm)/100)) {
 					$toev = false;
 				}
 				
@@ -1295,7 +1293,7 @@ function aftekenlijst($p_examen=0, $p_diploma=0) {
 		
 		$afdid = $i_dp->afdelingsspecifiek;
 		$i_ak->where = sprintf("AK.OnderdeelID=%d AND AK.Datum >= CURDATE() AND AK.Activiteit=1", $afdid);
-		$regel = sprintf("<tr><th colspan=2>%s</th>", $i_dp->dpnaam);
+		$regel = sprintf("<tr><th colspan=2>%s</th>", $i_dp->naam);
 		
 		foreach ($i_ak->basislijst("", "", 1, 12) as $row) {
 			$regel .= sprintf("<th class='rotate'><div>%s</div></th>", $dtfmt->format(strtotime($row->Datum)));
@@ -1322,7 +1320,7 @@ function aftekenlijst($p_examen=0, $p_diploma=0) {
 			$t = "";
 		}
 	
-		$regel = sprintf("<tr><th colspan=2>%s%s</th>", $t, $i_dp->dpnaam);
+		$regel = sprintf("<tr><th colspan=2>%s%s</th>", $t, $i_dp->naam);
 		if (count($rows) > 0) {
 			foreach ($rows as $row) {
 				$regel .= sprintf("<th class='rotate'><div>%s</div></th>", $row->AVGnaam);
