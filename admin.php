@@ -623,7 +623,7 @@ function eigenlijstenmuteren() {
 			echo("<div id='resultaatlijst'>\n");
 			$rows = $i_el->rowset($i_el->elid, $i_el->waarde_params);
 			if ($rows !== false) {
-				$id = str_replace(" ", "_", strtolower($i_el->elnaam));
+				$id = str_replace(" ", "_", strtolower($i_el->naam));
 				echo(fnDisplayTable($rows, null, "", 0, "", $id));
 			}
 			echo("</div>  <!-- Einde resultaatlijst -->\n");			
@@ -899,7 +899,7 @@ function logboek() {
 	global $TypeActiviteit;
 	
 	$i_lb = new cls_logboek();
-	
+
 	$kols[0]['sortcolumn'] = "RecordID";
 	$kols[1]['sortcolumn'] = "Omschrijving";
 	$kols[3]['sortcolumn'] = "Type";
@@ -969,8 +969,8 @@ function logboek() {
 		}
 		$va = $a;
 	}
-	printf("<label class='form-label'>Aantal rijen</label><select name='aantalrijen' class='form-select form-select-sm' OnChange='this.form.submit();'>%s</select>\n", $options);
-	printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' name='ingelogdeanderen'%s value=1 onClick='this.form.submit();'><p>Alleen ingelogde</p></label>\n", checked($_POST['ingelogdeanderen']));
+	printf("<span><label class='form-label'>Aantal rijen</label><select name='aantalrijen' class='form-select form-select-sm' OnChange='this.form.submit();'>%s</select></span>\n", $options);
+	printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' name='ingelogdeanderen'%s value=1 onClick='this.form.submit();'>Alleen ingelogde</label>\n", checked($_POST['ingelogdeanderen']));
 	
 	if (count($rows) > 1) {
 		printf("<p class='aantrecords'>%s van %s rijen</p>\n", number_format(count($rows), 0, ",", "."), number_format($i_lb->aantal(), 0, ",", "."));
