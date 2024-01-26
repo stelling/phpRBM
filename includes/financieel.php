@@ -11,9 +11,6 @@ function fnRekeningen() {
 	
 	if ($op == "preview_rek") {
 		echo(RekeningDetail($reknr, 1));
-	} elseif ($op == "send_rek") {
-		fnVerstuurRekening($reknr, 1);
-		fnRekeningMuteren($reknr);
 	} elseif ($currenttab2 == "Muteren") {
 		fnRekeningMuteren($reknr);
 	} elseif ($currenttab2 == "Beheer") {
@@ -163,6 +160,8 @@ function fnRekeningMuteren($p_rkid=-1) {
 			$i_rr->add($reknr, $_POST['NieuweRegelAnderLid']);
 		} elseif (isset($_POST['NieuweRegel']) and $_POST['NieuweRegel'] >= 0) {
 			$i_rr->add($reknr, $_POST['NieuweRegel']);
+		} elseif (isset($_POST['verstuurrekening']) and $_POST['verstuurrekening'] > 0) {
+			fnVerstuurRekening($_POST['verstuurrekening'], 1);
 		}
 	}
 	
@@ -281,7 +280,6 @@ function fnRekeningMuteren($p_rkid=-1) {
 		echo("<label for='OpmerkingIntern'>Interne opmerking</label>");
 		echo("</div>\n");
 		
-		echo("</form>\n");
 		
 		echo("<div id='opdrachtknoppen'>\n");
 		printf("<button type='button' class='%s' name='Sluiten' onClick=\"location.href='%s?tp=%s/Beheer'\">%s Sluiten</button>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], $currenttab, ICONSLUIT);
@@ -301,10 +299,11 @@ function fnRekeningMuteren($p_rkid=-1) {
 		$i_rr->where = sprintf("RR.Rekening=%d", $reknr);
 		if ($i_rr->aantal() > 0) {
 			printf("<button type='button' class='%s' onClick=\"location.href='%s?tp=%s&op=preview_rek&p_reknr=%d'\">%s Bekijk rekening</button>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], $currenttab, $reknr, ICONVOORBEELD);
-			printf("<button type='button' class='%s' onClick=\"location.href='%s?tp=%s&op=send_rek&p_reknr=%d'\">%s Verstuur rekening</button>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], $currenttab, $reknr, ICONVERSTUUR);
+			printf("<button type='submit' class='%s' name='verstuurrekening' value=%d>%s Verstuur rekening</button>\n", CLASSBUTTON, $reknr, ICONVERSTUUR);
 		}
 		
 		echo("</div> <!-- Einde opdrachtknoppen -->\n");
+		echo("</form>\n");
 		
 		echo("</div> <!-- einde rekeningmuteren  -->\n");
 
