@@ -1181,7 +1181,7 @@ class Mailing {
 			$pk = "RecordID";
 		} else {
 			$f = sprintf("L.RecordID=%d", $p_lidid);
-			$rcpts = (new cls_Lid())->ledenlijst(1, 0, "", $f);
+			$rcpts = (new cls_Lid())->ledenlijst(0, 0, "", $f);
 			$pk = "RecordID";
 		}
 		
