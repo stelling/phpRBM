@@ -114,17 +114,23 @@ if (!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) {
 
 $currenttab2 = "";
 $currenttab3 = "";
-if (isset($_GET['tp']) and mb_substr_count($_GET['tp'], "/") == 2) {
-	$currenttab = explode("/", $_GET['tp'])[0];
-	$currenttab2 = explode("/", $_GET['tp'])[1];
-	$currenttab3 = explode("/", $_GET['tp'])[2];
+$tp = $_GET['tp'] ?? "";
+$tp = str_replace("'", "", trim($tp));
+$tp = str_replace("\"", "", $tp);
+$tp = str_replace("$", "", $tp);
+$tp = str_replace("?", "", $tp);
+$tp = str_replace("&", "", $tp);
+if (mb_substr_count($tp, "/") == 2) {
+	$currenttab = explode("/", $tp)[0];
+	$currenttab2 = explode("/", $tp)[1];
+	$currenttab3 = explode("/", $tp)[2];
 	
-} elseif (isset($_GET['tp']) and mb_substr_count($_GET['tp'], "/") == 1) {
-	$currenttab = explode("/", $_GET['tp'])[0];
-	$currenttab2 = explode("/", $_GET['tp'])[1];
+} elseif (mb_substr_count($tp, "/") == 1) {
+	$currenttab = explode("/", $tp)[0];
+	$currenttab2 = explode("/", $tp)[1];
 	
-} elseif (isset($_GET['tp']) and strlen($_GET['tp']) > 1) {
-	$currenttab = $_GET['tp'];
+} elseif (strlen($tp) > 1) {
+	$currenttab = $tp;
 	
 } else {
 	if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
@@ -243,7 +249,7 @@ function HTMLheader($breed=0) {
 		printf("<title>%s</title>\n", $title);
 		echo("<link rel='stylesheet' href='//code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css'>\n");
 		
-		echo("<link href='https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css' rel='stylesheet'>\n");
+		echo("<link href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css' rel='stylesheet'>\n");
 		echo("<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.css'>\n");
 		echo("<script src='https://code.jquery.com/jquery-3.7.1.js'></script>\n");
 		if ($currenttab == "Vereniging" or $currenttab == "Eigen gegevens"  or $currenttab == "Ledenlijst" or $currenttab2 == "Overzicht lid") {
