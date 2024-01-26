@@ -534,7 +534,7 @@ function fnInloggen() {
 	echo("<p>Ben je je wachtwoord vergeten, dan kan je deze <a href='\?tp=Herstel+wachtwoord'>opnieuw instellen</a>.</p>\n");
 
 	echo("<div id='opdrachtknoppen'>\n");
-	printf("<button type='submit' class='%s' name='Inloggen'>%s Inloggen</button>\n", CLASSBUTTON, ICONLOGIN);
+	printf("<button type='submit' class='%s' name='Inloggen'>%s Inloggen</button>\n", CLASSBUTTON, ICONSUBMIT);
 	echo("</div> <!-- Einde opdrachtknoppen -->\n");
 
 	echo("</form>\n");
@@ -631,11 +631,10 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		printf("<p class='mededeling'>%s</p>", htmlentities($mess));
 		echo("<p><a href='/'>Klik hier om verder te gaan.</a></p>\n");
 	} else {
-		echo("<div id='herstellenwachtwoord'>\n");
-		printf("<form action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER['QUERY_STRING']);
+		printf("<form id='herstellenwachtwoord' action='%s?%s' method='post'>\n", $_SERVER["PHP_SELF"], $_SERVER['QUERY_STRING']);
 		echo("<h3>Herstellen wachtwoord</h3>
-		<label>E-mailadres</label><input type='email' name='email'>
-		<label>Lidnummer</label><input type='number' class='d8' min=0 name='lidnummer' value=0>\n");
+		<label class='form-label'>E-mailadres</label><input type='email' name='email'>
+		<label class='form-label'>Lidnummer</label><input type='number' class='d8' min=0 name='lidnummer' value=0>\n");
 		
 		printf("<label>Login</label><input type='text' name='login' class='w%d'>\n", $_SESSION['settings']['login_maxlengte']);
 		
@@ -644,10 +643,9 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		<p>Je lidnummer kan je <a href='index.php?tp=Opvragen+lidnr'>hier</a> opvragen.</p>
 		<p>Na het versturen van deze link is je oude wachtwoord niet meer geldig.</p>
 		<div id='opdrachtknoppen'>\n
-		<button type='submit'>%s Stuur herstellink</button>\n
+		<button class='%s' type='submit'>%s Stuur herstellink</button>\n
 		</div> <!-- Einde opdrachtknoppen -->\n
-		</form>
-		</div>  <!-- Einde herstellenwachtwoord -->", ICONSUBMIT);
+		</form>", CLASSBUTTON, ICONSUBMIT);
 	}
 	if (strlen($mess) > 0) {
 		(new cls_Logboek())->add($mess, 5, $lidid, 0, 0, 8);
@@ -711,7 +709,7 @@ function fnValidatieLogin($lidid, $key, $stap) {
 }  # fnValidatieLogin
 
 function fnLoginAanvragen($stap="") {
-	global $lididwebmasters, $lididtestusers;
+	global $lididwebmasters;
 	
 	$i_login = new cls_Login();
 	$login_verbodenkarakters = "@#$^&;*%éëèöôü'\"?!";
