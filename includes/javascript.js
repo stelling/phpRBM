@@ -4,7 +4,7 @@ function fnFilter(p_table, p_filtercontrol, p_skipkolom=-1) {
 	if (p_filtercontrol.value == undefined) {
 		filter = p_filtercontrol.toUpperCase();
 	} else {
-		filter = p_filtercontrol.value.toUpperCase();
+		filter = p_filtercontrol.value.toUpperCase().trim();
 	}
 	table = document.getElementById(p_table);
 	tr = table.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
