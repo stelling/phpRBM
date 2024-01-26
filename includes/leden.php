@@ -105,7 +105,7 @@ function fnLedenlijst() {
 			$$vn = intval($$vn);
 		}
 		
-		printf("<form method='post' id='filter' action='%s?%s'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
+		printf("<form method='post' id='filter' class='form-check form-switch' action='%s?%s'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
 		echo("<input type='text' name='tbTekstFilter' id='tbTekstFilter' placeholder='Tekstfilter' OnKeyUp=\"fnFilter('ledenlijst', this);\" title='Tekstfilter'>\n");
 
 		if ($currenttab2 == "Leden") {
@@ -118,9 +118,9 @@ function fnLedenlijst() {
 				$options .= "<option value=0 disabled>--- Eigen lijsten --</option>\n";
 				$options .= $i_el->htmloptions($_SESSION['val_groep'], 3);
 			}
-			printf("<select name='lbGroepFilter' class='form-select form-select-sm' onchange='this.form.submit();'>\n<option value=0>Filter op onderdeel</option>\n%s</select>\n", $options);
+			printf("<select id='lbgroepfilter' name='lbGroepFilter' class='form-select form-select-sm' title='Filter op onderdeel' onchange='this.form.submit();'>\n<option value=0>Filter op onderdeel</option>\n%s</select>\n", $options);
 		}
-		echo("<div class='form-check form-switch'>\n");
+//		echo("<div class='form-check form-switch'>\n");
 		if (in_array("adres", $arrCB)) {
 			printf("<label class='form-check-label'><input type='checkbox' class='form-check-input'  name='toonadres' title='Toon adres'%s onClick='this.form.submit();'>Adres</label>\n", checked($toonadres));
 		} else {
@@ -207,7 +207,7 @@ function fnLedenlijst() {
 		if (count($rows) > 1) {
 			printf("<p class='aantrecords'>%d %s</p>\n", count($rows), $currenttab2);
 		}
-		echo("</div>  <!-- Einde form-check form-switch -->\n");
+//		echo("</div>  <!-- Einde form-check form-switch -->\n");
 		echo("</form>\n");
 		
 		if (count($rows) > 0) {		
@@ -1567,7 +1567,7 @@ function algemeenlidmuteren($lidid) {
 	$wijzvelden[] = array('label' => "Voorletters", 'naam' => "Voorletter", 'lengte' => 10, 'nietverw' => true);
 	$wijzvelden[] = array('label' => "Tussenvoegsels", 'naam' => "Tussenv", 'lengte' => 7);
 	$wijzvelden[] = array('label' => "Achternaam", 'naam' => "Achternaam", 'lengte' => 30, 'nietverw' => true);
-	if ($currenttab != "Zelfservice") {
+	if ($currenttab != "Zelfservice" && $i_lid->geslacht == "M") {
 		$wijzvelden[] = array('label' => "Meisjesnaam", 'naam' => "Meisjesnm", 'lengte' => 25, 'uitleg' => 'Wordt niet in de achternaam getoond.');
 	}
 	$wijzvelden[] = array('label' => "Gender", 'naam' => "Geslacht", 'nietverw' => true);
@@ -1856,10 +1856,7 @@ function financieellidmuteren($lidid) {
 		}
 		printf("<label class='form-label'>Rekening betaald door</label><select class='form-select form-select-sm' id='RekeningBetaaldDoor'>%s</select>\n", $opt);
 	}
-	
-	printf("<label class='form-label'>Bezwaar machting incasso</label><input type='date' id='BezwaarMachtiging' value='%s'>\n", $i_lid->bezwaarmachtiging);
 	printf("<label class='form-label'>Machtiging incasso afgegeven</label><input type='checkbox' id='Machtiging afgegeven' class='form-check-input' value=1%s>\n", checked($i_lid->machtigingafgegeven));
-	
 	echo("</form>\n");
 	
 	printf("<script>
@@ -2447,7 +2444,7 @@ function lidmaatschapmuteren($lidid) {
 		}
 		
 		if ($row->Opgezegd > "1970-01-01" and $row->Opgezegd < date("Y-m-d")) {
-			printf("<td><button type='submit' class='%s btn-sm' name='verwijderlidmaatschap' value=%d title='Verwijder lidmaatschap'>%s</td>\n", CLASSBUTTON, $row->RecordID, ICONVERWIJDER);
+			printf("<td><button type='submit' name='verwijderlidmaatschap' value=%d title='Verwijder lidmaatschap'>%s</td>\n", $row->RecordID, ICONVERWIJDER);
 		} else {
 			echo("<td></td>\n");
 		}
