@@ -1011,8 +1011,7 @@ class cls_Lid extends cls_db_base {
 	public $lidvanaf = "";
 	public int $rekeningbetaalddoor = 0;
 	public string $bankrekening = "";
-	public string $bezwaarmachtiging = "";
-	public $machtigingafgegeven = 0;
+	public int $machtigingafgegeven = 0;
 	public string $opmerking = "";
 	
 	function __construct($p_lidid=-1, $p_per="") {
@@ -1093,12 +1092,7 @@ class cls_Lid extends cls_db_base {
 					
 					$this->rekeningbetaalddoor = $row->RekeningBetaaldDoor ?? 0;
 					$this->bankrekening = $row->Bankrekening ?? "";
-					$this->bezwaarmachtiging = $row->BezwaarMachtiging ?? "";
-					if (strlen($this->bezwaarmachtiging) == 10) {
-						$this->machtigingafgegeven = 0;
-					} else {
-						$this->machtigingafgegeven = $row->{'Machtiging afgegeven'};
-					}
+					$this->machtigingafgegeven = $row->{'Machtiging afgegeven'} ?? 0;
 					$this->opmerking = $row->Opmerking ?? "";
 					$this->ingevoerd = $row->Ingevoerd ?? "";
 					$this->gewijzigd = $row->Gewijzigd ?? "";
@@ -1867,11 +1861,8 @@ class cls_Lidmaatschap extends cls_db_base {
 			}
 		} elseif ($p_lidnr > 0) {
 			$this->lidnr = $p_lidnr;
-			$query = sprintf("SELECT LM.* FROM %s WHERE LM.Lidnr=%d;", $this->basefrom, $this->lidnr);
-			$lmrow = $this->execsql($query)->fetch();
-			if (isset($lmrow->RecordID)) {
-				$this->lmid = $lmrow->RecordID;
-			}
+			$query = sprintf("SELECT IFNULL(LM.RecordID, 0) FROM %s WHERE LM.Lidnr=%d;", $this->basefrom, $this->lidnr);
+			$this->lmid = $this->scalar($query);
 		}
 		
 		$this->lidnr = 0;
@@ -1880,6 +1871,7 @@ class cls_Lidmaatschap extends cls_db_base {
 			$query = sprintf("SELECT LM.* FROM %s WHERE LM.RecordID=%d;", $this->basefrom, $this->lmid);
 			$row = $this->execsql($query)->fetch();
 			if (isset($row->RecordID)) {
+				$this->lidid = $row->Lid ?? 0;
 				$this->lidnr = $row->Lidnr ?? 0;
 				$this->lidvanaf = $row->LIDDATUM ?? "";
 				if (strlen($row->Opgezegd) < 10) {
@@ -1906,7 +1898,7 @@ class cls_Lidmaatschap extends cls_db_base {
 	}  # cls_Lidmaatschap->vulvars
 	
 	public function lidid($p_lmid, $p_lidnr=0) {
-		$this->vulvars($p_lmid, 0, $p_lidnr);
+		$this->vulvars($p_lmid, -1, $p_lidnr);
 		return $this->lidid;
 	}
 	
@@ -2000,7 +1992,7 @@ class cls_Lidmaatschap extends cls_db_base {
 		}
 		
 		$nrid = $this->nieuwrecordid();
-		$query = sprintf("INSERT INTO %s (RecordID, Lid, Lidnr, LIDDATUM, Ingevoerd) VALUES (%d, %d, %d, CURDATE(), NOW());", $this->table, $nrid, $this->lidid, $lidnr);
+		$query = sprintf("INSERT INTO %s (RecordID, Lid, Lidnr, LIDDATUM, OpgezegdDoorVereniging, Ingevoerd) VALUES (%d, %d, %d, CURDATE(), 0, NOW());", $this->table, $nrid, $this->lidid, $lidnr);
 		if ($this->execsql($query) > 0) {
 			$this->mess = sprintf("Lidmaatschap %d met lidnummer %d is toegevoegd.", $nrid, $lidnr);	
 
@@ -10139,7 +10131,7 @@ class cls_Website_inhoud extends cls_db_base {
 class cls_Eigen_lijst extends cls_db_base {
 	public int $elid = 0;
 	public int $aantal_params = 0;
-	private string $waarde_params = "";
+	public string $waarde_params = "";
 	public string $sqlerror = "";
 	public string $naam = "";
 	public string $uitleg = "";
@@ -10774,7 +10766,7 @@ class cls_Inschrijving extends cls_db_base {
 		} elseif ($p_order === 3) {
 			// Verwerkte inschrijvingen
 			$ord = "Ins.Achternaam, Ins.Naam, Ins.RecordID";
-		} elseif (strlen($p_order) > 0) {
+		} elseif (strlen($p_order) >= 5) {
 			$ord = $p_order;
 		} else {
 			$ord = "IFNULL(Ins.EersteLes, '9999-12-31'), Ins.Datum, Ins.Naam";
@@ -11302,7 +11294,6 @@ function db_onderhoud($type=9) {
 		$i_base->execsql(sprintf("ALTER TABLE %sRekening CHANGE `Datum` `Datum` DATE;", TABLE_PREFIX));
 		$i_base->execsql(sprintf("ALTER TABLE %sSeizoen CHANGE `Begindatum` `Begindatum` DATE;", TABLE_PREFIX));
 		$i_base->execsql(sprintf("ALTER TABLE %sSeizoen CHANGE `Einddatum` `Einddatum` DATE;", TABLE_PREFIX));
-		$i_base->execsql(sprintf("ALTER TABLE %sLid CHANGE `BezwaarMachtiging` `BezwaarMachtiging` DATE NULL DEFAULT NULL;", TABLE_PREFIX));
 	
 		$i_base->execsql(sprintf("ALTER TABLE `%sLid` CHANGE `Geslacht` `Geslacht` CHAR(1) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT 'O';", TABLE_PREFIX));
 		$i_base->execsql(sprintf("ALTER TABLE `%sLid` CHANGE `Huisletter` `Huisletter` VARCHAR(2) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT '';", TABLE_PREFIX));
@@ -12752,7 +12743,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sLid` (
   `RekeningBetaaldDoor` int(11) DEFAULT NULL,
   `Burgerservicenummer` int(11) DEFAULT NULL,
   `Machtiging afgegeven` tinyint(4) DEFAULT NULL,
-  `BezwaarMachtiging` date DEFAULT NULL,
   `Legitimatietype` char(1) DEFAULT 'G',
   `Legitimatienummer` varchar(15) DEFAULT NULL,
   `VOG afgegeven` date DEFAULT NULL,
