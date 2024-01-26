@@ -26,6 +26,7 @@
 .table > :not(caption) > * > * {
 	padding-top: 3px;
 	padding-bottom: 3px;
+	color: var(--bs-body-color);
 }
 
 i {
@@ -253,9 +254,13 @@ header h1 {
 	border-width: 1px;
 }
 
+#filter span {
+	margin-bottom: 0;
+	padding-bottom: 0;
+}
+
 #filter label {
 	clear: none;
-	margin-bottom: 0;
 }
 
 #filter p {
@@ -279,11 +284,11 @@ header h1 {
 }
 
 #filter select {
-	margin-bottom: 2px;
 	clear: none;
 	float: left;
 	margin-left: 3px;
 	margin-right: 10px;
+	margin-bottom: 2px;
 	width: 185px;
 }
 
@@ -304,7 +309,11 @@ header h1 {
 #filter .form-check-input {
 	margin-left: 0;
 	margin-right: 4px;
-	margin-top: 4px;
+}
+
+#filter .form-check-label {
+	margin-top: 3px;
+	margin-bottom: 1px;
 }
 
 #filter p.aantrecords {
@@ -802,6 +811,11 @@ td.inagenda {
 
 #lidmaatschapmuteren td:nth-child(5) {
 	text-align: center;
+}
+
+#lidmaatschapmuteren button {
+	border-style: none;
+	background-color: transparent;
 }
 
 .ledenperonderdeelmuteren select {
@@ -2695,6 +2709,14 @@ button.volgendegroep {
 	
 	input.w90, textarea.w90 {
 		width: 100%;
+	}
+	
+	#filter input[type='text'] {
+		width: 170px;
+	}
+	
+	#filter #lbgroepfilter, #filter #bezitdiploma {
+		display: none;
 	}
 	
 	#afdelingskalendermuteren input.w75 {
