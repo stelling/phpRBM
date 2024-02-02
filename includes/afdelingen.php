@@ -26,9 +26,9 @@ function fnAfdeling() {
 	} elseif ($currenttab2 == "Presentie muteren") {
 		fnPresentieMuteren($afdid);
 	} elseif ($currenttab2 == "Presentie per seizoen") {
-		fnPresentiePerSeizoen($afdid);
+		presentieperseizoen($afdid);
 	} elseif ($currenttab2 == "Presentieoverzicht") {
-		fnPresentieOverzicht($afdid);
+		presentieoverzicht($afdid);
 	} elseif ($currenttab2 == "Wachtlijst") {
 		afdelingswachtlijst($afdid);
 	} elseif ($currenttab2 == "Afdelingsmailing") {
@@ -146,8 +146,10 @@ function fnAfdelingskalenderMuteren($p_onderdeelid){
 	
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	
-	printf("<button type='submit' class='%s' name='nieuw'>%s Item</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
-	printf("<button type='submit' class='%s' name='nieuw7'>%s %s items</button>\n", CLASSBUTTON, ICONTOEVOEGEN, ICONZEVEN);
+	echo("<div id='filter'>\n");
+	printf("<button type='submit' class='%s btn-sm' name='nieuw7'>%s %s items</button>\n", CLASSBUTTON, ICONTOEVOEGEN, ICONZEVEN);
+	printf("<button type='submit' class='%s btn-sm' name='nieuw'>%s Item</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
+	echo("</div>\n");
 	printf("<table id='afdelingskalendermuteren' class='%s'>\n", TABLECLASSES);
 	$dat = "";
 	$oms = "";
@@ -347,7 +349,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 		$i_ex->where = sprintf("EX.OnderdeelID=%s AND EX.Proefexamen=0 AND (SELECT COUNT(*) FROM %sLiddipl AS LD WHERE LD.Examen=EX.Nummer AND LD.Geslaagd=1) > 0", $afdid, TABLE_PREFIX);
 		echo("<div id='filter' class='form-check form-switch'>\n");
-		printf("<input type='checkbox' class='form-check-input' name='inclkader' title='Inclusief kader' value=1%s onClick='this.form.submit();'><label class='form-check-label'>Inclusief kader</label>\n", checked($inclkader));
+		printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' name='inclkader' title='Inclusief kader' value=1%s onClick='this.form.submit();'>Inclusief kader</label>\n", checked($inclkader));
 		if ($i_ex->aantal() > 0) {
 			printf("<select name='exfilter' class='form-select form-select-sm' onChange='this.form.submit();'>\n<option value=0>Filter op examen ....</option>\n%s</select>\n", $i_ex->htmloptions($exfilter));
 		}
@@ -692,7 +694,7 @@ function fnPresentieMuteren($p_onderdeelid){
 	
 }  # fnAanwezigheidMuteren
 
-function fnPresentieoverzicht($p_ondid) {
+function presentieoverzicht($p_ondid) {
 	global $dtfmt;
 	
 	$dtfmt->setPattern(DTTEXT);
@@ -713,7 +715,7 @@ function fnPresentieoverzicht($p_ondid) {
 		$kop_telaat = "";
 	}
 	
-	echo("<div id='presentieoverzicht'>\n");
+	printf("<div id='%s'>\n", __FUNCTION__);
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		$_POST['filterAanwezigheidsnormOnder'] = $_POST['filterAanwezigheidsnormOnder'] ?? 0;
@@ -731,14 +733,14 @@ function fnPresentieoverzicht($p_ondid) {
 	
 	printf("<form method='post' id='filter' class='form-check form-switch' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	printf("<label class='form-label'>Vanaf</label>\n<input type='date' name='filterDatumVanaf' value='%s'>", $_POST['filterDatumVanaf']);
-	printf("<input type='checkbox' class='form-check-input' name='filterAanwezigheidsnormOnder'%s value=1><p>Onder norm</p>\n", checked($_POST['filterAanwezigheidsnormOnder']));
-	printf("<input type='checkbox' class='form-check-input' name='filterAanwezigheidsnormBoven'%s value=1><p>Boven norm</p>\n", checked($_POST['filterAanwezigheidsnormBoven']));
-	printf("<input type='checkbox' class='form-check-input' name='100aanwezigTonen'%s value=1><p>100%% aanwezig</p>\n", checked($_POST['100aanwezigTonen']));
+	printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' name='filterAanwezigheidsnormOnder'%s value=1>Onder norm</label>\n", checked($_POST['filterAanwezigheidsnormOnder']));
+	printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' name='filterAanwezigheidsnormBoven'%s value=1>Boven norm</label>\n", checked($_POST['filterAanwezigheidsnormBoven']));
+	printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' name='100aanwezigTonen'%s value=1>100%% aanwezig</label>\n", checked($_POST['100aanwezigTonen']));
 	printf("<button type='submit' class='%s btn-sm'>%s Ververs scherm</button>\n", CLASSBUTTON, ICONVERVERS);
 	echo("</form>\n");
 	
 	printf("<table class='%s'>\n", TABLECLASSES);
-	printf("<caption> Presentieoverzicht | %s</caption>\n", $i_lo->i_ond->naam);
+	printf("<caption>Presentieoverzicht | %s</caption>\n", $i_lo->i_ond->naam);
 	printf("<th>Naam</th><th>Groep</th><th># Act.</th>%s<th># Afwezig</th><th>%% Aanwezig</th><th>Ziek</th><th>Met reden</th><th>Zonder reden</th>%s</tr>\n", $kop_aangemeld, $kop_telaat);
 	$lorows = $i_lo->lijst($p_ondid, "", "");
 	foreach ($lorows as $lorow) {
@@ -796,9 +798,9 @@ function fnPresentieoverzicht($p_ondid) {
 	echo("</table>\n");
 	echo("</div> <!-- Einde presentieperlid -->\n");
 	
-}  # fnPresentieoverzicht
+}  # presentieoverzicht
 
-function fnPresentiePerSeizoen($p_ondid) {
+function presentieperseizoen($p_ondid) {
 	// Dit is het overzicht per seizoen
 	
 	global $dtfmt;
@@ -837,9 +839,9 @@ function fnPresentiePerSeizoen($p_ondid) {
 	}
 	
 	printf("<form method='post' id='filter' class='form-check form-switch' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-	printf("<input type='checkbox' class='form-check-input' name='filterAanwezigheidsnormOnder'%s value=1 OnClick='this.form.submit();'><label class='form-check-label'>Onder norm</label>\n", checked($_POST['filterAanwezigheidsnormOnder']));
-	printf("<input type='checkbox' class='form-check-input' name='filterAanwezigheidsnormBoven'%s value=1 OnClick='this.form.submit();'><label class='form-check-label'>Boven norm</label>\n", checked($_POST['filterAanwezigheidsnormBoven']));
-	printf("<input type='checkbox' class='form-check-input' name='100aanwezigTonen'%s value=1 OnClick='this.form.submit();'><label class='form-check-label'>100%% aanwezig</label>\n", checked($_POST['100aanwezigTonen']));
+	printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' name='filterAanwezigheidsnormOnder'%s value=1 OnClick='this.form.submit();'>Onder norm</label>\n", checked($_POST['filterAanwezigheidsnormOnder']));
+	printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' name='filterAanwezigheidsnormBoven'%s value=1 OnClick='this.form.submit();'>Boven norm</label>\n", checked($_POST['filterAanwezigheidsnormBoven']));
+	printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' name='100aanwezigTonen'%s value=1 OnClick='this.form.submit();'>100%% aanwezig</label>\n", checked($_POST['100aanwezigTonen']));
 	echo("</form>\n");
 	
 	printf("<table class='%s'>\n", TABLECLASSES);
@@ -986,13 +988,12 @@ function afdelingswachtlijst($p_afdid) {
 	if ($op != "nieuw" and $op != "edit") {
 		printf("<form method='post' id='filter' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 		printf("<input type='text' placeholder='Tekstfilter' name='tekstfilter' value='%s' OnKeyUp=\"fnFilter('%s', this);\">\n", $tekstfilter, __FUNCTION__);
-		echo("<label class='form-label'>Sorteren op</label>\n");
-		echo("<select class='form-select form-select-sm' name='sortering' onChange='this.form.submit();'><option value=-1>Standaard</option>\n");
+		echo("<select class='form-select form-select-sm' name='sortering' onChange='this.form.submit();'><option value=-1>Sorteren op ...</option>\n");
 		foreach ($arrSort as $k => $col) {
 			printf("<option value=%d%s>%s</option>\n", $k, checked($k, "option", $sortcol), $col['oms']);
 		}
 		echo("</select>\n");
-		printf("<button type='button' class='%s' onClick=\"location.href='%s?tp=%s&op=nieuw'\">%s Inschrijving</button>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], $_GET['tp'], ICONTOEVOEGEN);
+		printf("<button type='button' class='%s btn-sm' onClick=\"location.href='%s?tp=%s&op=nieuw'\">%s Inschrijving</button>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], $_GET['tp'], ICONTOEVOEGEN);
 		echo("</form>\n");
 
 		echo(fnEditTable($rows, $kols, __FUNCTION__, "Wachtlijst"));
