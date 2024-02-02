@@ -3090,7 +3090,6 @@ class cls_Aanwezigheid extends cls_db_base {
 	
 	private int $loid = 0;
 	public int $aanwid = 0;
-	private int $ondid = 0;
 	private int $akid = 0;
 	public string $status = "";
 	public string $opmerking = "";
@@ -3140,7 +3139,7 @@ class cls_Aanwezigheid extends cls_db_base {
 			$this->isaanwezig = false;
 		}
 		
-		$this->i_ak = new cls_Afdelingskalender($this->akid);
+		$this->i_ak = new cls_Afdelingskalender(-1, $this->akid);
 		$this->i_lo = new cls_Lidond(-1, -1, $this->loid);
 
 		$this->naamlogging = $this->i_ak->datum;
@@ -3230,7 +3229,7 @@ class cls_Aanwezigheid extends cls_db_base {
 			$p_tm = $this->i_lo->lidtm;
 		}
 		
-		$f = sprintf("AK.Activiteit=1 AND AK.OnderdeelID=%d AND AK.Datum >= '%s' AND AK.Datum <= '%s'", $this->ondid, $p_vanaf, $p_tm);
+		$f = sprintf("AK.Activiteit=1 AND AK.OnderdeelID=%d AND AK.Datum >= '%s' AND AK.Datum <= '%s'", $this->i_lo->ondid, $p_vanaf, $p_tm);
 		
 		$rv = (new cls_Afdelingskalender())->aantal($f);
 		
@@ -5680,10 +5679,10 @@ class cls_Mailing_rcpt extends cls_db_base {
 
 		$this->email = "";
 		if ($this->mrid > 0) {
-			$query = sprintf("SELECT MR.LidID, MR.to_address, MR.MailingID FROM %s WHERE MR.RecordID=%d;", $this->basefrom, $this->mrid);
+			$query = sprintf("SELECT MR.* FROM %s WHERE MR.RecordID=%d;", $this->basefrom, $this->mrid);
 			$result = $this->execsql($query);
 			$row = $result->fetch();
-			if (isset($row->MailingID)) {
+			if (isset($row->RecordID)) {
 				$this->lidid = $row->LidID;
 				$this->mid = $row->MailingID;
 				$this->email = $row->to_address ?? "";
@@ -5769,7 +5768,7 @@ class cls_Mailing_rcpt extends cls_db_base {
 		
 		if ($this->lidid > 0 and $this->mid > 0) {
 			$query = sprintf("SELECT COUNT(*) FROM %s AS MR WHERE MR.MailingID=%d AND MR.LidID=%d;", $this->table, $this->mid, $this->lidid);
-		} elseif (strlen($p_email) > 5 and isValidMailAddress($p_email) and $this->mid > 0) {
+		} elseif (isValidMailAddress($p_email, 0) and $this->mid > 0) {
 			$query = sprintf("SELECT COUNT(*) FROM %s AS MR WHERE MR.MailingID=%d AND LOWER(MR.to_address) LIKE '%s';", $this->table, $this->mid, strtolower($p_email));
 		} else {
 			$query = "";
@@ -7665,6 +7664,7 @@ class cls_Evenement extends cls_db_base {
 	public $eindtijd = "";
 	public $verzameltijd = "";
 	public string $tijden = "";
+	public string $verwijderdop = "";
 	public int $typeevenement = 0;
 	public string $typeomschrijving = "";
 	public int $inschrijvingopen = 0;
@@ -7735,8 +7735,9 @@ class cls_Evenement extends cls_db_base {
 				$this->verzameltijd = $evrow->Verzameltijd;
 				$this->maxpersonenperdeelname = $evrow->MaxPersonenPerDeelname;
 				$this->meerderestartmomenten = $evrow->MeerdereStartMomenten;
-				$this->ingevoerd = $evrow->Ingevoerd;
-				$this->gewijzigd = $evrow->Gewijzigd;
+				$this->ingevoerd = $evrow->Ingevoerd ?? "";
+				$this->gewijzigd = $evrow->Gewijzigd ?? "";
+				$this->verwijderdop = $evrow->VerwijderdOp ?? "";
 				
 				if ($this->starttijd > "00:00" and $this->eindtijd > $this->starttijd) {
 					$this->tijden = sprintf("van %s tot %s uur", $this->starttijd, $this->eindtijd);
