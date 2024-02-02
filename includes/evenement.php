@@ -498,7 +498,7 @@ function muteerevenement($eventid) {
 	echo("<div id='opdrachtknoppen'>\n");
 	if ($eventid == 0) {
 		printf("<button type='submit' class='%s' name='btnToevoegen'>%s Toevoegen</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
-	} elseif ($row->VerwijderdOp < '2012-01-01') {
+	} elseif ($i_ev->verwijderdop < '2012-01-01') {
 		$f = sprintf("LidID=0 AND EvenementID=%d", $eventid);
 		$d = "";
 		if ($i_ed->aantal($f) > 0 or count($rowspd) == 0) {
@@ -515,14 +515,14 @@ function muteerevenement($eventid) {
 		}
 	}
 	
-	if ($eventid > 0 and $row->VerwijderdOp < '2012-01-01' and $aantdln > 0 and toegang("Mailing/Nieuw", 0, 0)) {
-		printf("<button type='submit' class='%s' name='maildeeln'>%s</i> Mailing deelnemers (%d)</button>\n", CLASSBUTTON, ICONVERSTUUR, $aantdln);
+	if ($eventid > 0 and $i_ev->verwijderdop < '2012-01-01' and $i_ev->aantaldeelnemers > 0 and toegang("Mailing/Nieuw", 0, 0)) {
+		printf("<button type='submit' class='%s' name='maildeeln'>%s</i> Mailing deelnemers (%d)</button>\n", CLASSBUTTON, ICONVERSTUUR, $i_ev->aantaldeelnemers);
 	}
-	if ($eventid > 0 and $i_ev->doelgroep > 0 and $row->VerwijderdOp < '2012-01-01' and count($rowspd) > 1 and toegang("Mailing/Nieuw", 0, 0)) {
+	if ($eventid > 0 and $i_ev->doelgroep > 0 and $i_ev->verwijderdop < '2012-01-01' and count($rowspd) > 1 and toegang("Mailing/Nieuw", 0, 0)) {
 		printf("<button type='submit' class='%s' name='mailpotdeeln'>%s Mailing potenti&euml;le deelnemers (%d)</button>\n", CLASSBUTTON, ICONVERSTUUR, count($rowspd));
 	}
 	if ($eventid > 0 and (WEBMASTER or $row->IngevoerdDoor == $_SESSION['lidid'])) {
-		if ($row->VerwijderdOp > '2012-01-01') {
+		if ($i_ev->verwijderdop > '2012-01-01') {
 			printf("<input type='submit' class='%s' name='undoverwijderen' value='Verwijderen terugdraaien'>\n", CLASSBUTTON);
 		} else {
 			printf("<button type='submit' class='%s' name='verwijderen'>%s Verwijderen</button>\n", CLASSBUTTON, ICONVERWIJDER);
