@@ -79,11 +79,11 @@ h2, h3 {
 }
 
 h2 {
-	font-size: 125%;
+	font-size: 135%;
 }
 
 h3 {
-	font-size: 115%;
+	font-size: 120%;
 }
 
 img {
@@ -2885,12 +2885,12 @@ button.volgendegroep {
 		font-size: 10pt;
 	}
 	
-	td {
-		background-color: transparent;
-	}
-	
 	#welkom, nav, #filter, footer, #opdrachtknoppen {
 		display: none;
+   }
+   
+   td {
+	   background-color: transparent;
    }
   
 	#container, #contrainerbreed, .container-xl {
