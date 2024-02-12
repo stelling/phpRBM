@@ -3124,7 +3124,7 @@ class cls_Aanwezigheid extends cls_db_base {
 		$this->status = "";
 		$this->opmerking = "";
 		if ($this->loid > 0 and $this->akid > 0) {
-			$query = sprintf("SELECT AW.RecordID FROM %s WHERE AW.LidondID=%d AND AW.AfdelingskalenderID=%d;", $this->basefrom, $this->loid, $this->akid);
+			$query = sprintf("SELECT AW.* FROM %s WHERE AW.LidondID=%d AND AW.AfdelingskalenderID=%d;", $this->basefrom, $this->loid, $this->akid);
 			$awrow = $this->execsql($query)->fetch();
 			if (isset($awrow->RecordID)) {
 				$this->aanwid = $awrow->RecordID;
@@ -6791,6 +6791,8 @@ class cls_Liddipl extends cls_db_base {
 	
 	public object $i_dp;
 	
+	private string $sqlgeldigtot = "IFNULL(LD.LicentieVervallenPer, IF(DP.GELDIGH>0, DATE_ADD(LD.DatumBehaald, INTERVAL DP.GELDIGH MONTH), IF((NOT DP.Vervallen IS NULL), DP.Vervallen, NULL)))";
+	
 	function __construct($p_ldid=-1, $p_lidid=-1, $p_dpid=-1) {
 		parent::__construct();
 		$this->table = TABLE_PREFIX . "Liddipl";
@@ -6911,10 +6913,10 @@ class cls_Liddipl extends cls_db_base {
 							LD.Examen,
 							LD.Diplomanummer,
 							LD.LicentieVervallenPer,
-							IFNULL(LD.LicentieVervallenPer, IF(DP.GELDIGH>0, DATE_ADD(LD.DatumBehaald, INTERVAL DP.GELDIGH MONTH), IF((NOT DP.Vervallen IS NULL), DP.Vervallen, null))) AS GeldigTot
+							%4\$s AS GeldigTot
 							FROM (%1\$sLiddipl AS LD LEFT OUTER JOIN %1\$sExamen AS EX ON LD.Examen=EX.Nummer) INNER JOIN (%1\$sDiploma AS DP INNER JOIN %1\$sOrganisatie AS O ON DP.ORGANIS=O.Nummer) ON LD.DiplomaID=DP.RecordID
 							WHERE LD.DatumBehaald > '1900-01-01' AND LD.DatumBehaald <= '%3\$s' AND LD.LaatsteBeoordeling=1 AND LD.Geslaagd=1 AND LD.Lid=%2\$d
-							ORDER BY LD.DatumBehaald;", TABLE_PREFIX, $p_lidid, $p_per);
+							ORDER BY LD.DatumBehaald;", TABLE_PREFIX, $p_lidid, $p_per, $this->sqlgeldigtot);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 		
@@ -6922,9 +6924,9 @@ class cls_Liddipl extends cls_db_base {
 	
 	public function overzichtperdiploma($p_dpid) {
 		
-		$query = sprintf("SELECT LD.*, %s AS NaamLid, L.GEBDATUM FROM %s INNER JOIN %sLid AS L ON LD.Lid=L.RecordID
-						  WHERE LD.DatumBehaald > '1900-01-01' AND LD.DiplomaID=%d AND LD.Geslaagd=1 AND LD.LaatsteBeoordeling=1 
-						  ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, LD.DatumBehaald;", $this->selectnaam, $this->basefrom, TABLE_PREFIX, $p_dpid);
+		$query = sprintf("SELECT LD.*, %s AS NaamLid, L.GEBDATUM FROM %s INNER JOIN %sLid AS L ON LD.Lid=L.RecordID, %s AS GeldigTot
+								WHERE LD.DatumBehaald > '1900-01-01' AND LD.DiplomaID=%d AND LD.Geslaagd=1 AND LD.LaatsteBeoordeling=1 
+								ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, LD.DatumBehaald;", $this->selectnaam, $this->basefrom, TABLE_PREFIX, $this->sqlgeldigtot, $p_dpid);
 		$result = $this->execsql($query);
 
 		return $result->fetchAll();
@@ -7007,31 +7009,6 @@ class cls_Liddipl extends cls_db_base {
 			return false;
 		}
 	} # dubbelediplomas
-	
-	public function vervallenbinnenkort($p_lidid=0) {
-		// Functie kan na 1 januari 2024 vervallen
-		
-		if ($_SESSION['settings']['termijnvervallendiplomasmelden'] > 0) {
-			$gd = date("Y-m-d", strtotime(sprintf("-%d month", $_SESSION['settings']['termijnvervallendiplomasmelden'])));
-		} else {
-			$gd = date("Y-m-d");
-		}
-		
-		$query = sprintf("SELECT D.Kode AS Code,
-						  D.Naam AS Diploma,
-						  CONCAT(D.Kode, ' ', D.Naam) AS DiplOms,
-						  LD.DatumBehaald,
-						  LD.Diplomanummer,
-						  IFNULL(LD.LicentieVervallenPer, IF(D.GELDIGH>0, DATE_ADD(LD.DatumBehaald, INTERVAL D.GELDIGH MONTH), NULL)) AS VervaltPer
-						  FROM %1\$sLiddipl AS LD INNER JOIN %1\$sDiploma AS D ON LD.DiplomaID=D.RecordID
-						  WHERE IFNULL(D.Vervallen, CURDATE()) >= CURDATE() AND ((NOT LD.LicentieVervallenPer IS NULL) OR D.GELDIGH > 0) AND LD.Lid=%2\$d
-						  AND IFNULL(LD.LicentieVervallenPer, DATE_ADD(LD.DatumBehaald, INTERVAL D.GELDIGH MONTH)) < '%3\$s' AND LD.LicentieVervallenPer >= '%3\$s'
-						  ORDER BY D.Volgnr, D.Kode, LD.DatumBehaald DESC;", TABLE_PREFIX, $p_lidid, $gd);
-		$result = $this->execsql($query);
-		
-		return $result->fetchAll();
-		
-	}  # cls_Liddipl->vervallenbinnenkort
 	
 	public function add($p_lidid, $p_dpid, $p_exdatum="", $p_examen=0) {
 		$this->vulvars(0, $p_lidid, $p_dpid);
@@ -7731,10 +7708,10 @@ class cls_Evenement extends cls_db_base {
 				$this->inschrijvingopen = $evrow->InschrijvingOpen ?? 0;
 				$this->standaardstatus = $evrow->StandaardStatus ?? "B";
 				$this->starttijd = substr($evrow->Datum, 11, 5);
-				$this->eindtijd = $evrow->Eindtijd;
-				$this->verzameltijd = $evrow->Verzameltijd;
-				$this->maxpersonenperdeelname = $evrow->MaxPersonenPerDeelname;
-				$this->meerderestartmomenten = $evrow->MeerdereStartMomenten;
+				$this->eindtijd = $evrow->Eindtijd ?? "";
+				$this->verzameltijd = $evrow->Verzameltijd ?? "";
+				$this->maxpersonenperdeelname = $evrow->MaxPersonenPerDeelname ?? 1;
+				$this->meerderestartmomenten = $evrow->MeerdereStartMomenten ?? 0;
 				$this->ingevoerd = $evrow->Ingevoerd ?? "";
 				$this->gewijzigd = $evrow->Gewijzigd ?? "";
 				$this->verwijderdop = $evrow->VerwijderdOp ?? "";
@@ -7749,11 +7726,9 @@ class cls_Evenement extends cls_db_base {
 					$query = sprintf("SELECT O.* FROM %sOnderdl AS O WHERE O.RecordID=%d;", TABLE_PREFIX, $this->organisatie);
 					$orgrow = $this->execsql($query)->fetch();
 					if (isset($orgrow->RecordID)) {
-						$this->naamorganisatie = $orgrow->Naam;
-						$this->codeorganisatie = $orgrow->Kode;
-						if (isValidMailAddress($orgrow->CentraalEmail, 0)) {
-							$this->emailcontact = $orgrow->CentraalEmail;
-						}
+						$this->naamorganisatie = $orgrow->Naam ?? "";
+						$this->codeorganisatie = $orgrow->Kode ?? "";
+						$this->emailcontact = $orgrow->CentraalEmail ?? "";
 					}
 				}
 				
@@ -10747,7 +10722,12 @@ class cls_Inschrijving extends cls_db_base {
 	
 	public function lijst($p_filter=1, $p_afd=-1, $p_fetched=1, $p_order=1) {
 		
-		$w = "(Ins.Verwijderd IS NULL)";
+		if (strlen($this->where) > 0) {
+			$w = $this->where;
+		} else {
+			$w = "(Ins.Verwijderd IS NULL)";
+		}
+		
 		if ($p_filter == 1) {
 			// Alleen onverwerkte
 			$w .= " AND (Ins.Verwerkt IS NULL)";
@@ -10757,9 +10737,6 @@ class cls_Inschrijving extends cls_db_base {
 		}
 		if ($p_afd > 0) {
 			$w .= sprintf(" AND OnderdeelID=%d", $p_afd);
-		}
-		if (strlen($this->where) > 0) {
-			$w .= " AND " . $this->where;
 		}
 		
 		if ($p_order === 2) {
@@ -10784,7 +10761,7 @@ class cls_Inschrijving extends cls_db_base {
 		} else {
 			return $res;
 		}
-	}
+	}  # cls_Inschrijving->lijst
 	
 	public function htmloptions($p_cv=-1) {
 		$rv = "";
