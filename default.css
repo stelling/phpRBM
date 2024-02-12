@@ -490,7 +490,7 @@ th.rotate {
 	padding-right: 1px;
 	text-align: left;
 	white-space: nowrap;
-	background-color: white;
+	background-color: transparent;
 }
 				
 th.rotate > div {
@@ -1036,28 +1036,18 @@ table#afdelingskalendermuteren {
 	border-style: none;
 }
 
-#groepsindeling label {
-	clear: none;
-	float: left;
-}
-
 #groepsindeling h2 {
 	margin-bottom: 6px;
-	font-size: 150%;
 	text-align: center;
 	width: 100%;
-	border-top-style: solid;
-	border-bottom-style: solid;
+	border-style: none;
+	background-color: gainsboro;
+	display: none;
 }
 
 #groepsindeling h3, #groepsindelingmuteren h3 {
 	width: 100%;
-	font-size: 120%;
 	background-color: gainsboro;
-}
-
-#groepsindelingmuteren h3 {
-	font-size: 150%;
 }
 
 #groepsindeling h3, #groepsindeling h4 {
@@ -1205,18 +1195,13 @@ table#presentiemuteren td.aanwezig {
 	clear: none;
 }
 
-#examenmuteren input, #examenmuteren p {
+#examenmuteren input[type='text'], #examenmuteren input[type='date'], #examenmuteren p {
 	margin-right: 15px;
 	margin-top: 1px;
 }
 
-#examenmuteren p {
-	padding-top: 4px;
-}
-
 #examenmuteren .form-check-input {
 	margin-left: 0;
-	margin-top: 6px;
 }
 
 .kandidatengroep, .groepindelen {
@@ -1267,7 +1252,7 @@ table#presentiemuteren td.aanwezig {
 	float: left;
 	clear: left;
 	color: black;
-	background-color: white;
+	background-color: transparent;
 	width: 125px;
 	border-style: none;
 	text-align: left;
@@ -1275,7 +1260,7 @@ table#presentiemuteren td.aanwezig {
 
 #dl_lijst p {
 	color: black;
-	background-color: white;
+	background-color: transparent;
 	margin-top: 9px;
 	float: left;
 }
@@ -1295,7 +1280,7 @@ table#presentiemuteren td.aanwezig {
 
 #dl_lijst td {
 	color: black;
-	background-color: white;
+	background-color: transparent;
 }
 
 #dl_lijst td:first-child {
@@ -2899,9 +2884,15 @@ button.volgendegroep {
 		margin-right: 0;
 	}
 	
+	#groepsindeling h2 {
+		display: block;
+		background-color: transparent;
+	}
+	
 	.groepsindelingkolom {
 		width: 170px;
 	}
+	
 }  /* media print */
 
 #tab-agenda li.jarigen {
