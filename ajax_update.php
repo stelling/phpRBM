@@ -352,7 +352,7 @@ if ($_SESSION['lidid'] > 0) {
 		$i_ed->delete($rid);
 		$i_ed = null;
 		
-	} elseif ($ent == "wachtlijst" or $ent == "inschrijvingen" or $ent == "editinschrijving") {
+	} elseif ($ent == "wachtlijst" or $ent == "afdelingswachtlijst" or $ent == "inschrijvingen" or $ent == "editinschrijving") {
 		$i_ins = new cls_Inschrijving();
 		
 		if ($kolom == "Verwijderd" or $kolom == "Verwerkt") {
