@@ -50,7 +50,7 @@ function fnEvenementen() {
 						$chk = 0;
 					}
 				}
-				printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' value=1 name='%s' onClick='this.form.submit();'%s><p>%s</p></label>\n", $cn, checked($chk), $v);
+				printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' value=1 name='%s' onClick='this.form.submit();'%s>%s</label>\n", $cn, checked($chk), $v);
 				if ($chk == 1) {
 					if (strlen($in) > 0) {
 						$in .= ", ";
@@ -375,13 +375,13 @@ function muteerevenement($eventid) {
 	printf("<label id='lblTypeEvenement' class='form-label'>Type evenement</label><select id='TypeEvenement' class='form-select form-select-sm' name='TypeEvenement'>\n<option value=0>Geen/onbekend</option>\n%s</select>\n", $i_et->htmloptions($i_ev->typeevenement));
 	
 	if ($eventid > 0) {
-		$f = sprintf("(O.RecordID=%d OR ((O.Kader=1 OR O.`Type`IN ('A', 'G', 'R')) AND IFNULL(O.VervallenPer, '9999-12-31') >= '%s'", $i_ev->organisatie, $i_ev->datum);
+		$i_ond->where = sprintf("(O.RecordID=%d OR ((O.Kader=1 OR O.`Type`IN ('A', 'G', 'R')) AND IFNULL(O.VervallenPer, '9999-12-31') >= '%s'", $i_ev->organisatie, $i_ev->datum);
 		if (WEBMASTER == false) {
 			$i_lo->per = $i_ev->datum;
-			$f .= sprintf(" AND O.RecordID IN (%s)", $i_lo->lidgroepen());
+			$i_ond->where .= sprintf(" AND O.RecordID IN (%s)", $i_lo->lidgroepen());
 		}
-		$f .= "))";
-		printf("<label id='lblOrganisatie' class='form-label'>Organisatie</label><select id='Organisatie' class='form-select form-select-sm'><option value=0>Onbekend</option>\n%s</select>\n", $i_ond->htmloptions($i_ev->organisatie, 0, "", $f, 0));
+		$i_ond->where .= "))";
+		printf("<label id='lblOrganisatie' class='form-label'>Organisatie</label><select id='Organisatie' class='form-select form-select-sm'><option value=0>Onbekend</option>\n%s</select>\n", $i_ond->htmloptions($i_ev->organisatie, 0, "", 0));
 		if (strlen($i_ev->omschrijving) > 0) {
 			printf("<label id='lblOpmaak' class='form-label'>Opmaak in agenda</label>%s\n", fnEvenementOmschrijving($i_ev->evid, 1, "p"));
 		}
@@ -391,10 +391,9 @@ function muteerevenement($eventid) {
 		printf("<label id='lblMaxPersonenPerDeelname' class='form-label'>Max. per deelname</label><input type='number' id='MaxPersonenPerDeelname' class='num2' value=%d min=1 max=99 title='Met hoeveel personen mag je maximaal komen?'>\n", $i_ev->maxpersonenperdeelname);
 		printf("<label id='lblMeerdereStartmomenten' class='form-label'>Meerdere startmomenten</label><input type='checkbox' class='form-check-input' id='MeerdereStartMomenten' value=1 %s title='Kunnen deelnemers verschillende starttijden hebben?'>\n", checked($i_ev->meerderestartmomenten));
 		
-		$f = sprintf("IFNULL(O.VervallenPer, '9999-12-31') >= '%s'", $i_ev->datum);
 		$i_ond->per = $i_ev->datum;
-		printf("<label id='lblDoelgroep' class='form-label'>Doelgroep</label><select name='BeperkTotGroep' class='form-select form-select-sm' onChange='this.form.submit();'>\n<option value=0>Iedereen</option>\n%s</select>\n", $i_ond->htmloptions($i_ev->doelgroep, 0, "", $f, 1));
-		
+		printf("<label id='lblDoelgroep' class='form-label'>Doelgroep</label><select name='BeperkTotGroep' class='form-select form-select-sm' onChange='this.form.submit();'>\n<option value=0>Iedereen</option>\n%s</select>\n", $i_ond->htmloptions($i_ev->doelgroep, 1, "", 1));
+
 		$dtfmt->setPattern(DTLONG);
 		$lm = laatstemutatie("Evenement", $i_ev->evid, 2, " / ");
 		if (strlen($lm) < 10) {
@@ -521,7 +520,7 @@ function muteerevenement($eventid) {
 	if ($eventid > 0 and $i_ev->doelgroep > 0 and $i_ev->verwijderdop < '2012-01-01' and count($rowspd) > 1 and toegang("Mailing/Nieuw", 0, 0)) {
 		printf("<button type='submit' class='%s' name='mailpotdeeln'>%s Mailing potenti&euml;le deelnemers (%d)</button>\n", CLASSBUTTON, ICONVERSTUUR, count($rowspd));
 	}
-	if ($eventid > 0 and (WEBMASTER or $row->IngevoerdDoor == $_SESSION['lidid'])) {
+	if ($eventid > 0) {
 		if ($i_ev->verwijderdop > '2012-01-01') {
 			printf("<input type='submit' class='%s' name='undoverwijderen' value='Verwijderen terugdraaien'>\n", CLASSBUTTON);
 		} else {
