@@ -100,7 +100,7 @@ function fnMailing() {
 			$kols[] = array('headertext' => "Verzonden", 'columnname' => "send_on", 'type' => "datetime");
 			$kols[] = array('headertext' => "Aan", 'columnname' => "Aan", 'type' => "combitext");
 			if (WEBMASTER) {
-				$kols[] = array('columnname' => "RecordID", 'headertext' => "&nbsp;", 'type' => "click", 'class' => "mislukt", 'onclick' => "mailtooutbox(%d)", 'title' => "Versturen is mislukt, verplaatsen naar de outbox.");
+				$kols[] = array('columnname' => "RecordID", 'headertext' => "&nbsp;", 'type' => "click", 'class' => "mislukt", 'onclick' => "mailtooutbox(%d)", 'title' => "Terugzetten in de outbox.");
 			}
 			
 			$th = sprintf("%d. %s", $mailing->mid, $rows[0]->subject);
@@ -1456,7 +1456,7 @@ function lijstmailings($p_filter="") {
 			
 		}
 		if ($p_filter == "Outbox") {
-			$kols[1] = array('headertext' => "Wacht vanaf", 'columnname' => "Ingevoerd");
+			$kols[1] = array('headertext' => "Aangemaakt op/om", 'columnname' => "Ingevoerd", 'type' => "DTHMS");
 			
 			$l = sprintf("index.php?tp=%s&op=edit_email&MailingHistID=%%d", urlencode($_GET['tp']));
 			$kols[5] = array('columnname' => "RecordID", 'link' => $l, 'class' => "muteren");
@@ -1482,7 +1482,7 @@ function lijstmailings($p_filter="") {
 					echo("<div id='filter'>\n");
 					printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 					if (WEBMASTER) {
-						echo("<button name='outboxlegen'><i class='bi bi-trash'></i> Outbox leeg maken</button>\n");
+						printf("<button class='%s btn-sm' name='outboxlegen'>%s Outbox legen</button>\n", CLASSBUTTON, ICONVERWIJDER);
 					}
 					printf("<p class='aantrecords'>%d e-mails</p>\n", count($rows));
 					echo("</form>\n");
@@ -1546,8 +1546,9 @@ class email {
 	public $mailingid = 0;
 	public $lidid = 0;
 	private $ingevoerd = "";
-	private $ingevoerddoor = "";
-	private $verstuurdop = "";
+	private string $ingevoerddoor = "";	// Naam van de verstuurder
+	private string $verstuurd_dt = "";
+	private string $verstuurdop = "";	// Datum voluit geschreven
 	public $vanafnaam = "";
 	public $vanafadres = "";
 	public $vanafid = 0;
@@ -1563,7 +1564,7 @@ class email {
 	public $onderwerp = "";
 	public $bericht = "";
 	public $zonderbriefpapier = 0;
-	public $nietversturenvoor = "";
+	public string $nietversturenvoor = "";
 	public $xtrachar = "";
 	public $xtranum = 0;
 	
@@ -1593,21 +1594,23 @@ class email {
 				$dtfmt->setPattern(DTLONG);
 				$this->ingevoerd = $dtfmt->format(strtotime($mhrow->Ingevoerd));
 				$this->ingevoerddoor = (new cls_Lid())->Naam($mhrow->IngevoerdDoor);
+				$this->verstuurd_dt = $mhrow->send_on ?? "";
 				if ($mhrow->send_on > "2010-01-01") {
-					$this->verstuurdop = $dtfmt->format(strtotime($mhrow->send_on));
+					$this->verstuurdop = $dtfmt->format(strtotime($this->verstuurd_dt));
 				}
 				$this->lidid = $mhrow->LidID;
 				$this->vanafid = $mhrow->VanafID;
 				$this->omsontvangers = htmlentities($mhrow->OmschrijvingOntvangers);
 				$this->aannaam = htmlentities($mhrow->AanNaam);
 				$this->aanadres = $mhrow->to_addr;
-				$this->cc = $mhrow->cc_addr;
-				$this->CCafdelingen = $mhrow->CCafdelingen;
+				$this->cc = $mhrow->cc_addr ?? "";
+				$this->CCafdelingen = $mhrow->CCafdelingen ?? 0;
 				$this->onderwerp = $mhrow->subject;
 				$this->bericht = $mhrow->message;
-				$this->zonderbriefpapier = $mhrow->ZonderBriefpapier;
-				$this->zichtbaarvoor = $mhrow->ZichtbaarVoor;
-				$this->xtrachar = $mhrow->Xtra_Char;
+				$this->zonderbriefpapier = $mhrow->ZonderBriefpapier ?? 0;
+				$this->nietversturenvoor = $mhrow->NietVersturenVoor ?? "";
+				$this->zichtbaarvoor = $mhrow->ZichtbaarVoor ?? 0;
+				$this->xtrachar = $mhrow->Xtra_Char ?? "";
 				$this->xtranum = $mhrow->Xtra_Num;
 			}
 			
@@ -1619,8 +1622,8 @@ class email {
 			$this->CCafdelingen = $mrow->CCafdelingen;
 			$this->onderwerp = $mrow->subject;
 			$this->bericht = $mrow->message;
-			$this->zichtbaarvoor = $mrow->ZichtbaarVoor;
-			$this->zonderbriefpapier = $mrow->ZonderBriefpapier;
+			$this->zichtbaarvoor = $mrow->ZichtbaarVoor ?? 0;
+			$this->zonderbriefpapier = $mrow->ZonderBriefpapier ?? 0;
 		} else {
 			$i_mv = new cls_Mailing_vanaf($this->vanafid);
 			$this->vanafid = $i_mv->min();
@@ -1725,26 +1728,28 @@ class email {
 		} elseif ($this->zichtbaar) {
 
 			$txt = sprintf("<form method='post' id='verstuurdemail' action='%s?tp=%s/%s&op=edit_email'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
-			$txt .= sprintf("<label>RecordID</label><p id='recordid'>%d</p>\n", $this->mhid);
-			$txt .= sprintf("<label>Klaar gezet op</label><p>%s</p><label id='lblIngevoerdDoor'>door</label><p>%s</p>\n", $this->ingevoerd, $this->ingevoerddoor);
+			$txt .= sprintf("<label class='form-label'>RecordID</label><p id='recordid'>%d</p>\n", $this->mhid);
+			$txt .= sprintf("<label class='form-label'>Klaar gezet op</label><p>%s</p><label id='lblIngevoerdDoor'>door</label><p>%s</p>\n", $this->ingevoerd, $this->ingevoerddoor);
 		
 			if (strlen($this->vanafnaam) > 0) {
-				$txt .= sprintf("<label>Van</label><p>%s</p><label id='lblEmail'>E-mail</label><p>%s</p>\n", $this->vanafnaam, $this->vanafadres);
+				$txt .= sprintf("<label class='form-label'>Van</label><p>%s</p><label id='lblEmail'>E-mail</label><p>%s</p>\n", $this->vanafnaam, $this->vanafadres);
 			} else {
-				$txt .= sprintf("<label>Van</label><p>%s</p>\n", $this->vanafadres);
+				$txt .= sprintf("<label class='form-label'>Van</label><p>%s</p>\n", $this->vanafadres);
 			}
 		
 			if (strlen($this->aannaam) > 0 and $this->aannaam != $this->aanadres) {
-				$txt .= sprintf("<label>Ontvanger</label><p>%s</p>", $this->aannaam);
-				$txt .= sprintf("<label id='lblEmailOntvanger'>E-mail</label><p>%s</p>\n", $this->aanadres);
+				$txt .= sprintf("<label class='form-label'>Ontvanger</label><p>%s</p>", $this->aannaam);
+				$txt .= sprintf("<label class='form-label' id='lblEmailOntvanger'>E-mail</label><p>%s</p>\n", $this->aanadres);
 			} else {
-				$txt .= sprintf("<label>Aan e-mail</label><p>%s</p>\n", $this->aanadres);
+				$txt .= sprintf("<label class='form-label'>Aan e-mail</label><p>%s</p>\n", $this->aanadres);
 			}
-			if (strlen($this->cc) > 0) {
-				$txt .= sprintf("<label>CC</label><p>%s</p>\n", $this->cc);
-			}
+			
+			$txt .= sprintf("<label class='form-label'>CC</label><input type='text' class='w50' maxlength=50 id='cc_addr' value='%s'>\n", $this->cc);
 		
-			$txt .= sprintf("<label>Onderwerp</label><input type='text' class='w75' maxlength=75 id='subject' value='%s'>\n", $this->onderwerp);
+			$txt .= sprintf("<label class='form-label'>Onderwerp</label><input type='text' class='w75' maxlength=75 id='subject' value='%s'>\n", $this->onderwerp);
+			if (strlen($this->verstuurd_dt) < 10) {
+				$txt .= sprintf("<label class='form-label'>Niet versturen voor</label><input type='datetime-local' id='NietVersturenVoor' value='%s'>\n", $this->nietversturenvoor);
+			}
 		
 			$txt .= "<div class='clear'></div>\n";
 			$txt .= sprintf("<textarea id='message'>%s</textarea>\n", $this->bericht);
@@ -1760,7 +1765,7 @@ class email {
 		echo($txt);
 		js_editor(1);
 		printf("<script>
-		\$('#subject').on('blur', function(){
+		\$('input').on('blur', function(){
 			savedata('email', %1\$d, this);
 		});
 		</script>", $this->mhid);
