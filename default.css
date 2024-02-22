@@ -112,7 +112,7 @@ th {
 }
 
 ul {
-	margin-top: 1px;
+	margin-top: 4px;
 	margin-bottom: 1px;
 }
 
@@ -147,10 +147,6 @@ p.uitleg {
 p.error {
 	color: red;
 	font-weight: bold;
-}
-
-p.aantrecords {
-	clear: right;
 }
 
 span {
@@ -250,17 +246,14 @@ header h1 {
 	border-bottom-style: solid;
 	border-left-style: none;
 	border-right-style: none;
-	border-color: #000080;
 	border-width: 1px;
-}
-
-#filter span {
-	margin-bottom: 0;
-	padding-bottom: 0;
 }
 
 #filter label {
 	clear: none;
+	padding-top: 3px;
+	padding-bottom: 3px;
+	margin-bottom: 0;
 }
 
 #filter p {
@@ -590,7 +583,8 @@ th.rotate > div {
 }
 
 #detailsonderdeelmuteren textarea {
-	margin-bottom: 6px;
+	margin-top: 8px;	
+	margin-bottom: 4px;
 	height: 100px;
 	width: calc(100% - 235px);
 }
@@ -993,16 +987,6 @@ textarea#sportlinkdata {
 #tab-agenda li:first-child, #agenda li:first-child {
 	text-align: right;
 	font-weight: bolder;
-}
-
-#nieuwepasfoto label {
-	width: auto;
-}
-
-#nieuwepasfoto input {
-	height: 25px;
-	padding-left: 3px;
-	padding-right: 3px;
 }
 
 #toestemmingenmuteren .form-check-label {
@@ -1677,10 +1661,8 @@ fieldset h3 {
 	clear: both;
 }
 
-#verstuurdemail label {
+#verstuurdemail label, #editemail label {
 	width: 150px;
-	margin-left: 5px;
-	margin-right: 5px;
 }
 
 #verstuurdemail label#lblIngevoerdDoor, #verstuurdemail label#lblGaNaar, #verstuurdemail label#lblEmail, #verstuurdemail label#lblEmailOntvanger {
@@ -2516,6 +2498,10 @@ input#db_folderbackup, input#naamwebsite, input#naamvereniging, input#urlverenig
 	margin-left: 0;
 }
 
+#diplomaslidmuteren .form-check-input {
+	margin-left: 0;
+}
+
 #editinschrijving h2 {
 	width: 100%;
 	text-align: center;
@@ -2851,7 +2837,7 @@ button.volgendegroep {
 	}
 	
 	#presentiemuteren select {
-		max-width: calc(100% - 85px);
+		max-width: 100px;
 		margin-right: 0;
 	}
 	
