@@ -990,15 +990,17 @@ class cls_db_base {
 
 class cls_Lid extends cls_db_base {
 	
-	public $naamlid = "";
-	public $zoeknaam = "";
-	public $roepnaam = "";
-	public $geslacht = "O";
+	public string $naamlid = "";
+	public string $zoeknaam = "";
+	public string $roepnaam = "";
+	public string $achternaam = "";
+	public string $meisjesnaam = "";		// Deze is vervallen, maar er kan nog een waarde in zitten
+	public string $geslacht = "O";
 	public $geboortedatum = "1900-01-01";
 	public $adres = "";
 	public $postcode = "";
-	public $woonplaats = "";
-	public $telefoon = "";
+	public string $woonplaats = "";
+	public string $telefoon = "";
 	public string $email = "";
 	public string $emailouders = "";
 	public string $emailvereniging = "";
@@ -1040,6 +1042,7 @@ class cls_Lid extends cls_db_base {
 			$this->naamlid = "";
 			$this->zoeknaam = "";
 			$this->roepnaam = "";
+			$this->achternaam = "";
 			$this->geslacht = "O";
 			$this->geboortedatum = "1900-01-01";
 			$this->adres = "";
@@ -1064,6 +1067,8 @@ class cls_Lid extends cls_db_base {
 					$this->naamlid = $row->NaamLid;
 					$this->zoeknaam = $row->Zoeknaam;
 					$this->roepnaam = $row->Roepnaam ?? "";
+					$this->achternaam = $row->Achternaam ?? "";
+					$this->meisjesnaam = $row->Meisjesnm ?? "";
 					$this->geslacht = $row->Geslacht ?? "O";
 					$this->geboortedatum = $row->GEBDATUM ?? "";
 					$this->adres = trim($row->Adres ?? "");
@@ -1436,16 +1441,6 @@ class cls_Lid extends cls_db_base {
 		return $this->geboortedatum;
 	}
 	
-	public function woonplaats($p_postcode) {
-		if (strlen($p_postcode) < 4) {
-			return "";
-		} else {
-			$postcode = substr($p_postcode, 0, 4);
-			$query = sprintf("SELECT IFNULL(Woonplaats, '') FROM %s WHERE SUBSTRING(Postcode, 1, 4)='%s' ORDER BY Gewijzigd DESC;", $this->basefrom, $postcode);
-			return $this->scalar($query);			
-		}
-	}
-	
 	public function telefoon($p_lidid=-1) {
 		if ($p_lidid > 0 and $p_lidid != $this->lidid) {
 			$this->lidid = $p_lidid;
@@ -1735,8 +1730,10 @@ class cls_Lid extends cls_db_base {
 		}
 		$lrows = $this->basislijst($f);
 		foreach ($lrows as $lrow) {
-			if (strlen($lrow->Email) > 0 and strlen($lrow->EmailOuders) > 0 and strtolower($lrow->Email) == strtolower($lrow->EmailOuders)) {
+			if (strlen($lrow->Email) > 0 and strlen($lrow->EmailOuders) > 0 and strtolower($lrow->Email) == strtolower($lrow->EmailOuders) and $lrow->GEBDATUM > date("Y-m-d", strtotime("18 year"))) {
 				$this->update($lrow->RecordID, "Email", "", "het emailadres gelijk is aan die van de ouders.");
+			} elseif (strlen($lrow->Email) > 0 and strlen($lrow->EmailOuders) > 0 and strtolower($lrow->Email) == strtolower($lrow->EmailOuders)) {
+				$this->update($lrow->RecordID, "EmailOuders", "", "het emailadres gelijk is aan die van het lid zelf.");
 			} elseif (array_key_exists($lrow->Geslacht, ARRGESLACHT) == false) {
 				$this->update($lrow->RecordID, "Geslacht", "O", "geslacht een ongeldige waarde had.");
 			} elseif (strlen($lrow->Roepnaam) > 1 and strlen($lrow->Voorletter) == 0 and $lrow->Geslacht != "B" and substr($lrow->Roepnaam, 0, 1) >= "A" and substr($lrow->Roepnaam, 0, 1) <= "Z") {
@@ -2387,12 +2384,14 @@ class cls_Onderdeel extends cls_db_base {
 	public string $type = "";
 	public string $typeoms = "";
 	public string $email = "";
-	public int $alleenleden = 0;		// Mogen van dit onderdeel alleen mensen lid zijn, die ook lid van de vereniging zijn?
-	public $iskader = false;			// Zijn de leden van dit onderdeel kaderlid?
-	public $isautogroep = false;		// Wordt deze groep automatisch bijgewerkt op basis van MySQL-code of een Eigen query in de Access-database.
+	public int $alleenleden = 0;			// Mogen van dit onderdeel alleen mensen lid zijn, die ook lid van de vereniging zijn?
+	public $iskader = false;				// Zijn de leden van dit onderdeel kaderlid?
+	public $isautogroep = false;			// Wordt deze groep automatisch bijgewerkt op basis van MySQL-code of een Eigen query in de Access-database.
 	public int $ledenmuterendoor = 0;	// Door welke extra groep mogen de leden van dit onderdeel worden gemuteerd?
+	public int $historieopschonen = 0;
+	public string $mysql = "";
 	private $mogelijketypes = "";
-	public $aantalrijen = 0;			// Het aantal leden dat dit onderdeel op dit moment heeft
+	public $aantalrijen = 0;				// Het aantal leden dat dit onderdeel op dit moment heeft
 	public $organisatie = 0;
 
 	function __construct($p_oid=-1) {
@@ -2426,6 +2425,8 @@ class cls_Onderdeel extends cls_db_base {
 				$this->organisatie = $row->ORGANIS ?? 0;
 				$this->alleenleden = $row->{'Alleen leden'} ?? 0;
 				$this->ledenmuterendoor = $row->LedenMuterenDoor ?? 0;
+				$this->historieopschonen = $row->HistorieOpschonen ?? 0;
+				$this->mysql = $row->MySQL ?? "";
 				$this->ingevoerd = $row->Ingevoerd ?? "";
 				$this->gewijzigd = $row->Gewijzigd ?? "";
 				if ($row->Kader == 1) {
@@ -2595,12 +2596,23 @@ class cls_Onderdeel extends cls_db_base {
 			$f = "";
 		}
 		
+		if ($p_ingebruik == 1) {
+			if (strlen($f) > 0) {
+				$f .= " AND";
+			}
+			$f .= sprintf(" ((SELECT COUNT(*) FROM %sLidond AS LO WHERE %s AND LO.OnderdeelID=O.RecordID) > 0 OR O.RecordID=%d)", TABLE_PREFIX, str_replace("CURDATE()", "'" . $this->per . "'", cls_db_base::$wherelidond), $p_cv);
+		}
+		
 		$ret = "";
-		$rows = $this->lijst($p_ingebruik, $f);
+		$rows = $this->lijst(0, $f);
 		foreach ($rows as $row) {
 			$o = htmlentities($row->Naam);
-			if ($row->AantalLeden > 1 and $p_aant == 1) {
-				$o .= sprintf(" (%d leden)", $row->AantalLeden);
+			if ($p_aant == 1) {
+				if ($row->AantalLeden > 1) {
+					$o .= sprintf(" (%d leden)", $row->AantalLeden);
+				} elseif ($row->AantalLeden == 0) {
+					$o .= " (Geen leden)";
+				}
 			}
 			$ret .= sprintf("<option%s value=%d>%s</option>\n", checked($row->RecordID, "option", $p_cv), $row->RecordID, $o);
 		}
@@ -3617,10 +3629,10 @@ class cls_Lidond extends cls_db_base {
 		}
 		
 		$query = sprintf("SELECT LO.RecordID, LO.Lid AS LidID, LO.OnderdeelID, LO.Opmerk, LO.Vanaf, LO.Opgezegd, LO.EmailFunctie, LO.GroepID, LO.Functie, LO.Lid,
-								%s AS NaamLid, L.Roepnaam, L.Achternaam, L.Tussenv, %s AS AVGnaam, L.GEBDATUM, %s AS Leeftijd, %s AS Email, L.EmailVereniging, 
+								%s AS NaamLid, L.Roepnaam, L.Achternaam, L.Tussenv, %s AS AVGnaam, L.GEBDATUM, %s AS Leeftijd, %s AS Telefoon, %s AS Email, L.EmailVereniging, 
 								F.Omschrijv AS FunctieOms, F.Afkorting AS FunctAfk, F.Inval AS Invalfunctie, %s AS Groep, GR.DiplomaID,
 								O.Kode, O.Naam AS OndNaam, O.CentraalEmail, IF(LO.Functie > 0, 0, 1) AS RO_Email,
-								GR.Kode AS GrCode, GR.Omschrijving AS GrNaam, GR.Aanwezigheidsnorm, IFNULL(Act.BeperkingAantal, 0) AS BeperkingAantal, L.RelnrRedNed AS SportlinkID,
+								GR.Kode AS GrCode, GR.Omschrijving AS GrNaam, GR.Aanwezigheidsnorm, IFNULL(Act.BeperkingAantal, 0) AS BeperkingAantal, L.RelnrRedNed,
 								CASE WHEN LO.GroepID > 0 AND LO.Functie > 0 THEN CONCAT(F.OMSCHRIJV, '/', IF(LENGTH(GR.Kode)=0, GR.RecordID, GR.Kode))
 									WHEN LO.Functie > 0 THEN F.OMSCHRIJV
 									WHEN LO.GroepID > 0 THEN IF(LENGTH(GR.Omschrijving)=0, IF(LENGTH(GR.Kode)=0, GR.RecordID, GR.Kode), GR.Omschrijving)
@@ -3628,7 +3640,7 @@ class cls_Lidond extends cls_db_base {
 								IF(IFNULL(LO.Opgezegd, '9999-12-31') > CURDATE(), LO.RecordID, 0) AS ridDelete
 						  FROM %s
 						  WHERE %s
-						  ORDER BY %sL.Achternaam, L.Tussenv, L.Roepnaam%s;", $this->selectnaam, $this->selectavgnaam, $this->selectleeftijd, $this->selectemail, $this->selectgroep, $this->fromlidond, $w, $p_ord, $lm);
+						  ORDER BY %sL.Achternaam, L.Tussenv, L.Roepnaam%s;", $this->selectnaam, $this->selectavgnaam, $this->selectleeftijd, $this->selecttelefoon, $this->selectemail, $this->selectgroep, $this->fromlidond, $w, $p_ord, $lm);
 		$result = $this->execsql($query);
 		if ($p_fetched == 1) {
 			return $result->fetchAll();
@@ -4538,6 +4550,7 @@ class cls_Login extends cls_db_base {
 		$this->table = TABLE_PREFIX . "Admin_login";
 		$this->basefrom = $this->table . " AS Login";
 		$this->ta = 5;
+		$this->per = date("Y-m-d");
 		
 		if (isset($_SESSION['settings']['login_beperkttotgroep']) and strlen($_SESSION['settings']['login_beperkttotgroep']) > 0) {
 			$this->beperkttotgroep = explode(",", $_SESSION['settings']['login_beperkttotgroep']);
@@ -5093,6 +5106,7 @@ class cls_Mailing extends cls_db_base {
 		$this->table = TABLE_PREFIX . "Mailing";
 		$this->basefrom = $this->table . " AS M";
 		$this->ta = 4;
+		$this->per = date("Y-m-d");
 		$this->vulvars($p_mid);
 		if (WEBMASTER == false and in_array($_SESSION['settings']['mailing_alle_zien'], explode(",", $_SESSION['lidgroepen'])) == false) {
 			$this->zichtbaarwhere = sprintf("M.ZichtbaarVoor IN (%s)", $_SESSION['lidgroepen']);
@@ -6857,7 +6871,6 @@ class cls_Liddipl extends cls_db_base {
 			}
 		}
 		
-		
 		if ($this->i_dp->voorgangerid > 0 and $this->lidid > 0) {
 			
 			$f = sprintf("LD.Lid=%d AND LD.DiplomaID=%d AND LD.Geslaagd=1 AND LD.LaatsteBeoordeling=1", $this->lidid, $this->dpid);
@@ -6881,7 +6894,7 @@ class cls_Liddipl extends cls_db_base {
 				if (strlen($this->ldtitle) > 0) {
 					$this->ldtitle .= ", ";
 				}
-				$this->ldtitle .= sprintf("%s behaald op %s", $this->i_dp->naam, date("d-m-Y", strtotime($datvg)));
+				$this->ldtitle .= sprintf("%s behaald op %s", (new cls_diploma())->naam($this->i_dp->voorgangerid), date("d-m-Y", strtotime($datvg)));
 			}
 		}
 		
@@ -8017,7 +8030,7 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 		if ($this->i_ev->meerderestartmomenten == 0 and $this->i_ev->starttijd > "00:00") {
 			$this->starttijd = $this->i_ev->starttijd;
 		}
-		if (WEBMASTER or in_array($this->organisatie, explode(",", $_SESSION['lidgroepen']))) {
+		if (WEBMASTER or in_array($this->i_ev->organisatie, explode(",", $_SESSION['lidgroepen']))) {
 			$this->magmuteren = true;
 		}
 		$this->onlineinschrijving = 0;
@@ -11302,21 +11315,6 @@ function db_onderhoud($type=9) {
 	/***** Kolommen/indexen die later zijn toegevoegd. *****/
 	$i_base->tas = 11;
 	
-	// Deze code kan na 1 januari 2024 worden verwijderd.
-	$tab = TABLE_PREFIX . "Onderdl";
-	$col = "LedenMuterenDoor";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NULL AFTER `ORGANIS`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Onderdl";
-	$col = "BeschikbaarVoor";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NULL AFTER `ORGANIS`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
 	// Deze code kan na 1 maart 2024 worden verwijderd.
 	$tab = TABLE_PREFIX . "Admin_activiteit";
 	$idx = "TableColumn";
@@ -11644,17 +11642,7 @@ function db_onderhoud($type=9) {
 	$query = sprintf("ALTER TABLE `%sSeizoen` CHANGE `Gezinskorting kostenplaats` `Gezinskorting kostenplaats` VARCHAR(12) NULL;", TABLE_PREFIX);
 	$i_base->execsql($query);
 	
-	// Deze code mag na 1 januari 2024 worden verwijderd.
-	$query = sprintf("ALTER TABLE `%sAdmin_login` CHANGE `Gewijzigd` `Gewijzigd` DATETIME NULL;", TABLE_PREFIX);
-	$i_base->execsql($query);
-	
-	if ($i_base->bestaat_kolom("IngevoerdOp", "Stukken") == true) {
-		$query = sprintf("ALTER TABLE `%sStukken` CHANGE `IngevoerdOp` `Ingevoerd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
-		$i_base->execsql($query);
-	}
-	
-	// Deze code mag na 1 juni 2024 worden verwijderd.
-	
+	// Deze code mag na 1 juni 2024 worden verwijderd.	
 	if ($i_base->bestaat_kolom("GewijzigdOp", "Stukken") == true) {
 		$i_base->execsql(sprintf("ALTER TABLE `%sStukken` CHANGE `GewijzigdOp` `Gewijzigd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX));
 	}
@@ -12046,8 +12034,6 @@ function db_onderhoud($type=9) {
 		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
 		$i_base->execsql($query, 2);
 	}
-	
-	/***** Opschonen database na een upload uit de Access-database.  *****/
 	
 	if ($_SERVER["HTTP_HOST"] != "phprbm.telling.nl") {
 		//  Deze tabellen moeten op dit moment alleen in de ontwikkelomgeving aanwezig zijn. 
