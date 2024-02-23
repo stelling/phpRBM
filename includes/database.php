@@ -4306,8 +4306,9 @@ class cls_Groep extends cls_db_base {
 	public $afdid = 0;
 	public $grid = -1;
 	public $actid = 0;
-	public $naam = "";
-	public $groms = "";
+	public string $naam = "";
+	public string $code = "";
+	public string $groms = "";
 	public $dpid = 0;
 	public $starttijd = "";
 	public $eindtijd = "";
@@ -4350,6 +4351,7 @@ class cls_Groep extends cls_db_base {
 				} else {
 					$this->naam = "Groep " . $this->grid ?? 0;
 				}
+				$this->code = $row->Kode ?? "";
 				$this->groms = $this->naam;
 				$this->instructeurs = trim($row->Instructeurs ?? "");
 				if (strlen($this->instructeurs) > 1) {

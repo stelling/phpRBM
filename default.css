@@ -52,6 +52,10 @@ i {
 	text-align: left;
 }
 
+.form-check-input {
+	margin-right: 3px;
+}
+
 .form-floating > label {
 	background-color: inherit;
 }
@@ -1131,42 +1135,20 @@ table#presentiemuteren td.aanwezig {
 }
 
 #afdelingsmailing label {
-	clear: none;
-	float: left;
-}
-
-#afdelingsmailing ul {
-	padding-left: 0;
-	clear: left;
-	float: left;
-}
-
-#afdelingsmailing ul {
-	width: 100%;
-}
-
-#afdelingsmailing li {
-	list-style: none;
-	position: relative;
-	float: left;
-	width: 25%;
-	margin-left: 0;
-	padding-left: 0;
-}
-
-#afdelingsmailing input[type='checkbox'] {
-	margin-left: 0;
-	padding-left: 0;
-}
-
-#afdelingsmailing p {
-	margin-right: 8px;
-	overflow: hidden;
-	padding-bottom: 3px;
-}
-
-#afdelingsmailing label.form-label {
 	width: 175px;
+}
+
+#afdelingsmailing label.btn {
+	width: auto;
+}
+
+#afdelingsmailing input.form-check-input {
+	margin-left: 0;
+	padding-left: 0;
+}
+
+#afdelingsmailing label.form-check-label {
+	min-width: 210px;
 }
 
 #diplomamuteren, #examenresultaten {
