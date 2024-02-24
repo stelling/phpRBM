@@ -3171,6 +3171,24 @@ class cls_Aanwezigheid extends cls_db_base {
 		return $this->scalar($query);
 	}
 	
+	function maxstatusperiode($p_status, $p_afdid, $p_begin, $p_einde="") {
+		
+		if (strlen($p_einde) < 10) {
+			$p_einde = date("Y-m-d");
+		}
+		
+		$rv = 0;
+		
+		$query = sprintf("SELECT AW.LidondID, COUNT(AW.Status) AS Aant FROM (%1\$s INNER JOIN %2\$sLidond AS LO ON AW.LidondID=LO.RecordID) INNER JOIN %2\$sAfdelingskalender AS AK ON AK.RecordID=AW.AfdelingskalenderID WHERE LO.OnderdeelID=%3\$d AND AW.Status='%4\$s' AND AK.Datum >= '%5\$s' AND AK.Datum <= '%6\$s' GROUP BY AW.LidondID;", $this->basefrom, TABLE_PREFIX, $p_afdid, $p_status, $p_begin, $p_einde);
+		foreach ($this->execsql($query)->fetchAll() as $row) {
+			if ($row->Aant > $rv) {
+				$rv = $row->Aant;
+			}
+		}
+		return $rv;
+		
+	}  # cls_Aanwezigheid->maxstatusperiode
+	
 	public function overzichtlid($p_lidid, $p_seizoen=-1) {
 		$this->lidid = $p_lidid;
 		
@@ -6794,7 +6812,9 @@ class cls_Liddipl extends cls_db_base {
 	private int $ldid = 0;
 	private int $dpid = 0;
 	private $datbehaald = "";
-	private $examen = 0;
+	private int $examen = 0;
+	private int $geslaagd = 0;
+	private int $laatsstebeoordeling = 1;
 	private string $lidnaam = "";
 	private string $lidgeboortedatum = "";
 	
@@ -6836,7 +6856,9 @@ class cls_Liddipl extends cls_db_base {
 				$this->lidid = $row->Lid;
 				$this->dpid = $row->DiplomaID;
 				$this->datbehaald = $row->DatumBehaald;
-				$this->examen = $row->Examen;
+				$this->examen = $row->Examen ?? 0;
+				$this->geslaagd = $row->Geslaagd ?? 0;
+				$this->laatsstebeoordeling = $row->LaatsteBeoordeling ?? 1;
 				$this->licentievervaltper = $row->LicentieVervallenPer;
 			} else {
 				$this->ldid = 0;
@@ -6875,7 +6897,7 @@ class cls_Liddipl extends cls_db_base {
 		
 		if ($this->i_dp->voorgangerid > 0 and $this->lidid > 0) {
 			
-			$f = sprintf("LD.Lid=%d AND LD.DiplomaID=%d AND LD.Geslaagd=1 AND LD.LaatsteBeoordeling=1", $this->lidid, $this->dpid);
+			$f = sprintf("LD.Lid=%d AND LD.DiplomaID=%d AND LD.Geslaagd=1 AND LD.LaatsteBeoordeling=1", $this->lidid, $this->i_dp->voorgangerid);
 			$datvg = $this->max("DatumBehaald", $f);
 			if (strlen($datvg) < 10) {
 				$this->ldclass .= " voorgangerontbreekt";
@@ -6886,7 +6908,7 @@ class cls_Liddipl extends cls_db_base {
 			}
 		}
 		
-		if ($this->i_dp->doorlooptijd > 0 and $this->i_dp->voorgangerid > 0) {
+		if ($this->i_dp->doorlooptijd > 0 and $this->i_dp->voorgangerid > 0 and $this->geslaagd == 0) {
 			$f = sprintf("LD.Lid=%d AND LD.DiplomaID=%d AND LD.Geslaagd=1 AND LD.LaatsteBeoordeling=1", $this->lidid, $this->i_dp->voorgangerid);
 			$datvg = $this->max("DatumBehaald", $f);
 			$hd = new datetime($this->datbehaald);
@@ -9603,6 +9625,9 @@ class cls_Seizoen extends cls_db_base {
 	private function vulvars($p_szid=-1) {
 		if ($p_szid >= 0) {
 			$this->szid = $p_szid;
+		} else {
+			$query = sprintf("SELECT IFNULL(SZ.Nummer, 0) FROM %1\$s WHERE SZ.Begindatum <= '%2\$s' AND SZ.Einddatum >= '%2\$s';", $this->basefrom, $this->per);
+			$this->szid = $this->scalar($query);
 		}
 		if ($this->szid > 0) {
 			$query = sprintf("SELECT SZ.*, DATE_SUB(SZ.Begindatum, INTERVAL SZ.`Leeftijdsgrens jeugdleden` YEAR) AS PDJL FROM %s WHERE SZ.Nummer=%d;", $this->basefrom, $this->szid);
