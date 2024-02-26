@@ -2711,7 +2711,7 @@ class cls_Onderdeel extends cls_db_base {
 			}
 			$this->log($this->oid);
 		}
-	}
+	}  # cls_Onderdeel->delete
 	
 	public function controle() {		
 		$a['BST'] = "Bestuur";
@@ -2732,7 +2732,7 @@ class cls_Onderdeel extends cls_db_base {
 			if ($c == "Kad") {
 				$this->update($oid, "Kader", 0);
 				$this->update($oid, "HistorieOpschonen", 0);
-				$s = sprintf("SELECT DISTINCT LO.Lid AS LidID FROM %1\$sLid AS L INNER JOIN ((%1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID=LO.OnderdeelID) INNER JOIN %1\$sFunctie AS F ON F.Nummer=LO.Functie) ON LO.Lid=L.RecordID WHERE LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE() AND (F.Kader=1 OR O.Kader=1);", TABLE_PREFIX);
+				$s = sprintf("SELECT DISTINCT LO.Lid AS LidID FROM %1\$sLid AS L INNER JOIN ((%1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID=LO.OnderdeelID) INNER JOIN %1\$sFunctie AS F ON F.Nummer=LO.Functie) ON LO.Lid=L.RecordID WHERE LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE() AND (F.Kader=1 OR O.Kader=1);", TABLE_PREFIX);
 				$this->update($oid, "MySQL", $s);
 			} else {
 				$this->update($oid, "Kader", 1);
@@ -2749,7 +2749,7 @@ class cls_Onderdeel extends cls_db_base {
 			} elseif (strpos("EOT", $row->Type) !== false and $row->Kader == 1) {
 				$reden = "bij een eigenschap, onderscheiding of toestemming mag kader geen ja zijn";
 				$this->update($row->RecordID, "Kader", 0, $reden);
-			} elseif (strlen($row->MySQL) > 5 and $row->{'Alleen leden'} > 0) {
+			} elseif (strlen($row->MySQL) > 0 and $row->{'Alleen leden'} > 0) {
 				$reden = "als er MySQL code is ingevuld, alleen leden niet aan mag staan.";
 				$this->update($row->RecordID, "Alleen leden", 0, $reden);
 			}
@@ -3278,15 +3278,15 @@ class cls_Aanwezigheid extends cls_db_base {
 		
 	}  # cls_Aanwezigheid->gemistelessen
 	
-	private function add($p_loid, $p_akid) {
+	private function add($p_loid, $p_akid, $p_status="") {
 		$this->vulvars($p_loid, $p_akid);
 		$this->tas = 1;
 		
 		if (strlen($this->i_ak->datum) >= 10) {
 			$nrid = $this->nieuwrecordid();
-			$query = sprintf("INSERT INTO %s (RecordID, LidondID, AfdelingskalenderID, Status, Opmerking) VALUES (%d, %d, %d, '', '');", $this->table, $nrid, $p_loid, $p_akid);
+			$query = sprintf("INSERT INTO %s (RecordID, LidondID, AfdelingskalenderID, Status, Opmerking) VALUES (%d, %d, %d, '%s', '');", $this->table, $nrid, $p_loid, $p_akid, $p_status);
 			if ($this->execsql($query) > 0) {
-				$this->mess = sprintf("Tabel %s: Record %d (%s) is toegevoegd.", $this->table, $nrid, $this->naamlogging);
+				$this->mess = sprintf("Tabel %s: Record %d (%s) met status '%s' is toegevoegd.", str_replace(TABLE_PREFIX, "", $this->table), $nrid, $this->naamlogging, $p_status);
 			} else {
 				$this->mess = "Toevoegen record aanwezigheid is mislukt.";
 				$nrid = 0;
@@ -3306,12 +3306,16 @@ class cls_Aanwezigheid extends cls_db_base {
 		$this->vulvars($p_loid, $p_akid);
 		$this->tas = 2;
 		
+		$s = "";
+		if ($p_kolom == "Status") {
+			$s = $p_waarde;
+		}
+		
 		if ($this->loid > 0 and $this->aanwid == 0 and strlen($p_waarde) > 0) {
-			$this->add($this->loid, $this->akid);
+			$this->add($this->loid, $this->akid, $s);
 		}
 		
 		if ($this->aanwid > 0 and $this->pdoupdate($this->aanwid, $p_kolom, $p_waarde) > 0) {
-			$this->mess = sprintf("Tabel Aanwezigheid: Kolom '%s' in record %d is in '%s' gewijzigd.", $p_kolom, $this->aanwid, $p_waarde);
 			$this->log($this->aanwid, 0, $this->ondid);
 		}
 	}
@@ -6197,6 +6201,7 @@ class cls_Logboek extends cls_db_base {
 			$lo = (new cls_Aanwezigheid())->max("LidondID", $f);
 			$f = sprintf("LO.RecordID=%d", $lo);
 			$refondid = (new cls_Lidond())->max("OnderdeelID", $f);
+			$this->lidid = (new cls_Lidond())->max("Lid", $f);
 			
 		} elseif ($p_reftable == "Rekreg" and $p_referid > 0) {
 			$f = sprintf("RR.RecordID=%d", $p_referid);
