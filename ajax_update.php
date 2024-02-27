@@ -244,9 +244,8 @@ if ($_SESSION['lidid'] > 0) {
 		
 	} elseif ($ent == "mailing_verw_ontvanger") {
 		
-		$email = $_POST['email'] ?? "";
 		$i_mr = new cls_Mailing_rcpt();
-		$rv = $i_mr->delete($rid, $email);
+		$rv = $i_mr->delete($rid);
 		$i_mr = null;
 		
 		echo(json_encode($rv));
