@@ -3051,7 +3051,7 @@ class cls_Afdelingskalender extends cls_db_base {
 		
 		$query = sprintf("INSERT INTO %s (RecordID, OnderdeelID, Datum) VALUES (%d, %d, '%s');", $this->table, $nrid, $p_ondid, $dat);
 		if ($this->execsql($query) > 0) {
-			$this->mess = sprintf("Record %d (%s) is voor afdeling %s aan de afdelingskalender toegevoegd.", $nrid, $dat, $this->ondnaam);
+			$this->mess = sprintf("Tabel %s: Record %d (%s) is toegevoegd", str_replace(TABLE_PREFIX, "", $this->table), $nrid, $dat);
 		}
 		
 		$this->log($nrid, 0, $p_ondid);
@@ -3065,7 +3065,7 @@ class cls_Afdelingskalender extends cls_db_base {
 		
 		$query = sprintf("SELECT COUNT(*) FROM %s WHERE AK.OnderdeelID=%d AND AK.Datum='%s' AND AK.RecordID<>%d;", $this->basefrom, $this->ondid, $p_waarde, $this->akid);
 		if ($p_kolom == "Datum" and $this->scalar($query) > 0) {
-			$this->mess = sprintf("Datum '%s' staat al in de afdelingskalender van %s. De wijziging wordt niet verwerkt.", $p_waarde, $this->ondnaam);
+			$this->mess = sprintf("Datum '%s' staat al in de afdelingskalender. De wijziging wordt niet verwerkt.", $p_waarde);
 			$rv = $this->mess;
 			$this->log($this->akid);
 		} elseif ($this->pdoupdate($p_akid, $p_kolom, $p_waarde) > 0) {
@@ -3869,7 +3869,7 @@ class cls_Lidond extends cls_db_base {
 			$this->mess = sprintf("OnderdeelID %d bestaat niet. Record wordt niet toegevoegd.", $this->ondid);
 			
 		} elseif ($this->magmuteren == false and debug_backtrace()[1]['function'] != "autogroepenbijwerken") {
-			$this->mess = sprintf("Je bent niet bevoegd om van onderdeel '%s' de leden te muteren.", $this->ondnaam);
+			$this->mess = sprintf("Je bent niet bevoegd om van onderdeel '%s' de leden te muteren.", $this->i_ond->naam);
 			
 		} elseif (strlen($this->lidnaam) == 0) {
 			$this->mess = sprintf("Lid %d bestaat niet. Dit record wordt niet toegevoegd.", $this->lidid);
@@ -3925,7 +3925,7 @@ class cls_Lidond extends cls_db_base {
 			$this->tm = 1;
 
 		} elseif ($this->magmuteren == false and $p_kolom != "GroepID" and debug_backtrace()[1]['function'] != "autogroepenbijwerken" and debug_backtrace()[1]['function'] != "auto_einde") {
-			$this->mess = sprintf("Je bent niet bevoegd om van onderdeel '%s' de leden te muteren.", $this->ondnaam);
+			$this->mess = sprintf("Je bent niet bevoegd om van onderdeel '%s' de leden te muteren.", $this->i_ond->naam);
 			$this->tm = 1;
 			
 		} elseif ($p_kolom == "Vanaf" and $this->i_ond->alleenleden == 1 and (new cls_Lidmaatschap())->soortlid($this->lidid, $p_waarde) !== "Lid") {
@@ -3967,7 +3967,7 @@ class cls_Lidond extends cls_db_base {
 				$this->mess .= sprintf(". Er zijn van dit lid ook %d presentie-records verwijderd.", $a);
 			}
 		} else {
-			$this->mess = sprintf("Je bent niet bevoegd om leden bij onderdeel %s te verwijderen", $this->ondnaam);
+			$this->mess = sprintf("Je bent niet bevoegd om leden bij onderdeel %s te verwijderen", $this->i_ond->naam);
 		}
 		$this->log($this->loid, 0, $this->ondid);
 		
@@ -5333,13 +5333,7 @@ class cls_Mailing extends cls_db_base {
 	
 	public function controle() {
 		
-		foreach($this->basislijst() as $mrow) {
-			if (strlen($mrow->OmschrijvingOntvangers) == 0 and strlen($mrow->to_name) > 0) {
-				$this->update($mrow->RecordID, "OmschrijvingOntvangers", $mrow->to_name, "de inhoud is overgezet");
-				$this->log($mrow->RecordID);
-			}
-		}
-		
+
 	}  # cls_Mailing->controle
 	
 	public function opschonen() {
@@ -5707,12 +5701,20 @@ class cls_Mailing_rcpt extends cls_db_base {
 		$this->tas = 10;
 	}
 	
-	private function vulvars($p_mrid=-1, $p_mid=-1) {
+	private function vulvars($p_mrid=-1, $p_mid=-1, $p_lidid=-1) {
 		if ($p_mrid >= 0) {
 			$this->mrid = $p_mrid;
 		}
 		if ($p_mid >= 0) {
 			$this->mid = $p_mid;
+		}
+		if ($p_lidid >= 0) {
+			$this->lidid = $p_lidid;
+		}
+		
+		if ($this->mrid <= 0 and $this->mid > 0 and $this->lidid > 0) {
+			$query = sprintf("SELECT IFNULL(MR.RecordID, 0) FROM %s WHERE MR.MailingID=%d AND MR.LidID=%d;", $this->basefrom, $this->mid, $this->lidid);
+			$this->mrid = $this->scalar($query);
 		}
 
 		$this->email = "";
@@ -5759,13 +5761,11 @@ class cls_Mailing_rcpt extends cls_db_base {
 	}  # cls_Mailing_rcpt->lijst
 	
 	public function record($p_mid, $p_lidid) {
-		$this->mid = $p_mid;
-		$this->lidid = $p_lidid;
+		$this->vulvars(-1, $p_mid, $p_lidid);
 		$query = sprintf("SELECT MR.* FROM %s WHERE MR.MailingID=%d AND MR.LidID=%d;", $this->basefrom, $this->mid, $this->lidid);
 		$result = $this->execsql($query);
 		$row = $result->fetch();
 		if (isset($row->RecordID)) {
-			$this->mrid = $row->RecordID;
 			return $row;
 		} else {
 			return false;
@@ -5838,23 +5838,17 @@ class cls_Mailing_rcpt extends cls_db_base {
 		return $nrid;
 	}  # cls_Mailing_rcpt->add
 	
-	public function delete($p_mrid, $p_email="", $p_geenlog=0) {
+	public function delete($p_mrid, $p_geenlog=0) {
 		$this->vulvars($p_mrid);
 		$this->tas = 13;
 
-		$query = sprintf("DELETE FROM %s WHERE RecordID=%d;", $this->table, $this->mrid);
-		if ($this->lidid > 0) {
-			$r = (new cls_Lid())->Naam($this->lidid);
-		} else {
-			$r = $this->email;
-		}
-		$rv = $this->execsql($query);
+		$rv = $this->pdodelete($this->mrid);
 		
 		if ($p_geenlog == 0) {
-			if ($rv == 0) {
-				$this->mess = sprintf("%s is bij mailing %d niet verwijderd.", $r, $this->mid);
-			} else {
-				$this->mess = sprintf("%s is bij mailing %d verwijderd.", $r, $this->mid);
+			if ($rv == 0 and $this->lidid == 0) {
+				$this->mess = sprintf("%s is bij mailing %d niet verwijderd.", $this->email, $this->mid);
+			} elseif ($this->lidid == 0) {
+				$this->mess = sprintf("%s is bij mailing %d (%s) verwijderd.", $this->email, $this->mid, $this->naamlogging);
 			}
 			$this->log($this->mid);
 		}
@@ -5863,11 +5857,12 @@ class cls_Mailing_rcpt extends cls_db_base {
 	}  # cls_Mailing_rcpt->delete
 	
 	public function delete_all($p_mid) {
+		$this->vulvars(-1, $p_mid);
 		
 		$query = sprintf("DELETE FROM %s WHERE MailingID=%d;", $this->table, $p_mid);
 		$rv = $this->execsql($query);
 		if ($rv > 0) {
-			$this->mess = sprintf("Alle %d ontvangers zijn bij mailing %d verwijderd.", $rv, $p_mid);
+			$this->mess = sprintf("Alle %d ontvangers zijn bij mailing %d (%s) verwijderd.", $rv, $p_mid, $this->naamlogging);
 			$this->log($p_mid);
 		}
 		
@@ -6320,6 +6315,16 @@ class cls_Logboek extends cls_db_base {
 			$data['useragent'] = substr($_SERVER['HTTP_USER_AGENT'], 0, 125);
 		} else {
 			$data['useragent'] = $_SERVER['HTTP_USER_AGENT'];
+		}
+		$dpt = 0;
+		$l = 15;
+		for ($i=0;$i<20;$i++) {
+			if (substr($data['useragent'], $i, 1) == ":") {
+				$dpt++;
+				if ($dpt == 4) {
+					$l = $i;
+				}
+			}
 		}
 		
 		if ($this->tm == 2 and WEBMASTER == false) {
