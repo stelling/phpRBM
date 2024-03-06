@@ -909,9 +909,7 @@ function logboek() {
 	
 	$ord = fnOrderBy($kols);
 	
-	if (!isset($_POST['tbTekstFilter']) or strlen($_POST['tbTekstFilter']) == 0) {
-		$_POST['tbTekstFilter'] = "";
-	}
+	$tbTekstFilter = $_POST['tbTekstFilter'] ?? "";
 	if (!isset($_POST['typefilter']) or strlen($_POST['typefilter']) == 0) {
 		$_POST['typefilter'] = -1;
 	}
@@ -923,8 +921,14 @@ function logboek() {
 	$_POST['ingelogdeanderen'] = intval($_POST['ingelogdeanderen']);
 	
 	$f = "";
+	if (strlen($tbTekstFilter) > 1 and $_POST['aantalrijen'] > 1500) {
+		$f = sprintf("Omschrijving LIKE '%%%s%%'", $tbTekstFilter);
+	}
 	if (strlen($_POST['kolomfilter']) > 0) {
-		$f = sprintf("CONCAT(A.RefTable, '-', A.refColumn)='%s'", $_POST['kolomfilter']);
+		if (strlen($f) > 0) {
+			$f .= " AND ";
+		}
+		$f .= sprintf("CONCAT(A.RefTable, '-', A.refColumn)='%s'", $_POST['kolomfilter']);
 	}
 	if ($_POST['ingelogdeanderen'] == 1) {
 		if (strlen($f) > 0) {
@@ -936,7 +940,7 @@ function logboek() {
 	
 	printf("<form class='form-check form-switch' method='post' id='filter' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
 	
-	printf("<input type='text' id='tbTekstFilter' title='Filter tabel' placeholder='Tekst filter' OnKeyUp=\"fnFilter('%s', this);\">\n", __FUNCTION__);
+	printf("<input type='text' id='tbTekstFilter' name='tbTekstFilter' title='Filter tabel' value='%s' placeholder='Tekst filter' OnKeyUp=\"fnFilter('%s', this);\">\n", $tbTekstFilter, __FUNCTION__);
 	
 	echo("<select name='typefilter' class='form-select form-select-sm' onchange='this.form.submit();'>\n");
 	echo("<option value=-1>Filter op type ....</option>\n");
