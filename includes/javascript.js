@@ -6,10 +6,10 @@ function fnFilter(p_table, p_filtercontrol, p_skipkolom=-1) {
 	} else {
 		filter = p_filtercontrol.value.toUpperCase().trim();
 	}
-	table = document.getElementById(p_table);
-	tr = table.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
-	
 	if (filter.length > 2) {
+		table = document.getElementById(p_table);
+		tbody = table.getElementsByTagName("tbody")[0];
+		tr = tbody.getElementsByTagName("tr");
 
 		for (i = 0; i < tr.length; i++) {
 			var hideline = true;
@@ -100,7 +100,10 @@ function savecb(entity, rid, control) {
 		type: 'post',
 		dataType: 'json',
 		data: { field:control.id, value:value, id:rid },
-		success:function(response){}
+		success:function(response){},
+		fail: function( data, textStatus ) {
+			alert(entity + ': update database is niet gelukt. ' + textStatus);
+		}
 	});
 }
 
@@ -170,13 +173,7 @@ function lidalgwijzprops() {
 			vl.val(rn.val().substring(0, 1) + '.');
 		}
 	}
-	
-	if (gs.val() == "V") {
-		$('#lblMeisjesnm, #Meisjesnm, #uitleg_meisjesnm').show();
-	} else {
-		$('#lblMeisjesnm, #Meisjesnm, #uitleg_meisjesnm').hide();
-	}
-	
+		
 	var gbd = $('#GEBDATUM');
 	var t = "";
 	if (gbd.val().length == 10 && gbd.val() > '1920-01-01') {
@@ -360,8 +357,12 @@ function mailingprops() {
 	});
 	
 	const options = { year: 'numeric', month: 'long', day: 'numeric' };
-	var dat = new Date($('#selectie_vangebdatum').val());
-	document.getElementById('tekst_vangebdatum').innerHTML = ' (' + dat.toLocaleDateString('nl-NL', options) + ')';
+	if ($('#selectie_vangebdatum').val().length) {
+		var dat = new Date($('#selectie_vangebdatum').val());
+		document.getElementById('tekst_vangebdatum').innerHTML = ' (' + dat.toLocaleDateString('nl-NL', options) + ')';
+	} else {
+		document.getElementById('tekst_vangebdatum').innerHTML = '';
+	}
 	
 	dat = new Date($('#selectie_temgebdatum').val());
 	document.getElementById('tekst_temgebdatum').innerHTML = ' (' + dat.toLocaleDateString('nl-NL', options) + ')';
@@ -373,10 +374,19 @@ function mailingprops() {
 		success: function(response) {
 			if (response['aantalontvangers'] > 1) {
 				$('#lblOntvangers').html('Ontvangers (' + response['aantalontvangers'] + ')');
+				$('#OntvangersVerwijderen').prop("disabled", false);
+				$('#GroepsledenVerwijderen').prop("disabled", false);
 			} else {
 				$('#lblOntvangers').html('Ontvangers');
+				$('#OntvangersVerwijderen').prop("disabled", true);
+				$('#GroepsledenVerwijderen').prop("disabled", true);
 			}
 			document.getElementById('aantalpersoneningroep').innerHTML = response['aantalingroep'];
+			if (response['aantalingroep'] > 0) {
+				$('#LedenToevoegen').prop("disabled", false);
+			} else {
+				$('#LedenToevoegen').prop("disabled", true);
+			}
 		},
 		error: function(jqXHR, textStatus, errorThrown) {
 			alert('Ophalen mislukt: ' + errorThrown);
@@ -400,36 +410,23 @@ function mailingprops() {
 		}
 	});
 	
-	/*
-	
-	if (document.getElementById('cb_alle_personen').checked == true) {
-		f = 1;
-	} else {
-		f = 0;
-	}
-	$.ajax({
-		url: 'ajax_update.php?entiteit=options_mogelijke_ontvangers',
-		type: 'post',
-		dataType: 'json',
-		data: { mailingid: mid, alle: f },
-		success: function(response) {
-			document.getElementById('add_lid').innerHTML = response;
-		}
-	});
-	*/
 }
 
 function mailing_add_ontvanger(p_mid, p_lidid, p_email) {
-	var mid = $('#recordid').text();
 	
 	$.ajax({
 		url: 'ajax_update.php?entiteit=mailing_add_ontvanger',
 		type: 'post',
 		dataType: 'json',
-		data: { mid: mid, lidid: p_lidid, email: p_email }
+		data: { mid: p_mid, lidid: p_lidid, email: p_email },
+		success: function(response){
+			mailingprops();
+		},
+		error: function(jqXHR, textStatus, errorThrown) {
+			alert('Toevoegen ontvanger mislukt: ' + errorThrown);
+		}
 	});
 	document.getElementById('add_lid').value = 0;
-	mailingprops();
 }
 
 function mailing_add_selectie_ontvangers() {
@@ -445,6 +442,9 @@ function mailing_add_selectie_ontvangers() {
 		data: { mid: mid, selgroep: groepid, vangebdatum: vangebdatum, temgebdatum: temgebdatum },
 		success: function(response){
 			mailingprops();
+		},
+		error: function(jqXHR, textStatus, errorThrown) {
+			alert('Toevoegen ontvangers via selectie mislukt: ' + errorThrown);
 		}
 	});
 }
@@ -460,7 +460,6 @@ function mailing_verw_ontvanger(p_rid, p_email) {
 			$("#ontvanger_" + p_rid).addClass("deleted");
 		}
 	});
-	
 }
 
 function mailing_verw_selectie_ontvangers() {
@@ -478,23 +477,20 @@ function mailing_verw_selectie_ontvangers() {
 			mailingprops();
 		},
 		error: function(jqXHR, textStatus, errorThrown) {
-			alert('Mislukt: ' + errorThrown);
+			alert('Verwijderen ontvangers via selectie is mislukt: ' + errorThrown);
 		}
 	});
 }
 
-function mailing_verw_alle_ontvangers() {
-	var mid = $('#recordid').text();
+function mailing_verw_alle_ontvangers(p_mid) {
 	
 	$.ajax({
 		url: 'ajax_update.php?entiteit=mailing_verw_alle_ontvangers',
 		type: 'post',
 		dataType: 'json',
-		data: { mid: mid },
-		success: function(response){
-			if (response > 0) {
-				mailingprops();
-			}
+		data: { mid: p_mid },
+		success: function(){
+			mailingprops();
 		}
 	});
 }
