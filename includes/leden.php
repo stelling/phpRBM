@@ -41,7 +41,7 @@ function fnLedenlijst() {
 
 		if (count($rows) > 0) {
 			echo("<div id='filter'>\n");
-			echo("<input id='tbOmsFilter' OnKeyUp=\"fnFilter('logboek', this);\" title='Tekstfilter'>");
+			echo("<input id='tbOmsFilter' placeholder='Tekstfilter' OnKeyUp=\"fnFilter('logboek', this);\" title='Tekstfilter'>");
 			printf("<p class='aantrecords'>%d rijen</p>\n", count($rows));
 			echo("</div> <!-- Einde filter -->\n");
 			echo(fnDisplayTable($rows, 'logboek', "Logboek lidgegevens", 0, "", "logboek"));
@@ -886,6 +886,12 @@ function detailsonderdeelmuteren($p_ondid) {
 	printf("<label class='form-label'>RecordID</label><p>%s</p>\n", $row->RecordID);
 	printf("<label class='form-label'>Code</label><input type='text' id='Kode' class='w7' value='%s' maxlength=7>\n", $row->Kode);
 	printf("<label class='form-label'>Naam</label><input type='text' id='Naam' class='w50' value=\"%s\" maxlength=50>\n", $row->Naam);
+	printf("<label class='form-label'>Type onderdeel</label><p>%s</p>\n", $i_ond->typeoms);
+	
+	if (($i_ond->type == "G" or $i_ond->type == "R" or $i_ond->type == "S")) {
+		printf("<label>Opmerking / uitleg</label><textarea id='Opmerking' name='Opmerking'>%s</textarea>\n", $i_ond->opmerking);
+	}
+	
 	if ($i_ond->type != "T" and $i_ond->type != "O") {
 		printf("<label class='form-label'>Centraal e-mailadres</label><input type='email' id='centraalemail' class='w50' value='%s' maxlength=50>\n", $row->CentraalEmail);
 		printf("<label class='form-label'>Is kader</label><input type='checkbox' class='form-check-input' id='Kader' %s>\n", checked($row->Kader));
@@ -915,7 +921,7 @@ function detailsonderdeelmuteren($p_ondid) {
 	printf("<label class='form-label'>Maximale periode</label><input type='number' class='num3' id='MaximaleLengtePeriode' value=%d><p>dagen</p>\n", $row->MaximaleLengtePeriode);
 
 	if (($i_ond->type == "G" or $i_ond->type == "R" or $i_ond->type == "S") and WEBMASTER) {
-		printf("<label>MySQL-code automatisch bijwerken</label><textarea id='mysql' name='mysql'>%s</textarea>\n", $row->MySQL);
+		printf("<label>MySQL-code automatisch bijwerken</label><textarea id='mysql' name='mysql'>%s</textarea>\n", $i_ond->mysql);
 		if (strlen($row->MySQL) > 10 and $i_ond->controleersql($row->MySQL, 1) == false) {
 			echo("<p class='waarschuwing'>Deze code kan niet worden uitgevoerd.</p>");
 		} elseif (strlen($row->MySQL) > 10) {
@@ -1062,6 +1068,10 @@ function LedenOnderdeelMuteren($p_ondid) {
 
 		echo(fnEditTable($res, $kols, "ledenperonderdeelmuteren", $i_ond->naam));
 		echo($nl);
+		
+		if (strlen($i_ond->opmerking) > 0) {
+			printf("<p>%s</p>\n", $i_ond->opmerking);
+		}
 	
 		if ($i_ond->isautogroep) {
 			echo("<p>Deze groep wordt automatisch bijgewerkt.</p>\n");
@@ -1292,7 +1302,7 @@ function fnEigenGegevens($lidid=0) {
 		$kols=null;
 		$tn = "Eigenschappen";
 		$kols[] = array('headertext' => "Eigenschap", 'columnname' => "Naam");
-		$kols[] = array('headertext' => "Vanaf", 'columnname' => "Vanaf");
+		$kols[] = array('headertext' => "Toegevoegd op", 'columnname' => "Vanaf");
 
 		if ($gs != "B" and count($i_lo->lijstperlid($lidid, "E")) > 0 and toegang($ct . $tn, 0, 0)) {
 			$rows = $i_lo->overzichtlid($lidid, "E");
@@ -1940,9 +1950,9 @@ function nieuwepasfoto($lidid, $filterlid="") {
 		echo("<input type='submit' name='Upload' value='Insturen'>\n");
 		echo("</form>\n");
 		echo("<br>\n<ul>\n");
-		echo("<li>Het ideale formaat van de pasfoto is 390 pixels breed bij 500 pixels hoog.</li>\n");
-		printf("<li>De volgende extensies '%s' van het bestand zijn toegestaan.</li>\n", implode(", ", PASFOTOEXTENTIES));
-		printf("<li>Het bestand moet minimaal %d&nbsp;bytes groot zijn en mag niet groter dan %d KB zijn.</li>\n", $min_size_attachm, $max_size_attachm / 1024);
+		echo("<li>Het ideale formaat van de pasfoto is 390&nbsp;pixels breed bij 500&nbsp;pixels hoog.</li>\n");
+		printf("<li>De volgende extensies '%s' van het bestand zijn toegestaan.</li>\n", implode(",&nbsp;", PASFOTOEXTENTIES));
+		printf("<li>Het bestand moet minimaal %d&nbsp;bytes groot zijn en mag niet groter dan %d&nbsp;KB zijn.</li>\n", $min_size_attachm, $max_size_attachm / 1024);
 		if ($lidid == $_SESSION['lidid']) {
 			echo("<li>Met het uploaden van deze pasfoto geef je toestemming om deze foto aan bezoekers van deze website te tonen.</li>\n");
 		}
