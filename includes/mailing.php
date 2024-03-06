@@ -87,15 +87,15 @@ function fnMailing() {
 		fnRekeningenMailen($op);
 		
 	} elseif ($currenttab2 == "Logboek" and toegang($_GET['tp'], 1, 1)) {
-		$kols = fnStandaardKols("logboek");
-		$lijst = (new cls_Logboek())->lijst(4, 1);
+		$lijst = (new cls_Logboek())->lijst(4, 1, 0, "", "", 1500);
+		$kols = fnStandaardKols("logboek", 1, $lijst);
 		
 		echo(fnDisplayTable($lijst, $kols));
 		
 	} elseif ($op == "historie" and $_GET['mid'] > 0) {
 		$rows = (new cls_Mailing_hist())->lijst($_GET['mid']);
 		if (count($rows) > 0) {
-			$l = sprintf("index.php?tp=%s&amp;op=histdetails&mhid=%%d", $_GET['tp']);
+			$l = sprintf("index.php?tp=%s&op=histdetails&mhid=%%d", $_GET['tp']);
 			$kols[] = array('columnname' => "RecordID", 'link' => $l, 'class' => "details");
 			$kols[] = array('headertext' => "Verzonden", 'columnname' => "send_on", 'type' => "datetime");
 			$kols[] = array('headertext' => "Aan", 'columnname' => "Aan", 'type' => "combitext");
@@ -650,15 +650,7 @@ class Mailing {
 				$_POST['selecteer_groep'] = $_POST['selecteer_groep'] ?? 0;
 				
 				printf("<input type='email' maxlength=50 placeholder='Toevoegen e-mailadres' onBlur=\"mailing_add_ontvanger(%d, 0, $(this).val());\">", $this->mid);
-				if ($this->aant_rcpt > 1) {
-					printf("<button type='button' id='OntvangersVerwijderen' class='%s' OnClick='mailing_verw_alle_ontvangers();'>%s Ontvangers</button>\n", CLASSBUTTON, ICONVERWIJDER);
-				}
-				
-				echo("<div class='clear'></div>\n");
-				
-				if (!isset($_POST['selectie_status'])) {
-					$_POST['selectie_status'] = "L";
-				}
+				printf("<button type='button' id='OntvangersVerwijderen' class='%s btn-sm' OnClick='mailing_verw_alle_ontvangers(%d);'>%s Ontvangers</button>\n", CLASSBUTTON, $this->mid, ICONVERWIJDER);
 
 				echo("<label>Selectie leden</label>\n");
 				echo("<div id='mailingselectieleden'>\n");
@@ -678,11 +670,10 @@ class Mailing {
 				
 				echo("<label class='form-label'>Aantal personen in groep</label><p id='aantalpersoneningroep'></p>\n");
 				printf("<button type='button' id='LedenToevoegen' class='%s btn-sm' OnClick='mailing_add_selectie_ontvangers();'>%s Groepsleden</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
-				if ($this->aant_rcpt > 0) {
-					printf("<button type='button' class='%s btn-sm' id='LedenVerwijderen' OnClick='mailing_verw_selectie_ontvangers();'>%s Groepsleden</button>\n", CLASSBUTTON, ICONVERWIJDER);
-				}
+//				printf("<button type='submit' name='LedenToevoegen' class='%s btn-sm' OnClick='mailing_add_selectie_ontvangers();'>%s Groepsleden</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
+				printf("<button type='button' class='%s btn-sm' id='GroepsledenVerwijderen' OnClick='mailing_verw_selectie_ontvangers();'>%s Groepsleden</button>\n", CLASSBUTTON, ICONVERWIJDER);
 				echo("</div> <!-- Einde mailingselectieleden -->\n");
-				echo("<div class='clear'></div>\n");
+//				echo("<div class='clear'></div>\n");
 			}
 			printf("<label class='form-label'>Cc</label><input type='text' id='cc_addr' class='w50' maxlength=50 value='%s' %s>\n", $this->cc_addr, $jstb);
 
@@ -826,7 +817,7 @@ class Mailing {
 		$i_m = null;
 		
 		return $rv;
-	}
+	}  # Mailing->options_mogelijke_ontvangers
 	
 	public function html_ontvangers($p_mid=-1, $p_asarray=false) {
 		
@@ -1067,11 +1058,14 @@ class Mailing {
 		$vangebdatum = $_POST['selectie_vangebdatum'] ?? $p_vangebdatum;
 		$temgebdatum = $_POST['selectie_temgebdatum'] ?? $p_temgebdatum;
 		
-		$lidqry = sprintf("SELECT L.RecordID FROM %sLid AS L WHERE (L.Overleden IS NULL) AND (L.Verwijderd IS NULL) AND L.GEBDATUM >= '%s'", TABLE_PREFIX, $vangebdatum);
-		if ($temgebdatum >= $vangebdatum and strlen($temgebdatum) == 10) {
-			$lidqry .= sprintf(" AND L.GEBDATUM <= '%s'", $temgebdatum);
+		$lidqry = sprintf("SELECT L.RecordID FROM %sLid AS L WHERE (L.Overleden IS NULL) AND (L.Verwijderd IS NULL)", TABLE_PREFIX);
+		if (strlen($vangebdatum) == 10) {
+			$lidqry .= sprintf(" AND L.GEBDATUM >= '%s'", $vangebdatum);
 		}
-		
+		if ($temgebdatum >= $vangebdatum and strlen($temgebdatum) == 10) {
+			$lidqry .= sprintf(" AND IFNULL(L.GEBDATUM, '') <= '%s'", $temgebdatum);
+		}
+
 		$i_el = new cls_Eigen_lijst("", $ondid);
 		$i_base = new cls_db_base();
 		$selnaam = "";
@@ -1103,7 +1097,7 @@ class Mailing {
 					$mrrow = $i_mr->record($this->mid, $row->RecordID);
 					if ($mrrow != false) {
 						$mrid = $mrrow->RecordID;
-						if ($i_mr->delete($mrid, "", 1) > 0) {
+						if ($i_mr->delete($mrid, 1) > 0) {
 							$this->sl_aantverwijderen++;
 						}
 					}
@@ -1220,7 +1214,7 @@ class Mailing {
 				}
 				echo($mail->Body);
 				$mail = null;
-			} elseif ($email->to_outbox($p_direct) == true) {
+			} elseif ($email->to_outbox($p_direct, $this->speciaal) == true) {
 				$aant_send++;
 			}
 			$aant_rcpts++;
@@ -1231,9 +1225,6 @@ class Mailing {
 			if ($aant_send > 1) {
 				$mess = sprintf("Via mailing %d (%s) zijn %d e-mails in de outbox geplaatst.", $this->mid, $this->subject, $aant_send);
 				(new cls_Logboek())->add($mess, 4, 0, $p_melding, $this->mid, 24);
-			}
-			if (strlen($this->speciaal) > 1) {
-				sentoutbox(4);
 			}
 		}
 
@@ -1819,7 +1810,7 @@ class email {
 		
 	}  # email->toevoegenadres
 	
-	public function to_outbox($p_direct=0) {
+	public function to_outbox($p_direct=0, $p_spec="") {
 		
 		$rv = 0;
 		
@@ -1880,7 +1871,9 @@ class email {
 				$rv = $this->mhid;
 			}
 		}
-		if ($p_direct == 1) {
+		if (strlen($p_spec) > 0) {
+			sentoutbox(4);
+		} elseif ($p_direct == 1) {
 			sentoutbox(3);
 		}
 		
