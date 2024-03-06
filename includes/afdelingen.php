@@ -32,7 +32,7 @@ function fnAfdeling() {
 	} elseif ($currenttab2 == "Wachtlijst") {
 		afdelingswachtlijst($afdid);
 	} elseif ($currenttab2 == "Afdelingsmailing") {
-		fnAfdelingsmailing($afdid);
+		afdelingsmailing($afdid);
 	} elseif ($currenttab2 == "Diploma's") {
 		fnDiplomasMuteren($afdid);
 	} elseif ($currenttab2 == "DL-lijst") {
@@ -1039,7 +1039,7 @@ function afdelingswachtlijst($p_afdid) {
 	
 }  # afdelingswachtlijst
 
-function fnAfdelingsmailing($p_afdid) {
+function afdelingsmailing($p_afdid) {
 	global $selaant, $mingroepgewijzigd;
 	
 	$i_gr = new cls_Groep($p_afdid);
@@ -1049,7 +1049,9 @@ function fnAfdelingsmailing($p_afdid) {
 	$i_f = new cls_Functie();
 	$i_ex = new cls_examen();
 	$i_aw = new cls_Aanwezigheid();
+	$i_ak = new cls_Afdelingskalender($p_afdid);
 	$i_ld = new cls_Liddipl();
+	$i_sz = new cls_Seizoen();
 	
 	$selmailing = $_POST['SelecteerMailing'] ?? 0;
 	$_POST['groepgewijzigdna'] = $_POST['groepgewijzigdna'] ?? "1900-01-01";
@@ -1068,7 +1070,7 @@ function fnAfdelingsmailing($p_afdid) {
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		
-		if ($selmailing == -1) {
+		if ($selmailing == -1 and toegang("Mailing/Nieuw", 1, 1)) {
 			$selmailing = $i_m->add("Afdelingsmailing " . $i_lo->ondnaam);
 		}
 
@@ -1079,21 +1081,29 @@ function fnAfdelingsmailing($p_afdid) {
 		}
 	}
 	
-	$normweken = [0, 6, 13, 26, 39];
+	$pwt = $_POST['wekenterug'] ?? 0;
+	$normweken = [0, 6, 13, 26];
+	$i_ak->where = sprintf("AK.OnderdeelID=%d AND AK.Activiteit=1 AND AK.Datum >= '%s' AND AK.Datum <= CURDATE()", $p_afdid, $i_sz->begindatum);
+	$wbs = $i_ak->aantal();
+	if (in_array($wbs, $normweken) == false) {
+		$normweken[] = $wbs;
+		sort($normweken);
+	}
 	$f = sprintf("GR.aanwezigheidsnorm > 0 AND OnderdeelID=%d", $p_afdid);
 	if ($i_gr->aantal($f) > 0) {
 		$typefilter[0] = "onder aanwezigheidsnorm";
 	}
-	if ($i_aw->aantalstatus("L", $p_afdid) > 0) {
-		$typefilter[1] = "&gt;= 1 maal te laat";
-		$typefilter[2] = "&gt;= 2 maal te laat";
-		$typefilter[3] = "&gt;= 3 maal te laat";
-		$typefilter[4] = "&gt;= 4 maal te laat";
+	if ($i_aw->aantalstatus("L", $p_afdid) > 0 and $pwt > 0) {
+		$vanafdatum = $i_ak->datumeerstelesperiode($p_afdid, $pwt);
+		$maktl = $i_aw->maxstatusperiode("L", $p_afdid, $vanafdatum);
+		for ($i=1;$i <= $maktl;$i++) {
+			$typefilter[$i] = sprintf("&gt;= %d * te laat", $i);
+		}
 	}
 	
 	$grrows = $i_gr->selectlijst();
 	
-	printf("<form method='post' class='form-check form-switch' id='afdelingsmailing' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+	printf("<form method='post' class='form-check form-switch' id='%s' action='%s?tp=%s'>\n", __FUNCTION__, $_SERVER['PHP_SELF'], $_GET['tp']);
 	echo("<div id='filter'>\n");
 
 	$koe = $_POST['kandidaatopexamen'] ?? 0;
@@ -1101,7 +1111,7 @@ function fnAfdelingsmailing($p_afdid) {
 	$i_ex->where = sprintf("EX.OnderdeelID=%d AND (SELECT COUNT(*) FROM %sLiddipl AS LD WHERE LD.Examen=EX.Nummer) > 0", $p_afdid, TABLE_PREFIX);
 	$i_ld->where = sprintf("LD.Examen=%d", $koe);
 	if ($i_ex->aantal()) {
-		printf("<label class='form-label'>Examen</label><select name='kandidaatopexamen' class='form-select form-select-sm' onChange='this.form.submit();'><option value=0>Niet van toepassing</option>\n%s</select>\n", $i_ex->htmloptions($koe, "", 0));
+		printf("<label class='form-label'>Examen</label><select name='kandidaatopexamen' class='form-select form-select-sm' title='Kandidaat op examen' onChange='this.form.submit();'><option value=0>Niet van toepassing</option>\n%s</select>\n", $i_ex->htmloptions($koe, "", 0));
 	
 		if ($koe > 0 and $i_ex->exdatum <= date("Y-m-d") and $i_ld->aantal("LD.Geslaagd=0") > 0 and $i_ld->aantal("LD.Geslaagd=1") > 0) {
 			foreach ($exres as $k => $er) {
@@ -1118,7 +1128,6 @@ function fnAfdelingsmailing($p_afdid) {
 	if (isset($typefilter)) {
 		echo("<div class='clear'></div>\n");
 		$opt = "";
-		$pwt = $_POST['wekenterug'] ?? 0;
 		foreach ($normweken as $aw) {
 			if ($aw == 0) {
 				$t = "geen filter";
@@ -1127,7 +1136,7 @@ function fnAfdelingsmailing($p_afdid) {
 			}
 			$opt .= sprintf("<option value=%d%s>%s</option>\n", $aw, checked($aw, "option", $pwt), $t);
 		}
-		printf("<label class='form-label'>Presentie (# lessen)</label><select name='wekenterug' class='form-select form-select-sm' onChange='this.form.submit();'>%s</select>\n", $opt);
+		printf("<label class='form-label'>Presentie (# lessen)</label><select name='wekenterug' class='form-select form-select-sm' title='Aantal lessen terug' onChange='this.form.submit();'>%s</select>\n", $opt);
 		$opt = "";
 
 		$ptf = $_POST['typefilter'] ?? 0;
@@ -1166,7 +1175,7 @@ function fnAfdelingsmailing($p_afdid) {
 			}
 		}
 		$cn = "chkGroepAlle";
-		printf("<label class='form-label' for='groepgewijzigdna'>Groep gewijzigd op of na</label><input type='date' name='groepgewijzigdna' value='%s'>\n", $_POST['groepgewijzigdna']);
+		printf("<label class='form-label' for='groepgewijzigdna'>Groep gewijzigd op of na</label><input type='date' name='groepgewijzigdna' value='%s' title='Gewijzigd na'>\n", $_POST['groepgewijzigdna']);
 	}
 
 	echo("<h2>Selecteer functies</h2>");
@@ -1201,9 +1210,11 @@ function fnAfdelingsmailing($p_afdid) {
 			$d = " disabled";
 		}
 		if (strlen($selontv) > 0) {
-			printf("<button type='submit' name='btnOntvangersAanpassen'%s>Ontvangers in mailing aanpassen</button>", $d);
+			printf("<button type='submit' class='%s' name='btnOntvangersAanpassen'%s>Ontvangers in mailing aanpassen</button>", CLASSBUTTON, $d);
 		}
-		printf("<button type='button' onClick=\"location.href='%s?tp=Mailing/Wijzigen mailing&mid=%d'\"%s><i class='bi bi-arrow-right-circle'></i> Ga naar mailing</button>", $_SERVER['PHP_SELF'], $selmailing, $d);
+		if (toegang("Mailing/Muteren", 0, 0)) {
+			printf("<button type='button' class='%s' onClick=\"location.href='%s?tp=Mailing/Wijzigen mailing&mid=%d'\"%s>%s Ga naar mailing</button>", CLASSBUTTON, $_SERVER['PHP_SELF'], $selmailing, $d, ICONLOGIN);
+		}
 	}
 	
 	echo("</div> <!-- Einde opdrachtknoppen -->\n");
@@ -1225,7 +1236,7 @@ function fnAfdelingsmailing($p_afdid) {
 	}
 	</script>\n");
 
-}  # fnAfdelingsmailing
+}  # afdelingsmailing
 
 function fnOntvangersAfdelingsmailing($p_afdid, $p_uitvoeren=0, $p_mailing=-1) {
 	global $selaant, $mingroepgewijzigd;
@@ -1251,7 +1262,7 @@ function fnOntvangersAfdelingsmailing($p_afdid, $p_uitvoeren=0, $p_mailing=-1) {
 	if ($p_uitvoeren == 1) {
 		$i_mr->delete_all($p_mailing);
 	}
-	$vanafdatum = (new cls_Afdelingskalender())->datumeerstelesperiode($p_afdid, $wekenterug);
+	$vanafdatum = $i_ak->datumeerstelesperiode($p_afdid, $wekenterug);
 	foreach ($i_lo->lijst($p_afdid, 2, "L.Achternaam, L.Tussenv, L.Roepnaam") as $lorow) {
 		$cn = sprintf("chkGroep_%d", $lorow->GroepID);
 		$cnf = sprintf("chkFunctie_%d", $lorow->Functie);
