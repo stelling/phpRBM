@@ -2390,6 +2390,7 @@ class cls_Onderdeel extends cls_db_base {
 	public int $ledenmuterendoor = 0;	// Door welke extra groep mogen de leden van dit onderdeel worden gemuteerd?
 	public int $historieopschonen = 0;
 	public string $mysql = "";
+	public string $opmerking = "";
 	private $mogelijketypes = "";
 	public $aantalrijen = 0;				// Het aantal leden dat dit onderdeel op dit moment heeft
 	public $organisatie = 0;
@@ -2427,6 +2428,7 @@ class cls_Onderdeel extends cls_db_base {
 				$this->ledenmuterendoor = $row->LedenMuterenDoor ?? 0;
 				$this->historieopschonen = $row->HistorieOpschonen ?? 0;
 				$this->mysql = $row->MySQL ?? "";
+				$this->opmerking = $row->Opmerking ?? "";
 				$this->ingevoerd = $row->Ingevoerd ?? "";
 				$this->gewijzigd = $row->Gewijzigd ?? "";
 				if ($row->Kader == 1) {
@@ -3171,7 +3173,7 @@ class cls_Aanwezigheid extends cls_db_base {
 		return $this->scalar($query);
 	}
 	
-	function maxstatusperiode($p_status, $p_afdid, $p_begin, $p_einde="") {
+	public function maxstatusperiode($p_status, $p_afdid, $p_begin, $p_einde="") {
 		
 		if (strlen($p_einde) < 10) {
 			$p_einde = date("Y-m-d");
@@ -3654,7 +3656,7 @@ class cls_Lidond extends cls_db_base {
 								%s AS NaamLid, L.Roepnaam, L.Achternaam, L.Tussenv, %s AS AVGnaam, L.GEBDATUM, %s AS Leeftijd, %s AS Telefoon, %s AS Email, L.EmailVereniging, 
 								F.Omschrijv AS FunctieOms, F.Afkorting AS FunctAfk, F.Inval AS Invalfunctie, %s AS Groep, GR.DiplomaID,
 								O.Kode, O.Naam AS OndNaam, O.CentraalEmail, IF(LO.Functie > 0, 0, 1) AS RO_Email,
-								GR.Kode AS GrCode, GR.Omschrijving AS GrNaam, GR.Aanwezigheidsnorm, IFNULL(Act.BeperkingAantal, 0) AS BeperkingAantal, L.RelnrRedNed,
+								GR.Kode AS GrCode, GR.Omschrijving AS GrNaam, GR.Starttijd, GR.Aanwezigheidsnorm, IFNULL(Act.BeperkingAantal, 0) AS BeperkingAantal, L.RelnrRedNed,
 								CASE WHEN LO.GroepID > 0 AND LO.Functie > 0 THEN CONCAT(F.OMSCHRIJV, '/', IF(LENGTH(GR.Kode)=0, GR.RecordID, GR.Kode))
 									WHEN LO.Functie > 0 THEN F.OMSCHRIJV
 									WHEN LO.GroepID > 0 THEN IF(LENGTH(GR.Omschrijving)=0, IF(LENGTH(GR.Kode)=0, GR.RecordID, GR.Kode), GR.Omschrijving)
@@ -3847,7 +3849,7 @@ class cls_Lidond extends cls_db_base {
 		
 		if (strlen($p_vanaf) < 8) {
 			if ($this->i_ond->type == "A" and $this->i_ond->alleenleden == 1) {
-				$query = sprintf("SELECT IFNULL(MAX(LM.LIDDATUM), CURDATE()) FROM %sLidmaatschap AS LM WHERE LM.Lid=%d AND (LM.Opgezegd IS NULL) AND LM.LIDDATUM > DATE_SUB(CURDATE(), INTERVAL 1 MONTH);", TABLE_PREFIX, $this->lidid);
+				$query = sprintf("SELECT IFNULL(MAX(LM.LIDDATUM), CURDATE()) FROM %sLidmaatschap AS LM WHERE LM.Lid=%d AND (LM.Opgezegd IS NULL) AND LM.LIDDATUM > DATE_SUB(CURDATE(), INTERVAL 2 MONTH);", TABLE_PREFIX, $this->lidid);
 				$vanaf = $this->scalar($query);
 			} elseif ($this->i_ond->alleenleden == 1 and $i_lm->soortlid($this->lidid) == "Voormalig lid") {
 				$i_lm->vulvars(-1, $this->lidid);
@@ -3885,7 +3887,7 @@ class cls_Lidond extends cls_db_base {
 			$query = sprintf("INSERT INTO %s (RecordID, Lid, OnderdeelID, Vanaf, Functie, GroepID, Ingevoerd) VALUES (%d, %d, %d, '%s', 0, 0, NOW());", $this->table, $nrid, $this->lidid, $this->ondid, $vanaf);
 			if ($this->execsql($query) > 0) {
 				$this->loid = $nrid;
-				$this->mess = sprintf("Lidond: record %d is per '%s' toegevoegd", $this->loid, $vanaf);
+				$this->mess = sprintf("Tabel Lidond: record %d is per '%s' toegevoegd", $this->loid, $vanaf);
 				if (strlen($p_reden) > 0) {
 					$this->mess .= ", omdat " . $p_reden;
 				}
@@ -4958,9 +4960,9 @@ class cls_Login extends cls_db_base {
 		if ($this->execsql() > 0) {
 			$this->tas = 1;
 			$this->mess = sprintf("Heeft met '%s' ingelogd.", $_SESSION['username']);
-			$f = sprintf("ReferLidID=%d AND IP_adres='%s' AND TypeActiviteit=1", $p_lidid, $_SERVER['REMOTE_ADDR']);
+			$f = sprintf("ReferLidID=%d AND IP_adres='%s' AND TypeActiviteit=1", $p_lidid, cleanipaddr($_SERVER['REMOTE_ADDR']));
 			if ((new cls_Logboek())->aantal($f) == 0) {
-				$this->mess .= sprintf(" Dit is voor het eerst vanaf IP-adres %s.", $_SERVER['REMOTE_ADDR']);
+				$this->mess .= sprintf(" Dit is voor het eerst vanaf IP-adres %s.", cleanipaddr($_SERVER['REMOTE_ADDR']));
 				if ($_SESSION['settings']['mailing_meldingnieuwip'] > 0) {
 				}
 			}
@@ -5007,7 +5009,9 @@ class cls_Login extends cls_db_base {
 			(new cls_Lidond())->auto_einde();
 			(new cls_Lidond())->autogroepenbijwerken(0);
 			(new cls_Eigen_lijst())->controle(-1, 0, 1);
-			sentoutbox(2);
+			if (date("G") >= 9) {
+				sentoutbox(2);
+			}
 			if (function_exists("fnMaatwerkNaUitloggen")) {
 				fnMaatwerkNaUitloggen();
 			}
@@ -6241,7 +6245,7 @@ class cls_Logboek extends cls_db_base {
 		*/
 		
 		if (isset($_SERVER['REMOTE_ADDR'])) {
-			$data['ipaddress'] = $_SERVER['REMOTE_ADDR'];
+			$data['ipaddress'] = cleanipaddr($_SERVER['REMOTE_ADDR']);
 		} else {
 			$data['ipaddress'] = "";
 		}
@@ -6315,16 +6319,6 @@ class cls_Logboek extends cls_db_base {
 			$data['useragent'] = substr($_SERVER['HTTP_USER_AGENT'], 0, 125);
 		} else {
 			$data['useragent'] = $_SERVER['HTTP_USER_AGENT'];
-		}
-		$dpt = 0;
-		$l = 15;
-		for ($i=0;$i<20;$i++) {
-			if (substr($data['useragent'], $i, 1) == ":") {
-				$dpt++;
-				if ($dpt == 4) {
-					$l = $i;
-				}
-			}
 		}
 		
 		if ($this->tm == 2 and WEBMASTER == false) {
@@ -6469,8 +6463,12 @@ class cls_Logboek extends cls_db_base {
 		$query = sprintf("DELETE FROM %s WHERE DatumTijd < DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND TypeActiviteit=13 AND TypeActiviteitSpecifiek=9;", $this->table);
 		$this->execsql($query, 2);
 		
-// Stamgegevens en stukken
-		$query = sprintf("DELETE FROM %s WHERE DatumTijd < DATE_SUB(CURDATE(), INTERVAL 3 MONTH) AND TypeActiviteit IN (20, 22);", $this->table);
+// Stamgegevens
+		$query = sprintf("DELETE FROM %s WHERE DatumTijd < DATE_SUB(CURDATE(), INTERVAL 18 MONTH) AND TypeActiviteit IN (20);", $this->table);
+		$this->execsql($query, 2);
+				
+// stukken op de website
+		$query = sprintf("DELETE FROM %s WHERE DatumTijd < DATE_SUB(CURDATE(), INTERVAL 48 MONTH) AND TypeActiviteit IN (22);", $this->table);
 		$this->execsql($query, 2);
 		
 		$this->optimize();
@@ -7789,10 +7787,16 @@ class cls_Evenement extends cls_db_base {
 		
 		$this->evclass = $this->i_et->evclass;
 		if (strlen($this->locatie) > 1) {
-			$this->evclass .= " " . str_replace("'", "", str_replace(" ", "_", strtolower($this->locatie)));
+			if (strlen($this->evclass) > 0) {
+				$this->evclass .= " ";
+			}
+			$this->evclass .= str_replace("/", "_", str_replace("'", "", str_replace(" ", "_", strtolower($this->locatie))));
 		}
 		if (strlen($this->i_orgond->code) > 0) {
-			$this->evclass .= " " . str_replace("'", "", str_replace(" ", "_", strtolower($this->i_orgond->code)));
+			if (strlen($this->evclass) > 0) {
+				$this->evclass .= " ";
+			}
+			$this->evclass .= str_replace("/", "_", str_replace("'", "", str_replace(" ", "_", strtolower($this->i_orgond->code))));
 		}
 		
 		$query = sprintf("SELECT COUNT(*) FROM %sEvenement_Deelnemer AS ED WHERE ED.Status IN ('B', 'J', 'T') AND ED.LidID > 0 AND ED.EvenementID=%d;", TABLE_PREFIX, $this->evid);
