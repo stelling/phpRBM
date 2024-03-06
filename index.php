@@ -398,22 +398,34 @@ function fnVoorblad() {
 		}
 		$content = str_replace("[%ROEPNAAM%]", $_SESSION['roepnaamingelogde'], $content);
 		
-		if (strpos($content, "[%VERVALLENDIPLOMAS%]") !== false and $_SESSION['lidid'] > 0 and $_SESSION['settings']['termijnvervallendiplomasmelden'] > 0) {
+		$tvdm = $_SESSION['settings']['termijnvervallendiplomasmelden'] ?? 0;
+		if (strpos($content, "[%VERVALLENDIPLOMAS%]") !== false and $_SESSION['lidid'] > 0 and $tvdm > 0) {
+			$strHVt = "";
+			$strHVv = "";
 			$strHV = "";
-			$i_ld->where = sprintf("LD.Lid=%d",$_SESSION['lidid']);
+			$i_ld->where = sprintf("LD.Lid=%d", $_SESSION['lidid']);
 			$dtfmt->setPattern(DTTEXT);
-			$mdt = date("Y-m-d", strtotime(sprintf("+%d month", $_SESSION['settings']['termijnvervallendiplomasmelden'])));
-			$mdv = date("Y-m-d", strtotime(sprintf("-%d month", $_SESSION['settings']['termijnvervallendiplomasmelden'])));
+			$mdt = date("Y-m-d", strtotime(sprintf("+%d month", $tvdm)));
+			$mdv = date("Y-m-d", strtotime(sprintf("-%d month", $tvdm)));
 			foreach ($i_ld->basislijst() as $row) {
 				$i_ld->vulvars($row->RecordID);
 				if ($i_ld->vervaltper >= date("Y-m-d") and $i_ld->vervaltper <= $mdt) {
-					$strHV .= sprintf("<li>%s vervalt op %s</li>\n", $i_ld->dpnaam, $dtfmt->format(strtotime($i_ld->vervaltper)));
+					$strHVt .= sprintf("<li>%s vervalt op %s</li>\n", $i_ld->i_dp->naam, $dtfmt->format(strtotime($i_ld->vervaltper)));
 				} elseif ($i_ld->vervaltper < date("Y-m-d") and $i_ld->vervaltper > $mdv) {
-					$strHV .= sprintf("<li>%s is vervallen op %s</li>\n", $i_ld->dpnaam, $dtfmt->format(strtotime($i_ld->vervaltper)));
+					$strHVv .= sprintf("<li>%s is vervallen op %s</li>\n", $i_ld->i_dp->naam, $dtfmt->format(strtotime($i_ld->vervaltper)));
 				}
 			}
-			if (strlen($strHV) > 0) {
-				$strHV = "<div id='vervallendiplomas'>\n<p>Je volgende diploma's zijn recent vervallen of komen binnenkort te vervallen.</p>\n<ul>" . $strHV . "</ul>\n</div>  <!-- Einde vervallendiplomas -->\n";
+			if (strlen($strHVt) > 0 or strlen($strHVv) > 0) {
+				$strHV = "<div id='vervallendiplomas'>\n";
+				
+				if (strlen($strHVt) > 0) {
+					$strHV .= sprintf("<p>Je volgende diploma's vervallen binnen %d maanden</p>\n<ul>", $tvdm) . $strHVt . "</ul>\n";
+				}
+				if (strlen($strHVv) > 0) {
+					$strHV .= "<p>Je volgende diploma's zijn recent vervallen</p>\n<ul>" . $strHVv . "</ul>\n";
+				}
+
+				$strHV .= "</div>  <!-- Einde vervallendiplomas -->\n";
 			}
 			
 			$content = str_replace("[%VERVALLENDIPLOMAS%]", $strHV, $content);
