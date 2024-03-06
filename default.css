@@ -2,7 +2,7 @@
 	--label-background-color: #CFE2FF;
 	--label-text-color: #000080;
 	
-	--bs-body-font-family: Tahoma, Arial, Verdana, Helvetica;
+	--bs-body-font-family: Tahoma, Geneva, sans-serif;
 	--bs-body-font-size: 11pt;
 	--bs-body-color: #000080;
 	--bs-button-border-color: #CFE2FF;
@@ -155,7 +155,7 @@ p.error {
 
 span {
 	white-space: nowrap;
-	display:inline-block;
+	display: inline-block;
 	margin-top: 0;
 	padding-top: 0;
 }
@@ -532,6 +532,11 @@ th.rotate > div {
 	padding-left: 3px;
 	margin-top: 6px;
 	margin-bottom: 6px;
+}
+
+div#vervallendiplomas {
+	margin-top: 10px;
+	margin-bottom: 10px;
 }
 
 #kolomlinks, #kolomrechts {
@@ -1149,6 +1154,17 @@ table#presentiemuteren td.aanwezig {
 
 #afdelingsmailing label.form-check-label {
 	min-width: 210px;
+}
+
+#afdelingsmailing ul {
+	clear: left;
+	list-style-type: none;
+	padding-left: 0;
+}
+
+#afdelingsmailing li {
+  float: left;
+  width: 210px;
 }
 
 #diplomamuteren, #examenresultaten {
@@ -1963,7 +1979,7 @@ nav a {
 	float: left;
 	clear: right;
 	max-width: 1050px;
-	padding-top: 4px;
+	padding-top: 0;
 	padding-left: 4px;
 	padding-right: 4px;
 }
@@ -1971,6 +1987,7 @@ nav a {
 #lijstontvangers, #lijstvariabelen {
 	border-width: 1px;
 	border-style: solid;
+	margin-bottom: 4px;
 }
 
 #lijstontvangers ul, ul#lijstvariabelen {
@@ -2277,6 +2294,10 @@ label#lblVerzamelenPerGezin, label#lblBedragGezinskorting {
 	padding-top: 5px;
 	padding-bottom: 5px;
 	margin-bottom: 5px;
+}
+
+#mailingselectieleden button {
+	float: right;
 }
 
 #instellingenmuteren h2 {
