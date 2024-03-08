@@ -125,7 +125,9 @@ if ($i_lid->aantal() == 0) {
 	}
 	
 } elseif ($currenttab == "Zelfservice") {
-	if ($currenttab2 == "Evenementen") {
+	if ($currenttab2 == "Afmelden") {
+		lidafmelden($_SESSION['lidid']);
+	} elseif ($currenttab2 == "Evenementen") {
 		inschrijvenevenementen($_SESSION['lidid']);
 	} elseif ($currenttab2 == "Bestellingen") {
 		fnWinkelwagen($_SESSION['lidid']);
