@@ -38,8 +38,10 @@ define("PASFOTOEXTENTIES", ["gif", "jpg", "jpeg", "png"]);
 define("ARRSOORTEVENEMENT", ["B" => "Bewaking", "G" => "Gezellig/sociaal", "O" => "Opleiding", "R" => "Reddingsbrigade-activiteit", "V" => "Vergadering/overleg", "W" => "Wedstrijd"]);
 define("ARRDLNSTATUS", ["A" => "Afgewezen", "B" => "Bevestigd", "G" => "Geen", "I" => "Ingeschreven", "J" => "Aangemeld", "N" => "Onafgemeld afwezig", "R" => "Reserve", "T" => "Onder voorbehoud", "X" => "Afgemeld/Afgezegd"]);
 define("ARRPRESENTIESTATUS", ["A" => "Aanwezig", "H" => "Afgezegd door vereniging", "J" => "Aangemeld", "L" => "Te laat aanwezig", "R" => "Afwezig met bekende reden", "T" => "Onder voorbehoud aanwezig", "V" => "Les is vervallen", "X" => "Niet aanwezig", "Z" => "Ziek"]);
+define("ZS_PRESENTIESTATUS", ["A" => "Aanwezig", "Z" => "Ziek", "R" => "Afwezig met andere reden"]);
 define("ARRTYPEBACKUP", [1 => "phpRBM-tabellen", 2 => "Tabellen uit MS-Access", 3 => "Alle tabellen"]);
 define("ARRTYPESTUK", ["A" => "Algemene Vergadering", "B" => "Beleidsstuk", "F" => "Formulier", "H" => "Handleiding", "P" => "Promotiemateriaal", "R" => "Regeling"]);
+define("ATTRCODEELEMENT", "autocomplete='off' autocorrect='off' autocapitalize='off' spellcheck='false'");
 define("BEWAARTIJDNIEUWERECORDS", 120);
 define("TABLECLASSES", "table table-bordered table-hover border-primary");
 
@@ -990,7 +992,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					
 				} elseif (($kol_type == "lnm" or $kol_type == "lidnaam") and strlen($value) > 0) {
 					if (is_numeric($value)) {
-						$ret .= sprintf("<td%s>%s</td>", $kol_class, (new cls_lid())->Naam($value, "onbekend"));
+						$ret .= sprintf("<td%s>%s</td>", $kol_class, (new cls_lid())->naam($value, "onbekend"));
 					} else {
 						$ret .= sprintf("<td%s>%s</td>", $kol_class, $value);
 					}
