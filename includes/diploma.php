@@ -44,7 +44,7 @@ function fnDiplomabeheer() {
 	
 	printf("<select name='orgfilter' class='form-select form-select-sm' title='Filter op organisatie' onChange='this.form.submit();'>\n<option value=-1>Filter op organisatie  ...</option>\n%s</select>\n", $i_org->htmloptions(1, $orgfilter));
 	
-	printf("<input type='checkbox' class='form-check-input' name='vervfilter' value=1 title=\"Inclusief vervallen diploma's\" onClick='this.form.submit();'%s><label class='form-check-label'>Inclusief vervallen diploma's</label>", checked($vervfilter));
+	printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' name='vervfilter' value=1 title=\"Inclusief vervallen diploma's\" onClick='this.form.submit();'%s>Inclusief vervallen diploma's</label>", checked($vervfilter));
 	
 	echo("</form>\n");
 	
@@ -265,7 +265,7 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1, $p_dpid=-1) {
 		if ($isrn) {
 			printf("<label class='form-label'>Starttijd</label><input type='text' id='Begintijd' value='%s' onBlur=\"savedata('examenmuteren', %d, this);\" class='w5' maxlength=5>\n", $i_ex->begintijd, $i_ex->exid);
 		}		
-		printf("<label class='form-label' for='Proefexamen'>Proefexamen</label><input type='checkbox' class='form-check-input' id='Proefexamen' value=1%s%s title='Proefexamen?' onBlur=\"savedata('examenmuteren', %d, this);\">\n", checked($i_ex->proef), $d, $i_ex->exid);
+		printf("<label class='form-check-label' for='Proefexamen'>Proefexamen<input type='checkbox' class='form-check-input' id='Proefexamen' value=1%s%s title='Proefexamen?' onBlur=\"savedata('examenmuteren', %d, this);\"></label>\n", checked($i_ex->proef), $d, $i_ex->exid);
 		echo("</div> <!-- einde examenmuteren -->\n");
 		$i_ld->controle($exid);
 	}
