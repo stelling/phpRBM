@@ -64,6 +64,12 @@ label.btn {
 	clear: none;
 }
 
+p.vr, li.vr {
+	width: auto;
+	background-color: inherit;
+	opacity: 1;
+}
+
 /* Einde Bootstrap */
 
 a, a:visited {
@@ -124,7 +130,7 @@ li {
 	margin-left: 0;
 }
 
-input, select {
+input, select, textarea {
 	color: var(--bs-body-color);
 	float: left;
 }
@@ -592,7 +598,6 @@ div#vervallendiplomas {
 }
 
 #detailsonderdeelmuteren textarea {
-	margin-top: 8px;	
 	margin-bottom: 4px;
 	height: 100px;
 	width: calc(100% - 235px);
@@ -830,6 +835,7 @@ td.inagenda {
 	border-top-style: solid;
 	border-bottom-style: none;
 	margin-top: 6px;
+	margin-bottom: 12px;
 }
 
 #inschrijvenevenementen .col, #inschrijvenevenementen .col-md-auto {
