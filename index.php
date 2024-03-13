@@ -722,7 +722,7 @@ function fnMeldingen() {
 	$i_el = new cls_Eigen_lijst();
 	
 	foreach($i_el->lijst(4) as $row) {
-		$i_el->controle($row->RecordID);
+		$i_el->controle($row->RecordID, 90);
 		$i_el->vulvars($row->RecordID);
 		if ($i_el->aantalrijen > 0) {
 			$nm = $i_el->naam;
