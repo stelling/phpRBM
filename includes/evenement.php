@@ -114,7 +114,6 @@ function inschrijvenevenementen($lidid) {
 	
 	$i_ev = new cls_evenement();
 	$i_ed = new cls_Evenement_Deelnemer();
-	$i_mv = new cls_Mailing_vanaf();
 
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		foreach ($i_ev->lijst(3) as $row) {
@@ -124,7 +123,7 @@ function inschrijvenevenementen($lidid) {
 			$react = sprintf("reactie_%d", $row->RecordID);
 			$cn_aantal = sprintf("aantal_%d", $row->RecordID);
 			$cn_opm = sprintf("opm_%d", $row->RecordID);
-						
+
 			if ($_POST[$react] == "Inschrijven") {
 				$stat = "I";
 			} elseif ($_POST[$react] == "Aanmelden" and $row->StandaardStatus == "B") {
@@ -141,7 +140,7 @@ function inschrijvenevenementen($lidid) {
 			if ($stat != "G" or strlen($opmerk) > 0 or $i_ed->edid > 0) {
 				if ($i_ed->edid == 0) {
 					$i_ed->add($row->RecordID, $lidid, $stat);
-					$rv += $edid;
+					$rv += $i_ed->edid;
 				}
 				$rv += $i_ed->update($i_ed->edid, "Status", $stat);
 				$rv += $i_ed->update($i_ed->edid, "Aantal", $aantal);
@@ -153,15 +152,16 @@ function inschrijvenevenementen($lidid) {
 				$mailing->xtrachar = "EVD";
 				$mailing->xtranum = $i_ed->edid;
 				
-				if (IsValidMailAddress($row->EmailOrganisatie, 0)) {
-					$i_mv->vulvars(-1, $row->EmailOrganisatie);
+				if (strlen($row->EmailOrganisatie) > 5) {
+					$i_mv = new cls_Mailing_vanaf(0, $row->EmailOrganisatie);
 					if ($i_mv->mvid > 0) {
 						$mailing->setVanaf($i_mv->mvid, 1);
 					}
+					$i_mv = null;
 				}
-			
-				if ($mailing->send($lidid, 0, 1) > 0) {
-					$mess = sprintf("Bevestiging deelname evenement (%d) is aan %s verzonden.", $i_ed->edid, (new cls_Lid())->Naam($lidid));
+	
+				if ($mailing->send($lidid, 0, 3) > 0) {
+					$mess = sprintf("Bevestiging deelname evenement %d is verzonden.", $i_ed->edid);
 				} else {
 					$mess = sprintf("Fout bij het versturen van de e-mail. Probeer het later nogmaals of neem contact op met de webmaster.");
 				}
@@ -258,9 +258,8 @@ function muteerevenement($eventid) {
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 
 		if ($eventid == 0 and isset($_POST['btnToevoegen'])) {
-			
 			$eventid = $i_ev->add();
-			
+
 			if (isset($_POST['Datum']) and strlen($_POST['Datum']) == 10) {
 				$d = $_POST['Datum'];
 				if (isset($_POST['Starttijd']) and strlen($_POST['Starttijd']) > 4) {
@@ -357,7 +356,7 @@ function muteerevenement($eventid) {
 	$optionstandstatus = "";
 	foreach (ARRDLNSTATUS as $ds => $o) {
 		$s = checked($i_ev->standaardstatus, "option", $ds);
-		$optionstandstatus .= sprintf("<option value='%s' %s>%s</option>\n", $ds, $s, $o);
+		$optionstandstatus .= sprintf("<option value='%s'%s>%s</option>\n", $ds, $s, $o);
 	}
 	
 	printf("<form method='post' id='evenementenbeheer' class='form-check form-switch' action='%s?tp=Evenementen/Beheer&op=edit&eid=%d'>\n", $_SERVER['PHP_SELF'], $eventid);
@@ -387,9 +386,9 @@ function muteerevenement($eventid) {
 		}
 
 		printf("<label id='lblInschrijvingOpen' class='form-label'>Inschrijving online</label><input type='checkbox' class='form-check-input' id='InschrijvingOpen' value=1 %s title='Is de online-inschrijving open?'>\n", checked($i_ev->inschrijvingopen));
-		printf("<label id='lblStandaardStatus' class='form-label'>Standaard status</label><select id='StandaardStatus' class='form-select form-select-sm'>%s</select>\n", $optionstandstatus);
+		printf("<label id='lblStandaardStatus' class='form-label'>Standaard status</label><select id='StandaardStatus' class='form-select form-select-sm'>\n%s</select>\n", $optionstandstatus);
 		printf("<label id='lblMaxPersonenPerDeelname' class='form-label'>Max. per deelname</label><input type='number' id='MaxPersonenPerDeelname' class='num2' value=%d min=1 max=99 title='Met hoeveel personen mag je maximaal komen?'>\n", $i_ev->maxpersonenperdeelname);
-		printf("<label id='lblMeerdereStartmomenten' class='form-label'>Meerdere startmomenten</label><input type='checkbox' class='form-check-input' id='MeerdereStartMomenten' value=1 %s title='Kunnen deelnemers verschillende starttijden hebben?'>\n", checked($i_ev->meerderestartmomenten));
+		printf("<label id='lblMeerdereStartmomenten' class='form-label'>Meerdere startmomenten</label><input type='checkbox' class='form-check-input' id='MeerdereStartMomenten' value=1%s title='Kunnen deelnemers verschillende starttijden hebben?'>\n", checked($i_ev->meerderestartmomenten));
 		
 		$i_ond->per = $i_ev->datum;
 		printf("<label id='lblDoelgroep' class='form-label'>Doelgroep</label><select name='BeperkTotGroep' class='form-select form-select-sm' onChange='this.form.submit();'>\n<option value=0>Iedereen</option>\n%s</select>\n", $i_ond->htmloptions($i_ev->doelgroep, 1, "", 1));
@@ -775,11 +774,11 @@ function fnEvenementOmschrijving($p_evid, $p_mettijd=0, $p_element="") {
 	}
 	
 	if ($p_element === "td") {
-		return sprintf("<td class='%s'%s>%s</td>", $i_ev->evclass, $i_ev->evstyle, $eo);
+		return sprintf("<td class='%s'%s>%s</td>", $i_ev->evclass, $i_ev->i_et->style, $eo);
 	} elseif ($p_element === "li") {
-		return sprintf("<li class='%1\$s'%2\$s title=\"%3\$s\">%3\$s</li>", $i_ev->evclass, $i_ev->evstyle, $eo);
-	} elseif ($p_element === "p") {
-		return sprintf("<p class='%s'%s>%s</p>", $i_ev->evclass, $i_ev->evstyle, $eo);
+		return sprintf("<li class='%1\$s'%2\$s title=\"%3\$s\">%3\$s</li>", $i_ev->evclass, $i_ev->i_et->style, $eo);
+	} elseif ($p_element == "p") {
+		return sprintf("<p class='%s'%s>%s</p>", $i_ev->evclass, $i_ev->i_et->style, $eo);
 	} else {
 		return $eo;
 	}
