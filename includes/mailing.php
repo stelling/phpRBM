@@ -1861,10 +1861,13 @@ class email {
 				}
 			}
 			
+			$wt = $_SESSION['settings']['mailing_wachttijdinoutbox'] ?? 0;
 			if ($p_direct == 1 or $_SESSION['settings']['mailing_direct_verzenden'] == 1) {
 				$this->nietversturenvoor = date("Y-m-d H:i:s");
+			} elseif ($p_direct > 1 and $wt > $p_direct) {
+				$this->nietversturenvoor = date("Y-m-d H:i:s", strtotime(sprintf("+%d minute", intval($wt/$p_direct))));
 			} else {
-				$this->nietversturenvoor = date("Y-m-d H:i:s", strtotime(sprintf("+%d minute", $_SESSION['settings']['mailing_wachttijdinoutbox'])));
+				$this->nietversturenvoor = date("Y-m-d H:i:s", strtotime(sprintf("+%d minute", $wt)));
 			}
 			$this->mhid = (new cls_Mailing_hist())->add($this);
 			if ($this->mhid > 0) {
