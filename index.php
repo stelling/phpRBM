@@ -39,6 +39,8 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 	}
 } elseif ($_SESSION['lidid'] > 0) {
 	(new cls_Login())->setingelogd($_SESSION['lidid']);
+} else {
+	(new cls_login())->autounlock();
 }
 
 if ($currenttab2 != "previewwindow" and $op != "preview_hist" and $op != "preview_rek" and $currenttab2 != "DL-lijst") {
