@@ -40,6 +40,7 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 } elseif ($_SESSION['lidid'] > 0) {
 	(new cls_Login())->setingelogd($_SESSION['lidid']);
 } else {
+	(new cls_login())->uitloggen();
 	(new cls_login())->autounlock();
 }
 
@@ -321,18 +322,16 @@ function fnVoorblad() {
 	global $dtfmt, $lididwebmasters;
 	
 	$i_tp = new cls_Template();
-	
-	(new cls_login())->uitloggen();
 
 	$i_tp->vulvars(-1, "verenigingsinfo");
 	$content = $i_tp->inhoud;
 	
 	if ($content !== false and strlen($content) > 0) {
 		if ($_SESSION['lidid'] == 0) {
-			$content = removetextblock($content, "<!-- Ingelogd -->", "<!-- /Ingelogd -->");
+			$content = removetextblock($content, "<!-- Ingelogd -->");
 		}
 		if (WEBMASTER == false) {
-			$content = removetextblock($content, "<!-- Webmaster -->", "<!-- /Webmaster -->");
+			$content = removetextblock($content, "<!-- Webmaster -->");
 		}
 		
 		$pos = 0;
@@ -342,7 +341,7 @@ function fnVoorblad() {
 				$ondid = intval(substr($content, $p+9, strpos($content, " ", $p+9)-($p+9)));
 				if (in_array($ondid, explode(",", $_SESSION['lidgroepen'])) === false) {
 					$b = sprintf("Ond_%d", $ondid);
-					$content = removetextblock($content, sprintf("<!-- %s -->", $b), sprintf("<!-- /%s -->", $b));
+					$content = removetextblock($content, sprintf("<!-- %s -->", $b));
 				}
 				$pos = $p;
 			}
