@@ -2434,14 +2434,20 @@ class cls_Onderdeel extends cls_db_base {
 	public string $code = "";
 	public string $type = "";
 	public string $typeoms = "";
-	public string $email = "";
-	public int $alleenleden = 0;			// Mogen van dit onderdeel alleen mensen lid zijn, die ook lid van de vereniging zijn?
+	public string $email = "";						// Het (centrale) e-mailadres wat bij dit onderdeel hoort
+	public int $alleenleden = 0;					// Mogen van dit onderdeel alleen mensen lid zijn, die ook lid van de vereniging zijn?
 	public int $bewaartermijnpresentie = 0;	// Hoelang moet de presentie worden bewaard, nadat het lidmaatschap is beëindigd.
-	public int $afmeldenmogelijk = 0;		// Als de waarde groter dan 0 is, dan mogen leden zich via de zelfservice afmelden. De waarde geeft het aantal activiteiten vooruit aan.
-	public $iskader = false;				// Zijn de leden van dit onderdeel kaderlid?
-	public $isautogroep = false;			// Wordt deze groep automatisch bijgewerkt op basis van MySQL-code of een Eigen query in de Access-database.
-	public int $ledenmuterendoor = 0;		// Door welke extra groep mogen de leden van dit onderdeel worden gemuteerd?
+	public int $afmeldenmogelijk = 0;			// Als de waarde groter dan 0 is, dan mogen leden zich via de zelfservice afmelden. De waarde geeft het aantal activiteiten vooruit aan.
+	public $iskader = false;						// Zijn de leden van dit onderdeel kaderlid?
+	public float $contributielid = 0;
+	public float $contributiejeugdlid = 0;
+	public float $contributiekaderlid = 0;
+	public float $contributienietlid = 0;
+	public string $vervallen = "";				// Per deze datum is dit onderdeel komen te vervallen.
+	public $isautogroep = false;					// Wordt deze groep automatisch bijgewerkt op basis van MySQL-code of een Eigen query in de Access-database.
+	public int $ledenmuterendoor = 0;			// Door welke extra groep mogen de leden van dit onderdeel worden gemuteerd?
 	public int $historieopschonen = 0;
+	public int $maximalelengteperiode = 0;
 	public string $mysql = "";
 	public string $opmerking = "";
 	private string $mogelijketypes = "";
@@ -2482,8 +2488,14 @@ class cls_Onderdeel extends cls_db_base {
 				$this->afmeldenmogelijk = $row->AfmeldenMogelijk ?? 0;
 				$this->ledenmuterendoor = $row->LedenMuterenDoor ?? 0;
 				$this->historieopschonen = $row->HistorieOpschonen ?? 0;
+				$this->maximalelengteperiode = $row->MaximaleLengtePeriode ?? 0;
+				$this->contributielid = $row->LIDCB ?? 0;
+				$this->contributiejeugdlid = $row->JEUGDCB ?? 0;
+				$this->contributiekaderlid = $row->FUNCTCB ?? 0;
+				$this->contributienietlid = $row->NIETLIDCB ?? 0;
 				$this->mysql = $row->MySQL ?? "";
 				$this->opmerking = $row->Opmerking ?? "";
+				$this->vervallen = $row->VervallenPer ?? "";
 				$this->ingevoerd = $row->Ingevoerd ?? "";
 				$this->gewijzigd = $row->Gewijzigd ?? "";
 				if ($row->Kader == 1) {
@@ -4231,7 +4243,7 @@ class cls_Lidond extends cls_db_base {
 		
 	} # cls_Lidond->autogroepenbijwerken
 	
-	public function auto_einde($p_ondid=-1, $p_interval=90) {
+	public function auto_einde($p_ondid=-1, $p_interval=180) {
 		$starttijd = microtime(true);
 		
 		$rv = 0;
@@ -4244,7 +4256,7 @@ class cls_Lidond extends cls_db_base {
 		$f = "A.TypeActiviteit=2 AND A.TypeActiviteitSpecifiek=62";
 		$lagb = (new cls_Logboek())->max("A.DatumTijd", $f);
 		
-		if (strlen($lagb) < 10 or $lagb < date("Y-m-d H:i:s", strtotime(sprintf("-%d minutes", $p_interval)))) {
+		if (strlen($lagb) < 10 or $lagb < date("Y-m-d H:i:s", strtotime(sprintf("-%d minute", $p_interval)))) {
 			
 			$f = "O.`Alleen leden`=1 AND O.Gewijzigd <= DATE_SUB(NOW(), INTERVAL 6 HOUR)";
 			if ($p_ondid > 0) {
@@ -4275,7 +4287,7 @@ class cls_Lidond extends cls_db_base {
 			$this->ta = 2;
 			$this->tas = 62;
 			$this->lidid = 0;
-			$this->mess = sprintf("cls_Lidond->auto_einde in %.1f seconden uitgevoerd.", $exec_tijd);
+			$this->mess = sprintf("%s->%s in %.1f seconden uitgevoerd.", __CLASS__, __FUNCTION__, $exec_tijd);
 			$this->Log();
 		}
 		
@@ -4592,11 +4604,6 @@ class cls_Groep extends cls_db_base {
 	}
 	
 	public function opschonen() {
-		$query = sprintf("SELECT GR.RecordID FROM %s WHERE DATE_ADD(GR.Ingevoerd, INTERVAL %d DAY) < CURDATE() AND (SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.GroepiD=GR.RecordID)=0;", $this->basefrom, BEWAARTIJDNIEUWERECORDS, TABLE_PREFIX);
-		$result = $this->execsql($query);
-		foreach($result->fetchAll() as $row) {
-			$this->delete($row->RecordID, "deze groep niet meer gebruikt wordt");
-		}
 		
 		$this->optimize();
 		
