@@ -637,7 +637,7 @@ function eigenlijstenmuteren() {
 			echo("<div id='filter'>\n");
 			echo("<input type='text' title='Filter naam eigen lijst' placeholder='Filter op naam' OnKeyUp=\"fnFilter('overzichteigenlijsten', this);\">\n");
 			if (count($rows) > 2) {
-				printf("<p class='aantrecords'>%d logins</p>\n", count($rows));
+				printf("<p class='aantrecords'>%d lijsten</p>\n", count($rows));
 			}
 			echo("</div> <!-- Einde filter -->\n");
 			
