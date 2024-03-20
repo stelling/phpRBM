@@ -817,13 +817,13 @@ td.inagenda {
 	margin-left: 0;
 }
 
-#lidmaatschapmuteren td:nth-child(5) {
-	text-align: center;
+#lidmaatschapmuteren .form-check-input {
+	margin-left: 0;
+	float: none;
 }
 
-#lidmaatschapmuteren button {
-	border-style: none;
-	background-color: transparent;
+#lidmaatschapmuteren td:nth-child(4) {
+	text-align: center;
 }
 
 .ledenperonderdeelmuteren select {
@@ -1590,13 +1590,16 @@ td.voortgangsprobleem {
 
 #overzichtevenementen ul {
 	list-style-type: none;
-	padding-left: 9px;
+	padding-left: 3px;
 }
 
 #overzichtevenementen li {
 	float: left;
-	min-width: 205px;
-	margin-left: -9px;
+	width: 202px;
+	margin-right: 6px;
+	margin-bottom: 2px;
+	white-space: nowrap;
+	overflow: hidden;
 }
 
 #evenementenbeheer label {
