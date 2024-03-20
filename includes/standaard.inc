@@ -1672,9 +1672,13 @@ function change_month_to_uk($strdate) {
 	return $strdate;
 } # change_month_to_uk
 
-function removetextblock($content, $start_block="<!-- Ingelogd -->", $end_block="<!-- /Ingelogd -->") {
+function removetextblock($content, $start_block, $end_block="") {
+	
+	if (strlen($end_block) == 0 and strlen($start_block) > 5) {
+		$end_block = str_replace("<!-- ", "<!-- /", $start_block);
+	}
 
-	while (strpos($content, $start_block) !== false and strpos($content, $end_block) !== false) {
+	while (strlen($start_block) > 5 and strlen($end_block) > 5 and strpos($content, $start_block) !== false and strpos($content, $end_block) !== false) {
 		$stb = strpos($content, $start_block);
 		$etb = strpos($content, $end_block) + strlen($end_block);
 		$content = substr($content, 0, $stb) . substr($content, $etb);
