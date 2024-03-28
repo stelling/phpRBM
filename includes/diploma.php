@@ -167,7 +167,7 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1, $p_dpid=-1) {
 
 	$i_ex->vulvars($exid);
 	if ($i_ex->exid > 0) {
-		$i_lid->per = $i_ex->exdatum;
+		$i_lid->per = $i_ex->datum;
 	}
 
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
@@ -229,7 +229,9 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1, $p_dpid=-1) {
 	} else {
 		printf("<form action='%s?tp=%s/%s&op=ldedit' method='post'>\n", $_SERVER["PHP_SELF"], $currenttab, $currenttab2);
 		$exid = 0;
-		$i_ld->controle();
+		if ($dpid > 0) {
+			$i_ld->controle(-1, $dpid);
+		}
 	}
 	$i_ex->vulvars($exid);
 	
@@ -245,27 +247,13 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1, $p_dpid=-1) {
 	$dtfmt->setPattern(DTTEXT);
 	
 	if ($exid > 0) {
-		$i_ld->controle($exid);
 		echo("<div id='examenmuteren' class='form-check form-switch'>\n");
 		printf("<label id='lblexamennummer' class='form-label'>Nummer</label><p id='examennummer'>%d</p>\n", $i_ex->exid);
 		echo("<label class='form-label'>Examendatum</label>");
-		if ($i_ex->aantalkandidaten > 0 and 1 == 2) {
-			$dtfmt->setPattern(DTTEXTWD);
-			printf("<p>%s</p>\n", $dtfmt->format(strtotime($i_ex->exdatum)));
-		} else {
-			printf("<input type='date' id='Datum' value='%s' title='Examendatum' onBlur=\"savedata('examenmuteren', %d, this);\">\n", $i_ex->exdatum, $i_ex->exid);
-		}
-		printf("<label class='form-label'>Examenplaats</label><input type='text' id='Plaats' value='%s' placeholder='Examenplaats' onBlur=\"savedata('examenmuteren', %d, this);\" class='w30' maxlength=30>\n", $i_ex->explaats, $i_ex->exid);
-		$f = sprintf("LD.Examen=%d", $exid);
-		if ($i_ld->aantal($f) > 0 and 1 == 2) {
-			$d = " disabled";
-		} else {
-			$d = "";
-		}
-		if ($isrn) {
-			printf("<label class='form-label'>Starttijd</label><input type='text' id='Begintijd' value='%s' onBlur=\"savedata('examenmuteren', %d, this);\" class='w5' maxlength=5>\n", $i_ex->begintijd, $i_ex->exid);
-		}		
-		printf("<label class='form-check-label' for='Proefexamen'>Proefexamen<input type='checkbox' class='form-check-input' id='Proefexamen' value=1%s%s title='Proefexamen?' onBlur=\"savedata('examenmuteren', %d, this);\"></label>\n", checked($i_ex->proef), $d, $i_ex->exid);
+		printf("<input type='date' id='Datum' value='%s' title='Examendatum' onBlur=\"savedata('examenmuteren', %d, this);\">\n", $i_ex->datum, $i_ex->exid);
+		printf("<label class='form-label'>Examenplaats</label><input type='text' id='Plaats' value='%s' placeholder='Examenplaats' title='Examenplaats' onBlur=\"savedata('examenmuteren', %d, this);\" class='w30' maxlength=30>\n", $i_ex->plaats, $i_ex->exid);
+		printf("<label class='form-label'>Starttijd</label><input type='text' id='Begintijd' value='%s' title='Starttijd' onBlur=\"savedata('examenmuteren', %d, this);\" class='w5' maxlength=5>\n", $i_ex->begintijd, $i_ex->exid);
+		printf("<label class='form-check-label' for='Proefexamen'>Proefexamen<input type='checkbox' class='form-check-input' id='Proefexamen' value=1%s title='Proefexamen?' onBlur=\"savedata('examenmuteren', %d, this);\"></label>\n", checked($i_ex->proef), $i_ex->exid);
 		echo("</div> <!-- einde examenmuteren -->\n");
 		$i_ld->controle($exid);
 	}
@@ -293,10 +281,14 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1, $p_dpid=-1) {
 			}
 			printf("<table class='%s'>\n", TABLECLASSES);
 			$t = "";
+			$mut_gn = false;	// Muteren examengroep mogelijk
 			if ($p_perexamen == 1) {
 				$ldrows = $i_ld->perexamendiploma($exid, $i_dp->dpid);
 				if (count($ldrows) > 1) {
 					$t = sprintf(" title='%d rijen'", count($ldrows));
+				}
+				if (count($ldrows) > 6) {
+					$mut_gn = true;
 				}
 				printf("<caption%s>%s</caption>\n", $t, $i_dp->naam);
 			} else {
@@ -321,12 +313,16 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1, $p_dpid=-1) {
 				echo("<th>Diplomanr</th>");
 				echo("<th>Geldig tot</th>");
 			}
-			if ($i_ex->exdatum <= date("Y-m-d")) {
-				echo("<th>G</th>");
+			if ($mut_gn) {
+				echo("<th title='Examengroep'>Groep</th>");
+			}
+			if ($i_ex->datum <= date("Y-m-d")) {
+				echo("<th title='Geslaagd?'>G</th>");
 			}
 			echo("<th></th></tr>\n");
 
-			$aant_ng = 0; // Aantal kandidaten die (nog) niet op geslaagd staan.
+			$aant_ng = 0;		// Aantal kandidaten die (nog) niet op geslaagd staan.
+			$atk = array(1);
 			foreach ($ldrows as $ldrow) {
 				$i_ld->vulvars($ldrow->RecordID);
 				$cl = "";
@@ -352,10 +348,16 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1, $p_dpid=-1) {
 				if ($p_perexamen == 0) {
 					printf("<td><input type='date' id='DatumBehaald_%d' value='%s'></td>", $ldrow->RecordID, $ldrow->DatumBehaald);
 				}
+				if ($mut_gn) {
+					printf("<td><input type='number' class='num2' id='Examengroep_%d' value=%d min=1 max=99></td>", $ldrow->RecordID, $i_ld->examengroep);
+					if (in_array($i_ld->examengroep, $atk) == false) {
+						$atk[] = $i_ld->examengroep;
+					}
+				}
 				if ($p_perexamen == 0) {
 					printf("<td><input type='text' id='Diplomanummer_%d' class='w25' value='%s' maxlength=25></td>", $ldrow->RecordID, $ldrow->Diplomanummer);
 					printf("<td><input type='date' id='LicentieVervallenPer_%d' value='%s'></td>", $ldrow->RecordID, $ldrow->LicentieVervallenPer);
-				} elseif ($i_ex->exdatum <= date("Y-m-d")) {
+				} elseif ($i_ex->datum <= date("Y-m-d")) {
 					printf("<td><input type='checkbox' id='Geslaagd_%d' title='Geslaagd?' value=1%s></td>", $ldrow->RecordID, checked($ldrow->Geslaagd));
 				}
 
@@ -369,22 +371,28 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1, $p_dpid=-1) {
 			}
 			echo("</table>\n");
 
-			if (strlen($i_dp->eindeuitgifte) < 10 or $i_dp->eindeuitgifte >= $i_ex->exdatum) {
+			if (strlen($i_dp->eindeuitgifte) < 10 or $i_dp->eindeuitgifte >= $i_ex->datum) {
 				echo("<div class='clear'></div>\n");
 				$xf = sprintf("(L.RecordID NOT IN (SELECT LD.Lid FROM %sLiddipl AS LD WHERE LD.DiplomaID=%d AND LD.Examen=%d))", TABLE_PREFIX, $i_dp->dpid, $i_ex->exid);
 				printf("<select name='ldtoevoegen_%d' class='form-select form-select-sm' onChange='this.form.submit();'><option value=0>Lid toevoegen ....</option>\n%s</select>\n", $i_dp->dpid, $i_lid->htmloptions(-1, 1, $xf, "", $p_afdid));
 			}
 			
-			if ($aant_ng > 1 and $i_ex->exdatum <= date("Y-m-d")) {
+			if ($aant_ng > 1 and $i_ex->datum <= date("Y-m-d")) {
 				printf("<button type='submit' class='%s btn-sm' name='btnAllenGeslaagd' value='%d-%d' title='Allemaal geslaagd'>%s</button>\n", CLASSBUTTON, $exid, $dipl->DiplomaID, ICONCHECK);
 			}
 			
 			if ($p_perexamen == 1) {
 				$f = sprintf("EO.DiplomaID=%d", $i_dp->dpid);
 				if ($i_eo->aantal($f) > 1 and count($ldrows) > 0) {
-					printf("<button type='button' class='%s btn-sm' title='Print aftekenlijst' onClick=\"window.open('%s?tp=%s/Aftekenlijst&p_examen=%d&p_diploma=%d', '_blank')\">%s Afteken\n", CLASSBUTTON, $_SERVER['PHP_SELF'], $currenttab, $exid, $i_dp->dpid, ICONPRINT);
+					if (count($atk) > 1) {
+						foreach ($atk as $gr) {
+							printf("<button type='button' class='%1\$s btn-sm' title='Print aftekenlijst' onClick=\"window.open('%2\$s?tp=%3\$s/Aftekenlijst&p_examen=%4\$d&p_diploma=%5\$d&p_groep=%6\$d', '_blank')\">%7\$s Afteken %6\$d\n", CLASSBUTTON, $_SERVER['PHP_SELF'], $currenttab, $exid, $i_dp->dpid, $gr, ICONPRINT);
+						}
+					} else {
+						printf("<button type='button' class='%s btn-sm' title='Print aftekenlijst' onClick=\"window.open('%s?tp=%s/Aftekenlijst&p_examen=%d&p_diploma=%d', '_blank')\">%s Afteken\n", CLASSBUTTON, $_SERVER['PHP_SELF'], $currenttab, $exid, $i_dp->dpid, ICONPRINT);
+					}
 				}
-				if ($i_dp->organisatie == 1 and count($ldrows) > 0 and $i_ex->exdatum >= date("Y-m-d", strtotime("-7 day"))) {
+				if ($i_dp->organisatie == 1 and count($ldrows) > 0 and $i_ex->datum >= date("Y-m-d", strtotime("-7 day"))) {
 					printf("<button type='button' class='%s btn-sm' title='Print DL-lijst' onClick=\"window.open('%s?tp=%s/DL-lijst&p_examen=%d&p_diploma=%d', '_blank')\">%s DL\n", CLASSBUTTON, $_SERVER['PHP_SELF'], $currenttab, $exid, $i_dp->dpid, ICONPRINT);
 				}
 				echo("</div> <!-- Einde kandidatengroep col -->\n");
@@ -404,7 +412,7 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1, $p_dpid=-1) {
 				printf("<button type='submit' class='%s btn-sm' name='ledengroep_%d'>%s</button>", CLASSBUTTON, $grrow->RecordID, $grrow->Omschrijving);
 			}
 		}
-		$f = sprintf("EX.Proefexamen=1 AND EX.OnderdeelID=%d AND EX.Datum < '%s' AND EX.Nummer IN (SELECT LD.Examen FROM %sLiddipl AS LD WHERE LD.Geslaagd=1)", $p_afdid, $i_ex->exdatum, TABLE_PREFIX);
+		$f = sprintf("EX.Proefexamen=1 AND EX.OnderdeelID=%d AND EX.Datum < '%s' AND EX.Nummer IN (SELECT LD.Examen FROM %sLiddipl AS LD WHERE LD.Geslaagd=1)", $p_afdid, $i_ex->datum, TABLE_PREFIX);
 		$potexrows = $i_ex->basislijst($f, "Datum DESC", 1, 5);
 		if (count($potexrows) > 0 and $i_ex->proef == 0) {
 			echo("<label class='form-label'>Proefexamen toevoegen</label>\n");
@@ -420,6 +428,10 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1, $p_dpid=-1) {
 	echo("<script>
 		
 	$(\"input[id^=DatumBehaald_], input[id^=Diplomanummer_], input[id^=LicentieVervallenPer_]\").on('blur', function() { 
+		savedata('liddipl', 0, this);
+	});
+	
+	$(\"input[id^=Examengroep_]\").on('change', function() { 
 		savedata('liddipl', 0, this);
 	});
 	
@@ -533,7 +545,7 @@ function fnDiplomaMuteren($p_dpid, $p_beperkt=0) {
 		$f = sprintf("DP.RecordID<>%d AND DP.Afdelingsspecifiek=%d AND IFNULL(DP.Vervallen, '9999-12-31') > CURDATE()", $i_dp->dpid, $i_dp->afdelingsspecifiek);
 		printf("<label id='lblvoorganger' class='form-label'>Voorganger</label><select id='VoorgangerID' class='form-select form-select-sm'><Option value=0>Geen</option>\n%s</select>\n", $i_dp->htmloptions($i_dp->voorgangerid, 0, 0, 0, $f, 1));
 		
-		printf("<label id='lbldoorlooptijd' class='form-label'>Doorlooptijd</label><input type='number' class='num2' max=99 id='Doorlooptijd' value=%d><p>in maanden</p>\n", $i_dp->doorlooptijd);
+		printf("<label id='lbldoorlooptijd' class='form-label'>Doorlooptijd</label><input type='number' class='num2' max=99 id='Doorlooptijd' value=%d><p>weken / lessen</p>\n", $i_dp->doorlooptijd);
 		
 		if (strlen($i_dp->naamvolgende) > 0) {
 			printf("<label class='form-label' id='lblvolgende'>Volgende diploma('s)</label><p>%s</p>\n", $i_dp->naamvolgende);
@@ -1383,9 +1395,9 @@ LAAAAB90RVh0ZXhpZjp0aHVtYm5haWw6WVJlc29sdXRpb24ANzIvMXTvib0AAAAASUVORK5CYII='>\n
 	
 	echo("<div class='clear' style='height: 60px;'></div>\n");
 	
-	printf("<label>Datum</label><p>%s</p>\n", $dtfmt->format(strtotime($i_ex->exdatum)));
+	printf("<label>Datum</label><p>%s</p>\n", $dtfmt->format(strtotime($i_ex->datum)));
 	printf("<label>Tijd</label><p>%s</p>\n", $i_ex->begintijd);
-	printf("<label>Locatie</label><p>%s</p>\n", $i_ex->explaats);
+	printf("<label>Locatie</label><p>%s</p>\n", $i_ex->plaats);
 	printf("<label>Brigade</label><p>%s (%s)</p>\n", $_SESSION['settings']['naamvereniging_reddingsbrigade'], $_SESSION['settings']['sportlink_vereniging_relcode']);
 	
 	echo("<table>\n");
