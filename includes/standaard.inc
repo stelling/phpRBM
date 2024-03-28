@@ -32,7 +32,7 @@ define("ARRGESLACHT", ["O" => "Onbekend", "V" => "Vrouwelijk", "M" => "Mannelijk
 define("ARRTL", ["Alle", "Leden", "Klosleden", "Voormalig leden"]);
 define("ARRLEGITIMATIE", ["G" => "Geen", "I" => "Identiteitskaart", "P" => "Paspoort", "R" => "Rijbewijs"]);
 define("ARRSOORTMEMO", ["A" => "Algemeen", "B" => "Bewaking", "D" => "Dieet", "E" => "Examen", "F" => "Financiën", "G" => "Gezondheid/medisch", "Z" => "Zwemervaring"]);
-define("ARRTYPEONDERDEEL", ["A" => "Afdeling", "B" => "Bestuur", "C" => "Commissie", "E" => "Eigenschap", "F" => "Functionarissen", "G" => "Groep", "O" => "Onderscheiding", "R" => "Rol", "S" => "Selectie", "T" => "Toestemming"]);
+define("ARRTYPEONDERDEEL", ["A" => "Afdeling", "B" => "Bestuur", "C" => "Commissie", "E" => "Eigenschap", "F" => "Functionarissen", "G" => "Groep", "M" => "Materiaaluitleen", "O" => "Onderscheiding", "R" => "Rol", "S" => "Selectie", "T" => "Toestemming"]);
 define("ARRTYPEDIPLOMA", ["B" => "Brevet", "C" => "Competentie", "D" => "Diploma", "I" => "Insigne", "L" => "Licentie", "M" => "Module", "P" => "PvB"]);
 define("PASFOTOEXTENTIES", ["gif", "jpg", "jpeg", "png"]);
 define("ARRSOORTEVENEMENT", ["B" => "Bewaking", "G" => "Gezellig/sociaal", "O" => "Opleiding", "R" => "Reddingsbrigade-activiteit", "V" => "Vergadering/overleg", "W" => "Wedstrijd"]);
@@ -321,7 +321,7 @@ function HTMLheader($breed=0) {
 
 			echo("</div>  <!-- Einde welkom -->\n");
 		
-			printf("<h1 id='naamwebsite'>%s</h1>\n", $_SESSION['settings']['naamwebsite']);
+			printf("<h1 id='naamwebsite'><a href='%s'>%s</a></h1>\n", BASISURL, $_SESSION['settings']['naamwebsite']);
 		
 			$xtra = "";
 			if ($currenttab == "Overzicht lid" and isset($_GET['lidid']) and $_GET['lidid'] > 0) {
@@ -447,19 +447,21 @@ function fnDispMenu_nw($toonnivo=1, $xtra="") {
 function fnDispMenu($toonnivo=1, $xtra="") {
 	global $tabpages, $currenttab, $currenttab2, $currenttab3, $navpad;
 	
-	if ($toonnivo == 1) {
-		echo("<nav>\n");
-	}
 	$tpd = ""; // Dit wordt getoond in het menu.
 	$ulopen = false;
-	$_SESSION['settings']['typemenu'] = 1;
 
 	if (strlen($xtra) > 0 and startwith($xtra, "&") == false) {
 		$xtra = "&" . $xtra;
 	}
 	
-	$nivo = $toonnivo;
-	if ($_SESSION['settings']['typemenu'] == 1 or ($_SESSION['settings']['typemenu'] == 3 and $nivo == 2)) {
+	if ($toonnivo == 1) {
+		echo("<nav>\n");
+	}
+	if ($toonnivo == 1 and strlen($currenttab3) > 1) {
+		
+	} else {
+		
+		$nivo = $toonnivo;
 		printf("<div id='menu_l%d'>\n", $toonnivo);
 		$itp = 1;
 		foreach($tabpages as $tp) {
@@ -467,7 +469,6 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 				$tpd = $tp;
 			} elseif ($nivo == 2 and mb_substr_count($tp, "/") == 1 and startwith($tp, $currenttab . "/")) {
 				$tpd = str_replace($currenttab . "/", "", $tp);
-			
 			} elseif ($nivo == 3 and mb_substr_count($tp, "/") == 2 and startwith($tp, $currenttab . "/") and strpos($tp, $currenttab2) > 1) {
 				$tpd = str_replace($currenttab2 . "/", "", str_replace($currenttab . "/", "", $tp));
 				
@@ -1543,7 +1544,11 @@ function fnOrderBy($p_arrSort) {
 	}
 	
 	if ($_SESSION['huidsort'] >= 50 and strlen($ord) > 0) {
-		$ord .= " DESC";
+		if (isset($p_arrSort[$sk]['sortcolumndesc'])) {
+			$ord = $p_arrSort[$sk]['sortcolumndesc'];
+		} else {
+			$ord .= " DESC";
+		}
 	}
 	
 	return $ord;

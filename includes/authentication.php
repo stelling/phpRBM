@@ -21,11 +21,6 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 	addtp("Eigen lijsten");
 	addtp("Templates");
 	addtp("Instellingen");
-	addtp("Uploaden data");
-	$f = "IFNULL(Afgemeld, '2000-01-01') < '2010-01-01'";
-	if ((new cls_Interface())->aantal($f) > 0) {
-		addtp("Downloaden wijzigingen");
-	}
 	addtp("Onderhoud");
 	addtp("Logboek");
 } else {
@@ -75,6 +70,13 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 		if (strlen($_SESSION['settings']['zs_muteerbarememos']) > 0) {
 			addtp("Zelfservice/Bijzonderheden");
 		}
+		
+		$i_ak = new cls_afdelingskalender();
+		$i_ak->where = sprintf("AK.Datum >= CURDATE() AND AK.OnderdeelID IN (%s) AND AK.OnderdeelID IN (SELECT O.RecordID FROM %sOnderdl AS O WHERE O.AfmeldenMogelijk > 0)", $_SESSION['lidgroepen'], TABLE_PREFIX);
+		if ($i_ak->aantal() > 0) {
+			addtp("Zelfservice/Afmelden");
+		}
+		
 		$f = sprintf("Datum >= CURDATE() AND IFNULL(VerwijderdOp, '1900-01-01') < '2012-01-01' AND InschrijvingOpen=1 AND BeperkTotGroep IN (%s)", $_SESSION["lidgroepen"]);
 		if ((new cls_Evenement())->aantal($f) > 0) {
 			addtp("Zelfservice/Evenementen");
@@ -109,20 +111,16 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 		if ((new cls_Inschrijving())->aantal("(Ins.Verwerkt IS NULL) AND (Ins.Verwijderd IS NULL)") > 0) {
 			addtp("Ledenlijst/Wachtlijst");
 		}
-		if ((new cls_Onderdeel())->aantal("`Type`='A' AND IFNULL(VervallenPer, '9999-12-31') >= CURDATE()") > 0) {
-			addtp("Ledenlijst/Afdelingen");
-		}
-		addtp("Ledenlijst/Commissies");
 		if ((new cls_Onderdeel())->aantal("`Type`='G' AND IFNULL(VervallenPer, '9999-12-31') >= CURDATE()") > 0) {
 			addtp("Ledenlijst/Groepen");
 		}
 		if ((new cls_Onderdeel())->aantal("`Type`='R' AND IFNULL(VervallenPer, '9999-12-31') >= CURDATE()") > 0) {
 			addtp("Ledenlijst/Rollen");
 		}
-		
-		if ((new cls_Onderdeel())->aantal("`Type`='S' AND IFNULL(VervallenPer, '9999-12-31') >= CURDATE()") > 0) {
-			addtp("Ledenlijst/Selecties");
+		if ((new cls_Onderdeel())->aantal("`Type`='M' AND IFNULL(VervallenPer, '9999-12-31') >= CURDATE()") > 0) {
+			addtp("Ledenlijst/Materiaal");
 		}
+		
 
 		addtp("Ledenlijst/Rapporten");
 		if ($currenttab2 == "Rapporten") {
@@ -144,6 +142,10 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 			addtp($b . "/Onderdelen");
 			if ((new cls_Onderdeel())->aantal("O.`Type`='A'") > 0) {
 				addtp($b . "/Afdelingen");
+			}
+			addtp($b . "/Commissies");
+			if ((new cls_Onderdeel())->aantal("`Type`='S'") > 0) {
+				addtp($b . "/Selecties");
 			}
 			addtp($b . "/Functies");
 			addtp($b . "/Activiteiten");
@@ -214,11 +216,13 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 //		addtp($b . "/Examens muteren");
 	}
 	
-	if (isset($_SESSION['settings']['menu_met_afdelingen']) and strlen($_SESSION['settings']['menu_met_afdelingen']) > 0) {
+	$ondinmenu = $_SESSION['settings']['menu_met_afdelingen'] ?? "";
+	if (strlen($ondinmenu) > 0) {
 		// Tabblad per afdeling/onderdeel
 		
 		$i_ond = new cls_Onderdeel();
-		foreach (explode(",", $_SESSION['settings']['menu_met_afdelingen']) as $ondid) {
+		$i_ond->where = sprintf("O.RecordID IN (%s)", $ondinmenu);
+		foreach (explode(",", $ondinmenu) as $ondid) {
 			$i_ond->vulvars($ondid);
 			if (strlen($i_ond->naam) > 15) {
 				$menukop = trim($i_ond->code);
@@ -567,7 +571,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 			
 			if ($mailing->mid > 0) {
 				if ($mailing->send($row->LidID, 1, 1) > 0) {
-					$mess = sprintf("De e-mail naar %s met de link om het wachtwoord te herstellen is verzonden.", $row->Naam);
+					$mess = "E-mail met de link om het wachtwoord te herstellen is verzonden.";
 				} else {
 					$mess = "Fout bij het versturen van de e-mail. Probeer het later nogmaals of neem contact op met de webmaster.";
 				}
@@ -686,7 +690,7 @@ function fnValidatieLogin($lidid, $key, $stap) {
 				$email->bericht = sprintf("<p>Naam lid: %s</p>
 							<p>Activatie url %s: %s</p>\n
 							<p>Deze link is %d uur geldig</p>", $row->Naam, $_SESSION['settings']['naamwebsite'], $urlactivatie, $_SESSION['settings']['login_geldigheidactivatie']);
-				$email->to_outbox(0);
+				$email->to_outbox(1);
 				$email = null;
 			}
 		} else {

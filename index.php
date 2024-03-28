@@ -56,6 +56,10 @@ $f = sprintf("Naam='%s'", $currenttab);
 if (strlen($_SESSION['settings']['menu_met_afdelingen']) > 0 and (new cls_Onderdeel())->aantal($f) == 1) {
 	$isafdelingstab = 1;
 }
+$f = sprintf("Naam='%s'", $currenttab2);
+if ($currenttab == "Afdelingen" and strlen($_SESSION['settings']['menu_met_afdelingen']) > 0 and (new cls_Onderdeel())->aantal($f) == 1) {
+	$isafdelingstab = 1;
+}
 
 $eigenlijstid = 0;
 $f = "";
@@ -151,15 +155,6 @@ if ($i_lid->aantal() == 0) {
 } elseif ($currenttab == "Vereniging") {
 	$tabidx = 0;
 	$tabblad["Introductie"] = fnVoorblad();
-	/*
-	$tn = "Agenda";
-	if ($tn == $currenttab2) {
-		$tabidx = count($tabblad);
-	}	
-	if (toegang($currenttab . "/" . $tn, 0, 0)) {
-		$tabblad["Agenda"] = fnAgendaTable($_SESSION['lidid']);
-	}
-	*/
 	
 	if ((new cls_Onderdeel())->aantal("`Type`='A'") > 0) {
 		$atn = array("Verenigingskader", "Afdelingskader");
@@ -221,14 +216,14 @@ if ($i_lid->aantal() == 0) {
 	if ($currenttab2 == "Afdelingen") {
 		fnOnderdelenmuteren("A");
 		
-	} elseif ($currenttab2 == "Commissies") {
-		fnOnderdelenmuteren("C");
-		
 	} elseif ($currenttab2 == "Groepen") {
 		fnOnderdelenmuteren("G");
 		
 	} elseif ($currenttab2 == "Rollen") {
 		fnOnderdelenmuteren("R");
+		
+	} elseif ($currenttab2 == "Materiaal") {
+		fnOnderdelenmuteren("M");
 		
 	} elseif ($currenttab2 == "Selecties") {
 		fnOnderdelenmuteren("S");
@@ -300,6 +295,8 @@ if ($i_lid->aantal() == 0) {
 	fnMailing();
 } elseif ($currenttab == "Diplomazaken") {
 	fnDiplomazaken();
+} elseif ($currenttab == "Afdelingen") {
+	fnDispMenu(2);
 } elseif ($currenttab == "Evenementen") {
 	fnEvenementen();
 } elseif ($currenttab == "Bestellingen") {
