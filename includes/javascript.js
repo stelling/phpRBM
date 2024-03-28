@@ -166,7 +166,7 @@ function lidalgwijzprops() {
 	var rn = $('#Roepnaam');
 	var vl = $('#Voorletter');
 	var gs = $('#Geslacht');
-	var ov = $('#Overleden');
+	var ov = $('#Overleden').val();
 	
 	if (typeof vl !== 'undefined' && typeof rn !== 'undefined') {
 		if (vl.val().length == 0 && rn.val().length > 1 && gs.val() != "B") {
@@ -185,14 +185,14 @@ function lidalgwijzprops() {
 			t = 'De geboortedatum mag niet in de toekomst liggen.';
 			$('#uitleg_gebdatum').addClass('error');
 		} else {
-			var lft = today.getYear() - dat.getYear();
-			if (dat.getMonth() == today.getMonth() && dat.getDate() > today.getDate()) {
+			var lft = today.getFullYear() - dat.getFullYear();
+			if (dat.getMonth() > today.getMonth()) {
 				lft--;
-			} else if (dat.getMonth() > today.getMonth()) {
+			} else if (dat.getMonth() == today.getMonth() && dat.getDate() > today.getDate()) {
 				lft--;
 			}
 			t = dat.toLocaleDateString('nl-NL', options);
-			if (lft > 1 && ov.val() == "") {
+			if (lft > 1 && (ov == "" || typeof ov == 'undefined')) {
 				t = t.concat(' (', lft, ' jaar)');
 			}
 		}
@@ -372,7 +372,7 @@ function mailingprops() {
 		type: 'post',
 		data: { mailingid: mid, selectie_vangebdatum: $('#selectie_vangebdatum').val(), selectie_temgebdatum: $('#selectie_temgebdatum').val(), selectie_groep: $('#selectie_groep').val() },
 		success: function(response) {
-			if (response['aantalontvangers'] > 1) {
+			if (response['aantalontvangers'] > 0) {
 				$('#lblOntvangers').html('Ontvangers (' + response['aantalontvangers'] + ')');
 				$('#OntvangersVerwijderen').prop("disabled", false);
 				$('#GroepsledenVerwijderen').prop("disabled", false);
