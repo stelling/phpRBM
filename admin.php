@@ -501,83 +501,71 @@ function fnStamgegevens() {
 function eigenlijstenmuteren() {
 	global $dtfmt;
 	
-	if (isset($_GET['tp'])) {
-		$tp = $_GET['tp'];
-	}
-	
+	$tp = $_GET['tp'] ?? "";
+		
 	if (isset($_GET['paramID']) and $_GET['paramID'] > 0) {
 		$elid = intval($_GET['paramID']);
+	} elseif (isset($_POST['recordid']) and $_POST['recordid'] > 0) {
+		$elid = intval($_POST['recordid']);
 	} else {
 		$elid = 0;
 	}
 	$i_el = new cls_Eigen_lijst("", $elid);
 	$i_ond = new cls_Onderdeel();
-	$i_el->controle($elid, 1);
 	$i_mh = new cls_Mailing_hist();
+	
+	$toonlijst = true;
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		
 		if (isset($_POST['Toevoegen']) and $_POST['Toevoegen'] == "lijst_toevoegen") {
 			$i_el->add();
-		}
-		
-		if (isset($_POST['naam'])) {
-			$i_el->update($elid, "Naam", $_POST['naam']);
-		}
-		
-		if (isset($_POST['tabpage'])) {
-			$_POST['tabpage'] = trim($_POST['tabpage']);
-			if (substr($_POST['tabpage'], -1) == "\\") {
-				$_POST['tabpage'] = substr($_POST['tabpage'], 0, -1);
+			
+		} elseif ($elid > 0) {
+			
+			foreach (array("Naam", "Uitleg", "MySQL","EigenScript", "GroepMelding", "Default_value_params") as $fn) {
+				$cn = strtolower($fn);
+				if (isset($_POST[$cn])) {
+					$i_el->update($elid, $fn, $_POST[$cn]);
+				}
 			}
-			$_POST['tabpage'] = str_replace("\\" . $_POST['naam'], "", $_POST['tabpage']);
-			$i_el->update($elid, "Tabpage", $_POST['tabpage']);
-		}
 		
-		if (isset($_POST['uitleg'])) {
-			$i_el->update($elid, "Uitleg", $_POST['uitleg']);
-		}
+			if (isset($_POST['tabpage'])) {
+				$_POST['tabpage'] = trim($_POST['tabpage']);
+				if (substr($_POST['tabpage'], -1) == "\\") {
+					$_POST['tabpage'] = substr($_POST['tabpage'], 0, -1);
+				}
+				$_POST['tabpage'] = str_replace("\\" . $_POST['naam'], "", $_POST['tabpage']);
+				$i_el->update($elid, "Tabpage", $_POST['tabpage']);
+			}
 		
-		if (isset($_POST['mysql'])) {
-			$i_el->update($elid, "MySQL", $_POST['mysql']);
-		}
-		
-		if (isset($_POST['EigenScript'])) {
-			$i_el->update($elid, "EigenScript", $_POST['EigenScript']);
-		}
-		
-		if (isset($_POST['groepmelding'])) {
-			$i_el->update($elid, "GroepMelding", $_POST['groepmelding']);
-		}
-		
-		if (isset($_POST['waarde_params'])) {
-			$i_el->update($elid, "Default_value_params", $_POST['waarde_params']);
-		}
-
-		$i_el->controle($elid);
-		
-		if (isset($_POST['BewarenSluiten'])) {
-			printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $tp);
-		} else {
-			printf("<script>location.href='%s?tp=%s&paramActie=2&paramID=%d';</script>\n", $_SERVER['PHP_SELF'], $tp, $elid);
+			if (!isset($_POST['BewarenSluiten'])) {
+				printf("<script>location.href='%s?tp=%s&paramActie=2&paramID=%d';</script>\n", $_SERVER['PHP_SELF'], $tp, $elid);
+			}
 		}
 		
 	} elseif (isset($_GET['paramActie']) and $_GET['paramActie'] == 3 and $elid > 0) {
-		
 		$i_el->delete($elid);
-		printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $tp);
+	}
+
+	if ($elid > 0) {
+		$i_el->controle($elid, 1);
+	}
+	
+	if (isset($_GET['paramActie']) and $_GET['paramActie'] == 2 and $i_el->elid > 0) {
+		$toonlijst = false;
 		
-	} elseif (isset($_GET['paramActie']) and $_GET['paramActie'] == 2 and $i_el->elid > 0) {
-		
-		printf("<form method='post' id='eigenlijstmuteren' action='%s?tp=%s&paramID=%d'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $i_el->elid);
-		printf("<label class='form-label'>Naam eigen lijst</label><input type='text' name='naam' class='w50' value='%s' maxlength=50>\n", $i_el->naam);
+		printf("<form method='post' id='eigenlijstmuteren' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+		printf("<label class='form-label'>RecordID</label><p>%d</p>\n", $i_el->elid);
+		printf("<input type='hidden' name='recordid' value=%d>\n", $i_el->elid);
+		printf("<label class='form-label'>Naam</label><input type='text' name='naam' class='w50' value='%s' maxlength=50>\n", $i_el->naam);
 		printf("<label for='uitleg'>Uitleg</label><textarea id='uitleg' name='uitleg' placeholder='Uitleg over de eigen lijst'>%s</textarea>\n", $i_el->uitleg);
 			
 		echo("<label for='mysql'>MySQL code</label>\n");
 		printf("<textarea id='mysql' name='mysql' title='MySQL code' placeholder='MySQL code'>%s</textarea>\n", $i_el->mysql);
 		echo("<p>Parameters kunnen worden gebruikt. Een parameter start met '@P', gevolgd door 0 t/m 9. De nummering moet met 0 starten en een ondoorbroken reeks zijn.</p>\n");
 		
-		printf("<label class='form-label'>Eigen script</label><p>%s/maatwerk/</p><input type='text' name='EigenScript' class='w30' value='%s' maxlength=30>\n", BASISURL, $i_el->eigenscript);
+		printf("<label class='form-label'>Eigen script</label><p>%s/maatwerk/</p><input type='text' name='eigenscript' class='w30' value='%s' maxlength=30>\n", BASISURL, $i_el->eigenscript);
 		printf("<label class='form-label'>Tonen in tabblad</label><input type='text' name='tabpage' class='w75' value='%s' maxlength=75>\n", $i_el->tabpage);
 		printf("<label class='form-label'>Groep voor melding op voorblad</label><select name='groepmelding' class='form-select form-select-sm'><option value=0>Geen</option>\n%s</select>\n", $i_ond->htmloptions($i_el->groepmelding));
 		if ($i_el->aantal_params > 0) {
@@ -627,19 +615,21 @@ function eigenlijstenmuteren() {
 				echo(fnDisplayTable($rows, null, "", 0, "", $id));
 			}
 			echo("</div>  <!-- Einde resultaatlijst -->\n");			
-		}
-		
-	} else {
+		}	
+	}
+	
+	if ($toonlijst) {
 		
 		$rows = $i_el->lijst();
 		if (count($rows) > 0) {
 			
-			echo("<div id='filter'>\n");
+			printf("<form method='post' ID='filter' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 			echo("<input type='text' title='Filter naam eigen lijst' placeholder='Filter op naam' OnKeyUp=\"fnFilter('overzichteigenlijsten', this);\">\n");
 			if (count($rows) > 2) {
 				printf("<p class='aantrecords'>%d lijsten</p>\n", count($rows));
 			}
-			echo("</div> <!-- Einde filter -->\n");
+			printf("<button type='submit' class='%s' name='Toevoegen' value='lijst_toevoegen'>%s Eigen lijst</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
+			echo("</form>\n");
 			
 			printf("<table id='overzichteigenlijsten' class='%s'>\n", TABLECLASSES);
 			echo("<tr><th></th><th>Naam</th><th># records</th><th># kolommen</th><th>Tabblad</th><th>Laatste controle</th><th></th></tr>\n");
@@ -651,11 +641,7 @@ function eigenlijstenmuteren() {
 			}
 			echo("</table>\n");
 		}
-		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-		echo("<div id='opdrachtknoppen'>\n");
-		printf("<button type='submit' class='%s' name='Toevoegen' value='lijst_toevoegen'>%s Eigen lijst</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
-		echo("</div> <!-- Einde opdrachtknoppen -->\n");
-		echo("</form>\n");
+		
 	}
 	
 	$i_mh = null;
