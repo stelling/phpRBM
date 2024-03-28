@@ -332,8 +332,11 @@ function muteerevenement($eventid) {
 			}
 
 			$mid = $i_m->add($eo);
-			$i_m->update($mid, "EvenementID", $eventid);
 			if ($mid > 0) {
+				$query = sprintf("SELECT IFNULL(MAX(M.MailingVanafID), 0) FROM %1\$sMailing AS M INNER JOIN %1\$sEvenement AS EV ON M.EvenementID=EV.RecordID WHERE EV.TypeEvenement=%2\$d;", TABLE_PREFIX, $i_ev->typeevenement);
+				$mvid = $i_ev->scalar($query);
+				$i_m->update($mid, "MailingVanafID", $mvid);
+				$i_m->update($mid, "EvenementID", $eventid);
 				if (isset($_POST['maildeeln']) or isset($_POST['mailbeidedeeln'])) {
 					foreach ($i_ed->overzichtevenement($eventid, "'B', 'I', 'J', 'R', 'T'") as $row) {
 						$i_mr->add($mid, $row->LidID);
@@ -390,6 +393,7 @@ function muteerevenement($eventid) {
 		printf("<label id='lblMaxPersonenPerDeelname' class='form-label'>Max. per deelname</label><input type='number' id='MaxPersonenPerDeelname' class='num2' value=%d min=1 max=99 title='Met hoeveel personen mag je maximaal komen?'>\n", $i_ev->maxpersonenperdeelname);
 		printf("<label id='lblMeerdereStartmomenten' class='form-label'>Meerdere startmomenten</label><input type='checkbox' class='form-check-input' id='MeerdereStartMomenten' value=1%s title='Kunnen deelnemers verschillende starttijden hebben?'>\n", checked($i_ev->meerderestartmomenten));
 		
+		$i_ond->where = "(NOT O.`Type` IN ('E', 'M', 'O', 'T'))";
 		$i_ond->per = $i_ev->datum;
 		printf("<label id='lblDoelgroep' class='form-label'>Doelgroep</label><select name='BeperkTotGroep' class='form-select form-select-sm' onChange='this.form.submit();'>\n<option value=0>Iedereen</option>\n%s</select>\n", $i_ond->htmloptions($i_ev->doelgroep, 1, "", 1));
 
@@ -504,26 +508,26 @@ function muteerevenement($eventid) {
 		}
 		printf("<button type='submit' class='%s' name='btnDlnToevoegen'%s>%s Deelnemer</button>\n", CLASSBUTTON, $d, ICONTOEVOEGEN);
 		if ($i_ev->doelgroep > 0 and count($rowspd) > 0) {
-			printf("<button type='submit' class='%s' name='btnDoelgroepToevoegen'>%s Doelgroep</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
+			printf("<button type='submit' class='%s' name='btnDoelgroepToevoegen'>%s Doelgroep (%d)</button>\n", CLASSBUTTON, ICONTOEVOEGEN, count($rowspd));
 		}
-		printf("<button type='submit' class='%s' name='Bewaren'>%s Bewaren</button>\n", CLASSBUTTON, ICONBEWAAR);
-		printf("<button type='submit' class='%s' name='Bewaren_Sluiten'>%s Bewaren & Sluiten</button>\n", CLASSBUTTON, ICONSLUIT);
+		printf("<button type='submit' class='%s' name='Bewaren' title='Bewaren'>%s</button>\n", CLASSBUTTON, ICONBEWAAR);
+		printf("<button type='submit' class='%s' name='Bewaren_Sluiten' title='Bewaren & Sluiten'>%s</button>\n", CLASSBUTTON, ICONSLUIT);
 		if ($opschoonknop) {
 			printf("<button type='submit' class='%s' name='btnOpschonen'>Deelnemers opschonen</button>\n", CLASSBUTTON);
 		}
 	}
 	
 	if ($eventid > 0 and $i_ev->verwijderdop < '2012-01-01' and $i_ev->aantaldeelnemers > 0 and toegang("Mailing/Nieuw", 0, 0)) {
-		printf("<button type='submit' class='%s' name='maildeeln'>%s</i> Mailing deelnemers (%d)</button>\n", CLASSBUTTON, ICONVERSTUUR, $i_ev->aantaldeelnemers);
+		printf("<button type='submit' class='%s' name='maildeeln' title='Mailing naar deelnemers'>%s Deelnemers (%d)</button>\n", CLASSBUTTON, ICONVERSTUUR, $i_ev->aantaldeelnemers);
 	}
 	if ($eventid > 0 and $i_ev->doelgroep > 0 and $i_ev->verwijderdop < '2012-01-01' and count($rowspd) > 1 and toegang("Mailing/Nieuw", 0, 0)) {
-		printf("<button type='submit' class='%s' name='mailpotdeeln'>%s Mailing potenti&euml;le deelnemers (%d)</button>\n", CLASSBUTTON, ICONVERSTUUR, count($rowspd));
+		printf("<button type='submit' class='%s' name='mailpotdeeln' title='Mailing naar potentiële deelnemers'>%s Potenti&euml;le deelnemers (%d)</button>\n", CLASSBUTTON, ICONVERSTUUR, count($rowspd));
 	}
 	if ($eventid > 0) {
 		if ($i_ev->verwijderdop > '2012-01-01') {
 			printf("<input type='submit' class='%s' name='undoverwijderen' value='Verwijderen terugdraaien'>\n", CLASSBUTTON);
 		} else {
-			printf("<button type='submit' class='%s' name='verwijderen'>%s Verwijderen</button>\n", CLASSBUTTON, ICONVERWIJDER);
+			printf("<button type='submit' class='%s' name='verwijderen' title='Evenement verwijderen'>%s</button>\n", CLASSBUTTON, ICONVERWIJDER);
 		}
 	}
 	echo("</div>  <!-- Einde opdrachtknoppen -->\n");
