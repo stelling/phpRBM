@@ -109,7 +109,10 @@ caption {
 	text-align: center;
 	color: var(--label-text-color);
 	background-color: var(--label-background-color);
-	font-size: 130%;
+	font-size: 125%;
+	white-space: nowrap;
+	padding-left: 6px;
+	padding-right: 6px;
 }
 
 tr {
@@ -267,6 +270,7 @@ header h1 {
 }
 
 #filter p {
+	margin-left: 6px;
 	margin-right: 6px;
 	margin-top: 2px;
 }
@@ -381,7 +385,7 @@ input.d8 {
 }
 
 input.num2 {
-	width: 48px;
+	width: 52px;
 }
 
 input.num3 {
@@ -511,6 +515,11 @@ th.rotate > div {
 	background-color: transparent;
 }
 
+h1#naamwebsite a {
+	text-decoration: none;
+}
+
+/*
 #welkomsttekst {
 	float: right;
 	display: inline-block;
@@ -539,11 +548,14 @@ th.rotate > div {
 	margin-top: 6px;
 	margin-bottom: 6px;
 }
+*/
 
 div#vervallendiplomas {
 	margin-top: 10px;
 	margin-bottom: 10px;
 }
+
+/*
 
 #kolomlinks, #kolomrechts {
 	width: 48%;
@@ -562,6 +574,8 @@ div#vervallendiplomas {
 	float: right;
 	clear: right;
 }
+
+*/
 
 #login .form-check-input {
 	margin-left: 0;
