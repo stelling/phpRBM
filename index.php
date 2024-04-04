@@ -70,7 +70,9 @@ if (strlen($currenttab2) > 0 and strlen($currenttab3) > 0) {
 }
 if (strlen($f) > 0) {
 	$f .= " AND LENGTH(EL.Tabpage) > 0";
-	$eigenlijstid = (new cls_Eigen_lijst())->recordid($f);
+	$i_el = new cls_Eigen_lijst();
+	$i_el->vulvars(-1, $f);
+	$eigenlijstid = $i_el->elid;
 }
 
 $i_lid = new cls_Lid();
