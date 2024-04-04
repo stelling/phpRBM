@@ -264,6 +264,9 @@ function HTMLheader($breed=0) {
 			$src = "/includes/tinymce/js/tinymce/tinymce.min.js";
 			if (file_exists(BASEDIR . $src)) {
 				$src = BASISURL . $src;
+				
+			} elseif ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
+				$src = sprintf("https://cdn.tiny.cloud/1/%s/tinymce/7/tinymce.min.js", $_SESSION['settings']['mailing_tinymce_apikey']);
 			} else {
 				$src = sprintf("https://cdn.tiny.cloud/1/%s/tinymce/6/tinymce.min.js", $_SESSION['settings']['mailing_tinymce_apikey']);
 			}
@@ -1062,7 +1065,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 				} elseif ($kol_type == "laatsteMutatie_Naam" and isset($kol['table']) and $value > 0) {
 					$tas = $kol['tas'] ?? -1;
 					$ret .= sprintf("<td>%s</td>", laatstemutatie($kol['table'], $value, $tas, "<br>"));
-										
+
 				} elseif ($kol_type == "subqry") {
 					$ret .= sprintf("<td>%s</td>", $value);
 					
@@ -1648,6 +1651,8 @@ function endswith($haystack, $end) {
 } # endswith
 
 function change_month_to_uk($strdate) {
+	
+	debug(__FUNCTION__ . ": evalueren", 2, 99);
 
 	$arrMonth[]=array("From" => "januari", "To" => "January");
 	$arrMonth[]=array("From" => "februari", "To" => "February");
@@ -1861,6 +1866,8 @@ function fnLeeftijd($p_gd, $p_per="", $p_incl_jr=1) {
 
 function laatstemutatie($p_table, $p_rid, $p_tas=-1, $p_glue="<br>") {
 	global $dtfmt;
+
+//	debug(__FUNCTION__ . ": evalueren", 2, 99);
 	
 	$rv = "";
 	$i_lb = new cls_logboek();
@@ -1869,10 +1876,12 @@ function laatstemutatie($p_table, $p_rid, $p_tas=-1, $p_glue="<br>") {
 		$i_lb->where .= sprintf(" AND A.TypeActiviteitSpecifiek=%d", $p_tas);
 	}
 //	debug($i_lb->where);
+	$dtfmt->setPattern(DTLONG);
 	$lbrow = $i_lb->lijst(-1, 0, 0, "", "A.DatumTijd DESC", 1, 0)->fetch();
 	if (isset($lbrow->DatumTijd)) {
-		$dtfmt->setPattern(DTLONG);
 		$rv = sprintf("%s%s%s", (new cls_Lid())->naam($lbrow->ingelogdLid), $p_glue, $dtfmt->format(strtotime($lbrow->DatumTijd)));
+	} else {
+		
 	}
 	$i_lb = null;
 	
