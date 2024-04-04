@@ -852,13 +852,19 @@ td.inagenda {
 	margin-bottom: 12px;
 }
 
-#inschrijvenevenementen .col, #inschrijvenevenementen .col-md-auto {
+#inschrijvenevenementen .col, #inschrijvenevenementen .col-6, #inschrijvenevenementen .col-md-auto {
 	border-width: 1px;
 	border-right-style: solid;
 	border-top-style: none;
 	border-bottom-style: none;
 	padding-left: 3px;
 	padding-right: 3px;
+}
+
+#inschrijvenevenementen label, #inschrijvenevenementen input {
+	clear: none;
+	margin-left: 3px;
+	margin-top: 3px;
 }
 
 #inschrijvenevenementen p {
@@ -870,10 +876,29 @@ td.inagenda {
 	margin-right: 4px;
 }
 
+#inschrijvenevenementen .btn {
+	min-width: 95px;
+}
+
+#inschrijvenevenementen textarea {
+	margin-top: 3px;
+	height: 55px;
+	width: 320px;
+}
+
 #inschrijvenevenementen img, .inagenda img {
 	height: 40px;
 	margin-top: 0;
 	margin-bottom: 0;
+}
+
+.lidafmelden .row {
+	margin-bottom: 6px;
+}
+
+.lidafmelden .col {
+	border-right-style: solid;
+	border-width: 1px;
 }
 
 #stukkenmuteren label, #website_inhoud label, #website_menu label {
