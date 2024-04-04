@@ -397,12 +397,7 @@ function muteerevenement($eventid) {
 		$i_ond->per = $i_ev->datum;
 		printf("<label id='lblDoelgroep' class='form-label'>Doelgroep</label><select name='BeperkTotGroep' class='form-select form-select-sm' onChange='this.form.submit();'>\n<option value=0>Iedereen</option>\n%s</select>\n", $i_ond->htmloptions($i_ev->doelgroep, 1, "", 1));
 
-		$dtfmt->setPattern(DTLONG);
-		$lm = laatstemutatie("Evenement", $i_ev->evid, 2, " / ");
-		if (strlen($lm) < 10) {
-			$lm = "? / " . $dtfmt->format(strtotime($i_ev->gewijzigd));
-		}
-		printf("<label id='lblGewijzigd'>Gewijzigd door / op</label><p>%s</p>\n", $lm);
+		printf("<label id='lblGewijzigd'>Gewijzigd</label><p>%s</p>\n", $i_ev->laatstemutatie($i_ev->evid, 2, " / "));
 		printf("<label id='lblDeelnemers'>Aantal deelnemers</label><p>%d</p>\n", $i_ev->aantaldeelnemers);
 		if ($i_ev->aantalingeschreven > 0) {
 			printf("<label id='lblInschreven' class='form-label'>Aantal ingeschreven</label><p>%d</p>\n", $i_ev->aantalingeschreven);
