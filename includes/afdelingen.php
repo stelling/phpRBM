@@ -1050,7 +1050,7 @@ function afdelingsmailing($p_afdid) {
 	global $selaant, $mingroepgewijzigd;
 	
 	$i_gr = new cls_Groep($p_afdid);
-	$i_m = new cls_Mailing();
+	$i_ml = new cls_Mailing();
 	$i_mr = new cls_Mailing_rcpt();
 	$i_lo = new cls_Lidond($p_afdid);
 	$i_f = new cls_Functie();
@@ -1061,7 +1061,7 @@ function afdelingsmailing($p_afdid) {
 	$i_sz = new cls_Seizoen();
 	
 	$selmailing = $_POST['SelecteerMailing'] ?? 0;
-	$_POST['groepgewijzigdna'] = $_POST['groepgewijzigdna'] ?? "1900-01-01";
+	$_POST['groepgewijzigdna'] = $_POST['groepgewijzigdna'] ?? "2000-01-01";
 	$_POST['kandidaatopexamen'] = $_POST['kandidaatopexamen'] ?? -1;
 	$mingroepgewijzigd = substr((new cls_Logboek())->min("DatumTijd", "refColumn='GroepID'"), 0, 10);
 	if ($_POST['groepgewijzigdna'] < "2000-01-01") {
@@ -1078,7 +1078,7 @@ function afdelingsmailing($p_afdid) {
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		
 		if ($selmailing == -1 and toegang("Mailing/Nieuw", 1, 1)) {
-			$selmailing = $i_m->add("Afdelingsmailing " . $i_lo->ondnaam);
+			$selmailing = $i_ml->add("Afdelingsmailing " . $i_lo->ondnaam);
 		}
 
 		if (isset($_POST['btnOntvangersAanpassen']) and $selmailing > 0) {
@@ -1108,7 +1108,7 @@ function afdelingsmailing($p_afdid) {
 		}
 	}
 	
-	$grrows = $i_gr->selectlijst();
+	$grrows = $i_gr->lijst();
 	
 	printf("<form method='post' class='form-check form-switch' id='%s' action='%s?tp=%s'>\n", __FUNCTION__, $_SERVER['PHP_SELF'], $_GET['tp']);
 	echo("<div id='filter'>\n");
@@ -1163,7 +1163,6 @@ function afdelingsmailing($p_afdid) {
 	printf("<button type='button' class='%s' onClick='fnAlleGroepen();'>Alle groepen</button>\n", CLASSBUTTON);
 	
 	echo("</div>");
-
 	
 	if (count($grrows) > 1) {
 		echo("<h2>Selecteer groepen</h2>\n");
@@ -1171,14 +1170,7 @@ function afdelingsmailing($p_afdid) {
 			$i_gr->vulvars($p_afdid, $grrow->RecordID);
 			if ($i_gr->aantalingroep > 0) {
 				$cn = sprintf("chkGroep_%d", $i_gr->grid);
-				if ($grrow->RecordID == 0) {
-					$o = "Niet ingedeeld";
-				} elseif (strlen($i_gr->code) > 1 and strlen($i_gr->naam) >= 20) {
-					$o = $i_gr->code;
-				} else {
-					$o = $i_gr->naam;
-				}
-				printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' value=1 name='%s'%s title='%3\$s'>%3\$s (%4\$d)</label>\n", $cn, checked(getvar($cn)), $o, $i_gr->aantalingroep);
+				printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' value=1 name='%s'%s title='%3\$s'>%3\$s (%4\$d)</label>\n", $cn, checked(getvar($cn)), $i_gr->naam, $i_gr->aantalingroep);
 			}
 		}
 		$cn = "chkGroepAlle";
@@ -1204,8 +1196,8 @@ function afdelingsmailing($p_afdid) {
 	}
 	
 	if ($selaant > 0) {
-		echo("<h2>Selecteer mailing</h2>\n");	
-		printf("<select name='SelecteerMailing' class='form-select form-select-sm' title='Selecteer mailing' OnChange='this.form.submit();'>\n<option value=0>Selecteer ...</option>\n<option value=-1>*** Nieuwe mailing</option>\n%s</select>\n", $i_m->htmloptions($selmailing));
+		echo("<h2>Selecteer mailing</h2>\n");
+		printf("<select name='SelecteerMailing' class='form-select form-select-sm' title='Selecteer mailing' OnChange='this.form.submit();'>\n<option value=0>Selecteer ...</option>\n<option value=-1>*** Nieuwe mailing</option>\n%s</select>\n", $i_ml->htmloptions($selmailing));
 	}
 	
 	echo("<div id='opdrachtknoppen'>\n");
@@ -1445,7 +1437,8 @@ function lidafmelden($p_lidid) {
 	$i_lo = new cls_Lidond();
 	$i_aw = new cls_Aanwezigheid();
 	$i_ak = new cls_Afdelingskalender();
-	$i_ak->where = "AK.Datum >= CURDATE()";
+	
+	$i_ak->where = sprintf("AK.Datum >= CURDATE() AND AK.OnderdeelID IN (SELECT O.RecordID FROM %sOnderdl AS O WHERE O.AfmeldenMogelijk > 0)", TABLE_PREFIX);
 	
 	fnDispMenu(2);
 	
@@ -1465,54 +1458,77 @@ function lidafmelden($p_lidid) {
 		}
 	}
 
-	printf("<form method='post' class='form-check form-switch' action='%s?tp=%s/%s'>\n", $_SERVER["PHP_SELF"], $currenttab, $currenttab2);
-		
-	printf("<table class='%s'>\n", TABLECLASSES);
-	echo("<caption>Afmelden</caption>\n");
-		
+	printf("<div id='%s' class='container'>\n", __FUNCTION__);
+	printf("<form method='post' action='%s?tp=%s/%s'>\n", $_SERVER["PHP_SELF"], $currenttab, $currenttab2);
+
 	foreach($lorows as $lorow) {
 		$i_lo->vulvars($lorow->RecordID);
-		$rowkop = "<tr>";
-		if (strlen($lorow->OmschrijvingActiviteit) > 0) {
-			$rowkop .= sprintf("<td>%s</td><td>%%s</td>", $lorow->OmschrijvingActiviteit);
+		echo("<div class='row koprow'>\n");
+		echo("<div class='col-4'>");
+		if (strlen($i_lo->i_gr->i_act->omschrijving) > 0) {
+			echo($i_lo->i_gr->i_act->omschrijving);
 		} else {
-			$rowkop .= sprintf("<td>%s</td><td>%%s</td>", $i_lo->i_ond->naam);
+			echo($i_lo->i_ond->naam);
 		}
-		if ($lorow->Functie > 0) {
-			$rowkop .= sprintf("<td>%s</td>", $lorow->FunctieOms);
-		} elseif ($lorow->GroepID > 0) {
-			$rowkop .= sprintf("<td>%s %s</td>", $lorow->Starttijd, $lorow->GrNaam);
-		} else {
-			$rowkop .= "<td>%s</td>";
+		echo("</div><div class='col-6'>");
+
+		if ($i_lo->functieid > 0) {
+			echo($i_lo->i_func->naam);
+		} elseif ($i_lo->groepid > 0) {
+			printf("%s %s", $i_lo->i_gr->starttijd, $i_lo->i_gr->naam);
 		}
-		$rowkop .= "<td></td>";
-		$akrows = $i_ak->lijst($lorow->OnderdeelID, "", "", "AK.Datum", $i_lo->i_ond->afmeldenmogelijk);
+		echo("</div>\n</div>\n");
+		$akrows = $i_ak->lijst($i_lo->ondid, "", "", "AK.Datum", $i_lo->i_ond->afmeldenmogelijk);
 		foreach ($akrows as $akrow) {
-			printf($rowkop, $dtfmt->format(strtotime($akrow->Datum)), $akrow->Opmerking);
-			if ($akrow->Activiteit == 0) {
-				echo("<td>Geen zwemmen</td>");
+			$i_ak->vulvars($akrow->RecordID);
+			echo("<div class='row'>\n");
+			
+			if (strlen($i_ak->omschrijving) > 35 and $i_ak->activiteit == 1) {
+				$dk = sprintf("<div class='col-4' title='%s'>", $i_ak->omschrijving);
+			} elseif ($i_ak->activiteit == 1) {
+				$dk = "<div class='col-4'>";
 			} else {
-				$i_aw->where = sprintf("AW.AfdelingskalenderID=%d AND AW.LidondID=%d", $akrow->RecordID, $lorow->RecordID);
-				$i_aw->vulvars($lorow->RecordID, $akrow->RecordID);
+				$dk = "<div class='col-12'>";
+			}
+			$dk .= sprintf("<p>%s</p>\n", $dtfmt->format(strtotime($i_ak->datum)));
+			if (strlen($i_ak->omschrijving) > 0) {
+				$dk .= "<p>";
+				if (strlen($i_ak->omschrijving) > 35 and $i_ak->activiteit == 1) {
+					$dk .= substr($i_ak->omschrijving, 0, 31) . " ...";
+				} else {
+					$dk .= $i_ak->omschrijving;
+				}
+				$dk .= "</p>\n";
+			}
+			$dk .= "</div>\n";
+			
+			echo($dk);
+			
+			if ($i_ak->activiteit == 1) {
+				echo("<div class='col-6'>");
+				$i_aw->vulvars($i_lo->loid, $i_ak->akid);
 				
 				if ($i_aw->aanwid == 0 or array_key_exists($i_aw->status, ZS_PRESENTIESTATUS)) {
 					$optStatus = "<option value=''>Selecteer status ...</option>\n";
 					foreach (ZS_PRESENTIESTATUS as $s => $o) {
 						$optStatus .= sprintf("<option value='%s'%s>%s</option>\n", $s, checked($s, "option", $i_aw->status), $o);
 					}
-					if (($akrow->Datum > date("Y-m-d") or $lorow->Starttijd < date("H:i"))) {
-						printf("<td><select class='form-select form-select-sm' name='status_%d_%d' onChange='this.form.submit();'>\n%s</select></td>\n", $lorow->RecordID, $akrow->RecordID, $optStatus);
+					if (($i_ak->datum > date("Y-m-d") or $i_lo->i_gr->starttijd < date("H:i"))) {
+						printf("<select class='form-select form-select-sm' name='status_%d_%d' onChange='this.form.submit();'>\n%s</select>", $lorow->RecordID, $akrow->RecordID, $optStatus);
 					} else {
-						printf("<td>%s</td>", $i_aw->statusoms);
+						echo($i_aw->statusoms);
 					}
 				} else {
-					printf("<td>%s</td>", $i_aw->statusoms);
+					echo($i_aw->statusoms);
 				}
+				echo("</div> <!-- Einde col -->\n");
 			}
+			echo("</div> <!-- Einde row -->\n");
 		}
-		echo("</tr>\n");
 	}
-	echo("</table>\n");
+	
+	echo("</form>");
+	printf("</div> <!-- Einde %s -->\n", __FUNCTION__);
 	
 }  # lidafmelden
 
