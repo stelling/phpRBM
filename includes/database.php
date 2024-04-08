@@ -3129,9 +3129,10 @@ class cls_Functie extends cls_db_base {
 }  # cls_Functie
 
 class cls_Afdelingskalender extends cls_db_base {
-	private int $akid = 0;
-	private int $ondid = 0;
+	public int $akid = 0;
+	public int $ondid = 0;
 	public string $datum = "";
+	public string $omschrijving = "";
 	public string $opmerking = "";
 	public int $activiteit = 1;
 	
@@ -3158,6 +3159,7 @@ class cls_Afdelingskalender extends cls_db_base {
 			if (isset($row->RecordID)) {
 				$this->ondid = $row->OnderdeelID ?? 0;
 				$this->datum = $row->Datum ?? "";
+				$this->omschrijving = trim($row->Omschrijving ?? "");
 				$this->opmerking = trim($row->Opmerking ?? "");
 				$this->activiteit = $row->Activiteit ?? 1;
 				$this->ingevoerd = $row->Ingevoerd ?? "";
@@ -3611,10 +3613,10 @@ class cls_Lidond extends cls_db_base {
 	public int $loid = 0;					// RecordID van het record in Lidond
 	public int $ondid = 0;					// RecordID van het onderdeel
 	public string $vanaf = "";				// Wanneer startte dit lidmaatschap van dit onderdeel
-	private string $opgezegd = "";			// Per wanneer is dit onderdeel opgezegd
+	public string $opgezegd = "";			// Per wanneer is dit onderdeel opgezegd
 	public string $lidtm;					// Wanneer eindigt dit lidmaatschap van dit onderdeel
-	private int $groepid = 0;				// RecordID van de afdelingsgroep
-	private int $functieid = 0;				// Nummer van de functie
+	public int $groepid = 0;				// RecordID van de afdelingsgroep
+	public int $functieid = 0;				// Nummer van de functie
 	public string $email = "";				// E-mail behorende bij deze functie
 	public string $laatstemutatiegroep = "";// De laatste datum wanneer de groep in dit record is aangepast
 	
@@ -8211,6 +8213,7 @@ class cls_Evenement extends cls_db_base {
 		} elseif ($p_soort == 3) {
 			$select = "E.*, ET.Omschrijving AS TypeEvenement, O.CentraalEmail AS EmailOrganisatie";
 			$where = sprintf("E.Datum > NOW() AND IFNULL(E.VerwijderdOp, '1900-01-01') < '2012-01-01' AND E.InschrijvingOpen=1 AND E.BeperkTotGroep IN (%s)", $_SESSION["lidgroepen"]);
+			$ord = "ET.Omschrijving, E.Datum";
 			
 		} elseif ($p_soort == 4) {
 			$select = sprintf("E.Datum, E.Omschrijving, E.Locatie, E.MeerdereStartMomenten, E.RecordID, (%s) AS Dln, E.BeperkTotGroep", $this->sqlaantdln);
@@ -8416,7 +8419,7 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 				$this->starttijd = $row->StartMoment ?? "";
 				$this->status = $row->Status ?? "B";
 				$this->statusoms = ARRDLNSTATUS[$this->status];
-				if ($this->status == "B" or $this->status == "I" or $this->status == "J") {
+				if ($this->status == "B" or $this->status == "J" or $this->status == "T") {
 					$this->aanwezig = true;
 				}
 				$this->ingevoerd = $row->Ingevoerd ?? "";
@@ -12048,6 +12051,13 @@ function db_onderhoud($type=9) {
 		$i_base->execsql($query, 2);
 	}
 	
+	$tab = TABLE_PREFIX . "Lidond";
+	$col = "Parttimepercentage";
+	if ($i_base->bestaat_kolom($col, $tab) == false) {
+		$query = sprintf("ALTER TABLE `%s` ADD `%s` FLOAT NULL DEFAULT '100' AFTER `ActiviteitID`;", $tab, $col);
+		$i_base->execsql($query, 2);
+	}
+	
 	/***** Velden die aangepast zijn *****/
 	$i_base->tas = 12;
 	
@@ -12763,6 +12773,7 @@ function db_createtables() {
 	$queries = sprintf("SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO';
 START TRANSACTION;
 
+
 CREATE TABLE IF NOT EXISTS `%1\$sAanwezigheid` (
   `RecordID` int(11) NOT NULL,
   `AfdelingskalenderID` int(11) NOT NULL,
@@ -12770,9 +12781,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sAanwezigheid` (
   `Status` char(1) DEFAULT NULL,
   `Opmerking` varchar(75) DEFAULT NULL,
   `Ingevoerd` datetime DEFAULT current_timestamp(),
-  `IngevoerdDoor` int(11) NOT NULL,
   `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `GewijzigdDoor` int(11) DEFAULT NULL,
   PRIMARY KEY (`RecordID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
@@ -12843,7 +12852,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_login` (
   `HerinneringVervallenDiplomas` tinyint(4) NOT NULL DEFAULT 0,
   `Ingevoerd` datetime DEFAULT current_timestamp(),
   `Gewijzigd` datetime DEFAULT NULL,
-  `GewijzigdDoor` int(11) NOT NULL DEFAULT 0,
   `LastLogin` datetime DEFAULT NULL,
   `LastActivity` datetime DEFAULT NULL,
   `Ingelogd` tinyint(4) NOT NULL DEFAULT 0,
@@ -12862,9 +12870,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_param` (
   `ValueChar` text DEFAULT NULL,
   `ValueNum` decimal(16,6) DEFAULT NULL,
   `Ingevoerd` datetime DEFAULT current_timestamp(),
-  `IngevoerdDoor` int(11) NOT NULL,
   `Gewijzigd` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE current_timestamp(),
-  `GewijzigdDoor` int(11) DEFAULT NULL,
   PRIMARY KEY (`RecordID`),
   UNIQUE KEY `Naam` (`Naam`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci COMMENT='Parameters en instellingen';
@@ -12875,7 +12881,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sAdmin_template` (
   `Inhoud` text DEFAULT NULL,
   `Ingevoerd` datetime DEFAULT current_timestamp(),
   `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `GewijzigdDoor` int(11) DEFAULT NULL,
   PRIMARY KEY (`RecordID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
@@ -12887,9 +12892,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sAfdelingskalender` (
   `Activiteit` tinyint(4) NOT NULL DEFAULT 1,
   `Opmerking` varchar(6) DEFAULT NULL,
   `Ingevoerd` datetime DEFAULT current_timestamp(),
-  `IngevoerdDoor` int(11) NOT NULL DEFAULT 0,
   `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `GewijzigdDoor` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`RecordID`),
   KEY `OnderdeelID` (`OnderdeelID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
@@ -12937,9 +12940,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sEigen_lijst` (
   `Tabpage` varchar(75) DEFAULT NULL,
   `LaatsteControle` datetime NOT NULL DEFAULT current_timestamp(),
   `Ingevoerd` datetime DEFAULT current_timestamp(),
-  `IngevoerdDoor` int(11) NOT NULL,
   `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `GewijzigdDoor` int(11) NOT NULL,
   PRIMARY KEY (`RecordID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
@@ -12955,14 +12956,13 @@ CREATE TABLE IF NOT EXISTS `%1\$sEvenement` (
   `TypeEvenement` int(11) NOT NULL,
   `InschrijvingOpen` tinyint(4) NOT NULL DEFAULT 1,
   `StandaardStatus` char(1) NOT NULL DEFAULT 'I',
+  `MaxDeelnemers` int(11) DEFAULT 0 COMMENT 'Maximale aantal deelnemers aan dit evenement',
   `MaxPersonenPerDeelname` int(11) NOT NULL DEFAULT 1,
   `BeperkTotGroep` int(11) NOT NULL DEFAULT 0 COMMENT 'Welke groep mag zich voor dit evenement inschrijven? 0 = iedereen.',
   `ZichtbaarVoor` int(11) NOT NULL DEFAULT 0 COMMENT 'Voor welke groep is dit evenement zichtbaar? 0 = iedereen.',
   `MeerdereStartMomenten` tinyint(4) NOT NULL DEFAULT 0,
   `Ingevoerd` datetime DEFAULT current_timestamp(),
-  `IngevoerdDoor` int(11) NOT NULL,
   `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `GewijzigdDoor` int(11) DEFAULT NULL,
   `VerwijderdOp` date DEFAULT NULL,
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
@@ -12977,9 +12977,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sEvenement_Deelnemer` (
   `StartMoment` time DEFAULT NULL,
   `Aantal` int(11) NOT NULL DEFAULT 1,
   `Ingevoerd` datetime DEFAULT current_timestamp(),
-  `IngevoerdDoor` int(11) NOT NULL DEFAULT 0,
   `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `GewijzigdDoor` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`RecordID`),
   UNIQUE KEY `LidEvenement` (`LidID`,`EvenementID`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
@@ -12994,7 +12992,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sEvenement_Type` (
   `Achtergrondkleur` varchar(12) DEFAULT NULL,
   `Ingevoerd` datetime DEFAULT current_timestamp(),
   `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `GewijzigdDoor` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
@@ -13073,6 +13070,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sInschrijving` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `Datum` date NOT NULL DEFAULT current_timestamp(),
   `Naam` varchar(50) DEFAULT NULL,
+  `Achternaam` varchar(45) DEFAULT NULL,
   `Geboortedatum` date DEFAULT NULL,
   `Email` varchar(45) DEFAULT NULL,
   `Opmerking` varchar(100) DEFAULT NULL,
@@ -13083,6 +13081,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sInschrijving` (
   `Ingevoerd` datetime DEFAULT current_timestamp(),
   `Verwerkt` datetime DEFAULT NULL,
   `LidID` int(11) DEFAULT NULL,
+  `Verwijderd` date DEFAULT NULL,
   PRIMARY KEY (`RecordID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
@@ -13116,6 +13115,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sLid` (
   `RekeningBetaaldDoor` int(11) DEFAULT NULL,
   `Burgerservicenummer` int(11) DEFAULT NULL,
   `Machtiging afgegeven` tinyint(4) DEFAULT NULL,
+  `BezwaarMachtiging` date DEFAULT NULL,
   `Legitimatietype` char(1) DEFAULT 'G',
   `Legitimatienummer` varchar(15) DEFAULT NULL,
   `VOG afgegeven` date DEFAULT NULL,
@@ -13127,7 +13127,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sLid` (
   `NietOpschonen` tinyint(4) NOT NULL DEFAULT 0,
   `Ingevoerd` datetime DEFAULT current_timestamp(),
   `Gewijzigd` datetime DEFAULT NULL,
-  `GewijzigdDoor` int(11) DEFAULT NULL,
   `Verwijderd` date DEFAULT NULL,
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
@@ -13141,7 +13140,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sLiddipl` (
   `Beoordelaar` int(11) DEFAULT NULL,
   `LaatsteBeoordeling` tinyint(4) DEFAULT NULL,
   `Diplomanummer` varchar(25) DEFAULT NULL,
-  `Examen` int(11) NOT NULL DEFAULT 0,
+  `Examen` int(11) DEFAULT NULL,
   `Examengroep` int(11) DEFAULT NULL,
   `LicentieVervallenPer` date DEFAULT NULL,
   `Ingevoerd` datetime DEFAULT current_timestamp(),
@@ -13175,6 +13174,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sLidond` (
   `EmailFunctie` varchar(45) DEFAULT NULL,
   `GroepID` int(11) DEFAULT NULL,
   `ActiviteitID` int(11) DEFAULT NULL,
+  `Parttimepercentage` float DEFAULT 100,
   `Opmerk` varchar(30) DEFAULT NULL,
   `Ingevoerd` datetime DEFAULT current_timestamp(),
   `Gewijzigd` datetime DEFAULT NULL,
@@ -13185,7 +13185,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sLidond` (
 CREATE TABLE IF NOT EXISTS `%1\$sMailing` (
   `RecordID` int(11) NOT NULL DEFAULT 0,
   `MailingVanafID` int(11) DEFAULT NULL,
-  `to_name` varchar(50) DEFAULT '' COMMENT 'Omschrijving van de groep personen aan wie deze mailing gericht is',
   `OmschrijvingOntvangers` varchar(50) DEFAULT NULL COMMENT 'Omschrijving van de groep personen aan wie deze mailing gericht is',
   `cc_addr` varchar(50) DEFAULT '',
   `subject` varchar(75) DEFAULT '',
@@ -13202,9 +13201,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sMailing` (
   `deleted_on` datetime DEFAULT NULL,
   `HTMLdirect` tinyint(4) DEFAULT 0,
   `Ingevoerd` datetime DEFAULT current_timestamp(),
-  `IngevoerdDoor` int(11) DEFAULT 0,
   `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `GewijzigdDoor` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
@@ -13222,6 +13219,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sMailing_hist` (
   `message` text NOT NULL,
   `ZonderBriefpapier` tinyint(4) DEFAULT 0,
   `ZichtbaarVoor` int(11) NOT NULL DEFAULT 0,
+  `ReplyID` int(11) NOT NULL DEFAULT 0,
   `send_on` datetime DEFAULT NULL,
   `NietVersturenVoor` datetime DEFAULT NULL,
   `Ingevoerd` datetime DEFAULT current_timestamp(),
@@ -13282,6 +13280,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sOnderdl` (
   `LedenMuterenDoor` int(11) DEFAULT NULL,
   `Kader` tinyint(4) DEFAULT NULL,
   `Alleen leden` tinyint(4) DEFAULT NULL,
+  `AfmeldenMogelijk` tinyint(4) DEFAULT 0,
   `Tonen in bewakingsadministratie` tinyint(4) DEFAULT NULL,
   `CentraalEmail` varchar(45) DEFAULT NULL,
   `VervallenPer` date DEFAULT NULL,
@@ -13396,45 +13395,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sStukken` (
   PRIMARY KEY (`RecordID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
-CREATE TABLE IF NOT EXISTS `%1\$sTaak` (
-  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
-  `Omschrijving` varchar(75) NOT NULL,
-  `Beschrijving` text DEFAULT NULL,
-  `Taakgroep` int(11) NOT NULL,
-  `GeplandGereed` date DEFAULT NULL,
-  `WerkelijkGereed` date DEFAULT NULL,
-  `Ingevoerd` datetime NOT NULL DEFAULT current_timestamp(),
-  `IngevoerdDoor` int(11) NOT NULL,
-  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `GewijzigdDoor` int(11) DEFAULT NULL,
-  PRIMARY KEY (`RecordID`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
-
-CREATE TABLE IF NOT EXISTS `%1\$sTaakgroep` (
-  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
-  `Kode` varchar(5) NOT NULL,
-  `Naam` varchar(50) DEFAULT NULL,
-  `Ingevoerd` datetime NOT NULL DEFAULT current_timestamp(),
-  `IngevoerdDoor` int(11) NOT NULL,
-  `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `GewijzigdDoor` int(11) NOT NULL DEFAULT 0,
-  PRIMARY KEY (`RecordID`),
-  UNIQUE KEY `Kode` (`Kode`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
-
-CREATE TABLE IF NOT EXISTS `%1\$sTaakLid` (
-  `RecordID` int(11) NOT NULL AUTO_INCREMENT,
-  `TaakID` int(11) NOT NULL,
-  `LidID` int(11) NOT NULL,
-  `Eindverantwoordelijke` tinyint(4) NOT NULL DEFAULT 0,
-  `Functie` varchar(50) NOT NULL,
-  `Ingevoerd` int(11) NOT NULL,
-  `IngevoerdDoor` datetime NOT NULL DEFAULT current_timestamp(),
-  `Gewijzigd` int(11) NOT NULL,
-  `GewijzigdDoor` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`RecordID`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci ROW_FORMAT=COMPACT;
-
 CREATE TABLE IF NOT EXISTS `%1\$sWebsite_inhoud` (
   `RecordID` int(11) NOT NULL AUTO_INCREMENT,
   `Titel` varchar(80) DEFAULT NULL,
@@ -13471,9 +13431,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sWS_Artikel` (
   `MaxAantalPerLid` smallint(6) DEFAULT NULL COMMENT 'Hoeveel mag één lid maximaal van dit product bestellen?',
   `BeperkTotGroep` int(11) NOT NULL DEFAULT 0 COMMENT 'Welke groep mag dit artikel in de zelfservice bestellen? 0 is iedereen.',
   `Ingevoerd` datetime DEFAULT current_timestamp(),
-  `IngevoerdDoor` int(11) NOT NULL,
   `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `GewijzigdDoor` int(11) DEFAULT NULL,
   PRIMARY KEY (`RecordID`),
   UNIQUE KEY `Code` (`Code`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
@@ -13489,9 +13447,7 @@ CREATE TABLE IF NOT EXISTS `%1\$sWS_Orderregel` (
   `BestellingDefinitief` datetime DEFAULT NULL COMMENT 'Heeft het lid de bestelling bevestigd?',
   `Rekening` int(11) DEFAULT NULL,
   `Ingevoerd` datetime DEFAULT current_timestamp(),
-  `IngevoerdDoor` int(11) NOT NULL,
   `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `GewijzigdDoor` int(11) DEFAULT NULL,
   PRIMARY KEY (`RecordID`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
 
@@ -13503,7 +13459,6 @@ CREATE TABLE IF NOT EXISTS `%1\$sWS_Voorraadboeking` (
   `Aantal` smallint(6) NOT NULL DEFAULT 0,
   `OrderregelID` int(11) NOT NULL DEFAULT 0,
   `Ingevoerd` datetime DEFAULT current_timestamp(),
-  `IngevoerdDoor` int(11) NOT NULL DEFAULT 0,
   `Gewijzigd` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `GewjizigdDoor` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`RecordID`)
