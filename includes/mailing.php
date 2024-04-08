@@ -2290,6 +2290,7 @@ function sentfromhist($p_mhid, $p_handm=0) {
 		$i_mv = null;
 	}
 	
+	$mail->Subject = $i_mh->subject;
 	$mail->Body = $i_mh->message;
 	
 	if ($mail->addstationary($i_mh->aannaam, "", 0, $i_mh->zonderbriefpapier)) {
