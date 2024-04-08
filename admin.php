@@ -390,9 +390,10 @@ function fnInstellingen() {
 				if (isset($_POST[$pvn])) {
 					$_POST[$pvn] = str_replace("\"", "'", $_POST[$pvn]);
 				}
-				if (in_array($row->Naam, array("beperktotgroep", "zs_muteerbarememos", "menu_met_afdelingen"))) {
+				if (in_array($row->Naam, array("login_beperkttotgroep", "zs_muteerbarememos", "menu_met_afdelingen"))) {
 					$_POST[$pvn] = str_replace(";", ",", $_POST[$pvn]);
 					$_POST[$pvn] = str_replace("'", "", $_POST[$pvn]);
+					$_POST[$pvn] = str_replace("\"", "", $_POST[$pvn]);
 				} elseif (in_array($row->Naam, $specmailing) and $_POST[$pvn] > 0 and (new cls_Mailing())->bestaat($_POST[$pvn]) == false) {
 					$_POST[$pvn] = 0;
 					$mess = sprintf("Parameter '%s' wordt 0 gemaakt, omdat de ingevoerde mailing niet (meer) bestaat. ", $row->Naam);
