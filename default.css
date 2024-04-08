@@ -848,11 +848,19 @@ td.inagenda {
 	border-width: 1px;
 	border-top-style: solid;
 	border-bottom-style: none;
-	margin-top: 6px;
+	margin-top: 0;
 	margin-bottom: 12px;
 }
 
-#inschrijvenevenementen .col, #inschrijvenevenementen .col-6, #inschrijvenevenementen .col-md-auto {
+#inschrijvenevenementen .koprow {
+	color: var(--label-text-color);
+	background-color: var(--label-background-color);
+	margin-top: 18px;
+	margin-bottom: 0;
+	border-top-style: solid;
+}
+
+#inschrijvenevenementen .col, #inschrijvenevenementen .col-2, #inschrijvenevenementen .col-3, #inschrijvenevenementen .col-4, #inschrijvenevenementen .col-5, #inschrijvenevenementen .col-6, #inschrijvenevenementen .col-md-auto {
 	border-width: 1px;
 	border-right-style: solid;
 	border-top-style: none;
@@ -863,7 +871,6 @@ td.inagenda {
 
 #inschrijvenevenementen label, #inschrijvenevenementen input {
 	clear: none;
-	margin-left: 3px;
 	margin-top: 3px;
 }
 
@@ -882,23 +889,36 @@ td.inagenda {
 
 #inschrijvenevenementen textarea {
 	margin-top: 3px;
-	height: 55px;
-	width: 320px;
+	height: 100%;
+	width: 100%;
 }
 
-#inschrijvenevenementen img, .inagenda img {
-	height: 40px;
-	margin-top: 0;
-	margin-bottom: 0;
+.container#lidafmelden {
+	margin-left: 0;
+	margin-right: 0;
+	padding-left: 0;
+	padding-right: 0;
 }
 
-.lidafmelden .row {
+#lidafmelden .row {
 	margin-bottom: 6px;
+	margin-left: 0;
+	border-width: 1px;
+	border-bottom-style: solid;
 }
 
-.lidafmelden .col {
-	border-right-style: solid;
+#lidafmelden .koprow {
+	color: var(--label-text-color);
+	background-color: var(--label-background-color);
+	margin-top: 12px;
+	border-top-style: solid;
+}
+
+#lidafmelden .col, #lidafmelden .col-4, #lidafmelden .col-6, #lidafmelden .col-12 {
+	border-left-style: solid;
 	border-width: 1px;
+	padding-left: 2px;
+	padding-right: 1px;
 }
 
 #stukkenmuteren label, #website_inhoud label, #website_menu label {
@@ -1641,7 +1661,7 @@ td.voortgangsprobleem {
 	overflow: hidden;
 }
 
-#evenementenbeheer label {
+#muteerevenement label {
 	clear: none;
 	float: left;
 	width: 165px;
@@ -1653,23 +1673,17 @@ label#lblStarttijd, label#lblEindtijd, label#lblVerzameltijd {
 	margin-left: 6px;
 }
 
-#evenementenbeheer label#lblDatum, #evenementenbeheer label#lblOmschrijving, #evenementenbeheer label#lblLocatie, #evenementenbeheer label#lblOrganisatie, #evenementenbeheer label#lblTypeEvenement, #evenementenbeheer label#lblOpmaak, #evenementenbeheer label#lblInschrijvingOpen, #evenementenbeheer label#lblStandaardStatus, #evenementenbeheer label#lblGewijzigd, #evenementenbeheer label#lblDoelgroep {
+#muteerevenement label#lblDatum, #muteerevenement label#lblOmschrijving, #muteerevenement label#lblLocatie, #muteerevenement label#lblOrganisatie, #muteerevenement label#lblTypeEvenement, #muteerevenement label#lblOpmaak, #muteerevenement label#lblInschrijvingOpen, #muteerevenement label#lblStandaardStatus, #muteerevenement label#lblGewijzigd, #muteerevenement label#lblDoelgroep {
 	clear: left;
 }
 
-#evenementenbeheer label#lblMaxPersonenPerDeelname, #evenementenbeheer label#lblMeerdereStartmomenten, #evenementenbeheer label#lblDeelnemers {
+#muteerevenement label#lblMaxDeelnemers, #muteerevenement label#lblMaxPersonenPerDeelname, #muteerevenement label#lblMeerdereStartmomenten, #muteerevenement label#lblDeelnemers {
 	width: auto;
 	margin-left: 12px;
 }
 
-#evenementenbeheer .form-check-input {
+#muteerevenement .form-check-input {
 	margin-left: 0;
-}
-
-@media screen and (max-width: 650px) {
-	#evenementenbeheer label#lblEindtijd, #evenementenbeheer label#lblVerzameltijd {
-		clear: left;
-	}
 }
 
 fieldset {
@@ -2122,16 +2136,16 @@ p.functiekaderlid, p.mailkaderlid {
 	text-align: center;
 }
 
-.ed_status_B, .ed_status_J {
+td.ed_status_B, td.ed_status_J {
 	color: green;
 }
 
-.ed_status_N {
+td.ed_status_N {
 	text-decoration: line-through;
 	color: grey;
 }
 
-.ed_status_X {
+td.ed_status_X {
 	color: grey;
 }
 
@@ -2576,7 +2590,7 @@ label#lblHuisletter, label#lblToevoeging {
 	margin-left: 6px;
 }
 
-.attentie {
+.attentie, p.attentie {
 	color: red;
 	font-weight: bold;
 }
@@ -2774,11 +2788,11 @@ button.volgendegroep {
 		clear: left;
 	}
 	
-	#evenementenbeheer label#lblStarttijd, #evenementenbeheer label#lblDeelnemers {
+	#muteerevenement label#lblStarttijd, #muteerevenement label#lblDeelnemers {
 		clear: left;
 	}
 	
-	#evenementenbeheer th.ingevoerd, #evenementenbeheer td.ingevoerd {
+	#muteerevenement th.ingevoerd, #muteerevenement td.ingevoerd {
 		display: none;
 	}
 	
@@ -2896,8 +2910,8 @@ button.volgendegroep {
 		display: none;
 	}
 	
-	#inschrijvenevenementen input.w250 {
-		width: 275px;
+	#muteerevenement label#lblEindtijd, #muteerevenement label#lblVerzameltijd {
+		clear: left;
 	}
 	
 }  /* media screen and (max-width: 750px) */
