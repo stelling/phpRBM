@@ -141,6 +141,9 @@ if (mb_substr_count($tp, "/") == 2) {
 		$currenttab = "Vereniging";
 	}
 }
+$currenttab = str_replace("'", "", $currenttab);
+$currenttab2 = str_replace("'", "", $currenttab2);
+$currenttab3 = str_replace("'", "", $currenttab3);
 
 /* Include maatwerk */
 $incl = BASEDIR . "/maatwerk/maatwerk";
@@ -376,77 +379,6 @@ function HTMLfooter() {
 	}
 } # HTMLfooter
 
-function fnDispMenu_nw($toonnivo=1, $xtra="") {
-	global $tabpages, $currenttab, $currenttab2, $currenttab3, $navpad;
-	
-	if ($toonnivo == 1) {
-		echo("<nav>\n");
-	}
-	$tpd = ""; // Dit wordt getoond in het menu.
-	$ulopen = false;
-
-	if (strlen($xtra) > 0 and startwith($xtra, "&amp;") == false) {
-		$xtra = "&" . $xtra;
-	}
-	
-	$nivo = $toonnivo;
-	printf("<ul id='menu_l%d'>\n", $toonnivo);
-	$itp = 1;
-	foreach($tabpages as $tp) {
-		if ($nivo == 1 and strstr($tp, "/") === false) {
-			$tpd = $tp;
-		} elseif ($nivo == 2 and mb_substr_count($tp, "/") == 1 and startwith($tp, $currenttab . "/")) {
-			$tpd = str_replace($currenttab . "/", "", $tp);
-		
-		} elseif ($nivo == 3 and mb_substr_count($tp, "/") == 2 and startwith($tp, $currenttab . "/") and strpos($tp, $currenttab2) > 1) {
-			$tpd = str_replace($currenttab2 . "/", "", str_replace($currenttab . "/", "", $tp));
-			
-//		} elseif ($currenttab2 == "Overzicht lid") {
-			
-		} else {
-			$tpd = "";
-		}
-		if (strlen($tpd) > 1) {
-			$cl = "";
-			if ($nivo == 1 and $currenttab == str_replace("'", "", $tp)) {
-				$cl = " class='current'";
-				$navpad[$nivo]['naam'] = $tpd;
-				$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
-			} elseif ($nivo == 2 and ($currenttab2 == str_replace("'", "", $tpd) or strlen($currenttab2) == 0)) {
-				$cl = " class='current'";
-				if (toegang($currenttab . "/" . str_replace("'", "", $tpd), 0)) {
-					$currenttab2 = $tpd;
-				}
-				$navpad[$nivo]['naam'] = $tpd;
-				$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
-			} elseif ($nivo == 3 and ($currenttab3 == str_replace("'", "", $tpd) or strlen($currenttab3) == 0)) {
-				$cl = " class='current'";
-				$navpad[$nivo]['naam'] = $tpd;
-				$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
-			}
-			if ($itp == 5) {
-				echo("<li class='dropdown'>&nbsp;\n");
-				echo("<ul>\n");
-			}
-			printf("<li%s><a href=\"%s?tp=%s%s\">%s</a></li>\n", $cl, $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra, $tpd);
-			$itp++;
-		}
-	}
-	if ($itp > 5) {
-		echo("</ul> <!-- Einde dropdown -->\n");
-		echo("</li>\n");
-	}
-	echo("</ul>\n");
-	
-	if ($toonnivo == 1 and strlen($currenttab2) == 0) {
-		echo("</nav>\n");
-	} elseif ($toonnivo == 2 and strlen($currenttab3) == 0) {
-		echo("</nav>\n");
-	} elseif ($toonnivo == 3) {
-		echo("</nav>\n");
-	}
-}  # fnDispMenu
-
 function fnDispMenu($toonnivo=1, $xtra="") {
 	global $tabpages, $currenttab, $currenttab2, $currenttab3, $navpad;
 	
@@ -489,7 +421,7 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 				} elseif ($nivo == 2 and ($currenttab2 == str_replace("'", "", $tpd) or strlen($currenttab2) == 0)) {
 					$cl = " class='active'";
 					if (toegang($currenttab . "/" . str_replace("'", "", $tpd), 0)) {
-						$currenttab2 = $tpd;
+						$currenttab2 = str_replace("'", "", $tpd);
 					}
 					$navpad[$nivo]['naam'] = $tpd;
 					$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
@@ -1072,7 +1004,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 				} else {
 					// tekstkolom
 					if (strlen($value) > $kol_ml) {
-						$ret .= sprintf("<td%s%s>%s</td>", $kol_class, $row_title, htmlentities(substr($value, 0, ($kol_ml-4)) . " ..."));
+						$ret .= sprintf("<td%s title='%s'>%s</td>", $kol_class, $value, htmlentities(substr($value, 0, ($kol_ml-4)) . " ..."));
 					} else {
 						$ret .= sprintf("<td%s%s>%s</td>", $kol_class, $row_title, htmlentities($value));
 					}
