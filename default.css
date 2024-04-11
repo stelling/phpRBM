@@ -260,10 +260,12 @@ header h1 {
 	border-left-style: none;
 	border-right-style: none;
 	border-width: 1px;
+	min-height: 46px;
 }
 
 #filter label {
 	clear: none;
+	margin-top: 4px;
 	padding-top: 3px;
 	padding-bottom: 3px;
 	margin-bottom: 0;
@@ -272,7 +274,7 @@ header h1 {
 #filter p {
 	margin-left: 6px;
 	margin-right: 6px;
-	margin-top: 2px;
+	margin-top: 4px;
 }
 
 #filter input[type='text'], #filter input[type='date'] {
@@ -280,7 +282,7 @@ header h1 {
 	float: left;
 	margin-left: 0;
 	margin-right: 6px;
-	margin-top: 2px;
+	margin-top: 4px;
 	margin-bottom: 2px;
 	padding-top: 1px;
 	padding-bottom: 1px;
@@ -296,6 +298,7 @@ header h1 {
 	margin-left: 3px;
 	margin-right: 10px;
 	margin-bottom: 2px;
+	margin-top: 3px;
 	width: 185px;
 }
 
@@ -410,6 +413,10 @@ input.w17, p.w17 {
 
 input.w18 {
 	width: 165px;
+}
+
+input.w20, select.w20 {
+	width: 175px;
 }
 
 input.w21, input.w22 {
