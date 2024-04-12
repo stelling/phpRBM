@@ -216,19 +216,19 @@ if ($i_lid->aantal() == 0) {
 } elseif ($currenttab == "Ledenlijst") {
 	
 	if ($currenttab2 == "Afdelingen") {
-		fnOnderdelenmuteren("A");
+		onderdelenmuteren("A");
 		
 	} elseif ($currenttab2 == "Groepen") {
-		fnOnderdelenmuteren("G");
+		onderdelenmuteren("G");
 		
 	} elseif ($currenttab2 == "Rollen") {
-		fnOnderdelenmuteren("R");
+		onderdelenmuteren("R");
 		
 	} elseif ($currenttab2 == "Materiaal") {
-		fnOnderdelenmuteren("M");
+		onderdelenmuteren("M");
 		
 	} elseif ($currenttab2 == "Selecties") {
-		fnOnderdelenmuteren("S");
+		onderdelenmuteren("S");
 		
 	} elseif ($currenttab2 == "Rapporten") {
 		fnDispMenu(2);
@@ -247,7 +247,7 @@ if ($i_lid->aantal() == 0) {
 		}
 		
 	} elseif ($currenttab2 == "Toestemmingen") {
-		fnOnderdelenmuteren("T");
+		onderdelenmuteren("T");
 		
 	} elseif ($currenttab2 == "Sportlink") {
 		sportlink();
