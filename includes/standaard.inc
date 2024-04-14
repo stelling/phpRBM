@@ -268,9 +268,10 @@ function HTMLheader($breed=0) {
 			if (file_exists(BASEDIR . $src)) {
 				$src = BASISURL . $src;
 				
-			} elseif ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl") {
+			} elseif ($_SERVER["HTTP_HOST"] == "phprbm.telling.nl" or 1 == 1) {
 				$src = sprintf("https://cdn.tiny.cloud/1/%s/tinymce/7/tinymce.min.js", $_SESSION['settings']['mailing_tinymce_apikey']);
 			} else {
+				// mag weg na 1 juni 2024
 				$src = sprintf("https://cdn.tiny.cloud/1/%s/tinymce/6/tinymce.min.js", $_SESSION['settings']['mailing_tinymce_apikey']);
 			}
 			printf("<script src='%s' referrerpolicy='origin'></script>\n", $src);
@@ -1211,13 +1212,27 @@ function fnEditTable($res, $kols, $id="", $th="") {
 						$ret .= sprintf("<input type='checkbox' class='form-check-input' id='%s_%d' value=1%s></td>", $colname, $valpk, checked($value));
 					}
 					
-				} elseif (isset($kol['bronselect']) and count($kol['bronselect']) > 0) {
+				} elseif (isset($kol['bronselect']) and is_array($kol['bronselect']) and count($kol['bronselect']) > 0) {
 					$opt = "";
 					foreach ($kol['bronselect'] as $k => $v) {
 						$opt .= sprintf("<option%s value=%s>%s</option>\n", checked($k, "option", $value), $k, $v);
 					}
-					$ret .= sprintf("<td><select id='%s_%d' class='form-select form-select-sm'>\n%s</select></td>\n", $colname, $valpk, $opt);
 					
+					$ret .= sprintf("<td><select id='%s_%d' class='form-select form-select-sm %s'>\n%s</select></td>\n", $colname, $valpk, $kol['class'] ?? "", $opt);
+					
+				} elseif (isset($kol['bronselect']) and strlen($kol['bronselect']) > 0) {
+					
+					$colnamebron = $kol['bronselect'];
+					if (strlen($row->$colnamebron) > 0) {
+						$opt = "";
+						foreach (explode(";", $row->$colnamebron) as $v) {
+							$opt .= sprintf("<option value='%s'%s>%s</option>\n", str_replace(",", ".", trim($v)), checked($v, "option", $value), $v);
+						}
+						$ret .= sprintf("<td><select id='%s_%d' class='form-select form-select-sm %s'>\n%s</select></td>\n", $colname, $valpk, $kol['class'] ?? "", $opt);
+					} else {
+						$ret .= "<td></td>\n";
+					}
+
 				} elseif ($tp == "groep" and isset($kol['columnfilter'])) {
 					$o = $row->{$kol['columnfilter']};
 					if ((new cls_Groep())->aantal(sprintf("OnderdeelID=%d", $o)) > 1) {
@@ -1226,7 +1241,7 @@ function fnEditTable($res, $kols, $id="", $th="") {
 					} else {
 						$ret .= "<td></td>";
 					}
-					
+
 				} elseif ($tp == "DTSHORT" and $ro) {
 					if ((!is_null($value)) and $value > '1900-01-01') {
 						$ret .= sprintf("<td>%s</td>", date("d/m/Y", strtotime($value)));
@@ -1322,7 +1337,10 @@ function fnEditTable($res, $kols, $id="", $th="") {
 					if ($ro) {
 						$ret .= sprintf("<td>%s</td>", fnDispEmail($value, "", 1));
 					} else {
-						$ret .= sprintf("<td><input type='email' class='w%1\$d' id='%2\$s_%3\$d' value='%4\$s' maxlength=%1\$d></td>", $kol['collen'], $colname, $valpk, $value);
+						if (strlen($kol_class) == 0 and $kol['collen'] > 0) {
+							$kol_class = sprintf("class='w%d'", $kol['collen']);
+						}
+						$ret .= sprintf("<td><input type='email' %s id='%s_%d' value='%s' maxlength=%d></td>", $kol_class, $colname, $valpk, $value, $kol['collen']);
 					}
 					
 				} elseif ($tp == "pwd") {
@@ -1354,8 +1372,10 @@ function fnEditTable($res, $kols, $id="", $th="") {
 							$ret .= sprintf("<td id='%s_%d'>%s</td>", $colname, $valpk, htmlentities($value));
 						}
 					} else {
-						$xc = sprintf("w%d", $kol['collen']);
-						$ret .= sprintf("<td><input type='text' id='%s_%d' value=\"%s\" class='%s' maxlength=%d%s>", $colname, $valpk, $value, $xc, $kol['collen'], $kol_title);
+						if (strlen($kol_class) == 0 and $kol['collen'] > 0) {
+							$kol_class = sprintf("class='w%d'", $kol['collen']);
+						}
+						$ret .= sprintf("<td><input type='text' id='%s_%d' value=\"%s\" %s maxlength=%d%s>", $colname, $valpk, $value, $kol_class, $kol['collen'], $kol_title);
 						if (strlen($col2) > 0) {
 							if (isset($kol['secondcolumntype']) and $kol['secondcolumntype'] == "date") {
 								$ret .= sprintf("<br><input type='date' id='%s_%d' value=\"%s\">", $col2, $valpk, $value2);
@@ -1630,9 +1650,11 @@ function removetextblock($content, $start_block, $end_block="") {
 } # removetextblock
 
 function checked($val, $tp="checkbox", $sv=1) {
-	if ($tp === "option" and $val == $sv) {
+	if ($tp == "option" and $val == $sv) {
 		return " selected";
-	} elseif ($tp === "checkbox" and (intval($val) == 1 or $val === true or $val > "1970-01-01")) {
+	} elseif ($tp == "checkbox" and (intval($val) == 1 or $val === true or $val > "1970-01-01")) {
+		return " checked";
+	} elseif ($tp == "checkbox" and $val == $sv) {
 		return " checked";
 	} else {
 		return "";
