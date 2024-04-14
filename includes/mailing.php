@@ -1195,7 +1195,7 @@ class Mailing {
 			}
 			$email->bericht = $this->merged_message;
 			$email->onderwerp = $this->merged_subject;
-			if (strlen($rcpt->Xtra_Char) > 0) {
+			if (isset($rcpt->Xtra_Char) and strlen($rcpt->Xtra_Char) > 0) {
 				$email->xtrachar = $rcpt->Xtra_Char;
 				$email->xtranum = $rcpt->Xtra_Num;
 			} else {
@@ -1295,7 +1295,7 @@ class Mailing {
 			
 		} elseif ($this->mid > 0 and $this->mid == $_SESSION['settings']['mailing_bevestigingdeelnameevenement'] and $this->xtranum > 0) {
 			$i_ed = new cls_Evenement_Deelnemer();
-			$this->vulvars(-1, -1, $this->xtranum);
+			$i_ed->vulvars(-1, -1, $this->xtranum);
 			$this->merged_message = str_ireplace("[%OMSEVENEMENT%]", $i_ed->i_ev->omschrijving, $this->merged_message);
 			$this->merged_subject = str_ireplace("[%OMSEVENEMENT%]", $i_ed->i_ev->omschrijving, $this->merged_subject);
 			
