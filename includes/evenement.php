@@ -193,15 +193,18 @@ function inschrijvenevenementen($lidid) {
 		$dtfmt->setPattern(DTTEXTWD);
 		printf("<div class='col-2'>%s", $i_ev->datumtekst);
 		if ($i_ev->starttijd > "00:00") {
-			printf(" om %s", $i_ev->starttijd);
+			printf(" om %s&nbsp;uur", $i_ev->starttijd);
 		}
 		
 		echo("</div>\n");
 		
 		printf("<div class='col-2'>%s</div>\n", $oms);
 		
-		
-		echo("<div class='col-4'>");
+		if ($i_ev->maxpersonenperdeelname > 1) {
+			echo("<div class='col-4'>");
+		} else {
+			echo("<div class='col-3'>");
+		}
 
 		if ($i_ed->status == "G") {
 			$c = " checked";
@@ -224,20 +227,19 @@ function inschrijvenevenementen($lidid) {
 		printf("<input type='radio' class='btn-check' id='aanmelden_%1\$d' name='reactie_%1\$d' value='%2\$s' autocomplete='off'%3\$s%4\$s>", $i_ev->evid, $bt, checked($i_ed->aanwezig), $d);
 		printf("<label class='btn btn-outline-primary btn-sm' for='aanmelden_%1\$d' title='%2\$s'>%2\$s</label>\n", $i_ev->evid, $bt);
 
-		if ($i_ed->status == "X") {
-			$c = " checked";
-		} else {
-			$c = "";
-		}
-
-		printf("<input type='radio' class='btn-check' id='afmelden_%1\$d' name='reactie_%1\$d' value='Afmelden' autocomplete='off'%2\$s>", $i_ev->evid, $c);
+		printf("<input type='radio' class='btn-check' id='afmelden_%1\$d' name='reactie_%1\$d' value='Afmelden' autocomplete='off'%2\$s>", $i_ev->evid, checked($i_ed->status, "checkbox", "X"));
 		printf("<label class='btn btn-outline-danger btn-sm' for='afmelden_%d' title='Afmelden'>Afmelden</label>\n", $i_ev->evid);
 		
 		if ($i_ev->maxpersonenperdeelname > 1) {
 			printf("<span><label class='form-label'>Aantal</label><input type='number' name='aantal_%1\$d' min=1 max=%2\$d value=%3\$d class='num2' title='Met hoeveel personen (max %2\$d) kom je?'></span>", $i_ev->evid, $i_ev->maxpersonenperdeelname, $i_ed->aantal);
 		}
 		echo("</div> <!-- Einde col -->\n");
-		echo("<div class='col-4 opmerking'>\n");
+		
+		if ($i_ev->maxpersonenperdeelname > 1) {
+			echo("<div class='col-4 opmerking'>\n");
+		} else {
+			echo("<div class='col-5 opmerking'>\n");
+		}
 		printf("<textarea placeholder='Opmerking' name='opm_%d' maxlength=250 title='Opmerking bij inschrijving'>%s</textarea>", $i_ev->evid, $i_ed->opmerking);
 		echo("</div> <!-- Einde col -->\n");
 	
