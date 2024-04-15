@@ -56,6 +56,19 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 	}
 	if ($currenttab == "Zelfservice") {
 		$gs = (new cls_Lid())->Geslacht($_SESSION['lidid']);
+		
+		$f = sprintf("Datum >= CURDATE() AND IFNULL(VerwijderdOp, '1900-01-01') < '2012-01-01' AND InschrijvingOpen=1 AND BeperkTotGroep IN (%s)", $_SESSION["lidgroepen"]);
+		if ((new cls_Evenement())->aantal($f) > 0) {
+			addtp("Zelfservice/Evenementen");
+		}
+		
+		$i_ak = new cls_afdelingskalender();
+		$i_ak->where = sprintf("AK.Datum >= CURDATE() AND AK.OnderdeelID IN (%s) AND AK.OnderdeelID IN (SELECT O.RecordID FROM %sOnderdl AS O WHERE O.AfmeldenMogelijk > 0)", $_SESSION['lidgroepen'], TABLE_PREFIX);
+		if ($i_ak->aantal() > 0) {
+			addtp("Zelfservice/Afmelden");
+		}
+		$i_ak = null;
+		
 		addtp("Zelfservice/Algemene gegevens");
 		$f = "Zelfservice=1";
 		$_SESSION['aantaltoestemmingen'] = $_SESSION['aantaltoestemmingen'] ?? (new cls_Onderdeel())->aantal("`Type`='T' AND IFNULL(VervallenPer, '9999-12-31') >= CURDATE()");
@@ -69,17 +82,6 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 		$_SESSION['settings']['zs_muteerbarememos'] = $_SESSION['settings']['zs_muteerbarememos'] ?? "";
 		if (strlen($_SESSION['settings']['zs_muteerbarememos']) > 0) {
 			addtp("Zelfservice/Bijzonderheden");
-		}
-		
-		$i_ak = new cls_afdelingskalender();
-		$i_ak->where = sprintf("AK.Datum >= CURDATE() AND AK.OnderdeelID IN (%s) AND AK.OnderdeelID IN (SELECT O.RecordID FROM %sOnderdl AS O WHERE O.AfmeldenMogelijk > 0)", $_SESSION['lidgroepen'], TABLE_PREFIX);
-		if ($i_ak->aantal() > 0) {
-			addtp("Zelfservice/Afmelden");
-		}
-		
-		$f = sprintf("Datum >= CURDATE() AND IFNULL(VerwijderdOp, '1900-01-01') < '2012-01-01' AND InschrijvingOpen=1 AND BeperkTotGroep IN (%s)", $_SESSION["lidgroepen"]);
-		if ((new cls_Evenement())->aantal($f) > 0) {
-			addtp("Zelfservice/Evenementen");
 		}
 		
 		if (count((new cls_Artikel())->lijst("bestellijst")) > 0) {
@@ -129,10 +131,6 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 			$f = "O.`Type`='T'";
 			if ((new cls_Onderdeel())->aantal($f) > 0) {
 				addtp("Ledenlijst/Rapporten/Toestemmingen");
-			}
-			$f = "O.`ORGANIS`=2";
-			if ((new cls_Onderdeel())->aantal($f) > 0) {
-				addtp("Ledenlijst/Rapporten/NCS opgave");
 			}
 		}
 		
@@ -280,7 +278,9 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 	if (!isset($_GET['lidid']) or strlen($_GET['lidid']) == 0) {
 		$_GET['lidid'] = 0;
 	}
-	$gs = (new cls_Lid())->Geslacht($_GET['lidid']);
+	$i_lid = new cls_Lid($_GET['lidid']);
+	$i_ond = new cls_Onderdeel();
+	$i_ond->where = "IFNULL(O.VervallenPer, '9999-12-31') > CURDATE()";
 
 	if ($currenttab2 == "Wijzigen lid") {
 		$b = $currenttab . "/" . $currenttab2;
@@ -288,33 +288,32 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 		$b .= "/";
 		addtp($b . "Algemene gegevens");
 		addtp($b . "Financieel");
-		if ($gs != "B") {
+		if ($i_lid->geslacht != "B") {
 			addtp($b . "Lidmaatschap");
 		}
-		if ((new cls_Onderdeel())->aantal("Type='A'") > 0 and (new cls_Lidmaatschap())->soortlid($_GET['lidid']) != "Kloslid") {
+		if ($i_ond->aantal("Type='A'") > 0 and $i_lid->soortlid != "Kloslid") {
 			addtp($b . "Afdelingen");
-		}		
-		$_SESSION['aantaltoestemmingen'] = $_SESSION['aantaltoestemmingen'] ?? (new cls_Onderdeel())->aantal("`Type`='T' AND IFNULL(VervallenPer, '9999-12-31') >= CURDATE()");
-		if ($gs != "B" and $_SESSION['aantaltoestemmingen'] > 0) {
+		}
+		if ($i_lid->geslacht != "B" and $i_ond->aantal("Type='T'") > 0) {
 			addtp($b . "Toestemmingen");
 		}
-		if ($gs != "B") {
+		if ($i_lid->geslacht != "B") {
 			addtp($b . "B, C en F");
 		}
 		if ((new cls_Onderdeel())->aantal("Type='G'") > 0) {	
 			addtp($b . "Groepen");
 		}
-		if ((new cls_Onderdeel())->aantal("Type='O'") > 0 and $gs != "B") {	
+		if ((new cls_Onderdeel())->aantal("Type='O'") > 0 and $i_lid->geslacht != "B") {	
 			addtp($b . "Onderscheidingen");
 		}
-		if ($gs != "B" and (new cls_Diploma())->aantal() > 0) {
+		if ($i_lid->geslacht != "B" and (new cls_Diploma())->aantal() > 0) {
 			addtp($b . "Diploma's");
 		}
 
 		if (strlen($_SESSION['settings']['muteerbarememos']) > 0) {
 			addtp($b . "Bijzonderheden");
 		}
-		if ($gs != "B") {
+		if ($i_lid->geslacht != "B") {
 			addtp($b . "Pasfoto");
 		}
 	}
@@ -555,12 +554,12 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 	}
 
 	if ($stap == "mail" and $lidid > 0) {
-		
-		$row = $i_login->record($lidid);
-		if ($_SESSION['settings']['login_maxinlogpogingen'] > 0 and $row->FouteLogin > $_SESSION['settings']['login_maxinlogpogingen']) {
+
+		$i_login->vulvars($lidid);
+		if ($_SESSION['settings']['login_maxinlogpogingen'] > 0 and $i_login->foutelogin > $_SESSION['settings']['login_maxinlogpogingen']) {
 			$mess = "Er is teveel foutief met deze login proberen in te loggen. Hierdoor is dit account geblokkeerd. ";
 			if ($_SESSION['settings']['login_autounlock'] > 0 and $_SESSION['settings']['login_autounlock'] <= 24*60) {
-				$mess .= sprintf("Uiterlijk om %s uur is deze blokkade verwijderd.", date("G:i", strtotime($row->Gewijzigd)+(60*$_SESSION['settings']['login_autounlock'])));
+				$mess .= sprintf("Uiterlijk om %s uur is deze blokkade verwijderd.", date("G:i", strtotime($i_login->gewijzigd)+(60*$_SESSION['settings']['login_autounlock'])));
 			} else {
 				$mess .= sprintf("Vraag aan de <a href='mailto:%s'>webmaster</a> om deze vrij te geven.", $_SESSION['settings']['emailwebmaster']);
 			}
@@ -570,7 +569,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 			$mailing = new Mailing($_SESSION['settings']['mailing_herstellenwachtwoord']);
 			
 			if ($mailing->mid > 0) {
-				if ($mailing->send($row->LidID, 1, 1) > 0) {
+				if ($i_login->lidid > 0 and $mailing->send($i_login->lidid, 1, 1) > 0) {
 					$mess = "E-mail met de link om het wachtwoord te herstellen is verzonden.";
 				} else {
 					$mess = "Fout bij het versturen van de e-mail. Probeer het later nogmaals of neem contact op met de webmaster.";
@@ -595,11 +594,10 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 		echo("<p><a href='/?tp=Inloggen'>Klik hier om verder te gaan.</a></p>\n");
 	
 	} elseif (isset($_GET["lidid"]) and $_GET["lidid"] > 0 and strlen($_GET["key"]) > 5) {
-		$row = (new cls_Login())->record($_GET['lidid']);
+		// Herstellen wachtwoord
+		$i_login->vulvars($_GET['lidid']);
 		
-		$login = $row->Login;
-		
-		if (strlen($login) > 5) {
+		if (strlen($i_login->login) > 5) {
 			
 			printf("<form id='herstellenwachtwoord' action='%s?tp=Herstel+wachtwoord' method='post'>\n", $_SERVER["PHP_SELF"]);
 			printf("<input type='hidden' name='key' value='%s'><input type='hidden' name='lidid' value=%d>\n
@@ -611,7 +609,7 @@ function fnHerstellenWachtwoord($stap="", $lidid=0) {
 			<div id='opdrachtknoppen'>\n
 			<button type='submit'>Bevestig</button>\n
 			</div> <!-- Einde opdrachtknoppen -->\n
-			</form>", $_GET["key"], $_GET['lidid'], $login, fneisenwachtwoord());
+			</form>", $_GET["key"], $_GET['lidid'], $i_login->login, fneisenwachtwoord());
 		} else {
 			echo("<h3>Deze link is niet correct, vraag een nieuwe aan.</h3>\n");
 		}
@@ -665,36 +663,39 @@ function fnValidatieLogin($lidid, $key, $stap) {
 	$i_m = new cls_Mailing();
 	
 	if ($stap == "mail") {
-	
-		$row = $i_login->record($lidid);
+		$i_login->vulvars($lidid);
 		
-		if ($row->LidID > 0 and strlen($row->Wachtwoord) >= 5) {
+		if ($i_login->lidid > 0 and strlen($i_login->wachtwoord) >= 5) {
 			
 			if ((new cls_Mailing_vanaf())->min() == 0) {
-				$mess = "Er is geen adres bekend om vanaf te e-mailen. Neem contact op met de webmaster.";
+				$mess = "Er is geen adres beschikbaar om vanaf te e-mailen. Neem contact op met de webmaster.";
 			
 			} elseif ($_SESSION['settings']['mailing_validatielogin'] > 0 and $i_m->bestaat($_SESSION['settings']['mailing_validatielogin'])) {
 				$mailing = new Mailing($_SESSION['settings']['mailing_validatielogin']);
-				if ($mailing->send($row->LidID) == 0) {
+				if ($mailing->send($i_login->lidid, 0, 1) == 0) {
 					$mess = "Fout bij het versturen van de e-mail met de validatielink. Probeer het later nogmaals of neem contact op met de webmaster.";
+				} else {
+					$mess = "Een e-mail met validatielink is verzonden.";
 				}
 				$mailing = null;
 				
 			} else {
-				$nak = (new cls_Login())->nieuweactivitiekey($lidid);
+				$nak = $i_login->nieuweactivitiekey($lidid);
 				$urlactivatie = sprintf("%s/index.php?tp=Validatie+login&lidid=%d&key=%s", BASISURL, $lidid, $nak);
 
 				$email = new email();
-				$email->toevoegenlid($row->LidID);
+				$email->toevoegenlid($i_login->lidid);
 				$email->onderwerp = sprintf("%s | Activatie login", $_SESSION['settings']['naamwebsite']);
 				$email->bericht = sprintf("<p>Naam lid: %s</p>
 							<p>Activatie url %s: %s</p>\n
-							<p>Deze link is %d uur geldig</p>", $row->Naam, $_SESSION['settings']['naamwebsite'], $urlactivatie, $_SESSION['settings']['login_geldigheidactivatie']);
-				$email->to_outbox(1);
+							<p>Deze link is %d uur geldig</p>", $email->aannaam, $_SESSION['settings']['naamwebsite'], $urlactivatie, $_SESSION['settings']['login_geldigheidactivatie']);
+				if ($email->to_outbox(1) > 0) {
+					$mess = "Een e-mail met validatielink is verzonden.";
+				}
 				$email = null;
 			}
 		} else {
-			$mess = sprintf("Login voor lidid %d bestaat niet, neem onctact op met de webmaster.", $lidid);
+			$mess = sprintf("Login voor lidid %d bestaat niet, neem contact op met de webmaster.", $lidid);
 		}
 		
 		if (strlen($mess) > 2) {
@@ -716,6 +717,8 @@ function fnLoginAanvragen($stap="") {
 	global $lididwebmasters;
 	
 	$i_login = new cls_Login();
+	$i_lid = new cls_Lid();
+	
 	$login_verbodenkarakters = "@#$^&;*%éëèöôü'\"?!";
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['loginaanvragen'])) {
@@ -737,59 +740,49 @@ function fnLoginAanvragen($stap="") {
 				$gevondenverbodenkarakter = substr($login_verbodenkarakters, $i, 1);
 			}
 		}
-		
-		$i_login = new cls_Login();
-		$lidid = $i_login->lidid($_POST['emailadres'], $_POST['lidnummer']);
+
+		$i_lid->lidbijemail($_POST['emailadres'], sprintf("LM.Lidnr=%d", $_POST['lidnummer']));
 		if (!isValidMailAddress($_POST['emailadres'], 0)) {
 			$mess = "Je hebt geen geldig e-mailadres opgegeven.";
+		} elseif ($i_lid->lidid <= 0) {
+			$mess = "Deze combinatie van e-mailadres en lidnummer bestaat niet of is geen lid.";
+		} elseif ($i_lid->inloggentoegestaan == false) {
+			$mess = "Je behoort niet tot een groep, die mag inloggen. Een login mag niet worden aangevraagd.";
+		} elseif ($i_login->aantal(sprintf("Login.LidID=%d", $i_lid->lidid)) > 0) {
+			$i_login->vulvars($i_lid->lidid);
+			if (strlen($i_login->activatiekey) > 5) {
+				fnValidatieLogin($i_login->lidid, $i_login->activatiekey, "mail");
+			} else {
+				$mess = "Je hebt al een gevalideerde login.";
+			}
 		} elseif (strlen($_POST['gewenstelogin']) < 6) {
 			$mess = "Je hebt geen geldige gewenste login opgegeven. Een login moet uit minimaal 6 karakters bestaan.";
-		} elseif ($i_login->aantal(sprintf("Login='%s'", $_POST['gewenstelogin'])) > 0) {
-			$ak = $i_login->record($lidid)->ActivatieKey;
-			if (strlen($ak) > 5 and $lidid > 0) {
-				fnValidatieLogin($lidid, $ak, "mail");
-			} else {
-				$mess = sprintf("Login '%s' is al in gebruik.", $_POST['gewenstelogin']);
-			}
 		} elseif (strlen($_POST['gewenstelogin']) > $_SESSION['settings']['login_maxlengte']) {
 			$mess = sprintf("Je hebt geen geldige login opgegeven. Een login mag uit maximaal %d karakters bestaan.", $_SESSION['settings']['login_maxlengte']);
 		} elseif (strpos($_POST['gewenstelogin'], " ") > 0) {
 			$mess = "Je hebt geen geldige login opgegeven. Er mag geen spatie in een login zitten.";
 		} elseif (strlen($gevondenverbodenkarakter) > 0) {
 			$mess = sprintf("e hebt geen geldige login opgegeven. Er mag geen '%s' in een login zitten.", $gevondenverbodenkarakter);
+		} elseif ($i_login->aantal(sprintf("Login='%s'", $_POST['gewenstelogin'])) > 0) {
+			$i_login->lididbijlogin($_POST['gewenstelogin']);
+			if (strlen($i_login->activatiekey) > 5 and $i_lid->lidid == $i_login->lidid) {
+				fnValidatieLogin($i_login->lidid, $i_login->activatiekey, "mail");
+			} else {
+				$mess = sprintf("Login '%s' is al in gebruik.", $_POST['gewenstelogin']);
+			}
 		} elseif ($wwok !== "ok") {
 			$mess = $wwok;
 		} else {
-			if ($lidid > 0) {
-				if ($i_login->aanvragenmag($lidid)) {
-					$i_login->add($lidid, $_POST['gewenstelogin'], $_POST['gewenstwachtwoord']);
-				} else {
-					if (count($i_login->beperkttotgroep) > 1) {
-						$gt = "Webmasters";
-						foreach ($i_login->beperkttotgroep as $gr) {
-							$gt .= ", " . (new cls_Onderdeel())->naam($gr);
-						}
-						$mess = sprintf("Je behoort niet tot één van de groepen %s van %s. Een login mag niet aangevraagd worden.", $gt, $_SESSION['settings']['naamvereniging']);
-					} else {
-						$mess = sprintf("Je behoort niet tot de webmasters van %s. Een login mag niet aangevraagd worden.", $_SESSION['settings']['naamvereniging']);
-					}
-				}
-			} elseif ($_POST['lidnummer'] > 0) {
-				$mess = sprintf("De combinatie van lidnummer %d en e-mailadres '%s' is in de database onbekend.", $_POST['lidnummer'], $_POST['emailadres']);
-			} elseif ($lidid == -1) {
-				$mess = sprintf("E-mailadres '%s' komt meerdere keren voor, vul het lidnummer in bij de login aanvraag.", $_POST['emailadres']);
-			} else {
-				$mess = sprintf("E-mailadres '%s' is onbekend in de database.", $_POST['emailadres']);
-			}
+			$i_login->add($i_lid->lidid, $_POST['gewenstelogin'], $_POST['gewenstwachtwoord']);
 		}
 		if (strlen($mess) > 0) {
-			(new cls_Logboek())->add($mess, 5, $lidid, 1);
+			(new cls_Logboek())->add($mess, 5, $i_lid->lidid, 1);
 		}
 		printf("<p><a href='%s' target='_top'>Klik hier om verder te gaan.</a></p>\n", BASISURL);
 		
 	} else {
 
-		printf("<form action='%s?tp=Bevestiging+login' id='loginaanvraag' method='post'>\n", $_SERVER["PHP_SELF"]);
+		printf("<form action='%s?tp=Bevestiging+login' class='form' id='loginaanvraag' method='post'>\n", $_SERVER["PHP_SELF"]);
 		echo("<h2>Login aanvraag</h2>\n");
 		
 		echo("<label>E-mailadres</label><input type='email' name='emailadres' value='' autocomplete='off'>\n");
@@ -798,10 +791,10 @@ function fnLoginAanvragen($stap="") {
 		printf("<label>Gewenst wachtwoord</label><input type='password' name='gewenstwachtwoord' value='' maxlength=%1\$d class='w%1\$d'>\n", $_SESSION['settings']['wachtwoord_maxlengte']);
 
 		echo("<p>Je lidnummer kan je <a href='index.php?tp=Opvragen+lidnr'>hier</a> opvragen.</p>\n");
-		echo("<p>Je ontvangt een e-mail met daarin een link om deze aanmelding te bevestigen. Pas na het bevestigen is de login bruikbaar om in te loggen.</p>\n");
+		echo("<p>Je ontvangt een e-mail met daarin een link om deze aanmelding te bevestigen. Na het bevestigen is de login te gebruiken al login.</p>\n");
 		
 		echo("<p>Voorwaarden aan een login:</p>\n<ul>\n");
-		printf("<li>Minimaal 7 en maximaal %1\$d karakters</li>\n", $_SESSION['settings']['login_maxlengte']);
+		printf("<li>Minimaal 7 en maximaal %d karakters</li>\n", $_SESSION['settings']['login_maxlengte']);
 		echo("<li>Er mogen geen aanhalingstekens en spaties in zitten</li>\n");
 		printf("<li>De karakters '%s' mogen er niet in zitten</li>\n", htmlent($login_verbodenkarakters));
 		echo("</ul>\n");
@@ -820,10 +813,9 @@ function fnOpvragenLidnr($stap) {
 	
 	$mess = "";
 	$mailing = new mailing($_SESSION['settings']['mailing_lidnr']);
-	
+	$i_lid = new cls_Lid();
 			
 	if ($stap == "mail") {
-		$lidid = 0;
 		if (!isValidMailAddress($_POST['emailvoorlidnr'], 0)) {
 			$mess = "Je hebt geen geldig e-mailadres opgegeven.";
 			
@@ -831,28 +823,28 @@ function fnOpvragenLidnr($stap) {
 			$mess = "Er is geen adres bekend om vanaf te e-mailen. Neem contact op met de webmaster.";
 			
 		} else {
-			$rows = (new cls_Lid())->lidbijemail($_POST['emailvoorlidnr']);
+			$rows = $i_lid->lidbijemail($_POST['emailvoorlidnr']);
 			if (count($rows) > 0) {
 				foreach ($rows as $row) {
+					$i_lid->vulvars($row->LidID);
 					if ($mailing->mid > 0 ) {
 						$mail = new email(0, $mailing->mid);
-						$mail->xtranum = $row->Lidnr;
 						$mail->toevoegenlid($row->LidID);
 						$mail->bericht = $mailing->merge($row->LidID);
 					} else {
 						$mail = new email();
-						$mail->xtrachar = "LNR";
-						$mail->xtranum = $row->Lidnr;
 						$mail->toevoegenlid($row->LidID);
 						$mail->onderwerp = "Lidnummer " . $_SESSION['settings']['naamvereniging_afkorting'];
 						$mail->bericht = sprintf("<p>Je hebt je lidnummer bij de %s opgevraagd. Je lidnummer is %d.</p>
 												  <p>Met dit lidnummer en e-mailadres '%s' kun je een login aanvragen.</p>\n", $_SESSION['settings']['naamvereniging_afkorting'], $row->Lidnr, $_POST['emailvoorlidnr']);
 					}
+					$mail->xtrachar = "LIDNR";
+					$mail->xtranum = $row->Lidnr;
 					
 					if ($mail->to_outbox(1) > 0) {
-						$mess = sprintf("Een e-mail aan %s met lidnummer %d is in de outbox geplaatst en wordt zo spoedig mogelijk verzonden. ", $row->NaamLid, $row->Lidnr);
+						$mess = sprintf("Een e-mail met lidnummer %d is in de outbox geplaatst en wordt zo spoedig mogelijk verzonden.", $row->Lidnr);
 					} else {
-						$mess = sprintf("Fout bij het versturen van het lidnummer aan %s. Probeer het later nogmaals of neem contact met de webmaster op. ", $row->NaamLid);
+						$mess = sprintf("Fout bij het versturen van het lidnummer aan %s. Probeer het later nogmaals of neem contact met de webmaster op. ", $i_lid->naam);
 					}
 					(new cls_Logboek())->add($mess, 5, $row->LidID, 1, $row->LidID, 11);
 					$mess = "";
@@ -874,9 +866,9 @@ function fnOpvragenLidnr($stap) {
 		printf("<form action='%s?tp=Opvragen+lidnr' method='post'>\n", $_SERVER["PHP_SELF"]);
 		
 		echo("<h3>Opvragen Lidnummer</h3>\n");
-		echo("<label>E-mailadres</label><input type='email' name='emailvoorlidnr'>\n");
+		echo("<label class='form-label'>E-mailadres</label><input type='email' name='emailvoorlidnr'>\n");
 		echo("<div id='opdrachtknoppen'>\n");
-		echo("<input type='submit' name='opvragenlidnr' value='Opvragen'>\n");
+		printf("<button type='submit' class='%s' name='opvragenlidnr' value='Opvragen'>Opvragen</button>\n", CLASSBUTTON);
 		echo("</div> <!-- Einde opdrachtknoppen -->\n");
 		
 		echo("</form>\n");
