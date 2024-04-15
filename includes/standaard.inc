@@ -1652,7 +1652,7 @@ function removetextblock($content, $start_block, $end_block="") {
 function checked($val, $tp="checkbox", $sv=1) {
 	if ($tp == "option" and $val == $sv) {
 		return " selected";
-	} elseif ($tp == "checkbox" and (intval($val) == 1 or $val === true or $val > "1970-01-01")) {
+	} elseif ($tp == "checkbox" and (intval($val) == 1 or $val === true or (strlen($val) == 10 and $val > "1970-01-01"))) {
 		return " checked";
 	} elseif ($tp == "checkbox" and $val == $sv) {
 		return " checked";
