@@ -5,6 +5,8 @@ function fnAfdeling() {
 	
 	$i_ond = new cls_Onderdeel();
 	
+	$currenttab2 = str_replace("'", "", $currenttab2);
+	
 	$f = sprintf("Naam='%s' OR Naam='%s'", $currenttab, $currenttab2);
 	$ondid = $i_ond->max("RecordID", $f);
 	$i_ond->vulvars($ondid);
@@ -116,7 +118,7 @@ function afdelingslijst($afdid) {
 		$kols[] = array('columnname' => "GEBDATUM", 'headertext' => "Geboren", 'type' => "date");
 	}
 	
-	$rows = $i_lo->lijst($afdid, 2, fnOrderBy($kols), "", $xf);
+	$rows = $i_lo->lijst($afdid, 2, "", "", $xf);
 
 	$f = sprintf("GR.OnderdeelID=%d", $afdid);
 	if ((new cls_Groep())->aantal($f) == 0) {
@@ -148,12 +150,12 @@ function afdelingslijst($afdid) {
 	printf("<input type='text' name='tbTekstFilter' id='tbTekstFilter' placeholder='Tekstfilter' OnKeyUp=\"fnFilter('%s', this);\">\n", __FUNCTION__);
 //	printf("<select name='bezitdiploma' id='bezitdiploma' class='form-select-sm' onchange='this.form.submit();'>\n<option value=-1>Filter op diploma</option>\n%s</select>\n", $i_dp->htmloptions($diplfilter, $afdid));
 
-
 	foreach ($arrCB as $k) {
 		$vn = "toon" . strtolower($k);
 		printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' name='%s' title='Toon %s'%s onClick='this.form.submit();'>%s</label>\n", $vn, strtolower($k), checked($$vn), $k);
 	}
 	
+	$rows = $i_lo->lijst($afdid, 2, fnOrderBy($kols), "", $xf);
 	if (count($rows) > 1) {
 		printf("<p class='aantrecords'>%d rijen / %d leden</p>\n", count($rows), aantaluniekeleden($rows, "LidID"));
 	}
@@ -335,25 +337,13 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 				printf("<h4>%s</h4>\n", $i_gr->groms);
 				echo("<ol>\n");
 			}
-			$cl = "";
-			$t = "";
+			$cl = $i_lo->loclass;
 			if ($toonpresentie > 0) {
-//				$stat = (new cls_Aanwezigheid())->status($row->RecordID, $toonpresentie);
 				$i_aanw->vulvars($row->RecordID, $toonpresentie);
 				if (strlen($i_aanw->status) > 0) {
 					$cl = sprintf("presstat_%s ", strtolower($i_aanw->status));
 				}
 			}
-			if ($row->Vanaf > date("Y-m-d")) {
-				$cl .= "wordtlid";
-				$t = sprintf(" title='wordt op %s lid'", date("d-m-Y", strtotime($row->Vanaf)));
-			} elseif ($row->Opgezegd < date("Y-m-d", strtotime("+3 month"))) {
-				$cl .= "heeftopgezegd";
-				$t = sprintf(" title='heeft per %s opgezegd'", date("d-m-Y", strtotime($row->Opgezegd)));
-			} elseif ($i_lo->laatstemutatiegroep > date("Y-m-d", strtotime("-4 week"))) {
-				$cl .= "gewijzigd";
-			}
-			$cl = trim($cl);
 			if ($avg_naam == 1) {
 				$nm = $i_lo->i_lid->avgnaam;
 			} else {
@@ -365,10 +355,17 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 			if ($toonopmerking == 1 and strlen($i_aanw->opmerking) > 0 and ($i_aanw->status == "A" or $i_aanw->status == "L")) {
 				$nm .= " (" .  $i_aanw->opmerking . ")";
 			}
+			
+			$class= "";
 			if (strlen($cl) > 0) {
-				$cl = sprintf(" class='%s'", $cl);
+				$class = sprintf(" class='%s'", $cl);
 			}
-			printf("<li%s%s>%s</li>\n", $cl, $t, $nm);
+			
+			$title = "";
+			if (strlen($i_lo->lotitle) > 0) {
+				$title = sprintf(" title='%s'", $i_lo->lotitle);
+			}
+			printf("<li%s%s>%s</li>\n", $class, $title, $nm);
 			$hvgroep = $row->GroepID * 1;
 			$hvzaal = $row->Zwemzaal;
 		}
@@ -1032,7 +1029,9 @@ function afdelingswachtlijst($p_afdid) {
 			}
 			echo("</select>\n");
 		}
-		printf("<p class='aantrecords'>%d inschrijvingen</p>\n", $i_ins->aantal());
+		if ($i_ins->aantal() > 1) {
+			printf("<p class='aantrecords'>%d inschrijvingen</p>\n", $i_ins->aantal());
+		}
 		printf("<button type='button' class='%s btn-sm' onClick=\"location.href='%s?tp=%s&op=nieuw'\">%s Inschrijving</button>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], $_GET['tp'], ICONTOEVOEGEN);
 		echo("</form>\n");
 		
