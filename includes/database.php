@@ -191,7 +191,8 @@ class cls_db_base {
 //					debug($this->query);
 					$rv = $dbc->query($this->query);
 					$exec_tijd = microtime(true) - $starttijd;
-					if (isset($_SESSION['settings']['performance_trage_select']) and $_SESSION['settings']['performance_trage_select'] > 0 and $exec_tijd >= $_SESSION['settings']['performance_trage_select']) {
+					$ts = $_SESSION['settings']['performance_trage_select'] ?? 0;
+					if ($ts > 0 and $exec_tijd >= $ts) {
 						$mess = sprintf("%.2f seconden query: %s", $exec_tijd, $this->query);
 						$this->ta = 98;
 					} elseif ($this->ta > 0) {
@@ -783,7 +784,7 @@ class cls_db_base {
 				$xw = sprintf("IFNULL(`%s`, '')<>:nw", $p_kolom);
 				
 			} elseif($tk == "text") {
-				$xw = sprintf("BINARY (IFNULL(`%s`, '')<>:nw)", $p_kolom);
+				$xw = sprintf("BINARY (IFNULL(`%1\$s`, '')<>:nw)", $p_kolom);
 
 			} elseif($tk == "longtext" or $tk == "longblob") {
 				$xw = sprintf("(IFNULL(`%s`, '') NOT LIKE :nw)", $p_kolom);
@@ -792,6 +793,9 @@ class cls_db_base {
 				$p_waarde = str_replace("\"", "'", trim($p_waarde));
 				$xw = sprintf("BINARY IFNULL(`%s`, '')<>:nw", $p_kolom, $p_waarde);
 				
+			}
+			if ($this->table == "rbm_Rekreg") {
+//				debug($xw);
 			}
 			$query = sprintf("UPDATE %s SET `%s`=:nw %s WHERE `%s`=:id AND %s;", $this->table, $p_kolom, $gw, $this->pkkol, $xw);
 			$stmt = $dbc->prepare($query);
@@ -1269,7 +1273,13 @@ class cls_Lid extends cls_db_base {
 					$this->inloggentoegestaan = false;
 				}
 			} else {
-				$this->inloggentoegestaan = false;
+				$query = sprintf("SELECT COUNT(*) FROM %sLidmaatschap AS LM WHERE LM.LIDDATUM <= CURDATE() AND IFNULL(LM.Opgezegd, '9999-12-31') >= CURDATE() AND LM.Lid=%d;", TABLE_PREFIX, $this->lidid);
+				if ($this->scalar($query) > 0) {
+					$this->inloggentoegestaan = true;
+				} else {
+					$this->inloggentoegestaan = false;
+				}
+				
 			}
 			
 			$query = sprintf("SELECT IFNULl(MAX(Login.Login), 'Geen') FROM %sAdmin_login AS Login WHERE Login.LidID=%d;", TABLE_PREFIX, $this->lidid);
@@ -1804,13 +1814,17 @@ class cls_Lid extends cls_db_base {
 		$query = sprintf("INSERT INTO %s (RecordID, Achternaam, Ingevoerd) VALUES (:recordid, :achternaam, NOW());", $this->table);
 		if ($this->lidid = $dbc->prepare($query)->execute($data) > 0) {
 			$this->lidid = $data['recordid'];
-			$this->mess = sprintf("Kloslid %d (%s) is toegevoegd", $this->lidid, $p_achternaam);
-			$this->log($this->lidid);
-			$this->interface($query);
-			if (strlen($p_postcode) >= 6) {
-				$this->update($this->lidid, "Postcode", $p_postcode);
-			}
+			$this->mess = sprintf("Tabel Lid: record %d (%s) is toegevoegd", $this->lidid, $p_achternaam);
+		} else {
+			$this->mess = sprintf("Tabel Lid: toevoegen record voor %s is mislukt", $p_achternaam);
+			$this->lidid = 0;
 		}
+		$this->log($this->lidid);
+		
+		if (strlen($p_postcode) >= 6 and $this->lidid > 0) {
+			$this->update($this->lidid, "Postcode", $p_postcode);
+		}
+		
 		return $this->lidid;
 	}  # cls_lid->add
 	
@@ -1996,6 +2010,8 @@ class cls_Lidmaatschap extends cls_db_base {
 	public int $lidnr = 0;
 	public string $lidvanaf = "";
 	public string $opgezegd = "";
+	public int $opgezegddoorvereniging = 0;
+	
 	public string $lidtm = "";
 	public string $opgezegdper = "";	// De datum per wanneer iemand geen lid meer is in de Nederlandse taal
 	
@@ -2043,11 +2059,7 @@ class cls_Lidmaatschap extends cls_db_base {
 				$this->lidnr = $row->Lidnr ?? 0;
 				$this->lidvanaf = $row->LIDDATUM ?? "";
 				$this->opgezegd = $row->Opgezegd ?? "";
-				if (strlen($this->opgezegd) < 10) {
-					$this->lidtm = "9999-12-31";
-				} else {
-					$this->lidtm = $this->opgezegd;
-				}
+				$this->opgezegddoorvereniging = $row->OpgezegdDoorVereniging ?? 0;
 				$this->ingevoerd = $lmrow->Ingevoerd ?? "";
 				$this->gewijzigd = $lmrow->Gewijzigd ?? "";
 			} else {
@@ -2055,9 +2067,15 @@ class cls_Lidmaatschap extends cls_db_base {
 			}
 		}
 		
+		if (strlen($this->opgezegd) < 10) {
+			$this->lidtm = "9999-12-31";
+		} else {
+			$this->lidtm = $this->opgezegd;
+		}
+		
 		$this->i_lid = new cls_Lid($this->lidid, $this->per);
 		
-		if ($this->lidtm > "2000-01-01") {
+		if ($this->opgezegd > "1970-01-01") {
 			$dtfmt->setPattern(DTTEXT);
 			$op = new datetime($this->lidtm);
 			$op->modify("+1 day");
@@ -2078,6 +2096,7 @@ class cls_Lidmaatschap extends cls_db_base {
 	public function islid($p_lidid=-1, $p_per="") {
 		
 		debug("Beter vermijden", 0, 99);
+		
 		if (strlen($p_per) == 10) {
 			$this->per = $p_per;
 		}
@@ -2133,20 +2152,22 @@ class cls_Lidmaatschap extends cls_db_base {
 		
 		$f = sprintf("LM.Lid=%d", $p_lidid);
 		if ($this->aantal($f . " AND (LM.Opgezegd IS NULL)") > 0) {
-			$this->mess = "Er is nog een lopend lidmaatschap voor dit lid, dit lid maatschap wordt niet toegevoegd.";
+			$this->mess = "Er is nog een lopend lidmaatschap voor dit lid, dit lidmaatschap wordt niet toegevoegd.";
 			$nrid = 0;
 		} else {
 			$nrid = $this->nieuwrecordid();
-			$query = sprintf("INSERT INTO %s (RecordID, Lid, Lidnr, LIDDATUM, OpgezegdDoorVereniging, Ingevoerd) VALUES (%d, %d, %d, '%s', 0, NOW());", $this->table, $nrid, $this->lidid, $lidnr, $p_vanaf);
+			$query = sprintf("INSERT INTO %s (RecordID, Lid, Lidnr, LIDDATUM) VALUES (%d, %d, %d, '%s');", $this->table, $nrid, $this->lidid, $lidnr, $p_vanaf);
 			if ($this->execsql($query) > 0) {
 				$this->mess = sprintf("Tabel Lidmaatschap: Record %d met lidnummer %d en ingangsdatum %s is toegevoegd.", $nrid, $lidnr, $p_vanaf);
+			} else {
+				$this->mess = "Tabel Lidmaatschap: toevoegen record is mislukt.";
+				$nrid = 0;
 			}
 		}
 		$this->Log($nrid);
 		
-		if ($p_vanaf > "2000-01-01" and strlen($p_vanaf) == 10 and $p_vanaf != date("Y-m-d")) {
-			$this->update($nrid, "LIDDATUM", $p_vanaf);
-		}
+		return $nrid;
+		
 	}  # cls_Lidmaatschap->add
 
 	public function update($p_lmid, $p_kolom, $p_waarde, $p_reden="") {
@@ -2643,10 +2664,11 @@ class cls_Onderdeel extends cls_db_base {
 			}
 		}
 		
-		if (strlen($this->type) > 0) {
+		if (strlen($this->type) > 0 and array_key_exists($this->type, ARRTYPEONDERDEEL)) {
 			$this->typeoms = ARRTYPEONDERDEEL[$this->type];
 		} else {
-			$this->typeoms = "";
+			$this->type = "G";
+			$this->typeoms = "Groep";
 		}
 		
 	}  # cls_Onderdeel->vulvars
@@ -2864,7 +2886,7 @@ class cls_Onderdeel extends cls_db_base {
 			$data['recordid'] = $nrid;
 			$data['kode'] = $p_code;
 			$data['type'] = $p_type;
-			$data['naam'] = "*** Nieuw *" . $p_code . " ***";
+			$data['naam'] = "*** Nieuw " . $p_code . " ***";
 			
 			$query = sprintf("INSERT INTO %s (RecordID, Kode, Type, Naam, Kader, `Alleen leden`, GekoppeldAanQuery) VALUES (:recordid, :kode, :type, :naam, 0, 0, 0);", $this->table);
 			if ($dbc->prepare($query)->execute($data) > 0) {	
@@ -3937,7 +3959,7 @@ class cls_Lidond extends cls_db_base {
 								GR.Kode AS GrCode, GR.Omschrijving AS GrNaam, GR.Starttijd, GR.Aanwezigheidsnorm, IFNULL(Act.BeperkingAantal, 0) AS BeperkingAantal, IFNULL(Act.Omschrijving, '') AS OmschrijvingActiviteit,
 								CASE WHEN LO.GroepID > 0 AND LO.Functie > 0 THEN CONCAT(F.OMSCHRIJV, '/', IF(LENGTH(GR.Kode)=0, GR.RecordID, GR.Kode))
 									WHEN LO.Functie > 0 THEN F.OMSCHRIJV
-									WHEN LO.GroepID > 0 THEN CONCAT(TRIM(GR.Starttijd), ' ', IF(LENGTH(GR.Omschrijving)=0, IF(LENGTH(GR.Kode)=0, GR.RecordID, GR.Kode), GR.Omschrijving))
+									WHEN LO.GroepID > 0 THEN CONCAT(TRIM(GR.Starttijd), ' ', IF(LENGTH(GR.Omschrijving)=0, IF(LENGTH(GR.Kode)=0, GR.RecordID, GR.Kode), GR.Omschrijving), IF(LO.parttimepercentage > 1 AND LO.parttimepercentage < 100, CONCAT(' (', LO.Parttimepercentage, '%%)'), ''))
 									ELSE '' END AS `FunctieGroep`,
 								IF(IFNULL(LO.Opgezegd, '9999-12-31') > CURDATE(), LO.RecordID, 0) AS ridDelete
 						  FROM %s
@@ -4370,12 +4392,14 @@ class cls_Lidond extends cls_db_base {
 			$p_interval = 45;
 		}
 		
-		if (!isset($_SESSION['laatste_autogroepenbijwerken'])) {
+		if (isset($_SESSION['laatste_autogroepenbijwerken'])) {
+			$lb = $_SESSION['laatste_autogroepenbijwerken'];
+		} else {
 			$f = "A.TypeActiviteit=2 AND A.TypeActiviteitSpecifiek=61";
 			$lb = (new cls_Logboek())->max("A.DatumTijd", $f);
 			$_SESSION['laatste_autogroepenbijwerken'] = $lb;
-		} else {
-			$lb = $_SESSION['laatste_autogroepenbijwerken'];
+//			$exec_tijd = (microtime(true) - $starttijd);
+//			debug(__FUNCTION__ . "/Logboek: " . $exec_tijd, 2, 99);
 		}
 
 		$t = strtotime(sprintf("-%d minutes", $p_interval));
@@ -5018,6 +5042,8 @@ class cls_Login extends cls_db_base {
 			$this->lidid = $this->scalar($query);
 			if ($this->lidid == 0) {
 				$this->mess = sprintf("Login '%s' is onbekend in onze database.", $p_login);
+			} else {
+				$this->vulvars($this->lidid);
 			}
 		}
 		
@@ -7603,8 +7629,8 @@ class cls_Liddipl extends cls_db_base {
 				$this->update($row->RecordID, "LicentieVervallenPer", $this->i_lid->overleden, "het lid overleden is");
 			}  elseif (strlen($this->i_dp->vervallen) >= 10 and $this->i_dp->vervallen > $this->licentievervallenper) {
 				$this->update($row->RecordID, "LicentieVervallenPer", $this->i_dp->vervallen, "het diploma vervallen is.");
-			}  elseif (strlen($this->licentievervallenper) < 10 and $this->i_dp->geldigheid > 0 and $this->geldigtot < date("Y-m-d")) {
-				$this->update($row->RecordID, "LicentieVervallenPer", $this->geldigtot, "de geldigheid van dit diploma beperkt is");
+			}  elseif (strlen($this->licentievervallenper) < 10 and $this->i_dp->geldigheid > 0 and $this->vervaltper < date("Y-m-d")) {
+				$this->update($row->RecordID, "LicentieVervallenPer", $this->vervaltper, "de geldigheid van dit diploma beperkt is");
 			} elseif ($this->examen > 0 and $this->i_ex->exid == 0) {
 				$this->update($row->RecordID, "Examen", "NULL", "het examen niet bestaat");
 			} elseif ($this->examen > 0 and $this->i_ex->proef == 0 and $this->laatstebeoordeling == 0) {
@@ -8466,12 +8492,9 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 		$this->opmerking = "";
 		$this->functie = "";
 		$this->status = "G";
-		$this->statusoms = "";
 		$this->aantal = 1;
 		$this->starttijd = "";
-		$this->aanwezig = false;
 		if ($this->edid > 0) {
-			$this->evid = 0;
 			$this->query = sprintf("SELECT ED.* FROM %s WHERE ED.RecordID=%d;", $this->basefrom, $this->edid);
 			$row = $this->execsql()->fetch();
 			if (isset($row->RecordID)) {
@@ -8482,14 +8505,19 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 				$this->aantal = $row->Aantal ?? 1;
 				$this->starttijd = $row->StartMoment ?? "";
 				$this->status = $row->Status ?? "B";
-				$this->statusoms = ARRDLNSTATUS[$this->status];
-				if ($this->status == "B" or $this->status == "J" or $this->status == "T") {
-					$this->aanwezig = true;
-				}
 				$this->ingevoerd = $row->Ingevoerd ?? "";
 				$this->gewijzigd = $row->Gewijzigd ?? "";
 			} else {
 				$this->edid = 0;
+			}
+		}
+
+		$this->statusoms = "";
+		$this->aanwezig = false;
+		if (strlen($this->status) > 0 and $this->status != "G") {
+			$this->statusoms = ARRDLNSTATUS[$this->status];
+			if ($this->status == "B" or $this->status == "J" or $this->status == "T") {
+				$this->aanwezig = true;
 			}
 		}
 		
@@ -9251,29 +9279,23 @@ class cls_Rekening extends cls_db_base {
 	public $rkid = 0;
 	private $reksel = "";
 	public string $debnaam = "";
-	public string $datum="";
-	public $omschrijving = "";
-	public $seizoen = 0;
-	public $bankrekening = "";
-	public $machtiging = 0;
-	public $betaalddoor = 0;
-	public $betaalddoornaam = "";
-	public $betaalddooremail = "";
-	public $bedrag = 0;
-	public $betaald = 0;
-	public $aantalbetaaltermijnen = 1;
-	public $dagenperbetaaltermijn = 30;
-	public $uiterstebetaaldatum = "";
-	public $einde_eerstetermijn = "";
+	public string $datum = "";
+	public string $omschrijving = "";
+	public int $seizoen = 0;
+	public int $betaalddoor = 0;
+	public string $opmerkingintern = "";
+	public int $aantalbetaaltermijnen = 1;
+	public int $dagenperbetaaltermijn = 30;
 	
-	public $adres= "";
-	public $huisnr = "";
-	public $postcode = "";
-	public $woonplaats = "";
-	public $lidnr = 0;
+	public float $bedrag = 0;
+	public float $betaald = 0;
+	public string $uiterstebetaaldatum = "";
+	public string $einde_eerstetermijn = "";
+	public int $aantalledenoprekening = 1;
 	
 	public object $i_lid;
 	public object $i_sz;
+	public object $i_bd;
 	
 	function __construct($p_rkid=-1) {
 		parent::__construct();
@@ -9297,6 +9319,7 @@ class cls_Rekening extends cls_db_base {
 		$this->debnaam = "";
 		$this->bedrag = 0;
 		$this->betaald = 0;
+		$this->aantalledenoprekening = 0;
 		
 		$dtfmt->setPattern(DTTEXT);
 		
@@ -9317,46 +9340,40 @@ class cls_Rekening extends cls_db_base {
 				$this->seizoen = $rkrow->Seizoen ?? 0;
 				$this->debnaam = $rkrow->DEBNAAM ?? "";
 				$this->betaalddoor = $rkrow->BetaaldDoor ?? 0;
-				if ($this->betaalddoor == 0) {
-					$this->betaalddoor = $this->lidid;
-				}
-				$this->aantalbetaaltermijnen = $rkrow->BET_TERM;
-				$this->dagenperbetaaltermijn = $rkrow->BETAALDAG;
+				$this->opmerkingintern = $rkrow->OpmerkingIntern ?? "";
+				$this->aantalbetaaltermijnen = $rkrow->BET_TERM ?? 1;
+				$this->dagenperbetaaltermijn = $rkrow->BETAALDAG ?? 30;
+				
 				$query = sprintf("SELECT IFNULL(SUM(RR.Bedrag), 0) FROM %sRekreg AS RR WHERE RR.Rekening=%d;", TABLE_PREFIX, $this->rkid);
 				$this->bedrag = round($this->scalar($query), 2);
 				$query = sprintf("SELECT IFNULL(SUM(RB.Bedrag), 0) FROM %sRekeningBetaling AS RB WHERE RB.Rekening=%d;", TABLE_PREFIX, $this->rkid);
 				$this->betaald = round($this->scalar($query), 2);
 				
-				$ubd = new datetime($rkrow->Datum);
-				$ubd->modify(sprintf("+%d day", $rkrow->BET_TERM * $rkrow->BETAALDAG));
-				$this->uiterstebetaaldatum = $dtfmt->format($ubd);
-				
-				$eet = new datetime($rkrow->Datum);
-				$eet->modify(sprintf("+%d day", $rkrow->BETAALDAG));
-				$this->einde_eerstetermijn = $dtfmt->format($eet);
-				
+				$query = sprintf("SELECT COUNT(DISTINCT(RR.Lid)) FROM %sRekreg AS RR WHERE RR.Rekening=%d AND RR.Lid > 0;", TABLE_PREFIX, $this->rkid);
+				$this->aantalledenoprekening = $this->scalar($query);
+
 			} else {
 				$this->rkid = 0;
 			}
-			$this->naamlogging = $this->debnaam;
 		}
+		$this->naamlogging = $this->debnaam;
 		
-		$i_lid = new cls_Lid($this->lidid);
-		$this->adres = $i_lid->adres;
-		$this->postcode = $i_lid->postcode;
-		$this->woonplaats = $i_lid->woonplaats;
-		$this->lidnr = $i_lid->lidnr;
-		
-		$i_lid->vulvars($this->betaalddoor);
-		$this->betaalddoornaam = $i_lid->naam;
-		$this->betaalddooremail = $i_lid->email;
-		$this->bankrekening = $i_lid->bankrekening;
-		$this->machtiging = $i_lid->machtigingafgegeven;
-		
-		$l_lid = null;
+		if ($this->betaalddoor == 0) {
+			$this->betaalddoor = $this->lidid;
+		}
+
+		$ubd = new datetime($this->datum);
+		$ubd->modify(sprintf("+%d day", $this->aantalbetaaltermijnen * $this->dagenperbetaaltermijn));
+		$this->uiterstebetaaldatum = $dtfmt->format($ubd);
+
+		$eet = new datetime($this->datum);
+		$eet->modify(sprintf("+%d day", $this->dagenperbetaaltermijn));
+		$this->einde_eerstetermijn = $dtfmt->format($eet);		
 		
 		$this->i_lid = new cls_Lid($this->lidid);
 		$this->i_sz = new cls_Seizoen($this->seizoen);
+		$this->i_bd = new cls_Lid($this->betaalddoor);
+		
 	}  # cls_Rekening->vulvars
 	
 	public function lijst($p_filter, $p_lidid=-1) {
@@ -9660,6 +9677,7 @@ class cls_Rekeningregel extends cls_db_base {
 	public int $rkid = 0;
 	private int $regelnr = 0;
 	public float $bedrag = 0;
+	public string $kostenplaats = "";
 	public int $lidondid = 0;
 	public int $activiteitid = 0;
 	
@@ -9685,21 +9703,21 @@ class cls_Rekeningregel extends cls_db_base {
 		
 		if ($this->rrid > 0) {
 			$query = sprintf("SELECT RR.* FROM %s WHERE RR.RecordID=%d;", $this->basefrom, $this->rrid);
-			$result = $this->execsql($query);
-			$row = $result->fetch();
+			$row = $this->execsql($query)->fetch();
 			if (isset($row->RecordID)) {
 				$this->rkid = $row->Rekening ?? 0;
 				$this->lidid = $row->Lid ?? 0;
 				$this->regelnr = $row->Regelnr ?? 0;
 				$this->bedrag = $row->Bedrag ?? 0;
+				$this->kostenplaats = $row->KSTNPLTS ?? "";
 				$this->lidondid = $row->LidondID ?? 0;
 				$this->activiteitid = $row->ActiviteitID ?? 0;
-				$this->naamlogging = sprintf("%d/%d", $this->rkid, $this->regelnr);
 			} else {
 				$this->rrid = 0;
 			}
 		}
 		
+		$this->naamlogging = sprintf("%d/%d", $this->rkid, $this->regelnr);
 		$this->i_rk = new cls_Rekening($this->rkid);
 		
 	}  # cls_Rekeningregel->vulvars
@@ -9722,7 +9740,7 @@ class cls_Rekeningregel extends cls_db_base {
 		
 	}  # cls_Rekeningregel->record
 	
-	function perrekening($p_rkid=-1, $p_xf="", $p_order="") {
+	public function perrekening($p_rkid=-1, $p_xf="", $p_order="") {
 		if ($p_rkid > 0) {
 			$this->rkid = $p_rkid;
 		}
@@ -9890,10 +9908,12 @@ class cls_Rekeningregel extends cls_db_base {
 	}  # cls_Rekeningregel->totaalrekening
 	
 	public function add($p_rkid, $p_lidid=-1, $p_kpl="") {
-		$this->vulvars(0, $p_rkid, $p_lidid);
-		$this->tas = 11;
+		global $dbc;
 		
-		$nrid = $this->nieuwrecordid();
+		$this->vulvars(0, $p_rkid);
+		$this->tas = 11;
+		$nrid = 0;		
+		
 		$rnr = $this->max("Regelnr", sprintf("Rekening=%d", $this->rkid)) + 1;
 		
 		if ($rnr < 1) {
@@ -9906,18 +9926,29 @@ class cls_Rekeningregel extends cls_db_base {
 			$this->mess = "Het rekeningnummer mag niet kleiner dan 1 zijn, de regel wordt niet toegevoegd.";
 			$this->log();
 		} elseif (toegang("Rekeningen/Muteren", 0, 0)) {
-			$query = sprintf("INSERT INTO %s (RecordID, Rekening, Lid, Regelnr, KSTNPLTS, ToonOpRekening, LidondID, ActiviteitID) VALUES (%d, %d, %d, %d, '%s', 1, 0, 0);", $this->table, $nrid, $this->rkid, $this->lidid, $rnr, $p_kpl);
-			if ($this->execsql($query) > 0) {
-				$this->mess = sprintf("Regel %d aan rekening %d toegevoegd", $rnr, $this->rkid);
-				$this->log($nrid);
-				$this->Interface($query);
+			
+			$data['recordid'] = $this->nieuwrecordid();
+			$data['rekening'] = $this->rkid;
+			$data['regelnr'] = $rnr;
+			if ($p_lidid > 0) {
+				$data['lid'] = $p_lidid;
 			} else {
-				$nrid = 0;
+				$data['lid'] = 0;
+			}
+			$data['kstnplts'] = $p_kpl;
+						
+			$query = sprintf("INSERT INTO %s (RecordID, Rekening, Lid, Regelnr, KSTNPLTS) VALUES (:recordid, :rekening, :lid, :regelnr, :kstnplts);", $this->table);
+			if ($dbc->prepare($query)->execute($data) > 0) {
+				$nrid = $data['recordid'];
+				$this->mess = sprintf("Tabel Rekreg: regel %d is aan rekening %d toegevoegd", $rnr, $this->rkid);
+			} else {
+				$this->mess = sprintf("Tabel Rekreg: regel %d is niet aan rekening %d toegevoegd (fout bij toevoegen)", $rnr, $this->rkid);
 			}
 		} else {
-			$this->mess = "Je bent niet bevoegd om rekeningregels te muteren.";
-			$this->log();
+			$this->mess = "Je bent niet bevoegd om een rekeningregel toe te voegen.";
 		}
+		
+		$this->log($nrid);
 		
 		return $nrid;
 		
@@ -10077,6 +10108,9 @@ class cls_Seizoen extends cls_db_base {
 	public float $contributiekader = 0;
 	public float $contributielid = 0;
 	public float $contributiejeugdlid = 0;
+	public float $gezinskorting = 0;
+	public string $gezinskortingomschrijving = "";
+	public string $gezinskortingkostenplaats = "";
 	public int $betaaldagentermijn = 30;
 	
 	function __construct($p_szid=-1) {
@@ -10111,12 +10145,15 @@ class cls_Seizoen extends cls_db_base {
 				$this->contributiekader = $szrow->{'Contributie kader'} ?? 0;
 				$this->contributielid = $szrow->{'Contributie leden'} ?? 0;
 				$this->contributiejeugdlid = $szrow->{'Contributie jeugdleden'} ?? 0;
+				$this->gezinskorting = $szrow->{'Gezinskorting bedrag'} ?? 0;
+				$this->gezinskortingomschrijving = $szrow->{'Gezinskorting omschrijving'} ?? "";
+				$this->gezinskortingkostenplaats = $szrow->{'Gezinskorting kostenplaats'} ?? "";
 				$this->betaaldagentermijn = $szrow->BetaaldagenTermijn ?? 30;
 			} else {
 				$this->szid = 0;
 			}
 		}
-	}
+	}  # cls_Seizoen->vulvars
 	
 	public function record($p_szid=-1) {
 		
@@ -10159,7 +10196,7 @@ class cls_Seizoen extends cls_db_base {
 		} else {
 			return $result;
 		}
-	}
+	}  # cls_Seizoen->lijst
 	
 	public function zethuidige($p_per="", $p_szid=0) {
 		
@@ -10198,7 +10235,7 @@ class cls_Seizoen extends cls_db_base {
 			$this->Log($nnr);
 			$this->interface($query);
 		}
-	}
+	}  # cls_Seizoen->add
 	
 	public function update($p_szid, $p_kolom, $p_waarde, $p_reden="") {
 		$this->vulvars($p_szid);
@@ -10207,7 +10244,7 @@ class cls_Seizoen extends cls_db_base {
 		if ($this->pdoupdate($this->szid, $p_kolom, $p_waarde, $p_reden)) {
 			$this->Log($this->szid);
 		}
-	}
+	}  # cls_Seizoen->update
 
 	public function delete($p_seiznr, $p_reden="") {
 		$this->tas = 23;
@@ -10223,13 +10260,13 @@ class cls_Seizoen extends cls_db_base {
 				$this->update($row->Nummer, "Afdelingscontributie omschrijving", 1, "er geen groepen met een activiteit zijn.");
 			}
 		}
-	}
+	}  # cls_Seizoen->controle
 	
 	public function opschonen() {
 		
 		$this->optimize();
 		
-	}  # opschonen
+	}  # cls_Seizoen->opschonen
 	
 }  # cls_Seizoen
 
@@ -12228,8 +12265,21 @@ function db_onderhoud($type=9) {
 	$query = sprintf("ALTER TABLE `%sAdmin_activiteit` CHANGE `IP_adres` `IP_adres` VARCHAR(45) CHARACTER SET utf8 COLLATE utf8_general_ci NULL;", TABLE_PREFIX);
 	$i_base->execsql($query);
 	
-	// Deze code mag na 1 november 2024 worden verwijderd.
+	// Deze code mag na 1 maart 2025 worden verwijderd.
 	$query = sprintf("ALTER TABLE `%sLiddipl` CHANGE `Examen` `Examen` INT(11) NULL;", TABLE_PREFIX);
+	$i_base->execsql($query);
+	
+	// Deze code mag na 1 mei 2025 worden verwijderd.
+	$query = sprintf("ALTER TABLE `%sRekreg` CHANGE `Lid` `Lid` INT(11) NULL DEFAULT '0';", TABLE_PREFIX);
+	$i_base->execsql($query);
+	
+	$query = sprintf("ALTER TABLE `%sRekreg` CHANGE `Bedrag` `Bedrag` DECIMAL(8,2) NULL DEFAULT '0';", TABLE_PREFIX);
+	$i_base->execsql($query);
+	
+	$query = sprintf("ALTER TABLE `%sRekreg` CHANGE `ToonOpRekening` `ToonOpRekening` TINYINT(4) NULL DEFAULT '1';", TABLE_PREFIX);
+	$i_base->execsql($query);
+	
+	$query = sprintf("ALTER TABLE `%sRekreg` CHANGE `Gewijzigd` `Gewijzigd` DATETIME on update CURRENT_TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
 	$i_base->execsql($query);
 	
 	/***** Velden die niet meer nodig zijn *****/
