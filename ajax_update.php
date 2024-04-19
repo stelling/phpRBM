@@ -37,7 +37,7 @@ if ($_SESSION['lidid'] > 0) {
 		
 	} elseif ($ent == "emaillid") {
 		$i_lid = new cls_Lid($rid);
-		echo(json_encode($i_lid->email()));
+		echo(json_encode($i_lid->email));
 		
 	} elseif ($ent == "woonplaats") {
 		$postcode = $_POST['postcode'] ?? "";
@@ -202,9 +202,9 @@ if ($_SESSION['lidid'] > 0) {
 		
 	} elseif ($ent == "mailingaantontvangers") {
 		$rid = $_POST['mailingid'] ?? 0;
-		$i_mr = new cls_mailing_rcpt();
-		$rv = $i_mr->aantalontvangers($rid);
-		$i_mr = null;
+		$i_ml = new cls_Mailing($rid);
+		$rv = $i_ml->aantalontvangers;
+		$i_ml = null;
 		
 		echo(json_encode($rv));
 		
