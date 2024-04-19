@@ -660,6 +660,10 @@ table#beheerautorisatie {
 	height: 200px;
 }
 
+p.#uitleg_eigenlijst {
+	clear: left;
+}
+
 #eigenlijstmuteren textarea {
 	height: 200px;
 	width: 100%;
@@ -680,8 +684,7 @@ form#templateedit {
 }
 
 #templateedit textarea {
-	clear: left;
-	width: calc(100% - 210px);
+	width: calc(100% - 220px);
 	height: 900px;
 	margin-left: 6px;
 }
@@ -1594,7 +1597,7 @@ td.voortgangsprobleem {
 	height: auto;
 	margin-left: auto;
 	margin-right: auto;
-	width: 455px;
+	width: 475px;
 	margin-bottom: 6px;
 	padding-top: 8px;
 	padding-left: 5px;
@@ -1911,9 +1914,8 @@ nav a.active {
 }
 
 nav a {
-	display: inline;
-	padding-left: 2px;	
-	padding-right: 4px;
+	display: inline;	
+	padding-right: 3px;
 	border-width: 1px;
 	border-right-style: solid;
 	text-decoration: none;
