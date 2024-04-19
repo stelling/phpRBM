@@ -393,50 +393,46 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 	if ($toonnivo == 1) {
 		echo("<nav>\n");
 	}
-	if ($toonnivo == 1 and strlen($currenttab3) > 1) {
 		
-	} else {
-		
-		$nivo = $toonnivo;
-		printf("<div id='menu_l%d'>\n", $toonnivo);
-		$itp = 1;
-		foreach($tabpages as $tp) {
-			if ($nivo == 1 and strstr($tp, "/") === false) {
-				$tpd = $tp;
-			} elseif ($nivo == 2 and mb_substr_count($tp, "/") == 1 and startwith($tp, $currenttab . "/")) {
-				$tpd = str_replace($currenttab . "/", "", $tp);
-			} elseif ($nivo == 3 and mb_substr_count($tp, "/") == 2 and startwith($tp, $currenttab . "/") and strpos($tp, $currenttab2) > 1) {
-				$tpd = str_replace($currenttab2 . "/", "", str_replace($currenttab . "/", "", $tp));
-				
-//			} elseif ($currenttab2 == "Overzicht lid") {
-				
-			} else {
-				$tpd = "";
-			}
-			if (strlen($tpd) > 1) {
-				$cl = "";
-				if ($nivo == 1 and $currenttab == str_replace("'", "", $tp)) {
-					$cl = " class='active'";
-					$navpad[$nivo]['naam'] = $tpd;
-					$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
-				} elseif ($nivo == 2 and ($currenttab2 == str_replace("'", "", $tpd) or strlen($currenttab2) == 0)) {
-					$cl = " class='active'";
-					if (toegang($currenttab . "/" . str_replace("'", "", $tpd), 0)) {
-						$currenttab2 = str_replace("'", "", $tpd);
-					}
-					$navpad[$nivo]['naam'] = $tpd;
-					$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
-				} elseif ($nivo == 3 and ($currenttab3 == str_replace("'", "", $tpd) or strlen($currenttab3) == 0)) {
-					$cl = " class='active'";
-					$navpad[$nivo]['naam'] = $tpd;
-					$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
-				}
-				printf("<a href=\"%s?tp=%s%s\"%s>%s</a>\n", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra, $cl, $tpd);
-				$itp++;
-			}
+	$nivo = $toonnivo;
+	printf("<div id='menu_l%d'>\n", $toonnivo);
+	$itp = 1;
+	foreach($tabpages as $tp) {
+		if ($nivo == 1 and strstr($tp, "/") === false) {
+			$tpd = $tp;
+		} elseif ($nivo == 2 and mb_substr_count($tp, "/") == 1 and startwith($tp, $currenttab . "/")) {
+			$tpd = str_replace($currenttab . "/", "", $tp);
+		} elseif ($nivo == 3 and mb_substr_count($tp, "/") == 2 and startwith($tp, $currenttab . "/") and strpos($tp, $currenttab2) > 1) {
+			$tpd = str_replace($currenttab2 . "/", "", str_replace($currenttab . "/", "", $tp));
+			
+//		} elseif ($currenttab2 == "Overzicht lid") {
+
+		} else {
+			$tpd = "";
 		}
-		echo("</div>\n");
+		if (strlen($tpd) > 1) {
+			$cl = "";
+			if ($nivo == 1 and $currenttab == str_replace("'", "", $tp)) {
+				$cl = " class='active'";
+				$navpad[$nivo]['naam'] = $tpd;
+				$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
+			} elseif ($nivo == 2 and ($currenttab2 == str_replace("'", "", $tpd) or strlen($currenttab2) == 0)) {
+				$cl = " class='active'";
+				if (toegang($currenttab . "/" . str_replace("'", "", $tpd), 0)) {
+					$currenttab2 = str_replace("'", "", $tpd);
+				}
+				$navpad[$nivo]['naam'] = $tpd;
+				$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
+			} elseif ($nivo == 3 and ($currenttab3 == str_replace("'", "", $tpd) or strlen($currenttab3) == 0)) {
+				$cl = " class='active'";
+				$navpad[$nivo]['naam'] = $tpd;
+				$navpad[$nivo]['url'] = sprintf("%s?tp=%s%s", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra);
+			}
+			printf("<a href=\"%s?tp=%s%s\"%s>%s</a>\n", $_SERVER['PHP_SELF'], urlencode(str_replace("'", "", $tp)), $xtra, $cl, $tpd);
+			$itp++;
+		}
 	}
+	echo("</div>\n");
 	
 	if ($toonnivo == 1 and strlen($currenttab2) == 0) {
 		echo("</nav>\n");
@@ -1652,7 +1648,7 @@ function removetextblock($content, $start_block, $end_block="") {
 function checked($val, $tp="checkbox", $sv=1) {
 	if ($tp == "option" and $val == $sv) {
 		return " selected";
-	} elseif ($tp == "checkbox" and (intval($val) == 1 or $val === true or (strlen($val) == 10 and $val > "1970-01-01"))) {
+	} elseif ($tp == "checkbox" and (intval($val) == 1 or $val === true or (strlen($val) >= 10 and $val > "1970-01-01"))) {
 		return " checked";
 	} elseif ($tp == "checkbox" and $val == $sv) {
 		return " checked";
