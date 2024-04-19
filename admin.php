@@ -523,8 +523,8 @@ function eigenlijstenmuteren() {
 			$i_el->add();
 			
 		} elseif ($elid > 0) {
-			
-			foreach (array("Naam", "Uitleg", "MySQL","EigenScript", "GroepMelding", "Default_value_params") as $fn) {
+
+			foreach (array("Naam", "Uitleg", "MySQL", "EigenScript", "GroepMelding") as $fn) {
 				$cn = strtolower($fn);
 				if (isset($_POST[$cn])) {
 					$i_el->update($elid, $fn, $_POST[$cn]);
@@ -539,6 +539,15 @@ function eigenlijstenmuteren() {
 				$_POST['tabpage'] = str_replace("\\" . $_POST['naam'], "", $_POST['tabpage']);
 				$i_el->update($elid, "Tabpage", $_POST['tabpage']);
 			}
+			
+			$pw = "";
+			for ($p=1;$p<=9;$p++) {
+				$cn = sprintf("waarde_param%d", $p);
+				$w = $_POST[$cn] ?? "";
+				$w = str_replace("\"", "'", $w);
+				$pw .= $w . ";";
+			}
+			$i_el->update($elid, "Default_value_params", $pw);
 		
 			if (!isset($_POST['BewarenSluiten'])) {
 				printf("<script>location.href='%s?tp=%s&paramActie=2&paramID=%d';</script>\n", $_SERVER['PHP_SELF'], $tp, $elid);
@@ -554,6 +563,7 @@ function eigenlijstenmuteren() {
 	}
 	
 	if (isset($_GET['paramActie']) and $_GET['paramActie'] == 2 and $i_el->elid > 0) {
+		$i_el->vulvars($i_el->elid);
 		$toonlijst = false;
 		
 		printf("<form method='post' id='eigenlijstmuteren' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
@@ -561,24 +571,21 @@ function eigenlijstenmuteren() {
 		printf("<input type='hidden' name='recordid' value=%d>\n", $i_el->elid);
 		printf("<label class='form-label'>Naam</label><input type='text' name='naam' class='w50' value='%s' maxlength=50>\n", $i_el->naam);
 		printf("<label for='uitleg'>Uitleg</label><textarea id='uitleg' name='uitleg' placeholder='Uitleg over de eigen lijst'>%s</textarea>\n", $i_el->uitleg);
-			
+
 		echo("<label for='mysql'>MySQL code</label>\n");
 		printf("<textarea id='mysql' name='mysql' title='MySQL code' placeholder='MySQL code'>%s</textarea>\n", $i_el->mysql);
-		echo("<p>Parameters kunnen worden gebruikt. Een parameter start met '@P', gevolgd door 0 t/m 9. De nummering moet met 0 starten en een ondoorbroken reeks zijn.</p>\n");
+		echo("<p>Parameters kunnen worden gebruikt. Een parameter start met '@P', gevolgd door 1 t/m 9.</p>\n");
 		
 		printf("<label class='form-label'>Eigen script</label><p>%s/maatwerk/</p><input type='text' name='eigenscript' class='w30' value='%s' maxlength=30>\n", BASISURL, $i_el->eigenscript);
 		printf("<label class='form-label'>Tonen in tabblad</label><input type='text' name='tabpage' class='w75' value='%s' maxlength=75>\n", $i_el->tabpage);
 		printf("<label class='form-label'>Groep voor melding op voorblad</label><select name='groepmelding' class='form-select form-select-sm'><option value=0>Geen</option>\n%s</select>\n", $i_ond->htmloptions($i_el->groepmelding));
 		if ($i_el->aantal_params > 0) {
-			printf("<label class='form-label'>Waarde parameter(s)</label><input type='text' name='waarde_params' class='w100' value=\"%s\" maxlength=100>", $i_el->waarde_params);
-			if (count(explode(";", $i_el->waarde_params)) < $i_el->aantal_params) {
-				printf("<p>Te weinig parameters, %d nodig, gescheiden door een ;).</p>", $i_el->aantal_params);
-			} elseif ($i_el->aantal_params > 1) {
-				echo("<p>scheiden met een ;)</p>");
+			echo("<label class='form-label'>Waarde parameter(s)</label>");
+			foreach ($i_el->array_params as $k => $v) {
+				printf("<input type='text' name='waarde_param%1\$d' class='w15' value=\"%2\$s\" placeholder='@P%1\$d' title='@P%1\$d'>", $k, $v);
 			}
 			echo("\n");
 		}
-		$i_el->update($elid, "Aantal_params", $i_el->aantal_params);
 		echo("<label class='form-label'>Beschikbare variabelen</label><p>[%LIDNAAM%], [%TELEFOON%], [%EMAIL%], [%LEEFTIJD%]</p>");
 		if (strlen($i_el->sqlerror) == 0) {
 			printf("<label class='form-label'>Aantal rijen</label><p>%d</p>\n", $i_el->aantalrijen);
@@ -610,7 +617,7 @@ function eigenlijstenmuteren() {
 
 		if ($i_el->aantalkolommen > 0) {
 			echo("<div id='resultaatlijst'>\n");
-			$rows = $i_el->rowset($i_el->elid, $i_el->waarde_params);
+			$rows = $i_el->rowset($i_el->elid);
 			if ($rows !== false) {
 				$id = str_replace(" ", "_", strtolower($i_el->naam));
 				echo(fnDisplayTable($rows, null, "", 0, "", $id));
@@ -644,7 +651,6 @@ function eigenlijstenmuteren() {
 		}
 		
 	}
-	
 	$i_mh = null;
 	
 }  # eigenlijstenmuteren
