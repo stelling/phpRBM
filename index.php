@@ -188,30 +188,7 @@ if ($i_lid->aantal() == 0) {
 	echo(fnAgenda());
 		
 } elseif ($eigenlijstid > 0) {
-	fnDispMenu(2);
-	fnDispMenu(3);
-	if ($eigenlijstid > 0) {
-		$i_el = new cls_Eigen_lijst("", $eigenlijstid);
-	} else {
-		$i_el = new cls_Eigen_lijst($currenttab3);
-	}
-	if (strlen($i_el->mysql) >= 9) {
-		$rows = $i_el->rowset();
-		if ($rows !== false) {
-			$id = str_replace(" ", "_", strtolower($i_el->naam));
-			echo(fnDisplayTable($rows, null, $i_el->naam, 0, $i_el->uitleg, $id));
-		}
-	} elseif (strlen($i_el->eigenscript) >= 5) {
-		$s = BASEDIR . "/maatwerk/" . $i_el->eigenscript;
-		if (file_exists($s)) {
-			$url = BASISURL . "/maatwerk/" . $i_el->eigenscript;
-			printf("<script>location.href='%s';</script>\n", $url);
-		} else {
-			debug($s . " bestaat niet, vraag de webmaster om dit te verhelpen.");
-		}
-	}
-	$i_el->controle($i_el->elid);
-	$i_el = null;
+	gebruikeigenlijst($eigenlijstid);
 
 } elseif ($currenttab == "Ledenlijst") {
 	
@@ -722,7 +699,7 @@ function fnMeldingen() {
 	$i_el = new cls_Eigen_lijst();
 	
 	foreach($i_el->lijst(4) as $row) {
-		$i_el->controle($row->RecordID, 90);
+		$i_el->controle($row->RecordID);
 		$i_el->vulvars($row->RecordID);
 		if ($i_el->aantalrijen > 0) {
 			$nm = $i_el->naam;
@@ -747,5 +724,64 @@ function fnMeldingen() {
 	return $rv;
 	
 }  # fnMeldingen
+
+function gebruikeigenlijst($p_eigenlijstid) {
+	global $currenttab3;
+	
+	fnDispMenu(2);
+	fnDispMenu(3);
+	if ($p_eigenlijstid > 0) {
+		$i_el = new cls_Eigen_lijst("", $p_eigenlijstid);
+	} else {
+		$i_el = new cls_Eigen_lijst($currenttab3);
+	}
+	if (strlen($i_el->mysql) >= 9) {
+		if ($i_el->aantal_params > 0) {
+			
+			if ($_SERVER['REQUEST_METHOD'] == "POST") {
+				$pw = "";
+				for ($p=1;$p<=9;$p++) {
+					$cn = sprintf("param_%d", $p);
+					$w = $_POST[$cn] ?? "";
+					$w = str_replace("\"", "'", $w);
+					$pw .= $w . ";";
+				}
+				$i_el->vularrayparams($pw);
+			}
+			
+			printf("<form method='post' id='filter' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+			echo("<label class='form-label'>Parameters</label>");
+			
+			foreach ($i_el->array_params as $k => $v) {
+				printf("<input type='text' name='param_%1\$d' placeholder='@P%1\$d' title='@P%1\$d' value=\"%2\$s\" onBlur='this.form.submit();'>", $k, $v);
+			}
+			echo("<p>Tekst en datums moeten tussen aanhalingstekens staan.</p>\n");
+			echo("</form>\n<div class='clear'></div>\n");
+		}
+		
+		if ($i_el->alleparamsgevuld == false) {
+			echo("<p class='error'>Niet alle parameters zijn gevuld. De lijst kan niet worden getoond.</p>\n");
+		} else {
+			$rows = $i_el->rowset();		
+			if ($rows !== false) {
+				if (strlen($i_el->uitleg) > 0) {
+					printf("<p id='uitleg_eigenlijst'>%s</p>\n", $i_el->uitleg);
+				}
+				echo(fnDisplayTable($rows, null, $i_el->naam, 0, "", str_replace(" ", "_", strtolower($i_el->naam))));
+			}
+		}
+	} elseif (strlen($i_el->eigenscript) >= 5) {
+		$s = BASEDIR . "/maatwerk/" . $i_el->eigenscript;
+		if (file_exists($s)) {
+			$url = BASISURL . "/maatwerk/" . $i_el->eigenscript;
+			printf("<script>location.href='%s';</script>\n", $url);
+		} else {
+			debug($s . " bestaat niet, vraag de webmaster om dit te verhelpen.");
+		}
+	}
+	$i_el->controle($i_el->elid);
+	$i_el = null;
+	
+}  # gebruikeigenlijst
 
 ?>
