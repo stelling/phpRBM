@@ -8553,7 +8553,7 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 	public function lijst($p_evid) {
 		$this->evid = $p_evid;
 		
-		$query = sprintf("SELECT ED.*, (%s) AS NaamLid, (%s) AS Lidnr, %s AS StatusDln FROM %s INNER JOIN %sLid AS L ON ED.LidID=L.RecordID WHERE ED.EvenementID=%d;", $this->selectnaam, $this->selectlidnr, $this->casestatus, $this->basefrom, TABLE_PREFIX, $this->evid);
+		$query = sprintf("SELECT ED.*, (%s) AS NaamLid, (%s) AS Lidnr, %s AS StatusDln FROM %s INNER JOIN %sLid AS L ON ED.LidID=L.RecordID WHERE ED.EvenementID=%d ORDER BY L.Achternaam, L.Tussenv, L.Roepnaam;", $this->selectnaam, $this->selectlidnr, $this->casestatus, $this->basefrom, TABLE_PREFIX, $this->evid);
 		$result = $this->execsql($query);
 		
 		return $result->fetchAll();
