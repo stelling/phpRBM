@@ -261,8 +261,6 @@ function muteerevenement($eventid) {
 	$i_et = new cls_Evenement_Type();
 	$i_ond = new cls_Onderdeel();
 	$i_lb = new cls_Logboek();
-
-//	$rowspd = $i_ev->potdeelnemers($eventid);
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 
@@ -322,6 +320,7 @@ function muteerevenement($eventid) {
 			$i_ed->add($eventid, 0);
 			
 		} elseif (isset($_POST['btnDoelgroepToevoegen']) and $eventid > 0) {
+			$rowspd = $i_ev->potdeelnemers($eventid);
 			foreach ($rowspd as $rowpd) {
 				$i_ed->add($eventid, $rowpd->LidID);
 			}
@@ -352,6 +351,7 @@ function muteerevenement($eventid) {
 					}
 				}
 				if (isset($_POST['mailpotdeeln']) or isset($_POST['mailbeidedeeln'])) {
+					$rowspd = $i_ev->potdeelnemers($eventid);
 					foreach ($rowspd as $row) {
 						$i_mr->add($mid, $row->LidID);
 					}
