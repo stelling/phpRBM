@@ -352,7 +352,7 @@ function fnRekeningMuteren($p_rkid=-1) {
 
 }  # fnRekeningMuteren
 
-function RekeningenAanmaken() {
+function rekeningenaanmaken() {
 	
 	$i_sz = new cls_Seizoen();
 	$i_rk = new cls_Rekening();
@@ -377,8 +377,7 @@ function RekeningenAanmaken() {
 	} else {
 		$ontbrekende = 1;
 	}
-	
-	echo("<div id='aanmakenrekeningen'>\n");
+
 	$i_sz->vulvars($seizoen);
 	if ($i_sz->gezinsrekening == 1) {
 		$orderby = "L.Postcode, L.Adres, L.RekeningBetaaldDoor, L.GEBDATUM, L.Roepnaam";
@@ -440,12 +439,13 @@ function RekeningenAanmaken() {
 			$i_rk->controle(-1, $seizoen);
 			printf("<p class='mededeling'>%d rekeningen aangemaakt met in totaal %d regels.<p>", $aantrek, $aantregels);
 		} else {
-			echo("<p class='mededeling'>Vink de checkbox voor 'Rekeningen aanmaken' aan, om de rekeningen aan te maken.</p>\n");
+			echo("<p class='mededeling'>Vink de checkbox 'Rekeningen aanmaken' aan, om de rekeningen aan te maken.</p>\n");
 		}
 	} elseif ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['Verder'])) {
+		// Bevestigingsscherm
 		if (count($lidrows) > 0) {
-			printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-				
+			printf("<form method='post' id='%s' class='form-check form-switch' action='%s?tp=%s'>\n", __FUNCTION__, $_SERVER['PHP_SELF'], $_GET['tp']);
+
 			$toonleden = "";
 			$aantleden = 0;
 			foreach($lidrows as $lidrow) {
@@ -454,14 +454,14 @@ function RekeningenAanmaken() {
 			}
 			printf("Voor de volgende %d leden zal een rekening worden aangemaakt:\n<ul>\n%s</ul>\n", $aantleden, $toonleden);
 			echo("<div class='clear'></div>\n");
-			echo("<div id='opdrachtknoppen'>\n");
-			echo("<input type='checkbox' value='1' class='form-check-input' name='sure'>\n");
-			printf("<input type='submit' class='%s' value='Rekeningen aanmaken' name='RekAanmaken'>\n", CLASSBUTTON);
+			echo("<label class='form-check-label'><input type='checkbox' class='form-check-input' value='1' class='form-check-input' name='sure'>Rekeningen aanmaken?</label>\n");
 			if ($ontbrekende == 1) {
 				echo("<input type='hidden' name='ontbrekende' value=1>\n");
 			}
 			printf("<input type='hidden' name='eerstenummer' value='%s'>\n", $_POST['eerstenummer']);
-			printf("<button type='button' class='%s' onClick='history.go(-1);'>Terug</button>\n", CLASSBUTTON);
+			echo("<div id='opdrachtknoppen'>\n");
+			printf("<button type='submit' class='%s' name='RekAanmaken'>%s Rekeningen aanmaken</button>\n", CLASSBUTTON, ICONVOLGENDE);
+			printf("<button type='button' class='%s' onClick='history.go(-1);'>%s Terug</button>\n", CLASSBUTTON, ICONVORIGE);
 			echo("</div>  <!-- Einde opdrachtknoppen -->\n");
 			echo("</form>\n");
 		} else {
@@ -469,18 +469,19 @@ function RekeningenAanmaken() {
 		}
 	
 	} else {
-		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+		// eerste selectiescherm
+		printf("<form method='post' id='%s' class='form-check form-switch' action='%s?tp=%s'>\n", __FUNCTION__, $_SERVER['PHP_SELF'], $_GET['tp']);
 		printf("<label class='form-label'>Seizoen</label><select name='seizoen' class='form-select form-select-sm' onChange='this.form.submit();'>%s</select>\n", $i_sz->htmloptions($seizoen));
 		printf("<label class='form-label'>Omschrijving rekening</label><input type='text' id='Rekeningomschrijving' maxlength=35 class='w35' value='%s'>\n", $i_sz->rekeningomschrijving);
 		printf("<label class='form-label'>Datum rekening</label><input type='date' name='Rekeningdatum' value='%s'>\n", date("Y-m-d"));
-		printf("<label id='lblEersteRekeningNummer' class='form-label'>Eerste rekeningnummer</label><input type='number' name='eerstenummer' value=%d>\n", $eerstenummer);
+		printf("<label id='lblEersteRekeningNummer' class='form-label'>Eerste rekeningnummer</label><input type='number' class='d8' name='eerstenummer' value=%d>\n", $eerstenummer);
 		printf("<label id='lblVerzamelenPerGezin' class='form-label'>Verzamelen per gezin?</label><input type='checkbox' class='form-check-input' id='RekeningenVerzamelen' %s>\n", checked($i_sz->gezinsrekening));
 		printf("<label id='lblBetalingstermijn' class='form-label'>Betalingstermijn</label><input type='number' id='BetaaldagenTermijn' value=%d class='num2' min=0 max=999>\n", $i_sz->betaaldagentermijn);
 		
 		printf("<label class='form-label'>Alleen ontbrekende rekeningen</label><input type='checkbox' class='form-check-input' %s name='ontbrekende' value=1 onChange='this.form.submit();'>\n", checked($ontbrekende));
 	
 		printf("<label class='form-label'>Omschrijving verenigingscontributie</label><input type='text' id='Verenigingscontributie omschrijving' maxlength=50 class='w50' value='%s'>\n", $i_sz->verenigingscontributieomschrijving);
-		printf("<label id='lblKostenplaats' class='form-label'>Kostenplaats</label><input type='text' id='Verenigingscontributie kostenplaats' maxlength=12 class='w12' value='%s'>\n", $i_sz->verenigingscontributiekostenplaats);
+		printf("<label id='lblKostenplaats' class='form-label'>Kostenplaats</label><input type='text' id='Verenigingscontributie kostenplaats' maxlength=12 class='w8' value='%s'>\n", $i_sz->verenigingscontributiekostenplaats);
 		
 		$arrAO = [1 => "Alleen naam afdeling", 2 => "Alleen naam activiteit", 3 => "Combinatie namen afdeling en activiteit"];
 		$options = "";
@@ -490,7 +491,7 @@ function RekeningenAanmaken() {
 		printf("<label class='form-label'>Omschrijving afdelingscontributie</label><select id='Afdelingscontributie omschrijving' class='form-select form-select-sm'>%s</select>", $options);
 		
 		printf("<label class='form-label'>Omschrijving gezinskorting</label><input type='text' id='Gezinskorting omschrijving' maxlength=50 class='w50' value='%s'>\n", $i_sz->gezinskortingomschrijving);
-		printf("<label id='lblKostenplaatsGezinskorting' class='form-label'>Kostenplaats gezinskorting</label><input type='text' id='Gezinskorting kostenplaats' maxlength=12 class='w12' value='%s'>\n", $i_sz->gezinskortingkostenplaats);
+		printf("<label id='lblKostenplaatsGezinskorting' class='form-label'>Kostenplaats gezinskorting</label><input type='text' id='Gezinskorting kostenplaats' maxlength=12 class='w8' value='%s'>\n", $i_sz->gezinskortingkostenplaats);
 		printf("<label id='lblBedragGezinskorting' class='form-label'>Bedrag gezinskorting</label><input type='text' id='Gezinskorting bedrag' class='d8' value='%s'>\n", $i_sz->gezinskorting);
 	
 		echo("<div id='opdrachtknoppen'>\n");
@@ -514,7 +515,6 @@ function RekeningenAanmaken() {
 			});
 		</script>\n", $seizoen);
 	}
-	echo("</div> <!-- Einde aanmakenrekeningen -->\n");
 	
 }  # RekeningenAanmaken
 
