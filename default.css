@@ -384,7 +384,7 @@ input.bedrag {
 }
 
 input.d8 {
-	width: 92px;
+	width: 95px;
 }
 
 input.num2 {
@@ -1130,6 +1130,22 @@ table#afdelingskalendermuteren {
 	text-decoration: underline;
 }
 
+#groepsindelingmuteren h4 {
+	width: 100%;
+	font-size: 110%;
+	margin-top: 0;
+	margin-bottom: 0;
+	padding-top: 4px;
+	padding-bottom: 4px;
+	padding-left: 4px;
+	color: var(--label-text-color);
+	background-color: var(--label-background-color);
+}
+
+#groepsindelingmuteren .form-select {
+	margin-right: 0;
+}
+
 #groepsindeling .row {
 	padding-left: 0;
 }
@@ -1156,7 +1172,7 @@ table#afdelingskalendermuteren {
 	font-style: italic;
 }
 
-.groepsindelingkolom {
+.gr22oepsindelingkolom {
 	float: left;
 	width: 24.6%;
 	min-height: 220px;
@@ -1168,6 +1184,10 @@ table#afdelingskalendermuteren {
 	padding-left: 0;
 	padding-right: 0;
 	padding-bottom: 1px;
+}
+
+#groepenmuteren select {
+	max-width: 180px;
 }
 
 #jubilarissen > #filter input[type='text'] {
@@ -2202,6 +2222,9 @@ label#lblBET_TERM {
 
 label#lblEersteRekeningNummer, label#lblVerzamelenPerGezin, label#lblKostenplaats, label#lblKostenplaatsGezinskorting, label#lblBedragGezinskorting {
 	clear: none;
+	width: auto;
+	margin-left: 4px;
+	padding-left: 4px;
 }
 
 #rekeninginfo label {
@@ -2247,15 +2270,23 @@ table#rekeningregels {
 	padding-right: 6px;
 }
 
-#aanmakenrekeningen label {
+#rekeningenaanmaken label {
 	width: 250px;
 }
 
-label#lblVerzamelenPerGezin, label#lblBedragGezinskorting {
+label#lblEersteRekeningNummer, label#lblVerzamelenPerGezin, label#lblBedragGezinskorting {
 	width: auto;
 }
 
-#rekeningenmailen ul, #aanmakenrekeningen ul {
+label#lblKostenplaats, label#lblKostenplaatsGezinskorting {
+	width: 190px;
+}
+
+#rekeningenaanmaken .form-check-input {
+	margin-left: 3px;
+}
+
+#rekeningenmailen ul, #rekeningenaanmaken ul {
 	margin-left: 0;
 	padding-left: 0;
 }
@@ -2307,14 +2338,14 @@ label#lblVerzamelenPerGezin, label#lblBedragGezinskorting {
 	text-align: center;
 }
 
-#rekeningenmailen li, #aanmakenrekeningen li {
+#rekeningenmailen li, #rekeningenaanmaken li {
 	display: block;
 	width: 33%;
 	float: left;
 	padding-left: 2px;
 }
 
-#aanmakenrekeningen li {
+#rekeningenaanmaken li {
 	width: 19%;
 }
 
@@ -2723,7 +2754,6 @@ div.groepindelen {
 	border-width: 1px;
 	margin-right: 8px;
 	margin-bottom: 8px;
-	min-height: 550px;
 }
 
 button.volgendegroep {
