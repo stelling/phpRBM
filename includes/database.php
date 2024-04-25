@@ -3681,8 +3681,7 @@ class cls_Lidond extends cls_db_base {
 	
 	public $magmuteren = false;						// Mag het ingelogde lid deze mutaties doen?
 	public $kader = false;							// Is hiermee het lid een kaderlid?
-	
-	
+
 	public object $i_ond;
 	public object $i_lid;
 	public object $i_gr;
@@ -10122,7 +10121,7 @@ class cls_Seizoen extends cls_db_base {
 		$this->ta = 20;
 	}
 	
-	private function vulvars($p_szid=-1) {
+	public function vulvars($p_szid=-1) {
 		if ($p_szid >= 0) {
 			$this->szid = $p_szid;
 		} else {
