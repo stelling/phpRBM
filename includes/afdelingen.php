@@ -27,7 +27,7 @@ function fnAfdeling() {
 	} elseif ($currenttab2 == "Groepsindeling muteren") {
 		fnGroepsindeling($ondid, 1);
 	} elseif ($currenttab2 == "Groepen muteren") {
-		fnGroepenMuteren($ondid);
+		groepenmuteren($ondid);
 	} elseif ($currenttab2 == "Presentie muteren") {
 		presentiemuteren($ondid);
 	} elseif ($currenttab2 == "Presentie per seizoen") {
@@ -261,7 +261,6 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 	$i_ak = new cls_afdelingskalender($afdid);
 	$i_gr = new cls_Groep($afdid);
 	$i_act = new cls_Activiteit();
-//	$i_dp = new cls_Diploma();
 	$i_ld = new cls_Liddipl();
 	$i_aanw = new cls_Aanwezigheid();
 	$i_eo = new cls_Examenonderdeel();
@@ -375,6 +374,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 		echo("</div>  <!-- Einde groepsindeling -->\n");
 		
 	} elseif ($afdid > 0) {
+		// Groepsindeling muteren
 		
 		$inclkader = $_POST['inclkader'] ?? 0;
 		$exfilter = $_POST['exfilter'] ?? 0;
@@ -425,8 +425,8 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 					$vtijd = $i_gr->starttijd;
 				}
 				printf("<div id='groep_%d' class='groepindelen col'>\n", $i_gr->grid);
+				printf("<h4>%s</h4>\n", $i_gr->groms);
 				printf("<table class='%s'>\n", TABLECLASSES);
-				printf("<caption>%s</caption>\n", $i_gr->groms);
 				$avg = 0;
 				$lovg = "0";
 				foreach ($lorows as $row) {
@@ -440,11 +440,17 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 					if (strlen($i_lo->lotitle) > 0) {
 						$t = sprintf(" title='%s'", trim($i_lo->lotitle));
 					}
-					$nm = $row->NaamLid;
-					if (strlen($row->FunctAfk) > 0) {
-						$nm .= " (" . $row->FunctAfk . ")";
+					$nm = $i_lo->i_lid->naam;
+					if (strlen($i_lo->i_func->afkorting) > 0) {
+						$nm .= " (" . $i_lo->i_func->afkorting . ")";
 					}
-					printf("<tr><td%s%s>%s (%s)</td><td><select id='GroepID_%d' class='form-select form-select-sm'>\n<option value=0>Geen</option>\n%s</select></td></tr>\n", $cl, $t, $nm, $row->Leeftijd, $row->RecordID, $i_gr->htmloptions($row->GroepID, $afdid));
+					if ($i_lo->parttimepercentage > 0 and $i_lo->parttimepercentage < 100) {
+						$nm .= " (" . $i_lo->parttimepercentage . "%)";
+					}
+					if ($i_lo->i_lid->leeftijd > 0 and $i_lo->i_lid->leeftijd < 18) {
+						$nm .= " (" . $i_lo->i_lid->leeftijd . ")";
+					}
+					printf("<tr><td%s%s>%s</td><td><select id='GroepID_%d' class='form-select form-select-sm'>\n<option value=0>Geen</option>\n%s</select></td></tr>\n", $cl, $t, $nm, $row->RecordID, $i_gr->htmloptions($row->GroepID, $afdid));
 					if ($i_lo->suggestievolgendegroep == 1) {
 						$avg++;
 						$lovg .= ", " . $row->RecordID;
@@ -489,7 +495,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 	
 } # fnGroepsindeling
 
-function fnGroepenMuteren($p_onderdeelid) {
+function groepenmuteren($p_onderdeelid) {
 	global $currenttab;
 	
 	$i_gr = new cls_Groep();
@@ -509,7 +515,7 @@ function fnGroepenMuteren($p_onderdeelid) {
 	}
 	
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
-	printf("<table id='groepenmuteren' class='%s'>\n", TABLECLASSES);
+	printf("<table id='%s' class='%s'>\n", __FUNCTION__, TABLECLASSES);
 	echo("<caption>Muteren groepen</caption>\n");
 	if ($i_act->aantal() > 0) {
 		$th_act = "Activiteit<br>";
@@ -535,8 +541,8 @@ function fnGroepenMuteren($p_onderdeelid) {
 			printf("<td class='codevolgnr'><input type='number' class='num3' id='Volgnummer_%d' title='Volgnummer groep' value='%s'>", $row->RecordID, $row->Volgnummer);
 			printf("<br><input type='text' class='w8' id='Kode_%d' title='Code groep' placeholder='Code' maxlength=8 value=\"%s\"></td>\n", $row->RecordID, $row->Kode);
 				
-			printf("<td><input type='text' class='w45' id='Omschrijving_%d' title='Omschrijving groep' placeholder='Omschrijving' maxlength=45 value=\"%s\">", $row->RecordID, $row->Omschrijving);
-			printf("<br><input type='text' class='w60' id='Instructeurs_%d' title='Instructeurs groep' placeholder='Instructeurs' maxlength=60 value=\"%s\"></td>\n", $row->RecordID, $row->Instructeurs);
+			printf("<td><input type='text' class='w40' id='Omschrijving_%d' title='Omschrijving groep' placeholder='Omschrijving' maxlength=45 value=\"%s\">", $row->RecordID, $row->Omschrijving);
+			printf("<br><input type='text' class='w40' id='Instructeurs_%d' title='Instructeurs groep' placeholder='Instructeurs' maxlength=60 value=\"%s\"></td>\n", $row->RecordID, $row->Instructeurs);
 				
 			echo("<td class='activiteitdiploma'>");
 			if ($i_act->aantal() > 0) {
@@ -587,7 +593,7 @@ function fnGroepenMuteren($p_onderdeelid) {
 		});
 		</script>\n");
 
-}  # fnGroepenMuteren
+}  # groepenmuteren
 
 function presentiemuteren($p_onderdeelid){
 	global $dtfmt;
