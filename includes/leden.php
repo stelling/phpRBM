@@ -2996,6 +2996,7 @@ function presentielijst($p_evenement=0) {
 	$ondid = $_POST['onderdeelid'] ?? 0;
 	$titellijst = $_POST['titellijst'] ?? "";
 	$eventid = $_POST['eventid'] ?? 0;
+	$completedoelgroep = $_POST['completedoelgroep'] ?? 0;
 	
 	$i_ond = new cls_Onderdeel();
 	$i_ev = new cls_Evenement($eventid);
@@ -3005,15 +3006,20 @@ function presentielijst($p_evenement=0) {
 	}
 	
 	$actionurl = sprintf("%s?tp=%s", $_SERVER['PHP_SELF'], $_GET['tp']);
-	printf("<form method='post' id='filter' action='%s'>\n", $actionurl);
+	printf("<form method='post' id='filter' class='form-switch' action='%s'>\n", $actionurl);
 	if ($p_evenement == 0) {
 		printf("<select name='onderdeelid' class='form-select form-select-sm' onChange='this.form.submit();'><option value=0>Selecteer groep ...</option>\n%s</select>\n", $i_ond->htmloptions($ondid, 1));
 	}
 	printf("<select name='eventid' class='form-select form-select-sm' title='Selecteer evenement' onChange='this.form.submit();'><option value=0>Selecteer evenement ...</option>\n%s</select>\n", $i_ev->htmloptions($eventid));
 	printf("<input type='text' name='titellijst' id='titellijst' placeholder='Titel presentielijst' value='%s' onBlur='this.form.submit();'>", $titellijst);
+	
+	if ($i_ev->evid > 0 and $i_ev->doelgroep > 0) {
+		printf("<label class='form-check-label'>Complete doelgroep<input type='checkbox' class='form-check-input' name='completedoelgroep' value=1%s onChange='this.form.submit();'></label>\n", checked($completedoelgroep));
+	}
+	
 	echo("</form>\n");
 	
-	if ($ondid > 0 or $eventid > 0) {
+	if ($ondid > 0 or $i_ev->evid > 0) {
 		$i_lid = new cls_Lid();
 		$i_ed = new cls_Evenement_Deelnemer();
 		
@@ -3023,10 +3029,15 @@ function presentielijst($p_evenement=0) {
 			printf("<thead>\n<tr><th colspan=2>%s</th></tr></thead>\n", $titellijst);
 		}
 		echo("<tbody>\n");
-		if ($ondid > 0) {
+		if ($i_ev->doelgroep > 0 and $completedoelgroep == 1) {
+			$rows = $i_lid->ledenlijst(1, $i_ev->doelgroep);
+			$bron = "lid";
+		} elseif ($ondid > 0) {
 			$rows = $i_lid->ledenlijst(1, $ondid);
+			$bron = "lid";
 		} else {
 			$rows = $i_ed->lijst($eventid);
+			$bron = "ed";
 		}
 		foreach ($rows as $row) {
 			if ($aant == 0) {
@@ -3037,7 +3048,11 @@ function presentielijst($p_evenement=0) {
 			$nm = $row->NaamLid;
 			$stat = "";
 			if ($eventid > 0) {
-				$i_ed->vulvars($eventid, -1, $row->RecordID);
+				if ($bron == "ed") {
+					$i_ed->vulvars(-1, -1, $row->RecordID);
+				} else {
+					$i_ed->vulvars($eventid, $row->RecordID, 0);
+				}
 				if (strlen($i_ed->functie) > 0) {
 					$nm .= " (" . $i_ed->functie . ")";
 				}
