@@ -3804,21 +3804,21 @@ class cls_Lidond extends cls_db_base {
 		}
 
 		if ($this->groepid > 0 and $this->i_gr->dpid > 0) {
-			$i_dp = new cls_Diploma($this->i_gr->dpid);
+			$i_dp = new cls_Diploma();
 			$i_ld = new cls_Liddipl();
 			
 			$startdatumvoortgang = $this->vanaf;
 
 			$dvd = "";
-			if ($i_dp->voorgangerid > 0) {
-				$f = sprintf("LD.Lid=%d AND LD.DiplomaID=%d AND LD.DatumBehaald <= CURDATE() AND LD.Geslaagd=1 AND LD.LaatsteBeoordeling=1", $this->lidid, $i_dp->voorgangerid);
+			if ($this->i_gr->i_dp->voorgangerid > 0) {
+				$f = sprintf("LD.Lid=%d AND LD.DiplomaID=%d AND LD.DatumBehaald <= CURDATE() AND LD.Geslaagd=1 AND LD.LaatsteBeoordeling=1", $this->lidid, $this->i_gr->i_dp->voorgangerid);
 				$dvd = $i_ld->max("DatumBehaald", $f);
 				if (strlen($dvd) < 10) {
 					$this->loclass .= " voorgangerontbreekt";
 					if (strlen($this->lotitle) > 0) {
 						$this->lotitle .= ", ";
 					}
-					$this->lotitle .= sprintf("%s ontbreekt", $i_dp->naam($i_dp->voorgangerid));
+					$this->lotitle .= sprintf("%s ontbreekt", $i_dp->naam($this->i_gr->i_dp->voorgangerid));
 				}
 			} else {
 				$f = sprintf("LD.Lid=%d AND LD.DatumBehaald <= CURDATE() AND LD.Geslaagd=1 AND LD.LaatsteBeoordeling=1", $this->lidid);
@@ -3836,12 +3836,12 @@ class cls_Lidond extends cls_db_base {
 				$this->loclass .= " voortgangsprobleem";
 			}
 			
-			if ($i_dp->voorgangerid > 0) {
+			if ($this->i_gr->i_dp->voorgangerid > 0) {
 				if (strlen($this->lotitle) > 0) {
 					$this->lotitle .= ", ";
 				}
 				if (strlen($dvd) == 10) {
-					$this->lotitle .= sprintf("%s behaald op %s", $i_dp->naam($i_dp->voorgangerid), date("d-m-Y", strtotime($dvd)));
+					$this->lotitle .= sprintf("%s behaald op %s", $i_dp->naam($this->i_gr->i_dp->voorgangerid), date("d-m-Y", strtotime($dvd)));
 				} else {
 					$this->lotitle .= sprintf("lid is gestart op %s", date("d-m-Y", strtotime($startdatumvoortgang)));
 				}
@@ -3854,7 +3854,7 @@ class cls_Lidond extends cls_db_base {
 			$dh = $i_ld->max("DatumBehaald", $f);
 			if (strlen($dh) > 0) {
 				$this->loclass .= " dubbeldiploma";
-				$this->lotitle = sprintf("%s is ook op %s behaald", $i_dp->naam($this->i_gr->dpid), date("d-m-Y", strtotime($dh)));
+				$this->lotitle = sprintf("%s is ook op %s behaald", $this->i_gr->i_dp->naam, date("d-m-Y", strtotime($dh)));
 				$this->suggestievolgendegroep = 1;
 			}
 			
@@ -7050,11 +7050,6 @@ class cls_Diploma extends cls_db_base {
 				$this->code = $row->Kode ?? "";
 				$this->volgnr = $row->Volgnr ?? 0;
 				$this->dptype = $row->Type ?? "D";
-				if (strlen($this->naam) > 20) {
-					$this->naamlogging = $this->code;
-				} else {
-					$this->naamlogging = $this->naam;
-				}
 				
 				$this->afdelingsspecifiek = $row->Afdelingsspecifiek ?? 0;
 				$this->organisatie = $row->ORGANIS ?? 0;
@@ -7065,7 +7060,7 @@ class cls_Diploma extends cls_db_base {
 				$this->historieopschonen = $row->HistorieOpschonen ?? 0;
 				$this->vervallen = $row->Vervallen ?? "";
 				$this->zelfservice = $row->Zelfservice ?? 0;
-				
+
 				$query = sprintf("SELECT DP.RecordID, DP.Naam FROM %s WHERE DP.VoorgangerID=%d AND IFNULL(DP.Vervallen, '9999-12-31') > CURDATE() AND IFNULL(DP.EindeUitgifte, '9999-12-31') > CURDATE();", $this->basefrom, $this->dpid);
 				$this->dpvolgende = 0;
 				$this->naamvolgende = "";
@@ -7087,6 +7082,12 @@ class cls_Diploma extends cls_db_base {
 			} else {
 				$this->dpid = 0;
 			}
+		}
+
+		if (strlen($this->naam) > 20) {
+			$this->naamlogging = $this->code;
+		} else {
+			$this->naamlogging = $this->naam;
 		}
 		
 		$this->i_org = new cls_Organisatie($this->organisatie);
