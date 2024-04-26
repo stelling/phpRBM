@@ -1116,6 +1116,9 @@ table#afdelingskalendermuteren {
 #groepsindeling h3, #groepsindelingmuteren h3 {
 	width: 100%;
 	background-color: gainsboro;
+	padding-top: 4px;
+	padding-bottom: 4px;
+	padding-left: 4px;
 }
 
 #groepsindeling h3, #groepsindeling h4 {
