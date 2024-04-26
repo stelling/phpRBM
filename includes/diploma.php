@@ -223,7 +223,6 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1, $p_dpid=-1) {
 	echo("<div id='filter'>\n");
 	if ($p_perexamen == 1) {
 		printf("<form action='%s?tp=%s/%s' method='post'>\n", $_SERVER["PHP_SELF"], $currenttab, $currenttab2);
-		echo("<label class='form-label'>Examen</label>");
 		$fex = sprintf("(EX.OnderdeelID=0 OR EX.OnderdeelID=%d)", $p_afdid);
 		printf("<select name='selecteerexamen' class='form-select form-select-sm' onChange='this.form.submit();'>\n<option value=0>Selecteer examen ...</option>\n%s</select>\n", $i_ex->htmloptions($exid, $fex));
 	} else {
