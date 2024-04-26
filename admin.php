@@ -146,22 +146,6 @@ if ($currenttab == "Beheer logins") {
 		fnStamgegevens();
 	}
 	
-} elseif ($currenttab == "Uploaden data") {
-	if ((new cls_Lid())->aantal() == 0 or toegang($currenttab, 1, 1)) {
-		$aantal = (new cls_Interface())->aantal("IFNULL(Afgemeld, '1900-01-01') < '2011-01-01'");
-		if ($aantal > 0) {
-			printf("<p class='waarschuwing'>Er staan %d wijzigingen te wachten om verwerkt te worden. Het is niet verstandig om een upload te doen.</p>", $aantal);
-		}
-		$aantal = (new cls_Login())->aantal("Ingelogd=1");
-		if ($aantal > 1) {
-			printf("<p class='waarschuwing'>Er staan zijn momenteel %d gebruikers ingelogd. Het is niet verstandig om een upload te doen.</p>", $aantal);
-		}
-		echo("<div class='clear' {style height: 50px }></div>\n");
-		printf("<form method='post' action='%s?tp=%s&op=uploaddata' enctype='multipart/form-data'>\n", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-		printf("<label>Bestand</label><input type='file' name='SQLupload'> (Max %s)<input type='submit' value='Verwerk'>\n", ini_get('upload_max_filesize'));
-		echo("</form>\n");
-	}
-
 } elseif ($currenttab == "Downloaden wijzigingen") {
 	if (toegang($currenttab, 1, 1)) {
 		downloadwijzigingen();
@@ -771,6 +755,8 @@ function onderhoud() {
 		(new cls_Organisatie())->controle();
 		(new cls_Activiteit())->opschonen();
 		(new cls_Activiteit())->controle();
+		(new cls_Eigen_lijst())->controle(-1, 30, 30);
+		(new cls_Eigen_lijst())->opschonen();
 
 	} elseif ($op == "logboekopschonen") {
 		(new cls_Logboek())->controle();
