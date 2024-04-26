@@ -281,8 +281,6 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 	
 	if ($p_muteren == 0) {
 		
-		$i_lo->auto_einde($afdid, 30);
-		
 		echo("<div id='groepsindeling'>\n");
 		printf("<h2>%s</h2>\n", $afdnaam);
 		
@@ -413,8 +411,9 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 			} else {
 				$i_lo->where = sprintf("LO.GroepID=%d", $grrow->RecordID);
 			}
-			$lorows = $i_lo->lijst($afdid, 2, "GR.Volgnummer, GR.Starttijd, GR.Omschrijving, F.Sorteringsvolgorde, F.Afkorting");
-			
+
+			$lorows = $i_lo->lijst($afdid, 2, "");
+
 			if (count($lorows) > 0) {
 				if ($vtijd != $i_gr->starttijd) {
 					if ($vtijd != "99:99") {
@@ -447,7 +446,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 					if ($i_lo->parttimepercentage > 0 and $i_lo->parttimepercentage < 100) {
 						$nm .= " (" . $i_lo->parttimepercentage . "%)";
 					}
-					if ($i_lo->i_lid->leeftijd > 0 and $i_lo->i_lid->leeftijd < 18) {
+					if ($i_lo->i_lid->leeftijd > 1 and $i_lo->i_lid->leeftijd < 18) {
 						$nm .= " (" . $i_lo->i_lid->leeftijd . ")";
 					}
 					printf("<tr><td%s%s>%s</td><td><select id='GroepID_%d' class='form-select form-select-sm'>\n<option value=0>Geen</option>\n%s</select></td></tr>\n", $cl, $t, $nm, $row->RecordID, $i_gr->htmloptions($row->GroepID, $afdid));
