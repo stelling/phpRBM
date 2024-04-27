@@ -41,6 +41,7 @@ define("ARRPRESENTIESTATUS", ["A" => "Aanwezig", "H" => "Afgezegd door verenigin
 define("ZS_PRESENTIESTATUS", ["A" => "Aanwezig", "Z" => "Ziek", "R" => "Afwezig met andere reden"]);
 define("ARRTYPEBACKUP", [1 => "phpRBM-tabellen", 2 => "Tabellen uit MS-Access", 3 => "Alle tabellen"]);
 define("ARRTYPESTUK", ["A" => "Algemene Vergadering", "B" => "Beleidsstuk", "F" => "Formulier", "H" => "Handleiding", "P" => "Promotiemateriaal", "R" => "Regeling"]);
+define("ARRKLEDINGMAAT", array("", "XS", "S", "M", "L", "XL", "XXL"));
 define("ATTRCODEELEMENT", "autocomplete='off' autocorrect='off' autocapitalize='off' spellcheck='false'");
 define("BEWAARTIJDNIEUWERECORDS", 120);
 define("TABLECLASSES", "table table-bordered table-hover border-primary");
