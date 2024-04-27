@@ -94,25 +94,25 @@ $i_base = null;
 
 class cls_db_base {
 	public string $table = "";				// Naam van de tabel met prefix
-	private string $alias = "";			// Alias van de tabel
+	private string $alias = "";				// Alias van de tabel
 	public string $basefrom = "";			// Naam van de tabel met alias
 	private $refcolumn = "";				// Naam van de kolom bij een update
 	private $typecolumn = "";				// Type van de kolom
 	private $nullablecolumn = false;		// Is de kolom nullable?
-	public string $pkkol = "RecordID";	// Naam van de kolom met de primary key
+	public string $pkkol = "RecordID";		// Naam van de kolom met de primary key
 	public string $naamlogging = "";		// De naam die, in de logging, wordt gebruikt om aan te geven welk record het betreft
 	private $aantalkolommen = -1;			// Het aantal kolommen in het SQL-statement
 	private $aantalrijen = -1;				// Het aantal rijen in het SQL-statement
 	public string $mess = "";				// Boodschap in de logging
 	public $ta = 0;							// Type activiteit van de logging
-	public $tas = 0;							// Type activiteit specifiek van de logging
-	public $tm = 0; 							// Toon boodschap: 0=nee, 1=aan iedereen, 2=alleen voor webmasters, 3=aan iedereen, via popup (alert)
+	public $tas = 0;						// Type activiteit specifiek van de logging
+	public $tm = 0; 						// Toon boodschap: 0=nee, 1=aan iedereen, 2=alleen voor webmasters, 3=aan iedereen, via popup (alert)
 	public int $lidid = 0;					// RecordID van het lid
 	public string $query = "";				// De SQL-code die moet worden uitgevoerd.
 	public string $where = "";				// Dit filter wordt op diverse plaatsen gebruikt, als er geen ander filter is gespecificeerd.
 	public string $per = "";				// Diverse functies worden per deze datum uitgevoerd.
-	public string $ingevoerd = "";		// Datum/tijd dat het record is ingevoerd.
-	public string $gewijzigd = "";		// De laatste wijzigingsdatum en tijd.
+	public string $ingevoerd = "";			// Datum/tijd dat het record is ingevoerd.
+	public string $gewijzigd = "";			// De laatste wijzigingsdatum en tijd.
 	
 	public $fdlang = "'%e %M %Y'";
 	public $fdtlang = "'%e %M %Y (%H:%i)'";
@@ -552,6 +552,8 @@ class cls_db_base {
 			if ($r > $rid) {$rid = $r; }
 			$r = $this->scalar(sprintf("SELECT IFNULL(MAX(Ord.RecordID), 0) FROM %sWS_Orderregel AS Ord;", TABLE_PREFIX));
 			if ($r > $rid) {$rid = $r; }
+			$r = $this->scalar(sprintf("SELECT IFNULL(MAX(Ord.Ordernr), 0) FROM %sWS_Orderregel AS Ord;", TABLE_PREFIX));
+			if ($r > $rid) {$rid = $r; }
 			$r = $this->scalar(sprintf("SELECT IFNULL(MAX(VB.RecordID), 0) FROM %sWS_Voorraadboeking AS VB;", TABLE_PREFIX));
 			if ($r > $rid) {$rid = $r; }
 		
@@ -560,7 +562,6 @@ class cls_db_base {
 			if ($r > $rid) {$rid = $r; }
 			$r = $this->scalar(sprintf("SELECT IFNULL(MAX(WM.RecordID), 0) FROM %sWebsite_menu AS WM;", TABLE_PREFIX));
 			if ($r > $rid) {$rid = $r; }
-
 		}
 
 		if ($this->bestaat_tabel($this->table)) {
@@ -3804,24 +3805,23 @@ class cls_Lidond extends cls_db_base {
 		}
 
 		if ($this->groepid > 0 and $this->i_gr->dpid > 0) {
-			$i_dp = new cls_Diploma();
 			$i_ld = new cls_Liddipl();
 			
 			$startdatumvoortgang = $this->vanaf;
 
 			$dvd = "";
 			if ($this->i_gr->i_dp->voorgangerid > 0) {
-				$f = sprintf("LD.Lid=%d AND LD.DiplomaID=%d AND LD.DatumBehaald <= CURDATE() AND LD.Geslaagd=1 AND LD.LaatsteBeoordeling=1", $this->lidid, $this->i_gr->i_dp->voorgangerid);
+				$f = sprintf("LD.Lid=%d AND LD.DiplomaID=%d AND LD.DatumBehaald <= '%s' AND LD.Geslaagd=1 AND LD.LaatsteBeoordeling=1", $this->lidid, $this->i_gr->i_dp->voorgangerid, $this->per);
 				$dvd = $i_ld->max("DatumBehaald", $f);
 				if (strlen($dvd) < 10) {
 					$this->loclass .= " voorgangerontbreekt";
 					if (strlen($this->lotitle) > 0) {
 						$this->lotitle .= ", ";
 					}
-					$this->lotitle .= sprintf("%s ontbreekt", $i_dp->naam($this->i_gr->i_dp->voorgangerid));
+					$this->lotitle .= sprintf("%s ontbreekt", $this->i_gr->i_dp->naamvoorganger);
 				}
 			} else {
-				$f = sprintf("LD.Lid=%d AND LD.DatumBehaald <= CURDATE() AND LD.Geslaagd=1 AND LD.LaatsteBeoordeling=1", $this->lidid);
+				$f = sprintf("LD.Lid=%d AND LD.DatumBehaald <= '%s' AND LD.Geslaagd=1 AND LD.LaatsteBeoordeling=1", $this->lidid, $this->per);
 				$dvd = $i_ld->max("DatumBehaald", $f);
 			}
 			
@@ -3832,7 +3832,7 @@ class cls_Lidond extends cls_db_base {
 			$f = sprintf("AK.Datum > '%s' AND AK.Datum < CURDATE()", $startdatumvoortgang);
 			$this->werkelijkedoorlooptijd = $i_ak->aantal($f);
 				
-			if ($i_dp->doorlooptijd > 0 and $this->werkelijkedoorlooptijd > $i_dp->doorlooptijd) {
+			if ($this->i_gr->i_dp->doorlooptijd > 0 and $this->werkelijkedoorlooptijd > $this->i_gr->i_dp->doorlooptijd) {
 				$this->loclass .= " voortgangsprobleem";
 			}
 			
@@ -3841,7 +3841,7 @@ class cls_Lidond extends cls_db_base {
 					$this->lotitle .= ", ";
 				}
 				if (strlen($dvd) == 10) {
-					$this->lotitle .= sprintf("%s behaald op %s", $i_dp->naam($this->i_gr->i_dp->voorgangerid), date("d-m-Y", strtotime($dvd)));
+					$this->lotitle .= sprintf("%s behaald op %s", $this->i_gr->i_dp->naamvoorganger, date("d-m-Y", strtotime($dvd)));
 				} else {
 					$this->lotitle .= sprintf("lid is gestart op %s", date("d-m-Y", strtotime($startdatumvoortgang)));
 				}
@@ -3858,7 +3858,6 @@ class cls_Lidond extends cls_db_base {
 				$this->suggestievolgendegroep = 1;
 			}
 			
-			$i_dp = null;
 			$i_ld = null;
 		}
 		
@@ -4693,6 +4692,8 @@ class cls_Groep extends cls_db_base {
 			$this->grid = $p_grid;
 		}
 		
+		$this->omschrijving = "";
+		$this->instructeurs = "";
 		$this->dpid = 0;
 		$this->actid = 0;
 		if ($this->grid > 0) {
@@ -4718,22 +4719,19 @@ class cls_Groep extends cls_db_base {
 		$this->i_dp = new cls_Diploma($this->dpid);
 		$this->i_act = new cls_Activiteit($this->actid);
 		
-		if ($this->grid > 0) {
-			if (strlen(trim($this->omschrijving)) > 0) {
-				$this->naam = $this->omschrijving;
-			} elseif ($this->dpid > 0) {
-				$this->naam = $this->i_dp->naam;
-			} else {
-				$this->naam = sprintf("Groep %d", $this->grid);
-			}
-		} else {
+		if ($this->grid == 0) {
 			$this->naam = "Niet ingedeeld";
-			$this->groms = "Niet ingedeeld";
+		} elseif (strlen(trim($this->omschrijving)) > 0) {
+			$this->naam = $this->omschrijving;
+		} elseif ($this->dpid > 0) {
+			$this->naam = $this->i_dp->naam;
+		} else {
+			$this->naam = sprintf("Groep %d", $this->grid);
 		}
 				
 		$this->groms = $this->naam;
 		if (strlen($this->instructeurs) > 1) {
-				$this->groms .= " | " . $this->instructeurs;
+			$this->groms .= " | " . $this->instructeurs;
 		}
 		$this->naamlogging = $this->naam;
 		
@@ -4742,10 +4740,10 @@ class cls_Groep extends cls_db_base {
 			$this->tijden .= " - " . $this->eindtijd . " uur";
 		}
 		
-		$alqry = sprintf("SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.GroepID=%d AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE();", TABLE_PREFIX, $this->grid);
+		$alqry = sprintf("SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.OnderdeelID=%d AND LO.GroepID=%d AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE();", TABLE_PREFIX, $this->afdid, $this->grid);
 		$this->aantalingroep = $this->scalar($alqry);
 				
-		$alqry = sprintf("SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.GroepID=%d;", TABLE_PREFIX, $this->grid);
+		$alqry = sprintf("SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.OnderdeelID=%d AND LO.GroepID=%d;", TABLE_PREFIX, $this->afdid, $this->grid);
 		$this->aantalmetgroep = $this->scalar($alqry);
 
 	}  # cls_Groep->vulvars
@@ -7014,15 +7012,17 @@ class cls_Diploma extends cls_db_base {
 	public $voorgangerid = 0;					// Wat is de logische voorganger van dit diploma?
 	public $doorlooptijd = 0;					// in maanden, hoelang doet een leerling normaal over dit diploma?
 	public $dpvolgende = 0;
-	public $naamvolgende = "";					// Naam van het opvolgende diploma
 	public $eindeuitgifte = "";
-	public int $geldigheid = 0;						// Hoelang is dit diploma na behalen geldig. In maanden.
-	public $historieopschonen = 0;
-	public $vervallen = "";
-	public $zelfservice = 0;					// Is dit diploma muteerbaar in de zelfservice?
-	public $afdelingsspecifiek = 0;				// Optie: de afdeling waar dit diploma bij hoort.
-	public $aantalhouders = 0;					// Het aantal leden dat dit diploma nu nog heeft en waarvan het geldig is.
-	public $aantalonderdelen = 0;				// Het aantal examenonderdelen
+	public int $geldigheid = 0;					// Hoelang is dit diploma na behalen geldig. In maanden.
+	public int $historieopschonen = 0;
+	public string $vervallen = "";
+	public int $zelfservice = 0;				// Is dit diploma muteerbaar in de zelfservice?
+	public int $afdelingsspecifiek = 0;			// Optie: de afdeling waar dit diploma bij hoort.
+	
+	public int $aantalhouders = 0;				// Het aantal leden dat dit diploma nu nog heeft en waarvan het geldig is.
+	public int $aantalonderdelen = 0;			// Het aantal examenonderdelen
+	public string $naamvoorganger = "";			// Naam van het vorige diploma
+	public string $naamvolgende = "";			// Naam van het opvolgende diploma
 	
 	public object $i_org;
 	
@@ -7088,6 +7088,13 @@ class cls_Diploma extends cls_db_base {
 			$this->naamlogging = $this->code;
 		} else {
 			$this->naamlogging = $this->naam;
+		}
+		
+		if ($this->voorgangerid > 0) {
+			$f = sprintf("DP.RecordID=%d", $this->voorgangerid);
+			$this->naamvoorganger = $this->max("Naam", $f);
+		} else {
+			$this->naamvoorganger = "";
 		}
 		
 		$this->i_org = new cls_Organisatie($this->organisatie);
@@ -8875,11 +8882,15 @@ class cls_Evenement_Type extends cls_db_base {
 }  # cls_Evenement_Type
 
 class cls_Artikel extends cls_db_base{
-	private $artid = 0;
+	private int $artid = 0;
 	public string $code = "";
 	public string $omschrijving = "";
 	public string $maat = "";
 	public float $verkoopprijs = 0;
+	public int $maxperlid = 1;
+	
+	public string $codeomsmaat = "";
+	public string $omsmaat = "";
 	
 	function __construct($p_artid=-1) {
 		$this->table = TABLE_PREFIX . "WS_Artikel";
@@ -8889,25 +8900,43 @@ class cls_Artikel extends cls_db_base{
 		$this->vulvars($p_artid);
 	}
 	
-	private function vulvars($p_artid=-1) {
+	public function vulvars($p_artid=-1) {
 		if ($p_artid >= 0) {
 			$this->artid = $p_artid;
 		}
 		if ($this->artid > 0) {
-			$query = sprintf("SELECT Art.* FROM %s WHERE ART.RecordID=%d;", $this->basefrom, $this->artid);
+			$query = sprintf("SELECT Art.* FROM %s WHERE Art.RecordID=%d;", $this->basefrom, $this->artid);
 			$artrow = $this->execsql($query)->fetch();
 			if (isset($artrow->RecordID)) {
 				$this->code = $artrow->Code ?? "";
 				$this->omschrijving = $artrow->Omschrijving ?? "";
 				$this->maat = $artrow->Maat ?? "";
 				$this->verkoopprijs = round($artrow->Verkoopprijs ?? 0, 2);
+				$this->maxperlid = $row->MaxAantalPerLid ?? 1;
 			} else {
 				$this->artid = 0;
 			}
 		}
+		
+		$this->naamlogging = $this->omschrijving;
+		if (strlen($this->maat) > 0) {
+			$this->naamlogging .= " " . $this->maat;
+		}
+		
+		$this->codeomsmaat = $this->code . " | " . $this->omschrijving;
+		if (strlen($this->maat) > 0) {
+			$this->codeomsmaat .= " (" . $this->maat . ")";
+		}
+				
+		$this->omsmaat = $this->omschrijving;
+		if (strlen($this->maat) > 0) {
+			$this->omsmaat .= " (" . $this->maat . ")";
+		}
+		
 	}
 	
 	public function lijst($p_type="bestellijst") {
+		
 		$query = sprintf("SELECT Art.*, CONCAT(IFNULL(Art.Omschrijving, ''), IF(LENGTH(Art.Maat)>0, CONCAT(' (', Art.Maat, ')'), '')) AS OmsMaat, CONCAT(Art.Code, ' - ', IFNULL(Art.Omschrijving, ''), ' ', IFNULL(Art.Maat, '')) AS CodeOmsMaat,
 		IF((SELECT COUNT(*) FROM %1\$sWS_Orderregel AS Ord WHERE Ord.Artikel=Art.RecordID)+(SELECT COUNT(*) FROM %1\$sWS_Voorraadboeking AS VB WHERE VB.ArtikelID=Art.RecordID) > 0, 1, 0) AS InGebruik,
 		(SELECT IFNULL(SUM(V.Aantal), 0) FROM %1\$sWS_Voorraadboeking AS V WHERE V.ArtikelID=Art.RecordID) AS Voorraad
@@ -8931,17 +8960,20 @@ class cls_Artikel extends cls_db_base{
 	
 	public function htmloptions($p_cv=-1, $p_filter="") {
 		
-		$query = sprintf("SELECT Art.RecordID, CONCAT(Art.Code, ' - ' , IFNULL(Art.Omschrijving, ''), ' ', IFNULL(Art.Maat, '')) AS CodeOmsMaat FROM %s AS Art", $this->table);
+		$query = sprintf("SELECT Art.RecordID FROM %s", $this->basefrom);
 		if ($p_filter == "bestelbaar") {
-			$query .= sprintf(" WHERE IFNULL(Art.BeschikbaarTot, CURDATE()) >= CURDATE() AND IFNULL(Art.VervallenPer, CURDATE()) >= CURDATE() AND (Art.BeperkTotGroep IN (%s))", $_SESSION["lidgroepen"]);
-			$query .= sprintf(" AND (IFNULL(Art.MaxAantalPerLid, 0)=0 OR Art.MaxAantalPerLid > (SELECT SUM(AantalBesteld) FROM %sWS_Orderregel WHERE Lid=%d))", TABLE_PREFIX, $_SESSION['lidid']);
+			$query .= sprintf(" WHERE IFNULL(Art.BeschikbaarTot, '9999-12-31') >= '%1\$s' AND IFNULL(Art.VervallenPer, '9999-12-31') >= '%1\$s' AND (Art.BeperkTotGroep IN (%2\$s))", $this->per, $_SESSION["lidgroepen"]);
+			$query .= sprintf(" AND (IFNULL(Art.MaxAantalPerLid, 0)=0 OR Art.MaxAantalPerLid > (SELECT IFNULL(SUM(Ord.AantalBesteld), 0) FROM %sWS_Orderregel AS Ord WHERE Ord.Lid=%d AND Art.RecordID=Ord.Artikel))", TABLE_PREFIX, $_SESSION['lidid']);
+			$query .= sprintf(" AND (SELECT IFNULL(COUNT(Ord.AantalBesteld), 0) FROM %sWS_Orderregel AS Ord WHERE Ord.Lid=%d AND Art.RecordID=Ord.Artikel) = 0", TABLE_PREFIX, $_SESSION['lidid']);
+
 		}
 		$query .= " ORDER BY Art.Code, Art.Omschrijving;";
 		
 		$result = $this->execsql($query);
 		$rv = "";
 		foreach ($result->fetchAll() as $row) {
-			$rv .= sprintf("<option value=%d %s>%s</option>\n", $row->RecordID, checked($p_cv, "option", $row->RecordID), $row->CodeOmsMaat);
+			$this->vulvars($row->RecordID);
+			$rv .= sprintf("<option value=%d %s>%s</option>\n", $row->RecordID, checked($p_cv, "option", $row->RecordID), $this->codeomsmaat);
 		}
 		return $rv;
 	}
@@ -8953,7 +8985,7 @@ class cls_Artikel extends cls_db_base{
 			$p_code = "Nw" . $nrid;
 		}
 		
-		$query = sprintf("INSERT INTO %s (RecordID, Code) VALUES  (%d, '%s');", $this->table, $nrid, $p_code);
+		$query = sprintf("INSERT INTO %s (RecordID, Code, MaxAantalPerLid) VALUES  (%d, '%s', 1);", $this->table, $nrid, $p_code);
 		if ($this->execsql($query) > 0) {
 			$this->mess = sprintf("Artikel %d met code '%s' is toegevoegd.", $nrid, $p_code);
 			$this->log($nrid);
@@ -9003,20 +9035,28 @@ class cls_Artikel extends cls_db_base{
 
 class cls_Orderregel extends cls_db_base {
 	
-	private $artid = 0;
-	private $orid = 0;
+	public int $artid = 0;
+	private int $orid = 0;
+	public int $aantalbesteld = 0;
+	public float $prijsperstuk = 0;
+	public int $ordernr = 0;
+	public string $opmerking = "";
+	
+	public float $bedrag = 0;
 	
 	public object $i_art;
+	public object $i_lid;
 
-	function __construct($p_lidid=0) {
+	function __construct($p_lidid=-1, $p_orid=-1) {
 		$this->table = TABLE_PREFIX . "WS_Orderregel";
 		$this->basefrom = $this->table . " AS Ord";
 		$this->lidid = $p_lidid;
 		$this->per = date("Y-m-d");
 		$this->ta = 10;
+		$this->vulvars($p_orid);
 	}
 	
-	private function vulvars($p_orid=0) {
+	public function vulvars($p_orid=0) {
 		$this->orid = $p_orid;
 		if ($this->orid <= 0 and $this->artid > 0 and $this->lidid > 0) {
 			$query = sprintf("SELECT IFNULL(RecordID, 0) FROM %s WHERE Ord.Artikel=%d AND Ord.Lid=%d;", $this->basefrom, $this->artid, $this->lidid);
@@ -9031,6 +9071,10 @@ class cls_Orderregel extends cls_db_base {
 				$this->orid = $row->RecordID;
 				$this->lidid = $row->Lid ?? 0;
 				$this->artid = $row->Artikel ?? 0;
+				$this->aantalbesteld = $row->AantalBesteld ?? 0;
+				$this->prijsperstuk = $row->PrijsPerStuk ?? 0;
+				$this->ordernr = $row->Ordernr ?? 0;
+				$this->opmerking = $row->Opmerking ?? "";
 				$this->ingevoerd = $row->Ingevoerd ?? "";
 				$this->gewijzigd = $row->Gewijzigd ?? "";
 			} else {
@@ -9038,7 +9082,11 @@ class cls_Orderregel extends cls_db_base {
 			}
 		}
 	
-		$this->i_art = new cls_Artkel($this->artid);
+		$this->i_art = new cls_Artikel($this->artid);
+		$this->i_lid = new cls_Lid($this->lidid);
+		
+		$this->naamlogging = $this->i_art->naamlogging;
+		$this->bedrag = $this->prijsperstuk * $this->aantalbesteld;
 	}
 	
 	public function lijst($p_filter="", $p_eersterecord=0, $p_orderby="") {
@@ -9046,6 +9094,15 @@ class cls_Orderregel extends cls_db_base {
 		if (strlen($p_filter) > 0) {
 			$p_filter = "WHERE " . $p_filter;
 		}
+		if (strlen($this->where) > 0) {
+			if (strlen($p_filter) > 0) {
+				$p_filter .= " AND ";
+			} else {
+				$p_filter = "WHERE ";
+			}
+			$p_filter .= $this->where;
+		}
+		
 		if (strlen($p_orderby) > 0 and substr(trim($p_orderby), -1) != ",") {
 			$p_orderby = trim($p_orderby) . ",";
 		}
@@ -9077,10 +9134,11 @@ class cls_Orderregel extends cls_db_base {
 			$p_filter = "AND " . $p_filter;
 		}
 		
-		$query = sprintf("SELECT * FROM %s WHERE Lid=%d AND Artikel=%d %s;", $this->table, $p_lidid, $p_artikelid, $p_filter);
+		$query = sprintf("SELECT * FROM %s WHERE Ord.Lid=%d AND Ord.Artikel=%d %s;", $this->basefrom, $p_lidid, $p_artikelid, $p_filter);
 		$result = $this->execsql($query);
 		return $result->fetch();
-	}
+		
+	}  # cls_Orderregel->bestelling
 	
 	public function bevestiging($p_lidid, $p_filter) {
 		if (strlen($p_filter) > 0) {
@@ -9126,9 +9184,9 @@ class cls_Orderregel extends cls_db_base {
 			}
 		}
 		
-		$query = sprintf("INSERT INTO %s (RecordID, Lid, Artikel, AantalBesteld, Ordernr, IngevoerdDoor) VALUES (%d, %d, %d, 1, %d, %d);", $this->table, $nrid, $p_lidid, $this->artid, $ordnr, $_SESSION['lidid']);
+		$query = sprintf("INSERT INTO %s (RecordID, Lid, Artikel, AantalBesteld, Ordernr) VALUES (%d, %d, %d, 1, %d);", $this->table, $nrid, $p_lidid, $this->artid, $ordnr);
 		if ($this->execsql($query) > 0) {
-			$this->mess = sprintf("Orderregel %d met artikel '%s' is toegevoegd.", $nrid, $this->codeartikel);
+			$this->mess = sprintf("Orderregel %d met artikel '%s' is toegevoegd.", $nrid, $this->i_art->code);
 			$this->log($nrid, 1);
 			$this->vulprijsperstuk();
 			return $nrid;
@@ -9171,7 +9229,12 @@ class cls_Orderregel extends cls_db_base {
 	
 	public function definitiefmaken($p_lidid) {
 		$this->lidid = $p_lidid;
-		$non = $this->max("Ordernr") + 1;
+		$non = $this->max("Ordernr");
+		$r = $this->max("RecordID");
+		if ($r > $non) {
+			$non = $r;
+		}
+		$non++;
 		
 		$query = sprintf("SELECT Ord.RecordID FROM %s WHERE Ord.Lid=%d AND Ord.Ordernr=0 AND Ord.AantalBesteld > 0 AND (BestellingDefinitief IS NULL);", $this->basefrom, $p_lidid);
 		$result = $this->execsql($query);
@@ -9181,8 +9244,12 @@ class cls_Orderregel extends cls_db_base {
 				$this->mess = sprintf("Orderregel %d is op order %d geplaatst.", $row->RecordID, $non);
 				$this->tas = 30;
 				$this->log($row->RecordID);
+			} else {
+				$non = 0;
 			}
 		}
+		
+		return $non;
 	}
 	
 	public function controle() {
@@ -9202,25 +9269,49 @@ class cls_Orderregel extends cls_db_base {
 
 class cls_Voorraadboeking extends cls_db_base {
 	
-	private $vbid = 0;
-	private $artid = 0;
+	private int $vbid = 0;
+	private int $artid = 0;
+	public string $datum = "";
+	public string $omschrijving = "";
+	public int $aantal = 0;
+	public int $orderregelid = 0;
 	
-	function __construct() {
+	public object $i_art;
+	public object $i_or;
+	
+	function __construct($p_vbid=-1) {
 		parent::__construct();
 		$this->table = TABLE_PREFIX . "WS_Voorraadboeking";
 		$this->basefrom = $this->table . " AS VB";
 		$this->per = date("Y-m-d");
 		$this->ta = 10;
+		$this->vulvars($p_vbid);
 	}
 	
-	private function vulvars($p_vbid=-1) {
+	public function vulvars($p_vbid=-1) {
 		if ($p_vbid >= 0) {
 			$this->vbid = $p_vbid;
 		}
 		
+		$this->omschrijving = "";
+		$this->artid = 0;
+		$this->orderregelid = 0;
 		if ($this->vbid > 0) {
-			
+			$query = sprintf("SELECT VB.* FROM %s WHERE VB.RecordID=%d;", $this->basefrom, $this->vbid);
+			$vbrow = $this->execsql($query)->fetch();
+			if (isset($vbrow->RecordID)) {
+				$this->omschrijving = $vbrow->Omschrijving ?? "";
+				$this->artid = $vbrow->ArtikelID ?? 0;
+				$this->datum = $vbrow->Datum ?? "";
+				$this->aantal = $vbrow->Aantal ?? 0;
+				$this->orderregelid = $vbrow->OrderregelID ?? 0;
+			} else {
+				$this->vbid = 0;
+			}
 		}
+		
+		$this->i_art = new cls_Artikel($this->artid);
+		$this->i_or = new cls_Orderregel(-1, $this->orderregelid);
 	}
 	
 	public function lijst($p_art=0) {
@@ -9238,7 +9329,7 @@ class cls_Voorraadboeking extends cls_db_base {
 		$this->tas = 21;
 		$nrid = $this->nieuwrecordid();
 		
-		$query = sprintf("INSERT INTO %s (RecordID, ArtikelID, OrderregelID, IngevoerdDoor) VALUES (%d, %d, %d, %d);", $this->table, $nrid, $p_art, $p_orid, $_SESSION['lidid']);
+		$query = sprintf("INSERT INTO %s (RecordID, ArtikelID, OrderregelID, Datum) VALUES (%d, %d, %d, CURDATE());", $this->table, $nrid, $p_art, $p_orid);
 		if ($this->execsql($query) > 0) {
 			$this->mess = sprintf("Voorraadboeking %d voor artikel %d is toegevoegd.", $nrid, $p_art);
 			$this->log($nrid);
