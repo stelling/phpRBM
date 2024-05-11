@@ -2495,6 +2495,7 @@ class cls_Authorisation extends cls_db_base {
 				$query = sprintf("SELECT IFNULL(MIN(AA.RecordID), 0) FROM %s WHERE AA.Tabpage='%s' AND AA.Toegang IN (%s);", $this->basefrom, $p_tabpage, $_SESSION['lidgroepen']);
 				$aid = $this->scalar($query);
 				if ($aid > 0) {
+					$_SESSION['lidauth'][] = $p_tabpage;
 					$rv = true;
 				}
 			}
