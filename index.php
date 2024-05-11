@@ -139,7 +139,7 @@ if ($i_lid->aantal() == 0) {
 	} elseif ($currenttab2 == "Evenementen") {
 		inschrijvenevenementen($_SESSION['lidid']);
 	} elseif ($currenttab2 == "Bestellingen") {
-		fnWinkelwagen($_SESSION['lidid']);
+		winkelwagen($_SESSION['lidid']);
 	} else {
 		fnWijzigen($_SESSION['lidid'], $currenttab2);
 	}
@@ -708,7 +708,7 @@ function fnMeldingen() {
 			} else {
 				$nm .= ": 1 rij";
 			}
-			if (strlen($i_el->tabpage) > 0 and toegang($i_el->tabpage . "/" . $i_el->naam)) {
+			if (strlen($i_el->tabpage) > 0 and toegang($i_el->tabpage . "/" . $i_el->naam, 0)) {
 				$rv .= sprintf("<li><a href='%s?tp=%s/%s'>%s</a></li>\n", $_SERVER['PHP_SELF'], $i_el->tabpage, $i_el->naam, $nm);
 			} else {
 				$rv .= sprintf("<li>%s</li>\n", $nm);
