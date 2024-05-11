@@ -24,7 +24,7 @@ function fnAfdeling() {
 		afdelingskalendermuteren($ondid);
 	} elseif ($currenttab2 == "Groepsindeling") {
 		fnGroepsindeling($ondid);
-	} elseif ($currenttab2 == "Groepsindeling muteren") {
+	} elseif ($currenttab2 == "Groepsindeling muteren" or $currenttab2 == "Indeling muteren") {
 		fnGroepsindeling($ondid, 1);
 	} elseif ($currenttab2 == "Groepen muteren") {
 		groepenmuteren($ondid);
@@ -405,7 +405,6 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 			$i_gr->vulvars($afdid, $grrow->RecordID);
 			if ($exfilter > 0) {
 				$i_lo->where = sprintf("LO.Lid IN (SELECT LD.Lid FROM %sLiddipl AS LD WHERE LD.Examen=%d) AND LO.GroepID=%d", TABLE_PREFIX, $exfilter, $grrow->RecordID);
-				$i_ld->controle($exfilter);
 			} elseif ($inclkader == 0) {
 				$i_lo->where = sprintf("LO.Functie=0 AND LO.GroepID=%d", $grrow->RecordID);
 			} else {
@@ -420,14 +419,14 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 						echo("</div> <!-- Einde row -->\n");
 					}
 					echo("<div class='row'>\n");
-					printf("<h3>%s</h3>\n", $i_gr->tijden);
+					if (strlen($i_gr->tijden) > 4) {
+						printf("<h3>%s</h3>\n", $i_gr->tijden);
+					}
 					$vtijd = $i_gr->starttijd;
 				}
 				printf("<div id='groep_%d' class='groepindelen col'>\n", $i_gr->grid);
 				printf("<h4>%s</h4>\n", $i_gr->groms);
 				printf("<table class='%s'>\n", TABLECLASSES);
-				$avg = 0;
-				$lovg = "0";
 				foreach ($lorows as $row) {
 					$i_lo->vulvars($row->RecordID);
 					
@@ -449,48 +448,35 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 					if ($i_lo->i_lid->leeftijd > 1 and $i_lo->i_lid->leeftijd < 18) {
 						$nm .= " (" . $i_lo->i_lid->leeftijd . ")";
 					}
-					printf("<tr><td%s%s>%s</td><td><select id='GroepID_%d' class='form-select form-select-sm'>\n<option value=0>Geen</option>\n%s</select></td></tr>\n", $cl, $t, $nm, $row->RecordID, $i_gr->htmloptions($row->GroepID, $afdid));
-					if ($i_lo->suggestievolgendegroep == 1) {
-						$avg++;
-						$lovg .= ", " . $row->RecordID;
+					$gropt = "";
+					foreach ($grrows as $optrow) {
+						if ($optrow->RecordID == 0) {
+							$o = "Geen";
+						} elseif (strlen($optrow->Kode) <= 1) {
+							$o = $optrow->RecordID;
+						} else {
+							$o = $optrow->Kode;
+						}
+						$gropt .= sprintf("<option value=%d%s>%s</option>\n", $optrow->RecordID, checked($row->GroepID, "option", $optrow->RecordID), $o);
 					}
+					printf("<tr><td%s%s>%s</td><td><select id='GroepID_%d' class='form-select form-select-sm'>\n%s</select></td></tr>\n", $cl, $t, $nm, $row->RecordID, $gropt);
 				}
 				echo("</table>\n");
-				if ($avg > 0) {
-					$vg = 0; // Volgende groep
-					if ($i_gr->i_dp->dpvolgende > 0) {
-						$f = sprintf("GR.OnderdeelID=%d AND GR.DiplomaID=%d", $afdid, $i_gr->i_dp->dpvolgende);
-						$vg = $i_gr->max("RecordID", $f);
-					}
-					
-					$i_gr->where = sprintf("GR.OnderdeelID=%d AND GR.DiplomaID IN (-1, (SELECT GROUP_CONCAT(DP.RecordID) FROM %sDiploma AS DP WHERE DP.VoorgangerID=%d))", $afdid, TABLE_PREFIX, $i_gr->dpid);
-					foreach ($i_gr->basislijst() as $vgrow) {
-						printf("<button type='submit' class='volgendegroep %s' name='nwe_groep' value='%d-%s'>%s leden naar groep %s</button>\n", CLASSBUTTON, $vgrow->RecordID, $lovg, $avg, $vgrow->Omschrijving);
-					}
-					
-				}
 				printf("</div> <!-- Einde groep_%d groepindelen -->\n", $i_gr->grid);
 			}
 		}
 		echo("</div> <!-- Einde row -->\n");
 		echo("</form>\n");
+		
+		echo("<script>
+			\$('select').on('change', function() {
+				savedata('logroep', 0, this);
+			});
+		</script>\n");
 	}
 	
 	printf("</div> <!-- Einde %s -->\n", strtolower(str_replace(" ", "", $afdnaam)));
 	echo("</div> <!-- Einde groepsindelingmuteren -->\n");
-	
-	echo("<script>
-		\$('select').on('change', function() {
-			savedata('logroep', 0, this);
-		});
-		
-		function verplaatsen(p_alo, p_ng) {
-			p_alo.forEach(function(item, index, arr) {
-				savedata('logroep', arr[item] , p_ng);
-			});
-		}
-			
-	</script>\n");
 	
 } # fnGroepsindeling
 
@@ -532,9 +518,9 @@ function groepenmuteren($p_onderdeelid) {
 	}
 	echo("</tr>\n");
 
-	foreach ($i_gr->selectlijst($p_onderdeelid) as $row) {
+	foreach ($i_gr->lijst($p_onderdeelid) as $row) {
 		if ($row->RecordID > 0) {
-			$i_gr->vulvars($p_onderdeelid, $row->RecordID);
+			$i_gr->vulvars(-1, $row->RecordID);
 			echo("<tr>\n");
 			printf("<td class='nummer'>%d</td>\n", $row->RecordID);
 			printf("<td class='codevolgnr'><input type='number' class='num3' id='Volgnummer_%d' title='Volgnummer groep' value='%s'>", $row->RecordID, $row->Volgnummer);
@@ -551,14 +537,14 @@ function groepenmuteren($p_onderdeelid) {
 			$f = sprintf("DP.Afdelingsspecifiek=%d AND IFNULL(DP.EindeUitgifte, '9999-12-31') >= CURDATE()", $p_onderdeelid);
 			printf("<br><select id='DiplomaID_%d' class='form-select form-select-sm'><option value=0>Geen/Combinatie</option>\n%s</select></td>\n", $row->RecordID, $i_dp->htmloptions($row->DiplomaID, 0, 0, 0, $f, 1));
 				
-			printf("<td><input type='time' id='Starttijd_%d' title='Starttijd' value='%s'>", $row->RecordID, $row->Starttijd);
-			printf("<br><input type='time' id='Eindtijd_%d' title='Eindtijd' value='%s'></td>\n", $row->RecordID, $row->Eindtijd);
+			printf("<td><input type='time' id='Starttijd_%d' title='Starttijd' value='%s'>", $row->RecordID, $i_gr->starttijd);
+			printf("<br><input type='time' id='Eindtijd_%d' title='Eindtijd' value='%s'></td>\n", $row->RecordID, $i_gr->eindtijd);
 				
-			printf("<td class='aanwezigheidsnorm'><input type='number' class='num3' id='Aanwezigheidsnorm_%d'  title='Aanwezigheidsnorm' value=%d></td>\n", $row->RecordID, $row->Aanwezigheidsnorm);
+			printf("<td class='aanwezigheidsnorm'><input type='number' class='num3' id='Aanwezigheidsnorm_%d'  title='Aanwezigheidsnorm' value=%d></td>\n", $row->RecordID, $i_gr->aanwezigheidsnorm);
 			$i_eo->where = sprintf("EO.DiplomaID=%d", $row->DiplomaID);
 				
 			if ($plmog and $i_gr->aantalingroep > 0) {
-				printf("<td><a href='./maatwerk/Presentielijst.php?p_groep=%d' title='Presentielijst %d leden'>%s</a></td>", $row->RecordID, $row->aantalInGroep, ICONPRINT);
+				printf("<td><a href='./maatwerk/Presentielijst.php?p_groep=%d' title='Presentielijst %d leden'>%s</a></td>", $row->RecordID, $i_gr->aantalingroep, ICONPRINT);
 			} elseif ($i_gr->aantalmetgroep == 0) {
 				printf("<td><a href='%s?%s&op=verwijder&p_groep=%d' title='Verwijder groep'>%s</a></td>", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING'], $row->RecordID, ICONVERWIJDER);
 			} else {
