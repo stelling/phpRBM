@@ -872,7 +872,13 @@ class cls_db_base {
 					if (strlen($p_waarde) > 125) {
 						$p_waarde = substr($p_waarde, 0, 121) . " ...";
 					}
-					$this->mess = sprintf("Tabel %s: van record %d%s is kolom '%s' in %s gewijzigd", str_replace(TABLE_PREFIX, "", $this->table), $p_recid, $nm, $p_kolom, $p_waarde);
+					if ($this->typecolumn == "decimal") {
+						$this->mess = sprintf("Tabel %s: van record %d%s is kolom '%s' in %.2f gewijzigd", str_replace(TABLE_PREFIX, "", $this->table), $p_recid, $nm, $p_kolom, $p_waarde);
+					} elseif ($this->typecolumn == "int") {
+						$this->mess = sprintf("Tabel %s: van record %d%s is kolom '%s' in %d gewijzigd", str_replace(TABLE_PREFIX, "", $this->table), $p_recid, $nm, $p_kolom, $p_waarde);
+					} else {
+						$this->mess = sprintf("Tabel %s: van record %d%s is kolom '%s' in '%s' gewijzigd", str_replace(TABLE_PREFIX, "", $this->table), $p_recid, $nm, $p_kolom, $p_waarde);
+					}
 					if (strlen($p_reden) > 0) {
 						$this->mess .= ", omdat " . $p_reden;
 					}
@@ -1204,22 +1210,18 @@ class cls_Lid extends cls_db_base {
 		$this->geslachtoms = ARRGESLACHT[$this->geslacht];
 		if ($this->lidid > 0) {
 			
-			$lmqry = sprintf("SELECT IFNULL(MAX(LM.Opgezegd), '9999-12-31') FROM %sLidmaatschap AS LM WHERE LM.Lid=%d;", TABLE_PREFIX, $this->lidid);
+			$lmqry = sprintf("SELECT IFNULL(MAX(IFNULL(LM.Opgezegd, '9999-12-31')), '9999-12-31') FROM %sLidmaatschap AS LM WHERE LM.Lid=%d;", TABLE_PREFIX, $this->lidid);
 			$this->eindelaatstelidmaatschap = $this->scalar($lmqry);
 			
-			$lmqry = sprintf("SELECT LM.* FROM %sLidmaatschap AS LM WHERE LM.Lid=%d AND IFNULL(LM.Opgezegd, '9999-12-31') >= '%s';", TABLE_PREFIX, $this->lidid, $this->per);
-			$lmrow = $this->execsql($lmqry)->fetch();
-			if (isset($lmrow->RecordID)) {
-				if ($lmrow->LIDDATUM <= date("Y-m-d")) {
-					$this->islid = true;
-					$this->soortlid = "Lid";
-					$osqry = sprintf("SELECT IFNULL(MIN(O.Naam), '') FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON LO.OnderdeelID=O.RecordID WHERE LO.Lid=%2\$d AND O.`Type`='O' AND LO.Vanaf <= '%3\$s';", TABLE_PREFIX, $this->lidid, $this->per);
-					$this->onderscheiding = $this->scalar($osqry);
-				} else {
-					$this->soortlid = "Toekomstig lid";
-				}
-				$this->lidvanaf = $lmrow->LIDDATUM;
-				$this->lidnr = $lmrow->Lidnr;
+			$lmqry = sprintf("SELECT LM.LIDDATUM, LM.Lidnr FROM %1\$sLidmaatschap AS LM WHERE LM.Lid=%2\$d AND LM.LIDDATUM <= '%3\$s' AND IFNULL(LM.Opgezegd, '9999-12-31') >= '%3\$s';", TABLE_PREFIX, $this->lidid, $this->per);
+			$lmrows = $this->execsql($lmqry)->fetchAll();			
+			if (count($lmrows) > 0) {
+				$this->islid = true;
+				$this->soortlid = "Lid";
+				$this->lidvanaf = $lmrows[0]->LIDDATUM;
+				$this->lidnr = $lmrows[0]->Lidnr;
+				$osqry = sprintf("SELECT IFNULL(MIN(O.Naam), '') FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON LO.OnderdeelID=O.RecordID WHERE LO.Lid=%2\$d AND O.`Type`='O' AND LO.Vanaf <= '%3\$s';", TABLE_PREFIX, $this->lidid, $this->per);
+				$this->onderscheiding = $this->scalar($osqry);
 				if ($this->lidvanaf < date("Y-m-d", strtotime("-12 month"))) {
 					$date1=date_create($this->lidvanaf);
 					$date2=date_create(date("Y-m-d"));
@@ -1227,19 +1229,29 @@ class cls_Lid extends cls_db_base {
 					$this->lengtelidmaatschap = round($diff->format("%y")) + round($diff->format("%m")/12, 1);
 				}
 			} else {
-				$lmqry = sprintf("SELECT LM.* FROM %sLidmaatschap AS LM WHERE LM.Lid=%d ORDER BY LM.LIDDATUM DESC;", TABLE_PREFIX, $this->lidid);
+				$lmqry = sprintf("SELECT LM.* FROM %sLidmaatschap AS LM WHERE LM.Lid=%d AND IFNULL(LM.Opgezegd, '9999-12-31') >= '%s';", TABLE_PREFIX, $this->lidid, $this->per);
 				$lmrow = $this->execsql($lmqry)->fetch();
 				if (isset($lmrow->RecordID)) {
-					$this->soortlid = "Voormalig lid";
-					$this->lidvanaf = $lmrow->LIDDATUM;
-					if ($this->lidvanaf < date("Y-m-d", strtotime("-12 month"))) {
-						$date1=date_create($this->lidvanaf);
-						$date2=date_create($this->eindelaatstelidmaatschap);
-						$diff=date_diff($date1, $date2);
-						$this->lengtelidmaatschap = round($diff->format("%y")) + round($diff->format("%m")/12, 1);
+					if ($lmrow->LIDDATUM > date("Y-m-d")) {
+						$this->soortlid = "Toekomstig lid";
 					}
+					$this->lidvanaf = $lmrow->LIDDATUM;
+					$this->lidnr = $lmrow->Lidnr;
 				} else {
-					$this->soortlid = "Kloslid";
+					$lmqry = sprintf("SELECT LM.* FROM %sLidmaatschap AS LM WHERE LM.Lid=%d ORDER BY LM.LIDDATUM DESC;", TABLE_PREFIX, $this->lidid);
+					$lmrow = $this->execsql($lmqry)->fetch();
+					if (isset($lmrow->RecordID)) {
+						$this->soortlid = "Voormalig lid";
+						$this->lidvanaf = $lmrow->LIDDATUM;
+						if ($this->lidvanaf < date("Y-m-d", strtotime("-12 month"))) {
+							$date1=date_create($this->lidvanaf);
+							$date2=date_create($this->eindelaatstelidmaatschap);
+							$diff=date_diff($date1, $date2);
+							$this->lengtelidmaatschap = round($diff->format("%y")) + round($diff->format("%m")/12, 1);
+						}
+					} else {
+						$this->soortlid = "Kloslid";
+					}
 				}
 			}
 			
@@ -1288,7 +1300,6 @@ class cls_Lid extends cls_db_base {
 				} else {
 					$this->inloggentoegestaan = false;
 				}
-				
 			}
 			
 			$query = sprintf("SELECT IFNULl(MAX(Login.Login), 'Geen') FROM %sAdmin_login AS Login WHERE Login.LidID=%d;", TABLE_PREFIX, $this->lidid);
@@ -4184,7 +4195,7 @@ class cls_Lidond extends cls_db_base {
 			$this->mess = sprintf("Je bent niet bevoegd om van onderdeel '%s' de leden te muteren.", $this->i_ond->naam);
 			
 		} elseif (strlen($this->i_lid->naam) == 0) {
-			$this->mess = sprintf("Lid %d bestaat niet. Dit record wordt niet toegevoegd.", $this->lidid);
+			$this->mess = sprintf("Lid %d bestaat niet. Record wordt niet toegevoegd.", $this->lidid);
 			
 		} elseif ($this->i_ond->alleenleden == 1 and (new cls_lid($p_lidid, $vanaf))->soortlid !== "Lid") {
 			$this->mess = sprintf("Dit record wordt niet toegevoegd, want de persoon is op %s geen lid.", $vanaf);
@@ -4719,11 +4730,9 @@ class cls_Groep extends cls_db_base {
 				$this->code = $row->Kode ?? "";
 				$this->omschrijving = trim($row->Omschrijving ?? "");
 				$this->instructeurs = trim($row->Instructeurs ?? "");
-				
 				$this->afdid = $row->OnderdeelID ?? 0;
 				$this->dpid = $row->DiplomaID ?? 0;
-				$this->actid = $row->ActiviteitID ?? 0;
-				
+				$this->actid = $row->ActiviteitID ?? 0;			
 				$this->starttijd = trim($row->Starttijd ?? "");
 				$this->eindtijd = trim($row->Eindtijd ?? "");
 				
@@ -4757,7 +4766,7 @@ class cls_Groep extends cls_db_base {
 			$this->tijden .= " - " . $this->eindtijd . " uur";
 		}
 		
-		$alqry = sprintf("SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.OnderdeelID=%d AND LO.GroepID=%d AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE();", TABLE_PREFIX, $this->afdid, $this->grid);
+		$alqry = sprintf("SELECT COUNT(*) FROM %1\$sLidond AS LO WHERE LO.OnderdeelID=%2\$d AND LO.GroepID=%3\$d AND LO.Vanaf <= '%4\$s' AND IFNULL(LO.Opgezegd, '9999-12-31') >= '%4\$s';", TABLE_PREFIX, $this->afdid, $this->grid, $this->per);
 		$this->aantalingroep = $this->scalar($alqry);
 				
 		$alqry = sprintf("SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.OnderdeelID=%d AND LO.GroepID=%d;", TABLE_PREFIX, $this->afdid, $this->grid);
