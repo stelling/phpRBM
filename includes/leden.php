@@ -742,7 +742,7 @@ function wachtlijst() {
 		$kols[] = array('columnname' => "Geboortedatum", 'headertext' => "Geboren", 'type' => "DTSHORT", 'readonly' => true);
 		$kols[] = array('columnname' => "Afdeling", 'readonly' => true);
 		$kols[] = array('headertext' => "Eerste les", 'columnname' => "EersteLes", 'type' => "date");
-		$kols[] = array('headertext' => "Opmerking", 'columnname' => "Opmerking", 'collen' => 40);
+		$kols[] = array('headertext' => "Opmerking", 'columnname' => "Opmerking", 'collen' => 45);
 		$l = sprintf("%s/pdf.php?insid=%%d", BASISURL);
 		$kols[] = array('headertext' => "&nbsp;", 'columnname' => "LnkPDF", 'link' => $l, 'class' => "pdf");
 		if (toegang("Ledenlijst/Nieuw (klos)lid", 0, 0)) {
@@ -2103,7 +2103,7 @@ function toestemmingenmuteren($lidid) {
 		$auc = 0;
 		$d = "";
 		if ($i_lid->soortlid == "Toekomstig lid") {
-			$i_lo->per = $i_lm->lidvanaf;
+			$i_lo->per = $i_lid->lidvanaf;
 		} elseif ($i_lid->soortlid !== "Lid") {
 			$d = " disabled";
 		}
@@ -2515,12 +2515,11 @@ function lidmaatschapmuteren($lidid) {
 			$i_lm->add($lidid);
 		} elseif (isset($_POST['verwijderlidmaatschap']) and $_POST['verwijderlidmaatschap'] > 0) {
 			$i_lm->delete($_POST['verwijderlidmaatschap']);
+		} elseif (isset($_SESSION['settings']['login_beperkttotgroep']) and strlen($_SESSION['settings']['login_beperkttotgroep']) > 0) {
+			$i_lo->autogroepenbijwerken(0, 5, -2);
 		}
 		
 		$i_lo->auto_einde(-1, 5, $lidid);
-		if (isset($_SESSION['settings']['login_beperkttotgroep']) and strlen($_SESSION['settings']['login_beperkttotgroep']) > 0) {
-			$i_lo->autogroepenbijwerken(0, 5, -2);
-		}
 		
 	} else {
 		$i_lm->controle($lidid);
