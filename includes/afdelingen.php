@@ -377,11 +377,14 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 		$inclkader = $_POST['inclkader'] ?? 0;
 		$exfilter = $_POST['exfilter'] ?? 0;
 		
-		if (isset($_POST['nwe_groep']) and strlen($_POST['nwe_groep']) > 1) {
-			$vals = explode('-', $_POST['nwe_groep']);
-			$g = $vals[0];
-			foreach (explode(',', $vals[1]) as $k => $lo) {
-				$i_lo->update($lo, "GroepID", $g);
+		if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+			
+			$i_lo->where = "";
+			foreach ($i_lo->lijst($afdid, 2) as $lorow) {
+				$cn = sprintf("GroepID_%d", $lorow->RecordID);
+				if (isset($_POST[$cn]) and strlen($_POST[$cn]) > 0) {
+					$i_lo->update($lorow->RecordID, "GroepID", intval($_POST[$cn]));
+				}					
 			}
 		}
 		
@@ -459,7 +462,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 						}
 						$gropt .= sprintf("<option value=%d%s>%s</option>\n", $optrow->RecordID, checked($row->GroepID, "option", $optrow->RecordID), $o);
 					}
-					printf("<tr><td%s%s>%s</td><td><select id='GroepID_%d' class='form-select form-select-sm'>\n%s</select></td></tr>\n", $cl, $t, $nm, $row->RecordID, $gropt);
+					printf("<tr><td%1\$s%2\$s>%3\$s</td><td><select id='GroepID_%4\$d' name='GroepID_%4\$d' class='form-select form-select-sm'>\n%5\$s</select></td></tr>\n", $cl, $t, $nm, $row->RecordID, $gropt);
 				}
 				echo("</table>\n");
 				printf("</div> <!-- Einde groep_%d groepindelen -->\n", $i_gr->grid);
@@ -473,6 +476,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 				savedata('logroep', 0, this);
 			});
 		</script>\n");
+		
 	}
 	
 	printf("</div> <!-- Einde %s -->\n", strtolower(str_replace(" ", "", $afdnaam)));
@@ -1098,7 +1102,7 @@ function afdelingsmailing($p_afdid) {
 		}
 	}
 	
-	$grrows = $i_gr->lijst();
+	$grrows = $i_gr->lijst($p_afdid);
 	
 	printf("<form method='post' class='form-check form-switch' id='%s' action='%s?tp=%s'>\n", __FUNCTION__, $_SERVER['PHP_SELF'], $_GET['tp']);
 	echo("<div id='filter'>\n");
@@ -1160,7 +1164,12 @@ function afdelingsmailing($p_afdid) {
 			$i_gr->vulvars($p_afdid, $grrow->RecordID);
 			if ($i_gr->aantalingroep > 0) {
 				$cn = sprintf("chkGroep_%d", $i_gr->grid);
-				printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' value=1 name='%s'%s title='%3\$s'>%3\$s (%4\$d)</label>\n", $cn, checked(getvar($cn)), $i_gr->naam, $i_gr->aantalingroep);
+				if (strlen($i_gr->naam) > 23) {
+					$gn = $i_gr->code;
+				} else {
+					$gn = $i_gr->naam;
+				}
+				printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' value=1 name='%s'%s title='%3\$s'>%3\$s (%4\$d)</label>\n", $cn, checked(getvar($cn)), $gn, $i_gr->aantalingroep);
 			}
 		}
 		$cn = "chkGroepAlle";
