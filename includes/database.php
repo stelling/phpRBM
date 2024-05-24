@@ -126,7 +126,7 @@ class cls_db_base {
 	public $wherelid = "LM.LIDDATUM <= CURDATE() AND IFNULL(LM.Opgezegd, '9999-12-31') >= CURDATE()";
 	public static $wherelidond = "LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE()";
 	public $selectnaam = "CONCAT(IF(LENGTH(IFNULL(L.Roepnaam, ''))>1, TRIM(L.Roepnaam), IFNULL(L.Voorletter, '')), ' ', IF(IFNULL(L.Tussenv, '')>'', CONCAT(L.Tussenv, ' '), ''), L.Achternaam)";
-	public $selectzoeknaam = "TRIM(CONCAT(L.Achternaam, ', ', IF(LENGTH(L.Roepnaam)>1, L.Roepnaam, L.Voorletter), IF(L.Tussenv>'', CONCAT(' ', L.Tussenv), '')))";
+	public $selectzoeknaam = "TRIM(CONCAT(IFNULL(L.Achternaam, ''), ', ', IF(LENGTH(L.Roepnaam)>1, L.Roepnaam, IFNULL(L.Voorletter, '')), IF(L.Tussenv>'', CONCAT(' ', L.Tussenv), '')))";
 	public $selectavgnaam = "CONCAT(IFNULL(L.Roepnaam, ''), ' ', IF(IFNULL(L.Tussenv, '')>'', CONCAT(REPLACE(REPLACE(REPLACE(L.Tussenv, 'van der', 'v/d'), 'van den', 'v/d'), 'van de', 'v/d'), ' '), ''), SUBSTRING(L.Achternaam, 1, 1), '. **')";
 	public $selectgeslacht = "";
 	public $selectleeftijd = "IF(IFNULL(L.GEBDATUM, '1900-01-01') < '1910-01-01' OR (NOT ISNULL(L.Overleden)), NULL, CONCAT(TIMESTAMPDIFF(YEAR, L.GEBDATUM, CURDATE()), ' jaar'))";
@@ -4161,7 +4161,7 @@ class cls_Lidond extends cls_db_base {
 		return $this->scalar($query);
 	}  #  cls_Lidond->onderscheiding
 	
-	public function add($p_ondid, $p_lidid, $p_reden="", $p_log=1, $p_vanaf="", $p_toonlog=0) {
+	public function add($p_ondid, $p_lidid, $p_reden="", $p_vanaf="", $p_toonlog=0) {
 		$this->vulvars(-1, $p_lidid, $p_ondid);
 		$this->tas = 11;
 		
