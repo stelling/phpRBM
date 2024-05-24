@@ -710,7 +710,7 @@ function wachtlijst() {
 			}
 			
 			if ($i_ins->afdeling > 0) {
-				$i_lo->add($i_ins->afdeling, $lidid, "opgegeven via inschrijfformulier", 0);
+				$i_lo->add($i_ins->afdeling, $lidid, "opgegeven via inschrijfformulier", $i_ins->eersteles);
 			}
 			
 			if (isset($nieuwlo) and count($nieuwlo) > 0) {
