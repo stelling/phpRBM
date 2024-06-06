@@ -1238,7 +1238,7 @@ table#presentiemuteren td.aanwezig {
 }
 
 #afdelingsmailing label {
-	width: 175px;
+	width: 210px;
 }
 
 #afdelingsmailing label.btn {
@@ -1558,6 +1558,10 @@ td.voortgangsprobleem {
 
 #webshop select {
 	max-width: 180px;
+}
+
+table#bestellingenperlid {
+	margin-top: 18px;
 }
 
 #welkom {
@@ -2635,6 +2639,10 @@ label#lblHuisletter, label#lblToevoeging {
 
 .attentie, p.attentie {
 	color: red;
+	font-weight: bold;
+}
+
+li.geenactiviteit {
 	font-weight: bold;
 }
 
