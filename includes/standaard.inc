@@ -72,7 +72,7 @@ define("ICONSUBMIT", "<i class='bi bi-arrow-right-circle-fill'></i>");
 define("ICONTOEVOEGEN", "<i class='bi bi-plus-circle' alt='Toevoegen' title='Toevoegen'></i>");
 define("ICONVERSTUUR", "<i class='bi bi-envelope-at' alt='Versturen'></i>");
 define("ICONUNLOCK", "<i class='bi bi-unlock' alt='Vrijgeven'></i>");
-define("ICONVERVERS", "<i class='bi bi-arrow-clockwise'></i>");
+define("ICONVERVERS", "<i class='bi bi-arrow-clockwise' alt='Ververs' title='Ververs scherm'></i>");
 define("ICONVERWERK", "<i class='bi bi-check2-square' alt='Verwerk'></i>");
 define("ICONVERWIJDER", "<i class='bi bi-trash' alt='Verwijderen' title='Verwijderen'></i>");
 define("ICONVOLGENDE", "<i class='bi bi-skip-forward-circle' alt='Volgende'></i>");
@@ -1252,7 +1252,7 @@ function fnEditTable($res, $kols, $id="", $th="") {
 						if ($tp == "rqdate") {
 							$rq = " required";
 						}
-						$ret .= sprintf("<td><input type='date' id='%s_%d' value='%s'%s></td>", $colname, $valpk, $value, $rq);
+						$ret .= sprintf("<td><input type='date' name='%1\$s_%2\$d' id='%1\$s_%2\$d' value='%3\$s'%4\$s></td>", $colname, $valpk, $value, $rq);
 					} elseif ((!is_null($value)) and $value > '1900-01-01') {
 						$dtfmt->setPattern(DTTEXT);
 						$ret .= sprintf("<td>%s</td>", $dtfmt->format(strtotime($value)));
