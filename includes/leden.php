@@ -1181,6 +1181,9 @@ function fnEigenGegevens($lidid=0) {
 			}
 			
 			$outp .= "<h2>Overig</h2>\n";
+			if (strlen($i_lid->sportlinkid) >= 6) {
+				$outp .= sprintf("<label class='form-label'>Sportlink</label><p>%s</p>\n", $i_lid->sportlinkid);
+			}
 			if (strlen($i_lid->bankrekening) >= 11) {
 				$outp .= sprintf("<label class='form-label'>Bankrekening</label><p>%s</p>\n", $i_lid->bankrekening);
 			}
@@ -1558,6 +1561,7 @@ function overzichtverjaardagen($metfoto=1) {
 	$dteHV = new DateTime();
 	for ($i = 0; $i < $_SESSION['settings']['verjaardagenvooruit'] and $aantgetoond < $_SESSION['settings']['verjaardagenaantal']; $i++) {
 		foreach($i_lid->verjaardagen($dteHV->format("Y-m-d")) as $row) {
+			$fd = "";
 			$i_lid->vulvars($row->RecordID);
 			$o = (new cls_Lidond())->onderscheiding($row->RecordID);
 			if (strlen($o) > 0) {
@@ -2715,6 +2719,7 @@ function fnPersoonlijkeAgenda() {
 					$oms = $row->Naam;
 				} else {
 					$oms = "Geen " . $row->Naam;
+					$kalitem[$in]['class'] = "geenactiviteit";
 				}
 
 				if (strlen($row->Omschrijving) > 1) {
@@ -2754,6 +2759,8 @@ function fnPersoonlijkeAgenda() {
 					}
 				}
 				$kalitem[$in]['oms'] = $o;
+				$kalitem[$in]['class'] = $i_ed->i_ev->i_et->evclass;
+//				$kalitem[$in]['style'] = $i_ed->i_ev->i_et->style;
 				$in++;
 			}
 		}
@@ -2791,7 +2798,15 @@ function fnPersoonlijkeAgenda() {
 				if ($tijd > "00:00") {
 					$dat .= " (" . $tijd . ")";
 				}
-				$rv .= sprintf("<li>%s: %s</li>\n", $dat, $kalitem[$in]['oms']);
+				$cl = "";
+				if (isset($kalitem[$in]['class']) and strlen($kalitem[$in]['class']) > 0) {
+					$cl = sprintf(" class='%s'", $kalitem[$in]['class']);
+				}
+				$st = "";
+				if (isset($kalitem[$in]['style']) and strlen($kalitem[$in]['style']) > 0) {
+					$st = $kalitem[$in]['style'];
+				}
+				$rv .= sprintf("<li%s%s>%s: %s</li>\n", $cl, $st, $dat, $kalitem[$in]['oms']);
 			}
 		}
 		$rv .= "</ul>\n</div> <!-- Einde persoonlijkeagenda -->\n";
