@@ -113,6 +113,7 @@ class cls_db_base {
 	public string $per = "";				// Diverse functies worden per deze datum uitgevoerd.
 	public string $ingevoerd = "";			// Datum/tijd dat het record is ingevoerd.
 	public string $gewijzigd = "";			// De laatste wijzigingsdatum en tijd.
+	public $debug = false;
 	
 	public $fdlang = "'%e %M %Y'";
 	public $fdtlang = "'%e %M %Y (%H:%i)'";
@@ -757,7 +758,7 @@ class cls_db_base {
 				$p_waarde = 0;
 			} elseif ($this->is_kolom_numeriek("", $tk)) {
 				$p_waarde = str_replace(",", ".", trim($p_waarde));
-			} elseif ($tk == "decimal") {
+			} elseif (($tk == "decimal" or $tk == "float")) {
 				$s = $this->scalekolom($p_kolom);
 				$p_waarde = str_replace(",", ".", $p_waarde);
 				if ($s > 0) {
@@ -843,7 +844,7 @@ class cls_db_base {
 							$p_waarde = str_replace("\n", " ", $p_waarde);
 							$p_waarde = "\"" . str_replace("\"", "'", $p_waarde) . "\"";
 							
-						} elseif ($kt == "decimal" and (strlen($p_waarde) > 1)) {
+						} elseif (($kt == "decimal" or $kt == "float") and (strlen($p_waarde) > 1)) {
 							$p_waarde = str_replace(",", ".", $p_waarde);
 						
 						} elseif ($this->is_kolom_numeriek($p_kolom, $kt) == false and strpos($p_waarde, "'") !== false) {
@@ -871,7 +872,7 @@ class cls_db_base {
 					if (strlen($p_waarde) > 125) {
 						$p_waarde = substr($p_waarde, 0, 121) . " ...";
 					}
-					if ($this->typecolumn == "decimal") {
+					if ($this->typecolumn == "decimal" or $this->typecolumn == "float") {
 						$this->mess = sprintf("Tabel %s: van record %d%s is kolom '%s' in %.2f gewijzigd", str_replace(TABLE_PREFIX, "", $this->table), $p_recid, $nm, $p_kolom, $p_waarde);
 					} elseif ($this->typecolumn == "int") {
 						$this->mess = sprintf("Tabel %s: van record %d%s is kolom '%s' in %d gewijzigd", str_replace(TABLE_PREFIX, "", $this->table), $p_recid, $nm, $p_kolom, $p_waarde);
@@ -11186,7 +11187,8 @@ class cls_Foto extends cls_db_base {
 		if ($p_ftid >= 0) {
 			$this->ftid = $p_ftid;
 			$this->lidid = 0;
-		} elseif ($p_lidid >= 0) {
+		}
+		if ($p_lidid >= 0) {
 			$this->lidid = $p_lidid;
 		}
 		if ($this->lidid > 0 and $this->ftid <= 0) {
@@ -11195,6 +11197,7 @@ class cls_Foto extends cls_db_base {
 		}
 		
 		$this->fotodata = "";
+		$this->laatstgewijzigd = "";
 		if ($this->ftid > 0) {
 			$query = sprintf("SELECT Foto.* FROM %s WHERE Foto.RecordID=%d;", $this->basefrom, $this->ftid);
 			$result = $this->execsql($query);
@@ -11214,7 +11217,7 @@ class cls_Foto extends cls_db_base {
 	
 	public function fotolid($p_lidid=-1) {
 		if ($p_lidid > 0) {
-			$this->vulvars(-1, $p_lidid);
+			$this->vulvars(0, $p_lidid);
 		}
 		
 		if ($this->ftid > 0) {
