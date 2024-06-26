@@ -2128,13 +2128,13 @@ label#lblbeschikbarevariabelen, label#lblbijlagen, label#lblmeldingen {
 	margin-bottom: 8px;
 }
 
-.jarige {
+div.jarige {
 	margin-top: 10px;
 	height: 83px;
-	width: 98%;
+	width: 100%;
 	line-height: 83px;
 	float: left;
-	clear: left;
+	clear: both;
 }
 
 .jarige img, .kaartje img {
