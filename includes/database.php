@@ -3902,11 +3902,7 @@ class cls_Lidond extends cls_db_base {
 		return $result->fetch();
 	}  # cls_Lidond->record
 	
-	public function lijst($p_ondid, $p_filter=1, $p_ord="GR.Volgnummer, GR.Kode", $p_per="", $p_extrafilter="", $p_limiet=0, $p_fetched=1) {
-		
-		if (strlen($p_per) >= 10) {
-			$this->per = $p_per;
-		}
+	public function lijst($p_ondid, $p_filter=1, $p_ord="GR.Volgnummer, GR.Kode", $p_limiet=0, $p_fetched=1) {
 		
 		$seladres = "";
 		if (toegang("Woonadres_tonen", 0, 0)) {
@@ -3914,8 +3910,8 @@ class cls_Lidond extends cls_db_base {
 		}
 				
 		if ($p_filter === 1) {
-			// huidige leden
-			$w = cls_db_base::$wherelidond;
+			// huidige leden op per datum
+			$w = sprintf("LO.Vanaf <= '%1\$s' AND IFNULL(LO.Opgezegd, '9999-12-31') >= '%1\$s'", $this->per);
 		} elseif ($p_filter === 2) {
 			// huidige en toekomstige leden
 			$w = sprintf("IFNULL(LO.Opgezegd, '9999-12-31') >= '%s'", $this->per);
@@ -3943,7 +3939,7 @@ class cls_Lidond extends cls_db_base {
 			// Geen filter
 			$w = "(1 = 1)";
 			
-		} elseif (strlen($p_filter) > 1) {
+		} elseif (strlen($p_filter) > 4) {
 			$w = $p_filter;
 			
 		} else {	
@@ -3957,9 +3953,6 @@ class cls_Lidond extends cls_db_base {
 				$p_ord = ", " . $p_ord;
 			}
 			$p_ord = "IF(IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE(), 0, 1)" . $p_ord;
-		}
-		if (strlen($p_extrafilter) > 0) {
-			$w .= " AND " . $p_extrafilter;
 		}
 		if (strlen($this->where) > 0) {
 			$w .= " AND " . $this->where;
@@ -4006,7 +3999,7 @@ class cls_Lidond extends cls_db_base {
 		return $this->scalar($query);
 	}  # cls_Lidond->aantallid
 	
-	public function lijstperlid($p_lidid, $p_type="*", $p_per="", $p_incltoekomst=0) {
+	public function lijstperlid($p_lidid, $p_type="*", $p_incltoekomst=0) {
 		
 		if (strlen($p_per) < 10) {
 			$p_per = $this->per;
@@ -4680,8 +4673,8 @@ class cls_Activiteit extends cls_db_base {
 class cls_Groep extends cls_db_base {
 	// Afdelingsgroepen
 	
-	public $afdid = 0;
-	public $grid = -1;
+	public int $afdid = 0;
+	public int $grid = -1;
 	public int $actid = 0;
 	public string $code = "";
 	public string $omschrijving = "";
@@ -4693,9 +4686,9 @@ class cls_Groep extends cls_db_base {
 	
 	public string $naam = "";
 	public string $groms = "";
-	public $tijden = "";
-	public $aantalingroep = 0;		// Het aantal leden die op dit moment in deze groep zitten.
-	public $aantalmetgroep = 0;		// Het aantal records waar deze groep aan gekoppeld is, ongeacht of deze nog actueel zijn.
+	public string $tijden = "";
+	public int $aantalingroep = 0;		// Het aantal leden die op dit moment in deze groep zitten.
+	public int $aantalmetgroep = 0;		// Het aantal records waar deze groep aan gekoppeld is, ongeacht of deze nog actueel zijn.
 	
 	public object $i_dp;
 	public object $i_act;
@@ -4823,10 +4816,13 @@ class cls_Groep extends cls_db_base {
 	}  # cls_Groep->selectielijst
 	
 	public function htmloptions($p_cv=-1, $p_ondid=-1) {
+		if ($p_ondid >= 0) {
+			$this->afdid = $p_ondid;
+		}
 		$rv = "";
 		
-		if ($p_ondid > 0) {
-			$w = sprintf("(GR.OnderdeelID=%d OR GR.RecordID=0)", $p_ondid);
+		if ($this->afdid > 0) {
+			$w = sprintf("(GR.OnderdeelID=%d OR GR.RecordID=0)", $this->afdid);
 		} else {
 			$w = "";
 		}
@@ -6579,11 +6575,11 @@ class cls_Logboek extends cls_db_base {
 		
 		$query = sprintf("SELECT A.DatumTijd, Omschrijving, %s AS ingelogdLid, IF(IFNULL(A.ReferOnderdeelID, 0) > 0, A.ReferOnderdeelID, '') AS betreftOnderdeel
 								FROM %s LEFT OUTER JOIN %sLid AS L ON A.LidID=L.RecordID
-								WHERE TypeActiviteit IN (1, 5, 6, 7, 12, 14, 15, 16) AND ReferLidID=%d
+								WHERE TypeActiviteit IN (1, 5, 6, 7, 14, 15, 16) AND ReferLidID=%d
 								ORDER BY A.RecordID DESC LIMIT 1500;", $this->selectnaam, $this->basefrom, TABLE_PREFIX, $p_lidid);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
-	}
+	}  # cls_Logboek->overzichtlid
 	
 	public function lidlijst() {
 		$this->query = sprintf("SELECT DISTINCT LidID, %s AS Naam
@@ -9976,7 +9972,8 @@ class cls_Rekeningregel extends cls_db_base {
 				$aantToegevoegd++;
 			}
 
-			foreach ($i_lo->lijstperlid($this->lidid, "A", $this->i_rk->datum, 1) as $lorow) {
+			$i_lo->where = $this->i_rk->datum;
+			foreach ($i_lo->lijstperlid($this->lidid, "A", 1) as $lorow) {
 				$i_lo->vulvars($lorow->RecordID);
 				$cb = 0;
 				$query = sprintf("SELECT COUNT(*) FROM %s WHERE RK.Seizoen=%d AND RR.LidondID=%d;", $this->basefrom, $this->i_rk->seizoen, $lorow->RecordID);
