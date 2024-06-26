@@ -1952,7 +1952,7 @@ function fnRekeningenMailen($op) {
 			$aantrek = 0;
 			$rkrows = $i_rk->lijst($filter);
 			foreach($rkrows as $rk) {
-				$selrek .= sprintf("<li>%d - %s - &euro;&nbsp;%03.2f</li>\n", $rk->Nummer, $rk->DEBNAAM, $rk->Bedrag);
+				$selrek .= sprintf("<li>%d %s | &euro;&nbsp;%03.2f</li>\n", $rk->Nummer, $rk->DEBNAAM, $rk->Bedrag);
 				$aantrek += 1;
 			}
 			
@@ -2284,6 +2284,7 @@ function sentfromhist($p_mhid, $p_handm=0) {
 	$mail->From = $i_mh->i_mv->vanaf_email;
 	$mail->FromName = $i_mh->i_mv->vanaf_naam;
 
+	$mail->ClearReplyTos();
 	if ($i_mh->replyid > 0 and $i_mh->replyid != $i_mh->vanafid) {
 		$i_mv = new cls_Mailing_vanaf($i_mh->replyid);
 		$mail->addReplyTo($i_mv->vanaf_email, $i_mv->vanaf_naam);
@@ -2520,8 +2521,8 @@ function eigennotificatie($p_ondid, $p_aanadres, $p_tas=-1, $p_interval=48, $p_c
 		$p_tas = $p_ondid;
 	}
 	
-	if ($p_interval < 4) {
-		$p_interval = 4;
+	if ($p_interval < 2) {
+		$p_interval = 2;	// in uren
 	}
 	
 	$i_ond = new cls_Onderdeel($p_ondid);
