@@ -393,7 +393,8 @@ function fnWieiswie($actie, $metfoto=1) {
 	$txt = "<div class='wieiswie'>\n";
 	$vo = "";
 	if ($actie == "Onderscheidingen") {
-		$lijst = $i_lo->lijst(0, 1, "O.Naam, LO.Vanaf", "", "O.TYPE='O'");
+		$i_lo->where = "O.TYPE='O'";
+		$lijst = $i_lo->lijst(0, 1, "O.Naam, LO.Vanaf");
 		
 	} elseif ($actie == "Afdelingskader") {
 		$lijst = $i_lo->lijst(0, 6, "O.Naam, F.Sorteringsvolgorde, F.Omschrijv");
@@ -1033,7 +1034,7 @@ function LedenOnderdeelMuteren($p_ondid) {
 		} else {
 			$f = 8;
 		}
-		$res = $i_lo->lijst($i_ond->oid, $f, "IF(IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE(), 0, 1)", "", "", 0, 0);
+		$res = $i_lo->lijst($i_ond->oid, $f, "IF(IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE(), 0, 1)", 0, 0);
 		
 		$f = sprintf("OnderdeelID=%d", $i_ond->oid);
 		if ($i_ond->type == "A") {
@@ -2300,7 +2301,7 @@ function onderdelenlidmuteren($lidid, $p_type="G") {
 	}
 	$f = $ond_f . sprintf(" AND LO.Lid=%d", $lidid);
 	
-	$lorows = $i_lo->lijst(-1, $f, "", "", "", 0);
+	$lorows = $i_lo->lijst(-1, $f, "", "");
 	
 	$kols = null;
 	if ($p_type == "A") {
@@ -2335,7 +2336,7 @@ function onderdelenlidmuteren($lidid, $p_type="G") {
 		$kols[] = array('columnname' => "RecordID", 'headertext' => "&nbsp;", 'onclick' => $oc, 'class' => "trash");
 	}
 	
-	$res = $i_lo->lijst(-1, $f, "", "", "", 0, 0);
+	$res = $i_lo->lijst(-1, $f, "", 0, 0);
 	echo(fnEditTable($res, $kols, "lidond", $typeoms . " " . $i_lo->i_lid->naam));
 
 	if ($lidid > 0) {
