@@ -110,7 +110,6 @@ if ($_GET['op'] == "deletelogin" and isset($_GET['tp']) and $_GET['tp'] == "Behe
 	
 } elseif ($_GET['op'] == "FreeBackupFiles") {
 	fnFreeBackupFiles();
-	
 }
 
 if ($currenttab == "Beheer logins") {
@@ -235,8 +234,8 @@ function beheerautorisatie() {
 	
 	$i_auth = new cls_Authorisation();
 	
-	$tf = $_POST['tekstfilter'] ?? "";
-	$if = $_POST['ingevoerdfilter'] ?? substr($i_auth->min("Ingevoerd"), 0, 10);
+	$tf = $_GET['tekstfilter'] ?? "";
+	$if = $_GET['ingevoerdfilter'] ?? substr($i_auth->min("Ingevoerd"), 0, 10);
 	
 	$i_auth->where = sprintf("Ingevoerd >= '%s'", $if);
 	if (strlen($tf) > 0) {
@@ -244,7 +243,7 @@ function beheerautorisatie() {
 	}
 	$authrows = $i_auth->lijst();
 	
-	printf("<form method='post' id='filter' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $currenttab);
+	printf("<form method='GET' id='filter'>\n<input type='hidden' name='tp' value='%s'>\n", $currenttab);
 	printf("<input type='text' name='tekstfilter' value='%s' title='Filter op tekst' placeholder='Tekstfilter' onBlur='this.form.submit();'>\n", $tf, __FUNCTION__);
 	printf("<label class='form-label'>Ingevoerd na</label><input type='date' name='ingevoerdfilter' value='%s' title='Filter op datum ingevoerd' onBlur='this.form.submit();'>\n", $if);
 	printf("<p class='aantrecords'>%d rijen</p>\n", count($authrows));
@@ -615,13 +614,13 @@ function eigenlijstenmuteren() {
 		$rows = $i_el->lijst();
 		if (count($rows) > 0) {
 			
-			printf("<form method='post' ID='filter' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+			echo("<div id='filter'>\n");
 			echo("<input type='text' title='Filter naam eigen lijst' placeholder='Filter op naam' OnKeyUp=\"fnFilter('overzichteigenlijsten', this);\">\n");
 			if (count($rows) > 2) {
 				printf("<p class='aantrecords'>%d lijsten</p>\n", count($rows));
 			}
 			printf("<button type='submit' class='%s' name='Toevoegen' value='lijst_toevoegen'>%s Eigen lijst</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
-			echo("</form>\n");
+			echo("</div>  <!-- Einde filter -->\n");
 			
 			printf("<table id='overzichteigenlijsten' class='%s'>\n", TABLECLASSES);
 			echo("<tr><th></th><th>Naam</th><th># records</th><th># kolommen</th><th>Tabblad</th><th>Laatste controle</th><th></th></tr>\n");
@@ -877,6 +876,8 @@ function onderhoud() {
 function logboek() {
 	global $TypeActiviteit;
 	
+	$tp = $_GET['tp'] ?? "";
+	
 	$i_lb = new cls_logboek();
 
 	$kols[0]['sortcolumn'] = "RecordID";
@@ -888,45 +889,40 @@ function logboek() {
 	
 	$ord = fnOrderBy($kols);
 	
-	$tbTekstFilter = $_POST['tbTekstFilter'] ?? "";
-	if (!isset($_POST['typefilter']) or strlen($_POST['typefilter']) == 0) {
-		$_POST['typefilter'] = -1;
-	}
-	$_POST['kolomfilter'] = $_POST['kolomfilter'] ?? "";
-	if (!isset($_POST['aantalrijen']) or $_POST['aantalrijen'] < 2) {
-		$_POST['aantalrijen'] = 1500;
-	}
-	$_POST['ingelogdeanderen'] = $_POST['ingelogdeanderen'] ?? 0;
-	$_POST['ingelogdeanderen'] = intval($_POST['ingelogdeanderen']);
+	$tekstfilter = $_GET['tekstfilter'] ?? "";
+	$typefilter = $_GET['typefilter'] ?? -1;
+	$kolomfilter = $_GET['kolomfilter'] ?? "";
+	$aantalrijen = $_GET['aantalrijen'] ?? 1500;
+	$alleeningelogd = $_GET['alleeningelogd'] ?? 0;
 	
 	$f = "";
-	if (strlen($tbTekstFilter) > 1 and $_POST['aantalrijen'] > 1500) {
-		$f = sprintf("Omschrijving LIKE '%%%s%%'", $tbTekstFilter);
+	if (strlen($tekstfilter) > 1 and $aantalrijen >= 1500) {
+		$f = sprintf("Omschrijving LIKE '%%%s%%'", $tekstfilter);
 	}
-	if (strlen($_POST['kolomfilter']) > 0) {
+	if (strlen($kolomfilter) > 0) {
 		if (strlen($f) > 0) {
 			$f .= " AND ";
 		}
-		$f .= sprintf("CONCAT(A.RefTable, '-', A.refColumn)='%s'", $_POST['kolomfilter']);
+		$f .= sprintf("CONCAT(A.RefTable, '-', A.refColumn)='%s'", $kolomfilter);
 	}
-	if ($_POST['ingelogdeanderen'] == 1) {
+	if ($alleeningelogd == 1) {
 		if (strlen($f) > 0) {
 			$f .= " AND ";
 		}
 		$f .= "A.LidID > 0";
 	}
-	$rows = $i_lb->lijst($_POST['typefilter'], 0, 0, $f, $ord, $_POST['aantalrijen']);
+	$rows = $i_lb->lijst($typefilter, 0, 0, $f, $ord, $aantalrijen);
 	
-	printf("<form class='form-check form-switch' method='post' id='filter' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+	printf("<form class='form-check form-switch' method='GET' id='filter'>\n<input type='hidden' name='tp' value='%s'>\n", $tp);
 	
-	printf("<input type='text' id='tbTekstFilter' name='tbTekstFilter' title='Filter tabel' value='%s' placeholder='Tekst filter' OnKeyUp=\"fnFilter('%s', this);\">\n", $tbTekstFilter, __FUNCTION__);
+	printf("<input type='text' id='tbTekstFilter' name='tekstfilter' title='Filter tabel' value='%s' placeholder='Tekst filter' OnKeyUp=\"fnFilter('%s', this);\">\n", $tekstfilter, __FUNCTION__);
 	
 	echo("<select name='typefilter' class='form-select form-select-sm' onchange='this.form.submit();'>\n");
 	echo("<option value=-1>Filter op type ....</option>\n");
 	foreach ($TypeActiviteit as $key => $val) {
 		$f = sprintf("TypeActiviteit=%d", $key);
 		if ($i_lb->aantal($f) > 0) {
-			printf("<option value=%d %s>%s</option>\n", $key, checked($key, "option", $_POST['typefilter']), $val);
+			printf("<option value=%d %s>%s</option>\n", $key, checked($key, "option", $typefilter), $val);
 		}
 	}
 	echo("</select>\n");
@@ -938,7 +934,7 @@ function logboek() {
 		$f .= sprintf(" AND TypeActiviteit=%d", $_POST['typefilter']);
 	}
 	foreach ($i_lb->uniekelijst("A.RefTable, A.refColumn", $f) as $row) {
-		printf("<option value='%1\$s-%2\$s' %3\$s>%1\$s->%2\$s</option>\n", $row->RefTable, $row->refColumn, checked($row->RefTable . "-" . $row->refColumn, "option", $_POST['kolomfilter']));
+		printf("<option value='%1\$s-%2\$s' %3\$s>%1\$s->%2\$s</option>\n", $row->RefTable, $row->refColumn, checked($row->RefTable . "-" . $row->refColumn, "option", $kolomfilter));
 	}
 	echo("</select>\n");
 	
@@ -948,12 +944,12 @@ function logboek() {
 	$va = 0;
 	foreach (array(25, 100, 250, 750, 1500, 3000, 10000, 25000, 50000) as $a) {
 		if ($ta > $va) {
-			$options .= sprintf("<option value=%d %s>%s</option>\n", $a, checked($a, "option", $_POST['aantalrijen']), number_format($a, 0, ",", "."));
+			$options .= sprintf("<option value=%d %s>%s</option>\n", $a, checked($a, "option", $aantalrijen), number_format($a, 0, ",", "."));
 		}
 		$va = $a;
 	}
 	printf("<span><label class='form-label'>Aantal rijen</label><select name='aantalrijen' class='form-select form-select-sm' OnChange='this.form.submit();'>%s</select></span>\n", $options);
-	printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' name='ingelogdeanderen'%s value=1 onClick='this.form.submit();'>Alleen ingelogde</label>\n", checked($_POST['ingelogdeanderen']));
+	printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' name='alleeningelogd'%s value=1 onClick='this.form.submit();'>Alleen ingelogde</label>\n", checked($alleeningelogd));
 	
 	if (count($rows) > 1) {
 		printf("<p class='aantrecords'>%s van %s rijen</p>\n", number_format(count($rows), 0, ",", "."), number_format($i_lb->aantal(), 0, ",", "."));
