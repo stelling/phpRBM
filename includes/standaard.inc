@@ -57,28 +57,28 @@ define("DTLONGSEC", "d MMMM yyyy (HH:mm:ss)");
 define("DTLONGWDSEC", "EEEE d MMMM yyyy (HH:mm:ss)");
 define("DTHMS", "HH:mm:ss");
 
-define("ICONBEWAAR", "<i class='bi bi-floppy' alt='Bewaren' title='Bewaren'></i>");
+define("ICONBEWAAR", "<i class='bi bi-floppy' title='Bewaren'></i>");
 define("ICONCHECK", "<i class='bi bi-check'></i>");
-define("ICONLEDEN", "<i class='bi bi-people' alt='Leden' title='Leden'></i></i>");
+define("ICONLEDEN", "<i class='bi bi-people' title='Leden'></i></i>");
 define("ICONLIJST", "<i class='bi bi-file-earmark-spreadsheet'></i>");
 define("ICONLOGIN", "<i class='bi bi-arrow-right-circle'></i>");
-define("ICONMISLUKT", "<i class='bi bi-x-circle' alt='mislukt'></i>");
-define("ICONMUTEER", "<i class='bi bi-pencil-square' alt='Muteren' title='Muteren'></i>");
+define("ICONMISLUKT", "<i class='bi bi-x-circle' title='mislukt'></i>");
+define("ICONMUTEER", "<i class='bi bi-pencil-square' title='Muteren'></i>");
 define("ICONOVERZICHT", "<i class='bi bi-card-text'></i>");
-define("ICONPDF", "<i class='bi bi-file-earmark-pdf' alt='PDF' title='Toon PDF'></i>");
+define("ICONPDF", "<i class='bi bi-file-earmark-pdf' title='Toon PDF'></i>");
 define("ICONPRINT", "<i class='bi bi-printer'></i>");
-define("ICONSLUIT", "<i class='bi bi-door-closed' alt='Sluiten' title='Bewaren en sluiten'></i>");
+define("ICONSLUIT", "<i class='bi bi-door-closed' title='Bewaren en sluiten'></i>");
 define("ICONSUBMIT", "<i class='bi bi-arrow-right-circle-fill'></i>");
-define("ICONTOEVOEGEN", "<i class='bi bi-plus-circle' alt='Toevoegen' title='Toevoegen'></i>");
-define("ICONVERSTUUR", "<i class='bi bi-envelope-at' alt='Versturen'></i>");
-define("ICONUNLOCK", "<i class='bi bi-unlock' alt='Vrijgeven'></i>");
-define("ICONVERVERS", "<i class='bi bi-arrow-clockwise' alt='Ververs' title='Ververs scherm'></i>");
-define("ICONVERWERK", "<i class='bi bi-check2-square' alt='Verwerk'></i>");
-define("ICONVERWIJDER", "<i class='bi bi-trash' alt='Verwijderen' title='Verwijderen'></i>");
-define("ICONVOLGENDE", "<i class='bi bi-skip-forward-circle' alt='Volgende'></i>");
-define("ICONVOORBEELD", "<i class='bi bi-eye' alt='Voorbeeld'></i>");
-define("ICONVORIGE", "<i class='bi bi-skip-backward-circle' alt='Vorige'></i>");
-define("ICONZEVEN", "<i class='bi bi-7-circle' alt='7'></i>");
+define("ICONTOEVOEGEN", "<i class='bi bi-plus-circle' title='Toevoegen'></i>");
+define("ICONVERSTUUR", "<i class='bi bi-envelope-at' title='Versturen'></i>");
+define("ICONUNLOCK", "<i class='bi bi-unlock' title='Vrijgeven'></i>");
+define("ICONVERVERS", "<i class='bi bi-arrow-clockwise' title='Ververs scherm'></i>");
+define("ICONVERWERK", "<i class='bi bi-check2-square' title='Verwerk'></i>");
+define("ICONVERWIJDER", "<i class='bi bi-trash' title='Verwijderen'></i>");
+define("ICONVOLGENDE", "<i class='bi bi-skip-forward-circle' title='Volgende'></i>");
+define("ICONVOORBEELD", "<i class='bi bi-eye' title='Voorbeeld'></i>");
+define("ICONVORIGE", "<i class='bi bi-skip-backward-circle' title='Vorige'></i>");
+define("ICONZEVEN", "<i class='bi bi-7-circle'></i>");
 
 if (isset($classbutton) and strlen($classbutton) > 0) {
 	define("CLASSBUTTON", $classbutton);
@@ -678,6 +678,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					$kol_class = sprintf(" class='%s'", $kols[$k]['class']);
 				} else {
 					$kol_class = "";
+					$kols[$k]['class'] = "";
 				}
 				
 				if (isset($kols[$k]['skip']) and $kols[$k]['skip'] == true) {
@@ -759,10 +760,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					$kol_edit = $kols[$kn]['edit'];
 				}
 				$kol_link = "";
-				$kol_class = "";
-				if (isset($kols[$kn]['class'])) {
-					$kol_class = $kols[$kn]['class'];
-				}
+				$kol_class = $kols[$kn]['class'];
 				
 				if (isset($kols[$kn]['type'])) {
 					$kol_type = $kols[$kn]['type'];
@@ -795,7 +793,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 							$kol_link .= "<i class='bi bi-chevron-double-down'></i></a>";
 							
 						} elseif ($kol_class === "detailslid") {
-							$kol_link .= "<i class='bi bi-person-lines-fill' alt='Details lid' title='Gegevens van het lid'></i></a>";
+							$kol_link .= "<i class='bi bi-person-lines-fill' title='Gegevens van het lid'></i></a>";
 							
 						} elseif ($kol_class === "pdf") {
 							$kol_link .= sprintf("%s</a>", ICONPDF);
@@ -804,13 +802,13 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 							$kol_link .= sprintf("%s</a>", ICONLEDEN);
 							
 						} elseif ($kol_class == "muteren") {
-							$kol_link .= "<i class='bi bi-pencil-square' alt='Muteren' title='Muteren'></i></a>";
+							$kol_link .= "<i class='bi bi-pencil-square' title='Muteren'></i></a>";
 							
 						} elseif ($kol_class == "sendmail") {
-							$kol_link .= "<i class='bi bi-envelope-at' alt='Verstuur e-mail' title='Verstuur e-mail'></i></a>";
+							$kol_link .= "<i class='bi bi-envelope-at' title='Verstuur e-mail'></i></a>";
 							
 						} elseif ($kol_class == "viewmail") {
-							$kol_link .= "<i class='bi bi-file-text' alt='Bekijk e-mail' title='Bekijk e-mail'></i></a>";
+							$kol_link .= "<i class='bi bi-file-text' title='Bekijk e-mail'></i></a>";
 							
 						} elseif ($kol_class == "verwerk") {
 							$kol_link .= sprintf("%s</a>", ICONVERWERK);
@@ -908,11 +906,21 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					}		
 										
 				} elseif ($kol_type == "int" or $kol_type == "integer") {
-					$ret .= sprintf("<td class='number'>%d</td>", $value);
+					if (strlen($kol_class) == 0) {
+						$kol_class = " class='number'";
+					} else {
+						$kol_class = sprintf(" class='number %s'", $kol['class']);
+					}
+					$ret .= sprintf("<td%s>%d</td>", $kol_class, $value);
 					$ktot[$kn] += intval($value);
 					
 				} elseif ($kol_type == "currency" or $kol_type == "bedrag") {
-					$ret .= sprintf("<td class='number'>%s</td>", number_format($value, 2, ",", "."));
+					if (strlen($kol_class) == 0) {
+						$kol_class = " class='number'";
+					} else {
+						$kol_class = sprintf(" class='number %s'", $kol['class']);
+					}
+					$ret .= sprintf("<td%s>%s</td>", $kol_class, number_format($value, 2, ",", "."));
 					$ktot[$kn] += $value;
 
 				} elseif ($kol_type == "boolean" or $kol_type == "checkbox") {
@@ -967,16 +975,16 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 						} else {
 							$t = "";
 						}
-						$ret .= sprintf("<td id='mislukt_%d'%s onClick=\"%s;\" class='%s'>%s</td>", $value, $t,  str_replace("%d", $value, $kol['onclick']), $kol_class, ICONMISLUKT);
+						$ret .= sprintf("<td id='mislukt_%d'%s onClick=\"%s;\"%s>%s</td>", $value, $t,  str_replace("%d", $value, $kol['onclick']), $kol_class, ICONMISLUKT);
 					} else {
 						$ret .= "<td></td>\n";
 					}
 					
 				} elseif ($kol_type == "eml" or $kol_type == "email") {
 					if ($kol_edit == 0) {
-						$ret .= sprintf("<td>%s</td>", fnDispEmail($value, "", 1));
+						$ret .= sprintf("<td%s>%s</td>", $kol_class, fnDispEmail($value, "", 1));
 					} else {
-						$ret .= sprintf("<td><input type='email' name='%s_%d' value='%s' class='email' %s></td>", str_replace(" ", "_", substr($key, 3)), $row->$kol_pk, $value, $js);
+						$ret .= sprintf("<td><input type='email' name='%s_%d' value='%s'%s %s></td>", str_replace(" ", "_", substr($key, 3)), $row->$kol_pk, $value, $kol_class, $js);
 					}
 					
 				} elseif (startwith($key, "pwd")) {
@@ -986,12 +994,15 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 						$ret .= sprintf("<td><input type='password' name='%s_%d'></td>", substr($key, 3), $row->$kol_pk);
 					}
 				} elseif (substr($key, 0, 3) === "num") {
-					$ret .= sprintf("<td class='number'>%s</td>", $value);
+					if (strlen($kol_class) == 0) {
+						$kol_class = " class='number'";
+					}
+					$ret .= sprintf("<td%s>%s</td>", $kol_class, $value);
 				} elseif (substr($key, 0, 3) == "nm2" or $kol_type == "num2") {
 					$ret .= sprintf("<td class='number'>%s</td>", number_format(floatval($value), 2, ",", "."));
 				} elseif ($kol_type == "mrg" or $kol_type == "combitext") {
-					$ret .= sprintf("<td>%s</td>", str_replace(" &amp; ", "<br>", htmlentities($value, ENT_HTML5)));
-					
+					$ret .= sprintf("<td%s>%s</td>", $kol_class, str_replace(" &amp; ", "<br>", htmlentities($value, ENT_HTML5)));
+
 				} elseif ($kol_type == "laatsteMutatie_Naam" and isset($kol['table']) and $value > 0) {
 					$tas = $kol['tas'] ?? -1;
 					$ret .= sprintf("<td>%s</td>", laatstemutatie($kol['table'], $value, $tas, "<br>"));
