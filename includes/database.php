@@ -633,9 +633,9 @@ class cls_db_base {
 		}
 		
 		if ($this->is_kolom_numeriek($p_kolom) == true) {
-			$query = sprintf("SELECT MIN(IFNULL(%1\$s, 0)) FROM %2\$s WHERE (%1\$s IS NOT NULL)", $p_kolom, $this->basefrom);
+			$query = sprintf("SELECT IFNULL(MIN(%1\$s), 0) FROM %2\$s WHERE (%1\$s IS NOT NULL)", $p_kolom, $this->basefrom);
 		} else {
-			$query = sprintf("SELECT MIN(IFNULL(%1\$s, '')) FROM %2\$s WHERE (%1\$s IS NOT NULL)", $p_kolom, $this->basefrom);
+			$query = sprintf("SELECT IFNULL(MIN(%1\$s), '') FROM %2\$s WHERE (%1\$s IS NOT NULL)", $p_kolom, $this->basefrom);
 		}
 		if (strlen($p_filter) > 0 and strlen($this->where) > 0) {
 			$query .= " AND " . $p_filter . " AND " . $this->where;
@@ -4000,15 +4000,11 @@ class cls_Lidond extends cls_db_base {
 	}  # cls_Lidond->aantallid
 	
 	public function lijstperlid($p_lidid, $p_type="*", $p_incltoekomst=0) {
-		
-		if (strlen($p_per) < 10) {
-			$p_per = $this->per;
-		}
-		
+				
 		if ($p_incltoekomst == 1) {
-			$w = sprintf("IFNULL(LO.Opgezegd, '9999-12-31') >= '%1\$s' AND LO.Lid=%2\$d", $p_per, $p_lidid);
+			$w = sprintf("IFNULL(LO.Opgezegd, '9999-12-31') >= '%1\$s' AND LO.Lid=%2\$d", $this->per, $p_lidid);
 		} else {
-			$w = sprintf("LO.Vanaf <= '%1\$s' AND IFNULL(LO.Opgezegd, '9999-12-31') >= '%1\$s' AND LO.Lid=%2\$d", $p_per, $p_lidid);
+			$w = sprintf("LO.Vanaf <= '%1\$s' AND IFNULL(LO.Opgezegd, '9999-12-31') >= '%1\$s' AND LO.Lid=%2\$d", $this->per, $p_lidid);
 		}
 		if ($p_type != "*") {
 			$w .= sprintf(" AND O.`Type`='%s'", $p_type);
@@ -4901,7 +4897,7 @@ class cls_Groep extends cls_db_base {
 		
 		$this->optimize();
 		
-	}  # opschonen
+	}  # cls_Groep->opschonen
 	
 	public function controle() {
 		$i_dp = new cls_Diploma();
@@ -4909,10 +4905,7 @@ class cls_Groep extends cls_db_base {
 		$query = sprintf("SELECT GR.* FROM %s;", $this->basefrom);
 		$result = $this->execsql($query);
 		foreach($result->fetchAll() as $row) {
-			if (strlen($row->Omschrijving) == 0 and $row->DiplomaID > 0) {
-				$i_dp->vulvars($row->DiplomaID);
-				$this->update($row->RecordID, "Omschrijving", $i_dp->naam);
-			} elseif ($row->RecordID == 0) {
+			if ($row->RecordID == 0) {
 				$this->update($row->RecordID, "Starttijd", "NULL");
 				$this->update($row->RecordID, "Eindtijd", "NULL");
 			} elseif (strlen($row->Starttijd) > 0 and validTime($row->Starttijd) == false) {
@@ -5949,7 +5942,7 @@ class cls_Mailing_hist extends cls_db_base {
 		if ($p_srt > 1) {
 			$lm = $_SESSION['settings']['maxmailsperminuut'];
 		} else {
-			$lm = 1500;
+			$lm = 500;
 		}
 		
 		if ($p_mhid > 0) {
@@ -6797,7 +6790,7 @@ class cls_Logboek extends cls_db_base {
 		if ($this->tm == 2 and WEBMASTER == false) {
 			$data['getoond'] = 0;
 		} else {
-			$data['getoond'] = $this->tm;
+			$data['getoond'] = $this->tm ?? 0;
 		}
 		
 		if ($p_autom == 0) {
@@ -10815,6 +10808,7 @@ class cls_Eigen_lijst extends cls_db_base {
 	
 	public $array_params = array();
 	public $alleparamsgevuld = true;
+	public string $url = "";
 	
 	function __construct($p_naam="", $p_elid=-1) {
 		parent::__construct();
@@ -10872,6 +10866,11 @@ class cls_Eigen_lijst extends cls_db_base {
 			}
 			
 			$this->naamlogging = $this->naam;
+			if (strlen($this->tabpage) > 0) {
+				$this->url = filter_var(sprintf("%s?tp=%s/%s", $_SERVER['PHP_SELF'], $this->tabpage, str_replace(" ", "%20", $this->naam)), FILTER_SANITIZE_URL);
+			} else {
+				$this->url = "";
+			}
 		}
 	}  # cls_Eigen_lijst->vulvars
 	
