@@ -359,7 +359,10 @@ if ($_SESSION['lidid'] > 0) {
 		} else {
 			$i_ins->update($rid, $kolom, $newvalue);
 		}
+		
 		$i_ins = null;
+		
+		return $ent . " is aangepast";
 		
 	} elseif ($ent == "add_autorisatie") {
 		$i_aa = new cls_Authorisation();
@@ -395,6 +398,13 @@ if ($_SESSION['lidid'] > 0) {
 		$rv = IsIBANgoed($iban);
 		echo(json_encode($rv));
 		
+	} elseif ($ent == "setcookie") {
+		$name = $_POST['name'] ?? "";
+		$value = $_POST['value'] ?? "";
+		
+		if (strlen($name) > 1) {
+			setcookie($name, $value, time()+(3600*24*180));
+		}
 	} else {
 		$mess = sprintf("Entiteit '%s' bestaat niet in ajax_update.php.", $ent);
 		(new cls_Logboek())->add($mess, 15, $_SESSION['lidid'], 1, 0, 9);

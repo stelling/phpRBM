@@ -6,11 +6,11 @@ function fnFilter(p_table, p_filtercontrol, p_skipkolom=-1) {
 	} else {
 		filter = p_filtercontrol.value.toUpperCase().trim();
 	}
-	if (filter.length > 2) {
-		table = document.getElementById(p_table);
-		tbody = table.getElementsByTagName("tbody")[0];
-		tr = tbody.getElementsByTagName("tr");
-
+	
+	table = document.getElementById(p_table);
+	tbody = table.getElementsByTagName("tbody")[0];
+	tr = tbody.getElementsByTagName("tr");
+	if (filter.length > 0) {
 		for (i = 0; i < tr.length; i++) {
 			var hideline = true;
 			for (j = 0; j < tr[i].getElementsByTagName("td").length; j++) {
@@ -76,9 +76,9 @@ function savedata(entity, rid, control) {
 		data: { field: field_name, value: value, id: rid },
         dataType: "json",
         success: function(data) {
-			if (data.length > 4) {
-				alert(data);
-			}
+//			if (data.length > 4) {
+				alert(field_name + ' is bijgewerkt.');
+//			}
 			return data;
         },
 		fail: function( data, textStatus ) {
@@ -309,6 +309,89 @@ function loperlidprops() {
 			$('#tablelidond > tbody').append(reshtml);
 		}
 	});
+}
+
+function setkolommen(p_tl="ledenlijst") {
+	
+	var cookie = "";
+	
+	if ($('#toonadres').prop('checked')) {
+		$("th.adres, td.adres").css('display', '');
+		$("th.postcode, td.postcode").css('display', '');
+		$("th.woonplaats, td.woonplaats").css('display', '');
+		cookie = "adres";
+	} else {
+		$("th.adres, td.adres").css('display', 'none');
+		$("th.postcode, td.postcode").css('display', 'none');
+		$("th.woonplaats, td.woonplaats").css('display', 'none');
+	}
+	
+	if ($('#toontelefoon').prop('checked')) {
+		$("th.telefoon, td.telefoon").css('display', '');
+		cookie = cookie.concat(" telefoon");
+	} else {
+		$("th.telefoon, td.telefoon").css('display', 'none');
+	}
+	
+	if ($('#toonemail').prop('checked')) {
+		$("th.email, td.email").css('display', '');
+		cookie = cookie.concat(" email");
+	} else {
+		$("th.email, td.email").css('display', 'none');
+	}
+	
+	if ($('#toongeboren').prop('checked')) {
+		$("th.gebdatum, td.gebdatum").css('display', '');
+		cookie = cookie.concat(" geboren");
+	} else {
+		$("th.gebdatum, td.gebdatum").css('display', 'none');
+	}
+	
+	if ($('#toonlidnummer').prop('checked')) {
+		$("th.lidnr, td.lidnr").css('display', '');
+		cookie = cookie.concat(" lidnummer");
+	} else {
+		$("th.lidnr, td.lidnr").css('display', 'none');
+	}
+	
+	if ($('#toonvanaf').prop('checked')) {
+		$("th.lidvanaf, td.lidvanaf").css('display', '');
+		cookie = cookie.concat(" vanaf");
+	} else {
+		$("th.lidvanaf, td.lidvanaf").css('display', 'none');
+	}
+	
+	if ($('#toonopgezegd').prop('checked')) {
+		$("th.opgezegd, td.opgezegd").css('display', '');
+		cookie = cookie.concat(" opgezegd");
+	} else {
+		$("th.opgezegd, td.opgezegd").css('display', 'none');
+	}
+	
+	if ($('#toonopmerking').prop('checked')) {
+		$("th.opmerking, td.opmerking").css('display', '');
+		cookie = cookie.concat(" opmerking");
+	} else {
+		$("th.opmerking, td.opmerking").css('display', 'none');
+	}
+	
+	if ($('#toonsportlink').prop('checked')) {
+		$("th.sportlink, td.sportlink").css('display', '');
+		cookie = cookie.concat(" sportlink");
+	} else {
+		$("th.sportlink, td.sportlink").css('display', 'none');
+	}
+	
+	$.ajax({
+		url: 'ajax_update.php?entiteit=setcookie',
+		type: 'post',
+		dataType: 'json',
+		data: { name: p_tl + '_kolommen', value: cookie },
+		fail: function( data, textStatus ) {
+			alert('Het plaatsen van de cookie is niet gelukt: ' + textStatus);
+		}	
+	});
+	
 }
 
 function verwijderkloslid(p_lidid, p_undo=0) {

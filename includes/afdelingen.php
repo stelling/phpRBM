@@ -79,22 +79,14 @@ function afdelingslijst($afdid) {
 	if ($i_lo->i_ond->organisatie == 1) {
 		$arrCB[] = "Sportlink";
 	}
+	$wc = $_COOKIE['afdelingslijst_kolommen'] ?? "";
 	foreach ($arrCB as $k) {
 		$vn = "toon" . strtolower($k);
-		$cn = "afdelingslijst_" . strtolower($vn);
-		if ($_SERVER['REQUEST_METHOD'] == "POST") {
-			if (isset($_POST[$vn]) and $_POST[$vn] == "on") {
-				$$vn = 1;
-			} else {
-				$$vn = 0;
-			}
-			setcookie($cn, $$vn, time()+(3600*24*180));
-		} elseif (isset($_COOKIE[$cn])) {
-			$$vn = intval($_COOKIE[$cn]);
+		if (strpos($wc, strtolower($k)) !== false) {
+			$$vn = 1;
 		} else {
 			$$vn = 0;
 		}
-		$$vn = intval($$vn);
 	}
 	
 	if (toegang($i_lo->i_ond->naam . "/Overzicht lid", 0, 0)) {
@@ -103,21 +95,15 @@ function afdelingslijst($afdid) {
 	}
 	$kols[] = ['headertext' => "Naam lid", 'columnname' => "NaamLid", 'sortcolumn' => "L.Achternaam"];
 	
-	if ($toonadres == 1 and toegang("Woonadres_tonen", 0, 0)) {
+	if (toegang("Woonadres_tonen", 0, 0)) {
 		$kols[] = array('columnname' => "Adres");
 		$kols[] = array('columnname' => "Postcode", 'sortcolumn' => "L.Postcode, L.Huisnr", 'sortcolumndesc' => "L.Postcode DESC, L.Huisnr DESC");
 		$kols[] = array('columnname' => "Woonplaats");
 	}
 	
-	if ($toontelefoon == 1) {
-		$kols[] = ['columnname' => "Telefoon"];
-	}
-	if ($toonemail == 1) {
-		$kols[] = ['columnname' => "Email"];
-	}
-	if ($toongeboren == 1) {
-		$kols[] = array('columnname' => "GEBDATUM", 'headertext' => "Geboren", 'type' => "date");
-	}
+	$kols[] = ['columnname' => "Telefoon"];
+	$kols[] = ['columnname' => "Email"];
+	$kols[] = array('columnname' => "GEBDATUM", 'headertext' => "Geboren", 'type' => "date");
 	
 	$rows = $i_lo->lijst($afdid, 2, "", "");
 
@@ -133,12 +119,12 @@ function afdelingslijst($afdid) {
 		$kols[] = array('columnname' => "Vanaf", 'sortcolumn' => "LO.Vanaf");
 	}
 	
-	if ($toonopgezegd == 1 and count($rows) > 0 and strlen(max(array_column($rows, "Opgezegd"))) > 0) {
+	if (count($rows) > 0 and strlen(max(array_column($rows, "Opgezegd"))) > 0) {
 		$kols[] = array('headertext' => "Tot en met", 'columnname' => "Opgezegd", 'sortcolumn' => "LO.Opgezegd");
 	}
 	
-	if ($i_lo->i_ond->organisatie == 1 and $toonsportlink == 1 and count($rows) > 0 and strlen(max(array_column($rows, "RelnrRedNed"))) > 0) {
-		$kols[] = array('headertext' => "Sportlink ID", 'columnname' => "RelnrRedNed");
+	if ($i_lo->i_ond->organisatie == 1 and count($rows) > 0 and strlen(max(array_column($rows, "RelnrRedNed"))) > 0) {
+		$kols[] = array('headertext' => "Sportlink ID", 'columnname' => "RelnrRedNed", 'class' => "sportlink");
 	}
 	
 	if (toegang("Ledenlijst/Wijzigen lid", 0, 0)) {
@@ -149,11 +135,10 @@ function afdelingslijst($afdid) {
 	printf("<form method='post' id='filter' class='form-check form-switch' action='%s?%s'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
 
 	printf("<input type='text' name='tbTekstFilter' id='tbTekstFilter' placeholder='Tekstfilter' OnKeyUp=\"fnFilter('%s', this);\">\n", __FUNCTION__);
-//	printf("<select name='bezitdiploma' id='bezitdiploma' class='form-select-sm' onchange='this.form.submit();'>\n<option value=-1>Filter op diploma</option>\n%s</select>\n", $i_dp->htmloptions($diplfilter, $afdid));
 
 	foreach ($arrCB as $k) {
 		$vn = "toon" . strtolower($k);
-		printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' name='%s' title='Toon %s'%s onClick='this.form.submit();'>%s</label>\n", $vn, strtolower($k), checked($$vn), $k);
+		printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' id='%s' title='Toon %s'%s onClick=\"setkolommen('afdelingslijst');\">%s</label>\n", $vn, strtolower($k), checked($$vn), $k);
 	}
 	
 	$rows = $i_lo->lijst($afdid, 2, fnOrderBy($kols));
@@ -168,6 +153,12 @@ function afdelingslijst($afdid) {
 			$sel_leden[] = $row->LidID;
 		}
 		$_SESSION['sel_leden'] = $sel_leden;
+		
+		echo("<script>
+				$(document).ready(function() {
+					setkolommen('afdelingslijst');
+				});
+			  </script>\n");		
 	}
 	
 	$i_dp = null;
@@ -260,6 +251,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 	
 	$i_lo = new cls_Lidond($afdid);
 	$i_ak = new cls_afdelingskalender($afdid);
+	$i_ak->where = sprintf("AK.OnderdeelID=%d", $afdid);
 	$i_gr = new cls_Groep($afdid);
 	$i_act = new cls_Activiteit();
 	$i_ld = new cls_Liddipl();
@@ -285,16 +277,16 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 		echo("<div id='groepsindeling'>\n");
 		printf("<h2>%s</h2>\n", $i_lo->i_ond->naam);
 		
-		$toonleeftijd = $_POST['toonleeftijd'] ?? 0;
-		$avg_naam = $_POST['avg_naam'] ?? 0;
-		$toonopmerking = $_POST['toonopmerking'] ?? 0;
+		$toonleeftijd = $_GET['toonleeftijd'] ?? 0;
+		$avg_naam = $_GET['avg_naam'] ?? 0;
+		$toonopmerking = $_GET['toonopmerking'] ?? 0;
 		
-		printf("<form method='post' id='filter' class='form-check form-switch' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+		printf("<form method='GET' id='filter' class='form-check form-switch'>\n<input type='hidden' name='tp' value='%s'>\n", $_GET['tp']);
 		
 		$toonpresentie = 0;
-		$f = sprintf("AK.OnderdeelID=%d AND (SELECT COUNT(*) FROM %sAanwezigheid AS AW WHERE AW.AfdelingskalenderID=AK.RecordID) > 0", $afdid, TABLE_PREFIX);
+		$f = sprintf("(SELECT COUNT(*) FROM %sAanwezigheid AS AW WHERE AW.AfdelingskalenderID=AK.RecordID) > 0", TABLE_PREFIX);
 		if (toegang($currenttab . "/Presentie per lid", 0, 0) and $i_ak->aantal($f) > 0) {
-			$toonpresentie = $_POST['toonpresentie'] ?? $i_ak->komendeles();
+			$toonpresentie = $_GET['toonpresentie'] ?? $i_ak->komendeles();
 			printf("<select name='toonpresentie' class='form-select form-select-sm' OnChange='this.form.submit();'>\n<option value=0>Geen presentie tonen</option>\n%s</select>", $i_ak->htmloptions($afdid, $toonpresentie, $f));
 		}
 		

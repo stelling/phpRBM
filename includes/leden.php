@@ -18,8 +18,8 @@ function fnLedenlijst() {
 	fnDispMenu(2);
 	
 	$_SESSION['val_groep'] = $_SESSION['val_groep'] ?? 0;
-	if (isset($_POST['lbGroepFilter'])) {
-		$_SESSION['val_groep'] = $_POST['lbGroepFilter'];
+	if (isset($_GET['lbGroepFilter'])) {
+		$_SESSION['val_groep'] = $_GET['lbGroepFilter'];
 	}
 	
 	if (isset($_GET['p_lidid']) and $_GET['p_lidid'] > 0 and isset($_GET['op']) and $_GET['op'] == "verwijder") {
@@ -87,25 +87,18 @@ function fnLedenlijst() {
 			$arrCB[] = "opmerking";
 		}
 		
+		$wc = $_COOKIE['ledenlijst_kolommen'] ?? "";
 		foreach ($arrCB as $k) {
 			$vn = "toon" . $k;
-			$cn = "ledenlijst_" . $vn;
-			if ($_SERVER['REQUEST_METHOD'] == "POST") {
-				if (isset($_POST[$vn]) and $_POST[$vn] == "on") {
-					$$vn = 1;
-				} else {
-					$$vn = 0;
-				}
-				setcookie($cn, $$vn, time()+(3600*24*180));
-			} elseif (isset($_COOKIE[$cn])) {
-				$$vn = intval($_COOKIE[$cn]);
+			if (strpos($wc, $k) !== false) {
+				$$vn = 1;
 			} else {
 				$$vn = 0;
 			}
-			$$vn = intval($$vn);
 		}
 		
-		printf("<form method='post' id='filter' class='form-check form-switch' action='%s?%s'>\n", $_SERVER["PHP_SELF"], $_SERVER["QUERY_STRING"]);
+		printf("<form method='GET' id='filter' class='form-check form-switch'>\n");
+		printf("<input type='hidden' name='tp' value='%s'>\n", $_GET['tp']);
 		echo("<input type='text' name='tbTekstFilter' id='tbTekstFilter' placeholder='Tekstfilter' OnKeyUp=\"fnFilter('ledenlijst', this);\" title='Tekstfilter'>\n");
 
 		if ($currenttab2 == "Leden") {
@@ -120,37 +113,28 @@ function fnLedenlijst() {
 			}
 			printf("<select id='lbgroepfilter' name='lbGroepFilter' class='form-select form-select-sm' title='Filter op onderdeel' onchange='this.form.submit();'>\n<option value=0>Filter op onderdeel</option>\n%s</select>\n", $options);
 		}
-//		echo("<div class='form-check form-switch'>\n");
+		
 		if (in_array("adres", $arrCB)) {
-			printf("<label class='form-check-label'><input type='checkbox' class='form-check-input'  name='toonadres' title='Toon adres'%s onClick='this.form.submit();'>Adres</label>\n", checked($toonadres));
+			printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' id='toonadres' title='Toon adres'%s onClick='setkolommen();'>Adres</label>\n", checked($toonadres));
 		} else {
 			$toonadres = 0;
 		}
-		printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' name='toontelefoon' title='Toon telefoon'%s onClick='this.form.submit();'>Telefoon</label>\n", checked($toontelefoon));
-		printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' name='toonemail' title='Toon e-mail'%s onClick='this.form.submit();'>E-mail</label>\n", checked($toonemail));
-		
-		printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' name='toongeboren' title='Toon e-mail'%s onClick='this.form.submit();'>Geboren</label>\n", checked($toongeboren));
+		printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' id='toontelefoon' title='Toon telefoon'%s onClick='setkolommen();'>Telefoon</label>\n", checked($toontelefoon));
+		printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' id='toonemail' title='Toon e-mail'%s onClick='setkolommen();'>E-mail</label>\n", checked($toonemail));
+		printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' id='toongeboren' title='Toon e-mail'%s onClick='setkolommen();'>Geboren</label>\n", checked($toongeboren));
 		
 		if (in_array("lidnummer", $arrCB)) {
-			printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' name='toonlidnummer' title='Toon lidnummer'%s onClick='this.form.submit();'>Lidnr</label>\n", checked($toonlidnummer));
-		} else {
-			$toonlidnummer = 0;
+			printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' id='toonlidnummer' title='Toon lidnummer'%s onClick='setkolommen();'>Lidnr</label>\n", checked($toonlidnummer));
 		}
 		if (in_array("vanaf", $arrCB)) {
-			printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' name='toonvanaf' title='Toon vanaf'%s onClick='this.form.submit();'>Vanaf</label>\n", checked($toonvanaf));
-		} else {
-			$toonvanaf = 0;
+			printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' id='toonvanaf' title='Toon vanaf'%s onClick='setkolommen();'>Vanaf</label>\n", checked($toonvanaf));
 		}
 		if (in_array("opgezegd", $arrCB)) {
-			printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' name='toonopgezegd' title='Toon opgezegd'%s onClick='this.form.submit();'>Opgezegd</label>\n", checked($toonopgezegd));
-		} else {
-			$toonopgezegd = 0;
+			printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' id='toonopgezegd' title='Toon opgezegd'%s onClick='setkolommen();'>Opgezegd</label>\n", checked($toonopgezegd));
 		}
 		
 		if (in_array("opmerking", $arrCB)) {
-			printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' name='toonopmerking' title='Toon opmerking'%s onClick='this.form.submit();'>Opmerking</label>\n", checked($toonopmerking));
-		} else {
-			$toonopmerking = 0;
+			printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' id='toonopmerking' title='Toon opmerking'%s onClick='setkolommen();'>Opmerking</label>\n", checked($toonopmerking));
 		}
 		
 		if (toegang("Ledenlijst/Overzicht lid", 0, 0)) {
@@ -159,26 +143,15 @@ function fnLedenlijst() {
 		}
 		$kols[1]['columnname'] = "NaamLid";
 		$kols[1]['headertext'] = "Naam";
+		$kols[2]['columnname'] = "Adres";
+		$kols[3]['columnname'] = "Postcode";
+		$kols[4]['columnname'] = "Woonplaats";
 		
-		if ($toonadres == 1) {
-			$kols[2]['columnname'] = "Adres";
-			$kols[3]['columnname'] = "Postcode";
-			$kols[4]['columnname'] = "Woonplaats";
-		}
-		
-		if ($toontelefoon == 1) {
-			$kols[5]['columnname'] = "Telefoon";
-		}
-		if ($toonemail == 1) {
-			$kols[6] = ['columnname' => "Email", 'headertext' => "E-mail", 'type' => "email"];
-		}
-		if ($toongeboren == 1) {
-			$kols[7] = ['columnname' => "GEBDATUM", 'headertext' => "Geb. datum", 'type' => "date", 'sortcolumn' => "L.GEBDATUM"];
-		}
-		if ($toonopmerking == 1) {
-			$kols[8]['columnname'] = "Opmerking";
-		}
+		$kols[5]['columnname'] = "Telefoon";
+		$kols[6] = ['columnname' => "Email", 'headertext' => "E-mail", 'type' => "email", 'class' => "email"];
+		$kols[7] = ['columnname' => "GEBDATUM", 'headertext' => "Geb. datum", 'type' => "date", 'sortcolumn' => "L.GEBDATUM"];
 		if ($currenttab2 == "Klosleden") {
+			$kols[]['columnname'] = "Opmerking";
 			$sq = sprintf("SELECT GROUP_CONCAT(DISTINCT O.Kode SEPARATOR '/') FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE LO.Lid=%%d AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()", TABLE_PREFIX);
 			$kols[] = array('columnname' => "RecordID", 'headertext' => "Ond.", 'type' => "subqry", 'class' => "onderdelen", 'subqry' => $sq);
 			
@@ -186,15 +159,9 @@ function fnLedenlijst() {
 			$kols[] = array('columnname' => "RecordID", 'headertext' => "&nbsp;", 'link' => $l, 'class' => "trash");
 			
 		} else {
-			if ($toonlidnummer == 1) {
-				$kols[10] = ['columnname' => "Lidnr", 'headertext' => "Lidnummer", 'type' => "integer", 'sortcolumn' => "LM.Lidnr"];
-			}
-			if ($toonvanaf == 1) {
-				$kols[11] = ['columnname' => "LIDDATUM", 'headertext' => "Lid vanaf", 'type' => "date", 'sortcolumn' => "LM.LIDDATUM"];
-			}
-			if ($toonopgezegd == 1) {
-				$kols[12] = ['columnname' => "Opgezegd", 'headertext' => "Opgezegd per", 'type' => "date", 'sortcolumn' => "LM.Opgezegd"];
-			}
+			$kols[] = ['columnname' => "Lidnr", 'headertext' => "Lidnummer", 'type' => "integer", 'sortcolumn' => "LM.Lidnr", 'class' => "number lidnr"];
+			$kols[] = ['columnname' => "LIDDATUM", 'headertext' => "Lid vanaf", 'type' => "date", 'sortcolumn' => "LM.LIDDATUM", 'class' => "lidvanaf"];
+			$kols[] = ['columnname' => "Opgezegd", 'headertext' => "Opgezegd per", 'type' => "date", 'sortcolumn' => "LM.Opgezegd", 'class' => "opgezegd"];
 			if ($currenttab2 == "Leden") {
 				$sq = sprintf("SELECT GROUP_CONCAT(DISTINCT O.Kode SEPARATOR '/') FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE (O.Type='A' OR O.Kader=1) AND LO.Lid=%%d AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE()", TABLE_PREFIX);
 				$kols[] = ['columnname' => "RecordID", 'headertext' => "Afd./Kader", 'type' => "subqry", 'subqry' => $sq, 'class' => "afdkader"];
@@ -220,6 +187,7 @@ function fnLedenlijst() {
 					$(document).ready(function() {
 						el = $('#tbTekstFilter');
 						fnFilter('ledenlijst', el.val());
+						setkolommen();
 					});
 				  </script>\n");
 		} else {
