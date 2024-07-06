@@ -45,6 +45,7 @@ define("ARRKLEDINGMAAT", array("", "XS", "S", "M", "L", "XL", "XXL"));
 define("ATTRCODEELEMENT", "autocomplete='off' autocorrect='off' autocapitalize='off' spellcheck='false'");
 define("BEWAARTIJDNIEUWERECORDS", 120);
 define("TABLECLASSES", "table table-bordered table-hover border-primary");
+define("OPTIONSCOOKIES", array('expires' => time()+(3600*24*90), 'samesite' => 'Strict'));
 
 define("DTSHORT", "dd-MM-yyyy");
 define("DTDAYMONTH", "d MMMM");
@@ -633,19 +634,25 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 			ksort($kols);
 		
 			foreach ($kols as $k => $kol) {
+				$kols[$k]['columnname'] = $kols[$k]['columnname'] ?? "";
+				$kols[$k]['headertext'] = $kols[$k]['headertext'] ?? "";
+				$kols[$k]['type'] = $kols[$k]['type'] ?? "text";
+				$kols[$k]['class'] = $kols[$k]['class'] ?? "";
 				
-				if (!isset($kol['columnname']) and !isset($kol['headertext']) and !isset($kol['subqry'])) {
+				if (strlen($kols[$k]['columnname']) == 0 and strlen($kols[$k]['headertext']) == 0 and !isset($kols[$k]['subqry'])) {
 					$kol['skip'] = true;
+					$kols[$k]['skip'] = true;
 					$iq = false;
 					
 				} else {
-					if (!isset($kol['headertext']) or strlen($kol['headertext']) == 0) {
-						if (isset($kol['link'])) {
-							$kol['headertext'] = "&nbsp;";
+					if (strlen($kols[$k]['headertext']) == 0) {
+						if (isset($kols[$k]['link'])) {
+							$kols[$k]['headertext'] = "&nbsp;";
+							$kols[$k]['type'] = "link";
 						} else {
-							$kol['headertext'] = str_replace("_", " ", $kol['columnname']);
+							$kols[$k]['headertext'] = str_replace("_", " ", $kols[$k]['columnname']);
 						}
-					} elseif (!isset($kol['columnname']) or strlen($kol['columnname']) == 0) {
+					} elseif (strlen($kols[$k]['columnname']) == 0) {
 						$kol['columnname'] = $kol['headertext'];
 						$kols[$k]['columnname'] = $kol['headertext'];
 					}
@@ -671,34 +678,64 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					}
 				}
 				
-				if (isset($kol['class']) and strlen($kol['class']) > 0) {
-					$kol_class = sprintf(" class='%s'", $kol['class']);
-				} elseif (isset($kols[$k]['columnname'])) {
+				if (strlen($kols[$k]['columnname']) > 0 and strlen($kols[$k]['class']) == 0) {
 					$kols[$k]['class'] = strtolower(str_replace(" ", "_", $kols[$k]['columnname']));
-					$kol_class = sprintf(" class='%s'", $kols[$k]['class']);
-				} else {
-					$kol_class = "";
-					$kols[$k]['class'] = "";
 				}
 				
 				if (isset($kols[$k]['skip']) and $kols[$k]['skip'] == true) {
 					$kol['skip'] = true;
 					
 				} elseif ($iq) {
-					if (!isset($kol['headertext'])) {
-						$kol['headertext'] = "";
-					} elseif (substr($kol['headertext'], 0, 3) == "boo") {
-						$kol['headertext'] = substr($kol['headertext'], 3);
+					if (substr($kols[$k]['headertext'], 0, 3) == "boo") {
+						$kols[$k]['headertext'] = substr($kol['headertext'], 3);
 						$kols[$k]['type'] = "boolean";
-					} elseif (substr($kol['headertext'], 0, 3) == "int") {
-						$kol['headertext'] = substr($kol['headertext'], 3);
+					} elseif (substr($kols[$k]['headertext'], 0, 3) == "int") {
+						$kols[$k]['headertext'] = substr($kol['headertext'], 3);
 						$kols[$k]['type'] = "integer";
-					} elseif (substr($kol['headertext'], 0, 3) == "cur") {
-						$kol['headertext'] = substr($kol['headertext'], 3);
-						$kols[$k]['type'] = "currency";
-					} elseif (substr($kol['headertext'], 0, 3) == "dte") {
-						$kol['headertext'] = substr($kol['headertext'], 3);
+					} elseif (substr($kols[$k]['headertext'], 0, 3) == "cur") {
+						$kols[$k]['headertext'] = substr($kol['headertext'], 3);
+						$kols[$k]['type'] = "bedrag";
+					} elseif (substr($kols[$k]['headertext'], 0, 3) == "dte") {
+						$kols[$k]['headertext'] = substr($kol['headertext'], 3);
 						$kols[$k]['type'] = "date";
+					}
+
+					if ($kols[$k]['type'] != "text" and $kols[$k]['type'] != "link") {
+						if (strlen($kols[$k]['class']) > 0) {
+							if (strpos($kols[$k]['class'], $kols[$k]['type']) === false) {
+								$kols[$k]['class'] .= " " . $kols[$k]['type'];
+							}
+						} else {
+							$kols[$k]['class'] = $kols[$k]['type'];
+						}
+					}
+					
+					if (isset($kol['class']) and strlen($kol['class']) > 0) {
+						$kol_class = sprintf(" class='%s'", $kol['class']);
+					} elseif (isset($kols[$k]['columnname'])) {
+						$kols[$k]['class'] = strtolower(str_replace(" ", "_", $kols[$k]['columnname']));
+						$kol_class = sprintf(" class='%s'", $kols[$k]['class']);
+					} else {
+						$kol_class = "";
+					}
+					
+					$t = "";
+					if ($kols[$k]['type'] == "date" or $kols[$k]['type'] == "bedrag") {
+						$ag = 0;
+						foreach (array_column($rows, $kols[$k]['columnname']) as $val) {
+							if ($kols[$k]['type'] == "bedrag" and $val != 0) {
+								$ag++;
+							} elseif (strlen($val) >= 10) {
+								$ag++;
+							}
+						}
+						if ($ag >= 0 and $ag < count($rows)) {
+							if ($ag == 1) {
+								$t = " title='1 rij met waarde'";
+							} else {
+								$t = sprintf(" title='%d rijen met waarde'", $ag);
+							}
+						}
 					}
 					if (isset($kol['sortcolumn'])) {
 						if (isset($_SESSION['huidsort']) and $_SESSION['huidsort'] < 50 and $_SESSION['huidsort'] == $k and $k >= 0) {
@@ -712,18 +749,19 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 							$ct = $currenttab;
 						}
 						$sortlink = sprintf("%s?tp=%s&sort=%d", $_SERVER["PHP_SELF"], $ct, $skn);
-						$ret .= sprintf("<th%s><a href='%s'>%s</a></th>", $kol_class, $sortlink, $kol['headertext']);
+						$ret .= sprintf("<th%s%s><a href='%s'>%s</a></th>", $kol_class, $t, $sortlink, $kols[$k]['headertext']);
 					} else {
-						$ret .= sprintf("<th%s>%s</th>", $kol_class, $kol['headertext']);
+						$ret .= sprintf("<th%s%s>%s</th>", $kol_class, $t, $kols[$k]['headertext']);
 					}
 				} else {
 					$kols[$k]['skip'] = true;
 					$kol['skip'] = true;
 				}
-				if (isset($kol['type']) and $kol['type'] == "pk") {
-					$kol_pk = $kol['columnname'];
+				if ($kols[$k]['type'] == "pk") {
+					$kol_pk = $kols[$k]['columnname'];
 				}
 				$ktot[$k] = 0;
+//				debug($kols[$k]['columnname'] . ": " . $kols[$k]['type']);
 			}
 		}
 		$ret .= "</tr>\n</thead>\n<tbody>\n";
@@ -775,7 +813,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					$row_title = sprintf(" title=\"%s\"", str_replace("\"", "'", $row->{$kols[$kn]['columntitle']}));
 				}
 				
-				if ($kol_type == "link") {
+				if ($kols[$kn]['type'] == "link") {
 					if (startwith($kols[$kn]['link'], "<a href") == true) {
 						$kol_link = $kols[$kn]['link'];
 					} else {
@@ -786,13 +824,13 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 							$kol_link .= " title='Verwijderen'";
 						}
 						$kol_link .= ">";
-						if ($kol_class === "details") {
+						if (substr($kol_class, 0, 7) === "details") {
 							$kol_link .= "<i class='bi bi-file-text'></i></a>";
 							
-						} elseif ($kol_class === "detailregels") {
+						} elseif (substr($kol_class, 0, 12) === "detailregels") {
 							$kol_link .= "<i class='bi bi-chevron-double-down'></i></a>";
 							
-						} elseif ($kol_class === "detailslid") {
+						} elseif (substr($kol_class, 0, 10) === "detailslid") {
 							$kol_link .= "<i class='bi bi-person-lines-fill' title='Gegevens van het lid'></i></a>";
 							
 						} elseif ($kol_class === "pdf") {
@@ -801,7 +839,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 						} elseif ($kol_class == "leden") {
 							$kol_link .= sprintf("%s</a>", ICONLEDEN);
 							
-						} elseif ($kol_class == "muteren") {
+						} elseif (substr($kol_class, 0, 7) == "muteren") {
 							$kol_link .= "<i class='bi bi-pencil-square' title='Muteren'></i></a>";
 							
 						} elseif ($kol_class == "sendmail") {
@@ -832,14 +870,14 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 				if ($kol['skip'] == true) {
 					// Deze kolom moet worden overgeslagen.
 						
-				} elseif ($kol_type == "chk") {
+				} elseif ($kols[$kn]['type'] == "chk") {
 					if ($value == 1) {
 						$ret .= sprintf("<td%s>Ja</td>", kol_class);
 					} else {
 						$ret .= sprintf("<td%s>Nee</td>", kol_class);
 					}
 
-				} elseif ($kol_type == "date" or $kol_type == "DTTEXT") {
+				} elseif ($kols[$kn]['type'] == "date" or $kols[$kn]['type'] == "DTTEXT") {
 					// 1 januari 2020
 					if (strlen($value) > 15 and substr($value, 11, 5) > "00:00") {
 						$dtfmt->setPattern(DTLONG);
@@ -856,7 +894,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 						$ret .= sprintf("<td%s></td>", $kol_class);
 					}
 					
-				} elseif ($kol_type == "dtk" or $kol_type == "dateshort") {
+				} elseif ($kols[$kn]['type'] == "dtk" or $kols[$kn]['type'] == "dateshort") {
 					
 					if ((!is_null($value)) and $value > '1900-01-01') {
 						$ret .= sprintf("<td%s>%s</td>", $kol_class, date('d/m/Y', strtotime($value)));
@@ -870,7 +908,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					} else {
 						$ret .= sprintf("<td%s></td>", $col_class);
 					}
-				} elseif ($kol_type == "dtt" or $kol_type == "datetime" or $kol_type == "DTLONG") {
+				} elseif ($kols[$kn]['type'] == "dtt" or $kols[$kn]['type'] == "datetime" or $kols[$kn]['type'] == "DTLONG") {
 					$dtfmt->setPattern(DTLONG);
 					if ((!is_null($value)) and $value > '1900-01-01' and strlen($kol_pk) > 0) {
 						$ret .= sprintf("<td id='%s_%d'%s>%s</td>", $key, $row->$kol_pk, $kol_class, $dtfmt->format(strtotime($value)));
@@ -880,7 +918,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 						$ret .= sprintf("<td%s></td>", $kol_class);
 					}
 					
-				} elseif ($kol_type == "dts" or $kol_type == "datetimesecond" or $kol_type == "DTLONGSEC") {
+				} elseif ($kols[$kn]['type'] == "dts" or $kols[$kn]['type'] == "datetimesecond" or $kols[$kn]['type'] == "DTLONGSEC") {
 					if ((!is_null($value)) and $value > '1900-01-01' and strtotime($value) !== false) {
 						$dtfmt->setPattern(DTLONGSEC);
 						$ret .= sprintf("<td%s>%s</td>", $kol_class, $dtfmt->format(strtotime($value)));
@@ -890,7 +928,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 						$ret .= sprintf("<td%s></td>", $kol_class);
 					}
 					
-				} elseif ($kol_type == "DTHMS")	{
+				} elseif ($kols[$kn]['type'] == "DTHMS")	{
 					// Tijd met seconden, datum wordt alleen toegevoegd als deze ongelijk is aan vandaag
 					if ((!is_null($value)) and $value > '1900-01-01' and strtotime($value) !== false) {
 						if (date("Y-m-d") == date("Y-m-d", strtotime($value))) {
@@ -905,7 +943,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 						$ret .= sprintf("<td%s></td>", $kol_class);
 					}		
 										
-				} elseif ($kol_type == "int" or $kol_type == "integer") {
+				} elseif ($kols[$kn]['type'] == "int" or $kols[$kn]['type'] == "integer") {
 					if (strlen($kol_class) == 0) {
 						$kol_class = " class='number'";
 					} else {
@@ -915,11 +953,6 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					$ktot[$kn] += intval($value);
 					
 				} elseif ($kol_type == "currency" or $kol_type == "bedrag") {
-					if (strlen($kol_class) == 0) {
-						$kol_class = " class='number'";
-					} else {
-						$kol_class = sprintf(" class='number %s'", $kol['class']);
-					}
 					$ret .= sprintf("<td%s>%s</td>", $kol_class, number_format($value, 2, ",", "."));
 					$ktot[$kn] += $value;
 
@@ -993,11 +1026,6 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					} else {
 						$ret .= sprintf("<td><input type='password' name='%s_%d'></td>", substr($key, 3), $row->$kol_pk);
 					}
-				} elseif (substr($key, 0, 3) === "num") {
-					if (strlen($kol_class) == 0) {
-						$kol_class = " class='number'";
-					}
-					$ret .= sprintf("<td%s>%s</td>", $kol_class, $value);
 				} elseif (substr($key, 0, 3) == "nm2" or $kol_type == "num2") {
 					$ret .= sprintf("<td class='number'>%s</td>", number_format(floatval($value), 2, ",", "."));
 				} elseif ($kol_type == "mrg" or $kol_type == "combitext") {
