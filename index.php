@@ -20,10 +20,11 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 		(new cls_Logboek())->add($mess, 1, 0, 2);
 	} else {
 		$_SESSION['username'] = cleanlogin($_POST['username']);
-		if (isset($_POST['cookie']) and $_POST['cookie'] == 1) {                           
-			setcookie("username", $_SESSION['username'], time()+(3600*24*120));
+		if (isset($_POST['cookie']) and $_POST['cookie'] == 1) {
+			$o = array('expires' => time()+(3600*24*120), 'samesite' => 'Strict', 'secure' => true);
+			setcookie("username", $_SESSION['username'], $o);
 			if (isset($_POST['password']) and strlen($_POST['password']) > 6) {
-				setcookie("password", $_POST['password'], time()+(3600*24*120));
+				setcookie("password", $_POST['password'], $o);
 			}
 		}
 		fnAuthenticatie(1, $_POST['password'], 1);
@@ -708,8 +709,8 @@ function fnMeldingen() {
 			} else {
 				$nm .= ": 1 rij";
 			}
-			if (strlen($i_el->tabpage) > 0 and toegang($i_el->tabpage . "/" . $i_el->naam, 0)) {
-				$rv .= sprintf("<li><a href='%s?tp=%s/%s'>%s</a></li>\n", $_SERVER['PHP_SELF'], $i_el->tabpage, $i_el->naam, $nm);
+			if (strlen($i_el->url) > 0 and toegang($i_el->tabpage . "/" . $i_el->naam, 0)) {
+				$rv .= sprintf("<li><a href='%s'>%s</a></li>\n", $i_el->url, $nm);
 			} else {
 				$rv .= sprintf("<li>%s</li>\n", $nm);
 			}
