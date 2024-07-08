@@ -1165,12 +1165,12 @@ table#afdelingskalendermuteren {
 	padding-right: 2px;
 }
 
-#groepsindeling li.wordtlid, td.wordtlid {
+#groepsindeling li.wordtlid, td.wordtlid, tr.wordtlid {
 	color: #00bfff;
 	font-style: italic;
 }
 
-#groepsindeling li.heeftopgezegd, td.heeftopgezegd {
+#groepsindeling li.heeftopgezegd, td.heeftopgezegd, tr.heeftopgezegd {
 	font-weight: bolder;
 	font-style: italic;
 }
