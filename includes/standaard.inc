@@ -94,7 +94,7 @@ if (strlen($table_prefix) > 0 and substr($table_prefix, -1) != "_") {
 }
 define("TABLE_PREFIX", $table_prefix);
 
-if (isset($httpsverplicht) and $httpsverplicht == 1 and !isset($_SERVER['HTTPS']) and isset($_SERVER['HTTP'])) {
+if (isset($httpsverplicht) and $httpsverplicht == 1 and !isset($_SERVER['HTTPS']) and isset($_SERVER['HTTP_HOST'])) {
 	header(sprintf("location: https:%s", $_SERVER['HTTP_HOST']));
 }
 
@@ -587,8 +587,9 @@ function fnDisplayFormLabels($row, $xtra_eind="", $id="") {
 	return $ret;
 }  # fnDisplayFormLabels
 
-function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $p_id="", $p_class="", $p_selected=-1) {
+function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $p_id="", $p_class="", $p_selected=-1, $p_varrowclass="") {
 	global $currenttab, $currenttab2, $dtfmt;
+	global $i_lo;
 	
 	$ret = "";
 	$kol_pk = "";
@@ -710,8 +711,8 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 						}
 					}
 					
-					if (isset($kol['class']) and strlen($kol['class']) > 0) {
-						$kol_class = sprintf(" class='%s'", $kol['class']);
+					if (isset($kols[$k]['class']) and strlen($kols[$k]['class']) > 0) {
+						$kol_class = sprintf(" class='%s'", $kols[$k]['class']);
 					} elseif (isset($kols[$k]['columnname'])) {
 						$kols[$k]['class'] = strtolower(str_replace(" ", "_", $kols[$k]['columnname']));
 						$kol_class = sprintf(" class='%s'", $kols[$k]['class']);
@@ -770,6 +771,16 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 			$kn = 0;
 			if ($p_selected > 0 and $p_selected == $row->$kol_pk) {
 				$ret .= "<tr class='table-active'>";
+			} elseif (strlen($p_varrowclass) > 0 and strpos($p_varrowclass, "->") !== false) {
+				$in = substr($p_varrowclass, 0, strpos($p_varrowclass, "->"));
+				$vn = substr($p_varrowclass, strpos($p_varrowclass, "->")+2);
+				$$in->vulvars($row->RecordID);
+				$cl = $$in->$vn;
+				if (strlen($cl) > 0) {
+					$ret .= sprintf("<tr class='%s'>", $cl);
+				} else {
+					$ret .= "<tr>";
+				}
 			} else {
 				$ret .= "<tr>";
 			}
@@ -804,6 +815,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					$kol_type = $kols[$kn]['type'];
 				} elseif (isset($kols[$kn]['link'])) {
 					$kol_type = "link";
+					$kols[$kn]['type'] = "link";
 				} else {
 					$kol_type = "text";
 				}
@@ -813,6 +825,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					$row_title = sprintf(" title=\"%s\"", str_replace("\"", "'", $row->{$kols[$kn]['columntitle']}));
 				}
 				
+//				debug($kols[$kn]['columnname'] . " / " . $kols[$kn]['type']);
 				if ($kols[$kn]['type'] == "link") {
 					if (startwith($kols[$kn]['link'], "<a href") == true) {
 						$kol_link = $kols[$kn]['link'];
