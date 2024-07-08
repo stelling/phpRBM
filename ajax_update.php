@@ -403,7 +403,7 @@ if ($_SESSION['lidid'] > 0) {
 		$value = $_POST['value'] ?? "";
 		
 		if (strlen($name) > 1) {
-			setcookie($name, $value, time()+(3600*24*180));
+			setcookie($name, $value, OPTIONSCOOKIES);
 		}
 	} else {
 		$mess = sprintf("Entiteit '%s' bestaat niet in ajax_update.php.", $ent);
