@@ -46,6 +46,7 @@ define("ATTRCODEELEMENT", "autocomplete='off' autocorrect='off' autocapitalize='
 define("BEWAARTIJDNIEUWERECORDS", 120);
 define("TABLECLASSES", "table table-bordered table-hover border-primary");
 define("OPTIONSCOOKIES", array('expires' => time()+(3600*24*90), 'samesite' => 'Strict'));
+define("OPTIONSCOOKIESLOGIN", array('expires' => time()+(3600*24*90), 'samesite' => 'Strict', 'secure' => true));
 
 define("DTSHORT", "dd-MM-yyyy");
 define("DTDAYMONTH", "d MMMM");
