@@ -66,11 +66,11 @@ function fnEvenementen() {
 		}
 		$lijst = $i_ev->lijst(2, "", $in);
 		
-		$l = sprintf("%s?tp=%s&op=edit&eid=%%d' title='Muteer evenement'", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-		$kols[] = ['class' => "muteren", 'columnname' => "RecordID", 'link' => $l];
-		
+		$l = sprintf("%s?tp=%s&op=edit&eid=%%d", $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+		$kols[] = ['columnname' => "RecordID", 'class' => "muteren", 'link' => $l];
+
 		$kols[] = ['columnname' => "Datum", 'type' => "date"];
-		
+
 		$kols[]['columnname'] = "Starttijd";
 		$kols[]['columnname'] = "Omschrijving";
 		$kols[]['columnname'] = "Locatie";
