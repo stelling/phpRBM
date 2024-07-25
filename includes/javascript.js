@@ -355,10 +355,10 @@ function setkolommen(p_tl="ledenlijst") {
 	}
 	
 	if ($('#toonvanaf').prop('checked')) {
-		$("th.lidvanaf, td.lidvanaf").css('display', '');
+		$("th.vanaf, td.vanaf").css('display', '');
 		cookie = cookie.concat(" vanaf");
 	} else {
-		$("th.lidvanaf, td.lidvanaf").css('display', 'none');
+		$("th.vanaf, td.vanaf").css('display', 'none');
 	}
 	
 	if ($('#toonopgezegd').prop('checked')) {
