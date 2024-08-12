@@ -86,7 +86,7 @@ function fnLedenlijst() {
 		if (count($rows) > 0 and strlen(max(array_column($rows, "Opmerking"))) > 0) {
 			$arrCB[] = "opmerking";
 		}
-		
+
 		$wc = $_COOKIE['ledenlijst_kolommen'] ?? "";
 		foreach ($arrCB as $k) {
 			$vn = "toon" . $k;
@@ -159,8 +159,8 @@ function fnLedenlijst() {
 			$kols[] = array('columnname' => "RecordID", 'headertext' => "&nbsp;", 'link' => $l, 'class' => "trash");
 			
 		} else {
-			$kols[] = ['columnname' => "Lidnr", 'headertext' => "Lidnummer", 'type' => "integer", 'sortcolumn' => "LM.Lidnr", 'class' => "number lidnr"];
-			$kols[] = ['columnname' => "LIDDATUM", 'headertext' => "Lid vanaf", 'type' => "date", 'sortcolumn' => "LM.LIDDATUM", 'class' => "lidvanaf"];
+			$kols[] = ['columnname' => "Lidnr", 'headertext' => "Lidnummer", 'type' => "integer", 'sortcolumn' => "LM.Lidnr", 'class' => "lidnr"];
+			$kols[] = ['columnname' => "LIDDATUM", 'headertext' => "Lid vanaf", 'type' => "date", 'sortcolumn' => "LM.LIDDATUM", 'class' => "vanaf"];
 			$kols[] = ['columnname' => "Opgezegd", 'headertext' => "Opgezegd per", 'type' => "date", 'sortcolumn' => "LM.Opgezegd", 'class' => "opgezegd"];
 			if ($currenttab2 == "Leden") {
 				$sq = sprintf("SELECT GROUP_CONCAT(DISTINCT O.Kode SEPARATOR '/') FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE (O.Type='A' OR O.Kader=1) AND LO.Lid=%%d AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE()", TABLE_PREFIX);
@@ -811,7 +811,7 @@ function onderdelenmuteren($ondtype="G") {
 	} else {
 
 		$l = sprintf("%s?tp=%s&Scherm=W&OnderdeelID=%%d", $_SERVER['PHP_SELF'], $_GET['tp'], strtolower(ARRTYPEONDERDEEL[$ondtype]));
-		$kols[] = array('headertext' => "&nbsp;", 'link' => $l, 'class' => "muteren", 'columnname' => "RecordID");
+		$kols[] = array('link' => $l, 'class' => "muteren", 'columnname' => "RecordID");
 		
 		$kols[] = array('headertext' => "Code", 'columnname' => "Kode");
 		$kols[] = array('headertext' => "Naam", 'columnname' => "Naam");
@@ -821,7 +821,7 @@ function onderdelenmuteren($ondtype="G") {
 		$kols[] = array('headertext' => "# leden", 'columnname' => "aantalLeden", 'type' => "integer", 'readonly' => true);
 
 		$l = sprintf("%s?tp=%s&Scherm=L&OnderdeelID=%%d", $_SERVER['PHP_SELF'], $_GET['tp'], strtolower(ARRTYPEONDERDEEL[$ondtype]));
-		$kols[] = array('headertext' => "&nbsp;", 'link' => $l, 'class' => "leden", 'columnname' => "RecordID", 'title' => "Leden muteren", 'columntitle' => 4);
+		$kols[] = array('link' => $l, 'class' => "leden", 'columnname' => "RecordID", 'title' => "Leden muteren", 'columntitle' => 4);
 		
 		if ($ondtype == "M") {
 			printf("<form method='post' id='filter' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
@@ -2882,7 +2882,7 @@ function fnBasisgegevens($p_type) {
 		
 		echo(fnEditTable($fnkres, $kols, "functieedit", "Functies muteren"));
 		
-		$i_ond = null;
+		$i_fnk = null;
 		
 	} elseif ($p_type == "Activiteiten") {
 		$i_act = new cls_Activiteit();
@@ -2903,13 +2903,14 @@ function fnBasisgegevens($p_type) {
 		$kols[] = array('headertext' => "GBR", 'columnname' => "GBR", 'type' => "text");
 		$kols[] = array('headertext' => "Max aantal", 'columnname' => "BeperkingAantal", 'type' => "integer", 'title' => "Hoeveel mag er per seizoen worden gezwommen. 0=alle keren.");
 
-		printf("<form method='post' id='filter' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']); 
+//		printf("<form method='post' id='filter' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+		echo("<form method='post' id='filter'>\n");
 		printf("<button type='submit' class='%s' name='NieuweActiviteit'>%s Activiteit</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
 		echo("</form>\n");
 		
 		echo(fnEditTable($res, $kols, "activiteitedit", "Activiteiten muteren"));
 		
-		$i_ond = null;
+		$i_act = null;
 
 	} elseif ($p_type == "Organisaties") {
 		$i_org = new cls_Organisatie();
@@ -2976,10 +2977,10 @@ function fnBasisgegevens($p_type) {
 
 function presentielijst($p_evenement=0) {
 	
-	$ondid = $_POST['onderdeelid'] ?? 0;
-	$titellijst = $_POST['titellijst'] ?? "";
-	$eventid = $_POST['eventid'] ?? 0;
-	$completedoelgroep = $_POST['completedoelgroep'] ?? 0;
+	$ondid = $_GET['onderdeelid'] ?? 0;
+	$titellijst = $_GET['titellijst'] ?? "";
+	$eventid = $_GET['eventid'] ?? 0;
+	$completedoelgroep = $_GET['completedoelgroep'] ?? 0;
 	
 	$i_ond = new cls_Onderdeel();
 	$i_ev = new cls_Evenement($eventid);
@@ -2988,8 +2989,8 @@ function presentielijst($p_evenement=0) {
 		$titellijst = $i_ev->evoms;
 	}
 	
-	$actionurl = sprintf("%s?tp=%s", $_SERVER['PHP_SELF'], $_GET['tp']);
-	printf("<form method='post' id='filter' class='form-switch' action='%s'>\n", $actionurl);
+	echo("<form method='GET' id='filter' class='form-switch'>\n");
+	printf("<input type='hidden' name='tp' value='%s'>\n", $_GET['tp']);
 	if ($p_evenement == 0) {
 		printf("<select name='onderdeelid' class='form-select form-select-sm' onChange='this.form.submit();'><option value=0>Selecteer groep ...</option>\n%s</select>\n", $i_ond->htmloptions($ondid, 1));
 	}
