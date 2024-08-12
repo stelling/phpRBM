@@ -162,6 +162,10 @@ p.error {
 	font-weight: bold;
 }
 
+input.readonly {
+	background-color: #e8eaea;
+}
+
 span {
 	white-space: nowrap;
 	display: inline-block;
@@ -2382,6 +2386,13 @@ label#lblKostenplaats, label#lblKostenplaatsGezinskorting {
 #onderdelenmuteren h1 {
 	color: #000080;
 	text-align: center;
+}
+
+#onderdelenmuteren h2 {
+	color: var(--label-text-color);
+	background-color: var(--label-background-color);
+	text-align: center;
+	width: 100%;
 }
 
 #onderdelenmuteren select {
