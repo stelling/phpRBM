@@ -63,14 +63,16 @@ function fnLedenlijst() {
 			$sl = 0;
 		}
 		
+		/*
 		$kols[1]['sortcolumn'] = "L.Achternaam";
 		$kols[3]['sortcolumn'] = "CONCAT(L.Postcode, CONVERT(L.Huisnr, VARCHAR(8)), L.Huisletter)";
 		$kols[7]['sortcolumn'] = "L.GEBDATUM";
 		$kols[10]['sortcolumn'] = "LM.Lidnr";
 		$kols[11]['sortcolumn'] = "LM.LIDDATUM";
 		$kols[12]['sortcolumn'] = "LM.Opgezegd";
+		*/
 			
-		$rows = $i_lid->ledenlijst($sl, $_SESSION['val_groep'], fnOrderBy($kols));
+		$rows = $i_lid->ledenlijst($sl, $_SESSION['val_groep']);
 		
 		$arrCB = array("telefoon", "email", "geboren");
 		if (toegang("Woonadres_tonen", 0, 0)) {
@@ -139,17 +141,14 @@ function fnLedenlijst() {
 		
 		if (toegang("Ledenlijst/Overzicht lid", 0, 0)) {
 			$l = "index.php?tp=Ledenlijst/Overzicht+lid&lidid=%d";
-			$kols[0] = array('columnname' => "RecordID", 'link' => $l, 'class' => "detailslid");
+			$kols[] = array('columnname' => "RecordID", 'link' => $l, 'class' => "detailslid");
 		}
-		$kols[1]['columnname'] = "NaamLid";
-		$kols[1]['headertext'] = "Naam";
-		$kols[2]['columnname'] = "Adres";
-		$kols[3]['columnname'] = "Postcode";
-		$kols[4]['columnname'] = "Woonplaats";
-		
-		$kols[5]['columnname'] = "Telefoon";
-		$kols[6] = ['columnname' => "Email", 'headertext' => "E-mail", 'type' => "email", 'class' => "email"];
-		$kols[7] = ['columnname' => "GEBDATUM", 'headertext' => "Geb. datum", 'type' => "date", 'sortcolumn' => "L.GEBDATUM"];
+		$kols[] = array('columnname' => "NaamLid", 'headertext' => "Naam", 'sortcolumn' => "L.Achternaam");
+		$kols[] = array('columnname' => "Adres", 'columnname' => "Postcode");
+		$kols[] = array('columnname' => "Woonplaats", 'sortcolumn' => "Woonplaats");
+		$kols[] = array('columnname' => "Telefoon");
+		$kols[] = array('columnname' => "Email", 'headertext' => "E-mail", 'type' => "email", 'class' => "email");
+		$kols[] = array('columnname' => "GEBDATUM", 'headertext' => "Geb. datum", 'type' => "date", 'sortcolumn' => "L.GEBDATUM");
 		if ($currenttab2 == "Klosleden") {
 			$kols[]['columnname'] = "Opmerking";
 			$sq = sprintf("SELECT GROUP_CONCAT(DISTINCT O.Kode SEPARATOR '/') FROM %1\$sLidond AS LO INNER JOIN %1\$sOnderdl AS O ON O.RecordID=LO.OnderdeelID WHERE LO.Lid=%%d AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()", TABLE_PREFIX);
@@ -170,6 +169,8 @@ function fnLedenlijst() {
 		if (toegang("Ledenlijst/Wijzigen lid", 0, 0)) {
 			$kols[] = ['columnname' => "RecordID", 'link' => "index.php?tp=Ledenlijst/Wijzigen+lid/Algemene+gegevens&lidid=%d", 'class' => 'muteren'];
 		}
+		
+		$rows = $i_lid->ledenlijst($sl, $_SESSION['val_groep'], fnOrderBy($kols));
 				
 		if (count($rows) > 1) {
 			printf("<p class='aantrecords'>%d %s</p>\n", count($rows), $currenttab2);
@@ -979,7 +980,7 @@ function LedenOnderdeelMuteren($p_ondid) {
 		printf("<form method='post' action='%s?tp=%s&OnderdeelID=%d&Scherm=L'>\n", $_SERVER['PHP_SELF'], $_GET['tp'], $i_ond->oid);
 		echo("<input type='hidden' name='formname' value='muteren_leden_onderdeel'>\n");
 		if ($i_ond->isautogroep == false) {
-			$nl = sprintf("<select name='add_lid' class='form-select form-select-sm' onChange='this.form.submit();'>\n");
+			$nl = sprintf("<select name='add_lid' class='form-select' onChange='this.form.submit();'>\n");
 			if ($i_ond->alleenleden == 1) {
 				$nl .= sprintf("<option value=0>Lid toevoegen ...</option>\n");
 			} else {
@@ -1024,7 +1025,7 @@ function LedenOnderdeelMuteren($p_ondid) {
 		$kols[4] = ['headertext' => "Opmerking", 'columnname' => "Opmerk"];
 		
 		if ($i_ond->type != "E" and $i_ond->type != "T") {
-			$kols[] = array('headertext' => "Tot en met", 'type' => "date");
+			$kols[] = array('columnname' => "Opgezegd", 'headertext' => "Tot en met", 'type' => "date");
 		} else {
 			$kols[1]['readonly'] = true;
 		}
@@ -1736,12 +1737,13 @@ function algemeenlidmuteren($lidid) {
 	$i_lm->vulvars(-1, $lidid);
 //	printf("<form method='post' id='%s' class='form-check form-switch' action='%s'>\n", __FUNCTION__, $actionurl);
 	printf("<div id='%s' class='form-check form-switch'>\n", __FUNCTION__);
-	printf("<label id='lblRecordID' class='form-label'>RecordID/LidID</label><input name='lidid' class='w10' value=%d readonly>\n", $i_lid->lidid);
+	printf("<label id='lblRecordID' class='form-label'>RecordID/LidID</label><input name='lidid' class='w10 readonly' value=%d readonly>\n", $i_lid->lidid);
 	if ($i_lm->lidnr > 0) {
-		printf("<label id='lblLidnummer' class='form-label'>Lidnummer</label><input name='lidnr' class='w10' value=%d readonly></p>\n", $i_lm->lidnr);
+		printf("<label id='lblLidnummer' class='form-label'>Lidnummer</label><input name='lidnr' class='w10 readonly' value=%d readonly>\n", $i_lm->lidnr);
 	}
 	
 	$row = $i_lid->record($lidid);
+	
 	for ($i=0; $i < count($wijzvelden); $i++) {
 		
 		$jsoc = sprintf("onBlur=\"savedata('lid', %d, this);\"", $i_lid->lidid, $wijzvelden[$i]['naam']);
@@ -1816,7 +1818,7 @@ function algemeenlidmuteren($lidid) {
 			} elseif ($t == "date") {
 				$inp = sprintf("<input type='date' id='%1\$s' value='%2\$s'%3\$s title=\"%4\$s\">", $wijzvelden[$i]['naam'], $dv, $ro, $titel);
 			} else {
-				$inp = sprintf("<input type='%1\$s' %2\$sid='%3\$s' title='%4\$s' value='%5\$s' maxlength=%5\$d%6\$s title=\"%3\$s\">", $t, $c, $wijzvelden[$i]['naam'], $titel, $dv, $wijzvelden[$i]['lengte'], $ro);
+				$inp = sprintf("<input type='%1\$s' %2\$sid='%3\$s' title='%4\$s' value='%5\$s' maxlength=%5\$d%6\$s>", $t, $c, $wijzvelden[$i]['naam'], $titel, $dv, $wijzvelden[$i]['lengte'], $ro);
 			}
 		}
 		printf("<label id='lbl%s' class='form-label'>%s</label>%s", $wijzvelden[$i]['naam'], $wijzvelden[$i]['label'], $inp);
@@ -1844,10 +1846,6 @@ function algemeenlidmuteren($lidid) {
 
 		\$('input, select, textarea').on('blur', function(){
 			savedata('lid', %1\$d, this);
-			if (this.id == 'Huisnr' || this.id == 'Huisletter' || this.id == 'Toevoeging') {
-				$('#Adres').trigger('blur');
-				$('#Woonplaats').trigger('blur');
-			}
 		});
 		
 		\$('input, #Geslacht').on('change', function(){
@@ -3328,7 +3326,6 @@ function pdok($p_postcode, $p_huisnr=0, $p_letter="", $p_toev="") {
 				$url .= "&fq=huisnummertoevoeging:" . $p_toev;
 			}
 		}
-//		debug($url);
 		curl_setopt($curl, CURLOPT_URL, $url);
 		$respdok = curl_exec($curl);
 		if (isset(json_decode($respdok)->response)) {
