@@ -76,9 +76,9 @@ function savedata(entity, rid, control) {
 		data: { field: field_name, value: value, id: rid },
         dataType: "json",
         success: function(data) {
-//			if (data.length > 4) {
-				alert(field_name + ' is bijgewerkt.');
-//			}
+			if (data.trim.length > 4) {
+				alert(field_name + ' is bijgewerkt / ' + data);
+			}
 			return data;
         },
 		fail: function( data, textStatus ) {
@@ -266,9 +266,9 @@ function lidalgwijzprops() {
 		$('#uitleg_burgerservicenummer').text("");
 		if (s.length > 0) {
 			if (isNaN(s)) {
-				$('#uitleg_burgerservicenummer').text("Dit is geen nummer, deze wijziging wordt neit verwerkt.");
+				$('#uitleg_burgerservicenummer').text("Dit is geen nummer, deze wijziging wordt niet verwerkt.");
 			} else if (s < 100000000) {
-				$('#uitleg_burgerservicenummer').text("Deze BSN is te klein, deze wijziging wordt neit verwerkt.");
+				$('#uitleg_burgerservicenummer').text("Deze BSN is te klein, deze wijziging wordt niet verwerkt.");
 			}
 		}
 	}
@@ -839,7 +839,7 @@ function adresvullen() {
 	var ad = $('#Adres');
 	var wp = $('#Woonplaats');
 	
-	if (zpc.length >= 6 && hn.length > 0) {
+	if (zpc.length >= 6 && hn.length > 0 && hn > "0") {
 			
 		var url = 'https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?fq=postcode:' + zpc + '&fq=huisnummer:' + hn;
 		if (hl.length > 0) {
@@ -864,11 +864,40 @@ function adresvullen() {
 				}
 			}
 		});
+		
+		$('#Adres').attr('readonly', true);
+		$('#Adres').addClass('readonly');
+		$('#Woonplaats').attr('readonly', true);
+		$('#Woonplaats').addClass('readonly');
+		
+	} else if (zpc.length >= 6) {
+			
+		var url = 'https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?fq=postcode:' + zpc;
+		$.ajax({
+			url: url,
+			dataType: 'json',
+			type: 'get',
+			success: (data) => {
+				if (data.response.numFound == 0) {
+					$('#uitleg_adres').html('Postcode bestaat niet');
+				} else {
+					wp.val(data.response.docs[0].woonplaatsnaam);
+					$("#uitleg_adres").html('');
+				}
+			}
+		});
+		
+		$('#Adres').attr('readonly', false);
+		$('#Adres').removeClass('readonly');
+		
+		$('#Woonplaats').attr('readonly', true);
+		$('#Woonplaats').addClass('readonly');
+		
 	} else {
-		if (hn.length > 0 && hn > "0") {
-			ad.val('');
-			wp.val('');
-		}
+		$('#Adres').attr('readonly', false);
+		$('#Adres').removeClass('readonly');
+		$('#Woonplaats').attr('readonly', false);
+		$('#Woonplaats').removeClass('readonly');
 	}
 }
 
