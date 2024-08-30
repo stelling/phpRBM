@@ -14,7 +14,7 @@ function fnRekeningen() {
 	} elseif ($currenttab2 == "Muteren") {
 		fnRekeningMuteren($reknr);
 	} elseif ($currenttab2 == "Beheer") {
-		fnRekeningbeheer();
+		rekeningbeheer();
 		
 	} elseif ($currenttab2 == "Nieuw") {
 		
@@ -71,7 +71,7 @@ function fnRekeningen() {
 	}
 }  # fnRekeningen
 
-function fnRekeningbeheer() {
+function rekeningbeheer() {
 	global $currenttab;
 	
 	$i_rk = new cls_Rekening();
@@ -81,24 +81,15 @@ function fnRekeningbeheer() {
 		$i_rk->delete($_GET['p_reknr']);
 	}
 
-	if (isset($_POST['filterseizoen'])) {
-		$filterseizoen = intval($_POST['filterseizoen']);
-	} else {
-		$filterseizoen = $i_rk->Max("RK.Seizoen");
-	}
-	$filternaam = $_POST['tbFilterNaam'] ?? "";
+	$filterseizoen = intval($_GET['filterseizoen'] ?? $i_rk->Max("RK.Seizoen"));
+	$filternaam = $_GET['tbFilterNaam'] ?? "";
 	
-	$rows = $i_rk->overzichtbeheer($filterseizoen, $filternaam);
+	$rows = $i_rk->overzichtbeheer($filterseizoen);
 	
-	if ($filterseizoen > 0 and strlen($filternaam) == 0) {
-		$js = "OnKeyUp=\"fnFilter('overzichtrekeningen', this);\"";
-	} else {
-		$js = "Onblur=\"this.form.submit();\"";
-	}
-	
-	printf("<form method='post' id='filter' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+	echo("<form method='GET' id='filter'>\n");
+	printf("<input type='hidden' name='tp' value='%s'>\n", $_GET['tp']);
 	printf("<select name='filterseizoen' class='form-select form-select-sm' title='Selecteer seizoen' onChange='this.form.submit();'>\n<option value=-1>Alle seizoenen</option>\n%s</select>\n", $i_sz->htmloptions($filterseizoen, 1));
-	printf("<input type='text' id='tbFilterNaam' name='tbFilterNaam' placeholder='Tekstfilter' value='%s' %s>\n", $filternaam, $js);
+	printf("<input type='text' id='tbFilterNaam' name='tbFilterNaam' placeholder='Tekstfilter' value='%s' OnKeyUp=\"fnFilter('%s', this);\">\n", $filternaam, __FUNCTION__);
 	if (count($rows) > 1) {
 		printf("<p class='aantrecords'>%d rekeningen</p>", count($rows));
 	}
@@ -106,7 +97,7 @@ function fnRekeningbeheer() {
 	
 	$l = sprintf("%s?tp=%s/Muteren&p_reknr=%%d", $_SERVER['PHP_SELF'], $currenttab);
 	$kols[] = array('columnname' => "Nummer", 'link' => $l, 'class' => "muteren");
-	$kols[]['columnname'] = "Nummer";
+	$kols[] = array('columnname' => "Nummer", 'type' => "integer");
 	$kols[] = array('columnname' => "Datum", 'type' => "date");
 	$kols[] = array('columnname' => "Omschrijving", 'columntitle' => "OpmerkingIntern");
 	$kols[] = array('columnname' => "Tenaamstelling");
@@ -130,9 +121,17 @@ function fnRekeningbeheer() {
 	}
 	
 	if (count($rows) > 0) {
-		echo(fnDisplayTable($rows, $kols, "", 0, "", "overzichtrekeningen"));
+		echo(fnDisplayTable($rows, $kols, "", 0, "", __FUNCTION__));
+		//overzichtrekeningen
 	}
-}  # fnRekeningbeheer
+	
+	printf("<script>
+				$(document).ready(function() {
+					fnFilter('%s', '%s');
+				});
+		  </script>\n", __FUNCTION__, $filternaam);
+	
+}  # rekeningbeheer
 
 function fnRekeningMuteren($p_rkid=-1) {
 	global $currenttab;
