@@ -235,7 +235,7 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 					$f = sprintf("LO.GroepID > 0 AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE() AND LO.OnderdeelID=%d", $ondid);
 					if ((new cls_Lidond())->aantal($f) > 0) {
 						addtp($menukop . "/Groepsindeling", $ondid);
-						addtp($menukop . "/Groepsindeling muteren", $ondid);
+						addtp($menukop . "/Indeling muteren", $ondid);
 					}
 					addtp($menukop . "/Groepen muteren");
 				}
@@ -664,8 +664,7 @@ function fnValidatieLogin($lidid, $key, $stap) {
 	
 	if ($stap == "mail") {
 		$i_login->vulvars($lidid);
-		
-		if ($i_login->lidid > 0 and strlen($i_login->wachtwoord) >= 5) {
+		if ($i_login->lidid > 0 and strlen($i_login->activatiekey) >= 5) {
 			
 			if ((new cls_Mailing_vanaf())->min() == 0) {
 				$mess = "Er is geen adres beschikbaar om vanaf te e-mailen. Neem contact op met de webmaster.";
@@ -694,6 +693,8 @@ function fnValidatieLogin($lidid, $key, $stap) {
 				}
 				$email = null;
 			}
+		} elseif ($i_login->lidid > 0) {
+			$mess = sprintf("Login voor lidid %d heeft geen activicatie key, neem contact op met de webmaster.", $lidid);
 		} else {
 			$mess = sprintf("Login voor lidid %d bestaat niet, neem contact op met de webmaster.", $lidid);
 		}
@@ -973,13 +974,9 @@ function fneisenwachtwoord() {
 function addtp($tp, $afdnr=0) {
 	global $tabpages, $currenttab;
 	
-	$i_acc = new cls_Authorisation();
-	
 	if ((strstr($tp, "/") === false or startwith($tp, $currenttab . "/")) and toegang($tp, 0, 0, 1)) {
 		$tabpages[] = $tp;
 	}
-	
-	$i_acc = null;
 	
 } # addtp
 
