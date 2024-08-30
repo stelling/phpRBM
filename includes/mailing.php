@@ -1259,13 +1259,17 @@ class Mailing {
 	public function merge($lidid=0) {
 		global $dtfmt;
 		
+		$tu = str_replace("https://", "", str_replace("http://", "", BASISURL));
+		
 		$this->merged_subject = str_ireplace("[%Naamvereniging%]", $_SESSION['settings']['naamvereniging'], $this->subject);
 		$this->merged_subject = str_ireplace("[%Naamwebsite%]", $_SESSION['settings']['naamwebsite'], $this->merged_subject);
 		$this->merged_subject = str_ireplace("[%URLwebsite%]", BASISURL, $this->merged_subject);
+		$this->merged_subject = str_ireplace("[%URLwebsiteToon%]", $tu, $this->merged_subject);
 		
 		$this->merged_message = str_ireplace("[%Naamvereniging%]", $_SESSION['settings']['naamvereniging'], $this->message);
 		$this->merged_message = str_ireplace("[%Naamwebsite%]", $_SESSION['settings']['naamwebsite'], $this->merged_message);
 		$this->merged_message = str_ireplace("[%URLwebsite%]", BASISURL, $this->merged_message);
+		$this->merged_message = str_ireplace("[%URLwebsiteToon%]", $tu, $this->merged_message);
 		
 		$fl = (new cls_Login())->max("FouteLogin", sprintf("LidID=%d", $lidid));
 		if ($_SESSION['settings']['login_maxinlogpogingen'] > 0 and $fl > $_SESSION['settings']['login_maxinlogpogingen']) {
@@ -1435,7 +1439,7 @@ function lijstmailings($p_filter="") {
 	} elseif ($p_filter == "Verzonden mails" or $p_filter == "Verzonden e-mails" or $p_filter == "Outbox") {
 		$i_mh = new cls_Mailing_hist();
 		$l = sprintf("index.php?tp=%s&op=bekijkmail&MailingHistID=%%d", urlencode($_GET['tp']));
-		$kols[] = array('link' => $l, 'headertext' => "&nbsp;", 'columnname' => "RecordID", 'class' => "viewmail");
+		$kols[] = array('link' => $l, 'type' => "link", 'headertext' => "&nbsp;", 'columnname' => "RecordID", 'class' => "viewmail");
 		
 		$kols[] = array('headertext' => "Verzonden", 'columnname' => "send_on", 'type' => "DTLONG");
 		$kols[] = array('columnname' => "Vanaf_naam", 'headertext' => "Vanaf");
@@ -2245,7 +2249,7 @@ function fnMailingInstellingen() {
 	$kols[] = array('headertext' => "Gewijzigd", 'columnname' => "Gewijzigd", 'type' => "datetime", 'readonly' => true, 'type' => "datetime");
 	
 	$l = sprintf("%s?tp=%s/%s&delete_vanaf=%%d", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
-	$kols[] = array('headertext' => "&nbsp;", 'link' => $l, 'columnname' => "RecordID", 'columntitle' => "Verwijder record", 'class' => "trash");
+	$kols[] = array('headertext' => "&nbsp;", 'link' => $l, 'columnname' => "delrid", 'columntitle' => "Verwijder record", 'class' => "trash");
 	
 	$rows = $i_mv->lijst(0);
 	echo(fnEditTable($rows, $kols, "editmailingvanaf", "Vanaf adressen"));
