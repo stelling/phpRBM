@@ -1106,92 +1106,89 @@ class cls_Lid extends cls_db_base {
 	public function vulvars($p_lidid=-1, $p_per="") {
 		global $lididwebmasters, $dtfmt;
 		
-		if ($p_lidid < 0) {
-			$p_lidid = $this->lidid;
+		if ($p_lidid >= 0) {
+			$this->lidid = $p_lidid;
 		}
 		if (strlen($p_per) == 10) {
 			$this->per = $p_per;
 		}
-		if ($p_lidid != $this->lidid) {
-			$this->lidid = $p_lidid;
 			
-			$this->naam = "";
-			$this->zoeknaam = "";
-			$this->roepnaam = "";
-			$this->tussenvoegsels = "";
-			$this->achternaam = "";
-			$this->geslacht = "O";
-			$this->geboortedatum = "";
-			$this->adres = "";
-			$this->huisnr = 0;
-			$this->postcode = "";
-			$this->woonplaats = "";
-			$this->telefoon = "";
-			$this->email = "";
-			$this->emailouders = "";
-			$this->emailvereniging = "";
-			$this->rekeningbetaalddoor = 0;
-			$this->lidvanaf = "";
-			$this->lidnr = 0;
+		$this->naam = "";
+		$this->zoeknaam = "";
+		$this->roepnaam = "";
+		$this->tussenvoegsels = "";
+		$this->achternaam = "";
+		$this->geslacht = "O";
+		$this->geboortedatum = "";
+		$this->adres = "";
+		$this->huisnr = 0;
+		$this->postcode = "";
+		$this->woonplaats = "";
+		$this->telefoon = "";
+		$this->email = "";
+		$this->emailouders = "";
+		$this->emailvereniging = "";
+		$this->rekeningbetaalddoor = 0;
+		$this->lidvanaf = "";
+		$this->lidnr = 0;
 		
-			if ($this->lidid > 0) {
-				$query = sprintf("SELECT L.*, %s AS NaamLid, %s AS Zoeknaam FROM %s WHERE L.RecordID=%d;", self::SELECTNAAM, $this->selectzoeknaam, $this->basefrom, $this->lidid);
-				$result = $this->execsql($query);
-				$row = $result->fetch();
-				if (isset($row->RecordID) and $row->RecordID > 0) {
-					$this->naam = $row->NaamLid;
-					$this->zoeknaam = $row->Zoeknaam;
-					$this->roepnaam = $row->Roepnaam ?? "";
-					$this->tussenvoegsels = $row->Tussenv ?? "";
-					$this->achternaam = $row->Achternaam ?? "";
-					$this->voorletters = $row->Voorletter ?? "";
-					$this->meisjesnaam = $row->Meisjesnm ?? "";
-					$this->geslacht = $row->Geslacht ?? "O";
-					$this->geboortedatum = $row->GEBDATUM ?? "";
-					$this->geboorteplaats = $row->GEBPLAATS ?? "";
-					$this->overleden = $row->Overleden ?? "";
-					$this->adres = trim($row->Adres ?? "");
-					$this->postcode = $row->Postcode ?? "";
-					$this->woonplaats = trim($row->Woonplaats ?? "");
-					
-					if (strlen($row->Mobiel) >= 10) {
-						$this->telefoon = $row->Mobiel;
-					} else {
-						$this->telefoon = $row->Telefoon ?? "";
-					}
-					
-					if (isValidMailAddress($row->Email, 0)) {
-						$this->email = $row->Email;
-					} elseif (isValidMailAddress($row->EmailVereniging, 0)) {
-						$this->email = $row->EmailVereniging;
-					} elseif (isValidMailAddress($row->EmailOuders, 0)) {
-						$this->email = $row->EmailOuders;
-					}
-					$this->emailvereniging = $row->EmailVereniging ?? "";
-					$this->emailouders = $row->EmailOuders ?? "";
-					$this->namenouders = $row->NamenOuders ?? "";
-					$this->waarschuwenbijnood = $row->{'Waarschuwen bij nood'} ?? "";
-					
-					$this->huisnr = $row->Huisnr ?? 0;
-					$this->huisletter = trim($row->Huisletter ?? "");
-					$this->toevoeging = trim($row->Toevoeging ?? "");
-					
-					$this->rekeningbetaalddoor = $row->RekeningBetaaldDoor ?? 0;
-					$this->bankrekening = $row->Bankrekening ?? "";
-					$this->sportlinkid = $row->RelnrRedNed ?? "";
-					$this->vogafgegeven = $row->{'VOG afgegeven'} ?? "";
-					$this->beroep = $row->Beroep ?? "";
-					$this->machtigingafgegeven = $row->{'Machtiging afgegeven'} ?? 0;
-					$this->opmerking = $row->Opmerking ?? "";
-					$this->ingevoerd = $row->Ingevoerd ?? "";
-					$this->gewijzigd = $row->Gewijzigd ?? "";
-					
+		if ($this->lidid > 0) {
+			$query = sprintf("SELECT L.*, %s AS NaamLid, %s AS Zoeknaam FROM %s WHERE L.RecordID=%d;", self::SELECTNAAM, $this->selectzoeknaam, $this->basefrom, $this->lidid);
+			$result = $this->execsql($query);
+			$row = $result->fetch();
+			if (isset($row->RecordID) and $row->RecordID > 0) {
+				$this->naam = $row->NaamLid;
+				$this->zoeknaam = $row->Zoeknaam;
+				$this->roepnaam = $row->Roepnaam ?? "";
+				$this->tussenvoegsels = $row->Tussenv ?? "";
+				$this->achternaam = $row->Achternaam ?? "";
+				$this->voorletters = $row->Voorletter ?? "";
+				$this->meisjesnaam = $row->Meisjesnm ?? "";
+				$this->geslacht = $row->Geslacht ?? "O";
+				$this->geboortedatum = $row->GEBDATUM ?? "";
+				$this->geboorteplaats = $row->GEBPLAATS ?? "";
+				$this->overleden = $row->Overleden ?? "";
+				$this->adres = trim($row->Adres ?? "");
+				$this->postcode = $row->Postcode ?? "";
+				$this->woonplaats = trim($row->Woonplaats ?? "");
+				
+				if (strlen($row->Mobiel) >= 10) {
+					$this->telefoon = $row->Mobiel;
 				} else {
-					$this->lidid = 0;
+					$this->telefoon = $row->Telefoon ?? "";
 				}
+				
+				if (isValidMailAddress($row->Email, 0)) {
+					$this->email = $row->Email;
+				} elseif (isValidMailAddress($row->EmailVereniging, 0)) {
+					$this->email = $row->EmailVereniging;
+				} elseif (isValidMailAddress($row->EmailOuders, 0)) {
+					$this->email = $row->EmailOuders;
+				}
+				$this->emailvereniging = $row->EmailVereniging ?? "";
+				$this->emailouders = $row->EmailOuders ?? "";
+				$this->namenouders = $row->NamenOuders ?? "";
+				$this->waarschuwenbijnood = $row->{'Waarschuwen bij nood'} ?? "";
+				
+				$this->huisnr = $row->Huisnr ?? 0;
+				$this->huisletter = trim($row->Huisletter ?? "");
+				$this->toevoeging = trim($row->Toevoeging ?? "");
+				
+				$this->rekeningbetaalddoor = $row->RekeningBetaaldDoor ?? 0;
+				$this->bankrekening = $row->Bankrekening ?? "";
+				$this->sportlinkid = $row->RelnrRedNed ?? "";
+				$this->vogafgegevenmi = $row->{'VOG afgegeven'} ?? "";
+				$this->beroep = $row->Beroep ?? "";
+				$this->machtigingafgegeven = $row->{'Machtiging afgegeven'} ?? 0;
+				$this->opmerking = $row->Opmerking ?? "";
+				$this->ingevoerd = $row->Ingevoerd ?? "";
+				$this->gewijzigd = $row->Gewijzigd ?? "";
+					
+			} else {
+				$this->lidid = 0;
 			}
 		}
-			
+		
 		$this->lidnaam = $this->naam;
 		$this->avgnaam = "";
 		$this->leeftijd = -1;
@@ -1853,6 +1850,8 @@ class cls_Lid extends cls_db_base {
 		$this->vulvars($p_lidid);
 		$this->tas = 2;
 		
+		$updres = false;
+		
 		$p_waarde = ltrim(trim($p_waarde));
 		if ($p_kolom == "Voorletter") {
 			$p_waarde = trim(strtoupper($p_waarde));
@@ -1909,7 +1908,7 @@ class cls_Lid extends cls_db_base {
 				$p_waarde = "";
 			}
 			
-			$this->pdoupdate($this->lidid, $p_kolom, $p_waarde, $p_reden);
+			$updres = $this->pdoupdate($this->lidid, $p_kolom, $p_waarde, $p_reden);
 		}
 		
 		if ($this->tm > 0) {
@@ -1920,9 +1919,21 @@ class cls_Lid extends cls_db_base {
 		
 		$this->log($this->lidid);
 		
+		if ($updres and ($p_kolom == "Postcode" or $p_kolom == "Huisnr" or $p_kolom == "Huisletter" or $p_kolom == "Toevoeging")) {
+			$this->vulvars($p_lidid);
+			if (strlen($this->postcode) >= 6) {
+				$pdok = pdok($this->postcode, $this->huisnr, $this->huisletter, $this->toevoeging);
+				$reden = "postcode of huisnummer gewijzigd is";
+				if ($this->huisnr > 0) {
+					$this->update($p_lidid, "Adres", $pdok->docs[0]->straatnaam . "" . $pdok->docs[0]->huis_nlt, $reden);
+				}
+				$this->update($p_lidid, "Woonplaats", $pdok->docs[0]->woonplaatsnaam, $reden);
+			}
+		}
+		
 		return $rv;
 
-	}  # update
+	}  # cls_Lid->update
 	
 	private function delete($p_lidid, $p_reden="") {
 		$this->vulvars($p_lidid);
@@ -3796,6 +3807,8 @@ class cls_Lidond extends cls_db_base {
 					$this->magmuteren = true;
 				} elseif ($this->i_ond->type == "G" and toegang("Ledenlijst/Wijzigen lid/Groepen", 0, 0)) {
 					$this->magmuteren = true;
+				} elseif ($this->i_ond->type == "M" and toegang("Ledenlijst/Materiaal", 0, 0)) {
+					$this->magmuteren = true;
 				} elseif ($this->i_ond->type == "O" and toegang("Ledenlijst/Wijzigen lid/Onderscheidingen", 0, 0)) {
 					$this->magmuteren = true;
 				} elseif ($this->i_ond->type == "R" and toegang("Ledenlijst/Rollen", 0, 0)) {
@@ -4760,7 +4773,7 @@ class cls_Groep extends cls_db_base {
 			$this->aantalingroep = 0;
 			$this->aantalmetgroep = 0;
 		} else {
-			$alqry = sprintf("SELECT COUNT(*) FROM %1\$sLidond AS LO WHERE LO.OnderdeelID=%2\$d AND LO.GroepID=%3\$d AND LO.Vanaf <= '%4\$s' AND IFNULL(LO.Opgezegd, '9999-12-31') >= '%4\$s';", TABLE_PREFIX, $this->afdid, $this->grid, $this->per);
+			$alqry = sprintf("SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.OnderdeelID=%d AND LO.GroepID=%d AND IFNULL(LO.Opgezegd, '9999-12-31') >= '%s';", TABLE_PREFIX, $this->afdid, $this->grid, $this->per);
 			$this->aantalingroep = $this->scalar($alqry);
 				
 			$alqry = sprintf("SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.OnderdeelID=%d AND LO.GroepID=%d;", TABLE_PREFIX, $this->afdid, $this->grid);
