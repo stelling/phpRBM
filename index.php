@@ -21,10 +21,9 @@ if (isset($_GET['actie']) and $_GET['actie'] == "uitloggen") {
 	} else {
 		$_SESSION['username'] = cleanlogin($_POST['username']);
 		if (isset($_POST['cookie']) and $_POST['cookie'] == 1) {
-			$o = array('expires' => time()+(3600*24*120), 'samesite' => 'Strict', 'secure' => true);
-			setcookie("username", $_SESSION['username'], $o);
+			setcookie("username", $_SESSION['username'], OPTIONSCOOKIESLOGIN);
 			if (isset($_POST['password']) and strlen($_POST['password']) > 6) {
-				setcookie("password", $_POST['password'], $o);
+				setcookie("password", $_POST['password'], OPTIONSCOOKIESLOGIN);
 			}
 		}
 		fnAuthenticatie(1, $_POST['password'], 1);
