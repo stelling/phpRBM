@@ -3,6 +3,8 @@
 include('./includes/standaard.inc');
 set_time_limit(90);
 
+$_GET['tp'] = $_GET['tp'] ?? "Beheer logins";
+
 if ((!isset($_SESSION['lidid']) or $_SESSION['lidid'] == 0) and isset($_COOKIE['password']) and strlen($_COOKIE['password']) > 5) {
 	fnAuthenticatie(0);
 }
@@ -211,9 +213,8 @@ function fnBeheerLogins() {
 	$kols[] = array('columnname' => "LidID", 'link' => $l, 'class' => "trash");
 	
 	if (count($rows) > 0 and max(array_column($rows, "ValLink")) > 0) {
-		$kols[10]['headertext'] = "&nbsp;";
-		$kols[10]['columnname'] = "ValLink";
-		$kols[10]['link'] = sprintf("<a href='%s?op=validatielink&tp=Beheer logins&lidid=%%d'>Stuur validatielink</a>", $_SERVER['PHP_SELF']);
+		$l = sprintf("<a href='%s?op=validatielink&tp=%s&lidid=%%d'>Stuur validatielink</a>", $_SERVER['PHP_SELF'], $_GET['tp']);
+		$kols[] = array('headertext' => "&nbsp;", 'columnname' => "ValLink", 'type' => "link", 'link' => $l);
 	}
 	
 	echo("<div id='filter'>\n");
@@ -797,11 +798,15 @@ function onderhoud() {
 		(new cls_Mailing())->controle();
 		(new cls_Mailing())->opschonen();
 
-		(new cls_Mailing_hist())->controle();
-		(new cls_Mailing_hist())->opschonen();
-
 		(new cls_Mailing_rcpt())->controle();
 		(new cls_Mailing_rcpt())->opschonen();
+		
+		(new cls_Mailing_hist())->controle();
+		(new cls_Mailing_hist())->opschonen();
+		
+		(new cls_Mailing_vanaf())->controle();
+		(new cls_Mailing_vanaf())->opschonen();
+		
 	} elseif ($op == "evenementenopschonen") {
 		(new cls_Evenement())->controle();
 		(new cls_Evenement())->opschonen();
@@ -850,22 +855,23 @@ function onderhoud() {
 	$f = "TypeActiviteit=3";
 	$laatstebackup = (new cls_Logboek())->max("DatumTijd", $f);
 	
-	printf("<form method='post' id='%s' action='%s?%s'>\n", __FUNCTION__, $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
+	printf("<form method='GET' id='%s'>\n", __FUNCTION__);
+	printf("<input type='hidden' name='tp' value='%s'>\n", $_GET['tp']);
 	
-	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=backup\"'>Backup</button><p>Maak een backup van de database. Laatste backup is op %s gemaakt.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $laatstebackup);
-	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=FreeBackupFiles\"'>Vrijgeven backup-bestanden</button><p>Geef de backup-bestanden vrij door middel van een chmod 0755.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=ledenonderdelenbijwerken\"'>Beheer leden van onderdelen</button><p>Beheer van leden van onderdelen en presentie.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=beheeronderdelen\"'>Beheer onderdelen</button><p>Controle en opschonen van onderdelen, activiteiten, afdelingsgroepen, functies, stukken en organisaties.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));	
-	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=logboekopschonen\"'>Logboek opschonen</button><p>Opschonen van het logboek, op basis van diverse regels.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']), $_SESSION['settings']['logboek_bewaartijd']);
-	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=ledenopschonen\"'>Leden en lidmaatschappen</button><p>Controle en opschonen leden, lidmaatschappen, memo's, foto's en inschrijvingen.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=beheerdiplomas\"'>Onderhoud diploma's</button><p>Controle en opschonen van diploma's en leden per diploma en examens.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=mailingsopschonen\"'>Onderhoud mailings</button><p>Controle en opschonen van mailings en verzonden e-mails.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=evenementenopschonen\"'>Onderhoud evenementen</button><p>Controle en opschonen evenementen.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=rekeningenopschonen\"'>Onderhoud rekeningen en betalingen</button><p>Controle en opschonen van rekeningen, rekeningregels, betalingen en seizoenen.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=loginsopschonen\"'>Logins opschonen</button><p>Opschonen van logins die om diverse redenen niet meer nodig zijn.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
-	printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=autorisatieopschonen\"'>Autorisatie opschonen</button><p>Verwijderen toegang waar alleen de webmaster toegang toe heeft en die ouder dan 3 maanden zijn.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+	printf("<button type='submit' class='%s' name='op' value='backup'>Backup</button><p>Maak een backup van de database. Laatste backup is op %s gemaakt.</p>\n", CLASSBUTTON, $laatstebackup);
+	printf("<button type='submit' class='%s' name='op' value='FreeBackupFiles'>Vrijgeven backup-bestanden</button><p>Geef de backup-bestanden vrij door middel van een chmod 0755.</p>\n", CLASSBUTTON);
+	printf("<button type='submit' class='%s' name='op' value='ledenonderdelenbijwerken'>Beheer leden van onderdelen</button><p>Beheer van leden van onderdelen en presentie.</p>\n", CLASSBUTTON);
+	printf("<button type='submit' class='%s' name='op' value='beheeronderdelen'>Beheer onderdelen</button><p>Controle en opschonen van onderdelen, activiteiten, afdelingsgroepen, functies, stukken en organisaties.</p>\n", CLASSBUTTON);
+	printf("<button type='submit' class='%s' name='op' value='logboekopschonen'>Logboek opschonen</button><p>Opschonen van het logboek, op basis van diverse regels.</p>\n", CLASSBUTTON);
+	printf("<button type='submit' class='%s' name='op' value='ledenopschonen'>Leden en lidmaatschappen</button><p>Controle en opschonen leden, lidmaatschappen, memo's, foto's en inschrijvingen.</p>\n", CLASSBUTTON);
+	printf("<button type='submit' class='%s' name='op' value='beheerdiplomas'>Onderhoud diploma's</button><p>Controle en opschonen van diploma's en leden per diploma en examens.</p>\n", CLASSBUTTON);
+	printf("<button type='submit' class='%s' name='op' value='mailingsopschonen'>Onderhoud mailings	</button><p>Controle en opschonen van mailings en verzonden e-mails.</p>\n", CLASSBUTTON);
+	printf("<button type='submit' class='%s' name='op' value='evenementenopschonen'>Onderhoud evenementen</button><p>Controle en opschonen evenementen.</p>\n", CLASSBUTTON);
+	printf("<button type='submit' class='%s' name='op' value='rekeningenopschonen'>Onderhoud rekeningen en betalingen</button><p>Controle en opschonen van rekeningen, rekeningregels, betalingen en seizoenen.</p>\n", CLASSBUTTON);
+	printf("<button type='submit' class='%s' name='op' value='loginsopschonen'>Logins opschonen</button><p>Opschonen van logins die om diverse redenen niet meer nodig zijn.</p>\n", CLASSBUTTON);
+	printf("<button type='submit' class='%s' name='op' value='autorisatieopschonen'>Autorisatie opschonen</button><p>Verwijderen toegang waar alleen de webmaster toegang toe heeft en die ouder dan 3 maanden zijn.</p>\n", CLASSBUTTON);
 	if ((new cls_Orderregel())->aantal() > 0 or (new cls_Artikel())->aantal() > 0) {
-		printf("<button type='button' class='%s' onClick='location.href=\"%s?tp=%s&op=webshopopschonen\"'>Webshop opschonen</button><p>Opschonen van de artikelen, bestellingen en voorraadboekingen.</p>\n", CLASSBUTTON, $_SERVER['PHP_SELF'], urlencode($_GET['tp']));
+		printf("<button type='submit' class='%s' name='op' value='webshopopschonen'>Webshop opschonen</button><p>Opschonen van de artikelen, bestellingen en voorraadboekingen.</p>\n", CLASSBUTTON);
 	}
 	echo("</form>\n");
 	
