@@ -33,31 +33,36 @@ function fnEvenementen() {
 
 	} elseif ($currenttab2 == "Beheer") {
 		
-		printf("<form method='post' class='form-check form-switch' id='filter' action='%s?%s'>\n", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING']);
-		echo("<input type='text' title='Tekstfilter op de tabel' placeholder='Tekstfilter' OnKeyUp=\"fnFilter('evenementenbeheer', this);\">\n");
-		$in = "";
+		echo("<form method='GET' class='form-check form-switch' id='filter'>\n");
+		printf("<input type='hidden' name='tp' value='%s'>\n", $_GET['tp']);
+		echo("<input type='hidden' name='post' value=1>\n");
+		echo("<input type='text' title='Tekstfilter' placeholder='Tekstfilter' OnKeyUp=\"fnFilter('evenementenbeheer', this);\">\n");
+		$in = "'ZZ'";
+		$wc = $_COOKIE['evlijst_soorten'] ?? "";  // Waarde cookie
+		$nwc = "";	// Nieuwe waarde cookie
 		foreach(ARRSOORTEVENEMENT as $k => $v) {
 			$f = sprintf("ET.Soort='%s'", $k);
-			if ($i_ev->i_et->aantal($f) > 0) {
+			if (count($i_ev->lijst(2, "", $f)) > 0) {
 				$cn = sprintf("evlijst_%s", $k);
-				if ($_SERVER['REQUEST_METHOD'] == "POST") {
-					$chk = $_POST[$cn] ?? 0;
-					setcookie($cn, $chk, time()+(3600 * 24 * 180));
+				if (isset($_GET['post']) and $_GET['post'] == 1) {
+					$chk = $_GET[$cn] ?? 0;
 				} else {
-					$chk = 1;
-					if (isset($_COOKIE[$cn]) and $_COOKIE[$cn] == "0") {
+					if (strpos($wc, $k . ",") === false) {
 						$chk = 0;
+					} else {
+						$chk = 1;
 					}
 				}
 				printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' value=1 name='%s' onClick='this.form.submit();'%s>%s</label>\n", $cn, checked($chk), $v);
 				if ($chk == 1) {
-					if (strlen($in) > 0) {
-						$in .= ", ";
-					}
-					$in .= sprintf("'%s'", $k);
+					$nwc .= $k . ",";
+				}
+				if ($chk == 1) {
+					$in .= sprintf(", '%s'", $k);
 				}
 			}
 		}
+		setcookie("evlijst_soorten", $nwc, OPTIONSCOOKIES);
 		echo("</form>\n");
 		
 		echo("<div class='clear'></div>\n");
