@@ -37,14 +37,15 @@ function fnDiplomabeheer() {
 		$i_dp->add();
 	}
 	
-	$orgfilter = $_POST['orgfilter'] ?? -1;
-	$vervfilter = $_POST['vervfilter'] ?? 0;
+	$orgfilter = $_GET['orgfilter'] ?? -1;
+	$vervfilter = $_GET['vervfilter'] ?? 0;
 	
-	printf("<form method='post' id='filter' class='form-check form-switch' action='%s?tp=%s/%s'>\n", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
+	echo("<form method='GET' id='filter' class='form-check form-switch'>\n");
+	printf("<input type='hidden' name='tp' value='%s'>\n", $_GET['tp']);
 	
 	printf("<select name='orgfilter' class='form-select form-select-sm' title='Filter op organisatie' onChange='this.form.submit();'>\n<option value=-1>Filter op organisatie  ...</option>\n%s</select>\n", $i_org->htmloptions(1, $orgfilter));
 	
-	printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' name='vervfilter' value=1 title=\"Inclusief vervallen diploma's\" onClick='this.form.submit();'%s>Inclusief vervallen diploma's</label>", checked($vervfilter));
+	printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' name='vervfilter' value=1 title=\"Inclusief vervallen diploma's\" onClick='this.form.submit();'%s>Inclusief vervallen diploma's</label>\n", checked($vervfilter));
 	
 	echo("</form>\n");
 	
@@ -174,7 +175,10 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1, $p_dpid=-1) {
 		if (isset($_POST['btnExamenToevoegen'])) {
 			$exid = $i_ex->add();
 			$f = sprintf("AK.OnderdeelID=%d AND AK.Datum >= CURDATE() AND AK.Activiteit=1", $p_afdid);
-			$i_ex->update($exid, "Datum", (new cls_Afdelingskalender())->min("Datum", $f));
+			$ed = (new cls_Afdelingskalender())->min("Datum", $f);
+			if (strlen($ed) == 10) {
+				$i_ex->update($exid, "Datum", $ed);
+			}
 			$i_ex->update($exid, "OnderdeelID", $p_afdid);
 		} elseif (isset($_POST['btnAllenGeslaagd'])) {
 			$s = explode("-", $_POST['btnAllenGeslaagd']);
@@ -405,10 +409,11 @@ function fnExamenResultaten($p_afdid=-1, $p_perexamen=1, $p_dpid=-1) {
 		echo("<div id='knoppenbalk'>\n");
 		echo("<label class='form-label'>Groep toevoegen</label>\n");
 		foreach ($i_gr->basislijst($f, "GR.Omschrijving") as $grrow) {
+			$i_gr->vulvars($p_afdid, $grrow->RecordID);
 			$f_toev_groep = sprintf("LO.OnderdeelID=%1\$d AND LO.GroepID=%2\$d AND IFNULL(LO.Opgezegd, '9999-12-31') >= '%3\$s' AND LO.Lid NOT IN (SELECT LD.Lid FROM %4\$sLiddipl AS LD WHERE LD.Examen=%3\$d AND LD.DiplomaID=%5\$d)", $p_afdid, $grrow->RecordID, $exid, TABLE_PREFIX, $grrow->DiplomaID);
 			$al = $i_lo->aantal($f_toev_groep);
 			if ($al > 0) {
-				printf("<button type='submit' class='%s btn-sm' name='ledengroep_%d'>%s</button>", CLASSBUTTON, $grrow->RecordID, $grrow->Omschrijving);
+				printf("<button type='submit' class='%s btn-sm' name='ledengroep_%d'>%s</button>", CLASSBUTTON, $grrow->RecordID, $i_gr->naam);
 			}
 		}
 		$f = sprintf("EX.Proefexamen=1 AND EX.OnderdeelID=%d AND EX.Datum < '%s' AND EX.Nummer IN (SELECT LD.Examen FROM %sLiddipl AS LD WHERE LD.Geslaagd=1)", $p_afdid, $i_ex->datum, TABLE_PREFIX);
@@ -451,18 +456,18 @@ function fnExamenonderdelen() {
 	$i_eo = new cls_Examenonderdeel();
 	$i_dp = new cls_diploma();
 	
-	$dpid = $_POST['selecteerdiploma'] ?? 0;
+	$dpid = $_GET['diploma'] ?? 0;
 	
-	if (isset($_POST['nieuwExamenonderdeel']) and $dpid > 0) {
+	if (isset($_GET['op']) and $_GET['op'] == "nieuweregel" and $dpid > 0) {
 		$i_eo->add($dpid);
 	} elseif (isset($_GET['op']) and $_GET['op'] == "verwijder" and $_GET['p_eoid'] > 0) {
 		$i_eo->delete($_GET['p_eoid']);
 	}
 	
-	printf("<form action='%s?tp=%s/%s' method='post'>\n", $_SERVER["PHP_SELF"], $currenttab, $currenttab2);
-	echo("<div id='filter'>\n");
-	printf("<select name='selecteerdiploma' class='form-select form-select-sm' title='Selecteer diploma' onChange='this.form.submit();'>\n<option value=0>Selecteer diploma ...</option>\n%s</select>\n", $i_dp->htmloptions($dpid, -1, 0, 1));
-	echo("</div> <!-- Einde filter -->\n");
+	echo("<form method='GET' id='filter'>\n");
+	printf("<input type='hidden' name='tp' value='%s'>\n", $_GET['tp']);
+	printf("<select name='diploma' class='form-select form-select-sm' title='Selecteer diploma' onChange='this.form.submit();'>\n<option value=0>Selecteer diploma ...</option>\n%s</select>\n", $i_dp->htmloptions($dpid, -1, 0, 1));
+	echo("</form>\n");
 	
 	$f = sprintf("EO.DiplomaID=%d", $dpid);
 	$eores = $i_eo->basislijst($f, "EO.Regelnr, EO.Code", 0);
@@ -480,9 +485,9 @@ function fnExamenonderdelen() {
 		echo(fnEditTable($eores, $kols, "examenonderdeel"));
 	
 		echo("<div id='opdrachtknoppen'>\n");
-		printf("<button name='nieuwExamenonderdeel' type='submit' class='%s'>%s Regel</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
+		$l = sprintf("%s?%s&op=nieuweregel&diploma=%d", $_SERVER['PHP_SELF'], $_SERVER['QUERY_STRING'], $dpid);
+		printf("<a href='%s'><button type='button' class='%s'>%s Regel</button></a>\n", $l, CLASSBUTTON, ICONTOEVOEGEN);
 		echo("</div> <!-- Einde opdrachtknoppen -->\n");
-		echo("</form>\n");
 	}
 	
 }  # fnExamenonderdelen
