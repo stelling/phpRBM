@@ -45,7 +45,7 @@ define("ARRKLEDINGMAAT", array("", "XS", "S", "M", "L", "XL", "XXL"));
 define("ATTRCODEELEMENT", "autocomplete='off' autocorrect='off' autocapitalize='off' spellcheck='false'");
 define("BEWAARTIJDNIEUWERECORDS", 120);
 define("TABLECLASSES", "table table-bordered table-hover border-primary");
-define("OPTIONSCOOKIES", array('expires' => time()+(3600*24*90), 'samesite' => 'Strict'));
+define("OPTIONSCOOKIES", array('expires' => time()+(3600*24*180), 'samesite' => 'Strict'));
 define("OPTIONSCOOKIESLOGIN", array('expires' => time()+(3600*24*90), 'samesite' => 'Strict', 'secure' => true));
 
 define("DTSHORT", "dd-MM-yyyy");
@@ -1107,359 +1107,352 @@ function fnEditTable($res, $kols, $id="", $th="") {
 	}
 //	print_r($rows);
 //	debug($kols);
-	
-	if (count($rows) > 0) {
-		$ret = sprintf("<table id='%1\$s' class='%2\$s'>\n", $id, TABLECLASSES);
-		if (strlen($th) > 0) {
-			if (count($rows) > 3) {
-				$t = sprintf(" title='%d rijen'", count($rows));
-			} else {
-				$t = "";
-			}
-			$ret .= sprintf("<caption%s>%s</caption>\n", $t, $th);
+
+	$ret = sprintf("<table id='%1\$s' class='%2\$s'>\n", $id, TABLECLASSES);
+	if (strlen($th) > 0) {
+		if (count($rows) > 3) {
+			$t = sprintf(" title='%d rijen'", count($rows));
+		} else {
+			$t = "";
 		}
-		$ret .= "<thead>\n";
+		$ret .= sprintf("<caption%s>%s</caption>\n", $t, $th);
+	}
+	$ret .= "<thead>\n";
+	$ret .= "<tr>";
+	$colpk = $res->getColumnMeta(0)['name'];
+	foreach ($kols as $kn => $kol) {
+		if (!isset($kols[$kn]['headertext'])) {
+			$kols[$kn]['headertext'] = $kols[$kn]['columnname'];
+		}
+		if (!isset($kols[$kn]['type']) or strlen($kols[$kn]['type']) == 0) {
+			$kols[$kn]['type'] = "text";
+		}
+		if (isset($kol['link']) and strlen($kol['link']) > 1) {
+			$kols[$kn]['type'] = "link";
+		}
+		
+		if (($kols[$kn]['type'] == "text" or $kols[$kn]['type'] == "email") and !isset($kols[$kn]['collen']) and count($rows) > 0) {
+			for ($cn=0;$cn<$res->ColumnCount();$cn++) {
+				if ($kols[$kn]['columnname'] ==  $res->getColumnMeta($cn)['name']) {
+					$kols[$kn]['collen'] = intval($res->getColumnMeta($cn)['len'] / 3);		
+				}
+			}
+		}
+		if (isset($kol['type']) and $kol['type'] == "pk") {
+			$colpk = $kols[$kn]['columnname'];
+		}
+			
+		if (isset($kol['autosubmit']) and $kol['autosubmit'] == true and isset($kols[$kn]['columnname']) and 1 == 2) {
+			$xtra_script = sprintf("$(\"[id^=%s]\").on('blur', function() {
+			location.reload(true);
+			});\n", $kols[$kn]['columnname']);
+			}
+		if (isset($kols[$kn]['headertext']) and strlen($kols[$kn]['headertext']) > 0) {
+			$ret .= sprintf("<th>%s</th>", $kols[$kn]['headertext']);
+		}
+	}
+	$ret .= "</tr>\n";
+	$ret .= "</thead>\n";
+		
+	$ret .= "<tbody>\n";
+	$dispkop = 1;
+	$totaantal = 0;
+	foreach($rows as $row) {
 		$ret .= "<tr>";
-		$colpk = $res->getColumnMeta(0)['name'];
-		foreach ($kols as $kn => $kol) {
-			if (count($rows) > 0) {
-				if (!isset($kol['columnname'])) {
-					$kols[$kn]['columnname'] = $res->getColumnMeta($kn)['name'];
+		$valpk = $row->$colpk;
+		foreach ($kols as $key => $kol) {
+			$tp = $kol['type'] ?? "text";
+			$kol_class = "";
+			if (isset($kol['class'])) {
+				$kol_class = sprintf("class='%s'", $kol['class']);
+			}
+			$kol_title = "";
+			if (isset($kol['title']) and strlen($kol['title']) > 0) {
+				$kol_title = sprintf(" title=\"%s\"", str_replace("\"", "'", $kol['title']));
+			}
+			$ro = $kol['readonly'] ?? false;
+			if (isset($kol['cond_ro']) and strlen($kol['cond_ro']) > 0) {
+				$v = $kol['cond_ro'];
+				if ($row->$v > 0) {
+					$ro = true;
 				}
-				if (!isset($kols[$kn]['headertext'])) {
-					$kols[$kn]['headertext'] = $kols[$kn]['columnname'];
-				}
-				if (!isset($kols[$kn]['type']) or strlen($kols[$kn]['type']) == 0) {
-					$kols[$kn]['type'] = "text";
-				}
-				if (isset($kol['link']) and strlen($kol['link']) > 1) {
-					$kols[$kn]['type'] = "link";
-				}
-				
-				if (($kols[$kn]['type'] == "text" or $kols[$kn]['type'] == "email") and !isset($kols[$kn]['collen'])) {
-					for ($cn=0;$cn<$res->ColumnCount();$cn++) {
-						if ($kols[$kn]['columnname'] ==  $res->getColumnMeta($cn)['name']) {
-							$kols[$kn]['collen'] = intval($res->getColumnMeta($cn)['len'] / 3);		
+			}
+			if (isset($kol['link']) and strlen($kol['link']) > 0) {
+				$tp = "link";
+				if ($ro and $kol['class'] == "trash") {
+					$kol_link = "";
+				} elseif (substr($kol['link'], 0, 7) == "<a href") {
+					$kol_link = $kol['link'];
+				} else {
+					$kol_link = "<a href='" . $kol['link'] . "'";
+					if (isset($kol['title'])) {
+						if (isset($kol['columntitle']) and strpos($kol['title'], "%") !== false) {
+							$t = sprintf($kol['title'], $row[$kol['columntitle']]);
+						} else {
+							$t = $kol['title'];
 						}
+						$kol_link .= sprintf(" title='%s'", $t);
+					}
+					if (isset($kol['class']) and $kol['class'] == "toevoegen") {
+						$kol_link .= sprintf(">%s</a>", ICONTOEVOEGEN);
+					} elseif (isset($kol['class']) and $kol['class'] == "muteren") {
+						$kol_link .= sprintf(">%s</a>", ICONMUTEER);
+					} elseif (isset($kol['class']) and $kol['class'] == "trash") {
+						$kol_link .= sprintf(">%s</a>", ICONVERWIJDER);
+					} elseif (isset($kol['class']) and $kol['class'] == "pdf") {
+						$kol_link .= sprintf(">%s</a>", ICONPDF);
+					} elseif (isset($kol['class']) and $kol['class'] == "leden") {
+						$kol_link .= sprintf(">%s</a>", ICONLEDEN);
+					} elseif (isset($kol['class']) and $kol['class'] == "verwerk") {
+						$kol_link .= sprintf(">%s</a>", ICONVERWERK);
+					} else {
+						$kol_link .= ">&nbsp;&nbsp;&nbsp;</a>";
 					}
 				}
-				if (isset($kol['type']) and $kol['type'] == "pk") {
-					$colpk = $kols[$kn]['columnname'];
+			} elseif (isset($kol['onclick']) and strlen($kol['onclick']) > 0) {
+				$tp = "click";
+			}
+			$colname = $kol['columnname'];
+			$value = $row->$colname;
+			
+			$col2 = $kol['secondcolumn'] ?? "";
+			$value2 = $row->$col2 ?? "";
+		
+			if (strlen($kol['headertext']) == 0) {
+				// Kolom wordt niet getoond.
+
+			} elseif ($tp == "link") {
+				if ($value > 0 and strlen($kol_link) > 0) {
+					$href = str_replace("%d", $value, $kol_link);
+					$ret .= sprintf("<td>%s</td>", $href);
+				} else {
+					$ret .= "<td>&nbsp;</td>";
 				}
 				
-				if (isset($kol['autosubmit']) and $kol['autosubmit'] == true and isset($kols[$kn]['columnname']) and 1 == 2) {
-					$xtra_script = sprintf("$(\"[id^=%s]\").on('blur', function() {
-					location.reload(true);
-					});\n", $kols[$kn]['columnname']);
+			} elseif ($tp == "click") {
+				if ($value > 0) {
+					$oc = str_replace("%d", $value, $kol['onclick']);
+					if ($kol['class'] == "trash") {
+						$t = ICONVERWIJDER;
+					} elseif ($kol['class'] == "mislukt") {
+						$t = ICONMISLUKT;
+					} else {
+						$t = "&nbsp;";
+					}
+					$ret .= sprintf("<td class='%1\$s' id='%1\$s_%2\$d' onClick='%3\$s'>%4\$s</td>", $kol['class'], $value, $oc, $t);
+				} else {
+					$ret .= "<td>&nbsp;</td>";
 				}
-			}
-			if (isset($kols[$kn]['headertext']) and strlen($kols[$kn]['headertext']) > 0) {
-				$ret .= sprintf("<th>%s</th>", $kols[$kn]['headertext']);
+			
+			} elseif ($tp == "checkbox") {
+				$ret .= "<td class='checkbox'>";
+				if ($ro) {
+					if ($value == 1) {
+						$ret .= "Ja</td>";
+					} else {
+						$ret .= "Nee</td>";
+					}
+				} else {
+					$ret .= sprintf("<input ype='checkbox' class='form-check-input' id='%s_%d' value=1%s></td>", $colname, $valpk, checked($value));
+				}
+
+			} elseif (isset($kol['bronselect']) and is_array($kol['bronselect']) and count($kol['bronselect']) > 0) {
+				$opt = "";
+				foreach ($kol['bronselect'] as $k => $v) {
+					$opt .= sprintf("<option%s value=%s>%s</option>\n", checked($k, "option", $value), $k, $v);
+				}
+				
+				$ret .= sprintf("<td><select id='%s_%d' class='form-select form-select-sm %s'>\n%s</select></td>\n", $colname, $valpk, $kol['class'] ?? "", $opt);
+				
+			} elseif (isset($kol['bronselect']) and strlen($kol['bronselect']) > 0) {
+					
+				$colnamebron = $kol['bronselect'];
+				if (strlen($row->$colnamebron) > 0) {
+					$opt = "";
+					foreach (explode(";", $row->$colnamebron) as $v) {
+						$opt .= sprintf("<option value='%s'%s>%s</option>\n", str_replace(",", ".", trim($v)), checked($v, "option", $value), $v);
+					}
+					$ret .= sprintf("<td><select id='%s_%d' class='form-select form-select-sm %s'>\n%s</select></td>\n", $colname, $valpk, $kol['class'] ?? "", $opt);
+				} else {
+					$ret .= "<td></td>\n";
+				}
+
+			} elseif ($tp == "groep" and isset($kol['columnfilter'])) {
+				$o = $row->{$kol['columnfilter']};
+				if ((new cls_Groep())->aantal(sprintf("OnderdeelID=%d", $o)) > 1) {
+					$opt = (new cls_Groep())->htmloptions($value, $o);
+					$ret .= sprintf("<td><select id='%s_%d' class='form-select form-select-sm'>\n%s</select></td>\n", $colname, $valpk, $opt);
+				} else {
+					$ret .= "<td></td>";
+				}
+
+			} elseif ($tp == "DTSHORT" and $ro) {
+				if ((!is_null($value)) and $value > '1900-01-01') {
+					$ret .= sprintf("<td>%s</td>", date("d/m/Y", strtotime($value)));
+				} else {
+					$ret .= "<td>&nbsp;</td>";
+				}
+					
+			} elseif ($tp == "date" or $tp == "rqdate" or $tp == "DTTEXT") {
+				if ($ro == false) {
+					$rq = "";
+					if ($tp == "rqdate") {
+						$rq = " required";
+					}
+					$ret .= sprintf("<td><input type='date' name='%1\$s_%2\$d' id='%1\$s_%2\$d' value='%3\$s'%4\$s></td>", $colname, $valpk, $value, $rq);
+				} elseif ((!is_null($value)) and $value > '1900-01-01') {
+					$dtfmt->setPattern(DTTEXT);
+					$ret .= sprintf("<td>%s</td>", $dtfmt->format(strtotime($value)));
+				} else {
+					$ret .= "<td>&nbsp;</td>";
+				}
+				
+			} elseif ($tp == "geboren_leeftijd") {
+					$dtfmt->setPattern(DTTEXT);
+					if (strlen($value) == 10) {
+						$ret .= sprintf("<td>%s (%s)</td>", $dtfmt->format(strtotime($value)), fnLeeftijd($value));
+					} else {
+						$ret .= "<td></td>";
+					}
+				
+			} elseif ($tp == "datetime" or $tp == "DTLONG") {
+				$dtfmt->setPattern(DTLONG); // 1 januari 2020 (14:12)
+				if ($ro == false) {
+					// Nog aanpassen, klopt niet
+					$ret .= sprintf("<td><input type='date' id='%s_%d' value='%s'></td>", $colname, $valpk, $value);
+					
+				} elseif ((!is_null($value)) and $value > '1900-01-01') {
+					$ret .= sprintf("<td>%s</td>", $dtfmt->format(strtotime($value)));
+				} else {
+					$ret .= "<td>&nbsp;</td>";
+				}
+
+			} elseif ($tp == "tijd") {
+				if ($ro) {
+					$ret .= sprintf("<td>%s</td>", $value);
+				} else {
+					$ret .= sprintf("<td><input type='time' id='%s_%d' value='%s'></td>", $colname, $valpk, $value);
+				}
+
+			} elseif ($tp == "integer" or $tp == "pk") {
+				if ($ro) {
+					$ret .= sprintf("<td class='number'>%d</td>", $value);
+					
+				} else {
+					if (isset($kol['max']) and $kol['max'] <= 99) {
+						$c = "num2";
+						$m = sprintf(" max=%d", $kol['max']);
+					} elseif (isset($kol['max']) and $kol['max'] <= 999) {
+						$c = "num3";
+						$m = sprintf(" max=%d", $kol['max']);
+					} else {
+						$c = "w10";
+						$m = "";
+					}
+					$ret .= sprintf("<td><input type='number' id='%s_%d' value=%d class='%s'%s%s></td>", $colname, $valpk, $value, $c, $m, $kol_title);
+				}
+
+			} elseif ($tp == "leeftijd") {
+				if ($ro) {
+					$ret .= sprintf("<td class='number'>%d</td>", $value);
+				} else {
+					$ret .= sprintf("<td><input type='number' id='%s_%d' value=%d class='num2' min=0 max=99></td>", $colname, $valpk, $value);
+				}
+					
+			} elseif ($tp == "dagen") {
+				if ($ro) {
+					if ($value == 1) {
+						$ret .= "<td class='number'>1 dag</td>";
+					} else {
+						$ret .= sprintf("<td class='number'>%d dagen</td>", $value);
+					}
+				} else {
+					$ret .= sprintf("<td><input type='number' id='%s_%d' value=%d class='num2' min=0 max=999>dagen</td>", $colname, $valpk, $value);
+				}
+
+			} elseif ($tp == "bedrag") {
+				if ($ro) {
+					$ret .= sprintf("<td class='number'>%.2F</td>", $value);
+				} else {
+					$ret .= sprintf("<td><input type='text' id='%s_%d' value='%.2F' class='d8'%s></td>", $colname, $valpk, $value, $kol_title);
+				}				
+					
+			} elseif ($tp == "email") {
+				if ($ro) {
+					$ret .= sprintf("<td>%s</td>", fnDispEmail($value, "", 1));
+				} else {
+					if (strlen($kol_class) == 0 and $kol['collen'] > 0) {
+						$kol_class = sprintf("class='w%d'", $kol['collen']);
+					}
+					$ret .= sprintf("<td><input type='email' %s id='%s_%d' value='%s' maxlength=%d></td>", $kol_class, $colname, $valpk, $value, $kol['collen']);
+				}
+					
+			} elseif ($tp == "pwd") {
+				if ($kol_edit == 0) {
+					$ret .= "<td></td>";
+				} else {
+					$ret .= sprintf("<td><input type='password' name='%s_%d'></td>", $colname, $valpk);
+				}
+
+			} else {
+				// tekst
+				if ($ro) {
+					if (strlen($col2) > 0) {
+						if (isset($kol['secondcolumntype']) and $kol['secondcolumntype'] == "geboren_leeftijd") {	
+							$dtfmt->setPattern(DTTEXT);
+							if (strlen($row->$col2) == 10) {
+								$value2 = $dtfmt->format(strtotime($row->$col2));
+								if ($row->$col2 <= date("Y-m-d", strtotime("-1 year"))) {
+									$value2 .= sprintf(" (%s)", fnLeeftijd($row->$col2));
+								}
+							} else {
+								$value2 = "";
+							}
+						} else {
+							$value2 = htmlentities($row->$col2);
+						}
+						$ret .= sprintf("<td id='%s_%d'>%s<br>%s</td>", $colname, $valpk, htmlentities($value), $value2);
+					} else {
+						$ret .= sprintf("<td id='%s_%d'>%s</td>", $colname, $valpk, htmlentities($value));
+						}
+				} else {
+					if (strlen($kol_class) == 0 and $kol['collen'] > 0) {
+						$kol_class = sprintf("class='w%d'", $kol['collen']);
+					}
+					$ret .= sprintf("<td><input type='text' id='%s_%d' value=\"%s\" %s maxlength=%d%s>", $colname, $valpk, $value, $kol_class, $kol['collen'], $kol_title);
+					if (strlen($col2) > 0) {
+						if (isset($kol['secondcolumntype']) and $kol['secondcolumntype'] == "date") {
+							$ret .= sprintf("<br><input type='date' id='%s_%d' value=\"%s\">", $col2, $valpk, $value2);
+						} else {
+							$ret .= sprintf("<br><input type='text' id='%s_%d' value=\"%s\">", $col2, $valpk, $value2);
+						}
+					}
+					$ret .= "</td>";
+				}
 			}
 		}
 		$ret .= "</tr>\n";
-		$ret .= "</thead>\n";
-		
-		$ret .= "<tbody>\n";
-		$dispkop = 1;
-		$totaantal = 0;
-		foreach($rows as $row) {
-			$ret .= "<tr>";
-			$valpk = $row->$colpk;
-			foreach ($kols as $key => $kol) {
-				$tp = $kol['type'] ?? "text";
-				$kol_class = "";
-				if (isset($kol['class'])) {
-					$kol_class = sprintf("class='%s'", $kol['class']);
-				}
-				$kol_title = "";
-				if (isset($kol['title']) and strlen($kol['title']) > 0) {
-					$kol_title = sprintf(" title=\"%s\"", str_replace("\"", "'", $kol['title']));
-				}
-				$ro = $kol['readonly'] ?? false;
-				if (isset($kol['cond_ro']) and strlen($kol['cond_ro']) > 0) {
-					$v = $kol['cond_ro'];
-					if ($row->$v > 0) {
-						$ro = true;
-					}
-				}
-				if (isset($kol['link']) and strlen($kol['link']) > 0) {
-					$tp = "link";
-					if ($ro and $kol['class'] == "trash") {
-						$kol_link = "";
-					} elseif (substr($kol['link'], 0, 7) == "<a href") {
-						$kol_link = $kol['link'];
-					} else {
-						$kol_link = "<a href='" . $kol['link'] . "'";
-						if (isset($kol['title'])) {
-							if (isset($kol['columntitle']) and strpos($kol['title'], "%") !== false) {
-								$t = sprintf($kol['title'], $row[$kol['columntitle']]);
-							} else {
-								$t = $kol['title'];
-							}
-							$kol_link .= sprintf(" title='%s'", $t);
-						}
-						if (isset($kol['class']) and $kol['class'] == "toevoegen") {
-							$kol_link .= sprintf(">%s</a>", ICONTOEVOEGEN);
-						} elseif (isset($kol['class']) and $kol['class'] == "muteren") {
-							$kol_link .= sprintf(">%s</a>", ICONMUTEER);
-						} elseif (isset($kol['class']) and $kol['class'] == "trash") {
-							$kol_link .= sprintf(">%s</a>", ICONVERWIJDER);
-						} elseif (isset($kol['class']) and $kol['class'] == "pdf") {
-							$kol_link .= sprintf(">%s</a>", ICONPDF);
-						} elseif (isset($kol['class']) and $kol['class'] == "leden") {
-							$kol_link .= sprintf(">%s</a>", ICONLEDEN);
-						} elseif (isset($kol['class']) and $kol['class'] == "verwerk") {
-							$kol_link .= sprintf(">%s</a>", ICONVERWERK);
-						} else {
-							$kol_link .= ">&nbsp;&nbsp;&nbsp;</a>";
-						}
-					}
-				} elseif (isset($kol['onclick']) and strlen($kol['onclick']) > 0) {
-					$tp = "click";
-				}
-				$colname = $kol['columnname'];
-				$value = $row->$colname;
-				
-				$col2 = $kol['secondcolumn'] ?? "";
-				$value2 = $row->$col2 ?? "";
-				
-				if (!isset($kol['headertext']) or strlen($kol['headertext']) == 0) {
-					// Kolom wordt niet getoond.
-				
-				} elseif ($tp == "link") {
-					if ($value > 0 and strlen($kol_link) > 0) {
-						$href = str_replace("%d", $value, $kol_link);
-						$ret .= sprintf("<td>%s</td>", $href);
-					} else {
-						$ret .= "<td>&nbsp;</td>";
-					}
-					
-				} elseif ($tp == "click") {
-					if ($value > 0) {
-						$oc = str_replace("%d", $value, $kol['onclick']);
-						if ($kol['class'] == "trash") {
-							$t = ICONVERWIJDER;
-						} elseif ($kol['class'] == "mislukt") {
-							$t = ICONMISLUKT;
-						} else {
-							$t = "&nbsp;";
-						}
-						$ret .= sprintf("<td class='%1\$s' id='%1\$s_%2\$d' onClick='%3\$s'>%4\$s</td>", $kol['class'], $value, $oc, $t);
-					} else {
-						$ret .= "<td>&nbsp;</td>";
-					}
-				
-				} elseif ($tp == "checkbox") {
-					$ret .= "<td class='checkbox'>";
-					if ($ro) {
-						if ($value == 1) {
-							$ret .= "Ja</td>";
-						} else {
-							$ret .= "Nee</td>";
-						}
-					} else {
-						$ret .= sprintf("<input type='checkbox' class='form-check-input' id='%s_%d' value=1%s></td>", $colname, $valpk, checked($value));
-					}
-					
-				} elseif (isset($kol['bronselect']) and is_array($kol['bronselect']) and count($kol['bronselect']) > 0) {
-					$opt = "";
-					foreach ($kol['bronselect'] as $k => $v) {
-						$opt .= sprintf("<option%s value=%s>%s</option>\n", checked($k, "option", $value), $k, $v);
-					}
-					
-					$ret .= sprintf("<td><select id='%s_%d' class='form-select form-select-sm %s'>\n%s</select></td>\n", $colname, $valpk, $kol['class'] ?? "", $opt);
-					
-				} elseif (isset($kol['bronselect']) and strlen($kol['bronselect']) > 0) {
-					
-					$colnamebron = $kol['bronselect'];
-					if (strlen($row->$colnamebron) > 0) {
-						$opt = "";
-						foreach (explode(";", $row->$colnamebron) as $v) {
-							$opt .= sprintf("<option value='%s'%s>%s</option>\n", str_replace(",", ".", trim($v)), checked($v, "option", $value), $v);
-						}
-						$ret .= sprintf("<td><select id='%s_%d' class='form-select form-select-sm %s'>\n%s</select></td>\n", $colname, $valpk, $kol['class'] ?? "", $opt);
-					} else {
-						$ret .= "<td></td>\n";
-					}
-
-				} elseif ($tp == "groep" and isset($kol['columnfilter'])) {
-					$o = $row->{$kol['columnfilter']};
-					if ((new cls_Groep())->aantal(sprintf("OnderdeelID=%d", $o)) > 1) {
-						$opt = (new cls_Groep())->htmloptions($value, $o);
-						$ret .= sprintf("<td><select id='%s_%d' class='form-select form-select-sm'>\n%s</select></td>\n", $colname, $valpk, $opt);
-					} else {
-						$ret .= "<td></td>";
-					}
-
-				} elseif ($tp == "DTSHORT" and $ro) {
-					if ((!is_null($value)) and $value > '1900-01-01') {
-						$ret .= sprintf("<td>%s</td>", date("d/m/Y", strtotime($value)));
-					} else {
-						$ret .= "<td>&nbsp;</td>";
-					}
-					
-				} elseif ($tp == "date" or $tp == "rqdate" or $tp == "DTTEXT") {
-					if ($ro == false) {
-						$rq = "";
-						if ($tp == "rqdate") {
-							$rq = " required";
-						}
-						$ret .= sprintf("<td><input type='date' name='%1\$s_%2\$d' id='%1\$s_%2\$d' value='%3\$s'%4\$s></td>", $colname, $valpk, $value, $rq);
-					} elseif ((!is_null($value)) and $value > '1900-01-01') {
-						$dtfmt->setPattern(DTTEXT);
-						$ret .= sprintf("<td>%s</td>", $dtfmt->format(strtotime($value)));
-					} else {
-						$ret .= "<td>&nbsp;</td>";
-					}
-					
-				} elseif ($tp == "geboren_leeftijd") {
-						$dtfmt->setPattern(DTTEXT);
-						if (strlen($value) == 10) {
-							$ret .= sprintf("<td>%s (%s)</td>", $dtfmt->format(strtotime($value)), fnLeeftijd($value));
-						} else {
-							$ret .= "<td></td>";
-						}
-					
-				} elseif ($tp == "datetime" or $tp == "DTLONG") {
-					$dtfmt->setPattern(DTLONG); // 1 januari 2020 (14:12)
-					if ($ro == false) {
-						// Nog aanpassen, klopt niet
-						$ret .= sprintf("<td><input type='date' id='%s_%d' value='%s'></td>", $colname, $valpk, $value);
-						
-					} elseif ((!is_null($value)) and $value > '1900-01-01') {
-						$ret .= sprintf("<td>%s</td>", $dtfmt->format(strtotime($value)));
-					} else {
-						$ret .= "<td>&nbsp;</td>";
-					}
-									
-				} elseif ($tp == "tijd") {
-					if ($ro) {
-						$ret .= sprintf("<td>%s</td>", $value);
-					} else {
-						$ret .= sprintf("<td><input type='time' id='%s_%d' value='%s'></td>", $colname, $valpk, $value);
-					}
-
-				} elseif ($tp == "integer" or $tp == "pk") {
-					if ($ro) {
-						$ret .= sprintf("<td class='number'>%d</td>", $value);
-						
-					} else {
-						if (isset($kol['max']) and $kol['max'] <= 99) {
-							$c = "num2";
-							$m = sprintf(" max=%d", $kol['max']);
-						} elseif (isset($kol['max']) and $kol['max'] <= 999) {
-							$c = "num3";
-							$m = sprintf(" max=%d", $kol['max']);
-						} else {
-							$c = "w10";
-							$m = "";
-						}
-						$ret .= sprintf("<td><input type='number' id='%s_%d' value=%d class='%s'%s%s></td>", $colname, $valpk, $value, $c, $m, $kol_title);
-					}
-
-				} elseif ($tp == "leeftijd") {
-					if ($ro) {
-						$ret .= sprintf("<td class='number'>%d</td>", $value);
-					} else {
-						$ret .= sprintf("<td><input type='number' id='%s_%d' value=%d class='num2' min=0 max=99></td>", $colname, $valpk, $value);
-					}
-					
-				} elseif ($tp == "dagen") {
-					if ($ro) {
-						if ($value == 1) {
-							$ret .= "<td class='number'>1 dag</td>";
-						} else {
-							$ret .= sprintf("<td class='number'>%d dagen</td>", $value);
-						}
-					} else {
-						$ret .= sprintf("<td><input type='number' id='%s_%d' value=%d class='num2' min=0 max=999>dagen</td>", $colname, $valpk, $value);
-					}
-
-				} elseif ($tp == "bedrag") {
-					if ($ro) {
-						$ret .= sprintf("<td class='number'>%.2F</td>", $value);
-					} else {
-						$ret .= sprintf("<td><input type='text' id='%s_%d' value='%.2F' class='d8'%s></td>", $colname, $valpk, $value, $kol_title);
-					}				
-					
-				} elseif ($tp == "email") {
-					if ($ro) {
-						$ret .= sprintf("<td>%s</td>", fnDispEmail($value, "", 1));
-					} else {
-						if (strlen($kol_class) == 0 and $kol['collen'] > 0) {
-							$kol_class = sprintf("class='w%d'", $kol['collen']);
-						}
-						$ret .= sprintf("<td><input type='email' %s id='%s_%d' value='%s' maxlength=%d></td>", $kol_class, $colname, $valpk, $value, $kol['collen']);
-					}
-					
-				} elseif ($tp == "pwd") {
-					if ($kol_edit == 0) {
-						$ret .= "<td></td>";
-					} else {
-						$ret .= sprintf("<td><input type='password' name='%s_%d'></td>", $colname, $valpk);
-					}
-
-				} else {
-					// tekst
-					if ($ro) {
-						if (strlen($col2) > 0) {
-							if (isset($kol['secondcolumntype']) and $kol['secondcolumntype'] == "geboren_leeftijd") {	
-								$dtfmt->setPattern(DTTEXT);
-								if (strlen($row->$col2) == 10) {
-									$value2 = $dtfmt->format(strtotime($row->$col2));
-									if ($row->$col2 <= date("Y-m-d", strtotime("-1 year"))) {
-										$value2 .= sprintf(" (%s)", fnLeeftijd($row->$col2));
-									}
-								} else {
-									$value2 = "";
-								}
-							} else {
-								$value2 = htmlentities($row->$col2);
-							}
-							$ret .= sprintf("<td id='%s_%d'>%s<br>%s</td>", $colname, $valpk, htmlentities($value), $value2);
-						} else {
-							$ret .= sprintf("<td id='%s_%d'>%s</td>", $colname, $valpk, htmlentities($value));
-						}
-					} else {
-						if (strlen($kol_class) == 0 and $kol['collen'] > 0) {
-							$kol_class = sprintf("class='w%d'", $kol['collen']);
-						}
-						$ret .= sprintf("<td><input type='text' id='%s_%d' value=\"%s\" %s maxlength=%d%s>", $colname, $valpk, $value, $kol_class, $kol['collen'], $kol_title);
-						if (strlen($col2) > 0) {
-							if (isset($kol['secondcolumntype']) and $kol['secondcolumntype'] == "date") {
-								$ret .= sprintf("<br><input type='date' id='%s_%d' value=\"%s\">", $col2, $valpk, $value2);
-							} else {
-								$ret .= sprintf("<br><input type='text' id='%s_%d' value=\"%s\">", $col2, $valpk, $value2);
-							}
-						}
-						$ret .= "</td>";
-					}
-				}
-			}
-			$ret .= "</tr>\n";
-		}
-		$ret .= "</tbody>\n";
-		$ret .= "</table>\n";
-		
-		$ret .= sprintf("<script>
-	
-		$('select').on('change', function() {
-			savedata('%1\$s', 0, this);
-		});
-
-		$('input').on('blur', function() {
-			savedata('%1\$s', 0, this);
-		});
-	
-		$(\"input[type='number']\").on('change', function() {
-			savedata('%1\$s', 0, this);
-		});
-		
-		%2\$s
-
-		</script>\n", $id, $xtra_script);
 	}
+	$ret .= "</tbody>\n";
+	$ret .= "</table>\n";
+		
+	$ret .= sprintf("<script>
+	
+	$('select').on('change', function() {
+		savedata('%1\$s', 0, this);
+	});
+
+	$('input').on('blur', function() {
+		savedata('%1\$s', 0, this);
+	});
+	
+	$(\"input[type='number']\").on('change', function() {
+		savedata('%1\$s', 0, this);
+	});
+		
+	%2\$s
+
+	</script>\n", $id, $xtra_script);
 
 	return $ret;
 	
