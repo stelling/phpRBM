@@ -62,15 +62,6 @@ function fnLedenlijst() {
 		} else {
 			$sl = 0;
 		}
-		
-		/*
-		$kols[1]['sortcolumn'] = "L.Achternaam";
-		$kols[3]['sortcolumn'] = "CONCAT(L.Postcode, CONVERT(L.Huisnr, VARCHAR(8)), L.Huisletter)";
-		$kols[7]['sortcolumn'] = "L.GEBDATUM";
-		$kols[10]['sortcolumn'] = "LM.Lidnr";
-		$kols[11]['sortcolumn'] = "LM.LIDDATUM";
-		$kols[12]['sortcolumn'] = "LM.Opgezegd";
-		*/
 			
 		$rows = $i_lid->ledenlijst($sl, $_SESSION['val_groep']);
 		
@@ -509,7 +500,7 @@ function fnNieuwLid() {
 			
 			if (toegang("editinschrijving", 0, 0)) {
 				$l = sprintf("%s?tp=%s&op=edit&RecordID=%%d", $_SERVER['PHP_SELF'], $_GET['tp']);
-				$kols[] = array('headertext' => "&nbsp;", 'columnname' => "RecordID", 'link' => $l, 'class' => "muteren");
+				$kols[] = array('headertext' => "&nbsp;", 'columnname' => "RecordID", 'type' => "link", 'link' => $l, 'class' => "muteren");
 			} else {
 				$kols[] = array('headertext' => "#", 'columnname' => "RecordID");
 			}
@@ -517,12 +508,12 @@ function fnNieuwLid() {
 			$kols[] = array('headertext' => "Naam", 'columnname' => "Naam");
 			$kols[] = array('columnname' => "Datum", 'headertext' => "Inschrijfdatum", 'type' => "date");
 			$kols[] = array('headertext' => "Verwerkt", 'columnname' => "Verwerkt", 'type' => "date");
-			$kols[] = array('headertext' => "&nbsp;", 'columnname' => "LnkPDF", 'link' => sprintf("%s/pdf.php?insid=%%d", BASISURL), 'class' => "pdf");
+			$kols[] = array('headertext' => "&nbsp;", 'columnname' => "LnkPDF", 'type' => "link", 'link' => sprintf("%s/pdf.php?insid=%%d", BASISURL), 'class' => "pdf");
 			$kols[] = array('headertext' => "Gekoppeld lid", 'columnname' => "GekoppeldLid");
 			
 			if (toegang("deleteinschrijving", 0, 0)) {
 				$l = sprintf("%s?tp=%s&op=delete&RecordID=%%d", $_SERVER['PHP_SELF'], $_GET['tp']);
-				$kols[] = array('headertext' => "&nbsp;", 'columnname' => "RecordID", 'link' => $l, 'class' => "trash");
+				$kols[] = array('headertext' => "&nbsp;", 'columnname' => "RecordID", 'type' => "link", 'link' => $l, 'class' => "trash");
 			}
 			
 			echo("<div class='clear'></div>\n");
