@@ -91,7 +91,7 @@ function afdelingslijst($afdid) {
 	
 	if (toegang($i_lo->i_ond->naam . "/Overzicht lid", 0, 0)) {
 		$l = "index.php?tp=" . $i_lo->i_ond->naam . "/Overzicht+lid&lidid=%d";
-		$kols[] = ['headertext' => "&nbsp;", 'columnname' => "LidID", 'link' => $l, 'class' => "detailslid"];
+		$kols[] = array('headertext' => "&nbsp;", 'columnname' => "LidID", 'type' => "link", 'link' => $l, 'class' => "detailslid");
 	}
 	$kols[] = ['headertext' => "Naam lid", 'columnname' => "NaamLid", 'sortcolumn' => "L.Achternaam"];
 	
@@ -101,8 +101,8 @@ function afdelingslijst($afdid) {
 		$kols[] = array('columnname' => "Woonplaats");
 	}
 	
-	$kols[] = ['columnname' => "Telefoon"];
-	$kols[] = ['columnname' => "Email"];
+	$kols[] = array('columnname' => "Telefoon");
+	$kols[] = array('columnname' => "Email", 'type' => "email");
 	$kols[] = array('columnname' => "GEBDATUM", 'headertext' => "Geboren", 'type' => "date");
 	
 	$rows = $i_lo->lijst($afdid, 2, "", "");
@@ -114,11 +114,8 @@ function afdelingslijst($afdid) {
 		$ht = "Functie / groep";
 	}
 	$kols[] = array('columnname' => "FunctieGroep", 'headertext' => $ht);
-	
-	if ($toonvanaf == 1) {
-		$kols[] = array('columnname' => "Vanaf", 'sortcolumn' => "LO.Vanaf");
-	}
-	
+	$kols[] = array('columnname' => "Vanaf", 'sortcolumn' => "LO.Vanaf");
+		
 	if (count($rows) > 0 and strlen(max(array_column($rows, "Opgezegd"))) > 0) {
 		$kols[] = array('headertext' => "Tot en met", 'columnname' => "Opgezegd", 'sortcolumn' => "LO.Opgezegd");
 	}
@@ -148,7 +145,7 @@ function afdelingslijst($afdid) {
 	echo("</form>\n");
 
 	if (count($rows) > 0) {
-		echo(fnDisplayTable($rows, $kols, "", 0, "", __FUNCTION__));
+		echo(fnDisplayTable($rows, $kols, "", 0, "", __FUNCTION__, "", -1, "i_lo->loclass"));
 		foreach ($rows as $row) {
 			$sel_leden[] = $row->LidID;
 		}
@@ -158,7 +155,7 @@ function afdelingslijst($afdid) {
 				$(document).ready(function() {
 					setkolommen('afdelingslijst');
 				});
-			  </script>\n");		
+			  </script>\n");
 	}
 	
 	$i_dp = null;
@@ -188,7 +185,7 @@ function afdelingskalendermuteren($p_onderdeelid){
 		}
 	}
 	
-	printf("<form method='post' id='filter' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+	echo("<form method='post' id='filter'>\n");
 	
 	printf("<button type='submit' class='%s btn-sm' name='nieuw7'>%s %s items</button>\n", CLASSBUTTON, ICONTOEVOEGEN, ICONZEVEN);
 	printf("<button type='submit' class='%s btn-sm' name='nieuw'>%s Item</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
@@ -196,6 +193,7 @@ function afdelingskalendermuteren($p_onderdeelid){
 	printf("<table id='%s' class='%s'>\n", __FUNCTION__, TABLECLASSES);
 	$dat = "";
 	$oms = "";
+	$tp = filter_var(str_replace(" ", "%20", $_GET['tp']), FILTER_SANITIZE_URL);
 	$act = false;
 	
 	echo("<tr><th>Datum</th><th>Omschrijving</th><th>Opmerking</th><th>Activiteit?</th><th></th></tr>\n");
@@ -218,7 +216,7 @@ function afdelingskalendermuteren($p_onderdeelid){
 		
 		printf("<td><input type='checkbox' class='form-check-input' id='Activiteit_%d' title='Is er zwemmen?' value=1 %s></td>", $row->RecordID, checked($row->Activiteit));
 		if ($aw == 0) {
-			printf("<td><a href='%s?tp=%s&KalID=%d&op=delete'><i class='bi bi-trash'></i></a></td>", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
+			printf("<td><a href='%s?tp=%s&KalID=%d&op=delete'>%s</a></td>", $_SERVER['PHP_SELF'], $tp, $row->RecordID, ICONVERWIJDER);
 		} else {
 			echo("<td></td>");
 		}
@@ -306,7 +304,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 		echo("</form>\n");
 	
 		foreach ($i_lo->groepsindeling($afdid) as $row) {
-			$i_lo->vulvars($row->RecordID);
+			$i_lo->vulvars($row->RecordID, -1, -1, "", 1);
 			if ($hvgroep != $row->GroepID) {
 				$i_gr->vulvars($afdid, $row->GroepID);
 				if ($hvgroep > -1) {
@@ -381,7 +379,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 			}
 		}
 		
-		printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
+		echo("<form method='post'>\n");
 		$i_ex->where = sprintf("EX.OnderdeelID=%s AND EX.Proefexamen=0 AND (SELECT COUNT(*) FROM %sLiddipl AS LD WHERE LD.Examen=EX.Nummer AND LD.Geslaagd=1) > 0", $afdid, TABLE_PREFIX);
 		echo("<div id='filter' class='form-check form-switch'>\n");
 		printf("<label class='form-check-label'><input type='checkbox' class='form-check-input' name='inclkader' title='Inclusief kader' value=1%s onClick='this.form.submit();'>Inclusief kader</label>\n", checked($inclkader));
@@ -428,7 +426,7 @@ function fnGroepsindeling($afdid, $p_muteren=0) {
 				}
 				printf("<table class='%s'>\n", TABLECLASSES);
 				foreach ($lorows as $row) {
-					$i_lo->vulvars($row->RecordID);
+					$i_lo->vulvars($row->RecordID, -1, -1, "", 1);
 					
 					$cl = "";
 					$t = "";
@@ -1132,7 +1130,7 @@ function afdelingsmailing($p_afdid) {
 	$i_ex->vulvars($koe);
 	$i_ex->where = sprintf("EX.OnderdeelID=%d AND (SELECT COUNT(*) FROM %sLiddipl AS LD WHERE LD.Examen=EX.Nummer) > 0", $p_afdid, TABLE_PREFIX);
 	$i_ld->where = sprintf("LD.Examen=%d", $koe);
-	if ($i_ex->aantal()) {
+	if ($i_ex->aantal() > 0) {
 		printf("<label class='form-label'>Examen</label><select name='kandidaatopexamen' class='form-select form-select-sm' title='Kandidaat op examen' onChange='this.form.submit();'><option value=0>Niet van toepassing</option>\n%s</select>\n", $i_ex->htmloptions($koe, "", 0));
 	
 		if ($koe > 0 and $i_ex->datum <= date("Y-m-d") and $i_ld->aantal("LD.Geslaagd=0") > 0 and $i_ld->aantal("LD.Geslaagd=1") > 0) {
