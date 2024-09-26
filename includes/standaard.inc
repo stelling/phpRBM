@@ -1253,7 +1253,7 @@ function fnEditTable($res, $kols, $id="", $th="") {
 						$ret .= "Nee</td>";
 					}
 				} else {
-					$ret .= sprintf("<input ype='checkbox' class='form-check-input' id='%s_%d' value=1%s></td>", $colname, $valpk, checked($value));
+					$ret .= sprintf("<input type='checkbox' class='form-check-input' id='%s_%d' value=1%s></td>", $colname, $valpk, checked($value));
 				}
 
 			} elseif (isset($kol['bronselect']) and is_array($kol['bronselect']) and count($kol['bronselect']) > 0) {
