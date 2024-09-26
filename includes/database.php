@@ -94,25 +94,25 @@ $i_base = null;
 
 class cls_db_base {
 	public string $table = "";				// Naam van de tabel met prefix
-	private string $alias = "";				// Alias van de tabel
+	public string $alias = "";				// Alias van de tabel
 	public string $basefrom = "";			// Naam van de tabel met alias
-	private $refcolumn = "";				// Naam van de kolom bij een update
-	private $typecolumn = "";				// Type van de kolom
-	private $nullablecolumn = false;		// Is de kolom nullable?
-	public string $pkkol = "RecordID";		// Naam van de kolom met de primary key
+	public $refcolumn = "";					// Naam van de kolom bij een update
+	public $typecolumn = "";				// Type van de kolom
+	public $nullablecolumn = false;		// Is de kolom nullable?
+	public string $pkkol = "RecordID";	// Naam van de kolom met de primary key
 	public string $naamlogging = "";		// De naam die, in de logging, wordt gebruikt om aan te geven welk record het betreft
-	private $aantalkolommen = -1;			// Het aantal kolommen in het SQL-statement
-	private $aantalrijen = -1;				// Het aantal rijen in het SQL-statement
+	public $aantalkolommen = -1;			// Het aantal kolommen in het SQL-statement
+	public $aantalrijen = -1;				// Het aantal rijen in het SQL-statement
 	public string $mess = "";				// Boodschap in de logging
 	public $ta = 0;							// Type activiteit van de logging
-	public $tas = 0;						// Type activiteit specifiek van de logging
-	public $tm = 0; 						// Toon boodschap: 0=nee, 1=aan iedereen, 2=alleen voor webmasters, 3=aan iedereen, via popup (alert)
+	public $tas = 0;							// Type activiteit specifiek van de logging
+	public $tm = 0; 							// Toon boodschap: 0=nee, 1=aan iedereen, 2=alleen voor webmasters, 3=aan iedereen, via popup (alert)
 	public int $lidid = 0;					// RecordID van het lid
 	public string $query = "";				// De SQL-code die moet worden uitgevoerd.
 	public string $where = "";				// Dit filter wordt op diverse plaatsen gebruikt, als er geen ander filter is gespecificeerd.
 	public string $per = "";				// Diverse functies worden per deze datum uitgevoerd.
-	public string $ingevoerd = "";			// Datum/tijd dat het record is ingevoerd.
-	public string $gewijzigd = "";			// De laatste wijzigingsdatum en tijd.
+	public string $ingevoerd = "";		// Datum/tijd dat het record is ingevoerd.
+	public string $gewijzigd = "";		// De laatste wijzigingsdatum en tijd.
 	public $debug = false;
 	
 	public $fdlang = "'%e %M %Y'";
@@ -406,6 +406,8 @@ class cls_db_base {
 	public function lengtekolom($p_kolom) {		
 		if ($p_kolom == "Script") {
 			return 100;
+		} elseif ($p_kolom == "Xtra_Char") {
+			return 5;
 		} else {
 			$query = sprintf("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE '%s' AND TABLE_NAME LIKE '%s' AND COLUMN_NAME LIKE '%s';", DB_NAME, $this->table, $p_kolom);
 			return $this->scalar($query);
@@ -1571,7 +1573,7 @@ class cls_Lid extends cls_db_base {
 		$query = sprintf("SELECT L.RelnrRedNed, L.TUSSENV, L.Achternaam, L.Roepnaam, L.Voorletter, L.Geslacht, L.GEBDATUM, L.GEBPLAATS, L.Postcode, L.Huisnr,
 						  IF(LENGTH(L.Huisletter)>0 AND LENGTH(L.Toevoeging)>0, CONCAT(L.Huisletter, '-', L.Toevoeging), IF(LENGTH(L.Toevoeging) > 0, L.Toevoeging, L.Huisletter)) AS Toev, L.RecordID
 						  FROM %1\$s INNER JOIN (%2\$sLidond AS LO INNER JOIN %2\$sOnderdl AS O ON LO.OnderdeelID=O.RecordID) ON LO.Lid=L.RecordID
-						  WHERE (O.ORGANIS=1 OR O.`Type`='B') AND LO.Vanaf <= CURDATE() AND IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE()", $this->basefrom, TABLE_PREFIX);
+						  WHERE O.ORGANIS=1 AND LO.Vanaf <= '%3\$s' AND IFNULL(LO.Opgezegd, '9999-12-31') >= '%3\$s'", $this->basefrom, TABLE_PREFIX, $this->per);
 		if (strlen($p_slid) == 7) {
 			$query .= sprintf(" AND UPPER(L.RelnrRedNed)='%s'", strtoupper($p_slid));
 		}
@@ -3122,7 +3124,7 @@ class cls_Functie extends cls_db_base {
 		if ($p_soort == "A") {
 			$f .= " AND F.Afdelingsfunctie=1";
 		} elseif ($p_soort == "L" or $p_soort == "BCF") {
-			$f .= " AND  F.Ledenadministratiefunctie=1";
+			$f .= " AND F.Ledenadministratiefunctie=1";
 		}
 		
 		if ($p_ondid > 0) {
@@ -3706,7 +3708,7 @@ class cls_Lidond extends cls_db_base {
 	public string $email = "";						// E-mail behorende bij deze functie
 	public float $parttimepercentage = 100;
 	
-	public string $laatstemutatiegroep = "";		// De laatste datum wanneer de groep in dit record is aangepast
+	private string $laatstemutatiegroep = "";		// De laatste datum wanneer de groep in dit record is aangepast
 	public string $loclass = "";
 	public string $lotitle = "";
 	public int $werkelijkedoorlooptijd = -1;
@@ -3765,8 +3767,6 @@ class cls_Lidond extends cls_db_base {
 				$this->email = $row->EmailFunctie ?? "";
 				$this->vanaf = $row->Vanaf ?? "";
 				$this->opgezegd = $row->Opgezegd ?? "";
-				$query = sprintf("SELECT IFNULL(MAX(DatumTijd), '2000-01-01') FROM %sAdmin_activiteit AS A WHERE A.refTable='Lidond' AND A.refColumn='GroepID' AND A.ReferID=%d;", TABLE_PREFIX, $this->loid);
-				$this->laatstemutatiegroep = $this->scalar($query);
 			} else {
 				$this->mess = sprintf("Record in lidond met RecordID %d bestaat niet.", $this->loid);
 				$this->tm = 1;
@@ -3994,7 +3994,7 @@ class cls_Lidond extends cls_db_base {
 								IF(IFNULL(LO.Opgezegd, '9999-12-31') > CURDATE(), LO.RecordID, 0) AS ridDelete
 						  FROM %s
 						  WHERE %s
-						  ORDER BY %sL.Achternaam, L.Tussenv, L.Roepnaam%s;", $this->selectnaam, $this->selectavgnaam, $this->selectleeftijd, $seladres, $this->selecttelefoon, $this->selectemail, $this->selectgroep, $this->fromlidond, $w, $p_ord, $lm);
+						  ORDER BY %sL.Achternaam, L.Tussenv, L.Roepnaam%s;", $this->selectnaam, $this->selectavgnaam, $this->selectleeftijd, $seladres, $this->selecttelefoon, $this->selectemail, $this->selectgroep, $this->fromlidond, $w, $p_ord, $lm);				  
 		$result = $this->execsql($query);
 		if ($p_fetched == 1) {
 			return $result->fetchAll();
@@ -4080,6 +4080,14 @@ class cls_Lidond extends cls_db_base {
 		
 		return $rv;
 	}  # cls_Lidond->lidgroepen
+	
+	public function laatstemutatiegroep() {
+		
+		$query = sprintf("SELECT IFNULL(MAX(DatumTijd), '2000-01-01') FROM %sAdmin_activiteit AS A WHERE A.TypeActiviteit=6 AND A.refTable='Lidond' AND A.refColumn='GroepID' AND A.ReferID=%d;", TABLE_PREFIX, $this->loid);
+		$this->laatstemutatiegroep = $this->scalar($query);
+		
+		return $this->laatstemutatiegroep;
+	}  # cls_lidond->laatstemutatiegroep
 	
 	public function groepeningebruik($p_ondid=-1) {
 		if ($p_ondid > 0) {
@@ -4208,17 +4216,17 @@ class cls_Lidond extends cls_db_base {
 			
 		} else {
 			$nrid = $this->nieuwrecordid();
-			$query = sprintf("INSERT INTO %s (RecordID, Lid, OnderdeelID, Vanaf, Functie, GroepID, Ingevoerd) VALUES (%d, %d, %d, '%s', 0, 0, NOW());", $this->table, $nrid, $this->lidid, $this->ondid, $vanaf);
+			$query = sprintf("INSERT INTO %s (RecordID, Lid, OnderdeelID, Vanaf, Functie, GroepID) VALUES (%d, %d, %d, '%s', 0, 0);", $this->table, $nrid, $this->lidid, $this->ondid, $vanaf);
 			if ($this->execsql($query) > 0) {
 				$this->loid = $nrid;
 				$this->mess = sprintf("Tabel Lidond: record %d is per '%s' toegevoegd", $this->loid, $vanaf);
 				if (strlen($p_reden) > 0) {
 					$this->mess .= ", omdat " . $p_reden;
 				}
-				$this->interface($query);
 				$rv = true;
 			} else {
 				$this->mess = sprintf("Geen record toegevoegd: %s", $query);
+				$this->loid = 0;
 			}
 		}
 		$this->log($nrid, $p_toonlog, $this->ondid);
@@ -4495,11 +4503,9 @@ class cls_Lidond extends cls_db_base {
 		
 			$exec_tijd = (microtime(true) - $starttijd);
 			$this->lidid = 0;
-			if ($rv > 0 or $p_altijdlog == 1 or ($_SESSION['settings']['performance_trage_select'] > 0 and $exec_tijd > $_SESSION['settings']['performance_trage_select'])) {
-				if ($rv == 0) {
-					$this->ta = 2;
-					$this->tas = 61;
-				}
+			if ($rv > 0 or $p_altijdlog == 1) {
+				$this->ta = 2;
+				$this->tas = 61;
 				$this->mess = sprintf("%s->%s in %.1f seconden uitgevoerd", __CLASS__, __FUNCTION__, $exec_tijd);
 				$this->log(0, 0);
 			}
@@ -4523,6 +4529,7 @@ class cls_Lidond extends cls_db_base {
 		$lagb = (new cls_Logboek())->max("A.DatumTijd", $f);
 		
 		if (strlen($lagb) < 10 or $lagb < date("Y-m-d H:i:s", strtotime(sprintf("-%d minute", $p_interval))) or $p_lidid > 0) {
+		debug(__CLASS__ . "->" . __FUNCTION__ . " / " . $lagb);
 			
 			$f = "O.`Alleen leden`=1 AND O.`Type` <> 'M' AND O.Gewijzigd <= DATE_SUB(NOW(), INTERVAL 6 HOUR)";
 			if ($p_ondid > 0) {
@@ -5547,7 +5554,7 @@ class cls_Mailing extends cls_db_base {
 		}
 	}
 	
-	private function vulvars($p_mid=-1) {
+	private function vulvars($p_mid=-1, $p_beperkt=0) {
 		if ($p_mid >= 0) {
 			$this->mid = $p_mid;
 		}
@@ -5581,7 +5588,11 @@ class cls_Mailing extends cls_db_base {
 		$query = sprintf("SELECT COUNT(*) FROM %sMailing_rcpt AS MR WHERE MR.MailingID=%d;", TABLE_PREFIX, $this->mid);
 		$this->aantalontvangers = $this->scalar($query);
 		$this->evenementoms = (new cls_Evenement($this->evenementid))->omschrijving ?? "";
-		$this->ingevoerddoor = (new cls_Logboek())->max("LidID", sprintf("ReferID=%d AND TypeActiviteit=4 AND TypeActiviteitSpecifiek=1", $this->mid)) ?? 0;
+		if ($p_beperkt == 1) {
+			$this->ingevoerddoor = 0;
+		} else {
+			$this->ingevoerddoor = (new cls_Logboek())->max("LidID", sprintf("ReferID=%d AND TypeActiviteit=4 AND TypeActiviteitSpecifiek=1", $this->mid)) ?? 0;
+		}
 	}  # cls_Mailing->vulvars
 	
 	public function record($p_mid) {
@@ -5639,7 +5650,7 @@ class cls_Mailing extends cls_db_base {
 		$f = sprintf("(M.RecordID NOT IN (%d, %d, %d, %d, %d, %d))", $_SESSION['settings']['mailing_lidnr'], $_SESSION['settings']['mailing_validatielogin'], $_SESSION['settings']['mailing_herstellenwachtwoord'],
 						$_SESSION['settings']['mailing_bewakinginschrijving'], $_SESSION['settings']['mailing_bevestigingbestelling'], $_SESSION['settings']['mailing_bevestigingopzegging']);
 		foreach ($this->lijst($f) as $row) {
-			$this->vulvars($row->RecordID);
+			$this->vulvars($row->RecordID, 1);
 			$o = $this->subject;
 			if (strlen($this->opmerking) > 0) {
 				$o .= " | " . $this->opmerking;
@@ -5695,7 +5706,9 @@ class cls_Mailing extends cls_db_base {
 		$nrid = 0;
 		$this->tas = 1;
 		
-		if (strlen($p_subject) < 4) {
+		if (toegang("Mailing/Nieuw", 0, 1) == false) {
+			$this->mess = "Je hebt geen rechten om een mailing toe te voegen. Deze mailing wordt niet toegevoegd.";
+		} elseif (strlen($p_subject) < 4) {
 			$this->mess = "Het onderwerp moet uit minimaal 4 karakers bestaan. Deze mailing wordt niet toegevoegd.";
 		} else {
 			$p_subject = str_replace("\"", "'", $p_subject);
@@ -6021,7 +6034,6 @@ class cls_Mailing_hist extends cls_db_base {
 	public function add($p_email) {
 		global $dbc;
 		
-		$this->vulvars(-1, $p_email->mailingid);
 		$this->tas = 21;
 		$this->lidid = $p_email->lidid;
 		$nrid = $this->nieuwrecordid();
@@ -6054,8 +6066,8 @@ class cls_Mailing_hist extends cls_db_base {
 		$query = sprintf("INSERT INTO %s SET RecordID=:nrid, LidID=:lidid, MailingID=:mid, VanafID=:vanafid, subject=:subject, to_name=:to_name, to_addr=:to_addr, cc_addr=:cc_addr, message=:message, ZonderBriefpapier=:zonderbriefpapier, ZichtbaarVoor=:zichtbaarvoor, ReplyID=:replyid, Xtra_Char=:xtra_char, Xtra_Num=:xtra_num, NietVersturenVoor=:nietversturenvoor, IngevoerdDoor=:ingevoerddoor;", $this->table);
 		if ($dbc->prepare($query)->execute($data) > 0) {
 			$t = str_ireplace(TABLE_PREFIX, "", $this->table);
-			if ($this->mid > 0) {
-				$mess = sprintf("Tabel %s: Record %d (%s) voor mailing %d toegevoegd.", $t, $nrid, $data['subject'], $this->mid);
+			if ($data['mid'] > 0) {
+				$mess = sprintf("Tabel %s: Record %d (%s) voor mailing %d toegevoegd.", $t, $nrid, $data['subject'], $data['mid']);
 				(new cls_logboek())->add($mess, 4, $p_email->lidid, 0, $nrid, $this->tas, $t);
 			}
 			return $nrid;
@@ -6650,7 +6662,7 @@ class cls_Logboek extends cls_db_base {
 		
 	}  # cls_Logboek->laatstgewijzigd
 	
-	public function add($p_oms, $p_ta=0, $p_lidid=-1, $p_tm=-1, $p_referid=0, $p_tas=-1, $p_reftable="", $p_refcolumn="", $p_autom=0, $p_refondid=0) {
+	public function add($p_oms, $p_ta=0, $p_lidid=-1, $p_tm=0, $p_referid=0, $p_tas=-1, $p_reftable="", $p_refcolumn="", $p_autom=0, $p_refondid=0) {
 		global $dbc;
 		
 		if ($p_lidid >= 0) {
