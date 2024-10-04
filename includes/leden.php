@@ -135,8 +135,11 @@ function fnLedenlijst() {
 			$kols[] = array('columnname' => "RecordID", 'link' => $l, 'class' => "detailslid");
 		}
 		$kols[] = array('columnname' => "NaamLid", 'headertext' => "Naam", 'sortcolumn' => "L.Achternaam");
-		$kols[] = array('columnname' => "Adres", 'columnname' => "Postcode");
-		$kols[] = array('columnname' => "Woonplaats", 'sortcolumn' => "Woonplaats");
+		if (toegang("Woonadres_tonen", 0, 0)) {
+			$kols[] = array('columnname' => "Adres");
+			$kols[] = array('columnname' => "Postcode", 'sortcolumn' => "Postcode");
+			$kols[] = array('columnname' => "Woonplaats", 'sortcolumn' => "Woonplaats");
+		}
 		$kols[] = array('columnname' => "Telefoon");
 		$kols[] = array('columnname' => "Email", 'headertext' => "E-mail", 'type' => "email", 'class' => "email");
 		$kols[] = array('columnname' => "GEBDATUM", 'headertext' => "Geb. datum", 'type' => "date", 'sortcolumn' => "L.GEBDATUM");
@@ -852,8 +855,8 @@ function detailsonderdeelmuteren($p_ondid) {
 		printf("<label class='form-label'>Centraal e-mailadres</label><input type='email' id='centraalemail' class='w50' value='%s' maxlength=50>\n", $i_ond->email);
 		printf("<label class='form-label'>Is kader</label><input type='checkbox' class='form-check-input' id='Kader' %s>\n", checked($i_ond->iskader));
 	}
-	if ($i_ond->type == "A"  or $i_ond->type == "G") {
-		printf("<label class='form-label'>Aangesloten bij</label><select id='ORGANIS' class='form-select form-select-sm'>\n%s</select>\n", (new cls_Organisatie())->htmloptions(0, $i_ond->organisatie));
+	if ($i_ond->type == "A" or $i_ond->type == "B" or $i_ond->type == "G" or $i_ond->type == "S") {
+		printf("<label class='form-label'>Leden aangesloten bij</label><select id='ORGANIS' class='form-select form-select-sm'>\n%s</select>\n", (new cls_Organisatie())->htmloptions(0, $i_ond->organisatie));
 	}
 	
 	$i_ond->where = sprintf("O.`Type` IN ('B', 'C', 'R') AND IFNULL(O.VervallenPer, '9999-12-31') > '%s'", $i_ond->per);
@@ -940,7 +943,6 @@ function LedenOnderdeelMuteren($p_ondid) {
 	$i_lo = new cls_Lidond($p_ondid);
 	$i_lid = new cls_Lid();
 	$i_fnk = new cls_Functie();
-	$i_lo->autogroepenbijwerken(0, 5, $p_ondid);
 	
 	if ($i_ond->oid <= 0) {
 		$mess = sprintf("Onderdeel %d bestaat niet.", $p_ondid);
@@ -1045,7 +1047,7 @@ function persoonlijkeGroepMuteren() {
 	$i_ond = new cls_Onderdeel();
 
 	$l = sprintf("%s?tp=%s&OnderdeelID=%%d", $_SERVER['PHP_SELF'], $_GET['tp']);
-	$kols[] = array('headertext' => "&nbsp", 'link' => $l, 'class' => "leden", 'columnname' => "RecordID", 'title' => "%d leden");
+	$kols[] = array('columnname' => "RecordID", 'headertext' => "&nbsp", 'type' => "link", 'link' => $l, 'class' => "leden", 'title' => "%d leden");
 	$kols[] = array('headertext' => "Code", 'columnname' => "Kode");
 	$kols[] = array('headertext' => "Naam", 'columnname' => "Naam");
 		
@@ -2226,10 +2228,6 @@ function onderdelenlidmuteren($lidid, $p_type="G") {
 		if (isset($_POST['btnToevoegenOnderdeel']) and isset($_POST['NieuwOnderdeel']) and $_POST['NieuwOnderdeel'] > 0) {
 			$i_lo->add($_POST['NieuwOnderdeel'], $lidid);
 		}
-		
-		
-		
-		$i_lo->autogroepenbijwerken(0, 5);
 	}
 
 	/*
@@ -2268,7 +2266,7 @@ function onderdelenlidmuteren($lidid, $p_type="G") {
 	}
 	$kols[] = array('columnname' => "Vanaf", 'type' => "date");
 	if ($p_type == "A" or $p_type == "BCF") {
-		$frows = (new cls_functie())->selectlijst($p_type, "", 1);
+		$frows = (new cls_functie())->selectlijst($p_type, "1900-01-01", 1);
 		$kols[] = array('columnname' => "Functie", 'headertext' => "Functie", 'bronselect' => $frows, 'class' => "w20");
 
 		if (count($lorows) > 0 and max(array_column($lorows, "Functie")) > 0) {
@@ -2293,7 +2291,7 @@ function onderdelenlidmuteren($lidid, $p_type="G") {
 		$kols[] = array('columnname' => "RecordID", 'headertext' => "&nbsp;", 'onclick' => $oc, 'class' => "trash");
 	}
 	
-	$res = $i_lo->lijst(-1, $f, "", 0, 0);
+	$res = $i_lo->lijst(-1, $f, "IF(IFNULL(LO.Opgezegd, '9999-12-31') >= CURDATE(), 0, 1)", 0, 0);
 	echo(fnEditTable($res, $kols, "lidond", $typeoms . " " . $i_lo->i_lid->naam));
 
 	if ($lidid > 0) {
@@ -2480,8 +2478,6 @@ function lidmaatschapmuteren($lidid) {
 		} elseif (isset($_SESSION['settings']['login_beperkttotgroep']) and strlen($_SESSION['settings']['login_beperkttotgroep']) > 0) {
 			$i_lo->autogroepenbijwerken(0, 5, -2);
 		}
-		
-		$i_lo->auto_einde(-1, 5, $lidid);
 		
 	} else {
 		$i_lm->controle($lidid);
@@ -2853,8 +2849,8 @@ function fnBasisgegevens($p_type) {
 		
 		$kols = null;
 		
-		$kols[] = array('headertext' => "Nummer", 'readonly' => true, 'type' => "pk");
-		$kols[] = array('headertext' => "Omschrijving", 'columnname' => "Omschrijv");
+		$kols[] = array('columnname' => "Nummer", 'headertext' => "Nummer", 'readonly' => true, 'type' => "pk");
+		$kols[] = array('columnname' => "Omschrijving", 'headertext' => "Omschrijving", 'columnname' => "Omschrijv");
 		$kols[] = array('headertext' => "Afkorting", 'columnname' => "Afkorting");
 		$kols[] = array('headertext' => "Volgnr", 'columnname' => "Sorteringsvolgorde", 'type' => "integer", 'max' => 99);
 		if ((new cls_Onderdeel())->aantal("O.`Type`='A'") > 0) {
