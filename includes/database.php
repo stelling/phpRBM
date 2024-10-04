@@ -101,8 +101,8 @@ class cls_db_base {
 	public $nullablecolumn = false;		// Is de kolom nullable?
 	public string $pkkol = "RecordID";	// Naam van de kolom met de primary key
 	public string $naamlogging = "";		// De naam die, in de logging, wordt gebruikt om aan te geven welk record het betreft
-	public $aantalkolommen = -1;			// Het aantal kolommen in het SQL-statement
-	public $aantalrijen = -1;				// Het aantal rijen in het SQL-statement
+	public int $aantalkolommen = -1;			// Het aantal kolommen in het SQL-statement
+	public int $aantalrijen = -1;				// Het aantal rijen in het SQL-statement
 	public string $mess = "";				// Boodschap in de logging
 	public $ta = 0;							// Type activiteit van de logging
 	public $tas = 0;							// Type activiteit specifiek van de logging
@@ -2628,8 +2628,8 @@ class cls_Onderdeel extends cls_db_base {
 	public string $mysql = "";
 	public string $opmerking = "";
 	private string $mogelijketypes = "";
-	public $aantalrijen = 0;				// Het aantal leden dat dit onderdeel op dit moment heeft
-	public $organisatie = 0;
+	public int $aantalrijen = 0;				// Het aantal leden dat dit onderdeel op dit moment heeft
+	public int $organisatie = 0;
 
 	function __construct($p_oid=-1, $p_type="") {
 		$this->table = TABLE_PREFIX . "Onderdl";
@@ -2831,6 +2831,7 @@ class cls_Onderdeel extends cls_db_base {
 		$xsel = sprintf("(SELECT COUNT(*) FROM %sLidond AS LO WHERE LO.OnderdeelID=O.RecordID AND IFNULL(LO.Opgezegd, CURDATE()) >= CURDATE()) AS `aantalLeden`", TABLE_PREFIX);
 		
 		$query = sprintf("SELECT O.RecordID, O.Kode, O.Naam, O.Kader, %s FROM %s WHERE %s ORDER BY IF(IFNULL(O.VervallenPer, '9999-12-31') > CURDATE(), 0, 1), O.Naam;", $xsel, $this->basefrom, $w);
+		
 		$result = $this->execsql($query);
 		
 		if ($p_fetched == 1) {
@@ -4529,7 +4530,7 @@ class cls_Lidond extends cls_db_base {
 		$lagb = (new cls_Logboek())->max("A.DatumTijd", $f);
 		
 		if (strlen($lagb) < 10 or $lagb < date("Y-m-d H:i:s", strtotime(sprintf("-%d minute", $p_interval))) or $p_lidid > 0) {
-		debug(__CLASS__ . "->" . __FUNCTION__ . " / " . $lagb);
+//		debug(__CLASS__ . "->" . __FUNCTION__ . " / " . $lagb);
 			
 			$f = "O.`Alleen leden`=1 AND O.`Type` <> 'M' AND O.Gewijzigd <= DATE_SUB(NOW(), INTERVAL 6 HOUR)";
 			if ($p_ondid > 0) {
@@ -10849,8 +10850,6 @@ class cls_Eigen_lijst extends cls_db_base {
 	public string $mysql = "";
 	public string $eigenscript = "";
 	public int $groepmelding = 0;
-	public int $aantalkolommen = 0;
-	public int $aantalrijen = 0;
 	public string $tabpage = "";
 	private int $kolomlidid = -1;
 	public string $laatstecontrole = "";
