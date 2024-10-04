@@ -704,10 +704,7 @@ function fnTemplatesmuteren() {
 	$kols[1]['columnname'] = "Naam";
 	$kols[1]['headertext'] = "Naam";
 	
-	$kols[2]['columnname'] = "RecordID";
-	$kols[2]['headertext'] = "&nbsp;";
-	$kols[2]['class'] = "muteren";
-	$kols[2]['link'] = sprintf("%s?tp=%s&op=edittemplate&tpid=%%d", $_SERVER['PHP_SELF'], $_GET['tp']);
+	$kols[] = array('columnname' => "RecordID", 'type' => "link", 'headertext' => "&nbsp;", 'class' => "muteren", 'link' => sprintf("%s?tp=%s&op=edittemplate&tpid=%%d", $_SERVER['PHP_SELF'], $_GET['tp']));
 	
 	$rows = $i_tp->basislijst();
 	
