@@ -1085,6 +1085,8 @@ class cls_Lid extends cls_db_base {
 	public string $eindelaatstelidmaatschap = "";
 	public string $soortlid = "";
 	public string $onderscheiding = "";
+	public string $geslachtoms = "Onbekend";
+	
 	public $iskader = false;
 	
 	public $inloggentoegestaan = false;
@@ -1179,7 +1181,7 @@ class cls_Lid extends cls_db_base {
 				$this->rekeningbetaalddoor = $row->RekeningBetaaldDoor ?? 0;
 				$this->bankrekening = $row->Bankrekening ?? "";
 				$this->sportlinkid = $row->RelnrRedNed ?? "";
-				$this->vogafgegevenmi = $row->{'VOG afgegeven'} ?? "";
+				$this->vogafgegeven = $row->{'VOG afgegeven'} ?? "";
 				$this->beroep = $row->Beroep ?? "";
 				$this->machtigingafgegeven = $row->{'Machtiging afgegeven'} ?? 0;
 				$this->opmerking = $row->Opmerking ?? "";
@@ -1191,7 +1193,7 @@ class cls_Lid extends cls_db_base {
 			}
 		}
 		
-		$this->lidnaam = $this->naam;
+		$this->naamlid = $this->naam;
 		$this->avgnaam = "";
 		$this->leeftijd = -1;
 		
@@ -2686,7 +2688,7 @@ class cls_Onderdeel extends cls_db_base {
 					$this->iskader = false;
 				}
 
-				if (strlen($row->MySQL) > 10) {
+				if (strlen($this->mysql) > 10) {
 					$this->isautogroep = true;
 				} else {
 					$this->isautogroep = false;
@@ -7525,7 +7527,7 @@ class cls_Liddipl extends cls_db_base {
 			$w .= sprintf(" AND %s", $this->where);
 		}
 		
-		$query = sprintf("SELECT LD.*, %1\%s AS NaamLid, %2\$s AS AVGnaam, L.GEBDATUM, EX.Datum, EX.Plaats, EX.Proefexamen, EX.OnderdeelID
+		$query = sprintf("SELECT LD.*, %1\$s AS NaamLid, %2\$s AS AVGnaam, L.GEBDATUM, EX.Datum, EX.Plaats, EX.Proefexamen, EX.OnderdeelID
 						  FROM (%3\$s INNER JOIN %4\$sExamen AS EX ON LD.Examen=EX.Nummer) INNER JOIN %4\$sLid AS L ON LD.Lid=L.RecordID
 						  WHERE %5\$s ORDER BY L.Achternaam, L.TUSSENV, L.Roepnaam, LD.DatumBehaald;", $this->selectnaam, $this->selectavgnaam, $this->basefrom, TABLE_PREFIX, $w);
 		$result = $this->execsql($query);
@@ -8235,7 +8237,7 @@ class cls_Evenement extends cls_db_base {
 	public int $doelgroep = 0; 						// Kolom in de tabel heet 'BeperkTotGroep'
 	
 	public int $aantaldeelnemers = 0;
-	public int $aantalinschreven = 0;
+	public int $aantalingeschreven = 0;
 	public int $aantalafgemeld = 0;
 	
 	private string $sqlaantdln = "";
@@ -8530,9 +8532,10 @@ class cls_Evenement_Deelnemer extends cls_db_base {
 	public string $starttijd = "";
 	
 	public string $tijden = "";
-	private $casestatus = "";
+	private string $casestatus = "";
 	private $magmuteren = false;
 	public $aanwezig = false;
+	public int $onlineinschrijving = 0;
 	
 	public object $i_ev;
 	public object $i_lid;
