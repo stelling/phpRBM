@@ -258,6 +258,7 @@ function beheerautorisatie() {
 	$ondrows = (new cls_Onderdeel())->lijst(0, "O.`Type`<>'T'");
 	$dtfmt->setPattern(DTTEXT);
 	foreach($authrows as $row) {
+		$i_auth->vulvars($row->RecordID);
 		if ($row->Toegang > 0) {
 			$add = sprintf("<i class='bi bi-plus-circle' alt='Regel toevoegen' title='Regel toevoegen' onClick=\"add_auth('%s');window.location.reload(true);\"></i>", $row->Tabpage);
 		} else {
@@ -279,7 +280,7 @@ function beheerautorisatie() {
 			$cllg = " class='attentie'";
 		}
 		printf("<tr>\n<td>%s</td><td id='name_%d'>%s</td>\n", $add, $row->RecordID, $row->Tabpage);
-		printf("<td><select id='Toegang_%d' class='form-select form-select-sm'>\n%s</select></td>\n<td%s>%s</td><td%s>%s</td><td>%s</td>\n</tr>\n", $row->RecordID, $selectopt, $clnw, $dtfmt->format(strtotime($row->Ingevoerd)), $cllg, $dtfmt->format(strtotime($row->LaatstGebruikt)), $del);
+		printf("<td><select id='Toegang_%d' class='form-select form-select-sm'>\n%s</select></td>\n<td%s>%s</td><td%s>%s</td><td>%s</td>\n</tr>\n", $row->RecordID, $selectopt, $clnw, $dtfmt->format(strtotime($i_auth->ingevoerd)), $cllg, $dtfmt->format(strtotime($i_auth->laatstgebruikt)), $del);
 	}
 	echo("</tbody>\n");
 	echo("</table>\n");
@@ -432,7 +433,7 @@ function fnInstellingen() {
 				$label = htmlent($arrParam[$row->Naam]);
 				$uitleg = "";
 			}
-			if (strlen($row->ValueChar) > 60 and $row->ParamType="T") {
+			if (isset($row->ValueChar) and strlen($row->ValueChar) > 60 and $row->ParamType="T") {
 				printf("<label class='form-label'>%s</label><textarea name='%s'>%s</textarea>\n", $label, $row->Naam, $row->ValueChar);
 			} elseif ($row->Naam == "db_backup_type") {
 				printf("<label class='form-label'>%s</label><select name='%s' id='%s' class='form-select form-select-sm'>", $label, $row->Naam, str_replace(" ", "_", strtolower($row->Naam)));
@@ -697,13 +698,8 @@ function fnTemplatesmuteren() {
 		$i_tp->update($seltp, "Inhoud", $_POST['inhoud']);
 	}
 	
-	$kols[0]['columnname'] = "RecordID";
-	$kols[0]['headertext'] = "#";
-	$kols[0]['type'] = "pk";
-	
-	$kols[1]['columnname'] = "Naam";
-	$kols[1]['headertext'] = "Naam";
-	
+	$kols[] = array('columnname' => "RecordID", 'headertext' => "#", 'type' => "pk");
+	$kols[] = array('columnname' => "Naam", 'headertext' => "Naam");
 	$kols[] = array('columnname' => "RecordID", 'type' => "link", 'headertext' => "&nbsp;", 'class' => "muteren", 'link' => sprintf("%s?tp=%s&op=edittemplate&tpid=%%d", $_SERVER['PHP_SELF'], $_GET['tp']));
 	
 	$rows = $i_tp->basislijst();
