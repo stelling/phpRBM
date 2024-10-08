@@ -48,7 +48,7 @@ function fnRekeningen() {
 		}
 		
 	} elseif ($currenttab2 == "Aanmaken rekeningen") {
-		RekeningenAanmaken();
+		rekeningenaanmaken();
 		
 	} elseif ($currenttab2 == "Betalingen") {
 		RekeningBetalingen();
@@ -360,9 +360,9 @@ function rekeningenaanmaken() {
 	$i_rk = new cls_Rekening();
 	$i_rr = new cls_Rekeningregel();
 	
-	$seizoen = $_POST['nwseizoen'] ?? -1;
+	$seizoen = $_POST['seizoen'] ?? -1;
 	if ($seizoen <= 0) {
-		$seizoen = (new cls_Seizoen())->zethuidige(date("Y-m-d"));
+		$seizoen = $i_sz->zethuidige(date("Y-m-d"));
 	}
 	
 	if (isset($_POST['eerstenummer']) and strlen($_POST['eerstenummer']) > 3) {
@@ -381,7 +381,7 @@ function rekeningenaanmaken() {
 	if ($i_sz->gezinsrekening == 1) {
 		$orderby = "L.Postcode, L.Adres, L.RekeningBetaaldDoor, L.GEBDATUM, L.Roepnaam";
 	} else {
-		$orderby = "L.RecordID";
+		$orderby = "L.Achternaam, L.Tussenv, L.RecordID";
 	}
 	if ($ontbrekende == 1) {
 		$f = sprintf("(L.RecordID NOT IN (SELECT RR.Lid FROM %1\$sRekening AS RK INNER JOIN %1\$sRekreg AS RR ON RK.Nummer=RR.Rekening", TABLE_PREFIX);;
