@@ -72,11 +72,11 @@ function fnLedenlijst() {
 		if ($currenttab2 != "Klosleden") {
 			$arrCB[] = "lidnummer";
 			$arrCB[] = "vanaf";
-			if (count($rows) > 0 and strlen(max(array_column($rows, "Opgezegd"))) > 0) {
+			if (count($rows) > 0 and max(array_column($rows, "Opgezegd")) > "1900-01-01") {
 				$arrCB[] = "opgezegd";
 			}
 		}
-		if (count($rows) > 0 and strlen(max(array_column($rows, "Opmerking"))) > 0) {
+		if (count($rows) > 0 and max(array_column($rows, "Opmerking")) > "") {
 			$arrCB[] = "opmerking";
 		}
 
@@ -132,7 +132,7 @@ function fnLedenlijst() {
 		
 		if (toegang("Ledenlijst/Overzicht lid", 0, 0)) {
 			$l = "index.php?tp=Ledenlijst/Overzicht+lid&lidid=%d";
-			$kols[] = array('columnname' => "RecordID", 'link' => $l, 'class' => "detailslid");
+			$kols[] = array('columnname' => "RecordID", 'type' => "link", 'link' => $l, 'class' => "detailslid");
 		}
 		$kols[] = array('columnname' => "NaamLid", 'headertext' => "Naam", 'sortcolumn' => "L.Achternaam");
 		if (toegang("Woonadres_tonen", 0, 0)) {
@@ -161,8 +161,9 @@ function fnLedenlijst() {
 			}
 		}
 		if (toegang("Ledenlijst/Wijzigen lid", 0, 0)) {
-			$kols[] = ['columnname' => "RecordID", 'link' => "index.php?tp=Ledenlijst/Wijzigen+lid/Algemene+gegevens&lidid=%d", 'class' => 'muteren'];
+			$kols[] = ['columnname' => "RecordID", 'type' => "link", 'link' => "index.php?tp=Ledenlijst/Wijzigen+lid/Algemene+gegevens&lidid=%d", 'class' => 'muteren'];
 		}
+		
 		
 		$rows = $i_lid->ledenlijst($sl, $_SESSION['val_groep'], fnOrderBy($kols));
 				
@@ -172,7 +173,7 @@ function fnLedenlijst() {
 //		echo("</div>  <!-- Einde form-check form-switch -->\n");
 		echo("</form>\n");
 		
-		if (count($rows) > 0) {		
+		if (count($rows) > 0) {
 			echo(fnDisplayTable($rows, $kols, "", 0, "", "ledenlijst"));
 			foreach ($rows as $row) {
 				$sel_leden[] = $row->RecordID;
@@ -396,11 +397,11 @@ function fnWieiswie($actie, $metfoto=1) {
 			}
 			if (strlen($row->FunctieOms) > 1) {
 				$func = $row->FunctieOms;
-				if (strlen($row->Opmerk) > 0) {
-					$func .= " &amp; " .  $row->Opmerk;
+				if (strlen($i_lo->opmerking) > 0) {
+					$func .= " &amp; " .  $i_lo->opmerking;
 				}
 			} else {
-				$func = $row->Opmerk;
+				$func = $i_lo->opmerking;
 			}
 			
 			$fd = (new cls_Foto(-1, $row->LidID))->fotodata;
@@ -1268,10 +1269,8 @@ function fnEigenGegevens($lidid=0) {
 			$kols[1]['columnname'] = "Vanaf";
 			$kols[1]['type'] = "DTTEXT";
 		
-			if (strlen(max(array_column($rows, "Opgezegd"))) > 0) {
-				$kols[2]['headertext'] = "Tot en met";
-				$kols[2]['columnname'] = "Opgezegd";
-				$kols[2]['type'] = "DTTEXT";
+			if (max(array_column($rows, "Opgezegd")) > "1900-01-01") {
+				$kols[2] = array('headertext' => "Tot en met", 'columnname' => "Opgezegd", 'type' => "DTTEXT");
 			}
 
 			$kols[3]['headertext'] = "Duur";
@@ -1296,27 +1295,19 @@ function fnEigenGegevens($lidid=0) {
 		$tn = "Diploma's";
 		$rows = (new cls_Liddipl())->overzichtlid($lidid);
 		if (count($rows) > 0 and toegang($ct . $tn, 0, 0)) {
-			$kols[0]['headertext'] = "Diploma";
-			$kols[0]['columnname'] = "NaamLang";
-			$kols[1]['headertext'] = "Behaald op";
-			$kols[1]['columnname'] = "DatumBehaald";
-			$kols[1]['type'] = "DTTEXT";	
+			$kols[] = array('headertext' => "Diploma", 'columnname' => "NaamLang");
+			$kols[] = array('headertext' => "Behaald op", 'columnname' => "DatumBehaald", 'type' => "DTTEXT");	
 			
-			if (strlen(max(array_column($rows, "Plaats"))) > 0) {
-				$kols[3]['headertext'] = "Plaats";
-				$kols[3]['columnname'] = "Plaats";
-			}
-			
-			if (strlen(max(array_column($rows, "Diplomanummer"))) > 0) {
-				$kols[3]['headertext'] = "Gegevens";
-				$kols[3]['columnname'] = "Diplomanummer";
-			}
-			if (max(array_column($rows, "GeldigTot")) > "1900-01-01") {
-				$kols[4]['headertext'] = "Geldig tot";
-				$kols[4]['columnname'] = "GeldigTot";
-				$kols[4]['type'] = "DTTEXT";
-			}
 			if (count($rows) > 0) {
+				if (max(array_column($rows, "Plaats")) > "") {
+					$kols[] = array('headertext' => "Plaats", 'columnname' => "Plaats");
+				}
+				if (max(array_column($rows, "Diplomanummer")) > "") {
+					$kols[] = array('headertext' => "Gegevens", 'columnname' => "Diplomanummer");
+				}
+				if (max(array_column($rows, "GeldigTot")) > "1900-01-01") {
+					$kols[] = array('headertext' => "Geldig tot", 'columnname' => "GeldigTot", 'type' => "DTTEXT");
+				}
 				$tabblad[$tn] = fnDisplayTable($rows, $kols, $th);
 			} else {
 				$tabblad[$tn] = sprintf("<p class='mededeling'>Bij %s zijn geen diploma's geregistreerd.</p>", $naamlid);
@@ -2881,10 +2872,10 @@ function fnBasisgegevens($p_type) {
 		
 		$kols = null;
 		
-		$kols[] = array('headertext' => "#", 'readonly' => true, 'type' => "pk");
-		$kols[]['headertext'] = "Code";
-		$kols[]['headertext'] = "Omschrijving";
-		$kols[] = array('headertext' => "Contributie", 'type' => "bedrag");
+		$kols[] = array('headertext' => "#", 'columnname' => "RecordID", 'readonly' => true, 'type' => "pk");
+		$kols[] = array('headertext' => "Code", 'columnname' => "Code");
+		$kols[] = array('headertext' => "Omschrijving", 'columnname' => "Omschrijving");
+		$kols[] = array('headertext' => "Contributie", 'columnname' => "Contributie", 'type' => "bedrag");
 		$kols[] = array('headertext' => "GBR", 'columnname' => "GBR", 'type' => "text");
 		$kols[] = array('headertext' => "Max aantal", 'columnname' => "BeperkingAantal", 'type' => "integer", 'title' => "Hoeveel mag er per seizoen worden gezwommen. 0=alle keren.");
 
@@ -2942,6 +2933,7 @@ function fnBasisgegevens($p_type) {
 		$kols[] = array('headertext' => "Contributie<br>lid", 'columnname' => "Contributie leden", 'type' => "bedrag");
 		$kols[] = array('headertext' => "Contributie<br>jeugdlid", 'columnname' => "Contributie jeugdleden", 'type' => "bedrag");
 		$kols[] = array('headertext' => "Contributie<br>kader", 'columnname' => "Contributie kader", 'type' => "bedrag");
+		$kols[] = array('headertext' => "Verzamel per gezin", 'columnname' => "RekeningenVerzamelen", 'type' => "checkbox");
 		$kols[] = array('headertext' => "Betaaltermijn", 'columnname' => "BetaaldagenTermijn", 'type' => "dagen");
 		
 		$l = sprintf("%s?tp=%s&op=delete&SeizoenNr=%%d", $_SERVER['PHP_SELF'], $_GET['tp']);
