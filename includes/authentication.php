@@ -1,5 +1,6 @@
 <?php
-		
+
+$_SESSION['lidid'] = $_SESSION['lidid'] ?? 0;
 $_SESSION['webmaster'] = 0;
 if ($_SESSION['lidid'] == 0 or strlen($_SESSION['username']) == 0) {
 	$_SESSION['lidid'] = 0;
@@ -34,8 +35,7 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 		debug("Er zijn geen logins aanwezig.");
 	}
 	$i_lo = new cls_Lidond();
-	
-	
+
 	if ($currenttab == "Eigen gegevens" or ($currenttab2 == "Overzicht lid")) {
 		if ($currenttab == "Eigen gegevens") {
 			$b = $currenttab . "/";
@@ -385,14 +385,19 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 	
 //		addtp("DMS");   Voorlopig geen tijd voor, dus uitgezet.
 	
-	$i_el = new cls_Eigen_lijst();
-	$i_el->where = "(EL.AantalKolommen > 0 OR LENGTH(EL.EigenScript) > 4) AND LENGTH(EL.Tabpage) > 0";
-	foreach($i_el->basislijst("", "EL.Naam") as $row) {
-		$i_el->controle($row->RecordID);
-		$i_el->vulvars($row->RecordID);
-		$s = BASEDIR . "/maatwerk/" . $row->EigenScript;
-		if (($row->AantalKolommen > 0 and $i_el->aantalrijen > 0) or (file_exists($s) and strlen($row->EigenScript) > 0)) {
-			addtp($row->Tabpage . "/" . $row->Naam);
+	if ($_SESSION['lidid'] > 0) {
+		$i_el = new cls_Eigen_lijst();
+		$i_el->where = "(EL.AantalKolommen > 0 OR LENGTH(EL.EigenScript) > 4) AND LENGTH(EL.Tabpage) > 0";
+		foreach($i_el->basislijst("", "EL.Naam") as $row) {
+			$i_el->controle($row->RecordID, 60);
+			$i_el->vulvars($row->RecordID);
+			if (($row->AantalKolommen > 0 and $i_el->aantalrijen > 0) or strlen($i_el->eigenscript) > 4) {
+				addtp($row->Tabpage . "/" . $row->Naam);
+			}
+		}
+		$i_el->where = sprintf("EL.GroepMelding > 0 AND EL.GroepMelding IN (%s)", $_SESSION["lidgroepen"]);
+		foreach($i_el->basislijst() as $row) {
+			$i_el->controle($row->RecordID, 30);
 		}
 	}
 }
