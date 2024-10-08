@@ -153,7 +153,7 @@ function fnStukken($p_scherm="") {
 			} else {
 				$t = $row->Titel;
 			}
-			$rv .= sprintf("<td>%s</td><td>%s</td><td class='zichtbaarvoor'>%s</td><td class='ingangsdatum'>%s</td><td class='revisiedatum'>%s</td></tr>\n", $t, $row->BestemdVoor, $row->Zichtbaar, $dtfmt->format(strtotime($row->Ingangsdatum)), $dtfmt->format(strtotime($row->Revisiedatum)));
+			$rv .= sprintf("<td>%s</td><td>%s</td><td class='zichtbaarvoor'>%s</td><td class='ingangsdatum'>%s</td><td class='revisiedatum'>%s</td></tr>\n", $t, $row->BestemdVoor, $row->Zichtbaar, $dtfmt->format(strtotime($i_stuk->ingangsdatum)), $dtfmt->format(strtotime($i_stuk->revisiedatum)));
 			$vc = $row->Type;
 		}
 		
@@ -166,19 +166,19 @@ function fnStukken($p_scherm="") {
 		$rows = $i_stuk->lijst();
 		
 		$l = sprintf("%s?tp=%s&p_scherm=F&p_stid=%%d", BASISURL, $_GET['tp']);
-		$kols[0] = ['columnname' => "RecordID", 'headertext' => "&nbsp;", 'class' => "muteren", 'link' => $l];
+		$kols[] = array('columnname' => "RecordID", 'headertext' => "&nbsp;", 'type' => "link", 'class' => "muteren", 'link' => $l);
 
-		$kols[1]['headertext'] = "Titel";
-		$kols[2]['headertext'] = "Type";
-		$kols[3] = ['columnname' => "BestemdVoor", 'headertext' => "Bestemd voor"];
+		$kols[]['headertext'] = "Titel";
+		$kols[]['headertext'] = "Type";
+		$kols[] = array('columnname' => "BestemdVoor", 'headertext' => "Bestemd voor");
 		
-		$kols[4] = ['columnname' => "Zichtbaar", 'headertext' => "Zichtbaar voor"];
-		$kols[5] = ['columnname' => "VastgesteldOp", 'headertext' => "Vastgesteld op", 'type' => "dateshort"];
-		$kols[6] = ['columnname' => "Revisiedatum", 'headertext' => "Revisiedatum", 'type' => "dateshort"];
-		$kols[7] = ['columnname' => "VervallenPer", 'headertext' => "Vervallen per", 'type' => "dateshort"];
+		$kols[] = array('columnname' => "Zichtbaar", 'headertext' => "Zichtbaar voor");
+		$kols[] = array('columnname' => "VastgesteldOp", 'headertext' => "Vastgesteld op", 'type' => "dateshort");
+		$kols[] = array('columnname' => "Revisiedatum", 'headertext' => "Revisiedatum", 'type' => "dateshort");
+		$kols[] = array('columnname' => "VervallenPer", 'headertext' => "Vervallen per", 'type' => "dateshort");
 		
 		$l = sprintf("%s?tp=%s&op=delete&p_stid=%%d", BASISURL, $_GET['tp']);
-		$kols[8] = ['columnname' => "RecordID", 'headertext' => "&nbsp;", 'class' => "trash", 'link' => $l];
+		$kols[] = array('columnname' => "RecordID", 'headertext' => "&nbsp;", 'type' => "link", 'class' => "trash", 'link' => $l);
 		
 		echo(fnDisplayTable($rows, $kols));
 		
