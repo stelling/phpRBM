@@ -194,12 +194,12 @@ function fnBeheerLogins() {
 	
 	$kols[0] = array('columnname' => "Login", 'sortcolumn' => "Login");
 	$kols[1] = array('columnname' => "NaamLid", 'headertext' => "Naam lid", 'sortcolumn' => "L.Achternaam");	
-	$kols[2]['headertext'] = "Woonplaats";
-	$kols[3] = ['headertext' => "Lidnr", 'sortcolumn' => "Lidnr"];
-	$kols[4]['headertext'] = "E-mail";
-	$kols[5] = ['headertext' => "Ingevoerd", 'columnname' => "Ingevoerd", 'type' => "date", 'sortcolumn' => "Login.Ingevoerd"];
-	$kols[6] = ['headertext' => "Laatste login", 'sortcolumn' => "Login.LastLogin", 'columnname' => "LastLogin", 'type' => "DTLONG"];
-	$kols[7] = ['headertext' => "Status", 'sortcolumn' => "Status"];
+	$kols[2] = array('headertext' => "Woonplaats", 'columnname' => "Woonplaats");
+	$kols[3] = array('headertext' => "Lidnr", 'columnname' => "Lidnr", 'sortcolumn' => "Lidnr");
+	$kols[4] = array('headertext' => "E-mail", 'columnname' => "E-mail");
+	$kols[5] = array('headertext' => "Ingevoerd", 'columnname' => "Ingevoerd", 'type' => "date", 'sortcolumn' => "Login.Ingevoerd");
+	$kols[6] = array('headertext' => "Laatste login", 'columnname' => "LastLogin", 'sortcolumn' => "Login.LastLogin", 'type' => "DTLONG");
+	$kols[7] = array('headertext' => "Status", 'columnname' => "Status", 'sortcolumn' => "Status");
 	
 	$ord = fnOrderBy($kols);
 	$rows = $i_login->lijst("", $ord);
@@ -891,6 +891,7 @@ function logboek() {
 	$tekstfilter = $_GET['tekstfilter'] ?? "";
 	$typefilter = $_GET['typefilter'] ?? -1;
 	$kolomfilter = $_GET['kolomfilter'] ?? "";
+	$referidfilter = $_GET['referidfilter'] ?? -1;
 	$aantalrijen = $_GET['aantalrijen'] ?? 1500;
 	$alleeningelogd = $_GET['alleeningelogd'] ?? 0;
 	
@@ -903,6 +904,12 @@ function logboek() {
 			$f .= " AND ";
 		}
 		$f .= sprintf("CONCAT(A.RefTable, '-', A.refColumn)='%s'", $kolomfilter);
+	}
+	if ($referidfilter > 0) {
+		if (strlen($f) > 0) {
+			$f .= " AND ";
+		}
+		$f .= sprintf("A.ReferID=%d", $referidfilter);
 	}
 	if ($alleeningelogd == 1) {
 		if (strlen($f) > 0) {
@@ -937,6 +944,7 @@ function logboek() {
 	}
 	echo("</select>\n");
 	
+	printf("<input type='number' name='referidfilter' value=%d title='Filter op ReferID (-1 = geen filter)' onBlur='this.form.submit();'>", $referidfilter);
 
 	$options = "";
 	$ta = $i_lb->aantal();

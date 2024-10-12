@@ -281,7 +281,7 @@ header h1 {
 	margin-top: 4px;
 }
 
-#filter input[type='text'], #filter input[type='date'] {
+#filter input[type='text'], #filter input[type='number'], #filter input[type='date'] {
 	clear: none;
 	float: left;
 	margin-left: 0;
@@ -294,6 +294,10 @@ header h1 {
 
 #filter input[type='text'] {
 	width: 185px;
+}
+
+#filter input[type='number'] {
+	width: 100px;
 }
 
 #filter select {
