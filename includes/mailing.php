@@ -12,7 +12,7 @@
 */
 
 function fnMailing() {
-	global $ldl, $currenttab, $currenttab2;
+	global $currenttab, $currenttab2;
 
 	$mid = $_GET['mid'] ?? 0;
 	$_GET['mhid'] = $_GET['mhid'] ?? 0;
@@ -559,7 +559,7 @@ class Mailing {
 			$this->OmschrijvingOntvangers = $this->i_ml->omschrijvingontvangers;
 			$this->cc_addr = $this->i_ml->tocc;
 			$this->subject = $this->i_ml->subject;
-			$this->Opmerking = $this->i_ml->opmerking;
+			$this->opmerking = $this->i_ml->opmerking;
 			$this->message = $this->i_ml->bericht;
 			$this->NietVersturenVoor = $this->i_ml->nietversturenvoor;
 			$this->CCafdelingen = $this->i_ml->ccafdelingen;
@@ -647,7 +647,7 @@ class Mailing {
 			} else {
 				echo("<label id='lblOntvangers' class='form-label'>Ontvangers</label>\n");
 				echo("<div id='lijstontvangers'>\n");
-//				echo($this->html_ontvangers($this->mid));
+				echo($this->html_ontvangers($this->mid));
 				echo("</div> <!-- Einde lijstontvangers -->\n");
 				$this->verzendenmag = true;
 				$this->meldingen = "";
@@ -829,6 +829,7 @@ class Mailing {
 		}
 		
 		$i_mr = new cls_Mailing_rcpt($this->mid);
+		$i_mh = new cls_Mailing_hist();
 		
 		if ($p_asarray) {
 			$rv = array();
@@ -836,11 +837,20 @@ class Mailing {
 			$rv = "<ul>\n";
 		}
 		foreach($i_mr->lijst() as $rcpt) {
-			$jsdo = sprintf("OnClick=\"mailing_verw_ontvanger(%d, '%s');\"", $rcpt->RecordID, $rcpt->to_address);
-			if ($rcpt->LidID > 0) {
-				$item = sprintf("%s&nbsp;<i class='bi bi-trash' %s alt='Verwijderen' title='Verwijderen'></i>", htmlentities($rcpt->NaamLid), $jsdo);
+			$i_mr->vulvars($rcpt->RecordID);
+			$jsdo = sprintf("OnClick=\"mailing_verw_ontvanger(%d, '%s');\"", $rcpt->RecordID, $i_mr->email);
+			if ($i_mr->lidid > 0) {
+				$nm = htmlentities($i_mr->i_lid->naam);
+				$i_mh->where = sprintf("MH.MailingID=%d AND MH.LidID=%d", $this->mid, $rcpt->LidID);
+				$aant = $i_mh->aantal();
+				$t = $i_mr->i_lid->email;
+				if ($aant > 0) {
+					$nm .= sprintf(" (%d)", $aant);
+					$t .= sprintf(", %d keer verzonden naar dit lid", $aant);
+				}
+				$item = sprintf("<span title='%s'>%s</span>&nbsp;<i class='bi bi-trash' %s alt='Verwijderen' title='Verwijderen'></i>", $t, $nm, $jsdo);
 			} else {
-				$item = sprintf("%s&nbsp;<i class='bi bi-trash' %s alt='Verwijderen' title='Verwijderen'></i>", $rcpt->to_address, $jsdo);
+				$item = sprintf("%s&nbsp;<i class='bi bi-trash' %s alt='Verwijderen' title='Verwijderen'></i>", $i_mr->email, $jsdo);
 				$this->bevat_losse_email = true;
 			}
 			if ($p_asarray) {
@@ -853,6 +863,9 @@ class Mailing {
 		if (!$p_asarray) {
 			$rv .= "</ul>\n";
 		}
+		
+		$i_mr = null;
+		$i_mh = null;
 
 		return $rv;		
 	}  # Mailing->html_ontvangers
@@ -1165,7 +1178,7 @@ class Mailing {
 	}  # Mailing->send
 	
 	private function send_mailing($preview=0, $p_lidid=0, $p_melding=1, $p_direct=0) {
-		
+		set_time_limit(180);
 		if ($p_lidid <= 0) {
 			$rcpts = (new cls_Mailing_rcpt())->lijst($this->mid);
 			$pk = "RecordID";
@@ -1181,7 +1194,7 @@ class Mailing {
 			$email = new email(0, $this->mid);
 			if ($rcpt->LidID > 0) {
 				$this->merge($rcpt->LidID);
-				$email->Subject = $this->merged_subject;
+				$email->subject = $this->merged_subject;
 				$email->lidid = $rcpt->LidID;
 				$email->toevoegenlid($rcpt->LidID);
 			} elseif (strlen($rcpt->to_address) > 5) {
@@ -1292,6 +1305,7 @@ class Mailing {
 			$this->merged_message = str_replace("[%URLRESETWW%]", $urlresetww, $this->merged_message);
 			
 		} elseif ($this->mid == $_SESSION['settings']['mailing_bevestigingopzegging'] and $this->xtranum > 0) {
+			$this->merged_subject = str_ireplace("[%Lidnummer%]", $this->xtranum, $this->merged_subject);
 			$this->merged_message = str_ireplace("[%Lidnummer%]", $this->xtranum, $this->merged_message);
 			$i_lm = new cls_Lidmaatschap(-1, -1, $this->xtranum);
 			$this->merged_message = str_ireplace("[%OpgezegdPer%]", $i_lm->opgezegdper, $this->merged_message);
@@ -1966,9 +1980,9 @@ function fnRekeningenMailen($op) {
 				printf("<ul>\n%s</ul>\n<div class='clear'></div>\n", $selrek);
 				printf("<input type='hidden' name='rekfilter' value=\"%s\">\n", $filter);
 				echo("<div id='opdrachtknoppen'>\n");
-				echo("<input type='checkbox' value='1' name='sure'>\n");
-				echo("<input type='submit' value='Rekeningen versturen' name='StuurRek'>\n");
-				echo("<input type='button' value='Terug' onClick='history.go(-1);'>\n");
+				echo("<input class='form-check-input' type='checkbox' value='1' name='sure'>\n");
+				printf("<button class='%s' type='submit' value='Rekeningen versturen' name='StuurRek'>Rekeningen versturen</button>\n", CLASSBUTTON);
+				printf("<button class='%s' type='button' onClick='history.go(-1);'>Terug</button>\n", CLASSBUTTON);
 				echo("</div>  <!-- Einde opdrachtknoppen -->\n");
 				echo("</form>\n");
 			} else {
@@ -2559,18 +2573,16 @@ function eigennotificatie($p_ondid, $p_aanadres, $p_tas=-1, $p_interval=48, $p_c
 				$res = fnDisplayTable($rows);
 			}
 		} elseif ($i_el->elid > 0) {
-			$i_el->controle($i_el->elid, 5);
 			$ng = $i_el->naam;
-			$ar = $i_el->aantalrijen;
-			
-			if ($i_el->aantalrijen > 0) {
-				$rows = $i_el->rowset();
-				if ($rows !== false) {
-					$res = fnDisplayTable($rows);
-				}
+			$rows = $i_el->rowset();
+			if ($rows !== false) {
+				$ar = count($rows);
+				$res = fnDisplayTable($rows);
 				$res .= sprintf("<p>%s</p>\n", $i_el->uitleg);
 				$dtfmt->setPattern(DTLONG);
-				$res .= sprintf("<p>Deze lijst is gemaakt op %s.</p>\n", $dtfmt->format(strtotime("-1 second")));
+				$res .= sprintf("<p>Deze lijst is op %s gemaakt.</p>\n", $dtfmt->format(strtotime("-1 second")));
+			} else {
+				$ar = 0;
 			}
 		}
 		if ($ar > 0 and isValidMailAddress($p_aanadres, 0)) {
@@ -2585,10 +2597,10 @@ function eigennotificatie($p_ondid, $p_aanadres, $p_tas=-1, $p_interval=48, $p_c
 			}
 			if (strlen($p_onderwerp) > 0) {
 				$i_email->onderwerp = $p_onderwerp;
-			} elseif ($ar > 1) {
-				$i_email->onderwerp = sprintf("%s (%d rijen)", $ng, $ar);
+			} elseif ($ar == 1) {
+				$i_email->onderwerp = sprintf("%s (1 rij)", $ng);
 			} else {
-				$i_email->onderwerp = $ng;
+				$i_email->onderwerp = sprintf("%s (%d rijen)", $ng, $ar);
 			}
 			$i_email->bericht = "<!DOCTYPE html>
 									<html lang='nl'>
@@ -2605,8 +2617,8 @@ function eigennotificatie($p_ondid, $p_aanadres, $p_tas=-1, $p_interval=48, $p_c
 			$i_email->xtrachar = "NOTIF";
 			$i_email->xtranum = $p_ondid;
 			if ($i_email->to_outbox(4) > 0) {
-				$mess = sprintf("Notificatie %s in de outbox geplaatst", $ng);
-				$i_lb->add($mess, 4, 0, 0, 0, 21);
+				$mess = sprintf("Notificatie %s (%d rij(en)) in de outbox geplaatst", $ng, $ar);
+				$i_lb->add($mess, 4, 0, 0, $p_ondid, 21, "", "", 0, $i_ond->oid);
 			}
 		}
 	}
