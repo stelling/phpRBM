@@ -387,11 +387,11 @@ function fnWieiswie($actie, $metfoto=1) {
 				}
 				$vo = $i_lo->i_ond->naam;
 			} 
-			$ln = htmlentities($row->NaamLid);
+			$ln = htmlentities($i_lo->i_lid->naam);
 			if (isValidMailAddress($i_lo->email, 0)) {
-				$email = fnDispEmail($i_lo->email, $row->NaamLid, 1);
+				$email = fnDispEmail($i_lo->email, $i_lo->i_lid->naam, 1);
 			} elseif (isValidMailAddress($i_lo->i_lid->emailvereniging, 0)) {
-				$email = fnDispEmail($row->EmailVereniging, $row->NaamLid, 1);
+				$email = fnDispEmail($i_lo->i_lid->emailvereniging, $i_lo->i_lid->naam, 1);
 			} else {
 				$email = "";
 			}
@@ -420,19 +420,16 @@ function fnWieiswie($actie, $metfoto=1) {
 	} else {	
 		$txt .= sprintf("<table class='%s'>\n", TABLECLASSES);
 		foreach ($lijst as $row) {
-			if ($vo != $row->OndNaam) {
+			$i_lo->vulvars($row->RecordID);
+			if ($vo != $i_lo->i_ond->naam) {
 				$txt .= sprintf("<th colspan=5>%s</th>\n", $row->OndNaam);
-				if (isValidMailAddress($row->CentraalEmail, 0)) {
-					$txt .= sprintf("<tr>\n<td colspan=2><strong>Centraal e-mailadres</strong></td>\n<td>%s</td>\n<td><strong>Vanaf</strong></td></tr>\n", fnDispEmail($row->CentraalEmail, $row->OndNaam, 0, 1));
+				if (isValidMailAddress($i_lo->i_ond->email, 0)) {
+					$txt .= sprintf("<tr>\n<td colspan=2><strong>Centraal e-mailadres</strong></td>\n<td>%s</td>\n<td><strong>Vanaf</strong></td></tr>\n", fnDispEmail($i_lo->i_ond->email, $i_lo->i_ond->naam, 0, 1));
 					$txt .= "<tr><td colspan=5>&nbsp</td></tr>\n";
 				}
-				$vo = $row->OndNaam;
+				$vo = $i_lo->i_ond->naam;
 			}
-			if (strlen($ldl) > 1) {
-				$ln = sprintf($ldl, $row->RecordID, htmlentities($row->NaamLid));
-			} else {
-				$ln = htmlentities($row->NaamLid);
-			}
+			$ln = htmlentities($i_lo->i_lid->naam);
 			if (isset($row->EmailFunctie) and isValidMailAddress($row->EmailFunctie, 0)) {
 				$email = fnDispEmail($row->EmailFunctie, $row->NaamLid, 0);
 			} elseif (isValidMailAddress($row->EmailVereniging, 0)) {
@@ -440,15 +437,15 @@ function fnWieiswie($actie, $metfoto=1) {
 			} else {
 				$email = "";
 			}
-			if (strlen($row->FunctieOms) > 1) {
-				$func = $row->FunctieOms;
-				if (strlen($row->Opmerk) > 0) {
-					$func .= " " .  $row->Opmerk;
+			if (strlen($i_lo->i_func->naam) > 1) {
+				$func = $i_lo->i_func->naam;
+				if (strlen($i_lo->opmerking) > 0) {
+					$func .= " " .  $i_lo->opmerking;
 				}
 			} else {
-				$func = $row->Opmerk;
+				$func = $i_lo->opmerking;
 			}
-			$txt .= sprintf("<tr>\n<td>%s</td>\n<td>%s</td>\n<td>%s</td>\n<td>%s</td>\n</tr>\n", $ln, $func, $email, $dtfmt->format(strtotime($row->Vanaf)));
+			$txt .= sprintf("<tr>\n<td>%s</td>\n<td>%s</td>\n<td>%s</td>\n<td>%s</td>\n</tr>\n", $ln, $func, $email, $dtfmt->format(strtotime($i_lo->vanaf)));
 		}
 		$txt .= "</table>\n";
 	}
@@ -1731,7 +1728,7 @@ function algemeenlidmuteren($lidid) {
 	for ($i=0; $i < count($wijzvelden); $i++) {
 		
 		$jsoc = sprintf("onBlur=\"savedata('lid', %d, this);\"", $i_lid->lidid, $wijzvelden[$i]['naam']);
-		$dv = str_replace("\n", "<br>\n", $row->{$wijzvelden[$i]['naam']});
+		$dv = str_replace("\n", "<br>\n", $row->{$wijzvelden[$i]['naam']} ?? "");
 		if (isset($wijzvelden[$i]['readonly']) and $wijzvelden[$i]['readonly'] == 1) {
 			$ro = " readonly";
 		} else {
@@ -1859,16 +1856,17 @@ function eigenschappenlidmuteren($lidid) {
 		echo("<h2>Eigenschappen</h2>\n");
 		
 		foreach($ondrows as $ondrow) {
+			$i_lo->vulvars(0, $lidid, $ondrow->RecordID);
 			$c = "";
-			if ($i_lo->islid($lidid, $ondrow->RecordID) == true) {
+			if ($i_lo->loid > 0) {
 				$c = " checked";
 			}
 			$ro = "";
-			if (strlen($ondrow->MySQL) > 10) {
+			if (strlen($i_lo->i_ond->mysql) > 10) {
 				$ro = " disabled readonly";
 			}
 			printf("<input type='checkbox' class='form-check-input' id='eigenschap_%d'%s%s>", $ondrow->RecordID, $c, $ro);
-			printf("<label for='eigenschap_%d'>%s</label>\n", $ondrow->RecordID, $ondrow->Naam);
+			printf("<label for='eigenschap_%d'>%s</label>\n", $ondrow->RecordID, $i_lo->i_ond->naam);
 		}
 		echo("</div> <!-- Einde eigenschappenlidmuteren -->\n");
 	}
@@ -2255,7 +2253,7 @@ function onderdelenlidmuteren($lidid, $p_type="G") {
 	} else {
 		$kols[] = array('columnname' => "OndNaam", 'headertext' => "Onderdeel", 'readonly' => true);
 	}
-	$kols[] = array('columnname' => "Vanaf", 'type' => "date");
+	$kols[] = array('columnname' => "Vanaf", 'headertext' => "Vanaf", 'type' => "date");
 	if ($p_type == "A" or $p_type == "BCF") {
 		$frows = (new cls_functie())->selectlijst($p_type, "1900-01-01", 1);
 		$kols[] = array('columnname' => "Functie", 'headertext' => "Functie", 'bronselect' => $frows, 'class' => "w20");
