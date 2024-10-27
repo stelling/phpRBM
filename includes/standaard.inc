@@ -188,11 +188,9 @@ if (WEBMASTER or strpos(BASISURL, "telling.nl") > 0) {
 //	error_reporting(E_ALL);
 }
 
-$i_p = new cls_Parameter();
-if (!isset($_SESSION['settings']['naamvereniging'])) {
-	$i_p->vulsessie();
+if (!isset($_SESSION['settings']['naamvereniging']) or strlen($_SESSION['settings']['naamvereniging']) == 0) {
+	(new cls_Parameter())->vulsessie();
 }
-$i_p = null;
 
 if ($_SESSION['lidid'] > 0) {
 	(new cls_Login())->setlastactivity();
@@ -452,6 +450,8 @@ function fnDispMenu($toonnivo=1, $xtra="") {
 }  # fnDispMenu
 
 function isValidMailAddress($address, $p_LeegIsGoed=0){
+	
+	$address = $address ?? "";
 
   	if ($p_LeegIsGoed == 1 and strlen($address) == 0) {
 		return true;
@@ -640,12 +640,12 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 				$kols[$k]['headertext'] = $kols[$k]['headertext'] ?? "";
 				$kols[$k]['type'] = $kols[$k]['type'] ?? "text";
 				$kols[$k]['class'] = $kols[$k]['class'] ?? "";
+				$kol['columnname'] = $kol['columnname'] ?? "";
 				
 				if (strlen($kols[$k]['columnname']) == 0 and strlen($kols[$k]['headertext']) == 0 and !isset($kols[$k]['subqry'])) {
 					$kol['skip'] = true;
 					$kols[$k]['skip'] = true;
 					$iq = false;
-					
 				} else {
 					if (strlen($kols[$k]['headertext']) == 0) {
 						if (isset($kols[$k]['link'])) {
@@ -654,13 +654,6 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 						} else {
 							$kols[$k]['headertext'] = str_replace("_", " ", $kols[$k]['columnname']);
 						}
-					} elseif (strlen($kols[$k]['columnname']) == 0) {
-						$kol['columnname'] = $kol['headertext'];
-						$kols[$k]['columnname'] = $kol['headertext'];
-					}
-				
-					if (!isset($kol['columnname']) or strlen($kol['columnname']) == 0) {
-	//	debug($k . ": geen columnname");
 					}
 					
 					$iq = false;
@@ -675,8 +668,9 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					if (isset($kol['subqry']) and strlen($kol['subqry']) > 6) {
 						$iq = true;
 					 
-					} elseif ($iq and strlen($kol['columnname']) > 0 and strlen(max(array_column($rows, $kol['columnname']))) == 0) {
+					} elseif ($iq and strlen($kol['columnname']) > 0 and max(array_column($rows, $kol['columnname'])) == false) {
 						$iq = false;
+//						debug($kol['columnname']);
 					}
 				}
 				
@@ -727,7 +721,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 						foreach (array_column($rows, $kols[$k]['columnname']) as $val) {
 							if ($kols[$k]['type'] == "bedrag" and $val != 0) {
 								$ag++;
-							} elseif (strlen($val) >= 10) {
+							} elseif ($val !== null and strlen($val) >= 10) {
 								$ag++;
 							}
 						}
@@ -893,7 +887,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 
 				} elseif ($kols[$kn]['type'] == "date" or $kols[$kn]['type'] == "DTTEXT") {
 					// 1 januari 2020
-					if (strlen($value) > 15 and substr($value, 11, 5) > "00:00") {
+					if ($value !== null and strlen($value) > 15 and substr($value, 11, 5) > "00:00") {
 						$dtfmt->setPattern(DTLONG);
 						$t = sprintf(" title='%s'", $dtfmt->format(strtotime($value)));
 					} else {
@@ -979,7 +973,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 						$ret .= "<td>Onbekend</td>";
 					}
 					
-				} elseif (($kol_type == "lnm" or $kol_type == "lidnaam") and strlen($value) > 0) {
+				} elseif ($value !== null and ($kol_type == "lnm" or $kol_type == "lidnaam") and strlen($value) > 0) {
 					if (is_numeric($value)) {
 						$ret .= sprintf("<td%s>%s</td>", $kol_class, (new cls_lid())->naam($value, "onbekend"));
 					} else {
@@ -1054,10 +1048,12 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					
 				} else {
 					// tekstkolom
-					if (strlen($value) > $kol_ml) {
+					if ($value !== null and strlen($value) > $kol_ml and $kol_ml > 4) {
 						$ret .= sprintf("<td%s title='%s'>%s</td>", $kol_class, $value, htmlentities(substr($value, 0, ($kol_ml-4)) . " ..."));
-					} else {
+					} elseif ($value !== null) {
 						$ret .= sprintf("<td%s%s>%s</td>", $kol_class, $row_title, htmlentities($value));
+					} else {
+						$ret .= sprintf("<td%s></td>", $kol_class);
 					}
 				}
 				$kn++;
@@ -1299,7 +1295,7 @@ function fnEditTable($res, $kols, $id="", $th="") {
 					if ($tp == "rqdate") {
 						$rq = " required";
 					}
-					$ret .= sprintf("<td><input type='date' name='%1\$s_%2\$d' id='%1\$s_%2\$d' value='%3\$s'%4\$s></td>", $colname, $valpk, $value, $rq);
+					$ret .= sprintf("<td%s><input class='%1\$s' type='date' name='%2\$s_%3\$d' id='%1\$s_%3\$d' value='%4\$s'%5\$s></td>", $kol_title, $colname, $valpk, $value, $rq);
 				} elseif ((!is_null($value)) and $value > '1900-01-01') {
 					$dtfmt->setPattern(DTTEXT);
 					$ret .= sprintf("<td>%s</td>", $dtfmt->format(strtotime($value)));
@@ -1695,7 +1691,7 @@ function removetextblock($content, $start_block, $end_block="") {
 function checked($val, $tp="checkbox", $sv=1) {
 	if ($tp == "option" and $val == $sv) {
 		return " selected";
-	} elseif ($tp == "checkbox" and (intval($val) == 1 or $val === true or (strlen($val) >= 10 and $val > "1970-01-01"))) {
+	} elseif ($tp == "checkbox" and isset($val) and (intval($val) == 1 or $val === true or $val > "1970-01-01")) {
 		return " checked";
 	} elseif ($tp == "checkbox" and $val == $sv) {
 		return " checked";
