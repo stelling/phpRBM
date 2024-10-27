@@ -365,10 +365,16 @@ function rekeningenaanmaken() {
 		$seizoen = $i_sz->zethuidige(date("Y-m-d"));
 	}
 	
+	if (isset($_POST['rekeningdatum']) and strlen($_POST['rekeningdatum']) == 10) {
+		$rekeningdatum = $_POST['rekeningdatum'];
+	} else {
+		$rekeningdatum = date("Y-m-d");
+	}
+	
 	if (isset($_POST['eerstenummer']) and strlen($_POST['eerstenummer']) > 3) {
 		$eerstenummer = intval($_POST['eerstenummer']);
 	} else {
-		$eerstenummer = $i_rk->nieuwrekeningnr($seizoen);
+		$eerstenummer = $i_rk->nieuwrekeningnr($seizoen) + 1;
 	}
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
@@ -392,9 +398,10 @@ function rekeningenaanmaken() {
 	$lidrows = $i_lid->ledenlijst(1, -1, $orderby, $f, 1);
 	if ($_SERVER['REQUEST_METHOD'] == "POST" and isset($_POST['RekAanmaken'])) {
 		if (isset($_POST['sure']) and $_POST['sure'] == "1") {
+			set_time_limit(240);
 			$vgezin = "0000 ZZ 999";
 			$agl = 0;	// Aantal gezinsleden
-			$reknr = intval($_POST['eerstenummer']);
+			$reknr = $eerstenummer;
 			$aantrek = 0;
 			$aantregels = 0;
 			foreach ($lidrows as $lidrow) {
@@ -414,7 +421,7 @@ function rekeningenaanmaken() {
 					$i_rk->update($reknr, "DEBNAAM", $debnaam);
 				}
 				if ($gezin != $vgezin or $i_sz->gezinsrekening == 0) {
-					$reknr = $i_rk->add($reknr, $seizoen, $lidrow->RecordID);
+					$reknr = $i_rk->add($reknr, $seizoen, $lidrow->RecordID, $rekeningdatum);
 					$agl = 1;
 					$debnaam = $i_lid->naam;
 					$vnm = $i_lid->achternaam . ", " . $i_lid->tussenvoegsels;
@@ -457,7 +464,8 @@ function rekeningenaanmaken() {
 			if ($ontbrekende == 1) {
 				echo("<input type='hidden' name='ontbrekende' value=1>\n");
 			}
-			printf("<input type='hidden' name='eerstenummer' value='%s'>\n", $_POST['eerstenummer']);
+			printf("<input type='hidden' name='rekeningdatum' value='%s'>\n", $rekeningdatum);
+			printf("<input type='hidden' name='eerstenummer' value='%s'>\n", $eerstenummer);
 			echo("<div id='opdrachtknoppen'>\n");
 			printf("<button type='submit' class='%s' name='RekAanmaken'>%s Rekeningen aanmaken</button>\n", CLASSBUTTON, ICONVOLGENDE);
 			printf("<button type='button' class='%s' onClick='history.go(-1);'>%s Terug</button>\n", CLASSBUTTON, ICONVORIGE);
@@ -472,7 +480,7 @@ function rekeningenaanmaken() {
 		printf("<form method='post' id='%s' class='form-check form-switch' action='%s?tp=%s'>\n", __FUNCTION__, $_SERVER['PHP_SELF'], $_GET['tp']);
 		printf("<label class='form-label'>Seizoen</label><select name='seizoen' class='form-select form-select-sm' onChange='this.form.submit();'>%s</select>\n", $i_sz->htmloptions($seizoen));
 		printf("<label class='form-label'>Omschrijving rekening</label><input type='text' id='Rekeningomschrijving' maxlength=35 class='w35' value='%s'>\n", $i_sz->rekeningomschrijving);
-		printf("<label class='form-label'>Datum rekening</label><input type='date' name='Rekeningdatum' value='%s'>\n", date("Y-m-d"));
+		printf("<label class='form-label'>Datum rekening</label><input type='date' name='rekeningdatum' value='%s'>\n", $rekeningdatum);
 		printf("<label id='lblEersteRekeningNummer' class='form-label'>Eerste rekeningnummer</label><input type='number' class='d8' name='eerstenummer' value=%d>\n", $eerstenummer);
 		printf("<label id='lblVerzamelenPerGezin' class='form-label'>Verzamelen per gezin?</label><input type='checkbox' class='form-check-input' id='RekeningenVerzamelen' %s>\n", checked($i_sz->gezinsrekening));
 		printf("<label id='lblBetalingstermijn' class='form-label'>Betalingstermijn</label><input type='number' id='BetaaldagenTermijn' value=%d class='num2' min=0 max=999>\n", $i_sz->betaaldagentermijn);
