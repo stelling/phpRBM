@@ -1194,8 +1194,8 @@ class Mailing {
 			$email = new email(0, $this->mid);
 			if ($rcpt->LidID > 0) {
 				$this->merge($rcpt->LidID);
-				$email->subject = $this->merged_subject;
-				$email->lidid = $rcpt->LidID;
+				$email->onderwerp = $this->merged_subject ?? "";
+				$email->lidid = $rcpt->LidID ?? 0;
 				$email->toevoegenlid($rcpt->LidID);
 			} elseif (strlen($rcpt->to_address) > 5) {
 				$email->lidid = 0;
@@ -1587,12 +1587,12 @@ class email {
 	public $zichtbaarvoor = 0;
 	private $zichtbaar = false;
 	
-	public $onderwerp = "";
-	public $bericht = "";
-	public $zonderbriefpapier = 0;
+	public string $onderwerp = "";
+	public string $bericht = "";
+	public int $zonderbriefpapier = 0;
 	public string $nietversturenvoor = "";
-	public $xtrachar = "";
-	public $xtranum = 0;
+	public string $xtrachar = "";
+	public int $xtranum = 0;
 	
 	function __construct($p_mhid=0, $p_mid=-1) {
 		global $dtfmt;
@@ -2433,7 +2433,6 @@ class RBMmailer extends PHPMailer\PHPMailer\PHPMailer {
 			$this->IsSMTP(false);
 		} elseif (strlen($smtphost) > 0) {
 			$this->Host = $smtphost;
-			$this->SMTPdebug = 4;
 			if ($smtpport > 0) {
 				$this->Port = $smtpport;
 			}
