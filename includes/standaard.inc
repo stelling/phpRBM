@@ -482,10 +482,10 @@ function fnDispEmail($strEmail, $strNaam="", $booInclLink=1) {
 	2 = met HTML-link
 	*/
 	
-	if (strpos($strEmail, "<") > 2 and strlen($strnaam) < 3) {
-   	$strNaam = trim(substr(trim($strEmail), 0, strpos($strEmail, "<")));
+	if (isset($strEmail) and strpos($strEmail, "<") > 2 and strlen($strNaam) < 3) {
+		$strNaam = trim(substr(trim($strEmail), 0, strpos($strEmail, "<")));	
 		$strEmail = substr(trim($strEmail), strpos($strEmail, "<")+1, -1);
-   }
+	}
 	$strRet = "";
 	if (isValidMailAddress($strEmail, 0)) {
 		if ($_SESSION['lidid'] > 0) {
@@ -521,7 +521,7 @@ function fnDispEmail($strEmail, $strNaam="", $booInclLink=1) {
 			}
 			$strRet .= "</script>\n";
 		}
-   } elseif (strlen($strEmail) > 0) {
+   } elseif (isset($strEmail) and strlen($strEmail) > 0) {
    	$strRet = "Geen (geldig) e-mailadres";
    }
 	return $strRet;
@@ -1036,7 +1036,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 					}
 				} elseif (substr($key, 0, 3) == "nm2" or $kol_type == "num2") {
 					$ret .= sprintf("<td class='number'>%s</td>", number_format(floatval($value), 2, ",", "."));
-				} elseif ($kol_type == "mrg" or $kol_type == "combitext") {
+				} elseif (isset($value) and ($kol_type == "mrg" or $kol_type == "combitext")) {
 					$ret .= sprintf("<td%s>%s</td>", $kol_class, str_replace(" &amp; ", "<br>", htmlentities($value, ENT_HTML5)));
 
 				} elseif ($kol_type == "laatsteMutatie_Naam" and isset($kol['table']) and $value > 0) {
@@ -1408,9 +1408,11 @@ function fnEditTable($res, $kols, $id="", $th="") {
 							$value2 = htmlentities($row->$col2);
 						}
 						$ret .= sprintf("<td id='%s_%d'>%s<br>%s</td>", $colname, $valpk, htmlentities($value), $value2);
-					} else {
+					} elseif (isset($value)) {
 						$ret .= sprintf("<td id='%s_%d'>%s</td>", $colname, $valpk, htmlentities($value));
-						}
+					} else {
+						$ret .= sprintf("<td id='%s_%d'></td>", $colname, $valpk);
+					}
 				} else {
 					if (strlen($kol_class) == 0 and $kol['collen'] > 0) {
 						$kol_class = sprintf("class='w%d'", $kol['collen']);
