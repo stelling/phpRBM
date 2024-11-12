@@ -1295,7 +1295,7 @@ function fnEditTable($res, $kols, $id="", $th="") {
 					if ($tp == "rqdate") {
 						$rq = " required";
 					}
-					$ret .= sprintf("<td%s><input class='%1\$s' type='date' name='%2\$s_%3\$d' id='%1\$s_%3\$d' value='%4\$s'%5\$s></td>", $kol_title, $colname, $valpk, $value, $rq);
+					$ret .= sprintf("<td %s><input%1\$s type='date' name='%2\$s_%3\$d' id='%2\$s_%3\$d' value='%4\$s'%5\$s></td>", $kol_class, $colname, $valpk, $value, $rq);
 				} elseif ((!is_null($value)) and $value > '1900-01-01') {
 					$dtfmt->setPattern(DTTEXT);
 					$ret .= sprintf("<td>%s</td>", $dtfmt->format(strtotime($value)));
@@ -1409,20 +1409,20 @@ function fnEditTable($res, $kols, $id="", $th="") {
 						}
 						$ret .= sprintf("<td id='%s_%d'>%s<br>%s</td>", $colname, $valpk, htmlentities($value), $value2);
 					} elseif (isset($value)) {
-						$ret .= sprintf("<td id='%s_%d'>%s</td>", $colname, $valpk, htmlentities($value));
+						$ret .= sprintf("<td id='%1\$s_%2\$d'>%3\$s</td>", $colname, $valpk, htmlentities($value));
 					} else {
-						$ret .= sprintf("<td id='%s_%d'></td>", $colname, $valpk);
+						$ret .= sprintf("<td id='%1\$s_%2\$d'></td>", $colname, $valpk);
 					}
 				} else {
 					if (strlen($kol_class) == 0 and $kol['collen'] > 0) {
 						$kol_class = sprintf("class='w%d'", $kol['collen']);
 					}
-					$ret .= sprintf("<td><input type='text' id='%s_%d' value=\"%s\" %s maxlength=%d%s>", $colname, $valpk, $value, $kol_class, $kol['collen'], $kol_title);
+					$ret .= sprintf("<td><input type='text' id='%1\$s_%2\$d' name='%1\$s_%2\$d' value=\"%3\$s\" %4\$s maxlength=%5\$d%6\$s>", $colname, $valpk, $value, $kol_class, $kol['collen'], $kol_title);
 					if (strlen($col2) > 0) {
 						if (isset($kol['secondcolumntype']) and $kol['secondcolumntype'] == "date") {
-							$ret .= sprintf("<br><input type='date' id='%s_%d' value=\"%s\">", $col2, $valpk, $value2);
+							$ret .= sprintf("<br><input type='date' id='%1\$s_%2\$d' name='%1\$s_%2\$d' value=\"%3\$s\">", $col2, $valpk, $value2);
 						} else {
-							$ret .= sprintf("<br><input type='text' id='%s_%d' value=\"%s\">", $col2, $valpk, $value2);
+							$ret .= sprintf("<br><input type='text' id='%1\$s_%2\$d' name='%1\$s_%2\$d' value=\"%3\$s\">", $col2, $valpk, $value2);
 						}
 					}
 					$ret .= "</td>";
@@ -1447,7 +1447,11 @@ function fnEditTable($res, $kols, $id="", $th="") {
 	$(\"input[type='number']\").on('change', function() {
 		savedata('%1\$s', 0, this);
 	});
-		
+	
+	$(\"input[type='date']\").on('change', function() {
+		savedata('%1\$s', 0, this);
+	});
+
 	%2\$s
 
 	</script>\n", $id, $xtra_script);
