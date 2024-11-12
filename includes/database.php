@@ -1962,13 +1962,14 @@ class cls_Lid extends cls_db_base {
 		}
 		$lrows = $this->basislijst();
 		foreach ($lrows as $lrow) {
-			if (strlen($lrow->Email) > 0 and strlen($lrow->EmailOuders) > 0 and strtolower($lrow->Email) == strtolower($lrow->EmailOuders) and $lrow->GEBDATUM > date("Y-m-d", strtotime("-18 year"))) {
+			$this->vulvars($lrow->RecordID);
+			if (strlen($lrow->Email ?? "") > 0 and strlen($this->emailouders) > 0 and strtolower($lrow->Email) == strtolower($this->emailouders) and $lrow->GEBDATUM > date("Y-m-d", strtotime("-18 year"))) {
 				$this->update($lrow->RecordID, "Email", "", "het emailadres gelijk is aan die van de ouders.");
-			} elseif (strlen($lrow->Email) > 0 and strlen($lrow->EmailOuders) > 0 and strtolower($lrow->Email) == strtolower($lrow->EmailOuders)) {
+			} elseif (strlen($lrow->Email ?? "") > 0 and strlen($this->emailouders) > 0 and strtolower($lrow->Email) == strtolower($this->emailouders)) {
 				$this->update($lrow->RecordID, "EmailOuders", "", "het emailadres gelijk is aan die van het lid zelf.");
 			} elseif (array_key_exists($lrow->Geslacht, ARRGESLACHT) == false) {
 				$this->update($lrow->RecordID, "Geslacht", "O", "geslacht een ongeldige waarde had.");
-			} elseif (strlen($lrow->Roepnaam) > 1 and strlen($lrow->Voorletter) == 0 and $lrow->Geslacht != "B" and substr($lrow->Roepnaam, 0, 1) >= "A" and substr($lrow->Roepnaam, 0, 1) <= "Z") {
+			} elseif (strlen($this->roepnaam) > 1 and strlen($this->voorletters) == 0 and $this->geslacht != "B" and substr($this->roepnaam, 0, 1) >= "A" and substr($this->roepnaam, 0, 1) <= "Z") {
 				$vl = strtoupper(substr($lrow->Roepnaam, 0, 1)) . ".";
 				$this->update($lrow->RecordID, "Voorletter", $vl, "de voorletters leeg waren.");
 			} elseif (array_key_exists($lrow->Legitimatietype, ARRLEGITIMATIE) == false) {
@@ -10486,15 +10487,19 @@ class cls_Seizoen extends cls_db_base {
 class cls_Stukken extends cls_db_base {
 	public int $stid = 0;
 	public string $titel = "";
+	public string $type = "";
 	public int $zichtbaarvoor = -1;
 	public string $vastgesteldop = "";
 	public string $ingangsdatum = "";
 	public string $revisiedatum = "";
 	public string $link = "";
-	public string $url = "";
-	public $magdownload = false;
+	
 	private string $folder = "";
-	private $intern = true;
+	public string $url = "";
+	public $intern = true;
+	public $magdownload = false;
+	public string $status = "";
+	public string $typeoms = "";
 	
 	function __construct($p_stid=-1, $p_stuknaam="") {
 		parent::__construct();
@@ -10520,12 +10525,14 @@ class cls_Stukken extends cls_db_base {
 			if (isset($row->RecordID)) {
 				$this->titel = $row->Titel ?? "";
 				$this->naamlogging = $this->titel;
+				$this->type = $row->Type ?? "";
 				$this->zichtbaarvoor = $row->ZichtbaarVoor ?? -1;
 				$this->vastgesteldop = $row->VastgesteldOp ?? "";
 				$this->ingangsdatum = $row->Ingangsdatum ?? "";
 				$this->revisiedatum = $row->Revisiedatum ?? "";
 				$this->link = $row->Link;
-				if ($this->zichtbaarvoor == 0 or WEBMASTER == 1) {
+				$this->gewijzigd = $row->Gewijzigd ?? "";
+				if ($this->zichtbaarvoor == 0 or WEBMASTER) {
 					$this->magdownload = true;
 				} else {
 					if (in_array($this->zichtbaarvoor, explode(",", $_SESSION['lidgroepen']))) {
@@ -10535,6 +10542,18 @@ class cls_Stukken extends cls_db_base {
 			} else {
 				$this->stid = 0;
 			}
+		}
+			
+		if ($this->gewijzigd > date("Y-m-d", strtotime('-1 month'))) {
+			$this->status = "Gewijzigd";
+		} elseif ($this->revisiedatum < date("Y-m-d")) {
+			$this->status = "Overdue";
+		} else {
+			$this->status = "";
+		}
+		
+		if (strlen($this->type) > 0) {
+			$this->typeoms = ARRTYPESTUK[$this->type];
 		}
 		
 		$this->url = "";
@@ -11509,8 +11528,8 @@ class cls_Inschrijving extends cls_db_base {
 				$this->opmerking = $row->Opmerking ?? "";
 				$this->eersteles = $row->EersteLes ?? "";
 				$this->xml = $row->XML ?? "";
-				$this->verwerkt = substr($row->Verwerkt, 0, 10);
-				if ($row->Verwijderd > "1970-01-01") {
+				$this->verwerkt = substr($row->Verwerkt ?? "", 0, 10);
+				if ($row->Verwijderd ?? "" > "1970-01-01") {
 					$this->verwijderd = 1;
 				} else {
 					$this->verwijderd = 0;
