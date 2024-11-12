@@ -140,21 +140,21 @@ function fnStukken($p_scherm="") {
 		
 		foreach ($i_stuk->lijst() as $row) {
 			$i_stuk->vulvars($row->RecordID);
-			if ($vc != $row->Type) {
-				$rv .= sprintf("<tr class='subkop'><td colspan=5>%s</td></tr>\n", ARRTYPESTUK[$row->Type]);
+			if ($vc != $i_stuk->type) {
+				$rv .= sprintf("<tr class='subkop'><td colspan=5>%s</td></tr>\n", $i_stuk->typeoms);
 			}
-			if (strlen($row->Status) > 0) {
-				$rv .= sprintf("<tr class='%s'>", strtolower($row->Status));
+			if (strlen($i_stuk->status) > 0) {
+				$rv .= sprintf("<tr class='%s'>", strtolower($i_stuk->status));
 			} else {
 				$rv .= "<tr>";
 			}
 			if (strlen($i_stuk->url) > 0) {
-				$t = sprintf("<a href='%s'>%s</a>", $i_stuk->url, $row->Titel);
+				$t = sprintf("<a href='%s'>%s</a>", $i_stuk->url, $i_stuk->titel);
 			} else {
-				$t = $row->Titel;
+				$t = $i_stuk->titel;
 			}
 			$rv .= sprintf("<td>%s</td><td>%s</td><td class='zichtbaarvoor'>%s</td><td class='ingangsdatum'>%s</td><td class='revisiedatum'>%s</td></tr>\n", $t, $row->BestemdVoor, $row->Zichtbaar, $dtfmt->format(strtotime($i_stuk->ingangsdatum)), $dtfmt->format(strtotime($i_stuk->revisiedatum)));
-			$vc = $row->Type;
+			$vc = $i_stuk->type;
 		}
 		
 		$rv .= "</table>\n";
@@ -165,13 +165,13 @@ function fnStukken($p_scherm="") {
 	
 		$rows = $i_stuk->lijst();
 		
-		$l = sprintf("%s?tp=%s&p_scherm=F&p_stid=%%d", BASISURL, $_GET['tp']);
+		$l = sprintf("/?tp=%s&p_scherm=F&p_stid=%%d", $_GET['tp']);
 		$kols[] = array('columnname' => "RecordID", 'headertext' => "&nbsp;", 'type' => "link", 'class' => "muteren", 'link' => $l);
 
-		$kols[]['headertext'] = "Titel";
-		$kols[]['headertext'] = "Type";
+		$kols[] = array('columnname' => "Titel", 'headertext' => "Titel");
+		$kols[] = array('columnname' => "Type", 'headertext' => "Type");
 		$kols[] = array('columnname' => "BestemdVoor", 'headertext' => "Bestemd voor");
-		
+
 		$kols[] = array('columnname' => "Zichtbaar", 'headertext' => "Zichtbaar voor");
 		$kols[] = array('columnname' => "VastgesteldOp", 'headertext' => "Vastgesteld op", 'type' => "dateshort");
 		$kols[] = array('columnname' => "Revisiedatum", 'headertext' => "Revisiedatum", 'type' => "dateshort");
