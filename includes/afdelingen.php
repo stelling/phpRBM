@@ -116,7 +116,7 @@ function afdelingslijst($afdid) {
 	$kols[] = array('columnname' => "FunctieGroep", 'headertext' => $ht);
 	$kols[] = array('columnname' => "Vanaf", 'sortcolumn' => "LO.Vanaf");
 		
-	if (count($rows) > 0 and strlen(max(array_column($rows, "Opgezegd"))) > 0) {
+	if (count($rows) > 0 and max(array_column($rows, "Opgezegd")) > "1900-01-01") {
 		$kols[] = array('headertext' => "Tot en met", 'columnname' => "Opgezegd", 'sortcolumn' => "LO.Opgezegd");
 	}
 	
@@ -199,6 +199,7 @@ function afdelingskalendermuteren($p_onderdeelid){
 	echo("<tr><th>Datum</th><th>Omschrijving</th><th>Opmerking</th><th>Activiteit?</th><th></th></tr>\n");
 	$dtfmt->setPattern(DTTEXT);
 	foreach ($i_ak->lijst($p_onderdeelid) as $row) {
+		$i_ak->vulvars($row->RecordID);
 		$aw = $i_aanw->aantal(sprintf("AfdelingskalenderID=%d", $row->RecordID));
 		
 		if ($aw == 0) {
@@ -211,7 +212,7 @@ function afdelingskalendermuteren($p_onderdeelid){
 		} else {
 			$cl = "";
 		}
-		printf("<tr%s><td>%s</td><td><input type='text' id='Omschrijving_%d' title='Omschrijving' value=\"%s\" maxlength=75 class='w50'></td>", $cl, $dat, $row->RecordID, str_replace("\"", "'", $row->Omschrijving));
+		printf("<tr%s><td>%s</td><td><input type='text' id='Omschrijving_%d' title='Omschrijving' value=\"%s\" maxlength=75 class='w50'></td>", $cl, $dat, $row->RecordID, $i_ak->omschrijving);
 		printf("<td><input type='text' id='Opmerking_%d' title='Opmerking' value='%s' maxlength=6 class='w6'></td>", $row->RecordID, $row->Opmerking);
 		
 		printf("<td><input type='checkbox' class='form-check-input' id='Activiteit_%d' title='Is er zwemmen?' value=1 %s></td>", $row->RecordID, checked($row->Activiteit));
@@ -1022,7 +1023,7 @@ function afdelingswachtlijst($p_afdid) {
 	$kols[] = array('headertext' => "Naam & geboren", 'columnname' => "Naam", 'secondcolumn' => "Geboortedatum", 'secondcolumntype' => "geboren_leeftijd", 'readonly' => true);
 	$kols[] = array('headertext' => "E-mail", 'columnname' => "Email", 'type' => "email", 'readonly' => true);
 	$kols[] = array('headertext' => "Opmerking", 'columnname' => "Opmerking", 'readonly' => true);
-	$kols[] = array('headertext' => "Eerste les", 'columnname' => "EersteLes", 'type' => "date");
+	$kols[] = array('headertext' => "Eerste les", 'columnname' => "EersteLes", 'type' => "date", 'title' => "Lid vanaf");
 	$kols[] = array('headertext' => "&nbsp;", 'columnname' => "LnkPDF", 'link' => sprintf("%s/pdf.php?insid=%%d", BASISURL), 'class' => "pdf");
 	
 	if (toegang("deleteinschrijving", 0, 0)) {
@@ -1091,7 +1092,7 @@ function afdelingsmailing($p_afdid) {
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		
 		if ($selmailing == -1 and toegang("Mailing/Nieuw", 1, 1)) {
-			$selmailing = $i_ml->add("Afdelingsmailing " . $i_lo->ondnaam);
+			$selmailing = $i_ml->add("Afdelingsmailing " . $i_lo->i_ond->naam);
 		}
 
 		if (isset($_POST['btnOntvangersAanpassen']) and $selmailing > 0) {
@@ -1266,7 +1267,7 @@ function fnOntvangersAfdelingsmailing($p_afdid, $p_uitvoeren=0, $p_mailing=-1) {
 	$i_ak = new cls_Afdelingskalender();
 	
 	if ($p_mailing <= 0) {
-		$p_uitvoeren = 0	;
+		$p_uitvoeren = 0;
 	}
 	
 	$exresfilter = $_POST['exresfilter'] ?? 1;
@@ -1281,7 +1282,6 @@ function fnOntvangersAfdelingsmailing($p_afdid, $p_uitvoeren=0, $p_mailing=-1) {
 	}
 	$vanafdatum = $i_ak->datumeerstelesperiode($p_afdid, $wekenterug);
 	foreach ($i_lo->lijst($p_afdid, 2, "L.Achternaam, L.Tussenv, L.Roepnaam") as $lorow) {
-		$i_lo->vulvars($lorow->RecordID);
 		$cn = sprintf("chkGroep_%d", $lorow->GroepID);
 		$cnf = sprintf("chkFunctie_%d", $lorow->Functie);
 		if (isset($_POST[$cn])) {
@@ -1297,10 +1297,15 @@ function fnOntvangersAfdelingsmailing($p_afdid, $p_uitvoeren=0, $p_mailing=-1) {
 					$toev = false;
 				}
 			}
-			if ($wekenterug > 0 and $typefilter == 0 and $lorow->Aanwezigheidsnorm == 0) {
+			
+			// Selectie op afwezigheid
+			if ($wekenterug == 0) {
+				// Geen filter op afwezigheid
+				
+			} elseif ($typefilter == 0 and $lorow->Aanwezigheidsnorm == 0) {
 				$toev = false;
 				
-			} elseif ($wekenterug > 0 and $typefilter == 0 and $lorow->Aanwezigheidsnorm > 0) {
+			} elseif ($typefilter == 0 and $lorow->Aanwezigheidsnorm > 0) {
 				$aantafwezig = $i_aw->perlidperperiode($lorow->RecordID, $vanafdatum, date("Y-m-d"))->aantAfwezig;
 				$aantlessen = $i_aw->beschikbarelessen($lorow->RecordID, $vanafdatum);
 				
@@ -1310,19 +1315,21 @@ function fnOntvangersAfdelingsmailing($p_afdid, $p_uitvoeren=0, $p_mailing=-1) {
 					$toev = false;
 				}
 				
-			} elseif ($wekenterug > 0 and $typefilter > 0) {
+			} elseif ($typefilter > 0) {
 				$aantTelaat = $i_aw->perlidperperiode($lorow->RecordID, $vanafdatum, date("Y-m-d"))->aantLaat;
 				if ($aantTelaat < $typefilter) {
 					$toev = false;
 				}
 			}
-			if ($toev and ($mingroepgewijzigd >= $_POST['groepgewijzigdna'] or $i_lo->laatstemutatiegroep >= $_POST['groepgewijzigdna'])) {
+			
+			if ($toev and ($mingroepgewijzigd > $_POST['groepgewijzigdna'] or $i_lo->laatstemutatiegroep() >= $_POST['groepgewijzigdna'])) {
 				$rv .= sprintf("<li>%s</li>", $i_lid->naam($lorow->Lid));
 				$selaant++;
 				if ($p_uitvoeren == 1) {
 					$i_mr->add($p_mailing, $lorow->Lid, "", 0, "AfdGr", $lorow->GroepID, $p_afdid);
 				}
 			}
+			
 		} elseif (isset($_POST[$cnf])) {
 			$rv .= sprintf("<li>%s</li>", $i_lid->naam($lorow->Lid));
 			$selaant++;
