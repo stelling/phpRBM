@@ -1263,7 +1263,7 @@ function fnEditTable($res, $kols, $id="", $th="") {
 			} elseif (isset($kol['bronselect']) and strlen($kol['bronselect']) > 0) {
 					
 				$colnamebron = $kol['bronselect'];
-				if (strlen($row->$colnamebron) > 0) {
+				if (strlen($row->$colnamebron ?? "") > 0) {
 					$opt = "";
 					foreach (explode(";", $row->$colnamebron) as $v) {
 						$opt .= sprintf("<option value='%s'%s>%s</option>\n", str_replace(",", ".", trim($v)), checked($v, "option", $value), $v);
@@ -1449,7 +1449,9 @@ function fnEditTable($res, $kols, $id="", $th="") {
 	});
 	
 	$(\"input[type='date']\").on('change', function() {
-		savedata('%1\$s', 0, this);
+		if (this.value >= '1900-01-01') {
+			savedata('%1\$s', 0, this);
+		}
 	});
 
 	%2\$s
