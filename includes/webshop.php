@@ -17,7 +17,7 @@ function fnWebshop() {
 	}
 }
 
-function fnWinkelwagen($lidid) {
+function winkelwagen($lidid) {
 	
 	// Bestellingen door het lid via de zelfservice
 
@@ -30,7 +30,7 @@ function fnWinkelwagen($lidid) {
 	$i_art = new cls_Artikel();
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-		if (isset($_POST['Nieuw_OR']) and $_POST['Nieuw_OR'] > 0) {
+		if (isset($_POST['btnToevOrderregel']) and isset($_POST['Nieuw_OR']) and $_POST['Nieuw_OR'] > 0) {
 			$i_or->add($lidid, $_POST['Nieuw_OR']);
 		}
 		
@@ -48,8 +48,10 @@ function fnWinkelwagen($lidid) {
 		}
 		
 		if (isset($_POST['defmaken'])) {
-			$i_or->definitiefmaken($lidid);
-			if ($_SESSION['settings']['mailing_bevestigingbestelling'] > 0) {
+			$ordernr = $i_or->definitiefmaken($lidid);
+			if ($ordernr == 0) {
+				$mess = "Er ging iets mis bij het defintief maken van de order. Neem contact op met de webmaster.";
+			} elseif ($_SESSION['settings']['mailing_bevestigingbestelling'] > 0) {
 				$mailing = new Mailing($_SESSION['settings']['mailing_bevestigingbestelling']);
 				$mailing->xtranum = $ordernr;
 				if ($mailing->send($lidid) > 0) {
@@ -61,7 +63,7 @@ function fnWinkelwagen($lidid) {
 			} else {
 				$mess = "Er is geen mailing voor het bevestigingen van de bestelling beschikbaar.";
 			}
-			(new cls_Logboek())->add($mess, 10, $lidid, $ordernr);
+			(new cls_Logboek())->add($mess, 10, $lidid, 0, $ordernr);
 			printf("<script>location.href='%s?tp=%s';</script>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 		}
 	}
@@ -69,55 +71,70 @@ function fnWinkelwagen($lidid) {
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	printf("<table class='%s'>\n", TABLECLASSES);
 	echo("<caption>Winkelwagen</caption>\n");
-	echo("<thead>\n<tr><th>Artikel</th><th>Prijs per stuk</th><th>Aantal</th><th>Bedrag</th><th>Voorraad</th><th>Opmerking</th></tr></thead>\n");
+	echo("<thead>\n<tr><th>Artikel</th><th>Prijs per stuk</th><th>Aantal</th><th>Bedrag</th><th>Beschikbaar</th><th>Opmerking</th></tr></thead>\n");
 	$totaant = 0;
 	$totbedrag = 0;
 	$defmaken = false;
 	echo("<tbody>\n");
 	foreach ($i_or->winkelwagen($lidid) as $ord) {
+		$i_or->vulvars($ord->RecordID);
 		echo("<tr>\n");
-		printf("<td>%s</td><td class='number'>&euro;&nbsp;%s</td>\n", $ord->CodeOmsMaat, number_format($ord->PrijsPerStuk, 2));
-		printf("<td class='number'><input type='number' name='AantalBesteld_%d' min=0 max=%d value=%d onChange='this.form.submit();'></td>\n", $ord->RecordID, $ord->MaxAantalPerLid, $ord->AantalBesteld);
-		printf("<td class='number'>&euro;&nbsp;%s</td>\n", number_format($ord->PrijsPerStuk*$ord->AantalBesteld, 2));
-		printf("<td class='number'>%d</td>\n", $ord->Voorraad);
-		printf("<td><input type='text' name='Opmerking_%d' value='%s' maxlength=30 OnChange='this.form.submit();'></td>\n", $ord->RecordID, $ord->Opmerking);
+		printf("<td>%s</td><td class='number'>&euro;&nbsp;%s</td>\n", $i_or->i_art->codeomsmaat, number_format($i_or->prijsperstuk, 2));
+		printf("<td class='number'><input class='num2' type='number' name='AantalBesteld_%d' min=0 max=%d value=%d onChange='this.form.submit();'></td>\n", $ord->RecordID, $i_or->i_art->maxperlid, $i_or->aantalbesteld);
+		printf("<td class='number'>&euro;&nbsp;%s</td>\n", number_format($i_or->bedrag, 2));
+		printf("<td class='number'>%s</td>\n", number_format($i_or->i_art->vrijevoorraad, 0));
+		printf("<td><input class='w30' type='text' name='Opmerking_%d' value='%s' maxlength=30 OnChange='this.form.submit();'></td>\n", $ord->RecordID, $i_or->opmerking);
 		echo("</tr>\n");
-		$totaant += $ord->AantalBesteld;
-		$totbedrag += ($ord->PrijsPerStuk * $ord->AantalBesteld);
+		$totaant += $i_or->aantalbesteld;
+		$totbedrag += $i_or->bedrag;
 		if ($ord->AantalBesteld > 0) {
 			$defmaken = true;
 		}
 	}
 	echo("</tbody>\n");
 	
-	
 	if ($totbedrag <> 0 or $totaant <> 0) {
 		printf("<tr><td colspan=2>Totaal winkelwagen</td><td class='number'>%d</td><td class='number'>&euro;&nbsp;%s</td><td colspan=2></td></tr>\n", $totaant, number_format($totbedrag, 2));
 	}
 	
 	echo("</table>\n");
-	echo("<div id='opdrachtknoppen'>\n");
+//	echo("<div id='opdrachtknoppen'>\n");
 	
-	printf("<select name='Nieuw_OR' onChange='this.form.submit();'><option value=0>Artikel toevoegen ...</option>%s</select>\n", $i_art->htmloptions(-1, "bestelbaar"));
-	
+	$opt = $i_art->htmloptions(-1, "bestelbaar");
+	if (strlen($opt) > 0) {
+		printf("<select class='form-select form-select-sm' name='Nieuw_OR'>%s</select>\n", $opt);
+		printf("<button class='%s btn-sm' type='submit' name='btnToevOrderregel'>%s</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
+	}
 
 	if ($defmaken) {
-		echo("<button name='defmaken'>Definitief bestellen</button>\n");	
+		printf("<button class='%s' name='defmaken'>Definitief bestellen</button>\n", CLASSBUTTON);	
 	}
 	if (strlen($_SESSION['settings']['zs_voorwaardenbestelling']) > 0) {
 		printf("<p>%s</p>\n", $_SESSION['settings']['zs_voorwaardenbestelling']);
 	}
-	echo("</div>  <!-- Einde opdrachtknoppen -->");
+//	echo("</div>  <!-- Einde opdrachtknoppen -->");
 	echo("</form>\n");
+	echo("<div class='clear'></div>\n");
+	
+	$f = sprintf("Ord.Lid=%d AND LENGTH(IFNULL(Ord.BestellingDefinitief, '')) >= 10 AND Ord.AantalBesteld <> 0", $lidid);
+	$rows = $i_or->lijst($f, 0, "Ord.BestellingDefinitief, Ord.Artikel");
+	
+	if (count($rows) > 0) {
+		$kols[] = array('headertext' => "Order", 'columnname' => "Ordernr");
+		$kols[] = array('headertext' => "Artikel", 'columnname' => "CodeOmsMaat");
+		$kols[] = array('headertext' => "Aantal besteld", 'columnname' => "AantalBesteld", 'type' => "integer");
+		$kols[] = array('headertext' => "Datum besteld", 'columnname' => "BestellingDefinitief", 'type' => "DTTEXT");
+		$kols[] = array('headertext' => "Aantal geleverd", 'columnname' => "AantalGeleverd", 'type' => "integer");
+		
+		echo(fnDisplayTable($rows, $kols, "Eerdere bestellingen", 0, "", "bestellingenperlid"));
+	}
 	
 	echo("</div>   <!-- Einde winkelwagen -->\n");
 	echo("</div>   <!-- Einde webshop -->\n");
 	
-}  # fnWinkelwagen
+}  # winkelwagen
 
 function artikelbeheer() {
-	
-	$arrMaat = array("", "XS", "S", "M", "L", "XL", "XXL");
 
 	$i_art = new cls_Artikel();
 	if (isset($_GET['op']) and $_GET['op'] == "delete" and $_GET['aid'] > 0) {
@@ -150,37 +167,33 @@ function artikelbeheer() {
 	echo("<div id='webshop'>\n");
 	printf("<form method='post' action='%s?tp=%s'>\n", $_SERVER['PHP_SELF'], $_GET['tp']);
 	printf("<table class='%s'>\n", TABLECLASSES);
-	echo("<tr><th>Code</th><th>Omschrijving</th><th>Maat</th><th>Verkoopprijs</th><th>Beschikbaar tot</th><th>Vervallen per</th><th>Max per lid</th><th>Beschikbaar voor groep</th><th></th></tr>\n");
+	echo("<tr><th>Code</th><th>Omschrijving</th><th>Maat</th><th>Verkoopprijs</th><th>Beschikbaar tot</th><th>Vervallen per</th><th>Max per lid</th><th>Beschikbaar voor</th><th></th></tr>\n");
 	$lijst = $i_art->lijst("beheer");
 	foreach ($lijst as $row) {
+		$i_art->vulvars($row->RecordID);
 		echo("<tr>\n");
-		printf("<td><input type='text' class='tbsmal' name='Code_%d' value='%s' maxlength=8 class='w8'></td>\n", $row->RecordID, $row->Code);
-		printf("<td><input type='text' name='Omschrijving_%d' value='%s' maxlength=50 class='w50'></td>\n", $row->RecordID, $row->Omschrijving);
+		printf("<td><input type='text' class='w8' name='Code_%d' value='%s' maxlength=8></td>\n", $row->RecordID, $i_art->code);
+		printf("<td><input type='text' class='w50' name='Omschrijving_%d' value='%s' maxlength=50></td>\n", $row->RecordID, $i_art->omschrijving);
 			
 		$options = "";
-		foreach($arrMaat as $m) {
+		foreach(ARRKLEDINGMAAT as $m) {
 			$options .= sprintf("<option value='%s' %s>%s</option>\n", $m, checked($m, "option", $row->Maat), $m);
 		}
-		printf("<td><select name='Maat_%d'>%s</select></td>\n", $row->RecordID, $options);
+		printf("<td><select class='form-select form-select-sm' name='Maat_%d'>%s</select></td>\n", $row->RecordID, $options);
 		printf("<td><input type='text' name='Verkoopprijs_%d' value='%s' class='d8'></td>\n", $row->RecordID, $row->Verkoopprijs);
 		printf("<td><input type='date' name='BeschikbaarTot_%d' value='%s'></td>\n", $row->RecordID, $row->BeschikbaarTot);
 		printf("<td><input type='date' name='VervallenPer_%d' value='%s'></td>\n", $row->RecordID, $row->VervallenPer);
 		printf("<td><input type='number' name='MaxAantalPerLid_%d' value=%d max=999 class='num3'></td>\n", $row->RecordID, $row->MaxAantalPerLid);
 		
-		printf("<td><select name='BeperkTotGroep_%d'>\n", $row->RecordID);
-		echo("<option value=0>Geen beperking</option>\n");
+		printf("<td><select class='form-select form-select-sm' name='BeperkTotGroep_%d'>\n", $row->RecordID);
+		echo("<option value=-2>Niemand</option>\n");
 		foreach((new cls_Onderdeel())->lijst(1) as $ond) {
-			if ($ond->RecordID == $row->BeperkTotGroep) {
-				$s = "selected";
-			} else {
-				$s = "";
-			}
-			printf("<option value=%d %s>%s</option>\n", $ond->RecordID, $s, $ond->Naam);
+			printf("<option value=%d%s>%s</option>\n", $ond->RecordID, checked($ond->RecordID, "option", $row->BeperkTotGroep), $ond->Naam);
 		}
 		echo("</select></td>\n");
 		if ($row->InGebruik == 0) {
 			$lnk = sprintf("%s?tp=%s&op=delete&aid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
-			printf("<td><a href='%s'><i class='bi bi-trash'></i></a></td>", $lnk);
+			printf("<td><a href='%s'>%s</a></td>", $lnk, ICONVERWIJDER);
 		} else {
 			echo("<td></td>\n");
 		}
@@ -189,9 +202,9 @@ function artikelbeheer() {
 	}
 	echo("</table>\n");
 	echo("<div id='opdrachtknoppen'>\n");
-	echo("<button type='submit' name='Code_Nw'><i class='bi bi-plus-circle'></i> Nieuw artikel</button>\n");
+	printf("<button type='submit' class='%s' name='Code_Nw'>%s artikel</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
 	if (count($lijst) > 0) {
-		echo("<button type='submit' name='action' value='save' title='Bewaren'><i class='bi bi-save'></i> Bewaren</button>\n");
+		printf("<button type='submit' class='%s' name='action' value='save' title='Bewaren'>%s Bewaren</button>\n", CLASSBUTTON, ICONBEWAAR);
 	}
 	echo("</div> <!-- Einde opdrachtknoppen -->\n");
 	echo("</form>\n");
@@ -200,11 +213,13 @@ function artikelbeheer() {
 }  # artikelbeheer
 
 function bestellingbeheer() {
+	global $dtfmt;	
 
 	$naamfilter="";
 	$i_or = new cls_Orderregel();
 	$i_vb = new cls_Voorraadboeking();
 	$i_art = new cls_Artikel();
+	$dtfmt->setPattern(DTTEXT);
 	
 	if ($_SERVER['REQUEST_METHOD'] == "POST") {
 		if (isset($_POST['Lid_0']) and is_numeric($_POST['Lid_0']) and $_POST['Lid_0'] > 0) {
@@ -277,42 +292,43 @@ function bestellingbeheer() {
 	$lijst = $i_or->lijst($f);
 	$arthtmloptions = $i_art->htmloptions();
 	foreach($lijst as $row) {
+		$i_or->vulvars($row->RecordID);
 		echo("<tr>\n");
 		printf("<td class='number'>%d</td>", $row->Ordernr);
 		printf("<td>%s</td>", $row->NaamLid);
-		if ($row->Artikel > 0) {
-			printf("<td>%s</td>", $row->ArtOms);
+		if ($i_or->artid > 0) {
+			printf("<td>%s</td>", $i_or->i_art->omsmaat);
+			printf("<td><input type='number' name='AantalBesteld_%d'class='num3' max=999 value=%d onBlur='form.submit();'></td>\n", $row->RecordID, $i_or->aantalbesteld);
 		} else {
-			printf("<td colspan=2><select name='Artikel_%d' onChange='this.form.submit();'>\n", $row->RecordID);
+			printf("<td><select name='Artikel_%d' onChange='this.form.submit();'>\n", $row->RecordID);
 			printf("<option value=0>Selecteer artikel</option>\n%s</select>\n", $arthtmloptions);
+			echo("<td></td>");
 		}
 		
-		printf("<td><input type='number' name='AantalBesteld_%d'class='num3' max=999 value=%d onBlur='form.submit();'></td>\n", $row->RecordID, $row->AantalBesteld);
-		
-		if ($row->Artikel > 0) {
-			printf("<td><input type='text' class='tbsmal' name='PrijsPerStuk_%d' value='%s' maxlength=8></td>\n", $row->RecordID, number_format($row->PrijsPerStuk, 2));
+		if ($i_or->artid > 0) {
+			printf("<td><input type='text' class='d8' name='PrijsPerStuk_%d' value='%s' maxlength=8></td>\n", $row->RecordID, number_format($i_or->prijsperstuk, 2));
 		} else {
 			echo("<td></td>\n");
 		}
 		
-		if (!is_null($row->BestellingDefinitief)) {
-			printf("<td>%s</td>\n", strftime("%e %B %Y", strtotime($row->BestellingDefinitief)));
+		if (strlen($i_or->bestellingdefinitief) >= 10) {
+			printf("<td>%s</td>\n", $dtfmt->format(strtotime($i_or->bestellingdefinitief)));
 		} else {
 			echo("<td></td>\n");
 		}
-		printf("<td class='number'>&euro;&nbsp;%s</td>", number_format($row->Bedrag, 2));
+		printf("<td class='number'>&euro;&nbsp;%s</td>", number_format($i_or->bedrag, 2));
 		if ($row->Artikel > 0 and $row->Lid > 0) {
-			printf("<td><input type='number' name='AantalGeleverd_%d' class='num3' max=999 value=%d></td>\n", $row->RecordID, $row->AantalGeleverd);
+			printf("<td><input type='number' name='AantalGeleverd_%d' class='num3' max=999 value=%d></td>\n", $row->RecordID, $i_or->aantalgeleverd);
 		} else {
 			echo("<td></td>\n");
 		}
 		printf("<td>%s</td>", $row->Opmerking);
-		if ($row->AantalGeleverd == 0) {
+		if ($i_or->aantalgeleverd == 0) {
 			$lnk = sprintf("%s?tp=%s&op=delete&rid=%d", $_SERVER['PHP_SELF'], $_GET['tp'], $row->RecordID);
-			printf("<td><a href='%s'><i class='bi bi-trash'></i></a></td>", $lnk);
+			printf("<td><a href='%s'>%s</i></a></td>", $lnk, ICONVERWIJDER);
 		}
 		echo("</tr>\n");
-		if ($row->Lid == 0 or $row->Artikel == 0) {
+		if ($i_or->lidid == 0 or $i_or->artid == 0) {
 			$nrmag = false;
 		}
 	}
@@ -321,13 +337,14 @@ function bestellingbeheer() {
 	echo("<div id='opdrachtknoppen'>\n");
 	
 	if ($nrmag) {
-		echo("<select name='Lid_0' onChange='this.form.submit();'>\n");
-		echo("<option value=0>Nieuwe regel ...</option>\n");
-		echo((new cls_Lid())->htmloptions(-1, 1));
-		echo("</select>\n");
+		$opt = $i_or->i_lid->htmloptions(-1, 8);
+		if (strlen($opt) > 0) {
+			echo("<select class='form-select' name='Lid_0' onChange='this.form.submit();'>\n");
+			printf("<option value=0>Nieuwe regel ...</option>\n%s</select>\n", $opt);
+		}
 	}
 	
-	echo("<button type='submit' name='action' value='save' title='Bewaren'><i class='bi bi-save'></i> Bewaren</button>\n");
+	printf("<button type='submit' class='%s' name='action' value='save' title='Bewaren'>%s Bewaren</button>\n", CLASSBUTTON, ICONBEWAAR);
 	echo("</div>  <!-- Einde opdrachtknoppen -->\n");
 	echo("</form>\n");
 	echo("</div>  <!-- Einde bestellingbeheer -->\n");
@@ -370,25 +387,27 @@ function Voorraadbeheer() {
 	printf("<table class='%s'>\n", TABLECLASSES);
 	echo("<tr><th>Artikel</th><th>Omschrijving boeking</th><th>Datum</th><th>Mutatie</th><th>Voorraad</th></tr>");
 	foreach ($artrows as $artrow) {
-		printf("<tr><td>%s</td>\n", $artrow->CodeOmsMaat);
+		$i_art->vulvars($artrow->RecordID);
+		printf("<tr><td>%s</td>\n", $i_art->omsmaat);
 		$vbrows = $i_vb->lijst($artrow->RecordID);
 		$aant = 0;
 		$vrrd = 0;
 		foreach ($vbrows as $vbrow) {
-			$vrrd += $vbrow->Aantal;
+			$i_vb->vulvars($vbrow->RecordID);
+			$vrrd += $i_vb->aantal;
 			if ($aant > 0) {
 				echo("</tr>\n<tr>\n");
 				echo("<td></td>");
 			}
-			if ($vbrow->OrderregelID > 0) {
-				$nl = $vbrow->NaamLid;
+			if ($i_vb->orderregelid > 0) {
+				$nl = $i_vb->i_or->i_lid->naam;
 				if (strlen($nl) > 0) {
 					$nl = " (" . $nl . ")";
 				}
-				if ($vbrow->Ordernr > 0) {
-					printf("<td>Levering op order %d%s</td>", $vbrow->Ordernr, $nl);
+				if ($i_vb->i_or->ordernr > 0) {
+					printf("<td>Levering op order %d%s</td>", $i_vb->i_or->ordernr, $nl);
 				} else {
-					printf("<td>Levering op orderregel %d%s</td>", $vbrow->OrderregelID, $nl);
+					printf("<td>Levering op orderregel %d%s</td>", $i_vb->orderregelid, $nl);
 				}
 			} else {
 				printf("<td><input type='text' value='%s' name='Omschrijving_%d' OnBlur='this.form.submit();'></td>\n", $vbrow->Omschrijving	, $vbrow->RecordID);
@@ -403,7 +422,7 @@ function Voorraadbeheer() {
 	echo("</table>\n");
 	
 	echo("<div id='opdrachtknoppen'>\n");
-	printf("<select name='Nieuw_vb' OnChange='this.form.submit();'><option value=0>Nieuwe boeking ....</option>%s</select>\n", $i_art->htmloptions());
+	printf("<select class='form-select' name='Nieuw_vb' OnChange='this.form.submit();'><option value=0>Nieuwe boeking ....</option>%s</select>\n", $i_art->htmloptions());
 	echo("</div>  <!-- Einde opdrachtknoppen -->\n");
 	echo("</form>\n");
 	
