@@ -1,17 +1,21 @@
 <?php
 require("./includes/standaard.inc");
 
-if (isset($_GET['p_stukid']) and $_GET['p_stukid'] > 0) {
+$i_lb = new cls_logboek();
+
+$p_stukid = $_GET['p_stukid'] ?? 0;
+$mess = "";
+$ta = 22;
+$tas = 8;
+
+if ($p_stukid > 0) {
   
-	$i_st = new cls_Stukken($_GET['p_stukid']);
-	$i_lb = new cls_logboek();
+	$i_st = new cls_Stukken($p_stukid);
 
 	if ($i_st->stid == 0) {
-		$mess = sprintf("Stuk %d bestaat niet.", $_GET['p_stukid']);
-		$i_lb->add($mess, 22, 0, 1, $i_st->stid, 8, "Stukken");
-	} elseif (substr($i_st->link, 0, 4) == "http") {
-		$mess = sprintf("Stuk %d is een externe download.", $i_st->stid);
-		$i_lb->add($mess, 22, 0, 1, $i_st->stid, 8, "Stukken");
+		$mess = sprintf("Stuk %d bestaat niet.", $p_stukid);
+	} elseif (substr($i_st->link, 0, 4) == "http" or substr($i_st->link, 0, 5) == "https") {
+		$mess = sprintf("Stuk '%1\$s' is een externe download of webpagina, ga naar <a href='%2\$s'>%1\$s</a>.", $i_st->titel, $i_st->link);
 	} elseif ($i_st->magdownload) {
 		$filename = BASEDIR . "/stukken/" . $i_st->link;
 		if (file_exists($filename)) {
@@ -28,16 +32,21 @@ if (isset($_GET['p_stukid']) and $_GET['p_stukid'] > 0) {
 			exit;
 		} else {
 			$mess = sprintf("Bestand '%s' bestaat niet.", $filename);
-			$i_lb->add($mess, 22, 0, 1, $i_st->stid, 8, "Stukken");
 		}
 	} else {
 		$mess = sprintf("Je bent niet gerechtigd om stuk %d te downloaden.", $i_st->stid);
-		$i_lb->add($mess, 22, 0, 1, $i_st->stid, 8, "Stukken");
+		$ta = 15;
+		$tas = 9;
 	}
 	
 } else {
 	$mess = "Er is geen stuk gespecificeerd.";
-	$i_lb->add($mess, 22, 0, 1, $i_st->stid, 8, "Stukken");
+}
+
+if (strlen($mess) > 0 and ($_SESSION['lidid'] > 0 or $ta == 15)) {
+	$i_lb->add($mess, $ta, 0, 1, $p_stukid, $tas, "Stukken");
+} elseif (strlen($mess) > 0) {
+	printf("<p class='mededeling'>%s</p>\n", $mess);
 }
 
 ?>
