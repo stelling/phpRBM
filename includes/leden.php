@@ -683,8 +683,7 @@ function wachtlijst() {
 					}
 				}
 			}
-
-			printf("<script>\nlocation.href='%s?tp=Ledenlijst/Wijzigen+lid/Algemene+gegevens&lidid=%d';\n</script>\n", $_SERVER['PHP_SELF'], $lidid);
+//			printf("<script>\nlocation.href='%s?tp=Ledenlijst/Wijzigen+lid/Algemene+gegevens&lidid=%d';\n</script>\n", $_SERVER['PHP_SELF'], $lidid);
 		}
 				
 	} elseif ($op == "nieuw") {
@@ -2658,15 +2657,15 @@ function fnPersoonlijkeAgenda() {
 					$kalitem[$in]['datum'] .= " " . $i_lo->i_gr->starttijd;
 				}
 
-				if ($row->Activiteit == 1) {
-					$oms = $row->Naam;
+				if ($i_ak->activiteit == 1) {
+					$oms = $i_ak->i_ond->naam;
 				} else {
-					$oms = "Geen " . $row->Naam;
+					$oms = "Geen " . $i_ak->i_ond->naam;
 					$kalitem[$in]['class'] = "geenactiviteit";
 				}
 
-				if (strlen($row->Omschrijving) > 1) {
-					$oms .= " (" . $row->Omschrijving . ")";
+				if (strlen($i_ak->omschrijving) > 1) {
+					$oms .= " (" . $i_ak->omschrijving . ")";
 				}
 				$i_ex->vulvars(-1, $hd, $row->OnderdeelID);
 				if ($i_ex->exid > 0) {
