@@ -440,6 +440,7 @@ function fnAgenda($p_lidid=0) {
 	
 	$i_lid = new cls_Lid();
 	$i_ex = new cls_Examen();
+	$i_ak = new cls_Afdelingskalender();
 	
 	if (strlen($_SESSION['settings']['agenda_url_feestdagen']) > 4) {
 		$ics = file_get_contents($_SESSION['settings']['agenda_url_feestdagen']);
@@ -503,25 +504,26 @@ function fnAgenda($p_lidid=0) {
 			}
 			
 			// Afdelingskalender
-			foreach ((new cls_Afdelingskalender())->lijst(-1, date("Y-m-d", $td)) as $akrow) {
-				if (strlen($akrow->Omschrijving) > 1) {
-					if ($akrow->Activiteit == 1) {
-						$oms = $akrow->Kode . ": " . $akrow->Omschrijving;
+			foreach ($i_ak->lijst(-1, date("Y-m-d", $td)) as $akrow) {
+				$i_ak->vulvars($akrow->RecordID);
+				if (strlen($i_ak->omschrijving) > 1) {
+					if ($i_ak->activiteit == 1) {
+						$oms = $i_ak->i_ond->code . ": " . $i_ak->omschrijving;
 					} else {
-						$oms = "Geen " . $akrow->Kode . " (" . $akrow->Omschrijving . ")";
+						$oms = "Geen " . $i_ak->i_ond->code . " (" . $i_ak->omschrijving . ")";
 					}
 				} else {
-					if (strlen($akrow->Activiteit) == 1) {
-						$oms = $akrow->Naam;
-						$i_ex->vulvars(-1, $akrow->Datum, $akrow->OnderdeelID);
+					if ($i_ak->activiteit == 1) {
+						$oms = $i_ak->i_ond->naam;
+						$i_ex->vulvars(-1, $akrow->Datum, $i_ak->ondid);
 						if ($i_ex->exid > 0) {
 							$oms .= " (" . $i_ex->examenomskort	. ")";
 						}
 					} else {
-						$oms = "Geen " . $akrow->Naam;
+						$oms = "Geen " . $i_ak->i_ond->naam;
 					}
 				}			
-				$ikal[strtotime($akrow->Datum . " " . $akrow->Begintijd)] = sprintf("<li class='%1\$s' title=\"%2\$s\">%2\$s</li>", strtolower($akrow->Kode), $oms);
+				$ikal[strtotime($i_ak->startactiviteit)] = sprintf("<li class='%1\$s' title=\"%2\$s\">%2\$s</li>", strtolower($i_ak->i_ond->code), $oms);
 			}
 			
 			if (isset($ikal)) {
@@ -699,7 +701,7 @@ function fnMeldingen() {
 	$i_el = new cls_Eigen_lijst();
 	
 	foreach($i_el->lijst(4) as $row) {
-		$i_el->controle($row->RecordID);
+		$i_el->controle($row->RecordID, 15);
 		$i_el->vulvars($row->RecordID);
 		if ($i_el->aantalrijen > 0) {
 			$nm = $i_el->naam;
