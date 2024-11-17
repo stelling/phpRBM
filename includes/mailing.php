@@ -194,7 +194,6 @@ class Mailing {
 	private $CCafdelingen = 0;
 	private $subject = "";
 	private $message = "";
-	private $NietVersturenVoor = "0000-00-00";
 	private $zichtbaarvoor = 0;
 	private int $template = 0;
 	private int $htmldirect = 0;
@@ -561,7 +560,6 @@ class Mailing {
 			$this->subject = $this->i_ml->subject;
 			$this->opmerking = $this->i_ml->opmerking;
 			$this->message = $this->i_ml->bericht;
-			$this->NietVersturenVoor = $this->i_ml->nietversturenvoor;
 			$this->CCafdelingen = $this->i_ml->ccafdelingen;
 			$this->template = $this->i_ml->template;
 			$this->zichtbaarvoor = $this->i_ml->zichtbaarvoor;
@@ -584,6 +582,7 @@ class Mailing {
 		$i_mr = new cls_Mailing_rcpt();
 		$i_el = new cls_Eigen_lijst();
 		$i_ond = new cls_Onderdeel();
+		$i_lo = new cls_Lidond();
 		$ob = "OnBlur='this.form.submit();'";
 		if ($this->mid > 0) {
 			$jstb = sprintf("OnBlur=\"savedata('mailing', %d, this);\"", $this->mid);
@@ -672,11 +671,16 @@ class Mailing {
 				printf("<label class='form-label'>Vanaf geboortedatum</label><input type='date' value='%s' name='selectie_vangebdatum' id='selectie_vangebdatum' OnBlur='mailingprops(%d);'><p id='tekst_vangebdatum'></p>\n", $_POST['selectie_vangebdatum'], $this->mid);
 				printf("<label class='form-label'>T/m geboortedatum</label><input type='date' value='%s' name='selectie_temgebdatum' id='selectie_temgebdatum' OnBlur='mailingprops(%d);'><p id='tekst_temgebdatum'></p>\n", $_POST['selectie_temgebdatum'], $this->mid);
 
-				$this->sl_huidigegroep = $_POST['selectie_groep'] ?? 0;
+				$this->sl_huidigegroep = $_POST['selectie_groep'] ?? $this->i_ml->groepontvangers;
+				if ($this->sl_huidigegroep > 0) {
+					$i_el->controle($this->sl_huidigegroep, 5);
+					$i_lo->autogroepenbijwerken(0, 5, $this->sl_huidigegroep);
+					$i_lo->auto_einde($this->sl_huidigegroep, 5);
+				}
 				$selgr = sprintf("<option value=0>&nbsp;</option>\n%s<option disabled>-- Eigen lijsten --</option>\n%s</select>\n", $i_ond->htmloptions($this->sl_huidigegroep, 1), $i_el->htmloptions($this->sl_huidigegroep, 2));
 				printf("<label class='form-label'>Zit in groep</label><select name='selectie_groep' id='selectie_groep' class='form-select form-select-sm' OnChange='mailingprops(%d);'>%s</selectie>\n", $this->mid, $selgr);
 				
-				echo("<label class='form-label'>Aantal personen in groep</label><p id='aantalpersoneningroep'></p>\n");
+				echo("<label class='form-label'>Aantal personen in selectie</label><p id='aantalpersoneningroep'></p>\n");
 				printf("<button type='button' id='LedenToevoegen' class='%s btn-sm' OnClick='mailing_add_selectie_ontvangers();'>%s Groepsleden</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
 //				printf("<button type='submit' name='LedenToevoegen' class='%s btn-sm' OnClick='mailing_add_selectie_ontvangers();'>%s Groepsleden</button>\n", CLASSBUTTON, ICONTOEVOEGEN);
 				printf("<button type='button' class='%s btn-sm' id='GroepsledenVerwijderen' OnClick='mailing_verw_selectie_ontvangers();'>%s Groepsleden</button>\n", CLASSBUTTON, ICONVERWIJDER);
@@ -1005,6 +1009,7 @@ class Mailing {
 			} else {
 				$_POST['HTMLdirect'] = 0;
 			}
+			$i_ml->update($this->mid, "GroepOntvangers", $_POST['selectie_groep']);
 			$i_ml->update($this->mid, "HTMLdirect", $_POST['HTMLdirect']);
 		}
 		
