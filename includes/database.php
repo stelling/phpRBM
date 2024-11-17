@@ -494,8 +494,6 @@ class cls_db_base {
 		if ($r > $rid) {$rid = $r; }
 		$r = $this->scalar(sprintf("SELECT IFNULL(MAX(F.Nummer), 0) FROM %sFunctie AS F;", TABLE_PREFIX));
 		if ($r > $rid) {$rid = $r; }
-		$r = $this->scalar(sprintf("SELECT IFNULL(MAX(DP.RecordID), 0) FROM %sDiploma AS DP;", TABLE_PREFIX));
-		if ($r > $rid) {$rid = $r; }
 		$r = $this->scalar(sprintf("SELECT IFNULL(MAX(ST.RecordID), 0) FROM %sStukken AS ST;", TABLE_PREFIX));
 		if ($r > $rid) {$rid = $r; }
 		$r = $this->scalar(sprintf("SELECT IFNULL(MAX(EX.Nummer), 0) FROM %sExamen AS EX;", TABLE_PREFIX));
@@ -2620,11 +2618,11 @@ class cls_Onderdeel extends cls_db_base {
 	public string $code = "";
 	public string $type = "";
 	public string $typeoms = "";
-	public string $email = "";						// Het (centrale) e-mailadres wat bij dit onderdeel hoort
-	public int $alleenleden = 0;					// Mogen van dit onderdeel alleen mensen lid zijn, die ook lid van de vereniging zijn?
-	public int $bewaartermijnpresentie = 0;	// Hoelang moet de presentie worden bewaard, nadat het lidmaatschap is beëindigd.
+	public string $email = "";					// Het (centrale) e-mailadres wat bij dit onderdeel hoort
+	public int $alleenleden = 0;				// Mogen van dit onderdeel alleen mensen lid zijn, die ook lid van de vereniging zijn?
+	public int $bewaartermijnpresentie = 0;		// Hoelang moet de presentie worden bewaard, nadat het lidmaatschap is beëindigd.
 	public int $afmeldenmogelijk = 0;			// Als de waarde groter dan 0 is, dan mogen leden zich via de zelfservice afmelden. De waarde geeft het aantal activiteiten vooruit aan.
-	public $iskader = false;						// Zijn de leden van dit onderdeel kaderlid?
+	public $iskader = false;					// Zijn de leden van dit onderdeel kaderlid?
 	public float $contributielid = 0;
 	public float $contributiejeugdlid = 0;
 	public float $contributiekaderlid = 0;
@@ -2632,15 +2630,17 @@ class cls_Onderdeel extends cls_db_base {
 	public int $contributieperactiviteit = 0;
 	public string $mogelijkeparttimeperc = "";
 	public string $vervallen = "";				// Per deze datum is dit onderdeel komen te vervallen.
-	public $isautogroep = false;					// Wordt deze groep automatisch bijgewerkt op basis van MySQL-code of een Eigen query in de Access-database.
+	public $isautogroep = false;				// Wordt deze groep automatisch bijgewerkt op basis van MySQL-code of een Eigen query in de Access-database.
 	public int $ledenmuterendoor = 0;			// Door welke extra groep mogen de leden van dit onderdeel worden gemuteerd?
 	public int $historieopschonen = 0;
 	public int $maximalelengteperiode = 0;
 	public string $mysql = "";
 	public string $opmerking = "";
 	private string $mogelijketypes = "";
-	public int $aantalrijen = 0;				// Het aantal leden dat dit onderdeel op dit moment heeft
 	public int $organisatie = 0;
+	
+	public int $aantalrijen = 0;				// Het aantal leden dat dit onderdeel op dit moment heeft
+	public string $begintijd = "";				// De starttijd van de eerste groep
 
 	function __construct($p_oid=-1, $p_type="") {
 		$this->table = TABLE_PREFIX . "Onderdl";
@@ -2715,6 +2715,13 @@ class cls_Onderdeel extends cls_db_base {
 		} else {
 			$this->type = "G";
 			$this->typeoms = "Groep";
+		}
+		
+		if ($this->type == "A") {
+			$query = sprintf("SELECT IFNULL(MIN(GR.Starttijd), '') FROM %sGroep AS GR WHERE GR.Starttijd > '00:00' AND GR.OnderdeelID=%d;", TABLE_PREFIX, $this->oid);
+			$this->begintijd = $this->scalar($query);
+		} else {
+			$this->begintijd = "";
 		}
 		
 	}  # cls_Onderdeel->vulvars
@@ -3234,6 +3241,8 @@ class cls_Afdelingskalender extends cls_db_base {
 	public string $opmerking = "";
 	public int $activiteit = 1;
 	
+	public string $startactiviteit = "";
+	
 	public object $i_ond;
 	
 	function __construct($p_ondid=-1, $p_akid=-1) {
@@ -3267,6 +3276,8 @@ class cls_Afdelingskalender extends cls_db_base {
 		
 		$this->i_ond = new cls_Onderdeel($this->ondid);
 		
+		$this->startactiviteit = trim($this->datum . " " . $this->i_ond->begintijd);
+		
 	}  # cls_Afdelingskalender->vulvars
 	
 	public function lijst($p_ondid=-1, $p_datum="", $p_filter="", $p_order="", $p_limiet=-1) {
@@ -3295,10 +3306,8 @@ class cls_Afdelingskalender extends cls_db_base {
 		if ($p_limiet > 0) {
 			$lm = sprintf(" LIMIT %d", $p_limiet);
 		}
-		
-		$sqstart = sprintf("SELECT MIN(GR.Starttijd) FROM %sGroep AS GR WHERE GR.Starttijd > '00:00' AND GR.OnderdeelID=AK.OnderdeelID", TABLE_PREFIX);
-		
-		$query = sprintf("SELECT AK.*, O.Kode, O.Naam, (%s) AS Begintijd FROM %s INNER JOIN %sOnderdl AS O ON O.RecordID=AK.OnderdeelID WHERE %s ORDER BY %s%s;", $sqstart, $this->basefrom, TABLE_PREFIX, $where, $p_order, $lm);
+				
+		$query = sprintf("SELECT AK.*, O.Kode, O.Naam FROM %s INNER JOIN %sOnderdl AS O ON O.RecordID=AK.OnderdeelID WHERE %s ORDER BY %s%s;", $this->basefrom, TABLE_PREFIX, $where, $p_order, $lm);
 		$result = $this->execsql($query);
 		return $result->fetchAll();
 	}  # cls_Afdelingskalender->lijst
@@ -4579,7 +4588,7 @@ class cls_Lidond extends cls_db_base {
 			$this->ta = 2;
 			$this->tas = 62;
 			$this->lidid = 0;
-			if ($p_lidid <= 0) {
+			if ($p_lidid <= 0 and ($rv > 0 or $p_ondid <= 0)) {
 				$this->mess = sprintf("%s->%s in %.1f seconden uitgevoerd.", __CLASS__, __FUNCTION__, $exec_tijd);
 				$this->Log();
 			}
@@ -5542,6 +5551,7 @@ class cls_Mailing extends cls_db_base {
 	public string $subject = "";
 	public string $opmerking = "";
 	public string $nietversturenvoor = "";
+	public int $groepontvangers = 0;	// Dit onderdeel of eigen lijst is gekoppeld aan de mailing
 	public string $bericht = "";
 	public string $omschrijvingontvangers = "";
 	public string $tocc = "";
@@ -5583,6 +5593,7 @@ class cls_Mailing extends cls_db_base {
 				$this->subject = trim($row->subject ?? "");
 				$this->opmerking = trim($row->Opmerking ?? "");
 				$this->nietversturenvoor = $row->NietVersturenVoor ?? "";
+				$this->groepontvangers = $row->GroepOntvangers ?? 0;
 				$this->bericht = $row->message ?? "";
 				$this->omschrijvingontvangers = htmlentities(trim($row->OmschrijvingOntvangers ?? ""));
 				$this->tocc = trim($row->cc_addr ?? "");
@@ -10531,6 +10542,7 @@ class cls_Stukken extends cls_db_base {
 				$this->ingangsdatum = $row->Ingangsdatum ?? "";
 				$this->revisiedatum = $row->Revisiedatum ?? "";
 				$this->link = $row->Link;
+				$this->ingevoerd = $row->Ingevoerd ?? "";
 				$this->gewijzigd = $row->Gewijzigd ?? "";
 				if ($this->zichtbaarvoor == 0 or WEBMASTER) {
 					$this->magdownload = true;
@@ -10626,7 +10638,7 @@ class cls_Stukken extends cls_db_base {
 	
 	public function add() {
 		$nrid = $this->nieuwrecordid();
-		$query = sprintf("INSERT INTO %sStukken (RecordID, Titel, BestemdVoor, Link) VALUES (%d, '*** Nieuw stuk ***', 'Leden', '');", TABLE_PREFIX, $nrid);
+		$query = sprintf("INSERT INTO %sStukken (RecordID, Titel, Type, BestemdVoor, Link) VALUES (%d, '*** Nieuw stuk ***', 'R', 'Leden', '');", TABLE_PREFIX, $nrid);
 		if ($this->execsql($query) > 0) {
 			$this->mess = sprintf("Stuk met RecordID %d is toegevoegd.", $nrid);
 			$this->tas = 1;
@@ -12163,44 +12175,6 @@ function db_onderhoud($type=9) {
 	/***** Kolommen/indexen die later zijn toegevoegd. *****/
 	$i_base->tas = 11;
 
-	// Deze code kan na 1 mei 2024 worden verwijderd.
-	$tab = TABLE_PREFIX . "Liddipl";
-	$idx = "Lid";
-	if ($i_base->bestaat_index($tab, $idx) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD INDEX `%s` (`Lid`);", $tab, $idx);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Liddipl";
-	$idx = "LidDiploma";
-	if ($i_base->bestaat_index($tab, $idx) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD INDEX `%s` (`Lid`, `DiplomaID`);", $tab, $idx);
-		$i_base->execsql($query, 2);
-	}
-	
-	// Deze code kan na 1 juli 2024 worden verwijderd.
-	$tab = TABLE_PREFIX . "Admin_activiteit";
-	$col = "ReferOnderdeelID";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` INT NULL AFTER `ReferLidID`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Seizoen";
-	$col = "Afdelingscontributie omschrijving";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` TINYINT NOT NULL DEFAULT '1' AFTER `Verenigingscontributie kostenplaats`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	// Deze code kan na 1 september 2024 worden verwijderd.
-	$tab = TABLE_PREFIX . "Eigen_lijst";
-	$col = "Uitleg";
-	if ($i_base->bestaat_kolom($col, $tab) == false) {
-		$query = sprintf("ALTER TABLE `%s` ADD `%s` TEXT NULL AFTER `Naam`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
 	// Deze code kan na 1 oktober 2024 worden verwijderd.
 	$tab = TABLE_PREFIX . "Activiteit";
 	$col = "GBR";
@@ -12348,81 +12322,7 @@ function db_onderhoud($type=9) {
 	
 	/***** Velden die aangepast zijn *****/
 	$i_base->tas = 12;
-	
-	// Deze code mag na 1 juni 2024 worden verwijderd.	
-	if ($i_base->bestaat_kolom("GewijzigdOp", "Stukken") == true) {
-		$i_base->execsql(sprintf("ALTER TABLE `%sStukken` CHANGE `GewijzigdOp` `Gewijzigd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX));
-	}
 
-	// Deze code mag na 1 maart 2024 worden verwijderd.
-	$tab = TABLE_PREFIX . "Eigen_lijst";
-	$col = "Naam";
-	$query = sprintf("ALTER TABLE `%1\$s` CHANGE `%2\$s` `%2\$s` VARCHAR(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;", $tab, $col);
-	$i_base->execsql($query);
-	
-	// Deze code mag na 1 april 2024 worden verwijderd.
-	$query = sprintf("ALTER TABLE `%sMailing_hist` CHANGE `cc_addr` `cc_addr` VARCHAR(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL;", TABLE_PREFIX);
-	$i_base->execsql($query);
-	
-	$query = sprintf("ALTER TABLE `%sInschrijving` CHANGE `Opmerking` `Opmerking` VARCHAR(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL;", TABLE_PREFIX);
-	$i_base->execsql($query);
-	
-	$query = sprintf("ALTER TABLE `%sEvenement` CHANGE `Datum` `Datum` DATETIME NULL;", TABLE_PREFIX);
-	$i_base->execsql($query);
-	
-	$query = sprintf("ALTER TABLE `%sExamen` CHANGE `Datum` `Datum` DATE NOT NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
-	$i_base->execsql($query);
-	
-	$query = sprintf("ALTER TABLE `%sLiddipl` CHANGE `Examen` `Examen` INT(11) NOT NULL DEFAULT '0';", TABLE_PREFIX);
-	$i_base->execsql($query);
-	
-	$query = sprintf("ALTER TABLE `%sLidmaatschap` CHANGE `RedenOpzegging` `RedenOpzegging` TEXT CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL;", TABLE_PREFIX);
-	$i_base->execsql($query);
-	
-	$query = sprintf("ALTER TABLE `%sEigen_lijst` CHANGE `MySQL` `MySQL` TEXT CHARACTER SET utf8 COLLATE utf8_general_ci NULL;", TABLE_PREFIX);
-	$i_base->execsql($query);
-	
-	$query = sprintf("ALTER TABLE `%sInschrijving` CHANGE `XML` `XML` TEXT CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL;", TABLE_PREFIX);
-	$i_base->execsql($query);
-	
-	$query = sprintf("ALTER TABLE `%sMemo` CHANGE `Memo` `Memo` TEXT CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL;", TABLE_PREFIX);
-	$i_base->execsql($query);
-		
-	$query = sprintf("ALTER TABLE `%sOnderdl` CHANGE `MySQL` `MySQL` TEXT CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL;", TABLE_PREFIX);
-	$i_base->execsql($query);
-	
-	$query = sprintf("ALTER TABLE `%sOnderdl` CHANGE `Opmerking` `Opmerking` TEXT CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL;", TABLE_PREFIX);
-	$i_base->execsql($query);
-	
-	$query = sprintf("ALTER TABLE `%sSeizoen` CHANGE `Rekeningomschrijving` `Rekeningomschrijving` VARCHAR(35) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL;", TABLE_PREFIX);
-	$i_base->execsql($query);
-	
-	// Deze code mag na 1 mei 2024 worden verwijderd.
-	$query = sprintf("ALTER TABLE `%sLiddipl` CHANGE `Lid` `Lid` INT(11) NOT NULL;", TABLE_PREFIX);
-	$i_base->execsql($query);
-
-	$query = sprintf("ALTER TABLE `%sLiddipl` CHANGE `DiplomaID` `DiplomaID` INT(11) NOT NULL;", TABLE_PREFIX);
-	$i_base->execsql($query);
-	
-	$query = sprintf("ALTER TABLE `%sWS_Voorraadboeking` CHANGE `RecordID` `RecordID` INT(11) NOT NULL AUTO_INCREMENT;", TABLE_PREFIX);
-	$i_base->execsql($query);
-	
-	$query = sprintf("ALTER TABLE `%sEvenement` CHANGE `Organisatie` `Organisatie` INT(11) NOT NULL DEFAULT '0'; ", TABLE_PREFIX);
-	$i_base->execsql($query);
-	
-	// Deze code mag na 1 oktober 2024 worden verwijderd.
-	$query = sprintf("ALTER TABLE `%sAdmin_login` CHANGE `RecordID` `RecordID` INT(11) NOT NULL;", TABLE_PREFIX);
-	$i_base->execsql($query);
-	
-	$query = sprintf("ALTER TABLE `%sMemo` CHANGE `RecordID` `RecordID` INT(11) NOT NULL;", TABLE_PREFIX);
-	$i_base->execsql($query);
-	
-	$query = sprintf("ALTER TABLE `%sMailing_vanaf` CHANGE `Vanaf_email` `Vanaf_email` VARCHAR(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL;", TABLE_PREFIX);
-	$i_base->execsql($query);
-	
-	$query = sprintf("ALTER TABLE `%sAdmin_activiteit` CHANGE `IP_adres` `IP_adres` VARCHAR(45) CHARACTER SET utf8 COLLATE utf8_general_ci NULL;", TABLE_PREFIX);
-	$i_base->execsql($query);
-	
 	// Deze code mag na 1 maart 2025 worden verwijderd.
 	$query = sprintf("ALTER TABLE `%sLiddipl` CHANGE `Examen` `Examen` INT(11) NULL;", TABLE_PREFIX);
 	$i_base->execsql($query);
@@ -12440,316 +12340,16 @@ function db_onderhoud($type=9) {
 	$query = sprintf("ALTER TABLE `%sRekreg` CHANGE `Gewijzigd` `Gewijzigd` DATETIME on update CURRENT_TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP;", TABLE_PREFIX);
 	$i_base->execsql($query);
 	
+	// Deze code mag na 1 december 2025 worden verwijderd.
+	$query = sprintf("ALTER TABLE `%sStukken` CHANGE `Type` `Type` CHAR(2) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL;", TABLE_PREFIX);
+	$i_base->execsql($query);
+	
 	/***** Velden die niet meer nodig zijn *****/
 	$i_base->tas = 13;
-	
-	// Deze code kan pas verwijderd worden als de kolom ook uit de Access-database is verwijderd.
-	$tab = TABLE_PREFIX . "Lid";
-	$col = "Nummer";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-
-	// Deze code kan na 1 maart 2024 worden verwijderd.
-	$tab = TABLE_PREFIX . "Functie";
-	$col = "Oms_Vrouw";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "GebruikPlaatjeAlsBericht";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "SentBy";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "DeletedBy";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "InterneOpmerking";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-		
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "new_on";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "AddedBy";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "changed_on";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-		
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "ChangedBy";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Mailing_hist";
-	$col = "Successful";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Mailing_hist";
-	$col = "send_by";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "MailingID";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "from_name";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-		
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "from_addr";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-
-	$tab = TABLE_PREFIX . "Examen";
-	$col = "Omschrijving";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	// Deze code kan na 1 mei 2024 worden verwijderd.
-	$tab = TABLE_PREFIX . "Liddipl";
-	$col = "EXPLAATS";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
 	
 	// Deze code kan na 1 september 2024 worden verwijderd.
 	$tab = TABLE_PREFIX . "Mailing_hist";
 	$col = "from_name";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Mailing_hist";
-	$col = "from_addr";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "to_name";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Aanwezigheid";
-	$col = "IngevoerdDoor";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Aanwezigheid";
-	$col = "GewijzigdDoor";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Admin_login";
-	$col = "GewijzigdDoor";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-		
-	$tab = TABLE_PREFIX . "Admin_param";
-	$col = "IngevoerdDoor";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-		
-	$tab = TABLE_PREFIX . "Admin_param";
-	$col = "GewijzigdDoor";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-			
-	$tab = TABLE_PREFIX . "Admin_template";
-	$col = "GewijzigdDoor";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Afdelingskalender";
-	$col = "IngevoerdDoor";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-				
-	$tab = TABLE_PREFIX . "Afdelingskalender";
-	$col = "GewijzigdDoor";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Eigen_lijst";
-	$col = "IngevoerdDoor";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-				
-	$tab = TABLE_PREFIX . "Eigen_lijst";
-	$col = "GewijzigdDoor";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Evenement";
-	$col = "IngevoerdDoor";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-				
-	$tab = TABLE_PREFIX . "Evenement";
-	$col = "GewijzigdDoor";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-		
-	$tab = TABLE_PREFIX . "Evenement_Type";
-	$col = "GewijzigdDoor";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Lid";
-	$col = "GewijzigdDoor";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-		
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "IngevoerdDoor";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-				
-	$tab = TABLE_PREFIX . "Mailing";
-	$col = "GewijzigdDoor";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "WS_Artikel";
-	$col = "IngevoerdDoor";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-				
-	$tab = TABLE_PREFIX . "WS_Artikel";
-	$col = "GewijzigdDoor";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "WS_Orderregel";
-	$col = "IngevoerdDoor";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-				
-	$tab = TABLE_PREFIX . "WS_Orderregel";
-	$col = "GewijzigdDoor";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "WS_Voorraadboeking";
-	$col = "IngevoerdDoor";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-				
-	$tab = TABLE_PREFIX . "WS_Voorraadboeking";
-	$col = "GewijzigdDoor";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Evenement_Deelnemer";
-	$col = "IngevoerdDoor";
-	if ($i_base->bestaat_kolom($col, $tab) == true) {
-		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
-		$i_base->execsql($query, 2);
-	}
-	
-	$tab = TABLE_PREFIX . "Evenement_Deelnemer";
-	$col = "GewijzigdDoor";
 	if ($i_base->bestaat_kolom($col, $tab) == true) {
 		$query = sprintf("ALTER TABLE `%s` DROP `%s`;", $tab, $col);
 		$i_base->execsql($query, 2);
