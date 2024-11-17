@@ -905,7 +905,7 @@ function logboek() {
 		}
 		$f .= sprintf("CONCAT(A.RefTable, '-', A.refColumn)='%s'", $kolomfilter);
 	}
-	if ($referidfilter > 0) {
+	if ($referidfilter >= 0) {
 		if (strlen($f) > 0) {
 			$f .= " AND ";
 		}
