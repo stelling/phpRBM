@@ -211,10 +211,9 @@ function inschrijvenevenementen($lidid) {
 			echo("<div class='col-3'>");
 		}
 
+		$c = "";
 		if ($i_ed->status == "G") {
 			$c = " checked";
-		} else {
-			$c = "";
 		}
 		printf("<input type='radio' class='btn-check' id='geen_%1\$d' name='reactie_%1\$d' value='Geen' autocomplete='off'%2\$s>", $i_ev->evid, $c);
 		printf("<label class='btn btn-outline-secondary btn-sm' for='geen_%d' title='Geen reactie'>Geen reactie</label>\n", $i_ev->evid);
@@ -225,13 +224,13 @@ function inschrijvenevenementen($lidid) {
 			$bt = "Inschrijven";
 		}
 		$d = "";
-		if ($i_ev->maxdeelnemers > 0 and $i_ev->aantaldeelnemers >= $i_ev->maxdeelnemers and $i_ed->aanwezig == 0) {
+		if ($i_ev->maxdeelnemers > 0 and $i_ev->aantaldeelnemers >= $i_ev->maxdeelnemers and $i_ed->aanwezig == false) {
 			$d = " disabled";
 			$bt = "Vol";
 		}
 		printf("<input type='radio' class='btn-check' id='aanmelden_%1\$d' name='reactie_%1\$d' value='%2\$s' autocomplete='off'%3\$s%4\$s>", $i_ev->evid, $bt, checked($i_ed->aanwezig), $d);
 		printf("<label class='btn btn-outline-primary btn-sm' for='aanmelden_%1\$d' title='%2\$s'>%2\$s</label>\n", $i_ev->evid, $bt);
-
+		
 		printf("<input type='radio' class='btn-check' id='afmelden_%1\$d' name='reactie_%1\$d' value='Afmelden' autocomplete='off'%2\$s>", $i_ev->evid, checked($i_ed->status, "checkbox", "X"));
 		printf("<label class='btn btn-outline-danger btn-sm' for='afmelden_%d' title='Afmelden'>Afmelden</label>\n", $i_ev->evid);
 		
