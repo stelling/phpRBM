@@ -2261,11 +2261,11 @@ function fnMailingInstellingen() {
 	echo("<div class='clear'></div>\n");
 	
 	$kols = null;
-	$kols[] = array('headertext' => "#", 'type' => "pk", 'readonly' => true);
-	$kols[] = array('headertext' => "Vanaf e-mail", 'columnname' => "Vanaf_email", 'type' => "email");
-	$kols[] = array('headertext' => "Vanaf naam", 'columnname' => "Vanaf_naam");
-	$kols[] = array('headertext' => "Ingevoerd", 'columnname' => "Ingevoerd", 'type' => "date", 'readonly' => true);
-	$kols[] = array('headertext' => "Gewijzigd", 'columnname' => "Gewijzigd", 'type' => "datetime", 'readonly' => true, 'type' => "datetime");
+	$kols[] = array('columnname' => "RecordID", 'headertext' => "#", 'type' => "pk", 'readonly' => true);
+	$kols[] = array('columnname' => "Vanaf_email", 'headertext' => "Vanaf e-mail", 'type' => "email");
+	$kols[] = array('columnname' => "Vanaf_naam", 'columnname' => "Ingevoerd", 'headertext' => "Vanaf naam");
+	$kols[] = array('columnname' => "Ingevoerd", 'headertext' => "Ingevoerd", 'columnname' => "Ingevoerd", 'type' => "date", 'readonly' => true);
+	$kols[] = array('columnname' => "Gewijzigd", 'headertext' => "Gewijzigd", 'columnname' => "Gewijzigd", 'type' => "datetime", 'readonly' => true, 'type' => "datetime");
 	
 	$l = sprintf("%s?tp=%s/%s&delete_vanaf=%%d", $_SERVER['PHP_SELF'], $currenttab, $currenttab2);
 	$kols[] = array('headertext' => "&nbsp;", 'link' => $l, 'columnname' => "delrid", 'columntitle' => "Verwijder record", 'class' => "trash");
