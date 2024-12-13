@@ -389,7 +389,6 @@ if (substr($_SERVER['PHP_SELF'], -9) == "admin.php") {
 		$i_el = new cls_Eigen_lijst();
 		$i_el->where = "(EL.AantalKolommen > 0 OR LENGTH(EL.EigenScript) > 4) AND LENGTH(EL.Tabpage) > 0";
 		foreach($i_el->basislijst("", "EL.Naam") as $row) {
-			$i_el->controle($row->RecordID, 60);
 			$i_el->vulvars($row->RecordID);
 			if (($row->AantalKolommen > 0 and $i_el->aantalrijen > 0) or strlen($i_el->eigenscript) > 4) {
 				addtp($row->Tabpage . "/" . $row->Naam);
