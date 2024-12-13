@@ -897,7 +897,7 @@ function fnDisplayTable($rows, $kols=null, $th="", $disptot=0, $xtra_regel="", $
 						$dtfmt->setPattern(DTTEXT);
 						$ret .= sprintf("<td%s%s>%s</td>", $kol_class, $t, $dtfmt->format(strtotime($value)));
 					} elseif ((!is_null($value)) and strlen($value) > 0) {
-						$ret .= sprintf("<td%a>%s</td>", $kol_class, $value);
+						$ret .= sprintf("<td%s>%s</td>", $kol_class, $value);
 					} else {
 						$ret .= sprintf("<td%s></td>", $kol_class);
 					}
@@ -1699,7 +1699,7 @@ function removetextblock($content, $start_block, $end_block="") {
 function checked($val, $tp="checkbox", $sv=1) {
 	if ($tp == "option" and $val == $sv) {
 		return " selected";
-	} elseif ($tp == "checkbox" and isset($val) and (intval($val) == 1 or $val === true or $val > "1970-01-01")) {
+	} elseif ($tp == "checkbox" and isset($val) and (intval($val) == 1 or $val === true or ($val > "1970-01-01" and $val < "9999-12-31"))) {
 		return " checked";
 	} elseif ($tp == "checkbox" and $val == $sv) {
 		return " checked";
@@ -1872,7 +1872,7 @@ function laatstemutatie($p_table, $p_rid, $p_tas=-1, $p_glue="<br>") {
 	
 	$rv = "";
 	$i_lb = new cls_logboek();
-	$i_lb->where = sprintf("A.LidID > 0 AND A.RefTable='%s' AND ReferID=%d", $p_table, $p_rid);
+	$i_lb->where = sprintf("A.RefTable='%s' AND A.LidID > 0 AND ReferID=%d", $p_table, $p_rid);
 	if ($p_tas > 0) {
 		$i_lb->where .= sprintf(" AND A.TypeActiviteitSpecifiek=%d", $p_tas);
 	}
