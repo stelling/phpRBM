@@ -1484,11 +1484,11 @@ table#presentiemuteren td.aanwezig {
 	width: 200px;
 }
 
-td.voorgangerontbreekt {
+tr.voorgangerontbreekt, td.voorgangerontbreekt {
 	background-color: orange;
 }
 
-td.dubbeldiploma {
+tr.dubbeldiploma, td.dubbeldiploma {
 	background-color: yellow;
 }
 
@@ -2054,7 +2054,7 @@ nav a {
 }
 
 .vervallen {
-	font-color: red;
+	font-color: grey;
 }
 
 .mededeling, .mededeling a {
