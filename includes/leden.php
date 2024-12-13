@@ -1202,11 +1202,11 @@ function fnEigenGegevens($lidid=0) {
 			$kols[] = array('columnname' => "Vanaf", 'headertext' => "Vanaf", 'type' => "DTTEXT");
 			$kols[] = array('headertext' => "Opmerking", 'columnname' => "Opmerk");
 		
-			if (strlen(max(array_column($rows, "Groep"))) > 0) {
+			if (max(array_column($rows, "Groep")) > "") {
 				$kols[] = array('headertext' => "Groep", 'columnname' => "Groep");
 			}
 
-			if (strlen(max(array_column($rows, "Opgezegd"))) > 0) {
+			if (max(array_column($rows, "Opgezegd")) > "1970-01-01") {
 				$kols[] = array('headertext' => "Tot en met", 'columnname' => "Opgezegd", 'type' => "DTTEXT");
 			}
 		
@@ -1219,30 +1219,25 @@ function fnEigenGegevens($lidid=0) {
 		$rows = (new cls_Lidond())->overzichtlid($lidid, "G");
 		$kols = null;
 		if (count($rows) > 0 and toegang($ct . $tn, 0, 0)) {
-			$kols[0]['headertext'] = "Groep";
-			$kols[0]['columnname'] = "Naam";
+			$kols[] = array('headertext' => "Groep", 'columnname' => "Naam");
+			$kols[] = array('headertext' => "Vanaf", 'columnname' => "Vanaf", 'type' => "DTTEXT");
+			$kols[] = array('headertext' => 'Opmerking', 'columnname' => 'Opmerk');
 		
-			$kols[1]['headertext'] = "Vanaf";
-			$kols[1]['columnname'] = "Vanaf";
-			$kols[1]['type'] = "DTTEXT";
-			
-			$kols[2] = array('headertext' => 'Opmerking', 'columnname' => 'Opmerk');
-		
-			if (strlen(max(array_column($rows, "Opgezegd"))) > 0) {
-				$kols[3] = array('headertext' => "Tot en met", 'columnname' => "Opgezegd", 'type' => "DTTEXT");
+			if (max(array_column($rows, "Opgezegd")) > "1970-01-01") {
+				$kols[] = array('headertext' => "Tot en met", 'columnname' => "Opgezegd", 'type' => "DTTEXT");
 			}
-			$kols[4] = array('headertext' => "Duur", 'columnname' => "Duur");
+			$kols[] = array('headertext' => "Duur", 'columnname' => "Duur");
 			
 			$tabblad[$tn] = fnDisplayTable($rows, $kols, $th, 0, "", "", "onderdelenlid");
 		}
 		
 		$tn = "Kader";
 		$kols = null;
-		$kols[0] = array('headertext' => "Onderdeel", 'columnname' => "Naam");
-		$kols[1] = array('headertext' => "Functie", 'columnname' => "Functie");
-		$kols[2] = array('headertext' => "Vanaf", 'columnname' => "Vanaf", 'type' => "DTTEXT");
-		$kols[3] = array('headertext' => "Tot en met", 'columnname' => "Opgezegd", 'type' => "DTTEXT");
-		$kols[4] = array('headertext' => "Duur", 'columnname' => "Duur");
+		$kols[] = array('headertext' => "Onderdeel", 'columnname' => "Naam");
+		$kols[] = array('headertext' => "Functie", 'columnname' => "Functie");
+		$kols[] = array('headertext' => "Vanaf", 'columnname' => "Vanaf", 'type' => "DTTEXT");
+		$kols[] = array('headertext' => "Tot en met", 'columnname' => "Opgezegd", 'type' => "DTTEXT");
+		$kols[] = array('headertext' => "Duur", 'columnname' => "Duur");
 		
 		if (toegang($ct . $tn, 0, 0)) {
 			if ($tn == $currenttab3) {
@@ -1258,19 +1253,13 @@ function fnEigenGegevens($lidid=0) {
 		$rows = $i_lo->overzichtlid($lidid, "R");
 		$kols = null;
 		if (count($rows) > 0 and toegang($ct . $tn, 0, 0)) {
-			$kols[0]['headertext'] = "Rol";
-			$kols[0]['columnname'] = "Naam";
-		
-			$kols[1]['headertext'] = "Vanaf";
-			$kols[1]['columnname'] = "Vanaf";
-			$kols[1]['type'] = "DTTEXT";
+			$kols[] = array('headertext' => "Rol", 'columnname' => "Naam");
+			$kols[] = array('headertext' => "Vanaf", 'columnname' => "Vanaf", 'type' => "DTTEXT");
 		
 			if (max(array_column($rows, "Opgezegd")) > "1900-01-01") {
-				$kols[2] = array('headertext' => "Tot en met", 'columnname' => "Opgezegd", 'type' => "DTTEXT");
+				$kols[] = array('headertext' => "Tot en met", 'columnname' => "Opgezegd", 'type' => "DTTEXT");
 			}
-
-			$kols[3]['headertext'] = "Duur";
-			$kols[3]['columnname'] = "Duur";
+			$kols[] = array('headertext' => "Duur", 'columnname' => "Duur");
 			
 			$tabblad[$tn] = fnDisplayTable($rows, $kols, $th, 0, "", $tn);
 		}
@@ -2373,20 +2362,25 @@ function diplomaslidmuteren($lidid, $td, $eenv=1) {
 	$script = "";
 	$dtfmt->setPattern(DTSHORT);
 	foreach ($ldrows as $ldrow) {
-		printf("<tr>\n<td>%s</td>\n<td>%s</td>\n\n", $ldrow->Kode, $ldrow->NaamLang);
+		$i_ld->vulvars($ldrow->RecordID);
+		$c = "";
+		if (strlen($i_ld->ldclass) > 0) {
+			$c = sprintf(" class='%s'", $i_ld->ldclass);
+		}
+		printf("<tr>\n<td%1\$s>%2\$s</td>\n<td%1\$s>%3\$s</td>\n\n", $c, $i_ld->i_dp->code, $i_ld->i_dp->naamlang);
 		if ($ldrow->Examen > 0) {
 			$d = " disabled";
 		} else {
 			$d = "";
 		}
 		if ($ldrow->Zelfservice == 0 and $td == "ZS") {
-			printf("<td>%s</td><td class='diplomanummer'>%s</td><td class='geldigtot'>%s</td>", $dtfmt->format(strtotime($ldrow->DatumBehaald)), $ldrow->Diplomanummer, $dtfmt->format(strtotime($ldrow->LicentieVervallenPer)));
+			printf("<td>%s</td><td class='diplomanummer'>%s</td><td class='geldigtot'>%s</td>", $dtfmt->format(strtotime($ldrow->DatumBehaald)), $ldrow->Diplomanummer, $dtfmt->format(strtotime($i_ld->licentievervallenper)));
 		} else {
 			$id = sprintf("DatumBehaald_%d", $ldrow->RecordID);
 			printf("<td><input type='date' id='%s' value='%s' max='%s' required%s></td>\n", $id, $ldrow->DatumBehaald, date("Y-m-d"), $d);
 //			$script .= sprintf("$('#%1\$s').datepicker();\n$('#%1\$s').datepicker('dateFormat', 'yy-mm-dd').datepicker('maxDate', new Date());\n$('#%1\$s').datepicker('setDate', '%3\$s').datepicker('option', 'gotoCurrent', true);\n", $id, $minbehaald, $ldrow->DatumBehaald);
 			printf("<td class='diplomanummer'><input type='text' id='Diplomanummer_%d' value='%s' maxlength=30></td>\n", $ldrow->RecordID, $ldrow->Diplomanummer);
-			printf("<td class='geldigtot'><input type='date' id='LicentieVervallenPer_%d' value='%s'></td>\n", $ldrow->RecordID, $ldrow->LicentieVervallenPer);
+			printf("<td class='geldigtot'><input type='date' id='LicentieVervallenPer_%d' value='%s'></td>\n", $ldrow->RecordID, $i_ld->licentievervallenper);
 		}
 		echo("</tr>\n");
 	}
