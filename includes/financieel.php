@@ -241,16 +241,17 @@ function fnRekeningMuteren($p_rkid=-1) {
 			printf("<table id='rekregels' class='%s'>\n", TABLECLASSES);
 			echo("<tr><th>Regel</th><th>Kostenplaats</th><th>Lid</th><th>Omschrijving</th><th>Bedrag in &euro;</th><th>&nbsp;</th></tr>\n");
 			foreach($i_rr->perrekening($reknr) as $rrrow) {
+				$i_rr->vulvars($rrrow->RecordID);
 				echo("<tr>\n");
 				printf("<td><input type='number' id='Regelnr_%d' class='num2' step=1 value=%d min=1></td>\n", $rrrow->RecordID, $rrrow->Regelnr);
 				$jsob = "";
-				if (strlen($rrrow->OMSCHRIJV) == 0) {
+				if (strlen($i_rr->omschrijving) == 0) {
 					$jsob = " onBlur='this.form.submit();'";
 				}
-				printf("<td><input type='text' id='KSTNPLTS_%d' value='%s' class='w7' maxlength=7%s></td>\n", $rrrow->RecordID, $rrrow->KSTNPLTS, $jsob);
+				printf("<td><input type='text' id='KSTNPLTS_%d' value='%s' class='w7' maxlength=7%s></td>\n", $rrrow->RecordID, $i_rr->kostenplaats, $jsob);
 				printf("<td id='Naam_%d'>%s</td>\n", $rrrow->RecordID, $rrrow->NaamLid);
-				printf("<td><input type='text' id='OMSCHRIJV_%d' class='w70' value=\"%s\" maxlength=70></td>\n", $rrrow->RecordID, $rrrow->OMSCHRIJV);
-				printf("<td><input type='text' id='Bedrag_%d' value='%s' class='d8'></td>\n", $rrrow->RecordID, number_format($rrrow->Bedrag, 2, ",", ""));
+				printf("<td><input type='text' id='OMSCHRIJV_%d' class='w70' value=\"%s\" maxlength=70></td>\n", $rrrow->RecordID, $i_rr->omschrijving);
+				printf("<td><input type='text' id='Bedrag_%d' value='%s' class='d8'></td>\n", $rrrow->RecordID, number_format($i_rr->bedrag, 2, ",", ""));
 				printf("<td id='Delete_%1\$d' class='trash'><i class='bi bi-trash' onClick='verw_rekeningregel(%1\$d);'></i></td>", $rrrow->RecordID);
 				echo("</tr>\n");
 			}
