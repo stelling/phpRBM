@@ -1321,8 +1321,9 @@ function fnOntvangersAfdelingsmailing($p_afdid, $p_uitvoeren=0, $p_mailing=-1) {
 					$toev = false;
 				}
 			}
-			
-			if ($toev and ($mingroepgewijzigd > $_POST['groepgewijzigdna'] or $i_lo->laatstemutatiegroep() >= $_POST['groepgewijzigdna'])) {
+
+			if ($toev and $i_lo->laatstemutatiegroep($lorow->RecordID) >= $_POST['groepgewijzigdna']) {
+
 				$rv .= sprintf("<li>%s</li>", $i_lid->naam($lorow->Lid));
 				$selaant++;
 				if ($p_uitvoeren == 1) {
