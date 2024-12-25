@@ -11051,12 +11051,11 @@ class cls_Eigen_lijst extends cls_db_base {
 	
 		$rv = "";
 		foreach ($this->lijst($p_filter) as $row) {
-			$o = $row->Naam;
+			$this->vulvars($row->RecordID);
+			$o = $this->naam;
 			if ($row->AantalRecords > 1) {
 				$o .= sprintf(" (%d leden)", $row->AantalRecords);
-			} elseif ($row->AantalRecords == 0) {
-				$o .= " (geen records)";
-			} else {
+			} elseif ($row->AantalRecords == 1) {
 				$o .= " (1 lid)";
 			}
 			$rv .= sprintf("<option%s value=%d>%s</option>\n", checked($row->RecordID, "option", $p_cv), $row->RecordID, $o);
